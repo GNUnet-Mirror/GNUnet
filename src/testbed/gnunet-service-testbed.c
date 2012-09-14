@@ -367,17 +367,17 @@ struct OverlayConnectContext
   struct Peer *other_peer;
 
   /**
-   * Transport handle of the first peer to offer second peer's HELLO
+   * Transport handle of the first peer to get its HELLO
    */
   struct GNUNET_TRANSPORT_Handle *p1th;
 
   /**
-   * Transport handle of other peer to get its HELLO
+   * Transport handle of other peer to offer first peer's HELLO
    */
   struct GNUNET_TRANSPORT_Handle *p2th;
 
   /**
-   * Core handles of the peer which has to connect to other peer
+   * Core handles of the first peer; used to notify when second peer connects to it
    */
   struct GNUNET_CORE_Handle *ch;
 
@@ -387,7 +387,7 @@ struct OverlayConnectContext
   struct GNUNET_MessageHeader *hello;
 
   /**
-   * Get hello handle for the other peer
+   * Get hello handle to acquire HELLO of first peer
    */
   struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
 
@@ -2058,9 +2058,8 @@ overlay_connect_notify (void *cls, const struct GNUNET_PeerIdentity *new_peer,
   occ->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_free_non_null (occ->emsg);
   occ->emsg = NULL;
-  GNUNET_TRANSPORT_disconnect (occ->p1th);
-  occ->p1th = NULL;
-  /* Peer 1 has connected connect to peer2 - now send overlay connect success message */
+  GNUNET_TRANSPORT_disconnect (occ->p2th);
+  occ->p2th = NULL;
   LOG_DEBUG ("Peers connected - Sending overlay connect success\n");
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ConnectionEventMessage));
   msg->header.size =
@@ -2076,6 +2075,13 @@ overlay_connect_notify (void *cls, const struct GNUNET_PeerIdentity *new_peer,
 }
 
 
+/**
+ * Task to offer HELLO of peer 1 to peer 2 and try to make peer 2 to connect to
+ * peer 1.
+ *
+ * @param cls the OverlayConnectContext
+ * @param tc the TaskContext from scheduler
+ */
 static void
 send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -2087,11 +2093,11 @@ send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   GNUNET_assert (NULL != occ->hello);
   other_peer_str = GNUNET_strdup (GNUNET_i2s (&occ->other_peer_identity));
-  LOG_DEBUG ("Offering HELLO of %s to %s\n", other_peer_str,
-             GNUNET_i2s (&occ->peer_identity));
+  LOG_DEBUG ("Offering HELLO of %s to %s\n", 
+	     GNUNET_i2s (&occ->peer_identity), other_peer_str);
   GNUNET_free (other_peer_str);
-  GNUNET_TRANSPORT_offer_hello (occ->p1th, occ->hello, NULL, NULL);
-  GNUNET_TRANSPORT_try_connect (occ->p1th, &occ->other_peer_identity);
+  GNUNET_TRANSPORT_offer_hello (occ->p2th, occ->hello, NULL, NULL);
+  GNUNET_TRANSPORT_try_connect (occ->p2th, &occ->peer_identity);
   occ->send_hello_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &send_hello, occ);
 }
@@ -2136,17 +2142,16 @@ hello_update_cb (void *cls, const struct GNUNET_MessageHeader *hello)
                                          &empty);
   if (GNUNET_YES == empty)
   {
-    LOG_DEBUG ("HELLO of %s is empty\n",
-               GNUNET_i2s (&occ->other_peer_identity));
+    LOG_DEBUG ("HELLO of %s is empty\n", GNUNET_i2s (&occ->peer_identity));
     return;
   }
-  LOG_DEBUG ("Received HELLO of %s\n", GNUNET_i2s (&occ->other_peer_identity));
+  LOG_DEBUG ("Received HELLO of %s\n", GNUNET_i2s (&occ->peer_identity));
   occ->hello = GNUNET_malloc (msize);
   memcpy (occ->hello, hello, msize);
   GNUNET_TRANSPORT_get_hello_cancel (occ->ghh);
   occ->ghh = NULL;
-  GNUNET_TRANSPORT_disconnect (occ->p2th);
-  occ->p2th = NULL;
+  GNUNET_TRANSPORT_disconnect (occ->p1th);
+  occ->p1th = NULL;
   GNUNET_free_non_null (occ->emsg);
   occ->emsg = GNUNET_strdup ("Timeout while offering HELLO to other peer");
   occ->send_hello_task = GNUNET_SCHEDULER_add_now (&send_hello, occ);
@@ -2192,10 +2197,9 @@ core_startup_cb (void *cls, struct GNUNET_CORE_Handle *server,
                                                   occ);
     return;
   }
-  LOG_DEBUG ("Acquiring HELLO of peer %s\n",
-             GNUNET_i2s (&occ->other_peer_identity));
+  LOG_DEBUG ("Acquiring HELLO of peer %s\n", GNUNET_i2s (&occ->peer_identity));
   occ->emsg = GNUNET_strdup ("Timeout while acquiring HELLO message");
-  occ->ghh = GNUNET_TRANSPORT_get_hello (occ->p2th, &hello_update_cb, occ);
+  occ->ghh = GNUNET_TRANSPORT_get_hello (occ->p1th, &hello_update_cb, occ);
 }
 
 
