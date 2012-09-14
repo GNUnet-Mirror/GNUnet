@@ -52,6 +52,8 @@ static int ok;
 
 static struct GNUNET_TIME_Absolute start_time;
 
+static struct GNUNET_TESTBED_Operation *op;
+
 
 static void
 do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -88,6 +90,8 @@ do_download (void *cls,
 {
   struct GNUNET_FS_Uri *uri = cls;
 
+  GNUNET_TESTBED_operation_done (op);
+  op = NULL;
   if (NULL != emsg)
   {
     GNUNET_SCHEDULER_shutdown ();
@@ -112,7 +116,8 @@ stop_source_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_FS_Uri *uri = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping source peer\n");
-  GNUNET_TESTBED_peer_stop (daemons[1], &do_download, uri);
+  op = GNUNET_TESTBED_peer_stop (daemons[1], &do_download, uri);
+  GNUNET_assert (NULL != op);
 }
 
 
@@ -137,9 +142,12 @@ do_wait (void *cls, const struct GNUNET_FS_Uri *uri)
 
 static void
 do_publish (void *cls, 
-	    struct GNUNET_TESTBED_Operation *op,
+	    struct GNUNET_TESTBED_Operation *oparg,
 	    const char *emsg)
 {
+  GNUNET_assert (op == oparg);
+  GNUNET_TESTBED_operation_done (op);
+  op = NULL;
   if (NULL != emsg)
   {
     GNUNET_SCHEDULER_shutdown ();
@@ -168,9 +176,9 @@ do_connect (void *cls,
     daemons[i] = peers[i];
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Daemons started, will now try to connect them\n");
-  GNUNET_TESTBED_overlay_connect (NULL,
-				  &do_publish, NULL,
-				  daemons[0], daemons[1]);
+  op = GNUNET_TESTBED_overlay_connect (NULL,
+				       &do_publish, NULL,
+				       daemons[0], daemons[1]);
 }
 
 

@@ -369,6 +369,7 @@ do_publish2 (void *cls,
                           NULL);
 }
 
+
 static void
 do_publish1 (void *cls, 
 	     struct GNUNET_TESTBED_Operation *op,
@@ -378,6 +379,7 @@ do_publish1 (void *cls,
   int do_index;
   int anonymity;
 
+  GNUNET_TESTBED_operation_done (op);
   if (NULL != emsg)
   {
     GNUNET_SCHEDULER_shutdown ();

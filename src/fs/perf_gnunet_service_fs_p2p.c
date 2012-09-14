@@ -302,6 +302,7 @@ do_publish (void *cls,
   int do_index;
   int anonymity;
 
+  GNUNET_TESTBED_operation_done (op);
   if (NULL != emsg)
   {
     GNUNET_SCHEDULER_shutdown ();
@@ -348,6 +349,7 @@ do_connect (void *cls,
 int
 main (int argc, char *argv[])
 {
+  progname = argv[0];
   GNUNET_TESTBED_test_run ("perf-gnunet-service-fs-p2p",
 			   "perf_gnunet_service_fs_p2p.conf",
 			   NUM_DAEMONS,
