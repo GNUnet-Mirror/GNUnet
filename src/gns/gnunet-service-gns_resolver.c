@@ -2345,7 +2345,9 @@ process_delegation_result_dht(void* cls,
                    "GNS_PHASE_REC-%llu: Replacing oldest background ns task\n",
                    rh->id);
       }
-      
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "GNS_PHASE_REC-%llu: Caching record for %s\n",
+                  rh->id, name);
       namestore_bg_task = GNUNET_malloc (sizeof (struct NamestoreBGTask));
 
       namestore_bg_task->node = GNUNET_CONTAINER_heap_insert (ns_task_heap,
