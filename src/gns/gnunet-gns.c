@@ -287,6 +287,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Failed to connect to GNS\n"));
+    if (NULL != shorten_key)
+    {
+      GNUNET_CRYPTO_rsa_key_free (shorten_key);
+      shorten_key = NULL;
+    }
     return;
   }
   
