@@ -2147,13 +2147,17 @@ core_startup_cb (void *cls, struct GNUNET_CORE_Handle *server,
   struct OverlayConnectContext *occ = cls;
 
   GNUNET_free_non_null (occ->emsg);
+  occ->emsg = GNUNET_strdup ("Failed to connect to CORE\n");
+  if ((NULL == server) || (NULL == my_identity))
+    goto error_return;
+  GNUNET_free (occ->emsg);
   occ->emsg = NULL;
   memcpy (&occ->peer_identity, my_identity,
           sizeof (struct GNUNET_PeerIdentity));
   occ->p1th =
       GNUNET_TRANSPORT_connect (occ->peer->details.local.cfg,
                                 &occ->peer_identity, NULL, NULL, NULL, NULL);
-  /* Connect to the transport of 2nd peer and get its HELLO message */
+  /* Connect to the transport of 2nd peer to offer 1st peer's HELLO */
   GNUNET_TESTING_peer_get_identity (occ->other_peer->details.local.peer,
                                     &occ->other_peer_identity);
   occ->p2th =
@@ -2162,15 +2166,17 @@ core_startup_cb (void *cls, struct GNUNET_CORE_Handle *server,
                                 NULL);
   if ((NULL == occ->p1th) || (NULL == occ->p2th))
   {
-    occ->emsg = GNUNET_strdup ("Cannot connect to TRANSPORTs of peers");
-    GNUNET_SCHEDULER_cancel (occ->timeout_task);
-    occ->timeout_task = GNUNET_SCHEDULER_add_now (&timeout_overlay_connect,
-                                                  occ);
-    return;
+    occ->emsg = GNUNET_strdup ("Cannot connect to TRANSPORTs of peers");    
+    goto error_return;
   }
   LOG_DEBUG ("Acquiring HELLO of peer %s\n", GNUNET_i2s (&occ->peer_identity));
   occ->emsg = GNUNET_strdup ("Timeout while acquiring HELLO message");
   occ->ghh = GNUNET_TRANSPORT_get_hello (occ->p1th, &hello_update_cb, occ);
+  return;
+  
+ error_return:
+  GNUNET_SCHEDULER_cancel (occ->timeout_task);
+  occ->timeout_task = GNUNET_SCHEDULER_add_now (&timeout_overlay_connect, occ);
 }
 
 
@@ -2208,17 +2214,21 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
   occ->client = client;
   occ->peer = peer_list[p1];
   occ->other_peer = peer_list[p2];
-  occ->op_id = GNUNET_ntohll (msg->operation_id);
-  occ->timeout_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 30),
-                                    &timeout_overlay_connect, occ);
+  occ->op_id = GNUNET_ntohll (msg->operation_id);  
   /* Connect to the core of 1st peer and wait for the 2nd peer to connect */
   occ->emsg = GNUNET_strdup ("Timeout while connecting to CORE");
   occ->ch =
       GNUNET_CORE_connect (occ->peer->details.local.cfg, occ, &core_startup_cb,
                            &overlay_connect_notify, NULL, NULL, GNUNET_NO, NULL,
                            GNUNET_NO, no_handlers);
+  if (NULL == occ->ch)
+    occ->timeout_task = 
+	GNUNET_SCHEDULER_add_now (&timeout_overlay_connect, occ);
+  else
+    occ->timeout_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_SECONDS, 30),
+                                    &timeout_overlay_connect, occ);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
