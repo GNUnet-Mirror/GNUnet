@@ -133,7 +133,7 @@ get_callback (void *cls,
               const struct GNUNET_PeerIdentity *path,
               const struct GNUNET_HashCode * key)
 {
-  FPRINTF (stdout, "Result %d, operation: %s, type %d\n Key: %s",
+  FPRINTF (stdout, "Result %d, operation: %s, type %d\n Key: %s\n ",
            result_count,
            "GET",
            type,
