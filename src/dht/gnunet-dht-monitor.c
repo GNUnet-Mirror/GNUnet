@@ -256,7 +256,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (verbose)
   {
       if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value != timeout_request.rel_value)
-        FPRINTF (stderr, "Monitoring for %lus\n", timeout_request.rel_value / 1000);
+        FPRINTF (stderr, "Monitoring for %s\n",
+		 GNUNET_TIME_relative_to_string (timeout_request));
       else
         FPRINTF (stderr, "%s", "Monitoring indefinitely (close with Ctrl+C)\n");
   }
