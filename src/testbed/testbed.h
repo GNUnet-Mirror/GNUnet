@@ -419,7 +419,12 @@ struct GNUNET_TESTBED_RequestConnectMessage
   /**
    * The Operation ID that is used to identify this operation
    */
-  uint64_t operation_id GNUNET_PACKED;  
+  uint64_t operation_id GNUNET_PACKED;
+
+  /**
+   * Identity of A
+   */
+  struct GNUNET_PeerIdentity peer_identity;
   
   /**
    * To be followed by the HELLO message of A
