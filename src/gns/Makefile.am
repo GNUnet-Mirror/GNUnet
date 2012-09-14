@@ -62,8 +62,8 @@ check_PROGRAMS = \
   test_gns_cname_lookup \
   test_gns_ns_lookup \
   test_gns_revocation \
-  test_gns_dht_three_peers \
-  test_gns_proxy
+  test_gns_dht_three_peers
+ #test_gns_proxy
 
   
 

@@ -61,13 +61,13 @@ static int ends_with(const char *name, const char* suffix) {
 
 
 /**
- * Check if name is inside .gnunet or .zkey TLD
+ * Check if name is inside .gads or .zkey TLD
  *
  * @param name name to check
  * @return 1 if true
  */
 static int verify_name_allowed(const char *name) {
-    return ends_with(name, ".gnunet") || ends_with(name, ".zkey"); 
+    return ends_with(name, ".gads") || ends_with(name, ".zkey"); 
 }
 
 /**

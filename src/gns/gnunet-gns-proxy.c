@@ -322,6 +322,9 @@ struct ProxyREMatch
   /* DLL */
   struct ProxyREMatch *prev;
 
+  /* is SSL */
+  int is_ssl;
+
   /* hostname found */
   char hostname[255];
 
@@ -1041,6 +1044,9 @@ mhd_content_free (void *cls,
   if (NULL != ctask->post_handler)
     MHD_destroy_post_processor (ctask->post_handler);
 
+  if (GNUNET_SCHEDULER_NO_TASK != ctask->pp_task)
+    GNUNET_SCHEDULER_cancel (ctask->pp_task);
+
   for (pdata = ctask->upload_data_head; NULL != pdata; pdata = ctask->upload_data_head)
   {
     GNUNET_CONTAINER_DLL_remove (ctask->upload_data_head,
@@ -1251,7 +1257,7 @@ process_shorten (void* cls, const char* short_name)
               re_match->hostname,
               result);
   
-  if (re_match->ctask->mhd->is_ssl)
+  if (re_match->is_ssl)
     sprintf (re_match->result, "href=\"https://%s", result);
   else
     sprintf (re_match->result, "href=\"http://%s", result);
@@ -1300,12 +1306,19 @@ postprocess_buffer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     memset (re_hostname, 0, sizeof (re_hostname));
     memcpy (re_hostname, re_ptr+m[1].rm_so, (m[3].rm_eo-m[1].rm_so));
+    
 
     re_match = GNUNET_malloc (sizeof (struct ProxyREMatch));
     re_match->start = re_ptr + m[0].rm_so;
     re_match->end = re_ptr + m[3].rm_eo;
     re_match->done = GNUNET_NO;
     re_match->ctask = ctask;
+    
+    if ('s' == *(re_ptr+m[1].rm_so-strlen("://")-1)) //FIXME strcmp
+      re_match->is_ssl = GNUNET_YES;
+    else
+      re_match->is_ssl = GNUNET_NO;
+      
     strcpy (re_match->hostname, re_hostname);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "PP: Got hostname %s\n", re_hostname);
