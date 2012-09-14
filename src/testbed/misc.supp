@@ -32,3 +32,11 @@
    ...
    obj:/lib/i386-linux-gnu/ld-2.15.so
 }
+{
+   <glibc-networking>
+   Memcheck:Leak
+   fun:malloc
+   fun:make_request
+   fun:__check_pf
+}
+

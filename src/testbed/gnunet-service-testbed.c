@@ -1368,6 +1368,7 @@ handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
   if (slave_host_id == master_context->host_id) /* Link from us */
   {
     struct Slave *slave;
+    struct LinkControllersContext *lcc;
 
     msize -= sizeof (struct GNUNET_TESTBED_ControllerLinkMessage);
     config_size = ntohs (msg->config_size);
@@ -1416,32 +1417,30 @@ handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
     slave = GNUNET_malloc (sizeof (struct Slave));
     slave->host_id = delegated_host_id;
     slave_list_add (slave);
-    if (1 == msg->is_subordinate)
-    {
-      struct LinkControllersContext *lcc;
-
-      lcc = GNUNET_malloc (sizeof (struct LinkControllersContext));
-      lcc->operation_id = GNUNET_ntohll (msg->operation_id);
-      GNUNET_SERVER_client_keep (client);
-      lcc->client = client;
-      lcc->slave = slave;
-      slave->controller_proc =
-          GNUNET_TESTBED_controller_start (master_context->master_ip,
-                                           host_list[slave->host_id], cfg,
-                                           &slave_status_callback, lcc);
-    }
-    else
+    if (1 != msg->is_subordinate)
     {
       slave->controller =
           GNUNET_TESTBED_controller_connect (cfg, host_list[slave->host_id],
                                              master_context->event_mask,
                                              &slave_event_callback, slave);
+      GNUNET_CONFIGURATION_destroy (cfg);
       if (NULL != slave->controller)
         send_operation_success_msg (client, GNUNET_ntohll (msg->operation_id));
       else
         send_operation_fail_msg (client, GNUNET_ntohll (msg->operation_id),
                                  "Could not connect to delegated controller");
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      return;
     }
+    lcc = GNUNET_malloc (sizeof (struct LinkControllersContext));
+    lcc->operation_id = GNUNET_ntohll (msg->operation_id);
+    GNUNET_SERVER_client_keep (client);
+    lcc->client = client;
+    lcc->slave = slave;
+    slave->controller_proc =
+	GNUNET_TESTBED_controller_start (master_context->master_ip,
+					 host_list[slave->host_id], cfg,
+					 &slave_status_callback, lcc);
     GNUNET_CONFIGURATION_destroy (cfg);
     new_route = GNUNET_malloc (sizeof (struct Route));
     new_route->dest = delegated_host_id;
@@ -2193,8 +2192,7 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
 {
   const struct GNUNET_TESTBED_OverlayConnectMessage *msg;
   struct OverlayConnectContext *occ;
-
-  struct GNUNET_CORE_MessageHandler no_handlers[] = {
+  const struct GNUNET_CORE_MessageHandler no_handlers[] = {
     {NULL, 0, 0}
   };
   uint32_t p1;
