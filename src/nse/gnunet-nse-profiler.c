@@ -294,7 +294,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TESTBED_controller_disconnect (controller);
   if (NULL != copro)
       GNUNET_TESTBED_controller_stop (copro);
-  while (0 > num_hosts)
+  while (0 < num_hosts)
     GNUNET_TESTBED_host_destroy (hosts[--num_hosts]);
   // FIXME: what about closing other files!?
   if (NULL != data_file)
