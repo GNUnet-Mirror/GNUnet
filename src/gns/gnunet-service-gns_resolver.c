@@ -2329,7 +2329,7 @@ process_delegation_result_dht(void* cls,
     GNUNET_CRYPTO_short_hash_from_truncation (&zone_hash_double, &zone);
 
     /* Save to namestore */
-    if (0 != GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_tail->zone,
+    if (0 != GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
                                           &zone))
     {
       if (max_allowed_ns_tasks <=
