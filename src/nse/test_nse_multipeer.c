@@ -19,7 +19,6 @@
 */
 /**
  * @file nse/test_nse_multipeer.c
- *
  * @brief Testcase for the network size estimation service.  Starts
  *        a peergroup with a given number of peers, then waits to
  *        receive size estimates from each peer.  Expects to wait

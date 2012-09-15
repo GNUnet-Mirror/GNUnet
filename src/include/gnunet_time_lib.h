@@ -442,7 +442,7 @@ GNUNET_TIME_absolute_ntoh (struct GNUNET_TIME_AbsoluteNBO a);
 
 /**
  * Convert a relative time to a string.
- * NOT reentrant!
+ * NOT reentrant!  FIXME: duplicate with GNUNET_STRINGS_relative_time_to_string!
  *
  * @param time the time to print
  *
