@@ -148,24 +148,20 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   cfg = c;
 
-  if ((query_key == NULL) || (data == NULL))
+  if ((NULL == query_key) || (NULL == data))
   {
     FPRINTF (stderr, "%s",  _("Must provide KEY and DATA for DHT put!\n"));
     ret = 1;
     return;
   }
 
-  dht_handle = GNUNET_DHT_connect (cfg, 1);
-  if (dht_handle == NULL)
+  if (NULL == (dht_handle = GNUNET_DHT_connect (cfg, 1)))
   {
     FPRINTF (stderr, _("Could not connect to %s service!\n"), "DHT");
     ret = 1;
     return;
   }
-  else if (verbose)
-    FPRINTF (stderr, _("Connected to %s service!\n"), "DHT");
-
-  if (query_type == GNUNET_BLOCK_TYPE_ANY)      /* Type of data not set */
+  if (GNUNET_BLOCK_TYPE_ANY == query_type)      /* Type of data not set */
     query_type = GNUNET_BLOCK_TYPE_TEST;
 
   GNUNET_CRYPTO_hash (query_key, strlen (query_key), &key);
@@ -176,7 +172,6 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply
                                         (GNUNET_TIME_UNIT_SECONDS,
                                          expiration_seconds));
-
   if (verbose)
     FPRINTF (stderr, _("Issuing put request for `%s' with data `%s'!\n"),
              query_key, data);
