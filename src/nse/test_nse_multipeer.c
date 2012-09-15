@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -26,85 +26,62 @@
  *        for one message from each peer.
  */
 #include "platform.h"
-#include "gnunet_testing_lib.h"
+#include "gnunet_testbed_service.h"
 #include "gnunet_nse_service.h"
 
-#define VERBOSE GNUNET_NO
 
+/**
+ * How many peers do we start?
+ */
 #define NUM_PEERS 4
-
-struct NSEPeer
-{
-  struct NSEPeer *prev;
-
-  struct NSEPeer *next;
-
-  struct GNUNET_TESTING_Daemon *daemon;
-
-  struct GNUNET_NSE_Handle *nse_handle;
-};
-
-struct NSEPeer *peer_head;
-
-struct NSEPeer *peer_tail;
 
 /**
  * How long do we run the test?
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 
-static int ok;
-
-static int peers_left;
-
-static unsigned int num_peers;
-
-static unsigned int total_connections;
-
-static struct GNUNET_TESTING_PeerGroup *pg;
 
 /**
- * Check whether peers successfully shut down.
+ * Information we track for each peer.
  */
-static void
-shutdown_callback (void *cls, const char *emsg)
+struct NSEPeer
 {
-  if (emsg != NULL)
-  {
-#if VERBOSE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed: %s!\n",
-                emsg);
-#endif
-    if (ok == 0)
-      ok = 666;
-  }
-  else
-  {
-#if VERBOSE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers successfully shut down!\n");
-#endif
-    ok = 0;
-  }
-}
+  /**
+   * Handle for NSE connect operation.
+   */
+  struct GNUNET_TESTBED_Operation *op;
 
+  /**
+   * Handle to NSE service.
+   */ 
+  struct GNUNET_NSE_Handle *nse_handle;
+};
+
+
+/**
+ * Information for all the peers.
+ */
+static struct NSEPeer nse_peers[NUM_PEERS];
+
+/**
+ * Return value from 'main'.
+ */
+static int ok;
+
+
+/**
+ * Task run on timeout to shut everything down.
+ */
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct NSEPeer *pos;
+  unsigned int i;
 
-#if VERBOSE
-  FPRINTF (stderr, "%s",  "Ending test.\n");
-#endif
-
-  while (NULL != (pos = peer_head))
-  {
-    GNUNET_NSE_disconnect (pos->nse_handle);
-    GNUNET_CONTAINER_DLL_remove (peer_head, peer_tail, pos);
-    GNUNET_free (pos);
-  }
-
-  GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+  for (i=0;i<NUM_PEERS;i++)
+    GNUNET_TESTBED_operation_done (nse_peers[i].op);
+  GNUNET_SCHEDULER_shutdown ();
 }
+
 
 /**
  * Callback to call when network size estimate is updated.
@@ -123,153 +100,126 @@ handle_estimate (void *cls, struct GNUNET_TIME_Absolute timestamp,
   struct NSEPeer *peer = cls;
 
   FPRINTF (stderr,
-           "Received network size estimate from peer %s. logSize: %f std.dev. %f (%f/%u)\n",
-           GNUNET_i2s (&peer->daemon->id), estimate, std_dev,
-           GNUNET_NSE_log_estimate_to_n (estimate), num_peers);
-}
-
-
-static void
-connect_nse_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct NSEPeer *current_peer;
-  unsigned int i;
-
-#if VERBOSE
-  FPRINTF (stderr, "%s",  "TEST_NSE_MULTIPEER: connecting to nse service of peers\n");
-#endif
-  for (i = 0; i < num_peers; i++)
-  {
-    current_peer = GNUNET_malloc (sizeof (struct NSEPeer));
-    current_peer->daemon = GNUNET_TESTING_daemon_get (pg, i);
-    current_peer->nse_handle =
-        GNUNET_NSE_connect (current_peer->daemon->cfg, &handle_estimate,
-                            current_peer);
-    GNUNET_assert (current_peer->nse_handle != NULL);
-    GNUNET_CONTAINER_DLL_insert (peer_head, peer_tail, current_peer);
-  }
-}
-
-
-static void
-my_cb (void *cls, const char *emsg)
-{
-  if (emsg != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Peergroup callback called with error, aborting test!\n");
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Error from testing: `%s'\n");
-    ok = 1;
-    GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
-    return;
-  }
-#if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer Group started successfully, connecting to NSE service for each peer!\n");
-#endif
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Have %u connections\n",
-              total_connections);
-
-  GNUNET_SCHEDULER_add_now (&connect_nse_service, NULL);
+           "Received network size estimate from peer %u. logSize: %f std.dev. %f (%f/%u)\n",
+           (unsigned int) (peer - nse_peers), 
+	   estimate, std_dev,
+           GNUNET_NSE_log_estimate_to_n (estimate), 
+	   NUM_PEERS);
 }
 
 
 /**
- * Function that will be called whenever
- * two daemons are connected by the testing library.
+ * Callback to be called when NSE service connect operation is completed
  *
- * @param cls closure
- * @param first peer id for first daemon
- * @param second peer id for the second daemon
- * @param distance distance between the connected peers
- * @param first_cfg config for the first daemon
- * @param second_cfg config for the second daemon
- * @param first_daemon handle for the first daemon
- * @param second_daemon handle for the second daemon
- * @param emsg error message (NULL on success)
+ * @param cls the callback closure from functions generating an operation
+ * @param op the operation that has been finished
+ * @param ca_result the NSE service handle returned from nse_connect_adapter
+ * @param emsg error message in case the operation has failed; will be NULL if
+ *          operation has executed successfully.
  */
 static void
-connect_cb (void *cls, const struct GNUNET_PeerIdentity *first,
-            const struct GNUNET_PeerIdentity *second, uint32_t distance,
-            const struct GNUNET_CONFIGURATION_Handle *first_cfg,
-            const struct GNUNET_CONFIGURATION_Handle *second_cfg,
-            struct GNUNET_TESTING_Daemon *first_daemon,
-            struct GNUNET_TESTING_Daemon *second_daemon, const char *emsg)
+nse_connect_complete_cb (void *cls, 
+			 struct GNUNET_TESTBED_Operation *op,
+			 void *ca_result,
+			 const char *emsg)
 {
-  if (emsg == NULL)
-  {
-    //fprintf(stderr, "Connected %s -> %s\n", GNUNET_i2s(first), second_id);
-    total_connections++;
-  }
+  struct NSEPeer *peer = cls;
+  struct GNUNET_NSE_Handle *nse = ca_result;
+
+  GNUNET_assert (op == peer->op);
+  if (NULL != emsg)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Failed to connect to NSE service: %s\n",
+		  emsg);
+      ok = 1;
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+  peer->nse_handle = nse;
 }
 
 
-
-static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+/**
+ * Adapter function called to establish a connection to
+ * the NSE service.
+ * 
+ * @param cls closure
+ * @param cfg configuration of the peer to connect to; will be available until
+ *          GNUNET_TESTBED_operation_done() is called on the operation returned
+ *          from GNUNET_TESTBED_service_connect()
+ * @return service handle to return in 'op_result', NULL on error
+ */
+static void * 
+nse_connect_adapter (void *cls,
+		     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  struct GNUNET_CONFIGURATION_Handle *testing_cfg;
-  unsigned long long total_peers;
+  return GNUNET_NSE_connect (cfg, 
+			     &handle_estimate,
+			     cls);
+}
 
-  ok = 1;
-  testing_cfg = GNUNET_CONFIGURATION_create ();
-  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (testing_cfg, cfgfile));
 
-#if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemons.\n");
-  GNUNET_CONFIGURATION_set_value_string (testing_cfg, "testing",
-                                         "use_progressbars", "YES");
-#endif
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (testing_cfg, "testing",
-                                             "num_peers", &total_peers))
-    total_peers = NUM_PEERS;
+/**
+ * Adapter function called to destroy connection to
+ * NSE service.
+ * 
+ * @param cls closure
+ * @param op_result service handle returned from the connect adapter
+ */
+static void
+nse_disconnect_adapter (void *cls,
+			void *op_result)
+{
+  GNUNET_NSE_disconnect (op_result);
+}
 
-  peers_left = total_peers;
-  num_peers = peers_left;
-  pg = GNUNET_TESTING_peergroup_start (testing_cfg, peers_left, TIMEOUT,
-                                       &connect_cb, &my_cb, NULL, NULL);
-  GNUNET_assert (pg != NULL);
+
+/**
+ * Actual "main" function for the testcase.
+ * 
+ * @param cls closure
+ * @param num_peers number of peers in 'peers'
+ * @param peers handle to peers run in the testbed
+ */
+static void
+run (void *cls,
+     unsigned int num_peers,
+     struct GNUNET_TESTBED_Peer **peers)
+{
+  unsigned int i;
+
+  GNUNET_assert (NUM_PEERS == num_peers);
+  for (i=0;i<num_peers;i++)
+    nse_peers[i].op = GNUNET_TESTBED_service_connect (&nse_peers[i],
+						      peers[i],
+						      "nse",
+						      &nse_connect_complete_cb,
+						      &nse_peers[i],
+						      &nse_connect_adapter,
+						      &nse_disconnect_adapter,
+						      &nse_peers[i]);
   GNUNET_SCHEDULER_add_delayed (TIMEOUT, &shutdown_task, NULL);
 }
 
 
-static int
-check ()
-{
-  char *const argv[] = { "test-nse-multipeer",
-    "-c",
-    "test_nse.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
-    NULL
-  };
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                      "test-nse-multipeer", "nohelp", options, &run, &ok);
-  return ok;
-}
-
-
+/**
+ * Entry point for the testcase, sets up the testbed.
+ *
+ * @param argc unused
+ * @param argv unused
+ * @return 0 on success
+ */
 int
 main (int argc, char *argv[])
 {
-  int ret;
-
-  GNUNET_log_setup ("test-nse-multipeer",
-#if VERBOSE
-                    "DEBUG",
-#else
-                    "WARNING",
-#endif
-                    NULL);
-  ret = check ();
-  // GNUNET_DISK_directory_remove ("/tmp/test-nse-multipeer");
-  return ret;
+  ok = 1;
+  GNUNET_TESTBED_test_run ("test-nse-multipeer",
+			   "test_nse.conf",
+			   NUM_PEERS,
+			   0, NULL, NULL,
+			   &run, NULL);
+  return ok;
 }
 
 /* end of test_nse_multipeer.c */
