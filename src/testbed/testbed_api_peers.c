@@ -700,7 +700,6 @@ GNUNET_TESTBED_overlay_connect (void *op_cls,
   struct OverlayConnectData *data;
 
   GNUNET_assert ((PS_STARTED == p1->state) && (PS_STARTED == p2->state));
-  GNUNET_assert (p1->controller == p2->controller);
   data = GNUNET_malloc (sizeof (struct OverlayConnectData));
   data->p1 = p1;
   data->p2 = p2;
