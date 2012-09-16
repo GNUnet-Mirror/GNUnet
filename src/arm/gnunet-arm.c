@@ -412,8 +412,6 @@ cps_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 int
 main (int argc, char *const *argv)
 {
-  static unsigned long long temp_timeout_ms;
-
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'e', "end", NULL, gettext_noop ("stop all GNUnet services"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &end},
@@ -433,7 +431,7 @@ main (int argc, char *const *argv)
      GNUNET_NO, &GNUNET_GETOPT_set_one, &quiet},
     {'T', "timeout", NULL,
      gettext_noop ("timeout for completing current operation"),
-     GNUNET_YES, &GNUNET_GETOPT_set_ulong, &temp_timeout_ms},
+     GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &timeout},
     {'I', "info", NULL, gettext_noop ("List currently running services"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &list},
     {'O', "no-stdout", NULL, gettext_noop ("Don't let gnunet-service-arm inherit standard output"),
@@ -442,9 +440,6 @@ main (int argc, char *const *argv)
      GNUNET_NO, &GNUNET_GETOPT_set_one, &no_stderr},
     GNUNET_GETOPT_OPTION_END
   };
-
-  if (temp_timeout_ms > 0)
-    timeout.rel_value = temp_timeout_ms;
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;

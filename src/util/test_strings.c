@@ -27,6 +27,7 @@
 
 
 #define WANT(a,b) if (0 != strcmp(a,b)) { fprintf(stderr, "Got `%s', wanted `%s'\n", b, a); GNUNET_free(b); GNUNET_break(0); return 1;} else { GNUNET_free (b); }
+#define WANTNF(a,b) do { if (0 != strcmp(a,b)) { fprintf(stderr, "Got `%s', wanted `%s'\n", b, a); GNUNET_break(0); return 1;} } while (0)
 #define WANTB(a,b,l) if (0 != memcmp(a,b,l)) { GNUNET_break(0); return 1;} else { }
 
 int
@@ -35,6 +36,7 @@ main (int argc, char *argv[])
   char buf[128];
   char *r;
   char *b;
+  const char *bc;
   struct GNUNET_TIME_Absolute at;
   struct GNUNET_TIME_Absolute atx;
   const char *hdir;
@@ -50,20 +52,20 @@ main (int argc, char *argv[])
   b = GNUNET_STRINGS_byte_size_fancy (10240LL * 1024LL * 1024LL * 1024LL);
   WANT (buf, b);
   sprintf (buf, "4 %s", _( /* time unit */ "ms"));
-  b = GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_relative_multiply
-                                              (GNUNET_TIME_UNIT_MILLISECONDS,
-                                               4));
-  WANT (buf, b);
+  bc = GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_relative_multiply
+					       (GNUNET_TIME_UNIT_MILLISECONDS,
+						4), GNUNET_YES);
+  WANTNF (buf, bc);
   sprintf (buf, "7 %s", _( /* time unit */ "s"));
-  b = GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_relative_multiply
-                                              (GNUNET_TIME_UNIT_MILLISECONDS,
-                                               7 * 1000));
-  WANT (buf, b);
+  bc = GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_relative_multiply
+					       (GNUNET_TIME_UNIT_MILLISECONDS,
+						7 * 1000), GNUNET_YES);
+  WANTNF (buf, bc);
   sprintf (buf, "7 %s", _( /* time unit */ "h"));
-  b = GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_relative_multiply
+  bc = GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_relative_multiply
                                               (GNUNET_TIME_UNIT_MILLISECONDS,
-                                               7 * 60 * 60 * 1000));
-  WANT (buf, b);
+                                               7 * 60 * 60 * 1000), GNUNET_YES);
+  WANTNF (buf, bc);
 #ifndef MINGW
   hdir = getenv ("HOME");
 #else
@@ -84,27 +86,24 @@ main (int argc, char *argv[])
   if (0 != GNUNET_STRINGS_buffer_tokenize (buf, 2, 2, &r, &b))
     return 1;
   at.abs_value = 5000;
-  r = GNUNET_STRINGS_absolute_time_to_string (at);
-  /* r should be something like "Wed Dec 31 17:00:05 1969"
+  bc = GNUNET_STRINGS_absolute_time_to_string (at);
+  /* bc should be something like "Wed Dec 31 17:00:05 1969"
    * where the details of the day and hour depend on the timezone;
    * however, the "0:05 19" should always be there; hence: */
-  if (NULL == strstr (r, "0:05 19"))
+  if (NULL == strstr (bc, "0:05 19"))
   {
-    FPRINTF (stderr, "Got %s\n", r);
+    FPRINTF (stderr, "Got %s\n", bc);
     GNUNET_break (0);
-    GNUNET_free (r);
     return 1;
   }
-  GNUNET_free (r);
   b = GNUNET_STRINGS_to_utf8 ("TEST", 4, "ASCII");
   WANT ("TEST", b);
   
   at = GNUNET_TIME_UNIT_FOREVER_ABS;
-  b = GNUNET_STRINGS_absolute_time_to_string (at);
+  bc = GNUNET_STRINGS_absolute_time_to_string (at);
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_STRINGS_fancy_time_to_absolute (b, &atx));
+		 GNUNET_STRINGS_fancy_time_to_absolute (bc, &atx));
   GNUNET_assert (atx.abs_value == at.abs_value);
-  GNUNET_free (b);
 
 #if ENABLE_NLS && HAVE_ICONV
   GNUNET_log_skip (2, GNUNET_NO);

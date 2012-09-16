@@ -127,7 +127,7 @@ static void *
 progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
 {
   char *s;
-  char *s2;
+  const char *s2;
   char *t;
 
   switch (info->status)
@@ -140,13 +140,15 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
   case GNUNET_FS_STATUS_DOWNLOAD_PROGRESS:
     if (verbose)
     {
-      s = GNUNET_STRINGS_relative_time_to_string (info->value.download.eta);
+      s = GNUNET_strdup (GNUNET_STRINGS_relative_time_to_string (info->value.download.eta,
+								 GNUNET_YES));
       if (info->value.download.specifics.progress.block_download_duration.rel_value 
           == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
-        s2 = GNUNET_strdup (_("<unknown time>"));
+        s2 = _("<unknown time>");
       else
         s2 = GNUNET_STRINGS_relative_time_to_string (
-              info->value.download.specifics.progress.block_download_duration);
+						     info->value.download.specifics.progress.block_download_duration,
+						     GNUNET_YES);
       t = GNUNET_STRINGS_byte_size_fancy (info->value.download.completed *
                                           1000LL /
                                           (info->value.download.
@@ -157,7 +159,6 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
                (unsigned long long) info->value.download.completed,
                (unsigned long long) info->value.download.size, s, t, s2);
       GNUNET_free (s);
-      GNUNET_free (s2);
       GNUNET_free (t);
     }
     else

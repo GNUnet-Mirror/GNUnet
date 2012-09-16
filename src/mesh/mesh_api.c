@@ -828,8 +828,10 @@ do_reconnect (struct GNUNET_MESH_Handle *h)
         GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_SECONDS,
                                   GNUNET_TIME_relative_multiply
                                   (h->reconnect_time, 2));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  Next retry in %sms\n",
-         GNUNET_TIME_relative_to_string (h->reconnect_time));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Next retry in %s\n",
+         GNUNET_STRINGS_relative_time_to_string (h->reconnect_time,
+						 GNUNET_NO));
     GNUNET_break (0);
     return GNUNET_NO;
   }

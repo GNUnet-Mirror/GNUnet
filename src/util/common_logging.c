@@ -798,7 +798,7 @@ flush_bulk (const char *datestr)
   char msg[DATE_STR_SIZE + BULK_TRACK_SIZE + 256];
   int rev;
   char *last;
-  char *ft;
+  const char *ft;
 
   if ((last_bulk_time.abs_value == 0) || (last_bulk_repeat == 0))
     return;
@@ -814,11 +814,10 @@ flush_bulk (const char *datestr)
     last[0] = '\0';
   }
   ft = GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration
-                                               (last_bulk_time));
+                                               (last_bulk_time), GNUNET_YES);
   snprintf (msg, sizeof (msg),
             _("Message `%.*s' repeated %u times in the last %s\n"),
             BULK_TRACK_SIZE, last_bulk, last_bulk_repeat, ft);
-  GNUNET_free (ft);
   if (rev == 1)
     last[0] = '\n';
   output_message (last_bulk_kind, last_bulk_comp, datestr, msg);

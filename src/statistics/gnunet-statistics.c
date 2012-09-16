@@ -79,7 +79,8 @@ printer (void *cls, const char *subsystem, const char *name, uint64_t value,
          int is_persistent)
 {
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
-  char * now_str;
+  const char * now_str;
+
   if (quiet == GNUNET_NO)
   {
     if (GNUNET_YES == watch)
@@ -89,7 +90,6 @@ printer (void *cls, const char *subsystem, const char *name, uint64_t value,
                now_str,
                is_persistent ? "!" : " ",
                subsystem, _(name), (unsigned long long) value);
-      GNUNET_free (now_str);
     }
     else
     {

@@ -616,33 +616,46 @@ GNUNET_STRINGS_filename_expand (const char *fil)
 
 /**
  * Give relative time in human-readable fancy format.
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
  *
  * @param delta time in milli seconds
+ * @param do_round are we allowed to round a bit?
  * @return time as human-readable string
  */
-char *
-GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta)
+const char *
+GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta,
+					int do_round)
 {
+  static char buf[128];
   const char *unit = _( /* time unit */ "ms");
   char *ret;
   uint64_t dval = delta.rel_value;
 
   if (delta.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
-    return GNUNET_strdup (_("forever"));
-  if ( (dval > 5 * 1000) || (0 == (dval % 1000) ))
+    return _("forever");
+  if ( ( (GNUNET_YES == do_round) && 
+	 (dval > 5 * 1000) ) || 
+       (0 == (dval % 1000) ))
   {
     dval = dval / 1000;
     unit = _( /* time unit */ "s");
-    if ( (dval > 5 * 60) || (0 == (dval % 60) ) )
+    if ( ( (GNUNET_YES == do_round) &&
+	   (dval > 5 * 60) ) ||
+	 (0 == (dval % 60) ) )
     {
       dval = dval / 60;
       unit = _( /* time unit */ "m");
-      if ( (dval > 5 * 60) || (0 == (dval % 60) ))
+      if ( ( (GNUNET_YES == do_round) &&
+	     (dval > 5 * 60) ) || 
+	   (0 == (dval % 60) ))
       {
         dval = dval / 60;
         unit = _( /* time unit */ "h");
-        if ( (dval > 5 * 24) || (0 == (dval % 24)) )
-        {
+        if ( ( (GNUNET_YES == do_round) &&
+	       (dval > 5 * 24) ) ||
+	     (0 == (dval % 24)) )
+	{
           dval = dval / 24;
 	  if (1 == dval)
 	    unit = _( /* time unit */ "day");
@@ -652,23 +665,26 @@ GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta)
       }
     }
   }
-  GNUNET_asprintf (&ret, "%llu %s", dval, unit);
-  return ret;
+  GNUNET_snprintf (buf, sizeof (buf),
+		   "%llu %s", dval, unit);
+  return buf;
 }
 
 
 /**
  * "asctime", except for GNUnet time.
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
  *
  * @param t time to convert
  * @return absolute time in human-readable format
  */
-char *
+const char *
 GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t)
 {
+  static char buf[255];
   time_t tt;
   struct tm *tp;
-  char buf[255];
 
   if (t.abs_value == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
     return GNUNET_strdup (_("end of time"));

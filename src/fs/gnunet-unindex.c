@@ -76,7 +76,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void *
 progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
 {
-  char *s;
+  const char *s;
 
   switch (info->status)
   {
@@ -85,11 +85,10 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
   case GNUNET_FS_STATUS_UNINDEX_PROGRESS:
     if (verbose)
     {
-      s = GNUNET_STRINGS_relative_time_to_string (info->value.unindex.eta);
+      s = GNUNET_STRINGS_relative_time_to_string (info->value.unindex.eta, GNUNET_YES);
       FPRINTF (stdout, _("Unindexing at %llu/%llu (%s remaining)\n"),
                (unsigned long long) info->value.unindex.completed,
                (unsigned long long) info->value.unindex.size, s);
-      GNUNET_free (s);
     }
     break;
   case GNUNET_FS_STATUS_UNINDEX_ERROR:

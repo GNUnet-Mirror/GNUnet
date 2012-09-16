@@ -484,6 +484,7 @@ GNUNET_TIME_relative_hton (struct GNUNET_TIME_Relative a)
   return ret;
 }
 
+
 /**
  * Convert relative time from network byte order.
  *
@@ -500,6 +501,7 @@ GNUNET_TIME_relative_ntoh (struct GNUNET_TIME_RelativeNBO a)
 
 }
 
+
 /**
  * Convert absolute time to network byte order.
  *
@@ -514,6 +516,7 @@ GNUNET_TIME_absolute_hton (struct GNUNET_TIME_Absolute a)
   ret.abs_value__ = GNUNET_htonll (a.abs_value);
   return ret;
 }
+
 
 /**
  * Convert absolute time from network byte order.
@@ -530,27 +533,6 @@ GNUNET_TIME_absolute_ntoh (struct GNUNET_TIME_AbsoluteNBO a)
   return ret;
 
 }
-
-/**
- * Convert a relative time to a string.
- * This is one of the very few calls in the entire API that is
- * NOT reentrant!
- *
- * @param time the time to print
- *
- * @return string form of the time (as milliseconds)
- */
-const char *
-GNUNET_TIME_relative_to_string (struct GNUNET_TIME_Relative time)
-{
-  static char time_string[21];
-
-  memset (time_string, 0, sizeof (time_string));
-
-  sprintf (time_string, "%llu", (unsigned long long) time.rel_value);
-  return (const char *) time_string;
-}
-
 
 
 /* end of time.c */

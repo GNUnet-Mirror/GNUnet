@@ -427,7 +427,7 @@ void
 GNUNET_CONTAINER_meta_data_add_publication_date (struct
                                                  GNUNET_CONTAINER_MetaData *md)
 {
-  char *dat;
+  const char *dat;
   struct GNUNET_TIME_Absolute t;
 
   t = GNUNET_TIME_absolute_get ();
@@ -438,7 +438,6 @@ GNUNET_CONTAINER_meta_data_add_publication_date (struct
                                      EXTRACTOR_METATYPE_PUBLICATION_DATE,
                                      EXTRACTOR_METAFORMAT_UTF8, "text/plain",
                                      dat, strlen (dat) + 1);
-  GNUNET_free (dat);
 }
 
 

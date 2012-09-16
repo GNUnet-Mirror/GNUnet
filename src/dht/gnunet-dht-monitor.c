@@ -242,7 +242,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (verbose)
     FPRINTF (stderr, 
 	     "Monitoring for %s\n", 
-	     GNUNET_TIME_relative_to_string (timeout_request));
+	     GNUNET_STRINGS_relative_time_to_string (timeout_request, GNUNET_NO));
   GNUNET_SCHEDULER_add_delayed (timeout_request, &cleanup_task, NULL);
   monitor_handle = GNUNET_DHT_monitor_start (dht_handle,
                                              block_type,

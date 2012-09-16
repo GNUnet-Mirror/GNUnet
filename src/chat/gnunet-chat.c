@@ -118,7 +118,7 @@ receive_cb (void *cls, struct GNUNET_CHAT_Room *room,
   char *non_unique_nick;
   char *nick;
   int nick_is_a_dup;
-  char *time;
+  const char *timestr;
   const char *fmt;
 
   if (NULL == sender)
@@ -176,10 +176,9 @@ receive_cb (void *cls, struct GNUNET_CHAT_Room *room,
     fmt = _("(%s) <%s> said using an unknown message type: %s\n");
     break;
   }
-  time = GNUNET_STRINGS_absolute_time_to_string (timestamp);
-  FPRINTF (stdout, fmt, time, nick, message);
+  timestr = GNUNET_STRINGS_absolute_time_to_string (timestamp);
+  FPRINTF (stdout, fmt, timestr, nick, message);
   GNUNET_free (nick);
-  GNUNET_free (time);
   return GNUNET_OK;
 }
 

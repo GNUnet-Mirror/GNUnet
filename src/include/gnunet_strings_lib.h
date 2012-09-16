@@ -224,22 +224,28 @@ GNUNET_STRINGS_buffer_tokenize (const char *buffer, size_t size,
 
 /**
  * "asctime", except for GNUnet time.
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
  *
  * @param t the absolute time to convert
  * @return timestamp in human-readable form
  */
-char *
+const char *
 GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t);
 
 
 /**
  * Give relative time in human-readable fancy format.
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant! 
  *
  * @param delta time in milli seconds
+ * @param do_round are we allowed to round a bit?
  * @return string in human-readable form
  */
-char *
-GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta);
+const char *
+GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta,
+					int do_round);
 
 
 /**

@@ -447,14 +447,13 @@ monitor_notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   monitor_connections_counter ++;
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
-  char *now_str = GNUNET_STRINGS_absolute_time_to_string (now);
+  const char *now_str = GNUNET_STRINGS_absolute_time_to_string (now);
+
   FPRINTF (stdout, _("%24s: %-17s %4s   (%u connections in total)\n"),
            now_str,
            _("Connected to"),
            GNUNET_i2s (peer),
            monitor_connections_counter);
-
-  GNUNET_free (now_str);
 }
 
 
@@ -469,7 +468,7 @@ static void
 monitor_notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
-  char *now_str = GNUNET_STRINGS_absolute_time_to_string (now);
+  const char *now_str = GNUNET_STRINGS_absolute_time_to_string (now);
 
   GNUNET_assert (monitor_connections_counter > 0);
   monitor_connections_counter --;
@@ -479,7 +478,6 @@ monitor_notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
            _("Disconnected from"),
            GNUNET_i2s (peer),
            monitor_connections_counter);
-  GNUNET_free (now_str);
 }
 
 

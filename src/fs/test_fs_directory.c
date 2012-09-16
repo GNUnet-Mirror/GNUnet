@@ -79,7 +79,7 @@ testDirectory (unsigned int i)
   char txt[128];
   int ret = 0;
   struct GNUNET_TIME_Absolute start;
-  char *s;
+  const char *s;
 
   cls.max = i;
   uris = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri *) * i);
@@ -130,11 +130,11 @@ testDirectory (unsigned int i)
     GNUNET_FS_directory_builder_add (db, uris[p], mds[p], NULL);
   GNUNET_FS_directory_builder_finish (db, &dlen, (void **) &data);
   s = GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration
-                                              (start));
+                                              (start),
+					      GNUNET_YES);
   FPRINTF (stdout,
            "Creating directory with %u entires and total size %llu took %s\n",
            i, (unsigned long long) dlen, s);
-  GNUNET_free (s);
   if (i < 100)
   {
     cls.pos = 0;
