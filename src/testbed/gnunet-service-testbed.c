@@ -61,6 +61,12 @@
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
+ * Timeout of Transport try_connect requests
+ */
+#define TRANSPORT_TRY_CONNECT_TIMEOUT                                   \
+  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100)
+
+/**
  * The main context information associated with the client which started us
  */
 struct Context
@@ -409,6 +415,42 @@ struct OverlayConnectContext
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
+};
+
+
+/**
+ * Context information for RequestOverlayConnect
+ * operations. RequestOverlayConnect is used when peers A, B reside on different
+ * hosts and the host controller for peer B is asked by the host controller of
+ * peer A to make peer B connect to peer A
+ */
+struct RequestOverlayConnectContext
+{
+  /**
+   * The transport handle of peer B
+   */
+  struct GNUNET_TRANSPORT_Handle *th;
+  
+  /**
+   * Peer A's HELLO
+   */
+  struct GNUNET_MessageHeader *hello;
+
+  /**
+   * The peer identity of peer A
+   */
+  struct GNUNET_PeerIdentity a_id;
+
+  /**
+   * Task for offering HELLO of A to B and doing try_connect
+   */
+  GNUNET_SCHEDULER_TaskIdentifier attempt_connect_task_id;
+  
+  /**
+   * Task to timeout RequestOverlayConnect
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_rocc_task_id;
+  
 };
 
 
@@ -2109,7 +2151,8 @@ send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   GNUNET_free (other_peer_str);
   occ->send_hello_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &send_hello, occ);
+      GNUNET_SCHEDULER_add_delayed (TRANSPORT_TRY_CONNECT_TIMEOUT,
+                                    &send_hello, occ);
 }
 
 /**
@@ -2351,6 +2394,89 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Function to cleanup RequestOverlayConnectContext and any associated tasks
+ * with it
+ *
+ * @param 
+ * @return 
+ */
+static void
+cleanup_rocc (struct RequestOverlayConnectContext *rocc)
+{
+  if (GNUNET_SCHEDULER_NO_TASK != rocc->attempt_connect_task_id)
+    GNUNET_SCHEDULER_cancel (rocc->attempt_connect_task_id);
+  if (GNUNET_SCHEDULER_NO_TASK != rocc->timeout_rocc_task_id)
+    GNUNET_SCHEDULER_cancel (rocc->timeout_rocc_task_id);
+  GNUNET_TRANSPORT_disconnect (rocc->th);
+  GNUNET_free_non_null (rocc->hello);
+  GNUNET_free (rocc);
+}
+
+
+/**
+ * Task to timeout rocc and cleanit up
+ *
+ * @param cls the RequestOverlayConnectContext
+ * @param tc the TaskContext from scheduler
+ */
+static void
+timeout_rocc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct RequestOverlayConnectContext *rocc = cls;
+  
+  rocc->timeout_rocc_task_id = GNUNET_SCHEDULER_NO_TASK;
+  cleanup_rocc (rocc);
+}
+
+
+/**
+ * Function called to notify transport users that another
+ * peer connected to us.
+ *
+ * @param cls closure
+ * @param peer the peer that connected
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
+ */
+static void 
+transport_connect_notify (void *cls, const struct GNUNET_PeerIdentity *new_peer,
+                          const struct GNUNET_ATS_Information * ats,
+                          uint32_t ats_count)
+{
+  struct RequestOverlayConnectContext *rocc = cls;
+
+  LOG_DEBUG ("Request Overlay connect notify\n");
+  if (0 != memcmp (new_peer, &rocc->a_id, sizeof (struct GNUNET_PeerIdentity)))
+  {
+    return;
+  }
+  LOG_DEBUG ("Peer %4s connected\n", GNUNET_i2s (&rocc->a_id));
+  cleanup_rocc (rocc);
+}
+
+
+/**
+ * Task to offer the HELLO message to the peer and ask it to connect to the peer
+ * whose identity is in RequestOverlayConnectContext
+ *
+ * @param cls the RequestOverlayConnectContext
+ * @param tc the TaskContext from scheduler
+ */
+static void
+attempt_connect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct RequestOverlayConnectContext *rocc = cls;
+
+  rocc->attempt_connect_task_id = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_TRANSPORT_offer_hello (rocc->th, rocc->hello, NULL, NULL);
+  GNUNET_TRANSPORT_try_connect (rocc->th, &rocc->a_id);
+  rocc->attempt_connect_task_id = 
+      GNUNET_SCHEDULER_add_delayed (TRANSPORT_TRY_CONNECT_TIMEOUT,
+                                    &attempt_connect_task, rocc);
+}
+
+
+/**
  * Handler for GNUNET_MESSAGE_TYPE_TESTBED_REQUESTCONNECT messages
  *
  * @param cls NULL
@@ -2362,17 +2488,19 @@ handle_overlay_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
 				const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TESTBED_RequestConnectMessage *msg;
-  struct GNUNET_TRANSPORT_Handle *th;
+  struct RequestOverlayConnectContext *rocc;
   struct Peer *peer;
   uint32_t peer_id;
+  uint16_t msize;
+  uint16_t hsize;
   
-  if (sizeof (struct GNUNET_TESTBED_RequestConnectMessage) >= ntohs
-      (message->size))
+  msize = ntohs (message->size);
+  if (sizeof (struct GNUNET_TESTBED_RequestConnectMessage) >= msize)
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
-  }
+  }  
   msg = (const struct GNUNET_TESTBED_RequestConnectMessage *) message;
   if ((NULL == msg->hello) || 
       (GNUNET_MESSAGE_TYPE_HELLO != ntohs (msg->hello->type)))
@@ -2381,10 +2509,17 @@ handle_overlay_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  hsize = ntohs (msg->hello->size);
+  if ((sizeof (struct GNUNET_TESTBED_RequestConnectMessage) + hsize) != msize)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   peer_id = ntohl (msg->peer);
   if ((peer_id >= peer_list_size) || (NULL == (peer = peer_list[peer_id])))
   {
-    GNUNET_break (0);
+    GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
@@ -2394,16 +2529,26 @@ handle_overlay_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  th = GNUNET_TRANSPORT_connect (peer->details.local.cfg, NULL, NULL, NULL,
-				 NULL, NULL);
-  if (NULL == th)
+  rocc = GNUNET_malloc (sizeof (struct RequestOverlayConnectContext));
+  rocc->th = GNUNET_TRANSPORT_connect (peer->details.local.cfg, NULL, rocc, 
+                                       NULL, &transport_connect_notify, NULL);
+  if (NULL == rocc->th)
   {
     GNUNET_break (0);
+    GNUNET_free (rocc);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_TRANSPORT_offer_hello (th, msg->hello, NULL, NULL);
-  GNUNET_TRANSPORT_try_connect (th, &msg->peer_identity);
+  memcpy (&rocc->a_id, &msg->peer_identity,
+          sizeof (struct GNUNET_PeerIdentity));
+  rocc->hello = GNUNET_malloc (hsize);
+  memcpy (rocc->hello, msg->hello, hsize);
+  /* GNUNET_TRANSPORT_offer_hello (th, msg->hello, NULL, NULL); */
+  /* GNUNET_TRANSPORT_try_connect (th, &msg->peer_identity); */
+  rocc->attempt_connect_task_id =
+      GNUNET_SCHEDULER_add_now (&attempt_connect_task, rocc);
+  rocc->timeout_rocc_task_id =
+      GNUNET_SCHEDULER_add_delayed (TIMEOUT, &timeout_rocc_task, rocc);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
