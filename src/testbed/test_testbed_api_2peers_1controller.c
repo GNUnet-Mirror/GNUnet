@@ -19,9 +19,9 @@
  */
 
 /**
- * @file testbed/test_testbed_api_2peers.c
+ * @file testbed/test_testbed_api_2peers_1controller.c
  * @brief testcases for the testbed api: 2 peers are configured, started and
- *          connected together
+ *          connected together. The 2 peer reside on a single controller.
  * @author Sree Harsha Totakura
  */
 
@@ -491,7 +491,7 @@ main (int argc, char **argv)
 {
   int ret;
 
-  char *const argv2[] = { "test_testbed_api_2peers",
+  char *const argv2[] = { "test_testbed_api_2peers_1controller",
     "-c", "test_testbed_api.conf",
     NULL
   };
@@ -501,11 +501,11 @@ main (int argc, char **argv)
   result = INIT;
   ret =
       GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                          "test_testbed_api_2peers", "nohelp", options, &run,
-                          NULL);
+                          "test_testbed_api_2peers_1controller", "nohelp",
+                          options, &run, NULL);
   if ((GNUNET_OK != ret) || (SUCCESS != result))
     return 1;
   return 0;
 }
 
-/* end of test_testbed_api_2peers.c */
+/* end of test_testbed_api_2peers_1controller.c */
