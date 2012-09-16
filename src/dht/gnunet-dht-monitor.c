@@ -239,12 +239,11 @@ run (void *cls, char *const *args, const char *cfgfile,
     {
       key = NULL;
     }
-  GNUNET_SCHEDULER_add_delayed (timeout_request, &cleanup_task, NULL);
   if (verbose)
     FPRINTF (stderr, 
 	     "Monitoring for %s\n", 
 	     GNUNET_TIME_relative_to_string (timeout_request));
-  GNUNET_SCHEDULER_add_delayed (timeout, &cleanup_task, NULL);
+  GNUNET_SCHEDULER_add_delayed (timeout_request, &cleanup_task, NULL);
   monitor_handle = GNUNET_DHT_monitor_start (dht_handle,
                                              block_type,
                                              key,
