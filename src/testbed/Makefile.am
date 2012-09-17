@@ -84,6 +84,7 @@ if ENABLE_TEST_RUN
   test_testbed_api \
   test_testbed_api_hosts \
   test_testbed_api_2peers_1controller \
+  test_testbed_api_2peers_2controllers \
   test_testbed_api_operations \
   test_gnunet_helper_testbed \
   test_testbed_api_controllerlink \
