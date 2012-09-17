@@ -408,7 +408,7 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
       }
       name_len = strlen (name);
     }
-  if ( (name_len > strlen ((GNUNET_GNS_TLD) + 1)) &&
+  if ( (name_len >= strlen ((GNUNET_GNS_TLD))) &&
        (0 == strcasecmp (GNUNET_GNS_TLD,
                          &name[name_len - strlen (GNUNET_GNS_TLD)])) )
     use_gns = GNUNET_YES;
