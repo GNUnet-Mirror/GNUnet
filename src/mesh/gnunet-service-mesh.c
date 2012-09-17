@@ -1325,7 +1325,7 @@ regex_edge_iterator (void *cls,
  *
  * @return GNUNET_YES if should keep iterating, GNUNET_NO otherwise.
  */
-static int
+static void
 regex_next_edge (const struct MeshRegexBlock *block,
                  size_t size,
                  struct MeshRegexSearchContext *ctx)
@@ -1350,7 +1350,7 @@ regex_next_edge (const struct MeshRegexBlock *block,
                                                 &ctx->hash,
                                                 &regex_result_iterator,
                                                 new_ctx);
-    return GNUNET_YES; // We are already looking for it
+    return; // We are already looking for it
   }
   /* Start search in DHT */
   get_h = 
@@ -1369,10 +1369,10 @@ regex_next_edge (const struct MeshRegexBlock *block,
                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
   {
     GNUNET_break (0);
-    return GNUNET_YES;
+    return;
   }
 
-  return GNUNET_YES;
+  return;
 }
 
 
