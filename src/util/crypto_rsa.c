@@ -940,11 +940,7 @@ check_key_generation_completion (void *cls,
 				 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CRYPTO_RsaKeyGenerationContext *gc = cls;
-  enum GNUNET_OS_ProcessStatusType type;
-  unsigned long code;
   struct GNUNET_CRYPTO_RsaPrivateKey *pk;
-  char buf[512];
-  ssize_t ret;
 
   gc->read_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -953,29 +949,8 @@ check_key_generation_completion (void *cls,
     GNUNET_CRYPTO_rsa_key_create_stop (gc);
     return;
   }
-  if (GNUNET_OK != 
-      GNUNET_OS_process_status (gc->gnunet_rsa,
-				&type, &code))
-  {
-    if (0 >= (ret = GNUNET_DISK_file_read (GNUNET_DISK_pipe_handle (gc->gnunet_rsa_out,
-								    GNUNET_DISK_PIPE_END_READ),
-					   buf, sizeof (buf))))
-      {
-	GNUNET_break (0);
-	gc->cont (gc->cont_cls, NULL, _("internal error"));
-	GNUNET_CRYPTO_rsa_key_create_stop (gc);
-	return;
-      }
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Unexpected gnunet-rsa output: %.*s\n"),
-		(int) ret, buf);
-    gc->read_task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-						    GNUNET_DISK_pipe_handle (gc->gnunet_rsa_out,
-									     GNUNET_DISK_PIPE_END_READ),
-						    &check_key_generation_completion,
-						    gc);    
-    return;
-  }
+  GNUNET_assert (GNUNET_OK == 
+		 GNUNET_OS_process_wait (gc->gnunet_rsa));
   GNUNET_OS_process_destroy (gc->gnunet_rsa);
   gc->gnunet_rsa = NULL;
   if ( (GNUNET_OS_PROCESS_EXITED != type) ||

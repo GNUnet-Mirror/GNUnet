@@ -1580,6 +1580,8 @@ GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
 
   GNUNET_assert (0 != proc);
   ret = waitpid (proc->pid, &status, WNOHANG);
+  fprintf (stderr, "Waitpid %d returned %d\n",
+	   proc->pid, ret);
   if (ret < 0)
   {
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "waitpid");
