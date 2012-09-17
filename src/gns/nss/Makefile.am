@@ -3,8 +3,8 @@
 # This file taken and modified from nss-gns.
 #
 # nss-gns is free software; you can redistribute it and/or modify it
-# under the terms of the GNU Lesser General Public License as
-# published by the Free Software Foundation; either version 2 of the
+# under the terms of the GNU General Public License as
+# published by the Free Software Foundation; either version 3 of the
 # License, or (at your option) any later version.
 #
 # nss-gns is distributed in the hope that it will be useful, but
@@ -52,17 +52,11 @@ libnss_gns6_la_CFLAGS=$(libnss_gns_la_CFLAGS) -DNSS_IPV6_ONLY=1
 libnss_gns6_la_LDFLAGS=$(libnss_gns_la_LDFLAGS)
 
 if !MINGW
-if HAVE_SUDO
 install-data-hook:
 	$(top_srcdir)/src/gns/nss/install-nss-plugin.sh $(SHELL) $(top_builddir) $(nssdir) $(SUDO_BINARY)
 
 uninstall-hook:
-	$(top_srcdir)/src/gns/nss/uninstall-nss-plugin.sh $(SUDO_BINARY) $(nssdir)
-
-endif	
-else
-install-data-hook:
-
-uninstall-hook:
-
+	$(top_srcdir)/src/gns/nss/uninstall-nss-plugin.sh $(SHELL) $(top_builddir) "rm -f $(nssdir)/libnss_gns.so.2" $(SUDO_BINARY)
+	$(top_srcdir)/src/gns/nss/uninstall-nss-plugin.sh $(SHELL) $(top_builddir) "rm -f $(nssdir)/libnss_gns4.so.2" $(SUDO_BINARY)
+	$(top_srcdir)/src/gns/nss/uninstall-nss-plugin.sh $(SHELL) $(top_builddir) "rm -f $(nssdir)/libnss_gns6.so.2" $(SUDO_BINARY)
 endif
