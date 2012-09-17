@@ -1477,7 +1477,7 @@ wlan_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
     return NULL;
   }
   mac = addr;
-  return GNUNET_strdup (mac_to_string (mac));
+  return mac_to_string (mac);
 }
 
 
