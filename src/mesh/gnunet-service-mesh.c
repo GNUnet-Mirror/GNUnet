@@ -1319,10 +1319,9 @@ regex_edge_iterator (void *cls,
 /**
  * Jump to the next edge, with the longest matching token.
  *
- * @param cls Closure (context of the search).
- * @param token Token that follows to next state.
- * @param len Lenght of token.
- * @param key Hash of next state.
+ * @param block Block found in the DHT.
+ * @param size Size of the block.
+ * @param ctx Context of the search.
  *
  * @return GNUNET_YES if should keep iterating, GNUNET_NO otherwise.
  */
