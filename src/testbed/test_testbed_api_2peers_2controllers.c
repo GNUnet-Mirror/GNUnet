@@ -230,6 +230,7 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != cp2)
     GNUNET_TESTBED_controller_stop (cp2);
   GNUNET_TESTBED_host_destroy (host);
+  GNUNET_TESTBED_host_destroy (neighbour);
 }
 
 
@@ -456,18 +457,20 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     {
       peer1.is_running = GNUNET_NO;
       GNUNET_TESTBED_operation_done (peer1.operation);
-      peer1.operation = GNUNET_TESTBED_peer_destroy (peer1.peer);
     }
     else if (event->details.peer_stop.peer == peer2.peer)
     {
       peer2.is_running = GNUNET_NO;
       GNUNET_TESTBED_operation_done (peer2.operation);
-      peer2.operation = GNUNET_TESTBED_peer_destroy (peer2.peer);
     }
     else
       GNUNET_assert (0);
     if ((GNUNET_NO == peer1.is_running) && (GNUNET_NO == peer2.is_running))
+    {
       result = PEERS_STOPPED;
+      peer1.operation = GNUNET_TESTBED_peer_destroy (peer1.peer);
+      peer2.operation = GNUNET_TESTBED_peer_destroy (peer2.peer);
+    }
     break;
   case GNUNET_TESTBED_ET_CONNECT:
     switch (result)

@@ -977,6 +977,8 @@ forwarded_operation_reply_relay (void *cls,
   uint16_t msize;
 
   msize = ntohs (msg->size);
+  LOG_DEBUG ("Relaying message with type: %u, size: %u\n", ntohs (msg->type),
+             msize);
   dup_msg = GNUNET_malloc (msize);
   (void) memcpy (dup_msg, msg, msize);
   queue_message (fopc->client, dup_msg);
@@ -2134,7 +2136,7 @@ send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     msg = GNUNET_malloc (msize);
     msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_REQUESTCONNECT);
     msg->header.size = htons (msize);
-    msg->peer = htonl (occ->peer->id);
+    msg->peer = htonl (occ->other_peer->id);
     msg->operation_id = GNUNET_htonll (occ->op_id);
     (void) memcpy (&msg->peer_identity, &occ->peer_identity,
 		   sizeof (struct GNUNET_PeerIdentity));
@@ -2148,11 +2150,11 @@ send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	       GNUNET_i2s (&occ->peer_identity), other_peer_str);
     GNUNET_TRANSPORT_offer_hello (occ->p2th, occ->hello, NULL, NULL);
     GNUNET_TRANSPORT_try_connect (occ->p2th, &occ->peer_identity);
+    occ->send_hello_task =
+        GNUNET_SCHEDULER_add_delayed (TRANSPORT_TRY_CONNECT_TIMEOUT,
+                                      &send_hello, occ);
   }
-  GNUNET_free (other_peer_str);
-  occ->send_hello_task =
-      GNUNET_SCHEDULER_add_delayed (TRANSPORT_TRY_CONNECT_TIMEOUT,
-                                    &send_hello, occ);
+  GNUNET_free (other_peer_str);  
 }
 
 /**
@@ -2371,6 +2373,7 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
 	GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
 				      (GNUNET_TIME_UNIT_SECONDS, 30),
 				      &timeout_overlay_connect, occ);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
   GNUNET_TESTING_peer_get_identity (occ->other_peer->details.local.peer,
@@ -2710,7 +2713,7 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
     {&handle_overlay_connect, NULL, GNUNET_MESSAGE_TYPE_TESTBED_OLCONNECT,
      sizeof (struct GNUNET_TESTBED_OverlayConnectMessage)},
     {&handle_overlay_request_connect, NULL, GNUNET_MESSAGE_TYPE_TESTBED_REQUESTCONNECT,
-     sizeof (struct GNUNET_TESTBED_OverlayConnectMessage)},
+     0},
     {NULL}
   };
 
