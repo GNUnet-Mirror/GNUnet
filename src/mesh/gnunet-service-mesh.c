@@ -1377,8 +1377,6 @@ regex_next_edge (const struct MeshRegexBlock *block,
     GNUNET_break (0);
     return;
   }
-
-  return;
 }
 
 
