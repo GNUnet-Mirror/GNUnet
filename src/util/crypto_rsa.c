@@ -953,13 +953,6 @@ check_key_generation_completion (void *cls,
 		 GNUNET_OS_process_wait (gc->gnunet_rsa));
   GNUNET_OS_process_destroy (gc->gnunet_rsa);
   gc->gnunet_rsa = NULL;
-  if ( (GNUNET_OS_PROCESS_EXITED != type) ||
-       (0 != code) )
-  {
-    gc->cont (gc->cont_cls, NULL, _("gnunet-rsa failed"));
-    GNUNET_CRYPTO_rsa_key_create_stop (gc);
-    return;
-  }
   if (NULL == (pk = try_read_key (gc->filename)))
   {
     GNUNET_break (0);
