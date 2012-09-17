@@ -400,12 +400,42 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
 			     &name[name_len - strlen (fcfs_suffix)])) )
       {
         name[name_len - strlen (fcfs_suffix)] = '\0';
-        sprintf (name, "%s.%s", name, GNUNET_GNS_TLD);
+        if (0 == strcmp (name, ""))
+          strcpy (name, GNUNET_GNS_TLD);
+        else
+        {
+          if (sizeof (name) < (strlen (GNUNET_GNS_TLD)+strlen (name)))
+          {
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                        "Name %s.%s is too long!\n",
+                        name,
+                        GNUNET_GNS_TLD);
+            GNUNET_DNSPARSER_free_packet (request->packet);
+            return;
+          }
+          sprintf (name, "%s.%s", name, GNUNET_GNS_TLD);
+        }
       }
       else
       {
-        name[name_len - strlen (dns_suffix) + 1] = '\0';
-        strcat (name, GNUNET_GNS_TLD_ZKEY);
+        name[name_len - strlen (dns_suffix)] = '\0';
+        if (0 == strcmp (name, ""))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "No zkey given!\n");
+          GNUNET_DNSPARSER_free_packet (request->packet);
+          return;
+        }
+        if (sizeof (name) < (strlen (GNUNET_GNS_TLD_ZKEY)+strlen (name)))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Name %s.%s is too long!\n",
+                      name,
+                      GNUNET_GNS_TLD);
+          GNUNET_DNSPARSER_free_packet (request->packet);
+          return;
+        }
+        sprintf (name, "%s.%s", name, GNUNET_GNS_TLD_ZKEY);
       }
       name_len = strlen (name);
     }
