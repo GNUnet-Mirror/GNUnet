@@ -395,6 +395,10 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
        (0 == strcasecmp (dns_suffix,
 			 &name[name_len - strlen (dns_suffix)])) )
     {
+      /*
+       * FIXME: Here we want to query fcfs. But what is fcfs in our
+       * context?? -> we need a PKEY or name
+       */
       if ( (name_len >= strlen (fcfs_suffix)) &&
 	   (0 == strcasecmp (fcfs_suffix,
 			     &name[name_len - strlen (fcfs_suffix)])) )
