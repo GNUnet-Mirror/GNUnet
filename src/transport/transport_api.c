@@ -988,7 +988,12 @@ GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
                               const struct GNUNET_PeerIdentity *target)
 {
   struct GNUNET_PeerIdentity *pid;
-  GNUNET_assert (NULL != handle->client);
+  if (NULL == handle->client)
+  {
+      /* FIXME: handle->client can be NULL when transport api is reconnecting */
+      GNUNET_break (0);
+      return;
+  }
 
   pid = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
   *pid = *target;
