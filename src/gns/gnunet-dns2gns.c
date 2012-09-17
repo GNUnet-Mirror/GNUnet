@@ -355,7 +355,8 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
       return;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received request with flags %u, #answers %d, #auth %d, #additional %d\n",
+	      "Received request for %s with flags %u, #answers %d, #auth %d, #additional %d\n",
+        packet->queries[0].name,
 	      (unsigned int) packet->flags.query_or_response,
 	      (int) packet->num_answers,
 	      (int) packet->num_authority_records,
@@ -398,8 +399,8 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
 	   (0 == strcasecmp (fcfs_suffix,
 			     &name[name_len - strlen (fcfs_suffix)])) )
       {
-        name[name_len - strlen (fcfs_suffix) + 1] = '\0';
-        strcat (name, GNUNET_GNS_TLD);
+        name[name_len - strlen (fcfs_suffix)] = '\0';
+        sprintf (name, "%s.%s", name, GNUNET_GNS_TLD);
       }
       else
       {
