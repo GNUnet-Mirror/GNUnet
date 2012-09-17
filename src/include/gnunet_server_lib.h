@@ -155,6 +155,24 @@ GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access, void *access_cls,
 
 
 /**
+ * Suspend accepting connections from the listen socket temporarily.
+ *
+ * @param server server to stop accepting connections.
+ */
+void
+GNUNET_SERVER_suspend (struct GNUNET_SERVER_Handle *server);
+
+
+/**
+ * Resume accepting connections from the listen socket.
+ *
+ * @param server server to stop accepting connections.
+ */
+void
+GNUNET_SERVER_resume (struct GNUNET_SERVER_Handle *server);
+
+
+/**
  * Stop the listen socket and get ready to shutdown the server
  * once only 'monitor' clients are left.
  *

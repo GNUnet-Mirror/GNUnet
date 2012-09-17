@@ -62,6 +62,16 @@ struct GNUNET_PeerIdentity GST_my_identity;
 struct GNUNET_PEERINFO_Handle *GST_peerinfo;
 
 /**
+ * Hostkey generation context
+ */
+struct GNUNET_CRYPTO_RsaKeyGenerationContext *GST_keygen;
+
+/**
+ * Handle to our service's server.
+ */
+static struct GNUNET_SERVER_Handle *GST_server;
+
+/**
  * Our public key.
  */
 struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded GST_my_public_key;
@@ -271,7 +281,7 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_ACK:
     GST_neighbours_handle_session_ack (message, peer, &address, session, ats,
-                                       ats_count);
+				       ats_count);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT:
     GST_neighbours_handle_disconnect_message (peer, message);
@@ -539,6 +549,11 @@ neighbours_address_notification (void *cls,
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (NULL != GST_keygen)
+  {
+    GNUNET_CRYPTO_rsa_key_create_stop (GST_keygen);
+    GST_keygen = NULL;
+  }
   GST_neighbours_stop ();
   GST_validation_stop ();
   GST_plugins_unload ();
@@ -549,21 +564,87 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GST_blacklist_stop ();
   GST_hello_stop ();
 
-  if (GST_peerinfo != NULL)
+  if (NULL != GST_peerinfo)
   {
     GNUNET_PEERINFO_disconnect (GST_peerinfo);
     GST_peerinfo = NULL;
   }
-  if (GST_stats != NULL)
+  if (NULL != GST_stats)
   {
     GNUNET_STATISTICS_destroy (GST_stats, GNUNET_NO);
     GST_stats = NULL;
   }
-  if (GST_my_private_key != NULL)
+  if (NULL != GST_my_private_key)
   {
     GNUNET_CRYPTO_rsa_key_free (GST_my_private_key);
     GST_my_private_key = NULL;
   }
+}
+
+
+/**
+ * Callback for hostkey read/generation
+ *
+ * @param cls NULL
+ * @param pk the private key
+ * @param emsg error message
+ */
+static void
+key_generation_cb (void *cls,
+                   struct GNUNET_CRYPTO_RsaPrivateKey *pk,
+                   const char *emsg)
+{
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded tmp;
+
+  GST_keygen = NULL;
+  if (NULL == pk)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Transport service could not access hostkey: %s. Exiting.\n"),
+                emsg);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  GST_my_private_key = pk;
+
+  GST_stats = GNUNET_STATISTICS_create ("transport", GST_cfg);
+  GST_peerinfo = GNUNET_PEERINFO_connect (GST_cfg);
+  memset (&GST_my_public_key, '\0', sizeof (GST_my_public_key));
+  memset (&tmp, '\0', sizeof (tmp));
+  GNUNET_CRYPTO_rsa_key_get_public (GST_my_private_key, &GST_my_public_key);
+  GNUNET_CRYPTO_hash (&GST_my_public_key, sizeof (GST_my_public_key),
+                      &GST_my_identity.hashPubKey);
+
+  GNUNET_assert (NULL != GST_my_private_key);
+  GNUNET_assert (0 != memcmp (&GST_my_public_key, &tmp, sizeof (GST_my_public_key)));
+
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
+                                NULL);
+  if (NULL == GST_peerinfo)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Could not access PEERINFO service.  Exiting.\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
+  /* start subsystems */
+  GST_hello_start (&process_hello_update, NULL);
+  GNUNET_assert (NULL != GST_hello_get());
+  GST_blacklist_start (GST_server);
+  GST_ats =
+      GNUNET_ATS_scheduling_init (GST_cfg, &ats_request_address_change, NULL);
+  GST_plugins_load (&plugin_env_receive_callback,
+                    &plugin_env_address_change_notification,
+                    &plugin_env_session_end,
+                    &plugin_env_address_to_type);
+  GST_neighbours_start (NULL,
+                        &neighbours_connect_notification,
+                        &neighbours_disconnect_notification,
+                        &neighbours_address_notification);
+  GST_clients_start (GST_server);
+  GST_validation_start ();
+  GNUNET_SERVER_resume (GST_server);
 }
 
 
@@ -579,7 +660,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *keyfile;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded tmp;
+
   /* setup globals */
   GST_cfg = c;
   if (GNUNET_OK !=
@@ -592,52 +673,16 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GST_my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+  GST_server = server;
+  GNUNET_SERVER_suspend (server);
+  GST_keygen = GNUNET_CRYPTO_rsa_key_create_start (keyfile, &key_generation_cb, NULL);
   GNUNET_free (keyfile);
-  if (GST_my_private_key == NULL)
+  if (NULL == GST_keygen)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Transport service could not access hostkey.  Exiting.\n"));
+                _("Transport service is unable to access hostkey. Exiting.\n"));
     GNUNET_SCHEDULER_shutdown ();
-    return;
   }
-  GST_stats = GNUNET_STATISTICS_create ("transport", c);
-  GST_peerinfo = GNUNET_PEERINFO_connect (c);
-  memset (&GST_my_public_key, '\0', sizeof (GST_my_public_key));
-  memset (&tmp, '\0', sizeof (tmp));
-  GNUNET_CRYPTO_rsa_key_get_public (GST_my_private_key, &GST_my_public_key);
-  GNUNET_CRYPTO_hash (&GST_my_public_key, sizeof (GST_my_public_key),
-                      &GST_my_identity.hashPubKey);
-
-  GNUNET_assert (NULL != GST_my_private_key);
-  GNUNET_assert (0 != memcmp (&GST_my_public_key, &tmp, sizeof (GST_my_public_key)));
-
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
-                                NULL);
-  if (GST_peerinfo == NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Could not access PEERINFO service.  Exiting.\n"));
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-
-  /* start subsystems */
-  GST_hello_start (&process_hello_update, NULL);
-  GNUNET_assert (NULL != GST_hello_get());
-  GST_blacklist_start (server);
-  GST_ats =
-      GNUNET_ATS_scheduling_init (GST_cfg, &ats_request_address_change, NULL);
-  GST_plugins_load (&plugin_env_receive_callback,
-                    &plugin_env_address_change_notification,
-                    &plugin_env_session_end,
-                    &plugin_env_address_to_type);
-  GST_neighbours_start (NULL,
-                        &neighbours_connect_notification,
-                        &neighbours_disconnect_notification,
-                        &neighbours_address_notification);
-  GST_clients_start (server);
-  GST_validation_start ();
 }
 
 

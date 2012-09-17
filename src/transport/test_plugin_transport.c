@@ -139,6 +139,7 @@ struct AddressWrapper
   char *addrstring;
 };
 
+
 static void
 end ()
 {
@@ -185,6 +186,7 @@ end ()
     suid_helper = NULL;
   }
 }
+
 
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -245,6 +247,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ok = 1;
 }
 
+
 static void
 wait_end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -289,6 +292,7 @@ env_receive (void *cls,
 
 
 static int got_reply;
+
 
 /**
  * Take the given address and append it to the set of results sent back to
@@ -435,7 +439,8 @@ env_notify_address (void *cls,
   }
 }
 
-struct GNUNET_ATS_Information
+
+static struct GNUNET_ATS_Information
 env_get_address_type (void *cls,
                      const struct sockaddr *addr,
                      size_t addrlen)
@@ -446,18 +451,21 @@ env_get_address_type (void *cls,
   return ats;
 }
 
-const struct GNUNET_MessageHeader *
-env_get_our_hello (void)
+
+static const struct GNUNET_MessageHeader *
+env_get_our_hello ()
 {
   return (const struct GNUNET_MessageHeader *) hello;
 }
 
-void env_session_end (void *cls,
-                      const struct GNUNET_PeerIdentity *peer,
-                      struct Session * session)
-{
 
+static void 
+env_session_end (void *cls,
+		 const struct GNUNET_PeerIdentity *peer,
+		 struct Session * session)
+{
 }
+
 
 static void
 setup_plugin_environment ()
@@ -482,6 +490,7 @@ handle_helper_message (void *cls, void *client,
   return GNUNET_OK;
 }
 
+
 /**
  * Runs the test.
  *
@@ -502,33 +511,31 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   cfg = c;
   /* parse configuration */
-  if ((GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (c,
-                          "TRANSPORT",
-                          "NEIGHBOUR_LIMIT",
-                          &tneigh)) ||
-      (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (c,
-                          "GNUNETD", "HOSTKEY",
-                          &keyfile)))
+  if ( (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (c,
+							    "TRANSPORT",
+							    "NEIGHBOUR_LIMIT",
+							    &tneigh)) ||
+       (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (c,
+							      "GNUNETD", "HOSTKEY",
+							      &keyfile)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Transport service is lacking key configuration settings.  Exiting.\n"));
-
     return;
   }
 
-  stats = GNUNET_STATISTICS_create ("transport", cfg);
-  if (NULL == stats)
+  if (NULL == (stats = GNUNET_STATISTICS_create ("transport", cfg)))
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Could not create statistics.  Exiting.\n"));
-      end_badly_now ();
-      return;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Could not create statistics.  Exiting.\n"));
+    end_badly_now ();
+    return;
   }
 
   max_connect_per_transport = (uint32_t) tneigh;
   my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
-  if (my_private_key == NULL)
+  if (NULL == my_private_key)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Transport service could not access hostkey.  Exiting.\n"));
@@ -638,7 +645,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
 
 /**
- * The main function for the transport service.
+ * The main function for the test
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments
@@ -656,20 +663,19 @@ main (int argc, char *const *argv)
     "test_plugin_transport",
     "-c",
     "test_plugin_transport_data.conf",
-    "-L", "WARNING",
     NULL
   };
   GNUNET_log_setup ("test-plugin-transport",
                     "WARNING",
                     NULL);
   ok = 1;                       /* set to fail */
-  ret = (GNUNET_OK == GNUNET_PROGRAM_run (5,
-                           argv_prog,
-                           "test-plugin-transport",
-                           "testcase",
-                           options,
-                           &run,
-                           (void *) argv)) ? ok : 1;
+  ret = (GNUNET_OK == GNUNET_PROGRAM_run (3,
+					  argv_prog,
+					  "test-plugin-transport",
+					  "testcase",
+					  options,
+					  &run,
+					  (void *) argv)) ? ok : 1;
   GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-plugin-transport");
   return ret;
 }

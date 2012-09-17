@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet.
-  (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
+  (C) 2009, 2010, 2011, 2012 Christian Grothoff (and other contributing authors)
 
   GNUnet is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
@@ -304,6 +304,16 @@ static struct GNUNET_PeerIdentity my_identity;
  */
 static uint64_t my_proof;
 
+/**
+ * Handle to this serivce's server.
+ */
+static struct GNUNET_SERVER_Handle *srv;
+
+/**
+ * Hostkey generation context
+ */
+static struct GNUNET_CRYPTO_RsaKeyGenerationContext *keygen;
+
 
 /**
  * Initialize a message to clients with the current network
@@ -576,7 +586,7 @@ transmit_ready (void *cls, size_t size, void *buf)
         GNUNET_SCHEDULER_add_delayed (get_transmit_delay (0), &transmit_task_cb,
                                       peer_entry);
   }
-  if ((ntohl (size_estimate_messages[idx].hop_count) == 0) &&
+  if ((0 == ntohl (size_estimate_messages[idx].hop_count)) &&
       (GNUNET_SCHEDULER_NO_TASK != proof_task))
   {
     GNUNET_STATISTICS_update (stats,
@@ -584,7 +594,7 @@ transmit_ready (void *cls, size_t size, void *buf)
                               1, GNUNET_NO);
     return 0;
   }
-  if (ntohs (size_estimate_messages[idx].header.size) == 0)
+  if (0 == ntohs (size_estimate_messages[idx].header.size))
   {
     GNUNET_STATISTICS_update (stats,
                               "# flood messages not generated (lack of history)",
@@ -661,7 +671,8 @@ update_network_size_estimate ()
  * @param ts timestamp to use
  */
 static void
-setup_flood_message (unsigned int slot, struct GNUNET_TIME_Absolute ts)
+setup_flood_message (unsigned int slot,
+		     struct GNUNET_TIME_Absolute ts)
 {
   struct GNUNET_NSE_FloodMessage *fm;
   uint32_t matching_bits;
@@ -699,7 +710,9 @@ setup_flood_message (unsigned int slot, struct GNUNET_TIME_Absolute ts)
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-schedule_current_round (void *cls, const struct GNUNET_HashCode * key, void *value)
+schedule_current_round (void *cls, 
+			const struct GNUNET_HashCode * key, 
+			void *value)
 {
   struct NSEPeerEntry *peer_entry = value;
   struct GNUNET_TIME_Relative delay;
@@ -958,7 +971,7 @@ update_flood_times (void *cls, const struct GNUNET_HashCode * key, void *value)
   struct NSEPeerEntry *peer_entry = value;
   struct GNUNET_TIME_Relative delay;
 
-  if (peer_entry->th != NULL)
+  if (NULL != peer_entry->th)
     return GNUNET_OK;           /* already active */
   if (peer_entry == exclude)
     return GNUNET_OK;           /* trigger of the update */
@@ -966,14 +979,14 @@ update_flood_times (void *cls, const struct GNUNET_HashCode * key, void *value)
   {
     /* still stuck in previous round, no point to update, check that
      * we are active here though... */
-    if (GNUNET_SCHEDULER_NO_TASK == peer_entry->transmit_task &&
-        NULL == peer_entry->th)
+    if ( (GNUNET_SCHEDULER_NO_TASK == peer_entry->transmit_task) &&
+	 (NULL == peer_entry->th) )
     {
         GNUNET_break (0);
     }
     return GNUNET_OK;
   }
-  if (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK)
+  if (GNUNET_SCHEDULER_NO_TASK != peer_entry->transmit_task)
   {
     GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
     peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
@@ -1099,7 +1112,7 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
       peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
     }
-    if (peer_entry->th != NULL)
+    if (NULL != peer_entry->th)
     {
       GNUNET_CORE_notify_transmit_ready_cancel (peer_entry->th);
       peer_entry->th = NULL;
@@ -1228,7 +1241,7 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     GNUNET_SCHEDULER_cancel (pos->transmit_task);
     pos->transmit_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (pos->th != NULL)
+  if (NULL != pos->th)
   {
     GNUNET_CORE_notify_transmit_ready_cancel (pos->th);
     pos->th = NULL;
@@ -1247,44 +1260,49 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (flood_task != GNUNET_SCHEDULER_NO_TASK)
+  if (GNUNET_SCHEDULER_NO_TASK != flood_task)
   {
     GNUNET_SCHEDULER_cancel (flood_task);
     flood_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (proof_task != GNUNET_SCHEDULER_NO_TASK)
+  if (GNUNET_SCHEDULER_NO_TASK != proof_task)
   {
     GNUNET_SCHEDULER_cancel (proof_task);
     proof_task = GNUNET_SCHEDULER_NO_TASK;
     write_proof ();             /* remember progress */
   }
-  if (nc != NULL)
+  if (NULL != keygen)
+  {
+    GNUNET_CRYPTO_rsa_key_create_stop (keygen);
+    keygen = NULL;
+  }
+  if (NULL != nc)
   {
     GNUNET_SERVER_notification_context_destroy (nc);
     nc = NULL;
   }
-  if (coreAPI != NULL)
+  if (NULL != coreAPI)
   {
     GNUNET_CORE_disconnect (coreAPI);
     coreAPI = NULL;
   }
-  if (stats != NULL)
+  if (NULL != stats)
   {
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
     stats = NULL;
   }
-  if (peers != NULL)
+  if (NULL != peers)
   {
     GNUNET_CONTAINER_multihashmap_destroy (peers);
     peers = NULL;
   }
-  if (my_private_key != NULL)
+  if (NULL != my_private_key)
   {
     GNUNET_CRYPTO_rsa_key_free (my_private_key);
     my_private_key = NULL;
   }
 #if ENABLE_HISTOGRAM
-  if (wh != NULL)
+  if (NULL != wh)
   {
     GNUNET_break (GNUNET_OK == GNUNET_BIO_write_close (wh));
     wh = NULL;
@@ -1341,19 +1359,17 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
 
 
 /**
- * Handle network size estimate clients.
+ * Callback for hostkey read/generation
  *
- * @param cls closure
- * @param server the initialized server
- * @param c configuration to use
+ * @param cls NULL
+ * @param pk the private key
+ * @param emsg error message
  */
 static void
-run (void *cls, struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+key_generation_cb (void *cls,
+                   struct GNUNET_CRYPTO_RsaPrivateKey *pk,
+                   const char *emsg)
 {
-  char *keyfile;
-  char *proof;
-
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     {&handle_start_message, NULL, GNUNET_MESSAGE_TYPE_NSE_START,
      sizeof (struct GNUNET_MessageHeader)},
@@ -1364,8 +1380,89 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      sizeof (struct GNUNET_NSE_FloodMessage)},
     {NULL, 0, 0}
   };
-  cfg = c;
+  char *proof;
 
+  keygen = NULL;
+  if (NULL == pk)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("NSE service could not access hostkey: %s\n"),
+		emsg);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  my_private_key = pk;
+  GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
+  GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
+                      &my_identity.hashPubKey);
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "NSE", "PROOFFILE", &proof))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _
+                ("NSE service is lacking key configuration settings.  Exiting.\n"));
+    GNUNET_CRYPTO_rsa_key_free (my_private_key);
+    my_private_key = NULL;    
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  if ((GNUNET_YES != GNUNET_DISK_file_test (proof)) ||
+      (sizeof (my_proof) !=
+       GNUNET_DISK_fn_read (proof, &my_proof, sizeof (my_proof))))
+    my_proof = 0;
+  GNUNET_free (proof);
+  proof_task =
+      GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
+                                          &find_proof, NULL);
+
+  peers = GNUNET_CONTAINER_multihashmap_create (128);
+  GNUNET_SERVER_add_handlers (srv, handlers);
+  nc = GNUNET_SERVER_notification_context_create (srv, 1);
+  /* Connect to core service and register core handlers */
+  coreAPI = GNUNET_CORE_connect (cfg,   /* Main configuration */
+                                 NULL,       /* Closure passed to functions */
+                                 &core_init,    /* Call core_init once connected */
+                                 &handle_core_connect,  /* Handle connects */
+                                 &handle_core_disconnect,       /* Handle disconnects */
+                                 NULL,  /* Don't want notified about all incoming messages */
+                                 GNUNET_NO,     /* For header only inbound notification */
+                                 NULL,  /* Don't want notified about all outbound messages */
+                                 GNUNET_NO,     /* For header only outbound notification */
+                                 core_handlers);        /* Register these handlers */
+  if (NULL == coreAPI)
+  {
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+#if ENABLE_HISTOGRAM
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "NSE", "HISTOGRAM", &proof))
+  {
+    wh = GNUNET_BIO_write_open (proof);
+    GNUNET_free (proof);
+  }
+#endif
+  stats = GNUNET_STATISTICS_create ("nse", cfg);
+  GNUNET_SERVER_resume (srv);
+}
+
+
+/**
+ * Handle network size estimate clients.
+ *
+ * @param cls closure
+ * @param server the initialized server
+ * @param c configuration to use
+ */
+static void
+run (void *cls, 
+     struct GNUNET_SERVER_Handle *server,
+     const struct GNUNET_CONFIGURATION_Handle *c)
+{
+  char *keyfile;
+
+  cfg = c;
+  srv = server;  
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_time (cfg, "NSE", "INTERVAL",
                                             &gnunet_nse_interval)) ||
@@ -1389,8 +1486,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-
-
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg, "GNUNETD", "HOSTKEY",
                                                &keyfile))
@@ -1401,76 +1496,16 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
-  GNUNET_free (keyfile);
-  if (my_private_key == NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("NSE service could not access hostkey.  Exiting.\n"));
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
-  GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
-                      &my_identity.hashPubKey);
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "NSE", "PROOFFILE", &proof))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("NSE service is lacking key configuration settings.  Exiting.\n"));
-    if (my_private_key != NULL)
-    {
-      GNUNET_CRYPTO_rsa_key_free (my_private_key);
-      my_private_key = NULL;
-    }
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  if ((GNUNET_YES != GNUNET_DISK_file_test (proof)) ||
-      (sizeof (my_proof) !=
-       GNUNET_DISK_fn_read (proof, &my_proof, sizeof (my_proof))))
-    my_proof = 0;
-  GNUNET_free (proof);
-  proof_task =
-      GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                          &find_proof, NULL);
-
-  peers = GNUNET_CONTAINER_multihashmap_create (128);
-  GNUNET_SERVER_add_handlers (server, handlers);
-  nc = GNUNET_SERVER_notification_context_create (server, 1);
-  /* Connect to core service and register core handlers */
-  coreAPI = GNUNET_CORE_connect (cfg,   /* Main configuration */
-                                 NULL,       /* Closure passed to functions */
-                                 &core_init,    /* Call core_init once connected */
-                                 &handle_core_connect,  /* Handle connects */
-                                 &handle_core_disconnect,       /* Handle disconnects */
-                                 NULL,  /* Don't want notified about all incoming messages */
-                                 GNUNET_NO,     /* For header only inbound notification */
-                                 NULL,  /* Don't want notified about all outbound messages */
-                                 GNUNET_NO,     /* For header only outbound notification */
-                                 core_handlers);        /* Register these handlers */
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
-#if ENABLE_HISTOGRAM
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "NSE", "HISTOGRAM", &proof))
-  {
-    wh = GNUNET_BIO_write_open (proof);
-    GNUNET_free (proof);
-  }
-#endif
-  if (coreAPI == NULL)
-  {
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  stats = GNUNET_STATISTICS_create ("nse", cfg);
+  GNUNET_SERVER_suspend (srv);
+  keygen = GNUNET_CRYPTO_rsa_key_create_start (keyfile, &key_generation_cb, NULL);
+  GNUNET_free (keyfile);
 }
 
 
 /**
- * The main function for the statistics service.
+ * The main function for the network size estimation service.
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments

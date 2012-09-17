@@ -334,43 +334,6 @@ process_listen_socket (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Add a listen task with the scheduler for this server.
- *
- * @param server handle to our server for which we are adding the listen
- *        socket
- */
-static void
-schedule_listen_task (struct GNUNET_SERVER_Handle *server)
-{
-  struct GNUNET_NETWORK_FDSet *r;
-  unsigned int i;
-
-  if (NULL == server->listen_sockets[0])
-    return; /* nothing to do, no listen sockets! */
-  if (NULL == server->listen_sockets[1])
-  {
-    /* simplified method: no fd set needed; this is then much simpler and
-       much more efficient */
-    server->listen_task =
-      GNUNET_SCHEDULER_add_read_net_with_priority (GNUNET_TIME_UNIT_FOREVER_REL,
-						   GNUNET_SCHEDULER_PRIORITY_HIGH,
-						   server->listen_sockets[0],
-						   &process_listen_socket, server);
-    return;
-  }
-  r = GNUNET_NETWORK_fdset_create ();
-  i = 0;
-  while (NULL != server->listen_sockets[i])
-    GNUNET_NETWORK_fdset_set (r, server->listen_sockets[i++]);
-  server->listen_task =
-    GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
-				 GNUNET_TIME_UNIT_FOREVER_REL, r, NULL,
-				 &process_listen_socket, server);
-  GNUNET_NETWORK_fdset_destroy (r);
-}
-
-
-/**
  * Scheduler says our listen socket is ready.  Process it!
  *
  * @param cls handle to our server for which we are processing the listen
@@ -389,7 +352,7 @@ process_listen_socket (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     /* ignore shutdown, someone else will take care of it! */
-    schedule_listen_task (server);
+    GNUNET_SERVER_resume (server);
     return;
   }
   i = 0;
@@ -412,7 +375,7 @@ process_listen_socket (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     i++;
   }
   /* listen for more! */
-  schedule_listen_task (server);
+  GNUNET_SERVER_resume (server);
 }
 
 
@@ -536,7 +499,7 @@ GNUNET_SERVER_create_with_sockets (GNUNET_CONNECTION_AccessCheck access,
   server->access_cls = access_cls;
   server->require_found = require_found;
   if (NULL != lsocks)
-    schedule_listen_task (server);
+    GNUNET_SERVER_resume (server);
   return server;
 }
 
@@ -667,6 +630,58 @@ test_monitor_clients (struct GNUNET_SERVER_Handle *server)
   server->in_soft_shutdown = GNUNET_SYSERR;
   GNUNET_SCHEDULER_add_continuation (&do_destroy, server,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+}
+
+
+/**
+ * Suspend accepting connections from the listen socket temporarily.
+ *
+ * @param server server to stop accepting connections.
+ */
+void
+GNUNET_SERVER_suspend (struct GNUNET_SERVER_Handle *server)
+{
+  if (GNUNET_SCHEDULER_NO_TASK != server->listen_task)
+  {
+    GNUNET_SCHEDULER_cancel (server->listen_task);
+    server->listen_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+}
+
+
+/**
+ * Resume accepting connections from the listen socket.
+ *
+ * @param server server to stop accepting connections.
+ */
+void
+GNUNET_SERVER_resume (struct GNUNET_SERVER_Handle *server)
+{
+  struct GNUNET_NETWORK_FDSet *r;
+  unsigned int i;
+
+  if (NULL == server->listen_sockets[0])
+    return; /* nothing to do, no listen sockets! */
+  if (NULL == server->listen_sockets[1])
+  {
+    /* simplified method: no fd set needed; this is then much simpler and
+       much more efficient */
+    server->listen_task =
+      GNUNET_SCHEDULER_add_read_net_with_priority (GNUNET_TIME_UNIT_FOREVER_REL,
+						   GNUNET_SCHEDULER_PRIORITY_HIGH,
+						   server->listen_sockets[0],
+						   &process_listen_socket, server);
+    return;
+  }
+  r = GNUNET_NETWORK_fdset_create ();
+  i = 0;
+  while (NULL != server->listen_sockets[i])
+    GNUNET_NETWORK_fdset_set (r, server->listen_sockets[i++]);
+  server->listen_task =
+    GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
+				 GNUNET_TIME_UNIT_FOREVER_REL, r, NULL,
+				 &process_listen_socket, server);
+  GNUNET_NETWORK_fdset_destroy (r);
 }
 
 

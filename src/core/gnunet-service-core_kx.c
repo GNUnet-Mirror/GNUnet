@@ -1686,30 +1686,13 @@ deliver_message (void *cls, void *client, const struct GNUNET_MessageHeader *m)
 /**
  * Initialize KX subsystem.
  *
+ * @param pk private key to use for the peer
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
-GSC_KX_init ()
+GSC_KX_init (struct GNUNET_CRYPTO_RsaPrivateKey *pk)
 {
-  char *keyfile;
-
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (GSC_cfg, "GNUNETD", "HOSTKEY",
-                                               &keyfile))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("Core service is lacking HOSTKEY configuration setting.  Exiting.\n"));
-    return GNUNET_SYSERR;
-  }
-  my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
-  GNUNET_free (keyfile);
-  if (NULL == my_private_key)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Core service could not access hostkey.  Exiting.\n"));
-    return GNUNET_SYSERR;
-  }
+  my_private_key = pk;
   GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
   GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
                       &GSC_my_identity.hashPubKey);

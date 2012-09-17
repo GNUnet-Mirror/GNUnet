@@ -1085,6 +1085,17 @@ void
 GNUNET_CRYPTO_random_disable_entropy_gathering (void);
 
 
+/**
+ * Check if we are using weak random number generation.
+ *
+ * @return GNUNET_YES if weak number generation is on
+ *         (thus will return YES if 'GNUNET_CRYPTO_random_disable_entropy_gathering'
+ *          was called previously).
+ */
+int
+GNUNET_CRYPTO_random_is_weak (void);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

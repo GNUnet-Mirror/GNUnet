@@ -394,10 +394,10 @@ print_peer_info (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
   struct PrintContext *pc;
 
-  if (peer == NULL)
+  if (NULL == peer)
   {
     pic = NULL; /* end of iteration */
-    if (err_msg != NULL)
+    if (NULL != err_msg)
     {
       FPRINTF (stderr, 
 	       _("Error in communication with PEERINFO service: %s\n"),
@@ -812,13 +812,14 @@ run (void *cls, char *const *args, const char *cfgfile,
   char *fn;
 
   cfg = c;
-  if (args[0] != NULL)
+  if (NULL != args[0])
   {
-    FPRINTF (stderr, _("Invalid command line argument `%s'\n"), args[0]);
+    FPRINTF (stderr, 
+	     _("Invalid command line argument `%s'\n"), 
+	     args[0]);
     return;
   }
-  peerinfo = GNUNET_PEERINFO_connect (cfg);
-  if (peerinfo == NULL)
+  if (NULL == (peerinfo = GNUNET_PEERINFO_connect (cfg)))
   {
     FPRINTF (stderr, "%s",  _("Could not access PEERINFO service.  Exiting.\n"));
     return;
@@ -834,7 +835,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 	       "GNUNETD", "HOSTKEYFILE");
       return;
     }
-
     if (NULL == (priv = GNUNET_CRYPTO_rsa_key_create_from_file (fn)))
     {
       FPRINTF (stderr, _("Loading hostkey from `%s' failed.\n"), fn);

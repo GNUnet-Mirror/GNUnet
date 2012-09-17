@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -34,6 +34,14 @@
 
 #define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
 
+
+/**
+ * GNUNET_YES if we are using a 'weak' (low-entropy) PRNG.
+ */ 
+static int weak_random;
+
+
+
 /* TODO: ndurner, move this to plibc? */
 /* The code is derived from glibc, obviously */
 #if MINGW
@@ -49,13 +57,17 @@
 #undef RAND_MAX
 #endif
 #define RAND_MAX 0x7fffffff /* Hopefully this is correct */
+
+
 static int32_t glibc_weak_rand32_state = 1;
+
 
 void
 glibc_weak_srand32 (int32_t s)
 {
   glibc_weak_rand32_state = s;
 }
+
 
 int32_t
 glibc_weak_rand32 ()
@@ -74,10 +86,11 @@ glibc_weak_rand32 ()
  * @return number between 0 and 1.
  */
 static double
-weak_random ()
+get_weak_random ()
 {
   return ((double) RANDOM () / RAND_MAX);
 }
+
 
 /**
  * Seed a weak random generator. Only GNUNET_CRYPTO_QUALITY_WEAK-mode generator
@@ -90,6 +103,7 @@ GNUNET_CRYPTO_seed_weak_random (int32_t seed)
 {
   SRANDOM (seed);
 }
+
 
 /**
  * Produce a random value.
@@ -134,7 +148,7 @@ GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, uint32_t i)
     while (ret >= ul);
     return ret % i;
   case GNUNET_CRYPTO_QUALITY_WEAK:
-    ret = i * weak_random ();
+    ret = i * get_weak_random ();
     if (ret >= i)
       ret = i - 1;
     return ret;
@@ -211,7 +225,7 @@ GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode, uint64_t max)
 
     return ret % max;
   case GNUNET_CRYPTO_QUALITY_WEAK:
-    ret = max * weak_random ();
+    ret = max * get_weak_random ();
     if (ret >= max)
       ret = max - 1;
     return ret;
@@ -221,6 +235,19 @@ GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode, uint64_t max)
   return 0;
 }
 
+
+/**
+ * Check if we are using weak random number generation.
+ *
+ * @return GNUNET_YES if weak number generation is on
+ */
+int
+GNUNET_CRYPTO_random_is_weak ()
+{
+  return weak_random;
+}
+
+
 /**
  * This function should only be called in testcases
  * where strong entropy gathering is not desired
@@ -229,6 +256,7 @@ GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode, uint64_t max)
 void
 GNUNET_CRYPTO_random_disable_entropy_gathering ()
 {
+  weak_random = GNUNET_YES;
   gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
 }
 
@@ -238,6 +266,7 @@ GNUNET_CRYPTO_random_disable_entropy_gathering ()
  * entropy gathering.
  */
 static struct GNUNET_OS_Process *genproc;
+
 
 /**
  * Function called by libgcrypt whenever we are

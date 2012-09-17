@@ -629,11 +629,17 @@ try_read_key (const char *filename)
     (void) GNUNET_DISK_file_close (fd);
     return NULL;
   }
+  if (0 == fs)
+  {
+    GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fd));
+    return NULL;
+  }
   if (fs > UINT16_MAX)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("File `%s' does not contain a valid private key.  Deleting it.\n"),
-         filename);
+         _("File `%s' does not contain a valid private key (too long, %llu bytes).  Deleting it.\n"),	
+         filename,
+	 (unsigned long long) fs);
     GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fd));
     if (0 != UNLINK (filename))    
       LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "unlink", filename);
@@ -648,8 +654,9 @@ try_read_key (const char *filename)
       (NULL == (ret = GNUNET_CRYPTO_rsa_decode_key ((char *) enc, len))))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("File `%s' does not contain a valid private key.  Deleting it.\n"),
-         filename);
+         _("File `%s' does not contain a valid private key (failed decode, %llu bytes).  Deleting it.\n"),
+         filename,
+	 (unsigned long long) fs);
     GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fd));
     if (0 != UNLINK (filename))    
       LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "unlink", filename);
@@ -660,6 +667,23 @@ try_read_key (const char *filename)
 
   GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fd));
   return ret;  
+}
+
+
+/**
+ * Wait for a short time (we're trying to lock a file or want
+ * to give another process a shot at finishing a disk write, etc.).
+ * Sleeps for 100ms (as that should be long enough for virtually all
+ * modern systems to context switch and allow another process to do
+ * some 'real' work).
+ */
+static void
+short_wait ()
+{
+  struct GNUNET_TIME_Relative timeout;
+
+  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100);
+  GNUNET_NETWORK_socket_select (NULL, NULL, NULL, timeout);
 }
 
 
@@ -723,7 +747,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
                                   sizeof (struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded),
                                   GNUNET_YES))
     {
-      sleep (1);
+      short_wait (1);
       if (0 == ++cnt % 10)
       {
         ec = errno;
@@ -781,7 +805,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
              _
              ("This may be ok if someone is currently generating a hostkey.\n"));
       }
-      sleep (1);
+      short_wait (1);
       continue;
     }
     if (GNUNET_YES != GNUNET_DISK_file_test (filename))
@@ -817,7 +841,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
              _
              ("This may be ok if someone is currently generating a hostkey.\n"));
       }
-      sleep (2);                /* wait a bit longer! */
+      short_wait (1);                /* wait a bit longer! */
       continue;
     }
     break;
@@ -996,6 +1020,7 @@ GNUNET_CRYPTO_rsa_key_create_start (const char *filename,
 {
   struct GNUNET_CRYPTO_RsaKeyGenerationContext *gc;
   struct GNUNET_CRYPTO_RsaPrivateKey *pk;
+  const char *weak_random;
 
   if (NULL != (pk = try_read_key (filename)))
   {
@@ -1023,13 +1048,18 @@ GNUNET_CRYPTO_rsa_key_create_start (const char *filename,
     GNUNET_free (gc);
     return NULL;
   }
+  weak_random = NULL;
+  if (GNUNET_YES ==
+      GNUNET_CRYPTO_random_is_weak ())
+    weak_random = "-w";
   gc->gnunet_rsa = GNUNET_OS_start_process (GNUNET_NO,
 					    GNUNET_OS_INHERIT_STD_ERR,
 					    NULL, 
 					    gc->gnunet_rsa_out,
 					    "gnunet-rsa",
-					    "gnunet-rsa",
+					    "gnunet-rsa",					    
 					    gc->filename,
+					    weak_random,
 					    NULL);
   if (NULL == gc->gnunet_rsa)
   {

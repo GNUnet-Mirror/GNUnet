@@ -903,8 +903,7 @@ GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
                 _("Lacking key configuration settings.\n"));
     return NULL;
   }
-  my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
-  if (my_private_key == NULL)
+  if (NULL == (my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Could not access hostkey file `%s'.\n"), keyfile);
