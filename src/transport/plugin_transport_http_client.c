@@ -875,10 +875,7 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
   }
   if (NULL == s->msg_tk)
     s->msg_tk = GNUNET_SERVER_mst_create (&client_receive_mst_cb, s);
-  //GNUNET_break (0);
-  int res = GNUNET_SERVER_mst_receive (s->msg_tk, s, stream, len, GNUNET_NO, GNUNET_NO);
-  //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MST RESULT : %u \n" , res);
-  //GNUNET_break (0);
+  (void) GNUNET_SERVER_mst_receive (s->msg_tk, s, stream, len, GNUNET_NO, GNUNET_NO);
   return len;
 
 }
