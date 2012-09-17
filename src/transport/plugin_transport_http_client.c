@@ -34,7 +34,7 @@
 
 #define VERBOSE_CURL GNUNET_YES
 
-#define PUT_DISCONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+#define PUT_DISCONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
 
 #define ENABLE_PUT GNUNET_YES
 #define ENABLE_GET GNUNET_YES
@@ -785,7 +785,7 @@ client_wake_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Callback for message stream tokenixer
+ * Callback for message stream tokenizer
  *
  * @param cls the session
  * @param client not used
@@ -800,15 +800,14 @@ client_receive_mst_cb (void *cls, void *client,
   struct HTTP_Client_Plugin *plugin;
   struct GNUNET_TIME_Relative delay;
   struct GNUNET_ATS_Information atsi[2];
-
+  //GNUNET_break (0);
   if (GNUNET_YES != client_exist_session(p, s))
   {
     GNUNET_break (0);
     return GNUNET_OK;
   }
   plugin = s->plugin;
-
-
+  //GNUNET_break (0);
   atsi[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   atsi[0].value = htonl (1);
   atsi[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
@@ -876,7 +875,10 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
   }
   if (NULL == s->msg_tk)
     s->msg_tk = GNUNET_SERVER_mst_create (&client_receive_mst_cb, s);
-  GNUNET_SERVER_mst_receive (s->msg_tk, s, stream, len, GNUNET_NO, GNUNET_NO);
+  //GNUNET_break (0);
+  int res = GNUNET_SERVER_mst_receive (s->msg_tk, s, stream, len, GNUNET_NO, GNUNET_NO);
+  //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MST RESULT : %u \n" , res);
+  //GNUNET_break (0);
   return len;
 
 }
@@ -1027,7 +1029,7 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
             if (s->client_get == NULL)
             {
               /* Disconnect other transmission direction and tell transport */
-              client_disconnect (s);
+              //client_disconnect (s);
             }
         }
         if (easy_h == s->client_get)

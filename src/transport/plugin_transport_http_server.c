@@ -1473,20 +1473,19 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
   GNUNET_free (sc);
   plugin->cur_connections--;
 
-  if (((s->server_send == NULL) || (s->server_recv == NULL)) &&
-      ((GNUNET_YES == s->session_passed) && (GNUNET_NO == s->session_ended)))
-  {
-    /* Notify transport immediately that this session is invalid */
-    s->session_ended = GNUNET_YES;
-    plugin->env->session_end (plugin->env->cls, &s->target, s);
-  }
-
   if ((s->server_send == NULL) && (s->server_recv == NULL))
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Peer `%s' on address `%s' disconnected\n",
                      GNUNET_i2s (&s->target),
                      http_common_plugin_address_to_string (NULL, s->addr, s->addrlen));
+
+    if ((GNUNET_YES == s->session_passed) && (GNUNET_NO == s->session_ended))
+    {
+        /* Notify transport immediately that this session is invalid */
+        s->session_ended = GNUNET_YES;
+        plugin->env->session_end (plugin->env->cls, &s->target, s);
+    }
     server_delete_session (s);
   }
 
@@ -1636,10 +1635,10 @@ server_schedule (struct HTTP_Server_Plugin *plugin,
                        last_timeout, timeout);
       last_timeout = timeout;
     }
-    if (timeout <= GNUNET_TIME_UNIT_SECONDS.rel_value)
+    //if (timeout <= GNUNET_TIME_UNIT_SECONDS.rel_value)
       tv.rel_value = (uint64_t) timeout;
-    else
-      tv = GNUNET_TIME_UNIT_SECONDS;
+    //else
+      //tv = GNUNET_TIME_UNIT_SECONDS;
   }
   else
     tv = GNUNET_TIME_UNIT_SECONDS;
