@@ -175,8 +175,6 @@ struct Plugin
   struct GNUNET_NETWORK_FDSet *ws_v4;
 
 
-  int with_v4_ws;
-
   /**
    * The read socket for IPv4
    */
@@ -192,8 +190,6 @@ struct Plugin
    * FD Write set
    */
   struct GNUNET_NETWORK_FDSet *ws_v6;
-
-  int with_v6_ws;
 
   /**
    * The read socket for IPv6

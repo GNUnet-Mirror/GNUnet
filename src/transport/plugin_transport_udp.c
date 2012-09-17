@@ -348,6 +348,51 @@ static void
 stop_session_timeout (struct Session *s);
 
 
+/**
+ * (re)schedule select tasks for this plugin.
+ *
+ * @param plugin plugin to reschedule
+ */
+static void
+schedule_select (struct Plugin *plugin)
+{
+  struct GNUNET_TIME_Relative min_delay;
+  struct UDPMessageWrapper *udpw;
+
+  if (NULL != plugin->sockv4)
+  {
+    min_delay = GNUNET_TIME_UNIT_FOREVER_REL;
+    for (udpw = plugin->ipv4_queue_head; NULL != udpw; udpw = udpw->next)
+      min_delay = GNUNET_TIME_relative_min (min_delay,
+					    GNUNET_TIME_absolute_get_remaining (udpw->session->flow_delay_from_other_peer));
+    
+    if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel(plugin->select_task);
+    plugin->select_task =
+      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+				   (0 == min_delay.rel_value) ? GNUNET_TIME_UNIT_FOREVER_REL : min_delay,
+				   plugin->rs_v4,
+				   (0 == min_delay.rel_value) ? plugin->ws_v4 : NULL,
+				   &udp_plugin_select, plugin);  
+  }
+  if (NULL != plugin->sockv6)
+  {
+    min_delay = GNUNET_TIME_UNIT_FOREVER_REL;
+    for (udpw = plugin->ipv6_queue_head; NULL != udpw; udpw = udpw->next)
+      min_delay = GNUNET_TIME_relative_min (min_delay,
+					    GNUNET_TIME_absolute_get_remaining (udpw->session->flow_delay_from_other_peer));
+    
+    if (GNUNET_SCHEDULER_NO_TASK != plugin->select_task_v6)
+      GNUNET_SCHEDULER_cancel(plugin->select_task_v6);
+    plugin->select_task_v6 =
+      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+				   (0 == min_delay.rel_value) ? GNUNET_TIME_UNIT_FOREVER_REL : min_delay,
+				   plugin->rs_v6,
+				   (0 == min_delay.rel_value) ? plugin->ws_v6 : NULL,
+				   &udp_plugin_select_v6, plugin);
+  }
+}
+
 
 /**
  * Function called for a quick conversion of the binary address to
@@ -792,6 +837,79 @@ udp_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 }
 
 
+/**
+ * Session was idle, so disconnect it
+ */
+static void
+session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_assert (NULL != cls);
+  struct Session *s = cls;
+
+  s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Session %p was idle for %llu ms, disconnecting\n",
+              s, (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+  /* call session destroy function */
+  disconnect_session (s);
+}
+
+
+/**
+ * Start session timeout
+ */
+static void
+start_session_timeout (struct Session *s)
+{
+  GNUNET_assert (NULL != s);
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
+  s->timeout_task =  GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                                                   &session_timeout,
+                                                   s);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Timeout for session %p set to %llu ms\n",
+              s,  (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+}
+
+
+/**
+ * Increment session timeout due to activity
+ */
+static void
+reschedule_session_timeout (struct Session *s)
+{
+  GNUNET_assert (NULL != s);
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
+
+  GNUNET_SCHEDULER_cancel (s->timeout_task);
+  s->timeout_task =  GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                                                   &session_timeout,
+                                                   s);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Timeout rescheduled for session %p set to %llu ms\n",
+              s, (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+}
+
+
+/**
+ * Cancel timeout
+ */
+static void
+stop_session_timeout (struct Session *s)
+{
+  GNUNET_assert (NULL != s);
+
+  if (GNUNET_SCHEDULER_NO_TASK != s->timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (s->timeout_task);
+    s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Timeout stopped for session %p canceled\n",
+                s, (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+  }
+}
+
+
 static struct Session *
 create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
                 const void *addr, size_t addrlen,
@@ -850,7 +968,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   s->target = *target;
   s->sock_addr = (const struct sockaddr *) &s[1];
   s->last_expected_delay = GNUNET_TIME_UNIT_SECONDS;
-  start_session_timeout(s);
+  start_session_timeout (s);
   return s;
 }
 
@@ -1033,14 +1151,12 @@ enqueue_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
   struct FragmentationContext *frag_ctx = cls;
   struct Plugin *plugin = frag_ctx->plugin;
   struct UDPMessageWrapper * udpw;
-  struct Session *s;
   size_t msg_len = ntohs (msg->size);
-
+ 
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
        "Enqueuing fragment with %u bytes %u\n", msg_len , sizeof (struct UDPMessageWrapper));
   udpw = GNUNET_malloc (sizeof (struct UDPMessageWrapper) + msg_len);
   udpw->session = frag_ctx->session;
-  s = udpw->session;
   udpw->udp = (char *) &udpw[1];
 
   udpw->msg_size = msg_len;
@@ -1050,39 +1166,7 @@ enqueue_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
   udpw->frag_ctx = frag_ctx;
   memcpy (udpw->udp, msg, msg_len);
   enqueue (plugin, udpw);
-
-  if (s->addrlen == sizeof (struct sockaddr_in))
-  {
-    if (plugin->with_v4_ws == GNUNET_NO)
-    {
-      if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel(plugin->select_task);
-
-      plugin->select_task =
-          GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                       GNUNET_TIME_UNIT_FOREVER_REL,
-                                       plugin->rs_v4,
-                                       plugin->ws_v4,
-                                       &udp_plugin_select, plugin);
-      plugin->with_v4_ws = GNUNET_YES;
-    }
-  }
-  else if (s->addrlen == sizeof (struct sockaddr_in6))
-  {
-    if (plugin->with_v6_ws == GNUNET_NO)
-    {
-      if (plugin->select_task_v6 != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel(plugin->select_task_v6);
-
-      plugin->select_task_v6 =
-          GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                       GNUNET_TIME_UNIT_FOREVER_REL,
-                                       plugin->rs_v6,
-                                       plugin->ws_v6,
-                                       &udp_plugin_select_v6, plugin);
-      plugin->with_v6_ws = GNUNET_YES;
-    }
-  }
+  schedule_select (plugin);
 }
 
 
@@ -1169,13 +1253,12 @@ udp_plugin_send (void *cls,
     udpw->frag_ctx = NULL;
     memcpy (udpw->udp, udp, sizeof (struct UDPMessage));
     memcpy (&udpw->udp[sizeof (struct UDPMessage)], msgbuf, msgbuf_size);
-
     enqueue (plugin, udpw);
   }
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "UDP has to fragment message \n");
+         "UDP has to fragment message\n");
     if  (s->frag_ctx != NULL)
       return GNUNET_SYSERR;
     memcpy (&udp[1], msgbuf, msgbuf_size);
@@ -1197,40 +1280,7 @@ udp_plugin_send (void *cls,
 
     s->frag_ctx = frag_ctx;
   }
-
-  if (s->addrlen == sizeof (struct sockaddr_in))
-  {
-    if (plugin->with_v4_ws == GNUNET_NO)
-    {
-      if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel(plugin->select_task);
-
-      plugin->select_task =
-          GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                       GNUNET_TIME_UNIT_FOREVER_REL,
-                                       plugin->rs_v4,
-                                       plugin->ws_v4,
-                                       &udp_plugin_select, plugin);
-      plugin->with_v4_ws = GNUNET_YES;
-    }
-  }
-  else if (s->addrlen == sizeof (struct sockaddr_in6))
-  {
-    if (plugin->with_v6_ws == GNUNET_NO)
-    {
-      if (plugin->select_task_v6 != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel(plugin->select_task_v6);
-
-      plugin->select_task_v6 =
-        GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                     GNUNET_TIME_UNIT_FOREVER_REL,
-                                     plugin->rs_v6,
-                                     plugin->ws_v6,
-                                     &udp_plugin_select_v6, plugin);
-      plugin->with_v6_ws = GNUNET_YES;
-    }
-  }
-
+  schedule_select (plugin);
   return mlen;
 }
 
@@ -1964,38 +2014,18 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct Plugin *plugin = cls;
 
   plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-  plugin->with_v4_ws = GNUNET_NO;
-
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_READ_READY) != 0)
-  {
-    if ((NULL != plugin->sockv4) &&
-      (GNUNET_NETWORK_fdset_isset (tc->read_ready, plugin->sockv4)))
-        udp_select_read (plugin, plugin->sockv4);
-
-  }
-
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY) != 0)
-  {
-    if ((NULL != plugin->sockv4) && (plugin->ipv4_queue_head != NULL) &&
-      (GNUNET_NETWORK_fdset_isset (tc->write_ready, plugin->sockv4)))
-      {
-        udp_select_send (plugin, plugin->sockv4);
-      }
-  }
-
-  if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (plugin->select_task);
-  plugin->select_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_TIME_UNIT_FOREVER_REL,
-                                   plugin->rs_v4,
-                                   (plugin->ipv4_queue_head != NULL) ? plugin->ws_v4 : NULL,
-                                   &udp_plugin_select, plugin);
-  if (plugin->ipv4_queue_head != NULL)
-    plugin->with_v4_ws = GNUNET_YES;
-  else
-    plugin->with_v4_ws = GNUNET_NO;
+  if ( (0 != (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY)) &&
+       (NULL != plugin->sockv4) &&
+       (GNUNET_NETWORK_fdset_isset (tc->read_ready, plugin->sockv4)) )
+    udp_select_read (plugin, plugin->sockv4);
+  if ( (0 != (tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) &&
+       (NULL != plugin->sockv4) && 
+       (NULL != plugin->ipv4_queue_head) &&
+       (GNUNET_NETWORK_fdset_isset (tc->write_ready, plugin->sockv4)) )
+    udp_select_send (plugin, plugin->sockv4);   
+  schedule_select (plugin);
 }
 
 
@@ -2013,36 +2043,17 @@ udp_plugin_select_v6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct Plugin *plugin = cls;
 
   plugin->select_task_v6 = GNUNET_SCHEDULER_NO_TASK;
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-
-  plugin->with_v6_ws = GNUNET_NO;
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_READ_READY) != 0)
-  {
-    if ((NULL != plugin->sockv6) &&
-      (GNUNET_NETWORK_fdset_isset (tc->read_ready, plugin->sockv6)))
-        udp_select_read (plugin, plugin->sockv6);
-  }
-
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY) != 0)
-  {
-    if ((NULL != plugin->sockv6) && (plugin->ipv6_queue_head != NULL) &&
-      (GNUNET_NETWORK_fdset_isset (tc->write_ready, plugin->sockv6)))
-      {
-        udp_select_send (plugin, plugin->sockv6);
-      }
-  }
-  if (plugin->select_task_v6 != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (plugin->select_task_v6);
-  plugin->select_task_v6 = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_TIME_UNIT_FOREVER_REL,
-                                   plugin->rs_v6,
-                                   (plugin->ipv6_queue_head != NULL) ? plugin->ws_v6 : NULL,
-                                   &udp_plugin_select_v6, plugin);
-  if (plugin->ipv6_queue_head != NULL)
-    plugin->with_v6_ws = GNUNET_YES;
-  else
-    plugin->with_v6_ws = GNUNET_NO;
+  if ( ((tc->reason & GNUNET_SCHEDULER_REASON_READ_READY) != 0) &&
+       (NULL != plugin->sockv6) &&
+       (GNUNET_NETWORK_fdset_isset (tc->read_ready, plugin->sockv6)) )
+    udp_select_read (plugin, plugin->sockv6);
+  if ( (0 != (tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) &&
+       (NULL != plugin->sockv6) && (plugin->ipv6_queue_head != NULL) &&
+       (GNUNET_NETWORK_fdset_isset (tc->write_ready, plugin->sockv6)) )    
+    udp_select_send (plugin, plugin->sockv6);
+  schedule_select (plugin);
 }
 
 
@@ -2158,17 +2169,8 @@ setup_sockets (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struct 
     GNUNET_NETWORK_fdset_set (plugin->ws_v4, plugin->sockv4);
   }
 
-  if (sockets_created == 0)
+  if (0 == sockets_created)
     LOG (GNUNET_ERROR_TYPE_WARNING, _("Failed to open UDP sockets\n"));
-
-  plugin->select_task =
-      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_TIME_UNIT_FOREVER_REL,
-                                   plugin->rs_v4,
-                                   NULL,
-                                   &udp_plugin_select, plugin);
-  plugin->with_v4_ws = GNUNET_NO;
-
   if (plugin->enable_ipv6 == GNUNET_YES)
   {
     plugin->rs_v6 = GNUNET_NETWORK_fdset_create ();
@@ -2180,16 +2182,8 @@ setup_sockets (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struct 
       GNUNET_NETWORK_fdset_set (plugin->rs_v6, plugin->sockv6);
       GNUNET_NETWORK_fdset_set (plugin->ws_v6, plugin->sockv6);
     }
-
-    plugin->select_task_v6 =
-        GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                     GNUNET_TIME_UNIT_FOREVER_REL,
-                                     plugin->rs_v6,
-                                     NULL,
-                                     &udp_plugin_select_v6, plugin);
-    plugin->with_v6_ws = GNUNET_NO;
   }
-
+  schedule_select (plugin);
   plugin->nat = GNUNET_NAT_register (plugin->env->cfg,
                            GNUNET_NO, plugin->port,
                            sockets_created,
@@ -2198,79 +2192,6 @@ setup_sockets (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struct 
 
   return sockets_created;
 }
-
-/**
- * Session was idle, so disconnect it
- */
-static void
-session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  GNUNET_assert (NULL != cls);
-  struct Session *s = cls;
-
-  s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Session %p was idle for %llu ms, disconnecting\n",
-              s, (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
-  /* call session destroy function */
-  disconnect_session(s);
-}
-
-
-/**
- * Start session timeout
- */
-static void
-start_session_timeout (struct Session *s)
-{
-  GNUNET_assert (NULL != s);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
-  s->timeout_task =  GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-                                                   &session_timeout,
-                                                   s);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Timeout for session %p set to %llu ms\n",
-              s,  (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
-}
-
-
-/**
- * Increment session timeout due to activity
- */
-static void
-reschedule_session_timeout (struct Session *s)
-{
-  GNUNET_assert (NULL != s);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
-
-  GNUNET_SCHEDULER_cancel (s->timeout_task);
-  s->timeout_task =  GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-                                                   &session_timeout,
-                                                   s);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Timeout rescheduled for session %p set to %llu ms\n",
-              s, (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
-}
-
-
-/**
- * Cancel timeout
- */
-static void
-stop_session_timeout (struct Session *s)
-{
-  GNUNET_assert (NULL != s);
-
-  if (GNUNET_SCHEDULER_NO_TASK != s->timeout_task)
-  {
-    GNUNET_SCHEDULER_cancel (s->timeout_task);
-    s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Timeout stopped for session %p canceled\n",
-                s, (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
-  }
-}
-
 
 
 /**
@@ -2488,7 +2409,6 @@ libgnunet_plugin_transport_udp_done (void *cls)
   }
 
   stop_broadcast (plugin);
-
   if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (plugin->select_task);
