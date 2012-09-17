@@ -767,6 +767,16 @@ struct MeshRegexSearchContext
      */
   struct MeshRegexSearchInfo *info;
 
+    /**
+     * We just want to look for one edge, the longer the better.
+     * Keep its length.
+     */
+  unsigned int longest_match;
+
+    /**
+     * Destination hash of the longest match.
+     */
+  struct GNUNET_HashCode hash;
 };
 
 /******************************************************************************/
@@ -1269,9 +1279,7 @@ regex_edge_iterator (void *cls,
                      const struct GNUNET_HashCode *key)
 {
   struct MeshRegexSearchContext *ctx = cls;
-  struct MeshRegexSearchContext *new_ctx;
   struct MeshRegexSearchInfo *info = ctx->info;
-  struct GNUNET_DHT_GetHandle *get_h;
   char *current;
   size_t current_len;
 
@@ -1295,15 +1303,52 @@ regex_edge_iterator (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     Token doesn't match, END\n");
     return GNUNET_YES; // Token doesn't match
   }
+
+  if (len > ctx->longest_match)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     Token is longer, KEEP\n");
+    ctx->longest_match = len;
+    ctx->hash = *key;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*    End of regex edge iterator\n");
+  return GNUNET_YES;
+}
+
+
+/**
+ * Jump to the next edge, with the longest matching token.
+ *
+ * @param cls Closure (context of the search).
+ * @param token Token that follows to next state.
+ * @param len Lenght of token.
+ * @param key Hash of next state.
+ *
+ * @return GNUNET_YES if should keep iterating, GNUNET_NO otherwise.
+ */
+static int
+regex_next_edge (const struct MeshRegexBlock *block,
+                 size_t size,
+                 struct MeshRegexSearchContext *ctx)
+{
+  struct MeshRegexSearchContext *new_ctx;
+  struct MeshRegexSearchInfo *info = ctx->info;
+  struct GNUNET_DHT_GetHandle *get_h;
+
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_MESH_regex_block_iterate (block, size,
+                                                 &regex_edge_iterator, ctx));
+
   new_ctx = GNUNET_malloc (sizeof (struct MeshRegexSearchContext));
   new_ctx->info = info;
-  new_ctx->position = ctx->position + len;
+  new_ctx->position = ctx->position + ctx->longest_match;
   GNUNET_array_append (info->contexts, info->n_contexts, new_ctx);
   if (GNUNET_YES ==
-      GNUNET_CONTAINER_multihashmap_contains(info->dht_get_handles, key))
+      GNUNET_CONTAINER_multihashmap_contains(info->dht_get_handles, &ctx->hash))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     GET running, END\n");
-    GNUNET_CONTAINER_multihashmap_get_multiple (info->dht_get_results, key,
+    GNUNET_CONTAINER_multihashmap_get_multiple (info->dht_get_results,
+                                                &ctx->hash,
                                                 &regex_result_iterator,
                                                 new_ctx);
     return GNUNET_YES; // We are already looking for it
@@ -1312,22 +1357,25 @@ regex_edge_iterator (void *cls,
   get_h = 
       GNUNET_DHT_get_start (dht_handle,    /* handle */
                             GNUNET_BLOCK_TYPE_MESH_REGEX, /* type */
-                            key,     /* key to search */
+                            &ctx->hash,     /* key to search */
                             dht_replication_level, /* replication level */
                             GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
                             NULL,       /* xquery */ // FIXME BLOOMFILTER
                             0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
                             &dht_get_string_handler, new_ctx);
   if (GNUNET_OK !=
-      GNUNET_CONTAINER_multihashmap_put(info->dht_get_handles, key, get_h,
+      GNUNET_CONTAINER_multihashmap_put(info->dht_get_handles,
+                                        &ctx->hash,
+                                        get_h,
                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
   {
     GNUNET_break (0);
     return GNUNET_YES;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*    End of regex edge iterator\n");
+
   return GNUNET_YES;
 }
+
 
 /**
  * Iterator over hash map entries to cancel DHT GET requests after a
@@ -6096,9 +6144,9 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     }
     return;
   }
-  GNUNET_break (GNUNET_OK ==
-                GNUNET_MESH_regex_block_iterate (block, size,
-                                                 &regex_edge_iterator, ctx));
+
+  regex_next_edge (block, size, ctx);
+
   return;
 }
 
