@@ -1140,20 +1140,18 @@ tunnel_add_client (struct MeshTunnel *t, struct MeshClient *c);
 
 
 /**
- * Iterator over edges in a regex block retrieved from the DHT.
+ * Jump to the next edge, with the longest matching token.
  *
- * @param cls Closure.
- * @param token Token that follows to next state.
- * @param len Lenght of token.
- * @param key Hash of next state.
+ * @param block Block found in the DHT.
+ * @param size Size of the block.
+ * @param ctx Context of the search.
  *
  * @return GNUNET_YES if should keep iterating, GNUNET_NO otherwise.
  */
-static int
-regex_edge_iterator (void *cls,
-                     const char *token,
-                     size_t len,
-                     const struct GNUNET_HashCode *key);
+static void
+regex_next_edge (const struct MeshRegexBlock *block,
+                 size_t size,
+                 struct MeshRegexSearchContext *ctx);
 
 
 /**
@@ -1255,8 +1253,7 @@ regex_result_iterator (void *cls,
                 ntohl(block->accepting));
 
   }
-  (void) GNUNET_MESH_regex_block_iterate (block, SIZE_MAX,
-                                          &regex_edge_iterator, ctx);
+  regex_next_edge(block, SIZE_MAX, ctx);
 
   return GNUNET_YES;
 }
@@ -1310,6 +1307,10 @@ regex_edge_iterator (void *cls,
     ctx->longest_match = len;
     ctx->hash = *key;
   }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     Token is not longer, IGNORE\n");
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*    End of regex edge iterator\n");
   return GNUNET_YES;
@@ -1334,6 +1335,8 @@ regex_next_edge (const struct MeshRegexBlock *block,
   struct MeshRegexSearchInfo *info = ctx->info;
   struct GNUNET_DHT_GetHandle *get_h;
 
+  /* Find the longest match for the current string position, 
+   * among tokens in the given block */
   GNUNET_break (GNUNET_OK ==
                 GNUNET_MESH_regex_block_iterate (block, size,
                                                  &regex_edge_iterator, ctx));
@@ -1342,6 +1345,8 @@ regex_next_edge (const struct MeshRegexBlock *block,
   new_ctx->info = info;
   new_ctx->position = ctx->position + ctx->longest_match;
   GNUNET_array_append (info->contexts, info->n_contexts, new_ctx);
+
+  /* Check whether we already have a DHT GET running for it */
   if (GNUNET_YES ==
       GNUNET_CONTAINER_multihashmap_contains(info->dht_get_handles, &ctx->hash))
   {
@@ -1352,6 +1357,7 @@ regex_next_edge (const struct MeshRegexBlock *block,
                                                 new_ctx);
     return; // We are already looking for it
   }
+
   /* Start search in DHT */
   get_h = 
       GNUNET_DHT_get_start (dht_handle,    /* handle */
@@ -6098,7 +6104,8 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                         const struct GNUNET_PeerIdentity *get_path,
                         unsigned int get_path_length,
                         const struct GNUNET_PeerIdentity *put_path,
-                        unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
+                        unsigned int put_path_length,
+                        enum GNUNET_BLOCK_Type type,
                         size_t size, const void *data)
 {
   const struct MeshRegexBlock *block = data;
