@@ -153,6 +153,9 @@ struct ServerConnection
   /* Should this connection get disconnected? GNUNET_YES/NO  */
   int disconnect;
 
+  /* For PUT connections: Is this the first or last callback with size 0 */
+  int connected;
+
   /* The session this server connection belongs to */
   struct Session *session;
 
@@ -511,7 +514,7 @@ http_server_plugin_send (void *cls,
       GNUNET_break (0);
       return GNUNET_SYSERR;
   }
-  if ((NULL == session->server_send) || (NULL == session->server_recv))
+  if (NULL == session->server_send)
   {
       GNUNET_break (0);
       return GNUNET_SYSERR;
@@ -1055,6 +1058,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     sc->mhd_daemon = plugin->server_v6;
   sc->mhd_conn = mhd_connection;
   sc->direction = direction;
+  sc->connected = GNUNET_NO;
   sc->session = s;
   if (direction == _SEND)
     s->server_send = sc;
@@ -1165,9 +1169,6 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
   }
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
                    "Sent %u bytes to peer `%s' with session %p \n", bytes_read, GNUNET_i2s (&s->target), s);
-
-
-
   return bytes_read;
 }
 
@@ -1285,7 +1286,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
   /* connection is to be disconnected */
   if (sc->disconnect == GNUNET_YES)
   {
-    /* Sent HTTP/1.1: 200 OK as PUT Response\ */
+    /* Sent HTTP/1.1: 200 OK as response */
     response = MHD_create_response_from_data (strlen ("Thank you!"),
                                        "Thank you!",
                                        MHD_NO, MHD_NO);
@@ -1314,20 +1315,39 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
   }
   if (sc->direction == _RECEIVE)
   {
-    if (*upload_data_size == 0)
+    if ((*upload_data_size == 0) && (sc->connected == GNUNET_NO))
     {
+      /* (*upload_data_size == 0) first callback when header are passed */
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                        "Peer `%s' PUT on address `%s' connected\n",
                        GNUNET_i2s (&s->target),
                        http_common_plugin_address_to_string (NULL,
                                                              s->addr,
                                                              s->addrlen));
+      sc->connected = GNUNET_YES;
       return MHD_YES;
     }
-
-    /* Receiving data */
-    if ((*upload_data_size > 0))
+    else if ((*upload_data_size == 0) && (sc->connected == GNUNET_YES))
     {
+      /* (*upload_data_size == 0) when upload is complete */
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                       "Peer `%s' PUT on address `%s' finished upload\n",
+                       GNUNET_i2s (&s->target),
+                       http_common_plugin_address_to_string (NULL,
+                                                             s->addr,
+                                                             s->addrlen));
+      sc->connected = GNUNET_NO;
+      /* Sent HTTP/1.1: 200 OK as PUT Response\ */
+      response = MHD_create_response_from_data (strlen ("Thank you!"),
+                                         "Thank you!",
+                                         MHD_NO, MHD_NO);
+      res = MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
+      MHD_destroy_response (response);
+      return MHD_YES;
+    }
+    else if ((*upload_data_size > 0) && (sc->connected == GNUNET_YES))
+    {
+      /* (*upload_data_size > 0) for every segment received */
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                        "Peer `%s' PUT on address `%s' received %u bytes\n",
                        GNUNET_i2s (&s->target),
@@ -1362,7 +1382,10 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
       return MHD_YES;
     }
     else
+    {
+      GNUNET_break (0);
       return MHD_NO;
+    }
   }
   return res;
 }
@@ -1429,6 +1452,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
                      GNUNET_i2s (&s->target), s->server_recv,
                      http_common_plugin_address_to_string (NULL, s->addr, s->addrlen));
     s->server_recv = NULL;
+    /* Do not terminate session when PUT disconnects
     if (NULL != (s->server_send))
     {
         s->server_send->disconnect = GNUNET_YES;
@@ -1438,7 +1462,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
                                  1);
 #endif
       server_reschedule (plugin, s->server_send->mhd_daemon, GNUNET_NO);
-    }
+    }*/
     if (s->msg_tk != NULL)
     {
       GNUNET_SERVER_mst_destroy (s->msg_tk);
@@ -1612,7 +1636,10 @@ server_schedule (struct HTTP_Server_Plugin *plugin,
                        last_timeout, timeout);
       last_timeout = timeout;
     }
-    tv.rel_value = (uint64_t) timeout;
+    if (timeout <= GNUNET_TIME_UNIT_SECONDS.rel_value)
+      tv.rel_value = (uint64_t) timeout;
+    else
+      tv = GNUNET_TIME_UNIT_SECONDS;
   }
   else
     tv = GNUNET_TIME_UNIT_SECONDS;
