@@ -71,7 +71,7 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
   regmatch_t matchptr[1];
   char error[200];
   int result;
-  char *canonical_regex;
+  char *canonical_regex = NULL;
 
   /* At least one string is needed for matching */
   GNUNET_assert (str_count > 0);
@@ -96,7 +96,8 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
     if (NULL == dfa)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Constructing DFA failed\n");
-      return -1;
+      GNUNET_free (matching_str);
+      goto error;
     }
 
     eval = GNUNET_REGEX_eval (dfa, matching_str);
@@ -109,7 +110,7 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Could not compile regex using regcomp: %s\n", rand_rx);
-      return -1;
+      goto error;
     }
 
     eval_check = regexec (&rx, matching_str, 1, matchptr, 0);
@@ -127,7 +128,7 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
     if (NULL == dfa)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Constructing DFA failed\n");
-      return -1;
+      goto error;
     }
 
     eval_canonical = GNUNET_REGEX_eval (dfa, matching_str);
@@ -138,7 +139,7 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Could not compile regex using regcomp: %s\n",
                   canonical_regex);
-      return -1;
+      goto error;
     }
 
     eval_canonical_check = regexec (&rx, matching_str, 1, matchptr, 0);
@@ -169,6 +170,12 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
   GNUNET_free (canonical_regex);
 
   return result;
+
+error:
+  GNUNET_free_non_null (matching_str);
+  GNUNET_free_non_null (rand_rx);
+  GNUNET_free_non_null (canonical_regex);
+  return -1;
 }
 
 /**

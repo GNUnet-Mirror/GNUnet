@@ -513,10 +513,11 @@ GNUNET_REGEX_automaton_traverse (const struct GNUNET_REGEX_Automaton *a,
 {
   unsigned int count;
   struct GNUNET_REGEX_State *s;
-  int marks[a->state_count];
 
   if (NULL == a || 0 == a->state_count)
     return;
+
+  int marks[a->state_count];
 
   for (count = 0, s = a->states_head; NULL != s && count < a->state_count;
        s = s->next, count++)
@@ -1206,6 +1207,13 @@ automaton_create_proofs_simplify (char *R_last_ij, char *R_last_ik,
 static void
 automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
 {
+  if (NULL == a)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Could not create proofs, automaton was NULL\n");
+    return;
+  }
+
   unsigned int n = a->state_count;
   struct GNUNET_REGEX_State *states[n];
   char *R_last[n][n];
@@ -1216,13 +1224,6 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
   unsigned int i;
   unsigned int j;
   unsigned int k;
-
-  if (NULL == a)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Could not create proofs, automaton was NULL\n");
-    return;
-  }
 
   /* create depth-first numbering of the states, initializes 'state' */
   GNUNET_REGEX_automaton_traverse (a, a->start, NULL, NULL, &number_states,

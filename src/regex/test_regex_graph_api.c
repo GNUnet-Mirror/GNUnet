@@ -48,7 +48,7 @@ filecheck (const char *filename)
   if (NULL == fp)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not find graph %s\n", filename);
-    error++;
+    return ++error;
   }
 
   fseek (fp, 0L, SEEK_END);
@@ -62,7 +62,14 @@ filecheck (const char *filename)
   error += fclose (fp);
 
   if (!KEEP_FILES)
-    unlink (filename);
+  {
+    if (0 != unlink (filename))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not remove temp files (%s)\n",
+                  filename);
+    }
+  }
+
 
   return error;
 }
