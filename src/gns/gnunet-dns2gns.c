@@ -394,7 +394,7 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
        (0 == strcasecmp (dns_suffix,
 			 &name[name_len - strlen (dns_suffix)])) )
     {
-      if ( (name_len > strlen (fcfs_suffix)) &&
+      if ( (name_len >= strlen (fcfs_suffix)) &&
 	   (0 == strcasecmp (fcfs_suffix,
 			     &name[name_len - strlen (fcfs_suffix)])) )
       {
