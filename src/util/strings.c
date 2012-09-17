@@ -629,7 +629,6 @@ GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta,
 {
   static char buf[128];
   const char *unit = _( /* time unit */ "ms");
-  char *ret;
   uint64_t dval = delta.rel_value;
 
   if (delta.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
