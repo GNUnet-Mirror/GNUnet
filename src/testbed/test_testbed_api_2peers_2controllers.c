@@ -593,6 +593,32 @@ main (int argc, char **argv)
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+  char *const remote_args[] = {
+    "ssh", "-o", "BatchMode=yes", "127.0.0.1", "echo", "SSH", "works", NULL
+  };
+  struct GNUNET_OS_Process *auxp;
+  enum GNUNET_OS_ProcessStatusType type;
+  unsigned long code;
+
+  auxp =
+      GNUNET_OS_start_process_vap (GNUNET_NO, GNUNET_OS_INHERIT_STD_ALL, NULL,
+                                   NULL, "ssh", remote_args);
+  GNUNET_assert (NULL != auxp);
+  do
+  {
+    ret = GNUNET_OS_process_status (auxp, &type, &code);
+    GNUNET_assert (GNUNET_SYSERR != ret);
+    (void) usleep (300);
+  }
+  while (GNUNET_NO == ret);
+  GNUNET_OS_process_destroy (auxp);
+  if (0 != code)
+  {
+    (void) printf ("Unable to run the test as this system is not configured "
+                   "to use password less SSH logins to localhost.\n"
+                   "Marking test as successful\n");
+    return 0;
+  }
   result = INIT;
   ret =
       GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
