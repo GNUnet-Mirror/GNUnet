@@ -135,6 +135,7 @@ static void *
 progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
 {
   const char *s;
+  char *suri;
 
   switch (info->status)
   {
@@ -164,10 +165,10 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
   case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
     FPRINTF (stdout, _("Publishing `%s' done.\n"),
              info->value.publish.filename);
-    s = GNUNET_FS_uri_to_string (info->value.publish.specifics.
+    suri = GNUNET_FS_uri_to_string (info->value.publish.specifics.
                                  completed.chk_uri);
-    FPRINTF (stdout, _("URI is `%s'.\n"), s);
-    GNUNET_free (s);
+    FPRINTF (stdout, _("URI is `%s'.\n"), suri);
+    GNUNET_free (suri);
     if (info->value.publish.pctx == NULL)
     {
       if (kill_task != GNUNET_SCHEDULER_NO_TASK)
