@@ -2400,8 +2400,7 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
  * Function to cleanup RequestOverlayConnectContext and any associated tasks
  * with it
  *
- * @param 
- * @return 
+ * @param rocc the RequestOverlayConnectContext
  */
 static void
 cleanup_rocc (struct RequestOverlayConnectContext *rocc)
@@ -2437,7 +2436,7 @@ timeout_rocc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * peer connected to us.
  *
  * @param cls closure
- * @param peer the peer that connected
+ * @param new_peer the peer that connected
  * @param ats performance data
  * @param ats_count number of entries in ats (excluding 0-termination)
  */
