@@ -104,6 +104,7 @@ handle_estimate (void *cls, struct GNUNET_TIME_Absolute timestamp,
 	   estimate, std_dev,
            GNUNET_NSE_log_estimate_to_n (estimate), 
 	   NUM_PEERS);
+  ok = 0;
 }
 
 
