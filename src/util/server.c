@@ -660,6 +660,8 @@ GNUNET_SERVER_resume (struct GNUNET_SERVER_Handle *server)
   struct GNUNET_NETWORK_FDSet *r;
   unsigned int i;
 
+  if (NULL == server->listen_sockets)
+    return;
   if (NULL == server->listen_sockets[0])
     return; /* nothing to do, no listen sockets! */
   if (NULL == server->listen_sockets[1])
