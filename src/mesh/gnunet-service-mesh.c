@@ -1339,9 +1339,14 @@ regex_next_edge (const struct MeshRegexBlock *block,
 
   /* Find the longest match for the current string position, 
    * among tokens in the given block */
+  ctx->longest_match = 0;
   result = GNUNET_MESH_regex_block_iterate (block, size,
                                             &regex_edge_iterator, ctx);
   GNUNET_break (GNUNET_OK == result || SIZE_MAX == size);
+
+  /* Did anything match? */
+  if (0 == ctx->longest_match)
+    return;
 
   new_ctx = GNUNET_malloc (sizeof (struct MeshRegexSearchContext));
   new_ctx->info = info;
