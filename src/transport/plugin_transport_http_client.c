@@ -988,6 +988,7 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct HTTP_Client_Plugin *plugin = cls;
   int running;
+  int http_statuscode;
   CURLMcode mret;
 
   GNUNET_assert (cls != NULL);
@@ -1033,27 +1034,46 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_assert (s != NULL);
       if (msg->msg == CURLMSG_DONE)
       {
+        curl_easy_getinfo (easy_h, CURLINFO_RESPONSE_CODE, &http_statuscode);
         if (easy_h == s->client_put)
         {
-            GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                "Session %p/connection %p: PUT connection to `%s' ended with reason %i: `%s'\n",
-                s, msg->easy_handle, GNUNET_i2s (&s->target),
-                msg->data.result,
-                curl_easy_strerror (msg->data.result));
+            if  ((0 != msg->data.result) || (http_statuscode != 200))
+            {
+                GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                  "Session %p/connection %p: PUT connection to `%s' ended with status %i reason %i: `%s'\n",
+                  s, msg->easy_handle, GNUNET_i2s (&s->target),
+                  http_statuscode,
+                  msg->data.result,
+                  curl_easy_strerror (msg->data.result));
+            }
+            else
+              GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                "Session %p/connection %p: PUT connection to `%s' ended normal\n",
+                s, msg->easy_handle, GNUNET_i2s (&s->target));
             if (s->client_get == NULL)
             {
               /* Disconnect other transmission direction and tell transport */
-              //client_disconnect (s);
             }
+            curl_multi_remove_handle(plugin->curl_multi_handle, easy_h);
+            curl_easy_cleanup(easy_h);
+            s->client_put = NULL;
         }
         if (easy_h == s->client_get)
         {
-            GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                "Session %p/connection %p: GET connection to `%s' ended with reason %i: `%s'\n",
+            if  ((0 != msg->data.result) || (http_statuscode != 200))
+            {
+              GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                "Session %p/connection %p: GET connection to `%s' ended with status %i reason %i: `%s'\n",
                 s, msg->easy_handle, GNUNET_i2s (&s->target),
+                http_statuscode,
                 msg->data.result,
                 curl_easy_strerror (msg->data.result));
 
+            }
+            else
+              GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                "Session %p/connection %p: GET connection to `%s' ended normal\n",
+                s, msg->easy_handle, GNUNET_i2s (&s->target));
             /* Disconnect other transmission direction and tell transport */
             client_disconnect (s);
         }
@@ -1113,7 +1133,8 @@ client_connect_put (struct Session *s)
 {
   CURLMcode mret;
   /* create put connection */
-  s->client_put = curl_easy_init ();
+  if (NULL == s->client_put)
+    s->client_put = curl_easy_init ();
 #if VERBOSE_CURL
   curl_easy_setopt (s->client_put, CURLOPT_VERBOSE, 1L);
   curl_easy_setopt (s->client_put, CURLOPT_DEBUGFUNCTION, &client_log);
