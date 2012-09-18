@@ -17,9 +17,6 @@
       Free Software Foundation, Inc., 59 Temple Place - Suite 330,
       Boston, MA 02111-1307, USA.
  */
-
-#include "gnunet_gns_service.h"
-
 /**
  * @file gns/gns.h
  * @brief IPC messages between GNS API and GNS service
@@ -27,6 +24,8 @@
  */
 #ifndef GNS_H
 #define GNS_H
+
+#include "gnunet_gns_service.h"
 
 #define GNUNET_GNS_TLD "gads"
 #define GNUNET_GNS_TLD_ZKEY "zkey"
@@ -54,6 +53,11 @@ struct GNUNET_GNS_ClientLookupMessage
   uint32_t id GNUNET_PACKED;
 
   /**
+   * If use_default_zone is empty this zone is used for lookup
+   */
+  struct GNUNET_CRYPTO_ShortHashCode zone;
+
+  /**
    * Only check cached results
    */
   uint32_t only_cached GNUNET_PACKED;
@@ -69,14 +73,9 @@ struct GNUNET_GNS_ClientLookupMessage
   uint32_t have_key GNUNET_PACKED;
 
   /**
-   * If use_default_zone is empty this zone is used for lookup
-   */
-  struct GNUNET_CRYPTO_ShortHashCode zone;
-
-  /**
    * the type of record to look up
    */
-  enum GNUNET_GNS_RecordType type;
+  /* enum GNUNET_GNS_RecordType */ uint32_t type;
 
   /* Followed by the key for shorten (optional) see have_key */
 
@@ -104,7 +103,6 @@ struct GNUNET_GNS_ClientLookupResultMessage
    */  
   uint32_t rd_count;
 
-  // FIXME: what format has a GNS_Record?
   /* followed by rd_count GNUNET_NAMESTORE_RecordData structs*/
 
 };
@@ -125,11 +123,6 @@ struct GNUNET_GNS_ClientShortenMessage
   uint32_t id GNUNET_PACKED;
 
   /**
-   * Should we look up in the default zone?
-   */
-  uint32_t use_default_zone GNUNET_PACKED;
-
-  /**
    * If use_default_zone is empty this zone is used for lookup
    */
   struct GNUNET_CRYPTO_ShortHashCode zone;
@@ -143,6 +136,11 @@ struct GNUNET_GNS_ClientShortenMessage
    * Private zone
    */
   struct GNUNET_CRYPTO_ShortHashCode private_zone;
+
+  /**
+   * Should we look up in the default zone?
+   */
+  uint32_t use_default_zone GNUNET_PACKED;
   
   /* Followed by the name to shorten up */
 };

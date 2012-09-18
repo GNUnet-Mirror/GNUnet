@@ -37,21 +37,13 @@
 #include "gns.h"
 #include "gnunet-service-gns_resolver.h"
 #include "gnunet-service-gns_interceptor.h"
-
-
-/* FIXME move to proper header in include */
-#define GNUNET_MESSAGE_TYPE_GNS_LOOKUP 23
-#define GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT 24
-#define GNUNET_MESSAGE_TYPE_GNS_SHORTEN 25
-#define GNUNET_MESSAGE_TYPE_GNS_SHORTEN_RESULT 26
-#define GNUNET_MESSAGE_TYPE_GNS_GET_AUTH 27
-#define GNUNET_MESSAGE_TYPE_GNS_GET_AUTH_RESULT 28
-
+#include "gnunet_protocols.h"
 
 #define INITIAL_ZONE_ITERATION_INTERVAL GNUNET_TIME_UNIT_MILLISECONDS
 #define MINIMUM_ZONE_ITERATION_INTERVAL GNUNET_TIME_UNIT_SECONDS
 #define DEFAULT_RECORD_PUT_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 4)
 #define LATE_ITERATION_SPEEDUP_FACTOR 2
+
 
 /**
  * Handle to a shorten operation from api
