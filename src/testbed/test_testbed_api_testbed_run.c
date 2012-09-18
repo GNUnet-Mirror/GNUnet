@@ -70,7 +70,7 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
-  GNUNET_SCHEDULER_shutdown ();
+  GNUNET_SCHEDULER_shutdown ();	/* Stop scheduler to shutdown testbed run */
 }
 
 
@@ -86,7 +86,6 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
   abort_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
-  GNUNET_SCHEDULER_shutdown (); /* Stop the scheduler */
 }
 
 

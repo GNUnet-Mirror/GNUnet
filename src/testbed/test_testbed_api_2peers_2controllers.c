@@ -611,6 +611,7 @@ main (int argc, char **argv)
     (void) usleep (300);
   }
   while (GNUNET_NO == ret);
+  (void) GNUNET_OS_process_wait (auxp);
   GNUNET_OS_process_destroy (auxp);
   if (0 != code)
   {
