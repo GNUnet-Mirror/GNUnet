@@ -2450,8 +2450,9 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
            GNUNET_i2s (&socket->other_peer));
       return GNUNET_OK;
     }
-    if (!((socket->write_sequence_number 
-           - ntohl (ack->base_sequence_number)) < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH))
+    sequence_difference = 
+	socket->write_sequence_number - ntohl (ack->base_sequence_number);
+    if (!(sequence_difference <= GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "%s: Received DATA_ACK with unexpected base sequence number\n",
@@ -2465,17 +2466,13 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
     }
     /* FIXME: include the case when write_handle is cancelled - ignore the 
        acks */
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "%s: Received DATA_ACK from %s\n",
-         GNUNET_i2s (&socket->other_peer),
-         GNUNET_i2s (&socket->other_peer));
-      
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "%s: Received DATA_ACK from %s\n",
+         GNUNET_i2s (&socket->other_peer), GNUNET_i2s (&socket->other_peer));
     /* Cancel the retransmission task */
     if (GNUNET_SCHEDULER_NO_TASK != socket->data_retransmission_task_id)
     {
       GNUNET_SCHEDULER_cancel (socket->data_retransmission_task_id);
-      socket->data_retransmission_task_id = 
-        GNUNET_SCHEDULER_NO_TASK;
+      socket->data_retransmission_task_id = GNUNET_SCHEDULER_NO_TASK;
     }
     for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
     {
@@ -2483,22 +2480,13 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
       /* BS: Base sequence from ack; PS: sequence num of current packet */
       sequence_difference = ntohl (ack->base_sequence_number)
         - ntohl (socket->write_handle->messages[packet]->sequence_number);
+      if ((0 == sequence_difference) ||
+	  (GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH < sequence_difference))
+	continue; /* The message in our handle is not yet received */
       /* case where BS = PS + GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH */
-      if ((sequence_difference == GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH)
-          || ((sequence_difference < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH)
-              && (0 != sequence_difference))) /* case: BS > PS and BS != PS*/
-      {
-        ackbitmap_modify_bit (&socket->write_handle->ack_bitmap, packet,
-                              GNUNET_YES);
-        continue;
-      }
-      if (GNUNET_YES == 
-          ackbitmap_is_bit_set (&socket->write_handle->ack_bitmap,
-                                -sequence_difference))/*inversion as PS >= BS */
-      {
-        ackbitmap_modify_bit (&socket->write_handle->ack_bitmap, packet,
-                              GNUNET_YES);
-      }
+      /* sequence_difference <= GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH */
+      ackbitmap_modify_bit (&socket->write_handle->ack_bitmap,
+			    packet, GNUNET_YES);
     }
     /* Update the receive window remaining
        FIXME : Should update with the value from a data ack with greater
