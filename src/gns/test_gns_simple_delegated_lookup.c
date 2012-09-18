@@ -110,6 +110,14 @@ void end_badly_now ()
 }
 
 
+static void shutdown_task (void *cls,
+                           const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_GNS_disconnect(gns_handle);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer!\n");
+  GNUNET_SCHEDULER_shutdown ();
+}
+
 static void
 on_lookup_result(void *cls, uint32_t rd_count,
                  const struct GNUNET_NAMESTORE_RecordData *rd)
@@ -156,10 +164,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
       }
     }
   }
-
-  GNUNET_GNS_disconnect(gns_handle);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer!\n");
-  GNUNET_SCHEDULER_shutdown ();
+  GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
 

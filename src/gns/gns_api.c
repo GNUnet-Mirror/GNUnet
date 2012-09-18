@@ -159,6 +159,11 @@ struct PendingMessage
    */
   size_t size;
 
+  /**
+   * This message has been transmitted
+   */
+  unsigned int transmitted;
+
 };
 
 
@@ -324,14 +329,18 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg);
 static void
 process_pending_messages (struct GNUNET_GNS_Handle *handle)
 {
-  struct PendingMessage *p;
+  struct PendingMessage *p = handle->pending_head;
 
   if (NULL == handle->client)
     return; /* wait for reconnect */ 
   if (NULL != handle->th)
     return; /* transmission request already pending */ 
-  if (NULL == (p = handle->pending_head))
-    return; /* no messages pending */  
+
+  while ((NULL != p) && (p->transmitted == GNUNET_YES))
+    p = p->next;
+  if (NULL == p)
+    return; /* no messages pending */
+  
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Trying to transmit %u bytes\n", 
 	      (unsigned int) p->size);
@@ -375,14 +384,13 @@ transmit_pending (void *cls, size_t size, void *buf)
     memcpy (&cbuf[tsize], &p[1], p->size);
     tsize += p->size;
     size -= p->size;
-    GNUNET_CONTAINER_DLL_remove (handle->pending_head, handle->pending_tail, p);
+    p->transmitted = GNUNET_YES;
     if (GNUNET_YES != handle->in_receive)
     {
       GNUNET_CLIENT_receive (handle->client, &process_message, handle,
                              GNUNET_TIME_UNIT_FOREVER_REL);
       handle->in_receive = GNUNET_YES;
     }
-    GNUNET_free (p);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending %u bytes\n",
@@ -404,10 +412,11 @@ process_shorten_reply (struct GNUNET_GNS_ShortenRequest *qe,
                        const struct GNUNET_GNS_ClientShortenResultMessage *msg)
 {
   struct GNUNET_GNS_Handle *h = qe->gns_handle;
+  struct PendingMessage *p = (struct PendingMessage *)&qe[1];
   const char *short_name;
   size_t mlen;
 
-  GNUNET_CONTAINER_DLL_remove (h->shorten_head, h->shorten_tail, qe);
+  
   mlen = ntohs (msg->header.size);
   if (ntohs (msg->header.size) == sizeof (struct GNUNET_GNS_ClientShortenResultMessage))
     {
@@ -421,12 +430,15 @@ process_shorten_reply (struct GNUNET_GNS_ShortenRequest *qe,
 	{
 	  GNUNET_break (0);
 	  // FIXME: reconnect and queue management logic is broken...
-	  qe->shorten_proc (qe->proc_cls, NULL);
-	  GNUNET_free (qe);
+    p->transmitted = GNUNET_NO;
 	  force_reconnect (h);
 	  return;
 	} 
     }
+  GNUNET_CONTAINER_DLL_remove (h->shorten_head, h->shorten_tail, qe);
+  GNUNET_CONTAINER_DLL_remove (h->pending_head,
+                               h->pending_tail,
+                               p);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received shortened reply `%s' from GNS service\n",
               short_name);
@@ -447,20 +459,31 @@ process_get_auth_reply (struct GNUNET_GNS_GetAuthRequest *qe,
                        const struct GNUNET_GNS_ClientGetAuthResultMessage *msg)
 {
   struct GNUNET_GNS_Handle *h = qe->gns_handle;
+  struct PendingMessage *p = (struct PendingMessage *)&qe[1];
   const char *auth_name;
+  size_t mlen;
 
-  GNUNET_CONTAINER_DLL_remove (h->get_auth_head, h->get_auth_tail, qe);
-  auth_name = (char*)&msg[1];
-
-  if (ntohs (((struct GNUNET_MessageHeader*)msg)->size) <
-      sizeof (struct GNUNET_GNS_ClientGetAuthResultMessage))
+  mlen = ntohs (msg->header.size);
+  if (mlen == sizeof (struct GNUNET_GNS_ClientGetAuthResultMessage))
   {
-    GNUNET_free(qe);
-    GNUNET_break (0);
-    force_reconnect (h);
-    return;
+    auth_name = NULL;
+  }
+  else
+  {
+    auth_name = (char*)&msg[1];
+    if ('\0' != auth_name[mlen - sizeof (struct GNUNET_GNS_ClientGetAuthResultMessage) - 1])
+    {
+      GNUNET_break (0);
+      p->transmitted = GNUNET_NO;
+      force_reconnect (h);
+      return;
+    }
   }
   
+  GNUNET_CONTAINER_DLL_remove (h->get_auth_head, h->get_auth_tail, qe);
+  GNUNET_CONTAINER_DLL_remove (h->pending_head,
+                               h->pending_tail,
+                               p);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received GET_AUTH reply `%s' from GNS service\n",
               auth_name);
@@ -480,38 +503,34 @@ process_lookup_reply (struct GNUNET_GNS_LookupRequest *qe,
                       const struct GNUNET_GNS_ClientLookupResultMessage *msg)
 {
   struct GNUNET_GNS_Handle *h = qe->gns_handle;
+  struct PendingMessage *p = (struct PendingMessage *)&qe[1];
   int rd_count = ntohl(msg->rd_count);
-  size_t len = ntohs (((struct GNUNET_MessageHeader*)msg)->size);
   struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+  size_t mlen;
 
-  GNUNET_CONTAINER_DLL_remove (h->lookup_head, h->lookup_tail, qe);
-
-  if (len < sizeof (struct GNUNET_GNS_ClientLookupResultMessage))
-  {
-    GNUNET_free(qe);
-    GNUNET_break (0);
-    force_reconnect (h);
-    return;
-  }
-
-  len -= sizeof (struct GNUNET_GNS_ClientLookupResultMessage);
-  if (GNUNET_SYSERR == GNUNET_NAMESTORE_records_deserialize (len,
+  mlen = ntohs (msg->header.size);
+  mlen -= sizeof (struct GNUNET_GNS_ClientLookupResultMessage);
+  if (GNUNET_SYSERR == GNUNET_NAMESTORE_records_deserialize (mlen,
                                                              (char*)&msg[1],
                                                              rd_count,
                                                              rd))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed to serialize lookup reply from GNS service!\n");
+                _("Failed to serialize lookup reply from GNS service!\n"));
     qe->lookup_proc (qe->proc_cls, 0, NULL);
   }
   else
   {
   
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received lookup reply from GNS service (count=%d)\n",
+                "Received lookup reply from GNS service (count=%u)\n",
                 ntohl (msg->rd_count));
     qe->lookup_proc (qe->proc_cls, rd_count, rd);
   }
+  GNUNET_CONTAINER_DLL_remove (h->lookup_head, h->lookup_tail, qe);
+  GNUNET_CONTAINER_DLL_remove (h->pending_head,
+                               h->pending_tail,
+                               p);
   GNUNET_free (qe);
 }
 
@@ -636,9 +655,10 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle)
     GNUNET_SCHEDULER_cancel (handle->reconnect_task);
     handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_assert (NULL == handle->lookup_head);
+  //FIXME sane?
+  /*GNUNET_assert (NULL == handle->lookup_head);
   GNUNET_assert (NULL == handle->shorten_head);
-  GNUNET_assert (NULL == handle->get_auth_head);
+  GNUNET_assert (NULL == handle->get_auth_head);*/
   GNUNET_free(handle);
   /* disco from GNS */
 }
@@ -652,23 +672,13 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle)
 void
 GNUNET_GNS_cancel_lookup_request (struct GNUNET_GNS_LookupRequest *lr)
 {
-  struct PendingMessage *tmp;
+  struct PendingMessage *tmp = (struct PendingMessage*)&lr[1];
 
   GNUNET_assert (NULL != lr->gns_handle); 
-  for (tmp = lr->gns_handle->pending_head;
-       NULL != tmp; tmp = tmp->next)
-  {
-    if (tmp->r_id == lr->r_id)
-      break;
-  }
-
   if (NULL != tmp)
-  {
     GNUNET_CONTAINER_DLL_remove (lr->gns_handle->pending_head,
                                  lr->gns_handle->pending_tail,
                                  tmp);
-    GNUNET_free (tmp);
-  }
 
   GNUNET_CONTAINER_DLL_remove (lr->gns_handle->lookup_head,
                                lr->gns_handle->lookup_tail,
@@ -686,23 +696,13 @@ GNUNET_GNS_cancel_lookup_request (struct GNUNET_GNS_LookupRequest *lr)
 void
 GNUNET_GNS_cancel_shorten_request (struct GNUNET_GNS_ShortenRequest *sr)
 {
-  struct PendingMessage *tmp;
+  struct PendingMessage *tmp = (struct PendingMessage*)&sr[1];
 
   GNUNET_assert (NULL != sr->gns_handle);
-  for (tmp = sr->gns_handle->pending_head;
-       NULL != tmp; tmp = tmp->next)
-  {
-    if (tmp->r_id == sr->r_id)
-      break;
-  }
-
   if (NULL != tmp)
-  {
     GNUNET_CONTAINER_DLL_remove (sr->gns_handle->pending_head,
                                  sr->gns_handle->pending_tail,
                                  tmp);
-    GNUNET_free (tmp);
-  }
 
   GNUNET_CONTAINER_DLL_remove (sr->gns_handle->shorten_head,
                                sr->gns_handle->shorten_tail,
@@ -720,24 +720,15 @@ GNUNET_GNS_cancel_shorten_request (struct GNUNET_GNS_ShortenRequest *sr)
 void
 GNUNET_GNS_cancel_get_auth_request (struct GNUNET_GNS_GetAuthRequest *gar)
 {
-  struct PendingMessage *tmp;
+  struct PendingMessage *tmp = (struct PendingMessage*)&gar[1];
 
   GNUNET_assert (NULL != gar->gns_handle); 
-  for (tmp = gar->gns_handle->pending_head;
-       NULL != tmp; tmp = tmp->next)
-  {
-    if (tmp->r_id == gar->r_id)
-      break;
-  }
 
   if (NULL != tmp)
-  {
     GNUNET_CONTAINER_DLL_remove (gar->gns_handle->pending_head,
                                  gar->gns_handle->pending_tail,
                                  tmp);
-    GNUNET_free (tmp);
-  }
-
+  
   GNUNET_CONTAINER_DLL_remove (gar->gns_handle->get_auth_head,
                                gar->gns_handle->get_auth_tail,
                                gar);
@@ -777,6 +768,7 @@ GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
   struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *pkey_enc;
   size_t key_len;
   char* pkey_tmp;
+  size_t request_size;
 
   if (NULL == name)
   {
@@ -795,23 +787,23 @@ GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
     pkey_enc = NULL;
     key_len = 0;
   }
-
-  msize = sizeof (struct GNUNET_GNS_ClientLookupMessage)
-    + key_len + strlen (name) + 1;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Trying to lookup %s in GNS\n", 
 	      name);
-  lr = GNUNET_malloc (sizeof (struct GNUNET_GNS_LookupRequest));
+  msize = sizeof (struct GNUNET_GNS_ClientLookupMessage)
+    + key_len + strlen (name) + 1;
+  request_size = sizeof (struct GNUNET_GNS_LookupRequest) +
+                 sizeof (struct PendingMessage) + msize;
+  lr = GNUNET_malloc (request_size);
   lr->gns_handle = handle;
   lr->lookup_proc = proc;
   lr->proc_cls = proc_cls;
   lr->r_id = handle->r_id++;
-  GNUNET_CONTAINER_DLL_insert_tail (handle->lookup_head,
-                                    handle->lookup_tail, lr);
-
-  pending = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
+  pending = (struct PendingMessage *)&lr[1];
   pending->size = msize;
   pending->r_id = lr->r_id;
+  GNUNET_CONTAINER_DLL_insert_tail (handle->lookup_head,
+                                    handle->lookup_tail, lr);
 
   lookup_msg = (struct GNUNET_GNS_ClientLookupMessage *) &pending[1];
   lookup_msg->header.type = htons (GNUNET_MESSAGE_TYPE_GNS_LOOKUP);
@@ -902,6 +894,7 @@ GNUNET_GNS_shorten_zone (struct GNUNET_GNS_Handle *handle,
   struct GNUNET_GNS_ClientShortenMessage *shorten_msg;
   struct GNUNET_GNS_ShortenRequest *sr;
   size_t msize;
+  size_t request_size;
   struct PendingMessage *pending;
 
   if (NULL == name)
@@ -912,7 +905,9 @@ GNUNET_GNS_shorten_zone (struct GNUNET_GNS_Handle *handle,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to shorten %s in GNS\n", name);
 
   msize = sizeof (struct GNUNET_GNS_ClientShortenMessage) + strlen(name) + 1;
-  sr = GNUNET_malloc (sizeof (struct GNUNET_GNS_ShortenRequest));
+  request_size = sizeof (struct GNUNET_GNS_ShortenRequest) +
+                 sizeof (struct PendingMessage) + msize;
+  sr = GNUNET_malloc (request_size);
   sr->gns_handle = handle;
   sr->shorten_proc = proc;
   sr->proc_cls = proc_cls;
@@ -920,7 +915,7 @@ GNUNET_GNS_shorten_zone (struct GNUNET_GNS_Handle *handle,
   GNUNET_CONTAINER_DLL_insert_tail (handle->shorten_head,
                                     handle->shorten_tail, sr);
 
-  pending = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
+  pending = (struct PendingMessage *)&sr[1];
   pending->size = msize;
   pending->r_id = sr->r_id;
 
@@ -996,6 +991,7 @@ GNUNET_GNS_get_authority (struct GNUNET_GNS_Handle *handle,
   struct GNUNET_GNS_ClientGetAuthMessage *get_auth_msg;
   struct GNUNET_GNS_GetAuthRequest *gar;
   size_t msize;
+  size_t request_size;
   struct PendingMessage *pending;
 
   if (NULL == name)
@@ -1007,7 +1003,9 @@ GNUNET_GNS_get_authority (struct GNUNET_GNS_Handle *handle,
               "Trying to look up authority for %s in GNS\n", name);
 
   msize = sizeof (struct GNUNET_GNS_ClientGetAuthMessage) + strlen (name) + 1;
-  gar = GNUNET_malloc (sizeof (struct GNUNET_GNS_GetAuthRequest));
+  request_size = sizeof (struct GNUNET_GNS_GetAuthRequest) +
+                 sizeof (struct PendingMessage) + msize;
+  gar = GNUNET_malloc (request_size);
   gar->gns_handle = handle;
   gar->auth_proc = proc;
   gar->proc_cls = proc_cls;
@@ -1015,7 +1013,7 @@ GNUNET_GNS_get_authority (struct GNUNET_GNS_Handle *handle,
   GNUNET_CONTAINER_DLL_insert_tail (handle->get_auth_head,
                                     handle->get_auth_tail, gar);
 
-  pending = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
+  pending = (struct PendingMessage *)&gar[1];
   pending->size = msize;
   pending->r_id = gar->r_id;
   get_auth_msg = (struct GNUNET_GNS_ClientGetAuthMessage *) &pending[1];

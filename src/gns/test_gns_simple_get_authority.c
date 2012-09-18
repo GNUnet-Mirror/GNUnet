@@ -100,6 +100,13 @@ void end_badly_now ()
   die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
 }
 
+static void shutdown_task (void *cls,
+                           const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_GNS_disconnect(gns_handle);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer!\n");
+  GNUNET_SCHEDULER_shutdown ();
+}
 
 /**
  * Called when gns_get_authority finishes
@@ -107,8 +114,6 @@ void end_badly_now ()
 static void
 process_auth_result(void* cls, const char* aname)
 {
-
-  GNUNET_GNS_disconnect(gns_handle);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Disconnecting from namestore\n");
@@ -146,8 +151,7 @@ process_auth_result(void* cls, const char* aname)
 
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer1!\n");
-  GNUNET_SCHEDULER_shutdown ();
+  GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
 

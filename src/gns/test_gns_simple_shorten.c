@@ -95,6 +95,13 @@ void end_badly_now ()
   die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
 }
 
+static void shutdown_task (void *cls,
+                           const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_GNS_disconnect(gns_handle);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer!\n");
+  GNUNET_SCHEDULER_shutdown ();
+}
 
 /**
  * Called when gns shorten finishes
@@ -102,7 +109,6 @@ void end_badly_now ()
 static void
 process_shorten_result(void* cls, const char* sname)
 {
-  GNUNET_GNS_disconnect(gns_handle);
 
   if (GNUNET_SCHEDULER_NO_TASK != die_task)
   {
@@ -135,9 +141,8 @@ process_shorten_result(void* cls, const char* sname)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shorten test succeeded!\n");
     ok = 0;
   }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down peer!\n");
-  GNUNET_SCHEDULER_shutdown ();
+  
+  GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
 /**

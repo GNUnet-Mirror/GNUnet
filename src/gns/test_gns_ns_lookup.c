@@ -107,7 +107,7 @@ end_badly_now ()
 }
 
 static void
-end_now ()
+end_now (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Test successful, shutting down...\n");
   if (GNUNET_SCHEDULER_NO_TASK != die_task)
@@ -175,7 +175,7 @@ on_lookup_result_alt2 (void *cls, uint32_t rd_count,
       }
     }
   }
-  end_now ();
+  GNUNET_SCHEDULER_add_now (&end_now, NULL);
 }
 
 static void
@@ -310,7 +310,7 @@ handle_dns_test (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "System resolver not working. Test inconclusive!\n");
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer1!\n");
-      end_now ();
+      GNUNET_SCHEDULER_add_now (&end_now, NULL);
       return;
     }
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Starting lookup \n");
