@@ -1335,11 +1335,13 @@ regex_next_edge (const struct MeshRegexBlock *block,
   struct MeshRegexSearchInfo *info = ctx->info;
   struct GNUNET_DHT_GetHandle *get_h;
 
+  int result;
+
   /* Find the longest match for the current string position, 
    * among tokens in the given block */
-  GNUNET_break (GNUNET_OK ==
-                GNUNET_MESH_regex_block_iterate (block, size,
-                                                 &regex_edge_iterator, ctx));
+  result = GNUNET_MESH_regex_block_iterate (block, size,
+                                            &regex_edge_iterator, ctx);
+  GNUNET_break (GNUNET_OK == result || SIZE_MAX == size);
 
   new_ctx = GNUNET_malloc (sizeof (struct MeshRegexSearchContext));
   new_ctx->info = info;
