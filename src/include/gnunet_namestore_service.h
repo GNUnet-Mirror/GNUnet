@@ -499,7 +499,7 @@ GNUNET_NAMESTORE_records_get_size (unsigned int rd_count,
  * @param dest_size size of the destination array
  * @param dest where to write the result
  *
- * @return the size of serialized records
+ * @return the size of serialized records, -1 if records do not fit
  */
 ssize_t
 GNUNET_NAMESTORE_records_serialize (unsigned int rd_count,

@@ -36,10 +36,6 @@ struct AuthorityChain
 /* handle to a resolution process */
 struct ResolverHandle;
 
-/**
- * continuation called when cleanup of resolver finishes
- */
-typedef void (*ResolverCleanupContinuation) (void);
 
 /**
  * processor for a record lookup result
@@ -376,7 +372,7 @@ gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
  * @param cont continuation to call when finished
  */
 void
-gns_resolver_cleanup(ResolverCleanupContinuation cont);
+gns_resolver_cleanup(void);
 
 /**
  * Lookup of a record in a specific zone

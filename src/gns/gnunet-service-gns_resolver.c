@@ -677,17 +677,12 @@ cleanup_pending_ns_tasks (void* cls,
                           GNUNET_CONTAINER_HeapCostType cost)
 {
   struct NamestoreBGTask *nbg = element;
-  ResolverCleanupContinuation cont = cls;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "GNS_CLEANUP: Terminating ns task\n");
   GNUNET_NAMESTORE_cancel (nbg->qe);
 
   GNUNET_CONTAINER_heap_remove_node (node);
-
-  if (0 == GNUNET_CONTAINER_heap_get_size (ns_task_heap))
-    cont ();
-
   return GNUNET_YES;
 }
 
@@ -724,7 +719,6 @@ cleanup_pending_background_queries (void* cls,
                                     GNUNET_CONTAINER_HeapCostType cost)
 {
   struct ResolverHandle *rh = element;
-  ResolverCleanupContinuation cont = cls;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "GNS_CLEANUP-%llu: Terminating background lookup for %s\n",
@@ -732,17 +726,10 @@ cleanup_pending_background_queries (void* cls,
   GNUNET_CONTAINER_heap_remove_node (node);
   if (0 == GNUNET_CONTAINER_heap_get_size (dht_lookup_heap))
   {
-    if (GNUNET_CONTAINER_heap_get_size (ns_task_heap) == 0)
-      cont ();
-    else
-    {
-      GNUNET_CONTAINER_heap_iterate (ns_task_heap,
-                                     &cleanup_pending_ns_tasks,
-                                     cont);
-    }
+    GNUNET_CONTAINER_heap_iterate (ns_task_heap,
+				   &cleanup_pending_ns_tasks,
+				   NULL);    
   }
-
-
   return GNUNET_YES;
 }
 
@@ -819,7 +806,7 @@ finish_get_auth (struct ResolverHandle *rh,
  * Shutdown resolver
  */
 void
-gns_resolver_cleanup (ResolverCleanupContinuation cont)
+gns_resolver_cleanup ()
 {
   unsigned int s;
   struct GetPseuAuthorityHandle *tmp;
@@ -863,15 +850,13 @@ gns_resolver_cleanup (ResolverCleanupContinuation cont)
   if (0 != s)
     GNUNET_CONTAINER_heap_iterate (dht_lookup_heap,
                                    &cleanup_pending_background_queries,
-                                   cont);
+                                   NULL);
   else if (0 != GNUNET_CONTAINER_heap_get_size (ns_task_heap))
   {
     GNUNET_CONTAINER_heap_iterate (ns_task_heap,
                                    &cleanup_pending_ns_tasks,
-                                   cont);
+                                   NULL);
   }
-  else
-    cont ();
 }
 
 

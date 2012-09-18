@@ -409,21 +409,27 @@ process_shorten_reply (struct GNUNET_GNS_ShortenRequest *qe,
 
   GNUNET_CONTAINER_DLL_remove (h->shorten_head, h->shorten_tail, qe);
   mlen = ntohs (msg->header.size);
-  short_name = (const char *) &msg[1];
-
-  if ( (ntohs (msg->header.size) <= sizeof (struct GNUNET_GNS_ClientShortenResultMessage)) ||
-       ('\0' != short_name[mlen - sizeof (struct GNUNET_GNS_ClientShortenResultMessage) - 1]) )
-  {
-    GNUNET_break (0);
-    // FIXME: reconnect and queue management logic is broken...
-    qe->shorten_proc (qe->proc_cls, NULL);
-    GNUNET_free (qe);
-    force_reconnect (h);
-    return;
-  } 
+  if (ntohs (msg->header.size) == sizeof (struct GNUNET_GNS_ClientShortenResultMessage))
+    {
+      /* service reports resolution failed */
+      short_name = NULL;
+    }
+  else
+    {
+      short_name = (const char *) &msg[1];
+      if ('\0' != short_name[mlen - sizeof (struct GNUNET_GNS_ClientShortenResultMessage) - 1])
+	{
+	  GNUNET_break (0);
+	  // FIXME: reconnect and queue management logic is broken...
+	  qe->shorten_proc (qe->proc_cls, NULL);
+	  GNUNET_free (qe);
+	  force_reconnect (h);
+	  return;
+	} 
+    }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received shortened reply `%s' from GNS service\n",
-              short_name);  
+              short_name);
   qe->shorten_proc (qe->proc_cls, short_name);
   GNUNET_free (qe);
 }
