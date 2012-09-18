@@ -1554,8 +1554,25 @@ extern "C"
 
 
 /**
- *  Next available: 500
+ * GNS. FIXME: document!
  */
+#define GNUNET_MESSAGE_TYPE_GNS_LOOKUP 500
+
+#define GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT 501
+
+#define GNUNET_MESSAGE_TYPE_GNS_SHORTEN 502
+
+#define GNUNET_MESSAGE_TYPE_GNS_SHORTEN_RESULT 503
+
+#define GNUNET_MESSAGE_TYPE_GNS_GET_AUTH 504
+
+#define GNUNET_MESSAGE_TYPE_GNS_GET_AUTH_RESULT 505
+
+
+/**
+ *  Next available: 520
+ */
+
 
 /*******************************************************************************
  * TODO: we need a way to register message types centrally (via some webpage).

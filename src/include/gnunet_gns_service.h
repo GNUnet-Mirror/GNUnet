@@ -215,7 +215,7 @@ GNUNET_GNS_cancel_lookup_request (struct GNUNET_GNS_LookupRequest *lr);
  * called only once
  *
  * @param cls closure
- * @param short_name the shortened name or NULL if no result
+ * @param short_name the shortened name or NULL if no result / error
  */
 typedef void (*GNUNET_GNS_ShortenResultProcessor) (void *cls,
 						   const char* short_name);
