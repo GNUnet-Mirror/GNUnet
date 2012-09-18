@@ -524,6 +524,11 @@ http_server_plugin_send (void *cls,
   if (GNUNET_YES == session->server_send->disconnect)
     return GNUNET_SYSERR;
 
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, session->plugin->name,
+                   "Session %p/connection %p: Sending message with %u to peer `%s' with \n",
+                   session, session->server_send,
+                   msgbuf_size, GNUNET_i2s (&session->target));
+
   /* create new message and schedule */
   bytes_sent = sizeof (struct HTTP_Message) + msgbuf_size;
   msg = GNUNET_malloc (bytes_sent);
@@ -1167,7 +1172,8 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
       GNUNET_free (msg);
     }
   }
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
+  if (0 < bytes_read)
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
                    "Sent %u bytes to peer `%s' with session %p \n", bytes_read, GNUNET_i2s (&s->target), s);
   return bytes_read;
 }
@@ -1248,10 +1254,10 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
   struct MHD_Response *response;
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   _("Access from connection %p (%u of %u) for %s %s url `%s' \n"),
+                   _("Access from connection %p (%u of %u) for `%s' `%s' url `%s' with upload data size %u\n"),
                    sc,
                    plugin->cur_connections, plugin->max_connections,
-                   method, version, url);
+                   method, version, url, (*upload_data_size));
 
   GNUNET_assert (cls != NULL);
   if (sc == NULL)
@@ -1259,7 +1265,9 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
     /* new connection */
     sc = server_lookup_connection (plugin, mhd_connection, url, method);
     if (sc != NULL)
+    {
       (*httpSessionCache) = sc;
+    }
     else
     {
       response = MHD_create_response_from_data (strlen (HTTP_ERROR_RESPONSE), HTTP_ERROR_RESPONSE, MHD_NO, MHD_NO);
@@ -1281,7 +1289,6 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
   /* existing connection */
   sc = (*httpSessionCache);
   s = sc->session;
-
   GNUNET_assert (NULL != s);
   /* connection is to be disconnected */
   if (sc->disconnect == GNUNET_YES)
@@ -1294,14 +1301,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
     MHD_destroy_response (response);
     return MHD_YES;
   }
-
   GNUNET_assert (s != NULL);
-  /* Check if both directions are connected */
-  if ((sc->session->server_recv == NULL) || (sc->session->server_send == NULL))
-  {
-    /* Delayed read from since not both semi-connections are connected */
-    return MHD_YES;
-  }
 
   if (sc->direction == _SEND)
   {
@@ -1319,7 +1319,8 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
     {
       /* (*upload_data_size == 0) first callback when header are passed */
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Peer `%s' PUT on address `%s' connected\n",
+                       "Session %p / Connection %p: Peer `%s' PUT on address `%s' connected\n",
+                       s, sc,
                        GNUNET_i2s (&s->target),
                        http_common_plugin_address_to_string (NULL,
                                                              s->addr,
@@ -1331,7 +1332,8 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
     {
       /* (*upload_data_size == 0) when upload is complete */
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Peer `%s' PUT on address `%s' finished upload\n",
+                       "Session %p / Connection %p: Peer `%s' PUT on address `%s' finished upload\n",
+                       s, sc,
                        GNUNET_i2s (&s->target),
                        http_common_plugin_address_to_string (NULL,
                                                              s->addr,
@@ -1349,7 +1351,8 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
     {
       /* (*upload_data_size > 0) for every segment received */
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Peer `%s' PUT on address `%s' received %u bytes\n",
+                       "Session %p / Connection %p: Peer `%s' PUT on address `%s' received %u bytes\n",
+                       s, sc,
                        GNUNET_i2s (&s->target),
                        http_common_plugin_address_to_string (NULL,
                                                              s->addr,
@@ -1376,8 +1379,8 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
       else
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "%p no inbound bandwidth available! Next read was delayed by %llu ms\n",
-                    s, now.abs_value - s->next_receive.abs_value);
+                    "Session %p / Connection %p: no inbound bandwidth available! Next read was delayed by %llu ms\n",
+                    s, sc, now.abs_value - s->next_receive.abs_value);
       }
       return MHD_YES;
     }

@@ -34,7 +34,7 @@
 
 #define VERBOSE_CURL GNUNET_YES
 
-#define PUT_DISCONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
+#define PUT_DISCONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 #define ENABLE_PUT GNUNET_YES
 #define ENABLE_GET GNUNET_YES
@@ -694,6 +694,8 @@ client_put_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   client_schedule (s->plugin, GNUNET_YES);
 }
 
+
+
 /**
  * Callback method used with libcurl
  * Method is called when libcurl needs to read data during sending
@@ -800,14 +802,13 @@ client_receive_mst_cb (void *cls, void *client,
   struct HTTP_Client_Plugin *plugin;
   struct GNUNET_TIME_Relative delay;
   struct GNUNET_ATS_Information atsi[2];
-  //GNUNET_break (0);
   if (GNUNET_YES != client_exist_session(p, s))
   {
     GNUNET_break (0);
     return GNUNET_OK;
   }
   plugin = s->plugin;
-  //GNUNET_break (0);
+
   atsi[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   atsi[0].value = htonl (1);
   atsi[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
@@ -817,6 +818,7 @@ client_receive_mst_cb (void *cls, void *client,
   delay = s->plugin->env->receive (plugin->env->cls, &s->target, message,
                                    (const struct GNUNET_ATS_Information *) &atsi, 2,
                                    s, s->addr, s->addrlen);
+
   s->next_receive =
       GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (), delay);
 
@@ -833,10 +835,26 @@ client_receive_mst_cb (void *cls, void *client,
 }
 
 
+/**
+ * Callback method used with libcurl when data for a PUT connection are
+ * received. We do not expect data here, so we just dismiss it
+ *
+ * @param stream pointer where to write data
+ * @param size size of an individual element
+ * @param nmemb count of elements that can be written to the buffer
+ * @param cls destination pointer, passed to the libcurl handle
+ * @return bytes read from stream
+ */
+static size_t
+client_receive_put (void *stream, size_t size, size_t nmemb, void *cls)
+{
+  return size * nmemb;
+}
+
 
 /**
- * Callback method used with libcurl
- * Method is called when libcurl needs to write data during sending
+ * Callback method used with libcurl when data for a GET connection are
+ * received. Forward to MST
  *
  * @param stream pointer where to write data
  * @param size size of an individual element
@@ -875,9 +893,8 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
   }
   if (NULL == s->msg_tk)
     s->msg_tk = GNUNET_SERVER_mst_create (&client_receive_mst_cb, s);
-  (void) GNUNET_SERVER_mst_receive (s->msg_tk, s, stream, len, GNUNET_NO, GNUNET_NO);
+  GNUNET_SERVER_mst_receive (s->msg_tk, s, stream, len, GNUNET_NO, GNUNET_NO);
   return len;
-
 }
 
 
@@ -1118,7 +1135,7 @@ client_connect_put (struct Session *s)
   //curl_easy_setopt (s->client_put, CURLOPT_WRITEHEADER, ps);
   curl_easy_setopt (s->client_put, CURLOPT_READFUNCTION, client_send_cb);
   curl_easy_setopt (s->client_put, CURLOPT_READDATA, s);
-  curl_easy_setopt (s->client_put, CURLOPT_WRITEFUNCTION, client_receive);
+  curl_easy_setopt (s->client_put, CURLOPT_WRITEFUNCTION, client_receive_put);
   curl_easy_setopt (s->client_put, CURLOPT_WRITEDATA, s);
   /* No timeout by default, timeout done with session timeout */
   curl_easy_setopt (s->client_put, CURLOPT_TIMEOUT, 0);
