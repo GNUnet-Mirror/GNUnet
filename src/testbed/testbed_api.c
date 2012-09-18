@@ -1169,18 +1169,15 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
 {
   struct GNUNET_TESTBED_ControllerProc *cp;
   struct GNUNET_TESTBED_HelperInit *msg;
-
+  static char *const binary_argv[] = {
+    HELPER_TESTBED_BINARY, NULL
+  };
+  
   cp = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ControllerProc));
   if ((NULL == host) || (0 == GNUNET_TESTBED_host_get_id_ (host)))
-  {
-    char *const binary_argv[] = {
-      HELPER_TESTBED_BINARY, NULL
-    };
-
     cp->helper =
         GNUNET_HELPER_start (GNUNET_YES, HELPER_TESTBED_BINARY, binary_argv,
                              &helper_mst, &helper_exp_cb, cp);
-  }
   else
   {
     char *remote_args[8];
