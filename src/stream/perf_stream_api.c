@@ -1,4 +1,4 @@
-/*
+ /*
      This file is part of GNUnet.
      (C) 2011, 2012 Christian Grothoff (and other contributing authors)
 
@@ -185,7 +185,7 @@ static uint32_t data[DATA_SIZE / 4];
  * Payload sizes to test each major test with
  */
 static uint16_t payload_size[] = 
-{ 20, 500, 2000, 7000, 13000, 25000, 50000, 60000 };
+{ 20, 500, 2000, 7000, 13000, 25000, 50000, 60000, 63000, 64000 };
 
 /**
  * Handle for the progress meter
