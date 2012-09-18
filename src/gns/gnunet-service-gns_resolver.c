@@ -176,34 +176,36 @@ is_srv (char* name)
 }
 
 /**
- * Determine if this name is canonical.
- * i.e.
+ * Determine if this name is canonical (is a legal name in a zone, without delegation);
+ * note that we do not test that the name does not contain illegal characters, we only
+ * test for delegation.  Note that service records (i.e. _foo._srv) are canonical names
+ * even though they consist of multiple labels.
+ *
+ * Examples:
  * a.b.gads  = not canonical
- * a           = canonical
+ * a         = canonical
+ * _foo._srv = canonical
+ * _f.bar    = not canonical
  *
  * @param name the name to test
  * @return GNUNET_YES if canonical
  */
 static int
-is_canonical (char* name)
+is_canonical (const char* name)
 {
-  char* ndup;
-  char* tok;
+  const char *pos;
+  const char *dot;
 
-  ndup = GNUNET_strdup (name);
-  strtok (ndup, ".");
-
-  for (tok = strtok (NULL, "."); tok != NULL; tok = strtok (NULL, "."))
-  {
-    /*
-     * probably srv
-     */
-    if (*tok == '_')
-      continue;
-    GNUNET_free (ndup);
+  if (NULL == strchr (name, '.'))
+    return GNUNET_YES;
+  if ('_' != name[0])
     return GNUNET_NO;
-  }
-  GNUNET_free (ndup);
+  pos = &name[1];
+  while (NULL != (dot = strchr (pos, '.')))    
+    if ('_' != dot[1])
+      return GNUNET_NO;
+    else
+      pos = dot + 1;
   return GNUNET_YES;
 }
 
@@ -228,7 +230,7 @@ static void
 create_pkey_cont (void* cls, int32_t success, const char* emsg)
 {
   //FIXME do sth with error
-  struct GetPseuAuthorityHandle* gph = (struct GetPseuAuthorityHandle*)cls;
+  struct GetPseuAuthorityHandle* gph = cls;
 
   gph->namestore_task = NULL;
   GNUNET_free (gph->auth);
@@ -258,7 +260,7 @@ process_pseu_lookup_ns (void* cls,
                       const struct GNUNET_NAMESTORE_RecordData *rd,
                       const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
-  struct GetPseuAuthorityHandle* gph = (struct GetPseuAuthorityHandle*)cls;
+  struct GetPseuAuthorityHandle* gph = cls;
   struct GNUNET_NAMESTORE_RecordData new_pkey;
 
   gph->namestore_task = NULL;
@@ -375,7 +377,7 @@ process_auth_discovery_dht_result (void* cls,
 {
   struct GetPseuAuthorityHandle* gph = cls;
   struct GNSNameRecordBlock *nrb;
-  char* rd_data = (char*)data;
+  const char* rd_data = data;
   char* name;
   int num_records;
   size_t rd_size;
@@ -389,7 +391,7 @@ process_auth_discovery_dht_result (void* cls,
   gph->get_handle = NULL;
   GNUNET_SCHEDULER_cancel (gph->timeout);
   
-  if (data == NULL)
+  if (NULL == data)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "GNS_GET_AUTH: got dht result null!\n", size);
@@ -583,18 +585,17 @@ shorten_authority_chain (struct GetPseuAuthorityHandle *gph)
 
 }
 
+
 static void
 start_shorten (struct AuthorityChain *auth,
-               struct GNUNET_CRYPTO_RsaPrivateKey *key)
+               const struct GNUNET_CRYPTO_RsaPrivateKey *key)
 {
   struct GetPseuAuthorityHandle *gph;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
   struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *pb_key;
   
   GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
-  pb_key = GNUNET_CRYPTO_rsa_encode_key (key);
-
-  if (NULL == pb_key)
+  if (NULL == (pb_key = GNUNET_CRYPTO_rsa_encode_key (key)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Failed to encode RSA key on shorten\n");
@@ -602,7 +603,7 @@ start_shorten (struct AuthorityChain *auth,
   }
 
   gph = GNUNET_malloc (sizeof (struct GetPseuAuthorityHandle));
-  gph->key = GNUNET_CRYPTO_rsa_decode_key ((char*)pb_key, ntohs (pb_key->len));
+  gph->key = GNUNET_CRYPTO_rsa_decode_key ((const char*) pb_key, ntohs (pb_key->len));
 
   if (NULL == gph->key)
   {
@@ -640,9 +641,8 @@ gns_resolver_init (struct GNUNET_NAMESTORE_Handle *nh,
 		   unsigned long long max_bg_queries,
 		   int ignore_pending)
 {
-  if (NULL == nh)
-    return GNUNET_SYSERR;
-  if (NULL == dh)
+  if ( (NULL == nh) ||
+       (NULL == dh) )
     return GNUNET_SYSERR;
   
   cfg = c;
@@ -655,16 +655,7 @@ gns_resolver_init (struct GNUNET_NAMESTORE_Handle *nh,
     GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   max_allowed_background_queries = max_bg_queries;
   max_allowed_ns_tasks = GNUNET_GNS_MAX_NS_TASKS;
-  ignore_pending_records = ignore_pending;
-  gph_head = NULL;
-  gph_tail = NULL;
-  rlh_head = NULL;
-  rlh_tail = NULL;
-  nsh_head = NULL;
-  nsh_tail = NULL;
-  nah_head = NULL;
-  nah_tail = NULL;
-  
+  ignore_pending_records = ignore_pending; 
   GNUNET_RESOLVER_connect (cfg);
   return GNUNET_OK;
 }
