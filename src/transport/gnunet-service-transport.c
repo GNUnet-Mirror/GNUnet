@@ -645,8 +645,6 @@ key_generation_cb (void *cls,
                         &neighbours_address_notification);
   GST_clients_start (GST_server);
   GST_validation_start ();
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              _("SERVER %p\n"), GST_server);
   if (NULL != GST_server)
     GNUNET_SERVER_resume (GST_server);
 }
