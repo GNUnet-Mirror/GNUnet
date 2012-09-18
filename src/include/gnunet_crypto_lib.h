@@ -137,17 +137,6 @@ struct GNUNET_CRYPTO_HashAsciiEncoded
 };
 
 
-
-
-/**
- * @brief 256-bit hashcode
- */
-struct GNUNET_CRYPTO_ShortHashCode
-{
-  uint32_t bits[256 / 8 / sizeof (uint32_t)];   /* = 8 */
-};
-
-
 /**
  * @brief 0-terminated ASCII encoding of a 'struct GNUNET_ShortHashCode'.
  */

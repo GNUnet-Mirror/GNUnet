@@ -247,6 +247,16 @@ struct GNUNET_HashCode
 
 
 /**
+ * FIXME
+ * @brief 256-bit hashcode
+ **/
+struct GNUNET_CRYPTO_ShortHashCode
+{
+  uint32_t bits[256 / 8 / sizeof (uint32_t)];   /* = 8 */
+};
+
+
+/**
  * The identity of the host (basically the SHA-512 hashcode of
  * it's public key).
  */
@@ -435,6 +445,31 @@ GNUNET_logger_add (GNUNET_Logger logger, void *logger_cls);
  */
 void
 GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls);
+
+
+/**
+ * Convert a short hash value to a string (for printing debug messages).
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
+ *
+ * @param hc the short hash code
+ * @return string
+ */
+const char *
+GNUNET_short_h2s (const struct GNUNET_CRYPTO_ShortHashCode * hc);
+
+
+/**
+ * Convert a short hash value to a string (for printing debug messages).
+ * This prints all 104 characters of a hashcode!
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
+ *
+ * @param hc the short hash code
+ * @return string
+ */
+const char *
+GNUNET_short_h2s_full (const struct GNUNET_CRYPTO_ShortHashCode * hc);
 
 
 /**

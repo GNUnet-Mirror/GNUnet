@@ -412,7 +412,7 @@ put_gns_record(void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Records for name `%s' in zone %s too large to fit into DHT"),
 		name,
-		GNUNET_h2s (&zhash) /* FIXME: write converter for short hash... */);
+		GNUNET_short_h2s (&zhash));
     GNUNET_free(nrb);
     zone_update_taskid = GNUNET_SCHEDULER_add_now (&update_zone_dht_next,
                                                    NULL);
