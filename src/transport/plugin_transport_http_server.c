@@ -885,9 +885,9 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   if ((conn_info->client_addr->sa_family != AF_INET) &&
       (conn_info->client_addr->sa_family != AF_INET6))
     return NULL;
-
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "New %s connection from %s\n", method, url);
+
   /* URL parsing
    * URL is valid if it is in the form [peerid[103];tag]*/
   url_len = strlen (url);
@@ -895,18 +895,20 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
 
   if (url_len < 105)
   {
-    GNUNET_break (0);
+
     goto error; /* too short */
   }
   hash_start = strrchr (url, '/');
   if (NULL == hash_start)
   {
-      GNUNET_break (0);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+       "Invalid request with url `%s': %s\n", url, "No delimiter found");
     goto error; /* '/' delimiter not found */
   }
   if (hash_start >= url_end)
   {
-      GNUNET_break (0);
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+         "Invalid request with url `%s': %s\n", url, "Malformed delimiter");
     goto error; /* mal formed */
   }
   hash_start++;
@@ -914,25 +916,29 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   hash_end = strrchr (hash_start, ';');
   if (NULL == hash_end)
   {
-    GNUNET_break (0);
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+         "Invalid request with url `%s': %s\n", url, "No `;' delimiter found");
     goto error; /* ';' delimiter not found */
   }
 
   if (hash_end >= url_end)
   {
-      GNUNET_break (0);
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+         "Invalid request with url `%s': %s\n", url, "Malformed length");
     goto error; /* mal formed */
   }
 
   if (hash_start >= hash_end)
   {
-      GNUNET_break (0);
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+          "Invalid request with url `%s': %s\n", url, "Malformed length");
     goto error; /* mal formed */
   }
 
   if ((strlen(hash_start) - strlen(hash_end)) != 103)
   {
-      GNUNET_break (0);
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+         "New %s connection from %s\n", method, url);
     goto error; /* invalid hash length */
   }
 
@@ -941,13 +947,15 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   hash[103] = '\0';
   if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((const char *) hash, &(target.hashPubKey)))
   {
-      GNUNET_break (0);
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+          "Invalid request with url `%s': %s\n", url, "Malformed peer id");
     goto error; /* mal formed */
   }
 
   if (hash_end >= url_end)
   {
-      GNUNET_break (0);
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+          "Invalid request with url `%s': %s\n", url, "Malformed length");
     goto error; /* mal formed */
   }
 
@@ -2627,6 +2635,14 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg, plugin->name,
                                               "EXTERNAL_HOSTNAME", &plugin->external_hostname))
   {
+      char * tmp = NULL;
+      if (NULL != strstr(plugin->external_hostname, "://"))
+      {
+          tmp = strdup(&strstr(plugin->external_hostname, "://")[3]);
+          GNUNET_free (plugin->external_hostname);
+          plugin->external_hostname = tmp;
+
+      }
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                        _("Using external hostname `%s'\n"), plugin->external_hostname);
       plugin->notify_ext_task = GNUNET_SCHEDULER_add_now (&server_notify_external_hostname, plugin);
