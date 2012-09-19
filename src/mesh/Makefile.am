@@ -99,6 +99,8 @@ check_PROGRAMS = \
  test_mesh_small_unicast \
  test_mesh_small_multicast \
  test_mesh_small_speed \
+ test_mesh_small_speed_nobuf \
+ test_mesh_small_speed_min \
  test_mesh_small_speed_ack
 
 test_mesh_api_SOURCES = \
@@ -207,6 +209,24 @@ test_mesh_small_speed_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing_old/libgnunettesting_old.la
 test_mesh_small_speed_DEPENDENCIES = \
+  libgnunetmesh.la
+
+test_mesh_small_speed_min_SOURCES = \
+ test_mesh_small.c
+test_mesh_small_speed_min_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+test_mesh_small_speed_min_DEPENDENCIES = \
+  libgnunetmesh.la
+
+test_mesh_small_speed_nobuf_SOURCES = \
+ test_mesh_small.c
+test_mesh_small_speed_nobuf_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+test_mesh_small_speed_nobuf_DEPENDENCIES = \
   libgnunetmesh.la
 
 test_mesh_small_speed_ack_SOURCES = \

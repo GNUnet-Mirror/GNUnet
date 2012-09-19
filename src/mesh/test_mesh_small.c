@@ -62,6 +62,8 @@ struct MeshPeer
 #define MULTICAST 2
 #define SPEED 3
 #define SPEED_ACK 4
+#define SPEED_MIN 5
+#define SPEED_NOBUF 6
 
 /**
  * Which test are we running?
@@ -688,6 +690,16 @@ connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                               &tunnel_cleaner, handlers, &app);
   }
   t = GNUNET_MESH_tunnel_create (h1, NULL, &ch, &dh, (void *) 1L);
+  if (SPEED_MIN == test)
+  {
+    GNUNET_MESH_tunnel_speed_min(t);
+    test = SPEED;
+  }
+  if (SPEED_NOBUF == test)
+  {
+    GNUNET_MESH_tunnel_buffer(t, GNUNET_NO);
+    test = SPEED;
+  }
   peers_in_tunnel = 0;
   test_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
@@ -990,8 +1002,13 @@ main (int argc, char *argv[])
     * _________________________________
     */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED\n");
-    test = SPEED;
     ok_goal = 1004;
+    if (strstr (argv[0], "_min") != NULL)
+      test = SPEED_MIN;
+    else if (strstr (argv[0], "_nobuf") != NULL)
+      test = SPEED_NOBUF;
+    else
+      test = SPEED;
   }
   else
   {
