@@ -1646,10 +1646,10 @@ server_schedule (struct HTTP_Server_Plugin *plugin,
                        last_timeout, timeout);
       last_timeout = timeout;
     }
-    //if (timeout <= GNUNET_TIME_UNIT_SECONDS.rel_value)
+    if (timeout <= GNUNET_TIME_UNIT_SECONDS.rel_value)
       tv.rel_value = (uint64_t) timeout;
-    //else
-      //tv = GNUNET_TIME_UNIT_SECONDS;
+    else
+      tv = GNUNET_TIME_UNIT_SECONDS;
   }
   else
     tv = GNUNET_TIME_UNIT_SECONDS;
@@ -1750,11 +1750,24 @@ server_load_certificate (struct HTTP_Server_Plugin *plugin)
 {
   int res = GNUNET_OK;
 
+  char *sh;
   char *key_file;
   char *cert_file;
 
   /* Get crypto init string from config
    * If not present just use default values */
+
+  if (GNUNET_OK !=
+                 GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
+                                                        "PATHS",
+                                                        "SERVICEHOME",
+                                                        &sh))
+  {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                       "Failed to get servicehome!\n");
+      return GNUNET_SYSERR;
+  }
+
 
   if (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
@@ -1772,16 +1785,19 @@ server_load_certificate (struct HTTP_Server_Plugin *plugin)
       GNUNET_CONFIGURATION_get_value_filename (plugin->env->cfg, plugin->name,
                                                "KEY_FILE", &key_file))
   {
-    key_file = GNUNET_strdup ("https_key.key");
+    GNUNET_break (0);
+    GNUNET_asprintf (&key_file, "%s/%s", sh, "https_key.key");
   }
+
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (plugin->env->cfg, plugin->name,
                                                "CERT_FILE", &cert_file))
   {
-    GNUNET_asprintf (&cert_file, "%s", "https_cert.crt");
+      GNUNET_break (0);
+    GNUNET_asprintf (&cert_file, "%s/%s", sh, "https_cert.crt");
   }
-
+  GNUNET_free (sh);
   /* read key & certificates from file */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Trying to loading TLS certificate from key-file `%s' cert-file`%s'\n",
