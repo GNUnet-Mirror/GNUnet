@@ -221,6 +221,11 @@ struct HTTP_Server_Plugin
   int in_shutdown;
 
   /**
+   * Length of peer id
+   */
+  int peer_id_length;
+
+  /**
    * External hostname the plugin can be connected to, can be different to
    * the host's FQDN, used e.g. for reverse proxying
    */
@@ -844,6 +849,112 @@ server_mhd_connection_timeout (struct HTTP_Server_Plugin *plugin, struct Session
 #endif
 }
 
+/**
+ * Parse incoming URL for tag and target
+ *
+ * @url incoming url
+ * @target where to store the target
+ * @tag where to store the tag
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+
+static int
+server_parse_url (struct HTTP_Server_Plugin *plugin, const char * url, struct GNUNET_PeerIdentity * target, uint32_t *tag)
+{
+  int debug = GNUNET_YES;
+
+  char * tag_start = NULL;
+  char * tag_end = NULL;
+  char * target_start = NULL;
+  char * separator = NULL;
+  char hash[plugin->peer_id_length+1];
+  int hash_length;
+
+  /* URL parsing
+   * URL is valid if it is in the form [prefix with (multiple) '/'][peerid[103];tag]*/
+
+  if (NULL == url)
+  {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+  }
+  /* convert tag */
+
+  /* find separator */
+  separator = strrchr (url, ';');
+
+  if (NULL == separator)
+  {
+      if (debug) GNUNET_break (0);
+      return GNUNET_SYSERR;
+  }
+  tag_start = separator + 1;
+
+  if (strlen (tag_start) == 0)
+  {
+    /* No tag after separator */
+    if (debug) GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  (*tag) = strtoul (tag_start, &tag_end, 10);
+  if ((*tag) == 0)
+  {
+    /* tag == 0 , invalid */
+    if (debug) GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (((*tag) == ULONG_MAX) && (ERANGE == errno))
+  {
+    /* out of range: > ULONG_MAX */
+    if (debug) GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (NULL == tag_end)
+  {
+      /* no char after tag */
+      if (debug) GNUNET_break (0);
+      return GNUNET_SYSERR;
+  }
+  if (url[strlen(url)] != tag_end[0])
+  {
+      /* there are more not converted chars after tag */
+      if (debug) GNUNET_break (0);
+      return GNUNET_SYSERR;
+  }
+  if (debug)
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+       "Found tag `%u' in url\n", (*tag));
+
+  /* convert peer id */
+  target_start = strrchr (url, '/');
+  if (NULL == target_start)
+  {
+      /* no leading '/' */
+      target_start = url;
+  }
+  target_start++;
+  hash_length = separator - target_start;
+  if (hash_length != plugin->peer_id_length)
+  {
+      /* no char after tag */
+      if (debug) GNUNET_break (0);
+      return GNUNET_SYSERR;
+  }
+  memcpy (hash, target_start, hash_length);
+  hash[hash_length] = '\0';
+
+  if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((const char *) hash, &(target->hashPubKey)))
+  {
+      /* hash conversion failed */
+      if (debug) GNUNET_break (0);
+      return GNUNET_SYSERR;
+  }
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+     "Found target `%s' in url\n", GNUNET_h2s_full(&target->hashPubKey));
+  return GNUNET_OK;
+}
+
 
 /**
  * Lookup a mhd connection and create one if none is found
@@ -872,14 +983,6 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   int direction = GNUNET_SYSERR;
   int to;
 
-  /* url parsing variables */
-  size_t url_len;
-  char *url_end;
-  char *hash_start;
-  char *hash_end;
-  char *tag_start;
-  char *tag_end;
-
   conn_info = MHD_get_connection_info (mhd_connection,
                                        MHD_CONNECTION_INFO_CLIENT_ADDRESS);
   if ((conn_info->client_addr->sa_family != AF_INET) &&
@@ -888,104 +991,21 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "New %s connection from %s\n", method, url);
 
-  /* URL parsing
-   * URL is valid if it is in the form [peerid[103];tag]*/
-  url_len = strlen (url);
-  url_end = (char *) &url[url_len];
-
-  if (url_len < 105)
-  {
-
-    goto error; /* too short */
-  }
-  hash_start = strrchr (url, '/');
-  if (NULL == hash_start)
-  {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-       "Invalid request with url `%s': %s\n", url, "No delimiter found");
-    goto error; /* '/' delimiter not found */
-  }
-  if (hash_start >= url_end)
+  if (GNUNET_SYSERR == server_parse_url (plugin, url, &target, &tag))
   {
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-         "Invalid request with url `%s': %s\n", url, "Malformed delimiter");
-    goto error; /* mal formed */
+                       "Invalid url %s\n", url);
+      return NULL;
   }
-  hash_start++;
-
-  hash_end = strrchr (hash_start, ';');
-  if (NULL == hash_end)
-  {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-         "Invalid request with url `%s': %s\n", url, "No `;' delimiter found");
-    goto error; /* ';' delimiter not found */
-  }
-
-  if (hash_end >= url_end)
-  {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-         "Invalid request with url `%s': %s\n", url, "Malformed length");
-    goto error; /* mal formed */
-  }
-
-  if (hash_start >= hash_end)
-  {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-          "Invalid request with url `%s': %s\n", url, "Malformed length");
-    goto error; /* mal formed */
-  }
-
-  if ((strlen(hash_start) - strlen(hash_end)) != 103)
-  {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-         "New %s connection from %s\n", method, url);
-    goto error; /* invalid hash length */
-  }
-
-  char hash[104];
-  memcpy (hash, hash_start, 103);
-  hash[103] = '\0';
-  if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((const char *) hash, &(target.hashPubKey)))
-  {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-          "Invalid request with url `%s': %s\n", url, "Malformed peer id");
-    goto error; /* mal formed */
-  }
-
-  if (hash_end >= url_end)
-  {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-          "Invalid request with url `%s': %s\n", url, "Malformed length");
-    goto error; /* mal formed */
-  }
-
-  tag_start = &hash_end[1];
-  /* Converting tag */
-  tag_end = NULL;
-  tag = strtoul (tag_start, &tag_end, 10);
-  if (tag == 0)
-  {
-      GNUNET_break (0);
-    goto error; /* mal formed */
-  }
-  if (tag_end == NULL)
-  {
-      GNUNET_break (0);
-    goto error; /* mal formed */
-  }
-  if (tag_end != url_end)
-  {
-      GNUNET_break (0);
-    goto error; /* mal formed */
-  }
-
   if (0 == strcmp (MHD_HTTP_METHOD_PUT, method))
     direction = _RECEIVE;
   else if (0 == strcmp (MHD_HTTP_METHOD_GET, method))
     direction = _SEND;
   else
   {
-    goto error;
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Invalid method %s connection from %s\n", method, url);
+    return NULL;
   }
 
   plugin->cur_connections++;
@@ -994,7 +1014,6 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
                    method,
                    GNUNET_i2s (&target), tag,
                    plugin->cur_connections, plugin->max_connections);
-
   /* find duplicate session */
   s = plugin->head;
   while (s != NULL)
@@ -1012,7 +1031,8 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
                        "Duplicate PUT connection from `%s' tag %u, dismissing new connection\n",
                        GNUNET_i2s (&target),
                        tag);
-      goto error;
+      return NULL;
+
     }
     if ((_SEND == direction) && (NULL != s->server_send))
     {
@@ -1020,7 +1040,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
                          "Duplicate GET connection from `%s' tag %u, dismissing new connection\n",
                          GNUNET_i2s (&target),
                          tag);
-      goto error;
+        return NULL;
     }
   }
   else
@@ -1040,9 +1060,8 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
       break;
     default:
       GNUNET_break (0);
-      goto error;
+      return NULL;
     }
-
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Creating new session for peer `%s' connecting from `%s'\n",
                      GNUNET_i2s (&target),
@@ -1063,7 +1082,6 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     server_start_session_timeout(s);
     GNUNET_CONTAINER_DLL_insert (plugin->head, plugin->tail, s);
   }
-
   sc = GNUNET_malloc (sizeof (struct ServerConnection));
   if (conn_info->client_addr->sa_family == AF_INET)
     sc->mhd_daemon = plugin->server_v4;
@@ -1077,7 +1095,6 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     s->server_send = sc;
   if (direction == _RECEIVE)
     s->server_recv = sc;
-
 #if MHD_VERSION >= 0x00090E00
   if ((NULL == s->server_recv) || (NULL == s->server_send))
   {
@@ -1098,12 +1115,6 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
                    "Setting timeout for %p to %u sec.\n", sc, to);
 #endif
   return sc;
-
-/* Error condition */
- error:
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Invalid connection request\n");
-    return NULL;
 }
 
 
@@ -2692,6 +2703,10 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    _("Maximum number of connections is %u\n"),
                    plugin->max_connections);
+
+
+  plugin->peer_id_length = strlen (GNUNET_h2s_full (&plugin->env->my_identity->hashPubKey));
+
   return GNUNET_OK;
 }
 
