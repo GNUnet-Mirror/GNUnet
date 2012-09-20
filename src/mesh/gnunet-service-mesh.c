@@ -4780,6 +4780,10 @@ queue_send (void *cls, size_t size, void *buf)
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   path ack\n");
         data_size = send_core_path_ack(queue->cls, size, buf);
         break;
+      case GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE:
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   path keepalive\n");
+        data_size = send_core_data_multicast(queue->cls, size, buf);
+        break;
       default:
         GNUNET_break (0);
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -5936,7 +5940,7 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   t->path_refresh_task =
       GNUNET_SCHEDULER_add_delayed (refresh_path_time, &path_refresh, t);
-  return;
+  tunnel_reset_timeout(t);
 }
 
 
