@@ -3672,7 +3672,7 @@ tunnel_get_fwd_ack (struct MeshTunnel *t)
 
   count = t->fwd_pid - t->skip;
   buffer_free = t->fwd_queue_max - t->fwd_queue_n;
-  ack = count + buffer_free; // Might overflow 32 bits, it's ok!
+  ack = count;
   child_ack = tunnel_get_children_fwd_ack (t);
   client_ack = tunnel_get_clients_fwd_ack (t);
   if (-1LL == child_ack)
@@ -3683,16 +3683,16 @@ tunnel_get_fwd_ack (struct MeshTunnel *t)
   }
   if (-1LL == client_ack)
   {
-    client_ack = ack;
+    client_ack = ack + buffer_free; // Might overflow 32 bits, it's ok!
   }
   if (GNUNET_YES == t->speed_min)
   {
-    ack = GMC_min_pid ((uint32_t) child_ack, ack);
+    ack = GMC_min_pid ((uint32_t) child_ack, ack) + buffer_free; // Might overflow 32 bits, it's ok!;
     ack = GMC_min_pid ((uint32_t) client_ack, ack);
   }
   else
   {
-    ack = GMC_max_pid ((uint32_t) child_ack, ack);
+    ack = GMC_max_pid ((uint32_t) child_ack, ack) + buffer_free; // Might overflow 32 bits, it's ok!;
     ack = GMC_max_pid ((uint32_t) client_ack, ack);
   }
   if (GNUNET_YES == t->nobuffer && GMC_is_pid_bigger(ack, t->fwd_pid))
@@ -3818,7 +3818,7 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
   }
 
   /* Check if we need no retransmit the ACK */
-  if (t->fwd_queue_max > t->fwd_queue_n * 2 &&
+  if (t->fwd_queue_max > t->fwd_queue_n * 4 &&
       GMC_is_pid_bigger(t->last_fwd_ack, t->fwd_pid))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, buffer free\n");
@@ -4337,7 +4337,12 @@ static void
 tunnel_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshTunnel *t = cls;
+  struct GNUNET_PeerIdentity id;
 
+  GNUNET_PEER_resolve(t->id.oid, &id);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Tunnel %s [%X] timed out. Destroying.\n",
+              GNUNET_i2s(&id), t->id.tid);
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   t->timeout_task = GNUNET_SCHEDULER_NO_TASK;
