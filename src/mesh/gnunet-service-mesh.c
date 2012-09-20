@@ -1167,9 +1167,17 @@ regex_find_path (const struct GNUNET_HashCode *key,
 
 
 /**
- * Queue and pass message to core when possible.
+ * @brief Queue and pass message to core when possible.
+ * 
+ * If type is payload (UNICAST, TO_ORIGIN, MULTICAST) checks for queue status
+ * and accounts for it. In case the queue is full, the message is dropped and
+ * a break issued.
+ * 
+ * Otherwise, message is treated as internal and allowed to go regardless of 
+ * queue status.
  *
- * @param cls Closure (type dependant).
+ * @param cls Closure (@c type dependant). It will be used by queue_send to
+ *            build the message to be sent if not already prebuilt.
  * @param type Type of the message, 0 for a raw message.
  * @param size Size of the message.
  * @param dst Neighbor to send message to.
@@ -2303,9 +2311,9 @@ send_core_data_raw (void *cls, size_t size, void *buf)
  * @param t Tunnel on which this message is transmitted.
  */
 static void
-send_message (const struct GNUNET_MessageHeader *message,
-              const struct GNUNET_PeerIdentity *peer,
-              struct MeshTunnel *t)
+send_prebuilt_message (const struct GNUNET_MessageHeader *message,
+                       const struct GNUNET_PeerIdentity *peer,
+                       struct MeshTunnel *t)
 {
   struct MeshTransmissionDescriptor *info;
   struct MeshPeerInfo *neighbor;
@@ -2480,7 +2488,7 @@ send_destroy_path (struct MeshTunnel *t, GNUNET_PEER_Id destination)
     {
       GNUNET_PEER_resolve (p->peers[i], &pi[i]);
     }
-    send_message (&msg->header, tree_get_first_hop (t->tree, destination), t);
+    send_prebuilt_message (&msg->header, tree_get_first_hop (t->tree, destination), t);
   }
   path_destroy (p);
 }
@@ -3306,7 +3314,7 @@ tunnel_notify_connection_broken (struct MeshTunnel *t, GNUNET_PEER_Id p1,
       msg.peer1 = my_full_id;
       GNUNET_PEER_resolve (pid, &msg.peer2);
       GNUNET_PEER_resolve (tree_get_predecessor (t->tree), &neighbor);
-      send_message (&msg.header, &neighbor, t);
+      send_prebuilt_message (&msg.header, &neighbor, t);
     }
   }
   return pid;
@@ -3325,6 +3333,7 @@ tunnel_send_multicast_iterator (void *cls, GNUNET_PEER_Id neighbor_id)
   struct MeshData *mdata = cls;
   struct MeshTransmissionDescriptor *info;
   struct GNUNET_PeerIdentity neighbor;
+  struct GNUNET_MessageHeader *msg;
 
   info = GNUNET_malloc (sizeof (struct MeshTransmissionDescriptor));
 
@@ -3336,8 +3345,9 @@ tunnel_send_multicast_iterator (void *cls, GNUNET_PEER_Id neighbor_id)
               GNUNET_i2s (&neighbor));
   info->peer = peer_info_get (&neighbor);
   GNUNET_assert (NULL != info->peer);
+  msg = (struct GNUNET_MessageHeader *) mdata->data;
   queue_add(info,
-            GNUNET_MESSAGE_TYPE_MESH_MULTICAST,
+            ntohs (msg->type),
             info->mesh_data->data_len,
             info->peer,
             mdata->t);
@@ -3350,14 +3360,10 @@ tunnel_send_multicast_iterator (void *cls, GNUNET_PEER_Id neighbor_id)
  *
  * @param t Tunnel in which to send the data.
  * @param msg Message to be sent.
- * @param internal DEPRECATED Has the service generated this message?
- * 
- * FIXME remove internal if no use comes up
  */
 static void
 tunnel_send_multicast (struct MeshTunnel *t,
-                       const struct GNUNET_MessageHeader *msg,
-                       int internal)
+                       const struct GNUNET_MessageHeader *msg)
 {
   struct MeshData *mdata;
 
@@ -3744,7 +3750,7 @@ send_ack (struct MeshTunnel *t, struct GNUNET_PeerIdentity *peer,  uint32_t ack)
   msg.pid = htonl (ack);
   msg.tid = htonl (t->id.tid);
 
-  send_message (&msg.header, peer, t);
+  send_prebuilt_message (&msg.header, peer, t);
 }
 
 
@@ -4059,7 +4065,7 @@ tunnel_send_destroy (struct MeshTunnel *t)
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY);
   GNUNET_PEER_resolve (t->id.oid, &msg.oid);
   msg.tid = htonl (t->id.tid);
-  tunnel_send_multicast (t, &msg.header, GNUNET_NO);
+  tunnel_send_multicast (t, &msg.header);
 }
 
 
@@ -4855,7 +4861,8 @@ queue_send (void *cls, size_t size, void *buf)
  * Otherwise, message is treated as internal and allowed to go regardless of 
  * queue status.
  *
- * @param cls Closure (type dependant).
+ * @param cls Closure (@c type dependant). It will be used by queue_send to
+ *            build the message to be sent if not already prebuilt.
  * @param type Type of the message, 0 for a raw message.
  * @param size Size of the message.
  * @param dst Neighbor to send message to.
@@ -5117,6 +5124,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     info->origin = &t->id;
     info->peer = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
     GNUNET_assert (NULL != info->peer);
+    // FIXME don't use queue_add directly, abstact in a send_message_* funcion
     queue_add(info,
               GNUNET_MESSAGE_TYPE_MESH_PATH_ACK,
               sizeof (struct GNUNET_MESH_PathACK),
@@ -5213,7 +5221,7 @@ handle_mesh_path_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
   if (own_pos < path->length - 1)
-    send_message (message, &pi[own_pos + 1], t);
+    send_prebuilt_message (message, &pi[own_pos + 1], t);
   else
     send_client_tunnel_disconnect(t, NULL);
 
@@ -5431,7 +5439,7 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
-  send_message (message, neighbor, t);
+  send_prebuilt_message (message, neighbor, t);
   GNUNET_STATISTICS_update (stats, "# unicast forwarded", 1, GNUNET_NO);
   return GNUNET_OK;
 }
@@ -5516,7 +5524,7 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   GNUNET_STATISTICS_update (stats, "# multicast forwarded", 1, GNUNET_NO);
-  tunnel_send_multicast (t, message, GNUNET_NO);
+  tunnel_send_multicast (t, message);
   return GNUNET_OK;
 }
 
@@ -5596,7 +5604,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   GNUNET_PEER_resolve (tree_get_predecessor (t->tree), &id);
-  send_message (message, &id, t);
+  send_prebuilt_message (message, &id, t);
   GNUNET_STATISTICS_update (stats, "# to origin forwarded", 1, GNUNET_NO);
 
   return GNUNET_OK;
@@ -5760,7 +5768,7 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return GNUNET_OK;
   }
-  send_message (message, &id, t);
+  send_prebuilt_message (message, &id, t);
   return GNUNET_OK;
 }
 
@@ -5804,7 +5812,7 @@ handle_mesh_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
   tunnel_reset_timeout (t);
 
   GNUNET_STATISTICS_update (stats, "# keepalives forwarded", 1, GNUNET_NO);
-  tunnel_send_multicast (t, message, GNUNET_NO);
+  tunnel_send_multicast (t, message);
   return GNUNET_OK;
   }
 
@@ -5924,7 +5932,7 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE);
   msg->oid = my_full_id;
   msg->tid = htonl (t->id.tid);
-  tunnel_send_multicast (t, &msg->header, GNUNET_YES);
+  tunnel_send_multicast (t, &msg->header);
 
   t->path_refresh_task =
       GNUNET_SCHEDULER_add_delayed (refresh_path_time, &path_refresh, t);
