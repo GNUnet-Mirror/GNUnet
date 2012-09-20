@@ -4339,13 +4339,13 @@ tunnel_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct MeshTunnel *t = cls;
   struct GNUNET_PeerIdentity id;
 
+  t->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
   GNUNET_PEER_resolve(t->id.oid, &id);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Tunnel %s [%X] timed out. Destroying.\n",
               GNUNET_i2s(&id), t->id.tid);
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-  t->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   tunnel_destroy (t);
 }
 
