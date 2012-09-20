@@ -157,6 +157,7 @@ struct Session
 
   int put_tmp_disconnecting;
 
+  int put_tmp_disconnected;
   /**
    * Client receive handle
    */
@@ -453,12 +454,12 @@ http_client_plugin_send (void *cls,
   memcpy (msg->buf, msgbuf, msgbuf_size);
   GNUNET_CONTAINER_DLL_insert_tail (s->msg_head, s->msg_tail, msg);
 
-  if (GNUNET_YES == s->put_tmp_disconnecting)
+  if (GNUNET_YES == s->put_tmp_disconnected)
   {
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
                        "Session %p: Reconnecting PUT connection\n",
                        s);
-      s->put_tmp_disconnecting = GNUNET_NO;
+      s->put_tmp_disconnected = GNUNET_NO;
       if (GNUNET_SYSERR == client_connect_put (s))
       {
         return GNUNET_SYSERR;
@@ -720,6 +721,8 @@ client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
                        "Session %p/connection %p: disconnect due to inactivity\n",
                        s, s->client_put);
+      s->put_tmp_disconnecting = GNUNET_NO;
+      s->put_tmp_disconnected = GNUNET_YES;
       return 0;
   }
 
@@ -1321,7 +1324,7 @@ http_client_plugin_get_session (void *cls,
   s->ats_address_network_type = ats.value;
   s->put_paused = GNUNET_NO;
   s->put_tmp_disconnecting = GNUNET_NO;
-
+  s->put_tmp_disconnected = GNUNET_NO;
   client_start_session_timeout (s);
 
   /* add new session */
