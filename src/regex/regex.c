@@ -642,13 +642,19 @@ GNUNET_REGEX_add_multi_strides_to_dfa (struct GNUNET_REGEX_Context *regex_ctx,
                                        const unsigned int stride_len)
 {
   struct GNUNET_REGEX_Strided_Context ctx = { stride_len, NULL, NULL };
+  struct GNUNET_REGEX_State *s;
+  struct GNUNET_REGEX_State *s_next;
   struct GNUNET_REGEX_Transition *t;
   struct GNUNET_REGEX_Transition *t_next;
 
   if (1 > stride_len || GNUNET_YES == dfa->is_multistrided)
     return;
 
-  // Compute the new transitions.
+  // Unmark all states
+  for (s = dfa->states_head; NULL != s; s = s->next)
+    s->marked = GNUNET_NO;
+
+  // Compute the new transitions of given stride_len
   GNUNET_REGEX_automaton_traverse (dfa, dfa->start, NULL, NULL,
                                    &add_multi_strides_to_dfa, &ctx);
 
@@ -662,6 +668,15 @@ GNUNET_REGEX_add_multi_strides_to_dfa (struct GNUNET_REGEX_Context *regex_ctx,
     GNUNET_free (t);
   }
 
+  // Remove marked states (including their incoming and outgoing transitions)
+  for (s = dfa->states_head; NULL != s; s = s_next)
+  {
+    s_next = s->next;
+    if (GNUNET_YES == s->marked)
+      automaton_remove_state (dfa, s);
+  }
+
+  // Mark this automaton as multistrided
   dfa->is_multistrided = GNUNET_YES;
 }
 
@@ -1425,36 +1440,47 @@ dfa_state_create (struct GNUNET_REGEX_Context *ctx,
 
 
 /**
- * Move from the given state 's' to the next state on transition 'label'
+ * Move from the given state 's' to the next state on transition 'str'. Consumes
+ * as much of the given 'str' as possible (usefull for strided DFAs). On return
+ * 's' will point to the next state, and the length of the substring used for
+ * this transition will be returned. If no transition possible 0 is returned and
+ * 's' points to NULL.
  *
- * @param s starting state
- * @param label edge label to follow
+ * @param s starting state, will point to the next state or NULL (if no
+ * transition possible)
+ * @param str edge label to follow (will match longest common prefix)
  *
- * @return new state or NULL, if transition on label not possible
+ * @return length of the substring comsumed from 'str'
  */
-static struct GNUNET_REGEX_State *
-dfa_move (struct GNUNET_REGEX_State *s, const char *label)
+static unsigned int
+dfa_move (struct GNUNET_REGEX_State **s, const char *str)
 {
   struct GNUNET_REGEX_Transition *t;
   struct GNUNET_REGEX_State *new_s;
+  unsigned int len;
+  unsigned int max_len;
 
   if (NULL == s)
-    return NULL;
+    return 0;
 
   new_s = NULL;
-
-  for (t = s->transitions_head; NULL != t; t = t->next)
+  max_len = 0;
+  for (t = (*s)->transitions_head; NULL != t; t = t->next)
   {
-    // TODO: Use strstr to match substring and return number of char's that have
-    // been consumed'
-    if (0 == strcmp (label, t->label))
+    len = strlen (t->label);
+
+    if (0 == strncmp (t->label, str, len))
     {
-      new_s = t->to_state;
-      break;
+      if (len >= max_len)
+      {
+        max_len = len;
+        new_s = t->to_state;
+      }
     }
   }
 
-  return new_s;
+  *s = new_s;
+  return max_len;
 }
 
 /**
@@ -2142,6 +2168,14 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
     int atomcount;
   }     *p;
 
+  if (NULL == regex || 0 == strlen (regex) || 0 == len)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Could not parse regex. Empty regex string provided.\n");
+
+    return NULL;
+  }
+
   GNUNET_REGEX_context_init (&ctx);
 
   regexp = regex;
@@ -2439,8 +2473,8 @@ static int
 evaluate_dfa (struct GNUNET_REGEX_Automaton *a, const char *string)
 {
   const char *strp;
-  char str[2];
   struct GNUNET_REGEX_State *s;
+  unsigned int step_len;
 
   if (DFA != a->type)
   {
@@ -2455,11 +2489,10 @@ evaluate_dfa (struct GNUNET_REGEX_Automaton *a, const char *string)
   if ((NULL == string || 0 == strlen (string)) && s->accepting)
     return 0;
 
-  str[1] = '\0';
-  for (strp = string; NULL != strp && *strp; strp++)
+  for (strp = string; NULL != strp && *strp; strp += step_len)
   {
-    str[0] = *strp;
-    s = dfa_move (s, str);
+    step_len = dfa_move (&s, strp);
+
     if (NULL == s)
       break;
   }
