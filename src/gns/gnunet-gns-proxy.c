@@ -17,22 +17,18 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 #include "platform.h"
-#include <gnunet_util_lib.h>
-#include <gnunet_gns_service.h>
 #include <microhttpd.h>
 #include <curl/curl.h>
-#include <regex.h>
-#include "gns_proxy_proto.h"
-#include "gns.h"
-
-/** SSL **/
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
 #include <gnutls/abstract.h>
 #include <gnutls/crypto.h>
-#include <time.h>
+#include <regex.h>
+#include "gnunet_util_lib.h"
+#include "gnunet_gns_service.h"
+#include "gns_proxy_proto.h"
+#include "gns.h"
 
 #define HAVE_MHD_NO_LISTEN_SOCKET MHD_VERSION >= 0x00091401
 
@@ -3589,8 +3585,8 @@ main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'p', "port", NULL,
-     gettext_noop ("listen on specified port"), 1,
-     &GNUNET_GETOPT_set_string, &port},
+     gettext_noop ("listen on specified port (default: 7777)"), 1,
+     &GNUNET_GETOPT_set_ulong, &port},
     {'a', "authority", NULL,
       gettext_noop ("pem file to use as CA"), 1,
       &GNUNET_GETOPT_set_string, &cafile_opt},
