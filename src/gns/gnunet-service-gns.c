@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010, 2011, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -35,6 +35,7 @@
 #include "gnunet_statistics_service.h"
 #include "block_gns.h"
 #include "gns.h"
+#include "gns_common.h"
 #include "gnunet-service-gns_resolver.h"
 #include "gnunet-service-gns_interceptor.h"
 #include "gnunet_protocols.h"
@@ -102,7 +103,7 @@ struct ClientGetAuthHandle
   uint64_t unique_id;
 
   /* name to lookup authority */
-  char* name;
+  char *name;
 
 };
 
@@ -132,8 +133,9 @@ struct ClientLookupHandle
   struct GNUNET_CRYPTO_RsaPrivateKey *shorten_key;
 
   /* the name to look up */
-  char* name; //Needed?
+  char *name; 
 };
+
 
 /**
  * Our handle to the DHT
@@ -143,23 +145,18 @@ static struct GNUNET_DHT_Handle *dht_handle;
 /**
  * Our zone's private key
  */
-struct GNUNET_CRYPTO_RsaPrivateKey *zone_key;
+static struct GNUNET_CRYPTO_RsaPrivateKey *zone_key;
 
 /**
  * Our handle to the namestore service
  * FIXME maybe need a second handle for iteration
  */
-struct GNUNET_NAMESTORE_Handle *namestore_handle;
+static struct GNUNET_NAMESTORE_Handle *namestore_handle;
 
 /**
  * Handle to iterate over our authoritative zone in namestore
  */
-struct GNUNET_NAMESTORE_ZoneIterator *namestore_iter;
-
-/**
- * The configuration the GNS service is running with
- */
-const struct GNUNET_CONFIGURATION_Handle *GNS_cfg;
+static struct GNUNET_NAMESTORE_ZoneIterator *namestore_iter;
 
 /**
  * Our notification context.
@@ -169,7 +166,7 @@ static struct GNUNET_SERVER_NotificationContext *nc;
 /**
  * Our zone hash
  */
-struct GNUNET_CRYPTO_ShortHashCode zone_hash;
+static struct GNUNET_CRYPTO_ShortHashCode zone_hash;
 
 /**
  * Useful for zone update for DHT put
@@ -190,7 +187,7 @@ static struct GNUNET_TIME_Relative zone_iteration_interval;
 static struct GNUNET_TIME_Relative record_put_interval;
 
 /* zone update task */
-GNUNET_SCHEDULER_TaskIdentifier zone_update_taskid = GNUNET_SCHEDULER_NO_TASK;
+static GNUNET_SCHEDULER_TaskIdentifier zone_update_taskid;
 
 /* automatic pkey import for name shortening */
 static int auto_import_pkey;
@@ -256,7 +253,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param tc task context
  */
 static void
-update_zone_dht_next(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+update_zone_dht_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   zone_update_taskid = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_NAMESTORE_zone_iterator_next (namestore_iter);
@@ -284,6 +281,7 @@ record_dht_put(void *cls, int success)
 static void
 update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
+
 /**
  * Function used to put all records successively into the DHT.
  *
@@ -305,19 +303,18 @@ put_gns_record(void *cls,
                 const struct GNUNET_CRYPTO_RsaSignature *signature)
 {  
   struct GNSNameRecordBlock *nrb;
-  struct GNUNET_CRYPTO_ShortHashCode name_hash;
   struct GNUNET_CRYPTO_ShortHashCode zhash;
-  struct GNUNET_HashCode xor_hash;
-  struct GNUNET_HashCode name_hash_double;
-  struct GNUNET_HashCode zone_hash_double;
+  struct GNUNET_HashCode dht_key;
   uint32_t rd_payload_length;
   char* nrb_data = NULL;
   size_t namelen;
   struct GNUNET_TIME_Relative next_put_interval; 
 
-  /* we're done */
   if (NULL == name)
   {
+    /* we're done */
+    namestore_iter = NULL;
+    last_num_public_records = num_public_records;
     first_zone_iteration = GNUNET_NO;
     if (0 == num_public_records)
     {
@@ -329,49 +326,41 @@ put_gns_record(void *cls,
       zone_iteration_interval = GNUNET_TIME_relative_divide (record_put_interval,
                                                              1);
 
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "No records in db.\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+		  "No records in db.\n");
     }
     else
     {
       zone_iteration_interval = GNUNET_TIME_relative_divide (record_put_interval,
                                                              num_public_records);
     }
-
     zone_iteration_interval = GNUNET_TIME_relative_max (MINIMUM_ZONE_ITERATION_INTERVAL,
                                                         zone_iteration_interval);
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Adjusted zone iteration interval to %s\n",
+		"Zone iteration finished. Adjusted zone iteration interval to %s\n",
 		GNUNET_STRINGS_relative_time_to_string (zone_iteration_interval, GNUNET_YES));
     GNUNET_STATISTICS_set (statistics,
-                           "Current zone iteration interval [msec]",
+                           "Current zone iteration interval (in ms)",
                            zone_iteration_interval.rel_value,
                            GNUNET_NO);
-    
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Zone iteration finished. Rescheduling zone iteration\n");
-
-    namestore_iter = NULL;
-    if (num_public_records == 0)
+    GNUNET_STATISTICS_update (statistics,
+                              "Number of zone iterations", 1, GNUNET_NO);
+    GNUNET_STATISTICS_set (statistics,
+                           "Number of public records in DHT",
+                           last_num_public_records,
+                           GNUNET_NO);
+    if (0 == num_public_records)
       zone_update_taskid = GNUNET_SCHEDULER_add_delayed (zone_iteration_interval,
                                                          &update_zone_dht_start,
                                                          NULL);
     else
       zone_update_taskid = GNUNET_SCHEDULER_add_now (&update_zone_dht_start, NULL);
-    GNUNET_STATISTICS_update (statistics,
-                              "Number of zone iterations", 1, GNUNET_NO);
-
-    last_num_public_records = num_public_records;
-    GNUNET_STATISTICS_set (statistics,
-                           "Number of public records in DHT",
-                           last_num_public_records,
-                           GNUNET_NO);
     return;
   }
   
-  namelen = strlen(name) + 1;
-  if (rd_count == 0)
+  namelen = strlen (name) + 1;
+  if (0 == rd_count)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"No records for name `%s'! Skipping.\n",
@@ -380,7 +369,7 @@ put_gns_record(void *cls,
                                                    NULL);
     return;
   }
-  if (signature == NULL)
+  if (NULL == signature)
   {
     GNUNET_break (0);
     zone_update_taskid = GNUNET_SCHEDULER_add_now (&update_zone_dht_next,
@@ -389,15 +378,14 @@ put_gns_record(void *cls,
   }
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Putting records for `%s' into the DHT\n", name);
-  
+	      "Putting records for `%s' into the DHT\n", name); 
   rd_payload_length = GNUNET_NAMESTORE_records_get_size (rd_count, rd); 
-  nrb = GNUNET_malloc(rd_payload_length + namelen
-                      + sizeof(struct GNSNameRecordBlock));
+  nrb = GNUNET_malloc (rd_payload_length + namelen
+		       + sizeof (struct GNSNameRecordBlock));
   nrb->signature = *signature;
   nrb->public_key = *key;
-  nrb->rd_count = htonl(rd_count);
-  memcpy(&nrb[1], name, namelen);
+  nrb->rd_count = htonl (rd_count);
+  memcpy (&nrb[1], name, namelen);
   nrb_data = (char *) &nrb[1];
   nrb_data += namelen;
   rd_payload_length += sizeof(struct GNSNameRecordBlock) + namelen;
@@ -419,27 +407,20 @@ put_gns_record(void *cls,
     return;
   }
 
-  /*
-   * calculate DHT key: H(name) xor H(pubkey)
-   */
-  GNUNET_CRYPTO_short_hash(name, strlen(name), &name_hash);
-  GNUNET_CRYPTO_short_hash_double (&name_hash, &name_hash_double);
-  GNUNET_CRYPTO_short_hash_double (&zhash, &zone_hash_double);
-  GNUNET_CRYPTO_hash_xor(&zone_hash_double, &name_hash_double, &xor_hash);
-
+  GNUNET_GNS_get_key_for_record (name, &zhash, &dht_key);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "putting %u records from zone %s for `%s' under key: %s with size %u and timeout %s\n",
 	      rd_count,
-	      GNUNET_h2s (&zone_hash_double) /* FIXME: write converter for short hash... */,
+	      GNUNET_short_h2s (&zhash),
 	      name, 
-	      GNUNET_h2s (&xor_hash), 
+	      GNUNET_h2s (&dht_key), 
 	      (unsigned int) rd_payload_length,
 	      GNUNET_STRINGS_relative_time_to_string (DHT_OPERATION_TIMEOUT, GNUNET_YES));
   
   GNUNET_STATISTICS_update (statistics,
                             "Record bytes put into DHT", rd_payload_length, GNUNET_NO);
 
-  (void) GNUNET_DHT_put (dht_handle, &xor_hash,
+  (void) GNUNET_DHT_put (dht_handle, &dht_key,
 			 DHT_GNS_REPLICATION_LEVEL,
 			 GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
 			 GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
@@ -449,36 +430,29 @@ put_gns_record(void *cls,
 			 DHT_OPERATION_TIMEOUT,
 			 &record_dht_put,
 			 NULL); 
-  
-  num_public_records++;
-  
-  if ((num_public_records > last_num_public_records)
-      && (first_zone_iteration == GNUNET_NO))
+  GNUNET_free (nrb);
+
+  num_public_records++;  
+  if ( (num_public_records > last_num_public_records)
+       && (GNUNET_NO == first_zone_iteration) )
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Last record count was lower than current record count.  Reducing interval.\n");
     zone_iteration_interval = GNUNET_TIME_relative_divide (record_put_interval,
                                                            num_public_records);
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Last record count was lower than current record count... increasing.\n");
     next_put_interval = GNUNET_TIME_relative_divide (zone_iteration_interval,
-                                                 LATE_ITERATION_SPEEDUP_FACTOR);
-
+						     LATE_ITERATION_SPEEDUP_FACTOR);
   }
   else
     next_put_interval = zone_iteration_interval;
 
   GNUNET_STATISTICS_set (statistics,
-                            "Current zone iteration interval [msec]",
-                            next_put_interval.rel_value,
-                            GNUNET_NO);
-  
-  /**
-   * Reschedule periodic put
-   */
+			 "Current zone iteration interval (ms)",
+			 next_put_interval.rel_value,
+			 GNUNET_NO); 
   zone_update_taskid = GNUNET_SCHEDULER_add_delayed (next_put_interval,
-                                &update_zone_dht_next,
-                                NULL);
-
-  GNUNET_free(nrb);
+						     &update_zone_dht_next,
+						     NULL);
 }
 
 
@@ -493,19 +467,20 @@ update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   zone_update_taskid = GNUNET_SCHEDULER_NO_TASK;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Scheduling DHT zone update!\n");
-  
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Scheduling DHT zone update!\n");  
   /* start counting again */
   num_public_records = 0;
   namestore_iter = GNUNET_NAMESTORE_zone_iteration_start (namestore_handle,
-                                                 NULL, //All zones
-                                                 GNUNET_NAMESTORE_RF_AUTHORITY,
-                                                 GNUNET_NAMESTORE_RF_PRIVATE,
-                                                 &put_gns_record,
-                                                 NULL);
+							  NULL, /* All zones */
+							  GNUNET_NAMESTORE_RF_AUTHORITY,
+							  GNUNET_NAMESTORE_RF_PRIVATE,
+							  &put_gns_record,
+							  NULL);
 }
 
+
 /* END DHT ZONE PROPAGATION */
+
 
 /**
  * Send shorten response back to client
@@ -514,7 +489,7 @@ update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param name the shortened name result or NULL if cannot be shortened
  */
 static void
-send_shorten_response(void* cls, const char* name)
+send_shorten_response (void* cls, const char* name)
 {
   struct ClientShortenHandle *csh = cls;
   struct GNUNET_GNS_ClientShortenResultMessage *rmsg;
@@ -529,8 +504,8 @@ send_shorten_response(void* cls, const char* name)
   GNUNET_STATISTICS_update (statistics,
                             "Name shorten results", 1, GNUNET_NO);
 
-  rmsg = GNUNET_malloc(sizeof(struct GNUNET_GNS_ClientShortenResultMessage) +
-                       name_len);
+  rmsg = GNUNET_malloc (sizeof (struct GNUNET_GNS_ClientShortenResultMessage) +
+			name_len);
   
   rmsg->id = csh->unique_id;
   rmsg->header.type = htons(GNUNET_MESSAGE_TYPE_GNS_SHORTEN_RESULT);
@@ -538,11 +513,9 @@ send_shorten_response(void* cls, const char* name)
     htons(sizeof(struct GNUNET_GNS_ClientShortenResultMessage) +
           name_len);
   memcpy (&rmsg[1], name, name_len);
-
   GNUNET_SERVER_notification_context_unicast (nc, csh->client,
 					      &rmsg->header,
 					      GNUNET_NO);
-  GNUNET_SERVER_receive_done (csh->client, GNUNET_OK);
   if (NULL != csh->namestore_task)
     GNUNET_NAMESTORE_cancel (csh->namestore_task); 
   GNUNET_free (rmsg);
@@ -564,18 +537,18 @@ send_shorten_response(void* cls, const char* name)
  */
 static void
 process_shorten_in_private_zone_lookup (void *cls,
-                      const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
-                      struct GNUNET_TIME_Absolute expiration,
-                      const char *name,
-                      unsigned int rd_count,
-                      const struct GNUNET_NAMESTORE_RecordData *rd,
-                      const struct GNUNET_CRYPTO_RsaSignature *signature)
+					const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
+					struct GNUNET_TIME_Absolute expiration,
+					const char *name,
+					unsigned int rd_count,
+					const struct GNUNET_NAMESTORE_RecordData *rd,
+					const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   struct ClientShortenHandle *csh = cls;
-  csh->namestore_task = NULL;
   struct GNUNET_CRYPTO_ShortHashCode *szone = &csh->shorten_zone;
   struct GNUNET_CRYPTO_ShortHashCode *pzone = &csh->private_zone;
 
+  csh->namestore_task = NULL;
   if (0 == strcmp (csh->private_zone_id, ""))
     pzone = NULL;
   
@@ -583,14 +556,11 @@ process_shorten_in_private_zone_lookup (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "No shorten zone in private zone!\n");
-
     strcpy (csh->shorten_zone_id, "");
     szone = NULL;
-
   }
   else
   {
-
     GNUNET_assert (rd_count == 1);
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -635,10 +605,10 @@ process_shorten_in_root_zone_lookup (void *cls,
                       const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   struct ClientShortenHandle *csh = cls;
-  csh->namestore_task = NULL;
   struct GNUNET_CRYPTO_ShortHashCode *szone = &csh->shorten_zone;
   struct GNUNET_CRYPTO_ShortHashCode *pzone = &csh->private_zone;
   
+  csh->namestore_task = NULL;
   if (0 == strcmp (csh->private_zone_id, ""))
     pzone = NULL;
 
@@ -762,33 +732,24 @@ handle_shorten (void *cls,
 		struct GNUNET_SERVER_Client * client,
 		const struct GNUNET_MessageHeader * message)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "SHORTEN");
-
   size_t msg_size = 0;
   struct ClientShortenHandle *csh;
   char name[MAX_DNS_NAME_LENGTH];
   char* nameptr = name;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "SHORTEN");
   if (ntohs (message->size) < sizeof (struct GNUNET_GNS_ClientShortenMessage))
   {
-    GNUNET_break_op (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
 
 
-  struct GNUNET_GNS_ClientShortenMessage *sh_msg =
-    (struct GNUNET_GNS_ClientShortenMessage *) message;
+  const struct GNUNET_GNS_ClientShortenMessage *sh_msg =
+    (const struct GNUNET_GNS_ClientShortenMessage *) message;
   
-  msg_size = ntohs(message->size);
-
-  if (msg_size > GNUNET_SERVER_MAX_MESSAGE_SIZE)
-  {
-    GNUNET_break_op (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
-    return;
-  }
-
+  msg_size = ntohs (message->size);
   csh = GNUNET_malloc(sizeof (struct ClientShortenHandle));
   csh->client = client;
   csh->unique_id = sh_msg->id;
@@ -805,6 +766,7 @@ handle_shorten (void *cls,
                "SHORTEN: %s is too short\n", name);
     GNUNET_CONTAINER_DLL_remove (csh_head, csh_tail, csh);
     send_shorten_response(csh, name);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
 
@@ -813,6 +775,7 @@ handle_shorten (void *cls,
                "SHORTEN: %s is too long\n", name);
     GNUNET_CONTAINER_DLL_remove (csh_head, csh_tail, csh);
     send_shorten_response(csh, name);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
   
@@ -822,6 +785,7 @@ handle_shorten (void *cls,
                 "%s is not our domain. Returning\n", name);
     GNUNET_CONTAINER_DLL_remove (csh_head, csh_tail, csh);
     send_shorten_response(csh, name);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
 
@@ -840,7 +804,7 @@ handle_shorten (void *cls,
 
   GNUNET_STATISTICS_update (statistics,
                             "Name shorten attempts", 1, GNUNET_NO);
-  
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -850,24 +814,21 @@ handle_shorten (void *cls,
  * @param cls the closure containing a client get auth handle
  * @param name the shortened name result or NULL if cannot be shortened
  */
-static void
+static void 
 send_get_auth_response(void *cls, const char* name)
 {
+  struct ClientGetAuthHandle *cah = cls;
+  struct GNUNET_GNS_ClientGetAuthResultMessage *rmsg;
+  
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message with %s\n",
               "GET_AUTH_RESULT", name);
-  struct GNUNET_GNS_ClientGetAuthResultMessage *rmsg;
-  struct ClientGetAuthHandle *cah = (struct ClientGetAuthHandle *)cls;
-  
   if (name != NULL)
   {
     GNUNET_STATISTICS_update (statistics,
                               "Authorities resolved", 1, GNUNET_NO);
-  }
-  
-  if (name == NULL)
-  {
-    name = "";
-  }
+  }  
+  if (name == NULL)  
+    name = "";  
 
   rmsg = GNUNET_malloc(sizeof(struct GNUNET_GNS_ClientGetAuthResultMessage)
                        + strlen(name) + 1);
@@ -877,8 +838,7 @@ send_get_auth_response(void *cls, const char* name)
   rmsg->header.size = 
     htons(sizeof(struct GNUNET_GNS_ClientGetAuthResultMessage) +
           strlen(name) + 1);
-
-  strcpy((char*)&rmsg[1], name);
+  strcpy ((char*)&rmsg[1], name);
 
   GNUNET_SERVER_notification_context_unicast (nc, cah->client,
 					      &rmsg->header,
@@ -887,10 +847,7 @@ send_get_auth_response(void *cls, const char* name)
   
   GNUNET_free(rmsg);
   GNUNET_free_non_null(cah->name);
-  GNUNET_free(cah);
-
-  
-  
+  GNUNET_free(cah);  
 }
 
 
@@ -901,21 +858,20 @@ send_get_auth_response(void *cls, const char* name)
  * @param client the client
  * @param message the message
  */
-static void handle_get_authority(void *cls,
-                           struct GNUNET_SERVER_Client * client,
-                           const struct GNUNET_MessageHeader * message)
+static void 
+handle_get_authority (void *cls,
+		      struct GNUNET_SERVER_Client * client,
+		      const struct GNUNET_MessageHeader * message)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "GET_AUTH");
-
   size_t msg_size = 0;
   struct ClientGetAuthHandle *cah;
   char name[MAX_DNS_NAME_LENGTH];
   char* nameptr = name;
 
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "GET_AUTH");
   if (ntohs (message->size) < sizeof (struct GNUNET_GNS_ClientGetAuthMessage))
   {
-    GNUNET_break_op (0);
+    GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
@@ -926,15 +882,7 @@ static void handle_get_authority(void *cls,
     (struct GNUNET_GNS_ClientGetAuthMessage *) message;
   
   msg_size = ntohs(message->size);
-
-  if (msg_size > GNUNET_SERVER_MAX_MESSAGE_SIZE)
-  {
-    GNUNET_break_op (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
-    return;
-  }
-  
-  GNUNET_STRINGS_utf8_tolower((char*)&sh_msg[1], &nameptr);
+  GNUNET_STRINGS_utf8_tolower((const char*)&sh_msg[1], &nameptr);
 
 
   cah = GNUNET_malloc(sizeof(struct ClientGetAuthHandle));
@@ -950,7 +898,8 @@ static void handle_get_authority(void *cls,
     return;
   }
   
-  if (strlen (name) > MAX_DNS_NAME_LENGTH) {
+  if (strlen (name) > MAX_DNS_NAME_LENGTH) 
+  {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "GET_AUTH: %s is too long", name);
     cah->name = NULL;
@@ -1074,7 +1023,7 @@ handle_lookup(void *cls,
 
   if (ntohs (message->size) < sizeof (struct GNUNET_GNS_ClientLookupMessage))
   {
-    GNUNET_break_op (0);
+    GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
@@ -1085,15 +1034,7 @@ handle_lookup(void *cls,
     (struct GNUNET_GNS_ClientLookupMessage *) message;
   
   msg_size = ntohs(message->size);
-
-  if (msg_size > GNUNET_SERVER_MAX_MESSAGE_SIZE)
-  {
-    GNUNET_break_op (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
-    return;
-  }
-
-  if (1 == ntohl(sh_msg->have_key))
+  if (GNUNET_YES == ntohl(sh_msg->have_key))
   {
     pkey = (struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *)&sh_msg[1];
     tmp_pkey = (char*)&sh_msg[1];
@@ -1172,6 +1113,7 @@ handle_lookup(void *cls,
                             "Record lookup attempts", 1, GNUNET_NO);
 }
 
+
 /**
  * Test if the given AF is supported by this system.
  *
@@ -1199,6 +1141,7 @@ test_af (int af)
   return GNUNET_OK;
 }
 
+
 /**
  * Process GNS requests.
  *
@@ -1210,9 +1153,6 @@ static void
 run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Initializing GNS\n");
-  
   char* keyfile;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
   unsigned long long max_parallel_bg_queries = 0;
@@ -1224,8 +1164,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {&handle_lookup, NULL, GNUNET_MESSAGE_TYPE_GNS_LOOKUP, 0},
     {&handle_get_authority, NULL, GNUNET_MESSAGE_TYPE_GNS_GET_AUTH, 0}
   };
-
-  GNS_cfg = c;
 
   v6_enabled = test_af (AF_INET6);
   v4_enabled = test_af (AF_INET);
@@ -1249,25 +1187,16 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                      sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                      &zone_hash);
   GNUNET_free(keyfile);
-  
-  /**
-   * handle to our local namestore
-   */
-  namestore_handle = GNUNET_NAMESTORE_connect(c);
-
+  namestore_handle = GNUNET_NAMESTORE_connect (c);
   if (NULL == namestore_handle)
   {
-    //FIXME do error handling;
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-               "Failed to connect to the namestore!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Failed to connect to the namestore!\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
   
-  
-
   auto_import_pkey = GNUNET_NO;
-
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (c, "gns",
                                             "AUTO_IMPORT_PKEY"))
@@ -1287,9 +1216,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                              "RECORD_PUT_INTERVAL",
                                              &record_put_interval))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Record put interval: %llu\n",
-               record_put_interval);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"Record put interval: %s\n",
+		GNUNET_STRINGS_relative_time_to_string (record_put_interval, GNUNET_YES));
   }
 
   if (GNUNET_OK ==
@@ -1332,7 +1261,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   if (NULL == dht_handle)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not connect to DHT!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not connect to DHT!\n");
   }
   
   if (gns_resolver_init(namestore_handle, dht_handle, zone_hash, c,

@@ -29,6 +29,7 @@
 #include "gnunet_namestore_service.h"
 #include "block_gns.h"
 #include "gnunet_signatures.h"
+#include "gns_common.h"
 
 /**
  * Number of bits we set per entry in the bloomfilter.
@@ -62,15 +63,14 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
                           size_t xquery_size, const void *reply_block,
                           size_t reply_block_size)
 {
-  char* name;
-  struct GNUNET_HashCode pkey_hash_double;
+  const char* name;
   struct GNUNET_HashCode query_key;
-  struct GNUNET_HashCode name_hash_double;
   struct GNUNET_HashCode mhash;
   struct GNUNET_HashCode chash;
   struct GNUNET_CRYPTO_ShortHashCode pkey_hash;
-  struct GNUNET_CRYPTO_ShortHashCode name_hash;
   struct GNSNameRecordBlock *nrb;
+  struct GNUNET_CRYPTO_HashAsciiEncoded xor_exp;
+  struct GNUNET_CRYPTO_HashAsciiEncoded xor_got;
   uint32_t rd_count;
   char* rd_data = NULL;
   int rd_len;
@@ -98,20 +98,13 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   /* this is a reply */
 
   nrb = (struct GNSNameRecordBlock *)reply_block;
-  name = (char*)&nrb[1];
-  GNUNET_CRYPTO_short_hash(&nrb->public_key,
-                     sizeof(nrb->public_key),
-                     &pkey_hash);
-
-  GNUNET_CRYPTO_short_hash(name, strlen(name), &name_hash);
+  name = (const char*)&nrb[1];
   
-  GNUNET_CRYPTO_short_hash_double(&name_hash, &name_hash_double);
-  GNUNET_CRYPTO_short_hash_double(&pkey_hash, &pkey_hash_double);
-
-  GNUNET_CRYPTO_hash_xor(&pkey_hash_double, &name_hash_double, &query_key);
+  GNUNET_CRYPTO_short_hash (&nrb->public_key,
+			    sizeof(nrb->public_key),
+			    &pkey_hash);
+  GNUNET_GNS_get_key_for_record (name, &pkey_hash, &query_key);
   
-  struct GNUNET_CRYPTO_HashAsciiEncoded xor_exp;
-  struct GNUNET_CRYPTO_HashAsciiEncoded xor_got;
   GNUNET_CRYPTO_hash_to_enc (&query_key, &xor_exp);
   GNUNET_CRYPTO_hash_to_enc (query, &xor_got);
 
@@ -220,25 +213,23 @@ block_plugin_gns_get_key (void *cls, enum GNUNET_BLOCK_Type type,
                          const void *block, size_t block_size,
                          struct GNUNET_HashCode * key)
 {
+  struct GNUNET_CRYPTO_ShortHashCode pkey_hash;
+  const struct GNSNameRecordBlock *nrb = (const struct GNSNameRecordBlock *)block;
+  const char *name;
+
   if (type != GNUNET_BLOCK_TYPE_GNS_NAMERECORD)
     return GNUNET_SYSERR;
-  struct GNUNET_CRYPTO_ShortHashCode name_hash;
-  struct GNUNET_CRYPTO_ShortHashCode pkey_hash;
-  struct GNUNET_HashCode name_hash_double;
-  struct GNUNET_HashCode pkey_hash_double;
-
-  struct GNSNameRecordBlock *nrb = (struct GNSNameRecordBlock *)block;
-
-  GNUNET_CRYPTO_short_hash(&nrb[1], strlen((char*)&nrb[1]), &name_hash);
-  GNUNET_CRYPTO_short_hash(&nrb->public_key,
-                     sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                     &pkey_hash);
-  
-  GNUNET_CRYPTO_short_hash_double(&name_hash, &name_hash_double);
-  GNUNET_CRYPTO_short_hash_double(&pkey_hash, &pkey_hash_double);
-
-  GNUNET_CRYPTO_hash_xor(&name_hash_double, &pkey_hash_double, key);
-  
+  name = (const char *) &nrb[1];
+  if (NULL == memchr (name, '\0', block_size - sizeof (struct GNSNameRecordBlock)))
+  {
+    /* malformed, no 0-termination in name */
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR; 
+  }
+  GNUNET_CRYPTO_short_hash (&nrb->public_key,
+			    sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+			    &pkey_hash);
+  GNUNET_GNS_get_key_for_record (name, &pkey_hash, key);
   return GNUNET_OK;
 }
 

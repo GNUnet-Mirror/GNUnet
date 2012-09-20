@@ -405,6 +405,7 @@ namestore_sqlite_remove_records (void *cls,
   struct GNUNET_CRYPTO_ShortHashCode nh;
   size_t name_len;
   int n;
+
   name_len = strlen (name);
   GNUNET_CRYPTO_short_hash (name, name_len, &nh);
 

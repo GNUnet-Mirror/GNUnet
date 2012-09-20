@@ -35,6 +35,7 @@
 #include "gnunet_dnsparser_lib.h"
 #include "gns_protocol.h"
 #include "gnunet_gns_service.h"
+#include "gns_common.h"
 #include "block_gns.h"
 #include "gns.h"
 #include "gnunet-service-gns_resolver.h"
@@ -459,30 +460,19 @@ process_auth_discovery_ns_result (void* cls,
                       const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   struct GetPseuAuthorityHandle* gph = cls;
-  struct GNUNET_CRYPTO_ShortHashCode name_hash;
   struct GNUNET_HashCode lookup_key;
-  struct GNUNET_CRYPTO_HashAsciiEncoded lookup_key_string;
-  struct GNUNET_HashCode name_hash_double;
-  struct GNUNET_HashCode zone_hash_double;
-  int i;
+  unsigned int i;
   uint32_t xquery;
   
   gph->namestore_task = NULL;
   /* no pseu found */
   if (0 == rd_count)
   {
-    /**
-     * check dht
-     */
-    GNUNET_CRYPTO_short_hash ("+", strlen ("+"), &name_hash);
-    GNUNET_CRYPTO_short_hash_double (&name_hash, &name_hash_double);
-    GNUNET_CRYPTO_short_hash_double (&gph->auth->zone, &zone_hash_double);
-    GNUNET_CRYPTO_hash_xor (&name_hash_double, &zone_hash_double, &lookup_key);
-    GNUNET_CRYPTO_hash_to_enc (&lookup_key, &lookup_key_string);
-
+    GNUNET_GNS_get_key_for_record (GNUNET_GNS_TLD_PLUS, &gph->auth->zone, &lookup_key);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_AUTO_PSEU: starting dht lookup for %s with key: %s\n",
-               "+", (char*)&lookup_key_string);
+		"GNS_AUTO_PSEU: starting dht lookup for %s with key: %s\n",
+		GNUNET_GNS_TLD_PLUS, 
+		GNUNET_h2s (&lookup_key));
 
     gph->timeout = GNUNET_SCHEDULER_add_delayed (DHT_LOOKUP_TIMEOUT,
                                          &handle_auth_discovery_timeout, gph);
@@ -505,7 +495,7 @@ process_auth_discovery_ns_result (void* cls,
 
   for (i=0; i < rd_count; i++)
   {
-    if (0 != (strcmp (name, "+")))
+    if (0 != (strcmp (name, GNUNET_GNS_TLD_PLUS)))
       continue;
 
     if (rd[i].record_type != GNUNET_GNS_RECORD_PSEU)
@@ -1127,23 +1117,14 @@ static void
 resolve_record_dht (struct ResolverHandle *rh)
 {
   uint32_t xquery;
-  struct GNUNET_CRYPTO_ShortHashCode name_hash;
   struct GNUNET_HashCode lookup_key;
-  struct GNUNET_HashCode name_hash_double;
-  struct GNUNET_HashCode zone_hash_double;
-  struct GNUNET_CRYPTO_HashAsciiEncoded lookup_key_string;
   struct RecordLookupHandle *rlh = rh->proc_cls;
   struct ResolverHandle *rh_heap_root;
 
-  GNUNET_CRYPTO_short_hash (rh->name, strlen (rh->name), &name_hash);
-  GNUNET_CRYPTO_short_hash_double (&name_hash, &name_hash_double);
-  GNUNET_CRYPTO_short_hash_double (&rh->authority, &zone_hash_double);
-  GNUNET_CRYPTO_hash_xor (&name_hash_double, &zone_hash_double, &lookup_key);
-  GNUNET_CRYPTO_hash_to_enc (&lookup_key, &lookup_key_string);
-
+  GNUNET_GNS_get_key_for_record (rh->name, &rh->authority, &lookup_key);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "GNS_PHASE_REC-%llu: starting dht lookup for %s with key: %s\n",
-              rh->id, rh->name, (char*)&lookup_key_string);
+              rh->id, rh->name, GNUNET_h2s (&lookup_key));
 
   //rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   rh->dht_heap_node = NULL;
@@ -2191,10 +2172,9 @@ process_delegation_result_dht(void* cls,
   uint32_t num_records;
   char* name = NULL;
   char* rd_data = (char*) data;
-  int i;
+  uint32_t i;
   int rd_size;
-  struct GNUNET_CRYPTO_ShortHashCode zone, name_hash;
-  struct GNUNET_HashCode zone_hash_double, name_hash_double;
+  struct GNUNET_CRYPTO_ShortHashCode zone;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "GNS_PHASE_DELEGATE_DHT-%llu: Got DHT result\n", rh->id);
@@ -2301,12 +2281,8 @@ process_delegation_result_dht(void* cls,
       }
 
     }
+    GNUNET_GNS_get_zone_from_key (name, key, &zone);
 
-
-    GNUNET_CRYPTO_short_hash(name, strlen(name), &name_hash);
-    GNUNET_CRYPTO_short_hash_double(&name_hash, &name_hash_double);
-    GNUNET_CRYPTO_hash_xor(key, &name_hash_double, &zone_hash_double);
-    GNUNET_CRYPTO_short_hash_from_truncation (&zone_hash_double, &zone);
 
     /* Save to namestore
     if (0 != GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
@@ -2802,21 +2778,12 @@ static void
 resolve_delegation_dht(struct ResolverHandle *rh)
 {
   uint32_t xquery;
-  struct GNUNET_CRYPTO_ShortHashCode name_hash;
-  struct GNUNET_HashCode name_hash_double;
-  struct GNUNET_HashCode zone_hash_double;
   struct GNUNET_HashCode lookup_key;
   struct ResolverHandle *rh_heap_root;
   
   pop_tld(rh->name, rh->authority_name);
 
-  //FIXME handle return values here
-  GNUNET_CRYPTO_short_hash(rh->authority_name,
-                     strlen(rh->authority_name),
-                     &name_hash);
-  GNUNET_CRYPTO_short_hash_double(&name_hash, &name_hash_double);
-  GNUNET_CRYPTO_short_hash_double(&rh->authority, &zone_hash_double);
-  GNUNET_CRYPTO_hash_xor(&name_hash_double, &zone_hash_double, &lookup_key);
+  GNUNET_GNS_get_key_for_record (rh->authority_name, &rh->authority, &lookup_key);
   
   rh->dht_heap_node = NULL;
 
