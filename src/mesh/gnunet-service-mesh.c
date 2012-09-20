@@ -4846,7 +4846,14 @@ queue_send (void *cls, size_t size, void *buf)
 
 
 /**
- * Queue and pass message to core when possible.
+ * @brief Queue and pass message to core when possible.
+ * 
+ * If type is payload (UNICAST, TO_ORIGIN, MULTICAST) checks for queue status
+ * and accounts for it. In case the queue is full, the message is dropped and
+ * a break issued.
+ * 
+ * Otherwise, message is treated as internal and allowed to go regardless of 
+ * queue status.
  *
  * @param cls Closure (type dependant).
  * @param type Type of the message, 0 for a raw message.
