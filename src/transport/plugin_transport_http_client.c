@@ -1115,7 +1115,11 @@ client_connect_get (struct Session *s)
   mret = curl_multi_add_handle (s->plugin->curl_multi_handle, s->client_get);
   if (mret != CURLM_OK)
   {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
+                       "Session %p : Failed to add GET handle to multihandle: `%s'\n",
+                       s, curl_multi_strerror (mret));
     curl_easy_cleanup (s->client_get);
+    s->client_get = NULL;
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
@@ -1130,7 +1134,14 @@ client_connect_put (struct Session *s)
   /* create put connection */
   if (NULL == s->client_put)
   {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
+                       "Session %p : Init PUT handle \n", s);
     s->client_put = curl_easy_init ();
+  }
+  else
+  {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
+                       "Session %p : Reusing PUT handle %p \n", s, s->client_put);
   }
 #if VERBOSE_CURL
   curl_easy_setopt (s->client_put, CURLOPT_VERBOSE, 1L);
@@ -1164,9 +1175,8 @@ client_connect_put (struct Session *s)
   if (mret != CURLM_OK)
   {
    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
-                    "Failed to add curl handle to multihandle: `%s'\n",
-                    curl_multi_strerror (mret));
-
+                    "Session %p : Failed to add PUT handle to multihandle: `%s'\n",
+                    s, curl_multi_strerror (mret));
     curl_easy_cleanup (s->client_put);
     s->client_put = NULL;
     return GNUNET_SYSERR;
