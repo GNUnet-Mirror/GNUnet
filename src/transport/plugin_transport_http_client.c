@@ -153,11 +153,22 @@ struct Session
    */
   void *client_put;
 
+
+  /**
+   * Is the client PUT handle currently paused
+   */
   int put_paused;
 
+  /**
+   * Is the client PUT handle disconnect in progress?
+   */
   int put_tmp_disconnecting;
 
+  /**
+   * Is the client PUT handle temporarily disconnected?
+   */
   int put_tmp_disconnected;
+
   /**
    * Client receive handle
    */
@@ -1137,13 +1148,13 @@ client_connect_put (struct Session *s)
   /* create put connection */
   if (NULL == s->client_put)
   {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
                        "Session %p : Init PUT handle \n", s);
     s->client_put = curl_easy_init ();
   }
   else
   {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
                        "Session %p : Reusing PUT handle %p \n", s, s->client_put);
   }
 #if VERBOSE_CURL
