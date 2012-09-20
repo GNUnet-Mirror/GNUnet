@@ -930,7 +930,7 @@ server_parse_url (struct HTTP_Server_Plugin *plugin, const char * url, struct GN
   if (NULL == target_start)
   {
       /* no leading '/' */
-      target_start = url;
+      target_start = (char *) url;
   }
   target_start++;
   hash_length = separator - target_start;
