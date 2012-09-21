@@ -512,8 +512,9 @@ struct MeshTunnelChildInfo
   uint32_t bck_ack;
 
     /**
-     * Circular buffer pointing to MeshPeerQueue elements.
-     * Size determined by the tunnel queue size.
+     * Circular buffer pointing to MeshPeerQueue elements for all
+     * payload traffic going to this child.
+     * Size determined by the tunnel queue size (@c t->fwd_queue_max).
      */
   struct MeshPeerQueue **send_buffer;
 
@@ -2380,17 +2381,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     return;
   }
   info->peer = neighbor;
-  if (GNUNET_MESSAGE_TYPE_MESH_PATH_ACK == type)
-  {
-    /*
-     * TODO: in this case we only need the service to retransmit
-     * the message down the path. If we pass the real type to queue_add,
-     * queue_send will try to build the message from scratch. This can
-     * probably be done by some other way instead of deleteing the type
-     * info.
-     */
-    type = 0;
-  }
+  GNUNET_assert (GNUNET_MESSAGE_TYPE_MESH_PATH_ACK != type);
   queue_add (info,
              type,
              size,
@@ -2491,6 +2482,33 @@ send_destroy_path (struct MeshTunnel *t, GNUNET_PEER_Id destination)
     send_prebuilt_message (&msg->header, tree_get_first_hop (t->tree, destination), t);
   }
   path_destroy (p);
+}
+
+
+/**
+ * Sends a PATH ACK message in reponse to a received PATH_CREATE directed to us.
+ *
+ * @param t Tunnel which to confirm.
+ */
+static void
+send_path_ack (struct MeshTunnel *t) 
+{
+  struct MeshTransmissionDescriptor *info;
+  struct GNUNET_PeerIdentity id;
+  GNUNET_PEER_Id peer;
+
+  peer = tree_get_predecessor (t->tree);
+  GNUNET_PEER_resolve (peer, &id);
+  info = GNUNET_malloc (sizeof (struct MeshTransmissionDescriptor));
+  info->origin = &t->id;
+  info->peer = GNUNET_CONTAINER_multihashmap_get (peers, &id.hashPubKey);
+  GNUNET_assert (NULL != info->peer);
+
+  queue_add (info,
+             GNUNET_MESSAGE_TYPE_MESH_PATH_ACK,
+             sizeof (struct GNUNET_MESH_PathACK),
+             info->peer,
+             t);
 }
 
 
@@ -3101,7 +3119,10 @@ tunnel_delete_client (struct MeshTunnel *t, const struct MeshClient *c)
 
 
 /**
- * Iterator to free MeshTunnelChildInfo of tunnel children.
+ * @brief Iterator to destroy MeshTunnelChildInfo of tunnel children.
+ * 
+ * Destroys queue elements of all waiting transmissions and frees all memory
+ * used by the struct and its elements.
  *
  * @param cls Closure (tunnel info).
  * @param key Hash of GNUNET_PEER_Id (unused).
@@ -3123,7 +3144,7 @@ tunnel_destroy_child (void *cls,
   {
     i = (cinfo->send_buffer_start + c) % t->fwd_queue_max;
     if (NULL != cinfo->send_buffer[i])
-      queue_destroy(cinfo->send_buffer[i], GNUNET_YES);
+      queue_destroy (cinfo->send_buffer[i], GNUNET_YES);
     else
       GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u %u\n", c, cinfo->send_buffer_n);
@@ -4141,6 +4162,7 @@ tunnel_destroy (struct MeshTunnel *t)
   GNUNET_CRYPTO_hash (&t->id, sizeof (struct MESH_TunnelID), &hash);
   if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (tunnels, &hash, t))
   {
+    GNUNET_break (0);
     r = GNUNET_SYSERR;
   }
 
@@ -4149,6 +4171,7 @@ tunnel_destroy (struct MeshTunnel *t)
       GNUNET_YES !=
       GNUNET_CONTAINER_multihashmap_remove (c->own_tunnels, &hash, t))
   {
+    GNUNET_break (0);
     r = GNUNET_SYSERR;
   }
   GNUNET_CRYPTO_hash (&t->local_tid_dest, sizeof (MESH_TunnelNumber), &hash);
@@ -4158,6 +4181,7 @@ tunnel_destroy (struct MeshTunnel *t)
     if (GNUNET_YES !=
           GNUNET_CONTAINER_multihashmap_remove (c->incoming_tunnels, &hash, t))
     {
+      GNUNET_break (0);
       r = GNUNET_SYSERR;
     }
   }
@@ -4167,6 +4191,7 @@ tunnel_destroy (struct MeshTunnel *t)
     if (GNUNET_YES !=
           GNUNET_CONTAINER_multihashmap_remove (c->ignore_tunnels, &hash, t))
     {
+      GNUNET_break (0);
       r = GNUNET_SYSERR;
     }
   }
@@ -4175,6 +4200,7 @@ tunnel_destroy (struct MeshTunnel *t)
     if (GNUNET_YES !=
         GNUNET_CONTAINER_multihashmap_remove (incoming_tunnels, &hash, t))
     {
+      GNUNET_break (0);
       r = GNUNET_SYSERR;
     }
     GNUNET_free (t->clients);
@@ -4677,7 +4703,7 @@ queue_send (void *cls, size_t size, void *buf)
     size_t data_size;
 
     peer->core_transmit = NULL;
-    
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "********* Queue send\n");
     queue = queue_get_next (peer);
 
@@ -4695,19 +4721,17 @@ queue_send (void *cls, size_t size, void *buf)
     /* Check if buffer size is enough for the message */
     if (queue->size > size)
     {
-
-
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "*********   not enough room, reissue\n");
         peer->core_transmit =
-            GNUNET_CORE_notify_transmit_ready(core_handle,
-                                              0,
-                                              0,
-                                              GNUNET_TIME_UNIT_FOREVER_REL,
-                                              &dst_id,
-                                              queue->size,
-                                              &queue_send,
-                                              peer);
+            GNUNET_CORE_notify_transmit_ready (core_handle,
+                                               0,
+                                               0,
+                                               GNUNET_TIME_UNIT_FOREVER_REL,
+                                               &dst_id,
+                                               queue->size,
+                                               &queue_send,
+                                               peer);
         return 0;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   size ok\n");
@@ -4924,14 +4948,14 @@ queue_add (void *cls, uint16_t type, size_t size,
   if (NULL == dst->core_transmit)
   {
       dst->core_transmit =
-          GNUNET_CORE_notify_transmit_ready(core_handle,
-                                            0,
-                                            0,
-                                            GNUNET_TIME_UNIT_FOREVER_REL,
-                                            &id,
-                                            size,
-                                            &queue_send,
-                                            dst);
+          GNUNET_CORE_notify_transmit_ready (core_handle,
+                                             0,
+                                             0,
+                                             GNUNET_TIME_UNIT_FOREVER_REL,
+                                             &id,
+                                             size,
+                                             &queue_send,
+                                             dst);
   }
   if (NULL == n) // Is this internal mesh traffic?
     return;
@@ -5114,13 +5138,11 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (own_pos == size - 1)
   {
     /* It is for us! Send ack. */
-    struct MeshTransmissionDescriptor *info;
-
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  It's for us!\n");
     peer_info_add_path_to_origin (orig_peer_info, path, GNUNET_NO);
     if (NULL == t->peers)
     {
-      /* New tunnel! Notify clients on data. */
+      /* New tunnel! Notify clients on first payload message. */
       t->peers = GNUNET_CONTAINER_multihashmap_create (4);
     }
     GNUNET_break (GNUNET_SYSERR !=
@@ -5129,16 +5151,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
                                                      peer_info_get
                                                      (&my_full_id),
                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE));
-    info = GNUNET_malloc (sizeof (struct MeshTransmissionDescriptor));
-    info->origin = &t->id;
-    info->peer = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
-    GNUNET_assert (NULL != info->peer);
-    // FIXME don't use queue_add directly, abstact in a send_message_* funcion
-    queue_add(info,
-              GNUNET_MESSAGE_TYPE_MESH_PATH_ACK,
-              sizeof (struct GNUNET_MESH_PathACK),
-              info->peer,
-              t);
+    send_path_ack (t);
   }
   else
   {
