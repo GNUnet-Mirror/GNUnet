@@ -4167,14 +4167,17 @@ tunnel_destroy (struct MeshTunnel *t)
     r = GNUNET_SYSERR;
   }
 
-  GNUNET_CRYPTO_hash (&t->local_tid, sizeof (MESH_TunnelNumber), &hash);
-  if (NULL != c &&
-      GNUNET_YES !=
-      GNUNET_CONTAINER_multihashmap_remove (c->own_tunnels, &hash, t))
+  if (NULL != c)
   {
-    GNUNET_break (0);
-    r = GNUNET_SYSERR;
+    GNUNET_CRYPTO_hash (&t->local_tid, sizeof (MESH_TunnelNumber), &hash);
+    if (GNUNET_YES !=
+        GNUNET_CONTAINER_multihashmap_remove (c->own_tunnels, &hash, t))
+    {
+      GNUNET_break (0);
+      r = GNUNET_SYSERR;
+    }
   }
+
   GNUNET_CRYPTO_hash (&t->local_tid_dest, sizeof (MESH_TunnelNumber), &hash);
   for (i = 0; i < t->nclients; i++)
   {
@@ -4196,6 +4199,7 @@ tunnel_destroy (struct MeshTunnel *t)
       r = GNUNET_SYSERR;
     }
   }
+
   if (t->nclients > 0)
   {
     if (GNUNET_YES !=
@@ -4206,6 +4210,7 @@ tunnel_destroy (struct MeshTunnel *t)
     }
     GNUNET_free (t->clients);
   }
+
   if (NULL != t->peers)
   {
     GNUNET_CONTAINER_multihashmap_iterate (t->peers, &peer_info_delete_tunnel,
