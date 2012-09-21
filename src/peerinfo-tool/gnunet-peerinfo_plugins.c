@@ -167,8 +167,18 @@ GPI_plugins_find (const char *name)
 {
   struct TransportPlugin *head = plugins_head;
 
-  while ((head != NULL) && (0 != strcmp (name, head->short_name)))
+  char *stripped = GNUNET_strdup (name);
+  char *sep = strchr (stripped, '_');
+  if (NULL != sep)
+    sep[0] = '\0';
+
+  while (head != NULL)
+  {
+    if (head->short_name == strstr (head->short_name, stripped))
+        break;
     head = head->next;
+  }
+  GNUNET_free (stripped);
   if (NULL == head)
     return NULL;
   return head->api;
