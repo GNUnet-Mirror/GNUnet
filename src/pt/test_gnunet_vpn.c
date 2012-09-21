@@ -87,7 +87,7 @@ copy_buffer (void *ptr, size_t size, size_t nmemb, void *ctx)
 {
   struct CBC *cbc = ctx;
 
-  if (cbc->pos + size * nmemb > sizeof(cbc->buf))
+  if (cbc->pos + size * nmemb > sizeof (cbc->buf))
     return 0;                   /* overflow */
   memcpy (&cbc->buf[cbc->pos], ptr, size * nmemb);
   cbc->pos += size * nmemb;
@@ -96,13 +96,9 @@ copy_buffer (void *ptr, size_t size, size_t nmemb, void *ctx)
 
 
 static int
-mhd_ahc (void *cls,
-          struct MHD_Connection *connection,
-          const char *url,
-          const char *method,
-          const char *version,
-          const char *upload_data, size_t *upload_data_size,
-          void **unused)
+mhd_ahc (void *cls, struct MHD_Connection *connection, const char *url,
+         const char *method, const char *version, const char *upload_data,
+         size_t * upload_data_size, void **unused)
 {
   static int ptr;
   struct MHD_Response *response;
@@ -116,10 +112,11 @@ mhd_ahc (void *cls,
     return MHD_YES;
   }
   *unused = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MHD sends respose for request to URL `%s'\n", url);
-  response = MHD_create_response_from_buffer (strlen (url),
-					      (void *) url,
-					      MHD_RESPMEM_MUST_COPY);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MHD sends respose for request to URL `%s'\n", url);
+  response =
+      MHD_create_response_from_buffer (strlen (url), (void *) url,
+                                       MHD_RESPMEM_MUST_COPY);
   ret = MHD_queue_response (connection, MHD_HTTP_OK, response);
   MHD_destroy_response (response);
   if (ret == MHD_NO)
@@ -174,8 +171,7 @@ curl_main (void);
 
 
 static void
-curl_task (void *cls,
-	  const struct GNUNET_SCHEDULER_TaskContext *tc)
+curl_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   curl_task_id = GNUNET_SCHEDULER_NO_TASK;
   curl_main ();
@@ -208,12 +204,9 @@ curl_main ()
     {
       if (msg->data.result != CURLE_OK)
       {
-	fprintf (stderr,
-		 "%s failed at %s:%d: `%s'\n",
-		 "curl_multi_perform",
-		__FILE__,
-		__LINE__, curl_easy_strerror (msg->data.result));
-	global_ret = 1;
+        fprintf (stderr, "%s failed at %s:%d: `%s'\n", "curl_multi_perform",
+                 __FILE__, __LINE__, curl_easy_strerror (msg->data.result));
+        global_ret = 1;
       }
     }
     curl_multi_remove_handle (multi, curl);
@@ -229,30 +222,26 @@ curl_main ()
     if (0 != strncmp ("/hello_world", cbc.buf, strlen ("/hello_world")))
     {
       GNUNET_break (0);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "You might want to check if your host-based firewall is blocking the connections.\n");
       global_ret = 3;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Download complete, shutting down!\n");
     do_shutdown ();
-    return;    
+    return;
   }
-  GNUNET_assert (CURLM_OK == curl_multi_fdset (multi, &rs, &ws, &es, &max)); 
-  if ( (CURLM_OK != curl_multi_timeout (multi, &timeout)) ||
-       (-1 == timeout) )
+  GNUNET_assert (CURLM_OK == curl_multi_fdset (multi, &rs, &ws, &es, &max));
+  if ((CURLM_OK != curl_multi_timeout (multi, &timeout)) || (-1 == timeout))
     delay = GNUNET_TIME_UNIT_SECONDS;
   else
-    delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, (unsigned int) timeout);
-  GNUNET_NETWORK_fdset_copy_native (&nrs,
-				    &rs,
-				    max + 1);
-  GNUNET_NETWORK_fdset_copy_native (&nws,
-				    &ws,
-				    max + 1);
-  curl_task_id = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-					      delay,
-					      &nrs,
-					      &nws,
-					      &curl_task,
-					      NULL);  
+    delay =
+        GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+                                       (unsigned int) timeout);
+  GNUNET_NETWORK_fdset_copy_native (&nrs, &rs, max + 1);
+  GNUNET_NETWORK_fdset_copy_native (&nws, &ws, max + 1);
+  curl_task_id =
+      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT, delay,
+                                   &nrs, &nws, &curl_task, NULL);
 }
 
 
@@ -266,28 +255,24 @@ curl_main ()
  *                will match 'result_af' from the request
  * @param address IP address (struct in_addr or struct in_addr6, depending on 'af')
  *                that the VPN allocated for the redirection;
- *                traffic to this IP will now be redirected to the 
+ *                traffic to this IP will now be redirected to the
  *                specified target peer; NULL on error
  */
 static void
-allocation_cb (void *cls,
-	       int af,
-	       const void *address)
+allocation_cb (void *cls, int af, const void *address)
 {
   char ips[INET6_ADDRSTRLEN];
 
   rr = NULL;
   if (src_af != af)
   {
-    fprintf (stderr, 
-	     "VPN failed to allocate appropriate address\n");
+    fprintf (stderr, "VPN failed to allocate appropriate address\n");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_asprintf (&url, 
-		   "http://%s:%u/hello_world",	
-		   inet_ntop (af, address, ips, sizeof (ips)),
-		   (unsigned int) PORT);
+  GNUNET_asprintf (&url, "http://%s:%u/hello_world",
+                   inet_ntop (af, address, ips, sizeof (ips)),
+                   (unsigned int) PORT);
   curl = curl_easy_init ();
   curl_easy_setopt (curl, CURLOPT_URL, url);
   curl_easy_setopt (curl, CURLOPT_WRITEFUNCTION, &copy_buffer);
@@ -300,7 +285,8 @@ allocation_cb (void *cls,
   multi = curl_multi_init ();
   GNUNET_assert (multi != NULL);
   GNUNET_assert (CURLM_OK == curl_multi_add_handle (multi, curl));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Beginning HTTP download from `%s'\n", url);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Beginning HTTP download from `%s'\n",
+              url);
   curl_main ();
 }
 
@@ -308,13 +294,12 @@ allocation_cb (void *cls,
 /**
  * Function to keep the HTTP server running.
  */
-static void 
+static void
 mhd_main (void);
 
 
 static void
-mhd_task (void *cls,
-	  const struct GNUNET_SCHEDULER_TaskContext *tc)
+mhd_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   mhd_task_id = GNUNET_SCHEDULER_NO_TASK;
   MHD_run (mhd);
@@ -323,8 +308,7 @@ mhd_task (void *cls,
 
 
 static void
-ctrl_c_shutdown (void *cls,
-		 const struct GNUNET_SCHEDULER_TaskContext *tc)
+ctrl_c_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   ctrl_c_task_id = GNUNET_SCHEDULER_NO_TASK;
   do_shutdown ();
@@ -333,7 +317,7 @@ ctrl_c_shutdown (void *cls,
 }
 
 
-static void 
+static void
 mhd_main ()
 {
   struct GNUNET_NETWORK_FDSet nrs;
@@ -350,31 +334,23 @@ mhd_main ()
   FD_ZERO (&ws);
   FD_ZERO (&es);
   max_fd = -1;
-  GNUNET_assert (MHD_YES ==
-		 MHD_get_fdset (mhd, &rs, &ws, &es, &max_fd));
+  GNUNET_assert (MHD_YES == MHD_get_fdset (mhd, &rs, &ws, &es, &max_fd));
   if (MHD_YES == MHD_get_timeout (mhd, &timeout))
-    delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-					   (unsigned int) timeout);
+    delay =
+        GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+                                       (unsigned int) timeout);
   else
     delay = GNUNET_TIME_UNIT_FOREVER_REL;
-  GNUNET_NETWORK_fdset_copy_native (&nrs,
-				    &rs,
-				    max_fd + 1);
-  GNUNET_NETWORK_fdset_copy_native (&nws,
-				    &ws,
-				    max_fd + 1);
-  mhd_task_id = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-					     delay,
-					     &nrs,
-					     &nws,
-					     &mhd_task,
-					     NULL);  
+  GNUNET_NETWORK_fdset_copy_native (&nrs, &rs, max_fd + 1);
+  GNUNET_NETWORK_fdset_copy_native (&nws, &ws, max_fd + 1);
+  mhd_task_id =
+      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT, delay,
+                                   &nrs, &nws, &mhd_task, NULL);
 }
 
 
 static void
-run (void *cls,
-     const struct GNUNET_CONFIGURATION_Handle *cfg,
+run (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
   struct in_addr v4;
@@ -383,15 +359,13 @@ run (void *cls,
   enum MHD_FLAG flags;
 
   vpn = GNUNET_VPN_connect (cfg);
-  GNUNET_assert (NULL != vpn); 
+  GNUNET_assert (NULL != vpn);
   flags = MHD_USE_DEBUG;
   if (AF_INET6 == dest_af)
     flags |= MHD_USE_IPv6;
-  mhd = MHD_start_daemon (flags,
-			  PORT,
-			  NULL, NULL,
-			  &mhd_ahc, NULL,
-			  MHD_OPTION_END);
+  mhd =
+      MHD_start_daemon (flags, PORT, NULL, NULL, &mhd_ahc, NULL,
+                        MHD_OPTION_END);
   GNUNET_assert (NULL != mhd);
   mhd_main ();
   addr = NULL;
@@ -408,22 +382,17 @@ run (void *cls,
   default:
     GNUNET_assert (0);
   }
-  rr = GNUNET_VPN_redirect_to_ip (vpn,
-				  src_af,
-				  dest_af,
-				  addr,
-				  GNUNET_YES,
-				  GNUNET_TIME_UNIT_FOREVER_ABS,
-				  &allocation_cb, NULL);
-  ctrl_c_task_id = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-						 &ctrl_c_shutdown,
-						 NULL);
+  rr = GNUNET_VPN_redirect_to_ip (vpn, src_af, dest_af, addr, GNUNET_YES,
+                                  GNUNET_TIME_UNIT_FOREVER_ABS, &allocation_cb,
+                                  NULL);
+  ctrl_c_task_id =
+      GNUNET_SCHEDULER_add_delayed (TIMEOUT, &ctrl_c_shutdown, NULL);
 }
 
 
 /**
  * Test if the given AF is supported by this system.
- * 
+ *
  * @param af to test
  * @return GNUNET_OK if the AF is supported
  */
@@ -450,25 +419,21 @@ main (int argc, char *const *argv)
 {
   const char *type;
   const char *bin;
-  
+
   if (0 != ACCESS ("/dev/net/tun", R_OK))
   {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-			      "access",
-			      "/dev/net/tun");
-    fprintf (stderr,
-	     "WARNING: System unable to run test, skipping.\n");
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "access",
+                              "/dev/net/tun");
+    fprintf (stderr, "WARNING: System unable to run test, skipping.\n");
     return 0;
   }
-  if ( (GNUNET_YES !=
-	GNUNET_OS_check_helper_binary ("gnunet-helper-vpn")) ||
-       (GNUNET_YES !=
-	GNUNET_OS_check_helper_binary ("gnunet-helper-exit")) )
+  if ((GNUNET_YES != GNUNET_OS_check_helper_binary ("gnunet-helper-vpn")) ||
+      (GNUNET_YES != GNUNET_OS_check_helper_binary ("gnunet-helper-exit")))
   {
     fprintf (stderr,
-	     "WARNING: gnunet-helper-{exit,vpn} binaries in $PATH are not SUID, refusing to run test (as it would have to fail).\n");
+             "WARNING: gnunet-helper-{exit,vpn} binaries in $PATH are not SUID, refusing to run test (as it would have to fail).\n");
     fprintf (stderr,
-	     "Change $PATH ('.' in $PATH before $GNUNET_PREFIX/bin is problematic) or permissions (run 'make install' as root) to fix this!\n");
+             "Change $PATH ('.' in $PATH before $GNUNET_PREFIX/bin is problematic) or permissions (run 'make install' as root) to fix this!\n");
     return 0;
   }
   GNUNET_CRYPTO_setup_hostkey ("test_gnunet_vpn.conf");
@@ -487,19 +452,19 @@ main (int argc, char *const *argv)
     dest_ip = "FC5A:04E1:C2BA::1";
     dest_af = AF_INET6;
     src_af = AF_INET;
-  } 
+  }
   else if (0 == strcmp (type, "6_to_4"))
   {
     dest_ip = "169.254.86.1";
     dest_af = AF_INET;
     src_af = AF_INET6;
-  } 
+  }
   else if (0 == strcmp (type, "4_over"))
   {
     dest_ip = "169.254.86.1";
     dest_af = AF_INET;
     src_af = AF_INET;
-  } 
+  }
   else if (0 == strcmp (type, "6_over"))
   {
     dest_ip = "FC5A:04E1:C2BA::1";
@@ -511,11 +476,10 @@ main (int argc, char *const *argv)
     fprintf (stderr, "invalid binary suffix `%s'\n", type);
     return 1;
   }
-  if ( (GNUNET_OK != test_af (src_af)) ||
-       (GNUNET_OK != test_af (dest_af)) )
+  if ((GNUNET_OK != test_af (src_af)) || (GNUNET_OK != test_af (dest_af)))
   {
-    fprintf (stderr, 
-	     "Required address families not supported by this system, skipping test.\n");
+    fprintf (stderr,
+             "Required address families not supported by this system, skipping test.\n");
     return 0;
   }
   if (0 != curl_global_init (CURL_GLOBAL_WIN32))
@@ -523,13 +487,12 @@ main (int argc, char *const *argv)
     fprintf (stderr, "failed to initialize curl\n");
     return 2;
   }
-  if (0 != GNUNET_TESTING_peer_run ("test-gnunet-vpn",
-				    "test_gnunet_vpn.conf",
-				    &run, NULL))
+  if (0 !=
+      GNUNET_TESTING_peer_run ("test-gnunet-vpn", "test_gnunet_vpn.conf", &run,
+                               NULL))
     return 1;
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-vpn");
   return global_ret;
 }
 
 /* end of test_gnunet_vpn.c */
-
