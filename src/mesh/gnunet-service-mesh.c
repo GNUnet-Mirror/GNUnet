@@ -4573,19 +4573,21 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
   {
     switch (queue->type)
     {
-    case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
-    case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
-    case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
+      case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "   cancelling TUNNEL_DESTROY\n");
+      case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
+      case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
+      case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   type payload\n");
         dd = queue->cls;
         data_descriptor_decrement_rc (dd->mesh_data);
         break;
-    case GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE:
+      case GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   type create path\n");
         path_info = queue->cls;
         path_destroy (path_info->path);
         break;
-    default:
+      default:
         GNUNET_break (0);
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                     "   type %s unknown!\n",
