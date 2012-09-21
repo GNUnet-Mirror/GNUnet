@@ -4825,7 +4825,7 @@ queue_send (void *cls, size_t size, void *buf)
         if (cinfo->send_buffer[cinfo->send_buffer_start] != queue)
         {
           GNUNET_break (0);
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                       "at pos %u (%p) != %p\n",
                       cinfo->send_buffer_start,
                       cinfo->send_buffer[cinfo->send_buffer_start],
