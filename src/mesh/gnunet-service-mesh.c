@@ -4335,15 +4335,12 @@ tunnel_delete_peer (struct MeshTunnel *t, GNUNET_PEER_Id peer)
  * @param cls closure (client that is disconnecting)
  * @param key the hash of the local tunnel id (used to access the hashmap)
  * @param value the value stored at the key (tunnel to destroy)
- *
- * @return GNUNET_OK on success
  */
-static int
+static void
 tunnel_destroy_iterator (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct MeshTunnel *t = value;
   struct MeshClient *c = cls;
-  int r;
 
   send_client_tunnel_disconnect(t, c);
   if (c != t->owner)
@@ -4355,8 +4352,8 @@ tunnel_destroy_iterator (void *cls, const struct GNUNET_HashCode * key, void *va
     return GNUNET_OK;
   }
   tunnel_send_destroy(t);
-  r = tunnel_destroy (t);
-  return r;
+  t->owner = NULL;
+  t->destroy = GNUNET_YES;
 }
 
 
@@ -4831,7 +4828,8 @@ queue_send (void *cls, size_t size, void *buf)
                       cinfo->send_buffer[cinfo->send_buffer_start],
                       queue);
         }
-        if (cinfo->send_buffer_n > 0) {
+        if (cinfo->send_buffer_n > 0)
+        {
           cinfo->send_buffer[cinfo->send_buffer_start] = NULL;
           cinfo->send_buffer_n--;
           cinfo->send_buffer_start++;
@@ -4967,13 +4965,15 @@ queue_add (void *cls, uint16_t type, size_t size,
   if (NULL != cinfo->send_buffer[i])
   {
     GNUNET_break (cinfo->send_buffer_n == t->fwd_queue_max); // aka i == start
-    queue_destroy(cinfo->send_buffer[cinfo->send_buffer_start], GNUNET_YES);
+    queue_destroy (cinfo->send_buffer[cinfo->send_buffer_start], GNUNET_YES);
     cinfo->send_buffer_start++;
     cinfo->send_buffer_start %= t->fwd_queue_max;
-    cinfo->send_buffer_n--;
+  }
+  else
+  {
+    cinfo->send_buffer_n++;
   }
   cinfo->send_buffer[i] = queue;
-  cinfo->send_buffer_n++;
   if (cinfo->send_buffer_n > t->fwd_queue_max)
   {
     GNUNET_break (0);
