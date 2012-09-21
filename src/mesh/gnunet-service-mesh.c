@@ -4679,14 +4679,14 @@ queue_send (void *cls, size_t size, void *buf)
     peer->core_transmit = NULL;
     
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "********* Queue send\n");
-    queue = queue_get_next(peer);
+    queue = queue_get_next (peer);
 
-    /* Queue has no internal mesh traffic not sendable payload */
+    /* Queue has no internal mesh traffic nor sendable payload */
     if (NULL == queue)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   not ready, return\n");
       if (NULL == peer->queue_head)
-        GNUNET_break(0); // Should've been canceled
+        GNUNET_break (0); // Should've been canceled
       return 0;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   not empty\n");
@@ -4747,7 +4747,7 @@ queue_send (void *cls, size_t size, void *buf)
             tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST);
             break;
           case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
-            tunnel_send_bck_ack(t, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
+            tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
             break;
           default:
               break;
@@ -4774,15 +4774,15 @@ queue_send (void *cls, size_t size, void *buf)
         break;
       case GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   path create\n");
-        data_size = send_core_path_create(queue->cls, size, buf);
+        data_size = send_core_path_create (queue->cls, size, buf);
         break;
       case GNUNET_MESSAGE_TYPE_MESH_PATH_ACK:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   path ack\n");
-        data_size = send_core_path_ack(queue->cls, size, buf);
+        data_size = send_core_path_ack (queue->cls, size, buf);
         break;
       case GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   path keepalive\n");
-        data_size = send_core_data_multicast(queue->cls, size, buf);
+        data_size = send_core_data_multicast (queue->cls, size, buf);
         break;
       default:
         GNUNET_break (0);
@@ -4796,21 +4796,26 @@ queue_send (void *cls, size_t size, void *buf)
       case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
       case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
       case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
-        cinfo = tunnel_get_neighbor_fc(t, &dst_id);
+        cinfo = tunnel_get_neighbor_fc (t, &dst_id);
         if (cinfo->send_buffer[cinfo->send_buffer_start] != queue)
         {
-          GNUNET_break(0);
+          GNUNET_break (0);
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                       "at pos %u (%p) != %p\n",
                       cinfo->send_buffer_start,
                       cinfo->send_buffer[cinfo->send_buffer_start],
                       queue);
         }
-        GNUNET_break(cinfo->send_buffer_n > 0);
-        cinfo->send_buffer[cinfo->send_buffer_start] = NULL;
-        cinfo->send_buffer_n--;
-        cinfo->send_buffer_start++;
-        cinfo->send_buffer_start %= t->fwd_queue_max;
+        if (cinfo->send_buffer_n > 0) {
+          cinfo->send_buffer[cinfo->send_buffer_start] = NULL;
+          cinfo->send_buffer_n--;
+          cinfo->send_buffer_start++;
+          cinfo->send_buffer_start %= t->fwd_queue_max;
+        }
+        else
+        {
+          GNUNET_break (0);
+        }
         break;
       default:
         break;
