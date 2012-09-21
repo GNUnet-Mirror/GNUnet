@@ -222,10 +222,6 @@ GST_plugins_printer_find (const char *name)
         break;
     head = head->next;
   }
-  if (NULL != head)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Found `%s' in '%s'\n",
-              stripped, head->short_name);
   GNUNET_free (stripped);
   if (NULL == head)
     return NULL;
