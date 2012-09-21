@@ -769,7 +769,7 @@ clients_handle_address_to_string (void *cls,
   rtimeout = GNUNET_TIME_relative_ntoh (alum->timeout);
   numeric = ntohs (alum->numeric_only);
   tc = GNUNET_SERVER_transmit_context_create (client);
-  papi = GST_plugins_find (plugin_name);
+  papi = GST_plugins_printer_find (plugin_name);
   if (NULL == papi)
   {
     GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,

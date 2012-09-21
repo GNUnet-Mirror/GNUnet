@@ -197,6 +197,43 @@ GST_plugins_find (const char *name)
 
 
 /**
+ * Obtain the plugin API based on a the stripped plugin name after the underscore.
+ *
+ * Example: GST_plugins_printer_find (http_client) will return all plugins
+ * starting with the prefix "http":
+ * http_client or server if loaded
+ *
+ * @param name name of the plugin
+ * @return the plugin's API, NULL if the plugin is not loaded
+ */
+struct GNUNET_TRANSPORT_PluginFunctions *
+GST_plugins_printer_find (const char *name)
+{
+  struct TransportPlugin *head = plugins_head;
+
+  char *stripped = GNUNET_strdup (name);
+  char *sep = strchr (stripped, '_');
+  if (NULL != sep)
+    sep[0] = '\0';
+
+  while (head != NULL)
+  {
+    if (head->short_name == strstr (head->short_name, stripped))
+        break;
+    head = head->next;
+  }
+  if (NULL != head)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Found `%s' in '%s'\n",
+              stripped, head->short_name);
+  GNUNET_free (stripped);
+  if (NULL == head)
+    return NULL;
+  return head->api;
+}
+
+
+/**
  * Convert a given address to a human-readable format.  Note that the
  * return value will be overwritten on the next call to this function.
  *
@@ -211,7 +248,7 @@ GST_plugins_a2s (const struct GNUNET_HELLO_Address *address)
 
   if (address == NULL)
     return "<inbound>";
-  api = GST_plugins_find (address->transport_name);
+  api = GST_plugins_printer_find (address->transport_name);
   if (NULL == api)
     return "<plugin unknown>";
   if (0 == address->address_length)

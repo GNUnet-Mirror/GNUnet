@@ -66,6 +66,19 @@ GST_plugins_unload (void);
 struct GNUNET_TRANSPORT_PluginFunctions *
 GST_plugins_find (const char *name);
 
+/**
+ * Obtain the plugin API based on a the stripped plugin name after the underscore.
+ *
+ * Example: GST_plugins_printer_find (http_client) will return all plugins
+ * starting with the prefix "http":
+ * http_client or server if loaded
+ *
+ * @param name name of the plugin
+ * @return the plugin's API, NULL if the plugin is not loaded
+ */
+struct GNUNET_TRANSPORT_PluginFunctions *
+GST_plugins_printer_find (const char *name);
+
 
 /**
  * Convert a given address to a human-readable format.  Note that the
