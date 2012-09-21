@@ -2381,7 +2381,8 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     return;
   }
   info->peer = neighbor;
-  GNUNET_assert (GNUNET_MESSAGE_TYPE_MESH_PATH_ACK != type);
+  if (GNUNET_MESSAGE_TYPE_MESH_PATH_ACK == type)
+    type = 0;
   queue_add (info,
              type,
              size,
@@ -8100,7 +8101,6 @@ main (int argc, char *const *argv)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Mesh for peer [%s] FWD ACKs %u, BCK ACKs %u\n",
               GNUNET_i2s(&my_full_id), debug_fwd_ack, debug_bck_ack);
-  
 
   return ret;
 }
