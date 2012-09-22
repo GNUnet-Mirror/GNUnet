@@ -482,6 +482,14 @@ struct GNUNET_STREAM_IOWriteHandle
    * Number of bytes in this write handle
    */
   size_t size;
+
+  /**
+   * Number of packets already transmitted from this IO handle. Retransmitted
+   * packets are not taken into account here. This is used to determine which
+   * packets account for retransmission and which packets occupy buffer space at
+   * the receiver.
+   */
+  unsigned int packets_sent;
 };
 
 
@@ -857,36 +865,23 @@ static void
 write_data (struct GNUNET_STREAM_Socket *socket)
 {
   struct GNUNET_STREAM_IOWriteHandle *io_handle = socket->write_handle;
-  int packet;                   /* Although an int, should never be negative */
-  int ack_packet;
-
-  ack_packet = -1;
-  /* Find the last acknowledged packet */
-  for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
-  {      
-    if (GNUNET_YES == ackbitmap_is_bit_set (&io_handle->ack_bitmap,
-                                            packet))
-      ack_packet = packet;        
-    else if (NULL == io_handle->messages[packet])
-      break;
-  }
-  /* Resend packets which weren't ack'ed */
-  for (packet=0; packet < ack_packet; packet++)
+  unsigned int packet;
+  
+  for (packet=0; packet < io_handle->packets_sent; packet++)
   {
     if (GNUNET_NO == ackbitmap_is_bit_set (&io_handle->ack_bitmap,
-                                           packet))
+					   packet))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "%s: Placing DATA message with sequence %u in send queue\n",
-           GNUNET_i2s (&socket->other_peer),
-           ntohl (io_handle->messages[packet]->sequence_number));
+	   "%s: Retransmitting DATA message with sequence %u\n",
+	   GNUNET_i2s (&socket->other_peer),
+	   ntohl (io_handle->messages[packet]->sequence_number));
       copy_and_queue_message (socket,
-                              &io_handle->messages[packet]->header,
-                              NULL,
-                              NULL);
+			      &io_handle->messages[packet]->header,
+			      NULL,
+			      NULL);
     }
   }
-  packet = ack_packet + 1;
   /* Now send new packets if there is enough buffer space */
   while ( (NULL != io_handle->messages[packet]) &&
 	  (socket->receiver_window_available 
@@ -905,6 +900,7 @@ write_data (struct GNUNET_STREAM_Socket *socket)
                             NULL);
     packet++;
   }
+  io_handle->packets_sent = packet;
   if (GNUNET_SCHEDULER_NO_TASK == socket->data_retransmission_task_id)
     socket->data_retransmission_task_id = 
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply 
@@ -3339,6 +3335,7 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
   io_handle->write_cont = write_cont;
   io_handle->write_cont_cls = write_cont_cls;
   io_handle->size = size;
+  io_handle->packets_sent = 0;
   sweep = data;
   /* FIXME: Remove the fixed delay for ack deadline; Set it to the value
      determined from RTT */
