@@ -4340,8 +4340,10 @@ tunnel_delete_peer (struct MeshTunnel *t, GNUNET_PEER_Id peer)
  * @param cls closure (client that is disconnecting)
  * @param key the hash of the local tunnel id (used to access the hashmap)
  * @param value the value stored at the key (tunnel to destroy)
+ *
+ * @return GNUNET_OK, keep iterating.
  */
-static void
+static int
 tunnel_destroy_iterator (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct MeshTunnel *t = value;
@@ -4359,6 +4361,8 @@ tunnel_destroy_iterator (void *cls, const struct GNUNET_HashCode * key, void *va
   tunnel_send_destroy(t);
   t->owner = NULL;
   t->destroy = GNUNET_YES;
+
+  return GNUNET_OK;
 }
 
 
