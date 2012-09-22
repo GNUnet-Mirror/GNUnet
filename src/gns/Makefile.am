@@ -131,7 +131,7 @@ gnunet_service_gns_LDADD = \
 gnunet_service_gns_DEPENDENCIES = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/gns/libgnunetgns_common.la \
+  libgnunetgns_common.la \
 	$(top_builddir)/src/dns/libgnunetdns.la \
 	$(top_builddir)/src/dns/libgnunetdnsparser.la \
 	$(top_builddir)/src/dht/libgnunetdht.la \
@@ -189,7 +189,7 @@ libgnunet_plugin_block_gns_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_block_gns_la_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/gns/libgnunetgns_common.la \
+  libgnunetgns_common.la \
   $(top_builddir)/src/block/libgnunetblock.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
@@ -233,7 +233,7 @@ endif
 #test_gns_proxy_DEPENDENCIES = \
 #  $(top_builddir)/src/util/libgnunetutil.la \
 #  $(top_builddir)/src/namestore/libgnunetnamestore.la \
-#  $(top_builddir)/src/gns/libgnunetgns.la \
+#  libgnunetgns.la \
 #  $(top_builddir)/src/testing/libgnunettesting.la
 
 test_gns_dht_three_peers_SOURCES = \
@@ -247,7 +247,7 @@ test_gns_dht_three_peers_LDADD = \
 test_gns_dht_three_peers_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
-  $(top_builddir)/src/gns/libgnunetgns.la \
+  libgnunetgns.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la
 
@@ -261,7 +261,7 @@ test_gns_simple_lookup_LDADD = \
 test_gns_simple_lookup_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
-  $(top_builddir)/src/gns/libgnunetgns.la \
+  libgnunetgns.la \
   $(top_builddir)/src/testing/libgnunettesting.la
 
 test_gns_simple_delegated_lookup_SOURCES = \
@@ -274,7 +274,7 @@ test_gns_simple_delegated_lookup_LDADD = \
 test_gns_simple_delegated_lookup_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
-  $(top_builddir)/src/gns/libgnunetgns.la \
+  libgnunetgns.la \
   $(top_builddir)/src/testing/libgnunettesting.la
 
 test_gns_simple_mx_lookup_SOURCES = \
@@ -287,7 +287,7 @@ test_gns_simple_mx_lookup_LDADD = \
 test_gns_simple_mx_lookup_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
-  $(top_builddir)/src/gns/libgnunetgns.la \
+  libgnunetgns.la \
   $(top_builddir)/src/testing/libgnunettesting.la
 
 test_gns_simple_srv_lookup_SOURCES = \
@@ -300,7 +300,7 @@ test_gns_simple_srv_lookup_LDADD = \
 test_gns_simple_srv_lookup_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
-  $(top_builddir)/src/gns/libgnunetgns.la \
+  libgnunetgns.la \
   $(top_builddir)/src/testing/libgnunettesting.la
 
 test_gns_simple_zkey_lookup_SOURCES = \
@@ -313,7 +313,7 @@ test_gns_simple_zkey_lookup_LDADD = \
 test_gns_simple_zkey_lookup_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
-  $(top_builddir)/src/gns/libgnunetgns.la \
+  libgnunetgns.la \
   $(top_builddir)/src/testing/libgnunettesting.la
 
 test_gns_dht_delegated_lookup_SOURCES = \
@@ -328,7 +328,7 @@ test_gns_dht_delegated_lookup_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
-  $(top_builddir)/src/gns/libgnunetgns.la \
+  libgnunetgns.la \
   $(top_builddir)/src/testing/libgnunettesting.la
 
 test_gns_simple_shorten_SOURCES = \
@@ -341,7 +341,7 @@ test_gns_simple_shorten_LDADD = \
 test_gns_simple_shorten_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
-  $(top_builddir)/src/gns/libgnunetgns.la \
+  libgnunetgns.la \
   $(top_builddir)/src/testing/libgnunettesting.la
 
 test_gns_simple_get_authority_SOURCES = \
@@ -354,7 +354,7 @@ test_gns_simple_get_authority_LDADD = \
 test_gns_simple_get_authority_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
-  $(top_builddir)/src/gns/libgnunetgns.la \
+  libgnunetgns.la \
   $(top_builddir)/src/testing/libgnunettesting.la
 
 
@@ -370,7 +370,7 @@ test_gns_pseu_shorten_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
-  $(top_builddir)/src/gns/libgnunetgns.la \
+  libgnunetgns.la \
   $(top_builddir)/src/testing/libgnunettesting.la
 
 
@@ -384,7 +384,7 @@ test_gns_max_queries_LDADD = \
 test_gns_max_queries_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
-  $(top_builddir)/src/gns/libgnunetgns.la \
+  libgnunetgns.la \
   $(top_builddir)/src/testing/libgnunettesting.la
 
 test_gns_cname_lookup_SOURCES = \
@@ -397,7 +397,7 @@ test_gns_cname_lookup_LDADD = \
 test_gns_cname_lookup_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
-  $(top_builddir)/src/gns/libgnunetgns.la \
+  libgnunetgns.la \
   $(top_builddir)/src/testing/libgnunettesting.la
 
 
@@ -411,7 +411,7 @@ test_gns_ns_lookup_LDADD = \
 test_gns_ns_lookup_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
-  $(top_builddir)/src/gns/libgnunetgns.la \
+  libgnunetgns.la \
   $(top_builddir)/src/testing/libgnunettesting.la
 
 
@@ -425,7 +425,7 @@ test_gns_revocation_LDADD = \
 test_gns_revocation_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
-  $(top_builddir)/src/gns/libgnunetgns.la \
+  libgnunetgns.la \
   $(top_builddir)/src/testing/libgnunettesting.la
 
 
