@@ -120,7 +120,7 @@ struct GNUNET_REGEX_State
 
   /**
    * Marking the state as contained. This is used for checking, if the state is
-   * contained in a set in constant time
+   * contained in a set in constant time.
    */
   int contained;
 
@@ -179,6 +179,11 @@ struct GNUNET_REGEX_State
    * DLL of transitions.
    */
   struct GNUNET_REGEX_Transition *transitions_tail;
+
+  /**
+   * Number of incoming transitions. Used for compressing DFA paths.
+   */
+  unsigned int incoming_transition_count;
 
   /**
    * Set of states on which this state is based on. Used when creating a DFA out

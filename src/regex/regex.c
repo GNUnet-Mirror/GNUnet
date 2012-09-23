@@ -562,127 +562,6 @@ struct GNUNET_REGEX_Strided_Context
 
 
 /**
- * Recursive helper function to add strides to a DFA.
- *
- * @param cls context, contains stride length and strided transitions DLL.
- * @param depth current depth of the depth-first traversal of the graph.
- * @param label current label, string that contains all labels on the path from
- *        'start' to 's'.
- * @param start start state for the depth-first traversal of the graph.
- * @param s current state in the depth-first traversal
- */
-void
-add_multi_strides_to_dfa_helper (void *cls, const unsigned int depth,
-                                 char *label, struct GNUNET_REGEX_State *start,
-                                 struct GNUNET_REGEX_State *s)
-{
-  struct GNUNET_REGEX_Strided_Context *ctx = cls;
-  struct GNUNET_REGEX_Transition *t;
-  char *new_label;
-
-  if (depth == ctx->stride)
-  {
-    t = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Transition));
-    t->label = GNUNET_strdup (label);
-    t->to_state = s;
-    t->from_state = start;
-    GNUNET_CONTAINER_DLL_insert (ctx->transitions_head, ctx->transitions_tail,
-                                 t);
-  }
-  else
-  {
-    for (t = s->transitions_head; NULL != t; t = t->next)
-    {
-      /* Do not consider self-loops, because it end's up in too many
-       * transitions */
-      if (t->to_state == t->from_state)
-        continue;
-
-      if (NULL != label)
-      {
-        GNUNET_asprintf (&new_label, "%s%s", label, t->label);
-      }
-      else
-        new_label = GNUNET_strdup (t->label);
-
-      add_multi_strides_to_dfa_helper (cls, (depth + 1), new_label, start,
-                                       t->to_state);
-    }
-  }
-  GNUNET_free_non_null (label);
-}
-
-
-/**
- * Function called for each state in the DFA. Starts a traversal of depth set in
- * context starting from state 's'.
- *
- * @param cls context.
- * @param count not used.
- * @param s current state.
- */
-void
-add_multi_strides_to_dfa (void *cls, const unsigned int count,
-                          struct GNUNET_REGEX_State *s)
-{
-  add_multi_strides_to_dfa_helper (cls, 0, NULL, s, s);
-}
-
-
-/**
- * Adds multi-strided transitions to the given 'dfa'.
- *
- * @param regex_ctx regex context needed to add transitions to the automaton.
- * @param dfa DFA to which the multi strided transitions should be added.
- * @param stride_len length of the strides.
- */
-void
-GNUNET_REGEX_add_multi_strides_to_dfa (struct GNUNET_REGEX_Context *regex_ctx,
-                                       struct GNUNET_REGEX_Automaton *dfa,
-                                       const unsigned int stride_len)
-{
-  struct GNUNET_REGEX_Strided_Context ctx = { stride_len, NULL, NULL };
-  struct GNUNET_REGEX_State *s;
-  struct GNUNET_REGEX_State *s_next;
-  struct GNUNET_REGEX_Transition *t;
-  struct GNUNET_REGEX_Transition *t_next;
-
-  if (1 > stride_len || GNUNET_YES == dfa->is_multistrided)
-    return;
-
-  // Unmark all states
-  for (s = dfa->states_head; NULL != s; s = s->next)
-    s->marked = GNUNET_NO;
-
-  // Compute the new transitions of given stride_len
-  GNUNET_REGEX_automaton_traverse (dfa, dfa->start, NULL, NULL,
-                                   &add_multi_strides_to_dfa, &ctx);
-
-  // Add all the new transitions to the automaton.
-  for (t = ctx.transitions_head; NULL != t; t = t_next)
-  {
-    t_next = t->next;
-    state_add_transition (regex_ctx, t->from_state, t->label, t->to_state);
-    GNUNET_CONTAINER_DLL_remove (ctx.transitions_head, ctx.transitions_tail, t);
-    GNUNET_free_non_null (t->label);
-    GNUNET_free (t);
-  }
-
-  // Remove marked states (including their incoming and outgoing transitions)
-  for (s = dfa->states_head; NULL != s; s = s_next)
-  {
-    s_next = s->next;
-    if (GNUNET_YES == s->marked)
-      automaton_remove_state (dfa, s);
-  }
-
-  // Mark this automaton as multistrided
-  dfa->is_multistrided = GNUNET_YES;
-}
-
-
-
-/**
  * Check if the given string 'str' needs parentheses around it when
  * using it to generate a regex.
  *
@@ -1689,6 +1568,237 @@ dfa_minimize (struct GNUNET_REGEX_Context *ctx,
 
 
 /**
+ * Recursive helper function to add strides to a DFA.
+ *
+ * @param cls context, contains stride length and strided transitions DLL.
+ * @param depth current depth of the depth-first traversal of the graph.
+ * @param label current label, string that contains all labels on the path from
+ *        'start' to 's'.
+ * @param start start state for the depth-first traversal of the graph.
+ * @param s current state in the depth-first traversal
+ */
+void
+dfa_add_multi_strides_helper (void *cls, const unsigned int depth, char *label,
+                              struct GNUNET_REGEX_State *start,
+                              struct GNUNET_REGEX_State *s)
+{
+  struct GNUNET_REGEX_Strided_Context *ctx = cls;
+  struct GNUNET_REGEX_Transition *t;
+  char *new_label;
+
+  if (depth == ctx->stride)
+  {
+    t = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Transition));
+    t->label = GNUNET_strdup (label);
+    t->to_state = s;
+    t->from_state = start;
+    GNUNET_CONTAINER_DLL_insert (ctx->transitions_head, ctx->transitions_tail,
+                                 t);
+  }
+  else
+  {
+    for (t = s->transitions_head; NULL != t; t = t->next)
+    {
+      /* Do not consider self-loops, because it end's up in too many
+       * transitions */
+      if (t->to_state == t->from_state)
+        continue;
+
+      if (NULL != label)
+      {
+        GNUNET_asprintf (&new_label, "%s%s", label, t->label);
+      }
+      else
+        new_label = GNUNET_strdup (t->label);
+
+      dfa_add_multi_strides_helper (cls, (depth + 1), new_label, start,
+                                    t->to_state);
+    }
+  }
+  GNUNET_free_non_null (label);
+}
+
+
+/**
+ * Function called for each state in the DFA. Starts a traversal of depth set in
+ * context starting from state 's'.
+ *
+ * @param cls context.
+ * @param count not used.
+ * @param s current state.
+ */
+void
+dfa_add_multi_strides (void *cls, const unsigned int count,
+                       struct GNUNET_REGEX_State *s)
+{
+  dfa_add_multi_strides_helper (cls, 0, NULL, s, s);
+}
+
+
+/**
+ * Adds multi-strided transitions to the given 'dfa'.
+ *
+ * @param regex_ctx regex context needed to add transitions to the automaton.
+ * @param dfa DFA to which the multi strided transitions should be added.
+ * @param stride_len length of the strides.
+ */
+void
+GNUNET_REGEX_dfa_add_multi_strides (struct GNUNET_REGEX_Context *regex_ctx,
+                                    struct GNUNET_REGEX_Automaton *dfa,
+                                    const unsigned int stride_len)
+{
+  struct GNUNET_REGEX_Strided_Context ctx = { stride_len, NULL, NULL };
+  struct GNUNET_REGEX_Transition *t;
+  struct GNUNET_REGEX_Transition *t_next;
+
+  if (1 > stride_len || GNUNET_YES == dfa->is_multistrided)
+    return;
+
+  // Compute the new transitions of given stride_len
+  GNUNET_REGEX_automaton_traverse (dfa, dfa->start, NULL, NULL,
+                                   &dfa_add_multi_strides, &ctx);
+
+  // Add all the new transitions to the automaton.
+  for (t = ctx.transitions_head; NULL != t; t = t_next)
+  {
+    t_next = t->next;
+    state_add_transition (regex_ctx, t->from_state, t->label, t->to_state);
+    GNUNET_CONTAINER_DLL_remove (ctx.transitions_head, ctx.transitions_tail, t);
+    GNUNET_free_non_null (t->label);
+    GNUNET_free (t);
+  }
+
+  // Mark this automaton as multistrided
+  dfa->is_multistrided = GNUNET_YES;
+}
+
+/**
+ * Recursive Helper function for DFA path compression. Does DFS on the DFA graph
+ * and adds new transitions to the given transitions DLL and marks states that
+ * should be removed by setting state->contained to GNUNET_YES.
+ *
+ * @param start starting state for linear path search.
+ * @param cur current state in the recursive DFS.
+ * @param label current label (string of traversed labels).
+ * @param transitions_head transitions DLL.
+ * @param transitions_tail transitions DLL.
+ */
+void
+dfa_compress_paths_helper (struct GNUNET_REGEX_State *start,
+                           struct GNUNET_REGEX_State *cur, char *label,
+                           struct GNUNET_REGEX_Transition **transitions_head,
+                           struct GNUNET_REGEX_Transition **transitions_tail)
+{
+  struct GNUNET_REGEX_Transition *t;
+  char *new_label;
+
+
+  if (NULL != label &&
+      (cur->incoming_transition_count > 1 || GNUNET_YES == cur->accepting ||
+       cur->transition_count > 1 || GNUNET_YES == cur->marked))
+  {
+    t = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Transition));
+    t->label = GNUNET_strdup (label);
+    t->to_state = cur;
+    t->from_state = start;
+    GNUNET_CONTAINER_DLL_insert (*transitions_head, *transitions_tail, t);
+
+    GNUNET_free_non_null (label);
+
+    if (GNUNET_NO == cur->marked)
+    {
+      dfa_compress_paths_helper (cur, cur, NULL, transitions_head,
+                                 transitions_tail);
+    }
+    return;
+  }
+  else if (cur != start)
+    cur->contained = GNUNET_YES;
+
+  if (GNUNET_YES == cur->marked && cur != start)
+    return;
+
+  cur->marked = GNUNET_YES;
+
+
+  for (t = cur->transitions_head; NULL != t; t = t->next)
+  {
+    if (NULL != label)
+      GNUNET_asprintf (&new_label, "%s%s", label, t->label);
+    else
+      new_label = GNUNET_strdup (t->label);
+
+    if (t->to_state != cur)
+    {
+      dfa_compress_paths_helper (start, t->to_state, new_label,
+                                 transitions_head, transitions_tail);
+    }
+  }
+}
+
+/**
+ * Compress paths in the given 'dfa'. Linear paths like 0->1->2->3 will be
+ * compressed to 0->3 by combining transitions.
+ *
+ * @param regex_ctx context for adding new transitions.
+ * @param dfa DFA representation, will directly modify the given DFA.
+ */
+static void
+dfa_compress_paths (struct GNUNET_REGEX_Context *regex_ctx,
+                    struct GNUNET_REGEX_Automaton *dfa)
+{
+  struct GNUNET_REGEX_State *s;
+  struct GNUNET_REGEX_State *s_next;
+  struct GNUNET_REGEX_Transition *t;
+  struct GNUNET_REGEX_Transition *t_next;
+  struct GNUNET_REGEX_Transition *transitions_head = NULL;
+  struct GNUNET_REGEX_Transition *transitions_tail = NULL;
+
+  if (NULL == dfa)
+    return;
+
+  // Count the incoming transitions on each state.
+  for (s = dfa->states_head; NULL != s; s = s->next)
+  {
+    for (t = s->transitions_head; NULL != t; t = t->next)
+    {
+      if (NULL != t->to_state)
+        t->to_state->incoming_transition_count++;
+    }
+  }
+
+  // Unmark all states.
+  for (s = dfa->states_head; NULL != s; s = s->next)
+  {
+    s->marked = GNUNET_NO;
+    s->contained = GNUNET_NO;
+  }
+
+  // Add strides and mark states that can be deleted.
+  dfa_compress_paths_helper (dfa->start, dfa->start, NULL, &transitions_head,
+                             &transitions_tail);
+
+  // Add all the new transitions to the automaton.
+  for (t = transitions_head; NULL != t; t = t_next)
+  {
+    t_next = t->next;
+    state_add_transition (regex_ctx, t->from_state, t->label, t->to_state);
+    GNUNET_CONTAINER_DLL_remove (transitions_head, transitions_tail, t);
+    GNUNET_free_non_null (t->label);
+    GNUNET_free (t);
+  }
+
+  // Remove marked states (including their incoming and outgoing transitions).
+  for (s = dfa->states_head; NULL != s; s = s_next)
+  {
+    s_next = s->next;
+    if (GNUNET_YES == s->contained)
+      automaton_remove_state (dfa, s);
+  }
+}
+
+
+/**
  * Creates a new NFA fragment. Needs to be cleared using
  * automaton_fragment_clear.
  *
@@ -2422,11 +2532,14 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
   // Minimize DFA
   dfa_minimize (&ctx, dfa);
 
+  // Compress DFA paths
+  dfa_compress_paths (&ctx, dfa);
+
   // Create proofs for all states
   automaton_create_proofs (dfa);
 
   // Add strides to DFA
-  // GNUNET_REGEX_add_multi_strides_to_dfa (&ctx, dfa, 2);
+  //GNUNET_REGEX_dfa_add_multi_strides (&ctx, dfa, 2);
 
   return dfa;
 }
