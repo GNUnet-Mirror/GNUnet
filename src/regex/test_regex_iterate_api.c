@@ -30,13 +30,20 @@
 
 static unsigned int transition_counter;
 
+struct IteratorContext
+{
+  int error;
+  int should_save_graph;
+  FILE *graph_file;
+};
+
 void
 key_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
               int accepting, unsigned int num_edges,
               const struct GNUNET_REGEX_Edge *edges)
 {
   unsigned int i;
-  int *error = cls;
+  struct IteratorContext *ctx = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Iterating... (accepting: %i)\n",
               accepting);
@@ -54,7 +61,7 @@ key_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
                 i, edges[i].label, GNUNET_h2s (&edges[i].destination));
   }
 
-  *error += (GNUNET_OK == GNUNET_REGEX_check_proof (proof, key)) ? 0 : 1;
+  ctx->error += (GNUNET_OK == GNUNET_REGEX_check_proof (proof, key)) ? 0 : 1;
 }
 
 int
@@ -69,9 +76,10 @@ main (int argc, char *argv[])
                     NULL);
 
   int error;
-  int i;
   struct GNUNET_REGEX_Automaton *dfa;
+  unsigned int i;
   unsigned int num_transitions;
+  struct IteratorContext ctx = { 0, 0, NULL };
 
   error = 0;
 
@@ -99,7 +107,7 @@ main (int argc, char *argv[])
   {
     transition_counter = 0;
     dfa = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]));
-    GNUNET_REGEX_iterate_all_edges (dfa, key_iterator, &error);
+    GNUNET_REGEX_iterate_all_edges (dfa, key_iterator, &ctx);
     num_transitions = GNUNET_REGEX_get_transition_count (dfa);
     if (transition_counter != num_transitions)
     {
@@ -113,10 +121,12 @@ main (int argc, char *argv[])
   for (i = 0; i < 17; i++)
   {
     dfa = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]));
-    GNUNET_REGEX_add_multi_strides_to_dfa (NULL, dfa, 2);
-    GNUNET_REGEX_iterate_all_edges (dfa, key_iterator, &error);
+    GNUNET_REGEX_dfa_add_multi_strides (NULL, dfa, 2);
+    GNUNET_REGEX_iterate_all_edges (dfa, key_iterator, &ctx);
     GNUNET_REGEX_automaton_destroy (dfa);
   }
+
+  error += ctx.error;
 
   return error;
 }

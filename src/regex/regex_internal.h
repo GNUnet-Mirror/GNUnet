@@ -378,9 +378,9 @@ struct GNUNET_REGEX_Context
  * @param stride_len length of the strides.
  */
 void
-GNUNET_REGEX_add_multi_strides_to_dfa (struct GNUNET_REGEX_Context *regex_ctx,
-                                       struct GNUNET_REGEX_Automaton *dfa,
-                                       const unsigned int stride_len);
+GNUNET_REGEX_dfa_add_multi_strides (struct GNUNET_REGEX_Context *regex_ctx,
+                                    struct GNUNET_REGEX_Automaton *dfa,
+                                    const unsigned int stride_len);
 
 
 /**
