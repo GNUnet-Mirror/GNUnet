@@ -140,6 +140,28 @@ struct PeerData
 
 
 /**
+ * Enumeration of stages in this testing
+ */
+enum TestStage
+{
+  /**
+   * The initial stage
+   */
+  INIT,
+  
+  /**
+   * Uplink testing stage
+   */
+  UPLINK_OK,
+
+  /**
+   * Downlink testing stage
+   */
+  DOWNLINK_OK
+};
+
+
+/**
  * Maximum size of the data which we will transfer during tests
  */
 #define DATA_SIZE 5000000      /* 5mB */
@@ -203,7 +225,7 @@ static uint32_t data[DATA_SIZE / 4];
  * Payload sizes to test each major test with
  */
 static uint16_t payload_size[] = 
-{ 50000 };    //{ 20, 500, 2000, 7000, 13000, 25000, 50000, 60000, 63000, 64000 };
+{ 20, 500, 2000, 7000, 13000, 25000, 50000, 60000, 63000, 64000 };
 
 /**
  * Current step of testing
@@ -223,7 +245,7 @@ static int num_peers;
 /**
  * Testing result of a major test
  */
-static int result;
+static enum TestStage result;
 
 /**
  * Create a meter to keep track of the progress of some task.
@@ -360,6 +382,11 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (GNUNET_SCHEDULER_NO_TASK != write_task)
     GNUNET_SCHEDULER_cancel (write_task);
   GNUNET_SCHEDULER_shutdown (); /* Shutdown this testcase */
+  if (NULL != meter)
+  {
+    free_meter (meter);
+    meter = NULL;
+  }
 }
 
 
@@ -377,6 +404,24 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   do_shutdown (cls, tc);
 }
 
+  
+/**
+ * Scheduler call back; to be executed when a new stream is connected
+ * Called from listen connect for peer2
+ */
+static void
+stream_read_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Task for calling STREAM_write with a chunk of random data
+ *
+ * @param cls the peer data entity
+ * @param tc the task context
+ */
+static void
+stream_write_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 /**
  * The write completion function; called upon writing some data to stream or
@@ -390,10 +435,14 @@ static void
 write_completion (void *cls, enum GNUNET_STREAM_Status status, size_t size)
 {
   struct PeerData *pdata = cls;
+  double throughput;
+  double prof_time_sec;
 
   GNUNET_assert (GNUNET_STREAM_OK == status);
   GNUNET_assert (size <= DATA_SIZE);
-  pdata->bytes_wrote += size;  
+  pdata->bytes_wrote += size;
+  for (;size > 0; size--)
+    update_meter (meter);
   if (pdata->bytes_wrote < DATA_SIZE) /* Have more data to send */
   {
     pdata->io_write_handle =
@@ -406,12 +455,31 @@ write_completion (void *cls, enum GNUNET_STREAM_Status status, size_t size)
   }
   else
   {
+    free_meter (meter);
+    meter = NULL;
     prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
-    result = GNUNET_OK;
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    prof_time_sec = (((double) prof_time.rel_value)/ ((double) 1000));
+    throughput = (((float) sizeof (data)) / prof_time_sec);
+    PRINTF ("Throughput %.2f kB/sec\n", throughput / 1000.00);
+    switch (result)
+    {
+    case INIT:
+      result = UPLINK_OK;
+      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == read_task);
+      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == write_task);
+      pdata->bytes_read = 0;
+      meter = create_meter (sizeof (data), "Testing Downlink\n", GNUNET_YES);
+      read_task = GNUNET_SCHEDULER_add_now (&stream_read_task, &peer_data[0]);
+      write_task = GNUNET_SCHEDULER_add_now (&stream_write_task, &peer_data[1]);
+      break;
+    case UPLINK_OK:
+      result = DOWNLINK_OK;
+      GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+      break;
+    case DOWNLINK_OK:
+      GNUNET_assert (0);
+    }
   }
-  for (;size > 0; size--)
-    update_meter (meter);
 }
 
 
@@ -422,11 +490,18 @@ write_completion (void *cls, enum GNUNET_STREAM_Status status, size_t size)
  * @param tc the task context
  */
 static void
-stream_write_task (void *cls,
-                   const struct GNUNET_SCHEDULER_TaskContext *tc)
+stream_write_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerData *pdata = cls;
   
+  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+  {
+    GNUNET_SCHEDULER_cancel (abort_task);
+    abort_task = 
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_SECONDS, 300), &do_abort,
+                                    NULL);
+  }
   write_task = GNUNET_SCHEDULER_NO_TASK;
   prof_start_time = GNUNET_TIME_absolute_get ();
   pdata->bytes_wrote = 0;
@@ -466,8 +541,7 @@ input_processor (void *cls, enum GNUNET_STREAM_Status status,
   GNUNET_assert (size < DATA_SIZE);
   GNUNET_assert (0 == memcmp (((void *)data ) + pdata->bytes_read, 
 			      input_data, size));
-  pdata->bytes_read += size;
-  
+  pdata->bytes_read += size;  
   if (pdata->bytes_read < DATA_SIZE)
   {
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == read_task);
@@ -475,7 +549,6 @@ input_processor (void *cls, enum GNUNET_STREAM_Status status,
   }
   else 
   {
-    /* Peer2 has completed reading*/
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Reading finished successfully\n");
   }
   return size;
@@ -539,6 +612,7 @@ stream_open_cb (void *cls,
   struct PeerData *pdata = cls;
 
   GNUNET_assert (socket == pdata->socket);
+  meter = create_meter (sizeof (data), "Testing Uplink\n", GNUNET_YES);
   write_task = GNUNET_SCHEDULER_add_now (&stream_write_task, pdata);
 }
 
@@ -578,14 +652,17 @@ run (void *cls,
   peer2_listen_socket = 
       GNUNET_STREAM_listen (config, 10, &stream_listen_cb, &peer_data[1],
 			    GNUNET_STREAM_OPTION_SIGNAL_LISTEN_SUCCESS,
-                            &stream_connect, GNUNET_STREAM_OPTION_END);
+                            &stream_connect,
+                            GNUNET_STREAM_OPTION_MAX_PAYLOAD_SIZE,
+                            payload_size[payload_size_index],
+                            GNUNET_STREAM_OPTION_END);
   GNUNET_assert (NULL != peer2_listen_socket);
   peer_data[0].id = id;
   peer_data[1].id = id;
   abort_task =
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_SECONDS, 300), &do_abort,
-                                  NULL);
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_SECONDS, 300), &do_abort,
+                                    NULL);
 }
 
 
@@ -663,7 +740,10 @@ stream_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
     peer2_listen_socket =
 	GNUNET_STREAM_listen (cfg, 10, &stream_listen_cb, &peer_data[1],
 			      GNUNET_STREAM_OPTION_SIGNAL_LISTEN_SUCCESS,
-			      &stream_connect2, GNUNET_STREAM_OPTION_END);
+			      &stream_connect2,
+                              GNUNET_STREAM_OPTION_MAX_PAYLOAD_SIZE,
+                              payload_size[payload_size_index],
+                              GNUNET_STREAM_OPTION_END);
     GNUNET_assert (NULL != peer2_listen_socket);
     return peer2_listen_socket;
   }
@@ -786,7 +866,7 @@ test_master (void *cls, unsigned int num_peers_,
     GNUNET_break (0);
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-				    (GNUNET_TIME_UNIT_SECONDS, 40), &do_abort,
+				    (GNUNET_TIME_UNIT_SECONDS, 120), &do_abort,
 				    NULL);
 }
 
@@ -796,12 +876,9 @@ test_master (void *cls, unsigned int num_peers_,
  */
 int main (int argc, char **argv)
 {
-  char *pmsg;
   char *test_name = "perf_stream_api";
   char *cfg_file = "test_stream_local.conf";
   uint64_t event_mask;
-  double throughput;
-  double prof_time_sec;
   unsigned int count;
   int ret;
 
@@ -814,49 +891,37 @@ int main (int argc, char **argv)
   }
   reset_meter (meter);
   free_meter (meter);
+  meter = NULL;
   test_step = TEST_STEP_1_HOP;
-  for (payload_size_index = 0; 
+  for (payload_size_index = 0;
        payload_size_index < (sizeof (payload_size) / sizeof (uint16_t));
        payload_size_index++)
   {
-    GNUNET_asprintf (&pmsg, "\nTesting over loopback with payload size %hu\n",
-                     payload_size[payload_size_index]);
+    PRINTF ("\nTesting over loopback with payload size %hu\n",
+  	    payload_size[payload_size_index]);
     (void) memset (peer_data, 0, sizeof (peer_data));
-    meter = create_meter (sizeof (data), pmsg, GNUNET_YES);
-    GNUNET_free (pmsg);
-    result = GNUNET_SYSERR;
+    result = INIT;
     ret = GNUNET_TESTING_peer_run (test_name, cfg_file, &run, NULL);
-    free_meter (meter);
-    if ((0 != ret) || (GNUNET_OK != result))
+    if ((0 != ret) || (DOWNLINK_OK != result))
       goto return_fail;
-    prof_time_sec = (((double) prof_time.rel_value)/ ((double) 1000));
-    throughput = (((float) sizeof (data)) / prof_time_sec);
-    //PRINTF ("Profiling time %llu ms = %.2f sec\n", prof_time.rel_value, prof_time_sec);
-    PRINTF ("Throughput %.2f kB/sec\n", throughput / 1000.00);
   }
   test_step = TEST_STEP_2_HOP;
   num_peers = 2;
   event_mask = 0;
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
-  for (payload_size_index = 0; 
+  for (payload_size_index = 0;
        payload_size_index < (sizeof (payload_size) / sizeof (uint16_t));
        payload_size_index++)
   {
+    PRINTF ("\nTesting over 1 hop with payload size %hu\n",
+            payload_size[payload_size_index]);
     (void) memset (peer_data, 0, sizeof (peer_data));
-    GNUNET_asprintf (&pmsg, "\nTesting over 1 hop with payload size %hu\n",
-                     payload_size[payload_size_index]);
-    meter = create_meter (sizeof (data), pmsg, GNUNET_YES);
-    GNUNET_free (pmsg);
     result = GNUNET_SYSERR;
     GNUNET_TESTBED_test_run (test_name, cfg_file, num_peers, event_mask,
     			     &controller_event_cb, NULL, &test_master, NULL);
-    free_meter (meter);
-    if (GNUNET_OK != result)
+    if (DOWNLINK_OK != result)
       goto return_fail;
-    prof_time_sec = (((double) prof_time.rel_value)/ ((double) 1000));
-    throughput = (((float) sizeof (data)) / prof_time_sec);
-    PRINTF ("Throughput %.2f kB/sec\n", throughput / 1000.00);
   }
   test_step = TEST_STEP_3_HOP;
   for (payload_size_index = 0; 
@@ -865,7 +930,7 @@ int main (int argc, char **argv)
   {
     /* Initialize testbed here */
   }
-  return ret;
+  return 0;
 
  return_fail:
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Test failed\n");
