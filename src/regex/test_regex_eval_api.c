@@ -162,12 +162,11 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
                   eval, eval_check, eval_canonical, eval_canonical_check, error);
       result += 1;
     }
-
+    GNUNET_free (canonical_regex);
     GNUNET_free (matching_str);
   }
 
   GNUNET_free (rand_rx);
-  GNUNET_free (canonical_regex);
 
   return result;
 
