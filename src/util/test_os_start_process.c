@@ -197,6 +197,7 @@ check_kill ()
   hello_pipe_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
   if ((hello_pipe_stdout == NULL) || (hello_pipe_stdin == NULL))
   {
+    GNUNET_free (fn);
     return 1;
   }
   proc =
@@ -230,6 +231,7 @@ check_instant_kill ()
   hello_pipe_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
   if ((hello_pipe_stdout == NULL) || (hello_pipe_stdin == NULL))
   {
+    GNUNET_free (fn);
     return 1;
   }
   proc =

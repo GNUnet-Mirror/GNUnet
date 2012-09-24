@@ -860,7 +860,10 @@ start_process (int pipe_control,
     return NULL; /* not executable */
   if ( (GNUNET_YES == pipe_control) &&
        (GNUNET_OK != npipe_setup (&childpipename)) )
-    return NULL;  
+  {
+    GNUNET_free (childpipename);
+    return NULL;
+  }
   if (NULL != pipe_stdout)
   {
     GNUNET_assert (GNUNET_OK ==
