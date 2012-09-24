@@ -880,8 +880,9 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
   struct HTTP_Client_Plugin *plugin = s->plugin;
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Received %u bytes from peer `%s'\n", len,
-                   GNUNET_i2s (&s->target));
+                   "Session %p / connection %p: Received %u bytes from peer `%s'\n",
+                   s, s->client_get,
+                   len, GNUNET_i2s (&s->target));
   now = GNUNET_TIME_absolute_get ();
   if (now.abs_value < s->next_receive.abs_value)
   {
@@ -889,8 +890,8 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
     struct GNUNET_TIME_Relative delta =
         GNUNET_TIME_absolute_get_difference (now, s->next_receive);
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "No inbound bandwidth for session %p available! Next read was delayed for %llu ms\n",
-                     s, delta.rel_value);
+                     "Session %p / connection %p: No inbound bandwidth available! Next read was delayed for %llu ms\n",
+                     s, s->client_get, delta.rel_value);
     if (s->recv_wakeup_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (s->recv_wakeup_task);
@@ -898,7 +899,7 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
     }
     s->recv_wakeup_task =
         GNUNET_SCHEDULER_add_delayed (delta, &client_wake_up, s);
-    return CURLPAUSE_ALL;
+    return CURL_WRITEFUNC_PAUSE;
   }
   if (NULL == s->msg_tk)
     s->msg_tk = GNUNET_SERVER_mst_create (&client_receive_mst_cb, s);
