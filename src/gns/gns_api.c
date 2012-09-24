@@ -837,6 +837,7 @@ GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
   if (msize > UINT16_MAX)
   {
     GNUNET_break (0);
+    GNUNET_free (pkey_enc);
     return NULL;
   }
   lr = GNUNET_malloc (sizeof (struct GNUNET_GNS_LookupRequest) +

@@ -278,9 +278,10 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth
                      "Testing library failed to create unique configuration based on `%s': `%s'\n",
                      cfgname, emsg);
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p);
+    GNUNET_free_non_null (emsg);
     return NULL;
   }
-
+  GNUNET_free_non_null (emsg);
   if (GNUNET_OK != GNUNET_TESTING_peer_start (p->peer))
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",

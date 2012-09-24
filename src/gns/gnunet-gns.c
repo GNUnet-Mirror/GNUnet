@@ -246,6 +246,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     if (! raw)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Using private zone: %s!\n", &zonename);
+    GNUNET_CRYPTO_rsa_key_free (private_key);
   }
   
   if (NULL != lookup_type)
