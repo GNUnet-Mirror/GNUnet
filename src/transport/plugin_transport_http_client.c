@@ -450,7 +450,7 @@ http_client_plugin_send (void *cls,
   }
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
-                   "Session %p/connection %p: Sending message with %u to peer `%s' with \n",
+                   "Session %p/connection %p: Sending message with %u to peer `%s' \n",
                    s, s->client_put,
                    msgbuf_size, GNUNET_i2s (&s->target));
 
@@ -465,20 +465,15 @@ http_client_plugin_send (void *cls,
   memcpy (msg->buf, msgbuf, msgbuf_size);
   GNUNET_CONTAINER_DLL_insert_tail (s->msg_head, s->msg_tail, msg);
 
-  if (GNUNET_YES == s->put_tmp_disconnected)
+  if (GNUNET_YES == s->put_tmp_disconnecting)
   {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
-                       "Session %p: Reconnecting PUT connection\n",
-                       s);
-      s->put_tmp_disconnected = GNUNET_NO;
-      if (GNUNET_SYSERR == client_connect_put (s))
-      {
-        return GNUNET_SYSERR;
-      }
+    /* PUT connection is currently getting disconnected */
+    GNUNET_break (0);
+    return msgbuf_size;
   }
-
-  if (GNUNET_YES == s->put_paused)
+  else if (GNUNET_YES == s->put_paused)
   {
+    /* PUT connection was paused, unpause */
     GNUNET_assert (s->put_disconnect_task != GNUNET_SCHEDULER_NO_TASK);
     GNUNET_SCHEDULER_cancel (s->put_disconnect_task);
     s->put_disconnect_task = GNUNET_SCHEDULER_NO_TASK;
@@ -488,6 +483,20 @@ http_client_plugin_send (void *cls,
     s->put_paused = GNUNET_NO;
     curl_easy_pause (s->client_put, CURLPAUSE_CONT);
   }
+  else if (GNUNET_YES == s->put_tmp_disconnected)
+  {
+    /* PUT connection was disconnected, reconnect */
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
+                     "Session %p: Reconnecting PUT connection\n",
+                     s);
+    s->put_tmp_disconnected = GNUNET_NO;
+    GNUNET_break (s->client_put == NULL);
+    if (GNUNET_SYSERR == client_connect_put (s))
+    {
+      return GNUNET_SYSERR;
+    }
+  }
+
   client_schedule (s->plugin, GNUNET_YES);
   client_reschedule_session_timeout (s);
   return msgbuf_size;
@@ -732,8 +741,6 @@ client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
                        "Session %p/connection %p: disconnect due to inactivity\n",
                        s, s->client_put);
-      s->put_tmp_disconnecting = GNUNET_NO;
-      s->put_tmp_disconnected = GNUNET_YES;
       return 0;
   }
 
@@ -1066,6 +1073,8 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
             }
             curl_multi_remove_handle (plugin->curl_multi_handle, easy_h);
             curl_easy_cleanup (easy_h);
+            s->put_tmp_disconnecting = GNUNET_NO;
+            s->put_tmp_disconnected = GNUNET_YES;
             s->client_put = NULL;
         }
         if (easy_h == s->client_get)
@@ -1147,17 +1156,9 @@ client_connect_put (struct Session *s)
 {
   CURLMcode mret;
   /* create put connection */
-  if (NULL == s->client_put)
-  {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
                        "Session %p : Init PUT handle \n", s);
-    s->client_put = curl_easy_init ();
-  }
-  else
-  {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
-                       "Session %p : Reusing PUT handle %p \n", s, s->client_put);
-  }
+  s->client_put = curl_easy_init ();
 #if VERBOSE_CURL
   curl_easy_setopt (s->client_put, CURLOPT_VERBOSE, 1L);
   curl_easy_setopt (s->client_put, CURLOPT_DEBUGFUNCTION, &client_log);
