@@ -170,6 +170,11 @@ struct Session
   int put_tmp_disconnected;
 
   /**
+   * We received data to send while disconnecting, reconnect immediately
+   */
+  int put_reconnect_required;
+
+  /**
    * Client receive handle
    */
   void *client_get;
@@ -468,6 +473,7 @@ http_client_plugin_send (void *cls,
   if (GNUNET_YES == s->put_tmp_disconnecting)
   {
     /* PUT connection is currently getting disconnected */
+    s->put_reconnect_required = GNUNET_YES;
     GNUNET_break (0);
     return msgbuf_size;
   }
@@ -1076,6 +1082,17 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
             s->put_tmp_disconnecting = GNUNET_NO;
             s->put_tmp_disconnected = GNUNET_YES;
             s->client_put = NULL;
+
+            /*
+             * Handling a rare case:
+             * plugin_send was called during temporary put disconnect,
+             * reconnect required after connection was disconnected
+             */
+            if (GNUNET_YES == s->put_reconnect_required)
+            {
+                s->put_reconnect_required = GNUNET_NO;
+                client_connect_put(s);
+            }
         }
         if (easy_h == s->client_get)
         {
