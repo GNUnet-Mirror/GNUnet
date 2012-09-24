@@ -852,9 +852,10 @@ server_mhd_connection_timeout (struct HTTP_Server_Plugin *plugin, struct Session
 /**
  * Parse incoming URL for tag and target
  *
- * @url incoming url
- * @target where to store the target
- * @tag where to store the tag
+ * @param plugin plugin
+ * @param url incoming url
+ * @param target where to store the target
+ * @param tag where to store the tag
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 

@@ -415,7 +415,7 @@ client_log (CURL * curl, curl_infotype type, char *data, size_t size, void *cls)
  * a fresh connection to another peer.
  *
  * @param cls closure
- * @param session which session must be used
+ * @param s which session must be used
  * @param msgbuf the message to transmit
  * @param msgbuf_size number of bytes in 'msgbuf'
  * @param priority how important is the message (most plugins will
