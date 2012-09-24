@@ -381,13 +381,15 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
     soa = (struct soa_data*)data;
     soa_rname = (char*)&soa[1];
     soa_mname = (char*)&soa[1]+strlen(soa_rname)+1;
-    if (GNUNET_asprintf(&result, "rname=%s mname=%s %lu,%lu,%lu,%lu,%lu", 
+    if (0 == GNUNET_asprintf(&result, "rname=%s mname=%s %lu,%lu,%lu,%lu,%lu",
                      soa_rname, soa_mname,
                      ntohl (soa->serial), ntohl (soa->refresh),
                      ntohl (soa->retry), ntohl (soa->expire), ntohl (soa->minimum)))
-      return result;
-    else
-      return NULL;
+    {
+        GNUNET_free (result);
+        return NULL;
+    }
+    return result;
   case GNUNET_DNSPARSER_TYPE_PTR:
     return GNUNET_strndup (data, data_size);
   case GNUNET_DNSPARSER_TYPE_MX:
@@ -396,7 +398,10 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
         != 0)
       return result;
     else
+    {
+      GNUNET_free (result);
       return NULL;
+    }
   case GNUNET_DNSPARSER_TYPE_TXT:
     return GNUNET_strndup (data, data_size);
   case GNUNET_DNSPARSER_TYPE_AAAA:
@@ -419,31 +424,40 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
     vpn = (struct vpn_data*)data;
 
     GNUNET_CRYPTO_hash_to_enc (&vpn->peer, &s_peer);
-    if (GNUNET_OK != GNUNET_asprintf (&vpn_str, "%hu %s %s",
+    if (0 == GNUNET_asprintf (&vpn_str, "%hu %s %s",
                                       vpn->proto,
                                       (char*)&s_peer,
                                       (char*)&vpn[1]))
-      return NULL;
+    {
+        GNUNET_free (vpn_str);
+        return NULL;
+    }
     return vpn_str;
   case GNUNET_DNSPARSER_TYPE_SRV:
     srv = (struct srv_data*)data;
 
-    if (GNUNET_OK != GNUNET_asprintf (&srv_str, "%d %d %d %s",
+    if (0 == GNUNET_asprintf (&srv_str, "%d %d %d %s",
                                       ntohs (srv->prio),
                                       ntohs (srv->weight),
                                       ntohs (srv->port),
                                       (char*)&srv[1]))
+    {
+      GNUNET_free (srv_str);
       return NULL;
+    }
     return srv_str;
   case GNUNET_DNSPARSER_TYPE_TLSA:
     tlsa = (struct tlsa_data*)data;
 
-    if (GNUNET_OK != GNUNET_asprintf (&tlsa_str, "%c %c %c %s",
+    if (0 == GNUNET_asprintf (&tlsa_str, "%c %c %c %s",
                                       tlsa->usage,
                                       tlsa->selector,
                                       tlsa->matching_type,
                                       tlsa[1]))
-      return NULL;
+    {
+        GNUNET_free (tlsa_str);
+        return NULL;
+    }
     return tlsa_str;
   default:
     GNUNET_break (0);
