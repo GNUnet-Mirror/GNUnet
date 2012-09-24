@@ -86,7 +86,6 @@ state_add_transition (struct GNUNET_REGEX_Context *ctx,
                       struct GNUNET_REGEX_State *from_state, const char *label,
                       struct GNUNET_REGEX_State *to_state)
 {
-  int is_dup;
   struct GNUNET_REGEX_Transition *t;
   struct GNUNET_REGEX_Transition *oth;
 
@@ -97,19 +96,12 @@ state_add_transition (struct GNUNET_REGEX_Context *ctx,
   }
 
   // Do not add duplicate state transitions
-  is_dup = GNUNET_NO;
   for (t = from_state->transitions_head; NULL != t; t = t->next)
   {
     if (t->to_state == to_state && 0 == nullstrcmp (t->label, label) &&
         t->from_state == from_state)
-    {
-      is_dup = GNUNET_YES;
-      break;
-    }
+      return;
   }
-
-  if (GNUNET_YES == is_dup)
-    return;
 
   // sort transitions by label
   for (oth = from_state->transitions_head; NULL != oth; oth = oth->next)
@@ -151,10 +143,11 @@ state_remove_transition (struct GNUNET_REGEX_State *state,
   if (transition->from_state != state)
     return;
 
+  GNUNET_free_non_null (transition->label);
+
   state->transition_count--;
   GNUNET_CONTAINER_DLL_remove (state->transitions_head, state->transitions_tail,
                                transition);
-  GNUNET_free_non_null (transition->label);
   GNUNET_free (transition);
 }
 
@@ -257,11 +250,12 @@ state_set_compare (struct GNUNET_REGEX_StateSet *sset1,
 static void
 state_set_clear (struct GNUNET_REGEX_StateSet *set)
 {
-  if (NULL != set)
-  {
-    GNUNET_free_non_null (set->states);
-    GNUNET_free (set);
-  }
+  if (NULL == set)
+    return;
+
+  if (set->len > 0)
+    GNUNET_array_grow (set->states, set->len, 0);
+  GNUNET_free (set);
 }
 
 
@@ -302,16 +296,13 @@ automaton_destroy_state (struct GNUNET_REGEX_State *s)
 
   GNUNET_free_non_null (s->name);
   GNUNET_free_non_null (s->proof);
+  state_set_clear (s->nfa_set);
 
   for (t = s->transitions_head; NULL != t; t = next_t)
   {
     next_t = t->next;
-    GNUNET_CONTAINER_DLL_remove (s->transitions_head, s->transitions_tail, t);
-    GNUNET_free_non_null (t->label);
-    GNUNET_free (t);
+    state_remove_transition (s, t);
   }
-
-  state_set_clear (s->nfa_set);
 
   GNUNET_free (s);
 }
@@ -329,34 +320,30 @@ static void
 automaton_remove_state (struct GNUNET_REGEX_Automaton *a,
                         struct GNUNET_REGEX_State *s)
 {
-  struct GNUNET_REGEX_State *ss;
   struct GNUNET_REGEX_State *s_check;
   struct GNUNET_REGEX_Transition *t_check;
+  struct GNUNET_REGEX_Transition *t_check_next;
 
   if (NULL == a || NULL == s)
     return;
-
-  // remove state
-  ss = s;
-  GNUNET_CONTAINER_DLL_remove (a->states_head, a->states_tail, s);
-  a->state_count--;
 
   // remove all transitions leading to this state
   for (s_check = a->states_head; NULL != s_check; s_check = s_check->next)
   {
     for (t_check = s_check->transitions_head; NULL != t_check;
-         t_check = t_check->next)
+         t_check = t_check_next)
     {
-      if (t_check->to_state == ss)
-      {
-        GNUNET_CONTAINER_DLL_remove (s_check->transitions_head,
-                                     s_check->transitions_tail, t_check);
-        s_check->transition_count--;
-      }
+      t_check_next = t_check->next;
+      if (t_check->to_state == s)
+        state_remove_transition (s_check, t_check);
     }
   }
 
-  automaton_destroy_state (ss);
+  // remove state
+  GNUNET_CONTAINER_DLL_remove (a->states_head, a->states_tail, s);
+  a->state_count--;
+
+  automaton_destroy_state (s);
 }
 
 
@@ -1703,8 +1690,6 @@ dfa_compress_paths_helper (struct GNUNET_REGEX_State *start,
     t->from_state = start;
     GNUNET_CONTAINER_DLL_insert (*transitions_head, *transitions_tail, t);
 
-    GNUNET_free_non_null (label);
-
     if (GNUNET_NO == cur->marked)
     {
       dfa_compress_paths_helper (cur, cur, NULL, transitions_head,
@@ -1733,6 +1718,7 @@ dfa_compress_paths_helper (struct GNUNET_REGEX_State *start,
       dfa_compress_paths_helper (start, t->to_state, new_label,
                                  transitions_head, transitions_tail);
     }
+    GNUNET_free (new_label);
   }
 }
 
@@ -2563,11 +2549,11 @@ GNUNET_REGEX_automaton_destroy (struct GNUNET_REGEX_Automaton *a)
   GNUNET_free_non_null (a->regex);
   GNUNET_free_non_null (a->canonical_regex);
 
-  for (s = a->states_head; NULL != s;)
+  for (s = a->states_head; NULL != s; s = next_state)
   {
     next_state = s->next;
+    GNUNET_CONTAINER_DLL_remove (a->states_head, a->states_tail, s);
     automaton_destroy_state (s);
-    s = next_state;
   }
 
   GNUNET_free (a);
@@ -2815,7 +2801,6 @@ GNUNET_REGEX_check_proof (const char *proof, const struct GNUNET_HashCode *key)
  *
  * @param min_len minimum length of the path in the graph.
  * @param max_len maximum length of the path in the graph.
- * @param cur_len current length of the path already traversed.
  * @param consumed_string string consumed by traversing the graph till this state.
  * @param state current state of the automaton.
  * @param iterator iterator function called for each edge.
@@ -2823,8 +2808,7 @@ GNUNET_REGEX_check_proof (const char *proof, const struct GNUNET_HashCode *key)
  */
 static void
 iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
-                      unsigned int cur_len, char *consumed_string,
-                      struct GNUNET_REGEX_State *state,
+                      char *consumed_string, struct GNUNET_REGEX_State *state,
                       GNUNET_REGEX_KeyIterator iterator, void *iterator_cls)
 {
   unsigned int i;
@@ -2834,22 +2818,56 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
   struct GNUNET_REGEX_Edge edges[num_edges];
   struct GNUNET_HashCode hash;
 
-  if (cur_len > min_len && NULL != consumed_string && cur_len <= max_len)
-  {
-    for (i = 0, t = state->transitions_head; NULL != t; t = t->next, i++)
-    {
-      edges[i].label = t->label;
-      edges[i].destination = t->to_state->hash;
-    }
+  unsigned int cur_len;
 
-    GNUNET_CRYPTO_hash (consumed_string, strlen (consumed_string), &hash);
-    iterator (iterator_cls, &hash, consumed_string, state->accepting, num_edges,
-              edges);
+  if (NULL != consumed_string)
+    cur_len = strlen (consumed_string);
+  else
+    cur_len = 0;
+
+  if (cur_len > min_len && NULL != consumed_string)
+  {
+
+    if (cur_len <= max_len)
+    {
+      for (i = 0, t = state->transitions_head; NULL != t && i < num_edges;
+           t = t->next, i++)
+      {
+        edges[i].label = t->label;
+        edges[i].destination = t->to_state->hash;
+      }
+
+      GNUNET_CRYPTO_hash (consumed_string, strlen (consumed_string), &hash);
+      iterator (iterator_cls, &hash, consumed_string, state->accepting,
+                num_edges, edges);
+
+      // Special case for regex consisting of just a string that is shorter than max_len
+      if (GNUNET_YES == state->accepting && cur_len > 1 &&
+          state->transition_count < 1)
+      {
+        edges[0].label = &consumed_string[cur_len - 1];
+        edges[0].destination = state->hash;
+        temp = GNUNET_strdup (consumed_string);
+        temp[cur_len - 1] = '\0';
+        GNUNET_CRYPTO_hash (temp, cur_len - 1, &hash);
+        iterator (iterator_cls, &hash, temp, GNUNET_NO, 1, edges);
+        GNUNET_free (temp);
+      }
+    }
+    else
+    {
+      edges[0].label = &consumed_string[max_len];
+      edges[0].destination = state->hash;
+      temp = GNUNET_strdup (consumed_string);
+      temp[max_len] = '\0';
+      GNUNET_CRYPTO_hash (temp, max_len, &hash);
+      iterator (iterator_cls, &hash, temp, GNUNET_NO, 1, edges);
+      GNUNET_free (temp);
+    }
   }
 
   if (cur_len < max_len)
   {
-    cur_len++;
     for (t = state->transitions_head; NULL != t; t = t->next)
     {
       if (NULL != consumed_string)
@@ -2857,8 +2875,8 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
       else
         GNUNET_asprintf (&temp, "%s", t->label);
 
-      iterate_initial_edge (min_len, max_len, cur_len, temp, t->to_state,
-                            iterator, iterator_cls);
+      iterate_initial_edge (min_len, max_len, temp, t->to_state, iterator,
+                            iterator_cls);
       GNUNET_free (temp);
     }
   }
@@ -2866,69 +2884,8 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
 
 
 /**
- * Iterate over all initial edges that aren't actually part of the automaton.
- * This is needed to find the initial states returned by
- * GNUNET_REGEX_get_first_key. Iteration will start at the first state that has
- * more than one outgoing edge, i.e. the state that branches the graph.
- * For example consider the following graph:
- * a -> b -> c -> d -> ...
- *            \-> e -> ...
- *
- * This function will not iterate over the edges leading to "c", because these
- * will be covered by the iterate_edges function.
- *
- * @param a the automaton for which the initial states should be computed.
- * @param initial_len length of the initial state string.
- * @param iterator iterator function called for each edge.
- * @param iterator_cls closure for the iterator function.
- */
-void
-iterate_initial_edges (struct GNUNET_REGEX_Automaton *a,
-                       const unsigned int initial_len,
-                       GNUNET_REGEX_KeyIterator iterator, void *iterator_cls)
-{
-  char *consumed_string;
-  char *temp;
-  struct GNUNET_REGEX_State *s;
-  unsigned int cur_len;
-
-  if (1 > initial_len)
-    return;
-
-  consumed_string = NULL;
-  s = a->start;
-  cur_len = 0;
-
-  if (1 == s->transition_count)
-  {
-    do
-    {
-      if (NULL != consumed_string)
-      {
-        temp = consumed_string;
-        GNUNET_asprintf (&consumed_string, "%s%s", consumed_string,
-                         s->transitions_head->label);
-        GNUNET_free (temp);
-      }
-      else
-        GNUNET_asprintf (&consumed_string, "%s", s->transitions_head->label);
-
-      s = s->transitions_head->to_state;
-      cur_len += strlen (s->transitions_head->label);
-    }
-    while (cur_len < initial_len && 1 == s->transition_count);
-  }
-
-  iterate_initial_edge (cur_len, initial_len, cur_len, consumed_string, s,
-                        iterator, iterator_cls);
-
-  GNUNET_free_non_null (consumed_string);
-}
-
-
-/**
  * Iterate over all edges helper function starting from state 's', calling
- * iterator function for each edge.
+ * iterator function for each edge if the automaton.
  *
  * @param s state.
  * @param iterator iterator function called for each edge.
@@ -2976,6 +2933,7 @@ GNUNET_REGEX_iterate_all_edges (struct GNUNET_REGEX_Automaton *a,
   for (s = a->states_head; NULL != s; s = s->next)
     s->marked = GNUNET_NO;
 
-  iterate_initial_edges (a, INITIAL_BITS, iterator, iterator_cls);
+  iterate_initial_edge (0, INITIAL_BITS, NULL, a->start, iterator,
+                        iterator_cls);
   iterate_edge (a->start, iterator, iterator_cls);
 }

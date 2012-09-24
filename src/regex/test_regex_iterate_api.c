@@ -28,13 +28,25 @@
 #include "gnunet_regex_lib.h"
 #include "regex_internal.h"
 
+#define GNUNET_REGEX_ITERATE_SAVE_DEBUG_GRAPH GNUNET_NO
+
 static unsigned int transition_counter;
 
 struct IteratorContext
 {
   int error;
   int should_save_graph;
-  FILE *graph_file;
+  FILE *graph_filep;
+  unsigned int string_count;
+  char *const *strings;
+  unsigned int match_count;
+};
+
+struct RegexStringPair
+{
+  char *regex;
+  unsigned int string_count;
+  char *strings[20];
 };
 
 void
@@ -44,21 +56,41 @@ key_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
 {
   unsigned int i;
   struct IteratorContext *ctx = cls;
+  char *out_str;
+  char *state_id = GNUNET_strdup (GNUNET_h2s (key));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Iterating... (accepting: %i)\n",
-              accepting);
-
-  if (NULL != proof)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Proof: %s\n", proof);
-
-  if (NULL != key)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Hash: %s\n", GNUNET_h2s (key));
-
-  for (i = 0; i < num_edges; i++)
+  if (GNUNET_YES == ctx->should_save_graph)
   {
-    transition_counter++;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Edge %i: Label: %s Destination: %s\n",
-                i, edges[i].label, GNUNET_h2s (&edges[i].destination));
+    if (GNUNET_YES == accepting)
+      GNUNET_asprintf (&out_str, "\"%s\" [shape=doublecircle]\n", state_id);
+    else
+      GNUNET_asprintf (&out_str, "\"%s\" [shape=circle]\n", state_id);
+    fwrite (out_str, strlen (out_str), 1, ctx->graph_filep);
+    GNUNET_free (out_str);
+
+    for (i = 0; i < num_edges; i++)
+    {
+      transition_counter++;
+      GNUNET_asprintf (&out_str, "\"%s\" -> \"%s\" [label = \"%s (%s)\"]\n",
+                       state_id, GNUNET_h2s (&edges[i].destination),
+                       edges[i].label, proof);
+      fwrite (out_str, strlen (out_str), 1, ctx->graph_filep);
+
+      GNUNET_free (out_str);
+    }
+  }
+  else
+  {
+    for (i = 0; i < num_edges; i++)
+      transition_counter++;
+  }
+
+  GNUNET_free (state_id);
+
+  for (i = 0; i < ctx->string_count; i++)
+  {
+    if (0 == strcmp (proof, ctx->strings[i]))
+      ctx->match_count++;
   }
 
   ctx->error += (GNUNET_OK == GNUNET_REGEX_check_proof (proof, key)) ? 0 : 1;
@@ -80,49 +112,112 @@ main (int argc, char *argv[])
   unsigned int i;
   unsigned int num_transitions;
   struct IteratorContext ctx = { 0, 0, NULL };
+  char *filename = NULL;
 
   error = 0;
 
-  const char *regex[17] = {
-    "ab(c|d)+c*(a(b|c)+d)+(bla)+",
-    "(bla)*",
-    "b(lab)*la",
-    "(ab)*",
-    "ab(c|d)+c*(a(b|c)+d)+(bla)(bla)*",
-    "z(abc|def)?xyz",
-    "1*0(0|1)*",
-    "a*b*",
-    "a+X*y+c|p|R|Z*K*y*R+w|Y*6+n+h*k*w+V*F|W*B*e*",
-    "abcd:(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1):(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)",
-    "abc(1|0)*def",
-    "ab|ac",
-    "(ab)(ab)*",
-    "ab|cd|ef|gh",
-    "a|b|c|d|e|f|g",
-    "(ab)|(ac)",
-    "x*|(0|1|2)(a|b|c|d)"
+  const struct RegexStringPair rxstr[10] = {
+    {"ab(c|d)+c*(a(b|c)+d)+(bla)+", 2, {"abcdcdca", "abcabdbl"}},
+    {"abcdefghijklmnop*qst", 1, {"abcdefgh"}},
+    {"VPN-4-1(0|1)*", 2, {"VPN-4-10", "VPN-4-11"}},
+    {"a+X*y+c|p|R|Z*K*y*R+w|Y*6+n+h*k*w+V*F|W*B*e*", 4,
+     {"aaaaaaaa", "aaXXyyyc", "p", "Y"}},
+    {"a*", 8,
+     {"a", "aa", "aaa", "aaaa", "aaaaa", "aaaaaa", "aaaaaaa", "aaaaaaaa"}},
+    {"xzxzxzxzxz", 1, {"xzxzxzxz"}},
+    {"xyz*", 2, {"xy", "xyz"}},
+    {"ab", 1, {"a"}},
+    {"abcd:(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1):(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)", 2, {"abcd:000", "abcd:101"}},
+    {"x*|(0|1|2)(a|b|c|d)", 2, {"xxxxxxxx", "0a"}}
   };
 
-  for (i = 0; i < 17; i++)
+  const char *graph_start_str = "digraph G {\nrankdir=LR\n";
+  const char *graph_end_str = "\n}\n";
+
+  for (i = 0; i < 10; i++)
   {
+    // Create graph
+    if (GNUNET_YES == GNUNET_REGEX_ITERATE_SAVE_DEBUG_GRAPH)
+    {
+      GNUNET_asprintf (&filename, "iteration_graph_%u.dot", i);
+      ctx.graph_filep = fopen (filename, "w");
+      if (NULL == ctx.graph_filep)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                    "Could not open file %s for saving iteration graph.\n",
+                    filename);
+        ctx.should_save_graph = GNUNET_NO;
+      }
+      else
+      {
+        ctx.should_save_graph = GNUNET_YES;
+        fwrite (graph_start_str, strlen (graph_start_str), 1, ctx.graph_filep);
+      }
+      GNUNET_free (filename);
+    }
+    else
+    {
+      ctx.should_save_graph = GNUNET_NO;
+    }
+
+    // Iterate over DFA edges
     transition_counter = 0;
-    dfa = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]));
+    ctx.string_count = rxstr[i].string_count;
+    ctx.strings = rxstr[i].strings;
+    ctx.match_count = 0;
+    dfa = GNUNET_REGEX_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex));
     GNUNET_REGEX_iterate_all_edges (dfa, key_iterator, &ctx);
     num_transitions = GNUNET_REGEX_get_transition_count (dfa);
-    if (transition_counter != num_transitions)
+
+    if (transition_counter < num_transitions)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Automaton has %d transitions, iterated over %d transitions\n",
                   num_transitions, transition_counter);
+      error += 1;
+      break;
     }
+
+    if (ctx.match_count < ctx.string_count)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Missing initial states for regex %s\n", rxstr[i].regex);
+      error += (ctx.string_count - ctx.match_count);
+    }
+    else if (ctx.match_count > ctx.string_count)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Doublicate initial transitions for regex %s\n",
+                  rxstr[i].regex);
+      error += (ctx.string_count - ctx.match_count);
+    }
+
     GNUNET_REGEX_automaton_destroy (dfa);
+
+    // Finish graph
+    if (GNUNET_YES == ctx.should_save_graph)
+    {
+      fwrite (graph_end_str, strlen (graph_end_str), 1, ctx.graph_filep);
+      fclose (ctx.graph_filep);
+      ctx.graph_filep = NULL;
+      ctx.should_save_graph = GNUNET_NO;
+    }
   }
 
-  for (i = 0; i < 17; i++)
+
+  for (i = 0; i < 10; i++)
   {
-    dfa = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]));
+    dfa = GNUNET_REGEX_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex));
     GNUNET_REGEX_dfa_add_multi_strides (NULL, dfa, 2);
     GNUNET_REGEX_iterate_all_edges (dfa, key_iterator, &ctx);
+
+    if (ctx.match_count < ctx.string_count)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Missing initial states for regex %s\n", rxstr[i].regex);
+      error += (ctx.string_count - ctx.match_count);
+    }
+
     GNUNET_REGEX_automaton_destroy (dfa);
   }
 
