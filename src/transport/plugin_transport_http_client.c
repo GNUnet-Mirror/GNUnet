@@ -474,7 +474,9 @@ http_client_plugin_send (void *cls,
   {
     /* PUT connection is currently getting disconnected */
     s->put_reconnect_required = GNUNET_YES;
-    GNUNET_break (0);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
+                     "Session %p/connection %p: currently disconnecting, reconnecting immediately\n",
+                     s, s->client_put);
     return msgbuf_size;
   }
   else if (GNUNET_YES == s->put_paused)
