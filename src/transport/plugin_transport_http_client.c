@@ -454,7 +454,7 @@ http_client_plugin_send (void *cls,
     return GNUNET_SYSERR;
   }
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
                    "Session %p/connection %p: Sending message with %u to peer `%s' \n",
                    s, s->client_put,
                    msgbuf_size, GNUNET_i2s (&s->target));
@@ -474,8 +474,8 @@ http_client_plugin_send (void *cls,
   {
     /* PUT connection is currently getting disconnected */
     s->put_reconnect_required = GNUNET_YES;
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
-                     "Session %p/connection %p: currently disconnecting, reconnecting immediately\n",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
+                     "Session %p/connection %jp: currently disconnecting, reconnecting immediately\n",
                      s, s->client_put);
     return msgbuf_size;
   }
@@ -485,7 +485,7 @@ http_client_plugin_send (void *cls,
     GNUNET_assert (s->put_disconnect_task != GNUNET_SCHEDULER_NO_TASK);
     GNUNET_SCHEDULER_cancel (s->put_disconnect_task);
     s->put_disconnect_task = GNUNET_SCHEDULER_NO_TASK;
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
                      "Session %p/connection %p: unpausing connection\n",
                      s, s->client_put);
     s->put_paused = GNUNET_NO;
@@ -494,7 +494,7 @@ http_client_plugin_send (void *cls,
   else if (GNUNET_YES == s->put_tmp_disconnected)
   {
     /* PUT connection was disconnected, reconnect */
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
                      "Session %p: Reconnecting PUT connection\n",
                      s);
     s->put_tmp_disconnected = GNUNET_NO;
@@ -746,7 +746,7 @@ client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
   if (GNUNET_YES == s->put_tmp_disconnecting)
   {
 
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
                        "Session %p/connection %p: disconnect due to inactivity\n",
                        s, s->client_put);
       return 0;
@@ -1064,7 +1064,7 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         {
             if  ((0 != msg->data.result) || (http_statuscode != 200))
             {
-                GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                   "Session %p/connection %p: PUT connection to `%s' ended with status %i reason %i: `%s'\n",
                   s, msg->easy_handle, GNUNET_i2s (&s->target),
                   http_statuscode,
@@ -1072,7 +1072,7 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   curl_easy_strerror (msg->data.result));
             }
             else
-              GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+              GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                 "Session %p/connection %p: PUT connection to `%s' ended normal\n",
                 s, msg->easy_handle, GNUNET_i2s (&s->target));
             if (s->client_get == NULL)
@@ -1175,7 +1175,7 @@ client_connect_put (struct Session *s)
 {
   CURLMcode mret;
   /* create put connection */
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
                        "Session %p : Init PUT handle \n", s);
   s->client_put = curl_easy_init ();
 #if VERBOSE_CURL
