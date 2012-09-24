@@ -172,6 +172,8 @@ libgnunetgns_la_DEPENDENCIES = \
 
 libgnunetgns_common_la_SOURCES = \
  gns_common.c gns_common.h
+libgnunetgns_common_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS)
 libgnunetgns_common_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la 
 libgnunetgns_common_la_DEPENDENCIES = \
