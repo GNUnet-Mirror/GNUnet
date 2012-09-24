@@ -70,6 +70,9 @@ DEFAULT_INTERFACE="\"eth0\""
 
 funcstocheck="getnameinfo gethostname gethostbyname gethostbyaddr getaddrinfo"
 
+# Srcdir in a form that native compiler understands (i.e. DOS path on W32)
+native_srcdir=$srcdir
+
 # Check system type
 case "$host_os" in
 *darwin* | *rhapsody* | *macosx*)
@@ -161,6 +164,7 @@ netbsd*)
      DLLDIR=bin
      UNIXONLY=""
      funcstocheck=""
+     native_srcdir=$(cd $srcdir; pwd -W)
      ;;
 gnu*)
      AC_DEFINE_UNQUOTED(GNU,1,[This is a GNU system])
@@ -617,15 +621,15 @@ AC_ARG_WITH(microhttpd,
             AC_CHECK_LIB([microhttpd], [MHD_start_daemon],
               [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.18])
               AC_RUN_IFELSE([
-                #include "$srcdir/src/include/platform.h"
+                #include "$native_srcdir/src/include/platform.h"
                 #include <microhttpd.h>
                 int main () { return MHD_VERSION >= 0x0091200 ? 0 : 1; }
                ], [
                AC_MSG_RESULT(ok)
                lmhd=1],[AC_MSG_RESULT(failed)],lmhd=1)]),
-	    [],[#include "$srcdir/src/include/platform.h"
+	    [],[#include "$native_srcdir/src/include/platform.h"
                 #include <microhttpd.h>]),,
-            [#include "$srcdir/src/include/platform.h"])
+            [#include "$native_srcdir/src/include/platform.h"])
         ;;
       *)
         LDFLAGS="-L$with_microhttpd/lib $LDFLAGS"
@@ -636,15 +640,15 @@ AC_ARG_WITH(microhttpd,
               EXT_LIB_PATH="-L$with_microhttpd/lib $EXT_LIB_PATH"
               [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.18])
                AC_RUN_IFELSE([
-                #include "$srcdir/src/include/platform.h"
+                #include "$native_srcdir/src/include/platform.h"
                 #include <microhttpd.h>
                 int main () { return MHD_VERSION >= 0x0091200 ? 0 : 1; }
                ], [
                AC_MSG_RESULT(ok)
                lmhd=1],[AC_MSG_RESULT(failed)],lmhd=1)]),
-	    [],[#include "$srcdir/src/include/platform.h"
+	    [],[#include "$native_srcdir/src/include/platform.h"
                 #include <microhttpd.h>]),,
-            [#include "$srcdir/src/include/platform.h"])
+            [#include "$native_srcdir/src/include/platform.h"])
         ;;
     esac
    ],
@@ -654,15 +658,15 @@ AC_ARG_WITH(microhttpd,
         AC_CHECK_LIB([microhttpd], [MHD_start_daemon],
           [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.18])
               AC_RUN_IFELSE([
-                #include "$srcdir/src/include/platform.h"
+                #include "$native_srcdir/src/include/platform.h"
 		#include <microhttpd.h>
                 int main () { return MHD_VERSION >= 0x0091200 ? 0 : 1; }
                ], [
                AC_MSG_RESULT(ok)
                lmhd=1],[AC_MSG_RESULT(failed)],lmhd=1)]),
-	[],[#include "$srcdir/src/include/platform.h"
+	[],[#include "$native_srcdir/src/include/platform.h"
             #include <microhttpd.h>]),,
-       [#include "$srcdir/src/include/platform.h"])])
+       [#include "$native_srcdir/src/include/platform.h"])])
 AM_CONDITIONAL(HAVE_MHD, test x$lmhd = x1)
 AC_DEFINE_UNQUOTED([HAVE_MHD], $lmhd, [We have libmicrohttpd])
 
