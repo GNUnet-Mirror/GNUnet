@@ -102,8 +102,6 @@ src/fs/gnunet-service-fs_push.c
 src/fs/gnunet-service-fs_put.c
 src/fs/gnunet-unindex.c
 src/fs/plugin_block_fs.c
-src/gns/gnocksy/gnocksy.c
-src/gns/gnocksy/gns_glue.c
 src/gns/gns_api.c
 src/gns/gnunet-gns.c
 src/gns/gnunet-gns-fcfsd.c
