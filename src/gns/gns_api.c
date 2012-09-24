@@ -342,7 +342,10 @@ force_reconnect (struct GNUNET_GNS_Handle *h)
 /**
  * Transmit the next pending message, called by notify_transmit_ready
  *
- * @param fixme
+ * @param cls the closure
+ * @param size size of pending data
+ * @param buf buffer with pending data
+ * @return size data transmitted
  */
 static size_t
 transmit_pending (void *cls, size_t size, void *buf);
@@ -361,7 +364,7 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg);
 /**
  * Try to send messages from list of messages to send
  *
- * @param fixme
+ * @param handle the GNS handle
  */
 static void
 process_pending_messages (struct GNUNET_GNS_Handle *handle)
@@ -394,7 +397,10 @@ process_pending_messages (struct GNUNET_GNS_Handle *handle)
 /**
  * Transmit the next pending message, called by notify_transmit_ready
  *
- * @param fixme
+ * @param cls the closure
+ * @param size size of pending data
+ * @param buf buffer with pending data
+ * @return size data transmitted
  */
 static size_t
 transmit_pending (void *cls, size_t size, void *buf)

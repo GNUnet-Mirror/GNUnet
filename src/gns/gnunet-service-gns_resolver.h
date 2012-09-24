@@ -368,8 +368,6 @@ gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
 
 /**
  * Cleanup resolver: Terminate pending lookups
- * 
- * @param cont continuation to call when finished
  */
 void
 gns_resolver_cleanup(void);
