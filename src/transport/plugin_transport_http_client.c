@@ -449,7 +449,7 @@ http_client_plugin_send (void *cls,
     return GNUNET_SYSERR;
   }
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
                    "Session %p/connection %p: Sending message with %u to peer `%s' with \n",
                    s, s->client_put,
                    msgbuf_size, GNUNET_i2s (&s->target));
@@ -467,7 +467,7 @@ http_client_plugin_send (void *cls,
 
   if (GNUNET_YES == s->put_tmp_disconnected)
   {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
                        "Session %p: Reconnecting PUT connection\n",
                        s);
       s->put_tmp_disconnected = GNUNET_NO;
@@ -482,7 +482,7 @@ http_client_plugin_send (void *cls,
     GNUNET_assert (s->put_disconnect_task != GNUNET_SCHEDULER_NO_TASK);
     GNUNET_SCHEDULER_cancel (s->put_disconnect_task);
     s->put_disconnect_task = GNUNET_SCHEDULER_NO_TASK;
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
                      "Session %p/connection %p: unpausing connection\n",
                      s, s->client_put);
     s->put_paused = GNUNET_NO;
@@ -1149,13 +1149,13 @@ client_connect_put (struct Session *s)
   /* create put connection */
   if (NULL == s->client_put)
   {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
                        "Session %p : Init PUT handle \n", s);
     s->client_put = curl_easy_init ();
   }
   else
   {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, s->plugin->name,
                        "Session %p : Reusing PUT handle %p \n", s, s->client_put);
   }
 #if VERBOSE_CURL
