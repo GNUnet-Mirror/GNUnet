@@ -2001,6 +2001,7 @@ occ_cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   LOG_DEBUG ("Cleaning up occ\n");
   GNUNET_free_non_null (occ->emsg);
   GNUNET_free_non_null (occ->hello);
+  GNUNET_SERVER_client_drop (occ->client);
   if (NULL != occ->opc)
     GNUNET_TESTBED_forward_operation_msg_cancel_ (occ->opc);
   if (GNUNET_SCHEDULER_NO_TASK != occ->send_hello_task)
@@ -2031,7 +2032,6 @@ timeout_overlay_connect (void *cls,
 
   occ->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   send_operation_fail_msg (occ->client, occ->op_id, occ->emsg);
-  GNUNET_SERVER_client_drop (occ->client);
   occ_cleanup (occ, tc);
 }
 
@@ -2100,7 +2100,6 @@ overlay_connect_notify (void *cls, const struct GNUNET_PeerIdentity *new_peer,
   msg->peer2 = htonl (occ->other_peer->id);
   msg->operation_id = GNUNET_htonll (occ->op_id);
   queue_message (occ->client, &msg->header);
-  GNUNET_SERVER_client_drop (occ->client);
   GNUNET_SCHEDULER_add_now (&occ_cleanup, occ);
 }
 
@@ -2333,6 +2332,8 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
   const struct GNUNET_CORE_MessageHandler no_handlers[] = {
     {NULL, 0, 0}
   };
+  struct Peer *peer;
+  uint64_t operation_id;
   uint32_t p1;
   uint32_t p2;
 
@@ -2341,11 +2342,27 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
   p2 = ntohl (msg->peer2);
   GNUNET_assert (p1 < peer_list_size);
   GNUNET_assert (NULL != peer_list[p1]);
-  GNUNET_assert (p2 < peer_list_size);
-  GNUNET_assert (NULL != peer_list[p2]);
-  /* FIXME: Add cases where we have to forward overlay connect message to sub
-   * controllers */
-  GNUNET_assert (GNUNET_NO == peer_list[p1]->is_remote);
+  peer = peer_list[p1];
+  operation_id = GNUNET_ntohll (msg->operation_id);
+  if (GNUNET_YES == peer->is_remote)
+  {
+    struct ForwardedOperationContext *fopc;
+
+    fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+    GNUNET_SERVER_client_keep (client);
+    fopc->client = client;
+    fopc->operation_id = operation_id;
+    fopc->opc = 
+	GNUNET_TESTBED_forward_operation_msg_ (peer->details.remote.controller,
+					       operation_id, message,
+					       &forwarded_operation_reply_relay,
+					       fopc);
+    fopc->timeout_task =
+	GNUNET_SCHEDULER_add_delayed (TIMEOUT, &forwarded_operation_timeout,
+				      fopc);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
   occ = GNUNET_malloc (sizeof (struct OverlayConnectContext));
   GNUNET_SERVER_client_keep (client);
   occ->client = client;
