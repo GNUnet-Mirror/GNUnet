@@ -699,7 +699,7 @@ TESTBED_realloc (void *ptr, size_t size, size_t new_size)
 {
   ptr = GNUNET_realloc (ptr, new_size);
   if (new_size > size)
-    ptr = memset (ptr + size, 0, new_size - size);
+    (void) memset (ptr + size, 0, new_size - size);
   return ptr;
 }
 
@@ -796,7 +796,7 @@ peer_list_add (struct Peer *peer)
     peer_list =
         TESTBED_realloc (peer_list, sizeof (struct Peer *) * orig_size,
                          sizeof (struct Peer *) * peer_list_size);
-  }
+  }  
   GNUNET_assert (NULL == peer_list[peer->id]);
   peer_list[peer->id] = peer;
 }
