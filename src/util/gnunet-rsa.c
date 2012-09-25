@@ -48,6 +48,10 @@ static int print_short_identity;
  */
 static int weak_random;
 
+/**
+ * Option set to create a bunch of keys at once.
+ */
+static unsigned int make_keys;
 
 /**
  * The private information of an RSA key pair.
@@ -89,6 +93,59 @@ GNUNET_CRYPTO_rsa_key_create ()
 
 
 /**
+ * Create a flat file with a large number of key pairs for testing.
+ */
+static void
+create_keys (const char *fn)
+{
+  time_t start;
+  struct GNUNET_HashCode hc;
+  struct GNUNET_HashCode h2;
+  struct GNUNET_HashCode h3;
+  FILE *f;
+  struct GNUNET_CRYPTO_RsaPrivateKey *pk;
+  struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *enc;
+
+  start = time (NULL);
+  GNUNET_CRYPTO_hash (&start, sizeof (start), &hc);
+  if (NULL == (f = fopen (fn, "w+")))
+    {
+      fprintf (stderr,
+	       _("Failed to open `%s': %s\n"),
+	       fn,
+	       STRERROR (errno));
+      return;
+    }
+  fprintf (stderr,
+	   _("Generating %u keys, please wait"),
+	   make_keys);
+  while (0 < make_keys--)
+  {    
+    fprintf (stderr,
+	     ".");
+    GNUNET_CRYPTO_hash (&make_keys, sizeof (make_keys), &h2);
+    GNUNET_CRYPTO_hash (&hc, sizeof (hc), &h3);
+    GNUNET_CRYPTO_hash_xor (&h2, &h3, &hc);
+    pk = GNUNET_CRYPTO_rsa_key_create_from_hash (&hc);
+    enc = GNUNET_CRYPTO_rsa_encode_key (pk);
+    if (htons (enc->len) != fwrite (enc, 1, htons (enc->len), f))
+      {
+	fprintf (stderr,
+		 _("\nFailed to write to `%s': %s\n"),
+		 fn,
+		 STRERROR (errno));
+	break;
+      }
+    GNUNET_CRYPTO_rsa_key_free (pk);
+  }
+  if (0 == make_keys)
+    fprintf (stderr,
+	     _("Finished!\n"));
+  fclose (f);
+}
+
+
+/**
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
@@ -111,6 +168,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   if (0 != weak_random)    
     GNUNET_CRYPTO_random_disable_entropy_gathering ();  
+  if (make_keys > 0)
+  {
+    create_keys (args[0]);
+    return;
+  }
   pk = GNUNET_CRYPTO_rsa_key_create_from_file (args[0]);
   if (NULL == pk)
     return;
@@ -157,6 +219,9 @@ int
 main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    { 'g', "generate-keys", "COUNT",
+      gettext_noop ("create COUNT public-private key pairs (for testing)"),
+      1, &GNUNET_GETOPT_set_uint, &make_keys },
     { 'p', "print-public-key", NULL,
       gettext_noop ("print the public key in ASCII format"),
       0, &GNUNET_GETOPT_set_one, &print_public_key },
