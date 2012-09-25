@@ -341,6 +341,7 @@ opstart_overlay_connect (void *cls)
   msg->peer1 = htonl (data->p1->unique_id);
   msg->peer2 = htonl (data->p2->unique_id);
   msg->operation_id = GNUNET_htonll (opc->id);
+  msg->peer2_host_id = htonl (GNUNET_TESTBED_host_get_id_ (data->p2->host));
   GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
   GNUNET_TESTBED_queue_message_ (opc->c, &msg->header);
 }

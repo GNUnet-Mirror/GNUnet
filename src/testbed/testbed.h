@@ -397,6 +397,11 @@ struct GNUNET_TESTBED_OverlayConnectMessage
    */
   uint32_t peer2 GNUNET_PACKED;
 
+  /**
+   * The ID of the host which runs peer2
+   */
+  uint32_t peer2_host_id GNUNET_PACKED;
+
 };
 
 

@@ -1400,7 +1400,8 @@ handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
   if ((delegated_host_id >= host_list_size) ||
       (NULL == host_list[delegated_host_id]))
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Delegated host not registered with us\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+	 "Delegated host %u not registered with us\n", delegated_host_id);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
