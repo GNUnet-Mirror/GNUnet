@@ -221,13 +221,25 @@ fi
 
 # libgcrypt
 gcrypt=0
-AM_PATH_LIBGCRYPT(1.2.0, gcrypt=1)
+NEED_LIBGCRYPT_API=1
+NEED_LIBGCRYPT_VERSION=1.4.2
+
+
+AM_PATH_LIBGCRYPT("$NEED_LIBGCRYPT_API:$NEED_LIBGCRYPT_VERSION", gcrypt=1)
 AC_CHECK_DECLS([gcry_mpi_lshift], [], [], [[#include <gcrypt.h>]])
 
 if test $gcrypt = 0
 then
-  AC_MSG_ERROR([GNUnet needs libgcrypt])
+  AC_MSG_ERROR([[
+***
+*** You need libgcrypt to build this program.
+**  This library is for example available at
+***   ftp://ftp.gnupg.org/gcrypt/libgcrypt/
+*** (at least version $NEED_LIBGCRYPT_VERSION (API $NEED_LIBGCRYPT_API) 
+***  is required.)
+***]])
 fi
+AC_DEFINE_UNQUOTED([NEED_LIBGCRYPT_VERSION], "$NEED_LIBGCRYPT_VERSION", [required libgcrypt version])
 
 # Adam shostack suggests the following for Windows:
 # -D_FORTIFY_SOURCE=2 -fstack-protector-all
