@@ -788,7 +788,7 @@ unix_plugin_send (void *cls,
   GNUNET_CONTAINER_DLL_insert(plugin->msg_head, plugin->msg_tail, wrapper);
 
   plugin->bytes_in_queue += ssize;
-  GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes in send queue",
+  GNUNET_STATISTICS_set (plugin->env->stats,"# bytes currently in UNIX buffers",
       plugin->bytes_in_queue, GNUNET_NO);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Sent %d bytes to `%s'\n", ssize,
@@ -830,8 +830,10 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received message from %s\n",
               un->sun_path);
 
+
+
   plugin->bytes_in_recv += ntohs(currhdr->size);
-  GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes received",
+  GNUNET_STATISTICS_set (plugin->env->stats,"# bytes received via UNIX",
       plugin->bytes_in_recv, GNUNET_NO);
 
   addr = GNUNET_HELLO_address_allocate(sender, "unix", un->sun_path, strlen (un->sun_path) + 1);
@@ -958,7 +960,7 @@ unix_plugin_select_write (struct Plugin * plugin)
 
     GNUNET_assert (plugin->bytes_in_queue >= msgw->msgsize);
     plugin->bytes_in_queue -= msgw->msgsize;
-    GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes in send queue",
+    GNUNET_STATISTICS_set (plugin->env->stats, "# bytes currently in UNIX buffers",
         plugin->bytes_in_queue, GNUNET_NO);
     plugin->bytes_discarded += msgw->msgsize;
     GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes discarded",
@@ -976,10 +978,10 @@ unix_plugin_select_write (struct Plugin * plugin)
 
     GNUNET_assert (plugin->bytes_in_queue >= msgw->msgsize);
     plugin->bytes_in_queue -= msgw->msgsize;
-    GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes in send queue",
+    GNUNET_STATISTICS_set (plugin->env->stats,"# bytes currently in UNIX buffers",
         plugin->bytes_in_queue, GNUNET_NO);
     plugin->bytes_in_sent += msgw->msgsize;
-    GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes sent",
+    GNUNET_STATISTICS_set (plugin->env->stats,"# bytes transmitted via UNIX",
         plugin->bytes_in_sent, GNUNET_NO);
 
     GNUNET_free (msgw->msg);
