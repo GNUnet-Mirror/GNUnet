@@ -1013,7 +1013,7 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct HTTP_Client_Plugin *plugin = cls;
   int running;
-  int http_statuscode;
+  long http_statuscode;
   CURLMcode mret;
 
   GNUNET_assert (cls != NULL);
