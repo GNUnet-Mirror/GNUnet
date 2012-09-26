@@ -25,6 +25,64 @@
  */
 #include "platform.h"
 #include "gnunet_testbed_service.h"
+#include "testbed_api.h"
+#include "testbed_api_peers.h"
+#include "testbed_api_operations.h"
+
+
+/**
+ * Representation of an overlay link
+ */
+struct OverlayLink
+{
+  /**
+   * Peer A
+   */
+  struct GNUNET_TESTBED_Peer *A;
+
+  /**
+   * Peer B
+   */
+  struct GNUNET_TESTBED_Peer *B;
+
+};
+
+
+/**
+ * Context information for topology operations
+ */
+struct TopologyContext
+{
+  /**
+   * An array of links
+   */
+  struct OverlayLink *link_array;
+  
+};
+
+
+/**
+ * Function called when a overlay connect operation is ready
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void
+opstart_overlay_configure_topology (void *cls)
+{
+  GNUNET_break (0);
+}
+
+
+/**
+ * Callback which will be called when overlay connect operation is released
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void
+oprelease_overlay_configure_topology (void *cls)
+{
+  GNUNET_break (0);
+}
 
 
 /**
@@ -87,17 +145,43 @@ GNUNET_TESTBED_underlay_configure_topology (void *op_cls,
  * @param va topology-specific options
  * @return handle to the operation, NULL if connecting these
  *         peers is fundamentally not possible at this time (peers
- *         not running or underlay disallows)
+ *         not running or underlay disallows) or if num_peers is less than 2
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
                                               unsigned int num_peers,
-                                              struct GNUNET_TESTBED_Peer *peers,
+                                              struct GNUNET_TESTBED_Peer **peers,
                                               enum GNUNET_TESTBED_TopologyOption
                                               topo, va_list va)
 {
-  GNUNET_break (0);
-  return NULL;
+  struct OverlayLink *link_array;
+  struct GNUNET_TESTBED_Operation *op;
+  struct GNUNET_TESTBED_Controller *c;
+  unsigned int p;
+
+  if (num_peers < 2)
+    return NULL;
+  c = peers[0]->controller;
+  switch (topo)
+  {
+  case GNUNET_TESTBED_TOPOLOGY_LINE:
+    link_array = GNUNET_malloc (sizeof (struct OverlayLink) * (num_peers - 1));
+    for (p=1; p < num_peers; p++)
+    {
+      link_array[p-1].A = peers[p-1];
+      link_array[p-1].B = peers[p];
+    }
+    break;
+  default:
+    GNUNET_break (0);
+    return NULL;
+  }
+  op = GNUNET_TESTBED_operation_create_ (link_array,
+					 &opstart_overlay_configure_topology,
+					 &oprelease_overlay_configure_topology);
+  GNUNET_TESTBED_operation_queue_insert_
+      (c->opq_parallel_topology_config_operations, op);
+  return op;
 }
 
 
@@ -113,16 +197,22 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
  * @param ... topology-specific options
  * @return handle to the operation, NULL if connecting these
  *         peers is fundamentally not possible at this time (peers
- *         not running or underlay disallows)
+ *         not running or underlay disallows) or if num_peers is less than 2
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_overlay_configure_topology (void *op_cls, unsigned int num_peers,
-                                           struct GNUNET_TESTBED_Peer *peers,
+                                           struct GNUNET_TESTBED_Peer **peers,
                                            enum GNUNET_TESTBED_TopologyOption
                                            topo, ...)
 {
-  GNUNET_break (0);
-  return NULL;
+  struct GNUNET_TESTBED_Operation *op;
+  va_list vargs;
+
+  va_start (vargs, topo);
+  op = GNUNET_TESTBED_overlay_configure_topology_va (op_cls, num_peers, peers,
+						     topo, vargs);
+  va_end (vargs);
+  return op;
 }
 
 /* end of testbed_api_topology.c */

@@ -287,6 +287,11 @@ struct GNUNET_TESTBED_Controller
   struct OperationQueue *opq_parallel_service_connections;
 
   /**
+   * Operation queue for simultaneous topology configuration operations
+   */
+  struct OperationQueue *opq_parallel_topology_config_operations;
+
+  /**
    * The operation id counter. use current value and increment
    */
   uint64_t operation_counter;
