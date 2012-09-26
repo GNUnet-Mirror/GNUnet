@@ -85,15 +85,20 @@ key_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
       transition_counter++;
   }
 
-  GNUNET_free (state_id);
-
   for (i = 0; i < ctx->string_count; i++)
   {
     if (0 == strcmp (proof, ctx->strings[i]))
       ctx->match_count++;
   }
 
-  ctx->error += (GNUNET_OK == GNUNET_REGEX_check_proof (proof, key)) ? 0 : 1;
+  if (GNUNET_OK != GNUNET_REGEX_check_proof (proof, key))
+  {
+    ctx->error++;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Proof check failed: proof: %s key: %s\n", proof, state_id);
+  }
+
+  GNUNET_free (state_id);
 }
 
 int
@@ -111,12 +116,12 @@ main (int argc, char *argv[])
   struct GNUNET_REGEX_Automaton *dfa;
   unsigned int i;
   unsigned int num_transitions;
-  struct IteratorContext ctx = { 0, 0, NULL };
   char *filename = NULL;
+  struct IteratorContext ctx = { 0, 0, NULL, 0, NULL, 0 };
 
   error = 0;
 
-  const struct RegexStringPair rxstr[10] = {
+  const struct RegexStringPair rxstr[14] = {
     {"ab(c|d)+c*(a(b|c)+d)+(bla)+", 2, {"abcdcdca", "abcabdbl"}},
     {"abcdefghijklmnop*qst", 1, {"abcdefgh"}},
     {"VPN-4-1(0|1)*", 2, {"VPN-4-10", "VPN-4-11"}},
@@ -128,13 +133,17 @@ main (int argc, char *argv[])
     {"xyz*", 2, {"xy", "xyz"}},
     {"ab", 1, {"a"}},
     {"abcd:(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1):(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)", 2, {"abcd:000", "abcd:101"}},
-    {"x*|(0|1|2)(a|b|c|d)", 2, {"xxxxxxxx", "0a"}}
+    {"x*|(0|1|2)(a|b|c|d)", 2, {"xxxxxxxx", "0a"}},
+    {"(0|1)(0|1)23456789ABC", 1, {"11234567"}},
+    {"0*123456789ABC*", 3, {"00123456", "00000000", "12345678"}},
+    {"0123456789A*BC", 1, {"01234567"}},
+    {"GNUNETVPN000100000IPEX6-fc5a:4e1:c2ba::1", 1, {"GNUNETVP"}}
   };
 
   const char *graph_start_str = "digraph G {\nrankdir=LR\n";
   const char *graph_end_str = "\n}\n";
 
-  for (i = 0; i < 10; i++)
+  for (i = 0; i < 14; i++)
   {
     // Create graph
     if (GNUNET_YES == GNUNET_REGEX_ITERATE_SAVE_DEBUG_GRAPH)
@@ -158,6 +167,7 @@ main (int argc, char *argv[])
     else
     {
       ctx.should_save_graph = GNUNET_NO;
+      ctx.graph_filep = NULL;
     }
 
     // Iterate over DFA edges
@@ -187,7 +197,7 @@ main (int argc, char *argv[])
     else if (ctx.match_count > ctx.string_count)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Doublicate initial transitions for regex %s\n",
+                  "Duplicate initial transitions for regex %s\n",
                   rxstr[i].regex);
       error += (ctx.string_count - ctx.match_count);
     }
@@ -207,6 +217,10 @@ main (int argc, char *argv[])
 
   for (i = 0; i < 10; i++)
   {
+    ctx.string_count = rxstr[i].string_count;
+    ctx.strings = rxstr[i].strings;
+    ctx.match_count = 0;
+
     dfa = GNUNET_REGEX_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex));
     GNUNET_REGEX_dfa_add_multi_strides (NULL, dfa, 2);
     GNUNET_REGEX_iterate_all_edges (dfa, key_iterator, &ctx);

@@ -2816,7 +2816,9 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
   struct GNUNET_REGEX_Transition *t;
   unsigned int num_edges = state->transition_count;
   struct GNUNET_REGEX_Edge edges[num_edges];
+  struct GNUNET_REGEX_Edge edge[1];
   struct GNUNET_HashCode hash;
+  struct GNUNET_HashCode hash_new;
 
   unsigned int cur_len;
 
@@ -2825,9 +2827,8 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
   else
     cur_len = 0;
 
-  if (cur_len > min_len && NULL != consumed_string)
+  if (cur_len >= min_len && cur_len > 0 && NULL != consumed_string)
   {
-
     if (cur_len <= max_len)
     {
       for (i = 0, t = state->transitions_head; NULL != t && i < num_edges;
@@ -2841,27 +2842,28 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
       iterator (iterator_cls, &hash, consumed_string, state->accepting,
                 num_edges, edges);
 
-      // Special case for regex consisting of just a string that is shorter than max_len
+      // Special case for regex consisting of just a string that is shorter than
+      // max_len
       if (GNUNET_YES == state->accepting && cur_len > 1 &&
-          state->transition_count < 1)
+          state->transition_count < 1 && cur_len < max_len)
       {
-        edges[0].label = &consumed_string[cur_len - 1];
-        edges[0].destination = state->hash;
+        edge[0].label = &consumed_string[cur_len - 1];
+        edge[0].destination = state->hash;
         temp = GNUNET_strdup (consumed_string);
         temp[cur_len - 1] = '\0';
-        GNUNET_CRYPTO_hash (temp, cur_len - 1, &hash);
-        iterator (iterator_cls, &hash, temp, GNUNET_NO, 1, edges);
+        GNUNET_CRYPTO_hash (temp, cur_len - 1, &hash_new);
+        iterator (iterator_cls, &hash_new, temp, GNUNET_NO, 1, edge);
         GNUNET_free (temp);
       }
     }
-    else
+    else if (max_len < cur_len)
     {
-      edges[0].label = &consumed_string[max_len];
-      edges[0].destination = state->hash;
+      edge[0].label = &consumed_string[max_len];
+      edge[0].destination = state->hash;
       temp = GNUNET_strdup (consumed_string);
       temp[max_len] = '\0';
       GNUNET_CRYPTO_hash (temp, max_len, &hash);
-      iterator (iterator_cls, &hash, temp, GNUNET_NO, 1, edges);
+      iterator (iterator_cls, &hash, temp, GNUNET_NO, 1, edge);
       GNUNET_free (temp);
     }
   }
