@@ -47,12 +47,12 @@ struct MeshPeer
 /**
  * How long until we give up on connecting the peers?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1500)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
 
 /**
  * Time to wait for stuff that should be rather fast
  */
-#define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
+#define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
  * DIFFERENT TESTS TO RUN
@@ -126,7 +126,7 @@ static struct GNUNET_DISK_FileHandle *output_file;
 static struct GNUNET_DISK_FileHandle *data_file;
 
 /**
- * How many data points to capture before triggering next round?
+ * Wait time
  */
 static struct GNUNET_TIME_Relative wait_time;
 
@@ -637,7 +637,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "add peer 2\n");
   GNUNET_MESH_peer_request_connect_add (t, &d2->id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "schedule timeout in 90s\n");
+              "schedule timeout in SHORT_TIME\n");
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
