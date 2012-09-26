@@ -706,6 +706,7 @@ fragment_transmission_done (void *cls,
 {
   struct FragmentMessage *fm = cls;
 
+
   fm->sh = NULL;
   GNUNET_FRAGMENT_context_transmission_done (fm->fragcontext);
 }
@@ -749,6 +750,12 @@ transmit_fragment (void *cls,
 				1, GNUNET_NO);
     else
       GNUNET_FRAGMENT_context_transmission_done (fm->fragcontext);
+    GNUNET_STATISTICS_update (endpoint->plugin->env->stats,
+                              "# bytes currently in WLAN buffers",
+                              -msize, GNUNET_NO);
+    GNUNET_STATISTICS_update (endpoint->plugin->env->stats,
+                              "# bytes transmitted via WLAN",
+                              msize, GNUNET_NO);
   }
 }
 
@@ -1063,6 +1070,11 @@ wlan_plugin_send (void *cls,
   wlanheader->target = session->target;
   wlanheader->crc = htonl (GNUNET_CRYPTO_crc32_n (msgbuf, msgbuf_size));
   memcpy (&wlanheader[1], msgbuf, msgbuf_size);
+
+  GNUNET_STATISTICS_update (plugin->env->stats,
+                            "# bytes currently in WLAN buffers",
+                            msgbuf_size, GNUNET_NO);
+
   send_with_fragmentation (session->mac,
 			   to,
 			   &session->target,
@@ -1099,6 +1111,11 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   ats[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
   ats[1].value = htonl (GNUNET_ATS_NET_WLAN);
   msize = ntohs (hdr->size);
+
+  GNUNET_STATISTICS_update (plugin->env->stats,
+                            "# bytes received via WLAN",
+                            msize, GNUNET_NO);
+
   switch (ntohs (hdr->type))
   {
   case GNUNET_MESSAGE_TYPE_HELLO:
