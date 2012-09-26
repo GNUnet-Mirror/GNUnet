@@ -4451,6 +4451,7 @@ send_core_path_create (void *cls, size_t size, void *buf)
   if (GNUNET_YES == t->nobuffer)
     opt |= MESH_TUNNEL_OPT_NOBUFFER;
   msg->opt = htonl(opt);
+  msg->reserved = 0;
 
   peer_ptr = (struct GNUNET_PeerIdentity *) &msg[1];
   for (i = 0; i < p->length; i++)
