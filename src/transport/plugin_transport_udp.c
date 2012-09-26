@@ -1233,6 +1233,10 @@ udp_plugin_send (void *cls,
        GNUNET_i2s (&s->target),
        GNUNET_a2s(s->sock_addr, s->addrlen));
   
+  GNUNET_STATISTICS_update (plugin->env->stats,
+                            "# bytes currently in UDP buffers",
+                            msgbuf_size, GNUNET_NO);
+
   /* Message */
   udp = (struct UDPMessage *) mbuf;
   udp->header.size = htons (mlen);
@@ -1816,6 +1820,10 @@ udp_select_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
     return;
   }
 
+  GNUNET_STATISTICS_update (plugin->env->stats,
+                            "# bytes received via UDP",
+                            size, GNUNET_NO);
+
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON:
@@ -1867,7 +1875,7 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
   const struct sockaddr * sa = udpw->session->sock_addr;
   slen = udpw->session->addrlen;
 
-  max = GNUNET_TIME_absolute_max(udpw->timeout, GNUNET_TIME_absolute_get());
+  max = GNUNET_TIME_absolute_max (udpw->timeout, GNUNET_TIME_absolute_get());
 
   while (udpw != NULL)
   {
@@ -1880,7 +1888,7 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
         LOG (GNUNET_ERROR_TYPE_DEBUG,
 	     "Fragmented message for peer `%s' with size %u timed out\n",
 	     GNUNET_i2s(&udpw->session->target), udpw->frag_ctx->bytes_to_send);
-        udpw->session->last_expected_delay = GNUNET_FRAGMENT_context_destroy(udpw->frag_ctx->frag);
+        udpw->session->last_expected_delay = GNUNET_FRAGMENT_context_destroy (udpw->frag_ctx->frag);
         GNUNET_free (udpw->frag_ctx);
         udpw->session->frag_ctx = NULL;
       }
@@ -1985,9 +1993,16 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
          "UDP transmitted %u-byte message to `%s' (%d: %s)\n",
          (unsigned int) (udpw->msg_size), GNUNET_a2s (sa, slen), (int) sent,
          (sent < 0) ? STRERROR (errno) : "ok");
+    GNUNET_STATISTICS_update (plugin->env->stats,
+                              "# bytes transmitted via UDP",
+                              sent, GNUNET_NO);
     call_continuation(udpw, GNUNET_OK);
     network_down_error = GNUNET_NO;
   }
+
+  GNUNET_STATISTICS_update (plugin->env->stats,
+                            "# bytes currently in UDP buffers",
+                            -udpw->msg_size, GNUNET_NO);
 
   if (sock == plugin->sockv4)
     GNUNET_CONTAINER_DLL_remove(plugin->ipv4_queue_head, plugin->ipv4_queue_tail, udpw);

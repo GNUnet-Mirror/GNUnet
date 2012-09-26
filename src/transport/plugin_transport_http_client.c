@@ -443,6 +443,7 @@ http_client_plugin_send (void *cls,
 {
   struct HTTP_Client_Plugin *plugin = cls;
   struct HTTP_Message *msg;
+  char *stat_txt;
 
   GNUNET_assert (plugin != NULL);
   GNUNET_assert (s != NULL);
@@ -469,6 +470,12 @@ http_client_plugin_send (void *cls,
   msg->transmit_cont_cls = cont_cls;
   memcpy (msg->buf, msgbuf, msgbuf_size);
   GNUNET_CONTAINER_DLL_insert_tail (s->msg_head, s->msg_tail, msg);
+
+  GNUNET_asprintf (&stat_txt, "# bytes currently in %s_client buffers", plugin->protocol);
+  GNUNET_STATISTICS_update (plugin->env->stats,
+                            stat_txt, msgbuf_size, GNUNET_NO);
+
+  GNUNET_free (stat_txt);
 
   if (GNUNET_YES == s->put_tmp_disconnecting)
   {
@@ -737,6 +744,7 @@ client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
   struct HTTP_Client_Plugin *plugin = s->plugin;
   struct HTTP_Message *msg = s->msg_head;
   size_t len;
+  char *stat_txt;
 
   if (GNUNET_YES != client_exist_session (plugin, s))
   {
@@ -779,6 +787,17 @@ client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
       msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_OK);
     GNUNET_free (msg);
   }
+
+  GNUNET_asprintf (&stat_txt, "# bytes currently in %s_client buffers", plugin->protocol);
+  GNUNET_STATISTICS_update (plugin->env->stats,
+                            stat_txt, -len, GNUNET_NO);
+  GNUNET_free (stat_txt);
+
+  GNUNET_asprintf (&stat_txt, "# bytes transmitted via %s_client", plugin->protocol);
+  GNUNET_STATISTICS_update (plugin->env->stats,
+                            stat_txt, len, GNUNET_NO);
+  GNUNET_free (stat_txt);
+
   client_reschedule_session_timeout (s);
   return len;
 }
@@ -826,6 +845,7 @@ client_receive_mst_cb (void *cls, void *client,
   struct HTTP_Client_Plugin *plugin;
   struct GNUNET_TIME_Relative delay;
   struct GNUNET_ATS_Information atsi[2];
+  char *stat_txt;
   if (GNUNET_YES != client_exist_session(p, s))
   {
     GNUNET_break (0);
@@ -842,6 +862,11 @@ client_receive_mst_cb (void *cls, void *client,
   delay = s->plugin->env->receive (plugin->env->cls, &s->target, message,
                                    (const struct GNUNET_ATS_Information *) &atsi, 2,
                                    s, s->addr, s->addrlen);
+
+  GNUNET_asprintf (&stat_txt, "# bytes received via %s_client", plugin->protocol);
+  GNUNET_STATISTICS_update (plugin->env->stats,
+                            stat_txt, ntohs(message->size), GNUNET_NO);
+  GNUNET_free (stat_txt);
 
   s->next_receive =
       GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (), delay);

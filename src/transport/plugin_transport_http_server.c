@@ -510,6 +510,7 @@ http_server_plugin_send (void *cls,
   struct HTTP_Server_Plugin *plugin = cls;
   struct HTTP_Message *msg;
   int bytes_sent = 0;
+  char *stat_txt;
 
   GNUNET_assert (plugin != NULL);
   GNUNET_assert (session != NULL);
@@ -546,6 +547,11 @@ http_server_plugin_send (void *cls,
   memcpy (msg->buf, msgbuf, msgbuf_size);
 
   GNUNET_CONTAINER_DLL_insert_tail (session->msg_head, session->msg_tail, msg);
+
+  GNUNET_asprintf (&stat_txt, "# bytes currently in %s_server buffers", plugin->protocol);
+  GNUNET_STATISTICS_update (plugin->env->stats,
+                            stat_txt, msgbuf_size, GNUNET_NO);
+  GNUNET_free (stat_txt);
 
   server_reschedule (session->plugin, session->server_send->mhd_daemon, GNUNET_YES);
   server_reschedule_session_timeout (session);
@@ -1170,6 +1176,7 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
   struct Session *s = cls;
   ssize_t bytes_read = 0;
   struct HTTP_Message *msg;
+  char *stat_txt;
 
   GNUNET_assert (NULL != p);
   if (GNUNET_NO == server_exist_session (p, s))
@@ -1193,8 +1200,18 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
     }
   }
   if (0 < bytes_read)
+  {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
                    "Sent %u bytes to peer `%s' with session %p \n", bytes_read, GNUNET_i2s (&s->target), s);
+    GNUNET_asprintf (&stat_txt, "# bytes currently in %s_server buffers", p->protocol);
+    GNUNET_STATISTICS_update (p->env->stats,
+                              stat_txt, -bytes_read, GNUNET_NO);
+    GNUNET_free (stat_txt);
+    GNUNET_asprintf (&stat_txt, "# bytes transmitted via %s_server", p->protocol);
+    GNUNET_STATISTICS_update (p->env->stats,
+                              stat_txt, bytes_read, GNUNET_NO);
+    GNUNET_free (stat_txt);
+  }
   return bytes_read;
 }
 
@@ -1214,6 +1231,7 @@ server_receive_mst_cb (void *cls, void *client,
   struct Session *s = cls;
   struct GNUNET_ATS_Information atsi[2];
   struct GNUNET_TIME_Relative delay;
+  char *stat_txt;
 
   GNUNET_assert (NULL != p);
   if (GNUNET_NO == server_exist_session(p, s))
@@ -1227,11 +1245,18 @@ server_receive_mst_cb (void *cls, void *client,
   atsi[1].value = s->ats_address_network_type;
   GNUNET_break (s->ats_address_network_type != ntohl (GNUNET_ATS_NET_UNSPECIFIED));
 
+
   delay = plugin->env->receive (plugin->env->cls,
                                 &s->target,
                                 message,
                                 (const struct GNUNET_ATS_Information *) &atsi, 2,
                                 s, s->addr, s->addrlen);
+
+  GNUNET_asprintf (&stat_txt, "# bytes received via %s_server", plugin->protocol);
+  GNUNET_STATISTICS_update (plugin->env->stats,
+                            stat_txt, ntohs (message->size), GNUNET_NO);
+  GNUNET_free (stat_txt);
+
   s->session_passed = GNUNET_YES;
   s->next_receive = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (), delay);
   if (delay.rel_value > 0)
