@@ -4572,6 +4572,10 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
 {
   struct MeshTransmissionDescriptor *dd;
   struct MeshPathInfo *path_info;
+  struct MeshTunnelChildInfo *cinfo;
+  struct GNUNET_PeerIdentity id;
+  unsigned int i;
+  unsigned int max;
 
   if (GNUNET_YES == clear_cls)
   {
@@ -4602,6 +4606,34 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
   GNUNET_CONTAINER_DLL_remove (queue->peer->queue_head,
                                queue->peer->queue_tail,
                                queue);
+
+  /* Delete from child_fc in the appropiate tunnel */
+  max = queue->tunnel->fwd_queue_max;
+  GNUNET_PEER_resolve (queue->peer->id, &id);
+  cinfo = tunnel_get_neighbor_fc (queue->tunnel, &id);
+  for (i = 0; i < cinfo->send_buffer_n; i++)
+  {
+    unsigned int i2;
+    i2 = (cinfo->send_buffer_start + i) % max;
+    if (cinfo->send_buffer[i2] == queue)
+    {
+      /* Found corresponding entry in the send_buffer. Move all others back. */
+      unsigned int j;
+      unsigned int j2;
+      unsigned int j3;
+
+      for (j = i; j < cinfo->send_buffer_n - 1; j++)
+      {
+        j2 = (cinfo->send_buffer_start + j) % max;
+        j3 = (cinfo->send_buffer_start + j + 1) % max;
+        cinfo->send_buffer[j2] = cinfo->send_buffer[j3];
+      }
+      cinfo->send_buffer[j3] = NULL;
+      cinfo->send_buffer_n--;
+    }
+  }
+  //queue->
+
   GNUNET_free (queue);
 }
 
@@ -7734,11 +7766,8 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   while (NULL != q)
   {
       n = q->next;
-      if (q->peer == pi)
-      {
-        /* try to reroute this traffic instead */
-        queue_destroy(q, GNUNET_YES);
-      }
+      /* TODO try to reroute this traffic instead */
+      queue_destroy(q, GNUNET_YES);
       q = n;
   }
   peer_info_remove_path (pi, pi->id, myid);
