@@ -3599,6 +3599,7 @@ tunnel_get_children_fwd_ack (struct MeshTunnel *t)
   ctx.t = t;
   ctx.max_child_ack = 0;
   ctx.nchildren = 0;
+  ctx.init = GNUNET_NO;
   tree_iterate_children (t->tree, tunnel_get_child_fwd_ack, &ctx);
 
   if (0 == ctx.nchildren)
