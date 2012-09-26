@@ -45,7 +45,7 @@ SUBDIRS = \
   transport \
   peerinfo-tool \
   core \
-  testbed \   
+  testbed \
   testing_old \
   nse \
   dht \
