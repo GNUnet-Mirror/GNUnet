@@ -217,6 +217,8 @@ do_timeout (void *cls,
     GNUNET_DNSPARSER_free_packet (request->packet);
   if (NULL != request->lookup)
     GNUNET_GNS_cancel_lookup_request (request->lookup);
+  if (NULL != request->dns_lookup)
+    GNUNET_DNSSTUB_resolve_cancel (request->dns_lookup);
   GNUNET_free (request);
 }
 
@@ -237,9 +239,11 @@ dns_result_processor (void *cls,
                   size_t r)
 {
   struct Request *request = cls;
+
   request->packet = GNUNET_DNSPARSER_parse ((char*)dns, r);
   send_response (request);
 }
+
 
 /**
  * Iterator called on obtained result for a GNS

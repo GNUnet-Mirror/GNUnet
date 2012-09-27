@@ -4186,9 +4186,9 @@ gns_resolver_shorten_name (struct GNUNET_CRYPTO_ShortHashCode *zone,
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unknown TLD in %s\n", name);
+    GNUNET_CONTAINER_DLL_remove (nsh_head, nsh_tail, rh);
     GNUNET_free (rh);
     GNUNET_free (nsh);
-    GNUNET_CONTAINER_DLL_remove (nsh_head, nsh_tail, rh);
     proc (proc_cls, name);
     return;
   }
