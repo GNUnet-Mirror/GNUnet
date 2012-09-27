@@ -700,6 +700,7 @@ process_private_in_root_zone_lookup (void *cls,
                                   csh);
 }
 
+
 /**
  * Lookup the zone infos and shorten name
  *
@@ -732,36 +733,41 @@ handle_shorten (void *cls,
 		struct GNUNET_SERVER_Client * client,
 		const struct GNUNET_MessageHeader * message)
 {
-  size_t msg_size = 0;
+  uint16_t msg_size;
+  const struct GNUNET_GNS_ClientShortenMessage *sh_msg;
   struct ClientShortenHandle *csh;
+  const char *utf_in;
   char name[MAX_DNS_NAME_LENGTH];
   char* nameptr = name;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "SHORTEN");
-  if (ntohs (message->size) < sizeof (struct GNUNET_GNS_ClientShortenMessage))
+  msg_size = ntohs (message->size);
+  if (msg_size < sizeof (struct GNUNET_GNS_ClientShortenMessage))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-
-
-  const struct GNUNET_GNS_ClientShortenMessage *sh_msg =
-    (const struct GNUNET_GNS_ClientShortenMessage *) message;
-  
-  msg_size = ntohs (message->size);
-  csh = GNUNET_malloc(sizeof (struct ClientShortenHandle));
+  sh_msg = (const struct GNUNET_GNS_ClientShortenMessage *) message;
+  utf_in = (const char *) &sh_msg[1];
+  if ('\0' != utf_in[msg_size - sizeof (struct GNUNET_GNS_ClientShortenMessage) - 1])
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  csh = GNUNET_malloc (sizeof (struct ClientShortenHandle));
   csh->client = client;
   csh->unique_id = sh_msg->id;
-
-  GNUNET_CONTAINER_DLL_insert (csh_head, csh_tail, csh);
-  
-  GNUNET_STRINGS_utf8_tolower((char*)&sh_msg[1], &nameptr);
+  GNUNET_CONTAINER_DLL_insert (csh_head, csh_tail, csh); 
+  GNUNET_STRINGS_utf8_tolower (utf_in, &nameptr);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "SHORTEN: Converted %s to %s\n", (char*)&sh_msg[1], nameptr);
-  GNUNET_SERVER_notification_context_add (nc, client);
-  
-  if (strlen (name) < strlen(GNUNET_GNS_TLD)) {
+               "SHORTEN: Converted `%s' to `%s'\n", 
+	     utf_in, 
+	     nameptr);
+  GNUNET_SERVER_notification_context_add (nc, client);  
+  if (strlen (name) < strlen (GNUNET_GNS_TLD)) 
+  {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "SHORTEN: %s is too short\n", name);
     GNUNET_CONTAINER_DLL_remove (csh_head, csh_tail, csh);
@@ -769,39 +775,33 @@ handle_shorten (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-
-  if (strlen (name) > MAX_DNS_NAME_LENGTH) {
+  if (strlen (name) > MAX_DNS_NAME_LENGTH) 
+  {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "SHORTEN: %s is too long\n", name);
     GNUNET_CONTAINER_DLL_remove (csh_head, csh_tail, csh);
     send_shorten_response(csh, name);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
-  }
-  
-  if (!is_gnunet_tld(name) && !is_zkey_tld(name))
+  }  
+  if ( (! is_gnunet_tld (name)) && 
+       (! is_zkey_tld (name)) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%s is not our domain. Returning\n", name);
     GNUNET_CONTAINER_DLL_remove (csh_head, csh_tail, csh);
-    send_shorten_response(csh, name);
+    send_shorten_response (csh, name);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-
   csh->shorten_zone = sh_msg->shorten_zone;
   csh->private_zone = sh_msg->private_zone;
-
-  strcpy (csh->name, name);
-  
-  
+  strcpy (csh->name, name);  
   if (1 == ntohl(sh_msg->use_default_zone))
     csh->root_zone = zone_hash; //Default zone
   else
     csh->root_zone = sh_msg->zone;
-
   start_shorten_name (csh);
-
   GNUNET_STATISTICS_update (statistics,
                             "Name shorten attempts", 1, GNUNET_NO);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -863,52 +863,53 @@ handle_get_authority (void *cls,
 		      struct GNUNET_SERVER_Client * client,
 		      const struct GNUNET_MessageHeader * message)
 {
-  size_t msg_size = 0;
+  uint16_t msg_size;
+  const struct GNUNET_GNS_ClientGetAuthMessage *sh_msg;
   struct ClientGetAuthHandle *cah;
+  const char *utf_in;
   char name[MAX_DNS_NAME_LENGTH];
   char* nameptr = name;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "GET_AUTH");
-  if (ntohs (message->size) < sizeof (struct GNUNET_GNS_ClientGetAuthMessage))
+  msg_size = ntohs(message->size);
+  if (msg_size < sizeof (struct GNUNET_GNS_ClientGetAuthMessage))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-
   GNUNET_SERVER_notification_context_add (nc, client);
 
-  struct GNUNET_GNS_ClientGetAuthMessage *sh_msg =
-    (struct GNUNET_GNS_ClientGetAuthMessage *) message;
-  
-  msg_size = ntohs(message->size);
-  GNUNET_STRINGS_utf8_tolower((const char*)&sh_msg[1], &nameptr);
-
-
+  sh_msg = (const struct GNUNET_GNS_ClientGetAuthMessage *) message;
+  utf_in = (const char *) &sh_msg[1];
+  if ('\0' != utf_in[msg_size - sizeof (struct GNUNET_GNS_ClientGetAuthMessage) - 1])
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }  
+  GNUNET_STRINGS_utf8_tolower(utf_in, &nameptr);
   cah = GNUNET_malloc(sizeof(struct ClientGetAuthHandle));
   cah->client = client;
   cah->unique_id = sh_msg->id;
-
-  if (strlen(name) < strlen(GNUNET_GNS_TLD))
+  if (strlen (name) < strlen(GNUNET_GNS_TLD))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "GET_AUTH: %s is too short. Returning\n", name);
+                "GET_AUTH: `%s' is too short. Returning\n", name);
     cah->name = NULL;
     send_get_auth_response(cah, name);
     return;
-  }
-  
+  }  
   if (strlen (name) > MAX_DNS_NAME_LENGTH) 
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GET_AUTH: %s is too long", name);
+               "GET_AUTH: `%s' is too long", name);
     cah->name = NULL;
     send_get_auth_response(cah, name);
     return;
-  }
-  
-  if (strcmp(name+strlen(name)-strlen(GNUNET_GNS_TLD),
-             GNUNET_GNS_TLD) != 0)
+  }  
+  if (0 != strcmp (name + strlen (name) - strlen(GNUNET_GNS_TLD),
+		   GNUNET_GNS_TLD))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "GET_AUTH: %s is not our domain. Returning\n", name);
@@ -917,21 +918,20 @@ handle_get_authority (void *cls,
     return;
   }
 
-  if (strcmp(name, GNUNET_GNS_TLD) == 0)
+  if (0 == strcmp(name, GNUNET_GNS_TLD))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "GET_AUTH: %s is us. Returning\n", name);
     cah->name = NULL;
     send_get_auth_response(cah, name);
     return;
-  }
-  
-  cah->name = GNUNET_malloc(strlen(name)
-                            - strlen(GNUNET_GNS_TLD) + 1);
-  memset(cah->name, 0,
-         strlen(name)-strlen(GNUNET_GNS_TLD) + 1);
-  memcpy(cah->name, name,
-         strlen(name)-strlen(GNUNET_GNS_TLD));
+  }  
+  cah->name = GNUNET_malloc(strlen (name)
+                            - strlen (GNUNET_GNS_TLD) + 1);
+  memset (cah->name, 0,
+	  strlen (name) - strlen (GNUNET_GNS_TLD) + 1);
+  memcpy (cah->name, name,
+	  strlen (name) - strlen(GNUNET_GNS_TLD));
 
   /* Start delegation resolution in our namestore */
   gns_resolver_get_authority(zone_hash, zone_hash, name, &send_get_auth_response, cah);
@@ -981,7 +981,7 @@ send_lookup_response(void* cls,
   GNUNET_free(clh->name);
   
   if (NULL != clh->shorten_key)
-    GNUNET_free(clh->shorten_key);
+    GNUNET_CRYPTO_rsa_key_free (clh->shorten_key);
 
   GNUNET_free(clh);
 
@@ -1009,32 +1009,29 @@ handle_lookup(void *cls,
               struct GNUNET_SERVER_Client * client,
               const struct GNUNET_MessageHeader * message)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "LOOKUP");
-
-  size_t msg_size = 0;
+  uint16_t msg_size;
+  const struct GNUNET_GNS_ClientLookupMessage *sh_msg;
   size_t namelen;
   char name[MAX_DNS_NAME_LENGTH];
   struct ClientLookupHandle *clh;
   char* nameptr = name;
+  const char *utf_in;
   int only_cached;
   struct GNUNET_CRYPTO_RsaPrivateKey *key;
   struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *pkey;
   char* tmp_pkey;
 
-  if (ntohs (message->size) < sizeof (struct GNUNET_GNS_ClientLookupMessage))
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "LOOKUP");
+  msg_size = ntohs(message->size);
+  if (msg_size < sizeof (struct GNUNET_GNS_ClientLookupMessage))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-
+  sh_msg = (const struct GNUNET_GNS_ClientLookupMessage *) message;
   GNUNET_SERVER_notification_context_add (nc, client);
-
-  struct GNUNET_GNS_ClientLookupMessage *sh_msg =
-    (struct GNUNET_GNS_ClientLookupMessage *) message;
-  
-  msg_size = ntohs(message->size);
-  if (GNUNET_YES == ntohl(sh_msg->have_key))
+  if (GNUNET_YES == ntohl (sh_msg->have_key))
   {
     pkey = (struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *)&sh_msg[1];
     tmp_pkey = (char*)&sh_msg[1];
@@ -1044,10 +1041,16 @@ handle_lookup(void *cls,
   else
   {
     key = NULL;
-    GNUNET_STRINGS_utf8_tolower((char*)&sh_msg[1], &nameptr);
-  }
-  
-  namelen = strlen(name)+1;
+    utf_in = (const char *) &sh_msg[1];
+    if ('\0' != utf_in[msg_size - sizeof (struct GNUNET_GNS_ClientLookupMessage) - 1])
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }  
+    GNUNET_STRINGS_utf8_tolower(utf_in, &nameptr);
+  }  
+  namelen = strlen (name)+1;
   clh = GNUNET_malloc (sizeof (struct ClientLookupHandle));
   memset (clh, 0, sizeof (struct ClientLookupHandle));
   clh->client = client;
