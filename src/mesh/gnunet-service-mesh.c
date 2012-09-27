@@ -7774,6 +7774,11 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
       queue_destroy(q, GNUNET_YES);
       q = n;
   }
+  if (NULL != pi->core_transmit)
+  {
+    GNUNET_CORE_notify_transmit_ready_cancel(pi->core_transmit);
+    pi->core_transmit = NULL;
+  }
   peer_info_remove_path (pi, pi->id, myid);
   if (myid == pi->id)
   {
