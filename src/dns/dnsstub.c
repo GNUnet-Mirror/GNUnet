@@ -438,10 +438,11 @@ do_dns_read (struct GNUNET_DNSSTUB_RequestSocket *rs,
 		       addrlen)) ||	 
        (0 == GNUNET_TIME_absolute_get_remaining (rs->timeout).rel_value) )
       return GNUNET_NO;
-    rs->rc (rs->rc_cls,
-	    rs,
-	    dns,
-	    r);
+    if (NULL != rs->rc)
+      rs->rc (rs->rc_cls,
+	      rs,
+	      dns,
+	      r);
   }  
   return GNUNET_OK;
 }
@@ -491,6 +492,17 @@ read_response (void *cls,
   GNUNET_NETWORK_fdset_destroy (rset);
 }
 
+
+/**
+ * Cancel DNS resolution.
+ *
+ * @param rs resolution to cancel
+ */
+void
+GNUNET_DNSSTUB_resolve_cancel (struct GNUNET_DNSSTUB_RequestSocket *rs)
+{
+  rs->rc = NULL;
+}
 
 
 /**
