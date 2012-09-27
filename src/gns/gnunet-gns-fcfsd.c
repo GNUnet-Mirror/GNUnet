@@ -771,6 +771,9 @@ request_completed_callback (void *cls,
 }
 
 
+#define UNSIGNED_MHD_LONG_LONG unsigned MHD_LONG_LONG
+
+
 /**
  * Schedule tasks to run MHD server.
  */
@@ -785,7 +788,7 @@ run_httpd ()
   struct GNUNET_NETWORK_FDSet *wes;
   int max;
   int haveto;
-  unsigned MHD_LONG_LONG timeout;
+  UNSIGNED_MHD_LONG_LONG timeout;
   struct GNUNET_TIME_Relative tv;
 
   FD_ZERO (&rs);

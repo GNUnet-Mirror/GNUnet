@@ -1074,13 +1074,11 @@ mhd_content_cb (void *cls,
   struct ProxyCurlTask *ctask = cls;
   struct ProxyREMatch *re_match;
   ssize_t copied = 0;
-  long long int bytes_to_copy = ctask->buffer_write_ptr - ctask->buffer_read_ptr;
+  size_t bytes_to_copy = ctask->buffer_write_ptr - ctask->buffer_read_ptr;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MHD: content cb for %s. To copy: %lld\n",
-              ctask->url, bytes_to_copy);
-  GNUNET_assert (bytes_to_copy >= 0);
-
+              "MHD: content cb for %s. To copy: %u\n",
+              ctask->url, (unsigned int) bytes_to_copy);
   if ((GNUNET_YES == ctask->download_is_finished) &&
       (GNUNET_NO == ctask->download_error) &&
       (0 == bytes_to_copy))
@@ -1117,15 +1115,13 @@ mhd_content_cb (void *cls,
                 "MHD: Processing PP %s\n",
                 re_match->hostname);
     bytes_to_copy = re_match->start - ctask->buffer_read_ptr;
-    GNUNET_assert (bytes_to_copy >= 0);
-
     if (bytes_to_copy+copied > max)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-             "MHD: buffer in response too small for %d. Using available space (%d). (%s)\n",
-             bytes_to_copy,
-             max,
-             ctask->url);
+		  "MHD: buffer in response too small for %u. Using available space (%d). (%s)\n",
+		  (unsigned int) bytes_to_copy,
+		  max,
+		  ctask->url);
       memcpy (buf+copied, ctask->buffer_read_ptr, max-copied);
       ctask->buffer_read_ptr += max-copied;
       copied = max;
@@ -1135,8 +1131,8 @@ mhd_content_cb (void *cls,
     }
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MHD: copying %d bytes to mhd response at offset %d\n",
-                bytes_to_copy, ctask->buffer_read_ptr);
+                "MHD: copying %u bytes to mhd response at offset %d\n",
+                (unsigned int) bytes_to_copy, ctask->buffer_read_ptr);
     memcpy (buf+copied, ctask->buffer_read_ptr, bytes_to_copy);
     copied += bytes_to_copy;
 
@@ -1178,12 +1174,10 @@ mhd_content_cb (void *cls,
   bytes_to_copy = ctask->buffer_write_ptr - ctask->buffer_read_ptr;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MHD: copied: %d left: %d, space left in buf: %d\n",
+              "MHD: copied: %d left: %u, space left in buf: %d\n",
               copied,
-              bytes_to_copy, (int) (max - copied));
+              (unsigned int) bytes_to_copy, (int) (max - copied));
   
-  GNUNET_assert (0 <= bytes_to_copy);
-
   if (GNUNET_NO == ctask->download_is_finished)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

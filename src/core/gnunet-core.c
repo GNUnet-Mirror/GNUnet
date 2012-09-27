@@ -166,6 +166,9 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  static const struct GNUNET_CORE_MessageHandler handlers[] = {
+    {NULL, 0, 0}
+  };
   if (args[0] != NULL)
   {
     FPRINTF (stderr, _("Invalid command line argument `%s'\n"), args[0]);
@@ -175,12 +178,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_CORE_iterate_peers (cfg, &connected_peer_callback, NULL);
   else
   {
-    const static struct GNUNET_CORE_MessageHandler handlers[] = {
-      {NULL, 0, 0}
-    };
-
     memset(&my_id, '\0', sizeof (my_id));
-
     ch = GNUNET_CORE_connect (cfg, NULL,
                               monitor_notify_startup,
                               monitor_notify_connect,

@@ -1633,6 +1633,8 @@ server_v6_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+#define UNSIGNED_MHD_LONG_LONG unsigned MHD_LONG_LONG
+
 /**
  * Function that queries MHD's select sets and
  * starts the task waiting for them.
@@ -1654,7 +1656,7 @@ server_schedule (struct HTTP_Server_Plugin *plugin,
   struct GNUNET_NETWORK_FDSet *wws;
   struct GNUNET_NETWORK_FDSet *wes;
   int max;
-  unsigned MHD_LONG_LONG timeout;
+  UNSIGNED_MHD_LONG_LONG timeout;
   static unsigned long long last_timeout = 0;
   int haveto;
 

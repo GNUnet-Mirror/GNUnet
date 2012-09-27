@@ -465,6 +465,7 @@ run_daemon (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     hostlist_task_v6 = prepare_daemon (daemon_handle);
 }
 
+#define UNSIGNED_MHD_LONG_LONG unsigned MHD_LONG_LONG
 
 /**
  * Function that queries MHD's select sets and
@@ -481,7 +482,7 @@ prepare_daemon (struct MHD_Daemon *daemon_handle)
   struct GNUNET_NETWORK_FDSet *wws;
   struct GNUNET_NETWORK_FDSet *wes;
   int max;
-  unsigned MHD_LONG_LONG timeout;
+  UNSIGNED_MHD_LONG_LONG timeout;
   int haveto;
   struct GNUNET_TIME_Relative tv;
 
