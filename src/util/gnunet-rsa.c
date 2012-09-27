@@ -126,7 +126,7 @@ create_keys (const char *fn)
     GNUNET_CRYPTO_hash (&make_keys, sizeof (make_keys), &h2);
     GNUNET_CRYPTO_hash (&hc, sizeof (hc), &h3);
     GNUNET_CRYPTO_hash_xor (&h2, &h3, &hc);
-    if (NULL == (pk = GNUNET_CRYPTO_rsa_key_create_from_hash (&hc))
+    if (NULL == (pk = GNUNET_CRYPTO_rsa_key_create_from_hash (&hc)))
     {	
        GNUNET_break (0);
        break;
