@@ -903,8 +903,9 @@ delayed_restart_task (void *cls,
   }
   if (lowestRestartDelay.rel_value != GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Will restart process in %llums\n",
-		(unsigned long long) lowestRestartDelay.rel_value);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Will restart process in %s\n",
+		GNUNET_STRINGS_relative_time_to_string (lowestRestartDelay, GNUNET_YES));
     child_restart_task =
       GNUNET_SCHEDULER_add_delayed_with_priority (lowestRestartDelay,
 						  GNUNET_SCHEDULER_PRIORITY_IDLE, 

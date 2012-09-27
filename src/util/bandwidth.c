@@ -24,8 +24,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_bandwidth_lib.h"
-#include "gnunet_server_lib.h"
+#include "gnunet_util_lib.h"
 
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util-bandwidth", __VA_ARGS__)
@@ -83,9 +82,9 @@ GNUNET_BANDWIDTH_value_get_available_until (struct GNUNET_BANDWIDTH_Value32NBO
 
   b = ntohl (bps.value__);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Bandwidth has %llu bytes available until deadline in %llums\n",
+       "Bandwidth has %llu bytes available until deadline in %s\n",
        (unsigned long long) ((b * deadline.rel_value + 500LL) / 1000LL),
-       deadline.rel_value);
+       GNUNET_STRINGS_relative_time_to_string (deadline, GNUNET_YES));
   return (b * deadline.rel_value + 500LL) / 1000LL;
 }
 

@@ -370,10 +370,8 @@ get_bootstrap_server ()
       GNUNET_CONFIGURATION_get_value_string (cfg, "HOSTLIST", "SERVERS",
                                              &servers))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _
-                ("No `%s' specified in `%s' configuration, will not bootstrap.\n"),
-                "SERVERS", "HOSTLIST");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING,
+			       "hostlist", "SERVERS");
     return NULL;
   }
 
@@ -391,10 +389,8 @@ get_bootstrap_server ()
   }
   if (urls == 0)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _
-                ("No `%s' specified in `%s' configuration, will not bootstrap.\n"),
-                "SERVERS", "HOSTLIST");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING,
+			       "hostlist", "SERVERS");
     GNUNET_free (servers);
     return NULL;
   }
@@ -499,9 +495,9 @@ checked_add (uint64_t val1, uint64_t val2)
   temp = val1 + val2;
   if (temp < val1)
     return maxv;
-  else
-    return temp;
+  return temp;
 }
+
 
 /**
  * Subtract val2 from val1 with underflow check
@@ -514,9 +510,9 @@ checked_sub (uint64_t val1, uint64_t val2)
 {
   if (val1 <= val2)
     return 0;
-  else
-    return (val1 - val2);
+  return (val1 - val2);
 }
+
 
 /**
  * Method to check if  a URI is in hostlist linked list
@@ -646,6 +642,7 @@ update_hostlist ()
   else
     stat_use_bootstrap = GNUNET_YES;
 }
+
 
 /**
  * Clean up the state from the task that downloaded the
@@ -998,6 +995,7 @@ task_download_dispatcher (void *cls,
   }
 }
 
+
 /**
  * Task that checks if we should try to download a hostlist.
  * If so, we initiate the download, otherwise we schedule
@@ -1042,10 +1040,9 @@ task_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     once = 1;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _
-              ("Have %u/%u connections.  Will consider downloading hostlist in %llums\n"),
+              _("Have %u/%u connections.  Will consider downloading hostlist in %s\n"),
               stat_connection_count, MIN_CONNECTIONS,
-              (unsigned long long) delay.rel_value);
+              GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
   ti_check_download = GNUNET_SCHEDULER_add_delayed (delay, &task_check, NULL);
 }
 
@@ -1081,12 +1078,11 @@ task_hostlist_saving (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ti_saving_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Scheduled saving of hostlists\n"));
   save_hostlist_file (GNUNET_NO);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Hostlists will be saved to file again in %llums\n"),
-              (unsigned long long) SAVING_INTERVALL.rel_value);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Hostlists will be saved to file again in %s\n",
+	      GNUNET_STRINGS_relative_time_to_string(SAVING_INTERVALL, GNUNET_YES));
   ti_saving_task =
       GNUNET_SCHEDULER_add_delayed (SAVING_INTERVALL, &task_hostlist_saving,
                                     NULL);
@@ -1214,7 +1210,6 @@ handler_advertisement (void *cls, const struct GNUNET_PeerIdentity *peer,
 }
 
 
-
 /**
  * Continuation called by the statistics code once
  * we go the stat.  Initiates hostlist download scheduling.
@@ -1238,12 +1233,13 @@ static int
 process_stat (void *cls, const char *subsystem, const char *name,
               uint64_t value, int is_persistent)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Initial time between hostlist downloads is %llums\n"),
-              (unsigned long long) value);
   hostlist_delay.rel_value = value;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Initial time between hostlist downloads is %s\n",
+              GNUNET_STRINGS_relative_time_to_string (hostlist_delay, GNUNET_YES));
   return GNUNET_OK;
 }
+
 
 /**
  * Method to load persistent hostlist file during hostlist client startup
@@ -1268,10 +1264,8 @@ load_hostlist_file ()
       GNUNET_CONFIGURATION_get_value_filename (cfg, "HOSTLIST", "HOSTLISTFILE",
                                                &filename))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _
-                ("No `%s' specified in `%s' configuration, cannot load hostlists from file.\n"),
-                "HOSTLISTFILE", "HOSTLIST");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING,
+			       "hostlist", "HOSTLISTFILE");
     return;
   }
 
@@ -1280,7 +1274,7 @@ load_hostlist_file ()
   if (GNUNET_NO == GNUNET_DISK_file_test (filename))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Hostlist file `%s' is not existing\n"), filename);
+                _("Hostlist file `%s' does not exist\n"), filename);
     GNUNET_free (filename);
     return;
   }
@@ -1357,10 +1351,8 @@ save_hostlist_file (int shutdown)
       GNUNET_CONFIGURATION_get_value_filename (cfg, "HOSTLIST", "HOSTLISTFILE",
                                                &filename))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _
-                ("No `%s' specified in `%s' configuration, cannot save hostlists to file.\n"),
-                "HOSTLISTFILE", "HOSTLIST");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING,
+			       "hostlist", "HOSTLISTFILE");
     return;
   }
   if (GNUNET_SYSERR == GNUNET_DISK_directory_create_for_file (filename))
@@ -1423,6 +1415,7 @@ save_hostlist_file (int shutdown)
   GNUNET_free (filename);
 }
 
+
 /**
  * Start downloading hostlists from hostlist servers as necessary.
  */
@@ -1469,9 +1462,9 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _("Learning is enabled on this peer\n"));
     load_hostlist_file ();
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Hostlists will be saved to file again in  %llums\n"),
-                (unsigned long long) SAVING_INTERVALL.rel_value);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Hostlists will be saved to file again in %s\n",
+		GNUNET_STRINGS_relative_time_to_string (SAVING_INTERVALL, GNUNET_YES));
     ti_saving_task =
         GNUNET_SCHEDULER_add_delayed (SAVING_INTERVALL, &task_hostlist_saving,
                                       NULL);

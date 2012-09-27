@@ -832,11 +832,9 @@ warn_no_receive_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                     &warn_no_receive_done, client);
   if (0 == (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         _
-         ("Processing code for message of type %u did not call GNUNET_SERVER_receive_done after %llums\n"),
+         _("Processing code for message of type %u did not call `GNUNET_SERVER_receive_done' after %s\n"),
          (unsigned int) client->warn_type,
-         (unsigned long long)
-         GNUNET_TIME_absolute_get_duration (client->warn_start).rel_value);
+         GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (client->warn_start), GNUNET_YES));
 }
 
 

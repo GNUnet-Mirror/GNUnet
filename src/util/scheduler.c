@@ -577,10 +577,10 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws)
     if (GNUNET_TIME_absolute_get_duration (pos->start_time).rel_value >
         DELAY_THRESHOLD.rel_value)
     {
-      LOG (GNUNET_ERROR_TYPE_ERROR, "Task %llu took %llums to be scheduled\n",
-           pos->id,
-           (unsigned long long)
-           GNUNET_TIME_absolute_get_duration (pos->start_time).rel_value);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	   "Task %llu took %s to be scheduled\n",
+           (unsigned long long) pos->id,
+           GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (pos->start_time), GNUNET_YES));
     }
 #endif
     tc.reason = pos->reason;

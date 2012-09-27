@@ -27,11 +27,8 @@
  * connections between clients and service providers.
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_client_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_server_lib.h"
-#include "gnunet_scheduler_lib.h"
+#include "gnunet_util_lib.h"
 
 
 /**
@@ -955,9 +952,9 @@ client_delayed_retry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                   (th->client->back_off, 2),
                                   GNUNET_TIME_UNIT_SECONDS);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Transmission failed %u times, trying again in %llums.\n",
+         "Transmission failed %u times, trying again in %s.\n",
          MAX_ATTEMPTS - th->attempts_left,
-         (unsigned long long) delay.rel_value);
+         GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
     th->reconnect_task =
         GNUNET_SCHEDULER_add_delayed (delay, &client_delayed_retry, th);
     return;
@@ -1028,9 +1025,9 @@ client_notify (void *cls, size_t size, void *buf)
                                   (client->back_off, 2),
                                   GNUNET_TIME_UNIT_SECONDS);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Transmission failed %u times, trying again in %llums.\n",
+         "Transmission failed %u times, trying again in %s.\n",
          MAX_ATTEMPTS - th->attempts_left,
-         (unsigned long long) delay.rel_value);
+         GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
     client->th = th;
     th->reconnect_task =
         GNUNET_SCHEDULER_add_delayed (delay, &client_delayed_retry, th);
