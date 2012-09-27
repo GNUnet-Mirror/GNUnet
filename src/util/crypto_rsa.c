@@ -683,7 +683,7 @@ short_wait ()
   struct GNUNET_TIME_Relative timeout;
 
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100);
-  GNUNET_NETWORK_socket_select (NULL, NULL, NULL, timeout);
+  (void) GNUNET_NETWORK_socket_select (NULL, NULL, NULL, timeout);
 }
 
 
