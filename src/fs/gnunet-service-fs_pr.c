@@ -931,8 +931,8 @@ put_migration_continuation (void *cls, int success,
     if (min_expiration.abs_value > 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		  "Asking to stop migration for %llu ms because datastore is full\n",
-		  (unsigned long long) GNUNET_TIME_absolute_get_remaining (min_expiration).rel_value);
+		  "Asking to stop migration for %s because datastore is full\n",
+		  GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (min_expiration), GNUNET_YES));
       GSF_block_peer_migration_ (cp, min_expiration);      
     }
     else
@@ -945,8 +945,8 @@ put_migration_continuation (void *cls, int success,
 						      ppd->migration_delay.rel_value);
       ppd->migration_delay = GNUNET_TIME_relative_multiply (ppd->migration_delay, 2);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		  "Replicated content already exists locally, asking to stop migration for %llu ms\n",
-		  (unsigned long long) mig_pause.rel_value);
+		  "Replicated content already exists locally, asking to stop migration for %s\n",
+		  GNUNET_STRINGS_relative_time_to_string (mig_pause, GNUNET_YES));
       GSF_block_peer_migration_ (cp, GNUNET_TIME_relative_to_absolute (mig_pause));
     }
   }
@@ -1105,9 +1105,8 @@ warn_delay_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GSF_PendingRequest *pr = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              _("Datastore lookup already took %llu ms!\n"),
-              (unsigned long long)
-              GNUNET_TIME_absolute_get_duration (pr->qe_start).rel_value);
+              _("Datastore lookup already took %s!\n"),
+              GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (pr->qe_start), GNUNET_YES));
   pr->warn_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, &warn_delay_task,
                                     pr);
@@ -1126,9 +1125,8 @@ odc_warn_delay_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GSF_PendingRequest *pr = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              _("On-demand lookup already took %llu ms!\n"),
-              (unsigned long long)
-              GNUNET_TIME_absolute_get_duration (pr->qe_start).rel_value);
+              _("On-demand lookup already took %s!\n"),
+              GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (pr->qe_start), GNUNET_YES));
   pr->warn_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                     &odc_warn_delay_task, pr);

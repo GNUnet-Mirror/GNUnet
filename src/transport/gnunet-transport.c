@@ -325,16 +325,17 @@ do_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (benchmark_receive)
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
-    FPRINTF (stdout, _("Received %llu bytes/s (%llu bytes in %llu ms)\n"),
+    FPRINTF (stdout, _("Received %llu bytes/s (%llu bytes in %s)\n"),
              1000 * traffic_received / (1 + duration.rel_value),
-             traffic_received, (unsigned long long) duration.rel_value);
+             traffic_received,
+	     GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
   }
   if (benchmark_send)
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
-    FPRINTF (stdout, _("Transmitted %llu bytes/s (%llu bytes in %llu ms)\n"),
+    FPRINTF (stdout, _("Transmitted %llu bytes/s (%llu bytes in %s)\n"),
              1000 * traffic_sent / (1 + duration.rel_value), traffic_sent,
-             (unsigned long long) duration.rel_value);
+             GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
   }
 }
 

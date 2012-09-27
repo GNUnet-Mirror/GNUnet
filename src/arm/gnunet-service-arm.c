@@ -983,9 +983,9 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       if (0 != pos->killed_at.abs_value)
       {
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		    _("Service `%s' took %llu ms to terminate\n"),
+		    _("Service `%s' took %s to terminate\n"),
 		    pos->name,
-		    GNUNET_TIME_absolute_get_duration (pos->killed_at).rel_value);
+		    GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (pos->killed_at), GNUNET_YES));
       }
       GNUNET_OS_process_destroy (pos->proc);
       pos->proc = NULL;

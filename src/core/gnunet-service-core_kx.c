@@ -1625,8 +1625,8 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
       MAX_MESSAGE_AGE.rel_value)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Message received far too old (%llu ms). Content ignored.\n"),
-                GNUNET_TIME_absolute_get_duration (t).rel_value);
+                _("Message received far too old (%s). Content ignored.\n"),
+                GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (t), GNUNET_YES));
     GNUNET_STATISTICS_update (GSC_stats,
                               gettext_noop
                               ("# bytes dropped (ancient message)"), size,

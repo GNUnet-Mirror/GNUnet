@@ -533,7 +533,7 @@ GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Asked to start service `%s' within %s\n", service_name,
-       GNUNET_STRINGS_relative_time_to_string (timeout));
+       GNUNET_STRINGS_relative_time_to_string (timeout, GNUNET_NO));
   if (0 == strcasecmp ("arm", service_name))
   {
     slen = strlen ("arm") + 1;
@@ -607,7 +607,7 @@ GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h,
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
        "Stopping service `%s' within %s\n",
        service_name, 
-       GNUNET_STRINGS_relative_time_to_string (timeout));
+       GNUNET_STRINGS_relative_time_to_string (timeout, GNUNET_NO));
   if (h->client == NULL)
   {
     client = GNUNET_CLIENT_connect ("arm", h->cfg);

@@ -557,8 +557,9 @@ ats_reserve_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GSF_PeerTransmitHandle *pth;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Reserved %d bytes / need to wait %llu ms for reservation\n",
-              (int) amount, (unsigned long long) res_delay.rel_value);
+              "Reserved %d bytes / need to wait %s for reservation\n",
+              (int) amount, 
+	      GNUNET_STRINGS_relative_time_to_string (res_delay, GNUNET_YES));
   cp->rc = NULL;
   if (0 == amount)
   {
@@ -704,8 +705,9 @@ GSF_handle_p2p_migration_stop_ (void *cls,
                             1, GNUNET_NO);
   bt = GNUNET_TIME_relative_ntoh (msm->duration);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Migration of content to peer `%s' blocked for %llu ms\n"),
-              GNUNET_i2s (other), (unsigned long long) bt.rel_value);
+              _("Migration of content to peer `%s' blocked for %s\n"),
+              GNUNET_i2s (other), 
+	      GNUNET_STRINGS_relative_time_to_string (bt, GNUNET_YES));
   cp->ppd.migration_blocked_until = GNUNET_TIME_relative_to_absolute (bt);
   if (GNUNET_SCHEDULER_NO_TASK == cp->mig_revive_task)
   {
@@ -1702,10 +1704,9 @@ GSF_block_peer_migration_ (struct GSF_ConnectedPeer *cp,
   if (cp->last_migration_block.abs_value > block_time.abs_value)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Migration already blocked for another %llu ms\n",
-                (unsigned long long)
-                GNUNET_TIME_absolute_get_remaining
-                (cp->last_migration_block).rel_value);
+                "Migration already blocked for another %s\n",
+                GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining
+							(cp->last_migration_block), GNUNET_YES));
     return;                     /* already blocked */
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Asking to stop migration for %llu ms\n",
