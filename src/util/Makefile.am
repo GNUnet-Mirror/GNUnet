@@ -14,7 +14,7 @@ if MINGW
 noinst_LTLIBRARIES = \
   libgnunetutilwin.la
 libgnunetutilwin_la_SOURCES = \
-  win.cc \
+  win.c \
   winproc.c
 libgnunetutilwin_la_LDFLAGS = \
   -no-undefined -Wl,--export-all-symbols 

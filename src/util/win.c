@@ -19,28 +19,24 @@
 */
 
 /**
- * @file util/win.cc
+ * @file util/win.c
  * @brief Helper functions for MS Windows in C++
  * @author Nils Durner
  */
 
-#ifndef _WIN_CC
-#define _WIN_CC
+#ifndef _WIN_C
+#define _WIN_C
 
 #include "winproc.h"
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_connection_lib.h"
 
-#include <list>
-using namespace std;
 #include <ntdef.h>
 
 #ifndef INHERITED_ACE
 #define INHERITED_ACE 0x10
 #endif
-
-extern "C" {
 
 int plibc_conv_to_win_path(const char *pszUnix, char *pszWindows);
 
@@ -1329,7 +1325,5 @@ SafeTerminateProcess (HANDLE hProcess, UINT uExitCode, DWORD dwTimeout)
 
   return bSuccess;
 }
-
-} /* extern "C" */
 
 #endif
