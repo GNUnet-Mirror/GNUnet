@@ -496,6 +496,12 @@ helper_write (void *cls,
                 _("Error writing to `%s': %s\n"),
 		h->binary_name,
 		STRERROR (errno));
+    if (NULL != h->exp_cb)
+    {
+      h->exp_cb (h->cb_cls);
+      GNUNET_HELPER_stop (h);
+      return;
+    }
     stop_helper (h);
     /* Restart the helper */
     h->restart_task =
