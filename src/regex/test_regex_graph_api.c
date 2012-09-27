@@ -77,13 +77,7 @@ filecheck (const char *filename)
 int
 main (int argc, char *argv[])
 {
-  GNUNET_log_setup ("test-regex",
-#if VERBOSE
-                    "DEBUG",
-#else
-                    "WARNING",
-#endif
-                    NULL);
+  GNUNET_log_setup ("test-regex", "WARNING", NULL);
 
   int error;
   struct GNUNET_REGEX_Automaton *a;
