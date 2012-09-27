@@ -1273,11 +1273,11 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 #endif
       )
   {
+    GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_ERROR,
          _
          ("Fatal internal logic error, process hangs in `%s' (abort with CTRL-C)!\n"),
          "select");
-    GNUNET_break (0);
   }
 #ifndef MINGW
   tv.tv_sec = timeout.rel_value / GNUNET_TIME_UNIT_SECONDS.rel_value;
