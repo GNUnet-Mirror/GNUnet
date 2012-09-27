@@ -1236,6 +1236,10 @@ udp_plugin_send (void *cls,
   GNUNET_STATISTICS_update (plugin->env->stats,
                             "# bytes currently in UDP buffers",
                             msgbuf_size, GNUNET_NO);
+  GNUNET_STATISTICS_update (plugin->env->stats,
+                            "# bytes payload asked to transmit via UDP",
+                            msgbuf_size, GNUNET_NO);
+
 
   /* Message */
   udp = (struct UDPMessage *) mbuf;
@@ -1990,8 +1994,8 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "UDP transmitted %u-byte message to `%s' (%d: %s)\n",
-         (unsigned int) (udpw->msg_size), GNUNET_a2s (sa, slen), (int) sent,
+         "UDP transmitted %u-byte message to  `%s' `%s' (%d: %s)\n",
+         (unsigned int) (udpw->msg_size), GNUNET_i2s(&udpw->session->target) ,GNUNET_a2s (sa, slen), (int) sent,
          (sent < 0) ? STRERROR (errno) : "ok");
     GNUNET_STATISTICS_update (plugin->env->stats,
                               "# bytes transmitted via UDP",
