@@ -135,9 +135,11 @@ create_keys (const char *fn)
 		 fn,
 		 STRERROR (errno));
 	GNUNET_CRYPTO_rsa_key_free (pk);
+	GNUNET_free (enc);
 	break;
       }
     GNUNET_CRYPTO_rsa_key_free (pk);
+    GNUNET_free (enc);
   }
   if (0 == make_keys)
     fprintf (stderr,
