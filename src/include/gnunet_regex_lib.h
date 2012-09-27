@@ -98,7 +98,6 @@ GNUNET_REGEX_automaton_destroy (struct GNUNET_REGEX_Automaton *a);
  * Options for graph creation function
  * GNUNET_REGEX_automaton_save_graph.
  */
-
 enum GNUNET_REGEX_GraphSavingOptions
 {
   /**
