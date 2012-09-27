@@ -211,6 +211,17 @@ is_canonical (const char* name)
 }
 
 
+static void
+free_get_pseu_authority_handle (struct GetPseuAuthorityHandle *gph)
+{
+  gph->namestore_task = NULL;
+  GNUNET_free (gph->auth);
+  GNUNET_CRYPTO_rsa_key_free (gph->key);
+  GNUNET_CONTAINER_DLL_remove (gph_head, gph_tail, gph);
+  GNUNET_free (gph);
+}
+
+
 /**
  * Callback that shortens authorities
  *
@@ -233,11 +244,7 @@ create_pkey_cont (void* cls, int32_t success, const char* emsg)
   //FIXME do sth with error
   struct GetPseuAuthorityHandle* gph = cls;
 
-  gph->namestore_task = NULL;
-  GNUNET_free (gph->auth);
-  GNUNET_CRYPTO_rsa_key_free (gph->key);
-  GNUNET_CONTAINER_DLL_remove (gph_head, gph_tail, gph);
-  GNUNET_free (gph);
+  free_get_pseu_authority_handle (gph);
 }
 
 
@@ -255,11 +262,11 @@ create_pkey_cont (void* cls, int32_t success, const char* emsg)
  */
 static void
 process_pseu_lookup_ns (void* cls,
-                      const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
-                      struct GNUNET_TIME_Absolute expiration,
-                      const char *name, unsigned int rd_count,
-                      const struct GNUNET_NAMESTORE_RecordData *rd,
-                      const struct GNUNET_CRYPTO_RsaSignature *signature)
+			const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
+			struct GNUNET_TIME_Absolute expiration,
+			const char *name, unsigned int rd_count,
+			const struct GNUNET_NAMESTORE_RecordData *rd,
+			const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   struct GetPseuAuthorityHandle* gph = cls;
   struct GNUNET_NAMESTORE_RecordData new_pkey;
@@ -269,10 +276,7 @@ process_pseu_lookup_ns (void* cls,
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "GNS_AUTO_PSEU: Name %s already taken in NS!\n", name);
-    GNUNET_free (gph->auth);
-    GNUNET_CRYPTO_rsa_key_free (gph->key);
-    GNUNET_CONTAINER_DLL_remove (gph_head, gph_tail, gph);
-    GNUNET_free (gph);
+    free_get_pseu_authority_handle (gph);
     return;
   }
 
@@ -288,11 +292,11 @@ process_pseu_lookup_ns (void* cls,
                  | GNUNET_NAMESTORE_RF_PRIVATE
                  | GNUNET_NAMESTORE_RF_PENDING;
   gph->namestore_task = GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  gph->key,
-                                  gph->test_name,
-                                  &new_pkey,
-                                  &create_pkey_cont, //cont
-                                  gph); //cls
+							gph->key,
+							gph->test_name,
+							&new_pkey,
+							&create_pkey_cont, 
+							gph);
 }
 
 /**
@@ -308,15 +312,11 @@ process_pseu_result (struct GetPseuAuthorityHandle* gph, char* name)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "GNS_AUTO_PSEU: No PSEU, no shorten. Finished.\n");
-    GNUNET_free (gph->auth);
-    GNUNET_CRYPTO_rsa_key_free (gph->key);
-    GNUNET_CONTAINER_DLL_remove (gph_head, gph_tail, gph);
-    GNUNET_free (gph);
+    free_get_pseu_authority_handle (gph);
     return;
   }
   
-  memcpy (gph->test_name, name, strlen(name)+1);
-
+  memcpy (gph->test_name, name, strlen(name) + 1);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "GNS_AUTO_PSEU: Checking %s for collision in NS\n",
               gph->test_name);
@@ -324,12 +324,13 @@ process_pseu_result (struct GetPseuAuthorityHandle* gph, char* name)
    * Check for collision
    */
   gph->namestore_task = GNUNET_NAMESTORE_lookup_record (namestore_handle,
-                                  &gph->our_zone,
-                                  gph->test_name,
-                                  GNUNET_NAMESTORE_TYPE_ANY,
-                                  &process_pseu_lookup_ns,
-                                  gph);
+							&gph->our_zone,
+							gph->test_name,
+							GNUNET_NAMESTORE_TYPE_ANY,
+							&process_pseu_lookup_ns,
+							gph);
 }
+
 
 /**
  * Handle timeout for dht request
@@ -396,10 +397,7 @@ process_auth_discovery_dht_result (void* cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "GNS_GET_AUTH: got dht result null!\n", size);
-    GNUNET_free (gph->auth);
-    GNUNET_CRYPTO_rsa_key_free (gph->key);
-    GNUNET_CONTAINER_DLL_remove (gph_head, gph_tail, gph);
-    GNUNET_free (gph);
+    free_get_pseu_authority_handle (gph);
     return;
   }
   
@@ -545,12 +543,9 @@ process_zone_to_name_discover (void *cls,
     return;
   }
   /* we found a match in our own zone */
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_AUTO_PSEU: name for zone in our root %s\n", name);
-  GNUNET_free (gph->auth);
-  GNUNET_CRYPTO_rsa_key_free (gph->key);
-  GNUNET_CONTAINER_DLL_remove (gph_head, gph_tail, gph);
-  GNUNET_free (gph);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "GNS_AUTO_PSEU: name for zone in our root %s\n", name);
+  free_get_pseu_authority_handle (gph);
 }
 
 
@@ -591,10 +586,9 @@ start_shorten (struct AuthorityChain *auth,
                 "Failed to encode RSA key on shorten\n");
     return;
   }
-
   gph = GNUNET_malloc (sizeof (struct GetPseuAuthorityHandle));
   gph->key = GNUNET_CRYPTO_rsa_decode_key ((const char*) pb_key, ntohs (pb_key->len));
-
+  GNUNET_free (pb_key);
   if (NULL == gph->key)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -792,6 +786,8 @@ finish_shorten (struct ResolverHandle *rh,
 static void
 finish_get_auth (struct ResolverHandle *rh,
                  struct GetNameAuthorityHandle* rlh);
+
+
 /**
  * Shutdown resolver
  */
@@ -801,24 +797,24 @@ gns_resolver_cleanup ()
   unsigned int s;
   struct GetPseuAuthorityHandle *tmp;
 
-  
-  tmp = gph_head;
-  for (tmp = gph_head; tmp != NULL; tmp = gph_head)
+  while (NULL != (tmp = gph_head))
   {
     if (tmp->get_handle != NULL)
+    {
       GNUNET_DHT_get_stop (tmp->get_handle);
-    tmp->get_handle = NULL;
+      tmp->get_handle = NULL;
+    }
     if (tmp->timeout != GNUNET_SCHEDULER_NO_TASK)
+    {
       GNUNET_SCHEDULER_cancel (tmp->timeout);
-    tmp->timeout = GNUNET_SCHEDULER_NO_TASK;
-
+      tmp->timeout = GNUNET_SCHEDULER_NO_TASK;
+    }
     if (NULL != tmp->namestore_task)
+    {
       GNUNET_NAMESTORE_cancel (tmp->namestore_task);
-    tmp->namestore_task = NULL;
-    GNUNET_free (tmp->auth);
-    GNUNET_CRYPTO_rsa_key_free (tmp->key);
-    GNUNET_CONTAINER_DLL_remove (gph_head, gph_tail, tmp);
-    GNUNET_free (tmp);
+      tmp->namestore_task = NULL;
+    }
+    free_get_pseu_authority_handle (tmp);
   }
 
   while (NULL != rlh_head)
