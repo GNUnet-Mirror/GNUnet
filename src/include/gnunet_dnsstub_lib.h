@@ -119,6 +119,6 @@ GNUNET_DNSSTUB_resolve2 (struct GNUNET_DNSSTUB_Context *ctx,
  * @param rs resolution to cancel
  */
 void
-GNUNET_DNSSTUB_resolve_cancel (struct GNUNET_DNSSTUB_RequestSocket *rs)'
+GNUNET_DNSSTUB_resolve_cancel (struct GNUNET_DNSSTUB_RequestSocket *rs);
 
 #endif
