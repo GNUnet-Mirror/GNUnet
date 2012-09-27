@@ -120,12 +120,12 @@ static GNUNET_SCHEDULER_TaskIdentifier t4;
 static GNUNET_SCHEDULER_TaskIdentifier t6;
 
 /**
- * DNS suffix
+ * DNS suffix, suffix of this gateway in DNS; defaults to '.zkey.eu'
  */
 static char *dns_suffix;
 
 /**
- * FCFS suffix
+ * FCFS suffix, suffix of FCFS-authority in DNS; defaults to 'fcfs.zkey.eu'.
  */
 static char *fcfs_suffix;
 
@@ -347,9 +347,12 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
   struct Request *request;
   struct GNUNET_DNSPARSER_Packet *packet;
   char *name;
+  char *dot;
+  char *nname;
   size_t name_len;
   enum GNUNET_GNS_RecordType type;
   int use_gns;
+  struct GNUNET_CRYPTO_ShortHashCode zone;
 
   packet = GNUNET_DNSPARSER_parse (udp_msg, udp_msg_size);
   if (NULL == packet)
@@ -360,8 +363,8 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
       return;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received request for %s with flags %u, #answers %d, #auth %d, #additional %d\n",
-        packet->queries[0].name,
+	      "Received request for `%s' with flags %u, #answers %d, #auth %d, #additional %d\n",
+	      packet->queries[0].name,
 	      (unsigned int) packet->flags.query_or_response,
 	      (int) packet->num_answers,
 	      (int) packet->num_authority_records,
@@ -400,51 +403,30 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
        (0 == strcasecmp (dns_suffix,
 			 &name[name_len - strlen (dns_suffix)])) )
     {
-      /*
-       * FIXME: Here we want to query fcfs. But what is fcfs in our
-       * context?? -> we need a PKEY or name
-       */
-      if ( (name_len >= strlen (fcfs_suffix)) &&
-	   (0 == strcasecmp (fcfs_suffix,
-			     &name[name_len - strlen (fcfs_suffix)])) )
+      /* Test if '.zkey' was requested */
+      name[name_len - strlen (dns_suffix)] = '\0';
+      dot = strrchr (name, (int) '.');
+      if ( (NULL != dot) &&
+	   (GNUNET_OK ==
+	    GNUNET_CRYPTO_short_hash_from_string (dot + 1, &zone)) )
       {
-        name[name_len - strlen (fcfs_suffix)] = '\0';
-        if (0 == strcmp (name, ""))
-          strcpy (name, GNUNET_GNS_TLD);
-        else
-        {
-          if (sizeof (name) < (strlen (GNUNET_GNS_TLD)+strlen (name)))
-          {
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                        "Name %s.%s is too long!\n",
-                        name,
-                        GNUNET_GNS_TLD);
-            GNUNET_DNSPARSER_free_packet (request->packet);
-            return;
-          }
-          sprintf (name, "%s.%s", name, GNUNET_GNS_TLD);
-        }
+	/* valid '.zkey' name */
+	GNUNET_asprintf (&nname, 
+			 "%s.%s", 
+			 name, 
+			 GNUNET_GNS_TLD_ZKEY);
+	GNUNET_free (name);
+	name = nname;
       }
       else
-      {
-        name[name_len - strlen (dns_suffix)] = '\0';
-        if (0 == strcmp (name, ""))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "No zkey given!\n");
-          GNUNET_DNSPARSER_free_packet (request->packet);
-          return;
-        }
-        if (sizeof (name) < (strlen (GNUNET_GNS_TLD_ZKEY)+strlen (name)))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Name %s.%s is too long!\n",
-                      name,
-                      GNUNET_GNS_TLD);
-          GNUNET_DNSPARSER_free_packet (request->packet);
-          return;
-        }
-        sprintf (name, "%s.%s", name, GNUNET_GNS_TLD_ZKEY);
+      {	
+	/* try '.gads' name */
+	GNUNET_asprintf (&nname, 
+			 "%s.%s", 
+			 name, 
+			 GNUNET_GNS_TLD);
+	GNUNET_free (name);
+	name = nname;
       }
       name_len = strlen (name);
     }
