@@ -415,6 +415,23 @@ process_helper_msgs (void *cls,
 
 
 /**
+ * Function called if our helper process died.
+ *
+ * @param cls the 'struct GNUNET_FS_DirScanner' callback.
+ */
+static void
+helper_died_cb (void *cls)
+{
+  struct GNUNET_FS_DirScanner *ds = cls;
+
+  ds->helper = NULL;
+  ds->progress_callback (ds->progress_callback_cls, 
+			 NULL, GNUNET_SYSERR,
+			 GNUNET_FS_DIRSCANNER_INTERNAL_ERROR);  
+}
+
+
+/**
  * Start a directory scanner thread.
  *
  * @param filename name of the directory to scan
@@ -458,9 +475,9 @@ GNUNET_FS_directory_scan_start (const char *filename,
 				    "gnunet-helper-fs-publish",
 				    ds->args,
 				    &process_helper_msgs,
-				    NULL, ds);
+				    &helper_died_cb, ds);
   if (NULL == ds->helper)
-  {
+    {
     GNUNET_free (filename_expanded);
     GNUNET_free (ds);
     return NULL;
