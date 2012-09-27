@@ -4624,13 +4624,15 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
       unsigned int j2;
       unsigned int j3;
 
-      for (j = i; j < cinfo->send_buffer_n - 1; j++)
+      for (j = i, j2 = 0, j3 = 0; j < cinfo->send_buffer_n - 1; j++)
       {
         j2 = (cinfo->send_buffer_start + j) % max;
         j3 = (cinfo->send_buffer_start + j + 1) % max;
         cinfo->send_buffer[j2] = cinfo->send_buffer[j3];
       }
+
       cinfo->send_buffer[j3] = NULL;
+
       cinfo->send_buffer_n--;
     }
   }
