@@ -1991,11 +1991,11 @@ reattempt_daemons_connect (void *cls,
     if (ctx->d1th == NULL)
     {
       GNUNET_CORE_disconnect (ctx->d1core);
-      GNUNET_free (ctx);
       if (NULL != ctx->cb)
         ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, 0, ctx->d1->cfg,
                  ctx->d2->cfg, ctx->d1, ctx->d2,
                  _("Failed to connect to transport service!\n"));
+      GNUNET_free (ctx);
       return;
     }
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == ctx->hello_send_task);
