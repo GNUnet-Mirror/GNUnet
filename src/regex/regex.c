@@ -2953,7 +2953,7 @@ GNUNET_REGEX_iterate_all_edges (struct GNUNET_REGEX_Automaton *a,
 static void
 iptobinstr (const int af, const void *addr, char *str)
 {
-  unsigned int i;
+  int i;
 
   switch (af)
   {
@@ -2965,20 +2965,22 @@ iptobinstr (const int af, const void *addr, char *str)
     str += 31;
     for (i = 31; i >= 0; i--)
     {
-      *str-- = (b & 1) + '0';
+      *str = (b & 1) + '0';
+      str--;
       b >>= 1;
     }
     break;
   }
   case AF_INET6:
   {
-    struct in6_addr b = *(struct in6_addr *) addr;
+    struct in6_addr b = *(const struct in6_addr *) addr;
 
     str[128] = '\0';
     str += 127;
     for (i = 127; i >= 0; i--)
     {
-      *str-- = (b.s6_addr[i / 8] & 1) + '0';
+      *str = (b.s6_addr[i / 8] & 1) + '0';
+      str--;
       b.s6_addr[i / 8] >>= 1;
     }
     break;
@@ -3003,9 +3005,9 @@ ipv4netmasktoprefixlen (const char *netmask)
 
   if (1 != inet_pton (AF_INET, netmask, &a))
     return 0;
-
-  for (len = 32, t = htonl (~a.s_addr); t & 1; t >>= 1, len--) ;
-
+  len = 32;
+  for (t = htonl (~a.s_addr); 0 != t; t >>= 1) 
+    len--;
   return len;
 }
 
@@ -3027,7 +3029,8 @@ GNUNET_REGEX_ipv4toregex (const struct in_addr *ip, const char *netmask,
   pfxlen = ipv4netmasktoprefixlen (netmask);
   iptobinstr (AF_INET, ip, rxstr);
   rxstr[pfxlen] = '\0';
-  strcat (rxstr, "(0|1)*");
+  if (pfxlen < 32)
+    strcat (rxstr, "(0|1)+");
 }
 
 
@@ -3041,9 +3044,10 @@ GNUNET_REGEX_ipv4toregex (const struct in_addr *ip, const char *netmask,
  */
 void
 GNUNET_REGEX_ipv6toregex (const struct in6_addr *ipv6,
-                          const unsigned int prefixlen, char *rxstr)
+			  unsigned int prefixlen, char *rxstr)
 {
   iptobinstr (AF_INET6, ipv6, rxstr);
   rxstr[prefixlen] = '\0';
-  strcat (rxstr, "(0|1)*");
+  if (prefixlen < 128)
+    strcat (rxstr, "(0|1)+");
 }
