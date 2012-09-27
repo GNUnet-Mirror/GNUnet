@@ -32,8 +32,6 @@
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_gns_service.h"
 
-/* DEFINES */
-#define VERBOSE GNUNET_YES
 
 /* Timeout for entire testcase */
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 20)
@@ -54,7 +52,7 @@
 /* Globals */
 
 /* Task handle to use to schedule test failure */
-GNUNET_SCHEDULER_TaskIdentifier die_task;
+static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 /* Global return value (0 for success, anything else for failure) */
 static int ok;
@@ -63,9 +61,13 @@ static struct GNUNET_NAMESTORE_Handle *namestore_handle;
 
 static struct GNUNET_GNS_Handle *gns_handle;
 
-const struct GNUNET_CONFIGURATION_Handle *cfg;
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static unsigned long long max_parallel_lookups;
+
+static struct GNUNET_GNS_LookupRequest **requests;
+
+static unsigned int num_requests;
 
 
 /**
@@ -76,13 +78,17 @@ static unsigned long long max_parallel_lookups;
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  unsigned int i;
+
+  for (i=0;i<num_requests;i++)
+    if (NULL != requests[i])
+      GNUNET_GNS_cancel_lookup_request (requests[i]);
   die_task = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != gns_handle)
   {
     GNUNET_GNS_disconnect(gns_handle);
     gns_handle = NULL;
   }
-
   if (NULL != namestore_handle)
   {
     GNUNET_NAMESTORE_disconnect (namestore_handle);
@@ -90,29 +96,49 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   GNUNET_break (0);
   GNUNET_SCHEDULER_shutdown ();
+  GNUNET_free (requests);
   ok = 1;
 }
 
-static void
-end_badly_now ()
-{
-  GNUNET_SCHEDULER_cancel (die_task);
-  die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-}
 
-
-static void shutdown_task (void *cls,
-                           const struct GNUNET_SCHEDULER_TaskContext *tc)
+static void 
+shutdown_task (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_GNS_disconnect(gns_handle);
+  unsigned int i;
+
+  if (GNUNET_SCHEDULER_NO_TASK != die_task)
+  {
+      GNUNET_SCHEDULER_cancel (die_task);
+      die_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  for (i=0;i<num_requests;i++)
+    if (NULL != requests[i])
+      GNUNET_GNS_cancel_lookup_request (requests[i]);
+  if (NULL != gns_handle)
+  {
+    GNUNET_GNS_disconnect (gns_handle);
+    gns_handle = NULL;
+  }
+  if (NULL != namestore_handle)
+  {
+    GNUNET_NAMESTORE_disconnect (namestore_handle);
+    namestore_handle = NULL;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer!\n");
   GNUNET_SCHEDULER_shutdown ();
+  GNUNET_free (requests);
 }
+
+
 static void
-on_lookup_result_dummy(void *cls, uint32_t rd_count,
-                       const struct GNUNET_NAMESTORE_RecordData *rd)
+on_lookup_result_dummy (void *cls, uint32_t rd_count,
+			const struct GNUNET_NAMESTORE_RecordData *rd)
 {
+  struct GNUNET_GNS_LookupRequest **request = cls;
   static int replies = 0;
+
+  *request = NULL;
   if (GNUNET_SCHEDULER_NO_TASK != die_task)
   {
       GNUNET_SCHEDULER_cancel (die_task);
@@ -126,20 +152,19 @@ on_lookup_result_dummy(void *cls, uint32_t rd_count,
     ok = -1;
   }
   replies++;
-  if (replies == (max_parallel_lookups+TEST_ADDITIONAL_LOOKUPS))
-    GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
   fprintf (stderr, ".");
 }
 
 
 static void
-on_lookup_result(void *cls, uint32_t rd_count,
-                 const struct GNUNET_NAMESTORE_RecordData *rd)
+on_lookup_result (void *cls, uint32_t rd_count,
+		  const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct in_addr a;
   int i;
   char* addr;
   
+  requests[max_parallel_lookups + TEST_ADDITIONAL_LOOKUPS] = NULL;
   if (GNUNET_SCHEDULER_NO_TASK != die_task)
   {
       GNUNET_SCHEDULER_cancel (die_task);
@@ -193,7 +218,7 @@ commence_testing (void *cls, int32_t success, const char *emsg)
 {
   int i;
   char lookup_name[MAX_DNS_NAME_LENGTH];
-  
+  struct GNUNET_GNS_LookupRequest *lr;
   
   gns_handle = GNUNET_GNS_connect(cfg);
 
@@ -211,16 +236,18 @@ commence_testing (void *cls, int32_t success, const char *emsg)
     GNUNET_snprintf(lookup_name,
                     MAX_DNS_NAME_LENGTH,
                     "www.doesnotexist-%d.bob.gads", i);
-    GNUNET_GNS_lookup(gns_handle, lookup_name, GNUNET_GNS_RECORD_A,
-                      GNUNET_NO,
-                      NULL,
-                      &on_lookup_result_dummy, NULL);
+    lr = GNUNET_GNS_lookup (gns_handle, lookup_name, GNUNET_GNS_RECORD_A,
+			    GNUNET_NO,
+			    NULL,
+			    &on_lookup_result_dummy, &requests[num_requests]);
+    requests[num_requests++] = lr;
   }
-
-  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_A,
-                    GNUNET_NO,
-                    NULL,
-                    &on_lookup_result, TEST_DOMAIN);
+  lr = GNUNET_GNS_lookup (gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_A,
+			  GNUNET_NO,
+			  NULL,
+			  &on_lookup_result, TEST_DOMAIN);
+  requests[num_requests++] = lr;
+  GNUNET_assert (num_requests == max_parallel_lookups + TEST_ADDITIONAL_LOOKUPS + 1);
 }
 
 
@@ -246,7 +273,7 @@ do_check (void *cls,
   if (NULL == namestore_handle)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
-    end_badly_now();
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
@@ -255,20 +282,21 @@ do_check (void *cls,
                                                           &alice_keyfile))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get key from cfg\n");
-    end_badly_now();
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg, "gns",
-                                             "MAX_PARALLEL_BACKGROUND_QUERIES",
-                                             &max_parallel_lookups))
+							  "MAX_PARALLEL_BACKGROUND_QUERIES",
+							  &max_parallel_lookups))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get max queries from cfg\n");
-    end_badly_now();
+    GNUNET_SCHEDULER_shutdown ();
     GNUNET_free (alice_keyfile);
     return;
   }
-
+  requests = GNUNET_malloc ((max_parallel_lookups + TEST_ADDITIONAL_LOOKUPS + 1) *
+			    sizeof (struct GNUNET_GNS_LookupRequest *));
   alice_key = GNUNET_CRYPTO_rsa_key_create_from_file (alice_keyfile);
   bob_key = GNUNET_CRYPTO_rsa_key_create_from_file (KEYFILE_BOB);
 
@@ -319,11 +347,7 @@ main (int argc, char *argv[])
   ok = 1;
 
   GNUNET_log_setup ("test-gns-max-queries",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   GNUNET_TESTING_peer_run ("test-gns-max-queries", "test_gns_simple_lookup.conf", &do_check, NULL);
   return ok;

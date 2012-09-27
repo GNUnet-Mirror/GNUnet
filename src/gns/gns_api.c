@@ -899,7 +899,7 @@ GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
  * @param proc_cls closure for processor
  * @return handle to the lookup request
  */
-struct GNUNET_GNS_LookupRequest*
+struct GNUNET_GNS_LookupRequest *
 GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
                    const char *name,
                    enum GNUNET_GNS_RecordType type,
