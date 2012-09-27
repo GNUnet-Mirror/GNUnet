@@ -27,6 +27,7 @@ endif
 if HAVE_MHD 
 if HAVE_LIBCURL
  HTTP_API_TEST = test_transport_api_http
+ HTTP_REVERSE_API_TEST = test_transport_api_http_reverse
  HTTP_API_TIMEOUT_TEST = test_transport_api_timeout_http
  HTTP_REL_TEST = test_transport_api_reliability_http
  HTTP_QUOTA_TEST = test_quota_compliance_http \
@@ -378,7 +379,6 @@ TESTS = \
  $(UNIX_PLUGIN_TIMEOUT_TEST) \
  test_transport_api_udp_nat \
  $(HTTP_API_TEST) \
- $(HTTP_REVERSE_API_TEST) \
  $(HTTP_API_TIMEOUT_TEST) \
  $(HTTPS_API_TEST) \
  $(HTTPS_API_TIMEOUT_TEST) \
@@ -664,7 +664,6 @@ test_transport_api_http_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
  
-#if FALSE
 test_transport_api_http_reverse_SOURCES = \
  test_transport_api.c
 test_transport_api_http_reverse_LDADD = \
@@ -672,7 +671,6 @@ test_transport_api_http_reverse_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
- #endif
  
 test_transport_api_timeout_http_SOURCES = \
  test_transport_api_timeout.c
