@@ -220,6 +220,7 @@ do_timeout (void *cls,
   GNUNET_free (request);
 }
 
+
 /**
  * Iterator called on obtained result for a DNS
  * lookup
@@ -468,20 +469,15 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
     }
   else
     {
-      /* FIXME: do traditional *DNS* lookup; note that
-	 gnunet-service-dns already has code to do this;
-	 factor into library to share! Why not use GNUNET_RESOLVER here?*/
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		   "Calling DNS at %s\n", dns_ip);
       GNUNET_DNSPARSER_free_packet (request->packet);
+      request->packet = NULL;
       request->dns_lookup = GNUNET_DNSSTUB_resolve2 (dns_stub,
                                                      udp_msg,
                                                      udp_msg_size,
                                                      &dns_result_processor,
                                                      request);
-
-
-
     }
   GNUNET_free (name);
 }
