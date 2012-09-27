@@ -53,9 +53,8 @@ get_namespace_directory (struct GNUNET_FS_Handle *h)
       GNUNET_CONFIGURATION_get_value_filename (h->cfg, "FS", "IDENTITY_DIR",
                                                &dn))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Configuration fails to specify `%s' in section `%s'\n"),
-                "IDENTITY_DIR", "fs");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+			       "fs", "IDENTITY_DIR");
     return NULL;
   }
   return dn;
@@ -79,9 +78,8 @@ get_update_information_directory (struct GNUNET_FS_Namespace *ns)
       GNUNET_CONFIGURATION_get_value_filename (ns->h->cfg, "FS", "UPDATE_DIR",
                                                &dn))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Configuration fails to specify `%s' in section `%s'\n"),
-                "UPDATE_DIR", "fs");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+			       "fs", "UPDATE_DIR");
     return NULL;
   }
   GNUNET_asprintf (&ret, "%s%s%s", dn, DIR_SEPARATOR_STR, ns->name);

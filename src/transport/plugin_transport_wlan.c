@@ -1691,11 +1691,9 @@ libgnunet_plugin_transport_wlan_init (void *cls)
 	  GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-wlan",
 						 "TESTMODE", &testmode)) ||
 	 (testmode > 2) ) )
-    {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-	 _("Invalid configuration option `%s' in section `%s'\n"),
-	 "TESTMODE",
-	 "transport-wlan");
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+			       "transport-wlan", "TESTMODE");
     return NULL;
   }
   if ( (0 == testmode) &&
@@ -1711,10 +1709,8 @@ libgnunet_plugin_transport_wlan_init (void *cls)
       (env->cfg, "transport-wlan", "INTERFACE",
        &interface))
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-	 _("Missing configuration option `%s' in section `%s'\n"),
-	 "INTERFACE",
-	 "transport-wlan");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+			       "transport-wlan", "INTERFACE");
     return NULL;    
   }
 

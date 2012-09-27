@@ -230,9 +230,8 @@ read_blacklist_file ()
       GNUNET_CONFIGURATION_get_value_filename (GST_cfg, "TRANSPORT",
                                                "BLACKLIST_FILE", &fn))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Option `%s' in section `%s' not specified!\n",
-                "BLACKLIST_FILE", "TRANSPORT");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_DEBUG,
+			       "transport", "BLACKLIST_FILE");
     return;
   }
   if (GNUNET_OK != GNUNET_DISK_file_test (fn))

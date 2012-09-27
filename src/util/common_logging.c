@@ -1190,6 +1190,45 @@ GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
 
 
 /**
+ * Log error message about missing configuration option.
+ *
+ * @param kind log level
+ * @param section section with missing option
+ * @param option name of missing option
+ */
+void
+GNUNET_log_config_missing (enum GNUNET_ErrorType kind, 
+			   const char *section,
+			   const char *option)
+{
+  GNUNET_log (kind,
+	      _("Configuration fails to specify option `%s' in section `%s'!\n"),
+	      option,
+	      section);
+}
+
+
+/**
+ * Log error message about invalid configuration option value.
+ *
+ * @param kind log level
+ * @param section section with invalid option
+ * @param option name of invalid option
+ * @param required what is required that is invalid about the option
+ */
+void
+GNUNET_log_config_invalid (enum GNUNET_ErrorType kind, 
+			   const char *section,
+			   const char *option,
+			   const char *required)
+{
+  GNUNET_log (kind,
+	      _("Configuration specifies invalid value for option `%s' in section `%s': %s\n"),
+	      option, section, required);
+}
+
+
+/**
  * Initializer
  */
 void __attribute__ ((constructor)) GNUNET_util_cl_init ()

@@ -1122,11 +1122,12 @@ setup_service (void *cls, const char *section)
 						&config)) ||
       (0 != STAT (config, &sbuf)))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _
-		  ("Configuration file `%s' for service `%s' not valid: %s\n"),
-		  config, section,
-		  (config == NULL) ? _("option missing") : STRERROR (errno));
+      if (NULL == config)
+	GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING, section, "CONFIG");
+      else
+	GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING, 
+				   section, "CONFIG",
+				   STRERROR (errno));
       GNUNET_free (binary);
       GNUNET_free_non_null (config);
       return;

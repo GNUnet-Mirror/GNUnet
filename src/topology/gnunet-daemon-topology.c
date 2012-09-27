@@ -1022,9 +1022,8 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg, "TOPOLOGY", "FRIENDS", &fn))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Option `%s' in section `%s' not specified!\n"), "FRIENDS",
-                "TOPOLOGY");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+			       "topology", "FRIENDS");
     return;
   }
   if (GNUNET_OK != GNUNET_DISK_file_test (fn))

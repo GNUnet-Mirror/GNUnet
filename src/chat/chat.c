@@ -468,9 +468,8 @@ init_private_key (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg, "chat", "HOME", &home))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Configuration option `%s' in section `%s' missing\n"),
-                "HOME", "chat");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+			       "chat", "HOME");
     return NULL;
   }
   GNUNET_DISK_directory_create (home);

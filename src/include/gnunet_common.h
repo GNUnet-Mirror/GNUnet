@@ -322,6 +322,8 @@ int
 GNUNET_get_log_call_status (int caller_level, const char *comp,
                             const char *file, const char *function, int line);
 #endif
+
+
 /**
  * Main log function.
  *
@@ -397,6 +399,34 @@ GNUNET_log_from_nocheck (enum GNUNET_ErrorType kind, const char *comp,
 #define GNUNET_log(...)
 #define GNUNET_log_from(...)
 #endif
+
+
+/**
+ * Log error message about missing configuration option.
+ *
+ * @param kind log level
+ * @param section section with missing option
+ * @param option name of missing option
+ */
+void
+GNUNET_log_config_missing (enum GNUNET_ErrorType kind, 
+			   const char *section,
+			   const char *option);
+
+
+/**
+ * Log error message about invalid configuration option value.
+ *
+ * @param kind log level
+ * @param section section with invalid option
+ * @param option name of invalid option
+ * @param required what is required that is invalid about the option
+ */
+void
+GNUNET_log_config_invalid (enum GNUNET_ErrorType kind, 
+			   const char *section,
+			   const char *option,
+			   const char *required);
 
 
 /**

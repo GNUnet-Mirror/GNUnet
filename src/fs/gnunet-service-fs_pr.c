@@ -1597,19 +1597,15 @@ GSF_pending_request_init_ ()
                                              "MAX_PENDING_REQUESTS",
                                              &max_pending_requests))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _
-                ("Configuration fails to specify `%s', assuming default value."),
-                "MAX_PENDING_REQUESTS");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_INFO,
+			       "fs", "MAX_PENDING_REQUESTS");
   }
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_size (GSF_cfg, "ats", "WAN_QUOTA_OUT",
                                            &bps))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _
-                ("Configuration fails to specify `%s', assuming default value."),
-                "WAN_QUOTA_OUT");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_INFO,
+			       "ats", "WAN_QUOTA_OUT");
     bps = 65536;
   }
   /* queue size should be #queries we can have pending and satisfy within

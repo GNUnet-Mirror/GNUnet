@@ -888,11 +888,9 @@ run (void *cls, char *const *args, const char *cfgfile,
 					     "HTTPPORT",
 					     &port))
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Option `%s' not specified in configuration section `%s'\n"),
-		  "HTTPPORT",
-		  "fcfsd");
-      return;
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+			       "fcfsd", "HTTPPORT");
+    return;
   }
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg,
@@ -900,10 +898,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 					       "ZONEKEY",
 					       &keyfile))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Option `%s' not specified in configuration section `%s'\n"),
-		"ZONEKEY",
-		"fcfsd");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+			       "fcfsd", "ZONEKEY");
     return;
   }
   fcfs_zone_pkey = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);

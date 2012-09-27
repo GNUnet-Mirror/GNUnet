@@ -1131,11 +1131,9 @@ run (void *cls, char *const *args, const char *cfgfile,
         (connect_topology_option_modifier_string, "%lf",
          &connect_topology_option_modifier) != 1)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _
-                  ("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
-                  connect_topology_option_modifier_string,
-                  "connect_topology_option_modifier", "TESTING");
+      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
+				 "testing", "connect_topology_option_modifier",
+				 "expected float");
     }
     GNUNET_free (connect_topology_option_modifier_string);
   }

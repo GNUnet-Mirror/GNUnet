@@ -228,10 +228,8 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_CONFIGURATION_get_value_filename (cfg, "datastore-sqlite",
                                                "FILENAME", &afsdir))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "sqlite",
-                     _
-                     ("Option `%s' in section `%s' missing in configuration!\n"),
-                     "FILENAME", "datastore-sqlite");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+			       "datastore-sqlite", "FILENAME");
     return GNUNET_SYSERR;
   }
   if (GNUNET_OK != GNUNET_DISK_file_test (afsdir))

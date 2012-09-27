@@ -617,9 +617,8 @@ testservice_task (void *cls,
     if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
                                                               "ZONEKEY", &keyfile))
     {
-      fprintf (stderr,
-               _("Option `%s' not given, but I need a zone key file!\n"),
-               "z");
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+				 "gns", "ZONEKEY");
       return;
     }
     fprintf (stderr,

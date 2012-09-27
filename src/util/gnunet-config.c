@@ -106,8 +106,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 	if (GNUNET_OK !=
 	    GNUNET_CONFIGURATION_get_value_filename (cfg, section, option, &value))
 	{
-	  fprintf (stderr, _("No value for option `%s' in section `%s'\n"),
-		   option, section);
+	  GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+				     section, option);
 	  ret = 3;
 	  return;
 	}
@@ -117,8 +117,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 	if (GNUNET_OK !=
 	    GNUNET_CONFIGURATION_get_value_string (cfg, section, option, &value))
 	{
-	  fprintf (stderr, _("No value for option `%s' in section `%s'\n"),
-		   option, section);
+	  GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+				     section, option);
 	  ret = 3;
 	  return;
 	}

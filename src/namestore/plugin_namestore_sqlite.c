@@ -199,10 +199,9 @@ database_setup (struct Plugin *plugin)
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (plugin->cfg, "namestore-sqlite",
                                                "FILENAME", &afsdir))
-    {
-    LOG (GNUNET_ERROR_TYPE_ERROR, 
-	 _ ("Option `%s' in section `%s' missing in configuration!\n"),
-	 "FILENAME", "namestore-sqlite");
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+			       "namestore-sqlite", "FILENAME");
     return GNUNET_SYSERR;
   }
   if (GNUNET_OK != GNUNET_DISK_file_test (afsdir))

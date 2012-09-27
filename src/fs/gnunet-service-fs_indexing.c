@@ -109,9 +109,8 @@ write_index_list ()
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg, "FS", "INDEXDB", &fn))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                _("Configuration option `%s' in section `%s' missing.\n"),
-                "INDEXDB", "FS");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+			       "fs", "INDEXDB");
     return;
   }
   wh = GNUNET_BIO_write_open (fn);
@@ -159,9 +158,8 @@ read_index_list ()
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg, "FS", "INDEXDB", &fn))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                _("Configuration option `%s' in section `%s' missing.\n"),
-                "INDEXDB", "FS");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+			       "fs", "INDEXDB");
     return;
   }
   if (GNUNET_NO == GNUNET_DISK_file_test (fn))

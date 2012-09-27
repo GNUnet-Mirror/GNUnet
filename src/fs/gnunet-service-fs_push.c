@@ -624,10 +624,9 @@ GSF_push_init_ ()
       GNUNET_CONFIGURATION_get_value_time (GSF_cfg, "fs", "MIN_MIGRATION_DELAY",
                                            &min_migration_delay))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _
-                ("Invalid value specified for option `%s' in section `%s', content pushing disabled\n"),
-                "MIN_MIGRATION_DELAY", "fs");
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
+			       "fs", "MIN_MIGRATION_DELAY",
+			       _("time required, content pushing disabled"));
     return;
   }
   consider_gathering ();

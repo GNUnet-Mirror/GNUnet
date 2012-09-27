@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -125,7 +125,6 @@ static unsigned int phase;
  */
 static struct GNUNET_TIME_Relative timeout;
 
-
 /**
  * Do we want to give our stdout to gnunet-service-arm?
  */
@@ -135,6 +134,7 @@ static unsigned int no_stdout = 0;
  * Do we want to give our stderr to gnunet-service-arm?
  */
 static unsigned int no_stderr = 0;
+
 
 /**
  * Main continuation-passing-style loop.  Runs the various
@@ -210,6 +210,7 @@ confirm_cb (void *cls,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
+
 /**
  * Callback invoked with the list of running services.  
  * Reports to the user and then runs the next phase in the FSM.
@@ -234,6 +235,7 @@ list_cb (void *cls, int result, unsigned int count, const char *const*list)
     FPRINTF (stdout, "%s\n", list[i]);
 }
 
+
 /**
  * Main function that will be run by the scheduler.
  *
@@ -250,24 +252,22 @@ run (void *cls, char *const *args, const char *cfgfile,
   config_file = cfgfile;
   if (GNUNET_CONFIGURATION_get_value_string
       (cfg, "PATHS", "SERVICEHOME", &dir) != GNUNET_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _
-		  ("Fatal configuration error: `%s' option in section `%s' missing.\n"),
-		  "SERVICEHOME", "PATHS");
-      return;
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+			       "PATHS", "SERVICEHOME");
+    return;
     }
-  h = GNUNET_ARM_connect (cfg, NULL);
-  if (h == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Fatal error initializing ARM API.\n"));
-      ret = 1;
-      return;
-    }
+  if (NULL == (h = GNUNET_ARM_connect (cfg, NULL)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Fatal error initializing ARM API.\n"));
+    ret = 1;
+    return;
+  }
   GNUNET_SCHEDULER_add_continuation (&cps_loop, NULL,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
+
 
 /**
  * Attempts to delete configuration file and SERVICEHOME
@@ -295,6 +295,7 @@ delete_files ()
     }
 }
 
+
 /**
  * Main continuation-passing-style loop.  Runs the various
  * jobs that we've been asked to do in order.
@@ -306,99 +307,98 @@ static void
 cps_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   while (1)
+  {
+    switch (phase++)
     {
-      switch (phase++)
+    case 0:
+      if (NULL != term)
+      {
+	GNUNET_ARM_stop_service (h, term,
+				 (0 ==
+				  timeout.rel_value) ? STOP_TIMEOUT :
+				 timeout, &confirm_cb, term);
+	return;
+      }
+      break;
+    case 1:
+      if ((end) || (restart))
+      {
+	GNUNET_ARM_stop_service (h, "arm",
+				 (0 ==
+				  timeout.rel_value) ? STOP_TIMEOUT_ARM
+				 : timeout, &confirm_cb, "arm");
+	return;
+      }
+      break;
+    case 2:
+      if (start)
+      {
+	GNUNET_ARM_start_service (h, "arm",
+				  (no_stdout ? 0 : GNUNET_OS_INHERIT_STD_OUT) |
+				  (no_stderr ? 0 : GNUNET_OS_INHERIT_STD_ERR),
+				  (0 ==
+				   timeout.rel_value) ? START_TIMEOUT :
+				  timeout, &confirm_cb, "arm");
+	return;
+      }
+      break;
+    case 3:
+      if (NULL != init)
+       {
+	 GNUNET_ARM_start_service (h, init,
+				   (no_stdout ? 0 : GNUNET_OS_INHERIT_STD_OUT) |
+				   (no_stderr ? 0 : GNUNET_OS_INHERIT_STD_ERR),
+				   (0 ==
+				    timeout.rel_value) ? START_TIMEOUT :
+				   timeout, &confirm_cb, init);
+	 return;
+       }
+      break;
+    case 4:
+      if (restart)
+      {
+	GNUNET_ARM_disconnect (h);
+	phase = 0;
+	end = 0;
+	start = 1;
+	restart = 0;
+	if (NULL == (h = GNUNET_ARM_connect (cfg, NULL)))
 	{
-	case 0:
-	  if (term != NULL)
-	    {
-	      GNUNET_ARM_stop_service (h, term,
-				       (0 ==
-					timeout.rel_value) ? STOP_TIMEOUT :
-				       timeout, &confirm_cb, term);
-	      return;
-	    }
-	  break;
-	case 1:
-	  if ((end) || (restart))
-	    {
-	      GNUNET_ARM_stop_service (h, "arm",
-				       (0 ==
-					timeout.rel_value) ? STOP_TIMEOUT_ARM
-				       : timeout, &confirm_cb, "arm");
-	      return;
-	    }
-	  break;
-	case 2:
-	  if (start)
-	    {
-	      GNUNET_ARM_start_service (h, "arm",
-                                        (no_stdout ? 0 : GNUNET_OS_INHERIT_STD_OUT) |
-                                        (no_stderr ? 0 : GNUNET_OS_INHERIT_STD_ERR),
-					(0 ==
-					 timeout.rel_value) ? START_TIMEOUT :
-					timeout, &confirm_cb, "arm");
-	      return;
-	    }
-	  break;
-	case 3:
-	  if (init != NULL)
-	    {
-	      GNUNET_ARM_start_service (h, init,
-                                        (no_stdout ? 0 : GNUNET_OS_INHERIT_STD_OUT) |
-                                        (no_stderr ? 0 : GNUNET_OS_INHERIT_STD_ERR),
-					(0 ==
-					 timeout.rel_value) ? START_TIMEOUT :
-					timeout, &confirm_cb, init);
-	      return;
-	    }
-	  break;
-	case 4:
-	  if (restart)
-	    {
-	      GNUNET_ARM_disconnect (h);
-	      phase = 0;
-	      end = 0;
-	      start = 1;
-	      restart = 0;
-	      h = GNUNET_ARM_connect (cfg, NULL);
-	      if (NULL == h)
-		{
-		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-			      _("Fatal error initializing ARM API.\n"));
-		  ret = 1;
-		  return;
-		}
-	      GNUNET_SCHEDULER_add_now (&cps_loop, NULL);
-	      return;
-	    }
-	  break;
-        case 5:
-          if (list) {
-              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Going to list all running services controlled by ARM.\n");
-  
-              if (NULL == h) 
-              {
-               GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                              _("Fatal error initializing ARM API.\n"));
-               return;
-              }
-              
-              GNUNET_ARM_list_running_services (h, 
-                                                (0 == 
-                                                 timeout.rel_value) ? LIST_TIMEOUT : 
-                                                 timeout, &list_cb, NULL);
-            return;
-          }
-	  /* Fall through */
-	default:		/* last phase */
-	  GNUNET_ARM_disconnect (h);
-	  if ((end == GNUNET_YES) && (delete == GNUNET_YES))
-	    delete_files ();
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Fatal error initializing ARM API.\n"));
+	  ret = 1;
 	  return;
 	}
+	GNUNET_SCHEDULER_add_now (&cps_loop, NULL);
+	return;
+      }
+      break;
+    case 5:
+      if (list) 
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Going to list all running services controlled by ARM.\n");
+	
+	if (NULL == h) 
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Fatal error initializing ARM API.\n"));
+	  return;
+	}	
+	GNUNET_ARM_list_running_services (h, 
+					  (0 == 
+					   timeout.rel_value) ? LIST_TIMEOUT : 
+					  timeout, &list_cb, NULL);
+	return;
+      }
+      /* Fall through */
+    default:		/* last phase */
+      GNUNET_ARM_disconnect (h);
+      if ((end == GNUNET_YES) && (delete == GNUNET_YES))
+	delete_files ();
+      return;
     }
+  }
 }
 
 

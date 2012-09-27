@@ -2385,9 +2385,8 @@ libgnunet_plugin_transport_tcp_init (void *cls)
         GNUNET_CONFIGURATION_get_value_time (env->cfg, "transport-tcp",
                                              "TIMEOUT", &idle_timeout))
     {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-	   _("Failed to find option %s in section %s!\n"),
-	   "TIMEOUT", "transport-tcp");
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+				 "transport-tcp", "TIMEOUT");
       if (plugin->nat != NULL)
         GNUNET_NAT_unregister (plugin->nat);
       GNUNET_free (plugin);
