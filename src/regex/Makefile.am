@@ -23,7 +23,8 @@ check_PROGRAMS = \
  test_regex_eval_api \
  test_regex_iterate_api \
  test_regex_proofs \
- test_regex_graph_api
+ test_regex_graph_api \
+ test_regex_iptoregex
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
@@ -53,6 +54,10 @@ test_regex_graph_api_LDADD = \
 $(top_builddir)/src/regex/libgnunetregex.la \
 $(top_builddir)/src/util/libgnunetutil.la
 
+test_regex_iptoregex_SOURCES = \
+test_regex_iptoregex.c
+test_regex_iptoregex_LDADD = \
+$(top_builddir)/src/regex/libgnunetregex.la
 
 EXTRA_DIST =
 # test_regex_data.conf

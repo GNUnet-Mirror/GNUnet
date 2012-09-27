@@ -3006,7 +3006,7 @@ ipv4netmasktoprefixlen (const char *netmask)
   if (1 != inet_pton (AF_INET, netmask, &a))
     return 0;
   len = 32;
-  for (t = htonl (~a.s_addr); 0 != t; t >>= 1) 
+  for (t = htonl (~a.s_addr); 0 != t; t >>= 1)
     len--;
   return len;
 }
@@ -3043,8 +3043,8 @@ GNUNET_REGEX_ipv4toregex (const struct in_addr *ip, const char *netmask,
  *              bytes long.
  */
 void
-GNUNET_REGEX_ipv6toregex (const struct in6_addr *ipv6,
-			  unsigned int prefixlen, char *rxstr)
+GNUNET_REGEX_ipv6toregex (const struct in6_addr *ipv6, unsigned int prefixlen,
+                          char *rxstr)
 {
   iptobinstr (AF_INET6, ipv6, rxstr);
   rxstr[prefixlen] = '\0';

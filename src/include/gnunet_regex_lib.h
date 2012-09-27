@@ -37,6 +37,19 @@ extern "C"
 #endif
 #endif
 
+
+/**
+ * Maximum regex string length for use with GNUNET_REGEX_ipv4toregex
+ */
+#define GNUNET_REGEX_IPV4_REGEXLEN 32 + 6
+
+
+/**
+ * Maximum regex string length for use with GNUNET_REGEX_ipv6toregex
+ */
+#define GNUNET_REGEX_IPV6_REGEXLEN 128 + 6
+
+
 /**
  * Automaton (NFA/DFA) representation.
  */
@@ -204,6 +217,32 @@ void
 GNUNET_REGEX_iterate_all_edges (struct GNUNET_REGEX_Automaton *a,
                                 GNUNET_REGEX_KeyIterator iterator,
                                 void *iterator_cls);
+
+
+/**
+ * Create a regex in 'rxstr' from the given 'ip' and 'netmask'.
+ *
+ * @param ip IPv4 representation.
+ * @param netmask netmask for the ip.
+ * @param rxstr generated regex, must be at least GNUNET_REGEX_IPV4_REGEXLEN
+ *              bytes long.
+ */
+void
+GNUNET_REGEX_ipv4toregex (const struct in_addr *ip, const char *netmask,
+                          char *rxstr);
+
+
+/**
+ * Create a regex in 'rxstr' from the given 'ipv6' and 'prefixlen'.
+ *
+ * @param ipv6 IPv6 representation.
+ * @param prefixlen length of the ipv6 prefix.
+ * @param rxstr generated regex, must be at least GNUNET_REGEX_IPV6_REGEXLEN
+ *              bytes long.
+ */
+void
+GNUNET_REGEX_ipv6toregex (const struct in6_addr *ipv6,
+                          unsigned int prefixlen, char *rxstr);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
