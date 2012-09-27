@@ -276,8 +276,8 @@ helper_read (void *cls,
   {
     /* this happens if the helper is shut down via a 
        signal, so it is not a "hard" error */
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-		_("Got 0 bytes from helper `%s' (EOF)\n"),
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Got 0 bytes from helper `%s' (EOF)\n",
 		h->binary_name);
     if (NULL != h->exp_cb)
     {
@@ -292,8 +292,8 @@ helper_read (void *cls,
 				    &restart_task, h);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-	      _("Got %u bytes from helper `%s'\n"),
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Got %u bytes from helper `%s'\n",
 	      (unsigned int) t,
 	      h->binary_name);
   h->read_task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
@@ -339,8 +339,8 @@ start_helper (struct GNUNET_HELPER_Handle *h)
 				    &restart_task, h);    
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("Starting HELPER process `%s'\n"),
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting HELPER process `%s'\n",
 	      h->binary_name);
   h->fh_from_helper =
       GNUNET_DISK_pipe_handle (h->helper_out, GNUNET_DISK_PIPE_END_READ);
