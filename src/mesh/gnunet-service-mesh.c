@@ -4585,10 +4585,12 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
     {
       case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "   cancelling TUNNEL_DESTROY\n");
+        /* fall through */
       case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
       case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
       case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   type payload\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "   type prebuilt (payload, tunnel destroy)\n");
         dd = queue->cls;
         data_descriptor_decrement_rc (dd->mesh_data);
         break;
