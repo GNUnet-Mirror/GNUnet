@@ -134,6 +134,7 @@ create_keys (const char *fn)
 		 _("\nFailed to write to `%s': %s\n"),
 		 fn,
 		 STRERROR (errno));
+	GNUNET_CRYPTO_rsa_key_free (pk);
 	break;
       }
     GNUNET_CRYPTO_rsa_key_free (pk);
