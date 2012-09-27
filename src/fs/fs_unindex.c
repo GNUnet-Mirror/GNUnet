@@ -341,12 +341,13 @@ unindex_directory_scan_cb (void *cls,
     {
       uc->ksk_uri = GNUNET_FS_uri_dup (directory_scan_result->ksk_uri);
       uc->state = UNINDEX_STATE_DS_REMOVE_KBLOCKS;
-      uc->emsg = GNUNET_strdup (_("Failed to get KSKs from directory scan."));
       GNUNET_FS_unindex_sync_ (uc);
       GNUNET_FS_unindex_do_remove_kblocks_ (uc);
     }
     else
     {
+      uc->emsg = GNUNET_strdup (_("Failed to get KSKs from directory scan."));
+      GNUNET_FS_unindex_sync_ (uc);
       unindex_finish (uc);
     }
     GNUNET_FS_share_tree_free (directory_scan_result);
@@ -355,11 +356,15 @@ unindex_directory_scan_cb (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Internal error scanning `%s'.\n"),
 		uc->filename);
+    GNUNET_FS_directory_scan_abort (uc->dscan);
+    uc->dscan = NULL;
+    uc->emsg = GNUNET_strdup (_("Failed to get KSKs from directory scan."));
+    GNUNET_FS_unindex_sync_ (uc);
+    unindex_finish (uc);
     break;
   default:
     break;
   }
-
 }
 
 
