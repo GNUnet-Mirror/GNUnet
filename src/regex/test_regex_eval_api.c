@@ -96,7 +96,6 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
     if (NULL == dfa)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Constructing DFA failed\n");
-      GNUNET_free (matching_str);
       goto error;
     }
 
