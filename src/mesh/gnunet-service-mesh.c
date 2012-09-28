@@ -2085,6 +2085,11 @@ send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
           tmsg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
           GNUNET_PEER_resolve (t->id.oid, &tmsg.peer);
           tmsg.tunnel_id = htonl (t->local_tid_dest);
+          tmsg.opt = 0;
+          if (GNUNET_YES == t->speed_min)
+            tmsg.opt |= MESH_TUNNEL_OPT_SPEED_MIN;
+          if (GNUNET_YES == t->nobuffer)
+            tmsg.opt |= MESH_TUNNEL_OPT_NOBUFFER;
           GNUNET_SERVER_notification_context_unicast (nc, c->handle,
                                                       &tmsg.header, GNUNET_NO);
           tunnel_add_client (t, c);
@@ -3701,9 +3706,23 @@ tunnel_get_fwd_ack (struct MeshTunnel *t)
 
   count = t->fwd_pid - t->skip;
   buffer_free = t->fwd_queue_max - t->fwd_queue_n;
-  ack = count + buffer_free;
   child_ack = tunnel_get_children_fwd_ack (t);
   client_ack = tunnel_get_clients_fwd_ack (t);
+  if (GNUNET_YES == t->nobuffer)
+  {
+    ack = count;
+    if (-1LL == child_ack)
+      child_ack = client_ack;
+    if (-1LL == child_ack)
+    {
+      GNUNET_break (0);
+      client_ack = child_ack = ack;
+    }
+  }
+  else
+  {
+    ack = count + buffer_free; // Overflow? OK!
+  }
   if (-1LL == child_ack)
   {
     // Node has no children, child_ack AND core buffer are irrelevant.
@@ -3712,20 +3731,18 @@ tunnel_get_fwd_ack (struct MeshTunnel *t)
   }
   if (-1LL == client_ack)
   {
-    client_ack = ack; // Might overflow 32 bits, it's ok!
+    client_ack = ack;
   }
   if (GNUNET_YES == t->speed_min)
   {
-    ack = GMC_min_pid ((uint32_t) child_ack, ack); // Might overflow 32 bits, it's ok!;
+    ack = GMC_min_pid ((uint32_t) child_ack, ack);
     ack = GMC_min_pid ((uint32_t) client_ack, ack);
   }
   else
   {
-    ack = GMC_max_pid ((uint32_t) child_ack, ack); // Might overflow 32 bits, it's ok!;
+    ack = GMC_max_pid ((uint32_t) child_ack, ack);
     ack = GMC_max_pid ((uint32_t) client_ack, ack);
   }
-  if (GNUNET_YES == t->nobuffer && GMC_is_pid_bigger(ack, t->fwd_pid))
-    ack = t->fwd_pid + 1; // Might overflow 32 bits, it's ok!
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "c %u, bf %u, ch %lld, cl %lld, ACK: %u\n",
               count, buffer_free, child_ack, client_ack, ack);
@@ -3796,7 +3813,10 @@ tunnel_send_client_fwd_ack (struct MeshTunnel *t)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ack %u\n", ack);
   if (t->last_fwd_ack == ack)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " same as last, not sending!\n");
     return;
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " sending!\n");
   t->last_fwd_ack = ack;
@@ -5111,8 +5131,11 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     opt = ntohl (msg->opt);
     t->speed_min = (0 != (opt & MESH_TUNNEL_OPT_SPEED_MIN)) ?
                    GNUNET_YES : GNUNET_NO;
-    t->nobuffer = (0 != (opt & MESH_TUNNEL_OPT_NOBUFFER)) ?
-                  GNUNET_YES : GNUNET_NO;
+    if (0 != (opt & MESH_TUNNEL_OPT_NOBUFFER))
+    {
+      t->nobuffer = GNUNET_YES;
+      t->last_fwd_ack = t->fwd_pid + 1;
+    }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  speed_min: %d, nobuffer:%d\n",
                 t->speed_min, t->nobuffer);
@@ -5509,6 +5532,7 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_YES == GMC_is_pid_bigger (pid, cinfo->fwd_ack))
   {
     GNUNET_STATISTICS_update (stats, "# unsolicited unicast", 1, GNUNET_NO);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "  %u > %u\n", pid, cinfo->fwd_ack);
     GNUNET_break_op (0);
     return GNUNET_OK;
   }

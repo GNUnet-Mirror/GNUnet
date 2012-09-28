@@ -169,6 +169,11 @@ struct GNUNET_MESH_TunnelNotification
      * Peer at the other end, if any
      */
   struct GNUNET_PeerIdentity peer;
+
+    /**
+     * Tunnel options (speed, buffering)
+     */
+  uint32_t opt;
 };
 
 /**

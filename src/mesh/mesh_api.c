@@ -467,6 +467,7 @@ create_tunnel (struct GNUNET_MESH_Handle *h, MESH_TunnelNumber tid)
   }
   t->max_send_pid = INITIAL_WINDOW_SIZE - 1;
   t->last_recv_pid = (uint32_t) -1;
+  t->buffering = GNUNET_YES;
   return t;
 }
 
@@ -707,7 +708,10 @@ send_ack (struct GNUNET_MESH_Handle *h, struct GNUNET_MESH_Tunnel *t)
          t->tid, t->max_recv_pid, t->last_recv_pid, delta);
     return;
   }
-  t->max_recv_pid = t->last_recv_pid + INITIAL_WINDOW_SIZE;
+  if (GNUNET_YES == t->buffering)
+    t->max_recv_pid = t->last_recv_pid + INITIAL_WINDOW_SIZE;
+  else
+    t->max_recv_pid = t->last_recv_pid + 1;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending ACK on tunnel %X: %u\n",
        t->tid, t->max_recv_pid);
@@ -970,6 +974,12 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
     GNUNET_PEER_change_rc (t->owner, 1);
     t->mesh = h;
     t->tid = tid;
+    if ((msg->opt & MESH_TUNNEL_OPT_NOBUFFER) != 0)
+      t->buffering = GNUNET_NO;
+    else
+      t->buffering = GNUNET_YES;
+    if ((msg->opt & MESH_TUNNEL_OPT_SPEED_MIN) != 0)
+      t->speed_min = GNUNET_YES;
     atsi.type = 0;
     atsi.value = 0;
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  created tunnel %p\n", t);
@@ -1817,6 +1827,7 @@ GNUNET_MESH_tunnel_buffer (struct GNUNET_MESH_Tunnel *tunnel, int buffer)
 
   h = tunnel->mesh;
   tunnel->buffering = buffer;
+  tunnel->max_send_pid = tunnel->next_send_pid;
 
   if (GNUNET_YES == buffer)
     msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_BUFFER);
