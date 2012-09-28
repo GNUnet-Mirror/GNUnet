@@ -3502,7 +3502,7 @@ tunnel_get_neighbor_fc (const struct MeshTunnel *t,
     cinfo->id = GNUNET_PEER_intern (peer);
     cinfo->skip = t->fwd_pid;
 
-    delta = t->nobuffer ? 1 : INITIAL_WINDOW_SIZE - 1;
+    delta = t->nobuffer ? 1 : INITIAL_WINDOW_SIZE;
     cinfo->fwd_ack = t->fwd_pid + delta;
     cinfo->bck_ack = delta;
 
