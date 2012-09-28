@@ -115,7 +115,7 @@ enum SetupState
 
   CREATING_PEER,
 
-  STARTING_PEER,
+  STARTING_PEER
 };
 
 
