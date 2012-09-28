@@ -24,10 +24,16 @@ check_PROGRAMS = \
  test_regex_iterate_api \
  test_regex_proofs \
  test_regex_graph_api \
- test_regex_iptoregex
+ test_regex_iptoregex \
+ test_regex_big
+
 
 if ENABLE_TEST_RUN
-TESTS = $(check_PROGRAMS)
+TESTS = \
+ test_regex_eval_api \
+ test_regex_iterate_api \
+ test_regex_proofs \
+ test_regex_graph_api
 endif
 
 test_regex_eval_api_SOURCES = \
@@ -54,10 +60,18 @@ test_regex_graph_api_LDADD = \
 $(top_builddir)/src/regex/libgnunetregex.la \
 $(top_builddir)/src/util/libgnunetutil.la
 
+test_regex_big_SOURCES = \
+test_regex_big.c
+test_regex_big_LDADD = \
+ $(top_builddir)/src/regex/libgnunetregex.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testbed/libgnunettestbed.la
+
 test_regex_iptoregex_SOURCES = \
 test_regex_iptoregex.c
 test_regex_iptoregex_LDADD = \
 $(top_builddir)/src/regex/libgnunetregex.la
+
 
 EXTRA_DIST =
 # test_regex_data.conf
