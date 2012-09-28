@@ -1729,6 +1729,7 @@ GNUNET_SERVICE_run (int argc, char *const *argv, const char *service_name,
 #define HANDLE_ERROR do { GNUNET_break (0); goto shutdown; } while (0)
 
   int err;
+  int ret;
   char *cfg_fn;
   char *loglev;
   char *logfile;
@@ -1765,10 +1766,16 @@ GNUNET_SERVICE_run (int argc, char *const *argv, const char *service_name,
   sctx.task_cls = task_cls;
   sctx.service_name = service_name;
   sctx.cfg = cfg = GNUNET_CONFIGURATION_create ();
+
   /* setup subsystems */
-  if (GNUNET_SYSERR ==
-      GNUNET_GETOPT_run (service_name, service_options, argc, argv))
+  ret = GNUNET_GETOPT_run (service_name, service_options, argc, argv);
+  if (GNUNET_SYSERR == ret)
     goto shutdown;
+  if (GNUNET_NO == ret)
+  {
+    err = 0;
+    goto shutdown;
+  }
   if (GNUNET_OK != GNUNET_log_setup (service_name, loglev, logfile))
     HANDLE_ERROR;
   if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cfg_fn))

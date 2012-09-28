@@ -333,7 +333,7 @@ GNUNET_GETOPT_increment_value (struct GNUNET_GETOPT_CommandLineProcessorContext
  * @param scls additional closure (points to about text)
  * @param option name of the option
  * @param value not used (NULL)
- * @return GNUNET_SYSERR (do not continue)
+ * @return GNUNET_NO (do not continue, not an error)
  */
 int
 GNUNET_GETOPT_format_help_ (struct GNUNET_GETOPT_CommandLineProcessorContext
@@ -347,7 +347,7 @@ GNUNET_GETOPT_format_help_ (struct GNUNET_GETOPT_CommandLineProcessorContext
  * @param scls additional closure (points to version string)
  * @param option name of the option
  * @param value not used (NULL)
- * @return GNUNET_SYSERR (do not continue)
+ * @return GNUNET_NO (do not continue, not an error)
  */
 int
 GNUNET_GETOPT_print_version_ (struct GNUNET_GETOPT_CommandLineProcessorContext

@@ -38,7 +38,7 @@
  * @param scls additional closure (points to version string)
  * @param option name of the option
  * @param value not used (NULL)
- * @return GNUNET_SYSERR (do not continue)
+ * @return GNUNET_NO (do not continue, not an error)
  */
 int
 GNUNET_GETOPT_print_version_ (struct GNUNET_GETOPT_CommandLineProcessorContext
@@ -48,7 +48,7 @@ GNUNET_GETOPT_print_version_ (struct GNUNET_GETOPT_CommandLineProcessorContext
   const char *version = scls;
 
   printf ("%s v%s\n", ctx->binaryName, version);
-  return GNUNET_SYSERR;
+  return GNUNET_NO;
 }
 
 
@@ -62,7 +62,7 @@ GNUNET_GETOPT_print_version_ (struct GNUNET_GETOPT_CommandLineProcessorContext
  * @param scls additional closure (points to about text)
  * @param option name of the option
  * @param value not used (NULL)
- * @return GNUNET_SYSERR (do not continue)
+ * @return GNUNET_NO (do not continue, not an error)
  */
 int
 GNUNET_GETOPT_format_help_ (struct GNUNET_GETOPT_CommandLineProcessorContext
@@ -152,7 +152,7 @@ OUTER:
   printf ("Report bugs to gnunet-developers@gnu.org.\n"
           "GNUnet home page: http://www.gnu.org/software/gnunet/\n"
           "General help using GNU software: http://www.gnu.org/gethelp/\n");
-  return GNUNET_SYSERR;
+  return GNUNET_NO;
 }
 
 
