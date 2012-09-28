@@ -299,7 +299,7 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
   struct GNUNET_TESTBED_Host **host_array;
 
   host_array = GNUNET_malloc (num_hosts * sizeof (struct GNUNET_TESTBED_Host *));
-  host_array[foo] = GNUNET_TESTBED_host_create (...);
+  host_array[foo] = GNUNET_TESTBED_host_create (FIXME);
   *hosts = host_array;
 
   return num_hosts;
