@@ -2741,7 +2741,7 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, const char* domain)
 				   MHD_OPTION_URI_LOG_CALLBACK, &mhd_log_callback,
 				   NULL,
 				   MHD_OPTION_END);
-
+#endif
     GNUNET_assert (hd->daemon != NULL);
     hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
     
