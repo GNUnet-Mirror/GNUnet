@@ -25,9 +25,9 @@
  */
 #include "platform.h"
 #include "gnunet_common.h"
-#include "gnunet_crypto_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_signatures.h"
-#include "gnunet_time_lib.h"
+
 
 #define TESTSTRING "Hello World\0"
 #define MAX_TESTVAL 20
