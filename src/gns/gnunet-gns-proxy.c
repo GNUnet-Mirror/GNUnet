@@ -1189,11 +1189,7 @@ mhd_content_cb (void *cls,
   }
   
   if (bytes_to_copy + copied > max)
-    bytes_to_copy = max-copied;
-
-  if (0 > bytes_to_copy)
-    bytes_to_copy = 0;
-  
+    bytes_to_copy = max - copied;
   memcpy (buf+copied, ctask->buffer_read_ptr, bytes_to_copy);
   ctask->buffer_read_ptr += bytes_to_copy;
   copied += bytes_to_copy;

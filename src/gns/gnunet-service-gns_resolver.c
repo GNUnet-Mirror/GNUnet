@@ -3622,7 +3622,7 @@ process_zone_to_name_shorten_shorten (void *cls,
    * No PSEU found.
    * continue with next authority if exists
    */
-  if ((rh->authority_chain_head->next == NULL))
+  if (NULL == rh->authority_chain_head->next)
   {
     finish_shorten (rh, nsh);
     return;
@@ -3735,7 +3735,7 @@ process_zone_to_name_shorten_private (void *cls,
      * No PSEU found.
      * continue with next authority if exists
      */
-    if ((rh->authority_chain_head->next == NULL))
+    if (NULL == rh->authority_chain_head->next)
     {
       finish_shorten (rh, nsh);
       return;
@@ -3857,7 +3857,7 @@ process_zone_to_name_shorten_root (void *cls,
      * No PSEU found.
      * continue with next authority if exists
      */
-    if ((rh->authority_chain_head->next == NULL))
+    if (NULL == rh->authority_chain_head->next)
     {
       finish_shorten (rh, nsh);
       return;
