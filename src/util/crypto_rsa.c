@@ -747,7 +747,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
                                   sizeof (struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded),
                                   GNUNET_YES))
     {
-      short_wait (1);
+      short_wait ();
       if (0 == ++cnt % 10)
       {
         ec = errno;
@@ -805,7 +805,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
              _
              ("This may be ok if someone is currently generating a hostkey.\n"));
       }
-      short_wait (1);
+      short_wait ();
       continue;
     }
     if (GNUNET_YES != GNUNET_DISK_file_test (filename))
@@ -841,7 +841,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
              _
              ("This may be ok if someone is currently generating a hostkey.\n"));
       }
-      short_wait (1);                /* wait a bit longer! */
+      short_wait ();                /* wait a bit longer! */
       continue;
     }
     break;
