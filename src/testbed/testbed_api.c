@@ -70,7 +70,8 @@
 /**
  * Testbed Helper binary name
  */
-#define HELPER_TESTBED_BINARY ". .bashrc; gnunet-helper-testbed"
+#define HELPER_TESTBED_BINARY "gnunet-helper-testbed"
+#define HELPER_TESTBED_BINARY_SSH ". ~/.bashrc; gnunet-helper-testbed"
 
 
 /**
@@ -1200,7 +1201,7 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
     remote_args[argp++] = "-o";
     remote_args[argp++] = "BatchMode=yes";
     remote_args[argp++] = cp->dst;
-    remote_args[argp++] = HELPER_TESTBED_BINARY;
+    remote_args[argp++] = HELPER_TESTBED_BINARY_SSH;
     remote_args[argp++] = NULL;
     GNUNET_assert (argp == 8);
     cp->helper =
