@@ -145,8 +145,8 @@ oprelease_overlay_configure_topology (void *cls)
   {
     for (p = 0; p < tc->link_array_size; p++)
       if (NULL != tc->link_ops[p])
-	GNUNET_TESTBED_operation_cancel (tc->link_ops[p]);
-    GNUNET_free (tc->link_ops);
+	GNUNET_TESTBED_operation_cancel (tc->link_ops[p]);      
+    GNUNET_free (tc->link_ops);    
   }
   GNUNET_free_non_null (tc->link_array);
   GNUNET_free (tc);
@@ -231,6 +231,7 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
     return NULL;
   c = peers[0]->controller;
   tc = GNUNET_malloc (sizeof (struct TopologyContext));
+  tc->peers = peers;
   switch (topo)
   {
   case GNUNET_TESTBED_TOPOLOGY_LINE:

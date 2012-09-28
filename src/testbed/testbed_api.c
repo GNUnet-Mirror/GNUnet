@@ -1431,6 +1431,8 @@ GNUNET_TESTBED_controller_disconnect (struct GNUNET_TESTBED_Controller
   GNUNET_TESTBED_operation_queue_destroy_ (controller->opq_parallel_operations);
   GNUNET_TESTBED_operation_queue_destroy_
       (controller->opq_parallel_service_connections);
+  GNUNET_TESTBED_operation_queue_destroy_
+      (controller->opq_parallel_topology_config_operations);
   GNUNET_free (controller);
 }
 
