@@ -822,10 +822,10 @@ static struct GNUNET_TIME_Relative app_announce_time;
 static struct GNUNET_TIME_Relative id_announce_time;
 static struct GNUNET_TIME_Relative unacknowledged_wait_time;
 static struct GNUNET_TIME_Relative connect_timeout;
-static long long unsigned int default_ttl;
-static long long unsigned int dht_replication_level;
-static long long unsigned int max_tunnels;
-static long long unsigned int max_msgs_queue;
+static unsigned long long default_ttl;
+static unsigned long long dht_replication_level;
+static unsigned long long max_tunnels;
+static unsigned long long max_msgs_queue;
 
 
 /**
