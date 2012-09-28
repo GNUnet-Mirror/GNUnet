@@ -1939,7 +1939,7 @@ create_response (void *cls,
                  void **con_cls)
 {
   struct MhdHttpList* hd = cls;
-  const char* page = "<html><head><title>gnunet-gns-proxy</title>"\
+  const char* page = "<html><head><title>gnunet-gns-proxy</title>"
                       "</head><body>cURL fail</body></html>";
   
   char curlurl[MAX_HTTP_URI_LENGTH]; // buffer overflow!
@@ -2198,6 +2198,10 @@ run_httpds ()
 
 }
 
+
+#define UNSIGNED_MHD_LONG_LONG unsigned MHD_LONG_LONG
+
+
 /**
  * schedule mhd
  *
@@ -2214,7 +2218,7 @@ run_httpd (struct MhdHttpList *hd)
   struct GNUNET_NETWORK_FDSet *wes;
   int max;
   int haveto;
-  unsigned MHD_LONG_LONG timeout;
+  UNSIGNED_MHD_LONG_LONG timeout;
   struct GNUNET_TIME_Relative tv;
 
   FD_ZERO (&rs);
@@ -2708,28 +2712,35 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, const char* domain)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "No previous SSL instance found... starting new one for %s\n",
                 domain);
-    hd->daemon = MHD_start_daemon (MHD_USE_DEBUG
-                                   | MHD_USE_SSL
 #if HAVE_MHD_NO_LISTEN_SOCKET
-                                   | MHD_USE_NO_LISTEN_SOCKET,
+    hd->daemon = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_SSL | MHD_USE_NO_LISTEN_SOCKET,
                                    0,
-#else
-                                   , 4444, //Dummy
-#endif
                                    &accept_cb, NULL,
                                    &create_response, hd,
-#if !HAVE_MHD_NO_LISTEN_SOCKET
-            MHD_OPTION_LISTEN_SOCKET, GNUNET_NETWORK_get_fd (mhd_unix_socket),
-#endif
                                    MHD_OPTION_CONNECTION_LIMIT,
                                    MHD_MAX_CONNECTIONS,
-                               MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
-                               MHD_OPTION_NOTIFY_COMPLETED, NULL, NULL,
-                               MHD_OPTION_HTTPS_MEM_KEY, pgc->key,
-                               MHD_OPTION_HTTPS_MEM_CERT, pgc->cert,
-                               MHD_OPTION_URI_LOG_CALLBACK, &mhd_log_callback,
-                               NULL,
-                               MHD_OPTION_END);
+				   MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+				   MHD_OPTION_NOTIFY_COMPLETED, NULL, NULL,
+				   MHD_OPTION_HTTPS_MEM_KEY, pgc->key,
+				   MHD_OPTION_HTTPS_MEM_CERT, pgc->cert,
+				   MHD_OPTION_URI_LOG_CALLBACK, &mhd_log_callback,
+				   NULL,
+				   MHD_OPTION_END);
+#else
+    hd->daemon = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_SSL,
+                                   4444 /* dummy port */,
+                                   &accept_cb, NULL,
+                                   &create_response, hd,
+				   MHD_OPTION_LISTEN_SOCKET, GNUNET_NETWORK_get_fd (mhd_unix_socket),
+                                   MHD_OPTION_CONNECTION_LIMIT,
+                                   MHD_MAX_CONNECTIONS,
+				   MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+				   MHD_OPTION_NOTIFY_COMPLETED, NULL, NULL,
+				   MHD_OPTION_HTTPS_MEM_KEY, pgc->key,
+				   MHD_OPTION_HTTPS_MEM_CERT, pgc->cert,
+				   MHD_OPTION_URI_LOG_CALLBACK, &mhd_log_callback,
+				   NULL,
+				   MHD_OPTION_END);
 
     GNUNET_assert (hd->daemon != NULL);
     hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
@@ -3516,24 +3527,31 @@ run (void *cls, char *const *args, const char *cfgfile,
   hd = GNUNET_malloc (sizeof (struct MhdHttpList));
   hd->is_ssl = GNUNET_NO;
   strcpy (hd->domain, "");
-  httpd = MHD_start_daemon (MHD_USE_DEBUG
+
 #if HAVE_MHD_NO_LISTEN_SOCKET
-                            | MHD_USE_NO_LISTEN_SOCKET,
+  httpd = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_NO_LISTEN_SOCKET,
                             0,
+			    &accept_cb, NULL,
+			    &create_response, hd,
+			    MHD_OPTION_CONNECTION_LIMIT, MHD_MAX_CONNECTIONS,
+			    MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+			    MHD_OPTION_NOTIFY_COMPLETED,
+			    NULL, NULL,
+			    MHD_OPTION_URI_LOG_CALLBACK, &mhd_log_callback, NULL,
+			    MHD_OPTION_END);
 #else
-                            , 4444, //Dummy port
+  httpd = MHD_start_daemon (MHD_USE_DEBUG,
+			    4444 /* Dummy port */,
+			    &accept_cb, NULL,
+			    &create_response, hd,
+			    MHD_OPTION_LISTEN_SOCKET, GNUNET_NETWORK_get_fd (mhd_unix_socket),
+			    MHD_OPTION_CONNECTION_LIMIT, MHD_MAX_CONNECTIONS,
+			    MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+			    MHD_OPTION_NOTIFY_COMPLETED,
+			    NULL, NULL,
+			    MHD_OPTION_URI_LOG_CALLBACK, &mhd_log_callback, NULL,
+			    MHD_OPTION_END);
 #endif
-            &accept_cb, NULL,
-            &create_response, hd,
-#if !HAVE_MHD_NO_LISTEN_SOCKET
-            MHD_OPTION_LISTEN_SOCKET, GNUNET_NETWORK_get_fd (mhd_unix_socket),
-#endif
-            MHD_OPTION_CONNECTION_LIMIT, MHD_MAX_CONNECTIONS,
-            MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
-            MHD_OPTION_NOTIFY_COMPLETED,
-            NULL, NULL,
-            MHD_OPTION_URI_LOG_CALLBACK, &mhd_log_callback, NULL,
-            MHD_OPTION_END);
 
   GNUNET_assert (httpd != NULL);
   hd->daemon = httpd;
