@@ -293,7 +293,7 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth
 
   memset(&dummy, '\0', sizeof (dummy));
   GNUNET_TESTING_peer_get_identity (p->peer, &p->id);
-  if (0 == memcmp (&dummy, &p->id, sizeof (dummy)))
+  if (0 == memcmp (dummy, &p->id, sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",
                      "Testing library failed to obtain peer identity for peer %u\n",
