@@ -31,7 +31,7 @@
 #include "gnunet_testing_lib-new.h"
 
 #define PORT 8080
-#define TEST_DOMAIN "www.gnunet"
+#define TEST_DOMAIN "www.gads"
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 
@@ -397,7 +397,7 @@ run (void *cls,
 
   host_key = GNUNET_CRYPTO_rsa_key_create_from_file (zone_keyfile);
   rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value;
-  GNUNET_asprintf (&rd_string, "6 %s %s", (char*)&peername, "www.gnunet.");
+  GNUNET_asprintf (&rd_string, "6 %s %s", (char*)&peername, "www.gads.");
   GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_string_to_value (GNUNET_GNS_RECORD_VPN,
                                                                rd_string,
                                                                (void**)&rd.data,
