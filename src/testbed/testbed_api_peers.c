@@ -71,7 +71,7 @@ opstart_peer_create (void *cls)
   msg->config_size = htonl (c_size);
   GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
   GNUNET_TESTBED_queue_message_ (opc->c, &msg->header);
-};
+}
 
 
 /**

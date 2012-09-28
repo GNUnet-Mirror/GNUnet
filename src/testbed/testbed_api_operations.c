@@ -86,7 +86,7 @@ enum OperationState
     /**
      * The operation has started
      */
-  OP_STATE_STARTED,
+  OP_STATE_STARTED
 };
 
 

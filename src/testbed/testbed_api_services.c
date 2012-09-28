@@ -34,20 +34,20 @@
  */
 enum State
 {
-    /**
-     * Initial state
-     */
+  /**
+   * Initial state
+   */
   INIT,
 
-    /**
-     * The configuration request has been sent
-     */
+  /**
+   * The configuration request has been sent
+   */
   CFG_REQUEST_QUEUED,
-
-    /**
-     * connected to service
-     */
-  SERVICE_CONNECTED,
+  
+  /**
+   * connected to service
+   */
+  SERVICE_CONNECTED
 
 };
 
