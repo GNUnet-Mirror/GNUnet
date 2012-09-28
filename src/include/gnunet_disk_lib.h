@@ -228,24 +228,25 @@ enum GNUNET_DISK_AccessPermissions
 
 
 /**
- * Constants for specifying how to seek.
+ * Constants for specifying how to seek.  Do not change values or order,
+ * some of the code depends on the specific numeric values!
  */
 enum GNUNET_DISK_Seek
 {
     /**
      * Seek an absolute position (from the start of the file).
      */
-  GNUNET_DISK_SEEK_SET,
+  GNUNET_DISK_SEEK_SET = 0,
 
     /**
      * Seek a relative position (from the current offset).
      */
-  GNUNET_DISK_SEEK_CUR,
+  GNUNET_DISK_SEEK_CUR = 1,
 
     /**
      * Seek an absolute position from the end of the file.
      */
-  GNUNET_DISK_SEEK_END
+  GNUNET_DISK_SEEK_END = 2
 };
 
 
