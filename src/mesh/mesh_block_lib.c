@@ -17,21 +17,11 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
  * @author Bartlomiej Polot
  * @file mesh/mesh_block_lib.c
  */
-
-#ifdef __cplusplus
-extern "C"
-{
-#if 0
-  /* keep Emacsens' auto-indent happy */
-}
-#endif
-#endif
-
+#include "platform.h"
 #include "mesh_block_lib.h"
 
 /**
@@ -155,12 +145,5 @@ GNUNET_MESH_regex_block_iterate (const struct MeshRegexBlock *block,
               "*   Size %u, read %u END KO\n", size, offset);
   return GNUNET_SYSERR;
 }
-
-#if 0                           /* keep Emacsens' auto-indent happy */
-{
-#endif
-#ifdef __cplusplus
-}
-#endif
 
 /* end of mesh_block_lib.c */
