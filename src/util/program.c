@@ -228,7 +228,7 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
   lpfx = GNUNET_strdup (binaryName);
   if (NULL != (spc = strstr (lpfx, " ")))
     *spc = '\0';
-  if ((-1 ==
+  if ((GNUNET_OK !=
        (ret =
         GNUNET_GETOPT_run (binaryName, allopts, (unsigned int) argc, argv))) ||
       (GNUNET_OK != GNUNET_log_setup (lpfx, loglev, logfile)))
@@ -239,7 +239,7 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
     GNUNET_free_non_null (logfile);
     GNUNET_free (allopts);
     GNUNET_free (lpfx);
-    return GNUNET_SYSERR;
+    return ret;
   }
   (void) GNUNET_CONFIGURATION_load (cfg, cc.cfgfile);
   GNUNET_free (allopts);
