@@ -25,11 +25,8 @@
  */
 #include "platform.h"
 #include "gnunet_arm_service.h"
-#include "gnunet_client_lib.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_os_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_server_lib.h"
 #include "arm.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "arm-api",__VA_ARGS__)
@@ -771,7 +768,7 @@ GNUNET_ARM_list_running_services (struct GNUNET_ARM_Handle *h,
   
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
        "Requesting LIST from ARM service with timeout: %s\n", 
-       GNUNET_STRINGS_relative_time_to_string (timeout));
+       GNUNET_STRINGS_relative_time_to_string (timeout, GNUNET_YES));
   
   if (GNUNET_OK !=
       GNUNET_CLIENT_transmit_and_get_response (sctx->h->client, 
