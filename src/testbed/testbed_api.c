@@ -70,7 +70,7 @@
 /**
  * Testbed Helper binary name
  */
-#define HELPER_TESTBED_BINARY "gnunet-helper-testbed"
+#define HELPER_TESTBED_BINARY ". .bashrc; gnunet-helper-testbed"
 
 
 /**
