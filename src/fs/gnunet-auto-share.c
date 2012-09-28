@@ -579,8 +579,10 @@ add_file (void *cls,
 
   if (GNUNET_YES == do_shutdown)
     return GNUNET_SYSERR;
-  if (NULL != strstr (filename,
-		      DIR_SEPARATOR_STR ".auto-share"))
+  if ( (NULL != strstr (filename,
+		      "/.auto-share")) ||
+       (NULL != strstr (filename,
+			"\\.auto-share")) )
     return GNUNET_OK; /* skip internal file */
   GNUNET_CRYPTO_hash (filename,
 		      strlen (filename),
