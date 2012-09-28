@@ -239,6 +239,7 @@ curl_main ()
 					      NULL);  
 }
 
+
 static void
 start_curl (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -261,11 +262,13 @@ start_curl (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   curl_main ();
 }
 
+
 static void
 disco_ns (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_NAMESTORE_disconnect (namestore);
 }
+
 
 /**
  * Callback invoked from the namestore service once record is
@@ -354,6 +357,7 @@ mhd_main ()
 					     NULL);  
 }
 
+
 static void
 run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -438,6 +442,33 @@ test_af (int af)
 
 
 /**
+ * Open '/dev/null' and make the result the given
+ * file descriptor.
+ *
+ * @param target_fd desired FD to point to /dev/null
+ * @param flags open flags (O_RDONLY, O_WRONLY)
+ */
+static void
+open_dev_null (int target_fd,
+	       int flags)
+{
+  int fd;
+
+  fd = open ("/dev/null", flags);
+  if (-1 == fd)
+    abort ();
+  if (fd == target_fd)
+    return;
+  if (-1 == dup2 (fd, target_fd))
+  {    
+    (void) close (fd);
+    abort ();
+  }
+  (void) close (fd);
+}
+
+
+/**
  * Run the given command and wait for it to complete.
  * 
  * @param file name of the binary to run
@@ -466,7 +497,9 @@ fork_and_exec (const char *file,
     /* close stdin/stdout to not cause interference
        with the helper's main protocol! */
     (void) close (0); 
+    open_dev_null (0, O_RDONLY);
     (void) close (1); 
+    open_dev_null (1, O_WRONLY);
     (void) execv (file, cmd);
     /* can only get here on error */
     fprintf (stderr, 
@@ -515,7 +548,7 @@ main (int argc, char *const *argv)
   if (0 != fork_and_exec (sbin_iptables, iptables_args))
   {
     fprintf (stderr,
-             "IPtables not available, Skipping.\n");
+             "Failed to run `iptables -t mangle -L -v'. Skipping test.\n");
     return 0;
   }
 
@@ -529,12 +562,13 @@ main (int argc, char *const *argv)
     return 0;
   }
 
-  if ( (GNUNET_YES !=
-	GNUNET_OS_check_helper_binary ("gnunet-helper-vpn")) ||
-       (GNUNET_YES !=
-	GNUNET_OS_check_helper_binary ("gnunet-helper-exit")) ||
-       (GNUNET_YES !=
-  GNUNET_OS_check_helper_binary ("gnunet-helper-dns")))
+  if ( (0 != geteuid ()) &&
+       ( (GNUNET_YES !=
+	  GNUNET_OS_check_helper_binary ("gnunet-helper-vpn")) ||
+	 (GNUNET_YES !=
+	  GNUNET_OS_check_helper_binary ("gnunet-helper-exit")) ||
+	 (GNUNET_YES !=
+	  GNUNET_OS_check_helper_binary ("gnunet-helper-dns"))) )
   {
     fprintf (stderr,
 	     "WARNING: gnunet-helper-{exit,vpn,dns} binaries in $PATH are not SUID, refusing to run test (as it would have to fail).\n");

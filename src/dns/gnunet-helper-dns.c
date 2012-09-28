@@ -155,6 +155,33 @@ signal_handler (int signal)
 
 
 /**
+ * Open '/dev/null' and make the result the given
+ * file descriptor.
+ *
+ * @param target_fd desired FD to point to /dev/null
+ * @param flags open flags (O_RDONLY, O_WRONLY)
+ */
+static void
+open_dev_null (int target_fd,
+	       int flags)
+{
+  int fd;
+
+  fd = open ("/dev/null", flags);
+  if (-1 == fd)
+    abort ();
+  if (fd == target_fd)
+    return;
+  if (-1 == dup2 (fd, target_fd))
+  {    
+    (void) close (fd);
+    abort ();
+  }
+  (void) close (fd);
+}
+
+
+/**
  * Run the given command and wait for it to complete.
  * 
  * @param file name of the binary to run
@@ -183,7 +210,9 @@ fork_and_exec (const char *file,
     /* close stdin/stdout to not cause interference
        with the helper's main protocol! */
     (void) close (0); 
+    open_dev_null (0, O_RDONLY);
     (void) close (1); 
+    open_dev_null (1, O_WRONLY);
     (void) execv (file, cmd);
     /* can only get here on error */
     fprintf (stderr, 
@@ -683,6 +712,7 @@ PROCESS_BUFFER:
  *         25-39 failed to drop privs and then failed to undo some changes to routing table
  *         40 failed to regain privs
  *         41-55 failed to regain prisv and then failed to undo some changes to routing table
+ *         254 insufficient priviledges
  *         255 failed to handle kill signal properly
  */
 int
@@ -692,12 +722,29 @@ main (int argc, char *const*argv)
   char dev[IFNAMSIZ];
   char mygid[32];
   int fd_tun;
+  uid_t uid;
 
   if (6 != argc)
   {
     fprintf (stderr, "Fatal: must supply 6 arguments!\n");
     return 1;
   }
+
+  /* assert privs so we can modify the firewall rules! */
+  uid = getuid ();
+#ifdef HAVE_SETRESUID
+  if (0 != setresuid (uid, 0, 0))
+  {
+    fprintf (stderr, "Failed to setresuid to root: %s\n", strerror (errno));
+    return 254;
+  }
+#else
+  if (0 != seteuid (0)) 
+  {
+    fprintf (stderr, "Failed to seteuid back to root: %s\n", strerror (errno));
+    return 254;
+  }
+#endif
 
   /* verify that the binaries were care about are executable */
   if (0 == access ("/sbin/iptables", X_OK))
@@ -899,7 +946,6 @@ main (int argc, char *const*argv)
 
   /* drop privs *except* for the saved UID; this is not perfect, but better
      than doing nothing */
-  uid_t uid = getuid ();
 #ifdef HAVE_SETRESUID
   if (0 != setresuid (uid, uid, 0))
   {
