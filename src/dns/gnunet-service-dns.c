@@ -1262,8 +1262,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 	 ( (1 != inet_pton (AF_INET, dns_exit, &dns_exit4)) &&
 	   (1 != inet_pton (AF_INET6, dns_exit, &dns_exit6)) ) ) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Configured to provide DNS exit, but no valid DNS server configured!\n"));
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "dns", "DNS_EXIT",
+		_("need a valid IPv4 or IPv6 address\n"));
     GNUNET_free_non_null (dns_exit);
     dns_exit = NULL;
   }
