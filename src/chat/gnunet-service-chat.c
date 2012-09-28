@@ -135,7 +135,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  * The identity of this host.
  */
-static const struct GNUNET_PeerIdentity *me;
+static struct GNUNET_PeerIdentity me;
 
 /**
  * Head of the list of current clients.
@@ -1530,7 +1530,7 @@ peer_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct ConnectedPeer *cp;
   struct GNUNET_CORE_TransmitHandle *th;
 
-  if (0 == memcmp (peer, me, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == memcmp (peer, &me, sizeof (struct GNUNET_PeerIdentity)))
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Peer connected: %s\n",
               GNUNET_i2s (peer));
@@ -1591,7 +1591,7 @@ static void
 peer_disconnect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
 
-  if (0 == memcmp (peer, me, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == memcmp (peer, &me, sizeof (struct GNUNET_PeerIdentity)))
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Peer disconnected: %s\n",
               GNUNET_i2s (peer));
@@ -1654,7 +1654,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
            const struct GNUNET_PeerIdentity *my_identity)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Core initialized\n");
-  me = my_identity;
+  me = *my_identity;
 }
 
 
