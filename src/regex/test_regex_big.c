@@ -109,22 +109,15 @@ enum SetupState
   INIT,
 
   /**
-   * Doing registration
-   */
-  REGISTERING,
-
-  /**
    * Connecting to slave controller
    */
   LINKING
 };
 
+
 /**
- * Various states during test setup
+ * Event Mask for operation callbacks
  */
-// static enum SetupState setup_state;
-
-
 uint64_t event_mask;
 
 /**
@@ -197,9 +190,9 @@ static struct GNUNET_CONFIGURATION_Handle *cfg;
  *
  * @param cls the closure from GNUNET_STREAM_shutdown call
  * @param operation the operation that was shutdown (SHUT_RD, SHUT_WR,
- *          SHUT_RDWR) 
+ *          SHUT_RDWR)
  */
-// static void 
+// static void
 // shutdown_completion (void *cls,
 //                      int operation)
 // {
@@ -229,14 +222,14 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: ABORT\n");
   result = GNUNET_SYSERR;
-  abort_task = 0; 
+  abort_task = 0;
 }
 
 
 /**
  * Adapter function called to destroy a connection to
  * a service.
- * 
+ *
  * @param cls closure
  * @param op_result service handle returned from the connect adapter
  */
@@ -245,7 +238,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 // {
 //   struct GNUNET_STREAM_ListenSocket *lsocket;
 //   struct GNUNET_STREAM_Socket *socket;
-// 
+//
 //   if (&peer1 == cls)
 //   {
 //     lsocket = op_result;
@@ -267,18 +260,18 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Adapter function called to establish a connection to
  * a service.
- * 
+ *
  * @param cls closure
  * @param cfg configuration of the peer to connect to; will be available until
  *          GNUNET_TESTBED_operation_done() is called on the operation returned
  *          from GNUNET_TESTBED_service_connect()
  * @return service handle to return in 'op_result', NULL on error
  */
-// static void * 
+// static void *
 // stream_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
-// {  
+// {
 //   struct GNUNET_STREAM_ListenSocket *lsocket;
-//   
+//
 //   switch (setup_state)
 //   {
 //   case PEER1_STREAM_CONNECT:
@@ -301,7 +294,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 // static void
 // stream_connect (void)
-// { 
+// {
 //   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stream listen open successful\n");
 //   peer2.op = GNUNET_TESTBED_service_connect (&peer2, peer2.peer, "stream",
 //                                              NULL, NULL,
@@ -319,7 +312,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param emsg error message if the operation has failed; will be NULL if the
  *          operation is successfull
  */
-// static void 
+// static void
 // peerinfo_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op_,
 //              const struct GNUNET_TESTBED_PeerInformation *pinfo,
 //              const char *emsg)
@@ -329,7 +322,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 //   switch (setup_state)
 //     {
 //     case PEER1_GET_IDENTITY:
-//       memcpy (&peer1.our_id, pinfo->result.id, 
+//       memcpy (&peer1.our_id, pinfo->result.id,
 //               sizeof (struct GNUNET_PeerIdentity));
 //       GNUNET_TESTBED_operation_done (op);
 //       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer 1 id: %s\n", GNUNET_i2s
@@ -379,7 +372,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 //     break;
 //   case GNUNET_TESTBED_ET_OPERATION_FINISHED:
 //     switch (setup_state)
-//     {    
+//     {
 //     case PEER1_STREAM_CONNECT:
 //     case PEER2_STREAM_CONNECT:
 //       GNUNET_assert (NULL == event->details.operation_finished.emsg);
@@ -503,13 +496,6 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
                                             peer_create_cb,
                                             (void *) i);
         break;
-      case REGISTERING:
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Register\n");
-        state[i] = LINKING;
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Linking host %u\n", i);
-        op[i] = GNUNET_TESTBED_controller_link (master_ctrl, slave_hosts[i],
-                                                (void *) (long) i, cfg, GNUNET_YES);
-        break;
       case LINKING:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Link\n");
         break;
@@ -536,6 +522,16 @@ registration_cont (void *cls, const char *emsg)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n", emsg);
     GNUNET_assert (0);
   }
+
+  state[host_registered] = LINKING;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              " Linking host %u\n", host_registered);
+  op[host_registered] = GNUNET_TESTBED_controller_link (master_ctrl,
+                                                        slave_hosts[host_registered],
+                                                        (void *) (long) host_registered,
+                                                        cfg,
+                                                        GNUNET_YES);
+
   host_registered++;
   if (NUM_HOSTS != host_registered)
   {
@@ -545,7 +541,6 @@ registration_cont (void *cls, const char *emsg)
                                        slave_hosts[host_registered],
                                        &registration_cont,
                                        NULL);
-    state[host_registered] = REGISTERING;
     return;
   }
 }
@@ -588,7 +583,6 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config,
   rh = GNUNET_TESTBED_register_host (master_ctrl, slave_hosts[0],
                                      &registration_cont,
                                      NULL);
-  state[0] = REGISTERING;
   GNUNET_assert (NULL != rh);
 }
 
@@ -626,6 +620,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 int main (int argc, char **argv)
 {
   int ret;
+  unsigned int i;
+
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
@@ -634,13 +630,44 @@ int main (int argc, char **argv)
     NULL
   };
 
+  for (i = 0; i < NUM_HOSTS; i++)
+  {
+    char *const remote_args[] = {
+      "ssh", "-o", "BatchMode=yes", slave_ips[i], "echo", "Hello", "World", NULL
+    };
+    struct GNUNET_OS_Process *auxp;
+    enum GNUNET_OS_ProcessStatusType type;
+    unsigned long code;
+
+    auxp =
+      GNUNET_OS_start_process_vap (GNUNET_NO, GNUNET_OS_INHERIT_STD_ALL, NULL,
+                                 NULL, "ssh", remote_args);
+    GNUNET_assert (NULL != auxp);
+    do
+    {
+      ret = GNUNET_OS_process_status (auxp, &type, &code);
+      GNUNET_assert (GNUNET_SYSERR != ret);
+      (void) usleep (300);
+    }
+    while (GNUNET_NO == ret);
+    (void) GNUNET_OS_process_wait (auxp);
+    GNUNET_OS_process_destroy (auxp);
+    if (0 != code)
+    {
+      (void) printf("Unable to run the test as this system is not configured "
+                    "to use password less SSH logins to host %s.\n"
+                    "Marking test as successful\n", slave_ips[i]);
+      return 0;
+    }
+  }
+
   result = GNUNET_SYSERR;
 
   ret =
       GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
                           "test_regex_big", "nohelp", options,
                           &run, NULL);
-  
+
   if (GNUNET_SYSERR == result || 0 != ret)
     return 1;
   return 0;
