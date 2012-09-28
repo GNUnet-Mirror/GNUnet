@@ -4804,6 +4804,7 @@ queue_send (void *cls, size_t size, void *buf)
       case GNUNET_MESSAGE_TYPE_MESH_ACK:
       case GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN:
       case GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY:
+      case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "*********   raw: %s\n",
                     GNUNET_MESH_DEBUG_M2S (queue->type));
