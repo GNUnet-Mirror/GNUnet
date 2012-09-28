@@ -239,7 +239,7 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
     GNUNET_free_non_null (logfile);
     GNUNET_free (allopts);
     GNUNET_free (lpfx);
-    return ret;
+    return (ret == GNUNET_NO) ? GNUNET_OK : GNUNET_SYSERR;
   }
   (void) GNUNET_CONFIGURATION_load (cfg, cc.cfgfile);
   GNUNET_free (allopts);
