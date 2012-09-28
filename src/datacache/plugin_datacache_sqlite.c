@@ -109,7 +109,6 @@ sqlite_plugin_put (void *cls, const struct GNUNET_HashCode * key, size_t size,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Processing `%s' of %u bytes with key `%4s' and expiration %s\n",
        "PUT", (unsigned int) size, GNUNET_h2s (key),
-       (unsigned long long)
        GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (discard_time), GNUNET_YES));
   dval = (int64_t) discard_time.abs_value;
   if (dval < 0)
