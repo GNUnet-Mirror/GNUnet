@@ -7995,8 +7995,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
-                ("Mesh service is lacking key configuration settings (%s).  Exiting.\n"),
-                "hostkey");
+                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
+                "mesh", "hostkey");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -8007,8 +8007,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
-                ("Mesh service is lacking key configuration settings (%s).  Exiting.\n"),
-                "refresh path time");
+                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
+                "mesh", "refresh path time");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -8019,8 +8019,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
-                ("Mesh service is lacking key configuration settings (%s).  Exiting.\n"),
-                "app announce time");
+                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
+                "mesh", "app announce time");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -8031,10 +8031,13 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
-                ("Mesh service is lacking key configuration settings (%s).  Exiting.\n"),
-                "id announce time");
+                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
+                "mesh", "id announce time");
     GNUNET_SCHEDULER_shutdown ();
     return;
+  }
+  else
+  {
   }
 
   if (GNUNET_OK !=
@@ -8043,8 +8046,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
-                ("Mesh service is lacking key configuration settings (%s).  Exiting.\n"),
-                "unacknowledged wait time");
+                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
+                "mesh", "unacknowledged wait time");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -8055,8 +8058,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
-                ("Mesh service is lacking key configuration settings (%s).  Exiting.\n"),
-                "connect timeout");
+                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
+                "mesh", "connect timeout");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -8067,8 +8070,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
-                ("Mesh service is lacking key configuration settings (%s).  Exiting.\n"),
-                "max msgs queue");
+                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
+                "mesh", "max msgs queue");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -8079,8 +8082,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
-                ("Mesh service is lacking key configuration settings (%s).  Exiting.\n"),
-                "max tunnels");
+                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
+                "mesh", "max tunnels");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -8091,8 +8094,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _
-                ("Mesh service is lacking key configuration settings (%s). Using default (%u).\n"),
-                "default ttl", 64);
+                ("%s service is lacking key configuration settings (%s). Using default (%u).\n"),
+                "mesh", "default ttl", 64);
     default_ttl = 64;
   }
 
@@ -8102,8 +8105,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _
-                ("Mesh service is lacking key configuration settings (%s). Using default (%u).\n"),
-                "dht replication level", 10);
+                ("%s service is lacking key configuration settings (%s). Using default (%u).\n"),
+                "mesh", "dht replication level", 10);
     dht_replication_level = 10;
   }
 
