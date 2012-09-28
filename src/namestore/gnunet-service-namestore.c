@@ -1718,7 +1718,7 @@ enum ZoneIterationResult
   /**
    * Iteration complete
    */
-  IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE = 1,
+  IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE = 1
 };
 
 

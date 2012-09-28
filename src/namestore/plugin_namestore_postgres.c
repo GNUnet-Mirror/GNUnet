@@ -164,11 +164,10 @@ database_setup (struct Plugin *plugin)
     create_indices (plugin->dbh);
   PQclear (res);
 
-#define ALL "zone_key, record_name, record_count, record_data, block_expiration_time, signature"
   if ((GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
 				"put_records",
-				"INSERT INTO ns091records (" ALL 
+				"INSERT INTO ns091records (zone_key, record_name, record_count, record_data, block_expiration_time, signature" 
 				", zone_delegation, zone_hash, record_name_hash, rvalue) VALUES "
  				"($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)", 10)) ||
       (GNUNET_OK !=
@@ -178,27 +177,27 @@ database_setup (struct Plugin *plugin)
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
 				"iterate_records",
-				"SELECT " ALL
+				"SELECT zone_key, record_name, record_count, record_data, block_expiration_time, signature" 
 				" FROM ns091records WHERE zone_hash=$1 AND record_name_hash=$2 ORDER BY rvalue LIMIT 1 OFFSET $3", 3)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
 				"iterate_by_zone",
-				"SELECT " ALL
+				"SELECT zone_key, record_name, record_count, record_data, block_expiration_time, signature" 
 				" FROM ns091records WHERE zone_hash=$1 ORDER BY rvalue  LIMIT 1 OFFSET $2", 2)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
 				"iterate_by_name",
-				"SELECT " ALL 
+				"SELECT zone_key, record_name, record_count, record_data, block_expiration_time, signature" 
 				" FROM ns091records WHERE record_name_hash=$1 ORDER BY rvalue LIMIT 1 OFFSET $2", 2)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
 				"iterate_all",
-				"SELECT " ALL
+				"SELECT zone_key, record_name, record_count, record_data, block_expiration_time, signature" 
 				" FROM ns091records ORDER BY rvalue LIMIT 1 OFFSET $1", 1)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
 				"zone_to_name",
-				"SELECT " ALL
+				"SELECT zone_key, record_name, record_count, record_data, block_expiration_time, signature"
 				" FROM ns091records WHERE zone_hash=$1 AND zone_delegation=$2", 2)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
@@ -209,7 +208,6 @@ database_setup (struct Plugin *plugin)
     plugin->dbh = NULL;
     return GNUNET_SYSERR;
   }
-#undef ALL
   return GNUNET_OK;
 }
 
