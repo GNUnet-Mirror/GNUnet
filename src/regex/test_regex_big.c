@@ -111,7 +111,11 @@ enum SetupState
   /**
    * Connecting to slave controller
    */
-  LINKING
+  LINKING,
+
+  CREATING_PEER,
+
+  STARTING_PEER,
 };
 
 
@@ -448,11 +452,13 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
   long i = (long) cls;
   long peer_id;
 
-  GNUNET_TESTBED_operation_done(op[i]);
+//   GNUNET_TESTBED_operation_done(op[i]);
   peer_id = i; // FIXME  A * i + B
   peers[peer_id] = peer;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Peer created\n");
   op[i] = GNUNET_TESTBED_peer_start (peer, peer_start_cb, (void *) i);
 }
+
 
 /**
  * Signature of the event handler function called by the
@@ -490,14 +496,18 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     {
       case INIT:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Init\n");
+        break;
+      case LINKING:
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Link\n");
+        state[i] = CREATING_PEER;
         op[i] = GNUNET_TESTBED_peer_create (master_ctrl,
                                             slave_hosts[i],
                                             cfg,
                                             peer_create_cb,
                                             (void *) i);
         break;
-      case LINKING:
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Link\n");
+      case CREATING_PEER:
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Peer create\n");
         break;
       default:
         GNUNET_break (0);
@@ -560,6 +570,9 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config,
 {
   unsigned int i;
 
+  if (NULL == config)
+    return;
+
   event_mask = 0;
   event_mask |= (1L << GNUNET_TESTBED_ET_PEER_START);
   event_mask |= (1L << GNUNET_TESTBED_ET_PEER_STOP);
@@ -620,6 +633,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 int main (int argc, char **argv)
 {
   int ret;
+  int test_hosts;
   unsigned int i;
 
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -630,15 +644,18 @@ int main (int argc, char **argv)
     NULL
   };
 
+  test_hosts = GNUNET_OK;
   for (i = 0; i < NUM_HOSTS; i++)
   {
     char *const remote_args[] = {
-      "ssh", "-o", "BatchMode=yes", slave_ips[i], "echo", "Hello", "World", NULL
+      "ssh", "-o", "BatchMode=yes", slave_ips[i],
+      ". .bashrc; gnunet-helper-testbed --help > /dev/null", NULL
     };
     struct GNUNET_OS_Process *auxp;
     enum GNUNET_OS_ProcessStatusType type;
     unsigned long code;
 
+    fprintf (stderr, "Testing host %i\n", i);
     auxp =
       GNUNET_OS_start_process_vap (GNUNET_NO, GNUNET_OS_INHERIT_STD_ALL, NULL,
                                  NULL, "ssh", remote_args);
@@ -654,12 +671,19 @@ int main (int argc, char **argv)
     GNUNET_OS_process_destroy (auxp);
     if (0 != code)
     {
-      (void) printf("Unable to run the test as this system is not configured "
-                    "to use password less SSH logins to host %s.\n"
-                    "Marking test as successful\n", slave_ips[i]);
-      return 0;
+      fprintf (stderr,
+               "Unable to run the test as this system is not configured "
+               "to use password less SSH logins to host %s.\n",
+               slave_ips[i]);
+      test_hosts = GNUNET_SYSERR;
     }
   }
+  if (test_hosts != GNUNET_OK)
+  {
+    fprintf (stderr, "Some hosts have failed the ssh check. Exiting.\n");
+    return 1;
+  }
+  fprintf (stderr, "START.\n");
 
   result = GNUNET_SYSERR;
 
@@ -668,7 +692,9 @@ int main (int argc, char **argv)
                           "test_regex_big", "nohelp", options,
                           &run, NULL);
 
-  if (GNUNET_SYSERR == result || 0 != ret)
+  fprintf (stderr, "END.\n");
+
+  if (GNUNET_SYSERR == result || GNUNET_OK != ret)
     return 1;
   return 0;
 }
