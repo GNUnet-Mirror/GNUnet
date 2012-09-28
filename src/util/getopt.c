@@ -351,7 +351,7 @@ _getopt_initialize (int argc,
 
   return optstring;
 }
-
+
 /* Scan elements of ARGV (whose length is ARGC) for option characters
    given in OPTSTRING.
 
@@ -767,8 +767,7 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
           else
           {
             if (GNopterr)
-              FPRINTF (stderr, _("\
-%s: option `-W %s' does not allow an argument\n"), argv[0], pfound->name);
+              FPRINTF (stderr, _("%s: option `-W %s' does not allow an argument\n"), argv[0], pfound->name);
 
             nextchar += strlen (nextchar);
             return '?';

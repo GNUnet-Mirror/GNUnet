@@ -274,9 +274,7 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle * h, OFF_T offset,
   LARGE_INTEGER new_pos;
   BOOL b;
 
-  static DWORD t[] = {[GNUNET_DISK_SEEK_SET] = FILE_BEGIN,
-    [GNUNET_DISK_SEEK_CUR] = FILE_CURRENT,[GNUNET_DISK_SEEK_END] = FILE_END
-  };
+  static DWORD t[] = { FILE_BEGIN, FILE_CURRENT, FILE_END };
   li.QuadPart = offset;
 
   b = SetFilePointerEx (h->h, li, &new_pos, t[whence]);
@@ -287,9 +285,7 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle * h, OFF_T offset,
   }
   return (OFF_T) new_pos.QuadPart;
 #else
-  static int t[] = {[GNUNET_DISK_SEEK_SET] = SEEK_SET,
-    [GNUNET_DISK_SEEK_CUR] = SEEK_CUR,[GNUNET_DISK_SEEK_END] = SEEK_END
-  };
+  static int t[] = { SEEK_SET, SEEK_CUR, SEEK_END };
 
   return lseek (h->fd, offset, t[whence]);
 #endif
