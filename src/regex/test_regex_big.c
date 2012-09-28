@@ -528,7 +528,7 @@ registration_cont (void *cls, const char *emsg)
               " Linking host %u\n", host_registered);
   op[host_registered] = GNUNET_TESTBED_controller_link (master_ctrl,
                                                         slave_hosts[host_registered],
-                                                        (void *) (long) host_registered,
+                                                        NULL,
                                                         cfg,
                                                         GNUNET_YES);
 
