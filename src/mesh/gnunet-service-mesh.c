@@ -3701,7 +3701,7 @@ tunnel_get_fwd_ack (struct MeshTunnel *t)
 
   count = t->fwd_pid - t->skip;
   buffer_free = t->fwd_queue_max - t->fwd_queue_n;
-  ack = count;
+  ack = count + buffer_free;
   child_ack = tunnel_get_children_fwd_ack (t);
   client_ack = tunnel_get_clients_fwd_ack (t);
   if (-1LL == child_ack)
@@ -3712,16 +3712,16 @@ tunnel_get_fwd_ack (struct MeshTunnel *t)
   }
   if (-1LL == client_ack)
   {
-    client_ack = ack + buffer_free; // Might overflow 32 bits, it's ok!
+    client_ack = ack; // Might overflow 32 bits, it's ok!
   }
   if (GNUNET_YES == t->speed_min)
   {
-    ack = GMC_min_pid ((uint32_t) child_ack, ack) + buffer_free; // Might overflow 32 bits, it's ok!;
+    ack = GMC_min_pid ((uint32_t) child_ack, ack); // Might overflow 32 bits, it's ok!;
     ack = GMC_min_pid ((uint32_t) client_ack, ack);
   }
   else
   {
-    ack = GMC_max_pid ((uint32_t) child_ack, ack) + buffer_free; // Might overflow 32 bits, it's ok!;
+    ack = GMC_max_pid ((uint32_t) child_ack, ack); // Might overflow 32 bits, it's ok!;
     ack = GMC_max_pid ((uint32_t) client_ack, ack);
   }
   if (GNUNET_YES == t->nobuffer && GMC_is_pid_bigger(ack, t->fwd_pid))
@@ -8139,12 +8139,12 @@ int
 main (int argc, char *const *argv)
 {
   int ret;
+  int r;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "main()\n");
-  ret =
-      (GNUNET_OK ==
-       GNUNET_SERVICE_run (argc, argv, "mesh", GNUNET_SERVICE_OPTION_NONE, &run,
-                           NULL)) ? 0 : 1;
+  r = GNUNET_SERVICE_run (argc, argv, "mesh", GNUNET_SERVICE_OPTION_NONE, &run,
+                          NULL);
+  ret = (GNUNET_OK == r) ? 0 : 1;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "main() END\n");
 
   INTERVAL_SHOW;
