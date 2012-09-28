@@ -287,10 +287,9 @@ database_setup (struct Plugin *plugin)
 
   create_indices (plugin->dbh);
 
-#define ALL "zone_key, record_name, record_count, record_data, block_expiration_time, signature"
   if ((sq_prepare
        (plugin->dbh,
-        "INSERT INTO ns091records (" ALL ", zone_delegation, zone_hash, record_name_hash, rvalue) VALUES "
+        "INSERT INTO ns091records (zone_key, record_name, record_count, record_data, block_expiration_time, signature, zone_delegation, zone_hash, record_name_hash, rvalue) VALUES "
 	"(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         &plugin->put_records) != SQLITE_OK) ||
       (sq_prepare
@@ -299,27 +298,27 @@ database_setup (struct Plugin *plugin)
         &plugin->remove_records) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
-        "SELECT " ALL
+        "SELECT zone_key, record_name, record_count, record_data, block_expiration_time, signature"
 	" FROM ns091records WHERE zone_hash=? AND record_name_hash=? ORDER BY rvalue LIMIT 1 OFFSET ?",
         &plugin->iterate_records) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
-        "SELECT " ALL
+        "SELECT zone_key, record_name, record_count, record_data, block_expiration_time, signature" 
 	" FROM ns091records WHERE zone_hash=? ORDER BY rvalue  LIMIT 1 OFFSET ?",
         &plugin->iterate_by_zone) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
-        "SELECT " ALL 
+        "SELECT zone_key, record_name, record_count, record_data, block_expiration_time, signature" 
 	" FROM ns091records WHERE record_name_hash=? ORDER BY rvalue LIMIT 1 OFFSET ?",
         &plugin->iterate_by_name) != SQLITE_OK) ||
       (sq_prepare
 	(plugin->dbh,
-        "SELECT " ALL
+        "SELECT zone_key, record_name, record_count, record_data, block_expiration_time, signature" 
 	" FROM ns091records ORDER BY rvalue LIMIT 1 OFFSET ?",
         &plugin->iterate_all) != SQLITE_OK) ||
       (sq_prepare
 	(plugin->dbh,
-        "SELECT " ALL
+        "SELECT zone_key, record_name, record_count, record_data, block_expiration_time, signature"
 	" FROM ns091records WHERE zone_hash=? AND zone_delegation=?",
         &plugin->zone_to_name) != SQLITE_OK) ||
       (sq_prepare
@@ -330,7 +329,6 @@ database_setup (struct Plugin *plugin)
     LOG_SQLITE (plugin,GNUNET_ERROR_TYPE_ERROR, "precompiling");
     return GNUNET_SYSERR;
   }
-#undef ALL
   return GNUNET_OK;
 }
 
