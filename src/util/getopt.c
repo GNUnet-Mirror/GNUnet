@@ -238,45 +238,7 @@ strlen (const char *);
 static int first_nonopt;
 static int last_nonopt;
 
-#ifdef _LIBC
-/* Bash 2.0 gives us an environment variable containing flags
-   indicating ARGV elements that should not be considered arguments.  */
-
-/* Defined in getopt_init.c  */
-extern char *__getopt_nonoption_flags;
-
-static int nonoption_flags_max_len;
-static int nonoption_flags_len;
-
-static int original_argc;
-static char *const *original_argv;
-
-extern pid_t __libc_pid;
-
-/* Make sure the environment variable bash 2.0 puts in the environment
-   is valid for the getopt call we must make sure that the ARGV passed
-   to getopt is that one passed to the process.  */
-static void GNUNET_UNUSED
-store_args_and_env (int argc, char *const *argv)
-{
-  /* XXX This is no good solution.  We should rather copy the args so
-   * that we can compare them later.  But we must not use malloc(3).  */
-  original_argc = argc;
-  original_argv = argv;
-}
-
-text_set_element (__libc_subinit, store_args_and_env);
-
-#define SWAP_FLAGS(ch1, ch2) \
-  if (nonoption_flags_len > 0)  					      \
-    {  								      \
-      char __tmp = __getopt_nonoption_flags[ch1];  		      \
-      __getopt_nonoption_flags[ch1] = __getopt_nonoption_flags[ch2];        \
-      __getopt_nonoption_flags[ch2] = __tmp;  			      \
-    }
-#else /* !_LIBC */
 #define SWAP_FLAGS(ch1, ch2)
-#endif /* _LIBC */
 
 /* Exchange two adjacent subsequences of ARGV.
    One subsequence is elements [first_nonopt,last_nonopt)
@@ -304,29 +266,6 @@ exchange (char **argv)
    * That puts the shorter segment into the right place.
    * It leaves the longer segment in the right place overall,
    * but it consists of two parts that need to be swapped next.  */
-
-#ifdef _LIBC
-  /* First make sure the handling of the `__getopt_nonoption_flags'
-   * string can work normally.  Our top argument must be in the range
-   * of the string.  */
-  if (nonoption_flags_len > 0 && top >= nonoption_flags_max_len)
-  {
-    /* We must extend the array.  The user plays games with us and
-     * presents new arguments.  */
-    char *new_str = malloc (top + 1);
-
-    if (new_str == NULL)
-      nonoption_flags_len = nonoption_flags_max_len = 0;
-    else
-    {
-      memcpy (new_str, __getopt_nonoption_flags, nonoption_flags_max_len);
-      memset (&new_str[nonoption_flags_max_len], '\0',
-              top + 1 - nonoption_flags_max_len);
-      nonoption_flags_max_len = top + 1;
-      __getopt_nonoption_flags = new_str;
-    }
-  }
-#endif
 
   while (top > middle && middle > bottom)
   {
@@ -410,38 +349,6 @@ _getopt_initialize (int argc,
   else
     ordering = PERMUTE;
 
-#ifdef _LIBC
-  if (posixly_correct == NULL && argc == original_argc && argv == original_argv)
-  {
-    if (nonoption_flags_max_len == 0)
-    {
-      if (__getopt_nonoption_flags == NULL ||
-          __getopt_nonoption_flags[0] == '\0')
-        nonoption_flags_max_len = -1;
-      else
-      {
-        const char *orig_str = __getopt_nonoption_flags;
-        int len = nonoption_flags_max_len = strlen (orig_str);
-
-        if (nonoption_flags_max_len < argc)
-          nonoption_flags_max_len = argc;
-        __getopt_nonoption_flags = (char *) malloc (nonoption_flags_max_len);
-        if (__getopt_nonoption_flags == NULL)
-          nonoption_flags_max_len = -1;
-        else
-        {
-          memcpy (__getopt_nonoption_flags, orig_str, len);
-          memset (&__getopt_nonoption_flags[len], '\0',
-                  nonoption_flags_max_len - len);
-        }
-      }
-    }
-    nonoption_flags_len = nonoption_flags_max_len;
-  }
-  else
-    nonoption_flags_len = 0;
-#endif
-
   return optstring;
 }
 
@@ -523,13 +430,7 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
    * Either it does not have option syntax, or there is an environment flag
    * from the shell indicating it is not an option.  The later information
    * is only used when the used in the GNU libc.  */
-#ifdef _LIBC
-#define NONOPTION_P (argv[GNoptind][0] != '-' || argv[GNoptind][1] == '\0'        \
-  	     || (GNoptind < nonoption_flags_len			      \
-  		 && __getopt_nonoption_flags[GNoptind] == '1'))
-#else
 #define NONOPTION_P (argv[GNoptind][0] != '-' || argv[GNoptind][1] == '\0')
-#endif
 
   if (nextchar == NULL || *nextchar == '\0')
   {

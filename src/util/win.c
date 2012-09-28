@@ -46,7 +46,7 @@ int plibc_conv_to_win_path(const char *pszUnix, char *pszWindows);
       ULONG Length; \
       DWORD Flags; \
     }; \
-  }; \
+  }; 
 
 #define _IP_ADAPTER_UNICAST_ADDRESS_BASE \
   SOCKET_ADDRESS                     Address; \
