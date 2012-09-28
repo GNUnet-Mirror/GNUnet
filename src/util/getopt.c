@@ -940,7 +940,9 @@ GNUNET_GETOPT_run (const char *binaryOptions,
   GNUNET_free (shorts);
   GNUNET_free (long_options);
   if (cont != GNUNET_OK)
+  {
     return cont;
+  }
   return GNoptind;
 }
 
