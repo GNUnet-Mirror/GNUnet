@@ -158,7 +158,7 @@ struct Route
   uint32_t dest;
 
   /**
-   * The host destination is reachable thru
+   * The destination host is reachable thru
    */
   uint32_t thru;
 };
@@ -1139,6 +1139,7 @@ slave_status_callback (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   else
     send_operation_fail_msg (lcc->client, lcc->operation_id,
                              "Could not connect to delegated controller");
+  GNUNET_SERVER_receive_done (lcc->client, GNUNET_OK);
   GNUNET_SERVER_client_drop (lcc->client);
   GNUNET_free (lcc);
 }
@@ -1509,7 +1510,6 @@ handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
     new_route->dest = delegated_host_id;
     new_route->thru = master_context->host_id;
     route_list_add (new_route);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
 
@@ -2505,9 +2505,7 @@ transport_connect_notify (void *cls, const struct GNUNET_PeerIdentity *new_peer,
 
   LOG_DEBUG ("Request Overlay connect notify\n");
   if (0 != memcmp (new_peer, &rocc->a_id, sizeof (struct GNUNET_PeerIdentity)))
-  {
     return;
-  }
   LOG_DEBUG ("Peer %4s connected\n", GNUNET_i2s (&rocc->a_id));
   cleanup_rocc (rocc);
 }
