@@ -899,8 +899,11 @@ GSC_CLIENTS_done ()
     GNUNET_SERVER_notification_context_destroy (notifier);
     notifier = NULL;
   }
-  GNUNET_SERVER_mst_destroy (client_mst);
-  client_mst = NULL;
+  if (NULL != client_mst)
+  {
+    GNUNET_SERVER_mst_destroy (client_mst);
+    client_mst = NULL;
+  }
 }
 
 /* end of gnunet-service-core_clients.c */

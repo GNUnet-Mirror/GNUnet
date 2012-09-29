@@ -506,14 +506,18 @@ free_neighbour_helper (void *cls, const struct GNUNET_HashCode * key, void *valu
 void
 GSC_NEIGHBOURS_done ()
 {
-  if (NULL == transport)
-    return;
-  GNUNET_TRANSPORT_disconnect (transport);
-  transport = NULL;
-  GNUNET_CONTAINER_multihashmap_iterate (neighbours, &free_neighbour_helper,
-                                         NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (neighbours);
-  neighbours = NULL;
+  if (NULL != transport)
+  {
+    GNUNET_TRANSPORT_disconnect (transport);
+    transport = NULL;
+  }
+  if (NULL != neighbours)
+  {
+    GNUNET_CONTAINER_multihashmap_iterate (neighbours, &free_neighbour_helper,
+					   NULL);
+    GNUNET_CONTAINER_multihashmap_destroy (neighbours);
+    neighbours = NULL;
+  }
 }
 
 /* end of gnunet-service-core_neighbours.c */

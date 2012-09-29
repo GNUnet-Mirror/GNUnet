@@ -810,9 +810,12 @@ free_session_helper (void *cls, const struct GNUNET_HashCode * key, void *value)
 void
 GSC_SESSIONS_done ()
 {
-  GNUNET_CONTAINER_multihashmap_iterate (sessions, &free_session_helper, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (sessions);
-  sessions = NULL;
+  if (NULL != sessions)
+  {
+    GNUNET_CONTAINER_multihashmap_iterate (sessions, &free_session_helper, NULL);
+    GNUNET_CONTAINER_multihashmap_destroy (sessions);
+    sessions = NULL;
+  }
 }
 
 /* end of gnunet-service-core_sessions.c */
