@@ -690,8 +690,6 @@ main (int argc, char **argv)
     "ssh", "-o", "BatchMode=yes", "127.0.0.1", "echo", "SSH", "works", NULL
   };
   struct GNUNET_OS_Process *auxp;
-  struct addrinfo *ai;
-  struct addrinfo hints;
   enum GNUNET_OS_ProcessStatusType type;
   unsigned long code;
 
@@ -712,19 +710,9 @@ main (int argc, char **argv)
     goto error_exit;
 
   ok_3c = GNUNET_NO;
-  memset (&hints, 0, sizeof (hints));
-  hints.ai_family = AF_INET;
-  hints.ai_socktype = SOCK_STREAM;
-  hints.ai_protocol = 0;
-  hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG | AI_NUMERICSERV;
-  ret = getaddrinfo (NULL, "22", &hints, &ai);
-  if (0 != ret)
-  {
-    PRINTF ("Error: %s\n", gai_strerror (ret));
-    goto error_exit;
-  }
+  /* FIXME: use GNUNET_OS_network_interface_list() to get the list of interfaces
+  */
   
-  freeaddrinfo (ai);
   result = INIT;
   ret =
       GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
