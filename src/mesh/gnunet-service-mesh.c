@@ -3497,6 +3497,10 @@ tunnel_get_neighbor_fc (const struct MeshTunnel *t,
                         const struct GNUNET_PeerIdentity *peer)
 {
   struct MeshTunnelChildInfo *cinfo;
+
+  if (NULL == t->children_fc)
+    return NULL;
+
   cinfo = GNUNET_CONTAINER_multihashmap_get (t->children_fc,
                                              &peer->hashPubKey);
   if (NULL == cinfo)
@@ -4243,9 +4247,9 @@ tunnel_destroy (struct MeshTunnel *t)
                                          &tunnel_destroy_child,
                                          t);
   GNUNET_CONTAINER_multihashmap_destroy (t->children_fc);
+  t->children_fc = NULL;
 
   tree_iterate_children (t->tree, &tunnel_cancel_queues, t);
-
   tree_destroy (t->tree);
 
   if (NULL != t->regex_ctx)
@@ -4635,30 +4639,31 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
   max = queue->tunnel->fwd_queue_max;
   GNUNET_PEER_resolve (queue->peer->id, &id);
   cinfo = tunnel_get_neighbor_fc (queue->tunnel, &id);
-  for (i = 0; i < cinfo->send_buffer_n; i++)
+  if (NULL != cinfo)
   {
-    unsigned int i2;
-    i2 = (cinfo->send_buffer_start + i) % max;
-    if (cinfo->send_buffer[i2] == queue)
+    for (i = 0; i < cinfo->send_buffer_n; i++)
     {
-      /* Found corresponding entry in the send_buffer. Move all others back. */
-      unsigned int j;
-      unsigned int j2;
-      unsigned int j3;
-
-      for (j = i, j2 = 0, j3 = 0; j < cinfo->send_buffer_n - 1; j++)
+      unsigned int i2;
+      i2 = (cinfo->send_buffer_start + i) % max;
+      if (cinfo->send_buffer[i2] == queue)
       {
-        j2 = (cinfo->send_buffer_start + j) % max;
-        j3 = (cinfo->send_buffer_start + j + 1) % max;
-        cinfo->send_buffer[j2] = cinfo->send_buffer[j3];
+        /* Found corresponding entry in the send_buffer. Move all others back. */
+        unsigned int j;
+        unsigned int j2;
+        unsigned int j3;
+
+        for (j = i, j2 = 0, j3 = 0; j < cinfo->send_buffer_n - 1; j++)
+        {
+          j2 = (cinfo->send_buffer_start + j) % max;
+          j3 = (cinfo->send_buffer_start + j + 1) % max;
+          cinfo->send_buffer[j2] = cinfo->send_buffer[j3];
+        }
+
+        cinfo->send_buffer[j3] = NULL;
+        cinfo->send_buffer_n--;
       }
-
-      cinfo->send_buffer[j3] = NULL;
-
-      cinfo->send_buffer_n--;
     }
   }
-  //queue->
 
   GNUNET_free (queue);
 }
@@ -4917,8 +4922,9 @@ queue_send (void *cls, size_t size, void *buf)
     /* Free queue, but cls was freed by send_core_* */
     queue_destroy (queue, GNUNET_NO);
 
-    if (GNUNET_YES == t->destroy && 0 == t->fwd_queue_n)
+    if (GNUNET_YES == t->destroy)
     {
+      // FIXME fc tunnel destroy all pending traffic? wait for it?
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********  destroying tunnel!\n");
       tunnel_destroy (t);
     }
