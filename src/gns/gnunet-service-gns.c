@@ -805,6 +805,7 @@ handle_shorten (void *cls,
   const char *utf_in;
   char name[MAX_DNS_NAME_LENGTH];
   char* nameptr = name;
+  uint16_t msg_size;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "SHORTEN");
   msg_size = ntohs (message->size);
@@ -930,6 +931,7 @@ handle_get_authority (void *cls,
   const char *utf_in;
   char name[MAX_DNS_NAME_LENGTH];
   char* nameptr = name;
+  uint16_t msg_size;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "GET_AUTH");
   msg_size = ntohs(message->size);
@@ -1071,6 +1073,8 @@ handle_lookup(void *cls,
   struct GNUNET_CRYPTO_RsaPrivateKey *key;
   struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *pkey;
   char* tmp_pkey;
+  uint16_t msg_size;
+  const struct GNUNET_GNS_ClientLookupMessage *sh_msg;
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "LOOKUP");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "LOOKUP");
@@ -1084,9 +1088,6 @@ handle_lookup(void *cls,
   sh_msg = (const struct GNUNET_GNS_ClientLookupMessage *) message;
   GNUNET_SERVER_notification_context_add (nc, client);
 
-  struct GNUNET_GNS_ClientLookupMessage *sh_msg =
-    (struct GNUNET_GNS_ClientLookupMessage *) message;
-  
   if (GNUNET_YES == ntohl (sh_msg->have_key))
   {
     pkey = (struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *) &sh_msg[1];
