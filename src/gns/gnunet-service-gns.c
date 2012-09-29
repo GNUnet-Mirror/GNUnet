@@ -17,9 +17,7 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
- *
  * @file gns/gnunet-service-gns.c
  * @brief GNUnet GNS service
  * @author Martin Schanzenbach
@@ -729,43 +727,38 @@ process_shorten_in_root_zone_lookup (void *cls,
  */
 static void
 process_private_in_root_zone_lookup (void *cls,
-                      const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
-                      struct GNUNET_TIME_Absolute expiration,
-                      const char *name,
-                      unsigned int rd_count,
-                      const struct GNUNET_NAMESTORE_RecordData *rd,
-                      const struct GNUNET_CRYPTO_RsaSignature *signature)
+				     const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
+				     struct GNUNET_TIME_Absolute expiration,
+				     const char *name,
+				     unsigned int rd_count,
+				     const struct GNUNET_NAMESTORE_RecordData *rd,
+				     const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   struct ClientShortenHandle *csh = cls;
-  csh->namestore_task = NULL;
 
-  if (rd_count == 0)
+  csh->namestore_task = NULL;
+  if (0 == rd_count)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "No private zone in root zone\n");
-
     strcpy (csh->private_zone_id, "");
-  
     csh->namestore_task = GNUNET_NAMESTORE_zone_to_name (namestore_handle,
-                                  &csh->root_zone,
-                                  &csh->shorten_zone,
-                                  &process_shorten_in_root_zone_lookup,
-                                  csh);
+							 &csh->root_zone,
+							 &csh->shorten_zone,
+							 &process_shorten_in_root_zone_lookup,
+							 csh);
     return;
   }
-
-  GNUNET_assert (rd_count == 1);
-
+  GNUNET_break (1 == rd_count);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Private zone %s found in root zone\n", name);
-
+              "Private zone `%s' found in root zone\n", 
+	      name);
   strcpy (csh->private_zone_id, name);
-
   csh->namestore_task = GNUNET_NAMESTORE_zone_to_name (namestore_handle,
-                                  &csh->private_zone,
-                                  &csh->shorten_zone,
-                                  &process_shorten_in_private_zone_lookup,
-                                  csh);
+						       &csh->private_zone,
+						       &csh->shorten_zone,
+						       &process_shorten_in_private_zone_lookup,
+						       csh);
 }
 
 
@@ -780,12 +773,11 @@ start_shorten_name (struct ClientShortenHandle *csh)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Looking for private zone name in root zone\n");
-
   csh->namestore_task = GNUNET_NAMESTORE_zone_to_name (namestore_handle,
-                                  &csh->root_zone,
-                                  &csh->private_zone,
-                                  &process_private_in_root_zone_lookup,
-                                  csh);
+						       &csh->root_zone,
+						       &csh->private_zone,
+						       &process_private_in_root_zone_lookup,
+						       csh);
 }
 
 
@@ -806,6 +798,7 @@ handle_shorten (void *cls,
   char name[MAX_DNS_NAME_LENGTH];
   char* nameptr = name;
   uint16_t msg_size;
+  const struct GNUNET_GNS_ClientShortenMessage *sh_msg;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "SHORTEN");
   msg_size = ntohs (message->size);
@@ -815,11 +808,14 @@ handle_shorten (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-
-
-  const struct GNUNET_GNS_ClientShortenMessage *sh_msg =
-    (const struct GNUNET_GNS_ClientShortenMessage *) message;
-  
+  sh_msg = (const struct GNUNET_GNS_ClientShortenMessage *) message;
+  utf_in = (const char *) &sh_msg[1];
+  if ('\0' != utf_in[msg_size - sizeof (struct GNUNET_GNS_ClientShortenMessage) - 1])
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   csh = GNUNET_malloc(sizeof (struct ClientShortenHandle));
   csh->client = client;
   csh->request_id = sh_msg->id;
@@ -884,16 +880,16 @@ send_get_auth_response(void *cls, const char* name)
   struct ClientGetAuthHandle *cah = cls;
   struct GNUNET_GNS_ClientGetAuthResultMessage *rmsg;
   
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message with %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Sending `%s' message with `%s'\n",
               "GET_AUTH_RESULT", name);
-  if (name != NULL)
+  if (NULL != name)
   {
     GNUNET_STATISTICS_update (statistics,
                               "Authorities resolved", 1, GNUNET_NO);
   }  
-  if (name == NULL)  
+  if (NULL == name)  
     name = "";  
-
   rmsg = GNUNET_malloc(sizeof(struct GNUNET_GNS_ClientGetAuthResultMessage)
                        + strlen(name) + 1);
   
@@ -932,6 +928,7 @@ handle_get_authority (void *cls,
   char name[MAX_DNS_NAME_LENGTH];
   char* nameptr = name;
   uint16_t msg_size;
+  const struct GNUNET_GNS_ClientGetAuthMessage *sh_msg;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "GET_AUTH");
   msg_size = ntohs(message->size);
@@ -942,13 +939,15 @@ handle_get_authority (void *cls,
     return;
   }
   GNUNET_SERVER_notification_context_add (nc, client);
-
-  struct GNUNET_GNS_ClientGetAuthMessage *sh_msg =
-    (struct GNUNET_GNS_ClientGetAuthMessage *) message;
-  
-  GNUNET_STRINGS_utf8_tolower((const char*)&sh_msg[1], &nameptr);
-
-
+  sh_msg = (const struct GNUNET_GNS_ClientGetAuthMessage *) message;
+  utf_in = (const char *) &sh_msg[1];
+  if ('\0' != utf_in[msg_size - sizeof (struct GNUNET_GNS_ClientGetAuthMessage) - 1])
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }  
+  GNUNET_STRINGS_utf8_tolower(utf_in, &nameptr);
   cah = GNUNET_malloc(sizeof(struct ClientGetAuthHandle));
   cah->client = client;
   cah->request_id = sh_msg->id;
@@ -1087,7 +1086,6 @@ handle_lookup(void *cls,
   }
   sh_msg = (const struct GNUNET_GNS_ClientLookupMessage *) message;
   GNUNET_SERVER_notification_context_add (nc, client);
-
   if (GNUNET_YES == ntohl (sh_msg->have_key))
   {
     pkey = (struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *) &sh_msg[1];
@@ -1098,7 +1096,14 @@ handle_lookup(void *cls,
   else
   {
     key = NULL;
-    GNUNET_STRINGS_utf8_tolower ((char*) &sh_msg[1], &nameptr);
+    utf_in = (const char *) &sh_msg[1];
+    if ('\0' != utf_in[msg_size - sizeof (struct GNUNET_GNS_ClientLookupMessage) - 1])
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }  
+    GNUNET_STRINGS_utf8_tolower(utf_in, &nameptr);
   }
   
   namelen = strlen(name)+1;
