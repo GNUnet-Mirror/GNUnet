@@ -4410,6 +4410,7 @@ tunnel_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Tunnel %s [%X] timed out. Destroying.\n",
               GNUNET_i2s(&id), t->id.tid);
+  send_clients_tunnel_destroy (t);
   tunnel_destroy (t);
 }
 
