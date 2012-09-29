@@ -70,7 +70,8 @@ test_regex_big_LDADD = \
 test_regex_iptoregex_SOURCES = \
 test_regex_iptoregex.c
 test_regex_iptoregex_LDADD = \
-$(top_builddir)/src/regex/libgnunetregex.la
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/regex/libgnunetregex.la
 
 
 EXTRA_DIST =
