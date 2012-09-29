@@ -37,16 +37,12 @@ static int ok;
 
 static unsigned int connect_left;
 
-static struct GNUNET_TESTBED_Peer *daemons[NUM_PEERS];
-
 
 static void
 notify_connect_complete (void *cls, 
 			 struct GNUNET_TESTBED_Operation *op,
 			 const char *emsg)
 {
-  unsigned int i;
-
   if (NULL != emsg)
   {
     FPRINTF (stderr, "Failed to connect two peers: %s\n", emsg);
@@ -54,6 +50,7 @@ notify_connect_complete (void *cls,
     ok = 1;
     return;
   }
+  GNUNET_TESTBED_operation_done (op);
   connect_left--;
   if (0 == connect_left)
   {
