@@ -88,18 +88,25 @@ struct GNUNET_GNS_ShortenRequest
    */
   struct GNUNET_GNS_ShortenRequest *prev;
 
-  /* handle to gns */
+  /**
+   * handle to gns
+   */
   struct GNUNET_GNS_Handle *gns_handle;
   
-  /* processor to call on shorten result */
+  /**
+   *  processor to call on shorten result
+   */
   GNUNET_GNS_ShortenResultProcessor shorten_proc;
   
-  /* processor closure */
+  /**
+   * processor closure
+   */
   void *proc_cls;
 
-  /* request id */
+  /**
+   * request id
+   */
   uint64_t r_id;
-  
   
 };
 
@@ -119,16 +126,24 @@ struct GNUNET_GNS_GetAuthRequest
    */
   struct GNUNET_GNS_GetAuthRequest *prev;
 
-  /* handle to gns */
+  /**
+   * handle to gns
+   */
   struct GNUNET_GNS_Handle *gns_handle;
   
-  /* processor to call on authority lookup result */
+  /**
+   * processor to call on authority lookup result
+   */
   GNUNET_GNS_GetAuthResultProcessor auth_proc;
   
-  /* processor closure */
+  /**
+   * processor closure
+   */
   void *proc_cls;
   
-  /* request id */
+  /**
+   * request id
+   */
   uint32_t r_id;
   
 };

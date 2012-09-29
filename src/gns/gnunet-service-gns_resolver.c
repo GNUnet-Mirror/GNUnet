@@ -40,8 +40,19 @@
 #include "gns.h"
 #include "gnunet-service-gns_resolver.h"
 
+/**
+ * Default DHT timeout
+ */
 #define DHT_LOOKUP_TIMEOUT DHT_OPERATION_TIMEOUT
+
+/**
+ * DHT replication level
+ */
 #define DHT_GNS_REPLICATION_LEVEL 5
+
+/**
+ * Maximum label length of DNS names
+ */
 #define MAX_DNS_LABEL_LENGTH 63
 
 
@@ -137,7 +148,6 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * a resolution identifier pool variable
- * FIXME overflow?
  * This is a non critical identifier useful for debugging
  */
 static unsigned long long rid = 0;
@@ -351,6 +361,7 @@ handle_auth_discovery_timeout (void *cls,
   process_pseu_result (gph, NULL);
 }
 
+
 /**
  * Function called when we find a PSEU entry in the DHT
  *
@@ -437,6 +448,7 @@ process_auth_discovery_dht_result (void* cls,
   process_pseu_result (gph, NULL);
 }
 
+
 /**
  * Process PSEU discovery for shorten via namestore
  *
@@ -508,6 +520,7 @@ process_auth_discovery_ns_result (void* cls,
   process_pseu_result (gph, NULL);
 }
 
+
 /**
  * Callback called by namestore for a zone to name
  * result
@@ -571,6 +584,13 @@ shorten_authority_chain (struct GetPseuAuthorityHandle *gph)
 }
 
 
+/**
+ * Start shortening algorithm using auth as
+ * authority chain
+ *
+ * @param auth the authorities that were resolved
+ * @param key the private key for PKEY import
+ */
 static void
 start_shorten (struct AuthorityChain *auth,
                const struct GNUNET_CRYPTO_RsaPrivateKey *key)
@@ -777,6 +797,8 @@ free_resolver_handle (struct ResolverHandle* rh)
 static void
 finish_shorten (struct ResolverHandle *rh,
                 struct NameShortenHandle *nsh);
+
+
 /**
  * finish get auth
  *
@@ -846,8 +868,6 @@ gns_resolver_cleanup ()
 }
 
 
-
-
 /**
  * Callback when record data is put into namestore
  *
@@ -883,6 +903,12 @@ on_namestore_record_put_result (void *cls,
 }
 
 
+/**
+ * Lookup timeout task
+ *
+ * @param cls the ResolverHandle for the task that timed out
+ * @param tc the task context
+ */
 static void
 handle_lookup_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -890,7 +916,6 @@ handle_lookup_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (NULL != rh->timeout_cont)
     rh->timeout_cont (rh->timeout_cont_cls, tc);
-  /* FIXME: does this leak memory? */
 }
 
 
@@ -911,6 +936,7 @@ background_lookup_result_processor (void *cls,
               "GNS_BG: background dht lookup finished. (%d results)\n",
               rd_count);
 }
+
 
 /**
  * Handle timeout for DHT requests
@@ -1122,7 +1148,6 @@ resolve_record_dht (struct ResolverHandle *rh)
               "GNS_PHASE_REC-%llu: starting dht lookup for %s with key: %s\n",
               rh->id, rh->name, GNUNET_h2s (&lookup_key));
 
-  //rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   rh->dht_heap_node = NULL;
 
   if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value != rh->timeout.rel_value)
@@ -1370,8 +1395,6 @@ process_record_result_vpn (void* cls, int af, const void *address)
 }
 
 
-
-
 /**
  * Process VPN lookup result for record
  *
@@ -1415,6 +1438,13 @@ static void
 send_dns_packet (struct ResolverHandle *rh);
 
 
+/**
+ * Read DNS response
+ *
+ * @param cls the ResolverHandle for this lookup
+ * @param addr the sockaddr
+ * @param addrlen the socket address length
+ */
 static void
 handle_dns_resolver (void *cls,
                      const struct sockaddr *addr,
@@ -1648,6 +1678,7 @@ read_dns_response (void *cls,
   return;
 }
 
+
 /**
  * Sends a UDP dns query to a nameserver specified in the rh
  * 
@@ -1684,6 +1715,7 @@ send_dns_packet (struct ResolverHandle *rh)
   GNUNET_NETWORK_fdset_destroy (rset);
 
 }
+
 
 /**
  * The final phase of resoution.
@@ -1888,8 +1920,8 @@ resolve_record_vpn (struct ResolverHandle *rh,
 						GNUNET_TIME_UNIT_FOREVER_ABS, //FIXME
 						&process_record_result_vpn,
 						rh);
-
 }
+
 
 /**
  * The final phase of resolution.
@@ -1933,7 +1965,6 @@ resolve_record_ns(struct ResolverHandle *rh)
                                  &process_record_result_ns,
                                  rh);
 }
-
 
 
 /**
@@ -2003,10 +2034,21 @@ dht_authority_lookup_timeout(void *cls,
   rh->proc(rh->proc_cls, rh, 0, NULL);
 }
 
-/* Prototype */
+
+/**
+ * Start DHT lookup for a name -> PKEY (compare NS) record in
+ * rh->authority's zone
+ *
+ * @param rh the pending gns query
+ */
 static void resolve_delegation_dht(struct ResolverHandle *rh);
 
-/* Prototype */
+
+/**
+ * Resolve the delegation chain for the request in our namestore
+ *
+ * @param rh the resolver handle
+ */
 static void resolve_delegation_ns(struct ResolverHandle *rh);
 
 
@@ -2135,6 +2177,7 @@ on_namestore_delegation_put_result(void *cls,
   GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
              "GNS_NS: Error putting records into namestore: %s\n", emsg);
 }
+
 
 /**
  * Function called when we get a result from the dht
@@ -2381,14 +2424,19 @@ process_delegation_result_dht(void* cls,
 #define MAX_SRV_LENGTH (sizeof(uint16_t)*3)+MAX_DNS_NAME_LENGTH
 
 
+/**
+ * Exands a name ending in .+ with the zone of origin
+ *
+ * @param dest destination buffer
+ * @param sec the .+ name
+ * @param repl the string to replace the + with
+ */
 static void
 expand_plus(char* dest, char* src, char* repl)
 {
   char* pos;
   unsigned int s_len = strlen(src)+1;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_POSTPROCESS: Got %s to expand with %s\n", src, repl);
   //Eh? I guess this is at least strlen ('x.+') == 3 FIXME
   if (3 > s_len)
   {
@@ -2414,9 +2462,12 @@ expand_plus(char* dest, char* src, char* repl)
   }
   else
   {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "GNS_POSTPROCESS: No postprocessing for %s\n", src);
     memcpy(dest, src, s_len+1);
   }
 }
+
 
 /**
  * finish lookup
@@ -2537,6 +2588,7 @@ finish_lookup (struct ResolverHandle *rh,
   free_resolver_handle (rh);
 }
 
+
 /**
  * Process DHT lookup result for record.
  *
@@ -2566,8 +2618,6 @@ handle_record_dht(void* cls, struct ResolverHandle *rh,
              "GNS_PHASE_REC-%llu: Record resolved from DHT!", rh->id);
   finish_lookup (rh, rlh, rd_count, rd);
 }
-
-
 
 
 /**
@@ -2681,6 +2731,7 @@ pop_tld(char* name, char* dest)
   strcpy(dest, (name+len+1));
 }
 
+
 /**
  * Checks if name is in tld
  *
@@ -2705,6 +2756,7 @@ is_tld(const char* name, const char* tld)
   }
   return GNUNET_YES;
 }
+
 
 /**
  * DHT resolution for delegation finished. Processing result.
@@ -3380,10 +3432,8 @@ gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
   GNUNET_CONTAINER_DLL_insert (rlh_head, rlh_tail, rh);
   
   if (NULL == key)
-  {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "No shorten key for resolution\n");
-  }
 
   if (timeout.rel_value != GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
   {
@@ -3653,6 +3703,7 @@ process_zone_to_name_shorten_shorten (void *cls,
                                  rh);
 }
 
+
 /**
  * Callback calles by namestore for a zone to name
  * result
@@ -3766,6 +3817,7 @@ process_zone_to_name_shorten_private (void *cls,
                                    rh);
   }
 }
+
 
 /**
  * Callback calles by namestore for a zone to name
@@ -4106,7 +4158,6 @@ gns_resolver_shorten_name (struct GNUNET_CRYPTO_ShortHashCode *zone,
   }
 
   nsh = GNUNET_malloc (sizeof (struct NameShortenHandle));
-
   nsh->proc = proc;
   nsh->proc_cls = proc_cls;
   nsh->root_zone = zone;
@@ -4116,7 +4167,6 @@ gns_resolver_shorten_name (struct GNUNET_CRYPTO_ShortHashCode *zone,
   strcpy (nsh->shorten_zone_name, shorten_zone_name);
   strcpy (nsh->result, name);
   
-
   rh = GNUNET_malloc (sizeof (struct ResolverHandle));
   rh->authority = *zone;
   rh->id = rid++;
@@ -4128,9 +4178,8 @@ gns_resolver_shorten_name (struct GNUNET_CRYPTO_ShortHashCode *zone,
   rh->private_local_zone = *zone;
 
   GNUNET_CONTAINER_DLL_insert (nsh_head, nsh_tail, rh);
-  
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Checking for TLD...\n");
+              "Checking for TLD...\n");
   if (is_zkey_tld (name) == GNUNET_YES)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -4162,7 +4211,6 @@ gns_resolver_shorten_name (struct GNUNET_CRYPTO_ShortHashCode *zone,
       proc (proc_cls, name);
       return;
     }
-
     rh->namestore_task = GNUNET_NAMESTORE_zone_to_name (namestore_handle,
                                    zone, //ours
                                    &zkey,
@@ -4238,11 +4286,9 @@ handle_delegation_result_ns_get_auth(void* cls,
                       uint32_t rd_count,
                       const struct GNUNET_NAMESTORE_RecordData *rd)
 {
-  struct GetNameAuthorityHandle* nah;
+  struct GetNameAuthorityHandle* nah = rh->proc_cls;
   size_t answer_len;
 
-  nah = (struct GetNameAuthorityHandle*) rh->proc_cls;
-  
   /**
    * At this point rh->name contains the part of the name
    * that we do not have a PKEY in our namestore to resolve.
