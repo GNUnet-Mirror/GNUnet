@@ -4234,6 +4234,7 @@ tunnel_destroy (struct MeshTunnel *t)
       r = GNUNET_SYSERR;
     }
     GNUNET_free (t->clients);
+    GNUNET_free (t->clients_fc);
   }
 
   if (NULL != t->peers)
