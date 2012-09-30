@@ -95,7 +95,8 @@ static int result;
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_STREAM_close (peer1.socket);
+  if (NULL != peer1.socket)
+    GNUNET_STREAM_close (peer1.socket);
   if (NULL != peer2.socket)
     GNUNET_STREAM_close (peer2.socket);
   if (NULL != peer2_listen_socket)
