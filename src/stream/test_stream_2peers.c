@@ -241,7 +241,10 @@ do_close (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel (abort_task);
   if (NULL != peer1.socket)
     GNUNET_STREAM_close (peer1.socket);
-  GNUNET_TESTBED_operation_done (peer1.op);
+  if (NULL != peer1.op)
+    GNUNET_TESTBED_operation_done (peer1.op);
+  else
+    GNUNET_SCHEDULER_shutdown (); /* For shutting down testbed */
 }
 
 
@@ -461,7 +464,10 @@ stream_da (void *cls, void *op_result)
   {
     lsocket = op_result;
     GNUNET_STREAM_listen_close (lsocket);
-    GNUNET_TESTBED_operation_done (peer2.op);
+    if (NULL != peer2.op)
+      GNUNET_TESTBED_operation_done (peer2.op);
+    else
+      GNUNET_SCHEDULER_shutdown ();
     return;
   }
   if (&peer2 == cls)
