@@ -122,7 +122,7 @@ static struct GNUNET_TESTING_Peer *self;
  * @param tc the task context
  */
 static void
-do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (GNUNET_SCHEDULER_NO_TASK != abort_task_id)
   {
@@ -143,7 +143,7 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param tc the task context
  */
 static void
-do_abort (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Aborting test...\n");
   abort_task_id = GNUNET_SCHEDULER_NO_TASK;
