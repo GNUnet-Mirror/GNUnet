@@ -218,6 +218,8 @@ GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket);
 
 /**
  * Functions of this type are called upon new stream connection from other peers
+ * or upon binding error which happen when the app_port given in
+ * GNUNET_STREAM_listen() is already taken.
  *
  * @param cls the closure from GNUNET_STREAM_listen
  * @param socket the socket representing the stream; NULL on binding error
