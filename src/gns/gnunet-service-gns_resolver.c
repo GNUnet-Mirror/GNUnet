@@ -2425,46 +2425,50 @@ process_delegation_result_dht(void* cls,
 
 
 /**
- * Exands a name ending in .+ with the zone of origin
+ * Exands a name ending in .+ with the zone of origin.
+ * FIXME: funky api: 'dest' must be large enough to hold
+ * the result; this is a bit yucky...
  *
  * @param dest destination buffer
- * @param sec the .+ name
+ * @param src the .+ name
  * @param repl the string to replace the + with
  */
 static void
-expand_plus(char* dest, char* src, char* repl)
+expand_plus (char* dest, 
+	     const char* src, 
+	     const char* repl)
 {
   char* pos;
-  unsigned int s_len = strlen(src)+1;
+  size_t s_len = strlen (src) + 1;
 
   //Eh? I guess this is at least strlen ('x.+') == 3 FIXME
   if (3 > s_len)
   {
+    /* no postprocessing */
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "GNS_POSTPROCESS: %s too short\n", src);
-
-    /* no postprocessing */
-    memcpy(dest, src, s_len+1);
+    memcpy (dest, src, s_len);
     return;
   }
-  
-  if (0 == strcmp(src+s_len-3, ".+"))
+  if (0 == strcmp (src + s_len - 3, ".+"))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_POSTPROCESS: Expanding .+ in %s\n", src);
-    memset(dest, 0, s_len+strlen(repl)+strlen(GNUNET_GNS_TLD));
-    strcpy(dest, src);
-    pos = dest+s_len-2;
-    strcpy(pos, repl);
-    pos += strlen(repl);
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_POSTPROCESS: Expanded to %s\n", dest);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"GNS_POSTPROCESS: Expanding .+ in %s\n", 
+		src);
+    memset (dest, 0, s_len + strlen (repl) + strlen(GNUNET_GNS_TLD));
+    strcpy (dest, src);
+    pos = dest + s_len - 2;
+    strcpy (pos, repl);
+    pos += strlen (repl);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"GNS_POSTPROCESS: Expanded to %s\n", 
+		dest);
   }
   else
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "GNS_POSTPROCESS: No postprocessing for %s\n", src);
-    memcpy(dest, src, s_len+1);
+    memcpy (dest, src, s_len);
   }
 }
 
@@ -2534,11 +2538,12 @@ finish_lookup (struct ResolverHandle *rh,
     if (GNUNET_GNS_RECORD_MX == rd[i].record_type)
     {
       memcpy (new_mx_data, (char*)rd[i].data, sizeof(uint16_t));
-      offset = sizeof(uint16_t);
-      pos = new_mx_data+offset;
-      expand_plus(pos, (char*)rd[i].data+sizeof(uint16_t),
-                  repl_string);
-      offset += strlen(new_mx_data+sizeof(uint16_t))+1;
+      offset = sizeof (uint16_t);
+      pos = new_mx_data + offset;
+      // FIXME: how do we know that 'pos' has enough space for the new name?
+      expand_plus (pos, (char*)rd[i].data+sizeof(uint16_t),
+		   repl_string);
+      offset += strlen(new_mx_data+sizeof(uint16_t)) + 1;
       p_rd[i].data = new_mx_data;
       p_rd[i].data_size = offset;
     }
@@ -2552,6 +2557,7 @@ finish_lookup (struct ResolverHandle *rh,
       new_srv->prio = old_srv->prio;
       new_srv->weight = old_srv->weight;
       new_srv->port = old_srv->port;
+      // FIXME: how do we know that '&new_srv[1]' has enough space for the new name?
       expand_plus((char*)&new_srv[1], (char*)&old_srv[1],
                   repl_string);
       p_rd[i].data = new_srv_data;
@@ -2563,8 +2569,10 @@ finish_lookup (struct ResolverHandle *rh,
       old_soa = (struct soa_data*)rd[i].data;
       new_soa = (struct soa_data*)new_soa_data;
       memcpy (new_soa, old_soa, sizeof (struct soa_data));
+      // FIXME: how do we know that 'new_soa[1]' has enough space for the new name?
       expand_plus((char*)&new_soa[1], (char*)&old_soa[1], repl_string);
       offset = strlen ((char*)&new_soa[1]) + 1;
+      // FIXME: how do we know that 'new_soa[1]' has enough space for the new name?
       expand_plus((char*)&new_soa[1] + offset,
                   (char*)&old_soa[1] + strlen ((char*)&old_soa[1]) + 1,
                   repl_string);
@@ -2576,6 +2584,7 @@ finish_lookup (struct ResolverHandle *rh,
     else
     {
       pos = new_rr_data;
+      // FIXME: how do we know that 'rd[i].data' has enough space for the new name?
       expand_plus(pos, (char*)rd[i].data, repl_string);
       p_rd[i].data_size = strlen(new_rr_data)+1;
       p_rd[i].data = new_rr_data;
