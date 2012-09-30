@@ -661,15 +661,19 @@ stream_listen_cb (void *cls,
                   struct GNUNET_STREAM_Socket *socket,
                   const struct GNUNET_PeerIdentity *initiator)
 {
-  GNUNET_assert (NULL != socket);
-  GNUNET_assert (NULL != initiator);
+  if ((NULL == socket) || (NULL == initiator))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Binding error\n");
+    if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+      GNUNET_SCHEDULER_cancel (abort_task);
+    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+    return GNUNET_OK;
+  }
   GNUNET_assert (socket != peer1.socket);
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s: Peer connected: %s\n",
               GNUNET_i2s (&peer2.our_id),
               GNUNET_i2s(initiator));
-
   peer2.socket = socket;
   /* FIXME: reading should be done right now instead of a scheduled call */
   read_task = GNUNET_SCHEDULER_add_now (&stream_read, (void *) socket);

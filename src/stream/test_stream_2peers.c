@@ -427,7 +427,14 @@ stream_listen_cb (void *cls,
                   struct GNUNET_STREAM_Socket *socket,
                   const struct GNUNET_PeerIdentity *initiator)
 {
-  GNUNET_assert (NULL != socket);
+  if ((NULL == socket) || (NULL == initiator))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Binding error\n");
+    if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+      GNUNET_SCHEDULER_cancel (abort_task);
+    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+    return GNUNET_OK;
+  }
   GNUNET_assert (NULL != initiator);
   GNUNET_assert (socket != peer2.socket);
   GNUNET_assert (0 == memcmp (initiator, &peer2.our_id, 
