@@ -576,8 +576,11 @@ handle_acquire (void *cls, struct GNUNET_SERVER_Client *client,
   request = (struct GNUNET_LOCKMANAGER_Message *) message;
   domain_name = (const char *) &request[1];
   msize -= sizeof (struct GNUNET_LOCKMANAGER_Message);
-  if ('\0' != domain_name[msize])
+  if ('\0' != domain_name[msize - 1])
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Bad domain `%.*s' - byte with index %u is %X, not 0.\n", msize,
+         domain_name, msize - 1, (unsigned int) domain_name[msize - 1]);
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
