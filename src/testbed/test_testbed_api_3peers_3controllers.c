@@ -732,7 +732,8 @@ main (int argc, char **argv)
   return 0;
 
  error_exit:
-  (void) PRINTF ("Unable to run the test as this system is not configured "
+  (void) PRINTF ("%s",
+                 "Unable to run the test as this system is not configured "
                  "to use password less SSH logins to localhost.\n"
                  "Marking test as successful\n");
   return 0;
