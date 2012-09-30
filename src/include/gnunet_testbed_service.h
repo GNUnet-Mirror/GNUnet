@@ -316,7 +316,6 @@ struct GNUNET_TESTBED_EventInformation
       
     } operation_finished;   
 
-
     /**
      * Details about an testbed run completed event.
      */ 
@@ -592,6 +591,24 @@ GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
 				  size_t sxcfg_size,
 				  size_t scfg_size,
 				  int is_subordinate);
+
+
+/**
+ * Function to acquire the configuration of a running slave controller. The
+ * completion of the operation is signalled through the controller_cb from
+ * GNUNET_TESTBED_controller_connect(). If the operation is successful the
+ * handle to the configuration is available in the generic pointer of
+ * operation_finished field of struct GNUNET_TESTBED_EventInformation.
+ *
+ * @param op_cls the closure for the operation
+ * @param master the handle to master controller
+ * @param slave_host the host where the slave controller is running
+ * @return the operation handle
+ */
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_get_slave_config (void *op_cls,
+                                 struct GNUNET_TESTBED_Controller *master,
+                                 struct GNUNET_TESTBED_Host *slave_host);
 
 
 /**

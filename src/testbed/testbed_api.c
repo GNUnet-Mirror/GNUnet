@@ -1661,6 +1661,28 @@ GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
 
 
 /**
+ * Function to acquire the configuration of a running slave controller. The
+ * completion of the operation is signalled through the controller_cb from
+ * GNUNET_TESTBED_controller_connect(). If the operation is successful the
+ * handle to the configuration is available in the generic pointer of
+ * operation_finished field of struct GNUNET_TESTBED_EventInformation.
+ *
+ * @param op_cls the closure for the operation
+ * @param master the handle to master controller
+ * @param slave_host the host where the slave controller is running
+ * @return the operation handle
+ */
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_get_slave_config (void *op_cls,
+                                 struct GNUNET_TESTBED_Controller *master,
+                                 struct GNUNET_TESTBED_Host *slave_host)
+{
+  GNUNET_break (0);
+  return NULL;
+}
+
+
+/**
  * Ask the testbed controller to write the current overlay topology to
  * a file.  Naturally, the file will only contain a snapshot as the
  * topology may evolve all the time.
