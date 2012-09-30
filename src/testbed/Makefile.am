@@ -72,7 +72,7 @@ check_PROGRAMS = \
  test_testbed_api_hosts \
  test_testbed_api_controllerlink \
  test_testbed_api_2peers_1controller \
- test_testbed_api_2peers_2controllers \
+ test_testbed_api_3peers_3controllers \
  test_testbed_api \
  test_testbed_api_operations \
  test_testbed_api_testbed_run \
@@ -85,7 +85,7 @@ if ENABLE_TEST_RUN
   test_testbed_api \
   test_testbed_api_hosts \
   test_testbed_api_2peers_1controller \
-  test_testbed_api_2peers_2controllers \
+  test_testbed_api_3peers_3controllers \
   test_testbed_api_operations \
   test_gnunet_helper_testbed \
   test_testbed_api_controllerlink \
@@ -115,9 +115,9 @@ test_testbed_api_2peers_1controller_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  libgnunettestbed.la
 
-test_testbed_api_2peers_2controllers_SOURCES = \
- test_testbed_api_2peers_2controllers.c
-test_testbed_api_2peers_2controllers_LDADD = \
+test_testbed_api_3peers_3controllers_SOURCES = \
+ test_testbed_api_3peers_3controllers.c
+test_testbed_api_3peers_3controllers_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  libgnunettestbed.la
