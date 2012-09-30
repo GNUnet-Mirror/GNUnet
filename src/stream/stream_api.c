@@ -2823,9 +2823,8 @@ lockmanager_acquire_timeout (void *cls,
   lsocket->lockmanager_acquire_timeout_task = GNUNET_SCHEDULER_NO_TASK;
   listen_cb = lsocket->listen_cb;
   listen_cb_cls = lsocket->listen_cb_cls;
-  GNUNET_STREAM_listen_close (lsocket);
   if (NULL != listen_cb)
-    listen_cb (listen_cb_cls, NULL, NULL);  
+    listen_cb (listen_cb_cls, NULL, NULL);
 }
 
 
