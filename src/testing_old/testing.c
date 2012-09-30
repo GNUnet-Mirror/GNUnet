@@ -241,7 +241,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       if (NULL == d->hostname)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Starting `%s', with command `%s %s %s %s'.\n",
+                    "Starting local `%s', with command `%s %s %s %s'.\n",
                     "gnunet-peerinfo", "gnunet-peerinfo", "-c", d->cfgfile,
                     "-sq");
         d->proc_arm_peerinfo =
@@ -258,7 +258,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           dst = GNUNET_strdup (d->hostname);
 
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Starting `%s', with command `%s %s %s %s %s %s'.\n",
+                    "Starting remove `%s', with command `%s %s %s %s %s %s'.\n",
                     "gnunet-peerinfo", "ssh", dst, "gnunet-peerinfo", "-c",
                     d->cfgfile, "-sq");
         if (d->ssh_port_str == NULL)
@@ -410,16 +410,13 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (NULL == d->hostname)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Starting `%s', with command `%s %s %s %s'.\n",
+                  "Starting local `%s', with command `%s %s %s %s'.\n",
                   "gnunet-arm", "gnunet-arm", "-c", d->cfgfile, 
                   "-s");
       d->proc_arm_start =
 	  GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-arm", "gnunet-arm", "-c",
                                    d->cfgfile,
-                                   "-s", "-q", "-T",
-                                   GNUNET_STRINGS_relative_time_to_string
-                                   (GNUNET_TIME_absolute_get_remaining
-                                    (d->max_timeout), GNUNET_NO), NULL);
+                                   "-s", "-q", "-T", "5 s", NULL);
     }
     else
     {
@@ -429,7 +426,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         dst = GNUNET_strdup (d->hostname);
 
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Starting `%s', with command `%s %s %s %s %s %s %s'.\n",
+                  "Starting remote `%s', with command `%s %s %s %s %s %s %s'.\n",
                   "gnunet-arm", "ssh", dst, "gnunet-arm", "-c", d->cfgfile,
                   "-s", "-q");
       if (d->ssh_port_str == NULL)
@@ -910,8 +907,7 @@ GNUNET_TESTING_daemon_start_stopped_service (struct GNUNET_TESTING_Daemon *d,
                 "Starting gnunet-arm with config `%s' locally.\n", d->cfgfile);
     d->proc_arm_srv_start = GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-arm", "gnunet-arm",
                                        "-c", d->cfgfile, "-i", service, "-q",
-                                       "-T",
-						     GNUNET_STRINGS_relative_time_to_string (timeout, GNUNET_NO),
+                                       "-T", "5 s",
                                        NULL);
   }
 
@@ -979,13 +975,10 @@ GNUNET_TESTING_daemon_start_service (struct GNUNET_TESTING_Daemon *d,
                 "Starting gnunet-arm with config `%s' locally.\n", d->cfgfile);
     d->proc_arm_srv_start = GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-arm", "gnunet-arm",
                                        "-c", d->cfgfile, "-i", service, "-q",
-                                       "-T",
-						     GNUNET_STRINGS_relative_time_to_string (timeout, GNUNET_NO),
-                                       NULL);
+                                       "-T", "5 s", NULL);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Starting gnunet-arm with command %s -c %s -i %s -q -T %s\n",
-                "gnunet-arm", d->cfgfile, service,
-                GNUNET_STRINGS_relative_time_to_string (timeout, GNUNET_NO));
+                "Starting gnunet-arm with command %s -c %s -i %s -q -T \"5 s\"\n",
+                "gnunet-arm", d->cfgfile, service);
   }
 
   d->max_timeout = GNUNET_TIME_relative_to_absolute (timeout);
