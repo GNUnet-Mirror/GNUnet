@@ -83,7 +83,7 @@ static int result;
  * @param tc the task context
  */
 static void
-do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
@@ -101,7 +101,7 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param tc the task context
  */
 static void
-do_abort (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   abort_task = GNUNET_SCHEDULER_NO_TASK;
   LOG (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
