@@ -136,7 +136,6 @@ static void
 configuration_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct ServiceConnectData *data = cls;
-  const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *imsg;
   struct GNUNET_TESTBED_Controller *c;
   const char *emsg;
   struct GNUNET_TESTBED_EventInformation info;
@@ -159,9 +158,7 @@ configuration_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
     info.details.operation_finished.generic = NULL;
     goto call_cb;
   }  
-  imsg =
-      (const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *) msg;
-  data->cfg = GNUNET_TESTBED_get_config_from_peerinfo_msg_ (imsg);
+  data->cfg = GNUNET_TESTBED_get_config_from_peerinfo_msg_ (msg);
   GNUNET_assert (NULL == data->op_result);
   data->op_result = data->ca (data->cada_cls, data->cfg);  
   info.details.operation_finished.emsg = NULL;

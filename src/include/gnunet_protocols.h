@@ -1537,10 +1537,20 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TESTBED_REQUESTCONNECTCANCEL 480
 
 /**
+ * Message to request configuration of a slave controller
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_GETSLAVECONFIG 481
+
+/**
+ * Message which contains the configuration of slave controller
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG 482
+
+/**
  * Not really a message, but for careful checks on the testbed messages; Should
  * always be the maximum and never be used to send messages with this type
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_MAX 481
+#define GNUNET_MESSAGE_TYPE_TESTBED_MAX 483
 
 /**
  * The initialization message towards gnunet-testbed-helper

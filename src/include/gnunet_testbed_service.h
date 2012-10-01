@@ -602,8 +602,11 @@ GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
  *
  * @param op_cls the closure for the operation
  * @param master the handle to master controller
- * @param slave_host the host where the slave controller is running
- * @return the operation handle
+ * @param slave_host the host where the slave controller is running; the handle
+ *          to the slave_host should remain valid until this operation is
+ *          cancelled or marked as finished
+ * @return the operation handle; NULL if the slave_host is not registered at
+ *           master
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_get_slave_config (void *op_cls,

@@ -182,6 +182,24 @@ struct ForwardedOperationData
 
 
 /**
+ * Context data for get slave config operations
+ */
+struct GetSlaveConfigData
+{
+  /**
+   * The operation closure
+   */
+  void *op_cls;
+
+  /**
+   * The id of the slave controller
+   */
+  uint32_t slave_id;
+
+};
+
+
+/**
  * Returns the operation context with the given id if found in the Operation
  * context queues of the controller
  *
@@ -589,7 +607,7 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
     break;
   case GNUNET_TESTBED_PIT_CONFIGURATION:
     pinfo->result.cfg =        /* Freed in oprelease_peer_getinfo */
-	GNUNET_TESTBED_get_config_from_peerinfo_msg_ (msg);    
+	GNUNET_TESTBED_get_config_from_peerinfo_msg_ (&msg->header);    
     break;
   case GNUNET_TESTBED_PIT_GENERIC:
     GNUNET_assert (0);          /* never reach here */
@@ -711,6 +729,56 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
 
 
 /**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG message from controller
+ * (testbed service)
+ *
+ * @param c the controller handler
+ * @param msg message received
+ * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
+ *           not
+ */
+static int
+handle_slave_config (struct GNUNET_TESTBED_Controller *c,
+		     const struct GNUNET_TESTBED_SlaveConfiguration * msg)
+{
+  struct OperationContext *opc;
+  void *op_cls;
+  uint64_t op_id;
+  struct GNUNET_TESTBED_EventInformation event;  
+
+  op_id = GNUNET_ntohll (msg->operation_id);
+  if (NULL == (opc = find_opc (c, op_id)))
+  {
+    LOG_DEBUG ("Operation not found\n");
+    return GNUNET_YES;
+  }
+  if (OP_GET_SLAVE_CONFIG != opc->type)
+  {
+    GNUNET_break (0);
+    return GNUNET_YES;
+  }  
+  op_cls = ((struct GetSlaveConfigData *) opc->data)->op_cls;
+  GNUNET_free (opc->data);
+  opc->data = NULL;
+  opc->state = OPC_STATE_FINISHED;
+  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  if ((0 != (GNUNET_TESTBED_ET_OPERATION_FINISHED & c->event_mask)) &&
+      (NULL != c->cc))
+  {
+    opc->data = 
+	GNUNET_TESTBED_get_config_from_peerinfo_msg_ (&msg->header);
+    event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;   
+    event.details.operation_finished.generic = opc->data;
+    event.details.operation_finished.operation = opc->op;
+    event.details.operation_finished.op_cls = op_cls;
+    event.details.operation_finished.emsg = NULL;
+    c->cc (c->cc_cls, &event);
+  }
+  return GNUNET_YES;
+}
+
+
+/**
  * Handler for messages from controller (testbed service)
  *
  * @param cls the controller handler
@@ -796,6 +864,13 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                               (const struct
                                GNUNET_TESTBED_OperationFailureEventMessage *)
                               msg);
+    break;
+  case GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG:
+    GNUNET_assert (msize >
+		   sizeof (struct GNUNET_TESTBED_SlaveConfiguration));
+    status = 
+	handle_slave_config (c, (const struct 
+				 GNUNET_TESTBED_SlaveConfiguration *) msg);
     break;
   default:
     GNUNET_assert (0);
@@ -1136,6 +1211,60 @@ oprelease_link_controllers (void *cls)
     GNUNET_free (opc->data);
   if (OPC_STATE_STARTED == opc->state)
     GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_free (opc);
+}
+
+
+/**
+ * Function to be called when get slave config operation is ready
+ *
+ * @param cls the OperationContext of type OP_GET_SLAVE_CONFIG
+ */
+static void
+opstart_get_slave_config (void *cls)
+{
+  struct OperationContext *opc = cls;
+  struct GetSlaveConfigData *data;
+  struct GNUNET_TESTBED_SlaveGetConfigurationMessage *msg;
+  uint16_t msize;
+  
+  data = opc->data;
+  msize = sizeof (struct GNUNET_TESTBED_SlaveGetConfigurationMessage);
+  msg = GNUNET_malloc (msize);
+  msg->header.size = htons (msize);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_GETSLAVECONFIG);
+  msg->operation_id = GNUNET_htonll (opc->id);
+  msg->slave_id = htonl (data->slave_id);
+  GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_TESTBED_queue_message_ (opc->c, &msg->header);
+  opc->state = OPC_STATE_STARTED;
+}
+
+
+/**
+ * Function to be called when get slave config operation is cancelled or finished
+ *
+ * @param cls the OperationContext of type OP_GET_SLAVE_CONFIG
+ */
+static void
+oprelease_get_slave_config (void *cls)
+{
+  struct OperationContext *opc = cls;
+
+  switch (opc->state)
+  {
+  case OPC_STATE_INIT:
+    GNUNET_free (opc->data);
+    break;
+  case OPC_STATE_STARTED:
+    GNUNET_free (opc->data);
+    GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+    break;
+  case OPC_STATE_FINISHED:
+    if (NULL != opc->data)
+      GNUNET_CONFIGURATION_destroy (opc->data);
+    break;
+  }
   GNUNET_free (opc);
 }
 
@@ -1651,7 +1780,9 @@ GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
   config = GNUNET_CONFIGURATION_serialize (slave_cfg, &config_size);
   cc_size = GNUNET_TESTBED_compress_config_ (config, config_size, &cconfig);
   GNUNET_free (config);
-  GNUNET_assert ((UINT16_MAX - sizeof (struct GNUNET_TESTBED_ControllerLinkMessage)) >= cc_size);       /* Configuration doesn't fit in 1 message */
+  /* Configuration doesn't fit in 1 message */
+  GNUNET_assert ((UINT16_MAX - 
+		  sizeof (struct GNUNET_TESTBED_ControllerLinkMessage)) >= cc_size);
   op = GNUNET_TESTBED_controller_link_2 (master, delegated_host, slave_host,
                                          (const char *) cconfig, cc_size,
                                          config_size, is_subordinate);
@@ -1669,16 +1800,37 @@ GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
  *
  * @param op_cls the closure for the operation
  * @param master the handle to master controller
- * @param slave_host the host where the slave controller is running
- * @return the operation handle
+ * @param slave_host the host where the slave controller is running; the handle
+ *          to the slave_host should remain valid until this operation is
+ *          cancelled or marked as finished
+ * @return the operation handle; NULL if the slave_host is not registered at
+ *           master
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_get_slave_config (void *op_cls,
                                  struct GNUNET_TESTBED_Controller *master,
                                  struct GNUNET_TESTBED_Host *slave_host)
 {
-  GNUNET_break (0);
-  return NULL;
+  struct OperationContext *opc;
+  struct GetSlaveConfigData *data;
+
+  if (GNUNET_NO == GNUNET_TESTBED_is_host_registered_ (slave_host, master))
+    return NULL;
+  data = GNUNET_malloc (sizeof (struct GetSlaveConfigData));
+  data->slave_id = GNUNET_TESTBED_host_get_id_ (slave_host);
+  data->op_cls = op_cls;
+  opc = GNUNET_malloc (sizeof (struct OperationContext));
+  opc->state = OPC_STATE_INIT;
+  opc->c = master;
+  opc->id = master->operation_counter++;
+  opc->type = OP_GET_SLAVE_CONFIG;
+  opc->data = data;
+  opc->op =
+      GNUNET_TESTBED_operation_create_ (opc, &opstart_get_slave_config,
+                                        &oprelease_get_slave_config);
+  GNUNET_TESTBED_operation_queue_insert_ (master->opq_parallel_operations,
+					  opc->op); 
+  return opc->op;
 }
 
 
@@ -1790,35 +1942,60 @@ GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
 /**
  * Generates configuration by parsing Peer configuration information reply message
  *
- * @param msg the peer configuration information message
+ * @param msg the message containing compressed configuration. This message
+ *          should be of the following types: GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG,
+ *          GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG
  * @return handle to the parsed configuration
  */
 struct GNUNET_CONFIGURATION_Handle *
-GNUNET_TESTBED_get_config_from_peerinfo_msg_ (const struct
-                                              GNUNET_TESTBED_PeerConfigurationInformationMessage
-                                              *msg)
-{
+GNUNET_TESTBED_get_config_from_peerinfo_msg_ (const struct GNUNET_MessageHeader *msg)
+{  
   struct GNUNET_CONFIGURATION_Handle *cfg;
-  char *config;
-  uLong config_size;
+  Bytef *data;
+  const Bytef *xdata;
+  uLong data_len;
+  uLong xdata_len;
   int ret;
-  uint16_t msize;
 
-  config_size = (uLong) ntohs (msg->config_size);
-  config = GNUNET_malloc (config_size);
-  msize = ntohs (msg->header.size);
-  msize -= sizeof (struct GNUNET_TESTBED_PeerConfigurationInformationMessage);
+  switch (ntohs (msg->type))
+  {
+  case GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG:
+    {
+      const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *imsg;
+
+      imsg = (const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *)
+	  msg;
+      data_len = (uLong) ntohs (imsg->config_size);
+      xdata_len = ntohs (imsg->header.size)
+	  - sizeof (struct GNUNET_TESTBED_PeerConfigurationInformationMessage);
+      xdata = (const Bytef *) &imsg[1];
+    }
+    break;
+  case GNUNET_MESSAGE_TYPE_TESTBED_GETSLAVECONFIG:
+    {
+      const struct GNUNET_TESTBED_SlaveConfiguration *imsg;
+
+      imsg = (const struct GNUNET_TESTBED_SlaveConfiguration *) msg;
+      data_len = (uLong) ntohs (imsg->config_size);
+      xdata_len =  ntohs (imsg->header.size) 
+	  - sizeof (struct GNUNET_TESTBED_SlaveConfiguration);
+      xdata = (const Bytef *) &imsg[1];
+    }
+    break;
+  default:
+    GNUNET_assert (0);
+  }  
+  data = GNUNET_malloc (data_len);
   if (Z_OK !=
       (ret =
-       uncompress ((Bytef *) config, &config_size, (const Bytef *) &msg[1],
-                   (uLong) msize)))
+       uncompress (data, &data_len, xdata, xdata_len)))
     GNUNET_assert (0);
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_deserialize (cfg, config,
-                                                   (size_t) config_size,
+                 GNUNET_CONFIGURATION_deserialize (cfg, (const char *) data,
+                                                   (size_t) data_len,
                                                    GNUNET_NO));
-  GNUNET_free (config);
+  GNUNET_free (data);
   return cfg;
 }
 

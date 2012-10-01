@@ -29,6 +29,7 @@
 
 #include "gnunet_util_lib.h"
 
+GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
  * Initial message from a client to a testing control service.
@@ -641,12 +642,66 @@ struct GNUNET_TESTBED_PeerConfigurationInformationMessage
   /**
    * The size of configuration when uncompressed
    */
-  uint16_t config_size;
+  uint16_t config_size GNUNET_PACKED;
 
   /* followed by gzip-compressed configuration of the peer */
 
 };
 
+
+/**
+ * Message to request configuration of a slave controller
+ */
+struct GNUNET_TESTBED_SlaveGetConfigurationMessage
+{
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_GETSLAVECONFIG
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * The id of the slave host
+   */
+  uint32_t slave_id GNUNET_PACKED;
+
+  /**
+   * Operation ID
+   */
+  uint64_t operation_id GNUNET_PACKED;
+
+};
+
+
+/**
+ * Reply to GETSLAVECONFIG message
+ */
+struct GNUNET_TESTBED_SlaveConfiguration
+{
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * The id of the host where the slave is running
+   */
+  uint32_t slave_id GNUNET_PACKED;
+
+  /**
+   * Operation ID
+   */
+  uint64_t operation_id GNUNET_PACKED;
+
+  /**
+   * The size of the configuration when uncompressed
+   */
+  uint16_t config_size GNUNET_PACKED;
+
+  /* followed by gzip-compressed configuration of the peer */
+
+};
+
+GNUNET_NETWORK_STRUCT_END
 
 #endif
 /* end of testbed.h */

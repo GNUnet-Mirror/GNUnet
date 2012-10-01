@@ -75,6 +75,11 @@ enum OperationType
      */
   OP_LINK_CONTROLLERS,
 
+  /**
+   * Get slave config operation
+   */
+  OP_GET_SLAVE_CONFIG
+
 };
 
 
@@ -399,9 +404,8 @@ GNUNET_TESTBED_forward_operation_msg_cancel_ (struct OperationContext *opc);
  * @return handle to the parsed configuration
  */
 struct GNUNET_CONFIGURATION_Handle *
-GNUNET_TESTBED_get_config_from_peerinfo_msg_ (const struct
-                                              GNUNET_TESTBED_PeerConfigurationInformationMessage
-                                              *msg);
+GNUNET_TESTBED_get_config_from_peerinfo_msg_ (const struct 
+					      GNUNET_MessageHeader *msg);
 
 
 /**
