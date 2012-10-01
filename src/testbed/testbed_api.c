@@ -607,7 +607,7 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
     break;
   case GNUNET_TESTBED_PIT_CONFIGURATION:
     pinfo->result.cfg =        /* Freed in oprelease_peer_getinfo */
-	GNUNET_TESTBED_get_config_from_peerinfo_msg_ (&msg->header);    
+	GNUNET_TESTBED_extract_config_ (&msg->header);
     break;
   case GNUNET_TESTBED_PIT_GENERIC:
     GNUNET_assert (0);          /* never reach here */
@@ -765,8 +765,7 @@ handle_slave_config (struct GNUNET_TESTBED_Controller *c,
   if ((0 != (GNUNET_TESTBED_ET_OPERATION_FINISHED & c->event_mask)) &&
       (NULL != c->cc))
   {
-    opc->data = 
-	GNUNET_TESTBED_get_config_from_peerinfo_msg_ (&msg->header);
+    opc->data = GNUNET_TESTBED_extract_config_ (&msg->header);
     event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;   
     event.details.operation_finished.generic = opc->data;
     event.details.operation_finished.operation = opc->op;
@@ -1940,15 +1939,16 @@ GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
 
 
 /**
- * Generates configuration by parsing Peer configuration information reply message
+ * Generates configuration by uncompressing configuration in given message. The
+ * given message should be of the following types:
+ * GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG,
+ * GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG
  *
- * @param msg the message containing compressed configuration. This message
- *          should be of the following types: GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG,
- *          GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG
+ * @param msg the message containing compressed configuration
  * @return handle to the parsed configuration
  */
 struct GNUNET_CONFIGURATION_Handle *
-GNUNET_TESTBED_get_config_from_peerinfo_msg_ (const struct GNUNET_MessageHeader *msg)
+GNUNET_TESTBED_extract_config_ (const struct GNUNET_MessageHeader *msg)
 {  
   struct GNUNET_CONFIGURATION_Handle *cfg;
   Bytef *data;

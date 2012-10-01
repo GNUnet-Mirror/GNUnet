@@ -398,14 +398,16 @@ GNUNET_TESTBED_forward_operation_msg_cancel_ (struct OperationContext *opc);
 
 
 /**
- * Generates configuration by parsing Peer configuration information reply message
+ * Generates configuration by uncompressing configuration in given message. The
+ * given message should be of the following types:
+ * GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG,
+ * GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG
  *
- * @param msg the peer configuration information message
+ * @param msg the message containing compressed configuration
  * @return handle to the parsed configuration
  */
 struct GNUNET_CONFIGURATION_Handle *
-GNUNET_TESTBED_get_config_from_peerinfo_msg_ (const struct 
-					      GNUNET_MessageHeader *msg);
+GNUNET_TESTBED_extract_config_ (const struct GNUNET_MessageHeader *msg);
 
 
 /**

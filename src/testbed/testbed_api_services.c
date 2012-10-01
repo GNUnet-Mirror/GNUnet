@@ -158,7 +158,7 @@ configuration_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
     info.details.operation_finished.generic = NULL;
     goto call_cb;
   }  
-  data->cfg = GNUNET_TESTBED_get_config_from_peerinfo_msg_ (msg);
+  data->cfg = GNUNET_TESTBED_extract_config_ (msg);
   GNUNET_assert (NULL == data->op_result);
   data->op_result = data->ca (data->cada_cls, data->cfg);  
   info.details.operation_finished.emsg = NULL;
