@@ -30,7 +30,7 @@
 #include "gns_proxy_proto.h"
 #include "gns.h"
 
-#define HAVE_MHD_NO_LISTEN_SOCKET MHD_VERSION >= 0x00091401
+#define HAVE_MHD_NO_LISTEN_SOCKET (MHD_VERSION >= 0x00091401)
 
 #define GNUNET_GNS_PROXY_PORT 7777
 #define MHD_MAX_CONNECTIONS 300
