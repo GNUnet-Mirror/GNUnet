@@ -175,7 +175,7 @@ static enum Stage result;
  * @param tc the task context
  */
 static void
-do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
