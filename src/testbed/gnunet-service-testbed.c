@@ -1204,8 +1204,8 @@ handle_init (void *cls, struct GNUNET_SERVER_Client *client,
 
   if (NULL != master_context)
   {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    /* We are being connected to laterally */
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
   msg = (const struct GNUNET_TESTBED_InitMessage *) message;
