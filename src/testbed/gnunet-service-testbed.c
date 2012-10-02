@@ -2662,6 +2662,13 @@ handle_slave_get_config (void *cls, struct GNUNET_SERVER_Client *client,
 			 const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_TESTBED_SlaveGetConfigurationMessage *msg;
+  struct Slave *slave;  
+  struct GNUNET_TESTBED_SlaveConfiguration *reply;
+  char *config;
+  char *xconfig;
+  size_t config_size;
+  size_t xconfig_size;
+  size_t reply_size;
   uint64_t op_id;
   uint32_t slave_id;
 
@@ -2674,7 +2681,30 @@ handle_slave_get_config (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  GNUNET_break (0);
+  slave = slave_list[slave_id];
+  if (NULL == slave->cfg)
+  {
+    send_operation_fail_msg (client, op_id,
+			     "Configuration not found (slave not started by me)");
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  config = GNUNET_CONFIGURATION_serialize (slave->cfg, &config_size);
+  xconfig_size = GNUNET_TESTBED_compress_config_ (config, config_size, 
+						  &xconfig);
+  GNUNET_free (config);  
+  reply_size = xconfig_size + sizeof (struct GNUNET_TESTBED_SlaveConfiguration);
+  GNUNET_break (reply_size <= UINT16_MAX);
+  GNUNET_break (config_size <= UINT32_MAX);
+  reply = GNUNET_realloc (xconfig, reply_size);
+  (void) memmove (&reply[1], reply, xconfig_size);
+  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG);
+  reply->header.size = htons ((uint16_t) reply_size);
+  reply->slave_id = msg->slave_id;
+  reply->operation_id = msg->operation_id;
+  reply->config_size = htonl ((uint32_t) config_size);
+  queue_message (client, &reply->header);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
