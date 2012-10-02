@@ -675,13 +675,13 @@ queue_message (struct GNUNET_STREAM_Socket *socket,
   {
     socket->retries = 0;
     socket->transmit_handle = 
-      GNUNET_MESH_notify_transmit_ready (socket->tunnel,
-					 GNUNET_NO, /* Corking */
-					 socket->retransmit_timeout,
-					 &socket->other_peer,
-					 ntohs (message->header.size),
-					 &send_message_notify,
-					 socket);
+	GNUNET_MESH_notify_transmit_ready (socket->tunnel,
+					   GNUNET_NO, /* Corking */
+					   socket->retransmit_timeout,
+					   &socket->other_peer,
+					   ntohs (message->header.size),
+					   &send_message_notify,
+					   socket);
   }
 }
 
@@ -734,11 +734,11 @@ data_retransmission_task (void *cls,
 {
   struct GNUNET_STREAM_Socket *socket = cls;
   
-  if (GNUNET_SCHEDULER_REASON_SHUTDOWN == tc->reason)
+  socket->data_retransmission_task_id = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "%s: Retransmitting DATA...\n", GNUNET_i2s (&socket->other_peer));
-  socket->data_retransmission_task_id = GNUNET_SCHEDULER_NO_TASK;
   write_data (socket);
 }
 
@@ -756,11 +756,9 @@ ack_task (void *cls,
   struct GNUNET_STREAM_Socket *socket = cls;
   struct GNUNET_STREAM_AckMessage *ack_msg;
 
-  if (GNUNET_SCHEDULER_REASON_SHUTDOWN == tc->reason)
-  {
-    return;
-  }
   socket->ack_task_id = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+    return;
   /* Create the ACK Message */
   ack_msg = GNUNET_malloc (sizeof (struct GNUNET_STREAM_AckMessage));
   ack_msg->header.header.size = htons (sizeof (struct 
@@ -789,9 +787,11 @@ close_msg_retransmission_task (void *cls,
   struct GNUNET_STREAM_MessageHeader *msg;
   struct GNUNET_STREAM_Socket *socket;
 
+  shutdown_handle->close_msg_retransmission_task_id = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (NULL != shutdown_handle);
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+    return;
   socket = shutdown_handle->socket;
-
   msg = GNUNET_malloc (sizeof (struct GNUNET_STREAM_MessageHeader));
   msg->header.size = htons (sizeof (struct GNUNET_STREAM_MessageHeader));
   switch (shutdown_handle->operation)
@@ -1044,6 +1044,8 @@ read_io_timeout (void *cls,
   void *proc_cls;
 
   socket->read_io_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+    return;
   if (socket->read_task_id != GNUNET_SCHEDULER_NO_TASK)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1462,9 +1464,9 @@ control_retransmission_task (void *cls,
 {
   struct GNUNET_STREAM_Socket *socket = cls;
     
+  socket->control_retransmission_task_id = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_SCHEDULER_REASON_SHUTDOWN == tc->reason)
     return;
-  socket->control_retransmission_task_id = GNUNET_SCHEDULER_NO_TASK;
   LOG_DEBUG ("%s: Retransmitting a control message\n",
                  GNUNET_i2s (&socket->other_peer));
   switch (socket->state)
@@ -2781,9 +2783,7 @@ tunnel_cleaner (void *cls,
        "%s: Peer %s has terminated connection abruptly\n",
        GNUNET_i2s (&socket->other_peer),
        GNUNET_i2s (&socket->other_peer));
-
   socket->status = GNUNET_STREAM_SHUTDOWN;
-
   /* Clear Transmit handles */
   if (NULL != socket->transmit_handle)
   {
@@ -3498,10 +3498,13 @@ GNUNET_STREAM_io_read_cancel (struct GNUNET_STREAM_IOReadHandle *ioh)
   GNUNET_assert (NULL != socket->read_handle);
   GNUNET_assert (ioh == socket->read_handle);
   /* Read io time task should be there; if it is already executed then this
-  read handle is not valid */
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != socket->read_io_timeout_task_id);
-  GNUNET_SCHEDULER_cancel (socket->read_io_timeout_task_id);
-  socket->read_io_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
+  read handle is not valid; However upon scheduler shutdown the read io task
+  may be executed before */
+  if (GNUNET_SCHEDULER_NO_TASK != socket->read_io_timeout_task_id)
+  {
+    GNUNET_SCHEDULER_cancel (socket->read_io_timeout_task_id);
+    socket->read_io_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
+  }
   /* reading task may be present; if so we have to stop it */
   if (GNUNET_SCHEDULER_NO_TASK != socket->read_task_id)
   {

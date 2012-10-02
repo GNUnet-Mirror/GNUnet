@@ -438,7 +438,12 @@ write_completion (void *cls, enum GNUNET_STREAM_Status status, size_t size)
   double throughput;
   double prof_time_sec;
 
-  GNUNET_assert (GNUNET_STREAM_OK == status);
+  if (GNUNET_STREAM_OK != status)
+  {
+    GNUNET_SCHEDULER_cancel (abort_task);
+    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+    return;
+  }
   GNUNET_assert (size <= DATA_SIZE);
   pdata->bytes_wrote += size;
   for (;size > 0; size--)
@@ -537,7 +542,12 @@ input_processor (void *cls, enum GNUNET_STREAM_Status status,
 {
   struct PeerData *pdata = cls;
 
-  GNUNET_assert (GNUNET_STREAM_OK == status);
+  if (GNUNET_STREAM_OK != status)
+  {
+    GNUNET_SCHEDULER_cancel (abort_task);
+    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+    return 0;
+  }
   GNUNET_assert (size < DATA_SIZE);
   GNUNET_assert (0 == memcmp (((void *)data ) + pdata->bytes_read, 
 			      input_data, size));
