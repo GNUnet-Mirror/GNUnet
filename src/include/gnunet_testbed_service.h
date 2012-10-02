@@ -409,7 +409,8 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
 /**
  * Stop the controller process (also will terminate all peers and controllers
  * dependent on this controller).  This function blocks until the testbed has
- * been fully terminated (!).
+ * been fully terminated (!). The controller status cb from
+ * GNUNET_TESTBED_controller_start() will not be called.
  *
  * @param cproc the controller process handle
  */

@@ -165,6 +165,12 @@ struct Route
 
 
 /**
+ * Context information used while linking controllers
+ */
+struct LinkControllersContext;
+
+
+/**
  * Structure representing a connected(directly-linked) controller
  */
 struct Slave
@@ -178,6 +184,18 @@ struct Slave
    * The controller handle
    */
   struct GNUNET_TESTBED_Controller *controller;
+
+  /**
+   * The configuration of the slave. Will be NULL for slave which we didn't
+   * directly start
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * handle to lcc which is associated with this slave startup. Should be set to
+   * NULL when the slave has successfully started up
+   */
+  struct LinkControllersContext *lcc;
 
   /**
    * The id of the host this controller is running on
@@ -511,10 +529,6 @@ struct LinkControllersContext
    */
   uint64_t operation_id;
 
-  /**
-   * Pointer to the slave handle if we are directly starting/connecting to the controller
-   */
-  struct Slave *slave;
 };
 
 
@@ -1111,7 +1125,7 @@ slave_event_callback (void *cls,
 /**
  * Callback to signal successfull startup of the controller process
  *
- * @param cls the closure from GNUNET_TESTBED_controller_start()
+ * @param cls the handle to the slave whose status is to be found here
  * @param cfg the configuration with which the controller has been started;
  *          NULL if status is not GNUNET_OK
  * @param status GNUNET_OK if the startup is successfull; GNUNET_SYSERR if not,
@@ -1121,27 +1135,54 @@ static void
 slave_status_callback (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
                        int status)
 {
-  struct LinkControllersContext *lcc = cls;
+  struct Slave *slave = cls;
+  struct LinkControllersContext *lcc;
 
+  lcc = slave->lcc;
   if (GNUNET_SYSERR == status)
   {
-    lcc->slave->controller_proc = NULL;
+    slave->controller_proc = NULL;
+    slave_list[slave->host_id] = NULL;
+    if (NULL != slave->cfg)
+      GNUNET_CONFIGURATION_destroy (slave->cfg);
+    GNUNET_free (slave);
+    slave = NULL;
     LOG (GNUNET_ERROR_TYPE_WARNING, "Unexpected slave shutdown\n");
     GNUNET_SCHEDULER_shutdown ();       /* We too shutdown */
-    return;
+    goto clean_lcc;
   }
-  lcc->slave->controller =
-      GNUNET_TESTBED_controller_connect (cfg, host_list[lcc->slave->host_id],
+  slave->controller =
+      GNUNET_TESTBED_controller_connect (cfg, host_list[slave->host_id],
                                          master_context->event_mask,
-                                         &slave_event_callback, lcc->slave);
-  if (NULL != lcc->slave->controller)
+                                         &slave_event_callback, slave);
+  if (NULL != slave->controller)
+  {
     send_operation_success_msg (lcc->client, lcc->operation_id);
+    slave->cfg = GNUNET_CONFIGURATION_dup (cfg);
+  }
   else
+  {
     send_operation_fail_msg (lcc->client, lcc->operation_id,
                              "Could not connect to delegated controller");
-  GNUNET_SERVER_receive_done (lcc->client, GNUNET_OK);
-  GNUNET_SERVER_client_drop (lcc->client);
-  GNUNET_free (lcc);
+    GNUNET_TESTBED_controller_stop (slave->controller_proc);
+    slave_list[slave->host_id] = NULL;
+    GNUNET_free (slave);
+    slave = NULL;
+  }
+
+ clean_lcc:
+  if (NULL != lcc)
+  {
+    if (NULL != lcc->client)
+    {
+      GNUNET_SERVER_receive_done (lcc->client, GNUNET_OK);
+      GNUNET_SERVER_client_drop (lcc->client);
+      lcc->client = NULL;
+    }
+    GNUNET_free (lcc);
+  }
+  if (NULL != slave)
+    slave->lcc = NULL;
 }
 
 
@@ -1500,11 +1541,11 @@ handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
     lcc->operation_id = GNUNET_ntohll (msg->operation_id);
     GNUNET_SERVER_client_keep (client);
     lcc->client = client;
-    lcc->slave = slave;
+    slave->lcc = lcc;
     slave->controller_proc =
 	GNUNET_TESTBED_controller_start (master_context->master_ip,
 					 host_list[slave->host_id], cfg,
-					 &slave_status_callback, lcc);
+					 &slave_status_callback, slave);
     GNUNET_CONFIGURATION_destroy (cfg);
     new_route = GNUNET_malloc (sizeof (struct Route));
     new_route->dest = delegated_host_id;
@@ -2610,6 +2651,34 @@ handle_overlay_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_GETSLAVECONFIG messages
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_slave_get_config (void *cls, struct GNUNET_SERVER_Client *client,
+			 const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_TESTBED_SlaveGetConfigurationMessage *msg;
+  uint64_t op_id;
+  uint32_t slave_id;
+
+  msg = (struct GNUNET_TESTBED_SlaveGetConfigurationMessage *) message;
+  slave_id = ntohl (msg->slave_id);
+  op_id = GNUNET_ntohll (msg->operation_id);
+  if ((slave_list_size <= slave_id) || (NULL == slave_list[slave_id]))
+  {
+    send_operation_fail_msg (client, op_id, "Slave not found");
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  GNUNET_break (0);
+}
+
+
+/**
  * Iterator over hash map entries.
  *
  * @param cls closure
@@ -2695,11 +2764,15 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   for (id = 0; id < slave_list_size; id++)
     if (NULL != slave_list[id])
     {
+      if (NULL != slave_list[id]->cfg)
+	GNUNET_CONFIGURATION_destroy (slave_list[id]->cfg);
       if (NULL != slave_list[id]->controller)
         GNUNET_TESTBED_controller_disconnect (slave_list[id]->controller);
       if (NULL != slave_list[id]->controller_proc)
         GNUNET_TESTBED_controller_stop (slave_list[id]->controller_proc);
+      GNUNET_free (slave_list[id]);
     }
+  GNUNET_free_non_null (slave_list);
   if (NULL != master_context)
   {
     GNUNET_free_non_null (master_context->master_ip);
@@ -2767,6 +2840,8 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
      sizeof (struct GNUNET_TESTBED_OverlayConnectMessage)},
     {&handle_overlay_request_connect, NULL, GNUNET_MESSAGE_TYPE_TESTBED_REQUESTCONNECT,
      0},
+    {handle_slave_get_config, NULL, GNUNET_MESSAGE_TYPE_TESTBED_GETSLAVECONFIG,
+     sizeof (struct GNUNET_TESTBED_SlaveGetConfigurationMessage)},
     {NULL}
   };
 
