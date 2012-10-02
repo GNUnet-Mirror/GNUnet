@@ -24,6 +24,19 @@
  * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
+
+/**
+ * The controller architecture we try to achieve in this test case:
+ *
+ *                    Master Controller 
+ *                    //             \\
+ *                   //               \\
+ *         Slave Controller 1---------Slave Controller 3
+ *                  ||                  
+ *                  ||                 
+ *         Slave Controller 2
+ */
+
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testing_lib-new.h"
@@ -47,75 +60,96 @@
 enum Stage
 {
 
-    /**
-     * Initial stage
-     */
+  /**
+   * Initial stage
+   */
   INIT,
-
-    /**
-     * Master controller has started
-     */
+  
+  /**
+   * Master controller has started
+   */
   MASTER_STARTED,
 
-    /**
-     * The first slave has been registered at master controller
-     */
+  /**
+   * The first slave has been registered at master controller
+   */
   SLAVE1_REGISTERED,
 
-    /**
-     * The second slave has been registered at the master controller
-     */
+  /**
+   * The second slave has been registered at the master controller
+   */
   SLAVE2_REGISTERED,
 
-    /**
-     * Link from master to slave 1 has been successfully created
-     */
+  /**
+   * Link from master to slave 1 has been successfully created
+   */
   SLAVE1_LINK_SUCCESS,
 
-    /**
-     * Link from slave 1 to slave 2 has been successfully created.
-     */
+  /**
+   * Link from slave 1 to slave 2 has been successfully created.
+   */
   SLAVE2_LINK_SUCCESS,
 
-    /**
-     * Peer create on slave 1 successful
-     */
+  /**
+   * Peer create on slave 1 successful
+   */
   SLAVE1_PEER_CREATE_SUCCESS,
 
-    /**
-     * Peer create on slave 2 successful
-     */
+  /**
+   * Peer create on slave 2 successful
+   */
   SLAVE2_PEER_CREATE_SUCCESS,
 
-    /**
-     * Peer startup on slave 1 successful
-     */
+  /**
+   * Peer startup on slave 1 successful
+   */
   SLAVE1_PEER_START_SUCCESS,
 
-    /**
-     * Peer on slave 1 successfully stopped
-     */
+  /**
+   * Peer on slave 1 successfully stopped
+   */
   SLAVE1_PEER_STOP_SUCCESS,
 
-    /**
-     * Peer startup on slave 2 successful
-     */
+  /**
+   * Peer startup on slave 2 successful
+   */
   SLAVE2_PEER_START_SUCCESS,
 
-    /**
-     * Peer on slave 2 successfully stopped
-     */
+  /**
+   * Peer on slave 2 successfully stopped
+   */
   SLAVE2_PEER_STOP_SUCCESS,
 
-    /**
-     * Peer destroy on slave 1 successful
-     */
+  /**
+   * Peer destroy on slave 1 successful
+   */
   SLAVE1_PEER_DESTROY_SUCCESS,
 
-    /**
-     * Peer destory on slave 2 successful; Marks test as successful
-     */
-  SUCCESS
+  /**
+   * Peer destory on slave 2 successful
+   */
+  SLAVE2_PEER_DESTROY_SUCCESS,
+
+  /**
+   * Slave 3 has successfully registered
+   */
+  SLAVE3_REGISTERED,
+
+  /**
+   * Slave 3 has successfully started
+   */
+  SLAVE3_STARTED,
+
+  /**
+   * The configuration of slave 3 is acquired
+   */
+  SLAVE3_GET_CONFIG_SUCCESS,
+
+  /**
+   * Slave 1 has linked to slave 3; Also marks test as success
+   */
+  SLAVE3_LINK_SUCCESS,
+
 };
 
 /**
@@ -144,6 +178,11 @@ static struct GNUNET_TESTBED_Host *slave;
 static struct GNUNET_TESTBED_Host *slave2;
 
 /**
+ * Host for slave 3
+ */
+static struct GNUNET_TESTBED_Host *slave3;
+
+/**
  * Slave host registration handle
  */
 static struct GNUNET_TESTBED_HostRegistrationHandle *rh;
@@ -152,6 +191,11 @@ static struct GNUNET_TESTBED_HostRegistrationHandle *rh;
  * Handle to global configuration
  */
 static struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
+ * Configuration of slave 3 controller
+ */
+static struct GNUNET_CONFIGURATION_Handle *cfg3;
 
 /**
  * Abort task
@@ -195,6 +239,8 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
+  if (NULL != slave3)
+    GNUNET_TESTBED_host_destroy (slave3);
   if (NULL != slave2)
     GNUNET_TESTBED_host_destroy (slave2);
   if (NULL != slave)
@@ -205,11 +251,12 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TESTBED_controller_disconnect (mc);
   if (NULL != cfg)
     GNUNET_CONFIGURATION_destroy (cfg);
+  if (NULL != cfg3)
+    GNUNET_CONFIGURATION_destroy (cfg3);
   if (NULL != cp)
     GNUNET_TESTBED_controller_stop (cp);
   if (NULL != rh)
     GNUNET_TESTBED_cancel_registration (rh);
-
 }
 
 
@@ -225,6 +272,21 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   LOG (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
   abort_task = GNUNET_SCHEDULER_NO_TASK;
   do_shutdown (cls, tc);
+}
+
+
+/**
+ * Calls abort now
+ *
+ * @param 
+ * @return 
+ */
+static void
+do_abort_now (void *cls)
+{
+  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+    GNUNET_SCHEDULER_cancel (abort_task);
+  abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
 }
 
 
@@ -310,6 +372,16 @@ check_operation_success (const struct GNUNET_TESTBED_EventInformation *event)
 
 
 /**
+ * Callback which will be called to after a host registration succeeded or failed
+ *
+ * @param cls the host which has been registered
+ * @param emsg the error message; NULL if host registration is successful
+ */
+static void
+registration_cont (void *cls, const char *emsg);
+
+
+/**
  * Signature of the event handler function called by the
  * respective event controller.
  *
@@ -385,8 +457,36 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   case SLAVE1_PEER_DESTROY_SUCCESS:
     check_operation_success (event);
     GNUNET_TESTBED_operation_done (op);
-    result = SUCCESS;
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    op = NULL;
+    result = SLAVE2_PEER_DESTROY_SUCCESS;
+    slave3 = GNUNET_TESTBED_host_create_with_id (3, "127.0.0.1", NULL, 0);
+    rh = GNUNET_TESTBED_register_host (mc, slave3, &registration_cont, NULL);
+    break;
+  case SLAVE3_REGISTERED:
+    check_operation_success (event);
+    GNUNET_TESTBED_operation_done (op);
+    op = NULL;
+    result = SLAVE3_STARTED;
+    op = GNUNET_TESTBED_get_slave_config (NULL, mc, slave3);
+    GNUNET_assert (NULL != op);    
+    break;
+  case SLAVE3_STARTED:
+    GNUNET_assert (NULL != event);
+    GNUNET_assert (GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type);
+    GNUNET_assert (event->details.operation_finished.operation == op);
+    GNUNET_assert (NULL == event->details.operation_finished.op_cls);
+    GNUNET_assert (NULL == event->details.operation_finished.emsg);
+    cfg3 = GNUNET_CONFIGURATION_dup (event->details.operation_finished.generic);
+    GNUNET_TESTBED_operation_done (op);
+    result = SLAVE3_GET_CONFIG_SUCCESS;
+    op = GNUNET_TESTBED_controller_link (mc, slave3, slave, cfg3, GNUNET_NO);
+    break;
+  case SLAVE3_GET_CONFIG_SUCCESS:
+    result = SLAVE3_LINK_SUCCESS;
+    GNUNET_TESTBED_operation_done (op);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+				  (GNUNET_TIME_UNIT_SECONDS, 3),
+				  &do_shutdown, NULL);
     break;
   default:
     GNUNET_assert (0);
@@ -423,8 +523,17 @@ registration_cont (void *cls, const char *emsg)
     op = GNUNET_TESTBED_controller_link (mc, slave, NULL, cfg, GNUNET_YES);
     GNUNET_assert (NULL != op);
     break;
+  case SLAVE2_PEER_DESTROY_SUCCESS:
+    GNUNET_assert (NULL == emsg);
+    GNUNET_assert (NULL != mc);
+    GNUNET_assert (NULL == op);
+    result = SLAVE3_REGISTERED;
+    op = GNUNET_TESTBED_controller_link (mc, slave3, NULL, cfg, GNUNET_YES);
+    GNUNET_assert (NULL != op);
+    break;
   default:
-    GNUNET_assert (0);
+    GNUNET_break (0);
+    do_abort_now (NULL);
   }
 }
 
@@ -459,8 +568,10 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config,
     rh = GNUNET_TESTBED_register_host (mc, slave, &registration_cont, NULL);
     GNUNET_assert (NULL != rh);
     break;
-  default:
-    GNUNET_assert (0);
+  default:    
+    GNUNET_break (0);
+    cp = NULL;
+    do_abort_now (NULL);
   }
 }
 
@@ -536,7 +647,7 @@ main (int argc, char **argv)
       GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
                           "test_testbed_api_controllerlink", "nohelp", options,
                           &run, NULL);
-  if ((GNUNET_OK != ret) || (SUCCESS != result))
+  if ((GNUNET_OK != ret) || (SLAVE3_LINK_SUCCESS != result))
     return 1;
   return 0;
 }

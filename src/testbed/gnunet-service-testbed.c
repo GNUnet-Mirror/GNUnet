@@ -729,16 +729,19 @@ static int
 host_list_add (struct GNUNET_TESTBED_Host *host)
 {
   uint32_t host_id;
+  uint32_t orig_size;
 
   host_id = GNUNET_TESTBED_host_get_id_ (host);
+  orig_size = host_list_size;  
   if (host_list_size <= host_id)
   {
+    while (host_list_size <= host_id)
+      host_list_size += LIST_GROW_STEP;
     host_list =
         TESTBED_realloc (host_list,
-                         sizeof (struct GNUNET_TESTBED_Host *) * host_list_size,
-                         sizeof (struct GNUNET_TESTBED_Host *) *
-                         (host_list_size + LIST_GROW_STEP));
-    host_list_size += LIST_GROW_STEP;
+                         sizeof (struct GNUNET_TESTBED_Host *) * orig_size,
+                         sizeof (struct GNUNET_TESTBED_Host *)
+			 * host_list_size);
   }
   if (NULL != host_list[host_id])
   {
@@ -758,13 +761,17 @@ host_list_add (struct GNUNET_TESTBED_Host *host)
 static void
 route_list_add (struct Route *route)
 {
+  uint32_t orig_size;
+
+  orig_size = route_list_size;  
   if (route->dest >= route_list_size)
   {
+    while (route->dest >= route_list_size)
+      route_list_size += LIST_GROW_STEP;
     route_list =
-        TESTBED_realloc (route_list, sizeof (struct Route *) * route_list_size,
-                         sizeof (struct Route *) * (route_list_size +
-                                                    LIST_GROW_STEP));
-    route_list_size += LIST_GROW_STEP;
+        TESTBED_realloc (route_list,
+			 sizeof (struct Route *) * orig_size,
+                         sizeof (struct Route *) * route_list_size);
   }
   GNUNET_assert (NULL == route_list[route->dest]);
   route_list[route->dest] = route;
@@ -1204,7 +1211,7 @@ handle_init (void *cls, struct GNUNET_SERVER_Client *client,
 
   if (NULL != master_context)
   {
-    /* We are being connected to laterally */
+    LOG_DEBUG ("We are being connected to laterally\n");
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
@@ -1586,11 +1593,24 @@ handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_CONTAINER_DLL_insert_tail (lcfq_head, lcfq_tail, lcfq);
   /* FIXME: Adding a new route should happen after the controllers are linked
    * successfully */
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  if (1 != msg->is_subordinate)
+  {
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  if ((delegated_host_id < route_list_size)
+      && (NULL != route_list[delegated_host_id]))
+  {
+    GNUNET_break_op (0);	/* Are you trying to link delegated host twice
+				   with is subordinate flag set to GNUNET_YES? */
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   new_route = GNUNET_malloc (sizeof (struct Route));
   new_route->dest = delegated_host_id;
   new_route->thru = route->dest;
   route_list_add (new_route);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -2695,14 +2715,14 @@ handle_slave_get_config (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_free (config);  
   reply_size = xconfig_size + sizeof (struct GNUNET_TESTBED_SlaveConfiguration);
   GNUNET_break (reply_size <= UINT16_MAX);
-  GNUNET_break (config_size <= UINT32_MAX);
+  GNUNET_break (config_size <= UINT16_MAX);
   reply = GNUNET_realloc (xconfig, reply_size);
   (void) memmove (&reply[1], reply, xconfig_size);
   reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG);
   reply->header.size = htons ((uint16_t) reply_size);
   reply->slave_id = msg->slave_id;
   reply->operation_id = msg->operation_id;
-  reply->config_size = htonl ((uint32_t) config_size);
+  reply->config_size = htons ((uint16_t) config_size);
   queue_message (client, &reply->header);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }

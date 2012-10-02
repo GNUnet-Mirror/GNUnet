@@ -1972,7 +1972,7 @@ GNUNET_TESTBED_extract_config_ (const struct GNUNET_MessageHeader *msg)
       xdata = (const Bytef *) &imsg[1];
     }
     break;
-  case GNUNET_MESSAGE_TYPE_TESTBED_GETSLAVECONFIG:
+  case GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG:
     {
       const struct GNUNET_TESTBED_SlaveConfiguration *imsg;
 
