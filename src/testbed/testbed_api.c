@@ -277,6 +277,29 @@ handle_addhostconfirm (struct GNUNET_TESTBED_Controller *c,
 
 
 /**
+ * Handler for forwarded operations
+ *
+ * @param c the controller handle
+ * @param opc the opearation context
+ * @param msg the message
+ */
+static void
+handle_forwarded_operation_msg (struct GNUNET_TESTBED_Controller *c,
+				struct OperationContext *opc,
+				const struct GNUNET_MessageHeader *msg)
+{
+  struct ForwardedOperationData *fo_data;
+
+  fo_data = opc->data;
+  if (NULL != fo_data->cc)
+    fo_data->cc (fo_data->cc_cls, msg);
+  GNUNET_CONTAINER_DLL_remove (c->ocq_head, c->ocq_tail, opc);
+  GNUNET_free (fo_data);
+  GNUNET_free (opc);
+}
+
+
+/**
  * Handler for GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTCONFIRM message from
  * controller (testbed service)
  *
@@ -305,14 +328,8 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
   {
   case OP_FORWARDED:
     {
-      struct ForwardedOperationData *fo_data;
-      
-      fo_data = opc->data;
-      if (NULL != fo_data->cc)
-        fo_data->cc (fo_data->cc_cls, (const struct GNUNET_MessageHeader *) msg);
-      GNUNET_CONTAINER_DLL_remove (c->ocq_head, c->ocq_tail, opc);
-      GNUNET_free (fo_data);
-      GNUNET_free (opc);
+      handle_forwarded_operation_msg
+	  (c, opc, (const struct GNUNET_MessageHeader *) msg);
       return GNUNET_YES;
     }
     break;
@@ -351,7 +368,7 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
  * Handler for GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS message from
  * controller (testbed service)
  *
- * @param c the controller handler
+ * @param c the controller handle
  * @param msg message received
  * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
  *           not
@@ -378,14 +395,8 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
   }
   if (OP_FORWARDED == opc->type)
   {
-    struct ForwardedOperationData *fo_data;
-
-    fo_data = opc->data;
-    if (NULL != fo_data->cc)
-      fo_data->cc (fo_data->cc_cls, (const struct GNUNET_MessageHeader *) msg);
-    GNUNET_CONTAINER_DLL_remove (c->ocq_head, c->ocq_tail, opc);
-    GNUNET_free (fo_data);
-    GNUNET_free (opc);
+    handle_forwarded_operation_msg (c, opc,
+				    (const struct GNUNET_MessageHeader *) msg);
     return GNUNET_YES;
   }
   GNUNET_assert (OP_PEER_CREATE == opc->type);
@@ -437,14 +448,8 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
   }
   if (OP_FORWARDED == opc->type)
   {
-    struct ForwardedOperationData *fo_data;
-
-    fo_data = opc->data;
-    if (NULL != fo_data->cc)
-      fo_data->cc (fo_data->cc_cls, (const struct GNUNET_MessageHeader *) msg);
-    GNUNET_CONTAINER_DLL_remove (c->ocq_head, c->ocq_tail, opc);
-    GNUNET_free (fo_data);
-    GNUNET_free (opc);
+    handle_forwarded_operation_msg (c, opc,
+				    (const struct GNUNET_MessageHeader *) msg);
     return GNUNET_YES;
   }
   GNUNET_assert ((OP_PEER_START == opc->type) || (OP_PEER_STOP == opc->type));
@@ -511,6 +516,13 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
     LOG_DEBUG ("Operation not found\n");
     return GNUNET_YES;
   }
+  if (OP_FORWARDED == opc->type)
+  {
+    handle_forwarded_operation_msg (c, opc,
+				    (const struct GNUNET_MessageHeader *) msg);
+    return GNUNET_YES;
+  }
+  GNUNET_assert (OP_OVERLAY_CONNECT == opc->type);
   data = opc->data;
   GNUNET_assert (NULL != data);
   GNUNET_assert ((ntohl (msg->peer1) == data->p1->unique_id) &&
@@ -577,14 +589,8 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
   }
   if (OP_FORWARDED == opc->type)
   {
-    struct ForwardedOperationData *fo_data;
-
-    fo_data = opc->data;
-    if (NULL != fo_data->cc)
-      fo_data->cc (fo_data->cc_cls, (const struct GNUNET_MessageHeader *) msg);
-    GNUNET_CONTAINER_DLL_remove (c->ocq_head, c->ocq_tail, opc);
-    GNUNET_free (fo_data);
-    GNUNET_free (opc);
+    handle_forwarded_operation_msg (c, opc,
+				    (const struct GNUNET_MessageHeader *) msg);
     return GNUNET_YES;
   }
   data = opc->data;
@@ -650,13 +656,8 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   if (OP_FORWARDED == opc->type)
   {
-    struct ForwardedOperationData *fo_data;
-
-    fo_data = opc->data;
-    if (NULL != fo_data->cc)
-      fo_data->cc (fo_data->cc_cls, (const struct GNUNET_MessageHeader *) msg);
-    GNUNET_free (fo_data);
-    GNUNET_free (opc);
+    handle_forwarded_operation_msg (c, opc,
+				    (const struct GNUNET_MessageHeader *) msg);
     return GNUNET_YES;
   }
   opc->state = OPC_STATE_FINISHED;
@@ -2021,7 +2022,7 @@ GNUNET_TESTBED_parse_error_string_ (const struct
     return NULL;
   msize -= sizeof (struct GNUNET_TESTBED_OperationFailureEventMessage);
   emsg = (const char *) &msg[1];
-  if ('\0' != emsg[msize])
+  if ('\0' != emsg[msize - 1])
   {
     GNUNET_break (0);
     return NULL;

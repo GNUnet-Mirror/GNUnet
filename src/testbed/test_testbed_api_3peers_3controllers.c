@@ -28,12 +28,18 @@
 
 /**
  * The testing architecture is:
- *                  C1
- *                 /  \
- *                /    \
- *               C2 == C3
- * C1 is the master controller and C2, C3 are slave controllers. C2 links to C3
- * laterally
+ *                  A
+ *                 / \
+ *                /   \
+ *               B === C 
+ * A is the master controller and B, C are slave controllers. B links to C
+ * laterally.
+ * Peers are mapped to controllers in the following relations:
+ *             Peer         Controller
+ *               1              A
+ *               2              B
+ *               3              C
+ *
  */
 
 #include "platform.h"
@@ -107,11 +113,6 @@ static struct GNUNET_TESTBED_HostRegistrationHandle *reg_handle;
 static struct GNUNET_TESTBED_Controller *controller1;
 
 /**
- * The controller handle of another controller
- */
-static struct GNUNET_TESTBED_Controller *controller2;
-
-/**
  * peer 1
  */
 static struct PeerContext peer1;
@@ -132,8 +133,8 @@ static struct PeerContext peer3;
 static struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
- * Handle to controller2 configuration, used to establish lateral link from
- * controller 1
+ * Handle to slave controller C's configuration, used to establish lateral link from
+ * master controller
  */
 static struct GNUNET_CONFIGURATION_Handle *cfg2;
 
@@ -209,9 +210,24 @@ enum Stage
   PEER3_STARTED,
 
   /**
-   * peers are connected
+   * peer1 and peer2 are connected
    */
-  PEERS_CONNECTED,
+  PEERS_1_2_CONNECTED,
+
+  /**
+   * Configuration of C has been acquired
+   */
+  CONTROLLER_CFG_ACQUIRED,
+
+  /**
+   * Linking controller B to C laterally
+   */
+  CONTROLLERS_LATERALLY_LINKED,
+
+  /**
+   * peer2 and peer3 are connected
+   */
+  PEERS_2_3_CONNECTED,
 
   /**
    * Peers are connected once again (this should not fail as they are already connected)
@@ -250,8 +266,6 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TESTBED_cancel_registration (reg_handle);
   if (NULL != controller1)
     GNUNET_TESTBED_controller_disconnect (controller1);
-  if (NULL != controller2)
-    GNUNET_TESTBED_controller_disconnect (controller2);
   GNUNET_CONFIGURATION_destroy (cfg);
   if (NULL != cfg2)
     GNUNET_CONFIGURATION_destroy (cfg2);
@@ -330,13 +344,12 @@ op_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
     GNUNET_assert (NULL != common_operation);
     GNUNET_TESTBED_operation_done (common_operation);
     common_operation = NULL;
-    result = PEERS_CONNECTED;
+    result = PEERS_1_2_CONNECTED;
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Peers connected\n");
-    delayed_connect_task =
-	GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (3),
-				      &do_delayed_connect, NULL);
+    common_operation = 
+	GNUNET_TESTBED_get_slave_config (NULL, controller1, neighbour2);
     break;
-  case PEERS_CONNECTED:
+  case PEERS_2_3_CONNECTED:
     GNUNET_assert (NULL == peer1.operation);
     GNUNET_assert (NULL == peer2.operation);
     GNUNET_assert (NULL != common_operation);
@@ -347,6 +360,14 @@ op_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
     peer1.operation = GNUNET_TESTBED_peer_stop (peer1.peer, NULL, NULL);
     peer2.operation = GNUNET_TESTBED_peer_stop (peer2.peer, NULL, NULL);
     peer3.operation = GNUNET_TESTBED_peer_stop (peer3.peer, NULL, NULL);
+    break;
+  case CONTROLLERS_LATERALLY_LINKED:
+    GNUNET_TESTBED_operation_done (common_operation);
+    common_operation = NULL;
+    result = PEERS_2_3_CONNECTED;
+    delayed_connect_task =
+	GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (3),
+				      &do_delayed_connect, NULL);
     break;
   default:
     GNUNET_assert (0);
@@ -429,10 +450,10 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   case GNUNET_TESTBED_ET_OPERATION_FINISHED:
     GNUNET_assert (NULL == event->details.operation_finished.op_cls);
     GNUNET_assert (NULL == event->details.operation_finished.emsg);
-    GNUNET_assert (NULL == event->details.operation_finished.generic);
     switch (result)
-    {
+    {      
     case PEERS_STOPPED:
+      GNUNET_assert (NULL == event->details.operation_finished.generic);
       if (event->details.operation_finished.operation == peer1.operation)
       {
         GNUNET_TESTBED_operation_done (peer1.operation);
@@ -460,6 +481,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       }
       break;
     case PEER1_STARTED:
+      GNUNET_assert (NULL == event->details.operation_finished.generic);
       GNUNET_assert (NULL != common_operation);
       GNUNET_TESTBED_operation_done (common_operation);
       common_operation = NULL;
@@ -470,6 +492,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       GNUNET_assert (NULL != peer2.operation);
       break;
     case PEER2_STARTED:
+      GNUNET_assert (NULL == event->details.operation_finished.generic);
       GNUNET_assert (NULL != common_operation);
       GNUNET_TESTBED_operation_done (common_operation);
       common_operation = NULL;
@@ -478,6 +501,24 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
           GNUNET_TESTBED_peer_create (controller1, neighbour2, cfg,
                                       &peer_create_cb, NULL);
       GNUNET_assert (NULL != peer3.operation);
+      break;
+    case PEERS_1_2_CONNECTED:
+      GNUNET_assert (NULL != event->details.operation_finished.generic);
+      cfg2 = 
+	  GNUNET_CONFIGURATION_dup (event->details.operation_finished.generic);
+      GNUNET_TESTBED_operation_done (common_operation);
+      result = CONTROLLER_CFG_ACQUIRED;
+      common_operation =
+	  GNUNET_TESTBED_controller_link (controller1, neighbour2, neighbour1,
+					  cfg2, GNUNET_NO);
+      break;
+    case CONTROLLER_CFG_ACQUIRED:
+      GNUNET_assert (NULL == event->details.operation_finished.generic);
+      GNUNET_TESTBED_operation_done (common_operation);
+      result = CONTROLLERS_LATERALLY_LINKED;
+      common_operation =
+	  GNUNET_TESTBED_overlay_connect (NULL, &op_comp_cb, NULL, peer2.peer,
+					  peer3.peer);      
       break;
     default:
       GNUNET_assert (0);
@@ -552,16 +593,25 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     }
     break;
   case GNUNET_TESTBED_ET_CONNECT:
+    GNUNET_assert (NULL == peer1.operation);
+    GNUNET_assert (NULL == peer2.operation);
+    GNUNET_assert (NULL == peer3.operation);
     switch (result)
     {
     case PEER3_STARTED:
-    case PEERS_CONNECTED:
-      GNUNET_assert (NULL == peer1.operation);
-      GNUNET_assert (NULL == peer2.operation);
-      GNUNET_assert (NULL == peer3.operation);
       GNUNET_assert (NULL != common_operation);
-      /* GNUNET_assert ((event->details.peer_connect.peer1 == peer1.peer) && */
-      /*   	     (event->details.peer_connect.peer2 == peer2.peer)); */
+      GNUNET_assert ((event->details.peer_connect.peer1 == peer1.peer) &&
+        	     (event->details.peer_connect.peer2 == peer2.peer));
+      break;
+    case PEERS_2_3_CONNECTED:
+      GNUNET_assert (NULL != common_operation);
+      GNUNET_assert ((event->details.peer_connect.peer1 == peer1.peer) &&
+        	     (event->details.peer_connect.peer2 == peer2.peer));
+      break;
+    case CONTROLLERS_LATERALLY_LINKED:
+      GNUNET_assert (NULL != common_operation);
+      GNUNET_assert ((event->details.peer_connect.peer1 == peer2.peer) &&
+        	     (event->details.peer_connect.peer2 == peer3.peer));
       break;
     default:
       GNUNET_assert (0);
@@ -717,8 +767,6 @@ main (int argc, char **argv)
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
-
-  //GNUNET_OS_network_interfaces_list (&interface_processor, NULL);
 
   if (GNUNET_YES != check_ssh ("127.0.0.1"))
     goto error_exit;

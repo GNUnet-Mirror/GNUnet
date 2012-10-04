@@ -2422,6 +2422,7 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_client_keep (client);
     fopc->client = client;
     fopc->operation_id = operation_id;
+    LOG_DEBUG ("Forwarding overlay connect\n");
     fopc->opc = 
 	GNUNET_TESTBED_forward_operation_msg_ (peer->details.remote.controller,
 					       operation_id, message,
