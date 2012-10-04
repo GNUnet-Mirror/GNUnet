@@ -796,6 +796,11 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_ACK                    267
 
 /**
+ * Poll for an ACK.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_POLL                   268
+
+/**
  * Connect to the mesh service, specifying subscriptions
  */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT          272
