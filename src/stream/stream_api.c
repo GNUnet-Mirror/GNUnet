@@ -261,11 +261,6 @@ struct GNUNET_STREAM_Socket
   struct GNUNET_PeerIdentity other_peer;
 
   /**
-   * Task identifier for the read io timeout task
-   */
-  GNUNET_SCHEDULER_TaskIdentifier read_io_timeout_task_id;
-
-  /**
    * Task identifier for retransmission task after timeout
    */
   GNUNET_SCHEDULER_TaskIdentifier data_retransmission_task_id;
@@ -279,11 +274,6 @@ struct GNUNET_STREAM_Socket
    * The task for sending timely Acks
    */
   GNUNET_SCHEDULER_TaskIdentifier ack_task_id;
-
-  /**
-   * Task scheduled to continue a read operation.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier read_task_id;
 
   /**
    * The state of the protocol associated with this socket
@@ -512,6 +502,16 @@ struct GNUNET_STREAM_IOReadHandle
    * The closure pointer for the read processor callback
    */
   void *proc_cls;
+
+  /**
+   * Task identifier for the read io timeout task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier read_io_timeout_task_id;
+
+  /**
+   * Task scheduled to continue a read operation.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier read_task_id;
 };
 
 
@@ -921,22 +921,22 @@ call_read_processor (void *cls,
                      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_STREAM_Socket *socket = cls;
+  struct GNUNET_STREAM_IOReadHandle *read_handle;
   size_t read_size;
   size_t valid_read_size;
   unsigned int packet;
   uint32_t sequence_increase;
   uint32_t offset_increase;
 
-  socket->read_task_id = GNUNET_SCHEDULER_NO_TASK;
+  read_handle = socket->read_handle;
+  GNUNET_assert (NULL != read_handle);
+  read_handle->read_task_id = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-
   if (NULL == socket->receive_buffer) 
     return;
-
   GNUNET_assert (NULL != socket->read_handle);
   GNUNET_assert (NULL != socket->read_handle->proc);
-
   /* Check the bitmap for any holes */
   for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
   {
@@ -950,22 +950,19 @@ call_read_processor (void *cls,
     socket->receive_buffer_boundaries[packet-1] - socket->copy_offset;
   GNUNET_assert (0 != valid_read_size);
   /* Cancel the read_io_timeout_task */
-  GNUNET_SCHEDULER_cancel (socket->read_io_timeout_task_id);
-  socket->read_io_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_SCHEDULER_cancel (read_handle->read_io_timeout_task_id);
+  read_handle->read_io_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
   /* Call the data processor */
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "%s: Calling read processor\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s: Calling read processor\n",
        GNUNET_i2s (&socket->other_peer));
   read_size = 
-    socket->read_handle->proc (socket->read_handle->proc_cls,
-                               socket->status,
-                               socket->receive_buffer + socket->copy_offset,
-                               valid_read_size);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "%s: Read processor read %d bytes\n",
+      socket->read_handle->proc (socket->read_handle->proc_cls,
+				 socket->status,
+				 socket->receive_buffer + socket->copy_offset,
+				 valid_read_size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s: Read processor read %d bytes\n",
        GNUNET_i2s (&socket->other_peer), read_size);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "%s: Read processor completed successfully\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s: Read processor completed successfully\n",
        GNUNET_i2s (&socket->other_peer));
   /* Free the read handle */
   GNUNET_free (socket->read_handle);
@@ -980,14 +977,13 @@ call_read_processor (void *cls,
     if (socket->copy_offset < socket->receive_buffer_boundaries[packet])
       break;
   }
-
   /* If no packets can be removed we can't move the buffer */
-  if (0 == packet) return;
+  if (0 == packet) 
+    return;
   sequence_increase = packet;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "%s: Sequence increase after read processor completion: %u\n",
        GNUNET_i2s (&socket->other_peer), sequence_increase);
-
   /* Shift the data in the receive buffer */
   socket->receive_buffer = 
     memmove (socket->receive_buffer,
@@ -1040,24 +1036,26 @@ read_io_timeout (void *cls,
                  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_STREAM_Socket *socket = cls;
+  struct GNUNET_STREAM_IOReadHandle *read_handle;
   GNUNET_STREAM_DataProcessor proc;
   void *proc_cls;
 
-  socket->read_io_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
+  read_handle = socket->read_handle;
+  GNUNET_assert (NULL != read_handle);
+  read_handle->read_io_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
-  if (socket->read_task_id != GNUNET_SCHEDULER_NO_TASK)
+  if (read_handle->read_task_id != GNUNET_SCHEDULER_NO_TASK)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "%s: Read task timedout - Cancelling it\n",
          GNUNET_i2s (&socket->other_peer));
-    GNUNET_SCHEDULER_cancel (socket->read_task_id);
-    socket->read_task_id = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel (read_handle->read_task_id);
+    read_handle->read_task_id = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_assert (NULL != socket->read_handle);
-  proc = socket->read_handle->proc;
-  proc_cls = socket->read_handle->proc_cls;
-  GNUNET_free (socket->read_handle);
+  proc = read_handle->proc;
+  proc_cls = read_handle->proc_cls;
+  GNUNET_free (read_handle);
   socket->read_handle = NULL;
   /* Call the read processor to signal timeout */
   proc (proc_cls,
@@ -1220,15 +1218,15 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
     }
     if ((NULL != socket->read_handle) /* A read handle is waiting */
         /* There is no current read task */
-        && (GNUNET_SCHEDULER_NO_TASK == socket->read_task_id)
+        && (GNUNET_SCHEDULER_NO_TASK == socket->read_handle->read_task_id)
         /* We have the first packet */
         && (GNUNET_YES == ackbitmap_is_bit_set(&socket->ack_bitmap, 0)))
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "%s: Scheduling read processor\n", 
-	   GNUNET_i2s (&socket->other_peer));          
-      socket->read_task_id = GNUNET_SCHEDULER_add_now (&call_read_processor,
-						       socket);
-    }      
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "%s: Scheduling read processor\n",
+	   GNUNET_i2s (&socket->other_peer));
+      socket->read_handle->read_task_id =
+	  GNUNET_SCHEDULER_add_now (&call_read_processor, socket);
+    }
     break;
   default:
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -3093,14 +3091,7 @@ GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket)
     GNUNET_STREAM_io_write_cancel (socket->write_handle);
     //socket->write_handle = NULL;
   }
-  if (socket->read_task_id != GNUNET_SCHEDULER_NO_TASK)
-  {
-    /* socket closed with read task pending!? */
-    GNUNET_break (0);
-    GNUNET_SCHEDULER_cancel (socket->read_task_id);
-    socket->read_task_id = GNUNET_SCHEDULER_NO_TASK;
-  }  
-  /* Terminate the ack'ing tasks if they are still present */
+  /* Terminate the ack'ing task if they are still present */
   if (socket->ack_task_id != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (socket->ack_task_id);
@@ -3433,22 +3424,14 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
   read_handle->proc_cls = proc_cls;
   read_handle->socket = socket;
   socket->read_handle = read_handle;
-  /* Check if we have a packet at bitmap 0 */
   if (GNUNET_YES == ackbitmap_is_bit_set (&socket->ack_bitmap,
                                           0))
-  {
-    socket->read_task_id = GNUNET_SCHEDULER_add_now (&call_read_processor,
-                                                     socket);   
-  }
-  /* Setup the read timeout task */
-  socket->read_io_timeout_task_id =
-    GNUNET_SCHEDULER_add_delayed (timeout,
-                                  &read_io_timeout,
-                                  socket);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "%s: %s() END\n",
-       GNUNET_i2s (&socket->other_peer),
-       __func__);
+    read_handle->read_task_id = GNUNET_SCHEDULER_add_now (&call_read_processor,
+							  socket);   
+  read_handle->read_io_timeout_task_id =
+      GNUNET_SCHEDULER_add_delayed (timeout, &read_io_timeout, socket);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s: %s() END\n",
+       GNUNET_i2s (&socket->other_peer), __func__);
   return read_handle;
 }
 
@@ -3500,17 +3483,11 @@ GNUNET_STREAM_io_read_cancel (struct GNUNET_STREAM_IOReadHandle *ioh)
   /* Read io time task should be there; if it is already executed then this
   read handle is not valid; However upon scheduler shutdown the read io task
   may be executed before */
-  if (GNUNET_SCHEDULER_NO_TASK != socket->read_io_timeout_task_id)
-  {
-    GNUNET_SCHEDULER_cancel (socket->read_io_timeout_task_id);
-    socket->read_io_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
-  }
+  if (GNUNET_SCHEDULER_NO_TASK != ioh->read_io_timeout_task_id)
+    GNUNET_SCHEDULER_cancel (ioh->read_io_timeout_task_id);
   /* reading task may be present; if so we have to stop it */
-  if (GNUNET_SCHEDULER_NO_TASK != socket->read_task_id)
-  {
-    GNUNET_SCHEDULER_cancel (socket->read_task_id);
-    socket->read_task_id = GNUNET_SCHEDULER_NO_TASK;
-  }
+  if (GNUNET_SCHEDULER_NO_TASK != ioh->read_task_id)
+    GNUNET_SCHEDULER_cancel (ioh->read_task_id);
   GNUNET_free (ioh);
   socket->read_handle = NULL;
 }
