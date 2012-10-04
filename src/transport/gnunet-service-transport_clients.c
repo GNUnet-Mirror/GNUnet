@@ -33,6 +33,7 @@
 #include "gnunet-service-transport.h"
 #include "transport.h"
 
+
 /**
  * How many messages can we have pending for a given client process
  * before we start to drop incoming messages?  We typically should
@@ -972,19 +973,6 @@ GST_clients_stop ()
     GNUNET_SERVER_notification_context_destroy (nc);
     nc = NULL;
   }
-}
-
-/**
- * Tell clients how many bytes were used on the wire
- * Can differ from payload bytes depending on plugin
- *
- * @param n peer
- * @param send_phys bytes sent on the wire
- */
-void
-GST_clients_communicate_bytes_used (const struct GNUNET_PeerIdentity *n, ssize_t send_phys)
-{
-  //FIXME: To be implemented
 }
 
 /**
