@@ -876,6 +876,7 @@ server_parse_url (struct HTTP_Server_Plugin *plugin, const char * url, struct GN
   char * separator = NULL;
   char hash[plugin->peer_id_length+1];
   int hash_length;
+  unsigned long int ctag;
 
   /* URL parsing
    * URL is valid if it is in the form [prefix with (multiple) '/'][peerid[103];tag]*/
@@ -903,19 +904,26 @@ server_parse_url (struct HTTP_Server_Plugin *plugin, const char * url, struct GN
     if (debug) GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  (*tag) = strtoul (tag_start, &tag_end, 10);
-  if ((*tag) == 0)
+  ctag = strtoul (tag_start, &tag_end, 10);
+  if (ctag == 0)
   {
     /* tag == 0 , invalid */
     if (debug) GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  if (((*tag) == ULONG_MAX) && (ERANGE == errno))
+  if ((ctag == ULONG_MAX) && (ERANGE == errno))
   {
     /* out of range: > ULONG_MAX */
     if (debug) GNUNET_break (0);
     return GNUNET_SYSERR;
   }
+  if (ctag > UINT32_MAX)
+  {
+    /* out of range: > UINT32_MAX */
+    if (debug) GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  (*tag) = (uint32_t) ctag;
   if (NULL == tag_end)
   {
       /* no char after tag */

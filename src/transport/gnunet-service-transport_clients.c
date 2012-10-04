@@ -974,6 +974,18 @@ GST_clients_stop ()
   }
 }
 
+/**
+ * Tell clients how many bytes were used on the wire
+ * Can differ from payload bytes depending on plugin
+ *
+ * @param n peer
+ * @param send_phys bytes sent on the wire
+ */
+void
+GST_clients_communicate_bytes_used (const struct GNUNET_PeerIdentity *n, ssize_t send_phys)
+{
+  //FIXME: To be implemented
+}
 
 /**
  * Broadcast the given message to all of our clients.
