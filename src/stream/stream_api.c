@@ -2766,9 +2766,7 @@ tunnel_cleaner (void *cls,
 {
   struct GNUNET_STREAM_Socket *socket = tunnel_ctx;
 
-  if (tunnel != socket->tunnel)
-    return;
-
+  GNUNET_assert (tunnel == socket->tunnel);
   GNUNET_break_op(0);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "%s: Peer %s has terminated connection abruptly\n",
@@ -3376,9 +3374,11 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
  * @param proc function to call with data (once only)
  * @param proc_cls the closure for proc
  *
- * @return handle to cancel the operation; if the stream has been shutdown for
- *           this type of opeartion then the DataProcessor is immediately
- *           called with GNUNET_STREAM_SHUTDOWN as status and NULL if returned
+ * @return handle to cancel the operation; NULL is returned if: the stream has
+ *           been shutdown for this type of opeartion (the DataProcessor is
+ *           immediately called with GNUNET_STREAM_SHUTDOWN as status) OR another
+ *           read handle is present (only one read handle per socket is present
+ *           at any time)
  */
 struct GNUNET_STREAM_IOReadHandle *
 GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
