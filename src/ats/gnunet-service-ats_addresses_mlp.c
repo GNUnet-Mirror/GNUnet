@@ -824,7 +824,7 @@ lp_solv:
   end = GNUNET_TIME_absolute_get ();
   duration = GNUNET_TIME_absolute_get_difference (start, end);
   mlp->lp_solved++;
-  mlp->lp_total_duration =+ duration.rel_value;
+  mlp->lp_total_duration += duration.rel_value;
   s_ctx->lp_duration = duration;
 
   GNUNET_STATISTICS_update (mlp->stats,"# LP problem solved", 1, GNUNET_NO);
@@ -901,7 +901,7 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp, struct GAS_MLP_SolutionContex
   end = GNUNET_TIME_absolute_get ();
   duration = GNUNET_TIME_absolute_get_difference (start, end);
   mlp->mlp_solved++;
-  mlp->mlp_total_duration =+ duration.rel_value;
+  mlp->mlp_total_duration += duration.rel_value;
   s_ctx->mlp_duration = duration;
 
   GNUNET_STATISTICS_update (mlp->stats,"# MLP problem solved", 1, GNUNET_NO);
@@ -1725,8 +1725,8 @@ GAS_mlp_address_change_preference (struct GAS_MLP_Handle *mlp,
 {
   GNUNET_STATISTICS_update (mlp->stats,"# LP address preference changes", 1, GNUNET_NO);
 
-  struct ATS_Peer *p = mlp_find_peer (mlp, peer);
-  p = p;
+  //struct ATS_Peer *p = mlp_find_peer (mlp, peer);
+  //FIXME to finish implementation
   /* Here we have to do the matching */
 }
 
