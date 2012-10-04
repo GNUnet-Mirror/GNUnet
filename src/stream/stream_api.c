@@ -306,12 +306,6 @@ struct GNUNET_STREAM_Socket
   uint32_t testing_set_write_sequence_number_value;
 
   /**
-   * The session id associated with this stream connection
-   * FIXME: Not used currently, may be removed
-   */
-  uint32_t session_id;
-
-  /**
    * Write sequence number. Set to random when sending HELLO(client) and
    * HELLO_ACK(server) 
    */
@@ -2737,7 +2731,6 @@ new_tunnel_notify (void *cls,
   socket = GNUNET_malloc (sizeof (struct GNUNET_STREAM_Socket));
   socket->other_peer = *initiator;
   socket->tunnel = tunnel;
-  socket->session_id = 0;       /* FIXME */
   socket->state = STATE_INIT;
   socket->lsocket = lsocket;
   socket->retransmit_timeout = lsocket->retransmit_timeout;
