@@ -40,6 +40,7 @@
 #include "transport.h"
 
 
+
 /**
  * Size of the neighbour hash map.
  */
@@ -945,20 +946,17 @@ send_with_session (struct NeighbourMapEntry *n,
 		   void *cont_cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
-  ssize_t send_phys;
 
   GNUNET_assert (n->primary_address.session != NULL);
-  if ( ( (NULL == (papi = GST_plugins_find (n->primary_address.address->transport_name))) ||
-	 (-1 ==  (send_phys = papi->send (papi->cls,
+  if ( ((NULL == (papi = GST_plugins_find (n->primary_address.address->transport_name)) ||
+	 (-1 == papi->send (papi->cls,
 			    n->primary_address.session,
 			    msgbuf, msgbuf_size,
 			    priority,
 			    timeout,
 			    cont, cont_cls)))) &&
-       (NULL != cont) )
+       (NULL != cont))
     cont (cont_cls, &n->id, GNUNET_SYSERR);
-  if (-1 != send_phys)
-    GST_clients_communicate_bytes_used (&n->id, send_phys);
   GNUNET_break (NULL != papi);
 }
 
@@ -1522,8 +1520,7 @@ send_session_connect (struct NeighbourAddress *na)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct SessionConnectMessage connect_msg;
-  ssize_t send_phys;
-  
+
   if (NULL == (papi = GST_plugins_find (na->address->transport_name)))  
   {
     GNUNET_break (0);
@@ -1541,14 +1538,13 @@ send_session_connect (struct NeighbourAddress *na)
   connect_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT);
   connect_msg.reserved = htonl (0);
   connect_msg.timestamp = GNUNET_TIME_absolute_hton (na->connect_timestamp);
-  send_phys = papi->send (papi->cls,
+  (void) papi->send (papi->cls,
 		     na->session,
 		     (const char *) &connect_msg, sizeof (struct SessionConnectMessage),
 		     UINT_MAX,
 		     GNUNET_TIME_UNIT_FOREVER_REL,
 		     NULL, NULL);
-  if (-1 != send_phys)
-    GST_clients_communicate_bytes_used (&na->address->peer, send_phys);
+
 }
 
 
@@ -1566,8 +1562,7 @@ send_session_connect_ack_message (const struct GNUNET_HELLO_Address *address,
 {
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct SessionConnectMessage connect_msg;
-  ssize_t send_phys;
-  
+
   if (NULL == (papi = GST_plugins_find (address->transport_name)))  
   {
     GNUNET_break (0);
@@ -1584,14 +1579,13 @@ send_session_connect_ack_message (const struct GNUNET_HELLO_Address *address,
   connect_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT_ACK);
   connect_msg.reserved = htonl (0);
   connect_msg.timestamp = GNUNET_TIME_absolute_hton (timestamp);
-  send_phys = papi->send (papi->cls,
+  (void) papi->send (papi->cls,
 		     session,
 		     (const char *) &connect_msg, sizeof (struct SessionConnectMessage),
 		     UINT_MAX,
 		     GNUNET_TIME_UNIT_FOREVER_REL,
 		     NULL, NULL);
-  if (-1 != send_phys)
-    GST_clients_communicate_bytes_used (&address->peer, send_phys);
+
 }
 
 
