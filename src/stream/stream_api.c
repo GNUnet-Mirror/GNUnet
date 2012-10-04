@@ -2742,7 +2742,6 @@ new_tunnel_notify (void *cls,
        "%s: Peer %s initiated tunnel to us\n", 
        GNUNET_i2s (&socket->other_peer),
        GNUNET_i2s (&socket->other_peer));
-  /* FIXME: Copy MESH handle from lsocket to socket */
   return socket;
 }
 
