@@ -75,6 +75,59 @@
 
 
 /**
+ * Handle for controller process
+ */
+struct GNUNET_TESTBED_ControllerProc
+{
+  /**
+   * The process handle
+   */
+  struct GNUNET_HELPER_Handle *helper;
+
+  /**
+   * The host where the helper is run
+   */
+  struct GNUNET_TESTBED_Host *host;
+
+  /**
+   * The controller error callback
+   */
+  GNUNET_TESTBED_ControllerStatusCallback cb;
+
+  /**
+   * The closure for the above callback
+   */
+  void *cls;
+
+  /**
+   * The send handle for the helper
+   */
+  struct GNUNET_HELPER_SendHandle *shandle;
+
+  /**
+   * The message corresponding to send handle
+   */
+  struct GNUNET_MessageHeader *msg;
+
+  /**
+   * The port number for ssh; used for helpers starting ssh
+   */
+  char *port;
+
+  /**
+   * The ssh destination string; used for helpers starting ssh
+   */
+  char *dst;
+
+  /**
+   * The configuration of the running testbed service
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+
+};
+
+
+/**
  * The message queue for sending messages to the controller service
  */
 struct MessageQueue
@@ -195,6 +248,24 @@ struct GetSlaveConfigData
    * The id of the slave controller
    */
   uint32_t slave_id;
+
+};
+
+
+/**
+ * Context data for controller link operations
+ */
+struct ControllerLinkData
+{
+  /**
+   * The controller link message
+   */
+  struct GNUNET_TESTBED_ControllerLinkMessage *msg;
+
+  /**
+   * The operation closure
+   */
+  void *op_cls;
 
 };
 
@@ -324,6 +395,11 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
     LOG_DEBUG ("Operation not found\n");
     return GNUNET_YES;
   }
+  event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
+  event.details.operation_finished.operation = opc->op;
+  event.details.operation_finished.op_cls = NULL;
+  event.details.operation_finished.emsg = NULL;
+  event.details.operation_finished.generic = NULL;
   switch (opc->type)
   {
   case OP_FORWARDED:
@@ -344,15 +420,19 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
     }
     break;
   case OP_LINK_CONTROLLERS:
+    {
+      struct ControllerLinkData *data;
+      
+      data = opc->data;
+      GNUNET_assert (NULL != data);      
+      event.details.operation_finished.op_cls = data->op_cls;
+      GNUNET_free (data);
+      opc->data = NULL;
+    }
     break;
   default:
     GNUNET_assert (0);
-  }
-  event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
-  event.details.operation_finished.operation = opc->op;
-  event.details.operation_finished.op_cls = NULL;
-  event.details.operation_finished.emsg = NULL;
-  event.details.operation_finished.generic = NULL;
+  }  
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
   if (0 != (c->event_mask & (1L << GNUNET_TESTBED_ET_OPERATION_FINISHED)))
@@ -1032,59 +1112,6 @@ GNUNET_TESTBED_forward_operation_msg_cancel_ (struct OperationContext *opc)
 
 
 /**
- * Handle for controller process
- */
-struct GNUNET_TESTBED_ControllerProc
-{
-  /**
-   * The process handle
-   */
-  struct GNUNET_HELPER_Handle *helper;
-
-  /**
-   * The host where the helper is run
-   */
-  struct GNUNET_TESTBED_Host *host;
-
-  /**
-   * The controller error callback
-   */
-  GNUNET_TESTBED_ControllerStatusCallback cb;
-
-  /**
-   * The closure for the above callback
-   */
-  void *cls;
-
-  /**
-   * The send handle for the helper
-   */
-  struct GNUNET_HELPER_SendHandle *shandle;
-
-  /**
-   * The message corresponding to send handle
-   */
-  struct GNUNET_MessageHeader *msg;
-
-  /**
-   * The port number for ssh; used for helpers starting ssh
-   */
-  char *port;
-
-  /**
-   * The ssh destination string; used for helpers starting ssh
-   */
-  char *dst;
-
-  /**
-   * The configuration of the running testbed service
-   */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-
-};
-
-
-/**
  * Functions with this signature are called whenever a
  * complete message is received by the tokenizer.
  *
@@ -1186,11 +1213,13 @@ static void
 opstart_link_controllers (void *cls)
 {
   struct OperationContext *opc = cls;
+  struct ControllerLinkData *data;
   struct GNUNET_TESTBED_ControllerLinkMessage *msg;
 
   GNUNET_assert (NULL != opc->data);
-  msg = opc->data;
-  opc->data = NULL;
+  data = opc->data;
+  msg = data->msg;
+  data->msg = NULL;
   opc->state = OPC_STATE_STARTED;
   GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
   GNUNET_TESTBED_queue_message_ (opc->c, &msg->header);
@@ -1206,11 +1235,21 @@ static void
 oprelease_link_controllers (void *cls)
 {
   struct OperationContext *opc = cls;
+  struct ControllerLinkData *data;
 
-  if (OPC_STATE_INIT == opc->state)
-    GNUNET_free (opc->data);
-  if (OPC_STATE_STARTED == opc->state)
+  data = opc->data;
+  switch (opc->state)
+  {
+  case OPC_STATE_INIT:
+    GNUNET_free (data->msg);
+    break;
+  case OPC_STATE_STARTED:
     GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+    break;
+  case OPC_STATE_FINISHED:
+    break;
+  }
+  GNUNET_free_non_null (data);
   GNUNET_free (opc);
 }
 
@@ -1660,19 +1699,24 @@ GNUNET_TESTBED_cancel_registration (struct GNUNET_TESTBED_HostRegistrationHandle
  * Same as the GNUNET_TESTBED_controller_link, however expects configuration in
  * serialized and compressed
  *
+ * @param op_cls the operation closure for the event which is generated to
+ *          signal success or failure of this operation
  * @param master handle to the master controller who creates the association
  * @param delegated_host requests to which host should be delegated; cannot be NULL
  * @param slave_host which host is used to run the slave controller; use NULL to
  *          make the master controller connect to the delegated host
  * @param sxcfg serialized and compressed configuration
- * @param sxcfg_size the size scfg
+ * @param sxcfg_size the size sxcfg
  * @param scfg_size the size of uncompressed serialized configuration
  * @param is_subordinate GNUNET_YES if the controller at delegated_host should
- *          be started by the master controller; GNUNET_NO if we are just
- *          allowed to use the slave via TCP/IP
+ *          be started by the slave controller; GNUNET_NO if the slave
+ *          controller has to connect to the already started delegated
+ *          controller via TCP/IP
+ * @return the operation handle
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
+GNUNET_TESTBED_controller_link_2 (void *op_cls,
+				  struct GNUNET_TESTBED_Controller *master,
                                   struct GNUNET_TESTBED_Host *delegated_host,
                                   struct GNUNET_TESTBED_Host *slave_host,
                                   const char *sxcfg, size_t sxcfg_size,
@@ -1680,6 +1724,7 @@ GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
 {
   struct OperationContext *opc;
   struct GNUNET_TESTBED_ControllerLinkMessage *msg;
+  struct ControllerLinkData *data;
   uint16_t msg_size;
 
   GNUNET_assert (GNUNET_YES ==
@@ -1698,9 +1743,12 @@ GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
   msg->config_size = htons ((uint16_t) scfg_size);
   msg->is_subordinate = (GNUNET_YES == is_subordinate) ? 1 : 0;
   memcpy (&msg[1], sxcfg, sxcfg_size);
+  data = GNUNET_malloc (sizeof (struct ControllerLinkData));
+  data->msg = msg;
+  data->op_cls = op_cls;
   opc = GNUNET_malloc (sizeof (struct OperationContext));
   opc->c = master;
-  opc->data = msg;
+  opc->data = data;
   opc->type = OP_LINK_CONTROLLERS;
   opc->id = master->operation_counter++;
   opc->state = OPC_STATE_INIT;
@@ -1744,24 +1792,33 @@ GNUNET_TESTBED_compress_config_ (const char *config, size_t size,
  * master controller is asked to start a peer at the delegated controller the
  * request will be routed towards slave controller (if a route exists). The
  * slave controller will then route it to the delegated controller. The
- * configuration of the slave controller is given and to be used to either
- * create the slave controller or to connect to an existing slave controller
- * process.  'is_subordinate' specifies if the given slave controller should be
- * started and managed by the master controller, or if the slave already has a
- * master and this is just a secondary master that is also allowed to use the
- * existing slave.
+ * configuration of the delegated controller is given and is used to either
+ * create the delegated controller or to connect to an existing controller. Note
+ * that while starting the delegated controller the configuration will be
+ * modified to accommodate available free ports.  the 'is_subordinate' specifies
+ * if the given delegated controller should be started and managed by the slave
+ * controller, or if the delegated controller already has a master and the slave
+ * controller connects to it as a non master controller. The success or failure
+ * of this operation will be signalled through the
+ * GNUNET_TESTBED_ControllerCallback() with an event of type
+ * GNUNET_TESTBED_ET_OPERATION_FINISHED
  *
+ * @param op_cls the operation closure for the event which is generated to
+ *          signal success or failure of this operation
  * @param master handle to the master controller who creates the association
- * @param delegated_host requests to which host should be delegated
- * @param slave_host which host is used to run the slave controller
+ * @param delegated_host requests to which host should be delegated; cannot be NULL
+ * @param slave_host which host is used to run the slave controller; use NULL to
+ *          make the master controller connect to the delegated host
  * @param slave_cfg configuration to use for the slave controller
- * @param is_subordinate GNUNET_YES if the slave should be started (and stopped)
- *                       by the master controller; GNUNET_NO if we are just
- *                       allowed to use the slave via TCP/IP
+ * @param is_subordinate GNUNET_YES if the controller at delegated_host should
+ *          be started by the slave controller; GNUNET_NO if the slave
+ *          controller has to connect to the already started delegated
+ *          controller via TCP/IP
  * @return the operation handle
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
+GNUNET_TESTBED_controller_link (void *op_cls,
+				struct GNUNET_TESTBED_Controller *master,
                                 struct GNUNET_TESTBED_Host *delegated_host,
                                 struct GNUNET_TESTBED_Host *slave_host,
                                 const struct GNUNET_CONFIGURATION_Handle
@@ -1784,9 +1841,9 @@ GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
   /* Configuration doesn't fit in 1 message */
   GNUNET_assert ((UINT16_MAX - 
 		  sizeof (struct GNUNET_TESTBED_ControllerLinkMessage)) >= cc_size);
-  op = GNUNET_TESTBED_controller_link_2 (master, delegated_host, slave_host,
-                                         (const char *) cconfig, cc_size,
-                                         config_size, is_subordinate);
+  op = GNUNET_TESTBED_controller_link_2 (op_cls, master, delegated_host,
+					 slave_host, (const char *) cconfig,
+					 cc_size, config_size, is_subordinate);
   GNUNET_free (cconfig);
   return op;
 }

@@ -509,7 +509,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       GNUNET_TESTBED_operation_done (common_operation);
       result = CONTROLLER_CFG_ACQUIRED;
       common_operation =
-	  GNUNET_TESTBED_controller_link (controller1, neighbour2, neighbour1,
+	  GNUNET_TESTBED_controller_link (NULL, controller1, neighbour2, neighbour1,
 					  cfg2, GNUNET_NO);
       break;
     case CONTROLLER_CFG_ACQUIRED:
@@ -534,7 +534,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       peer1.operation = NULL;
       result = PEER1_STARTED;
       common_operation =
-          GNUNET_TESTBED_controller_link (controller1, neighbour1, NULL, cfg,
+          GNUNET_TESTBED_controller_link (NULL, controller1, neighbour1, NULL, cfg,
                                           GNUNET_YES); 
       break;
     case PEER2_CREATED:
@@ -545,7 +545,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       result = PEER2_STARTED;
       GNUNET_assert (NULL == common_operation);              
       common_operation =
-          GNUNET_TESTBED_controller_link (controller1, neighbour2, NULL, cfg,
+          GNUNET_TESTBED_controller_link (NULL, controller1, neighbour2, NULL, cfg,
                                           GNUNET_YES);
       GNUNET_assert (NULL != common_operation);
       break;

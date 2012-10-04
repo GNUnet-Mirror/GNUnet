@@ -543,28 +543,37 @@ typedef void (*GNUNET_TESTBED_OperationCompletionCallback) (void *cls,
  * master controller is asked to start a peer at the delegated controller the
  * request will be routed towards slave controller (if a route exists). The
  * slave controller will then route it to the delegated controller. The
- * configuration of the slave controller is given and to be used to either
- * create the slave controller or to connect to an existing slave controller
- * process.  'is_subordinate' specifies if the given slave controller should be
- * started and managed by the master controller, or if the slave already has a
- * master and this is just a secondary master that is also allowed to use the
- * existing slave.
+ * configuration of the delegated controller is given and is used to either
+ * create the delegated controller or to connect to an existing controller. Note
+ * that while starting the delegated controller the configuration will be
+ * modified to accommodate available free ports.  the 'is_subordinate' specifies
+ * if the given delegated controller should be started and managed by the slave
+ * controller, or if the delegated controller already has a master and the slave
+ * controller connects to it as a non master controller. The success or failure
+ * of this operation will be signalled through the
+ * GNUNET_TESTBED_ControllerCallback() with an event of type
+ * GNUNET_TESTBED_ET_OPERATION_FINISHED
  *
+ * @param op_cls the operation closure for the event which is generated to
+ *          signal success or failure of this operation
  * @param master handle to the master controller who creates the association
  * @param delegated_host requests to which host should be delegated; cannot be NULL
  * @param slave_host which host is used to run the slave controller; use NULL to
  *          make the master controller connect to the delegated host
  * @param slave_cfg configuration to use for the slave controller
  * @param is_subordinate GNUNET_YES if the controller at delegated_host should
- *          be started by the master controller; GNUNET_NO if we are just
- *          allowed to use the slave via TCP/IP
+ *          be started by the slave controller; GNUNET_NO if the slave
+ *          controller has to connect to the already started delegated
+ *          controller via TCP/IP
  * @return the operation handle
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
+GNUNET_TESTBED_controller_link (void *op_cls,
+				struct GNUNET_TESTBED_Controller *master,
 				struct GNUNET_TESTBED_Host *delegated_host,
 				struct GNUNET_TESTBED_Host *slave_host,
-				const struct GNUNET_CONFIGURATION_Handle *slave_cfg,
+				const struct GNUNET_CONFIGURATION_Handle
+				*slave_cfg,
 				int is_subordinate);
 
 
@@ -572,6 +581,8 @@ GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
  * Same as the GNUNET_TESTBED_controller_link, however expects configuration in
  * serialized and compressed
  *
+ * @param op_cls the operation closure for the event which is generated to
+ *          signal success or failure of this operation
  * @param master handle to the master controller who creates the association
  * @param delegated_host requests to which host should be delegated; cannot be NULL
  * @param slave_host which host is used to run the slave controller; use NULL to
@@ -580,12 +591,14 @@ GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
  * @param sxcfg_size the size sxcfg
  * @param scfg_size the size of uncompressed serialized configuration
  * @param is_subordinate GNUNET_YES if the controller at delegated_host should
- *          be started by the master controller; GNUNET_NO if we are just
- *          allowed to use the slave via TCP/IP
+ *          be started by the slave controller; GNUNET_NO if the slave
+ *          controller has to connect to the already started delegated
+ *          controller via TCP/IP
  * @return the operation handle
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
+GNUNET_TESTBED_controller_link_2 (void *op_cls,
+				  struct GNUNET_TESTBED_Controller *master,
 				  struct GNUNET_TESTBED_Host *delegated_host,
 				  struct GNUNET_TESTBED_Host *slave_host,
 				  const char *sxcfg,

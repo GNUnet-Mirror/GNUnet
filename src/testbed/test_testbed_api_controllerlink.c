@@ -400,7 +400,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     result = SLAVE1_LINK_SUCCESS;
     GNUNET_assert (NULL != slave2);
     GNUNET_assert (NULL != slave);
-    op = GNUNET_TESTBED_controller_link (mc, slave2, slave, cfg, GNUNET_YES);
+    op = GNUNET_TESTBED_controller_link (NULL, mc, slave2, slave, cfg, GNUNET_YES);
     GNUNET_assert (NULL != op);
     break;
   case SLAVE1_LINK_SUCCESS:
@@ -479,7 +479,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     cfg3 = GNUNET_CONFIGURATION_dup (event->details.operation_finished.generic);
     GNUNET_TESTBED_operation_done (op);
     result = SLAVE3_GET_CONFIG_SUCCESS;
-    op = GNUNET_TESTBED_controller_link (mc, slave3, slave, cfg3, GNUNET_NO);
+    op = GNUNET_TESTBED_controller_link (NULL, mc, slave3, slave, cfg3, GNUNET_NO);
     break;
   case SLAVE3_GET_CONFIG_SUCCESS:
     result = SLAVE3_LINK_SUCCESS;
@@ -520,7 +520,7 @@ registration_cont (void *cls, const char *emsg)
     GNUNET_assert (NULL != mc);
     result = SLAVE2_REGISTERED;
     GNUNET_assert (NULL != cfg);
-    op = GNUNET_TESTBED_controller_link (mc, slave, NULL, cfg, GNUNET_YES);
+    op = GNUNET_TESTBED_controller_link (NULL, mc, slave, NULL, cfg, GNUNET_YES);
     GNUNET_assert (NULL != op);
     break;
   case SLAVE2_PEER_DESTROY_SUCCESS:
@@ -528,7 +528,7 @@ registration_cont (void *cls, const char *emsg)
     GNUNET_assert (NULL != mc);
     GNUNET_assert (NULL == op);
     result = SLAVE3_REGISTERED;
-    op = GNUNET_TESTBED_controller_link (mc, slave3, NULL, cfg, GNUNET_YES);
+    op = GNUNET_TESTBED_controller_link (NULL, mc, slave3, NULL, cfg, GNUNET_YES);
     GNUNET_assert (NULL != op);
     break;
   default:
