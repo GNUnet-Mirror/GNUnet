@@ -374,6 +374,11 @@ struct MeshTunnel
    unsigned int bck_queue_max;
 
     /**
+     * Task to poll peer in case of a stall.
+     */
+   GNUNET_SCHEDULER_TaskIdentifier fc_poll_bck;
+
+    /**
      * Last time the tunnel was used
      */
   struct GNUNET_TIME_Absolute timestamp;
@@ -527,6 +532,16 @@ struct MeshTunnelChildInfo
      * How many elements are already in the buffer.
      */
   unsigned int send_buffer_n;
+
+    /**
+     * Tunnel this info is about
+     */
+  struct MeshTunnel *t;
+
+    /**
+     * Task to poll peer in case of a stall.
+     */
+   GNUNET_SCHEDULER_TaskIdentifier fc_poll;
 };
 
 
@@ -953,8 +968,6 @@ unsigned int next_client_id;
 /******************************************************************************/
 /***********************         DECLARATIONS        **************************/
 /******************************************************************************/
-
-/* FIXME move declarations here */
 
 /**
  * Function to process paths received for a new peer addition. The recorded
@@ -2856,6 +2869,41 @@ peer_info_add_path_to_origin (struct MeshPeerInfo *peer_info,
 
 
 /**
+ * Function called if the connection to the peer has been stalled for a while,
+ * possibly due to a missed ACK. Poll the peer about its ACK status.
+ *
+ * @param cls Closure (info about regex search).
+ * @param tc TaskContext.
+ */
+static void
+tunnel_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct MeshTunnelChildInfo *cinfo = cls;
+  struct GNUNET_MESH_Poll msg;
+  struct GNUNET_PeerIdentity id;
+  struct MeshTunnel *t;
+
+  cinfo->fc_poll = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+  {
+    return;
+  }
+
+  t = cinfo->t;
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_POLL);
+  msg.header.size = htons (sizeof (msg));
+  msg.tid = htonl (t->id.tid);
+  GNUNET_PEER_resolve (t->id.oid, &msg.oid);
+  msg.last_ack = htonl (cinfo->fwd_ack);
+
+  GNUNET_PEER_resolve (tree_get_predecessor(cinfo->t->tree), &id);
+  send_prebuilt_message (&msg.header, &id, cinfo->t);
+  cinfo->fc_poll = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
+                                                    &tunnel_poll, cinfo);
+}
+
+
+/**
  * Build a PeerPath from the paths returned from the DHT, reversing the paths
  * to obtain a local peer -> destination path and interning the peer ids.
  *
@@ -3493,7 +3541,7 @@ tunnel_add_skip (void *cls,
  * @return Neighbor's Flow Control info.
  */
 static struct MeshTunnelChildInfo *
-tunnel_get_neighbor_fc (const struct MeshTunnel *t,
+tunnel_get_neighbor_fc (struct MeshTunnel *t,
                         const struct GNUNET_PeerIdentity *peer)
 {
   struct MeshTunnelChildInfo *cinfo;
@@ -3510,6 +3558,7 @@ tunnel_get_neighbor_fc (const struct MeshTunnel *t,
     cinfo = GNUNET_malloc (sizeof (struct MeshTunnelChildInfo));
     cinfo->id = GNUNET_PEER_intern (peer);
     cinfo->skip = t->fwd_pid;
+    cinfo->t = t;
 
     delta = t->nobuffer ? 1 : INITIAL_WINDOW_SIZE;
     cinfo->fwd_ack = t->fwd_pid + delta;
@@ -3923,7 +3972,7 @@ tunnel_send_child_bck_ack (void *cls,
       GNUNET_NO == GMC_is_pid_bigger (cinfo->bck_ack, cinfo->pid))
     return;
 
-  cinfo->bck_ack++;
+  cinfo->bck_ack++; // FIXME window size?
   send_ack (t, &peer, cinfo->bck_ack);
 }
 
@@ -4004,6 +4053,7 @@ tunnel_send_bck_ack (struct MeshTunnel *t, uint16_t type)
       break;
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
+    case GNUNET_MESSAGE_TYPE_MESH_POLL:
       break;
     default:
       GNUNET_break (0);
@@ -4776,6 +4826,7 @@ queue_send (void *cls, size_t size, void *buf)
     size_t data_size;
 
     peer->core_transmit = NULL;
+    cinfo = NULL;
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "********* Queue send\n");
     queue = queue_get_next (peer);
@@ -4951,9 +5002,15 @@ queue_send (void *cls, size_t size, void *buf)
     else
     {
       if (NULL != peer->queue_head)
+      {
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                     "*********   %s stalled\n",
                     GNUNET_i2s(&my_full_id));
+        if (NULL == cinfo)
+          cinfo = tunnel_get_neighbor_fc (t, &dst_id);
+        cinfo->fc_poll = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
+                                                     &tunnel_poll, cinfo);
+      }
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   return %d\n", data_size);
     return data_size;
@@ -5776,6 +5833,62 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
+ * Core handler for mesh network traffic point-to-point ack polls.
+ *
+ * @param cls closure
+ * @param message message
+ * @param peer peer identity this notification is about
+ * @param atsi performance data
+ * @param atsi_count number of records in 'atsi'
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+handle_mesh_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
+                  const struct GNUNET_MessageHeader *message,
+                  const struct GNUNET_ATS_Information *atsi,
+                  unsigned int atsi_count)
+{
+  struct GNUNET_MESH_Poll *msg;
+  struct MeshTunnel *t;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got an POLL packet from %s!\n",
+              GNUNET_i2s (peer));
+
+  msg = (struct GNUNET_MESH_Poll *) message;
+
+  t = tunnel_get (&msg->oid, ntohl (msg->tid));
+
+  if (NULL == t)
+  {
+    /* TODO notify that we dont know this tunnel (whom)? */
+    GNUNET_STATISTICS_update (stats, "# poll on unknown tunnel", 1, GNUNET_NO);
+    GNUNET_break_op (0);
+    return GNUNET_OK;
+  }
+
+  /* Is this a forward or backward ACK? */
+  if (tree_get_predecessor(t->tree) != GNUNET_PEER_search(peer))
+  {
+    struct MeshTunnelChildInfo *cinfo;
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  from FWD\n");
+    cinfo = tunnel_get_neighbor_fc (t, peer);
+    cinfo->bck_ack = cinfo->pid; // mark as ready to send
+    tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_POLL);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  from BCK\n");
+    tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_POLL);
+  }
+
+  return GNUNET_OK;
+}
+
+
+/**
  * Core handler for path ACKs
  *
  * @param cls closure
@@ -5939,6 +6052,8 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
   {&handle_mesh_data_to_orig, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN, 0},
   {&handle_mesh_ack, GNUNET_MESSAGE_TYPE_MESH_ACK,
     sizeof (struct GNUNET_MESH_ACK)},
+  {&handle_mesh_poll, GNUNET_MESSAGE_TYPE_MESH_POLL,
+    sizeof (struct GNUNET_MESH_Poll)},
   {&handle_mesh_path_ack, GNUNET_MESSAGE_TYPE_MESH_PATH_ACK,
    sizeof (struct GNUNET_MESH_PathACK)},
   {NULL, 0, 0}
