@@ -4940,7 +4940,7 @@ queue_send (void *cls, size_t size, void *buf)
         break;
       default:
         GNUNET_break (0);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                     "*********   type unknown: %u\n",
                     queue->type);
         data_size = 0;
