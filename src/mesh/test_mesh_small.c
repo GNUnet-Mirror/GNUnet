@@ -75,6 +75,11 @@ struct MeshPeer
 static int test;
 
 /**
+ * String with test name
+ */
+char *test_name;
+
+/**
  * Flag to send traffic leaf->root in speed tests to test BCK_ACK logic.
  */
 static int test_backwards = GNUNET_NO;
@@ -232,9 +237,27 @@ static GNUNET_PEER_Id pid1;
 
 static struct GNUNET_TIME_Absolute start_time;
 
-static struct GNUNET_TIME_Absolute end_time;
 
-static struct GNUNET_TIME_Relative total_time;
+
+static void
+show_end_data (void)
+{
+  static struct GNUNET_TIME_Absolute end_time;
+  static struct GNUNET_TIME_Relative total_time;
+
+  end_time = GNUNET_TIME_absolute_get();
+  total_time = GNUNET_TIME_absolute_get_difference(start_time, end_time);
+  FPRINTF (stderr, "\nResults of test \"%s\"\n", test_name);
+  FPRINTF (stderr, "Test time %llu ms\n",
+            (unsigned long long) total_time.rel_value);
+  FPRINTF (stderr, "Test bandwidth: %f kb/s\n",
+            4 * TOTAL_PACKETS * 1.0 / total_time.rel_value); // 4bytes * ms
+  FPRINTF (stderr, "Test throughput: %f packets/s\n\n",
+            TOTAL_PACKETS * 1000.0 / total_time.rel_value); // packets * ms
+  GAUGER ("MESH", test_name,
+          TOTAL_PACKETS * 1000.0 / total_time.rel_value,
+          "packets/s");
+}
 
 
 /**
@@ -441,73 +464,49 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
                const struct GNUNET_ATS_Information *atsi)
 {
   long client = (long) cls;
-  long expected_client;
-  struct GNUNET_MESH_Tunnel *tunnel_to_use;
-  struct GNUNET_PeerIdentity *dest_to_use;
+  long expected_target_client;
+//   struct GNUNET_MESH_Tunnel *tunnel_to_use;
+//   struct GNUNET_PeerIdentity *dest_to_use;
 
-  if (GNUNET_YES == test_backwards)
-  {
-    expected_client = 1L;
-    dest_to_use = &d1->id;
-    tunnel_to_use = incoming_t;
-  }
-  else
-  {
-    expected_client = 0L;
-    dest_to_use = &d2->id;
-    tunnel_to_use = t;
-  }
-
+  ok++;
   switch (client)
   {
   case 1L:
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Root client got a response!\n");
-    ok++;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Root client got a message!\n");
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
     peers_responded++;
     data_ack++;
-    if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
-    {
-      GNUNET_SCHEDULER_cancel (disconnect_task);
-      disconnect_task =
-          GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers,
-                                        NULL);
-    }
     if (test == MULTICAST && peers_responded < 2)
       return GNUNET_OK;
-    if (test == SPEED_ACK || test == SPEED)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              " received ack %u\n", data_ack);
-      GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
-                                        GNUNET_TIME_UNIT_FOREVER_REL, sender,
-                                        sizeof (struct GNUNET_MessageHeader),
-                                        &tmt_rdy, (void *) 1L);
-      if (data_ack < TOTAL_PACKETS && test != SPEED)
-        return GNUNET_OK;
-      end_time = GNUNET_TIME_absolute_get();
-      total_time = GNUNET_TIME_absolute_get_difference(start_time, end_time);
-      FPRINTF (stderr, "\nTest time %llu ms\n",
-               (unsigned long long) total_time.rel_value);
-      FPRINTF (stderr, "Test bandwidth: %f kb/s\n",
-               4 * TOTAL_PACKETS * 1.0 / total_time.rel_value); // 4bytes * ms
-      FPRINTF (stderr, "Test throughput: %f packets/s\n\n",
-               TOTAL_PACKETS * 1000.0 / total_time.rel_value); // packets * ms
-      GAUGER ("MESH", "Tunnel 5 peers",
-              TOTAL_PACKETS * 1000.0 / total_time.rel_value,
-              "packets/s");
-    }
-    GNUNET_assert (tunnel == t);
-    GNUNET_MESH_tunnel_destroy (t);
-    t = NULL;
     break;
   case 2L:
   case 3L:
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Leaf client %u got a message.\n",
+                "Leaf client %li got a message.\n",
                 client);
-    ok++;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
+    client = 2L;
+    break;
+  default:
+    GNUNET_assert (0);
+    break;
+  }
+
+  if (SPEED == test && GNUNET_YES == test_backwards)
+  {
+    expected_target_client = 1L;
+//     dest_to_use = &d1->id;
+//     tunnel_to_use = incoming_t;
+  }
+  else
+  {
+    expected_target_client = 2L;
+//     dest_to_use = &d2->id;
+//     tunnel_to_use = t;
+  }
+
+  if (client == expected_target_client) // Normally 2 or 3
+  {
     if (SPEED != test || (ok_goal - 2) == ok)
     {
       GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
@@ -523,21 +522,33 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
       if (data_received < TOTAL_PACKETS)
         return GNUNET_OK;
     }
-    if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
-    {
-      GNUNET_SCHEDULER_cancel (disconnect_task);
-      disconnect_task =
-          GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers,
-                                        NULL);
-    }
-    break;
-  default:
-    break;
   }
-  
-  
-  
-  
+  else // Normally 1
+  {
+    if (test == SPEED_ACK || test == SPEED)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              " received ack %u\n", data_ack);
+      GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
+                                        GNUNET_TIME_UNIT_FOREVER_REL, sender,
+                                        sizeof (struct GNUNET_MessageHeader),
+                                        &tmt_rdy, (void *) 1L);
+      if (data_ack < TOTAL_PACKETS && test != SPEED)
+        return GNUNET_OK;
+      show_end_data();
+    }
+    GNUNET_MESH_tunnel_destroy (t);
+    t = NULL;
+  }
+
+  if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
+  {
+    GNUNET_SCHEDULER_cancel (disconnect_task);
+    disconnect_task =
+        GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers,
+                                      NULL);
+  }
+
   return GNUNET_OK;
 }
 
@@ -1063,12 +1074,14 @@ main (int argc, char *argv[])
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "UNICAST\n");
     test = UNICAST;
+    test_name = "unicast";
     ok_goal = 5;
   }
   else if (strstr (argv[0], "test_mesh_small_multicast") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MULTICAST\n");
     test = MULTICAST;
+    test_name = "multicast";
     ok_goal = 10;
   }
   else if (strstr (argv[0], "test_mesh_small_speed_ack") != NULL)
@@ -1084,6 +1097,7 @@ main (int argc, char *argv[])
     */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED_ACK\n");
     test = SPEED_ACK;
+    test_name = "speed ack";
     ok_goal = TOTAL_PACKETS * 2 + 3;
     argv2 [3] = NULL; // remove -L DEBUG
 #if VERBOSE
@@ -1103,11 +1117,20 @@ main (int argc, char *argv[])
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED\n");
     ok_goal = TOTAL_PACKETS + 4;
     if (strstr (argv[0], "_min") != NULL)
+    {
       test = SPEED_MIN;
+      test_name = "speed min";
+    }
     else if (strstr (argv[0], "_nobuf") != NULL)
+    {
       test = SPEED_NOBUF;
+      test_name = "speed nobuf";
+    }
     else
+    {
       test = SPEED;
+      test_name = "speed";
+    }
   }
   else
   {
@@ -1118,8 +1141,13 @@ main (int argc, char *argv[])
 
   if (strstr (argv[0], "backwards") != NULL)
   {
+    char *aux;
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "BACKWARDS (LEAF TO ROOT)\n");
     test_backwards = GNUNET_YES;
+    aux = malloc (32); // "leaked"
+    sprintf (aux, "backwards %s", test_name);
+    test_name = aux;
   }
 
   GNUNET_PROGRAM_run (argc2, argv2,
