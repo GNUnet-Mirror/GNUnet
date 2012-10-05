@@ -166,7 +166,9 @@ static struct GNUNET_TESTBED_Controller *master_ctrl;
 /**
  * Slave host IP addresses
  */
-static char *slave_ips[NUM_HOSTS] = {"131.159.20.34", "131.159.20.59"};
+//static char *slave_ips[NUM_HOSTS] = {"131.159.20.34", "131.159.20.59"};
+//static char *slave_ips[NUM_HOSTS] = {"192.168.178.38", "192.168.178.23"};
+static char *slave_ips[NUM_HOSTS] = {"131.159.14.159", "131.159.14.181"};
 
 /**
  * The slave hosts
@@ -429,6 +431,7 @@ peer_start_cb (void *cls, const char *emsg)
   GNUNET_TESTBED_operation_done(op[i]);
   peers_started++;
   // FIXME create and start rest of PEERS_PER_HOST
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " %u peer(s) started\n", peers_started);
 
   if (TOTAL_PEERS == peers_started)
   {
@@ -455,7 +458,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
 //   GNUNET_TESTBED_operation_done(op[i]);
   peer_id = i; // FIXME  A * i + B
   peers[peer_id] = peer;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Peer created\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Peer %i created\n", peer_id);
   op[i] = GNUNET_TESTBED_peer_start (peer, peer_start_cb, (void *) i);
 }
 
@@ -476,13 +479,14 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   {
   case GNUNET_TESTBED_ET_PEER_START:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Peer started\n");
-//     event->details.peer_start.peer;
+    /* event->details.peer_start.peer; */
+    /* event->details.peer_start.host; */
+
     break;
   case GNUNET_TESTBED_ET_PEER_STOP:
   case GNUNET_TESTBED_ET_CONNECT:
     break;
   case GNUNET_TESTBED_ET_OPERATION_FINISHED:
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Operation finished\n");
     if (NULL != event->details.operation_finished.emsg)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n",
@@ -490,15 +494,19 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       GNUNET_assert (0);
     }
     GNUNET_TESTBED_operation_done (event->details.operation_finished.operation);
+    //GNUNET_assert (NULL != event->details.operation_finished.op_cls);
     i = (long) event->details.operation_finished.op_cls;
     op[i] = NULL;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Operation %u finished\n", i);
     switch (state[i])
     {
       case INIT:
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Init\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Init: %u\n", i);
         break;
       case LINKING:
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Link\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   Linked host %i\n", i);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   Creating peer...\n");
+
         state[i] = CREATING_PEER;
         op[i] = GNUNET_TESTBED_peer_create (master_ctrl,
                                             slave_hosts[i],
@@ -536,7 +544,8 @@ registration_cont (void *cls, const char *emsg)
   state[host_registered] = LINKING;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               " Linking host %u\n", host_registered);
-  op[host_registered] = GNUNET_TESTBED_controller_link (master_ctrl,
+  op[host_registered] = GNUNET_TESTBED_controller_link ((void *)(long)host_registered,
+                                                        master_ctrl,
                                                         slave_hosts[host_registered],
                                                         NULL,
                                                         cfg,
@@ -570,7 +579,7 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config,
 {
   unsigned int i;
 
-  if (NULL == config)
+  if (NULL == config || GNUNET_OK != status)
     return;
 
   event_mask = 0;
@@ -589,10 +598,12 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config,
   for (i = 0; i < NUM_HOSTS; i++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Creating host %u\n", i);
-    slave_hosts[i] = GNUNET_TESTBED_host_create_with_id (i+1, slave_ips[i], NULL, 0);
+    slave_hosts[i] = GNUNET_TESTBED_host_create_with_id (i+2, slave_ips[i], NULL, 0);
     GNUNET_assert (NULL != slave_hosts[i]);
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Registering host 0\n");
+  host_registered = 0;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              " Registering host %u\n", host_registered);
   rh = GNUNET_TESTBED_register_host (master_ctrl, slave_hosts[0],
                                      &registration_cont,
                                      NULL);
@@ -612,11 +623,11 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
-  master_host = GNUNET_TESTBED_host_create (NULL, NULL, 0);
+  master_host = GNUNET_TESTBED_host_create ("131.159.14.159", NULL, 0);
   GNUNET_assert (NULL != master_host);
   cfg = GNUNET_CONFIGURATION_dup (config);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting master controller\n");
-  master_proc = GNUNET_TESTBED_controller_start ("127.0.0.1",
+  master_proc = GNUNET_TESTBED_controller_start ("131.159.14.159",
                                                  master_host,
                                                  cfg,
                                                  status_cb,
@@ -649,7 +660,7 @@ int main (int argc, char **argv)
   {
     char *const remote_args[] = {
       "ssh", "-o", "BatchMode=yes", slave_ips[i],
-      ". .bashrc; gnunet-helper-testbed --help > /dev/null", NULL
+      "gnunet-helper-testbed --help > /dev/null", NULL
     };
     struct GNUNET_OS_Process *auxp;
     enum GNUNET_OS_ProcessStatusType type;
