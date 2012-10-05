@@ -38,7 +38,7 @@
 
 #define PEER_PER_HOST 1
 
-#define TOTAL_PEERS NUM_HOSTS * PEER_PER_HOST
+#define TOTAL_PEERS (NUM_HOSTS * PEER_PER_HOST)
 
 /**
  * Shorthand for Relative time in seconds
@@ -166,9 +166,8 @@ static struct GNUNET_TESTBED_Controller *master_ctrl;
 /**
  * Slave host IP addresses
  */
-//static char *slave_ips[NUM_HOSTS] = {"131.159.20.34", "131.159.20.59"};
-//static char *slave_ips[NUM_HOSTS] = {"192.168.178.38", "192.168.178.23"};
-static char *slave_ips[NUM_HOSTS] = {"131.159.14.159", "131.159.14.181"};
+
+static char *slave_ips[NUM_HOSTS] = {"192.168.1.33", "192.168.1.34"};
 
 /**
  * The slave hosts
@@ -489,7 +488,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   case GNUNET_TESTBED_ET_OPERATION_FINISHED:
     if (NULL != event->details.operation_finished.emsg)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Testbed error: %s\n",
                   event->details.operation_finished.emsg);
       GNUNET_assert (0);
     }
@@ -540,17 +539,16 @@ registration_cont (void *cls, const char *emsg)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n", emsg);
     GNUNET_assert (0);
   }
-
   state[host_registered] = LINKING;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               " Linking host %u\n", host_registered);
-  op[host_registered] = GNUNET_TESTBED_controller_link ((void *)(long)host_registered,
-                                                        master_ctrl,
+  op[host_registered] = GNUNET_TESTBED_controller_link ((void *) (long)
+							host_registered,
+							master_ctrl,
                                                         slave_hosts[host_registered],
                                                         NULL,
                                                         cfg,
                                                         GNUNET_YES);
-
   host_registered++;
   if (NUM_HOSTS != host_registered)
   {
@@ -598,7 +596,7 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config,
   for (i = 0; i < NUM_HOSTS; i++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Creating host %u\n", i);
-    slave_hosts[i] = GNUNET_TESTBED_host_create_with_id (i+2, slave_ips[i], NULL, 0);
+    slave_hosts[i] = GNUNET_TESTBED_host_create (slave_ips[i], NULL, 0);
     GNUNET_assert (NULL != slave_hosts[i]);
   }
   host_registered = 0;
@@ -623,11 +621,11 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
-  master_host = GNUNET_TESTBED_host_create ("131.159.14.159", NULL, 0);
+  master_host = GNUNET_TESTBED_host_create ("192.168.1.33", NULL, 0);
   GNUNET_assert (NULL != master_host);
   cfg = GNUNET_CONFIGURATION_dup (config);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting master controller\n");
-  master_proc = GNUNET_TESTBED_controller_start ("131.159.14.159",
+  master_proc = GNUNET_TESTBED_controller_start ("192.168.1.33",
                                                  master_host,
                                                  cfg,
                                                  status_cb,
