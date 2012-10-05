@@ -113,6 +113,12 @@ enum SetupState
    */
   LINKING,
 
+  LINKING_SLAVES,
+
+  LINKING_SLAVES_SUCCESS,
+
+  CONNECTING_PEERS,
+
   CREATING_PEER,
 
   STARTING_PEER
@@ -426,6 +432,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 peer_start_cb (void *cls, const char *emsg)
 {
+  unsigned int cnt;
   long i = (long) cls;
   GNUNET_TESTBED_operation_done(op[i]);
   peers_started++;
@@ -434,7 +441,16 @@ peer_start_cb (void *cls, const char *emsg)
 
   if (TOTAL_PEERS == peers_started)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ok\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers started.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Linking slave controllers\n");
+
+    for (cnt = 0; cnt < NUM_HOSTS - 1; cnt++)
+    {
+      state[cnt] = LINKING_SLAVES;
+      op[cnt] = GNUNET_TESTBED_get_slave_config ((void*) (long)cnt, 
+						 master_ctrl, 
+						 slave_hosts[cnt+1]);
+    }
   }
 }
 
@@ -483,7 +499,11 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
 
     break;
   case GNUNET_TESTBED_ET_PEER_STOP:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer stopped\n");
+    break;
   case GNUNET_TESTBED_ET_CONNECT:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Overlay Connected\n");
+    
     break;
   case GNUNET_TESTBED_ET_OPERATION_FINISHED:
     if (NULL != event->details.operation_finished.emsg)
@@ -492,17 +512,20 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
                   event->details.operation_finished.emsg);
       GNUNET_assert (0);
     }
-    GNUNET_TESTBED_operation_done (event->details.operation_finished.operation);
-    //GNUNET_assert (NULL != event->details.operation_finished.op_cls);
+
     i = (long) event->details.operation_finished.op_cls;
-    op[i] = NULL;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Operation %u finished\n", i);
     switch (state[i])
     {
       case INIT:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Init: %u\n", i);
+	GNUNET_TESTBED_operation_done (event->details.operation_finished.operation);
+	op[i] = NULL;
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Operation %u finished\n", i);
         break;
       case LINKING:
+	GNUNET_TESTBED_operation_done (event->details.operation_finished.operation);
+	op[i] = NULL;
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Operation %u finished\n", i);
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   Linked host %i\n", i);
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   Creating peer...\n");
 
@@ -514,8 +537,48 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
                                             (void *) i);
         break;
       case CREATING_PEER:
+	GNUNET_TESTBED_operation_done (event->details.operation_finished.operation);
+	op[i] = NULL;
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Operation %u finished\n", i);
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Peer create\n");
         break;
+      case LINKING_SLAVES:
+	{
+	struct GNUNET_CONFIGURATION_Handle *slave_cfg;
+	GNUNET_assert (NULL != event->details.operation_finished.generic);
+	slave_cfg = GNUNET_CONFIGURATION_dup ((struct GNUNET_CONFIGURATION_Handle *)event->details.operation_finished.generic);
+	GNUNET_TESTBED_operation_done (event->details.operation_finished.operation);
+	op[i] = NULL;
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Operation %u finished\n", i);
+	state[i] = LINKING_SLAVES_SUCCESS;
+	op[i] = GNUNET_TESTBED_controller_link ((void *) (long) i,
+						master_ctrl,
+						slave_hosts[i+1],
+						slave_hosts[i],
+						slave_cfg,
+						GNUNET_NO);
+	GNUNET_CONFIGURATION_destroy (slave_cfg);
+	break;
+	}
+      case LINKING_SLAVES_SUCCESS:
+	GNUNET_TESTBED_operation_done (event->details.operation_finished.operation);
+	op[i] = NULL;
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Operation %u finished\n", i);
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Linking slave %i succeeded\n", i);
+	state[0] = CONNECTING_PEERS;
+	op[0] = GNUNET_TESTBED_overlay_configure_topology (NULL,
+							   TOTAL_PEERS,
+							   peers,
+							   GNUNET_TESTBED_TOPOLOGY_LINE);
+	GNUNET_assert (NULL != op[0]);
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting peers...\n");
+	break;
+      case CONNECTING_PEERS:
+	GNUNET_TESTBED_operation_done (event->details.operation_finished.operation);
+	op[i] = NULL;
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Operation %u finished\n", i);
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected\n");
+	break;
       default:
         GNUNET_break (0);
     }
