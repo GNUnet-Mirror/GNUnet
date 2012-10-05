@@ -63,14 +63,13 @@ struct GNUNET_CRYPTO_RsaPrivateKey
 };
 
 
-#if 0
 /**
  * Create a new private key. Caller must free return value.
  *
  * @return fresh private key
  */
-struct GNUNET_CRYPTO_RsaPrivateKey *
-GNUNET_CRYPTO_rsa_key_create ()
+static struct GNUNET_CRYPTO_RsaPrivateKey *
+rsa_key_create ()
 {
   struct GNUNET_CRYPTO_RsaPrivateKey *ret;
   gcry_sexp_t s_key;
@@ -79,7 +78,7 @@ GNUNET_CRYPTO_rsa_key_create ()
   GNUNET_assert (0 ==
                  gcry_sexp_build (&s_keyparam, NULL,
                                   "(genkey(rsa(nbits %d)(rsa-use-e 3:257)))",
-                                  HOSTKEY_LEN));
+                                  2048));
   GNUNET_assert (0 == gcry_pk_genkey (&s_key, s_keyparam));
   gcry_sexp_release (s_keyparam);
 #if EXTRA_CHECKS
@@ -89,7 +88,6 @@ GNUNET_CRYPTO_rsa_key_create ()
   ret->sexp = s_key;
   return ret;
 }
-#endif
 
 
 /**
@@ -98,16 +96,10 @@ GNUNET_CRYPTO_rsa_key_create ()
 static void
 create_keys (const char *fn)
 {
-  time_t start;
-  struct GNUNET_HashCode hc;
-  struct GNUNET_HashCode h2;
-  struct GNUNET_HashCode h3;
   FILE *f;
   struct GNUNET_CRYPTO_RsaPrivateKey *pk;
   struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *enc;
 
-  start = time (NULL);
-  GNUNET_CRYPTO_hash (&start, sizeof (start), &hc);
   if (NULL == (f = fopen (fn, "w+")))
     {
       fprintf (stderr,
@@ -123,11 +115,8 @@ create_keys (const char *fn)
   {    
     fprintf (stderr,
 	     ".");
-    GNUNET_CRYPTO_hash (&make_keys, sizeof (make_keys), &h2);
-    GNUNET_CRYPTO_hash (&hc, sizeof (hc), &h3);
-    GNUNET_CRYPTO_hash_xor (&h2, &h3, &hc);
-    if (NULL == (pk = GNUNET_CRYPTO_rsa_key_create_from_hash (&hc)))
-    {	
+    if (NULL == (pk = rsa_key_create ()))
+    {
        GNUNET_break (0);
        break;
     }
