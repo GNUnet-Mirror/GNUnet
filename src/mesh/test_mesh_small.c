@@ -43,6 +43,10 @@ struct MeshPeer
   struct GNUNET_MESH_Handle *mesh_handle;
 };
 
+/**
+ * How namy messages to send
+ */
+#define TOTAL_PACKETS 1000
 
 /**
  * How long until we give up on connecting the peers?
@@ -80,6 +84,18 @@ static int test_backwards = GNUNET_NO;
  */
 static int ok;
 
+ /**
+  * Each peer is supposed to generate the following callbacks:
+  * 1 incoming tunnel (@dest)
+  * 1 connected peer (@orig)
+  * 1 received data packet (@dest)
+  * 1 received data packet (@orig)
+  * 1 received tunnel destroy (@dest)
+  * _________________________________
+  * 5 x ok expected per peer
+  */
+int ok_goal;
+
 /**
  * Peers that have been connected
  */
@@ -101,7 +117,7 @@ static int data_sent;
 static int data_received;
 
 /**
- * Number of payload packed explicitly (app/level) acknowledged
+ * Number of payload packed explicitly (app level) acknowledged
  */
 static int data_ack;
 
@@ -167,25 +183,52 @@ static GNUNET_SCHEDULER_TaskIdentifier shutdown_handle;
 
 static char *topology_file;
 
+/**
+ * Testbed handle for the root peer
+ */
 static struct GNUNET_TESTING_Daemon *d1;
 
-static GNUNET_PEER_Id pid1;
-
+/**
+ * Testbed handle for the first leaf peer
+ */
 static struct GNUNET_TESTING_Daemon *d2;
 
+/**
+ * Testbed handle for the second leaf peer
+ */
 static struct GNUNET_TESTING_Daemon *d3;
 
+/**
+ * Mesh handle for the root peer
+ */
 static struct GNUNET_MESH_Handle *h1;
 
+/**
+ * Mesh handle for the first leaf peer
+ */
 static struct GNUNET_MESH_Handle *h2;
 
+/**
+ * Mesh handle for the second leaf peer
+ */
 static struct GNUNET_MESH_Handle *h3;
 
+/**
+ * Tunnel handle for the root peer
+ */
 static struct GNUNET_MESH_Tunnel *t;
 
+/**
+ * Tunnel handle for the first leaf peer
+ */
 static struct GNUNET_MESH_Tunnel *incoming_t;
 
+/**
+ * Tunnel handle for the second leaf peer
+ */
 static struct GNUNET_MESH_Tunnel *incoming_t2;
+
+static GNUNET_PEER_Id pid1;
 
 static struct GNUNET_TIME_Absolute start_time;
 
@@ -304,12 +347,26 @@ static void
 data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_MESH_TransmitHandle *th;
+  struct GNUNET_MESH_Tunnel *tunnel;
+  struct GNUNET_PeerIdentity *destination;
+
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
-  th = GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO,
-                                    GNUNET_TIME_UNIT_FOREVER_REL, &d2->id,
-                                    sizeof (struct GNUNET_MessageHeader),
-                                    &tmt_rdy, (void *) 1L);
+  if (GNUNET_YES == test_backwards)
+  {
+    tunnel = incoming_t;
+    destination = &d1->id;
+  }
+  else
+  {
+    tunnel = t;
+    destination = &d2->id;
+  }
+  th = GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
+                                          GNUNET_TIME_UNIT_FOREVER_REL,
+                                          destination,
+                                          sizeof (struct GNUNET_MessageHeader),
+                                          &tmt_rdy, (void *) 1L);
   if (NULL == th)
   {
     unsigned long i = (unsigned long) cls;
@@ -354,7 +411,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
   if (test == SPEED)
   {
     data_sent++;
-    if (data_sent < 1000)
+    if (data_sent < TOTAL_PACKETS)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               " Scheduling %d packet\n", data_sent);
@@ -384,11 +441,27 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
                const struct GNUNET_ATS_Information *atsi)
 {
   long client = (long) cls;
+  long expected_client;
+  struct GNUNET_MESH_Tunnel *tunnel_to_use;
+  struct GNUNET_PeerIdentity *dest_to_use;
+
+  if (GNUNET_YES == test_backwards)
+  {
+    expected_client = 1L;
+    dest_to_use = &d1->id;
+    tunnel_to_use = incoming_t;
+  }
+  else
+  {
+    expected_client = 0L;
+    dest_to_use = &d2->id;
+    tunnel_to_use = t;
+  }
 
   switch (client)
   {
   case 1L:
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Origin client got a response!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Root client got a response!\n");
     ok++;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
     peers_responded++;
@@ -410,17 +483,18 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
                                         GNUNET_TIME_UNIT_FOREVER_REL, sender,
                                         sizeof (struct GNUNET_MessageHeader),
                                         &tmt_rdy, (void *) 1L);
-      if (data_ack < 1000 && test != SPEED)
+      if (data_ack < TOTAL_PACKETS && test != SPEED)
         return GNUNET_OK;
       end_time = GNUNET_TIME_absolute_get();
       total_time = GNUNET_TIME_absolute_get_difference(start_time, end_time);
       FPRINTF (stderr, "\nTest time %llu ms\n",
                (unsigned long long) total_time.rel_value);
       FPRINTF (stderr, "Test bandwidth: %f kb/s\n",
-               4 * 1000.0 / total_time.rel_value); // 4bytes * ms
+               4 * TOTAL_PACKETS * 1.0 / total_time.rel_value); // 4bytes * ms
       FPRINTF (stderr, "Test throughput: %f packets/s\n\n",
-               1000.0 * 1000.0 / total_time.rel_value); // 1000 packets * ms
-      GAUGER ("MESH", "Tunnel 5 peers", 1000.0 * 1000.0 / total_time.rel_value,
+               TOTAL_PACKETS * 1000.0 / total_time.rel_value); // packets * ms
+      GAUGER ("MESH", "Tunnel 5 peers",
+              TOTAL_PACKETS * 1000.0 / total_time.rel_value,
               "packets/s");
     }
     GNUNET_assert (tunnel == t);
@@ -430,11 +504,11 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
   case 2L:
   case 3L:
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Destination client %u got a message.\n",
+                "Leaf client %u got a message.\n",
                 client);
     ok++;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
-    if (SPEED != test || 1002 == ok)
+    if (SPEED != test || (ok_goal - 2) == ok)
     {
       GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
                                         GNUNET_TIME_UNIT_FOREVER_REL, sender,
@@ -446,7 +520,7 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
       data_received++;
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               " received data %u\n", data_received);
-      if (data_received < 1000)
+      if (data_received < TOTAL_PACKETS)
         return GNUNET_OK;
     }
     if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
@@ -460,6 +534,10 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
   default:
     break;
   }
+  
+  
+  
+  
   return GNUNET_OK;
 }
 
@@ -586,6 +664,7 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
     const struct GNUNET_ATS_Information *atsi)
 {
   struct GNUNET_PeerIdentity *dest;
+  struct GNUNET_MESH_Tunnel *tunnel;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "peer %s connected\n", GNUNET_i2s (peer));
@@ -602,19 +681,30 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
   switch (test)
   {
-  case UNICAST:
-  case SPEED:
-  case SPEED_ACK:
-    dest = &d2->id;
-    break;
-  case MULTICAST:
-    peers_in_tunnel++;
-    if (peers_in_tunnel < 2)
+    case UNICAST:
+    case SPEED:
+    case SPEED_ACK:
+      if (GNUNET_YES == test_backwards)
+      {
+        dest = &d1->id;
+        tunnel = incoming_t;
+      }
+      else
+      {
+        dest = &d2->id;
+        tunnel = t;
+      }
+      break;
+    case MULTICAST:
+      peers_in_tunnel++;
+      if (peers_in_tunnel < 2)
+        return;
+      dest = NULL;
+      tunnel = t;
+      break;
+    default:
+      tunnel = t;
       return;
-    dest = NULL;
-    break;
-  default:
-    return;
   }
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
   {
@@ -628,7 +718,7 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
     data_received = 0;
     data_sent = 0;
     start_time = GNUNET_TIME_absolute_get();
-    GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO,
+    GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
                                        GNUNET_TIME_UNIT_FOREVER_REL, dest,
                                        sizeof (struct GNUNET_MessageHeader),
                                        &tmt_rdy, (void *) 1L);
@@ -968,17 +1058,6 @@ main (int argc, char *argv[])
   };
   int argc2 = (sizeof (argv2) / sizeof (char *)) - 1;
 
-  /* Each peer is supposed to generate the following callbacks:
-   * 1 incoming tunnel (@dest)
-   * 1 connected peer (@orig)
-   * 1 received data packet (@dest)
-   * 1 received data packet (@orig)
-   * 1 received tunnel destroy (@dest)
-   * _________________________________
-   * 5 x ok expected per peer
-   */
-  int ok_goal;
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Start\n");
   if (strstr (argv[0], "test_mesh_small_unicast") != NULL)
   {
@@ -997,15 +1076,15 @@ main (int argc, char *argv[])
    /* Each peer is supposed to generate the following callbacks:
     * 1 incoming tunnel (@dest)
     * 1 connected peer (@orig)
-    * 1000 received data packet (@dest)
-    * 1000 received data packet (@orig)
+    * TOTAL_PACKETS received data packet (@dest)
+    * TOTAL_PACKETS received data packet (@orig)
     * 1 received tunnel destroy (@dest)
     * _________________________________
     * 5 x ok expected per peer
     */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED_ACK\n");
     test = SPEED_ACK;
-    ok_goal = 2003;
+    ok_goal = TOTAL_PACKETS * 2 + 3;
     argv2 [3] = NULL; // remove -L DEBUG
 #if VERBOSE
     argc2 -= 2;
@@ -1016,13 +1095,13 @@ main (int argc, char *argv[])
    /* Each peer is supposed to generate the following callbacks:
     * 1 incoming tunnel (@dest)
     * 1 connected peer (@orig)
-    * 1000 received data packet (@dest)
-    * 1received data packet (@orig)
+    * TOTAL_PACKETS received data packet (@dest)
+    * 1 received data packet (@orig)
     * 1 received tunnel destroy (@dest)
     * _________________________________
     */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED\n");
-    ok_goal = 1004;
+    ok_goal = TOTAL_PACKETS + 4;
     if (strstr (argv[0], "_min") != NULL)
       test = SPEED_MIN;
     else if (strstr (argv[0], "_nobuf") != NULL)
