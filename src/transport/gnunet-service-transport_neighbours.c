@@ -675,7 +675,6 @@ print_state (int state)
     GNUNET_break (0);
     return "UNDEFINED";
   }
-  GNUNET_break (0);
   return "UNDEFINED";
 }
 
