@@ -212,7 +212,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                            &mst_cb, &exp_cb, NULL);
   GNUNET_assert (NULL != helper);
   cfg = GNUNET_CONFIGURATION_dup (cfg2);
-  msg = GNUNET_TESTBED_create_helper_init_msg_ (controller_name, cfg);
+  msg = GNUNET_TESTBED_create_helper_init_msg_ (controller_name, NULL, cfg);
   shandle =
       GNUNET_HELPER_send (helper, &msg->header, GNUNET_NO, &cont_cb, NULL);
   GNUNET_assert (NULL != shandle);

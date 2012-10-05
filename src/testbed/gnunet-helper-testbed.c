@@ -226,14 +226,18 @@ tokenizer_cb (void *cls, void *client,
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct WriteContext *wc;
   char *controller;
+  char *hostname;
   char *config;
   char *xconfig;
   size_t config_size;
   uLongf ul_config_size;
   size_t xconfig_size;
   uint16_t cname_size;
-
-  if ((sizeof (struct GNUNET_TESTBED_HelperInit) >= ntohs (message->size)) ||
+  uint16_t hostname_size;
+  uint16_t msize;
+  
+  msize = ntohs (message->size);
+  if ((sizeof (struct GNUNET_TESTBED_HelperInit) >= msize) ||
       (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_INIT != ntohs (message->type)))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "Received unexpected message -- exiting\n");
@@ -248,6 +252,14 @@ tokenizer_cb (void *cls, void *client,
          "Controller name cannot be empty -- exiting\n");
     goto error;
   }
+  hostname_size = ntohs (msg->hostname_size);
+  if ((sizeof (struct GNUNET_TESTBED_HelperInit) + cname_size + 1 +
+       hostname_size) >= msize)
+  {
+    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Received unexpected message -- exiting\n");
+    goto error;
+  }  
   ul_config_size = (uLongf) ntohs (msg->config_size);
   config = GNUNET_malloc (ul_config_size);
   xconfig_size =
@@ -255,7 +267,7 @@ tokenizer_cb (void *cls, void *client,
                                sizeof (struct GNUNET_TESTBED_HelperInit));
   if (Z_OK !=
       uncompress ((Bytef *) config, &ul_config_size,
-                  (const Bytef *) (controller + cname_size + 1),
+                  (const Bytef *) (controller + cname_size + 1 + hostname_size),
                   (uLongf) xconfig_size))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -273,7 +285,17 @@ tokenizer_cb (void *cls, void *client,
     goto error;
   }
   GNUNET_free (config);
-  test_system = GNUNET_TESTING_system_create ("testbed-helper", controller);
+  hostname = NULL;
+  if (0 != hostname_size)
+  {
+    hostname = GNUNET_malloc (hostname_size + 1);
+    (void) strncpy (hostname, ((char *) &msg[1]) + cname_size + 1, hostname_size);
+    hostname[hostname_size] = '\0';
+  }
+  test_system = GNUNET_TESTING_system_create ("testbed-helper", controller,
+					      hostname);
+  GNUNET_free_non_null (hostname);
+  hostname = NULL;
   GNUNET_assert (NULL != test_system);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_TESTING_configuration_create (test_system, cfg));

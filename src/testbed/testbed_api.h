@@ -356,12 +356,14 @@ GNUNET_TESTBED_operation_add_ (struct GNUNET_TESTBED_Operation *op);
  * Creates a helper initialization message. Only for testing.
  *
  * @param cname the ip address of the controlling host
+ * @param hostname the hostname of the destination this message is intended for
  * @param cfg the configuration that has to used to start the testbed service
  *          thru helper
  * @return the initialization message
  */
 struct GNUNET_TESTBED_HelperInit *
 GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
+					const char *hostname,
                                         const struct GNUNET_CONFIGURATION_Handle
                                         *cfg);
 

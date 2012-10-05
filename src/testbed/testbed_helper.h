@@ -28,6 +28,8 @@
 #ifndef TESTBED_HELPER_H
 #define TESTBED_HELPER_H
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Initialization message for gnunet-helper-testbed to start testbed service
  */
@@ -45,11 +47,20 @@ struct GNUNET_TESTBED_HelperInit
   uint16_t cname_size GNUNET_PACKED;
 
   /**
+   * The hostname size excluding the NULL termination character - strlen
+   * (hostname); cannot be zero
+   */
+  uint16_t hostname_size GNUNET_PACKED;
+
+  /**
    * The size of the uncompressed configuration
    */
   uint16_t config_size GNUNET_PACKED;
 
   /* Followed by NULL terminated controller hostname */
+
+  /* Followed by hostname of the machine on which helper runs. This is not NULL
+     terminated */
 
   /* Followed by serialized and compressed configuration which should be
    * config_size long when un-compressed */
@@ -73,6 +84,8 @@ struct GNUNET_TESTBED_HelperReply
   /* Followed by compressed configuration which should be config_size long when
    * un-compressed */
 };
+
+GNUNET_NETWORK_STRUCT_END
 
 #endif
 

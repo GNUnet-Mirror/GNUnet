@@ -90,7 +90,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct GNUNET_PeerIdentity id;
     
   system = GNUNET_TESTING_system_create ("test-gnunet-testing",
-                                         "127.0.0.1");
+                                         "127.0.0.1", NULL);
   GNUNET_assert (NULL != system);
   new_cfg = GNUNET_CONFIGURATION_dup (cfg);
   emsg = NULL;

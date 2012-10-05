@@ -74,6 +74,11 @@ struct GNUNET_TESTING_System
   char *controller;
 
   /**
+   * our hostname
+   */
+  char *hostname;
+
+  /**
    * Hostkeys data, contains "HOSTKEYFILESIZE * total_hostkeys" bytes.
    */
   char *hostkeys_data;
@@ -262,6 +267,8 @@ hostkeys_unload (struct GNUNET_TESTING_System *system)
  * @param controller hostname of the controlling host, 
  *        service configurations are modified to allow 
  *        control connections from this host; can be NULL
+ * @param hostname the hostname of the system we are using for testing; NULL for
+ *          localhost
  * @param lowport lowest port number this system is allowed to allocate (inclusive)
  * @param highport highest port number this system is allowed to allocate (exclusive)
  * @return handle to this system, NULL on error
@@ -269,6 +276,7 @@ hostkeys_unload (struct GNUNET_TESTING_System *system)
 struct GNUNET_TESTING_System *
 GNUNET_TESTING_system_create_with_portrange (const char *testdir,
 					     const char *controller,
+					     const char *hostname,
 					     uint16_t lowport,
 					     uint16_t highport)
 {
@@ -286,6 +294,8 @@ GNUNET_TESTING_system_create_with_portrange (const char *testdir,
   }
   if (NULL != controller)
     system->controller = GNUNET_strdup (controller);
+  if (NULL != hostname)
+    system->hostname = GNUNET_strdup (hostname);
   if (GNUNET_OK != hostkeys_load (system))
   {
     GNUNET_TESTING_system_destroy (system, GNUNET_YES);
@@ -296,24 +306,27 @@ GNUNET_TESTING_system_create_with_portrange (const char *testdir,
 
 
 /**
- * Create a system handle.  There must only be one system
- * handle per operating system.
+ * Create a system handle.  There must only be one system handle per operating
+ * system.  Uses a default range for allowed ports.  Ports are still tested for
+ * availability.
  *
- * @param testdir only the directory name without any path. This is used for
- *          all service homes; the directory will be created in a temporary
- *          location depending on the underlying OS
- *
- * @param controller hostname of the controlling host, 
- *        service configurations are modified to allow 
- *        control connections from this host; can be NULL
+ * @param testdir only the directory name without any path. This is used for all
+ *          service homes; the directory will be created in a temporary location
+ *          depending on the underlying OS
+ * @param controller hostname of the controlling host, service configurations
+ *        are modified to allow control connections from this host; can be NULL
+ * @param hostname the hostname of the system we are using for testing; NULL for
+ *          localhost
  * @return handle to this system, NULL on error
  */
 struct GNUNET_TESTING_System *
 GNUNET_TESTING_system_create (const char *testdir,
-			      const char *controller)
+			      const char *controller,
+			      const char *hostname)
 {
   return GNUNET_TESTING_system_create_with_portrange (testdir,
 						      controller,
+						      hostname,
 						      LOW_PORT,
 						      HIGH_PORT);
 }
@@ -336,6 +349,7 @@ GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system,
     GNUNET_DISK_directory_remove (system->tmppath);
   GNUNET_free (system->tmppath);
   GNUNET_free_non_null (system->controller);
+  GNUNET_free_non_null (system->hostname);
   GNUNET_free (system);
 }
 
@@ -635,9 +649,9 @@ update_config (void *cls, const char *section, const char *option,
       GNUNET_break(0);          /* FIXME */
     }
   }
-  if ((0 == strcmp (option, "HOSTNAME")) && (NULL != uc->system->controller))
+  if (0 == strcmp (option, "HOSTNAME"))
   {
-    value = uc->system->controller;
+    value = (NULL == uc->system->hostname) ? "localhost" : uc->system->hostname;
   }
   GNUNET_free (single_variable);
   GNUNET_free (per_host_variable);
@@ -1119,7 +1133,7 @@ GNUNET_TESTING_service_run (const char *testdir,
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
   GNUNET_log_setup (testdir, "WARNING", NULL);
-  system = GNUNET_TESTING_system_create (testdir, "127.0.0.1");
+  system = GNUNET_TESTING_system_create (testdir, "127.0.0.1", NULL);
   if (NULL == system)
     return 1;
   cfg = GNUNET_CONFIGURATION_create ();

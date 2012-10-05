@@ -538,6 +538,11 @@ struct LinkControllersContext
  */
 static struct Context *master_context;
 
+/**
+ * Our hostname; we give this to all the peers we start
+ */
+static char *hostname;
+
 /***********/
 /* Handles */
 /***********/
@@ -1237,7 +1242,7 @@ handle_init (void *cls, struct GNUNET_SERVER_Client *client,
   master_context->master_ip = GNUNET_strdup (controller_hostname);
   LOG_DEBUG ("Master Controller IP: %s\n", master_context->master_ip);
   master_context->system =
-      GNUNET_TESTING_system_create ("testbed", master_context->master_ip);
+      GNUNET_TESTING_system_create ("testbed", master_context->master_ip, hostname);
   host =
       GNUNET_TESTBED_host_create_with_id (master_context->host_id, NULL, NULL,
                                           0);
@@ -2832,6 +2837,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free (master_context);
     master_context = NULL;
   }
+  GNUNET_free_non_null (hostname);
 }
 
 
@@ -2896,6 +2902,8 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
     {NULL}
   };
 
+  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string 
+		 (cfg, "testbed", "HOSTNAME", &hostname));
   GNUNET_SERVER_add_handlers (server, message_handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect_cb, NULL);
   ss_map = GNUNET_CONTAINER_multihashmap_create (5);

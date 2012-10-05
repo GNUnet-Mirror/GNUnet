@@ -59,21 +59,23 @@ struct GNUNET_TESTING_Peer;
 
 
 /**
- * Create a system handle.  There must only be one system
- * handle per operating system.  Uses a default range for allowed ports.
- * Ports are still tested for availability.
+ * Create a system handle.  There must only be one system handle per operating
+ * system.  Uses a default range for allowed ports.  Ports are still tested for
+ * availability.
  *
- * @param testdir only the directory name without any path. This is used for
- *          all service homes; the directory will be created in a temporary
- *          location depending on the underlying OS
- * @param controller hostname of the controlling host, 
- *        service configurations are modified to allow 
- *        control connections from this host; can be NULL
+ * @param testdir only the directory name without any path. This is used for all
+ *          service homes; the directory will be created in a temporary location
+ *          depending on the underlying OS
+ * @param controller hostname of the controlling host, service configurations
+ *        are modified to allow control connections from this host; can be NULL
+ * @param hostname the hostname of the system we are using for testing; NULL for
+ *          localhost
  * @return handle to this system, NULL on error
  */
 struct GNUNET_TESTING_System *
 GNUNET_TESTING_system_create (const char *testdir,
-			      const char *controller);
+			      const char *controller,
+			      const char *hostname);
 
 
 /**
@@ -89,6 +91,8 @@ GNUNET_TESTING_system_create (const char *testdir,
  * @param controller hostname of the controlling host, 
  *        service configurations are modified to allow 
  *        control connections from this host; can be NULL
+ * @param hostname the hostname of the system we are using for testing; NULL for
+ *          localhost
  * @param lowport lowest port number this system is allowed to allocate (inclusive)
  * @param highport highest port number this system is allowed to allocate (exclusive)
  * @return handle to this system, NULL on error
@@ -96,6 +100,7 @@ GNUNET_TESTING_system_create (const char *testdir,
 struct GNUNET_TESTING_System *
 GNUNET_TESTING_system_create_with_portrange (const char *testdir,
 					     const char *controller,
+					     const char *hostname,
 					     uint16_t lowport,
 					     uint16_t highport);
 

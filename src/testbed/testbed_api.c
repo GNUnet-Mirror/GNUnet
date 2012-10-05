@@ -1338,10 +1338,12 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
 {
   struct GNUNET_TESTBED_ControllerProc *cp;
   struct GNUNET_TESTBED_HelperInit *msg;
+  const char *hostname;
   static char *const binary_argv[] = {
     HELPER_TESTBED_BINARY, NULL
   };
   
+  hostname = NULL;
   cp = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ControllerProc));
   if ((NULL == host) || (0 == GNUNET_TESTBED_host_get_id_ (host)))
     cp->helper =
@@ -1352,7 +1354,6 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
     char *remote_args[8];
     unsigned int argp;
     const char *username;
-    const char *hostname;
 
     username = GNUNET_TESTBED_host_get_username_ (host);
     hostname = GNUNET_TESTBED_host_get_hostname_ (host);
@@ -1386,7 +1387,7 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
   cp->host = host;
   cp->cb = cb;
   cp->cls = cls;
-  msg = GNUNET_TESTBED_create_helper_init_msg_ (controller_ip, cfg);
+  msg = GNUNET_TESTBED_create_helper_init_msg_ (controller_ip, hostname, cfg);
   cp->msg = &msg->header;
   cp->shandle =
       GNUNET_HELPER_send (cp->helper, &msg->header, GNUNET_NO, &clear_msg, cp);
@@ -1915,12 +1916,14 @@ GNUNET_TESTBED_overlay_write_topology_to_file (struct GNUNET_TESTBED_Controller
  * want to use this in testing
  *
  * @param cname the ip address of the controlling host
+ * @param hostname the hostname of the destination this message is intended for
  * @param cfg the configuration that has to used to start the testbed service
  *          thru helper
  * @return the initialization message
  */
 struct GNUNET_TESTBED_HelperInit *
 GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
+					const char *hostname,
                                         const struct GNUNET_CONFIGURATION_Handle
                                         *cfg)
 {
@@ -1930,6 +1933,7 @@ GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
   size_t config_size;
   size_t xconfig_size;
   uint16_t cname_len;
+  uint16_t hostname_len;
   uint16_t msg_size;
 
   config = GNUNET_CONFIGURATION_serialize (cfg, &config_size);
@@ -1938,15 +1942,22 @@ GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
       GNUNET_TESTBED_compress_config_ (config, config_size, &xconfig);
   GNUNET_free (config);
   cname_len = strlen (cname);
+  hostname_len = (NULL == hostname) ? 0 : strlen (hostname);
   msg_size =
       xconfig_size + cname_len + 1 + sizeof (struct GNUNET_TESTBED_HelperInit);
+  msg_size += hostname_len;
   msg = GNUNET_realloc (xconfig, msg_size);
-  (void) memmove (((void *) &msg[1]) + cname_len + 1, msg, xconfig_size);
+  (void) memmove (((void *) &msg[1]) + cname_len + 1 + hostname_len,
+		  msg,
+		  xconfig_size);
   msg->header.size = htons (msg_size);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_INIT);
   msg->cname_size = htons (cname_len);
+  msg->hostname_size = htons (hostname_len);
   msg->config_size = htons (config_size);
   (void) strcpy ((char *) &msg[1], cname);
+  if (0 != hostname_len)
+    (void) strncpy (((char *) &msg[1]) + cname_len + 1, hostname, hostname_len);
   return msg;
 }
 
