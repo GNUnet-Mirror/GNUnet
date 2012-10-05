@@ -2883,6 +2883,7 @@ tunnel_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_PeerIdentity id;
   struct MeshTunnel *t;
 
+  return; // FIXME fc activate
   cinfo->fc_poll = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
