@@ -1536,6 +1536,11 @@ struct GNUNET_FS_SearchContext
   struct GNUNET_TIME_Absolute start_time;
 
   /**
+   * How long to wait before we try to reconnect to FS service?
+   */
+  struct GNUNET_TIME_Relative reconnect_backoff;
+
+  /**
    * ID of a task that is using this struct and that must be cancelled
    * when the search is being stopped (if not
    * GNUNET_SCHEDULER_NO_TASK).  Used for the task that adds some
@@ -1898,6 +1903,11 @@ struct GNUNET_FS_DownloadContext
    * Time download was started.
    */
   struct GNUNET_TIME_Absolute start_time;
+
+  /**
+   * How long to wait before we try to reconnect to FS service?
+   */
+  struct GNUNET_TIME_Relative reconnect_backoff;
 
   /**
    * Desired level of anonymity.

@@ -1158,8 +1158,15 @@ try_reconnect (struct GNUNET_FS_SearchContext *sc)
     GNUNET_CLIENT_disconnect (sc->client);
     sc->client = NULL;
   }
+  if (0 == sc->reconnect_backoff.rel_value)
+    sc->reconnect_backoff = GNUNET_TIME_UNIT_MILLISECONDS;
+  else
+    sc->reconnect_backoff = GNUNET_TIME_relative_min (GNUNET_TIME_relative_multiply (sc->reconnect_backoff, 2),
+						      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 10));
+
   sc->task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &do_reconnect,
+      GNUNET_SCHEDULER_add_delayed (sc->reconnect_backoff, 
+				    &do_reconnect,
                                     sc);
 }
 
