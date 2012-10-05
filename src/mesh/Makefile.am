@@ -101,7 +101,10 @@ check_PROGRAMS = \
  test_mesh_small_speed \
  test_mesh_small_speed_nobuf \
  test_mesh_small_speed_min \
- test_mesh_small_speed_ack
+ test_mesh_small_speed_backwards \
+ test_mesh_small_speed_nobuf_backwards \
+ test_mesh_small_speed_min_backwards \
+ test_mesh_small_speed_ack 
 
 test_mesh_api_SOURCES = \
  test_mesh_api.c
@@ -202,6 +205,15 @@ test_mesh_small_multicast_LDADD = \
 test_mesh_small_multicast_DEPENDENCIES = \
   libgnunetmesh.la
 
+test_mesh_small_speed_ack_SOURCES = \
+ test_mesh_small.c
+test_mesh_small_speed_ack_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+test_mesh_small_speed_ack_DEPENDENCIES = \
+  libgnunetmesh.la
+
 test_mesh_small_speed_SOURCES = \
  test_mesh_small.c
 test_mesh_small_speed_LDADD = \
@@ -229,14 +241,33 @@ test_mesh_small_speed_nobuf_LDADD = \
 test_mesh_small_speed_nobuf_DEPENDENCIES = \
   libgnunetmesh.la
 
-test_mesh_small_speed_ack_SOURCES = \
+test_mesh_small_speed_backwards_SOURCES = \
  test_mesh_small.c
-test_mesh_small_speed_ack_LDADD = \
+test_mesh_small_speed_backwards_LDADD = \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing_old/libgnunettesting_old.la
-test_mesh_small_speed_ack_DEPENDENCIES = \
+test_mesh_small_speed_backwards_DEPENDENCIES = \
   libgnunetmesh.la
+
+test_mesh_small_speed_min_backwards_SOURCES = \
+ test_mesh_small.c
+test_mesh_small_speed_min_backwards_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+test_mesh_small_speed_min_backwards_DEPENDENCIES = \
+  libgnunetmesh.la
+
+test_mesh_small_speed_nobuf_backwards_SOURCES = \
+ test_mesh_small.c
+test_mesh_small_speed_nobuf_backwards_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+test_mesh_small_speed_nobuf_backwards_DEPENDENCIES = \
+  libgnunetmesh.la
+
 
 if ENABLE_TEST_RUN
 TESTS = test_mesh_api \

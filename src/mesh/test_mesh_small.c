@@ -71,18 +71,38 @@ struct MeshPeer
 static int test;
 
 /**
+ * Flag to send traffic leaf->root in speed tests to test BCK_ACK logic.
+ */
+static int test_backwards = GNUNET_NO;
+
+/**
  * How many events have happened
  */
 static int ok;
 
+/**
+ * Peers that have been connected
+ */
 static int peers_in_tunnel;
 
+/**
+ * Peers that have responded
+ */
 static int peers_responded;
 
+/**
+ * Number of payload packes sent
+ */
 static int data_sent;
 
+/**
+ * Number of payload packets received
+ */
 static int data_received;
 
+/**
+ * Number of payload packed explicitly (app/level) acknowledged
+ */
 static int data_ack;
 
 /**
@@ -1015,6 +1035,12 @@ main (int argc, char *argv[])
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "UNKNOWN\n");
     test = SETUP;
     ok_goal = 0;
+  }
+
+  if (strstr (argv[0], "backwards") != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "BACKWARDS (LEAF TO ROOT)\n");
+    test_backwards = GNUNET_YES;
   }
 
   GNUNET_PROGRAM_run (argc2, argv2,
