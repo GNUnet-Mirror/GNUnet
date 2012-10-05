@@ -235,22 +235,21 @@ struct GNUNET_MESH_Poll
    * Type: GNUNET_MESSAGE_TYPE_MESH_POLL
    */
   struct GNUNET_MessageHeader header;
-  
+
   /**
    * TID of the tunnel
    */
   uint32_t tid GNUNET_PACKED;
-  
+
   /**
    * OID of the tunnel
    */
   struct GNUNET_PeerIdentity oid;
-  
+
   /**
    * Last ACK received.
    */
   uint32_t last_ack;
-  
 };
 
 /**
