@@ -149,7 +149,7 @@ gnunet_rsa_SOURCES = \
  gnunet-rsa.c         
 gnunet_rsa_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL)
+  $(GN_LIBINTL) -lgcrypt
 gnunet_rsa_DEPENDENCIES = \
   libgnunetutil.la
 
