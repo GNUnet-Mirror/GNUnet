@@ -565,12 +565,7 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws)
     GNUNET_assert (pos != NULL);        /* ready_count wrong? */
     ready[p] = pos->next;
     ready_count--;
-    if (current_priority != pos->priority)
-    {
-      current_priority = pos->priority;
-      (void) GNUNET_OS_set_process_priority (GNUNET_OS_process_current (),
-                                             pos->priority);
-    }
+    current_priority = pos->priority;
     current_lifeness = pos->lifeness;
     active_task = pos;
 #if PROFILE_DELAYS
