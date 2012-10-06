@@ -237,6 +237,11 @@ struct GNUNET_CLIENT_Connection
   int in_receive;
 
   /**
+   * Is this the first message we are sending to the service?
+   */
+  int first_message;
+
+  /**
    * How often have we tried to connect?
    */
   unsigned int attempts;
@@ -419,6 +424,7 @@ GNUNET_CLIENT_connect (const char *service_name,
     return NULL;
   connection = do_connect (service_name, cfg, 0);
   client = GNUNET_malloc (sizeof (struct GNUNET_CLIENT_Connection));
+  client->first_message = GNUNET_YES;
   client->attempts = 1;
   client->connection = connection;
   client->service_name = GNUNET_strdup (service_name);
@@ -941,6 +947,7 @@ client_delayed_retry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   th->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   th->client->connection =
       do_connect (th->client->service_name, th->client->cfg, th->client->attempts++);
+  th->client->first_message = GNUNET_YES;
   if (NULL == th->client->connection)
   {
     /* could happen if we're out of sockets */
@@ -1080,7 +1087,9 @@ GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *client,
   th->client = client;
   th->size = size;
   th->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  th->auto_retry = auto_retry;
+  /* always auto-retry on first message to service */
+  th->auto_retry = (GNUNET_YES == client->first_message) ? GNUNET_YES : auto_retry;
+  client->first_message = GNUNET_NO;
   th->notify = notify;
   th->notify_cls = notify_cls;
   th->attempts_left = MAX_ATTEMPTS;
