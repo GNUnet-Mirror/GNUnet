@@ -77,7 +77,7 @@ gns_resolve_name (int af,
 	}
 	else
 	{
-	  fclose (p);
+	  pclose (p);
 	  free (cmd);
 	  return -1;
 	}
@@ -91,14 +91,14 @@ gns_resolve_name (int af,
 	}
 	else
         {
-	  fclose (p);
+	  pclose (p);
 	  free (cmd);
 	  return -1;
 	}
       }
     }
   }
-  fclose (p);
+  pclose (p);
   free (cmd);
   return 0;
 }
