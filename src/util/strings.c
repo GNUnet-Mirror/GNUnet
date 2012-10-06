@@ -631,8 +631,10 @@ GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta,
   const char *unit = _( /* time unit */ "ms");
   uint64_t dval = delta.rel_value;
 
-  if (delta.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
+  if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value == delta.rel_value)
     return _("forever");
+  if (0 == delta.rel_value)
+    return _("0 ms");
   if ( ( (GNUNET_YES == do_round) && 
 	 (dval > 5 * 1000) ) || 
        (0 == (dval % 1000) ))
