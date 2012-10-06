@@ -109,8 +109,7 @@
 /*
  * parts taken from aircrack-ng, parts changend.
  */
-
-#define _GNU_SOURCE
+#include "gnunet_config.h"
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
@@ -1926,8 +1925,8 @@ main (int argc, char *argv[])
 	(void) close (dev.fd_raw);
       return 1;
     }
-  }
 #endif
+  }
 
 
   /* send MAC address of the WLAN interface to STDOUT first */
