@@ -744,10 +744,6 @@ try_connect_using_address (void *cls, const struct sockaddr *addr,
   {
     /* maybe refused / unsupported address, try next */
     LOG_STRERROR (GNUNET_ERROR_TYPE_INFO, "connect");
-#if 0
-    LOG (GNUNET_ERROR_TYPE_INFO, _("Failed to connect to `%s' (%p)\n"),
-         GNUNET_a2s (ap->addr, ap->addrlen), connection);
-#endif
     GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (ap->sock));
     GNUNET_free (ap);
     return;
