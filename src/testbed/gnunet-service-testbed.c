@@ -61,12 +61,6 @@
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
- * Timeout of Transport try_connect requests
- */
-#define TRANSPORT_TRY_CONNECT_TIMEOUT                                   \
-  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100)
-
-/**
  * The main context information associated with the client which started us
  */
 struct Context
@@ -442,6 +436,12 @@ struct OverlayConnectContext
    * The id of peer B
    */
   uint32_t other_peer_id;
+
+  /**
+   * Number of times we tried to send hello; used to increase delay in offering
+   * hellos
+   */
+  uint16_t retries;
 };
 
 
@@ -477,6 +477,12 @@ struct RequestOverlayConnectContext
    * Task to timeout RequestOverlayConnect
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_rocc_task_id;
+  
+  /**
+   * Number of times we tried to send hello; used to increase delay in offering
+   * hellos
+   */
+  uint16_t retries;
   
 };
 
@@ -2225,8 +2231,10 @@ send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TRANSPORT_offer_hello (occ->p2th, occ->hello, NULL, NULL);
     GNUNET_TRANSPORT_try_connect (occ->p2th, &occ->peer_identity);
     occ->send_hello_task =
-        GNUNET_SCHEDULER_add_delayed (TRANSPORT_TRY_CONNECT_TIMEOUT,
-                                      &send_hello, occ);
+        GNUNET_SCHEDULER_add_delayed
+        (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+                                        100 * (pow (2, occ->retries++))),
+         &send_hello, occ);
   }
   GNUNET_free (other_peer_str);  
 }
@@ -2594,8 +2602,10 @@ attempt_connect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_TRANSPORT_offer_hello (rocc->th, rocc->hello, NULL, NULL);
   GNUNET_TRANSPORT_try_connect (rocc->th, &rocc->a_id);
   rocc->attempt_connect_task_id = 
-      GNUNET_SCHEDULER_add_delayed (TRANSPORT_TRY_CONNECT_TIMEOUT,
-                                    &attempt_connect_task, rocc);
+      GNUNET_SCHEDULER_add_delayed 
+      (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+                                      100 * (pow (2, rocc->retries++))),
+       &attempt_connect_task, rocc);
 }
 
 
