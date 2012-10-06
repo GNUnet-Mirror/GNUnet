@@ -92,7 +92,14 @@ controller_event_cb (void *cls,
     }
     break;
   default:
-    GNUNET_assert (0);
+    GNUNET_break (0);
+    if ((GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type) && 
+        (NULL != event->details.operation_finished.emsg))
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "An operation failed with error: %s\n",
+                  event->details.operation_finished.emsg);
+    result = GNUNET_SYSERR;
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
   }  
 }
 
