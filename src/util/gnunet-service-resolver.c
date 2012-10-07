@@ -577,4 +577,19 @@ main (int argc, char *const *argv)
   return ret;
 }
 
+#ifdef LINUX
+#include <malloc.h>
+
+/**
+ * MINIMIZE heap size (way below 128k) since this process doesn't need much.
+ */
+void __attribute__ ((constructor)) GNUNET_ARM_memory_init ()
+{
+  mallopt (M_TRIM_THRESHOLD, 4 * 1024);
+  mallopt (M_TOP_PAD, 1 * 1024);
+  malloc_trim (0);
+}
+#endif
+
+
 /* end of gnunet-service-resolver.c */

@@ -111,6 +111,9 @@
 #ifdef WINDOWS
 #include <malloc.h>             /* for alloca(), on other OSes it's in stdlib.h */
 #endif
+#ifdef HAVE_MALLOC_H
+#include <malloc.h>             /* for mallinfo on GNU */
+#endif
 #ifndef _MSC_VER
 #include <unistd.h>             /* KLB_FIX */
 #endif
