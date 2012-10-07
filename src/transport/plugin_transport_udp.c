@@ -2348,7 +2348,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
 
   GNUNET_BANDWIDTH_tracker_init (&p->tracker,
                                  GNUNET_BANDWIDTH_value_init ((uint32_t)udp_max_bps), 30);
-  p->sessions = GNUNET_CONTAINER_multihashmap_create (10);
+  p->sessions = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
   p->defrag_ctxs = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   p->mst = GNUNET_SERVER_mst_create (&process_inbound_tokenized_messages, p);
   p->port = port;

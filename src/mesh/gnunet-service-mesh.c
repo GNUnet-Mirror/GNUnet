@@ -4354,7 +4354,7 @@ tunnel_new (GNUNET_PEER_Id owner,
   t->bck_ack = INITIAL_WINDOW_SIZE - 1;
   t->last_fwd_ack = INITIAL_WINDOW_SIZE - 1;
   t->local_tid = local;
-  t->children_fc = GNUNET_CONTAINER_multihashmap_create (8);
+  t->children_fc = GNUNET_CONTAINER_multihashmap_create (8, GNUNET_NO);
   n_tunnels++;
   GNUNET_STATISTICS_update (stats, "# tunnels", 1, GNUNET_NO);
 
@@ -5286,7 +5286,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     if (NULL == t->peers)
     {
       /* New tunnel! Notify clients on first payload message. */
-      t->peers = GNUNET_CONTAINER_multihashmap_create (4);
+      t->peers = GNUNET_CONTAINER_multihashmap_create (4, GNUNET_NO);
     }
     GNUNET_break (GNUNET_SYSERR !=
                   GNUNET_CONTAINER_multihashmap_put (t->peers,
@@ -6534,7 +6534,7 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_MESH_ApplicationType at;
     struct GNUNET_HashCode hc;
 
-    c->apps = GNUNET_CONTAINER_multihashmap_create (napps);
+    c->apps = GNUNET_CONTAINER_multihashmap_create (napps, GNUNET_NO);
     for (i = 0; i < napps; i++)
     {
       at = ntohl (a[i]);
@@ -6558,7 +6558,7 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
     struct GNUNET_HashCode hc;
 
     t = (uint16_t *) & a[napps];
-    c->types = GNUNET_CONTAINER_multihashmap_create (ntypes);
+    c->types = GNUNET_CONTAINER_multihashmap_create (ntypes, GNUNET_NO);
     for (i = 0; i < ntypes; i++)
     {
       u16 = ntohs (t[i]);
@@ -6577,9 +6577,9 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
               " client has %u+%u subscriptions\n", napps, ntypes);
 
   GNUNET_CONTAINER_DLL_insert (clients, clients_tail, c);
-  c->own_tunnels = GNUNET_CONTAINER_multihashmap_create (32);
-  c->incoming_tunnels = GNUNET_CONTAINER_multihashmap_create (32);
-  c->ignore_tunnels = GNUNET_CONTAINER_multihashmap_create (32);
+  c->own_tunnels = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
+  c->incoming_tunnels = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
+  c->ignore_tunnels = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
   GNUNET_SERVER_notification_context_add (nc, client);
   GNUNET_STATISTICS_update (stats, "# clients", 1, GNUNET_NO);
 
@@ -6697,7 +6697,7 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
   next_tid = next_tid & ~GNUNET_MESH_LOCAL_TUNNEL_ID_CLI;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CREATED TUNNEL %s [%x] (%x)\n",
               GNUNET_i2s (&my_full_id), t->id.tid, t->local_tid);
-  t->peers = GNUNET_CONTAINER_multihashmap_create (32);
+  t->peers = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "new tunnel created\n");
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -7370,8 +7370,8 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
   info->description = GNUNET_malloc (len + 1);
   memcpy (info->description, string, len);
   info->description[len] = '\0';
-  info->dht_get_handles = GNUNET_CONTAINER_multihashmap_create(32);
-  info->dht_get_results = GNUNET_CONTAINER_multihashmap_create(32);
+  info->dht_get_handles = GNUNET_CONTAINER_multihashmap_create(32, GNUNET_NO);
+  info->dht_get_results = GNUNET_CONTAINER_multihashmap_create(32, GNUNET_NO);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   string: %s\n", info->description);
 
   ctx = GNUNET_malloc (sizeof (struct MeshRegexSearchContext));
@@ -8261,11 +8261,11 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     dht_replication_level = 10;
   }
 
-  tunnels = GNUNET_CONTAINER_multihashmap_create (32);
-  incoming_tunnels = GNUNET_CONTAINER_multihashmap_create (32);
-  peers = GNUNET_CONTAINER_multihashmap_create (32);
-  applications = GNUNET_CONTAINER_multihashmap_create (32);
-  types = GNUNET_CONTAINER_multihashmap_create (32);
+  tunnels = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
+  incoming_tunnels = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
+  peers = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
+  applications = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
+  types = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
 
   dht_handle = GNUNET_DHT_connect (c, 64);
   if (NULL == dht_handle)

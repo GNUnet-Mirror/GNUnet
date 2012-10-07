@@ -40,7 +40,7 @@ testMap (int i)
   const char *ret;
   int j;
 
-  CHECK (NULL != (m = GNUNET_CONTAINER_multihashmap_create (i)));
+  CHECK (NULL != (m = GNUNET_CONTAINER_multihashmap_create (i, GNUNET_NO)));
   memset (&k1, 0, sizeof (k1));
   memset (&k2, 1, sizeof (k2));
   CHECK (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (m, &k1));

@@ -1306,7 +1306,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                              "TARGET-CONNECTION-COUNT", &opt))
     opt = 16;
   target_connection_count = (unsigned int) opt;
-  peers = GNUNET_CONTAINER_multihashmap_create (target_connection_count * 2);
+  peers = GNUNET_CONTAINER_multihashmap_create (target_connection_count * 2, GNUNET_NO);
 
   if ((friends_only == GNUNET_YES) || (minimum_friend_count > 0))
     read_friends_file (cfg);

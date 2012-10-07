@@ -415,8 +415,8 @@ GNUNET_FS_share_tree_trim (struct GNUNET_FS_ShareTreeItem *toplevel)
 
   if (toplevel == NULL)
     return;  
-  tc.keywordcounter = GNUNET_CONTAINER_multihashmap_create (1024);
-  tc.metacounter = GNUNET_CONTAINER_multihashmap_create (1024);
+  tc.keywordcounter = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_NO);
+  tc.metacounter = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_NO);
   share_tree_trim (&tc, toplevel);
   GNUNET_CONTAINER_multihashmap_destroy (tc.keywordcounter);
   GNUNET_CONTAINER_multihashmap_destroy (tc.metacounter);

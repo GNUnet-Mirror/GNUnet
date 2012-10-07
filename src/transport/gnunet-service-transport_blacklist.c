@@ -687,7 +687,8 @@ GST_blacklist_add_peer (const struct GNUNET_PeerIdentity *peer,
               GNUNET_i2s (peer), transport_name);
   if (blacklist == NULL)
     blacklist =
-        GNUNET_CONTAINER_multihashmap_create (TRANSPORT_BLACKLIST_HT_SIZE);
+      GNUNET_CONTAINER_multihashmap_create (TRANSPORT_BLACKLIST_HT_SIZE,
+					    GNUNET_NO);
   GNUNET_CONTAINER_multihashmap_put (blacklist, &peer->hashPubKey,
                                      GNUNET_strdup (transport_name),
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);

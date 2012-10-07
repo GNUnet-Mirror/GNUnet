@@ -298,7 +298,7 @@ handle_client_init (void *cls, struct GNUNET_SERVER_Client *client,
   c->options = ntohl (im->options);
   all_client_options |= c->options;
   c->types = (const uint16_t *) &c[1];
-  c->connectmap = GNUNET_CONTAINER_multihashmap_create (16);
+  c->connectmap = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_put (c->connectmap,
                                                     &GSC_my_identity.hashPubKey,
@@ -349,7 +349,7 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   if (c->requests == NULL)
-    c->requests = GNUNET_CONTAINER_multihashmap_create (16);
+    c->requests = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client asked for transmission to `%s'\n",
               GNUNET_i2s (&req->peer));

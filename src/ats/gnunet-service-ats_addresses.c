@@ -929,7 +929,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   running = GNUNET_NO;
 
-  addresses = GNUNET_CONTAINER_multihashmap_create (128);
+  addresses = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
   GNUNET_assert (NULL != addresses);
 
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", "WAN_QUOTA_IN", &quota_wan_in_str))

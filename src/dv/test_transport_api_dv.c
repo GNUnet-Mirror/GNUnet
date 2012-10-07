@@ -1180,7 +1180,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                     (GNUNET_TIME_UNIT_MINUTES, 5), &end_badly,
                                     "didn't start all daemons in reasonable amount of time!!!");
 
-  peer_daemon_hash = GNUNET_CONTAINER_multihashmap_create (peers_left);
+  peer_daemon_hash = GNUNET_CONTAINER_multihashmap_create (peers_left, GNUNET_NO);
   pg = GNUNET_TESTING_daemons_start (cfg, peers_left,   /* Total number of peers */
                                      peers_left,        /* Number of outstanding connections */
                                      peers_left,        /* Number of parallel ssh connections, or peers being started at once */

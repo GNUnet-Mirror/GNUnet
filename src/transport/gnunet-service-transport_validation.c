@@ -696,7 +696,8 @@ process_peerinfo_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
 void
 GST_validation_start ()
 {
-  validation_map = GNUNET_CONTAINER_multihashmap_create (VALIDATION_MAP_SIZE);
+  validation_map = GNUNET_CONTAINER_multihashmap_create (VALIDATION_MAP_SIZE,
+							 GNUNET_NO);
   pnc = GNUNET_PEERINFO_notify (GST_cfg, &process_peerinfo_hello, NULL);
 }
 

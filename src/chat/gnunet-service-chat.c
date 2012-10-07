@@ -1706,7 +1706,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   cfg = c;
   nc = GNUNET_SERVER_notification_context_create (server, 16);
   connected_peers =
-      GNUNET_CONTAINER_multihashmap_create (EXPECTED_NEIGHBOUR_COUNT);
+    GNUNET_CONTAINER_multihashmap_create (EXPECTED_NEIGHBOUR_COUNT, GNUNET_NO);
   GNUNET_SERVER_add_handlers (server, handlers);
   core =
       GNUNET_CORE_connect (cfg, NULL, &core_init,

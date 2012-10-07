@@ -268,7 +268,7 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
                             GNUNET_NO);
   entry = GNUNET_malloc (sizeof (struct HostEntry));
   entry->identity = *identity;
-  GNUNET_CONTAINER_multihashmap_put (hostmap, &identity->hashPubKey, entry,
+  GNUNET_CONTAINER_multihashmap_put (hostmap, &entry->identity.hashPubKey, entry,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   fn = get_host_filename (identity);
   entry->hello = read_host_file (fn, GNUNET_YES);
@@ -776,7 +776,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   char *ip;
   struct DirScanContext dsc;
 
-  hostmap = GNUNET_CONTAINER_multihashmap_create (1024);
+  hostmap = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_YES);
   stats = GNUNET_STATISTICS_create ("peerinfo", cfg);
   notify_list = GNUNET_SERVER_notification_context_create (server, 0);
   GNUNET_assert (GNUNET_OK ==

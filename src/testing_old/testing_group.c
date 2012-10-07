@@ -3890,9 +3890,9 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
 
   for (i = 0; i < pg->total; i++)
   {
-    pg->peers[i].allowed_peers = GNUNET_CONTAINER_multihashmap_create (100);
-    pg->peers[i].connect_peers = GNUNET_CONTAINER_multihashmap_create (100);
-    pg->peers[i].blacklisted_peers = GNUNET_CONTAINER_multihashmap_create (100);
+    pg->peers[i].allowed_peers = GNUNET_CONTAINER_multihashmap_create (100, GNUNET_NO);
+    pg->peers[i].connect_peers = GNUNET_CONTAINER_multihashmap_create (100, GNUNET_NO);
+    pg->peers[i].blacklisted_peers = GNUNET_CONTAINER_multihashmap_create (100, GNUNET_NO);
     pg->peers[i].pg = pg;
   }
 #endif
@@ -4291,7 +4291,7 @@ choose_random_connections (struct GNUNET_TESTING_PeerGroup *pg,
     random_ctx.percentage = percentage;
     random_ctx.pg = pg;
     pg->peers[pg_iter].connect_peers_working_set =
-        GNUNET_CONTAINER_multihashmap_create (pg->total);
+      GNUNET_CONTAINER_multihashmap_create (pg->total, GNUNET_NO);
     GNUNET_CONTAINER_multihashmap_iterate (pg->peers[pg_iter].connect_peers,
                                            &random_connect_iterator,
                                            &random_ctx);
@@ -4450,7 +4450,7 @@ choose_minimum (struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
   {
     pg->peers[pg_iter].connect_peers_working_set =
-        GNUNET_CONTAINER_multihashmap_create (num);
+      GNUNET_CONTAINER_multihashmap_create (num, GNUNET_NO);
   }
 
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
@@ -4679,7 +4679,7 @@ perform_dfs (struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
   {
     pg->peers[pg_iter].connect_peers_working_set =
-        GNUNET_CONTAINER_multihashmap_create (num);
+      GNUNET_CONTAINER_multihashmap_create (num, GNUNET_NO);
   }
 
   starting_peer = 0;

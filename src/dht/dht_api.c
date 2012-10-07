@@ -915,7 +915,7 @@ GNUNET_DHT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   handle->cfg = cfg;
   handle->uid_gen =
       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
-  handle->active_requests = GNUNET_CONTAINER_multihashmap_create (ht_len);
+  handle->active_requests = GNUNET_CONTAINER_multihashmap_create (ht_len, GNUNET_NO);
   if (GNUNET_NO == try_connect (handle))
   {
     GNUNET_DHT_disconnect (handle);

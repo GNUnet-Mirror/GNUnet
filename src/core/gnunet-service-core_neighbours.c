@@ -464,7 +464,7 @@ GSC_NEIGHBOURS_transmit (const struct GNUNET_PeerIdentity *target,
 int
 GSC_NEIGHBOURS_init ()
 {
-  neighbours = GNUNET_CONTAINER_multihashmap_create (128);
+  neighbours = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
   transport =
       GNUNET_TRANSPORT_connect (GSC_cfg, &GSC_my_identity, NULL,
                                 &handle_transport_receive,

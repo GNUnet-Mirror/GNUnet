@@ -2242,7 +2242,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Scanning directory `%s' for zone files\n", zonefile_directory);
-  zonekeys = GNUNET_CONTAINER_multihashmap_create (16);
+  zonekeys = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
   counter = 0;
   GNUNET_DISK_directory_scan (zonefile_directory, zonekey_file_it, &counter);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 

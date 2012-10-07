@@ -2916,7 +2916,7 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
 		 (cfg, "testbed", "HOSTNAME", &hostname));
   GNUNET_SERVER_add_handlers (server, message_handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect_cb, NULL);
-  ss_map = GNUNET_CONTAINER_multihashmap_create (5);
+  ss_map = GNUNET_CONTAINER_multihashmap_create (5, GNUNET_NO);
   shutdown_task_id =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                     &shutdown_task, NULL);

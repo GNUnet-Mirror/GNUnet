@@ -3290,9 +3290,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   neighbor_max_heap =
       GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MAX);
 
-  direct_neighbors = GNUNET_CONTAINER_multihashmap_create (max_hosts);
+  direct_neighbors = GNUNET_CONTAINER_multihashmap_create (max_hosts, GNUNET_NO);
   extended_neighbors =
-      GNUNET_CONTAINER_multihashmap_create (max_table_size * 3);
+    GNUNET_CONTAINER_multihashmap_create (max_table_size * 3, GNUNET_NO);
 
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
   coreAPI = GNUNET_CORE_connect (cfg, NULL,  /* FIXME: anything we want to pass around? */

@@ -615,7 +615,7 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
       (sizeof (respect) == GNUNET_DISK_fn_read (fn, &respect, sizeof (respect))))
     cp->disk_respect = cp->ppd.respect = ntohl (respect);
   GNUNET_free (fn);
-  cp->request_map = GNUNET_CONTAINER_multihashmap_create (128);
+  cp->request_map = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CONTAINER_multihashmap_put (cp_map, &peer->hashPubKey,
                                                    cp,
@@ -1811,7 +1811,7 @@ cron_flush_respect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 void
 GSF_connected_peer_init_ ()
 {
-  cp_map = GNUNET_CONTAINER_multihashmap_create (128);
+  cp_map = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
   ats = GNUNET_ATS_performance_init (GSF_cfg, NULL, NULL);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_filename (GSF_cfg, "fs",

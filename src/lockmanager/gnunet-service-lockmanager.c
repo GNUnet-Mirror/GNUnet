@@ -821,7 +821,7 @@ lockmanager_run (void *cls, struct GNUNET_SERVER_Handle *server,
   };
   GNUNET_SERVER_add_handlers (server, message_handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect_cb, NULL);
-  lock_map = GNUNET_CONTAINER_multihashmap_create (30);
+  lock_map = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
 }

@@ -117,7 +117,7 @@ GNUNET_PEER_intern (const struct GNUNET_PeerIdentity *pid)
   if (pid == NULL)
     return 0;
   if (NULL == map)
-    map = GNUNET_CONTAINER_multihashmap_create (32);
+    map = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_YES);
   off = (long) GNUNET_CONTAINER_multihashmap_get (map, &pid->hashPubKey);
   e = (off == 0) ? NULL : &table[off];
   if (e != NULL)
@@ -146,7 +146,7 @@ GNUNET_PEER_intern (const struct GNUNET_PeerIdentity *pid)
   table[ret].rc = 1;
   table[ret].pid = ret;
   GNUNET_break (GNUNET_OK ==
-                GNUNET_CONTAINER_multihashmap_put (map, &pid->hashPubKey,
+                GNUNET_CONTAINER_multihashmap_put (map, &table[ret].id.hashPubKey,
                                                    (void *) (long) ret,
                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   return ret;

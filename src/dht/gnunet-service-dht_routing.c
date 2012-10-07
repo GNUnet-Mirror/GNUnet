@@ -429,7 +429,7 @@ void
 GDS_ROUTING_init ()
 {
   recent_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  recent_map = GNUNET_CONTAINER_multihashmap_create (DHT_MAX_RECENT * 4 / 3);
+  recent_map = GNUNET_CONTAINER_multihashmap_create (DHT_MAX_RECENT * 4 / 3, GNUNET_NO);
 }
 
 

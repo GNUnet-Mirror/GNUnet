@@ -80,10 +80,20 @@ struct GNUNET_CONTAINER_MultiHashMap
  * Create a multi hash map.
  *
  * @param len initial size (map will grow as needed)
+ * @param do_not_copy_keys GNUNET_NO is always safe and should be used by default;
+ *                         GNUNET_YES means that on 'put', the 'key' does not have
+ *                         to be copied as the destination of the pointer is 
+ *                         guaranteed to be life as long as the value is stored in
+ *                         the hashmap.  This can significantly reduce memory 
+ *                         consumption, but of course is also a recipie for 
+ *                         heap corruption if the assumption is not true.  Only
+ *                         use this if (1) memory use is important in this case and
+ *                         (2) you have triple-checked that the invariant holds
  * @return NULL on error
  */
 struct GNUNET_CONTAINER_MultiHashMap *
-GNUNET_CONTAINER_multihashmap_create (unsigned int len)
+GNUNET_CONTAINER_multihashmap_create (unsigned int len,
+				      int do_not_copy_keys)
 {
   struct GNUNET_CONTAINER_MultiHashMap *ret;
 

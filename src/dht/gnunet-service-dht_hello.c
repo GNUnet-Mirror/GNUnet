@@ -99,7 +99,7 @@ void
 GDS_HELLO_init ()
 {
   pnc = GNUNET_PEERINFO_notify (GDS_cfg, &process_hello, NULL);
-  peer_to_hello = GNUNET_CONTAINER_multihashmap_create (256);
+  peer_to_hello = GNUNET_CONTAINER_multihashmap_create (256, GNUNET_NO);
 }
 
 

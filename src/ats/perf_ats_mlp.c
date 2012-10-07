@@ -213,7 +213,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   p = GNUNET_malloc (peers * sizeof (struct ATS_Peer));
   a = GNUNET_malloc (peers * addresses * sizeof (struct ATS_Address));
 
-  amap = GNUNET_CONTAINER_multihashmap_create(addresses * peers);
+  amap = GNUNET_CONTAINER_multihashmap_create(addresses * peers, GNUNET_NO);
 
   mlp->auto_solve = GNUNET_NO;
   if (start == 0)

@@ -122,7 +122,7 @@ GAS_reservations_set_bandwidth (const struct GNUNET_PeerIdentity *peer,
 void
 GAS_reservations_init ()
 {
-  trackers = GNUNET_CONTAINER_multihashmap_create (128);
+  trackers = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
 }
 
 

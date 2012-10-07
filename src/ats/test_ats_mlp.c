@@ -76,7 +76,7 @@ check (void *cls, char *const *args, const char *cfgfile,
 
   stats = GNUNET_STATISTICS_create("ats", cfg);
 
-  addresses = GNUNET_CONTAINER_multihashmap_create (10);
+  addresses = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
 
   mlp = GAS_mlp_init (cfg, NULL, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
   mlp->auto_solve = GNUNET_NO;

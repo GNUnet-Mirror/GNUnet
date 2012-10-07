@@ -1415,7 +1415,7 @@ key_generation_cb (void *cls,
       GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
                                           &find_proof, NULL);
 
-  peers = GNUNET_CONTAINER_multihashmap_create (128);
+  peers = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
   GNUNET_SERVER_add_handlers (srv, handlers);
   nc = GNUNET_SERVER_notification_context_create (srv, 1);
   /* Connect to core service and register core handlers */

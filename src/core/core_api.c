@@ -1173,7 +1173,7 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->handlers = handlers;
   h->hcnt = 0;
   h->currently_down = GNUNET_YES;
-  h->peers = GNUNET_CONTAINER_multihashmap_create (128);
+  h->peers = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
   h->retry_backoff = GNUNET_TIME_UNIT_MILLISECONDS;
   if (NULL != handlers)
     while (handlers[h->hcnt].callback != NULL)

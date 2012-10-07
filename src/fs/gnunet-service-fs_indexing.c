@@ -613,7 +613,7 @@ GNUNET_FS_indexing_init (const struct GNUNET_CONFIGURATION_Handle *c,
 {
   cfg = c;
   dsh = d;
-  ifm = GNUNET_CONTAINER_multihashmap_create (128);
+  ifm = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
   read_index_list ();
   return GNUNET_OK;
 }

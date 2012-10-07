@@ -853,7 +853,8 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *ns,
     ns->update_map =
         GNUNET_CONTAINER_multihashmap_create (2 +
                                               3 * ns->update_node_count /
-                                              4);
+                                              4,
+					      GNUNET_NO);
     for (i = 0; i < ns->update_node_count; i++)
     {
       nsn = ns->update_nodes[i];

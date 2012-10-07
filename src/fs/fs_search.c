@@ -1202,7 +1202,7 @@ search_start (struct GNUNET_FS_Handle *h, const struct GNUNET_FS_Uri *uri,
     sc->psearch_result = psearch;
     psearch->update_search = sc;
   }
-  sc->master_result_map = GNUNET_CONTAINER_multihashmap_create (16);
+  sc->master_result_map = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
   sc->client_info = cctx;
   if (GNUNET_OK != GNUNET_FS_search_start_searching_ (sc))
   {
@@ -1256,7 +1256,7 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
       sc->requests[i].mandatory = (sc->uri->data.ksk.keywords[i][0] == '+');
       if (sc->requests[i].mandatory)
         sc->mandatory_count++;
-      sc->requests[i].results = GNUNET_CONTAINER_multihashmap_create (4);
+      sc->requests[i].results = GNUNET_CONTAINER_multihashmap_create (4, GNUNET_NO);
       GNUNET_CRYPTO_hash (keyword, strlen (keyword), &sc->requests[i].key);
     }
   }

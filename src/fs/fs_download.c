@@ -2101,7 +2101,7 @@ create_download_context (struct GNUNET_FS_Handle *h,
   dc->anonymity = anonymity;
   dc->options = options;
   dc->active =
-      GNUNET_CONTAINER_multihashmap_create (1 + 2 * (length / DBLOCK_SIZE));
+    GNUNET_CONTAINER_multihashmap_create (1 + 2 * (length / DBLOCK_SIZE), GNUNET_NO);
   dc->treedepth =
       GNUNET_FS_compute_depth (GNUNET_FS_uri_chk_get_file_size (dc->uri));
   if ((NULL == filename) && (is_recursive_download (dc)))

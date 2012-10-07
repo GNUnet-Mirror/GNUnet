@@ -567,7 +567,7 @@ GNUNET_LOCKMANAGER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "%s() END\n", __func__);
     return NULL;
   }
-  h->hashmap = GNUNET_CONTAINER_multihashmap_create (15);
+  h->hashmap = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
   GNUNET_assert (NULL != h->hashmap);
   h->in_replies = GNUNET_YES;
   GNUNET_CLIENT_receive (h->conn, &handle_replies, h,

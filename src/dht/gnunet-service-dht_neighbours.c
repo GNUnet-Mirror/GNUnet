@@ -2018,7 +2018,7 @@ GDS_NEIGHBOURS_init ()
                            GNUNET_NO, core_handlers);
   if (coreAPI == NULL)
     return GNUNET_SYSERR;
-  all_known_peers = GNUNET_CONTAINER_multihashmap_create (256);
+  all_known_peers = GNUNET_CONTAINER_multihashmap_create (256, GNUNET_NO);
   return GNUNET_OK;
 }
 

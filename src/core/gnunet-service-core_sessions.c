@@ -782,7 +782,7 @@ GSC_SESSIONS_add_to_typemap (const struct GNUNET_PeerIdentity *peer,
 void
 GSC_SESSIONS_init ()
 {
-  sessions = GNUNET_CONTAINER_multihashmap_create (128);
+  sessions = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
 }
 
 

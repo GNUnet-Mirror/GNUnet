@@ -416,7 +416,7 @@ tree_new (GNUNET_PEER_Id peer)
   struct MeshTunnelTree *tree;
 
   tree = GNUNET_malloc (sizeof (struct MeshTunnelTree));
-  tree->first_hops = GNUNET_CONTAINER_multihashmap_create (32);
+  tree->first_hops = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
   tree->root = tree_node_new (NULL, peer);
   tree->root->status = MESH_PEER_ROOT;
 

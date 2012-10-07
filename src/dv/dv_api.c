@@ -587,7 +587,7 @@ GNUNET_DV_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                        GNUNET_YES, &transmit_start,
                                        start_context);
 
-  handle->send_callbacks = GNUNET_CONTAINER_multihashmap_create (100);
+  handle->send_callbacks = GNUNET_CONTAINER_multihashmap_create (100, GNUNET_NO);
 
   return handle;
 }

@@ -655,7 +655,7 @@ testservice_task (void *cls,
   }
   if (iterate_connections)
   {
-    peers = GNUNET_CONTAINER_multihashmap_create (20);
+    peers = GNUNET_CONTAINER_multihashmap_create (20, GNUNET_NO);
     GNUNET_TRANSPORT_peer_get_active_addresses (cfg, NULL, GNUNET_YES,
                                                 TIMEOUT,
                                                 &process_address, (void *) cfg);

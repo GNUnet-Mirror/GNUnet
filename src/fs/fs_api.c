@@ -2681,7 +2681,7 @@ deserialize_download (struct GNUNET_FS_Handle *h,
   }
   dc->options = (enum GNUNET_FS_DownloadOptions) options;
   dc->active =
-      GNUNET_CONTAINER_multihashmap_create (1 + 2 * (dc->length / DBLOCK_SIZE));
+    GNUNET_CONTAINER_multihashmap_create (1 + 2 * (dc->length / DBLOCK_SIZE), GNUNET_NO);
   dc->has_finished = (int) status;
   dc->treedepth =
       GNUNET_FS_compute_depth (GNUNET_FS_uri_chk_get_file_size (dc->uri));
@@ -2804,7 +2804,7 @@ deserialize_search (struct GNUNET_FS_Handle *h,
     goto cleanup;
   }
   sc->options = (enum GNUNET_FS_SearchOptions) options;
-  sc->master_result_map = GNUNET_CONTAINER_multihashmap_create (16);
+  sc->master_result_map = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
   dn = get_serialization_file_name_in_dir (h,
                                            (sc->psearch_result ==
                                             NULL) ?

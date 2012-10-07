@@ -3084,9 +3084,9 @@ run (void *cls,
 					     &max_tunnel_mappings))
     max_tunnel_mappings = 200;
 
-  destination_map = GNUNET_CONTAINER_multihashmap_create (max_destination_mappings * 2);
+  destination_map = GNUNET_CONTAINER_multihashmap_create (max_destination_mappings * 2, GNUNET_NO);
   destination_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  tunnel_map = GNUNET_CONTAINER_multihashmap_create (max_tunnel_mappings * 2);
+  tunnel_map = GNUNET_CONTAINER_multihashmap_create (max_tunnel_mappings * 2, GNUNET_NO);
   tunnel_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
 
 

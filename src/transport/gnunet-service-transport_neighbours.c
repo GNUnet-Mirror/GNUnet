@@ -3197,7 +3197,7 @@ GST_neighbours_start (void *cls,
   connect_notify_cb = connect_cb;
   disconnect_notify_cb = disconnect_cb;
   address_change_cb = peer_address_cb;
-  neighbours = GNUNET_CONTAINER_multihashmap_create (NEIGHBOUR_TABLE_SIZE);
+  neighbours = GNUNET_CONTAINER_multihashmap_create (NEIGHBOUR_TABLE_SIZE, GNUNET_NO);
 }
 
 

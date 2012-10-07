@@ -1056,7 +1056,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   init();
 
   stats = GNUNET_STATISTICS_create ("watchdog", cfg);
-  peers = GNUNET_CONTAINER_multihashmap_create (20);
+  peers = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
 
   th = GNUNET_TRANSPORT_connect(cfg, NULL, NULL,
                                 &transport_notify_receive_cb,

@@ -353,7 +353,7 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
                                  MAX_BANDWIDTH_CARRY_S);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap_put (h->neighbours,
-                                                    &pid->hashPubKey, n,
+                                                    &n->id.hashPubKey, n,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   return n;
 }
@@ -1191,7 +1191,7 @@ GNUNET_TRANSPORT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ret->nd_cb = nd;
   ret->reconnect_delay = GNUNET_TIME_UNIT_ZERO;
   ret->neighbours =
-      GNUNET_CONTAINER_multihashmap_create (STARTING_NEIGHBOURS_SIZE);
+    GNUNET_CONTAINER_multihashmap_create (STARTING_NEIGHBOURS_SIZE, GNUNET_YES);
   ret->ready_heap =
       GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting to transport service.\n");

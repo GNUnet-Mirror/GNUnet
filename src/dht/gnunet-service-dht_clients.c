@@ -1351,7 +1351,7 @@ GDS_CLIENTS_init (struct GNUNET_SERVER_Handle *server)
      sizeof (struct GNUNET_DHT_MonitorStartStopMessage)},
     {NULL, NULL, 0, 0}
   };
-  forward_map = GNUNET_CONTAINER_multihashmap_create (1024);
+  forward_map = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_NO);
   retry_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);

@@ -690,7 +690,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   cfg_filename = GNUNET_strdup (cfgfile);
   cfg = c;
   dir_name = args[0];
-  work_finished = GNUNET_CONTAINER_multihashmap_create (1024);
+  work_finished = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_NO);
   load_state ();
   run_task = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
 						 &scan, NULL);

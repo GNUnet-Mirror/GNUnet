@@ -572,7 +572,7 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
   if (NULL == pp)
   {
     pp = GNUNET_malloc (sizeof (struct PeerPlan));
-    pp->plan_map = GNUNET_CONTAINER_multihashmap_create (128);
+    pp->plan_map = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
     pp->priority_heap =
         GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MAX);
     pp->delay_heap =
@@ -760,7 +760,7 @@ GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr)
 void
 GSF_plan_init ()
 {
-  plans = GNUNET_CONTAINER_multihashmap_create (256);
+  plans = GNUNET_CONTAINER_multihashmap_create (256, GNUNET_NO);
 }
 
 

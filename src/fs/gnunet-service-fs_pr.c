@@ -1627,7 +1627,7 @@ GSF_pending_request_init_ ()
   active_to_migration =
       GNUNET_CONFIGURATION_get_value_yesno (GSF_cfg, "FS", "CONTENT_CACHING");
   datastore_put_load = GNUNET_LOAD_value_init (DATASTORE_LOAD_AUTODECLINE);
-  pr_map = GNUNET_CONTAINER_multihashmap_create (32 * 1024);
+  pr_map = GNUNET_CONTAINER_multihashmap_create (32 * 1024, GNUNET_NO);
   requests_by_expiration_heap =
       GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
 }

@@ -3194,11 +3194,11 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   }
   exit_argv[7] = NULL;
 
-  udp_services = GNUNET_CONTAINER_multihashmap_create (65536);
-  tcp_services = GNUNET_CONTAINER_multihashmap_create (65536);
+  udp_services = GNUNET_CONTAINER_multihashmap_create (65536, GNUNET_NO);
+  tcp_services = GNUNET_CONTAINER_multihashmap_create (65536, GNUNET_NO);
   GNUNET_CONFIGURATION_iterate_sections (cfg, &read_service_conf, NULL);
 
-  connections_map = GNUNET_CONTAINER_multihashmap_create (65536);
+  connections_map = GNUNET_CONTAINER_multihashmap_create (65536, GNUNET_NO);
   connections_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   mesh_handle 
     = GNUNET_MESH_connect (cfg, NULL, 
