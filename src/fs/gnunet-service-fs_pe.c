@@ -663,6 +663,7 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
       GNUNET_free (prl->rpr);
       GNUNET_free (prl);
     }
+    plan_count--;
     GNUNET_free (rp);
   }
   GNUNET_CONTAINER_heap_destroy (pp->priority_heap);
@@ -679,11 +680,11 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
       GNUNET_free (prl->rpr);
       GNUNET_free (prl);
     }
+    plan_count--;
     GNUNET_free (rp);
   }
   GNUNET_STATISTICS_set (GSF_stats, gettext_noop ("# query plan entries"),
                          plan_count, GNUNET_NO);
-
   GNUNET_CONTAINER_heap_destroy (pp->delay_heap);
   GNUNET_CONTAINER_multihashmap_destroy (pp->plan_map);
   GNUNET_free (pp);
