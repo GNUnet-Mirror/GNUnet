@@ -88,26 +88,20 @@ scc_tarjan_strongconnect (unsigned int *scc_counter,
       scc_tarjan_strongconnect (scc_counter, w, index, stack, stack_size);
       v->lowlink = (v->lowlink > w->lowlink) ? w->lowlink : v->lowlink;
     }
-    else if (0 != w->contained)
+    else if (1 == w->contained)
       v->lowlink = (v->lowlink > w->index) ? w->index : v->lowlink;
   }
 
   if (v->lowlink == v->index)
   {
-    w = stack[--(*stack_size)];
-    w->contained = 0;
-
-    if (v != w)
+    (*scc_counter)++;
+    do
     {
-      (*scc_counter)++;
-      while (v != w)
-      {
-        w->scc_id = *scc_counter;
-        w = stack[--(*stack_size)];
-        w->contained = 0;
-      }
+      w = stack[--(*stack_size)];
+      w->contained = 0;
       w->scc_id = *scc_counter;
     }
+    while (w != v);
   }
 }
 
@@ -178,7 +172,7 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
     {
       GNUNET_asprintf (&s_acc,
                        "\"%s\" [shape=doublecircle, color=\"0.%i 0.8 0.95\"];\n",
-                       name, s->scc_id);
+                       name, s->scc_id * s->scc_id);
     }
     else
     {
@@ -190,7 +184,7 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
   {
     GNUNET_asprintf (&s_acc,
                      "\"%s\" [shape=circle, color=\"0.%i 0.8 0.95\"];\n", name,
-                     s->scc_id);
+                     s->scc_id * s->scc_id);
   }
   else
   {
@@ -228,7 +222,7 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
       {
         GNUNET_asprintf (&s_tran,
                          "\"%s\" -> \"%s\" [label = \"ε\", color=\"0.%i 0.8 0.95\"];\n",
-                         name, to_name, s->scc_id);
+                         name, to_name, s->scc_id * s->scc_id);
       }
       else
       {
@@ -242,7 +236,7 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
       {
         GNUNET_asprintf (&s_tran,
                          "\"%s\" -> \"%s\" [label = \"%s\", color=\"0.%i 0.8 0.95\"];\n",
-                         name, to_name, ctran->label, s->scc_id);
+                         name, to_name, ctran->label, s->scc_id * s->scc_id);
       }
       else
       {
