@@ -277,6 +277,8 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 {
   struct GSF_PendingRequest *pr;
   struct GSF_PendingRequest *dpr;
+  size_t extra;
+  struct GNUNET_HashCode *eptr;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Creating request handle for `%s' of type %d\n",
@@ -284,19 +286,27 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
   GNUNET_STATISTICS_update (GSF_stats,
                             gettext_noop ("# Pending requests created"), 1,
                             GNUNET_NO);
-  pr = GNUNET_malloc (sizeof (struct GSF_PendingRequest));
+  extra = 0;
+  if (GNUNET_BLOCK_TYPE_FS_SBLOCK == type)
+    extra += sizeof (struct GNUNET_HashCode);
+  if (NULL != target)
+    extra += sizeof (struct GNUNET_PeerIdentity);
+  pr = GNUNET_malloc (sizeof (struct GSF_PendingRequest) + extra);
   pr->local_result_offset =
       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
   pr->public_data.query = *query;
+  eptr = (struct GNUNET_HashCode *) &pr[1];
   if (GNUNET_BLOCK_TYPE_FS_SBLOCK == type)
   {
-    GNUNET_assert (NULL != namespace);
-    pr->public_data.namespace = *namespace;
+    GNUNET_assert (NULL != namespace);        
+    pr->public_data.namespace = eptr;
+    memcpy (eptr, namespace, sizeof (struct GNUNET_HashCode));
+    eptr++;
   }
   if (NULL != target)
   {
-    pr->public_data.target = *target;
-    pr->public_data.has_target = GNUNET_YES;
+    pr->public_data.target = (struct GNUNET_PeerIdentity *) eptr;
+    memcpy (eptr, target, sizeof (struct GNUNET_PeerIdentity));
   }
   pr->public_data.anonymity_level = anonymity_level;
   pr->public_data.priority = priority;
@@ -401,7 +411,8 @@ GSF_pending_request_is_compatible_ (struct GSF_PendingRequest *pra,
                sizeof (struct GNUNET_HashCode))) ||
       ((pra->public_data.type == GNUNET_BLOCK_TYPE_FS_SBLOCK) &&
        (0 !=
-        memcmp (&pra->public_data.namespace, &prb->public_data.namespace,
+        memcmp (pra->public_data.namespace, 
+		prb->public_data.namespace,
                 sizeof (struct GNUNET_HashCode)))))
     return GNUNET_NO;
   return GNUNET_OK;
@@ -509,7 +520,7 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
     bm |= GET_MESSAGE_BIT_SKS_NAMESPACE;
     k++;
   }
-  if (GNUNET_YES == pr->public_data.has_target)
+  if (NULL != pr->public_data.target)
   {
     bm |= GET_MESSAGE_BIT_TRANSMIT_TO;
     k++;
@@ -545,9 +556,11 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
     GNUNET_PEER_resolve (pr->sender_pid,
                          (struct GNUNET_PeerIdentity *) &ext[k++]);
   if (GNUNET_BLOCK_TYPE_FS_SBLOCK == pr->public_data.type)
-    memcpy (&ext[k++], &pr->public_data.namespace, sizeof (struct GNUNET_HashCode));
-  if (GNUNET_YES == pr->public_data.has_target)
-    ext[k++] = pr->public_data.target.hashPubKey;
+    memcpy (&ext[k++], pr->public_data.namespace, sizeof (struct GNUNET_HashCode));
+  if (NULL != pr->public_data.target)
+    memcpy (&ext[k++],
+	    pr->public_data.target,
+	    sizeof (struct GNUNET_PeerIdentity));
   if (pr->bf != NULL)
     GNUNET_assert (GNUNET_SYSERR !=
                    GNUNET_CONTAINER_bloomfilter_get_raw_data (pr->bf,
@@ -782,7 +795,7 @@ process_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
                             GNUNET_NO);
   prq->eval =
       GNUNET_BLOCK_evaluate (GSF_block_ctx, prq->type, key, &pr->bf, pr->mingle,
-                             &pr->public_data.namespace,
+                             pr->public_data.namespace,
                              (prq->type ==
                               GNUNET_BLOCK_TYPE_FS_SBLOCK) ?
                              sizeof (struct GNUNET_HashCode) : 0, prq->data,
@@ -1073,7 +1086,7 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
   if (GNUNET_BLOCK_TYPE_FS_SBLOCK == pr->public_data.type)
   {
     xquery = buf;
-    memcpy (buf, &pr->public_data.namespace, sizeof (struct GNUNET_HashCode));
+    memcpy (buf, pr->public_data.namespace, sizeof (struct GNUNET_HashCode));
     xquery_size = sizeof (struct GNUNET_HashCode);
   }
   if (0 != (pr->public_data.options & GSF_PRO_FORWARD_ONLY))

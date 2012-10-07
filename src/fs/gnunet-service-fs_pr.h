@@ -88,14 +88,16 @@ struct GSF_PendingRequestData
 
   /**
    * Namespace to query, only set if the type is SBLOCK.
+   * Allocated after struct only if needed. Do not free!
    */
-  struct GNUNET_HashCode namespace;
+  const struct GNUNET_HashCode *namespace;
 
   /**
    * Identity of a peer hosting the content, only set if
    * 'has_target' is GNUNET_YES.
+   * Allocated after struct only if needed. Do not free!
    */
-  struct GNUNET_PeerIdentity target;
+  const struct GNUNET_PeerIdentity *target;
 
   /**
    * Fields for the plan module to track a DLL with the request.
@@ -162,11 +164,6 @@ struct GSF_PendingRequestData
    * Number of results we have found for this request so far.
    */
   unsigned int results_found;
-
-  /**
-   * Is the 'target' value set to a valid peer identity?
-   */
-  int has_target;
 
   /**
    * Has this request been started yet (local/p2p operations)?  Or are
