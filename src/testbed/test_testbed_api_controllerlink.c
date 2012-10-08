@@ -71,6 +71,16 @@ enum Stage
   MASTER_STARTED,
 
   /**
+   * A peer has been created on master
+   */
+  MASTER_PEER_CREATE_SUCCESS,
+
+  /**
+   * Peer on master controller has been started successfully.
+   */
+  MASTER_PEER_START_SUCCESS,
+
+  /**
    * The first slave has been registered at master controller
    */
   SLAVE1_REGISTERED,
@@ -116,6 +126,11 @@ enum Stage
   SLAVE2_PEER_START_SUCCESS,
 
   /**
+   * Try to connect peers on master and slave 2.
+   */
+  MASTER_SLAVE2_PEERS_CONNECTED,
+
+  /**
    * Peer on slave 2 successfully stopped
    */
   SLAVE2_PEER_STOP_SUCCESS,
@@ -146,9 +161,9 @@ enum Stage
   SLAVE3_GET_CONFIG_SUCCESS,
 
   /**
-   * Slave 1 has linked to slave 3; Also marks test as success
+   * Slave 1 has linked to slave 3;
    */
-  SLAVE3_LINK_SUCCESS,
+  SLAVE3_LINK_SUCCESS
 
 };
 
@@ -216,6 +231,11 @@ static struct GNUNET_TESTBED_Peer *slave1_peer;
  * Handle to peer started at slave 2
  */
 static struct GNUNET_TESTBED_Peer *slave2_peer;
+
+/**
+ * Handle to a peer started at master controller
+ */
+static struct GNUNET_TESTBED_Peer *master_peer;
 
 /**
  * Event mask
@@ -305,7 +325,7 @@ delay_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     op = GNUNET_TESTBED_peer_stop (slave1_peer, NULL, NULL);
     GNUNET_assert (NULL != op);
     break;
-  case SLAVE2_PEER_START_SUCCESS:
+  case MASTER_SLAVE2_PEERS_CONNECTED:
     op = GNUNET_TESTBED_peer_stop (slave2_peer, NULL, NULL);
     GNUNET_assert (NULL != op);
     break;
@@ -327,29 +347,32 @@ delay_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
 {
+  GNUNET_assert (NULL != peer);
+  GNUNET_assert (NULL == emsg);
   switch (result)
   {
+  case MASTER_STARTED:
+    result = MASTER_PEER_CREATE_SUCCESS;
+    master_peer = peer;
+    GNUNET_TESTBED_operation_done (op);
+    op = GNUNET_TESTBED_peer_start (master_peer, NULL, NULL);
+    break;
   case SLAVE2_LINK_SUCCESS:
-    GNUNET_assert (NULL != peer);
-    GNUNET_assert (NULL == emsg);
     result = SLAVE1_PEER_CREATE_SUCCESS;
     slave1_peer = peer;
     GNUNET_TESTBED_operation_done (op);
     op = GNUNET_TESTBED_peer_create (mc, slave2, cfg, peer_create_cb, NULL);
-    GNUNET_assert (NULL != op);
     break;
   case SLAVE1_PEER_CREATE_SUCCESS:
-    GNUNET_assert (NULL != peer);
-    GNUNET_assert (NULL == emsg);
     result = SLAVE2_PEER_CREATE_SUCCESS;
     slave2_peer = peer;
     GNUNET_TESTBED_operation_done (op);
     op = GNUNET_TESTBED_peer_start (slave1_peer, NULL, NULL);
-    GNUNET_assert (NULL != op);
     break;
   default:
     GNUNET_assert (0);
   }
+  GNUNET_assert (NULL != op);
 }
 
 
@@ -411,6 +434,17 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     op = GNUNET_TESTBED_peer_create (mc, slave, cfg, peer_create_cb, NULL);
     GNUNET_assert (NULL != op);
     break;
+  case MASTER_PEER_CREATE_SUCCESS:
+    GNUNET_assert (GNUNET_TESTBED_ET_PEER_START == event->type);
+    GNUNET_assert (event->details.peer_start.host == host);
+    GNUNET_assert (event->details.peer_start.peer == master_peer);
+    GNUNET_TESTBED_operation_done (op);
+    result = MASTER_PEER_START_SUCCESS;
+    slave = GNUNET_TESTBED_host_create_with_id (1, "127.0.0.1", NULL, 0);
+    GNUNET_assert (NULL != slave);
+    rh = GNUNET_TESTBED_register_host (mc, slave, &registration_cont, NULL);
+    GNUNET_assert (NULL != rh);
+    break;
   case SLAVE2_PEER_CREATE_SUCCESS:
     GNUNET_assert (GNUNET_TESTBED_ET_PEER_START == event->type);
     GNUNET_assert (event->details.peer_start.host == slave);
@@ -435,11 +469,22 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     GNUNET_assert (event->details.peer_start.peer == slave2_peer);
     GNUNET_TESTBED_operation_done (op);
     result = SLAVE2_PEER_START_SUCCESS;
+    op = GNUNET_TESTBED_overlay_connect (mc, NULL, NULL, master_peer,
+                                         slave2_peer);
+    break;
+  case SLAVE2_PEER_START_SUCCESS:
+    GNUNET_assert (NULL != event);
+    GNUNET_assert (GNUNET_TESTBED_ET_CONNECT == event->type);
+    GNUNET_assert (event->details.peer_connect.peer1 == master_peer);
+    GNUNET_assert (event->details.peer_connect.peer2 == slave2_peer);
+    result = MASTER_SLAVE2_PEERS_CONNECTED;
+    GNUNET_TESTBED_operation_done (op);
+    op = NULL;
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                   (GNUNET_TIME_UNIT_SECONDS, 1), &delay_task,
                                   NULL);
     break;
-  case SLAVE2_PEER_START_SUCCESS:
+  case MASTER_SLAVE2_PEERS_CONNECTED:
     GNUNET_assert (GNUNET_TESTBED_ET_PEER_STOP == event->type);
     GNUNET_assert (event->details.peer_stop.peer == slave2_peer);
     GNUNET_TESTBED_operation_done (op);
@@ -506,7 +551,7 @@ registration_cont (void *cls, const char *emsg)
   rh = NULL;
   switch (result)
   {
-  case MASTER_STARTED:
+  case MASTER_PEER_START_SUCCESS:
     GNUNET_assert (NULL == emsg);
     GNUNET_assert (NULL != mc);
     result = SLAVE1_REGISTERED;
@@ -563,10 +608,8 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config,
                                             &controller_cb, NULL);
     GNUNET_assert (NULL != mc);
     result = MASTER_STARTED;
-    slave = GNUNET_TESTBED_host_create_with_id (1, "127.0.0.1", NULL, 0);
-    GNUNET_assert (NULL != slave);
-    rh = GNUNET_TESTBED_register_host (mc, slave, &registration_cont, NULL);
-    GNUNET_assert (NULL != rh);
+    op = GNUNET_TESTBED_peer_create (mc, host, cfg, peer_create_cb, NULL);
+    GNUNET_assert (NULL != op);
     break;
   default:    
     GNUNET_break (0);
@@ -601,26 +644,26 @@ run (void *cls, char *const *args, const char *cfgfile,
 
 
 /**
- * Main function
+ * Function to check if 
+ * 1. Password-less SSH logins to given ip work
+ * 2. gnunet-helper-testbed is found on the PATH on the remote side
+ *
+ * @param host_str numeric representation of the host's ip
+ * @return GNUNET_YES if password-less SSH login to the given host works;
+ *           GNUNET_NO if not
  */
-int
-main (int argc, char **argv)
+static int
+check_ssh (char *host_str)
 {
-  int ret;
-
-  char *const argv2[] = { "test_testbed_api_controllerlink",
-    "-c", "test_testbed_api.conf",
-    NULL
-  };
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
   char *const remote_args[] = {
-    "ssh", "-o", "BatchMode=yes", "127.0.0.1", "echo", "Hello", "World", NULL
+    "ssh", "-o", "BatchMode=yes", "-o", "CheckHostIP=no", 
+    "-o", "NoHostAuthenticationForLocalhost=yes", "-q",
+    host_str, "which", "gnunet-helper-testbed", NULL
   };
   struct GNUNET_OS_Process *auxp;
   enum GNUNET_OS_ProcessStatusType type;
   unsigned long code;
+  int ret;
 
   auxp =
       GNUNET_OS_start_process_vap (GNUNET_NO, GNUNET_OS_INHERIT_STD_ALL, NULL,
@@ -635,13 +678,27 @@ main (int argc, char **argv)
   while (GNUNET_NO == ret);
   (void) GNUNET_OS_process_wait (auxp);
   GNUNET_OS_process_destroy (auxp);
-  if (0 != code)
-  {
-    (void) printf ("Unable to run the test as this system is not configured "
-                   "to use password less SSH logins to localhost.\n"
-                   "Marking test as successful\n");
-    return 0;
-  }
+  return (0 != code) ? GNUNET_NO : GNUNET_YES;
+}
+
+
+/**
+ * Main function
+ */
+int
+main (int argc, char **argv)
+{
+  char *const argv2[] = { "test_testbed_api_controllerlink",
+    "-c", "test_testbed_api.conf",
+    NULL
+  };
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_END
+  };
+  int ret;
+
+  if (GNUNET_YES != check_ssh ("127.0.0.1"))
+    goto error_exit;  
   result = INIT;
   ret =
       GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
@@ -649,6 +706,13 @@ main (int argc, char **argv)
                           &run, NULL);
   if ((GNUNET_OK != ret) || (SLAVE3_LINK_SUCCESS != result))
     return 1;
+  return 0;
+
+ error_exit:
+  (void) PRINTF ("%s",
+                 "Unable to run the test as this system is not configured "
+                 "to use password less SSH logins to localhost.\n"
+                 "Marking test as successful\n");
   return 0;
 }
 

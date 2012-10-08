@@ -2042,8 +2042,20 @@ handle_peer_get_config (void *cls, struct GNUNET_SERVER_Client *client,
   peer = peer_list[peer_id];
   if (GNUNET_YES == peer->is_remote)
   {
-    /* FIXME: forward to sub controller */
-    GNUNET_break (0);
+    struct ForwardedOperationContext *fopc;
+    
+    fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+    GNUNET_SERVER_client_keep (client);
+    fopc->client = client;
+    fopc->operation_id = GNUNET_ntohll (msg->operation_id);
+    fopc->opc =
+        GNUNET_TESTBED_forward_operation_msg_ (peer->details.remote.controller,
+                                               fopc->operation_id, &msg->header,
+                                               &forwarded_operation_reply_relay,
+                                               fopc);
+    fopc->timeout_task =
+        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &forwarded_operation_timeout,
+                                      fopc);    
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
@@ -2683,8 +2695,6 @@ handle_overlay_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
           sizeof (struct GNUNET_PeerIdentity));
   rocc->hello = GNUNET_malloc (hsize);
   memcpy (rocc->hello, msg->hello, hsize);
-  /* GNUNET_TRANSPORT_offer_hello (th, msg->hello, NULL, NULL); */
-  /* GNUNET_TRANSPORT_try_connect (th, &msg->peer_identity); */
   rocc->attempt_connect_task_id =
       GNUNET_SCHEDULER_add_now (&attempt_connect_task, rocc);
   rocc->timeout_rocc_task_id =

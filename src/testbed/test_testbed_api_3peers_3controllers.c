@@ -688,8 +688,7 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int stat
     break;
   default:
     GNUNET_assert (0);
-  }
-  
+  }  
 }
 
 
@@ -709,7 +708,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (NULL != host);
   cfg = GNUNET_CONFIGURATION_dup (config);
   cp1 = GNUNET_TESTBED_controller_start ("127.0.0.1", host, cfg, status_cb,
-                                        NULL);
+                                         NULL);
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_MINUTES, 3), &do_abort,
@@ -718,7 +717,9 @@ run (void *cls, char *const *args, const char *cfgfile,
 
 
 /**
- * Function to check if password-less SSH logins to given ip work
+ * Function to check if 
+ * 1. Password-less SSH logins to given ip work
+ * 2. gnunet-helper-testbed is found on the PATH on the remote side
  *
  * @param host_str numeric representation of the host's ip
  * @return GNUNET_YES if password-less SSH login to the given host works;
@@ -728,8 +729,9 @@ static int
 check_ssh (char *host_str)
 {
   char *const remote_args[] = {
-    "ssh", "-o", "BatchMode=yes", "-o", "CheckHostIP=no", "-q",
-    host_str, "echo", "SSH", "works", NULL
+    "ssh", "-o", "BatchMode=yes", "-o", "CheckHostIP=no", 
+    "-o", "NoHostAuthenticationForLocalhost=yes", "-q",
+    host_str, "which", "gnunet-helper-testbed", NULL
   };
   struct GNUNET_OS_Process *auxp;
   enum GNUNET_OS_ProcessStatusType type;
@@ -760,8 +762,8 @@ int
 main (int argc, char **argv)
 {
   char *const argv2[] = { "test_testbed_api_3peers_3controllers",
-    "-c", "test_testbed_api.conf",
-    NULL
+                          "-c", "test_testbed_api.conf",
+                          NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
