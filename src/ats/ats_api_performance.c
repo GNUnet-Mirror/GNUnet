@@ -396,6 +396,11 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
   return;
 reconnect:
   GNUNET_CLIENT_disconnect (ph->client);
+  if (NULL != ph->th)
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel (ph->th);
+    ph->th = NULL;
+  }
   ph->client = NULL;
   ph->task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &reconnect_task,
