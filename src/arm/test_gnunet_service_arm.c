@@ -18,8 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file arm/test_gnunet_service_manager.c (A mockup testcase, not functionally complete)
- * @brief testcase for gnunet-service-manager.c
+ * @file arm/test_gnunet_service_arm.c 
+ * @brief testcase for gnunet-service-arm.c; tests ARM by making it start the resolver
  */
 
 #include "platform.h"
@@ -38,9 +38,6 @@
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 static int ret = 1;
-
-
-static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static struct GNUNET_ARM_Handle *arm;
 
@@ -109,35 +106,24 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  cfg = c;
-  arm = GNUNET_ARM_connect (cfg, NULL);
+  arm = GNUNET_ARM_connect (c, NULL);
   GNUNET_ARM_start_service (arm, "arm",
 			    GNUNET_OS_INHERIT_STD_OUT_AND_ERR, START_TIMEOUT, 
 			    &arm_notify, NULL);
 }
 
 
-static void
-check ()
-{
-  char *const argv[] = {
-    "test-gnunet-service-manager",
-    "-c", "test_arm_api_data.conf",
-    NULL
-  };
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-				     argv, "test-gnunet-service-manager",
-				     "nohelp", options, &run, NULL));
-}
-
-
 int
 main (int argc, char *argv[])
 {
+  static char *const argv[] = {
+    "test-gnunet-service-arm",
+    "-c", "test_arm_api_data.conf",
+    NULL
+  };
+  static struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_END
+  };
   char hostname[GNUNET_OS_get_hostname_max_length () + 1];
 
   if (0 != gethostname (hostname, sizeof (hostname) - 1))
@@ -155,9 +141,14 @@ main (int argc, char *argv[])
 	       hostname);
       return 0;
     }
-  GNUNET_log_setup ("test-gnunet-service-manager",
+  GNUNET_log_setup ("test-gnunet-service-arm",
 		    "WARNING",
 		    NULL);
-  check ();
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
+				     argv, "test-gnunet-service-arm",
+				     "nohelp", options, &run, NULL));
   return ret;
 }
+
+/* end of test_gnunet_service_arm.c */

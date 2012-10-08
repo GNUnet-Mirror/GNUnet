@@ -58,7 +58,7 @@ mockup_service_SOURCES = \
 check_PROGRAMS = \
  test_arm_api \
  test_exponential_backoff \
- test_gnunet_service_manager
+ test_gnunet_service_arm
 
 check_SCRIPTS = \
  test_gnunet_arm.py
@@ -79,9 +79,9 @@ test_exponential_backoff_LDADD = \
   $(top_builddir)/src/arm/libgnunetarm.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
-test_gnunet_service_manager_SOURCES = \
- test_gnunet_service_manager.c
- test_gnunet_service_manager_LDADD = \
+test_gnunet_service_arm_SOURCES = \
+ test_gnunet_service_arm.c
+ test_gnunet_service_arm_LDADD = \
   $(top_builddir)/src/arm/libgnunetarm.la \
   $(top_builddir)/src/util/libgnunetutil.la  
 
