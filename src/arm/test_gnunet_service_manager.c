@@ -37,18 +37,13 @@
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
-#define START_ARM GNUNET_YES
-
-#define VERBOSE GNUNET_NO
-
 static int ret = 1;
 
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-#if START_ARM
 static struct GNUNET_ARM_Handle *arm;
-#endif
+
 
 static void
 arm_stopped (void *cls, enum GNUNET_ARM_ProcessStatus success)
@@ -62,11 +57,10 @@ arm_stopped (void *cls, enum GNUNET_ARM_ProcessStatus success)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM stopped\n");
     }
-#if START_ARM
   GNUNET_ARM_disconnect (arm);
   arm = NULL;
-#endif
 }
+
 
 static void
 hostNameResolveCB (void *cls, const struct sockaddr *addr, socklen_t addrlen)
@@ -76,18 +70,14 @@ hostNameResolveCB (void *cls, const struct sockaddr *addr, socklen_t addrlen)
   if (NULL == addr)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Name not resolved!\n");
-#if START_ARM
       GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
-#endif
       ret = 3;
       return;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Resolved hostname, now stopping ARM\n");
   ret = 0;
-#if START_ARM
   GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
-#endif
 }
 
 
@@ -110,9 +100,7 @@ arm_notify (void *cls, enum GNUNET_ARM_ProcessStatus success)
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "Unable initiate connection to resolver service\n");
       ret = 2;
-#if START_ARM
       GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
-#endif
     }
 }
 
@@ -122,12 +110,10 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;
-#if START_ARM
   arm = GNUNET_ARM_connect (cfg, NULL);
-  GNUNET_ARM_start_service (arm, "arm", GNUNET_OS_INHERIT_STD_OUT_AND_ERR, START_TIMEOUT, &arm_notify, NULL);
-#else
-  arm_notify (NULL, GNUNET_YES);
-#endif
+  GNUNET_ARM_start_service (arm, "arm",
+			    GNUNET_OS_INHERIT_STD_OUT_AND_ERR, START_TIMEOUT, 
+			    &arm_notify, NULL);
 }
 
 
@@ -137,9 +123,6 @@ check ()
   char *const argv[] = {
     "test-gnunet-service-manager",
     "-c", "test_arm_api_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -172,13 +155,8 @@ main (int argc, char *argv[])
 	       hostname);
       return 0;
     }
-
   GNUNET_log_setup ("test-gnunet-service-manager",
-#if VERBOSE
-		    "DEBUG",
-#else
 		    "WARNING",
-#endif
 		    NULL);
   check ();
   return ret;
