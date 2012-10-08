@@ -79,7 +79,7 @@ struct Context
    * The TESTING system handle for starting peers locally
    */
   struct GNUNET_TESTING_System *system;
-
+  
   /**
    * Event mask of event to be responded in this context
    */
@@ -296,7 +296,7 @@ struct LCFContextQueue
 
 
 /**
- * A locally started peer
+ * A peer
  */
 struct Peer
 {
@@ -598,7 +598,7 @@ static struct Route **route_list;
 static struct Slave **slave_list;
 
 /**
- * A list of peers we own locally
+ * A list of peers we know about
  */
 static struct Peer **peer_list;
 
@@ -2453,7 +2453,7 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
   occ->peer_id = p1;
   occ->other_peer_id = p2;
   occ->peer = peer_list[p1];
-  occ->op_id = GNUNET_ntohll (msg->operation_id);
+  occ->op_id = GNUNET_ntohll (msg->operation_id);  
   if ((p2 >= peer_list_size) || (NULL == peer_list[p2]))
   {
     uint32_t peer2_host_id;
@@ -2462,6 +2462,9 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
     if ((peer2_host_id >= slave_list_size)
 	|| (NULL ==slave_list[peer2_host_id]))
     {
+      /* Peer2's host is located above us or lateral to us.. 
+         FIXME: should try to ask for the configuration of peer2's host by
+         sending a reply asking for its configuration */
       GNUNET_break (0);
       GNUNET_SERVER_client_drop (client);
       GNUNET_free (occ);
@@ -2476,7 +2479,7 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_free (occ);
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
-    }   
+    }
   }
   else
   {
@@ -2656,10 +2659,14 @@ handle_overlay_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  if (GNUNET_NO != peer->is_remote)
+  if (GNUNET_YES == peer->is_remote)
   {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    struct GNUNET_MessageHeader *msg2;
+    
+    msg2 = GNUNET_malloc (msize);
+    (void) memcpy (msg2, message, msize);
+    GNUNET_TESTBED_queue_message_ (peer->details.remote.controller, msg2);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
   rocc = GNUNET_malloc (sizeof (struct RequestOverlayConnectContext));
