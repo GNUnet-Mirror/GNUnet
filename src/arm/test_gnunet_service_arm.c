@@ -114,7 +114,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
 
 int
-main (int argc, char *argv[])
+main (int argc, char *av[])
 {
   static char *const argv[] = {
     "test-gnunet-service-arm",
