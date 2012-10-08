@@ -163,7 +163,6 @@ socket_set_blocking (struct GNUNET_NETWORK_Handle *fd, int doBlock)
 }
 
 
-#ifndef MINGW
 /**
  * Make a socket non-inheritable to child processes
  *
@@ -174,8 +173,8 @@ socket_set_blocking (struct GNUNET_NETWORK_Handle *fd, int doBlock)
 static int
 socket_set_inheritable (const struct GNUNET_NETWORK_Handle *h)
 {
+#ifndef MINGW
   int i;
-
   i = fcntl (h->fd, F_GETFD);
   if (i < 0)
     return GNUNET_SYSERR;
@@ -184,9 +183,18 @@ socket_set_inheritable (const struct GNUNET_NETWORK_Handle *h)
   i |= FD_CLOEXEC;
   if (fcntl (h->fd, F_SETFD, i) < 0)
     return GNUNET_SYSERR;
+#else
+  BOOL b;
+  SetLastError (0);
+  b = SetHandleInformation (h->fd, HANDLE_FLAG_INHERIT, 0);
+  if (!b)
+  {
+    SetErrnoFromWinsockError (WSAGetLastError ());
+    return GNUNET_SYSERR;
+  }
+#endif
   return GNUNET_OK;
 }
-#endif
 
 
 #ifdef DARWIN
@@ -266,10 +274,11 @@ initialize_network_handle (struct GNUNET_NETWORK_Handle *h,
     errno = EMFILE;
     return GNUNET_SYSERR;
   }
+#endif
   if (GNUNET_OK != socket_set_inheritable (h))
     LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                   "socket_set_inheritable");
-#endif
+
   if (GNUNET_SYSERR == socket_set_blocking (h, GNUNET_NO))
   {
     GNUNET_break (0);
