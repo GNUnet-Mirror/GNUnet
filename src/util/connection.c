@@ -247,7 +247,14 @@ struct GNUNET_CONNECTION_Handle
    * termination as a signal (because only then will the leaked
    * socket be freed!)
    */
-  int16_t persist;
+  int8_t persist;
+
+  /**
+   * Usually 0.  Set to 1 if this handle is in used and should
+   * 'GNUNET_CONNECTION_destroy' be called right now, the action needs
+   * to be deferred by setting it to -1.
+   */
+  int8_t destroy_later;
 
 };
 
@@ -556,6 +563,7 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *connection)
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == connection->write_task);
 
   /* signal errors for jobs that used to wait on the connection */
+  connection->destroy_later = 1;
   if (NULL != connection->receiver)
     signal_receive_error (connection, ECONNREFUSED);
   if (NULL != connection->nth.notify_ready)
@@ -565,6 +573,14 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *connection)
     connection->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
     signal_transmit_error (connection, ECONNREFUSED);
   }
+  if (-1 == connection->destroy_later)
+  {
+    /* do it now */
+    connection->destroy_later = 0;
+    GNUNET_CONNECTION_destroy (connection);
+    return;
+  }
+  connection->destroy_later = 0;
 }
 
 
@@ -937,6 +953,11 @@ GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *connection)
 {
   struct AddressProbe *pos;
 
+  if (0 != connection->destroy_later)
+  {
+    connection->destroy_later = -1;
+    return;
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down connection (%p)\n", connection);
   GNUNET_assert (NULL == connection->nth.notify_ready);
   GNUNET_assert (NULL == connection->receiver);
