@@ -402,6 +402,31 @@ extract_files (struct ScanTreeNode *item)
 }
 
 
+#ifndef WINDOWS
+/**
+ * Install a signal handler to ignore SIGPIPE.
+ */
+static void
+ignore_sigpipe ()
+{
+  struct sigaction oldsig;
+  struct sigaction sig;
+
+  memset (&sig, 0, sizeof (struct sigaction));
+  sig.sa_handler = SIG_IGN;
+  sigemptyset (&sig.sa_mask);
+#ifdef SA_INTERRUPT
+  sig.sa_flags = SA_INTERRUPT;  /* SunOS */
+#else
+  sig.sa_flags = SA_RESTART;
+#endif
+  if (0 != sigaction (SIGPIPE, &sig, &oldsig))
+    fprintf (stderr,
+             "Failed to install SIGPIPE handler: %s\n", strerror (errno));
+}
+#endif
+
+
 /**
  * Main function of the helper process to extract meta data.
  *
@@ -427,6 +452,8 @@ int main(int argc,
   /* Get utf-8-encoded arguments */
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 5;
+#else
+  ignore_sigpipe ();
 #endif
 
   /* parse command line */
