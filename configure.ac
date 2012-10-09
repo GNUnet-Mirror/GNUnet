@@ -1203,25 +1203,38 @@ fi
 
 
 AC_MSG_NOTICE([********************************************
-Please make sure that you have created a user and group 'gnunet'
-and additionally a group 'gnunetdns'.  Make sure that '/var/lib/gnunet'
-is owned (and writable) by user 'gnunet'.  Then, you can compile GNUnet 
-with
-	make
+Please make sure NOW that you have created a user and group 'gnunet'
+and additionally a group 'gnunetdns':
+        addgroup gnunetdns
+        adduser gnunet
+
+Make sure that '/var/lib/gnunet' is owned (and writable) by user
+'gnunet'.  Then, you can compile GNUnet with
+        make
+
 After that, run (if necessary as 'root')
         make install
 to install everything. 
-Then, in order to start your peer, run as the 'gnunet' user
-	mkdir ~gnunet/.gnunet/
-	touch ~gnunet/.gnunet/gnunet.conf
-	gnunet-arm -s
 
-Each GNUnet user should also be added to the 'gnunet' group (may
-require fresh login to come into effect) and create an (at least 
-initially) empty configuration file:
-	mkdir $HOME/.gnunet/
-	touch $HOME/.gnunet/gnunet.conf
+Each GNUnet user should be added to the 'gnunet' group (may
+require fresh login to come into effect):
+        adduser $USERNAME gnunet
+(run the above command as root once for each of your users, replacing
+"$USERNAME" with the respective login names).  If you have a global IP
+address, no further configuration is required.
 	
-Optionally, download and compile:
-- gnunet-gtk to get a GUI for file-sharing and configuration.
+Optionally, download and compile gnunet-gtk to get a GUI for 
+file-sharing and configuration.  This is particularly recommended
+if your network setup is non-trivial, as gnunet-setup can be
+used to test in the GUI if your network configuration is working.
+gnunet-setup should be run as the "gnunet" user under X.  As it
+does very little with the network, running it as "root" is likely
+also harmless.  You can also run it as a normal user, but then
+you have to copy ~/.gnunet/gnunet.conf" over to the "gnunet" user's
+home directory in the end.
+
+Once you have configured your peer, run (as the 'gnunet' user)
+	gnunet-arm -s
+to start the peer.  You can then run the various GNUnet-tools as
+your "normal" user (who should only be in the group 'gnunet').
 ********************************************])

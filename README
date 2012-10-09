@@ -76,8 +76,6 @@ $ adduser gnunet gnunet
 $ ./configure --prefix=$GNUNET_PREFIX --with-extractor=$LE_PREFIX
 $ make
 # make install
-# sudo -u gnunet mkdir ~gnunet/.gnunet/ 
-# sudo -u gnunet touch ~gnunet/.gnunet/gnunet.conf
 # sudo -u gnunet gnunet-arm -s
 
 This will create the users and groups needed for running GNUnet
@@ -89,9 +87,13 @@ end-user applications as another user.
 
 If you create a system user "gnunet", it is recommended that you edit
 the configuration file slightly so that data can be stored in the
-system user home directory at "/var/lib/gnunet"; you may also want to
+system user home directory at "/var/lib/gnunet".  Depending on what
+the $HOME-directory of your "gnunet" user is, you might need to set
+the SERVICEHOME option in section "[PATHS]" to "/var/lib/gnunet" to
+do this.  Depending on your personal preferences, you may also want to
 use "/etc/gnunet.conf" for the location of the configuration file in
-this case.
+this case (instead of ~gnunet/.gnunet/gnunet.conf").  In this case,
+you need to start GNUnet using "gnunet-arm -s -c /etc/gnunet.conf".
 
 You can avoid running 'make install' as root if you run configure
 with the "--with-sudo=yes" option and have extensive sudo rights
@@ -125,13 +127,23 @@ $ aclocal -I /usr/local/share/aclocal
 Configuration
 =============
 
-Note that additional, per-user configuration files
-(~/.gnunet/gnunet.conf) need to be created by each user (for example,
-by running gnunet-setup).  Note that gnunet-setup is a separate
-download and requires recent versions of GTK+ and Glade; you can also
-edit the configuration file by hand, but this is not recommended.  For
-more general information about the GNU build process read the INSTALL
-file.
+Note that additional, per-user configuration files can be created by
+each user.  However, this is usually not necessary as there are few
+per-user options that normal users would want to modify.  The defaults
+that are shipped with the installation are usually just fine.
+
+The gnunet-setup tool is particularly useful to generate the master
+configuration for the peer.  gnunet-setup can be used to configure and
+test (!) the network settings, choose which applications should be run
+and configure databases.  Other options you might want to control
+include system limitations (such as disk space consumption, bandwidth,
+etc.).  The resulting configuration files are human-readable and can
+theoretically be created or edited by hand.
+
+gnunet-setup is a separate download and requires somewhat recent
+versions of GTK+ and Glade. You can also create the configuration file
+by hand, but this is not recommended.  For more general information
+about the GNU build process read the INSTALL file.
 
 GNUnet uses two types of configuration files, one that specifies the
 system-wide defaults (typically located in
@@ -141,20 +153,13 @@ configuration file should be located in "~/.gnunet/gnunet.conf" or its
 location can be specified by giving the "-c" option to the respective
 GNUnet application.
 
-The defaults that are shipped with the installation are usually ok,
-you may want to adjust the limitations (space consumption, bandwidth,
-etc.) though.  The configuration files are human-readable.  Note that
-you MUST create "~/.gnunet/gnunet.conf" explicitly before starting
-GNUnet.  You can either run gnunet-setup (available as part of the
-gnunet-gtk source package) or simply create an empty file.
-
 
 Usage
 =====
 
 First, you must obtain an initial list of GNUnet hosts.  Knowing a
 single peer is sufficient since after that GNUnet propagates
-information about other peers.  Note that the default "gnunet.conf"
+information about other peers.  Note that the default configuration
 contains URLs from where GNUnet downloads an initial hostlist
 whenever it is started.  If you want to create an alternative URL for
 others to use, the file can be generated on any machine running
@@ -170,16 +175,24 @@ HTTPPORT to the public.
 If the solution with the hostlist URL is not feasible for your
 situation, you can also add hosts manually.  Simply copy the hostkeys
 to "$SERVICEHOME/data/hosts/" (where $SERVICEHOME is the directory
-specified in the gnunet.conf configuration file).
+specified in the gnunet.conf configuration file).  You can also use
+"gnunet-peerinfo -g" to GET a URI for a peer and "gnunet-peerinfo -p
+URI" to add a URI from another peer.  Finally, GNUnet peers that use
+UDP or WLAN will discover each other automatically (if they are in the
+vicinity of each other) using broadcasts (IPv4/WLAN) or multicasts
+(IPv6).
 
-Now start the local node using "gnunet-arm -s".  GNUnet should run 24/7 if
-you want to maximize your anonymity.
+The local node is started using "gnunet-arm -s".  GNUnet should run
+24/7 if you want to maximize your anonymity, as this makes partitioning
+attacks harder.
 
-You should then be able to access GNUnet using the shell:
+Once your peer is running, you should then be able to access GNUnet
+using the shell:
 
 $ gnunet-search KEYWORD
 
-This will display a list of results to the console. Then use
+This will display a list of results to the console.  You can abort
+the command using "CTRL-C".  Then use
 
 $ gnunet-download -o FILENAME GNUNET_URI
 
@@ -228,7 +241,7 @@ information about the failing testcase to the Mantis bugtracking
 system at https://gnunet.org/bugs/.
 
 
-Running http on port 80 and https on port 443
+Running HTTP on port 80 and HTTPS on port 443
 =============================================
 
 In order to hide GNUnet's HTTP/HTTPS traffic perfectly, you might
@@ -251,6 +264,17 @@ You can do the same trick for the TCP and UDP transports if you want
 to map them to a priviledged port (from the point of view of the
 network).  However, we are not aware of this providing any advantages
 at this point.
+
+If you are already running an HTTP or HTTPS server on port 80 (or 443),
+you may be able to configure it as a "ReverseProxy".  Here, you tell
+GNUnet that the externally visible URI is some sub-page on your website,
+and GNUnet can then tunnel its traffic via your existing HTTP server.
+This is particularly powerful if your existing server uses HTTPS, as
+it makes it harder for an adversary to distinguish normal traffic to
+your server from GNUnet traffic.  Finally, even if you just use HTTP,
+you might benefit (!) from ISP's traffic shaping as opposed to being
+throttled by ISPs that dislike P2P.  Details for configuring the
+reverse proxy are documented on our website.
 
 
 Stay tuned
