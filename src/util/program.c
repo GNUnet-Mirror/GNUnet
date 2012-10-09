@@ -9,7 +9,7 @@
 
      GNUnet is distributed in the hope that it will be useful, but
      WITHOUT ANY WARRANTY; without even the implied warranty of
-     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPROSE.  See the GNU
      General Public License for more details.
 
      You should have received a copy of the GNU General Public License
@@ -240,7 +240,17 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
     GNUNET_free (lpfx);
     return (ret == GNUNET_SYSERR) ? GNUNET_SYSERR : GNUNET_OK;
   }
-  (void) GNUNET_CONFIGURATION_load (cfg, cc.cfgfile);
+  if (GNUNET_YES ==
+      GNUNET_DISK_file_test (cc.cfgfile))
+    (void) GNUNET_CONFIGURATION_load (cfg, cc.cfgfile);
+  else
+  {
+    (void) GNUNET_CONFIGURATION_load (cfg, NULL);
+    if (0 != strcmp (cc.cfgfile, GNUNET_DEFAULT_USER_CONFIG_FILE))
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Could not access configuration file `%s'\n"),
+		  cc.cfgfile);
+  }
   GNUNET_free (allopts);
   GNUNET_free (lpfx);
   if (GNUNET_OK ==
