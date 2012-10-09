@@ -34,9 +34,11 @@ endif
 # test_integration_disconnect.py 
 
 
+if HAVE_MHD
 if ENABLE_TEST_RUN
 TESTS = \
  $(check_SCRIPTS)  
+endif
 endif
 
 connection_watchdog_SOURCE = \
