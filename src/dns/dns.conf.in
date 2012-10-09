@@ -2,7 +2,6 @@
 AUTOSTART = YES
 HOSTNAME = localhost
 HOME = $SERVICEHOME
-CONFIG = $DEFAULTCONFIG
 BINARY = gnunet-service-dns
 UNIXPATH = /tmp/gnunet-service-dns.sock
 

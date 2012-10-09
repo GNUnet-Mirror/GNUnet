@@ -8,7 +8,6 @@ UPDATE_DIR = $SERVICEHOME/fs/updates/
 @UNIXONLY@ PORT = 2094
 HOSTNAME = localhost
 HOME = $SERVICEHOME
-CONFIG = $DEFAULTCONFIG
 BINARY = gnunet-service-fs
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
@@ -34,7 +33,6 @@ PREFIX = @MONKEYPREFIX@
 
 [gnunet-auto-share]
 BINARY = gnunet-auto-share
-CONFIG = $DEFAULTCONFIG
 
 # Note: MUST specify path to auto-share directory and CAN specify other options
 # to gnunet-auto-share here!
