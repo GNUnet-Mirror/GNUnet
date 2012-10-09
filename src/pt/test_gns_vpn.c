@@ -267,6 +267,7 @@ static void
 disco_ns (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_NAMESTORE_disconnect (namestore);
+  namestore = NULL;
 }
 
 
@@ -293,13 +294,9 @@ commence_testing (void *cls, int32_t success, const char *emsg)
 	     "NS failed to create record %s\n", emsg);
     GNUNET_SCHEDULER_shutdown ();
     return;
-  }
-  
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10), start_curl, NULL);
-
+  }  
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10), &start_curl, NULL);
 }
-
-
 
 
 /**
