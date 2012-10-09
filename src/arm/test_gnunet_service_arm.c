@@ -20,8 +20,9 @@
 /**
  * @file arm/test_gnunet_service_arm.c 
  * @brief testcase for gnunet-service-arm.c; tests ARM by making it start the resolver
+ * @author Safey
+ * @author Christian Grothoff
  */
-
 #include "platform.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_resolver_service.h"
