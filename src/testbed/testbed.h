@@ -701,6 +701,30 @@ struct GNUNET_TESTBED_SlaveConfiguration
 
 };
 
+
+/**
+ * Message sent from a controller to the testbed API seeking the configuration
+ * of the host whose id is contained in the message.
+ */
+struct GNUNET_TESTBED_NeedControllerConfig
+{
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_NEEDCONTROLLERCONFIG
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * The id of the controller host
+   */
+  uint32_t controller_host_id GNUNET_PACKED;
+
+  /**
+   * Operation ID
+   */
+  uint64_t operation_id GNUNET_PACKED;
+
+};
+
 GNUNET_NETWORK_STRUCT_END
 
 #endif

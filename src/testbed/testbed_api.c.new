@@ -872,7 +872,6 @@ handle_need_controller_config (struct GNUNET_TESTBED_Controller *c,
                                const struct GNUNET_TESTBED_NeedControllerConfig * msg)
 {
   struct OperationContext *opc;
-  struct OverlayConnectData *oc_data;
   uint64_t op_id;
 
   op_id = GNUNET_ntohll (msg->operation_id);
@@ -880,20 +879,12 @@ handle_need_controller_config (struct GNUNET_TESTBED_Controller *c,
   {
     LOG_DEBUG ("Operation not found\n");
     return GNUNET_YES;
-  }
-  if (OP_FORWARDED == opc->type)
-  {
-    handle_forwarded_operation_msg (c, opc,
-                                    (const struct GNUNET_MessageHeader *) msg);
-    return GNUNET_YES;
-  }
-  oc_data = opc->data;
-  /* FIXME: Should spawn operations to:
-     1. Acquire configuration of peer2's controller,
-     2. link peer1's controller to peer2's controller
-     3. ask them to attempt overlay connect on peer1 and peer2 again */
-  GNUNET_break (NULL == oc_data);
-  GNUNET_break (0);
+  }  
+  /* This has to be a forwarded operation since there is no function in the
+     testbed API to create an operation context for this message type */
+  GNUNET_assert (OP_FORWARDED == opc->type);
+  handle_forwarded_operation_msg (c, opc,
+                                  (const struct GNUNET_MessageHeader *) msg);
   return GNUNET_YES;
 }
 
@@ -1745,11 +1736,12 @@ GNUNET_TESTBED_cancel_registration (struct GNUNET_TESTBED_HostRegistrationHandle
 
 
 /**
- * Same as the GNUNET_TESTBED_controller_link, however expects configuration in
- * serialized and compressed
+ * Same as the GNUNET_TESTBED_controller_link_2, however sets the operation id
+ * of the generation operation to the given id
  *
  * @param op_cls the operation closure for the event which is generated to
  *          signal success or failure of this operation
+ * @param operation_id the id to use for the generated operation's id
  * @param master handle to the master controller who creates the association
  * @param delegated_host requests to which host should be delegated; cannot be NULL
  * @param slave_host which host is used to run the slave controller; use NULL to
@@ -1763,13 +1755,16 @@ GNUNET_TESTBED_cancel_registration (struct GNUNET_TESTBED_HostRegistrationHandle
  *          controller via TCP/IP
  * @return the operation handle
  */
-struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_controller_link_2 (void *op_cls,
-				  struct GNUNET_TESTBED_Controller *master,
-                                  struct GNUNET_TESTBED_Host *delegated_host,
-                                  struct GNUNET_TESTBED_Host *slave_host,
-                                  const char *sxcfg, size_t sxcfg_size,
-                                  size_t scfg_size, int is_subordinate)
+static struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_controller_link_2_with_opid (void *op_cls,
+                                            uint64_t operation_id,
+                                            struct GNUNET_TESTBED_Controller *master,
+                                            struct GNUNET_TESTBED_Host
+                                            * delegated_host, 
+                                            struct GNUNET_TESTBED_Host *slave_host,
+                                            const char *sxcfg, 
+                                            size_t sxcfg_size, 
+                                            size_t scfg_size, int is_subordinate)
 {
   struct OperationContext *opc;
   struct GNUNET_TESTBED_ControllerLinkMessage *msg;
@@ -1812,6 +1807,44 @@ GNUNET_TESTBED_controller_link_2 (void *op_cls,
 
 
 /**
+ * Same as the GNUNET_TESTBED_controller_link, however expects configuration in
+ * serialized and compressed
+ *
+ * @param op_cls the operation closure for the event which is generated to
+ *          signal success or failure of this operation
+ * @param master handle to the master controller who creates the association
+ * @param delegated_host requests to which host should be delegated; cannot be NULL
+ * @param slave_host which host is used to run the slave controller; use NULL to
+ *          make the master controller connect to the delegated host
+ * @param sxcfg serialized and compressed configuration
+ * @param sxcfg_size the size sxcfg
+ * @param scfg_size the size of uncompressed serialized configuration
+ * @param is_subordinate GNUNET_YES if the controller at delegated_host should
+ *          be started by the slave controller; GNUNET_NO if the slave
+ *          controller has to connect to the already started delegated
+ *          controller via TCP/IP
+ * @return the operation handle
+ */
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_controller_link_2 (void *op_cls,
+				  struct GNUNET_TESTBED_Controller *master,
+                                  struct GNUNET_TESTBED_Host *delegated_host,
+                                  struct GNUNET_TESTBED_Host *slave_host,
+                                  const char *sxcfg, size_t sxcfg_size,
+                                  size_t scfg_size, int is_subordinate)
+{
+  return
+      GNUNET_TESTBED_controller_link_2_with_opid (op_cls,
+                                                  master->operation_counter++,
+                                                  master,
+                                                  delegated_host,
+                                                  slave_host,
+                                                  sxcfg, sxcfg_size,
+                                                  scfg_size, is_subordinate);
+}
+
+
+/**
  * Compresses given configuration using zlib compress
  *
  * @param config the serialized configuration
@@ -1833,6 +1866,62 @@ GNUNET_TESTBED_compress_config_ (const char *config, size_t size,
                             (const Bytef *) config, (uLongf) size,
                             Z_BEST_SPEED));
   return xsize;
+}
+
+
+/**
+ * Same as the GNUNET_TESTBED_controller_link, however sets the operation id
+ * of the generation operation to the given id
+ *
+ * @param op_cls the operation closure for the event which is generated to
+ *          signal success or failure of this operation
+ * @param operation_id the id to use for the generated operation's id
+ * @param master handle to the master controller who creates the association
+ * @param delegated_host requests to which host should be delegated; cannot be NULL
+ * @param slave_host which host is used to run the slave controller; use NULL to
+ *          make the master controller connect to the delegated host
+ * @param slave_cfg configuration to use for the slave controller
+ * @param is_subordinate GNUNET_YES if the controller at delegated_host should
+ *          be started by the slave controller; GNUNET_NO if the slave
+ *          controller has to connect to the already started delegated
+ *          controller via TCP/IP
+ * @return the operation handle
+ */
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_controller_link_with_opid (void *op_cls,
+                                          uint64_t operation_id,
+                                          struct GNUNET_TESTBED_Controller *master,
+                                          struct GNUNET_TESTBED_Host *delegated_host,
+                                          struct GNUNET_TESTBED_Host *slave_host,
+                                          const struct GNUNET_CONFIGURATION_Handle
+                                          *slave_cfg, int is_subordinate)
+{
+  struct GNUNET_TESTBED_Operation *op;
+  char *config;
+  char *cconfig;
+  size_t cc_size;
+  size_t config_size;
+
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_TESTBED_is_host_registered_ (delegated_host, master));
+  if ((NULL != slave_host) && (0 != GNUNET_TESTBED_host_get_id_ (slave_host)))
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_TESTBED_is_host_registered_ (slave_host, master));
+  config = GNUNET_CONFIGURATION_serialize (slave_cfg, &config_size);
+  cc_size = GNUNET_TESTBED_compress_config_ (config, config_size, &cconfig);
+  GNUNET_free (config);
+  /* Configuration doesn't fit in 1 message */
+  GNUNET_assert ((UINT16_MAX - 
+		  sizeof (struct GNUNET_TESTBED_ControllerLinkMessage)) >= cc_size);
+  op = GNUNET_TESTBED_controller_link_2_with_opid (op_cls, 
+                                                   master->operation_counter++,
+                                                   master, delegated_host,
+                                                   slave_host,
+                                                   (const char *) cconfig,
+                                                   cc_size, config_size,
+                                                   is_subordinate);
+  GNUNET_free (cconfig);
+  return op;
 }
 
 
@@ -1873,28 +1962,12 @@ GNUNET_TESTBED_controller_link (void *op_cls,
                                 const struct GNUNET_CONFIGURATION_Handle
                                 *slave_cfg, int is_subordinate)
 {
-  struct GNUNET_TESTBED_Operation *op;
-  char *config;
-  char *cconfig;
-  size_t cc_size;
-  size_t config_size;
-
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_TESTBED_is_host_registered_ (delegated_host, master));
-  if ((NULL != slave_host) && (0 != GNUNET_TESTBED_host_get_id_ (slave_host)))
-    GNUNET_assert (GNUNET_YES ==
-                   GNUNET_TESTBED_is_host_registered_ (slave_host, master));
-  config = GNUNET_CONFIGURATION_serialize (slave_cfg, &config_size);
-  cc_size = GNUNET_TESTBED_compress_config_ (config, config_size, &cconfig);
-  GNUNET_free (config);
-  /* Configuration doesn't fit in 1 message */
-  GNUNET_assert ((UINT16_MAX - 
-		  sizeof (struct GNUNET_TESTBED_ControllerLinkMessage)) >= cc_size);
-  op = GNUNET_TESTBED_controller_link_2 (op_cls, master, delegated_host,
-					 slave_host, (const char *) cconfig,
-					 cc_size, config_size, is_subordinate);
-  GNUNET_free (cconfig);
-  return op;
+  return
+      GNUNET_TESTBED_controller_link_with_opid (op_cls, 
+                                                master->operation_counter++,
+                                                master, delegated_host,
+                                                slave_host, slave_cfg,
+                                                is_subordinate);
 }
 
 
