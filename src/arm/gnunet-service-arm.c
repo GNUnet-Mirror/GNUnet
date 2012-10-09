@@ -1118,21 +1118,25 @@ setup_service (void *cls, const char *section)
     return;
   }
   config = NULL;
-  if ((GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_filename (cfg, section, "CONFIG",
-						&config)) ||
+  if (( (GNUNET_OK !=
+	 GNUNET_CONFIGURATION_get_value_filename (cfg, section, "CONFIG",
+						  &config)) &&
+	(GNUNET_OK !=
+	 GNUNET_CONFIGURATION_get_value_filename (cfg, "PATHS", "DEFAULTCONFIG",
+						  &config)) ) ||
+
       (0 != STAT (config, &sbuf)))
-    {
-      if (NULL == config)
-	GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING, section, "CONFIG");
-      else
-	GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING, 
-				   section, "CONFIG",
-				   STRERROR (errno));
-      GNUNET_free (binary);
-      GNUNET_free_non_null (config);
-      return;
-    }
+  {
+    if (NULL == config)
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING, section, "CONFIG");
+    else
+      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING, 
+				 section, "CONFIG",
+				 STRERROR (errno));
+    GNUNET_free (binary);
+    GNUNET_free_non_null (config);
+    return;
+  }
   sl = GNUNET_malloc (sizeof (struct ServiceList));
   sl->name = GNUNET_strdup (section);
   sl->binary = binary;
