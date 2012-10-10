@@ -186,6 +186,9 @@ static GNUNET_SCHEDULER_TaskIdentifier test_task;
  */
 static GNUNET_SCHEDULER_TaskIdentifier shutdown_handle;
 
+/**
+ * Filename of the file containing the topology.
+ */
 static char *topology_file;
 
 /**
@@ -233,12 +236,16 @@ static struct GNUNET_MESH_Tunnel *incoming_t;
  */
 static struct GNUNET_MESH_Tunnel *incoming_t2;
 
-static GNUNET_PEER_Id pid1;
-
+/**
+ * Time we started the data transmission (after tunnel has been established
+ * and initilized).
+ */
 static struct GNUNET_TIME_Absolute start_time;
 
 
-
+/**
+ * Show the results of the test (banwidth acheived) and log them to GAUGER
+ */
 static void
 show_end_data (void)
 {
@@ -262,6 +269,9 @@ show_end_data (void)
 
 /**
  * Check whether peers successfully shut down.
+ * 
+ * @param cls Closure (unused).
+ * @param emsg Error message.
  */
 static void
 shutdown_callback (void *cls, const char *emsg)
@@ -287,6 +297,9 @@ shutdown_callback (void *cls, const char *emsg)
 
 /**
  * Shut down peergroup, clean up.
+ * 
+ * @param cls Closure (unused).
+ * @param tc Task Context.
  */
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -326,6 +339,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Disconnect from mesh services af all peers, call shutdown.
+ * 
+ * @param cls Closure (unused).
+ * @param tc Task Context.
  */
 static void
 disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -363,9 +379,26 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 }
 
+
+/**
+ * Transmit ready callback.
+ * 
+ * @param cls Closure (peer #).
+ * @param size Size of the tranmist buffer.
+ * @param buf Pointer to the beginning of the buffer.
+ * 
+ * @return Number of bytes written to buf.
+ */
 static size_t
 tmt_rdy (void *cls, size_t size, void *buf);
 
+
+/**
+ * Task to schedule a new data transmission.
+ * 
+ * @param cls Closure (peer #).
+ * @param tc Task Context.
+ */
 static void
 data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -413,6 +446,7 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 }
 
+
 /**
  * Transmit ready callback
  *
@@ -434,7 +468,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
   if (test == SPEED)
   {
     data_sent++;
-    if (data_sent < TOTAL_PACKETS)
+    if (data_sent < TOTAL_PACKETS && ok > 1)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               " Scheduling %d packet\n", data_sent);
@@ -695,16 +729,9 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
     case UNICAST:
     case SPEED:
     case SPEED_ACK:
-      if (GNUNET_YES == test_backwards)
-      {
-        dest = &d1->id;
-        tunnel = incoming_t;
-      }
-      else
-      {
-        dest = &d2->id;
-        tunnel = t;
-      }
+      // incoming_t is NULL unless we send a relevant data packet
+      dest = &d2->id;
+      tunnel = t;
       break;
     case MULTICAST:
       peers_in_tunnel++;
@@ -884,7 +911,6 @@ peergroup_ready (void *cls, const char *emsg)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer looking: %s\n",
               GNUNET_i2s (&d1->id));
-  pid1 = GNUNET_PEER_intern (&d1->id);
 
   GNUNET_SCHEDULER_add_now (&connect_mesh_service, NULL);
   disconnect_task =
