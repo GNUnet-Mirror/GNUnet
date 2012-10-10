@@ -540,13 +540,16 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
     expected_target_client = 2L;
   }
 
-  if (SPEED == test && GNUNET_NO == initialized) // Initialization
+  if (GNUNET_NO == initialized)
   {
-    GNUNET_assert (2L == client);
     initialized = GNUNET_YES;
     start_time = GNUNET_TIME_absolute_get ();
-    GNUNET_SCHEDULER_add_now (&data_task, NULL);
-    return GNUNET_OK;
+    if (SPEED == test)
+    {
+      GNUNET_assert (2L == client);
+      GNUNET_SCHEDULER_add_now (&data_task, NULL);
+      return GNUNET_OK;
+    }
   }
 
   if (client == expected_target_client) // Normally 2 or 3
