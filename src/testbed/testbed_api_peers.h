@@ -190,6 +190,7 @@ struct PeerInfoData
  */
 struct OverlayConnectData
 {
+
   /**
    * Peer A to connect to peer B
    */
@@ -209,6 +210,40 @@ struct OverlayConnectData
    * The closure for the above callback
    */
   void *cb_cls;
+
+  /**
+   * OperationContext for forwarded operations generated when peer1's controller doesn't have the
+   * configuration of peer2's controller for linking laterally to attemp an
+   * overlay connection between peer 1 and peer 2.
+   */
+  struct OperationContext *sub_opc;
+
+  /**
+   * State information for this context data
+   */
+  enum OCDState {
+    
+    /**
+     * The initial state
+     */
+    OCD_INIT,
+
+    /**
+     * State where we attempt to acquire peer2's controller's configuration
+     */
+    OCD_CFG_ACQUIRE,
+
+    /**
+     * State where we link peer1's controller to peer2's controller
+     */
+    OCD_LINK_CONTROLLERS,
+    
+    /**
+     * State where we re-ask controller of peer1 to attempt an overlay connect
+     * between peer1 and peer2
+     */
+    OCD_REATTEMPT_OVERLAY_CONNECT
+  } state;
 
 };
 

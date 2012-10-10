@@ -810,6 +810,29 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
 
 
 /**
+ * Function to build GET_SLAVE_CONFIG message
+ *
+ * @param op_id the id this message should contain in its operation id field
+ * @param slave_id the id this message should contain in its slave id field
+ * @return newly allocated SlaveGetConfigurationMessage
+ */
+static struct GNUNET_TESTBED_SlaveGetConfigurationMessage *
+GNUNET_TESTBED_generate_slavegetconfig_msg_ (uint64_t op_id, uint32_t slave_id)
+{
+  struct GNUNET_TESTBED_SlaveGetConfigurationMessage *msg;
+  uint16_t msize;
+  
+  msize = sizeof (struct GNUNET_TESTBED_SlaveGetConfigurationMessage);
+  msg = GNUNET_malloc (msize);
+  msg->header.size = htons (msize);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_GETSLAVECONFIG);
+  msg->operation_id = GNUNET_htonll (op_id);
+  msg->slave_id = htonl (slave_id);
+  return msg;
+}
+
+
+/**
  * Handler for GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG message from controller
  * (testbed service)
  *
@@ -859,6 +882,41 @@ handle_slave_config (struct GNUNET_TESTBED_Controller *c,
 
 
 /**
+ * Callback to check status for suboperations generated during overlay connect.
+ *
+ * @param cls the OverlayConnectData
+ * @param message the reply message to the suboperation
+ */
+static void
+overlay_connect_ondemand_handler (void *cls,
+                                  const struct GNUNET_MessageHeader *message)
+{
+  struct OverlayConnectData *oc_data = cls;
+
+  switch (oc_data->state)
+  {
+  case OCD_CFG_ACQUIRE:
+    {
+      struct GNUNET_CONFIGURATION_Handle *cfg;
+
+      if (GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG != ntohs (message->type))
+      {
+        GNUNET_break (0);       /* treat operation as failed */
+      }
+      cfg = GNUNET_TESTBED_extract_config_ (message);
+      if (NULL == cfg)
+      {
+        GNUNET_break (0);       /* failed operation */
+      }
+      oc_data->state = OCD_LINK_CONTROLLERS;
+    }
+  default:
+    GNUNET_assert (0);
+  }
+}
+
+
+/**
  * Handler for GNUNET_MESSAGE_TYPE_TESTBED_NEEDCONTROLLERCONFIG message from
  * controller (testbed service)
  *
@@ -887,13 +945,35 @@ handle_need_controller_config (struct GNUNET_TESTBED_Controller *c,
                                     (const struct GNUNET_MessageHeader *) msg);
     return GNUNET_YES;
   }
+  GNUNET_assert (OP_OVERLAY_CONNECT == opc->type);
   oc_data = opc->data;
   /* FIXME: Should spawn operations to:
      1. Acquire configuration of peer2's controller,
      2. link peer1's controller to peer2's controller
      3. ask them to attempt overlay connect on peer1 and peer2 again */
-  GNUNET_break (NULL == oc_data);
-  GNUNET_break (0);
+  switch (oc_data->state)
+  {
+  case OCD_INIT:
+    {
+      struct GNUNET_TESTBED_SlaveGetConfigurationMessage *get_cfg_msg;
+      uint64_t sub_op_id;
+      
+      GNUNET_assert (NULL == oc_data->sub_opc);
+      sub_op_id = oc_data->p1->controller->operation_counter++;
+      get_cfg_msg = 
+          GNUNET_TESTBED_generate_slavegetconfig_msg_ 
+          (sub_op_id, GNUNET_TESTBED_host_get_id_ (oc_data->p2->host));
+      oc_data->state = OCD_CFG_ACQUIRE;
+      oc_data->sub_opc =
+          GNUNET_TESTBED_forward_operation_msg_ (oc_data->p1->controller,
+                                                 sub_op_id, &get_cfg_msg->header,
+                                                 overlay_connect_ondemand_handler,
+                                                 oc_data);
+    }
+    break;
+  default:
+    GNUNET_assert (0);
+  }
   return GNUNET_YES;
 }
 
@@ -1313,15 +1393,9 @@ opstart_get_slave_config (void *cls)
   struct OperationContext *opc = cls;
   struct GetSlaveConfigData *data;
   struct GNUNET_TESTBED_SlaveGetConfigurationMessage *msg;
-  uint16_t msize;
-  
+
   data = opc->data;
-  msize = sizeof (struct GNUNET_TESTBED_SlaveGetConfigurationMessage);
-  msg = GNUNET_malloc (msize);
-  msg->header.size = htons (msize);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_GETSLAVECONFIG);
-  msg->operation_id = GNUNET_htonll (opc->id);
-  msg->slave_id = htonl (data->slave_id);
+  msg = GNUNET_TESTBED_generate_slavegetconfig_msg_ (opc->id, data->slave_id);
   GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
   GNUNET_TESTBED_queue_message_ (opc->c, &msg->header);
   opc->state = OPC_STATE_STARTED;

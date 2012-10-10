@@ -706,6 +706,7 @@ GNUNET_TESTBED_overlay_connect (void *op_cls,
   data->p2 = p2;
   data->cb = cb;
   data->cb_cls = cb_cls;
+  data->state = OCD_INIT;
   opc = GNUNET_malloc (sizeof (struct OperationContext));
   opc->data = data;
   opc->c = p1->controller;
