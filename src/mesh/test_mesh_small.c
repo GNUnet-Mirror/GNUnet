@@ -101,6 +101,12 @@ static int ok;
   */
 int ok_goal;
 
+
+/**
+ * Is the setup initialized?
+ */
+static int initialized;
+
 /**
  * Peers that have been connected
  */
@@ -408,6 +414,8 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Data task\n");
   if (GNUNET_YES == test_backwards)
   {
     tunnel = incoming_t;
@@ -465,10 +473,10 @@ tmt_rdy (void *cls, size_t size, void *buf)
     return 0;
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
   msg->type = htons ((long) cls);
-  if (test == SPEED)
+  if (SPEED == test && GNUNET_YES == initialized)
   {
     data_sent++;
-    if (data_sent < TOTAL_PACKETS && ok > 1)
+    if (data_sent < TOTAL_PACKETS)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               " Scheduling %d packet\n", data_sent);
@@ -499,8 +507,6 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
 {
   long client = (long) cls;
   long expected_target_client;
-//   struct GNUNET_MESH_Tunnel *tunnel_to_use;
-//   struct GNUNET_PeerIdentity *dest_to_use;
 
   ok++;
   switch (client)
@@ -509,7 +515,6 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Root client got a message!\n");
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
     peers_responded++;
-    data_ack++;
     if (test == MULTICAST && peers_responded < 2)
       return GNUNET_OK;
     break;
@@ -529,18 +534,26 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
   if (SPEED == test && GNUNET_YES == test_backwards)
   {
     expected_target_client = 1L;
-//     dest_to_use = &d1->id;
-//     tunnel_to_use = incoming_t;
   }
   else
   {
     expected_target_client = 2L;
-//     dest_to_use = &d2->id;
-//     tunnel_to_use = t;
+  }
+
+  if (SPEED == test && GNUNET_NO == initialized) // Initialization
+  {
+    GNUNET_assert (2L == client);
+    initialized = GNUNET_YES;
+    start_time = GNUNET_TIME_absolute_get ();
+    GNUNET_SCHEDULER_add_now (&data_task, NULL);
+    return GNUNET_OK;
   }
 
   if (client == expected_target_client) // Normally 2 or 3
   {
+    data_received++;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                " received data %u\n", data_received);
     if (SPEED != test || (ok_goal - 2) == ok)
     {
       GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
@@ -550,9 +563,6 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
     }
     else
     {
-      data_received++;
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              " received data %u\n", data_received);
       if (data_received < TOTAL_PACKETS)
         return GNUNET_OK;
     }
@@ -561,13 +571,16 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
   {
     if (test == SPEED_ACK || test == SPEED)
     {
+      data_ack++;
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               " received ack %u\n", data_ack);
       GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
                                         GNUNET_TIME_UNIT_FOREVER_REL, sender,
                                         sizeof (struct GNUNET_MessageHeader),
                                         &tmt_rdy, (void *) 1L);
-      if (data_ack < TOTAL_PACKETS && test != SPEED)
+      if (data_ack < TOTAL_PACKETS && SPEED != test)
+        return GNUNET_OK;
+      if (ok == 2 && SPEED == test)
         return GNUNET_OK;
       show_end_data();
     }
@@ -625,6 +638,7 @@ incoming_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Incoming tunnel for unknown client %lu\n", (long) cls);
+    GNUNET_break(0);
   }
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
   {
@@ -632,6 +646,7 @@ incoming_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
     disconnect_task =
         GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers, NULL);
   }
+
   return NULL;
 }
 
@@ -709,7 +724,6 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
     const struct GNUNET_ATS_Information *atsi)
 {
   struct GNUNET_PeerIdentity *dest;
-  struct GNUNET_MESH_Tunnel *tunnel;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "peer %s connected\n", GNUNET_i2s (peer));
@@ -731,17 +745,14 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
     case SPEED_ACK:
       // incoming_t is NULL unless we send a relevant data packet
       dest = &d2->id;
-      tunnel = t;
       break;
     case MULTICAST:
       peers_in_tunnel++;
       if (peers_in_tunnel < 2)
         return;
       dest = NULL;
-      tunnel = t;
       break;
     default:
-      tunnel = t;
       return;
   }
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
@@ -750,13 +761,12 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
     disconnect_task =
         GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers, NULL);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending data...\n");
+                "Sending data initializer...\n");
     peers_responded = 0;
     data_ack = 0;
     data_received = 0;
     data_sent = 0;
-    start_time = GNUNET_TIME_absolute_get();
-    GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
+    GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO,
                                        GNUNET_TIME_UNIT_FOREVER_REL, dest,
                                        sizeof (struct GNUNET_MessageHeader),
                                        &tmt_rdy, (void *) 1L);
@@ -772,18 +782,29 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
 }
 
 
+/**
+ * START THE TESTCASE ITSELF, AS WE ARE CONNECTED TO THE MESH SERVICES.
+ * 
+ * Testcase continues when the root receives confirmation of connected peers,
+ * on callback funtion ch.
+ * 
+ * @param cls Closure (unsued).
+ * @param tc Task Context.
+ */
 static void
 do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test_task\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "add peer 2\n");
+  GNUNET_MESH_peer_request_connect_add (t, &d2->id);
+
   if (test == MULTICAST)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "add peer 3\n");
     GNUNET_MESH_peer_request_connect_add (t, &d3->id);
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "add peer 2\n");
-  GNUNET_MESH_peer_request_connect_add (t, &d2->id);
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "schedule timeout in SHORT_TIME\n");
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
@@ -798,11 +819,16 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * connect_mesh_service: connect to the mesh service of one of the peers
  *
+ * @param cls Closure (unsued).
+ * @param tc Task Context.
  */
 static void
 connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_MESH_ApplicationType app;
+
+  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
+    return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "connect_mesh_service\n");
@@ -859,6 +885,7 @@ connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * peergroup_ready: start test when all peers are connected
+ * 
  * @param cls closure
  * @param emsg error message
  */
@@ -959,6 +986,7 @@ connect_cb (void *cls, const struct GNUNET_PeerIdentity *first,
 
 /**
  * run: load configuration options and schedule test to run (start peergroup)
+ * 
  * @param cls closure
  * @param args argv
  * @param cfgfile configuration file name (can be NULL)
@@ -1095,6 +1123,8 @@ main (int argc, char *argv[])
   };
   int argc2 = (sizeof (argv2) / sizeof (char *)) - 1;
 
+  initialized = GNUNET_NO;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Start\n");
   if (strstr (argv[0], "test_mesh_small_unicast") != NULL)
   {
@@ -1171,6 +1201,7 @@ main (int argc, char *argv[])
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "BACKWARDS (LEAF TO ROOT)\n");
     test_backwards = GNUNET_YES;
+    ok_goal++; // need one root->leaf packet to initialize tunnel
     aux = malloc (32); // "leaked"
     sprintf (aux, "backwards %s", test_name);
     test_name = aux;
