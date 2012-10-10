@@ -81,11 +81,6 @@ struct Context
   struct GNUNET_TESTING_System *system;
   
   /**
-   * Event mask of event to be responded in this context
-   */
-  uint64_t event_mask;
-
-  /**
    * Our host id according to this context
    */
   uint32_t host_id;
@@ -328,6 +323,11 @@ struct Peer
        */
       struct GNUNET_TESTBED_Controller *controller;
 
+      /**
+       * The id of the remote host this peer is running on
+       */
+      uint32_t remote_host_id;
+
     } remote;
 
   } details;
@@ -537,6 +537,72 @@ struct LinkControllersContext
 };
 
 
+/**
+ * Context information to used during operations which forward the overlay
+ * connect message
+ */
+struct ForwardedOverlayConnectContext
+{
+  /**
+   * The gateway controller to which this operation is forwarded to
+   */
+  struct GNUNET_TESTBED_Controller *gateway;
+
+  /**
+   * The gateway controller through which peer2's controller can be reached
+   */
+  struct GNUNET_TESTBED_Controller *gateway2;
+
+  /**
+   * Handle for sub-operations
+   */
+  struct GNUNET_TESTBED_Operation *sub_op;
+
+  /**
+   * Enumeration of states for this context
+   */
+  enum FOCCState {
+
+    /**
+     * The initial state
+     */
+    FOCC_INIT = 0,
+
+    /**
+     * State where we attempt to get peer2's controller configuration
+     */
+    FOCC_GET_CFG,
+
+    /**
+     * State where we attempt to link the controller of peer 1 to the controller
+     * of peer2
+     */
+    FOCC_LINK,
+
+    /**
+     * State where we attempt to do the overlay connection again
+     */
+    FOCC_OL_CONNECT
+    
+  } state;
+
+  /**
+   * the id of peer 1
+   */
+  uint32_t peer1;
+  
+  /**
+   * The id of peer 2
+   */
+  uint32_t peer2;
+  
+  /**
+   * Id of the host where peer2 is running
+   */
+  uint32_t peer2_host_id;
+};
+
+
 
 /**
  * The master context; generated with the first INIT message
@@ -605,6 +671,11 @@ static struct Peer **peer_list;
  * The hashmap of shared services
  */
 static struct GNUNET_CONTAINER_MultiHashMap *ss_map;
+
+/**
+ * The event mask for the events we listen from sub-controllers
+ */
+static uint64_t event_mask;
 
 /**
  * The size of the host list
@@ -876,6 +947,8 @@ find_dest_route (uint32_t host_id)
 {
   struct Route *route;
 
+  if (route_list_size <= host_id)
+    return NULL;
   while (NULL != (route = route_list[host_id]))
   {
     if (route->thru == master_context->host_id)
@@ -1135,7 +1208,23 @@ static void
 slave_event_callback (void *cls,
                       const struct GNUNET_TESTBED_EventInformation *event)
 {
-  GNUNET_break (0);
+  struct ForwardedOverlayConnectContext *focc;
+  struct GNUNET_CONFIGURATION_Handle *slave_cfg;
+
+  /* We currently only get here when doing overlay connect operations and that
+     too while trying out sub operations */
+  if (GNUNET_TESTBED_ET_OPERATION_FINISHED != event->type)
+    return;
+  focc = event->details.operation_finished.op_cls;
+  switch (focc->state)
+  {
+  case FOCC_GET_CFG:
+    slave_cfg = event->details.operation_finished.generic;
+    GNUNET_break (0);           /* FIXME */
+    GNUNET_CONFIGURATION_destroy (slave_cfg);
+  default:  
+    GNUNET_assert (0);
+  }
 }
 
 
@@ -1170,7 +1259,7 @@ slave_status_callback (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
   slave->controller =
       GNUNET_TESTBED_controller_connect (cfg, host_list[slave->host_id],
-                                         master_context->event_mask,
+                                         event_mask,
                                          &slave_event_callback, slave);
   if (NULL != slave->controller)
   {
@@ -1252,7 +1341,6 @@ handle_init (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_TESTBED_host_create_with_id (master_context->host_id, NULL, NULL,
                                           0);
   host_list_add (host);
-  master_context->event_mask = GNUNET_ntohll (msg->event_mask);
   GNUNET_SERVER_client_keep (client);
   LOG_DEBUG ("Created master context with host ID: %u\n",
              master_context->host_id);
@@ -1543,7 +1631,7 @@ handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
     {
       slave->controller =
           GNUNET_TESTBED_controller_connect (cfg, host_list[slave->host_id],
-                                             master_context->event_mask,
+                                             event_mask,
                                              &slave_event_callback, slave);
       slave->cfg = cfg;
       if (NULL != slave->controller)
@@ -1638,6 +1726,7 @@ peer_create_forward_timeout (void *cls,
   struct ForwardedOperationContext *fo_ctxt = cls;
 
   /* send error msg to client */
+  GNUNET_free (fo_ctxt->cls);
   send_operation_fail_msg (fo_ctxt->client, fo_ctxt->operation_id, "Timedout");
   GNUNET_SERVER_client_drop (fo_ctxt->client);
   GNUNET_TESTBED_forward_operation_msg_cancel_ (fo_ctxt->opc);
@@ -1658,7 +1747,7 @@ peer_create_success_cb (void *cls, const struct GNUNET_MessageHeader *msg)
   struct ForwardedOperationContext *fo_ctxt = cls;
   const struct GNUNET_TESTBED_PeerCreateSuccessEventMessage *success_msg;
   struct GNUNET_MessageHeader *dup_msg;
-  struct Peer *peer;
+  struct Peer *remote_peer;
   uint16_t msize;
 
   GNUNET_SCHEDULER_cancel (fo_ctxt->timeout_task);
@@ -1666,12 +1755,11 @@ peer_create_success_cb (void *cls, const struct GNUNET_MessageHeader *msg)
   {
     success_msg =
         (const struct GNUNET_TESTBED_PeerCreateSuccessEventMessage *) msg;
-    peer = GNUNET_malloc (sizeof (struct Peer));
-    peer->is_remote = GNUNET_YES;
-    peer->id = ntohl (success_msg->peer_id);
     GNUNET_assert (NULL != fo_ctxt->cls);
-    peer->details.remote.controller = fo_ctxt->cls;
-    peer_list_add (peer);
+    remote_peer = fo_ctxt->cls;
+    GNUNET_assert (remote_peer->details.remote.remote_host_id
+                   == ntohl (success_msg->peer_id));
+    peer_list_add (remote_peer);
   }
   msize = ntohs (msg->size);
   dup_msg = GNUNET_malloc (msize);
@@ -1803,21 +1891,25 @@ handle_peer_create (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
+
+  peer = GNUNET_malloc (sizeof (struct Peer));
+  peer->is_remote = GNUNET_YES;
+  peer->id = peer_id;
+  peer->details.remote.controller = slave_list[route->dest]->controller;
+  peer->details.remote.remote_host_id = host_id;
   fo_ctxt = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
   GNUNET_SERVER_client_keep (client);
   fo_ctxt->client = client;
   fo_ctxt->operation_id = GNUNET_ntohll (msg->operation_id);
-  fo_ctxt->cls = slave_list[route->dest]->controller;
+  fo_ctxt->cls = peer; //slave_list[route->dest]->controller;
   fo_ctxt->opc =
-      GNUNET_TESTBED_forward_operation_msg_ (slave_list
-                                             [route->dest]->controller,
+      GNUNET_TESTBED_forward_operation_msg_ (slave_list [route->dest]->controller,
                                              fo_ctxt->operation_id,
                                              &msg->header,
                                              peer_create_success_cb, fo_ctxt);
   fo_ctxt->timeout_task =
       GNUNET_SCHEDULER_add_delayed (TIMEOUT, &peer_create_forward_timeout,
                                     fo_ctxt);
-
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -2411,6 +2503,55 @@ overlay_connect_get_config (void *cls, const struct GNUNET_MessageHeader *msg)
 
 
 /**
+ * Callback to be called when forwarded overlay connection operation has a reply
+ * from the sub-controller successfull. We have to relay the reply msg back to
+ * the client
+ *
+ * @param cls ForwardedOperationContext
+ * @param msg the peer create success message
+ */
+static void
+forwarded_overlay_connect_listener (void *cls,
+                                    const struct GNUNET_MessageHeader *msg)
+{
+  struct ForwardedOperationContext *fopc = cls;
+  struct ForwardedOverlayConnectContext *focc;
+
+  focc = fopc->cls;
+  if (NULL == focc)
+  {
+    forwarded_operation_reply_relay (cls, msg);
+    return;
+  }
+  switch (focc->state)
+  {
+  case FOCC_INIT:
+    if (GNUNET_MESSAGE_TYPE_TESTBED_NEEDCONTROLLERCONFIG != ntohs (msg->type))
+    {
+      GNUNET_break (0);  /* Something failed; you may check output of sub-controllers */
+      forwarded_operation_reply_relay (cls, msg);
+      return;
+    }
+    GNUNET_assert (NULL == focc->sub_op);
+    focc->state = FOCC_GET_CFG;
+    focc->sub_op = GNUNET_TESTBED_get_slave_config_ (focc, focc->gateway2,
+                                                 focc->peer2_host_id);
+    /* FIXME */
+    GNUNET_break (0);
+    break;
+    /* focc->op = GNUNET_TESTBED_controller_link (focc, */
+    /*                                            focc->gateway, */
+    /*                                            slave_list[peer2_host_id], */
+    /*                                            slave_list[peer_list[focc->peer1]->remote_host_id], */
+    /*                                            slave_list */
+                                               
+  default:
+    GNUNET_assert (0);
+  }
+}
+
+
+/**
  * Handler for GNUNET_MESSAGE_TYPE_TESTBED_OLCONNECT messages
  *
  * @param cls NULL
@@ -2429,28 +2570,55 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
   struct Peer *peer;
   uint64_t operation_id;
   uint32_t p1;
-  uint32_t p2;
+  uint32_t p2; 
+  uint32_t peer2_host_id;
 
+  
   msg = (const struct GNUNET_TESTBED_OverlayConnectMessage *) message;
   p1 = ntohl (msg->peer1);
   p2 = ntohl (msg->peer2);
+  peer2_host_id = ntohl (msg->peer2_host_id);
   GNUNET_assert (p1 < peer_list_size);
   GNUNET_assert (NULL != peer_list[p1]);
   peer = peer_list[p1];
-  operation_id = GNUNET_ntohll (msg->operation_id);
+  operation_id = GNUNET_ntohll (msg->operation_id);  
   if (GNUNET_YES == peer->is_remote)
   {
     struct ForwardedOperationContext *fopc;
+    struct Route *route_to_peer2_host;
+    struct Route *route_to_peer1_host;
 
-    fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+    LOG_DEBUG ("Forwarding overlay connect\n");
     GNUNET_SERVER_client_keep (client);
+    fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
     fopc->client = client;
     fopc->operation_id = operation_id;
-    LOG_DEBUG ("Forwarding overlay connect\n");
+    route_to_peer2_host = NULL;
+    route_to_peer1_host = NULL;
+    route_to_peer2_host = find_dest_route (peer2_host_id);
+    if (NULL != route_to_peer2_host)
+    {
+      route_to_peer1_host = 
+          find_dest_route (peer_list[p1]->details.remote.remote_host_id);
+      GNUNET_assert (NULL != route_to_peer1_host);
+      if (route_to_peer2_host->dest != route_to_peer1_host->dest)
+      {
+        struct ForwardedOverlayConnectContext *focc;
+        
+        focc = GNUNET_malloc (sizeof (struct ForwardedOverlayConnectContext));
+        focc->gateway = peer->details.remote.controller;
+        focc->gateway2 = slave_list[route_to_peer2_host->dest]->controller;
+        focc->peer1 = p1;
+        focc->peer2 = p2;
+        focc->peer2_host_id = peer2_host_id;
+        focc->state = FOCC_INIT;
+        fopc->cls = focc;
+      }
+    }
     fopc->opc = 
 	GNUNET_TESTBED_forward_operation_msg_ (peer->details.remote.controller,
 					       operation_id, message,
-					       &forwarded_operation_reply_relay,
+					       &forwarded_overlay_connect_listener,
 					       fopc);
     fopc->timeout_task =
 	GNUNET_SCHEDULER_add_delayed (TIMEOUT, &forwarded_operation_timeout,
@@ -2466,10 +2634,7 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
   occ->peer = peer_list[p1];
   occ->op_id = GNUNET_ntohll (msg->operation_id);  
   if ((p2 >= peer_list_size) || (NULL == peer_list[p2]))
-  {
-    uint32_t peer2_host_id;
-
-    peer2_host_id = ntohl (msg->peer2_host_id);
+  {   
     if ((peer2_host_id >= slave_list_size)
 	|| (NULL ==slave_list[peer2_host_id]))
     {
@@ -2945,6 +3110,7 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                     &shutdown_task, NULL);
   LOG_DEBUG ("Testbed startup complete\n");
+  event_mask = GNUNET_TESTBED_ET_OPERATION_FINISHED;
 }
 
 

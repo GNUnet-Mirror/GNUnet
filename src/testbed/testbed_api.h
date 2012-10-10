@@ -435,5 +435,23 @@ GNUNET_TESTBED_parse_error_string_ (const struct
 uint64_t
 GNUNET_TESTBED_get_next_op_id (struct GNUNET_TESTBED_Controller *controller);
 
+
+/**
+ * Like GNUNET_TESTBED_get_slave_config(), however without the host registration
+ * check. Another difference is that this function takes the id of the slave
+ * host.
+ *
+ * @param op_cls the closure for the operation
+ * @param master the handle to master controller
+ * @param slave_host the host where the slave controller is running; the handle
+ *          to the slave_host should remain valid until this operation is
+ *          cancelled or marked as finished
+ * @return the operation handle;
+ */
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_get_slave_config_ (void *op_cls,
+                                  struct GNUNET_TESTBED_Controller *master,
+                                  uint32_t slave_host_id);
+
 #endif
 /* end of testbed_api.h */

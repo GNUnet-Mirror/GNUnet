@@ -1838,31 +1838,24 @@ GNUNET_TESTBED_cancel_registration (struct GNUNET_TESTBED_HostRegistrationHandle
  * @return the operation handle
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_controller_link_2 (void *op_cls,
-				  struct GNUNET_TESTBED_Controller *master,
-                                  struct GNUNET_TESTBED_Host *delegated_host,
-                                  struct GNUNET_TESTBED_Host *slave_host,
-                                  const char *sxcfg, size_t sxcfg_size,
-                                  size_t scfg_size, int is_subordinate)
+GNUNET_TESTBED_controller_link_2_ (void *op_cls,
+                                   struct GNUNET_TESTBED_Controller *master,
+                                   uint32_t delegated_host_id,
+                                   uint32_t slave_host_id,
+                                   const char *sxcfg, size_t sxcfg_size,
+                                   size_t scfg_size, int is_subordinate)
 {
   struct OperationContext *opc;
   struct GNUNET_TESTBED_ControllerLinkMessage *msg;
   struct ControllerLinkData *data;
   uint16_t msg_size;
 
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_TESTBED_is_host_registered_ (delegated_host, master));
-  if ((NULL != slave_host) && (0 != GNUNET_TESTBED_host_get_id_ (slave_host)))
-    GNUNET_assert (GNUNET_YES ==
-                   GNUNET_TESTBED_is_host_registered_ (slave_host, master));
   msg_size = sxcfg_size + sizeof (struct GNUNET_TESTBED_ControllerLinkMessage);
   msg = GNUNET_malloc (msg_size);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_LCONTROLLERS);
   msg->header.size = htons (msg_size);
-  msg->delegated_host_id = htonl (GNUNET_TESTBED_host_get_id_ (delegated_host));
-  msg->slave_host_id =
-      htonl (GNUNET_TESTBED_host_get_id_
-             ((NULL != slave_host) ? slave_host : master->host));
+  msg->delegated_host_id = htonl (delegated_host_id);
+  msg->slave_host_id = htonl (slave_host_id);
   msg->config_size = htons ((uint16_t) scfg_size);
   msg->is_subordinate = (GNUNET_YES == is_subordinate) ? 1 : 0;
   memcpy (&msg[1], sxcfg, sxcfg_size);
@@ -1882,6 +1875,56 @@ GNUNET_TESTBED_controller_link_2 (void *op_cls,
   GNUNET_TESTBED_operation_queue_insert_ (master->opq_parallel_operations,
                                           opc->op);
   return opc->op;
+}
+
+
+/**
+ * Same as the GNUNET_TESTBED_controller_link, however expects configuration in
+ * serialized and compressed
+ *
+ * @param op_cls the operation closure for the event which is generated to
+ *          signal success or failure of this operation
+ * @param master handle to the master controller who creates the association
+ * @param delegated_host requests to which host should be delegated; cannot be NULL
+ * @param slave_host which host is used to run the slave controller; use NULL to
+ *          make the master controller connect to the delegated host
+ * @param sxcfg serialized and compressed configuration
+ * @param sxcfg_size the size sxcfg
+ * @param scfg_size the size of uncompressed serialized configuration
+ * @param is_subordinate GNUNET_YES if the controller at delegated_host should
+ *          be started by the slave controller; GNUNET_NO if the slave
+ *          controller has to connect to the already started delegated
+ *          controller via TCP/IP
+ * @return the operation handle
+ */
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_controller_link_2 (void *op_cls,
+				  struct GNUNET_TESTBED_Controller *master,
+                                  struct GNUNET_TESTBED_Host *delegated_host,
+                                  struct GNUNET_TESTBED_Host *slave_host,
+                                  const char *sxcfg, size_t sxcfg_size,
+                                  size_t scfg_size, int is_subordinate)
+{ 
+  uint32_t delegated_host_id;
+  uint32_t slave_host_id;
+
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_TESTBED_is_host_registered_ (delegated_host, master));
+  delegated_host_id = GNUNET_TESTBED_host_get_id_ (delegated_host);
+  slave_host_id = 
+      GNUNET_TESTBED_host_get_id_ ((NULL != slave_host)
+                                   ? slave_host : master->host);
+  if ((NULL != slave_host) && (0 != GNUNET_TESTBED_host_get_id_ (slave_host)))
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_TESTBED_is_host_registered_ (slave_host, master));
+  
+  return GNUNET_TESTBED_controller_link_2_ (op_cls,
+                                            master,
+                                            delegated_host_id,
+                                            slave_host_id,
+                                            sxcfg, sxcfg_size,
+                                            scfg_size, is_subordinate);
+  GNUNET_break (0);
 }
 
 
@@ -1973,6 +2016,44 @@ GNUNET_TESTBED_controller_link (void *op_cls,
 
 
 /**
+ * Like GNUNET_TESTBED_get_slave_config(), however without the host registration
+ * check. Another difference is that this function takes the id of the slave
+ * host.
+ *
+ * @param op_cls the closure for the operation
+ * @param master the handle to master controller
+ * @param slave_host the host where the slave controller is running; the handle
+ *          to the slave_host should remain valid until this operation is
+ *          cancelled or marked as finished
+ * @return the operation handle;
+ */
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_get_slave_config_ (void *op_cls,
+                                  struct GNUNET_TESTBED_Controller *master,
+                                  uint32_t slave_host_id)
+{  
+  struct OperationContext *opc;
+  struct GetSlaveConfigData *data;
+
+  data = GNUNET_malloc (sizeof (struct GetSlaveConfigData));
+  data->slave_id = slave_host_id;
+  data->op_cls = op_cls;
+  opc = GNUNET_malloc (sizeof (struct OperationContext));
+  opc->state = OPC_STATE_INIT;
+  opc->c = master;
+  opc->id = GNUNET_TESTBED_get_next_op_id (master);
+  opc->type = OP_GET_SLAVE_CONFIG;
+  opc->data = data;
+  opc->op =
+      GNUNET_TESTBED_operation_create_ (opc, &opstart_get_slave_config,
+                                        &oprelease_get_slave_config);
+  GNUNET_TESTBED_operation_queue_insert_ (master->opq_parallel_operations,
+					  opc->op); 
+  return opc->op;
+}
+
+
+/**
  * Function to acquire the configuration of a running slave controller. The
  * completion of the operation is signalled through the controller_cb from
  * GNUNET_TESTBED_controller_connect(). If the operation is successful the
@@ -1992,26 +2073,10 @@ GNUNET_TESTBED_get_slave_config (void *op_cls,
                                  struct GNUNET_TESTBED_Controller *master,
                                  struct GNUNET_TESTBED_Host *slave_host)
 {
-  struct OperationContext *opc;
-  struct GetSlaveConfigData *data;
-
   if (GNUNET_NO == GNUNET_TESTBED_is_host_registered_ (slave_host, master))
     return NULL;
-  data = GNUNET_malloc (sizeof (struct GetSlaveConfigData));
-  data->slave_id = GNUNET_TESTBED_host_get_id_ (slave_host);
-  data->op_cls = op_cls;
-  opc = GNUNET_malloc (sizeof (struct OperationContext));
-  opc->state = OPC_STATE_INIT;
-  opc->c = master;
-  opc->id = GNUNET_TESTBED_get_next_op_id (master);
-  opc->type = OP_GET_SLAVE_CONFIG;
-  opc->data = data;
-  opc->op =
-      GNUNET_TESTBED_operation_create_ (opc, &opstart_get_slave_config,
-                                        &oprelease_get_slave_config);
-  GNUNET_TESTBED_operation_queue_insert_ (master->opq_parallel_operations,
-					  opc->op); 
-  return opc->op;
+  return GNUNET_TESTBED_get_slave_config_ (op_cls, master,
+                                           GNUNET_TESTBED_host_get_id_ (slave_host));
 }
 
 
