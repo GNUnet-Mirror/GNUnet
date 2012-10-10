@@ -3192,14 +3192,17 @@ tunnel_destroy_child (void *cls,
 {
   struct MeshTunnelChildInfo *cinfo = value;
   struct MeshTunnel *t = cls;
+  struct MeshPeerQueue *q;
   unsigned int c;
   unsigned int i;
 
   for (c = 0; c < cinfo->send_buffer_n; c++)
   {
     i = (cinfo->send_buffer_start + c) % t->fwd_queue_max;
-    if (NULL != cinfo->send_buffer[i])
-      queue_destroy (cinfo->send_buffer[i], GNUNET_YES);
+    q = cinfo->send_buffer[i];
+    cinfo->send_buffer[i] = NULL;
+    if (NULL != q)
+      queue_destroy (q, GNUNET_YES);
     else
       GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u %u\n", c, cinfo->send_buffer_n);
