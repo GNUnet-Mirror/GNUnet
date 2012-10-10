@@ -1819,15 +1819,14 @@ GNUNET_TESTBED_cancel_registration (struct GNUNET_TESTBED_HostRegistrationHandle
 
 
 /**
- * Same as the GNUNET_TESTBED_controller_link, however expects configuration in
- * serialized and compressed
+ * Same as the GNUNET_TESTBED_controller_link_2, but with ids for delegated host
+ * and slave host
  *
  * @param op_cls the operation closure for the event which is generated to
  *          signal success or failure of this operation
  * @param master handle to the master controller who creates the association
- * @param delegated_host requests to which host should be delegated; cannot be NULL
- * @param slave_host which host is used to run the slave controller; use NULL to
- *          make the master controller connect to the delegated host
+ * @param delegated_host_id id of the host to which requests should be delegated
+ * @param slave_host_id id of the host which is used to run the slave controller
  * @param sxcfg serialized and compressed configuration
  * @param sxcfg_size the size sxcfg
  * @param scfg_size the size of uncompressed serialized configuration
@@ -1954,6 +1953,53 @@ GNUNET_TESTBED_compress_config_ (const char *config, size_t size,
 
 
 /**
+ * Same as the GNUNET_TESTBED_controller_link, but with ids for delegated host
+ * and slave host
+ *
+ * @param op_cls the operation closure for the event which is generated to
+ *          signal success or failure of this operation
+ * @param master handle to the master controller who creates the association
+ * @param delegated_host requests to which host should be delegated; cannot be NULL
+ * @param slave_host which host is used to run the slave controller; use NULL to
+ *          make the master controller connect to the delegated host
+ * @param slave_cfg configuration to use for the slave controller
+ * @param is_subordinate GNUNET_YES if the controller at delegated_host should
+ *          be started by the slave controller; GNUNET_NO if the slave
+ *          controller has to connect to the already started delegated
+ *          controller via TCP/IP
+ * @return the operation handle
+ */
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_controller_link_ (void *op_cls,
+				struct GNUNET_TESTBED_Controller *master,
+                                uint32_t delegated_host_id,
+                                uint32_t slave_host_id,
+                                const struct GNUNET_CONFIGURATION_Handle
+                                *slave_cfg,
+                                int is_subordinate)
+{
+  struct GNUNET_TESTBED_Operation *op;
+  char *config;
+  char *cconfig;
+  size_t cc_size;
+  size_t config_size;
+
+  config = GNUNET_CONFIGURATION_serialize (slave_cfg, &config_size);
+  cc_size = GNUNET_TESTBED_compress_config_ (config, config_size, &cconfig);
+  GNUNET_free (config);
+  /* Configuration doesn't fit in 1 message */
+  GNUNET_assert ((UINT16_MAX - 
+		  sizeof (struct GNUNET_TESTBED_ControllerLinkMessage)) >=
+                 cc_size);
+  op = GNUNET_TESTBED_controller_link_2_ (op_cls, master, delegated_host_id,
+                                          slave_host_id, (const char *) cconfig,
+                                          cc_size, config_size, is_subordinate);
+  GNUNET_free (cconfig);
+  return op;
+}
+
+
+/**
  * Create a link from slave controller to delegated controller. Whenever the
  * master controller is asked to start a peer at the delegated controller the
  * request will be routed towards slave controller (if a route exists). The
@@ -1990,28 +2036,23 @@ GNUNET_TESTBED_controller_link (void *op_cls,
                                 const struct GNUNET_CONFIGURATION_Handle
                                 *slave_cfg, int is_subordinate)
 {
-  struct GNUNET_TESTBED_Operation *op;
-  char *config;
-  char *cconfig;
-  size_t cc_size;
-  size_t config_size;
+  uint32_t slave_host_id;
+  uint32_t delegated_host_id;
 
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_TESTBED_is_host_registered_ (delegated_host, master));
-  if ((NULL != slave_host) && (0 != GNUNET_TESTBED_host_get_id_ (slave_host)))
+  slave_host_id = (NULL == slave_host) ?
+      0 : GNUNET_TESTBED_host_get_id_ (slave_host);
+  delegated_host_id = GNUNET_TESTBED_host_get_id_ (delegated_host);
+  if ((NULL != slave_host) && (0 != slave_host_id))
     GNUNET_assert (GNUNET_YES ==
                    GNUNET_TESTBED_is_host_registered_ (slave_host, master));
-  config = GNUNET_CONFIGURATION_serialize (slave_cfg, &config_size);
-  cc_size = GNUNET_TESTBED_compress_config_ (config, config_size, &cconfig);
-  GNUNET_free (config);
-  /* Configuration doesn't fit in 1 message */
-  GNUNET_assert ((UINT16_MAX - 
-		  sizeof (struct GNUNET_TESTBED_ControllerLinkMessage)) >= cc_size);
-  op = GNUNET_TESTBED_controller_link_2 (op_cls, master, delegated_host,
-					 slave_host, (const char *) cconfig,
-					 cc_size, config_size, is_subordinate);
-  GNUNET_free (cconfig);
-  return op;
+  return GNUNET_TESTBED_controller_link_ (op_cls, master,
+                                          delegated_host_id,
+                                          slave_host_id,
+                                          slave_cfg,
+                                          is_subordinate);
+                                          
 }
 
 

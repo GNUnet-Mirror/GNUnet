@@ -2535,7 +2535,7 @@ forwarded_overlay_connect_listener (void *cls,
     GNUNET_assert (NULL == focc->sub_op);
     focc->state = FOCC_GET_CFG;
     focc->sub_op = GNUNET_TESTBED_get_slave_config_ (focc, focc->gateway2,
-                                                 focc->peer2_host_id);
+                                                     focc->peer2_host_id);
     /* FIXME */
     GNUNET_break (0);
     break;
