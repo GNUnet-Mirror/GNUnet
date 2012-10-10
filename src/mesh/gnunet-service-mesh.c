@@ -5008,7 +5008,7 @@ queue_send (void *cls, size_t size, void *buf)
     {
       if (NULL != peer->queue_head)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                     "*********   %s stalled\n",
                     GNUNET_i2s(&my_full_id));
         if (NULL == cinfo)
