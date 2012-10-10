@@ -439,7 +439,7 @@ GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
   opc = GNUNET_malloc (sizeof (struct OperationContext));
   opc->c = controller;
   opc->data = data;
-  opc->id = controller->operation_counter++;
+  opc->id = GNUNET_TESTBED_get_next_op_id (controller);
   opc->type = OP_PEER_CREATE;
   opc->op =
       GNUNET_TESTBED_operation_create_ (opc, &opstart_peer_create,
@@ -515,7 +515,7 @@ GNUNET_TESTBED_peer_start (struct GNUNET_TESTBED_Peer *peer,
   opc = GNUNET_malloc (sizeof (struct OperationContext));
   opc->c = peer->controller;
   opc->data = data;
-  opc->id = opc->c->operation_counter++;
+  opc->id = GNUNET_TESTBED_get_next_op_id (opc->c);
   opc->type = OP_PEER_START;
   opc->op =
       GNUNET_TESTBED_operation_create_ (opc, &opstart_peer_start,
@@ -551,7 +551,7 @@ GNUNET_TESTBED_peer_stop (struct GNUNET_TESTBED_Peer *peer,
   opc = GNUNET_malloc (sizeof (struct OperationContext));
   opc->c = peer->controller;
   opc->data = data;
-  opc->id = opc->c->operation_counter++;
+  opc->id = GNUNET_TESTBED_get_next_op_id (opc->c);
   opc->type = OP_PEER_STOP;
   opc->op =
       GNUNET_TESTBED_operation_create_ (opc, &opstart_peer_stop,
@@ -595,7 +595,7 @@ GNUNET_TESTBED_peer_get_information (struct GNUNET_TESTBED_Peer *peer,
   opc->c = peer->controller;
   opc->data = data;
   opc->type = OP_PEER_INFO;
-  opc->id = opc->c->operation_counter++;
+  opc->id = GNUNET_TESTBED_get_next_op_id (opc->c);
   opc->op =
       GNUNET_TESTBED_operation_create_ (opc, &opstart_peer_getinfo,
                                         &oprelease_peer_getinfo);
@@ -641,7 +641,7 @@ GNUNET_TESTBED_peer_destroy (struct GNUNET_TESTBED_Peer *peer)
   opc = GNUNET_malloc (sizeof (struct OperationContext));
   opc->data = peer;
   opc->c = peer->controller;
-  opc->id = peer->controller->operation_counter++;
+  opc->id = GNUNET_TESTBED_get_next_op_id (peer->controller);
   opc->type = OP_PEER_DESTROY;
   opc->op =
       GNUNET_TESTBED_operation_create_ (opc, &opstart_peer_destroy,
@@ -710,7 +710,7 @@ GNUNET_TESTBED_overlay_connect (void *op_cls,
   opc = GNUNET_malloc (sizeof (struct OperationContext));
   opc->data = data;
   opc->c = p1->controller;
-  opc->id = opc->c->operation_counter++;
+  opc->id = GNUNET_TESTBED_get_next_op_id (opc->c);
   opc->type = OP_OVERLAY_CONNECT;
   opc->op =
       GNUNET_TESTBED_operation_create_ (opc, &opstart_overlay_connect,

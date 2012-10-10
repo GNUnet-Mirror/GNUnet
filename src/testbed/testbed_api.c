@@ -959,7 +959,7 @@ handle_need_controller_config (struct GNUNET_TESTBED_Controller *c,
       uint64_t sub_op_id;
       
       GNUNET_assert (NULL == oc_data->sub_opc);
-      sub_op_id = oc_data->p1->controller->operation_counter++;
+      sub_op_id = GNUNET_TESTBED_get_next_op_id (oc_data->p1->controller);
       get_cfg_msg = 
           GNUNET_TESTBED_generate_slavegetconfig_msg_ 
           (sub_op_id, GNUNET_TESTBED_host_get_id_ (oc_data->p2->host));
@@ -1873,7 +1873,7 @@ GNUNET_TESTBED_controller_link_2 (void *op_cls,
   opc->c = master;
   opc->data = data;
   opc->type = OP_LINK_CONTROLLERS;
-  opc->id = master->operation_counter++;
+  opc->id = GNUNET_TESTBED_get_next_op_id (opc->c);
   opc->state = OPC_STATE_INIT;
   msg->operation_id = GNUNET_htonll (opc->id);
   opc->op =
@@ -2003,7 +2003,7 @@ GNUNET_TESTBED_get_slave_config (void *op_cls,
   opc = GNUNET_malloc (sizeof (struct OperationContext));
   opc->state = OPC_STATE_INIT;
   opc->c = master;
-  opc->id = master->operation_counter++;
+  opc->id = GNUNET_TESTBED_get_next_op_id (master);
   opc->type = OP_GET_SLAVE_CONFIG;
   opc->data = data;
   opc->op =
@@ -2218,6 +2218,25 @@ GNUNET_TESTBED_parse_error_string_ (const struct
     return NULL;
   }
   return emsg;
+}
+
+
+/**
+ * Function to return the operation id for a controller. The operation id is
+ * created from the controllers host id and its internal operation counter.
+ *
+ * @param controller the handle to the controller whose operation id has to be incremented
+ * @return the incremented operation id.
+ */
+uint64_t
+GNUNET_TESTBED_get_next_op_id (struct GNUNET_TESTBED_Controller *controller)
+{
+  uint64_t op_id;  
+
+  op_id = (uint64_t) GNUNET_TESTBED_host_get_id_ (controller->host);
+  op_id = op_id <<  32;
+  op_id |= (uint64_t) controller->operation_counter++;
+  return op_id;
 }
 
 /* end of testbed_api.c */

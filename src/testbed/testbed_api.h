@@ -299,7 +299,7 @@ struct GNUNET_TESTBED_Controller
   /**
    * The operation id counter. use current value and increment
    */
-  uint64_t operation_counter;
+  uint32_t operation_counter;
 
   /**
    * The controller event mask
@@ -423,6 +423,17 @@ const char *
 GNUNET_TESTBED_parse_error_string_ (const struct
                                     GNUNET_TESTBED_OperationFailureEventMessage
                                     *msg);
+
+
+/**
+ * Function to return the operation id for a controller. The operation id is
+ * created from the controllers host id and its internal operation counter.
+ *
+ * @param controller the handle to the controller whose operation id has to be incremented
+ * @return the incremented operation id.
+ */
+uint64_t
+GNUNET_TESTBED_get_next_op_id (struct GNUNET_TESTBED_Controller *controller);
 
 #endif
 /* end of testbed_api.h */

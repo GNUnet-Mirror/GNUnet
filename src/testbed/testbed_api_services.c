@@ -190,7 +190,7 @@ opstart_service_connect (void *cls)
   GNUNET_assert (NULL != data);
   GNUNET_assert (NULL != data->peer);
   c = data->peer->controller;
-  op_id = c->operation_counter++;
+  op_id = GNUNET_TESTBED_get_next_op_id (c);
   msg =
       GNUNET_TESTBED_generate_peergetconfig_msg_ (data->peer->unique_id, op_id);
   data->opc =
