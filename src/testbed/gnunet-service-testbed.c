@@ -569,6 +569,11 @@ struct ForwardedOverlayConnectContext
   struct GNUNET_MessageHeader *orig_msg;
 
   /**
+   * The host registration handle while registered hosts in this context
+   */
+  struct GNUNET_TESTBED_HostRegistrationHandle *rhandle;
+
+  /**
    * The id of the operation which created this context information
    */
   uint64_t operation_id;
@@ -582,6 +587,11 @@ struct ForwardedOverlayConnectContext
      * The initial state
      */
     FOCC_INIT = 0,
+
+    /**
+     * State where we attempt to register peer2's controller with peer1's controller
+     */
+    FOCC_REGISTER,
 
     /**
      * State where we attempt to get peer2's controller configuration
@@ -663,7 +673,7 @@ static struct MessageQueue *mq_head;
 static struct MessageQueue *mq_tail;
 
 /**
- * Array of host list
+ * Array of hosts
  */
 static struct GNUNET_TESTBED_Host **host_list;
 
@@ -1236,7 +1246,8 @@ cleanup_focc (struct ForwardedOverlayConnectContext *focc)
 {
   if (NULL != focc->sub_op)
     GNUNET_TESTBED_operation_done (focc->sub_op);
-  GNUNET_SERVER_client_drop (focc->client);
+  if (NULL != focc->client)
+    GNUNET_SERVER_client_drop (focc->client);
   GNUNET_free_non_null (focc->orig_msg);
   GNUNET_free (focc);
 }
@@ -1259,8 +1270,9 @@ slave_event_callback (void *cls,
 
   /* We currently only get here when doing overlay connect operations and that
      too while trying out sub operations */
-  GNUNET_assert (GNUNET_TESTBED_ET_OPERATION_FINISHED != event->type);
+  GNUNET_assert (GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type);
   focc = event->details.operation_finished.op_cls;
+  LOG_DEBUG ("Operation successful\n");
   if (NULL != event->details.operation_finished.emsg)
   {
     GNUNET_asprintf (&emsg, "Failure executing suboperation: %s",
@@ -1286,6 +1298,7 @@ slave_event_callback (void *cls,
     GNUNET_TESTBED_operation_done (old_op);
     break;
   case FOCC_LINK:
+    LOG_DEBUG ("OL: Linking controllers successfull\n");
     GNUNET_TESTBED_operation_done (focc->sub_op);
     focc->sub_op = NULL;
     focc->state = FOCC_OL_CONNECT;
@@ -1671,7 +1684,7 @@ handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
     {
       LOG (GNUNET_ERROR_TYPE_WARNING, "Host %u already connected\n",
            delegated_host_id);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
     }
     config = GNUNET_malloc (config_size);
@@ -2588,6 +2601,43 @@ overlay_connect_get_config (void *cls, const struct GNUNET_MessageHeader *msg)
 
 
 /**
+ * This callback is a part of overlay connect operation. This will be run when
+ * the registration operation of peer2's controller is completed at peer1's
+ * controller
+ *
+ * @param cls the ForwardedOverlayConnectContext
+ * @param emsg the error message in case of any failure; NULL if host
+ *          registration is successfull.
+ */
+static void
+focc_reg_completion_cc (void *cls, const char *emsg)
+{
+  struct ForwardedOverlayConnectContext *focc = cls;
+  
+  GNUNET_assert (FOCC_REGISTER == focc->state);
+  focc->rhandle = NULL;
+  GNUNET_assert (NULL == focc->sub_op);
+  LOG_DEBUG ("Registering peer2's host successful\n");
+  if ((focc->peer2_host_id < slave_list_size) /* Check if we have the needed config */
+      && (NULL != slave_list[focc->peer2_host_id]))
+  {
+    focc->state = FOCC_LINK;
+    focc->sub_op = 
+        GNUNET_TESTBED_controller_link_ (focc,
+                                         focc->gateway,
+                                         focc->peer2_host_id,
+                                         peer_list[focc->peer1]->details.remote.remote_host_id,
+                                         slave_list[focc->peer2_host_id]->cfg,
+                                         GNUNET_NO);
+    return;
+  }
+  focc->state = FOCC_GET_CFG;
+  focc->sub_op = GNUNET_TESTBED_get_slave_config_ (focc, focc->gateway2,
+                                                   focc->peer2_host_id);
+}
+
+
+/**
  * Callback to be called when forwarded overlay connection operation has a reply
  * from the sub-controller successfull. We have to relay the reply msg back to
  * the client
@@ -2619,10 +2669,12 @@ forwarded_overlay_connect_listener (void *cls,
       forwarded_operation_reply_relay (cls, msg);
       return;
     }
-    GNUNET_assert (NULL == focc->sub_op);
-    focc->state = FOCC_GET_CFG;
-    focc->sub_op = GNUNET_TESTBED_get_slave_config_ (focc, focc->gateway2,
-                                                     focc->peer2_host_id);
+    LOG_DEBUG ("Registering peer2's host\n");
+    focc->state = FOCC_REGISTER;
+    focc->rhandle =
+        GNUNET_TESTBED_register_host (focc->gateway,
+                                      host_list[focc->peer2_host_id],
+                                      focc_reg_completion_cc, focc);
     break;
   default:
     GNUNET_assert (0);
@@ -3200,7 +3252,7 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                     &shutdown_task, NULL);
   LOG_DEBUG ("Testbed startup complete\n");
-  event_mask = GNUNET_TESTBED_ET_OPERATION_FINISHED;
+  event_mask = 1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED;
 }
 
 

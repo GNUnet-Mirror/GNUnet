@@ -240,11 +240,6 @@ struct ForwardedOperationData
 struct GetSlaveConfigData
 {
   /**
-   * The operation closure
-   */
-  void *op_cls;
-
-  /**
    * The id of the slave controller
    */
   uint32_t slave_id;
@@ -261,11 +256,6 @@ struct ControllerLinkData
    * The controller link message
    */
   struct GNUNET_TESTBED_ControllerLinkMessage *msg;
-
-  /**
-   * The operation closure
-   */
-  void *op_cls;
 
 };
 
@@ -397,7 +387,7 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
   }
   event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
   event.details.operation_finished.operation = opc->op;
-  event.details.operation_finished.op_cls = NULL;
+  event.details.operation_finished.op_cls = opc->op_cls;
   event.details.operation_finished.emsg = NULL;
   event.details.operation_finished.generic = NULL;
   switch (opc->type)
@@ -425,7 +415,6 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
       
       data = opc->data;
       GNUNET_assert (NULL != data);      
-      event.details.operation_finished.op_cls = data->op_cls;
       GNUNET_free (data);
       opc->data = NULL;
     }
@@ -440,6 +429,8 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
     if (NULL != c->cc)
       c->cc (c->cc_cls, &event);
   }
+  else
+    LOG_DEBUG ("Not calling callback\n");
   return GNUNET_YES;
 }
 
@@ -758,7 +749,7 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
   {
     event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
     event.details.operation_finished.operation = opc->op;
-    event.details.operation_finished.op_cls = NULL;
+    event.details.operation_finished.op_cls = opc->op_cls;
     event.details.operation_finished.emsg = emsg;
     event.details.operation_finished.generic = NULL;
     c->cc (c->cc_cls, &event);
@@ -846,7 +837,6 @@ handle_slave_config (struct GNUNET_TESTBED_Controller *c,
 		     const struct GNUNET_TESTBED_SlaveConfiguration * msg)
 {
   struct OperationContext *opc;
-  void *op_cls;
   uint64_t op_id;
   struct GNUNET_TESTBED_EventInformation event;  
 
@@ -860,8 +850,7 @@ handle_slave_config (struct GNUNET_TESTBED_Controller *c,
   {
     GNUNET_break (0);
     return GNUNET_YES;
-  }  
-  op_cls = ((struct GetSlaveConfigData *) opc->data)->op_cls;
+  }
   GNUNET_free (opc->data);
   opc->data = NULL;
   opc->state = OPC_STATE_FINISHED;
@@ -873,7 +862,7 @@ handle_slave_config (struct GNUNET_TESTBED_Controller *c,
     event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;   
     event.details.operation_finished.generic = opc->data;
     event.details.operation_finished.operation = opc->op;
-    event.details.operation_finished.op_cls = op_cls;
+    event.details.operation_finished.op_cls = opc->op_cls;
     event.details.operation_finished.emsg = NULL;
     c->cc (c->cc_cls, &event);
   }
@@ -1860,13 +1849,13 @@ GNUNET_TESTBED_controller_link_2_ (void *op_cls,
   memcpy (&msg[1], sxcfg, sxcfg_size);
   data = GNUNET_malloc (sizeof (struct ControllerLinkData));
   data->msg = msg;
-  data->op_cls = op_cls;
   opc = GNUNET_malloc (sizeof (struct OperationContext));
   opc->c = master;
   opc->data = data;
   opc->type = OP_LINK_CONTROLLERS;
   opc->id = GNUNET_TESTBED_get_next_op_id (opc->c);
   opc->state = OPC_STATE_INIT;
+  opc->op_cls = op_cls;
   msg->operation_id = GNUNET_htonll (opc->id);
   opc->op =
       GNUNET_TESTBED_operation_create_ (opc, &opstart_link_controllers,
@@ -2078,13 +2067,13 @@ GNUNET_TESTBED_get_slave_config_ (void *op_cls,
 
   data = GNUNET_malloc (sizeof (struct GetSlaveConfigData));
   data->slave_id = slave_host_id;
-  data->op_cls = op_cls;
   opc = GNUNET_malloc (sizeof (struct OperationContext));
   opc->state = OPC_STATE_INIT;
   opc->c = master;
   opc->id = GNUNET_TESTBED_get_next_op_id (master);
   opc->type = OP_GET_SLAVE_CONFIG;
   opc->data = data;
+  opc->op_cls = op_cls;
   opc->op =
       GNUNET_TESTBED_operation_create_ (opc, &opstart_get_slave_config,
                                         &oprelease_get_slave_config);

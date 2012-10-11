@@ -182,6 +182,11 @@ struct OperationContext
   struct GNUNET_TESTBED_Operation *op;
 
   /**
+   * The operation closure
+   */
+  void *op_cls;
+
+  /**
    * Data relevant to the operation
    */
   void *data;
