@@ -18,6 +18,9 @@ bin_PROGRAMS = \
   gnunet-service-testbed \
   gnunet-helper-testbed
 
+noinst_PROGRAMS = \
+  gnunet-testbed-profiler
+
 gnunet_service_testbed_SOURCES = \
   gnunet-service-testbed.c
 gnunet_service_testbed_LDADD = $(XLIB) \
@@ -30,6 +33,12 @@ gnunet_service_testbed_LDADD = $(XLIB) \
  $(LTLIBINTL) -lz
 gnunet_service_testbed_DEPENDENCIES = \
   libgnunettestbed.la
+
+gnunet_testbed_profiler_SOURCES = \
+  gnunet-testbed-profiler.c
+gnunet_testbed_profiler_LDADD = $(XLIB) \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunettestbed.la
 
 gnunet_helper_testbed_SOURCES = \
   gnunet-helper-testbed.c
