@@ -1462,7 +1462,7 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
                              &helper_mst, &helper_exp_cb, cp);
   else
   {
-    char *remote_args[8];
+    char *remote_args[10];
     unsigned int argp;
     const char *username;
 
@@ -1480,10 +1480,12 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
     remote_args[argp++] = cp->port;
     remote_args[argp++] = "-o";
     remote_args[argp++] = "BatchMode=yes";
+    remote_args[argp++] = "-o";
+    remote_args[argp++] = "NoHostAuthenticationForLocalhost=yes";
     remote_args[argp++] = cp->dst;
     remote_args[argp++] = HELPER_TESTBED_BINARY_SSH;
     remote_args[argp++] = NULL;
-    GNUNET_assert (argp == 8);
+    GNUNET_assert (argp == 10);
     cp->helper =
         GNUNET_HELPER_start (GNUNET_NO, "ssh", remote_args, &helper_mst,
                              &helper_exp_cb, cp);
