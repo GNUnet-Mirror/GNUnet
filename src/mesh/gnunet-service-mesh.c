@@ -5742,7 +5742,6 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " of type %s\n",
               GNUNET_MESH_DEBUG_M2S (ntohs (msg[1].header.type)));
   t = tunnel_get (&msg->oid, ntohl (msg->tid));
-  pid = ntohl (msg->pid);
 
   if (NULL == t)
   {
@@ -5753,6 +5752,22 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
                 "Received PID %u, ACK %u\n",
                 pid, t->bck_ack);
     return GNUNET_OK;
+  }
+
+  pid = ntohl (msg->pid);
+  if (t->bck_pid == pid)
+  {
+    /* already seen this packet, drop */
+    GNUNET_STATISTICS_update (stats, "# duplicate PID drops BCK", 1, GNUNET_NO);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                " Already seen pid %u, DROPPING!\n", pid);
+    tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
+    return GNUNET_OK;
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                " pid %u not seen yet, forwarding\n", pid);
   }
 
   if (NULL != t->owner)
