@@ -13,5 +13,5 @@ rm __tmp_peers
 cat log | sed -e 's/mesh-api-/mesh-api-                                            /g' > __tmp_log
 mv __tmp_log log
 
-kwrite log &
+kwrite log --geometry 960x1140-960 &
 
