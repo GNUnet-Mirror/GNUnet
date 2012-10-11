@@ -3,3 +3,13 @@ totakura@192.168.0.2:22
 totakura@192.168.0.3:22
 totakura@192.168.0.4:22
 totakura@192.168.0.5:22
+totakura@192.168.0.6:22
+totakura@192.168.0.7:22
+totakura@192.168.0.8:22
+totakura@192.168.0.9:22
+totakura@192.168.0.10:22
+totakura@192.168.0.11:22
+totakura@192.168.0.12:22
+totakura@192.168.0.13:22
+totakura@192.168.0.14:22
+totakura@192.168.0.15:22

@@ -113,7 +113,8 @@ GNUNET_TESTBED_host_create_with_id (uint32_t id,
  * Load a set of hosts from a configuration file.
  *
  * @param filename file with the host specification
- * @param hosts set to the hosts found in the file
+ * @param hosts set to the hosts found in the file; caller must free this if
+ *          number of hosts returned is greater than 0
  * @return number of hosts returned in 'hosts', 0 on error
  */
 unsigned int
