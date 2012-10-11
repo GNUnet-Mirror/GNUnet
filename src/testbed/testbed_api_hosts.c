@@ -295,18 +295,81 @@ unsigned int
 GNUNET_TESTBED_hosts_load_from_file (const char *filename,
                                      struct GNUNET_TESTBED_Host ***hosts)
 {
-#if 0
-  struct GNUNET_TESTBED_Host **host_array;
+  //struct GNUNET_TESTBED_Host **host_array;
+  struct GNUNET_TESTBED_Host *starting_host;
+  char *data;
+  char *buf;
+  char *username;
+  char *hostname;
+  uint64_t fs;
+  short int port;
+  int ret;
+  unsigned int offset;
+  unsigned int count;
+  
 
-  host_array = GNUNET_malloc (num_hosts * sizeof (struct GNUNET_TESTBED_Host *));
-  host_array[foo] = GNUNET_TESTBED_host_create (FIXME);
-  *hosts = host_array;
-
-  return num_hosts;
-#endif  
-  // see testing_group.c, GNUNET_TESTING_hosts_load
-  GNUNET_break (0);
-  return 0;
+  GNUNET_assert (NULL != filename);
+  if (GNUNET_YES != GNUNET_DISK_file_test (filename))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, _("Hosts file %s not found\n"), filename);
+    return 0;
+  }
+  if (GNUNET_OK != 
+      GNUNET_DISK_file_size (filename, &fs, GNUNET_YES, GNUNET_YES))
+    fs = 0;
+  if (0 == fs)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, _("Hosts file %s has no data\n"), filename);
+    return 0;
+  }
+  data = GNUNET_malloc (fs);  
+  if (fs != GNUNET_DISK_fn_read (filename, data, fs))
+  {
+    GNUNET_free (data);
+    LOG (GNUNET_ERROR_TYPE_WARNING, _("Hosts file %s cannot be read\n"),
+         filename);
+    return 0;
+  }
+  buf = data;
+  offset = 0;
+  starting_host = NULL;
+  while (offset < (fs - 1))
+  {
+    offset++;
+    if (((data[offset] == '\n')) && (buf != &data[offset]))
+    {
+      data[offset] = '\0';
+      ret = SSCANF (buf, "%a[a-zA-Z0-9_]@%a[a-zA-Z0-9.]:%hd",
+                    &username, &hostname, &port);
+      if  (3 == ret)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Successfully read host %s, port %d and user %s from file\n",
+                    hostname, port, username);
+        /* We store hosts in a static list; hence we only require the starting
+           host pointer in that list to get the newly created list of hosts */
+        if (NULL == starting_host)
+          starting_host = GNUNET_TESTBED_host_create (hostname, username,
+                                                      port);
+        else
+          (void) GNUNET_TESTBED_host_create (hostname, username, port);
+        count++;
+        GNUNET_free (hostname);
+        GNUNET_free (username);
+      }
+      else
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                    "Error reading line `%s' in hostfile\n", buf);
+      buf = &data[offset + 1];
+    }
+    else if ((data[offset] == '\n') || (data[offset] == '\0'))
+      buf = &data[offset + 1];        
+  }
+  GNUNET_free (data);
+  if (NULL == starting_host)
+    return 0;  
+  *hosts = &host_list[GNUNET_TESTBED_host_get_id_ (starting_host)];
+  return count;
 }
 
 
@@ -321,6 +384,7 @@ GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
 {
   struct RegisteredController *rc;
   uint32_t id;
+  uint32_t orig_size;
 
   GNUNET_assert (host->id < host_list_size);
   GNUNET_assert (host_list[host->id] == host);
@@ -334,6 +398,7 @@ GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
   GNUNET_free_non_null ((char *) host->username);
   GNUNET_free_non_null ((char *) host->hostname);
   GNUNET_free (host);
+  orig_size = host_list_size;
   while (host_list_size >= HOST_LIST_GROW_STEP)
   {
     for (id = host_list_size - 1; id > host_list_size - HOST_LIST_GROW_STEP;
@@ -346,9 +411,10 @@ GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
       break;
     host_list_size -= HOST_LIST_GROW_STEP;
   }
-  host_list =
-      GNUNET_realloc (host_list,
-                      sizeof (struct GNUNET_TESTBED_Host *) * host_list_size);
+  if (orig_size != host_list_size)
+    host_list =
+        GNUNET_realloc (host_list,
+                        sizeof (struct GNUNET_TESTBED_Host *) * host_list_size);
 }
 
 

@@ -39,6 +39,16 @@
 static struct GNUNET_TESTBED_Host *host;
 
 /**
+ * An array of hosts which are loaded from a file
+ */
+static struct GNUNET_TESTBED_Host **hosts;
+
+/**
+ * Number of hosts in the above list
+ */
+static unsigned int num_hosts;
+
+/**
  * Global test status
  */
 static int status;
@@ -58,6 +68,11 @@ static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_TESTBED_host_destroy (host);
+  while (0 != num_hosts)
+  {
+    GNUNET_TESTBED_host_destroy (hosts[num_hosts - 1]);
+    num_hosts--;
+  }
 }
 
 
@@ -81,6 +96,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (NULL != host);
   GNUNET_assert (0 == GNUNET_TESTBED_host_get_id_ (host));
   GNUNET_assert (host == GNUNET_TESTBED_host_lookup_by_id_ (0));
+  hosts = NULL;
+  num_hosts =  GNUNET_TESTBED_hosts_load_from_file ("sample_hosts.txt",
+                                                    &hosts);
+  GNUNET_assert (5 == num_hosts);
+  GNUNET_assert (NULL != hosts);
   shutdown_id =
       GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (2), &do_shutdown, NULL);
 }
