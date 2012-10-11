@@ -37,11 +37,6 @@
   GNUNET_log_from (kind, "testing-api", __VA_ARGS__)
 
 /**
- * Size of a hostkey when written to a file
- */
-#define HOSTKEYFILESIZE 914
-
-/**
  * Lowest port used for GNUnet testing.  Should be high enough to not
  * conflict with other applications running on the hosts but be low
  * enough to not conflict with client-ports (typically starting around
@@ -79,7 +74,7 @@ struct GNUNET_TESTING_System
   char *hostname;
 
   /**
-   * Hostkeys data, contains "HOSTKEYFILESIZE * total_hostkeys" bytes.
+   * Hostkeys data, contains "GNUNET_TESTING_HOSTKEYFILESIZE * total_hostkeys" bytes.
    */
   char *hostkeys_data;
 
@@ -213,7 +208,7 @@ hostkeys_load (struct GNUNET_TESTING_System *system)
     GNUNET_free (filename);
     return GNUNET_SYSERR;       /* File is empty */
   }
-  if (0 != (fs % HOSTKEYFILESIZE))
+  if (0 != (fs % GNUNET_TESTING_HOSTKEYFILESIZE))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          _("Incorrect hostkey file format: %s\n"), filename);
@@ -228,7 +223,7 @@ hostkeys_load (struct GNUNET_TESTING_System *system)
     GNUNET_free (filename);
     return GNUNET_SYSERR;
   }
-  system->total_hostkeys = fs / HOSTKEYFILESIZE;
+  system->total_hostkeys = fs / GNUNET_TESTING_HOSTKEYFILESIZE;
   system->hostkeys_data = GNUNET_DISK_file_map (system->map_fd,
 						&system->map,
 						GNUNET_DISK_MAP_TYPE_READ,
@@ -524,8 +519,9 @@ GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
     return NULL;
   }   
   private_key = GNUNET_CRYPTO_rsa_decode_key (system->hostkeys_data +
-                                              (key_number * HOSTKEYFILESIZE),
-                                              HOSTKEYFILESIZE);
+                                              (key_number *
+                                               GNUNET_TESTING_HOSTKEYFILESIZE),
+                                              GNUNET_TESTING_HOSTKEYFILESIZE);
   if (NULL == private_key)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
@@ -892,10 +888,10 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
     GNUNET_break (0); 
     return NULL;
   }
-  if (HOSTKEYFILESIZE !=
+  if (GNUNET_TESTING_HOSTKEYFILESIZE !=
       GNUNET_DISK_file_write (fd, system->hostkeys_data 
-			      + (key_number * HOSTKEYFILESIZE),
-			      HOSTKEYFILESIZE))
+			      + (key_number * GNUNET_TESTING_HOSTKEYFILESIZE),
+			      GNUNET_TESTING_HOSTKEYFILESIZE))
   {
     GNUNET_asprintf (&emsg_,
 		     _("Failed to write hostkey file for peer %u: %s\n"),
