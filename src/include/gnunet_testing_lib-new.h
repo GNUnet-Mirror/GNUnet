@@ -44,6 +44,7 @@ extern "C"
 #endif
 #endif
 
+#define GNUNET_TESTING_HOSTKEYFILESIZE 914
 
 /**
  * Handle for a system on which GNUnet peers are executed;
