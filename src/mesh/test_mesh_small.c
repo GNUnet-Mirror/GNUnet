@@ -836,10 +836,10 @@ connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "connect_mesh_service\n");
 
-  d2 = GNUNET_TESTING_daemon_get (pg, 4);
+  d2 = GNUNET_TESTING_daemon_get (pg, num_peers - 1);
   if (test == MULTICAST)
   {
-    d3 = GNUNET_TESTING_daemon_get (pg, 3);
+    d3 = GNUNET_TESTING_daemon_get (pg, num_peers - 2);
   }
   app = (GNUNET_MESH_ApplicationType) 0;
 
