@@ -4023,6 +4023,12 @@ tunnel_send_clients_bck_ack (struct MeshTunnel *t)
       send_local_ack (t, t->clients[i], ack);
       clinfo->bck_ack = ack;
     }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "    not sending ack to client %u (td %u, d %u)\n",
+                  t->clients[i]->id, tunnel_delta, delta);
+    }
   }
 }
 
@@ -5721,7 +5727,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshPeerInfo *peer_info;
   struct MeshTunnel *t;
   size_t size;
-
+  uint32_t pid;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a ToOrigin packet from %s\n",
               GNUNET_i2s (peer));
@@ -5736,12 +5742,16 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " of type %s\n",
               GNUNET_MESH_DEBUG_M2S (ntohs (msg[1].header.type)));
   t = tunnel_get (&msg->oid, ntohl (msg->tid));
+  pid = ntohl (msg->pid);
 
   if (NULL == t)
   {
     /* TODO notify that we dont know this tunnel (whom)? */
     GNUNET_STATISTICS_update (stats, "# data on unknown tunnel", 1, GNUNET_NO);
     GNUNET_break_op (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received PID %u, ACK %u\n",
+                pid, t->bck_ack);
     return GNUNET_OK;
   }
 
