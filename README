@@ -71,12 +71,19 @@ http://www.gnu.org/software/libmicrohttpd/).  Then you can start the
 actual GNUnet compilation and installation process with:
 
 $ export GNUNET_PREFIX=/usr/local # or other directory of your choice
-$ addgroup gnunetdns
-$ adduser gnunet gnunet
-$ ./configure --prefix=$GNUNET_PREFIX --with-extractor=$LE_PREFIX
+# addgroup gnunetdns
+# adduser gnunet gnunet
+# ./configure --prefix=$GNUNET_PREFIX --with-extractor=$LE_PREFIX
 $ make
 # make install
 # sudo -u gnunet gnunet-arm -s
+
+Note that running the 'configure' and 'make install' steps as
+root (or with sudo) is required as some parts of the installation
+require the creation of SUID binaries.  The installation will
+work if you do not run these steps as root, but some components
+may not be installed in the perfect place or with the right
+permissions and thus won't work.
 
 This will create the users and groups needed for running GNUnet
 securely and then compile and install GNUnet to $GNUNET_PREFIX/bin/,
