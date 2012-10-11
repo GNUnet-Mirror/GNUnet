@@ -25,6 +25,7 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_testing_lib-new.h"
 #include <gcrypt.h>
 
 
@@ -121,6 +122,13 @@ create_keys (const char *fn)
        break;
     }
     enc = GNUNET_CRYPTO_rsa_encode_key (pk);
+    if (GNUNET_TESTING_HOSTKEYFILESIZE != htons (enc->len))
+    {
+      /* sometimes we get a different key length because 'd' or 'u' start
+	 with leading bits; skip those... */
+      make_keys++;
+      continue;
+    }
     if (htons (enc->len) != fwrite (enc, 1, htons (enc->len), f))
       {
 	fprintf (stderr,
