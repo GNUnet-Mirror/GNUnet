@@ -5769,6 +5769,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 " pid %u not seen yet, forwarding\n", pid);
   }
+  t->bck_pid++;
 
   if (NULL != t->owner)
   {
@@ -7639,7 +7640,6 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
                   ntohl (copy->pid));
       return;
     }
-    t->bck_pid++;
     copy->sender = my_full_id;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  calling generic handler...\n");
