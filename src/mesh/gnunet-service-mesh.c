@@ -5769,7 +5769,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 " pid %u not seen yet, forwarding\n", pid);
   }
-  t->bck_pid++;
+  t->bck_pid = pid;
 
   if (NULL != t->owner)
   {
