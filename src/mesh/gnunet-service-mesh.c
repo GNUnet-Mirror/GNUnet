@@ -206,6 +206,11 @@ struct MeshPeerInfo
   struct GNUNET_TIME_Absolute last_contact;
 
     /**
+     * Task handler for delayed connect task;
+     */
+  GNUNET_SCHEDULER_TaskIdentifier connect_task;
+
+    /**
      * Number of attempts to reconnect so far
      */
   int n_reconnect_attempts;
@@ -2616,6 +2621,8 @@ peer_info_connect_task (void *cls,
 {
   struct MeshPathInfo *path_info = cls;
 
+  path_info->peer->connect_task = GNUNET_SCHEDULER_NO_TASK;
+
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
   {
     GNUNET_free (cls);
@@ -2662,6 +2669,10 @@ peer_info_destroy (struct MeshPeerInfo *pi)
     GNUNET_CONTAINER_DLL_remove (pi->path_head, pi->path_tail, p);
     path_destroy (p);
     p = nextp;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != pi->connect_task)
+  {
+    GNUNET_free (GNUNET_SCHEDULER_cancel (pi->connect_task));
   }
   GNUNET_free (pi);
   return GNUNET_OK;
@@ -3242,7 +3253,8 @@ tunnel_notify_client_peer_disconnected (void *cls, GNUNET_PEER_Id peer_id)
   path_info = GNUNET_malloc (sizeof (struct MeshPathInfo));
   path_info->peer = peer;
   path_info->t = t;
-  GNUNET_SCHEDULER_add_now (&peer_info_connect_task, path_info);
+  peer->connect_task = GNUNET_SCHEDULER_add_now (&peer_info_connect_task,
+                                                 path_info);
 }
 
 
