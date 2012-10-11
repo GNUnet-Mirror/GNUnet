@@ -5742,6 +5742,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " of type %s\n",
               GNUNET_MESH_DEBUG_M2S (ntohs (msg[1].header.type)));
   t = tunnel_get (&msg->oid, ntohl (msg->tid));
+  pid = ntohl (msg->pid);
 
   if (NULL == t)
   {
@@ -5754,7 +5755,6 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
 
-  pid = ntohl (msg->pid);
   if (t->bck_pid == pid)
   {
     /* already seen this packet, drop */
