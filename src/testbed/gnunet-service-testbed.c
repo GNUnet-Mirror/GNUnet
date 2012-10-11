@@ -559,6 +559,21 @@ struct ForwardedOverlayConnectContext
   struct GNUNET_TESTBED_Operation *sub_op;
 
   /**
+   * The client which initiated the link controller operation
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
+   * A copy of the original overlay connect message
+   */
+  struct GNUNET_MessageHeader *orig_msg;
+
+  /**
+   * The id of the operation which created this context information
+   */
+  uint64_t operation_id;
+
+  /**
    * Enumeration of states for this context
    */
   enum FOCCState {
@@ -1199,6 +1214,34 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Callback to be called when forwarded overlay connection operation has a reply
+ * from the sub-controller successfull. We have to relay the reply msg back to
+ * the client
+ *
+ * @param cls ForwardedOperationContext
+ * @param msg the peer create success message
+ */
+static void
+forwarded_overlay_connect_listener (void *cls,
+                                    const struct GNUNET_MessageHeader *msg);
+
+
+/**
+ * Cleans up ForwardedOverlayConnectContext
+ *
+ * @param focc the ForwardedOverlayConnectContext to cleanup
+ */
+static void
+cleanup_focc (struct ForwardedOverlayConnectContext *focc)
+{
+  if (NULL != focc->sub_op)
+    GNUNET_TESTBED_operation_done (focc->sub_op);
+  GNUNET_SERVER_client_drop (focc->client);
+  GNUNET_free_non_null (focc->orig_msg);
+  GNUNET_free (focc);
+}
+
+/**
  * Callback for event from slave controllers
  *
  * @param cls struct Slave *
@@ -1209,22 +1252,64 @@ slave_event_callback (void *cls,
                       const struct GNUNET_TESTBED_EventInformation *event)
 {
   struct ForwardedOverlayConnectContext *focc;
+  struct ForwardedOperationContext *fopc;
   struct GNUNET_CONFIGURATION_Handle *slave_cfg;
+  struct GNUNET_TESTBED_Operation *old_op;
+  char *emsg;
 
   /* We currently only get here when doing overlay connect operations and that
      too while trying out sub operations */
-  if (GNUNET_TESTBED_ET_OPERATION_FINISHED != event->type)
-    return;
+  GNUNET_assert (GNUNET_TESTBED_ET_OPERATION_FINISHED != event->type);
   focc = event->details.operation_finished.op_cls;
+  if (NULL != event->details.operation_finished.emsg)
+  {
+    GNUNET_asprintf (&emsg, "Failure executing suboperation: %s",
+                     event->details.operation_finished.emsg);
+    send_operation_fail_msg (focc->client, focc->operation_id,
+                             emsg);
+    GNUNET_free (emsg);
+    cleanup_focc (focc);
+    return;
+  }
   switch (focc->state)
   {
   case FOCC_GET_CFG:
     slave_cfg = event->details.operation_finished.generic;
-    GNUNET_break (0);           /* FIXME */
-    GNUNET_CONFIGURATION_destroy (slave_cfg);
-  default:  
+    old_op = focc->sub_op;
+    focc->state = FOCC_LINK;
+    focc->sub_op = GNUNET_TESTBED_controller_link_ (focc,
+                                                    focc->gateway,
+                                                    focc->peer2_host_id,
+                                                    peer_list[focc->peer1]->details.remote.remote_host_id,
+                                                    slave_cfg,
+                                                    GNUNET_NO);
+    GNUNET_TESTBED_operation_done (old_op);
+    break;
+  case FOCC_LINK:
+    GNUNET_TESTBED_operation_done (focc->sub_op);
+    focc->sub_op = NULL;
+    focc->state = FOCC_OL_CONNECT;
+    fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+    fopc->client = focc->client;
+    focc->client = NULL;
+    fopc->operation_id = focc->operation_id;
+    fopc->cls = NULL;
+    fopc->opc =
+        GNUNET_TESTBED_forward_operation_msg_ (focc->gateway,
+                                               focc->operation_id, focc->orig_msg,
+                                               &forwarded_operation_reply_relay,
+                                               fopc);
+    GNUNET_free (focc->orig_msg);
+    focc->orig_msg = NULL;
+    fopc->timeout_task =
+	GNUNET_SCHEDULER_add_delayed (TIMEOUT, &forwarded_operation_timeout,
+				      fopc);
+    cleanup_focc (focc);
+    break;
+  default:
     GNUNET_assert (0);
   }
+  return;
 }
 
 
@@ -2528,7 +2613,9 @@ forwarded_overlay_connect_listener (void *cls,
   case FOCC_INIT:
     if (GNUNET_MESSAGE_TYPE_TESTBED_NEEDCONTROLLERCONFIG != ntohs (msg->type))
     {
-      GNUNET_break (0);  /* Something failed; you may check output of sub-controllers */
+      GNUNET_break (0);  /* Something failed; you may check output of
+                            sub-controllers */
+      cleanup_focc (focc);
       forwarded_operation_reply_relay (cls, msg);
       return;
     }
@@ -2536,18 +2623,14 @@ forwarded_overlay_connect_listener (void *cls,
     focc->state = FOCC_GET_CFG;
     focc->sub_op = GNUNET_TESTBED_get_slave_config_ (focc, focc->gateway2,
                                                      focc->peer2_host_id);
-    /* FIXME */
-    GNUNET_break (0);
     break;
-    /* focc->op = GNUNET_TESTBED_controller_link (focc, */
-    /*                                            focc->gateway, */
-    /*                                            slave_list[peer2_host_id], */
-    /*                                            slave_list[peer_list[focc->peer1]->remote_host_id], */
-    /*                                            slave_list */
-                                               
   default:
     GNUNET_assert (0);
   }
+  GNUNET_SERVER_client_drop (fopc->client);
+  GNUNET_SCHEDULER_cancel (fopc->timeout_task);
+  fopc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_free (fopc);
 }
 
 
@@ -2604,7 +2687,9 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
       if (route_to_peer2_host->dest != route_to_peer1_host->dest)
       {
         struct ForwardedOverlayConnectContext *focc;
-        
+        uint16_t msize;
+
+        msize = sizeof (struct GNUNET_TESTBED_OverlayConnectMessage);
         focc = GNUNET_malloc (sizeof (struct ForwardedOverlayConnectContext));
         focc->gateway = peer->details.remote.controller;
         focc->gateway2 = slave_list[route_to_peer2_host->dest]->controller;
@@ -2612,6 +2697,11 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
         focc->peer2 = p2;
         focc->peer2_host_id = peer2_host_id;
         focc->state = FOCC_INIT;
+        focc->orig_msg = GNUNET_malloc (msize);
+        (void) memcpy (focc->orig_msg, message, msize);
+        GNUNET_SERVER_client_keep (client);
+        focc->client = client;
+        focc->operation_id = operation_id;
         fopc->cls = focc;
       }
     }
