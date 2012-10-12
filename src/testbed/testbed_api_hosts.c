@@ -298,8 +298,8 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
   struct GNUNET_TESTBED_Host *starting_host;
   char *data;
   char *buf;
-  char *username;
-  char *hostname;
+  char username[256];
+  char hostname[256];
   uint64_t fs;
   short int port;
   int ret;
@@ -339,10 +339,8 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
     if (((data[offset] == '\n')) && (buf != &data[offset]))
     {
       data[offset] = '\0';
-      username = NULL;
-      hostname = NULL;
-      ret = SSCANF (buf, "%m[a-zA-Z0-9_]@%m[a-zA-Z0-9.]:%hd",
-                    &username, &hostname, &port);
+      ret = SSCANF (buf, "%255[a-zA-Z0-9_]@%255[a-zA-Z0-9.]:%5hd",
+                    username, hostname, &port);
       if  (3 == ret)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -360,8 +358,6 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
       else
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                     "Error reading line `%s' in hostfile\n", buf);
-      GNUNET_free_non_null (hostname);
-      GNUNET_free_non_null (username);
       buf = &data[offset + 1];
     }
     else if ((data[offset] == '\n') || (data[offset] == '\0'))
