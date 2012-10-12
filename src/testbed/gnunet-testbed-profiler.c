@@ -171,7 +171,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (NULL == args[0])
   {
-    FPRINTF (stderr, _("No hosts-file specified on command line\n"));
+    fprintf (stderr, _("No hosts-file specified on command line\n"));
     return;
   }
   if (0 == num_peers)
@@ -182,14 +182,14 @@ run (void *cls, char *const *args, const char *cfgfile,
   num_hosts = GNUNET_TESTBED_hosts_load_from_file (args[0], &hosts);
   if (0 == num_hosts)
   {
-    FPRINTF (stderr, _("No hosts loaded\n"));
+    fprintf (stderr, _("No hosts loaded\n"));
     return;
   }
   for (nhost = 0; nhost < num_hosts; nhost++)
   {
     if (GNUNET_YES != GNUNET_TESTBED_is_host_habitable (hosts[nhost]))
     {
-      FPRINTF (stderr, _("Host %s cannot start testbed\n"),
+      fprintf (stderr, _("Host %s cannot start testbed\n"),
                          GNUNET_TESTBED_host_get_hostname_ (hosts[nhost]));
       break;
     }
