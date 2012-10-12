@@ -14,8 +14,10 @@ if HAVE_MHD
  GN_LIBMHD = -lmicrohttpd
 endif
 
+if HAVE_LIBCURL
 bin_PROGRAMS = \
  gnunet-daemon-hostlist
+endif
 
 gnunet_daemon_hostlist_SOURCES = \
  gnunet-daemon-hostlist.c gnunet-daemon-hostlist.h \
@@ -36,6 +38,7 @@ gnunet_daemon_hostlist_LDADD = \
 gnunet_daemon_hostlist_CPPFLAGS = \
  @LIBCURL_CPPFLAGS@ 
 
+if HAVE_LIBCURL
 check_PROGRAMS = \
  test_gnunet_daemon_hostlist \
  test_gnunet_daemon_hostlist_reconnect \
@@ -47,6 +50,7 @@ TESTS = \
  test_gnunet_daemon_hostlist \
  test_gnunet_daemon_hostlist_reconnect \
  test_gnunet_daemon_hostlist_learning
+endif
 endif
 endif
 
