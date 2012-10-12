@@ -1683,6 +1683,8 @@ GNUNET_TESTBED_controller_configure_sharing (struct GNUNET_TESTBED_Controller
   memcpy (&msg[1], service_name, service_name_size);
   GNUNET_TESTBED_queue_message_ (controller,
                                  (struct GNUNET_MessageHeader *) msg);
+  GNUNET_break (0);             /* This function is not yet implemented on the
+                                   testbed service */
 }
 
 
