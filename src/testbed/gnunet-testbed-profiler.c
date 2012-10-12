@@ -188,8 +188,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (NULL != hosts[nhost])
       GNUNET_TESTBED_host_destroy (hosts[nhost]);
   GNUNET_free_non_null (hosts);
-  dll_op = dll_op_head;
-  while (NULL != dll_op)
+  while (NULL != (dll_op = dll_op_head))
   {
     GNUNET_TESTBED_operation_cancel (dll_op->op);
     GNUNET_free_non_null (dll_op->cls);
@@ -233,6 +232,8 @@ controller_event_cb (void *cls,
                      const struct GNUNET_TESTBED_EventInformation *event)
 {
   struct DLLOperation *dll_op;
+  struct GNUNET_TESTBED_Operation *op;
+
   switch (state)
   {
   case STATE_SLAVES_STARTING:
@@ -244,19 +245,21 @@ controller_event_cb (void *cls,
       
         dll_op = event->details.operation_finished.op_cls;
         GNUNET_CONTAINER_DLL_remove (dll_op_head, dll_op_tail, dll_op);
+        GNUNET_free (dll_op);
+	op = event->details.operation_finished.operation;
         if (NULL != event->details.operation_finished.emsg)
         {
           LOG (GNUNET_ERROR_TYPE_WARNING,
                _("An operation has failed while starting slaves\n"));
+	  GNUNET_TESTBED_operation_done (op);
           GNUNET_SCHEDULER_cancel (abort_task);
           abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
           return;
         }
-        GNUNET_TESTBED_operation_done (dll_op->op);
-        GNUNET_free (dll_op);
+	GNUNET_TESTBED_operation_done (op);
         /* Proceed to start peers */
         if (++slaves_started == num_hosts - 1)
-          printf ("All slaves started successfully"); 
+          printf ("All slaves started successfully\n"); 
       }
       break;
     default:
@@ -320,13 +323,14 @@ register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "All hosts successfully registered\n");
     /* Start slaves */
+    state = STATE_SLAVES_STARTING;
     for (slave = 1; slave < num_hosts; slave++)
     {
       dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
       dll_op->op = GNUNET_TESTBED_controller_link (dll_op,
                                                    mc,
                                                    hosts[slave],
-                                                   NULL,
+                                                   hosts[0],
                                                    cfg,
                                                    GNUNET_YES);
       GNUNET_CONTAINER_DLL_insert_tail (dll_op_head, dll_op_tail, dll_op);
@@ -363,6 +367,7 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int stat
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_DISCONNECT);
+  event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
   mc = GNUNET_TESTBED_controller_connect (config, hosts[0], event_mask,
                                           &controller_event_cb, NULL);
   if (NULL == mc)

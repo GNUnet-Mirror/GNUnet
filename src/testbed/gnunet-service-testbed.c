@@ -1673,7 +1673,8 @@ handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
   slave_host_id = ntohl (msg->slave_host_id);
   if ((slave_host_id >= host_list_size) || (NULL == host_list[slave_host_id]))
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Slave host not registered with us\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Slave host %u not registered with us\n",
+	 slave_host_id);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
