@@ -12,7 +12,6 @@ if HAVE_MHD
  GN_LIBMHD = -lmicrohttpd
  HTTP_SERVER_PLUGIN_LA = libgnunet_plugin_transport_http_server.la
  HTTPS_SERVER_PLUGIN_LA = libgnunet_plugin_transport_https_server.la
- 
  HTTP_SERVER_PLUGIN_TEST = test_plugin_http_server
  HTTPS_SERVER_PLUGIN_TEST = test_plugin_https_server
 endif
@@ -32,8 +31,6 @@ if HAVE_LIBCURL
  HTTP_REL_TEST = test_transport_api_reliability_http
  HTTP_QUOTA_TEST = test_quota_compliance_http \
 		   test_quota_compliance_http_asymmetric
- 
- 
  HTTPS_API_TEST = test_transport_api_https
  HTTPS_API_TIMEOUT_TEST = test_transport_api_timeout_https
  HTTPS_REL_TEST = test_transport_api_reliability_https
@@ -41,10 +38,6 @@ if HAVE_LIBCURL
 		test_quota_compliance_https_asymmetric 
 endif
 endif 
-
-#if FALSE
-
-#endif
 
 if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
@@ -239,8 +232,8 @@ libgnunet_plugin_transport_unix_la_LIBADD = \
   $(LTLIBINTL)
 libgnunet_plugin_transport_unix_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
- 
- 
+
+
 libgnunet_plugin_transport_http_client_la_SOURCES = \
   plugin_transport_http_client.c plugin_transport_http_common.c
 libgnunet_plugin_transport_http_client_la_LIBADD = \
@@ -256,8 +249,8 @@ libgnunet_plugin_transport_http_client_la_CFLAGS = \
  $(CFLAGS) 
 libgnunet_plugin_transport_http_client_la_CPPFLAGS = \
  @LIBCURL_CPPFLAGS@
- 
- 
+
+
 libgnunet_plugin_transport_http_server_la_SOURCES = \
   plugin_transport_http_server.c plugin_transport_http_common.c
 libgnunet_plugin_transport_http_server_la_LIBADD = \
@@ -287,8 +280,8 @@ libgnunet_plugin_transport_https_client_la_CFLAGS = \
  $(CFLAGS) -DBUILD_HTTPS 
 libgnunet_plugin_transport_https_client_la_CPPFLAGS = \
  @LIBCURL_CPPFLAGS@
- 
- 
+
+
 libgnunet_plugin_transport_https_server_la_SOURCES = \
   plugin_transport_http_server.c plugin_transport_http_common.c
 libgnunet_plugin_transport_https_server_la_LIBADD = \
@@ -497,7 +490,7 @@ test_plugin_http_server_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
- 
+
 test_plugin_https_server_SOURCES = \
  test_plugin_transport.c
 test_plugin_https_server_LDADD = \
@@ -506,7 +499,7 @@ test_plugin_https_server_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
- 
+
 test_plugin_http_client_SOURCES = \
  test_plugin_transport.c
 test_plugin_http_client_LDADD = \
@@ -515,7 +508,7 @@ test_plugin_http_client_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
- 
+
 test_plugin_https_client_SOURCES = \
  test_plugin_transport.c
 test_plugin_https_client_LDADD = \
@@ -663,7 +656,7 @@ test_transport_api_http_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
- 
+
 test_transport_api_http_reverse_SOURCES = \
  test_transport_api.c
 test_transport_api_http_reverse_LDADD = \
@@ -671,7 +664,7 @@ test_transport_api_http_reverse_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
- 
+
 test_transport_api_timeout_http_SOURCES = \
  test_transport_api_timeout.c
 test_transport_api_timeout_http_LDADD = \
@@ -728,7 +721,7 @@ test_transport_api_https_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
- 
+
 test_transport_api_timeout_https_SOURCES = \
  test_transport_api_timeout.c
 test_transport_api_timeout_https_LDADD = \
@@ -736,7 +729,7 @@ test_transport_api_timeout_https_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la  
- 
+
 
 test_transport_api_reliability_https_SOURCES = \
  test_transport_api_reliability.c

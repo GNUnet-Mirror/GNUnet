@@ -21,19 +21,17 @@ EXTRA_DIST = map-file
 
 AM_LDFLAGS=-avoid-version -module -export-dynamic
 
-if HAVE_SUDO
-nssdir = /lib/
-else
-nssdir = $(libdir)
-endif
+nssdir = $(NSS_DIR)
 
 LIBTOOL = $(SUDO_BINARY) $(SHELL) $(top_builddir)/libtool
 
 if !MINGW
+if INSTALL_NSS
 nss_LTLIBRARIES = \
 	libnss_gns.la \
 	libnss_gns4.la \
 	libnss_gns6.la
+endif
 endif
 
 sources = nss_gns_query.h nss_gns_query.c

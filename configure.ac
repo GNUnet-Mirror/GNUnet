@@ -812,6 +812,42 @@ AC_ARG_WITH(sudo,
 AC_SUBST(SUDO_BINARY)
 AM_CONDITIONAL([HAVE_SUDO], [test "x$SUDO_BINARY" != "x" -o -w /])
 
+
+# test for nssdir
+AC_MSG_CHECKING(with nssdir)
+AC_ARG_WITH(nssdir,
+  [  --with-nssdir=PATH       where to install NSS plugins],
+  [AC_MSG_RESULT("$with_nssdir")
+   case $with_nssdir in
+   no)
+     NSS_DIR=
+     install_nss=0
+     ;;
+   yes)
+     NSS_DIR="/lib"
+     install_nss=1
+     ;;
+   *)
+     NSS_DIR=$with_nssdir
+     install_nss=1
+    ;;
+   esac
+  ],
+  [
+   if test "x$SUDO_BINARY" != "x" -o -w /
+   then
+     NSS_DIR="/lib"
+     install_nss=1
+     AC_MSG_RESULT([yes, to /lib])
+   else
+     NSS_DIR=
+     install_nss=0
+     AC_MSG_RESULT([no])
+   fi
+  ])
+AC_SUBST(NSS_DIR)
+AM_CONDITIONAL([INSTALL_NSS], [test "x$install_nss" != "x0"])
+
 # test for gnunetdns group name
 GNUNETDNS_GROUP=gnunetdns
 AC_MSG_CHECKING(for gnunetdns group name)
