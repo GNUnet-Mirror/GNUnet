@@ -334,6 +334,7 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
   buf = data;
   offset = 0;
   starting_host = NULL;
+  count = 0;
   while (offset < (fs - 1))
   {
     offset++;
@@ -390,7 +391,6 @@ GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
 {
   struct RegisteredController *rc;
   uint32_t id;
-  uint32_t orig_size;
 
   GNUNET_assert (host->id < host_list_size);
   GNUNET_assert (host_list[host->id] == host);
@@ -404,7 +404,6 @@ GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
   GNUNET_free_non_null ((char *) host->username);
   GNUNET_free_non_null ((char *) host->hostname);
   GNUNET_free (host);
-  orig_size = host_list_size;
   while (host_list_size >= HOST_LIST_GROW_STEP)
   {
     for (id = host_list_size - 1; id > host_list_size - HOST_LIST_GROW_STEP;
