@@ -26,12 +26,10 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_testbed_service.h"
 #include "gnunet_core_service.h"
-#include "gnunet_constants.h"
 #include "gnunet_transport_service.h"
-#include "gnunet_hello_lib.h"
-#include "gnunet_container_lib.h"
 
 #include "testbed_api.h"
 #include "testbed_api_hosts.h"
@@ -474,5 +472,69 @@ GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host,
   return GNUNET_NO;
 }
 
+
+/**
+ * Checks whether a host can be used to start testbed service
+ *
+ * @param host the host to check
+ * @return GNUNET_YES if testbed service can be started on the given host
+ *           remotely; GNUNET_NO if not
+ */
+int
+GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host)
+{
+  char *remote_args[11];
+  char *portstr;
+  char *ssh_addr;
+  const char *hostname;
+  struct GNUNET_OS_Process *auxp;
+  unsigned long code;
+  enum GNUNET_OS_ProcessStatusType type;
+  int ret;
+  unsigned int argp;
+
+  portstr = NULL;
+  ssh_addr = NULL;
+  hostname = (NULL == host->hostname) ? "127.0.0.1" : host->hostname;
+  if (NULL == host->username)
+    ssh_addr = GNUNET_strdup (hostname);
+  else
+    GNUNET_asprintf (&ssh_addr, "%s@%s", host->username, hostname);
+  argp = 0;
+  remote_args[argp++] = "ssh";
+  GNUNET_asprintf (&portstr, "%u", host->port);
+  remote_args[argp++] = "-p";
+  remote_args[argp++] = portstr;
+  remote_args[argp++] = "-o";
+  remote_args[argp++] = "BatchMode=yes";
+  remote_args[argp++] = "-o";
+  remote_args[argp++] = "NoHostAuthenticationForLocalhost=yes";
+  remote_args[argp++] = ssh_addr;
+  remote_args[argp++] = "which";
+  remote_args[argp++] = "gnunet-helper-testbed";  
+  remote_args[argp++] = NULL;
+  GNUNET_assert (argp == 11);
+  auxp =
+      GNUNET_OS_start_process_vap (GNUNET_NO, GNUNET_OS_INHERIT_STD_ALL, NULL,
+                                   NULL, "ssh", remote_args);
+  if (NULL == auxp)
+  {
+    GNUNET_free (ssh_addr);
+    GNUNET_free (portstr);
+    return GNUNET_NO;
+  }
+  do
+  {
+    ret = GNUNET_OS_process_status (auxp, &type, &code);
+    GNUNET_assert (GNUNET_SYSERR != ret);
+    (void) usleep (300);
+  }
+  while (GNUNET_NO == ret);
+  //(void) GNUNET_OS_process_wait (auxp);
+  GNUNET_OS_process_destroy (auxp);
+  GNUNET_free (ssh_addr);
+  GNUNET_free (portstr);
+  return (0 != code) ? GNUNET_NO : GNUNET_YES;
+}
 
 /* end of testbed_api_hosts.c */

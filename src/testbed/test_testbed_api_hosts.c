@@ -102,6 +102,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                                     &hosts);
   GNUNET_assert (15 == num_hosts);
   GNUNET_assert (NULL != hosts);
+  result = GNUNET_YES;
   shutdown_id =
       GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (2), &do_shutdown, NULL);
 }
@@ -118,7 +119,7 @@ main (int argc, char **argv)
     GNUNET_GETOPT_OPTION_END
   };
 
-  status = GNUNET_YES;
+  status = GNUNET_SYSERR;
   if (GNUNET_OK !=
       GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
                           "test_testbed_api_hosts", "nohelp", options, &run,

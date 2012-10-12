@@ -27,7 +27,13 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_testbed_service.h"
+#include "testbed_api_hosts.h"
 
+
+/**
+ * An array of hosts loaded from the hostkeys file
+ */
+static struct GNUNET_TESTBED_Host **hosts;
 
 /**
  * The array of peers; we fill this as the peers are given to us by the testbed
@@ -55,6 +61,11 @@ unsigned int peer_id;
 static unsigned int num_peers;
 
 /**
+ * Number of hosts in the hosts array
+ */
+static unsigned int num_hosts;
+
+/**
  * Global testing status
  */
 static int result;
@@ -69,9 +80,15 @@ static int result;
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  unsigned int nhost;
+
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
   GNUNET_free_non_null (peers);
+  for (nhost = 0; nhost < num_hosts; nhost++)
+    if (NULL != hosts[nhost])
+      GNUNET_TESTBED_host_destroy (hosts[nhost]);
+  GNUNET_free_non_null (hosts);
   GNUNET_SCHEDULER_shutdown ();	/* Stop scheduler to shutdown testbed run */
 }
 
@@ -85,7 +102,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Profiling timedout -- Aborting\n");
   abort_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
@@ -150,10 +167,36 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
   uint64_t event_mask;
+  unsigned int nhost;
 
+  if (NULL == args[0])
+  {
+    FPRINTF (stderr, _("No hosts-file specified on command line\n"));
+    return;
+  }
   if (0 == num_peers)
   {
     result = GNUNET_OK;
+    return;
+  }
+  num_hosts = GNUNET_TESTBED_hosts_load_from_file (args[0], &hosts);
+  if (0 == num_hosts)
+  {
+    FPRINTF (stderr, _("No hosts loaded\n"));
+    return;
+  }
+  for (nhost = 0; nhost < num_hosts; nhost++)
+  {
+    if (GNUNET_YES != GNUNET_TESTBED_is_host_habitable (hosts[nhost]))
+    {
+      FPRINTF (stderr, _("Host %s cannot start testbed\n"),
+                         GNUNET_TESTBED_host_get_hostname_ (hosts[nhost]));
+      break;
+    }
+  }
+  if (num_hosts != nhost)
+  {
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
   peers = GNUNET_malloc (num_peers * sizeof (struct GNUNET_TESTBED_Peer *));
@@ -183,6 +226,9 @@ main (int argc, char *const *argv)
     { 'n', "num-peers", "COUNT",
       gettext_noop ("create COUNT number of peers"),
       GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_peers },
+    { 'n', "num-peers", "COUNT",
+      gettext_noop ("create COUNT number of peers"),
+      GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_peers },
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
@@ -192,7 +238,7 @@ main (int argc, char *const *argv)
   
   result = GNUNET_SYSERR;
   ret =
-      GNUNET_PROGRAM_run (argc, argv, "gnunet-testbed-profiler [OPTIONS]",
+      GNUNET_PROGRAM_run (argc, argv, "gnunet-testbed-profiler [OPTIONS] hosts-file",
                           _("Profiler for testbed"),
                           options, &run, NULL);
   if (GNUNET_OK != ret)
