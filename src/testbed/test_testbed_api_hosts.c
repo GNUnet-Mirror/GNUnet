@@ -102,7 +102,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                                     &hosts);
   GNUNET_assert (15 == num_hosts);
   GNUNET_assert (NULL != hosts);
-  result = GNUNET_YES;
+  status = GNUNET_YES;
   shutdown_id =
       GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (2), &do_shutdown, NULL);
 }

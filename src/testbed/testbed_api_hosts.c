@@ -341,7 +341,7 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
       data[offset] = '\0';
       username = NULL;
       hostname = NULL;
-      ret = SSCANF (buf, "%a[a-zA-Z0-9_]@%a[a-zA-Z0-9.]:%hd",
+      ret = SSCANF (buf, "%m[a-zA-Z0-9_]@%m[a-zA-Z0-9.]:%hd",
                     &username, &hostname, &port);
       if  (3 == ret)
       {
