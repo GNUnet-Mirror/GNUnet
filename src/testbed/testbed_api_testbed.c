@@ -428,6 +428,26 @@ shutdown_run_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (NULL != rc->peers)
     {
       rc->peer_count = 0;
+      /* Check if some peers are stopped */
+      for (peer = 0; peer < rc->num_peers; peer++)
+      {
+        if (PS_STOPPED != rc->peers[peer]->state)
+          break;
+      }
+      if (peer == rc->num_peers)
+      {
+        /* All peers are stopped */
+        rc->state = RC_PEERS_STOPPED;
+        for (peer = 0; peer < rc->num_peers; peer++)
+        {
+          dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
+          dll_op->op = GNUNET_TESTBED_peer_destroy (rc->peers[peer]);
+          GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail,
+                                            dll_op);
+        }
+        return;
+      }
+      /* Some peers are stopped */
       for (peer = 0; peer < rc->num_peers; peer++)
       {
         if (PS_STARTED != rc->peers[peer]->state)
