@@ -63,6 +63,23 @@ struct DLLOperation
 
 
 /**
+ * Availanle states during profiling
+ */
+enum State
+{
+  /**
+   * Initial state
+   */
+  STATE_INIT = 0,
+
+  /**
+   * Starting slaves
+   */
+  STATE_SLAVES_STARTING
+};
+
+
+/**
  * An array of hosts loaded from the hostkeys file
  */
 static struct GNUNET_TESTBED_Host **hosts;
@@ -72,10 +89,10 @@ static struct GNUNET_TESTBED_Host **hosts;
  */
 static struct GNUNET_TESTBED_Peer **peers;
 
-/**
- * Operation handle
- */
-static struct GNUNET_TESTBED_Operation *op;
+/* /\** */
+/*  * Operation handle */
+/*  *\/ */
+/* static struct GNUNET_TESTBED_Operation *op; */
 
 /**
  * Host registration handle
@@ -96,6 +113,16 @@ struct GNUNET_TESTBED_Controller *mc;
  * Handle to global configuration
  */
 struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
+ * Head of the operations list
+ */
+struct DLLOperation *dll_op_head;
+
+/**
+ * Tail of the operations list
+ */
+struct DLLOperation *dll_op_tail;
 
 /**
  * Abort task identifier
@@ -132,6 +159,11 @@ static unsigned int num_hosts;
  */
 static int result;
 
+/**
+ * current state of profiling
+ */
+enum State state;
+
 
 /**
  * Shutdown nicely
@@ -142,6 +174,7 @@ static int result;
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct DLLOperation *dll_op;
   unsigned int nhost;
 
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
@@ -155,6 +188,16 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (NULL != hosts[nhost])
       GNUNET_TESTBED_host_destroy (hosts[nhost]);
   GNUNET_free_non_null (hosts);
+  dll_op = dll_op_head;
+  while (NULL != dll_op)
+  {
+    GNUNET_TESTBED_operation_cancel (dll_op->op);
+    GNUNET_free_non_null (dll_op->cls);
+    GNUNET_CONTAINER_DLL_remove (dll_op_head, dll_op_tail, dll_op);
+    GNUNET_free (dll_op);
+  }
+  if (NULL != mc)
+    GNUNET_TESTBED_controller_disconnect (mc);
   if (NULL != mc_proc)
     GNUNET_TESTBED_controller_stop (mc_proc);
   if (NULL != cfg)
@@ -189,19 +232,36 @@ static void
 controller_event_cb (void *cls,
                      const struct GNUNET_TESTBED_EventInformation *event)
 {
-
-  switch (event->type)
+  struct DLLOperation *dll_op;
+  switch (state)
   {
-  case GNUNET_TESTBED_ET_PEER_START:
-    GNUNET_assert (NULL == peers[peer_id]);
-    GNUNET_assert (NULL != event->details.peer_start.peer);
-    peers[peer_id++] = event->details.peer_start.peer;
-    break;
-  case GNUNET_TESTBED_ET_PEER_STOP:
-    GNUNET_assert (NULL != op);
-    GNUNET_TESTBED_operation_done (op);
-    GNUNET_assert (peers[0] == event->details.peer_stop.peer);
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  case STATE_SLAVES_STARTING:
+    switch (event->type)
+    {
+    case GNUNET_TESTBED_ET_OPERATION_FINISHED:
+      {
+        static unsigned int slaves_started;
+      
+        dll_op = event->details.operation_finished.op_cls;
+        GNUNET_CONTAINER_DLL_remove (dll_op_head, dll_op_tail, dll_op);
+        if (NULL != event->details.operation_finished.emsg)
+        {
+          LOG (GNUNET_ERROR_TYPE_WARNING,
+               _("An operation has failed while starting slaves\n"));
+          GNUNET_SCHEDULER_cancel (abort_task);
+          abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+          return;
+        }
+        GNUNET_TESTBED_operation_done (dll_op->op);
+        GNUNET_free (dll_op);
+        /* Proceed to start peers */
+        if (++slaves_started == num_hosts - 1)
+          printf ("All slaves started successfully"); 
+      }
+      break;
+    default:
+      GNUNET_assert (0);
+    }
     break;
   default:
     GNUNET_assert (0);
@@ -250,14 +310,27 @@ host_registration_completion (void *cls, const char *emsg)
 static void
 register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct DLLOperation *dll_op;
   static unsigned int reg_host;
+  unsigned int slave;
 
   register_hosts_task = GNUNET_SCHEDULER_NO_TASK;  
   if (reg_host == num_hosts - 1)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "All hosts successfully registered\n");
-    /* Start peer create task */
+    /* Start slaves */
+    for (slave = 1; slave < num_hosts; slave++)
+    {
+      dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
+      dll_op->op = GNUNET_TESTBED_controller_link (dll_op,
+                                                   mc,
+                                                   hosts[slave],
+                                                   NULL,
+                                                   cfg,
+                                                   GNUNET_YES);
+      GNUNET_CONTAINER_DLL_insert_tail (dll_op_head, dll_op_tail, dll_op);
+    }
     return;
   }
   reg_handle = GNUNET_TESTBED_register_host (mc, hosts[++reg_host],
