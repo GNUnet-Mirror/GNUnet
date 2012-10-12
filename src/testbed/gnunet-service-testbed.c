@@ -639,9 +639,15 @@ static struct Context *master_context;
  */
 static char *hostname;
 
+
 /***********/
 /* Handles */
 /***********/
+
+/**
+ * Our configuration
+ */
+static struct GNUNET_CONFIGURATION_Handle *our_config;
 
 /**
  * Current Transmit Handle; NULL if no notify transmit exists currently
@@ -1436,7 +1442,9 @@ handle_init (void *cls, struct GNUNET_SERVER_Client *client,
   master_context->system =
       GNUNET_TESTING_system_create ("testbed", master_context->master_ip, hostname);
   host =
-      GNUNET_TESTBED_host_create_with_id (master_context->host_id, NULL, NULL,
+      GNUNET_TESTBED_host_create_with_id (master_context->host_id,
+                                          master_context->master_ip,
+                                          NULL,
                                           0);
   host_list_add (host);
   GNUNET_SERVER_client_keep (client);
@@ -2613,21 +2621,25 @@ static void
 focc_reg_completion_cc (void *cls, const char *emsg)
 {
   struct ForwardedOverlayConnectContext *focc = cls;
-  
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+
   GNUNET_assert (FOCC_REGISTER == focc->state);
   focc->rhandle = NULL;
   GNUNET_assert (NULL == focc->sub_op);
   LOG_DEBUG ("Registering peer2's host successful\n");
-  if ((focc->peer2_host_id < slave_list_size) /* Check if we have the needed config */
-      && (NULL != slave_list[focc->peer2_host_id]))
+  if ((NULL == focc->gateway2)
+      || ((focc->peer2_host_id < slave_list_size) /* Check if we have the needed config */
+          && (NULL != slave_list[focc->peer2_host_id])))
   {
     focc->state = FOCC_LINK;
+    cfg = (NULL == focc->gateway2) ? 
+        our_config : slave_list[focc->peer2_host_id]->cfg;
     focc->sub_op = 
         GNUNET_TESTBED_controller_link_ (focc,
                                          focc->gateway,
                                          focc->peer2_host_id,
                                          peer_list[focc->peer1]->details.remote.remote_host_id,
-                                         slave_list[focc->peer2_host_id]->cfg,
+                                         cfg,
                                          GNUNET_NO);
     return;
   }
@@ -2708,7 +2720,6 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
   uint32_t p2; 
   uint32_t peer2_host_id;
 
-  
   msg = (const struct GNUNET_TESTBED_OverlayConnectMessage *) message;
   p1 = ntohl (msg->peer1);
   p2 = ntohl (msg->peer2);
@@ -2731,12 +2742,14 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
     route_to_peer2_host = NULL;
     route_to_peer1_host = NULL;
     route_to_peer2_host = find_dest_route (peer2_host_id);
-    if (NULL != route_to_peer2_host)
+    if ((NULL != route_to_peer2_host) 
+        || (peer2_host_id == master_context->host_id))
     {
       route_to_peer1_host = 
           find_dest_route (peer_list[p1]->details.remote.remote_host_id);
       GNUNET_assert (NULL != route_to_peer1_host);
-      if (route_to_peer2_host->dest != route_to_peer1_host->dest)
+      if ((peer2_host_id == master_context->host_id) 
+          || (route_to_peer2_host->dest != route_to_peer1_host->dest))
       {
         struct ForwardedOverlayConnectContext *focc;
         uint16_t msize;
@@ -2744,7 +2757,8 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
         msize = sizeof (struct GNUNET_TESTBED_OverlayConnectMessage);
         focc = GNUNET_malloc (sizeof (struct ForwardedOverlayConnectContext));
         focc->gateway = peer->details.remote.controller;
-        focc->gateway2 = slave_list[route_to_peer2_host->dest]->controller;
+        focc->gateway2 = (NULL == route_to_peer2_host) ? NULL :
+            slave_list[route_to_peer2_host->dest]->controller;
         focc->peer1 = p1;
         focc->peer2 = p2;
         focc->peer2_host_id = peer2_host_id;
@@ -3179,6 +3193,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     master_context = NULL;
   }
   GNUNET_free_non_null (hostname);
+  GNUNET_CONFIGURATION_destroy (our_config);
 }
 
 
@@ -3245,6 +3260,7 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string 
 		 (cfg, "testbed", "HOSTNAME", &hostname));
+  our_config = GNUNET_CONFIGURATION_dup (cfg);
   GNUNET_SERVER_add_handlers (server, message_handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect_cb, NULL);
   ss_map = GNUNET_CONTAINER_multihashmap_create (5, GNUNET_NO);

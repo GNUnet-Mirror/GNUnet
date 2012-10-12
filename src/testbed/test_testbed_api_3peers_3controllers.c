@@ -530,8 +530,8 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       peer3.operation = NULL;
       result = PEER3_STARTED;
       common_operation =
-          GNUNET_TESTBED_overlay_connect (NULL, &op_comp_cb, NULL, peer1.peer,
-                                          peer2.peer);
+          GNUNET_TESTBED_overlay_connect (NULL, &op_comp_cb, NULL, peer2.peer,
+                                          peer1.peer);
       break;
     default:
       GNUNET_assert (0);
@@ -574,8 +574,8 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     {
     case PEER3_STARTED:
       GNUNET_assert (NULL != common_operation);
-      GNUNET_assert ((event->details.peer_connect.peer1 == peer1.peer) &&
-        	     (event->details.peer_connect.peer2 == peer2.peer));
+      GNUNET_assert ((event->details.peer_connect.peer1 == peer2.peer) &&
+        	     (event->details.peer_connect.peer2 == peer1.peer));
       break;
     case PEERS_2_3_CONNECTED:
       GNUNET_assert (NULL != common_operation);
