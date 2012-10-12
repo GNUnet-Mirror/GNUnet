@@ -252,14 +252,15 @@ register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   static unsigned int reg_host;
 
-  register_hosts_task = GNUNET_SCHEDULER_NO_TASK;
-  if (reg_host == num_hosts)
+  register_hosts_task = GNUNET_SCHEDULER_NO_TASK;  
+  if (reg_host == num_hosts - 1)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "All hosts successfully registered\n");
     /* Start peer create task */
+    return;
   }
-  reg_handle = GNUNET_TESTBED_register_host (mc, hosts[reg_host++],
+  reg_handle = GNUNET_TESTBED_register_host (mc, hosts[++reg_host],
                                              host_registration_completion,
                                              NULL);
 }

@@ -1479,12 +1479,15 @@ handle_add_host (void *cls, struct GNUNET_SERVER_Client *client,
 
   msg = (const struct GNUNET_TESTBED_AddHostMessage *) message;
   msize = ntohs (msg->header.size);
-  username = (char *) &(msg[1]);
+  username = (char *) &msg[1];
   username_length = ntohs (msg->user_name_length);
-  GNUNET_assert (msize > (sizeof (struct GNUNET_TESTBED_AddHostMessage) + username_length + 1));        /* msg must contain hostname */
   if (0 != username_length)
-    GNUNET_assert ('\0' == username[username_length]);
-  username_length = (0 == username_length) ? 0 : username_length + 1;
+    username_length++;
+  /* msg must contain hostname */
+  GNUNET_assert (msize > (sizeof (struct GNUNET_TESTBED_AddHostMessage) +
+			  username_length + 1));
+  if (0 != username_length)
+    GNUNET_assert ('\0' == username[username_length - 1]);
   hostname = username + username_length;
   hostname_length =
       msize - (sizeof (struct GNUNET_TESTBED_AddHostMessage) + username_length);

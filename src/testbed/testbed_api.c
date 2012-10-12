@@ -1780,9 +1780,13 @@ GNUNET_TESTBED_register_host (struct GNUNET_TESTBED_Controller *controller,
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_ADDHOST);
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (host));
   msg->ssh_port = htons (GNUNET_TESTBED_host_get_ssh_port_ (host));
-  msg->user_name_length = htons (user_name_length);
   if (NULL != username)
+  {
+    msg->user_name_length = htons (user_name_length - 1);
     memcpy (&msg[1], username, user_name_length);
+  }
+  else
+    msg->user_name_length = htons (user_name_length);
   strcpy (((void *) &msg[1]) + user_name_length, hostname);
   GNUNET_TESTBED_queue_message_ (controller,
                                  (struct GNUNET_MessageHeader *) msg);
