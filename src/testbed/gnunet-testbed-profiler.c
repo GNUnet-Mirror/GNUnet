@@ -316,6 +316,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
             ((double) prof_time.rel_value) / 1000.00);
     /* Now peers are to be started */
     state = STATE_PEERS_STARTING;
+    prof_start_time = GNUNET_TIME_absolute_get ();
     for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
     {
       dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
