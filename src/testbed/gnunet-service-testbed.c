@@ -1867,8 +1867,6 @@ peer_create_success_cb (void *cls, const struct GNUNET_MessageHeader *msg)
         (const struct GNUNET_TESTBED_PeerCreateSuccessEventMessage *) msg;
     GNUNET_assert (NULL != fo_ctxt->cls);
     remote_peer = fo_ctxt->cls;
-    GNUNET_assert (remote_peer->details.remote.remote_host_id
-                   == ntohl (success_msg->peer_id));
     peer_list_add (remote_peer);
   }
   msize = ntohs (msg->size);

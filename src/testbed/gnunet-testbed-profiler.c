@@ -205,7 +205,6 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   while (NULL != (dll_op = dll_op_head))
   {
     GNUNET_TESTBED_operation_cancel (dll_op->op);
-    GNUNET_free_non_null (dll_op->cls);
     GNUNET_CONTAINER_DLL_remove (dll_op_head, dll_op_tail, dll_op);
     GNUNET_free (dll_op);
   }
@@ -329,7 +328,7 @@ controller_event_cb (void *cls,
             dll_op->cls = &peers[peer_cnt];
             dll_op->op = GNUNET_TESTBED_peer_create (mc,
                                                      hosts
-                                                     [peer_cnt % num_peers],
+                                                     [peer_cnt % num_hosts],
                                                      cfg,
                                                      &peer_create_cb,
                                                      dll_op);
