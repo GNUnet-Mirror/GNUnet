@@ -75,7 +75,12 @@ enum State
   /**
    * Starting slaves
    */
-  STATE_SLAVES_STARTING
+  STATE_SLAVES_STARTING,
+
+  /**
+   * Creating peers
+   */
+  STATE_PEERS_CREATING
 };
 
 
@@ -140,6 +145,16 @@ static GNUNET_SCHEDULER_TaskIdentifier register_hosts_task;
 uint64_t event_mask;
 
 /**
+ * The starting time of a profiling step
+ */
+struct GNUNET_TIME_Absolute prof_start_time;
+
+/**
+ * Duration profiling step has taken
+ */
+struct GNUNET_TIME_Relative prof_time;
+
+/**
  * Current peer id
  */
 unsigned int peer_id;
@@ -176,12 +191,19 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct DLLOperation *dll_op;
   unsigned int nhost;
+  unsigned int peer_cnt;
 
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
   if (GNUNET_SCHEDULER_NO_TASK != register_hosts_task)
     GNUNET_SCHEDULER_cancel (register_hosts_task);
-  GNUNET_free_non_null (peers);
+  while (NULL != peers)
+  {
+    for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
+      if (NULL != peers[peer_cnt])
+        GNUNET_TESTBED_peer_destroy (peers[peer_cnt]);
+    GNUNET_free (peers);
+  }
   if (NULL != reg_handle)
     GNUNET_TESTBED_cancel_registration (reg_handle);
   for (nhost = 0; nhost < num_hosts; nhost++)
@@ -222,6 +244,49 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Functions of this signature are called when a peer has been successfully
+ * created
+ *
+ * @param cls the closure from GNUNET_TESTBED_peer_create()
+ * @param peer the handle for the created peer; NULL on any error during
+ *          creation
+ * @param emsg NULL if peer is not NULL; else MAY contain the error description
+ */
+static void 
+peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
+{
+  struct DLLOperation *dll_op = cls;
+  struct GNUNET_TESTBED_Peer **peer_ptr;
+  static unsigned int created_peers;
+
+  if (NULL != emsg)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         _("Creating a peer failed. Error: %s\n"), emsg);
+    GNUNET_TESTBED_operation_done (dll_op->op);
+    GNUNET_CONTAINER_DLL_remove (dll_op_head, dll_op_tail, dll_op);
+    GNUNET_free (dll_op);
+    GNUNET_SCHEDULER_cancel (abort_task);
+    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+    return;
+  }
+  peer_ptr = dll_op->cls;
+  GNUNET_assert (NULL == *peer_ptr);
+  *peer_ptr = peer;
+  GNUNET_TESTBED_operation_done (dll_op->op);
+  GNUNET_CONTAINER_DLL_remove (dll_op_head, dll_op_tail, dll_op);
+  GNUNET_free (dll_op);
+  if (++created_peers == num_peers)
+  {
+    prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);    
+    printf ("All peers created successfully in %.2f seconds\n",
+            ((double) prof_time.rel_value) / 1000.00);
+    /* Now peers are to be started */
+  }
+}
+
+
+/**
  * Controller event callback
  *
  * @param cls NULL
@@ -242,7 +307,8 @@ controller_event_cb (void *cls,
     case GNUNET_TESTBED_ET_OPERATION_FINISHED:
       {
         static unsigned int slaves_started;
-      
+        unsigned int peer_cnt;
+            
         dll_op = event->details.operation_finished.op_cls;
         GNUNET_CONTAINER_DLL_remove (dll_op_head, dll_op_tail, dll_op);
         GNUNET_free (dll_op);
@@ -259,7 +325,25 @@ controller_event_cb (void *cls,
 	GNUNET_TESTBED_operation_done (op);
         /* Proceed to start peers */
         if (++slaves_started == num_hosts - 1)
-          printf ("All slaves started successfully\n"); 
+        {
+          printf ("All slaves started successfully\n");
+          state = STATE_PEERS_CREATING;
+          prof_start_time = GNUNET_TIME_absolute_get ();
+          peers = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Peer *)
+                                 * num_peers);
+          for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
+          {
+            dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
+            dll_op->cls = &peers[peer_cnt];
+            dll_op->op = GNUNET_TESTBED_peer_create (mc,
+                                                     hosts
+                                                     [peer_cnt % num_peers],
+                                                     cfg,
+                                                     &peer_create_cb,
+                                                     dll_op);
+            GNUNET_CONTAINER_DLL_insert_tail (dll_op_head, dll_op_tail, dll_op);
+          }
+        }
       }
       break;
     default:
