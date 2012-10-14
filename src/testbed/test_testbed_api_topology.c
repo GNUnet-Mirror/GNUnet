@@ -31,7 +31,7 @@
 /**
  * Number of peers we want to start
  */
-#define NUM_PEERS 5
+#define NUM_PEERS 100
 
 /**
  * Array of peers
@@ -85,7 +85,7 @@ controller_event_cb (void *cls,
   {
   case GNUNET_TESTBED_ET_CONNECT:
     overlay_connects++;
-    if ((NUM_PEERS - 1) == overlay_connects)
+    if ((NUM_PEERS) == overlay_connects)
     {
       result = GNUNET_OK;
       GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
@@ -125,7 +125,8 @@ test_master (void *cls, unsigned int num_peers,
   peers = peers_;
   overlay_connects = 0;
   op = GNUNET_TESTBED_overlay_configure_topology (NULL, NUM_PEERS, peers,
-						  GNUNET_TESTBED_TOPOLOGY_LINE);
+						  GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI,
+                                                  NUM_PEERS);
   GNUNET_assert (NULL != op);
 }
 

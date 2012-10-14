@@ -225,7 +225,7 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
   struct TopologyContext *tc;
   struct GNUNET_TESTBED_Operation *op;
   struct GNUNET_TESTBED_Controller *c;
-  unsigned int p;
+  unsigned int cnt;
 
   if (num_peers < 2)
     return NULL;
@@ -238,10 +238,29 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
     tc->link_array_size = num_peers - 1;
     tc->link_array = GNUNET_malloc (sizeof (struct OverlayLink) *
 				    tc->link_array_size);
-    for (p=1; p < num_peers; p++)
+    for (cnt=1; cnt < num_peers; cnt++)
     {
-      tc->link_array[p-1].A = p-1;
-      tc->link_array[p-1].B = p;
+      tc->link_array[cnt-1].A = cnt-1;
+      tc->link_array[cnt-1].B = cnt;
+    }
+    break;
+  case GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI:
+    tc->link_array_size = va_arg (va, unsigned int);
+    tc->link_array = GNUNET_malloc (sizeof (struct OverlayLink) *
+                                    tc->link_array_size);
+    for (cnt = 0; cnt < tc->link_array_size; cnt++)
+    {
+      uint32_t A_rand;
+      uint32_t B_rand;
+      
+      do {
+        A_rand = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                           num_peers);
+        B_rand = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                           num_peers);
+      } while (A_rand == B_rand);      
+      tc->link_array[cnt].A = A_rand;
+      tc->link_array[cnt].B = B_rand;
     }
     break;
   default:
