@@ -355,7 +355,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
   GNUNET_assert (NULL != peer_ptr);
   *peer_ptr = peer;
   GNUNET_TESTBED_operation_done (operation);
-  operation = GNUNET_TESTBED_peer_start (peer, NULL, NULL);
+  operation = GNUNET_TESTBED_peer_start (NULL, peer, NULL, NULL);
   GNUNET_assert (NULL != operation);
 }
 

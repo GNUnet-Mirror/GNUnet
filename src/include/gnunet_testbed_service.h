@@ -705,13 +705,16 @@ typedef void (*GNUNET_TESTBED_PeerChurnCallback) (void *cls,
 /**
  * Start the given peer.
  *
+ * @param op_cls the closure for this operation; will be set in
+ *          event->details.operation_finished.op_cls when this operation fails.
  * @param peer peer to start
  * @param pcc function to call upon completion
  * @param pcc_cls closure for 'pcc'
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_peer_start (struct GNUNET_TESTBED_Peer *peer,
+GNUNET_TESTBED_peer_start (void *op_cls,
+			   struct GNUNET_TESTBED_Peer *peer,
 			   GNUNET_TESTBED_PeerChurnCallback pcc,
 			   void *pcc_cls);
 

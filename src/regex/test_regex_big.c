@@ -434,7 +434,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
   peer_id = i;                  // FIXME  A * i + B
   peers[peer_id] = peer;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Peer %i created\n", peer_id);
-  op[i] = GNUNET_TESTBED_peer_start (peer, peer_start_cb, (void *) i);
+  op[i] = GNUNET_TESTBED_peer_start (NULL, peer, peer_start_cb, (void *) i);
 }
 
 

@@ -283,7 +283,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
     for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
     {
       dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-      dll_op->op = GNUNET_TESTBED_peer_start (peers[peer_cnt], NULL, NULL);
+      dll_op->op = GNUNET_TESTBED_peer_start (NULL, peers[peer_cnt], NULL, NULL);
       GNUNET_CONTAINER_DLL_insert_tail (dll_op_head, dll_op_tail, dll_op);
     }
   }

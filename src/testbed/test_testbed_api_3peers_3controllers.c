@@ -388,7 +388,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
     peer1.peer = peer;
     GNUNET_TESTBED_operation_done (peer1.operation);
     result = PEER1_CREATED;
-    peer1.operation = GNUNET_TESTBED_peer_start (peer, NULL, NULL);
+    peer1.operation = GNUNET_TESTBED_peer_start (NULL, peer, NULL, NULL);
     break;
   case CONTROLLER2_UP:
     GNUNET_assert (NULL != peer2.operation);
@@ -397,7 +397,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
     peer2.peer = peer;
     GNUNET_TESTBED_operation_done (peer2.operation);
     result = PEER2_CREATED;
-    peer2.operation = GNUNET_TESTBED_peer_start (peer, NULL, NULL);
+    peer2.operation = GNUNET_TESTBED_peer_start (NULL, peer, NULL, NULL);
     break;
   case CONTROLLER3_UP:
     GNUNET_assert (NULL != peer3.operation);
@@ -406,7 +406,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
     peer3.peer = peer;
     GNUNET_TESTBED_operation_done (peer3.operation);
     result = PEER3_CREATED;
-    peer3.operation = GNUNET_TESTBED_peer_start (peer, NULL, NULL);
+    peer3.operation = GNUNET_TESTBED_peer_start (NULL, peer, NULL, NULL);
     break;
   default:
     GNUNET_assert (0);
