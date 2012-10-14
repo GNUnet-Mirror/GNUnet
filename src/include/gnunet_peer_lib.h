@@ -98,6 +98,16 @@ void
 GNUNET_PEER_resolve (GNUNET_PEER_Id id, struct GNUNET_PeerIdentity *pid);
 
 
+/**
+ * Convert an interned PID to a normal peer identity.
+ *
+ * @param id interned PID to convert
+ * @return pointer to peer identity, valid as long 'id' is valid
+ */
+const struct GNUNET_PeerIdentity *
+GNUNET_PEER_resolve2 (GNUNET_PEER_Id id);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
