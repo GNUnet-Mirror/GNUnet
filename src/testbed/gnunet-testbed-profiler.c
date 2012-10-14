@@ -191,19 +191,11 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct DLLOperation *dll_op;
   unsigned int nhost;
-  unsigned int peer_cnt;
 
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
   if (GNUNET_SCHEDULER_NO_TASK != register_hosts_task)
     GNUNET_SCHEDULER_cancel (register_hosts_task);
-  if (NULL != peers)
-  {
-    for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
-      if (NULL != peers[peer_cnt])
-        GNUNET_TESTBED_peer_destroy (peers[peer_cnt]);
-    GNUNET_free (peers);
-  }
   if (NULL != reg_handle)
     GNUNET_TESTBED_cancel_registration (reg_handle);
   for (nhost = 0; nhost < num_hosts; nhost++)
