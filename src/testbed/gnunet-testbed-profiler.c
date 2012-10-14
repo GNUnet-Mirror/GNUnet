@@ -197,7 +197,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel (abort_task);
   if (GNUNET_SCHEDULER_NO_TASK != register_hosts_task)
     GNUNET_SCHEDULER_cancel (register_hosts_task);
-  while (NULL != peers)
+  if (NULL != peers)
   {
     for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
       if (NULL != peers[peer_cnt])
