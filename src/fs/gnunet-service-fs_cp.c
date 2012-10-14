@@ -315,6 +315,7 @@ static char *respectDirectory;
  */
 static struct GNUNET_ATS_PerformanceHandle *ats;
 
+
 /**
  * Get the filename under which we would store respect
  * for the given peer.
@@ -617,7 +618,8 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
   GNUNET_free (fn);
   cp->request_map = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
   GNUNET_break (GNUNET_OK ==
-                GNUNET_CONTAINER_multihashmap_put (cp_map, &peer->hashPubKey,
+                GNUNET_CONTAINER_multihashmap_put (cp_map, 
+						   &GSF_connected_peer_get_identity2_ (cp)->hashPubKey,
                                                    cp,
                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   GNUNET_STATISTICS_set (GSF_stats, gettext_noop ("# peers connected"),
@@ -1646,7 +1648,7 @@ GSF_iterate_connected_peers_ (GSF_ConnectedPeerIterator it, void *it_cls)
 /**
  * Obtain the identity of a connected peer.
  *
- * @param cp peer to reserve bandwidth from
+ * @param cp peer to get identity of
  * @param id identity to set (written to)
  */
 void
@@ -1655,6 +1657,20 @@ GSF_connected_peer_get_identity_ (const struct GSF_ConnectedPeer *cp,
 {
   GNUNET_assert (0 != cp->ppd.pid);
   GNUNET_PEER_resolve (cp->ppd.pid, id);
+}
+
+
+/**
+ * Obtain the identity of a connected peer.
+ *
+ * @param cp peer to get identity of
+ * @return reference to peer identity, valid until peer disconnects (!)
+ */
+const struct GNUNET_PeerIdentity *
+GSF_connected_peer_get_identity2_ (const struct GSF_ConnectedPeer *cp)
+{
+  GNUNET_assert (0 != cp->ppd.pid);
+  return GNUNET_PEER_resolve2 (cp->ppd.pid);
 }
 
 
@@ -1811,7 +1827,7 @@ cron_flush_respect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 void
 GSF_connected_peer_init_ ()
 {
-  cp_map = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
+  cp_map = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_YES);
   ats = GNUNET_ATS_performance_init (GSF_cfg, NULL, NULL);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_filename (GSF_cfg, "fs",

@@ -558,7 +558,7 @@ merge_pr (void *cls, const struct GNUNET_HashCode * query, void *element)
 void
 GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
 {
-  struct GNUNET_PeerIdentity id;
+  const struct GNUNET_PeerIdentity *id;
   struct PeerPlan *pp;
   struct GSF_PendingRequestData *prd;
   struct GSF_RequestPlan *rp;
@@ -567,18 +567,19 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
   struct MergeContext mpc;
 
   GNUNET_assert (NULL != cp);
-  GSF_connected_peer_get_identity_ (cp, &id);
-  pp = GNUNET_CONTAINER_multihashmap_get (plans, &id.hashPubKey);
+  id = GSF_connected_peer_get_identity2_ (cp);
+  pp = GNUNET_CONTAINER_multihashmap_get (plans, &id->hashPubKey);
   if (NULL == pp)
   {
     pp = GNUNET_malloc (sizeof (struct PeerPlan));
-    pp->plan_map = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
+    pp->plan_map = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_YES);
     pp->priority_heap =
         GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MAX);
     pp->delay_heap =
         GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
     pp->cp = cp;
-    GNUNET_CONTAINER_multihashmap_put (plans, &id.hashPubKey, pp,
+    GNUNET_CONTAINER_multihashmap_put (plans, 
+				       &id->hashPubKey, pp,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   }
   mpc.merged = GNUNET_NO;
@@ -599,7 +600,7 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
   prd = GSF_pending_request_get_data_ (pr);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Planning transmission of query `%s' to peer `%s'\n",
-              GNUNET_h2s (&prd->query), GNUNET_i2s (&id));
+              GNUNET_h2s (&prd->query), GNUNET_i2s (id));
   rp = GNUNET_malloc (sizeof (struct GSF_RequestPlan)); // 8 MB
   rpr = GNUNET_malloc (sizeof (struct GSF_RequestPlanReference));
   prl = GNUNET_malloc (sizeof (struct PendingRequestList));
@@ -627,18 +628,18 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
 void
 GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
 {
-  struct GNUNET_PeerIdentity id;
+  const struct GNUNET_PeerIdentity *id;
   struct PeerPlan *pp;
   struct GSF_RequestPlan *rp;
   struct GSF_PendingRequestData *prd;
   struct PendingRequestList *prl;
 
-  GSF_connected_peer_get_identity_ (cp, &id);
-  pp = GNUNET_CONTAINER_multihashmap_get (plans, &id.hashPubKey);
+  id = GSF_connected_peer_get_identity2_ (cp);
+  pp = GNUNET_CONTAINER_multihashmap_get (plans, &id->hashPubKey);
   if (NULL == pp)
     return;                     /* nothing was ever planned for this peer */
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (plans, &id.hashPubKey,
+                 GNUNET_CONTAINER_multihashmap_remove (plans, &id->hashPubKey,
                                                        pp));
   if (NULL != pp->pth)
   {
@@ -760,7 +761,7 @@ GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr)
 void
 GSF_plan_init ()
 {
-  plans = GNUNET_CONTAINER_multihashmap_create (256, GNUNET_NO);
+  plans = GNUNET_CONTAINER_multihashmap_create (256, GNUNET_YES);
 }
 
 
