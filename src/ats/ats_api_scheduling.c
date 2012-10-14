@@ -821,7 +821,6 @@ struct GNUNET_ATS_Information
 GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const struct sockaddr * addr, socklen_t addrlen)
 {
   GNUNET_assert (sh != NULL);
-  struct GNUNET_ATS_Information ats;
   struct ATS_Network * cur = sh->net_head;
   int type = GNUNET_ATS_NET_UNSPECIFIED;
 
@@ -903,9 +902,10 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const stru
   /* no local network found for this address, default: WAN */
   if (type == GNUNET_ATS_NET_UNSPECIFIED)
     type = GNUNET_ATS_NET_WAN;
-  ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  ats.value = htonl (type);
-  return (const struct GNUNET_ATS_Information) ats;
+  const struct GNUNET_ATS_Information ats = {
+    htonl (GNUNET_ATS_NETWORK_TYPE),
+    htonl (type) };
+  return ats;
 }
 
 
