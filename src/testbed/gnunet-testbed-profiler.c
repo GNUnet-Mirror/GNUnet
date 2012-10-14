@@ -241,6 +241,42 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Functions of this signature are called when a peer has been successfully
+ * started or stopped.
+ *
+ * @param cls the closure from GNUNET_TESTBED_peer_start/stop()
+ * @param emsg NULL on success; otherwise an error description
+ */
+static void 
+peer_churn_cb (void *cls, const char *emsg)
+{
+  struct DLLOperation *dll_op = cls;
+  struct GNUNET_TESTBED_Operation *op;  
+  static unsigned int started_peers;
+
+  op = dll_op->op;
+  GNUNET_CONTAINER_DLL_remove (dll_op_head, dll_op_tail, dll_op);
+  GNUNET_free (dll_op);
+  if (NULL != emsg)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         _("An operation has failed while starting peers\n"));
+    GNUNET_TESTBED_operation_done (op);
+    GNUNET_SCHEDULER_cancel (abort_task);
+    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+    return;
+  }
+  GNUNET_TESTBED_operation_done (op);
+  if (++started_peers == num_peers)
+  {
+    prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
+    printf ("All peers started successfully in %.2f seconds\n",
+            ((double) prof_time.rel_value) / 1000.00);
+  }
+}
+
+
+/**
+ * Functions of this signature are called when a peer has been successfully
  * created
  *
  * @param cls the closure from GNUNET_TESTBED_peer_create()
@@ -283,7 +319,8 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
     for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
     {
       dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-      dll_op->op = GNUNET_TESTBED_peer_start (NULL, peers[peer_cnt], NULL, NULL);
+      dll_op->op = GNUNET_TESTBED_peer_start (NULL, peers[peer_cnt], 
+                                              &peer_churn_cb, dll_op);
       GNUNET_CONTAINER_DLL_insert_tail (dll_op_head, dll_op_tail, dll_op);
     }
   }
@@ -359,10 +396,8 @@ controller_event_cb (void *cls,
     {
     case GNUNET_TESTBED_ET_OPERATION_FINISHED:
       /* Control reaches here when peer start fails */
-      GNUNET_break (0);
-      break;
     case GNUNET_TESTBED_ET_PEER_START:
-      GNUNET_break (0);
+      /* we handle peer starts in peer_churn_cb */
       break;
     default:
       GNUNET_assert (0);
