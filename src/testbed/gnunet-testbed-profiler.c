@@ -80,7 +80,12 @@ enum State
   /**
    * Creating peers
    */
-  STATE_PEERS_CREATING
+  STATE_PEERS_CREATING,
+
+  /**
+   * Starting peers
+   */
+  STATE_PEERS_STARTING
 };
 
 
@@ -214,7 +219,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TESTBED_controller_stop (mc_proc);
   if (NULL != cfg)
     GNUNET_CONFIGURATION_destroy (cfg);
-  GNUNET_SCHEDULER_shutdown ();	/* Stop scheduler to shutdown testbed run */  
+  GNUNET_SCHEDULER_shutdown ();	/* Stop scheduler to shutdown testbed run */
 }
 
 
@@ -249,6 +254,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
   struct DLLOperation *dll_op = cls;
   struct GNUNET_TESTBED_Peer **peer_ptr;
   static unsigned int created_peers;
+  unsigned int peer_cnt;
 
   if (NULL != emsg)
   {
@@ -273,6 +279,13 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
     printf ("All peers created successfully in %.2f seconds\n",
             ((double) prof_time.rel_value) / 1000.00);
     /* Now peers are to be started */
+    state = STATE_PEERS_STARTING;
+    for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
+    {
+      dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
+      dll_op->op = GNUNET_TESTBED_peer_start (peers[peer_cnt], NULL, NULL);
+      GNUNET_CONTAINER_DLL_insert_tail (dll_op_head, dll_op_tail, dll_op);
+    }
   }
 }
 
@@ -299,11 +312,11 @@ controller_event_cb (void *cls,
       {
         static unsigned int slaves_started;
         unsigned int peer_cnt;
-            
+        
         dll_op = event->details.operation_finished.op_cls;
         GNUNET_CONTAINER_DLL_remove (dll_op_head, dll_op_tail, dll_op);
         GNUNET_free (dll_op);
-	op = event->details.operation_finished.operation;
+        op = event->details.operation_finished.operation;
         if (NULL != event->details.operation_finished.emsg)
         {
           LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -336,6 +349,20 @@ controller_event_cb (void *cls,
           }
         }
       }
+      break;
+    default:
+      GNUNET_assert (0);
+    }
+    break;
+  case STATE_PEERS_STARTING:
+    switch (event->type)
+    {
+    case GNUNET_TESTBED_ET_OPERATION_FINISHED:
+      /* Control reaches here when peer start fails */
+      GNUNET_break (0);
+      break;
+    case GNUNET_TESTBED_ET_PEER_START:
+      GNUNET_break (0);
       break;
     default:
       GNUNET_assert (0);
