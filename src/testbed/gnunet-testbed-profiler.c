@@ -451,13 +451,16 @@ controller_event_cb (void *cls,
       {
         static unsigned int established_links;
 
+	if (0 == established_links)
+	  printf ("Establishing links\n");
+	else
+	  printf (".");
         if (++established_links == num_links)
         {
           prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
           printf ("%u links established in %.2f seconds\n",
                   num_links, ((double) prof_time.rel_value) / 1000.00);
-          GNUNET_TESTBED_operation_done (topology_op);
-          topology_op = NULL;
+	  result = GNUNET_OK;
           GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
         }
       }
