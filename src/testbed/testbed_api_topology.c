@@ -71,6 +71,11 @@ struct TopologyContext
   struct GNUNET_TESTBED_Operation **link_ops;
 
   /**
+   * The operation closure
+   */
+  void *op_cls;
+
+  /**
    * The size of the link array
    */
   unsigned int link_array_size;  
@@ -122,7 +127,7 @@ opstart_overlay_configure_topology (void *cls)
   for (p = 0; p < tc->link_array_size; p++)
   {
     tc->link_ops[p] =
-	GNUNET_TESTBED_overlay_connect (NULL, &overlay_link_completed,
+	GNUNET_TESTBED_overlay_connect (tc->op_cls, &overlay_link_completed,
 					&tc->link_ops[p],
 					tc->peers[tc->link_array[p].A],
 					tc->peers[tc->link_array[p].B]);   						  
@@ -232,6 +237,7 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
   c = peers[0]->controller;
   tc = GNUNET_malloc (sizeof (struct TopologyContext));
   tc->peers = peers;
+  tc->op_cls = tc->op_cls;
   switch (topo)
   {
   case GNUNET_TESTBED_TOPOLOGY_LINE:

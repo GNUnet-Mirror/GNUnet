@@ -716,6 +716,7 @@ GNUNET_TESTBED_overlay_connect (void *op_cls,
   opc->c = p1->controller;
   opc->id = GNUNET_TESTBED_get_next_op_id (opc->c);
   opc->type = OP_OVERLAY_CONNECT;
+  opc->op_cls = op_cls;
   opc->op =
       GNUNET_TESTBED_operation_create_ (opc, &opstart_overlay_connect,
                                         &oprelease_overlay_connect);

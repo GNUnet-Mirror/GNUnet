@@ -85,7 +85,12 @@ enum State
   /**
    * Starting peers
    */
-  STATE_PEERS_STARTING
+  STATE_PEERS_STARTING,
+
+  /**
+   * Linking peers
+   */
+  STATE_PEERS_LINKING
 };
 
 
@@ -135,6 +140,11 @@ struct DLLOperation *dll_op_head;
 struct DLLOperation *dll_op_tail;
 
 /**
+ * Peer linking - topology operation
+ */
+struct GNUNET_TESTBED_Operation *topology_op;
+
+/**
  * Abort task identifier
  */
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
@@ -175,6 +185,11 @@ static unsigned int num_peers;
 static unsigned int num_hosts;
 
 /**
+ * Number of random links to be established between peers
+ */
+static unsigned int num_links;
+
+/**
  * Global testing status
  */
 static int result;
@@ -203,6 +218,8 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel (register_hosts_task);
   if (NULL != reg_handle)
     GNUNET_TESTBED_cancel_registration (reg_handle);
+  if (NULL != topology_op)
+    GNUNET_TESTBED_operation_cancel (topology_op);
   for (nhost = 0; nhost < num_hosts; nhost++)
     if (NULL != hosts[nhost])
       GNUNET_TESTBED_host_destroy (hosts[nhost]);
@@ -271,6 +288,19 @@ peer_churn_cb (void *cls, const char *emsg)
     prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
     printf ("All peers started successfully in %.2f seconds\n",
             ((double) prof_time.rel_value) / 1000.00);
+    result = GNUNET_OK;
+    if (0 == num_links)
+    {
+      GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+      return;
+    }
+    state = STATE_PEERS_LINKING;
+    /* Do overlay connect */
+    prof_start_time = GNUNET_TIME_absolute_get ();
+    topology_op =
+        GNUNET_TESTBED_overlay_configure_topology (NULL, num_peers, peers,
+                                                   GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI,
+                                                   num_links);
   }
 }
 
@@ -320,7 +350,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
     for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
     {
       dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-      dll_op->op = GNUNET_TESTBED_peer_start (NULL, peers[peer_cnt], 
+      dll_op->op = GNUNET_TESTBED_peer_start (dll_op, peers[peer_cnt], 
                                               &peer_churn_cb, dll_op);
       GNUNET_CONTAINER_DLL_insert_tail (dll_op_head, dll_op_tail, dll_op);
     }
@@ -399,6 +429,38 @@ controller_event_cb (void *cls,
       /* Control reaches here when peer start fails */
     case GNUNET_TESTBED_ET_PEER_START:
       /* we handle peer starts in peer_churn_cb */
+      break;
+    default:
+      GNUNET_assert (0);
+    }
+    break;
+  case STATE_PEERS_LINKING:
+   switch (event->type)
+    {
+    case GNUNET_TESTBED_ET_OPERATION_FINISHED:
+      /* Control reaches here when a peer linking operation fails */
+      if (NULL != event->details.operation_finished.emsg)
+      {
+        LOG (GNUNET_ERROR_TYPE_WARNING,
+             _("An operation has failed while starting slaves\n"));
+        GNUNET_SCHEDULER_cancel (abort_task);
+        abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+      }
+      break;
+    case GNUNET_TESTBED_ET_CONNECT:
+      {
+        static unsigned int established_links;
+
+        if (++established_links == num_links)
+        {
+          prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
+          printf ("%u links established in %.2f seconds\n",
+                  num_links, ((double) prof_time.rel_value) / 1000.00);
+          GNUNET_TESTBED_operation_done (topology_op);
+          topology_op = NULL;
+          GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+        }
+      }
       break;
     default:
       GNUNET_assert (0);
@@ -590,12 +652,12 @@ int
 main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    { 'n', "num-peers", "COUNT",
+    { 'p', "num-peers", "COUNT",
       gettext_noop ("create COUNT number of peers"),
       GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_peers },
-    { 'n', "num-peers", "COUNT",
-      gettext_noop ("create COUNT number of peers"),
-      GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_peers },
+    { 'n', "num-links", "COUNT",
+      gettext_noop ("create COUNT number of random links"),
+      GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_links },
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
