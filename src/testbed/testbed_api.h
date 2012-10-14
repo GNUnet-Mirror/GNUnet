@@ -448,9 +448,9 @@ GNUNET_TESTBED_get_next_op_id (struct GNUNET_TESTBED_Controller *controller);
  *
  * @param op_cls the closure for the operation
  * @param master the handle to master controller
- * @param slave_host the host where the slave controller is running; the handle
- *          to the slave_host should remain valid until this operation is
- *          cancelled or marked as finished
+ * @param slave_host_id id of the host where the slave controller is running to
+ *          the slave_host should remain valid until this operation is cancelled
+ *          or marked as finished
  * @return the operation handle;
  */
 struct GNUNET_TESTBED_Operation *
@@ -493,9 +493,11 @@ GNUNET_TESTBED_controller_link_2_ (void *op_cls,
  * @param op_cls the operation closure for the event which is generated to
  *          signal success or failure of this operation
  * @param master handle to the master controller who creates the association
- * @param delegated_host requests to which host should be delegated; cannot be NULL
- * @param slave_host which host is used to run the slave controller; use NULL to
- *          make the master controller connect to the delegated host
+ * @param delegated_host_id id of the host to which requests should be
+ *          delegated; cannot be NULL
+ * @param slave_host_id id of the host which should connect to controller
+ *          running on delegated host ; use NULL to make the master controller
+ *          connect to the delegated host
  * @param slave_cfg configuration to use for the slave controller
  * @param is_subordinate GNUNET_YES if the controller at delegated_host should
  *          be started by the slave controller; GNUNET_NO if the slave
