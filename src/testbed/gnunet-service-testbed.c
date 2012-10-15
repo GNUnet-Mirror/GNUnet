@@ -160,6 +160,39 @@ struct LinkControllersContext;
 
 
 /**
+ * A DLL of host registrations to be made
+ */
+struct HostRegistration
+{
+  /**
+   * next registration in the DLL
+   */
+  struct HostRegistration *next;
+
+  /**
+   * previous registration in the DLL
+   */
+  struct HostRegistration *prev;
+
+  /**
+   * The callback to call after this registration's status is available
+   */
+  GNUNET_TESTBED_HostRegistrationCompletion cb;
+
+  /**
+   * The closure for the above callback
+   */
+  void *cb_cls;
+
+  /**
+   * The host that has to be registered
+   */
+  struct GNUNET_TESTBED_Host *host;
+
+};
+
+
+/**
  * Structure representing a connected(directly-linked) controller
  */
 struct Slave
@@ -186,9 +219,20 @@ struct Slave
   struct LinkControllersContext *lcc;
 
   /**
+   * Head of the host registration DLL
+   */
+  struct HostRegistration *hr_dll_head;
+
+  /**
+   * Tail of the host registration DLL
+   */
+  struct HostRegistration *hr_dll_tail;
+
+  /**
    * The id of the host this controller is running on
    */
   uint32_t host_id;
+
 };
 
 
@@ -319,9 +363,9 @@ struct Peer
     struct
     {
       /**
-       * The controller this peer is started through
+       * The slave this peer is started through
        */
-      struct GNUNET_TESTBED_Controller *controller;
+      struct Slave *slave;
 
       /**
        * The id of the remote host this peer is running on
@@ -2014,7 +2058,7 @@ handle_peer_create (void *cls, struct GNUNET_SERVER_Client *client,
   peer = GNUNET_malloc (sizeof (struct Peer));
   peer->is_remote = GNUNET_YES;
   peer->id = peer_id;
-  peer->details.remote.controller = slave_list[route->dest]->controller;
+  peer->details.remote.slave = slave_list[route->dest];
   peer->details.remote.remote_host_id = host_id;
   fo_ctxt = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
   GNUNET_SERVER_client_keep (client);
@@ -2070,8 +2114,8 @@ handle_peer_destroy (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_client_keep (client);
     fopc->client = client;
     fopc->operation_id = GNUNET_ntohll (msg->operation_id);
-    fopc->opc =
-        GNUNET_TESTBED_forward_operation_msg_ (peer->details.remote.controller,
+    fopc->opc = 
+        GNUNET_TESTBED_forward_operation_msg_ (peer->details.remote.slave->controller,
                                                fopc->operation_id, &msg->header,
                                                &forwarded_operation_reply_relay,
                                                fopc);
@@ -2125,7 +2169,7 @@ handle_peer_start (void *cls, struct GNUNET_SERVER_Client *client,
     fopc->client = client;
     fopc->operation_id = GNUNET_ntohll (msg->operation_id);
     fopc->opc =
-        GNUNET_TESTBED_forward_operation_msg_ (peer->details.remote.controller,
+        GNUNET_TESTBED_forward_operation_msg_ (peer->details.remote.slave->controller,
                                                fopc->operation_id, &msg->header,
                                                &forwarded_operation_reply_relay,
                                                fopc);
@@ -2189,7 +2233,7 @@ handle_peer_stop (void *cls, struct GNUNET_SERVER_Client *client,
     fopc->client = client;
     fopc->operation_id = GNUNET_ntohll (msg->operation_id);
     fopc->opc =
-        GNUNET_TESTBED_forward_operation_msg_ (peer->details.remote.controller,
+        GNUNET_TESTBED_forward_operation_msg_ (peer->details.remote.slave->controller,
                                                fopc->operation_id, &msg->header,
                                                &forwarded_operation_reply_relay,
                                                fopc);
@@ -2259,7 +2303,7 @@ handle_peer_get_config (void *cls, struct GNUNET_SERVER_Client *client,
     fopc->client = client;
     fopc->operation_id = GNUNET_ntohll (msg->operation_id);
     fopc->opc =
-        GNUNET_TESTBED_forward_operation_msg_ (peer->details.remote.controller,
+        GNUNET_TESTBED_forward_operation_msg_ (peer->details.remote.slave->controller,
                                                fopc->operation_id, &msg->header,
                                                &forwarded_operation_reply_relay,
                                                fopc);
@@ -2799,7 +2843,7 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
 
         msize = sizeof (struct GNUNET_TESTBED_OverlayConnectMessage);
         focc = GNUNET_malloc (sizeof (struct ForwardedOverlayConnectContext));
-        focc->gateway = peer->details.remote.controller;
+        focc->gateway = peer->details.remote.slave->controller;
         focc->gateway2 = (NULL == route_to_peer2_host) ? NULL :
             slave_list[route_to_peer2_host->dest]->controller;
         focc->peer1 = p1;
@@ -2818,7 +2862,7 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
       }
     }
     fopc->opc = 
-	GNUNET_TESTBED_forward_operation_msg_ (peer->details.remote.controller,
+	GNUNET_TESTBED_forward_operation_msg_ (peer->details.remote.slave->controller,
 					       operation_id, message,
 					       &forwarded_overlay_connect_listener,
 					       fopc);
@@ -2872,7 +2916,7 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
   else
   {
     if (GNUNET_YES == peer_list[occ->other_peer_id]->is_remote)
-      occ->peer2_controller = peer_list[occ->other_peer_id]->details.remote.controller;
+      occ->peer2_controller = peer_list[occ->other_peer_id]->details.remote.slave->controller;
   }
   /* Get the identity of the second peer */
   if (NULL != occ->peer2_controller)
@@ -3053,7 +3097,7 @@ handle_overlay_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
     
     msg2 = GNUNET_malloc (msize);
     (void) memcpy (msg2, message, msize);
-    GNUNET_TESTBED_queue_message_ (peer->details.remote.controller, msg2);
+    GNUNET_TESTBED_queue_message_ (peer->details.remote.slave->controller, msg2);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
