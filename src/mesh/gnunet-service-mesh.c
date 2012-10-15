@@ -3997,6 +3997,14 @@ tunnel_send_child_bck_ack (void *cls,
  * @brief Send BCK ACKs to clients to allow them more to_origin traffic
  * 
  * Iterates over all clients and sends BCK ACKs to the ones that need it.
+ *
+ * FIXME fc: what happens if we have 2 clients but q_size is 1?
+ *           - implement a size 1 buffer in each client_fc AND children_fc
+ *           to hold at least 1 message per "child".
+ *             problem: violates no buffer policy
+ *           - ack 0 and make "children" poll for transmission slots
+ *             problem: big overhead, extra latency even in low traffic
+ *                      settings
  * 
  * @param t Tunnel on which to send the BCK ACKs.
  */
@@ -4008,7 +4016,7 @@ tunnel_send_clients_bck_ack (struct MeshTunnel *t)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Sending BCK ACK to clients\n");
 
-  tunnel_delta = t->bck_ack - t->bck_pid;
+  tunnel_delta = t->bck_queue_max - t->bck_queue_n;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   tunnel delta: %u\n", tunnel_delta);
 
   /* Find client whom to allow to send to origin (with lowest buffer space) */
@@ -5086,10 +5094,14 @@ queue_add (void *cls, uint16_t type, size_t size,
   if (NULL != n) {
     if (*n >= *max)
     {
-      if (NULL == t->owner)
-        GNUNET_break_op(0);       // TODO: kill connection?
-      else
-        GNUNET_break(0);
+      struct MeshTransmissionDescriptor *td = cls;
+      struct GNUNET_MESH_ToOrigin *to;
+
+      to = td->mesh_data->data;
+      GNUNET_break(0);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "bck pid %u, bck ack %u, msg pid %u\n",
+                  t->bck_pid, t->bck_ack, ntohl(to->pid));
       GNUNET_STATISTICS_update(stats, "# messages dropped (buffer full)",
                                1, GNUNET_NO);
       return;                       // Drop message
@@ -5762,8 +5774,8 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_STATISTICS_update (stats, "# data on unknown tunnel", 1, GNUNET_NO);
     GNUNET_break_op (0);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received PID %u, ACK %u\n",
-                pid, t->bck_ack);
+                "Received to_origin with PID %u on unknown tunnel\n",
+                pid);
     return GNUNET_OK;
   }
 
