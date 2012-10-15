@@ -579,6 +579,11 @@ struct ForwardedOverlayConnectContext
   uint64_t operation_id;
 
   /**
+   * Id of the timeout task;
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  
+  /**
    * Enumeration of states for this context
    */
   enum FOCCState {
@@ -1250,6 +1255,8 @@ forwarded_overlay_connect_listener (void *cls,
 static void
 cleanup_focc (struct ForwardedOverlayConnectContext *focc)
 {
+  if (GNUNET_SCHEDULER_NO_TASK != focc->timeout_task)
+    GNUNET_SCHEDULER_cancel (focc->timeout_task);
   if (NULL != focc->sub_op)
     GNUNET_TESTBED_operation_done (focc->sub_op);
   if (NULL != focc->client)
@@ -1855,7 +1862,6 @@ static void
 peer_create_success_cb (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct ForwardedOperationContext *fo_ctxt = cls;
-  const struct GNUNET_TESTBED_PeerCreateSuccessEventMessage *success_msg;
   struct GNUNET_MessageHeader *dup_msg;
   struct Peer *remote_peer;
   uint16_t msize;
@@ -1863,8 +1869,6 @@ peer_create_success_cb (void *cls, const struct GNUNET_MessageHeader *msg)
   GNUNET_SCHEDULER_cancel (fo_ctxt->timeout_task);
   if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS)
   {
-    success_msg =
-        (const struct GNUNET_TESTBED_PeerCreateSuccessEventMessage *) msg;
     GNUNET_assert (NULL != fo_ctxt->cls);
     remote_peer = fo_ctxt->cls;
     peer_list_add (remote_peer);
@@ -2701,6 +2705,25 @@ forwarded_overlay_connect_listener (void *cls,
 
 
 /**
+ * Timeout task for cancelling a forwarded overlay connect connect
+ *
+ * @param cls the ForwardedOverlayConnectContext
+ * @param tc the task context from the scheduler
+ */
+static void
+forwarded_overlay_connect_timeout (void *cls,
+                                   const struct GNUNET_SCHEDULER_TaskContext
+                                   *tc)
+{
+  struct ForwardedOverlayConnectContext *focc = cls;
+
+  focc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  send_operation_fail_msg (focc->client, focc->operation_id, "Timeout");
+  cleanup_focc (focc);
+}
+
+
+/**
  * Handler for GNUNET_MESSAGE_TYPE_TESTBED_OLCONNECT messages
  *
  * @param cls NULL
@@ -2771,6 +2794,9 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
         focc->client = client;
         focc->operation_id = operation_id;
         fopc->cls = focc;
+        fopc->timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                                           &forwarded_overlay_connect_timeout,
+                                                           fopc);
       }
     }
     fopc->opc = 
