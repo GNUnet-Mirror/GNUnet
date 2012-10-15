@@ -39,6 +39,12 @@ extern "C"
 
 
 /**
+ * Constant for how many bits the initial string regex should have.
+ */
+#define GNUNET_REGEX_INITIAL_BITS 24
+
+
+/**
  * Maximum regex string length for use with GNUNET_REGEX_ipv4toregex
  */
 #define GNUNET_REGEX_IPV4_REGEXLEN 32 + 6
