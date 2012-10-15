@@ -188,7 +188,6 @@ struct HostRegistration
    * The host that has to be registered
    */
   struct GNUNET_TESTBED_Host *host;
-
 };
 
 
@@ -227,6 +226,11 @@ struct Slave
    * Tail of the host registration DLL
    */
   struct HostRegistration *hr_dll_tail;
+
+  /**
+   * The current host registration handle
+   */
+  struct GNUNET_TESTBED_HostRegistrationHandle *rhandle;
 
   /**
    * The id of the host this controller is running on
@@ -282,11 +286,6 @@ struct LCFContext
    * The client which has asked to perform this operation
    */
   struct GNUNET_SERVER_Client *client;
-
-  /**
-   * The host registration handle while registered hosts in this context
-   */
-  struct GNUNET_TESTBED_HostRegistrationHandle *rhandle;
 
   /**
    * The id of the operation which created this context
@@ -588,14 +587,14 @@ struct LinkControllersContext
 struct ForwardedOverlayConnectContext
 {
   /**
-   * The gateway controller to which this operation is forwarded to
+   * The gateway to which this operation is forwarded to
    */
-  struct GNUNET_TESTBED_Controller *gateway;
+  struct Slave *gateway;
 
   /**
-   * The gateway controller through which peer2's controller can be reached
+   * The gateway through which peer2's controller can be reached
    */
-  struct GNUNET_TESTBED_Controller *gateway2;
+  struct Slave *gateway2;
 
   /**
    * Handle for sub-operations
@@ -611,11 +610,6 @@ struct ForwardedOverlayConnectContext
    * A copy of the original overlay connect message
    */
   struct GNUNET_MessageHeader *orig_msg;
-
-  /**
-   * The host registration handle while registered hosts in this context
-   */
-  struct GNUNET_TESTBED_HostRegistrationHandle *rhandle;
 
   /**
    * The id of the operation which created this context information
@@ -1105,6 +1099,94 @@ send_operation_success_msg (struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Callback which will be called to after a host registration succeeded or failed
+ *
+ * @param cls the handle to the slave at which the registration is completed
+ * @param emsg the error message; NULL if host registration is successful
+ */
+static void 
+hr_completion (void *cls, const char *emsg);
+
+
+/**
+ * Attempts to register the next host in the host registration queue
+ *
+ * @param slave the slave controller whose host registration queue is checked
+ *          for host registrations
+ */
+static void
+register_next_host (struct Slave *slave)
+{
+  struct HostRegistration *hr;
+  
+  hr = slave->hr_dll_head;
+  GNUNET_assert (NULL != hr);
+  GNUNET_assert (NULL == slave->rhandle);
+  slave->rhandle = GNUNET_TESTBED_register_host (slave->controller,
+                                                 hr->host,
+                                                 hr_completion,
+                                                 slave);
+}
+
+
+/**
+ * Callback which will be called to after a host registration succeeded or failed
+ *
+ * @param cls the handle to the slave at which the registration is completed
+ * @param emsg the error message; NULL if host registration is successful
+ */
+static void 
+hr_completion (void *cls, const char *emsg)
+{
+  struct Slave *slave = cls;
+  struct HostRegistration *hr;
+
+  slave->rhandle = NULL;
+  hr = slave->hr_dll_head;
+  GNUNET_assert (NULL != hr);
+  GNUNET_CONTAINER_DLL_remove (slave->hr_dll_head,
+                               slave->hr_dll_tail,
+                               hr);
+  if (NULL != hr->cb)
+    hr->cb (hr->cb_cls, emsg);
+  GNUNET_free (hr);
+  if ((NULL == slave->rhandle) && (NULL != slave->hr_dll_head))
+    register_next_host (slave);
+}
+
+
+/**
+ * Adds a host registration's request to a slave's registration queue
+ *
+ * @param slave the slave controller at which the given host has to be
+ *          registered 
+ * @param cb the host registration completion callback
+ * @param cb_cls the closure for the host registration completion callback
+ * @param host the host which has to be registered
+ */
+static void
+queue_host_registration (struct Slave *slave,
+                         GNUNET_TESTBED_HostRegistrationCompletion cb,
+                         void *cb_cls,
+                         struct GNUNET_TESTBED_Host *host)
+{
+  struct HostRegistration *hr;
+  int call_register;
+
+  hr = GNUNET_malloc (sizeof (struct HostRegistration));
+  hr->cb = cb;
+  hr->cb_cls = cb_cls;
+  hr->host = host;
+  call_register = (NULL == slave->hr_dll_head) ? GNUNET_YES : GNUNET_NO;
+  GNUNET_CONTAINER_DLL_insert_tail (slave->hr_dll_head,
+                                    slave->hr_dll_tail,
+                                    hr);
+  if (GNUNET_YES == call_register)
+    register_next_host (slave);
+}
+
+
+/**
  * The  Link Controller forwarding task
  *
  * @param cls the LCFContext
@@ -1125,7 +1207,6 @@ lcf_proc_cc (void *cls, const char *emsg)
 {
   struct LCFContext *lcf = cls;
 
-  lcf->rhandle = NULL;
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
   switch (lcf->state)
   {
@@ -1222,10 +1303,9 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_TESTBED_is_host_registered_ (host_list[lcf->delegated_host_id],
                                             lcf->gateway->controller))
     {
-      lcf->rhandle =
-          GNUNET_TESTBED_register_host (lcf->gateway->controller,
-                                        host_list[lcf->delegated_host_id],
-                                        lcf_proc_cc, lcf);
+      queue_host_registration (lcf->gateway,
+                               lcf_proc_cc, lcf,
+                               host_list[lcf->delegated_host_id]);
     }
     else
     {
@@ -1238,10 +1318,9 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_TESTBED_is_host_registered_ (host_list[lcf->slave_host_id],
                                             lcf->gateway->controller))
     {
-      lcf->rhandle =
-          GNUNET_TESTBED_register_host (lcf->gateway->controller,
-                                        host_list[lcf->slave_host_id],
-                                        lcf_proc_cc, lcf);
+      queue_host_registration (lcf->gateway,
+                               lcf_proc_cc, lcf,
+                               host_list[lcf->slave_host_id]);
     }
     else
     {
@@ -1306,8 +1385,6 @@ cleanup_focc (struct ForwardedOverlayConnectContext *focc)
     GNUNET_TESTBED_operation_done (focc->sub_op);
   if (NULL != focc->client)
     GNUNET_SERVER_client_drop (focc->client);
-  if (NULL != focc->rhandle)
-    GNUNET_TESTBED_cancel_registration (focc->rhandle);
   GNUNET_free_non_null (focc->orig_msg);
   GNUNET_free (focc);
 }
@@ -1350,7 +1427,7 @@ slave_event_callback (void *cls,
     old_op = focc->sub_op;
     focc->state = FOCC_LINK;
     focc->sub_op = GNUNET_TESTBED_controller_link_ (focc,
-                                                    focc->gateway,
+                                                    focc->gateway->controller,
                                                     focc->peer2_host_id,
                                                     peer_list[focc->peer1]->details.remote.remote_host_id,
                                                     slave_cfg,
@@ -1368,7 +1445,7 @@ slave_event_callback (void *cls,
     fopc->operation_id = focc->operation_id;
     fopc->cls = NULL;
     fopc->opc =
-        GNUNET_TESTBED_forward_operation_msg_ (focc->gateway,
+        GNUNET_TESTBED_forward_operation_msg_ (focc->gateway->controller,
                                                focc->operation_id, focc->orig_msg,
                                                &forwarded_operation_reply_relay,
                                                fopc);
@@ -2684,7 +2761,6 @@ focc_reg_completion_cc (void *cls, const char *emsg)
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
   GNUNET_assert (FOCC_REGISTER == focc->state);
-  focc->rhandle = NULL;
   GNUNET_assert (NULL == focc->sub_op);
   LOG_DEBUG ("[%u -> %u] Registering peer2's host successful\n",
 	     focc->peer1, focc->peer2);
@@ -2697,7 +2773,7 @@ focc_reg_completion_cc (void *cls, const char *emsg)
         our_config : slave_list[focc->peer2_host_id]->cfg;
     focc->sub_op = 
         GNUNET_TESTBED_controller_link_ (focc,
-                                         focc->gateway,
+                                         focc->gateway->controller,
                                          focc->peer2_host_id,
                                          peer_list[focc->peer1]->details.remote.remote_host_id,
                                          cfg,
@@ -2705,7 +2781,7 @@ focc_reg_completion_cc (void *cls, const char *emsg)
     return;
   }
   focc->state = FOCC_GET_CFG;
-  focc->sub_op = GNUNET_TESTBED_get_slave_config_ (focc, focc->gateway2,
+  focc->sub_op = GNUNET_TESTBED_get_slave_config_ (focc, focc->gateway2->controller,
                                                    focc->peer2_host_id);
 }
 
@@ -2746,11 +2822,10 @@ forwarded_overlay_connect_listener (void *cls,
 	       focc->peer1, focc->peer2, focc->peer2_host_id,
 	       peer_list[focc->peer1]->details.remote.remote_host_id);
     focc->state = FOCC_REGISTER;
-    focc->rhandle =
-        GNUNET_TESTBED_register_host (focc->gateway,
-                                      host_list[focc->peer2_host_id],
-                                      focc_reg_completion_cc, focc);
-    GNUNET_assert (NULL != focc->rhandle);
+    queue_host_registration (focc->gateway,
+                             focc_reg_completion_cc,
+                             focc,
+                             host_list[focc->peer2_host_id]);
     break;
   default:
     GNUNET_assert (0);
@@ -2843,9 +2918,9 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
 
         msize = sizeof (struct GNUNET_TESTBED_OverlayConnectMessage);
         focc = GNUNET_malloc (sizeof (struct ForwardedOverlayConnectContext));
-        focc->gateway = peer->details.remote.slave->controller;
+        focc->gateway = peer->details.remote.slave;
         focc->gateway2 = (NULL == route_to_peer2_host) ? NULL :
-            slave_list[route_to_peer2_host->dest]->controller;
+            slave_list[route_to_peer2_host->dest];
         focc->peer1 = p1;
         focc->peer2 = p2;
         focc->peer2_host_id = peer2_host_id;
@@ -3228,8 +3303,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_SCHEDULER_cancel (lcf_proc_task_id);
       lcf_proc_task_id = GNUNET_SCHEDULER_NO_TASK;
     }
-    if (NULL != lcfq_head->lcf->rhandle)
-      GNUNET_TESTBED_cancel_registration (lcfq_head->lcf->rhandle);
   }
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
   for (lcfq = lcfq_head; NULL != lcfq; lcfq = lcfq_head)
@@ -3267,6 +3340,17 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   for (id = 0; id < slave_list_size; id++)
     if (NULL != slave_list[id])
     {
+      struct HostRegistration *hr_entry;
+      
+      while (NULL != (hr_entry = slave_list[id]->hr_dll_head))
+      {
+        GNUNET_CONTAINER_DLL_remove (slave_list[id]->hr_dll_head,
+                                     slave_list[id]->hr_dll_tail,
+                                     hr_entry);
+        GNUNET_free (hr_entry);
+      }
+      if (NULL != slave_list[id]->rhandle)
+        GNUNET_TESTBED_cancel_registration (slave_list[id]->rhandle);
       if (NULL != slave_list[id]->cfg)
 	GNUNET_CONFIGURATION_destroy (slave_list[id]->cfg);
       if (NULL != slave_list[id]->controller)
