@@ -1150,6 +1150,7 @@ forwarded_operation_timeout (void *cls,
   struct ForwardedOperationContext *fopc = cls;
 
   GNUNET_TESTBED_forward_operation_msg_cancel_ (fopc->opc);
+  LOG (GNUNET_ERROR_TYPE_WARNING, "A forwarded operation has timed out\n");
   send_operation_fail_msg (fopc->client, fopc->operation_id, "Timeout");
   GNUNET_SERVER_client_drop (fopc->client);
   GNUNET_free (fopc);
@@ -1261,6 +1262,8 @@ cleanup_focc (struct ForwardedOverlayConnectContext *focc)
     GNUNET_TESTBED_operation_done (focc->sub_op);
   if (NULL != focc->client)
     GNUNET_SERVER_client_drop (focc->client);
+  if (NULL != focc->rhandle)
+    GNUNET_TESTBED_cancel_registration (focc->rhandle);
   GNUNET_free_non_null (focc->orig_msg);
   GNUNET_free (focc);
 }
@@ -1501,7 +1504,7 @@ handle_add_host (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_assert ('\0' == hostname[hostname_length - 1]);
   GNUNET_assert (strlen (hostname) == hostname_length - 1);
   host_id = ntohl (msg->host_id);
-  LOG_DEBUG ("Received ADDHOST message\n");
+  LOG_DEBUG ("Received ADDHOST %u message\n", host_id);
   LOG_DEBUG ("-------host id: %u\n", host_id);
   LOG_DEBUG ("-------hostname: %s\n", hostname);
   if (0 != username_length)
@@ -1516,7 +1519,6 @@ handle_add_host (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_TESTBED_host_create_with_id (host_id, hostname, username,
                                           ntohs (msg->ssh_port));
   GNUNET_assert (NULL != host);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
   reply_size = sizeof (struct GNUNET_TESTBED_HostConfirmedMessage);
   if (GNUNET_OK != host_list_add (host))
   {
@@ -1529,11 +1531,16 @@ handle_add_host (void *cls, struct GNUNET_SERVER_Client *client,
     memcpy (&reply[1], emsg, strlen (emsg) + 1);
   }
   else
+  {
+    LOG_DEBUG ("Added host %u at %u\n",
+	       host_id, master_context->host_id);
     reply = GNUNET_malloc (reply_size);
+  }
   reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTCONFIRM);
   reply->header.size = htons (reply_size);
   reply->host_id = htonl (host_id);
   queue_message (client, &reply->header);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -2328,6 +2335,9 @@ timeout_overlay_connect (void *cls,
   struct OverlayConnectContext *occ = cls;
 
   occ->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  LOG (GNUNET_ERROR_TYPE_WARNING,
+       "Timeout while connecting peers %u and %u\n",
+       occ->peer_id, occ->other_peer_id);
   send_operation_fail_msg (occ->client, occ->op_id, occ->emsg);
   occ_cleanup (occ, tc);
 }
@@ -2632,7 +2642,8 @@ focc_reg_completion_cc (void *cls, const char *emsg)
   GNUNET_assert (FOCC_REGISTER == focc->state);
   focc->rhandle = NULL;
   GNUNET_assert (NULL == focc->sub_op);
-  LOG_DEBUG ("Registering peer2's host successful\n");
+  LOG_DEBUG ("[%u -> %u] Registering peer2's host successful\n",
+	     focc->peer1, focc->peer2);
   if ((NULL == focc->gateway2)
       || ((focc->peer2_host_id < slave_list_size) /* Check if we have the needed config */
           && (NULL != slave_list[focc->peer2_host_id])))
@@ -2687,12 +2698,15 @@ forwarded_overlay_connect_listener (void *cls,
       forwarded_operation_reply_relay (cls, msg);
       return;
     }
-    LOG_DEBUG ("Registering peer2's host\n");
+    LOG_DEBUG ("[%u -> %u] Registering peer2's host %u at %u\n",
+	       focc->peer1, focc->peer2, focc->peer2_host_id,
+	       peer_list[focc->peer1]->details.remote.remote_host_id);
     focc->state = FOCC_REGISTER;
     focc->rhandle =
         GNUNET_TESTBED_register_host (focc->gateway,
                                       host_list[focc->peer2_host_id],
                                       focc_reg_completion_cc, focc);
+    GNUNET_assert (NULL != focc->rhandle);
     break;
   default:
     GNUNET_assert (0);
@@ -2718,6 +2732,8 @@ forwarded_overlay_connect_timeout (void *cls,
   struct ForwardedOverlayConnectContext *focc = cls;
 
   focc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  LOG_DEBUG ("Overlay linking between peers %u and %u failed during state %u\n",
+	     focc->peer1, focc->peer2, focc->state);
   send_operation_fail_msg (focc->client, focc->operation_id, "Timeout");
   cleanup_focc (focc);
 }
@@ -2753,6 +2769,8 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_assert (NULL != peer_list[p1]);
   peer = peer_list[p1];
   operation_id = GNUNET_ntohll (msg->operation_id);  
+  LOG_DEBUG ("Received overlay connect for peers %u and %u with op id: 0x%lx\n",
+	     p1, p2, operation_id);
   if (GNUNET_YES == peer->is_remote)
   {
     struct ForwardedOperationContext *fopc;
@@ -2794,9 +2812,9 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
         focc->client = client;
         focc->operation_id = operation_id;
         fopc->cls = focc;
-        fopc->timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+        focc->timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                                            &forwarded_overlay_connect_timeout,
-                                                           fopc);
+                                                           focc);
       }
     }
     fopc->opc = 
@@ -2824,6 +2842,8 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
     {
       struct GNUNET_TESTBED_NeedControllerConfig *reply;
 
+      LOG_DEBUG ("Need controller configuration for connecting peers %u and %u\n",
+		 occ->peer_id, occ->other_peer_id);
       GNUNET_free (occ);
       reply = GNUNET_malloc (sizeof (struct
                                      GNUNET_TESTBED_NeedControllerConfig)); 

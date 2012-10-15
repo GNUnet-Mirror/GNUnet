@@ -33,7 +33,7 @@
  * Generic loggins shorthand
  */
 #define LOG(kind,...)                                           \
-  GNUNET_log_from (kind, "testbed-api-testbed", __VA_ARGS__)
+  GNUNET_log (kind, __VA_ARGS__)
 
 /**
  * DLL of operations
@@ -249,7 +249,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Aborting\n");
+  LOG (GNUNET_ERROR_TYPE_WARNING, "Aborting\n");
   abort_task = GNUNET_SCHEDULER_NO_TASK;
   result = GNUNET_SYSERR;
   GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
@@ -442,7 +442,7 @@ controller_event_cb (void *cls,
       if (NULL != event->details.operation_finished.emsg)
       {
         LOG (GNUNET_ERROR_TYPE_WARNING,
-             _("An operation has failed while starting slaves\n"));
+             _("An operation has failed while linking\n"));
         GNUNET_SCHEDULER_cancel (abort_task);
         abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
       }

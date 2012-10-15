@@ -104,7 +104,7 @@ struct GNUNET_TESTBED_HostConfirmedMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTSUCCESS
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTCONFIRMED
    */
   struct GNUNET_MessageHeader header;
 
@@ -114,8 +114,7 @@ struct GNUNET_TESTBED_HostConfirmedMessage
   uint32_t host_id GNUNET_PACKED;
 
   /* followed by the 0-terminated error message (on failure)
-   * (typical errors include failure to login and
-   * host-id already in use) */
+   * (typical errors include host-id already in use) */
 
 };
 

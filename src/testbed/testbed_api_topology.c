@@ -29,6 +29,11 @@
 #include "testbed_api_peers.h"
 #include "testbed_api_operations.h"
 
+/**
+ * Generic loggins shorthand
+ */
+#define LOG(kind,...)                                           \
+  GNUNET_log_from (kind, "testbed-api-topology", __VA_ARGS__)
 
 /**
  * Representation of an overlay link
@@ -103,8 +108,8 @@ overlay_link_completed (void *cls,
   *link_op = NULL;
   if (NULL != emsg)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		"Error while establishing a link: %s\n", emsg);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+	 "Error while establishing a link: %s\n", emsg);
     return;
   }
 }
