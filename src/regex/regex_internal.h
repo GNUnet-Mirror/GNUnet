@@ -142,7 +142,7 @@ struct GNUNET_REGEX_State
   int lowlink;
 
   /**
-   * Human readable name of the automaton. Used for debugging and graph
+   * Human readable name of the state. Used for debugging and graph
    * creation.
    */
   char *name;

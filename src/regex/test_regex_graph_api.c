@@ -86,7 +86,7 @@ main (int argc, char *argv[])
 
   error = 0;
 
-  const char *regex[10] = {
+  const char *regex[12] = {
     "ab(c|d)+c*(a(b|c)+d)+(bla)+",
     "(bla)*",
     "b(lab)*la",
@@ -96,10 +96,13 @@ main (int argc, char *argv[])
     "1*0(0|1)*",
     "a*b*",
     "a+X*y+c|p|R|Z*K*y*R+w|Y*6+n+h*k*w+V*F|W*B*e*",
-    "a"
+    "a",
+    "a|b",
+//    "abc(d+|e)fgh"
+    "PADPADPADPADPADPabcdefghixxxxxxxxxxxxxjklmnop*qstoisdjfguisdfguihsdfgbdsuivggsd"
   };
 
-  for (i = 0; i < 10; i++)
+  for (i = 0; i < 12; i++)
   {
     // Check NFA graph creation
     a = GNUNET_REGEX_construct_nfa (regex[i], strlen (regex[i]));
@@ -152,10 +155,9 @@ main (int argc, char *argv[])
 
 
     a = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]));
-    GNUNET_REGEX_automaton_save_graph (a, filename,
-                                       GNUNET_REGEX_GRAPH_DEFAULT |
-                                       GNUNET_REGEX_GRAPH_VERBOSE |
-                                       GNUNET_REGEX_GRAPH_COLORING);
+    GNUNET_REGEX_automaton_save_graph (a, filename, GNUNET_REGEX_GRAPH_DEFAULT);        //|
+    //                               GNUNET_REGEX_GRAPH_VERBOSE |
+    //GNUNET_REGEX_GRAPH_COLORING);
     GNUNET_REGEX_automaton_destroy (a);
     error += filecheck (filename);
 

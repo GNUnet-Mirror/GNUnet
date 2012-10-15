@@ -30,12 +30,6 @@
 
 
 /**
- * Constant for how many bits the initial string regex should have.
- */
-#define INITIAL_BITS 8
-
-
-/**
  * Set of states.
  */
 struct GNUNET_REGEX_StateSet
@@ -148,6 +142,7 @@ state_remove_transition (struct GNUNET_REGEX_State *state,
   state->transition_count--;
   GNUNET_CONTAINER_DLL_remove (state->transitions_head, state->transitions_tail,
                                transition);
+
   GNUNET_free (transition);
 }
 
@@ -523,29 +518,6 @@ GNUNET_REGEX_automaton_traverse (const struct GNUNET_REGEX_Automaton *a,
   automaton_state_traverse (s, marks, &count, check, check_cls, action,
                             action_cls);
 }
-
-
-/**
- * Context for adding strided transitions to a DFA.
- */
-struct GNUNET_REGEX_Strided_Context
-{
-  /**
-   * Length of the strides.
-   */
-  const unsigned int stride;
-
-  /**
-   * Strided transitions DLL. New strided transitions will be stored in this DLL
-   * and afterwards added to the DFA.
-   */
-  struct GNUNET_REGEX_Transition *transitions_head;
-
-  /**
-   * Strided transitions DLL.
-   */
-  struct GNUNET_REGEX_Transition *transitions_tail;
-};
 
 
 /**
@@ -1555,6 +1527,29 @@ dfa_minimize (struct GNUNET_REGEX_Context *ctx,
 
 
 /**
+ * Context for adding strided transitions to a DFA.
+ */
+struct GNUNET_REGEX_Strided_Context
+{
+  /**
+   * Length of the strides.
+   */
+  const unsigned int stride;
+
+  /**
+   * Strided transitions DLL. New strided transitions will be stored in this DLL
+   * and afterwards added to the DFA.
+   */
+  struct GNUNET_REGEX_Transition *transitions_head;
+
+  /**
+   * Strided transitions DLL.
+   */
+  struct GNUNET_REGEX_Transition *transitions_tail;
+};
+
+
+/**
  * Recursive helper function to add strides to a DFA.
  *
  * @param cls context, contains stride length and strided transitions DLL.
@@ -1664,15 +1659,19 @@ GNUNET_REGEX_dfa_add_multi_strides (struct GNUNET_REGEX_Context *regex_ctx,
  * and adds new transitions to the given transitions DLL and marks states that
  * should be removed by setting state->contained to GNUNET_YES.
  *
+ * @param dfa DFA for which the paths should be compressed.
  * @param start starting state for linear path search.
  * @param cur current state in the recursive DFS.
  * @param label current label (string of traversed labels).
+ * @param max_len maximal path compression length.
  * @param transitions_head transitions DLL.
  * @param transitions_tail transitions DLL.
  */
 void
-dfa_compress_paths_helper (struct GNUNET_REGEX_State *start,
+dfa_compress_paths_helper (struct GNUNET_REGEX_Automaton *dfa,
+                           struct GNUNET_REGEX_State *start,
                            struct GNUNET_REGEX_State *cur, char *label,
+                           unsigned int max_len,
                            struct GNUNET_REGEX_Transition **transitions_head,
                            struct GNUNET_REGEX_Transition **transitions_tail)
 {
@@ -1681,8 +1680,11 @@ dfa_compress_paths_helper (struct GNUNET_REGEX_State *start,
 
 
   if (NULL != label &&
-      (cur->incoming_transition_count > 1 || GNUNET_YES == cur->accepting ||
-       cur->transition_count > 1 || GNUNET_YES == cur->marked))
+      ((cur->incoming_transition_count > 1 || GNUNET_YES == cur->accepting
+//        || cur->transition_count > 1
+        || GNUNET_YES == cur->marked) || (start != dfa->start && max_len > 0 &&
+                                          max_len == strlen (label)) ||
+       (start == dfa->start && GNUNET_REGEX_INITIAL_BITS == strlen (label))))
   {
     t = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Transition));
     t->label = GNUNET_strdup (label);
@@ -1692,7 +1694,7 @@ dfa_compress_paths_helper (struct GNUNET_REGEX_State *start,
 
     if (GNUNET_NO == cur->marked)
     {
-      dfa_compress_paths_helper (cur, cur, NULL, transitions_head,
+      dfa_compress_paths_helper (dfa, cur, cur, NULL, max_len, transitions_head,
                                  transitions_tail);
     }
     return;
@@ -1715,7 +1717,7 @@ dfa_compress_paths_helper (struct GNUNET_REGEX_State *start,
 
     if (t->to_state != cur)
     {
-      dfa_compress_paths_helper (start, t->to_state, new_label,
+      dfa_compress_paths_helper (dfa, start, t->to_state, new_label, max_len,
                                  transitions_head, transitions_tail);
     }
     GNUNET_free (new_label);
@@ -1728,10 +1730,11 @@ dfa_compress_paths_helper (struct GNUNET_REGEX_State *start,
  *
  * @param regex_ctx context for adding new transitions.
  * @param dfa DFA representation, will directly modify the given DFA.
+ * @param max_len maximal length of the compressed paths.
  */
 static void
 dfa_compress_paths (struct GNUNET_REGEX_Context *regex_ctx,
-                    struct GNUNET_REGEX_Automaton *dfa)
+                    struct GNUNET_REGEX_Automaton *dfa, unsigned int max_len)
 {
   struct GNUNET_REGEX_State *s;
   struct GNUNET_REGEX_State *s_next;
@@ -1761,8 +1764,8 @@ dfa_compress_paths (struct GNUNET_REGEX_Context *regex_ctx,
   }
 
   // Add strides and mark states that can be deleted.
-  dfa_compress_paths_helper (dfa->start, dfa->start, NULL, &transitions_head,
-                             &transitions_tail);
+  dfa_compress_paths_helper (dfa, dfa->start, dfa->start, NULL, max_len,
+                             &transitions_head, &transitions_tail);
 
   // Add all the new transitions to the automaton.
   for (t = transitions_head; NULL != t; t = t_next)
@@ -2101,6 +2104,14 @@ nfa_add_plus_op (struct GNUNET_REGEX_Context *ctx)
   struct GNUNET_REGEX_Automaton *a;
 
   a = ctx->stack_tail;
+
+  if (NULL == a)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "nfa_add_plus_op failed, because there was no element on the stack");
+    return;
+  }
+
   GNUNET_CONTAINER_DLL_remove (ctx->stack_head, ctx->stack_tail, a);
 
   state_add_transition (ctx, a->end, NULL, a->start);
@@ -2518,11 +2529,11 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
   // Minimize DFA
   dfa_minimize (&ctx, dfa);
 
-  // Compress DFA paths
-  dfa_compress_paths (&ctx, dfa);
-
   // Create proofs for all states
   automaton_create_proofs (dfa);
+
+  // Compress DFA paths
+  dfa_compress_paths (&ctx, dfa, 8);
 
   // Add strides to DFA
   //GNUNET_REGEX_dfa_add_multi_strides (&ctx, dfa, 2);
@@ -2730,10 +2741,9 @@ GNUNET_REGEX_get_transition_count (struct GNUNET_REGEX_Automaton *a)
   if (NULL == a)
     return 0;
 
-  for (t_count = 0, s = a->states_head; NULL != s; s = s->next)
-  {
+  t_count = 0;
+  for (s = a->states_head; NULL != s; s = s->next)
     t_count += s->transition_count;
-  }
 
   return t_count;
 }
@@ -2756,7 +2766,9 @@ GNUNET_REGEX_get_first_key (const char *input_string, size_t string_len,
 {
   unsigned int size;
 
-  size = string_len < INITIAL_BITS ? string_len : INITIAL_BITS;
+  size =
+      string_len <
+      GNUNET_REGEX_INITIAL_BITS ? string_len : GNUNET_REGEX_INITIAL_BITS;
 
   if (NULL == input_string)
   {
@@ -2796,8 +2808,7 @@ GNUNET_REGEX_check_proof (const char *proof, const struct GNUNET_HashCode *key)
 
 
 /**
- * Recursive helper function for iterate_initial_edges. Will call iterator
- * function for each initial state.
+ * Recursive function that calls the iterator for each synthetic start state.
  *
  * @param min_len minimum length of the path in the graph.
  * @param max_len maximum length of the path in the graph.
@@ -2831,22 +2842,24 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
   {
     if (cur_len <= max_len)
     {
-      for (i = 0, t = state->transitions_head; NULL != t && i < num_edges;
-           t = t->next, i++)
+      if (state->proof != NULL && 0 != strcmp (consumed_string, state->proof))
       {
-        edges[i].label = t->label;
-        edges[i].destination = t->to_state->hash;
+        for (i = 0, t = state->transitions_head; NULL != t && i < num_edges;
+             t = t->next, i++)
+        {
+          edges[i].label = t->label;
+          edges[i].destination = t->to_state->hash;
+        }
+        GNUNET_CRYPTO_hash (consumed_string, strlen (consumed_string), &hash);
+        iterator (iterator_cls, &hash, consumed_string, state->accepting,
+                  num_edges, edges);
       }
 
-      GNUNET_CRYPTO_hash (consumed_string, strlen (consumed_string), &hash);
-      iterator (iterator_cls, &hash, consumed_string, state->accepting,
-                num_edges, edges);
-
-      // Special case for regex consisting of just a string that is shorter than
-      // max_len
       if (GNUNET_YES == state->accepting && cur_len > 1 &&
           state->transition_count < 1 && cur_len < max_len)
       {
+        // Special case for regex consisting of just a string that is shorter than
+        // max_len
         edge[0].label = &consumed_string[cur_len - 1];
         edge[0].destination = state->hash;
         temp = GNUNET_strdup (consumed_string);
@@ -2858,6 +2871,7 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
     }
     else if (max_len < cur_len)
     {
+      // Case where the concatenated labels are longer than max_len, then split.
       edge[0].label = &consumed_string[max_len];
       edge[0].destination = state->hash;
       temp = GNUNET_strdup (consumed_string);
@@ -2886,38 +2900,6 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
 
 
 /**
- * Iterate over all edges helper function starting from state 's', calling
- * iterator function for each edge if the automaton.
- *
- * @param s state.
- * @param iterator iterator function called for each edge.
- * @param iterator_cls closure.
- */
-static void
-iterate_edge (struct GNUNET_REGEX_State *s, GNUNET_REGEX_KeyIterator iterator,
-              void *iterator_cls)
-{
-  struct GNUNET_REGEX_Transition *t;
-  struct GNUNET_REGEX_Edge edges[s->transition_count];
-  unsigned int num_edges;
-
-  if (GNUNET_YES != s->marked)
-  {
-    s->marked = GNUNET_YES;
-
-    num_edges = state_get_edges (s, edges);
-
-    if ((NULL != s->proof && 0 < strlen (s->proof)) || s->accepting)
-      iterator (iterator_cls, &s->hash, s->proof, s->accepting, num_edges,
-                edges);
-
-    for (t = s->transitions_head; NULL != t; t = t->next)
-      iterate_edge (t->to_state, iterator, iterator_cls);
-  }
-}
-
-
-/**
  * Iterate over all edges starting from start state of automaton 'a'. Calling
  * iterator for each edge.
  *
@@ -2933,11 +2915,21 @@ GNUNET_REGEX_iterate_all_edges (struct GNUNET_REGEX_Automaton *a,
   struct GNUNET_REGEX_State *s;
 
   for (s = a->states_head; NULL != s; s = s->next)
-    s->marked = GNUNET_NO;
+  {
+    struct GNUNET_REGEX_Edge edges[s->transition_count];
+    unsigned int num_edges;
 
-  iterate_initial_edge (0, INITIAL_BITS, NULL, a->start, iterator,
-                        iterator_cls);
-  iterate_edge (a->start, iterator, iterator_cls);
+    num_edges = state_get_edges (s, edges);
+
+    if ((NULL != s->proof && 0 < strlen (s->proof)) || s->accepting)
+      iterator (iterator_cls, &s->hash, s->proof, s->accepting, num_edges,
+                edges);
+
+    s->marked = GNUNET_NO;
+  }
+
+  iterate_initial_edge (GNUNET_REGEX_INITIAL_BITS, GNUNET_REGEX_INITIAL_BITS,
+                        NULL, a->start, iterator, iterator_cls);
 }
 
 

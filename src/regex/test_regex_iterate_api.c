@@ -28,6 +28,7 @@
 #include "gnunet_regex_lib.h"
 #include "regex_internal.h"
 
+#define INITIAL_PADDING "PADPADPADPADPADP"
 #define GNUNET_REGEX_ITERATE_SAVE_DEBUG_GRAPH GNUNET_NO
 
 static unsigned int transition_counter;
@@ -115,30 +116,41 @@ main (int argc, char *argv[])
 
   error = 0;
 
-  const struct RegexStringPair rxstr[14] = {
-    {"ab(c|d)+c*(a(b|c)+d)+(bla)+", 2, {"abcdcdca", "abcabdbl"}},
-    {"abcdefghijklmnop*qst", 1, {"abcdefgh"}},
-    {"VPN-4-1(0|1)*", 2, {"VPN-4-10", "VPN-4-11"}},
-    {"a+X*y+c|p|R|Z*K*y*R+w|Y*6+n+h*k*w+V*F|W*B*e*", 4,
-     {"aaaaaaaa", "aaXXyyyc", "p", "Y"}},
-    {"a*", 8,
-     {"a", "aa", "aaa", "aaaa", "aaaaa", "aaaaaa", "aaaaaaa", "aaaaaaaa"}},
-    {"xzxzxzxzxz", 1, {"xzxzxzxz"}},
-    {"xyz*", 2, {"xy", "xyz"}},
-    {"ab", 1, {"a"}},
-    {"abcd:(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1):(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)", 2, {"abcd:000", "abcd:101"}},
-    {"x*|(0|1|2)(a|b|c|d)", 2, {"xxxxxxxx", "0a"}},
-    {"(0|1)(0|1)23456789ABC", 1, {"11234567"}},
-    {"0*123456789ABC*", 3, {"00123456", "00000000", "12345678"}},
-    {"0123456789A*BC", 1, {"01234567"}},
-    {"GNUNETVPN000100000IPEX6-fc5a:4e1:c2ba::1", 1, {"GNUNETVP"}}
+  const struct RegexStringPair rxstr[13] = {
+    {INITIAL_PADDING "ab(c|d)+c*(a(b|c)+d)+(bla)+", 2,
+     {INITIAL_PADDING "abcdcdca", INITIAL_PADDING "abcabdbl"}},
+    {INITIAL_PADDING
+     "abcdefghixxxxxxxxxxxxxjklmnop*qstoisdjfguisdfguihsdfgbdsuivggsd", 1,
+     {INITIAL_PADDING "abcdefgh"}},
+    {INITIAL_PADDING "VPN-4-1(0|1)*", 2,
+     {INITIAL_PADDING "VPN-4-10", INITIAL_PADDING "VPN-4-11"}},
+    {INITIAL_PADDING "(a+X*y+c|p|R|Z*K*y*R+w|Y*6+n+h*k*w+V*F|W*B*e*)", 2,
+     {INITIAL_PADDING "aaaaaaaa", INITIAL_PADDING "aaXXyyyc"}},
+    {INITIAL_PADDING "a*", 1, {INITIAL_PADDING "aaaaaaaa"}},
+    {INITIAL_PADDING "xzxzxzxzxz", 1, {INITIAL_PADDING "xzxzxzxz"}},
+    {INITIAL_PADDING "xyz*", 1, {INITIAL_PADDING "xyzzzzzz"}},
+    {INITIAL_PADDING
+     "abcd:(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1):(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)",
+     2, {INITIAL_PADDING "abcd:000", INITIAL_PADDING "abcd:101"}},
+    {INITIAL_PADDING "(x*|(0|1|2)(a|b|c|d)+)", 2,
+     {INITIAL_PADDING "xxxxxxxx", INITIAL_PADDING "0abcdbad"}},
+    {INITIAL_PADDING "(0|1)(0|1)23456789ABC", 1, {INITIAL_PADDING "11234567"}},
+    {INITIAL_PADDING "0*123456789ABC*", 3,
+     {INITIAL_PADDING "00123456", INITIAL_PADDING "00000000",
+      INITIAL_PADDING "12345678"}},
+    {INITIAL_PADDING "0123456789A*BC", 1, {INITIAL_PADDING "01234567"}},
+    {"GNUNETVPN000100000IPEX6-fc5a:4e1:c2ba::1", 1, {"GNUNETVPN000100000IPEX6-"}}
   };
 
   const char *graph_start_str = "digraph G {\nrankdir=LR\n";
   const char *graph_end_str = "\n}\n";
 
-  for (i = 0; i < 14; i++)
+  for (i = 0; i < 13; i++)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Iterating DFA for regex %s\n",
+                rxstr[i].regex);
+
+
     // Create graph
     if (GNUNET_YES == GNUNET_REGEX_ITERATE_SAVE_DEBUG_GRAPH)
     {
@@ -171,7 +183,8 @@ main (int argc, char *argv[])
     ctx.match_count = 0;
     dfa = GNUNET_REGEX_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex));
     GNUNET_REGEX_iterate_all_edges (dfa, key_iterator, &ctx);
-    num_transitions = GNUNET_REGEX_get_transition_count (dfa);
+    num_transitions =
+        GNUNET_REGEX_get_transition_count (dfa) - dfa->start->transition_count;
 
     if (transition_counter < num_transitions)
     {
@@ -179,7 +192,6 @@ main (int argc, char *argv[])
                   "Automaton has %d transitions, iterated over %d transitions\n",
                   num_transitions, transition_counter);
       error += 1;
-      break;
     }
 
     if (ctx.match_count < ctx.string_count)
@@ -209,7 +221,7 @@ main (int argc, char *argv[])
   }
 
 
-  for (i = 0; i < 10; i++)
+  for (i = 0; i < 13; i++)
   {
     ctx.string_count = rxstr[i].string_count;
     ctx.strings = rxstr[i].strings;
