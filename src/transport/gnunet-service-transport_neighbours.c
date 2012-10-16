@@ -1149,7 +1149,15 @@ transmit_send_continuation (void *cls,
       GNUNET_SCHEDULER_cancel (n->task);
     n->task = GNUNET_SCHEDULER_add_now (&master_task, n);    
   }
-  GNUNET_assert (bytes_in_send_queue >= mq->message_buf_size);
+  if (bytes_in_send_queue < mq->message_buf_size)
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "bytes_in_send_queue `%u' mq->message_buf_size %u\n",
+                  bytes_in_send_queue, mq->message_buf_size );
+      GNUNET_break (0);
+  }
+
+
   GNUNET_break (size_payload == mq->message_buf_size);
   bytes_in_send_queue -= mq->message_buf_size;
   GNUNET_STATISTICS_set (GST_stats,
