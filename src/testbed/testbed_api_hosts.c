@@ -439,7 +439,6 @@ GNUNET_TESTBED_mark_host_registered_at_ (struct GNUNET_TESTBED_Host *host,
   }
   rc = GNUNET_malloc (sizeof (struct RegisteredController));
   rc->controller = controller;
-  //host->controller = controller;
   GNUNET_CONTAINER_DLL_insert_tail (host->rc_head, host->rc_tail, rc);
 }
 
