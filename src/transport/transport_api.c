@@ -1318,7 +1318,8 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle *handle,
   th->priority = priority;
   n->th = th;
   /* calculate when our transmission should be ready */
-  delay = GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker, size);
+  delay = GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker, size + n->traffic_overhead);
+  n->traffic_overhead = 0;
   if (delay.rel_value > timeout.rel_value)
     delay.rel_value = 0;        /* notify immediately (with failure) */
   LOG (GNUNET_ERROR_TYPE_DEBUG,

@@ -697,7 +697,25 @@ call_continuation (struct UDP_MessageWrapper *udpw, int result)
      * Transport continuation for unfragmented message
      * send_next_fragment for fragmented message
      */
-    udpw->cont (udpw->cont_cls, &udpw->session->target, result, udpw->payload_size, udpw->msg_size);
+    if (NULL == udpw->frag_ctx)
+    {
+        /* Not fragmented message */
+        if (udpw->msg_size >= udpw->payload_size)
+        {
+            GNUNET_STATISTICS_update (plugin->env->stats,
+                                  "# bytes overhead transmitted via UDP",
+                                  udpw->msg_size - udpw->payload_size, GNUNET_NO);
+        }
+        udpw->cont (udpw->cont_cls, &udpw->session->target, result,
+                    udpw->payload_size, udpw->msg_size);
+    }
+    else if (GNUNET_OK == result)
+    {
+        /* Fragmented message: only call next_fragment continuation on success */
+        udpw->cont (udpw->cont_cls, &udpw->session->target, result,
+                    udpw->payload_size, udpw->msg_size);
+    }
+
   }
 
 }
@@ -1769,7 +1787,13 @@ read_process_ack (struct Plugin *plugin,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "Calling continuation for fragmented message to `%s' with result %s\n",
         GNUNET_i2s (&s->target), "OK");
-    /* FIXME add overhead bytes here */
+
+    if (s->frag_ctx->on_wire_size >= s->frag_ctx->payload_size)
+    {
+        GNUNET_STATISTICS_update (plugin->env->stats,
+                              "# bytes overhead transmitted via UDP",
+                              s->frag_ctx->on_wire_size - s->frag_ctx->payload_size, GNUNET_NO);
+    }
     s->frag_ctx->cont (s->frag_ctx->cont_cls, &udp_ack->sender, GNUNET_OK,
                        s->frag_ctx->payload_size, s->frag_ctx->on_wire_size);
   }
