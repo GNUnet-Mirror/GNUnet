@@ -262,6 +262,18 @@ struct SendOkMessage
    */
   uint32_t success GNUNET_PACKED;
 
+
+  /**
+   * Size of message sent
+   */
+  uint32_t bytes_msg GNUNET_PACKED;
+
+  /**
+   * Size of message sent over wire
+   * Includes plugin and protocol specific overhead
+   */
+  uint32_t bytes_physical GNUNET_PACKED;
+
   /**
    * Latency estimate.
    */

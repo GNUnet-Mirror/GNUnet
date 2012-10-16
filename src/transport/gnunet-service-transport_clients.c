@@ -568,10 +568,18 @@ handle_send_transmit_continuation (void *cls, int success,
   struct SendTransmitContinuationContext *stcc = cls;
   struct SendOkMessage send_ok_msg;
 
-  //GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Payload: %u, On wire %u \n", bytes_payload, bytes_on_wire);
+  //GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Payload: %u, On wire %u result: %i\n", bytes_payload, bytes_on_wire, success);
+  /*
+  if (GNUNET_OK == success)
+    GNUNET_assert (bytes_on_wire >= bytes_payload);
 
+  else
+    GNUNET_assert (bytes_on_wire <= bytes_payload);
+*/
   send_ok_msg.header.size = htons (sizeof (send_ok_msg));
   send_ok_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
+  send_ok_msg.bytes_msg = htonl (bytes_payload);
+  send_ok_msg.bytes_physical = htonl (bytes_on_wire);
   send_ok_msg.success = htonl (success);
   send_ok_msg.latency =
       GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_FOREVER_REL);

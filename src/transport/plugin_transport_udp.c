@@ -692,12 +692,11 @@ call_continuation (struct UDP_MessageWrapper *udpw, int result)
       (GNUNET_OK == result) ? "OK" : "SYSERR");
   if (NULL != udpw->cont)
   {
-    /* FIXME: add bytes used on wire here */
-    /* Calls transport continuation if message was not fragmented,
-     * GNUNET_FRAGMENT if just an fragment was sent
-     */
-
     /* Call continuation for fragmented message */
+    /*
+     * Transport continuation for unfragmented message
+     * send_next_fragment for fragmented message
+     */
     udpw->cont (udpw->cont_cls, &udpw->session->target, result, udpw->payload_size, udpw->msg_size);
   }
 
@@ -1233,7 +1232,6 @@ enqueue_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
   udpw->timeout = frag_ctx->timeout;
   udpw->frag_ctx = frag_ctx;
   memcpy (udpw->msg_buf, msg, msg_len);
-  frag_ctx->on_wire_size += msg_len;
   enqueue (plugin, udpw);
   schedule_select (plugin);
 }
@@ -2072,7 +2070,11 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
     GNUNET_STATISTICS_update (plugin->env->stats,
                               "# bytes transmitted via UDP",
                               sent, GNUNET_NO);
-    call_continuation(udpw, GNUNET_OK);
+    if (NULL != udpw->frag_ctx)
+    {
+        udpw->frag_ctx->on_wire_size += udpw->msg_size;
+    }
+    call_continuation (udpw, GNUNET_OK);
     network_down_error = GNUNET_NO;
   }
 

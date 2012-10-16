@@ -146,6 +146,11 @@ struct Neighbour
    */
   int is_ready;
 
+  /**
+   * Sending consumed more bytes on wire than payload was announced
+   * This overhead is added to the delay of next sending operation
+   */
+  size_t traffic_overhead;
 };
 
 
@@ -348,6 +353,7 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
   n->id = *pid;
   n->h = h;
   n->is_ready = GNUNET_YES;
+  n->traffic_overhead = 0;
   GNUNET_BANDWIDTH_tracker_init (&n->out_tracker,
                                  GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
                                  MAX_BANDWIDTH_CARRY_S);
@@ -410,6 +416,8 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
   struct GNUNET_PeerIdentity me;
   uint16_t size;
   uint32_t ats_count;
+  uint32_t bytes_msg;
+  uint32_t bytes_physical;
 
   GNUNET_assert (h->client != NULL);
   if (msg == NULL)
@@ -508,11 +516,22 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
       break;
     }
     okm = (const struct SendOkMessage *) msg;
+    bytes_msg = ntohl (okm->bytes_msg);
+    bytes_physical = ntohl (okm->bytes_physical);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Receiving `%s' message, transmission %s.\n",
          "SEND_OK", ntohl (okm->success) == GNUNET_OK ? "succeeded" : "failed");
+
     n = neighbour_find (h, &okm->peer);
     if (n == NULL)
       break;
+
+    GNUNET_assert (0 == n->traffic_overhead);
+    if (bytes_physical >= bytes_msg)
+    {
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "Overhead for %u byte message: %u \n",
+            bytes_msg, bytes_physical - bytes_msg);
+      n->traffic_overhead = bytes_physical - bytes_msg;
+    }
     GNUNET_break (GNUNET_NO == n->is_ready);
     n->is_ready = GNUNET_YES;
     if ((n->th != NULL) && (n->hn == NULL))
@@ -783,9 +802,12 @@ schedule_transmission (struct GNUNET_TRANSPORT_Handle *h)
   if (NULL != h->control_head)
     delay = GNUNET_TIME_UNIT_ZERO;
   else if (NULL != (n = GNUNET_CONTAINER_heap_peek (h->ready_heap)))
+  {
     delay =
         GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker,
-                                            n->th->notify_size);
+                                            n->th->notify_size + n->traffic_overhead);
+    n->traffic_overhead = 0;
+  }
   else
     return;                     /* no work to be done */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
