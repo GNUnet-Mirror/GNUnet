@@ -525,12 +525,11 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
     if (n == NULL)
       break;
 
-    GNUNET_assert (0 == n->traffic_overhead);
     if (bytes_physical >= bytes_msg)
     {
         LOG (GNUNET_ERROR_TYPE_DEBUG, "Overhead for %u byte message: %u \n",
             bytes_msg, bytes_physical - bytes_msg);
-      n->traffic_overhead = bytes_physical - bytes_msg;
+      n->traffic_overhead += bytes_physical - bytes_msg;
     }
     GNUNET_break (GNUNET_NO == n->is_ready);
     n->is_ready = GNUNET_YES;
