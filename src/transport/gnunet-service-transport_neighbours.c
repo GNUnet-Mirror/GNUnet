@@ -1151,7 +1151,6 @@ transmit_send_continuation (void *cls,
   }
   GNUNET_assert (bytes_in_send_queue >= mq->message_buf_size);
   GNUNET_break (size_payload == mq->message_buf_size);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%u %u res: %u\n",size_payload, mq->message_buf_size, success);
   bytes_in_send_queue -= mq->message_buf_size;
   GNUNET_STATISTICS_set (GST_stats,
                         gettext_noop
