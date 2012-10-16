@@ -104,6 +104,7 @@ struct UNIXMessageWrapper
 
   struct UNIXMessage * msg;
   size_t msgsize;
+  size_t payload;
 
   struct GNUNET_TIME_Relative timeout;
   unsigned int priority;
@@ -378,7 +379,7 @@ disconnect_session (struct Session *s)
     GNUNET_CONTAINER_DLL_remove (plugin->msg_head, plugin->msg_tail, msgw);
     if (NULL != msgw->cont)
       msgw->cont (msgw->cont_cls,  &msgw->session->target, GNUNET_SYSERR,
-                  msgw->msgsize, 0);
+                  msgw->payload, 0);
     GNUNET_free (msgw->msg);
     GNUNET_free (msgw);
     removed = GNUNET_YES;    
@@ -444,7 +445,7 @@ unix_transport_server_stop (void *cls)
     GNUNET_CONTAINER_DLL_remove (plugin->msg_head, plugin->msg_tail, msgw);
     if (msgw->cont != NULL)
       msgw->cont (msgw->cont_cls,  &msgw->session->target, GNUNET_SYSERR,
-                  msgw->msgsize, 0);
+                  msgw->payload, 0);
     GNUNET_free (msgw->msg);
     GNUNET_free (msgw);
   }
@@ -492,8 +493,11 @@ unix_real_send (void *cls,
                 struct GNUNET_NETWORK_Handle *send_handle,
                 const struct GNUNET_PeerIdentity *target, const char *msgbuf,
                 size_t msgbuf_size, unsigned int priority,
-                struct GNUNET_TIME_Relative timeout, const void *addr,
-                size_t addrlen, GNUNET_TRANSPORT_TransmitContinuation cont,
+                struct GNUNET_TIME_Relative timeout,
+                const void *addr,
+                size_t addrlen,
+                size_t payload,
+                GNUNET_TRANSPORT_TransmitContinuation cont,
                 void *cont_cls)
 {
   struct Plugin *plugin = cls;
@@ -510,7 +514,7 @@ unix_real_send (void *cls,
     /* We do not have a send handle */
     GNUNET_break (0);
     if (cont != NULL)
-      cont (cont_cls, target, GNUNET_SYSERR, msgbuf_size, 0);
+      cont (cont_cls, target, GNUNET_SYSERR, payload, 0);
     return -1;
   }
   if ((addr == NULL) || (addrlen == 0))
@@ -518,7 +522,7 @@ unix_real_send (void *cls,
     /* Can never send if we don't have an address */
     GNUNET_break (0);
     if (cont != NULL)
-      cont (cont_cls, target, GNUNET_SYSERR, msgbuf_size, 0);
+      cont (cont_cls, target, GNUNET_SYSERR, payload, 0);
     return -1;
   }
 
@@ -600,9 +604,9 @@ unix_real_send (void *cls,
   if (cont != NULL)
   {
     if (sent == GNUNET_SYSERR)
-      cont (cont_cls, target, GNUNET_SYSERR, msgbuf_size, 0);
+      cont (cont_cls, target, GNUNET_SYSERR, payload, 0);
     if (sent > 0)
-      cont (cont_cls, target, GNUNET_OK, msgbuf_size, msgbuf_size);
+      cont (cont_cls, target, GNUNET_OK, payload, msgbuf_size);
   }
 
   /* return number of bytes successfully sent */
@@ -781,6 +785,7 @@ unix_plugin_send (void *cls,
   wrapper = GNUNET_malloc (sizeof (struct UNIXMessageWrapper));
   wrapper->msg = message;
   wrapper->msgsize = ssize;
+  wrapper->payload = msgbuf_size;
   wrapper->priority = priority;
   wrapper->timeout = to;
   wrapper->cont = cont;
@@ -936,6 +941,7 @@ unix_plugin_select_write (struct Plugin * plugin)
                          msgw->timeout,
                          msgw->session->addr,
                          msgw->session->addrlen,
+                         msgw->payload,
                          msgw->cont, msgw->cont_cls);
 
   if (sent == 0)
