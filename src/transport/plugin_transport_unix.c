@@ -480,6 +480,7 @@ unix_transport_server_stop (void *cls)
  * @param timeout when should we time out (give up) if we can not transmit?
  * @param addr the addr to send the message to, needs to be a sockaddr for us
  * @param addrlen the len of addr
+ * @param payload bytes payload to send
  * @param cont continuation to call once the message has
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the

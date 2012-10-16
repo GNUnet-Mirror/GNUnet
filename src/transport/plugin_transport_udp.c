@@ -1214,6 +1214,8 @@ enqueue (struct Plugin *plugin, struct UDP_MessageWrapper * udpw)
  * @param cls the 'struct UDPMessageWrapper' of the fragment
  * @param target destination peer (ignored)
  * @param result GNUNET_OK on success (ignored)
+ * @param payload bytes payload sent
+ * @param physical bytes physical sent
  */
 static void
 send_next_fragment (void *cls,

@@ -560,6 +560,8 @@ struct SendTransmitContinuationContext
  *
  * @param cls closure
  * @param success GNUNET_OK on success, GNUNET_NO on failure, GNUNET_SYSERR if we're not connected
+ * @param bytes_payload bytes payload sent
+ * @param bytes_on_wire bytes sent on wire
  */
 static void
 handle_send_transmit_continuation (void *cls, int success,

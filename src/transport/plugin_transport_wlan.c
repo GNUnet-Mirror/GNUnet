@@ -829,7 +829,7 @@ fragmentmessage_timeout (void *cls,
  * @param timeout how long can the message wait?
  * @param target peer that should receive the message
  * @param msg message to transmit
- * @param bytes of payload
+ * @param payload_size bytes of payload
  * @param cont continuation to call once the message has
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the

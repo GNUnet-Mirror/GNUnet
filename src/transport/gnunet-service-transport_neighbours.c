@@ -980,6 +980,8 @@ master_task (void *cls,
  * @param cls NULL
  * @param target identity of the neighbour that was disconnected
  * @param result GNUNET_OK if the disconnect got out successfully
+ * @param payload bytes payload
+ * @param physical bytes physical
  */
 static void
 send_disconnect_cont (void *cls, const struct GNUNET_PeerIdentity *target,
@@ -1126,6 +1128,8 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
  * @param cls the 'struct MessageQueue' of the message
  * @param receiver intended receiver
  * @param success whether it worked or not
+ * @param size_payload bytes payload sent
+ * @param physical bytes sent on wire
  */
 static void
 transmit_send_continuation (void *cls,
