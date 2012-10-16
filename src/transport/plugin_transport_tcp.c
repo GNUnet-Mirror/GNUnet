@@ -849,7 +849,7 @@ do_transmit (void *cls, size_t size, void *buf)
     {
       GNUNET_CONTAINER_DLL_remove (hd, tl, pos);
       if (pos->transmit_cont != NULL)
-        pos->transmit_cont (pos->transmit_cont_cls, &pid, GNUNET_SYSERR);
+        pos->transmit_cont (pos->transmit_cont_cls, &pid, GNUNET_SYSERR, pos->message_size, 0);
       GNUNET_free (pos);
     }
     GNUNET_STATISTICS_update (plugin->env->stats,
@@ -895,7 +895,7 @@ do_transmit (void *cls, size_t size, void *buf)
   {
     GNUNET_CONTAINER_DLL_remove (hd, tl, pos);
     if (pos->transmit_cont != NULL)
-      pos->transmit_cont (pos->transmit_cont_cls, &pid, GNUNET_OK);
+      pos->transmit_cont (pos->transmit_cont_cls, &pid, GNUNET_OK, pos->message_size, pos->message_size); /* FIXME: include TCP overhead */
     GNUNET_free (pos);
   }
   GNUNET_assert (hd == NULL);
@@ -999,7 +999,7 @@ disconnect_session (struct Session *session)
                                  session->pending_messages_tail, pm);
     if (NULL != pm->transmit_cont)
       pm->transmit_cont (pm->transmit_cont_cls, &session->target,
-                         GNUNET_SYSERR);
+                         GNUNET_SYSERR, pm->message_size, 0);
     GNUNET_free (pm);
   }
   if (session->receive_delay_task != GNUNET_SCHEDULER_NO_TASK)
@@ -1159,7 +1159,7 @@ tcp_plugin_send (void *cls,
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Invalid session %p\n", session);
     if (NULL != cont)
-      cont (cont_cls, &session->target, GNUNET_SYSERR);
+      cont (cont_cls, &session->target, GNUNET_SYSERR, pm->message_size, 0);
     GNUNET_break (0);
     GNUNET_free (pm);
     return GNUNET_SYSERR; /* session does not exist here */

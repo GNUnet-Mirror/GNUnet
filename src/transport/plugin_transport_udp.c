@@ -273,6 +273,11 @@ struct UDP_FragmentationContext
    * Payload size of original unfragmented message
    */
   size_t payload_size;
+
+  /**
+   * Bytes used to send all fragments on wire including UDP overhead
+   */
+  size_t on_wire_size;
 };
 
 
@@ -688,7 +693,12 @@ call_continuation (struct UDP_MessageWrapper *udpw, int result)
   if (NULL != udpw->cont)
   {
     /* FIXME: add bytes used on wire here */
-    udpw->cont (udpw->cont_cls, &udpw->session->target, result);
+    /* Calls transport continuation if message was not fragmented,
+     * GNUNET_FRAGMENT if just an fragment was sent
+     */
+
+    /* Call continuation for fragmented message */
+    udpw->cont (udpw->cont_cls, &udpw->session->target, result, udpw->payload_size, udpw->msg_size);
   }
 
 }
@@ -837,7 +847,8 @@ disconnect_session (struct Session *s)
   {
     if (NULL != s->frag_ctx->cont)
     {
-      s->frag_ctx->cont (s->frag_ctx->cont_cls, &s->target, GNUNET_SYSERR);
+      s->frag_ctx->cont (s->frag_ctx->cont_cls, &s->target, GNUNET_SYSERR,
+                         s->frag_ctx->payload_size, s->frag_ctx->on_wire_size);
       LOG (GNUNET_ERROR_TYPE_DEBUG,
           "Calling continuation for fragemented message to `%s' with result SYSERR\n",
           GNUNET_i2s (&s->target));
@@ -1186,10 +1197,9 @@ enqueue (struct Plugin *plugin, struct UDP_MessageWrapper * udpw)
 static void
 send_next_fragment (void *cls,
 		    const struct GNUNET_PeerIdentity *target,
-		    int result)
+		    int result, size_t payload, size_t physical)
 {
   struct UDP_MessageWrapper *udpw = cls;
-
   GNUNET_FRAGMENT_context_transmission_done (udpw->frag_ctx->frag);  
 }
 
@@ -1223,6 +1233,7 @@ enqueue_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
   udpw->timeout = frag_ctx->timeout;
   udpw->frag_ctx = frag_ctx;
   memcpy (udpw->msg_buf, msg, msg_len);
+  frag_ctx->on_wire_size += msg_len;
   enqueue (plugin, udpw);
   schedule_select (plugin);
 }
@@ -1337,6 +1348,7 @@ udp_plugin_send (void *cls,
     frag_ctx->cont_cls = cont_cls;
     frag_ctx->timeout = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), to);
     frag_ctx->payload_size = msgbuf_size; /* unfragmented message size without UDP overhead */
+    frag_ctx->on_wire_size = 0;
     frag_ctx->frag = GNUNET_FRAGMENT_context_create (plugin->env->stats,
               UDP_MTU,
               &plugin->tracker,
@@ -1344,7 +1356,6 @@ udp_plugin_send (void *cls,
               &udp->header,
               &enqueue_fragment,
               frag_ctx);
-
     s->frag_ctx = frag_ctx;
   }
   schedule_select (plugin);
@@ -1714,11 +1725,12 @@ read_process_ack (struct Plugin *plugin,
 	 "UDP processes %u-byte acknowledgement from `%s' at `%s'\n",
 	 (unsigned int) ntohs (msg->size), GNUNET_i2s (&udp_ack->sender),
 	 GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
+    /* Expect more ACKs to arrive */
     return;
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "FULL MESSAGE ACKed\n",
+       "Message full ACK'ed\n",
        (unsigned int) ntohs (msg->size), GNUNET_i2s (&udp_ack->sender),
        GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
   s->last_expected_delay = GNUNET_FRAGMENT_context_destroy (s->frag_ctx->frag);
@@ -1759,7 +1771,9 @@ read_process_ack (struct Plugin *plugin,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "Calling continuation for fragmented message to `%s' with result %s\n",
         GNUNET_i2s (&s->target), "OK");
-    s->frag_ctx->cont (s->frag_ctx->cont_cls, &udp_ack->sender, GNUNET_OK);
+    /* FIXME add overhead bytes here */
+    s->frag_ctx->cont (s->frag_ctx->cont_cls, &udp_ack->sender, GNUNET_OK,
+                       s->frag_ctx->payload_size, s->frag_ctx->on_wire_size);
   }
 
   GNUNET_free (s->frag_ctx);

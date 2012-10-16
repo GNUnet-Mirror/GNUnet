@@ -862,7 +862,7 @@ free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
   {
     GNUNET_CONTAINER_DLL_remove (n->messages_head, n->messages_tail, mq);
     if (NULL != mq->cont)
-      mq->cont (mq->cont_cls, GNUNET_SYSERR);
+      mq->cont (mq->cont_cls, GNUNET_SYSERR, mq->message_buf_size, 0);
     GNUNET_free (mq);
   }
   /* It is too late to send other peer disconnect notifications, but at
@@ -955,7 +955,7 @@ send_with_session (struct NeighbourMapEntry *n,
 			    timeout,
 			    cont, cont_cls)))) &&
        (NULL != cont))
-    cont (cont_cls, &n->id, GNUNET_SYSERR);
+    cont (cont_cls, &n->id, GNUNET_SYSERR, msgbuf_size, 0);
   GNUNET_break (NULL != papi);
 }
 
@@ -983,7 +983,7 @@ master_task (void *cls,
  */
 static void
 send_disconnect_cont (void *cls, const struct GNUNET_PeerIdentity *target,
-                      int result)
+                      int result, size_t payload, size_t physical)
 {
   struct NeighbourMapEntry *n;
 
@@ -1130,7 +1130,7 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
 static void
 transmit_send_continuation (void *cls,
                             const struct GNUNET_PeerIdentity *receiver,
-                            int success)
+                            int success, size_t size_payload, size_t physical)
 {
   struct MessageQueue *mq = cls;
   struct NeighbourMapEntry *n;
@@ -1150,6 +1150,7 @@ transmit_send_continuation (void *cls,
     n->task = GNUNET_SCHEDULER_add_now (&master_task, n);    
   }
   GNUNET_assert (bytes_in_send_queue >= mq->message_buf_size);
+  GNUNET_break (size_payload == mq->message_buf_size);
   bytes_in_send_queue -= mq->message_buf_size;
   GNUNET_STATISTICS_set (GST_stats,
                         gettext_noop
@@ -1171,7 +1172,7 @@ transmit_send_continuation (void *cls,
               ntohs (((struct GNUNET_MessageHeader *) mq->message_buf)->type),
               (success == GNUNET_OK) ? "success" : "FAILURE");
   if (NULL != mq->cont)
-    mq->cont (mq->cont_cls, success);
+    mq->cont (mq->cont_cls, success, size_payload, physical);
   GNUNET_free (mq);
 }
 
@@ -1224,7 +1225,7 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
 			      1, GNUNET_NO);
     GNUNET_CONTAINER_DLL_remove (n->messages_head, n->messages_tail, mq);
     n->is_active = mq;
-    transmit_send_continuation (mq, &n->id, GNUNET_SYSERR);     /* timeout */
+    transmit_send_continuation (mq, &n->id, GNUNET_SYSERR, mq->message_buf_size, 0);     /* timeout */
   }
   if (NULL == mq)
     return;                     /* no more messages */
@@ -1477,14 +1478,14 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
   {
     GNUNET_break (0);
     if (NULL != cont)
-      cont (cont_cls, GNUNET_SYSERR);
+      cont (cont_cls, GNUNET_SYSERR, msg_size, 0);
     return;
   }
   if (GNUNET_YES != test_connected (n))
   {
     GNUNET_break (0);
     if (NULL != cont)
-      cont (cont_cls, GNUNET_SYSERR);
+      cont (cont_cls, GNUNET_SYSERR, msg_size, 0);
     return;
   }
   bytes_in_send_queue += msg_size;

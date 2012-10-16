@@ -84,7 +84,9 @@ GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target);
  * @param cls closure
  * @param success GNUNET_OK on success, GNUNET_NO on failure, GNUNET_SYSERR if we're not connected
  */
-typedef void (*GST_NeighbourSendContinuation) (void *cls, int success);
+typedef void (*GST_NeighbourSendContinuation) (void *cls, int success,
+                                               size_t bytes_payload,
+                                               size_t bytes_on_wire);
 
 
 /**

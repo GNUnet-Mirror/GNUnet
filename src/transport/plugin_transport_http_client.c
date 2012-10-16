@@ -85,6 +85,12 @@ struct HTTP_Message
   size_t size;
 
   /**
+   * HTTP overhead required to send this message
+   * FIXME: to implement
+   */
+  size_t overhead;
+
+  /**
    * Continuation function to call once the transmission buffer
    * has again space available.  NULL if there is no
    * continuation to call.
@@ -546,7 +552,8 @@ client_delete_session (struct Session *s)
     next = pos->next;
     GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, pos);
     if (pos->transmit_cont != NULL)
-      pos->transmit_cont (pos->transmit_cont_cls, &s->target, GNUNET_SYSERR);
+      pos->transmit_cont (pos->transmit_cont_cls, &s->target, GNUNET_SYSERR,
+                          pos->size, pos->pos + pos->overhead);
     GNUNET_free (pos);
   }
 
@@ -631,7 +638,8 @@ client_disconnect (struct Session *s)
   {
     t = msg->next;
     if (NULL != msg->transmit_cont)
-      msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_SYSERR);
+      msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_SYSERR,
+                          msg->size, msg->pos + msg->overhead);
     GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, msg);
     GNUNET_free (msg);
     msg = t;
@@ -784,7 +792,8 @@ client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
     /* Calling transmit continuation  */
     GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, msg);
     if (NULL != msg->transmit_cont)
-      msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_OK);
+      msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_OK,
+                          msg->size, msg->size + msg->overhead);
     GNUNET_free (msg);
   }
 

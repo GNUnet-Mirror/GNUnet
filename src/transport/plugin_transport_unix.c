@@ -377,7 +377,8 @@ disconnect_session (struct Session *s)
       continue;
     GNUNET_CONTAINER_DLL_remove (plugin->msg_head, plugin->msg_tail, msgw);
     if (NULL != msgw->cont)
-      msgw->cont (msgw->cont_cls,  &msgw->session->target, GNUNET_SYSERR);
+      msgw->cont (msgw->cont_cls,  &msgw->session->target, GNUNET_SYSERR,
+                  msgw->msgsize, 0);
     GNUNET_free (msgw->msg);
     GNUNET_free (msgw);
     removed = GNUNET_YES;    
@@ -442,7 +443,8 @@ unix_transport_server_stop (void *cls)
   {
     GNUNET_CONTAINER_DLL_remove (plugin->msg_head, plugin->msg_tail, msgw);
     if (msgw->cont != NULL)
-      msgw->cont (msgw->cont_cls,  &msgw->session->target, GNUNET_SYSERR);
+      msgw->cont (msgw->cont_cls,  &msgw->session->target, GNUNET_SYSERR,
+                  msgw->msgsize, 0);
     GNUNET_free (msgw->msg);
     GNUNET_free (msgw);
   }
@@ -508,7 +510,7 @@ unix_real_send (void *cls,
     /* We do not have a send handle */
     GNUNET_break (0);
     if (cont != NULL)
-      cont (cont_cls, target, GNUNET_SYSERR);
+      cont (cont_cls, target, GNUNET_SYSERR, msgbuf_size, 0);
     return -1;
   }
   if ((addr == NULL) || (addrlen == 0))
@@ -516,7 +518,7 @@ unix_real_send (void *cls,
     /* Can never send if we don't have an address */
     GNUNET_break (0);
     if (cont != NULL)
-      cont (cont_cls, target, GNUNET_SYSERR);
+      cont (cont_cls, target, GNUNET_SYSERR, msgbuf_size, 0);
     return -1;
   }
 
@@ -598,9 +600,9 @@ unix_real_send (void *cls,
   if (cont != NULL)
   {
     if (sent == GNUNET_SYSERR)
-      cont (cont_cls, target, GNUNET_SYSERR);
+      cont (cont_cls, target, GNUNET_SYSERR, msgbuf_size, 0);
     if (sent > 0)
-      cont (cont_cls, target, GNUNET_OK);
+      cont (cont_cls, target, GNUNET_OK, msgbuf_size, msgbuf_size);
   }
 
   /* return number of bytes successfully sent */

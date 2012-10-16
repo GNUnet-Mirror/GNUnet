@@ -398,6 +398,11 @@ struct HTTP_Message
   size_t size;
 
   /**
+   * HTTP/S specific overhead
+   */
+  size_t overhead;
+
+  /**
    * Continuation function to call once the transmission buffer
    * has again space available.  NULL if there is no
    * continuation to call.
@@ -680,7 +685,8 @@ server_delete_session (struct Session *s)
     GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, msg);
     if (msg->transmit_cont != NULL)
     {
-      msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_SYSERR);
+      msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_SYSERR,
+                          msg->size, msg->pos + msg->overhead);
     }
     GNUNET_free (msg);
     msg = tmp;
@@ -1203,7 +1209,8 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
     {
       GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, msg);
       if (NULL != msg->transmit_cont)
-        msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_OK);
+        msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_OK,
+                            msg->size, msg->size + msg->overhead);
       GNUNET_free (msg);
     }
   }

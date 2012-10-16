@@ -562,10 +562,13 @@ struct SendTransmitContinuationContext
  * @param success GNUNET_OK on success, GNUNET_NO on failure, GNUNET_SYSERR if we're not connected
  */
 static void
-handle_send_transmit_continuation (void *cls, int success)
+handle_send_transmit_continuation (void *cls, int success,
+                                   size_t bytes_payload, size_t bytes_on_wire)
 {
   struct SendTransmitContinuationContext *stcc = cls;
   struct SendOkMessage send_ok_msg;
+
+  //GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Payload: %u, On wire %u \n", bytes_payload, bytes_on_wire);
 
   send_ok_msg.header.size = htons (sizeof (send_ok_msg));
   send_ok_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);

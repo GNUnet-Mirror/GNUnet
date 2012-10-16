@@ -260,6 +260,16 @@ struct FragmentMessage
    */
   void *cont_cls;
 
+  /**
+   * Size of original message
+   */
+  size_t size_payload;
+
+  /**
+   * Number of bytes used to transmit message
+   */
+  size_t size_on_wire;
+
 };
 
 
@@ -745,6 +755,7 @@ transmit_fragment (void *cls,
 				 &radio_header->header,
 				 GNUNET_NO,
 				 &fragment_transmission_done, fm);
+    fm->size_on_wire += size;
     if (NULL != fm->sh)
       GNUNET_STATISTICS_update (endpoint->plugin->env->stats, _("# WLAN message fragments sent"),
 				1, GNUNET_NO);
@@ -804,7 +815,7 @@ fragmentmessage_timeout (void *cls,
   fm->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != fm->cont)
   {
-    fm->cont (fm->cont_cls, &fm->target, GNUNET_SYSERR);
+    fm->cont (fm->cont_cls, &fm->target, GNUNET_SYSERR, fm->size_payload, fm->size_on_wire);
     fm->cont = NULL;
   }
   free_fragment_message (fm);
@@ -818,6 +829,7 @@ fragmentmessage_timeout (void *cls,
  * @param timeout how long can the message wait?
  * @param target peer that should receive the message
  * @param msg message to transmit
+ * @param bytes of payload
  * @param cont continuation to call once the message has
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the
@@ -829,6 +841,7 @@ send_with_fragmentation (struct MacEndpoint *endpoint,
 			 struct GNUNET_TIME_Relative timeout,
 			 const struct GNUNET_PeerIdentity *target,			 
 			 const struct GNUNET_MessageHeader *msg,
+			 size_t payload_size,
 			 GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 
 {
@@ -839,6 +852,8 @@ send_with_fragmentation (struct MacEndpoint *endpoint,
   fm = GNUNET_malloc (sizeof (struct FragmentMessage));
   fm->macendpoint = endpoint;
   fm->target = *target;
+  fm->size_payload = payload_size;
+  fm->size_on_wire = 0;
   fm->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   fm->cont = cont;
   fm->cont_cls = cont_cls;
@@ -1079,6 +1094,7 @@ wlan_plugin_send (void *cls,
 			   to,
 			   &session->target,
 			   &wlanheader->header,
+			   msgbuf_size,
 			   cont, cont_cls);
   return size;
 }
@@ -1177,7 +1193,7 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 	mas->endpoint->timeout = GNUNET_TIME_relative_to_absolute (MACENDPOINT_TIMEOUT);
 	if (NULL != fm->cont)
 	{
-	  fm->cont (fm->cont_cls, &fm->target, GNUNET_OK);
+	  fm->cont (fm->cont_cls, &fm->target, GNUNET_OK, fm->size_payload, fm->size_on_wire);
 	  fm->cont = NULL;
 	}
         free_fragment_message (fm);
