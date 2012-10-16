@@ -283,11 +283,17 @@ struct GNUNET_TRANSPORT_PluginEnvironment
  *               GNUNET_SYSERR if the target disconnected;
  *               disconnect will ALSO be signalled using
  *               the ReceiveCallback.
+ * @param size_payload bytes of payload from transport service in message
+ * @param size_on_wire bytes required on wire for transmission,
+ *               0 if result == GNUNET_SYSERR
  */
 typedef void (*GNUNET_TRANSPORT_TransmitContinuation) (void *cls,
                                                        const struct
                                                        GNUNET_PeerIdentity *
-                                                       target, int result);
+                                                       target,
+                                                       int result,
+                                                       size_t size_payload,
+                                                       size_t size_on_wire);
 
 /**
  * The new send function with just the session and no address
