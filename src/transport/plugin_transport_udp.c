@@ -93,7 +93,7 @@ struct Session
    */
   struct GNUNET_PeerIdentity target;
 
-  struct FragmentationContext * frag_ctx;
+  struct UDP_FragmentationContext * frag_ctx;
 
   /**
    * Address of the other peer
@@ -225,15 +225,33 @@ struct DefragContext
 
 
 /**
- * Closure for 'process_inbound_tokenized_messages'
+ * Context to send fragmented messages
  */
-struct FragmentationContext
+struct UDP_FragmentationContext
 {
-  struct FragmentationContext * next;
-  struct FragmentationContext * prev;
+  /**
+   * Next in linked list
+   */
+  struct UDP_FragmentationContext * next;
 
+  /**
+   * Previous in linked list
+   */
+  struct UDP_FragmentationContext * prev;
+
+  /**
+   * The plugin
+   */
   struct Plugin * plugin;
+
+  /**
+   * Handle for GNUNET_FRAGMENT context
+   */
   struct GNUNET_FRAGMENT_Context * frag;
+
+  /**
+   * The session this fragmentation context belongs to
+   */
   struct Session * session;
 
   /**
@@ -246,13 +264,19 @@ struct FragmentationContext
    */
   void *cont_cls;
 
+  /**
+   * Message timeout
+   */
   struct GNUNET_TIME_Absolute timeout;
 
-  size_t bytes_to_send;
+  /**
+   * Payload size of original unfragmented message
+   */
+  size_t payload_size;
 };
 
 
-struct UDPMessageWrapper
+struct UDP_MessageWrapper
 {
   /**
    * Session this message belongs to
@@ -263,13 +287,13 @@ struct UDPMessageWrapper
    * DLL of messages
    * previous element
    */
-  struct UDPMessageWrapper *prev;
+  struct UDP_MessageWrapper *prev;
 
   /**
    * DLL of messages
    * previous element
    */
-  struct UDPMessageWrapper *next;
+  struct UDP_MessageWrapper *next;
 
   /**
    * Message with size msg_size including UDP specific overhead
@@ -282,7 +306,7 @@ struct UDPMessageWrapper
   size_t msg_size;
 
   /**
-   * Amount of bytes used on wire to send this message
+   * Payload size of original message
    */
   size_t payload_size;
 
@@ -306,7 +330,7 @@ struct UDPMessageWrapper
    * frag_ctx == NULL if transport <= MTU
    * frag_ctx != NULL if transport > MTU
    */
-  struct FragmentationContext *frag_ctx;
+  struct UDP_FragmentationContext *frag_ctx;
 };
 
 
@@ -390,7 +414,7 @@ static void
 schedule_select (struct Plugin *plugin)
 {
   struct GNUNET_TIME_Relative min_delay;
-  struct UDPMessageWrapper *udpw;
+  struct UDP_MessageWrapper *udpw;
 
   if (NULL != plugin->sockv4)
   {
@@ -655,11 +679,11 @@ udp_plugin_address_pretty_printer (void *cls, const char *type,
 
 
 static void
-call_continuation (struct UDPMessageWrapper *udpw, int result)
+call_continuation (struct UDP_MessageWrapper *udpw, int result)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Calling continuation for %u byte message to `%s' with result %s\n",
-      udpw->msg_size, GNUNET_i2s (&udpw->session->target),
+      udpw->payload_size, GNUNET_i2s (&udpw->session->target),
       (GNUNET_OK == result) ? "OK" : "SYSERR");
   if (NULL != udpw->cont)
   {
@@ -774,8 +798,8 @@ free_session (struct Session *s)
 static void
 disconnect_session (struct Session *s)
 {
-  struct UDPMessageWrapper *udpw;
-  struct UDPMessageWrapper *next;
+  struct UDP_MessageWrapper *udpw;
+  struct UDP_MessageWrapper *next;
 
   GNUNET_assert (GNUNET_YES != s->in_destroy);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1141,7 +1165,7 @@ udp_plugin_get_session (void *cls,
 
 
 static void 
-enqueue (struct Plugin *plugin, struct UDPMessageWrapper * udpw)
+enqueue (struct Plugin *plugin, struct UDP_MessageWrapper * udpw)
 {
 
   if (udpw->session->addrlen == sizeof (struct sockaddr_in))
@@ -1164,7 +1188,7 @@ send_next_fragment (void *cls,
 		    const struct GNUNET_PeerIdentity *target,
 		    int result)
 {
-  struct UDPMessageWrapper *udpw = cls;
+  struct UDP_MessageWrapper *udpw = cls;
 
   GNUNET_FRAGMENT_context_transmission_done (udpw->frag_ctx->frag);  
 }
@@ -1182,18 +1206,18 @@ send_next_fragment (void *cls,
 static void
 enqueue_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
 {
-  struct FragmentationContext *frag_ctx = cls;
+  struct UDP_FragmentationContext *frag_ctx = cls;
   struct Plugin *plugin = frag_ctx->plugin;
-  struct UDPMessageWrapper * udpw;
+  struct UDP_MessageWrapper * udpw;
   size_t msg_len = ntohs (msg->size);
  
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
-       "Enqueuing fragment with %u bytes %u\n", msg_len , sizeof (struct UDPMessageWrapper));
-  udpw = GNUNET_malloc (sizeof (struct UDPMessageWrapper) + msg_len);
+       "Enqueuing fragment with %u bytes\n", msg_len);
+  udpw = GNUNET_malloc (sizeof (struct UDP_MessageWrapper) + msg_len);
   udpw->session = frag_ctx->session;
   udpw->msg_buf = (char *) &udpw[1];
-
   udpw->msg_size = msg_len;
+  udpw->payload_size = msg_len; /*FIXME: minus fragment overhead */
   udpw->cont = &send_next_fragment;
   udpw->cont_cls = udpw;
   udpw->timeout = frag_ctx->timeout;
@@ -1241,7 +1265,7 @@ udp_plugin_send (void *cls,
 {
   struct Plugin *plugin = cls;
   size_t udpmlen = msgbuf_size + sizeof (struct UDPMessage);
-  struct UDPMessageWrapper * udpw;
+  struct UDP_MessageWrapper * udpw;
   struct UDPMessage *udp;
   char mbuf[udpmlen];
   GNUNET_assert (plugin != NULL);
@@ -1285,10 +1309,11 @@ udp_plugin_send (void *cls,
   reschedule_session_timeout(s);
   if (udpmlen <= UDP_MTU)
   {
-    udpw = GNUNET_malloc (sizeof (struct UDPMessageWrapper) + udpmlen);
+    udpw = GNUNET_malloc (sizeof (struct UDP_MessageWrapper) + udpmlen);
     udpw->session = s;
     udpw->msg_buf = (char *) &udpw[1];
-    udpw->msg_size = udpmlen;
+    udpw->msg_size = udpmlen; /* message size with UDP overhead */
+    udpw->payload_size = msgbuf_size; /* message size without UDP overhead */
     udpw->timeout = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), to);
     udpw->cont = cont;
     udpw->cont_cls = cont_cls;
@@ -1304,14 +1329,14 @@ udp_plugin_send (void *cls,
     if  (s->frag_ctx != NULL)
       return GNUNET_SYSERR;
     memcpy (&udp[1], msgbuf, msgbuf_size);
-    struct FragmentationContext * frag_ctx = GNUNET_malloc(sizeof (struct FragmentationContext));
+    struct UDP_FragmentationContext * frag_ctx = GNUNET_malloc(sizeof (struct UDP_FragmentationContext));
 
     frag_ctx->plugin = plugin;
     frag_ctx->session = s;
     frag_ctx->cont = cont;
     frag_ctx->cont_cls = cont_cls;
     frag_ctx->timeout = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), to);
-    frag_ctx->bytes_to_send = udpmlen;
+    frag_ctx->payload_size = msgbuf_size; /* unfragmented message size without UDP overhead */
     frag_ctx->frag = GNUNET_FRAGMENT_context_create (plugin->env->stats,
               UDP_MTU,
               &plugin->tracker,
@@ -1582,7 +1607,7 @@ ack_proc (void *cls, uint32_t id, const struct GNUNET_MessageHeader *msg)
   size_t msize = sizeof (struct UDP_ACK_Message) + ntohs (msg->size);
   struct UDP_ACK_Message *udp_ack;
   uint32_t delay = 0;
-  struct UDPMessageWrapper *udpw;
+  struct UDP_MessageWrapper *udpw;
   struct Session *s;
 
   struct LookupContext l_ctx;
@@ -1607,7 +1632,7 @@ ack_proc (void *cls, uint32_t id, const struct GNUNET_MessageHeader *msg)
                     AF_INET) ? sizeof (struct sockaddr_in) : sizeof (struct
                                                                      sockaddr_in6)),
        delay);
-  udpw = GNUNET_malloc (sizeof (struct UDPMessageWrapper) + msize);
+  udpw = GNUNET_malloc (sizeof (struct UDP_MessageWrapper) + msize);
   udpw->msg_size = msize;
   udpw->session = s;
   udpw->timeout = GNUNET_TIME_UNIT_FOREVER_ABS;
@@ -1698,8 +1723,8 @@ read_process_ack (struct Plugin *plugin,
        GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
   s->last_expected_delay = GNUNET_FRAGMENT_context_destroy (s->frag_ctx->frag);
 
-  struct UDPMessageWrapper * udpw;
-  struct UDPMessageWrapper * tmp;
+  struct UDP_MessageWrapper * udpw;
+  struct UDP_MessageWrapper * tmp;
   if (s->addrlen == sizeof (struct sockaddr_in6))
   {
     udpw = plugin->ipv6_queue_head;
@@ -1893,7 +1918,7 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
   ssize_t sent;
   size_t slen;
   struct GNUNET_TIME_Absolute max;
-  struct UDPMessageWrapper *udpw = NULL;
+  struct UDP_MessageWrapper *udpw = NULL;
   static int network_down_error;
 
   if (sock == plugin->sockv4)
@@ -1924,8 +1949,8 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
       if (udpw->frag_ctx != NULL)
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
-	     "Fragmented message for peer `%s' with size %u timed out\n",
-	     GNUNET_i2s(&udpw->session->target), udpw->frag_ctx->bytes_to_send);
+	     "Fragment for message for peer `%s' with size %u timed out\n",
+	     GNUNET_i2s(&udpw->session->target), udpw->frag_ctx->payload_size);
         udpw->session->last_expected_delay = GNUNET_FRAGMENT_context_destroy (udpw->frag_ctx->frag);
         GNUNET_free (udpw->frag_ctx);
         udpw->session->frag_ctx = NULL;
@@ -1934,7 +1959,7 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG, 
 	     "Message for peer `%s' with size %u timed out\n",
-	     GNUNET_i2s(&udpw->session->target), udpw->msg_size);
+	     GNUNET_i2s(&udpw->session->target), udpw->payload_size);
       }
 
       if (sock == plugin->sockv4)
@@ -1958,7 +1983,7 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
         /* this message is not delayed */
         LOG (GNUNET_ERROR_TYPE_DEBUG, 
 	     "Message for peer `%s' (%u bytes) is not delayed \n",
-	     GNUNET_i2s(&udpw->session->target), udpw->msg_size);
+	     GNUNET_i2s(&udpw->session->target), udpw->payload_size);
         break;
       }
       else
@@ -1966,8 +1991,7 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
         /* this message is delayed, try next */
         LOG (GNUNET_ERROR_TYPE_DEBUG,
 	     "Message for peer `%s' (%u bytes) is delayed for %llu \n",
-	     GNUNET_i2s(&udpw->session->target), udpw->msg_size,
-	     delta);
+	     GNUNET_i2s(&udpw->session->target), udpw->payload_size, delta);
         udpw = udpw->next;
       }
     }
@@ -2020,7 +2044,7 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
     {
       LOG (GNUNET_ERROR_TYPE_WARNING,
          "UDP could not transmit %u-byte message to `%s': `%s'\n",
-         (unsigned int) (udpw->msg_size), GNUNET_a2s (sa, slen),
+         (unsigned int) (udpw->payload_size), GNUNET_a2s (sa, slen),
          STRERROR (errno));
     }
     call_continuation(udpw, GNUNET_SYSERR);
@@ -2507,11 +2531,11 @@ libgnunet_plugin_transport_udp_done (void *cls)
   }
 
   /* Clean up leftover messages */
-  struct UDPMessageWrapper * udpw;
+  struct UDP_MessageWrapper * udpw;
   udpw = plugin->ipv4_queue_head;
   while (udpw != NULL)
   {
-    struct UDPMessageWrapper *tmp = udpw->next;
+    struct UDP_MessageWrapper *tmp = udpw->next;
     GNUNET_CONTAINER_DLL_remove(plugin->ipv4_queue_head, plugin->ipv4_queue_tail, udpw);
     call_continuation(udpw, GNUNET_SYSERR);
     GNUNET_free (udpw);
@@ -2520,7 +2544,7 @@ libgnunet_plugin_transport_udp_done (void *cls)
   udpw = plugin->ipv6_queue_head;
   while (udpw != NULL)
   {
-    struct UDPMessageWrapper *tmp = udpw->next;
+    struct UDP_MessageWrapper *tmp = udpw->next;
     GNUNET_CONTAINER_DLL_remove(plugin->ipv6_queue_head, plugin->ipv6_queue_tail, udpw);
     call_continuation(udpw, GNUNET_SYSERR);
     GNUNET_free (udpw);
