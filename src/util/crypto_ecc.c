@@ -36,7 +36,7 @@
 #include "gnunet_common.h"
 #include "gnunet_util_lib.h"
 
-#define EXTRA_CHECKS ALLOW_EXTRA_CHECKS
+#define EXTRA_CHECKS ALLOW_EXTRA_CHECKS || 1
 
 #define CURVE "NIST P-521"
 
@@ -309,7 +309,7 @@ GNUNET_CRYPTO_ecc_encode_key (const struct GNUNET_CRYPTO_EccPrivateKey *key)
   size_t size;
 
 #if EXTRA_CHECKS
-  if (gcry_pk_testkey (hostkey->sexp))
+  if (0 != gcry_pk_testkey (key->sexp))
   {
     GNUNET_break (0);
     return NULL;
@@ -324,7 +324,7 @@ GNUNET_CRYPTO_ecc_encode_key (const struct GNUNET_CRYPTO_EccPrivateKey *key)
     return NULL;
   }
   GNUNET_assert (size < 65536 - sizeof (uint16_t));
-  be = htons ((uint16_t) size);
+  be = htons ((uint16_t) size + (sizeof (be)));
   memcpy (buf, &be, sizeof (be));
   size += sizeof (be);
   retval = GNUNET_malloc (size);
@@ -971,7 +971,7 @@ GNUNET_CRYPTO_ecc_encrypt (const void *block, size_t size,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  target->size = htons ((uint16_t) isize);
+  target->size = htons ((uint16_t) (isize + sizeof (uint16_t)));
   /* padd with zeros */
   memset (&target->encoding[isize], 0, GNUNET_CRYPTO_ECC_DATA_ENCODING_LENGTH - isize);
   return GNUNET_OK;
@@ -1004,10 +1004,12 @@ GNUNET_CRYPTO_ecc_decrypt (const struct GNUNET_CRYPTO_EccPrivateKey *key,
   GNUNET_assert (0 == gcry_pk_testkey (key->sexp));
 #endif
   size = ntohs (block->size);
+  if (size < sizeof (uint16_t))
+    return -1;
   GNUNET_assert (0 ==
                  gcry_sexp_sscan (&data,
 				  &erroff,
-				  block->encoding, size));
+				  block->encoding, size - sizeof (uint16_t)));
   GNUNET_assert (0 == gcry_pk_decrypt (&resultsexp, data, key->sexp));
   gcry_sexp_release (data);
   /* resultsexp has format "(value %m)" */
@@ -1091,7 +1093,7 @@ GNUNET_CRYPTO_ecc_sign (const struct GNUNET_CRYPTO_EccPrivateKey *key,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  sig->size = htons ((uint16_t) ssize);
+  sig->size = htons ((uint16_t) (ssize + sizeof (uint16_t)));
   /* padd with zeros */
   memset (&sig->sexpr[ssize], 0, GNUNET_CRYPTO_ECC_DATA_ENCODING_LENGTH - ssize);
   gcry_sexp_release (result);
@@ -1126,11 +1128,13 @@ GNUNET_CRYPTO_ecc_verify (uint32_t purpose,
   if (purpose != ntohl (validate->purpose))
     return GNUNET_SYSERR;       /* purpose mismatch */
   size = ntohs (sig->size);
-  if (size > GNUNET_CRYPTO_ECC_DATA_ENCODING_LENGTH - sizeof (uint16_t))
+  if ( (size < sizeof (uint16_t)) ||
+       (size > GNUNET_CRYPTO_ECC_DATA_ENCODING_LENGTH - sizeof (uint16_t)) )
     return GNUNET_SYSERR; /* size out of range */
   data = data_to_pkcs1 (validate);
   GNUNET_assert (0 ==
-                 gcry_sexp_sscan (&sigdata, &erroff, sig->sexpr, size));
+                 gcry_sexp_sscan (&sigdata, &erroff, 
+				  sig->sexpr, size - sizeof (uint16_t)));
   if (! (psexp = decode_public_key (publicKey)))
   {
     gcry_sexp_release (data);
