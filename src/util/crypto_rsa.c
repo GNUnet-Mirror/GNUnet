@@ -1237,6 +1237,39 @@ GNUNET_CRYPTO_rsa_decrypt (const struct GNUNET_CRYPTO_RsaPrivateKey * key,
 
 
 /**
+ * Convert the data specified in the given purpose argument to an
+ * S-expression suitable for signature operations.
+ *
+ * @param purpose data to convert
+ * @return converted s-expression
+ */
+static gcry_sexp_t
+data_to_pkcs1 (const struct GNUNET_CRYPTO_RsaSignaturePurpose *purpose)
+{
+  struct GNUNET_HashCode hc;
+  size_t bufSize;
+  gcry_sexp_t data;
+
+  GNUNET_CRYPTO_hash (purpose, ntohl (purpose->size), &hc);
+#define FORMATSTRING "(4:data(5:flags5:pkcs1)(4:hash6:sha51264:0123456789012345678901234567890123456789012345678901234567890123))"
+  bufSize = strlen (FORMATSTRING) + 1;
+  {
+    char buff[bufSize];
+
+    memcpy (buff, FORMATSTRING, bufSize);
+    memcpy (&buff
+	    [bufSize -
+	     strlen
+	     ("0123456789012345678901234567890123456789012345678901234567890123))")
+	     - 1], &hc, sizeof (struct GNUNET_HashCode));
+    GNUNET_assert (0 == gcry_sexp_new (&data, buff, bufSize, 0));
+  }
+#undef FORMATSTRING
+  return data;
+}
+
+
+/**
  * Sign a given block.
  *
  * @param key private key to use for the signing
@@ -1253,22 +1286,8 @@ GNUNET_CRYPTO_rsa_sign (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
   gcry_sexp_t data;
   size_t ssize;
   gcry_mpi_t rval;
-  struct GNUNET_HashCode hc;
-  char *buff;
-  int bufSize;
 
-  GNUNET_CRYPTO_hash (purpose, ntohl (purpose->size), &hc);
-#define FORMATSTRING "(4:data(5:flags5:pkcs1)(4:hash6:sha51264:0123456789012345678901234567890123456789012345678901234567890123))"
-  bufSize = strlen (FORMATSTRING) + 1;
-  buff = GNUNET_malloc (bufSize);
-  memcpy (buff, FORMATSTRING, bufSize);
-  memcpy (&buff
-          [bufSize -
-           strlen
-           ("0123456789012345678901234567890123456789012345678901234567890123))")
-           - 1], &hc, sizeof (struct GNUNET_HashCode));
-  GNUNET_assert (0 == gcry_sexp_new (&data, buff, bufSize, 0));
-  GNUNET_free (buff);
+  data = data_to_pkcs1 (purpose);
   GNUNET_assert (0 == gcry_pk_sign (&result, data, key->sexp));
   gcry_sexp_release (data);
   GNUNET_assert (0 == key_from_sexp (&rval, result, "rsa", "s"));
@@ -1305,15 +1324,11 @@ GNUNET_CRYPTO_rsa_verify (uint32_t purpose,
   size_t size;
   gcry_mpi_t val;
   gcry_sexp_t psexp;
-  struct GNUNET_HashCode hc;
-  char *buff;
-  int bufSize;
   size_t erroff;
   int rc;
 
   if (purpose != ntohl (validate->purpose))
     return GNUNET_SYSERR;       /* purpose mismatch */
-  GNUNET_CRYPTO_hash (validate, ntohl (validate->size), &hc);
   size = sizeof (struct GNUNET_CRYPTO_RsaSignature);
   GNUNET_assert (0 ==
                  gcry_mpi_scan (&val, GCRYMPI_FMT_USG,
@@ -1322,16 +1337,7 @@ GNUNET_CRYPTO_rsa_verify (uint32_t purpose,
                  gcry_sexp_build (&sigdata, &erroff, "(sig-val(rsa(s %m)))",
                                   val));
   gcry_mpi_release (val);
-  bufSize = strlen (FORMATSTRING) + 1;
-  buff = GNUNET_malloc (bufSize);
-  memcpy (buff, FORMATSTRING, bufSize);
-  memcpy (&buff
-          [strlen (FORMATSTRING) -
-           strlen
-           ("0123456789012345678901234567890123456789012345678901234567890123))")],
-          &hc, sizeof (struct GNUNET_HashCode));
-  GNUNET_assert (0 == gcry_sexp_new (&data, buff, bufSize, 0));
-  GNUNET_free (buff);
+  data = data_to_pkcs1 (validate);
   if (! (psexp = decode_public_key (publicKey)))
   {
     gcry_sexp_release (data);
