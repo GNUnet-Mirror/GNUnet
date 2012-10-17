@@ -90,7 +90,13 @@ enum State
   /**
    * Linking peers
    */
-  STATE_PEERS_LINKING
+  STATE_PEERS_LINKING,
+
+  /**
+   * Destroying peers; we can do this as the controller takes care of stopping a
+   * peer if it is running
+   */
+  STATE_PEERS_DESTROYING
 };
 
 
@@ -254,6 +260,9 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   result = GNUNET_SYSERR;
   GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
+
+
+
 
 
 /**
