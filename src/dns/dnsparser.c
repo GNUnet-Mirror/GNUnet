@@ -25,10 +25,38 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include <idna.h>
+#if WINDOWS
+#include <idn-free.h>
+#endif
 #include "gnunet_util_lib.h"
 #include "gnunet_dnsparser_lib.h"
 #include "dnsparser.h"
 
+
+/**
+ * Check if a label in UTF-8 format can be coded into valid IDNA.
+ * This can fail if the ASCII-conversion becomes longer than 63 characters.
+ *
+ * @param label label to check (UTF-8 string)
+ * @return GNUNET_OK if the label can be converted to IDNA,
+ *         GNUNET_SYSERR if the label is not valid for DNS names
+ */
+int
+GNUNET_DNSPARSER_check_label (const char *label)
+{
+  char *output;
+  
+  if (IDNA_SUCCESS != 
+      idna_to_ascii_8z (label, &output, IDNA_USE_STD3_ASCII_RULES))
+    return GNUNET_SYSERR;
+#if WINDOWS
+  idn_free (output);
+#else
+  free (output);
+#endif
+  return GNUNET_OK;
+}
 
 
 /**

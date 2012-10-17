@@ -479,6 +479,18 @@ struct GNUNET_DNSPARSER_Packet
 
 
 /**
+ * Check if a label in UTF-8 format can be coded into valid IDNA.
+ * This can fail if the ASCII-conversion becomes longer than 63 characters.
+ *
+ * @param label label to check (UTF-8 string)
+ * @return GNUNET_OK if the label can be converted to IDNA,
+ *         GNUNET_SYSERR if the label is not valid for DNS names
+ */
+int
+GNUNET_DNSPARSER_check_label (const char *label);
+
+
+/**
  * Parse a UDP payload of a DNS packet in to a nice struct for further
  * processing and manipulation.
  *

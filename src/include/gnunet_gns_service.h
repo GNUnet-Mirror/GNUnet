@@ -109,6 +109,8 @@ enum GNUNET_GNS_RecordType
 
   /* struct vpn_data */
   GNUNET_GNS_RECORD_VPN  = GNUNET_NAMESTORE_TYPE_VPN,
+
+  /* revocation */
   GNUNET_GNS_RECORD_REV  = GNUNET_NAMESTORE_TYPE_REV
 };
 
