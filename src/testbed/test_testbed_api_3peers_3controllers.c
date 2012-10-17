@@ -337,7 +337,7 @@ op_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
     result = PEERS_1_2_CONNECTED;
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Peers connected\n");
     common_operation = 
-         GNUNET_TESTBED_overlay_connect (NULL, &op_comp_cb, NULL, peer2.peer,
+        GNUNET_TESTBED_overlay_connect (NULL, &op_comp_cb, NULL, peer2.peer,
 					  peer3.peer);
     break;
   case PEERS_1_2_CONNECTED:
