@@ -74,6 +74,7 @@ libgnunetutil_la_SOURCES = \
   container_slist.c \
   crypto_aes.c \
   crypto_crc.c \
+  crypto_ecc.c \
   crypto_hash.c \
   crypto_hkdf.c \
   crypto_kdf.c \
