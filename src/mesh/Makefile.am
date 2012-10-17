@@ -86,6 +86,19 @@ if LINUX
 gnunet_service_mesh_LDFLAGS = -lrt
 endif
 
+noinst_PROGRAMS = \
+gnunet-regex-profiler
+
+gnunet_regex_profiler_SOURCES = \
+  gnunet-regex-profiler.c
+gnunet_regex_profiler_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/regex/libgnunetregex.la
+gnunet_regex_profiler_DEPENDENCIES = \
+  libgnunetmesh.la
+
 check_PROGRAMS = \
  test_mesh_api \
  test_mesh_tree_api \
@@ -104,7 +117,7 @@ check_PROGRAMS = \
  test_mesh_small_speed_backwards \
  test_mesh_small_speed_nobuf_backwards \
  test_mesh_small_speed_min_backwards \
- test_mesh_small_speed_ack 
+ test_mesh_small_speed_ack
 
 test_mesh_api_SOURCES = \
  test_mesh_api.c

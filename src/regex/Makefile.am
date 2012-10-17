@@ -19,19 +19,6 @@ libgnunetregex_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
    -version-info 0:0:0
 
-noinst_PROGRAMS = \
-  gnunet-regex-profiler
-
-gnunet_regex_profiler_SOURCES = \
-  gnunet-regex-profiler.c
-gnunet_regex_profiler_LDADD = \
-  $(top_builddir)/src/regex/libgnunetregex.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testbed/libgnunettestbed.la \
-  $(top_builddir)/src/mesh/libgnunetmesh.la
-gnunet_regex_profiler_DEPENDENCIES = \
-  libgnunetregex.la
-
 check_PROGRAMS = \
   test_regex_eval_api \
   test_regex_iterate_api \
