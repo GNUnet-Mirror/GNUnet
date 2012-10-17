@@ -1397,8 +1397,6 @@ udp_plugin_send (void *cls,
   }
   else
   {
-    // FIXME
-      return GNUNET_SYSERR;
     /* fragmented message */
     GNUNET_STATISTICS_update (plugin->env->stats,
                               "# fragmented messages asked to transmit via UDP",
