@@ -6,6 +6,7 @@ man_MANS = \
   gnunet-directory.1 \
   gnunet-download.1 \
   gnunet-download-manager.1 \
+  gnunet-ecc.1 \
   gnunet-fs.1 \
   gnunet-gns.1 \
   gnunet-namestore.1 \

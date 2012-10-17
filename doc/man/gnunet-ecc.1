@@ -1,0 +1,43 @@
+.TH GNUNET\-ECC 1 "Mar 15, 2012" "GNUnet"
+
+.SH NAME
+gnunet\-ecc \- manipulate GNUnet ECC key files
+
+.SH SYNOPSIS
+.B gnunet\-ecc
+.RI [ options ] FILENAME
+.br
+
+.SH DESCRIPTION
+\fBgnunet\-ecc\fP can be used to create an ECC private key and to print the corresponding public key.  You must specify a filename containing an ECC private key in GNUnet format as an argument.  If the file does not exist, gnunet\-ecc will create a key.  This may then take a while.  If the option \-p is given, the corresponding public key will be printed to the console.
+
+.SH OPTIONS
+.B
+.IP "\-g COUNT, \-\-generate-keys=COUNT"
+Create COUNT public-private key pairs and write them to FILENAME.  Used for creating a file for testing.
+.B
+.IP "\-p, \-\-print-public-key"
+Print the corresponding public key to stdout.
+.B
+.IP "\-P, \-\-print-peer-identity"
+Print the corresponding peer identity (hash of the public key) to stdout.  This hash is used for the name of peers.
+.B
+.IP "\-s, \-\-print-short-identity"
+Print the corresponding short hash (256-bit hash of the public key) to stdout.  This hash is used for names in the zkey zone.
+.B
+.IP "\-c FILENAME,  \-\-config=FILENAME"
+Use the configuration file FILENAME.
+.B
+.IP "\-h, \-\-help"
+Print short help on options.
+.B
+.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
+Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
+.B
+.IP "\-v, \-\-version"
+Print GNUnet version number.
+
+
+.SH BUGS
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+
