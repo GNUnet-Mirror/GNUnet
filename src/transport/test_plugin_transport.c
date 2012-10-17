@@ -96,7 +96,7 @@ struct GNUNET_HELPER_Handle *suid_helper;
 /**
  * Timeout task
  */
-static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+static GNUNET_SCHEDULER_TaskIdentifier timeout_endbadly;
 
 /**
  * Timeout task
@@ -119,6 +119,8 @@ struct AddressWrapper *head;
 struct AddressWrapper *tail;
 
 unsigned int addresses_reported;
+
+unsigned int pretty_printers_running;
 
 /**
  * Did the test pass or fail?
@@ -147,10 +149,10 @@ end ()
   int c = 0;
   ok = 0;
 
-  if (GNUNET_SCHEDULER_NO_TASK != timeout_task)
+  if (GNUNET_SCHEDULER_NO_TASK != timeout_endbadly)
   {
-      GNUNET_SCHEDULER_cancel (timeout_task);
-      timeout_task = GNUNET_SCHEDULER_NO_TASK;
+      GNUNET_SCHEDULER_cancel (timeout_endbadly);
+      timeout_endbadly = GNUNET_SCHEDULER_NO_TASK;
   }
   if (NULL != api)
       GNUNET_PLUGIN_unload (libname, api);
@@ -193,11 +195,19 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct AddressWrapper *w;
   int c = 0;
-  timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  timeout_endbadly = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_SCHEDULER_NO_TASK != timeout_wait)
   {
       GNUNET_SCHEDULER_cancel (timeout_wait);
       timeout_wait = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  if (pretty_printers_running > 0)
+  {
+      timeout_endbadly = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS, &end_badly, NULL);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Have pending calls to pretty_printer ... deferring shutdown\n"));
+      return;
   }
 
   if (NULL != cls)
@@ -267,12 +277,12 @@ end_badly_now ()
       GNUNET_SCHEDULER_cancel (timeout_wait);
       timeout_wait = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != timeout_task)
+  if (GNUNET_SCHEDULER_NO_TASK != timeout_endbadly)
   {
-      GNUNET_SCHEDULER_cancel (timeout_task);
-      timeout_task = GNUNET_SCHEDULER_NO_TASK;
+      GNUNET_SCHEDULER_cancel (timeout_endbadly);
+      timeout_endbadly = GNUNET_SCHEDULER_NO_TASK;
   }
-  timeout_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+  timeout_endbadly = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
 }
 
 
@@ -309,11 +319,13 @@ address_pretty_printer_cb (void *cls, const char *buf)
     got_reply = GNUNET_YES;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Pretty address : `%s'\n", buf);
+    pretty_printers_running --;
   }
   else
   {
       if (GNUNET_NO == got_reply)
       {
+          pretty_printers_running --;
           GNUNET_break (0);
           end_badly_now ();
       }
@@ -345,6 +357,7 @@ env_notify_address (void *cls,
       memcpy (w->addr, addr, addrlen);
       GNUNET_CONTAINER_DLL_insert(head, tail, w);
       got_reply = GNUNET_NO;
+      pretty_printers_running ++;
       api->address_pretty_printer (api->cls, plugin, addr, addrlen,
                                     GNUNET_YES, GNUNET_TIME_UNIT_MINUTES,
                                     &address_pretty_printer_cb,
@@ -398,7 +411,9 @@ env_notify_address (void *cls,
           GNUNET_SCHEDULER_cancel (timeout_wait);
           timeout_wait = GNUNET_SCHEDULER_NO_TASK;
       }
+
       timeout_wait = GNUNET_SCHEDULER_add_delayed (WAIT, &wait_end, NULL);
+
   }
   else if (GNUNET_NO == add_remove)
   {
@@ -507,7 +522,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   char *plugin;
   char *sep;
 
-  timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, end_badly, &ok);
+  timeout_endbadly = GNUNET_SCHEDULER_add_delayed (TIMEOUT, end_badly, &ok);
 
   cfg = c;
   /* parse configuration */
@@ -580,7 +595,6 @@ run (void *cls, char *const *args, const char *cfgfile,
                                        NULL);
   }
 
-
   /* Loading plugin */
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading transport plugin %s\n"), plugin);
   GNUNET_asprintf (&libname, "libgnunet_plugin_transport_%s", plugin);
@@ -641,6 +655,7 @@ run (void *cls, char *const *args, const char *cfgfile,
       end_badly_now ();
       return;
   }
+
 }
 
 
