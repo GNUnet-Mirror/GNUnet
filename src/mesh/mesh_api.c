@@ -1156,11 +1156,13 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  ignored!\n");
     return GNUNET_YES;
   }
-    if (GNUNET_YES ==
-        GMC_is_pid_bigger(pid, t->max_recv_pid))
+  if (GNUNET_YES ==
+      GMC_is_pid_bigger(pid, t->max_recv_pid))
   {
     GNUNET_break (0);
-    LOG (GNUNET_ERROR_TYPE_WARNING, "  unauthorized message!\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "  unauthorized message! (%u, max %u)\n",
+         pid, t->max_recv_pid);
     // FIXME fc what now? accept? reject?
     return GNUNET_YES;
   }
