@@ -996,13 +996,16 @@ route_list_add (struct Route *route)
 static void
 slave_list_add (struct Slave *slave)
 {
+  uint32_t orig_size;
+
+  orig_size = slave_list_size;  
   if (slave->host_id >= slave_list_size)
   {
+    while (slave->host_id >= slave_list_size)
+      slave_list_size += LIST_GROW_STEP;
     slave_list =
-        TESTBED_realloc (slave_list, sizeof (struct Slave *) * slave_list_size,
-                         sizeof (struct Slave *) * (slave_list_size +
-                                                    LIST_GROW_STEP));
-    slave_list_size += LIST_GROW_STEP;
+        TESTBED_realloc (slave_list, sizeof (struct Slave *) * orig_size,
+                         sizeof (struct Slave *) * slave_list_size);
   }
   GNUNET_assert (NULL == slave_list[slave->host_id]);
   slave_list[slave->host_id] = slave;
