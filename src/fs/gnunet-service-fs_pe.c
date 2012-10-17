@@ -748,7 +748,8 @@ GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr)
       plan_count--;
       GNUNET_break (GNUNET_YES ==
                     GNUNET_CONTAINER_multihashmap_remove (rp->pp->plan_map,
-                                                          get_rp_key (rp),
+							  &GSF_pending_request_get_data_
+							  (rpr->prl->pr)->query,
                                                           rp));
       GNUNET_free (rp);
     }
