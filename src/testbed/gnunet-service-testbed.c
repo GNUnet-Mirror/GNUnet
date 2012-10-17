@@ -58,7 +58,7 @@
 /**
  * Default timeout for operations which may take some time
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60)
 
 /**
  * The main context information associated with the client which started us
@@ -2320,6 +2320,11 @@ handle_peer_destroy (void *cls, struct GNUNET_SERVER_Client *client,
                                       fopc);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
+  }
+  if (GNUNET_YES == peer->details.local.is_running)
+  {
+    GNUNET_TESTING_peer_stop (peer->details.local.peer);
+    peer->details.local.is_running = GNUNET_NO;
   }
   GNUNET_TESTING_peer_destroy (peer->details.local.peer);
   GNUNET_CONFIGURATION_destroy (peer->details.local.cfg);
