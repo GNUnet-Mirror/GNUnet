@@ -1838,6 +1838,10 @@ read_process_ack (struct Plugin *plugin,
                         "# bytes payload transmitted via UDP",
                         s->frag_ctx->payload_size, GNUNET_NO);
 
+  GNUNET_STATISTICS_update (plugin->env->stats,
+                        "# fragmented messages transmit with success via UDP",
+                        1, GNUNET_NO);
+
   if (s->frag_ctx->on_wire_size >= s->frag_ctx->payload_size)
   {
       GNUNET_STATISTICS_update (plugin->env->stats,
