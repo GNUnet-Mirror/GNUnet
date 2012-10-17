@@ -1674,6 +1674,7 @@ ack_proc (void *cls, uint32_t id, const struct GNUNET_MessageHeader *msg)
        delay);
   udpw = GNUNET_malloc (sizeof (struct UDP_MessageWrapper) + msize);
   udpw->msg_size = msize;
+  udpw->payload_size = 0;
   udpw->session = s;
   udpw->timeout = GNUNET_TIME_UNIT_FOREVER_ABS;
   udpw->msg_buf = (char *)&udpw[1];
@@ -1805,7 +1806,6 @@ read_process_ack (struct Plugin *plugin,
                             "# bytes overhead transmitted via UDP",
                             s->frag_ctx->on_wire_size - s->frag_ctx->payload_size, GNUNET_NO);
   }
-
 
   if (s->frag_ctx->cont != NULL)
   {
@@ -1981,7 +1981,7 @@ remove_timeout_messages_and_select (struct UDP_MessageWrapper *head,
     if (GNUNET_TIME_UNIT_ZERO.rel_value == remaining.rel_value)
     {
       /* Message timed out */
-      call_continuation(udpw, GNUNET_SYSERR);
+      call_continuation (udpw, GNUNET_SYSERR);
       if (NULL == udpw->frag_ctx)
       {
         /* Not fragmented message */
