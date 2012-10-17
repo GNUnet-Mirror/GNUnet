@@ -4005,7 +4005,10 @@ tunnel_send_child_bck_ack (void *cls,
     return;
   }
 
-  cinfo->bck_ack++; // FIXME fc window size?
+  cinfo->bck_ack = t->bck_queue_max - t->bck_queue_n + cinfo->bck_pid;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "    Sending BCK ACK %u\n",
+              cinfo->bck_ack);
   send_ack (t, &peer, cinfo->bck_ack);
 }
 
