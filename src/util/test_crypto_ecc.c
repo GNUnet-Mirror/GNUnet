@@ -39,147 +39,6 @@ static struct GNUNET_CRYPTO_EccPrivateKey *key;
 
 
 static int
-testEncryptDecrypt ()
-{
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
-  struct GNUNET_CRYPTO_EccEncryptedData target;
-  char result[MAX_TESTVAL];
-  int i;
-  struct GNUNET_TIME_Absolute start;
-  int ok;
-
-  FPRINTF (stderr, "%s",  "W");
-  GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
-  ok = 0;
-  start = GNUNET_TIME_absolute_get ();
-  for (i = 0; i < ITER; i++)
-  {
-    FPRINTF (stderr, "%s",  ".");
-    if (GNUNET_SYSERR ==
-        GNUNET_CRYPTO_ecc_encrypt (TESTSTRING, strlen (TESTSTRING) + 1, &pkey,
-                                   &target))
-    {
-      FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_ecc_encrypt returned SYSERR\n");
-      ok++;
-      continue;
-    }
-    if (-1 ==
-        GNUNET_CRYPTO_ecc_decrypt (key, &target, result,
-                                   strlen (TESTSTRING) + 1))
-    {
-      FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_ecc_decrypt returned SYSERR\n");
-      ok++;
-      continue;
-
-    }
-    if (strncmp (TESTSTRING, result, strlen (TESTSTRING)) != 0)
-    {
-      printf ("%s != %.*s - testEncryptDecrypt failed!\n", TESTSTRING,
-              (int) MAX_TESTVAL, result);
-      ok++;
-      continue;
-    }
-  }
-  printf ("%d ECC encrypt/decrypt operations %s (%d failures)\n", 
-	  ITER,
-          GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start), GNUNET_YES), 
-	  ok);
-  if (ok == 0)
-    return GNUNET_OK;
-  return GNUNET_SYSERR;
-}
-
-
-#if PERF
-static int
-testEncryptPerformance ()
-{
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
-  struct GNUNET_CRYPTO_EccEncryptedData target;
-  int i;
-  struct GNUNET_TIME_Absolute start;
-  int ok;
-
-  FPRINTF (stderr, "%s",  "W");
-  GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
-  ok = 0;
-  start = GNUNET_TIME_absolute_get ();
-  for (i = 0; i < ITER; i++)
-  {
-    FPRINTF (stderr, "%s",  ".");
-    if (GNUNET_SYSERR ==
-        GNUNET_CRYPTO_ecc_encrypt (TESTSTRING, strlen (TESTSTRING) + 1, &pkey,
-                                   &target))
-    {
-      FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_ecc_encrypt returned SYSERR\n");
-      ok++;
-      continue;
-    }
-  }
-  printf ("%d ECC encrypt operations %llu ms (%d failures)\n", ITER,
-          (unsigned long long)
-          GNUNET_TIME_absolute_get_duration (start).rel_value, ok);
-  if (ok != 0)
-    return GNUNET_SYSERR;
-  return GNUNET_OK;
-}
-#endif
-
-static int
-testEncryptDecryptSK ()
-{
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
-  struct GNUNET_CRYPTO_EccEncryptedData target;
-  struct GNUNET_CRYPTO_AesSessionKey insk;
-  struct GNUNET_CRYPTO_AesSessionKey outsk;
-  int i;
-  struct GNUNET_TIME_Absolute start;
-  int ok;
-
-  FPRINTF (stderr, "%s",  "W");
-  GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
-  ok = 0;
-  start = GNUNET_TIME_absolute_get ();
-  for (i = 0; i < ITER; i++)
-  {
-    FPRINTF (stderr, "%s",  ".");
-    GNUNET_CRYPTO_aes_create_session_key (&insk);
-    if (GNUNET_SYSERR ==
-        GNUNET_CRYPTO_ecc_encrypt (&insk,
-                                   sizeof (struct GNUNET_CRYPTO_AesSessionKey),
-                                   &pkey, &target))
-    {
-      FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_ecc_encrypt returned SYSERR\n");
-      ok++;
-      continue;
-    }
-    if (-1 ==
-        GNUNET_CRYPTO_ecc_decrypt (key, &target, &outsk,
-                                   sizeof (struct GNUNET_CRYPTO_AesSessionKey)))
-    {
-      FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_ecc_decrypt returned SYSERR\n");
-      ok++;
-      continue;
-    }
-    if (0 !=
-        memcmp (&insk, &outsk, sizeof (struct GNUNET_CRYPTO_AesSessionKey)))
-    {
-      printf ("testEncryptDecryptSK failed!\n");
-      ok++;
-      continue;
-    }
-  }
-  printf ("%d ECC encrypt/decrypt SK operations %s (%d failures)\n", 
-	  ITER,
-          GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start), GNUNET_YES), 
-	  ok);
-  if (ok != 0)
-    return GNUNET_SYSERR;
-  return GNUNET_OK;
-}
-
-
-static int
 testSignVerify ()
 {
   struct GNUNET_CRYPTO_EccSignature sig;
@@ -330,15 +189,9 @@ main (int argc, char *argv[])
     failureCount++;
   GNUNET_SCHEDULER_run (&test_async_creation, NULL);
 #if PERF
-  if (GNUNET_OK != testEncryptPerformance ())
-    failureCount++;
   if (GNUNET_OK != testSignPerformance ())
     failureCount++;
 #endif
-  if (GNUNET_OK != testEncryptDecryptSK ())
-    failureCount++;
-  if (GNUNET_OK != testEncryptDecrypt ())
-    failureCount++;
   if (GNUNET_OK != testSignVerify ())
     failureCount++;
   GNUNET_CRYPTO_ecc_key_free (key);

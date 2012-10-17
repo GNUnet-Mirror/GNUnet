@@ -386,14 +386,28 @@ ecc_key_create ()
   struct GNUNET_CRYPTO_EccPrivateKey *ret;
   gcry_sexp_t s_key;
   gcry_sexp_t s_keyparam;
+  int rc;
 
-  GNUNET_assert (0 ==
-                 gcry_sexp_build (&s_keyparam, NULL,
-                                  "(genkey(ecc(curve \"" CURVE "\")))"));
-  GNUNET_assert (0 == gcry_pk_genkey (&s_key, s_keyparam));
+  if (0 != (rc = gcry_sexp_build (&s_keyparam, NULL,
+                                  "(genkey(ecdsa(curve 10:NIST P-521)))")))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+    return NULL;
+  }
+  if (0 != (rc = gcry_pk_genkey (&s_key, s_keyparam)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_genkey", rc);
+    gcry_sexp_release (s_keyparam);
+    return NULL;
+  }
   gcry_sexp_release (s_keyparam);
 #if EXTRA_CHECKS
-  GNUNET_assert (0 == gcry_pk_testkey (s_key));
+  if (0 != (rc = gcry_pk_testkey (s_key)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
+    gcry_sexp_release (s_key);
+    return NULL;
+  }
 #endif
   ret = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EccPrivateKey));
   ret->sexp = s_key;
@@ -923,111 +937,6 @@ GNUNET_CRYPTO_ecc_setup_hostkey (const char *cfg_name)
     GNUNET_free (fn);
   }
   GNUNET_CONFIGURATION_destroy (cfg);
-}
-
-
-/**
- * Encrypt a block with the public key of another host that uses the
- * same cipher.
- *
- * @param block the block to encrypt
- * @param size the size of block
- * @param publicKey the encoded public key used to encrypt
- * @param target where to store the encrypted block
- * @returns GNUNET_SYSERR on error, GNUNET_OK if ok
- */
-int
-GNUNET_CRYPTO_ecc_encrypt (const void *block, size_t size,
-                           const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded
-                           *publicKey,
-                           struct GNUNET_CRYPTO_EccEncryptedData *target)
-{
-  gcry_sexp_t result;
-  gcry_sexp_t data;
-  gcry_sexp_t psexp;
-  gcry_mpi_t val;
-  size_t isize;
-  size_t erroff;
-
-  GNUNET_assert (size <= sizeof (struct GNUNET_HashCode));
-  if (! (psexp = decode_public_key (publicKey)))
-    return GNUNET_SYSERR;
-  isize = size;
-  GNUNET_assert (0 ==
-                 gcry_mpi_scan (&val, GCRYMPI_FMT_USG, block, isize, &isize));
-  GNUNET_assert (0 ==
-                 gcry_sexp_build (&data, &erroff,
-                                  "(data (flags pkcs1)(value %m))", val));
-  gcry_mpi_release (val);
-  GNUNET_assert (0 == gcry_pk_encrypt (&result, data, psexp));
-  gcry_sexp_release (data);
-  gcry_sexp_release (psexp);
-  isize = gcry_sexp_sprint (result, 
-			    GCRYSEXP_FMT_DEFAULT,
-			    target->encoding,
-			    GNUNET_CRYPTO_ECC_DATA_ENCODING_LENGTH);
-  if (0 == isize)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  target->size = htons ((uint16_t) (isize + sizeof (uint16_t)));
-  /* padd with zeros */
-  memset (&target->encoding[isize], 0, GNUNET_CRYPTO_ECC_DATA_ENCODING_LENGTH - isize);
-  return GNUNET_OK;
-}
-
-
-/**
- * Decrypt a given block with the hostkey.
- *
- * @param key the key with which to decrypt this block
- * @param block the data to decrypt, encoded as returned by encrypt
- * @param result pointer to a location where the result can be stored
- * @param max the maximum number of bits to store for the result, if
- *        the decrypted block is bigger, an error is returned
- * @return the size of the decrypted block, -1 on error
- */
-ssize_t
-GNUNET_CRYPTO_ecc_decrypt (const struct GNUNET_CRYPTO_EccPrivateKey *key,
-                           const struct GNUNET_CRYPTO_EccEncryptedData *block,
-                           void *result, size_t max)
-{
-  gcry_sexp_t resultsexp;
-  gcry_sexp_t data;
-  size_t erroff;
-  size_t size;
-  gcry_mpi_t val;
-  unsigned char *endp;
-
-#if EXTRA_CHECKS
-  GNUNET_assert (0 == gcry_pk_testkey (key->sexp));
-#endif
-  size = ntohs (block->size);
-  if (size < sizeof (uint16_t))
-    return -1;
-  GNUNET_assert (0 ==
-                 gcry_sexp_sscan (&data,
-				  &erroff,
-				  block->encoding, size - sizeof (uint16_t)));
-  GNUNET_assert (0 == gcry_pk_decrypt (&resultsexp, data, key->sexp));
-  gcry_sexp_release (data);
-  /* resultsexp has format "(value %m)" */
-  GNUNET_assert (NULL !=
-                 (val = gcry_sexp_nth_mpi (resultsexp, 1, GCRYMPI_FMT_USG)));
-  gcry_sexp_release (resultsexp);
-  size = max + GNUNET_CRYPTO_ECC_DATA_ENCODING_LENGTH * 2;
-  {
-    unsigned char tmp[size];
-
-    GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG, tmp, size, &size, val));
-    gcry_mpi_release (val);
-    endp = tmp;
-    endp += (size - max);
-    size = max;
-    memcpy (result, endp, size);
-  }
-  return size;
 }
 
 

@@ -270,7 +270,7 @@ struct GNUNET_CRYPTO_EccSignaturePurpose
 struct GNUNET_CRYPTO_EccSignature
 {
   /**
-   * Overall size of the encrypted data.
+   * Overall size of the signature data.
    */
   uint16_t size;
 
@@ -315,23 +315,6 @@ struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded
 
   /* FIXME: consider defining padding to make this a fixed-size struct */
 
-};
-
-
-/**
- * ECC Encrypted data.
- */
-struct GNUNET_CRYPTO_EccEncryptedData
-{
-  /**
-   * Overall size of the encrypted data.
-   */
-  uint16_t size;
-
-  /**
-   * S-expression, padded with zeros.
-   */
-  char encoding[GNUNET_CRYPTO_ECC_DATA_ENCODING_LENGTH];
 };
 
 
@@ -1322,39 +1305,6 @@ GNUNET_CRYPTO_ecc_key_create_stop (struct GNUNET_CRYPTO_EccKeyGenerationContext 
  */
 void
 GNUNET_CRYPTO_ecc_setup_hostkey (const char *cfg_name);
-
-
-/**
- * Encrypt a block with the public key of another host that uses the
- * same cipher.
- *
- * @param block the block to encrypt
- * @param size the size of block
- * @param publicKey the encoded public key used to encrypt
- * @param target where to store the encrypted block
- * @returns GNUNET_SYSERR on error, GNUNET_OK if ok
- */
-int
-GNUNET_CRYPTO_ecc_encrypt (const void *block, size_t size,
-                           const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded
-                           *publicKey,
-                           struct GNUNET_CRYPTO_EccEncryptedData *target);
-
-
-/**
- * Decrypt a given block with the hostkey.
- *
- * @param key the key with which to decrypt this block
- * @param block the data to decrypt, encoded as returned by encrypt
- * @param result pointer to a location where the result can be stored
- * @param max the maximum number of bits to store for the result, if
- *        the decrypted block is bigger, an error is returned
- * @return the size of the decrypted block, -1 on error
- */
-ssize_t
-GNUNET_CRYPTO_ecc_decrypt (const struct GNUNET_CRYPTO_EccPrivateKey *key,
-                           const struct GNUNET_CRYPTO_EccEncryptedData *block,
-                           void *result, size_t max);
 
 
 /**
