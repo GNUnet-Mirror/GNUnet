@@ -128,16 +128,6 @@ static struct GNUNET_TESTBED_ControllerProc *master_proc;
  */
 static struct GNUNET_TESTBED_Controller *master_ctrl;
 
-/**
- * Slave host IP addresses
- */
-
-static char *slave_ips[NUM_HOSTS] = { "192.168.1.33", "192.168.1.34" };
-
-/**
- * The slave hosts
- */
-struct GNUNET_TESTBED_Host *slave_hosts[NUM_HOSTS];
 
 /**
  * Slave host registration handles
@@ -149,6 +139,44 @@ static struct GNUNET_TESTBED_HostRegistrationHandle *rh;
  * Handle to global configuration
  */
 static struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
+ * Structure for storing host handles
+ */
+struct Host
+{
+  /**
+   * IP address of this host.
+   */
+  char *ip;
+
+  /**
+   * Host handle.
+   */
+  struct GNUNET_TESTBED_Host *host;
+
+  /**
+   * Registration state of this host.
+   */
+  int host_registered;
+
+  /**
+   * Operation handle.
+   */
+  struct GNUNET_TESTBED_Operation *op;
+
+  /**
+   * Host state.
+   */
+  enum SetupState state;
+};
+
+/**
+ * List of slaves.
+ */
+static struct Host slaves[NUM_HOSTS] = { {"192.168.1.33", NULL, 0, NULL, INIT},
+{"192.168.1.34", NULL, 0, NULL, INIT}
+};
 
 /**
  * Structure for holding peer's handles.
@@ -242,10 +270,9 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *         (can be NULL -- that's not an error)
  */
 void *
-mesh_inbound_tunnel_handler (void *cls,
-                             struct GNUNET_MESH_Tunnel * tunnel,
-                             const struct GNUNET_PeerIdentity * initiator,
-                             const struct GNUNET_ATS_Information * atsi)
+mesh_inbound_tunnel_handler (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
+                             const struct GNUNET_PeerIdentity *initiator,
+                             const struct GNUNET_ATS_Information *atsi)
 {
   return NULL;
 }
@@ -264,8 +291,8 @@ mesh_inbound_tunnel_handler (void *cls,
  *                   with the tunnel is stored
  */
 void
-mesh_tunnel_end_handler (void *cls,
-                         const struct GNUNET_MESH_Tunnel *tunnel, void *tunnel_ctx)
+mesh_tunnel_end_handler (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
+                         void *tunnel_ctx)
 {
 
 }
@@ -307,7 +334,7 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
 void *
 mesh_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  struct PeerData *peer = (struct PeerData *)cls;
+  struct PeerData *peer = (struct PeerData *) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh connect adapter\n");
 
@@ -319,9 +346,9 @@ mesh_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
     GNUNET_APPLICATION_TYPE_END
   };
 
-  peer->mesh_handle = GNUNET_MESH_connect (cfg, cls,
-                                           &mesh_inbound_tunnel_handler,
-                                           &mesh_tunnel_end_handler, handlers, apptypes);
+  peer->mesh_handle =
+      GNUNET_MESH_connect (cfg, cls, &mesh_inbound_tunnel_handler,
+                           &mesh_tunnel_end_handler, handlers, apptypes);
 
   return NULL;
 }
@@ -369,7 +396,7 @@ peer_start_cb (void *cls, const char *emsg)
       state[cnt] = LINKING_SLAVES;
       op[cnt] =
           GNUNET_TESTBED_get_slave_config ((void *) (long) cnt, master_ctrl,
-                                           slave_hosts[cnt + 1]);
+                                           slaves[cnt + 1].host);
     }
   }
 }
@@ -425,8 +452,9 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Overlay Connected\n");
     for (i = 0; i < TOTAL_PEERS; i++)
     {
-      GNUNET_TESTBED_service_connect (NULL, peers[i].peer, "mesh", &mesh_connect_cb,
-                                      (void *) i, &mesh_ca, &mesh_da, NULL);
+      GNUNET_TESTBED_service_connect (NULL, peers[i].peer, "mesh",
+                                      &mesh_connect_cb, (void *) i, &mesh_ca,
+                                      &mesh_da, NULL);
     }
     break;
   case GNUNET_TESTBED_ET_OPERATION_FINISHED:
@@ -441,25 +469,31 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     switch (state[i])
     {
     case INIT:
+    {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Init: %u\n", i);
       GNUNET_TESTBED_operation_done (event->details.
                                      operation_finished.operation);
       op[i] = NULL;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Operation %u finished\n", i);
       break;
+    }
     case LINKING:
-      GNUNET_TESTBED_operation_done (event->details.
-                                     operation_finished.operation);
-      op[i] = NULL;
+    {
+      GNUNET_assert (NULL != slaves[i].op);
+
+      GNUNET_TESTBED_operation_done (slaves[i].op);
+      slaves[i].op = NULL;
+
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Operation %u finished\n", i);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   Linked host %i\n", i);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   Creating peer...\n");
 
       state[i] = CREATING_PEER;
       op[i] =
-          GNUNET_TESTBED_peer_create (master_ctrl, slave_hosts[i], cfg,
+          GNUNET_TESTBED_peer_create (master_ctrl, slaves[i].host, cfg,
                                       peer_create_cb, (void *) i);
       break;
+    }
     case CREATING_PEER:
     {
       GNUNET_TESTBED_operation_done (event->details.
@@ -484,7 +518,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       state[i] = LINKING_SLAVES_SUCCESS;
       op[i] =
           GNUNET_TESTBED_controller_link ((void *) (long) i, master_ctrl,
-                                          slave_hosts[i + 1], slave_hosts[i],
+                                          slaves[i + 1].host, slaves[i].host,
                                           slave_cfg, GNUNET_NO);
       GNUNET_CONFIGURATION_destroy (slave_cfg);
       break;
@@ -506,7 +540,8 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
         peer_handles[peer_cnt] = peers[peer_cnt].peer;
       }
       op[0] =
-          GNUNET_TESTBED_overlay_configure_topology (NULL, TOTAL_PEERS, peer_handles,
+          GNUNET_TESTBED_overlay_configure_topology (NULL, TOTAL_PEERS,
+                                                     peer_handles,
                                                      GNUNET_TESTBED_TOPOLOGY_LINE);
       GNUNET_assert (NULL != op[0]);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting peers...\n");
@@ -542,25 +577,31 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
 static void
 registration_cont (void *cls, const char *emsg)
 {
-  if (NULL != emsg)
+  struct Host *slave = (struct Host *) cls;
+
+  if (NULL != emsg || NULL == slave)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n", emsg);
     GNUNET_assert (0);
   }
+
   state[host_registered] = LINKING;
+  slave->state = LINKING;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Linking host %u\n", host_registered);
-  op[host_registered] =
+  slave->op =
       GNUNET_TESTBED_controller_link ((void *) (long) host_registered,
-                                      master_ctrl, slave_hosts[host_registered],
-                                      NULL, cfg, GNUNET_YES);
+                                      master_ctrl, slave->host, NULL, cfg,
+                                      GNUNET_YES);
   host_registered++;
   if (NUM_HOSTS != host_registered)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Registering host %u\n",
-                host_registered);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Registering host %u with ip %s\n",
+                host_registered, slaves[host_registered].ip);
     rh = GNUNET_TESTBED_register_host (master_ctrl,
-                                       slave_hosts[host_registered],
-                                       &registration_cont, NULL);
+                                       slaves[host_registered].host,
+                                       &registration_cont,
+                                       &slaves[host_registered]);
     return;
   }
 }
@@ -600,15 +641,16 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config,
 
   for (i = 0; i < NUM_HOSTS; i++)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Creating host %u\n", i);
-    slave_hosts[i] = GNUNET_TESTBED_host_create (slave_ips[i], NULL, 0);
-    GNUNET_assert (NULL != slave_hosts[i]);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Creating host %u with ip %s\n", i,
+                slaves[i].ip);
+    slaves[i].host = GNUNET_TESTBED_host_create (slaves[i].ip, NULL, 0);
+    GNUNET_assert (NULL != slaves[i].host);
   }
   host_registered = 0;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Registering host %u\n",
-              host_registered);
-  rh = GNUNET_TESTBED_register_host (master_ctrl, slave_hosts[0],
-                                     &registration_cont, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Registering host %u with ip %s\n",
+              host_registered, slaves[0].ip);
+  rh = GNUNET_TESTBED_register_host (master_ctrl, slaves[0].host,
+                                     &registration_cont, &slaves[0]);
   GNUNET_assert (NULL != rh);
 }
 
@@ -668,7 +710,7 @@ main (int argc, char **argv)
   for (i = 0; i < NUM_HOSTS; i++)
   {
     char *const remote_args[] = {
-      "ssh", "-o", "BatchMode=yes", slave_ips[i],
+      "ssh", "-o", "BatchMode=yes", slaves[i].ip,
       "gnunet-helper-testbed --help > /dev/null", NULL
     };
     struct GNUNET_OS_Process *auxp;
@@ -693,7 +735,7 @@ main (int argc, char **argv)
     {
       fprintf (stderr,
                "Unable to run the test as this system is not configured "
-               "to use password less SSH logins to host %s.\n", slave_ips[i]);
+               "to use password less SSH logins to host %s.\n", slaves[i].ip);
       test_hosts = GNUNET_SYSERR;
     }
   }
@@ -708,7 +750,8 @@ main (int argc, char **argv)
 
   ret =
       GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                          "gnunet-regex-profiler", "nohelp", options, &run, NULL);
+                          "gnunet-regex-profiler", "nohelp", options, &run,
+                          NULL);
 
   fprintf (stderr, "END.\n");
 
