@@ -22,15 +22,7 @@
  * @file util/crypto_rsa.c
  * @brief public key cryptography (RSA) with libgcrypt
  * @author Christian Grothoff
- *
- * Note that the code locks often needlessly on the gcrypt-locking api.
- * One would think that simple MPI operations should not require locking
- * (since only global operations on the random pool must be locked,
- * strictly speaking).  But libgcrypt does sometimes require locking in
- * unexpected places, so the safe solution is to always lock even if it
- * is not required.  The performance impact is minimal anyway.
  */
-
 #include "platform.h"
 #include <gcrypt.h>
 #include "gnunet_common.h"
@@ -42,6 +34,10 @@
 
 #define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
 
+#define HOSTKEY_LEN 2048
+
+#define EXTRA_CHECKS ALLOW_EXTRA_CHECKS
+
 
 /**
  * The private information of an RSA key pair.
@@ -49,14 +45,11 @@
  */
 struct GNUNET_CRYPTO_RsaPrivateKey
 {
+  /**
+   * Libgcrypt S-expression for the ECC key.
+   */
   gcry_sexp_t sexp;
 };
-
-
-#define HOSTKEY_LEN 2048
-
-#define EXTRA_CHECKS ALLOW_EXTRA_CHECKS
-
 
 /**
  * Log an error message at log-level 'level' that indicates
@@ -69,6 +62,10 @@ struct GNUNET_CRYPTO_RsaPrivateKey
  * If target != size, move target bytes to the
  * end of the size-sized buffer and zero out the
  * first target-size bytes.
+ *
+ * @param buf original buffer
+ * @param size number of bytes in the buffer
+ * @param target target size of the buffer
  */
 static void
 adjust (unsigned char *buf, size_t size, size_t target)
@@ -94,34 +91,37 @@ GNUNET_CRYPTO_rsa_key_free (struct GNUNET_CRYPTO_RsaPrivateKey *hostkey)
 
 
 /**
- * FIXME: document!
+ * Extract values from an S-expression.
+ *
+ * @param array where to store the result(s)
+ * @param sexp S-expression to parse
+ * @param topname top-level name in the S-expression that is of interest
+ * @param elems names of the elements to extract
+ * @return 0 on success
  */
 static int
 key_from_sexp (gcry_mpi_t * array, gcry_sexp_t sexp, const char *topname,
                const char *elems)
 {
-  gcry_sexp_t list, l2;
+  gcry_sexp_t list;
+  gcry_sexp_t l2;
   const char *s;
-  int i, idx;
+  unsigned int i;
+  unsigned int idx;
 
   list = gcry_sexp_find_token (sexp, topname, 0);
-  if (!list)
-  {
-    return 1;
-  }
+  if (! list)  
+    return 1;  
   l2 = gcry_sexp_cadr (list);
   gcry_sexp_release (list);
   list = l2;
-  if (!list)
-  {
+  if (! list)  
     return 2;
-  }
-
   idx = 0;
   for (s = elems; *s; s++, idx++)
   {
     l2 = gcry_sexp_find_token (list, s, 1);
-    if (!l2)
+    if (! l2)
     {
       for (i = 0; i < idx; i++)
       {
@@ -133,7 +133,7 @@ key_from_sexp (gcry_mpi_t * array, gcry_sexp_t sexp, const char *topname,
     }
     array[idx] = gcry_sexp_nth_mpi (l2, 1, GCRYMPI_FMT_USG);
     gcry_sexp_release (l2);
-    if (!array[idx])
+    if (! array[idx])
     {
       for (i = 0; i < idx; i++)
       {
@@ -147,6 +147,7 @@ key_from_sexp (gcry_mpi_t * array, gcry_sexp_t sexp, const char *topname,
   gcry_sexp_release (list);
   return 0;
 }
+
 
 /**
  * Extract the public key of the host.
