@@ -145,6 +145,16 @@ struct SendCallbackContext
    * Target of the message.
    */
   struct GNUNET_PeerIdentity target;
+
+  /**
+   * Payload size in bytes
+   */
+  size_t payload_size;
+
+  /**
+   * DV message size
+   */
+  size_t msg_size;
 };
 
 /**
@@ -416,11 +426,13 @@ handle_message_receipt (void *cls, const struct GNUNET_MessageHeader *msg)
     {
       if (ntohl (send_result_msg->result) == 0)
       {
-        send_ctx->cont (send_ctx->cont_cls, &send_ctx->target, GNUNET_OK);
+        send_ctx->cont (send_ctx->cont_cls, &send_ctx->target, GNUNET_OK,
+                        send_ctx->payload_size, send_ctx->msg_size);
       }
       else
       {
-        send_ctx->cont (send_ctx->cont_cls, &send_ctx->target, GNUNET_SYSERR);
+        send_ctx->cont (send_ctx->cont_cls, &send_ctx->target, GNUNET_SYSERR,
+                        send_ctx->payload_size, 0);
       }
     }
     GNUNET_free_non_null (send_ctx);
@@ -484,6 +496,8 @@ GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
   memcpy (end_of_message, msgbuf, msgbuf_size);
   add_pending (dv_handle, msg);
   send_ctx = GNUNET_malloc (sizeof (struct SendCallbackContext));
+  send_ctx->payload_size = msgbuf_size;
+  send_ctx->msg_size = msize;
   send_ctx->cont = cont;
   send_ctx->cont_cls = cont_cls;
   memcpy (&send_ctx->target, target, sizeof (struct GNUNET_PeerIdentity));
