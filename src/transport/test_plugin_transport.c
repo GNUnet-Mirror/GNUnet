@@ -43,6 +43,8 @@
 #define WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
+#define HOSTKEY_FILE "test_plugin_hostkey"
+
 /**
  * Our public key.
  */
@@ -547,6 +549,23 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
 
+  if (GNUNET_OK != GNUNET_DISK_file_test (HOSTKEY_FILE))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Hostkey `%s' missing.  Exiting.\n"),
+                  HOSTKEY_FILE);
+  }
+
+  if (GNUNET_OK !=  GNUNET_DISK_file_copy (HOSTKEY_FILE, keyfile))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Could not copy hostkey `%s' to destination `%s'.  Exiting.\n"),
+                  HOSTKEY_FILE, keyfile);
+      end_badly_now ();
+      return;
+  }
+
+
   max_connect_per_transport = (uint32_t) tneigh;
   my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
@@ -673,6 +692,8 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
+
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-plugin-transport");
 
   char *const argv_prog[] = {
     "test_plugin_transport",

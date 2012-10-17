@@ -839,6 +839,7 @@ test_transport_api_multi_LDADD = \
 
 
 EXTRA_DIST = \
+test_plugin_hostkey \
 gnunet-transport-certificate-creation \
 template_cfg_peer1.conf\
 template_cfg_peer2.conf\
