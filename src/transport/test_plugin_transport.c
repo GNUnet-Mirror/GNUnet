@@ -204,7 +204,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (pretty_printers_running > 0)
   {
-      timeout_endbadly = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS, &end_badly, NULL);
+      timeout_endbadly = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS, &end_badly, &ok);
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _("Have pending calls to pretty_printer ... deferring shutdown\n"));
       return;
