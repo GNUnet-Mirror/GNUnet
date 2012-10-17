@@ -2838,7 +2838,8 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
   else
     cur_len = 0;
 
-  if (cur_len >= min_len && cur_len > 0 && NULL != consumed_string)
+  if ((cur_len >= min_len || GNUNET_YES == state->accepting) && cur_len > 0 &&
+      NULL != consumed_string)
   {
     if (cur_len <= max_len)
     {

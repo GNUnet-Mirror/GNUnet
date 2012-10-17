@@ -28,7 +28,14 @@
 #include "gnunet_regex_lib.h"
 #include "regex_internal.h"
 
+/**
+ * Regex initial padding.
+ */
 #define INITIAL_PADDING "PADPADPADPADPADP"
+
+/**
+ * Set to GNUNET_YES to save a debug graph.
+ */
 #define GNUNET_REGEX_ITERATE_SAVE_DEBUG_GRAPH GNUNET_NO
 
 static unsigned int transition_counter;
