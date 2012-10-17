@@ -1566,6 +1566,7 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle
   unsigned long long max_parallel_operations;
   unsigned long long max_parallel_service_connections;
   unsigned long long max_parallel_topology_config_operations;
+  unsigned long long max_parallel_overlay_connect_operations;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg, "testbed",
@@ -1587,6 +1588,14 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle
       GNUNET_CONFIGURATION_get_value_number (cfg, "testbed",
                                              "MAX_PARALLEL_TOPOLOGY_CONFIG_OPERATIONS",
                                              &max_parallel_topology_config_operations))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testbed",
+                                             "MAX_PARALLEL_OVERLAY_CONNECT_OPERATIONS",
+                                             &max_parallel_overlay_connect_operations))
   {
     GNUNET_break (0);
     return NULL;
@@ -1628,7 +1637,10 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle
                                               max_parallel_service_connections);
   controller->opq_parallel_topology_config_operations=
       GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
-                                              max_parallel_service_connections);
+                                              max_parallel_topology_config_operations);
+  controller->opq_parallel_overlay_connect_operations=
+      GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
+                                              max_parallel_overlay_connect_operations);
   controller_hostname = GNUNET_TESTBED_host_get_hostname_ (host);
   if (NULL == controller_hostname)
     controller_hostname = "127.0.0.1";
@@ -1719,6 +1731,8 @@ GNUNET_TESTBED_controller_disconnect (struct GNUNET_TESTBED_Controller
       (controller->opq_parallel_service_connections);
   GNUNET_TESTBED_operation_queue_destroy_
       (controller->opq_parallel_topology_config_operations);
+  GNUNET_TESTBED_operation_queue_destroy_
+      (controller->opq_parallel_overlay_connect_operations);
   GNUNET_free (controller);
 }
 

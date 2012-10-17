@@ -302,6 +302,11 @@ struct GNUNET_TESTBED_Controller
   struct OperationQueue *opq_parallel_topology_config_operations;
 
   /**
+   * Operation queue for simultaneous overlay connect operations
+   */
+  struct OperationQueue *opq_parallel_overlay_connect_operations;
+
+  /**
    * The operation id counter. use current value and increment
    */
   uint32_t operation_counter;
