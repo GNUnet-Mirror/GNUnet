@@ -3997,11 +3997,15 @@ tunnel_send_child_bck_ack (void *cls,
   GNUNET_PEER_resolve (id, &peer);
   cinfo = tunnel_get_neighbor_fc (t, &peer);
 
-  if (cinfo->bck_ack != cinfo->fwd_pid &&
-      GNUNET_NO == GMC_is_pid_bigger (cinfo->bck_ack, cinfo->fwd_pid))
+  if (cinfo->bck_ack != cinfo->bck_pid &&
+      GNUNET_NO == GMC_is_pid_bigger (cinfo->bck_ack, cinfo->bck_pid))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "    Not sending ACK, not needed\n");
     return;
+  }
 
-  cinfo->bck_ack++; // FIXME window size?
+  cinfo->bck_ack++; // FIXME fc window size?
   send_ack (t, &peer, cinfo->bck_ack);
 }
 
@@ -5104,7 +5108,8 @@ queue_add (void *cls, uint16_t type, size_t size,
     n = &t->bck_queue_n;
     max = &t->bck_queue_max;
   }
-  if (NULL != n) {
+  if (NULL != n)
+  {
     if (*n >= *max)
     {
       struct MeshTransmissionDescriptor *td = cls;
