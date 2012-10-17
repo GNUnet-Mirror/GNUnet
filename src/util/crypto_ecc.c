@@ -25,9 +25,6 @@
  *
  * This is just a first, completely untested, draft hack for future ECC support.
  * TODO:
- * - declare public API in gnunet_crypto_lib (move some structs, etc.)
- * - implement gnunet-ecc binary
- * - convert existing RSA testcases
  * - adjust encoding length and other parameters
  * - actually test it!
  */
