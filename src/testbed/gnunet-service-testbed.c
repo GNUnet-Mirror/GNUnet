@@ -2968,7 +2968,6 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
     struct Route *route_to_peer1_host;
 
     LOG_DEBUG ("Forwarding overlay connect\n");
-    GNUNET_SERVER_client_keep (client);
     route_to_peer2_host = NULL;
     route_to_peer1_host = NULL;
     route_to_peer2_host = find_dest_route (peer2_host_id);
@@ -3048,6 +3047,7 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
       }
     }
     fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+    GNUNET_SERVER_client_keep (client);
     fopc->client = client;
     fopc->operation_id = operation_id;
     fopc->opc = 
