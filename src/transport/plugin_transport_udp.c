@@ -696,16 +696,14 @@ call_continuation (struct UDP_MessageWrapper *udpw, int result)
       "Calling continuation for %u byte message to `%s' with result %s\n",
       udpw->payload_size, GNUNET_i2s (&udpw->session->target),
       (GNUNET_OK == result) ? "OK" : "SYSERR");
-  if (NULL != udpw->cont)
+  if (NULL == udpw->cont)
+    return;
+
+  if (NULL == udpw->frag_ctx)
   {
-    /* Call continuation for fragmented message */
-    /*
-     * Transport continuation for unfragmented message
-     * send_next_fragment for fragmented message
-     */
-    if (NULL == udpw->frag_ctx)
-    {
-        /* Not fragmented message */
+      /* Not fragmented message */
+      if (GNUNET_OK == result)
+      {
         if (udpw->msg_size >= udpw->payload_size)
         {
             GNUNET_STATISTICS_update (plugin->env->stats,
@@ -715,19 +713,20 @@ call_continuation (struct UDP_MessageWrapper *udpw, int result)
         GNUNET_STATISTICS_update (plugin->env->stats,
                               "# bytes payload transmitted via UDP",
                               udpw->payload_size, GNUNET_NO);
-
-        udpw->cont (udpw->cont_cls, &udpw->session->target, result,
-                    udpw->payload_size, udpw->msg_size);
-    }
-    else if (GNUNET_OK == result)
-    {
-        /* Fragmented message: only call next_fragment continuation on success */
-        udpw->cont (udpw->cont_cls, &udpw->session->target, result,
-                    udpw->payload_size, udpw->msg_size);
-    }
-
+      }
+      udpw->cont (udpw->cont_cls, &udpw->session->target, result,
+                  udpw->payload_size, udpw->msg_size);
   }
-
+  else
+  {
+      /* Fragmented message */
+      if (GNUNET_OK == result)
+      {
+          /* Fragmented message: only call next_fragment continuation on success */
+          udpw->cont (udpw->cont_cls, &udpw->session->target, result,
+                      udpw->payload_size, udpw->msg_size);
+      }
+  }
 }
 
 
@@ -1967,64 +1966,55 @@ udp_select_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
   }
 }
 
-
-static size_t
-udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
+static struct UDP_MessageWrapper *
+remove_timeout_messages_and_select (struct UDP_MessageWrapper *head,
+                                    struct GNUNET_NETWORK_Handle *sock)
 {
-  ssize_t sent;
-  size_t slen;
-  struct GNUNET_TIME_Absolute max;
   struct UDP_MessageWrapper *udpw = NULL;
-  static int network_down_error;
+  struct GNUNET_TIME_Relative remaining;
 
-  if (sock == plugin->sockv4)
-  {
-    udpw = plugin->ipv4_queue_head;
-  }
-  else if (sock == plugin->sockv6)
-  {
-    udpw = plugin->ipv6_queue_head;
-  }
-  else
-  {
-    GNUNET_break (0);
-    return 0;
-  }
-
-  const struct sockaddr * sa = udpw->session->sock_addr;
-  slen = udpw->session->addrlen;
-
-  max = GNUNET_TIME_absolute_max (udpw->timeout, GNUNET_TIME_absolute_get());
-
+  udpw = head;
   while (udpw != NULL)
   {
-    if (max.abs_value != udpw->timeout.abs_value)
+    /* Find messages with timeout */
+    remaining = GNUNET_TIME_absolute_get_remaining (udpw->timeout);
+    if (GNUNET_TIME_UNIT_ZERO.rel_value == remaining.rel_value)
     {
       /* Message timed out */
       call_continuation(udpw, GNUNET_SYSERR);
-      if (udpw->frag_ctx != NULL)
+      if (NULL == udpw->frag_ctx)
       {
+        /* Not fragmented message */
         LOG (GNUNET_ERROR_TYPE_DEBUG,
-	     "Fragment for message for peer `%s' with size %u timed out\n",
-	     GNUNET_i2s(&udpw->session->target), udpw->frag_ctx->payload_size);
-        udpw->session->last_expected_delay = GNUNET_FRAGMENT_context_destroy (udpw->frag_ctx->frag);
-        GNUNET_free (udpw->frag_ctx);
-        udpw->session->frag_ctx = NULL;
+             "Message for peer `%s' with size %u timed out\n",
+             GNUNET_i2s(&udpw->session->target), udpw->payload_size);
       }
       else
       {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, 
-	     "Message for peer `%s' with size %u timed out\n",
-	     GNUNET_i2s(&udpw->session->target), udpw->payload_size);
+          /* Fragmented message */
+          LOG (GNUNET_ERROR_TYPE_DEBUG,
+               "Fragment for message for peer `%s' with size %u timed out\n",
+               GNUNET_i2s(&udpw->session->target), udpw->frag_ctx->payload_size);
+          udpw->session->last_expected_delay = GNUNET_FRAGMENT_context_destroy (udpw->frag_ctx->frag);
+          GNUNET_free (udpw->frag_ctx);
+          udpw->session->frag_ctx = NULL;
       }
 
+      GNUNET_STATISTICS_update (plugin->env->stats,
+                                "# bytes currently in UDP buffers",
+                                -udpw->msg_size, GNUNET_NO);
+
+      GNUNET_STATISTICS_update (plugin->env->stats,
+                                "# messages dismissed due to timeout",
+                                1, GNUNET_NO);
+      /* Remove message */
       if (sock == plugin->sockv4)
       {
         GNUNET_CONTAINER_DLL_remove(plugin->ipv4_queue_head, plugin->ipv4_queue_tail, udpw);
         GNUNET_free (udpw);
         udpw = plugin->ipv4_queue_head;
       }
-      else if (sock == plugin->sockv6)
+      if (sock == plugin->sockv6)
       {
         GNUNET_CONTAINER_DLL_remove(plugin->ipv6_queue_head, plugin->ipv6_queue_tail, udpw);
         GNUNET_free (udpw);
@@ -2033,80 +2023,107 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
     }
     else
     {
-      struct GNUNET_TIME_Relative delta = GNUNET_TIME_absolute_get_remaining (udpw->session->flow_delay_from_other_peer);
-      if (delta.rel_value == 0)
+      /* Message did not time out, check flow delay */
+      remaining = GNUNET_TIME_absolute_get_remaining (udpw->session->flow_delay_from_other_peer);
+      if (GNUNET_TIME_UNIT_ZERO.rel_value == remaining.rel_value)
       {
         /* this message is not delayed */
         LOG (GNUNET_ERROR_TYPE_DEBUG, 
-	     "Message for peer `%s' (%u bytes) is not delayed \n",
-	     GNUNET_i2s(&udpw->session->target), udpw->payload_size);
-        break;
+             "Message for peer `%s' (%u bytes) is not delayed \n",
+             GNUNET_i2s(&udpw->session->target), udpw->payload_size);
+        break; /* Found message to send, break */
       }
       else
       {
-        /* this message is delayed, try next */
+        /* Message is delayed, try next */
         LOG (GNUNET_ERROR_TYPE_DEBUG,
-	     "Message for peer `%s' (%u bytes) is delayed for %llu \n",
-	     GNUNET_i2s(&udpw->session->target), udpw->payload_size, delta);
+             "Message for peer `%s' (%u bytes) is delayed for %llu \n",
+             GNUNET_i2s(&udpw->session->target), udpw->payload_size, remaining.rel_value);
         udpw = udpw->next;
       }
     }
   }
+  return udpw;
+}
 
-  if (udpw == NULL)
-  {
-    /* No message left */
-    return 0;
-  }
+
+static void
+analyze_send_error (struct Plugin *plugin,
+                    const struct sockaddr * sa,
+                    socklen_t slen,
+                    int error)
+{
+  static int network_down_error;
+  struct GNUNET_ATS_Information type;
+
+ type = plugin->env->get_address_type (plugin->env->cls,sa, slen);
+ if (((GNUNET_ATS_NET_LAN == ntohl(type.value)) || (GNUNET_ATS_NET_WAN == ntohl(type.value))) &&
+     ((ENETUNREACH == errno) || (ENETDOWN == errno)))
+ {
+   if ((network_down_error == GNUNET_NO) && (slen == sizeof (struct sockaddr_in)))
+   {
+     /* IPv4: "Network unreachable" or "Network down"
+      *
+      * This indicates we do not have connectivity
+      */
+     LOG (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
+         _("UDP could not transmit message to `%s': "
+           "Network seems down, please check your network configuration\n"),
+         GNUNET_a2s (sa, slen));
+   }
+   if ((network_down_error == GNUNET_NO) && (slen == sizeof (struct sockaddr_in6)))
+   {
+     /* IPv6: "Network unreachable" or "Network down"
+      *
+      * This indicates that this system is IPv6 enabled, but does not
+      * have a valid global IPv6 address assigned or we do not have
+      * connectivity
+      */
+
+    LOG (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
+        _("UDP could not transmit message to `%s': "
+          "Please check your network configuration and disable IPv6 if your "
+          "connection does not have a global IPv6 address\n"),
+        GNUNET_a2s (sa, slen));
+   }
+ }
+ else
+ {
+   LOG (GNUNET_ERROR_TYPE_WARNING,
+      "UDP could not transmit message to `%s': `%s'\n",
+      GNUNET_a2s (sa, slen), STRERROR (error));
+ }
+}
+
+static size_t
+udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
+{
+  const struct sockaddr * sa;
+  ssize_t sent;
+  socklen_t slen;
+
+  struct UDP_MessageWrapper *udpw = NULL;
+
+  /* Find message to send */
+  udpw = remove_timeout_messages_and_select ((sock == plugin->sockv4) ? plugin->ipv4_queue_head : plugin->ipv6_queue_head,
+                                             sock);
+  if (NULL == udpw)
+    return 0; /* No message to send */
+
+  sa = udpw->session->sock_addr;
+  slen = udpw->session->addrlen;
 
   sent = GNUNET_NETWORK_socket_sendto (sock, udpw->msg_buf, udpw->msg_size, sa, slen);
 
   if (GNUNET_SYSERR == sent)
   {
-    const struct GNUNET_ATS_Information type = plugin->env->get_address_type
-        (plugin->env->cls,sa, slen);
-
-    if (((GNUNET_ATS_NET_LAN == ntohl(type.value)) || (GNUNET_ATS_NET_WAN == ntohl(type.value))) &&
-        ((ENETUNREACH == errno) || (ENETDOWN == errno)))
-    {
-      if ((network_down_error == GNUNET_NO) && (slen == sizeof (struct sockaddr_in)))
-      {
-        /* IPv4: "Network unreachable" or "Network down"
-         *
-         * This indicates we do not have connectivity
-         */
-        LOG (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
-            _("UDP could not transmit message to `%s': "
-              "Network seems down, please check your network configuration\n"),
-            GNUNET_a2s (sa, slen));
-      }
-      if ((network_down_error == GNUNET_NO) && (slen == sizeof (struct sockaddr_in6)))
-      {
-        /* IPv6: "Network unreachable" or "Network down"
-         *
-         * This indicates that this system is IPv6 enabled, but does not
-         * have a valid global IPv6 address assigned or we do not have
-         * connectivity
-         */
-
-       LOG (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
-           _("UDP could not transmit message to `%s': "
-	     "Please check your network configuration and disable IPv6 if your "
-	     "connection does not have a global IPv6 address\n"),
-	   GNUNET_a2s (sa, slen));
-      }
-    }
-    else
-    {
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-         "UDP could not transmit %u-byte message to `%s': `%s'\n",
-         (unsigned int) (udpw->payload_size), GNUNET_a2s (sa, slen),
-         STRERROR (errno));
-    }
+    /* Failure */
+    analyze_send_error (plugin, sa, slen, errno);
     call_continuation(udpw, GNUNET_SYSERR);
   }
   else
   {
+    /* Success */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "UDP transmitted %u-byte message to  `%s' `%s' (%d: %s)\n",
          (unsigned int) (udpw->msg_size), GNUNET_i2s(&udpw->session->target) ,GNUNET_a2s (sa, slen), (int) sent,
@@ -2115,11 +2132,8 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
                               "# bytes transmitted via UDP",
                               sent, GNUNET_NO);
     if (NULL != udpw->frag_ctx)
-    {
         udpw->frag_ctx->on_wire_size += udpw->msg_size;
-    }
     call_continuation (udpw, GNUNET_OK);
-    network_down_error = GNUNET_NO;
   }
 
   GNUNET_STATISTICS_update (plugin->env->stats,
