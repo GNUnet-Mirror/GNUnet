@@ -28,44 +28,27 @@
 #include <string.h>
 
 #include "platform.h"
+#include "gnunet_applications.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_mesh_service.h"
 #include "gnunet_stream_lib.h"
 #include "gnunet_testbed_service.h"
 
 
+/**
+ * Total number of hosts.
+ */
 #define NUM_HOSTS 2
 
+/**
+ * Number of peers per host.
+ */
 #define PEER_PER_HOST 1
 
+/**
+ * Total number of peers.
+ */
 #define TOTAL_PEERS (NUM_HOSTS * PEER_PER_HOST)
-
-/**
- * Shorthand for Relative time in seconds
- */
-#define TIME_REL_SECS(sec) \
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, sec)
-
-/**
- * Structure for holding peer's sockets and IO Handles
- */
-struct PeerData
-{
-  /**
-   * Handle to testbed peer
-   */
-  struct GNUNET_TESTBED_Peer *peer;
-
-  /**
-   * The service connect operation to stream
-   */
-  struct GNUNET_TESTBED_Operation *op;
-
-  /**
-   * Our Peer id
-   */
-  struct GNUNET_PeerIdentity our_id;
-};
 
 
 /**
@@ -105,8 +88,14 @@ uint64_t event_mask;
  */
 static struct GNUNET_TESTBED_Operation *op[NUM_HOSTS];
 
+/**
+ * Setup state.
+ */
 static enum SetupState state[NUM_HOSTS];
 
+/**
+ * Abort task.
+ */
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
 
 /**
@@ -155,48 +144,78 @@ struct GNUNET_TESTBED_Host *slave_hosts[NUM_HOSTS];
  */
 static struct GNUNET_TESTBED_HostRegistrationHandle *rh;
 
-/**
- * The peers
- */
-struct GNUNET_TESTBED_Peer *peers[TOTAL_PEERS];
 
 /**
  * Handle to global configuration
  */
 static struct GNUNET_CONFIGURATION_Handle *cfg;
 
+/**
+ * Structure for holding peer's handles.
+ */
+struct PeerData
+{
+  /**
+   * Handle to testbed peer.
+   */
+  struct GNUNET_TESTBED_Peer *peer;
+
+  /**
+   * Peer's mesh handle.
+   */
+  struct GNUNET_MESH_Handle *mesh_handle;
+
+  /**
+   * The service connect operation to stream
+   */
+  struct GNUNET_TESTBED_Operation *op;
+
+  /**
+   * Peer setup state.
+   */
+  enum SetupState state;
+
+  /**
+   * Our Peer id
+   */
+  struct GNUNET_PeerIdentity our_id;
+};
 
 /**
- * Completion callback for shutdown
+ * The peers
+ */
+struct PeerData peers[TOTAL_PEERS];
+
+
+
+/**
+ * Close sockets and stop testing deamons nicely
+ */
+void
+do_close (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  unsigned int i;
+
+  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+    GNUNET_SCHEDULER_cancel (abort_task);
+
+  for (i = 0; i < TOTAL_PEERS; i++)
+  {
+    if (NULL != peers[i].mesh_handle)
+      GNUNET_MESH_disconnect (peers[i].mesh_handle);
+    if (NULL != peers[i].op)
+      GNUNET_TESTBED_operation_done (peers[i].op);
+  }
+
+  GNUNET_SCHEDULER_shutdown (); /* For shutting down testbed */
+}
+
+
+/**
+ * Something went wrong and timed out. Kill everything and set error flag.
  *
- * @param cls the closure from GNUNET_STREAM_shutdown call
- * @param operation the operation that was shutdown (SHUT_RD, SHUT_WR,
- *          SHUT_RDWR)
- */
-// static void
-// shutdown_completion (void *cls,
-//                      int operation)
-// {
-//   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "STREAM shutdown successful\n");
-//   GNUNET_SCHEDULER_add_now (&do_close, cls);
-// }
-
-
-
-/**
- * Shutdown sockets gracefully
- */
-// static void
-// do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-// {
-//   result = GNUNET_OK;
-//   peer1.shutdown_handle = GNUNET_STREAM_shutdown (peer1.socket, SHUT_RDWR,
-//                                                   &shutdown_completion, cls);
-// }
-
-
-/**
- * Something went wrong and timed out. Kill everything and set error flag
+ * @param cls close.
+ * @param tc task context.
  */
 static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -208,172 +227,113 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Adapter function called to destroy a connection to
- * a service.
+ * Method called whenever another peer has added us to a tunnel
+ * the other peer initiated.
+ * Only called (once) upon reception of data with a message type which was
+ * subscribed to in GNUNET_MESH_connect. A call to GNUNET_MESH_tunnel_destroy
+ * causes te tunnel to be ignored and no further notifications are sent about
+ * the same tunnel.
  *
  * @param cls closure
- * @param op_result service handle returned from the connect adapter
+ * @param tunnel new handle to the tunnel
+ * @param initiator peer that started the tunnel
+ * @param atsi performance information for the tunnel
+ * @return initial tunnel context for the tunnel
+ *         (can be NULL -- that's not an error)
  */
-// static void
-// stream_da (void *cls, void *op_result)
-// {
-//   struct GNUNET_STREAM_ListenSocket *lsocket;
-//   struct GNUNET_STREAM_Socket *socket;
-//
-//   if (&peer1 == cls)
-//   {
-//     lsocket = op_result;
-//     GNUNET_STREAM_listen_close (lsocket);
-//     GNUNET_TESTBED_operation_done (peer2.op);
-//     return;
-//   }
-//   if (&peer2 == cls)
-//   {
-//     socket = op_result;
-//     GNUNET_STREAM_close (socket);
-//     GNUNET_SCHEDULER_shutdown (); /* Exit point of the test */
-//     return;
-//   }
-//   GNUNET_assert (0);
-// }
+void *
+mesh_inbound_tunnel_handler (void *cls,
+                             struct GNUNET_MESH_Tunnel * tunnel,
+                             const struct GNUNET_PeerIdentity * initiator,
+                             const struct GNUNET_ATS_Information * atsi)
+{
+  return NULL;
+}
 
 
 /**
- * Adapter function called to establish a connection to
- * a service.
+ * Function called whenever an inbound tunnel is destroyed.  Should clean up
+ * any associated state.  This function is NOT called if the client has
+ * explicitly asked for the tunnel to be destroyed using
+ * GNUNET_MESH_tunnel_destroy. It must NOT call GNUNET_MESH_tunnel_destroy on
+ * the tunnel.
  *
- * @param cls closure
- * @param cfg configuration of the peer to connect to; will be available until
- *          GNUNET_TESTBED_operation_done() is called on the operation returned
- *          from GNUNET_TESTBED_service_connect()
- * @return service handle to return in 'op_result', NULL on error
+ * @param cls closure (set from GNUNET_MESH_connect)
+ * @param tunnel connection to the other end (henceforth invalid)
+ * @param tunnel_ctx place where local state associated
+ *                   with the tunnel is stored
  */
-// static void *
-// stream_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
-// {
-//   struct GNUNET_STREAM_ListenSocket *lsocket;
-//
-//   switch (setup_state)
-//   {
-//   case PEER1_STREAM_CONNECT:
-//     lsocket = GNUNET_STREAM_listen (cfg, 10, &stream_listen_cb, NULL,
-//                                     GNUNET_STREAM_OPTION_SIGNAL_LISTEN_SUCCESS,
-//                                     &stream_connect, GNUNET_STREAM_OPTION_END);
-//     return lsocket;
-//   case PEER2_STREAM_CONNECT:
-//     peer2.socket = GNUNET_STREAM_open (cfg, &peer1.our_id, 10, &stream_open_cb,
-//                                        &peer2, GNUNET_STREAM_OPTION_END);
-//     return peer2.socket;
-//   default:
-//     GNUNET_assert (0);
-//   }
-// }
+void
+mesh_tunnel_end_handler (void *cls,
+                         const struct GNUNET_MESH_Tunnel *tunnel, void *tunnel_ctx)
+{
+
+}
 
 
 /**
- * Listen success callback; connects a peer to stream as client
- */
-// static void
-// stream_connect (void)
-// {
-//   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stream listen open successful\n");
-//   peer2.op = GNUNET_TESTBED_service_connect (&peer2, peer2.peer, "stream",
-//                                              NULL, NULL,
-//                                              stream_ca, stream_da, &peer2);
-//   setup_state = PEER2_STREAM_CONNECT;
-// }
-
-
-/**
- * Callback to be called when the requested peer information is available
+ * Mesh connect callback.
  *
- * @param cb_cls the closure from GNUNET_TETSBED_peer_get_information()
- * @param op the operation this callback corresponds to
- * @param pinfo the result; will be NULL if the operation has failed
- * @param emsg error message if the operation has failed; will be NULL if the
- *          operation is successfull
+ * @param cls internal peer id.
+ * @param op operation handle.
+ * @param ca_result connect adapter result.
+ * @param emsg error message.
  */
-// static void
-// peerinfo_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op_,
-//              const struct GNUNET_TESTBED_PeerInformation *pinfo,
-//              const char *emsg)
-// {
-//   GNUNET_assert (NULL == emsg);
-//   GNUNET_assert (op == op_);
-//   switch (setup_state)
-//     {
-//     case PEER1_GET_IDENTITY:
-//       memcpy (&peer1.our_id, pinfo->result.id,
-//               sizeof (struct GNUNET_PeerIdentity));
-//       GNUNET_TESTBED_operation_done (op);
-//       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer 1 id: %s\n", GNUNET_i2s
-//                   (&peer1.our_id));
-//       op = GNUNET_TESTBED_peer_get_information (peer2.peer,
-//                                                 GNUNET_TESTBED_PIT_IDENTITY,
-//                                                 &peerinfo_cb, NULL);
-//       setup_state = PEER2_GET_IDENTITY;
-//       break;
-//     case PEER2_GET_IDENTITY:
-//       memcpy (&peer2.our_id, pinfo->result.id,
-//               sizeof (struct GNUNET_PeerIdentity));
-//       GNUNET_TESTBED_operation_done (op);
-//       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer 2 id: %s\n", GNUNET_i2s
-//                   (&peer2.our_id));
-//       peer1.op = GNUNET_TESTBED_service_connect (&peer1, peer1.peer, "stream",
-//                                                  NULL, NULL, stream_ca,
-//                                                  stream_da, &peer1);
-//       setup_state = PEER1_STREAM_CONNECT;
-//       break;
-//     default:
-//       GNUNET_assert (0);
-//     }
-// }
-
-
-/**
- * Signature of a main function for a testcase.
- *
- * @param cls closure
- * @param num_peers number of peers in 'peers'
- * @param peers handle to peers run in the testbed
- */
-// static void
-// test_master (void *cls, unsigned int num_peers,
-//              struct GNUNET_TESTBED_Peer **peers)
-// {
-//   GNUNET_assert (NULL != peers);
-//   GNUNET_assert (NULL != peers[0]);
-//   GNUNET_assert (NULL != peers[1]);
-//   peer1.peer = peers[0];
-//   peer2.peer = peers[1];
-//   op = GNUNET_TESTBED_overlay_connect (NULL, NULL, NULL, peer2.peer, peer1.peer);
-//   setup_state = INIT;
-//   abort_task =
-//     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-//                                   (GNUNET_TIME_UNIT_SECONDS, 40), &do_abort,
-//                                   NULL);
-// }
-
 void
 mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
                  void *ca_result, const char *emsg)
 {
   long i = (long) cls;
 
+  if (NULL != emsg)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Mesh connect failed: %s\n", emsg);
+    GNUNET_assert (0);
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh connect callback for peer %i\n",
               i);
 }
 
 
+/**
+ * Mesh connect adapter.
+ *
+ * @param cls not used.
+ * @param cfg configuration handle.
+ *
+ * @return
+ */
 void *
 mesh_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  struct PeerData *peer = (struct PeerData *)cls;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh connect adapter\n");
+
+  static struct GNUNET_MESH_MessageHandler handlers[] = {
+    {NULL, 0, 0}
+  };
+
+  static GNUNET_MESH_ApplicationType apptypes[] = {
+    GNUNET_APPLICATION_TYPE_END
+  };
+
+  peer->mesh_handle = GNUNET_MESH_connect (cfg, cls,
+                                           &mesh_inbound_tunnel_handler,
+                                           &mesh_tunnel_end_handler, handlers, apptypes);
 
   return NULL;
 }
 
 
+/**
+ * Adapter function called to destroy a connection to
+ * the mesh service
+ *
+ * @param cls closure
+ * @param op_result service handle returned from the connect adapter
+ */
 void
 mesh_da (void *cls, void *op_result)
 {
@@ -432,7 +392,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
 
 //   GNUNET_TESTBED_operation_done(op[i]);
   peer_id = i;                  // FIXME  A * i + B
-  peers[peer_id] = peer;
+  peers[peer_id].peer = peer;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Peer %i created\n", peer_id);
   op[i] = GNUNET_TESTBED_peer_start (NULL, peer, peer_start_cb, (void *) i);
 }
@@ -465,7 +425,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Overlay Connected\n");
     for (i = 0; i < TOTAL_PEERS; i++)
     {
-      GNUNET_TESTBED_service_connect (NULL, peers[i], "mesh", &mesh_connect_cb,
+      GNUNET_TESTBED_service_connect (NULL, peers[i].peer, "mesh", &mesh_connect_cb,
                                       (void *) i, &mesh_ca, &mesh_da, NULL);
     }
     break;
@@ -501,12 +461,14 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
                                       peer_create_cb, (void *) i);
       break;
     case CREATING_PEER:
+    {
       GNUNET_TESTBED_operation_done (event->details.
                                      operation_finished.operation);
       op[i] = NULL;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Operation %u finished\n", i);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Peer create\n");
       break;
+    }
     case LINKING_SLAVES:
     {
       struct GNUNET_CONFIGURATION_Handle *slave_cfg;
@@ -528,25 +490,37 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       break;
     }
     case LINKING_SLAVES_SUCCESS:
+    {
+      unsigned int peer_cnt;
+      struct GNUNET_TESTBED_Peer *peer_handles[TOTAL_PEERS];
+
       GNUNET_TESTBED_operation_done (event->details.
                                      operation_finished.operation);
       op[i] = NULL;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Operation %u finished\n", i);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Linking slave %i succeeded\n", i);
       state[0] = CONNECTING_PEERS;
+
+      for (peer_cnt = 0; peer_cnt < TOTAL_PEERS; peer_cnt++)
+      {
+        peer_handles[peer_cnt] = peers[peer_cnt].peer;
+      }
       op[0] =
-          GNUNET_TESTBED_overlay_configure_topology (NULL, TOTAL_PEERS, peers,
+          GNUNET_TESTBED_overlay_configure_topology (NULL, TOTAL_PEERS, peer_handles,
                                                      GNUNET_TESTBED_TOPOLOGY_LINE);
       GNUNET_assert (NULL != op[0]);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting peers...\n");
       break;
+    }
     case CONNECTING_PEERS:
+    {
       GNUNET_TESTBED_operation_done (event->details.
                                      operation_finished.operation);
       op[i] = NULL;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Operation %u finished\n", i);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected\n");
       break;
+    }
     default:
       GNUNET_break (0);
     }
@@ -556,11 +530,14 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   }
 }
 
+
 /**
- * Callback which will be called to after a host registration succeeded or failed
+ * Callback which will be called to after a host registration succeeded or
+ * failed. Registration of all slave hosts is continued and linking of the hosts
+ * is started.
  *
- * @param cls the host which has been registered
- * @param emsg the error message; NULL if host registration is successful
+ * @param cls not used.
+ * @param emsg the error message; NULL if host registration is successful.
  */
 static void
 registration_cont (void *cls, const char *emsg)
@@ -588,11 +565,15 @@ registration_cont (void *cls, const char *emsg)
   }
 }
 
+
 /**
- * Callback to signal successfull startup of the controller process
+ * Callback to signal successfull startup of the controller process. If the
+ * startup was successfull the master controller and all slave hosts are
+ * created. Registering the slave hosts is started and continued in
+ * registration_cont.
  *
- * @param cls the closure from GNUNET_TESTBED_controller_start()
- * @param cfg the configuration with which the controller has been started;
+ * @param cls not used.
+ * @param config the configuration with which the controller has been started;
  *          NULL if status is not GNUNET_OK
  * @param status GNUNET_OK if the startup is successfull; GNUNET_SYSERR if not,
  *          GNUNET_TESTBED_controller_stop() shouldn't be called in this case
@@ -635,10 +616,10 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config,
 /**
  * Main run function.
  *
- * @param cls NULL
+ * @param cls not used.
  * @param args arguments passed to GNUNET_PROGRAM_run
  * @param cfgfile the path to configuration file
- * @param cfg the configuration file handle
+ * @param config the configuration file handle
  */
 static void
 run (void *cls, char *const *args, const char *cfgfile,
@@ -657,8 +638,16 @@ run (void *cls, char *const *args, const char *cfgfile,
                                     NULL);
 }
 
+
 /**
- * Main function
+ * Main function for profiling the regex/mesh implementation.  Checks if all ssh
+ * connections to each of the hosts in 'slave_ips' is possible before setting up
+ * the testbed.
+ *
+ * @param argc argument count.
+ * @param argv argument values.
+ *
+ * @return 0 on success.
  */
 int
 main (int argc, char **argv)
