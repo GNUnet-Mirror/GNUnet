@@ -436,7 +436,7 @@ main (int argc, char *const *argv)
              "Change $PATH ('.' in $PATH before $GNUNET_PREFIX/bin is problematic) or permissions (run 'make install' as root) to fix this!\n");
     return 0;
   }
-  GNUNET_CRYPTO_setup_hostkey ("test_gnunet_vpn.conf");
+  GNUNET_CRYPTO_rsa_setup_hostkey ("test_gnunet_vpn.conf");
   bin = argv[0];
   if (NULL != strstr (bin, "lt-"))
     bin = strstr (bin, "lt-") + 4;

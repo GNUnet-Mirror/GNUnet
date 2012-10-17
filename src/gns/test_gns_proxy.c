@@ -457,7 +457,7 @@ main (int argc, char *const *argv)
     return 0;
   }
 
-  GNUNET_CRYPTO_setup_hostkey ("test_gns_proxy.conf");
+  GNUNET_CRYPTO_rsa_setup_hostkey ("test_gns_proxy.conf");
   
   if (0 != curl_global_init (CURL_GLOBAL_WIN32))
   {

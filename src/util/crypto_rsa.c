@@ -407,6 +407,7 @@ GNUNET_CRYPTO_rsa_encode_key (const struct GNUNET_CRYPTO_RsaPrivateKey *hostkey)
  *
  * @param buf the buffer where the private key data is stored
  * @param len the length of the data in 'buffer'
+ * @return NULL on error
  */
 struct GNUNET_CRYPTO_RsaPrivateKey *
 GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
@@ -423,8 +424,9 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
   gcry_mpi_t u;
   int rc;
   size_t size;
-  int pos;
+  size_t pos;
   uint16_t enc_len;
+  size_t erroff;
 
   enc_len = ntohs (encoding->len);
   if (len != enc_len)
@@ -530,7 +532,7 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
 
   if ((NULL != p) && (NULL != q) && (NULL != u))
   {
-    rc = gcry_sexp_build (&res, &size,  /* erroff */
+    rc = gcry_sexp_build (&res, &erroff,
                           "(private-key(rsa(n %m)(e %m)(d %m)(p %m)(q %m)(u %m)))",
                           n, e, d, p, q, u);
   }
@@ -538,13 +540,13 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
   {
     if ((NULL != p) && (NULL != q))
     {
-      rc = gcry_sexp_build (&res, &size,        /* erroff */
+      rc = gcry_sexp_build (&res, &erroff,
                             "(private-key(rsa(n %m)(e %m)(d %m)(p %m)(q %m)))",
                             n, e, d, p, q);
     }
     else
     {
-      rc = gcry_sexp_build (&res, &size,        /* erroff */
+      rc = gcry_sexp_build (&res, &erroff,
                             "(private-key(rsa(n %m)(e %m)(d %m)))", n, e, d);
     }
   }
@@ -561,7 +563,7 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
   if (0 != rc)
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
 #if EXTRA_CHECKS
-  if (gcry_pk_testkey (res))
+  if (0 != (rc = gcry_pk_testkey (res)))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
     return NULL;
@@ -1111,7 +1113,7 @@ GNUNET_CRYPTO_rsa_key_create_stop (struct GNUNET_CRYPTO_RsaKeyGenerationContext 
  * @param cfg_name name of the configuration file to use
  */
 void
-GNUNET_CRYPTO_setup_hostkey (const char *cfg_name)
+GNUNET_CRYPTO_rsa_setup_hostkey (const char *cfg_name)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_CRYPTO_RsaPrivateKey *pk;

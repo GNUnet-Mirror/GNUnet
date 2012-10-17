@@ -887,6 +887,7 @@ GNUNET_CRYPTO_rsa_encode_key (const struct GNUNET_CRYPTO_RsaPrivateKey *hostkey)
  *
  * @param buf the buffer where the private key data is stored
  * @param len the length of the data in 'buffer'
+ * @return NULL on error
  */
 struct GNUNET_CRYPTO_RsaPrivateKey *
 GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len);
@@ -964,7 +965,7 @@ GNUNET_CRYPTO_rsa_key_create_stop (struct GNUNET_CRYPTO_RsaKeyGenerationContext 
  * @param cfg_name name of the configuration file to use
  */
 void
-GNUNET_CRYPTO_setup_hostkey (const char *cfg_name);
+GNUNET_CRYPTO_rsa_setup_hostkey (const char *cfg_name);
 
 
 /**
@@ -975,15 +976,16 @@ GNUNET_CRYPTO_setup_hostkey (const char *cfg_name);
  * @return some private key purely dependent on input
  */
 struct GNUNET_CRYPTO_RsaPrivateKey *
-GNUNET_CRYPTO_rsa_key_create_from_hash (const struct GNUNET_HashCode * hc);
+GNUNET_CRYPTO_rsa_key_create_from_hash (const struct GNUNET_HashCode *hc);
 
 
 /**
  * Free memory occupied by the private key.
- * @param hostkey pointer to the memory to free
+ *
+ * @param key pointer to the memory to free
  */
 void
-GNUNET_CRYPTO_rsa_key_free (struct GNUNET_CRYPTO_RsaPrivateKey *hostkey);
+GNUNET_CRYPTO_rsa_key_free (struct GNUNET_CRYPTO_RsaPrivateKey *key);
 
 
 /**
