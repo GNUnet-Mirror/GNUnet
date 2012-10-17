@@ -79,14 +79,15 @@ adjust (unsigned char *buf, size_t size, size_t target)
 
 
 /**
- * Free memory occupied by hostkey
- * @param hostkey pointer to the memory to free
+ * Free memory occupied by RSA private key.
+ *
+ * @param key pointer to the memory to free
  */
 void
-GNUNET_CRYPTO_rsa_key_free (struct GNUNET_CRYPTO_RsaPrivateKey *hostkey)
+GNUNET_CRYPTO_rsa_key_free (struct GNUNET_CRYPTO_RsaPrivateKey *key)
 {
-  gcry_sexp_release (hostkey->sexp);
-  GNUNET_free (hostkey);
+  gcry_sexp_release (key->sexp);
+  GNUNET_free (key);
 }
 
 
@@ -109,8 +110,7 @@ key_from_sexp (gcry_mpi_t * array, gcry_sexp_t sexp, const char *topname,
   unsigned int i;
   unsigned int idx;
 
-  list = gcry_sexp_find_token (sexp, topname, 0);
-  if (! list)  
+  if (! (list = gcry_sexp_find_token (sexp, topname, 0)))
     return 1;  
   l2 = gcry_sexp_cadr (list);
   gcry_sexp_release (list);
@@ -120,8 +120,7 @@ key_from_sexp (gcry_mpi_t * array, gcry_sexp_t sexp, const char *topname,
   idx = 0;
   for (s = elems; *s; s++, idx++)
   {
-    l2 = gcry_sexp_find_token (list, s, 1);
-    if (! l2)
+    if (! (l2 = gcry_sexp_find_token (list, s, 1)))
     {
       for (i = 0; i < idx; i++)
       {
@@ -151,6 +150,7 @@ key_from_sexp (gcry_mpi_t * array, gcry_sexp_t sexp, const char *topname,
 
 /**
  * Extract the public key of the host.
+ *
  * @param priv the private key
  * @param pub where to write the public key
  */
@@ -165,9 +165,9 @@ GNUNET_CRYPTO_rsa_key_get_public (const struct GNUNET_CRYPTO_RsaPrivateKey
   int rc;
 
   rc = key_from_sexp (skey, priv->sexp, "public-key", "ne");
-  if (rc)
+  if (0 != rc)
     rc = key_from_sexp (skey, priv->sexp, "private-key", "ne");
-  if (rc)
+  if (0 != rc)
     rc = key_from_sexp (skey, priv->sexp, "rsa", "ne");
   GNUNET_assert (0 == rc);
   pub->len =
@@ -259,16 +259,15 @@ GNUNET_CRYPTO_rsa_public_key_from_string (const char *enc,
 
 
 /**
- * Internal: publicKey => RSA-Key.
+ * Convert the given public key from the network format to the
+ * S-expression that can be used by libgcrypt.
  *
- * Note that the return type is not actually a private
- * key but rather an sexpression for the public key!
+ * @param publicKey public key to decode
+ * @return NULL on error
  */
-static struct GNUNET_CRYPTO_RsaPrivateKey *
-public2PrivateKey (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
-                   *publicKey)
+static gcry_sexp_t
+decode_public_key (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
 {
-  struct GNUNET_CRYPTO_RsaPrivateKey *ret;
   gcry_sexp_t result;
   gcry_mpi_t n;
   gcry_mpi_t e;
@@ -285,17 +284,15 @@ public2PrivateKey (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
     return NULL;
   }
   size = GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH;
-  rc = gcry_mpi_scan (&n, GCRYMPI_FMT_USG, &publicKey->key[0], size, &size);
-  if (rc)
+  if (0 != (rc = gcry_mpi_scan (&n, GCRYMPI_FMT_USG, &publicKey->key[0], size, &size)))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
     return NULL;
   }
   size = GNUNET_CRYPTO_RSA_KEY_LENGTH - GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH;
-  rc = gcry_mpi_scan (&e, GCRYMPI_FMT_USG,
-                      &publicKey->key[GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH],
-                      size, &size);
-  if (rc)
+  if (0 != (rc = gcry_mpi_scan (&e, GCRYMPI_FMT_USG,
+				&publicKey->key[GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH],
+				size, &size)))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
     gcry_mpi_release (n);
@@ -305,20 +302,19 @@ public2PrivateKey (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
                         e);
   gcry_mpi_release (n);
   gcry_mpi_release (e);
-  if (rc)
+  if (0 != rc)
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);  /* erroff gives more info */
     return NULL;
   }
-  ret = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_RsaPrivateKey));
-  ret->sexp = result;
-  return ret;
+  return result;
 }
 
 
 /**
  * Encode the private key in a format suitable for
  * storing it into a file.
+ *
  * @returns encoding of the private key.
  *    The first 4 bytes give the size of the array, as usual.
  */
@@ -357,7 +353,7 @@ GNUNET_CRYPTO_rsa_encode_key (const struct GNUNET_CRYPTO_RsaPrivateKey *hostkey)
   size = sizeof (struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded);
   for (i = 0; i < 6; i++)
   {
-    if (pkv[i] != NULL)
+    if (NULL != pkv[i])
     {
       GNUNET_assert (0 ==
                      gcry_mpi_aprint (GCRYMPI_FMT_USG,
@@ -419,7 +415,12 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
   const struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *encoding =
       (const struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *) buf;
   gcry_sexp_t res;
-  gcry_mpi_t n, e, d, p, q, u;
+  gcry_mpi_t n;
+  gcry_mpi_t e;
+  gcry_mpi_t d;
+  gcry_mpi_t p;
+  gcry_mpi_t q;
+  gcry_mpi_t u;
   int rc;
   size_t size;
   int pos;
@@ -435,7 +436,7 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
                       &((const unsigned char *) (&encoding[1]))[pos], size,
                       &size);
   pos += ntohs (encoding->sizen);
-  if (rc)
+  if (0 != rc)
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
     return NULL;
@@ -445,7 +446,7 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
                       &((const unsigned char *) (&encoding[1]))[pos], size,
                       &size);
   pos += ntohs (encoding->sizee);
-  if (rc)
+  if (0 != rc)
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
     gcry_mpi_release (n);
@@ -456,7 +457,7 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
                       &((const unsigned char *) (&encoding[1]))[pos], size,
                       &size);
   pos += ntohs (encoding->sized);
-  if (rc)
+  if (0 != rc)
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
     gcry_mpi_release (n);
@@ -471,7 +472,7 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
                         &((const unsigned char *) (&encoding[1]))[pos], size,
                         &size);
     pos += ntohs (encoding->sizep);
-    if (rc)
+    if (0 != rc)
     {
       LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
       gcry_mpi_release (n);
@@ -489,13 +490,13 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
                         &((const unsigned char *) (&encoding[1]))[pos], size,
                         &size);
     pos += ntohs (encoding->sizeq);
-    if (rc)
+    if (0 != rc)
     {
       LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
       gcry_mpi_release (n);
       gcry_mpi_release (e);
       gcry_mpi_release (d);
-      if (q != NULL)
+      if (NULL != q)
         gcry_mpi_release (q);
       return NULL;
     }
@@ -511,15 +512,15 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
     rc = gcry_mpi_scan (&u, GCRYMPI_FMT_USG,
                         &((const unsigned char *) (&encoding[1]))[pos], size,
                         &size);
-    if (rc)
+    if (0 != rc)
     {
       LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
       gcry_mpi_release (n);
       gcry_mpi_release (e);
       gcry_mpi_release (d);
-      if (p != NULL)
+      if (NULL != p)
         gcry_mpi_release (p);
-      if (q != NULL)
+      if (NULL != q)
         gcry_mpi_release (q);
       return NULL;
     }
@@ -527,7 +528,7 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
   else
     u = NULL;
 
-  if ((p != NULL) && (q != NULL) && (u != NULL))
+  if ((NULL != p) && (NULL != q) && (NULL != u))
   {
     rc = gcry_sexp_build (&res, &size,  /* erroff */
                           "(private-key(rsa(n %m)(e %m)(d %m)(p %m)(q %m)(u %m)))",
@@ -535,7 +536,7 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
   }
   else
   {
-    if ((p != NULL) && (q != NULL))
+    if ((NULL != p) && (NULL != q))
     {
       rc = gcry_sexp_build (&res, &size,        /* erroff */
                             "(private-key(rsa(n %m)(e %m)(d %m)(p %m)(q %m)))",
@@ -550,14 +551,14 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
   gcry_mpi_release (n);
   gcry_mpi_release (e);
   gcry_mpi_release (d);
-  if (p != NULL)
+  if (NULL != p)
     gcry_mpi_release (p);
-  if (q != NULL)
+  if (NULL != q)
     gcry_mpi_release (q);
-  if (u != NULL)
+  if (NULL != u)
     gcry_mpi_release (u);
 
-  if (rc)
+  if (0 != rc)
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
 #if EXTRA_CHECKS
   if (gcry_pk_testkey (res))
@@ -725,7 +726,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
                                 GNUNET_DISK_PERM_USER_WRITE);
     if (NULL == fd)
     {
-      if (errno == EEXIST)
+      if (EEXIST == errno)
       {
         if (GNUNET_YES != GNUNET_DISK_file_test (filename))
         {
@@ -1148,15 +1149,14 @@ GNUNET_CRYPTO_rsa_encrypt (const void *block, size_t size,
 {
   gcry_sexp_t result;
   gcry_sexp_t data;
-  struct GNUNET_CRYPTO_RsaPrivateKey *pubkey;
+  gcry_sexp_t psexp;
   gcry_mpi_t val;
   gcry_mpi_t rval;
   size_t isize;
   size_t erroff;
 
   GNUNET_assert (size <= sizeof (struct GNUNET_HashCode));
-  pubkey = public2PrivateKey (publicKey);
-  if (pubkey == NULL)
+  if (! (psexp = decode_public_key (publicKey)))
     return GNUNET_SYSERR;
   isize = size;
   GNUNET_assert (0 ==
@@ -1165,10 +1165,9 @@ GNUNET_CRYPTO_rsa_encrypt (const void *block, size_t size,
                  gcry_sexp_build (&data, &erroff,
                                   "(data (flags pkcs1)(value %m))", val));
   gcry_mpi_release (val);
-  GNUNET_assert (0 == gcry_pk_encrypt (&result, data, pubkey->sexp));
+  GNUNET_assert (0 == gcry_pk_encrypt (&result, data, psexp));
   gcry_sexp_release (data);
-  GNUNET_CRYPTO_rsa_key_free (pubkey);
-
+  gcry_sexp_release (psexp);
   GNUNET_assert (0 == key_from_sexp (&rval, result, "rsa", "a"));
   gcry_sexp_release (result);
   isize = sizeof (struct GNUNET_CRYPTO_RsaEncryptedData);
@@ -1303,7 +1302,7 @@ GNUNET_CRYPTO_rsa_verify (uint32_t purpose,
   gcry_sexp_t sigdata;
   size_t size;
   gcry_mpi_t val;
-  struct GNUNET_CRYPTO_RsaPrivateKey *hostkey;
+  gcry_sexp_t psexp;
   struct GNUNET_HashCode hc;
   char *buff;
   int bufSize;
@@ -1331,15 +1330,14 @@ GNUNET_CRYPTO_rsa_verify (uint32_t purpose,
           &hc, sizeof (struct GNUNET_HashCode));
   GNUNET_assert (0 == gcry_sexp_new (&data, buff, bufSize, 0));
   GNUNET_free (buff);
-  hostkey = public2PrivateKey (publicKey);
-  if (hostkey == NULL)
+  if (! (psexp = decode_public_key (publicKey)))
   {
     gcry_sexp_release (data);
     gcry_sexp_release (sigdata);
     return GNUNET_SYSERR;
   }
-  rc = gcry_pk_verify (sigdata, data, hostkey->sexp);
-  GNUNET_CRYPTO_rsa_key_free (hostkey);
+  rc = gcry_pk_verify (sigdata, data, psexp);
+  gcry_sexp_release (psexp);
   gcry_sexp_release (data);
   gcry_sexp_release (sigdata);
   if (rc)
