@@ -96,10 +96,30 @@ enum GNUNET_CRYPTO_Quality
  */
 #define GNUNET_CRYPTO_HASH_LENGTH 512/8
 
+
+/**
+ * FIXME: what is an acceptable value here?
+ * Note: round to multiple of 8 minus 2.
+ */
+#define GNUNET_CRYPTO_ECC_DATA_ENCODING_LENGTH 510
+
+/**
+ * FIXME: what is an acceptable value here?
+ * Maximum length of the public key (q-point, Q = dP) when encoded.
+ */
+#define GNUNET_CRYPTO_ECC_MAX_PUBLIC_KEY_LENGTH 254
+
+
 /**
  * The private information of an RSA key pair.
  */
 struct GNUNET_CRYPTO_RsaPrivateKey;
+
+/**
+ * The private information of an ECC private key.
+ */
+struct GNUNET_CRYPTO_EccPrivateKey;
+
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
@@ -216,6 +236,102 @@ struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
 struct GNUNET_CRYPTO_RsaEncryptedData
 {
   unsigned char encoding[GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH];
+};
+
+
+/**
+ * @brief header of what an ECC signature signs
+ *        this must be followed by "size - 8" bytes of
+ *        the actual signed data
+ */
+struct GNUNET_CRYPTO_EccSignaturePurpose
+{
+  /**
+   * How many bytes does this signature sign?
+   * (including this purpose header); in network
+   * byte order (!).
+   */
+  uint32_t size GNUNET_PACKED;
+
+  /**
+   * What does this signature vouch for?  This
+   * must contain a GNUNET_SIGNATURE_PURPOSE_XXX
+   * constant (from gnunet_signatures.h).  In
+   * network byte order!
+   */
+  uint32_t purpose GNUNET_PACKED;
+
+};
+
+
+/**
+ * @brief an ECC signature
+ */
+struct GNUNET_CRYPTO_EccSignature
+{
+  /**
+   * Overall size of the encrypted data.
+   */
+  uint16_t size;
+
+  /**
+   * S-expression, padded with zeros.
+   */
+  char sexpr[GNUNET_CRYPTO_ECC_DATA_ENCODING_LENGTH];
+};
+
+
+/**
+ * Public ECC key (always for NIST P-521) encoded in a format suitable
+ * for network transmission as created using 'gcry_sexp_sprint'.
+ */
+struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded 
+{
+  /**
+   * Size of the encoding, in network byte order.
+   */
+  uint16_t size;
+
+  /**
+   * Actual length of the q-point binary encoding.
+   */
+  uint16_t len;
+
+  /**
+   * 0-padded q-point in binary encoding (GCRYPT_MPI_FMT_USG).
+   */
+  unsigned char key[GNUNET_CRYPTO_ECC_MAX_PUBLIC_KEY_LENGTH];
+};
+
+
+struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded
+{
+  /**
+   * Overall size of the private key.
+   */
+  uint16_t size;
+
+  /* followd by S-expression, opaque to applications */
+
+  /* FIXME: consider defining padding to make this a fixed-size struct */
+
+};
+
+
+/**
+ * ECC Encrypted data.
+ */
+struct GNUNET_CRYPTO_EccEncryptedData
+{
+  /**
+   * Overall size of the encrypted data.
+   */
+  uint16_t size;
+
+  /**
+   * S-expression, padded with zeros.
+   */
+  char encoding[GNUNET_CRYPTO_ECC_DATA_ENCODING_LENGTH];
 };
 
 
@@ -1065,6 +1181,212 @@ GNUNET_CRYPTO_rsa_verify (uint32_t purpose,
                           const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
                           *publicKey);
 
+
+
+/**
+ * Function called upon completion of 'GNUNET_CRYPTO_ecc_key_create_async'.
+ *
+ * @param cls closure
+ * @param pk NULL on error, otherwise the private key (which must be free'd by the callee)
+ * @param emsg NULL on success, otherwise an error message
+ */
+typedef void (*GNUNET_CRYPTO_EccKeyCallback)(void *cls,
+					     struct GNUNET_CRYPTO_EccPrivateKey *pk,
+					     const char *emsg);
+
+
+/**
+ * Free memory occupied by ECC key
+ *
+ * @param privatekey pointer to the memory to free
+ */
+void
+GNUNET_CRYPTO_ecc_key_free (struct GNUNET_CRYPTO_EccPrivateKey *privatekey);
+
+
+/**
+ * Extract the public key for the given private key.
+ *
+ * @param priv the private key
+ * @param pub where to write the public key
+ */
+void
+GNUNET_CRYPTO_ecc_key_get_public (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
+                                  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pub);
+
+/**
+ * Convert a public key to a string.
+ *
+ * @param pub key to convert
+ * @return string representing  'pub'
+ */
+char *
+GNUNET_CRYPTO_ecc_public_key_to_string (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pub);
+
+
+/**
+ * Convert a string representing a public key to a public key.
+ *
+ * @param enc encoded public key
+ * @param enclen number of bytes in enc (without 0-terminator)
+ * @param pub where to store the public key
+ * @return GNUNET_OK on success
+ */
+int
+GNUNET_CRYPTO_ecc_public_key_from_string (const char *enc, 
+					  size_t enclen,
+					  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pub);
+
+
+/**
+ * Encode the private key in a format suitable for
+ * storing it into a file.
+ *
+ * @param key key to encode
+ * @return encoding of the private key.
+ *    The first 4 bytes give the size of the array, as usual.
+ */
+struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *
+GNUNET_CRYPTO_ecc_encode_key (const struct GNUNET_CRYPTO_EccPrivateKey *key);
+
+
+/**
+ * Decode the private key from the file-format back
+ * to the "normal", internal format.
+ *
+ * @param buf the buffer where the private key data is stored
+ * @param len the length of the data in 'buffer'
+ * @return NULL on error
+ */
+struct GNUNET_CRYPTO_EccPrivateKey *
+GNUNET_CRYPTO_ecc_decode_key (const char *buf, 
+			      size_t len);
+
+
+/**
+ * Create a new private key by reading it from a file.  If the
+ * files does not exist, create a new key and write it to the
+ * file.  Caller must free return value.  Note that this function
+ * can not guarantee that another process might not be trying
+ * the same operation on the same file at the same time.
+ * If the contents of the file
+ * are invalid the old file is deleted and a fresh key is
+ * created.
+ *
+ * @return new private key, NULL on error (for example,
+ *   permission denied)
+ */
+struct GNUNET_CRYPTO_EccPrivateKey *
+GNUNET_CRYPTO_ecc_key_create_from_file (const char *filename);
+
+
+/**
+ * Handle to cancel private key generation and state for the
+ * key generation operation.
+ */
+struct GNUNET_CRYPTO_EccKeyGenerationContext;
+
+
+/**
+ * Create a new private key by reading it from a file.  If the files
+ * does not exist, create a new key and write it to the file.  If the
+ * contents of the file are invalid the old file is deleted and a
+ * fresh key is created.
+ *
+ * @param filename name of file to use for storage
+ * @param cont function to call when done (or on errors)
+ * @param cont_cls closure for 'cont'
+ * @return handle to abort operation, NULL on fatal errors (cont will not be called if NULL is returned)
+ */
+struct GNUNET_CRYPTO_EccKeyGenerationContext *
+GNUNET_CRYPTO_ecc_key_create_start (const char *filename,
+				    GNUNET_CRYPTO_EccKeyCallback cont,
+				    void *cont_cls);
+
+
+/**
+ * Abort ECC key generation.
+ *
+ * @param gc key generation context to abort
+ */
+void
+GNUNET_CRYPTO_ecc_key_create_stop (struct GNUNET_CRYPTO_EccKeyGenerationContext *gc);
+
+/**
+ * Setup a hostkey file for a peer given the name of the
+ * configuration file (!).  This function is used so that
+ * at a later point code can be certain that reading a
+ * hostkey is fast (for example in time-dependent testcases).
+ *
+ * @param cfg_name name of the configuration file to use
+ */
+void
+GNUNET_CRYPTO_ecc_setup_hostkey (const char *cfg_name);
+
+
+/**
+ * Encrypt a block with the public key of another host that uses the
+ * same cipher.
+ *
+ * @param block the block to encrypt
+ * @param size the size of block
+ * @param publicKey the encoded public key used to encrypt
+ * @param target where to store the encrypted block
+ * @returns GNUNET_SYSERR on error, GNUNET_OK if ok
+ */
+int
+GNUNET_CRYPTO_ecc_encrypt (const void *block, size_t size,
+                           const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded
+                           *publicKey,
+                           struct GNUNET_CRYPTO_EccEncryptedData *target);
+
+
+/**
+ * Decrypt a given block with the hostkey.
+ *
+ * @param key the key with which to decrypt this block
+ * @param block the data to decrypt, encoded as returned by encrypt
+ * @param result pointer to a location where the result can be stored
+ * @param max the maximum number of bits to store for the result, if
+ *        the decrypted block is bigger, an error is returned
+ * @return the size of the decrypted block, -1 on error
+ */
+ssize_t
+GNUNET_CRYPTO_ecc_decrypt (const struct GNUNET_CRYPTO_EccPrivateKey *key,
+                           const struct GNUNET_CRYPTO_EccEncryptedData *block,
+                           void *result, size_t max);
+
+
+/**
+ * Sign a given block.
+ *
+ * @param key private key to use for the signing
+ * @param purpose what to sign (size, purpose)
+ * @param sig where to write the signature
+ * @return GNUNET_SYSERR on error, GNUNET_OK on success
+ */
+int
+GNUNET_CRYPTO_ecc_sign (const struct GNUNET_CRYPTO_EccPrivateKey *key,
+                        const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose,
+                        struct GNUNET_CRYPTO_EccSignature *sig);
+
+
+/**
+ * Verify signature.
+ *
+ * @param purpose what is the purpose that the signature should have?
+ * @param validate block to validate (size, purpose, data)
+ * @param sig signature that is being validated
+ * @param publicKey public key of the signer
+ * @returns GNUNET_OK if ok, GNUNET_SYSERR if invalid
+ */
+int
+GNUNET_CRYPTO_ecc_verify (uint32_t purpose,
+                          const struct GNUNET_CRYPTO_EccSignaturePurpose
+                          *validate,
+                          const struct GNUNET_CRYPTO_EccSignature *sig,
+                          const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded
+                          *publicKey);
 
 
 /**

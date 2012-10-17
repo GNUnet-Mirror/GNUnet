@@ -124,6 +124,7 @@ bin_PROGRAMS = \
  gnunet-service-resolver \
  gnunet-resolver \
  gnunet-config \
+ gnunet-ecc \
  gnunet-rsa \
  gnunet-uri 
 
@@ -152,6 +153,15 @@ gnunet_rsa_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) -lgcrypt
 gnunet_rsa_DEPENDENCIES = \
+  libgnunetutil.la
+
+
+gnunet_ecc_SOURCES = \
+ gnunet-ecc.c         
+gnunet_ecc_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL) -lgcrypt
+gnunet_ecc_DEPENDENCIES = \
   libgnunetutil.la
 
 
