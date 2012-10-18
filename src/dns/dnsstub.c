@@ -279,6 +279,10 @@ GNUNET_DNSSTUB_resolve (struct GNUNET_DNSSTUB_Context *ctx,
   else
     ret = rs->dnsout6;
   GNUNET_assert (NULL != ret);
+  memcpy (&rs->addr,
+	  sa,
+	  sa_len);
+  rs->addrlen = sa_len;
   rs->rc = rc;
   rs->rc_cls = rc_cls;
   if (GNUNET_SYSERR == 
@@ -289,6 +293,10 @@ GNUNET_DNSSTUB_resolve (struct GNUNET_DNSSTUB_Context *ctx,
 				    sa_len))
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Failed to send DNS request to %s\n"),
+		GNUNET_a2s (sa, sa_len));
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		_("Sent DNS request to %s\n"),
 		GNUNET_a2s (sa, sa_len));
   return rs;
 }
@@ -409,7 +417,9 @@ do_dns_read (struct GNUNET_DNSSTUB_RequestSocket *rs,
   /* port the code above? */
   len = UINT16_MAX;
 #endif
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Receiving %d byte DNS reply\n",
+	      len); 
   {
     unsigned char buf[len] GNUNET_ALIGN;
 
@@ -437,7 +447,11 @@ do_dns_read (struct GNUNET_DNSSTUB_RequestSocket *rs,
 		       &addr,
 		       addrlen)) ||	 
        (0 == GNUNET_TIME_absolute_get_remaining (rs->timeout).rel_value) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Request timeout or invalid sender address; ignoring reply\n"); 
       return GNUNET_NO;
+    }
     if (NULL != rs->rc)
       rs->rc (rs->rc_cls,
 	      rs,
