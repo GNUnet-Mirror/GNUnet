@@ -190,6 +190,19 @@ GNUNET_TESTBED_host_get_hostname_ (const struct GNUNET_TESTBED_Host *host)
 
 
 /**
+ * Obtain the host's hostname.
+ *
+ * @param host handle to the host, NULL means 'localhost'
+ * @return hostname of the host
+ */
+const char *
+GNUNET_TESTBED_host_get_hostname (const struct GNUNET_TESTBED_Host *host)
+{
+  return GNUNET_TESTBED_host_get_hostname_ (host);
+}
+
+
+/**
  * Obtain the host's username
  *
  * @param host handle to the host, NULL means 'localhost'
@@ -305,7 +318,7 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
   int ret;
   unsigned int offset;
   unsigned int count;
-  
+
 
   GNUNET_assert (NULL != filename);
   if (GNUNET_YES != GNUNET_DISK_file_test (filename))
@@ -313,7 +326,7 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
     LOG (GNUNET_ERROR_TYPE_WARNING, _("Hosts file %s not found\n"), filename);
     return 0;
   }
-  if (GNUNET_OK != 
+  if (GNUNET_OK !=
       GNUNET_DISK_file_size (filename, &fs, GNUNET_YES, GNUNET_YES))
     fs = 0;
   if (0 == fs)
@@ -321,7 +334,7 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
     LOG (GNUNET_ERROR_TYPE_WARNING, _("Hosts file %s has no data\n"), filename);
     return 0;
   }
-  data = GNUNET_malloc (fs);  
+  data = GNUNET_malloc (fs);
   if (fs != GNUNET_DISK_fn_read (filename, data, fs))
   {
     GNUNET_free (data);
@@ -361,11 +374,11 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
       buf = &data[offset + 1];
     }
     else if ((data[offset] == '\n') || (data[offset] == '\0'))
-      buf = &data[offset + 1];        
+      buf = &data[offset + 1];
   }
   GNUNET_free (data);
   if (NULL == starting_host)
-    return 0;  
+    return 0;
   *hosts = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Host *) * count);
   memcpy (*hosts,
           &host_list[GNUNET_TESTBED_host_get_id_ (starting_host)],
@@ -506,7 +519,7 @@ GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host)
   remote_args[argp++] = "NoHostAuthenticationForLocalhost=yes";
   remote_args[argp++] = ssh_addr;
   remote_args[argp++] = "which";
-  remote_args[argp++] = "gnunet-helper-testbed";  
+  remote_args[argp++] = "gnunet-helper-testbed";
   remote_args[argp++] = NULL;
   GNUNET_assert (argp == 11);
   auxp =
