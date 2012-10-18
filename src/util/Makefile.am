@@ -210,6 +210,7 @@ check_PROGRAMS = \
  test_crypto_aes \
  test_crypto_aes_weak \
  test_crypto_crc \
+ test_crypto_ecc \
  test_crypto_hash \
  test_crypto_hkdf \
  test_crypto_ksk \
@@ -331,6 +332,11 @@ test_crypto_aes_weak_LDADD = \
 test_crypto_crc_SOURCES = \
  test_crypto_crc.c
 test_crypto_crc_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+test_crypto_ecc_SOURCES = \
+ test_crypto_ecc.c
+test_crypto_ecc_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_crypto_hash_SOURCES = \

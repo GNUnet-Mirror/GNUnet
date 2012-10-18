@@ -988,7 +988,6 @@ GNUNET_STRINGS_path_is_absolute (const char *filename, int can_be_uri,
   }
   else
   {
-    is_uri = GNUNET_NO;
     if (r_is_uri)
       *r_is_uri = GNUNET_NO;
   }
