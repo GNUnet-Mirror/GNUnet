@@ -437,8 +437,7 @@ static int
 unix_transport_server_stop (void *cls)
 {
   struct Plugin *plugin = cls;
-
-  struct UNIXMessageWrapper * msgw = plugin->msg_head;
+  struct UNIXMessageWrapper * msgw;
 
   while (NULL != (msgw = plugin->msg_head))
   {
