@@ -2054,8 +2054,9 @@ GNUNET_TESTBED_controller_link (void *op_cls,
 
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_TESTBED_is_host_registered_ (delegated_host, master));
-  slave_host_id = (NULL == slave_host) ?
-      0 : GNUNET_TESTBED_host_get_id_ (slave_host);
+  slave_host_id = 
+      GNUNET_TESTBED_host_get_id_ ((NULL != slave_host)
+                                   ? slave_host : master->host);
   delegated_host_id = GNUNET_TESTBED_host_get_id_ (delegated_host);
   if ((NULL != slave_host) && (0 != slave_host_id))
     GNUNET_assert (GNUNET_YES ==
