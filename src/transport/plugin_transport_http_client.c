@@ -926,9 +926,8 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
   struct Session *s = cls;
   struct GNUNET_TIME_Absolute now;
   size_t len = size * nmemb;
-  struct HTTP_Client_Plugin *plugin = s->plugin;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
                    "Session %p / connection %p: Received %u bytes from peer `%s'\n",
                    s, s->client_get,
                    len, GNUNET_i2s (&s->target));
@@ -938,7 +937,7 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
     struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
     struct GNUNET_TIME_Relative delta =
         GNUNET_TIME_absolute_get_difference (now, s->next_receive);
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
                      "Session %p / connection %p: No inbound bandwidth available! Next read was delayed for %llu ms\n",
                      s, s->client_get, delta.rel_value);
     if (s->recv_wakeup_task != GNUNET_SCHEDULER_NO_TASK)
