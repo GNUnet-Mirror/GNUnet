@@ -452,8 +452,10 @@ controller_event_cb (void *cls,
       {
         LOG (GNUNET_ERROR_TYPE_WARNING,
              _("An operation has failed while linking\n"));
-        GNUNET_SCHEDULER_cancel (abort_task);
-        abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+        /* GNUNET_SCHEDULER_cancel (abort_task); */
+        /* abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL); */
+	printf ("F");
+	fflush (stdout);
       }
       break;
     case GNUNET_TESTBED_ET_CONNECT:
@@ -461,12 +463,9 @@ controller_event_cb (void *cls,
         static unsigned int established_links;
 
 	if (0 == established_links)
-	  printf ("Establishing links\n .");
-	else
-	{
-	  printf (".");
-	  fflush (stdout);
-	}
+	  printf ("Establishing links. Please wait\n");
+	printf (".");
+	fflush (stdout);
         if (++established_links == num_links)
         {
           prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
