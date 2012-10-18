@@ -197,6 +197,10 @@ struct GNUNET_DNSPARSER_Query
 
   /**
    * Name of the record that the query is for (0-terminated).
+   * In UTF-8 format.  The library will convert from and to DNS-IDNA 
+   * as necessary.  Use 'GNUNET_DNSPARSER_check_label' to test if an
+   * individual label is well-formed.  If a given name is not well-formed,
+   * creating the DNS packet will fail.
    */
   char *name;
 
@@ -226,6 +230,10 @@ struct GNUNET_DNSPARSER_MxRecord
 
   /**
    * Name of the mail server.
+   * In UTF-8 format.  The library will convert from and to DNS-IDNA 
+   * as necessary.  Use 'GNUNET_DNSPARSER_check_label' to test if an
+   * individual label is well-formed.  If a given name is not well-formed,
+   * creating the DNS packet will fail.
    */
   char *mxhost;
 
@@ -249,6 +257,10 @@ struct GNUNET_DNSPARSER_SrvRecord
   /**
    * Service name without the underscore (!).  Note that RFC 6335 clarifies the
    * set of legal characters for service names.
+   * In UTF-8 format.  The library will convert from and to DNS-IDNA 
+   * as necessary.  Use 'GNUNET_DNSPARSER_check_label' to test if an
+   * individual label is well-formed.  If a given name is not well-formed,
+   * creating the DNS packet will fail.
    */
   char *service;
 
@@ -260,11 +272,19 @@ struct GNUNET_DNSPARSER_SrvRecord
 
   /**
    * Domain name for which the record is valid
+   * In UTF-8 format.  The library will convert from and to DNS-IDNA 
+   * as necessary.  Use 'GNUNET_DNSPARSER_check_label' to test if an
+   * individual label is well-formed.  If a given name is not well-formed,
+   * creating the DNS packet will fail.
    */
   char *domain_name;
 
   /**
    * Hostname offering the service.
+   * In UTF-8 format.  The library will convert from and to DNS-IDNA 
+   * as necessary.  Use 'GNUNET_DNSPARSER_check_label' to test if an
+   * individual label is well-formed.  If a given name is not well-formed,
+   * creating the DNS packet will fail.
    */
   char *target;
 
@@ -299,12 +319,20 @@ struct GNUNET_DNSPARSER_SoaRecord
   /**
    *The domainname of the name server that was the
    * original or primary source of data for this zone.
+   * In UTF-8 format.  The library will convert from and to DNS-IDNA 
+   * as necessary.  Use 'GNUNET_DNSPARSER_check_label' to test if an
+   * individual label is well-formed.  If a given name is not well-formed,
+   * creating the DNS packet will fail.
    */
   char *mname;
 
   /**
    * A domainname which specifies the mailbox of the
    * person responsible for this zone.
+   * In UTF-8 format.  The library will convert from and to DNS-IDNA 
+   * as necessary.  Use 'GNUNET_DNSPARSER_check_label' to test if an
+   * individual label is well-formed.  If a given name is not well-formed,
+   * creating the DNS packet will fail.
    */
   char *rname;
 
@@ -365,6 +393,10 @@ struct GNUNET_DNSPARSER_Record
 
   /**
    * Name of the record that the query is for (0-terminated).
+   * In UTF-8 format.  The library will convert from and to DNS-IDNA 
+   * as necessary.  Use 'GNUNET_DNSPARSER_check_label' to test if an
+   * individual label is well-formed.  If a given name is not well-formed,
+   * creating the DNS packet will fail.
    */
   char *name;
 
@@ -376,6 +408,10 @@ struct GNUNET_DNSPARSER_Record
 
     /**
      * For NS, CNAME and PTR records, this is the uncompressed 0-terminated hostname.
+   * In UTF-8 format.  The library will convert from and to DNS-IDNA 
+   * as necessary.  Use 'GNUNET_DNSPARSER_check_label' to test if an
+   * individual label is well-formed.  If a given name is not well-formed,
+   * creating the DNS packet will fail.
      */
     char *hostname;
     
