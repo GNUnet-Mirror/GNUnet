@@ -288,6 +288,9 @@ struct UDP_FragmentationContext
    * Bytes used to send all fragments on wire including UDP overhead
    */
   size_t on_wire_size;
+
+  unsigned int fragments_used;
+  struct GNUNET_TIME_Relative exp_delay;
 };
 
 
@@ -1408,6 +1411,7 @@ enqueue_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
  
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
        "Enqueuing fragment with %u bytes\n", msg_len);
+  frag_ctx->fragments_used ++;
   udpw = GNUNET_malloc (sizeof (struct UDP_MessageWrapper) + msg_len);
   udpw->session = frag_ctx->session;
   udpw->msg_buf = (char *) &udpw[1];
@@ -1538,12 +1542,17 @@ udp_plugin_send (void *cls,
     frag_ctx->frag = GNUNET_FRAGMENT_context_create (plugin->env->stats,
               UDP_MTU,
               &plugin->tracker,
-              s->last_expected_delay,
+              GNUNET_TIME_relative_max (s->last_expected_delay, GNUNET_TIME_UNIT_SECONDS),
               &udp->header,
               &enqueue_fragment,
               frag_ctx);
+
+    frag_ctx->exp_delay = s->last_expected_delay;
     s->frag_ctx = frag_ctx;
 
+    GNUNET_STATISTICS_update (plugin->env->stats,
+                              "# UDP, fragmented msgs, messages, pending",
+                              1, GNUNET_NO);
     GNUNET_STATISTICS_update (plugin->env->stats,
                               "# UDP, fragmented msgs, messages, attempt",
                               1, GNUNET_NO);
@@ -1963,13 +1972,25 @@ read_process_ack (struct Plugin *plugin,
       udpw = tmp;
     }
   }
-
+/*
+  LOG (GNUNET_ERROR_TYPE_ERROR,
+       "Fragmented message sent: fragments needed: %u , payload %u bytes, used on wire %u bytes, overhead: %f, expected delay: %llu\n",
+       s->frag_ctx->fragments_used,
+       s->frag_ctx->payload_size,
+       s->frag_ctx->on_wire_size,
+       ((float) s->frag_ctx->on_wire_size) / s->frag_ctx->payload_size,
+       s->frag_ctx->exp_delay.rel_value);
+*/
   dummy.msg_type = MSG_FRAGMENTED_COMPLETE;
   dummy.msg_buf = NULL;
   dummy.msg_size = s->frag_ctx->on_wire_size;
   dummy.payload_size = s->frag_ctx->payload_size;
   dummy.frag_ctx = s->frag_ctx;
   dummy.session = s;
+
+  GNUNET_STATISTICS_update (plugin->env->stats,
+                            "# UDP, fragmented msgs, messages, pending",
+                            -1, GNUNET_NO);
 
   call_continuation (&dummy, GNUNET_OK);
 
