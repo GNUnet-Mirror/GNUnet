@@ -17,6 +17,12 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
+/**
+ * @author Martin Schanzenbach
+ * @file src/gns/gnunet-gns-proxy.c
+ * @brief HTTP(S) proxy that rewrites URIs and fakes certificats to make GADS work
+ *        with legacy browsers
+ */
 #include "platform.h"
 #include <microhttpd.h>
 #include <curl/curl.h>
@@ -741,6 +747,7 @@ mhd_content_cb (void *cls,
                 char* buf,
                 size_t max);
 
+
 /**
  * Check HTTP response header for mime
  *
@@ -837,14 +844,11 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
                    MHD_HTTP_HEADER_SET_COOKIE,
                    cookie_hdr_len))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Looking for cookie in: `%s'\n", hdr_generic);    
     ndup = GNUNET_strdup (hdr_generic+cookie_hdr_len+1);
     memset (new_cookie_hdr, 0, sizeof (new_cookie_hdr));
-    tok = strtok (ndup, ";");
-
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Looking for cookie in : %s\n", hdr_generic);
-    
-    for (; tok != NULL; tok = strtok (NULL, ";"))
+    for (tok = strtok (ndup, ";"); tok != NULL; tok = strtok (NULL, ";"))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Got Cookie token: %s\n", tok);
@@ -966,6 +970,7 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
   return bytes;
 }
 
+
 /**
  * schedule mhd
  *
@@ -982,6 +987,7 @@ run_httpd (struct MhdHttpList *hd);
 static void
 run_httpds (void);
 
+
 /**
  * Task run whenever HTTP server operations are pending.
  *
@@ -991,6 +997,7 @@ run_httpds (void);
 static void
 do_httpd (void *cls,
           const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 static void
 run_mhd_now (struct MhdHttpList *hd)
@@ -1006,11 +1013,13 @@ run_mhd_now (struct MhdHttpList *hd)
   hd->httpd_task = GNUNET_SCHEDULER_add_now (&do_httpd, hd);
 }
 
+
 /**
  * Ask cURL for the select sets and schedule download
  */
 static void
 curl_download_prepare (void);
+
 
 /**
  * Callback to free content
@@ -1491,6 +1500,7 @@ post_read_callback (void *buf, size_t size, size_t nmemb, void *cls)
   return to_copy;
 }
 
+
 /**
  * Task that is run when we are ready to receive more data
  * from curl
@@ -1500,6 +1510,7 @@ post_read_callback (void *buf, size_t size, size_t nmemb, void *cls)
  */
 static void
 curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 /**
  * Ask cURL for the select sets and schedule download
@@ -1521,9 +1532,7 @@ curl_download_prepare ()
   FD_ZERO (&rs);
   FD_ZERO (&ws);
   FD_ZERO (&es);
-  mret = curl_multi_fdset (curl_multi, &rs, &ws, &es, &max);
-
-  if (mret != CURLM_OK)
+  if (CURLM_OK != (mret = curl_multi_fdset (curl_multi, &rs, &ws, &es, &max)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%s failed at %s:%d: `%s'\n",
@@ -1532,23 +1541,20 @@ curl_download_prepare ()
     //TODO cleanup here?
     return;
   }
-
-  mret = curl_multi_timeout (curl_multi, &to);
-  rtime = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, to);
-
+  to = -1;
+  GNUNET_break (CURLM_OK == curl_multi_timeout (curl_multi, &to));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "cURL multi fds: max=%d timeout=%llu\n", max, to);
-
+              "cURL multi fds: max=%d timeout=%lld\n", max, (long long) to);
+  if (-1 == to)
+    rtime = GNUNET_TIME_UNIT_FOREVER_REL;
+  else
+    rtime = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, to);
   grs = GNUNET_NETWORK_fdset_create ();
   gws = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
   GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Scheduling task cURL\n");
-
   if (curl_download_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (curl_download_task);
-  
+    GNUNET_SCHEDULER_cancel (curl_download_task);  
   if (-1 != max)
   {
     curl_download_task =
@@ -1854,6 +1860,7 @@ process_leho_lookup (void *cls,
 
 }
 
+
 /**
  * Initialize download and trigger curl
  *
@@ -1889,6 +1896,7 @@ process_get_authority (void *cls,
                           &process_leho_lookup,
                           ctask);
 }
+
 
 static void*
 mhd_log_callback (void* cls, const char* url)
@@ -2272,7 +2280,6 @@ do_httpd (void *cls,
 }
 
 
-
 /**
  * Read data from socket
  *
@@ -2282,6 +2289,7 @@ do_httpd (void *cls,
 static void
 do_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
+
 /**
  * Read from remote end
  *
@@ -2290,6 +2298,7 @@ do_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  */
 static void
 do_read_remote (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 /**
  * Write data to remote socket
@@ -2358,6 +2367,7 @@ cleanup_s5r (struct Socks5Request *s5r)
   GNUNET_free(s5r);
 }
 
+
 /**
  * Write data to socket
  *
@@ -2405,6 +2415,7 @@ do_write (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                      s5r->remote_sock,
                                      &do_read_remote, s5r);
 }
+
 
 /**
  * Read from remote end
@@ -2474,6 +2485,7 @@ add_handle_to_mhd (struct GNUNET_NETWORK_Handle *h, struct MHD_Daemon *daemon)
 
   return MHD_add_connection (daemon, fd, addr, len);
 }
+
 
 /**
  * Read file in filename
@@ -2648,7 +2660,7 @@ generate_gns_certificate (const char *name)
 }
 
 
-/*
+/**
  * Accept policy for mhdaemons
  *
  * @param cls NULL
@@ -2753,7 +2765,6 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, const char* domain)
   
   return add_handle_to_mhd (h, hd->daemon);
 }
-
 
 
 /**
@@ -3032,10 +3043,7 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                        s5r->remote_sock,
                                        &do_read_remote, s5r);
     }
-
-
   }
-
 }
 
 
@@ -3330,6 +3338,7 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
   return GNUNET_YES;
 }
 
+
 /**
  * Main function that will be run
  *
@@ -3446,12 +3455,8 @@ run (void *cls, char *const *args, const char *cfgfile,
                 GNUNET_a2s ((const struct sockaddr *) &sa, sizeof (sa)));
     return;
   }
-
   ltask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                          lsock, &do_accept, NULL);
-
-  ctasks_head = NULL;
-  ctasks_tail = NULL;
 
   if (0 != curl_global_init (CURL_GLOBAL_WIN32))
   {
@@ -3463,10 +3468,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Proxy listens on port %u\n",
               port);
-
-  mhd_httpd_head = NULL;
-  mhd_httpd_tail = NULL;
-  total_mhd_connections = 0;
 #if ! HAVE_MHD_NO_LISTEN_SOCKET
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns-proxy",
                                                             "PROXY_UNIXPATH",
@@ -3548,18 +3549,13 @@ run (void *cls, char *const *args, const char *cfgfile,
 			    MHD_OPTION_URI_LOG_CALLBACK, &mhd_log_callback, NULL,
 			    MHD_OPTION_END);
 #endif
-
-  GNUNET_assert (httpd != NULL);
+  GNUNET_break (httpd != NULL);
   hd->daemon = httpd;
   hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
-
   GNUNET_CONTAINER_DLL_insert (mhd_httpd_head, mhd_httpd_tail, hd);
-
   run_httpds ();
-
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &do_shutdown, NULL);
-
 }
 
 
@@ -3582,13 +3578,10 @@ main (int argc, char *const *argv)
       &GNUNET_GETOPT_set_string, &cafile_opt},
     GNUNET_GETOPT_OPTION_END
   };
-
   int ret;
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
-
-
   GNUNET_log_setup ("gnunet-gns-proxy", "WARNING", NULL);
   ret =
       (GNUNET_OK ==
@@ -3596,11 +3589,8 @@ main (int argc, char *const *argv)
                            _("GNUnet GNS proxy"),
                            options,
                            &run, NULL)) ? 0 : 1;
-  GNUNET_free_non_null ((char*)argv);
-
+  GNUNET_free_non_null ((char *) argv);
   return ret;
 }
 
-
-
-
+/* end of gnunet-gns-proxy.c */
