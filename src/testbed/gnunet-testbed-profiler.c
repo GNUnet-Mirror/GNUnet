@@ -295,8 +295,8 @@ peer_churn_cb (void *cls, const char *emsg)
   if (++started_peers == num_peers)
   {
     prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
-    printf ("All peers started successfully in %.2f seconds\n",
-            ((double) prof_time.rel_value) / 1000.00);
+    printf ("%u peers started successfully in %.2f seconds\n",
+            num_peers, ((double) prof_time.rel_value) / 1000.00);
     result = GNUNET_OK;
     if (0 == num_links)
     {
@@ -351,8 +351,8 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
   if (++created_peers == num_peers)
   {
     prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);    
-    printf ("All peers created successfully in %.2f seconds\n",
-            ((double) prof_time.rel_value) / 1000.00);
+    printf ("%u peers created successfully in %.2f seconds\n",
+            num_peers, ((double) prof_time.rel_value) / 1000.00);
     /* Now peers are to be started */
     state = STATE_PEERS_STARTING;
     prof_start_time = GNUNET_TIME_absolute_get ();
@@ -407,7 +407,7 @@ controller_event_cb (void *cls,
         /* Proceed to start peers */
         if (++slaves_started == num_hosts - 1)
         {
-          printf ("All slaves started successfully\n");
+          printf ("%u controllers started successfully\n", num_hosts);
           state = STATE_PEERS_CREATING;
           prof_start_time = GNUNET_TIME_absolute_get ();
           peers = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Peer *)
