@@ -35,6 +35,7 @@
 #define LOG(kind,...)                                           \
   GNUNET_log (kind, __VA_ARGS__)
 
+
 /**
  * DLL of operations
  */
@@ -156,6 +157,11 @@ struct GNUNET_TESTBED_Operation *topology_op;
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
 
 /**
+ * Shutdown task identifier
+ */
+static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+
+/**
  * Host registration task identifier
  */
 static GNUNET_SCHEDULER_TaskIdentifier register_hosts_task;
@@ -196,6 +202,21 @@ static unsigned int num_hosts;
 static unsigned int num_links;
 
 /**
+ * Number of timeout failures to tolerate
+ */
+static unsigned int num_cont_fails;
+
+/**
+ * Number of times we try overlay connect operations
+ */
+static unsigned int retry_links;
+
+/**
+ * Continuous failures during overlay connect operations
+ */
+static unsigned int cont_fails;
+
+/**
  * Global testing status
  */
 static int result;
@@ -218,6 +239,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct DLLOperation *dll_op;
   unsigned int nhost;
 
+  shutdown_task = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
   if (GNUNET_SCHEDULER_NO_TASK != register_hosts_task)
@@ -258,7 +280,9 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   LOG (GNUNET_ERROR_TYPE_WARNING, "Aborting\n");
   abort_task = GNUNET_SCHEDULER_NO_TASK;
   result = GNUNET_SYSERR;
-  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
+    GNUNET_SCHEDULER_cancel (shutdown_task);
+  shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
 
 
@@ -297,10 +321,11 @@ peer_churn_cb (void *cls, const char *emsg)
     prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
     printf ("%u peers started successfully in %.2f seconds\n",
             num_peers, ((double) prof_time.rel_value) / 1000.00);
+    fflush (stdout);
     result = GNUNET_OK;
     if (0 == num_links)
-    {
-      GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    {      
+      shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
       return;
     }
     state = STATE_PEERS_LINKING;
@@ -309,6 +334,7 @@ peer_churn_cb (void *cls, const char *emsg)
     topology_op =
         GNUNET_TESTBED_overlay_configure_topology (NULL, num_peers, peers,
                                                    GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI,
+
                                                    num_links);
   }
 }
@@ -353,6 +379,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
     prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);    
     printf ("%u peers created successfully in %.2f seconds\n",
             num_peers, ((double) prof_time.rel_value) / 1000.00);
+    fflush (stdout);
     /* Now peers are to be started */
     state = STATE_PEERS_STARTING;
     prof_start_time = GNUNET_TIME_absolute_get ();
@@ -364,6 +391,21 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
       GNUNET_CONTAINER_DLL_insert_tail (dll_op_head, dll_op_tail, dll_op);
     }
   }
+}
+
+
+/**
+ * Function to print summary about how many overlay links we have made and how
+ * many failed
+ */
+static void
+print_overlay_links_summary ()
+{
+  prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
+  printf ("\n%u links established in %.2f seconds\n",
+	  num_links, ((double) prof_time.rel_value) / 1000.00);
+  printf ("Overlay link operations have been retried %u times upon timeouts\n",
+	  retry_links);
 }
 
 
@@ -408,6 +450,7 @@ controller_event_cb (void *cls,
         if (++slaves_started == num_hosts - 1)
         {
           printf ("%u controllers started successfully\n", num_hosts);
+	  fflush (stdout);
           state = STATE_PEERS_CREATING;
           prof_start_time = GNUNET_TIME_absolute_get ();
           peers = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Peer *)
@@ -452,27 +495,33 @@ controller_event_cb (void *cls,
       {
         LOG (GNUNET_ERROR_TYPE_WARNING,
              _("An operation has failed while linking\n"));
-        /* GNUNET_SCHEDULER_cancel (abort_task); */
-        /* abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL); */
 	printf ("F");
 	fflush (stdout);
+	retry_links++;
+	if (++cont_fails > num_cont_fails)
+	{
+	  printf ("\nAborting due to very high failure rate");
+	  print_overlay_links_summary ();	  
+	  GNUNET_SCHEDULER_cancel (abort_task);
+	  abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+	}
       }
       break;
     case GNUNET_TESTBED_ET_CONNECT:
       {
         static unsigned int established_links;
 
+	if (0 != cont_fails)
+	  cont_fails--;
 	if (0 == established_links)
 	  printf ("Establishing links. Please wait\n");
 	printf (".");
 	fflush (stdout);
         if (++established_links == num_links)
         {
-          prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
-          printf ("\n%u links established in %.2f seconds\n",
-                  num_links, ((double) prof_time.rel_value) / 1000.00);
+	  print_overlay_links_summary ();
 	  result = GNUNET_OK;
-          GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+          shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
         }
       }
       break;
@@ -632,14 +681,14 @@ run (void *cls, char *const *args, const char *cfgfile,
     if (GNUNET_YES != GNUNET_TESTBED_is_host_habitable (hosts[nhost]))
     {
       fprintf (stderr, _("Host %s cannot start testbed\n"),
-                         GNUNET_TESTBED_host_get_hostname_ (hosts[nhost]));
+	       GNUNET_TESTBED_host_get_hostname_ (hosts[nhost]));
       break;
     }
   }
   if (num_hosts != nhost)
   {
     fprintf (stderr, _("Exiting\n"));
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
   cfg = GNUNET_CONFIGURATION_dup (config);
@@ -672,6 +721,9 @@ main (int argc, char *const *argv)
     { 'n', "num-links", "COUNT",
       gettext_noop ("create COUNT number of random links"),
       GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_links },
+    { 'e', "num-errors", "COUNT",
+      gettext_noop ("tolerate COUNT number of continious timeout failures"),
+      GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_cont_fails },
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
