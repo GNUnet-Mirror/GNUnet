@@ -81,6 +81,8 @@ parse_name (const char *udp_payload,
   char *xstr;
   uint8_t len;
   size_t xoff;
+  char *utf8;
+  Idna_rc rc;
   
   ret = GNUNET_strdup ("");
   while (1)
@@ -98,10 +100,36 @@ parse_name (const char *udp_payload,
       if (*off + 1 + len > udp_payload_length)
 	goto error;
       GNUNET_asprintf (&tmp,
-		       "%s%.*s.",
-		       ret,
+		       "%.*s",
 		       (int) len,
 		       &udp_payload[*off + 1]);
+      if (IDNA_SUCCESS !=
+	  (rc = idna_to_unicode_8z8z (tmp, &utf8, IDNA_USE_STD3_ASCII_RULES)))
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		    _("Failed to convert DNS IDNA name `%s' to UTF-8: %s\n"),
+		    tmp,
+		    idna_strerror (rc));
+	GNUNET_free (tmp);
+	GNUNET_asprintf (&tmp,
+			 "%s%.*s.",
+			 ret,
+			 (int) len,
+			 &udp_payload[*off + 1]);
+      }
+      else
+      {
+	GNUNET_free (tmp);
+	GNUNET_asprintf (&tmp,
+			 "%s%s.",
+			 ret,
+			 utf8);
+#if WINDOWS
+	idn_free (utf8);
+#else
+	free (utf8);
+#endif
+      }
       GNUNET_free (ret);
       ret = tmp;
       *off += 1 + len;
@@ -539,34 +567,60 @@ add_name (char *dst,
 	  const char *name)
 {
   const char *dot;
+  const char *idna_name;
+  char *idna_start;
   size_t start;
   size_t pos;
   size_t len;
+  Idna_rc rc;
 
   if (NULL == name)
     return GNUNET_SYSERR;
-  start = *off;
-  if (start + strlen (name) + 2 > dst_len)
+
+  if (IDNA_SUCCESS != 
+      (rc = idna_to_ascii_8z (name, &idna_start, IDNA_USE_STD3_ASCII_RULES)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		_("Failed to convert UTF-8 name `%s' to DNS IDNA format: %s\n"),
+		name,
+		idna_strerror (rc));
     return GNUNET_NO;
+  }
+  idna_name = idna_start;
+  start = *off;
+  if (start + strlen (idna_name) + 2 > dst_len)
+    goto fail;
   pos = start;
   do
   {
-    dot = strchr (name, '.');
+    dot = strchr (idna_name, '.');
     if (NULL == dot)
-      len = strlen (name);
+      len = strlen (idna_name);
     else
-      len = dot - name;
+      len = dot - idna_name;
     if ( (len >= 64) || (len == 0) )
-      return GNUNET_NO; /* segment too long or empty */
+      goto fail; /* segment too long or empty */  
     dst[pos++] = (char) (uint8_t) len;
-    memcpy (&dst[pos], name, len);
+    memcpy (&dst[pos], idna_name, len);
     pos += len;
-    name += len + 1; /* also skip dot */
+    idna_name += len + 1; /* also skip dot */
   }
   while (NULL != dot);
   dst[pos++] = '\0'; /* terminator */
   *off = pos;
+#if WINDOWS
+  idn_free (idna_start);
+#else
+  free (idna_start);
+#endif
   return GNUNET_OK;
+ fail:
+#if WINDOWS
+  idn_free (idna_start);
+#else
+  free (idna_start);
+#endif
+  return GNUNET_NO; 
 }
 
 
