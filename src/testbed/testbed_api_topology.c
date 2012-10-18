@@ -35,11 +35,29 @@
 #define LOG(kind,...)                                           \
   GNUNET_log_from (kind, "testbed-api-topology", __VA_ARGS__)
 
+
+/**
+ * Context information for topology operations
+ */
+struct TopologyContext;
+
+
 /**
  * Representation of an overlay link
  */
 struct OverlayLink
 {
+
+  /**
+   * An operation corresponding to this link
+   */
+  struct GNUNET_TESTBED_Operation *op;
+
+  /**
+   * The topology context this link is a part of
+   */  
+  struct TopologyContext *tc;
+
   /**
    * position of peer A's handle in peers array
    */
@@ -69,13 +87,6 @@ struct TopologyContext
   struct OverlayLink *link_array;
 
   /**
-   * An array of operations resulting from the links we try to establish; the
-   * number of operations in this array is equal to link_array_size (1 link = 1
-   * operation)
-   */
-  struct GNUNET_TESTBED_Operation **link_ops;
-
-  /**
    * The operation closure
    */
   void *op_cls;
@@ -101,15 +112,23 @@ overlay_link_completed (void *cls,
 			struct GNUNET_TESTBED_Operation *op, 
 			const char *emsg)
 {
-  struct GNUNET_TESTBED_Operation **link_op = cls;
+  struct OverlayLink *link = cls;
+  struct TopologyContext *tc;
 
-  GNUNET_assert (*link_op == op);
+  GNUNET_assert (op == link->op);
   GNUNET_TESTBED_operation_done (op);
-  *link_op = NULL;
+  link->op = NULL;  
   if (NULL != emsg)
   {
+    tc = link->tc;
     LOG (GNUNET_ERROR_TYPE_WARNING,
-	 "Error while establishing a link: %s\n", emsg);
+	 "Error while establishing a link: %s -- Retrying\n", emsg);
+    link->op =
+        GNUNET_TESTBED_overlay_connect (tc->op_cls,
+                                        &overlay_link_completed,
+                                        link,
+                                        tc->peers[link->A],
+                                        tc->peers[link->B]);
     return;
   }
 }
@@ -127,13 +146,11 @@ opstart_overlay_configure_topology (void *cls)
   struct TopologyContext *tc = cls;
   unsigned int p;
   
-  tc->link_ops = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Operations *)
-				* tc->link_array_size);
   for (p = 0; p < tc->link_array_size; p++)
   {
-    tc->link_ops[p] =
+    tc->link_array[p].op =
 	GNUNET_TESTBED_overlay_connect (tc->op_cls, &overlay_link_completed,
-					&tc->link_ops[p],
+					&tc->link_array[p],
 					tc->peers[tc->link_array[p].A],
 					tc->peers[tc->link_array[p].B]);   						  
   }
@@ -151,14 +168,13 @@ oprelease_overlay_configure_topology (void *cls)
   struct TopologyContext *tc = cls;
   unsigned int p;
   
-  if (NULL != tc->link_ops)
+  if (NULL != tc->link_array)
   {
     for (p = 0; p < tc->link_array_size; p++)
-      if (NULL != tc->link_ops[p])
-	GNUNET_TESTBED_operation_cancel (tc->link_ops[p]);      
-    GNUNET_free (tc->link_ops);    
+      if (NULL != tc->link_array[p].op)
+        GNUNET_TESTBED_operation_cancel (tc->link_array[p].op);
+    GNUNET_free (tc->link_array);
   }
-  GNUNET_free_non_null (tc->link_array);
   GNUNET_free (tc);
 }
 
@@ -242,7 +258,7 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
   c = peers[0]->controller;
   tc = GNUNET_malloc (sizeof (struct TopologyContext));
   tc->peers = peers;
-  tc->op_cls = tc->op_cls;
+  tc->op_cls = op_cls;
   switch (topo)
   {
   case GNUNET_TESTBED_TOPOLOGY_LINE:
@@ -272,6 +288,7 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
       } while (A_rand == B_rand);      
       tc->link_array[cnt].A = A_rand;
       tc->link_array[cnt].B = B_rand;
+      tc->link_array[cnt].tc = tc;
     }
     break;
   default:

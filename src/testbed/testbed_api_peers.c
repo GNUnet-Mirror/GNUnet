@@ -357,7 +357,7 @@ oprelease_overlay_connect (void *cls)
 {
   struct OperationContext *opc = cls;
 
-  if (OPC_STATE_FINISHED != opc->state)
+  if (OPC_STATE_STARTED == opc->state)
   {
     GNUNET_free (opc->data);
     GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
@@ -720,8 +720,8 @@ GNUNET_TESTBED_overlay_connect (void *op_cls,
   opc->op =
       GNUNET_TESTBED_operation_create_ (opc, &opstart_overlay_connect,
                                         &oprelease_overlay_connect);
-  GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_parallel_operations,
-                                          opc->op);
+  /* GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_parallel_operations, */
+  /*                                         opc->op); */
   GNUNET_TESTBED_operation_queue_insert_
       (opc->c->opq_parallel_overlay_connect_operations, opc->op);
   return opc->op;

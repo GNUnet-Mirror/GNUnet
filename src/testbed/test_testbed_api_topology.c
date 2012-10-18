@@ -44,6 +44,11 @@ static struct GNUNET_TESTBED_Peer **peers;
 static struct GNUNET_TESTBED_Operation *op;
 
 /**
+ * Shutdown task
+ */
+static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+
+/**
  * Testing result
  */
 static int result;
@@ -63,6 +68,7 @@ static unsigned int overlay_connects;
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  shutdown_task = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != op)
   {
     GNUNET_TESTBED_operation_done (op);
@@ -91,6 +97,9 @@ controller_event_cb (void *cls,
       GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     }
     break;
+  case GNUNET_TESTBED_ET_OPERATION_FINISHED:
+    GNUNET_assert (NULL != event->details.operation_finished.emsg);
+    break;
   default:
     GNUNET_break (0);
     if ((GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type) && 
@@ -99,7 +108,8 @@ controller_event_cb (void *cls,
                   "An operation failed with error: %s\n",
                   event->details.operation_finished.emsg);
     result = GNUNET_SYSERR;
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    GNUNET_SCHEDULER_cancel (shutdown_task);
+    shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
   }  
 }
 
@@ -128,6 +138,9 @@ test_master (void *cls, unsigned int num_peers,
 						  GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI,
                                                   NUM_PEERS);
   GNUNET_assert (NULL != op);
+  shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                                (GNUNET_TIME_UNIT_SECONDS, 120),
+                                                do_shutdown, NULL);
 }
 
 

@@ -58,7 +58,7 @@
 /**
  * Default timeout for operations which may take some time
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60)
+#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
  * The main context information associated with the client which started us
@@ -497,6 +497,16 @@ struct Peer
 struct OverlayConnectContext
 {
   /**
+   * The next pointer for maintaining a DLL
+   */
+  struct OverlayConnectContext *next;
+
+  /**
+   * The prev pointer for maintaining a DLL
+   */
+  struct OverlayConnectContext *prev;
+  
+  /**
    * The client which has requested for overlay connection
    */
   struct GNUNET_SERVER_Client *client;
@@ -571,6 +581,11 @@ struct OverlayConnectContext
    * The id of the overlay connect timeout task
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+  /**
+   * The id of the cleanup task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier cleanup_task;
 
   /**
    * The id of peer A
@@ -777,6 +792,16 @@ static struct MessageQueue *mq_head;
 static struct MessageQueue *mq_tail;
 
 /**
+ * DLL head for OverlayConnectContext DLL - to be used to clean up during shutdown
+ */
+static struct OverlayConnectContext *occq_head;
+
+/**
+ * DLL tail for OverlayConnectContext DLL
+ */
+static struct OverlayConnectContext *occq_tail;
+
+/**
  * Array of hosts
  */
 static struct GNUNET_TESTBED_Host **host_list;
@@ -865,6 +890,7 @@ transmit_ready_notify (void *cls, size_t size, void *buf)
   size = ntohs (mq_entry->msg->size);
   memcpy (buf, mq_entry->msg, size);
   GNUNET_free (mq_entry->msg);
+  GNUNET_SERVER_client_drop (mq_entry->client);
   GNUNET_CONTAINER_DLL_remove (mq_head, mq_tail, mq_entry);
   GNUNET_free (mq_entry);
   mq_entry = mq_head;
@@ -899,6 +925,7 @@ queue_message (struct GNUNET_SERVER_Client *client,
   mq_entry = GNUNET_malloc (sizeof (struct MessageQueue));
   mq_entry->msg = msg;
   mq_entry->client = client;
+  GNUNET_SERVER_client_keep (client);
   LOG_DEBUG ("Queueing message of type %u, size %u for sending\n", type,
              ntohs (msg->size));
   GNUNET_CONTAINER_DLL_insert_tail (mq_head, mq_tail, mq_entry);
@@ -2537,16 +2564,13 @@ handle_peer_get_config (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Task for cleaing up overlay connect context structure
+ * Cleanup overlay connect context structure
  *
- * @param cls the overlay connect context
- * @param tc the task context
+ * @param occ the overlay connect context
  */
 static void
-occ_cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup_occ (struct OverlayConnectContext *occ)
 {
-  struct OverlayConnectContext *occ = cls;
-
   LOG_DEBUG ("Cleaning up occ\n");
   GNUNET_free_non_null (occ->emsg);
   GNUNET_free_non_null (occ->hello);
@@ -2555,6 +2579,10 @@ occ_cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TESTBED_forward_operation_msg_cancel_ (occ->opc);
   if (GNUNET_SCHEDULER_NO_TASK != occ->send_hello_task)
     GNUNET_SCHEDULER_cancel (occ->send_hello_task);
+  if (GNUNET_SCHEDULER_NO_TASK != occ->cleanup_task)
+    GNUNET_SCHEDULER_cancel (occ->cleanup_task);
+  if (GNUNET_SCHEDULER_NO_TASK != occ->timeout_task)
+    GNUNET_SCHEDULER_cancel (occ->timeout_task);
   if (NULL != occ->ch)
     GNUNET_CORE_disconnect (occ->ch);
   if (NULL != occ->ghh)
@@ -2563,7 +2591,24 @@ occ_cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TRANSPORT_disconnect (occ->p1th);
   if (NULL != occ->p2th)
     GNUNET_TRANSPORT_disconnect (occ->p2th);
+  GNUNET_CONTAINER_DLL_remove (occq_head, occq_tail, occ);
   GNUNET_free (occ);
+}
+
+
+/**
+ * Task for cleaing up overlay connect context structure
+ *
+ * @param cls the overlay connect context
+ * @param tc the task context
+ */
+static void
+do_cleanup_occ (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct OverlayConnectContext *occ = cls;
+  
+  occ->cleanup_task = GNUNET_SCHEDULER_NO_TASK;
+  cleanup_occ (occ);
 }
 
 
@@ -2584,7 +2629,7 @@ timeout_overlay_connect (void *cls,
        "Timeout while connecting peers %u and %u\n",
        occ->peer_id, occ->other_peer_id);
   send_operation_fail_msg (occ->client, occ->op_id, occ->emsg);
-  occ_cleanup (occ, tc);
+  cleanup_occ (occ);
 }
 
 
@@ -2652,7 +2697,8 @@ overlay_connect_notify (void *cls, const struct GNUNET_PeerIdentity *new_peer,
   msg->peer2 = htonl (occ->other_peer_id);
   msg->operation_id = GNUNET_htonll (occ->op_id);
   queue_message (occ->client, &msg->header);
-  GNUNET_SCHEDULER_add_now (&occ_cleanup, occ);
+  occ->cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup_occ, occ);
+  //cleanup_occ (occ);
 }
 
 
@@ -2949,11 +2995,12 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
                         const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TESTBED_OverlayConnectMessage *msg;
-  struct OverlayConnectContext *occ;
   const struct GNUNET_CORE_MessageHandler no_handlers[] = {
     {NULL, 0, 0}
   };
   struct Peer *peer;
+  struct OverlayConnectContext *occ;
+  struct GNUNET_TESTBED_Controller *peer2_controller;
   uint64_t operation_id;
   uint32_t p1;
   uint32_t p2; 
@@ -3069,13 +3116,8 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  occ = GNUNET_malloc (sizeof (struct OverlayConnectContext));
-  GNUNET_SERVER_client_keep (client);
-  occ->client = client;
-  occ->peer_id = p1;
-  occ->other_peer_id = p2;
-  occ->peer = peer_list[p1];
-  occ->op_id = GNUNET_ntohll (msg->operation_id);  
+
+  peer2_controller = NULL;
   if ((p2 >= peer_list_size) || (NULL == peer_list[p2]))
   {   
     if ((peer2_host_id >= slave_list_size)
@@ -3084,8 +3126,7 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
       struct GNUNET_TESTBED_NeedControllerConfig *reply;
 
       LOG_DEBUG ("Need controller configuration for connecting peers %u and %u\n",
-		 occ->peer_id, occ->other_peer_id);
-      GNUNET_free (occ);
+		 p1, p2);
       reply = GNUNET_malloc (sizeof (struct
                                      GNUNET_TESTBED_NeedControllerConfig)); 
       reply->header.size = htons (sizeof (struct
@@ -3099,12 +3140,11 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
     }
     else
     {
-      occ->peer2_controller = slave_list[peer2_host_id]->controller;
-      if (NULL == occ->peer2_controller)
+      //occ->peer2_controller = slave_list[peer2_host_id]->controller;
+      peer2_controller = slave_list[peer2_host_id]->controller;
+      if (NULL == peer2_controller)
       {
         GNUNET_break (0);       /* What's going on? */
-        GNUNET_SERVER_client_drop (client);
-        GNUNET_free (occ);
         GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
         return;
       }
@@ -3112,9 +3152,18 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
   }
   else
   {
-    if (GNUNET_YES == peer_list[occ->other_peer_id]->is_remote)
-      occ->peer2_controller = peer_list[occ->other_peer_id]->details.remote.slave->controller;
+    if (GNUNET_YES == peer_list[p2]->is_remote)
+      peer2_controller = peer_list[p2]->details.remote.slave->controller;
   }
+  occ = GNUNET_malloc (sizeof (struct OverlayConnectContext));
+  GNUNET_CONTAINER_DLL_insert_tail (occq_head, occq_tail, occ);
+  GNUNET_SERVER_client_keep (client);
+  occ->client = client;
+  occ->peer_id = p1;
+  occ->other_peer_id = p2;
+  occ->peer = peer_list[p1];
+  occ->op_id = GNUNET_ntohll (msg->operation_id);
+  occ->peer2_controller = peer2_controller;
   /* Get the identity of the second peer */
   if (NULL != occ->peer2_controller)
   {
@@ -3449,6 +3498,7 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct LCFContextQueue *lcfq;
+  struct OverlayConnectContext *occ;
   uint32_t id;
 
   shutdown_task_id = GNUNET_SCHEDULER_NO_TASK;
@@ -3472,6 +3522,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CONTAINER_DLL_remove (lcfq_head, lcfq_tail, lcfq);
     GNUNET_free (lcfq);
   }
+  while (NULL != (occ = occq_head))
+    cleanup_occ (occ);
   /* Clear peer list */
   for (id = 0; id < peer_list_size; id++)
     if (NULL != peer_list[id])
@@ -3605,8 +3657,9 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect_cb, NULL);
   ss_map = GNUNET_CONTAINER_multihashmap_create (5, GNUNET_NO);
   shutdown_task_id =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                    &shutdown_task, NULL);
+      GNUNET_SCHEDULER_add_delayed_with_priority (GNUNET_TIME_UNIT_FOREVER_REL,
+                                                  GNUNET_SCHEDULER_PRIORITY_IDLE,
+                                                  &shutdown_task, NULL);
   LOG_DEBUG ("Testbed startup complete\n");
   event_mask = 1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED;
 }
