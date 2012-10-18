@@ -52,6 +52,13 @@
 
 
 /**
+ * Generic logging shorthand
+ */
+#define LOG(kind, ...)                          \
+  GNUNET_log_from (kind, "dns", __VA_ARGS__);
+
+
+/**
  * Phases each request goes through.
  */
 enum RequestPhase
@@ -370,10 +377,16 @@ request_done (struct RequestRecord *rr)
   if (RP_RESPONSE_MONITOR != rr->phase)
   {
     /* no response, drop */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Got no response for request %llu, dropping\n",
+	 (unsigned long long) rr->request_id);
     cleanup_rr (rr);
     return;
   }
-  
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Transmitting response for request %llu\n",
+       (unsigned long long) rr->request_id);  
   /* send response via hijacker */
   reply_len = sizeof (struct GNUNET_MessageHeader);
   reply_len += sizeof (struct GNUNET_TUN_Layer2PacketHeader);
@@ -524,6 +537,9 @@ send_request_to_client (struct RequestRecord *rr,
     cleanup_rr (rr);
     return;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending information about request %llu to local client\n",
+       (unsigned long long) rr->request_id);  
   req = (struct GNUNET_DNS_Request*) buf;
   req->header.type = htons (GNUNET_MESSAGE_TYPE_DNS_CLIENT_REQUEST);
   req->header.size = htons (sizeof (buf));
@@ -588,6 +604,10 @@ next_phase (struct RequestRecord *rr)
     return;
   }
   /* done with current phase, advance! */
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Request %llu now in phase %d\n",
+       rr->request_id,
+       rr->phase);  
   switch (rr->phase)
   {
   case RP_INIT:
@@ -785,7 +805,9 @@ process_dns_result (void *cls,
 {
   struct RequestRecord *rr;
   struct TunnelState *ts;
-    
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Processing DNS result from stub resolver\n");
   GNUNET_assert (NULL == cls);
   /* Handle case that this is a reply to a request from a MESH DNS tunnel */
   ts = tunnels[dns->id];
@@ -793,36 +815,43 @@ process_dns_result (void *cls,
        (ts->rs != rs) )
     ts = NULL; /* DNS responder address missmatch */
   if (NULL != ts)
-    {
-      tunnels[dns->id] = NULL;
-      GNUNET_free_non_null (ts->reply);
-      ts->reply = GNUNET_malloc (r);
-      ts->reply_length = r;
-      memcpy (ts->reply, dns, r);
-      if (ts->th != NULL)
-	GNUNET_MESH_notify_transmit_ready_cancel (ts->th);
-      ts->th = GNUNET_MESH_notify_transmit_ready (ts->tunnel,
-						  GNUNET_NO,
-						  GNUNET_TIME_UNIT_FOREVER_REL,
-						  NULL,
-						  sizeof (struct GNUNET_MessageHeader) + r,
-						  &transmit_reply_to_mesh,
-						  ts);
-    }
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Got a response from the stub resolver for DNS request received via MESH!\n");
+    tunnels[dns->id] = NULL;
+    GNUNET_free_non_null (ts->reply);
+    ts->reply = GNUNET_malloc (r);
+    ts->reply_length = r;
+    memcpy (ts->reply, dns, r);
+    if (NULL != ts->th)
+      GNUNET_MESH_notify_transmit_ready_cancel (ts->th);
+    ts->th = GNUNET_MESH_notify_transmit_ready (ts->tunnel,
+						GNUNET_NO,
+						GNUNET_TIME_UNIT_FOREVER_REL,
+						NULL,
+						sizeof (struct GNUNET_MessageHeader) + r,
+						&transmit_reply_to_mesh,
+						ts);
+  }
   /* Handle case that this is a reply to a local request (intercepted from TUN interface) */
   rr = &requests[dns->id];
   if ( (rr->phase != RP_INTERNET_DNS) ||
        (rr->rs != rs) )
+  {
+    if (NULL == ts)
     {
-      if (NULL == ts)
-	{
-	  /* unexpected / bogus reply */
-	  GNUNET_STATISTICS_update (stats,
-				    gettext_noop ("# External DNS response discarded (no matching request)"),
-				    1, GNUNET_NO);
-	}
-      return; 
+      /* unexpected / bogus reply */
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# External DNS response discarded (no matching request)"),
+				1, GNUNET_NO);
     }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Received DNS reply that does not match any pending request.  Dropping.\n"); 
+    return; 
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Got a response from the stub resolver for DNS request %llu intercepted locally!\n",
+       (unsigned long long) rr->request_id);
   GNUNET_free_non_null (rr->payload);
   rr->payload = GNUNET_malloc (r);
   memcpy (rr->payload, dns, r);
@@ -886,6 +915,9 @@ handle_client_response (void *cls GNUNET_UNUSED,
   resp = (const struct GNUNET_DNS_Response*) message;
   off = (uint16_t) resp->request_id;
   rr = &requests[off];
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received DNS response with ID %llu from local client!\n",
+       (unsigned long long) resp->request_id);
   if (rr->request_id != resp->request_id)
   {
     GNUNET_STATISTICS_update (stats,
@@ -979,6 +1011,8 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
   struct sockaddr_in *dsta4;
   struct sockaddr_in6 *dsta6;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Intercepted message via DNS hijacker\n");
   msize = ntohs (message->size);
   if (msize < sizeof (struct GNUNET_MessageHeader) + sizeof (struct GNUNET_TUN_Layer2PacketHeader) + sizeof (struct GNUNET_TUN_IPv4Header))
   {
@@ -1099,7 +1133,9 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
   memcpy (rr->payload, dns, msize);
   rr->request_id = dns->id | (request_id_gen << 16);
   request_id_gen++;
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Creating new DNS request %llu\n",
+       (unsigned long long) rr->request_id);
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# DNS requests received via TUN interface"),
 			    1, GNUNET_NO);
