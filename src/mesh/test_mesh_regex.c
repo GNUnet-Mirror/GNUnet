@@ -41,6 +41,10 @@
  */
 #define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
+/**
+ * Initial regex padding.
+ */
+#define REGEX_INITIAL_PADDING "PADPADPADPADPADP"
 
 /**
  * Which strings have been found & connected.
@@ -188,7 +192,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Ends test: Disconnects peers and calls shutdown.
  * @param cls Closure (not used).
- * @param tc TaskContext. 
+ * @param tc TaskContext.
  */
 static void
 disconnect_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -287,7 +291,7 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
               "Peer connected: %s\n",
               GNUNET_i2s (peer));
   regex_peers++;
- 
+
   GNUNET_MESH_notify_transmit_ready(t[i], GNUNET_NO,
                                     GNUNET_TIME_UNIT_FOREVER_REL,
                                     peer,
@@ -370,7 +374,7 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
     GNUNET_SCHEDULER_cancel (disconnect_task);
     disconnect_task =
         GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
-  } 
+  }
   return GNUNET_OK;
 }
 
@@ -457,7 +461,7 @@ GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
     GNUNET_MESH_peer_request_connect_by_string (t[i], strings[i]);
   }
   /* connect handler = success, timeout = error */
-  
+
 }
 
 
