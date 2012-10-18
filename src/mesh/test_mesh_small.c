@@ -56,7 +56,7 @@ struct MeshPeer
 /**
  * Time to wait for stuff that should be rather fast
  */
-#define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+#define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 /**
  * DIFFERENT TESTS TO RUN
@@ -389,7 +389,7 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Transmit ready callback.
  * 
- * @param cls Closure (peer #).
+ * @param cls Closure (message type).
  * @param size Size of the tranmist buffer.
  * @param buf Pointer to the beginning of the buffer.
  * 
@@ -458,7 +458,7 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Transmit ready callback
  *
- * @param cls Closure.
+ * @param cls Closure (message type).
  * @param size Size of the buffer we have.
  * @param buf Buffer to copy data to.
  */
@@ -509,6 +509,18 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
   long expected_target_client;
 
   ok++;
+
+  if ((ok % 20) == 0)
+  {
+    if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
+    {
+      GNUNET_SCHEDULER_cancel (disconnect_task);
+      disconnect_task =
+              GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers,
+                                            NULL);
+    }
+  }
+
   switch (client)
   {
   case 1L:
@@ -756,6 +768,7 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
       dest = NULL;
       break;
     default:
+      GNUNET_assert (0);
       return;
   }
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
