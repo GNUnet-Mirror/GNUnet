@@ -1745,7 +1745,8 @@ libgnunet_plugin_transport_wlan_init (void *cls)
   plugin->helper_payload_tokenizer = GNUNET_SERVER_mst_create (&process_data, plugin);
   plugin->beacon_task = GNUNET_SCHEDULER_add_now (&send_hello_beacon, 
 						  plugin);
-  switch (testmode)
+  /* some compilers do not like switch on 'long long'... */
+  switch ((unsigned int) testmode)
   {
   case 0: /* normal */ 
     plugin->helper_argv[0] = (char *) "gnunet-helper-transport-wlan";
