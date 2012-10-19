@@ -360,9 +360,8 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
   GNUNET_assert (peer->op_handle == op);
   GNUNET_assert (peer->mesh_handle == ca_result);
 
-  //  GNUNET_TESTBED_operation_done (op);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh connect callback for peer\n");
+  printf (".");
+  fflush (stdout);
 
   if (++connected_mesh_handles == num_peers)
   {
