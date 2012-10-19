@@ -56,7 +56,7 @@ struct MeshPeer
 /**
  * Time to wait for stuff that should be rather fast
  */
-#define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
 
 /**
  * DIFFERENT TESTS TO RUN
