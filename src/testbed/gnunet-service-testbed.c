@@ -269,27 +269,6 @@ struct RegisteredHostContext
 
 
 /**
- * Function to generate the hashcode corresponding to a RegisteredHostContext
- *
- * @param reg_host the host which is being registered in RegisteredHostContext
- * @param host the host of the controller which has to connect to the above rhost
- * @return the hashcode
- */
-static struct GNUNET_HashCode
-hash_hosts (struct GNUNET_TESTBED_Host *reg_host,
-            struct GNUNET_TESTBED_Host *host)
-{
-  struct GNUNET_HashCode hash;
-  uint32_t host_ids[2];
-
-  host_ids[0] = GNUNET_TESTBED_host_get_id_ (reg_host);
-  host_ids[1] = GNUNET_TESTBED_host_get_id_ (host);
-  GNUNET_CRYPTO_hash (host_ids, sizeof (host_ids), &hash);
-  return hash;
-}
-
-
-/**
  * Structure representing a connected(directly-linked) controller
  */
 struct Slave
@@ -440,6 +419,7 @@ struct LCFContextQueue
  */
 struct Peer
 {
+  
   union
   {
     struct
@@ -2126,8 +2106,8 @@ peer_create_forward_timeout (void *cls,
 
 
 /**
- * Callback to be called when forwarded peer create operation is
- * successfull. We have to relay the reply msg back to the client
+ * Callback to be called when forwarded peer create operation is successfull. We
+ * have to relay the reply msg back to the client
  *
  * @param cls ForwardedOperationContext
  * @param msg the peer create success message
@@ -2138,7 +2118,6 @@ peer_create_success_cb (void *cls, const struct GNUNET_MessageHeader *msg)
   struct ForwardedOperationContext *fo_ctxt = cls;
   struct GNUNET_MessageHeader *dup_msg;
   struct Peer *remote_peer;
-  uint16_t msize;
 
   GNUNET_SCHEDULER_cancel (fo_ctxt->timeout_task);
   if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS)
@@ -2147,9 +2126,35 @@ peer_create_success_cb (void *cls, const struct GNUNET_MessageHeader *msg)
     remote_peer = fo_ctxt->cls;
     peer_list_add (remote_peer);
   }
-  msize = ntohs (msg->size);
-  dup_msg = GNUNET_malloc (msize);
-  (void) memcpy (dup_msg, msg, msize);
+  dup_msg = GNUNET_copy_message (msg);
+  queue_message (fo_ctxt->client, dup_msg);
+  GNUNET_SERVER_client_drop (fo_ctxt->client);
+  GNUNET_free (fo_ctxt);
+}
+
+
+/**
+ * Callback to be called when forwarded peer destroy operation is successfull. We
+ * have to relay the reply msg back to the client
+ *
+ * @param cls ForwardedOperationContext
+ * @param msg the peer create success message
+ */
+static void
+peer_destroy_success_cb (void *cls, const struct GNUNET_MessageHeader *msg)
+{
+  struct ForwardedOperationContext *fo_ctxt = cls;
+  struct GNUNET_MessageHeader *dup_msg;
+  struct Peer *remote_peer;
+
+  GNUNET_SCHEDULER_cancel (fo_ctxt->timeout_task);  
+  if (GNUNET_MESSAGE_TYPE_TESTBED_GENERICOPSUCCESS == ntohs (msg->type))
+  {
+    remote_peer = fo_ctxt->cls;
+    GNUNET_assert (NULL != remote_peer);
+    peer_list_remove (remote_peer);
+  }
+  dup_msg = GNUNET_copy_message (msg);
   queue_message (fo_ctxt->client, dup_msg);
   GNUNET_SERVER_client_drop (fo_ctxt->client);
   GNUNET_free (fo_ctxt);
@@ -2336,11 +2341,12 @@ handle_peer_destroy (void *cls, struct GNUNET_SERVER_Client *client,
     fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
     GNUNET_SERVER_client_keep (client);
     fopc->client = client;
-    fopc->operation_id = GNUNET_ntohll (msg->operation_id);
+    fopc->cls = peer;
+    fopc->operation_id = GNUNET_ntohll (msg->operation_id);    
     fopc->opc = 
         GNUNET_TESTBED_forward_operation_msg_ (peer->details.remote.slave->controller,
                                                fopc->operation_id, &msg->header,
-                                               &forwarded_operation_reply_relay,
+                                               &peer_destroy_success_cb,
                                                fopc);
     fopc->timeout_task =
         GNUNET_SCHEDULER_add_delayed (TIMEOUT, &forwarded_operation_timeout,
@@ -2980,6 +2986,27 @@ reghost_match_iterator (void *cls,
     return GNUNET_NO;
   }
   return GNUNET_YES;
+}
+
+
+/**
+ * Function to generate the hashcode corresponding to a RegisteredHostContext
+ *
+ * @param reg_host the host which is being registered in RegisteredHostContext
+ * @param host the host of the controller which has to connect to the above rhost
+ * @return the hashcode
+ */
+static struct GNUNET_HashCode
+hash_hosts (struct GNUNET_TESTBED_Host *reg_host,
+            struct GNUNET_TESTBED_Host *host)
+{
+  struct GNUNET_HashCode hash;
+  uint32_t host_ids[2];
+
+  host_ids[0] = GNUNET_TESTBED_host_get_id_ (reg_host);
+  host_ids[1] = GNUNET_TESTBED_host_get_id_ (host);
+  GNUNET_CRYPTO_hash (host_ids, sizeof (host_ids), &hash);
+  return hash;
 }
 
 
