@@ -2666,7 +2666,7 @@ generate_gns_certificate (const char *name)
  * @param cls NULL
  * @param addr the sockaddr
  * @param addrlen the sockaddr length
- * @return MHD_NO if sockaddr is wrong or #conns too high
+ * @return MHD_NO if sockaddr is wrong or number of connections is too high
  */
 static int
 accept_cb (void* cls, const struct sockaddr *addr, socklen_t addrlen)
