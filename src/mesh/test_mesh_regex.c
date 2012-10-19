@@ -29,7 +29,7 @@
 
 #define VERBOSE GNUNET_YES
 #define REMOVE_DIR GNUNET_YES
-#define MESH_REGEX_PEERS 3
+#define MESH_REGEX_PEERS 4
 
 /**
  * How long until we give up on connecting the peers?
@@ -40,11 +40,6 @@
  * Time to wait for stuff that should be rather fast
  */
 #define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
-
-/**
- * Initial regex padding.
- */
-#define REGEX_INITIAL_PADDING "PADPADPADPADPADP"
 
 /**
  * Which strings have been found & connected.
@@ -130,7 +125,9 @@ static char *regexes[MESH_REGEX_PEERS] = {"(0|1)"
 
                                           "0123456789A*BC",
 
-                                          "0*123456789ABC*"};
+                                          "0*123456789ABC*",
+
+                                          "GNUNETVPN0001000IPEX401110011101100100000111(0|1)*"};
 
 
 /**
@@ -140,7 +137,9 @@ static char *strings[MESH_REGEX_PEERS] = {"1123456789ABC",
 
                                           "0123456789AABC",
 
-                                          "00123456789ABCCCC"};
+                                          "00123456789ABCCCC",
+
+                                          "GNUNETVPN0001000IPEX401110011101100100000111"};
 
 /**
  * Check whether peers successfully shut down.
