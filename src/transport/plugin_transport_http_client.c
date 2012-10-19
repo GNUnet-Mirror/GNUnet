@@ -186,6 +186,12 @@ struct Session
   void *client_get;
 
   /**
+   * Outbound overhead due to HTTP connection
+   * Add to next message of this session when calling callback
+   */
+  size_t overhead;
+
+  /**
    * next pointer for double linked list
    */
   struct HTTP_Message *msg_head;
@@ -358,7 +364,14 @@ client_exist_session (struct HTTP_Client_Plugin *plugin, struct Session *s)
   return GNUNET_NO;
 }
 
-#if VERBOSE_CURL
+static void
+client_remark_outbound_overhead (void *cls, size_t size)
+{
+  //FIXME use this overhead
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-http_client",
+                   "Overhead: %u\n", size);
+}
+
 /**
  * Function to log curl debug messages with GNUNET_log
  *
@@ -386,12 +399,13 @@ client_log (CURL * curl, curl_infotype type, char *data, size_t size, void *cls)
         break;
       case CURLINFO_HEADER_OUT:
         ttype = "HEADER_OUT";
+        client_remark_outbound_overhead (cls, size);
         break;
       default:
         ttype = "UNSPECIFIED";
         break;
     }
-
+#if VERBOSE_CURL
     memcpy (text, data, size);
     if (text[size - 1] == '\n')
       text[size] = '\0';
@@ -408,9 +422,10 @@ client_log (CURL * curl, curl_infotype type, char *data, size_t size, void *cls)
                      "Connection %p %s: %s", cls, ttype, text);
 #endif
   }
+#endif
   return 0;
 }
-#endif
+
 
 
 /**
