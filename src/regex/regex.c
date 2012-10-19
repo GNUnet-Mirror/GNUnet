@@ -1375,13 +1375,16 @@ static void
 dfa_remove_dead_states (struct GNUNET_REGEX_Automaton *a)
 {
   struct GNUNET_REGEX_State *s;
+  struct GNUNET_REGEX_State *s_next;
   struct GNUNET_REGEX_Transition *t;
   int dead;
 
   GNUNET_assert (DFA == a->type);
 
-  for (s = a->states_head; NULL != s; s = s->next)
+  for (s = a->states_head; NULL != s; s = s_next)
   {
+    s_next = s->next;
+
     if (s->accepting)
       continue;
 
@@ -2155,9 +2158,8 @@ nfa_add_question_op (struct GNUNET_REGEX_Context *ctx)
 
   new_nfa = nfa_fragment_create (start, end);
   nfa_add_states (new_nfa, a->states_head, a->states_tail);
-  automaton_fragment_clear (a);
-
   GNUNET_CONTAINER_DLL_insert_tail (ctx->stack_head, ctx->stack_tail, new_nfa);
+  automaton_fragment_clear (a);
 }
 
 
