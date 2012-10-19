@@ -1584,11 +1584,11 @@ regex_put (const char *regex)
 {
   struct GNUNET_REGEX_Automaton *dfa;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "regex_put (%s) start\n", regex);
+  DEBUG_DHT ("  regex_put (%s) start\n", regex);
   dfa = GNUNET_REGEX_construct_dfa (regex, strlen(regex));
   GNUNET_REGEX_iterate_all_edges (dfa, &regex_iterator, NULL);
   GNUNET_REGEX_automaton_destroy (dfa);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "regex_put (%s) end\n", regex);
+  DEBUG_DHT ("  regex_put (%s) end\n", regex);
 
 }
 
@@ -1769,9 +1769,9 @@ announce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct MeshClient *c = cls;
   unsigned int i;
 
+  c->regex_announce_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
-    c->regex_announce_task = GNUNET_SCHEDULER_NO_TASK;
     return;
   }
 
@@ -1781,8 +1781,9 @@ announce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     regex_put (c->regexes[i]);
   }
-  c->regex_announce_task =
-      GNUNET_SCHEDULER_add_delayed (app_announce_time, &announce_regex, cls);
+  c->regex_announce_task = GNUNET_SCHEDULER_add_delayed (app_announce_time,
+                                                         &announce_regex,
+                                                         cls);
   DEBUG_DHT ("Finished PUT for regex\n");
 
   return;
@@ -4710,10 +4711,13 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
     {
       case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "   cancelling TUNNEL_DESTROY\n");
+        GNUNET_assert (GNUNET_YES == queue->tunnel->destroy);
+        /* FIXME: don't cancel, send and destroy tunnel in queue_send */
         /* fall through */
       case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
       case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
       case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
+      case GNUNET_MESSAGE_TYPE_MESH_ACK:
       case GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "   prebuilt message\n");
@@ -5895,6 +5899,7 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   ack = ntohl (msg->pid);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ACK %u\n", ack);
 
   /* Is this a forward or backward ACK? */
   if (tree_get_predecessor(t->tree) != GNUNET_PEER_search(peer))
@@ -8256,6 +8261,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "APP_ANNOUNCE_TIME %llu ms\n", app_announce_time.rel_value);
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (c, "MESH", "ID_ANNOUNCE_TIME",
