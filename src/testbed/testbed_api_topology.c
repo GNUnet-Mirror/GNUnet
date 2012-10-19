@@ -94,7 +94,7 @@ struct TopologyContext
   /**
    * The size of the link array
    */
-  unsigned int link_array_size;  
+  unsigned int link_array_size;    
   
 };
 

@@ -2169,6 +2169,33 @@ peer_create_success_cb (void *cls, const struct GNUNET_MessageHeader *msg)
 
 
 /**
+ * Function to destroy a peer
+ *
+ * @param the peer structure to destroy
+ */
+static void
+destroy_peer (struct Peer *peer)
+{
+  GNUNET_break (0 == peer->reference_cnt);
+  if (GNUNET_YES == peer->is_remote)
+  {
+    peer_list_remove (peer);
+    GNUNET_free (peer);
+    return;
+  }
+  if (GNUNET_YES == peer->details.local.is_running)
+  {
+    GNUNET_TESTING_peer_stop (peer->details.local.peer);
+    peer->details.local.is_running = GNUNET_NO;
+  }
+  GNUNET_TESTING_peer_destroy (peer->details.local.peer);
+  GNUNET_CONFIGURATION_destroy (peer->details.local.cfg);
+  peer_list_remove (peer);
+  GNUNET_free (peer);
+}
+
+
+/**
  * Callback to be called when forwarded peer destroy operation is successfull. We
  * have to relay the reply msg back to the client
  *
@@ -2187,7 +2214,9 @@ peer_destroy_success_cb (void *cls, const struct GNUNET_MessageHeader *msg)
   {
     remote_peer = fopc->cls;
     GNUNET_assert (NULL != remote_peer);
-    peer_list_remove (remote_peer);
+    remote_peer->destroy_flag = GNUNET_YES;
+    if (0 == remote_peer->reference_cnt)
+      destroy_peer (remote_peer);
   }
   dup_msg = GNUNET_copy_message (msg);
   queue_message (fopc->client, dup_msg);
@@ -2389,15 +2418,12 @@ handle_peer_destroy (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  if (GNUNET_YES == peer->details.local.is_running)
-  {
-    GNUNET_TESTING_peer_stop (peer->details.local.peer);
-    peer->details.local.is_running = GNUNET_NO;
-  }
-  GNUNET_TESTING_peer_destroy (peer->details.local.peer);
-  GNUNET_CONFIGURATION_destroy (peer->details.local.cfg);
-  peer_list_remove (peer);
-  GNUNET_free (peer);
+  peer->destroy_flag = GNUNET_YES;
+  if (0 == peer->reference_cnt)
+    destroy_peer (peer);
+  else
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Delaying peer destroy as peer is currently in use\n");
   send_operation_success_msg (client, GNUNET_ntohll (msg->operation_id));
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -2625,13 +2651,28 @@ cleanup_occ (struct OverlayConnectContext *occ)
   if (GNUNET_SCHEDULER_NO_TASK != occ->timeout_task)
     GNUNET_SCHEDULER_cancel (occ->timeout_task);
   if (NULL != occ->ch)
+  {
     GNUNET_CORE_disconnect (occ->ch);
+    occ->peer->reference_cnt--;
+  }
   if (NULL != occ->ghh)
     GNUNET_TRANSPORT_get_hello_cancel (occ->ghh);
   if (NULL != occ->p1th)
+  {
     GNUNET_TRANSPORT_disconnect (occ->p1th);
+    occ->peer->reference_cnt--;
+  }
   if (NULL != occ->p2th)
+  {
     GNUNET_TRANSPORT_disconnect (occ->p2th);
+    peer_list[occ->other_peer_id]->reference_cnt--;
+    if ((GNUNET_YES == peer_list[occ->other_peer_id]->destroy_flag)
+        && (0 == peer_list[occ->other_peer_id]->reference_cnt))
+      destroy_peer (peer_list[occ->other_peer_id]);
+  }
+  if ((GNUNET_YES == occ->peer->destroy_flag)
+      && (0 == occ->peer->reference_cnt))
+    destroy_peer (occ->peer);
   GNUNET_CONTAINER_DLL_remove (occq_head, occq_tail, occ);
   GNUNET_free (occ);
 }
@@ -2726,7 +2767,10 @@ overlay_connect_notify (void *cls, const struct GNUNET_PeerIdentity *new_peer,
   GNUNET_free_non_null (occ->emsg);
   occ->emsg = NULL;
   if (NULL != occ->p2th)
+  {
     GNUNET_TRANSPORT_disconnect (occ->p2th);
+    peer_list[occ->other_peer_id]->reference_cnt--;
+  }
   occ->p2th = NULL;
   LOG_DEBUG ("Peers connected - Sending overlay connect success\n");
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ConnectionEventMessage));
@@ -2847,9 +2891,11 @@ hello_update_cb (void *cls, const struct GNUNET_MessageHeader *hello)
   occ->ghh = NULL;
   GNUNET_TRANSPORT_disconnect (occ->p1th);
   occ->p1th = NULL;
+  occ->peer->reference_cnt--;
   GNUNET_free_non_null (occ->emsg);
   if (NULL == occ->peer2_controller)
-  {   
+  {
+    peer_list[occ->other_peer_id]->reference_cnt++;
     occ->p2th =
 	GNUNET_TRANSPORT_connect (peer_list[occ->other_peer_id]->details.local.cfg,
 				  &occ->other_peer_identity, NULL, NULL, NULL,
@@ -2894,6 +2940,7 @@ core_startup_cb (void *cls, struct GNUNET_CORE_Handle *server,
   occ->emsg = NULL;
   memcpy (&occ->peer_identity, my_identity,
           sizeof (struct GNUNET_PeerIdentity));
+  occ->peer->reference_cnt++;
   occ->p1th =
       GNUNET_TRANSPORT_connect (occ->peer->details.local.cfg,
                                 &occ->peer_identity, NULL, NULL, NULL, NULL);
@@ -2941,6 +2988,7 @@ overlay_connect_get_config (void *cls, const struct GNUNET_MessageHeader *msg)
 	  sizeof (struct GNUNET_PeerIdentity));
   GNUNET_free_non_null (occ->emsg);
   occ->emsg = GNUNET_strdup ("Timeout while connecting to CORE");
+  occ->peer->reference_cnt++;
   occ->ch =
       GNUNET_CORE_connect (occ->peer->details.local.cfg, occ, &core_startup_cb,
                            &overlay_connect_notify, NULL, NULL, GNUNET_NO, NULL,
@@ -3091,12 +3139,16 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
     if ((NULL != route_to_peer2_host) 
         || (peer2_host_id == master_context->host_id))
     {
+      /* Peer 2 either below us OR with us */
       route_to_peer1_host = 
           find_dest_route (peer_list[p1]->details.remote.remote_host_id);
+      /* Because we get this message only if we know where peer 1 is */
       GNUNET_assert (NULL != route_to_peer1_host);
       if ((peer2_host_id == master_context->host_id) 
           || (route_to_peer2_host->dest != route_to_peer1_host->dest))
       {
+        /* Peer2 is either with us OR peer1 and peer2 can be reached through
+           different gateways */
         struct GNUNET_HashCode hash;
         struct RegisteredHostContext *rhc;
         int skip_focc;
@@ -3136,7 +3188,7 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
         }
         else {
           /* rhc is now set to the existing one from the hash map by
-             reghost_match_iterator */
+             reghost_match_iterator() */
           /* if queue is empty then ignore creating focc and proceed with
              normal forwarding */
           if (NULL == rhc->focc_dll_head)
@@ -3254,6 +3306,7 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
 				    &occ->other_peer_identity);
   /* Connect to the core of 1st peer and wait for the 2nd peer to connect */
   occ->emsg = GNUNET_strdup ("Timeout while connecting to CORE");
+  occ->peer->reference_cnt++;
   occ->ch =
       GNUNET_CORE_connect (occ->peer->details.local.cfg, occ, &core_startup_cb,
                            &overlay_connect_notify, NULL, NULL, GNUNET_NO, NULL,

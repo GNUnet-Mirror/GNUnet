@@ -138,8 +138,10 @@ test_master (void *cls, unsigned int num_peers,
 						  GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI,
                                                   NUM_PEERS);
   GNUNET_assert (NULL != op);
-  shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                                (GNUNET_TIME_UNIT_SECONDS, 120),
+  shutdown_task = GNUNET_SCHEDULER_add_delayed (//GNUNET_TIME_relative_multiply
+                                                //(GNUNET_TIME_UNIT_SECONDS,
+                                                //120),
+                                                GNUNET_TIME_UNIT_FOREVER_REL,
                                                 do_shutdown, NULL);
 }
 
