@@ -2094,14 +2094,10 @@ static void
 peer_create_forward_timeout (void *cls,
                              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct ForwardedOperationContext *fo_ctxt = cls;
+  struct ForwardedOperationContext *fopc = cls;
 
-  /* send error msg to client */
-  GNUNET_free (fo_ctxt->cls);
-  send_operation_fail_msg (fo_ctxt->client, fo_ctxt->operation_id, "Timedout");
-  GNUNET_SERVER_client_drop (fo_ctxt->client);
-  GNUNET_TESTBED_forward_operation_msg_cancel_ (fo_ctxt->opc);
-  GNUNET_free (fo_ctxt);
+  GNUNET_free (fopc->cls);
+  forwarded_operation_timeout (fopc, tc);
 }
 
 
@@ -2115,21 +2111,21 @@ peer_create_forward_timeout (void *cls,
 static void
 peer_create_success_cb (void *cls, const struct GNUNET_MessageHeader *msg)
 {
-  struct ForwardedOperationContext *fo_ctxt = cls;
+  struct ForwardedOperationContext *fopc = cls;
   struct GNUNET_MessageHeader *dup_msg;
   struct Peer *remote_peer;
 
-  GNUNET_SCHEDULER_cancel (fo_ctxt->timeout_task);
+  GNUNET_SCHEDULER_cancel (fopc->timeout_task);
   if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS)
   {
-    GNUNET_assert (NULL != fo_ctxt->cls);
-    remote_peer = fo_ctxt->cls;
+    GNUNET_assert (NULL != fopc->cls);
+    remote_peer = fopc->cls;
     peer_list_add (remote_peer);
   }
   dup_msg = GNUNET_copy_message (msg);
-  queue_message (fo_ctxt->client, dup_msg);
-  GNUNET_SERVER_client_drop (fo_ctxt->client);
-  GNUNET_free (fo_ctxt);
+  queue_message (fopc->client, dup_msg);
+  GNUNET_SERVER_client_drop (fopc->client);
+  GNUNET_free (fopc);
 }
 
 
@@ -2143,21 +2139,21 @@ peer_create_success_cb (void *cls, const struct GNUNET_MessageHeader *msg)
 static void
 peer_destroy_success_cb (void *cls, const struct GNUNET_MessageHeader *msg)
 {
-  struct ForwardedOperationContext *fo_ctxt = cls;
+  struct ForwardedOperationContext *fopc = cls;
   struct GNUNET_MessageHeader *dup_msg;
   struct Peer *remote_peer;
 
-  GNUNET_SCHEDULER_cancel (fo_ctxt->timeout_task);  
+  GNUNET_SCHEDULER_cancel (fopc->timeout_task);  
   if (GNUNET_MESSAGE_TYPE_TESTBED_GENERICOPSUCCESS == ntohs (msg->type))
   {
-    remote_peer = fo_ctxt->cls;
+    remote_peer = fopc->cls;
     GNUNET_assert (NULL != remote_peer);
     peer_list_remove (remote_peer);
   }
   dup_msg = GNUNET_copy_message (msg);
-  queue_message (fo_ctxt->client, dup_msg);
-  GNUNET_SERVER_client_drop (fo_ctxt->client);
-  GNUNET_free (fo_ctxt);
+  queue_message (fopc->client, dup_msg);
+  GNUNET_SERVER_client_drop (fopc->client);
+  GNUNET_free (fopc);
 }
 
 
