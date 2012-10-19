@@ -19,7 +19,7 @@
 */
 
 /**
- * @file regex/gnunet-regex-profiler.c
+ * @file mesh/gnunet-regex-profiler.c
  * @brief Regex profiler for testing distributed regex use.
  * @author Bart Polot
  * @author Max Szengel
@@ -347,7 +347,9 @@ void
 mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
                  void *ca_result, const char *emsg)
 {
+  static unsigned int connected_mesh_handles;
   struct Peer *peer = (struct Peer *) cls;
+  unsigned int peer_cnt;
 
   if (NULL != emsg)
   {
@@ -358,11 +360,22 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
   GNUNET_assert (peer->op_handle == op);
   GNUNET_assert (peer->mesh_handle == ca_result);
 
-  GNUNET_TESTBED_operation_done (op);
+  //  GNUNET_TESTBED_operation_done (op);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh connect callback for peer\n");
 
-  //GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  if (++connected_mesh_handles == num_peers)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All mesh handles connected\n");
+
+    // TODO announce regexes...
+
+    for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
+    {
+      GNUNET_TESTBED_operation_done (peers[peer_cnt].op_handle);
+    }
+  }
+  
 }
 
 
@@ -377,7 +390,6 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
 void *
 mesh_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-
   struct Peer *peer = (struct Peer *) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh connect adapter\n");
@@ -408,11 +420,20 @@ mesh_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 void
 mesh_da (void *cls, void *op_result)
 {
+  static unsigned int disconnected_mesh_handles;
   struct Peer *peer = (struct Peer *) cls;
 
   GNUNET_assert (peer->mesh_handle == op_result);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh disconnect adapter\n");
+
+  GNUNET_MESH_disconnect (peer->mesh_handle);
+  peer->mesh_handle = NULL;
+
+  if (++disconnected_mesh_handles == num_peers)
+  {
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  }
 }
 
 
