@@ -468,6 +468,24 @@ struct Peer
    */
   uint32_t id;
 
+  /**
+   * References to peers are using in forwarded overlay contexts and remote
+   * overlay connect contexts. A peer can only be destroyed after all such
+   * contexts are destroyed. For this, we maintain a reference counter. When we
+   * use a peer in any such context, we increment this counter. We decrement it
+   * when we are destroying these contexts
+   */
+  uint32_t reference_cnt;
+
+  /**
+   * While destroying a peer, due to the fact that there could be references to
+   * this peer, we delay the peer destroy to a further time. We do this by using
+   * this flag to destroy the peer while destroying a context in which this peer
+   * has been used. When the flag is set to 1 and reference_cnt = 0 we destroy
+   * the peer
+   */
+  uint32_t destroy_flag;
+
 };
 
 
@@ -593,6 +611,16 @@ struct OverlayConnectContext
  */
 struct RequestOverlayConnectContext
 {
+  /**
+   * the next pointer for DLL
+   */
+  struct RequestOverlayConnectContext *next;
+
+  /**
+   * the prev pointer for DLL
+   */
+  struct RequestOverlayConnectContext *prev;
+
   /**
    * The transport handle of peer B
    */
@@ -780,6 +808,17 @@ static struct OverlayConnectContext *occq_head;
  * DLL tail for OverlayConnectContext DLL
  */
 static struct OverlayConnectContext *occq_tail;
+
+/**
+ * DLL head for RequectOverlayConnectContext DLL - to be used to clean up during
+ * shutdown
+ */
+static struct RequestOverlayConnectContext *roccq_head;
+
+/**
+ * DLL tail for RequectOverlayConnectContext DLL
+ */
+static struct RequestOverlayConnectContext *roccq_tail;
 
 /**
  * Array of hosts
@@ -3246,6 +3285,7 @@ cleanup_rocc (struct RequestOverlayConnectContext *rocc)
     GNUNET_SCHEDULER_cancel (rocc->timeout_rocc_task_id);
   GNUNET_TRANSPORT_disconnect (rocc->th);
   GNUNET_free_non_null (rocc->hello);
+  GNUNET_CONTAINER_DLL_remove (roccq_head, roccq_tail, rocc);
   GNUNET_free (rocc);
 }
 
@@ -3364,13 +3404,13 @@ handle_overlay_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
   {
     struct GNUNET_MessageHeader *msg2;
     
-    msg2 = GNUNET_malloc (msize);
-    (void) memcpy (msg2, message, msize);
+    msg2 = GNUNET_copy_message (message);
     GNUNET_TESTBED_queue_message_ (peer->details.remote.slave->controller, msg2);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
   rocc = GNUNET_malloc (sizeof (struct RequestOverlayConnectContext));
+  GNUNET_CONTAINER_DLL_insert_tail (roccq_head, roccq_tail, rocc);
   rocc->th = GNUNET_TRANSPORT_connect (peer->details.local.cfg, NULL, rocc, 
                                        NULL, &transport_connect_notify, NULL);
   if (NULL == rocc->th)
@@ -3522,6 +3562,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct LCFContextQueue *lcfq;
   struct OverlayConnectContext *occ;
+  struct RequestOverlayConnectContext *rocc;
   uint32_t id;
 
   shutdown_task_id = GNUNET_SCHEDULER_NO_TASK;
@@ -3547,10 +3588,17 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   while (NULL != (occ = occq_head))
     cleanup_occ (occ);
+  while (NULL != (rocc = roccq_head))
+    cleanup_rocc (rocc);
   /* Clear peer list */
   for (id = 0; id < peer_list_size; id++)
     if (NULL != peer_list[id])
     {
+      /* If destroy flag is set it means that this peer should have been
+         destroyed by a context which we destroy before */
+      GNUNET_break (GNUNET_NO == peer_list[id]->destroy_flag);
+      /* counter should be zero as we free all contexts before */
+      GNUNET_break (0 == peer_list[id]->reference_cnt);
       if (GNUNET_NO == peer_list[id]->is_remote)
       {
 	if (GNUNET_YES == peer_list[id]->details.local.is_running)
