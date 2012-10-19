@@ -372,7 +372,7 @@ client_exist_session (struct HTTP_Client_Plugin *plugin, struct Session *s)
 static int
 client_log (CURL * curl, curl_infotype type, char *data, size_t size, void *cls)
 {
-  char *ttype;
+  char *ttype = "UNSPECIFIED";
   if ((type == CURLINFO_TEXT) || (type == CURLINFO_HEADER_IN) || (type == CURLINFO_HEADER_OUT))
   {
     char text[size + 2];
@@ -388,6 +388,7 @@ client_log (CURL * curl, curl_infotype type, char *data, size_t size, void *cls)
         ttype = "HEADER_OUT";
         break;
       default:
+        ttype = "UNSPECIFIED";
         break;
     }
 
