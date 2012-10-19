@@ -29,6 +29,10 @@
 #include "gnunet-service-fs_pe.h"
 #include "gnunet-service-fs_pr.h"
 
+/**
+ * Collect an instane number of statistics?  May cause excessive IPC.
+ */
+#define INSANE_STATISTICS GNUNET_NO
 
 /**
  * List of GSF_PendingRequests this request plan
@@ -541,14 +545,18 @@ merge_pr (void *cls, const struct GNUNET_HashCode * query, void *element)
   GNUNET_CONTAINER_DLL_insert (prd->rpr_head, prd->rpr_tail, rpr);
   GNUNET_CONTAINER_DLL_insert (rp->prl_head, rp->prl_tail, prl);
   mpr->merged = GNUNET_YES;
+#if INSANE_STATISTICS
   GNUNET_STATISTICS_update (GSF_stats, gettext_noop ("# requests merged"), 1,
                             GNUNET_NO);
+#endif
   latest = get_latest (rp);
   if (GSF_pending_request_get_data_ (latest)->ttl.abs_value <
       prd->ttl.abs_value)
   {
+#if INSANE_STATISTICS
     GNUNET_STATISTICS_update (GSF_stats, gettext_noop ("# requests refreshed"),
                               1, GNUNET_NO);
+#endif
     rp->transmission_counter = 0;       /* reset */
   }
   return GNUNET_NO;
@@ -593,12 +601,12 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
   GNUNET_CONTAINER_multihashmap_get_multiple (pp->plan_map,
                                               &GSF_pending_request_get_data_
                                               (pr)->query, &merge_pr, &mpc); // 8 MB in 'merge_pr'
-  if (mpc.merged != GNUNET_NO)
+  if (GNUNET_NO != mpc.merged)
     return;
   GNUNET_CONTAINER_multihashmap_get_multiple (pp->plan_map,
                                               &GSF_pending_request_get_data_
                                               (pr)->query, &merge_pr, &mpc);
-  if (mpc.merged != GNUNET_NO)
+  if (GNUNET_NO != mpc.merged)
     return;
   plan_count++;
   GNUNET_STATISTICS_update (GSF_stats, gettext_noop ("# query plan entries"), 1,
