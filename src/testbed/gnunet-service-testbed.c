@@ -2666,13 +2666,14 @@ cleanup_occ (struct OverlayConnectContext *occ)
   {
     GNUNET_TRANSPORT_disconnect (occ->p2th);
     peer_list[occ->other_peer_id]->reference_cnt--;
-    if ((GNUNET_YES == peer_list[occ->other_peer_id]->destroy_flag)
-        && (0 == peer_list[occ->other_peer_id]->reference_cnt))
-      destroy_peer (peer_list[occ->other_peer_id]);
   }
   if ((GNUNET_YES == occ->peer->destroy_flag)
       && (0 == occ->peer->reference_cnt))
     destroy_peer (occ->peer);
+  if ((NULL == occ->peer2_controller)
+      && (GNUNET_YES == peer_list[occ->other_peer_id]->destroy_flag)
+        && (0 == peer_list[occ->other_peer_id]->reference_cnt))
+      destroy_peer (peer_list[occ->other_peer_id]);  
   GNUNET_CONTAINER_DLL_remove (occq_head, occq_tail, occ);
   GNUNET_free (occ);
 }
