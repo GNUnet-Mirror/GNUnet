@@ -250,7 +250,7 @@ static char * policy_dir;
 /**
  * Search string.
  */
-static char *search_string = "GNUNETVPN0001000IPEX4000110110111101100111";
+static char *search_string = "GNUNETVPN0001000IPEX4110010011001111001101000";
 
 /**
  * Search task identifier
@@ -399,14 +399,28 @@ mesh_peer_connect_handler (void *cls,
                            const struct GNUNET_ATS_Information * atsi)
 {
   //  struct Peer *peer = (struct Peer *)cls;
-  unsigned int peer_cnt;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Mesh peer connect handler.\n");
+  printf ("\nString successfully matched\n");
+  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+}
 
-  for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
-  {
-    GNUNET_TESTBED_operation_done (peers[peer_cnt].op_handle);
-  }
+
+/**
+ * Connect by string timeout task
+ *
+ * @param cls NULL
+ * @param tc the task context
+ */
+static void
+do_connect_by_string_timeout (void *cls,
+			      const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  long sec = (long)cls;
+
+  printf ("Searching for string did not succeed after %ld seconds\n", sec);
+
+  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
 
 
@@ -431,6 +445,10 @@ do_connect_by_string (void *cls,
 
   GNUNET_MESH_peer_request_connect_by_string (peers[0].mesh_tunnel_handle,
                                               search_string);
+
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+				(GNUNET_TIME_UNIT_SECONDS, 30),
+				&do_connect_by_string_timeout, (void *)(long)30);
 }
 
 
@@ -516,10 +534,9 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
     printf ("\nAll mesh handles connected.\n");
 
     search_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                                (GNUNET_TIME_UNIT_SECONDS, 5),
+                                                (GNUNET_TIME_UNIT_SECONDS, 10),
                                                 &do_connect_by_string, NULL);
   }
-
 }
 
 
@@ -534,19 +551,17 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
 void *
 mesh_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  GNUNET_MESH_ApplicationType app;
   struct Peer *peer = (struct Peer *) cls;
 
   static struct GNUNET_MESH_MessageHandler handlers[] = {
     {NULL, 0, 0}
   };
 
-  static GNUNET_MESH_ApplicationType apptypes[] = {
-    GNUNET_APPLICATION_TYPE_END
-  };
+  app = (GNUNET_MESH_ApplicationType)0;
 
   peer->mesh_handle =
-      GNUNET_MESH_connect (cfg, cls, &mesh_inbound_tunnel_handler,
-                           &mesh_tunnel_end_handler, handlers, apptypes);
+    GNUNET_MESH_connect (cfg, cls, NULL, NULL, handlers, &app);
 
   return peer->mesh_handle;
 }
