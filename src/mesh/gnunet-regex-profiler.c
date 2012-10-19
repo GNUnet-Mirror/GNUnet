@@ -250,7 +250,7 @@ static char * policy_dir;
 /**
  * Search string.
  */
-static char *search_string = "GNUNETVPN0001000IPEX401110011101100100000111";
+static char *search_string = "GNUNETVPN0001000IPEX4000110110111101100111";
 
 /**
  * Search task identifier
@@ -562,28 +562,19 @@ mesh_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 void
 mesh_da (void *cls, void *op_result)
 {
-  static unsigned int disconnected_mesh_handles;
   struct Peer *peer = (struct Peer *) cls;
 
   GNUNET_assert (peer->mesh_handle == op_result);
 
   if (NULL != peer->mesh_tunnel_handle)
+  {
     GNUNET_MESH_tunnel_destroy (peer->mesh_tunnel_handle);
-  GNUNET_MESH_disconnect (peer->mesh_handle);
-  peer->mesh_handle = NULL;
-
-  if (++disconnected_mesh_handles == num_peers)
-  {
-    printf ("All mesh handles disconnected.\n");
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    peer->mesh_tunnel_handle = NULL;
   }
-
-  GNUNET_MESH_disconnect (peer->mesh_handle);
-  peer->mesh_handle = NULL;
-
-  if (++disconnected_mesh_handles == num_peers)
+  if (NULL != peer->mesh_handle)
   {
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    GNUNET_MESH_disconnect (peer->mesh_handle);
+    peer->mesh_handle = NULL;
   }
 }
 
