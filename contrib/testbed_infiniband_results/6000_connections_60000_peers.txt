@@ -1,0 +1,61 @@
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+/home/totakura/local/bin/gnunet-helper-testbed
+29 controllers started successfully
+60000 peers created successfully in 253.31 seconds
+60000 peers started successfully in 53.18 seconds
+Establishing links. Please wait
+..............FFFFFFFFFFF
+Aborting due to very high failure rate
+6000 links established in 30.14 seconds
+Overlay link operations have been retried 11 times upon timeouts
+F
+Aborting due to very high failure rate
+6000 links established in 30.14 seconds
+Overlay link operations have been retried 12 times upon timeouts
+F
+Aborting due to very high failure rate
+6000 links established in 30.14 seconds
+Overlay link operations have been retried 13 times upon timeouts
+F
+Aborting due to very high failure rate
+6000 links established in 30.14 seconds
+Overlay link operations have been retried 14 times upon timeouts
+F
+Aborting due to very high failure rate
+6000 links established in 30.14 seconds
+Overlay link operations have been retried 15 times upon timeouts
+F
+Aborting due to very high failure rate
+6000 links established in 30.14 seconds
+Overlay link operations have been retried 16 times upon timeouts
+F
+Aborting due to very high failure rate
+6000 links established in 30.14 seconds
+Overlay link operations have been retried 17 times upon timeouts
