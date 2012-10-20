@@ -257,6 +257,11 @@ static char *search_string = "GNUNETVPN0001000IPEX4110010011001111001101000";
  */
 static GNUNET_SCHEDULER_TaskIdentifier search_task;
 
+/**
+ * Search timeout task identifier.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier search_timeout_task;
+
 
 /**
  * Shutdown nicely
@@ -400,6 +405,8 @@ mesh_peer_connect_handler (void *cls,
 {
   //  struct Peer *peer = (struct Peer *)cls;
 
+  GNUNET_SCHEDULER_cancel (search_timeout_task);
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Mesh peer connect handler.\n");
   printf ("\nString successfully matched\n");
   GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
@@ -446,9 +453,9 @@ do_connect_by_string (void *cls,
   GNUNET_MESH_peer_request_connect_by_string (peers[0].mesh_tunnel_handle,
                                               search_string);
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-				(GNUNET_TIME_UNIT_SECONDS, 30),
-				&do_connect_by_string_timeout, (void *)(long)30);
+  search_timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+						      (GNUNET_TIME_UNIT_SECONDS, 30),
+						      &do_connect_by_string_timeout, (void *)(long)30);
 }
 
 
@@ -489,7 +496,6 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Could not find policy file %s\n", peer->policy_file);
-    GNUNET_TESTBED_operation_done (peer->op_handle);
     return;
   }
   if (GNUNET_OK != GNUNET_DISK_file_size (peer->policy_file, &filesize, GNUNET_YES, GNUNET_YES))
@@ -497,7 +503,6 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
   if (0 == filesize)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Policy file %s is empty.\n", peer->policy_file);
-    GNUNET_TESTBED_operation_done (peer->op_handle);
     return;
   }
   data = GNUNET_malloc (filesize);
@@ -506,7 +511,6 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
     GNUNET_free (data);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Could not read policy file %s.\n",
          peer->policy_file);
-    GNUNET_TESTBED_operation_done (peer->op_handle);
     return;
   }
   buf = data;
