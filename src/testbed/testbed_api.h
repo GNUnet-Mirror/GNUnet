@@ -84,43 +84,6 @@ enum OperationType
 
 
 /**
- * Testbed operation structure
- */
-struct GNUNET_TESTBED_Operation
-{
-  /**
-   * next pointer for DLL
-   */
-  struct GNUNET_TESTBED_Operation *next;
-
-  /**
-   * prev pointer for DLL
-   */
-  struct GNUNET_TESTBED_Operation *prev;
-
-  /**
-   * The controller on which this operation operates
-   */
-  struct GNUNET_TESTBED_Controller *controller;
-
-  /**
-   * The ID for the operation;
-   */
-  uint64_t operation_id;
-
-  /**
-   * The type of operation
-   */
-  enum OperationType type;
-
-  /**
-   * Data specific to OperationType
-   */
-  void *data;
-};
-
-
-/**
  * The message queue for sending messages to the controller service
  */
 struct MessageQueue;

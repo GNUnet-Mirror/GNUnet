@@ -2232,21 +2232,7 @@ GNUNET_TESTBED_operation_cancel (struct GNUNET_TESTBED_Operation *operation)
 void
 GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
 {
-  switch (operation->type)
-  {
-  case OP_PEER_CREATE:
-  case OP_PEER_DESTROY:
-  case OP_PEER_START:
-  case OP_PEER_STOP:
-  case OP_PEER_INFO:
-  case OP_OVERLAY_CONNECT:
-  case OP_LINK_CONTROLLERS:
     GNUNET_TESTBED_operation_release_ (operation);
-    return;
-  default:
-    GNUNET_assert (0);
-    break;
-  }
 }
 
 

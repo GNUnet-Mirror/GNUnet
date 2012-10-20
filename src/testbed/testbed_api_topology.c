@@ -269,6 +269,7 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
     {
       tc->link_array[cnt-1].A = cnt-1;
       tc->link_array[cnt-1].B = cnt;
+      tc->link_array[cnt-1].tc = tc;
     }
     break;
   case GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI:
