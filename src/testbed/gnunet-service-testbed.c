@@ -3282,15 +3282,12 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
         if (GNUNET_NO == skip_focc)
         {
           struct ForwardedOverlayConnectContext *focc;
-          uint16_t msize;
 
-          msize = sizeof (struct GNUNET_TESTBED_OverlayConnectMessage);
           focc = GNUNET_malloc (sizeof (struct ForwardedOverlayConnectContext));
           focc->peer1 = p1;
           focc->peer2 = p2;
           focc->peer2_host_id = peer2_host_id;
-          focc->orig_msg = GNUNET_malloc (msize);
-          (void) memcpy (focc->orig_msg, message, msize);
+          focc->orig_msg = GNUNET_copy_message (message);
           focc->operation_id = operation_id;
           GNUNET_CONTAINER_DLL_insert_tail (rhc->focc_dll_head,
                                             rhc->focc_dll_tail,
