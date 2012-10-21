@@ -370,6 +370,11 @@ struct LCFContext
   struct GNUNET_SERVER_Client *client;
 
   /**
+   * Handle for operations which are forwarded while linking controllers
+   */
+  struct ForwardedOperationContext *fopc;
+
+  /**
    * The id of the operation which created this context
    */
   uint64_t operation_id;
@@ -1352,11 +1357,10 @@ lcf_proc_cc (void *cls, const char *emsg)
 
 
 /**
- * Callback to be called when forwarded link controllers operation is
- * successfull. We have to relay the reply msg back to the client
+ * Callback to relay the reply msg of a forwarded operation back to the client
  *
  * @param cls ForwardedOperationContext
- * @param msg the peer create success message
+ * @param msg the message to relay
  */
 static void
 forwarded_operation_reply_relay (void *cls,
@@ -1379,7 +1383,7 @@ forwarded_operation_reply_relay (void *cls,
 
 
 /**
- * Task to free resources when forwarded link controllers has been timedout
+ * Task to free resources when forwarded operation has been timedout
  *
  * @param cls the ForwardedOperationContext
  * @param tc the task context from scheduler
@@ -1405,11 +1409,61 @@ forwarded_operation_timeout (void *cls,
  * @param tc the Task context from scheduler
  */
 static void
+lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Callback to be called when forwarded link controllers operation is
+ * successfull. We have to relay the reply msg back to the client
+ *
+ * @param cls the LCFContext
+ * @param msg the message to relay
+ */
+static void
+lcf_forwarded_operation_reply_relay (void *cls,
+                                     const struct GNUNET_MessageHeader *msg)
+{
+  struct LCFContext *lcf = cls;
+
+  GNUNET_assert (NULL != lcf->fopc);
+  forwarded_operation_reply_relay (lcf->fopc, msg);
+  lcf->fopc = NULL;
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
+  lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
+}
+
+
+/**
+ * Task to free resources when forwarded link controllers has been timedout
+ *
+ * @param cls the LCFContext
+ * @param tc the task context from scheduler
+ */
+static void
+lcf_forwarded_operation_timeout (void *cls,
+                                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct LCFContext *lcf = cls;
+
+  GNUNET_assert (NULL != lcf->fopc);
+  forwarded_operation_timeout (lcf->fopc, tc);
+  lcf->fopc = NULL;
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
+  lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
+}
+
+
+/**
+ * The  Link Controller forwarding task
+ *
+ * @param cls the LCFContext
+ * @param tc the Task context from scheduler
+ */
+static void
 lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct LCFContext *lcf = cls;
   struct LCFContextQueue *lcfq;
-  struct ForwardedOperationContext *fopc;
 
   lcf_proc_task_id = GNUNET_SCHEDULER_NO_TASK;
   switch (lcf->state)
@@ -1445,20 +1499,19 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
     break;
   case SLAVE_HOST_REGISTERED:
-    fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
-    fopc->client = lcf->client;
-    fopc->operation_id = lcf->operation_id;
-    fopc->opc =
+    lcf->fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+    lcf->fopc->client = lcf->client;
+    lcf->fopc->operation_id = lcf->operation_id;
+    lcf->fopc->opc =
         GNUNET_TESTBED_forward_operation_msg_ (lcf->gateway->controller,
                                                lcf->operation_id,
                                                &lcf->msg->header,
-                                               &forwarded_operation_reply_relay,
-                                               fopc);
-    fopc->timeout_task =
-        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &forwarded_operation_timeout,
-                                      fopc);
+                                               &lcf_forwarded_operation_reply_relay,
+                                               lcf);
+    lcf->fopc->timeout_task =
+        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &lcf_forwarded_operation_timeout,
+                                      lcf);
     lcf->state = FINISHED;
-    lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
     break;
   case FINISHED:
     lcfq = lcfq_head;
@@ -3635,6 +3688,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
   for (lcfq = lcfq_head; NULL != lcfq; lcfq = lcfq_head)
   {
+    if (NULL != lcfq->lcf->fopc)
+      GNUNET_TESTBED_forward_operation_msg_cancel_ (lcfq->lcf->fopc->opc);
     GNUNET_free (lcfq->lcf->msg);
     GNUNET_free (lcfq->lcf);
     GNUNET_CONTAINER_DLL_remove (lcfq_head, lcfq_tail, lcfq);
