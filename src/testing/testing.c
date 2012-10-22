@@ -837,7 +837,7 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
   {
     GNUNET_asprintf (&emsg_,
 		       _("Failed to create configuration for peer (not enough free ports?)\n"));
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", *emsg_);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", emsg_);
     if (NULL != emsg)
       *emsg = emsg_;
     else
@@ -863,7 +863,7 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
     GNUNET_asprintf (&emsg_,
 		     _("Failed to initialize hostkey for peer %u\n"),
 		     (unsigned int) key_number);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", *emsg_);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", emsg_);
     if (NULL != emsg)
       *emsg = emsg_;
     else
@@ -897,7 +897,7 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
 		     _("Failed to write hostkey file for peer %u: %s\n"),
 		     (unsigned int) key_number,
 		     STRERROR (errno));
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", *emsg_);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", emsg_);
     if (NULL != emsg)
       *emsg = emsg_;
     else
@@ -916,7 +916,7 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
 		     config_filename,
 		     (unsigned int) key_number,
 		     STRERROR (errno));
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", *emsg_);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", emsg_);
     if (NULL != emsg)
       *emsg = emsg_;
     else
