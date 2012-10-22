@@ -207,14 +207,19 @@ static unsigned int num_links;
 static unsigned int num_cont_fails;
 
 /**
- * Number of times we try overlay connect operations
- */
-static unsigned int retry_links;
-
-/**
  * Continuous failures during overlay connect operations
  */
 static unsigned int cont_fails;
+
+/**
+ * Links which are successfully established
+ */
+static unsigned int established_links;
+
+/**
+ * Links which are not successfully established
+ */
+static unsigned int failed_links;
 
 /**
  * Global testing status
@@ -335,6 +340,7 @@ peer_churn_cb (void *cls, const char *emsg)
         GNUNET_TESTBED_overlay_configure_topology (NULL, num_peers, peers,
                                                    GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI,
                                                    num_links,
+                                                   GNUNET_TESTBED_TOPOLOGY_DISABLE_AUTO_RETRY,
                                                    GNUNET_TESTBED_TOPOLOGY_OPTION_END);
   }
 }
@@ -403,9 +409,8 @@ print_overlay_links_summary ()
 {
   prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
   printf ("\n%u links established in %.2f seconds\n",
-	  num_links, ((double) prof_time.rel_value) / 1000.00);
-  printf ("Overlay link operations have been retried %u times upon timeouts\n",
-	  retry_links);
+	  established_links, ((double) prof_time.rel_value) / 1000.00);
+  printf ("%u links failed due to timeouts\n", failed_links);
 }
 
 
@@ -497,7 +502,7 @@ controller_event_cb (void *cls,
              _("An operation has failed while linking\n"));
 	printf ("F");
 	fflush (stdout);
-	retry_links++;
+        failed_links++;
 	if (++cont_fails > num_cont_fails)
 	{
 	  printf ("\nAborting due to very high failure rate");
@@ -509,15 +514,14 @@ controller_event_cb (void *cls,
       break;
     case GNUNET_TESTBED_ET_CONNECT:
       {
-        static unsigned int established_links;
-
 	if (0 != cont_fails)
 	  cont_fails--;
 	if (0 == established_links)
 	  printf ("Establishing links. Please wait\n");
 	printf (".");
 	fflush (stdout);
-        if (++established_links == num_links)
+        established_links++;
+        if ((established_links + failed_links) == num_links)
         {
 	  print_overlay_links_summary ();
 	  result = GNUNET_OK;
