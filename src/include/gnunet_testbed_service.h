@@ -914,7 +914,8 @@ GNUNET_TESTBED_underlay_configure_link (void *op_cls,
 enum GNUNET_TESTBED_TopologyOption
 {
   /**
-   * A clique (everyone connected to everyone else).  No options.
+   * A clique (everyone connected to everyone else).  No options. If there are N
+   * peers this topology results in (N * (N -1)) connections.
    */
   GNUNET_TESTBED_TOPOLOGY_CLIQUE,
 
