@@ -443,15 +443,28 @@ mesh_peer_connect_handler (void *cls,
                            const struct GNUNET_PeerIdentity* peer_id,
                            const struct GNUNET_ATS_Information * atsi)
 {
-  //  struct Peer *peer = (struct Peer *)cls;
   const char * search_str = (const char *)cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Mesh peer connect handler.\n");
-  printf ("String %s successfully matched\n", search_str);
+  peers_found++;
 
-  if (++peers_found == num_search_strings)
+  if (NULL == peer_id)
   {
-    printf ("\nAll strings successfully matched!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		"String matching timed out for string %s (%i/%i)\n",
+		search_str, peers_found, num_search_strings);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"String %s successfully matched (%i/%i)\n", 
+		search_str, peers_found, num_search_strings);
+  }
+
+  if (peers_found == num_search_strings)
+  {
+
+    prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
+    printf ("\nAll strings successfully matched in %.2f minutes\n", ((double)prof_time.rel_value / 1000.0 / 60.0));
     GNUNET_SCHEDULER_cancel (search_timeout_task);
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
   }
@@ -494,7 +507,8 @@ do_connect_by_string (void *cls,
   {
     peer = &peers[search_cnt % num_peers];
 
-    printf ("Searching for string \"%s\"\n", search_strings[search_cnt]);
+    printf ("Searching for string \"%s\" on peer %d\n", 
+	    search_strings[search_cnt], (search_cnt % num_peers));
 
     peer->mesh_tunnel_handle = GNUNET_MESH_tunnel_create (peer->mesh_handle,
 							  NULL,
@@ -505,6 +519,8 @@ do_connect_by_string (void *cls,
 						search_strings[search_cnt]);
       
   }
+
+  prof_start_time = GNUNET_TIME_absolute_get ();
 
   search_timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
 						      (GNUNET_TIME_UNIT_SECONDS, search_timeout_sec),
@@ -588,7 +604,8 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
 
   if (++connected_mesh_handles == num_peers)
   {
-    printf ("\nAll mesh handles connected.\nWaiting to search.\n");
+    printf ("\nAll mesh handles connected.\nWaiting %ld minutes before starting to search.\n", 
+	    search_wait_min);
 
     search_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                                 (GNUNET_TIME_UNIT_MINUTES, search_wait_min),
@@ -701,7 +718,8 @@ peer_churn_cb (void *cls, const char *emsg)
     topology_op =
         GNUNET_TESTBED_overlay_configure_topology (NULL, num_peers, peer_handles,
                                                    GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI,
-                                                   num_links);
+                                                   num_links,
+						   GNUNET_TESTBED_TOPOLOGY_OPTION_END);
     if (NULL == topology_op)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
