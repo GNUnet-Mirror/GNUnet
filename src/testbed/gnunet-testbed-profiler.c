@@ -498,8 +498,6 @@ controller_event_cb (void *cls,
       /* Control reaches here when a peer linking operation fails */
       if (NULL != event->details.operation_finished.emsg)
       {
-        LOG (GNUNET_ERROR_TYPE_WARNING,
-             _("An operation has failed while linking\n"));
 	printf ("F");
 	fflush (stdout);
         failed_links++;
