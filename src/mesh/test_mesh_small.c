@@ -476,10 +476,12 @@ tmt_rdy (void *cls, size_t size, void *buf)
   if (SPEED == test && GNUNET_YES == initialized)
   {
     data_sent++;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              " Sent packet %d\n", data_sent);
     if (data_sent < TOTAL_PACKETS)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              " Scheduling %d packet\n", data_sent);
+              " Scheduling packet %d\n", data_sent + 1);
       GNUNET_SCHEDULER_add_now(&data_task, NULL);
     }
   }
@@ -525,7 +527,6 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
   {
   case 1L:
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Root client got a message!\n");
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
     peers_responded++;
     if (test == MULTICAST && peers_responded < 2)
       return GNUNET_OK;
@@ -535,13 +536,13 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Leaf client %li got a message.\n",
                 client);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
     client = 2L;
     break;
   default:
     GNUNET_assert (0);
     break;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: (%d/%d)\n", ok, ok_goal);
 
   if (SPEED == test && GNUNET_YES == test_backwards)
   {
