@@ -228,9 +228,7 @@ transmit_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     /* full round transmitted wait 2x delay for ACK before going again */
     fc->num_rounds++;
-    delay = GNUNET_TIME_relative_multiply (delay, 2);
-    fc->msg_delay = GNUNET_TIME_relative_multiply (fc->msg_delay, 
-						   2 + (size / (fc->mtu - sizeof (struct FragmentHeader))));
+    delay = GNUNET_TIME_relative_multiply (fc->ack_delay, 2);
     /* never use zero, need some time for ACK always */
     delay = GNUNET_TIME_relative_max (MIN_ACK_DELAY, delay);    
     fc->wack = GNUNET_YES;
@@ -353,7 +351,6 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
   unsigned int snd_cnt;
   unsigned int i;
 
-  fprintf (stderr, "Got ACK!\n");
   if (sizeof (struct FragmentAcknowledgement) != ntohs (msg->size))
   {
     GNUNET_break_op (0);
@@ -393,16 +390,15 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
     else if (snd_cnt > ack_cnt)
     {
       /* some loss, slow down proportionally */
+      fprintf (stderr, "Prop loss\n");
       fc->msg_delay.rel_value = ((fc->msg_delay.rel_value * ack_cnt) / snd_cnt);
     }
     else if (0 < fc->msg_delay.rel_value)
     {
       fc->msg_delay.rel_value--; /* try a bit faster */
     }
-    fc->msg_delay = GNUNET_TIME_relative_max (fc->msg_delay,
+    fc->msg_delay = GNUNET_TIME_relative_min (fc->msg_delay,
 					      GNUNET_TIME_UNIT_SECONDS);
-    fprintf (stderr, "New msg delay: %llu\n",
-	     (unsigned long long )fc->msg_delay.rel_value);
   }
   GNUNET_STATISTICS_update (fc->stats,
                             _("# fragment acknowledgements received"), 1,

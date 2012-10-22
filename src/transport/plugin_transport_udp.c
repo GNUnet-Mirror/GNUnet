@@ -1241,7 +1241,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   s->addrlen = len;
   s->target = *target;
   s->sock_addr = (const struct sockaddr *) &s[1];
-  s->last_expected_ack_delay = GNUNET_TIME_UNIT_SECONDS;
+  s->last_expected_ack_delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250);
   s->last_expected_msg_delay = GNUNET_TIME_UNIT_MILLISECONDS;
   s->flow_delay_from_other_peer = GNUNET_TIME_UNIT_ZERO_ABS;
   s->flow_delay_for_other_peer = GNUNET_TIME_UNIT_ZERO;
@@ -1567,9 +1567,6 @@ udp_plugin_send (void *cls,
     frag_ctx->timeout = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), to);
     frag_ctx->payload_size = msgbuf_size; /* unfragmented message size without UDP overhead */
     frag_ctx->on_wire_size = 0; /* bytes with UDP and fragmentation overhead */
-    fprintf (stderr, "New fc with msg delay: %llu and ack delay %llu\n",
-	     (unsigned long long )s->last_expected_msg_delay.rel_value,
-	     (unsigned long long )s->last_expected_ack_delay.rel_value);
     frag_ctx->frag = GNUNET_FRAGMENT_context_create (plugin->env->stats,
 						     UDP_MTU,
 						     &plugin->tracker,
@@ -1578,6 +1575,7 @@ udp_plugin_send (void *cls,
 						     &udp->header,
 						     &enqueue_fragment,
 						     frag_ctx);    
+    s->frag_ctx = frag_ctx;
     GNUNET_STATISTICS_update (plugin->env->stats,
                               "# UDP, fragmented msgs, messages, pending",
                               1, GNUNET_NO);
@@ -1850,8 +1848,8 @@ ack_proc (void *cls, uint32_t id, const struct GNUNET_MessageHeader *msg)
   uint32_t delay = 0;
   struct UDP_MessageWrapper *udpw;
   struct Session *s;
-
   struct LookupContext l_ctx;
+
   l_ctx.addr = rc->src_addr;
   l_ctx.addrlen = rc->addr_len;
   l_ctx.res = NULL;
@@ -1913,8 +1911,8 @@ read_process_ack (struct Plugin *plugin,
 		  socklen_t fromlen)
 {
   struct UDP_MessageWrapper dummy;
-  struct UDP_MessageWrapper * udpw;
-  struct UDP_MessageWrapper * tmp;
+  struct UDP_MessageWrapper *udpw;
+  struct UDP_MessageWrapper *tmp;
   const struct GNUNET_MessageHeader *ack;
   const struct UDP_ACK_Message *udp_ack;
   struct LookupContext l_ctx;
@@ -1932,15 +1930,18 @@ read_process_ack (struct Plugin *plugin,
   l_ctx.addrlen = fromlen;
   l_ctx.res = NULL;
   GNUNET_CONTAINER_multihashmap_iterate (plugin->sessions,
-      &lookup_session_by_addr_it,
-      &l_ctx);
+					 &lookup_session_by_addr_it,
+					 &l_ctx);
   s = l_ctx.res;
 
-  if ((s == NULL) || (s->frag_ctx == NULL))
+  if ((NULL == s) || (NULL == s->frag_ctx))
+  {
     return;
+  }
 
   flow_delay.rel_value = (uint64_t) ntohl (udp_ack->delay);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "We received a sending delay of %llu\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "We received a sending delay of %llu\n",
        flow_delay.rel_value);
   s->flow_delay_from_other_peer =
       GNUNET_TIME_relative_to_absolute (flow_delay);
@@ -1955,7 +1956,6 @@ read_process_ack (struct Plugin *plugin,
 
   if (0 != memcmp (&l_ctx.res->target, &udp_ack->sender, sizeof (struct GNUNET_PeerIdentity)))
     GNUNET_break (0);
-
   if (GNUNET_OK != GNUNET_FRAGMENT_process_ack (s->frag_ctx->frag, ack))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1994,7 +1994,7 @@ read_process_ack (struct Plugin *plugin,
     while (udpw!= NULL)
     {
       tmp = udpw->next;
-      if ((udpw->frag_ctx != NULL) && (udpw->frag_ctx == s->frag_ctx))
+      if ((NULL != udpw->frag_ctx) && (udpw->frag_ctx == s->frag_ctx))
       {
         dequeue (plugin, udpw);
         GNUNET_free (udpw);
