@@ -298,6 +298,30 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
       tc->link_array[cnt].tc = tc;
     }
     break;
+  case GNUNET_TESTBED_TOPOLOGY_CLIQUE:
+    tc->link_array_size = num_peers * (num_peers - 1);
+    tc->link_array = GNUNET_malloc (sizeof (struct OverlayLink) *
+                                    tc->link_array_size);
+    {
+      unsigned int offset;
+      
+      offset = 0;
+      for (cnt=0; cnt < num_peers; cnt++)
+      {
+        unsigned int neighbour;
+        
+        for (neighbour=0; neighbour < num_peers; neighbour++)
+        {
+          if (neighbour == cnt)
+            continue;
+          tc->link_array[offset].A = cnt;
+          tc->link_array[offset].B = neighbour;
+          tc->link_array[offset].tc = tc;
+          offset++;
+        }
+      }
+    }
+    break;
   default:
     GNUNET_break (0);
     return NULL;

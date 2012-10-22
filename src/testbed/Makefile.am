@@ -87,7 +87,8 @@ check_PROGRAMS = \
  test_testbed_api_testbed_run \
  test_testbed_api_test \
  test_gnunet_helper_testbed \
- test_testbed_api_topology
+ test_testbed_api_topology \
+ test_testbed_api_topology_clique
 
 if ENABLE_TEST_RUN
  TESTS = \
@@ -100,7 +101,8 @@ if ENABLE_TEST_RUN
   test_testbed_api_controllerlink \
   test_testbed_api_testbed_run \
   test_testbed_api_test \
-  test_testbed_api_topology
+  test_testbed_api_topology \
+  test_testbed_api_topology_clique
 endif
 
 test_testbed_api_hosts_SOURCES = \
@@ -158,6 +160,12 @@ test_testbed_api_test_LDADD = \
 test_testbed_api_topology_SOURCES = \
  test_testbed_api_topology.c
 test_testbed_api_topology_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunettestbed.la
+
+test_testbed_api_topology_clique_SOURCES = \
+ test_testbed_api_topology_clique.c
+test_testbed_api_topology_clique_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
 
