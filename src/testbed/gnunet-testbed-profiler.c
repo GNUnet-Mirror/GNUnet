@@ -333,7 +333,7 @@ peer_churn_cb (void *cls, const char *emsg)
             num_peers, ((double) prof_time.rel_value) / 1000.00);
     fflush (stdout);
     result = GNUNET_OK;
-    if (0 == num_links)
+    if ((0 == num_links) && (topology == GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI))
     {      
       shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
       return;
@@ -802,7 +802,7 @@ main (int argc, char *const *argv)
       gettext_noop ("Try to acheive TOPOLOGY. This options takes either CLIQUE "
                     "or RANDOM. For CLIQUE the parameter -n is ignored. The "
                     "default is to acheive a random graph topology."),
-      GNUNET_YES, &GNUNET_GETOPT_set_string, &topology },
+      GNUNET_YES, &set_topology, &topology },
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
