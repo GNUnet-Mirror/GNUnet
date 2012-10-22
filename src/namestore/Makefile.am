@@ -26,7 +26,7 @@ POSTGRES_TESTS = test_plugin_namestore_postgres
 POSTGRES_PLUGIN = libgnunet_plugin_namestore_postgres.la
 endif
 
-
+if HAVE_SQLITE
 check_PROGRAMS = \
  $(SQLITE_TESTS) \
  $(POSTGRES_TESTS) \
@@ -44,6 +44,7 @@ check_PROGRAMS = \
  test_namestore_api_zone_iteration \
  test_namestore_api_zone_iteration_specific_zone \
  test_namestore_api_zone_iteration_stop 
+endif
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
