@@ -393,7 +393,7 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
       fprintf (stderr, "Prop loss\n");
       fc->msg_delay.rel_value = ((fc->msg_delay.rel_value * ack_cnt) / snd_cnt);
     }
-    else if (0 < fc->msg_delay.rel_value)
+    else if (1 < fc->msg_delay.rel_value)
     {
       fc->msg_delay.rel_value--; /* try a bit faster */
     }
