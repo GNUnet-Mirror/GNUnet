@@ -620,7 +620,8 @@ register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int status)
 {
-  GNUNET_SCHEDULER_cancel (abort_task);
+  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+    GNUNET_SCHEDULER_cancel (abort_task);
   if (GNUNET_OK != status)
   {
     mc_proc = NULL;
