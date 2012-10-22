@@ -415,6 +415,34 @@ print_overlay_links_summary ()
 
 
 /**
+ * Function to start peers
+ */
+static void
+start_peers ()
+{
+  struct DLLOperation *dll_op;
+  unsigned int peer_cnt;
+  
+  state = STATE_PEERS_CREATING;
+  prof_start_time = GNUNET_TIME_absolute_get ();
+  peers = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Peer *)
+                         * num_peers);
+  for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
+  {
+    dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
+    dll_op->cls = &peers[peer_cnt];
+    dll_op->op = GNUNET_TESTBED_peer_create (mc,
+                                             hosts
+                                             [peer_cnt % num_hosts],
+                                             cfg,
+                                             &peer_create_cb,
+                                             dll_op);
+    GNUNET_CONTAINER_DLL_insert_tail (dll_op_head, dll_op_tail, dll_op);
+  }
+}
+
+
+/**
  * Controller event callback
  *
  * @param cls NULL
@@ -435,7 +463,6 @@ controller_event_cb (void *cls,
     case GNUNET_TESTBED_ET_OPERATION_FINISHED:
       {
         static unsigned int slaves_started;
-        unsigned int peer_cnt;
         
         dll_op = event->details.operation_finished.op_cls;
         GNUNET_CONTAINER_DLL_remove (dll_op_head, dll_op_tail, dll_op);
@@ -456,22 +483,7 @@ controller_event_cb (void *cls,
         {
           printf ("%u controllers started successfully\n", num_hosts);
 	  fflush (stdout);
-          state = STATE_PEERS_CREATING;
-          prof_start_time = GNUNET_TIME_absolute_get ();
-          peers = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Peer *)
-                                 * num_peers);
-          for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
-          {
-            dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-            dll_op->cls = &peers[peer_cnt];
-            dll_op->op = GNUNET_TESTBED_peer_create (mc,
-                                                     hosts
-                                                     [peer_cnt % num_hosts],
-                                                     cfg,
-                                                     &peer_create_cb,
-                                                     dll_op);
-            GNUNET_CONTAINER_DLL_insert_tail (dll_op_head, dll_op_tail, dll_op);
-          }
+          start_peers ();
         }
       }
       break;
@@ -643,7 +655,10 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int stat
     abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
     return;
   }
-  register_hosts_task = GNUNET_SCHEDULER_add_now (&register_hosts, NULL);
+  if (num_hosts > 1)
+    register_hosts_task = GNUNET_SCHEDULER_add_now (&register_hosts, NULL);
+  else
+    start_peers ();
   abort_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                              &do_abort, NULL);
 }
