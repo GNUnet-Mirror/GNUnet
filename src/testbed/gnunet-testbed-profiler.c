@@ -334,8 +334,8 @@ peer_churn_cb (void *cls, const char *emsg)
     topology_op =
         GNUNET_TESTBED_overlay_configure_topology (NULL, num_peers, peers,
                                                    GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI,
-
-                                                   num_links);
+                                                   num_links,
+                                                   GNUNET_TESTBED_TOPOLOGY_OPTION_END);
   }
 }
 

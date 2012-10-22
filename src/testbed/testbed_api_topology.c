@@ -94,7 +94,12 @@ struct TopologyContext
   /**
    * The size of the link array
    */
-  unsigned int link_array_size;    
+  unsigned int link_array_size;
+
+  /**
+   * should the automatic retry be disabled
+   */
+  int disable_retry;
   
 };
 
@@ -117,10 +122,10 @@ overlay_link_completed (void *cls,
 
   GNUNET_assert (op == link->op);
   GNUNET_TESTBED_operation_done (op);
-  link->op = NULL;  
-  if (NULL != emsg)
+  link->op = NULL;
+  tc = link->tc;
+  if ((NULL != emsg) && (GNUNET_NO == tc->disable_retry))
   {
-    tc = link->tc;
     LOG (GNUNET_ERROR_TYPE_WARNING,
 	 "Error while establishing a link: %s -- Retrying\n", emsg);
     link->op =
@@ -251,6 +256,7 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
   struct TopologyContext *tc;
   struct GNUNET_TESTBED_Operation *op;
   struct GNUNET_TESTBED_Controller *c;
+  enum GNUNET_TESTBED_TopologyOption secondary_option;
   unsigned int cnt;
 
   if (num_peers < 2)
@@ -296,6 +302,22 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
     GNUNET_break (0);
     return NULL;
   }
+  do
+  {
+    secondary_option = va_arg (va, enum GNUNET_TESTBED_TopologyOption);
+    switch (secondary_option)
+    {
+    case GNUNET_TESTBED_TOPOLOGY_DISABLE_AUTO_RETRY:
+      tc->disable_retry = GNUNET_YES;
+      break;
+    case GNUNET_TESTBED_TOPOLOGY_OPTION_END:
+      break;
+    default:
+      GNUNET_break (0);         /* Should not use any other option apart from
+                                   the ones handled here */
+      return NULL;
+    }
+  } while (GNUNET_TESTBED_TOPOLOGY_OPTION_END != secondary_option);
   op = GNUNET_TESTBED_operation_create_ (tc,
 					 &opstart_overlay_configure_topology,
 					 &oprelease_overlay_configure_topology);
@@ -328,6 +350,7 @@ GNUNET_TESTBED_overlay_configure_topology (void *op_cls, unsigned int num_peers,
   struct GNUNET_TESTBED_Operation *op;
   va_list vargs;
 
+  GNUNET_assert (topo < GNUNET_TESTBED_TOPOLOGY_OPTION_END);
   va_start (vargs, topo);
   op = GNUNET_TESTBED_overlay_configure_topology_va (op_cls, num_peers, peers,
 						     topo, vargs);

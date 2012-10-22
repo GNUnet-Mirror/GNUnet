@@ -908,7 +908,8 @@ GNUNET_TESTBED_underlay_configure_link (void *op_cls,
 
 
 /**
- * Topologies supported for testbeds.
+ * Topologies and topology options supported for testbeds. Options should always
+ * end with GNUNET_TESTBED_TOPOLOGY_OPTION_END
  */
 enum GNUNET_TESTBED_TopologyOption
 {
@@ -940,9 +941,8 @@ enum GNUNET_TESTBED_TopologyOption
   GNUNET_TESTBED_TOPOLOGY_2D_TORUS,
 
   /**
-   * Random graph.  Followed by the link density, that is the
-   * percentage of links present in relation to a clique
-   * (float).
+   * Random graph.  Followed by the number of random links to be established
+   * (unsigned int)
    */
   GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI,
 
@@ -971,7 +971,23 @@ enum GNUNET_TESTBED_TopologyOption
   /**
    * Read a topology from a given file.  Followed by the name of the file (const char *).
    */
-  GNUNET_TESTBED_TOPOLOGY_FROM_FILE
+  GNUNET_TESTBED_TOPOLOGY_FROM_FILE,
+
+  /**
+   * The options should always end with this
+   */
+  GNUNET_TESTBED_TOPOLOGY_OPTION_END,
+
+  /* The following are not topologies but influence how the topology has to be
+     setup. These options should follow the topology specific options (if
+     required by the chosen topology). Note that these should be given before
+     GNUNET_TESTBED_TOPOLOGY_OPTION_END */
+
+  /**
+   * Disable automatic retrying for failed overlay connections. The default is
+   * to always retry failed overlay connections. This parameter takes no options.
+   */
+  GNUNET_TESTBED_TOPOLOGY_DISABLE_AUTO_RETRY
 };
 
 

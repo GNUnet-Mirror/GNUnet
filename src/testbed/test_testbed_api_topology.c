@@ -136,7 +136,7 @@ test_master (void *cls, unsigned int num_peers,
   overlay_connects = 0;
   op = GNUNET_TESTBED_overlay_configure_topology (NULL, NUM_PEERS, peers,
 						  GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI,
-                                                  NUM_PEERS);
+                                                  NUM_PEERS, GNUNET_TESTBED_TOPOLOGY_OPTION_END);
   GNUNET_assert (NULL != op);
   shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                                 (GNUNET_TIME_UNIT_SECONDS, 120),
