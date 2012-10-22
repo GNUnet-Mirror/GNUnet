@@ -84,11 +84,17 @@ oprelease_peer_create (void *cls)
 {
   struct OperationContext *opc = cls;
 
-  if (OPC_STATE_FINISHED != opc->state)
+  switch (opc->state)
   {
+  case OPC_STATE_STARTED:
+    GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+    /* No break we continue flow */
+  case OPC_STATE_INIT:
     GNUNET_free (((struct PeerCreateData *) opc->data)->peer);
     GNUNET_free (opc->data);
-    GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+    break;
+  case OPC_STATE_FINISHED:
+    break;
   }
   GNUNET_free (opc);
 }
