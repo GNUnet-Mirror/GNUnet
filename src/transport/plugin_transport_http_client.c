@@ -85,12 +85,6 @@ struct HTTP_Message
   size_t size;
 
   /**
-   * HTTP overhead required to send this message
-   * FIXME: to implement
-   */
-  size_t overhead;
-
-  /**
    * Continuation function to call once the transmission buffer
    * has again space available.  NULL if there is no
    * continuation to call.
@@ -102,6 +96,20 @@ struct HTTP_Message
    */
   void *transmit_cont_cls;
 };
+
+
+/**
+ * Session handle for connections.
+ */
+struct Session;
+
+struct ConnectionHandle
+{
+  CURL *easyhandle;
+  struct Session *s;
+};
+
+
 
 /**
  * Session handle for connections.
@@ -150,15 +158,12 @@ struct Session
   struct HTTP_Client_Plugin *plugin;
 
   /**
-   * Was session given to transport service?
-   */
- // int session_passed;
-
-  /**
    * Client send handle
    */
   void *client_put;
 
+  struct ConnectionHandle put;
+  struct ConnectionHandle get;
 
   /**
    * Is the client PUT handle currently paused
@@ -225,7 +230,7 @@ struct Session
   * Absolute time when to receive data again
   * Used for receive throttling
   */
- struct GNUNET_TIME_Absolute next_receive;
+  struct GNUNET_TIME_Absolute next_receive;
 };
 
 
@@ -364,13 +369,6 @@ client_exist_session (struct HTTP_Client_Plugin *plugin, struct Session *s)
   return GNUNET_NO;
 }
 
-static void
-client_remark_outbound_overhead (void *cls, size_t size)
-{
-  //FIXME use this overhead
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-http_client",
-                   "Overhead: %u\n", size);
-}
 
 /**
  * Function to log curl debug messages with GNUNET_log
@@ -385,6 +383,7 @@ client_remark_outbound_overhead (void *cls, size_t size)
 static int
 client_log (CURL * curl, curl_infotype type, char *data, size_t size, void *cls)
 {
+  struct ConnectionHandle *ch = cls;
   char *ttype = "UNSPECIFIED";
   if ((type == CURLINFO_TEXT) || (type == CURLINFO_HEADER_IN) || (type == CURLINFO_HEADER_OUT))
   {
@@ -399,12 +398,18 @@ client_log (CURL * curl, curl_infotype type, char *data, size_t size, void *cls)
         break;
       case CURLINFO_HEADER_OUT:
         ttype = "HEADER_OUT";
-        client_remark_outbound_overhead (cls, size);
+        /* Overhead*/
+
+        GNUNET_assert (NULL != ch);
+        GNUNET_assert (NULL != ch->easyhandle);
+        GNUNET_assert (NULL != ch->s);
+        ch->s->overhead += size;
         break;
       default:
         ttype = "UNSPECIFIED";
         break;
     }
+
 #if VERBOSE_CURL
     memcpy (text, data, size);
     if (text[size - 1] == '\n')
@@ -416,10 +421,10 @@ client_log (CURL * curl, curl_infotype type, char *data, size_t size, void *cls)
     }
 #if BUILD_HTTPS
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-https_client",
-                     "Connection %p %s: %s", cls, ttype, text);
+                     "Connection %p %s: %s", ch->easyhandle, ttype, text);
 #else
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-http_client",
-                     "Connection %p %s: %s", cls, ttype, text);
+                     "Connection %p %s: %s", ch->easyhandle, ttype, text);
 #endif
   }
 #endif
@@ -569,7 +574,8 @@ client_delete_session (struct Session *s)
     GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, pos);
     if (pos->transmit_cont != NULL)
       pos->transmit_cont (pos->transmit_cont_cls, &s->target, GNUNET_SYSERR,
-                          pos->size, pos->pos + pos->overhead);
+                          pos->size, pos->pos + s->overhead);
+    s->overhead = 0;
     GNUNET_free (pos);
   }
 
@@ -655,7 +661,8 @@ client_disconnect (struct Session *s)
     t = msg->next;
     if (NULL != msg->transmit_cont)
       msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_SYSERR,
-                          msg->size, msg->pos + msg->overhead);
+                          msg->size, msg->pos + s->overhead);
+    s->overhead = 0;
     GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, msg);
     GNUNET_free (msg);
     msg = t;
@@ -809,7 +816,8 @@ client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
     GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, msg);
     if (NULL != msg->transmit_cont)
       msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_OK,
-                          msg->size, msg->size + msg->overhead);
+                          msg->size, msg->size + s->overhead);
+    s->overhead = 0;
     GNUNET_free (msg);
   }
 
@@ -1133,6 +1141,8 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
             s->put_tmp_disconnecting = GNUNET_NO;
             s->put_tmp_disconnected = GNUNET_YES;
             s->client_put = NULL;
+            s->put.easyhandle = NULL;
+            s->put.s = NULL;
 
             /*
              * Handling a rare case:
@@ -1162,6 +1172,8 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                 "Session %p/connection %p: GET connection to `%s' ended normal\n",
                 s, msg->easy_handle, GNUNET_i2s (&s->target));
             /* Disconnect other transmission direction and tell transport */
+            s->get.easyhandle = NULL;
+            s->get.s = NULL;
             client_disconnect (s);
         }
       }
@@ -1177,10 +1189,12 @@ client_connect_get (struct Session *s)
   CURLMcode mret;
   /* create get connection */
   s->client_get = curl_easy_init ();
+  s->get.s = s;
+  s->get.easyhandle = s->client_get;
 #if VERBOSE_CURL
   curl_easy_setopt (s->client_get, CURLOPT_VERBOSE, 1L);
   curl_easy_setopt (s->client_get, CURLOPT_DEBUGFUNCTION, &client_log);
-  curl_easy_setopt (s->client_get, CURLOPT_DEBUGDATA, s->client_get);
+  curl_easy_setopt (s->client_get, CURLOPT_DEBUGDATA, &s->get);
 #endif
 #if BUILD_HTTPS
   curl_easy_setopt (s->client_get, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
@@ -1212,6 +1226,8 @@ client_connect_get (struct Session *s)
                        s, curl_multi_strerror (mret));
     curl_easy_cleanup (s->client_get);
     s->client_get = NULL;
+    s->get.s = NULL;
+    s->get.easyhandle = NULL;
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
@@ -1227,10 +1243,12 @@ client_connect_put (struct Session *s)
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
                        "Session %p : Init PUT handle \n", s);
   s->client_put = curl_easy_init ();
+  s->put.s = s;
+  s->put.easyhandle = s->client_put;
 #if VERBOSE_CURL
   curl_easy_setopt (s->client_put, CURLOPT_VERBOSE, 1L);
   curl_easy_setopt (s->client_put, CURLOPT_DEBUGFUNCTION, &client_log);
-  curl_easy_setopt (s->client_put, CURLOPT_DEBUGDATA, s->client_put);
+  curl_easy_setopt (s->client_put, CURLOPT_DEBUGDATA, &s->put);
 #endif
 #if BUILD_HTTPS
   curl_easy_setopt (s->client_put, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
@@ -1263,6 +1281,8 @@ client_connect_put (struct Session *s)
                     s, curl_multi_strerror (mret));
     curl_easy_cleanup (s->client_put);
     s->client_put = NULL;
+    s->put.easyhandle = NULL;
+    s->put.s = NULL;
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;
