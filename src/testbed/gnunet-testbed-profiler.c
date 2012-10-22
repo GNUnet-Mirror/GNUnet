@@ -231,6 +231,11 @@ static int result;
  */
 enum State state;
 
+/**
+ * The topology we want to acheive
+ */
+enum GNUNET_TESTBED_TopologyOption topology;
+
 
 /**
  * Shutdown nicely
@@ -336,12 +341,26 @@ peer_churn_cb (void *cls, const char *emsg)
     state = STATE_PEERS_LINKING;
     /* Do overlay connect */
     prof_start_time = GNUNET_TIME_absolute_get ();
-    topology_op =
-        GNUNET_TESTBED_overlay_configure_topology (NULL, num_peers, peers,
-                                                   GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI,
-                                                   num_links,
-                                                   GNUNET_TESTBED_TOPOLOGY_DISABLE_AUTO_RETRY,
-                                                   GNUNET_TESTBED_TOPOLOGY_OPTION_END);
+    switch (topology)
+    {
+    case GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI:
+      topology_op =
+          GNUNET_TESTBED_overlay_configure_topology (NULL, num_peers, peers,
+                                                     topology,
+                                                     num_links,
+                                                     GNUNET_TESTBED_TOPOLOGY_DISABLE_AUTO_RETRY,
+                                                     GNUNET_TESTBED_TOPOLOGY_OPTION_END);
+      break;
+    case GNUNET_TESTBED_TOPOLOGY_CLIQUE:
+      topology_op =
+          GNUNET_TESTBED_overlay_configure_topology (NULL, num_peers, peers,
+                                                     topology,
+                                                     GNUNET_TESTBED_TOPOLOGY_DISABLE_AUTO_RETRY,
+                                                     GNUNET_TESTBED_TOPOLOGY_OPTION_END);
+      break;
+    default:
+      GNUNET_assert (0);
+    }
   }
 }
 
@@ -531,7 +550,9 @@ controller_event_cb (void *cls,
 	printf (".");
 	fflush (stdout);
         established_links++;
-        if ((established_links + failed_links) == num_links)
+        if ((established_links + failed_links) == 
+            (GNUNET_TESTBED_TOPOLOGY_CLIQUE == topology ? 
+             num_peers * (num_peers -1) : num_links))
         {
 	  print_overlay_links_summary ();
 	  result = GNUNET_OK;
@@ -725,6 +746,41 @@ run (void *cls, char *const *args, const char *cfgfile,
 
 
 /**
+ * Set an option of type 'char *' from the command line.
+ * A pointer to this function should be passed as part of the
+ * 'struct GNUNET_GETOPT_CommandLineOption' array to initialize options
+ * of this type.  It should be followed by a pointer to a value of
+ * type 'char *'.
+ *
+ * @param ctx command line processing context
+ * @param scls additional closure (will point to the 'char *',
+ *             which will be allocated)
+ * @param option name of the option
+ * @param value actual value of the option (a string)
+ * @return GNUNET_OK to continue procesing; GNUNET_SYSERR to signal error
+ */
+int
+set_topology (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+              void *scls, const char *option, const char *value)
+{
+  enum GNUNET_TESTBED_TopologyOption *val = scls;
+
+  if (0 == strncasecmp ("CLIQUE", value, strlen ("CLIQUE")))
+  {  
+    *val = GNUNET_TESTBED_TOPOLOGY_CLIQUE;
+    return GNUNET_OK;
+  }
+  if (0 == strncasecmp ("RANDOM", value, strlen ("RANDOM")))
+  {  
+    *val = GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI;
+    return GNUNET_OK;
+  }
+  FPRINTF (stderr, _("Only `CLIQUE' and `RANDOM' are permitted"));
+  return GNUNET_SYSERR;
+}
+
+
+/**
  * Main function.
  *
  * @return 0 on success
@@ -742,10 +798,16 @@ main (int argc, char *const *argv)
     { 'e', "num-errors", "COUNT",
       gettext_noop ("tolerate COUNT number of continious timeout failures"),
       GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_cont_fails },
+    { 't', "topology", "TOPOLOGY",
+      gettext_noop ("Try to acheive TOPOLOGY. This options takes either CLIQUE "
+                    "or RANDOM. For CLIQUE the parameter -n is ignored. The "
+                    "default is to acheive a random graph topology."),
+      GNUNET_YES, &GNUNET_GETOPT_set_string, &topology },
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
 
+  topology = GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI;
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
   
