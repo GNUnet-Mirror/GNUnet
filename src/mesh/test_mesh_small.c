@@ -103,6 +103,11 @@ int ok_goal;
 
 
 /**
+ * Size of each test packet
+ */
+size_t size_payload = sizeof (struct GNUNET_MessageHeader) + sizeof (uint32_t);
+
+/**
  * Is the setup initialized?
  */
 static int initialized;
@@ -429,7 +434,7 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   th = GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
                                           GNUNET_TIME_UNIT_FOREVER_REL,
                                           destination,
-                                          sizeof (struct GNUNET_MessageHeader),
+                                            size_payload,
                                           &tmt_rdy, (void *) 1L);
   if (NULL == th)
   {
@@ -466,13 +471,19 @@ size_t
 tmt_rdy (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MessageHeader *msg = buf;
+  uint32_t *data;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               " tmt_rdy called\n");
-  if (size < sizeof (struct GNUNET_MessageHeader) || NULL == buf)
+  if (size < size_payload || NULL == buf)
+  {
+    GNUNET_break (0);
     return 0;
-  msg->size = htons (sizeof (struct GNUNET_MessageHeader));
+  }
+  msg->size = htons (size);
   msg->type = htons ((long) cls);
+  data = (uint32_t *) &msg[1];
+  *data = htonl (data_sent);
   if (SPEED == test && GNUNET_YES == initialized)
   {
     data_sent++;
@@ -485,7 +496,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
       GNUNET_SCHEDULER_add_now(&data_task, NULL);
     }
   }
-  return sizeof (struct GNUNET_MessageHeader);
+  return size_payload;
 }
 
 
@@ -509,6 +520,7 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
 {
   long client = (long) cls;
   long expected_target_client;
+  uint32_t *data;
 
   ok++;
 
@@ -543,7 +555,8 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
     break;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: (%d/%d)\n", ok, ok_goal);
-
+  data = (uint32_t *) &message[1];
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, " payload: (%u)\n", ntohl (*data));
   if (SPEED == test && GNUNET_YES == test_backwards)
   {
     expected_target_client = 1L;
@@ -574,7 +587,7 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
     {
       GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
                                         GNUNET_TIME_UNIT_FOREVER_REL, sender,
-                                        sizeof (struct GNUNET_MessageHeader),
+                                               size_payload,
                                         &tmt_rdy, (void *) 1L);
     }
     else
@@ -592,7 +605,7 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
               " received ack %u\n", data_ack);
       GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
                                         GNUNET_TIME_UNIT_FOREVER_REL, sender,
-                                        sizeof (struct GNUNET_MessageHeader),
+                                               size_payload,
                                         &tmt_rdy, (void *) 1L);
       if (data_ack < TOTAL_PACKETS && SPEED != test)
         return GNUNET_OK;
@@ -785,7 +798,7 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
     data_sent = 0;
     GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO,
                                        GNUNET_TIME_UNIT_FOREVER_REL, dest,
-                                       sizeof (struct GNUNET_MessageHeader),
+                                           size_payload,
                                        &tmt_rdy, (void *) 1L);
   }
   else
