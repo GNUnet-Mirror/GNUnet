@@ -48,6 +48,7 @@
 #include <curl/curl.h>
 
 
+
 /**
  * Encapsulation of all of the state of the plugin.
  */
@@ -369,19 +370,18 @@ client_exist_session (struct HTTP_Client_Plugin *plugin, struct Session *s)
   return GNUNET_NO;
 }
 
-
 /**
- * Function to log curl debug messages with GNUNET_log
+ * Loggging function
  *
- * @param curl handle
- * @param type curl_infotype
- * @param data data
- * @param size size
- * @param cls  closure
- * @return 0
+ * @param curl the curl easy handle
+ * @param type message type
+ * @param data data as a not \0-terminated string
+ * @param size data length
+ * @param cls the closure
+ * @return always 0
  */
 static int
-client_log (CURL * curl, curl_infotype type, char *data, size_t size, void *cls)
+client_log (CURL *curl, curl_infotype type, char *data, size_t size, void *cls)
 {
   struct ConnectionHandle *ch = cls;
   char *ttype = "UNSPECIFIED";
@@ -432,7 +432,6 @@ client_log (CURL * curl, curl_infotype type, char *data, size_t size, void *cls)
 }
 
 
-
 /**
  * Function that can be used by the transport service to transmit
  * a message using the plugin.   Note that in the case of a
@@ -462,11 +461,12 @@ client_log (CURL * curl, curl_infotype type, char *data, size_t size, void *cls)
  */
 static ssize_t
 http_client_plugin_send (void *cls,
-                  struct Session *s,
-                  const char *msgbuf, size_t msgbuf_size,
-                  unsigned int priority,
-                  struct GNUNET_TIME_Relative to,
-                  GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
+                         struct Session *s,
+                         const char *msgbuf, size_t msgbuf_size,
+                         unsigned int priority,
+                         struct GNUNET_TIME_Relative to,
+                         GNUNET_TRANSPORT_TransmitContinuation cont,
+                         void *cont_cls)
 {
   struct HTTP_Client_Plugin *plugin = cls;
   struct HTTP_Message *msg;
