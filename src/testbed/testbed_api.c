@@ -724,13 +724,13 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
     LOG_DEBUG ("Operation not found\n");
     return GNUNET_YES;
   }
-  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   if (OP_FORWARDED == opc->type)
   {
     handle_forwarded_operation_msg (c, opc,
 				    (const struct GNUNET_MessageHeader *) msg);
     return GNUNET_YES;
   }
+  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
   emsg = GNUNET_TESTBED_parse_error_string_ (msg);
   if (NULL == emsg)
