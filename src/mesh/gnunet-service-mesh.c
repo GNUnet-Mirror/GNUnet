@@ -4900,6 +4900,9 @@ queue_send (void *cls, size_t size, void *buf)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   not empty\n");
 
     GNUNET_PEER_resolve (peer->id, &dst_id);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "*********   towards %s\n",
+                GNUNET_i2s(&dst_id));
     /* Check if buffer size is enough for the message */
     if (queue->size > size)
     {
