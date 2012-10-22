@@ -128,7 +128,12 @@ struct Session
   /**
    * expected delay for ACKs
    */
-  struct GNUNET_TIME_Relative last_expected_delay;
+  struct GNUNET_TIME_Relative last_expected_ack_delay;
+
+  /**
+   * desired delay between UDP messages
+   */
+  struct GNUNET_TIME_Relative last_expected_msg_delay;
 
   struct GNUNET_ATS_Information ats;
 
@@ -290,7 +295,7 @@ struct UDP_FragmentationContext
   size_t on_wire_size;
 
   unsigned int fragments_used;
-  struct GNUNET_TIME_Relative exp_delay;
+
 };
 
 
@@ -971,9 +976,9 @@ udp_plugin_check_address (void *cls, const void *addr, size_t addrlen)
 static void
 free_session (struct Session *s)
 {
-  if (s->frag_ctx != NULL)
+  if (NULL != s->frag_ctx)
   {
-    GNUNET_FRAGMENT_context_destroy(s->frag_ctx->frag);
+    GNUNET_FRAGMENT_context_destroy(s->frag_ctx->frag, NULL, NULL);
     GNUNET_free (s->frag_ctx);
     s->frag_ctx = NULL;
   }
@@ -1236,7 +1241,8 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   s->addrlen = len;
   s->target = *target;
   s->sock_addr = (const struct sockaddr *) &s[1];
-  s->last_expected_delay = GNUNET_TIME_UNIT_SECONDS;
+  s->last_expected_ack_delay = GNUNET_TIME_UNIT_SECONDS;
+  s->last_expected_msg_delay = GNUNET_TIME_UNIT_MILLISECONDS;
   s->flow_delay_from_other_peer = GNUNET_TIME_UNIT_ZERO_ABS;
   s->flow_delay_for_other_peer = GNUNET_TIME_UNIT_ZERO;
   start_session_timeout (s);
@@ -1561,17 +1567,17 @@ udp_plugin_send (void *cls,
     frag_ctx->timeout = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), to);
     frag_ctx->payload_size = msgbuf_size; /* unfragmented message size without UDP overhead */
     frag_ctx->on_wire_size = 0; /* bytes with UDP and fragmentation overhead */
+    fprintf (stderr, "New fc with msg delay: %llu and ack delay %llu\n",
+	     (unsigned long long )s->last_expected_msg_delay.rel_value,
+	     (unsigned long long )s->last_expected_ack_delay.rel_value);
     frag_ctx->frag = GNUNET_FRAGMENT_context_create (plugin->env->stats,
-              UDP_MTU,
-              &plugin->tracker,
-              GNUNET_TIME_relative_max (s->last_expected_delay, GNUNET_TIME_UNIT_SECONDS),
-              &udp->header,
-              &enqueue_fragment,
-              frag_ctx);
-
-    frag_ctx->exp_delay = s->last_expected_delay;
-    s->frag_ctx = frag_ctx;
-
+						     UDP_MTU,
+						     &plugin->tracker,
+						     s->last_expected_msg_delay, 
+						     s->last_expected_ack_delay, 
+						     &udp->header,
+						     &enqueue_fragment,
+						     frag_ctx);    
     GNUNET_STATISTICS_update (plugin->env->stats,
                               "# UDP, fragmented msgs, messages, pending",
                               1, GNUNET_NO);
@@ -1964,7 +1970,9 @@ read_process_ack (struct Plugin *plugin,
        "Message full ACK'ed\n",
        (unsigned int) ntohs (msg->size), GNUNET_i2s (&udp_ack->sender),
        GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
-  s->last_expected_delay = GNUNET_FRAGMENT_context_destroy (s->frag_ctx->frag);
+  GNUNET_FRAGMENT_context_destroy (s->frag_ctx->frag,
+				   &s->last_expected_msg_delay,
+				   &s->last_expected_ack_delay);
 
   if (s->addrlen == sizeof (struct sockaddr_in6))
   {
@@ -1994,15 +2002,6 @@ read_process_ack (struct Plugin *plugin,
       udpw = tmp;
     }
   }
-/*
-  LOG (GNUNET_ERROR_TYPE_ERROR,
-       "Fragmented message sent: fragments needed: %u , payload %u bytes, used on wire %u bytes, overhead: %f, expected delay: %llu\n",
-       s->frag_ctx->fragments_used,
-       s->frag_ctx->payload_size,
-       s->frag_ctx->on_wire_size,
-       ((float) s->frag_ctx->on_wire_size) / s->frag_ctx->payload_size,
-       s->frag_ctx->exp_delay.rel_value);
-*/
   dummy.msg_type = MSG_FRAGMENTED_COMPLETE;
   dummy.msg_buf = NULL;
   dummy.msg_size = s->frag_ctx->on_wire_size;
@@ -2190,7 +2189,9 @@ remove_timeout_messages_and_select (struct UDP_MessageWrapper *head,
           LOG (GNUNET_ERROR_TYPE_DEBUG,
                "Fragment for message for peer `%s' with size %u timed out\n",
                GNUNET_i2s(&udpw->session->target), udpw->frag_ctx->payload_size);
-          udpw->session->last_expected_delay = GNUNET_FRAGMENT_context_destroy (udpw->frag_ctx->frag);
+	  GNUNET_FRAGMENT_context_destroy (udpw->frag_ctx->frag,
+					   &udpw->session->last_expected_msg_delay,
+					   &udpw->session->last_expected_ack_delay);
           GNUNET_free (udpw->frag_ctx);
           udpw->session->frag_ctx = NULL;
 

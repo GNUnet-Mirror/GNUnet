@@ -73,7 +73,9 @@ typedef void (*GNUNET_FRAGMENT_MessageProcessor) (void *cls,
  * @param stats statistics context
  * @param mtu the maximum message size for each fragment
  * @param tracker bandwidth tracker to use for flow control (can be NULL)
- * @param delay expected delay between fragment transmission
+ * @param msg_delay initial delay to insert between fragment transmissions
+ *              based on previous messages
+ * @param ack_delay expected delay between fragment transmission
  *              and ACK based on previous messages
  * @param msg the message to fragment
  * @param proc function to call for each fragment to transmit
@@ -84,7 +86,8 @@ struct GNUNET_FRAGMENT_Context *
 GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
                                 uint16_t mtu,
                                 struct GNUNET_BANDWIDTH_Tracker *tracker,
-                                struct GNUNET_TIME_Relative delay,
+                                struct GNUNET_TIME_Relative msg_delay,
+                                struct GNUNET_TIME_Relative ack_delay,
                                 const struct GNUNET_MessageHeader *msg,
                                 GNUNET_FRAGMENT_MessageProcessor proc,
                                 void *proc_cls);
@@ -122,11 +125,15 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
  * resources).
  *
  * @param fc fragmentation context
- * @return average delay between transmission and ACK for the
- *         last message, FOREVER if the message was not fully transmitted
+ * @param msg_delay where to store average delay between individual message transmissions the
+ *         last message (OUT only)
+ * @param ack_delay where to store average delay between transmission and ACK for the
+ *         last message, set to FOREVER if the message was not fully transmitted (OUT only)
  */
-struct GNUNET_TIME_Relative
-GNUNET_FRAGMENT_context_destroy (struct GNUNET_FRAGMENT_Context *fc);
+void
+GNUNET_FRAGMENT_context_destroy (struct GNUNET_FRAGMENT_Context *fc,
+				 struct GNUNET_TIME_Relative *msg_delay,
+				 struct GNUNET_TIME_Relative *ack_delay);
 
 
 /**

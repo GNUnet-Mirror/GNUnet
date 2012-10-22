@@ -77,7 +77,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     if (frags[i] == NULL)
       continue;
-    GNUNET_FRAGMENT_context_destroy (frags[i]);
+    GNUNET_FRAGMENT_context_destroy (frags[i], NULL, NULL);
     frags[i] = NULL;
   }
 }
@@ -134,7 +134,7 @@ proc_acks (void *cls, uint32_t msg_id, const struct GNUNET_MessageHeader *hdr)
 #if DETAILS
       FPRINTF (stderr, "%s",  "@");    /* good ACK */
 #endif
-      GNUNET_FRAGMENT_context_destroy (frags[i]);
+      GNUNET_FRAGMENT_context_destroy (frags[i], NULL, NULL);
       frags[i] = NULL;
       acks++;
       return;
@@ -215,7 +215,9 @@ run (void *cls, char *const *args, const char *cfgfile,
         htons (sizeof (struct GNUNET_MessageHeader) + (17 * i) % (32 * 1024));
     frags[i] = GNUNET_FRAGMENT_context_create (NULL /* no stats */ ,
                                                MTU, &trackers[i],
-                                               GNUNET_TIME_UNIT_SECONDS, msg,
+                                               GNUNET_TIME_UNIT_MILLISECONDS, 
+                                               GNUNET_TIME_UNIT_SECONDS, 
+					       msg,
                                                &proc_frac, &frags[i]);
   }
 }

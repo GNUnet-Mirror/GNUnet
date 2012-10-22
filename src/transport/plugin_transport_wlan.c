@@ -790,7 +790,7 @@ free_fragment_message (struct FragmentMessage *fm)
     GNUNET_HELPER_send_cancel (fm->sh);
     fm->sh = NULL;
   }
-  GNUNET_FRAGMENT_context_destroy (fm->fragcontext);
+  GNUNET_FRAGMENT_context_destroy (fm->fragcontext, NULL, NULL);
   if (fm->timeout_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (fm->timeout_task);
@@ -857,10 +857,13 @@ send_with_fragmentation (struct MacEndpoint *endpoint,
   fm->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   fm->cont = cont;
   fm->cont_cls = cont_cls;
+  /* 1 MBit/s typical data rate, 1430 byte fragments => ~100 ms per message */
   fm->fragcontext =
     GNUNET_FRAGMENT_context_create (plugin->env->stats, WLAN_MTU,
 				    &plugin->tracker,
 				    GNUNET_TIME_UNIT_SECONDS,
+				    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+								   100),
 				    msg,
 				    &transmit_fragment, fm);
   fm->timeout_task =
