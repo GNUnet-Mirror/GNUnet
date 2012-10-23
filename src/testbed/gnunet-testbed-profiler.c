@@ -776,7 +776,7 @@ set_topology (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
     *val = GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI;
     return GNUNET_OK;
   }
-  FPRINTF (stderr, _("Only `CLIQUE' and `RANDOM' are permitted"));
+  FPRINTF (stderr, "%s", _("Only `CLIQUE' and `RANDOM' are permitted.\n"));
   return GNUNET_SYSERR;
 }
 
