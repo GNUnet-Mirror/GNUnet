@@ -183,10 +183,9 @@ struct GSF_LocalClient;
 struct GSF_RequestPlan;
 
 /**
- * DLL of request plans a particular pending request is
- * involved with.
+ * Bijection between request plans and pending requests.
  */
-struct GSF_RequestPlanReference;
+struct GSF_PendingRequestPlanBijection;
 
 /**
  * Our connection to the datastore.

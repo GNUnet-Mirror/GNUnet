@@ -62,15 +62,15 @@ GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr);
  * Get the last transmission attempt time for the request plan list
  * referenced by 'rpr_head', that was sent to 'sender'
  *
- * @param rpr_head request plan reference list to check.
+ * @param pr_head request plan reference list to check.
  * @param sender the peer that we've sent the request to.
  * @param result the timestamp to fill.
  * @return GNUNET_YES if 'result' was changed, GNUNET_NO otherwise.
  */
 int
-GSF_request_plan_reference_get_last_transmission_ (
-    struct GSF_RequestPlanReference *rpr_head, struct GSF_ConnectedPeer *sender,
-    struct GNUNET_TIME_Absolute *result);
+GSF_request_plan_reference_get_last_transmission_ (struct GSF_PendingRequestPlanBijection *pr_head, 
+						   struct GSF_ConnectedPeer *sender,
+						   struct GNUNET_TIME_Absolute *result);
 
 /**
  * Initialize plan subsystem.

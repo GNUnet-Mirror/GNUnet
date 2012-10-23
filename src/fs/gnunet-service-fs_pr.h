@@ -102,12 +102,12 @@ struct GSF_PendingRequestData
   /**
    * Fields for the plan module to track a DLL with the request.
    */
-  struct GSF_RequestPlanReference *rpr_head;
+  struct GSF_PendingRequestPlanBijection *pr_head;
 
   /**
    * Fields for the plan module to track a DLL with the request.
    */
-  struct GSF_RequestPlanReference *rpr_tail;
+  struct GSF_PendingRequestPlanBijection *pr_tail;
 
   /**
    * Current TTL for the request.
