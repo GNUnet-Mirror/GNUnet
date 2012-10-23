@@ -33,7 +33,7 @@ UNIX_MATCH_GID = YES
 # DEBUG = YES
 
 # Maximum number of requests this peer tracks (important for
-# memory consumption)
+# memory consumption; 2k RAM/request is not unusual)
 MAX_PENDING_REQUESTS = 65536
 
 # How many requests do we have at most waiting in the queue towards
