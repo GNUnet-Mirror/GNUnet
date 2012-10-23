@@ -465,7 +465,9 @@ mesh_peer_connect_handler (void *cls,
 
     prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
     printf ("\nAll strings successfully matched in %.2f minutes\n", ((double)prof_time.rel_value / 1000.0 / 60.0));
-    GNUNET_SCHEDULER_cancel (search_timeout_task);
+
+    if (GNUNET_SCHEDULER_NO_TASK != search_timeout_task)
+      GNUNET_SCHEDULER_cancel (search_timeout_task);
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
   }
 }
@@ -507,8 +509,8 @@ do_connect_by_string (void *cls,
   {
     peer = &peers[search_cnt % num_peers];
 
-    printf ("Searching for string \"%s\" on peer %d\n", 
-	    search_strings[search_cnt], (search_cnt % num_peers));
+    printf ("Searching for string \"%s\" on peer %d with file %s\n", 
+	    search_strings[search_cnt], (search_cnt % num_peers), peer->policy_file);
 
     peer->mesh_tunnel_handle = GNUNET_MESH_tunnel_create (peer->mesh_handle,
 							  NULL,
@@ -593,7 +595,7 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
       data[offset] = '\0';
       regex = buf;
       GNUNET_assert (NULL != regex);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Announcing regex: %s\n", regex);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Announcing regex: %s on peer\n", regex);
       GNUNET_MESH_announce_regex (peer->mesh_handle, regex);
       buf = &data[offset + 1];
     }
@@ -660,6 +662,7 @@ mesh_da (void *cls, void *op_result)
     GNUNET_MESH_tunnel_destroy (peer->mesh_tunnel_handle);
     peer->mesh_tunnel_handle = NULL;
   }
+
   if (NULL != peer->mesh_handle)
   {
     GNUNET_MESH_disconnect (peer->mesh_handle);
@@ -691,7 +694,8 @@ peer_churn_cb (void *cls, const char *emsg)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
          _("An operation has failed while starting peers\n"));
     GNUNET_TESTBED_operation_done (op);
-    GNUNET_SCHEDULER_cancel (abort_task);
+    if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+      GNUNET_SCHEDULER_cancel (abort_task);
     abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
     return;
   }
@@ -702,11 +706,9 @@ peer_churn_cb (void *cls, const char *emsg)
     printf ("All peers started successfully in %.2f seconds\n",
             ((double) prof_time.rel_value) / 1000.00);
     result = GNUNET_OK;
+
     if (0 == num_links)
-    {
-      GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
-      return;
-    }
+      num_links = num_peers * 5;
 
     peer_handles = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Peer *) * num_peers);
     for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
@@ -754,7 +756,8 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
     GNUNET_TESTBED_operation_done (dll_op->op);
     GNUNET_CONTAINER_DLL_remove (dll_op_head, dll_op_tail, dll_op);
     GNUNET_free (dll_op);
-    GNUNET_SCHEDULER_cancel (abort_task);
+    if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+      GNUNET_SCHEDULER_cancel (abort_task);
     abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
     return;
   }
@@ -809,6 +812,8 @@ policy_filename_cb (void *cls, const char *filename)
 
   peers[peer_cnt].policy_file = GNUNET_strdup (filename);
   peers[peer_cnt].host_handle = hosts[peer_cnt % num_hosts];
+  peers[peer_cnt].mesh_handle = NULL;
+  peers[peer_cnt].mesh_tunnel_handle = NULL;
 
   dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
   dll_op->cls = &peers[peer_cnt];
@@ -855,7 +860,8 @@ controller_event_cb (void *cls,
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                _("An operation has failed while starting slaves\n"));
           GNUNET_TESTBED_operation_done (op);
-          GNUNET_SCHEDULER_cancel (abort_task);
+	  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+	    GNUNET_SCHEDULER_cancel (abort_task);
           abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
           return;
         }
@@ -908,7 +914,8 @@ controller_event_cb (void *cls,
 	if (++cont_fails > num_cont_fails)
 	{
 	  printf ("\nAborting due to very high failure rate");
-	  GNUNET_SCHEDULER_cancel (abort_task);
+	  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+	    GNUNET_SCHEDULER_cancel (abort_task);
 	  abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
 	}
       }
@@ -981,7 +988,8 @@ host_registration_completion (void *cls, const char *emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Host registration failed for a host. Error: %s\n"), emsg);
-    GNUNET_SCHEDULER_cancel (abort_task);
+    if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+      GNUNET_SCHEDULER_cancel (abort_task);
     abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
     return;
   }
@@ -1040,7 +1048,8 @@ register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int status)
 {
-  GNUNET_SCHEDULER_cancel (abort_task);
+  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+    GNUNET_SCHEDULER_cancel (abort_task);
   if (GNUNET_OK != status)
   {
     mc_proc = NULL;
@@ -1239,7 +1248,7 @@ main (int argc, char *const *argv)
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     { 'n', "num-links", "COUNT",
       gettext_noop ("create COUNT number of random links"),
-      GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_links },
+      GNUNET_NO, &GNUNET_GETOPT_set_uint, &num_links },
     { 'e', "num-errors", "COUNT",
       gettext_noop ("tolerate COUNT number of continious timeout failures"),
       GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_cont_fails },
