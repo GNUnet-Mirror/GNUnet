@@ -12,19 +12,40 @@ BINARY = gnunet-service-fs
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
 
+# Do we introduce artificial delays? (may improve anonymity)
 DELAY = YES
+
+# Do we cache content from other nodes? (may improve anonymity)
 CONTENT_CACHING = YES
+
+# Do we send unsolicited data to other nodes if we have excess bandwidth?
+# (may improve anonymity, probably not a good idea if content_caching is NO)
 CONTENT_PUSHING = YES
 
 UNIXPATH = /tmp/gnunet-service-fs.sock
+
+# Do we require users that want to access file-sharing to run this process 
+# (usually not a good idea)
 UNIX_MATCH_UID = NO
+
+# Do we require users that want to access file-sharing to be in the 'gnunet' group?
 UNIX_MATCH_GID = YES
 # DEBUG = YES
+
+# Maximum number of requests this peer tracks (important for
+# memory consumption)
 MAX_PENDING_REQUESTS = 65536
+
+# How many requests do we have at most waiting in the queue towards
+# the datastore? (important for memory consumption)
+DATASTORE_QUEUE_SIZE = 1024
+
 # Maximum frequency we're allowed to poll the datastore
 # for content for migration (can be used to reduce 
 # GNUnet's disk-IO rate)
 MIN_MIGRATION_DELAY = 100 ms
+
+# For how many neighbouring peers should we allocate hash maps?
 EXPECTED_NEIGHBOUR_COUNT = 128
 
 # Enable monkey?

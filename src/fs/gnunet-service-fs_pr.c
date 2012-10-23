@@ -52,6 +52,11 @@
 #define MAX_RESULTS (100 * 1024)
 
 /**
+ * Collect an instane number of statistics?  May cause excessive IPC.
+ */
+#define INSANE_STATISTICS GNUNET_NO
+
+/**
  * An active request.
  */
 struct GSF_PendingRequest
@@ -283,9 +288,11 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Creating request handle for `%s' of type %d\n",
               GNUNET_h2s (query), type);
+#if INSANE_STATISTICS
   GNUNET_STATISTICS_update (GSF_stats,
                             gettext_noop ("# Pending requests created"), 1,
                             GNUNET_NO);
+#endif
   extra = 0;
   if (GNUNET_BLOCK_TYPE_FS_SBLOCK == type)
     extra += sizeof (struct GNUNET_HashCode);
@@ -1183,10 +1190,12 @@ process_local_reply (void *cls, const struct GNUNET_HashCode * key, size_t size,
     pr->qe = NULL;
     if (NULL == key)
     {
+#if INSANE_STATISTICS
       GNUNET_STATISTICS_update (GSF_stats,
                                 gettext_noop
                                 ("# Datastore lookups concluded (no results)"),
                                 1, GNUNET_NO);
+#endif
     }
     if (GNUNET_NO == pr->have_first_uid)
     {
@@ -1218,12 +1227,14 @@ process_local_reply (void *cls, const struct GNUNET_HashCode * key, size_t size,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                 "No further local responses available.\n");
+#if INSANE_STATISTICS
     if ((pr->public_data.type == GNUNET_BLOCK_TYPE_FS_DBLOCK) ||
         (pr->public_data.type == GNUNET_BLOCK_TYPE_FS_IBLOCK))
       GNUNET_STATISTICS_update (GSF_stats,
                                 gettext_noop
                                 ("# requested DBLOCK or IBLOCK not found"), 1,
                                 GNUNET_NO);
+#endif
     goto check_error_and_continue;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1434,9 +1445,11 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
   pr->warn_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, &warn_delay_task,
                                     pr);
+#if INSANE_STATISTICS
   GNUNET_STATISTICS_update (GSF_stats,
                             gettext_noop ("# Datastore lookups initiated"), 1,
                             GNUNET_NO);
+#endif
   pr->qe =
       GNUNET_DATASTORE_get_key (GSF_dsh, pr->local_result_offset++,
                                 &pr->public_data.query,
@@ -1602,7 +1615,7 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
 void
 GSF_pending_request_init_ ()
 {
-  unsigned long long bps;
+  unsigned long long dqs;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (GSF_cfg, "fs",
@@ -1613,17 +1626,14 @@ GSF_pending_request_init_ ()
 			       "fs", "MAX_PENDING_REQUESTS");
   }
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_size (GSF_cfg, "ats", "WAN_QUOTA_OUT",
-                                           &bps))
+      GNUNET_CONFIGURATION_get_value_size (GSF_cfg, "fs", "DATASTORE_QUEUE_SIZE",
+                                           &dqs))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_INFO,
-			       "ats", "WAN_QUOTA_OUT");
-    bps = 65536;
+			       "fs", "DATASTORE_QUEUE_SIZE");
+    dqs = 1024;
   }
-  /* queue size should be #queries we can have pending and satisfy within
-   * a carry interval: */
-  datastore_queue_size =
-      bps * GNUNET_CONSTANTS_MAX_BANDWIDTH_CARRY_S / DBLOCK_SIZE;
+  datastore_queue_size = (unsigned int) dqs;
 
   active_to_migration =
       GNUNET_CONFIGURATION_get_value_yesno (GSF_cfg, "FS", "CONTENT_CACHING");
