@@ -3839,7 +3839,6 @@ client_disconnect_cb (void *cls, struct GNUNET_SERVER_Client *client)
   if (client == master_context->client)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Master client disconnected\n");
-    GNUNET_SERVER_client_drop (client);
     /* should not be needed as we're terminated by failure to read
      * from stdin, but if stdin fails for some reason, this shouldn't
      * hurt for now --- might need to revise this later if we ever
