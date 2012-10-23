@@ -678,6 +678,7 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
                                                         get_rp_key (rp), rp));
     while (NULL != (bi = rp->pe_head))
     {
+      prd = GSF_pending_request_get_data_ (bi->pr);
       GNUNET_CONTAINER_MDLL_remove (PE, rp->pe_head, rp->pe_tail, bi);
       GNUNET_CONTAINER_MDLL_remove (PR, prd->pr_head, prd->pr_tail, bi);
       GNUNET_free (bi);
@@ -737,9 +738,9 @@ GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr)
   prd = GSF_pending_request_get_data_ (pr);
   while (NULL != (bi = prd->pr_head))
   {
+    rp = bi->rp;
     GNUNET_CONTAINER_MDLL_remove (PR, prd->pr_head, prd->pr_tail, bi);
     GNUNET_CONTAINER_MDLL_remove (PE, rp->pe_head, rp->pe_tail, bi);
-    rp = bi->rp;
     if (NULL == rp->pe_head)
     {
       GNUNET_CONTAINER_heap_remove_node (rp->hn);
