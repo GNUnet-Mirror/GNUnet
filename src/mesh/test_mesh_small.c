@@ -1239,7 +1239,6 @@ main (int argc, char *argv[])
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "BACKWARDS (LEAF TO ROOT)\n");
     test_backwards = GNUNET_YES;
-    ok_goal++; // need one root->leaf packet to initialize tunnel
     aux = malloc (32); // "leaked"
     sprintf (aux, "backwards %s", test_name);
     test_name = aux;
