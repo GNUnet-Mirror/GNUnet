@@ -271,6 +271,7 @@ struct GNUNET_STATISTICS_Handle
 static void
 update_memory_statistics (struct GNUNET_STATISTICS_Handle *h)
 {
+#if ENABLE_HEAP_STATISTICS
   uint64_t current_heap_size = 0;
   uint64_t current_rss = 0;
 
@@ -304,6 +305,7 @@ update_memory_statistics (struct GNUNET_STATISTICS_Handle *h)
     h->peak_rss = current_rss;
     GNUNET_STATISTICS_set (h, "# peak resident set size", current_rss, GNUNET_NO);
   }
+#endif
 }
 
 

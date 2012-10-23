@@ -999,6 +999,15 @@ AC_ARG_ENABLE([experimental],
 AC_MSG_RESULT($enable_experimental)
 AM_CONDITIONAL([HAVE_EXPERIMENTAL], [test "x$enable_experimental" = "xyes"])
 
+# should memory statistics be kept (very expensive CPU-wise!)
+AC_MSG_CHECKING(whether to create expensive statistics on memory use)
+AC_ARG_ENABLE([heapstats],
+   [AS_HELP_STRING([--enable-heapstats], [enable expensive heap statistics])],
+   [enable_heapstats=1],
+   [enable_heapstats=0])
+AC_MSG_RESULT($enable_heapstats)
+AC_DEFINE_UNQUOTED([ENABLE_HEAP_STATISTICS],$enable_heapstats,[enable expensive heap statistics])
+
 # should code be enabled that works around missing OS functionality on Windows?
 # used for test cases
 if test $build_target = "mingw"
