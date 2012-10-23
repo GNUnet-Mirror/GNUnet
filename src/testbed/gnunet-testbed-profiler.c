@@ -358,6 +358,7 @@ peer_churn_cb (void *cls, const char *emsg)
                                                      topology,
                                                      GNUNET_TESTBED_TOPOLOGY_DISABLE_AUTO_RETRY,
                                                      GNUNET_TESTBED_TOPOLOGY_OPTION_END);
+      num_links = num_peers * (num_peers - 1);
       break;
     default:
       GNUNET_assert (0);
@@ -524,7 +525,7 @@ controller_event_cb (void *cls,
     }
     break;
   case STATE_PEERS_LINKING:
-   switch (event->type)
+    switch (event->type)
     {
     case GNUNET_TESTBED_ET_OPERATION_FINISHED:
       /* Control reaches here when a peer linking operation fails */
@@ -539,6 +540,7 @@ controller_event_cb (void *cls,
 	  print_overlay_links_summary ();	  
 	  GNUNET_SCHEDULER_cancel (abort_task);
 	  abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+	  return;
 	}
       }
       break;
@@ -551,19 +553,17 @@ controller_event_cb (void *cls,
 	printf (".");
 	fflush (stdout);
         established_links++;
-        if ((established_links + failed_links) == 
-            (GNUNET_TESTBED_TOPOLOGY_CLIQUE == topology ? 
-             num_peers * (num_peers -1) : num_links))
-        {
-	  print_overlay_links_summary ();
-	  result = GNUNET_OK;
-          shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
-        }
       }
       break;
     default:
       GNUNET_assert (0);
     }
+    if ((established_links + failed_links) == num_links)
+    {
+      print_overlay_links_summary ();
+      result = GNUNET_OK;
+      shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    }    
     break;
   default:
     GNUNET_assert (0);
