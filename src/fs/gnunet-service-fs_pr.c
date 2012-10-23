@@ -826,10 +826,12 @@ process_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
             last_transmission, prq->type, prq->data, prq->size);
     return GNUNET_YES;
   case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
+#if INSANE_STATISTICS
     GNUNET_STATISTICS_update (GSF_stats,
                               gettext_noop
                               ("# duplicate replies discarded (bloomfilter)"),
                               1, GNUNET_NO);
+#endif
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Duplicate response, discarding.\n");
     return GNUNET_YES;          /* duplicate */

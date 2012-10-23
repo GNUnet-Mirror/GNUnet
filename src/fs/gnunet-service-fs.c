@@ -63,6 +63,11 @@
  */
 #define COVER_AGE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
+/**
+ * Collect an instane number of statistics?  May cause excessive IPC.
+ */
+#define INSANE_STATISTICS GNUNET_NO
+
 
 /* ****************************** globals ****************************** */
 
@@ -296,9 +301,11 @@ consider_request_for_forwarding (void *cls,
 
   if (GNUNET_YES != GSF_pending_request_test_target_ (pr, peer))
   {
+#if INSANE_STATISTICS
     GNUNET_STATISTICS_update (GSF_stats,
                               gettext_noop ("# Loopback routes suppressed"), 1,
                               GNUNET_NO);
+#endif
     return;
   }
   GSF_plan_add_ (cp, pr);

@@ -73,7 +73,6 @@ struct StatValues
  * Statistics we print out.
  */
 static struct StatValues stats[] = {
-  {"fs", "# artificial delays introduced (ms)"},
   {"fs", "# queries forwarded"},
   {"fs", "# replies received and matched"},
   {"fs", "# results found locally"},

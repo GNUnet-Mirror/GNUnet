@@ -483,8 +483,10 @@ schedule_peer_transmission (void *cls,
         GNUNET_SCHEDULER_add_delayed (delay, &schedule_peer_transmission, pp);
     return;
   }
+#if INSANE_STATISTICS
   GNUNET_STATISTICS_update (GSF_stats, gettext_noop ("# query plans executed"),
                             1, GNUNET_NO);
+#endif
   /* process from priority heap */
   rp = GNUNET_CONTAINER_heap_peek (pp->priority_heap);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Executing query plan %p\n", rp);

@@ -50,6 +50,11 @@
  */
 #define REPLY_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 2)
 
+/**
+ * Collect an instane number of statistics?  May cause excessive IPC.
+ */
+#define INSANE_STATISTICS GNUNET_NO
+
 
 /**
  * Handle to cancel a transmission request.
@@ -864,11 +869,12 @@ get_randomized_delay ()
                                      GNUNET_CRYPTO_random_u32
                                      (GNUNET_CRYPTO_QUALITY_WEAK,
                                       2 * GSF_avg_latency.rel_value + 1));
+#if INSANE_STATISTICS
   GNUNET_STATISTICS_update (GSF_stats,
                             gettext_noop
                             ("# artificial delays introduced (ms)"),
                             ret.rel_value, GNUNET_NO);
-
+#endif
   return ret;
 }
 
@@ -1044,10 +1050,12 @@ bound_priority (uint32_t prio_in, struct GSF_ConnectedPeer *cp)
   ld = GSF_test_get_load_too_high_ (0);
   if (GNUNET_SYSERR == ld)
   {
+#if INSANE_STATISTICS
     GNUNET_STATISTICS_update (GSF_stats,
                               gettext_noop
                               ("# requests done for free (low load)"), 1,
                               GNUNET_NO);
+#endif
     return 0;                   /* excess resources */
   }
   if (prio_in > INT32_MAX)
@@ -1213,10 +1221,12 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Failed to find peer `%4s' in connection set. Dropping query.\n",
                   GNUNET_i2s (other));
+#if INSANE_STATISTICS
     GNUNET_STATISTICS_update (GSF_stats,
                               gettext_noop
                               ("# requests dropped due to missing reverse route"),
                               1, GNUNET_NO);
+#endif
     return NULL;
   }
   /* note that we can really only check load here since otherwise
