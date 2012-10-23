@@ -633,7 +633,7 @@ mesh_peer_connect_handler (void *cls,
                 peer->search_str, peer->id, peers_found, num_search_strings);
 
     if (NULL == GNUNET_STATISTICS_get (peer->stats_handle, "mesh", NULL,
-				       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3),
+				       GNUNET_TIME_UNIT_FOREVER_REL,
 				       &stats_cb,
 				       &stats_iterator, peer))
     {

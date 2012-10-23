@@ -95,7 +95,8 @@ gnunet_regex_profiler_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
-  $(top_builddir)/src/regex/libgnunetregex.la
+  $(top_builddir)/src/regex/libgnunetregex.la \
+  $(top_builddir)/src/regex/libgnunetstatistics.la
 gnunet_regex_profiler_DEPENDENCIES = \
   libgnunetmesh.la
 
