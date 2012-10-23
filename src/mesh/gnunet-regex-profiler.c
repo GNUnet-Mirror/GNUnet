@@ -23,6 +23,9 @@
  * @brief Regex profiler for testing distributed regex use.
  * @author Bart Polot
  * @author Max Szengel
+ *
+ * TODO:
+ * - Connect to statistics service
  */
 
 #include <string.h>
@@ -331,7 +334,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned int nhost;
   unsigned int peer_cnt;
   unsigned int search_str_cnt;
- 
+
   for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
   {
     if (NULL != peers[peer_cnt].mesh_op_handle)
@@ -396,7 +399,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Adapter function called to establish a connection to
  * statistics service.
- * 
+ *
  * @param cls closure
  * @param cfg configuration of the peer to connect to; will be available until
  *          GNUNET_TESTBED_operation_done() is called on the operation returned
@@ -413,11 +416,11 @@ stats_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 /**
  * Adapter function called to destroy a connection to
  * statistics service.
- * 
+ *
  * @param cls closure
  * @param op_result service handle returned from the connect adapter
  */
-static void 
+static void
 stats_da (void *cls, void *op_result)
 {
   GNUNET_STATISTICS_destroy (op_result, GNUNET_NO);
@@ -436,7 +439,7 @@ stats_da (void *cls, void *op_result)
  */
 static int
 stats_iterator (void *cls, const char *subsystem, const char *name,
-		uint64_t value, int is_persistent)
+                uint64_t value, int is_persistent)
 {
   struct RegexPeer *peer = cls;
   //  char output_buffer[512];
@@ -447,17 +450,17 @@ stats_iterator (void *cls, const char *subsystem, const char *name,
   if (NULL == output_file)
   {*/
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		"%p -> %s [%s]: %llu\n",
-		peer, subsystem, name, value);
+                "%p -> %s [%s]: %llu\n",
+                peer, subsystem, name, value);
     return GNUNET_OK;
     /*
   }
   size =
     GNUNET_snprintf (output_buffer,
-		     sizeof (output_buffer),
-		     "%p [%s] %s %llu\n",
-		     peer,
-		     subsystem, name, value);
+                     sizeof (output_buffer),
+                     "%p [%s] %s %llu\n",
+                     peer,
+                     subsystem, name, value);
   if (size != GNUNET_DISK_file_write (output_file, output_buffer, size))
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to write to file!\n");
   */
@@ -473,16 +476,16 @@ stats_iterator (void *cls, const char *subsystem, const char *name,
  *        successfully obtained, GNUNET_SYSERR if not.
  */
 static void
-stats_cont_cb (void *cls, 
-	       int success)
+stats_cont_cb (void *cls,
+               int success)
 {
   struct RegexPeer *peer = cls;
 
   if (GNUNET_OK != success)
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Stats continuation callback for peer %u.\n", peer->id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Stats continuation callback for peer %u.\n", peer->id);
 
 }
 
@@ -496,18 +499,18 @@ stats_cont_cb (void *cls,
  * @param emsg error message on failure
  */
 static void
-stats_connect_cb (void *cls, 
-		  struct GNUNET_TESTBED_Operation *op,
-		  void *ca_result,
-		  const char *emsg)
+stats_connect_cb (void *cls,
+                  struct GNUNET_TESTBED_Operation *op,
+                  void *ca_result,
+                  const char *emsg)
 {
   struct RegexPeer *peer = cls;
 
   if (NULL == ca_result)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Failed to connect to statistics service on peer %u: %s\n",
-		peer->id, emsg);
+                "Failed to connect to statistics service on peer %u: %s\n",
+                peer->id, emsg);
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
@@ -604,19 +607,19 @@ mesh_peer_connect_handler (void *cls,
   if (NULL == peer_id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		"String matching timed out for string %s on peer %u (%i/%i)\n",
-		peer->search_str, peer->id, peers_found, num_search_strings);
+                "String matching timed out for string %s on peer %u (%i/%i)\n",
+                peer->search_str, peer->id, peers_found, num_search_strings);
   }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"String %s successfully matched on peer %u (%i/%i)\n", 
-		peer->search_str, peer->id, peers_found, num_search_strings);
+                "String %s successfully matched on peer %u (%i/%i)\n",
+                peer->search_str, peer->id, peers_found, num_search_strings);
 
     GNUNET_STATISTICS_get (peer->stats_handle, "mesh", NULL,
-			   GNUNET_TIME_UNIT_FOREVER_REL,
-			   &stats_cont_cb, 
-			   &stats_iterator, peer);
+                           GNUNET_TIME_UNIT_FOREVER_REL,
+                           &stats_cont_cb,
+                           &stats_iterator, peer);
   }
 
   if (peers_found == num_search_strings)
@@ -640,10 +643,10 @@ mesh_peer_connect_handler (void *cls,
  */
 static void
 do_connect_by_string_timeout (void *cls,
-			      const struct GNUNET_SCHEDULER_TaskContext * tc)
+                              const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
-  printf ("Searching for all strings did not succeed after %s.\n", 
-	  GNUNET_STRINGS_relative_time_to_string (search_timeout, GNUNET_NO));
+  printf ("Searching for all strings did not succeed after %s.\n",
+          GNUNET_STRINGS_relative_time_to_string (search_timeout, GNUNET_NO));
   printf ("Found %i of %i strings\n", peers_found, num_search_strings);
 
   GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
@@ -668,24 +671,23 @@ do_connect_by_string (void *cls,
     peer = &peers[search_cnt % num_peers];
     peer->search_str = search_strings[search_cnt];
 
-    printf ("Searching for string \"%s\" on peer %d with file %s\n", 
-	    peer->search_str, (search_cnt % num_peers), peer->policy_file);
+    printf ("Searching for string \"%s\" on peer %d with file %s\n",
+            peer->search_str, (search_cnt % num_peers), peer->policy_file);
 
     peer->mesh_tunnel_handle = GNUNET_MESH_tunnel_create (peer->mesh_handle,
-							  NULL,
-							  &mesh_peer_connect_handler,
-							  &mesh_peer_disconnect_handler,
-							  peer);
-							  
+                                                          NULL,
+                                                          &mesh_peer_connect_handler,
+                                                          &mesh_peer_disconnect_handler,
+                                                          peer);
+
     GNUNET_MESH_peer_request_connect_by_string (peer->mesh_tunnel_handle,
-						peer->search_str);
-      
+                                                peer->search_str);
   }
 
   prof_start_time = GNUNET_TIME_absolute_get ();
 
   search_timeout_task = GNUNET_SCHEDULER_add_delayed (search_timeout,
-						      &do_connect_by_string_timeout, NULL);
+                                                      &do_connect_by_string_timeout, NULL);
 }
 
 
@@ -765,8 +767,8 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
 
   if (++connected_mesh_handles == num_peers)
   {
-    printf ("\nAll mesh handles connected.\nWaiting %s before starting to search.\n", 
-	    GNUNET_STRINGS_relative_time_to_string (search_delay, GNUNET_YES));
+    printf ("\nAll mesh handles connected.\nWaiting %s before starting to search.\n",
+            GNUNET_STRINGS_relative_time_to_string (search_delay, GNUNET_YES));
 
     search_task = GNUNET_SCHEDULER_add_delayed (search_delay,
                                                 &do_connect_by_string, NULL);
@@ -884,7 +886,7 @@ peer_churn_cb (void *cls, const char *emsg)
         GNUNET_TESTBED_overlay_configure_topology (NULL, num_peers, peer_handles,
                                                    GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI,
                                                    num_links,
-						   GNUNET_TESTBED_TOPOLOGY_OPTION_END);
+                                                   GNUNET_TESTBED_TOPOLOGY_OPTION_END);
     if (NULL == topology_op)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1026,8 +1028,8 @@ controller_event_cb (void *cls,
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                _("An operation has failed while starting slaves\n"));
           GNUNET_TESTBED_operation_done (op);
-	  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
-	    GNUNET_SCHEDULER_cancel (abort_task);
+          if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+            GNUNET_SCHEDULER_cancel (abort_task);
           abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
           return;
         }
@@ -1076,14 +1078,14 @@ controller_event_cb (void *cls,
       {
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
              _("An operation has failed while linking\n"));
-	retry_links++;
-	if (++cont_fails > num_cont_fails)
-	{
-	  printf ("\nAborting due to very high failure rate");
-	  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
-	    GNUNET_SCHEDULER_cancel (abort_task);
-	  abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
-	}
+        retry_links++;
+        if (++cont_fails > num_cont_fails)
+        {
+          printf ("\nAborting due to very high failure rate");
+          if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+            GNUNET_SCHEDULER_cancel (abort_task);
+          abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+        }
       }
       break;
     case GNUNET_TESTBED_ET_CONNECT:
@@ -1108,25 +1110,25 @@ controller_event_cb (void *cls,
           printf ("\nConnecting to mesh and statistics service...\n");
           for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
           {
-            peers[peer_cnt].mesh_op_handle = 
-	      GNUNET_TESTBED_service_connect (NULL,
-					      peers[peer_cnt].peer_handle,
-					      "mesh",
-					      &mesh_connect_cb,
-					      &peers[peer_cnt],
-					      &mesh_ca,
-					      &mesh_da,
-					      &peers[peer_cnt]);
+            peers[peer_cnt].mesh_op_handle =
+              GNUNET_TESTBED_service_connect (NULL,
+                                              peers[peer_cnt].peer_handle,
+                                              "mesh",
+                                              &mesh_connect_cb,
+                                              &peers[peer_cnt],
+                                              &mesh_ca,
+                                              &mesh_da,
+                                              &peers[peer_cnt]);
 
-            peers[peer_cnt].stats_op_handle = 
-	      GNUNET_TESTBED_service_connect (NULL,
-					      peers[peer_cnt].peer_handle,
-					      "statistics",
-					      &stats_connect_cb,
-					      &peers[peer_cnt],
-					      &stats_ca,
-					      &stats_da,
-					      &peers[peer_cnt]);
+            peers[peer_cnt].stats_op_handle =
+              GNUNET_TESTBED_service_connect (NULL,
+                                              peers[peer_cnt].peer_handle,
+                                              "statistics",
+                                              &stats_connect_cb,
+                                              &peers[peer_cnt],
+                                              &stats_ca,
+                                              &stats_da,
+                                              &peers[peer_cnt]);
           }
         }
       }
@@ -1257,7 +1259,7 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int stat
  * Load search strings from given filename. One search string per line.
  *
  * @param filename filename of the file containing the search strings.
- * @param strings set of strings loaded from file. Caller needs to free this 
+ * @param strings set of strings loaded from file. Caller needs to free this
  *                if number returned is greater than zero.
  * @return number of strings found in the file. GNUNET_SYSERR on error.
  */
