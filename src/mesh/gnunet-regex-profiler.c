@@ -320,6 +320,16 @@ static struct GNUNET_TIME_Relative search_timeout = { 60000 };
  */
 static struct GNUNET_TIME_Relative search_delay = { 60000 };
 
+/**
+ * File to log statistics to.
+ */
+static struct GNUNET_DISK_FileHandle *data_file;
+
+/**
+ * Filename to log statistics to.
+ */
+static char *data_filename;
+
 
 /**
  * Shutdown nicely
@@ -371,6 +381,8 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TESTBED_controller_stop (mc_proc);
   if (NULL != cfg)
     GNUNET_CONFIGURATION_destroy (cfg);
+  if (NULL != data_file)
+    GNUNET_DISK_file_close (data_file);
 
   GNUNET_SCHEDULER_shutdown ();	/* Stop scheduler to shutdown testbed run */
 }
@@ -442,18 +454,15 @@ stats_iterator (void *cls, const char *subsystem, const char *name,
                 uint64_t value, int is_persistent)
 {
   struct RegexPeer *peer = cls;
-  //  char output_buffer[512];
-  //  size_t size;
+  char output_buffer[512];
+  size_t size;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stats iterator callback for peer %u\n", peer->id);
-  /*
-  if (NULL == output_file)
-  {*/
+  if (NULL == data_file)
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "%p -> %s [%s]: %llu\n",
                 peer, subsystem, name, value);
     return GNUNET_OK;
-    /*
   }
   size =
     GNUNET_snprintf (output_buffer,
@@ -461,32 +470,39 @@ stats_iterator (void *cls, const char *subsystem, const char *name,
                      "%p [%s] %s %llu\n",
                      peer,
                      subsystem, name, value);
-  if (size != GNUNET_DISK_file_write (output_file, output_buffer, size))
+  if (size != GNUNET_DISK_file_write (data_file, output_buffer, size))
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to write to file!\n");
-  */
+
   return GNUNET_OK;
 }
 
 
 /**
- * Continuation callback for stats.
+ * Stats callback.
  *
  * @param cls closure
  * @param success GNUNET_OK if statistics were
  *        successfully obtained, GNUNET_SYSERR if not.
  */
 static void
-stats_cont_cb (void *cls,
-               int success)
+stats_cb (void *cls,
+	  int success)
 {
+  static unsigned int peer_cnt;
   struct RegexPeer *peer = cls;
 
   if (GNUNET_OK != success)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Getting statistics for peer %u failed!\n",
+		peer->id);
     return;
+  }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Stats continuation callback for peer %u.\n", peer->id);
-
+  if (++peer_cnt == num_peers)
+  {
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  }
 }
 
 
@@ -616,10 +632,14 @@ mesh_peer_connect_handler (void *cls,
                 "String %s successfully matched on peer %u (%i/%i)\n",
                 peer->search_str, peer->id, peers_found, num_search_strings);
 
-    GNUNET_STATISTICS_get (peer->stats_handle, "mesh", NULL,
-                           GNUNET_TIME_UNIT_FOREVER_REL,
-                           &stats_cont_cb,
-                           &stats_iterator, peer);
+    if (NULL == GNUNET_STATISTICS_get (peer->stats_handle, "mesh", NULL,
+				       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3),
+				       &stats_cb,
+				       &stats_iterator, peer))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		  "Could not get statistics of peer %u!\n", peer->id);
+    }
   }
 
   if (peers_found == num_search_strings)
@@ -630,7 +650,14 @@ mesh_peer_connect_handler (void *cls,
 
     if (GNUNET_SCHEDULER_NO_TASK != search_timeout_task)
       GNUNET_SCHEDULER_cancel (search_timeout_task);
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+
+    /*
+    GNUNET_TESTBED_get_statistics (num_peers, 
+				   peer_handles,				 
+				   &statistics_iterator,
+				   &stats_finished_callback,
+				   peer);
+    */
   }
 }
 
@@ -1376,6 +1403,17 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
+  if ( (NULL != data_filename) &&
+       (NULL == (data_file = 
+		 GNUNET_DISK_file_open (data_filename,
+					GNUNET_DISK_OPEN_READWRITE |
+					GNUNET_DISK_OPEN_TRUNCATE |
+					GNUNET_DISK_OPEN_CREATE,
+					GNUNET_DISK_PERM_USER_READ |
+					GNUNET_DISK_PERM_USER_WRITE))) )
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+			      "open",
+			      data_filename);
   if (GNUNET_YES != GNUNET_DISK_directory_test (args[1]))
   {
     fprintf (stderr, _("Specified policies directory does not exist. Exiting.\n"));
@@ -1425,6 +1463,9 @@ int
 main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    {'d', "details", "FILENAME",
+     gettext_noop ("name of the file for writing statistics"),
+     1, &GNUNET_GETOPT_set_string, &data_filename},
     { 'n', "num-links", "COUNT",
       gettext_noop ("create COUNT number of random links"),
       GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_links },
