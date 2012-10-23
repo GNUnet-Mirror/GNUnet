@@ -717,7 +717,6 @@ static void
 call_continuation (struct UDP_MessageWrapper *udpw, int result)
 {
   size_t overhead;
-  struct UDP_MessageWrapper dummy;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Calling continuation for %u byte message to `%s' with result %s\n",
@@ -860,15 +859,6 @@ call_continuation (struct UDP_MessageWrapper *udpw, int result)
           GNUNET_STATISTICS_update (plugin->env->stats,
                                     "# UDP, fragmented msgs, fragments bytes, sent, failure",
                                     udpw->msg_size, GNUNET_NO);
-
-          dummy.msg_type = MSG_FRAGMENTED_COMPLETE;
-          dummy.msg_buf = NULL;
-          dummy.msg_size = udpw->frag_ctx->on_wire_size;
-          dummy.payload_size = udpw->frag_ctx->payload_size;
-          dummy.frag_ctx = udpw->frag_ctx;
-          dummy.session = udpw->session;
-          call_continuation (&dummy, GNUNET_SYSERR);
-
           break;
         case MSG_ACK:
           /* ACK message: failed to send */
@@ -1977,9 +1967,6 @@ read_process_ack (struct Plugin *plugin,
 		  char *addr,
 		  socklen_t fromlen)
 {
-  struct UDP_MessageWrapper dummy;
-  struct UDP_MessageWrapper *udpw;
-  struct UDP_MessageWrapper *tmp;
   const struct GNUNET_MessageHeader *ack;
   const struct UDP_ACK_Message *udp_ack;
   struct LookupContext l_ctx;
@@ -2202,19 +2189,31 @@ remove_timeout_messages_and_select (struct UDP_MessageWrapper *head,
     if (GNUNET_TIME_UNIT_ZERO.rel_value == remaining.rel_value)
     {
       /* Message timed out */
-      call_continuation (udpw, GNUNET_SYSERR);
       switch (udpw->msg_type) {
         case MSG_UNFRAGMENTED:
+          GNUNET_STATISTICS_update (plugin->env->stats,
+                                    "# UDP, total, bytes, sent, timeout",
+                                    udpw->msg_size, GNUNET_NO);
+          GNUNET_STATISTICS_update (plugin->env->stats,
+                                    "# UDP, total, messages, sent, timeout",
+                                    1, GNUNET_NO);
           /* Not fragmented message */
           LOG (GNUNET_ERROR_TYPE_DEBUG,
                "Message for peer `%s' with size %u timed out\n",
                GNUNET_i2s(&udpw->session->target), udpw->payload_size);
+          call_continuation (udpw, GNUNET_SYSERR);
           /* Remove message */
           dequeue (plugin, udpw);
           GNUNET_free (udpw);
           break;
         case MSG_FRAGMENTED:
           /* Fragmented message */
+          GNUNET_STATISTICS_update (plugin->env->stats,
+                                    "# UDP, total, bytes, sent, timeout",
+                                    udpw->frag_ctx->on_wire_size, GNUNET_NO);
+          GNUNET_STATISTICS_update (plugin->env->stats,
+                                    "# UDP, total, messages, sent, timeout",
+                                    1, GNUNET_NO);
           call_continuation (udpw, GNUNET_SYSERR);
           LOG (GNUNET_ERROR_TYPE_DEBUG,
                "Fragment for message for peer `%s' with size %u timed out\n",
@@ -2224,9 +2223,16 @@ remove_timeout_messages_and_select (struct UDP_MessageWrapper *head,
           fragmented_message_done (udpw->frag_ctx, GNUNET_SYSERR);
           break;
         case MSG_ACK:
+          GNUNET_STATISTICS_update (plugin->env->stats,
+                                    "# UDP, total, bytes, sent, timeout",
+                                    udpw->msg_size, GNUNET_NO);
+          GNUNET_STATISTICS_update (plugin->env->stats,
+                                    "# UDP, total, messages, sent, timeout",
+                                    1, GNUNET_NO);
           LOG (GNUNET_ERROR_TYPE_DEBUG,
                "ACK Message for peer `%s' with size %u timed out\n",
                GNUNET_i2s(&udpw->session->target), udpw->payload_size);
+          call_continuation (udpw, GNUNET_SYSERR);
           dequeue (plugin, udpw);
           GNUNET_free (udpw);
           break;
