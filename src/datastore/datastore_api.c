@@ -34,6 +34,11 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "datastore-api",__VA_ARGS__)
 
 /**
+ * Collect an instane number of statistics?  May cause excessive IPC.
+ */
+#define INSANE_STATISTICS GNUNET_NO
+
+/**
  * If a client stopped asking for more results, how many more do
  * we receive from the DB before killing the connection?  Trade-off
  * between re-doing TCP handshakes and (needlessly) receiving
@@ -456,13 +461,14 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h, size_t msize,
       pos = h->queue_head;
   }
   c++;
+#if INSANE_STATISTICS
   GNUNET_STATISTICS_update (h->stats, gettext_noop ("# queue entries created"),
                             1, GNUNET_NO);
+#endif
   GNUNET_CONTAINER_DLL_insert_after (h->queue_head, h->queue_tail, pos, ret);
   h->queue_size++;
   ret->task = GNUNET_SCHEDULER_add_delayed (timeout, &timeout_queue_entry, ret);
-  pos = ret->next;
-  while (pos != NULL)
+  for (pos = ret->next; NULL != pos; pos = pos->next)
   {
     if ((pos->max_queue < h->queue_size) && (pos->was_transmitted == GNUNET_NO))
     {
@@ -480,7 +486,6 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h, size_t msize,
       pos->response_proc (h, NULL);
       break;
     }
-    pos = pos->next;
   }
   return ret;
 }
@@ -544,10 +549,6 @@ do_disconnect (struct GNUNET_DATASTORE_Handle *h)
          "client NULL in disconnect, will not try to reconnect\n");
     return;
   }
-#if 0
-  GNUNET_STATISTICS_update (stats, gettext_noop ("# reconnected to DATASTORE"),
-                            1, GNUNET_NO);
-#endif
   GNUNET_CLIENT_disconnect (h->client);
   h->skip_next_messages = 0;
   h->client = NULL;
@@ -629,9 +630,11 @@ transmit_request (void *cls, size_t size, void *buf)
   h->in_receive = GNUNET_YES;
   GNUNET_CLIENT_receive (h->client, &receive_cb, h,
                          GNUNET_TIME_absolute_get_remaining (qe->timeout));
+#if INSANE_STATISTICS
   GNUNET_STATISTICS_update (h->stats,
                             gettext_noop ("# bytes sent to datastore"), 1,
                             GNUNET_NO);
+#endif
   return msize;
 }
 
@@ -1218,8 +1221,10 @@ process_result_message (void *cls, const struct GNUNET_MessageHeader *msg)
                0);
     return;
   }
+#if INSANE_STATISTICS
   GNUNET_STATISTICS_update (h->stats, gettext_noop ("# Results received"), 1,
                             GNUNET_NO);
+#endif
   dm = (const struct DataMessage *) msg;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received result %llu with type %u and size %u with key %s\n",
@@ -1406,8 +1411,10 @@ GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h, uint64_t offset,
          GNUNET_h2s (key));
     return NULL;
   }
+#if INSANE_STATISTICS
   GNUNET_STATISTICS_update (h->stats, gettext_noop ("# GET requests executed"),
                             1, GNUNET_NO);
+#endif
   gm = (struct GetMessage *) &qe[1];
   gm->header.type = htons (GNUNET_MESSAGE_TYPE_DATASTORE_GET);
   gm->type = htonl (type);
