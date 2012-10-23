@@ -223,7 +223,8 @@ transmit_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   else
     delay = GNUNET_TIME_UNIT_ZERO;
   delay = GNUNET_TIME_relative_max (delay,
-				    fc->msg_delay);
+				    GNUNET_TIME_relative_multiply (fc->msg_delay,
+								   (1 << fc->num_rounds)));
   if (wrap)
   {
     /* full round transmitted wait 2x delay for ACK before going again */
@@ -462,7 +463,8 @@ GNUNET_FRAGMENT_context_destroy (struct GNUNET_FRAGMENT_Context *fc,
   if (NULL != ack_delay)
     *ack_delay = fc->ack_delay;
   if (NULL != msg_delay)
-    *msg_delay = fc->msg_delay;
+    *msg_delay = GNUNET_TIME_relative_multiply (fc->msg_delay,
+						fc->num_rounds);
   GNUNET_free (fc);
 }
 
