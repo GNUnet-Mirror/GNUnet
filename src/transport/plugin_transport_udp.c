@@ -2197,6 +2197,12 @@ remove_timeout_messages_and_select (struct UDP_MessageWrapper *head,
           GNUNET_STATISTICS_update (plugin->env->stats,
                                     "# UDP, total, messages, sent, timeout",
                                     1, GNUNET_NO);
+          GNUNET_STATISTICS_update (plugin->env->stats,
+                                    "# UDP, unfragmented msgs, messages, sent, timeout",
+                                    1, GNUNET_NO);
+          GNUNET_STATISTICS_update (plugin->env->stats,
+                                    "# UDP, unfragmented msgs, bytes, sent, timeout",
+                                    udpw->payload_size, GNUNET_NO);
           /* Not fragmented message */
           LOG (GNUNET_ERROR_TYPE_DEBUG,
                "Message for peer `%s' with size %u timed out\n",
@@ -2219,6 +2225,13 @@ remove_timeout_messages_and_select (struct UDP_MessageWrapper *head,
                "Fragment for message for peer `%s' with size %u timed out\n",
                GNUNET_i2s(&udpw->session->target), udpw->frag_ctx->payload_size);
 
+
+          GNUNET_STATISTICS_update (plugin->env->stats,
+                                    "# UDP, fragmented msgs, messages, sent, timeout",
+                                    1, GNUNET_NO);
+          GNUNET_STATISTICS_update (plugin->env->stats,
+                                    "# UDP, fragmented msgs, bytes, sent, timeout",
+                                    udpw->frag_ctx->payload_size, GNUNET_NO);
           /* Remove fragmented message due to timeout */
           fragmented_message_done (udpw->frag_ctx, GNUNET_SYSERR);
           break;
