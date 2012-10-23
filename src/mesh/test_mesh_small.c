@@ -478,6 +478,12 @@ tmt_rdy (void *cls, size_t size, void *buf)
   if (size < size_payload || NULL == buf)
   {
     GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "size %u, buf %p, data_sent %u, data_received %u\n",
+                size,
+                buf,
+                data_sent,
+                data_received);
     return 0;
   }
   msg->size = htons (size);
@@ -589,6 +595,7 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
                                         GNUNET_TIME_UNIT_FOREVER_REL, sender,
                                                size_payload,
                                         &tmt_rdy, (void *) 1L);
+      return GNUNET_OK;
     }
     else
     {
@@ -1195,13 +1202,14 @@ main (int argc, char *argv[])
    /* Each peer is supposed to generate the following callbacks:
     * 1 incoming tunnel (@dest)
     * 1 connected peer (@orig)
+    * 1 initial packet (@dest)
     * TOTAL_PACKETS received data packet (@dest)
     * 1 received data packet (@orig)
     * 1 received tunnel destroy (@dest)
     * _________________________________
     */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED\n");
-    ok_goal = TOTAL_PACKETS + 4;
+    ok_goal = TOTAL_PACKETS + 5;
     if (strstr (argv[0], "_min") != NULL)
     {
       test = SPEED_MIN;
