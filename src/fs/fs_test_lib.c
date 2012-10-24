@@ -216,7 +216,6 @@ publish_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   else
     GNUNET_TESTBED_operation_done (po->fs_op);
   GNUNET_FS_publish_stop (po->publish_context);
-  GNUNET_TESTBED_operation_done (po->fs_op);
   po->publish_cont (po->publish_cont_cls, NULL);
   GNUNET_free_non_null (po->publish_tmp_file);
   GNUNET_free (po);
