@@ -127,6 +127,7 @@ create_keys (const char *fn)
       /* sometimes we get a different key length because 'd' or 'u' start
 	 with leading bits; skip those... */
       GNUNET_CRYPTO_rsa_key_free (pk);
+      GNUNET_free (enc);
       make_keys++;
       continue;
     }
