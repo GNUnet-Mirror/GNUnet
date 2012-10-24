@@ -32,9 +32,31 @@
  */
 static int ret;
 
-static char * peer_str;
+static struct GNUNET_ATS_PerformanceHandle *ph;
 
-static int all_peers;
+GNUNET_SCHEDULER_Task end_task;
+
+void testservice_task (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
+  {
+      FPRINTF (stderr, _("Service `%s' is not running\n"), "ats");
+      return;
+  }
+
+  ph = GNUNET_ATS_performance_init (cfg, NULL, NULL);
+  if (NULL == ph)
+    fprintf (stderr, "Cannot connect to ATS service, exiting...\n");
+
+  /* FIXME do work here*/
+  fprintf (stderr, "NOT IMPLEMENTED\n");
+
+  GNUNET_ATS_performance_done (ph);
+  ret = 0;
+}
 
 /**
  * Main function that will be run by the scheduler.
@@ -48,32 +70,10 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  if (GNUNET_YES == all_peers)
-  {
-    /* list information for all peers */
-    printf ("To be implemented!\n");
-
-    /* TODO: get all peers */
-
-    /* TODO: get addresses for each peer */
-  }
-  else if (NULL != peer_str)
-  {
-    /* list information for a specific peer */
-    printf ("To be implemented!\n");
-    struct GNUNET_PeerIdentity id;
-    if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string2(peer_str, strlen (peer_str), &id.hashPubKey))
-    {
-      printf ("`%s' is not a valid peer identity\n", peer_str);
-      GNUNET_free (peer_str);
-      return;
-    }
-
-    printf ("Peer `%s':\n", GNUNET_i2s_full (&id));
-
-    /* TODO: get addresses for each peer */
-    GNUNET_free (peer_str);
-  }
+  GNUNET_CLIENT_service_test ("ats", cfg,
+                              GNUNET_TIME_UNIT_SECONDS,
+                              &testservice_task,
+                              (void *) cfg);
 }
 
 
@@ -89,12 +89,6 @@ main (int argc, char *const *argv)
 {
   int res;
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'P', "peer", "PEER",
-     gettext_noop ("list information for the given peer"),
-     1, &GNUNET_GETOPT_set_string, &peer_str},
-    {'A', "all", NULL,
-     gettext_noop ("list information for all peers"),
-     0, &GNUNET_GETOPT_set_one, &all_peers},
     GNUNET_GETOPT_OPTION_END
   };
 
