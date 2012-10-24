@@ -22,3 +22,13 @@
    obj:/home/harsha/repos/gnunet/src/util/.libs/libgnunetutil.so.8.0.0
 }
 
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   ...
+   fun:gcry_control
+   fun:GNUNET_CRYPTO_random_init
+   obj:/home/totakura/gnunet/src/util/.libs/libgnunetutil.so.8.0.0
+   obj:/home/totakura/gnunet/src/util/.libs/libgnunetutil.so.8.0.0
+}

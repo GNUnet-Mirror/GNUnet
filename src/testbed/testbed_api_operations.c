@@ -78,14 +78,24 @@ struct OperationQueue
  */
 enum OperationState
 {
-    /**
-     * The operation is currently waiting for resources
-     */
+  /**
+   * The operation is just created and is in initial state
+   */
+  OP_STATE_INIT,
+  
+  /**
+   * The operation is currently waiting for resources
+   */
   OP_STATE_WAITING,
-
-    /**
-     * The operation has started
-     */
+  
+  /**
+   * The operation is ready to be started
+   */
+  OP_STATE_READY,
+  
+  /**
+   * The operation has started
+   */
   OP_STATE_STARTED
 };
 
@@ -164,8 +174,7 @@ check_readiness (struct GNUNET_TESTBED_Operation *op)
 {
   unsigned int i;
 
-  if (GNUNET_SCHEDULER_NO_TASK != op->start_task_id)
-    return;
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == op->start_task_id);
   for (i = 0; i < op->nqueues; i++)
   {
     if (0 == op->queues[i]->active)
@@ -175,6 +184,7 @@ check_readiness (struct GNUNET_TESTBED_Operation *op)
   {
     op->queues[i]->active--;
   }
+  op->state = OP_STATE_READY;
   op->start_task_id = GNUNET_SCHEDULER_add_now (&call_start, op);
 }
 
@@ -195,6 +205,7 @@ GNUNET_TESTBED_operation_create_ (void *cls, OperationStart start,
 
   op = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Operation));
   op->start = start;
+  op->state = OP_STATE_INIT;
   op->release = release;
   op->cb_cls = cls;
   op->start_task_id = GNUNET_SCHEDULER_NO_TASK;
@@ -236,13 +247,10 @@ GNUNET_TESTBED_operation_queue_destroy_ (struct OperationQueue *queue)
 
 
 /**
- * Add an operation to a queue.  An operation can be in multiple
- * queues at once.  Once all queues permit the operation to become
- * active, the operation will be activated.  The actual activation
- * will occur in a separate task (thus allowing multiple queue
- * insertions to be made without having the first one instantly
- * trigger the operation if the first queue has sufficient
- * resources).
+ * Add an operation to a queue.  An operation can be in multiple queues at
+ * once. Once the operation is inserted into all the queues
+ * GNUNET_TESTBED_operation_begin_wait_() has to be called to actually start
+ * waiting for the operation to become active.
  *
  * @param queue queue to add the operation to
  * @param operation operation to add to the queue
@@ -262,6 +270,24 @@ GNUNET_TESTBED_operation_queue_insert_ (struct OperationQueue *queue,
                       sizeof (struct OperationQueue *) *
                       (++operation->nqueues));
   operation->queues[operation->nqueues - 1] = queue;
+}
+
+
+/**
+ * Marks the given operation as waiting on the queues.  Once all queues permit
+ * the operation to become active, the operation will be activated.  The actual
+ * activation will occur in a separate task (thus allowing multiple queue
+ * insertions to be made without having the first one instantly trigger the
+ * operation if the first queue has sufficient resources).
+ *
+ * @param operation the operation to marks as waiting
+ */
+void
+GNUNET_TESTBED_operation_begin_wait_ (struct GNUNET_TESTBED_Operation
+				      *operation)
+{
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == operation->start_task_id);
+  operation->state = OP_STATE_WAITING;
   check_readiness (operation);
 }
 
@@ -293,7 +319,7 @@ GNUNET_TESTBED_operation_queue_remove_ (struct OperationQueue *queue,
   GNUNET_CONTAINER_DLL_remove (queue->head, queue->tail, entry);
   GNUNET_free (entry);
   for (; NULL != entry2; entry2 = entry2->next)
-    if (OP_STATE_STARTED != entry2->op->state)
+    if (OP_STATE_WAITING == entry2->op->state)
       break;
   if (NULL == entry2)
     return;

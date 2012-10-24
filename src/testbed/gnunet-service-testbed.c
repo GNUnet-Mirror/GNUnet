@@ -3265,8 +3265,8 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
           /* rhc is now set to the existing one from the hash map by
              reghost_match_iterator() */
           /* if queue is empty then ignore creating focc and proceed with
-             normal forwarding */
-          if (NULL == rhc->focc_dll_head)
+             normal forwarding */	  	  
+          if (RHC_OL_CONNECT == rhc->state)
             skip_focc = GNUNET_YES;
         }
         if (GNUNET_NO == skip_focc)

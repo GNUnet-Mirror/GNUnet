@@ -452,6 +452,7 @@ GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
                                         &oprelease_peer_create);
   GNUNET_TESTBED_operation_queue_insert_ (controller->opq_parallel_operations,
                                           opc->op);
+  GNUNET_TESTBED_operation_begin_wait_ (opc->op);
   return opc->op;
 }
 
@@ -532,6 +533,7 @@ GNUNET_TESTBED_peer_start (void *op_cls,
                                         &oprelease_peer_start);
   GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_parallel_operations,
                                           opc->op);
+  GNUNET_TESTBED_operation_begin_wait_ (opc->op);
   return opc->op;
 }
 
@@ -568,6 +570,7 @@ GNUNET_TESTBED_peer_stop (struct GNUNET_TESTBED_Peer *peer,
                                         &oprelease_peer_stop);
   GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_parallel_operations,
                                           opc->op);
+  GNUNET_TESTBED_operation_begin_wait_ (opc->op);
   return opc->op;
 }
 
@@ -611,6 +614,7 @@ GNUNET_TESTBED_peer_get_information (struct GNUNET_TESTBED_Peer *peer,
                                         &oprelease_peer_getinfo);
   GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_parallel_operations,
                                           opc->op);
+  GNUNET_TESTBED_operation_begin_wait_ (opc->op);
   return opc->op;
 }
 
@@ -658,6 +662,7 @@ GNUNET_TESTBED_peer_destroy (struct GNUNET_TESTBED_Peer *peer)
                                         &oprelease_peer_destroy);
   GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_parallel_operations,
                                           opc->op);
+  GNUNET_TESTBED_operation_begin_wait_ (opc->op);
   return opc->op;
 }
 
@@ -730,6 +735,7 @@ GNUNET_TESTBED_overlay_connect (void *op_cls,
   /*                                         opc->op); */
   GNUNET_TESTBED_operation_queue_insert_
       (opc->c->opq_parallel_overlay_connect_operations, opc->op);
+  GNUNET_TESTBED_operation_begin_wait_ (opc->op);
   return opc->op;
 }
 

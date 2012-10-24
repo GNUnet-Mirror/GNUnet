@@ -59,13 +59,10 @@ GNUNET_TESTBED_operation_queue_destroy_ (struct OperationQueue *queue);
 
 
 /**
- * Add an operation to a queue.  An operation can be in multiple
- * queues at once.  Once all queues permit the operation to become
- * active, the operation will be activated.  The actual activation
- * will occur in a separate task (thus allowing multiple queue
- * insertions to be made without having the first one instantly
- * trigger the operation if the first queue has sufficient
- * resources).
+ * Add an operation to a queue.  An operation can be in multiple queues at
+ * once. Once the operation is inserted into all the queues
+ * GNUNET_TESTBED_operation_begin_wait_() has to be called to actually start
+ * waiting for the operation to become active.
  *
  * @param queue queue to add the operation to
  * @param operation operation to add to the queue
@@ -74,6 +71,20 @@ void
 GNUNET_TESTBED_operation_queue_insert_ (struct OperationQueue *queue,
                                         struct GNUNET_TESTBED_Operation
                                         *operation);
+
+
+/**
+ * Marks the given operation as waiting on the queues.  Once all queues permit
+ * the operation to become active, the operation will be activated.  The actual
+ * activation will occur in a separate task (thus allowing multiple queue
+ * insertions to be made without having the first one instantly trigger the
+ * operation if the first queue has sufficient resources).
+ *
+ * @param operation the operation to marks as waiting
+ */
+void
+GNUNET_TESTBED_operation_begin_wait_ (struct GNUNET_TESTBED_Operation
+				      *operation);
 
 
 /**

@@ -349,6 +349,7 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
 					 &oprelease_overlay_configure_topology);
   GNUNET_TESTBED_operation_queue_insert_
       (c->opq_parallel_topology_config_operations, op);
+  GNUNET_TESTBED_operation_begin_wait_ (op);
   return op;
 }
 

@@ -282,6 +282,7 @@ GNUNET_TESTBED_service_connect (void *op_cls,
   GNUNET_TESTBED_operation_queue_insert_ (peer->
                                           controller->opq_parallel_operations,
                                           data->operation);
+  GNUNET_TESTBED_operation_begin_wait_ (data->operation);
   return data->operation;
 }
 

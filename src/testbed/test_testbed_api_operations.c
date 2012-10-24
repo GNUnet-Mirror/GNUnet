@@ -194,8 +194,10 @@ run (void *cls, char *const *args, const char *cfgfile,
   op2 = GNUNET_TESTBED_operation_create_ (&op2, start_cb, release_cb);
   GNUNET_TESTBED_operation_queue_insert_ (q1, op1);
   GNUNET_TESTBED_operation_queue_insert_ (q2, op1);
+  GNUNET_TESTBED_operation_begin_wait_ (op1);
   GNUNET_TESTBED_operation_queue_insert_ (q1, op2);
   GNUNET_TESTBED_operation_queue_insert_ (q2, op2);
+  GNUNET_TESTBED_operation_begin_wait_ (op2);
   result = TEST_INIT;
 }
 

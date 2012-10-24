@@ -1884,6 +1884,7 @@ GNUNET_TESTBED_controller_link_2_ (void *op_cls,
                                         &oprelease_link_controllers);
   GNUNET_TESTBED_operation_queue_insert_ (master->opq_parallel_operations,
                                           opc->op);
+  GNUNET_TESTBED_operation_begin_wait_ (opc->op);
   return opc->op;
 }
 
@@ -2103,6 +2104,7 @@ GNUNET_TESTBED_get_slave_config_ (void *op_cls,
                                         &oprelease_get_slave_config);
   GNUNET_TESTBED_operation_queue_insert_ (master->opq_parallel_operations,
 					  opc->op); 
+  GNUNET_TESTBED_operation_begin_wait_ (opc->op);
   return opc->op;
 }
 
