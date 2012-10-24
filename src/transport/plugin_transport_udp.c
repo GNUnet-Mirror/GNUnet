@@ -1008,6 +1008,8 @@ fragmented_message_done (struct UDP_FragmentationContext *fc, int result)
   dummy.msg_size = s->frag_ctx->on_wire_size;
   dummy.payload_size = s->frag_ctx->payload_size;
   dummy.frag_ctx = s->frag_ctx;
+  dummy.cont = NULL;
+  dummy.cont_cls = NULL;
   dummy.session = s;
 
   call_continuation (&dummy, result);
