@@ -192,7 +192,8 @@ libgnunet_plugin_test_la_LDFLAGS = \
 
 if HAVE_BENCHMARKS
  BENCHMARKS = \
-  perf_crypto_hash 
+  perf_crypto_hash \
+  perf_malloc
 endif
 
 check_PROGRAMS = \
@@ -497,6 +498,11 @@ test_speedup_LDADD = \
 perf_crypto_hash_SOURCES = \
  perf_crypto_hash.c
 perf_crypto_hash_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+perf_malloc_SOURCES = \
+ perf_malloc.c
+perf_malloc_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 
