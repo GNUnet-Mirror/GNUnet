@@ -556,6 +556,15 @@ run (void *cls, char *const *args, const char *cfgfile,
                   HOSTKEY_FILE);
   }
 
+  if (GNUNET_OK != GNUNET_DISK_directory_create_for_file (keyfile))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Could not create a directory for hostkey `%s'.  Exiting.\n"),
+                  keyfile);
+      end_badly_now ();
+      return;
+  }
+
   if (GNUNET_OK !=  GNUNET_DISK_file_copy (HOSTKEY_FILE, keyfile))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
