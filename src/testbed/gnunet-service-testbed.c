@@ -600,11 +600,6 @@ struct OverlayConnectContext
    */
   uint32_t other_peer_id;
 
-  /**
-   * Number of times we tried to send hello; used to increase delay in offering
-   * hellos
-   */
-  uint16_t retries;
 };
 
 
@@ -650,12 +645,6 @@ struct RequestOverlayConnectContext
    * Task to timeout RequestOverlayConnect
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_rocc_task_id;
-  
-  /**
-   * Number of times we tried to send hello; used to increase delay in offering
-   * hellos
-   */
-  uint16_t retries;
   
 };
 
@@ -2919,7 +2908,8 @@ send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     occ->send_hello_task =
         GNUNET_SCHEDULER_add_delayed
         (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-                                        100 * (pow (2, occ->retries++))),
+                                        100 + GNUNET_CRYPTO_random_u32
+                                        (GNUNET_CRYPTO_QUALITY_WEAK, 500)),
          &send_hello, occ);
   }
   GNUNET_free (other_peer_str);  
@@ -3485,7 +3475,8 @@ attempt_connect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   rocc->attempt_connect_task_id = 
       GNUNET_SCHEDULER_add_delayed 
       (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-                                      100 * (pow (2, rocc->retries++))),
+                                      100 + GNUNET_CRYPTO_random_u32
+                                      (GNUNET_CRYPTO_QUALITY_WEAK, 500)),
        &attempt_connect_task, rocc);
 }
 
