@@ -2256,6 +2256,11 @@ remove_timeout_messages_and_select (struct UDP_MessageWrapper *head,
         udpw = plugin->ipv4_queue_head;
       if (sock == plugin->sockv6)
         udpw = plugin->ipv6_queue_head;
+      else
+      {
+        GNUNET_break (0); /* should never happen */
+        updw = NULL;
+      }
       GNUNET_STATISTICS_update (plugin->env->stats,
                                 "# messages dismissed due to timeout",
                                 1, GNUNET_NO);
