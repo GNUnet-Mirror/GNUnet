@@ -270,7 +270,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (LINE == test_topology)
   {
     o = GNUNET_TESTING_daemon_get (pg, 0);
-    d = GNUNET_TESTING_daemon_get (pg, 4);
+    d = GNUNET_TESTING_daemon_get (pg, num_peers - 1);
   }
   else if (TORUS == test_topology)
   {
@@ -308,7 +308,8 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                 GNUNET_BLOCK_TYPE_TEST, /* type */
                                 &d->id.hashPubKey,      /*key to search */
                                 4U,     /* replication level */
-                                GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, NULL,        /* xquery */
+                                GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                                NULL,        /* xquery */
                                 0,      /* xquery bits */
                                 &dht_get_id_handler, (void *)1);
   if (TORUS == test_topology)
@@ -319,7 +320,8 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                     GNUNET_BLOCK_TYPE_TEST,       /* type */
                                     &d2->id.hashPubKey,   /*key to search */
                                     4U,   /* replication level */
-                                    GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, NULL,      /* xquery */
+                                    GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                                    NULL,      /* xquery */
                                     0,    /* xquery bits */
                                     &dht_get_id_handler, (void *)2);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  looking for %s\n",
@@ -328,7 +330,8 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                       GNUNET_BLOCK_TYPE_TEST,     /* type */
                                       &d_far->id.hashPubKey,      /*key to search */
                                       4U, /* replication level */
-                                      GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, NULL,    /* xquery */
+                                      GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                                      NULL,    /* xquery */
                                       0,  /* xquery bits */
                                       &dht_get_id_handler, (void *)3);
   }
@@ -338,7 +341,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 /**
- * Task to put the id of each peer into teh DHT.
+ * Task to put the id of each peer into the DHT.
  * 
  * @param cls Closure (unused)
  * @param tc Task context
