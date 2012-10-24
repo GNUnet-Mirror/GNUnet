@@ -1287,6 +1287,8 @@ regex_result_iterator (void *cls,
   }
   regex_next_edge(block, SIZE_MAX, ctx);
 
+  GNUNET_STATISTICS_update (stats, "# regex mesh blocks iterated", 1, GNUNET_NO);
+
   return GNUNET_YES;
 }
 
@@ -1311,6 +1313,8 @@ regex_edge_iterator (void *cls,
   struct MeshRegexSearchInfo *info = ctx->info;
   char *current;
   size_t current_len;
+
+  GNUNET_STATISTICS_update (stats, "# regex edges iterated", 1, GNUNET_NO);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*    Start of regex edge iterator\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     descr : %s\n", info->description);
@@ -1396,6 +1400,8 @@ regex_next_edge (const struct MeshRegexBlock *block,
                                                 new_ctx);
     return; // We are already looking for it
   }
+
+  GNUNET_STATISTICS_update (stats, "# regex nodes traversed", 1, GNUNET_NO);
 
   /* Start search in DHT */
   get_h = 
