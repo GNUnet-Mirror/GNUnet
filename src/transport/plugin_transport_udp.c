@@ -2257,7 +2257,7 @@ remove_timeout_messages_and_select (struct UDP_MessageWrapper *head,
       }
       if (sock == plugin->sockv4)
         udpw = plugin->ipv4_queue_head;
-      if (sock == plugin->sockv6)
+      else if (sock == plugin->sockv6)
         udpw = plugin->ipv6_queue_head;
       else
       {
