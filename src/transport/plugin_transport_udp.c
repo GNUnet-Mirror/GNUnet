@@ -2262,7 +2262,7 @@ remove_timeout_messages_and_select (struct UDP_MessageWrapper *head,
       else
       {
         GNUNET_break (0); /* should never happen */
-        updw = NULL;
+        udpw = NULL;
       }
       GNUNET_STATISTICS_update (plugin->env->stats,
                                 "# messages dismissed due to timeout",
