@@ -39,5 +39,5 @@ IPV4MASK = 255.255.0.0
 # of a DNS resolver to use.  Only works if "PROVIDE_EXIT" is also set to YES.  Must absolutely
 # NOT be an address of any of GNUnet's virtual tunnel interfaces.  Use a well-known
 # public DNS resolver or your ISP's resolver from /etc/resolv.conf.
-# DNS_EXIT = 8.8.8.8
+DNS_EXIT = 8.8.8.8
 

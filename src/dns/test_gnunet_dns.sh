@@ -6,6 +6,16 @@ then
   echo "This test only works if run as root.  Skipping."
   exit 0
 fi
+if [ ! -x `which sudo` ]
+then
+  echo "This test requires sudo.  Skipping."
+  exit 0
+fi
+if [ ! -x `which nslookup` ]
+then
+  echo "This test requires nslookup.  Skipping."
+  exit 0
+fi
 export PATH=".:$PATH"
 gnunet-service-dns -c dns.conf &
 gnunet-dns-redirector -c dns.conf -4 127.0.0.1 &
