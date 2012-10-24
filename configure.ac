@@ -598,10 +598,15 @@ AC_ARG_WITH(mysql,
    fi
   ],
   [AC_MSG_RESULT([--with-mysql not specified])
-   LDFLAGS="-L/usr/lib/mysql $LDFLAGS $ZLIBS"
+   if test -d "/usr/lib64/mysql"; then
+    MYSQL_LIBDIR="/usr/lib64/mysql"
+   elif test -d "/usr/lib/mysql"; then
+    MYSQL_LIBDIR="/usr/lib/mysql"
+   fi
+   LDFLAGS="-L$MYSQL_LIBDIR $LDFLAGS $ZLIBS"
    AC_CHECK_LIB(mysqlclient, mysql_init,
     [AC_CHECK_HEADERS(mysql/mysql.h,
-      MYSQL_LDFLAGS="-L/usr/lib/mysql"
+      MYSQL_LDFLAGS="-L$MYSQL_LIBDIR"
       mysql=true
 
      , [], [$CYGWIN_MYSQL_MAGIC])])

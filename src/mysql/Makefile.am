@@ -12,7 +12,7 @@ lib_LTLIBRARIES = libgnunetmysql.la
 
 libgnunetmysql_la_SOURCES = \
   mysql.c
-libgnunetmysql_la_LIBADD = -lmysqlclient \
+libgnunetmysql_la_LIBADD = $(MYSQL_LDFLAGS) -lmysqlclient \
  $(top_builddir)/src/util/libgnunetutil.la  
 libgnunetmysql_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS) \
