@@ -723,7 +723,7 @@ call_continuation (struct UDP_MessageWrapper *udpw, int result)
       udpw->payload_size, GNUNET_i2s (&udpw->session->target),
       (GNUNET_OK == result) ? "OK" : "SYSERR");
 
-  if ((udpw->msg_size - udpw->payload_size) >= 0)
+  if (udpw->msg_size >= udpw->payload_size)
     overhead = udpw->msg_size - udpw->payload_size;
   else
     overhead = udpw->msg_size;
