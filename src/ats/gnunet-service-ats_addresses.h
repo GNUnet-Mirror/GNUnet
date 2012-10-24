@@ -165,6 +165,19 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
 
 /* FIXME: add performance request API */
 
+typedef void (*GNUNET_ATS_Peer_Iterator) (void *cls,
+                                          const struct GNUNET_PeerIdentity *id);
+
+void
+GAS_addresses_iterate_peers (GNUNET_ATS_Peer_Iterator p_it, void *cls);
+
+typedef void (*GNUNET_ATS_PeerInfo_Iterator) (void *cls,
+                                              const struct GNUNET_PeerIdentity *id,
+                                              const char *plugin);
+
+void
+GAS_addresses_get_peer_info (const struct GNUNET_PeerIdentity *peer, GNUNET_ATS_PeerInfo_Iterator pi_it, void *pi_it_cls);
+
 #endif
 
 /* end of gnunet-service-ats_addresses.h */

@@ -1051,6 +1051,88 @@ GAS_addresses_done ()
     GAS_mlp_done (mlp);
   }
 #endif
+}
+
+struct PeerIteratorContext
+{
+  GNUNET_ATS_Peer_Iterator it;
+  void *it_cls;
+  struct GNUNET_CONTAINER_MultiHashMap *peers_returned;
+};
+
+static int
+peer_it (void *cls,
+         const struct GNUNET_HashCode * key,
+         void *value)
+{
+  struct PeerIteratorContext *ip_ctx = cls;
+  struct GNUNET_PeerIdentity tmp;
+
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(ip_ctx->peers_returned, key))
+  {
+      GNUNET_CONTAINER_multihashmap_put(ip_ctx->peers_returned, key, NULL, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+      tmp.hashPubKey = (*key);
+      ip_ctx->it (ip_ctx, &tmp);
+  }
+
+  return GNUNET_OK;
+}
+
+
+void
+GAS_addresses_iterate_peers (GNUNET_ATS_Peer_Iterator it, void *it_cls)
+{
+  struct PeerIteratorContext ip_ctx;
+  unsigned int size;
+
+  if (NULL == it)
+      return;
+  GNUNET_assert (NULL != addresses);
+
+  size = GNUNET_CONTAINER_multihashmap_size(addresses);
+  if (0 != size)
+  {
+    ip_ctx.it = it;
+    ip_ctx.it_cls = it_cls;
+    ip_ctx.peers_returned = GNUNET_CONTAINER_multihashmap_create (size, GNUNET_NO);
+    GNUNET_CONTAINER_multihashmap_iterate (addresses, &peer_it, &ip_ctx);
+    GNUNET_CONTAINER_multihashmap_destroy (ip_ctx.peers_returned);
+  }
+  it (it_cls, NULL);
+}
+
+struct PeerInfoIteratorContext
+{
+  GNUNET_ATS_PeerInfo_Iterator it;
+  void *it_cls;
+};
+
+int peerinfo_it (void *cls,
+                 const struct GNUNET_HashCode * key,
+                 void *value)
+{
+  struct PeerInfoIteratorContext *pi_ctx = cls;
+  struct ATS_Address *addr = (struct ATS_Address *)  value;
+
+  if (NULL != pi_ctx->it)
+    pi_ctx->it (pi_ctx->it_cls, &addr->peer, addr->plugin);
+  return GNUNET_YES;
+}
+
+void
+GAS_addresses_get_peer_info (const struct GNUNET_PeerIdentity *peer, GNUNET_ATS_PeerInfo_Iterator pi_it, void *pi_it_cls)
+{
+  struct PeerInfoIteratorContext pi_ctx;
+  GNUNET_assert (NULL != peer);
+  GNUNET_assert (NULL != addresses);
+
+  pi_ctx.it = pi_it;
+  pi_ctx.it_cls = pi_it_cls;
+
+  GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey, &peerinfo_it, &pi_ctx);
+
+  if (NULL != pi_it)
+    pi_it (pi_it_cls, NULL, NULL);
 
 }
 

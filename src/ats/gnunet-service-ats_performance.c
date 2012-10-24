@@ -94,6 +94,33 @@ find_client (struct GNUNET_SERVER_Client *client)
 }
 
 
+static void
+peerinfo_it (void *cls,
+             const struct GNUNET_PeerIdentity *id,
+             const char *plugin)
+{
+  struct PerformanceClient *pc = cls;
+  GNUNET_assert (NULL != pc);
+  if (NULL != id)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for peer `%s' plugin `%s'\n", GNUNET_i2s (id), plugin);
+    /* TODO: Notify client here! */
+    //GNUNET_break (0);
+  }
+
+}
+
+static void
+peer_it (void *cls,
+         const struct GNUNET_PeerIdentity *id)
+{
+  if (NULL != id)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for peer `%s'\n", GNUNET_i2s (id));
+    GAS_addresses_get_peer_info (id, &peerinfo_it, cls);
+  }
+}
+
 /**
  * Register a new performance client.
  *
@@ -113,6 +140,9 @@ GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
   GNUNET_SERVER_notification_context_add (nc, client);
   GNUNET_SERVER_client_keep (client);
   GNUNET_CONTAINER_DLL_insert (pc_head, pc_tail, pc);
+
+  /* Send information about clients */
+  GAS_addresses_iterate_peers (&peer_it, pc);
 }
 
 
