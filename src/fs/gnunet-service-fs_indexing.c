@@ -231,6 +231,7 @@ signal_index_ok (struct IndexInfo *ii)
   {
     ir = GNUNET_CONTAINER_multihashmap_get (ifm,
 					    &ii->file_id);
+    GNUNET_assert (NULL != ii);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _
                 ("Index request received for file `%s' is already indexed as `%s'.  Permitting anyway.\n"),

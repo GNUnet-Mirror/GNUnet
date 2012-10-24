@@ -1000,11 +1000,12 @@ fragmented_message_done (struct UDP_FragmentationContext *fc, int result)
   struct UDP_MessageWrapper *tmp;
   struct UDP_MessageWrapper dummy;
   struct Session *s = fc->session;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "%p : Fragmented message removed with result %s\n", fc, (result == GNUNET_SYSERR) ? "FAIL" : "SUCCESS");
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%p : Fragmented message removed with result %s\n", fc, (result == GNUNET_SYSERR) ? "FAIL" : "SUCCESS");
+  
   /* Call continuation for fragmented message */
+  memset (&dummy, 0, sizeof (dummy));
   dummy.msg_type = MSG_FRAGMENTED_COMPLETE;
-  dummy.msg_buf = NULL;
   dummy.msg_size = s->frag_ctx->on_wire_size;
   dummy.payload_size = s->frag_ctx->payload_size;
   dummy.frag_ctx = s->frag_ctx;
