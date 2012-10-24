@@ -843,7 +843,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "schedule timeout in SHORT_TIME\n");
+              "schedule timeout in TIMEOUT\n");
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
