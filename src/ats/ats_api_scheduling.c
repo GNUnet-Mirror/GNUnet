@@ -823,6 +823,7 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const stru
   GNUNET_assert (sh != NULL);
   struct ATS_Network * cur = sh->net_head;
   int type = GNUNET_ATS_NET_UNSPECIFIED;
+  struct GNUNET_ATS_Information ats;
 
   if  (addr->sa_family == AF_UNIX)
   {
@@ -902,9 +903,8 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const stru
   /* no local network found for this address, default: WAN */
   if (type == GNUNET_ATS_NET_UNSPECIFIED)
     type = GNUNET_ATS_NET_WAN;
-  const struct GNUNET_ATS_Information ats = {
-    htonl (GNUNET_ATS_NETWORK_TYPE),
-    htonl (type) };
+  ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  ats.value = htonl (type);  
   return ats;
 }
 
