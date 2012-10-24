@@ -31,10 +31,39 @@
  * Final status code.
  */
 static int ret;
+static int results;
 
 static struct GNUNET_ATS_PerformanceHandle *ph;
 
-GNUNET_SCHEDULER_Task end_task;
+GNUNET_SCHEDULER_TaskIdentifier end_task;
+
+void ats_perf_cb (void *cls,
+                  const struct
+                  GNUNET_HELLO_Address *
+                  address,
+                  struct
+                  GNUNET_BANDWIDTH_Value32NBO
+                  bandwidth_out,
+                  struct
+                  GNUNET_BANDWIDTH_Value32NBO
+                  bandwidth_in,
+                  const struct
+                  GNUNET_ATS_Information *
+                  ats, uint32_t ats_count)
+{
+  fprintf (stderr, "Peer `%s'\n", GNUNET_i2s (&address->peer));
+  results++;
+}
+
+void end (void *cls,
+          const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_ATS_performance_done (ph);
+  ph = NULL;
+  /*FIXME */fprintf (stderr, "NOT IMPLEMENTED!\n");
+  fprintf (stderr, "ATS returned %u addresses\n", results);
+  ret = 0;
+}
 
 void testservice_task (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -51,11 +80,8 @@ void testservice_task (void *cls,
   if (NULL == ph)
     fprintf (stderr, "Cannot connect to ATS service, exiting...\n");
 
-  /* FIXME do work here*/
-  fprintf (stderr, "NOT IMPLEMENTED\n");
-
-  GNUNET_ATS_performance_done (ph);
-  ret = 0;
+  end_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &end, NULL);
+  ret = 1;
 }
 
 /**
