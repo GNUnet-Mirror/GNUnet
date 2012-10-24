@@ -339,6 +339,8 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
     default:
       GNUNET_break (0);         /* Should not use any other option apart from
                                    the ones handled here */
+      GNUNET_free_non_null (tc->link_array);
+      GNUNET_free (tc);
       return NULL;
     }
   } while (GNUNET_TESTBED_TOPOLOGY_OPTION_END != secondary_option);

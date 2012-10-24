@@ -1934,7 +1934,6 @@ GNUNET_TESTBED_controller_link_2 (void *op_cls,
                                             slave_host_id,
                                             sxcfg, sxcfg_size,
                                             scfg_size, is_subordinate);
-  GNUNET_break (0);
 }
 
 
