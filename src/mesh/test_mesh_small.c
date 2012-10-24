@@ -848,7 +848,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
     disconnect_task =
-        GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers, NULL);
+        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &disconnect_mesh_peers, NULL);
   }
 }
 
