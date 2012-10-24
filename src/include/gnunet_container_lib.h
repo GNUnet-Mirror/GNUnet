@@ -839,6 +839,7 @@ GNUNET_CONTAINER_multihashmap_get_multiple (const struct
  * Insert an element at the head of a MDLL. Assumes that head, tail and
  * element are structs with prev and next fields.
  *
+ * @param mdll suffix name for the next and prev pointers in the element
  * @param head pointer to the head of the MDLL
  * @param tail pointer to the tail of the MDLL
  * @param element element to insert
@@ -859,6 +860,7 @@ GNUNET_CONTAINER_multihashmap_get_multiple (const struct
  * Insert an element at the tail of a MDLL. Assumes that head, tail and
  * element are structs with prev and next fields.
  *
+ * @param mdll suffix name for the next and prev pointers in the element
  * @param head pointer to the head of the MDLL
  * @param tail pointer to the tail of the MDLL
  * @param element element to insert
@@ -879,6 +881,7 @@ GNUNET_CONTAINER_multihashmap_get_multiple (const struct
  * Insert an element into a MDLL after the given other element.  Insert
  * at the head if the other element is NULL.
  *
+ * @param mdll suffix name for the next and prev pointers in the element
  * @param head pointer to the head of the MDLL
  * @param tail pointer to the tail of the MDLL
  * @param other prior element, NULL for insertion at head of MDLL
@@ -908,6 +911,7 @@ GNUNET_CONTAINER_multihashmap_get_multiple (const struct
  * Insert an element into a MDLL before the given other element.  Insert
  * at the tail if the other element is NULL.
  *
+ * @param mdll suffix name for the next and prev pointers in the element
  * @param head pointer to the head of the MDLL
  * @param tail pointer to the tail of the MDLL
  * @param other prior element, NULL for insertion at head of MDLL
@@ -938,6 +942,7 @@ GNUNET_CONTAINER_multihashmap_get_multiple (const struct
  * that head, tail and element are structs
  * with prev and next fields.
  *
+ * @param mdll suffix name for the next and prev pointers in the element
  * @param head pointer to the head of the MDLL
  * @param tail pointer to the tail of the MDLL
  * @param element element to remove
