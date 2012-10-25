@@ -187,10 +187,11 @@ typedef void (*GNUNET_ATS_PeerInfo_Iterator) (void *p_it_cls,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
 
 /**
- * Return all peers currently known to ATS
+ * Return information all peers currently known to ATS
  *
- * @param p_it the iterator to call for every peer
- * @param p_it_cls the closure for the iterator
+ * @param peer the respective peer
+ * @param pi_it the iterator to call for every peer
+ * @param pi_it_cls the closure for the iterator
  */
 void
 GAS_addresses_get_peer_info (const struct GNUNET_PeerIdentity *peer, GNUNET_ATS_PeerInfo_Iterator pi_it, void *pi_it_cls);
