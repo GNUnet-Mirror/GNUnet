@@ -172,8 +172,14 @@ void
 GAS_addresses_iterate_peers (GNUNET_ATS_Peer_Iterator p_it, void *cls);
 
 typedef void (*GNUNET_ATS_PeerInfo_Iterator) (void *cls,
-                                              const struct GNUNET_PeerIdentity *id,
-                                              const char *plugin);
+    const struct GNUNET_PeerIdentity *id,
+    const char *plugin_name,
+    const void *plugin_addr, size_t plugin_addr_len,
+    const struct GNUNET_ATS_Information *atsi,
+    uint32_t atsi_count,
+    struct GNUNET_BANDWIDTH_Value32NBO
+    bandwidth_out,
+    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
 
 void
 GAS_addresses_get_peer_info (const struct GNUNET_PeerIdentity *peer, GNUNET_ATS_PeerInfo_Iterator pi_it, void *pi_it_cls);

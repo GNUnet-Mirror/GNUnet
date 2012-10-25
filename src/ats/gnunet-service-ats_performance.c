@@ -93,19 +93,25 @@ find_client (struct GNUNET_SERVER_Client *client)
   return NULL;
 }
 
-
 static void
 peerinfo_it (void *cls,
              const struct GNUNET_PeerIdentity *id,
-             const char *plugin)
+             const char *plugin_name,
+             const void *plugin_addr, size_t plugin_addr_len,
+             const struct GNUNET_ATS_Information *atsi,
+             uint32_t atsi_count,
+             struct GNUNET_BANDWIDTH_Value32NBO
+             bandwidth_out,
+             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   struct PerformanceClient *pc = cls;
   GNUNET_assert (NULL != pc);
   if (NULL != id)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for peer `%s' plugin `%s'\n", GNUNET_i2s (id), plugin);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for peer `%s' plugin `%s' BW out %llu, BW in %llu \n",
+        GNUNET_i2s (id),
+        plugin_name, ntohl (bandwidth_out.value__), ntohl (bandwidth_in.value__));
     /* TODO: Notify client here! */
-    //GNUNET_break (0);
   }
 
 }

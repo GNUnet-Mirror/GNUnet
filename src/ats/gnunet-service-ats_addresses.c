@@ -1115,7 +1115,13 @@ int peerinfo_it (void *cls,
   struct ATS_Address *addr = (struct ATS_Address *)  value;
 
   if (NULL != pi_ctx->it)
-    pi_ctx->it (pi_ctx->it_cls, &addr->peer, addr->plugin);
+    pi_ctx->it (pi_ctx->it_cls,
+                &addr->peer,
+                addr->plugin,
+                addr->addr, addr->addr_len,
+                addr->ats, addr->ats_count,
+                addr->assigned_bw_out,
+                addr->assigned_bw_in);
   return GNUNET_YES;
 }
 
@@ -1123,16 +1129,18 @@ void
 GAS_addresses_get_peer_info (const struct GNUNET_PeerIdentity *peer, GNUNET_ATS_PeerInfo_Iterator pi_it, void *pi_it_cls)
 {
   struct PeerInfoIteratorContext pi_ctx;
+  struct GNUNET_BANDWIDTH_Value32NBO zero_bw;
   GNUNET_assert (NULL != peer);
   GNUNET_assert (NULL != addresses);
 
+  zero_bw = GNUNET_BANDWIDTH_value_init (0);
   pi_ctx.it = pi_it;
   pi_ctx.it_cls = pi_it_cls;
 
   GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey, &peerinfo_it, &pi_ctx);
 
   if (NULL != pi_it)
-    pi_it (pi_it_cls, NULL, NULL);
+    pi_it (pi_it_cls, NULL, NULL, NULL, 0, NULL, 0, zero_bw, zero_bw);
 
 }
 
