@@ -7701,7 +7701,7 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
     if (ntohl (copy->pid) != (t->bck_pid + 1))
     {
       GNUNET_break (0);
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "To Origin PID, expected %u, got %u\n",
                   t->bck_pid + 1,
                   ntohl (copy->pid));
