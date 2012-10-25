@@ -28,7 +28,7 @@
 #include "namestore.h"
 
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 150)
 
 static struct GNUNET_NAMESTORE_Handle * nsh;
 
