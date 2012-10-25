@@ -861,7 +861,7 @@ send_with_fragmentation (struct MacEndpoint *endpoint,
   fm->fragcontext =
     GNUNET_FRAGMENT_context_create (plugin->env->stats, WLAN_MTU,
 				    &plugin->tracker,
-				    GNUNET_TIME_UNIT_SECONDS,
+				    GNUNET_TIME_UNIT_MILLISECONDS,
 				    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
 								   100),
 				    msg,
