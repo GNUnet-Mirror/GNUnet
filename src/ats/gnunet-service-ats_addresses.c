@@ -1114,7 +1114,7 @@ int peerinfo_it (void *cls,
   struct PeerInfoIteratorContext *pi_ctx = cls;
   struct ATS_Address *addr = (struct ATS_Address *)  value;
 
-  if (NULL != pi_ctx->it)
+  if ((NULL != pi_ctx->it) && (GNUNET_YES == addr->used))
     pi_ctx->it (pi_ctx->it_cls,
                 &addr->peer,
                 addr->plugin,
