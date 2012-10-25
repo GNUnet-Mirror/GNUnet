@@ -83,7 +83,7 @@ send_bw_notification (struct ATS_Address *aa)
                                               aa->assigned_bw_out,
                                               aa->assigned_bw_in);
   GAS_reservations_set_bandwidth (&aa->peer, aa->assigned_bw_in);
-  GAS_performance_notify_clients (&aa->peer, aa->plugin, aa->addr, aa->addr_len,
+  GAS_performance_notify_all_clients (&aa->peer, aa->plugin, aa->addr, aa->addr_len,
                                   aa->ats, aa->ats_count, aa->assigned_bw_out,
                                   aa->assigned_bw_in);
 }
@@ -1072,7 +1072,7 @@ peer_it (void *cls,
   {
       GNUNET_CONTAINER_multihashmap_put(ip_ctx->peers_returned, key, NULL, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
       tmp.hashPubKey = (*key);
-      ip_ctx->it (ip_ctx, &tmp);
+      ip_ctx->it (ip_ctx->it_cls, &tmp);
   }
 
   return GNUNET_OK;

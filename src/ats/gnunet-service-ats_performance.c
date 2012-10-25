@@ -93,6 +93,127 @@ find_client (struct GNUNET_SERVER_Client *client)
   return NULL;
 }
 
+/**
+ * Unregister a client (which may have been a performance client,
+ * but this is not assured).
+ *
+ * @param client handle of the (now dead) client
+ */
+void
+GAS_performance_remove_client (struct GNUNET_SERVER_Client *client)
+{
+  struct PerformanceClient *pc;
+  pc = find_client (client);
+  if (NULL == pc)
+    return;
+  GNUNET_CONTAINER_DLL_remove (pc_head, pc_tail, pc);
+  GNUNET_SERVER_client_drop (client);
+  GNUNET_free (pc);
+}
+
+/**
+ * Transmit the given performance information to all performance
+ * clients.
+ *
+ * @param pc performance client to send to
+ * @param peer peer for which this is an address suggestion
+ * @param plugin_name 0-termintated string specifying the transport plugin
+ * @param plugin_addr binary address for the plugin to use
+ * @param plugin_addr_len number of bytes in plugin_addr
+ * @param atsi performance data for the address
+ * @param atsi_count number of performance records in 'ats'
+ * @param bandwidth_out assigned outbound bandwidth
+ * @param bandwidth_in assigned inbound bandwidth
+ */
+void
+GAS_performance_notify_client (struct PerformanceClient *pc,
+                               const struct GNUNET_PeerIdentity *peer,
+                               const char *plugin_name,
+                               const void *plugin_addr, size_t plugin_addr_len,
+                               const struct GNUNET_ATS_Information *atsi,
+                               uint32_t atsi_count,
+                               struct GNUNET_BANDWIDTH_Value32NBO
+                               bandwidth_out,
+                               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
+{
+
+  struct PeerInformationMessage *msg;
+  size_t plugin_name_length = strlen (plugin_name) + 1;
+  size_t msize =
+      sizeof (struct PeerInformationMessage) +
+      atsi_count * sizeof (struct GNUNET_ATS_Information) + plugin_addr_len +
+      plugin_name_length;
+  char buf[msize] GNUNET_ALIGN;
+  struct GNUNET_ATS_Information *atsp;
+  char *addrp;
+
+  GNUNET_assert (NULL != pc);
+  if (NULL == find_client (pc->client))
+    return; /* Client disconnected */
+
+  GNUNET_assert (msize < GNUNET_SERVER_MAX_MESSAGE_SIZE);
+  GNUNET_assert (atsi_count <
+                 GNUNET_SERVER_MAX_MESSAGE_SIZE /
+                 sizeof (struct GNUNET_ATS_Information));
+  msg = (struct PeerInformationMessage *) buf;
+  msg->header.size = htons (msize);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_PEER_INFORMATION);
+  msg->ats_count = htonl (atsi_count);
+  msg->peer = *peer;
+  msg->address_length = htons (plugin_addr_len);
+  msg->plugin_name_length = htons (plugin_name_length);
+  msg->bandwidth_out = bandwidth_out;
+  msg->bandwidth_in = bandwidth_in;
+  atsp = (struct GNUNET_ATS_Information *) &msg[1];
+  memcpy (atsp, atsi, sizeof (struct GNUNET_ATS_Information) * atsi_count);
+  addrp = (char *) &atsp[atsi_count];
+  memcpy (addrp, plugin_addr, plugin_addr_len);
+  strcpy (&addrp[plugin_addr_len], plugin_name);
+  GNUNET_SERVER_notification_context_unicast (nc, pc->client, &msg->header,
+                                              GNUNET_YES);
+}
+
+
+/**
+ * Transmit the given performance information to all performance
+ * clients.
+ *
+ * @param peer peer for which this is an address suggestion
+ * @param plugin_name 0-termintated string specifying the transport plugin
+ * @param plugin_addr binary address for the plugin to use
+ * @param plugin_addr_len number of bytes in plugin_addr
+ * @param atsi performance data for the address
+ * @param atsi_count number of performance records in 'ats'
+ * @param bandwidth_out assigned outbound bandwidth
+ * @param bandwidth_in assigned inbound bandwidth
+ */
+void
+GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
+                                const char *plugin_name,
+                                const void *plugin_addr, size_t plugin_addr_len,
+                                const struct GNUNET_ATS_Information *atsi,
+                                uint32_t atsi_count,
+                                struct GNUNET_BANDWIDTH_Value32NBO
+                                bandwidth_out,
+                                struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
+{
+  struct PerformanceClient *pc;
+
+  for (pc = pc_head; pc != NULL; pc = pc->next)
+    if (pc->flag == START_FLAG_PERFORMANCE_WITH_PIC)
+    {
+        GAS_performance_notify_client (pc,
+                                       peer,
+                                       plugin_name, plugin_addr, plugin_addr_len,
+                                       atsi, atsi_count,
+                                       bandwidth_out, bandwidth_in);
+    }
+
+  GNUNET_STATISTICS_update (GSA_stats,
+                            "# performance updates given to clients", 1,
+                            GNUNET_NO);
+}
+
 static void
 peerinfo_it (void *cls,
              const struct GNUNET_PeerIdentity *id,
@@ -104,14 +225,17 @@ peerinfo_it (void *cls,
              bandwidth_out,
              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
-  struct PerformanceClient *pc = cls;
-  GNUNET_assert (NULL != pc);
+  GNUNET_assert (NULL != cls);
   if (NULL != id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for peer `%s' plugin `%s' BW out %llu, BW in %llu \n",
         GNUNET_i2s (id),
         plugin_name, ntohl (bandwidth_out.value__), ntohl (bandwidth_in.value__));
-    /* TODO: Notify client here! */
+    GAS_performance_notify_client(cls,
+        id,
+        plugin_name, plugin_addr, plugin_addr_len,
+        atsi, atsi_count,
+        bandwidth_out, bandwidth_in);
   }
 
 }
@@ -151,89 +275,6 @@ GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
   GAS_addresses_iterate_peers (&peer_it, pc);
 }
 
-
-/**
- * Unregister a client (which may have been a performance client,
- * but this is not assured).
- *
- * @param client handle of the (now dead) client
- */
-void
-GAS_performance_remove_client (struct GNUNET_SERVER_Client *client)
-{
-  struct PerformanceClient *pc;
-
-  pc = find_client (client);
-  if (NULL == pc)
-    return;
-  GNUNET_CONTAINER_DLL_remove (pc_head, pc_tail, pc);
-  GNUNET_SERVER_client_drop (client);
-  GNUNET_free (pc);
-}
-
-
-/**
- * Transmit the given performance information to all performance
- * clients.
- *
- * @param peer peer for which this is an address suggestion
- * @param plugin_name 0-termintated string specifying the transport plugin
- * @param plugin_addr binary address for the plugin to use
- * @param plugin_addr_len number of bytes in plugin_addr
- * @param atsi performance data for the address
- * @param atsi_count number of performance records in 'ats'
- * @param bandwidth_out assigned outbound bandwidth
- * @param bandwidth_in assigned inbound bandwidth
- */
-void
-GAS_performance_notify_clients (const struct GNUNET_PeerIdentity *peer,
-                                const char *plugin_name,
-                                const void *plugin_addr, size_t plugin_addr_len,
-                                const struct GNUNET_ATS_Information *atsi,
-                                uint32_t atsi_count,
-                                struct GNUNET_BANDWIDTH_Value32NBO
-                                bandwidth_out,
-                                struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
-{
-  struct PerformanceClient *pc;
-  struct PeerInformationMessage *msg;
-  size_t plugin_name_length = strlen (plugin_name) + 1;
-  size_t msize =
-      sizeof (struct PeerInformationMessage) +
-      atsi_count * sizeof (struct GNUNET_ATS_Information) + plugin_addr_len +
-      plugin_name_length;
-  char buf[msize] GNUNET_ALIGN;
-  struct GNUNET_ATS_Information *atsp;
-  char *addrp;
-
-  GNUNET_assert (msize < GNUNET_SERVER_MAX_MESSAGE_SIZE);
-  GNUNET_assert (atsi_count <
-                 GNUNET_SERVER_MAX_MESSAGE_SIZE /
-                 sizeof (struct GNUNET_ATS_Information));
-  msg = (struct PeerInformationMessage *) buf;
-  msg->header.size = htons (msize);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_PEER_INFORMATION);
-  msg->ats_count = htonl (atsi_count);
-  msg->peer = *peer;
-  msg->address_length = htons (plugin_addr_len);
-  msg->plugin_name_length = htons (plugin_name_length);
-  msg->bandwidth_out = bandwidth_out;
-  msg->bandwidth_in = bandwidth_in;
-  atsp = (struct GNUNET_ATS_Information *) &msg[1];
-  memcpy (atsp, atsi, sizeof (struct GNUNET_ATS_Information) * atsi_count);
-  addrp = (char *) &atsp[atsi_count];
-  memcpy (addrp, plugin_addr, plugin_addr_len);
-  strcpy (&addrp[plugin_addr_len], plugin_name);
-  for (pc = pc_head; pc != NULL; pc = pc->next)
-    if (pc->flag == START_FLAG_PERFORMANCE_WITH_PIC)
-    {
-      GNUNET_SERVER_notification_context_unicast (nc, pc->client, &msg->header,
-                                                  GNUNET_YES);
-      GNUNET_STATISTICS_update (GSA_stats,
-                                "# performance updates given to clients", 1,
-                                GNUNET_NO);
-    }
-}
 
 
 /**

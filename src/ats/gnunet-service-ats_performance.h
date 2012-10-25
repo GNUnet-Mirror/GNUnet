@@ -66,7 +66,7 @@ GAS_performance_remove_client (struct GNUNET_SERVER_Client *client);
  * @param bandwidth_in assigned inbound bandwidth
  */
 void
-GAS_performance_notify_clients (const struct GNUNET_PeerIdentity *peer,
+GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
                                 const char *plugin_name,
                                 const void *plugin_addr, size_t plugin_addr_len,
                                 const struct GNUNET_ATS_Information *atsi,

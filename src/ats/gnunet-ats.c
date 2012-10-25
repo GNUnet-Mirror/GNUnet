@@ -51,7 +51,9 @@ void ats_perf_cb (void *cls,
                   GNUNET_ATS_Information *
                   ats, uint32_t ats_count)
 {
-  fprintf (stderr, "Peer `%s'\n", GNUNET_i2s (&address->peer));
+  fprintf (stderr, "Peer `%s' plugin `%s', bandwidth out: %u Bytes/s, bandwidth in %u Bytes/s\n",
+      GNUNET_i2s (&address->peer), address->transport_name,
+      ntohl (bandwidth_out.value__), ntohl (bandwidth_in.value__));
   results++;
 }
 
@@ -60,8 +62,7 @@ void end (void *cls,
 {
   GNUNET_ATS_performance_done (ph);
   ph = NULL;
-  /*FIXME */fprintf (stderr, "NOT IMPLEMENTED!\n");
-  fprintf (stderr, "ATS returned %u addresses\n", results);
+  fprintf (stderr, "ATS returned results for %u addresses\n", results);
   ret = 0;
 }
 
@@ -76,7 +77,7 @@ void testservice_task (void *cls,
       return;
   }
 
-  ph = GNUNET_ATS_performance_init (cfg, NULL, NULL);
+  ph = GNUNET_ATS_performance_init (cfg, ats_perf_cb, NULL);
   if (NULL == ph)
     fprintf (stderr, "Cannot connect to ATS service, exiting...\n");
 
@@ -97,7 +98,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_CLIENT_service_test ("ats", cfg,
-                              GNUNET_TIME_UNIT_SECONDS,
+                              GNUNET_TIME_UNIT_MINUTES,
                               &testservice_task,
                               (void *) cfg);
 }
