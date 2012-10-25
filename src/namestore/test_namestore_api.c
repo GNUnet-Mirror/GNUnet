@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -47,6 +47,7 @@ static struct GNUNET_CRYPTO_ShortHashCode zone;
 
 static int res;
 
+static struct GNUNET_NAMESTORE_QueueEntry *nsqe;
 
 /**
  * Re-establish the connection to the service.
@@ -57,13 +58,21 @@ static int res;
 static void
 endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (NULL != nsqe)
+  {
+    GNUNET_NAMESTORE_cancel (nsqe);
+    nsqe = NULL;
+  }
   if (nsh != NULL)
+  {
     GNUNET_NAMESTORE_disconnect (nsh);
-  nsh = NULL;
-
+    nsh = NULL;
+  }
   if (privkey != NULL)
+  {
     GNUNET_CRYPTO_rsa_key_free (privkey);
-  privkey = NULL;
+    privkey = NULL;
+  }
   GNUNET_SCHEDULER_shutdown ();
   res = 1;
 }
@@ -77,11 +86,11 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
   if (privkey != NULL)
+  {
     GNUNET_CRYPTO_rsa_key_free (privkey);
-  privkey = NULL;
-
+    privkey = NULL;
+  }
   if (nsh != NULL)
   {
     GNUNET_NAMESTORE_disconnect (nsh);
@@ -100,6 +109,7 @@ name_lookup_proc (void *cls,
 		  const struct GNUNET_NAMESTORE_RecordData *rd,
 		  const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
+  nsqe = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Namestore lookup result %p `%s' %i %p %p\n",
 	      zone_key, name, rd_count, rd, signature);
@@ -116,7 +126,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Name store added record for `%s': %s\n", name, (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
 
-  GNUNET_NAMESTORE_lookup_record (nsh, &zone, name, 0, &name_lookup_proc, NULL);
+  nsqe = GNUNET_NAMESTORE_lookup_record (nsh, &zone, name, 0, &name_lookup_proc, NULL);
 }
 
 
@@ -130,8 +140,8 @@ run (void *cls,
   char *hostkey_file;
   const char * name = "dummy.dummy.gnunet";
 
-  endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,endbadly, NULL);
-
+  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, 
+						&endbadly, NULL);
   GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,
       "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
@@ -148,9 +158,9 @@ run (void *cls,
   memset ((char *) rd.data, 'a', TEST_RECORD_DATALEN);
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
-  GNUNET_NAMESTORE_record_put (nsh, &pubkey, name,
-			       GNUNET_TIME_UNIT_FOREVER_ABS,
-			       1, &rd, &signature, &put_cont, (void*) name);
+  nseq = GNUNET_NAMESTORE_record_put (nsh, &pubkey, name,
+				      GNUNET_TIME_UNIT_FOREVER_ABS,
+				      1, &rd, &signature, &put_cont, (void*) name);
   GNUNET_free ((void *)rd.data);
 }
 
