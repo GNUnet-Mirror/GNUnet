@@ -7683,11 +7683,11 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  clinfo->bck_pid++;
 
   /* Ok, everything is correct, send the message
    * (pretend we got it from a mesh peer)
    */
-  clinfo->bck_pid++;
   {
     char buf[ntohs (message->size)] GNUNET_ALIGN;
     struct GNUNET_MESH_ToOrigin *copy;
@@ -7698,15 +7698,8 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_PEER_resolve (t->id.oid, &copy->oid);
     copy->tid = htonl (t->id.tid);
     copy->ttl = htonl (default_ttl);
-    if (ntohl (copy->pid) != (t->bck_pid + 1))
-    {
-      GNUNET_break (0);
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "To Origin PID, expected %u, got %u\n",
-                  t->bck_pid + 1,
-                  ntohl (copy->pid));
-      return;
-    }
+    copy->pid = htonl (++(t->bck_pid));
+
     copy->sender = my_full_id;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  calling generic handler...\n");
