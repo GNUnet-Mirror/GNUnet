@@ -159,6 +159,11 @@ struct RegexPeer
    * Testbed operation handle for the statistics service.
    */
   struct GNUNET_TESTBED_Operation *stats_op_handle;
+
+  /**
+   * The starting time of a profiling step.
+   */
+  struct GNUNET_TIME_Absolute prof_start_time;
 };
 
 /**
@@ -248,6 +253,11 @@ static unsigned int num_peers;
 static unsigned int num_hosts;
 
 /**
+ * Factor of number of links. num_links = num_peers * linking_factor.
+ */
+static unsigned int linking_factor;
+
+/**
  * Number of random links to be established between peers
  */
 static unsigned int num_links;
@@ -327,6 +337,45 @@ static struct GNUNET_DISK_FileHandle *data_file;
  * Filename to log statistics to.
  */
 static char *data_filename;
+
+
+/******************************************************************************/
+/******************************  DECLARATIONS  ********************************/
+/******************************************************************************/
+
+
+/**
+ * Method called whenever a peer has connected to the tunnel.
+ *
+ * @param cls closure
+ * @param peer_id peer identity the tunnel was created to, NULL on timeout
+ * @param atsi performance data for the connection
+ *
+ */
+void
+mesh_peer_connect_handler (void *cls,
+                           const struct GNUNET_PeerIdentity* peer_id,
+                           const struct GNUNET_ATS_Information * atsi);
+
+
+/**
+ * Method called whenever a peer has disconnected from the tunnel.
+ * Implementations of this callback must NOT call
+ * GNUNET_MESH_tunnel_destroy immediately, but instead schedule those
+ * to run in some other task later.  However, calling
+ * "GNUNET_MESH_notify_transmit_ready_cancel" is allowed.
+ *
+ * @param cls closure
+ * @param peer_id peer identity the tunnel stopped working with
+ */
+void
+mesh_peer_disconnect_handler (void *cls,
+                              const struct GNUNET_PeerIdentity * peer_id);
+
+
+/******************************************************************************/
+/********************************  SHUTDOWN  **********************************/
+/******************************************************************************/
 
 
 /**
@@ -497,6 +546,9 @@ stats_cb (void *cls,
     return;
   }
 
+  GNUNET_TESTBED_operation_done (peer->stats_op_handle);
+  peer->stats_op_handle = NULL;
+
   if (++peer_cnt == num_search_strings)
   {
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
@@ -525,11 +577,21 @@ stats_connect_cb (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to connect to statistics service on peer %u: %s\n",
                 peer->id, emsg);
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
 
   peer->stats_handle = ca_result;
+
+  peer->mesh_tunnel_handle = GNUNET_MESH_tunnel_create (peer->mesh_handle,
+							NULL,
+							&mesh_peer_connect_handler,
+							&mesh_peer_disconnect_handler,
+							peer);
+
+  peer->prof_start_time = GNUNET_TIME_absolute_get ();
+
+  GNUNET_MESH_peer_request_connect_by_string (peer->mesh_tunnel_handle,
+					      peer->search_str);
 }
 
 
@@ -628,7 +690,7 @@ mesh_peer_connect_handler (void *cls,
   }
   else
   {
-    prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
+    prof_time = GNUNET_TIME_absolute_get_duration (peer->prof_start_time);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
 		"String %s successfully matched on peer %u after %s (%i/%i)\n",
 		peer->search_str, peer->id, GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO), 
@@ -683,6 +745,8 @@ mesh_peer_connect_handler (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"All strings successfully matched in %s\n", 
 		GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
+    printf ("All strings successfully matched. Shutting down.\n");
+    fflush (stdout);
 
     if (GNUNET_SCHEDULER_NO_TASK != search_timeout_task)
       GNUNET_SCHEDULER_cancel (search_timeout_task);
@@ -732,17 +796,17 @@ do_connect_by_string (void *cls,
 		"Searching for string \"%s\" on peer %d with file %s\n",
 		peer->search_str, (search_cnt % num_peers), peer->policy_file);
 
-    peer->mesh_tunnel_handle = GNUNET_MESH_tunnel_create (peer->mesh_handle,
-                                                          NULL,
-                                                          &mesh_peer_connect_handler,
-                                                          &mesh_peer_disconnect_handler,
-                                                          peer);
-
-    GNUNET_MESH_peer_request_connect_by_string (peer->mesh_tunnel_handle,
-                                                peer->search_str);
+    /* First connect to stats service, then try connecting by string in stats_connect_cb */
+    peer->stats_op_handle =
+      GNUNET_TESTBED_service_connect (NULL,
+				      peers->peer_handle,
+				      "statistics",
+				      &stats_connect_cb,
+				      peer,
+				      &stats_ca,
+				      &stats_da,
+				      peer);
   }
-
-  prof_start_time = GNUNET_TIME_absolute_get ();
 
   search_timeout_task = GNUNET_SCHEDULER_add_delayed (search_timeout,
                                                       &do_connect_by_string_timeout, NULL);
@@ -827,7 +891,7 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
 
   if (++connected_mesh_handles == num_peers)
   {
-    printf ("Waiting %s before starting to search.\n",
+    printf ("\nWaiting %s before starting to search.\n",
 	    GNUNET_STRINGS_relative_time_to_string (search_delay, GNUNET_YES));
     fflush (stdout);
 
@@ -938,12 +1002,13 @@ peer_churn_cb (void *cls, const char *emsg)
 		GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
     result = GNUNET_OK;
 
-    if (0 == num_links)
-      num_links = num_peers * 5;
-
     peer_handles = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Peer *) * num_peers);
     for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
       peer_handles[peer_cnt] = peers[peer_cnt].peer_handle;
+
+    if (0 == linking_factor)
+      linking_factor = 1;
+    num_links = linking_factor * num_peers;
 
     state = STATE_PEERS_LINKING;
     /* Do overlay connect */
@@ -1155,7 +1220,7 @@ controller_event_cb (void *cls,
 	printf ("F");
 	fflush (stdout);
         retry_links++;
-	
+
         if (++cont_fails > num_cont_fails)
         {
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -1181,7 +1246,6 @@ controller_event_cb (void *cls,
         }
         if (++established_links == num_links)
         {
-	  printf ("\n");
 	  fflush (stdout);
           prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
           GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -1219,16 +1283,6 @@ controller_event_cb (void *cls,
                                               &mesh_ca,
                                               &mesh_da,
                                               &peers[peer_cnt]);
-
-            peers[peer_cnt].stats_op_handle =
-              GNUNET_TESTBED_service_connect (NULL,
-                                              peers[peer_cnt].peer_handle,
-                                              "statistics",
-                                              &stats_connect_cb,
-                                              &peers[peer_cnt],
-                                              &stats_ca,
-                                              &stats_da,
-                                              &peers[peer_cnt]);
           }
         }
       }
@@ -1238,6 +1292,8 @@ controller_event_cb (void *cls,
     }
     break;
   default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		"Unexpected controller_cb with state %i!\n", state);
     GNUNET_assert (0);
   }
 }
@@ -1539,9 +1595,9 @@ main (int argc, char *const *argv)
     {'d', "details", "FILENAME",
      gettext_noop ("name of the file for writing statistics"),
      1, &GNUNET_GETOPT_set_string, &data_filename},
-    { 'n', "num-links", "COUNT",
-      gettext_noop ("create COUNT number of random links"),
-      GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_links },
+    { 'n', "linking-factor", "FACTOR",
+      gettext_noop ("create FACTOR times number of peers random links"),
+      GNUNET_YES, &GNUNET_GETOPT_set_uint, &linking_factor },
     { 'e', "num-errors", "COUNT",
       gettext_noop ("tolerate COUNT number of continious timeout failures"),
       GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_cont_fails },
