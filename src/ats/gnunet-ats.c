@@ -26,16 +26,56 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_ats_service.h"
+#include "gnunet_transport_service.h"
+
+#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
  * Final status code.
  */
 static int ret;
 static int results;
+static int resolve_addresses_numeric;
 
 static struct GNUNET_ATS_PerformanceHandle *ph;
 
+static struct GNUNET_CONFIGURATION_Handle *cfg;
+
 GNUNET_SCHEDULER_TaskIdentifier end_task;
+
+struct PendingResolutions
+{
+  struct PendingResolutions *next;
+  struct PendingResolutions *prev;
+
+  struct GNUNET_HELLO_Address *address;
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
+
+  struct GNUNET_TRANSPORT_AddressToStringContext * tats_ctx;
+};
+
+struct PendingResolutions *head;
+struct PendingResolutions *tail;
+
+void transport_addr_to_str_cb (void *cls, const char *address)
+{
+  struct PendingResolutions * pr = cls;
+  if (NULL != address)
+  {
+      fprintf (stderr, _("Peer `%s' plugin `%s', address `%s', bandwidth out: %u Bytes/s, bandwidth in %u Bytes/s\n"),
+        GNUNET_i2s (&pr->address->peer), pr->address->transport_name, address,
+        ntohl (pr->bandwidth_out.value__), ntohl (pr->bandwidth_in.value__));
+  }
+  else if (NULL != pr)
+  {
+      /* We're done */
+      GNUNET_CONTAINER_DLL_remove (head, tail, pr);
+      GNUNET_free (pr->address);
+      GNUNET_free (pr);
+  }
+
+}
 
 void ats_perf_cb (void *cls,
                   const struct
@@ -51,22 +91,47 @@ void ats_perf_cb (void *cls,
                   GNUNET_ATS_Information *
                   ats, uint32_t ats_count)
 {
-  fprintf (stderr, "Peer `%s' plugin `%s', bandwidth out: %u Bytes/s, bandwidth in %u Bytes/s\n",
-      GNUNET_i2s (&address->peer), address->transport_name,
-      ntohl (bandwidth_out.value__), ntohl (bandwidth_in.value__));
+  struct PendingResolutions * pr;
+
+  pr = GNUNET_malloc (sizeof (struct PendingResolutions));
+  pr->address = GNUNET_HELLO_address_copy (address);
+  pr->bandwidth_in = bandwidth_in;
+  pr->bandwidth_out = bandwidth_out;
+  pr->tats_ctx = GNUNET_TRANSPORT_address_to_string(cfg, address,
+                    resolve_addresses_numeric, GNUNET_TIME_UNIT_FOREVER_REL, transport_addr_to_str_cb, pr);
+  GNUNET_CONTAINER_DLL_insert (head, tail, pr);
   results++;
 }
 
 void end (void *cls,
           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct PendingResolutions * pr;
+  struct PendingResolutions * next;
+  unsigned int pending;
+
   GNUNET_ATS_performance_done (ph);
   ph = NULL;
-  fprintf (stderr, "ATS returned results for %u addresses\n", results);
+
+  pending = 0;
+  next = head;
+  while (NULL != (pr = next))
+  {
+      next = pr->next;
+      GNUNET_CONTAINER_DLL_remove (head, tail, pr);
+      GNUNET_TRANSPORT_address_to_string_cancel (pr->tats_ctx);
+      GNUNET_free (pr->address);
+      GNUNET_free (pr);
+      pending ++;
+  }
+  if (0 < pending)
+    fprintf (stderr, _("%u address resolutions had a timeout\n"), pending);
+
+  fprintf (stderr, _("ATS returned results for %u addresses\n"), results);
   ret = 0;
 }
 
-void testservice_task (void *cls,
+void testservice_ats (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
@@ -77,11 +142,12 @@ void testservice_task (void *cls,
       return;
   }
 
+  results = 0;
   ph = GNUNET_ATS_performance_init (cfg, ats_perf_cb, NULL);
   if (NULL == ph)
-    fprintf (stderr, "Cannot connect to ATS service, exiting...\n");
+    fprintf (stderr, _("Cannot connect to ATS service, exiting...\n"));
 
-  end_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &end, NULL);
+  end_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end, NULL);
   ret = 1;
 }
 
@@ -95,11 +161,12 @@ void testservice_task (void *cls,
  */
 static void
 run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const struct GNUNET_CONFIGURATION_Handle *my_cfg)
 {
+  cfg = (struct GNUNET_CONFIGURATION_Handle *) my_cfg;
   GNUNET_CLIENT_service_test ("ats", cfg,
                               GNUNET_TIME_UNIT_MINUTES,
-                              &testservice_task,
+                              &testservice_ats,
                               (void *) cfg);
 }
 
@@ -115,7 +182,12 @@ int
 main (int argc, char *const *argv)
 {
   int res;
+  resolve_addresses_numeric = GNUNET_NO;
+
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+      {'n', "numeric", NULL,
+       gettext_noop ("do not resolve hostnames"),
+       0, &GNUNET_GETOPT_set_one, &resolve_addresses_numeric},
     GNUNET_GETOPT_OPTION_END
   };
 
