@@ -36,6 +36,7 @@
 static int ret;
 static int results;
 static int resolve_addresses_numeric;
+static int monitor;
 
 static struct GNUNET_ATS_PerformanceHandle *ph;
 
@@ -147,7 +148,10 @@ void testservice_ats (void *cls,
   if (NULL == ph)
     fprintf (stderr, _("Cannot connect to ATS service, exiting...\n"));
 
-  end_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end, NULL);
+  if (GNUNET_NO == monitor)
+    end_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end, NULL);
+  else
+    end_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &end, NULL);
   ret = 1;
 }
 
@@ -165,7 +169,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   cfg = (struct GNUNET_CONFIGURATION_Handle *) my_cfg;
   GNUNET_CLIENT_service_test ("ats", cfg,
-                              GNUNET_TIME_UNIT_MINUTES,
+                              TIMEOUT,
                               &testservice_ats,
                               (void *) cfg);
 }
@@ -183,11 +187,15 @@ main (int argc, char *const *argv)
 {
   int res;
   resolve_addresses_numeric = GNUNET_NO;
+  monitor = GNUNET_NO;
 
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
       {'n', "numeric", NULL,
        gettext_noop ("do not resolve hostnames"),
        0, &GNUNET_GETOPT_set_one, &resolve_addresses_numeric},
+       {'m', "monitor", NULL,
+        gettext_noop ("monitor mode"),
+        0, &GNUNET_GETOPT_set_one, &monitor},
     GNUNET_GETOPT_OPTION_END
   };
 
