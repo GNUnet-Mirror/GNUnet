@@ -158,7 +158,7 @@ run (void *cls,
   memset ((char *) rd.data, 'a', TEST_RECORD_DATALEN);
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
-  nseq = GNUNET_NAMESTORE_record_put (nsh, &pubkey, name,
+  nsqe = GNUNET_NAMESTORE_record_put (nsh, &pubkey, name,
 				      GNUNET_TIME_UNIT_FOREVER_ABS,
 				      1, &rd, &signature, &put_cont, (void*) name);
   GNUNET_free ((void *)rd.data);
