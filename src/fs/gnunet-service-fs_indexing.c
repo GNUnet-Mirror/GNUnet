@@ -231,7 +231,7 @@ signal_index_ok (struct IndexInfo *ii)
   {
     ir = GNUNET_CONTAINER_multihashmap_get (ifm,
 					    &ii->file_id);
-    GNUNET_assert (NULL != ii);
+    GNUNET_assert (NULL != ir);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _
                 ("Index request received for file `%s' is already indexed as `%s'.  Permitting anyway.\n"),
@@ -529,6 +529,11 @@ GNUNET_FS_handle_on_demand_block (const struct GNUNET_HashCode * key, uint32_t s
   odb = (const struct OnDemandBlock *) data;
   off = GNUNET_ntohll (odb->offset);
   ii = GNUNET_CONTAINER_multihashmap_get (ifm, &odb->file_id);
+  if (NULL == ii)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   fn = ii->filename;
   if ((NULL == fn) || (0 != ACCESS (fn, R_OK)))
   {
