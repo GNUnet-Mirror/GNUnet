@@ -214,6 +214,7 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
                             GNUNET_NO);
 }
 
+
 static void
 peerinfo_it (void *cls,
              const struct GNUNET_PeerIdentity *id,
@@ -240,10 +241,18 @@ peerinfo_it (void *cls,
 
 }
 
+
+/**
+ * Iterator for GAS_performance_add_client
+ *
+ * @param cls the client requesting information
+ * @param id result
+ */
 static void
 peer_it (void *cls,
          const struct GNUNET_PeerIdentity *id)
 {
+  struct PerformanceClient *pc = cls;
   if (NULL != id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for peer `%s'\n", GNUNET_i2s (id));

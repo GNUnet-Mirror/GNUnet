@@ -1085,7 +1085,7 @@ peer_it (void *cls,
  * @param p_it_cls the closure for the iterator
  */
 void
-GAS_addresses_iterate_peers (GNUNET_ATS_Peer_Iterator it, void *it_cls)
+GAS_addresses_iterate_peers (GNUNET_ATS_Peer_Iterator p_it, void *p_it_cls)
 {
   struct PeerIteratorContext ip_ctx;
   unsigned int size;
@@ -1133,8 +1133,9 @@ int peerinfo_it (void *cls,
 /**
  * Return all peers currently known to ATS
  *
- * @param p_it the iterator to call for every peer
- * @param p_it_cls the closure for the iterator
+ * @param peer the respective peer
+ * @param pi_it the iterator to call for every peer
+ * @param pi_it_cls the closure for the iterator
  */
 void
 GAS_addresses_get_peer_info (const struct GNUNET_PeerIdentity *peer, GNUNET_ATS_PeerInfo_Iterator pi_it, void *pi_it_cls)
