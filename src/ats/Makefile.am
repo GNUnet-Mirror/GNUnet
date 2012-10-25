@@ -37,8 +37,7 @@ libgnunetats_la_LDFLAGS = \
 
 
 bin_PROGRAMS = \
- gnunet-service-ats \
- gnunet-ats 
+ gnunet-service-ats
 
 gnunet_service_ats_SOURCES = \
  gnunet-service-ats.c gnunet-service-ats.h\
@@ -54,18 +53,6 @@ gnunet_service_ats_LDADD = \
   $(GN_LIBINTL)
 gnunet_service_ats_DEPENDENCIES = \
   libgnunetats.la
-
-gnunet_ats_SOURCES = \
- gnunet-ats.c gnunet-service-ats.h
-gnunet_ats_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/ats/libgnunetats.la \
-  $(top_builddir)/src/transport/libgnunettransport.la \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(GN_LIBINTL)  
-gnunet_ats_DEPENDENCIES = \
-  libgnunetats.la
-
 
 check_PROGRAMS = \
  test_ats_api_scheduling_add_address \
