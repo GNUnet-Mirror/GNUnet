@@ -43,6 +43,7 @@ SUBDIRS = \
   nat \
   fragmentation \
   transport \
+  ats-tool \
   peerinfo-tool \
   core \
   testbed \

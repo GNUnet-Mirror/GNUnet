@@ -1147,6 +1147,7 @@ src/arm/Makefile
 src/arm/arm.conf
 src/ats/Makefile
 src/ats/ats.conf
+src/ats-tool/Makefile
 src/block/Makefile
 src/chat/Makefile
 src/chat/chat.conf
