@@ -19,7 +19,7 @@
 */
 
 /**
- * @file ats/gnunet-ats.c
+ * @file ats-tool/gnunet-ats.c
  * @brief ATS command line tool
  * @author Matthias Wachs
  */
@@ -161,7 +161,7 @@ void testservice_ats (void *cls,
  * @param cls closure
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param cfg configuration
+ * @param my_cfg configuration
  */
 static void
 run (void *cls, char *const *args, const char *cfgfile,
