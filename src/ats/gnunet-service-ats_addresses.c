@@ -1090,20 +1090,20 @@ GAS_addresses_iterate_peers (GNUNET_ATS_Peer_Iterator p_it, void *p_it_cls)
   struct PeerIteratorContext ip_ctx;
   unsigned int size;
 
-  if (NULL == it)
+  if (NULL == p_it)
       return;
   GNUNET_assert (NULL != addresses);
 
   size = GNUNET_CONTAINER_multihashmap_size(addresses);
   if (0 != size)
   {
-    ip_ctx.it = it;
-    ip_ctx.it_cls = it_cls;
+    ip_ctx.it = p_it;
+    ip_ctx.it_cls = p_it_cls;
     ip_ctx.peers_returned = GNUNET_CONTAINER_multihashmap_create (size, GNUNET_NO);
     GNUNET_CONTAINER_multihashmap_iterate (addresses, &peer_it, &ip_ctx);
     GNUNET_CONTAINER_multihashmap_destroy (ip_ctx.peers_returned);
   }
-  it (it_cls, NULL);
+  p_it (p_it_cls, NULL);
 }
 
 struct PeerInfoIteratorContext
