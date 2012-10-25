@@ -1078,7 +1078,12 @@ peer_it (void *cls,
   return GNUNET_OK;
 }
 
-
+/**
+ * Return all peers currently known to ATS
+ *
+ * @param p_it the iterator to call for every peer
+ * @param p_it_cls the closure for the iterator
+ */
 void
 GAS_addresses_iterate_peers (GNUNET_ATS_Peer_Iterator it, void *it_cls)
 {
@@ -1125,6 +1130,12 @@ int peerinfo_it (void *cls,
   return GNUNET_YES;
 }
 
+/**
+ * Return all peers currently known to ATS
+ *
+ * @param p_it the iterator to call for every peer
+ * @param p_it_cls the closure for the iterator
+ */
 void
 GAS_addresses_get_peer_info (const struct GNUNET_PeerIdentity *peer, GNUNET_ATS_PeerInfo_Iterator pi_it, void *pi_it_cls)
 {
