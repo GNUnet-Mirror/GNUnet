@@ -92,7 +92,7 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
     }
 
     /* Match string using DFA */
-    dfa = GNUNET_REGEX_construct_dfa (rand_rx, strlen (rand_rx));
+    dfa = GNUNET_REGEX_construct_dfa (rand_rx, strlen (rand_rx), 0);
     if (NULL == dfa)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Constructing DFA failed\n");
@@ -123,7 +123,7 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
 
     /* Match canonical regex */
     dfa =
-        GNUNET_REGEX_construct_dfa (canonical_regex, strlen (canonical_regex));
+      GNUNET_REGEX_construct_dfa (canonical_regex, strlen (canonical_regex), 0);
     if (NULL == dfa)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Constructing DFA failed\n");
@@ -333,12 +333,12 @@ main (int argc, char *argv[])
     GNUNET_REGEX_automaton_destroy (a);
 
     /* DFA test */
-    a = GNUNET_REGEX_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex));
+    a = GNUNET_REGEX_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex), 0);
     check_dfa += test_automaton (a, &rx, &rxstr[i]);
     check_proof = GNUNET_strdup (GNUNET_REGEX_get_canonical_regex (a));
     GNUNET_REGEX_automaton_destroy (a);
 
-    a = GNUNET_REGEX_construct_dfa (check_proof, strlen (check_proof));
+    a = GNUNET_REGEX_construct_dfa (check_proof, strlen (check_proof), 0);
     check_dfa += test_automaton (a, &rx, &rxstr[i]);
     GNUNET_REGEX_automaton_destroy (a);
     if (0 != check_dfa)

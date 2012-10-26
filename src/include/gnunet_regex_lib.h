@@ -41,7 +41,7 @@ extern "C"
 /**
  * Constant for how many bits the initial string regex should have.
  */
-#define GNUNET_REGEX_INITIAL_BITS 24
+#define GNUNET_REGEX_INITIAL_BYTES 24
 
 
 /**
@@ -80,27 +80,25 @@ struct GNUNET_REGEX_Edge
 
 
 /**
- * Construct an NFA by parsing the regex string of length 'len'.
- *
- * @param regex regular expression string.
- * @param len length of the string.
- *
- * @return NFA, needs to be freed using GNUNET_REGEX_destroy_automaton.
- */
-struct GNUNET_REGEX_Automaton *
-GNUNET_REGEX_construct_nfa (const char *regex, const size_t len);
-
-
-/**
  * Construct DFA for the given 'regex' of length 'len'.
+ *
+ * Path compression means, that for example a DFA o -> a -> b -> c -> o will be
+ * compressed to o -> abc -> o. Note that this parameter influences the
+ * non-determinism of states of the resulting NFA in the DHT (number of outgoing
+ * edges with the same label). For example for an application that stores IPv4
+ * addresses as bitstrings it could make sense to limit the path compression to
+ * 4 or 8.
  *
  * @param regex regular expression string.
  * @param len length of the regular expression.
- *
- * @return DFA, needs to be freed using GNUNET_REGEX_destroy_automaton.
+ * @param max_path_len limit the path compression length to the
+ *        given value. If set to 1, no path compression is applied. Set to 0 for
+ *        maximal possible path compression (generally not desireable).
+ * @return DFA, needs to be freed using GNUNET_REGEX_automaton_destroy.
  */
 struct GNUNET_REGEX_Automaton *
-GNUNET_REGEX_construct_dfa (const char *regex, const size_t len);
+GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
+                            int max_path_len);
 
 
 /**

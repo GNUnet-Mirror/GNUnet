@@ -19,6 +19,20 @@ libgnunetregex_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
    -version-info 0:0:0
 
+if HAVE_MYSQL
+noinst_PROGRAMS = \
+gnunet-regex-simulation-profiler
+
+gnunet_regex_simulation_profiler_SOURCES = \
+  gnunet-regex-simulation-profiler.c
+gnunet_regex_simulation_profiler_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/regex/libgnunetregex.la \
+  $(top_builddir)/src/mysql/libgnunetmysql.la
+gnunet_regex_simulation_profiler_DEPENDENCIES = \
+  libgnunetregex.la
+endif
+
 check_PROGRAMS = \
   test_regex_eval_api \
   test_regex_iterate_api \

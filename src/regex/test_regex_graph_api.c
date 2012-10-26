@@ -26,6 +26,7 @@
 #include <time.h>
 #include "platform.h"
 #include "gnunet_regex_lib.h"
+#include "regex_internal.h"
 
 #define KEEP_FILES 0
 
@@ -134,19 +135,19 @@ main (int argc, char *argv[])
 
 
     // Check DFA graph creation
-    a = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]));
+    a = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]), 0);
     GNUNET_REGEX_automaton_save_graph (a, filename, GNUNET_REGEX_GRAPH_DEFAULT);
     GNUNET_REGEX_automaton_destroy (a);
     error += filecheck (filename);
 
-    a = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]));
+    a = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]), 0);
     GNUNET_REGEX_automaton_save_graph (a, filename,
                                        GNUNET_REGEX_GRAPH_DEFAULT |
                                        GNUNET_REGEX_GRAPH_VERBOSE);
     GNUNET_REGEX_automaton_destroy (a);
     error += filecheck (filename);
 
-    a = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]));
+    a = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]), 0);
     GNUNET_REGEX_automaton_save_graph (a, filename,
                                        GNUNET_REGEX_GRAPH_DEFAULT |
                                        GNUNET_REGEX_GRAPH_COLORING);
@@ -154,7 +155,7 @@ main (int argc, char *argv[])
     error += filecheck (filename);
 
 
-    a = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]));
+    a = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]), 0);
     GNUNET_REGEX_automaton_save_graph (a, filename, GNUNET_REGEX_GRAPH_DEFAULT);        //|
     //                               GNUNET_REGEX_GRAPH_VERBOSE |
     //GNUNET_REGEX_GRAPH_COLORING);

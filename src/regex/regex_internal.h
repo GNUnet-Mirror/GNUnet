@@ -267,6 +267,18 @@ struct GNUNET_REGEX_Automaton
 
 
 /**
+ * Construct an NFA by parsing the regex string of length 'len'.
+ *
+ * @param regex regular expression string.
+ * @param len length of the string.
+ *
+ * @return NFA, needs to be freed using GNUNET_REGEX_automaton_destroy.
+ */
+struct GNUNET_REGEX_Automaton *
+GNUNET_REGEX_construct_nfa (const char *regex, const size_t len);
+
+
+/**
  * Function that get's passed to automaton traversal and is called before each
  * next traversal from state 's' using transition 't' to check if traversal
  * should proceed. Return GNUNET_NO to stop traversal or GNUNET_YES to continue.

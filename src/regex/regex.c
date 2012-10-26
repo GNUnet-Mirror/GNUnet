@@ -1687,7 +1687,7 @@ dfa_compress_paths_helper (struct GNUNET_REGEX_Automaton *dfa,
 //        || cur->transition_count > 1
         || GNUNET_YES == cur->marked) || (start != dfa->start && max_len > 0 &&
                                           max_len == strlen (label)) ||
-       (start == dfa->start && GNUNET_REGEX_INITIAL_BITS == strlen (label))))
+       (start == dfa->start && GNUNET_REGEX_INITIAL_BYTES == strlen (label))))
   {
     t = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Transition));
     t->label = GNUNET_strdup (label);
@@ -2482,17 +2482,26 @@ construct_dfa_states (struct GNUNET_REGEX_Context *ctx,
   }
 }
 
-
 /**
- * Construct DFA for the given 'regex' of length 'len'
+ * Construct DFA for the given 'regex' of length 'len'.
  *
- * @param regex regular expression string
- * @param len length of the regular expression
+ * Path compression means, that for example a DFA o -> a -> b -> c -> o will be
+ * compressed to o -> abc -> o. Note that this parameter influences the
+ * non-determinism of states of the resulting NFA in the DHT (number of outgoing
+ * edges with the same label). For example for an application that stores IPv4
+ * addresses as bitstrings it could make sense to limit the path compression to
+ * 4 or 8.
  *
- * @return DFA, needs to be freed using GNUNET_REGEX_destroy_automaton
+ * @param regex regular expression string.
+ * @param len length of the regular expression.
+ * @param max_path_len limit the path compression length to the
+ *        given value. If set to 1, no path compression is applied. Set to 0 for
+ *        maximal possible path compression (generally not desireable).
+ * @return DFA, needs to be freed using GNUNET_REGEX_automaton_destroy.
  */
 struct GNUNET_REGEX_Automaton *
-GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
+GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
+                            int max_path_len)
 {
   struct GNUNET_REGEX_Context ctx;
   struct GNUNET_REGEX_Automaton *dfa;
@@ -2535,7 +2544,8 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
   automaton_create_proofs (dfa);
 
   // Compress DFA paths
-  dfa_compress_paths (&ctx, dfa, 8);
+  if (1 != max_path_len)
+    dfa_compress_paths (&ctx, dfa, max_path_len);
 
   // Add strides to DFA
   //GNUNET_REGEX_dfa_add_multi_strides (&ctx, dfa, 2);
@@ -2770,7 +2780,7 @@ GNUNET_REGEX_get_first_key (const char *input_string, size_t string_len,
 
   size =
       string_len <
-      GNUNET_REGEX_INITIAL_BITS ? string_len : GNUNET_REGEX_INITIAL_BITS;
+      GNUNET_REGEX_INITIAL_BYTES ? string_len : GNUNET_REGEX_INITIAL_BYTES;
 
   if (NULL == input_string)
   {
@@ -2931,7 +2941,7 @@ GNUNET_REGEX_iterate_all_edges (struct GNUNET_REGEX_Automaton *a,
     s->marked = GNUNET_NO;
   }
 
-  iterate_initial_edge (GNUNET_REGEX_INITIAL_BITS, GNUNET_REGEX_INITIAL_BITS,
+  iterate_initial_edge (GNUNET_REGEX_INITIAL_BYTES, GNUNET_REGEX_INITIAL_BYTES,
                         NULL, a->start, iterator, iterator_cls);
 }
 

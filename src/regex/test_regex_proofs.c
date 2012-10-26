@@ -46,10 +46,10 @@ test_proof (const char *regex)
   char *c_rx1;
   const char *c_rx2;
 
-  dfa = GNUNET_REGEX_construct_dfa (regex, strlen (regex));
+  dfa = GNUNET_REGEX_construct_dfa (regex, strlen (regex), 1);
   c_rx1 = GNUNET_strdup (GNUNET_REGEX_get_canonical_regex (dfa));
   GNUNET_REGEX_automaton_destroy (dfa);
-  dfa = GNUNET_REGEX_construct_dfa (c_rx1, strlen (c_rx1));
+  dfa = GNUNET_REGEX_construct_dfa (c_rx1, strlen (c_rx1), 1);
   c_rx2 = GNUNET_REGEX_get_canonical_regex (dfa);
 
   error = (0 == strcmp (c_rx1, c_rx2)) ? 0 : 1;
@@ -126,8 +126,8 @@ test_proofs_static (void)
 
   for (i = 0; i < 8; i += 2)
   {
-    dfa1 = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]));
-    dfa2 = GNUNET_REGEX_construct_dfa (regex[i + 1], strlen (regex[i + 1]));
+    dfa1 = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]), 1);
+    dfa2 = GNUNET_REGEX_construct_dfa (regex[i + 1], strlen (regex[i + 1]), 1);
 
     canon_rx1 = GNUNET_REGEX_get_canonical_regex (dfa1);
     canon_rx2 = GNUNET_REGEX_get_canonical_regex (dfa2);

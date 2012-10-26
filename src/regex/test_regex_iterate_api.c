@@ -188,7 +188,7 @@ main (int argc, char *argv[])
     ctx.string_count = rxstr[i].string_count;
     ctx.strings = rxstr[i].strings;
     ctx.match_count = 0;
-    dfa = GNUNET_REGEX_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex));
+    dfa = GNUNET_REGEX_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex), 0);
     GNUNET_REGEX_iterate_all_edges (dfa, key_iterator, &ctx);
     num_transitions =
         GNUNET_REGEX_get_transition_count (dfa) - dfa->start->transition_count;
@@ -234,7 +234,7 @@ main (int argc, char *argv[])
     ctx.strings = rxstr[i].strings;
     ctx.match_count = 0;
 
-    dfa = GNUNET_REGEX_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex));
+    dfa = GNUNET_REGEX_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex), 0);
     GNUNET_REGEX_dfa_add_multi_strides (NULL, dfa, 2);
     GNUNET_REGEX_iterate_all_edges (dfa, key_iterator, &ctx);
 
