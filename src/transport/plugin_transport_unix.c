@@ -605,8 +605,10 @@ unix_real_send (void *cls,
   {
     if (sent == GNUNET_SYSERR)
       cont (cont_cls, target, GNUNET_SYSERR, payload, 0);
-    if (sent > 0)
+    else if (sent > 0)
       cont (cont_cls, target, GNUNET_OK, payload, msgbuf_size);
+    else
+      GNUNET_break (0);
   }
 
   /* return number of bytes successfully sent */
