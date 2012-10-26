@@ -6733,10 +6733,13 @@ handle_local_announce_regex (void *cls, struct GNUNET_SERVER_Client *client,
   msg = (struct GNUNET_MESH_RegexAnnounce *) message;
   len = ntohs (message->size) - sizeof(struct GNUNET_MESH_RegexAnnounce);
   regex = GNUNET_malloc (len + 1);
-  memcpy (regex, &message[1], len);
+  memcpy (regex, &msg[1], len);
   regex[len] = '\0';
   rd.regex = regex;
   rd.compression = ntohs (msg->compression_characters);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  length %u\n", len);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  regex %s\n", regex);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  cm %u\n", ntohs(rd.compression));
   GNUNET_array_append (c->regexes, c->n_regex, rd);
   if (GNUNET_SCHEDULER_NO_TASK == c->regex_announce_task)
   {

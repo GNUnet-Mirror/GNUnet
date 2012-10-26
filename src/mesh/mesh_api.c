@@ -1152,7 +1152,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  pid %u\n", pid);
   if (NULL == t)
   {
-    /* Tunnel was ignored, probably service didn't get it yet */
+    /* Tunnel was ignored/destroyed, probably service didn't get it yet */
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  ignored!\n");
     return GNUNET_YES;
   }
