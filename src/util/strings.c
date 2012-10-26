@@ -688,11 +688,11 @@ GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t)
   struct tm *tp;
 
   if (t.abs_value == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
-    return GNUNET_strdup (_("end of time"));
+    return _("end of time");
   tt = t.abs_value / 1000;
   tp = gmtime (&tt);
   strftime (buf, sizeof (buf), "%a %b %d %H:%M:%S %Y", tp);
-  return GNUNET_strdup (buf);
+  return buf;
 }
 
 
