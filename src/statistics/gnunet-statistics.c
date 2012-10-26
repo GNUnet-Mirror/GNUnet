@@ -63,6 +63,15 @@ static int watch;
  */
 static int quiet;
 
+/**
+ * Remote host
+ */
+static char *remote_host;
+
+/**
+ * Remote host's port
+ */
+static unsigned long long  remote_port;
 
 /**
  * Callback function to process statistic values.
@@ -115,9 +124,14 @@ printer (void *cls, const char *subsystem, const char *name, uint64_t value,
 static void
 cleanup (void *cls, int success)
 {
+
   if (success != GNUNET_OK)
   {
-    FPRINTF (stderr, "%s", _("Failed to obtain statistics.\n"));
+    if (NULL == remote_host)
+      FPRINTF (stderr, "%s", _("Failed to obtain statistics.\n"));
+    else
+      FPRINTF (stderr,  _("Failed to obtain statistics from host `%s:%llu'\n"),
+              remote_host, remote_port);
     ret = 1;
   }
   GNUNET_SCHEDULER_shutdown ();
@@ -129,9 +143,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_STATISTICS_Handle *h = cls;
 
-  GNUNET_STATISTICS_watch_cancel (h, subsystem, name, &printer, h);
   if (NULL != h)
   {
+    GNUNET_STATISTICS_watch_cancel (h, subsystem, name, &printer, h);
     GNUNET_STATISTICS_destroy (h, GNUNET_NO);
     h = NULL;
   }
@@ -152,6 +166,29 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   struct GNUNET_STATISTICS_Handle *h;
   unsigned long long val;
+
+  if (NULL != remote_host)
+  {
+      /* connect to a remote host */
+      if (0 == remote_port)
+      {
+        if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg, "statistics", "PORT", &remote_port))
+        {
+          FPRINTF (stderr, _("A port is required to connect to host `%s'\n"), remote_host);
+          return;
+        }
+      }
+      else if (65535 <= remote_port)
+      {
+          FPRINTF (stderr, _("A port has to be between 1 and 65535 to connect to host `%s'\n"), remote_host);
+          return;
+      }
+
+      /* Manipulate configuration */
+      GNUNET_CONFIGURATION_set_value_string ((struct GNUNET_CONFIGURATION_Handle *) cfg, "statistics", "UNIXPATH", "");
+      GNUNET_CONFIGURATION_set_value_string ((struct GNUNET_CONFIGURATION_Handle *) cfg, "statistics", "HOSTNAME", remote_host);
+      GNUNET_CONFIGURATION_set_value_number ((struct GNUNET_CONFIGURATION_Handle *) cfg, "statistics", "PORT", remote_port);
+  }
 
   if (args[0] != NULL)
   {
@@ -174,6 +211,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
   h = GNUNET_STATISTICS_create ("gnunet-statistics", cfg);
+  GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, h);
   if (NULL == h)
   {
     ret = 1;
@@ -202,7 +240,6 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_SCHEDULER_add_now (&shutdown_task, h);
       return;
     }
-    GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, h);
   }
 }
 
@@ -232,9 +269,17 @@ main (int argc, char *const *argv)
     {'w', "watch", NULL,
      gettext_noop ("watch value continuously"), 0,
      &GNUNET_GETOPT_set_one, &watch},
+     {'r', "remote", NULL,
+      gettext_noop ("connect to remote host"), 1,
+      &GNUNET_GETOPT_set_string, &remote_host},
+    {'o', "port", NULL,
+     gettext_noop ("port for remote host"), 1,
+     &GNUNET_GETOPT_set_uint, &remote_port},
     GNUNET_GETOPT_OPTION_END
   };
 
+  remote_port = 0;
+  remote_host = NULL;
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
@@ -243,6 +288,8 @@ main (int argc, char *const *argv)
                               gettext_noop
                               ("Print statistics about GNUnet operations."),
                               options, &run, NULL)) ? ret : 1;
+
+  GNUNET_free_non_null(remote_host);
 }
 
 /* end of gnunet-statistics.c */
