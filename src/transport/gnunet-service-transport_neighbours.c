@@ -1155,8 +1155,10 @@ transmit_send_continuation (void *cls,
   if (bytes_in_send_queue < mq->message_buf_size)
   {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Bytes_in_send_queue `%u', Message_size %u\n",
-                  bytes_in_send_queue, mq->message_buf_size);
+                  "Bytes_in_send_queue `%u', Message_size %u, result: %s, payload %u, on wire %u\n",
+                  bytes_in_send_queue, mq->message_buf_size,
+                  (GNUNET_OK == success) ? "OK" : "FAIL",
+               	  size_payload, physical);
       GNUNET_break (0);
   }
 

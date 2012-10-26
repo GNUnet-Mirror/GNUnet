@@ -736,7 +736,7 @@ call_continuation (struct UDP_MessageWrapper *udpw, int result)
           {
             /* Transport continuation */
             udpw->cont (udpw->cont_cls, &udpw->session->target, result,
-                      udpw->payload_size, overhead);
+                      udpw->payload_size, udpw->msg_size);
           }
           GNUNET_STATISTICS_update (plugin->env->stats,
                                     "# UDP, unfragmented msgs, messages, sent, success",
