@@ -340,6 +340,16 @@ struct MacEndpoint
   struct GNUNET_TRANSPORT_WLAN_MacAddress addr;
 
   /**
+   * Message delay for fragmentation context
+   */
+  struct GNUNET_TIME_Relative msg_delay;
+
+  /**
+   * ACK delay for fragmentation context
+   */
+  struct GNUNET_TIME_Relative ack_delay;
+
+  /**
    * Desired transmission power for this MAC
    */
   uint16_t tx_power;
@@ -790,7 +800,9 @@ free_fragment_message (struct FragmentMessage *fm)
     GNUNET_HELPER_send_cancel (fm->sh);
     fm->sh = NULL;
   }
-  GNUNET_FRAGMENT_context_destroy (fm->fragcontext, NULL, NULL);
+  GNUNET_FRAGMENT_context_destroy (fm->fragcontext,
+		  	  	  	  	  	  	   &endpoint->msg_delay,
+		  	  	  	  	  	  	   &endpoint->ack_delay);
   if (fm->timeout_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (fm->timeout_task);
@@ -861,9 +873,8 @@ send_with_fragmentation (struct MacEndpoint *endpoint,
   fm->fragcontext =
     GNUNET_FRAGMENT_context_create (plugin->env->stats, WLAN_MTU,
 				    &plugin->tracker,
-				    GNUNET_TIME_UNIT_MILLISECONDS,
-				    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-								   100),
+				    endpoint->msg_delay,
+				    endpoint->ack_delay,
 				    msg,
 				    &transmit_fragment, fm);
   fm->timeout_task =
@@ -963,6 +974,10 @@ create_macendpoint (struct Plugin *plugin,
 				      pos, 
 				      &wlan_data_message_handler,
 				      &send_ack);
+
+  pos->msg_delay = GNUNET_TIME_UNIT_MILLISECONDS;
+  pos->ack_delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+		   	   	   	   	   	   	   	   	   	   	  100);
   pos->timeout = GNUNET_TIME_relative_to_absolute (MACENDPOINT_TIMEOUT);
   pos->timeout_task =
       GNUNET_SCHEDULER_add_delayed (MACENDPOINT_TIMEOUT, &macendpoint_timeout,
