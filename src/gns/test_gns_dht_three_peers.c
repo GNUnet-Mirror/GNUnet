@@ -107,12 +107,12 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     if (NULL != get_cfg_ops[c])
     {
-        GNUNET_TESTBED_operation_cancel(get_cfg_ops[c]);
+        GNUNET_TESTBED_operation_done(get_cfg_ops[c]);
         get_cfg_ops[c] = NULL;
     }
     if (NULL != connect_ops[c])
     {
-        GNUNET_TESTBED_operation_cancel(connect_ops[c]);
+        GNUNET_TESTBED_operation_done(connect_ops[c]);
         connect_ops[c] = NULL;
     }
     if (NULL != cfg_handles[c])

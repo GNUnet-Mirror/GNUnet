@@ -1188,26 +1188,25 @@ GNUNET_TESTBED_service_connect (void *op_cls,
 
 
 /**
- * Cancel a pending operation.  Releases all resources
- * of the operation and will ensure that no event
- * is generated for the operation.  Does NOT guarantee
- * that the operation will be fully undone (or that
- * nothing ever happened).
+ * This function is used to signal that the event information (struct
+ * GNUNET_TESTBED_EventInformation) from an operation has been fully processed
+ * i.e. if the event callback is ever called for this operation. If the event
+ * callback for this operation has not yet been called, calling this function
+ * cancels the operation, frees its resources and ensures the no event is
+ * generated with respect to this operation. Note that however cancelling an
+ * operation does NOT guarantee that the operation will be fully undone (or that
+ * nothing ever happened). 
  *
- * @param operation operation to cancel
- */
-void
-GNUNET_TESTBED_operation_cancel (struct GNUNET_TESTBED_Operation *operation);
+ * This function MUST be called for every operation to fully remove the
+ * operation from the operation queue.  After calling this function, if
+ * operation is completed and its event information is of type
+ * GNUNET_TESTBED_ET_OPERATION_FINISHED, the 'op_result' becomes invalid (!).
 
-
-/**
- * Signal that the information from an operation has been fully
- * processed.  This function MUST be called for each event
- * of type 'operation_finished' to fully remove the operation
- * from the operation queue.  After calling this function, the
- * 'op_result' becomes invalid (!).
+ * If the operation is generated from GNUNET_TESTBED_service_connect() then
+ * calling this function on such as operation calls the disconnect adapter if
+ * the connect adapter was ever called.
  *
- * @param operation operation to signal completion for
+ * @param operation operation to signal completion or cancellation
  */
 void
 GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation);

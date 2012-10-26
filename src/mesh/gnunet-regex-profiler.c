@@ -395,9 +395,9 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
   {
     if (NULL != peers[peer_cnt].mesh_op_handle)
-      GNUNET_TESTBED_operation_cancel (peers[peer_cnt].mesh_op_handle);
+      GNUNET_TESTBED_operation_done (peers[peer_cnt].mesh_op_handle);
     if (NULL != peers[peer_cnt].stats_op_handle)
-      GNUNET_TESTBED_operation_cancel (peers[peer_cnt].stats_op_handle);
+      GNUNET_TESTBED_operation_done (peers[peer_cnt].stats_op_handle);
   }
   for (search_str_cnt = 0; search_str_cnt < num_search_strings; search_str_cnt++)
   {
@@ -411,14 +411,14 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != reg_handle)
     GNUNET_TESTBED_cancel_registration (reg_handle);
   if (NULL != topology_op)
-    GNUNET_TESTBED_operation_cancel (topology_op);
+    GNUNET_TESTBED_operation_done (topology_op);
   for (nhost = 0; nhost < num_hosts; nhost++)
     if (NULL != hosts[nhost])
       GNUNET_TESTBED_host_destroy (hosts[nhost]);
   GNUNET_free_non_null (hosts);
   while (NULL != (dll_op = dll_op_head))
   {
-    GNUNET_TESTBED_operation_cancel (dll_op->op);
+    GNUNET_TESTBED_operation_done (dll_op->op);
     GNUNET_CONTAINER_DLL_remove (dll_op_head, dll_op_tail, dll_op);
     GNUNET_free (dll_op);
   }

@@ -271,7 +271,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
          _("Some operations are still pending. Cancelling them\n"));
     while (NULL != (dll_op = rc->dll_op_head))
     {
-      GNUNET_TESTBED_operation_cancel (dll_op->op);
+      GNUNET_TESTBED_operation_done (dll_op->op);
       GNUNET_CONTAINER_DLL_remove (rc->dll_op_head, rc->dll_op_tail, dll_op);
       GNUNET_free (dll_op);
     }

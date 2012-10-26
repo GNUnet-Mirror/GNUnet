@@ -212,7 +212,7 @@ publish_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Timeout while trying to publish data\n");
   if (NULL == po->fs)
-    GNUNET_TESTBED_operation_cancel (po->fs_op);
+    GNUNET_TESTBED_operation_done (po->fs_op);
   else
     GNUNET_TESTBED_operation_done (po->fs_op);
   GNUNET_FS_publish_stop (po->publish_context);
@@ -486,7 +486,7 @@ download_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                      dop->download_cont_cls,
                                      GNUNET_SCHEDULER_REASON_TIMEOUT);
   if (NULL == dop->fs)
-    GNUNET_TESTBED_operation_cancel (dop->fs_op);
+    GNUNET_TESTBED_operation_done (dop->fs_op);
   else
     GNUNET_TESTBED_operation_done (dop->fs_op);
   GNUNET_FS_uri_destroy (dop->uri);

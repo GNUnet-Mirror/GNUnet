@@ -177,7 +177,7 @@ oprelease_overlay_configure_topology (void *cls)
   {
     for (p = 0; p < tc->link_array_size; p++)
       if (NULL != tc->link_array[p].op)
-        GNUNET_TESTBED_operation_cancel (tc->link_array[p].op);
+        GNUNET_TESTBED_operation_done (tc->link_array[p].op);
     GNUNET_free (tc->link_array);
   }
   GNUNET_free (tc);

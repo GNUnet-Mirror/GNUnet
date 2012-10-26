@@ -3672,7 +3672,7 @@ reghost_free_iterator (void *cls,
     cleanup_focc (focc);
   }
   if (NULL != rhc->sub_op)
-    GNUNET_TESTBED_operation_cancel (rhc->sub_op);
+    GNUNET_TESTBED_operation_done (rhc->sub_op);
   if (NULL != rhc->client)
   GNUNET_SERVER_client_drop (rhc->client);
   GNUNET_free (value);
