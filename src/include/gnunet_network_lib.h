@@ -73,6 +73,16 @@ struct GNUNET_NETWORK_FDSet
 
 
 /**
+ * Test if the given protocol family is supported by this system.
+ *
+ * @param pf protocol family to test (PF_INET, PF_INET6, PF_UNIX)
+ * @return GNUNET_OK if the PF is supported
+ */
+int
+GNUNET_NETWORK_test_pf (int pf);
+
+
+/**
  * Given a unixpath that is too long (larger than UNIX_PATH_MAX),
  * shorten it to an acceptable length while keeping it unique
  * and making sure it remains a valid filename (if possible).

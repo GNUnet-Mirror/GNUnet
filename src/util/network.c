@@ -67,6 +67,34 @@ struct GNUNET_NETWORK_Handle
 
 
 /**
+ * Test if the given protocol family is supported by this system.
+ *
+ * @param pf protocol family to test (PF_INET, PF_INET6, PF_UNIX)
+ * @return GNUNET_OK if the PF is supported
+ */
+int
+GNUNET_NETWORK_test_pf (int pf)
+{
+  int s;
+
+  s = socket (pf, SOCK_STREAM, 0);
+  if (-1 == s)
+  {
+    if (EAFNOSUPPORT == errno)
+      return GNUNET_NO;
+    fprintf (stderr, "Failed to create test socket: %s\n", STRERROR (errno));
+    return GNUNET_SYSERR;
+  }
+#if WINDOWS
+  closesocket (s);
+#else
+  close (s);
+#endif
+  return GNUNET_OK;
+}
+
+
+/**
  * Given a unixpath that is too long (larger than UNIX_PATH_MAX),
  * shorten it to an acceptable length while keeping it unique
  * and making sure it remains a valid filename (if possible).

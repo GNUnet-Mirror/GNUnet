@@ -27,13 +27,31 @@
 
 #include "gnunet_gns_service.h"
 
+/**
+ * Name of the GADS TLD.
+ */
 #define GNUNET_GNS_TLD "gads"
-#define GNUNET_GNS_TLD_ZKEY "zkey"
-#define GNUNET_GNS_TLD_PLUS "+"
-#define GNUNET_GNS_DHT_MAX_UPDATE_INTERVAL 3600
 
+/**
+ * Name of the zone key TLD.
+ */
+#define GNUNET_GNS_TLD_ZKEY "zkey"
+
+/**
+ * TLD name used to indicate relative names.
+ */
+#define GNUNET_GNS_TLD_PLUS "+"
+
+/**
+ * Maximum length of a label in DNS.
+ */
 #define MAX_DNS_LABEL_LENGTH 63
+
+/**
+ * Maximum length of a name in DNS.
+ */
 #define MAX_DNS_NAME_LENGTH 253
+
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
@@ -43,7 +61,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct GNUNET_GNS_ClientLookupMessage
 {
   /**
-    * Header of type GNUNET_MESSAGE_TYPE_GNS_CLIENT_LOOKUP
+   * Header of type GNUNET_MESSAGE_TYPE_GNS_CLIENT_LOOKUP
    */
   struct GNUNET_MessageHeader header;
 
@@ -107,13 +125,14 @@ struct GNUNET_GNS_ClientLookupResultMessage
 
 };
 
+
 /**
  * Message from client to GNS service to shorten names.
  */
 struct GNUNET_GNS_ClientShortenMessage
 {
   /**
-    * Header of type GNUNET_MESSAGE_TYPE_GNS_CLIENT_SHORTEN
+   * Header of type GNUNET_MESSAGE_TYPE_GNS_CLIENT_SHORTEN
    */
   struct GNUNET_MessageHeader header;
 
@@ -152,7 +171,7 @@ struct GNUNET_GNS_ClientShortenMessage
 struct GNUNET_GNS_ClientShortenResultMessage
 {
   /**
-    * Header of type GNUNET_MESSAGE_TYPE_GNS_CLIENT_SHORTEN_RESULT
+   * Header of type GNUNET_MESSAGE_TYPE_GNS_CLIENT_SHORTEN_RESULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -165,13 +184,14 @@ struct GNUNET_GNS_ClientShortenResultMessage
 
 };
 
+
 /**
  * Message from client to GNS service to lookup an authority of a name.
  */
 struct GNUNET_GNS_ClientGetAuthMessage
 {
   /**
-    * Header of type GNUNET_MESSAGE_TYPE_GNS_CLIENT_GET_AUTH
+   * Header of type GNUNET_MESSAGE_TYPE_GNS_CLIENT_GET_AUTH
    */
   struct GNUNET_MessageHeader header;
 
@@ -190,7 +210,7 @@ struct GNUNET_GNS_ClientGetAuthMessage
 struct GNUNET_GNS_ClientGetAuthResultMessage
 {
   /**
-    * Header of type GNUNET_MESSAGE_TYPE_GNS_CLIENT_GET_AUTH_RESULT
+   * Header of type GNUNET_MESSAGE_TYPE_GNS_CLIENT_GET_AUTH_RESULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -202,6 +222,7 @@ struct GNUNET_GNS_ClientGetAuthResultMessage
   /* followed by the authority part of the name or '\0' for no result*/
 
 };
+
 GNUNET_NETWORK_STRUCT_END
 
 #endif

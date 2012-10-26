@@ -25,7 +25,9 @@
  *
  * This is just a first, completely untested, draft hack for future ECC support.
  * TODO:
- * - adjust encoding length and other parameters
+ * - fix public key generation; somehow the result is currently considered invalid by libgcrypt
+ *   => suspect that libgcrypt does NOT take pabgn from "CURVE" for public key if not
+ *      explicitly given!
  * - actually test it!
  */
 #include "platform.h"
@@ -62,26 +64,6 @@ struct GNUNET_CRYPTO_EccPrivateKey
    */
   gcry_sexp_t sexp;
 };
-
-
-/**
- * If target != size, move target bytes to the
- * end of the size-sized buffer and zero out the
- * first target-size bytes.
- *
- * @param buf original buffer
- * @param size number of bytes in the buffer
- * @param target target size of the buffer
- */
-static void
-adjust (unsigned char *buf, size_t size, size_t target)
-{
-  if (size < target)
-  {
-    memmove (&buf[target - size], buf, size);
-    memset (buf, 0, target - size);
-  }
-}
 
 
 /**
@@ -171,6 +153,7 @@ GNUNET_CRYPTO_ecc_key_get_public (const struct GNUNET_CRYPTO_EccPrivateKey *priv
   size_t size;
   int rc;
 
+  memset (pub, 0, sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
   rc = key_from_sexp (&skey, priv->sexp, "public-key", "q");
   if (rc)
     rc = key_from_sexp (&skey, priv->sexp, "private-key", "q");
@@ -183,7 +166,6 @@ GNUNET_CRYPTO_ecc_key_get_public (const struct GNUNET_CRYPTO_EccPrivateKey *priv
                  gcry_mpi_print (GCRYMPI_FMT_USG, pub->key, size, &size,
                                  skey));
   pub->len = htons (size);
-  adjust (&pub->key[0], size, GNUNET_CRYPTO_ECC_MAX_PUBLIC_KEY_LENGTH);
   gcry_mpi_release (skey);
 }
 
@@ -245,7 +227,7 @@ GNUNET_CRYPTO_ecc_public_key_from_string (const char *enc,
 						 sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded)))
     return GNUNET_SYSERR;
   if ( (ntohs (pub->size) != sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded)) ||
-       (ntohs (pub->len) > GNUNET_CRYPTO_ECC_DATA_ENCODING_LENGTH) )
+       (ntohs (pub->len) > GNUNET_CRYPTO_ECC_SIGNATURE_DATA_ENCODING_LENGTH) )
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }
@@ -267,24 +249,38 @@ decode_public_key (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *publicK
   size_t erroff;
   int rc;
 
-  if (ntohs (publicKey->len) > GNUNET_CRYPTO_ECC_DATA_ENCODING_LENGTH) 
+  if (ntohs (publicKey->len) > GNUNET_CRYPTO_ECC_SIGNATURE_DATA_ENCODING_LENGTH) 
   {
     GNUNET_break (0);
     return NULL;
   }
-  size = ntohs (publicKey->size);
+  size = ntohs (publicKey->len);
   if (0 != (rc = gcry_mpi_scan (&q, GCRYMPI_FMT_USG, publicKey->key, size, &size)))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
     return NULL;
   }
-  rc = gcry_sexp_build (&result, &erroff, "(public-key(ecc((curve \"" CURVE "\")(q %m)))", q);
+
+  rc = gcry_sexp_build (&result, &erroff, 
+			"(public-key(ecdsa(curve \"" CURVE "\")(q %m)))",
+			q);
   gcry_mpi_release (q);
   if (0 != rc)
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);  /* erroff gives more info */
     return NULL;
   }
+  // FIXME: is this key expected to pass pk_testkey?
+#if 0
+#if EXTRA_CHECKS 
+  if (0 != (rc = gcry_pk_testkey (result)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
+    gcry_sexp_release (result);
+    return NULL;
+  }
+#endif
+#endif
   return result;
 }
 
@@ -386,7 +382,7 @@ ecc_key_create ()
   int rc;
 
   if (0 != (rc = gcry_sexp_build (&s_keyparam, NULL,
-                                  "(genkey(ecdsa(curve 10:NIST P-521)))")))
+                                  "(genkey(ecdsa(curve \"" CURVE "\")))")))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
     return NULL;
@@ -428,7 +424,7 @@ try_read_key (const char *filename)
   if (GNUNET_YES != GNUNET_DISK_file_test (filename))
     return NULL;
 
-  /* hostkey file exists already, read it! */
+  /* key file exists already, read it! */
   if (NULL == (fd = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
 					   GNUNET_DISK_PERM_NONE)))
   {
@@ -582,12 +578,9 @@ GNUNET_CRYPTO_ecc_key_create_from_file (const char *filename)
     GNUNET_assert (GNUNET_YES == GNUNET_DISK_file_close (fd));
     GNUNET_CRYPTO_ecc_key_get_public (ret, &pub);
     GNUNET_CRYPTO_hash (&pub, sizeof (pub), &pid.hashPubKey);
-    LOG (GNUNET_ERROR_TYPE_INFO,
-         _("I am host `%s'.  Stored new private key in `%s'.\n"),
-         GNUNET_i2s (&pid), filename);
     return ret;
   }
-  /* hostkey file exists already, read it! */
+  /* key file exists already, read it! */
   fd = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
                               GNUNET_DISK_PERM_NONE);
   if (NULL == fd)
@@ -611,7 +604,7 @@ GNUNET_CRYPTO_ecc_key_create_from_file (const char *filename)
              STRERROR (ec));
         LOG (GNUNET_ERROR_TYPE_ERROR,
              _
-             ("This may be ok if someone is currently generating a hostkey.\n"));
+             ("This may be ok if someone is currently generating a private key.\n"));
       }
       short_wait ();
       continue;
@@ -632,7 +625,7 @@ GNUNET_CRYPTO_ecc_key_create_from_file (const char *filename)
       fs = 0;
     if (fs < sizeof (struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded))
     {
-      /* maybe we got the read lock before the hostkey generating
+      /* maybe we got the read lock before the key generating
        * process had a chance to get the write lock; give it up! */
       if (GNUNET_YES !=
           GNUNET_DISK_file_unlock (fd, 0,
@@ -642,12 +635,12 @@ GNUNET_CRYPTO_ecc_key_create_from_file (const char *filename)
       {
         LOG (GNUNET_ERROR_TYPE_ERROR,
              _
-             ("When trying to read hostkey file `%s' I found %u bytes but I need at least %u.\n"),
+             ("When trying to read key file `%s' I found %u bytes but I need at least %u.\n"),
              filename, (unsigned int) fs,
              (unsigned int) sizeof (struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded));
         LOG (GNUNET_ERROR_TYPE_ERROR,
              _
-             ("This may be ok if someone is currently generating a hostkey.\n"));
+             ("This may be ok if someone is currently generating a key.\n"));
       }
       short_wait ();                /* wait a bit longer! */
       continue;
@@ -679,9 +672,6 @@ GNUNET_CRYPTO_ecc_key_create_from_file (const char *filename)
   {
     GNUNET_CRYPTO_ecc_key_get_public (ret, &pub);
     GNUNET_CRYPTO_hash (&pub, sizeof (pub), &pid.hashPubKey);
-    LOG (GNUNET_ERROR_TYPE_INFO,
-         _("I am host `%s'.  Read private key from `%s'.\n"), GNUNET_i2s (&pid),
-         filename);
   }
   return ret;
 }
@@ -909,15 +899,15 @@ GNUNET_CRYPTO_ecc_key_create_start (const char *filename,
 
 
 /**
- * Setup a hostkey file for a peer given the name of the
+ * Setup a key file for a peer given the name of the
  * configuration file (!).  This function is used so that
  * at a later point code can be certain that reading a
- * hostkey is fast (for example in time-dependent testcases).
+ * key is fast (for example in time-dependent testcases).
  *
  * @param cfg_name name of the configuration file to use
  */
 void
-GNUNET_CRYPTO_ecc_setup_hostkey (const char *cfg_name)
+GNUNET_CRYPTO_ecc_setup_key (const char *cfg_name)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_CRYPTO_EccPrivateKey *pk;
@@ -947,12 +937,12 @@ GNUNET_CRYPTO_ecc_setup_hostkey (const char *cfg_name)
 static gcry_sexp_t
 data_to_pkcs1 (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
 {
-  struct GNUNET_HashCode hc;
+  struct GNUNET_CRYPTO_ShortHashCode hc;
   size_t bufSize;
   gcry_sexp_t data;
 
-  GNUNET_CRYPTO_hash (purpose, ntohl (purpose->size), &hc);
-#define FORMATSTRING "(4:data(5:flags5:pkcs1)(4:hash6:sha51264:0123456789012345678901234567890123456789012345678901234567890123))"
+  GNUNET_CRYPTO_short_hash (purpose, ntohl (purpose->size), &hc);
+#define FORMATSTRING "(4:data(5:flags5:pkcs1)(4:hash6:sha25632:01234567890123456789012345678901))"
   bufSize = strlen (FORMATSTRING) + 1;
   {
     char buff[bufSize];
@@ -961,8 +951,8 @@ data_to_pkcs1 (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
     memcpy (&buff
 	    [bufSize -
 	     strlen
-	     ("0123456789012345678901234567890123456789012345678901234567890123))")
-	     - 1], &hc, sizeof (struct GNUNET_HashCode));
+	     ("01234567890123456789012345678901))")
+	     - 1], &hc, sizeof (struct GNUNET_CRYPTO_ShortHashCode));
     GNUNET_assert (0 == gcry_sexp_new (&data, buff, bufSize, 0));
   }
 #undef FORMATSTRING
@@ -986,14 +976,20 @@ GNUNET_CRYPTO_ecc_sign (const struct GNUNET_CRYPTO_EccPrivateKey *key,
   gcry_sexp_t result;
   gcry_sexp_t data;
   size_t ssize;
+  int rc;
 
   data = data_to_pkcs1 (purpose);
-  GNUNET_assert (0 == gcry_pk_sign (&result, data, key->sexp));
+  if (0 != (rc = gcry_pk_sign (&result, data, key->sexp)))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         _("ECC signing failed at %s:%d: %s\n"), __FILE__,
+         __LINE__, gcry_strerror (rc));
+  }
   gcry_sexp_release (data);
   ssize = gcry_sexp_sprint (result, 
 			    GCRYSEXP_FMT_DEFAULT,
 			    sig->sexpr,
-			    GNUNET_CRYPTO_ECC_DATA_ENCODING_LENGTH);
+			    GNUNET_CRYPTO_ECC_SIGNATURE_DATA_ENCODING_LENGTH);
   if (0 == ssize)
   {
     GNUNET_break (0);
@@ -1001,7 +997,7 @@ GNUNET_CRYPTO_ecc_sign (const struct GNUNET_CRYPTO_EccPrivateKey *key,
   }
   sig->size = htons ((uint16_t) (ssize + sizeof (uint16_t)));
   /* padd with zeros */
-  memset (&sig->sexpr[ssize], 0, GNUNET_CRYPTO_ECC_DATA_ENCODING_LENGTH - ssize);
+  memset (&sig->sexpr[ssize], 0, GNUNET_CRYPTO_ECC_SIGNATURE_DATA_ENCODING_LENGTH - ssize);
   gcry_sexp_release (result);
   return GNUNET_OK;
 }
@@ -1035,7 +1031,7 @@ GNUNET_CRYPTO_ecc_verify (uint32_t purpose,
     return GNUNET_SYSERR;       /* purpose mismatch */
   size = ntohs (sig->size);
   if ( (size < sizeof (uint16_t)) ||
-       (size > GNUNET_CRYPTO_ECC_DATA_ENCODING_LENGTH - sizeof (uint16_t)) )
+       (size > GNUNET_CRYPTO_ECC_SIGNATURE_DATA_ENCODING_LENGTH - sizeof (uint16_t)) )
     return GNUNET_SYSERR; /* size out of range */
   data = data_to_pkcs1 (validate);
   GNUNET_assert (0 ==

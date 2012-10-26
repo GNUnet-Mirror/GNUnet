@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file namestore/test_namestore_api.c
+ * @file namestore/test_namestore_api_lookup.c
  * @brief testcase for namestore_api.c
  */
 #include "platform.h"
@@ -53,9 +53,28 @@ static struct GNUNET_CRYPTO_ShortHashCode s_zone;
 
 static struct GNUNET_NAMESTORE_RecordData *s_rd;
 
+static struct GNUNET_NAMESTORE_QueueEntry *nsqe;
+
 static char *s_name;
 
 static int res;
+
+
+static void
+cleanup ()
+{
+  if (NULL != nsh)
+  {
+    GNUNET_NAMESTORE_disconnect (nsh);
+    nsh = NULL;
+  }
+  if (NULL != privkey)
+  {
+    GNUNET_CRYPTO_rsa_key_free (privkey);
+    privkey = NULL;
+  }
+  GNUNET_SCHEDULER_shutdown ();
+}
 
 
 /**
@@ -67,12 +86,7 @@ static int res;
 static void
 endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (nsh != NULL)
-    GNUNET_NAMESTORE_disconnect (nsh);
-  nsh = NULL;
-  if (privkey != NULL)
-    GNUNET_CRYPTO_rsa_key_free (privkey);
-  privkey = NULL;
+  cleanup ();
   res = 1;
 }
 
@@ -80,22 +94,12 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  int c;
+  unsigned int c;
 
-  if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task = GNUNET_SCHEDULER_NO_TASK;
-  }
   for (c = 0; c < RECORDS; c++)
     GNUNET_free_non_null((void *) s_rd[c].data);
   GNUNET_free (s_rd);
-  if (privkey != NULL)
-    GNUNET_CRYPTO_rsa_key_free (privkey);
-  privkey = NULL;
-  if (nsh != NULL)
-    GNUNET_NAMESTORE_disconnect (nsh);
-  nsh = NULL;
+  cleanup ();
 }
 
 
@@ -111,19 +115,21 @@ name_lookup_proc (void *cls,
   static int found = GNUNET_NO;
   int c;
 
-  if (n != NULL)
+  if (NULL != n)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Checking returned results\n");
-    if (0 != memcmp (zone_key, &pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
+    if (0 != memcmp (zone_key, &pubkey, 
+		     sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
     {
       GNUNET_break (0);
     }
     GNUNET_assert (NULL != signature);
-    if (0 != memcmp (signature, s_signature, sizeof (struct GNUNET_CRYPTO_RsaSignature)))
+    if (0 != memcmp (signature, s_signature, 
+		     sizeof (struct GNUNET_CRYPTO_RsaSignature)))
     {
       GNUNET_break (0);
     }
-    if (0 != strcmp(n, s_name))
+    if (0 != strcmp (n, s_name))
     {
       GNUNET_break (0);
     }
@@ -143,14 +149,20 @@ name_lookup_proc (void *cls,
   }
   else
   {
-    if (found != GNUNET_YES)
+    if (GNUNET_YES != found)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to lookup records for name `%s'\n", s_name);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		  "Failed to lookup records for name `%s'\n", s_name);
       res = 1;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Lookup done for name %s'\n", s_name);
   }
-  GNUNET_SCHEDULER_add_now(&end, NULL);
+  if (GNUNET_SCHEDULER_NO_TASK != endbadly_task)
+  {
+    GNUNET_SCHEDULER_cancel (endbadly_task);
+    endbadly_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  GNUNET_SCHEDULER_add_now (&end, NULL);
 }
 
 
@@ -159,17 +171,22 @@ put_cont (void *cls, int32_t success, const char *emsg)
 {
   char * name = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Name store added record for `%s': %s\n", name, (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
-  if (success == GNUNET_OK)
+  nsqe = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Name store added record for `%s': %s\n", name, 
+	      (GNUNET_OK == success) ? "SUCCESS" : "FAIL");
+  if (GNUNET_OK == success)
   {
     res = 0;
-    GNUNET_NAMESTORE_lookup_record (nsh, &s_zone, name, 0, &name_lookup_proc, NULL);
+    GNUNET_NAMESTORE_lookup_record (nsh, &s_zone, name, 0, 
+				    &name_lookup_proc, NULL);
   }
   else
   {
     res = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to put records for name `%s'\n", name);
-    GNUNET_SCHEDULER_add_now(&end, NULL);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Failed to put records for name `%s'\n", name);
+    GNUNET_SCHEDULER_shutdown ();
   }
 }
 
@@ -200,12 +217,14 @@ run (void *cls,
 {
   size_t rd_ser_len;
   struct GNUNET_TIME_Absolute et;
+  char rd_ser[rd_ser_len];
 
-  endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,endbadly, NULL);
+  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+						&endbadly, NULL);
 
   /* load privat key from file not included in zonekey dir */
   privkey = GNUNET_CRYPTO_rsa_key_create_from_file("test_hostkey");
-  GNUNET_assert (privkey != NULL);
+  GNUNET_assert (NULL != privkey);
   /* get public key */
   GNUNET_CRYPTO_rsa_key_get_public(privkey, &pubkey);
 
@@ -214,24 +233,23 @@ run (void *cls,
   s_rd = create_record (RECORDS);
 
   rd_ser_len = GNUNET_NAMESTORE_records_get_size(RECORDS, s_rd);
-  char rd_ser[rd_ser_len];
   GNUNET_NAMESTORE_records_serialize(RECORDS, s_rd, rd_ser_len, rd_ser);
 
   /* sign */
   et.abs_value = s_rd[0].expiration_time;
-  s_signature = GNUNET_NAMESTORE_create_signature(privkey, et, s_name, s_rd, RECORDS);
+  s_signature = GNUNET_NAMESTORE_create_signature (privkey, et, s_name, 
+						   s_rd, RECORDS);
   
   /* create random zone hash */
-  GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &s_zone);
+  GNUNET_CRYPTO_short_hash (&pubkey, 
+			    sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), 
+			    &s_zone);
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
-
-  GNUNET_break (s_rd != NULL);
-  GNUNET_break (s_name != NULL);
-
-  GNUNET_NAMESTORE_record_put (nsh, &pubkey, s_name,
-			       GNUNET_TIME_UNIT_FOREVER_ABS,
-			       RECORDS, s_rd, s_signature, put_cont, s_name);
+  nsqe = GNUNET_NAMESTORE_record_put (nsh, &pubkey, s_name,
+				      GNUNET_TIME_UNIT_FOREVER_ABS,
+				      RECORDS, s_rd, s_signature, 
+				      &put_cont, s_name);
 }
 
 
@@ -251,4 +269,4 @@ main (int argc, char *argv[])
 }
 
 
-/* end of test_namestore_api.c */
+/* end of test_namestore_api_lookup.c */

@@ -500,41 +500,6 @@ i_to_hexchar (unsigned char i)
 }
 
 
-/**
-// FIXME: use cURL API
- * Escape given 0-terminated string
- *
- * @param to_esc string to escapse
- * @return allocated new escaped string (MUST free!)
- */
-static char*
-escape_to_urlenc (const char *to_esc)
-{
-  char *pos = (char*)to_esc;
-  char *res = GNUNET_malloc (strlen (to_esc) * 3 + 1);
-  char *rpos = res;
-
-  while ('\0' != *pos)
-  {
-    if (isalnum (*pos) ||
-        ('-' == *pos) || ('_' == *pos) ||
-        ('.' == *pos) || ('~' == *pos))
-        *rpos++ = *pos;
-    else if (' ' == *pos)
-      *rpos++ = '+';
-    else
-    {
-      *rpos++ = '%';
-      *rpos++ = i_to_hexchar (*pos >> 4);
-      *rpos++ = i_to_hexchar (*pos >> 15);
-    }
-    pos++;
-  }
-  *rpos = '\0';
-  return res;
-}
-
-
 static int
 con_post_data_iter (void *cls,
                   enum MHD_ValueKind kind,
@@ -610,9 +575,14 @@ con_post_data_iter (void *cls,
 
   if (0 == off)
   {
+    enc = curl_easy_escape (ctask->curl, key, 0);
+    if (NULL == enc)
+      {
+	GNUNET_break (0);
+	return MHD_NO;
+      }
     /* a key */
     pdata = GNUNET_malloc (sizeof (struct ProxyUploadData));
-    enc = escape_to_urlenc (key);
     pdata->value = GNUNET_malloc (strlen (enc) + 3);
     if (NULL != ctask->upload_data_head)
     {
@@ -624,7 +594,7 @@ con_post_data_iter (void *cls,
     pdata->value[strlen (pdata->value)] = '=';
     pdata->bytes_left = strlen (pdata->value);
     pdata->total_bytes = pdata->bytes_left;
-    GNUNET_free (enc);
+    curl_free (enc);
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Escaped POST key: '%s'\n",
@@ -636,13 +606,18 @@ con_post_data_iter (void *cls,
   }
 
   /* a value */
+  enc = curl_easy_escape (ctask->curl, data, 0);
+  if (NULL == enc)
+    {
+      GNUNET_break (0);
+      return MHD_NO;
+    }
   pdata = GNUNET_malloc (sizeof (struct ProxyUploadData));
-  enc = escape_to_urlenc (data);
   pdata->value = GNUNET_malloc (strlen (enc) + 1);
   memcpy (pdata->value, enc, strlen (enc));
   pdata->bytes_left = strlen (pdata->value);
   pdata->total_bytes = pdata->bytes_left;
-  GNUNET_free (enc);
+  curl_free (enc);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Escaped POST value: '%s'\n",
@@ -1341,6 +1316,7 @@ postprocess_buffer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   run_mhd_now (ctask->mhd);
 }
 
+
 /**
  * Handle data from cURL
  *
@@ -1592,7 +1568,6 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ProxyCurlTask *ctask;
   int num_ctasks;
   long resp_code;
-
   struct ProxyCurlTask *clean_head = NULL;
   struct ProxyCurlTask *clean_tail = NULL;
 
@@ -1602,8 +1577,8 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Shutdown requested while trying to download\n");
-  //TODO cleanup
-  return;
+    //TODO cleanup
+    return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Ready to dl\n");
@@ -2392,13 +2367,11 @@ do_write (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                 len);
   }
   else
-  {
-    
+  {    
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "write");
     s5r->cleanup = GNUNET_YES;
     s5r->cleanup_sock = GNUNET_YES;
-    cleanup_s5r (s5r);
-    
+    cleanup_s5r (s5r); 
     return;
   }
 
@@ -2429,8 +2402,6 @@ do_read_remote (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct Socks5Request *s5r = cls;
   
   s5r->fwdrtask = GNUNET_SCHEDULER_NO_TASK;
-
-
   if ((NULL != tc->write_ready) &&
       (GNUNET_NETWORK_fdset_isset (tc->read_ready, s5r->remote_sock)) &&
       (s5r->wbuf_len = GNUNET_NETWORK_socket_recv (s5r->remote_sock, s5r->wbuf,
@@ -2442,7 +2413,7 @@ do_read_remote (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   else
   {
-    if (s5r->wbuf_len == 0)
+    if (0 == s5r->wbuf_len)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "0 bytes received from remote... graceful shutdown!\n");
     if (s5r->fwdwtask != GNUNET_SCHEDULER_NO_TASK)
@@ -2460,8 +2431,7 @@ do_read_remote (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   
   s5r->wtask = GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                                s5r->sock,
-                                               &do_write, s5r);
-  
+                                               &do_write, s5r);  
 }
 
 
@@ -2699,7 +2669,7 @@ accept_cb (void* cls, const struct sockaddr *addr, socklen_t addrlen)
 static int
 add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, const char* domain)
 {
-  struct MhdHttpList *hd = NULL;
+  struct MhdHttpList *hd;
   struct ProxyGNSCertificate *pgc;
   struct NetworkHandleList *nh;
 
@@ -2781,7 +2751,6 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct socks5_server_hello *s_hello;
   struct socks5_client_request *c_req;
   struct socks5_server_response *s_resp;
-
   int ret;
   char domain[256];
   uint8_t dom_len;
@@ -2790,7 +2759,6 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   uint32_t remote_ip;
   struct sockaddr_in remote_addr;
   struct in_addr *r_sin_addr;
-
   struct NetworkHandleList *nh;
 
   s5r->rtask = GNUNET_SCHEDULER_NO_TASK;
@@ -3100,7 +3068,6 @@ static void
 do_shutdown (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-
   struct MhdHttpList *hd;
   struct MhdHttpList *tmp_hd;
   struct NetworkHandleList *nh;
@@ -3111,9 +3078,6 @@ do_shutdown (void *cls,
   
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Shutting down...\n");
-
-  gnutls_global_deinit ();
- 
   if (NULL != local_gns_zone)
     GNUNET_free (local_gns_zone); 
   if (NULL != local_private_zone)
@@ -3142,13 +3106,11 @@ do_shutdown (void *cls,
       GNUNET_SCHEDULER_cancel (hd->httpd_task);
       hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
     }
-
     if (NULL != hd->daemon)
     {
       MHD_stop_daemon (hd->daemon);
       hd->daemon = NULL;
     }
-
     for (nh = hd->socket_handles_head; nh != NULL; nh = tmp_nh)
     {
       tmp_nh = nh->next;
@@ -3200,12 +3162,11 @@ do_shutdown (void *cls,
       GNUNET_free_non_null (pdata->value);
       GNUNET_free (pdata);
     }
-
     GNUNET_free (ctask);
   }
   curl_multi_cleanup (curl_multi);
-
   GNUNET_GNS_disconnect (gns_handle);
+  gnutls_global_deinit ();
 }
 
 
@@ -3243,9 +3204,9 @@ static int
 load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *keyfile;
-  struct GNUNET_CRYPTO_RsaPrivateKey *key = NULL;
+  struct GNUNET_CRYPTO_RsaPrivateKey *key;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
-  struct GNUNET_CRYPTO_ShortHashCode *zone = NULL;
+  struct GNUNET_CRYPTO_ShortHashCode *zone;
   struct GNUNET_CRYPTO_ShortHashAsciiEncoded zonename;
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
@@ -3361,9 +3322,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct sockaddr_un mhd_unix_sock_addr;
 #endif
 
-  curl_multi = curl_multi_init ();
-
-  if (NULL == curl_multi)
+  if (NULL == (curl_multi = curl_multi_init ()))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to create cURL multo handle!\n");
@@ -3376,8 +3335,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (NULL == cafile)
   {
     if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns-proxy",
-                                                          "PROXY_CACERT",
-                                                          &cafile_cfg))
+							      "PROXY_CACERT",
+							      &cafile_cfg))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Unable to load proxy CA config value!\n");
@@ -3408,19 +3367,16 @@ run (void *cls, char *const *args, const char *cfgfile,
   
   compile_regex (&re_dotplus, (char*) RE_A_HREF);
 
-  gns_handle = GNUNET_GNS_connect (cfg);
-
+  if (NULL == (gns_handle = GNUNET_GNS_connect (cfg)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to connect to GNS!\n");
+    return;
+  }
   if (GNUNET_NO == load_local_zone_key (cfg))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unable to load zone!\n");
-    return;
-  }
-
-  if (NULL == gns_handle)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to connect to GNS!\n");
     return;
   }
 
@@ -3477,12 +3433,9 @@ run (void *cls, char *const *args, const char *cfgfile,
                 "Specify PROXY_UNIXPATH in gns-proxy config section!\n");
     return;
   }
-
-  mhd_unix_socket = GNUNET_NETWORK_socket_create (AF_UNIX,
-                                                SOCK_STREAM,
-                                                0);
-
-  if (NULL == mhd_unix_socket)
+  if (NULL == (mhd_unix_socket = GNUNET_NETWORK_socket_create (AF_UNIX,
+							       SOCK_STREAM,
+							       0)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unable to create unix domain socket!\n");
@@ -3500,7 +3453,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 #endif
 
   len = strlen (proxy_sockfile) + sizeof(AF_UNIX);
-
   GNUNET_free (proxy_sockfile);
 
   if (GNUNET_OK != GNUNET_NETWORK_socket_bind (mhd_unix_socket,

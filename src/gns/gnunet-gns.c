@@ -44,7 +44,6 @@ static char *shorten_name;
  */
 static char *lookup_name;
 
-
 /**
  * record type to look up (-t option)
  */
@@ -60,15 +59,24 @@ static char *auth_name;
  */
 static int raw;
 
+/**
+ * Requested record type.
+ */
 static enum GNUNET_GNS_RecordType rtype;
 
-/* Handle to lookup request */
+/**
+ * Handle to lookup request 
+ */
 static struct GNUNET_GNS_LookupRequest *lookup_request;
 
-/* Handle to shorten request */
+/**
+ * Handle to shorten request 
+ */
 static struct GNUNET_GNS_ShortenRequest *shorten_request;
 
-/* Handle to get authority request */
+/**
+ * Handle to get authority request
+ */
 static struct GNUNET_GNS_GetAuthRequest *getauth_request;
 
 
@@ -83,21 +91,37 @@ do_shutdown (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (NULL != lookup_request)
+  {
     GNUNET_GNS_cancel_lookup_request (lookup_request);
-
+    lookup_request = NULL;
+  }
   if (NULL != shorten_request)
+  {
     GNUNET_GNS_cancel_shorten_request (shorten_request);
-
+    shorten_request = NULL;
+  }
   if (NULL != getauth_request)
+  {
     GNUNET_GNS_cancel_get_auth_request (getauth_request);
-
+    getauth_request = NULL;
+  }
   if (NULL != gns)
+  {
     GNUNET_GNS_disconnect (gns);
+    gns = NULL;
+  }
 }
 
 
+/**
+ * Function called with the result of a shorten operation.
+ * Prints the result.
+ *
+ * @param cls a 'const char *' with the original (long) name
+ * @param nshort the shortened name
+ */
 static void
-process_shorten_result (void* cls, const char* nshort)
+process_shorten_result (void* cls, const char *nshort)
 {
   const char *original_name = cls;
 
@@ -110,6 +134,13 @@ process_shorten_result (void* cls, const char* nshort)
 }
 
 
+/**
+ * Function called with the result of a GADS lookup.
+ *
+ * @param cls the 'const char *' name that was resolved
+ * @param rd_count number of records returned
+ * @param rd array of 'rd_count' records with the results
+ */
 static void
 process_lookup_result (void* cls, uint32_t rd_count,
 		       const struct GNUNET_NAMESTORE_RecordData *rd)
@@ -122,7 +153,7 @@ process_lookup_result (void* cls, uint32_t rd_count,
   lookup_request = NULL; 
   if (!raw) 
   {
-    if (rd_count == 0)
+    if (0 == rd_count)
       printf("No results.\n");
     else
       printf("%s:\n", name);
@@ -143,8 +174,16 @@ process_lookup_result (void* cls, uint32_t rd_count,
 }
 
 
+/**
+ * Function called with the result of an authority lookup.
+ *
+ * @param cls the 'const char *' with the name for which the
+ *            authority was resolved
+ * @param auth name of the authority
+ */
 static void
-process_auth_result (void* cls, const char* auth)
+process_auth_result (void* cls, 
+		     const char *auth)
 {
   getauth_request = NULL;
   printf ("%s\n", auth);
@@ -254,14 +293,16 @@ run (void *cls, char *const *args, const char *cfgfile,
   else
     rtype = GNUNET_GNS_RECORD_A;
 
-  if ((NULL != shorten_name) && (NULL != shorten_zone) && (NULL != private_zone))
+  if ( (NULL != shorten_name) && 
+       (NULL != shorten_zone) && 
+       (NULL != private_zone) )
   {
     shorten_request = GNUNET_GNS_shorten_zone (gns, shorten_name,
-                             private_zone,
-                             shorten_zone,
-                             zone,
-                             &process_shorten_result,
-                             shorten_name);
+					       private_zone,
+					       shorten_zone,
+					       zone,
+					       &process_shorten_result,
+					       shorten_name);
   }
   if (NULL != lookup_name)
   {
@@ -270,7 +311,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 					     rtype,
 					     GNUNET_NO, /* Use DHT */
 					     shorten_key,
-					     &process_lookup_result, lookup_name);
+					     &process_lookup_result, 
+					     lookup_name);
   }
   if (NULL != auth_name)
   {
@@ -285,16 +327,15 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (NULL != private_zone)
     GNUNET_free (private_zone);
   
-  if ((NULL == auth_name) &&
-      (NULL == shorten_name) &&
-      (NULL == lookup_name))
+  if ( (NULL == auth_name) &&
+       (NULL == shorten_name) &&
+       (NULL == lookup_name))
   {
     fprintf (stderr,
 	     _("Please specify lookup, shorten or authority operation!\n"));
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
-
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&do_shutdown, NULL);
 }
@@ -328,7 +369,6 @@ main (int argc, char *const *argv)
       &GNUNET_GETOPT_set_one, &raw},
     GNUNET_GETOPT_OPTION_END
   };
-
   int ret;
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))

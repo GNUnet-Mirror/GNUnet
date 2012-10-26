@@ -895,6 +895,7 @@ write_data (struct GNUNET_STREAM_Socket *socket)
     packet++;
   }
   io_handle->packets_sent = packet;
+  // FIXME: 8s is not good, should use GNUNET_TIME_STD_BACKOFF...
   if (GNUNET_SCHEDULER_NO_TASK == socket->data_retransmission_task_id)
     socket->data_retransmission_task_id = 
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply 

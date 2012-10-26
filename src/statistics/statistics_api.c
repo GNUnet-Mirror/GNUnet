@@ -516,9 +516,7 @@ reconnect_later (struct GNUNET_STATISTICS_Handle *h)
   }
   h->backoff_task =
     GNUNET_SCHEDULER_add_delayed (h->backoff, &reconnect_task, h);
-  h->backoff = GNUNET_TIME_relative_multiply (h->backoff, 2);
-  h->backoff =
-    GNUNET_TIME_relative_min (h->backoff, GNUNET_CONSTANTS_SERVICE_TIMEOUT);
+  h->backoff = GNUNET_TIME_STD_BACKOFF (h->backoff);
 }
 
 

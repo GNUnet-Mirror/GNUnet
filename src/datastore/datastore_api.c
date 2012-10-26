@@ -512,12 +512,7 @@ try_reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_DATASTORE_Handle *h = cls;
 
-  if (h->retry_time.rel_value < GNUNET_CONSTANTS_SERVICE_RETRY.rel_value)
-    h->retry_time = GNUNET_CONSTANTS_SERVICE_RETRY;
-  else
-    h->retry_time = GNUNET_TIME_relative_multiply (h->retry_time, 2);
-  if (h->retry_time.rel_value > GNUNET_CONSTANTS_SERVICE_TIMEOUT.rel_value)
-    h->retry_time = GNUNET_CONSTANTS_SERVICE_TIMEOUT;
+  h->retry_time = GNUNET_TIME_STD_BACKOFF (h->retry_time);
   h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   h->client = GNUNET_CLIENT_connect ("datastore", h->cfg);
   if (h->client == NULL)
@@ -802,7 +797,7 @@ process_status_message (void *cls, const struct GNUNET_MessageHeader *msg)
   GNUNET_STATISTICS_update (h->stats,
                             gettext_noop ("# status messages received"), 1,
                             GNUNET_NO);
-  h->retry_time.rel_value = 0;
+  h->retry_time = GNUNET_TIME_UNIT_ZERO;
   process_queue (h);
   if (rc.cont != NULL)
     rc.cont (rc.cont_cls, status, 
@@ -1184,7 +1179,7 @@ process_result_message (void *cls, const struct GNUNET_MessageHeader *msg)
     free_queue_entry (qe);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received end of result set, new queue size is %u\n", h->queue_size);
-    h->retry_time.rel_value = 0;
+    h->retry_time = GNUNET_TIME_UNIT_ZERO;
     h->result_count = 0;
     process_queue (h);
     if (rc.proc != NULL)
@@ -1231,7 +1226,7 @@ process_result_message (void *cls, const struct GNUNET_MessageHeader *msg)
        (unsigned long long) GNUNET_ntohll (dm->uid), ntohl (dm->type),
        ntohl (dm->size), GNUNET_h2s (&dm->key));
   free_queue_entry (qe);
-  h->retry_time.rel_value = 0;
+  h->retry_time = GNUNET_TIME_UNIT_ZERO;
   process_queue (h);
   if (rc.proc != NULL)
     rc.proc (rc.proc_cls, &dm->key, ntohl (dm->size), &dm[1], ntohl (dm->type),

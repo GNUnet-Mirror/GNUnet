@@ -298,7 +298,7 @@ callback_download (void *ptr, size_t size, size_t nmemb, void *ctx)
     left -= cpy;
     if (download_pos < sizeof (struct GNUNET_MessageHeader))
     {
-      GNUNET_assert (left == 0);
+      GNUNET_assert (0 == left);
       break;
     }
     msg = (const struct GNUNET_MessageHeader *) download_buffer;

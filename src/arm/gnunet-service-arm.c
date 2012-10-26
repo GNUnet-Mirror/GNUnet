@@ -30,12 +30,6 @@
 #include "arm.h"
 
 /**
- * Threshold after which exponential backoff shouldn't increase (in ms); 30m
- */
-#define EXPONENTIAL_BACKOFF_THRESHOLD GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30)
-
-
-/**
  * List of our services.
  */
 struct ServiceList;
@@ -1023,10 +1017,7 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 			    pos->name, statstr, statcode, pos->backoff.rel_value);
 	      /* schedule restart */
 	      pos->restart_at = GNUNET_TIME_relative_to_absolute (pos->backoff);
-	      pos->backoff =
-	        GNUNET_TIME_relative_min (EXPONENTIAL_BACKOFF_THRESHOLD,
-				          GNUNET_TIME_relative_multiply
-				          (pos->backoff, 2));
+	      pos->backoff = GNUNET_TIME_STD_BACKOFF (pos->backoff);
             }
 	  if (GNUNET_SCHEDULER_NO_TASK != child_restart_task)
 	    GNUNET_SCHEDULER_cancel (child_restart_task);

@@ -186,6 +186,7 @@ is_srv (char* name)
   return ret;
 }
 
+
 /**
  * Determine if this name is canonical (is a legal name in a zone, without delegation);
  * note that we do not test that the name does not contain illegal characters, we only
@@ -1489,6 +1490,7 @@ handle_dns_resolver (void *cls,
   rd.flags = 0;
   finish_lookup (rh, rlh, 1, &rd);
 }
+
 
 /**
  * Resolve DNS name via local stub resolver
@@ -3960,7 +3962,7 @@ process_zone_to_name_shorten_root (void *cls,
  * @param rd_count number of results (0)
  * @param rd data (NULL)
  */
-void
+static void
 handle_delegation_ns_shorten (void* cls,
                       struct ResolverHandle *rh,
                       uint32_t rd_count,
@@ -4289,7 +4291,7 @@ finish_get_auth (struct ResolverHandle *rh,
  * @param rd_count number of results (0)
  * @param rd data (NULL)
  */
-void
+static void
 handle_delegation_result_ns_get_auth(void* cls,
                       struct ResolverHandle *rh,
                       uint32_t rd_count,

@@ -68,7 +68,7 @@ struct GNUNET_GNS_LookupRequest
   /**
    * request id 
    */
-  uint64_t r_id;
+  uint32_t r_id;
  
 };
 
@@ -106,7 +106,7 @@ struct GNUNET_GNS_ShortenRequest
   /**
    * request id
    */
-  uint64_t r_id;
+  uint32_t r_id;
   
 };
 
@@ -165,14 +165,14 @@ struct PendingMessage
   struct PendingMessage *next;
 
   /**
-   * request id
-   */
-  uint64_t r_id;
-
-  /**
    * Size of the message.
    */
   size_t size;
+
+  /**
+   * request id
+   */
+  uint32_t r_id;
 
   /**
    * This message has been transmitted.  GNUNET_NO if the message is
@@ -249,8 +249,16 @@ struct GNUNET_GNS_Handle
    * Reconnect task
    */
   GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+  
+  /**
+   * How long do we wait until we try to reconnect?
+   */
+  struct GNUNET_TIME_Relative reconnect_backoff;
 
-  uint32_t r_id;
+  /**
+   * Request Id generator.  Incremented by one for each request.
+   */
+  uint32_t r_id_gen;
   
   /**
    * Did we start our receive loop yet?
@@ -319,7 +327,7 @@ force_reconnect (struct GNUNET_GNS_Handle *h)
   h->in_receive = GNUNET_NO;
   for (st = h->shorten_head; NULL != st; st = st->next)
   {
-    p = (struct PendingMessage*) &st[1];
+    p = (struct PendingMessage *) &st[1];
     if (GNUNET_NO == p->transmitted)
       continue;
     p->transmitted = GNUNET_NO;
@@ -329,7 +337,7 @@ force_reconnect (struct GNUNET_GNS_Handle *h)
   }
   for (lh = h->lookup_head; NULL != lh; lh = lh->next)
   {
-    p = (struct PendingMessage*) &lh[1];
+    p = (struct PendingMessage *) &lh[1];
     if (GNUNET_NO == p->transmitted)
       continue;
     p->transmitted = GNUNET_NO;
@@ -339,7 +347,7 @@ force_reconnect (struct GNUNET_GNS_Handle *h)
   }
   for (ga = h->get_auth_head; NULL != ga; ga = ga->next)
   {
-    p = (struct PendingMessage*) &ga[1];
+    p = (struct PendingMessage *) &ga[1];
     if (GNUNET_NO == p->transmitted)
       continue;
     p->transmitted = GNUNET_NO;
@@ -347,8 +355,8 @@ force_reconnect (struct GNUNET_GNS_Handle *h)
 				 h->pending_tail,
 				 p);  
   }
-  /* FIXME: 1s too long, exponential-backoff, starting at 1ms! (max = 1s might be OK) */
-  h->reconnect_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+  h->reconnect_backoff = GNUNET_TIME_STD_BACKOFF (h->reconnect_backoff);
+  h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->reconnect_backoff,
                                                     &reconnect_task,
                                                     h);
 }
@@ -618,7 +626,7 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg)
   const struct GNUNET_GNS_ClientLookupResultMessage *lookup_msg;
   const struct GNUNET_GNS_ClientShortenResultMessage *shorten_msg;
   const struct GNUNET_GNS_ClientGetAuthResultMessage *get_auth_msg;
-  uint64_t r_id;
+  uint32_t r_id;
   
   if (NULL == msg)
   {
@@ -860,7 +868,7 @@ GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
   lr->gns_handle = handle;
   lr->lookup_proc = proc;
   lr->proc_cls = proc_cls;
-  lr->r_id = handle->r_id++;
+  lr->r_id = handle->r_id_gen++;
   pending = (struct PendingMessage *)&lr[1];
   pending->size = msize;
   pending->r_id = lr->r_id;
@@ -975,7 +983,7 @@ GNUNET_GNS_shorten_zone (struct GNUNET_GNS_Handle *handle,
   sr->gns_handle = handle;
   sr->shorten_proc = proc;
   sr->proc_cls = proc_cls;
-  sr->r_id = handle->r_id++;
+  sr->r_id = handle->r_id_gen++;
   GNUNET_CONTAINER_DLL_insert_tail (handle->shorten_head,
                                     handle->shorten_tail, sr);
   pending = (struct PendingMessage *)&sr[1];
@@ -1070,7 +1078,7 @@ GNUNET_GNS_get_authority (struct GNUNET_GNS_Handle *handle,
   gar->gns_handle = handle;
   gar->auth_proc = proc;
   gar->proc_cls = proc_cls;
-  gar->r_id = handle->r_id++;
+  gar->r_id = handle->r_id_gen++;
   GNUNET_CONTAINER_DLL_insert_tail (handle->get_auth_head,
                                     handle->get_auth_tail, gar);
 

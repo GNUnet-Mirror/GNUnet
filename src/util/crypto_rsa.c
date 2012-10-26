@@ -315,7 +315,7 @@ decode_public_key (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicK
  * Encode the private key in a format suitable for
  * storing it into a file.
  *
- * @returns encoding of the private key.
+ * @return encoding of the private key.
  *    The first 4 bytes give the size of the array, as usual.
  */
 struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *
@@ -778,9 +778,6 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
     GNUNET_assert (GNUNET_YES == GNUNET_DISK_file_close (fd));
     GNUNET_CRYPTO_rsa_key_get_public (ret, &pub);
     GNUNET_CRYPTO_hash (&pub, sizeof (pub), &pid.hashPubKey);
-    LOG (GNUNET_ERROR_TYPE_INFO,
-         _("I am host `%s'.  Stored new private key in `%s'.\n"),
-         GNUNET_i2s (&pid), filename);
     return ret;
   }
   /* hostkey file exists already, read it! */
@@ -807,7 +804,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
              STRERROR (ec));
         LOG (GNUNET_ERROR_TYPE_ERROR,
              _
-             ("This may be ok if someone is currently generating a hostkey.\n"));
+             ("This may be ok if someone is currently generating a private key.\n"));
       }
       short_wait ();
       continue;
@@ -828,7 +825,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
       fs = 0;
     if (fs < sizeof (struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded))
     {
-      /* maybe we got the read lock before the hostkey generating
+      /* maybe we got the read lock before the key generating
        * process had a chance to get the write lock; give it up! */
       if (GNUNET_YES !=
           GNUNET_DISK_file_unlock (fd, 0,
@@ -838,12 +835,12 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
       {
         LOG (GNUNET_ERROR_TYPE_ERROR,
              _
-             ("When trying to read hostkey file `%s' I found %u bytes but I need at least %u.\n"),
+             ("When trying to read key file `%s' I found %u bytes but I need at least %u.\n"),
              filename, (unsigned int) fs,
              (unsigned int) sizeof (struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded));
         LOG (GNUNET_ERROR_TYPE_ERROR,
              _
-             ("This may be ok if someone is currently generating a hostkey.\n"));
+             ("This may be ok if someone is currently generating a private key.\n"));
       }
       short_wait ();                /* wait a bit longer! */
       continue;
@@ -875,9 +872,6 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
   {
     GNUNET_CRYPTO_rsa_key_get_public (ret, &pub);
     GNUNET_CRYPTO_hash (&pub, sizeof (pub), &pid.hashPubKey);
-    LOG (GNUNET_ERROR_TYPE_INFO,
-         _("I am host `%s'.  Read private key from `%s'.\n"), GNUNET_i2s (&pid),
-         filename);
   }
   return ret;
 }
@@ -1105,10 +1099,10 @@ GNUNET_CRYPTO_rsa_key_create_stop (struct GNUNET_CRYPTO_RsaKeyGenerationContext 
 
 
 /**
- * Setup a hostkey file for a peer given the name of the
+ * Setup a key file for a peer given the name of the
  * configuration file (!).  This function is used so that
  * at a later point code can be certain that reading a
- * hostkey is fast (for example in time-dependent testcases).
+ * key is fast (for example in time-dependent testcases).
  *
  * @param cfg_name name of the configuration file to use
  */
@@ -1184,7 +1178,7 @@ GNUNET_CRYPTO_rsa_encrypt (const void *block, size_t size,
 
 
 /**
- * Decrypt a given block with the hostkey.
+ * Decrypt a given block with the key.
  *
  * @param key the key with which to decrypt this block
  * @param block the data to decrypt, encoded as returned by encrypt

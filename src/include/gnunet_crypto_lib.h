@@ -71,7 +71,6 @@ enum GNUNET_CRYPTO_Quality
  */
 #define GNUNET_CRYPTO_AES_KEY_LENGTH (256/8)
 
-
 /**
  * @brief Length of RSA encrypted data (2048 bit)
  *
@@ -84,30 +83,27 @@ enum GNUNET_CRYPTO_Quality
  */
 #define GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH 256
 
-
 /**
  * Length of an RSA KEY (n,e,len), 2048 bit (=256 octests) key n, 2 byte e
  */
 #define GNUNET_CRYPTO_RSA_KEY_LENGTH 258
-
 
 /**
  * Length of a hash value
  */
 #define GNUNET_CRYPTO_HASH_LENGTH 512/8
 
-
 /**
  * FIXME: what is an acceptable value here?
  * Note: round to multiple of 8 minus 2.
  */
-#define GNUNET_CRYPTO_ECC_DATA_ENCODING_LENGTH 510
+#define GNUNET_CRYPTO_ECC_SIGNATURE_DATA_ENCODING_LENGTH 138
 
 /**
  * FIXME: what is an acceptable value here?
  * Maximum length of the public key (q-point, Q = dP) when encoded.
  */
-#define GNUNET_CRYPTO_ECC_MAX_PUBLIC_KEY_LENGTH 254
+#define GNUNET_CRYPTO_ECC_MAX_PUBLIC_KEY_LENGTH 140
 
 
 /**
@@ -277,7 +273,7 @@ struct GNUNET_CRYPTO_EccSignature
   /**
    * S-expression, padded with zeros.
    */
-  char sexpr[GNUNET_CRYPTO_ECC_DATA_ENCODING_LENGTH];
+  char sexpr[GNUNET_CRYPTO_ECC_SIGNATURE_DATA_ENCODING_LENGTH];
 };
 
 

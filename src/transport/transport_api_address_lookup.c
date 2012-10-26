@@ -157,9 +157,7 @@ reconnect (struct GNUNET_TRANSPORT_PeerIterateContext *pal_ctx)
   GNUNET_assert (GNUNET_NO == pal_ctx->one_shot);
   GNUNET_CLIENT_disconnect (pal_ctx->client);
   pal_ctx->client = NULL;
-  pal_ctx->backoff = GNUNET_TIME_relative_max (GNUNET_TIME_UNIT_MILLISECONDS,
-					       GNUNET_TIME_relative_min (GNUNET_TIME_relative_multiply (pal_ctx->backoff, 2),
-									 GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)));
+  pal_ctx->backoff = GNUNET_TIME_STD_BACKOFF (pal_ctx->backoff);
   pal_ctx->reconnect_task = GNUNET_SCHEDULER_add_delayed (pal_ctx->backoff,
 							  &do_connect,
 							  pal_ctx);

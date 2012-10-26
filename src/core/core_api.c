@@ -440,9 +440,7 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
   while (NULL != (pr = h->ready_peer_head))
     GNUNET_CONTAINER_DLL_remove (h->ready_peer_head, h->ready_peer_tail, pr);
   GNUNET_assert (h->control_pending_head == NULL);
-  h->retry_backoff =
-      GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_SECONDS, h->retry_backoff);
-  h->retry_backoff = GNUNET_TIME_relative_multiply (h->retry_backoff, 2);
+  h->retry_backoff = GNUNET_TIME_STD_BACKOFF (h->retry_backoff);
 }
 
 
@@ -1174,7 +1172,6 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->hcnt = 0;
   h->currently_down = GNUNET_YES;
   h->peers = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
-  h->retry_backoff = GNUNET_TIME_UNIT_MILLISECONDS;
   if (NULL != handlers)
     while (handlers[h->hcnt].callback != NULL)
       h->hcnt++;

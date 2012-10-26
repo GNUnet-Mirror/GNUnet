@@ -401,13 +401,7 @@ try_reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_DHT_Handle *handle = cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Reconnecting with DHT %p\n", handle);
-  handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  if (handle->retry_time.rel_value < GNUNET_CONSTANTS_SERVICE_RETRY.rel_value)
-    handle->retry_time = GNUNET_CONSTANTS_SERVICE_RETRY;
-  else
-    handle->retry_time = GNUNET_TIME_relative_multiply (handle->retry_time, 2);
-  if (handle->retry_time.rel_value > GNUNET_CONSTANTS_SERVICE_TIMEOUT.rel_value)
-    handle->retry_time = GNUNET_CONSTANTS_SERVICE_TIMEOUT;
+  handle->retry_time = GNUNET_TIME_STD_BACKOFF (handle->retry_time);
   handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_YES != try_connect (handle))
   {
@@ -438,8 +432,9 @@ do_disconnect (struct GNUNET_DHT_Handle *handle)
     GNUNET_CLIENT_notify_transmit_ready_cancel (handle->th);
   handle->th = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Disconnecting from DHT service, will try to reconnect in %llu ms\n",
-              (unsigned long long) handle->retry_time.rel_value);
+              "Disconnecting from DHT service, will try to reconnect in %s\n",
+              GNUNET_STRINGS_relative_time_to_string (handle->retry_time,
+						      GNUNET_YES));
   GNUNET_CLIENT_disconnect (handle->client);
   handle->client = NULL;
 

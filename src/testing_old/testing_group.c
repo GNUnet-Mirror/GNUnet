@@ -41,6 +41,12 @@
 
 
 /**
+ * How long do we wait after a FORK+EXEC before testing for the
+ * resulting process to be up (port open, waitpid, etc.)?
+ */
+#define GNUNET_CONSTANTS_EXEC_WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 200)
+
+/**
  * Lowest port used for GNUnet testing.  Should be high enough to not
  * conflict with other applications running on the hosts but be low
  * enough to not conflict with client-ports (typically starting around

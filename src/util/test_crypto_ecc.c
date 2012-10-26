@@ -203,4 +203,6 @@ main (int argc, char *argv[])
     return -1;
   }
   return 0;
-}                               /* end of main */
+}
+
+/* end of test_crypto_ecc.c */

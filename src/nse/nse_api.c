@@ -154,16 +154,7 @@ reschedule_connect (struct GNUNET_NSE_Handle *h)
        h->reconnect_delay.rel_value);
   h->reconnect_task =
       GNUNET_SCHEDULER_add_delayed (h->reconnect_delay, &reconnect, h);
-  if (h->reconnect_delay.rel_value == 0)
-  {
-    h->reconnect_delay = GNUNET_TIME_UNIT_MILLISECONDS;
-  }
-  else
-  {
-    h->reconnect_delay = GNUNET_TIME_relative_multiply (h->reconnect_delay, 2);
-    h->reconnect_delay =
-        GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_SECONDS, h->reconnect_delay);
-  }
+  h->reconnect_delay = GNUNET_TIME_STD_BACKOFF (h->reconnect_delay);
 }
 
 

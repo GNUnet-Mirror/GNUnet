@@ -45,6 +45,20 @@
  */
 #define EMPTY_HACK GNUNET_YES
 
+
+/**
+ * After how long do we retry a service connection that was
+ * unavailable?  Used in cases where an exponential back-off
+ * seems inappropriate.
+ */
+#define GNUNET_CONSTANTS_SERVICE_RETRY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
+
+/**
+ * How long do we wait after a FORK+EXEC before testing for the
+ * resulting process to be up (port open, waitpid, etc.)?
+ */
+#define GNUNET_CONSTANTS_EXEC_WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 200)
+
 /**
  * How long do we wait after starting gnunet-service-arm
  * for the core service to be alive?

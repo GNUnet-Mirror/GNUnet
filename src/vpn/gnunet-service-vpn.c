@@ -3003,31 +3003,6 @@ client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 
 
 /**
- * Test if the given AF is supported by this system.
- * 
- * @param af to test
- * @return GNUNET_OK if the AF is supported
- */
-static int
-test_af (int af)
-{
-  int s;
-
-  s = socket (af, SOCK_STREAM, 0);
-  if (-1 == s)
-  {
-    if (EAFNOSUPPORT == errno)
-      return GNUNET_NO;
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-			 "socket");
-    return GNUNET_SYSERR;
-  }
-  (void) close (s);
-  return GNUNET_OK;
-}
-
-
-/**
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
@@ -3100,7 +3075,7 @@ run (void *cls,
     return;
   }
   vpn_argv[1] = ifname;
-  if (GNUNET_OK == test_af (AF_INET6))
+  if (GNUNET_OK == GNUNET_NETWORK_test_pf (PF_INET6))
   {
     if ( (GNUNET_SYSERR ==
 	  GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "IPV6ADDR",
@@ -3140,7 +3115,7 @@ run (void *cls,
     vpn_argv[2] = GNUNET_strdup ("-");
     vpn_argv[3] = GNUNET_strdup ("-");
   }
-  if (GNUNET_OK == test_af (AF_INET))
+  if (GNUNET_OK == GNUNET_NETWORK_test_pf (PF_INET))
   {
     if ( (GNUNET_SYSERR ==
 	  GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "IPV4ADDR",

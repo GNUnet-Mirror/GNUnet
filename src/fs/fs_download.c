@@ -1439,9 +1439,8 @@ try_reconnect (struct GNUNET_FS_DownloadContext *dc)
   if (0 == dc->reconnect_backoff.rel_value)
     dc->reconnect_backoff = GNUNET_TIME_UNIT_MILLISECONDS;
   else
-    dc->reconnect_backoff = GNUNET_TIME_relative_min (GNUNET_TIME_relative_multiply (dc->reconnect_backoff, 2),
-						      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 10));
-  
+    dc->reconnect_backoff = GNUNET_TIME_STD_BACKOFF (dc->reconnect_backoff);
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Will try to reconnect in %s\n",
 	      GNUNET_STRINGS_relative_time_to_string (dc->reconnect_backoff, GNUNET_YES));
   dc->task =

@@ -707,7 +707,7 @@ reconnect ()
        (unsigned long long) backoff.rel_value);
   GNUNET_assert (NULL != resolver_cfg);
   r_task = GNUNET_SCHEDULER_add_delayed (backoff, &reconnect_task, NULL);
-  backoff = GNUNET_TIME_relative_multiply (backoff, 2);
+  backoff = GNUNET_TIME_STD_BACKOFF (backoff);
 }
 
 

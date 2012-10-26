@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2010 Christian Grothoff (and other contributing authors)
+     (C) 2010, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -63,17 +63,19 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
                           size_t xquery_size, const void *reply_block,
                           size_t reply_block_size)
 {
+  const struct GNSNameRecordBlock *nrb;
   const char* name;
+  const char *name_end;
+  const char *rd_data;
   struct GNUNET_HashCode query_key;
   struct GNUNET_HashCode mhash;
   struct GNUNET_HashCode chash;
   struct GNUNET_CRYPTO_ShortHashCode pkey_hash;
-  struct GNSNameRecordBlock *nrb;
   struct GNUNET_CRYPTO_HashAsciiEncoded xor_exp;
   struct GNUNET_CRYPTO_HashAsciiEncoded xor_got;
   uint32_t rd_count;
-  char* rd_data = NULL;
-  int rd_len;
+  size_t rd_len;
+  size_t name_len;
   uint32_t record_xquery;
   unsigned int record_match;
   
@@ -97,9 +99,15 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   
   /* this is a reply */
 
-  nrb = (struct GNSNameRecordBlock *)reply_block;
-  name = (const char*)&nrb[1];
-  
+  nrb = (const struct GNSNameRecordBlock *)reply_block;
+  name = (const char*) &nrb[1];
+  name_end = memchr (name, 0, reply_block_size - sizeof (struct GNSNameRecordBlock));
+  if (NULL == name_end)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+  }
+  name_len = (name_end - name) + 1;
   GNUNET_CRYPTO_short_hash (&nrb->public_key,
 			    sizeof(nrb->public_key),
 			    &pkey_hash);
@@ -121,9 +129,8 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   
   record_match = 0;
   rd_count = ntohl(nrb->rd_count);
-  rd_data = (char*)&nrb[1];
-  rd_data += strlen(name) + 1;
-  rd_len = reply_block_size - (strlen(name) + 1
+  rd_data = &name[name_len];
+  rd_len = reply_block_size - (name_len
                                + sizeof(struct GNSNameRecordBlock));
   {
     struct GNUNET_NAMESTORE_RecordData rd[rd_count];

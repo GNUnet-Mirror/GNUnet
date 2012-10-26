@@ -759,11 +759,7 @@ nat_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     h->server_stdout = NULL;
     h->server_stdout_handle = NULL;
     /* now try to restart it */
-    h->server_retry_delay =
-        GNUNET_TIME_relative_multiply (h->server_retry_delay, 2);
-    h->server_retry_delay =
-        GNUNET_TIME_relative_max (GNUNET_TIME_UNIT_HOURS,
-                                  h->server_retry_delay);
+    h->server_retry_delay = GNUNET_TIME_STD_BACKOFF (h->server_retry_delay);
     h->server_read_task =
         GNUNET_SCHEDULER_add_delayed (h->server_retry_delay,
                                       &restart_nat_server, h);

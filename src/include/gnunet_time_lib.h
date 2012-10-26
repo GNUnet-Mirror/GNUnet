@@ -150,6 +150,22 @@ GNUNET_NETWORK_STRUCT_END
 #define GNUNET_TIME_UNIT_FOREVER_ABS GNUNET_TIME_absolute_get_forever_ ()
 
 
+
+/**
+ * Threshold after which exponential backoff should not increase (15 m).
+ */
+#define GNUNET_TIME_STD_EXPONENTIAL_BACKOFF_THRESHOLD GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
+
+
+/**
+ * Perform our standard exponential back-off calculation, starting at 1mst
+ * and then going by a factor of 2 up unto a maximum of 1s.
+ *
+ * @param r current backoff time, initially zero
+ */
+#define GNUNET_TIME_STD_BACKOFF(r) GNUNET_TIME_relative_min (GNUNET_TIME_STD_EXPONENTIAL_BACKOFF_THRESHOLD, \
+   GNUNET_TIME_relative_multiply (GNUNET_TIME_relative_max (GNUNET_TIME_UNIT_MILLISECONDS, (r)), 2));
+
 /**
  * Return relative time of 0ms.
  */

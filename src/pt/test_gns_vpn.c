@@ -415,30 +415,6 @@ run (void *cls,
 
 
 /**
- * Test if the given AF is supported by this system.
- * 
- * @param af to test
- * @return GNUNET_OK if the AF is supported
- */
-static int
-test_af (int af)
-{
-  int s;
-
-  s = socket (af, SOCK_STREAM, 0);
-  if (-1 == s)
-  {
-    if (EAFNOSUPPORT == errno)
-      return GNUNET_NO;
-    fprintf (stderr, "Failed to create test socket: %s\n", STRERROR (errno));
-    return GNUNET_SYSERR;
-  }
-  close (s);
-  return GNUNET_OK;
-}
-
-
-/**
  * Open '/dev/null' and make the result the given
  * file descriptor.
  *
@@ -579,13 +555,13 @@ main (int argc, char *const *argv)
   dest_af = AF_INET;
   src_af = AF_INET;
 
-  if (GNUNET_OK == test_af (AF_INET6))
+  if (GNUNET_OK == GNUNET_NETWORK_test_pf (PF_INET6))
     use_v6 = GNUNET_YES;
   else
     use_v6 = GNUNET_NO;
   
-  if ( (GNUNET_OK != test_af (src_af)) ||
-       (GNUNET_OK != test_af (dest_af)) )
+  if ( (GNUNET_OK != GNUNET_NETWORK_test_pf (src_af)) ||
+       (GNUNET_OK != GNUNET_NETWORK_test_pf (dest_af)) )
   {
     fprintf (stderr, 
 	     "Required address families not supported by this system, skipping test.\n");
