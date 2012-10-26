@@ -30,6 +30,11 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_regex_lib.h"
 #include "gnunet_mysql_lib.h"
+#include <mysql/mysql.h>
+
+#define INSERT_EDGE_STMT "INSERT IGNORE INTO `%s` "\
+                         "(`key`, `label`, `to_key`, `accepting`) "\
+                         "VALUES (?, ?, ?, ?);"
 
 /**
  * Simple struct to keep track of progress, and print a
@@ -75,6 +80,11 @@ static int result;
  * MySQL context.
  */
 static struct GNUNET_MYSQL_Context *mysql_ctx;
+
+/**
+ * MySQL prepared statement handle.
+ */
+static struct GNUNET_MYSQL_StatementHandle *stmt_handle;
 
 /**
  * MySQL table name.
@@ -259,27 +269,64 @@ regex_iterator (void *cls,
                 unsigned int num_edges,
                 const struct GNUNET_REGEX_Edge *edges)
 {
-  char *stmt;
   unsigned int i;
+  int result;
+  unsigned long k_length;
+  unsigned long e_length;
+  unsigned long d_length;
 
   GNUNET_assert (NULL != mysql_ctx);
 
   for (i = 0; i < num_edges; i++)
   {
-    GNUNET_asprintf (&stmt,
-                     "INSERT IGNORE INTO `%s` (`key`, `label`, `to_key`, `accepting`) VALUES ('%s', '%s', '%s', '%d');",
-                     table_name, GNUNET_h2s_full (key), edges[i].label,
-                     GNUNET_h2s_full (&edges[i].destination), accepting);
+    k_length = sizeof (struct GNUNET_HashCode);
+    e_length = strlen (edges[i].label);
+    d_length = sizeof (struct GNUNET_HashCode);
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Insert statement: %s\n", stmt);
+    result =
+      GNUNET_MYSQL_statement_run_prepared (
+        mysql_ctx,
+        stmt_handle,
+        NULL,
+        MYSQL_TYPE_BLOB, key, sizeof (struct GNUNET_HashCode), &k_length,
+        MYSQL_TYPE_STRING, edges[i].label, strlen (edges[i].label), &e_length,
+        MYSQL_TYPE_BLOB, &edges[i].destination, sizeof (struct GNUNET_HashCode), &d_length,
+        MYSQL_TYPE_LONG, &accepting, GNUNET_YES,
+        -1);
 
-    if (GNUNET_OK != GNUNET_MYSQL_statement_run (mysql_ctx, stmt))
+    if (1 != result && 0 != result)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Error executing mysql statement: %s\n", stmt);
+                  "Error executing prepared mysql statement for edge: Affected rows: %i, expected 0 or 1!\n",
+                  result);
+      GNUNET_SCHEDULER_add_now (&do_abort, NULL);
     }
+  }
 
-    GNUNET_free (stmt);
+  if (0 == num_edges)
+  {
+    k_length = sizeof (struct GNUNET_HashCode);
+    e_length = 0;
+    d_length = 0;
+
+    result =
+      GNUNET_MYSQL_statement_run_prepared (
+        mysql_ctx,
+        stmt_handle,
+        NULL,
+        MYSQL_TYPE_BLOB, key, sizeof (struct GNUNET_HashCode), &k_length,
+        MYSQL_TYPE_STRING, NULL, 0, &e_length,
+        MYSQL_TYPE_BLOB, NULL, 0, &d_length,
+        MYSQL_TYPE_LONG, &accepting, GNUNET_YES,
+        -1);
+
+    if (1 != result && 0 != result)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Error executing prepared mysql statement for edge: Affected rows: %i, expected 0 or 1!\n",
+                  result);
+      GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+    }
   }
 }
 
@@ -403,15 +450,23 @@ do_directory_scan (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TIME_Absolute start_time;
   struct GNUNET_TIME_Relative duration;
+  char *stmt;
 
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
+
+  /* Create an MySQL prepared statement for the inserts */
+  GNUNET_asprintf (&stmt, INSERT_EDGE_STMT, table_name);
+  stmt_handle = GNUNET_MYSQL_statement_prepare (mysql_ctx, stmt);
+  GNUNET_free (stmt);
+
+  GNUNET_assert (NULL != stmt_handle);
 
   meter = create_meter (num_policy_files, "Announcing policy files\n", GNUNET_YES);
   start_time = GNUNET_TIME_absolute_get ();
   GNUNET_DISK_directory_scan (policy_dir,
                               &policy_filename_cb,
-                              NULL);
+                              stmt_handle);
   duration = GNUNET_TIME_absolute_get_duration (start_time);
   reset_meter (meter);
   free_meter (meter);
