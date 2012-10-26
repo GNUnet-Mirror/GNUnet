@@ -1697,7 +1697,7 @@ GNUNET_MESH_announce_regex (struct GNUNET_MESH_Handle *h,
     msg->compression_characters = htons (compression_characters);
     memcpy (&msg[1], regex, len);
 
-    send_packet(h, msg, NULL);
+    send_packet(h, &msg->header, NULL);
   }
 }
 
