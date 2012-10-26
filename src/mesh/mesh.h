@@ -177,6 +177,27 @@ struct GNUNET_MESH_TunnelNotification
 };
 
 /**
+ * Message for announce of regular expressions.
+ */
+struct GNUNET_MESH_RegexAnnounce
+{
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_ANNOUNCE_REGEX
+     *
+     * Size: sizeof(struct GNUNET_MESH_RegexAnnounce) + strlen (regex)
+     */
+  struct GNUNET_MessageHeader header;
+
+    /**
+     * How many characters do we want to put in an edge label.
+     */
+  uint16_t compression_characters;
+
+  /* regex  */
+};
+
+
+/**
  * Message for:
  * - request adding and deleting peers from a tunnel
  * - notify the client that peers have connected:

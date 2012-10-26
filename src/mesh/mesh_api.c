@@ -1680,20 +1680,21 @@ GNUNET_MESH_announce_regex (struct GNUNET_MESH_Handle *h,
                             const char *regex,
                             unsigned int compression_characters)
 {
-  struct GNUNET_MessageHeader *msg;
+  struct GNUNET_MESH_RegexAnnounce *msg;
   size_t len;
   size_t msgsize;
 
   len = strlen (regex);
-  msgsize = sizeof(struct GNUNET_MessageHeader) + len;
+  msgsize = sizeof(struct GNUNET_MESH_RegexAnnounce) + len;
   GNUNET_assert (UINT16_MAX > msgsize);
 
   {
     char buffer[msgsize];
 
-    msg = (struct GNUNET_MessageHeader *) buffer;
-    msg->size = htons (msgsize);
-    msg->type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ANNOUNCE_REGEX);
+    msg = (struct GNUNET_MESH_RegexAnnounce *) buffer;
+    msg->header.size = htons (msgsize);
+    msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ANNOUNCE_REGEX);
+    msg->compression_characters = htons (compression_characters);
     memcpy (&msg[1], regex, len);
 
     send_packet(h, msg, NULL);

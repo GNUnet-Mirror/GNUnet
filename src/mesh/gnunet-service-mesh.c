@@ -171,6 +171,22 @@ struct MeshPeerQueue
 
 
 /**
+ * Struct to store regex information announced by clients.
+ */
+struct MeshRegexDescriptor
+{
+    /**
+     * Regular expression itself.
+     */
+  char *regex;
+
+    /**
+     * How many characters per edge can we squeeze?
+     */
+  uint16_t compression;
+};
+
+/**
  * Struct containing all info possibly needed to build a package when called
  * back by core.
  */
@@ -691,7 +707,7 @@ struct MeshClient
     /**
      * Regular expressions describing the services offered by this client.
      */
-  char **regexes; // FIXME add timeout? API to remove a regex?
+  struct MeshRegexDescriptor *regexes; // FIXME regex add timeout? API to remove a regex?
 
     /**
      * Number of regular expressions in regexes.
@@ -1586,12 +1602,14 @@ regex_iterator (void *cls,
  * @param regex The regular expresion.
  */
 static void
-regex_put (const char *regex)
+regex_put (const struct MeshRegexDescriptor *regex)
 {
   struct GNUNET_REGEX_Automaton *dfa;
 
-  DEBUG_DHT ("  regex_put (%s) start\n", regex);
-  dfa = GNUNET_REGEX_construct_dfa (regex, strlen(regex));
+  DEBUG_DHT ("  regex_put (%s) start\n", regex->regex);
+  dfa = GNUNET_REGEX_construct_dfa (regex->regex,
+                                    strlen(regex->regex),
+                                    regex->compression);
   GNUNET_REGEX_iterate_all_edges (dfa, &regex_iterator, NULL);
   GNUNET_REGEX_automaton_destroy (dfa);
   DEBUG_DHT ("  regex_put (%s) end\n", regex);
@@ -1785,7 +1803,7 @@ announce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   for (i = 0; i < c->n_regex; i++)
   {
-    regex_put (c->regexes[i]);
+    regex_put (&c->regexes[i]);
   }
   c->regex_announce_task = GNUNET_SCHEDULER_add_delayed (app_announce_time,
                                                          &announce_regex,
@@ -6567,7 +6585,7 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
       GNUNET_CONTAINER_multihashmap_destroy (c->types);
     for (i = 0; i < c->n_regex; i++)
     {
-      GNUNET_free (c->regexes[i]);
+      GNUNET_free (c->regexes[i].regex);
     }
     GNUNET_free_non_null (c->regexes);
     if (GNUNET_SCHEDULER_NO_TASK != c->regex_announce_task)
@@ -6695,6 +6713,8 @@ static void
 handle_local_announce_regex (void *cls, struct GNUNET_SERVER_Client *client,
                              const struct GNUNET_MessageHeader *message)
 {
+  struct GNUNET_MESH_RegexAnnounce *msg;
+  struct MeshRegexDescriptor rd;
   struct MeshClient *c;
   char *regex;
   size_t len;
@@ -6710,18 +6730,21 @@ handle_local_announce_regex (void *cls, struct GNUNET_SERVER_Client *client,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
-  len = ntohs (message->size) - sizeof(struct GNUNET_MessageHeader);
+  msg = (struct GNUNET_MESH_RegexAnnounce *) message;
+  len = ntohs (message->size) - sizeof(struct GNUNET_MESH_RegexAnnounce);
   regex = GNUNET_malloc (len + 1);
   memcpy (regex, &message[1], len);
   regex[len] = '\0';
-  GNUNET_array_append (c->regexes, c->n_regex, regex);
+  rd.regex = regex;
+  rd.compression = ntohs (msg->compression_characters);
+  GNUNET_array_append (c->regexes, c->n_regex, rd);
   if (GNUNET_SCHEDULER_NO_TASK == c->regex_announce_task)
   {
     c->regex_announce_task = GNUNET_SCHEDULER_add_now(&announce_regex, c);
   }
   else
   {
-    regex_put(regex);
+    regex_put(&rd);
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "announce regex processed\n");
