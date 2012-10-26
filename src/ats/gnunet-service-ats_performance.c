@@ -256,7 +256,7 @@ peer_it (void *cls,
   if (NULL != id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for peer `%s'\n", GNUNET_i2s (id));
-    GAS_addresses_get_peer_info (id, &peerinfo_it, cls);
+    GAS_addresses_get_peer_info (id, &peerinfo_it, pc);
   }
 }
 
