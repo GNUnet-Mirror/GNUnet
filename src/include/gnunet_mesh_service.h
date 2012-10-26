@@ -227,16 +227,24 @@ typedef void (*GNUNET_MESH_PeerConnectHandler) (void *cls,
  * Announce to ther peer the availability of services described by the regex,
  * in order to be reachable to other peers via connect_by_string.
  * 
- * Note that the first 8 characters are considered to be part of a prefix,
- * (for instance 'gnunet://'). If you put a variable part in there (*, +. ()),
- * all matching strings will be stored in the DHT.
+ * Note that the first GNUNET_REGEX_INITIAL_BYTES characters are considered
+ * to be part of a prefix, (for instance 'gnunet://').
+ * If you put a variable part in there (*, +. ()), all matching strings
+ * will be stored in the DHT.
  *
- * @param h handle to mesh.
- * @param regex string with the regular expression describing local services.
+ * @param h Handle to mesh.
+ * @param regex String with the regular expression describing local services.
+ * @param compression_characters How many characters can be assigned to one
+ *                               edge of the graph. The bigger the variability
+ *                               of the data, the smaller this parameter should
+ *                               be (down to 1).
+ *                               For maximum compression, use strlen (regex)
+ *                               or 0 (special value). Use with care!
  */
 void
 GNUNET_MESH_announce_regex (struct GNUNET_MESH_Handle *h,
-                            const char *regex);
+                            const char *regex,
+                            unsigned int compression_characters);
 
 
 /**
