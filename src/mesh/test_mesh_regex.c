@@ -447,7 +447,7 @@ peergroup_ready (void *cls, const char *emsg)
                                  &app);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Announce REGEX %u: %s\n", i, regexes[i]);
-    GNUNET_MESH_announce_regex (h2[i], regexes[i]);
+    GNUNET_MESH_announce_regex (h2[i], regexes[i], 1);
   }
 
   for (i = 0; i < MESH_REGEX_PEERS; i++)
