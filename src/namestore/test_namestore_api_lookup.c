@@ -217,7 +217,6 @@ run (void *cls,
 {
   size_t rd_ser_len;
   struct GNUNET_TIME_Absolute et;
-  char rd_ser[rd_ser_len];
 
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 						&endbadly, NULL);
@@ -233,23 +232,26 @@ run (void *cls,
   s_rd = create_record (RECORDS);
 
   rd_ser_len = GNUNET_NAMESTORE_records_get_size(RECORDS, s_rd);
-  GNUNET_NAMESTORE_records_serialize(RECORDS, s_rd, rd_ser_len, rd_ser);
+  {
+    char rd_ser[rd_ser_len];
+    GNUNET_NAMESTORE_records_serialize(RECORDS, s_rd, rd_ser_len, rd_ser);
 
-  /* sign */
-  et.abs_value = s_rd[0].expiration_time;
-  s_signature = GNUNET_NAMESTORE_create_signature (privkey, et, s_name, 
-						   s_rd, RECORDS);
-  
-  /* create random zone hash */
-  GNUNET_CRYPTO_short_hash (&pubkey, 
-			    sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), 
-			    &s_zone);
-  nsh = GNUNET_NAMESTORE_connect (cfg);
-  GNUNET_break (NULL != nsh);
-  nsqe = GNUNET_NAMESTORE_record_put (nsh, &pubkey, s_name,
-				      GNUNET_TIME_UNIT_FOREVER_ABS,
-				      RECORDS, s_rd, s_signature, 
-				      &put_cont, s_name);
+    /* sign */
+    et.abs_value = s_rd[0].expiration_time;
+    s_signature = GNUNET_NAMESTORE_create_signature (privkey, et, s_name, 
+						     s_rd, RECORDS);
+    
+    /* create random zone hash */
+    GNUNET_CRYPTO_short_hash (&pubkey, 
+			      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), 
+			      &s_zone);
+    nsh = GNUNET_NAMESTORE_connect (cfg);
+    GNUNET_break (NULL != nsh);
+    nsqe = GNUNET_NAMESTORE_record_put (nsh, &pubkey, s_name,
+					GNUNET_TIME_UNIT_FOREVER_ABS,
+					RECORDS, s_rd, s_signature, 
+					&put_cont, s_name);
+  }
 }
 
 
