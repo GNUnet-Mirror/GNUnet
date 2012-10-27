@@ -239,21 +239,17 @@ on_lookup_result(void *cls, uint32_t rd_count,
 static void
 commence_testing (void *cls, int success)
 {
-
   GNUNET_CRYPTO_rsa_key_free(our_key);
   GNUNET_CRYPTO_rsa_key_free(bob_key);
   GNUNET_CRYPTO_rsa_key_free(alice_key);
-
   GNUNET_NAMESTORE_disconnect (namestore_handle);
   namestore_handle = NULL;
-
   gns_handle = GNUNET_GNS_connect(cfg);
   if (NULL == gns_handle)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to connect to GNS!\n");
   }
-
   GNUNET_GNS_lookup_zone (gns_handle, TEST_DOMAIN,
                           &our_zone,
                           GNUNET_GNS_RECORD_A,
@@ -264,7 +260,7 @@ commence_testing (void *cls, int success)
 
 
 static void
-put_pseu_dht(void *cls, int success)
+put_pseu_dht (void *cls, int success)
 {
   struct GNSNameRecordBlock *nrb;
   struct GNUNET_CRYPTO_ShortHashCode name_hash;
