@@ -168,18 +168,20 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     }
     et.abs_value = exp;
     
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-        "Verifying signature of %d records for name %s with expiration of %u\n",
-               rd_count, name, et.abs_value);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Verifying signature of %d records for name %s with expiration of %u\n",
+		rd_count, name, et.abs_value);
 
-    if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (&nrb->public_key,
-                                                        et,
-                                                        name,
-                                                        rd_count,
-                                                        rd,
-                                                        &nrb->signature))
+    if (GNUNET_OK != 
+	GNUNET_NAMESTORE_verify_signature (&nrb->public_key,
+					   et,
+					   name,
+					   rd_count,
+					   rd,
+					   &nrb->signature))
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Signature invalid for %s\n", name);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		  "Signature invalid for %s\n", name);
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
@@ -187,8 +189,8 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   
   if (NULL != bf)
   {
-    GNUNET_CRYPTO_hash(reply_block, reply_block_size, &chash);
-    GNUNET_BLOCK_mingle_hash(&chash, bf_mutator, &mhash);
+    GNUNET_CRYPTO_hash (reply_block, reply_block_size, &chash);
+    GNUNET_BLOCK_mingle_hash (&chash, bf_mutator, &mhash);
     if (NULL != *bf)
     {
       if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test(*bf, &mhash))
@@ -221,13 +223,14 @@ block_plugin_gns_get_key (void *cls, enum GNUNET_BLOCK_Type type,
                          struct GNUNET_HashCode * key)
 {
   struct GNUNET_CRYPTO_ShortHashCode pkey_hash;
-  const struct GNSNameRecordBlock *nrb = (const struct GNSNameRecordBlock *)block;
+  const struct GNSNameRecordBlock *nrb = block;
   const char *name;
 
   if (type != GNUNET_BLOCK_TYPE_GNS_NAMERECORD)
     return GNUNET_SYSERR;
   name = (const char *) &nrb[1];
-  if (NULL == memchr (name, '\0', block_size - sizeof (struct GNSNameRecordBlock)))
+  if (NULL == memchr (name, '\0', 
+		      block_size - sizeof (struct GNSNameRecordBlock)))
   {
     /* malformed, no 0-termination in name */
     GNUNET_break_op (0);
