@@ -942,7 +942,7 @@ data_to_pkcs1 (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
   gcry_sexp_t data;
 
   GNUNET_CRYPTO_short_hash (purpose, ntohl (purpose->size), &hc);
-#define FORMATSTRING "(4:data(32:01234567890123456789012345678901))"
+#define FORMATSTRING "(4:data(5:flags3:raw)(5:value32:01234567890123456789012345678901))"
 #define FORMATSTRING2 "(4:data(4:hash6:sha25632:01234567890123456789012345678901))"
   bufSize = strlen (FORMATSTRING) + 1;
   {

@@ -91,16 +91,15 @@ enum GNUNET_CRYPTO_Quality
 /**
  * Length of a hash value
  */
-#define GNUNET_CRYPTO_HASH_LENGTH 512/8
+#define GNUNET_CRYPTO_HASH_LENGTH (512/8)
 
 /**
- * FIXME: what is an acceptable value here?
- * Note: round to multiple of 8 minus 2.
+ * Maximum length of an ECC signature.
+ * Note: round up to multiple of 8 minus 2 for alignment.
  */
-#define GNUNET_CRYPTO_ECC_SIGNATURE_DATA_ENCODING_LENGTH 138
+#define GNUNET_CRYPTO_ECC_SIGNATURE_DATA_ENCODING_LENGTH 190
 
 /**
- * FIXME: what is an acceptable value here?
  * Maximum length of the public key (q-point, Q = dP) when encoded.
  */
 #define GNUNET_CRYPTO_ECC_MAX_PUBLIC_KEY_LENGTH 140
