@@ -484,22 +484,6 @@ is_tld (const char* name, const char* tld)
 }
 
 
-/**
- * convert integer to string representation
- *
- * @param i integer
- * @return the character
- */
-static char 
-i_to_hexchar (unsigned char i)
-{
-  static char hexmap[] = "0123456789abcdef";
-
-  GNUNET_assert (sizeof (hexmap) > (i & 15));
-  return hexmap[i & 15];
-}
-
-
 static int
 con_post_data_iter (void *cls,
                   enum MHD_ValueKind kind,
