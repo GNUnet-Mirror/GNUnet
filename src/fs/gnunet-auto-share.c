@@ -721,6 +721,7 @@ free_item (void *cls,
   return GNUNET_OK;
 }
 
+
 /**
  * The main function to automatically publish content to GNUnet.
  *
@@ -768,10 +769,13 @@ main (int argc, char *const *argv)
 			    gettext_noop
 			    ("Automatically publish files from a directory on GNUnet"),
 			    options, &run, NULL)) ? ret : 1;
-  (void) GNUNET_CONTAINER_multihashmap_iterate (work_finished,
-						&free_item,
-						NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (work_finished);
+  if (NULL != work_finished)
+  {
+    (void) GNUNET_CONTAINER_multihashmap_iterate (work_finished,
+						  &free_item,
+						  NULL);
+    GNUNET_CONTAINER_multihashmap_destroy (work_finished);
+  }
   while (NULL != (wi = work_head))
   {
     GNUNET_CONTAINER_DLL_remove (work_head, work_tail, wi);

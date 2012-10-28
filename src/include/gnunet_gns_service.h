@@ -22,10 +22,7 @@
  * @file include/gnunet_gns_service.h
  * @brief API to the GNS service
  * @author Martin Schanzenbach
- *
  */
-
-
 #ifndef GNUNET_GNS_SERVICE_H
 #define GNUNET_GNS_SERVICE_H
 
