@@ -343,6 +343,16 @@ static char *data_filename;
  */
 static unsigned int max_path_compression;
 
+/**
+ * Announce delay between regex announcing.
+ */
+static struct GNUNET_TIME_Relative announce_delay = { 10000 };
+
+/**
+ * Concurrent announce batch size.
+ */
+static unsigned int announce_batch_size;
+
 
 /******************************************************************************/
 /******************************  DECLARATIONS  ********************************/
@@ -819,6 +829,99 @@ do_connect_by_string (void *cls,
 
 
 /**
+ * Announce regex task that announces the regexes stored in the peers policy file.
+ *
+ * @param cls NULL
+ * @param tc the task context
+ */
+static void
+do_announce_regexes (void *cls,
+		   const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  static unsigned int num_announced_files;
+  struct RegexPeer *peer;
+  char *regex;
+  char *data;
+  char *buf;
+  uint64_t filesize;
+  unsigned int offset;
+  unsigned int limit;
+
+  limit = num_announced_files + announce_batch_size;
+
+  for (; num_announced_files < limit
+	 && num_announced_files < num_peers; num_announced_files++)
+  {
+    peer = &peers[num_announced_files];
+
+    GNUNET_assert (NULL != peer->policy_file);
+
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"Announcing regexes for peer %u with file %s\n",
+		peer->id, peer->policy_file);
+      
+    if (GNUNET_YES != GNUNET_DISK_file_test (peer->policy_file))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  "Could not find policy file %s\n", peer->policy_file);
+      return;
+    }
+    if (GNUNET_OK != GNUNET_DISK_file_size (peer->policy_file, &filesize, GNUNET_YES, GNUNET_YES))
+      filesize = 0;
+    if (0 == filesize)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Policy file %s is empty.\n", peer->policy_file);
+      return;
+    }
+    data = GNUNET_malloc (filesize);
+    if (filesize != GNUNET_DISK_fn_read (peer->policy_file, data, filesize))
+    {
+      GNUNET_free (data);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Could not read policy file %s.\n",
+		  peer->policy_file);
+      return;
+    }
+    buf = data;
+    offset = 0;
+    regex = NULL;
+    while (offset < (filesize - 1))
+    {
+      offset++;
+      if (((data[offset] == '\n')) && (buf != &data[offset]))
+      {
+	data[offset] = '\0';
+	regex = buf;
+	GNUNET_assert (NULL != regex);
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Announcing regex: %s on peer %u \n",
+		    regex, peer->id);
+	GNUNET_MESH_announce_regex (peer->mesh_handle, regex, max_path_compression);
+	buf = &data[offset + 1];
+      }
+      else if ((data[offset] == '\n') || (data[offset] == '\0'))
+	buf = &data[offset + 1];
+    }
+    GNUNET_free (data);
+  }
+  
+  if (num_announced_files < num_peers)
+    GNUNET_SCHEDULER_add_delayed (announce_delay, &do_announce_regexes, NULL);
+  else
+  {
+    printf ("All regexes announced. Waiting %s before starting to search.\n",
+            GNUNET_STRINGS_relative_time_to_string (search_delay, GNUNET_YES));
+    fflush (stdout);
+
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "All mesh handles connected. Waiting %s before starting to search.\n",
+                GNUNET_STRINGS_relative_time_to_string (search_delay, GNUNET_YES));
+
+    search_task = GNUNET_SCHEDULER_add_delayed (search_delay,
+                                                &do_connect_by_string, NULL);    
+  }
+}
+
+
+/**
  * Mesh connect callback.
  *
  * @param cls internal peer id.
@@ -832,11 +935,6 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
 {
   static unsigned int connected_mesh_handles;
   struct RegexPeer *peer = (struct RegexPeer *) cls;
-  char *regex;
-  char *data;
-  char *buf;
-  uint64_t filesize;
-  unsigned int offset;
 
   if (NULL != emsg)
   {
@@ -846,66 +944,12 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
 
   GNUNET_assert (peer->mesh_op_handle == op);
   GNUNET_assert (peer->mesh_handle == ca_result);
-  GNUNET_assert (NULL != peer->policy_file);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Announcing regexes for peer %u with file %s\n",
-              peer->id, peer->policy_file);
-
-  if (GNUNET_YES != GNUNET_DISK_file_test (peer->policy_file))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Could not find policy file %s\n", peer->policy_file);
-    return;
-  }
-  if (GNUNET_OK != GNUNET_DISK_file_size (peer->policy_file, &filesize, GNUNET_YES, GNUNET_YES))
-    filesize = 0;
-  if (0 == filesize)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Policy file %s is empty.\n", peer->policy_file);
-    return;
-  }
-  data = GNUNET_malloc (filesize);
-  if (filesize != GNUNET_DISK_fn_read (peer->policy_file, data, filesize))
-  {
-    GNUNET_free (data);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Could not read policy file %s.\n",
-         peer->policy_file);
-    return;
-  }
-  buf = data;
-  offset = 0;
-  regex = NULL;
-  while (offset < (filesize - 1))
-  {
-    offset++;
-    if (((data[offset] == '\n')) && (buf != &data[offset]))
-    {
-      data[offset] = '\0';
-      regex = buf;
-      GNUNET_assert (NULL != regex);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Announcing regex: %s on peer %u \n",
-                  regex, peer->id);
-      GNUNET_MESH_announce_regex (peer->mesh_handle, regex, max_path_compression);
-      buf = &data[offset + 1];
-    }
-    else if ((data[offset] == '\n') || (data[offset] == '\0'))
-      buf = &data[offset + 1];
-  }
-  GNUNET_free (data);
 
   if (++connected_mesh_handles == num_peers)
   {
-    printf ("\nWaiting %s before starting to search.\n",
-            GNUNET_STRINGS_relative_time_to_string (search_delay, GNUNET_YES));
+    printf ("\nStarting to announce regexes.\n");
     fflush (stdout);
-
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "All mesh handles connected. Waiting %s before starting to search.\n",
-                GNUNET_STRINGS_relative_time_to_string (search_delay, GNUNET_YES));
-
-    search_task = GNUNET_SCHEDULER_add_delayed (search_delay,
-                                                &do_connect_by_string, NULL);
+    GNUNET_SCHEDULER_add_now (&do_announce_regexes, NULL);
   }
 }
 
@@ -1300,8 +1344,16 @@ controller_event_cb (void *cls,
     }
     break;
   default:
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unexpected controller_cb with state %i!\n", state);
+
+    switch (state)
+    {
+    case STATE_PEERS_CREATING:
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to create peer\n");
+      break;
+    default:
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Unexpected controller_cb with state %i!\n", state);
+    }
     GNUNET_assert (0);
   }
 }
@@ -1612,14 +1664,20 @@ main (int argc, char *const *argv)
       gettext_noop ("tolerate COUNT number of continious timeout failures"),
       GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_cont_fails },
     { 't', "matching-timeout", "TIMEOUT",
-      gettext_noop ("wait TIMEOUT seconds before considering a string match as failed"),
+      gettext_noop ("wait TIMEOUT before considering a string match as failed"),
       GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &search_timeout },
     { 's', "search-delay", "DELAY",
-      gettext_noop ("wait DELAY minutes before starting string search"),
+      gettext_noop ("wait DELAY before starting string search"),
       GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &search_delay },
     {'p', "max-path-compression", "MAX_PATH_COMPRESSION",
      gettext_noop ("maximum path compression length"),
      1, &GNUNET_GETOPT_set_uint, &max_path_compression},
+    {'a', "announce-delay", "DELAY",
+     gettext_noop ("wait DELAY between announcing regexes"),
+     1, &GNUNET_GETOPT_set_relative_time, &announce_delay},
+    {'b', "announce-batch", "SIZE",
+     gettext_noop ("number of peers that should announce regexes concurrently"),
+     1, &GNUNET_GETOPT_set_uint, &announce_batch_size},
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
