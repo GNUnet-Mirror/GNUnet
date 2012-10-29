@@ -20,4 +20,5 @@ UNIX_MATCH_GID = YES
 # PREFIX =
 HOSTS = $SERVICEHOME/data/hosts/
 
-
+[uri]
+hello = gnunet-peerinfo

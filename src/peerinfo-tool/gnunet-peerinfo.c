@@ -812,7 +812,14 @@ run (void *cls, char *const *args, const char *cfgfile,
   char *fn;
 
   cfg = c;
-  if (NULL != args[0])
+  if ( (NULL != args[0]) &&
+       (NULL == put_uri) &&
+       (args[0] == strcasestr (args[0], "gnunet://hello/")) )
+  {
+    put_uri = GNUNET_strdup (args[0]);
+    args++;
+  }
+  if (NULL != args[0]) 
   {
     FPRINTF (stderr, 
 	     _("Invalid command line argument `%s'\n"), 
