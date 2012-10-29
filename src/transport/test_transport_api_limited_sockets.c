@@ -44,6 +44,9 @@
 
 #define MAX_FILES 50
 
+
+#if HAVE_SETRLIMIT
+
 static char *test_source;
 
 static char *test_plugin;
@@ -271,9 +274,6 @@ check ()
   static char *const argv[] = { "test-transport-api",
     "-c",
     "test_transport_api_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -292,38 +292,23 @@ check ()
   return ok;
 }
 
+
 int
 main (int argc, char *argv[])
 {
+  struct rlimit r_file_old;
+  struct rlimit r_file_new;
+  int res;
   int ret = 0;
 
   test_plugin = NULL;
-
   GNUNET_TRANSPORT_TESTING_get_test_source_name (__FILE__, &test_source);
   GNUNET_TRANSPORT_TESTING_get_test_plugin_name (argv[0], test_source,
                                                  &test_plugin);
   GNUNET_TRANSPORT_TESTING_get_test_name (argv[0], &test_name);
-
   GNUNET_log_setup (test_name,
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
-
-#if !HAVE_SETRLIMIT
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot run test on this system\n");
-
-  GNUNET_free (test_source);
-  GNUNET_free (test_plugin);
-  GNUNET_free (test_name);
-
-  return 0;
-#else
-  struct rlimit r_file_old;
-  struct rlimit r_file_new;
-  int res;
 
   res = getrlimit (RLIMIT_NOFILE, &r_file_old);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -347,27 +332,27 @@ main (int argc, char *argv[])
   GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], &cfg_file_p1, 1);
   GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], &cfg_file_p2, 2);
   ret = check ();
-#endif
-
 
   GNUNET_free (cfg_file_p1);
   GNUNET_free (cfg_file_p2);
-
   GNUNET_free (test_source);
   GNUNET_free (test_plugin);
   GNUNET_free (test_name);
-
-#if HAVE_SETRLIMIT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Restoring previous value maximum number of open files\n");
-  res = setrlimit (RLIMIT_NOFILE, &r_file_old);
-  if (res != 0)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Restoring limit failed!\n");
-    return 0;
-  }
-#endif
   return ret;
 }
 
+#else 
+/* cannot setrlimit */
+
+
+int
+main (int argc, char *argv[])
+{
+  fprintf (stderr, "Cannot run test on this system\n");
+  return 0;
+}
+
+#endif
+
 /* end of test_transport_api_limited_sockets.c */
+
