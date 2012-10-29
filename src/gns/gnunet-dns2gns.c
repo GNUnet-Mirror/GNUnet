@@ -669,13 +669,13 @@ main (int argc,
       char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'d', "dns", NULL,
-      gettext_noop ("IP of recursive dns resolver to use (required)"), 1,
+    {'d', "dns", "IP",
+      gettext_noop ("IP of recursive DNS resolver to use (required)"), 1,
       &GNUNET_GETOPT_set_string, &dns_ip},
-    {'s', "suffix", NULL,
+    {'s', "suffix", "SUFFIX",
       gettext_noop ("Authoritative DNS suffix to use (optional); default: zkey.eu"), 1,
       &GNUNET_GETOPT_set_string, &dns_suffix},
-    {'f', "fcfs", NULL,
+    {'f', "fcfs", "NAME",
       gettext_noop ("Authoritative FCFS suffix to use (optional); default: fcfs.zkey.eu"), 1,
       &GNUNET_GETOPT_set_string, &fcfs_suffix},
     GNUNET_GETOPT_OPTION_END

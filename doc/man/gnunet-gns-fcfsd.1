@@ -1,7 +1,7 @@
-.TH GNUNET\-GNS-FCFSD 1 "Jan 4, 2012" "GNUnet"
+.TH GNUNET\-GNS-FCFSD 1 "Oct 25, 2012" "GNUnet"
 
 .SH NAME
-gnunet\-gns-fcfsd \- display information about transport resource allocation
+gnunet\-gns-fcfsd \- HTTP server for GADS domain registration
 
 .SH SYNOPSIS
 .B gnunet\-gns-fcfsd
@@ -9,7 +9,11 @@ gnunet\-gns-fcfsd \- display information about transport resource allocation
 .br
 
 .SH DESCRIPTION
-\fBgnunet\-gns-fcfsd\fP can be used to 
+Most users will not want to run an FCFS\-zone and thus will not need this program.
+
+\fBgnunet\-gns-fcfsd\fP runs a web server where users can register names to be mapped to their GADS zone.  Names are made available on a First Come First Served basis (hence fcfs).  Registered names do not expire.  The HTTP server is run on the port that is specified in the configuration file in section "[fcfsd]" under the name "HTTPPORT".  The key of the zone in which the names are registered must be specified under the name "ZONEKEY" in the same section.  It is possible to manage gnunet\-gns\-fcfsd using gnunet\-(service\-arm) by starting the daemon using "gnunet\-arm -i fcfsd" or by adding "fcfds" to the "DEFAULTSERVICES" option.
+
+An FCFS\-zone is run at http://gnunet.org/fcfs/.  The respective zone key can be imported into an individual user's zone using "gnunet-gns-import.sh".  GADS users are encouraged to register their zone with the gnunet.org FCFS authority.
 
 .SH OPTIONS
 .B
@@ -30,4 +34,5 @@ Print GNUnet version number.
 Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <bug\-gnunet@gnu.org>
 
 .SH SEE ALSO
-gnunet\-transport(1)
+gnunet\-gns(1), gnunet\-gns\-proxy(1)
+

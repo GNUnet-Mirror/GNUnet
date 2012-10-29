@@ -1,15 +1,15 @@
 .TH GNUNET\-RESOLVER 1 "Jan 4, 2012" "GNUnet"
 
 .SH NAME
-gnunet\-resolver \- display information about transport resource allocation
+gnunet\-resolver \- perform DNS resolution using GNUnet resolver service
 
 .SH SYNOPSIS
 .B gnunet\-resolver
-.RI [ options ]
+.RI [ options ] HOSTNAME
 .br
 
 .SH DESCRIPTION
-\fBgnunet\-resolver\fP can be used to 
+\fBgnunet\-resolver\fP can be used to lookup the IP address(es) for a hostname or the hostname for an IP address.  gnunet\-resolver uses the GNUnet service infrastructure to do this, but otherwise does nothing special.  
 
 .SH OPTIONS
 .B
@@ -22,6 +22,9 @@ Print short help on options.
 .IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
 Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
 .B
+.IP "\-r, \-\-reverse"
+Perform a reverse lookup.
+.B
 .IP "\-v, \-\-version"
 Print GNUnet version number.
 
@@ -30,4 +33,4 @@ Print GNUnet version number.
 Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <bug\-gnunet@gnu.org>
 
 .SH SEE ALSO
-gnunet\-transport(1)
+gnunet\-transport(1), nslookup(1)
