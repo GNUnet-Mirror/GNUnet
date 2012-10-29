@@ -6,13 +6,13 @@ src/arm/mockup-service.c
 src/ats/ats_api_peer_change_preference.c
 src/ats/ats_api_performance.c
 src/ats/ats_api_scheduling.c
-src/ats/gnunet-ats.c
 src/ats/gnunet-service-ats_addresses.c
 src/ats/gnunet-service-ats_addresses_mlp.c
 src/ats/gnunet-service-ats.c
 src/ats/gnunet-service-ats_performance.c
 src/ats/gnunet-service-ats_reservations.c
 src/ats/gnunet-service-ats_scheduling.c
+src/ats-tool/gnunet-ats.c
 src/block/block.c
 src/block/plugin_block_template.c
 src/block/plugin_block_test.c
@@ -126,6 +126,7 @@ src/hostlist/hostlist-server.c
 src/integration-tests/connection_watchdog.c
 src/lockmanager/gnunet-service-lockmanager.c
 src/lockmanager/lockmanager_api.c
+src/mesh/gnunet-regex-profiler.c
 src/mesh/gnunet-service-mesh.c
 src/mesh/mesh_api.c
 src/mesh/mesh_block_lib.c
@@ -157,6 +158,7 @@ src/peerinfo-tool/gnunet-peerinfo.c
 src/peerinfo-tool/gnunet-peerinfo_plugins.c
 src/postgres/postgres.c
 src/pt/gnunet-daemon-pt.c
+src/regex/gnunet-regex-simulation-profiler.c
 src/regex/regex.c
 src/regex/regex_graph.c
 src/regex/regex_random.c
@@ -168,6 +170,7 @@ src/template/gnunet-service-template.c
 src/template/gnunet-template.c
 src/testbed/gnunet-helper-testbed.c
 src/testbed/gnunet-service-testbed.c
+src/testbed/gnunet-testbed-profiler.c
 src/testbed/testbed_api.c
 src/testbed/testbed_api_hosts.c
 src/testbed/testbed_api_operations.c
@@ -225,6 +228,7 @@ src/util/container_multihashmap.c
 src/util/container_slist.c
 src/util/crypto_aes.c
 src/util/crypto_crc.c
+src/util/crypto_ecc.c
 src/util/crypto_hash.c
 src/util/crypto_hkdf.c
 src/util/crypto_kdf.c
@@ -236,6 +240,7 @@ src/util/getopt.c
 src/util/getopt_helpers.c
 src/util/gnunet-config.c
 src/util/gnunet-config-diff.c
+src/util/gnunet-ecc.c
 src/util/gnunet-resolver.c
 src/util/gnunet-rsa.c
 src/util/gnunet-service-resolver.c
@@ -262,6 +267,7 @@ src/util/speedup.c
 src/util/strings.c
 src/util/time.c
 src/util/w32cat.c
+src/util/win.c
 src/util/winproc.c
 src/vpn/gnunet-helper-vpn.c
 src/vpn/gnunet-service-vpn.c
