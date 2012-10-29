@@ -61,7 +61,7 @@ static struct GNUNET_RESOLVER_RequestHandle *resolver_handle;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-static struct GNS_LookupRequest *lr;
+static struct GNUNET_GNS_LookupRequest *lr;
 
 
 /**

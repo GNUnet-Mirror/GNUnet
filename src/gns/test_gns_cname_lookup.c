@@ -94,14 +94,6 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-static void
-end_badly_now ()
-{
-  GNUNET_SCHEDULER_cancel (die_task);
-  die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-}
-
-
 static void 
 shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -174,31 +166,30 @@ on_lookup_result_dns (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Lookup failed, rp_filtering?\n");
     ok = 2;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
   }
-  else
+  ok = 1;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "name: %s\n", (char*)cls);
+  for (i=0; i<rd_count; i++)
   {
-    ok = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "name: %s\n", (char*)cls);
-    for (i=0; i<rd_count; i++)
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
+    if (rd[i].record_type == GNUNET_GNS_RECORD_A)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
-      if (rd[i].record_type == GNUNET_GNS_RECORD_A)
+      memcpy(&a, rd[i].data, sizeof(a));
+      addr = inet_ntoa(a);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "address: %s\n", addr);
+      if (0 == strcmp(addr, TEST_IP_DNS))
       {
-        memcpy(&a, rd[i].data, sizeof(a));
-        addr = inet_ntoa(a);
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "address: %s\n", addr);
-        if (0 == strcmp(addr, TEST_IP_DNS))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                    "%s correctly resolved to %s!\n", TEST_DOMAIN_DNS, addr);
-          ok = 0;
-        }
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		    "%s correctly resolved to %s!\n", TEST_DOMAIN_DNS, addr);
+	ok = 0;
       }
-      else
+    }
+    else
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No resolution!\n");
       }
-    }
   }
   GNUNET_GNS_lookup (gns_handle, TEST_DOMAIN_PLUS, GNUNET_GNS_RECORD_CNAME,
                      GNUNET_YES,
@@ -220,37 +211,36 @@ on_lookup_result_zkey (void *cls, uint32_t rd_count,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Lookup failed, rp_filtering?\n");
     ok = 2;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
   }
-  else
+  ok = 1;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "name: %s\n", (char*)cls);
+  for (i=0; i<rd_count; i++)
   {
-    ok = 1;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		"name: %s\n", (char*)cls);
-    for (i=0; i<rd_count; i++)
+		"type: %d\n", rd[i].record_type);
+    if (rd[i].record_type == GNUNET_GNS_RECORD_A)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  "type: %d\n", rd[i].record_type);
-      if (rd[i].record_type == GNUNET_GNS_RECORD_A)
+      memcpy (&a, rd[i].data, sizeof(a));
+      addr = inet_ntoa(a);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		  "address: %s\n", addr);
+      if (0 == strcmp (addr, TEST_IP_ZKEY))
       {
-        memcpy (&a, rd[i].data, sizeof(a));
-        addr = inet_ntoa(a);
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-		    "address: %s\n", addr);
-        if (0 == strcmp (addr, TEST_IP_ZKEY))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		      "%s correctly resolved to %s!\n", 
-		      TEST_DOMAIN_ZKEY, addr);
-          ok = 0;
-        }
-      }
-      else
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    "No resolution!\n");
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		    "%s correctly resolved to %s!\n", 
+		    TEST_DOMAIN_ZKEY, addr);
+	ok = 0;
       }
     }
-  
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "No resolution!\n");
+    }
+  }  
   GNUNET_GNS_lookup (gns_handle, TEST_DOMAIN_DNS, GNUNET_GNS_RECORD_A,
 		     GNUNET_YES,
 		     NULL,
@@ -271,30 +261,29 @@ on_lookup_result_plus (void *cls, uint32_t rd_count,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Lookup failed, rp_filtering?\n");
     ok = 2;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
   }
-  else
+  ok = 1;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "name: %s\n", (char*)cls);
+  for (i=0; i<rd_count; i++)
   {
-    ok = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "name: %s\n", (char*)cls);
-    for (i=0; i<rd_count; i++)
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
+    if (rd[i].record_type == GNUNET_GNS_RECORD_A)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
-      if (rd[i].record_type == GNUNET_GNS_RECORD_A)
+      memcpy(&a, rd[i].data, sizeof(a));
+      addr = inet_ntoa(a);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "address: %s\n", addr);
+      if (0 == strcmp(addr, TEST_IP_PLUS))
       {
-        memcpy(&a, rd[i].data, sizeof(a));
-        addr = inet_ntoa(a);
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "address: %s\n", addr);
-        if (0 == strcmp(addr, TEST_IP_PLUS))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                    "%s correctly resolved to %s!\n", TEST_DOMAIN_PLUS, addr);
-          ok = 0;
-        }
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		    "%s correctly resolved to %s!\n", TEST_DOMAIN_PLUS, addr);
+	ok = 0;
       }
-      else
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No resolution!\n");
-      }
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No resolution!\n");
     }
   }
   GNUNET_GNS_lookup (gns_handle, TEST_DOMAIN_ZKEY, GNUNET_GNS_RECORD_A,
@@ -322,7 +311,7 @@ commence_testing (void *cls, int32_t success, const char *emsg)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to store record in namestore: %s\n",
 		emsg);
-    end_badly_now ();
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   gns_handle = GNUNET_GNS_connect(cfg);
@@ -330,7 +319,7 @@ commence_testing (void *cls, int32_t success, const char *emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to connect to GNS!\n");
-    end_badly_now ();
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   GNUNET_GNS_lookup (gns_handle, TEST_DOMAIN_PLUS, GNUNET_GNS_RECORD_A,
@@ -362,7 +351,7 @@ do_check (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
 		"Failed to connect to namestore\n");
-    end_badly_now ();
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
@@ -372,7 +361,7 @@ do_check (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		"Failed to get key from cfg\n");
-    end_badly_now ();
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
