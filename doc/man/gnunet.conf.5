@@ -1,0 +1,20 @@
+.TH GNUNET.CONF "5" "25 Oct 2012" "GNUnet"
+.SH NAME
+gnunet.conf \- GNUnet configuration file
+.SH SYNOPSIS
+~/.gnunet/gnunet.conf
+.SH DESCRIPTION
+.PP
+A GNUnet setup typically consists of a a set of service processes run by a user "gnunet" and a set of user-interface processes run by a standard account.  The service processes are usually started using "gnunet\-arm \-s".  The default location for the configuration file is then "~gnunet/.gnunet/gnunet.conf"; however, as normal users also may need read-access to this configuration, you might want to instead put the service process configuration to "/etc/gnunet.conf".  gnunet\-setup can be used to edit this configuration.  The configuration for normal users is in "$HOME/.gnunet/gnunet.conf".  The file does not have to exist, and there are no options that typically require manual configuration in this file.  Note that while it is possible to run both sets of processes as the same user (and use one shared configuration file), this breaks some GNUnet components (GADS/GNS) and is generally not recommended.  
+.TP
+The basic structure of the configuration file is the following.  The file is split into sections.  Every section begins with "[SECTIONNAME]" and contains a number of options of the form "OPTION=VALUE".  Empty lines and lines beginning with a "#" are treated as comments.  Almost all options are optional and the tools resort to reasonable defaults if they are not present. 
+.PP
+Default values for all of the options can be found in the files in the "$GNUNET_PREFIX/share/gnunet/config.d/" directory.  Note that only some of the options can be configured with gnunet\-setup, as for most options the default choice is all that should ever be needed by normal users.  However, developers may find some of the other options of interest.
+.SH FILES
+.TP
+~/.gnunet/gnunet.conf
+GNUnet configuration file
+.SH "REPORTING BUGS"
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <bug-gnunet@gnu.org>
+.SH "SEE ALSO"
+\fBgnunet\-setup\fP(1), \fBgnunet\-arm\fP(1)
