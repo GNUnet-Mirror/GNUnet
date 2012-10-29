@@ -570,10 +570,13 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
 static void
 setup_peer (struct PeerContext *p, const char *cfgname)
 {
+  char *binary;
+
+  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-arm");
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
   p->arm_proc =
-    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-service-arm",
+    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, binary,
                                "gnunet-service-arm",
                                "-c", cfgname, NULL);
 #endif
@@ -583,6 +586,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   p->th = GNUNET_TRANSPORT_connect (p->cfg, NULL, p, NULL, NULL, NULL);
   GNUNET_assert (p->th != NULL);
   p->ghh = GNUNET_TRANSPORT_get_hello (p->th, &process_hello, p);
+  GNUNET_free (binary);
 }
 
 

@@ -11,6 +11,8 @@ endif
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 pkgcfg_DATA = \
   statistics.conf
 
@@ -25,10 +27,11 @@ libgnunetstatistics_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
   -version-info 1:1:1
 
+libexec_PROGRAMS = \
+ gnunet-service-statistics
 
 bin_PROGRAMS = \
- gnunet-statistics \
- gnunet-service-statistics
+ gnunet-statistics 
 
 gnunet_statistics_SOURCES = \
  gnunet-statistics.c         

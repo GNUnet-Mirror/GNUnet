@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2011 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2011, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -22,21 +22,15 @@
  * @brief testcase for statistics_api.c watch functions with initial 0 value
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_os_lib.h"
-#include "gnunet_program_lib.h"
-#include "gnunet_scheduler_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 
-#define VERBOSE GNUNET_NO
-
-#define START_SERVICE GNUNET_YES
-
 static int ok;
+
 static int ok2;
 
 static struct GNUNET_STATISTICS_Handle *h;
+
 static struct GNUNET_STATISTICS_Handle *h2;
 
 static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
@@ -92,6 +86,7 @@ watch_1 (void *cls, const char *subsystem, const char *name, uint64_t value,
   return GNUNET_OK;
 }
 
+
 static int
 watch_2 (void *cls, const char *subsystem, const char *name, uint64_t value,
          int is_persistent)
@@ -121,6 +116,7 @@ watch_2 (void *cls, const char *subsystem, const char *name, uint64_t value,
   return GNUNET_OK;
 }
 
+
 static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -145,8 +141,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 }
 
 
-static int
-check ()
+int
+main (int argc, char *argv_ign[])
 {
   char *const argv[] = { "test-statistics-api",
     "-c",
@@ -156,23 +152,20 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-#if START_SERVICE
   struct GNUNET_OS_Process *proc;
+  char *binary;
 
+  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-statistics");
   proc =
-    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-service-statistics",
-                               "gnunet-service-statistics",
-#if VERBOSE
-                               "-L", "DEBUG",
-#endif
-                               "-c", "test_statistics_api_data.conf", NULL);
-#endif
+    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL,
+			     binary,
+			     "gnunet-service-statistics",
+			     "-c", "test_statistics_api_data.conf", NULL);
   GNUNET_assert (NULL != proc);
   ok = 3;
   ok2 = 1;
   GNUNET_PROGRAM_run (3, argv, "test-statistics-api", "nohelp", options, &run,
                       NULL);
-#if START_SERVICE
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
@@ -181,21 +174,10 @@ check ()
   GNUNET_OS_process_wait (proc);
   GNUNET_OS_process_destroy (proc);
   proc = NULL;
-#endif
+  GNUNET_free (binary);
   if ((0 == ok) && (0 == ok2))
     return 0;
-  else
-    return 1;
-}
-
-int
-main (int argc, char *argv[])
-{
-  int ret;
-
-  ret = check ();
-
-  return ret;
+  return 1;
 }
 
 /* end of test_statistics_api_watch_zero_value.c */

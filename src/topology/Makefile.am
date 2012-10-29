@@ -6,11 +6,13 @@ endif
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 dist_pkgcfg_DATA = \
   topology.conf
 
 
-bin_PROGRAMS = \
+libexec_PROGRAMS = \
  gnunet-daemon-topology
 
 gnunet_daemon_topology_SOURCES = \

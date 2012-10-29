@@ -124,23 +124,24 @@ static int bob_ready;
 
 static int is_p2p;
 
-struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *bob_public_key = NULL;
+static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *bob_public_key;
 
 
 static void
 setup_peer (struct PeerContext *p, const char *cfgname)
 {
+  char *binary;
+
+  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-arm");
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
   p->arm_proc =
-      GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-service-arm",
+    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, binary,
                                "gnunet-service-arm",
-#if VERBOSE
-                               "-L", "DEBUG",
-#endif
                                "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
+  GNUNET_free (binary);
 }
 
 
@@ -614,9 +615,6 @@ main (int argc, char *argv[])
     "test-chat",
     "-c",
     "test_chat_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -624,11 +622,7 @@ main (int argc, char *argv[])
   };
 
   GNUNET_log_setup ("test_chat",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   if (strstr (argv[0], "p2p") != NULL)
   {

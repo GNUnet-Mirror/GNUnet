@@ -11,6 +11,8 @@ endif
 
 plugindir = $(libdir)/gnunet
 
+libexecdir= $(pkglibdir)/libexec/
+
 pkgcfgdir= $(pkgdatadir)/config.d/
 
 pkgcfg_DATA = \
@@ -31,7 +33,7 @@ libgnunetdv_la_LDFLAGS = \
   -version-info 0:0:0
 
 
-bin_PROGRAMS = \
+libexec_PROGRAMS = \
  gnunet-service-dv
 
 gnunet_service_dv_SOURCES = \

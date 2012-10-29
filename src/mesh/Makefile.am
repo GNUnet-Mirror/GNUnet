@@ -11,6 +11,8 @@ endif
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 pkgcfg_DATA = \
   mesh.conf
 
@@ -18,7 +20,7 @@ plugindir = $(libdir)/gnunet
 
 AM_CLFAGS = -g
 
-bin_PROGRAMS = \
+libexec_PROGRAMS = \
  gnunet-service-mesh
 
 lib_LTLIBRARIES = \

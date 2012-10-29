@@ -2,6 +2,8 @@ INCLUDES = -I$(top_srcdir)/src/include
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 pkgcfg_DATA = \
   arm.conf
 
@@ -27,7 +29,9 @@ libgnunetarm_la_LDFLAGS = \
 
 
 bin_PROGRAMS = \
- gnunet-arm \
+ gnunet-arm 
+
+libexec_PROGRAMS = \
  gnunet-service-arm \
  mockup-service 
 

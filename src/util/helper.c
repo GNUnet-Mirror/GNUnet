@@ -131,7 +131,7 @@ struct GNUNET_HELPER_Handle
   /**
    * Binary to run.
    */
-  const char *binary_name;
+  char *binary_name;
 
   /**
    * NULL-terminated list of command-line arguments.
@@ -411,18 +411,17 @@ GNUNET_HELPER_start (int with_control_pipe,
 		     void *cb_cls)
 {
   struct GNUNET_HELPER_Handle*h;
-  int c = 0;
-  h =  GNUNET_malloc (sizeof (struct GNUNET_HELPER_Handle));
-  h->with_control_pipe = with_control_pipe;
-  h->binary_name = GNUNET_strdup (binary_name);
+  unsigned int c;
 
-  for (c = 0; binary_argv[c] != NULL; c++)
-    c ++;
-  h->binary_argv = GNUNET_malloc (sizeof (char *[c + 1]));
-  for (c = 0; binary_argv[c] != NULL; c++)
+  h = GNUNET_malloc (sizeof (struct GNUNET_HELPER_Handle));
+  h->with_control_pipe = with_control_pipe;
+  h->binary_name = GNUNET_OS_get_libexec_binary_path (binary_name);
+  for (c = 0; NULL != binary_argv[c]; c++)
+    c++;
+  h->binary_argv = GNUNET_malloc (sizeof (char *) * (c + 1));
+  for (c = 0; NULL != binary_argv[c]; c++)
     h->binary_argv[c] = GNUNET_strdup (binary_argv[c]);
   h->binary_argv[c] = NULL;
-
   h->cb_cls = cb_cls;
   h->mst = GNUNET_SERVER_mst_create (cb, h->cb_cls);
   h->exp_cb = exp_cb;
@@ -440,7 +439,8 @@ void
 GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h)
 {
   struct GNUNET_HELPER_SendHandle *sh;
-  int c;
+  unsigned int c;
+
   h->exp_cb = NULL;
   /* signal pending writes that we were stopped */
   while (NULL != (sh = h->sh_head))
@@ -454,7 +454,7 @@ GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h)
   }
   stop_helper (h);
   GNUNET_SERVER_mst_destroy (h->mst);
-  GNUNET_free ((char *) h->binary_name);
+  GNUNET_free (h->binary_name);
   for (c = 0; h->binary_argv[c] != NULL; c++)
     GNUNET_free (h->binary_argv[c]);
   GNUNET_free (h->binary_argv);

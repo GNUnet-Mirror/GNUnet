@@ -2,6 +2,8 @@ INCLUDES = -I$(top_srcdir)/src/include
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 pkgcfg_DATA = \
   ats.conf
 
@@ -36,7 +38,7 @@ libgnunetats_la_LDFLAGS = \
   -version-info 2:0:2
 
 
-bin_PROGRAMS = \
+libexec_PROGRAMS = \
  gnunet-service-ats
 
 gnunet_service_ats_SOURCES = \

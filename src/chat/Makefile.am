@@ -2,6 +2,8 @@ INCLUDES = -I$(top_srcdir)/src/include
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 pkgcfg_DATA = \
   chat.conf
 
@@ -25,8 +27,10 @@ libgnunetchat_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0
 
+libexec_PROGRAMS = \
+ gnunet-service-chat
+
 bin_PROGRAMS = \
- gnunet-service-chat \
  gnunet-chat
 
 gnunet_service_chat_SOURCES = \

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -20,17 +20,15 @@
 /**
  * @file statistics/test_statistics_api.c
  * @brief testcase for statistics_api.c
+ * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_os_lib.h"
-#include "gnunet_program_lib.h"
-#include "gnunet_scheduler_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 
 
-#define START_SERVICE GNUNET_YES
+static struct GNUNET_STATISTICS_Handle *h;
+
 
 static int
 check_1 (void *cls, const char *subsystem, const char *name, uint64_t value,
@@ -45,6 +43,7 @@ check_1 (void *cls, const char *subsystem, const char *name, uint64_t value,
   return GNUNET_OK;
 }
 
+
 static int
 check_2 (void *cls, const char *subsystem, const char *name, uint64_t value,
          int is_persistent)
@@ -57,6 +56,7 @@ check_2 (void *cls, const char *subsystem, const char *name, uint64_t value,
   GNUNET_assert (is_persistent == GNUNET_NO);
   return GNUNET_OK;
 }
+
 
 static int
 check_3 (void *cls, const char *subsystem, const char *name, uint64_t value,
@@ -71,7 +71,6 @@ check_3 (void *cls, const char *subsystem, const char *name, uint64_t value,
   return GNUNET_OK;
 }
 
-static struct GNUNET_STATISTICS_Handle *h;
 
 static void
 next_fin (void *cls, int success)
@@ -83,6 +82,7 @@ next_fin (void *cls, int success)
   *ok = 0;
 }
 
+
 static void
 next (void *cls, int success)
 {
@@ -93,6 +93,7 @@ next (void *cls, int success)
                                        GNUNET_TIME_UNIT_SECONDS, &next_fin,
                                        &check_2, cls));
 }
+
 
 static void
 run (void *cls, char *const *args, const char *cfgfile,
@@ -110,6 +111,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                        &check_1, cls));
 }
 
+
 static void
 run_more (void *cls, char *const *args, const char *cfgfile,
           const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -121,8 +123,9 @@ run_more (void *cls, char *const *args, const char *cfgfile,
                                        &check_3, cls));
 }
 
-static int
-check ()
+
+int
+main (int argc, char *argv_ign[])
 {
   int ok = 1;
 
@@ -135,63 +138,53 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-#if START_SERVICE
   struct GNUNET_OS_Process *proc;
-
-  proc =
-      GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-service-statistics",
-                               "gnunet-service-statistics",
-                               "-c", "test_statistics_api_data.conf", NULL);
-#endif
-  GNUNET_assert (NULL != proc);
-  GNUNET_PROGRAM_run (5, argv, "test-statistics-api", "nohelp", options, &run,
-                      &ok);
-#if START_SERVICE
-  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-    ok = 1;
-  }
-  GNUNET_OS_process_wait (proc);
-  GNUNET_OS_process_destroy (proc);
-  proc = NULL;
-#endif
-  if (ok != 0)
-    return ok;
-  ok = 1;
-#if START_SERVICE
-  /* restart to check persistence! */
-  proc =
-      GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-service-statistics",
-                               "gnunet-service-statistics",
-                               "-c", "test_statistics_api_data.conf", NULL);
-#endif
-  GNUNET_PROGRAM_run (5, argv, "test-statistics-api", "nohelp", options,
-                      &run_more, &ok);
-#if START_SERVICE
-  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-    ok = 1;
-  }
-  GNUNET_OS_process_wait (proc);
-  GNUNET_OS_process_destroy (proc);
-  proc = NULL;
-#endif
-  return ok;
-}
-
-int
-main (int argc, char *argv[])
-{
-  int ret;
+  char *binary;
 
   GNUNET_log_setup ("test_statistics_api",
                     "WARNING",
                     NULL);
-  ret = check ();
-
-  return ret;
+  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-statistics");
+  proc =
+      GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, 
+			       binary,
+                               "gnunet-service-statistics",
+                               "-c", "test_statistics_api_data.conf", NULL);
+  GNUNET_assert (NULL != proc);
+  GNUNET_PROGRAM_run (5, argv, "test-statistics-api", "nohelp", options, &run,
+                      &ok);
+  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+    ok = 1;
+  }
+  GNUNET_OS_process_wait (proc);
+  GNUNET_OS_process_destroy (proc);
+  proc = NULL;
+  if (ok != 0)
+  {
+    GNUNET_free (binary);
+    return ok;
+  }
+  ok = 1;
+  /* restart to check persistence! */
+  proc =
+      GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, 
+			       binary,
+                               "gnunet-service-statistics",
+                               "-c", "test_statistics_api_data.conf", NULL);
+  GNUNET_PROGRAM_run (5, argv, "test-statistics-api", "nohelp", options,
+                      &run_more, &ok);
+  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+    ok = 1;
+  }
+  GNUNET_OS_process_wait (proc);
+  GNUNET_OS_process_destroy (proc);
+  proc = NULL;
+  GNUNET_free (binary);
+  return ok;
 }
 
 /* end of test_statistics_api.c */

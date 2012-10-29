@@ -10,6 +10,8 @@ endif
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 plugindir = $(libdir)/gnunet
 
 pkgcfg_DATA = \
@@ -18,7 +20,7 @@ pkgcfg_DATA = \
 if LINUX
 VPNBIN = gnunet-helper-vpn
 install-exec-hook:
-	$(top_srcdir)/src/vpn/install-vpn-helper.sh $(bindir) $(SUDO_BINARY) || true
+	$(top_srcdir)/src/vpn/install-vpn-helper.sh $(libexecdir) $(SUDO_BINARY) || true
 else
 install-exec-hook:
 endif
@@ -28,8 +30,12 @@ lib_LTLIBRARIES = \
   libgnunetvpn.la
 
 
+libexec_PROGRAMS = \
+  $(VPNBIN) \
+  gnunet-service-vpn
+
 bin_PROGRAMS = \
-  $(VPNBIN) gnunet-service-vpn gnunet-vpn
+  gnunet-vpn
 
 gnunet_helper_vpn_SOURCES = \
  gnunet-helper-vpn.c

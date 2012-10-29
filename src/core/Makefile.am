@@ -2,6 +2,8 @@ INCLUDES = -I$(top_srcdir)/src/include
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 pkgcfg_DATA = \
   core.conf
 
@@ -30,8 +32,10 @@ libgnunetcore_la_LDFLAGS = \
   -version-info 0:0:0
 
 
+libexec_PROGRAMS = \
+ gnunet-service-core 
+
 bin_PROGRAMS = \
- gnunet-service-core \
  gnunet-core
 
 gnunet_service_core_SOURCES = \

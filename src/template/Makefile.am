@@ -2,6 +2,8 @@ INCLUDES = -I$(top_srcdir)/src/include
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 dist_pkgcfg_DATA = \
   template.conf
 
@@ -14,7 +16,9 @@ if USE_COVERAGE
 endif
 
 bin_PROGRAMS = \
- gnunet-template \
+ gnunet-template 
+
+libexec_PROGRAMS = \
  gnunet-service-template
 
 gnunet_template_SOURCES = \

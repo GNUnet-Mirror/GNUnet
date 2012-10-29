@@ -11,6 +11,8 @@ endif
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 pkgcfg_DATA = \
   nse.conf
 
@@ -27,7 +29,7 @@ libgnunetnse_la_LDFLAGS = \
   -version-info 0:0:0
 
 
-bin_PROGRAMS = \
+libexec_PROGRAMS = \
  gnunet-service-nse 
 
 noinst_PROGRAMS = \

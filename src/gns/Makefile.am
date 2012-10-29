@@ -28,6 +28,8 @@ endif
 
 pkgcfgdir = $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 plugindir = $(libdir)/gnunet
 
 pkgcfg_DATA = \
@@ -47,10 +49,12 @@ if HAVE_GNUTLS
 endif
 endif
 
+libexec_PROGRAMS = \
+  gnunet-service-gns 
+
 bin_PROGRAMS = \
-  gnunet-service-gns \
   $(DO_FCFSD) \
-	$(DO_PROXY) \
+  $(DO_PROXY) \
   $(DO_W32_HELPER) \
   $(DO_W32_NSPTOOLS) \
   gnunet-gns \

@@ -7,6 +7,8 @@ if MINGW
   NATCLIENT = gnunet-helper-nat-client-windows.c
 endif
 
+libexecdir= $(pkglibdir)/libexec/
+
 pkgcfgdir= $(pkgdatadir)/config.d/
 
 dist_pkgcfg_DATA = \
@@ -17,13 +19,15 @@ NATBIN = gnunet-helper-nat-server gnunet-helper-nat-client
 NATSERVER = gnunet-helper-nat-server.c
 NATCLIENT = gnunet-helper-nat-client.c
 install-exec-hook:
-	$(top_srcdir)/src/nat/install-nat-helper.sh $(bindir) $(SUDO_BINARY) || true
+	$(top_srcdir)/src/nat/install-nat-helper.sh $(libexecdir) $(SUDO_BINARY) || true
 else
 install-exec-hook:
 endif
 
 bin_PROGRAMS = \
- gnunet-nat-server \
+ gnunet-nat-server 
+
+libexec_PROGRAMS = \
  $(NATBIN) 
 
 gnunet_nat_server_SOURCES = \

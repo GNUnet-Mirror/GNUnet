@@ -151,7 +151,12 @@ enum GNUNET_OS_InstallationPathKind
    * Return the prefix of the path with documentation files, including the
    * license (share/doc/gnunet/).
    */
-  GNUNET_OS_IPK_DOCDIR
+  GNUNET_OS_IPK_DOCDIR,
+
+  /**
+   * Return the directory where helper binaries are installed (lib/gnunet/libexec/)
+   */
+  GNUNET_OS_IPK_LIBEXECDIR
 };
 
 
@@ -198,6 +203,18 @@ enum GNUNET_OS_ProcessStatusType
  */
 char *
 GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind);
+
+
+/**
+ * Given the name of a gnunet-helper, gnunet-service or gnunet-daemon
+ * binary, try to prefix it with the libexec/-directory to get the
+ * full path.
+ *
+ * @param progname name of the binary
+ * @return full path to the binary, if possible, otherwise copy of 'progname'
+ */
+char *
+GNUNET_OS_get_libexec_binary_path (const char *progname);
 
 
 /**

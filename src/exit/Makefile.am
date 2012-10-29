@@ -10,6 +10,8 @@ endif
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 plugindir = $(libdir)/gnunet
 
 dist_pkgcfg_DATA = \
@@ -18,15 +20,15 @@ dist_pkgcfg_DATA = \
 if LINUX
 EXITBIN = gnunet-helper-exit
 install-exec-hook:
-	$(top_srcdir)/src/exit/install-exit-helper.sh $(bindir) $(SUDO_BINARY) || true
+	$(top_srcdir)/src/exit/install-exit-helper.sh $(libexecdir) $(SUDO_BINARY) || true
 else
 install-exec-hook:
 endif
 
 
-bin_PROGRAMS = \
-  gnunet-daemon-exit $(EXITBIN) 
-
+libexec_PROGRAMS = \
+  gnunet-daemon-exit \
+  $(EXITBIN) 
 
 gnunet_helper_exit_SOURCES = \
  gnunet-helper-exit.c

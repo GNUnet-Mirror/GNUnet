@@ -10,6 +10,8 @@ endif
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 plugindir = $(libdir)/gnunet
 
 pkgcfg_DATA = \
@@ -18,7 +20,7 @@ pkgcfg_DATA = \
 if LINUX
 HIJACKBIN = gnunet-helper-dns
 install-exec-hook:
-	$(top_srcdir)/src/dns/install-dns-helper.sh $(bindir) $(GNUNETDNS_GROUP) $(SUDO_BINARY) || true
+	$(top_srcdir)/src/dns/install-dns-helper.sh $(libexecdir) $(GNUNETDNS_GROUP) $(SUDO_BINARY) || true
 else
 install-exec-hook:
 endif
@@ -28,7 +30,7 @@ lib_LTLIBRARIES = \
   libgnunetdnsstub.la \
   libgnunetdns.la
 
-bin_PROGRAMS = \
+libexec_PROGRAMS = \
   gnunet-service-dns $(HIJACKBIN)
 
 noinst_PROGRAMS = \

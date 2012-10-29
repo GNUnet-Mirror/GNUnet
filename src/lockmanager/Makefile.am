@@ -11,10 +11,12 @@ endif
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 pkgcfg_DATA = \
   lockmanager.conf
 
-bin_PROGRAMS = \
+libexec_PROGRAMS = \
   gnunet-service-lockmanager
 
 lib_LTLIBRARIES = \

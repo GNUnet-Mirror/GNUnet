@@ -4,6 +4,8 @@ plugindir = $(libdir)/gnunet
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 pkgcfg_DATA = \
   transport.conf
 
@@ -59,7 +61,7 @@ endif
 
 if LINUX
 install-exec-hook:
-	$(top_srcdir)/src/transport/install-wlan-helper.sh $(bindir) $(SUDO_BINARY) || true
+	$(top_srcdir)/src/transport/install-wlan-helper.sh $(libexecdir) $(SUDO_BINARY) || true
 else
 install-exec-hook:
 endif
@@ -107,11 +109,13 @@ libgnunettransport_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 1:0:0
 
-bin_PROGRAMS = \
- gnunet-transport \
+libexec_PROGRAMS = \
  $(WLAN_BIN) \
  $(WLAN_BIN_DUMMY) \
- gnunet-service-transport \
+ gnunet-service-transport 
+
+bin_PROGRAMS = \
+ gnunet-transport \
  gnunet-transport-certificate-creation
 
 #bin_SCRIPTS = \

@@ -4,6 +4,8 @@ plugindir = $(libdir)/gnunet
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 pkgcfg_DATA = \
   datastore.conf
 
@@ -31,7 +33,7 @@ libgnunetdatastore_la_LDFLAGS = \
   -version-info 1:0:0
 
 
-bin_PROGRAMS = \
+libexec_PROGRAMS = \
  gnunet-service-datastore
 
 gnunet_service_datastore_SOURCES = \

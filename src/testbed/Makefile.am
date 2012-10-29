@@ -9,13 +9,17 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+libexecdir= $(pkglibdir)/libexec/
+
 pkgcfgdir= $(pkgdatadir)/config.d/
 
 pkgcfg_DATA = \
   testbed.conf
 
+libexec_PROGRAMS = \
+  gnunet-service-testbed 
+
 bin_PROGRAMS = \
-  gnunet-service-testbed \
   gnunet-helper-testbed
 
 noinst_PROGRAMS = \

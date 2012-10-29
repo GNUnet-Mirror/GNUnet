@@ -137,12 +137,18 @@ init_notify (void *cls, struct GNUNET_CORE_Handle *server,
 static void
 setup_peer (struct PeerContext *p, const char *cfgname)
 {
+  char *binary;
+
+  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-arm");
   p->cfg = GNUNET_CONFIGURATION_create ();
   p->arm_proc =
-    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-service-arm",
-                               "gnunet-service-arm",
-                               "-c", cfgname, NULL);
+    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+			     NULL, NULL,
+			     binary,
+			     "gnunet-service-arm",
+			     "-c", cfgname, NULL);
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
+  GNUNET_free (binary);
 }
 
 

@@ -2,6 +2,8 @@ INCLUDES = -I$(top_srcdir)/src/include -I$(top_builddir)/src/include
 
 plugindir = $(libdir)/gnunet
 
+libexecdir= $(pkglibdir)/libexec/
+
 pkgcfgdir= $(pkgdatadir)/config.d/
 
 dist_pkgcfg_DATA = \
@@ -120,8 +122,10 @@ libgnunetutil_la_LDFLAGS = \
   -version-info 8:0:0
 
 
+libexec_PROGRAMS = \
+ gnunet-service-resolver 
+
 bin_PROGRAMS = \
- gnunet-service-resolver \
  gnunet-resolver \
  gnunet-config \
  gnunet-ecc \

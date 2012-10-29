@@ -10,13 +10,15 @@ endif
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 plugindir = $(libdir)/gnunet
 
 dist_pkgcfg_DATA = \
   pt.conf
 
-bin_PROGRAMS = \
-  gnunet-daemon-pt $(PTBIN) 
+libexec_PROGRAMS = \
+  gnunet-daemon-pt 
 
 gnunet_daemon_pt_SOURCES = \
  gnunet-daemon-pt.c 

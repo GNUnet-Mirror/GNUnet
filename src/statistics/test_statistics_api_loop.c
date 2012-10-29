@@ -22,18 +22,13 @@
  * @brief testcase for statistics_api.c
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_os_lib.h"
-#include "gnunet_program_lib.h"
-#include "gnunet_scheduler_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 
-#define VERBOSE GNUNET_NO
-
-#define START_SERVICE GNUNET_YES
-
 #define ROUNDS (1024 * 1024)
+
+static struct GNUNET_STATISTICS_Handle *h;
+
 
 static int
 check_1 (void *cls, const char *subsystem, const char *name, uint64_t value,
@@ -45,7 +40,6 @@ check_1 (void *cls, const char *subsystem, const char *name, uint64_t value,
   return GNUNET_OK;
 }
 
-static struct GNUNET_STATISTICS_Handle *h;
 
 static void
 next (void *cls, int success)
@@ -57,11 +51,12 @@ next (void *cls, int success)
   *ok = 0;
 }
 
+
 static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  int i;
+  unsigned int i;
   char name[128];
 
   h = GNUNET_STATISTICS_create ("test-statistics-api-loop", cfg);
@@ -80,8 +75,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 }
 
 
-static int
-check ()
+int
+main (int argc, char *argv_ign[])
 {
   int ok = 1;
 
@@ -93,21 +88,19 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-#if START_SERVICE
   struct GNUNET_OS_Process *proc;
+  char *binary;
 
+  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-statistics");
   proc =
-    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-service-statistics",
-                               "gnunet-service-statistics",
-#if DEBUG_STATISTICS
-                               "-L", "DEBUG",
-#endif
-                               "-c", "test_statistics_api_data.conf", NULL);
-#endif
+    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, 
+			     NULL, NULL,
+			     binary,
+			     "gnunet-service-statistics",
+			     "-c", "test_statistics_api_data.conf", NULL);
   GNUNET_assert (NULL != proc);
   GNUNET_PROGRAM_run (3, argv, "test-statistics-api", "nohelp", options, &run,
                       &ok);
-#if START_SERVICE
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
@@ -116,18 +109,8 @@ check ()
   GNUNET_OS_process_wait (proc);
   GNUNET_OS_process_destroy (proc);
   proc = NULL;
-#endif
+  GNUNET_free (binary);
   return ok;
-}
-
-int
-main (int argc, char *argv[])
-{
-  int ret;
-
-  ret = check ();
-
-  return ret;
 }
 
 /* end of test_statistics_api_loop.c */

@@ -4,6 +4,8 @@ plugindir = $(libdir)/gnunet
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 pkgcfg_DATA = \
    namestore.conf
 
@@ -63,8 +65,10 @@ libgnunetnamestore_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0
 
+libexec_PROGRAMS = \
+ gnunet-service-namestore 
+
 bin_PROGRAMS = \
- gnunet-service-namestore \
  gnunet-namestore
 
 

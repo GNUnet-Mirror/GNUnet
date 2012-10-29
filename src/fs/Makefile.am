@@ -11,6 +11,8 @@ endif
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 pkgcfg_DATA = \
   fs.conf
 
@@ -60,15 +62,17 @@ libgnunetfstest_a_LIBADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la 
 
+libexec_PROGRAMS = \
+  gnunet-helper-fs-publish \
+  gnunet-service-fs 
+
 bin_PROGRAMS = \
   gnunet-auto-share \
   gnunet-directory \
   gnunet-download \
   gnunet-publish \
-  gnunet-helper-fs-publish \
   gnunet-pseudonym \
   gnunet-search \
-  gnunet-service-fs \
   gnunet-fs \
   gnunet-unindex 
 

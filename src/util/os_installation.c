@@ -452,6 +452,11 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
         DIR_SEPARATOR_STR "share" DIR_SEPARATOR_STR "doc" DIR_SEPARATOR_STR \
         "gnunet" DIR_SEPARATOR_STR;
     break;
+  case GNUNET_OS_IPK_LIBEXECDIR:
+    dirname =
+        DIR_SEPARATOR_STR "lib" DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR \
+        "libexec" DIR_SEPARATOR_STR;
+    break;
   default:
     GNUNET_free (execpath);
     return NULL;
@@ -460,6 +465,32 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
   sprintf (tmp, "%s%s", execpath, dirname);
   GNUNET_free (execpath);
   return tmp;
+}
+
+
+/**
+ * Given the name of a gnunet-helper, gnunet-service or gnunet-daemon
+ * binary, try to prefix it with the libexec/-directory to get the
+ * full path.
+ *
+ * @param progname name of the binary
+ * @return full path to the binary, if possible, otherwise copy of 'progname'
+ */
+char *
+GNUNET_OS_get_libexec_binary_path (const char *progname)
+{
+  char *libexecdir;
+  char *binary;
+
+  libexecdir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_LIBEXECDIR);
+  if (NULL == libexecdir)
+    return GNUNET_strdup (progname);
+  GNUNET_asprintf (&binary,
+		   "%s%s",
+		   libexecdir,
+		   progname);
+  GNUNET_free (libexecdir);
+  return binary;
 }
 
 

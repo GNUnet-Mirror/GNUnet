@@ -2,6 +2,8 @@ INCLUDES = -I$(top_srcdir)/src/include
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 pkgcfg_DATA = \
   peerinfo.conf
 
@@ -29,7 +31,7 @@ libgnunetpeerinfo_la_LDFLAGS = \
   -version-info 0:0:0
 
 
-bin_PROGRAMS = \
+libexec_PROGRAMS = \
  gnunet-service-peerinfo
 
 gnunet_service_peerinfo_SOURCES = \

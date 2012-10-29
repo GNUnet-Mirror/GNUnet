@@ -7,6 +7,8 @@ plugindir = $(libdir)/gnunet
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 pkgcfg_DATA = \
   dht.conf 
 
@@ -50,8 +52,10 @@ libgnunet_plugin_block_dht_la_DEPENDENCIES = \
 
 
 
-bin_PROGRAMS = \
- gnunet-service-dht \
+libexec_PROGRAMS = \
+ gnunet-service-dht 
+
+noinst_PROGRAMS = \
  gnunet-dht-monitor \
  gnunet-dht-get \
  gnunet-dht-put

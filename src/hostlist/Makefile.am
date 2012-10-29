@@ -2,6 +2,8 @@ INCLUDES = -I$(top_srcdir)/src/include
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+libexecdir= $(pkglibdir)/libexec/
+
 dist_pkgcfg_DATA = \
   hostlist.conf
 
@@ -15,7 +17,7 @@ if HAVE_MHD
 endif
 
 if HAVE_LIBCURL
-bin_PROGRAMS = \
+libexec_PROGRAMS = \
  gnunet-daemon-hostlist
 endif
 
