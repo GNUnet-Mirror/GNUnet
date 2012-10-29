@@ -518,6 +518,7 @@ GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host)
   remote_args[argp++] = "-o";
   remote_args[argp++] = "NoHostAuthenticationForLocalhost=yes";
   remote_args[argp++] = ssh_addr;
+  // FIXME: this no longer works with 'libexec/' paths!
   remote_args[argp++] = "which";
   remote_args[argp++] = "gnunet-helper-testbed";
   remote_args[argp++] = NULL;

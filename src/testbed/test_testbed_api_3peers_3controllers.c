@@ -707,6 +707,7 @@ check_ssh (char *host_str)
     "-o", "NoHostAuthenticationForLocalhost=yes", "-q",
     host_str, "which", "gnunet-helper-testbed", NULL
   };
+  // FIXME: the above no longer works with libexec/-installation!
   struct GNUNET_OS_Process *auxp;
   enum GNUNET_OS_ProcessStatusType type;
   unsigned long code;

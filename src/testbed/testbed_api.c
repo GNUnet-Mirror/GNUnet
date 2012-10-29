@@ -1453,13 +1453,15 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
   static char *const binary_argv[] = {
     HELPER_TESTBED_BINARY, NULL
   };
-  
+
   hostname = NULL;
   cp = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ControllerProc));
   if ((NULL == host) || (0 == GNUNET_TESTBED_host_get_id_ (host)))
+  {
     cp->helper =
         GNUNET_HELPER_start (GNUNET_YES, HELPER_TESTBED_BINARY, binary_argv,
                              &helper_mst, &helper_exp_cb, cp);
+  }
   else
   {
     char *remote_args[10];
@@ -1483,6 +1485,7 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
     remote_args[argp++] = "-o";
     remote_args[argp++] = "NoHostAuthenticationForLocalhost=yes";
     remote_args[argp++] = cp->dst;
+    // FIXME: lib/gnunet/libexec/-prefix missing here!!!
     remote_args[argp++] = HELPER_TESTBED_BINARY_SSH;
     remote_args[argp++] = NULL;
     GNUNET_assert (argp == 10);

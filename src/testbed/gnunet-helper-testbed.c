@@ -225,6 +225,7 @@ tokenizer_cb (void *cls, void *client,
   struct GNUNET_TESTBED_HelperReply *reply;
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct WriteContext *wc;
+  char *binary;
   char *controller;
   char *hostname;
   char *config;
@@ -312,11 +313,14 @@ tokenizer_cb (void *cls, void *client,
     goto error;
   }
   LOG_DEBUG ("Staring testbed with config: %s\n", config);
+  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-testbed");
   testbed =
       GNUNET_OS_start_process (GNUNET_YES,
                                GNUNET_OS_INHERIT_STD_ERR /*verbose? */ , NULL,
-                               NULL, "gnunet-service-testbed",
+                               NULL, 
+			       binary,
                                "gnunet-service-testbed", "-c", config, NULL);
+  GNUNET_free (binary);
   GNUNET_free (config);
   if (NULL == testbed)
   {
