@@ -354,16 +354,6 @@ static char *data_filename;
 static unsigned int max_path_compression;
 
 /**
- * Announce delay between regex announcing.
- */
-static struct GNUNET_TIME_Relative announce_delay = { 10000 };
-
-/**
- * Concurrent announce batch size.
- */
-static unsigned int announce_batch_size;
-
-/**
  * Delay before setting mesh service op as done.
  */
 static struct GNUNET_TIME_Relative mesh_done_delay = { 1000 };
@@ -1158,13 +1148,16 @@ peer_churn_cb (void *cls, const char *emsg)
       linking_factor = 1;
     num_links = linking_factor * num_peers;
     */
-    num_links = num_peers - 1;
+    /* num_links = num_peers - 1; */
+    num_links = linking_factor;
     state = STATE_PEERS_LINKING;
     /* Do overlay connect */
     prof_start_time = GNUNET_TIME_absolute_get ();
     topology_op =
         GNUNET_TESTBED_overlay_configure_topology (NULL, num_peers, peer_handles,
-						   GNUNET_TESTBED_TOPOLOGY_LINE,
+						   GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI,
+						   num_links,
+						   GNUNET_TESTBED_TOPOLOGY_DISABLE_AUTO_RETRY,
                                                    GNUNET_TESTBED_TOPOLOGY_OPTION_END);
     if (NULL == topology_op)
     {
@@ -1377,7 +1370,7 @@ controller_event_cb (void *cls,
        }
      }
      /* We do no retries, consider this link as established */
-     break;
+     /* break; */
    case GNUNET_TESTBED_ET_CONNECT:
    {
      char output_buffer[512];
@@ -1589,7 +1582,7 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int stat
  * @return number of strings found in the file. GNUNET_SYSERR on error.
  */
 static int
-load_search_strings (const char *filename, char ***strings)
+load_search_strings (const char *filename, char ***strings, unsigned int limit)
 {
   char *data;
   char *buf;
@@ -1627,7 +1620,7 @@ load_search_strings (const char *filename, char ***strings)
   buf = data;
   offset = 0;
   str_cnt = 0;
-  while (offset < (filesize - 1))
+  while (offset < (filesize - 1) && str_cnt < limit)
   {
     offset++;
     if (((data[offset] == '\n')) && (buf != &data[offset]))
@@ -1726,7 +1719,12 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
-  num_search_strings = load_search_strings (args[2], &search_strings);
+  if (num_search_strings != load_search_strings (args[2], &search_strings, num_search_strings))
+  {
+    fprintf (stderr, _("Error loading search strings. Given file does not contain enough strings. Exiting.\n"));
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    return;
+  }
   if (0 >= num_search_strings || NULL == search_strings)
   {
     fprintf (stderr, _("Error loading search strings. Exiting.\n"));
@@ -1765,27 +1763,24 @@ main (int argc, char *const *argv)
     {'d', "details", "FILENAME",
      gettext_noop ("name of the file for writing statistics"),
      1, &GNUNET_GETOPT_set_string, &data_filename},
-    { 'n', "linking-factor", "FACTOR",
+    {'n', "linking-factor", "FACTOR",
       gettext_noop ("create FACTOR times number of peers random links"),
       GNUNET_YES, &GNUNET_GETOPT_set_uint, &linking_factor },
-    { 'e', "num-errors", "COUNT",
+    {'e', "num-errors", "COUNT",
       gettext_noop ("tolerate COUNT number of continious timeout failures"),
       GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_cont_fails },
-    { 't', "matching-timeout", "TIMEOUT",
+    {'t', "matching-timeout", "TIMEOUT",
       gettext_noop ("wait TIMEOUT before considering a string match as failed"),
       GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &search_timeout },
-    { 's', "search-delay", "DELAY",
+    {'s', "search-delay", "DELAY",
       gettext_noop ("wait DELAY before starting string search"),
       GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &search_delay },
+    {'a', "num-search-strings", "COUNT",
+      gettext_noop ("number of search strings to read from search strings file"),
+      GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_search_strings },
     {'p', "max-path-compression", "MAX_PATH_COMPRESSION",
      gettext_noop ("maximum path compression length"),
      1, &GNUNET_GETOPT_set_uint, &max_path_compression},
-    {'a', "announce-delay", "DELAY",
-     gettext_noop ("wait DELAY between announcing regexes"),
-     1, &GNUNET_GETOPT_set_relative_time, &announce_delay},
-    {'b', "announce-batch", "SIZE",
-     gettext_noop ("number of peers that should announce regexes concurrently"),
-     1, &GNUNET_GETOPT_set_uint, &announce_batch_size},
     GNUNET_GETOPT_OPTION_END
   };
   int ret;

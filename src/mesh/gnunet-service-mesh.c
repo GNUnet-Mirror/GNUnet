@@ -6544,6 +6544,8 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   (SERVER DOWN)\n");
     return;
   }
+
+  return;
   c = clients;
   while (NULL != c)
   {
