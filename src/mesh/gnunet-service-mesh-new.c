@@ -3541,7 +3541,7 @@ tunnel_send_multicast (struct MeshTunnel *t,
  *
  * @param cls Closure (ID of the peer that HAS received the message).
  * @param key ID of the neighbor.
- * @param value Information about the neighbor.
+ * @param value FLow control information about the neighbor.
  *
  * @return GNUNET_YES to keep iterating.
  */
@@ -4050,11 +4050,11 @@ tunnel_send_clients_bck_ack (struct MeshTunnel *t)
   /* Find client whom to allow to send to origin (with lowest buffer space) */
   for (i = 0; i < t->nclients; i++)
   {
-    struct MeshTunnelClientInfo *clinfo;
+    struct MeshTunnelFlowControlInfo *fcinfo;
     unsigned int delta;
 
-    clinfo = &t->clients_fc[i];
-    delta = clinfo->bck_ack - clinfo->bck_pid;
+    fcinfo = &t->clients_fc[i];
+    delta = fcinfo->bck_ack - fcinfo->bck_pid;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    client %u delta: %u\n",
          t->clients[i]->id, delta);
 
@@ -4063,13 +4063,13 @@ tunnel_send_clients_bck_ack (struct MeshTunnel *t)
     {
       uint32_t ack;
 
-      ack = clinfo->bck_pid;
+      ack = fcinfo->bck_pid;
       ack += t->nobuffer ? 1 : tunnel_delta;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "    sending ack to client %u: %u\n",
                   t->clients[i]->id, ack);
       send_local_ack (t, t->clients[i], ack);
-      clinfo->bck_ack = ack;
+      fcinfo->bck_ack = ack;
     }
     else
     {
@@ -4707,7 +4707,7 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
 {
   struct MeshTransmissionDescriptor *dd;
   struct MeshPathInfo *path_info;
-  struct MeshTunnelChildInfo *cinfo;
+  struct MeshTunnelFlowControlInfo *fcinfo;
   struct GNUNET_PeerIdentity id;
   unsigned int i;
   unsigned int max;
@@ -4754,29 +4754,30 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
   /* Delete from child_fc in the appropiate tunnel */
   max = queue->tunnel->fwd_queue_max;
   GNUNET_PEER_resolve (queue->peer->id, &id);
-  cinfo = tunnel_get_neighbor_fc (queue->tunnel, &id);
-  if (NULL != cinfo)
+  fcinfo = tunnel_get_neighbor_fc (queue->tunnel, &id);
+  if (NULL != fcinfo)
   {
-    for (i = 0; i < cinfo->send_buffer_n; i++)
+    GNUNET_assert (NULL != fcinfo->peer);
+    for (i = 0; i < fcinfo->send_buffer_n; i++)
     {
       unsigned int i2;
-      i2 = (cinfo->send_buffer_start + i) % max;
-      if (cinfo->send_buffer[i2] == queue)
+      i2 = (fcinfo->send_buffer_start + i) % max;
+      if (fcinfo->send_buffer[i2] == queue)
       {
         /* Found corresponding entry in the send_buffer. Move all others back. */
         unsigned int j;
         unsigned int j2;
         unsigned int j3;
 
-        for (j = i, j2 = 0, j3 = 0; j < cinfo->send_buffer_n - 1; j++)
+        for (j = i, j2 = 0, j3 = 0; j < fcinfo->send_buffer_n - 1; j++)
         {
-          j2 = (cinfo->send_buffer_start + j) % max;
-          j3 = (cinfo->send_buffer_start + j + 1) % max;
-          cinfo->send_buffer[j2] = cinfo->send_buffer[j3];
+          j2 = (fcinfo->send_buffer_start + j) % max;
+          j3 = (fcinfo->send_buffer_start + j + 1) % max;
+          fcinfo->send_buffer[j2] = fcinfo->send_buffer[j3];
         }
 
-        cinfo->send_buffer[j3] = NULL;
-        cinfo->send_buffer_n--;
+        fcinfo->send_buffer[j3] = NULL;
+        fcinfo->send_buffer_n--;
       }
     }
   }
@@ -4802,7 +4803,7 @@ queue_get_next (const struct MeshPeerInfo *peer)
   struct MeshPeerQueue *q;
   struct MeshTunnel *t;
   struct MeshTransmissionDescriptor *info;
-  struct MeshTunnelChildInfo *cinfo;
+  struct MeshTunnelFlowControlInfo *fcinfo;
   struct GNUNET_MESH_Unicast *ucast;
   struct GNUNET_MESH_ToOrigin *to_orig;
   struct GNUNET_MESH_Multicast *mcast;
@@ -4824,8 +4825,8 @@ queue_get_next (const struct MeshPeerInfo *peer)
         ucast = (struct GNUNET_MESH_Unicast *) info->mesh_data->data;
         pid = ntohl (ucast->pid);
         GNUNET_PEER_resolve (info->peer->id, &id);
-        cinfo = tunnel_get_neighbor_fc(t, &id);
-        ack = cinfo->fwd_ack;
+        fcinfo = tunnel_get_neighbor_fc (t, &id);
+        ack = fcinfo->fwd_ack;
         break;
       case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
         to_orig = (struct GNUNET_MESH_ToOrigin *) info->mesh_data->data;
@@ -4841,8 +4842,8 @@ queue_get_next (const struct MeshPeerInfo *peer)
         }
         pid = ntohl (mcast->pid);
         GNUNET_PEER_resolve (info->peer->id, &id);
-        cinfo = tunnel_get_neighbor_fc(t, &id);
-        ack = cinfo->fwd_ack;
+        fcinfo = tunnel_get_neighbor_fc (t, &id);
+        ack = fcinfo->fwd_ack;
         break;
       default:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -4886,12 +4887,12 @@ queue_send (void *cls, size_t size, void *buf)
     struct GNUNET_MessageHeader *msg;
     struct MeshPeerQueue *queue;
     struct MeshTunnel *t;
-    struct MeshTunnelChildInfo *cinfo;
+    struct MeshTunnelFlowControlInfo *fcinfo;
     struct GNUNET_PeerIdentity dst_id;
     size_t data_size;
 
     peer->core_transmit = NULL;
-    cinfo = NULL;
+    fcinfo = NULL;
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "********* Queue send\n");
     queue = queue_get_next (peer);
@@ -5013,22 +5014,22 @@ queue_send (void *cls, size_t size, void *buf)
       case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
       case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
       case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
-        cinfo = tunnel_get_neighbor_fc (t, &dst_id);
-        if (cinfo->send_buffer[cinfo->send_buffer_start] != queue)
+        fcinfo = tunnel_get_neighbor_fc (t, &dst_id);
+        if (fcinfo->send_buffer[fcinfo->send_buffer_start] != queue)
         {
           GNUNET_break (0);
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                       "at pos %u (%p) != %p\n",
-                      cinfo->send_buffer_start,
-                      cinfo->send_buffer[cinfo->send_buffer_start],
+                      fcinfo->send_buffer_start,
+                      fcinfo->send_buffer[fcinfo->send_buffer_start],
                       queue);
         }
-        if (cinfo->send_buffer_n > 0)
+        if (fcinfo->send_buffer_n > 0)
         {
-          cinfo->send_buffer[cinfo->send_buffer_start] = NULL;
-          cinfo->send_buffer_n--;
-          cinfo->send_buffer_start++;
-          cinfo->send_buffer_start %= t->fwd_queue_max;
+          fcinfo->send_buffer[fcinfo->send_buffer_start] = NULL;
+          fcinfo->send_buffer_n--;
+          fcinfo->send_buffer_start++;
+          fcinfo->send_buffer_start %= t->fwd_queue_max;
         }
         else
         {
@@ -5074,10 +5075,10 @@ queue_send (void *cls, size_t size, void *buf)
         GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                     "*********   %s stalled\n",
                     GNUNET_i2s(&my_full_id));
-        if (NULL == cinfo)
-          cinfo = tunnel_get_neighbor_fc (t, &dst_id);
-        cinfo->fc_poll = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
-                                                     &tunnel_poll, cinfo);
+        if (NULL == fcinfo)
+          fcinfo = tunnel_get_neighbor_fc (t, &dst_id);
+        fcinfo->fc_poll = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
+                                                     &tunnel_poll, fcinfo);
       }
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   return %d\n", data_size);
@@ -5107,7 +5108,7 @@ queue_add (void *cls, uint16_t type, size_t size,
            struct MeshPeerInfo *dst, struct MeshTunnel *t)
 {
   struct MeshPeerQueue *queue;
-  struct MeshTunnelChildInfo *cinfo;
+  struct MeshTunnelFlowControlInfo *fcinfo;
   struct GNUNET_PeerIdentity id;
   unsigned int *max;
   unsigned int *n;
@@ -5167,24 +5168,24 @@ queue_add (void *cls, uint16_t type, size_t size,
     return;
 
   // It's payload, keep track of buffer per peer.
-  cinfo = tunnel_get_neighbor_fc(t, &id);
-  i = (cinfo->send_buffer_start + cinfo->send_buffer_n) % t->fwd_queue_max;
-  if (NULL != cinfo->send_buffer[i])
+  fcinfo = tunnel_get_neighbor_fc (t, &id);
+  i = (fcinfo->send_buffer_start + fcinfo->send_buffer_n) % t->fwd_queue_max;
+  if (NULL != fcinfo->send_buffer[i])
   {
-    GNUNET_break (cinfo->send_buffer_n == t->fwd_queue_max); // aka i == start
-    queue_destroy (cinfo->send_buffer[cinfo->send_buffer_start], GNUNET_YES);
-    cinfo->send_buffer_start++;
-    cinfo->send_buffer_start %= t->fwd_queue_max;
+    GNUNET_break (fcinfo->send_buffer_n == t->fwd_queue_max); // aka i == start
+    queue_destroy (fcinfo->send_buffer[fcinfo->send_buffer_start], GNUNET_YES);
+    fcinfo->send_buffer_start++;
+    fcinfo->send_buffer_start %= t->fwd_queue_max;
   }
   else
   {
-    cinfo->send_buffer_n++;
+    fcinfo->send_buffer_n++;
   }
-  cinfo->send_buffer[i] = queue;
-  if (cinfo->send_buffer_n > t->fwd_queue_max)
+  fcinfo->send_buffer[i] = queue;
+  if (fcinfo->send_buffer_n > t->fwd_queue_max)
   {
     GNUNET_break (0);
-    cinfo->send_buffer_n = t->fwd_queue_max;
+    fcinfo->send_buffer_n = t->fwd_queue_max;
   }
 }
 
@@ -5579,7 +5580,7 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct GNUNET_MESH_Unicast *msg;
   struct GNUNET_PeerIdentity *neighbor;
-  struct MeshTunnelChildInfo *cinfo;
+  struct MeshTunnelFlowControlInfo *fcinfo;
   struct MeshTunnel *t;
   GNUNET_PEER_Id dest_id;
   uint32_t pid;
@@ -5660,16 +5661,16 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
               "  not for us, retransmitting...\n");
 
   neighbor = tree_get_first_hop (t->tree, dest_id);
-  cinfo = tunnel_get_neighbor_fc (t, neighbor);
-  cinfo->fwd_pid = pid;
+  fcinfo = tunnel_get_neighbor_fc (t, neighbor);
+  fcinfo->fwd_pid = pid;
   GNUNET_CONTAINER_multihashmap_iterate (t->children_fc,
                                          &tunnel_add_skip,
                                          &neighbor);
   if (GNUNET_YES == t->nobuffer &&
-      GNUNET_YES == GMC_is_pid_bigger (pid, cinfo->fwd_ack))
+      GNUNET_YES == GMC_is_pid_bigger (pid, fcinfo->fwd_ack))
   {
     GNUNET_STATISTICS_update (stats, "# unsolicited unicast", 1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "  %u > %u\n", pid, cinfo->fwd_ack);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "  %u > %u\n", pid, fcinfo->fwd_ack);
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
@@ -5785,7 +5786,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_PeerIdentity id;
   struct MeshPeerInfo *peer_info;
   struct MeshTunnel *t;
-  struct MeshTunnelChildInfo *cinfo;
+  struct MeshTunnelFlowControlInfo *fcinfo;
   size_t size;
   uint32_t pid;
 
@@ -5815,14 +5816,14 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
 
-  cinfo = tunnel_get_neighbor_fc(t, peer);
-  if (NULL == cinfo)
+  fcinfo = tunnel_get_neighbor_fc (t, peer);
+  if (NULL == fcinfo)
   {
     GNUNET_break (0);
     return GNUNET_OK;
   }
 
-  if (cinfo->bck_pid == pid)
+  if (fcinfo->bck_pid == pid)
   {
     /* already seen this packet, drop */
     GNUNET_STATISTICS_update (stats, "# duplicate PID drops BCK", 1, GNUNET_NO);
@@ -5834,7 +5835,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               " pid %u not seen yet, forwarding\n", pid);
-  cinfo->bck_pid = pid;
+  fcinfo->bck_pid = pid;
 
   if (NULL != t->owner)
   {
@@ -5914,12 +5915,12 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* Is this a forward or backward ACK? */
   if (tree_get_predecessor(t->tree) != GNUNET_PEER_search(peer))
   {
-    struct MeshTunnelChildInfo *cinfo;
+    struct MeshTunnelFlowControlInfo *fcinfo;
 
     debug_bck_ack++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  FWD ACK\n");
-    cinfo = tunnel_get_neighbor_fc (t, peer);
-    cinfo->fwd_ack = ack;
+    fcinfo = tunnel_get_neighbor_fc (t, peer);
+    fcinfo->fwd_ack = ack;
     tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
     tunnel_unlock_fwd_queues (t);
   }
@@ -5973,11 +5974,11 @@ handle_mesh_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* Is this a forward or backward ACK? */
   if (tree_get_predecessor(t->tree) != GNUNET_PEER_search(peer))
   {
-    struct MeshTunnelChildInfo *cinfo;
+    struct MeshTunnelFlowControlInfo *fcinfo;
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  from FWD\n");
-    cinfo = tunnel_get_neighbor_fc (t, peer);
-    cinfo->bck_ack = cinfo->fwd_pid; // mark as ready to send
+    fcinfo = tunnel_get_neighbor_fc (t, peer);
+    fcinfo->bck_ack = fcinfo->fwd_pid; // mark as ready to send
     tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_POLL);
   }
   else
@@ -7624,7 +7625,7 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
                         const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_ToOrigin *data_msg;
-  struct MeshTunnelClientInfo *clinfo;
+  struct MeshTunnelFlowControlInfo *fcinfo;
   struct MeshClient *c;
   struct MeshTunnel *t;
   MESH_TunnelNumber tid;
@@ -7681,18 +7682,18 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   /* PID should be as expected */
-  clinfo = tunnel_get_client_fc (t, c);
-  if (ntohl (data_msg->pid) != clinfo->bck_pid + 1)
+  fcinfo = tunnel_get_client_fc (t, c);
+  if (ntohl (data_msg->pid) != fcinfo->bck_pid + 1)
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "To Origin PID, expected %u, got %u\n",
-                clinfo->bck_pid + 1,
+                fcinfo->bck_pid + 1,
                 ntohl (data_msg->pid));
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  clinfo->bck_pid++;
+  fcinfo->bck_pid++;
 
   /* Ok, everything is correct, send the message
    * (pretend we got it from a mesh peer)
