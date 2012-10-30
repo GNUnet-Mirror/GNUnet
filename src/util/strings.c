@@ -372,52 +372,6 @@ GNUNET_STRINGS_conv (const char *input, size_t len, const char *input_charset, c
 {
   char *ret;
 
-#if ENABLE_NLS && HAVE_ICONV
-  size_t tmpSize;
-  size_t finSize;
-  char *tmp;
-  char *itmp;
-  iconv_t cd;
-
-  cd = iconv_open (output_charset, input_charset);
-  if (cd == (iconv_t) - 1)
-  {
-    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "iconv_open");
-    LOG (GNUNET_ERROR_TYPE_WARNING, _("Character sets requested were `%s'->`%s'\n"),
-         input_charset, output_charset);
-    ret = GNUNET_malloc (len + 1);
-    memcpy (ret, input, len);
-    ret[len] = '\0';
-    return ret;
-  }
-  tmpSize = 3 * len + 4;
-  tmp = GNUNET_malloc (tmpSize);
-  itmp = tmp;
-  finSize = tmpSize;
-  if (iconv (cd,
-#if FREEBSD || DARWIN || WINDOWS
-             (const char **) &input,
-#else
-             (char **) &input,
-#endif
-             &len, &itmp, &finSize) == SIZE_MAX)
-  {
-    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "iconv");
-    iconv_close (cd);
-    GNUNET_free (tmp);
-    ret = GNUNET_malloc (len + 1);
-    memcpy (ret, input, len);
-    ret[len] = '\0';
-    return ret;
-  }
-  ret = GNUNET_malloc (tmpSize - finSize + 1);
-  memcpy (ret, tmp, tmpSize - finSize);
-  ret[tmpSize - finSize] = '\0';
-  GNUNET_free (tmp);
-  if (0 != iconv_close (cd))
-    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "iconv_close");
-  return ret;
-#elif ENABLE_NLS /* libunistring is a mandatory dependency \o/ ! */
   uint8_t *u8_string;
   char *encoded_string;
   size_t u8_string_length;
@@ -455,12 +409,6 @@ GNUNET_STRINGS_conv (const char *input, size_t len, const char *input_charset, c
   ret[encoded_string_length] = '\0';
   free (encoded_string);
   return ret;
-#else
-  ret = GNUNET_malloc (len + 1);
-  memcpy (ret, input, len);
-  ret[len] = '\0';
-  return ret;
-#endif
 }
 
 
