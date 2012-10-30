@@ -152,7 +152,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
  */
 static unsigned long long rid = 0;
 
-/*
+/**
  * Check if name is in srv format (_x._y.xxx)
  *
  * @param name
