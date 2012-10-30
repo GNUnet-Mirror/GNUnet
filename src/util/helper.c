@@ -410,12 +410,16 @@ GNUNET_HELPER_start (int with_control_pipe,
 		     GNUNET_HELPER_ExceptionCallback exp_cb,
 		     void *cb_cls)
 {
-  struct GNUNET_HELPER_Handle*h;
+  struct GNUNET_HELPER_Handle *h;
   unsigned int c;
 
   h = GNUNET_malloc (sizeof (struct GNUNET_HELPER_Handle));
   h->with_control_pipe = with_control_pipe;
-  h->binary_name = GNUNET_OS_get_libexec_binary_path (binary_name);
+  /* Lookup in libexec path only if we are starting gnunet helpers */
+  if (NULL != strstr (binary_name, "gnunet"))
+    h->binary_name = GNUNET_OS_get_libexec_binary_path (binary_name);
+  else
+    h->binary_name = strdup (binary_name);
   for (c = 0; NULL != binary_argv[c]; c++)
     c++;
   h->binary_argv = GNUNET_malloc (sizeof (char *) * (c + 1));
