@@ -1063,7 +1063,7 @@ process_record_result_dht (void* cls,
       return;
     }
 
-    for (i=0; i<num_records; i++)
+    for (i = 0; i < num_records; i++)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "GNS_PHASE_REC-%llu: Got name: %s (wanted %s)\n",
@@ -1080,9 +1080,7 @@ process_record_result_dht (void* cls,
 
       if ((strcmp (name, rh->name) == 0) &&
           (rd[i].record_type == rlh->record_type))
-      {
         rh->answered++;
-      }
 
     }
 
@@ -1122,9 +1120,9 @@ process_record_result_dht (void* cls,
 
   
     if (0 < rh->answered)
-     rh->proc (rh->proc_cls, rh, num_records, rd);
-   else
-     rh->proc (rh->proc_cls, rh, 0, NULL);
+      rh->proc (rh->proc_cls, rh, num_records, rd);
+    else
+      rh->proc (rh->proc_cls, rh, 0, NULL);
   }
 
 }
@@ -1255,9 +1253,7 @@ process_record_result_ns (void* cls,
     rh->status |= RSL_RECORD_EXISTS;
 
     if (remaining_time.rel_value == 0)
-    {
       rh->status |= RSL_RECORD_EXPIRED;
-    }
   }
 
   if (rd_count == 0)
@@ -1282,7 +1278,7 @@ process_record_result_ns (void* cls,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "GNS_PHASE_REC-%llu: Processing additional result %s from namestore\n",
              rh->id, name);
-  for (i=0; i<rd_count;i++)
+  for (i = 0; i < rd_count;i++)
   {
     if (rd[i].record_type != rlh->record_type)
       continue;
@@ -1338,10 +1334,8 @@ static void
 process_record_result_vpn (void* cls, int af, const void *address)
 {
   struct ResolverHandle *rh = cls;
-  struct RecordLookupHandle *rlh;
+  struct RecordLookupHandle *rlh = rh->proc_cls;
   struct GNUNET_NAMESTORE_RecordData rd;
-
-  rlh = rh->proc_cls;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "GNS_PHASE_REC_VPN-%llu: Got answer from VPN to query!\n",
