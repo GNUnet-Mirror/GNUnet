@@ -101,6 +101,11 @@ get_path_from_proc_exe ()
   lnk[size] = '\0';
   while ((lnk[size] != '/') && (size > 0))
     size--;
+  /* test for being in lib/gnunet/libexec/ */
+  if ( (size > strlen ("/gnunet/libexec/")) &&
+       (0 == strcmp ("/gnunet/libexec/",
+		     &lnk[size - strlen ("/gnunet/libexec/")])) )
+    size -= strlen ("gnunet/libexec/");
   if ((size < 4) || (lnk[size - 4] != '/'))
   {
     /* not installed in "/bin/" -- binary path probably useless */
