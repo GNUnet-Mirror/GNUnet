@@ -381,6 +381,8 @@ GNUNET_STRINGS_conv (const char *input, size_t len, const char *input_charset, c
   if (NULL == u8_string)
   {
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "u8_conv_from_encoding");
+    LOG (GNUNET_ERROR_TYPE_WARNING, _("Character sets requested were `%s'->`%s'\n"),
+         input_charset, "UTF-8");
     ret = GNUNET_malloc (len + 1);
     memcpy (ret, input, len);
     ret[len] = '\0';
@@ -399,6 +401,8 @@ GNUNET_STRINGS_conv (const char *input, size_t len, const char *input_charset, c
   if (NULL == encoded_string)
   {
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "u8_conv_to_encoding");
+    LOG (GNUNET_ERROR_TYPE_WARNING, _("Character sets requested were `%s'->`%s'\n"),
+         "UTF-8", output_charset);
     ret = GNUNET_malloc (len + 1);
     memcpy (ret, input, len);
     ret[len] = '\0';

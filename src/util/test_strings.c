@@ -105,12 +105,10 @@ main (int argc, char *argv[])
 		 GNUNET_STRINGS_fancy_time_to_absolute (bc, &atx));
   GNUNET_assert (atx.abs_value == at.abs_value);
 
-#if ENABLE_NLS && HAVE_ICONV
   GNUNET_log_skip (2, GNUNET_NO);
   b = GNUNET_STRINGS_to_utf8 ("TEST", 4, "unknown");
   GNUNET_log_skip (0, GNUNET_YES);
   WANT ("TEST", b);
-#endif
   return 0;
 }
 
