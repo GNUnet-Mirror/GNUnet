@@ -3380,7 +3380,7 @@ tunnel_add_client (struct MeshTunnel *t, struct MeshClient *c)
   // FIXME fc buffering is done by context_notify. Confirm this is OK.
 
   t->nclients--;
-  GNUNET_array_append (t->clients_fc, t->nclients, clinfo);
+  GNUNET_array_append (t->clients_fc, t->nclients, fcinfo);
 }
 
 
@@ -3551,14 +3551,14 @@ tunnel_add_skip (void *cls,
                  void *value)
 {
   struct GNUNET_PeerIdentity *neighbor = cls;
-  struct MeshTunnelChildInfo *cinfo = value;
+  struct MeshTunnelFlowControlInfo *fcinfo = value;
 
   /* TODO compare only pointers? key == neighbor? */
   if (0 == memcmp (&neighbor->hashPubKey, key, sizeof (struct GNUNET_HashCode)))
   {
     return GNUNET_YES;
   }
-  cinfo->skip++;
+  fcinfo->skip++;
   return GNUNET_YES;
 }
 
@@ -3623,7 +3623,7 @@ tunnel_get_neighbor_fc (struct MeshTunnel *t,
  * 
  * @return ACK value.
  */
-static struct MeshTunnelClientInfo *
+static struct MeshTunnelFlowControlInfo *
 tunnel_get_client_fc (struct MeshTunnel *t,
                       struct MeshClient *c)
 {
@@ -3636,7 +3636,7 @@ tunnel_get_client_fc (struct MeshTunnel *t,
     return &t->clients_fc[i];
   }
   GNUNET_assert (0);
-  return NULL; // avoid compiler / coverity complaints
+  return NULL; // won't get here. Just to avoid compiler / coverity complaints.
 }
 
 
@@ -3651,14 +3651,14 @@ tunnel_get_child_fwd_ack (void *cls,
                           GNUNET_PEER_Id id)
 {
   struct GNUNET_PeerIdentity peer_id;
-  struct MeshTunnelChildInfo *cinfo;
+  struct MeshTunnelFlowControlInfo *fcinfo;
   struct MeshTunnelChildIteratorContext *ctx = cls;
   struct MeshTunnel *t = ctx->t;
   uint32_t ack;
 
   GNUNET_PEER_resolve (id, &peer_id);
-  cinfo = tunnel_get_neighbor_fc (t, &peer_id);
-  ack = cinfo->fwd_ack;
+  fcinfo = tunnel_get_neighbor_fc (t, &peer_id);
+  ack = fcinfo->fwd_ack;
 
   ctx->nchildren++;
   if (GNUNET_NO == ctx->init)
@@ -3675,7 +3675,6 @@ tunnel_get_child_fwd_ack (void *cls,
   {
     ctx->max_child_ack = ctx->max_child_ack > ack ? ctx->max_child_ack : ack;
   }
-
 }
 
 
