@@ -243,13 +243,8 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
     /* database is new or got deleted, reset payload to zero! */
     plugin->env->duc (plugin->env->cls, 0);
   }
-#ifdef ENABLE_NLS
-  plugin->fn =
-      GNUNET_STRINGS_to_utf8 (afsdir, strlen (afsdir), nl_langinfo (CODESET));
-#else
-  plugin->fn = GNUNET_STRINGS_to_utf8 (afsdir, strlen (afsdir), "UTF-8");       /* good luck */
-#endif
-  GNUNET_free (afsdir);
+  /* afsdir should be UTF-8-encoded. If it isn't, it's a bug */
+  plugin->fn = afsdir;
 
   /* Open database and precompile statements */
   if (sqlite3_open (plugin->fn, &plugin->dbh) != SQLITE_OK)

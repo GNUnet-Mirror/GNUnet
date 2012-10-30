@@ -139,11 +139,12 @@ GNUNET_FS_getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext
     *mm = meta;
   }
 
-#if ENABLE_NLS
-  tmp = GNUNET_STRINGS_to_utf8 (value, strlen (value), nl_langinfo (CODESET));
-#else
-  tmp = GNUNET_STRINGS_to_utf8 (value, strlen (value), "utf-8");
-#endif
+  /* Use GNUNET_STRINGS_get_utf8_args() in main() to acquire utf-8-encoded
+   * commandline arguments, so that the following line is not needed.
+   */
+  /*tmp = GNUNET_STRINGS_to_utf8 (value, strlen (value), locale_charset ());*/
+  tmp = GNUNET_strdup (value);
+
   type = EXTRACTOR_metatype_get_max ();
   while (type > 0)
   {
