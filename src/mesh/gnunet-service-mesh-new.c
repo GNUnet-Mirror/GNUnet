@@ -3999,25 +3999,25 @@ tunnel_send_child_bck_ack (void *cls,
                            GNUNET_PEER_Id id)
 {
   struct MeshTunnel *t = cls;
-  struct MeshTunnelChildInfo *cinfo;
+  struct MeshTunnelFlowControlInfo *fcinfo;
   struct GNUNET_PeerIdentity peer;
 
   GNUNET_PEER_resolve (id, &peer);
-  cinfo = tunnel_get_neighbor_fc (t, &peer);
+  fcinfo = tunnel_get_neighbor_fc (t, &peer);
 
-  if (cinfo->bck_ack != cinfo->bck_pid &&
-      GNUNET_NO == GMC_is_pid_bigger (cinfo->bck_ack, cinfo->bck_pid))
+  if (fcinfo->bck_ack != fcinfo->bck_pid &&
+      GNUNET_NO == GMC_is_pid_bigger (fcinfo->bck_ack, fcinfo->bck_pid))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "    Not sending ACK, not needed\n");
     return;
   }
 
-  cinfo->bck_ack = t->bck_queue_max - t->bck_queue_n + cinfo->bck_pid;
+  fcinfo->bck_ack = t->bck_queue_max - t->bck_queue_n + fcinfo->bck_pid;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "    Sending BCK ACK %u\n",
-              cinfo->bck_ack);
-  send_ack (t, &peer, cinfo->bck_ack);
+              fcinfo->bck_ack);
+  send_ack (t, &peer, fcinfo->bck_ack);
 }
 
 
