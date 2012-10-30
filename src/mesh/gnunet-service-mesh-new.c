@@ -3369,13 +3369,16 @@ tunnel_add_path (struct MeshTunnel *t, struct MeshPeerPath *p,
 static void
 tunnel_add_client (struct MeshTunnel *t, struct MeshClient *c)
 {
-  struct MeshTunnelClientInfo clinfo;
+  struct MeshTunnelFlowControlInfo fcinfo;
 
   GNUNET_array_append (t->clients, t->nclients, c);
-  clinfo.fwd_ack = t->fwd_pid + 1;
-  clinfo.bck_ack = t->nobuffer ? 1 : INITIAL_WINDOW_SIZE - 1;
-  clinfo.fwd_pid = t->fwd_pid;
-  clinfo.bck_pid = (uint32_t) -1; // Expected next: 0
+  fcinfo.client = c;
+  fcinfo.fwd_ack = t->fwd_pid + 1;
+  fcinfo.bck_ack = t->nobuffer ? 1 : INITIAL_WINDOW_SIZE - 1;
+  fcinfo.fwd_pid = t->fwd_pid;
+  fcinfo.bck_pid = (uint32_t) -1; // Expected next: 0
+  // FIXME fc buffering is done by context_notify. Confirm this is OK.
+
   t->nclients--;
   GNUNET_array_append (t->clients_fc, t->nclients, clinfo);
 }
