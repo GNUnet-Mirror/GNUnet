@@ -2898,35 +2898,38 @@ peer_info_add_path_to_origin (struct MeshPeerInfo *peer_info,
  * Function called if the connection to the peer has been stalled for a while,
  * possibly due to a missed ACK. Poll the peer about its ACK status.
  *
- * @param cls Closure (info about regex search).
+ * @param cls Closure (MeshPeerInfo of stalled peer).
  * @param tc TaskContext.
  */
 static void
 tunnel_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshTunnelChildInfo *cinfo = cls;
+  struct MeshTunnelFlowControlInfo *fcinfo = cls;
   struct GNUNET_MESH_Poll msg;
   struct GNUNET_PeerIdentity id;
   struct MeshTunnel *t;
 
-  return; // FIXME fc activate
-  cinfo->fc_poll = GNUNET_SCHEDULER_NO_TASK;
+  // FIXME fc include code to poll clients
+  if (NULL == fcinfo->peer)
+    return;
+  fcinfo->fc_poll = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     return;
   }
 
-  t = cinfo->t;
+  t = fcinfo->t;
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_POLL);
   msg.header.size = htons (sizeof (msg));
   msg.tid = htonl (t->id.tid);
   GNUNET_PEER_resolve (t->id.oid, &msg.oid);
-  msg.last_ack = htonl (cinfo->fwd_ack);
+  msg.last_ack = htonl (fcinfo->fwd_ack);
 
-  GNUNET_PEER_resolve (tree_get_predecessor(cinfo->t->tree), &id);
-  send_prebuilt_message (&msg.header, &id, cinfo->t);
-  cinfo->fc_poll = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
-                                                    &tunnel_poll, cinfo);
+  GNUNET_PEER_resolve (fcinfo->peer->id, &id);
+  send_prebuilt_message (&msg.header, &id, fcinfo->t);
+  fcinfo->fc_poll = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
+                                                    &tunnel_poll, fcinfo);
+
 }
 
 
