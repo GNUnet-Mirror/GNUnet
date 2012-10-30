@@ -357,7 +357,7 @@ struct MeshTunnel
   uint32_t skip;
 
     /**
-     * MeshTunnelChildInfo of all children, indexed by GNUNET_PEER_Id.
+     * MeshTunnelFlowControlInfo of all children, indexed by GNUNET_PEER_Id.
      * Contains the Flow Control info: FWD ACK value received,
      * last BCK ACK sent, PID and SKIP values.
      */
@@ -433,7 +433,7 @@ struct MeshTunnel
     /**
      * Flow control info for each client.
      */
-  struct MeshTunnelClientInfo *clients_fc;
+  struct MeshTunnelFlowControlInfo *clients_fc;
 
   /**
      * Number of elements in clients/clients_fc
@@ -3219,7 +3219,7 @@ tunnel_destroy_child (void *cls,
                       const struct GNUNET_HashCode * key,
                       void *value)
 {
-  struct MeshTunnelChildInfo *cinfo = value;
+  struct MeshTunnelFlowControlInfo *cinfo = value;
   struct MeshTunnel *t = cls;
   struct MeshPeerQueue *q;
   unsigned int c;
@@ -3563,8 +3563,8 @@ tunnel_add_skip (void *cls,
 /**
  * @brief Get neighbor's Flow Control information.
  *
- * Retrieves the MeshTunnelChildInfo containing Flow Control data about a direct
- * descendant of the local node in a certain tunnel.
+ * Retrieves the MeshTunnelFlowControlInfo containing Flow Control data about
+ * a direct descendant of the local node in a certain tunnel.
  * If the info is not yet there (recently created path), creates the data struct
  * and inserts it into the tunnel info, initialized to the current tunnel ACK
  * values.
@@ -3574,41 +3574,41 @@ tunnel_add_skip (void *cls,
  *
  * @return Neighbor's Flow Control info.
  */
-static struct MeshTunnelChildInfo *
+static struct MeshTunnelFlowControlInfo *
 tunnel_get_neighbor_fc (struct MeshTunnel *t,
                         const struct GNUNET_PeerIdentity *peer)
 {
-  struct MeshTunnelChildInfo *cinfo;
+  struct MeshTunnelFlowControlInfo *fcinfo;
 
   if (NULL == t->children_fc)
     return NULL;
 
-  cinfo = GNUNET_CONTAINER_multihashmap_get (t->children_fc,
+  fcinfo = GNUNET_CONTAINER_multihashmap_get (t->children_fc,
                                              &peer->hashPubKey);
-  if (NULL == cinfo)
+  if (NULL == fcinfo)
   {
     uint32_t delta;
 
-    cinfo = GNUNET_malloc (sizeof (struct MeshTunnelChildInfo));
-    cinfo->id = GNUNET_PEER_intern (peer);
-    cinfo->skip = t->fwd_pid;
-    cinfo->t = t;
+    fcinfo = GNUNET_malloc (sizeof (struct MeshTunnelFlowControlInfo));
+    fcinfo->peer = peer_info_get(peer);
+    fcinfo->skip = t->fwd_pid;
+    fcinfo->t = t;
 
     delta = t->nobuffer ? 1 : INITIAL_WINDOW_SIZE;
-    cinfo->fwd_ack = t->fwd_pid + delta;
-    cinfo->bck_ack = delta;
-    cinfo->bck_pid = -1;
+    fcinfo->fwd_ack = t->fwd_pid + delta;
+    fcinfo->bck_ack = delta;
+    fcinfo->bck_pid = -1;
 
-    cinfo->send_buffer =
+    fcinfo->send_buffer =
         GNUNET_malloc (sizeof(struct MeshPeerQueue *) * t->fwd_queue_max);
 
     GNUNET_assert (GNUNET_OK ==
       GNUNET_CONTAINER_multihashmap_put (t->children_fc,
                                          &peer->hashPubKey,
-                                         cinfo,
+                                         fcinfo,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
   }
-  return cinfo;
+  return fcinfo;
 }
 
 
