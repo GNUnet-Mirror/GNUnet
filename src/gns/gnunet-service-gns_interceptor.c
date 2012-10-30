@@ -312,7 +312,7 @@ handle_dns_request (void *cls,
    * Check for .gads/.zkey
    */
   
-  if ((is_gnunet_tld(p->queries[0].name) == GNUNET_YES) ||
+  if ((is_gads_tld(p->queries[0].name) == GNUNET_YES) ||
       (is_zkey_tld(p->queries[0].name) == GNUNET_YES) ||
       (strcmp(p->queries[0].name, GNUNET_GNS_TLD) == 0))
   {

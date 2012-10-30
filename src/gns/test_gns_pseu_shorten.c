@@ -33,14 +33,8 @@
 #include "gnunet_dht_service.h"
 #include "gnunet_gns_service.h"
 
-/* DEFINES */
-#define VERBOSE GNUNET_YES
-
 /* Timeout for entire testcase */
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
-
-/* If number of peers not in config file, use this number */
-#define DEFAULT_NUM_PEERS 2
 
 /* test records to resolve */
 #define TEST_DOMAIN "www.alicewonderland.bobbuilder.gads"
@@ -75,23 +69,23 @@ static struct GNUNET_GNS_Handle *gns_handle;
 
 static struct GNUNET_DHT_Handle *dht_handle;
 
-const struct GNUNET_CONFIGURATION_Handle *cfg;
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded alice_pkey;
-struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded bob_pkey;
-struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded our_pkey;
-struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded priv_pkey;
-struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded short_pkey;
-struct GNUNET_CRYPTO_RsaPrivateKey *alice_key;
-struct GNUNET_CRYPTO_RsaPrivateKey *bob_key;
-struct GNUNET_CRYPTO_RsaPrivateKey *our_key;
-struct GNUNET_CRYPTO_RsaPrivateKey *priv_key;
-struct GNUNET_CRYPTO_RsaPrivateKey *short_key;
-struct GNUNET_CRYPTO_ShortHashCode alice_hash;
-struct GNUNET_CRYPTO_ShortHashCode bob_hash;
-struct GNUNET_CRYPTO_ShortHashCode our_zone;
-struct GNUNET_CRYPTO_ShortHashCode priv_zone;
-struct GNUNET_CRYPTO_ShortHashCode short_zone;
+static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded alice_pkey;
+static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded bob_pkey;
+static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded our_pkey;
+static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded priv_pkey;
+static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded short_pkey;
+static struct GNUNET_CRYPTO_RsaPrivateKey *alice_key;
+static struct GNUNET_CRYPTO_RsaPrivateKey *bob_key;
+static struct GNUNET_CRYPTO_RsaPrivateKey *our_key;
+static struct GNUNET_CRYPTO_RsaPrivateKey *priv_key;
+static struct GNUNET_CRYPTO_RsaPrivateKey *short_key;
+static struct GNUNET_CRYPTO_ShortHashCode alice_hash;
+static struct GNUNET_CRYPTO_ShortHashCode bob_hash;
+static struct GNUNET_CRYPTO_ShortHashCode our_zone;
+static struct GNUNET_CRYPTO_ShortHashCode priv_zone;
+static struct GNUNET_CRYPTO_ShortHashCode short_zone;
 
 
 /**
@@ -126,6 +120,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ok = 1;
 }
 
+
 static void
 end_badly_now ()
 {
@@ -133,8 +128,10 @@ end_badly_now ()
   die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
 }
 
-static void shutdown_task (void *cls,
-                           const struct GNUNET_SCHEDULER_TaskContext *tc)
+
+static void 
+shutdown_task (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_GNS_disconnect(gns_handle);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer!\n");
@@ -346,6 +343,7 @@ put_pseu_dht (void *cls, int success)
   GNUNET_free (nrb);
 }
 
+
 static void
 put_www_dht(void *cls, int success)
 {
@@ -514,6 +512,7 @@ put_pkey_dht(void *cls, int32_t success, const char *emsg)
   GNUNET_free (nrb);
 }
 
+
 static void
 fin_init_zone (void *cls, int32_t success, const char *emsg)
 {
@@ -551,6 +550,7 @@ cont_init_zone (void *cls, int32_t success, const char *emsg)
                                   &fin_init_zone,
                                   NULL);
 }
+
 
 static void
 do_check (void *cls,
@@ -646,17 +646,13 @@ do_check (void *cls,
                                   NULL);
 }
 
+
 int
 main (int argc, char *argv[])
 {
   ok = 1;
-
   GNUNET_log_setup ("test-gns-pseu-shorten",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   GNUNET_TESTING_peer_run ("test-gns-pseu-shorten", "test_gns_simple_lookup.conf", &do_check, NULL);
   return ok;

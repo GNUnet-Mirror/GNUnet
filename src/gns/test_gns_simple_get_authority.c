@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file gns/test_gns_simple_shorten.c
+ * @file gns/test_gns_simple_get_authority.c
  * @brief basic shorten test for gns api
  *
  */
@@ -32,14 +32,8 @@
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_gns_service.h"
 
-/* DEFINES */
-#define VERBOSE GNUNET_YES
-
 /* Timeout for entire testcase */
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 20)
-
-/* If number of peers not in config file, use this number */
-#define DEFAULT_NUM_PEERS 2
 
 /* test records to resolve */
 #define TEST_DOMAIN "www.alice.bob.gads"
@@ -309,21 +303,17 @@ void do_check (void *cls,
   GNUNET_CRYPTO_rsa_key_free (our_key);
 }
 
+
 int
 main (int argc, char *argv[])
 {
   ok = 1;
-
   GNUNET_log_setup ("test-gns-simple-get-authority",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
-
-  GNUNET_TESTING_peer_run ("test-gns-simple-get-authority", "test_gns_simple_lookup.conf", &do_check, NULL);
-
+  GNUNET_TESTING_peer_run ("test-gns-simple-get-authority",
+			   "test_gns_simple_lookup.conf", 
+			   &do_check, NULL);
   return ok;
 }
 

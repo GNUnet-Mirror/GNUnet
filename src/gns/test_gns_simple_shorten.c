@@ -32,14 +32,8 @@
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_gns_service.h"
 
-/* DEFINES */
-#define VERBOSE GNUNET_YES
-
 /* Timeout for entire testcase */
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 20)
-
-/* If number of peers not in config file, use this number */
-#define DEFAULT_NUM_PEERS 2
 
 /* test records to resolve */
 #define TEST_DOMAIN "www.alice.bob.gads"
@@ -332,21 +326,18 @@ void do_check (void *cls,
 
 }
 
+
 int
 main (int argc, char *argv[])
 {
   ok = 1;
-
   GNUNET_log_setup ("test-gns-simple-shorten",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
-
-  GNUNET_TESTING_peer_run ("test-gns-simple-shorten", "test_gns_simple_lookup.conf", &do_check, NULL);
+  GNUNET_TESTING_peer_run ("test-gns-simple-shorten",
+			   "test_gns_simple_lookup.conf", 
+			   &do_check, NULL);
   return ok;
 }
 
-/* end of test_gns_twopeer.c */
+/* end of test_gns_simple_shorten.c */

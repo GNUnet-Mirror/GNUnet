@@ -637,9 +637,9 @@ is_tld (const char* name,
 
 
 /**
- * Checks for gnunet/zkey
+ * Checks for gads/zkey
  */
-#define is_gnunet_tld(name) is_tld(name, GNUNET_GNS_TLD)
+#define is_gads_tld(name) is_tld(name, GNUNET_GNS_TLD)
 #define is_zkey_tld(name) is_tld(name, GNUNET_GNS_TLD_ZKEY)
 
 

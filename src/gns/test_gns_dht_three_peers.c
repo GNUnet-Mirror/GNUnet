@@ -42,14 +42,9 @@
 
 #define ZONE_PUT_WAIT_TIME GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10)
 
-/* If number of peers not in config file, use this number */
-#define DEFAULT_NUM_PEERS 2
-
 #define TEST_DOMAIN "www.buddy.bob.gads"
 #define TEST_IP "1.1.1.1"
 #define TEST_DAVE_PSEU "hagbard"
-#define TEST_NUM_PEERS 3
-#define TEST_NUM_CON 3
 
 
 /* Timeout for entire testcase */
@@ -59,22 +54,23 @@
 static int ok;
 
 /* Task handle to use to schedule test failure */
-GNUNET_SCHEDULER_TaskIdentifier die_task;
-GNUNET_SCHEDULER_TaskIdentifier wait_task;
+static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
-struct GNUNET_CRYPTO_ShortHashCode dave_hash;
+static GNUNET_SCHEDULER_TaskIdentifier wait_task;
 
-struct GNUNET_CRYPTO_ShortHashCode bob_hash;
+static struct GNUNET_CRYPTO_ShortHashCode dave_hash;
 
-struct GNUNET_TESTBED_Peer **cpeers;
+static struct GNUNET_CRYPTO_ShortHashCode bob_hash;
 
-struct GNUNET_GNS_Handle *gh;
-struct GNUNET_GNS_LookupRequest *lookup_handle;
+static struct GNUNET_TESTBED_Peer **cpeers;
 
-struct GNUNET_TESTBED_Operation *get_cfg_ops[3];
-struct GNUNET_TESTBED_Operation *connect_ops[3];
-struct GNUNET_CONFIGURATION_Handle *cfg_handles[3];
-struct GNUNET_NAMESTORE_Handle *nh[3];
+static struct GNUNET_GNS_Handle *gh;
+static struct GNUNET_GNS_LookupRequest *lookup_handle;
+
+static struct GNUNET_TESTBED_Operation *get_cfg_ops[3];
+static struct GNUNET_TESTBED_Operation *connect_ops[3];
+static struct GNUNET_CONFIGURATION_Handle *cfg_handles[3];
+static struct GNUNET_NAMESTORE_Handle *nh[3];
 
 static int dave_is_setup;
 static int bob_is_setup;

@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file gns/test_gns_twopeer.c
+ * @file gns/test_gns_simple_delegated_lookup.c
  * @brief base testcase for testing DHT service with
  *        two running peers.
  *
@@ -46,14 +46,8 @@
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_gns_service.h"
 
-/* DEFINES */
-#define VERBOSE GNUNET_YES
-
 /* Timeout for entire testcase */
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 20)
-
-/* If number of peers not in config file, use this number */
-#define DEFAULT_NUM_PEERS 2
 
 /* test records to resolve */
 #define TEST_DOMAIN "www.bob.gads"
@@ -64,10 +58,8 @@
 
 #define KEYFILE_BOB "../namestore/zonefiles/HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey"
 
-/* Globals */
-
 /* Task handle to use to schedule test failure */
-GNUNET_SCHEDULER_TaskIdentifier die_task;
+static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 /* Global return value (0 for success, anything else for failure) */
 static int ok;
@@ -76,7 +68,8 @@ static struct GNUNET_NAMESTORE_Handle *namestore_handle;
 
 static struct GNUNET_GNS_Handle *gns_handle;
 
-const struct GNUNET_CONFIGURATION_Handle *cfg;
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
 
 /**
  * Check if the get_handle is being used, if so stop the request.  Either
@@ -92,7 +85,6 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_GNS_disconnect(gns_handle);
     gns_handle = NULL;
   }
-
   if (NULL != namestore_handle)
   {
     GNUNET_NAMESTORE_disconnect (namestore_handle);
@@ -103,66 +95,60 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ok = 1;
 }
 
-void end_badly_now ()
-{
-  GNUNET_SCHEDULER_cancel (die_task);
-  die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-}
 
-
-static void shutdown_task (void *cls,
-                           const struct GNUNET_SCHEDULER_TaskContext *tc)
+static void 
+shutdown_task (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_GNS_disconnect(gns_handle);
+  GNUNET_GNS_disconnect (gns_handle);
+  gns_handle = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer!\n");
   GNUNET_SCHEDULER_shutdown ();
 }
 
+
 static void
-on_lookup_result(void *cls, uint32_t rd_count,
-                 const struct GNUNET_NAMESTORE_RecordData *rd)
+on_lookup_result (void *cls, uint32_t rd_count,
+		  const struct GNUNET_NAMESTORE_RecordData *rd)
 {
+  const char *name = cls;
+  uint32_t i;
+  const char* addr;
   struct in_addr a;
-  int i;
-  char* addr;
-  
+
+  GNUNET_NAMESTORE_disconnect (namestore_handle);
+  namestore_handle = NULL;
+  if (0 == rd_count)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Lookup failed!\n");
+    ok = 2;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   if (GNUNET_SCHEDULER_NO_TASK != die_task)
   {
       GNUNET_SCHEDULER_cancel (die_task);
       die_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
-  GNUNET_NAMESTORE_disconnect (namestore_handle);
-  if (rd_count == 0)
+  ok = 1;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "name: %s\n", 
+	      name);
+  for (i=0; i<rd_count; i++)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Lookup failed, rp_filtering?\n");
-    ok = 2;
-  }
-  else
-  {
-    ok = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "name: %s\n", (char*)cls);
-    for (i=0; i<rd_count; i++)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
-      if (rd[i].record_type == GNUNET_GNS_RECORD_A)
-      {
-        memcpy(&a, rd[i].data, sizeof(a));
-        addr = inet_ntoa(a);
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "address: %s\n", addr);
-        if (0 == strcmp(addr, TEST_IP))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                    "%s correctly resolved to %s!\n", TEST_DOMAIN, addr);
-          ok = 0;
-        }
-      }
-      else
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No resolution!\n");
-      }
-    }
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
+    if (rd[i].record_type != GNUNET_GNS_RECORD_A)
+      continue;
+    memcpy (&a, rd[i].data, sizeof (a));
+    addr = inet_ntoa (a);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"address: %s\n", addr);
+    if (0 != strcmp (addr, TEST_IP))
+      continue;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"%s correctly resolved to %s!\n", TEST_DOMAIN, addr);
+    ok = 0;
   }
   GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
@@ -175,28 +161,33 @@ on_lookup_result(void *cls, uint32_t rd_count,
 static void
 commence_testing (void *cls, int32_t success, const char *emsg)
 {
-
+  if (NULL != emsg)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to store record in namestore: %s\n",
+		emsg);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   gns_handle = GNUNET_GNS_connect(cfg);
-
   if (NULL == gns_handle)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to connect to GNS!\n");
-    end_badly_now();
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
-
-  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_A,
-                    GNUNET_NO,
-                    NULL,
-                    &on_lookup_result, TEST_DOMAIN);
+  GNUNET_GNS_lookup (gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_A,
+		     GNUNET_NO,
+		     NULL,
+		     &on_lookup_result, TEST_DOMAIN);
 }
 
 
-
-void do_check (void *cls,
-              const struct GNUNET_CONFIGURATION_Handle *ccfg,
-              struct GNUNET_TESTING_Peer *peer)
+static void
+do_check (void *cls,
+	  const struct GNUNET_CONFIGURATION_Handle *ccfg,
+	  struct GNUNET_TESTING_Peer *peer)
 {
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded alice_pkey;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded bob_pkey;
@@ -206,6 +197,9 @@ void do_check (void *cls,
   struct GNUNET_CRYPTO_RsaSignature *sig;
   char* alice_keyfile;
   struct GNUNET_TIME_Absolute et;
+  struct GNUNET_NAMESTORE_RecordData rd;
+  const char* ip = TEST_IP;
+  struct in_addr web;
 
   cfg = ccfg;
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
@@ -214,53 +208,45 @@ void do_check (void *cls,
   namestore_handle = GNUNET_NAMESTORE_connect(cfg);
   if (NULL == namestore_handle)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
-    end_badly_now () ;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		"Failed to connect to namestore\n");
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
-                                                          "ZONEKEY",
-                                                          &alice_keyfile))
+  if (GNUNET_OK != 
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+					       "ZONEKEY",
+					       &alice_keyfile))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get key from cfg\n");
-    end_badly_now () ;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to get key from cfg\n");
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
-
   alice_key = GNUNET_CRYPTO_rsa_key_create_from_file (alice_keyfile);
   bob_key = GNUNET_CRYPTO_rsa_key_create_from_file (KEYFILE_BOB);
-
   GNUNET_CRYPTO_rsa_key_get_public (alice_key, &alice_pkey);
   GNUNET_CRYPTO_rsa_key_get_public (bob_key, &bob_pkey);
-
-  struct GNUNET_NAMESTORE_RecordData rd;
-  char* ip = TEST_IP;
-  struct in_addr *web = GNUNET_malloc(sizeof(struct in_addr));
   rd.expiration_time = UINT64_MAX;
-  GNUNET_assert(1 == inet_pton (AF_INET, ip, web));
-  
-  GNUNET_CRYPTO_short_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
-
+  GNUNET_assert (1 == inet_pton (AF_INET, ip, &web));
+  GNUNET_CRYPTO_short_hash (&bob_pkey, sizeof(bob_pkey), &bob_hash);
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
-
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                   alice_key,
                                   TEST_AUTHORITY_NAME,
                                   &rd,
                                   NULL,
                                   NULL);
-
   rd.data_size = sizeof(struct in_addr);
-  rd.data = web;
+  rd.data = &web;
   rd.record_type = GNUNET_DNSPARSER_TYPE_A;
-  sig = GNUNET_NAMESTORE_create_signature(bob_key,
-                                          GNUNET_TIME_UNIT_FOREVER_ABS,
-                                          TEST_RECORD_NAME,
-                                          &rd, 1);
+  sig = GNUNET_NAMESTORE_create_signature (bob_key,
+					   GNUNET_TIME_UNIT_FOREVER_ABS,
+					   TEST_RECORD_NAME,
+					   &rd, 1);
   et.abs_value = rd.expiration_time;
   GNUNET_NAMESTORE_record_put (namestore_handle,
                                &bob_pkey,
@@ -271,12 +257,10 @@ void do_check (void *cls,
                                sig,
                                &commence_testing,
                                NULL);
-
-  GNUNET_free (web);
   GNUNET_free (sig);
   GNUNET_free (alice_keyfile);
-  GNUNET_CRYPTO_rsa_key_free(bob_key);
-  GNUNET_CRYPTO_rsa_key_free(alice_key);
+  GNUNET_CRYPTO_rsa_key_free (bob_key);
+  GNUNET_CRYPTO_rsa_key_free (alice_key);
 }
 
 
@@ -284,18 +268,13 @@ int
 main (int argc, char *argv[])
 {
   ok = 1;
-
   GNUNET_log_setup ("test-gns-simple-delegated-lookup",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
-
-  GNUNET_TESTING_peer_run ("test-gns-simple-delegated-lookup", "test_gns_simple_lookup.conf", &do_check, NULL);
-
+  GNUNET_TESTING_peer_run ("test-gns-simple-delegated-lookup", 
+			   "test_gns_simple_lookup.conf",
+			   &do_check, NULL);
   return ok;
 }
 
-/* end of test_gns_twopeer.c */
+/* end of test_gns_simple_delegated_lookup.c */

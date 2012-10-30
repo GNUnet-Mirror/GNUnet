@@ -953,7 +953,7 @@ dht_lookup_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char new_name[MAX_DNS_NAME_LENGTH];
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "GNS_PHASE_REC-%llu: dht lookup for query %s (%llus)timed out.\n",
+              "GNS_PHASE_REC-%llu: dht lookup for query %s (%llus) timed out.\n",
               rh->id, rh->name, rh->timeout.rel_value);
   /**
    * Start resolution in bg
@@ -2037,7 +2037,8 @@ dht_authority_lookup_timeout(void *cls,
  *
  * @param rh the pending gns query
  */
-static void resolve_delegation_dht(struct ResolverHandle *rh);
+static void 
+resolve_delegation_dht(struct ResolverHandle *rh);
 
 
 /**
@@ -2045,7 +2046,8 @@ static void resolve_delegation_dht(struct ResolverHandle *rh);
  *
  * @param rh the resolver handle
  */
-static void resolve_delegation_ns(struct ResolverHandle *rh);
+static void 
+resolve_delegation_ns(struct ResolverHandle *rh);
 
 
 /**
@@ -2192,15 +2194,15 @@ on_namestore_delegation_put_result(void *cls,
  * @param data the record data
  */
 static void
-process_delegation_result_dht(void* cls,
-                 struct GNUNET_TIME_Absolute exp,
-                 const struct GNUNET_HashCode * key,
-                 const struct GNUNET_PeerIdentity *get_path,
-                 unsigned int get_path_length,
-                 const struct GNUNET_PeerIdentity *put_path,
-                 unsigned int put_path_length,
-                 enum GNUNET_BLOCK_Type type,
-                 size_t size, const void *data)
+process_delegation_result_dht (void* cls,
+			       struct GNUNET_TIME_Absolute exp,
+			       const struct GNUNET_HashCode * key,
+			       const struct GNUNET_PeerIdentity *get_path,
+			       unsigned int get_path_length,
+			       const struct GNUNET_PeerIdentity *put_path,
+			       unsigned int put_path_length,
+			       enum GNUNET_BLOCK_Type type,
+			       size_t size, const void *data)
 {
   struct ResolverHandle *rh = cls;
   struct GNSNameRecordBlock *nrb;
@@ -2478,7 +2480,7 @@ finish_lookup (struct ResolverHandle *rh,
                unsigned int rd_count,
                const struct GNUNET_NAMESTORE_RecordData *rd)
 {
-  int i;
+  unsigned int i;
   char new_rr_data[MAX_DNS_NAME_LENGTH];
   char new_mx_data[MAX_MX_LENGTH];
   char new_soa_data[MAX_SOA_LENGTH];
@@ -2709,8 +2711,8 @@ handle_record_ns (void* cls, struct ResolverHandle *rh,
  * @param name the domain
  * @param dest the destination where the tld will be put
  */
-void
-pop_tld(char* name, char* dest)
+static void
+pop_tld (char* name, char* dest)
 {
   uint32_t len;
 
@@ -2776,10 +2778,8 @@ handle_delegation_dht(void* cls, struct ResolverHandle *rh,
                           unsigned int rd_count,
                           const struct GNUNET_NAMESTORE_RecordData *rd)
 {
-  struct RecordLookupHandle* rlh;
-  rlh = cls;
+  struct RecordLookupHandle* rlh = cls;
   
-
   if (0 == strcmp(rh->name, ""))
   {
     if (GNUNET_GNS_RECORD_PKEY == rlh->record_type)
@@ -3114,25 +3114,24 @@ handle_delegation_ns (void* cls, struct ResolverHandle *rh,
  */
 static void
 process_delegation_result_ns (void* cls,
-                   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
-                   struct GNUNET_TIME_Absolute expiration,
-                   const char *name,
-                   unsigned int rd_count,
-                   const struct GNUNET_NAMESTORE_RecordData *rd,
-                   const struct GNUNET_CRYPTO_RsaSignature *signature)
+			      const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
+			      struct GNUNET_TIME_Absolute expiration,
+			      const char *name,
+			      unsigned int rd_count,
+			      const struct GNUNET_NAMESTORE_RecordData *rd,
+			      const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
-  struct ResolverHandle *rh;
+  struct ResolverHandle *rh = cls;
   struct GNUNET_TIME_Relative remaining_time;
   struct GNUNET_CRYPTO_ShortHashCode zone;
   char new_name[MAX_DNS_NAME_LENGTH];
   unsigned int i;
   struct GNUNET_TIME_Absolute et;
  
-  rh = (struct ResolverHandle *)cls;
   rh->namestore_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-          "GNS_PHASE_DELEGATE_NS-%llu: Got %d records from authority lookup\n",
-          rh->id, rd_count);
+	      "GNS_PHASE_DELEGATE_NS-%llu: Got %d records from authority lookup\n",
+	      rh->id, rd_count);
 
   GNUNET_CRYPTO_short_hash (key,
                       sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
@@ -3305,13 +3304,12 @@ process_delegation_result_ns (void* cls,
     rh->rd_count = 1;
     /* Check for key revocation and delegate */
     rh->namestore_task = GNUNET_NAMESTORE_lookup_record (namestore_handle,
-                                    &rh->authority,
-                                    "+",
-                                    GNUNET_GNS_RECORD_REV,
-                                    &process_pkey_revocation_result_ns,
-                                    rh);
+							 &rh->authority,
+							 "+",
+							 GNUNET_GNS_RECORD_REV,
+							 &process_pkey_revocation_result_ns,
+							 rh);
     return;
-  
   }
   
   /**
@@ -3360,17 +3358,17 @@ process_delegation_result_ns (void* cls,
 static void
 resolve_delegation_ns (struct ResolverHandle *rh)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_DELEGATE_NS-%llu: Resolving delegation for %s\n",
-             rh->id, rh->name);
-  pop_tld(rh->name, rh->authority_name);
-  rh->namestore_task = GNUNET_NAMESTORE_lookup_record(namestore_handle,
-                                 &rh->authority,
-                                 rh->authority_name,
-                                 GNUNET_GNS_RECORD_ANY,
-                                 &process_delegation_result_ns,
-                                 rh);
-
+  pop_tld (rh->name, rh->authority_name);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "GNS_PHASE_DELEGATE_NS-%llu: Resolving delegation for %s by looking up %s\n",
+	      rh->id, rh->name,
+	      rh->authority_name);
+  rh->namestore_task = GNUNET_NAMESTORE_lookup_record (namestore_handle,
+						       &rh->authority,
+						       rh->authority_name,
+						       GNUNET_GNS_RECORD_ANY,
+						       &process_delegation_result_ns,
+						       rh);
 }
 
 
@@ -3409,7 +3407,6 @@ gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
               "Starting resolution for %s (type=%d)!\n",
               name, record_type);
 
-  
   if ((is_canonical ((char*)name) == GNUNET_YES) &&
       (strcmp(GNUNET_GNS_TLD, name) != 0))
   {
@@ -3421,18 +3418,13 @@ gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
   
   rlh = GNUNET_malloc (sizeof(struct RecordLookupHandle));
   rh = GNUNET_malloc (sizeof (struct ResolverHandle));
-  
-  memset (rh, 0, sizeof (struct ResolverHandle));
   rh->authority = zone;
   rh->id = rid++;
   rh->proc_cls = rlh;
   rh->priv_key = key;
   rh->timeout = timeout;
-  rh->get_handle = NULL;
   rh->private_local_zone = pzone;
   rh->only_cached = only_cached;
-  rh->namestore_task = NULL;
-  rh->rd.data = NULL;
 
   GNUNET_CONTAINER_DLL_insert (rlh_head, rlh_tail, rh);
   
@@ -3506,17 +3498,16 @@ gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
       }
 
     }
-    else if (is_gnunet_tld (name) == GNUNET_YES)
+    else if (is_gads_tld (name) == GNUNET_YES)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "TLD is gnunet\n");
+                  "TLD is gads\n");
       /**
-       * Presumably GNUNET tld
+       * Presumably GADS tld
        */
-      memset (rh->name, 0,
-              strlen(name)-strlen(GNUNET_GNS_TLD));
       memcpy (rh->name, name,
-              strlen(name)-strlen(GNUNET_GNS_TLD) - 1);
+              strlen (name) - strlen(GNUNET_GNS_TLD) - 1);
+      rh->name[strlen (name) - strlen(GNUNET_GNS_TLD) - 1] = '\0';
     }
     else
     {
@@ -3536,9 +3527,7 @@ gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
   /**
    * Initialize authority chain
    */
-  rh->authority_chain_head = GNUNET_malloc(sizeof(struct AuthorityChain));
-  rh->authority_chain_head->prev = NULL;
-  rh->authority_chain_head->next = NULL;
+  rh->authority_chain_head = GNUNET_malloc (sizeof(struct AuthorityChain));
   rh->authority_chain_tail = rh->authority_chain_head;
   rh->authority_chain_head->zone = rh->authority;
   strcpy (rh->authority_chain_head->name, "");
@@ -3614,7 +3603,7 @@ process_zone_to_name_shorten_shorten (void *cls,
                  const struct GNUNET_NAMESTORE_RecordData *rd,
                  const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
-  struct ResolverHandle *rh = (struct ResolverHandle *)cls;
+  struct ResolverHandle *rh = cls;
   struct NameShortenHandle* nsh = (struct NameShortenHandle*)rh->proc_cls;
   struct AuthorityChain *next_authority;
 
@@ -3730,7 +3719,7 @@ process_zone_to_name_shorten_private (void *cls,
                  const struct GNUNET_NAMESTORE_RecordData *rd,
                  const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
-  struct ResolverHandle *rh = (struct ResolverHandle *)cls;
+  struct ResolverHandle *rh = cls;
   struct NameShortenHandle* nsh = (struct NameShortenHandle*)rh->proc_cls;
   struct AuthorityChain *next_authority;
 
@@ -3845,10 +3834,9 @@ process_zone_to_name_shorten_root (void *cls,
                  const struct GNUNET_NAMESTORE_RecordData *rd,
                  const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
-  struct ResolverHandle *rh = (struct ResolverHandle *)cls;
+  struct ResolverHandle *rh = cls;
   struct NameShortenHandle* nsh = (struct NameShortenHandle*)rh->proc_cls;
   struct AuthorityChain *next_authority;
-
   char result[MAX_DNS_NAME_LENGTH];
   char tmp_name[MAX_DNS_NAME_LENGTH];
   size_t answer_len;
@@ -4150,7 +4138,6 @@ gns_resolver_shorten_name (struct GNUNET_CRYPTO_ShortHashCode *zone,
   char nzkey[MAX_DNS_LABEL_LENGTH];
   char* nzkey_ptr = nzkey;
 
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting shorten for %s!\n", name);
   
@@ -4224,7 +4211,7 @@ gns_resolver_shorten_name (struct GNUNET_CRYPTO_ShortHashCode *zone,
     return;
 
   }
-  else if (is_gnunet_tld (name) == GNUNET_YES)
+  else if (is_gads_tld (name) == GNUNET_YES)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "TLD is gnunet\n");
@@ -4275,6 +4262,7 @@ finish_get_auth (struct ResolverHandle *rh,
   GNUNET_free (nah);
   free_resolver_handle (rh);
 }
+
 
 /**
  * Process result from namestore delegation lookup
@@ -4338,8 +4326,6 @@ handle_delegation_result_ns_get_auth(void* cls,
     strcpy(nah->result, "");
     finish_get_auth (rh, nah);
   }
-
-
 }
 
 
@@ -4371,7 +4357,6 @@ gns_resolver_get_authority(struct GNUNET_CRYPTO_ShortHashCode zone,
   rh->authority = zone;
   rh->id = rid++;
   rh->private_local_zone = pzone;
-  rh->namestore_task = NULL;
 
   GNUNET_CONTAINER_DLL_insert (nah_head, nah_tail, rh);
   

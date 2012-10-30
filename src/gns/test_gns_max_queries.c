@@ -36,9 +36,6 @@
 /* Timeout for entire testcase */
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 20)
 
-/* If number of peers not in config file, use this number */
-#define DEFAULT_NUM_PEERS 2
-
 /* test records to resolve */
 #define TEST_DOMAIN "www.gads"
 #define TEST_DOMAIN_NACK "doesnotexist.bob.gads"
@@ -48,8 +45,6 @@
 #define TEST_AUTHORITY_NAME "bob"
 
 #define KEYFILE_BOB "../namestore/zonefiles/HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey"
-
-/* Globals */
 
 /* Task handle to use to schedule test failure */
 static GNUNET_SCHEDULER_TaskIdentifier die_task;

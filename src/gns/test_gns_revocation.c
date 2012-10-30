@@ -32,14 +32,8 @@
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_gns_service.h"
 
-/* DEFINES */
-#define VERBOSE GNUNET_YES
-
 /* Timeout for entire testcase */
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 20)
-
-/* If number of peers not in config file, use this number */
-#define DEFAULT_NUM_PEERS 2
 
 /* test records to resolve */
 #define TEST_DOMAIN "www.bob.gads"
@@ -50,10 +44,8 @@
 
 #define KEYFILE_BOB "../namestore/zonefiles/HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey"
 
-/* Globals */
-
 /* Task handle to use to schedule test failure */
-GNUNET_SCHEDULER_TaskIdentifier die_task;
+static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 /* Global return value (0 for success, anything else for failure) */
 static int ok;
@@ -62,7 +54,8 @@ static struct GNUNET_NAMESTORE_Handle *namestore_handle;
 
 static struct GNUNET_GNS_Handle *gns_handle;
 
-const struct GNUNET_CONFIGURATION_Handle *cfg;
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
 
 /**
  * Check if the get_handle is being used, if so stop the request.  Either
@@ -89,6 +82,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ok = 1;
 }
 
+
 static void
 end_badly_now ()
 {
@@ -96,13 +90,16 @@ end_badly_now ()
   die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
 }
 
-static void shutdown_task (void *cls,
-                           const struct GNUNET_SCHEDULER_TaskContext *tc)
+
+static void 
+shutdown_task (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_GNS_disconnect(gns_handle);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer!\n");
   GNUNET_SCHEDULER_shutdown ();
 }
+
 
 static void
 on_lookup_result(void *cls, uint32_t rd_count,
@@ -272,18 +269,13 @@ do_check (void *cls,
 }
 
 
-
 int
 main (int argc, char *argv[])
 {
   ok = 1;
 
   GNUNET_log_setup ("test-gns-revocation",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   GNUNET_TESTING_peer_run ("test-gns-revocation", "test_gns_simple_lookup.conf", &do_check, NULL);
   return ok;

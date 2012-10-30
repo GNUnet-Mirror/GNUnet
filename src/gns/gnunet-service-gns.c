@@ -815,7 +815,7 @@ handle_shorten (void *cls,
   GNUNET_CONTAINER_DLL_insert (csh_head, csh_tail, csh); 
   GNUNET_STRINGS_utf8_tolower (utf_in, &nameptr);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "SHORTEN: Converted `%s' to `%s'\n", 
+	     "SHORTEN: Converted `%s' to `%s'\n", 
 	     utf_in, 
 	     nameptr);
   GNUNET_SERVER_notification_context_add (nc, client);  
@@ -837,7 +837,7 @@ handle_shorten (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }  
-  if ( (! is_gnunet_tld (name)) && 
+  if ( (! is_gads_tld (name)) && 
        (! is_zkey_tld (name)) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
