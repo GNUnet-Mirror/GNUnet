@@ -33,6 +33,7 @@
 #include "gnunet_strings_lib.h"
 #include <unicase.h>
 #include <unistr.h>
+#include <uniconv.h>
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 
