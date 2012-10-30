@@ -486,7 +486,7 @@ process_auth_discovery_ns_result (void* cls,
 		GNUNET_h2s (&lookup_key));
 
     gph->timeout = GNUNET_SCHEDULER_add_delayed (DHT_LOOKUP_TIMEOUT,
-                                         &handle_auth_discovery_timeout, gph);
+						 &handle_auth_discovery_timeout, gph);
 
     xquery = htonl (GNUNET_GNS_RECORD_PSEU);
     
@@ -914,7 +914,10 @@ static void
 handle_lookup_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ResolverHandle *rh = cls;
-
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Lookup timeout for request %llu triggered\n",
+	      rh->id);
   if (NULL != rh->timeout_cont)
     rh->timeout_cont (rh->timeout_cont_cls, tc);
 }
@@ -1157,7 +1160,9 @@ resolve_record_dht (struct ResolverHandle *rh)
     if (GNUNET_SCHEDULER_NO_TASK == rh->timeout_task)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "GNS_PHASE_REC-%llu: Adjusting timeout\n", rh->id);
+                  "GNS_PHASE_REC-%llu: Adjusting timeout to %s/2\n", 
+		  rh->id,
+		  GNUNET_STRINGS_relative_time_to_string (rh->timeout, GNUNET_YES));
       /*
        * Set timeout for authority lookup phase to 1/2
        */
@@ -1970,54 +1975,54 @@ resolve_record_ns(struct ResolverHandle *rh)
  * @param tc the task context
  */
 static void
-dht_authority_lookup_timeout(void *cls,
-                             const struct GNUNET_SCHEDULER_TaskContext *tc)
+dht_authority_lookup_timeout (void *cls,
+                              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ResolverHandle *rh = cls;
   struct RecordLookupHandle *rlh = rh->proc_cls;
   char new_name[MAX_DNS_NAME_LENGTH];
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-         "GNS_PHASE_DELEGATE_DHT-%llu: dht lookup for query %s (%llus)timed out.\n",
-         rh->id, rh->authority_name, rh->timeout.rel_value);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "GNS_PHASE_DELEGATE_DHT-%llu: dht lookup for query %s (%llus) timed out.\n",
+	      rh->id, rh->authority_name, 
+	      rh->timeout.rel_value);
 
   rh->status |= RSL_TIMED_OUT;
   rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != rh->get_handle)
-    GNUNET_DHT_get_stop (rh->get_handle);
-
-  rh->get_handle = NULL;
-  if (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_PHASE_DELEGATE_DHT-%llu: Got shutdown\n",
-               rh->id);
-    rh->proc(rh->proc_cls, rh, 0, NULL);
+    GNUNET_DHT_get_stop (rh->get_handle);
+    rh->get_handle = NULL;
+  }
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"GNS_PHASE_DELEGATE_DHT-%llu: Got shutdown\n",
+		rh->id);
+    rh->proc (rh->proc_cls, rh, 0, NULL);
     return;
   }
-
-  if (0 == strcmp(rh->name, ""))
+  if (0 == strcmp (rh->name, ""))
   {
     /*
      * promote authority back to name and try to resolve record
      */
-    strcpy(rh->name, rh->authority_name);
-    rh->proc(rh->proc_cls, rh, 0, NULL);
+    strcpy (rh->name, rh->authority_name);
+    rh->proc (rh->proc_cls, rh, 0, NULL);
     return;
   }
   
   /**
    * Start resolution in bg
    */
-  GNUNET_assert (0 < GNUNET_snprintf(new_name, MAX_DNS_NAME_LENGTH,
-                  "%s.%s.%s", rh->name, rh->authority_name, GNUNET_GNS_TLD));
-  
-  strcpy(rh->name, new_name);
-
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-        "GNS_PHASE_DELEGATE_DHT-%llu: Starting background query for %s type %d\n",
-        rh->id, rh->name, rlh->record_type);
-
+  GNUNET_snprintf (new_name, MAX_DNS_NAME_LENGTH,
+		   "%s.%s.%s", 
+		   rh->name, rh->authority_name, GNUNET_GNS_TLD);
+  strcpy (rh->name, new_name);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "GNS_PHASE_DELEGATE_DHT-%llu: Starting background query for %s type %d\n",
+	      rh->id, rh->name,
+	      rlh->record_type);
   gns_resolver_lookup_record (rh->authority,
                               rh->private_local_zone,
                               rlh->record_type,
@@ -2027,7 +2032,7 @@ dht_authority_lookup_timeout(void *cls,
                               GNUNET_NO,
                               &background_lookup_result_processor,
                               NULL);
-  rh->proc(rh->proc_cls, rh, 0, NULL);
+  rh->proc (rh->proc_cls, rh, 0, NULL);
 }
 
 
@@ -2205,17 +2210,17 @@ process_delegation_result_dht (void* cls,
 			       size_t size, const void *data)
 {
   struct ResolverHandle *rh = cls;
-  struct GNSNameRecordBlock *nrb;
+  const struct GNSNameRecordBlock *nrb = data;
+  const char* rd_data;
   uint32_t num_records;
-  char* name = NULL;
-  char* rd_data = (char*) data;
+  const char* name;
   uint32_t i;
   int rd_size;
   struct GNUNET_CRYPTO_ShortHashCode zone;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_DELEGATE_DHT-%llu: Got DHT result\n", rh->id);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "GNS_PHASE_DELEGATE_DHT-%llu: Got DHT result\n",
+	      rh->id);
   if (data == NULL)
     return;
   
@@ -2231,14 +2236,14 @@ process_delegation_result_dht (void* cls,
   }
 
   num_records = ntohl(nrb->rd_count);
-  name = (char*)&nrb[1];
+  name = (const char*) &nrb[1];
   {
     struct GNUNET_NAMESTORE_RecordData rd[num_records];
     struct NamestoreBGTask *ns_heap_root;
     struct NamestoreBGTask *namestore_bg_task;
     
-    rd_data += strlen(name) + 1 + sizeof(struct GNSNameRecordBlock);
-    rd_size = size - strlen(name) - 1 - sizeof(struct GNSNameRecordBlock);
+    rd_data = name + strlen(name) + 1;
+    rd_size = size - strlen(name) - 1 - sizeof (struct GNSNameRecordBlock);
     if (GNUNET_SYSERR == GNUNET_NAMESTORE_records_deserialize (rd_size,
                                                                rd_data,
                                                                num_records,
@@ -2255,10 +2260,9 @@ process_delegation_result_dht (void* cls,
                rh->id, name, rh->authority_name);
     for (i=0; i<num_records; i++)
     {
-    
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                "GNS_PHASE_DELEGATE_DHT-%llu: Got name: %s (wanted %s)\n",
-                rh->id, name, rh->authority_name);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "GNS_PHASE_DELEGATE_DHT-%llu: Got name: %s (wanted %s)\n",
+		  rh->id, name, rh->authority_name);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                  "GNS_PHASE_DELEGATE_DHT-%llu: Got type: %d (wanted %d)\n",
                  rh->id, rd[i].record_type, GNUNET_GNS_RECORD_PKEY);
@@ -2828,18 +2832,17 @@ handle_delegation_dht(void* cls, struct ResolverHandle *rh,
  * @param rh the pending gns query
  */
 static void
-resolve_delegation_dht(struct ResolverHandle *rh)
+resolve_delegation_dht (struct ResolverHandle *rh)
 {
   uint32_t xquery;
   struct GNUNET_HashCode lookup_key;
   struct ResolverHandle *rh_heap_root;
   
-  pop_tld(rh->name, rh->authority_name);
-
-  GNUNET_GNS_get_key_for_record (rh->authority_name, &rh->authority, &lookup_key);
-  
+  pop_tld (rh->name, rh->authority_name);
+  GNUNET_GNS_get_key_for_record (rh->authority_name,
+				 &rh->authority, 
+				 &lookup_key);
   rh->dht_heap_node = NULL;
-
   if (rh->timeout.rel_value != GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
   {
     rh->timeout_cont = &dht_authority_lookup_timeout;
@@ -2855,32 +2858,35 @@ resolve_delegation_dht(struct ResolverHandle *rh)
       GNUNET_DHT_get_stop (rh_heap_root->get_handle);
       rh_heap_root->get_handle = NULL;
       rh_heap_root->dht_heap_node = NULL;
-      
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-        "GNS_PHASE_DELEGATE_DHT-%llu: Replacing oldest background query for %s\n",
-        rh->id, rh_heap_root->authority_name);
-      
-      rh_heap_root->proc(rh_heap_root->proc_cls,
-                         rh_heap_root,
-                         0,
-                         NULL);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "GNS_PHASE_DELEGATE_DHT-%llu: Replacing oldest background query for %s\n",
+		  rh->id, 
+		  rh_heap_root->authority_name);
+      rh_heap_root->proc (rh_heap_root->proc_cls,
+			  rh_heap_root,
+			  0,
+			  NULL);
     }
     rh->dht_heap_node = GNUNET_CONTAINER_heap_insert (dht_lookup_heap,
-                                         rh,
-                                         GNUNET_TIME_absolute_get().abs_value);
+						      rh,
+						      GNUNET_TIME_absolute_get().abs_value);
   }
-  
-  xquery = htonl(GNUNET_GNS_RECORD_PKEY);
-  GNUNET_assert(rh->get_handle == NULL);
-  rh->get_handle = GNUNET_DHT_get_start(dht_handle,
-                       GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
-                       &lookup_key,
-                       DHT_GNS_REPLICATION_LEVEL,
-                       GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-                       &xquery,
-                       sizeof(xquery),
-                       &process_delegation_result_dht,
-                       rh);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Beginning DHT lookup for %s in zone %s for request %llu\n",
+	      rh->authority_name,
+	      GNUNET_short_h2s (&rh->authority),
+	      rh->id);
+  xquery = htonl (GNUNET_GNS_RECORD_PKEY);
+  GNUNET_assert (rh->get_handle == NULL);
+  rh->get_handle = GNUNET_DHT_get_start (dht_handle,
+					 GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
+					 &lookup_key,
+					 DHT_GNS_REPLICATION_LEVEL,
+					 GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+					 &xquery,
+					 sizeof(xquery),
+					 &process_delegation_result_dht,
+					 rh);
 }
 
 
@@ -3404,8 +3410,9 @@ gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
   char* nzkey_ptr = nzkey;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Starting resolution for %s (type=%d)!\n",
-              name, record_type);
+              "Starting resolution for %s (type=%d) with timeout %s!\n",
+              name, record_type,
+	      GNUNET_STRINGS_relative_time_to_string (timeout, GNUNET_YES));
 
   if ((is_canonical ((char*)name) == GNUNET_YES) &&
       (strcmp(GNUNET_GNS_TLD, name) != 0))
@@ -3438,8 +3445,9 @@ gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
      * Set timeout for authority lookup phase to 1/2
      */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Timeout for lookup set to %ds\n", rh->timeout.rel_value);
-    rh->timeout_task = GNUNET_SCHEDULER_add_delayed(
+                "Timeout for lookup set to %s/2\n", 
+		GNUNET_STRINGS_relative_time_to_string (rh->timeout, GNUNET_YES));
+    rh->timeout_task = GNUNET_SCHEDULER_add_delayed (
                                 GNUNET_TIME_relative_divide(timeout, 2),
                                                 &handle_lookup_timeout,
                                                 rh);

@@ -37,7 +37,7 @@
 #include "namestore.h"
 
 
-#define LOG(kind,...) GNUNET_log_from (kind, "gns-api",__VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "namestore-api",__VA_ARGS__)
 
 
 /**
