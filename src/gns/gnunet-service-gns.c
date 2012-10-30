@@ -116,17 +116,17 @@ struct ClientShortenHandle
   /** 
    * name to shorten
    */
-  char name[MAX_DNS_NAME_LENGTH];
+  char name[GNUNET_DNSPARSER_MAX_NAME_LENGTH];
 
   /**
    * name of private zone (relative to root)
    */
-  char private_zone_id[MAX_DNS_NAME_LENGTH];
+  char private_zone_id[GNUNET_DNSPARSER_MAX_NAME_LENGTH];
   
   /**
    * name of shorten zone (relative to root)
    */
-  char shorten_zone_id[MAX_DNS_NAME_LENGTH];
+  char shorten_zone_id[GNUNET_DNSPARSER_MAX_NAME_LENGTH];
 
 };
 
@@ -787,7 +787,7 @@ handle_shorten (void *cls,
 {
   struct ClientShortenHandle *csh;
   const char *utf_in;
-  char name[MAX_DNS_NAME_LENGTH];
+  char name[GNUNET_DNSPARSER_MAX_NAME_LENGTH];
   char* nameptr = name;
   uint16_t msg_size;
   const struct GNUNET_GNS_ClientShortenMessage *sh_msg;
@@ -828,7 +828,7 @@ handle_shorten (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  if (strlen (name) > MAX_DNS_NAME_LENGTH) 
+  if (strlen (name) > GNUNET_DNSPARSER_MAX_NAME_LENGTH) 
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "SHORTEN: %s is too long\n", name);
@@ -922,7 +922,7 @@ handle_get_authority (void *cls,
 {
   struct ClientGetAuthHandle *cah;
   const char *utf_in;
-  char name[MAX_DNS_NAME_LENGTH];
+  char name[GNUNET_DNSPARSER_MAX_NAME_LENGTH];
   char* nameptr = name;
   uint16_t msg_size;
   const struct GNUNET_GNS_ClientGetAuthMessage *sh_msg;
@@ -957,7 +957,7 @@ handle_get_authority (void *cls,
     send_get_auth_response(cah, name);
     return;
   }  
-  if (strlen (name) > MAX_DNS_NAME_LENGTH) 
+  if (strlen (name) > GNUNET_DNSPARSER_MAX_NAME_LENGTH) 
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "GET_AUTH: `%s' is too long", name);
@@ -1059,7 +1059,7 @@ handle_lookup (void *cls,
 	       const struct GNUNET_MessageHeader * message)
 {
   size_t namelen;
-  char name[MAX_DNS_NAME_LENGTH];
+  char name[GNUNET_DNSPARSER_MAX_NAME_LENGTH];
   struct ClientLookupHandle *clh;
   char* nameptr = name;
   const char *utf_in;
@@ -1113,7 +1113,7 @@ handle_lookup (void *cls,
 
   only_cached = ntohl (sh_msg->only_cached);
   
-  if (strlen (name) > MAX_DNS_NAME_LENGTH) {
+  if (strlen (name) > GNUNET_DNSPARSER_MAX_NAME_LENGTH) {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "LOOKUP: %s is too long", name);
     clh->name = NULL;

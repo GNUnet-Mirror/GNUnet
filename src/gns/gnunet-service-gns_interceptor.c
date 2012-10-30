@@ -30,8 +30,6 @@
 #include "gnunet-service-gns_resolver.h"
 #include "gns.h"
 
-#define MAX_DNS_LABEL_LENGTH 63
-
 /**
  * Handle to a DNS intercepted
  * reslution request

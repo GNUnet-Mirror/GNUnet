@@ -212,7 +212,7 @@ static void
 commence_testing (void *cls, int32_t success, const char *emsg)
 {
   int i;
-  char lookup_name[MAX_DNS_NAME_LENGTH];
+  char lookup_name[GNUNET_DNSPARSER_MAX_NAME_LENGTH];
   struct GNUNET_GNS_LookupRequest *lr;
   
   gns_handle = GNUNET_GNS_connect(cfg);
@@ -229,7 +229,7 @@ commence_testing (void *cls, int32_t success, const char *emsg)
   for (i=0; i<max_parallel_lookups+TEST_ADDITIONAL_LOOKUPS; i++)
   {
     GNUNET_snprintf(lookup_name,
-                    MAX_DNS_NAME_LENGTH,
+                    GNUNET_DNSPARSER_MAX_NAME_LENGTH,
                     "www.doesnotexist-%d.bob.gads", i);
     lr = GNUNET_GNS_lookup (gns_handle, lookup_name, GNUNET_GNS_RECORD_A,
 			    GNUNET_NO,

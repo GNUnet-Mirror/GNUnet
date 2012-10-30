@@ -31,6 +31,17 @@
 #include "gnunet_common.h"
 
 /**
+ * Maximum length of a label in DNS.
+ */
+#define GNUNET_DNSPARSER_MAX_LABEL_LENGTH 63
+
+/**
+ * Maximum length of a name in DNS.
+ */
+#define GNUNET_DNSPARSER_MAX_NAME_LENGTH 253
+
+
+/**
  * A few common DNS types.
  */
 #define GNUNET_DNSPARSER_TYPE_A 1

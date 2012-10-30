@@ -238,7 +238,7 @@ struct GNUNET_MessageHeader
 
 
 /**
- * @brief 512-bit hashcode
+ * @brief A SHA-512 hashcode
  */
 struct GNUNET_HashCode
 {
@@ -247,9 +247,8 @@ struct GNUNET_HashCode
 
 
 /**
- * FIXME
- * @brief 256-bit hashcode
- **/
+ * @brief A SHA-256 hashcode
+ */
 struct GNUNET_CRYPTO_ShortHashCode
 {
   uint32_t bits[256 / 8 / sizeof (uint32_t)];   /* = 8 */

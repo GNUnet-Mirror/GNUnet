@@ -42,16 +42,6 @@
  */
 #define GNUNET_GNS_TLD_PLUS "+"
 
-/**
- * Maximum length of a label in DNS.
- */
-#define MAX_DNS_LABEL_LENGTH 63
-
-/**
- * Maximum length of a name in DNS.
- */
-#define MAX_DNS_NAME_LENGTH 253
-
 
 GNUNET_NETWORK_STRUCT_BEGIN
 

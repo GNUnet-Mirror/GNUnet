@@ -162,7 +162,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
 static void
 commence_testing (void *cls, int32_t success, const char *emsg)
 {
-  char name[MAX_DNS_NAME_LENGTH];
+  char name[GNUNET_DNSPARSER_MAX_NAME_LENGTH];
   char* pos;
   struct GNUNET_CRYPTO_ShortHashAsciiEncoded hash_str;
   

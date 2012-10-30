@@ -59,7 +59,7 @@ struct AuthorityChain
   /**
    * (local) name of the authority 
    */
-  char name[MAX_DNS_LABEL_LENGTH];
+  char name[GNUNET_DNSPARSER_MAX_LABEL_LENGTH];
 
   /**
    * was the ns entry fresh 
@@ -201,7 +201,7 @@ struct ResolverHandle
   /**
    * The name to resolve 
    */
-  char name[MAX_DNS_NAME_LENGTH];
+  char name[GNUNET_DNSPARSER_MAX_NAME_LENGTH];
 
   /**
    * has this query been answered? how many matches 
@@ -221,7 +221,7 @@ struct ResolverHandle
   /**
    * the name of the authoritative zone to query 
    */
-  char authority_name[MAX_DNS_LABEL_LENGTH];
+  char authority_name[GNUNET_DNSPARSER_MAX_LABEL_LENGTH];
 
   /**
    * a handle for dht lookups. should be NULL if no lookups are in progress 
@@ -246,12 +246,12 @@ struct ResolverHandle
   /**
    * a synthesized dns name 
    */
-  char dns_name[MAX_DNS_NAME_LENGTH];
+  char dns_name[GNUNET_DNSPARSER_MAX_NAME_LENGTH];
 
   /**
    * the authoritative dns zone 
    */
-  char dns_zone[MAX_DNS_NAME_LENGTH];
+  char dns_zone[GNUNET_DNSPARSER_MAX_NAME_LENGTH];
 
   /**
    * the address of the DNS server FIXME not needed? 
@@ -361,7 +361,7 @@ struct RecordLookupHandle
   /**
    * the name to look up 
    */
-  char name[MAX_DNS_NAME_LENGTH];
+  char name[GNUNET_DNSPARSER_MAX_NAME_LENGTH];
 
   /**
    * Method to call on record resolution result 
@@ -394,7 +394,7 @@ struct NameShortenHandle
   /**
    * result of shorten 
    */
-  char result[MAX_DNS_NAME_LENGTH];
+  char result[GNUNET_DNSPARSER_MAX_NAME_LENGTH];
 
   /**
    * root zone 
@@ -409,7 +409,7 @@ struct NameShortenHandle
   /**
    * name of private zone 
    */
-  char private_zone_name[MAX_DNS_LABEL_LENGTH];
+  char private_zone_name[GNUNET_DNSPARSER_MAX_LABEL_LENGTH];
 
   /**
    * shorten zone 
@@ -419,7 +419,7 @@ struct NameShortenHandle
   /**
    * name of shorten zone 
    */
-  char shorten_zone_name[MAX_DNS_LABEL_LENGTH];
+  char shorten_zone_name[GNUNET_DNSPARSER_MAX_LABEL_LENGTH];
 
 };
 
@@ -432,12 +432,12 @@ struct GetNameAuthorityHandle
   /**
    * the name to look up authority for 
    */
-  char name[MAX_DNS_NAME_LENGTH];
+  char name[GNUNET_DNSPARSER_MAX_NAME_LENGTH];
 
   /**
    * the result 
    */
-  char result[MAX_DNS_NAME_LENGTH];
+  char result[GNUNET_DNSPARSER_MAX_NAME_LENGTH];
   
   /**
    * Method to call on result 
@@ -469,12 +469,12 @@ struct GetPseuAuthorityHandle
   /**
    * the name to store the zone under 
    */
-  char name[MAX_DNS_LABEL_LENGTH];
+  char name[GNUNET_DNSPARSER_MAX_LABEL_LENGTH];
 
   /**
    * test name to store the zone under 
    */
-  char test_name[MAX_DNS_LABEL_LENGTH];
+  char test_name[GNUNET_DNSPARSER_MAX_LABEL_LENGTH];
   
   /**
    * the zone of our authority 
