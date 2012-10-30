@@ -21,7 +21,7 @@ plugindir = $(libdir)/gnunet
 AM_CLFAGS = -g
 
 libexec_PROGRAMS = \
- gnunet-service-mesh
+ gnunet-service-mesh gnunet-service-mesh-new
 
 lib_LTLIBRARIES = \
   libgnunetmesh.la \
@@ -87,6 +87,32 @@ gnunet_service_mesh_DEPENDENCIES = \
 if LINUX
 gnunet_service_mesh_LDFLAGS = -lrt
 endif
+
+gnunet_service_mesh_new_SOURCES = \
+ gnunet-service-mesh-new.c \
+ mesh_tunnel_tree.c \
+ mesh_common.c
+gnunet_service_mesh_new_CFLAGS = $(AM_CFLAGS)
+gnunet_service_mesh_new_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/dht/libgnunetdht.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/block/libgnunetblock.la \
+  $(top_builddir)/src/mesh/libgnunetmeshblock.la \
+  $(top_builddir)/src/regex/libgnunetregex.la
+gnunet_service_mesh_new_DEPENDENCIES = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/dht/libgnunetdht.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/block/libgnunetblock.la \
+  libgnunetmeshblock.la \
+  $(top_builddir)/src/regex/libgnunetregex.la
+if LINUX
+gnunet_service_mesh_new_LDFLAGS = -lrt
+endif
+
 
 noinst_PROGRAMS = \
 gnunet-regex-profiler
