@@ -508,14 +508,20 @@ struct MeshTunnel
 
 
 /**
- * Info about a child node in a tunnel, needed to perform flow control.
+ * Flow control info about a node in a tunnel. The node can be a local client
+ * or a remote peer.
  */
-struct MeshTunnelChildInfo
+struct MeshTunnelFlowControlInfo
 {
     /**
-     * ID of the child node.
+     * Peer info of the node, NULL if local client.
      */
-  GNUNET_PEER_Id id;
+  struct MeshPeerInfo *peer;
+
+    /**
+     * Client info of the node, NULL if remote peer.
+     */
+  struct MeshClient *client;
 
     /**
      * SKIP value.
@@ -523,28 +529,28 @@ struct MeshTunnelChildInfo
   uint32_t skip;
 
     /**
-     * Last sent PID.
+     * Last PID sent.
      */
   uint32_t fwd_pid;
 
     /**
-     * Last received PID.
+     * Last PID received.
      */
   uint32_t bck_pid;
 
     /**
-     * Maximum PID allowed (FWD ACK received).
+     * Maximum PID they allowed us to send (FWD ACK received).
      */
   uint32_t fwd_ack;
 
     /**
-     * Last ACK sent to that child (BCK ACK).
+     * Maximum PID we allowed them to send (BCK ACK sent).
      */
   uint32_t bck_ack;
 
     /**
      * Circular buffer pointing to MeshPeerQueue elements for all
-     * payload traffic going to this child.
+     * payload traffic going to this node.
      * Size determined by the tunnel queue size (@c t->fwd_queue_max).
      */
   struct MeshPeerQueue **send_buffer;
@@ -569,34 +575,6 @@ struct MeshTunnelChildInfo
      */
    GNUNET_SCHEDULER_TaskIdentifier fc_poll;
 };
-
-
-/**
- * Info about a leaf client of a tunnel, needed to perform flow control.
- */
-struct MeshTunnelClientInfo
-{
-  /**
-   * PID of the last packet sent to the client (FWD).
-   */
-  uint32_t fwd_pid;
-
-  /**
-   * PID of the last packet received from the client (BCK).
-   */
-  uint32_t bck_pid;
-
-  /**
-   * Maximum PID allowed (FWD ACK received).
-   */
-  uint32_t fwd_ack;
-  
-  /**
-   * Last ACK sent to that child (BCK ACK).
-   */
-  uint32_t bck_ack;
-};
-
 
 
 /**
@@ -6733,10 +6711,13 @@ handle_local_announce_regex (void *cls, struct GNUNET_SERVER_Client *client,
   msg = (struct GNUNET_MESH_RegexAnnounce *) message;
   len = ntohs (message->size) - sizeof(struct GNUNET_MESH_RegexAnnounce);
   regex = GNUNET_malloc (len + 1);
-  memcpy (regex, &message[1], len);
+  memcpy (regex, &msg[1], len);
   regex[len] = '\0';
   rd.regex = regex;
   rd.compression = ntohs (msg->compression_characters);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  length %u\n", len);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  regex %s\n", regex);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  cm %u\n", ntohs(rd.compression));
   GNUNET_array_append (c->regexes, c->n_regex, rd);
   if (GNUNET_SCHEDULER_NO_TASK == c->regex_announce_task)
   {
