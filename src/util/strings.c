@@ -416,6 +416,44 @@ GNUNET_STRINGS_conv (const char *input, size_t len, const char *input_charset, c
   if (0 != iconv_close (cd))
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "iconv_close");
   return ret;
+#elif ENABLE_NLS /* libunistring is a mandatory dependency \o/ ! */
+  uint8_t *u8_string;
+  char *encoded_string;
+  size_t u8_string_length;
+  size_t encoded_string_length;
+
+  u8_string = u8_conv_from_encoding (input_charset, iconveh_error, input, len, NULL, NULL, &u8_string_length);
+  if (NULL == u8_string)
+  {
+    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "u8_conv_from_encoding");
+    ret = GNUNET_malloc (len + 1);
+    memcpy (ret, input, len);
+    ret[len] = '\0';
+    return ret;
+  }
+  if (strcmp (output_charset, "UTF-8") == 0)
+  {
+    ret = GNUNET_malloc (u8_string_length + 1);
+    memcpy (ret, u8_string, u8_string_length);
+    ret[u8_string_length] = '\0';
+    free (u8_string);
+    return ret;
+  }
+  encoded_string = u8_conv_to_encoding (output_charset, iconveh_error, u8_string, u8_string_length, NULL, NULL, &encoded_string_length);
+  free (u8_string);
+  if (NULL == encoded_string)
+  {
+    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "u8_conv_to_encoding");
+    ret = GNUNET_malloc (len + 1);
+    memcpy (ret, input, len);
+    ret[len] = '\0';
+    return ret;
+  }
+  ret = GNUNET_malloc (encoded_string_length + 1);
+  memcpy (ret, encoded_string, encoded_string_length);
+  ret[encoded_string_length] = '\0';
+  free (encoded_string);
+  return ret;
 #else
   ret = GNUNET_malloc (len + 1);
   memcpy (ret, input, len);
