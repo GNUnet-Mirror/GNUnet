@@ -165,7 +165,13 @@ GNUNET_NAT_mini_get_external_ipv4 (struct GNUNET_TIME_Relative timeout,
   struct GNUNET_NAT_ExternalHandle *eh;
 
   if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary ("external-ip"))
+  {
+    LOG (GNUNET_ERROR_TYPE_INFO,
+	 _("`external-ip' command not found\n"));
     return NULL;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Running `external-ip' to determine our external IP\n");
   eh = GNUNET_malloc (sizeof (struct GNUNET_NAT_ExternalHandle));
   eh->cb = cb;
   eh->cb_cls = cb_cls;
@@ -408,6 +414,8 @@ do_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_NAT_MiniHandle *mini = cls;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Running `upnpc' to check if our mapping still exists\n");
   mini->refresh_task = GNUNET_SCHEDULER_NO_TASK;
   mini->found = GNUNET_NO;
   mini->refresh_cmd =
@@ -492,7 +500,13 @@ GNUNET_NAT_mini_map_start (uint16_t port, int is_tcp,
   char pstr[6];
 
   if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary ("upnpc"))
+  {
+    LOG (GNUNET_ERROR_TYPE_INFO,
+	 _("`upnpc' command not found\n"));
     return NULL;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Running `upnpc' to install mapping\n");
   ret = GNUNET_malloc (sizeof (struct GNUNET_NAT_MiniHandle));
   ret->ac = ac;
   ret->ac_cls = ac_cls;
