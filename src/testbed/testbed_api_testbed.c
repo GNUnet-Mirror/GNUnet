@@ -416,7 +416,7 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param cls the tesbed run handle
  * @param tc the task context from scheduler
  */
-void
+static void
 shutdown_run_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RunContext *rc = cls;

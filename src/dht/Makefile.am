@@ -109,6 +109,17 @@ gnunet_dht_monitor_DEPENDENCIES = \
   libgnunetdht.la			      
 
 
+noinst_LIBRARIES = libgnunetdhttest.a
+
+libgnunetdhttest_a_SOURCES = \
+  dht_test_lib.c dht_test_lib.h
+libgnunetdhttest_a_LIBADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testbed/libgnunettestbed.la \
+ $(top_builddir)/src/dht/libgnunetdht.la
+libgnunetdhttest_a_DEPENDENCIES = \
+  libgnunetdht.la   
+
 check_PROGRAMS = \
  test_dht_api \
  test_dht_twopeer \
@@ -120,15 +131,18 @@ check_PROGRAMS = \
  test_dht_2dtorus \
  test_dht_monitor
 
+if HAVE_EXPERIMENTAL
+ NEW_TESTS = test_dht_line test_dht_2dtorus
+endif
+
 if ENABLE_TEST_RUN
 TESTS = test_dht_api $(check_SCRIPTS) \
  test_dht_twopeer \
  test_dht_twopeer_put_get \
  test_dht_twopeer_get_put \
  test_dht_twopeer_path_tracking \
- test_dht_multipeer  \
- test_dht_line \
- test_dht_2dtorus \
+ test_dht_multipeer \
+ $(NEW_TESTS) \
  test_dht_monitor
 endif
 
@@ -142,6 +156,7 @@ test_dht_api_LDADD = \
 test_dht_api_DEPENDENCIES = \
   libgnunetdht.la			    
 
+# twopeer is obsolete once new test_dht_topo works...
 test_dht_twopeer_SOURCES = \
  test_dht_twopeer.c
 test_dht_twopeer_LDADD = \
@@ -151,6 +166,7 @@ test_dht_twopeer_LDADD = \
 test_dht_twopeer_DEPENDENCIES = \
   libgnunetdht.la			    
 
+# twopeer_put_get is obsolete once new test_dht_topo works...
 test_dht_twopeer_put_get_SOURCES = \
  test_dht_twopeer_put_get.c
 test_dht_twopeer_put_get_LDADD = \
@@ -158,6 +174,7 @@ test_dht_twopeer_put_get_LDADD = \
  $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/dht/libgnunetdht.la   
 
+# twopeer_get_put is obsolete once new test_dht_topo works...
 test_dht_twopeer_get_put_SOURCES = \
  test_dht_twopeer_get_put.c
 test_dht_twopeer_get_put_LDADD = \
@@ -165,6 +182,7 @@ test_dht_twopeer_get_put_LDADD = \
  $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/dht/libgnunetdht.la   
 
+# twopeer_path_tracking is obsolete once new test_dht_topo works...
 test_dht_twopeer_path_tracking_SOURCES = \
  test_dht_twopeer_path_tracking.c
 test_dht_twopeer_path_tracking_LDADD = \
@@ -172,6 +190,8 @@ test_dht_twopeer_path_tracking_LDADD = \
  $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/dht/libgnunetdht.la   
 
+# statistics functions should be integrated with test_dht_topo,
+# then this one also becomes obsolete...
 test_dht_multipeer_SOURCES = \
  test_dht_multipeer.c
 test_dht_multipeer_LDADD = \
@@ -185,8 +205,9 @@ test_dht_multipeer_DEPENDENCIES = \
 test_dht_2dtorus_SOURCES = \
  test_dht_topo.c
 test_dht_2dtorus_LDADD = \
+ $(top_builddir)/src/dht/libgnunetdhttest.a \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testing_old/libgnunettesting_old.la \
+ $(top_builddir)/src/testbed/libgnunettestbed.la \
  $(top_builddir)/src/dht/libgnunetdht.la
 test_dht_2dtorus_DEPENDENCIES = \
   libgnunetdht.la
@@ -194,12 +215,14 @@ test_dht_2dtorus_DEPENDENCIES = \
 test_dht_line_SOURCES = \
  test_dht_topo.c
 test_dht_line_LDADD = \
+ $(top_builddir)/src/dht/libgnunetdhttest.a \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testing_old/libgnunettesting_old.la \
- $(top_builddir)/src/dht/libgnunetdht.la
+ $(top_builddir)/src/testbed/libgnunettestbed.la \
+ $(top_builddir)/src/dht/libgnunetdht.la 
 test_dht_line_DEPENDENCIES = \
   libgnunetdht.la
 
+# fixme, rewrite based on test_dht_topo.c!
 test_dht_monitor_SOURCES = test_dht_monitor.c
 test_dht_monitor_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
