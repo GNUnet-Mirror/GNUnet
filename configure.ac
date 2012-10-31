@@ -602,6 +602,8 @@ AC_ARG_WITH(mysql,
     MYSQL_LIBDIR="/usr/lib64/mysql"
    elif test -d "/usr/lib/mysql"; then
     MYSQL_LIBDIR="/usr/lib/mysql"
+   elif
+    MYSQL_LIBDIR="/usr/lib"
    fi
    LDFLAGS="-L$MYSQL_LIBDIR $LDFLAGS $ZLIBS"
    AC_CHECK_LIB(mysqlclient, mysql_init,
