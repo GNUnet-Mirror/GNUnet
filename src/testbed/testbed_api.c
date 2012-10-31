@@ -68,13 +68,6 @@
 
 
 /**
- * Testbed Helper binary name
- */
-#define HELPER_TESTBED_BINARY "gnunet-helper-testbed"
-#define HELPER_TESTBED_BINARY_SSH ". ~/.bashrc; gnunet-helper-testbed"
-
-
-/**
  * Handle for controller process
  */
 struct GNUNET_TESTBED_ControllerProc
@@ -1464,6 +1457,7 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
   }
   else
   {
+    char *helper_binary_path;
     char *remote_args[10];
     unsigned int argp;
     const char *username;
@@ -1485,13 +1479,17 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
     remote_args[argp++] = "-o";
     remote_args[argp++] = "NoHostAuthenticationForLocalhost=yes";
     remote_args[argp++] = cp->dst;
-    // FIXME: lib/gnunet/libexec/-prefix missing here!!!
-    remote_args[argp++] = HELPER_TESTBED_BINARY_SSH;
+    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
+                                                            "HELPER_BINARY_PATH",
+                                                            &helper_binary_path))
+      helper_binary_path = GNUNET_OS_get_libexec_binary_path (HELPER_TESTBED_BINARY);
+    remote_args[argp++] = helper_binary_path;
     remote_args[argp++] = NULL;
     GNUNET_assert (argp == 10);
     cp->helper =
         GNUNET_HELPER_start (GNUNET_NO, "ssh", remote_args, &helper_mst,
                              &helper_exp_cb, cp);
+    GNUNET_free (helper_binary_path);
   }
   if (NULL == cp->helper)
   {

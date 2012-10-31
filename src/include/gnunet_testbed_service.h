@@ -136,11 +136,13 @@ GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host);
  * Checks whether a host can be used to start testbed service
  *
  * @param host the host to check
+ * @param config the configuration handle to lookup the path of the testbed helper
  * @return GNUNET_YES if testbed service can be started on the given host
  *           remotely; GNUNET_NO if not
  */
 int
-GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host);
+GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host,
+                                  const struct GNUNET_CONFIGURATION_Handle *config);
 
 
 /**

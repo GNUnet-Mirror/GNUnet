@@ -30,6 +30,13 @@
 #include "gnunet_testbed_service.h"
 #include "testbed.h"
 
+
+/**
+ * Testbed Helper binary name
+ */
+#define HELPER_TESTBED_BINARY "gnunet-helper-testbed"
+
+
 /**
  * Enumeration of operations
  */

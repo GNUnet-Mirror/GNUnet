@@ -680,6 +680,16 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   host = GNUNET_TESTBED_host_create (NULL, NULL, 0);
   GNUNET_assert (NULL != host);
+  if (GNUNET_YES != GNUNET_TESTBED_is_host_habitable (host, config))
+  {
+    GNUNET_TESTBED_host_destroy (host);
+    host = NULL;
+    (void) PRINTF ("%s",
+                   "Unable to run the test as this system is not configured "
+                   "to use password less SSH logins to localhost.\n"
+                   "Marking test as successful\n");
+    return;
+  }
   cfg = GNUNET_CONFIGURATION_dup (config);
   cp1 = GNUNET_TESTBED_controller_start ("127.0.0.1", host, cfg, status_cb,
                                          NULL);
@@ -687,46 +697,6 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_MINUTES, 3), &do_abort,
                                     NULL);
-}
-
-
-/**
- * Function to check if 
- * 1. Password-less SSH logins to given ip work
- * 2. gnunet-helper-testbed is found on the PATH on the remote side
- *
- * @param host_str numeric representation of the host's ip
- * @return GNUNET_YES if password-less SSH login to the given host works;
- *           GNUNET_NO if not
- */
-static int
-check_ssh (char *host_str)
-{
-  char *const remote_args[] = {
-    "ssh", "-o", "BatchMode=yes", "-o", "CheckHostIP=no", 
-    "-o", "NoHostAuthenticationForLocalhost=yes", "-q",
-    host_str, "which", "gnunet-helper-testbed", NULL
-  };
-  // FIXME: the above no longer works with libexec/-installation!
-  struct GNUNET_OS_Process *auxp;
-  enum GNUNET_OS_ProcessStatusType type;
-  unsigned long code;
-  int ret;
-
-  auxp =
-      GNUNET_OS_start_process_vap (GNUNET_NO, GNUNET_OS_INHERIT_STD_ALL, NULL,
-                                   NULL, "ssh", remote_args);
-  GNUNET_assert (NULL != auxp);
-  do
-  {
-    ret = GNUNET_OS_process_status (auxp, &type, &code);
-    GNUNET_assert (GNUNET_SYSERR != ret);
-    (void) usleep (300);
-  }
-  while (GNUNET_NO == ret);
-  (void) GNUNET_OS_process_wait (auxp);
-  GNUNET_OS_process_destroy (auxp);
-  return (0 != code) ? GNUNET_NO : GNUNET_YES;
 }
 
 
@@ -745,8 +715,6 @@ main (int argc, char **argv)
   };
   int ret;
 
-  if (GNUNET_YES != check_ssh ("127.0.0.1"))
-    goto error_exit;
   result = INIT;
   ret =
       GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
@@ -754,13 +722,6 @@ main (int argc, char **argv)
                           options, &run, NULL);
   if ((GNUNET_OK != ret) || (SUCCESS != result))
     return 1;
-  return 0;
-
- error_exit:
-  (void) PRINTF ("%s",
-                 "Unable to run the test as this system is not configured "
-                 "to use password less SSH logins to localhost.\n"
-                 "Marking test as successful\n");
   return 0;
 }
 

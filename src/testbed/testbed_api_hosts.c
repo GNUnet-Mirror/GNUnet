@@ -485,13 +485,16 @@ GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host,
  * Checks whether a host can be used to start testbed service
  *
  * @param host the host to check
+ * @param config the configuration handle to lookup the path of the testbed helper
  * @return GNUNET_YES if testbed service can be started on the given host
  *           remotely; GNUNET_NO if not
  */
 int
-GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host)
+GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host,
+                                  const struct GNUNET_CONFIGURATION_Handle *config)
 {
   char *remote_args[11];
+  char *helper_binary_path;
   char *portstr;
   char *ssh_addr;
   const char *hostname;
@@ -508,6 +511,10 @@ GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host)
     ssh_addr = GNUNET_strdup (hostname);
   else
     GNUNET_asprintf (&ssh_addr, "%s@%s", host->username, hostname);
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (config, "testbed",
+                                                          "HELPER_BINARY_PATH",
+                                                          &helper_binary_path))
+      helper_binary_path = GNUNET_OS_get_libexec_binary_path (HELPER_TESTBED_BINARY);
   argp = 0;
   remote_args[argp++] = "ssh";
   GNUNET_asprintf (&portstr, "%u", host->port);
@@ -518,13 +525,12 @@ GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host)
   remote_args[argp++] = "-o";
   remote_args[argp++] = "NoHostAuthenticationForLocalhost=yes";
   remote_args[argp++] = ssh_addr;
-  // FIXME: this no longer works with 'libexec/' paths!
-  remote_args[argp++] = "which";
-  remote_args[argp++] = "gnunet-helper-testbed";
+  remote_args[argp++] = "stat";
+  remote_args[argp++] = helper_binary_path;
   remote_args[argp++] = NULL;
   GNUNET_assert (argp == 11);
   auxp =
-      GNUNET_OS_start_process_vap (GNUNET_NO, GNUNET_OS_INHERIT_STD_ALL, NULL,
+      GNUNET_OS_start_process_vap (GNUNET_NO, GNUNET_OS_INHERIT_STD_ERR, NULL,
                                    NULL, "ssh", remote_args);
   if (NULL == auxp)
   {
@@ -538,11 +544,11 @@ GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host)
     GNUNET_assert (GNUNET_SYSERR != ret);
     (void) usleep (300);
   }
-  while (GNUNET_NO == ret);
-  //(void) GNUNET_OS_process_wait (auxp);
+  while (GNUNET_NO == ret);  
   GNUNET_OS_process_destroy (auxp);
   GNUNET_free (ssh_addr);
   GNUNET_free (portstr);
+  GNUNET_free (helper_binary_path);
   return (0 != code) ? GNUNET_NO : GNUNET_YES;
 }
 

@@ -1676,7 +1676,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   for (nhost = 0; nhost < num_hosts; nhost++)
   {
-    if (GNUNET_YES != GNUNET_TESTBED_is_host_habitable (hosts[nhost]))
+    if (GNUNET_YES != GNUNET_TESTBED_is_host_habitable (hosts[nhost], config))
     {
       fprintf (stderr, _("Host %s cannot start testbed\n"),
                          GNUNET_TESTBED_host_get_hostname (hosts[nhost]));
