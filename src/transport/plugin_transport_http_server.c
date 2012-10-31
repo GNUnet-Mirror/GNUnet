@@ -527,6 +527,10 @@ http_server_plugin_send (void *cls,
   }
   if (NULL == session->server_send)
   {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, session->plugin->name,
+                       "Session %p/connection %p: Sending message with %u bytes to peer `%s' with FAILED\n",
+                       session, session->server_send,
+                       msgbuf_size, GNUNET_i2s (&session->target));
       GNUNET_break (0);
       return GNUNET_SYSERR;
   }
