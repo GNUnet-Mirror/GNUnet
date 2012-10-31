@@ -124,10 +124,9 @@ enum GNUNET_STREAM_Option
     GNUNET_STREAM_OPTION_LISTEN_TIMEOUT,
 
     /**
-     * Option to register a callback when stream listening is
-     * successfull. Takes parameter of the form
-     * GNUNET_STREAM_ListenSuccessCallback. The callback is only called if
-     * listen is successful
+     * Option to register a callback when stream listening is successfull. Takes
+     * parameter of the form GNUNET_STREAM_ListenSuccessCallback. The callback
+     * is only called if listening is successful
      */
     GNUNET_STREAM_OPTION_SIGNAL_LISTEN_SUCCESS,
 

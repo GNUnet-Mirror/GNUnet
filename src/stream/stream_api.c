@@ -2104,7 +2104,7 @@ server_handle_hello (void *cls,
   GNUNET_assert (socket->tunnel == tunnel);
   LOG_DEBUG ("%s: Received HELLO from %s\n", GNUNET_i2s (&socket->other_peer),
              GNUNET_i2s (&socket->other_peer));
-  switch (socket->status)
+  switch (socket->state)
   {
   case STATE_INIT:
     reply = generate_hello_ack (socket, GNUNET_YES);
@@ -2765,6 +2765,7 @@ tunnel_cleaner (void *cls,
                 void *tunnel_ctx)
 {
   struct GNUNET_STREAM_Socket *socket = tunnel_ctx;
+  struct MessageQueue *head;
 
   GNUNET_assert (tunnel == socket->tunnel);
   GNUNET_break_op(0);
@@ -2789,8 +2790,27 @@ tunnel_cleaner (void *cls,
   {
     GNUNET_SCHEDULER_cancel (socket->data_retransmission_task_id);
     socket->data_retransmission_task_id = GNUNET_SCHEDULER_NO_TASK;
+  }  
+  /* Terminate the control retransmission tasks */
+  if (GNUNET_SCHEDULER_NO_TASK != socket->control_retransmission_task_id)
+  {
+    GNUNET_SCHEDULER_cancel (socket->control_retransmission_task_id);
+    socket->control_retransmission_task_id = GNUNET_SCHEDULER_NO_TASK;
   }
-  /* FIXME: Cancel all other tasks using socket->tunnel */
+  /* Clear Transmit handles */
+  if (NULL != socket->transmit_handle)
+  {
+    GNUNET_MESH_notify_transmit_ready_cancel (socket->transmit_handle);
+    socket->transmit_handle = NULL;
+  }
+  /* Clear existing message queue */
+  while (NULL != (head = socket->queue_head)) {
+    GNUNET_CONTAINER_DLL_remove (socket->queue_head,
+				 socket->queue_tail,
+				 head);
+    GNUNET_free (head->message);
+    GNUNET_free (head);
+  }
   socket->tunnel = NULL;
 }
 
