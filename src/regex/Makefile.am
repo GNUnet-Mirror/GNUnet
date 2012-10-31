@@ -76,4 +76,4 @@ test_regex_iptoregex_LDADD = \
 
 
 EXTRA_DIST = \
-  regex_profiler_test.conf
+  regex_simulation_profiler_test.conf

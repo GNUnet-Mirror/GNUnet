@@ -12,7 +12,7 @@ bin_PROGRAMS = \
  gnunet-ats 
 
 gnunet_ats_SOURCES = \
- gnunet-ats.c gnunet-service-ats.h
+ gnunet-ats.c 
 gnunet_ats_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/ats/libgnunetats.la \
