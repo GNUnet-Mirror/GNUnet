@@ -860,6 +860,8 @@ test_quota_compliance_udp_peer1.conf\
 test_quota_compliance_udp_peer2.conf\
 test_quota_compliance_unix_peer1.conf\
 test_quota_compliance_unix_peer2.conf\
+test_quota_compliance_wlan_peer1.conf\
+test_quota_compliance_wlan_peer2.conf\
 test_quota_compliance_http_asymmetric_peer1.conf\
 test_quota_compliance_http_asymmetric_peer2.conf\
 test_quota_compliance_https_asymmetric_peer1.conf\
@@ -868,6 +870,8 @@ test_quota_compliance_tcp_asymmetric_peer1.conf\
 test_quota_compliance_tcp_asymmetric_peer2.conf\
 test_quota_compliance_unix_asymmetric_peer1.conf\
 test_quota_compliance_unix_asymmetric_peer2.conf\
+test_quota_compliance_wlan_asymmetric_peer1.conf\
+test_quota_compliance_wlan_asymmetric_peer2.conf\
 test_transport_api_data.conf\
 test_transport_api_http_peer1.conf\
 test_transport_api_http_peer2.conf\

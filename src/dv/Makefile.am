@@ -75,5 +75,6 @@ endif
 # $(top_builddir)/src/core/libgnunetcore.la \
 # $(top_builddir)/src/transport/libgnunettransport.la \
 # $(top_builddir)/src/util/libgnunetutil.la 
-#EXTRA_DIST = \
-#  test_transport_dv_data.conf
+
+EXTRA_DIST = \
+  test_transport_dv_data.conf

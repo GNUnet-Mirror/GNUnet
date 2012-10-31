@@ -331,4 +331,6 @@ EXTRA_DIST = \
   test_mesh.conf \
   test_mesh_2dtorus.conf \
   test_mesh_small.conf \
-  test_mesh_path.conf
+  test_mesh_path.conf \
+  regex_profiler_test.conf
+

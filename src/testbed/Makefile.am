@@ -177,3 +177,7 @@ test_gnunet_helper_testbed_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la \
  -lz
+
+
+EXTRA_DIST = \
+  test_testbed_api.conf
