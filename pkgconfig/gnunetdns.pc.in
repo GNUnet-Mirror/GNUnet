@@ -3,10 +3,10 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: GNUnet datacache
-Description: Provides datacache API for temporary storage to disk
+Name: GNUnet DNS
+Description: Provides API to access GNUnet's DNS service (to intercept and manipulate DNS queries)
 URL: http://gnunet.org
 Version: @VERSION@
 Requires:
-Libs: -L${libdir} -lgnunetdatacache
+Libs: -L${libdir} -lgnunetdns
 Cflags: -I${includedir}

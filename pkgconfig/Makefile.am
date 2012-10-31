@@ -1,22 +1,35 @@
 pcfiles = \
+       gnunetats.pc \
        gnunetarm.pc \
        gnunetblock.pc \
        gnunetcore.pc \
        gnunetdatacache.pc \
        gnunetdatastore.pc \
        gnunetdht.pc \
-       gnunetdhtlog.pc \
+       gnunetdns.pc \
+       gnunetdnsparser.pc \
        gnunetdv.pc \
        gnunetfragmentation.pc \
        gnunetfs.pc \
+       gnunetgns.pc \
        gnunethello.pc \
-       gnunetnse.pc \
+       gnunetlockmanager.pc \
+       gnunetmesh.pc \
+       gnunetmysql.pc \
+       gnunetnamestore.pc \
        gnunetnat.pc \
+       gnunetnse.pc \
        gnunetpeerinfo.pc \
+       gnunetpostgres.pc \
+       gnunetregex.pc \
        gnunetstatistics.pc \
+       gnunetstream.pc \
+       gnunettestbed.pc \
        gnunettesting.pc \
        gnunettransport.pc \
-       gnunetutil.pc
+       gnunettun.pc \
+       gnunetutil.pc \
+       gnunetvpn.pc 
 
 all-local: $(pcfiles)
 
@@ -32,23 +45,36 @@ pkgconfig_DATA = $(pcfiles)
 
 EXTRA_DIST = \
        gnunetarm.pc.in \
+       gnunetats.pc.in \
        gnunetblock.pc.in \
        gnunetcore.pc.in \
        gnunetdatacache.pc.in \
        gnunetdatastore.pc.in \
        gnunetdht.pc.in \
-       gnunetdhtlog.pc.in \
+       gnunetdns.pc.in \
+       gnunetdnsparser.pc.in \
        gnunetdv.pc.in \
        gnunetfragmentation.pc.in \
        gnunetfs.pc.in \
+       gnunetgns.pc.in \
        gnunethello.pc.in \
+       gnunetlockmanager.pc.in \
+       gnunetmesh.pc.in \
+       gnunetmysql.pc.in \
+       gnunetnamestore.pc.in \
        gnunetnat.pc.in \
        gnunetnse.pc.in \
        gnunetpeerinfo.pc.in \
+       gnunetpostgres.pc.in \
+       gnunetregex.pc.in \
        gnunetstatistics.pc.in \
+       gnunetstream.pc.in \
+       gnunettestbed.pc.in \
        gnunettesting.pc.in \
        gnunettransport.pc.in \
-       gnunetutil.pc.in
+       gnunettun.pc.in \
+       gnunetutil.pc.in \
+       gnunetvpn.pc.in 
 
 CLEANFILES = $(pcfiles)
 INCLUDES = -I$(top_srcdir)/src/include

@@ -3,10 +3,10 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: GNUnet dhtlog
-Description: Library for logging DHT operations via plugins
+Name: GNUnet TUN
+Description: Provides API for parsing IP packets for Linux TUN interface interaction
 URL: http://gnunet.org
 Version: @VERSION@
 Requires:
-Libs: -L${libdir} -lgnunetdhtlog
+Libs: -L${libdir} -lgnunettun
 Cflags: -I${includedir}

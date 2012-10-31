@@ -4,7 +4,7 @@ libdir=@libdir@
 includedir=@includedir@
 
 Name: GNUnet datastore
-Description: Management API for the datastore for files stored on a GNUnet node
+Description: Management API for the datastore for persistant storage to disk
 URL: http://gnunet.org
 Version: @VERSION@
 Requires:

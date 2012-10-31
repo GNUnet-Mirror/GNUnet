@@ -3,10 +3,10 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: GNUnet datacache
-Description: Provides datacache API for temporary storage to disk
+Name: GNUnet VPN
+Description: Provides API for accessing the GNUnet VPN
 URL: http://gnunet.org
 Version: @VERSION@
 Requires:
-Libs: -L${libdir} -lgnunetdatacache
+Libs: -L${libdir} -lgnunetvpn
 Cflags: -I${includedir}

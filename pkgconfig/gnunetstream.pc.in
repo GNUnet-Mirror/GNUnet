@@ -3,10 +3,10 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: GNUnet datacache
-Description: Provides datacache API for temporary storage to disk
+Name: GNUnet Stream
+Description: Provides API for reliable, in-order communcation between two peers
 URL: http://gnunet.org
 Version: @VERSION@
 Requires:
-Libs: -L${libdir} -lgnunetdatacache
+Libs: -L${libdir} -lgnunetstream
 Cflags: -I${includedir}
