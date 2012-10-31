@@ -191,7 +191,13 @@ write_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   bytes_wrote =
       GNUNET_DISK_file_write (stdout_fd, wc->data + wc->pos,
                               wc->length - wc->pos);
-  GNUNET_assert (GNUNET_SYSERR != bytes_wrote);
+  if (GNUNET_SYSERR == bytes_wrote)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Cannot reply back configuration\n");
+    GNUNET_free (wc->data);
+    GNUNET_free (wc);
+    return;
+  }
   wc->pos += bytes_wrote;
   if (wc->pos == wc->length)
   {
