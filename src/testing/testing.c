@@ -363,6 +363,7 @@ GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system,
   struct GNUNET_NETWORK_Handle *socket;
   struct addrinfo hint;
   struct addrinfo *ret;
+  struct addrinfo *ai;
   uint32_t *port_buckets;
   char *open_port_str;
   int bind_status;
@@ -409,19 +410,23 @@ GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system,
       GNUNET_asprintf (&open_port_str, "%u", (unsigned int) open_port);
       ret = NULL;
       GNUNET_assert (0 == getaddrinfo (NULL, open_port_str, &hint, &ret));
-      GNUNET_free (open_port_str);  
-      socket = GNUNET_NETWORK_socket_create (ret->ai_family,
-                                             (GNUNET_YES == is_tcp) ?
-                                             SOCK_STREAM : SOCK_DGRAM,
-                                             0);
-      GNUNET_assert (NULL != socket);
-      bind_status = GNUNET_NETWORK_socket_bind (socket,
-                                                ret->ai_addr,
-                                                ret->ai_addrlen);
-      freeaddrinfo (ret);
-      GNUNET_NETWORK_socket_close (socket);
-      socket = NULL;
+      GNUNET_free (open_port_str);
+      for (ai = ret; NULL != ai; ai = ai->ai_next)
+      {
+        socket = GNUNET_NETWORK_socket_create (ai->ai_family,
+                                               (GNUNET_YES == is_tcp) ?
+                                               SOCK_STREAM : SOCK_DGRAM,
+                                               0);
+        GNUNET_assert (NULL != socket);
+        bind_status = GNUNET_NETWORK_socket_bind (socket,
+                                                  ai->ai_addr,
+                                                  ai->ai_addrlen);
+        GNUNET_NETWORK_socket_close (socket);
+        if (GNUNET_OK != bind_status)
+          break;
+      }
       port_buckets[index] |= (1U << pos); /* Set the port bit */
+      freeaddrinfo (ret);
       if (GNUNET_OK == bind_status)
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
