@@ -191,7 +191,7 @@ main (int argc, char *const *argv)
 
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
       {'n', "numeric", NULL,
-       gettext_noop ("do not resolve hostnames"),
+       gettext_noop ("do not resolve IP addresses to hostnames"),
        0, &GNUNET_GETOPT_set_one, &resolve_addresses_numeric},
        {'m', "monitor", NULL,
         gettext_noop ("monitor mode"),
