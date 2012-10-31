@@ -183,6 +183,14 @@ main (int argc, char *argv[])
 {
   int failureCount = 0;
 
+  if (!gcry_check_version ("1.5.0"))
+  {
+    FPRINTF (stderr,
+             _
+             ("libgcrypt has not the expected version (version %s is required).\n"),
+             "1.5.0");
+    return 0;
+  }
   GNUNET_log_setup ("test-crypto-ecc", "WARNING", NULL);
   GNUNET_CRYPTO_random_disable_entropy_gathering ();
   if (GNUNET_OK != testCreateFromFile ())
