@@ -1,6 +1,7 @@
 man_MANS = \
   gnunet.conf.5 \
   gnunet-arm.1 \
+  gnunet-ats.1 \
   gnunet-auto-share.1 \
   gnunet-config.1 \
   gnunet-core.1 \
