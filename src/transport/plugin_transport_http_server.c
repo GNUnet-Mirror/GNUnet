@@ -133,6 +133,11 @@ struct Session
   int session_ended;
 
   /**
+   * Are incoming connection established at the moment
+   */
+  int connect_in_progress;
+
+  /**
    * Absolute time when to receive data again
    * Used for receive throttling
    */
@@ -525,7 +530,7 @@ http_server_plugin_send (void *cls,
       GNUNET_break (0);
       return GNUNET_SYSERR;
   }
-  if (NULL == session->server_send)
+  if ((NULL == session->server_send) && (GNUNET_NO == session->connect_in_progress))
   {
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, session->plugin->name,
                        "Session %p/connection %p: Sending message with %u bytes to peer `%s' with FAILED\n",
@@ -1104,6 +1109,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     s->server_send = NULL;
     s->session_passed = GNUNET_NO;
     s->session_ended = GNUNET_NO;
+    s->connect_in_progress = GNUNET_YES;
     server_start_session_timeout(s);
     GNUNET_CONTAINER_DLL_insert (plugin->head, plugin->tail, s);
   }
@@ -1120,6 +1126,10 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     s->server_send = sc;
   if (direction == _RECEIVE)
     s->server_recv = sc;
+
+  if ((NULL != s->server_send) && (NULL != s->server_send))
+    s->connect_in_progress = GNUNET_NO; /* PUT and GET are connected */
+
 #if MHD_VERSION >= 0x00090E00
   if ((NULL == s->server_recv) || (NULL == s->server_send))
   {
