@@ -641,6 +641,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                    "Unable to run the test as this system is not configured "
                    "to use password less SSH logins to localhost.\n"
                    "Marking test as successful\n");
+    result = SLAVE3_LINK_SUCCESS;
     return;
   }
   cfg = GNUNET_CONFIGURATION_dup (config);
