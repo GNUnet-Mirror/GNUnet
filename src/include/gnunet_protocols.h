@@ -1552,16 +1552,10 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG 482
 
 /**
- * Message which is sent from a controller to the testbed API seeking the configuration
- * of the host whose id is contained in the message.
- */
-#define GNUNET_MESSAGE_TYPE_TESTBED_NEEDCONTROLLERCONFIG 483
-
-/**
  * Not really a message, but for careful checks on the testbed messages; Should
  * always be the maximum and never be used to send messages with this type
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_MAX 484
+#define GNUNET_MESSAGE_TYPE_TESTBED_MAX 483
 
 /**
  * The initialization message towards gnunet-testbed-helper

@@ -3311,31 +3311,18 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
     if ((peer2_host_id >= slave_list_size)
 	|| (NULL ==slave_list[peer2_host_id]))
     {
-      struct GNUNET_TESTBED_NeedControllerConfig *reply;
-
-      LOG_DEBUG ("Need controller configuration for connecting peers %u and %u\n",
-		 p1, p2);
-      reply = GNUNET_malloc (sizeof (struct
-                                     GNUNET_TESTBED_NeedControllerConfig)); 
-      reply->header.size = htons (sizeof (struct
-                                          GNUNET_TESTBED_NeedControllerConfig));
-      reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_NEEDCONTROLLERCONFIG);
-      reply->controller_host_id = msg->peer2_host_id;
-      reply->operation_id = msg->operation_id;
-      queue_message (client, &reply->header);      
-      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "Configuration of peer2's controller missing for connecting peers"
+           "%u and %u\n", p1, p2);      
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
-    else
+    peer2_controller = slave_list[peer2_host_id]->controller;
+    if (NULL == peer2_controller)
     {
-      //occ->peer2_controller = slave_list[peer2_host_id]->controller;
-      peer2_controller = slave_list[peer2_host_id]->controller;
-      if (NULL == peer2_controller)
-      {
-        GNUNET_break (0);       /* What's going on? */
-        GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-        return;
-      }
+      GNUNET_break (0);       /* What's going on? */
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
     }
   }
   else

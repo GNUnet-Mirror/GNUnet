@@ -864,103 +864,6 @@ handle_slave_config (struct GNUNET_TESTBED_Controller *c,
 
 
 /**
- * Callback to check status for suboperations generated during overlay connect.
- *
- * @param cls the OverlayConnectData
- * @param message the reply message to the suboperation
- */
-static void
-overlay_connect_ondemand_handler (void *cls,
-                                  const struct GNUNET_MessageHeader *message)
-{
-  struct OverlayConnectData *oc_data = cls;
-
-  switch (oc_data->state)
-  {
-  case OCD_CFG_ACQUIRE:
-    {
-      struct GNUNET_CONFIGURATION_Handle *cfg;
-
-      if (GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG != ntohs (message->type))
-      {
-        GNUNET_break (0);       /* treat operation as failed */
-      }
-      cfg = GNUNET_TESTBED_extract_config_ (message);
-      if (NULL == cfg)
-      {
-        GNUNET_break (0);       /* failed operation */
-      }
-      oc_data->state = OCD_LINK_CONTROLLERS;
-    }
-  default:
-    GNUNET_assert (0);
-  }
-}
-
-
-/**
- * Handler for GNUNET_MESSAGE_TYPE_TESTBED_NEEDCONTROLLERCONFIG message from
- * controller (testbed service)
- *
- * @param c the controller handler
- * @param msg message received
- * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
- *           not
- */
-static int
-handle_need_controller_config (struct GNUNET_TESTBED_Controller *c,
-                               const struct GNUNET_TESTBED_NeedControllerConfig * msg)
-{
-  struct OperationContext *opc;
-  struct OverlayConnectData *oc_data;
-  uint64_t op_id;
-
-  op_id = GNUNET_ntohll (msg->operation_id);
-  if (NULL == (opc = find_opc (c, op_id)))
-  {
-    LOG_DEBUG ("Operation not found\n");
-    return GNUNET_YES;
-  }
-  if (OP_FORWARDED == opc->type)
-  {
-    handle_forwarded_operation_msg (c, opc,
-                                    (const struct GNUNET_MessageHeader *) msg);
-    return GNUNET_YES;
-  }
-  GNUNET_assert (OP_OVERLAY_CONNECT == opc->type);
-  oc_data = opc->data;
-  /* FIXME: Should spawn operations to:
-     1. Acquire configuration of peer2's controller,
-     2. link peer1's controller to peer2's controller
-     3. ask them to attempt overlay connect on peer1 and peer2 again */
-  switch (oc_data->state)
-  {
-  case OCD_INIT:
-    {
-      struct GNUNET_TESTBED_SlaveGetConfigurationMessage *get_cfg_msg;
-      uint64_t sub_op_id;
-      
-      GNUNET_assert (NULL == oc_data->sub_opc);
-      sub_op_id = GNUNET_TESTBED_get_next_op_id (oc_data->p1->controller);
-      get_cfg_msg = 
-          GNUNET_TESTBED_generate_slavegetconfig_msg_ 
-          (sub_op_id, GNUNET_TESTBED_host_get_id_ (oc_data->p2->host));
-      oc_data->state = OCD_CFG_ACQUIRE;
-      oc_data->sub_opc =
-          GNUNET_TESTBED_forward_operation_msg_ (oc_data->p1->controller,
-                                                 sub_op_id, &get_cfg_msg->header,
-                                                 overlay_connect_ondemand_handler,
-                                                 oc_data);
-    }
-    break;
-  default:
-    GNUNET_assert (0);
-  }
-  return GNUNET_YES;
-}
-
-
-/**
  * Handler for messages from controller (testbed service)
  *
  * @param cls the controller handler
@@ -1053,14 +956,6 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     status = 
 	handle_slave_config (c, (const struct 
 				 GNUNET_TESTBED_SlaveConfiguration *) msg);
-    break;
-  case GNUNET_MESSAGE_TYPE_TESTBED_NEEDCONTROLLERCONFIG:
-    GNUNET_assert (msize == sizeof (struct
-                                    GNUNET_TESTBED_NeedControllerConfig));
-    status = 
-        handle_need_controller_config (c, (const struct
-                                           GNUNET_TESTBED_NeedControllerConfig
-                                           *) msg);
     break;
   default:
     GNUNET_assert (0);
