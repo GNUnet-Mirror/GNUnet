@@ -33,6 +33,10 @@
 #define LOG(kind,...)                           \
   GNUNET_log (kind, __VA_ARGS__)
 
+/**
+ * The status of the test
+ */
+int status;
 
 /**
  * The testing context
@@ -67,10 +71,16 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TestingContext *test_ctx = cls;
   
-  GNUNET_assert (GNUNET_OK == GNUNET_TESTING_peer_stop (test_ctx->peer));
-  GNUNET_TESTING_peer_destroy (test_ctx->peer);
-  GNUNET_CONFIGURATION_destroy (test_ctx->cfg);
-  GNUNET_TESTING_system_destroy (test_ctx->system, GNUNET_YES);
+  GNUNET_assert (NULL != test_ctx);
+  if (NULL != test_ctx->peer)
+  {
+    (void) GNUNET_TESTING_peer_stop (test_ctx->peer);
+    GNUNET_TESTING_peer_destroy (test_ctx->peer);
+  }
+  if (NULL != test_ctx->cfg)
+    GNUNET_CONFIGURATION_destroy (test_ctx->cfg);
+  if (NULL != test_ctx->system)
+    GNUNET_TESTING_system_destroy (test_ctx->system, GNUNET_YES);
   GNUNET_free (test_ctx);
 }
 
@@ -82,26 +92,33 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  struct GNUNET_TESTING_System *system;
-  struct GNUNET_TESTING_Peer *peer;
-  struct GNUNET_CONFIGURATION_Handle *new_cfg;
   struct TestingContext *test_ctx;
   char *emsg;
   struct GNUNET_PeerIdentity id;
-    
-  system = GNUNET_TESTING_system_create ("test-gnunet-testing",
-                                         "127.0.0.1", NULL);
-  GNUNET_assert (NULL != system);
-  new_cfg = GNUNET_CONFIGURATION_dup (cfg);
-  emsg = NULL;
-  peer = GNUNET_TESTING_peer_configure (system, new_cfg, 0, &id, &emsg);
-  GNUNET_assert (NULL != peer);
-  GNUNET_assert (NULL == emsg);
-  GNUNET_assert (GNUNET_OK == GNUNET_TESTING_peer_start (peer));
+
   test_ctx = GNUNET_malloc (sizeof (struct TestingContext));
-  test_ctx->system = system;
-  test_ctx->peer = peer;
-  test_ctx->cfg = new_cfg;
+  test_ctx->system = 
+      GNUNET_TESTING_system_create ("test-gnunet-testing",
+                                    "127.0.0.1", NULL);
+  if (NULL == test_ctx->system)
+    goto end;
+  test_ctx->cfg = GNUNET_CONFIGURATION_dup (cfg);
+  emsg = NULL;
+  test_ctx->peer = 
+      GNUNET_TESTING_peer_configure (test_ctx->system,
+                                     test_ctx->cfg,
+                                     0, &id, &emsg);
+  if (NULL == test_ctx->peer)
+  {
+    if (NULL != emsg)
+      printf ("Test failed upon error: %s", emsg);
+    goto end;
+  }
+  if (GNUNET_OK != GNUNET_TESTING_peer_start (test_ctx->peer))
+    goto end;
+  status = GNUNET_OK;
+
+ end:
   GNUNET_SCHEDULER_add_now (&do_shutdown, test_ctx);
 }
 
