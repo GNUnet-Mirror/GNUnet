@@ -411,6 +411,7 @@ GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system,
       ret = NULL;
       GNUNET_assert (0 == getaddrinfo (NULL, open_port_str, &hint, &ret));
       GNUNET_free (open_port_str);
+      bind_status = GNUNET_NO;
       for (ai = ret; NULL != ai; ai = ai->ai_next)
       {
         socket = GNUNET_NETWORK_socket_create (ai->ai_family,
@@ -418,10 +419,7 @@ GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system,
                                                SOCK_STREAM : SOCK_DGRAM,
                                                0);
         if (NULL == socket)
-        {
-          bind_status = GNUNET_NO;
           continue;
-        }
         bind_status = GNUNET_NETWORK_socket_bind (socket,
                                                   ai->ai_addr,
                                                   ai->ai_addrlen);
