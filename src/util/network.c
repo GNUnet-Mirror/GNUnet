@@ -1450,10 +1450,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
   /* Copy all the writes to the except, so we can detect connect() errors */
   for (i = 0; i < awrite.fd_count; i++)
-  {
-      if (awrite.fd_array[i] != 0 && awrite.fd_array[i] != -1)
-          FD_SET (awrite.fd_array[i], &aexcept);
-  }
+    FD_SET (awrite.fd_array[i], &aexcept);
   if (aread.fd_count > 0 || awrite.fd_count > 0 || aexcept.fd_count > 0)
     selectret = select (1, (rfds != NULL) ? &aread : NULL,
         (wfds != NULL) ? &awrite : NULL, &aexcept, &select_timeout);
@@ -1472,10 +1469,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
      have checked that descriptors were in awrite originally before re-adding them from
      aexcept. Luckily, GNUnet never uses aexcept for anything, so this does not become a problem (yet). */
   for (i = 0; i < aexcept.fd_count; i++)
-  {
-    if (aexcept.fd_array[i] != 0 && aexcept.fd_array[i] != -1)
-      FD_SET (aexcept.fd_array[i], &awrite);
-  }
+    FD_SET (aexcept.fd_array[i], &awrite);
 
   /* If our select returned something or is a 0-timed request, then also check the pipes and get out of here! */
   /* Sadly, it means code duplication :( */
@@ -1751,10 +1745,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
      * but we don't use OOB data.
      */
     for (i = 0; i < awrite.fd_count; i++)
-    {
-      if (awrite.fd_array[i] != 0 && awrite.fd_array[i] != -1)
-        FD_SET (awrite.fd_array[i], &aexcept);
-    }
+      FD_SET (awrite.fd_array[i], &aexcept);
     ResetEvent (select_finished_event);
     SetEvent (select_standby_event);
   }
@@ -1798,10 +1789,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
     }
     /* Check aexcept, add its contents to awrite */
     for (i = 0; i < aexcept.fd_count; i++)
-    {
-      if (aexcept.fd_array[i] != 0 && aexcept.fd_array[i] != -1)
-        FD_SET (aexcept.fd_array[i], &awrite);
-    }
+      FD_SET (aexcept.fd_array[i], &awrite);
   }
 
   returnedpos = returncode - WAIT_OBJECT_0;
