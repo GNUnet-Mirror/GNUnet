@@ -344,8 +344,10 @@ client_stop_session_timeout (struct Session *s);
 static int
 client_schedule (struct HTTP_Client_Plugin *plugin, int now);
 
+
 static int
 client_connect_put (struct Session *s);
+
 
 /**
  * Does a session s exists?
@@ -370,21 +372,24 @@ client_exist_session (struct HTTP_Client_Plugin *plugin, struct Session *s)
   return GNUNET_NO;
 }
 
+
 /**
  * Loggging function
  *
  * @param curl the curl easy handle
  * @param type message type
- * @param data data as a not \0-terminated string
+ * @param data data to log, NOT a 0-terminated string
  * @param size data length
  * @param cls the closure
  * @return always 0
  */
 static int
-client_log (CURL *curl, curl_infotype type, char *data, size_t size, void *cls)
+client_log (CURL *curl, curl_infotype type, 
+	    const char *data, size_t size, void *cls)
 {
   struct ConnectionHandle *ch = cls;
-  char *ttype = "UNSPECIFIED";
+  const char *ttype = "UNSPECIFIED";
+
   if ((type == CURLINFO_TEXT) || (type == CURLINFO_HEADER_IN) || (type == CURLINFO_HEADER_OUT))
   {
     char text[size + 2];

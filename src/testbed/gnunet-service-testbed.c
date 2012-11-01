@@ -2239,7 +2239,7 @@ peer_create_success_cb (void *cls, const struct GNUNET_MessageHeader *msg)
 /**
  * Function to destroy a peer
  *
- * @param the peer structure to destroy
+ * @param peer the peer structure to destroy
  */
 static void
 destroy_peer (struct Peer *peer)

@@ -1579,6 +1579,7 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int stat
  * @param filename filename of the file containing the search strings.
  * @param strings set of strings loaded from file. Caller needs to free this
  *                if number returned is greater than zero.
+ * @param limit upper limit on the number of strings read from the file
  * @return number of strings found in the file. GNUNET_SYSERR on error.
  */
 static int

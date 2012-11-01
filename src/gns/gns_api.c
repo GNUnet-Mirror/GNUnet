@@ -312,7 +312,7 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Disconnect from service and then reconnect.
  *
- * @param h our handle
+ * @param handle our handle
  */
 static void
 force_reconnect (struct GNUNET_GNS_Handle *handle)
