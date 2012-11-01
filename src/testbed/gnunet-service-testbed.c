@@ -1806,7 +1806,7 @@ handle_init (void *cls, struct GNUNET_SERVER_Client *client,
   master_context->client = client;
   master_context->host_id = ntohl (msg->host_id);
   master_context->master_ip = GNUNET_strdup (controller_hostname);
-  LOG_DEBUG ("Master Controller IP: %s\n", master_context->master_ip);
+  LOG_DEBUG ("Our IP: %s\n", master_context->master_ip);
   master_context->system =
       GNUNET_TESTING_system_create ("testbed", master_context->master_ip, hostname);
   host =
