@@ -179,7 +179,7 @@ main (int argc, char **argv)
   char *config_filename;
   int ret;
 
-  testname = rindex (argv[0], (int) '_');
+  testname = strrchr (argv[0], (int) '_');
   testname++;
   if (NULL == testname)
   {
