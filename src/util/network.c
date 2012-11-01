@@ -896,6 +896,7 @@ void
 GNUNET_NETWORK_fdset_add (struct GNUNET_NETWORK_FDSet *dst,
                           const struct GNUNET_NETWORK_FDSet *src)
 {
+#ifndef MINGW
   int nfds;
 
   for (nfds = src->nsds; nfds > 0; nfds--)
@@ -906,7 +907,18 @@ GNUNET_NETWORK_fdset_add (struct GNUNET_NETWORK_FDSet *dst,
       if (nfds + 1 > dst->nsds)
         dst->nsds = nfds + 1;
     }
-#ifdef MINGW
+#else
+  /* This is MinGW32-specific implementation that relies on the code that
+   * winsock2.h defines for FD_SET. Namely, it relies on FD_SET checking
+   * that fd being added is not already in the set.
+   * Also relies on us knowing what's inside fd_set (fd_count and fd_array).
+   */
+  int i;
+  for (i = 0; i < src->sds.fd_count; i++)
+    FD_SET (src->sds.fd_array[i], &dst->sds);
+  if (src->nsds > dst->nsds)
+    dst->nsds = src->nsds;
+
   GNUNET_CONTAINER_slist_append (dst->handles, src->handles);
 #endif
 }
