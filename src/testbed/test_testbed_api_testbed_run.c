@@ -152,13 +152,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   event_mask = 0;
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
-  event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
-  event_mask |= (1LL << GNUNET_TESTBED_ET_DISCONNECT);
   GNUNET_TESTBED_run (NULL, config, NUM_PEERS, event_mask, &controller_event_cb,
                       NULL, &master_task, NULL);
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 5), &do_abort,
+                                    (GNUNET_TIME_UNIT_SECONDS, 60), &do_abort,
                                     NULL);
 }
 
@@ -169,22 +167,39 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char **argv)
 {
-  int ret;
-
-  char *const argv2[] = {
+  char *argv2[] = {
     "test_testbed_api_testbed_run",
-    "-c", "test_testbed_api.conf",
+    "-c", NULL,
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+  char *testname;
+  char *config_filename;
+  int ret;
 
+  testname = rindex (argv[0], (int) '_');
+  testname++;
+  if (NULL == testname)
+  {
+    GNUNET_break (0);
+    return 1;
+  }
+  if (0 != strcmp ("run", testname))
+  {
+    GNUNET_asprintf (&config_filename, 
+                     "test_testbed_api_testbed_run_%s.conf", testname);
+  }
+  else
+    config_filename = GNUNET_strdup ("test_testbed_api.conf");
+  argv2[2] = config_filename;
   result = GNUNET_SYSERR;
   ret =
       GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
                           "test_testbed_api_testbed_run", "nohelp", options,
                           &run, NULL);
+  GNUNET_free (config_filename);
   if ((GNUNET_OK != ret) || (GNUNET_OK != result))
     return 1;
   return 0;

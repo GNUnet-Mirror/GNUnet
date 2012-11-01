@@ -90,7 +90,10 @@ check_PROGRAMS = \
  test_testbed_api_test \
  test_gnunet_helper_testbed \
  test_testbed_api_topology \
- test_testbed_api_topology_clique
+ test_testbed_api_topology_clique \
+ test_testbed_api_testbed_run_topologyrandom \
+ test_testbed_api_testbed_run_topologyline \
+ test_testbed_api_testbed_run_topologyclique
 
 if ENABLE_TEST_RUN
  TESTS = \
@@ -104,7 +107,10 @@ if ENABLE_TEST_RUN
   test_testbed_api_testbed_run \
   test_testbed_api_test \
   test_testbed_api_topology \
-  test_testbed_api_topology_clique
+  test_testbed_api_topology_clique \
+ test_testbed_api_testbed_run_topologyrandom \
+ test_testbed_api_testbed_run_topologyline \
+ test_testbed_api_testbed_run_topologyclique
 endif
 
 test_testbed_api_hosts_SOURCES = \
@@ -177,6 +183,24 @@ test_gnunet_helper_testbed_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la \
  -lz
+
+test_testbed_api_testbed_run_topologyrandom_SOURCES = \
+ test_testbed_api_testbed_run.c
+test_testbed_api_testbed_run_topologyrandom_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunettestbed.la
+
+test_testbed_api_testbed_run_topologyline_SOURCES = \
+ test_testbed_api_testbed_run.c
+test_testbed_api_testbed_run_topologyline_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunettestbed.la
+
+test_testbed_api_testbed_run_topologyclique_SOURCES = \
+ test_testbed_api_testbed_run.c
+test_testbed_api_testbed_run_topologyclique_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunettestbed.la
 
 
 EXTRA_DIST = \

@@ -87,9 +87,11 @@ enum State
   RC_INIT = 0,
 
   /**
-   * Peers have been started
+   * The testbed run is ready and the master callback can be called now. At this
+   * time the peers are all started and if a topology is provided in the
+   * configuration the topology would have been attempted
    */
-  RC_PEERS_STARTED,
+  RC_READY,
 
   /**
    * Peers are stopped
@@ -159,6 +161,12 @@ struct RunContext
   struct GNUNET_TESTBED_Peer **peers;
 
   /**
+   * The topology generation operation. Will be null if no topology is set in
+   * the configuration
+   */
+  struct GNUNET_TESTBED_Operation *topology_operation;
+
+  /**
    * The event mask for the controller
    */
   uint64_t event_mask;
@@ -167,6 +175,11 @@ struct RunContext
    * State of this context
    */
   enum State state;
+
+  /**
+   * The topology which has to be achieved with the peers started in this context
+   */
+  enum GNUNET_TESTBED_TopologyOption topology;
 
   /**
    * Current peer count for an operation; Set this to 0 and increment for each
@@ -179,6 +192,17 @@ struct RunContext
    */
   unsigned int num_peers;
 
+  /**
+   * counter to count overlay connect attempts. This counter includes both
+   * successful and failed overlay connects
+   */
+  unsigned int oc_count;
+
+  /**
+   * Expected overlay connects. Should be zero if no topology is relavant
+   */
+  unsigned int num_oc;
+  
 };
 
 
@@ -281,6 +305,28 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Task to call master task
+ *
+ * @param cls the run context
+ * @param tc the task context
+ */
+static void
+call_master (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct RunContext *rc = cls;
+  
+  if (NULL != rc->topology_operation)
+  {
+    GNUNET_TESTBED_operation_done (rc->topology_operation);
+    rc->topology_operation = NULL;
+  }
+  if (NULL != rc->master)
+    GNUNET_SCHEDULER_add_continuation (rc->master, rc->master_cls,
+                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+}
+
+
+/**
  * Signature of the event handler function called by the
  * respective event controller.
  *
@@ -294,7 +340,25 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   struct DLLOperation *dll_op;
   unsigned int peer_id;
 
-
+  if (NULL != rc->topology_operation)
+  {
+    switch (event->type)
+    {
+    case GNUNET_TESTBED_ET_OPERATION_FINISHED:
+    case GNUNET_TESTBED_ET_CONNECT:
+      rc->oc_count++;
+      break;
+    default:
+      GNUNET_assert (0);
+    }
+    if (rc->oc_count == rc->num_oc)
+    {
+      rc->state = RC_READY;
+      GNUNET_SCHEDULER_add_continuation (&call_master, rc,
+                                         GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    }
+    return;
+  }
   if ((RC_INIT != rc->state) &&
       ((GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type) ||
        (GNUNET_TESTBED_ET_PEER_STOP == event->type)))
@@ -318,7 +382,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       return;
     switch (rc->state)
     {
-    case RC_PEERS_STARTED:
+    case RC_READY:
       rc->state = RC_PEERS_STOPPED;
       rc->peer_count = 0;
       for (peer_id = 0; peer_id < rc->num_peers; peer_id++)
@@ -359,10 +423,32 @@ call_cc:
   if (rc->peer_count < rc->num_peers)
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Peers started successfully\n");
-  rc->state = RC_PEERS_STARTED;
-  if (NULL != rc->master)
-    GNUNET_SCHEDULER_add_continuation (rc->master, rc->master_cls,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  if (GNUNET_TESTBED_TOPOLOGY_OPTION_END != rc->topology)
+  {
+    if (GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI == rc->topology)
+      rc->topology_operation =
+        GNUNET_TESTBED_overlay_configure_topology (dll_op,
+                                                   rc->num_peers,
+                                                   rc->peers,
+                                                   rc->topology,
+                                                   rc->num_oc,
+                                                   GNUNET_TESTBED_TOPOLOGY_OPTION_END);
+    else
+        rc->topology_operation =
+        GNUNET_TESTBED_overlay_configure_topology (dll_op,
+                                                   rc->num_peers,
+                                                   rc->peers,
+                                                   rc->topology,
+                                                   GNUNET_TESTBED_TOPOLOGY_OPTION_END);
+    if (NULL == rc->topology_operation)
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "Not generating topology. Check number of peers\n");
+    else
+      return;
+  }
+  rc->state = RC_READY;
+  GNUNET_SCHEDULER_add_continuation (&call_master, rc,
+                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
@@ -393,6 +479,8 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   event_mask = rc->event_mask;
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
+  if (rc->topology < GNUNET_TESTBED_TOPOLOGY_OPTION_END)
+    event_mask |= GNUNET_TESTBED_ET_CONNECT;
   rc->c =
       GNUNET_TESTBED_controller_connect (cfg, rc->h, event_mask, &event_cb, rc);
   rc->peers =
@@ -427,6 +515,13 @@ shutdown_run_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     if (NULL != rc->peers)
     {
+      if (NULL != rc->topology_operation)
+      {
+        GNUNET_TESTBED_operation_done (rc->topology_operation);
+        rc->topology_operation = NULL;
+      }
+      if (RC_INIT == rc->state)
+        rc->state = RC_READY;   /* Even though we haven't called the master callback */
       rc->peer_count = 0;
       /* Check if some peers are stopped */
       for (peer = 0; peer < rc->num_peers; peer++)
@@ -506,6 +601,8 @@ GNUNET_TESTBED_run (const char *host_filename,
                     GNUNET_SCHEDULER_Task master, void *master_cls)
 {
   struct RunContext *rc;
+  char *topology;
+  unsigned long long random_links;
 
   GNUNET_break (NULL == host_filename); /* Currently we do not support host
                                          * files */
@@ -527,6 +624,49 @@ GNUNET_TESTBED_run (const char *host_filename,
   rc->master = master;
   rc->master_cls = master_cls;
   rc->state = RC_INIT;
+  rc->topology = GNUNET_TESTBED_TOPOLOGY_OPTION_END;
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
+                                                          "OVERLAY_TOPOLOGY",
+                                                          &topology))
+  {
+    if (0 == strcmp (topology, "RANDOM"))
+    {      
+      rc->topology = GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI;
+      if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg, "testbed",
+                                                              "OVERLAY_RANDOM_LINKS",
+                                                              &random_links))
+      {
+       /* OVERLAY option RANDOM requires OVERLAY_RANDOM_LINKS option to */
+       /*     be set to the number of random links to be established  */
+        GNUNET_break (0);
+        GNUNET_free (rc);
+        GNUNET_free (topology);
+        return;
+      }
+      if (random_links > UINT32_MAX)
+      {
+        GNUNET_break (0);       /* Too big number */
+        GNUNET_free (rc);
+        GNUNET_free (topology);
+        return;
+      }
+      rc->num_oc = (unsigned int) random_links;
+    }
+    else if (0 == strcasecmp (topology, "CLIQUE"))
+    {
+      rc->topology = GNUNET_TESTBED_TOPOLOGY_CLIQUE;
+      rc->num_oc = num_peers * (num_peers - 1);
+    }
+    else if (0 == strcasecmp (topology, "LINE"))
+    {
+      rc->topology = GNUNET_TESTBED_TOPOLOGY_LINE;
+      rc->num_oc = num_peers - 1;
+    }
+    else
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "Unknown topology %s given in configuration\n", topology);
+    GNUNET_free (topology);
+  }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_run_task, rc);
 }
@@ -558,6 +698,7 @@ GNUNET_TESTBED_create_va (struct GNUNET_TESTBED_Controller *controller,
                           enum GNUNET_TESTBED_TopologyOption underlay_topology,
                           va_list va)
 {
+  GNUNET_assert (underlay_topology < GNUNET_TESTBED_TOPOLOGY_OPTION_END);
   GNUNET_break (0);
   return NULL;
 }
@@ -588,7 +729,13 @@ GNUNET_TESTBED_create (struct GNUNET_TESTBED_Controller *controller,
                        enum GNUNET_TESTBED_TopologyOption underlay_topology,
                        ...)
 {
-  GNUNET_break (0);
+  struct GNUNET_TESTBED_Testbed *testbed;
+  va_list vargs;
+  
+  va_start (vargs, underlay_topology);
+  testbed = GNUNET_TESTBED_create_va (controller, num_hosts, hosts, num_peers,
+                                      peer_cfg, underlay_topology, vargs);
+  va_end (vargs);
   return NULL;
 }
 
