@@ -417,7 +417,11 @@ GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system,
                                                (GNUNET_YES == is_tcp) ?
                                                SOCK_STREAM : SOCK_DGRAM,
                                                0);
-        GNUNET_assert (NULL != socket);
+        if (NULL == socket)
+        {
+          bind_status = GNUNET_NO;
+          continue;
+        }
         bind_status = GNUNET_NETWORK_socket_bind (socket,
                                                   ai->ai_addr,
                                                   ai->ai_addrlen);
