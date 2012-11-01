@@ -736,7 +736,7 @@ GNUNET_TESTBED_create (struct GNUNET_TESTBED_Controller *controller,
   testbed = GNUNET_TESTBED_create_va (controller, num_hosts, hosts, num_peers,
                                       peer_cfg, underlay_topology, vargs);
   va_end (vargs);
-  return NULL;
+  return testbed;
 }
 
 
