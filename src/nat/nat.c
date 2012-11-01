@@ -821,6 +821,8 @@ nat_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 start_gnunet_nat_server (struct GNUNET_NAT_Handle *h)
 {
+  char *binary;
+
   if ((h->behind_nat == GNUNET_YES) && (h->enable_nat_server == GNUNET_YES) &&
       (h->internal_address != NULL) &&
       (NULL !=
@@ -830,11 +832,13 @@ start_gnunet_nat_server (struct GNUNET_NAT_Handle *h)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting `%s' at `%s'\n",
          "gnunet-helper-nat-server", h->internal_address);
     /* Start the server process */
+    binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-server");
     h->server_proc =
         GNUNET_OS_start_process (GNUNET_NO, 0, NULL, h->server_stdout,
-                                 "gnunet-helper-nat-server",
+                                 binary,
                                  "gnunet-helper-nat-server",
                                  h->internal_address, NULL);
+    GNUNET_free (binary);
     if (h->server_proc == NULL)
     {
       LOG (GNUNET_ERROR_TYPE_WARNING, "nat", _("Failed to start %s\n"),
@@ -1066,6 +1070,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg, int is_tcp,
   struct GNUNET_NAT_Handle *h;
   struct in_addr in_addr;
   unsigned int i;
+  char *binary;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Registered with NAT service at port %u with %u IP bound local addresses\n",
@@ -1163,9 +1168,10 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg, int is_tcp,
   }
 
   /* Test for SUID binaries */
+  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-server");
   if ((h->behind_nat == GNUNET_YES) && (GNUNET_YES == h->enable_nat_server) &&
       (GNUNET_YES !=
-       GNUNET_OS_check_helper_binary ("gnunet-helper-nat-server")))
+       GNUNET_OS_check_helper_binary (binary)))
   {
     h->enable_nat_server = GNUNET_NO;
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -1173,9 +1179,11 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg, int is_tcp,
          ("Configuration requires `%s', but binary is not installed properly (SUID bit not set).  Option disabled.\n"),
          "gnunet-helper-nat-server");
   }
+  GNUNET_free (binary);
+  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-client");
   if ((GNUNET_YES == h->enable_nat_client) &&
       (GNUNET_YES !=
-       GNUNET_OS_check_helper_binary ("gnunet-helper-nat-client")))
+       GNUNET_OS_check_helper_binary (binary)))
   {
     h->enable_nat_client = GNUNET_NO;
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -1183,7 +1191,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg, int is_tcp,
          ("Configuration requires `%s', but binary is not installed properly (SUID bit not set).  Option disabled.\n"),
          "gnunet-helper-nat-client");
   }
-
+  GNUNET_free (binary);
   start_gnunet_nat_server (h);
 
   /* FIXME: add support for UPnP, etc */
@@ -1306,6 +1314,7 @@ GNUNET_NAT_run_client (struct GNUNET_NAT_Handle *h,
   char inet4[INET_ADDRSTRLEN];
   char port_as_string[6];
   struct GNUNET_OS_Process *proc;
+  char *binary;
 
   if (GNUNET_YES != h->enable_nat_client)
     return GNUNET_NO;                     /* not permitted / possible */
@@ -1327,11 +1336,13 @@ GNUNET_NAT_run_client (struct GNUNET_NAT_Handle *h,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        _("Running gnunet-helper-nat-client %s %s %u\n"), h->internal_address,
        inet4, (unsigned int) h->adv_port);
+  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-client");
   proc =
       GNUNET_OS_start_process (GNUNET_NO, 0, NULL, NULL,
-                               "gnunet-helper-nat-client",
+                               binary,
                                "gnunet-helper-nat-client", h->internal_address,
                                inet4, port_as_string, NULL);
+  GNUNET_free (binary);
   if (NULL == proc)
     return GNUNET_SYSERR;
   /* we know that the gnunet-helper-nat-client will terminate virtually
