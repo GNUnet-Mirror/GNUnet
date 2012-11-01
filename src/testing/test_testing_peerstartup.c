@@ -129,13 +129,14 @@ int main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
+  status = GNUNET_SYSERR;
   if (GNUNET_OK !=
       GNUNET_PROGRAM_run (argc, argv,
                           "test_testing_new_peerstartup",
                           "test case for peerstartup using new testing library",
                           options, &run, NULL))
     return 1;
-  return 0;
+  return (GNUNET_OK == status) ? 0 : 1;
 }
 
 /* end of test_testing_peerstartup.c */

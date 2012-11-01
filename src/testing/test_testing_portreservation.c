@@ -96,9 +96,7 @@ int main (int argc, char *argv[])
                           options,
                           &run,
                           NULL))
-  {
     return 1;
-  }
   return (GNUNET_OK == status) ? 0 : 1;
 }
 
