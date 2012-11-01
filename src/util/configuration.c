@@ -983,8 +983,13 @@ GNUNET_CONFIGURATION_expand_dollar (const struct GNUNET_CONFIGURATION_Handle
   const char *post;
   const char *env;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Asked to $-expand %s\n", orig);
+
   if (orig[0] != '$')
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Doesn't start with $ - not expanding\n");
     return orig;
+  }
   i = 0;
   while ((orig[i] != '/') && (orig[i] != '\\') && (orig[i] != '\0'))
     i++;
@@ -997,16 +1002,21 @@ GNUNET_CONFIGURATION_expand_dollar (const struct GNUNET_CONFIGURATION_Handle
     orig[i] = '\0';
     post = &orig[i + 1];
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Split into `%s' and `%s'\n", orig, post);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg, "PATHS", &orig[1], &prefix))
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Filename for `%s' is not in PATHS config section\n", &orig[1]);
     if (NULL == (env = getenv (&orig[1])))
     {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "`%s' is not an environment variable\n", &orig[1]);
       orig[i] = DIR_SEPARATOR;
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Expanded to `%s' (returning orig)\n", orig);
       return orig;
     }
     prefix = GNUNET_strdup (env);
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Prefix is `%s'\n", prefix);
   result = GNUNET_malloc (strlen (prefix) + strlen (post) + 2);
   strcpy (result, prefix);
   if ((strlen (prefix) == 0) ||
@@ -1015,6 +1025,7 @@ GNUNET_CONFIGURATION_expand_dollar (const struct GNUNET_CONFIGURATION_Handle
   strcat (result, post);
   GNUNET_free (prefix);
   GNUNET_free (orig);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Expanded to `%s'\n", result);
   return result;
 }
 
