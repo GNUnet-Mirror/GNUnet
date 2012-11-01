@@ -2999,16 +2999,20 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   char *ipv6prefix_s;
   char *ipv4addr;
   char *ipv4mask;
+  char *binary;
 
+  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-exit");
   if (GNUNET_YES !=
-      GNUNET_OS_check_helper_binary ("gnunet-helper-exit"))
+      GNUNET_OS_check_helper_binary (binary))
   {
+    GNUNET_free (binary);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("`%s' must be installed SUID, refusing to run\n"),
 		"gnunet-helper-exit");
     global_ret = 1;
     return;
   }
+  GNUNET_free (binary);
   cfg = cfg_;
   stats = GNUNET_STATISTICS_create ("exit", cfg);
   ipv4_exit = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "EXIT_IPV4");

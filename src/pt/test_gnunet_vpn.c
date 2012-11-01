@@ -395,6 +395,8 @@ main (int argc, char *const *argv)
 {
   const char *type;
   const char *bin;
+  char *vpn_binary;
+  char *exit_binary;
 
   if (0 != ACCESS ("/dev/net/tun", R_OK))
   {
@@ -403,15 +405,19 @@ main (int argc, char *const *argv)
     fprintf (stderr, "WARNING: System unable to run test, skipping.\n");
     return 0;
   }
-  if ((GNUNET_YES != GNUNET_OS_check_helper_binary ("gnunet-helper-vpn")) ||
-      (GNUNET_YES != GNUNET_OS_check_helper_binary ("gnunet-helper-exit")))
+  vpn_binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-vpn");
+  exit_binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-exit");
+  if ((GNUNET_YES != GNUNET_OS_check_helper_binary (vpn_binary)) ||
+      (GNUNET_YES != GNUNET_OS_check_helper_binary (exit_binary)))
   {
+    GNUNET_free (vpn_binary);
+    GNUNET_free (exit_binary);
     fprintf (stderr,
-             "WARNING: gnunet-helper-{exit,vpn} binaries in $PATH are not SUID, refusing to run test (as it would have to fail).\n");
-    fprintf (stderr,
-             "Change $PATH ('.' in $PATH before $GNUNET_PREFIX/bin is problematic) or permissions (run 'make install' as root) to fix this!\n");
+             "WARNING: gnunet-helper-{exit,vpn} binaries are not SUID, refusing to run test (as it would have to fail).\n");
     return 0;
   }
+  GNUNET_free (vpn_binary);
+  GNUNET_free (exit_binary);
   GNUNET_CRYPTO_rsa_setup_hostkey ("test_gnunet_vpn.conf");
   bin = argv[0];
   if (NULL != strstr (bin, "lt-"))
