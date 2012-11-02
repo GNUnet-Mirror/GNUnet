@@ -48,7 +48,7 @@ GNUNET_TESTBED_get_statistics (unsigned int num_peers,
 {
   // FIXME: not implemented, but clients will kind-of work if we do this:
   GNUNET_break (0);
-  cont (cls, NULL, NULL);
+  cont (cls, NULL, "not implemented");
   return NULL;
 }
 

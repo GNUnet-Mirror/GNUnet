@@ -629,7 +629,7 @@ GNUNET_TESTBED_run (const char *host_filename,
                                                           "OVERLAY_TOPOLOGY",
                                                           &topology))
   {
-    if (0 == strcmp (topology, "RANDOM"))
+    if (0 == strcasecmp (topology, "RANDOM"))
     {      
       rc->topology = GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI;
       if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg, "testbed",
