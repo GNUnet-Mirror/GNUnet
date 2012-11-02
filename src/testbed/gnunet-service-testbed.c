@@ -1803,6 +1803,7 @@ handle_init (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   master_context = GNUNET_malloc (sizeof (struct Context));
+  GNUNET_SERVER_client_keep (client);
   master_context->client = client;
   master_context->host_id = ntohl (msg->host_id);
   master_context->master_ip = GNUNET_strdup (controller_hostname);
@@ -1815,7 +1816,6 @@ handle_init (void *cls, struct GNUNET_SERVER_Client *client,
                                           NULL,
                                           0);
   host_list_add (host);
-  GNUNET_SERVER_client_keep (client);
   LOG_DEBUG ("Created master context with host ID: %u\n",
              master_context->host_id);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -3680,6 +3680,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct OverlayConnectContext *occ;
   struct RequestOverlayConnectContext *rocc;
   struct ForwardedOperationContext *fopc;
+  struct MessageQueue *mq_entry;
   uint32_t id;
 
   shutdown_task_id = GNUNET_SCHEDULER_NO_TASK;
@@ -3795,8 +3796,18 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free_non_null (master_context->master_ip);
     if (NULL != master_context->system)
       GNUNET_TESTING_system_destroy (master_context->system, GNUNET_YES);
+    GNUNET_SERVER_client_drop (master_context->client);
     GNUNET_free (master_context);
     master_context = NULL;
+  }
+  if (NULL != transmit_handle)
+    GNUNET_SERVER_notify_transmit_ready_cancel (transmit_handle);  
+  while (NULL != (mq_entry = mq_head))
+  {
+    GNUNET_free (mq_entry->msg);
+    GNUNET_SERVER_client_drop (mq_entry->client);
+    GNUNET_CONTAINER_DLL_remove (mq_head, mq_tail, mq_entry);    
+    GNUNET_free (mq_entry);
   }
   GNUNET_free_non_null (hostname);
   GNUNET_CONFIGURATION_destroy (our_config);
