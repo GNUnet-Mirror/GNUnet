@@ -985,7 +985,7 @@ GNUNET_TESTING_peer_start (struct GNUNET_TESTING_Peer *peer)
 		STRERROR (errno));
     return GNUNET_SYSERR;
   }
-  return GNUNET_OS_set_process_priority (peer->main_process, GNUNET_SCHEDULER_PRIORITY_BACKGROUND);
+  return GNUNET_OK;
 }
 
 
