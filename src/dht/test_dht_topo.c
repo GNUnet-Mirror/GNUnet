@@ -30,11 +30,6 @@
 #include "dht_test_lib.h"
 
 /**
- * Number of peers to run.
- */
-#define NUM_PEERS 5
-
-/**
  * How long until we give up on fetching the data?
  */
 #define GET_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
@@ -93,6 +88,131 @@ static struct GetOperation *get_head;
  */
 static struct GetOperation *get_tail;
 
+/**
+ * Array of the testbed's peers.
+ */ 
+static struct GNUNET_TESTBED_Peer **my_peers;
+
+/**
+ * Number of peers to run.
+ */
+static unsigned int NUM_PEERS;
+
+
+/**
+ * Statistics we print out.
+ */
+static struct
+{
+  const char *subsystem;
+  const char *name;
+  unsigned long long total;
+} stats[] = {
+  {"core", "# bytes decrypted", 0},
+  {"core", "# bytes encrypted", 0},
+  {"core", "# type maps received", 0},
+  {"core", "# session keys confirmed via PONG", 0},
+  {"core", "# peers connected", 0},
+  {"core", "# key exchanges initiated", 0},
+  {"core", "# send requests dropped (disconnected)", 0},
+  {"core", "# transmissions delayed due to corking", 0},
+  {"core", "# messages discarded (expired prior to transmission)", 0},
+  {"core", "# messages discarded (disconnected)", 0},
+  {"core", "# discarded CORE_SEND requests", 0},
+  {"core", "# discarded lower priority CORE_SEND requests", 0},
+  {"transport", "# bytes received via TCP", 0},
+  {"transport", "# bytes transmitted via TCP", 0},
+  {"dht", "# PUT messages queued for transmission", 0},
+  {"dht", "# P2P PUT requests received", 0},
+  {"dht", "# GET messages queued for transmission", 0},
+  {"dht", "# P2P GET requests received", 0},
+  {"dht", "# RESULT messages queued for transmission", 0},
+  {"dht", "# P2P RESULTS received", 0},
+  {"dht", "# Queued messages discarded (peer disconnected)", 0},
+  {"dht", "# Peers excluded from routing due to Bloomfilter", 0},
+  {"dht", "# Peer selection failed", 0},
+  {"dht", "# FIND PEER requests ignored due to Bloomfilter", 0},
+  {"dht", "# FIND PEER requests ignored due to lack of HELLO", 0},
+  {"dht", "# P2P FIND PEER requests processed", 0},
+  {"dht", "# P2P GET requests ONLY routed", 0},
+  {"dht", "# Preference updates given to core", 0},
+  {"dht", "# REPLIES ignored for CLIENTS (no match)", 0},
+  {"dht", "# GET requests from clients injected", 0},
+  {"dht", "# GET requests received from clients", 0},
+  {"dht", "# GET STOP requests received from clients", 0},
+  {"dht", "# ITEMS stored in datacache", 0},
+  {"dht", "# Good RESULTS found in datacache", 0},
+  {"dht", "# GET requests given to datacache", 0},
+  {NULL, NULL, 0}
+};
+
+
+/**
+ * Function called once we're done processing stats.
+ *
+ * @param cls the test context
+ * @param op the stats operation
+ * @param emsg error message on failure
+ */
+static void
+stats_finished (void *cls,
+		struct GNUNET_TESTBED_Operation *op,
+		const char *emsg)
+{
+  struct GNUNET_DHT_TEST_Context *ctx = cls;
+  unsigned int i;
+
+  if (NULL != op)
+    GNUNET_TESTBED_operation_done (op); // needed?
+  if (NULL != emsg)
+  {
+    fprintf (stderr, _("Gathering statistics failed: %s\n"),
+	     emsg);
+    GNUNET_SCHEDULER_cancel (put_task);
+    GNUNET_DHT_TEST_cleanup (ctx);
+    return;
+  }
+  for (i = 0; NULL != stats[i].name; i++)
+    FPRINTF (stderr, 
+	     "%6s/%60s = %12llu\n", 
+	     stats[i].subsystem,
+	     stats[i].name, 
+	     stats[i].total);
+  GNUNET_SCHEDULER_cancel (put_task);
+  GNUNET_DHT_TEST_cleanup (ctx);
+}
+
+
+/**
+ * Function called to process statistic values from all peers.
+ *
+ * @param cls closure
+ * @param peer the peer the statistic belong to
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
+ * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ */
+static int 
+handle_stats (void *cls,
+	      const struct GNUNET_TESTBED_Peer *peer,
+	      const char *subsystem,
+	      const char *name,
+	      uint64_t value,
+	      int is_persistent)
+{
+  unsigned int i;
+
+  for (i = 0; NULL != stats[i].name; i++)
+    if ( (0 == strcasecmp (subsystem,
+			   stats[i].subsystem)) &&
+	 (0 == strcasecmp (name,
+			   stats[i].name)) )
+      stats[i].total += value;
+  return GNUNET_OK;
+}
+
 
 /**
  * Task run on success or timeout to clean up.
@@ -117,8 +237,11 @@ shutdown_task (void *cls,
 				 get_op);
     GNUNET_free (get_op);
   }
-  GNUNET_SCHEDULER_cancel (put_task);
-  GNUNET_DHT_TEST_cleanup (ctx);
+  (void) GNUNET_TESTBED_get_statistics (NUM_PEERS,
+					my_peers,
+					&handle_stats,
+					&stats_finished,
+					ctx);
 }
 
 
@@ -249,16 +372,9 @@ run (void *cls,
   struct GetOperation *get_op;
 
   GNUNET_assert (NUM_PEERS == num_peers);
+  my_peers = peers;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Peers setup, starting test\n");
-  /* FIXME: once testbed is finished, this call should
-     no longer be needed */
-  GNUNET_TESTBED_overlay_configure_topology (NULL, 
-					     num_peers,
-					     peers,
-					     GNUNET_TESTBED_TOPOLOGY_LINE,
-					     GNUNET_TESTBED_TOPOLOGY_OPTION_END);
-
   put_task = GNUNET_SCHEDULER_add_now (&do_puts, dhts);
   for (i=0;i<num_peers;i++)
   {
@@ -297,11 +413,25 @@ main (int xargc, char *xargv[])
   {
     cfg_filename = "test_dht_2dtorus.conf";
     test_name = "test-dht-2dtorus";
+    NUM_PEERS = 16;
   }
   else if (NULL != strstr (xargv[0], "test_dht_line"))
   {
     cfg_filename = "test_dht_line.conf"; 
     test_name = "test-dht-line";
+    NUM_PEERS = 5;
+  }
+  else if (NULL != strstr (xargv[0], "test_dht_twopeer"))
+  {
+    cfg_filename = "test_dht_line.conf"; 
+    test_name = "test-dht-twopeer";
+    NUM_PEERS = 2;
+  }
+  else if (NULL != strstr (xargv[0], "test_dht_multipeer"))
+  {
+    cfg_filename = "test_dht_multipeer.conf"; 
+    test_name = "test-dht-multipeer";
+    NUM_PEERS = 10;
   }
   else
   {

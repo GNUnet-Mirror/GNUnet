@@ -426,71 +426,38 @@ monitor_res_cb (void *cls,
 
 
 /**
- * peergroup_ready: start test when all peers are connected
+ * Main function of the test.
  *
- * @param cls closure
- * @param emsg error message
+ * @param cls closure (NULL)
+ * @param ctx argument to give to GNUNET_DHT_TEST_cleanup on test end
+ * @param num_peers number of peers that are running
+ * @param peers array of peers
+ * @param dhts handle to each of the DHTs of the peers
  */
 static void
-peergroup_ready (void *cls, const char *emsg)
+run (void *cls,
+     struct GNUNET_DHT_TEST_Context *ctx,
+     unsigned int num_peers,
+     struct GNUNET_TESTBED_Peer **peers,
+     struct GNUNET_DHT_Handle **dhts)
 {
-  struct GNUNET_TESTING_Daemon *d;
-  char *buf;
-  int buf_len;
   unsigned int i;
 
-  if (emsg != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "test: Peergroup callback called with error, aborting test!\n");
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Error from testing: `%s'\n",
-                emsg);
-    ok++;
-    GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: Peer Group started successfully with %u connections\n",
-              total_connections);
-  if (data_file != NULL)
-  {
-    buf = NULL;
-    buf_len = GNUNET_asprintf (&buf, "CONNECTIONS_0: %u\n", total_connections);
-    if (buf_len > 0)
-      GNUNET_DISK_file_write (data_file, buf, buf_len);
-    GNUNET_free (buf);
-  }
-  peers_running = GNUNET_TESTING_daemons_running (pg);
-
-  GNUNET_assert (peers_running == num_peers);
-  hs = GNUNET_malloc (num_peers * sizeof (struct GNUNET_DHT_Handle *));
+  GNUNET_assert (NUM_PEERS == num_peers);
+  my_peers = peers;
   mhs = GNUNET_malloc (num_peers * sizeof (struct GNUNET_DHT_MonitorHandle *));
-  d_far = o = NULL;
-  o = GNUNET_TESTING_daemon_get (pg, 0);
-  d_far = GNUNET_TESTING_daemon_get (pg, 4);
-
   for (i = 0; i < num_peers; i++)
   {
     d = GNUNET_TESTING_daemon_get (pg, i);
     hs[i] = GNUNET_DHT_connect (d->cfg, 32);
-    mhs[i] = GNUNET_DHT_monitor_start(hs[i],
-                                      GNUNET_BLOCK_TYPE_ANY,
-                                      NULL,
-                                      &monitor_get_cb,
-                                      &monitor_res_cb,
-                                      &monitor_put_cb,
-                                      (void *)(long)i);
+    mhs[i] = GNUNET_DHT_monitor_start (hs[i],
+				       GNUNET_BLOCK_TYPE_ANY,
+				       NULL,
+				       &monitor_get_cb,
+				       &monitor_res_cb,
+				       &monitor_put_cb,
+				       (void *)(long)i);
   }
-
-  if ((NULL == o) || (NULL == d_far))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "test: Error getting daemons from pg\n");
-    GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
-    return;
-  }
-  monitor_counter = 0;
   put_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
 					   (GNUNET_TIME_UNIT_SECONDS, 3),
 					   &put_id, NULL);
@@ -500,146 +467,7 @@ peergroup_ready (void *cls, const char *emsg)
                                     NULL);
   disconnect_task =
       GNUNET_SCHEDULER_add_delayed (GET_TIMEOUT, &disconnect_peers, NULL);
-
 }
-
-
-/**
- * Function that will be called whenever two daemons are connected by
- * the testing library.
- *
- * @param cls closure
- * @param first peer id for first daemon
- * @param second peer id for the second daemon
- * @param distance distance between the connected peers
- * @param first_cfg config for the first daemon
- * @param second_cfg config for the second daemon
- * @param first_daemon handle for the first daemon
- * @param second_daemon handle for the second daemon
- * @param emsg error message (NULL on success)
- */
-static void
-connect_cb (void *cls, const struct GNUNET_PeerIdentity *first,
-            const struct GNUNET_PeerIdentity *second, uint32_t distance,
-            const struct GNUNET_CONFIGURATION_Handle *first_cfg,
-            const struct GNUNET_CONFIGURATION_Handle *second_cfg,
-            struct GNUNET_TESTING_Daemon *first_daemon,
-            struct GNUNET_TESTING_Daemon *second_daemon, const char *emsg)
-{
-
-  if (emsg == NULL)
-  {
-    total_connections++;
-    GNUNET_PEER_intern (first);
-    GNUNET_PEER_intern (second);
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "test: Problem with new connection (%s)\n", emsg);
-  }
-}
-
-
-/**
- * run: load configuration options and schedule test to run (start peergroup)
- * @param cls closure
- * @param args argv
- * @param cfgfile configuration file name (can be NULL)
- * @param cfg configuration handle
- */
-static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  char *temp_str;
-  struct GNUNET_TESTING_Host *hosts;
-  char *data_filename;
-
-  ok = 1;
-  testing_cfg = GNUNET_CONFIGURATION_dup (cfg);
-
-  GNUNET_log_setup ("test_dht_monitor",
-                    "WARNING",
-                    NULL);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Starting daemons.\n");
-  GNUNET_CONFIGURATION_set_value_string (testing_cfg, "testing_old",
-                                         "use_progressbars", "YES");
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (testing_cfg, "testing_old",
-                                             "num_peers", &num_peers))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Option TESTING:NUM_PEERS is required!\n");
-    return;
-  }
-
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (testing_cfg, "testing_old",
-                                             "topology_output_file",
-                                             &topology_file))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Option test_dht_monitor:topology_output_file is required!\n");
-    return;
-  }
-
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_string (testing_cfg, "test_dht_topo",
-                                             "data_output_file",
-                                             &data_filename))
-  {
-    data_file =
-        GNUNET_DISK_file_open (data_filename,
-                               GNUNET_DISK_OPEN_READWRITE |
-                               GNUNET_DISK_OPEN_CREATE,
-                               GNUNET_DISK_PERM_USER_READ |
-                               GNUNET_DISK_PERM_USER_WRITE);
-    if (data_file == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Failed to open %s for output!\n",
-                  data_filename);
-      GNUNET_free (data_filename);
-    }
-  }
-
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "test_dht_topo",
-                                             "output_file", &temp_str))
-  {
-    output_file =
-        GNUNET_DISK_file_open (temp_str,
-                               GNUNET_DISK_OPEN_READWRITE |
-                               GNUNET_DISK_OPEN_CREATE,
-                               GNUNET_DISK_PERM_USER_READ |
-                               GNUNET_DISK_PERM_USER_WRITE);
-    if (output_file == NULL)
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Failed to open %s for output!\n",
-                  temp_str);
-  }
-  GNUNET_free_non_null (temp_str);
-
-  hosts = GNUNET_TESTING_hosts_load (testing_cfg);
-
-  pg = GNUNET_TESTING_peergroup_start (testing_cfg, num_peers, TIMEOUT,
-                                       &connect_cb, &peergroup_ready, NULL,
-                                       hosts);
-  GNUNET_assert (pg != NULL);
-  shutdown_handle =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                    &shutdown_task, NULL);
-}
-
-
-/**
- * test_dht_monitor command line options
- */
-static struct GNUNET_GETOPT_CommandLineOption options[] = {
-  {'V', "verbose", NULL,
-   gettext_noop ("be verbose (print progress information)"),
-   0, &GNUNET_GETOPT_set_one, &verbose},
-  GNUNET_GETOPT_OPTION_END
-};
 
 
 /**
@@ -648,25 +476,12 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
 int
 main (int xargc, char *xargv[])
 {
-  char *const argv[] = { "test-dht-monitor",
-    "-c",
-    "test_dht_line.conf",
-    NULL
-  };
-
-  in_test = GNUNET_NO;
-  GNUNET_PROGRAM_run (sizeof (argv) / sizeof (char *) - 1, argv,
-                      "test_dht_monitor",
-                      gettext_noop ("Test dht monitoring in a line."),
-                      options, &run, NULL);
-#if REMOVE_DIR
-  GNUNET_DISK_directory_remove ("/tmp/test_dht_monitor");
-#endif
-  if (0 != ok)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test: FAILED!\n");
-  }
+  GNUNET_DHT_TEST_run ("test-dht-monitor",
+		       "test_dht_monitor.conf",
+		       NUM_PEERS,
+		       &run, NULL);
   return ok;
 }
+
 
 /* end of test_dht_monitor.c */
