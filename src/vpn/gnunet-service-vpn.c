@@ -35,6 +35,7 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_constants.h"
 #include "gnunet_tun_lib.h"
+#include "gnunet_regex_lib.h"
 #include "vpn.h"
 #include "exit.h"
 
@@ -807,27 +808,45 @@ create_tunnel_to_destination (struct DestinationEntry *de,
   }
   else
   {
+    char *policy;
+
     switch (de->details.exit_destination.af)
     {
     case AF_INET:
-      GNUNET_MESH_peer_request_connect_by_type (ts->tunnel,
-						GNUNET_APPLICATION_TYPE_IPV4_GATEWAY);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Creating tunnel to exit peer for %s\n",
-		  "IPv4");
-     break;
-    case AF_INET6:
-      GNUNET_MESH_peer_request_connect_by_type (ts->tunnel,
-						GNUNET_APPLICATION_TYPE_IPV6_GATEWAY);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Creating tunnel to exit peer for %s\n",
-		  "IPv6");
+    {
+      char address[GNUNET_REGEX_IPV4_REGEXLEN];
+      GNUNET_REGEX_ipv4toregex (&de->details.exit_destination.ip.v4,
+                                "255.255.255.255", address);
+      GNUNET_asprintf (&policy, "%s%s%s",
+                       GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
+                       "4",
+                       address);
       break;
+    }
+    case AF_INET6:
+    {
+      char address[GNUNET_REGEX_IPV6_REGEXLEN];
+      GNUNET_REGEX_ipv6toregex (&de->details.exit_destination.ip.v6,
+                                128, address);
+      GNUNET_asprintf (&policy, "%s%s%s",
+                       GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
+                       "6",
+                       address);
+      break;
+    }
     default:
       GNUNET_assert (0);
       break;
     }
-  }  
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Requesting connect by string: %s\n", policy);
+
+    GNUNET_MESH_peer_request_connect_by_string (ts->tunnel, policy);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Creating tunnel to exit peer for policy `%s'\n",
+                policy);
+    GNUNET_free (policy);
+  }
   return ts;
 }
 

@@ -42,7 +42,21 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_constants.h"
 #include "gnunet_tun_lib.h"
+#include "gnunet_regex_lib.h"
 #include "exit.h"
+
+/**
+ * Maximum path compression length for mesh regex announcing for IPv4 address
+ * based regex.
+ */
+#define REGEX_MAX_PATH_LEN_IPV4 4
+
+/**
+ * Maximum path compression length for mesh regex announcing for IPv6 address
+ * based regex.
+ */
+#define REGEX_MAX_PATH_LEN_IPV6 8
+
 
 /**
  * Information about an address.
@@ -3000,6 +3014,9 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   char *ipv4addr;
   char *ipv4mask;
   char *binary;
+  char *regex;
+  char ipv4regex[GNUNET_REGEX_IPV4_REGEXLEN];
+  char ipv6regex[GNUNET_REGEX_IPV6_REGEXLEN];
 
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-exit");
   if (GNUNET_YES !=
@@ -3189,6 +3206,34 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+
+  /* Mesh handle acquired, now announce regular expressions matching our exit */
+  if (GNUNET_YES == ipv4_enabled && GNUNET_YES == ipv4_exit)
+  {
+    GNUNET_REGEX_ipv4toregex (&exit_ipv4addr, ipv4mask, ipv4regex);
+    GNUNET_asprintf (&regex, "%s%s%s",
+                     GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
+                     "4",
+                     ipv4regex);
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Announcing exit regex: %s\n", regex);
+    GNUNET_MESH_announce_regex (mesh_handle, regex, REGEX_MAX_PATH_LEN_IPV4);
+    GNUNET_free (regex);
+  }
+
+  if (GNUNET_YES == ipv6_enabled && GNUNET_YES == ipv6_exit)
+  {
+    GNUNET_REGEX_ipv6toregex (&exit_ipv6addr, ipv6prefix, ipv6regex);
+    GNUNET_asprintf (&regex, "%s%s%s",
+                     GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
+                     "6",
+                     ipv6regex);
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Announcing exit regex: %s\n", regex);
+    GNUNET_MESH_announce_regex (mesh_handle, regex, REGEX_MAX_PATH_LEN_IPV4);
+    GNUNET_free (regex);
+  }
+
   helper_handle = GNUNET_HELPER_start (GNUNET_NO,
 				       "gnunet-helper-exit", 
 				       exit_argv,

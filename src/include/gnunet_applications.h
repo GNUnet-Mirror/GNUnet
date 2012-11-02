@@ -61,6 +61,12 @@ extern "C"
  */
 #define GNUNET_APPLICATION_TYPE_IPV6_GATEWAY 17
 
+/**
+ * Internet exit regex prefix. Consisting of application ID, followed by version
+ * and padding.
+ */
+#define GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX "GNEX0001PADPADPA"
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
