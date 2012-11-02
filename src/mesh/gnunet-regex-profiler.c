@@ -1,4 +1,4 @@
-/*
+/**
      This file is part of GNUnet.
      (C) 2011, 2012 Christian Grothoff (and other contributing authors)
 
@@ -339,6 +339,16 @@ static struct GNUNET_TIME_Relative search_timeout = { 60000 };
 static struct GNUNET_TIME_Relative search_delay = { 60000 };
 
 /**
+ * Delay before setting mesh service op as done.
+ */
+static struct GNUNET_TIME_Relative mesh_done_delay = { 1000 };
+
+/**
+ * Delay to wait before starting to configure the overlay topology
+ */
+static struct GNUNET_TIME_Relative conf_topo_delay = { 10000 };
+
+/**
  * File to log statistics to.
  */
 static struct GNUNET_DISK_FileHandle *data_file;
@@ -352,11 +362,6 @@ static char *data_filename;
  * Maximal path compression length.
  */
 static unsigned int max_path_compression;
-
-/**
- * Delay before setting mesh service op as done.
- */
-static struct GNUNET_TIME_Relative mesh_done_delay = { 1000 };
 
 /******************************************************************************/
 /******************************  DECLARATIONS  ********************************/
@@ -604,7 +609,8 @@ stats_cb (void *cls,
 
   if (++peer_cnt == num_search_strings)
   {
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    struct GNUNET_TIME_Relative delay = { 100 };
+    GNUNET_SCHEDULER_add_delayed (delay, &do_shutdown, NULL);
   }
 }
 
@@ -744,6 +750,9 @@ mesh_peer_connect_handler (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "String matching timed out for string %s on peer %u (%i/%i)\n",
                 peer->search_str, peer->id, peers_found, num_search_strings);
+
+    printf ("String matching timed out for string %s on peer %u (%i/%i)\n",
+	    peer->search_str, peer->id, peers_found, num_search_strings);
   }
   else
   {
@@ -897,8 +906,22 @@ do_mesh_op_done (void *cls,
 		 const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct RegexPeer *peer = cls;
+  static unsigned int peer_cnt;
   GNUNET_TESTBED_operation_done (peer->mesh_op_handle);
   peer->mesh_op_handle = NULL;
+
+  if (++peer_cnt < num_peers)
+  {
+    peers[peer_cnt].mesh_op_handle =
+      GNUNET_TESTBED_service_connect (NULL,
+				      peers[peer_cnt].peer_handle,
+				      "mesh",
+				      &mesh_connect_cb,
+				      &peers[peer_cnt],
+				      &mesh_ca,
+				      &mesh_da,
+				      &peers[peer_cnt]);
+  }
 }
 
 
@@ -914,7 +937,6 @@ void
 mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
                  void *ca_result, const char *emsg)
 {
-  static unsigned int peer_cnt;
   struct RegexPeer *peer = (struct RegexPeer *) cls;
   char *regex;
   char *data;
@@ -987,19 +1009,6 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
 
       GNUNET_SCHEDULER_add_delayed (mesh_done_delay, &do_mesh_op_done, peer);
       
-      if (++peer_cnt < num_peers)
-      {
-	  peers[peer_cnt].mesh_op_handle =
-	    GNUNET_TESTBED_service_connect (NULL,
-					    peers[peer_cnt].peer_handle,
-					    "mesh",
-					    &mesh_connect_cb,
-					    &peers[peer_cnt],
-					    &mesh_ca,
-					    &mesh_da,
-					    &peers[peer_cnt]);
-      }
-
       if (++num_files_announced == num_peers)
       {
 	state = STATE_SEARCH_REGEX;
@@ -1103,6 +1112,41 @@ mesh_da (void *cls, void *op_result)
 
 
 /**
+ * Configure the peer overlay topology.
+ *
+ * @param cls NULL
+ * @param tc the task context
+ */
+static void
+do_configure_topology (void *cls,
+		       const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  /*
+    if (0 == linking_factor)
+    linking_factor = 1;
+    num_links = linking_factor * num_peers;
+  */
+  /* num_links = num_peers - 1; */
+  num_links = linking_factor;
+
+  /* Do overlay connect */
+  prof_start_time = GNUNET_TIME_absolute_get ();
+  topology_op =
+    GNUNET_TESTBED_overlay_configure_topology (NULL, num_peers, peer_handles,
+					       GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI,
+					       num_links,
+					       GNUNET_TESTBED_TOPOLOGY_DISABLE_AUTO_RETRY,
+					       GNUNET_TESTBED_TOPOLOGY_OPTION_END);
+  if (NULL == topology_op)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Cannot create topology, op handle was NULL\n");
+    GNUNET_assert (0);
+  }
+}
+
+
+/**
  * Functions of this signature are called when a peer has been successfully
  * started or stopped.
  *
@@ -1143,28 +1187,16 @@ peer_churn_cb (void *cls, const char *emsg)
     for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
       peer_handles[peer_cnt] = peers[peer_cnt].peer_handle;
 
-    /*
-    if (0 == linking_factor)
-      linking_factor = 1;
-    num_links = linking_factor * num_peers;
-    */
-    /* num_links = num_peers - 1; */
-    num_links = linking_factor;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"Waiting %s before starting to link peers\n", 
+		GNUNET_STRINGS_relative_time_to_string (conf_topo_delay, GNUNET_YES));
+
+    printf ("Waiting %s before starting to link peers\n", 
+	    GNUNET_STRINGS_relative_time_to_string (conf_topo_delay, GNUNET_YES));
+    fflush (stdout);
+
     state = STATE_PEERS_LINKING;
-    /* Do overlay connect */
-    prof_start_time = GNUNET_TIME_absolute_get ();
-    topology_op =
-        GNUNET_TESTBED_overlay_configure_topology (NULL, num_peers, peer_handles,
-						   GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI,
-						   num_links,
-						   GNUNET_TESTBED_TOPOLOGY_DISABLE_AUTO_RETRY,
-                                                   GNUNET_TESTBED_TOPOLOGY_OPTION_END);
-    if (NULL == topology_op)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Cannot create topology, op handle was NULL\n");
-      GNUNET_assert (0);
-    }
+    GNUNET_SCHEDULER_add_delayed (conf_topo_delay, &do_configure_topology, NULL);
   }
 }
 
@@ -1401,12 +1433,13 @@ controller_event_cb (void *cls,
 			    sizeof (output_buffer),
 			    "# of peers: %u\n# of links established: %u\n"
 			    "Time to establish links: %s\nLinking failures: %u\n"
-			    "path compression length: %u\n",
+			    "path compression length: %u\n# of search strings: %u\n",
 			    num_peers,
 			    (established_links - cont_fails),
 			    GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO),
 			    cont_fails,
-			    max_path_compression);
+			    max_path_compression,
+			    num_search_strings);
 
 	 if (size != GNUNET_DISK_file_write (data_file, output_buffer, size))
 	   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to write to file!\n");
