@@ -125,21 +125,21 @@ check_PROGRAMS = \
  test_dht_twopeer \
  test_dht_multipeer \
  test_dht_line \
- test_dht_2dtorus 
-# test_dht_monitor
+ test_dht_2dtorus \
+ test_dht_monitor
 
 if HAVE_EXPERIMENTAL
 # These tests still do not work as testbed does
 # not support the respective topology op
- NEW_TESTS = test_dht_2dtorus test_dht_multipeer
+ NEW_TESTS = test_dht_2dtorus test_dht_multipeer 
 endif
 
 if ENABLE_TEST_RUN
 TESTS = test_dht_api $(check_SCRIPTS) \
  test_dht_twopeer \
  test_dht_line \
+ test_dht_monitor \
  $(NEW_TESTS) 
-# test_dht_monitor
 endif
 
 test_dht_api_SOURCES = \
@@ -184,18 +184,20 @@ test_dht_line_DEPENDENCIES = \
 test_dht_multipeer_SOURCES = \
  test_dht_topo.c
 test_dht_multipeer_LDADD = \
+ $(top_builddir)/src/dht/libgnunetdhttest.a \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
- $(top_builddir)/src/testing_old/libgnunettesting_old.la \
+ $(top_builddir)/src/testbed/libgnunettestbed.la \
  $(top_builddir)/src/dht/libgnunetdht.la  
 test_dht_multipeer_DEPENDENCIES = \
   libgnunetdht.la			    
 
-# fixme, rewrite based on test_dht_topo.c!
-test_dht_monitor_SOURCES = test_dht_monitor.c
+test_dht_monitor_SOURCES = \
+  test_dht_monitor.c
 test_dht_monitor_LDADD = \
+ $(top_builddir)/src/dht/libgnunetdhttest.a \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testing_old/libgnunettesting_old.la \
+ $(top_builddir)/src/testbed/libgnunettestbed.la \
  $(top_builddir)/src/dht/libgnunetdht.la
 test_dht_monitor_DEPENDENCIES = \
   libgnunetdht.la
@@ -205,6 +207,7 @@ EXTRA_DIST = \
   test_dht_api_data.conf \
   test_dht_api_peer1.conf \
   test_dht_twopeer_data.conf \
+  test_dht_monitor.conf \
   test_dht_multipeer.conf \
   test_dht_2dtorus.conf \
   test_dht_line.conf \

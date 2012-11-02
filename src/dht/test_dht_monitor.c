@@ -19,277 +19,212 @@
 */
 /**
  * @file dht/test_dht_monitor.c
- *
- * @brief Test for the dht service: store, retrieve and monitor in a line.
- * TODO: update this description
- * Each peer stores it own ID in the DHT and then a different peer tries to
- * retrieve that key from it. The GET starts after a first round of PUTS has
- * been made. Periodically, each peer stores its ID into the DHT. If after
- * a timeout no result has been returned, the test fails.
+ * @brief Test for the dht monitoring API; checks that we receive "some" monitor events
+ * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_testing_lib.h"
+#include "gnunet_testbed_service.h"
 #include "gnunet_dht_service.h"
-
-#define REMOVE_DIR GNUNET_YES
+#include "dht_test_lib.h"
 
 
 /**
- * How long until we give up on connecting the peers?
+ * How long do we run the test at most?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1500)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 
-#define GET_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
-
+/**
+ * How often do we run the PUTs?
+ */
 #define PUT_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
+
+/**
+ * Information we keep for each GET operation.
+ */
+struct GetOperation 
+{
+  /**
+   * DLL.
+   */
+  struct GetOperation *next;
+
+  /**
+   * DLL.
+   */
+  struct GetOperation *prev;
+
+  /**
+   * Handle for the operation.
+   */
+  struct GNUNET_DHT_GetHandle *get;
+
+};
+
+
+/**
+ * Return value from 'main'.
+ */
 static int ok;
 
 /**
- * Be verbose
+ * Head of list of active GET operations.
  */
-static int verbose;
+static struct GetOperation *get_head;
 
 /**
- * Total number of peers in the test.
+ * Tail of list of active GET operations.
  */
-static unsigned long long num_peers;
+static struct GetOperation *get_tail;
 
 /**
- * Global configuration file
- */
-static struct GNUNET_CONFIGURATION_Handle *testing_cfg;
+ * Array of the testbed's peers.
+ */ 
+static struct GNUNET_TESTBED_Peer **my_peers;
 
 /**
- * Total number of currently running peers.
+ * Number of peers to run.
  */
-static unsigned long long peers_running;
-
-/**
- * Total number of connections in the whole network.
- */
-static unsigned int total_connections;
-
-/**
- * The currently running peer group.
- */
-static struct GNUNET_TESTING_PeerGroup *pg;
-
-/**
- * File to report results to.
- */
-static struct GNUNET_DISK_FileHandle *output_file;
-
-/**
- * File to log connection info, statistics to.
- */
-static struct GNUNET_DISK_FileHandle *data_file;
+static unsigned int NUM_PEERS = 3;
 
 /**
  * Task called to disconnect peers.
  */
-static GNUNET_SCHEDULER_TaskIdentifier disconnect_task;
-
-/**
- * Task To perform tests
- */
-static GNUNET_SCHEDULER_TaskIdentifier test_task;
+static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
 /**
  * Task to do DHT_puts
  */
 static GNUNET_SCHEDULER_TaskIdentifier put_task;
 
-/**
- * Task called to shutdown test.
- */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_handle;
-
-static char *topology_file;
-
-static struct GNUNET_DHT_Handle **hs;
-
-static struct GNUNET_DHT_MonitorHandle **mhs;
-
-static struct GNUNET_DHT_GetHandle *get_h_far;
-
-static const char *id_far = "2UVH";
-
-static struct GNUNET_TESTING_Daemon *d_far;
-
-static struct GNUNET_TESTING_Daemon *o;
+static struct GNUNET_DHT_MonitorHandle **monitors;
 
 static unsigned int monitor_counter;
 
-static unsigned int monitor_expect = UINT_MAX;
 
-static int in_test;
+/**
+ * Task run on success or timeout to clean up.
+ * Terminates active get operations and shuts down
+ * the testbed.
+ *
+ * @param cls the 'struct GNUNET_DHT_TestContext'
+ * @param tc scheduler context
+ */ 
+static void
+shutdown_task (void *cls, 
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_DHT_TEST_Context *ctx = cls;
+  unsigned int i;
+  struct GetOperation *get_op;
+
+  ok = (monitor_counter > NUM_PEERS) ? 0 : 2;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "Received %u monitor events\n",
+	      monitor_counter);
+  while (NULL != (get_op = get_tail))
+  {
+    GNUNET_DHT_get_stop (get_op->get);
+    GNUNET_CONTAINER_DLL_remove (get_head,
+				 get_tail,
+				 get_op);
+    GNUNET_free (get_op);
+  }
+  for (i=0;i<NUM_PEERS;i++)
+    GNUNET_DHT_monitor_stop (monitors[i]);
+  GNUNET_free (monitors);
+  GNUNET_SCHEDULER_cancel (put_task);
+  GNUNET_DHT_TEST_cleanup (ctx);
+}
 
 
 /**
- * Check whether peers successfully shut down.
+ * Iterator called on each result obtained for a DHT
+ * operation that expects a reply
+ *
+ * @param cls closure with our 'struct GetOperation'
+ * @param exp when will this value expire
+ * @param key key of the result
+ * @param get_path peers on reply path (or NULL if not recorded)
+ * @param get_path_length number of entries in get_path
+ * @param put_path peers on the PUT path (or NULL if not recorded)
+ * @param put_path_length number of entries in get_path
+ * @param type type of the result
+ * @param size number of bytes in data
+ * @param data pointer to the result data
  */
 static void
-shutdown_callback (void *cls, const char *emsg)
+dht_get_handler (void *cls, struct GNUNET_TIME_Absolute exp,
+		 const struct GNUNET_HashCode * key,
+		 const struct GNUNET_PeerIdentity *get_path,
+		 unsigned int get_path_length,
+		 const struct GNUNET_PeerIdentity *put_path,
+		 unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
+		 size_t size, const void *data)
 {
-  if (emsg != NULL)
+  struct GetOperation *get_op = cls;
+  struct GNUNET_HashCode want;
+  struct GNUNET_DHT_TestContext *ctx;
+
+  if (sizeof (struct GNUNET_HashCode) != size)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "test: Shutdown of peers failed: %s\n",
-		emsg);
-    ok++;
+    GNUNET_break (0);
+    return;
   }
-  else
+  GNUNET_CRYPTO_hash (key, sizeof (*key), &want);
+  if (0 != memcmp (&want, data, sizeof (want)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "test: All peers successfully shut down!\n");
+    GNUNET_break (0);
+    return;
   }
-  GNUNET_CONFIGURATION_destroy (testing_cfg);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Get successful\n");
+  GNUNET_DHT_get_stop (get_op->get);
+  GNUNET_CONTAINER_DLL_remove (get_head,
+			       get_tail,
+			       get_op);
+  GNUNET_free (get_op);
+  if (NULL != get_head)
+    return;
+  /* all DHT GET operations successful; terminate! */
+  ok = 0;
+  ctx = GNUNET_SCHEDULER_cancel (timeout_task);
+  timeout_task = GNUNET_SCHEDULER_add_now (&shutdown_task, ctx);
 }
 
 
+/**
+ * Task to put the id of each peer into the DHT.
+ * 
+ * @param cls array with NUM_PEERS DHT handles
+ * @param tc Task context
+ */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_puts (void *cls,
+	 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Ending test.\n");
-  if (disconnect_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  if (data_file != NULL)
-    GNUNET_DISK_file_close (data_file);
-  GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
-}
-
-
-static void
-disconnect_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
+  struct GNUNET_DHT_Handle **hs = cls;
+  struct GNUNET_HashCode key;
+  struct GNUNET_HashCode value;
   unsigned int i;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: disconnecting peers\n");
-  disconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_SCHEDULER_cancel (put_task);
-  if (NULL != get_h_far)
-    GNUNET_DHT_get_stop (get_h_far);
-  for (i = 0; i < num_peers; i++)
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Putting values into DHT\n");
+  for (i = 0; i < NUM_PEERS; i++)
   {
-    GNUNET_DHT_monitor_stop(mhs[i]);
-    GNUNET_DHT_disconnect (hs[i]);
+    GNUNET_CRYPTO_hash (&i, sizeof (i), &key);
+    GNUNET_CRYPTO_hash (&key, sizeof (key), &value);
+    GNUNET_DHT_put (hs[i], &key, 10U,
+                    GNUNET_DHT_RO_RECORD_ROUTE |
+                    GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                    GNUNET_BLOCK_TYPE_TEST, 
+		    sizeof (value), &value, 
+		    GNUNET_TIME_UNIT_FOREVER_ABS,
+                    GNUNET_TIME_UNIT_FOREVER_REL, 
+		    NULL, NULL);
   }
-  GNUNET_SCHEDULER_cancel (shutdown_handle);
-  shutdown_handle = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
-}
-
-
-static void
-dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
-                    const struct GNUNET_HashCode * key,
-                    const struct GNUNET_PeerIdentity *get_path,
-                    unsigned int get_path_length,
-                    const struct GNUNET_PeerIdentity *put_path,
-                    unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
-                    size_t size, const void *data)
-{
-  int i;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: ************* FOUND!!! ***********\n");
-  if (sizeof (struct GNUNET_HashCode) == size)
-  {
-    const struct GNUNET_HashCode *h = data;
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:   Contents: %s\n",
-                GNUNET_h2s_full (h));
-
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: PATH: (get %u, put %u)\n",
-              get_path_length, put_path_length);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:   LOCAL\n");
-  for (i = get_path_length - 1; i >= 0; i--)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:   %s\n",
-                GNUNET_i2s (&get_path[i]));
-  }
-  for (i = put_path_length - 1; i >= 0; i--)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:   %s\n",
-                GNUNET_i2s (&put_path[i]));
-  }
-  monitor_expect = get_path_length + put_path_length;
-  if (monitor_counter >= monitor_expect)
-  {
-    ok = 0;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "expected at least %u hops, got %u\n",
-                get_path_length + put_path_length, monitor_counter);
-    GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
-  }
-}
-
-
-/**
- * Start test: start GET request from the first node in the line looking for
- * the ID of the last node in the line.
- * 
- * @param cls Closure (not used).
- * @param tc Task context.
- */
-static void
-do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-  {
-    return;
-  }
-  
-  in_test = GNUNET_YES;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: test_task\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: looking for %s\n",
-              GNUNET_h2s_full (&d_far->id.hashPubKey));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:        from %s\n",
-              GNUNET_h2s_full (&o->id.hashPubKey));
-  get_h_far = GNUNET_DHT_get_start (hs[0], 
-                                    GNUNET_BLOCK_TYPE_TEST,     /* type */
-                                    &d_far->id.hashPubKey,      /*key to search */
-                                    4U, /* replication level */
-                                    GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, NULL,    /* xquery */
-                                    0,  /* xquery bits */
-                                    &dht_get_id_handler, NULL);
-  GNUNET_SCHEDULER_cancel (disconnect_task);
-  disconnect_task =
-      GNUNET_SCHEDULER_add_delayed (GET_TIMEOUT, &disconnect_peers, NULL);
-}
-
-
-/**
- * Periodic function used to put the ID of the far peer in the DHT.
- * 
- * @param cls Closure (not used).
- * @param tc Task context.
- */
-static void
-put_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct GNUNET_TESTING_Daemon *d;
-
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-  {
-    put_task = GNUNET_SCHEDULER_NO_TASK;
-    return;
-  }
-
-  d = GNUNET_TESTING_daemon_get (pg, 4);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: putting into DHT: %s\n",
-              GNUNET_h2s_full (&d->id.hashPubKey));
-  GNUNET_DHT_put (hs[4], &d->id.hashPubKey, 10U,
-                  GNUNET_DHT_RO_RECORD_ROUTE |
-                  GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-                  GNUNET_BLOCK_TYPE_TEST, sizeof (struct GNUNET_PeerIdentity),
-                  (const char *) &d->id, GNUNET_TIME_UNIT_FOREVER_ABS,
-                  GNUNET_TIME_UNIT_FOREVER_REL, NULL, NULL);
-
-  put_task = GNUNET_SCHEDULER_add_delayed (PUT_FREQUENCY, &put_id, NULL);
+  put_task = GNUNET_SCHEDULER_add_delayed (PUT_FREQUENCY, 
+					   &do_puts, hs);
 }
 
 
@@ -316,27 +251,14 @@ monitor_get_cb (void *cls,
                 const struct GNUNET_PeerIdentity *path,
                 const struct GNUNET_HashCode * key)
 {
-  const char *s_key;
   unsigned int i;
 
   i = (unsigned int) (long) cls;
-  s_key = GNUNET_h2s(key);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "%u got a GET message for key %s\n",
-              i, s_key);
-
-  if (strncmp (s_key, id_far, 4) == 0 && in_test == GNUNET_YES)
-  {
-    monitor_counter++;
-    if (monitor_counter >= monitor_expect)
-    {
-      ok = 0;
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "expected at least %u hops, got %u\n",
-		  monitor_expect, monitor_counter);
-      GNUNET_SCHEDULER_cancel (disconnect_task);
-      disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
-    }
-  }
+              i,
+	      GNUNET_h2s (key));
+  monitor_counter++;
 }
 
 
@@ -369,18 +291,14 @@ monitor_put_cb (void *cls,
                 const void *data,
                 size_t size)
 {
-  const char *s_key;
   unsigned int i;
 
   i = (unsigned int) (long) cls;
-  s_key = GNUNET_h2s(key);
-
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "%u got a PUT message for key %s with %u bytes\n",
-              i, s_key, size);
-
-  if (strncmp (s_key, id_far, 4) == 0 && in_test == GNUNET_YES)
-    monitor_counter++;
+              i, 
+	      GNUNET_h2s (key), size);
+  monitor_counter++;
 }
 
 
@@ -411,17 +329,14 @@ monitor_res_cb (void *cls,
                 const void *data,
                 size_t size)
 {
-  const char *s_key;
   unsigned int i;
 
   i = (unsigned int) (long) cls;
-  s_key = GNUNET_h2s(key);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "%u got a REPLY message for key %s with %u bytes\n",
-              i, s_key, size);
-
-  if (strncmp (s_key, id_far, 4) == 0 && in_test == GNUNET_YES)
-    monitor_counter++;
+              i, 
+	      GNUNET_h2s (key), size);
+  monitor_counter++;
 }
 
 
@@ -442,31 +357,45 @@ run (void *cls,
      struct GNUNET_DHT_Handle **dhts)
 {
   unsigned int i;
+  unsigned int j;
+  struct GNUNET_HashCode key;
+  struct GetOperation *get_op;
 
   GNUNET_assert (NUM_PEERS == num_peers);
   my_peers = peers;
-  mhs = GNUNET_malloc (num_peers * sizeof (struct GNUNET_DHT_MonitorHandle *));
+  monitors = GNUNET_malloc (num_peers * sizeof (struct GNUNET_DHT_MonitorHandle *));
   for (i = 0; i < num_peers; i++)
+    monitors[i] = GNUNET_DHT_monitor_start (dhts[i],
+					    GNUNET_BLOCK_TYPE_ANY,
+					    NULL,
+					    &monitor_get_cb,
+					    &monitor_res_cb,
+					    &monitor_put_cb,
+					    (void *)(long)i);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Peers setup, starting test\n");
+  put_task = GNUNET_SCHEDULER_add_now (&do_puts, dhts);
+  for (i=0;i<num_peers;i++)
   {
-    d = GNUNET_TESTING_daemon_get (pg, i);
-    hs[i] = GNUNET_DHT_connect (d->cfg, 32);
-    mhs[i] = GNUNET_DHT_monitor_start (hs[i],
-				       GNUNET_BLOCK_TYPE_ANY,
-				       NULL,
-				       &monitor_get_cb,
-				       &monitor_res_cb,
-				       &monitor_put_cb,
-				       (void *)(long)i);
+    GNUNET_CRYPTO_hash (&i, sizeof (i), &key);
+    for (j=0;j<num_peers;j++)
+    {
+      get_op = GNUNET_malloc (sizeof (struct GetOperation));
+      GNUNET_CONTAINER_DLL_insert (get_head,
+				   get_tail,
+				   get_op);
+      get_op->get = GNUNET_DHT_get_start (dhts[j], 
+					  GNUNET_BLOCK_TYPE_TEST, /* type */
+					  &key,      /*key to search */
+					  4U,     /* replication level */
+					  GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+					  NULL,        /* xquery */
+					  0,      /* xquery bits */
+					  &dht_get_handler, get_op);
+    }
   }
-  put_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-					   (GNUNET_TIME_UNIT_SECONDS, 3),
-					   &put_id, NULL);
-  test_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 6), &do_test,
-                                    NULL);
-  disconnect_task =
-      GNUNET_SCHEDULER_add_delayed (GET_TIMEOUT, &disconnect_peers, NULL);
+  timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, 
+					       &shutdown_task, ctx);
 }
 
 
