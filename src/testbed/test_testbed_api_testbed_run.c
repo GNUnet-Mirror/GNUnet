@@ -186,6 +186,19 @@ main (int argc, char **argv)
     GNUNET_break (0);
     return 1;
   }
+  testname = GNUNET_strdup (testname);
+#ifdef MINGW
+  {
+    char *period;
+
+    /* check and remove .exe extension */
+    period = strrchr (testname, (int) '.');
+    if (NULL != period)
+      *period = '\0';
+    else
+      GNUNET_break (0);         /* Windows with no .exe? */
+  }
+#endif
   if (0 != strcmp ("run", testname))
   {
     GNUNET_asprintf (&config_filename, 
@@ -193,6 +206,7 @@ main (int argc, char **argv)
   }
   else
     config_filename = GNUNET_strdup ("test_testbed_api.conf");
+  GNUNET_free (testname);
   argv2[2] = config_filename;
   result = GNUNET_SYSERR;
   ret =
