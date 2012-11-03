@@ -157,8 +157,8 @@ test_dht_twopeer_SOURCES = \
 test_dht_twopeer_LDADD = \
  $(top_builddir)/src/dht/libgnunetdhttest.a \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testbed/libgnunettestbed.la \
  $(top_builddir)/src/dht/libgnunetdhttest.a \
+ $(top_builddir)/src/testbed/libgnunettestbed.la \
  $(top_builddir)/src/dht/libgnunetdht.la    
 test_dht_twopeer_DEPENDENCIES = \
   libgnunetdht.la			    
