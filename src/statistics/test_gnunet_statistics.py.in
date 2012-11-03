@@ -71,7 +71,6 @@ def restart ():
   time.sleep (1)
   t = r_arm (['-i', 'statistics'])
   time.sleep (1)
-  print ("DONE")
 
 
 cleanup ()
@@ -81,10 +80,9 @@ t = r_arm (['-s'], want_stdo = False)
 time.sleep (1)
 t = r_arm (['-i', 'statistics'], want_stdo = False)
 time.sleep (1)
-print ("DONE")
 
 print ("TEST: Bad argument checking...", end='')
-r_st (['-x'], normal = False, nofail = True, want_stdo = False)
+r_st (['-x'], normal = False, nofail = True, want_stdo = False, want_stde = True)
 print ("PASS")
 
 print ("TEST: Set value...", end='')
@@ -146,6 +144,5 @@ print ("PASS")
 print ("Stopping service...")
 t = r_arm (['-e'], want_stdo = False)
 time.sleep (1)
-print ("DONE")
 
 cleanup ()

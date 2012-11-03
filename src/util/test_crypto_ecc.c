@@ -27,6 +27,7 @@
 #include "gnunet_common.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_signatures.h"
+#include <gcrypt.h>
 
 #define TESTSTRING "Hello World\0"
 #define MAX_TESTVAL sizeof(struct GNUNET_CRYPTO_AesSessionKey)
