@@ -73,6 +73,7 @@ static char *remote_host;
  */
 static unsigned long long  remote_port;
 
+
 /**
  * Callback function to process statistic values.
  *
@@ -138,17 +139,22 @@ cleanup (void *cls, int success)
 }
 
 
+/**
+ * Function run on shutdown to clean up.
+ *
+ * @param cls the statistics handle
+ * @param tc scheduler context
+ */
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_STATISTICS_Handle *h = cls;
 
-  if (NULL != h)
-  {
-    GNUNET_STATISTICS_watch_cancel (h, subsystem, name, &printer, h);
-    GNUNET_STATISTICS_destroy (h, GNUNET_NO);
-    h = NULL;
-  }
+  if (NULL == h)
+    return;
+  GNUNET_STATISTICS_watch_cancel (h, subsystem, name, &printer, h);
+  GNUNET_STATISTICS_destroy (h, GNUNET_NO);
+  h = NULL;  
 }
 
 
@@ -210,9 +216,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     h = NULL;
     return;
   }
-  h = GNUNET_STATISTICS_create ("gnunet-statistics", cfg);
-  GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, h);
-  if (NULL == h)
+  if (NULL == (h = GNUNET_STATISTICS_create ("gnunet-statistics", cfg)))
   {
     ret = 1;
     return;
@@ -229,8 +233,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     if ((NULL == subsystem) || (NULL == name))
     {
       printf (_("No subsystem or name given\n"));
-      if (h != NULL)
-        GNUNET_STATISTICS_destroy (h, GNUNET_NO);
+      GNUNET_STATISTICS_destroy (h, GNUNET_NO);
+      h = NULL;      
       ret = 1;
       return;
     }
@@ -241,7 +245,10 @@ run (void *cls, char *const *args, const char *cfgfile,
       return;
     }
   }
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, 
+				&shutdown_task, h);
 }
+
 
 /**
  * The main function to obtain statistics in GNUnet.
