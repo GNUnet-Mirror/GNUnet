@@ -308,7 +308,7 @@ static char * policy_dir;
 /**
  * Search strings.
  */
-static char **search_strings = NULL;
+static char **search_strings;
 
 /**
  * Number of search strings.
