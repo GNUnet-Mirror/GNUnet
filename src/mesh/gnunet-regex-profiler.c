@@ -146,6 +146,14 @@ struct RegexPeer
   const char *search_str;
 
   /**
+   * Set to GNUNET_YES if the peer successfully matched the above
+   * search string. GNUNET_NO if the string could not be matched
+   * during the profiler run. GNUNET_SYSERR if the string matching
+   * timed out. Undefined if search_str is NULL
+   */
+  int search_str_matched;
+
+  /**
    * Peer's mesh handle.
    */
   struct GNUNET_MESH_Handle *mesh_handle;
@@ -300,7 +308,7 @@ static char * policy_dir;
 /**
  * Search strings.
  */
-static char **search_strings;
+static char **search_strings = NULL;
 
 /**
  * Number of search strings.
@@ -441,9 +449,12 @@ static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct DLLOperation *dll_op;
+  struct RegexPeer *peer;
   unsigned int nhost;
   unsigned int peer_cnt;
   unsigned int search_str_cnt;
+  char output_buffer[512];
+  size_t size;
 
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
@@ -452,6 +463,25 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
   {
+    peer = &peers[peer_cnt];
+
+    if (GNUNET_YES != peer->search_str_matched && NULL != data_file)
+    {
+      prof_time = GNUNET_TIME_absolute_get_duration (peer->prof_start_time);
+      size =
+	GNUNET_snprintf (output_buffer,
+			 sizeof (output_buffer),
+			 "Search string not found: %s (%d)\nOn peer: %u (%p)\nWith policy file: %s\nAfter: %s\n",
+			 peer->search_str,
+			 peer->search_str_matched,
+			 peer->id,
+			 peer,
+			 peer->policy_file,
+			 GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
+      if (size != GNUNET_DISK_file_write (data_file, output_buffer, size))
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to write to file!\n");
+    }
+
     if (NULL != peers[peer_cnt].mesh_op_handle)
       GNUNET_TESTBED_operation_done (peers[peer_cnt].mesh_op_handle);
     if (NULL != peers[peer_cnt].stats_op_handle)
@@ -461,9 +491,13 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != data_file)
     GNUNET_DISK_file_close (data_file);
 
-  for (search_str_cnt = 0; search_str_cnt < num_search_strings; search_str_cnt++)
-    GNUNET_free (search_strings[search_str_cnt]);
-  GNUNET_free (search_strings);
+  for (search_str_cnt = 0; 
+       search_str_cnt < num_search_strings && NULL != search_strings; 
+       search_str_cnt++)
+  {
+    GNUNET_free_non_null (search_strings[search_str_cnt]);
+  }
+  GNUNET_free_non_null (search_strings);
 
   if (NULL != reg_handle)
     GNUNET_TESTBED_cancel_registration (reg_handle);
@@ -656,6 +690,7 @@ stats_connect_cb (void *cls,
 
   peer->prof_start_time = GNUNET_TIME_absolute_get ();
 
+  peer->search_str_matched = GNUNET_NO;
   GNUNET_MESH_peer_request_connect_by_string (peer->mesh_tunnel_handle,
                                               peer->search_str);
 }
@@ -756,6 +791,8 @@ mesh_peer_connect_handler (void *cls,
 
     printf ("String matching timed out for string %s on peer %u (%i/%i)\n",
 	    peer->search_str, peer->id, peers_found, num_search_strings);
+
+    peer->search_str_matched = GNUNET_SYSERR;
   }
   else
   {
@@ -769,6 +806,8 @@ mesh_peer_connect_handler (void *cls,
 	    peer->search_str, peer->id, GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO),
 	    peers_found, num_search_strings);
     fflush (stdout);
+
+    peer->search_str_matched = GNUNET_YES;
 
     if (NULL != data_file)
     {
@@ -875,6 +914,7 @@ do_connect_by_string (void *cls,
   {
     peer = &peers[search_cnt % num_peers];
     peer->search_str = search_strings[search_cnt];
+    peer->search_str_matched = GNUNET_NO;
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Searching for string \"%s\" on peer %d with file %s\n",
@@ -1281,14 +1321,7 @@ policy_filename_cb (void *cls, const char *filename)
 
   GNUNET_assert (NULL != peer);
 
-  peer->id = peer_cnt;
   peer->policy_file = GNUNET_strdup (filename);
-  /* Do not start peers on hosts[0] (master controller) */
-  peer->host_handle = hosts[1 + (peer_cnt % (num_hosts -1))];
-  peer->mesh_handle = NULL;
-  peer->mesh_tunnel_handle = NULL;
-  peer->stats_handle = NULL;
-  peer->stats_op_handle = NULL;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Creating peer %i on host %s for policy file %s\n",
               peer->id,
@@ -1330,6 +1363,7 @@ controller_event_cb (void *cls,
     case GNUNET_TESTBED_ET_OPERATION_FINISHED:
       {
         static unsigned int slaves_started;
+	unsigned int peer_cnt;
 
         dll_op = event->details.operation_finished.op_cls;
         GNUNET_CONTAINER_DLL_remove (dll_op_head, dll_op_tail, dll_op);
@@ -1359,6 +1393,22 @@ controller_event_cb (void *cls,
                                                   NULL,
                                                   NULL);
           peers = GNUNET_malloc (sizeof (struct RegexPeer) * num_peers);
+
+	  /* Initialize peers */
+	  for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
+	  {
+	    struct RegexPeer *peer = &peers[peer_cnt];
+	    peer->id = peer_cnt;
+	    peer->policy_file = NULL;
+	    /* Do not start peers on hosts[0] (master controller) */
+	    peer->host_handle = hosts[1 + (peer_cnt % (num_hosts -1))];
+	    peer->mesh_handle = NULL;
+	    peer->mesh_tunnel_handle = NULL;
+	    peer->stats_handle = NULL;
+	    peer->stats_op_handle = NULL;
+	    peer->search_str = NULL;
+	    peer->search_str_matched = GNUNET_NO;
+	  }
 
           GNUNET_DISK_directory_scan (policy_dir,
                                       &policy_filename_cb,
@@ -1686,6 +1736,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
   unsigned int nhost;
+  unsigned int nsearchstrs;
 
   if (NULL == args[0])
   {
@@ -1748,8 +1799,10 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
-  if (num_search_strings != load_search_strings (args[2], &search_strings, num_search_strings))
+  nsearchstrs = load_search_strings (args[2], &search_strings, num_search_strings);
+  if (num_search_strings != nsearchstrs)
   {
+    num_search_strings = nsearchstrs;
     fprintf (stderr, _("Error loading search strings. Given file does not contain enough strings. Exiting.\n"));
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
