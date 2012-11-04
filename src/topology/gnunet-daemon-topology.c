@@ -1364,6 +1364,7 @@ main (int argc, char *const *argv)
                            _
                            ("GNUnet topology control (maintaining P2P mesh and F2F constraints)"),
                            options, &run, NULL)) ? 0 : 1;
+  GNUNET_free ((void*) argv);
   return ret;
 }
 

@@ -364,8 +364,7 @@ extract_files (struct ScanTreeNode *item)
   
   /* this is the expensive operation, *afterwards* we'll check for aborts */
   meta = GNUNET_CONTAINER_meta_data_create ();
-  if (NULL != plugins)
-    EXTRACTOR_extract (plugins, item->filename, NULL, 0, &add_to_md, meta);
+  EXTRACTOR_extract (plugins, item->filename, NULL, 0, &add_to_md, meta);
   slen = strlen (item->filename) + 1;
   size = GNUNET_CONTAINER_meta_data_get_serialized_size (meta);
   if (-1 == size)
@@ -462,6 +461,7 @@ int main(int argc,
     FPRINTF (stderr, 
 	     "%s",
 	     "gnunet-helper-fs-publish needs exactly one or two arguments\n");
+    GNUNET_free ((void*) argv);
     return 1;
   }
   filename_expanded = argv[1];
@@ -480,13 +480,19 @@ int main(int argc,
 				    &root))
   {
     (void) write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_ERROR, NULL, 0);
+    EXTRACTOR_plugin_remove_all (plugins);
+    GNUNET_free ((void*) argv);
     return 2;
   }
   /* signal that we're done counting files, so that a percentage of 
      progress can now be calculated */
   if (GNUNET_OK !=
       write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_COUNTING_DONE, NULL, 0))
+  {
+    EXTRACTOR_plugin_remove_all (plugins);
+    GNUNET_free ((void*) argv);
     return 3;  
+  }
   if (NULL != root)
   {
     if (GNUNET_OK !=
@@ -494,15 +500,16 @@ int main(int argc,
     {
       (void) write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_ERROR, NULL, 0);
       free_tree (root);
+      EXTRACTOR_plugin_remove_all (plugins);
+      GNUNET_free ((void*) argv);
       return 4;
     }
     free_tree (root);
   }
   /* enable "clean" shutdown by telling parent that we are done */
   (void) write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_FINISHED, NULL, 0);
-  if (NULL != plugins)
-    EXTRACTOR_plugin_remove_all (plugins);
-
+  EXTRACTOR_plugin_remove_all (plugins);
+  GNUNET_free ((void*) argv);  
   return 0;
 }
 

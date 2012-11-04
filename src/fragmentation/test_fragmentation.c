@@ -25,8 +25,6 @@
 #include "platform.h"
 #include "gnunet_fragmentation_lib.h"
 
-#define VERBOSE GNUNET_NO
-
 #define DETAILS GNUNET_NO
 
 /**
@@ -234,21 +232,13 @@ main (int argc, char *argv[])
     "-c",
     "test_fragmentation_data.conf",
     "-L",
-#if VERBOSE
-    "DEBUG",
-#else
     "WARNING",
-#endif
     NULL
   };
   unsigned int i;
 
   GNUNET_log_setup ("test-fragmentation",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   for (i = 0; i < NUM_MSGS; i++)
     GNUNET_BANDWIDTH_tracker_init (&trackers[i],

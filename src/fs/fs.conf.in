@@ -30,7 +30,6 @@ UNIX_MATCH_UID = NO
 
 # Do we require users that want to access file-sharing to be in the 'gnunet' group?
 UNIX_MATCH_GID = YES
-# DEBUG = YES
 
 # Maximum number of requests this peer tracks (important for
 # memory consumption; 2k RAM/request is not unusual)

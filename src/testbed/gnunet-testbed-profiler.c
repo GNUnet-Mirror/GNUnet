@@ -817,6 +817,7 @@ main (int argc, char *const *argv)
       GNUNET_PROGRAM_run (argc, argv, "gnunet-testbed-profiler [OPTIONS] hosts-file",
                           _("Profiler for testbed"),
                           options, &run, NULL);
+  GNUNET_free ((void*) argv);
   if (GNUNET_OK != ret)
     return ret;
   if (GNUNET_OK != result)

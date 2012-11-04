@@ -28,8 +28,6 @@
 #include "gnunet_program_lib.h"
 #include "gnunet_protocols.h"
 
-#define VERBOSE GNUNET_NO
-
 #define START_ARM GNUNET_YES
 
 #define LOG_BACKOFF GNUNET_NO
@@ -115,9 +113,7 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 
   if (msg == NULL) 
   {
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service shutdown complete.\n");
-#endif
     if (shutdown_ctx->cont != NULL)
       shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_NO);
     
@@ -131,10 +127,8 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN:
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Received confirmation for service shutdown.\n");
-#endif
     shutdown_ctx->confirmed = GNUNET_YES;
     GNUNET_CLIENT_receive (shutdown_ctx->sock,
 			   &service_shutdown_handler, shutdown_ctx,
@@ -379,9 +373,6 @@ check ()
   char *const argv[] = {
     "test-exponential-backoff",
     "-c", "test_arm_api_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -431,11 +422,7 @@ main (int argc, char *argv[])
   int ret;
 
   GNUNET_log_setup ("test-exponential-backoff",
-#if VERBOSE
-		    "DEBUG",
-#else
 		    "WARNING",
-#endif
 		    NULL);
 
   init ();

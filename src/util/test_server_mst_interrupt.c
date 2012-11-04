@@ -30,7 +30,7 @@
 #include "gnunet_time_lib.h"
 
 static struct GNUNET_SERVER_MessageStreamTokenizer * mst;
-static int ret;
+
 
 /* Callback destroying mst with data in buffer */
 static int
@@ -42,40 +42,23 @@ mst_cb (void *cls, void *client,
   return GNUNET_SYSERR;
 }
 
-/**
- * Main method
- */
-static int
-check ()
-{
-
-  struct GNUNET_PeerIdentity id;
-  struct GNUNET_MessageHeader msg[2];
-
-  /* Prepare */
-  memset (&id, sizeof (id), '\0');
-  msg[0].size = htons (sizeof (msg));
-  msg[0].type = htons (sizeof (GNUNET_MESSAGE_TYPE_DUMMY));
-
-  mst = GNUNET_SERVER_mst_create(mst_cb, NULL);
-
-  GNUNET_SERVER_mst_receive(mst, &id,  (const char *) &msg, 2 * sizeof (msg), GNUNET_NO, GNUNET_NO);
-
-  /* If we reach this line, it did not crash */
-  ret = 0;
-
-  return ret;
-}
 
 int
 main (int argc, char *argv[])
 {
-  ret = 1;
+  struct GNUNET_PeerIdentity id;
+  struct GNUNET_MessageHeader msg[2];
 
-  GNUNET_log_setup ("test_server", "WARNING", NULL);
-  check ();
-
-  return ret;
+  GNUNET_log_setup ("test_server_mst_interrupt", "WARNING", NULL);
+  memset (&id, 0, sizeof (id));
+  msg[0].size = htons (sizeof (msg));
+  msg[0].type = htons (sizeof (GNUNET_MESSAGE_TYPE_DUMMY));
+  mst = GNUNET_SERVER_mst_create(mst_cb, NULL);
+  GNUNET_SERVER_mst_receive (mst, &id,  
+			     (const char *) &msg, 2 * sizeof (msg), 
+			     GNUNET_NO, GNUNET_NO);
+  /* If we reach this line, it did not crash */
+  return 0;
 }
 
 /* end of test_server_mst_interrupt.c */

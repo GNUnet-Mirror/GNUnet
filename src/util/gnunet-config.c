@@ -170,14 +170,15 @@ main (int argc, char *const *argv)
       1, &GNUNET_GETOPT_set_string, &value },
     GNUNET_GETOPT_OPTION_END
   };
-
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
-  return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc, argv, "gnunet-config [OPTIONS]",
-                              gettext_noop ("Manipulate GNUnet configuration files"),
-                              options, &run, NULL)) ? 0 : ret;
+  ret = (GNUNET_OK ==
+	 GNUNET_PROGRAM_run (argc, argv, "gnunet-config [OPTIONS]",
+			     gettext_noop ("Manipulate GNUnet configuration files"),
+			     options, &run, NULL)) ? 0 : ret;
+  GNUNET_free ((void*) argv);
+  return ret;
 }
 
 /* end of gnunet-config.c */

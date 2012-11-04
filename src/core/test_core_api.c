@@ -31,10 +31,6 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
 
-#define VERBOSE GNUNET_NO
-
-#define START_ARM GNUNET_YES
-
 #define MTYPE 12345
 
 struct PeerContext
@@ -46,9 +42,7 @@ struct PeerContext
   struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
   struct GNUNET_MessageHeader *hello;
   int connect_status;
-#if START_ARM
   struct GNUNET_OS_Process *arm_proc;
-#endif
 };
 
 static struct PeerContext p1;
@@ -61,11 +55,7 @@ static GNUNET_SCHEDULER_TaskIdentifier con_task;
 
 static int ok;
 
-#if VERBOSE
 #define OKPP do { ok++; GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
-#else
-#define OKPP do { ok++; } while (0)
-#endif
 
 
 static void
@@ -111,9 +101,8 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-#if VERBOSE
-  FPRINTF (stderr, "ENDING ANGRILY %u\n", ok);
-#endif
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "ENDING ANGRILY %u\n", ok);
   GNUNET_break (0);
   if (NULL != p1.ch)
   {
@@ -320,14 +309,12 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-arm");
   p->cfg = GNUNET_CONFIGURATION_create ();
-#if START_ARM
   p->arm_proc =
     GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, 
 			     NULL, NULL, 
 			     binary,
 			     "gnunet-service-arm",
                                "-c", cfgname, NULL);
-#endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   p->th = GNUNET_TRANSPORT_connect (p->cfg, NULL, p, NULL, NULL, NULL);
   GNUNET_assert (p->th != NULL);
@@ -358,7 +345,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 static void
 stop_arm (struct PeerContext *p)
 {
-#if START_ARM
   if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   if (GNUNET_OS_process_wait (p->arm_proc) != GNUNET_OK)
@@ -367,9 +353,9 @@ stop_arm (struct PeerContext *p)
               GNUNET_OS_process_get_pid (p->arm_proc));
   GNUNET_OS_process_destroy (p->arm_proc);
   p->arm_proc = NULL;
-#endif
   GNUNET_CONFIGURATION_destroy (p->cfg);
 }
+
 
 static int
 check ()
@@ -377,9 +363,6 @@ check ()
   char *const argv[] = { "test-core-api",
     "-c",
     "test_core_api_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -399,11 +382,7 @@ main (int argc, char *argv[])
   int ret;
 
   GNUNET_log_setup ("test-core-api",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   ret = check ();
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-1");

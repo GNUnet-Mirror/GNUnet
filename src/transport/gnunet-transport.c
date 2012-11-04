@@ -745,13 +745,9 @@ main (int argc, char *const *argv)
                               ("Direct access to transport service."), options,
                               &run, NULL);
   GNUNET_free ((void *) argv);
-
   if (GNUNET_OK == res)
     return ret;
-  else
-    return 1;
-
-
+  return 1;
 }
 
 

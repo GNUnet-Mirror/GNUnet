@@ -25,10 +25,6 @@
 #include "platform.h"
 #include "gnunet_hello_lib.h"
 
-#define DEBUG GNUNET_EXTRA_LOGGING
-
-#define VERBOSE GNUNET_NO
-
 /**
  * Closure for 'add_to_buf'.
  */

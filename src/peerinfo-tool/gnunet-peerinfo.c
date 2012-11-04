@@ -959,14 +959,17 @@ main (int argc, char *const *argv)
      1, &GNUNET_GETOPT_set_string, &put_uri},
     GNUNET_GETOPT_OPTION_END
   };
+  int ret;
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
-  return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc, argv, "gnunet-peerinfo",
-                              gettext_noop ("Print information about peers."),
-                              options, &run, NULL)) ? 0 : 1;
+  ret = (GNUNET_OK ==
+	 GNUNET_PROGRAM_run (argc, argv, "gnunet-peerinfo",
+			     gettext_noop ("Print information about peers."),
+			     options, &run, NULL)) ? 0 : 1;
+  GNUNET_free ((void*) argv);
+  return ret;
 }
 
 /* end of gnunet-peerinfo.c */

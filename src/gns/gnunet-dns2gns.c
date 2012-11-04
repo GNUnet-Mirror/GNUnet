@@ -692,7 +692,7 @@ main (int argc,
                            _("GNUnet DNS-to-GNS proxy (a DNS server)"), 
 			   options,
                            &run, NULL)) ? 0 : 1;
-
+  GNUNET_free ((void*) argv);
   return ret;
 }
 

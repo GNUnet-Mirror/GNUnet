@@ -23,16 +23,11 @@
  * @brief Testcases for Stream API halfclosed connections between 2 peers
  * @author Sree Harsha Totakura
  */
-
-#include <string.h>
-
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testbed_service.h"
 #include "gnunet_mesh_service.h"
 #include "gnunet_stream_lib.h"
-
-#define VERBOSE 1
 
 /**
  * Number of peers

@@ -71,18 +71,14 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
   struct PeerContext *p = cls;
+  char *p2_s;
+  struct PeerContext *p2;
 
-  /* Find PeerContext */
-  GNUNET_assert (p != 0);
-  GNUNET_assert (p->tth != NULL);
-  struct PeerContext *p2 = find_peer_context (p->tth, peer);
-
-  if (p == NULL)
-    return;
+  GNUNET_assert (NULL != p);
+  GNUNET_assert (NULL != p->tth);
+  p2 = find_peer_context (p->tth, peer);
   if (p->nc != NULL)
     p->nc (p->cb_cls, peer, ats, ats_count);
-
-  char *p2_s;
 
   if (p2 != NULL)
     GNUNET_asprintf (&p2_s, "%u (`%s')", p2->no, GNUNET_i2s (&p2->id));
@@ -786,7 +782,6 @@ fail:
   (*dest) = NULL;
   GNUNET_free (backup);
 }
-
 
 
 /* end of transport-testing.c */

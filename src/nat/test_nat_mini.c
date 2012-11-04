@@ -35,9 +35,6 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_nat_lib.h"
 
-
-#define VERBOSE GNUNET_NO
-
 /* Time to wait before stopping NAT, in seconds */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
@@ -104,20 +101,12 @@ main (int argc, char *const argv[])
     "-c",
     "test_nat_data.conf",
     "-L",
-#if VERBOSE
-    "DEBUG",
-#else
     "WARNING",
-#endif
     NULL
   };
 
   GNUNET_log_setup ("test-nat-mini",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,

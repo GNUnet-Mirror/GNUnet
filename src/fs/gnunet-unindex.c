@@ -173,11 +173,13 @@ main (int argc, char *const *argv)
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
-  return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc, argv, "gnunet-unindex [OPTIONS] FILENAME",
-                              gettext_noop
-                              ("Unindex a file that was previously indexed with gnunet-publish."),
-                              options, &run, NULL)) ? ret : 1;
+  ret = (GNUNET_OK ==
+	 GNUNET_PROGRAM_run (argc, argv, "gnunet-unindex [OPTIONS] FILENAME",
+			     gettext_noop
+			     ("Unindex a file that was previously indexed with gnunet-publish."),
+			     options, &run, NULL)) ? ret : 1;
+  GNUNET_free ((void*) argv);
+  return ret;
 }
 
 /* end of gnunet-unindex.c */

@@ -162,6 +162,7 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
   struct GNUNET_SIGNAL_Context *shc_chld;
+  int ret;
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
@@ -169,16 +170,15 @@ main (int argc, char *const *argv)
   GNUNET_assert (sigpipe != NULL);
   shc_chld =
     GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD, &sighandler_child_death);
-  if (GNUNET_OK !=
-      GNUNET_PROGRAM_run (argc, argv, "gnunet-uri URI",
-			  gettext_noop ("Perform default-actions for GNUnet URIs"),
-			  options, &run, NULL)) 
-    return 1;
+  ret = GNUNET_PROGRAM_run (argc, argv, "gnunet-uri URI",
+			    gettext_noop ("Perform default-actions for GNUnet URIs"),
+			    options, &run, NULL);
   GNUNET_SIGNAL_handler_uninstall (shc_chld);
   shc_chld = NULL;
   GNUNET_DISK_pipe_close (sigpipe);
   sigpipe = NULL; 
-  return ret;
+  GNUNET_free ((void *) argv);
+  return (GNUNET_OK == ret) ? 0 : 1;
 }
 
 /* end of gnunet-uri.c */

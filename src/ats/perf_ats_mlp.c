@@ -366,8 +366,7 @@ main (int argc, char *const *argv)
   GNUNET_PROGRAM_run (argc, argv,
                       "perf_ats_mlp", "nohelp", options,
                       &check, NULL);
-
-
+  GNUNET_free ((void *) argv);
   return ret;
 }
 

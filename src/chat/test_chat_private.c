@@ -32,8 +32,6 @@
 
 #define VERBOSE GNUNET_NO
 
-#define START_ARM GNUNET_YES
-
 /**
  * How long until we give up on passing the test?
  */
@@ -47,9 +45,7 @@
 struct PeerContext
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
-#if START_ARM
   struct GNUNET_OS_Process *arm_proc;
-#endif
 };
 
 struct Wanted
@@ -134,12 +130,10 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-arm");
   p->cfg = GNUNET_CONFIGURATION_create ();
-#if START_ARM
   p->arm_proc =
     GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, binary,
                                "gnunet-service-arm",
                                "-c", cfgname, NULL);
-#endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   GNUNET_free (binary);
 }
@@ -148,7 +142,6 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 static void
 stop_arm (struct PeerContext *p)
 {
-#if START_ARM
   if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   if (GNUNET_OS_process_wait (p->arm_proc) != GNUNET_OK)
@@ -157,7 +150,6 @@ stop_arm (struct PeerContext *p)
               GNUNET_OS_process_get_pid (p->arm_proc));
   GNUNET_OS_process_destroy (p->arm_proc);
   p->arm_proc = NULL;
-#endif
   GNUNET_CONFIGURATION_destroy (p->cfg);
 }
 

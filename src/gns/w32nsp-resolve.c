@@ -57,7 +57,8 @@ DEFINE_GUID(SVCID_INET_HOSTADDRBYNAME, 0x0002a803, 0x0000, 0x0000, 0xc0, 0x00, 0
 // to convert structures returned as BLOBs.
 //
 
-VOID FixList(PCHAR ** List, PCHAR Base)
+VOID 
+FixList(PCHAR ** List, PCHAR Base)
 {
     if(*List)
     {
@@ -77,7 +78,8 @@ VOID FixList(PCHAR ** List, PCHAR Base)
 // Routine to convert a hostent returned in a BLOB to one with
 // usable pointers. The structure is converted in-place.
 //
-VOID UnpackHostEnt(struct hostent * hostent)
+VOID 
+UnpackHostEnt(struct hostent * hostent)
 {
      PCHAR pch;
 
@@ -91,13 +93,15 @@ VOID UnpackHostEnt(struct hostent * hostent)
      FixList(&hostent->h_addr_list, pch);
 }
 
-void
+
+static void
 print_hostent (struct hostent *he)
 {
   int i;
   char **pAlias;
+
   printf("\tOfficial name: %s\n", he->h_name);
-  for (pAlias = he->h_aliases; *pAlias != 0; pAlias++) {
+  for (i=0, pAlias = he->h_aliases; *pAlias != 0; pAlias++) {
       printf("\tAlternate name #%d: %s\n", ++i, *pAlias);
   }
   printf("\tAddress type: ");
@@ -149,6 +153,7 @@ print_hostent (struct hostent *he)
     }
   }
 }
+
 
 int
 main (int argc, char **argv)

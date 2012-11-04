@@ -450,9 +450,10 @@ main (int argc, char *const *argv)
 			  ("Control services and the Automated Restart Manager (ARM)"),
 			  options, &run, NULL))
     {
+      GNUNET_free ((void *) argv);
       return ret;
     }
-
+  GNUNET_free ((void*) argv);
   return 1;
 }
 

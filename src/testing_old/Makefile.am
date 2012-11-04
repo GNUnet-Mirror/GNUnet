@@ -80,12 +80,13 @@ check_PROGRAMS = \
  test_testing_topology_scale_free 
 
 if ENABLE_TEST_RUN 
-TESTS = \
- test_testing \
- test_testing_connect \
- test_testing_reconnect \
- test_testing_group \
- test_testing_peergroup 
+# Don't bother to test old-testing at this point
+#TESTS = \
+# test_testing \
+# test_testing_connect \
+# test_testing_reconnect \
+# test_testing_group \
+# test_testing_peergroup 
 endif
 
 

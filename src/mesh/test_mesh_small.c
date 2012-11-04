@@ -29,7 +29,6 @@
 #include <gauger.h>
 
 
-#define VERBOSE GNUNET_YES
 #define REMOVE_DIR GNUNET_YES
 
 struct MeshPeer
@@ -289,18 +288,14 @@ shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
   {
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Shutdown of peers failed!\n");
-#endif
     ok--;
   }
   else
   {
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "All peers successfully shut down!\n");
-#endif
   }
   GNUNET_CONFIGURATION_destroy (testing_cfg);
 }
@@ -315,11 +310,8 @@ shutdown_callback (void *cls, const char *emsg)
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Ending test.\n");
-#endif
-
   if (disconnect_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
@@ -877,7 +869,6 @@ connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   app = (GNUNET_MESH_ApplicationType) 0;
 
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "connecting to mesh service of peer %s\n",
               GNUNET_i2s (&d1->id));
@@ -890,7 +881,6 @@ connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                 "connecting to mesh service of peer %s\n",
                 GNUNET_i2s (&d3->id));
   }
-#endif
   h1 = GNUNET_MESH_connect (d1->cfg, (void *) 1L, NULL, &tunnel_cleaner,
                             handlers, &app);
   h2 = GNUNET_MESH_connect (d2->cfg, (void *) 2L, &incoming_tunnel,
@@ -943,16 +933,9 @@ peergroup_ready (void *cls, const char *emsg)
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
     return;
   }
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "************************************************************\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer Group started successfully!\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Have %u connections\n",
+              "Peer Group started successfully with %u connections\n",
               total_connections);
-#endif
-
   if (data_file != NULL)
   {
     buf = NULL;
@@ -1041,20 +1024,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   testing_cfg = GNUNET_CONFIGURATION_dup (cfg);
 
   GNUNET_log_setup ("test_mesh_small",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
 
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting daemons.\n");
-  GNUNET_CONFIGURATION_set_value_string (testing_cfg, "testing_old",
-                                         "use_progressbars", "YES");
-#endif
-
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (testing_cfg, "testing_old",
                                              "num_peers", &num_peers))
@@ -1152,10 +1126,6 @@ main (int argc, char *argv[])
     argv[0],
     "-c",
     "test_mesh_small.conf",
-#if VERBOSE
-    "-L",
-    "DEBUG",
-#endif
     NULL
   };
   int argc2 = (sizeof (argv2) / sizeof (char *)) - 1;
@@ -1193,9 +1163,6 @@ main (int argc, char *argv[])
     test_name = "speed ack";
     ok_goal = TOTAL_PACKETS * 2 + 3;
     argv2 [3] = NULL; // remove -L DEBUG
-#if VERBOSE
-    argc2 -= 2;
-#endif
   }
   else if (strstr (argv[0], "test_mesh_small_speed") != NULL)
   {

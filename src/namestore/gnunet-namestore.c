@@ -718,8 +718,11 @@ main (int argc, char *const *argv)
 			  _("GNUnet zone manipulation tool"), 
 			  options,
 			  &run, NULL))
+  {
+    GNUNET_free ((void*) argv);
     return 1;
-
+  }
+  GNUNET_free ((void*) argv);
   return ret;
 }
 

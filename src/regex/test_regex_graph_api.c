@@ -37,56 +37,47 @@
  *
  * @return 0 if ok, non 0 on error.
  */
-int
+static int
 filecheck (const char *filename)
 {
   int error = 0;
-  FILE *fp = NULL;
+  FILE *fp;
 
   // Check if file was created and delete it again
-  fp = fopen (filename, "r");
-
-  if (NULL == fp)
+  if (NULL == (fp = fopen (filename, "r")))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not find graph %s\n", filename);
-    return ++error;
+    return 1;
   }
 
-  fseek (fp, 0L, SEEK_END);
+  GNUNET_break (0 == fseek (fp, 0L, SEEK_END));
   if (1 > ftell (fp))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Graph writing failed, got empty file (%s)!\n", filename);
-    error++;
+                "Graph writing failed, got empty file (%s)!\n", 
+		filename);
+    error = 2;
   }
-
-  error += fclose (fp);
+  
+  GNUNET_assert (0 == fclose (fp));
 
   if (!KEEP_FILES)
   {
     if (0 != unlink (filename))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not remove temp files (%s)\n",
-                  filename);
-    }
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, 
+				"unlink", filename);
   }
-
-
   return error;
 }
+
 
 int
 main (int argc, char *argv[])
 {
-  GNUNET_log_setup ("test-regex", "WARNING", NULL);
-
   int error;
   struct GNUNET_REGEX_Automaton *a;
   unsigned int i;
   const char *filename = "test_graph.dot";
-
-  error = 0;
-
   const char *regex[12] = {
     "ab(c|d)+c*(a(b|c)+d)+(bla)+",
     "(bla)*",
@@ -103,6 +94,8 @@ main (int argc, char *argv[])
     "PADPADPADPADPADPabcdefghixxxxxxxxxxxxxjklmnop*qstoisdjfguisdfguihsdfgbdsuivggsd"
   };
 
+  GNUNET_log_setup ("test-regex", "WARNING", NULL);
+  error = 0;
   for (i = 0; i < 12; i++)
   {
     // Check NFA graph creation

@@ -277,19 +277,19 @@ main (int argc, char *const *argv)
      &GNUNET_GETOPT_set_uint, &remote_port},
     GNUNET_GETOPT_OPTION_END
   };
-
   remote_port = 0;
   remote_host = NULL;
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
-  return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc, argv, "gnunet-statistics [options [value]]",
-                              gettext_noop
-                              ("Print statistics about GNUnet operations."),
-                              options, &run, NULL)) ? ret : 1;
-
-  GNUNET_free_non_null(remote_host);
+  ret = (GNUNET_OK ==
+	 GNUNET_PROGRAM_run (argc, argv, "gnunet-statistics [options [value]]",
+			     gettext_noop
+			     ("Print statistics about GNUnet operations."),
+			     options, &run, NULL)) ? ret : 1;
+  GNUNET_free_non_null (remote_host);
+  GNUNET_free ((void*) argv);
+  return ret;
 }
 
 /* end of gnunet-statistics.c */

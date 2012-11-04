@@ -35,8 +35,6 @@
 #include "gnunet-service-ats_addresses_mlp.h"
 #endif
 
-#define VERBOSE GNUNET_NO
-
 #define ATS_BLOCKING_DELTA GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100)
 
 enum ATS_Mode
@@ -356,6 +354,8 @@ lookup_address (const struct GNUNET_PeerIdentity *peer,
   return old;
 }
 
+
+#if DEADCODE
 static int
 compare_address_session_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
@@ -383,7 +383,7 @@ compare_address_session_it (void *cls, const struct GNUNET_HashCode * key, void 
  * @param addr existing address record
  * @return existing address record, NULL for none
  */
-struct ATS_Address *
+static struct ATS_Address *
 find_exact_address (const struct GNUNET_PeerIdentity *peer,
               const struct ATS_Address *addr)
 {
@@ -395,6 +395,7 @@ find_exact_address (const struct GNUNET_PeerIdentity *peer,
                                               &compare_address_session_it, &cac);
   return cac.exact_address;
 }
+#endif
 
 
 void
@@ -569,11 +570,9 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
   if (aa->session_id != 0)
     GNUNET_break (0 == strcmp (info->plugin, aa->plugin));
   /* session died */
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Deleting session for peer `%s': `%s' %u\n",
               GNUNET_i2s (&aa->peer), aa->plugin, aa->session_id);
-#endif
   aa->session_id = 0;
 
   if (GNUNET_YES == aa->active)
@@ -586,11 +585,9 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
   /* session == 0 and addrlen == 0 : destroy address */
   if (aa->addr_len == 0)
   {
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Deleting session and address for peer `%s': `%s' %u\n",
                 GNUNET_i2s (&aa->peer), aa->plugin, aa->session_id);
-#endif
     (void) destroy_address (aa);
   }
   else
@@ -604,6 +601,7 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
 
   return GNUNET_OK;
 }
+
 
 void
 GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
@@ -773,7 +771,8 @@ GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
 }
 
 
-void request_address_mlp (const struct GNUNET_PeerIdentity *peer)
+static void 
+request_address_mlp (const struct GNUNET_PeerIdentity *peer)
 {
   struct ATS_Address *aa;
   aa = NULL;
@@ -815,7 +814,9 @@ void request_address_mlp (const struct GNUNET_PeerIdentity *peer)
 
 }
 
-void request_address_simple (const struct GNUNET_PeerIdentity *peer)
+
+static void 
+request_address_simple (const struct GNUNET_PeerIdentity *peer)
 {
   struct ATS_Address *aa;
   aa = NULL;
@@ -883,6 +884,7 @@ reset_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
   aa->block_interval = GNUNET_TIME_UNIT_ZERO;
   return GNUNET_OK;
 }
+
 
 void
 GAS_addresses_handle_backoff_reset (const struct GNUNET_PeerIdentity *peer)
@@ -1112,9 +1114,11 @@ struct PeerInfoIteratorContext
   void *it_cls;
 };
 
-int peerinfo_it (void *cls,
-                 const struct GNUNET_HashCode * key,
-                 void *value)
+
+static int 
+peerinfo_it (void *cls,
+	     const struct GNUNET_HashCode * key,
+	     void *value)
 {
   struct PeerInfoIteratorContext *pi_ctx = cls;
   struct ATS_Address *addr = (struct ATS_Address *)  value;
@@ -1129,6 +1133,7 @@ int peerinfo_it (void *cls,
                 addr->assigned_bw_in);
   return GNUNET_YES;
 }
+
 
 /**
  * Return all peers currently known to ATS

@@ -204,6 +204,7 @@ check_kill ()
     GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_ERR, hello_pipe_stdin, hello_pipe_stdout, fn,
 			     "gnunet-service-resolver", "-", NULL); 
   sleep (1); /* give process time to start, so we actually use the pipe-kill mechanism! */
+  GNUNET_free (fn);
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (proc));
@@ -241,6 +242,7 @@ check_instant_kill ()
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   }
+  GNUNET_free (fn);
   GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (proc));
   GNUNET_OS_process_destroy (proc);
   proc = NULL;

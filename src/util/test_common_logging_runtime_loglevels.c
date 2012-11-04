@@ -42,6 +42,8 @@ static struct GNUNET_DISK_PipeHandle *pipe_stdout;
 
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
+static GNUNET_SCHEDULER_TaskIdentifier read_task;
+
 static void
 runone (void);
 
@@ -59,6 +61,11 @@ end_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_OS_process_wait (proc);
     GNUNET_OS_process_destroy (proc);
     proc = NULL;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != read_task)
+  {
+    GNUNET_SCHEDULER_cancel (read_task);
+    read_task = GNUNET_SCHEDULER_NO_TASK;
   }
   GNUNET_DISK_pipe_close (pipe_stdout);
   if (ok == 1)
@@ -167,6 +174,7 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   long delays[8];
   int rd;
 
+  read_task = GNUNET_SCHEDULER_NO_TASK;
   rd = GNUNET_DISK_file_read (stdout_read_handle, buf_ptr,
                               sizeof (buf) - bytes);
   if (rd > 0)
@@ -176,9 +184,9 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #if VERBOSE
     FPRINTF (stderr, "got %d bytes, reading more\n", rd);
 #endif
-    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-                                    stdout_read_handle, &read_call,
-                                    (void *) stdout_read_handle);
+    read_task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+						stdout_read_handle, &read_call,
+						stdout_read_handle);
     return;
   }
 
@@ -343,9 +351,9 @@ runone ()
   buf_ptr = buf;
   memset (&buf, 0, sizeof (buf));
 
-  GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-                                  stdout_read_handle, &read_call,
-                                  (void *) stdout_read_handle);
+  read_task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+					      stdout_read_handle, &read_call,
+					      stdout_read_handle);
 }
 
 static void

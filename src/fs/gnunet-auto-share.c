@@ -788,6 +788,7 @@ main (int argc, char *const *argv)
   sigpipe = NULL;
   GNUNET_free (cfg_filename);
   cfg_filename = NULL;
+  GNUNET_free ((void*) argv);
   return ok;
 }
 

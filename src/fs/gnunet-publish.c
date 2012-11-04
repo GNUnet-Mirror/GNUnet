@@ -734,19 +734,18 @@ main (int argc, char *const *argv)
      0, &GNUNET_GETOPT_set_one, &verbose},
     GNUNET_GETOPT_OPTION_END
   };
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "GNUnet publish starts\n");
   bo.expiration_time =
       GNUNET_FS_year_to_time (GNUNET_FS_get_current_year () + 2);
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
-
-  return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc, argv, "gnunet-publish [OPTIONS] FILENAME",
-                              gettext_noop
-                              ("Publish a file or directory on GNUnet"),
-                              options, &run, NULL)) ? ret : 1;
+  ret = (GNUNET_OK ==
+	 GNUNET_PROGRAM_run (argc, argv, "gnunet-publish [OPTIONS] FILENAME",
+			     gettext_noop
+			     ("Publish a file or directory on GNUnet"),
+			     options, &run, NULL)) ? ret : 1;
+  GNUNET_free ((void*) argv);
+  return ret;
 }
 
 /* end of gnunet-publish.c */

@@ -343,7 +343,7 @@ main (int argc, char *const *argv)
        GNUNET_PROGRAM_run (argc, argv, "hostlist",
                            _("GNUnet hostlist server and client"), options,
                            &run, NULL)) ? 0 : 1;
-
+  GNUNET_free ((void*) argv);
   return ret;
 }
 

@@ -35,12 +35,10 @@
 #define MESH_TUNNEL_TREE_C
 #endif
 
-#define VERBOSE 1
-
-int failed;
-int cb_call;
-struct GNUNET_PeerIdentity *pi[10];
-struct MeshTunnelTree *tree;
+static int failed;
+static int cb_call;
+static struct GNUNET_PeerIdentity *pi[10];
+static struct MeshTunnelTree *tree;
 
 static void
 cb (void *cls, GNUNET_PEER_Id peer_id)
@@ -155,11 +153,7 @@ main (int argc, char *argv[])
   failed = 0;
   cb_call = 0;
   GNUNET_log_setup ("test_mesh_api_tree",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   for (i = 0; i < 10; i++)
   {

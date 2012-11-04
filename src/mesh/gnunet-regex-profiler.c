@@ -1872,6 +1872,7 @@ main (int argc, char *const *argv)
       GNUNET_PROGRAM_run (argc, argv, "gnunet-regex-profiler [OPTIONS] hosts-file policy-dir search-strings-file",
                           _("Profiler for regex/mesh"),
                           options, &run, NULL);
+  GNUNET_free ((void*) argv);
   if (GNUNET_OK != ret)
     return ret;
   if (GNUNET_OK != result)

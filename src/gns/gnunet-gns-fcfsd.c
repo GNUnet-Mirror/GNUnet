@@ -970,7 +970,7 @@ main (int argc, char *const *argv)
                            _("GNUnet GNS first come first serve registration service"), 
 			   options,
                            &run, NULL)) ? 0 : 1;
-
+  GNUNET_free ((void*) argv);
   return ret;
 }
 

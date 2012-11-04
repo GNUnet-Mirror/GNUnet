@@ -25,7 +25,6 @@
 #include "platform.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE GNUNET_YES
 #define REMOVE_DIR GNUNET_YES
 
 /**
@@ -107,13 +106,11 @@ shutdown_callback (void *cls, const char *emsg)
                 "test: Shutdown of peers failed! (%s)\n", emsg);
     ok--;
   }
-#if VERBOSE
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "test: All peers successfully shut down!\n");
   }
-#endif
   GNUNET_CONFIGURATION_destroy (testing_cfg);
 }
 
@@ -121,10 +118,7 @@ shutdown_callback (void *cls, const char *emsg)
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Ending test.\n");
-#endif
-
   GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
 }
 
@@ -201,15 +195,9 @@ peergroup_ready (void *cls, const char *emsg)
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
     return;
   }
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "************************************************************\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: Peer Group started successfully!\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Have %u connections\n",
+              "test: Peer Group started successfully with %u connections\n",
               total_connections);
-#endif
-
   peers_running = GNUNET_TESTING_daemons_running (pg);
   if (0 < failed_connections)
   {
@@ -287,19 +275,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   testing_cfg = GNUNET_CONFIGURATION_dup (cfg);
 
   GNUNET_log_setup ("test_mesh_2dtorus",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
 
-#if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Starting daemons.\n");
-  GNUNET_CONFIGURATION_set_value_string (testing_cfg, "testing_old",
-                                         "use_progressbars", "YES");
-#endif
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Starting daemons.\n");
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (testing_cfg, "testing_old",
                                              "num_peers", &num_peers))
@@ -342,10 +322,6 @@ main (int argc, char *argv[])
     argv[0],
     "-c",
     "test_mesh_2dtorus.conf",
-#if VERBOSE
-    "-L",
-    "DEBUG",
-#endif
     NULL
   };
 

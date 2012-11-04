@@ -966,15 +966,17 @@ main (int argc, char *const *argv)
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+  int ret;
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
-
-  return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc, argv, "gnunet-daemon-pt",
-                              gettext_noop
-                              ("Daemon to run to perform IP protocol translation to GNUnet"),
-                              options, &run, NULL)) ? 0 : 1;
+  ret = (GNUNET_OK ==
+	 GNUNET_PROGRAM_run (argc, argv, "gnunet-daemon-pt",
+			     gettext_noop
+			     ("Daemon to run to perform IP protocol translation to GNUnet"),
+			     options, &run, NULL)) ? 0 : 1;
+  GNUNET_free ((void*) argv);
+  return ret;
 }
 
 

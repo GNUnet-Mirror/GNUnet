@@ -34,7 +34,6 @@
 #include "gnunet_ats_service.h"
 #include "gnunet_transport_service.h"
 
-#define START_ARM GNUNET_YES
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
