@@ -273,11 +273,6 @@ static unsigned int linking_factor;
 static unsigned int num_links;
 
 /**
- * Number of timeout failures to tolerate
- */
-static unsigned int num_cont_fails;
-
-/**
  * Number of times we try overlay connect operations
  */
 static unsigned int retry_links;
@@ -450,6 +445,11 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned int peer_cnt;
   unsigned int search_str_cnt;
 
+  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+    GNUNET_SCHEDULER_cancel (abort_task);
+  if (GNUNET_SCHEDULER_NO_TASK != register_hosts_task)
+    GNUNET_SCHEDULER_cancel (register_hosts_task);
+
   for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
   {
     if (NULL != peers[peer_cnt].mesh_op_handle)
@@ -457,15 +457,14 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (NULL != peers[peer_cnt].stats_op_handle)
       GNUNET_TESTBED_operation_done (peers[peer_cnt].stats_op_handle);
   }
+
+  if (NULL != data_file)
+    GNUNET_DISK_file_close (data_file);
+
   for (search_str_cnt = 0; search_str_cnt < num_search_strings; search_str_cnt++)
-  {
     GNUNET_free (search_strings[search_str_cnt]);
-  }
   GNUNET_free (search_strings);
-  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
-    GNUNET_SCHEDULER_cancel (abort_task);
-  if (GNUNET_SCHEDULER_NO_TASK != register_hosts_task)
-    GNUNET_SCHEDULER_cancel (register_hosts_task);
+
   if (NULL != reg_handle)
     GNUNET_TESTBED_cancel_registration (reg_handle);
   if (NULL != topology_op)
@@ -474,6 +473,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (NULL != hosts[nhost])
       GNUNET_TESTBED_host_destroy (hosts[nhost]);
   GNUNET_free_non_null (hosts);
+
   while (NULL != (dll_op = dll_op_head))
   {
     GNUNET_TESTBED_operation_done (dll_op->op);
@@ -486,8 +486,6 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TESTBED_controller_stop (mc_proc);
   if (NULL != cfg)
     GNUNET_CONFIGURATION_destroy (cfg);
-  if (NULL != data_file)
-    GNUNET_DISK_file_close (data_file);
 
   GNUNET_SCHEDULER_shutdown ();	/* Stop scheduler to shutdown testbed run */
 }
@@ -540,7 +538,12 @@ stats_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 static void
 stats_da (void *cls, void *op_result)
 {
-  GNUNET_STATISTICS_destroy (op_result, GNUNET_NO);
+  struct RegexPeer *peer = cls;
+
+  GNUNET_assert (op_result == peer->stats_handle);
+
+  GNUNET_STATISTICS_destroy (peer->stats_handle, GNUNET_NO);
+  peer->stats_handle = NULL;
 }
 
 
@@ -1392,15 +1395,7 @@ controller_event_cb (void *cls,
        printf ("F");
        fflush (stdout);
        retry_links++;
-       
-       if (++cont_fails > num_cont_fails)
-       {
-	 GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		     "We have a very high peer linking failure rate: %u (threshold: %u)\n",
-		     cont_fails,
-		     num_cont_fails);
-       }
-     }
+     }       
      /* We do no retries, consider this link as established */
      /* break; */
    case GNUNET_TESTBED_ET_CONNECT:
@@ -1797,12 +1792,9 @@ main (int argc, char *const *argv)
     {'d', "details", "FILENAME",
      gettext_noop ("name of the file for writing statistics"),
      1, &GNUNET_GETOPT_set_string, &data_filename},
-    {'n', "linking-factor", "FACTOR",
-      gettext_noop ("create FACTOR times number of peers random links"),
+    {'n', "num-links", "COUNT",
+      gettext_noop ("create COUNT number of random links between peers"),
       GNUNET_YES, &GNUNET_GETOPT_set_uint, &linking_factor },
-    {'e', "num-errors", "COUNT",
-      gettext_noop ("tolerate COUNT number of continious timeout failures"),
-      GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_cont_fails },
     {'t', "matching-timeout", "TIMEOUT",
       gettext_noop ("wait TIMEOUT before considering a string match as failed"),
       GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &search_timeout },
