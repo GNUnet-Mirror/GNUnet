@@ -658,33 +658,6 @@ gns_resolver_init (struct GNUNET_NAMESTORE_Handle *nh,
   return GNUNET_OK;
 }
 
-
-/**
- * Cleanup ns tasks
- *
- * @param cls closure to iterator
- * @param node heap nodes
- * @param element the namestorebgtask
- * @param cost heap cost
- * @return always GNUNET_YES
- */
-static int
-cleanup_pending_ns_tasks (void* cls,
-                          struct GNUNET_CONTAINER_HeapNode *node,
-                          void *element,
-                          GNUNET_CONTAINER_HeapCostType cost)
-{
-  struct NamestoreBGTask *nbg = element;
-
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_CLEANUP: Terminating ns task\n");
-  GNUNET_NAMESTORE_cancel (nbg->qe);
-
-  GNUNET_CONTAINER_heap_remove_node (node);
-  return GNUNET_YES;
-}
-
-
 /**
  * finish lookup
  *
@@ -698,38 +671,6 @@ finish_lookup (struct ResolverHandle *rh,
                struct RecordLookupHandle* rlh,
                unsigned int rd_count,
                const struct GNUNET_NAMESTORE_RecordData *rd);
-
-
-/**
- * Cleanup background lookups FIXME get rid of this?? YES this doesn't do
- * anything! => find in code and remove all references to the heap
- *
- * @param cls closure to iterator
- * @param node heap nodes
- * @param element the resolver handle
- * @param cost heap cost
- * @return always GNUNET_YES
- */
-static int
-cleanup_pending_background_queries (void* cls,
-                                    struct GNUNET_CONTAINER_HeapNode *node,
-                                    void *element,
-                                    GNUNET_CONTAINER_HeapCostType cost)
-{
-  struct ResolverHandle *rh = element;
-
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_CLEANUP-%llu: Terminating background lookup\n",
-             rh->id);
-  GNUNET_CONTAINER_heap_remove_node (node);
-  if (0 == GNUNET_CONTAINER_heap_get_size (dht_lookup_heap))
-  {
-    GNUNET_CONTAINER_heap_iterate (ns_task_heap,
-				   &cleanup_pending_ns_tasks,
-				   NULL);    
-  }
-  return GNUNET_YES;
-}
 
 
 /**
@@ -772,6 +713,8 @@ free_resolver_handle (struct ResolverHandle* rh)
     GNUNET_RESOLVER_request_cancel (rh->dns_resolver_handle);
   if (NULL != rh->rd.data)
     GNUNET_free ((void*)(rh->rd.data));
+  if (NULL != rh->dht_heap_node)
+    GNUNET_CONTAINER_heap_remove_node (rh->dht_heap_node);
   GNUNET_free (rh);
 }
 
@@ -804,8 +747,9 @@ finish_get_auth (struct ResolverHandle *rh,
 void
 gns_resolver_cleanup ()
 {
-  unsigned int s;
   struct GetPseuAuthorityHandle *tmp;
+  struct ResolverHandle *rh;
+  struct NamestoreBGTask *nbg;
 
   while (NULL != (tmp = gph_head))
   {
@@ -840,21 +784,21 @@ gns_resolver_cleanup ()
     finish_get_auth (nah_head, nah_head->proc_cls);
   }
 
-  s = GNUNET_CONTAINER_heap_get_size (dht_lookup_heap);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "GNS_CLEANUP: %u pending background queries to terminate\n", 
-	      s);
-  if (0 != s)
-    GNUNET_CONTAINER_heap_iterate (dht_lookup_heap,
-                                   &cleanup_pending_background_queries,
-                                   NULL);
-  else if (0 != GNUNET_CONTAINER_heap_get_size (ns_task_heap))
+  while (NULL != (rh = GNUNET_CONTAINER_heap_remove_root(dht_lookup_heap)))
   {
-    GNUNET_CONTAINER_heap_iterate (ns_task_heap,
-                                   &cleanup_pending_ns_tasks,
-                                   NULL);
+      GNUNET_free (rh);
   }
-  // FIXME: what about freeing the heaps themselves?
+  GNUNET_CONTAINER_heap_destroy (dht_lookup_heap);
+  dht_lookup_heap = NULL;
+
+  while (NULL != (nbg = GNUNET_CONTAINER_heap_remove_root(ns_task_heap)))
+  {
+      GNUNET_NAMESTORE_cancel (nbg->qe);
+      GNUNET_free (nbg);
+  }
+  GNUNET_CONTAINER_heap_destroy (ns_task_heap);
+  ns_task_heap = NULL;
+
 }
 
 
