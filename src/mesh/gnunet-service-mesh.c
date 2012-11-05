@@ -351,10 +351,15 @@ struct MeshTunnel
      */
   uint32_t bck_pid;
 
-  /**
+    /**
      * SKIP value for this tunnel.
      */
   uint32_t skip;
+
+    /**
+     * Force sending ACK? Flag to allow duplicate ACK on POLL.
+     */
+  int force_ack;
 
     /**
      * MeshTunnelChildInfo of all children, indexed by GNUNET_PEER_Id.
@@ -2969,7 +2974,6 @@ tunnel_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_PeerIdentity id;
   struct MeshTunnel *t;
 
-  return; // FIXME fc activate
   cinfo->fc_poll = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
@@ -4007,13 +4011,17 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
       break;
+    case GNUNET_MESSAGE_TYPE_MESH_POLL:
+      t->force_ack = GNUNET_YES;
+      break;
     default:
       GNUNET_break (0);
   }
 
-  /* Check if we need no retransmit the ACK */
+  /* Check if we need to transmit the ACK */
   if (t->fwd_queue_max > t->fwd_queue_n * 4 &&
-      GMC_is_pid_bigger(t->last_fwd_ack, t->fwd_pid))
+      GMC_is_pid_bigger(t->last_fwd_ack, t->fwd_pid) &&
+      GNUNET_NO == t->force_ack)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, buffer free\n");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -4029,7 +4037,7 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
   ack = tunnel_get_fwd_ack (t);
 
   /* If speed_min and not all children have ack'd, dont send yet */
-  if (ack == t->last_fwd_ack)
+  if (ack == t->last_fwd_ack && GNUNET_NO == t->force_ack)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending FWD ACK, not ready\n");
     return;
@@ -4039,6 +4047,7 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
   GNUNET_PEER_resolve (tree_get_predecessor (t->tree), &id);
   send_ack (t, &id, ack);
   debug_fwd_ack++;
+  t->force_ack = GNUNET_NO;
 }
 
 
@@ -4062,9 +4071,8 @@ tunnel_send_child_bck_ack (void *cls,
   cinfo = tunnel_get_neighbor_fc (t, &peer);
   ack = cinfo->bck_pid + t->bck_queue_max - t->bck_queue_n;
 
-  if (cinfo->bck_ack == ack)
+  if (cinfo->bck_ack == ack && GNUNET_NO == t->force_ack)
   {
-    // FIXME fc allow force on poll
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "    Not sending ACK, not needed\n");
     return;
@@ -4168,7 +4176,9 @@ tunnel_send_bck_ack (struct MeshTunnel *t, uint16_t type)
       break;
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
+      break;
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
+      t->force_ack = GNUNET_YES;
       break;
     default:
       GNUNET_break (0);
@@ -4176,6 +4186,7 @@ tunnel_send_bck_ack (struct MeshTunnel *t, uint16_t type)
 
   tunnel_send_clients_bck_ack (t);
   tree_iterate_children (t->tree, &tunnel_send_child_bck_ack, t);
+  t->force_ack = GNUNET_NO;
 }
 
 
