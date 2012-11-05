@@ -4002,23 +4002,26 @@ tunnel_send_child_bck_ack (void *cls,
   struct MeshTunnel *t = cls;
   struct MeshTunnelFlowControlInfo *fcinfo;
   struct GNUNET_PeerIdentity peer;
+  uint32_t ack;
 
   GNUNET_PEER_resolve (id, &peer);
   fcinfo = tunnel_get_neighbor_fc (t, &peer);
+  ack = fcinfo->bck_pid + t->bck_queue_max - t->bck_queue_n;
 
-  if (fcinfo->bck_ack != fcinfo->bck_pid &&
-      GNUNET_NO == GMC_is_pid_bigger (fcinfo->bck_ack, fcinfo->bck_pid))
+
+  if (fcinfo->bck_ack == ack)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "    Not sending ACK, not needed\n");
     return;
   }
+  fcinfo->bck_ack = ack;
 
-  fcinfo->bck_ack = t->bck_queue_max - t->bck_queue_n + fcinfo->bck_pid;
+  fcinfo->bck_ack = fcinfo->bck_pid + t->bck_queue_max - t->bck_queue_n;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "    Sending BCK ACK %u\n",
-              fcinfo->bck_ack);
-  send_ack (t, &peer, fcinfo->bck_ack);
+              "    Sending BCK ACK %u (last sent: %u)\n",
+              ack, fcinfo->bck_ack);
+  send_ack (t, &peer, ack);
 }
 
 
