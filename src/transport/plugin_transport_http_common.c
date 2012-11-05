@@ -60,6 +60,7 @@ http_common_plugin_address_pretty_printer (void *cls, const char *type,
       return;
   }
   asc (asc_cls, saddr);
+  asc (asc_cls, NULL);
 }
 
 
