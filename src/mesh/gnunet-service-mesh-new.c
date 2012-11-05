@@ -8329,18 +8329,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (c, "MESH", "UNACKNOWLEDGED_WAIT",
-                                           &unacknowledged_wait_time))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
-                "mesh", "unacknowledged wait time");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-
-  if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (c, "MESH", "CONNECT_TIMEOUT",
                                            &connect_timeout))
   {
