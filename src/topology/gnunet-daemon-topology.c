@@ -233,11 +233,6 @@ static unsigned int target_connection_count;
  */
 static unsigned int friend_count;
 
-/**
- * Should the topology daemon try to establish connections?
- */
-static int autoconnect;
-
 
 /**
  * Function that decides if a connection is acceptable or not.
@@ -1292,8 +1287,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   cfg = c;
   stats = GNUNET_STATISTICS_create ("topology", cfg);
-  autoconnect =
-      GNUNET_CONFIGURATION_get_value_yesno (cfg, "TOPOLOGY", "AUTOCONNECT");
   friends_only =
       GNUNET_CONFIGURATION_get_value_yesno (cfg, "TOPOLOGY", "FRIENDS-ONLY");
   if (GNUNET_OK !=
@@ -1311,9 +1304,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   if ((friends_only == GNUNET_YES) || (minimum_friend_count > 0))
     read_friends_file (cfg);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Topology would like %u connections with at least %u friends (%s)\n",
-              target_connection_count, minimum_friend_count,
-              autoconnect ? "autoconnect enabled" : "autoconnect disabled");
+              "Topology would like %u connections with at least %u friends\n",
+              target_connection_count, minimum_friend_count);
   if ((friend_count < minimum_friend_count) && (blacklist == NULL))
     blacklist = GNUNET_TRANSPORT_blacklist (cfg, &blacklist_check, NULL);
   transport = GNUNET_TRANSPORT_connect (cfg, NULL, NULL, NULL, NULL, NULL);
