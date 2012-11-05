@@ -4948,6 +4948,7 @@ queue_send (void *cls, size_t size, void *buf)
     {
       case 0:
       case GNUNET_MESSAGE_TYPE_MESH_ACK:
+      case GNUNET_MESSAGE_TYPE_MESH_POLL:
       case GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN:
       case GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY:
       case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
@@ -7708,7 +7709,7 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_PEER_resolve (t->id.oid, &copy->oid);
     copy->tid = htonl (t->id.tid);
     copy->ttl = htonl (default_ttl);
-    copy->pid = htonl (++(t->bck_pid));
+    copy->pid = htonl (t->bck_pid + 1);
 
     copy->sender = my_full_id;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
