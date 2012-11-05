@@ -855,19 +855,52 @@ unsigned int debug_bck_ack;
 /***********************      GLOBAL VARIABLES     ****************************/
 /******************************************************************************/
 
+/************************** Configuration parameters **************************/
+
 /**
- * Configuration parameters
+ * How often to send tunnel keepalives. Tunnels timeout after 4 missed.
  */
 static struct GNUNET_TIME_Relative refresh_path_time;
+
+/**
+ * How often to PUT local application numbers in the DHT.
+ */
 static struct GNUNET_TIME_Relative app_announce_time;
+
+/**
+ * How often to PUT own ID in the DHT.
+ */
 static struct GNUNET_TIME_Relative id_announce_time;
-static struct GNUNET_TIME_Relative unacknowledged_wait_time;
+
+/**
+ * Maximum time allowed to connect to a peer found by string.
+ */
 static struct GNUNET_TIME_Relative connect_timeout;
+
+/**
+ * Default TTL for payload packets.
+ */
 static unsigned long long default_ttl;
+
+/**
+ * DHT replication level, see DHT API: GNUNET_DHT_get_start, GNUNET_DHT_put.
+ */
 static unsigned long long dht_replication_level;
+
+/**
+ * How many tunnels are we willing to maintain.
+ * Local tunnels are always allowed, even if there are more tunnels than max.
+ */
 static unsigned long long max_tunnels;
+
+/**
+ * How many messages *in total* are we willing to queue, divided by number of 
+ * tunnels to get tunnel queue size.
+ */
 static unsigned long long max_msgs_queue;
 
+
+/*************************** Static global variables **************************/
 
 /**
  * Hostkey generation context
@@ -4478,8 +4511,15 @@ tunnel_new (GNUNET_PEER_Id owner,
 static void
 tunnel_delete_peer (struct MeshTunnel *t, GNUNET_PEER_Id peer)
 {
-  if (GNUNET_NO == tree_del_peer (t->tree, peer, NULL, NULL))
-    tunnel_destroy (t);
+  int r;
+
+  r = tree_del_peer (t->tree, peer, NULL, NULL);
+  if (GNUNET_NO == r)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Tunnel %u [%u] has no more nodes\n",
+                t->id.oid, t->id.tid);
+  }
 }
 
 
@@ -8308,18 +8348,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
   else
   {
-  }
-
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (c, "MESH", "UNACKNOWLEDGED_WAIT",
-                                           &unacknowledged_wait_time))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
-                "mesh", "unacknowledged wait time");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
   }
 
   if (GNUNET_OK !=

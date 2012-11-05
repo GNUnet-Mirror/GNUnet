@@ -833,19 +833,52 @@ unsigned int debug_bck_ack;
 /***********************      GLOBAL VARIABLES     ****************************/
 /******************************************************************************/
 
+/************************** Configuration parameters **************************/
+
 /**
- * Configuration parameters
+ * How often to send tunnel keepalives. Tunnels timeout after 4 missed.
  */
 static struct GNUNET_TIME_Relative refresh_path_time;
+
+/**
+ * How often to PUT local application numbers in the DHT.
+ */
 static struct GNUNET_TIME_Relative app_announce_time;
+
+/**
+ * How often to PUT own ID in the DHT.
+ */
 static struct GNUNET_TIME_Relative id_announce_time;
-static struct GNUNET_TIME_Relative unacknowledged_wait_time;
+
+/**
+ * Maximum time allowed to connect to a peer found by string.
+ */
 static struct GNUNET_TIME_Relative connect_timeout;
+
+/**
+ * Default TTL for payload packets.
+ */
 static unsigned long long default_ttl;
+
+/**
+ * DHT replication level, see DHT API: GNUNET_DHT_get_start, GNUNET_DHT_put.
+ */
 static unsigned long long dht_replication_level;
+
+/**
+ * How many tunnels are we willing to maintain.
+ * Local tunnels are always allowed, even if there are more tunnels than max.
+ */
 static unsigned long long max_tunnels;
+
+/**
+ * How many messages *in total* are we willing to queue, divided by number of 
+ * tunnels to get tunnel queue size.
+ */
 static unsigned long long max_msgs_queue;
 
+
+/*************************** Static global variables **************************/
 
 /**
  * Hostkey generation context
