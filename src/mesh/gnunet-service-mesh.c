@@ -4794,9 +4794,8 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
     switch (queue->type)
     {
       case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "   cancelling TUNNEL_DESTROY\n");
-        GNUNET_assert (GNUNET_YES == queue->tunnel->destroy);
-        /* FIXME: don't cancel, send and destroy tunnel in queue_send */
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "   cancelling TUNNEL_DESTROY\n");
+        GNUNET_break (GNUNET_YES == queue->tunnel->destroy);
         /* fall through */
       case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
       case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
