@@ -61,6 +61,8 @@
 #define MESH_DEBUG_CONNECTION   GNUNET_NO
 #define MESH_DEBUG_TIMING       __LINUX__ && GNUNET_NO
 
+#define MESH_POLL_TIME         GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+
 #if MESH_DEBUG_CONNECTION
 #define DEBUG_CONN(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 #else
@@ -5160,7 +5162,7 @@ queue_send (void *cls, size_t size, void *buf)
                     GNUNET_i2s(&my_full_id));
         if (NULL == cinfo)
           cinfo = tunnel_get_neighbor_fc (t, &dst_id);
-        cinfo->fc_poll = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
+        cinfo->fc_poll = GNUNET_SCHEDULER_add_delayed(MESH_POLL_TIME,
                                                       &tunnel_poll, cinfo);
       }
     }
