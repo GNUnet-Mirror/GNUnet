@@ -100,10 +100,10 @@ run (void *cls, char *const *args, const char *cfgfile,
   test_ctx->system = 
       GNUNET_TESTING_system_create ("test-gnunet-testing",
                                     "127.0.0.1", NULL);
+  emsg = NULL;
   if (NULL == test_ctx->system)
     goto end;
   test_ctx->cfg = GNUNET_CONFIGURATION_dup (cfg);
-  emsg = NULL;
   test_ctx->peer = 
       GNUNET_TESTING_peer_configure (test_ctx->system,
                                      test_ctx->cfg,
