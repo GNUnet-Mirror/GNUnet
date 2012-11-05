@@ -20,8 +20,8 @@ if os.name == 'nt':
   arm = 'gnunet-arm.exe'
 else:
   pif = 'gnunet-peerinfo'
-  get = 'gnunet-dht-get'
-  put = 'gnunet-dht-put'
+  get = './gnunet-dht-get'
+  put = './gnunet-dht-put'
   arm = 'gnunet-arm'
 
 tf, tempcfg = tempfile.mkstemp (prefix='test_dht_api_peer1.')
