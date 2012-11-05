@@ -276,11 +276,6 @@ process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
   uint16_t plugin_name_length;
   uint32_t ats_count;
 
-  if (ph->infocb == NULL)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
   if (ntohs (msg->size) < sizeof (struct PeerInformationMessage))
   {
     GNUNET_break (0);
@@ -302,6 +297,10 @@ process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
+  }
+  if (ph->infocb == NULL)
+  {
+    return GNUNET_OK;
   }
   address.peer = pi->peer;
   address.address = plugin_address;
