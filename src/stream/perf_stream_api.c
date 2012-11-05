@@ -599,26 +599,9 @@ input_processor (void *cls, enum GNUNET_STREAM_Status status,
     reset_read = GNUNET_NO;
   }
   GNUNET_assert ((pdata->bytes_read + size) <= DATA_SIZE);
-  /* if (pdata->bytes_read + size > DATA_SIZE) */
-  /* { */
-  /*   size_t split_size; */
-
-  /*   split_size = DATA_SIZE - pdata->bytes_read; */
-  /*   GNUNET_assert (0 == memcmp (((void *) data) + pdata->bytes_read, */
-  /*                               input_data, split_size)); */
-  /*   GNUNET_assert (0 == memcmp (((void *) data), input_data + split_size, */
-  /*                               size - split_size)); */
-  /*   pdata->bytes_read = size - split_size; */
-  /*   printf ("?"); */
-  /* } */
-  /* else */
-  /* { */
   GNUNET_assert (0 == memcmp (((void *)data ) + pdata->bytes_read, 
                               input_data, size));
   pdata->bytes_read += size;
-  /* } */
-  /* if ((64 * payload_size[payload_size_index]) == pdata->bytes_read) */
-  /*   pdata->bytes_read = 0; */
   pdata->packets_read += (size + payload_size[payload_size_index] - 1)
       / payload_size[payload_size_index];
   if (pdata->packets_read < MAX_PACKETS)
