@@ -315,15 +315,31 @@ start_process (struct ServiceList *sl)
   binary = GNUNET_OS_get_libexec_binary_path (sl->binary);
   GNUNET_assert (NULL == sl->proc);
   if (GNUNET_YES == use_debug)
-    sl->proc =
-      do_start_process (sl->pipe_control, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-			lsocks, loprefix, binary, "-c", sl->config, "-L",
-			"DEBUG", options, NULL);
+  {
+    if (NULL == sl->config)
+      sl->proc =
+	do_start_process (sl->pipe_control, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+			  lsocks, loprefix, binary, "-L",
+			  "DEBUG", options, NULL);
+    else
+      sl->proc =
+	do_start_process (sl->pipe_control, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+			  lsocks, loprefix, binary, "-c", sl->config, "-L",
+			  "DEBUG", options, NULL);
+  }
   else
-    sl->proc =
-      do_start_process (sl->pipe_control, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-			lsocks, loprefix, binary, "-c", sl->config,
-			options, NULL);
+  {
+    if (NULL == sl->config)
+      sl->proc =
+	do_start_process (sl->pipe_control, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+			  lsocks, loprefix, binary, 
+			  options, NULL);
+    else
+      sl->proc =
+	do_start_process (sl->pipe_control, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+			  lsocks, loprefix, binary, "-c", sl->config,
+			  options, NULL);
+  }
   GNUNET_free (binary);
   if (sl->proc == NULL)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to start service `%s'\n"),
@@ -1118,18 +1134,16 @@ setup_service (void *cls, const char *section)
 	(GNUNET_OK !=
 	 GNUNET_CONFIGURATION_get_value_filename (cfg, "PATHS", "DEFAULTCONFIG",
 						  &config)) ) ||
-
       (0 != STAT (config, &sbuf)))
   {
-    if (NULL == config)
-      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING, section, "CONFIG");
-    else
+    if (NULL != config)
+    {
       GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING, 
 				 section, "CONFIG",
 				 STRERROR (errno));
-    GNUNET_free (binary);
-    GNUNET_free_non_null (config);
-    return;
+      GNUNET_free (config);
+      config = NULL;
+    }
   }
   sl = GNUNET_malloc (sizeof (struct ServiceList));
   sl->name = GNUNET_strdup (section);
