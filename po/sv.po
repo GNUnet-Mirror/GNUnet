@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GNUnet 0.7.0b\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2012-11-05 21:56+0100\n"
+"POT-Creation-Date: 2012-11-05 22:03+0100\n"
 "PO-Revision-Date: 2006-01-21 17:16+0100\n"
 "Last-Translator: Daniel Nylander <po@danielnylander.se>\n"
 "Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
@@ -3385,12 +3385,12 @@ msgstr ""
 msgid "help text"
 msgstr "hjälptext för -t"
 
-#: src/mesh/gnunet-regex-profiler.c:1056
+#: src/mesh/gnunet-regex-profiler.c:1087
 #: src/testbed/gnunet-testbed-profiler.c:323
 msgid "An operation has failed while starting peers\n"
 msgstr ""
 
-#: src/mesh/gnunet-regex-profiler.c:1110
+#: src/mesh/gnunet-regex-profiler.c:1141
 #: src/testbed/gnunet-testbed-profiler.c:390
 #, fuzzy, c-format
 msgid "Creating a peer failed. Error: %s\n"
@@ -3398,54 +3398,54 @@ msgstr ""
 "\n"
 "Fel vid uppladdning av fil: %s\n"
 
-#: src/mesh/gnunet-regex-profiler.c:1237
+#: src/mesh/gnunet-regex-profiler.c:1268
 #: src/testbed/gnunet-testbed-profiler.c:495
 msgid "An operation has failed while starting slaves\n"
 msgstr ""
 
-#: src/mesh/gnunet-regex-profiler.c:1259
+#: src/mesh/gnunet-regex-profiler.c:1290
 #, fuzzy, c-format
 msgid "No files found in `%s'\n"
 msgstr "%d filer hittades i katalog.\n"
 
-#: src/mesh/gnunet-regex-profiler.c:1314
+#: src/mesh/gnunet-regex-profiler.c:1345
 msgid "An operation has failed while linking\n"
 msgstr ""
 
-#: src/mesh/gnunet-regex-profiler.c:1425
+#: src/mesh/gnunet-regex-profiler.c:1456
 #: src/testbed/gnunet-testbed-profiler.c:597
 #, c-format
 msgid "Host registration failed for a host. Error: %s\n"
 msgstr ""
 
-#: src/mesh/gnunet-regex-profiler.c:1505
+#: src/mesh/gnunet-regex-profiler.c:1536
 #: src/testbed/gnunet-testbed-profiler.c:676
 msgid "Unable to connect to master controller -- Check config\n"
 msgstr ""
 
-#: src/mesh/gnunet-regex-profiler.c:1604
+#: src/mesh/gnunet-regex-profiler.c:1635
 #, c-format
 msgid "No hosts-file specified on command line. Exiting.\n"
 msgstr ""
 
-#: src/mesh/gnunet-regex-profiler.c:1609
+#: src/mesh/gnunet-regex-profiler.c:1640
 #: src/regex/gnunet-regex-simulation-profiler.c:498
 #, c-format
 msgid "No policy directory specified on command line. Exiting.\n"
 msgstr ""
 
-#: src/mesh/gnunet-regex-profiler.c:1615
+#: src/mesh/gnunet-regex-profiler.c:1646
 #, c-format
 msgid "No hosts loaded. Need at least one host\n"
 msgstr ""
 
-#: src/mesh/gnunet-regex-profiler.c:1622
+#: src/mesh/gnunet-regex-profiler.c:1653
 #: src/testbed/gnunet-testbed-profiler.c:723
 #, c-format
 msgid "Host %s cannot start testbed\n"
 msgstr ""
 
-#: src/mesh/gnunet-regex-profiler.c:1629
+#: src/mesh/gnunet-regex-profiler.c:1660
 #: src/testbed/gnunet-testbed-profiler.c:730
 #, fuzzy, c-format
 msgid "Exiting\n"
@@ -3453,61 +3453,61 @@ msgstr ""
 "\n"
 "Avslutar.\n"
 
-#: src/mesh/gnunet-regex-profiler.c:1635
+#: src/mesh/gnunet-regex-profiler.c:1666
 #, fuzzy, c-format
 msgid "No configuration file given. Exiting\n"
 msgstr "använd konfigurationsfil FILNAMN"
 
-#: src/mesh/gnunet-regex-profiler.c:1652
+#: src/mesh/gnunet-regex-profiler.c:1683
 #: src/regex/gnunet-regex-simulation-profiler.c:504
 #, c-format
 msgid "Specified policies directory does not exist. Exiting.\n"
 msgstr ""
 
-#: src/mesh/gnunet-regex-profiler.c:1659
+#: src/mesh/gnunet-regex-profiler.c:1690
 #, c-format
 msgid "No search strings file given. Exiting.\n"
 msgstr ""
 
-#: src/mesh/gnunet-regex-profiler.c:1667
+#: src/mesh/gnunet-regex-profiler.c:1698
 #, c-format
 msgid ""
 "Error loading search strings. Given file does not contain enough strings. "
 "Exiting.\n"
 msgstr ""
 
-#: src/mesh/gnunet-regex-profiler.c:1673
+#: src/mesh/gnunet-regex-profiler.c:1704
 #, fuzzy, c-format
 msgid "Error loading search strings. Exiting.\n"
 msgstr "Fel vid lämning av DHT.\n"
 
-#: src/mesh/gnunet-regex-profiler.c:1707
+#: src/mesh/gnunet-regex-profiler.c:1738
 #, fuzzy
 msgid "name of the file for writing statistics"
 msgstr "Visa värde av alternativet"
 
-#: src/mesh/gnunet-regex-profiler.c:1710
+#: src/mesh/gnunet-regex-profiler.c:1741
 msgid "create COUNT number of random links between peers"
 msgstr ""
 
-#: src/mesh/gnunet-regex-profiler.c:1713
+#: src/mesh/gnunet-regex-profiler.c:1744
 msgid "wait TIMEOUT before considering a string match as failed"
 msgstr ""
 
-#: src/mesh/gnunet-regex-profiler.c:1716
+#: src/mesh/gnunet-regex-profiler.c:1747
 msgid "wait DELAY before starting string search"
 msgstr ""
 
-#: src/mesh/gnunet-regex-profiler.c:1719
+#: src/mesh/gnunet-regex-profiler.c:1750
 msgid "number of search strings to read from search strings file"
 msgstr ""
 
-#: src/mesh/gnunet-regex-profiler.c:1722
+#: src/mesh/gnunet-regex-profiler.c:1753
 #: src/regex/gnunet-regex-simulation-profiler.c:555
 msgid "maximum path compression length"
 msgstr ""
 
-#: src/mesh/gnunet-regex-profiler.c:1734
+#: src/mesh/gnunet-regex-profiler.c:1765
 msgid "Profiler for regex/mesh"
 msgstr ""
 

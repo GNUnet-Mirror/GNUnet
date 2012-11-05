@@ -65,7 +65,7 @@ libgnunetmeshblock_la_LDFLAGS = \
 
 gnunet_service_mesh_SOURCES = \
  gnunet-service-mesh.c \
- mesh_tunnel_tree.c \
+ mesh_tunnel_tree.c mesh_tunnel_tree.h \
  mesh_common.c
 gnunet_service_mesh_CFLAGS = $(AM_CFLAGS)
 gnunet_service_mesh_LDADD = \
