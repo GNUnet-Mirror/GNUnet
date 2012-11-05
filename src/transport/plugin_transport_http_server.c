@@ -540,8 +540,7 @@ http_server_plugin_send (void *cls,
       return GNUNET_SYSERR;
   }
 
-
-  if (GNUNET_YES == session->server_send->disconnect)
+  if ((NULL != session->server_send) && (GNUNET_YES == session->server_send->disconnect))
     return GNUNET_SYSERR;
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, session->plugin->name,
@@ -567,10 +566,9 @@ http_server_plugin_send (void *cls,
                             stat_txt, msgbuf_size, GNUNET_NO);
   GNUNET_free (stat_txt);
 
-  server_reschedule (session->plugin, session->server_send->mhd_daemon, GNUNET_YES);
+  server_reschedule (session->plugin, session->server_send->mhd_daemon,
+      (NULL != session->server_send) ? GNUNET_YES : GNUNET_NO);
   server_reschedule_session_timeout (session);
-
-  /*  struct Plugin *plugin = cls; */
   return bytes_sent;
 }
 
@@ -1127,7 +1125,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   if (direction == _RECEIVE)
     s->server_recv = sc;
 
-  if ((NULL != s->server_send) && (NULL != s->server_send))
+  if ((NULL != s->server_send) && (NULL != s->server_recv))
     s->connect_in_progress = GNUNET_NO; /* PUT and GET are connected */
 
 #if MHD_VERSION >= 0x00090E00
