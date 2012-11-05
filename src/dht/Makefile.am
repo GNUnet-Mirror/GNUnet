@@ -208,7 +208,6 @@ EXTRA_DIST = \
   $(check_SCRIPTS) \
   test_dht_api_data.conf \
   test_dht_api_peer1.conf \
-  test_dht_twopeer_data.conf \
   test_dht_monitor.conf \
   test_dht_multipeer.conf \
   test_dht_2dtorus.conf \
