@@ -29,7 +29,6 @@
 #include "gnunet_dns_service.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_namestore_service.h"
-#include "gnunet_vpn_service.h"
 #include "gnunet_dns_service.h"
 #include "gnunet_resolver_service.h"
 #include "gnunet_dnsparser_lib.h"
@@ -39,6 +38,10 @@
 #include "block_gns.h"
 #include "gns.h"
 #include "gnunet-service-gns_resolver.h"
+#ifndef WINDOWS
+#include "gnunet_vpn_service.h"
+#endif
+
 
 /**
  * Default DHT timeout
@@ -56,10 +59,12 @@
  */
 static struct GNUNET_NAMESTORE_Handle *namestore_handle;
 
+#ifndef WINDOWS
 /**
  * Our handle to the vpn service
  */
 static struct GNUNET_VPN_Handle *vpn_handle;
+#endif
 
 /**
  * Resolver handle to the dht
@@ -1240,6 +1245,7 @@ process_record_result_ns (void* cls,
 }
 
 
+#ifndef WINDOWS
 /**
  * VPN redirect result callback
  *
@@ -1305,6 +1311,7 @@ process_record_result_vpn (void* cls, int af, const void *address)
              rh->id);
   rh->proc (rh->proc_cls, rh, 0, NULL);
 }
+#endif
 
 
 /**
@@ -1804,6 +1811,7 @@ resolve_record_vpn (struct ResolverHandle *rh,
     af = AF_INET;
   else
     af = AF_INET6;
+#ifndef WINDOWS
   if (NULL == vpn_handle)
   {
     vpn_handle = GNUNET_VPN_connect (cfg);
@@ -1824,6 +1832,11 @@ resolve_record_vpn (struct ResolverHandle *rh,
 						GNUNET_TIME_UNIT_FOREVER_ABS, //FIXME
 						&process_record_result_vpn,
 						rh);
+#else
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Error connecting to VPN (not available on W32 yet)\n");
+  finish_lookup (rh, rh->proc_cls, 0, NULL);  
+#endif
 }
 
 
