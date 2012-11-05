@@ -17,7 +17,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA.
 
-EXTRA_DIST = map-file
+EXTRA_DIST = map-file install-nss-plugin.sh
 
 AM_LDFLAGS=-avoid-version -module -export-dynamic
 
