@@ -35,6 +35,7 @@
  * - MAIN FUNCTIONS (main & run)
  *
  * TODO:
+ * - Backport r24764.
  * - error reporting (CREATE/CHANGE/ADD/DEL?) -- new message!
  * - partial disconnect reporting -- same as error reporting?
  * - add ping message
