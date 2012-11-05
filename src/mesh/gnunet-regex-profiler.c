@@ -111,11 +111,6 @@ enum State
 
 
 /**
- * An array of hosts loaded from the hostkeys file
- */
-static struct GNUNET_TESTBED_Host **hosts;
-
-/**
  * Peer handles.
  */
 struct RegexPeer
@@ -184,11 +179,17 @@ struct RegexPeer
   struct GNUNET_TIME_Absolute prof_start_time;
 };
 
+
+/**
+ * An array of hosts loaded from the hostkeys file
+ */
+static struct GNUNET_TESTBED_Host **hosts;
+
 /**
  * Array of peer handles used to pass to
  * GNUNET_TESTBED_overlay_configure_topology
  */
-struct GNUNET_TESTBED_Peer **peer_handles;
+static struct GNUNET_TESTBED_Peer **peer_handles;
 
 /**
  * The array of peers; we fill this as the peers are given to us by the testbed
@@ -203,32 +204,32 @@ static struct GNUNET_TESTBED_HostRegistrationHandle *reg_handle;
 /**
  * Handle to the master controller process
  */
-struct GNUNET_TESTBED_ControllerProc *mc_proc;
+static struct GNUNET_TESTBED_ControllerProc *mc_proc;
 
 /**
  * Handle to the master controller
  */
-struct GNUNET_TESTBED_Controller *mc;
+static struct GNUNET_TESTBED_Controller *mc;
 
 /**
  * Handle to global configuration
  */
-struct GNUNET_CONFIGURATION_Handle *cfg;
+static struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * Head of the operations list
  */
-struct DLLOperation *dll_op_head;
+static struct DLLOperation *dll_op_head;
 
 /**
  * Tail of the operations list
  */
-struct DLLOperation *dll_op_tail;
+static struct DLLOperation *dll_op_tail;
 
 /**
  * Peer linking - topology operation
  */
-struct GNUNET_TESTBED_Operation *topology_op;
+static struct GNUNET_TESTBED_Operation *topology_op;
 
 /**
  * Abort task identifier
@@ -243,22 +244,22 @@ static GNUNET_SCHEDULER_TaskIdentifier register_hosts_task;
 /**
  * Global event mask for all testbed events
  */
-uint64_t event_mask;
+static uint64_t event_mask;
 
 /**
  * The starting time of a profiling step
  */
-struct GNUNET_TIME_Absolute prof_start_time;
+static struct GNUNET_TIME_Absolute prof_start_time;
 
 /**
  * Duration profiling step has taken
  */
-struct GNUNET_TIME_Relative prof_time;
+static struct GNUNET_TIME_Relative prof_time;
 
 /**
  * Current peer id
  */
-unsigned int peer_id;
+static unsigned int peer_id;
 
 /**
  * Number of peers to be started by the profiler
@@ -379,7 +380,7 @@ static unsigned int max_path_compression;
  * @param atsi performance data for the connection
  *
  */
-void
+static void
 mesh_peer_connect_handler (void *cls,
                            const struct GNUNET_PeerIdentity* peer_id,
                            const struct GNUNET_ATS_Information * atsi);
@@ -395,7 +396,7 @@ mesh_peer_connect_handler (void *cls,
  * @param cls closure
  * @param peer_id peer identity the tunnel stopped working with
  */
-void
+static void
 mesh_peer_disconnect_handler (void *cls,
                               const struct GNUNET_PeerIdentity * peer_id);
 
@@ -407,7 +408,7 @@ mesh_peer_disconnect_handler (void *cls,
  * @param ca_result connect adapter result.
  * @param emsg error message.
  */
-void
+static void
 mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
                  void *ca_result, const char *emsg);
 
@@ -419,7 +420,7 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
  *
  * @return
  */
-void *
+static void *
 mesh_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
@@ -430,7 +431,7 @@ mesh_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg);
  * @param cls closure
  * @param op_result service handle returned from the connect adapter
  */
-void
+static void
 mesh_da (void *cls, void *op_result);
 
 
@@ -715,7 +716,7 @@ stats_connect_cb (void *cls,
  * @return initial tunnel context for the tunnel
  *         (can be NULL -- that's not an error)
  */
-void *
+static void *
 mesh_inbound_tunnel_handler (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
                              const struct GNUNET_PeerIdentity *initiator,
                              const struct GNUNET_ATS_Information *atsi)
@@ -738,7 +739,7 @@ mesh_inbound_tunnel_handler (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
  * @param tunnel_ctx place where local state associated
  *                   with the tunnel is stored
  */
-void
+static void
 mesh_tunnel_end_handler (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
                          void *tunnel_ctx)
 {
@@ -756,7 +757,7 @@ mesh_tunnel_end_handler (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
  * @param cls closure
  * @param peer_id peer identity the tunnel stopped working with
  */
-void
+static void
 mesh_peer_disconnect_handler (void *cls,
                               const struct GNUNET_PeerIdentity * peer_id)
 {
@@ -772,7 +773,7 @@ mesh_peer_disconnect_handler (void *cls,
  * @param atsi performance data for the connection
  *
  */
-void
+static void
 mesh_peer_connect_handler (void *cls,
                            const struct GNUNET_PeerIdentity* peer_id,
                            const struct GNUNET_ATS_Information * atsi)
@@ -976,7 +977,7 @@ do_mesh_op_done (void *cls,
  * @param ca_result connect adapter result.
  * @param emsg error message.
  */
-void
+static void
 mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
                  void *ca_result, const char *emsg)
 {
@@ -1102,7 +1103,7 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
  *
  * @return
  */
-void *
+static void *
 mesh_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_MESH_ApplicationType app;
@@ -1128,7 +1129,7 @@ mesh_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param cls closure
  * @param op_result service handle returned from the connect adapter
  */
-void
+static void
 mesh_da (void *cls, void *op_result)
 {
   struct RegexPeer *peer = (struct RegexPeer *) cls;
@@ -1304,6 +1305,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
   }
 }
 
+
 /**
  * Function called with a filename.
  *
@@ -1312,7 +1314,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
  * @return GNUNET_OK to continue to iterate,
  *  GNUNET_SYSERR to abort iteration with error!
  */
-int
+static int
 policy_filename_cb (void *cls, const char *filename)
 {
   static unsigned int peer_cnt;
@@ -1354,6 +1356,7 @@ controller_event_cb (void *cls,
 {
   struct DLLOperation *dll_op;
   struct GNUNET_TESTBED_Operation *op;
+  int ret;
 
   switch (state)
   {
@@ -1389,9 +1392,17 @@ controller_event_cb (void *cls,
           state = STATE_PEERS_CREATING;
           prof_start_time = GNUNET_TIME_absolute_get ();
 
-          num_peers = GNUNET_DISK_directory_scan (policy_dir,
-                                                  NULL,
-                                                  NULL);
+          if (-1 == (ret = GNUNET_DISK_directory_scan (policy_dir,
+						       NULL,
+						       NULL)))
+	  {
+	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+			_("No files found in `%s'\n"),
+			policy_dir);
+	    GNUNET_SCHEDULER_shutdown ();
+	    return;
+	  }
+	  num_peers = (unsigned int) ret;
           peers = GNUNET_malloc (sizeof (struct RegexPeer) * num_peers);
 
 	  /* Initialize peers */
