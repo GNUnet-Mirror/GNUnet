@@ -239,7 +239,7 @@ libgnunet_plugin_transport_unix_la_LDFLAGS = \
 
 
 libgnunet_plugin_transport_http_client_la_SOURCES = \
-  plugin_transport_http_client.c plugin_transport_http_common.c
+  plugin_transport_http_client.c plugin_transport_http_common.c plugin_transport_http_common.h
 libgnunet_plugin_transport_http_client_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -256,7 +256,7 @@ libgnunet_plugin_transport_http_client_la_CPPFLAGS = \
 
 
 libgnunet_plugin_transport_http_server_la_SOURCES = \
-  plugin_transport_http_server.c plugin_transport_http_common.c
+  plugin_transport_http_server.c plugin_transport_http_common.c 
 libgnunet_plugin_transport_http_server_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \

@@ -13,7 +13,8 @@ EXTRA_DIST = \
   gauger.h \
   block_fs.h \
   block_dns.h \
-  block_gns.h
+  block_gns.h \
+  block_mesh.h
 
 gnunetinclude_HEADERS = \
   platform.h plibc.h $(WINPROC) gettext.h \

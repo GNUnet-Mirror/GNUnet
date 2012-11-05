@@ -54,7 +54,7 @@ libgnunetmesh_la_LDFLAGS = \
   -version-info 1:0:0
 
 libgnunetmeshblock_la_SOURCES = \
-  mesh_block_lib.c
+  mesh_block_lib.c mesh_block_lib.h
 libgnunetmeshblock_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(XLIB) \
@@ -338,6 +338,7 @@ TESTS = test_mesh_api \
 endif
 
 EXTRA_DIST = \
+  mesh.h mesh_protocol.h \
   test_mesh.conf \
   test_mesh_2dtorus.conf \
   test_mesh_small.conf
