@@ -39,7 +39,7 @@ extern "C"
 
 
 /**
- * Constant for how many bits the initial string regex should have.
+ * Constant for how many bytes the initial string regex should have.
  */
 #define GNUNET_REGEX_INITIAL_BYTES 24
 

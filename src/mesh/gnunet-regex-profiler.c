@@ -93,11 +93,6 @@ enum State
   STATE_PEERS_LINKING,
 
   /**
-   * Announcing regexes
-   */
-  STATE_ANNOUNCE_REGEX,
-
-  /**
    * Matching strings against announced regexes
    */
   STATE_SEARCH_REGEX,
@@ -119,6 +114,11 @@ struct RegexPeer
    * Peer id.
    */
   unsigned int id;
+
+  /**
+   * Peer configuration handle.
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
    * The actual testbed peer handle.
@@ -336,11 +336,6 @@ static struct GNUNET_TIME_Relative search_timeout = { 60000 };
  * Default: 1 m.
  */
 static struct GNUNET_TIME_Relative search_delay = { 60000 };
-
-/**
- * Delay before setting mesh service op as done.
- */
-static struct GNUNET_TIME_Relative mesh_done_delay = { 1000 };
 
 /**
  * Delay to wait before starting to configure the overlay topology
@@ -578,7 +573,7 @@ stats_da (void *cls, void *op_result)
 
 
 /**
- * Process statistic values.
+ * Process statistic values. Write all values to global 'data_file', if present.
  *
  * @param cls closure
  * @param subsystem name of subsystem that created the statistic
@@ -616,7 +611,8 @@ stats_iterator (void *cls, const char *subsystem, const char *name,
 
 
 /**
- * Stats callback.
+ * Stats callback. Finish the stats testbed operation and when all stats have
+ * been iterated, shutdown the profiler.
  *
  * @param cls closure
  * @param success GNUNET_OK if statistics were
@@ -649,7 +645,8 @@ stats_cb (void *cls,
 
 
 /**
- * Function called by testbed once we are connected to stats service.
+ * Function called by testbed once we are connected to stats service. Create a
+ * mesh tunnel and try to match the peer's string.
  *
  * @param cls the 'struct RegexPeer' for which we connected to stats
  * @param op connect operation handle
@@ -715,7 +712,9 @@ mesh_peer_disconnect_handler (void *cls,
 
 
 /**
- * Method called whenever a peer has connected to the tunnel.
+ * Method called when the mesh connection succeeded (or timed out), which means
+ * we've found a peer that announced a regex that matches our search string. Now
+ * get the statistics.
  *
  * @param cls closure
  * @param peer_id peer identity the tunnel was created to, NULL on timeout
@@ -791,6 +790,14 @@ mesh_peer_connect_handler (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Could not get mesh statistics of peer %u!\n", peer->id);
     }
+    if (NULL == GNUNET_STATISTICS_get (peer->stats_handle, "regexprofiler", NULL,
+                                       GNUNET_TIME_UNIT_FOREVER_REL,
+                                       NULL,
+                                       &stats_iterator, peer))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Could not get regexprofiler statistics of peer %u!\n", peer->id);
+    }
     if (NULL == GNUNET_STATISTICS_get (peer->stats_handle, "transport", NULL,
                                        GNUNET_TIME_UNIT_FOREVER_REL,
                                        NULL,
@@ -825,7 +832,8 @@ mesh_peer_connect_handler (void *cls,
 
 
 /**
- * Connect by string timeout task
+ * Connect by string timeout task. This will cancel the profiler after the
+ * specified timeout 'search_timeout'.
  *
  * @param cls NULL
  * @param tc the task context
@@ -845,7 +853,9 @@ do_connect_by_string_timeout (void *cls,
 
 
 /**
- * Connect by string task that is run to search for a string in the NFA
+ * Connect by string task that is run to search for a string in the NFA. It
+ * first connects to the mesh service, then connects to the stats service of
+ * this peer and then it starts the string search.
  *
  * @param cls NULL
  * @param tc the task context
@@ -889,37 +899,9 @@ do_connect_by_string (void *cls,
 
 
 /**
- * Delayed operation done for mesh service disconnects.
- *
- * @param cls NULL
- * @param tc the task context
- */
-static void
-do_mesh_op_done (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext * tc)
-{
-  struct RegexPeer *peer = cls;
-  static unsigned int peer_cnt;
-  GNUNET_TESTBED_operation_done (peer->mesh_op_handle);
-  peer->mesh_op_handle = NULL;
-
-  if (++peer_cnt < num_peers)
-  {
-    peers[peer_cnt].mesh_op_handle =
-      GNUNET_TESTBED_service_connect (NULL,
-                                      peers[peer_cnt].peer_handle,
-                                      "mesh",
-                                      &mesh_connect_cb,
-                                      &peers[peer_cnt],
-                                      &mesh_ca,
-                                      &mesh_da,
-                                      &peers[peer_cnt]);
-  }
-}
-
-
-/**
- * Mesh connect callback.
+ * Mesh connect callback. Called when we are connected to the mesh service for
+ * the peer in 'cls'. If successfull we connect to the stats service of this
+ * peer and then try to match the search string of this peer.
  *
  * @param cls internal peer id.
  * @param op operation handle.
@@ -931,11 +913,6 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
                  void *ca_result, const char *emsg)
 {
   struct RegexPeer *peer = (struct RegexPeer *) cls;
-  char *regex;
-  char *data;
-  char *buf;
-  uint64_t filesize;
-  unsigned int offset;
 
   if (NULL != emsg || NULL == op || NULL == ca_result)
   {
@@ -946,106 +923,22 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
   GNUNET_assert (peer->mesh_handle != NULL);
   GNUNET_assert (peer->mesh_op_handle == op);
   GNUNET_assert (peer->mesh_handle == ca_result);
-  GNUNET_assert (NULL != peer->policy_file);
 
-  switch (state)
-  {
-  case STATE_ANNOUNCE_REGEX:
-    {
-      static unsigned int num_files_announced;
-
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Announcing regexes for peer %u with file %s\n",
-                  peer->id, peer->policy_file);
-
-      if (GNUNET_YES != GNUNET_DISK_file_test (peer->policy_file))
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    "Could not find policy file %s\n", peer->policy_file);
-        return;
-      }
-      if (GNUNET_OK != GNUNET_DISK_file_size (peer->policy_file, &filesize, GNUNET_YES, GNUNET_YES))
-        filesize = 0;
-      if (0 == filesize)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Policy file %s is empty.\n", peer->policy_file);
-        return;
-      }
-      data = GNUNET_malloc (filesize);
-      if (filesize != GNUNET_DISK_fn_read (peer->policy_file, data, filesize))
-      {
-        GNUNET_free (data);
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Could not read policy file %s.\n",
-                    peer->policy_file);
-        return;
-      }
-      buf = data;
-      offset = 0;
-      regex = NULL;
-      while (offset < (filesize - 1))
-      {
-        offset++;
-        if (((data[offset] == '\n')) && (buf != &data[offset]))
-        {
-          data[offset] = '\0';
-          regex = buf;
-          GNUNET_assert (NULL != regex);
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Announcing regex: %s on peer %u \n",
-                  regex, peer->id);
-          GNUNET_MESH_announce_regex (peer->mesh_handle, regex, max_path_compression);
-          buf = &data[offset + 1];
-        }
-        else if ((data[offset] == '\n') || (data[offset] == '\0'))
-          buf = &data[offset + 1];
-      }
-      GNUNET_free (data);
-
-      GNUNET_SCHEDULER_add_delayed (mesh_done_delay, &do_mesh_op_done, peer);
-
-      if (++num_files_announced == num_peers)
-      {
-        state = STATE_SEARCH_REGEX;
-
-        prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
-
-        printf ("All files announced in %s.\n",
-                GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
-        printf ("Waiting %s before starting to search.\n",
-                GNUNET_STRINGS_relative_time_to_string (search_delay, GNUNET_YES));
-        fflush (stdout);
-
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                    "All regexes announced in %s. Waiting %s before starting to search.\n",
-                    GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO),
-                    GNUNET_STRINGS_relative_time_to_string (search_delay, GNUNET_NO));
-
-        search_task = GNUNET_SCHEDULER_add_delayed (search_delay,
-                                                    &do_connect_by_string, NULL);
-      }
-      break;
-    }
-  case STATE_SEARCH_REGEX:
-    {
-      /* First connect to the stats service, then start to search */
-      peer->stats_op_handle =
-        GNUNET_TESTBED_service_connect (NULL,
-                                        peers->peer_handle,
-                                        "statistics",
-                                        &stats_connect_cb,
-                                        peer,
-                                        &stats_ca,
-                                        &stats_da,
-                                        peer);
-      break;
-    }
-  default:
-    GNUNET_break (0);
-  }
+  /* First connect to the stats service, then start to search */
+  peer->stats_op_handle =
+    GNUNET_TESTBED_service_connect (NULL,
+                                    peers->peer_handle,
+                                    "statistics",
+                                    &stats_connect_cb,
+                                    peer,
+                                    &stats_ca,
+                                    &stats_da,
+                                    peer);
 }
 
 
 /**
- * Mesh connect adapter.
+ * Mesh connect adapter. Opens a connection to the mesh service.
  *
  * @param cls not used.
  * @param cfg configuration handle.
@@ -1065,7 +958,7 @@ mesh_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
   app = (GNUNET_MESH_ApplicationType)0;
 
   peer->mesh_handle =
-    GNUNET_MESH_connect (cfg, cls, NULL, NULL, handlers, &app);
+    GNUNET_MESH_connect (cfg, peer, NULL, NULL, handlers, &app);
 
   return peer->mesh_handle;
 }
@@ -1226,6 +1119,8 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
 
   peer_ptr = dll_op->cls;
   GNUNET_assert (NULL == peer_ptr->peer_handle);
+  GNUNET_CONFIGURATION_destroy (peer_ptr->cfg);
+  peer_ptr->cfg = NULL;
   peer_ptr->peer_handle = peer;
   GNUNET_TESTBED_operation_done (dll_op->op);
   GNUNET_CONTAINER_DLL_remove (dll_op_head, dll_op_tail, dll_op);
@@ -1256,7 +1151,12 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
 
 
 /**
- * Function called with a filename.
+ * Function called with a filename for each file in the policy directory. Create
+ * a peer for each filename and update the peer's configuration to include the
+ * max_path_compression specified as a command line argument as well as the
+ * policy_file for this peer. The gnunet-service-regexprofiler service is
+ * automatically started on this peer. The service reads the configurration and
+ * announces the regexes stored in the policy file 'filename'.
  *
  * @param cls closure
  * @param filename complete filename (absolute path)
@@ -1279,14 +1179,24 @@ policy_filename_cb (void *cls, const char *filename)
               GNUNET_TESTBED_host_get_hostname (peer->host_handle),
               filename);
 
+  /* Set configuration options specific for this peer
+     (max_path_compression and policy_file */
+  peer->cfg = GNUNET_CONFIGURATION_dup (cfg);
+  GNUNET_CONFIGURATION_set_value_number (peer->cfg, "REGEXPROFILER",
+                                         "MAX_PATH_COMPRESSION",
+                                         (unsigned long long)max_path_compression);
+  GNUNET_CONFIGURATION_set_value_string (peer->cfg, "REGEXPROFILER",
+                                         "POLICY_FILE", filename);
+
   dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
   dll_op->cls = &peers[peer_cnt];
   dll_op->op = GNUNET_TESTBED_peer_create (mc,
                                            peer->host_handle,
-                                           cfg,
+                                           peer->cfg,
                                            &peer_create_cb,
                                            dll_op);
   GNUNET_CONTAINER_DLL_insert_tail (dll_op_head, dll_op_tail, dll_op);
+
   peer_cnt++;
 
   return GNUNET_OK;
@@ -1450,22 +1360,18 @@ controller_event_cb (void *cls,
            GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to write to file!\n");
        }
 
-       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                   "Connecting to mesh service and start announcing regex...\n");
-       printf ("\nStarting to connect to mesh services and announce regex\n");
+       printf ("\nWaiting %s before starting to search.\n",
+               GNUNET_STRINGS_relative_time_to_string (search_delay, GNUNET_YES));
        fflush (stdout);
 
-       prof_start_time = GNUNET_TIME_absolute_get ();
-       peers[0].mesh_op_handle =
-         GNUNET_TESTBED_service_connect (NULL,
-                                         peers[0].peer_handle,
-                                         "mesh",
-                                         &mesh_connect_cb,
-                                         &peers[0],
-                                         &mesh_ca,
-                                         &mesh_da,
-                                         &peers[0]);
-       state = STATE_ANNOUNCE_REGEX;
+       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                   "Waiting %s before starting to search.\n",
+                   GNUNET_STRINGS_relative_time_to_string (search_delay, GNUNET_NO));
+
+       state = STATE_SEARCH_REGEX;
+
+       search_task = GNUNET_SCHEDULER_add_delayed (search_delay,
+                                                   &do_connect_by_string, NULL);
      }
    }
    break;
@@ -1473,11 +1379,6 @@ controller_event_cb (void *cls,
      GNUNET_assert (0);
    }
    break;
-  case STATE_ANNOUNCE_REGEX:
-  {
-    /* Handled in service connect callback */
-    break;
-  }
   case STATE_SEARCH_REGEX:
   {
     /* Handled in service connect callback */
@@ -1499,7 +1400,7 @@ controller_event_cb (void *cls,
 
 
 /**
- * Task to register all hosts available in the global host list
+ * Task to register all hosts available in the global host list.
  *
  * @param cls NULL
  * @param tc the scheduler task context
@@ -1532,7 +1433,7 @@ host_registration_completion (void *cls, const char *emsg)
 
 
 /**
- * Task to register all hosts available in the global host list
+ * Task to register all hosts available in the global host list.
  *
  * @param cls NULL
  * @param tc the scheduler task context
@@ -1571,7 +1472,7 @@ register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Callback to signal successfull startup of the controller process
+ * Callback to signal successfull startup of the controller process.
  *
  * @param cls the closure from GNUNET_TESTBED_controller_start()
  * @param config the configuration with which the controller has been started;

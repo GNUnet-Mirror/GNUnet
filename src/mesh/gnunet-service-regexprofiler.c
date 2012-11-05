@@ -41,11 +41,6 @@ static int global_ret;
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
- * Handle to server.
- */
-static struct GNUNET_SERVER_Handle *server_handle;
-
-/**
  * Handle to the statistics service.
  */
 static struct GNUNET_STATISTICS_Handle *stats_handle;
@@ -96,43 +91,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shut down\n");
-}
-
-
-/**
- * Method called whenever a peer has disconnected from the tunnel.
- * Implementations of this callback must NOT call
- * GNUNET_MESH_tunnel_destroy immediately, but instead schedule those
- * to run in some other task later.  However, calling
- * "GNUNET_MESH_notify_transmit_ready_cancel" is allowed.
- *
- * @param cls closure
- * @param peer_id peer identity the tunnel stopped working with
- */
-static void
-mesh_peer_disconnect_handler (void *cls,
-                              const struct GNUNET_PeerIdentity * peer_id)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Mesh peer disconnect handler.\n");
-  GNUNET_STATISTICS_update (stats_handle, "# peers disconnected", 1, GNUNET_NO);
-}
-
-
-/**
- * Method called whenever a peer has connected to the tunnel.
- *
- * @param cls closure
- * @param peer_id peer identity the tunnel was created to, NULL on timeout
- * @param atsi performance data for the connection
- *
- */
-static void
-mesh_peer_connect_handler (void *cls,
-                           const struct GNUNET_PeerIdentity* peer_id,
-                           const struct GNUNET_ATS_Information * atsi)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Mesh peer connect handler.\n");
-  GNUNET_STATISTICS_update (stats_handle, "# peers connected", 1, GNUNET_NO);
 }
 
 
@@ -212,14 +170,16 @@ run (void *cls,
 
   app = (GNUNET_MESH_ApplicationType)0;
 
-  mesh_tunnel_handle = GNUNET_MESH_tunnel_create (mesh_handle,
-                                                  NULL,
-                                                  &mesh_peer_connect_handler,
-                                                  &mesh_peer_disconnect_handler,
-                                                  NULL);
-
   mesh_handle =
-    GNUNET_MESH_connect (cfg, mesh_tunnel_handle, NULL, NULL, handlers, &app);
+    GNUNET_MESH_connect (cfg, NULL, NULL, NULL, handlers, &app);
+
+  if (NULL == mesh_handle)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not acquire mesh handle. Exiting.\n");
+    global_ret = GNUNET_SYSERR;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
 
   /* Announcing regexes from policy_filename */
   if (GNUNET_YES != GNUNET_DISK_file_test (policy_filename))
@@ -262,8 +222,6 @@ run (void *cls,
   }
   GNUNET_free (data);
 
-
-  GNUNET_SERVER_suspend (server_handle);
   /* Scheduled the task to clean up when shutdown is called */
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
