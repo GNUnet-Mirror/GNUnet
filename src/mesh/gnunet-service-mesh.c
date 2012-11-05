@@ -3877,7 +3877,12 @@ tunnel_get_fwd_ack (struct MeshTunnel *t)
   if (-1LL == child_ack)
   {
     // Node has no children, child_ack AND core buffer are irrelevant.
-    GNUNET_break (-1LL != client_ack); // No children AND no clients? Not good!
+    if (-1LL == client_ack) // No children AND no clients? Not good!
+    {
+      GNUNET_STATISTICS_update (stats, "# mesh acks with no target",
+                                1, GNUNET_NO);
+
+    }
     return (uint32_t) client_ack;
   }
   if (-1LL == client_ack)
