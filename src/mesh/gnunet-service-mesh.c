@@ -2987,7 +2987,7 @@ tunnel_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_PEER_resolve (t->id.oid, &msg.oid);
   msg.last_ack = htonl (cinfo->fwd_ack);
 
-  GNUNET_PEER_resolve (tree_get_predecessor(cinfo->t->tree), &id);
+  GNUNET_PEER_resolve (cinfo->id, &id);
   send_prebuilt_message (&msg.header, &id, cinfo->t);
   cinfo->fc_poll = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
                                                     &tunnel_poll, cinfo);
@@ -5024,6 +5024,7 @@ queue_send (void *cls, size_t size, void *buf)
     {
       case 0:
       case GNUNET_MESSAGE_TYPE_MESH_ACK:
+      case GNUNET_MESSAGE_TYPE_MESH_POLL:
       case GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN:
       case GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY:
       case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
@@ -5159,7 +5160,7 @@ queue_send (void *cls, size_t size, void *buf)
         if (NULL == cinfo)
           cinfo = tunnel_get_neighbor_fc (t, &dst_id);
         cinfo->fc_poll = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
-                                                     &tunnel_poll, cinfo);
+                                                      &tunnel_poll, cinfo);
       }
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   return %d\n", data_size);
@@ -5982,7 +5983,6 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     /* TODO notify that we dont know this tunnel (whom)? */
     GNUNET_STATISTICS_update (stats, "# ack on unknown tunnel", 1, GNUNET_NO);
-    GNUNET_break_op (0);
     return GNUNET_OK;
   }
   ack = ntohl (msg->pid);
