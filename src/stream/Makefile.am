@@ -18,7 +18,8 @@ libgnunetstream_la_LIBADD = \
  $(top_builddir)/src/lockmanager/libgnunetlockmanager.la \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
 libgnunetstream_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS)
+  $(GN_LIB_LDFLAGS) \
+  -version-info 0:0:0
 
 if HAVE_BENCHMARKS
  STREAM_BENCHMARKS = \

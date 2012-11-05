@@ -63,7 +63,7 @@ libgnunetnamestore_la_LIBADD = \
   $(GN_LIBINTL) 
 libgnunetnamestore_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
-  -version-info 0:0:0
+  -version-info 0:1:0
 
 libexec_PROGRAMS = \
  gnunet-service-namestore 

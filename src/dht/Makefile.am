@@ -32,7 +32,7 @@ libgnunetdht_la_LIBADD = \
   $(LTLIBINTL)
 libgnunetdht_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
-  -version-info 1:0:1
+  -version-info 1:1:1
 
 
 plugin_LTLIBRARIES = \

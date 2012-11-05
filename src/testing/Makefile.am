@@ -24,7 +24,7 @@ libgnunettesting_la_LIBADD = \
  $(LTLIBINTL)
 libgnunettesting_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS) \
- -version-info 0:1:0
+ -version-info 1:0:0
 
 bin_PROGRAMS = \
  gnunet-testing-run-service \

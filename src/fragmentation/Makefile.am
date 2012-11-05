@@ -19,7 +19,7 @@ libgnunetfragmentation_la_LIBADD = -lm \
  $(LTLIBINTL)
 libgnunetfragmentation_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS) \
-  -version-info 1:0:1
+  -version-info 2:0:0
 
 check_PROGRAMS = \
  test_fragmentation

@@ -119,7 +119,7 @@ libgnunetutil_la_LIBADD = \
 
 libgnunetutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
-  -version-info 8:0:0
+  -version-info 9:0:0
 
 
 libexec_PROGRAMS = \
