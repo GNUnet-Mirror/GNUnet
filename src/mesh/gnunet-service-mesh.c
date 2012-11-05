@@ -4800,6 +4800,7 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
       case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
       case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
       case GNUNET_MESSAGE_TYPE_MESH_ACK:
+      case GNUNET_MESSAGE_TYPE_MESH_POLL:
       case GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "   prebuilt message\n");
