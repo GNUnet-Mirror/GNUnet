@@ -240,6 +240,7 @@ start_process (struct ServiceList *sl)
   struct ServiceListeningInfo *sli;
   SOCKTYPE *lsocks;
   unsigned int ls;
+  char *binary;
 
   /* calculate listen socket list */
   lsocks = NULL;
@@ -311,17 +312,19 @@ start_process (struct ServiceList *sl)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Starting service `%s' using binary `%s' and configuration `%s'\n",
 	      sl->name, sl->binary, sl->config);
+  binary = GNUNET_OS_get_libexec_binary_path (sl->binary);
   GNUNET_assert (NULL == sl->proc);
   if (GNUNET_YES == use_debug)
     sl->proc =
       do_start_process (sl->pipe_control, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-			lsocks, loprefix, sl->binary, "-c", sl->config, "-L",
+			lsocks, loprefix, binary, "-c", sl->config, "-L",
 			"DEBUG", options, NULL);
   else
     sl->proc =
       do_start_process (sl->pipe_control, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-			lsocks, loprefix, sl->binary, "-c", sl->config,
+			lsocks, loprefix, binary, "-c", sl->config,
 			options, NULL);
+  GNUNET_free (binary);
   if (sl->proc == NULL)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to start service `%s'\n"),
 		sl->name);

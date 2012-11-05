@@ -316,6 +316,7 @@ arm_service_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RequestContext *pos = cls;
   struct GNUNET_OS_Process *proc;
+  char *cbinary;
   char *binary;
   char *config;
   char *loprefix;
@@ -344,7 +345,7 @@ arm_service_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     lopostfix = GNUNET_strdup ("");
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (pos->h->cfg, "arm", "BINARY",
-					     &binary))
+					     &cbinary))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING,
 			       "arm", "BINARY");
@@ -363,12 +364,14 @@ arm_service_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 			       "arm", "CONFIG");
     if (pos->callback != NULL)
       pos->callback (pos->cls, GNUNET_ARM_PROCESS_UNKNOWN);
-    GNUNET_free (binary);
+    GNUNET_free (cbinary);
     GNUNET_free (pos);
     GNUNET_free (loprefix);
     GNUNET_free (lopostfix);
     return;
   }
+  binary = GNUNET_OS_get_libexec_binary_path (cbinary);
+  GNUNET_free (cbinary);
   if ((GNUNET_YES ==
        GNUNET_CONFIGURATION_have_value (pos->h->cfg, "TESTING", "WEAKRANDOM"))
       && (GNUNET_YES ==
