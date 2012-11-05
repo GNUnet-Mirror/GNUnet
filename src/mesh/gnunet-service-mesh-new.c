@@ -3377,6 +3377,7 @@ tunnel_add_client (struct MeshTunnel *t, struct MeshClient *c)
   fcinfo.bck_ack = t->nobuffer ? 1 : INITIAL_WINDOW_SIZE - 1;
   fcinfo.fwd_pid = t->fwd_pid;
   fcinfo.bck_pid = (uint32_t) -1; // Expected next: 0
+  fcinfo.fc_poll = GNUNET_SCHEDULER_NO_TASK;
   // FIXME fc buffering is done by context_notify. Confirm this is OK.
 
   t->nclients--;
