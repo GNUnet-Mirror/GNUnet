@@ -9,6 +9,7 @@ fi
 if ! which sudo > /dev/null 
 then
   echo "This test requires sudo.  Skipping."
+  exit 0
 fi
 if [ ! -x `which sudo` ]
 then
