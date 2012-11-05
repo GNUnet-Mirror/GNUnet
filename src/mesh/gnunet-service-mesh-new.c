@@ -3408,11 +3408,16 @@ tunnel_add_client (struct MeshTunnel *t, struct MeshClient *c)
   GNUNET_array_append (t->clients, t->nclients, c);
   fcinfo.t = t;
   fcinfo.client = c;
+  fcinfo.peer = NULL;
   fcinfo.fwd_ack = t->fwd_pid + 1;
   fcinfo.bck_ack = t->nobuffer ? 1 : INITIAL_WINDOW_SIZE - 1;
   fcinfo.fwd_pid = t->fwd_pid;
   fcinfo.bck_pid = (uint32_t) -1; // Expected next: 0
   fcinfo.fc_poll = GNUNET_SCHEDULER_NO_TASK;
+  fcinfo.send_buffer = NULL;
+  fcinfo.send_buffer_n = 0;
+  fcinfo.send_buffer_start = 0;
+  fcinfo.skip = t->fwd_pid;
   // FIXME fc buffering is done by context_notify. Confirm this is OK.
 
   t->nclients--;
