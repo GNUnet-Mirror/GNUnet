@@ -324,7 +324,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (GNUNET_SYSERR == set_bit (ntohl (hdr->num)))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Message id %u is bigger than maxmimum number of messages sent\n"),
+                  _("Message id %u is bigger than maxmimum number of messages %u expected\n"),
                   ntohl (hdr->num), TOTAL_MSGS);
   }
   test_sending = GNUNET_YES;
@@ -381,6 +381,7 @@ notify_ready (void *cls, size_t size, void *buf)
     ret += sizeof (struct TestMessage);
     memset (&cbuf[ret], n, s - sizeof (struct TestMessage));
     ret += s - sizeof (struct TestMessage);
+
 #if VERBOSE
     if (n % 5000 == 0)
     {
