@@ -1778,8 +1778,17 @@ GNUNET_SERVICE_run (int argc, char *const *argv, const char *service_name,
   }
   if (GNUNET_OK != GNUNET_log_setup (service_name, loglev, logfile))
     HANDLE_ERROR;
-  if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cfg_fn))
-    goto shutdown;
+  if (GNUNET_YES ==
+      GNUNET_DISK_file_test (cfg_fn))
+    (void) GNUNET_CONFIGURATION_load (cfg, cfg_fn);
+  else
+  {
+    (void) GNUNET_CONFIGURATION_load (cfg, NULL);
+    if (0 != strcmp (cfg_fn, GNUNET_DEFAULT_USER_CONFIG_FILE))
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Could not access configuration file `%s'\n"),
+		  cfg_fn);
+  }
   if (GNUNET_OK != setup_service (&sctx))
     goto shutdown;
   if ((1 == do_daemonize) && (GNUNET_OK != detach_terminal (&sctx)))
