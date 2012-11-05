@@ -298,6 +298,11 @@ struct GNUNET_TRANSPORT_Handle
    * (if GNUNET_NO, then 'self' is all zeros!).
    */
   int check_self;
+
+  /**
+   * Reconnect in progress
+   */
+  int reconnecting;
 };
 
 
@@ -987,24 +992,27 @@ send_try_connect (void *cls, size_t size, void *buf)
   return sizeof (struct TransportRequestConnectMessage);
 }
 
-
 /**
  * Ask the transport service to establish a connection to
  * the given peer.
  *
  * @param handle connection to transport service
  * @param target who we should try to connect to
+ * @return GNUNET_OK if request can be scheduled
+ *         GNUNET_NO please retry later because we are reconnecting
+ *         GNUNET_SYSERR on failure
  */
-void
+int
 GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
                               const struct GNUNET_PeerIdentity *target)
 {
   struct GNUNET_PeerIdentity *pid;
   if (NULL == handle->client)
   {
-      /* FIXME: handle->client can be NULL when transport api is reconnecting */
-      GNUNET_break (0);
-      return;
+    if (GNUNET_SCHEDULER_NO_TASK == handle->reconnect_task)
+      return GNUNET_SYSERR; /* this should never happen */
+    else
+      return GNUNET_NO; /* please retry */
   }
 
   pid = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
@@ -1012,6 +1020,7 @@ GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
   schedule_control_transmit (handle,
                              sizeof (struct TransportRequestConnectMessage),
                              &send_try_connect, pid);
+  return GNUNET_OK;
 }
 
 

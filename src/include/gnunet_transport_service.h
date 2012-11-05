@@ -164,8 +164,11 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle);
  *
  * @param handle connection to transport service
  * @param target who we should try to connect to
+ * @return GNUNET_OK if request can be scheduled
+ *         GNUNET_NO please retry later because we are reconnecting
+ *         GNUNET_SYSERR on failure
  */
-void
+int
 GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
                               const struct GNUNET_PeerIdentity *target);
 
