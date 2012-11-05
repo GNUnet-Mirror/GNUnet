@@ -504,6 +504,11 @@ struct MeshTunnel
      * when the queue is empty.
      */
   int destroy;
+
+    /**
+     * Total messages pending for this tunnels, payload or not.
+     */
+  unsigned int pending_messages;
 };
 
 
@@ -4988,6 +4993,8 @@ queue_send (void *cls, size_t size, void *buf)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   size ok\n");
 
     t = queue->tunnel;
+    GNUNET_assert (0 < t->pending_messages);
+    t->pending_messages--;
     if (GNUNET_MESSAGE_TYPE_MESH_UNICAST == queue->type)
     {
       t->fwd_queue_n--;
@@ -5043,6 +5050,12 @@ queue_send (void *cls, size_t size, void *buf)
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                         "*********   considered sent\n");
             t->fwd_queue_n--;
+          }
+          else
+          {
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                        "*********   NOT considered sent yet\n");
+            t->pending_messages++;
           }
         }
         data_size = send_core_data_multicast(queue->cls, size, buf);
@@ -5101,9 +5114,8 @@ queue_send (void *cls, size_t size, void *buf)
     /* Free queue, but cls was freed by send_core_* */
     queue_destroy (queue, GNUNET_NO);
 
-    if (GNUNET_YES == t->destroy)
+    if (GNUNET_YES == t->destroy && 0 == t->pending_messages)
     {
-      // FIXME fc tunnel destroy all pending traffic? wait for it?
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********  destroying tunnel!\n");
       tunnel_destroy (t);
     }
@@ -5188,17 +5200,11 @@ queue_add (void *cls, uint16_t type, size_t size,
   {
     if (*n >= *max)
     {
-      struct MeshTransmissionDescriptor *td = cls;
-      struct GNUNET_MESH_ToOrigin *to;
-
-      to = td->mesh_data->data;
       GNUNET_break(0);
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "bck pid %u, bck ack %u, msg pid %u\n",
-                  t->bck_pid, t->bck_ack, ntohl(to->pid));
-      GNUNET_STATISTICS_update(stats, "# messages dropped (buffer full)",
+      GNUNET_STATISTICS_update(stats,
+                               "# messages dropped (buffer full)",
                                1, GNUNET_NO);
-      return;                       // Drop message
+      return; // Drop message
     }
     (*n)++;
   }
@@ -5222,6 +5228,7 @@ queue_add (void *cls, uint16_t type, size_t size,
                                              &queue_send,
                                              dst);
   }
+  t->pending_messages++;
   if (NULL == n) // Is this internal mesh traffic?
     return;
 
