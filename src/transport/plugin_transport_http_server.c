@@ -530,18 +530,24 @@ http_server_plugin_send (void *cls,
       GNUNET_break (0);
       return GNUNET_SYSERR;
   }
-  if ((NULL == session->server_send) && (GNUNET_NO == session->connect_in_progress))
+  if (NULL == session->server_send)
   {
+     if (GNUNET_NO == session->connect_in_progress)
+     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, session->plugin->name,
                        "Session %p/connection %p: Sending message with %u bytes to peer `%s' with FAILED\n",
                        session, session->server_send,
                        msgbuf_size, GNUNET_i2s (&session->target));
       GNUNET_break (0);
       return GNUNET_SYSERR;
+     }
+  }
+  else
+  {
+      if (GNUNET_YES == session->server_send->disconnect)
+        return GNUNET_SYSERR;
   }
 
-  if ((NULL != session->server_send) && (GNUNET_YES == session->server_send->disconnect))
-    return GNUNET_SYSERR;
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, session->plugin->name,
                    "Session %p/connection %p: Sending message with %u to peer `%s' with \n",
@@ -566,9 +572,13 @@ http_server_plugin_send (void *cls,
                             stat_txt, msgbuf_size, GNUNET_NO);
   GNUNET_free (stat_txt);
 
-  server_reschedule (session->plugin, session->server_send->mhd_daemon,
-      (NULL != session->server_send) ? GNUNET_YES : GNUNET_NO);
-  server_reschedule_session_timeout (session);
+  if (NULL != session->server_send)
+  {
+      server_reschedule (session->plugin,
+                         session->server_send->mhd_daemon,
+                         GNUNET_YES);
+      server_reschedule_session_timeout (session);
+  }
   return bytes_sent;
 }
 
