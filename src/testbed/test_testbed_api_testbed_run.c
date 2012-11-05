@@ -179,13 +179,12 @@ main (int argc, char **argv)
   char *config_filename;
   int ret;
 
-  testname = strrchr (argv[0], (int) '_');
-  testname++;
-  if (NULL == testname)
+  if (NULL == (testname = strrchr (argv[0], (int) '_')))
   {
     GNUNET_break (0);
     return 1;
   }
+  testname++;
   testname = GNUNET_strdup (testname);
 #ifdef MINGW
   {
