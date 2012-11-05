@@ -397,7 +397,7 @@ static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   abort_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: ABORT\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test: ABORT\n");
   if (GNUNET_SCHEDULER_NO_TASK != read_task)
     GNUNET_SCHEDULER_cancel (read_task);
   result = GNUNET_SYSERR;
@@ -449,7 +449,15 @@ write_completion (void *cls, enum GNUNET_STREAM_Status status, size_t size)
   for (;size > 0; size--)
     update_meter (meter);
   if (pdata->bytes_wrote < DATA_SIZE) /* Have more data to send */
-  {
+  {      
+    if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+    {
+      GNUNET_SCHEDULER_cancel (abort_task);
+      abort_task = 
+          GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                        (GNUNET_TIME_UNIT_SECONDS, 300), &do_abort,
+                                    NULL);
+    }
     pdata->io_write_handle =
 	GNUNET_STREAM_write (pdata->socket,
 			     ((void *) data) + pdata->bytes_wrote,
@@ -936,7 +944,7 @@ int main (int argc, char **argv)
     PRINTF ("\nTesting over 1 hop with payload size %hu\n",
             payload_size[payload_size_index]);
     (void) memset (peer_data, 0, sizeof (peer_data));
-    result = GNUNET_SYSERR;
+    result = INIT;
     GNUNET_TESTBED_test_run (test_name, cfg_file, num_peers, event_mask,
     			     &controller_event_cb, NULL, &test_master, NULL);
     if (DOWNLINK_OK != result)
