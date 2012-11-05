@@ -747,7 +747,13 @@ http_client_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *targ
 
 }
 
-
+/**
+ * Check if a sessions exists for an specific address
+ * 
+ * @param plugin the plugin
+ * @param address the address
+ * @return the session or NULL
+ */
 static struct Session *
 client_lookup_session (struct HTTP_Client_Plugin *plugin,
                        const struct GNUNET_HELLO_Address *address)
@@ -1203,6 +1209,13 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   client_schedule (plugin, GNUNET_NO);
 }
 
+
+/**
+ * Connect GET connection for a session
+ * 
+ * @param s the session to connect
+ * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ */
 static int
 client_connect_get (struct Session *s)
 {
@@ -1314,6 +1327,13 @@ client_connect_put (struct Session *s)
   return GNUNET_OK;
 }
 
+
+/**
+ * Connect both PUT and GET connection for a session
+ * 
+ * @param s the session to connect
+ * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ */
 static int
 client_connect (struct Session *s)
 {
