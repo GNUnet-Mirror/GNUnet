@@ -83,7 +83,7 @@ gnunet_service_dns_DEPENDENCIES = \
   libgnunetdnsstub.la
 
 libgnunetdnsparser_la_SOURCES = \
- dnsparser.c 
+ dnsparser.c dnsparser.h
 libgnunetdnsparser_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB) \
   -lidn
