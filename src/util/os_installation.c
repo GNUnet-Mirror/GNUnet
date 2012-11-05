@@ -573,6 +573,8 @@ GNUNET_OS_get_libexec_binary_path (const char *progname)
   char *libexecdir;
   char *binary;
 
+  if (DIR_SEPARATOR == progname[0])
+    return GNUNET_strdup (progname);
   libexecdir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_LIBEXECDIR);
   if (NULL == libexecdir)
     return GNUNET_strdup (progname);
