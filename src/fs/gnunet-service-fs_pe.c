@@ -700,7 +700,7 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
  *
  * @param pr_head request plan reference list to check.
  * @param sender the peer that we've sent the request to.
- * @param result the timestamp to fill.
+ * @param result the timestamp to fill, set to "FOREVER" if never transmitted
  * @return GNUNET_YES if 'result' was changed, GNUNET_NO otherwise.
  */
 int
@@ -714,7 +714,10 @@ GSF_request_plan_reference_get_last_transmission_ (
   {
     if (bi->rp->pp->cp == sender)
     {
-      *result = bi->rp->last_transmission;
+      if (0 == bi->rp->last_transmission.abs_value)
+	*result = GNUNET_TIME_UNIT_FOREVER_ABS;
+      else
+	*result = bi->rp->last_transmission;
       return GNUNET_YES;
     }
   }
