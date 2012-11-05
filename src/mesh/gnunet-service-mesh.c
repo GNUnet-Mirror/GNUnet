@@ -6545,7 +6545,7 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     return;
   }
 
-  return;
+//   return; uncomment for regex_profiler
   c = clients;
   while (NULL != c)
   {
