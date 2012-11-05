@@ -58,6 +58,7 @@ test_gnunet_prefix_SOURCES = \
 test_gnunet_prefix_LDADD = \
   $(GCLIBADD) $(WINLIB) \
   $(LTLIBICONV) \
+  $(GN_LIBINTL) \
   -lltdl -lunistring $(XLIB) 
 
 pkghellodir= $(pkgdatadir)/hellos
