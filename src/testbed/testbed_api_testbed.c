@@ -427,19 +427,19 @@ call_cc:
   {
     if (GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI == rc->topology)
       rc->topology_operation =
-        GNUNET_TESTBED_overlay_configure_topology (dll_op,
-                                                   rc->num_peers,
-                                                   rc->peers,
-                                                   rc->topology,
-                                                   rc->num_oc,
-                                                   GNUNET_TESTBED_TOPOLOGY_OPTION_END);
+          GNUNET_TESTBED_overlay_configure_topology (NULL,
+                                                     rc->num_peers,
+                                                     rc->peers,
+                                                     rc->topology,
+                                                     rc->num_oc,
+                                                     GNUNET_TESTBED_TOPOLOGY_OPTION_END);
     else
-        rc->topology_operation =
-        GNUNET_TESTBED_overlay_configure_topology (dll_op,
-                                                   rc->num_peers,
-                                                   rc->peers,
-                                                   rc->topology,
-                                                   GNUNET_TESTBED_TOPOLOGY_OPTION_END);
+      rc->topology_operation =
+          GNUNET_TESTBED_overlay_configure_topology (NULL,
+                                                     rc->num_peers,
+                                                     rc->peers,
+                                                     rc->topology,
+                                                     GNUNET_TESTBED_TOPOLOGY_OPTION_END);
     if (NULL == rc->topology_operation)
       LOG (GNUNET_ERROR_TYPE_WARNING,
            "Not generating topology. Check number of peers\n");
