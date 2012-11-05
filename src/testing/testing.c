@@ -614,6 +614,8 @@ update_config (void *cls, const char *section, const char *option,
       if (0 == new_port)
       {
         uc->status = GNUNET_SYSERR;
+        GNUNET_free (single_variable);
+        GNUNET_free (per_host_variable);
         return;
       }
       GNUNET_snprintf (cval, sizeof (cval), "%u", new_port);
