@@ -230,8 +230,9 @@ get_size (unsigned int iter)
  * Sets a bit active in the bitmap.
  *
  * @param bitIdx which bit to set
+ * @return GNUNET_SYSERR on error, GNUNET_OK on success
  */
-static void
+static int
 set_bit (unsigned int bitIdx)
 {
   size_t arraySlot;
@@ -239,13 +240,14 @@ set_bit (unsigned int bitIdx)
 
   if (bitIdx >= sizeof (bitmap) * 8)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "tried to set bit %d of %d(!?!?)\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "tried to set bit %d of %d(!?!?)\n",
                 bitIdx, sizeof (bitmap) * 8);
-    return;
+    return GNUNET_SYSERR;
   }
   arraySlot = bitIdx / 8;
   targetBit = (1L << (bitIdx % 8));
   bitmap[arraySlot] |= targetBit;
+  return GNUNET_OK;
 }
 
 /**
@@ -319,7 +321,12 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 #endif
   n++;
-  set_bit (ntohl (hdr->num));
+  if (GNUNET_SYSERR == set_bit (ntohl (hdr->num)))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Message id %u is bigger than maxmimum number of messages sent\n"),
+                  ntohl (hdr->num), TOTAL_MSGS);
+  }
   test_sending = GNUNET_YES;
   if (0 == (n % (TOTAL_MSGS / 100)))
   {
@@ -379,7 +386,6 @@ notify_ready (void *cls, size_t size, void *buf)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending message %u of size %u\n", n,
                   s);
     }
-
 #endif
     n++;
     s = get_size (n);
