@@ -115,7 +115,8 @@ endif
 
 
 noinst_PROGRAMS = \
-gnunet-regex-profiler
+  gnunet-regex-profiler \
+  gnunet-service-regexprofiler
 
 gnunet_regex_profiler_SOURCES = \
   gnunet-regex-profiler.c
@@ -126,6 +127,14 @@ gnunet_regex_profiler_LDADD = \
   $(top_builddir)/src/regex/libgnunetregex.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la
 gnunet_regex_profiler_DEPENDENCIES = \
+  libgnunetmesh.la
+
+gnunet_service_regexprofiler_SOURCES = \
+  gnunet-service-regexprofiler.c
+gnunet_service_regexprofiler_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la
+gnunet_service_regexprofiler_DEPENDENCIES = \
   libgnunetmesh.la
 
 check_PROGRAMS = \
@@ -332,4 +341,3 @@ EXTRA_DIST = \
   test_mesh_2dtorus.conf \
   test_mesh_small.conf \
   regex_profiler_test.conf
-
