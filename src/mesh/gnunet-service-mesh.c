@@ -7726,7 +7726,7 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_PEER_resolve (t->id.oid, &copy->oid);
     copy->tid = htonl (t->id.tid);
     copy->ttl = htonl (default_ttl);
-    copy->pid = htonl (++(t->bck_pid));
+    copy->pid = htonl (t->bck_pid + 1);
 
     copy->sender = my_full_id;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
