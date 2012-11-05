@@ -53,10 +53,9 @@ endif
 endif
 
 libexec_PROGRAMS = \
-  gnunet-service-gns 
+  gnunet-service-gns $(DO_FCFSD)
 
 bin_PROGRAMS = \
-  $(DO_FCFSD) \
   $(DO_PROXY) \
   $(DO_W32_HELPER) \
   $(DO_W32_NSPTOOLS) \
