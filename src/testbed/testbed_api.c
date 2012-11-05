@@ -78,6 +78,11 @@ struct GNUNET_TESTBED_ControllerProc
   struct GNUNET_HELPER_Handle *helper;
 
   /**
+   * The arguments used to start the helper
+   */
+  char **helper_argv;
+
+  /**
    * The host where the helper is run
    */
   struct GNUNET_TESTBED_Host *host;
@@ -101,16 +106,6 @@ struct GNUNET_TESTBED_ControllerProc
    * The message corresponding to send handle
    */
   struct GNUNET_MessageHeader *msg;
-
-  /**
-   * The port number for ssh; used for helpers starting ssh
-   */
-  char *port;
-
-  /**
-   * The ssh destination string; used for helpers starting ssh
-   */
-  char *dst;
 
   /**
    * The configuration of the running testbed service
@@ -1308,6 +1303,43 @@ oprelease_get_slave_config (void *cls)
 
 
 /**
+ * Function to copy NULL terminated list of arguments
+ *
+ * @param argv the NULL terminated list of arguments. Cannot be NULL.
+ * @return the copied NULL terminated arguments
+ */
+static char **
+copy_argv (const char *const *argv)
+{
+  char **argv_dup;
+  unsigned int argp;
+
+  GNUNET_assert (NULL != argv);
+  for (argp = 0; NULL != argv[argp]; argp++);
+  argv_dup = GNUNET_malloc (sizeof (char *) * (argp + 1));
+  for (argp = 0; NULL != argv[argp]; argp++)
+    argv_dup[argp] = strdup (argv[argp]);
+  return argv_dup;
+}
+
+
+/**
+ * Frees the given NULL terminated arguments
+ *
+ * @param argv the NULL terminated list of arguments
+ */
+static void
+free_argv (char **argv)
+{
+  unsigned int argp;
+  
+  for (argp = 0; NULL != argv[argp]; argp++)
+    GNUNET_free (argv[argp]);
+  GNUNET_free (argv);
+}
+
+
+/**
  * Starts a controller process at the host. FIXME: add controller start callback
  * with the configuration with which the controller is started
  *
@@ -1340,7 +1372,7 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
   const char *hostname;
   static char *const binary_argv[] = {
     HELPER_TESTBED_BINARY, NULL
-  };
+  };  
 
   hostname = NULL;
   cp = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ControllerProc));
@@ -1353,27 +1385,29 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
   else
   {
     char *helper_binary_path;
-    char *remote_args[10];
-    unsigned int argp;
+    const char *remote_args[10];
     const char *username;
+    char *port;
+    char *dst;
+    unsigned int argp;
 
     username = GNUNET_TESTBED_host_get_username_ (host);
     hostname = GNUNET_TESTBED_host_get_hostname_ (host);
-    GNUNET_asprintf (&cp->port, "%u", GNUNET_TESTBED_host_get_ssh_port_ (host));
+    GNUNET_asprintf (&port, "%u", GNUNET_TESTBED_host_get_ssh_port_ (host));
     if (NULL == username)
-      GNUNET_asprintf (&cp->dst, "%s", hostname);
+      GNUNET_asprintf (&dst, "%s", hostname);
     else
-      GNUNET_asprintf (&cp->dst, "%s@%s", username, hostname);
-    LOG_DEBUG ("Starting SSH to destination %s\n", cp->dst);
+      GNUNET_asprintf (&dst, "%s@%s", username, hostname);
+    LOG_DEBUG ("Starting SSH to destination %s\n", dst);
     argp = 0;
     remote_args[argp++] = "ssh";
     remote_args[argp++] = "-p";
-    remote_args[argp++] = cp->port;
+    remote_args[argp++] = port;
     remote_args[argp++] = "-o";
     remote_args[argp++] = "BatchMode=yes";
     remote_args[argp++] = "-o";
     remote_args[argp++] = "NoHostAuthenticationForLocalhost=yes";
-    remote_args[argp++] = cp->dst;
+    remote_args[argp++] = dst;
     if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
                                                             "HELPER_BINARY_PATH",
                                                             &helper_binary_path))
@@ -1381,15 +1415,18 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
     remote_args[argp++] = helper_binary_path;
     remote_args[argp++] = NULL;
     GNUNET_assert (argp == 10);
+    cp->helper_argv = copy_argv (remote_args);
+    GNUNET_free (port);
+    GNUNET_free (dst);
     cp->helper =
-        GNUNET_HELPER_start (GNUNET_NO, "ssh", remote_args, &helper_mst,
+        GNUNET_HELPER_start (GNUNET_NO, "ssh", cp->helper_argv, &helper_mst,
                              &helper_exp_cb, cp);
     GNUNET_free (helper_binary_path);
   }
   if (NULL == cp->helper)
   {
-    GNUNET_free_non_null (cp->port);
-    GNUNET_free_non_null (cp->dst);
+    if (NULL != cp->helper_argv)
+      free_argv (cp->helper_argv);
     GNUNET_free (cp);
     return NULL;
   }
@@ -1427,8 +1464,8 @@ GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_ControllerProc *cproc)
     GNUNET_HELPER_stop (cproc->helper);
   if (NULL != cproc->cfg)
     GNUNET_CONFIGURATION_destroy (cproc->cfg);
-  GNUNET_free_non_null (cproc->port);
-  GNUNET_free_non_null (cproc->dst);
+  if (NULL != cproc->helper_argv)
+    free_argv (cproc->helper_argv);
   GNUNET_free (cproc);
 }
 
