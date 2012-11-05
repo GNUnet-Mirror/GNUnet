@@ -132,6 +132,7 @@ gnunet_regex_profiler_DEPENDENCIES = \
 gnunet_service_regexprofiler_SOURCES = \
   gnunet-service-regexprofiler.c
 gnunet_service_regexprofiler_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la
 gnunet_service_regexprofiler_DEPENDENCIES = \
