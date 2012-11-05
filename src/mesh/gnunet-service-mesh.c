@@ -4018,23 +4018,25 @@ tunnel_send_child_bck_ack (void *cls,
   struct MeshTunnel *t = cls;
   struct MeshTunnelChildInfo *cinfo;
   struct GNUNET_PeerIdentity peer;
+  uint32_t ack;
 
   GNUNET_PEER_resolve (id, &peer);
   cinfo = tunnel_get_neighbor_fc (t, &peer);
+  ack = cinfo->bck_pid + t->bck_queue_max - t->bck_queue_n;
 
-  if (cinfo->bck_ack != cinfo->bck_pid &&
-      GNUNET_NO == GMC_is_pid_bigger (cinfo->bck_ack, cinfo->bck_pid))
+  if (cinfo->bck_ack == ack)
   {
+    // FIXME fc allow force on poll
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "    Not sending ACK, not needed\n");
     return;
   }
+  cinfo->bck_ack = ack;
 
-  cinfo->bck_ack = t->bck_queue_max - t->bck_queue_n + cinfo->bck_pid;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "    Sending BCK ACK %u\n",
-              cinfo->bck_ack);
-  send_ack (t, &peer, cinfo->bck_ack);
+              "    Sending BCK ACK %u (last sent: %u)\n",
+              ack, cinfo->bck_ack);
+  send_ack (t, &peer, ack);
 }
 
 
