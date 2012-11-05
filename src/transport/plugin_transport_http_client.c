@@ -104,9 +104,20 @@ struct HTTP_Message
  */
 struct Session;
 
+/**
+ * A connection handle
+ * 
+ */
 struct ConnectionHandle
 {
+  /**
+   * The curl easy handle 
+   */
   CURL *easyhandle;
+  
+  /**
+   * The related session 
+   */
   struct Session *s;
 };
 
@@ -345,6 +356,12 @@ static int
 client_schedule (struct HTTP_Client_Plugin *plugin, int now);
 
 
+/**
+ * Connect a HTTP put connection 
+ *
+ * @param s the session to connect
+ * @return GNUNET_SYSERR for hard failure, GNUNET_OK for success
+ */
 static int
 client_connect_put (struct Session *s);
 
@@ -415,7 +432,6 @@ client_log (CURL *curl, curl_infotype type,
         break;
     }
 
-#if VERBOSE_CURL
     memcpy (text, data, size);
     if (text[size - 1] == '\n')
       text[size] = '\0';
@@ -432,7 +448,6 @@ client_log (CURL *curl, curl_infotype type,
                      "Connection %p %s: %s", ch->easyhandle, ttype, text);
 #endif
   }
-#endif
   return 0;
 }
 
@@ -998,7 +1013,7 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 /**
  * Function setting up file descriptors and scheduling task to run
  *
- * @param  plugin plugin as closure
+ * @param plugin the plugin as closure
  * @param now schedule task in 1ms, regardless of what curl may say
  * @return GNUNET_SYSERR for hard failure, GNUNET_OK for ok
  */
@@ -1240,6 +1255,12 @@ client_connect_get (struct Session *s)
   return GNUNET_OK;
 }
 
+/**
+ * Connect a HTTP put connection 
+ *
+ * @param s the session to connect
+ * @return GNUNET_SYSERR for hard failure, GNUNET_OK for ok
+ */
 static int
 client_connect_put (struct Session *s)
 {

@@ -71,6 +71,8 @@ struct GNUNET_TRANSPORT_TESTING_handle *tth;
  */
 
 /**
+ * Total number of messages to send
+ *
  * Note that this value must not significantly exceed
  * 'MAX_PENDING' in 'gnunet-service-transport.c', otherwise
  * messages may be dropped even for a reliable transport.
@@ -161,7 +163,7 @@ end ()
   {
     if (get_bit (bitmap, i) == 0)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Did not receive message %d\n", i);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Did not receive message %d\n", i);
       ok = -1;
     }
   }
@@ -260,7 +262,7 @@ set_bit (unsigned int bitIdx)
 static int
 get_bit (const char *map, unsigned int bit)
 {
-  if (bit >= TOTAL_MSGS)
+  if (bit > TOTAL_MSGS)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "get bit %d of %d(!?!?)\n", bit,
                 sizeof (bitmap) * 8);
@@ -369,10 +371,11 @@ notify_ready (void *cls, size_t size, void *buf)
   s = get_size (n);
   GNUNET_assert (size >= s);
   GNUNET_assert (buf != NULL);
-  GNUNET_assert (n <= TOTAL_MSGS);
+  GNUNET_assert (n < TOTAL_MSGS);
   cbuf = buf;
   do
   {
+    GNUNET_assert (n < TOTAL_MSGS);
     hdr.header.size = htons (s);
     hdr.header.type = htons (MTYPE);
     hdr.num = htonl (n);
@@ -394,7 +397,7 @@ notify_ready (void *cls, size_t size, void *buf)
     if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16))
       break;                    /* sometimes pack buffer full, sometimes not */
   }
-  while (size - ret >= s);
+  while ((size - ret >= s) && (n < TOTAL_MSGS));
   if (n < TOTAL_MSGS)
   {
     th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, s, 0,
@@ -444,6 +447,8 @@ static void
 sendtask ()
 {
   start_time = GNUNET_TIME_absolute_get ();
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Starting to send %u messages\n",
+              TOTAL_MSGS);
   th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, get_size (0), 0,
                                                TIMEOUT_TRANSMIT, &notify_ready,
                                                NULL);
