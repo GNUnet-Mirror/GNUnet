@@ -204,4 +204,7 @@ test_testbed_api_testbed_run_topologyclique_LDADD = \
 
 
 EXTRA_DIST = \
-  test_testbed_api.conf
+  test_testbed_api.conf \
+  test_testbed_api_testbed_run_topologyclique.conf \
+  test_testbed_api_testbed_run_topologyline.conf \
+  test_testbed_api_testbed_run_topologyrandom.conf
