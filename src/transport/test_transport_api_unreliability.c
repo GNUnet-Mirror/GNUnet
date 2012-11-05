@@ -369,6 +369,7 @@ notify_ready (void *cls, size_t size, void *buf)
   s = get_size (n);
   GNUNET_assert (size >= s);
   GNUNET_assert (buf != NULL);
+  GNUNET_assert (n <= TOTAL_MSGS);
   cbuf = buf;
   do
   {
