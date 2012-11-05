@@ -324,6 +324,7 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
     break;
   default:
     GNUNET_break (0);
+    GNUNET_free (tc);
     return NULL;
   }
   do
