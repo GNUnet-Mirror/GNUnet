@@ -232,8 +232,11 @@ finish_scan (void *cls,
   struct GNUNET_FS_DirScanner *ds = cls;
 
   ds->stop_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_HELPER_stop (ds->helper);
-  ds->helper = NULL;
+  if (NULL != ds->helper)
+  {
+    GNUNET_HELPER_stop (ds->helper);
+    ds->helper = NULL;
+  }
   ds->progress_callback (ds->progress_callback_cls, 
 			 NULL, GNUNET_SYSERR,
 			 GNUNET_FS_DIRSCANNER_FINISHED);    
