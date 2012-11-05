@@ -877,10 +877,10 @@ write_data (struct GNUNET_STREAM_Socket *socket)
     }
   }
   /* Now send new packets if there is enough buffer space */
-  while ( (NULL != io_handle->messages[packet]) &&
-	  (socket->receiver_window_available 
-           >= ntohs (io_handle->messages[packet]->header.header.size)) &&
-          (packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH))
+  while ((packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH) &&
+         (NULL != io_handle->messages[packet]) &&
+         (socket->receiver_window_available 
+          >= ntohs (io_handle->messages[packet]->header.header.size)))
   {
     socket->receiver_window_available -= 
       ntohs (io_handle->messages[packet]->header.header.size);
@@ -968,7 +968,10 @@ call_read_processor (void *cls,
   for (packet = 0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
   {
     if (socket->copy_offset == socket->receive_buffer_boundaries[packet])
-    { packet++; break; }
+    { 
+      packet++; 
+      break;
+    }
     if (socket->copy_offset < socket->receive_buffer_boundaries[packet])
       break;
   }
@@ -999,7 +1002,7 @@ call_read_processor (void *cls,
   /* Fix relative boundaries */
   for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
   {
-    if (packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH - sequence_increase)
+    if (packet < (GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH - sequence_increase))
     {
       uint32_t ahead_buffer_boundary;
 
@@ -1108,7 +1111,7 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
        expecting */
     relative_sequence_number = 
       ntohl (msg->sequence_number) - socket->read_sequence_number;
-    if ( relative_sequence_number > GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH)
+    if ( relative_sequence_number >= GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "%s: Ignoring received message with sequence number %u\n",
@@ -1490,6 +1493,7 @@ control_retransmission_task (void *cls,
                      GNUNET_NO);
     else
       GNUNET_break (0);
+    break;
   default:
     GNUNET_break (0);
   }  
