@@ -619,9 +619,8 @@ GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
                        session_id, NULL, 0);
   if (old == NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Tried to destroy unknown address for peer `%s' `%s' session id %u\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Tried to destroy unknown address for peer `%s' `%s' session id %u\n",
                 GNUNET_i2s (peer), plugin_name, session_id);
-    GNUNET_break (0);
     return;
   }
 
