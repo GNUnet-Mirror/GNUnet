@@ -1703,6 +1703,7 @@ libgnunet_plugin_transport_wlan_init (void *cls)
   struct Plugin *plugin;
   char *interface;
   unsigned long long testmode;
+  char *binary;
 
   /* check for 'special' mode */
   if (NULL == env->receive)
@@ -1730,14 +1731,17 @@ libgnunet_plugin_transport_wlan_init (void *cls)
 			       "transport-wlan", "TESTMODE");
     return NULL;
   }
+  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-transport-wlan");
   if ( (0 == testmode) &&
-       (GNUNET_YES != GNUNET_OS_check_helper_binary ("gnunet-helper-transport-wlan")) )
+       (GNUNET_YES != GNUNET_OS_check_helper_binary (binary)) )
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
 	 _("Helper binary `%s' not SUID, cannot run WLAN transport\n"),
 	 "gnunet-helper-transport-wlan");
+    GNUNET_free (binary);
     return NULL;
   }
+    GNUNET_free (binary);
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_string
       (env->cfg, "transport-wlan", "INTERFACE",
