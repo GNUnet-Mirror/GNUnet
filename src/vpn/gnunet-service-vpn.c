@@ -3057,16 +3057,21 @@ run (void *cls,
   char *ipv4mask;
   struct in_addr v4;
   struct in6_addr v6;
+  char *binary;
+
+  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-vpn");
 
   if (GNUNET_YES !=
-      GNUNET_OS_check_helper_binary ("gnunet-helper-vpn"))
+      GNUNET_OS_check_helper_binary (binary))
   {
     fprintf (stderr,
 	     "`%s' is not SUID, refusing to run.\n",
 	     "gnunet-helper-vpn");
+    GNUNET_free (binary);
     global_ret = 1;
     return;
   }
+  GNUNET_free (binary);
   cfg = cfg_;
   stats = GNUNET_STATISTICS_create ("vpn", cfg);
   if (GNUNET_OK !=
