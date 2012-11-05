@@ -3406,6 +3406,7 @@ tunnel_add_client (struct MeshTunnel *t, struct MeshClient *c)
   struct MeshTunnelFlowControlInfo fcinfo;
 
   GNUNET_array_append (t->clients, t->nclients, c);
+  memset (&fcinfo, 0, sizeof (fcinfo));
   fcinfo.client = c;
   fcinfo.fwd_ack = t->fwd_pid + 1;
   fcinfo.bck_ack = t->nobuffer ? 1 : INITIAL_WINDOW_SIZE - 1;
