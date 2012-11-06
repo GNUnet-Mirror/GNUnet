@@ -362,6 +362,20 @@ static char *data_filename;
  */
 static unsigned int max_path_compression;
 
+/**
+ * If we should distribute the search evenly throught all peers (each
+ * peer searches for a string) or if only one peer should search for
+ * all strings.
+ */
+static int no_distributed_search;
+
+/**
+ * Prefix used for regex announcing. We need to prefix the search
+ * strings with it, in order to find something.
+ */
+static char * regex_prefix;
+
+
 /******************************************************************************/
 /******************************  DECLARATIONS  ********************************/
 /******************************************************************************/
@@ -641,6 +655,8 @@ stats_cb (void *cls,
     return;
   }
 
+  GNUNET_assert (NULL != peer->stats_op_handle);
+
   GNUNET_TESTBED_operation_done (peer->stats_op_handle);
   peer->stats_op_handle = NULL;
 
@@ -815,9 +831,6 @@ mesh_peer_connect_handler (void *cls,
     }
   }
 
-  GNUNET_TESTBED_operation_done (peer->mesh_op_handle);
-  peer->mesh_op_handle = NULL;
-
   peer->stats_op_handle =
     GNUNET_TESTBED_service_connect (NULL,
 				    peer->peer_handle,
@@ -827,6 +840,9 @@ mesh_peer_connect_handler (void *cls,
 				    &stats_ca,
 				    &stats_da,
 				    peer);
+
+  GNUNET_TESTBED_operation_done (peer->mesh_op_handle);
+  peer->mesh_op_handle = NULL;
 
   if (peers_found == num_search_strings)
   {
@@ -859,6 +875,10 @@ do_connect_by_string_timeout (void *cls,
               GNUNET_STRINGS_relative_time_to_string (search_timeout, GNUNET_NO));
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Found %i of %i strings\n", peers_found, num_search_strings);
+
+  printf ("Search timed out after %s. Shutting down.\n", 
+	  GNUNET_STRINGS_relative_time_to_string (search_timeout, GNUNET_NO));
+  fflush (stdout);
 
   shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
@@ -917,9 +937,9 @@ static void
 mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
                  void *ca_result, const char *emsg)
 {
+  struct RegexPeer *peer = (struct RegexPeer *) cls;
   static unsigned int peer_cnt;
   unsigned int next_p;
-  struct RegexPeer *peer = (struct RegexPeer *) cls;
 
   if (NULL != emsg || NULL == op || NULL == ca_result)
   {
@@ -944,9 +964,12 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
   GNUNET_MESH_peer_request_connect_by_string (peer->mesh_tunnel_handle,
                                               peer->search_str);
 
-  if (peer_cnt < num_search_strings)
+  if (peer_cnt < (num_search_strings - 1))
   {
-    next_p = ((++peer_cnt) % num_peers);
+    if (GNUNET_YES == no_distributed_search)
+      next_p = 0;
+    else
+      next_p = (++peer_cnt % num_peers);
 
     peers[next_p].search_str = search_strings[next_p];
     peers[next_p].search_str_matched = GNUNET_NO;
@@ -1607,8 +1630,8 @@ load_search_strings (const char *filename, char ***strings, unsigned int limit)
   offset = 0;
   for (i = 0; i < str_cnt; i++)
   {
-    (*strings)[i] = GNUNET_strdup (&data[offset]);
-    offset += strlen ((*strings)[i]) + 1;
+    GNUNET_asprintf (&(*strings)[i], "%s%s", regex_prefix, &data[offset]);
+    offset += strlen (&data[offset]) + 1;
   }
   free (data);
   return str_cnt;
@@ -1667,6 +1690,16 @@ run (void *cls, char *const *args, const char *cfgfile,
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (config, "REGEXPROFILER", "REGEX_PREFIX",
+					     &regex_prefix))
+  {
+    fprintf (stderr, _("Configuration option (regex_prefix) missing. Exiting\n"));
+    shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    return;
+  }
+
   if ( (NULL != data_filename) &&
        (NULL == (data_file =
                  GNUNET_DISK_file_open (data_filename,
@@ -1752,6 +1785,9 @@ main (int argc, char *const *argv)
     {'p', "max-path-compression", "MAX_PATH_COMPRESSION",
      gettext_noop ("maximum path compression length"),
      1, &GNUNET_GETOPT_set_uint, &max_path_compression},
+    {'i', "no-distributed-search", "",
+     gettext_noop ("if this option is set, only one peer is responsible for searching all strings"),
+     0, &GNUNET_GETOPT_set_one, &no_distributed_search},
     GNUNET_GETOPT_OPTION_END
   };
   int ret;

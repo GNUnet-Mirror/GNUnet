@@ -66,6 +66,11 @@ static unsigned long long max_path_compression;
  */
 static char * policy_filename;
 
+/**
+ * Prefix to add before every regex we're announcing.
+ */
+static char * regex_prefix;
+
 
 /**
  * Task run during shutdown.
@@ -166,6 +171,19 @@ run (void *cls,
     return;
   }
 
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg, "REGEXPROFILER", "REGEX_PREFIX",
+					     &regex_prefix))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _
+                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
+                "regexprofiler", "regex_prefix");
+    global_ret = GNUNET_SYSERR;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
   stats_handle = GNUNET_STATISTICS_create ("regexprofiler", cfg);
 
   app = (GNUNET_MESH_ApplicationType)0;
@@ -212,9 +230,10 @@ run (void *cls,
     if (((data[offset] == '\n')) && (buf != &data[offset]))
     {
       data[offset] = '\0';
-      regex = buf;
-      GNUNET_assert (NULL != regex);
+      GNUNET_assert (NULL != buf);
+      GNUNET_asprintf (&regex, "%s%s", regex_prefix, buf);
       announce_regex (regex);
+      GNUNET_free (regex);
       buf = &data[offset + 1];
     }
     else if ((data[offset] == '\n') || (data[offset] == '\0'))
