@@ -177,7 +177,7 @@ enum TestStage
 /**
  * Fixed number of packets we send in each direction during each subtest
  */
-#define MAX_PACKETS 2000
+#define MAX_PACKETS 1000
 
 /**
  * Listen socket of peer2
