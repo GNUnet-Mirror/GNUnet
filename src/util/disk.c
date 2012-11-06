@@ -676,8 +676,9 @@ int
 GNUNET_DISK_directory_create (const char *dir)
 {
   char *rdir;
-  int len;
-  int pos;
+  unsigned int len;
+  unsigned int pos;
+  unsigned int pos2;
   int ret = GNUNET_OK;
 
   rdir = GNUNET_STRINGS_filename_expand (dir);
@@ -707,6 +708,33 @@ GNUNET_DISK_directory_create (const char *dir)
     pos = 3;                    /* strlen("C:\\") */
   }
 #endif
+  /* Check which low level directories already exist */
+  pos2 = len;
+  rdir[len] = DIR_SEPARATOR;
+  while (pos <= pos2)
+  {
+    if (DIR_SEPARATOR == rdir[pos2])
+    {
+      rdir[pos2] = '\0';
+      ret = GNUNET_DISK_directory_test (rdir);
+      if (GNUNET_SYSERR == ret)
+      {
+        GNUNET_free (rdir);
+        return GNUNET_SYSERR;
+      }
+      rdir[pos2] = DIR_SEPARATOR;
+      if (GNUNET_YES == ret)
+      {
+        pos2++;
+        break;
+      }
+    }
+    pos2--;
+  }
+  rdir[len] = '\0';
+  if (pos < pos2)
+    pos = pos2;
+  /* Starting creating directories */
   while (pos <= len)
   {
     if ((rdir[pos] == DIR_SEPARATOR) || (pos == len))
