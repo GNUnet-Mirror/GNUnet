@@ -168,7 +168,7 @@ int bytes;
 static void
 read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_DISK_FileHandle *stdout_read_handle = cls;
+  const struct GNUNET_DISK_FileHandle *stdout_read_handle = cls;
   char level[8];
   long delay;
   long delays[8];
@@ -186,7 +186,7 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
     read_task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
 						stdout_read_handle, &read_call,
-						stdout_read_handle);
+						(void*) stdout_read_handle);
     return;
   }
 
