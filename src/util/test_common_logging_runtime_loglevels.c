@@ -353,7 +353,7 @@ runone ()
 
   read_task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
 					      stdout_read_handle, &read_call,
-					      stdout_read_handle);
+					      (void*) stdout_read_handle);
 }
 
 static void
