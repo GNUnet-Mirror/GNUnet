@@ -734,7 +734,7 @@ GNUNET_DISK_directory_create (const char *dir)
   rdir[len] = '\0';
   if (pos < pos2)
     pos = pos2;
-  /* Starting creating directories */
+  /* Start creating directories */
   while (pos <= len)
   {
     if ((rdir[pos] == DIR_SEPARATOR) || (pos == len))
