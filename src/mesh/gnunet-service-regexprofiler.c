@@ -121,15 +121,16 @@ announce_regex (const char * regex)
 
 
 /**
- * Main function that will be run by the scheduler.
+ * @brief Main function that will be run by the scheduler.
  *
  * @param cls closure
- * @param server the initialized server
+ * @param args remaining command-line arguments
+ * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param cfg_ configuration
  */
 static void
-run (void *cls,
-     struct GNUNET_SERVER_Handle *server,
+run (void *cls, char *const *args GNUNET_UNUSED,
+     const char *cfgfile GNUNET_UNUSED,
      const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
   char *regex;
@@ -257,10 +258,18 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
+  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_END
+  };
+
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+    return 2;
+
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "regexprofiler",
-                              GNUNET_SERVICE_OPTION_NONE,
-                              &run, NULL)) ? global_ret : 1;
+          GNUNET_PROGRAM_run (argc, argv, "regexprofiler",
+                              gettext_noop
+			      ("Daemon to announce regular expressions for the peer using mesh."),
+                              options, &run, NULL)) ? global_ret : 1;
 }
 
 
