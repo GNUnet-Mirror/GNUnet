@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GNUnet 0.7.0b\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2012-11-05 22:52+0100\n"
+"POT-Creation-Date: 2012-11-05 22:09+0100\n"
 "PO-Revision-Date: 2006-03-17 21:37+0100\n"
 "Last-Translator: Nils Durner <durner@gnunet.org>\n"
 "Language-Team: German <de@li.org>\n"
@@ -3577,24 +3577,24 @@ msgstr ""
 msgid "Profiler for regex/mesh"
 msgstr ""
 
-#: src/mesh/gnunet-service-mesh.c:8038
+#: src/mesh/gnunet-service-mesh.c:8033
 msgid "Wrong CORE service\n"
 msgstr ""
 
-#: src/mesh/gnunet-service-mesh.c:8243
+#: src/mesh/gnunet-service-mesh.c:8238
 #, fuzzy
 msgid "Mesh service could not access hostkey.  Exiting.\n"
 msgstr "Auf die Namespace Informationen konnte nicht zugegriffen werden.\n"
 
-#: src/mesh/gnunet-service-mesh.c:8332 src/mesh/gnunet-service-mesh.c:8344
-#: src/mesh/gnunet-service-mesh.c:8356 src/mesh/gnunet-service-mesh.c:8369
-#: src/mesh/gnunet-service-mesh.c:8384 src/mesh/gnunet-service-mesh.c:8396
-#: src/mesh/gnunet-service-mesh.c:8408
+#: src/mesh/gnunet-service-mesh.c:8327 src/mesh/gnunet-service-mesh.c:8339
+#: src/mesh/gnunet-service-mesh.c:8351 src/mesh/gnunet-service-mesh.c:8364
+#: src/mesh/gnunet-service-mesh.c:8379 src/mesh/gnunet-service-mesh.c:8391
+#: src/mesh/gnunet-service-mesh.c:8403
 #, fuzzy, c-format
 msgid "%s service is lacking key configuration settings (%s).  Exiting.\n"
 msgstr "GNUnet Konfiguration"
 
-#: src/mesh/gnunet-service-mesh.c:8420 src/mesh/gnunet-service-mesh.c:8431
+#: src/mesh/gnunet-service-mesh.c:8415 src/mesh/gnunet-service-mesh.c:8426
 #, fuzzy, c-format
 msgid ""
 "%s service is lacking key configuration settings (%s). Using default (%u).\n"
