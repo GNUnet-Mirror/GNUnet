@@ -116,7 +116,7 @@ endif
 
 noinst_PROGRAMS = \
   gnunet-regex-profiler \
-  gnunet-service-regexprofiler
+  gnunet-daemon-regexprofiler
 
 gnunet_regex_profiler_SOURCES = \
   gnunet-regex-profiler.c
@@ -129,13 +129,13 @@ gnunet_regex_profiler_LDADD = \
 gnunet_regex_profiler_DEPENDENCIES = \
   libgnunetmesh.la
 
-gnunet_service_regexprofiler_SOURCES = \
-  gnunet-service-regexprofiler.c
-gnunet_service_regexprofiler_LDADD = \
+gnunet_daemon_regexprofiler_SOURCES = \
+  gnunet-daemon-regexprofiler.c
+gnunet_daemon_regexprofiler_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la
-gnunet_service_regexprofiler_DEPENDENCIES = \
+gnunet_daemon_regexprofiler_DEPENDENCIES = \
   libgnunetmesh.la
 
 check_PROGRAMS = \

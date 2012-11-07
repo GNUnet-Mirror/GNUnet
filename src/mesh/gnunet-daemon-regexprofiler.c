@@ -19,7 +19,7 @@
 */
 
 /**
- * @file mesh/gnunet-service-regexprofiler.c
+ * @file mesh/gnunet-daemon-regexprofiler.c
  * @brief service that uses mesh to announce a regular expression. Used in
  * conjunction with gnunet-regex-profiler to announce regexes on serveral peers
  * without the need to explicitly connect to the mesh service running on the
@@ -288,4 +288,4 @@ void __attribute__ ((constructor)) GNUNET_ARM_memory_init ()
 #endif
 
 
-/* end of gnunet-service-regexprofiler.c */
+/* end of gnunet-daemon-regexprofiler.c */
