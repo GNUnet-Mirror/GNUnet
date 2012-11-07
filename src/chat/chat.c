@@ -473,7 +473,7 @@ init_private_key (const struct GNUNET_CONFIGURATION_Handle *cfg,
     return NULL;
   }
   GNUNET_DISK_directory_create (home);
-  if (GNUNET_OK != GNUNET_DISK_directory_test (home, GNUNET_YES))
+  if (GNUNET_YES != GNUNET_DISK_directory_test (home, GNUNET_YES))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to access chat home directory `%s'\n"), home);
