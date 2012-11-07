@@ -164,7 +164,7 @@ void testservice_ats (void *cls,
       }
       if (NULL == type_str)
       {
-        FPRINTF (stderr, _("Type required\n"));
+        FPRINTF (stderr, "%s", _("Type required\n"));
         return;
       }
 
@@ -179,7 +179,7 @@ void testservice_ats (void *cls,
         type = GNUNET_ATS_PREFERENCE_BANDWIDTH;
       else
       {
-        FPRINTF (stderr, _("Type required\n"));
+        FPRINTF (stderr, "%s", _("Type required\n"));
         return;
       }
 
