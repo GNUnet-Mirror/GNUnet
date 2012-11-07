@@ -584,19 +584,19 @@ GNUNET_DISK_get_blocks_available (const char *part)
 
 
 /**
- * Test if "fil" is a directory and readable. Also check if the directory is
- * listable.  Will not print an error message if the directory does not exist.
- * Will log errors if GNUNET_SYSERR is returned (i.e., a file exists with the
- * same name).
+ * Test if "fil" is a directory and listable. Optionally, also check if the
+ * directory is readable.  Will not print an error message if the directory does
+ * not exist.  Will log errors if GNUNET_SYSERR is returned (i.e., a file exists
+ * with the same name).
  *
  * @param fil filename to test
- * @param is_listable GNUNET_YES to additionally check if "fil" is listable;
+ * @param is_readable GNUNET_YES to additionally check if "fil" is readable;
  *          GNUNET_NO to disable this check
  * @return GNUNET_YES if yes, GNUNET_NO if not; GNUNET_SYSERR if it
- *           does not exist
+ *           does not exist or stat'ed
  */
 int
-GNUNET_DISK_directory_test (const char *fil, int is_listable)
+GNUNET_DISK_directory_test (const char *fil, int is_readable)
 {
   struct stat filestat;
   int ret;
@@ -605,22 +605,23 @@ GNUNET_DISK_directory_test (const char *fil, int is_listable)
   if (ret != 0)
   {
     if (errno != ENOENT)
-    {
       LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "stat", fil);
-      return GNUNET_SYSERR;
-    }
-    return GNUNET_NO;
+    return GNUNET_SYSERR;
   }
   if (!S_ISDIR (filestat.st_mode))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "A file already exits with the same name %s\n", fil);
     return GNUNET_NO;
-  if (GNUNET_YES == is_listable)
+  }
+  if (GNUNET_YES == is_readable)
     ret = ACCESS (fil, R_OK | X_OK);
   else
-    ret = ACCESS (fil, R_OK);
+    ret = ACCESS (fil, X_OK);
   if (ret < 0)
   {
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "access", fil);
-    return GNUNET_SYSERR;
+    return GNUNET_NO;
   }
   return GNUNET_YES;
 }
@@ -682,9 +683,8 @@ int
 GNUNET_DISK_directory_create (const char *dir)
 {
   char *rdir;
-  unsigned int len;
-  unsigned int pos;
-  unsigned int pos2;
+  int len;
+  int pos;
   int ret = GNUNET_OK;
 
   rdir = GNUNET_STRINGS_filename_expand (dir);
@@ -714,45 +714,18 @@ GNUNET_DISK_directory_create (const char *dir)
     pos = 3;                    /* strlen("C:\\") */
   }
 #endif
-  /* Check which low level directories already exist */
-  pos2 = len;
-  rdir[len] = DIR_SEPARATOR;
-  while (pos <= pos2)
-  {
-    if (DIR_SEPARATOR == rdir[pos2])
-    {
-      rdir[pos2] = '\0';
-      ret = GNUNET_DISK_directory_test (rdir, GNUNET_YES);
-      if (GNUNET_SYSERR == ret)
-      {
-        GNUNET_free (rdir);
-        return GNUNET_SYSERR;
-      }
-      rdir[pos2] = DIR_SEPARATOR;
-      if (GNUNET_YES == ret)
-      {
-        pos2++;
-        break;
-      }
-    }
-    pos2--;
-  }
-  rdir[len] = '\0';
-  if (pos < pos2)
-    pos = pos2;
-  /* Start creating directories */
   while (pos <= len)
   {
     if ((rdir[pos] == DIR_SEPARATOR) || (pos == len))
     {
       rdir[pos] = '\0';
-      ret = GNUNET_DISK_directory_test (rdir, GNUNET_YES);
-      if (ret == GNUNET_SYSERR)
+      ret = GNUNET_DISK_directory_test (rdir, GNUNET_NO);
+      if (GNUNET_NO == ret)
       {
         GNUNET_free (rdir);
         return GNUNET_SYSERR;
       }
-      if (ret == GNUNET_NO)
+      if (GNUNET_SYSERR == ret)
       {
 #ifndef MINGW
         ret = mkdir (rdir, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);        /* 755 */
@@ -775,6 +748,7 @@ GNUNET_DISK_directory_create (const char *dir)
     pos++;
   }
   GNUNET_free (rdir);
+  LOG (GNUNET_ERROR_TYPE_ERROR, "we are done here\n");
   return GNUNET_OK;
 }
 
