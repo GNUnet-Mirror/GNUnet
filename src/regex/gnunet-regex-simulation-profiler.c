@@ -499,7 +499,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     result = GNUNET_SYSERR;
     return;
   }
-  if (GNUNET_YES != GNUNET_DISK_directory_test (args[0]))
+  if (GNUNET_YES != GNUNET_DISK_directory_test (args[0], GNUNET_YES))
   {
     fprintf (stderr, _("Specified policies directory does not exist. Exiting.\n"));
     result = GNUNET_SYSERR;

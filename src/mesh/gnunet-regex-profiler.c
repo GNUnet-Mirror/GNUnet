@@ -1711,7 +1711,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
                               "open",
                               data_filename);
-  if (GNUNET_YES != GNUNET_DISK_directory_test (args[1]))
+  if (GNUNET_YES != GNUNET_DISK_directory_test (args[1], GNUNET_YES))
   {
     fprintf (stderr, _("Specified policies directory does not exist. Exiting.\n"));
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);

@@ -584,17 +584,19 @@ GNUNET_DISK_get_blocks_available (const char *part)
 
 
 /**
- * Test if "fil" is a directory.
- * Will not print an error message if the directory
- * does not exist.  Will log errors if GNUNET_SYSERR is
- * returned (i.e., a file exists with the same name).
+ * Test if "fil" is a directory and readable. Also check if the directory is
+ * listable.  Will not print an error message if the directory does not exist.
+ * Will log errors if GNUNET_SYSERR is returned (i.e., a file exists with the
+ * same name).
  *
  * @param fil filename to test
- * @return GNUNET_YES if yes, GNUNET_NO if not, GNUNET_SYSERR if it
- *   does not exist
+ * @param is_listable GNUNET_YES to additionally check if "fil" is listable;
+ *          GNUNET_NO to disable this check
+ * @return GNUNET_YES if yes, GNUNET_NO if not; GNUNET_SYSERR if it
+ *           does not exist
  */
 int
-GNUNET_DISK_directory_test (const char *fil)
+GNUNET_DISK_directory_test (const char *fil, int is_listable)
 {
   struct stat filestat;
   int ret;
@@ -611,7 +613,11 @@ GNUNET_DISK_directory_test (const char *fil)
   }
   if (!S_ISDIR (filestat.st_mode))
     return GNUNET_NO;
-  if (ACCESS (fil, R_OK | X_OK) < 0)
+  if (GNUNET_YES == is_listable)
+    ret = ACCESS (fil, R_OK | X_OK);
+  else
+    ret = ACCESS (fil, R_OK);
+  if (ret < 0)
   {
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "access", fil);
     return GNUNET_SYSERR;
@@ -716,7 +722,7 @@ GNUNET_DISK_directory_create (const char *dir)
     if (DIR_SEPARATOR == rdir[pos2])
     {
       rdir[pos2] = '\0';
-      ret = GNUNET_DISK_directory_test (rdir);
+      ret = GNUNET_DISK_directory_test (rdir, GNUNET_YES);
       if (GNUNET_SYSERR == ret)
       {
         GNUNET_free (rdir);
@@ -740,7 +746,7 @@ GNUNET_DISK_directory_create (const char *dir)
     if ((rdir[pos] == DIR_SEPARATOR) || (pos == len))
     {
       rdir[pos] = '\0';
-      ret = GNUNET_DISK_directory_test (rdir);
+      ret = GNUNET_DISK_directory_test (rdir, GNUNET_YES);
       if (ret == GNUNET_SYSERR)
       {
         GNUNET_free (rdir);
@@ -1393,7 +1399,7 @@ GNUNET_DISK_directory_remove (const char *filename)
       /* EISDIR is not sufficient in all cases, e.g.
        * sticky /tmp directory may result in EPERM on BSD.
        * So we also explicitly check "isDirectory" */
-      (GNUNET_YES != GNUNET_DISK_directory_test (filename)))
+      (GNUNET_YES != GNUNET_DISK_directory_test (filename, GNUNET_YES)))
   {
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "rmdir", filename);
     return GNUNET_SYSERR;

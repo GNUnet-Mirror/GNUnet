@@ -663,17 +663,18 @@ GNUNET_DISK_directory_create_for_file (const char *filename);
 
 
 /**
- * Test if "fil" is a directory that can be accessed.
- * Will not print an error message if the directory
- * does not exist.  Will log errors if GNUNET_SYSERR is
- * returned.
+ * Test if "fil" is a directory and readable. Also check if the directory is
+ * listable.  Will not print an error message if the directory does not exist.
+ * Will log errors if GNUNET_SYSERR is returned (i.e., a file exists with the
+ * same name).
  *
  * @param fil filename to test
- * @return GNUNET_YES if yes, GNUNET_NO if does not exist, GNUNET_SYSERR
- *   on any error and if exists but not directory
+ * @param is_listable GNUNET_YES to additionally check if "fil" is listable
+ * @return GNUNET_YES if yes, GNUNET_NO if not, GNUNET_SYSERR if it
+ *   does not exist
  */
 int
-GNUNET_DISK_directory_test (const char *fil);
+GNUNET_DISK_directory_test (const char *fil, int is_listable);
 
 
 /**

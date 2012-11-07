@@ -681,7 +681,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   /* check arguments */
   if ((args[0] == NULL) || (args[1] != NULL) ||
-      (GNUNET_YES != GNUNET_DISK_directory_test (args[0])))
+      (GNUNET_YES != GNUNET_DISK_directory_test (args[0], GNUNET_YES)))
   {
     printf (_("You must specify one and only one directory name for automatic publication.\n"));
     ret = -1;

@@ -250,7 +250,7 @@ testDirMani ()
     return 1;
   if (GNUNET_OK != GNUNET_DISK_directory_create ("test"))
     return 1;
-  if (GNUNET_YES != GNUNET_DISK_directory_test ("test"))
+  if (GNUNET_YES != GNUNET_DISK_directory_test ("test", GNUNET_YES))
     return 1;
   if (GNUNET_OK != GNUNET_DISK_directory_remove ("test"))
     return 1;

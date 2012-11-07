@@ -738,7 +738,7 @@ GNUNET_FS_remove_sync_dir_ (struct GNUNET_FS_Handle *h, const char *ext,
   dn = get_serialization_file_name_in_dir (h, ext, uni, "");
   if (NULL == dn)
     return;
-  if ((GNUNET_OK == GNUNET_DISK_directory_test (dn)) &&
+  if ((GNUNET_YES == GNUNET_DISK_directory_test (dn, GNUNET_YES)) &&
       (GNUNET_OK != GNUNET_DISK_directory_remove (dn)))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "rmdir", dn);
   GNUNET_free (dn);
@@ -2700,7 +2700,7 @@ deserialize_download (struct GNUNET_FS_Handle *h,
   dn = get_download_sync_filename (dc, dc->serialization, ".dir");
   if (NULL != dn)
   {
-    if (GNUNET_YES == GNUNET_DISK_directory_test (dn))
+    if (GNUNET_YES == GNUNET_DISK_directory_test (dn, GNUNET_YES))
       GNUNET_DISK_directory_scan (dn, &deserialize_subdownload, dc);
     GNUNET_free (dn);
   }
@@ -2813,7 +2813,7 @@ deserialize_search (struct GNUNET_FS_Handle *h,
                                            sc->serialization, "");
   if (NULL != dn)
   {
-    if (GNUNET_YES == GNUNET_DISK_directory_test (dn))
+    if (GNUNET_YES == GNUNET_DISK_directory_test (dn, GNUNET_YES))
       GNUNET_DISK_directory_scan (dn, &deserialize_search_result, sc);
     GNUNET_free (dn);
   }
@@ -2940,7 +2940,7 @@ deserialization_master (const char *master_path, GNUNET_FileNameCallback proc,
   dn = get_serialization_file_name (h, master_path, "");
   if (NULL == dn)
     return;
-  if (GNUNET_YES == GNUNET_DISK_directory_test (dn))
+  if (GNUNET_YES == GNUNET_DISK_directory_test (dn, GNUNET_YES))
     GNUNET_DISK_directory_scan (dn, proc, h);
   GNUNET_free (dn);
 }
