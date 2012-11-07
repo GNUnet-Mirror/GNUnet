@@ -116,6 +116,26 @@ struct TransportClient
   int send_payload;
 };
 
+/**
+ * Context for address to string operations
+ */
+struct AddressToStringContext
+{
+  /**
+   * This is a doubly-linked list.
+   */
+  struct AddressToStringContext *next;
+
+  /**
+   * This is a doubly-linked list.
+   */
+  struct AddressToStringContext *prev;
+
+  /**
+   * Transmission context
+   */
+  struct GNUNET_SERVER_TransmitContext* tc;
+};
 
 /**
  * Client monitoring changes of active addresses of our neighbours.
@@ -155,6 +175,16 @@ static struct TransportClient *clients_head;
  * Tail of linked list of all clients to this service.
  */
 static struct TransportClient *clients_tail;
+
+/**
+ * Head of linked list of all pending address iterations
+ */
+struct AddressToStringContext *a2s_head;
+
+/**
+ * Tail of linked list of all pending address iterations
+ */
+struct AddressToStringContext *a2s_tail;
 
 /**
  * Head of linked list of monitoring clients.
@@ -720,16 +750,18 @@ clients_handle_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
 static void
 transmit_address_to_client (void *cls, const char *buf)
 {
-  struct GNUNET_SERVER_TransmitContext *tc = cls;
+  struct AddressToStringContext *actx = cls;
 
   if (NULL == buf)
   {
-    GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
+    GNUNET_SERVER_transmit_context_append_data (actx->tc, NULL, 0,
                                                 GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
-    GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
+    GNUNET_SERVER_transmit_context_run (actx->tc, GNUNET_TIME_UNIT_FOREVER_REL);
+    GNUNET_CONTAINER_DLL_remove (a2s_head, a2s_tail, actx);
+    GNUNET_free (actx);
     return;
   }
-  GNUNET_SERVER_transmit_context_append_data (tc, buf, strlen (buf) + 1,
+  GNUNET_SERVER_transmit_context_append_data (actx->tc, buf, strlen (buf) + 1,
                                               GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
 }
 
@@ -753,6 +785,7 @@ clients_handle_address_to_string (void *cls,
   uint32_t address_len;
   uint16_t size;
   struct GNUNET_SERVER_TransmitContext *tc;
+  struct AddressToStringContext *actx;
   struct GNUNET_TIME_Relative rtimeout;
   int32_t numeric;
 
@@ -791,10 +824,13 @@ clients_handle_address_to_string (void *cls,
     GNUNET_SERVER_transmit_context_run (tc, rtimeout);
     return;
   }
+  actx = GNUNET_malloc (sizeof (struct AddressToStringContext));
+  actx->tc = tc;
+  GNUNET_CONTAINER_DLL_insert (a2s_head, a2s_tail, actx);
   GNUNET_SERVER_disable_receive_done_warning (client);
   papi->address_pretty_printer (papi->cls, plugin_name, address, address_len,
                                 numeric, rtimeout, &transmit_address_to_client,
-                                tc);
+                                actx);
 }
 
 
@@ -981,6 +1017,15 @@ GST_clients_start (struct GNUNET_SERVER_Handle *server)
 void
 GST_clients_stop ()
 {
+  struct AddressToStringContext *cur;
+
+  while (NULL != (cur = a2s_head))
+  {
+    GNUNET_SERVER_transmit_context_destroy (cur->tc, GNUNET_NO);
+    GNUNET_CONTAINER_DLL_remove (a2s_head, a2s_tail, cur);
+    GNUNET_free (cur);
+  }
+
   if (NULL != nc)
   {
     GNUNET_SERVER_notification_context_destroy (nc);
