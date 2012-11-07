@@ -713,7 +713,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   num_hosts = GNUNET_TESTBED_hosts_load_from_file (args[0], &hosts);
   if (0 == num_hosts)
   {
-    fprintf (stderr, _("No hosts loaded. Need atleast one host\n"));
+    fprintf (stderr, _("No hosts loaded. Need at least one host\n"));
     return;
   }
   for (nhost = 0; nhost < num_hosts; nhost++)
