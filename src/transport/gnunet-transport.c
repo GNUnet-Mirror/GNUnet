@@ -44,6 +44,12 @@
 #define OP_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
+ * Benchmarking block size in KB
+ */
+#define BLOCKSIZE 4
+
+
+/**
  * Which peer should we connect to?
  */
 static char *cpid;
@@ -212,6 +218,8 @@ static void
 shutdown_task (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct GNUNET_TIME_Relative duration;
+  end = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
   {
       GNUNET_SCHEDULER_cancel (op_timeout);
@@ -237,6 +245,21 @@ shutdown_task (void *cls,
     GNUNET_CONTAINER_multihashmap_destroy (peers);
     peers = NULL;
   }
+  if (benchmark_send)
+  {
+    duration = GNUNET_TIME_absolute_get_duration (start_time);
+    FPRINTF (stdout, _("Transmitted %llu bytes/s (%llu bytes in %s)\n"),
+             1000 * traffic_sent / (1 + duration.rel_value), traffic_sent,
+             GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
+  }
+  if (benchmark_receive)
+  {
+    duration = GNUNET_TIME_absolute_get_duration (start_time);
+    FPRINTF (stdout, _("Received %llu bytes/s (%llu bytes in %s)\n"),
+             1000 * traffic_received / (1 + duration.rel_value),
+             traffic_received,
+             GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
+  }
 }
 
 
@@ -246,7 +269,7 @@ operation_timeout (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   op_timeout = GNUNET_SCHEDULER_NO_TASK;
-  if (try_connect)
+  if ((try_connect) || (benchmark_send) || (benchmark_receive))
   {
       FPRINTF (stdout, _("Failed to connect to `%s'\n"), GNUNET_h2s_full (&pid.hashPubKey));
       if (GNUNET_SCHEDULER_NO_TASK != end)
@@ -396,39 +419,6 @@ do_test_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
   GNUNET_free (plugins);
 }
 
-
-/**
- * Shutdown, print statistics.
- */
-static void
-do_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct GNUNET_TIME_Relative duration;
-
-  if (NULL != th)
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-    th = NULL;
-  }
-  GNUNET_TRANSPORT_disconnect (handle);
-  if (benchmark_receive)
-  {
-    duration = GNUNET_TIME_absolute_get_duration (start_time);
-    FPRINTF (stdout, _("Received %llu bytes/s (%llu bytes in %s)\n"),
-             1000 * traffic_received / (1 + duration.rel_value),
-             traffic_received,
-	     GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
-  }
-  if (benchmark_send)
-  {
-    duration = GNUNET_TIME_absolute_get_duration (start_time);
-    FPRINTF (stdout, _("Transmitted %llu bytes/s (%llu bytes in %s)\n"),
-             1000 * traffic_sent / (1 + duration.rel_value), traffic_sent,
-             GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
-  }
-}
-
-
 /**
  * Function called to notify a client about the socket
  * begin ready to queue more data.  "buf" will be
@@ -457,7 +447,7 @@ transmit_data (void *cls, size_t size, void *buf)
   m->type = ntohs (GNUNET_MESSAGE_TYPE_DUMMY);
   memset (&m[1], 52, size - sizeof (struct GNUNET_MessageHeader));
   traffic_sent += size;
-  th = GNUNET_TRANSPORT_notify_transmit_ready (handle, &pid, 32 * 1024, 0,
+  th = GNUNET_TRANSPORT_notify_transmit_ready (handle, &pid, BLOCKSIZE * 1024, 0,
                                                GNUNET_TIME_UNIT_FOREVER_REL,
                                                &transmit_data, NULL);
   if (verbosity > 0)
@@ -480,33 +470,53 @@ static void
 notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
-  if (verbosity > 0)
-    FPRINTF (stdout, _("Connected to %s\n"), GNUNET_i2s (peer));
   if (0 != memcmp (&pid, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
   ret = 0;
   if (try_connect)
   {
       /* all done, terminate instantly */
-      FPRINTF (stdout, _("Successfully connected to %s\n"), GNUNET_h2s_full (&peer->hashPubKey));
+      FPRINTF (stdout, _("Successfully connected to `%s'\n"), GNUNET_h2s_full (&peer->hashPubKey));
       ret = 0;
 
       if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
+      {
         GNUNET_SCHEDULER_cancel (op_timeout);
+        op_timeout = GNUNET_SCHEDULER_NO_TASK;
+      }
 
       if (GNUNET_SCHEDULER_NO_TASK != end)
         GNUNET_SCHEDULER_cancel (end);
-      end = GNUNET_SCHEDULER_add_now (&do_disconnect, NULL);
+      end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
       return;
   }
   if (benchmark_send)
   {
+    if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
+    {
+      GNUNET_SCHEDULER_cancel (op_timeout);
+      op_timeout = GNUNET_SCHEDULER_NO_TASK;
+    }
+    if (verbosity > 0)
+      FPRINTF (stdout, _("Successfully connected to `%s', starting to send benchmark data in %u Kb blocks\n"),
+          GNUNET_i2s (&pid), BLOCKSIZE);
     start_time = GNUNET_TIME_absolute_get ();
     if (NULL == th)
-      th = GNUNET_TRANSPORT_notify_transmit_ready (handle, peer, 32 * 1024, 0,
-                                                 GNUNET_TIME_UNIT_FOREVER_REL,
-                                                 &transmit_data, NULL);
+      th = GNUNET_TRANSPORT_notify_transmit_ready (handle, peer,
+                                                   BLOCKSIZE * 1024, 0,
+                                                   GNUNET_TIME_UNIT_FOREVER_REL,
+                                                   &transmit_data, NULL);
+    else
+      GNUNET_break (0);
     return;
+  }
+  if (benchmark_receive)
+  {
+      if (verbosity > 0)
+        FPRINTF (stdout, _("Successfully connected to `%s', starting to receive benchmark data\n"),
+            GNUNET_i2s (&pid));
+      start_time = GNUNET_TIME_absolute_get ();
+      return;
   }
 }
 
@@ -521,14 +531,21 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
 static void
 notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
-  if (verbosity > 0)
-    FPRINTF (stdout, _("Disconnected from %s\n"), GNUNET_i2s (peer));
+  if (0 != memcmp (&pid, peer, sizeof (struct GNUNET_PeerIdentity)))
+    return;
+
   if (NULL != th)
   {
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
     th = NULL;
   }
-
+  if (benchmark_send)
+  {
+      FPRINTF (stdout, _("Disconnected from peer `%s' while benchmarking\n"), GNUNET_i2s (&pid));
+      if (GNUNET_SCHEDULER_NO_TASK != end)
+        GNUNET_SCHEDULER_cancel (end);
+      return;
+  }
 }
 
 /**
@@ -595,16 +612,18 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message,
                 const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
-  if (!benchmark_receive)
+  if (benchmark_receive)
+  {
+    if (GNUNET_MESSAGE_TYPE_DUMMY != ntohs (message->type))
+      return;
+    if (verbosity > 0)
+      FPRINTF (stdout, _("Received %u bytes from %s\n"),
+               (unsigned int) ntohs (message->size), GNUNET_i2s (peer));
+    if (traffic_received == 0)
+      start_time = GNUNET_TIME_absolute_get ();
+    traffic_received += ntohs (message->size);
     return;
-  if (GNUNET_MESSAGE_TYPE_DUMMY != ntohs (message->type))
-    return;
-  if (verbosity > 0)
-    FPRINTF (stdout, _("Received %u bytes from %s\n"),
-             (unsigned int) ntohs (message->size), GNUNET_i2s (peer));
-  if (traffic_received == 0)
-    start_time = GNUNET_TIME_absolute_get ();
-  traffic_received += ntohs (message->size);
+  }
 }
 
 struct ResolutionContext
@@ -635,7 +654,7 @@ process_string (void *cls, const char *address)
       FPRINTF (stdout, _("Peer `%s': %s <unable to resolve address>\n"), GNUNET_i2s (&addrcp->peer), addrcp->transport_name);
     GNUNET_free (rc->addrcp);
     GNUNET_free (rc);
-    if (0 == address_resolutions)
+    if ((0 == address_resolutions) && (iterate_connections))
     {
         if (GNUNET_SCHEDULER_NO_TASK != end)
           GNUNET_SCHEDULER_cancel (end);
@@ -768,10 +787,9 @@ testservice_task (void *cls,
         return;
     }
     GNUNET_TRANSPORT_try_connect (handle, &pid);
-
+    start_time = GNUNET_TIME_absolute_get ();
     op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
-                                               &operation_timeout,
-                                               NULL);
+                                               &operation_timeout, NULL);
   }
   else if (benchmark_receive) /* Benchmark receiving */
   {
@@ -786,9 +804,8 @@ testservice_task (void *cls,
     }
     GNUNET_TRANSPORT_try_connect (handle, &pid);
     start_time = GNUNET_TIME_absolute_get ();
-    /*
-    end = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                      &do_disconnect, NULL);*/
+    op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
+                                               &operation_timeout, NULL);
   }
   else if (iterate_connections) /* -i: List all active addresses once */
   {
@@ -845,6 +862,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (test_configuration)
   {
     do_test_configuration (cfg);
+    return;
   }
 
   GNUNET_CLIENT_service_test ("transport", cfg,
