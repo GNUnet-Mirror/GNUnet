@@ -456,7 +456,11 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   ret = 0;
   if (try_connect)
   {
-      /*FIXME */
+      /* all done, terminate instantly */
+      if (verbosity > 0)
+        FPRINTF (stdout, _("Successfully connected to %s\n"), GNUNET_i2s (peer));
+      GNUNET_SCHEDULER_cancel (end);
+      end = GNUNET_SCHEDULER_add_now (&do_disconnect, NULL);
   }
   else if (benchmark_send)
   {
@@ -700,6 +704,12 @@ testservice_task (void *cls,
                                        &notify_receive,
                                        &notify_connect,
                                        &notify_disconnect);
+    if (NULL == handle)
+    {
+        FPRINTF (stderr, _("Failed to connect to transport service\n"));
+        return;
+    }
+
     GNUNET_TRANSPORT_try_connect (handle, &pid);
 
   }
@@ -716,6 +726,11 @@ testservice_task (void *cls,
                                        &notify_receive,
                                        &notify_connect,
                                        &notify_disconnect);
+    if (NULL == handle)
+    {
+        FPRINTF (stderr, _("Failed to connect to transport service\n"));
+        return;
+    }
     GNUNET_TRANSPORT_try_connect (handle, &pid);
     end = GNUNET_SCHEDULER_add_delayed (benchmark_send ?
                                         GNUNET_TIME_UNIT_FOREVER_REL :
@@ -728,6 +743,11 @@ testservice_task (void *cls,
     handle =
         GNUNET_TRANSPORT_connect (cfg, NULL, NULL, &notify_receive,
                                   &notify_connect, &notify_disconnect);
+    if (NULL == handle)
+    {
+        FPRINTF (stderr, _("Failed to connect to transport service\n"));
+        return;
+    }
     GNUNET_TRANSPORT_try_connect (handle, &pid);
     start_time = GNUNET_TIME_absolute_get ();
     end =
@@ -760,7 +780,7 @@ testservice_task (void *cls,
                                        &monitor_notify_disconnect);
     if (NULL == handle)
     {
-      GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+      FPRINTF (stderr, _("Failed to connect to transport service\n"));
       return;
     }
   }
