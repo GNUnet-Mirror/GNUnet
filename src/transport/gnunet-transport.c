@@ -748,7 +748,7 @@ testservice_task (void *cls,
                                        &notify_disconnect);
     if (NULL == handle)
     {
-        FPRINTF (stderr, _("Failed to connect to transport service\n"));
+        FPRINTF (stderr, "%s", _("Failed to connect to transport service\n"));
         ret = 1;
         return;
     }
@@ -772,7 +772,7 @@ testservice_task (void *cls,
                                        &notify_disconnect);
     if (NULL == handle)
     {
-        FPRINTF (stderr, _("Failed to connect to transport service\n"));
+        FPRINTF (stderr, "%s", _("Failed to connect to transport service\n"));
         ret = 1;
         return;
     }
@@ -788,12 +788,12 @@ testservice_task (void *cls,
                                   NULL, NULL);
     if (NULL == handle)
     {
-        FPRINTF (stderr, _("Failed to connect to transport service\n"));
+        FPRINTF (stderr, "%s", _("Failed to connect to transport service\n"));
         ret = 1;
         return;
     }
     if (verbosity > 0)
-      FPRINTF (stdout, _("Starting to receive benchmark data\n"));
+      FPRINTF (stdout, "%s", _("Starting to receive benchmark data\n"));
     start_time = GNUNET_TIME_absolute_get ();
 
   }
@@ -823,7 +823,7 @@ testservice_task (void *cls,
                                        &monitor_notify_disconnect);
     if (NULL == handle)
     {
-      FPRINTF (stderr, _("Failed to connect to transport service\n"));
+      FPRINTF (stderr, "%s", _("Failed to connect to transport service\n"));
       ret = 1;
       return;
     }
