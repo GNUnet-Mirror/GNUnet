@@ -510,20 +510,6 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_break (0);
     return;
   }
-  if (benchmark_receive)
-  {
-      if (verbosity > 0)
-        FPRINTF (stdout, _("Successfully connected to `%s', starting to receive benchmark data\n"),
-            GNUNET_i2s (&pid));
-      if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
-      {
-        GNUNET_SCHEDULER_cancel (op_timeout);
-        op_timeout = GNUNET_SCHEDULER_NO_TASK;
-      }
-
-      start_time = GNUNET_TIME_absolute_get ();
-      return;
-  }
 }
 
 
@@ -622,15 +608,9 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     if (GNUNET_MESSAGE_TYPE_DUMMY != ntohs (message->type))
       return;
-
-    if (0 == memcmp (&pid, peer, sizeof (struct GNUNET_PeerIdentity)))
-    {
-      if (verbosity > 0)
-        FPRINTF (stdout, _("Received %u bytes from %s\n"),
-                 (unsigned int) ntohs (message->size), GNUNET_i2s (peer));
-    }
-    else
-        /* Received data from other peer*/ return;
+    if (verbosity > 0)
+      FPRINTF (stdout, _("Received %u bytes from %s\n"),
+               (unsigned int) ntohs (message->size), GNUNET_i2s (peer));
 
     if (traffic_received == 0)
       start_time = GNUNET_TIME_absolute_get ();
@@ -753,7 +733,7 @@ testservice_task (void *cls,
     return;
   }
 
-  if (try_connect)
+  if (try_connect) /* -C: Connect to peer */
   {
     if (NULL == cpid)
     {
@@ -777,7 +757,7 @@ testservice_task (void *cls,
                                                &operation_timeout, NULL);
 
   }
-  else if (benchmark_send) /* Benchmark sending */
+  else if (benchmark_send) /* -s: Benchmark sending */
   {
     if (NULL == cpid)
     {
@@ -801,28 +781,21 @@ testservice_task (void *cls,
     op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
                                                &operation_timeout, NULL);
   }
-  else if (benchmark_receive) /* Benchmark receiving */
+  else if (benchmark_receive) /* -b: Benchmark receiving */
   {
-    if (NULL == cpid)
-    {
-      FPRINTF (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
-               "-b", "-p");
-      ret = 1;
-      return;
-    }
     handle =
         GNUNET_TRANSPORT_connect (cfg, NULL, NULL, &notify_receive,
-                                  &notify_connect, &notify_disconnect);
+                                  NULL, NULL);
     if (NULL == handle)
     {
         FPRINTF (stderr, _("Failed to connect to transport service\n"));
         ret = 1;
         return;
     }
-    GNUNET_TRANSPORT_try_connect (handle, &pid);
+    if (verbosity > 0)
+      FPRINTF (stdout, _("Starting to receive benchmark data\n"));
     start_time = GNUNET_TIME_absolute_get ();
-    op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
-                                               &operation_timeout, NULL);
+
   }
   else if (iterate_connections) /* -i: List all active addresses once */
   {
@@ -900,7 +873,7 @@ main (int argc, char *const *argv)
   int res;
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'b', "benchmark", NULL,
-     gettext_noop ("measure how fast we are receiving data (until CTRL-C)"),
+     gettext_noop ("measure how fast we are receiving data from all peers (until CTRL-C)"),
      0, &GNUNET_GETOPT_set_one, &benchmark_receive},
     {'C', "connect", NULL,
      gettext_noop ("connect to a peer"),
