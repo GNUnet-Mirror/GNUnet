@@ -226,6 +226,7 @@ shutdown_task (void *cls,
     GNUNET_CONTAINER_multihashmap_destroy (peers);
     peers = NULL;
   }
+  GNUNET_break (0);
 }
 
 /**
@@ -754,7 +755,7 @@ testservice_task (void *cls,
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                       &do_disconnect, NULL);
   }
-  else if (iterate_connections) /* List all active addresses once */
+  else if (iterate_connections) /* -i: List all active addresses once */
   {
     peers = GNUNET_CONTAINER_multihashmap_create (20, GNUNET_NO);
     address_resolution_in_progress = GNUNET_YES;
@@ -763,7 +764,7 @@ testservice_task (void *cls,
                                                 TIMEOUT,
                                                 &process_address, (void *) cfg);
   }
-  else if (monitor_connections) /* List all active addresses continously */
+  else if (monitor_connections) /* -m: List all active addresses continously */
   {
     peers = GNUNET_CONTAINER_multihashmap_create (20, GNUNET_NO);
     address_resolution_in_progress = GNUNET_YES;
@@ -772,7 +773,7 @@ testservice_task (void *cls,
                                                 TIMEOUT,
                                                 &process_address, (void *) cfg);
   }
-  else if (monitor_connects) /* Monitor (dis)connect events continously */
+  else if (monitor_connects) /* -e : Monitor (dis)connect events continously */
   {
     monitor_connect_counter = 0;
     handle = GNUNET_TRANSPORT_connect (cfg, NULL, NULL, NULL,
