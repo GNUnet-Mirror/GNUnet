@@ -67,108 +67,138 @@ block_plugin_mesh_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
 
   switch (type)
   {
-  case GNUNET_BLOCK_TYPE_MESH_PEER:
-    if (0 != xquery_size)
-    {
-      GNUNET_break_op (0);
-      return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
-    }
-    if (NULL == reply_block)
-      return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
-    if (sizeof (struct PBlock) != reply_block_size)  
-      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;  
-    return GNUNET_BLOCK_EVALUATION_OK_LAST;
-  case GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE:
-    /* FIXME: have an xquery? not sure */
-    if (0 != xquery_size)
-    {
-      GNUNET_break_op (0);
-      return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
-    }
-    if (NULL == reply_block)
-      return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
-    if (sizeof (struct PBlock) != reply_block_size)
-    {
-      GNUNET_break_op(0);
-      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-    }
-    if (NULL != bf)
-    {
-      GNUNET_CRYPTO_hash (reply_block, reply_block_size, &chash);
-      GNUNET_BLOCK_mingle_hash (&chash, bf_mutator, &mhash);
-      if (NULL != *bf)
+    case GNUNET_BLOCK_TYPE_MESH_PEER:
+      if (0 != xquery_size)
       {
-        if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (*bf, &mhash))
-          return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
+        GNUNET_break_op (0);
+        return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
+      }
+      if (NULL == reply_block)
+        return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+      if (sizeof (struct PBlock) != reply_block_size)  
+        return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;  
+      return GNUNET_BLOCK_EVALUATION_OK_LAST;
+
+
+    case GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE:
+      /* FIXME: have an xquery? not sure */
+      if (0 != xquery_size)
+      {
+        GNUNET_break_op (0);
+        return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
+      }
+      if (NULL == reply_block)
+        return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+      if (sizeof (struct PBlock) != reply_block_size)
+      {
+        GNUNET_break_op(0);
+        return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+      }
+      if (NULL != bf)
+      {
+        GNUNET_CRYPTO_hash (reply_block, reply_block_size, &chash);
+        GNUNET_BLOCK_mingle_hash (&chash, bf_mutator, &mhash);
+        if (NULL != *bf)
+        {
+          if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (*bf, &mhash))
+            return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
+        }
+        else
+        {
+          *bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, BLOOMFILTER_K);
+        }
+        GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
+      }
+      return GNUNET_BLOCK_EVALUATION_OK_MORE;
+
+
+    case GNUNET_BLOCK_TYPE_MESH_REGEX:
+      if (NULL == reply_block)
+        return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+      if (0 != xquery_size)
+      {
+        char *query;
+
+        query = (char *) xquery;
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "BLOCK XQUERY %s\n", query);
+        if ('\0' != query[xquery_size - 1]) // must be valid string
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      "Block xquery not a valid string\n");
+          return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+        }
       }
       else
       {
-        *bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, BLOOMFILTER_K);
+        return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
       }
-      GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
-    }
-    return GNUNET_BLOCK_EVALUATION_OK_MORE;
-  case GNUNET_BLOCK_TYPE_MESH_REGEX:
-    if (0 != xquery_size)
-    {
-      GNUNET_break_op (0);
-      return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
-    }
-    if (NULL == reply_block)
-      return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
-    if (GNUNET_OK != GNUNET_MESH_regex_block_check (reply_block,
-                                                    reply_block_size))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-    }
-    if (NULL != bf)
-    {
-      GNUNET_CRYPTO_hash (reply_block, reply_block_size, &chash);
-      GNUNET_BLOCK_mingle_hash (&chash, bf_mutator, &mhash);
-      if (NULL != *bf)
+      switch (GNUNET_MESH_regex_block_check (reply_block,
+                                             reply_block_size,
+                                             xquery))
       {
-        if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (*bf, &mhash))
-          return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
+        case GNUNET_SYSERR:
+          GNUNET_break_op(0);
+          /* fall thru */
+        case GNUNET_NO:
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "BLOCK XQUERY %s not accepted\n", xquery);
+          return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+        default:
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "BLOCK XQUERY %s accepted\n", xquery);
+          break;
       }
-      else
+      if (NULL != bf)
       {
-        *bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, BLOOMFILTER_K);
+        GNUNET_CRYPTO_hash (reply_block, reply_block_size, &chash);
+        GNUNET_BLOCK_mingle_hash (&chash, bf_mutator, &mhash);
+        if (NULL != *bf)
+        {
+          if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (*bf, &mhash))
+            return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
+        }
+        else
+        {
+          *bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, BLOOMFILTER_K);
+        }
+        GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
       }
-      GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
-    }
-    return GNUNET_BLOCK_EVALUATION_OK_MORE;
-  case GNUNET_BLOCK_TYPE_MESH_REGEX_ACCEPT:
-    if (0 != xquery_size)
-    {
-      GNUNET_break_op (0);
-      return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
-    }
-    if (NULL == reply_block)
-      return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
-    if (sizeof (struct MeshRegexAccept) != reply_block_size)
-    {
-      GNUNET_break_op(0);
-      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-    }
-    if (NULL != bf)
-    {
-      GNUNET_CRYPTO_hash (reply_block, reply_block_size, &chash);
-      GNUNET_BLOCK_mingle_hash (&chash, bf_mutator, &mhash);
-      if (NULL != *bf)
+      return GNUNET_BLOCK_EVALUATION_OK_MORE;
+
+
+    case GNUNET_BLOCK_TYPE_MESH_REGEX_ACCEPT:
+      if (0 != xquery_size)
       {
-        if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (*bf, &mhash))
-          return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
+        GNUNET_break_op (0);
+        return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
       }
-      else
+      if (NULL == reply_block)
+        return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+      if (sizeof (struct MeshRegexAccept) != reply_block_size)
       {
-        *bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, BLOOMFILTER_K);
+        GNUNET_break_op(0);
+        return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
       }
-      GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
-    }
-    return GNUNET_BLOCK_EVALUATION_OK_MORE;
-  default:
-    return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
+      if (NULL != bf)
+      {
+        GNUNET_CRYPTO_hash (reply_block, reply_block_size, &chash);
+        GNUNET_BLOCK_mingle_hash (&chash, bf_mutator, &mhash);
+        if (NULL != *bf)
+        {
+          if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (*bf, &mhash))
+            return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
+        }
+        else
+        {
+          *bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, BLOOMFILTER_K);
+        }
+        GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
+      }
+      return GNUNET_BLOCK_EVALUATION_OK_MORE;
+
+
+    default:
+      return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
   }
 }
 

@@ -24,10 +24,15 @@
 #include "platform.h"
 #include "mesh_block_lib.h"
 
+struct mesh_block_xquery_ctx {
+  const char *xquery;
+  int found;
+};
+
 /**
- * Noop iterator over all edges in a block.
+ * Iterator over all edges in a block, checking for a presence of a given query.
  *
- * @param cls Closure, not used.
+ * @param cls Closure, (xquery context).
  * @param token Token that follows to next state.
  * @param len Lenght of token.
  * @param key Hash of next state.
@@ -40,7 +45,28 @@ check_edge (void *cls,
             size_t len,
             const struct GNUNET_HashCode *key)
 {
-  return GNUNET_YES;
+  struct mesh_block_xquery_ctx *ctx = cls;
+  char *s;
+
+  s = strndup (token, len);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  edge %s [%u]\n", s, len);
+  GNUNET_free (s);
+  if (strlen (ctx->xquery) < len)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  too long!\n");
+    return GNUNET_YES;
+  }
+  if (0 == strncmp (ctx->xquery, token, len))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  OK!\n");
+    ctx->found = GNUNET_OK;
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  KO!\n");
+  }
+
+  return GNUNET_YES; // keep checking for malformed data!
 }
 
 
@@ -49,14 +75,29 @@ check_edge (void *cls,
  *
  * @param block The start of the block.
  * @param size The size of the block.
+ * @param xquery String describing the edge we are looking for.
  *
- * @return GNUNET_OK in case it's fine, GNUNET_SYSERR otherwise.
+ * @return GNUNET_OK in case it's fine.
+ *         GNUNET_NO in case the xquery is not found.
+ *         GNUNET_SYSERR if the block is invalid.
  */
 int
 GNUNET_MESH_regex_block_check (const struct MeshRegexBlock *block,
-                               size_t size)
+                               size_t size,
+                               const char *xquery)
 {
-  return GNUNET_MESH_regex_block_iterate(block, size, &check_edge, NULL);
+  int res;
+  struct mesh_block_xquery_ctx ctx;
+
+  ctx.xquery = xquery;
+  ctx.found = GNUNET_NO;
+  res = GNUNET_MESH_regex_block_iterate (block, size, &check_edge, &ctx);
+  if (GNUNET_SYSERR == res)
+    return GNUNET_SYSERR;
+
+  if (GNUNET_YES == ntohl(block->accepting) && xquery[0] == '\0')
+    return GNUNET_OK;
+  return ctx.found;
 }
 
 

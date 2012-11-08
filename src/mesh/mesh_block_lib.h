@@ -43,19 +43,23 @@ extern "C"
  *
  * @param block The start of the block.
  * @param size The size of the block.
+ * @param xquery String describing the edge we are looking for.
  *
- * @return GNUNET_OK in case it's fine, GNUNET_SYSERR otherwise.
+ * @return GNUNET_OK in case it's fine.
+ *         GNUNET_NO in case the xquery is not found.
+ *         GNUNET_SYSERR if the block is invalid.
  */
 int
 GNUNET_MESH_regex_block_check (const struct MeshRegexBlock *block,
-                               size_t size);
+                               size_t size,
+                               const char *xquery);
 
 /**
  * Iterator over edges in a block.
  *
  * @param cls Closure.
  * @param token Token that follows to next state.
- * @param len Lenght of token.
+ * @param len Length of token.
  * @param key Hash of next state.
  *
  * @return GNUNET_YES if should keep iterating, GNUNET_NO otherwise.

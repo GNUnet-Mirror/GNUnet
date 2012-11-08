@@ -1431,6 +1431,7 @@ regex_next_edge (const struct MeshRegexBlock *block,
   struct MeshRegexSearchContext *new_ctx;
   struct MeshRegexSearchInfo *info = ctx->info;
   struct GNUNET_DHT_GetHandle *get_h;
+  char *rest;
 
   int result;
 
@@ -1465,14 +1466,17 @@ regex_next_edge (const struct MeshRegexBlock *block,
   GNUNET_STATISTICS_update (stats, "# regex nodes traversed", 1, GNUNET_NO);
 
   /* Start search in DHT */
+  rest = &new_ctx->info->description[new_ctx->position];
   get_h = 
       GNUNET_DHT_get_start (dht_handle,    /* handle */
                             GNUNET_BLOCK_TYPE_MESH_REGEX, /* type */
                             &ctx->hash,     /* key to search */
                             dht_replication_level, /* replication level */
                             GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-                            NULL,       /* xquery */ // FIXME BLOOMFILTER
-                            0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
+                            rest, /* xquery */
+                            // FIXME add BLOOMFILTER to exclude filtered peers
+                            strlen(rest) + 1,     /* xquery bits */
+                            // FIXME add BLOOMFILTER SIZE
                             &dht_get_string_handler, new_ctx);
   if (GNUNET_OK !=
       GNUNET_CONTAINER_multihashmap_put(info->dht_get_handles,
@@ -1681,8 +1685,10 @@ regex_find_path (const struct GNUNET_HashCode *key,
                                 dht_replication_level, /* replication level */
                                 GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE |
                                 GNUNET_DHT_RO_RECORD_ROUTE,
-                                NULL,       /* xquery */ // FIXME BLOOMFILTER
-                                0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
+                                NULL, /* xquery */
+                                // FIXME add BLOOMFILTER to exclude filtered peers
+                                0,     /* xquery bits */
+                                // FIXME add BLOOMFILTER SIZE
                                 &dht_get_string_accept_handler, ctx);
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CONTAINER_multihashmap_put(ctx->info->dht_get_handles,
@@ -7551,7 +7557,7 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
   string = (const char *) &msg[1];
 
   /* Initialize context */
-  size = GNUNET_REGEX_get_first_key(string, len, &key);
+  size = GNUNET_REGEX_get_first_key (string, len, &key);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "  consumed %u bits out of %u\n", size, len);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -7579,8 +7585,10 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
                                 &key,     /* key to search */
                                 dht_replication_level, /* replication level */
                                 GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-                                NULL,       /* xquery */ // FIXME BLOOMFILTER
-                                0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
+                                &info->description[size],           /* xquery */
+                                // FIXME add BLOOMFILTER to exclude filtered peers
+                                len + 1 - size,                /* xquery bits */
+                                // FIXME add BLOOMFILTER SIZE
                                 &dht_get_string_handler, ctx);
 
   GNUNET_break (GNUNET_OK ==

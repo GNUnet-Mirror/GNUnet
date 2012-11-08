@@ -144,6 +144,11 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
     case 267: return "GNUNET_MESSAGE_TYPE_MESH_ACK"; break;
 
       /**
+       * POLL for ACK.
+       */
+    case 268: return "GNUNET_MESSAGE_TYPE_MESH_POLL"; break;
+
+      /**
        * Connect to the mesh service, specifying subscriptions
        */
     case 272: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT"; break;
