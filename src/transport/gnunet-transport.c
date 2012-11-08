@@ -78,6 +78,11 @@ static int iterate_connections;
 static int test_configuration;
 
 /**
+ * Option -c.
+ */
+static int monitor_connects;
+
+/**
  * Option -m.
  */
 static int monitor_connections;
@@ -95,7 +100,7 @@ static int ret;
 /**
  * Current number of connections in monitor mode
  */
-static int monitor_connections_counter;
+static int monitor_connect_counter;
 
 /**
  * Number of bytes of traffic we received so far.
@@ -116,6 +121,11 @@ static struct GNUNET_TIME_Absolute start_time;
  * Handle for current transmission request.
  */
 static struct GNUNET_TRANSPORT_TransmitHandle *th;
+
+/**
+ *
+ */
+struct GNUNET_TRANSPORT_PeerIterateContext *pic;
 
 /**
  * Identity of the peer we transmit to / connect to.
@@ -145,6 +155,15 @@ struct GNUNET_OS_Process *resolver;
  */
 static unsigned int resolver_users;
 
+/**
+ * Number of address resolutions pending
+ */
+static unsigned int address_resolutions;
+
+/**
+ * Address resolutions pending in progress
+ */
+static unsigned int address_resolution_in_progress;
 
 /**
  * Context for a plugin test.
@@ -169,6 +188,40 @@ struct TestContext
 
 };
 
+
+/**
+ * Task run in monitor mode when the user presses CTRL-C to abort.
+ * Stops monitoring activity.
+ *
+ * @param cls the 'struct GNUNET_TRANSPORT_PeerIterateContext *'
+ * @param tc scheduler context
+ */
+static void
+shutdown_task (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (NULL != pic)
+  {
+      GNUNET_TRANSPORT_peer_get_active_addresses_cancel (pic);
+      pic = NULL;
+  }
+  if (NULL != th)
+  {
+    GNUNET_TRANSPORT_notify_transmit_ready_cancel(th);
+    th = NULL;
+  }
+  if (NULL != handle)
+  {
+    GNUNET_TRANSPORT_disconnect(handle);
+    handle = NULL;
+  }
+
+  if (NULL != peers)
+  {
+    GNUNET_CONTAINER_multihashmap_destroy (peers);
+    peers = NULL;
+  }
+}
 
 /**
  * Display the result of the test.
@@ -446,7 +499,7 @@ static void
 monitor_notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
-  monitor_connections_counter ++;
+  monitor_connect_counter ++;
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
   const char *now_str = GNUNET_STRINGS_absolute_time_to_string (now);
 
@@ -454,7 +507,7 @@ monitor_notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
            now_str,
            _("Connected to"),
            GNUNET_i2s (peer),
-           monitor_connections_counter);
+           monitor_connect_counter);
 }
 
 
@@ -471,14 +524,14 @@ monitor_notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
   const char *now_str = GNUNET_STRINGS_absolute_time_to_string (now);
 
-  GNUNET_assert (monitor_connections_counter > 0);
-  monitor_connections_counter --;
+  GNUNET_assert (monitor_connect_counter > 0);
+  monitor_connect_counter --;
 
   FPRINTF (stdout, _("%24s: %-17s %4s   (%u connections in total)\n"),
            now_str,
            _("Disconnected from"),
            GNUNET_i2s (peer),
-           monitor_connections_counter);
+           monitor_connect_counter);
 }
 
 
@@ -531,10 +584,20 @@ process_string (void *cls, const char *address)
   else
   {
     /* done */
+    GNUNET_assert (address_resolutions > 0);
+    address_resolutions --;
     if (GNUNET_NO == rc->printed)
       FPRINTF (stdout, _("Peer `%s': %s <unable to resolve address>\n"), GNUNET_i2s (&addrcp->peer), addrcp->transport_name);
     GNUNET_free (rc->addrcp);
     GNUNET_free (rc);
+    FPRINTF (stdout, _("Peer --: %u\n"), address_resolutions);
+    if (0 == address_resolutions)
+    {
+        if (GNUNET_SCHEDULER_NO_TASK == end)
+          GNUNET_SCHEDULER_cancel (end);
+        GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+        GNUNET_break (0);
+    }
   }
 }
 
@@ -555,9 +618,10 @@ process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (peer == NULL)
   {
     /* done */
+    address_resolution_in_progress = GNUNET_NO;
+    pic = NULL;
     return;
   }
-
   if (address == NULL)
   {
     FPRINTF (stdout, _("Peer `%s' disconnected\n"), GNUNET_i2s (peer));
@@ -569,7 +633,8 @@ process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
   rc->printed = GNUNET_NO;
 
   GNUNET_assert (NULL != rc);
-
+  address_resolutions ++;
+  FPRINTF (stdout, _("Peer `%s' ++: %u\n"), GNUNET_i2s (peer), address_resolutions);
   /* Resolve address to string */
   GNUNET_TRANSPORT_address_to_string (cfg, address, numeric,
                                       RESOLUTION_TIMEOUT, &process_string,
@@ -577,40 +642,12 @@ process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
 }
 
 
-/**
- * Task run in monitor mode when the user presses CTRL-C to abort.
- * Stops monitoring activity.
- * 
- * @param cls the 'struct GNUNET_TRANSPORT_PeerIterateContext *'
- * @param tc scheduler context
- */
-static void
-shutdown_task (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  if (NULL != th)
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel(th);
-    th = NULL;
-  }
-  if (NULL != handle)
-  {
-    GNUNET_TRANSPORT_disconnect(handle);
-    handle = NULL;
-  }
-
-  if (NULL != peers)
-  {
-    GNUNET_CONTAINER_multihashmap_destroy (peers);
-    peers = NULL;
-  }
-}
-
 static void
 testservice_task (void *cls,
                   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+  int counter = 0;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
   {
@@ -618,31 +655,49 @@ testservice_task (void *cls,
       return;
   }
 
-  if (benchmark_send && (NULL == cpid))
+  counter = benchmark_send + benchmark_receive + iterate_connections +
+            monitor_connections + monitor_connects;
+
+  if (1 < counter)
   {
-    FPRINTF (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
-             "-s", "-C");
+    FPRINTF (stderr, _("Multiple operations given. Please choose only one operation: %s, %s, %s, %s, %s\n"),
+             "benchmark send", "benchmark receive", "information", "monitor", "events");
     return;
   }
-  if (NULL != cpid)
+  if (0 == counter)
   {
+    FPRINTF (stderr, _("No operation given. Please choose one operation: %s, %s, %s, %s, %s\n"),
+             "benchmark send", "benchmark receive", "information", "monitor", "events");
+    return;
+  }
+
+
+  if (benchmark_send) /* Benchmark sending */
+  {
+    if (NULL == cpid)
+    {
+      FPRINTF (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
+               "-s", "-C");
+      return;
+    }
     ret = 1;
     if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (cpid, &pid.hashPubKey))
     {
       FPRINTF (stderr, _("Failed to parse peer identity `%s'\n"), cpid);
       return;
     }
-    handle =
-        GNUNET_TRANSPORT_connect (cfg, NULL, NULL, &notify_receive,
-                                  &notify_connect, &notify_disconnect);
+    handle = GNUNET_TRANSPORT_connect (cfg, NULL, NULL,
+                                       &notify_receive,
+                                       &notify_connect,
+                                       &notify_disconnect);
     GNUNET_TRANSPORT_try_connect (handle, &pid);
-    end =
-        GNUNET_SCHEDULER_add_delayed (benchmark_send ?
-                                      GNUNET_TIME_UNIT_FOREVER_REL :
-                                      GNUNET_TIME_UNIT_SECONDS, &do_disconnect,
-                                      NULL);
+    end = GNUNET_SCHEDULER_add_delayed (benchmark_send ?
+                                        GNUNET_TIME_UNIT_FOREVER_REL :
+                                        GNUNET_TIME_UNIT_SECONDS,
+                                        &do_disconnect,
+                                        NULL);
   }
-  else if (benchmark_receive)
+  else if (benchmark_receive) /* Benchmark receiving */
   {
     handle =
         GNUNET_TRANSPORT_connect (cfg, NULL, NULL, &notify_receive,
@@ -653,32 +708,45 @@ testservice_task (void *cls,
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                       &do_disconnect, NULL);
   }
-  if (iterate_connections)
+  else if (iterate_connections) /* List all active addresses once */
   {
     peers = GNUNET_CONTAINER_multihashmap_create (20, GNUNET_NO);
-    GNUNET_TRANSPORT_peer_get_active_addresses (cfg, NULL, GNUNET_YES,
+    address_resolution_in_progress = GNUNET_YES;
+    pic = GNUNET_TRANSPORT_peer_get_active_addresses (cfg, NULL,
+                                                GNUNET_NO,
                                                 TIMEOUT,
                                                 &process_address, (void *) cfg);
   }
-  if (monitor_connections)
+  else if (monitor_connections) /* List all active addresses continously */
   {
-    monitor_connections_counter = 0;
+    peers = GNUNET_CONTAINER_multihashmap_create (20, GNUNET_NO);
+    address_resolution_in_progress = GNUNET_YES;
+    pic = GNUNET_TRANSPORT_peer_get_active_addresses (cfg, NULL,
+                                                GNUNET_YES,
+                                                TIMEOUT,
+                                                &process_address, (void *) cfg);
+  }
+  else if (monitor_connects) /* Monitor (dis)connect events continously */
+  {
+    monitor_connect_counter = 0;
     handle = GNUNET_TRANSPORT_connect (cfg, NULL, NULL, NULL,
                                        &monitor_notify_connect,
                                        &monitor_notify_disconnect);
     if (NULL == handle)
     {
       GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
-    }
-    else
-    {
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                    &shutdown_task,
-                                    NULL);
+      return;
     }
   }
+  else
+  {
+    GNUNET_break (0)
+    return;
+  }
 
-
+  end = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                           &shutdown_task,
+                                           NULL);
 }
 
 
@@ -723,6 +791,9 @@ main (int argc, char *const *argv)
     {'m', "monitor", NULL,
      gettext_noop ("provide information about all current connections (continuously)"),
      0, &GNUNET_GETOPT_set_one, &monitor_connections},
+    {'e', "events", NULL,
+     gettext_noop ("provide information about all connects and disconnect events (continuously)"),
+     0, &GNUNET_GETOPT_set_one, &monitor_connects},
     {'n', "numeric", NULL,
      gettext_noop ("do not resolve hostnames"),
      0, &GNUNET_GETOPT_set_one, &numeric},
