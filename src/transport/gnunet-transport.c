@@ -88,6 +88,11 @@ static int monitor_connects;
 static int monitor_connections;
 
 /**
+ * Option -C.
+ */
+static int try_connect;
+
+/**
  * Option -n.
  */
 static int numeric;
@@ -449,7 +454,11 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (0 != memcmp (&pid, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
   ret = 0;
-  if (benchmark_send)
+  if (try_connect)
+  {
+      /*FIXME */
+  }
+  else if (benchmark_send)
   {
     start_time = GNUNET_TIME_absolute_get ();
     if (NULL == th)
@@ -648,6 +657,7 @@ testservice_task (void *cls,
 {
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   int counter = 0;
+  int try_connect = 0;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
   {
@@ -655,37 +665,53 @@ testservice_task (void *cls,
       return;
   }
 
+  if ((NULL != cpid) && (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (cpid, &pid.hashPubKey)))
+  {
+      FPRINTF (stderr, _("Failed to parse peer identity `%s'\n"), cpid);
+      return;
+  }
+
   counter = benchmark_send + benchmark_receive + iterate_connections +
-            monitor_connections + monitor_connects;
+            monitor_connections + monitor_connects + try_connect;
 
   if (1 < counter)
   {
-    FPRINTF (stderr, _("Multiple operations given. Please choose only one operation: %s, %s, %s, %s, %s\n"),
-             "benchmark send", "benchmark receive", "information", "monitor", "events");
+    FPRINTF (stderr, _("Multiple operations given. Please choose only one operation: %s, %s, %s, %s, %s, %s\n"),
+             "connect", "benchmark send", "benchmark receive", "information", "monitor", "events");
     return;
   }
   if (0 == counter)
   {
-    FPRINTF (stderr, _("No operation given. Please choose one operation: %s, %s, %s, %s, %s\n"),
-             "benchmark send", "benchmark receive", "information", "monitor", "events");
+    FPRINTF (stderr, _("No operation given. Please choose one operation: %s, %s, %s, %s, %s, %s\n"),
+             "connect", "benchmark send", "benchmark receive", "information", "monitor", "events");
     return;
   }
 
 
-  if (benchmark_send) /* Benchmark sending */
+  if (try_connect)
   {
     if (NULL == cpid)
     {
       FPRINTF (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
-               "-s", "-C");
+               "-C", "-p");
+      return;
+    }
+    handle = GNUNET_TRANSPORT_connect (cfg, NULL, NULL,
+                                       &notify_receive,
+                                       &notify_connect,
+                                       &notify_disconnect);
+    GNUNET_TRANSPORT_try_connect (handle, &pid);
+
+  }
+  else if (benchmark_send) /* Benchmark sending */
+  {
+    if (NULL == cpid)
+    {
+      FPRINTF (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
+               "-s", "-p");
       return;
     }
     ret = 1;
-    if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (cpid, &pid.hashPubKey))
-    {
-      FPRINTF (stderr, _("Failed to parse peer identity `%s'\n"), cpid);
-      return;
-    }
     handle = GNUNET_TRANSPORT_connect (cfg, NULL, NULL,
                                        &notify_receive,
                                        &notify_connect,
@@ -740,7 +766,7 @@ testservice_task (void *cls,
   }
   else
   {
-    GNUNET_break (0)
+    GNUNET_break (0);
     return;
   }
 
@@ -782,9 +808,9 @@ main (int argc, char *const *argv)
     {'b', "benchmark", NULL,
      gettext_noop ("measure how fast we are receiving data (until CTRL-C)"),
      0, &GNUNET_GETOPT_set_one, &benchmark_receive},
-    {'C', "connect", "PEER",
-     gettext_noop ("try to connect to the given peer"),
-     1, &GNUNET_GETOPT_set_string, &cpid},
+    {'C', "connect", NULL,
+     gettext_noop ("connect to a peer"),
+     0, &GNUNET_GETOPT_set_one, &try_connect},
     {'i', "information", NULL,
      gettext_noop ("provide information about all current connections (once)"),
      0, &GNUNET_GETOPT_set_one, &iterate_connections},
@@ -797,6 +823,9 @@ main (int argc, char *const *argv)
     {'n', "numeric", NULL,
      gettext_noop ("do not resolve hostnames"),
      0, &GNUNET_GETOPT_set_one, &numeric},
+     {'p', "peer", "PEER",
+      gettext_noop ("peer identity"),
+      1, &GNUNET_GETOPT_set_string, &cpid},
     {'s', "send", NULL,
      gettext_noop
      ("send data for benchmarking to the other peer (until CTRL-C)"),
