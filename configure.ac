@@ -1155,6 +1155,8 @@ src/chat/Makefile
 src/chat/chat.conf
 src/core/Makefile
 src/core/core.conf
+src/consensus/Makefile
+src/consensus/consensus.conf
 src/datacache/Makefile
 src/datastore/Makefile
 src/datastore/datastore.conf

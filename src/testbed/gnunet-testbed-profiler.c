@@ -297,9 +297,6 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-
-
-
 /**
  * Functions of this signature are called when a peer has been successfully
  * started or stopped.
@@ -335,7 +332,9 @@ peer_churn_cb (void *cls, const char *emsg)
     fflush (stdout);
     result = GNUNET_OK;
     if ((0 == num_links) && (topology == GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI))
-    {      
+    { 
+      fprintf (stdout, "Testbed running, waiting for keystroke to shut down\n");
+      (void) getc (stdin);
       shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
       return;
     }
@@ -562,6 +561,8 @@ controller_event_cb (void *cls,
     {
       print_overlay_links_summary ();
       result = GNUNET_OK;
+      fprintf (stdout, "Testbed running, waiting for keystroke to shut down\n");
+      (void) getc (stdin);
       shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     }    
     break;
