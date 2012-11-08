@@ -24,8 +24,20 @@
 #include "platform.h"
 #include "mesh_block_lib.h"
 
-struct mesh_block_xquery_ctx {
+
+/**
+ * Struct to keep track of the xquery while iterating all the edges in a block.
+ */
+struct mesh_block_xquery_ctx
+{
+  /**
+   * Xquery: string we are looking for.
+   */
   const char *xquery;
+
+  /**
+   * Has any edge matched the xquery so far? (GNUNET_OK / GNUNET_NO)
+   */
   int found;
 };
 
