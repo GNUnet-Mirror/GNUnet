@@ -929,6 +929,9 @@ GNUNET_STATISTICS_create (const char *subsystem,
 {
   struct GNUNET_STATISTICS_Handle *ret;
 
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "statistics", "DISABLE"))
+    return NULL;
   GNUNET_assert (NULL != subsystem);
   GNUNET_assert (NULL != cfg);
   ret = GNUNET_malloc (sizeof (struct GNUNET_STATISTICS_Handle));
