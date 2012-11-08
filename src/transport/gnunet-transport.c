@@ -220,13 +220,11 @@ shutdown_task (void *cls,
     GNUNET_TRANSPORT_disconnect(handle);
     handle = NULL;
   }
-
   if (NULL != peers)
   {
     GNUNET_CONTAINER_multihashmap_destroy (peers);
     peers = NULL;
   }
-  GNUNET_break (0);
 }
 
 /**
@@ -604,13 +602,11 @@ process_string (void *cls, const char *address)
       FPRINTF (stdout, _("Peer `%s': %s <unable to resolve address>\n"), GNUNET_i2s (&addrcp->peer), addrcp->transport_name);
     GNUNET_free (rc->addrcp);
     GNUNET_free (rc);
-    FPRINTF (stdout, _("Peer --: %u\n"), address_resolutions);
     if (0 == address_resolutions)
     {
-        if (GNUNET_SCHEDULER_NO_TASK == end)
+        if (GNUNET_SCHEDULER_NO_TASK != end)
           GNUNET_SCHEDULER_cancel (end);
-        GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
-        GNUNET_break (0);
+        end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     }
   }
 }
@@ -648,7 +644,6 @@ process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   GNUNET_assert (NULL != rc);
   address_resolutions ++;
-  FPRINTF (stdout, _("Peer `%s' ++: %u\n"), GNUNET_i2s (peer), address_resolutions);
   /* Resolve address to string */
   GNUNET_TRANSPORT_address_to_string (cfg, address, numeric,
                                       RESOLUTION_TIMEOUT, &process_string,
@@ -663,6 +658,7 @@ testservice_task (void *cls,
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   int counter = 0;
   int try_connect = 0;
+
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
   {
@@ -692,6 +688,9 @@ testservice_task (void *cls,
     return;
   }
 
+  end = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                      &shutdown_task,
+                                      NULL);
 
   if (try_connect)
   {
@@ -733,11 +732,12 @@ testservice_task (void *cls,
         return;
     }
     GNUNET_TRANSPORT_try_connect (handle, &pid);
+    /*
     end = GNUNET_SCHEDULER_add_delayed (benchmark_send ?
                                         GNUNET_TIME_UNIT_FOREVER_REL :
                                         GNUNET_TIME_UNIT_SECONDS,
                                         &do_disconnect,
-                                        NULL);
+                                        NULL);*/
   }
   else if (benchmark_receive) /* Benchmark receiving */
   {
@@ -751,16 +751,16 @@ testservice_task (void *cls,
     }
     GNUNET_TRANSPORT_try_connect (handle, &pid);
     start_time = GNUNET_TIME_absolute_get ();
-    end =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                      &do_disconnect, NULL);
+    /*
+    end = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                      &do_disconnect, NULL);*/
   }
   else if (iterate_connections) /* -i: List all active addresses once */
   {
     peers = GNUNET_CONTAINER_multihashmap_create (20, GNUNET_NO);
     address_resolution_in_progress = GNUNET_YES;
     pic = GNUNET_TRANSPORT_peer_get_active_addresses (cfg, NULL,
-                                                GNUNET_NO,
+                                                GNUNET_YES,
                                                 TIMEOUT,
                                                 &process_address, (void *) cfg);
   }
@@ -769,7 +769,7 @@ testservice_task (void *cls,
     peers = GNUNET_CONTAINER_multihashmap_create (20, GNUNET_NO);
     address_resolution_in_progress = GNUNET_YES;
     pic = GNUNET_TRANSPORT_peer_get_active_addresses (cfg, NULL,
-                                                GNUNET_YES,
+                                                GNUNET_NO,
                                                 TIMEOUT,
                                                 &process_address, (void *) cfg);
   }
@@ -790,10 +790,6 @@ testservice_task (void *cls,
     GNUNET_break (0);
     return;
   }
-
-  end = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                           &shutdown_task,
-                                           NULL);
 }
 
 
