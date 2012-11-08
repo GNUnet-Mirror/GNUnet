@@ -515,6 +515,12 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
       if (verbosity > 0)
         FPRINTF (stdout, _("Successfully connected to `%s', starting to receive benchmark data\n"),
             GNUNET_i2s (&pid));
+      if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
+      {
+        GNUNET_SCHEDULER_cancel (op_timeout);
+        op_timeout = GNUNET_SCHEDULER_NO_TASK;
+      }
+
       start_time = GNUNET_TIME_absolute_get ();
       return;
   }
@@ -616,9 +622,16 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     if (GNUNET_MESSAGE_TYPE_DUMMY != ntohs (message->type))
       return;
-    if (verbosity > 0)
-      FPRINTF (stdout, _("Received %u bytes from %s\n"),
-               (unsigned int) ntohs (message->size), GNUNET_i2s (peer));
+
+    if (0 == memcmp (&pid, peer, sizeof (struct GNUNET_PeerIdentity)))
+    {
+      if (verbosity > 0)
+        FPRINTF (stdout, _("Received %u bytes from %s\n"),
+                 (unsigned int) ntohs (message->size), GNUNET_i2s (peer));
+    }
+    else
+        /* Received data from other peer*/ return;
+
     if (traffic_received == 0)
       start_time = GNUNET_TIME_absolute_get ();
     traffic_received += ntohs (message->size);
@@ -740,16 +753,13 @@ testservice_task (void *cls,
     return;
   }
 
-  end = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                      &shutdown_task,
-                                      NULL);
-
   if (try_connect)
   {
     if (NULL == cpid)
     {
       FPRINTF (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
                "-C", "-p");
+      ret = 1;
       return;
     }
     handle = GNUNET_TRANSPORT_connect (cfg, NULL, NULL,
@@ -793,6 +803,13 @@ testservice_task (void *cls,
   }
   else if (benchmark_receive) /* Benchmark receiving */
   {
+    if (NULL == cpid)
+    {
+      FPRINTF (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
+               "-b", "-p");
+      ret = 1;
+      return;
+    }
     handle =
         GNUNET_TRANSPORT_connect (cfg, NULL, NULL, &notify_receive,
                                   &notify_connect, &notify_disconnect);
@@ -844,6 +861,11 @@ testservice_task (void *cls,
     GNUNET_break (0);
     return;
   }
+
+  end = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                      &shutdown_task,
+                                      NULL);
+
 }
 
 
