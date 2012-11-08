@@ -41,6 +41,7 @@
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 #define RESOLUTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define OP_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
  * Which peer should we connect to?
@@ -143,6 +144,12 @@ static struct GNUNET_PeerIdentity pid;
  */
 static GNUNET_SCHEDULER_TaskIdentifier end;
 
+/**
+ * Task for operation timeout
+ */
+static GNUNET_SCHEDULER_TaskIdentifier op_timeout;
+
+
 static struct GNUNET_CONTAINER_MultiHashMap *peers;
 
 /**
@@ -205,6 +212,11 @@ static void
 shutdown_task (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
+  {
+      GNUNET_SCHEDULER_cancel (op_timeout);
+      op_timeout = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (NULL != pic)
   {
       GNUNET_TRANSPORT_peer_get_active_addresses_cancel (pic);
@@ -226,6 +238,26 @@ shutdown_task (void *cls,
     peers = NULL;
   }
 }
+
+
+
+static void
+operation_timeout (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  op_timeout = GNUNET_SCHEDULER_NO_TASK;
+  if (try_connect)
+  {
+      FPRINTF (stdout, _("Failed to connect to `%s'\n"), GNUNET_h2s_full (&pid.hashPubKey));
+      if (GNUNET_SCHEDULER_NO_TASK != end)
+        GNUNET_SCHEDULER_cancel (end);
+      end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+      ret = 1;
+      return;
+  }
+}
+
+
 
 /**
  * Display the result of the test.
@@ -456,24 +488,25 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (try_connect)
   {
       /* all done, terminate instantly */
-      if (verbosity > 0)
-        FPRINTF (stdout, _("Successfully connected to %s\n"), GNUNET_i2s (peer));
-      GNUNET_SCHEDULER_cancel (end);
+      FPRINTF (stdout, _("Successfully connected to %s\n"), GNUNET_h2s_full (&peer->hashPubKey));
+      ret = 0;
+
+      if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
+        GNUNET_SCHEDULER_cancel (op_timeout);
+
+      if (GNUNET_SCHEDULER_NO_TASK != end)
+        GNUNET_SCHEDULER_cancel (end);
       end = GNUNET_SCHEDULER_add_now (&do_disconnect, NULL);
+      return;
   }
-  else if (benchmark_send)
+  if (benchmark_send)
   {
     start_time = GNUNET_TIME_absolute_get ();
     if (NULL == th)
       th = GNUNET_TRANSPORT_notify_transmit_ready (handle, peer, 32 * 1024, 0,
                                                  GNUNET_TIME_UNIT_FOREVER_REL,
                                                  &transmit_data, NULL);
-  }
-  else
-  {
-    /* all done, terminate instantly */
-    GNUNET_SCHEDULER_cancel (end);
-    end = GNUNET_SCHEDULER_add_now (&do_disconnect, NULL);
+    return;
   }
 }
 
@@ -606,6 +639,7 @@ process_string (void *cls, const char *address)
     {
         if (GNUNET_SCHEDULER_NO_TASK != end)
           GNUNET_SCHEDULER_cancel (end);
+        ret = 0;
         end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     }
   }
@@ -657,8 +691,7 @@ testservice_task (void *cls,
 {
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   int counter = 0;
-  int try_connect = 0;
-
+  ret = 1;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
   {
@@ -707,10 +740,12 @@ testservice_task (void *cls,
     if (NULL == handle)
     {
         FPRINTF (stderr, _("Failed to connect to transport service\n"));
+        ret = 1;
         return;
     }
-
     GNUNET_TRANSPORT_try_connect (handle, &pid);
+    op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
+                                               &operation_timeout, NULL);
 
   }
   else if (benchmark_send) /* Benchmark sending */
@@ -719,9 +754,9 @@ testservice_task (void *cls,
     {
       FPRINTF (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
                "-s", "-p");
+      ret = 1;
       return;
     }
-    ret = 1;
     handle = GNUNET_TRANSPORT_connect (cfg, NULL, NULL,
                                        &notify_receive,
                                        &notify_connect,
@@ -729,15 +764,14 @@ testservice_task (void *cls,
     if (NULL == handle)
     {
         FPRINTF (stderr, _("Failed to connect to transport service\n"));
+        ret = 1;
         return;
     }
     GNUNET_TRANSPORT_try_connect (handle, &pid);
-    /*
-    end = GNUNET_SCHEDULER_add_delayed (benchmark_send ?
-                                        GNUNET_TIME_UNIT_FOREVER_REL :
-                                        GNUNET_TIME_UNIT_SECONDS,
-                                        &do_disconnect,
-                                        NULL);*/
+
+    op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
+                                               &operation_timeout,
+                                               NULL);
   }
   else if (benchmark_receive) /* Benchmark receiving */
   {
@@ -747,6 +781,7 @@ testservice_task (void *cls,
     if (NULL == handle)
     {
         FPRINTF (stderr, _("Failed to connect to transport service\n"));
+        ret = 1;
         return;
     }
     GNUNET_TRANSPORT_try_connect (handle, &pid);
@@ -782,8 +817,10 @@ testservice_task (void *cls,
     if (NULL == handle)
     {
       FPRINTF (stderr, _("Failed to connect to transport service\n"));
+      ret = 1;
       return;
     }
+    ret = 0;
   }
   else
   {
