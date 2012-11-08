@@ -599,6 +599,7 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
   cqr->replication = ntohl (get->desired_replication_level);
   cqr->msg_options = ntohl (get->options);
   cqr->type = ntohl (get->type);
+  // FIXME use cqr->key, set multihashmap create to GNUNET_YES
   GNUNET_CONTAINER_multihashmap_put (forward_map, &get->key, cqr,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   GDS_CLIENTS_process_get (ntohl (get->options),

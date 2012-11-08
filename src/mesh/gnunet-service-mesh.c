@@ -3583,7 +3583,8 @@ tunnel_send_multicast (struct MeshTunnel *t,
               "  no one to send data to\n");
     GNUNET_free (mdata->data);
     GNUNET_free (mdata);
-    t->fwd_queue_n--;
+    if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_MESH_MULTICAST)
+      t->fwd_queue_n--;
   }
   else
   {
