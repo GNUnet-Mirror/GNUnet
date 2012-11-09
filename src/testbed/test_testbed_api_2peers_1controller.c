@@ -176,8 +176,8 @@ static enum Stage result;
         GNUNET_SCHEDULER_cancel (abort_task);                   \
       abort_task = GNUNET_SCHEDULER_NO_TASK;                    \
       GNUNET_SCHEDULER_add_now (do_shutdown, NULL);             \
-      return;                                                   \
-    }                                                          \
+      exit (1);                                                 \
+    }                                                           \
   } while (0)
 
 /**
