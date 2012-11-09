@@ -298,9 +298,12 @@ GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_GetHelloHandle *ghh);
  *
  * @param handle connection to transport service
  * @param hello the hello message
- * @param cont continuation to call when HELLO has been sent
+ * @param cont continuation to call when HELLO has been sent,
+ *      tc reason GNUNET_SCHEDULER_REASON_TIMEOUT for fail
+ *      tc reasong GNUNET_SCHEDULER_REASON_READ_READY for success
  * @param cls closure for continuation
- * @return a GNUNET_TRANSPORT_OfferHelloHandle handle or NULL on failure
+ * @return a GNUNET_TRANSPORT_OfferHelloHandle handle or NULL on failure,
+ *      in case of failure cont will not be called
  *
  */
 struct GNUNET_TRANSPORT_OfferHelloHandle *
