@@ -190,7 +190,9 @@ GNUNET_MESH_regex_block_iterate (const struct MeshRegexBlock *block,
     aux = &aux[n_token];     // Skip edge token
   }
   // The total size should be exactly the size of (regex + all edges) blocks
-  if (offset == size)
+  // If size == -1, block is from cache and therefore previously checked and
+  // assumed correct.
+  if (offset == size || (unsigned int) -1 == size)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "* Block processed, END OK\n");
