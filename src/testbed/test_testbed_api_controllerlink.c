@@ -96,24 +96,24 @@ enum Stage
   SLAVE1_LINK_SUCCESS,
 
   /**
-   * Link from slave 1 to slave 2 has been successfully created.
-   */
-  SLAVE2_LINK_SUCCESS,
-
-  /**
    * Peer create on slave 1 successful
    */
   SLAVE1_PEER_CREATE_SUCCESS,
 
   /**
-   * Peer create on slave 2 successful
-   */
-  SLAVE2_PEER_CREATE_SUCCESS,
-
-  /**
    * Peer startup on slave 1 successful
    */
   SLAVE1_PEER_START_SUCCESS,
+
+  /**
+   * Link from slave 1 to slave 2 has been successfully created.
+   */
+  SLAVE2_LINK_SUCCESS,
+
+  /**
+   * Peer create on slave 2 successful
+   */
+  SLAVE2_PEER_CREATE_SUCCESS,
 
   /**
    * Peer on slave 1 successfully stopped
@@ -163,7 +163,12 @@ enum Stage
   /**
    * Slave 1 has linked to slave 3;
    */
-  SLAVE3_LINK_SUCCESS
+  SLAVE3_LINK_SUCCESS,
+
+  /**
+   * Destory master peer
+   */
+  MASTER_PEER_DESTROY_SUCCESS
 
 };
 
@@ -321,7 +326,7 @@ delay_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   switch (result)
   {
-  case SLAVE1_PEER_START_SUCCESS:
+  case SLAVE2_PEER_CREATE_SUCCESS:
     op = GNUNET_TESTBED_peer_stop (slave1_peer, NULL, NULL);
     GNUNET_assert (NULL != op);
     break;
@@ -357,17 +362,19 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
     GNUNET_TESTBED_operation_done (op);
     op = GNUNET_TESTBED_peer_start (NULL, master_peer, NULL, NULL);
     break;
-  case SLAVE2_LINK_SUCCESS:
+  case SLAVE1_LINK_SUCCESS:
     result = SLAVE1_PEER_CREATE_SUCCESS;
     slave1_peer = peer;
-    GNUNET_TESTBED_operation_done (op);
-    op = GNUNET_TESTBED_peer_create (mc, slave2, cfg, peer_create_cb, NULL);
+    GNUNET_TESTBED_operation_done (op);   
+    op = GNUNET_TESTBED_peer_start (NULL, slave1_peer, NULL, NULL);
     break;
-  case SLAVE1_PEER_CREATE_SUCCESS:
+  case SLAVE2_LINK_SUCCESS:
     result = SLAVE2_PEER_CREATE_SUCCESS;
     slave2_peer = peer;
     GNUNET_TESTBED_operation_done (op);
-    op = GNUNET_TESTBED_peer_start (NULL, slave1_peer, NULL, NULL);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                  (GNUNET_TIME_UNIT_SECONDS, 1), &delay_task,
+                                  NULL);
     break;
   default:
     GNUNET_assert (0);
@@ -423,15 +430,14 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     result = SLAVE1_LINK_SUCCESS;
     GNUNET_assert (NULL != slave2);
     GNUNET_assert (NULL != slave);
-    op = GNUNET_TESTBED_controller_link (NULL, mc, slave2, slave, cfg, GNUNET_YES);
+    op = GNUNET_TESTBED_peer_create (mc, slave, cfg, peer_create_cb, NULL);
     GNUNET_assert (NULL != op);
     break;
-  case SLAVE1_LINK_SUCCESS:
+  case SLAVE1_PEER_START_SUCCESS:
     check_operation_success (event);
     GNUNET_TESTBED_operation_done (op);
-    op = NULL;
     result = SLAVE2_LINK_SUCCESS;
-    op = GNUNET_TESTBED_peer_create (mc, slave, cfg, peer_create_cb, NULL);
+    op = GNUNET_TESTBED_peer_create (mc, slave2, cfg, peer_create_cb, NULL);    
     GNUNET_assert (NULL != op);
     break;
   case MASTER_PEER_CREATE_SUCCESS:
@@ -445,17 +451,16 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     rh = GNUNET_TESTBED_register_host (mc, slave, &registration_cont, NULL);
     GNUNET_assert (NULL != rh);
     break;
-  case SLAVE2_PEER_CREATE_SUCCESS:
+  case SLAVE1_PEER_CREATE_SUCCESS:
     GNUNET_assert (GNUNET_TESTBED_ET_PEER_START == event->type);
     GNUNET_assert (event->details.peer_start.host == slave);
     GNUNET_assert (event->details.peer_start.peer == slave1_peer);
     GNUNET_TESTBED_operation_done (op);
     result = SLAVE1_PEER_START_SUCCESS;
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_SECONDS, 1), &delay_task,
-                                  NULL);
+    op = GNUNET_TESTBED_controller_link (NULL, mc, slave2, slave, cfg,
+                                         GNUNET_YES);  
     break;
-  case SLAVE1_PEER_START_SUCCESS:
+  case SLAVE2_PEER_CREATE_SUCCESS:
     GNUNET_assert (GNUNET_TESTBED_ET_PEER_STOP == event->type);
     GNUNET_assert (event->details.peer_stop.peer == slave1_peer);
     GNUNET_TESTBED_operation_done (op);
@@ -529,10 +534,17 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   case SLAVE3_GET_CONFIG_SUCCESS:
     result = SLAVE3_LINK_SUCCESS;
     GNUNET_TESTBED_operation_done (op);
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-				  (GNUNET_TIME_UNIT_SECONDS, 3),
-				  &do_shutdown, NULL);
+    op = GNUNET_TESTBED_peer_destroy (master_peer);
     break;
+ case SLAVE3_LINK_SUCCESS:
+   check_operation_success (event);
+   result = MASTER_PEER_DESTROY_SUCCESS;
+   GNUNET_TESTBED_operation_done (op);
+   op = NULL;       
+   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                 (GNUNET_TIME_UNIT_SECONDS, 3),
+                                 &do_shutdown, NULL);
+   break;
   default:
     GNUNET_assert (0);
   }
@@ -674,7 +686,7 @@ main (int argc, char **argv)
       GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
                           "test_testbed_api_controllerlink", "nohelp", options,
                           &run, NULL);
-  if ((GNUNET_OK != ret) || (SLAVE3_LINK_SUCCESS != result))
+  if ((GNUNET_OK != ret) || (MASTER_PEER_DESTROY_SUCCESS != result))
     return 1;
   return 0;
 }
