@@ -1431,8 +1431,7 @@ regex_next_edge (const struct MeshRegexBlock *block,
   struct MeshRegexSearchContext *new_ctx;
   struct MeshRegexSearchInfo *info = ctx->info;
   struct GNUNET_DHT_GetHandle *get_h;
-  char *rest;
-
+  const char *rest;
   int result;
 
   /* Find the longest match for the current string position, 
@@ -1460,6 +1459,7 @@ regex_next_edge (const struct MeshRegexBlock *block,
                                                 &ctx->hash,
                                                 &regex_result_iterator,
                                                 new_ctx);
+    // FIXME: "leaks" new_ctx? avoid keeping it around?
     return; // We are already looking for it
   }
 
@@ -7498,6 +7498,7 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
   const char *string;
   size_t size;
   size_t len;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connect by string started\n");
   msg = (struct GNUNET_MESH_ConnectPeerByString *) message;
@@ -7565,9 +7566,7 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
 
   info = GNUNET_malloc (sizeof (struct MeshRegexSearchInfo));
   info->t = t;
-  info->description = GNUNET_malloc (len + 1);
-  memcpy (info->description, string, len);
-  info->description[len] = '\0';
+  info->description = GNUNET_strndup (string, len);
   info->dht_get_handles = GNUNET_CONTAINER_multihashmap_create(32, GNUNET_NO);
   info->dht_get_results = GNUNET_CONTAINER_multihashmap_create(32, GNUNET_NO);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   string: %s\n", info->description);

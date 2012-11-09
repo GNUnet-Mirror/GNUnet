@@ -41,6 +41,7 @@ struct mesh_block_xquery_ctx
   int found;
 };
 
+
 /**
  * Iterator over all edges in a block, checking for a presence of a given query.
  *
@@ -58,11 +59,9 @@ check_edge (void *cls,
             const struct GNUNET_HashCode *key)
 {
   struct mesh_block_xquery_ctx *ctx = cls;
-  char *s;
 
-  s = strndup (token, len);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  edge %s [%u]\n", s, len);
-  GNUNET_free (s);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  edge %.*s [%u]\n",
+	      (int) len, token, len);
   if (strlen (ctx->xquery) < len)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  too long!\n");
@@ -78,7 +77,7 @@ check_edge (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  KO!\n");
   }
 
-  return GNUNET_YES; // keep checking for malformed data!
+  return GNUNET_YES; /* keep checking for malformed data! */
 }
 
 
@@ -101,14 +100,13 @@ GNUNET_MESH_regex_block_check (const struct MeshRegexBlock *block,
   int res;
   struct mesh_block_xquery_ctx ctx;
 
+  if ( (GNUNET_YES == ntohl(block->accepting)) && (xquery[0] == '\0') )
+    return GNUNET_OK;
   ctx.xquery = xquery;
   ctx.found = GNUNET_NO;
   res = GNUNET_MESH_regex_block_iterate (block, size, &check_edge, &ctx);
   if (GNUNET_SYSERR == res)
     return GNUNET_SYSERR;
-
-  if (GNUNET_YES == ntohl(block->accepting) && xquery[0] == '\0')
-    return GNUNET_OK;
   return ctx.found;
 }
 
@@ -144,6 +142,7 @@ GNUNET_MESH_regex_block_iterate (const struct MeshRegexBlock *block,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "*   Block is smaller than struct MeshRegexBlock, END\n");
+    GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
   n = ntohl (block->n_proof);
@@ -154,6 +153,7 @@ GNUNET_MESH_regex_block_iterate (const struct MeshRegexBlock *block,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "*   Block is smaller than Block + proof, END\n");
+    GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
   aux = (char *) &block[1];  // Skip regex block
@@ -168,6 +168,7 @@ GNUNET_MESH_regex_block_iterate (const struct MeshRegexBlock *block,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "*   Size not enough for MeshRegexEdge, END\n");
+      GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
     edge = (struct MeshRegexEdge *) aux;
@@ -179,6 +180,7 @@ GNUNET_MESH_regex_block_iterate (const struct MeshRegexBlock *block,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "*   Size not enough for edge token, END\n");
+      GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
     aux = (char *) &edge[1]; // Skip edge block
@@ -196,6 +198,7 @@ GNUNET_MESH_regex_block_iterate (const struct MeshRegexBlock *block,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "*   Size %u, read %u END KO\n", size, offset);
+  GNUNET_break_op (0);
   return GNUNET_SYSERR;
 }
 

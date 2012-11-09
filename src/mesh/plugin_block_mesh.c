@@ -117,11 +117,10 @@ block_plugin_mesh_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
         return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
       if (0 != xquery_size)
       {
-        char *query;
+        const char *query;
 
-        query = (char *) xquery;
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "BLOCK XQUERY %s\n", query);
-        if ('\0' != query[xquery_size - 1]) // must be valid string
+        query = (const char *) xquery;
+        if ('\0' != query[xquery_size - 1]) /* must be valid string */
         {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                       "Block xquery not a valid string\n");
@@ -130,6 +129,7 @@ block_plugin_mesh_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
       }
       else
       {
+	GNUNET_break_op (0);
         return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
       }
       switch (GNUNET_MESH_regex_block_check (reply_block,
