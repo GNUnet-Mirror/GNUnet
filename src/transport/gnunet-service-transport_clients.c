@@ -281,6 +281,7 @@ setup_monitoring_client (struct GNUNET_SERVER_Client *client,
                          struct GNUNET_PeerIdentity *peer)
 {
   struct MonitoringClient *mc;
+  static struct GNUNET_PeerIdentity all_zeros;
 
   GNUNET_assert (lookup_monitoring_client (client) == NULL);
   mc = GNUNET_malloc (sizeof (struct MonitoringClient));
@@ -291,9 +292,13 @@ setup_monitoring_client (struct GNUNET_SERVER_Client *client,
                                mc);
   GNUNET_SERVER_notification_context_add (nc, client);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  if (0 != memcmp (peer, &all_zeros, sizeof (struct GNUNET_PeerIdentity)))
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,,
               "Client %p started monitoring of the peer `%s'\n",
               mc, GNUNET_i2s (peer));
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,,
+              "Client %p started monitoring all peers\n", mc);
   return mc;
 }
 
@@ -1088,7 +1093,6 @@ GST_clients_broadcast_address_notification (const struct GNUNET_PeerIdentity
   struct AddressIterateResponseMessage *msg;
   struct MonitoringClient *mc;
   static struct GNUNET_PeerIdentity all_zeros;
-
   msg = compose_address_iterate_response_message (peer, address);
   mc = monitoring_clients_head;
   while (mc != NULL)

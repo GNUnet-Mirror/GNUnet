@@ -847,7 +847,8 @@ testservice_task (void *cls,
   {
     peers = GNUNET_CONTAINER_multihashmap_create (20, GNUNET_NO);
     address_resolution_in_progress = GNUNET_YES;
-    pic = GNUNET_TRANSPORT_peer_get_active_addresses (cfg, NULL,
+    pic = GNUNET_TRANSPORT_peer_get_active_addresses (cfg,
+                                                (NULL == cpid) ? NULL : &pid,
                                                 GNUNET_YES,
                                                 TIMEOUT,
                                                 &process_address, (void *) cfg);
@@ -856,7 +857,8 @@ testservice_task (void *cls,
   {
     peers = GNUNET_CONTAINER_multihashmap_create (20, GNUNET_NO);
     address_resolution_in_progress = GNUNET_YES;
-    pic = GNUNET_TRANSPORT_peer_get_active_addresses (cfg, NULL,
+    pic = GNUNET_TRANSPORT_peer_get_active_addresses (cfg,
+                                                (NULL == cpid) ? NULL : &pid,
                                                 GNUNET_NO,
                                                 TIMEOUT,
                                                 &process_address, (void *) cfg);

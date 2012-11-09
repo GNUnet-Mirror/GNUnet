@@ -754,6 +754,7 @@ free_address (struct NeighbourAddress *na)
   {
     GST_validation_set_address_use (na->address, na->session, GNUNET_NO, __LINE__);
     GNUNET_ATS_address_in_use (GST_ats, na->address, na->session, GNUNET_NO);
+    address_change_cb (NULL, &na->address->peer, NULL);
   }
 
   na->ats_active = GNUNET_NO;
@@ -787,7 +788,6 @@ set_address (struct NeighbourAddress *na,
 	     int is_active)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
-
   if (NULL == (papi = GST_plugins_find (address->transport_name)))  
   {
     GNUNET_break (0);
@@ -802,6 +802,8 @@ set_address (struct NeighbourAddress *na,
       na->ats_active = is_active;
       GNUNET_ATS_address_in_use (GST_ats, na->address, na->session, is_active);
       GST_validation_set_address_use (na->address, na->session, is_active,  __LINE__);
+      if (is_active)
+        address_change_cb (NULL, &address->peer, address);
     }
     if (GNUNET_YES == is_active)
     {
@@ -832,7 +834,7 @@ set_address (struct NeighbourAddress *na,
     /* Telling ATS about new session */
     GNUNET_ATS_address_in_use (GST_ats, na->address, na->session, GNUNET_YES);
     GST_validation_set_address_use (na->address, na->session, GNUNET_YES,  __LINE__);
-
+    address_change_cb (NULL, &address->peer, address);
     /* FIXME: is this the right place to set quotas? */
     GST_neighbours_set_incoming_quota (&address->peer, bandwidth_in);
     send_outbound_quota (&address->peer, bandwidth_out);
