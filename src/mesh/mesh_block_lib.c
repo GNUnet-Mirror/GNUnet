@@ -140,7 +140,7 @@ GNUNET_MESH_regex_block_iterate (const struct MeshRegexBlock *block,
               size, offset);
   if (offset > size) // Is it safe to access the regex block?
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "*   Block is smaller than struct MeshRegexBlock, END\n");
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -151,7 +151,7 @@ GNUNET_MESH_regex_block_iterate (const struct MeshRegexBlock *block,
               "*  Proof length: %u, off %u\n", n, offset);
   if (offset > size) // Is it safe to access the regex proof?
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "*   Block is smaller than Block + proof, END\n");
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -166,7 +166,7 @@ GNUNET_MESH_regex_block_iterate (const struct MeshRegexBlock *block,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   Edge %u, off %u\n", i, offset);
     if (offset > size) // Is it safe to access the next edge block?
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "*   Size not enough for MeshRegexEdge, END\n");
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
@@ -178,7 +178,7 @@ GNUNET_MESH_regex_block_iterate (const struct MeshRegexBlock *block,
                 "*    Token lenght %u, off %u\n", n_token, offset);
     if (offset > size) // Is it safe to access the edge token?
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "*   Size not enough for edge token, END\n");
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
@@ -196,7 +196,7 @@ GNUNET_MESH_regex_block_iterate (const struct MeshRegexBlock *block,
                   "* Block processed, END OK\n");
     return GNUNET_OK;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "*   Size %u, read %u END KO\n", size, offset);
   GNUNET_break_op (0);
   return GNUNET_SYSERR;
