@@ -2900,7 +2900,7 @@ occ_hello_sent_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (GNUNET_SCHEDULER_REASON_READ_READY != tc->reason)
     return;
-  ret = GNUNET_TRANSPORT_try_connect (occ->p2th, &occ->peer_identity);
+  ret = GNUNET_TRANSPORT_try_connect (occ->p2th, &occ->peer_identity, NULL, NULL); /*FIXME TRY_CONNECT change */
   if (GNUNET_OK == ret)
     return;
   if (GNUNET_SYSERR == ret)
