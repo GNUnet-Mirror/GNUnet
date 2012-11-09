@@ -1084,7 +1084,7 @@ send_hello (void *cls, size_t size, void *buf)
  * @param hello the hello message
  * @param cont continuation to call when HELLO has been sent,
  * 	tc reason GNUNET_SCHEDULER_REASON_TIMEOUT for fail
- * 	tc reasong GNUNET_SCHEDULER_REASON_READY for success
+ * 	tc reasong GNUNET_SCHEDULER_REASON_READ_READY for success
  * @param cls closure for continuation
  *
  */
