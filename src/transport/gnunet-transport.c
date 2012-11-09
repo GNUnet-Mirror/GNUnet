@@ -59,6 +59,12 @@ static char *cpid;
  */
 static struct GNUNET_TRANSPORT_Handle *handle;
 
+
+/**
+ * Try_connect handle
+ */
+struct GNUNET_TRANSPORT_TryConnectHandle * tc_handle;
+
 /**
  * Option -s.
  */
@@ -224,6 +230,11 @@ shutdown_task (void *cls,
   {
       GNUNET_SCHEDULER_cancel (op_timeout);
       op_timeout = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (NULL != tc_handle)
+  {
+      GNUNET_TRANSPORT_try_connect_cancel (tc_handle);
+      tc_handle = NULL;
   }
   if (NULL != pic)
   {
@@ -696,6 +707,29 @@ process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
                                       rc);
 }
 
+void try_connect_cb (void *cls,
+                     const int result)
+{
+  static int retries = 0;
+  if (GNUNET_OK == result)
+  {
+      tc_handle = NULL;
+      return;
+  }
+  retries ++;
+  if (retries < 10)
+    tc_handle = GNUNET_TRANSPORT_try_connect (handle, &pid, try_connect_cb, NULL);
+  else
+  {
+    FPRINTF (stderr, "%s", _("Failed to send connect request to transport service\n"));
+    if (GNUNET_SCHEDULER_NO_TASK != end)
+      GNUNET_SCHEDULER_cancel (end);
+    ret = 1;
+    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+    return;
+  }
+}
+
 
 static void
 testservice_task (void *cls,
@@ -752,7 +786,13 @@ testservice_task (void *cls,
         ret = 1;
         return;
     }
-    GNUNET_TRANSPORT_try_connect (handle, &pid, NULL, NULL); /*FIXME TRY_CONNECT change */
+    tc_handle = GNUNET_TRANSPORT_try_connect (handle, &pid, try_connect_cb, NULL);
+    if (NULL == tc_handle)
+    {
+        FPRINTF (stderr, "%s", _("Failed to send request to transport service\n"));
+        ret = 1;
+        return;
+    }
     op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
                                                &operation_timeout, NULL);
 
@@ -776,7 +816,13 @@ testservice_task (void *cls,
         ret = 1;
         return;
     }
-    GNUNET_TRANSPORT_try_connect (handle, &pid, NULL, NULL); /*FIXME TRY_CONNECT change */
+    tc_handle =  GNUNET_TRANSPORT_try_connect (handle, &pid, try_connect_cb, NULL);
+    if (NULL == tc_handle)
+    {
+        FPRINTF (stderr, "%s", _("Failed to send request to transport service\n"));
+        ret = 1;
+        return;
+    }
     start_time = GNUNET_TIME_absolute_get ();
     op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
                                                &operation_timeout, NULL);
