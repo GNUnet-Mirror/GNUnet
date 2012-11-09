@@ -293,11 +293,11 @@ setup_monitoring_client (struct GNUNET_SERVER_Client *client,
   GNUNET_SERVER_notification_context_add (nc, client);
 
   if (0 != memcmp (peer, &all_zeros, sizeof (struct GNUNET_PeerIdentity)))
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,,
-              "Client %p started monitoring of the peer `%s'\n",
-              mc, GNUNET_i2s (peer));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Client %p started monitoring of the peer `%s'\n",
+                mc, GNUNET_i2s (peer));
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client %p started monitoring all peers\n", mc);
   return mc;
 }
