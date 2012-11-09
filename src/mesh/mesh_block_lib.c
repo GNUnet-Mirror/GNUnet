@@ -192,14 +192,14 @@ GNUNET_MESH_regex_block_iterate (const struct MeshRegexBlock *block,
   // The total size should be exactly the size of (regex + all edges) blocks
   // If size == -1, block is from cache and therefore previously checked and
   // assumed correct.
-  if (offset == size || (unsigned int) -1 == size)
+  if (offset == size || (size_t) -1 == size)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "* Block processed, END OK\n");
     return GNUNET_OK;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "*   Size %u, read %u END KO\n", size, offset);
+              "*   Size %u (%d), read %u END KO\n", size, size, offset);
   GNUNET_break_op (0);
   return GNUNET_SYSERR;
 }
