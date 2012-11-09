@@ -349,8 +349,11 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  int line = (int) (long ) cls;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "disconnecting mesh service of peers\n");
+              "disconnecting mesh service of peers, called from line %d\n",
+              line);
   disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != t)
   {
@@ -527,10 +530,10 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
     if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
     {
       GNUNET_SCHEDULER_cancel (disconnect_task);
-      disconnect_task =
-              GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers,
-                                            NULL);
     }
+    disconnect_task =
+              GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers,
+                                            (void *) __LINE__);
   }
 
   switch (client)
@@ -619,10 +622,10 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task =
-        GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers,
-                                      NULL);
   }
+  disconnect_task =
+        GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers,
+                                      (void *) __LINE__);
 
   return GNUNET_OK;
 }
@@ -671,9 +674,10 @@ incoming_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task =
-        GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers, NULL);
   }
+  disconnect_task =
+        GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers,
+                                      (void *) __LINE__);
 
   return NULL;
 }
@@ -717,8 +721,9 @@ tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers, NULL);
   }
+  disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers,
+                                              (void *) __LINE__);
 
   return;
 }
@@ -788,7 +793,8 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
     disconnect_task =
-        GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers, NULL);
+        GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers,
+                                      (void *) __LINE__);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sending data initializer...\n");
     peers_responded = 0;
@@ -840,7 +846,8 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
     disconnect_task =
-        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &disconnect_mesh_peers, NULL);
+        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &disconnect_mesh_peers,
+                                      (void *) __LINE__);
   }
 }
 
@@ -961,7 +968,8 @@ peergroup_ready (void *cls, const char *emsg)
 
   GNUNET_SCHEDULER_add_now (&connect_mesh_service, NULL);
   disconnect_task =
-      GNUNET_SCHEDULER_add_delayed (wait_time, &disconnect_mesh_peers, NULL);
+      GNUNET_SCHEDULER_add_delayed (wait_time, &disconnect_mesh_peers,
+                                    (void *) __LINE__);
 
 }
 
