@@ -2928,7 +2928,7 @@ occ_hello_sent_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == occ->send_hello_task);
   if (GNUNET_SCHEDULER_REASON_TIMEOUT == tc->reason)
   {
-    GNUNET_break (0);
+    //GNUNET_break (0);
     goto schedule_send_hello;
   }
   if (GNUNET_SCHEDULER_REASON_READ_READY != tc->reason)
@@ -2947,12 +2947,7 @@ occ_hello_sent_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  schedule_send_hello:
   GNUNET_free_non_null (occ->emsg);
   occ->emsg = GNUNET_strdup ("Timeout while offering HELLO to other peer");
-  occ->send_hello_task =
-      GNUNET_SCHEDULER_add_delayed
-      (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-                                      100 + GNUNET_CRYPTO_random_u32
-                                      (GNUNET_CRYPTO_QUALITY_WEAK, 500)),
-       &send_hello, occ);
+  occ->send_hello_task = GNUNET_SCHEDULER_add_now (&send_hello, occ);
 }
 
 
