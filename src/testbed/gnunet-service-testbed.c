@@ -642,6 +642,16 @@ struct RequestOverlayConnectContext
   struct GNUNET_MessageHeader *hello;
 
   /**
+   * The handle for offering HELLO
+   */
+  struct GNUNET_TRANSPORT_OfferHelloHandle *ohh;
+
+  /**
+   * The handle for transport try connect
+   */
+  struct GNUNET_TRANSPORT_TryConnectHandle *tch;
+
+  /**
    * The peer identity of peer A
    */
   struct GNUNET_PeerIdentity a_id;
@@ -2932,10 +2942,7 @@ occ_hello_sent_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     goto schedule_send_hello;
   }
   if (GNUNET_SCHEDULER_REASON_READ_READY != tc->reason)
-  {
-    GNUNET_break (0);
     return;
-  }
   GNUNET_free_non_null (occ->emsg);
   occ->emsg = GNUNET_strdup ("Timeout while try connect\n");
   occ->tch = GNUNET_TRANSPORT_try_connect (occ->p2th, &occ->peer_identity,
@@ -3494,6 +3501,10 @@ cleanup_rocc (struct RequestOverlayConnectContext *rocc)
   if (GNUNET_SCHEDULER_NO_TASK != rocc->timeout_rocc_task_id)
     GNUNET_SCHEDULER_cancel (rocc->timeout_rocc_task_id);
   GNUNET_TRANSPORT_disconnect (rocc->th);
+  if (NULL != rocc->tch)
+    GNUNET_TRANSPORT_try_connect_cancel (rocc->tch);
+  if (NULL != rocc->ohh)
+    GNUNET_TRANSPORT_offer_hello_cancel (rocc->ohh);
   GNUNET_free_non_null (rocc->hello);
   GNUNET_CONTAINER_DLL_remove (roccq_head, roccq_tail, rocc);
   GNUNET_free (rocc);
@@ -3541,6 +3552,67 @@ transport_connect_notify (void *cls, const struct GNUNET_PeerIdentity *new_peer,
 
 
 /**
+ * Callback to be called with result of the try connect request.
+ *
+ * @param cls the overlay connect context
+ * @param result GNUNET_OK if message was transmitted to transport service
+ *               GNUNET_SYSERR if message was not transmitted to transport service
+ */
+static void 
+rocc_try_connect_cb (void *cls, const int result)
+{
+  struct RequestOverlayConnectContext *rocc = cls;
+  
+  rocc->tch = NULL;
+  rocc->tch = GNUNET_TRANSPORT_try_connect (rocc->th, &rocc->a_id,
+                                            &rocc_try_connect_cb, rocc);
+}
+
+
+/**
+ * Task to offer the HELLO message to the peer and ask it to connect to the peer
+ * whose identity is in RequestOverlayConnectContext
+ *
+ * @param cls the RequestOverlayConnectContext
+ * @param tc the TaskContext from scheduler
+ */
+static void
+attempt_connect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Task that is run when hello has been sent
+ *
+ * @param cls the overlay connect context
+ * @param tc the scheduler task context; if tc->reason =
+ *          GNUNET_SCHEDULER_REASON_TIMEOUT then sending HELLO failed; if
+ *          GNUNET_SCHEDULER_REASON_READ_READY is succeeded
+ */
+static void
+rocc_hello_sent_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct RequestOverlayConnectContext *rocc = cls;
+  
+  rocc->ohh = NULL;
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == rocc->attempt_connect_task_id);
+  if (GNUNET_SCHEDULER_REASON_TIMEOUT == tc->reason)
+    goto schedule_attempt_connect;
+  if (GNUNET_SCHEDULER_REASON_READ_READY != tc->reason)
+    return;
+  rocc->tch = GNUNET_TRANSPORT_try_connect (rocc->th, &rocc->a_id,
+                                            &rocc_try_connect_cb, rocc);
+  if (NULL != rocc->tch)
+    return;
+   GNUNET_break (0);
+   
+ schedule_attempt_connect:
+   rocc->attempt_connect_task_id =
+       GNUNET_SCHEDULER_add_now (&attempt_connect_task,
+                                 rocc);
+}
+
+
+/**
  * Task to offer the HELLO message to the peer and ask it to connect to the peer
  * whose identity is in RequestOverlayConnectContext
  *
@@ -3553,14 +3625,15 @@ attempt_connect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct RequestOverlayConnectContext *rocc = cls;
 
   rocc->attempt_connect_task_id = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_TRANSPORT_offer_hello (rocc->th, rocc->hello, NULL, NULL);
-  GNUNET_TRANSPORT_try_connect (rocc->th, &rocc->a_id, NULL, NULL); /*FIXME TRY_CONNECT change */
-  rocc->attempt_connect_task_id = 
-      GNUNET_SCHEDULER_add_delayed 
-      (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-                                      100 + GNUNET_CRYPTO_random_u32
-                                      (GNUNET_CRYPTO_QUALITY_WEAK, 500)),
-       &attempt_connect_task, rocc);
+  rocc->ohh = GNUNET_TRANSPORT_offer_hello (rocc->th, rocc->hello,
+                                            rocc_hello_sent_cb, rocc);
+  if (NULL == rocc->ohh)
+    rocc->attempt_connect_task_id = 
+        GNUNET_SCHEDULER_add_delayed 
+        (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+                                        100 + GNUNET_CRYPTO_random_u32
+                                        (GNUNET_CRYPTO_QUALITY_WEAK, 500)),
+         &attempt_connect_task, rocc);
 }
 
 
