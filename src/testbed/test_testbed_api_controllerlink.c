@@ -166,9 +166,9 @@ enum Stage
   SLAVE3_LINK_SUCCESS,
 
   /**
-   * Destory master peer
+   * Destory master peer and mark test as success
    */
-  MASTER_PEER_DESTROY_SUCCESS
+  SUCCESS
 
 };
 
@@ -538,7 +538,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     break;
  case SLAVE3_LINK_SUCCESS:
    check_operation_success (event);
-   result = MASTER_PEER_DESTROY_SUCCESS;
+   result = SUCCESS;
    GNUNET_TESTBED_operation_done (op);
    op = NULL;       
    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
@@ -653,7 +653,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                    "Unable to run the test as this system is not configured "
                    "to use password less SSH logins to localhost.\n"
                    "Marking test as successful\n");
-    result = SLAVE3_LINK_SUCCESS;
+    result = SUCCESS;
     return;
   }
   cfg = GNUNET_CONFIGURATION_dup (config);
@@ -686,7 +686,7 @@ main (int argc, char **argv)
       GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
                           "test_testbed_api_controllerlink", "nohelp", options,
                           &run, NULL);
-  if ((GNUNET_OK != ret) || (MASTER_PEER_DESTROY_SUCCESS != result))
+  if ((GNUNET_OK != ret) || (SUCCESS != result))
     return 1;
   return 0;
 }
