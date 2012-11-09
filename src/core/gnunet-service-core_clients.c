@@ -512,7 +512,12 @@ client_tokenizer_callback (void *cls, void *client,
 {
   struct TokenizerContext *tc = client;
   struct GSC_ClientActiveRequest *car = tc->car;
+  char buf[92];
 
+  GNUNET_snprintf (buf, sizeof (buf),
+		   gettext_noop ("# bytes of messages of type %u received"),
+		   (unsigned int) ntohs (message->type));
+  GNUNET_STATISTICS_update (GSC_stats, buf, ntohs (message->size), GNUNET_NO);  
   if (0 ==
       memcmp (&car->target, &GSC_my_identity,
               sizeof (struct GNUNET_PeerIdentity)))
@@ -812,13 +817,6 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
   struct NotifyTrafficMessage *ntm;
   struct GNUNET_ATS_Information *a;
 
-  if (0 == options)
-  {
-    GNUNET_snprintf (buf, sizeof (buf),
-                     gettext_noop ("# bytes of messages of type %u received"),
-                     (unsigned int) ntohs (msg->type));
-    GNUNET_STATISTICS_update (GSC_stats, buf, msize, GNUNET_NO);
-  }
   if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
