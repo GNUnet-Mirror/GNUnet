@@ -189,8 +189,8 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   connect_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &try_connect,
                                     NULL);
-  GNUNET_TRANSPORT_try_connect (p1.th, &p2.id);
-  GNUNET_TRANSPORT_try_connect (p2.th, &p1.id);
+  GNUNET_TRANSPORT_try_connect (p1.th, &p2.id, NULL, NULL); /*FIXME TRY_CONNECT change */
+  GNUNET_TRANSPORT_try_connect (p2.th, &p1.id, NULL, NULL); /*FIXME TRY_CONNECT change */
 }
 
 /**

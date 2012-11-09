@@ -1948,7 +1948,7 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
           GNUNET_TRANSPORT_offer_hello (GDS_transport_handle, h, NULL, NULL);
 	  if (GNUNET_YES !=
 	      disable_try_connect)
-	    GNUNET_TRANSPORT_try_connect (GDS_transport_handle, &pid);
+	    GNUNET_TRANSPORT_try_connect (GDS_transport_handle, &pid, NULL, NULL); /*FIXME TRY_CONNECT change */
         }
       }
     }

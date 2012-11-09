@@ -1860,7 +1860,7 @@ send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                 "Sending connect request to TRANSPORT of %s for peer %s\n",
                 GNUNET_i2s (&ctx->d1->id),
                 GNUNET_h2s (&ctx->d2->id.hashPubKey));
-    GNUNET_TRANSPORT_try_connect (ctx->d1th, &ctx->d2->id);
+    GNUNET_TRANSPORT_try_connect (ctx->d1th, &ctx->d2->id, NULL, NULL); /*FIXME TRY_CONNECT change */
     ctx->timeout_hello =
         GNUNET_TIME_relative_add (ctx->timeout_hello,
                                   GNUNET_TIME_relative_multiply
@@ -1887,7 +1887,7 @@ core_init_notify (void *cls, struct GNUNET_CORE_Handle *server,
 
   if (connect_ctx->send_hello == GNUNET_NO)
   {
-    GNUNET_TRANSPORT_try_connect (connect_ctx->d1th, &connect_ctx->d2->id);
+    GNUNET_TRANSPORT_try_connect (connect_ctx->d1th, &connect_ctx->d2->id, NULL, NULL); /*FIXME TRY_CONNECT change */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sending connect request to TRANSPORT of %s for peer %s\n",
                 connect_ctx->d1->shortname, connect_ctx->d2->shortname);
@@ -2012,7 +2012,7 @@ reattempt_daemons_connect (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to reconnect %s to %s\n",
                 ctx->d1->shortname, ctx->d2->shortname);
-    GNUNET_TRANSPORT_try_connect (ctx->d1th, &ctx->d2->id);
+    GNUNET_TRANSPORT_try_connect (ctx->d1th, &ctx->d2->id, NULL, NULL); /*FIXME TRY_CONNECT change */
   }
   ctx->timeout_task =
       GNUNET_SCHEDULER_add_delayed (ctx->relative_timeout,

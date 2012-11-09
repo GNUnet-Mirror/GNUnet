@@ -752,7 +752,7 @@ testservice_task (void *cls,
         ret = 1;
         return;
     }
-    GNUNET_TRANSPORT_try_connect (handle, &pid);
+    GNUNET_TRANSPORT_try_connect (handle, &pid, NULL, NULL); /*FIXME TRY_CONNECT change */
     op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
                                                &operation_timeout, NULL);
 
@@ -776,7 +776,7 @@ testservice_task (void *cls,
         ret = 1;
         return;
     }
-    GNUNET_TRANSPORT_try_connect (handle, &pid);
+    GNUNET_TRANSPORT_try_connect (handle, &pid, NULL, NULL); /*FIXME TRY_CONNECT change */
     start_time = GNUNET_TIME_absolute_get ();
     op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
                                                &operation_timeout, NULL);

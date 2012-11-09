@@ -386,7 +386,7 @@ attempt_connect (struct Peer *pos)
                             gettext_noop
                             ("# connect requests issued to transport"), 1,
                             GNUNET_NO);
-  GNUNET_TRANSPORT_try_connect (transport, &pos->pid);
+  GNUNET_TRANSPORT_try_connect (transport, &pos->pid, NULL, NULL); /*FIXME TRY_CONNECT change */
 }
 
 

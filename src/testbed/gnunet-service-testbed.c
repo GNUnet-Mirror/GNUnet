@@ -2964,7 +2964,7 @@ send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     /* FIXME: once offer_hello offers a handle to cancel remove the following lines */
     GNUNET_TRANSPORT_offer_hello (occ->p2th, occ->hello, NULL, NULL);
-    GNUNET_TRANSPORT_try_connect (occ->p2th, &occ->peer_identity);
+    GNUNET_TRANSPORT_try_connect (occ->p2th, &occ->peer_identity, NULL, NULL); /*FIXME TRY_CONNECT change */
     occ->send_hello_task =
         GNUNET_SCHEDULER_add_delayed
         (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
@@ -3518,7 +3518,7 @@ attempt_connect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   rocc->attempt_connect_task_id = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_TRANSPORT_offer_hello (rocc->th, rocc->hello, NULL, NULL);
-  GNUNET_TRANSPORT_try_connect (rocc->th, &rocc->a_id);
+  GNUNET_TRANSPORT_try_connect (rocc->th, &rocc->a_id, NULL, NULL); /*FIXME TRY_CONNECT change */
   rocc->attempt_connect_task_id = 
       GNUNET_SCHEDULER_add_delayed 
       (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,

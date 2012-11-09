@@ -267,7 +267,7 @@ connect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking transport (1) to connect to peer `%4s'\n",
               GNUNET_i2s (&p2.id));
-  GNUNET_TRANSPORT_try_connect (p1.th, &p2.id);
+  GNUNET_TRANSPORT_try_connect (p1.th, &p2.id, NULL, NULL); /*FIXME TRY_CONNECT change */
 }
 
 

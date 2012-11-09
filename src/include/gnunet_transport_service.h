@@ -99,6 +99,18 @@ typedef void (*GNUNET_TRANSPORT_NotifyDisconnect) (void *cls,
 
 
 /**
+ * Function to call with result of the try connect request.
+ *
+ *
+ * @param cls closure
+ * @param result GNUNET_OK if message was transmitted to transport service
+ *               GNUNET_SYSERR if message was not transmitted to transport service
+ */
+typedef void (*GNUNET_TRANSPORT_TryConnectCallback) (void *cls,
+                                                     const int result);
+
+
+/**
  * Function to call with a textual representation of an address.
  * This function will be called several times with different possible
  * textual representations, and a last time with NULL to signal the end
@@ -159,19 +171,37 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle);
 
 
 /**
+ * Opaque handle for a transmission-ready request.
+ */
+struct GNUNET_TRANSPORT_TryConnectHandle;
+
+
+/**
  * Ask the transport service to establish a connection to
  * the given peer.
  *
  * @param handle connection to transport service
  * @param target who we should try to connect to
- * @return GNUNET_OK if request can be scheduled
- *         GNUNET_NO please retry later because we are reconnecting
- *         GNUNET_SYSERR on failure
+ * @param cb callback to be called when request was transmitted to transport
+ *         service
+ * @return a GNUNET_TRANSPORT_TryConnectHandle handle or
+ *         NULL on failure (cb will not be called)
  */
-int
+struct GNUNET_TRANSPORT_TryConnectHandle *
 GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
-                              const struct GNUNET_PeerIdentity *target);
+                              const struct GNUNET_PeerIdentity *target,
+                              GNUNET_TRANSPORT_TryConnectCallback cb,
+                              void *cb_cls);
 
+
+/**
+ * Cancel the request to transport to try a connect
+ * Callback will not be called
+ *
+ * @param tch GNUNET_TRANSPORT_TryConnectHandle handle to cancel
+ */
+void
+GNUNET_TRANSPORT_try_connect_cancel (struct GNUNET_TRANSPORT_TryConnectHandle *tch);
 
 /**
  * Opaque handle for a transmission-ready request.
@@ -255,7 +285,7 @@ GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
 /**
  * Stop receiving updates about changes to our HELLO message.
  *
- * @param ghh handle returned from 'GNUNET_TRANSPORT_get_hello')
+ * @param ghh handle to cancel
  */
 void
 GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_GetHelloHandle *ghh);
@@ -270,12 +300,22 @@ GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_GetHelloHandle *ghh);
  * @param hello the hello message
  * @param cont continuation to call when HELLO has been sent
  * @param cls closure for continuation
+ * @return a GNUNET_TRANSPORT_OfferHelloHandle handle or NULL on failure
+ *
  */
-void
+struct GNUNET_TRANSPORT_OfferHelloHandle *
 GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
                               const struct GNUNET_MessageHeader *hello,
                               GNUNET_SCHEDULER_Task cont, void *cls);
 
+
+/**
+ * Cancel the request to transport to offer the HELLO message
+ *
+ * @param ohh the GNUNET_TRANSPORT_OfferHelloHandle to cancel
+ */
+void
+GNUNET_TRANSPORT_offer_hello_cancel (struct GNUNET_TRANSPORT_OfferHelloHandle *ohh);
 
 /**
  * Handle to cancel a pending address lookup.

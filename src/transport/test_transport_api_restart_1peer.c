@@ -146,7 +146,7 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   reconnect_task = GNUNET_SCHEDULER_NO_TASK;
 
-  GNUNET_TRANSPORT_try_connect (p->th, &p2->id);
+  GNUNET_TRANSPORT_try_connect (p->th, &p2->id, NULL, NULL); /*FIXME TRY_CONNECT change */
   reconnect_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &reconnect, p);
 }

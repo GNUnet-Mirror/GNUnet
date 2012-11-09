@@ -208,7 +208,7 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_TRANSPORT_offer_hello (cc->th_p1,
                                 (const struct GNUNET_MessageHeader *) cc->
                                 p2->hello, NULL, NULL);
-  GNUNET_TRANSPORT_try_connect (cc->th_p1, &p2->id);
+  GNUNET_TRANSPORT_try_connect (cc->th_p1, &p2->id, NULL, NULL); /*FIXME TRY_CONNECT change */
 
   cc->tct =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &try_connect, cc);
