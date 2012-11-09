@@ -545,6 +545,16 @@ struct OverlayConnectContext
   struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
 
   /**
+   * The handle for offering HELLO
+   */
+  struct GNUNET_TRANSPORT_OfferHelloHandle *ohh;
+
+  /**
+   * The handle for transport try connect
+   */
+  struct GNUNET_TRANSPORT_TryConnectHandle *tch;
+
+  /**
    * The error message we send if this overlay connect operation has timed out
    */
   char *emsg;
@@ -2730,6 +2740,10 @@ cleanup_occ (struct OverlayConnectContext *occ)
   }
   if (NULL != occ->ghh)
     GNUNET_TRANSPORT_get_hello_cancel (occ->ghh);
+  if (NULL != occ->ohh)
+    GNUNET_TRANSPORT_offer_hello_cancel (occ->ohh);
+  if (NULL != occ->tch)
+    GNUNET_TRANSPORT_try_connect_cancel (occ->tch);
   if (NULL != occ->p1th)
   {
     GNUNET_TRANSPORT_disconnect (occ->p1th);
@@ -2862,6 +2876,31 @@ overlay_connect_notify (void *cls, const struct GNUNET_PeerIdentity *new_peer,
 
 
 /**
+ * Callback to be called with result of the try connect request.
+ *
+ * @param cls the overlay connect context
+ * @param result GNUNET_OK if message was transmitted to transport service
+ *               GNUNET_SYSERR if message was not transmitted to transport service
+ */
+static void 
+try_connect_cb (void *cls, const int result)
+{
+  struct OverlayConnectContext *occ = cls;
+  
+  occ->tch = NULL;
+  if (GNUNET_OK == result)
+  {
+    GNUNET_free_non_null (occ->emsg);
+    occ->emsg = GNUNET_strdup ("Waiting for transport to connect");
+    //return; FIXME: should return here
+  }
+  //  GNUNET_break (0);
+  occ->tch = GNUNET_TRANSPORT_try_connect (occ->p2th, &occ->peer_identity,
+                                           &try_connect_cb, occ);
+}
+
+
+/**
  * Task to offer HELLO of peer 1 to peer 2 and try to make peer 2 to connect to
  * peer 1.
  *
@@ -2880,31 +2919,34 @@ send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  *          GNUNET_SCHEDULER_REASON_TIMEOUT then sending HELLO failed; if
  *          GNUNET_SCHEDULER_REASON_READ_READY is succeeded
  */
-//static FIXME: uncomment when using
-void
+static void
 occ_hello_sent_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct OverlayConnectContext *occ = cls;
-  int ret;
 
+  occ->ohh = NULL;
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == occ->send_hello_task);
   if (GNUNET_SCHEDULER_REASON_TIMEOUT == tc->reason)
   {
-    occ->send_hello_task =
-        GNUNET_SCHEDULER_add_delayed
-        (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-                                        100 + GNUNET_CRYPTO_random_u32
-                                        (GNUNET_CRYPTO_QUALITY_WEAK, 500)),
-         &send_hello, occ);
-    return;
+    GNUNET_break (0);
+    goto schedule_send_hello;
   }
   if (GNUNET_SCHEDULER_REASON_READ_READY != tc->reason)
-    return;
-  ret = GNUNET_TRANSPORT_try_connect (occ->p2th, &occ->peer_identity, NULL, NULL); /*FIXME TRY_CONNECT change */
-  if (GNUNET_OK == ret)
-    return;
-  if (GNUNET_SYSERR == ret)
+  {
     GNUNET_break (0);
+    return;
+  }
+  GNUNET_free_non_null (occ->emsg);
+  occ->emsg = GNUNET_strdup ("Timeout while try connect\n");
+  occ->tch = GNUNET_TRANSPORT_try_connect (occ->p2th, &occ->peer_identity,
+                                           &try_connect_cb, occ);
+  if (NULL != occ->tch)
+    return;
+  GNUNET_break (0);
+
+ schedule_send_hello:
+  GNUNET_free_non_null (occ->emsg);
+  occ->emsg = GNUNET_strdup ("Timeout while offering HELLO to other peer");
   occ->send_hello_task =
       GNUNET_SCHEDULER_add_delayed
       (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
@@ -2956,21 +2998,20 @@ send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     LOG_DEBUG ("Offering HELLO of %s to %s\n", 
 	       GNUNET_i2s (&occ->peer_identity), other_peer_str);
-    /* FIXME: To be replaced by */
-    /* occ->offer_hello_handle = GNUNET_TRANSPORT_offer_hello (occ->p2th, */
-    /*                                                         occ->hello, */
-    /*                                                         occ_hello_sent_cb,   */
-    /*                                                         occ); */
-
-    /* FIXME: once offer_hello offers a handle to cancel remove the following lines */
-    GNUNET_TRANSPORT_offer_hello (occ->p2th, occ->hello, NULL, NULL);
-    GNUNET_TRANSPORT_try_connect (occ->p2th, &occ->peer_identity, NULL, NULL); /*FIXME TRY_CONNECT change */
-    occ->send_hello_task =
-        GNUNET_SCHEDULER_add_delayed
-        (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-                                        100 + GNUNET_CRYPTO_random_u32
-                                        (GNUNET_CRYPTO_QUALITY_WEAK, 500)),
-         &send_hello, occ);
+    occ->ohh = GNUNET_TRANSPORT_offer_hello (occ->p2th,
+                                             occ->hello,
+                                             occ_hello_sent_cb,
+                                             occ);
+    if (NULL == occ->ohh)
+    {
+      GNUNET_break (0);
+      occ->send_hello_task =
+          GNUNET_SCHEDULER_add_delayed
+          (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+                                          100 + GNUNET_CRYPTO_random_u32
+                                          (GNUNET_CRYPTO_QUALITY_WEAK, 500)),
+           &send_hello, occ);
+    }
   }
   GNUNET_free (other_peer_str);  
 }
