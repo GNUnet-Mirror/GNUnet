@@ -114,6 +114,8 @@ env_delete_notify (void *cls, const struct GNUNET_HashCode * key, size_t size)
   GNUNET_CONTAINER_bloomfilter_remove (h->filter, key);
   GNUNET_STATISTICS_update (h->stats, gettext_noop ("# bytes stored"), -size,
                             GNUNET_NO);
+  GNUNET_STATISTICS_update (h->stats, gettext_noop ("# items stored"), -1,
+                            GNUNET_NO);
 }
 
 
@@ -248,6 +250,8 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Stored data under key `%s' in cache\n",
        GNUNET_h2s (key));
   GNUNET_STATISTICS_update (h->stats, gettext_noop ("# bytes stored"), size,
+                            GNUNET_NO);
+  GNUNET_STATISTICS_update (h->stats, gettext_noop ("# items stored"), 1,
                             GNUNET_NO);
   GNUNET_CONTAINER_bloomfilter_add (h->filter, key);
   while (h->utilization + used > h->env.quota)

@@ -28,5 +28,5 @@ DISABLE_TRY_CONNECT = NO
 
 [dhtcache]
 DATABASE = sqlite
-QUOTA = 1 MB
+QUOTA = 500 MB
 
