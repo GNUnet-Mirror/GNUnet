@@ -89,7 +89,7 @@
 {\
     char __gauger_commandline[MAX_PATH];\
     \
-    snprintf (__gauger_commandline, MAX_PATH, "gauger.py -n %s -d %Lf -u %s -c %s",\
+    snprintf (__gauger_commandline, MAX_PATH, "gauger.py -n \"%s\" -d \"%Lf\" -u \"%s\" -c \"%s\"",\
         counter, (long double) (value), unit, category);\
     __gauger_commandline[MAX_PATH - 1] = '\0';\
     system (__gauger_commandline);\
@@ -99,7 +99,7 @@
 {\
     char __gauger_commandline[MAX_PATH];\
     \
-    snprintf (__gauger_commandline, MAX_PATH, "gauger.py -n %s -d %Lf -u %s -i %s -c %s",\
+    snprintf (__gauger_commandline, MAX_PATH, "gauger.py -n \"%s\" -d \"%Lf\" -u \"%s\" -i \"%s\" -c \"%s\"",\
         counter, (long double) (value), unit, id, category);\
     __gauger_commandline[MAX_PATH - 1] = '\0';\
     system (__gauger_commandline);\
