@@ -478,6 +478,10 @@ GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
       }
     }
   }
+  if (NULL != pr->gh) 
+    GNUNET_DHT_get_filter_known_results (pr->gh,
+					 replies_seen_count,
+					 replies_seen);
 }
 
 
@@ -1117,8 +1121,12 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
                             pr->public_data.type, &pr->public_data.query,
                             5 /* DEFAULT_GET_REPLICATION */ ,
                             GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-                            /* FIXME: can no longer pass pr->bf/pr->mingle... */
                             xquery, xquery_size, &handle_dht_reply, pr);
+  if ( (NULL != pr->gh) && 
+       (0 != pr->replies_seen_count) )
+    GNUNET_DHT_get_filter_known_results (pr->gh,
+					 pr->replies_seen_count,
+					 pr->replies_seen);
 }
 
 
