@@ -17,11 +17,17 @@ gnunet\-peerinfo \- Display information about other peers.
 .IP "\-c FILENAME, \-\-config=FILENAME"
 Load config file (default: ~/.gnunet/gnunet.conf)
 .B
+.IP "\-g, \-\-get\-hello
+Output HELLO uri(s)
+.B
 .IP "\-h, \-\-help"
 Print help page
 .B
 .IP "\-n, \-\-numeric"
 Disable resolution of IPs to hostnames
+.B
+.IP "\-p, \-\-put\-hello=HELLO
+Add given HELLO uri to the database
 .B
 .IP "\-q, \-\-quiet"
 Do not print anything but the peer identities
@@ -32,7 +38,7 @@ Print only our own identity (together with "\-q", this is the exact line that ot
 .IP "\-v, \-\-version"
 Print the version number
 .B
-.IP "\-L LOGLEVEL, \-\-loglelvel=LOGLEVEL"
+.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
 Set the loglevel
 
 
