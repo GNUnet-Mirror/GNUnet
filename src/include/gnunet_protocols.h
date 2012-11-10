@@ -558,6 +558,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT_OK             155
 
+/**
+ * Certain results are already known to the client, filter those.
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_RESULTS_KNOWN             156
+
 
 /*******************************************************************************
  * HOSTLIST message types

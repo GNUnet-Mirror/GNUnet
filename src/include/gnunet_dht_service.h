@@ -236,12 +236,28 @@ typedef void (*GNUNET_DHT_GetIterator) (void *cls,
  */
 struct GNUNET_DHT_GetHandle *
 GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
-                      enum GNUNET_BLOCK_Type type, const struct GNUNET_HashCode * key,
+                      enum GNUNET_BLOCK_Type type, 
+		      const struct GNUNET_HashCode *key,
                       uint32_t desired_replication_level,
-                      enum GNUNET_DHT_RouteOption options, const void *xquery,
-                      size_t xquery_size, GNUNET_DHT_GetIterator iter,
-                      void *iter_cls);
+                      enum GNUNET_DHT_RouteOption options, 
+		      const void *xquery, size_t xquery_size, 
+		      GNUNET_DHT_GetIterator iter, void *iter_cls);
 
+
+/**
+ * Tell the DHT not to return any of the following known results
+ * to this client.
+ *
+ * @param get_handle get operation for which results should be filtered
+ * @param num_results number of results to be blocked that are
+ *        provided in this call (size of the 'results' array)
+ * @param results array of hash codes over the 'data' of the results
+ *        to be blocked
+ */
+void
+GNUNET_DHT_get_filter_known_results (struct GNUNET_DHT_GetHandle *get_handle,
+				     unsigned int num_results,
+				     const struct GNUNET_HashCode *results);
 
 /**
  * Stop async DHT-get.  Frees associated resources.

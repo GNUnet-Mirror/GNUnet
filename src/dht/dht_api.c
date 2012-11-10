@@ -173,14 +173,41 @@ struct GNUNET_DHT_GetHandle
   struct PendingMessage *message;
 
   /**
+   * Array of hash codes over the results that we have already
+   * seen.
+   */
+  struct GNUNET_HashCode *seen_results;
+
+  /**
    * Key that this get request is for
    */
-  struct GNUNET_HashCode key;
+  struct GNUNET_HashCode key;  
 
   /**
    * Unique identifier for this request (for key collisions).
    */
   uint64_t unique_id;
+
+  /**
+   * Size of the 'seen_results' array.  Note that not
+   * all positions might be used (as we over-allocate).
+   */
+  unsigned int seen_results_size;
+
+  /**
+   * Offset into the 'seen_results' array marking the
+   * end of the positions that are actually used.
+   */
+  unsigned int seen_results_end;
+
+  /**
+   * Offset into the 'seen_results' array marking the 
+   * position up to where we've send the hash codes to
+   * the DHT for blocking (needed as we might not be
+   * able to send all hash codes at once).
+   */
+  unsigned int seen_results_transmission_offset;
+
 
 };
 
@@ -353,6 +380,50 @@ try_connect (struct GNUNET_DHT_Handle *handle)
 
 
 /**
+ * Queue messages to DHT to block certain results from the result set.
+ *
+ * @param get_handle GET to generate messages for.
+ */
+static void
+queue_filter_messages (struct GNUNET_DHT_GetHandle *get_handle)
+{
+  struct PendingMessage *pm;
+  struct GNUNET_DHT_ClientGetResultSeenMessage *msg;
+  uint16_t msize;
+  unsigned int delta;
+  unsigned int max;
+
+  while (get_handle->seen_results_transmission_offset < get_handle->seen_results_end)
+  {
+    delta = get_handle->seen_results_end - get_handle->seen_results_transmission_offset;
+    max = (GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_DHT_ClientGetResultSeenMessage)) / sizeof (struct GNUNET_HashCode);
+    if (delta > max)
+      delta = max;
+    msize = sizeof (struct GNUNET_DHT_ClientGetResultSeenMessage) + delta * sizeof (struct GNUNET_HashCode);
+    
+    pm = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
+    msg = (struct GNUNET_DHT_ClientGetResultSeenMessage *) &pm[1];
+    pm->msg = &msg->header;
+    pm->handle = get_handle->dht_handle;
+    pm->unique_id = get_handle->unique_id;
+    pm->free_on_send = GNUNET_YES;
+    pm->in_pending_queue = GNUNET_YES;
+    msg->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_RESULTS_KNOWN);
+    msg->header.size = htons (msize);
+    msg->key = get_handle->key;
+    msg->unique_id = get_handle->unique_id;
+    memcpy (&msg[1],
+	    &get_handle->seen_results[get_handle->seen_results_transmission_offset],
+	    sizeof (struct GNUNET_HashCode) * delta);
+    get_handle->seen_results_transmission_offset += delta;
+    GNUNET_CONTAINER_DLL_insert_tail (get_handle->dht_handle->pending_head,
+				      get_handle->dht_handle->pending_tail,
+				      pm);  
+  }
+}
+
+
+/**
  * Add the request corresponding to the given route handle
  * to the pending queue (if it is not already in there).
  *
@@ -365,16 +436,18 @@ static int
 add_request_to_pending (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct GNUNET_DHT_Handle *handle = cls;
-  struct GNUNET_DHT_GetHandle *rh = value;
+  struct GNUNET_DHT_GetHandle *get_handle = value;
 
-  if (GNUNET_NO == rh->message->in_pending_queue)
+  if (GNUNET_NO == get_handle->message->in_pending_queue)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Retransmitting request related to %s to DHT %p\n", GNUNET_h2s (key),
          handle);
+    get_handle->seen_results_transmission_offset = 0;
     GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
-                                 rh->message);
-    rh->message->in_pending_queue = GNUNET_YES;
+                                 get_handle->message);
+    queue_filter_messages (get_handle);
+    get_handle->message->in_pending_queue = GNUNET_YES;
   }
   return GNUNET_YES;
 }
@@ -578,6 +651,7 @@ process_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
   struct GNUNET_DHT_GetHandle *get_handle = value;
   const struct GNUNET_PeerIdentity *put_path;
   const struct GNUNET_PeerIdentity *get_path;
+  struct GNUNET_HashCode hc;
   uint32_t put_path_length;
   uint32_t get_path_length;
   size_t data_length;
@@ -614,6 +688,17 @@ process_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
   put_path = (const struct GNUNET_PeerIdentity *) &dht_msg[1];
   get_path = &put_path[put_path_length];
   data = &get_path[get_path_length];
+  /* remember that we've seen this result */
+  GNUNET_CRYPTO_hash (data, data_length, &hc);
+  if (get_handle->seen_results_size == get_handle->seen_results_end)  
+    GNUNET_array_grow (get_handle->seen_results,
+		       get_handle->seen_results_size,
+		       get_handle->seen_results_size * 2 + 1);
+  GNUNET_assert (get_handle->seen_results_end == get_handle->seen_results_transmission_offset);
+  get_handle->seen_results[get_handle->seen_results_end++] = hc;
+  /* no need to block it explicitly, service already knows about it! */
+  get_handle->seen_results_transmission_offset++;
+  
   get_handle->iter (get_handle->iter_cls,
                     GNUNET_TIME_absolute_ntoh (dht_msg->expiration), key,
                     get_path, get_path_length, put_path, put_path_length,
@@ -1194,6 +1279,38 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
 }
 
 
+
+/**
+ * Tell the DHT not to return any of the following known results
+ * to this client.
+ *
+ * @param get_handle get operation for which results should be filtered
+ * @param num_results number of results to be blocked that are
+ *        provided in this call (size of the 'results' array)
+ * @param results array of hash codes over the 'data' of the results
+ *        to be blocked
+ */
+void
+GNUNET_DHT_get_filter_known_results (struct GNUNET_DHT_GetHandle *get_handle,
+				     unsigned int num_results,
+				     const struct GNUNET_HashCode *results)
+{
+  unsigned int needed;
+
+  needed = get_handle->seen_results_end + num_results;
+  if (needed > get_handle->seen_results_size)  
+    GNUNET_array_grow (get_handle->seen_results,
+		       get_handle->seen_results_size,
+		       needed);
+  memcpy (&get_handle->seen_results[get_handle->seen_results_end],
+	  results,
+	  num_results * sizeof (struct GNUNET_HashCode));
+  get_handle->seen_results_end += num_results;
+  queue_filter_messages (get_handle);
+  process_pending_messages (get_handle->dht_handle);
+}
+
+
 /**
  * Stop async DHT-get.
  *
@@ -1242,8 +1359,10 @@ GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle)
     get_handle->message->in_pending_queue = GNUNET_NO;
   }
   GNUNET_free (get_handle->message);
+  GNUNET_array_grow (get_handle->seen_results,
+		     get_handle->seen_results_end,
+		     0);
   GNUNET_free (get_handle);
-
   process_pending_messages (handle);
 }
 

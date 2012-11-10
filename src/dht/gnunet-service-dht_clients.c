@@ -551,9 +551,7 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Handler for any generic DHT messages, calls the appropriate handler
- * depending on message type, sends confirmation if responses aren't otherwise
- * expected.
+ * Handler for DHT GET messages from the client.
  *
  * @param cls closure for the service
  * @param client the client we received this message from
@@ -617,6 +615,103 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
   GDS_DATACACHE_handle_get (&get->key, cqr->type, cqr->xquery, xquery_size,
                             NULL, 0);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * Closure for 'find_by_unique_id'.
+ */
+struct FindByUniqueIdContext
+{
+  /**
+   * Where to store the result, if found.
+   */
+  struct ClientQueryRecord *cqr;
+
+  uint64_t unique_id;
+};
+
+
+/**
+ * Function called for each existing DHT record for the given
+ * query.  Checks if it matches the UID given in the closure
+ * and if so returns the entry as a result.
+ *
+ * @param cls the search context
+ * @param key query for the lookup (not used)
+ * @param value the 'struct ClientQueryRecord'
+ * @return GNUNET_YES to continue iteration (result not yet found)
+ */
+static int
+find_by_unique_id (void *cls,
+		   const struct GNUNET_HashCode *key,
+		   void *value)
+{
+  struct FindByUniqueIdContext *fui_ctx = cls;
+  struct ClientQueryRecord *cqr = value;
+
+  if (cqr->unique_id != fui_ctx->unique_id)
+    return GNUNET_YES;
+  fui_ctx->cqr = cqr;
+  return GNUNET_NO;
+}
+
+
+/**
+ * Handler for "GET result seen" messages from the client.
+ *
+ * @param cls closure for the service
+ * @param client the client we received this message from
+ * @param message the actual message received
+ */
+static void
+handle_dht_local_get_result_seen (void *cls, struct GNUNET_SERVER_Client *client,
+				  const struct GNUNET_MessageHeader *message)
+{
+  const struct GNUNET_DHT_ClientGetResultSeenMessage *seen;
+  uint16_t size;
+  unsigned int hash_count;
+  unsigned int old_count;
+  const struct GNUNET_HashCode *hc;
+  struct FindByUniqueIdContext fui_ctx;
+  struct ClientQueryRecord *cqr;
+
+  size = ntohs (message->size);
+  if (size < sizeof (struct GNUNET_DHT_ClientGetResultSeenMessage))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  seen = (const struct GNUNET_DHT_ClientGetResultSeenMessage *) message;
+  hash_count = (size - sizeof (struct GNUNET_DHT_ClientGetResultSeenMessage)) / sizeof (struct GNUNET_HashCode);
+  if (size != sizeof (struct GNUNET_DHT_ClientGetResultSeenMessage) + hash_count * sizeof (struct GNUNET_HashCode))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  hc = (const struct GNUNET_HashCode*) &seen[1];
+  fui_ctx.unique_id = seen->unique_id;
+  fui_ctx.cqr = NULL;
+  GNUNET_CONTAINER_multihashmap_get_multiple (forward_map,
+					      &seen->key,
+					      &find_by_unique_id,
+					      &fui_ctx);
+  if (NULL == (cqr = fui_ctx.cqr))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  /* finally, update 'seen' list */
+  old_count = cqr->seen_replies_count;
+  GNUNET_array_grow (cqr->seen_replies,
+		     cqr->seen_replies_count,
+		     cqr->seen_replies_count + hash_count);
+  memcpy (&cqr->seen_replies[old_count],
+	  hc,
+	  sizeof (struct GNUNET_HashCode) * hash_count);
 }
 
 
@@ -1350,6 +1445,8 @@ GDS_CLIENTS_init (struct GNUNET_SERVER_Handle *server)
     {&handle_dht_local_monitor_stop, NULL,
      GNUNET_MESSAGE_TYPE_DHT_MONITOR_STOP,
      sizeof (struct GNUNET_DHT_MonitorStartStopMessage)},
+    {&handle_dht_local_get_result_seen, NULL,
+     GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_RESULTS_KNOWN, 0},
     {NULL, NULL, 0, 0}
   };
   forward_map = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_NO);

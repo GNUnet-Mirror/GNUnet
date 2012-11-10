@@ -109,6 +109,39 @@ struct GNUNET_DHT_ClientGetMessage
 
 
 /**
+ * DHT GET RESULTS KNOWN message sent from clients to service. Indicates that a GET
+ * request should exclude certain results which are already known.
+ */
+struct GNUNET_DHT_ClientGetResultSeenMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_RESULTS_KNOWN
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Reserved, always 0.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * The key we are searching for (to make it easy to find the corresponding
+   * GET inside the service).
+   */
+  struct GNUNET_HashCode key;
+
+  /**
+   * Unique ID identifying this request.
+   */
+  uint64_t unique_id GNUNET_PACKED;
+
+  /* Followed by an array of the hash codes of known results */
+
+};
+
+
+
+/**
  * Reply to a GET send from the service to a client.
  */
 struct GNUNET_DHT_ClientResultMessage
@@ -325,7 +358,7 @@ struct GNUNET_DHT_MonitorStartStopMessage
 struct GNUNET_DHT_MonitorGetMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_MONITOR_PUT
+   * Type: GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET
    */
   struct GNUNET_MessageHeader header;
 
