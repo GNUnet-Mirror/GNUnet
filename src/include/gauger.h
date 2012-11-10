@@ -79,10 +79,31 @@
     }\
 }
 
-#else
+#else /* WINDOWS */
 
-#define GAUGER_ID(category, counter, value, unit, id) {}
-#define GAUGER(category, counter, value, unit) {}
+#include <stdlib.h>
+#include <stdio.h>
+#include <windef.h>
+
+#define GAUGER(category, counter, value, unit)\
+{\
+    char __gauger_commandline[MAX_PATH];\
+    \
+    snprintf (__gauger_commandline, MAX_PATH, "gauger.py -n %s -d %Lf -u %s -c %s",\
+        counter, (long double) (value), unit, category);\
+    __gauger_commandline[MAX_PATH - 1] = '\0';\
+    system (__gauger_commandline);\
+}
+
+#define GAUGER_ID(category, counter, value, unit, id)\
+{\
+    char __gauger_commandline[MAX_PATH];\
+    \
+    snprintf (__gauger_commandline, MAX_PATH, "gauger.py -n %s -d %Lf -u %s -i %s -c %s",\
+        counter, (long double) (value), unit, id, category);\
+    __gauger_commandline[MAX_PATH - 1] = '\0';\
+    system (__gauger_commandline);\
+}
 
 #endif // WINDOWS
 
