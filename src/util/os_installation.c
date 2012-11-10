@@ -143,6 +143,7 @@ DllMain (HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
   return TRUE;
 }
 
+
 /**
  * Try to determine path with win32-specific function
  *
@@ -490,7 +491,8 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
       ((0 == strcasecmp (&execpath[n - 5], "lib32")) ||
        (0 == strcasecmp (&execpath[n - 5], "lib64"))))
   {
-    if (GNUNET_OS_IPK_LIBDIR != dirkind)
+    if ( (GNUNET_OS_IPK_LIBDIR != dirkind) &&
+	 (GNUNET_OS_IPK_LIBEXECDIR != dirkind) )
     {
       /* strip '/lib32' or '/lib64' */
       execpath[n - 5] = '\0';
@@ -544,8 +546,13 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
         "gnunet" DIR_SEPARATOR_STR;
     break;
   case GNUNET_OS_IPK_LIBEXECDIR:
-    dirname =
+    if (isbasedir)
+      dirname =
         DIR_SEPARATOR_STR "lib" DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR \
+        "libexec" DIR_SEPARATOR_STR;
+    else
+      dirname =
+        DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR \
         "libexec" DIR_SEPARATOR_STR;
     break;
   default:
