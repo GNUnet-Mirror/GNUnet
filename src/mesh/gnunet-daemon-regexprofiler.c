@@ -20,7 +20,7 @@
 
 /**
  * @file mesh/gnunet-daemon-regexprofiler.c
- * @brief service that uses mesh to announce a regular expression. Used in
+ * @brief daemon that uses mesh to announce a regular expression. Used in
  * conjunction with gnunet-regex-profiler to announce regexes on serveral peers
  * without the need to explicitly connect to the mesh service running on the
  * peer from within the profiler.
@@ -70,6 +70,21 @@ static char * policy_filename;
  * Prefix to add before every regex we're announcing.
  */
 static char * regex_prefix;
+
+/**
+ * Time to wait between announcing regexes.
+ */
+static struct GNUNET_TIME_Relative announce_delay = { 500 };
+
+/**
+ * Regexes to announce read from 'policy_filename'.
+ */
+static char **regexes;
+
+/**
+ * Number of regexes read from 'policy_filename'.
+ */
+static unsigned int num_regexes;
 
 
 /**
@@ -121,6 +136,93 @@ announce_regex (const char * regex)
 
 
 /**
+ * Task run to iterate over all policies and announce them using mesh.
+ *
+ * @param cls unused
+ * @param tc unused
+ */
+static void
+do_announce_policies (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  static unsigned int num_rx_announced;
+
+  announce_regex (regexes[num_rx_announced]);
+
+  if (++num_rx_announced < num_regexes)
+  {
+    GNUNET_SCHEDULER_add_delayed (announce_delay, &do_announce_policies, NULL);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "All regexes announced.\n");
+}
+
+/**
+ * Load regular expressions from filename into 'rxes' array. Array needs to be freed.
+ *
+ * @param filename filename of the file containing the regexes, one per line.
+ * @param rxes array with all regexes, needs to be freed.
+ */
+static unsigned int
+load_regexes (const char *filename, char ***rxes)
+{
+  char *data;
+  char *buf;
+  uint64_t filesize;
+  unsigned int offset;
+  unsigned int rx_cnt;
+  unsigned int i;
+
+  if (GNUNET_YES != GNUNET_DISK_file_test (policy_filename))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Could not find policy file %s\n", policy_filename);
+    return 0;
+  }
+  if (GNUNET_OK != GNUNET_DISK_file_size (policy_filename, &filesize, GNUNET_YES, GNUNET_YES))
+    filesize = 0;
+  if (0 == filesize)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Policy file %s is empty.\n", policy_filename);
+    return 0;
+  }
+  data = GNUNET_malloc (filesize);
+  if (filesize != GNUNET_DISK_fn_read (policy_filename, data, filesize))
+  {
+    GNUNET_free (data);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not read policy file %s.\n",
+                policy_filename);
+    return 0;
+  }
+  buf = data;
+  offset = 0;
+  rx_cnt = 0;
+  while (offset < (filesize - 1))
+  {
+    offset++;
+    if (((data[offset] == '\n')) && (buf != &data[offset]))
+    {
+      data[offset] = '\0';
+      rx_cnt++;
+      buf = &data[offset + 1];
+    }
+    else if ((data[offset] == '\n') || (data[offset] == '\0'))
+      buf = &data[offset + 1];
+  }
+  *rxes = GNUNET_malloc (sizeof (char *) * rx_cnt);
+  offset = 0;
+  for (i = 0; i < rx_cnt; i++)
+  {
+    GNUNET_asprintf (&(*rxes)[i], "%s%s", regex_prefix, &data[offset]);
+    offset += strlen (&data[offset]) + 1;
+  }
+  GNUNET_free (data);
+
+  return rx_cnt;
+}
+
+
+/**
  * @brief Main function that will be run by the scheduler.
  *
  * @param cls closure
@@ -133,13 +235,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
      const char *cfgfile GNUNET_UNUSED,
      const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
-  char *regex;
-  char *data;
-  char *buf;
-  uint64_t filesize;
-  unsigned int offset;
-  GNUNET_MESH_ApplicationType app;
-
+  const GNUNET_MESH_ApplicationType app = (GNUNET_MESH_ApplicationType)0;
   static struct GNUNET_MESH_MessageHandler handlers[] = {
     {NULL, 0, 0}
   };
@@ -185,9 +281,18 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     return;
   }
 
-  stats_handle = GNUNET_STATISTICS_create ("regexprofiler", cfg);
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg, "REGEXPROFILER", "ANNOUNCE_DELAY",
+					   &announce_delay))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _
+                ("%s service is lacking key configuration settings (%s).  Using default value: %s.\n"),
+                "regexprofiler", "announce_delay", 
+		GNUNET_STRINGS_relative_time_to_string (announce_delay, GNUNET_NO));
+  }
 
-  app = (GNUNET_MESH_ApplicationType)0;
+  stats_handle = GNUNET_STATISTICS_create ("regexprofiler", cfg);
 
   mesh_handle =
     GNUNET_MESH_connect (cfg, NULL, NULL, NULL, handlers, &app);
@@ -200,47 +305,19 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     return;
   }
 
+  /* Read regexes from policy files */
+  if ((num_regexes = load_regexes (policy_filename, &regexes)) == 0)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		"Policy file %s contains no policies. Exiting.\n", 
+		policy_filename);
+    global_ret = GNUNET_SYSERR;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
   /* Announcing regexes from policy_filename */
-  if (GNUNET_YES != GNUNET_DISK_file_test (policy_filename))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Could not find policy file %s\n", policy_filename);
-    return;
-  }
-  if (GNUNET_OK != GNUNET_DISK_file_size (policy_filename, &filesize, GNUNET_YES, GNUNET_YES))
-    filesize = 0;
-  if (0 == filesize)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Policy file %s is empty.\n", policy_filename);
-    return;
-  }
-  data = GNUNET_malloc (filesize);
-  if (filesize != GNUNET_DISK_fn_read (policy_filename, data, filesize))
-  {
-    GNUNET_free (data);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not read policy file %s.\n",
-                policy_filename);
-    return;
-  }
-  buf = data;
-  offset = 0;
-  regex = NULL;
-  while (offset < (filesize - 1))
-  {
-    offset++;
-    if (((data[offset] == '\n')) && (buf != &data[offset]))
-    {
-      data[offset] = '\0';
-      GNUNET_assert (NULL != buf);
-      GNUNET_asprintf (&regex, "%s%s", regex_prefix, buf);
-      announce_regex (regex);
-      GNUNET_free (regex);
-      buf = &data[offset + 1];
-    }
-    else if ((data[offset] == '\n') || (data[offset] == '\0'))
-          buf = &data[offset + 1];
-  }
-  GNUNET_free (data);
+  GNUNET_SCHEDULER_add_delayed (announce_delay, &do_announce_policies, NULL);
 
   /* Scheduled the task to clean up when shutdown is called */
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,

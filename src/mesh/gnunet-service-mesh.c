@@ -182,6 +182,8 @@ struct MeshRegexDescriptor
      */
   char *regex;
 
+  struct GNUNET_REGEX_Automaton *dfa;
+
     /**
      * How many characters per edge can we squeeze?
      */
@@ -1651,18 +1653,18 @@ regex_iterator (void *cls,
  * @param regex The regular expresion.
  */
 static void
-regex_put (const struct MeshRegexDescriptor *regex)
+regex_put (struct MeshRegexDescriptor *regex)
 {
-  struct GNUNET_REGEX_Automaton *dfa;
+  if (NULL == regex->dfa)
+  {
+    regex->dfa = GNUNET_REGEX_construct_dfa (regex->regex,
+					     strlen (regex->regex),
+					     regex->compression);
+  }
 
   DEBUG_DHT ("  regex_put (%s) start\n", regex->regex);
-  dfa = GNUNET_REGEX_construct_dfa (regex->regex,
-                                    strlen(regex->regex),
-                                    regex->compression);
-  GNUNET_REGEX_iterate_all_edges (dfa, &regex_iterator, NULL);
-  GNUNET_REGEX_automaton_destroy (dfa);
+  GNUNET_REGEX_iterate_all_edges (regex->dfa, &regex_iterator, NULL);
   DEBUG_DHT ("  regex_put (%s) end\n", regex);
-
 }
 
 /**
@@ -6662,6 +6664,8 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     for (i = 0; i < c->n_regex; i++)
     {
       GNUNET_free (c->regexes[i].regex);
+      if (NULL != c->regexes[i].dfa)
+	GNUNET_REGEX_automaton_destroy (c->regexes[i].dfa);
     }
     GNUNET_free_non_null (c->regexes);
     if (GNUNET_SCHEDULER_NO_TASK != c->regex_announce_task)
@@ -6813,6 +6817,7 @@ handle_local_announce_regex (void *cls, struct GNUNET_SERVER_Client *client,
   regex[len] = '\0';
   rd.regex = regex;
   rd.compression = ntohs (msg->compression_characters);
+  rd.dfa = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  length %u\n", len);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  regex %s\n", regex);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  cm %u\n", ntohs(rd.compression));

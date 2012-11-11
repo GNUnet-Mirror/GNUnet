@@ -444,6 +444,33 @@ static void
 mesh_da (void *cls, void *op_result);
 
 
+/**
+ * Function called by testbed once we are connected to stats
+ * service. Get the statistics for the services of interest.
+ *
+ * @param cls the 'struct RegexPeer' for which we connected to stats
+ * @param op connect operation handle
+ * @param ca_result handle to stats service
+ * @param emsg error message on failure
+ */
+static void
+stats_connect_cb (void *cls,
+                  struct GNUNET_TESTBED_Operation *op,
+                  void *ca_result,
+                  const char *emsg);
+
+
+/**
+ * Task to collect all statistics from all peers, will shutdown the
+ * profiler, when done.
+ *
+ * @param cls NULL
+ * @param tc the task context
+ */
+static void
+do_collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
 /******************************************************************************/
 /********************************  SHUTDOWN  **********************************/
 /******************************************************************************/
@@ -482,12 +509,16 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       size =
         GNUNET_snprintf (output_buffer,
                          sizeof (output_buffer),
-                         "Search string not found: %s (%d)\nOn peer: %u (%p)\nWith policy file: %s\nAfter: %s\n",
+                         "%p Search string not found: %s (%d)\n%p On peer: %u (%p)\n%p With policy file: %s\n%p After: %s\n",
+			 peer,
                          peer->search_str,
                          peer->search_str_matched,
+			 peer,
                          peer->id,
                          peer,
+			 peer,
                          peer->policy_file,
+			 peer,
                          GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
       if (size != GNUNET_DISK_file_write (data_file, output_buffer, size))
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to write to file!\n");
@@ -660,10 +691,25 @@ stats_cb (void *cls,
   GNUNET_TESTBED_operation_done (peer->stats_op_handle);
   peer->stats_op_handle = NULL;
 
-  if (++peer_cnt == num_search_strings)
+  peer_cnt++;
+  peer = &peers[peer_cnt];
+
+  if (peer_cnt == num_peers)
   {
     struct GNUNET_TIME_Relative delay = { 100 };
     shutdown_task = GNUNET_SCHEDULER_add_delayed (delay, &do_shutdown, NULL);
+  }
+  else
+  {
+    peer->stats_op_handle =
+      GNUNET_TESTBED_service_connect (NULL,
+				      peer->peer_handle,
+				      "statistics",
+				      &stats_connect_cb,
+				      peer,
+				      &stats_ca,
+				      &stats_da,
+				      peer);
   }
 }
 
@@ -697,38 +743,40 @@ stats_connect_cb (void *cls,
 
   peer->stats_handle = ca_result;
 
-  if (NULL == GNUNET_STATISTICS_get (peer->stats_handle, "mesh", NULL,
-				     GNUNET_TIME_UNIT_FOREVER_REL,
-				     NULL,
-                                       &stats_iterator, peer))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Could not get mesh statistics of peer %u!\n", peer->id);
-  }
-  if (NULL == GNUNET_STATISTICS_get (peer->stats_handle, "regexprofiler", NULL,
-				     GNUNET_TIME_UNIT_FOREVER_REL,
-				     NULL,
-				     &stats_iterator, peer))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Could not get regexprofiler statistics of peer %u!\n", peer->id);
-  }
-  if (NULL == GNUNET_STATISTICS_get (peer->stats_handle, "transport", NULL,
-				     GNUNET_TIME_UNIT_FOREVER_REL,
-				     NULL,
-				     &stats_iterator, peer))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Could not get transport statistics of peer %u!\n", peer->id);
-  }
-  if (NULL == GNUNET_STATISTICS_get (peer->stats_handle, "dht", NULL,
+  if (NULL == GNUNET_STATISTICS_get (peer->stats_handle, NULL, NULL,
 				     GNUNET_TIME_UNIT_FOREVER_REL,
 				     &stats_cb,
 				     &stats_iterator, peer))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Could not get dht statistics of peer %u!\n", peer->id);
+		"Could not get statistics of peer %u!\n", peer->id);
   }
+}
+
+
+/**
+ * Task to collect all statistics from all peers, will shutdown the
+ * profiler, when done.
+ *
+ * @param cls NULL
+ * @param tc the task context
+ */
+static void
+do_collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct RegexPeer *peer = &peers[0];
+
+  GNUNET_assert (NULL != peer->peer_handle);
+
+  peer->stats_op_handle =
+    GNUNET_TESTBED_service_connect (NULL,
+				    peer->peer_handle,
+				    "statistics",
+				    &stats_connect_cb,
+				    peer,
+				    &stats_ca,
+				    &stats_da,
+				    peer);
 }
 
 
@@ -831,16 +879,6 @@ mesh_peer_connect_handler (void *cls,
     }
   }
 
-  peer->stats_op_handle =
-    GNUNET_TESTBED_service_connect (NULL,
-				    peer->peer_handle,
-				    "statistics",
-				    &stats_connect_cb,
-				    peer,
-				    &stats_ca,
-				    &stats_da,
-				    peer);
-
   GNUNET_TESTBED_operation_done (peer->mesh_op_handle);
   peer->mesh_op_handle = NULL;
 
@@ -850,11 +888,14 @@ mesh_peer_connect_handler (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "All strings successfully matched in %s\n",
                 GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
-    printf ("All strings successfully matched. Shutting down.\n");
+    printf ("All strings successfully matched.\n");
     fflush (stdout);
 
     if (GNUNET_SCHEDULER_NO_TASK != search_timeout_task)
       GNUNET_SCHEDULER_cancel (search_timeout_task);
+
+    printf ("Collecting stats and shutting down.\n");
+    GNUNET_SCHEDULER_add_now (&do_collect_stats, NULL);
   }
 }
 
@@ -876,11 +917,11 @@ do_connect_by_string_timeout (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Found %i of %i strings\n", peers_found, num_search_strings);
 
-  printf ("Search timed out after %s. Shutting down.\n", 
+  printf ("Search timed out after %s. Collecting stats and shutting down.\n", 
 	  GNUNET_STRINGS_relative_time_to_string (search_timeout, GNUNET_NO));
   fflush (stdout);
 
-  shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  GNUNET_SCHEDULER_add_now (&do_collect_stats, NULL);
 }
 
 
@@ -1633,7 +1674,7 @@ load_search_strings (const char *filename, char ***strings, unsigned int limit)
     GNUNET_asprintf (&(*strings)[i], "%s%s", regex_prefix, &data[offset]);
     offset += strlen (&data[offset]) + 1;
   }
-  free (data);
+  GNUNET_free (data);
   return str_cnt;
 }
 
