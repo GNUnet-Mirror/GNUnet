@@ -162,6 +162,7 @@ do_announce_policies (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param filename filename of the file containing the regexes, one per line.
  * @param rxes array with all regexes, needs to be freed.
+ * @return number of regular expressions read from filename and in rxes array.
  */
 static unsigned int
 load_regexes (const char *filename, char ***rxes)
@@ -270,7 +271,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "REGEXPROFILER", "REGEX_PREFIX",
-					     &regex_prefix))
+                                             &regex_prefix))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
@@ -283,13 +284,13 @@ run (void *cls, char *const *args GNUNET_UNUSED,
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (cfg, "REGEXPROFILER", "ANNOUNCE_DELAY",
-					   &announce_delay))
+                                           &announce_delay))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
                 ("%s service is lacking key configuration settings (%s).  Using default value: %s.\n"),
-                "regexprofiler", "announce_delay", 
-		GNUNET_STRINGS_relative_time_to_string (announce_delay, GNUNET_NO));
+                "regexprofiler", "announce_delay",
+                GNUNET_STRINGS_relative_time_to_string (announce_delay, GNUNET_NO));
   }
 
   stats_handle = GNUNET_STATISTICS_create ("regexprofiler", cfg);
@@ -308,9 +309,9 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   /* Read regexes from policy files */
   if ((num_regexes = load_regexes (policy_filename, &regexes)) == 0)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-		"Policy file %s contains no policies. Exiting.\n", 
-		policy_filename);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Policy file %s contains no policies. Exiting.\n",
+                policy_filename);
     global_ret = GNUNET_SYSERR;
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -345,7 +346,7 @@ main (int argc, char *const *argv)
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc, argv, "regexprofiler",
                               gettext_noop
-			      ("Daemon to announce regular expressions for the peer using mesh."),
+                              ("Daemon to announce regular expressions for the peer using mesh."),
                               options, &run, NULL)) ? global_ret : 1;
 }
 

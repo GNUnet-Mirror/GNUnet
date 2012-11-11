@@ -182,6 +182,9 @@ struct MeshRegexDescriptor
      */
   char *regex;
 
+  /**
+   * Cached DFA for regular expression 'regex'.
+   */
   struct GNUNET_REGEX_Automaton *dfa;
 
     /**
