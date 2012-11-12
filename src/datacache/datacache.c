@@ -156,27 +156,22 @@ GNUNET_DATACACHE_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ret = GNUNET_malloc (sizeof (struct GNUNET_DATACACHE_Handle));
   
   if (GNUNET_YES !=
-      GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "DISABLE_BF_RC"))
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "DISABLE_BF"))
   {
-    fprintf (stderr, "Using RC!\n");
-    ret->bloom_name = GNUNET_DISK_mktemp ("gnunet-datacachebloom");
-  }
-  if (NULL != ret->bloom_name)
-  {
-    ret->filter = GNUNET_CONTAINER_bloomfilter_load (ret->bloom_name, quota / 1024,     /* 8 bit per entry in DB, expect 1k entries */
-						     5); 
-  }
-    
-  if (NULL == ret->filter)
-  {
-    ret->filter = GNUNET_CONTAINER_bloomfilter_init (NULL, bf_size, 5); /* approx. 3% false positives at max use */
-  }
-  if (NULL == ret->filter)
-  {
-    GNUNET_free (name);
-    GNUNET_free (ret->bloom_name);
-    GNUNET_free (ret);
-    return NULL;
+    if (GNUNET_YES !=
+	GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "DISABLE_BF_RC"))
+    {
+      ret->bloom_name = GNUNET_DISK_mktemp ("gnunet-datacachebloom");
+    }
+    if (NULL != ret->bloom_name)
+    {
+      ret->filter = GNUNET_CONTAINER_bloomfilter_load (ret->bloom_name, quota / 1024,     /* 8 bit per entry in DB, expect 1k entries */
+						       5); 
+    }    
+    if (NULL == ret->filter)
+    {
+	ret->filter = GNUNET_CONTAINER_bloomfilter_init (NULL, bf_size, 5); /* approx. 3% false positives at max use */
+    }  
   }
   ret->stats = GNUNET_STATISTICS_create ("datacache", cfg);
   ret->section = GNUNET_strdup (section);
@@ -210,7 +205,7 @@ GNUNET_DATACACHE_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h)
 {
-  if (h->filter != NULL)
+  if (NULL != h->filter)
     GNUNET_CONTAINER_bloomfilter_free (h->filter);
   if (h->api != NULL)
     GNUNET_break (NULL == GNUNET_PLUGIN_unload (h->lib_name, h->api));
@@ -260,7 +255,8 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
                             GNUNET_NO);
   GNUNET_STATISTICS_update (h->stats, gettext_noop ("# items stored"), 1,
                             GNUNET_NO);
-  GNUNET_CONTAINER_bloomfilter_add (h->filter, key);
+  if (NULL != h->filter)
+    GNUNET_CONTAINER_bloomfilter_add (h->filter, key);
   while (h->utilization + used > h->env.quota)
     GNUNET_assert (GNUNET_OK == h->api->del (h->api->cls));
   h->utilization += used;
@@ -288,7 +284,8 @@ GNUNET_DATACACHE_get (struct GNUNET_DATACACHE_Handle *h,
                             GNUNET_NO);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Processing request for key `%s'\n",
        GNUNET_h2s (key));
-  if (GNUNET_OK != GNUNET_CONTAINER_bloomfilter_test (h->filter, key))
+  if ( (NULL != h->filter) &&
+       (GNUNET_OK != GNUNET_CONTAINER_bloomfilter_test (h->filter, key)) )
   {
     GNUNET_STATISTICS_update (h->stats,
                               gettext_noop
