@@ -939,7 +939,9 @@ enum GNUNET_TESTBED_TopologyOption
   GNUNET_TESTBED_TOPOLOGY_RING,
 
   /**
-   * 2-d torus.  No options.
+   * 2-d torus.  Followed by the number `x' (unsigned int) of peers along the
+   * poloidal and the number `y' (unsigned int) of peers along the toroidal. The
+   * total number of peers must be equal to `(x * y)'
    */
   GNUNET_TESTBED_TOPOLOGY_2D_TORUS,
 
@@ -967,14 +969,14 @@ enum GNUNET_TESTBED_TopologyOption
   GNUNET_TESTBED_TOPOLOGY_LINE,
 
   /**
-   * All peers are disconnected.  No options.
-   */
-  GNUNET_TESTBED_TOPOLOGY_NONE,
-
-  /**
    * Read a topology from a given file.  Followed by the name of the file (const char *).
    */
   GNUNET_TESTBED_TOPOLOGY_FROM_FILE,
+
+  /**
+   * All peers are disconnected.  No options.
+   */
+  GNUNET_TESTBED_TOPOLOGY_NONE,
 
   /**
    * The options should always end with this
