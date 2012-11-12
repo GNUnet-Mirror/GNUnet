@@ -423,15 +423,19 @@ call_cc:
   if (rc->peer_count < rc->num_peers)
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Peers started successfully\n");
-  if (GNUNET_TESTBED_TOPOLOGY_OPTION_END != rc->topology)
+  if (GNUNET_TESTBED_TOPOLOGY_NONE != rc->topology)
   {
-    if (GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI == rc->topology)
+    if ( (GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI == rc->topology)
+         || (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING == rc->topology))
       rc->topology_operation =
           GNUNET_TESTBED_overlay_configure_topology (NULL,
                                                      rc->num_peers,
                                                      rc->peers,
                                                      rc->topology,
-                                                     rc->num_oc,
+                                                     (GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI
+                                                      == rc->topology) ?
+                                                     rc->num_oc : 
+                                                     (rc->num_oc - rc->num_peers),
                                                      GNUNET_TESTBED_TOPOLOGY_OPTION_END);
     else
       rc->topology_operation =
@@ -479,7 +483,7 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   event_mask = rc->event_mask;
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
-  if (rc->topology < GNUNET_TESTBED_TOPOLOGY_OPTION_END)
+  if (rc->topology < GNUNET_TESTBED_TOPOLOGY_NONE)
     event_mask |= GNUNET_TESTBED_ET_CONNECT;
   rc->c =
       GNUNET_TESTBED_controller_connect (cfg, rc->h, event_mask, &event_cb, rc);
@@ -624,33 +628,18 @@ GNUNET_TESTBED_run (const char *host_filename,
   rc->master = master;
   rc->master_cls = master_cls;
   rc->state = RC_INIT;
-  rc->topology = GNUNET_TESTBED_TOPOLOGY_OPTION_END;
+  rc->topology = GNUNET_TESTBED_TOPOLOGY_NONE;
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
                                                           "OVERLAY_TOPOLOGY",
                                                           &topology))
   {
     if (0 == strcasecmp (topology, "RANDOM"))
-    {      
-      rc->topology = GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI;
-      if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg, "testbed",
-                                                              "OVERLAY_RANDOM_LINKS",
-                                                              &random_links))
-      {
-       /* OVERLAY option RANDOM requires OVERLAY_RANDOM_LINKS option to */
-       /*     be set to the number of random links to be established  */
-        GNUNET_break (0);
-        GNUNET_free (rc);
-        GNUNET_free (topology);
-        return;
-      }
-      if (random_links > UINT32_MAX)
-      {
-        GNUNET_break (0);       /* Too big number */
-        GNUNET_free (rc);
-        GNUNET_free (topology);
-        return;
-      }
-      rc->num_oc = (unsigned int) random_links;
+    {
+      rc->topology = GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI;      
+    }
+    else if (0 == strcasecmp (topology, "SMALL_WORLD_RING"))
+    {
+      rc->topology = GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING;
     }
     else if (0 == strcasecmp (topology, "CLIQUE"))
     {
@@ -671,6 +660,29 @@ GNUNET_TESTBED_run (const char *host_filename,
       LOG (GNUNET_ERROR_TYPE_WARNING,
            "Unknown topology %s given in configuration\n", topology);
     GNUNET_free (topology);
+  }
+  if ( (GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI == rc->topology)
+       || (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING == rc->topology))
+  { 
+    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg, "testbed",
+                                                            "OVERLAY_RANDOM_LINKS",
+                                                            &random_links))
+    {
+      /* OVERLAY option RANDOM & SMALL_WORLD_RING requires OVERLAY_RANDOM_LINKS
+         option to be set to the number of random links to be established  */
+      GNUNET_break (0);
+      GNUNET_free (rc);
+      return;
+    }
+    if (random_links > UINT32_MAX)
+    {
+      GNUNET_break (0);       /* Too big number */
+      GNUNET_free (rc);
+      return;
+    }
+    rc->num_oc = (unsigned int) random_links;
+    if (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING == rc->topology)
+      rc->num_oc += num_peers;
   }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_run_task, rc);
@@ -703,7 +715,7 @@ GNUNET_TESTBED_create_va (struct GNUNET_TESTBED_Controller *controller,
                           enum GNUNET_TESTBED_TopologyOption underlay_topology,
                           va_list va)
 {
-  GNUNET_assert (underlay_topology < GNUNET_TESTBED_TOPOLOGY_OPTION_END);
+  GNUNET_assert (underlay_topology < GNUNET_TESTBED_TOPOLOGY_NONE);
   GNUNET_break (0);
   return NULL;
 }

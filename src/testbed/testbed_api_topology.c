@@ -92,6 +92,11 @@ struct TopologyContext
   void *op_cls;
 
   /**
+   * The number of peers
+   */
+  unsigned int num_peers;
+
+  /**
    * The size of the link array
    */
   unsigned int link_array_size;
@@ -185,6 +190,97 @@ oprelease_overlay_configure_topology (void *cls)
 
 
 /**
+ * Generates line topology
+ *
+ * @param tc the topology context
+ */
+static void
+gen_topo_line (struct TopologyContext *tc)
+{
+  unsigned int cnt;
+
+  tc->link_array_size = tc->num_peers - 1;
+  tc->link_array = GNUNET_malloc (sizeof (struct OverlayLink) *
+                                  tc->link_array_size);
+  for (cnt=0; cnt < (tc->num_peers - 1); cnt++)
+  {
+    tc->link_array[cnt].A = cnt;
+    tc->link_array[cnt].B = cnt + 1;
+    tc->link_array[cnt].tc = tc;
+  }
+}
+
+
+/**
+ * Generates ring topology
+ *
+ * @param tc the topology context
+ */
+static void
+gen_topo_ring (struct TopologyContext *tc)
+{
+  gen_topo_line (tc);
+  tc->link_array_size++;
+  tc->link_array = GNUNET_realloc (tc->link_array,
+                                   sizeof (struct OverlayLink) *
+                                   tc->link_array_size);
+  tc->link_array[tc->link_array_size - 1].op = NULL;
+  tc->link_array[tc->link_array_size - 1].tc = tc;
+  tc->link_array[tc->link_array_size - 1].A = tc->num_peers - 1;
+  tc->link_array[tc->link_array_size - 1].B = 0;
+}
+
+
+/**
+ * Generates ring topology
+ *
+ * @param tc the topology context
+ * @param links the number of random links to establish
+ * @param append GNUNET_YES to add links to existing link array; GNUNET_NO to
+ *          create a new link array
+ */
+static void
+gen_topo_random (struct TopologyContext *tc, unsigned int links, int append)
+{
+  unsigned int cnt;
+  unsigned int index;
+  uint32_t A_rand;
+  uint32_t B_rand;
+  
+  if (GNUNET_YES == append)
+  {
+    GNUNET_assert ((0 < tc->link_array_size) && (NULL != tc->link_array));
+    index = tc->link_array_size;   
+    tc->link_array_size += links;
+    tc->link_array = GNUNET_realloc (tc->link_array,
+                                   sizeof (struct OverlayLink) *
+                                     tc->link_array_size);
+  }
+  else
+  {
+    GNUNET_assert ((0 == tc->link_array_size) && (NULL == tc->link_array));
+    index = 0;   
+    tc->link_array_size = links;
+    tc->link_array = GNUNET_malloc (sizeof (struct OverlayLink) *
+                                    tc->link_array_size);
+  }
+  for (cnt = 0; cnt < links; cnt++)
+  {
+    do {
+      A_rand = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                         tc->num_peers);
+      B_rand = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                         tc->num_peers);
+    } while (A_rand == B_rand);
+    tc->link_array[index + cnt].op = NULL;
+    tc->link_array[index + cnt].A = A_rand;
+    tc->link_array[index + cnt].B = B_rand;
+    tc->link_array[index + cnt].tc = tc;
+  }
+}
+
+
+/**
  * Configure overall network topology to have a particular shape.
  *
  * @param op_cls closure argument to give with the operation event
@@ -264,50 +360,26 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
   c = peers[0]->controller;
   tc = GNUNET_malloc (sizeof (struct TopologyContext));
   tc->peers = peers;
+  tc->num_peers = num_peers;
   tc->op_cls = op_cls;
   switch (topo)
   {
   case GNUNET_TESTBED_TOPOLOGY_LINE:
+    gen_topo_line (tc);
+    break;
   case GNUNET_TESTBED_TOPOLOGY_RING:
-    tc->link_array_size = 
-        (GNUNET_TESTBED_TOPOLOGY_LINE == topo)
-        ? (num_peers - 1) : num_peers;
-    tc->link_array = GNUNET_malloc (sizeof (struct OverlayLink) *
-				    tc->link_array_size);
-    for (cnt=0; cnt < (num_peers - 1); cnt++)
-    {
-      tc->link_array[cnt].A = cnt;
-      tc->link_array[cnt].B = cnt + 1;
-      tc->link_array[cnt].tc = tc;
-    }
-    if (GNUNET_TESTBED_TOPOLOGY_RING == topo)
-    {
-      tc->link_array[cnt].A = num_peers - 1;
-      tc->link_array[cnt].B = 0;
-      tc->link_array[cnt].tc = tc;
-      cnt++;
-    }
-    GNUNET_assert (cnt == tc->link_array_size);
+    gen_topo_ring (tc);
     break;
   case GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI:
-    tc->link_array_size = va_arg (va, unsigned int);
-    tc->link_array = GNUNET_malloc (sizeof (struct OverlayLink) *
-                                    tc->link_array_size);
-    for (cnt = 0; cnt < tc->link_array_size; cnt++)
-    {
-      uint32_t A_rand;
-      uint32_t B_rand;
-      
-      do {
-        A_rand = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                           num_peers);
-        B_rand = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                           num_peers);
-      } while (A_rand == B_rand);      
-      tc->link_array[cnt].A = A_rand;
-      tc->link_array[cnt].B = B_rand;
-      tc->link_array[cnt].tc = tc;
-    }
+    gen_topo_random (tc,
+                     va_arg (va, unsigned int),
+                     GNUNET_NO);
+    break;
+  case GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING:
+    gen_topo_ring (tc);
+    gen_topo_random (tc,
+                     va_arg (va, unsigned int),
+                     GNUNET_YES);
     break;
   case GNUNET_TESTBED_TOPOLOGY_CLIQUE:
     tc->link_array_size = num_peers * (num_peers - 1);
