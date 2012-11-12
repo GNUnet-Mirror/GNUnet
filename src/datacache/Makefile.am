@@ -44,6 +44,7 @@ plugin_LTLIBRARIES = \
   $(SQLITE_PLUGIN) \
   $(MYSQL_PLUGIN) \
   $(POSTGRES_PLUGIN) \
+  libgnunet_plugin_datacache_heap.la \
   libgnunet_plugin_datacache_template.la 
 
 
@@ -54,6 +55,15 @@ libgnunet_plugin_datacache_sqlite_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lsqlite3 \
   $(LTLIBINTL)
 libgnunet_plugin_datacache_sqlite_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
+libgnunet_plugin_datacache_heap_la_SOURCES = \
+  plugin_datacache_heap.c
+libgnunet_plugin_datacache_heap_la_LIBADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL)
+libgnunet_plugin_datacache_heap_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 libgnunet_plugin_datacache_mysql_la_SOURCES = \

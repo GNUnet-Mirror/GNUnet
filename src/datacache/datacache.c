@@ -249,9 +249,9 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
   uint32_t used;
 
   used = h->api->put (h->api->cls, key, size, data, type, discard_time);
-  if (used == 0)
+  if (0 == used)
   {
-    GNUNET_break (0);
+    /* error or duplicate */
     return GNUNET_SYSERR;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Stored data under key `%s' in cache\n",
