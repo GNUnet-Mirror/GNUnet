@@ -1539,138 +1539,6 @@ regex_free_result (void *cls,
 
 
 /**
- * Regex callback iterator to store own service description in the DHT.
- *
- * @param cls closure.
- * @param key hash for current state.
- * @param proof proof for current state.
- * @param accepting GNUNET_YES if this is an accepting state, GNUNET_NO if not.
- * @param num_edges number of edges leaving current state.
- * @param edges edges leaving current state.
- */
-void
-regex_iterator (void *cls,
-                const struct GNUNET_HashCode *key,
-                const char *proof,
-                int accepting,
-                unsigned int num_edges,
-                const struct GNUNET_REGEX_Edge *edges)
-{
-    struct MeshRegexBlock *block;
-    struct MeshRegexEdge *block_edge;
-    enum GNUNET_DHT_RouteOption opt;
-    size_t size;
-    size_t len;
-    unsigned int i;
-    unsigned int offset;
-    char *aux;
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "  regex dht put for state %s\n",
-                GNUNET_h2s(key));
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "   proof: %s\n",
-                proof);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "   num edges: %u\n",
-                num_edges);
-
-    opt = GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE;
-    if (GNUNET_YES == accepting)
-    {
-        struct MeshRegexAccept block;
-
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "   state %s is accepting, putting own id\n",
-                    GNUNET_h2s(key));
-        size = sizeof (block);
-        block.key = *key;
-        block.id = my_full_id;
-        (void)
-        GNUNET_DHT_put(dht_handle, key,
-                       dht_replication_level,
-                       opt | GNUNET_DHT_RO_RECORD_ROUTE,
-                       GNUNET_BLOCK_TYPE_MESH_REGEX_ACCEPT,
-                       size,
-                       (char *) &block,
-                       GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
-                                                 app_announce_time),
-                       app_announce_time,
-                       NULL, NULL);
-    }
-    len = strlen(proof);
-    size = sizeof (struct MeshRegexBlock) + len;
-    block = GNUNET_malloc (size);
-
-    block->key = *key;
-    block->n_proof = htonl (len);
-    block->n_edges = htonl (num_edges);
-    block->accepting = htonl (accepting);
-
-    /* Store the proof at the end of the block. */
-    aux = (char *) &block[1];
-    memcpy (aux, proof, len);
-    aux = &aux[len];
-
-    /* Store each edge in a variable length MeshEdge struct at the
-     * very end of the MeshRegexBlock structure.
-     */
-    for (i = 0; i < num_edges; i++)
-    {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "    edge %s towards %s\n",
-                    edges[i].label,
-                    GNUNET_h2s(&edges[i].destination));
-
-        /* aux points at the end of the last block */
-        len = strlen (edges[i].label);
-        size += sizeof (struct MeshRegexEdge) + len;
-        // Calculate offset FIXME is this ok? use size instead?
-        offset = aux - (char *) block;
-        block = GNUNET_realloc (block, size);
-        aux = &((char *) block)[offset];
-        block_edge = (struct MeshRegexEdge *) aux;
-        block_edge->key = edges[i].destination;
-        block_edge->n_token = htonl (len);
-        aux = (char *) &block_edge[1];
-        memcpy (aux, edges[i].label, len);
-        aux = &aux[len];
-    }
-    (void)
-    GNUNET_DHT_put(dht_handle, key,
-                   dht_replication_level,
-                   opt,
-                   GNUNET_BLOCK_TYPE_MESH_REGEX, size,
-                   (char *) block,
-                   GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
-                                            app_announce_time),
-                   app_announce_time,
-                   NULL, NULL);
-    GNUNET_free (block);
-}
-
-
-/**
- * Store the regular expression describing a local service into the DHT.
- *
- * @param regex The regular expresion.
- */
-static void
-regex_put (struct MeshRegexDescriptor *regex)
-{
-  if (NULL == regex->dfa)
-  {
-    regex->dfa = GNUNET_REGEX_construct_dfa (regex->regex,
-					     strlen (regex->regex),
-					     regex->compression);
-  }
-
-  DEBUG_DHT ("  regex_put (%s) start\n", regex->regex);
-  GNUNET_REGEX_iterate_all_edges (regex->dfa, &regex_iterator, NULL);
-  DEBUG_DHT ("  regex_put (%s) end\n", regex);
-}
-
-/**
  * Find a path to a peer that offers a regex servcie compatible
  * with a given string.
  * 
@@ -1823,16 +1691,167 @@ announce_application (void *cls, const struct GNUNET_HashCode * key, void *value
 
   GNUNET_break (NULL != 
                 GNUNET_DHT_put (dht_handle, key,
-                  dht_replication_level,
-                  GNUNET_DHT_RO_RECORD_ROUTE |
-                  GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-                  GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE,
-                  sizeof (block),
-                  (const char *) &block,
-                  GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
-                                            app_announce_time),
-                  app_announce_time, NULL, NULL));
+				dht_replication_level,
+				GNUNET_DHT_RO_RECORD_ROUTE |
+				GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+				GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE,
+				sizeof (block),
+				(const char *) &block,
+				GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS), /* FIXME: this should be an option */
+				app_announce_time, NULL, NULL));
   return GNUNET_OK;
+}
+
+
+#if 0
+/**
+ * Function called when the DHT regex put is complete.
+ *
+ * @param the 'struct MeshClient' for which we were PUTting
+ * @param success GNUNET_OK if the PUT was transmitted,
+ *                GNUNET_NO on timeout,
+ *                GNUNET_SYSERR on disconnect from service
+ *                after the PUT message was transmitted
+ *                (so we don't know if it was received or not)
+ */
+static void 
+announce_regex_done (void *cls,
+		     int success)
+{
+  struct MeshClient *c = cls;
+
+}
+#endif
+
+
+/**
+ * Regex callback iterator to store own service description in the DHT.
+ *
+ * @param cls closure.
+ * @param key hash for current state.
+ * @param proof proof for current state.
+ * @param accepting GNUNET_YES if this is an accepting state, GNUNET_NO if not.
+ * @param num_edges number of edges leaving current state.
+ * @param edges edges leaving current state.
+ */
+static void
+regex_iterator (void *cls,
+                const struct GNUNET_HashCode *key,
+                const char *proof,
+                int accepting,
+                unsigned int num_edges,
+                const struct GNUNET_REGEX_Edge *edges)
+{
+    struct MeshRegexBlock *block;
+    struct MeshRegexEdge *block_edge;
+    enum GNUNET_DHT_RouteOption opt;
+    size_t size;
+    size_t len;
+    unsigned int i;
+    unsigned int offset;
+    char *aux;
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "  regex dht put for state %s\n",
+                GNUNET_h2s(key));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "   proof: %s\n",
+                proof);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "   num edges: %u\n",
+                num_edges);
+
+    opt = GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE;
+    if (GNUNET_YES == accepting)
+    {
+        struct MeshRegexAccept block;
+
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "   state %s is accepting, putting own id\n",
+                    GNUNET_h2s(key));
+        size = sizeof (block);
+        block.key = *key;
+        block.id = my_full_id;
+        (void)
+        GNUNET_DHT_put(dht_handle, key,
+                       dht_replication_level,
+                       opt | GNUNET_DHT_RO_RECORD_ROUTE,
+                       GNUNET_BLOCK_TYPE_MESH_REGEX_ACCEPT,
+                       size,
+                       (char *) &block,
+                       GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS), /* FIXME: expiration time should be option */
+                       app_announce_time,
+                       NULL, NULL);
+    }
+    len = strlen(proof);
+    size = sizeof (struct MeshRegexBlock) + len;
+    block = GNUNET_malloc (size);
+
+    block->key = *key;
+    block->n_proof = htonl (len);
+    block->n_edges = htonl (num_edges);
+    block->accepting = htonl (accepting);
+
+    /* Store the proof at the end of the block. */
+    aux = (char *) &block[1];
+    memcpy (aux, proof, len);
+    aux = &aux[len];
+
+    /* Store each edge in a variable length MeshEdge struct at the
+     * very end of the MeshRegexBlock structure.
+     */
+    for (i = 0; i < num_edges; i++)
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "    edge %s towards %s\n",
+                    edges[i].label,
+                    GNUNET_h2s(&edges[i].destination));
+
+        /* aux points at the end of the last block */
+        len = strlen (edges[i].label);
+        size += sizeof (struct MeshRegexEdge) + len;
+        // Calculate offset FIXME is this ok? use size instead?
+        offset = aux - (char *) block;
+        block = GNUNET_realloc (block, size);
+        aux = &((char *) block)[offset];
+        block_edge = (struct MeshRegexEdge *) aux;
+        block_edge->key = edges[i].destination;
+        block_edge->n_token = htonl (len);
+        aux = (char *) &block_edge[1];
+        memcpy (aux, edges[i].label, len);
+        aux = &aux[len];
+    }
+    (void)
+    GNUNET_DHT_put(dht_handle, key,
+                   dht_replication_level,
+                   opt,
+                   GNUNET_BLOCK_TYPE_MESH_REGEX, size,
+                   (char *) block,
+                   GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS), /* FIXME: this should be an option */
+                   app_announce_time,
+                   NULL, NULL);
+    GNUNET_free (block);
+}
+
+
+/**
+ * Store the regular expression describing a local service into the DHT.
+ *
+ * @param regex The regular expresion.
+ */
+static void
+regex_put (struct MeshRegexDescriptor *regex)
+{
+  if (NULL == regex->dfa)
+  {
+    regex->dfa = GNUNET_REGEX_construct_dfa (regex->regex,
+					     strlen (regex->regex),
+					     regex->compression);
+  }
+
+  DEBUG_DHT ("  regex_put (%s) start\n", regex->regex);
+  GNUNET_REGEX_iterate_all_edges (regex->dfa, &regex_iterator, NULL);
+  DEBUG_DHT ("  regex_put (%s) end\n", regex);
 }
 
 
@@ -1851,22 +1870,14 @@ announce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   c->regex_announce_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
     return;
-  }
-
   DEBUG_DHT ("Starting PUT for regex\n");
-
   for (i = 0; i < c->n_regex; i++)
-  {
     regex_put (&c->regexes[i]);
-  }
   c->regex_announce_task = GNUNET_SCHEDULER_add_delayed (app_announce_time,
                                                          &announce_regex,
                                                          cls);
   DEBUG_DHT ("Finished PUT for regex\n");
-
-  return;
 }
 
 
@@ -1894,8 +1905,6 @@ announce_applications (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_SCHEDULER_add_delayed (app_announce_time, &announce_applications,
                                     cls);
   DEBUG_DHT ("Finished PUT for apps\n");
-
-  return;
 }
 
 
@@ -6796,7 +6805,7 @@ static void
 handle_local_announce_regex (void *cls, struct GNUNET_SERVER_Client *client,
                              const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_MESH_RegexAnnounce *msg;
+  const struct GNUNET_MESH_RegexAnnounce *msg;
   struct MeshRegexDescriptor rd;
   struct MeshClient *c;
   char *regex;
@@ -6813,7 +6822,7 @@ handle_local_announce_regex (void *cls, struct GNUNET_SERVER_Client *client,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
-  msg = (struct GNUNET_MESH_RegexAnnounce *) message;
+  msg = (const struct GNUNET_MESH_RegexAnnounce *) message;
   len = ntohs (message->size) - sizeof(struct GNUNET_MESH_RegexAnnounce);
   regex = GNUNET_malloc (len + 1);
   memcpy (regex, &msg[1], len);
@@ -8374,8 +8383,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "APP_ANNOUNCE_TIME %llu ms\n", app_announce_time.rel_value);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "APP_ANNOUNCE_TIME %llu ms\n", 
+	      app_announce_time.rel_value);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (c, "MESH", "ID_ANNOUNCE_TIME",
                                            &id_announce_time))
@@ -8386,9 +8396,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                 "mesh", "id announce time");
     GNUNET_SCHEDULER_shutdown ();
     return;
-  }
-  else
-  {
   }
 
   if (GNUNET_OK !=
