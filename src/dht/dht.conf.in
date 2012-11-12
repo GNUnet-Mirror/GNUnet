@@ -30,3 +30,5 @@ DISABLE_TRY_CONNECT = NO
 DATABASE = sqlite
 QUOTA = 500 MB
 
+# Disable RC-file for Bloom filter?  (for benchmarking with limited IO availability)
+DISABLE_BF_RC = NO
