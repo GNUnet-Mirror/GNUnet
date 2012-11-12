@@ -184,6 +184,7 @@ struct GNUNET_TRANSPORT_TryConnectHandle;
  * @param target who we should try to connect to
  * @param cb callback to be called when request was transmitted to transport
  *         service
+ * @param cb_cls closure for the callback
  * @return a GNUNET_TRANSPORT_TryConnectHandle handle or
  *         NULL on failure (cb will not be called)
  */
