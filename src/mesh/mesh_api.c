@@ -1254,7 +1254,8 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
 
   if (msg == NULL)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Received NULL msg on %p\n", h);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Mesh service disconnected, reconnecting\n", h);
     reconnect (h);
     return;
   }
