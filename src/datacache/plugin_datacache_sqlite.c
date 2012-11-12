@@ -364,21 +364,33 @@ libgnunet_plugin_datacache_sqlite_init (void *cls)
   sqlite3 *dbh;
   char *emsg;
 
-  fn = GNUNET_DISK_mktemp ("gnunet-datacache");
-  if (fn == NULL)
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+					    "datacache-sqlite",
+					    "IN_MEMORY"))
   {
-    GNUNET_break (0);
-    return NULL;
+    if (SQLITE_OK != sqlite3_open (":memory:", &dbh))
+      return NULL;
+    fn_utf8 = NULL;
   }
-  /* fn should be UTF-8-encoded. If it isn't, it's a bug. */
-  fn_utf8 = GNUNET_strdup (fn);
-  if (SQLITE_OK != sqlite3_open (fn_utf8, &dbh))
+  else
   {
+    fn = GNUNET_DISK_mktemp ("gnunet-datacache");
+    if (fn == NULL)
+      {
+	GNUNET_break (0);
+	return NULL;
+      }
+    /* fn should be UTF-8-encoded. If it isn't, it's a bug. */
+    fn_utf8 = GNUNET_strdup (fn);
+    if (SQLITE_OK != sqlite3_open (fn_utf8, &dbh))
+    {
+      GNUNET_free (fn);
+      GNUNET_free (fn_utf8);
+      return NULL;
+    }
     GNUNET_free (fn);
-    GNUNET_free (fn_utf8);
-    return NULL;
   }
-  GNUNET_free (fn);
 
   SQLITE3_EXEC (dbh, "PRAGMA temp_store=MEMORY");
   SQLITE3_EXEC (dbh, "PRAGMA locking_mode=EXCLUSIVE");
@@ -386,6 +398,12 @@ libgnunet_plugin_datacache_sqlite_init (void *cls)
   SQLITE3_EXEC (dbh, "PRAGMA synchronous=OFF");
   SQLITE3_EXEC (dbh, "PRAGMA count_changes=OFF");
   SQLITE3_EXEC (dbh, "PRAGMA page_size=4092");
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+					    "datacache-sqlite",
+					    "IN_MEMORY"))
+    SQLITE3_EXEC (dbh, "PRAGMA sqlite_temp_store=3");
+
   SQLITE3_EXEC (dbh,
                 "CREATE TABLE ds090 (" "  type INTEGER NOT NULL DEFAULT 0,"
                 "  expire INTEGER NOT NULL DEFAULT 0,"
@@ -425,9 +443,10 @@ libgnunet_plugin_datacache_sqlite_done (void *cls)
 #endif
 
 #if !WINDOWS || defined(__CYGWIN__)
-  if (0 != UNLINK (plugin->fn))
+  if ( (NULL != plugin->fn) &&
+       (0 != UNLINK (plugin->fn)) )
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "unlink", plugin->fn);
-  GNUNET_free (plugin->fn);
+  GNUNET_free_non_null (plugin->fn);
 #endif
   result = sqlite3_close (plugin->dbh);
 #if SQLITE_VERSION_NUMBER >= 3007000
@@ -453,9 +472,10 @@ libgnunet_plugin_datacache_sqlite_done (void *cls)
     LOG_SQLITE (plugin->dbh, GNUNET_ERROR_TYPE_ERROR, "sqlite3_close");
 
 #if WINDOWS && !defined(__CYGWIN__)
-  if (0 != UNLINK (plugin->fn))
+  if ( (NULL != plugin->fn) &&
+       (0 != UNLINK (plugin->fn)) )
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "unlink", plugin->fn);
-  GNUNET_free (plugin->fn);
+  GNUNET_free_non_null (plugin->fn);
 #endif
   GNUNET_free (plugin);
   GNUNET_free (api);

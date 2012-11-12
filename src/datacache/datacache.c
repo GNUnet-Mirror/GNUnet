@@ -154,12 +154,19 @@ GNUNET_DATACACHE_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   bf_size = quota / 32;         /* 8 bit per entry, 1 bit per 32 kb in DB */
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_DATACACHE_Handle));
-  ret->bloom_name = GNUNET_DISK_mktemp ("gnunet-datacachebloom");
+  
+  if (GNUNET_YES !=
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "DISABLE_BF_RC"))
+  {
+    fprintf (stderr, "Using RC!\n");
+    ret->bloom_name = GNUNET_DISK_mktemp ("gnunet-datacachebloom");
+  }
   if (NULL != ret->bloom_name)
   {
     ret->filter = GNUNET_CONTAINER_bloomfilter_load (ret->bloom_name, quota / 1024,     /* 8 bit per entry in DB, expect 1k entries */
-                                                     5);
+						     5); 
   }
+    
   if (NULL == ret->filter)
   {
     ret->filter = GNUNET_CONTAINER_bloomfilter_init (NULL, bf_size, 5); /* approx. 3% false positives at max use */
