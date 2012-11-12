@@ -662,6 +662,11 @@ GNUNET_TESTBED_run (const char *host_filename,
       rc->topology = GNUNET_TESTBED_TOPOLOGY_LINE;
       rc->num_oc = num_peers - 1;
     }
+    else if (0 == strcasecmp (topology, "RING"))
+    {
+      rc->topology = GNUNET_TESTBED_TOPOLOGY_RING;
+      rc->num_oc = num_peers;
+    }
     else
       LOG (GNUNET_ERROR_TYPE_WARNING,
            "Unknown topology %s given in configuration\n", topology);
