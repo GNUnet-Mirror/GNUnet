@@ -268,15 +268,26 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
   switch (topo)
   {
   case GNUNET_TESTBED_TOPOLOGY_LINE:
-    tc->link_array_size = num_peers - 1;
+  case GNUNET_TESTBED_TOPOLOGY_RING:
+    tc->link_array_size = 
+        (GNUNET_TESTBED_TOPOLOGY_LINE == topo)
+        ? (num_peers - 1) : num_peers;
     tc->link_array = GNUNET_malloc (sizeof (struct OverlayLink) *
 				    tc->link_array_size);
-    for (cnt=1; cnt < num_peers; cnt++)
+    for (cnt=0; cnt < (num_peers - 1); cnt++)
     {
-      tc->link_array[cnt-1].A = cnt-1;
-      tc->link_array[cnt-1].B = cnt;
-      tc->link_array[cnt-1].tc = tc;
+      tc->link_array[cnt].A = cnt;
+      tc->link_array[cnt].B = cnt + 1;
+      tc->link_array[cnt].tc = tc;
     }
+    if (GNUNET_TESTBED_TOPOLOGY_RING == topo)
+    {
+      tc->link_array[cnt].A = num_peers - 1;
+      tc->link_array[cnt].B = 0;
+      tc->link_array[cnt].tc = tc;
+      cnt++;
+    }
+    GNUNET_assert (cnt == tc->link_array_size);
     break;
   case GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI:
     tc->link_array_size = va_arg (va, unsigned int);
