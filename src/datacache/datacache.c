@@ -112,7 +112,7 @@ env_delete_notify (void *cls, const struct GNUNET_HashCode * key, size_t size)
   GNUNET_assert (h->utilization >= size);
   h->utilization -= size;
   GNUNET_CONTAINER_bloomfilter_remove (h->filter, key);
-  GNUNET_STATISTICS_update (h->stats, gettext_noop ("# bytes stored"), -size,
+  GNUNET_STATISTICS_update (h->stats, gettext_noop ("# bytes stored"), - (long long) size,
                             GNUNET_NO);
   GNUNET_STATISTICS_update (h->stats, gettext_noop ("# items stored"), -1,
                             GNUNET_NO);
