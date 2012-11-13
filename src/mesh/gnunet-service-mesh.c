@@ -1860,7 +1860,7 @@ regex_put (struct MeshRegexDescriptor *regex)
 
   DEBUG_DHT ("  regex_put (%s) start\n", regex->regex);
   GNUNET_REGEX_iterate_all_edges (regex->dfa, &regex_iterator, NULL);
-  DEBUG_DHT ("  regex_put (%s) end\n", regex);
+  DEBUG_DHT ("  regex_put (%s) end\n", regex->regex);
 }
 
 
