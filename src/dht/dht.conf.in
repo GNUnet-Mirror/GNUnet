@@ -27,8 +27,8 @@ DISABLE_TRY_CONNECT = NO
 
 
 [dhtcache]
-DATABASE = sqlite
-QUOTA = 500 MB
+DATABASE = heap
+QUOTA = 50 MB
 
 # Disable RC-file for Bloom filter?  (for benchmarking with limited IO availability)
 DISABLE_BF_RC = NO
