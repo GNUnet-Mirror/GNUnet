@@ -39,28 +39,6 @@ static struct GNUNET_DATACACHE_Handle *datacache;
 
 
 /**
- * Entry for inserting data into datacache from the DHT.
- */
-struct DHTPutEntry
-{
-  /**
-   * Size of data.
-   */
-  uint16_t data_size;
-
-  /**
-   * Length of recorded path.
-   */
-  uint16_t path_length;
-
-  /* PATH ENTRIES */
-
-  /* PUT DATA */
-
-};
-
-
-/**
  * Handle a datum we've received from another peer.  Cache if
  * possible.
  *
@@ -80,14 +58,7 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
                           enum GNUNET_BLOCK_Type type, size_t data_size,
                           const void *data)
 {
-  size_t plen =
-      data_size + put_path_length * sizeof (struct GNUNET_PeerIdentity) +
-      sizeof (struct DHTPutEntry);
-  char buf[plen];
-  struct DHTPutEntry *pe;
-  struct GNUNET_PeerIdentity *pp;
-
-  if (datacache == NULL)
+  if (NULL == datacache)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("%s request received, but have no datacache!\n"), "PUT");
@@ -102,14 +73,9 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# ITEMS stored in datacache"), 1,
                             GNUNET_NO);
-  pe = (struct DHTPutEntry *) buf;
-  pe->data_size = htons (data_size);
-  pe->path_length = htons ((uint16_t) put_path_length);
-  pp = (struct GNUNET_PeerIdentity *) &pe[1];
-  memcpy (pp, put_path, put_path_length * sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&pp[put_path_length], data, data_size);
-  (void) GNUNET_DATACACHE_put (datacache, key, plen, (const char *) pe, type,
-                               expiration);
+  (void) GNUNET_DATACACHE_put (datacache, key, 
+			       data_size, data, type,
+                               expiration, put_path_length, put_path);
 }
 
 
@@ -159,40 +125,26 @@ struct GetRequestContext
  * @param size the size of the data identified by key
  * @param data the actual data
  * @param type the type of the data
- *
+ * @param put_path_length number of peers in 'put_path'
+ * @param put_path path the reply took on put
  * @return GNUNET_OK to continue iteration, anything else
  * to stop iteration.
  */
 static int
-datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
+datacache_get_iterator (void *cls, 
                         const struct GNUNET_HashCode * key, size_t size,
-                        const char *data, enum GNUNET_BLOCK_Type type)
+                        const char *data, enum GNUNET_BLOCK_Type type,
+			struct GNUNET_TIME_Absolute exp,
+			unsigned int put_path_length,
+			const struct GNUNET_PeerIdentity *put_path)
 {
   struct GetRequestContext *ctx = cls;
-  const struct DHTPutEntry *pe;
-  const struct GNUNET_PeerIdentity *pp;
-  const char *rdata;
-  size_t rdata_size;
-  uint16_t put_path_length;
   enum GNUNET_BLOCK_EvaluationResult eval;
 
-  pe = (const struct DHTPutEntry *) data;
-  put_path_length = ntohs (pe->path_length);
-  rdata_size = ntohs (pe->data_size);
-
-  if (size !=
-      sizeof (struct DHTPutEntry) + rdata_size +
-      (put_path_length * sizeof (struct GNUNET_PeerIdentity)))
-  {
-    GNUNET_break (0);
-    return GNUNET_OK;
-  }
-  pp = (const struct GNUNET_PeerIdentity *) &pe[1];
-  rdata = (const char *) &pp[put_path_length];
   eval =
       GNUNET_BLOCK_evaluate (GDS_block_context, type, key, ctx->reply_bf,
                              ctx->reply_bf_mutator, ctx->xquery,
-                             ctx->xquery_size, rdata, rdata_size);
+                             ctx->xquery_size, data, size);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Found reply for query %s in datacache, evaluation result is %d\n",
               GNUNET_h2s (key), (int) eval);
@@ -206,11 +158,11 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                               gettext_noop
                               ("# Good RESULTS found in datacache"), 1,
                               GNUNET_NO);
-    GDS_CLIENTS_handle_reply (exp, key, 0, NULL, put_path_length, pp, type,
-                              rdata_size, rdata);
+    GDS_CLIENTS_handle_reply (exp, key, 0, NULL, put_path_length, put_path, type,
+                              size, data);
     /* forward to other peers */
-    GDS_ROUTING_process (type, exp, key, put_path_length, pp, 0, NULL, rdata,
-                         rdata_size);
+    GDS_ROUTING_process (type, exp, key, put_path_length, put_path, 0, NULL, data,
+                         size);
     break;
   case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
     GNUNET_STATISTICS_update (GDS_stats,

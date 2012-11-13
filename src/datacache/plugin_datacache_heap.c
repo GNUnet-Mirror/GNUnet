@@ -32,6 +32,7 @@
 #define LOG_STRERROR_FILE(kind,op,fn) GNUNET_log_from_strerror_file (kind, "datacache-heap", op, fn)
 
 
+
 /**
  * Context for all functions in this plugin.
  */
@@ -76,9 +77,19 @@ struct Value
   struct GNUNET_CONTAINER_HeapNode *hn;
 
   /**
+   * Path information.
+   */
+  struct GNUNET_PeerIdentity *path_info;
+
+  /**
    * Payload (actual payload follows this struct)
    */
   size_t size;
+
+  /**
+   * Number of entries in 'path_info'.
+   */
+  unsigned int path_info_len;
 
   /**
    * Type of the block.
@@ -86,6 +97,9 @@ struct Value
   enum GNUNET_BLOCK_Type type;
   
 };
+
+
+#define OVERHEAD (sizeof (struct Value) + 64)
 
 
 /**
@@ -109,6 +123,11 @@ struct PutContext
   struct GNUNET_CONTAINER_Heap *heap;
 
   /**
+   * Path information.
+   */
+  const struct GNUNET_PeerIdentity *path_info;
+
+  /**
    * Number of bytes in 'data'.
    */
   size_t size;
@@ -117,6 +136,11 @@ struct PutContext
    * Type of the node.
    */
   enum GNUNET_BLOCK_Type type;
+
+  /**
+   * Number of entries in 'path_info'.
+   */
+  unsigned int path_info_len;
 
   /**
    * Value to set to GNUNET_YES if an equivalent block was found.
@@ -149,13 +173,20 @@ put_cb (void *cls,
     put_ctx->found = GNUNET_YES;    
     val->discard_time = GNUNET_TIME_absolute_max (val->discard_time,
 						  put_ctx->discard_time);
+    /* replace old path with new path */
+    GNUNET_array_grow (val->path_info,
+		       val->path_info_len,
+		       put_ctx->path_info_len);
+    memcpy (val->path_info, 
+	    put_ctx->path_info,
+	    put_ctx->path_info_len * sizeof (struct GNUNET_PeerIdentity));   
     GNUNET_CONTAINER_heap_update_cost (put_ctx->heap,
 				       val->hn,
 				       val->discard_time.abs_value);
     return GNUNET_NO;
   }
   if (val->type == put_ctx->type)
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Got another value for key %s and type %d (size %u vs %u)\n",
 		GNUNET_h2s (key),
 		val->type,
@@ -174,12 +205,16 @@ put_cb (void *cls,
  * @param data data to store
  * @param type type of the value
  * @param discard_time when to discard the value in any case
- * @return 0 on error, number of bytes used otherwise
+ * @param path_info_len number of entries in 'path_info'
+ * @param path_info a path through the network
+   * @return 0 if duplicate, -1 on error, number of bytes used otherwise
  */
-static size_t
+static ssize_t
 heap_plugin_put (void *cls, const struct GNUNET_HashCode * key, size_t size,
-                   const char *data, enum GNUNET_BLOCK_Type type,
-                   struct GNUNET_TIME_Absolute discard_time)
+		 const char *data, enum GNUNET_BLOCK_Type type,
+		 struct GNUNET_TIME_Absolute discard_time,
+		 unsigned int path_info_len,
+		 const struct GNUNET_PeerIdentity *path_info)
 {
   struct Plugin *plugin = cls;
   struct Value *val;
@@ -189,6 +224,8 @@ heap_plugin_put (void *cls, const struct GNUNET_HashCode * key, size_t size,
   put_ctx.heap = plugin->heap;
   put_ctx.data = data;
   put_ctx.size = size;
+  put_ctx.path_info = path_info;
+  put_ctx.path_info_len = path_info_len;
   put_ctx.discard_time = discard_time;
   put_ctx.type = type;
   GNUNET_CONTAINER_multihashmap_get_multiple (plugin->map,
@@ -203,6 +240,11 @@ heap_plugin_put (void *cls, const struct GNUNET_HashCode * key, size_t size,
   val->type = type;
   val->discard_time = discard_time;
   val->size = size;
+  GNUNET_array_grow (val->path_info,
+		     val->path_info_len,
+		     path_info_len);
+  memcpy (val->path_info, path_info,
+	  path_info_len * sizeof (struct GNUNET_PeerIdentity));
   (void) GNUNET_CONTAINER_multihashmap_put (plugin->map,
 					    &val->key,
 					    val,
@@ -210,7 +252,7 @@ heap_plugin_put (void *cls, const struct GNUNET_HashCode * key, size_t size,
   val->hn = GNUNET_CONTAINER_heap_insert (plugin->heap,
 					  val,
 					  val->discard_time.abs_value);
-  return size;
+  return size + OVERHEAD;
 }
 
 
@@ -263,13 +305,17 @@ get_cb (void *cls,
   if ( (get_ctx->type != val->type) &&
        (GNUNET_BLOCK_TYPE_ANY != get_ctx->type) )
     return GNUNET_OK;
-  ret = get_ctx->iter (get_ctx->iter_cls,
+  if (NULL != get_ctx->iter)
+    ret = get_ctx->iter (get_ctx->iter_cls,
+			 key,
+			 val->size,
+			 (const char *) &val[1],
+			 val->type,
 		       val->discard_time,
-		       key,
-		       val->size,
-		       (const char *) &val[1],
-		       val->type);
-		 
+			 val->path_info_len,
+			 val->path_info);
+  else
+    ret = GNUNET_YES;
   get_ctx->cnt++;
   return ret;
 }
@@ -328,7 +374,8 @@ heap_plugin_del (void *cls)
 						       val));
   plugin->env->delete_notify (plugin->env->cls,
 			      &val->key,
-			      val->size);
+			      val->size + OVERHEAD);
+  GNUNET_free_non_null (val->path_info);
   GNUNET_free (val);
   return GNUNET_OK;
 }

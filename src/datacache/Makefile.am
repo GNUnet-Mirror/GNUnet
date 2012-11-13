@@ -19,9 +19,6 @@ endif
 if HAVE_SQLITE
   SQLITE_PLUGIN = libgnunet_plugin_datacache_sqlite.la
 endif
-if HAVE_MYSQL
-  MYSQL_PLUGIN = libgnunet_plugin_datacache_mysql.la
-endif
 if HAVE_POSTGRES
   POSTGRES_PLUGIN = libgnunet_plugin_datacache_postgres.la
 endif
@@ -42,7 +39,6 @@ libgnunetdatacache_la_LDFLAGS = \
 
 plugin_LTLIBRARIES = \
   $(SQLITE_PLUGIN) \
-  $(MYSQL_PLUGIN) \
   $(POSTGRES_PLUGIN) \
   libgnunet_plugin_datacache_heap.la \
   libgnunet_plugin_datacache_template.la 
@@ -65,18 +61,6 @@ libgnunet_plugin_datacache_heap_la_LIBADD = \
   $(LTLIBINTL)
 libgnunet_plugin_datacache_heap_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
-
-libgnunet_plugin_datacache_mysql_la_SOURCES = \
-  plugin_datacache_mysql.c
-libgnunet_plugin_datacache_mysql_la_LIBADD = \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/mysql/libgnunetmysql.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_PLUGIN_LDFLAGS) $(MYSQL_LDFLAGS) -lmysqlclient
-libgnunet_plugin_datacache_mysql_la_CPPFLAGS = \
- $(MYSQL_CPPFLAGS)
-libgnunet_plugin_datacache_mysql_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS) $(MYSQL_LDFLAGS) -lmysqlclient
 
 libgnunet_plugin_datacache_postgres_la_SOURCES = \
   plugin_datacache_postgres.c
@@ -110,16 +94,14 @@ SQLITE_TESTS = \
  $(SQLITE_BENCHMARKS)
 endif
 
-if HAVE_MYSQL
 if HAVE_BENCHMARKS
- MYSQL_BENCHMARKS = \
-  perf_datacache_mysql
+ HEAP_BENCHMARKS = \
+  perf_datacache_heap
 endif
-MYSQL_TESTS = \
- test_datacache_mysql \
- test_datacache_quota_mysql \
- $(MYSQL_BENCHMARKS)
-endif
+HEAP_TESTS = \
+ test_datacache_heap \
+ test_datacache_quota_heap \
+ $(HEAP_BENCHMARKS)
 
 if HAVE_POSTGRES
 if HAVE_BENCHMARKS
@@ -134,7 +116,7 @@ endif
 
 check_PROGRAMS = \
  $(SQLITE_TESTS) \
- $(MYSQL_TESTS) \
+ $(HEAP_TESTS) \
  $(POSTGRES_TESTS) 
 
 if ENABLE_TEST_RUN
@@ -162,23 +144,23 @@ perf_datacache_sqlite_LDADD = \
  $(top_builddir)/src/datacache/libgnunetdatacache.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
-test_datacache_mysql_SOURCES = \
+test_datacache_heap_SOURCES = \
  test_datacache.c
-test_datacache_mysql_LDADD = \
+test_datacache_heap_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/datacache/libgnunetdatacache.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
-test_datacache_quota_mysql_SOURCES = \
+test_datacache_quota_heap_SOURCES = \
  test_datacache_quota.c
-test_datacache_quota_mysql_LDADD = \
+test_datacache_quota_heap_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/datacache/libgnunetdatacache.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
-perf_datacache_mysql_SOURCES = \
+perf_datacache_heap_SOURCES = \
  perf_datacache.c
-perf_datacache_mysql_LDADD = \
+perf_datacache_heap_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/datacache/libgnunetdatacache.la \
  $(top_builddir)/src/util/libgnunetutil.la  
@@ -207,7 +189,7 @@ perf_datacache_postgres_LDADD = \
 EXTRA_DIST = \
  test_datacache_data_sqlite.conf \
  perf_datacache_data_sqlite.conf \
- test_datacache_data_mysql.conf \
- perf_datacache_data_mysql.conf \
+ test_datacache_data_heap.conf \
+ perf_datacache_data_heap.conf \
  test_datacache_data_postgres.conf \
  perf_datacache_data_postgres.conf

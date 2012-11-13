@@ -38,9 +38,13 @@ static const char *plugin_name;
 
 
 static int
-checkIt (void *cls, struct GNUNET_TIME_Absolute exp,
-         const struct GNUNET_HashCode * key, size_t size, const char *data,
-         enum GNUNET_BLOCK_Type type)
+checkIt (void *cls, 
+         const struct GNUNET_HashCode *key, 
+	 size_t size, const char *data,
+         enum GNUNET_BLOCK_Type type,
+	 struct GNUNET_TIME_Absolute exp,
+	 unsigned int path_len,
+	 const struct GNUNET_PeerIdentity *path)
 {
   if (size != sizeof (struct GNUNET_HashCode))
   {
@@ -83,7 +87,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_CRYPTO_hash (&k, sizeof (struct GNUNET_HashCode), &n);
     ASSERT (GNUNET_OK ==
             GNUNET_DATACACHE_put (h, &k, sizeof (struct GNUNET_HashCode),
-                                  (const char *) &n, 1 + i % 16, exp));
+                                  (const char *) &n, 1 + i % 16, exp, 
+				  0, NULL));
     k = n;
   }
   memset (&k, 0, sizeof (struct GNUNET_HashCode));
@@ -99,7 +104,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   ASSERT (GNUNET_OK ==
           GNUNET_DATACACHE_put (h, &k, sizeof (struct GNUNET_HashCode),
                                 (const char *) &n, 792,
-                                GNUNET_TIME_UNIT_FOREVER_ABS));
+                                GNUNET_TIME_UNIT_FOREVER_ABS,
+				0, NULL));
   ASSERT (0 != GNUNET_DATACACHE_get (h, &k, 792, &checkIt, &n));
 
   GNUNET_DATACACHE_destroy (h);

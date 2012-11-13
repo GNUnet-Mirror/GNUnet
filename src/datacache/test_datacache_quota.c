@@ -73,7 +73,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     {
       exp.abs_value++;
       buf[j] = i;
-      ASSERT (GNUNET_OK == GNUNET_DATACACHE_put (h, &k, j, buf, 1 + i, exp));
+      ASSERT (GNUNET_OK == GNUNET_DATACACHE_put (h, &k, j, buf, 1 + i, exp, 0, NULL));
       ASSERT (0 < GNUNET_DATACACHE_get (h, &k, 1 + i, NULL, NULL));
     }
     k = n;

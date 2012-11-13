@@ -233,21 +233,33 @@ GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h)
  * @param data data to store
  * @param type type of the value
  * @param discard_time when to discard the value in any case
- * @return GNUNET_OK on success, GNUNET_SYSERR on error (full, etc.)
+ * @param path_info_len number of entries in 'path_info'
+ * @param path_info a path through the network
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error, GNUNET_NO if duplicate
  */
 int
 GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
                       const struct GNUNET_HashCode * key, size_t size,
                       const char *data, enum GNUNET_BLOCK_Type type,
-                      struct GNUNET_TIME_Absolute discard_time)
+                      struct GNUNET_TIME_Absolute discard_time,
+		      unsigned int path_info_len,
+		      const struct GNUNET_PeerIdentity *path_info)
 {
-  uint32_t used;
+  ssize_t used;
 
-  used = h->api->put (h->api->cls, key, size, data, type, discard_time);
+  used = h->api->put (h->api->cls, key, 
+		      size, data, 
+		      type, discard_time,
+		      path_info_len, path_info);
+  if (-1 == used)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   if (0 == used)
   {
-    /* error or duplicate */
-    return GNUNET_SYSERR;
+    /* duplicate */
+    return GNUNET_NO;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Stored data under key `%s' in cache\n",
        GNUNET_h2s (key));

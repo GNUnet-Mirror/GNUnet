@@ -49,15 +49,19 @@ struct Plugin
  * @param data data to store
  * @param type type of the value
  * @param discard_time when to discard the value in any case
- * @return 0 on error, number of bytes used otherwise
+ * @param path_info_len number of entries in 'path_info'
+ * @param path_info a path through the network
+ * @return 0 if duplicate, -1 on error, number of bytes used otherwise
  */
-static size_t
+static ssize_t
 template_plugin_put (void *cls, const struct GNUNET_HashCode * key, size_t size,
                      const char *data, enum GNUNET_BLOCK_Type type,
-                     struct GNUNET_TIME_Absolute discard_time)
+                     struct GNUNET_TIME_Absolute discard_time,
+		     unsigned int path_info_len,
+		     const struct GNUNET_PeerIdentity *path_info)
 {
   GNUNET_break (0);
-  return 0;
+  return -1;
 }
 
 
