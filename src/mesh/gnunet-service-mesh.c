@@ -6516,6 +6516,10 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got regex results from DHT!\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  for %s\n", info->description);
+  GNUNET_STATISTICS_update (stats, "# regex accepting blocks found",
+                            1, GNUNET_NO);
+  GNUNET_STATISTICS_update (stats, "# regex accepting block bytes found",
+                            size, GNUNET_NO);
 
   peer_info = peer_info_get(&block->id);
 //   p = path_build_from_dht (get_path, get_path_length, put_path,
@@ -6584,7 +6588,6 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                             1, GNUNET_NO);
   GNUNET_STATISTICS_update (stats, "# regex block bytes found",
                             size, GNUNET_NO);
-  
 
   copy = GNUNET_malloc (size);
   memcpy (copy, data, size);
