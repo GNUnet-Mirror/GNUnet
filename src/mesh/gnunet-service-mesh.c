@@ -1772,6 +1772,10 @@ regex_iterator (void *cls,
         size = sizeof (block);
         block.key = *key;
         block.id = my_full_id;
+        GNUNET_STATISTICS_update (stats, "# regex accepting blocks stored",
+                                  1, GNUNET_NO);
+        GNUNET_STATISTICS_update (stats, "# regex accepting block bytes stored",
+                                  sizeof (block), GNUNET_NO);
         (void)
         GNUNET_DHT_put(dht_handle, key,
                        dht_replication_level,
@@ -1830,6 +1834,11 @@ regex_iterator (void *cls,
                    GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS), /* FIXME: this should be an option */
                    app_announce_time,
                    NULL, NULL);
+    GNUNET_STATISTICS_update (stats, "# regex blocks stored",
+                              1, GNUNET_NO);
+    GNUNET_STATISTICS_update (stats, "# regex block bytes stored",
+                              size, GNUNET_NO);
+    
     GNUNET_free (block);
 }
 
@@ -6502,7 +6511,7 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   const struct MeshRegexAccept *block = data;
   struct MeshRegexSearchContext *ctx = cls;
   struct MeshRegexSearchInfo *info = ctx->info;
-  struct MeshPeerPath *p;
+//   struct MeshPeerPath *p;
   struct MeshPeerInfo *peer_info;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got regex results from DHT!\n");
