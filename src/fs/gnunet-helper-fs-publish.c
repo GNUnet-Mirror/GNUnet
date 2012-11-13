@@ -448,9 +448,6 @@ int main(int argc,
    * binary mode.
    */
   _setmode (1, _O_BINARY);
-  /* Get utf-8-encoded arguments */
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
-    return 5;
 #else
   ignore_sigpipe ();
 #endif
@@ -461,7 +458,6 @@ int main(int argc,
     FPRINTF (stderr, 
 	     "%s",
 	     "gnunet-helper-fs-publish needs exactly one or two arguments\n");
-    GNUNET_free ((void*) argv);
     return 1;
   }
   filename_expanded = argv[1];
@@ -481,7 +477,6 @@ int main(int argc,
   {
     (void) write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_ERROR, NULL, 0);
     EXTRACTOR_plugin_remove_all (plugins);
-    GNUNET_free ((void*) argv);
     return 2;
   }
   /* signal that we're done counting files, so that a percentage of 
@@ -490,7 +485,6 @@ int main(int argc,
       write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_COUNTING_DONE, NULL, 0))
   {
     EXTRACTOR_plugin_remove_all (plugins);
-    GNUNET_free ((void*) argv);
     return 3;  
   }
   if (NULL != root)
@@ -501,7 +495,6 @@ int main(int argc,
       (void) write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_ERROR, NULL, 0);
       free_tree (root);
       EXTRACTOR_plugin_remove_all (plugins);
-      GNUNET_free ((void*) argv);
       return 4;
     }
     free_tree (root);
@@ -509,7 +502,6 @@ int main(int argc,
   /* enable "clean" shutdown by telling parent that we are done */
   (void) write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_FINISHED, NULL, 0);
   EXTRACTOR_plugin_remove_all (plugins);
-  GNUNET_free ((void*) argv);  
   return 0;
 }
 
