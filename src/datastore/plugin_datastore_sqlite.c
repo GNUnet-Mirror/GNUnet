@@ -1082,9 +1082,11 @@ sqlite_plugin_get_keys (void *cls,
   }
   while (SQLITE_ROW == (ret = sqlite3_step (stmt)))
   {
-    key = sqlite3_column_blob (stmt, 1);
-    if (sizeof (struct GNUNET_HashCode) == sqlite3_column_bytes (stmt, 1))
+    key = sqlite3_column_blob (stmt, 0);
+    if (sizeof (struct GNUNET_HashCode) == sqlite3_column_bytes (stmt, 0))
       proc (proc_cls, key, 1);
+    else
+      GNUNET_break (0);
   }
   if (SQLITE_DONE != ret)
     LOG_SQLITE (plugin, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");
