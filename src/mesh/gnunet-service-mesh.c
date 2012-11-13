@@ -6580,6 +6580,12 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "  key: %s\n", GNUNET_h2s (key));
 
+  GNUNET_STATISTICS_update (stats, "# regex blocks found",
+                            1, GNUNET_NO);
+  GNUNET_STATISTICS_update (stats, "# regex block bytes found",
+                            size, GNUNET_NO);
+  
+
   copy = GNUNET_malloc (size);
   memcpy (copy, data, size);
   GNUNET_break (GNUNET_OK ==
