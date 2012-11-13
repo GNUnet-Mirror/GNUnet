@@ -86,14 +86,24 @@ struct GNUNET_REGEX_Transition
 struct GNUNET_REGEX_State
 {
   /**
-   * This is a linked list.
+   * This is a linked list to keep states in an automaton.
    */
   struct GNUNET_REGEX_State *prev;
 
   /**
-   * This is a linked list.
+   * This is a linked list to keep states in an automaton.
    */
   struct GNUNET_REGEX_State *next;
+
+  /**
+   * This is a multi DLL for StateSet_p.
+   */
+  struct GNUNET_REGEX_State *prev_SS;
+
+  /**
+   * This is a multi DLL for StateSet_p.
+   */
+  struct GNUNET_REGEX_State *next_SS;
 
   /**
    * Unique state id.
