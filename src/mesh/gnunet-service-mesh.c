@@ -1556,8 +1556,8 @@ regex_find_path (const struct GNUNET_HashCode *key,
                                 GNUNET_BLOCK_TYPE_MESH_REGEX_ACCEPT, /* type */
                                 key,     /* key to search */
                                 dht_replication_level, /* replication level */
-                                GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE |
-                                GNUNET_DHT_RO_RECORD_ROUTE,
+                                GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE/* |
+                                GNUNET_DHT_RO_RECORD_ROUTE*/,
                                 NULL, /* xquery */
                                 // FIXME add BLOOMFILTER to exclude filtered peers
                                 0,     /* xquery bits */
@@ -1775,7 +1775,7 @@ regex_iterator (void *cls,
         (void)
         GNUNET_DHT_put(dht_handle, key,
                        dht_replication_level,
-                       opt | GNUNET_DHT_RO_RECORD_ROUTE,
+                       opt/* | GNUNET_DHT_RO_RECORD_ROUTE*/,
                        GNUNET_BLOCK_TYPE_MESH_REGEX_ACCEPT,
                        size,
                        (char *) &block,
@@ -5187,8 +5187,9 @@ queue_send (void *cls, size_t size, void *buf)
                     GNUNET_i2s(&my_full_id));
         if (NULL == cinfo)
           cinfo = tunnel_get_neighbor_fc (t, &dst_id);
-        cinfo->fc_poll = GNUNET_SCHEDULER_add_delayed(MESH_POLL_TIME,
-                                                      &tunnel_poll, cinfo);
+        if (GNUNET_SCHEDULER_NO_TASK == cinfo->fc_poll)
+          cinfo->fc_poll = GNUNET_SCHEDULER_add_delayed(MESH_POLL_TIME,
+                                                        &tunnel_poll, cinfo);
       }
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   return %d\n", data_size);
@@ -6508,10 +6509,10 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  for %s\n", info->description);
 
   peer_info = peer_info_get(&block->id);
-  p = path_build_from_dht (get_path, get_path_length, put_path,
-                           put_path_length);
-  path_add_to_peers (p, GNUNET_NO);
-  path_destroy(p);
+//   p = path_build_from_dht (get_path, get_path_length, put_path,
+//                            put_path_length);
+//   path_add_to_peers (p, GNUNET_NO);
+//   path_destroy(p);
 
   tunnel_add_peer (info->t, peer_info);
   peer_info_connect (peer_info, info->t);
