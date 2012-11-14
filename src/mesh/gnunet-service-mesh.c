@@ -8471,8 +8471,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _
                 ("%s service is lacking key configuration settings (%s). Using default (%u).\n"),
-                "mesh", "dht replication level", 10);
-    dht_replication_level = 10;
+                "mesh", "dht replication level", 3);
+    dht_replication_level = 3;
   }
 
   tunnels = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
