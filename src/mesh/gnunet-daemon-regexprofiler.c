@@ -72,22 +72,6 @@ static char * policy_filename;
 static char * regex_prefix;
 
 /**
- * Time to wait between announcing regexes.
- */
-static struct GNUNET_TIME_Relative announce_delay = { 500 };
-
-/**
- * Regexes to announce read from 'policy_filename'.
- */
-static char **regexes;
-
-/**
- * Number of regexes read from 'policy_filename'.
- */
-static unsigned int num_regexes;
-
-
-/**
  * Task run during shutdown.
  *
  * @param cls unused
@@ -136,28 +120,6 @@ announce_regex (const char * regex)
 
 
 /**
- * Task run to iterate over all policies and announce them using mesh.
- *
- * @param cls unused
- * @param tc unused
- */
-static void
-do_announce_policies (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  static unsigned int num_rx_announced;
-
-  announce_regex (regexes[num_rx_announced]);
-
-  if (++num_rx_announced < num_regexes)
-  {
-    GNUNET_SCHEDULER_add_delayed (announce_delay, &do_announce_policies, NULL);
-    return;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "All regexes announced.\n");
-}
-
-/**
  * Load regular expressions from filename into 'rxes' array. Array needs to be freed.
  *
  * @param filename filename of the file containing the regexes, one per line.
@@ -165,14 +127,13 @@ do_announce_policies (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return number of regular expressions read from filename and in rxes array.
  */
 static unsigned int
-load_regexes (const char *filename, char ***rxes)
+load_regexes (const char *filename, char **rx)
 {
   char *data;
   char *buf;
   uint64_t filesize;
   unsigned int offset;
   unsigned int rx_cnt;
-  unsigned int i;
 
   if (GNUNET_YES != GNUNET_DISK_file_test (policy_filename))
   {
@@ -203,22 +164,16 @@ load_regexes (const char *filename, char ***rxes)
     offset++;
     if (((data[offset] == '\n')) && (buf != &data[offset]))
     {
-      data[offset] = '\0';
-      rx_cnt++;
+      data[offset] = '|';
       buf = &data[offset + 1];
+      rx_cnt++;
     }
     else if ((data[offset] == '\n') || (data[offset] == '\0'))
       buf = &data[offset + 1];
   }
-  *rxes = GNUNET_malloc (sizeof (char *) * rx_cnt);
-  offset = 0;
-  for (i = 0; i < rx_cnt; i++)
-  {
-    GNUNET_asprintf (&(*rxes)[i], "%s%s", regex_prefix, &data[offset]);
-    offset += strlen (&data[offset]) + 1;
-  }
-  GNUNET_free (data);
-
+  data[offset] = '\0';
+  *rx = data;
+  
   return rx_cnt;
 }
 
@@ -236,6 +191,8 @@ run (void *cls, char *const *args GNUNET_UNUSED,
      const char *cfgfile GNUNET_UNUSED,
      const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
+  char *regex = NULL;
+  char *rx_with_pfx;
   const GNUNET_MESH_ApplicationType app = (GNUNET_MESH_ApplicationType)0;
   static struct GNUNET_MESH_MessageHandler handlers[] = {
     {NULL, 0, 0}
@@ -282,17 +239,6 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     return;
   }
 
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (cfg, "REGEXPROFILER", "ANNOUNCE_DELAY",
-                                           &announce_delay))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("%s service is lacking key configuration settings (%s).  Using default value: %s.\n"),
-                "regexprofiler", "announce_delay",
-                GNUNET_STRINGS_relative_time_to_string (announce_delay, GNUNET_NO));
-  }
-
   stats_handle = GNUNET_STATISTICS_create ("regexprofiler", cfg);
 
   mesh_handle =
@@ -307,7 +253,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   }
 
   /* Read regexes from policy files */
-  if ((num_regexes = load_regexes (policy_filename, &regexes)) == 0)
+  if (0 == load_regexes (policy_filename, &regex))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Policy file %s contains no policies. Exiting.\n",
@@ -318,7 +264,10 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   }
 
   /* Announcing regexes from policy_filename */
-  GNUNET_SCHEDULER_add_delayed (announce_delay, &do_announce_policies, NULL);
+  GNUNET_asprintf (&rx_with_pfx, "%s(%s)", regex_prefix, regex);
+  announce_regex (rx_with_pfx);  
+  GNUNET_free (rx_with_pfx);
+  GNUNET_free (regex);
 
   /* Scheduled the task to clean up when shutdown is called */
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
