@@ -100,7 +100,10 @@ GNUNET_MESH_regex_block_check (const struct MeshRegexBlock *block,
   int res;
   struct mesh_block_xquery_ctx ctx;
 
-  if ( (GNUNET_YES == ntohl(block->accepting)) && (xquery[0] == '\0') )
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "* Checking block with xquery \"%s\"\n",
+                xquery);
+  if ( (GNUNET_YES == ntohl(block->accepting)) && ('\0' == xquery[0]) )
     return GNUNET_OK;
   ctx.xquery = xquery;
   ctx.found = GNUNET_NO;
