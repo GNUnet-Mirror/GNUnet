@@ -183,15 +183,14 @@ put_cb (void *cls,
     GNUNET_CONTAINER_heap_update_cost (put_ctx->heap,
 				       val->hn,
 				       val->discard_time.abs_value);
-    return GNUNET_NO;
-  }
-  if (val->type == put_ctx->type)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Got another value for key %s and type %d (size %u vs %u)\n",
+		"Got same value for key %s and type %d (size %u vs %u)\n",
 		GNUNET_h2s (key),
 		val->type,
 		(unsigned int) val->size,
 		(unsigned int) put_ctx->size);
+    return GNUNET_NO;
+  }
   return GNUNET_YES;
 }
 
