@@ -406,6 +406,7 @@ GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
   recent_req->type = type;
   recent_req->options = options;
   recent_req->xquery = &recent_req[1];
+  memcpy (&recent_req[1], xquery, xquery_size);
   recent_req->xquery_size = xquery_size;
   recent_req->reply_bf_mutator = reply_bf_mutator;
   if (GNUNET_SYSERR ==

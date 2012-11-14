@@ -1860,7 +1860,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
     fprintf (stderr, "XDHT GET %s: %s(%u)<-%s\n", 
 	     GNUNET_h2s (&get->key), tmp, getpid(),
 	     GNUNET_i2s (peer));
-    GNUNET_free (tmp);										       
+    GNUNET_free (tmp);
   }
 
 
