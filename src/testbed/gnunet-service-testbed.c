@@ -660,11 +660,6 @@ struct RequestOverlayConnectContext
   struct RequestOverlayConnectContext *prev;
 
   /**
-   * The transport handle of peer B
-   */
-  struct GNUNET_TRANSPORT_Handle *th;
-
-  /**
    * The peer handle of peer B
    */
   struct Peer *peer;
@@ -680,9 +675,9 @@ struct RequestOverlayConnectContext
   struct GNUNET_TRANSPORT_OfferHelloHandle *ohh;
 
   /**
-   * The handle for transport try connect
+   * The transport try connect context
    */
-  struct GNUNET_TRANSPORT_TryConnectHandle *tch;
+  struct TryConnectContext tcc;
 
   /**
    * The peer identity of peer A
@@ -3556,11 +3551,13 @@ cleanup_rocc (struct RequestOverlayConnectContext *rocc)
     GNUNET_SCHEDULER_cancel (rocc->attempt_connect_task_id);
   if (GNUNET_SCHEDULER_NO_TASK != rocc->timeout_rocc_task_id)
     GNUNET_SCHEDULER_cancel (rocc->timeout_rocc_task_id);
-  if (NULL != rocc->tch)
-    GNUNET_TRANSPORT_try_connect_cancel (rocc->tch);
   if (NULL != rocc->ohh)
     GNUNET_TRANSPORT_offer_hello_cancel (rocc->ohh);
-  GNUNET_TRANSPORT_disconnect (rocc->th);
+  if (NULL != rocc->tcc.tch)
+    GNUNET_TRANSPORT_try_connect_cancel (rocc->tcc.tch);
+  if (GNUNET_SCHEDULER_NO_TASK != rocc->tcc.task)
+    GNUNET_SCHEDULER_cancel (rocc->tcc.task);
+  GNUNET_TRANSPORT_disconnect (rocc->tcc.th);
   rocc->peer->reference_cnt--;
   if ((GNUNET_YES == rocc->peer->destroy_flag)
       && (0 == rocc->peer->reference_cnt))
@@ -3612,24 +3609,6 @@ transport_connect_notify (void *cls, const struct GNUNET_PeerIdentity *new_peer,
 
 
 /**
- * Callback to be called with result of the try connect request.
- *
- * @param cls the overlay connect context
- * @param result GNUNET_OK if message was transmitted to transport service
- *               GNUNET_SYSERR if message was not transmitted to transport service
- */
-static void 
-rocc_try_connect_cb (void *cls, const int result)
-{
-  struct RequestOverlayConnectContext *rocc = cls;
-  
-  rocc->tch = NULL;
-  rocc->tch = GNUNET_TRANSPORT_try_connect (rocc->th, &rocc->a_id,
-                                            &rocc_try_connect_cb, rocc);
-}
-
-
-/**
  * Task to offer the HELLO message to the peer and ask it to connect to the peer
  * whose identity is in RequestOverlayConnectContext
  *
@@ -3656,19 +3635,16 @@ rocc_hello_sent_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   rocc->ohh = NULL;
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == rocc->attempt_connect_task_id);
   if (GNUNET_SCHEDULER_REASON_TIMEOUT == tc->reason)
-    goto schedule_attempt_connect;
+  {
+    GNUNET_break (0);
+    rocc->attempt_connect_task_id =
+        GNUNET_SCHEDULER_add_now (&attempt_connect_task,
+                                  rocc);
+    return;
+  }
   if (GNUNET_SCHEDULER_REASON_READ_READY != tc->reason)
     return;
-  rocc->tch = GNUNET_TRANSPORT_try_connect (rocc->th, &rocc->a_id,
-                                            &rocc_try_connect_cb, rocc);
-  if (NULL != rocc->tch)
-    return;
-   GNUNET_break (0);
-   
- schedule_attempt_connect:
-   rocc->attempt_connect_task_id =
-       GNUNET_SCHEDULER_add_now (&attempt_connect_task,
-                                 rocc);
+  rocc->tcc.task = GNUNET_SCHEDULER_add_now (&try_connect_task, &rocc->tcc);
 }
 
 
@@ -3685,7 +3661,7 @@ attempt_connect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct RequestOverlayConnectContext *rocc = cls;
 
   rocc->attempt_connect_task_id = GNUNET_SCHEDULER_NO_TASK;
-  rocc->ohh = GNUNET_TRANSPORT_offer_hello (rocc->th, rocc->hello,
+  rocc->ohh = GNUNET_TRANSPORT_offer_hello (rocc->tcc.th, rocc->hello,
                                             rocc_hello_sent_cb, rocc);
   if (NULL == rocc->ohh)
     rocc->attempt_connect_task_id = 
@@ -3757,9 +3733,9 @@ handle_overlay_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_CONTAINER_DLL_insert_tail (roccq_head, roccq_tail, rocc);
   rocc->peer = peer;
   rocc->peer->reference_cnt++;
-  rocc->th = GNUNET_TRANSPORT_connect (rocc->peer->details.local.cfg, NULL, rocc,
-                                       NULL, &transport_connect_notify, NULL);
-  if (NULL == rocc->th)
+  rocc->tcc.th = GNUNET_TRANSPORT_connect (rocc->peer->details.local.cfg, NULL, rocc,
+                                           NULL, &transport_connect_notify, NULL);
+  if (NULL == rocc->tcc.th)
   {
     GNUNET_break (0);
     GNUNET_free (rocc);
@@ -3768,6 +3744,7 @@ handle_overlay_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
   }
   memcpy (&rocc->a_id, &msg->peer_identity,
           sizeof (struct GNUNET_PeerIdentity));
+  rocc->tcc.pid = &rocc->a_id;
   rocc->hello = GNUNET_malloc (hsize);
   memcpy (rocc->hello, msg->hello, hsize);
   rocc->attempt_connect_task_id =
