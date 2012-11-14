@@ -94,6 +94,11 @@
  */
 #define GET_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 2)
 
+/**
+ * Should routing details be logged to stderr (for debugging)?
+ */
+#define LOG_ROUTE_DETAILS_STDERR GNUNET_NO
+
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
@@ -816,7 +821,7 @@ process_peer_queue (struct PeerInfo *peer)
     return;
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop
-                            ("# Bytes of bandwdith requested from core"),
+                            ("# Bytes of bandwidth requested from core"),
                             ntohs (pending->msg->size), GNUNET_NO);
   peer->th =
       GNUNET_CORE_notify_transmit_ready (coreAPI, GNUNET_YES,
@@ -1090,19 +1095,16 @@ select_peer (const struct GNUNET_HashCode * key,
   count = 0;
   for (bc = 0; bc <= closest_bucket; bc++)
   {
-    pos = k_buckets[bc].head;
-    while ((pos != NULL) && (count < bucket_size))
+    for (pos = k_buckets[bc].head; ((pos != NULL) && (count < bucket_size)); pos = pos->next)
     {
       if ((bloom != NULL) &&
           (GNUNET_YES ==
            GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey)))
       {
-        pos = pos->next;
         continue;               /* Ignore bloomfiltered peers */
       }
       if (0 == selected--)
         return pos;
-      pos = pos->next;
     }
   }
   GNUNET_break (0);
@@ -1124,7 +1126,7 @@ select_peer (const struct GNUNET_HashCode * key,
  * @return number of peers returned in 'targets'.
  */
 static unsigned int
-get_target_peers (const struct GNUNET_HashCode * key,
+get_target_peers (const struct GNUNET_HashCode *key,
                   struct GNUNET_CONTAINER_BloomFilter *bloom,
                   uint32_t hop_count, uint32_t target_replication,
                   struct PeerInfo ***targets)
@@ -1135,7 +1137,7 @@ get_target_peers (const struct GNUNET_HashCode * key,
   struct PeerInfo *nxt;
 
   GNUNET_assert (NULL != bloom);
-  ret = get_forward_count (hop_count, target_replication);
+  ret = get_forward_count (hop_count, target_replication);  
   if (ret == 0)
   {
     *targets = NULL;
@@ -1164,6 +1166,11 @@ get_target_peers (const struct GNUNET_HashCode * key,
     return 0;
   }
   *targets = rtargets;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Forwarding query `%s' to %u peers (goal was %u peers)\n",
+	      GNUNET_h2s (key), 
+	      off,
+	      ret);
   return off;
 }
 
@@ -1585,6 +1592,17 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "PUT for `%s' from %s\n",
               GNUNET_h2s (&put->key), GNUNET_i2s (peer));
+
+  if (LOG_ROUTE_DETAILS_STDERR)
+  {
+    char *tmp;
+    
+    tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
+    fprintf (stderr, "XDHT PUT %s: %s<-%s\n", GNUNET_h2s (&put->key), tmp, GNUNET_i2s (peer));
+    GNUNET_free (tmp);										       
+  }
+
+
   bf = GNUNET_CONTAINER_bloomfilter_init (put->bloomfilter, DHT_BLOOM_SIZE,
                                           GNUNET_CONSTANTS_BLOOMFILTER_K);
   GNUNET_break_op (GNUNET_YES ==
@@ -1832,6 +1850,17 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
                               1, GNUNET_NO);
   }
 
+  if (LOG_ROUTE_DETAILS_STDERR)
+  {
+    char *tmp;
+    
+    tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
+    fprintf (stderr, "XDHT GET %s: %s<-%s\n", GNUNET_h2s (&get->key), tmp, GNUNET_i2s (peer));
+    GNUNET_free (tmp);										       
+  }
+
+
+
   /* FIXME Path */
   GDS_CLIENTS_process_get (options,
                            type,
@@ -1952,6 +1981,16 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
         }
       }
     }
+  }
+
+
+  if (LOG_ROUTE_DETAILS_STDERR)
+  {
+    char *tmp;
+    
+    tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
+    fprintf (stderr, "XDHT RESULT %s: %s<-%s\n", GNUNET_h2s (&prm->key), tmp, GNUNET_i2s (peer));
+    GNUNET_free (tmp);										       
   }
 
   /* append 'peer' to 'get_path' */
