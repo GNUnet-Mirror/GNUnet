@@ -191,6 +191,16 @@ end_badly ()
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Test had timeout while waiting to send data\n");
 
+  int i;
+
+  for (i = 0; i < TOTAL_MSGS; i++)
+  {
+    if (get_bit (bitmap, i) == 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Did not receive message %d\n", i);
+      ok = -1;
+    }
+  }
 
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
