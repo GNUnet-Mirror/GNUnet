@@ -992,23 +992,62 @@ GNUNET_TESTING_peer_start (struct GNUNET_TESTING_Peer *peer)
 
 
 /**
- * Stop the peer. 
+ * Sends SIGTERM to the peer's main process
  *
- * @param peer peer to stop
- * @return GNUNET_OK on success, GNUNET_SYSERR on error (i.e. peer not running)
+ * @param peer the handle to the peer
+ * @return GNUNET_OK if successful; GNUNET_SYSERR if the main process is NULL
+ *           or upon any error while sending SIGTERM
  */
 int
-GNUNET_TESTING_peer_stop (struct GNUNET_TESTING_Peer *peer)
+GNUNET_TESTING_peer_kill (struct GNUNET_TESTING_Peer *peer)
 {
   if (NULL == peer->main_process)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  (void) GNUNET_OS_process_kill (peer->main_process, SIGTERM);
-  GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (peer->main_process));
+  return (0 == GNUNET_OS_process_kill (peer->main_process, SIGTERM)) ?
+      GNUNET_OK : GNUNET_SYSERR;
+}
+
+
+/**
+ * Waits for a peer to terminate. The peer's main process will also be destroyed.
+ *
+ * @param peer the handle to the peer
+ * @return GNUNET_OK if successful; GNUNET_SYSERR if the main process is NULL
+ *           or upon any error while waiting
+ */
+int
+GNUNET_TESTING_peer_wait (struct GNUNET_TESTING_Peer *peer)
+{
+  int ret;
+
+  if (NULL == peer->main_process)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  ret = GNUNET_OS_process_wait (peer->main_process);
   GNUNET_OS_process_destroy (peer->main_process);
   peer->main_process = NULL;
+  return ret;
+}
+
+
+/**
+ * Stop the peer. 
+ *
+ * @param peer peer to stop
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_TESTING_peer_stop (struct GNUNET_TESTING_Peer *peer)
+{
+  if (GNUNET_SYSERR == GNUNET_TESTING_peer_kill (peer))
+    return GNUNET_SYSERR;
+  if (GNUNET_SYSERR == GNUNET_TESTING_peer_wait (peer))
+    return GNUNET_SYSERR;
   return GNUNET_OK;
 }
 

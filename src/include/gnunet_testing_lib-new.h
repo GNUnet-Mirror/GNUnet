@@ -253,6 +253,28 @@ GNUNET_TESTING_peer_destroy (struct GNUNET_TESTING_Peer *peer);
 
 
 /**
+ * Sends SIGTERM to the peer's main process
+ *
+ * @param peer the handle to the peer
+ * @return GNUNET_OK if successful; GNUNET_SYSERR if the main process is NULL
+ *           or upon any error while sending SIGTERM
+ */
+int
+GNUNET_TESTING_peer_kill (struct GNUNET_TESTING_Peer *peer);
+
+
+/**
+ * Waits for a peer to terminate. The peer's main process will also be destroyed.
+ *
+ * @param peer the handle to the peer
+ * @return GNUNET_OK if successful; GNUNET_SYSERR if the main process is NULL
+ *           or upon any error while waiting
+ */
+int
+GNUNET_TESTING_peer_wait (struct GNUNET_TESTING_Peer *peer);
+
+
+/**
  * Signature of the 'main' function for a (single-peer) testcase that
  * is run using 'GNUNET_TESTING_peer_run'.
  * 

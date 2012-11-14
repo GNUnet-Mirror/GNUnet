@@ -3950,11 +3950,18 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
          destroyed by a context which we destroy before */
       GNUNET_break (GNUNET_NO == peer_list[id]->destroy_flag);
       /* counter should be zero as we free all contexts before */
-      GNUNET_break (0 == peer_list[id]->reference_cnt);
+      GNUNET_break (0 == peer_list[id]->reference_cnt);      
+      if ( (GNUNET_NO == peer_list[id]->is_remote)
+           && (GNUNET_YES == peer_list[id]->details.local.is_running))
+        GNUNET_TESTING_peer_kill (peer_list[id]->details.local.peer);
+    }
+  for (id = 0; id < peer_list_size; id++)
+    if (NULL != peer_list[id])
+    {
       if (GNUNET_NO == peer_list[id]->is_remote)
       {
 	if (GNUNET_YES == peer_list[id]->details.local.is_running)
-	  GNUNET_TESTING_peer_stop (peer_list[id]->details.local.peer);
+	  GNUNET_TESTING_peer_wait (peer_list[id]->details.local.peer);
         GNUNET_TESTING_peer_destroy (peer_list[id]->details.local.peer);
         GNUNET_CONFIGURATION_destroy (peer_list[id]->details.local.cfg);
       }
