@@ -81,6 +81,21 @@ GDS_NSE_get ()
 void
 GDS_NSE_init ()
 {
+  unsigned long long hops;
+
+  if ( (GNUNET_YES ==
+	GNUNET_CONFIGURATION_have_value (GDS_cfg,
+					 "dht",
+					 "FORCE_NSE")) &&
+       (GNUNET_OK ==
+	GNUNET_CONFIGURATION_get_value_number (GDS_cfg,
+					       "dht",
+					       "FORCE_NSE",
+					       &hops)) )
+  {
+    log_of_network_size_estimate = (double) hops;
+    return;
+  }
   nse = GNUNET_NSE_connect (GDS_cfg, &update_network_size_estimate, NULL);
 }
 
