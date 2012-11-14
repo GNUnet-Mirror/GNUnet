@@ -343,11 +343,6 @@ static struct GNUNET_TIME_Relative search_timeout = { 60000 };
 static struct GNUNET_TIME_Relative search_delay = { 60000 };
 
 /**
- * Delay to wait before starting to configure the overlay topology
- */
-static struct GNUNET_TIME_Relative conf_topo_delay = { 10000 };
-
-/**
  * File to log statistics to.
  */
 static struct GNUNET_DISK_FileHandle *data_file;
@@ -1168,16 +1163,8 @@ peer_churn_cb (void *cls, const char *emsg)
     for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
       peer_handles[peer_cnt] = peers[peer_cnt].peer_handle;
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Waiting %s before starting to link peers\n",
-                GNUNET_STRINGS_relative_time_to_string (conf_topo_delay, GNUNET_YES));
-
-    printf ("Waiting %s before starting to link peers\n",
-            GNUNET_STRINGS_relative_time_to_string (conf_topo_delay, GNUNET_YES));
-    fflush (stdout);
-
     state = STATE_PEERS_LINKING;
-    GNUNET_SCHEDULER_add_delayed (conf_topo_delay, &do_configure_topology, NULL);
+    GNUNET_SCHEDULER_add_now (&do_configure_topology, NULL);
   }
 }
 
