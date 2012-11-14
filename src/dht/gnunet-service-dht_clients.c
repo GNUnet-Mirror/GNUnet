@@ -1113,7 +1113,7 @@ forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
  */
 void
 GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
-                          const struct GNUNET_HashCode * key,
+                          const struct GNUNET_HashCode *key,
                           unsigned int get_path_length,
                           const struct GNUNET_PeerIdentity *get_path,
                           unsigned int put_path_length,
@@ -1144,8 +1144,7 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
                 _("Could not pass reply to client, message too big!\n"));
     return;
   }
-  pm = (struct PendingMessage *) GNUNET_malloc (msize +
-                                                sizeof (struct PendingMessage));
+  pm = GNUNET_malloc (msize + sizeof (struct PendingMessage));
   reply = (struct GNUNET_DHT_ClientResultMessage *) &pm[1];
   pm->msg = &reply->header;
   reply->header.size = htons ((uint16_t) msize);
@@ -1231,7 +1230,7 @@ GDS_CLIENTS_process_get (uint32_t options,
       msize = path_length * sizeof (struct GNUNET_PeerIdentity);
       msize += sizeof (struct GNUNET_DHT_MonitorGetMessage);
       msize += sizeof (struct PendingMessage);
-      pm = (struct PendingMessage *) GNUNET_malloc (msize);
+      pm = GNUNET_malloc (msize);
       mmsg = (struct GNUNET_DHT_MonitorGetMessage *) &pm[1];
       pm->msg = &mmsg->header;
       mmsg->header.size = htons (msize - sizeof (struct PendingMessage));
@@ -1309,7 +1308,7 @@ GDS_CLIENTS_process_get_resp (enum GNUNET_BLOCK_Type type,
                * sizeof (struct GNUNET_PeerIdentity);
       msize += sizeof (struct GNUNET_DHT_MonitorGetRespMessage);
       msize += sizeof (struct PendingMessage);
-      pm = (struct PendingMessage *) GNUNET_malloc (msize);
+      pm = GNUNET_malloc (msize);
       mmsg = (struct GNUNET_DHT_MonitorGetRespMessage *) &pm[1];
       pm->msg = (struct GNUNET_MessageHeader *) mmsg;
       mmsg->header.size = htons (msize - sizeof (struct PendingMessage));
@@ -1395,7 +1394,7 @@ GDS_CLIENTS_process_put (uint32_t options,
       msize += path_length * sizeof (struct GNUNET_PeerIdentity);
       msize += sizeof (struct GNUNET_DHT_MonitorPutMessage);
       msize += sizeof (struct PendingMessage);
-      pm = (struct PendingMessage *) GNUNET_malloc (msize);
+      pm = GNUNET_malloc (msize);
       mmsg = (struct GNUNET_DHT_MonitorPutMessage *) &pm[1];
       pm->msg = (struct GNUNET_MessageHeader *) mmsg;
       mmsg->header.size = htons (msize - sizeof (struct PendingMessage));
