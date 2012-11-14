@@ -95,7 +95,9 @@ sq_prepare (sqlite3 * dbh, const char *zSql,    /* SQL statement, UTF-8 encoded 
  * @param data data to store
  * @param type type of the value
  * @param discard_time when to discard the value in any case
-   * @return 0 if duplicate, -1 on error, number of bytes used otherwise
+ * @param path_info_len number of entries in 'path_info'
+ * @param path_info array of peers that have processed the request 
+ * @return 0 if duplicate, -1 on error, number of bytes used otherwise
  */
 static ssize_t
 sqlite_plugin_put (void *cls,
