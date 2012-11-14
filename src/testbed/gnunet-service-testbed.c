@@ -558,11 +558,6 @@ struct OverlayConnectContext
   struct GNUNET_TRANSPORT_Handle *p1th;
 
   /**
-   * Transport handle of other peer to offer first peer's HELLO
-   */
-  struct GNUNET_TRANSPORT_Handle *p2th;
-
-  /**
    * Core handles of the first peer; used to notify when second peer connects to it
    */
   struct GNUNET_CORE_Handle *ch;
@@ -2547,7 +2542,7 @@ handle_peer_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   if (0 == peer->reference_cnt)
     destroy_peer (peer);
   else
-    LOG (GNUNET_ERROR_TYPE_WARNING,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Delaying peer destroy as peer is currently in use\n");
   send_operation_success_msg (client, GNUNET_ntohll (msg->operation_id));
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -2799,9 +2794,9 @@ cleanup_occ (struct OverlayConnectContext *occ)
     GNUNET_TRANSPORT_disconnect (occ->p1th);
     occ->peer->reference_cnt--;
   }
-  if (NULL != occ->p2th)
+  if (NULL != occ->tcc.th)
   {
-    GNUNET_TRANSPORT_disconnect (occ->p2th);
+    GNUNET_TRANSPORT_disconnect (occ->tcc.th);
     peer_list[occ->other_peer_id]->reference_cnt--;
   }
   if ((GNUNET_YES == occ->peer->destroy_flag)
@@ -2904,10 +2899,10 @@ overlay_connect_notify (void *cls, const struct GNUNET_PeerIdentity *new_peer,
   occ->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_free_non_null (occ->emsg);
   occ->emsg = NULL;
-  if (NULL != occ->p2th)
+  if (NULL != occ->tcc.th)
   {
-    GNUNET_TRANSPORT_disconnect (occ->p2th);
-    occ->p2th = NULL;
+    GNUNET_TRANSPORT_disconnect (occ->tcc.th);
+    occ->tcc.th = NULL;
     peer_list[occ->other_peer_id]->reference_cnt--;
   }
   LOG_DEBUG ("Peers connected - Sending overlay connect success\n");
@@ -3015,7 +3010,6 @@ occ_hello_sent_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_free_non_null (occ->emsg);
   occ->emsg = GNUNET_strdup ("Timeout while try connect\n");
   occ->tcc.pid =  &occ->peer_identity;
-  occ->tcc.th = occ->p2th;
   occ->tcc.task = GNUNET_SCHEDULER_add_now (&try_connect_task, &occ->tcc);
 }
 
@@ -3062,7 +3056,7 @@ send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     LOG_DEBUG ("Offering HELLO of %s to %s\n", 
 	       GNUNET_i2s (&occ->peer_identity), other_peer_str);
-    occ->ohh = GNUNET_TRANSPORT_offer_hello (occ->p2th,
+    occ->ohh = GNUNET_TRANSPORT_offer_hello (occ->tcc.th,
                                              occ->hello,
                                              occ_hello_sent_cb,
                                              occ);
@@ -3136,11 +3130,11 @@ hello_update_cb (void *cls, const struct GNUNET_MessageHeader *hello)
   if (NULL == occ->peer2_controller)
   {
     peer_list[occ->other_peer_id]->reference_cnt++;
-    occ->p2th =
+    occ->tcc.th =
 	GNUNET_TRANSPORT_connect (peer_list[occ->other_peer_id]->details.local.cfg,
 				  &occ->other_peer_identity, NULL, NULL, NULL,
 				  NULL);
-    if (NULL == occ->p2th)
+    if (NULL == occ->tcc.th)
     {
       GNUNET_asprintf (&occ->emsg, "Cannot connect to TRANSPORT of %s\n",
 		       GNUNET_i2s (&occ->other_peer_identity));
