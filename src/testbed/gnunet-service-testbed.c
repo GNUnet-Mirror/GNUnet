@@ -2897,14 +2897,13 @@ overlay_connect_notify (void *cls, const struct GNUNET_PeerIdentity *new_peer,
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != occ->timeout_task);
   GNUNET_SCHEDULER_cancel (occ->timeout_task);
   occ->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  if (GNUNET_SCHEDULER_NO_TASK != occ->tcc.task)
+  {
+    GNUNET_SCHEDULER_cancel (occ->tcc.task);
+    occ->tcc.task = GNUNET_SCHEDULER_NO_TASK;
+  }
   GNUNET_free_non_null (occ->emsg);
   occ->emsg = NULL;
-  if (NULL != occ->tcc.th)
-  {
-    GNUNET_TRANSPORT_disconnect (occ->tcc.th);
-    occ->tcc.th = NULL;
-    peer_list[occ->other_peer_id]->reference_cnt--;
-  }
   LOG_DEBUG ("Peers connected - Sending overlay connect success\n");
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ConnectionEventMessage));
   msg->header.size =
