@@ -423,10 +423,7 @@ transmit_request (struct ClientQueryRecord *cqr)
   GNUNET_CONTAINER_bloomfilter_free (peer_bf);
 
   /* exponential back-off for retries, max 1h */
-  cqr->retry_frequency =
-      GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_HOURS,
-                                GNUNET_TIME_relative_multiply
-                                (cqr->retry_frequency, 2));
+  cqr->retry_frequency = GNUNET_TIME_STD_BACKOFF (cqr->retry_frequency);
   cqr->retry_time = GNUNET_TIME_relative_to_absolute (cqr->retry_frequency);
 }
 
@@ -590,7 +587,7 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
   cqr->xquery = (void *) &cqr[1];
   memcpy (&cqr[1], xquery, xquery_size);
   cqr->hnode = GNUNET_CONTAINER_heap_insert (retry_heap, cqr, 0);
-  cqr->retry_frequency = GNUNET_TIME_UNIT_MILLISECONDS;
+  cqr->retry_frequency = GNUNET_TIME_UNIT_SECONDS;
   cqr->retry_time = GNUNET_TIME_absolute_get ();
   cqr->unique_id = get->unique_id;
   cqr->xquery_size = xquery_size;
