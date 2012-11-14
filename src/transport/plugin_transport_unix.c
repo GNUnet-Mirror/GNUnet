@@ -753,7 +753,7 @@ unix_plugin_send (void *cls,
   wrapper->msgsize = ssize;
   wrapper->payload = msgbuf_size;
   wrapper->priority = priority;
-  wrapper->timeout = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), to);
+  wrapper->timeout = GNUNET_TIME_relative_to_absolute (to);
   wrapper->cont = cont;
   wrapper->cont_cls = cont_cls;
   wrapper->session = session;
