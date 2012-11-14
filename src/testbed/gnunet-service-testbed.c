@@ -495,6 +495,39 @@ struct Peer
 
 
 /**
+ * Context information for transport try connect
+ */
+struct TryConnectContext
+{
+  /**
+   * The identity of the peer to which the transport has to attempt a connection
+   */
+  struct GNUNET_PeerIdentity *pid;
+
+  /**
+   * The transport handle
+   */
+  struct GNUNET_TRANSPORT_Handle *th;
+
+  /**
+   * the try connect handle
+   */
+  struct GNUNET_TRANSPORT_TryConnectHandle *tch;
+
+  /**
+   * The task handle
+   */
+  GNUNET_SCHEDULER_TaskIdentifier task;
+
+  /**
+   * The number of times we attempted to connect
+   */
+  unsigned int retries;
+
+};
+
+
+/**
  * Context information for connecting 2 peers in overlay
  */
 struct OverlayConnectContext
@@ -550,11 +583,6 @@ struct OverlayConnectContext
   struct GNUNET_TRANSPORT_OfferHelloHandle *ohh;
 
   /**
-   * The handle for transport try connect
-   */
-  struct GNUNET_TRANSPORT_TryConnectHandle *tch;
-
-  /**
    * The error message we send if this overlay connect operation has timed out
    */
   char *emsg;
@@ -568,6 +596,11 @@ struct OverlayConnectContext
    * Controller of peer 2; NULL if the peer is local
    */
   struct GNUNET_TESTBED_Controller *peer2_controller;
+
+  /**
+   * The transport try connect context
+   */
+  struct TryConnectContext tcc;
 
   /**
    * The peer identity of the first peer
@@ -2752,8 +2785,10 @@ cleanup_occ (struct OverlayConnectContext *occ)
     GNUNET_TRANSPORT_get_hello_cancel (occ->ghh);
   if (NULL != occ->ohh)
     GNUNET_TRANSPORT_offer_hello_cancel (occ->ohh);
-  if (NULL != occ->tch)
-    GNUNET_TRANSPORT_try_connect_cancel (occ->tch);
+  if (GNUNET_SCHEDULER_NO_TASK != occ->tcc.task)
+    GNUNET_SCHEDULER_cancel (occ->tcc.task);
+  if (NULL != occ->tcc.tch)
+    GNUNET_TRANSPORT_try_connect_cancel (occ->tcc.tch);
   if (NULL != occ->p1th)
   {
     GNUNET_TRANSPORT_disconnect (occ->p1th);
@@ -2886,6 +2921,16 @@ overlay_connect_notify (void *cls, const struct GNUNET_PeerIdentity *new_peer,
 
 
 /**
+ * Task to ask transport of a peer to connect to another peer
+ *
+ * @param cls the TryConnectContext
+ * @param tc the scheduler task context
+ */
+static void
+try_connect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
  * Callback to be called with result of the try connect request.
  *
  * @param cls the overlay connect context
@@ -2895,18 +2940,35 @@ overlay_connect_notify (void *cls, const struct GNUNET_PeerIdentity *new_peer,
 static void 
 try_connect_cb (void *cls, const int result)
 {
-  struct OverlayConnectContext *occ = cls;
-  
-  occ->tch = NULL;
-  if (GNUNET_OK == result)
-  {
-    GNUNET_free_non_null (occ->emsg);
-    occ->emsg = GNUNET_strdup ("Waiting for transport to connect");
-    //return; FIXME: should return here
-  }
-  //  GNUNET_break (0);
-  occ->tch = GNUNET_TRANSPORT_try_connect (occ->p2th, &occ->peer_identity,
-                                           &try_connect_cb, occ);
+  struct TryConnectContext *tcc = cls;
+
+  tcc->tch = NULL;
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == tcc->task);
+  tcc->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                            (GNUNET_TIME_UNIT_MILLISECONDS,
+                                             pow (10, ++tcc->retries)),
+                                            &try_connect_task, tcc);
+}
+
+
+/**
+ * Task to ask transport of a peer to connect to another peer
+ *
+ * @param cls the TryConnectContext
+ * @param tc the scheduler task context
+ */
+static void
+try_connect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct TryConnectContext *tcc = cls;
+
+  tcc->task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+    return;
+  GNUNET_assert (NULL == tcc->tch);
+  GNUNET_assert (NULL != tcc->pid);
+  GNUNET_assert (NULL != tcc->th);
+  tcc->tch = GNUNET_TRANSPORT_try_connect (tcc->th, tcc->pid, &try_connect_cb, tcc);
 }
 
 
@@ -2938,23 +3000,18 @@ occ_hello_sent_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == occ->send_hello_task);
   if (GNUNET_SCHEDULER_REASON_TIMEOUT == tc->reason)
   {
-    //GNUNET_break (0);
-    goto schedule_send_hello;
+    GNUNET_free_non_null (occ->emsg);
+    occ->emsg = GNUNET_strdup ("Timeout while offering HELLO to other peer");
+    occ->send_hello_task = GNUNET_SCHEDULER_add_now (&send_hello, occ);
+    return;
   }
   if (GNUNET_SCHEDULER_REASON_READ_READY != tc->reason)
     return;
   GNUNET_free_non_null (occ->emsg);
   occ->emsg = GNUNET_strdup ("Timeout while try connect\n");
-  occ->tch = GNUNET_TRANSPORT_try_connect (occ->p2th, &occ->peer_identity,
-                                           &try_connect_cb, occ);
-  if (NULL != occ->tch)
-    return;
-  GNUNET_break (0);
-
- schedule_send_hello:
-  GNUNET_free_non_null (occ->emsg);
-  occ->emsg = GNUNET_strdup ("Timeout while offering HELLO to other peer");
-  occ->send_hello_task = GNUNET_SCHEDULER_add_now (&send_hello, occ);
+  occ->tcc.pid =  &occ->peer_identity;
+  occ->tcc.th = occ->p2th;
+  occ->tcc.task = GNUNET_SCHEDULER_add_now (&try_connect_task, &occ->tcc);
 }
 
 
