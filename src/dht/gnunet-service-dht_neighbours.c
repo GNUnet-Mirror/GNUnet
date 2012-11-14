@@ -97,7 +97,7 @@
 /**
  * Should routing details be logged to stderr (for debugging)?
  */
-#define LOG_ROUTE_DETAILS_STDERR GNUNET_YES
+#define LOG_ROUTE_DETAILS_STDERR GNUNET_NO
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
