@@ -123,7 +123,7 @@ announce_regex (const char * regex)
  * Load regular expressions from filename into 'rxes' array. Array needs to be freed.
  *
  * @param filename filename of the file containing the regexes, one per line.
- * @param rxes array with all regexes, needs to be freed.
+ * @param rx string with the union of all regular expressions.
  * @return number of regular expressions read from filename and in rxes array.
  */
 static unsigned int
@@ -173,7 +173,7 @@ load_regexes (const char *filename, char **rx)
   }
   data[offset] = '\0';
   *rx = data;
-  
+
   return rx_cnt;
 }
 
@@ -265,7 +265,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
 
   /* Announcing regexes from policy_filename */
   GNUNET_asprintf (&rx_with_pfx, "%s(%s)", regex_prefix, regex);
-  announce_regex (rx_with_pfx);  
+  announce_regex (rx_with_pfx);
   GNUNET_free (rx_with_pfx);
   GNUNET_free (regex);
 
