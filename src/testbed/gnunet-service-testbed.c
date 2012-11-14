@@ -668,6 +668,11 @@ struct RequestOverlayConnectContext
    * The transport handle of peer B
    */
   struct GNUNET_TRANSPORT_Handle *th;
+
+  /**
+   * The peer handle of peer B
+   */
+  struct Peer *peer;
   
   /**
    * Peer A's HELLO
@@ -2902,9 +2907,9 @@ overlay_connect_notify (void *cls, const struct GNUNET_PeerIdentity *new_peer,
   if (NULL != occ->p2th)
   {
     GNUNET_TRANSPORT_disconnect (occ->p2th);
+    occ->p2th = NULL;
     peer_list[occ->other_peer_id]->reference_cnt--;
   }
-  occ->p2th = NULL;
   LOG_DEBUG ("Peers connected - Sending overlay connect success\n");
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ConnectionEventMessage));
   msg->header.size =
@@ -3553,15 +3558,20 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
 static void
 cleanup_rocc (struct RequestOverlayConnectContext *rocc)
 {
+  LOG_DEBUG ("Cleaning up rocc\n");
   if (GNUNET_SCHEDULER_NO_TASK != rocc->attempt_connect_task_id)
     GNUNET_SCHEDULER_cancel (rocc->attempt_connect_task_id);
   if (GNUNET_SCHEDULER_NO_TASK != rocc->timeout_rocc_task_id)
     GNUNET_SCHEDULER_cancel (rocc->timeout_rocc_task_id);
-  GNUNET_TRANSPORT_disconnect (rocc->th);
   if (NULL != rocc->tch)
     GNUNET_TRANSPORT_try_connect_cancel (rocc->tch);
   if (NULL != rocc->ohh)
     GNUNET_TRANSPORT_offer_hello_cancel (rocc->ohh);
+  GNUNET_TRANSPORT_disconnect (rocc->th);
+  rocc->peer->reference_cnt--;
+  if ((GNUNET_YES == rocc->peer->destroy_flag)
+      && (0 == rocc->peer->reference_cnt))
+    destroy_peer (rocc->peer);
   GNUNET_free_non_null (rocc->hello);
   GNUNET_CONTAINER_DLL_remove (roccq_head, roccq_tail, rocc);
   GNUNET_free (rocc);
@@ -3752,7 +3762,9 @@ handle_overlay_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
   }
   rocc = GNUNET_malloc (sizeof (struct RequestOverlayConnectContext));
   GNUNET_CONTAINER_DLL_insert_tail (roccq_head, roccq_tail, rocc);
-  rocc->th = GNUNET_TRANSPORT_connect (peer->details.local.cfg, NULL, rocc, 
+  rocc->peer = peer;
+  rocc->peer->reference_cnt++;
+  rocc->th = GNUNET_TRANSPORT_connect (rocc->peer->details.local.cfg, NULL, rocc,
                                        NULL, &transport_connect_notify, NULL);
   if (NULL == rocc->th)
   {
