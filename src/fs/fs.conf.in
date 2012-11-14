@@ -48,7 +48,7 @@ MIN_MIGRATION_DELAY = 100 ms
 EXPECTED_NEIGHBOUR_COUNT = 128
 
 # Enable monkey?
-PREFIX = @MONKEYPREFIX@
+# PREFIX = @MONKEYPREFIX@
 
 
 [gnunet-auto-share]
