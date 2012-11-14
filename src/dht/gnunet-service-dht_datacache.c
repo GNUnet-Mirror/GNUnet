@@ -176,6 +176,12 @@ datacache_get_iterator (void *cls,
                               ("# Invalid RESULTS found in datacache"), 1,
                               GNUNET_NO);
     break;
+  case GNUNET_BLOCK_EVALUATION_RESULT_IRRELEVANT:
+    GNUNET_STATISTICS_update (GDS_stats,
+                              gettext_noop
+                              ("# Irrelevant RESULTS found in datacache"), 1,
+                              GNUNET_NO);
+    break;
   case GNUNET_BLOCK_EVALUATION_REQUEST_VALID:
     GNUNET_break (0);
     break;

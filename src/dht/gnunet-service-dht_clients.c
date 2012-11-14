@@ -1058,6 +1058,8 @@ forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
   case GNUNET_BLOCK_EVALUATION_REQUEST_INVALID:
     GNUNET_break (0);
     return GNUNET_NO;
+  case GNUNET_BLOCK_EVALUATION_RESULT_IRRELEVANT:
+    return GNUNET_YES;
   case GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED:
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Unsupported block type (%u) in request!\n"), record->type);

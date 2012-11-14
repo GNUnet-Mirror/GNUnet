@@ -138,11 +138,11 @@ block_plugin_mesh_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
       {
         case GNUNET_SYSERR:
           GNUNET_break_op(0);
-          /* fall thru */
+          return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
         case GNUNET_NO:
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "BLOCK XQUERY %s not accepted\n", xquery);
-          return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+          return GNUNET_BLOCK_EVALUATION_RESULT_IRRELEVANT;
         default:
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "BLOCK XQUERY %s accepted\n", xquery);

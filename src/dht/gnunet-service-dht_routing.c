@@ -226,6 +226,12 @@ process (void *cls, const struct GNUNET_HashCode * key, void *value)
                               ("# Invalid REPLIES matched against routing table"),
                               1, GNUNET_NO);
     return GNUNET_SYSERR;
+  case GNUNET_BLOCK_EVALUATION_RESULT_IRRELEVANT:
+    GNUNET_STATISTICS_update (GDS_stats,
+                              gettext_noop
+                              ("# Irrelevant REPLIES matched against routing table"),
+                              1, GNUNET_NO);
+    return GNUNET_OK;
   case GNUNET_BLOCK_EVALUATION_REQUEST_VALID:
     GNUNET_break (0);
     return GNUNET_OK;

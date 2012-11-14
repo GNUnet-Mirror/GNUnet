@@ -148,21 +148,26 @@ enum GNUNET_BLOCK_EvaluationResult
   GNUNET_BLOCK_EVALUATION_RESULT_INVALID = 3,
 
     /**
+     * Block does not match xquery (valid result, not relevant for the request)
+     */
+  GNUNET_BLOCK_EVALUATION_RESULT_IRRELEVANT = 4,
+
+    /**
      * Query is valid, no reply given.
      */
-  GNUNET_BLOCK_EVALUATION_REQUEST_VALID = 4,
+  GNUNET_BLOCK_EVALUATION_REQUEST_VALID = 10,
 
     /**
      * Query format does not match block type (invalid query).  For
      * example, xquery not given or xquery_size not appropriate for
      * type.
      */
-  GNUNET_BLOCK_EVALUATION_REQUEST_INVALID = 5,
+  GNUNET_BLOCK_EVALUATION_REQUEST_INVALID = 11,
 
     /**
      * Specified block type not supported by this plugin.
      */
-  GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED = 6
+  GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED = 20
 };
 
 
