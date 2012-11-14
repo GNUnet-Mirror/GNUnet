@@ -108,7 +108,7 @@ struct UNIXMessageWrapper
   size_t msgsize;
   size_t payload;
 
-  struct GNUNET_TIME_Relative timeout;
+  struct GNUNET_TIME_Absolute timeout;
   unsigned int priority;
 
   struct Session *session;
@@ -495,7 +495,7 @@ unix_real_send (void *cls,
                 struct GNUNET_NETWORK_Handle *send_handle,
                 const struct GNUNET_PeerIdentity *target, const char *msgbuf,
                 size_t msgbuf_size, unsigned int priority,
-                struct GNUNET_TIME_Relative timeout,
+                struct GNUNET_TIME_Absolute timeout,
                 const void *addr,
                 size_t addrlen,
                 size_t payload,
@@ -753,7 +753,7 @@ unix_plugin_send (void *cls,
   wrapper->msgsize = ssize;
   wrapper->payload = msgbuf_size;
   wrapper->priority = priority;
-  wrapper->timeout = to;
+  wrapper->timeout = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), to);
   wrapper->cont = cont;
   wrapper->cont_cls = cont_cls;
   wrapper->session = session;
@@ -896,7 +896,35 @@ unix_plugin_select_write (struct Plugin * plugin)
 {
   static int retry_counter = 0;
   int sent = 0;
-  struct UNIXMessageWrapper * msgw = plugin->msg_head;
+
+
+  struct UNIXMessageWrapper * msgw = plugin->msg_tail;
+  while (NULL != msgw)
+  {
+      if (GNUNET_TIME_absolute_get_remaining (msgw->timeout).rel_value > 0)
+        break; /* Message is ready for sending */
+      else
+      {
+          /* Message has a timeout */
+          GNUNET_CONTAINER_DLL_remove (plugin->msg_head, plugin->msg_tail, msgw);
+          if (NULL != msgw->cont)
+            msgw->cont (msgw->cont_cls, &msgw->session->target, GNUNET_SYSERR, msgw->payload, 0);
+
+          plugin->bytes_in_queue -= msgw->msgsize;
+          GNUNET_STATISTICS_set (plugin->env->stats, "# bytes currently in UNIX buffers",
+              plugin->bytes_in_queue, GNUNET_NO);
+
+          plugin->bytes_discarded += msgw->msgsize;
+          GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes discarded",
+              plugin->bytes_discarded, GNUNET_NO);
+
+          GNUNET_free (msgw->msg);
+          GNUNET_free (msgw);
+      }
+      msgw = plugin->msg_tail;
+  }
+  if (NULL == msgw)
+    return; /* Nothing to send at the moment */
 
   sent = unix_real_send (plugin,
                          plugin->unix_sock.desc,
@@ -965,8 +993,6 @@ unix_plugin_select_write (struct Plugin * plugin)
     GNUNET_free (msgw);
     return;
   }
-
-
 }
 
 

@@ -447,7 +447,7 @@ static void
 sendtask ()
 {
   start_time = GNUNET_TIME_absolute_get ();
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Starting to send %u messages\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting to send %u messages\n",
               TOTAL_MSGS);
   th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, get_size (0), 0,
                                                TIMEOUT_TRANSMIT, &notify_ready,
