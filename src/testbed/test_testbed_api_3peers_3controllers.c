@@ -471,19 +471,6 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
 
 
 /**
- * Callback to signal successfull startup of the controller process
- *
- * @param cls the closure from GNUNET_TESTBED_controller_start()
- * @param cfg the configuration with which the controller has been started;
- *          NULL if status is not GNUNET_OK
- * @param status GNUNET_OK if the startup is successfull; GNUNET_SYSERR if not,
- *          GNUNET_TESTBED_controller_stop() shouldn't be called in this case
- */
-static void
-status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int status);
-
-
-/**
  * Signature of the event handler function called by the
  * respective event controller.
  *
@@ -814,6 +801,7 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int stat
   if (GNUNET_OK != status)
   {
     GNUNET_break (0);
+    cp1 = NULL;
     abort_test();
     return;
   }
