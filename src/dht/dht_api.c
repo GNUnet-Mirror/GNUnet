@@ -1268,6 +1268,7 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
                                pending);
   pending->in_pending_queue = GNUNET_YES;
   get_handle = GNUNET_malloc (sizeof (struct GNUNET_DHT_GetHandle));
+  get_handle->dht_handle = handle;
   get_handle->iter = iter;
   get_handle->iter_cls = iter_cls;
   get_handle->message = pending;

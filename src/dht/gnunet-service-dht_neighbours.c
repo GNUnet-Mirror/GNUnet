@@ -97,7 +97,7 @@
 /**
  * Should routing details be logged to stderr (for debugging)?
  */
-#define LOG_ROUTE_DETAILS_STDERR GNUNET_NO
+#define LOG_ROUTE_DETAILS_STDERR GNUNET_YES
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
@@ -1598,7 +1598,9 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
     char *tmp;
     
     tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
-    fprintf (stderr, "XDHT PUT %s: %s<-%s\n", GNUNET_h2s (&put->key), tmp, GNUNET_i2s (peer));
+    fprintf (stderr, "XDHT PUT %s: %s(%u)<-%s\n", 
+	     GNUNET_h2s (&put->key), tmp, getpid (),
+	     GNUNET_i2s (peer));
     GNUNET_free (tmp);										       
   }
 
@@ -1855,7 +1857,9 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
     char *tmp;
     
     tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
-    fprintf (stderr, "XDHT GET %s: %s<-%s\n", GNUNET_h2s (&get->key), tmp, GNUNET_i2s (peer));
+    fprintf (stderr, "XDHT GET %s: %s(%u)<-%s\n", 
+	     GNUNET_h2s (&get->key), tmp, getpid(),
+	     GNUNET_i2s (peer));
     GNUNET_free (tmp);										       
   }
 
@@ -1989,7 +1993,10 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
     char *tmp;
     
     tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
-    fprintf (stderr, "XDHT RESULT %s: %s<-%s\n", GNUNET_h2s (&prm->key), tmp, GNUNET_i2s (peer));
+    fprintf (stderr, 
+	     "XDHT RESULT %s: %s(%u)<-%s\n", 
+	     GNUNET_h2s (&prm->key), tmp, 
+	     getpid(), GNUNET_i2s (peer));
     GNUNET_free (tmp);										       
   }
 

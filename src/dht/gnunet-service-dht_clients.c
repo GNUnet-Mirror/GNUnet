@@ -37,6 +37,12 @@
 
 
 /**
+ * Should routing details be logged to stderr (for debugging)?
+ */
+#define LOG_ROUTE_DETAILS_STDERR GNUNET_YES
+
+
+/**
  * Linked list of messages to send to clients.
  */
 struct PendingMessage
@@ -581,6 +587,16 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received request for %s from local client %p\n",
               GNUNET_h2s (&get->key), client);
+
+  if (LOG_ROUTE_DETAILS_STDERR)
+  {
+    fprintf (stderr, 
+	     "XDHT CLIENT-GET %s @ %u\n", 
+	     GNUNET_h2s (&get->key), 
+	     getpid ());
+  }
+
+
   cqr = GNUNET_malloc (sizeof (struct ClientQueryRecord) + xquery_size);
   cqr->key = get->key;
   cqr->client = find_active_client (client);
@@ -1002,6 +1018,13 @@ forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
   struct GNUNET_HashCode ch;
   unsigned int i;
 
+  if (LOG_ROUTE_DETAILS_STDERR)
+  {
+    fprintf (stderr, 
+	     "XDHT CLIENT-RESULT %s @ %u\n", 
+	     GNUNET_h2s (key), 
+	     getpid ());
+  }
   if ((record->type != GNUNET_BLOCK_TYPE_ANY) && (record->type != frc->type))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
