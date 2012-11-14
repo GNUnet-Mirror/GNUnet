@@ -548,8 +548,14 @@ resend:
 
   if (GNUNET_SYSERR == sent)
   {
-    if ((errno == EAGAIN) || (errno == ENOBUFS))
+    if (errno == EAGAIN)
+    {
       return RETRY; /* We have to retry later  */
+    }
+    if (errno == ENOBUFS)
+    {
+      return RETRY; /* We have to retry later  */
+    }
     if (errno == EMSGSIZE)
     {
       socklen_t size = 0;
@@ -560,7 +566,7 @@ resend:
                                         &len);
       if (size < msgbuf_size)
       {
-        LOG (GNUNET_ERROR_TYPE_DEBUG,
+        LOG (GNUNET_ERROR_TYPE_ERROR,
                     "Trying to increase socket buffer size from %i to %i for message size %i\n",
                     size, ((msgbuf_size / 1000) + 2) * 1000, msgbuf_size);
         size = ((msgbuf_size / 1000) + 2) * 1000;
@@ -584,6 +590,7 @@ resend:
       }
     }
   }
+
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "UNIX transmit %u-byte message to %s (%d: %s)\n",
               (unsigned int) msgbuf_size, GNUNET_a2s (sb, sbs), (int) sent,
@@ -734,7 +741,7 @@ unix_plugin_send (void *cls,
     return GNUNET_SYSERR;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending %u bytes with session for peer `%s' `%s'\n",
-		msgbuf_size,
+                msgbuf_size,
         GNUNET_i2s (&session->target),
         (char *) session->addr);
 
@@ -753,7 +760,7 @@ unix_plugin_send (void *cls,
   wrapper->msgsize = ssize;
   wrapper->payload = msgbuf_size;
   wrapper->priority = priority;
-  wrapper->timeout = GNUNET_TIME_relative_to_absolute (to);
+  wrapper->timeout = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), to);
   wrapper->cont = cont;
   wrapper->cont_cls = cont_cls;
   wrapper->session = session;
@@ -894,9 +901,7 @@ unix_plugin_select_read (struct Plugin * plugin)
 static void
 unix_plugin_select_write (struct Plugin * plugin)
 {
-  static int retry_counter = 0;
   int sent = 0;
-
 
   struct UNIXMessageWrapper * msgw = plugin->msg_tail;
   while (NULL != msgw)
@@ -906,6 +911,8 @@ unix_plugin_select_write (struct Plugin * plugin)
       else
       {
           /* Message has a timeout */
+            LOG (GNUNET_ERROR_TYPE_DEBUG,
+              "Timeout for message with %llu bytes \n", msgw->msgsize);
           GNUNET_CONTAINER_DLL_remove (plugin->msg_head, plugin->msg_tail, msgw);
           if (NULL != msgw->cont)
             msgw->cont (msgw->cont_cls, &msgw->session->target, GNUNET_SYSERR, msgw->payload, 0);
@@ -938,21 +945,13 @@ unix_plugin_select_write (struct Plugin * plugin)
                          msgw->payload,
                          msgw->cont, msgw->cont_cls);
 
-  if (0 == sent)
+  if (RETRY == sent)
   {
-      retry_counter ++;
-      if (retry_counter <= MAX_RETRIES)
-      {
-        GNUNET_STATISTICS_update (plugin->env->stats,"# UNIX retry attempts",
-              1, GNUNET_NO);
-        return; /* retry */
-      }
-      else
-        sent = GNUNET_SYSERR; /* abort */
-  }
-  retry_counter = 0;
+    GNUNET_STATISTICS_update (plugin->env->stats,"# UNIX retry attempts",
+          1, GNUNET_NO);
 
-  if (GNUNET_SYSERR == sent)
+  }
+  else if (GNUNET_SYSERR == sent)
   {
     /* failed and no retry */
     if (NULL != msgw->cont)
@@ -972,8 +971,7 @@ unix_plugin_select_write (struct Plugin * plugin)
     GNUNET_free (msgw);
     return;
   }
-
-  else if (sent >= 0)
+  else if (sent > 0)
   {
     /* successfully sent bytes */
     if (NULL != msgw->cont)
