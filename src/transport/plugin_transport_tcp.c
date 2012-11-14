@@ -1228,6 +1228,7 @@ nat_connect_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Session *session = cls;
 
+  session->nat_connection_timeout = GNUNET_SCHEDULER_NO_TASK;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "NAT WAIT connection to `%4s' at `%s' could not be established, removing session\n",
        GNUNET_i2s (&session->target), tcp_address_to_string(NULL, session->addr, session->addrlen));
