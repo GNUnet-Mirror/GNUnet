@@ -1390,7 +1390,7 @@ regex_edge_iterator (void *cls,
   current_len = strlen (info->description) - ctx->position;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     ctlen : %u\n", current_len);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     tklen : %u\n", len);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     tk[0] : %c\n", token[0]);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     token : %.*s\n", len, token);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     nextk : %s\n", GNUNET_h2s(key));
   if (len > current_len)
   {
@@ -1444,7 +1444,7 @@ regex_next_edge (const struct MeshRegexBlock *block,
   ctx->longest_match = 0;
   result = GNUNET_MESH_regex_block_iterate (block, size,
                                             &regex_edge_iterator, ctx);
-  GNUNET_break (GNUNET_OK == result || SIZE_MAX == size);
+  GNUNET_break (GNUNET_OK == result);
 
   /* Did anything match? */
   if (0 == ctx->longest_match)
