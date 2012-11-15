@@ -3339,6 +3339,11 @@ tunnel_destroy_child (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u %u\n", c, cinfo->send_buffer_n);
   }
   GNUNET_free_non_null (cinfo->send_buffer);
+  if (GNUNET_SCHEDULER_NO_TASK != cinfo->fc_poll)
+  {
+    GNUNET_SCHEDULER_cancel (cinfo->fc_poll);
+    cinfo->fc_poll = GNUNET_SCHEDULER_NO_TASK;
+  }
   GNUNET_free (cinfo);
   return GNUNET_YES;
 }
