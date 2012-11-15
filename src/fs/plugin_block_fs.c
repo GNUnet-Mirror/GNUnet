@@ -124,12 +124,7 @@ block_plugin_fs_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
                         sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                         &sh);
     if (0 != memcmp (nsid, &sh, sizeof (struct GNUNET_HashCode)))
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "block-fs",
-                       _
-                       ("Reply mismatched in terms of namespace.  Discarded.\n"));
-      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-    }
+      return GNUNET_BLOCK_EVALUATION_RESULT_IRRELEVANT;
     if (NULL != bf)
     {
       GNUNET_CRYPTO_hash (reply_block, reply_block_size, &chash);

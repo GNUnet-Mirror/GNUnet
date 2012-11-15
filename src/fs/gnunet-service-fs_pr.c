@@ -842,6 +842,14 @@ process_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Duplicate response, discarding.\n");
     return GNUNET_YES;          /* duplicate */
+  case GNUNET_BLOCK_EVALUATION_RESULT_IRRELEVANT:
+    GNUNET_STATISTICS_update (GSF_stats,
+                              gettext_noop
+                              ("# irrelevant replies discarded"),
+                              1, GNUNET_NO);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Irrelevant response, ignoring.\n");
+    return GNUNET_YES;
   case GNUNET_BLOCK_EVALUATION_RESULT_INVALID:
     return GNUNET_YES;          /* wrong namespace */
   case GNUNET_BLOCK_EVALUATION_REQUEST_VALID:
