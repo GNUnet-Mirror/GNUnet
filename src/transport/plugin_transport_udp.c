@@ -985,7 +985,7 @@ dequeue (struct Plugin *plugin, struct UDP_MessageWrapper * udpw)
   {
     GNUNET_STATISTICS_update (plugin->env->stats,
                               "# UDP, total, bytes in buffers",
-                              -udpw->msg_size, GNUNET_NO);
+                              (long long) -udpw->msg_size, GNUNET_NO);
     plugin->bytes_in_buffer -= udpw->msg_size;
   }
   GNUNET_STATISTICS_update (plugin->env->stats,
