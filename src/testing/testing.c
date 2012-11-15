@@ -159,6 +159,7 @@ struct GNUNET_TESTING_Peer
    * necessary).
    */ 
   char *main_binary;
+  char *args;
   
   /**
    * Handle to the running binary of the service, NULL if the
@@ -837,6 +838,7 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
   char *service_home;  
   char hostkey_filename[128];
   char *config_filename;
+  char *libexec_binary;
   char *emsg_;
   struct GNUNET_CRYPTO_RsaPrivateKey *pk;
 
@@ -935,9 +937,21 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
   }
   peer = GNUNET_malloc (sizeof (struct GNUNET_TESTING_Peer));
   peer->cfgfile = config_filename; /* Free in peer_destroy */
-  peer->main_binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-arm");
+
+  libexec_binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-arm");
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "arm", "PREFIX", &peer->main_binary))
+  {
+    /* No prefix */
+    GNUNET_asprintf(&peer->main_binary, "%s", libexec_binary);
+    peer->args = strdup ("");
+  }
+  else
+    peer->args = strdup (libexec_binary);
+
   peer->system = system;
   peer->key_number = key_number;
+
+  GNUNET_free (libexec_binary);
   return peer;
 }
 
@@ -976,6 +990,7 @@ GNUNET_TESTING_peer_start (struct GNUNET_TESTING_Peer *peer)
   peer->main_process = GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL,
                                                 peer->main_binary,
                                                 peer->main_binary,
+                                                peer->args,
                                                 "-c",
                                                 peer->cfgfile,
                                                 NULL);
@@ -1069,6 +1084,7 @@ GNUNET_TESTING_peer_destroy (struct GNUNET_TESTING_Peer *peer)
   }
   GNUNET_free (peer->cfgfile);
   GNUNET_free (peer->main_binary);
+  GNUNET_free (peer->args);
   GNUNET_free (peer);
 }
 
@@ -1176,6 +1192,7 @@ GNUNET_TESTING_service_run (const char *testdir,
   struct GNUNET_TESTING_Peer *peer;
   struct GNUNET_CONFIGURATION_Handle *cfg;
   char *binary;
+  char *libexec_binary;
 
   GNUNET_log_setup (testdir, "WARNING", NULL);
   system = GNUNET_TESTING_system_create (testdir, "127.0.0.1", NULL);
@@ -1199,8 +1216,19 @@ GNUNET_TESTING_service_run (const char *testdir,
     return 1;
   }
   GNUNET_free (peer->main_binary);
+
   GNUNET_asprintf (&binary, "gnunet-service-%s", service_name);
-  peer->main_binary = GNUNET_OS_get_libexec_binary_path (binary);
+  libexec_binary = GNUNET_OS_get_libexec_binary_path (binary);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, service_name, "PREFIX", &peer->main_binary))
+  {
+    /* No prefix */
+    GNUNET_asprintf(&peer->main_binary, "%s", libexec_binary);
+    peer->args = strdup ("");
+  }
+  else
+    peer->args = strdup (libexec_binary);
+
+  GNUNET_free (libexec_binary);
   GNUNET_free (binary);
   if (GNUNET_OK != GNUNET_TESTING_peer_start (peer))
   {    
