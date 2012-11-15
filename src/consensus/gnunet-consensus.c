@@ -18,43 +18,18 @@
       Boston, MA 02111-1307, USA.
  */
 
-
-#include <cstdio>
-#include <iostream>
-#include <stdint.h>
-
-#include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_service_lib.h"
-
-using namespace std;
-
 /**
- * Process statistics requests.
- *
- * @param cls closure
- * @param server the initialized server
- * @param c configuration to use
+ * @file consensus/gnunet-consensus.c
+ * @brief 
+ * @author Florian Dold
  */
-static void
-run (void *cls, struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *c)
-{
-  /* TODO */
-}
 
 
-/**
- * The main function for the statistics service.
- *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
- * @return 0 ok, 1 on error
- */
+#include "gnunet_consensus_service.h"
+
+
 int
-main (int argc, char *const *argv)
+main ()
 {
-  return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "statistics", GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
+  return 0;
 }
-

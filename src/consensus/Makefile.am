@@ -15,17 +15,17 @@ if USE_COVERAGE
   AM_CFLAGS = -fprofile-arcs -ftest-coverage
 endif
 
-#bin_PROGRAMS = \
-# gnunet-consensus 
+bin_PROGRAMS = \
+ gnunet-consensus 
 
 libexec_PROGRAMS = \
  gnunet-service-consensus
 
-#gnunet_consensus_SOURCES = \
-# gnunet-consensus.c         
-#gnunet_consensus_LDADD = \
-#  $(top_builddir)/src/util/libgnunetutil.la \
-#  $(GN_LIBINTL)
+gnunet_consensus_SOURCES = \
+ gnunet-consensus.c         
+gnunet_consensus_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
 
 gnunet_service_consensus_SOURCES = \
  gnunet-service-consensus.cc
