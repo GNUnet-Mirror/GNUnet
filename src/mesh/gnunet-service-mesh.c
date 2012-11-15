@@ -5209,7 +5209,8 @@ queue_send (void *cls, size_t size, void *buf)
                     GNUNET_i2s(&my_full_id));
         if (NULL == cinfo)
           cinfo = tunnel_get_neighbor_fc (t, &dst_id);
-        if (GNUNET_SCHEDULER_NO_TASK == cinfo->fc_poll)
+        // FIXME unify bck/fwd structures, bck does not have cinfo right now
+        if (NULL != cinfo && GNUNET_SCHEDULER_NO_TASK == cinfo->fc_poll)
         {
           cinfo->fc_poll = GNUNET_SCHEDULER_add_delayed (cinfo->fc_poll_time,
                                                          &tunnel_poll, cinfo);
