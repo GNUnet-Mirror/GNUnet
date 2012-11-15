@@ -27,7 +27,7 @@ src/core/gnunet-service-core_neighbours.c
 src/core/gnunet-service-core_sessions.c
 src/core/gnunet-service-core_typemap.c
 src/datacache/datacache.c
-src/datacache/plugin_datacache_mysql.c
+src/datacache/plugin_datacache_heap.c
 src/datacache/plugin_datacache_postgres.c
 src/datacache/plugin_datacache_sqlite.c
 src/datacache/plugin_datacache_template.c
@@ -38,6 +38,7 @@ src/datastore/plugin_datastore_postgres.c
 src/datastore/plugin_datastore_sqlite.c
 src/datastore/plugin_datastore_template.c
 src/dht/dht_api.c
+src/dht/dht_test_lib.c
 src/dht/gnunet-dht-get.c
 src/dht/gnunet-dht-monitor.c
 src/dht/gnunet-dht-put.c
@@ -126,8 +127,10 @@ src/hostlist/hostlist-server.c
 src/integration-tests/connection_watchdog.c
 src/lockmanager/gnunet-service-lockmanager.c
 src/lockmanager/lockmanager_api.c
+src/mesh/gnunet-daemon-regexprofiler.c
 src/mesh/gnunet-regex-profiler.c
 src/mesh/gnunet-service-mesh.c
+src/mesh/gnunet-service-mesh-new.c
 src/mesh/mesh_api.c
 src/mesh/mesh_block_lib.c
 src/mesh/mesh_common.c
@@ -171,6 +174,7 @@ src/template/gnunet-template.c
 src/testbed/gnunet-helper-testbed.c
 src/testbed/gnunet-service-testbed.c
 src/testbed/gnunet-testbed-profiler.c
+src/testbed/standard_deviation.c
 src/testbed/testbed_api.c
 src/testbed/testbed_api_hosts.c
 src/testbed/testbed_api_operations.c
