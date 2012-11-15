@@ -54,17 +54,6 @@ typedef void (*GNUNET_CONSENSUS_NewElementCallback) (void *cls,
 						     const void *element);
 
 
-/**
- * Called when a conclusion was successful.
- *
- * @param cls
- * @param num_peers_in_consensus
- * @param peers_in_consensus
- */
-typedef void (*GNUNET_CONSENSUS_ConcludeCallback) (void *cls, 
-						   unsigned int num_peers_in_consensus,
-						   cnost struct GNUNET_PeerIdentity *peers_in_consensus);
-
 
 /**
  * Opaque handle for the consensus service.
@@ -83,9 +72,8 @@ struct GNUNET_CONSENSUS_Handle;
  * @param element_size size of the elements in the reconciled set in bytes
  * @param new_element callback, called when a new element is added to the set by
  *                    another peer
- * @param cls closure for new_element
- *
- * @return handle to use
+ * @param mew_element_cls closure for new_element
+ * @return handle to use, NULL on error
  */
 struct GNUNET_CONSENSUS_Handle *
 GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -98,6 +86,18 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
                          void *new_element_cls);
 
 
+/**
+ * Called when an insertion (transmission to consensus service,
+ * which does not imply fully consensus on this element with
+ * all other peers) was successful.
+ *
+ * @param cls
+ * @param success GNUNET_OK on success, GNUNET_SYSERR if 
+ *        the insertion and thus the consensus failed for good
+ */
+typedef void (*GNUNET_CONSENSUS_InsertDoneCallback) (void *cls,
+						     int success);
+
 
 /**
  * Insert an element in the set being reconsiled.  Must not be called after
@@ -106,11 +106,28 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param consensus handle for the consensus session
  * @param element_size must match element size from GNUNET_CONSENSUS_create
  * @param element the element to be inserted
+ * @param idc function called when we are done with this element and it 
+ *            is thus allowed to call GNUNET_CONSENSUS_insert again
+ * @param idc_cls closure for 'idc'
  */
 void
 GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
 			 size_t element_size,
-			 const void *element);
+			 const void *element,
+			 GNUNET_CONSENSUS_InsertDoneCallback idc,
+			 void *idc_cls);
+
+
+/**
+ * Called when a conclusion was successful.
+ *
+ * @param cls
+ * @param num_peers_in_consensus
+ * @param peers_in_consensus
+ */
+typedef void (*GNUNET_CONSENSUS_ConcludeCallback) (void *cls, 
+						   unsigned int num_peers_in_consensus,
+						   cnost struct GNUNET_PeerIdentity *peers_in_consensus);
 
 
 /**
