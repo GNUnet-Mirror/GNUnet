@@ -979,6 +979,16 @@ free_session (struct Session *s)
 static void
 dequeue (struct Plugin *plugin, struct UDP_MessageWrapper * udpw)
 {
+  if (plugin->bytes_in_buffer - udpw->msg_size < 0)
+      GNUNET_break (0);
+  else
+  {
+    GNUNET_STATISTICS_update (plugin->env->stats,
+                              "# UDP, total, bytes in buffers",
+                              udpw->msg_size, GNUNET_NO);
+    plugin->bytes_in_buffer -= udpw->msg_size;
+  }
+
   GNUNET_STATISTICS_update (plugin->env->stats,
                             "# UDP, total, bytes in buffers",
                             -udpw->msg_size, GNUNET_NO);
@@ -1015,7 +1025,6 @@ fragmented_message_done (struct UDP_FragmentationContext *fc, int result)
 
   call_continuation (&dummy, result);
 
-  /* Remove left-over fragments from queue */
   /* Remove leftover fragments from queue */
   if (s->addrlen == sizeof (struct sockaddr_in6))
   {
@@ -1440,13 +1449,18 @@ udp_plugin_get_session (void *cls,
   return s;
 }
 
-
 static void 
 enqueue (struct Plugin *plugin, struct UDP_MessageWrapper * udpw)
 {
-  GNUNET_STATISTICS_update (plugin->env->stats,
-                            "# UDP, total, bytes in buffers",
-                            udpw->msg_size, GNUNET_NO);
+  if (plugin->bytes_in_buffer + udpw->msg_size > INT64_MAX)
+      GNUNET_break (0);
+  else
+  {
+    GNUNET_STATISTICS_update (plugin->env->stats,
+                              "# UDP, total, bytes in buffers",
+                              udpw->msg_size, GNUNET_NO);
+    plugin->bytes_in_buffer += udpw->msg_size;
+  }
   GNUNET_STATISTICS_update (plugin->env->stats,
                             "# UDP, total, msgs in buffers",
                             1, GNUNET_NO);

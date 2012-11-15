@@ -159,6 +159,12 @@ struct Plugin
    */
   char *bind6_address;
 
+
+  /**
+   * Bytes currently in buffer
+   */
+  int64_t bytes_in_buffer;
+
   /**
    * Handle to NAT traversal support.
    */
