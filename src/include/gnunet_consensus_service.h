@@ -41,21 +41,30 @@ extern "C"
 
 
 /**
- * Called when a new element was received from another peer.
+ * Called when a new element was received from another peer; elements
+ * given to a consensus operation by the local peer are NOT given
+ * to this callback.
  *
- * @return GNUNET_YES to keep the new value, GNUNET_NO to discard it
+ * @param cls closure
+ * @param element_size will match the size given to GNUNET_CONSENSUS_create
+ * @param element
  */
-typedef int (*GNUNET_CONSENSUS_NewElementCallback) (void *cls,
-                                           struct GNUNET_PeerIdentity *source,
-                                           uint8_t *new_data);
+typedef void (*GNUNET_CONSENSUS_NewElementCallback) (void *cls,
+						     size_t element_size,
+						     const void *element);
 
 
 /**
  * Called when a conclusion was successful.
  *
- * TODO: A way to get to the set elements at the point of conclusion
+ * @param cls
+ * @param num_peers_in_consensus
+ * @param peers_in_consensus
  */
-typedef void (*GNUNET_CONSENSUS_ConcludeCallback) (void *cls, int success);
+typedef void (*GNUNET_CONSENSUS_ConcludeCallback) (void *cls, 
+						   unsigned int num_peers_in_consensus,
+						   cnost struct GNUNET_PeerIdentity *peers_in_consensus);
+
 
 /**
  * Opaque handle for the consensus service.
@@ -64,15 +73,11 @@ struct GNUNET_CONSENSUS_Handle;
 
 
 /**
- * Opaque handle for the consensus service.
- */
-struct GNUNET_CONSENSUS_ConcludeHandle;
-
-
-/**
  * Create a consensus session.
  *
- * @param peers zero-terminated list of peers participating in this consensus session
+ * @param cfg
+ * @param num_peers
+ * @param peers array of peers participating in this consensus session
  * @param session_id session identifier
  *                   Allows a group of peers to have more than consensus session.
  * @param element_size size of the elements in the reconciled set in bytes
@@ -83,53 +88,56 @@ struct GNUNET_CONSENSUS_ConcludeHandle;
  * @return handle to use
  */
 struct GNUNET_CONSENSUS_Handle *
-GNUNET_CONSENSUS_create (struct GNUNET_PeerIdentity *peers,
-                         uint32_t session_id,
-                         int element_size,
-                         uint8_t **initial_elements,
+GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
+			 unsigned int num_peers,
+			 const struct GNUNET_PeerIdentity *peers,
+                         const struct GNUNET_HashCode *session_id,
+                         size_t element_size,
+                         const void **initial_elements,
                          GNUNET_CONSENSUS_NewElementCallback new_element,
-                         void *cls);
+                         void *new_element_cls);
+
 
 
 /**
- * Try to reach a short-term consensus with all other peers in the consensus session.
+ * Insert an element in the set being reconsiled.  Must not be called after
+ * "GNUNET_CONSENSUS_conclude".
+ *
+ * @param consensus handle for the consensus session
+ * @param element_size must match element size from GNUNET_CONSENSUS_create
+ * @param element the element to be inserted
+ */
+void
+GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
+			 size_t element_size,
+			 const void *element);
+
+
+/**
+ * We are finished inserting new elements into the consensus;
+ * try to conclude the consensus within a given time window.
  *
  * @param consensus consensus session
  * @param timeout timeout after which the conculde callback
- *                will be called with success=GNUNET_NO
+ *                must be called
  * @param conclude called when the conclusion was successful
- * @param cls closure for the conclude callback
- *
- */
-struct GNUNET_CONSENSUS_ConcludeHandle
-GNUNET_CONSENSUS_conclude(struct GNUNET_CONSENSUS_Handle *consensus,
-                          struct GNUNET_TIME_Relative timeout,
-                          GNUNET_CONSENSUS_ConcludeCallback conclude,
-                          void *cls);
-
-
-/**
- * Insert an element in the set being reconsiled.
- *
- * @param handle handle for the consensus session
- * @param element the element to be inserted
- *
+ * @param conclude_cls closure for the conclude callback
  */
 void
-GNUNET_CONSENSUS_insert(struct GNUNET_CONSENSUS_Handle, uint8_t *element);
+GNUNET_CONSENSUS_conclude (struct GNUNET_CONSENSUS_Handle *consensus,
+			   struct GNUNET_TIME_Relative timeout,
+			   GNUNET_CONSENSUS_ConcludeCallback conclude,
+			   void *conclude_cls);
 
 
 /**
  * Destroy a consensus handle (free all state associated with
- * it).
+ * it, no longer call any of the callbacks).
  *
- * @param h consensus handle to destroy
+ * @param consensus handle to destroy
  */
 void
-GNUNET_CONSENSUS_destroy (struct GNUNET_CONSENSUS_Handle *h);
-
-
-
+GNUNET_CONSENSUS_destroy (struct GNUNET_CONSENSUS_Handle *consensus);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
