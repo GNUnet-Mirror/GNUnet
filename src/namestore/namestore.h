@@ -32,6 +32,14 @@
 #define MAX_NAME_LEN 256
 
 /**
+ * Convert a string from to local codeset to UTF-8 lowercase
+ * @param src source string
+ * @return converted result
+ */
+char *
+GNUNET_NAMESTORE_normalize_string (const char *src);
+
+/**
  * Convert a short hash to a string (for printing debug messages).
  * This is one of the very few calls in the entire API that is
  * NOT reentrant!

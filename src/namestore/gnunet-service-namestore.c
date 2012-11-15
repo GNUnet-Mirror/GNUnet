@@ -211,7 +211,6 @@ struct KeyLoadContext
 };
 
 
-
 /**
  * Writes the encrypted private key of a zone in a file
  *
@@ -794,6 +793,7 @@ handle_lookup_name (void *cls,
   const char *name;
   uint32_t rid;
   uint32_t type;
+  char *conv_name;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received `%s' message\n", 
@@ -838,15 +838,23 @@ handle_lookup_name (void *cls,
 		type, name, 
 		GNUNET_short_h2s(&ln_msg->zone));
 
+  conv_name = GNUNET_NAMESTORE_normalize_string (name);
+  if (NULL == conv_name)
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Error converting name `%s'\n", name);
+      return;
+  }
+
   /* do the actual lookup */
   lnc.request_id = rid;
   lnc.nc = nc;
   lnc.record_type = type;
-  lnc.name = name;
+  lnc.name = conv_name;
   lnc.zone = &ln_msg->zone;
   if (GNUNET_SYSERR ==
       GSN_database->iterate_records (GSN_database->cls, 
-				     &ln_msg->zone, name, 0 /* offset */, 
+				     &ln_msg->zone, conv_name, 0 /* offset */,
 				     &handle_lookup_name_it, &lnc))
   {
     /* internal error (in database plugin); might be best to just hang up on
@@ -854,8 +862,10 @@ handle_lookup_name (void *cls,
        might also be false... */
     GNUNET_break (0); 
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_free (conv_name);
     return;
   }
+  GNUNET_free (conv_name);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -883,6 +893,7 @@ handle_record_put (void *cls,
   size_t msg_size_exp;
   const char *name;
   const char *rd_ser;
+  char * conv_name;
   uint32_t rid;
   uint32_t rd_ser_len;
   uint32_t rd_count;
@@ -932,37 +943,45 @@ handle_record_put (void *cls,
   expire = GNUNET_TIME_absolute_ntoh (rp_msg->expire);
   signature = &rp_msg->signature;
   rd_ser = &name[name_len];
-  {
-    struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+  struct GNUNET_NAMESTORE_RecordData rd[rd_count];
 
-    if (GNUNET_OK !=
-	GNUNET_NAMESTORE_records_deserialize (rd_ser_len, rd_ser, rd_count, rd))
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
-    GNUNET_CRYPTO_short_hash (&rp_msg->public_key, 
-			      sizeof (rp_msg->public_key), 
-			      &zone_hash);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"Putting %u records under name `%s' in zone `%s'\n",
-		rd_count, name,
-		GNUNET_short_h2s (&zone_hash));
-    res = GSN_database->put_records(GSN_database->cls,
-				    &rp_msg->public_key,
-				    expire,
-				    name,
-				    rd_count, rd,
-				    signature);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"Putting record for name `%s': %s\n",
-		name, 
-		(GNUNET_OK == res) ? "OK" : "FAILED");
+  if (GNUNET_OK !=
+      GNUNET_NAMESTORE_records_deserialize (rd_ser_len, rd_ser, rd_count, rd))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
   }
+  GNUNET_CRYPTO_short_hash (&rp_msg->public_key,
+                            sizeof (rp_msg->public_key),
+                            &zone_hash);
+
+  conv_name = GNUNET_NAMESTORE_normalize_string (name);
+  if (NULL == conv_name)
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Error converting name `%s'\n", name);
+      return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Putting %u records under name `%s' in zone `%s'\n",
+              rd_count, conv_name,
+              GNUNET_short_h2s (&zone_hash));
+  res = GSN_database->put_records(GSN_database->cls,
+                                  &rp_msg->public_key,
+                                  expire,
+                                  conv_name,
+                                  rd_count, rd,
+                                  signature);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Putting record for name `%s': %s\n",
+              conv_name,
+              (GNUNET_OK == res) ? "OK" : "FAILED");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Sending `%s' message\n", 
 	      "RECORD_PUT_RESPONSE");
+  GNUNET_free (conv_name);
   rpr_msg.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT_RESPONSE);
   rpr_msg.gns_header.header.size = htons (sizeof (struct RecordPutResponseMessage));
   rpr_msg.gns_header.r_id = htonl (rid);
@@ -1150,6 +1169,7 @@ handle_record_create (void *cls,
   uint32_t rid;
   const char *pkey_tmp;
   const char *name_tmp;
+  char *conv_name;
   const char *rd_ser;
   unsigned int rd_count;
   int res;
@@ -1220,17 +1240,26 @@ handle_record_create (void *cls,
 			    sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
 			    &pubkey_hash);
   learn_private_key (pkey);
+
+  conv_name = GNUNET_NAMESTORE_normalize_string(name_tmp);
+  if (NULL == conv_name)
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Error converting name `%s'\n", name_tmp);
+      return;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Creating record for name `%s' in zone `%s'\n",
-	      name_tmp, GNUNET_short_h2s(&pubkey_hash));
+	      conv_name, GNUNET_short_h2s(&pubkey_hash));
   crc.expire = GNUNET_TIME_absolute_ntoh(rp_msg->expire);
   crc.res = GNUNET_SYSERR;
   crc.rd = &rd;
-  crc.name = name_tmp;
+  crc.name = conv_name;
 
   /* Get existing records for name */
-  res = GSN_database->iterate_records (GSN_database->cls, &pubkey_hash, name_tmp, 0, 
+  res = GSN_database->iterate_records (GSN_database->cls, &pubkey_hash, conv_name, 0,
 				       &handle_create_record_it, &crc);
+  GNUNET_free (conv_name);
   if (res != GNUNET_SYSERR)
     res = GNUNET_OK;
 
@@ -1399,6 +1428,7 @@ handle_record_remove (void *cls,
   const char *pkey_tmp;
   const char *name_tmp;
   const char *rd_ser;
+  char * conv_name;
   size_t key_len;
   size_t name_len;
   size_t rd_ser_len;
@@ -1473,15 +1503,23 @@ handle_record_remove (void *cls,
     return;
   }
 
+  conv_name = GNUNET_NAMESTORE_normalize_string(name_tmp);
+  if (NULL == conv_name)
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Error converting name `%s'\n", name_tmp);
+      return;
+  }
+
   if (0 == rd_count)
   {
     /* remove the whole name and all records */
     res = GSN_database->remove_records (GSN_database->cls,
 					&pubkey_hash,
-					name_tmp);
+					conv_name);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		"Removing name `%s': %s\n",
-		name_tmp, (GNUNET_OK == res) ? "OK" : "FAILED");
+		conv_name, (GNUNET_OK == res) ? "OK" : "FAILED");
     if (GNUNET_OK != res)
       /* Could not remove entry from database */
       res = RECORD_REMOVE_RESULT_FAILED_TO_PUT_UPDATE;
@@ -1492,7 +1530,7 @@ handle_record_remove (void *cls,
   {
     /* remove a single record */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"Removing record for name `%s' in zone `%s'\n", name_tmp, 
+		"Removing record for name `%s' in zone `%s'\n", conv_name,
 		GNUNET_short_h2s (&pubkey_hash));
     rrc.rd = &rd;
     rrc.op_res = RECORD_REMOVE_RESULT_RECORD_NOT_FOUND;
@@ -1503,7 +1541,7 @@ handle_record_remove (void *cls,
     {
       res = GSN_database->iterate_records (GSN_database->cls,
 					   &pubkey_hash,
-					   name_tmp,
+					   conv_name,
 					   off++,
 					   &handle_record_remove_it, &rrc);
     } 
@@ -1527,6 +1565,7 @@ handle_record_remove (void *cls,
       break;
     }
   }
+  GNUNET_free (conv_name);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending `%s' message\n",
 	      "RECORD_REMOVE_RESPONSE");

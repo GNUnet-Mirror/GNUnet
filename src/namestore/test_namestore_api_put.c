@@ -137,7 +137,7 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
   struct GNUNET_CRYPTO_RsaSignature *signature;
-  const char * s_name = "dummy.dummy.gnunet";
+  char * s_name;
   int c;
   char *hostkey_file;
   struct GNUNET_TIME_Absolute et;
@@ -155,6 +155,7 @@ run (void *cls,
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
   /* create record */
+  s_name = GNUNET_NAMESTORE_normalize_string ("DUMMY.dummy.gnunet");
   s_rd = create_record (RECORDS);
   et.abs_value = s_rd[0].expiration_time;
   signature = GNUNET_NAMESTORE_create_signature(privkey, et, s_name, s_rd, RECORDS);
@@ -167,6 +168,7 @@ run (void *cls,
   for (c = 0; c < RECORDS; c++)
     GNUNET_free_non_null((void *) s_rd[c].data);
   GNUNET_free (s_rd);
+  GNUNET_free (s_name);
 }
 
 

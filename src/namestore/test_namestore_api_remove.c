@@ -79,6 +79,7 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (privkey != NULL)
     GNUNET_CRYPTO_rsa_key_free (privkey);
   privkey = NULL;
+  GNUNET_free_non_null (s_name);
   res = 1;
 }
 
@@ -102,6 +103,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (nsh != NULL)
     GNUNET_NAMESTORE_disconnect (nsh);
   nsh = NULL;
+  GNUNET_free_non_null (s_name);
 }
 
 
@@ -259,7 +261,7 @@ run (void *cls,
   GNUNET_CRYPTO_rsa_key_get_public(privkey, &pubkey);
 
   /* create record */
-  s_name = "dummy.dummy.gnunet";
+  s_name = GNUNET_NAMESTORE_normalize_string ("DUMMY.dummy.gnunet");
   s_rd = create_record (RECORDS);
 
   rd_ser_len = GNUNET_NAMESTORE_records_get_size(RECORDS, s_rd);
