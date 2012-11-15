@@ -127,7 +127,7 @@ GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
  */
 typedef void (*GNUNET_CONSENSUS_ConcludeCallback) (void *cls, 
 						   unsigned int num_peers_in_consensus,
-						   cnost struct GNUNET_PeerIdentity *peers_in_consensus);
+						   const struct GNUNET_PeerIdentity *peers_in_consensus);
 
 
 /**
