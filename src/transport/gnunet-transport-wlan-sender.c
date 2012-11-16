@@ -101,6 +101,7 @@ main (int argc, char *argv[])
   unsigned int temp[6];
   struct GNUNET_TRANSPORT_WLAN_MacAddress inmac;
   struct GNUNET_TRANSPORT_WLAN_MacAddress outmac;
+  struct GNUNET_TRANSPORT_WLAN_MacAddress mac;
   unsigned long long count;
   double bytes_per_s;
   time_t start;
@@ -142,9 +143,17 @@ main (int argc, char *argv[])
 
   pid_t pid;
   int commpipe[2];              /* This holds the fd for the input & output of the pipe */
+  int macpipe[2];              /* This holds the fd for the input & output of the pipe */
 
   /* Setup communication pipeline first */
   if (pipe (commpipe))
+  {
+    fprintf (stderr, 
+	     "Failed to create pipe: %s\n",
+	     STRERROR (errno));
+    exit (1);
+  }
+  if (pipe (macpipe))
   {
     fprintf (stderr, 
 	     "Failed to create pipe: %s\n",
@@ -169,7 +178,17 @@ main (int argc, char *argv[])
 	       strerror (errno));
     setvbuf (stdout, (char *) NULL, _IONBF, 0); /* Set non-buffered output on stdout */
 
-
+    if (0 != close (macpipe[1]))
+      fprintf (stderr,
+	       "Failed to close fd: %s\n",
+	       strerror (errno));
+    if (sizeof (mac) != read (macpipe[0], &mac, sizeof (mac)))
+      fprintf (stderr, 
+	       "Failed to read mac...\n");
+    fprintf (stderr,
+	     "Got mac %.2X:%.2X:%.2X:%.2X:%.2X:%.2X\n", 
+	     mac.mac[0], mac.mac[1],
+	     mac.mac[2], mac.mac[3], mac.mac[4], mac.mac[5]);				  
     radiotap = (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *) msg_buf;
     getRadiotapHeader (radiotap, WLAN_MTU);
     getWlanHeader (&radiotap->frame, &outmac, &inmac,
@@ -200,9 +219,13 @@ main (int argc, char *argv[])
   {
     /* A zero PID indicates that this is the child process */
     (void) close (0);
+    (void) close (1);
     if (-1 == dup2 (commpipe[0], 0))    /* Replace stdin with the in side of the pipe */
       fprintf (stderr, "dup2 failed: %s\n", strerror (errno));
+    if (-1 == dup2 (macpipe[1], 1))    /* Replace stdout with the out side of the pipe */
+      fprintf (stderr, "dup2 failed: %s\n", strerror (errno));
     (void) close (commpipe[1]); /* Close unused side of pipe (out side) */
+    (void) close (macpipe[0]); /* Close unused side of pipe (in side) */
     /* Replace the child fork with a new process */
     if (execlp
         ("gnunet-helper-transport-wlan", "gnunet-helper-transport-wlan",
