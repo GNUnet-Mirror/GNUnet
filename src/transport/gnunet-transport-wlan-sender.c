@@ -186,7 +186,7 @@ main (int argc, char *argv[])
       }
       count += ret;
       akt =  time (NULL);
-      if (akt - start) > 30)
+      if (akt - start > 30)
       {
 	bytes_per_s = count / (akt - start);
 	bytes_per_s /= 1024;
