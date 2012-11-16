@@ -1599,8 +1599,6 @@ linux_read (struct HardwareInfos *dev,
     break;
   case ARPHRD_ETHER:
     {
-      ;
-      
       if (sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee8023Frame) > caplen)
 	return 0; /* invalid */
       memcpy (&buf[sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame)],
@@ -1841,6 +1839,7 @@ stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
   struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *wlanheader;
   size_t sendsize;
   struct RadiotapTransmissionHeader rtheader;
+  struct GNUNET_TRANSPORT_WLAN_Ieee8023Frame etheader;
 
   sendsize = ntohs (hdr->size);
   if ( (sendsize <
@@ -1857,21 +1856,40 @@ stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
     exit (1);
   }
   header = (const struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *) hdr;
-  rtheader.header.it_version = 0;
-  rtheader.header.it_pad = 0; 
-  rtheader.header.it_len = GNUNET_htole16 (sizeof (rtheader));
-  rtheader.header.it_present = GNUNET_htole16 (IEEE80211_RADIOTAP_OUR_TRANSMISSION_HEADER_MASK);
-  rtheader.rate = header->rate; 
-  rtheader.pad1 = 0;
-  rtheader.txflags = GNUNET_htole16 (IEEE80211_RADIOTAP_F_TX_NOACK | IEEE80211_RADIOTAP_F_TX_NOSEQ);
-  memcpy (write_pout.buf, &rtheader, sizeof (rtheader));
-  memcpy (&write_pout.buf[sizeof (rtheader)], &header->frame, sendsize);
-  wlanheader = (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *) &write_pout.buf[sizeof (rtheader)];
+  switch (dev->arptype_in)
+  {
+  case ARPHRD_IEEE80211_PRISM:
+  case ARPHRD_IEEE80211_FULL:
+  case ARPHRD_IEEE80211:
+    rtheader.header.it_version = 0;
+    rtheader.header.it_pad = 0; 
+    rtheader.header.it_len = GNUNET_htole16 (sizeof (rtheader));
+    rtheader.header.it_present = GNUNET_htole16 (IEEE80211_RADIOTAP_OUR_TRANSMISSION_HEADER_MASK);
+    rtheader.rate = header->rate; 
+    rtheader.pad1 = 0;
+    rtheader.txflags = GNUNET_htole16 (IEEE80211_RADIOTAP_F_TX_NOACK | IEEE80211_RADIOTAP_F_TX_NOSEQ);
+    memcpy (write_pout.buf, &rtheader, sizeof (rtheader));
+    memcpy (&write_pout.buf[sizeof (rtheader)], &header->frame, sendsize);
+    wlanheader = (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *) &write_pout.buf[sizeof (rtheader)];
 
-  /* payload contains MAC address, but we don't trust it, so we'll
-   * overwrite it with OUR MAC address to prevent mischief */
-  mac_set (wlanheader, dev);
-  write_pout.size = sendsize + sizeof (rtheader);
+    /* payload contains MAC address, but we don't trust it, so we'll
+     * overwrite it with OUR MAC address to prevent mischief */
+    mac_set (wlanheader, dev);
+    write_pout.size = sendsize + sizeof (rtheader);
+    break;
+  case ARPHRD_ETHER:
+    etheader.dst = header->frame.addr1;
+    etheader.src = header->frame.addr2;
+    etheader.type = htons (ETH_P_IP);
+    memcpy (write_pout.buf, &etheader, sizeof (etheader));
+    memcpy (&write_pout.buf[sizeof (etheader)], &header[1], sendsize - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame));
+    write_pout.size = sendsize - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame) + sizeof (etheader);
+    break;
+  default:
+    fprintf (stderr,
+	     "Unsupported ARPTYPE!\n");
+    break;
+  }
 }
 
 
