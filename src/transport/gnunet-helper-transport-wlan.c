@@ -1733,7 +1733,8 @@ open_device_raw (struct HardwareInfos *dev)
 
   memcpy (&dev->pl_mac, ifr.ifr_hwaddr.sa_data, MAC_ADDR_SIZE);
   dev->arptype_in = ifr.ifr_hwaddr.sa_family;
-  if ((ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211) &&
+  if ((ifr.ifr_hwaddr.sa_family != ARPHRD_ETHER) &&
+      (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211) &&
       (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_PRISM) &&
       (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_FULL))
   {
