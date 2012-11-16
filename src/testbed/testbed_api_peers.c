@@ -731,8 +731,6 @@ GNUNET_TESTBED_overlay_connect (void *op_cls,
   opc->op =
       GNUNET_TESTBED_operation_create_ (opc, &opstart_overlay_connect,
                                         &oprelease_overlay_connect);
-  /* GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_parallel_operations, */
-  /*                                         opc->op); */
   GNUNET_TESTBED_operation_queue_insert_
       (opc->c->opq_parallel_overlay_connect_operations, opc->op);
   GNUNET_TESTBED_operation_begin_wait_ (opc->op);

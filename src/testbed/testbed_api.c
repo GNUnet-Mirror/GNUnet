@@ -605,6 +605,13 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
   GNUNET_free (data);
+  /* Increase parallel overlay connects */
+  if (c->num_parallel_connects < c->num_parallel_connects_threshold)
+    c->num_parallel_connects *= 2;
+  else
+    c->num_parallel_connects++;
+  GNUNET_TESTBED_operation_queue_reset_max_active_
+      (c->opq_parallel_overlay_connect_operations, c->num_parallel_connects);
   if (0 !=
       ((GNUNET_TESTBED_ET_CONNECT | GNUNET_TESTBED_ET_DISCONNECT) &
        c->event_mask))
@@ -731,6 +738,16 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
       data->cb (data->cb_cls, opc->op, NULL, emsg);
     GNUNET_free (data);
     return GNUNET_YES;  /* We do not call controller callback for peer info */
+  }
+  if (OP_OVERLAY_CONNECT == opc->type)
+  {
+    /* Decrease the number of parallel overlay connects */
+    c->num_parallel_connects /= 2;
+    c->num_parallel_connects_threshold = c->num_parallel_connects;
+    if (0 == c->num_parallel_connects)
+      c->num_parallel_connects++;
+    GNUNET_TESTBED_operation_queue_reset_max_active_
+        (c->opq_parallel_overlay_connect_operations, c->num_parallel_connects);
   }
   if ((0 != (GNUNET_TESTBED_ET_OPERATION_FINISHED & c->event_mask)) &&
       (NULL != c->cc))
@@ -1499,7 +1516,7 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle
   unsigned long long max_parallel_operations;
   unsigned long long max_parallel_service_connections;
   unsigned long long max_parallel_topology_config_operations;
-  unsigned long long max_parallel_overlay_connect_operations;
+  unsigned long long num_parallel_connects_threshold;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg, "testbed",
@@ -1527,12 +1544,9 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle
   }
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg, "testbed",
-                                             "MAX_PARALLEL_OVERLAY_CONNECT_OPERATIONS",
-                                             &max_parallel_overlay_connect_operations))
-  {
-    GNUNET_break (0);
-    return NULL;
-  }
+                                             "PARALLEL_OVERLAY_CONNECTS_THRESHOLD",
+                                             &num_parallel_connects_threshold))
+    num_parallel_connects_threshold = 16;
   controller = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Controller));
   controller->cc = cc;
   controller->cc_cls = cc_cls;
@@ -1571,9 +1585,11 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle
   controller->opq_parallel_topology_config_operations=
       GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
                                               max_parallel_topology_config_operations);
+  controller->num_parallel_connects = 1;
   controller->opq_parallel_overlay_connect_operations=
-      GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
-                                              max_parallel_overlay_connect_operations);
+      GNUNET_TESTBED_operation_queue_create_
+      (controller->num_parallel_connects);
+  controller->num_parallel_connects_threshold = num_parallel_connects_threshold;
   controller_hostname = GNUNET_TESTBED_host_get_hostname_ (host);
   if (NULL == controller_hostname)
     controller_hostname = "127.0.0.1";

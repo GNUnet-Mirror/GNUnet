@@ -277,11 +277,6 @@ struct GNUNET_TESTBED_Controller
   struct OperationQueue *opq_parallel_overlay_connect_operations;
 
   /**
-   * The operation id counter. use current value and increment
-   */
-  uint32_t operation_counter;
-
-  /**
    * The controller event mask
    */
   uint64_t event_mask;
@@ -295,6 +290,22 @@ struct GNUNET_TESTBED_Controller
    * Did we create the host for this?
    */
   int aux_host;
+
+  /**
+   * The number of parallel overlay connects we do currently
+   */
+  unsigned int num_parallel_connects;
+
+  /**
+   * The threshold for the number of parallel overlay connects we do
+   */
+  unsigned int num_parallel_connects_threshold;
+
+  /**
+   * The operation id counter. use current value and increment
+   */
+  uint32_t operation_counter;
+
 };
 
 
