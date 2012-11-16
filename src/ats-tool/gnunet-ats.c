@@ -61,6 +61,9 @@ struct PendingResolutions
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
 
+  struct GNUNET_ATS_Information *ats;
+  uint32_t ats_count;
+
   struct GNUNET_TRANSPORT_AddressToStringContext * tats_ctx;
 };
 
@@ -70,11 +73,23 @@ struct PendingResolutions *tail;
 void transport_addr_to_str_cb (void *cls, const char *address)
 {
   struct PendingResolutions * pr = cls;
+  char *ats_str;
+  char *ats_tmp;
+  unsigned int c;
   if (NULL != address)
   {
-      fprintf (stderr, _("Peer `%s' plugin `%s', address `%s', bandwidth out: %u Bytes/s, bandwidth in %u Bytes/s\n"),
+      ats_str = GNUNET_strdup("");
+      for (c = 0; c <  pr->ats_count; c++)
+      {
+          ats_tmp = ats_str;
+          GNUNET_asprintf (&ats_str, "%s%u %u ", ats_tmp, ntohl(pr->ats[c].type), ntohl(pr->ats[c].value));
+          GNUNET_free (ats_tmp);
+      }
+
+      fprintf (stderr, _("Peer `%s' plugin `%s', address `%s', bw out: %u Bytes/s, bw in %u Bytes/s, %s\n"),
         GNUNET_i2s (&pr->address->peer), pr->address->transport_name, address,
-        ntohl (pr->bandwidth_out.value__), ntohl (pr->bandwidth_in.value__));
+        ntohl (pr->bandwidth_out.value__), ntohl (pr->bandwidth_in.value__),ats_str);
+      GNUNET_free (ats_str);
   }
   else if (NULL != pr)
   {
@@ -102,7 +117,13 @@ void ats_perf_cb (void *cls,
 {
   struct PendingResolutions * pr;
 
-  pr = GNUNET_malloc (sizeof (struct PendingResolutions));
+  pr = GNUNET_malloc (sizeof (struct PendingResolutions) +
+                      ats_count * sizeof (struct GNUNET_ATS_Information));
+
+  pr->ats_count = ats_count;
+  pr->ats = (struct GNUNET_ATS_Information *) &pr[1];
+  if (ats_count > 0)
+    memcpy (pr->ats, ats, ats_count * sizeof (struct GNUNET_ATS_Information));
   pr->address = GNUNET_HELLO_address_copy (address);
   pr->bandwidth_in = bandwidth_in;
   pr->bandwidth_out = bandwidth_out;
