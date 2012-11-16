@@ -2,6 +2,7 @@ INCLUDES = -I$(top_srcdir)/src/include
 
 if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
+  VPNBIN = gnunet-helper-vpn
 endif
 
 if USE_COVERAGE
@@ -37,9 +38,13 @@ libexec_PROGRAMS = \
 bin_PROGRAMS = \
   gnunet-vpn
 
-gnunet_helper_vpn_SOURCES = \
- gnunet-helper-vpn.c
-
+if MINGW
+    gnunet_helper_vpn_SOURCES = \
+	gnunet-helper-vpn-windows.c
+else
+    gnunet_helper_vpn_SOURCES = \
+	gnunet-helper-vpn.c
+endif
 gnunet_service_vpn_SOURCES = \
  gnunet-service-vpn.c 
 gnunet_service_vpn_LDADD = \
