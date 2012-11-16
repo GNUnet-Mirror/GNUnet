@@ -32,7 +32,7 @@
 #define MAX_NAME_LEN 256
 
 /**
- * Convert a string from to local codeset to UTF-8 lowercase
+ * Convert a UTF-8 string to UTF-8 lowercase
  * @param src source string
  * @return converted result
  */

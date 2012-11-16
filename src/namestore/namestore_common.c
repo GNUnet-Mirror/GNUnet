@@ -72,22 +72,18 @@ struct NetworkRecord
 GNUNET_NETWORK_STRUCT_END
 
 /**
- * Convert a string from to local codeset to UTF-8 lowercase
+ * Convert a UTF-8 string to UTF-8 lowercase
  * @param src source string
  * @return converted result
  */
 char *
 GNUNET_NAMESTORE_normalize_string (const char *src)
 {
-  char *utf_8_str;
-
   GNUNET_assert (NULL != src);
-  /* Convert to UTF8 */
-  utf_8_str = GNUNET_STRINGS_to_utf8 (src, strlen (src), nl_langinfo (CODESET));
-  GNUNET_assert (NULL != utf_8_str);
+  char *res = strdup (src);
   /* normalize */
-  GNUNET_STRINGS_utf8_tolower(utf_8_str, &utf_8_str);
-  return utf_8_str;
+  GNUNET_STRINGS_utf8_tolower(src, &res);
+  return res;
 }
 
 
