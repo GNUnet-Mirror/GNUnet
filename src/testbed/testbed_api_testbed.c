@@ -28,6 +28,7 @@
 #include "platform.h"
 #include "gnunet_testbed_service.h"
 #include "testbed_api_peers.h"
+#include "testbed_api_hosts.h"
 
 /**
  * Generic loggins shorthand
@@ -40,7 +41,20 @@
  */
 struct GNUNET_TESTBED_Testbed
 {
-  // FIXME!
+  /**
+   * The array of hosts
+   */
+  struct GNUNET_TESTBED_Host **hosts;
+
+  /**
+   * The number of hosts in the hosts array
+   */
+  unsigned int num_hosts;
+
+  /**
+   * The controller handle
+   */
+  struct GNUNET_TESTBED_Controller *c;
 };
 
 
@@ -701,21 +715,40 @@ GNUNET_TESTBED_run (const char *host_filename,
  *        use 'localhost'
  * @param hosts list of hosts to use for the testbed
  * @param num_peers number of peers to start
- * @param peer_cfg peer configuration template to use
+ * @param cfg the configuration to use as a template for peers and also for
+ *         checking the value of testbed helper binary
  * @param underlay_topology underlay topology to create
  * @param va topology-specific options
- * @return handle to the testbed
+ * @return handle to the testbed; NULL upon error (error messaage will be printed)
  */
 struct GNUNET_TESTBED_Testbed *
 GNUNET_TESTBED_create_va (struct GNUNET_TESTBED_Controller *controller,
                           unsigned int num_hosts,
                           struct GNUNET_TESTBED_Host **hosts,
                           unsigned int num_peers,
-                          const struct GNUNET_CONFIGURATION_Handle *peer_cfg,
+                          const struct GNUNET_CONFIGURATION_Handle *cfg,
                           enum GNUNET_TESTBED_TopologyOption underlay_topology,
                           va_list va)
 {
+  unsigned int nhost;
+
   GNUNET_assert (underlay_topology < GNUNET_TESTBED_TOPOLOGY_NONE);
+  if (num_hosts != 0)
+  {
+    for (nhost = 0; nhost < num_hosts; nhost++)
+    {
+      if (GNUNET_YES != GNUNET_TESTBED_is_host_habitable (hosts[nhost], cfg))
+      {
+        LOG (GNUNET_ERROR_TYPE_ERROR, _("Host %s cannot start testbed\n"),
+             GNUNET_TESTBED_host_get_hostname_ (hosts[nhost]));
+        break;
+      }
+    }
+    if (num_hosts != nhost)
+      return NULL;
+  }
+  /* We need controller callback here to get operation done events while
+     linking hosts */
   GNUNET_break (0);
   return NULL;
 }
@@ -733,7 +766,8 @@ GNUNET_TESTBED_create_va (struct GNUNET_TESTBED_Controller *controller,
  *        use 'localhost'
  * @param hosts list of hosts to use for the testbed
  * @param num_peers number of peers to start
- * @param peer_cfg peer configuration template to use
+ * @param cfg the configuration to use as a template for peers and also for
+ *         checking the value of testbed helper binary
  * @param underlay_topology underlay topology to create
  * @param ... topology-specific options
  */
@@ -742,7 +776,7 @@ GNUNET_TESTBED_create (struct GNUNET_TESTBED_Controller *controller,
                        unsigned int num_hosts,
                        struct GNUNET_TESTBED_Host **hosts,
                        unsigned int num_peers,
-                       const struct GNUNET_CONFIGURATION_Handle *peer_cfg,
+                       const struct GNUNET_CONFIGURATION_Handle *cfg,
                        enum GNUNET_TESTBED_TopologyOption underlay_topology,
                        ...)
 {
@@ -751,7 +785,7 @@ GNUNET_TESTBED_create (struct GNUNET_TESTBED_Controller *controller,
   
   va_start (vargs, underlay_topology);
   testbed = GNUNET_TESTBED_create_va (controller, num_hosts, hosts, num_peers,
-                                      peer_cfg, underlay_topology, vargs);
+                                      cfg, underlay_topology, vargs);
   va_end (vargs);
   return testbed;
 }
