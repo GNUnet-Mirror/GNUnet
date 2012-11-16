@@ -1669,8 +1669,9 @@ open_device_raw (struct HardwareInfos *dev)
 	(wrq.u.mode != IW_MODE_ADHOC) ))
 	
   {
-    fprintf (stderr, "Error: interface `%.*s' is not in monitor or ad-hoc mode\n",
-             IFNAMSIZ, dev->iface);
+    fprintf (stderr, "Error: interface `%.*s' is not in monitor or ad-hoc mode (got %d)\n",
+             IFNAMSIZ, dev->iface,
+	     wrq.u.mode);
     return 1;
   }
 
