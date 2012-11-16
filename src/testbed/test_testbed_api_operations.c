@@ -35,12 +35,14 @@
   GNUNET_log (kind, __VA_ARGS__)
 
 /**
- * Queue A
+ * Queue A. Initially the max active is set to 2 and then reduced to 0 - this
+ * should block op2 even after op1 has finished. Later the max active is set to
+ * 1 and this should start op2
  */
 struct OperationQueue *q1;
 
 /**
- * Queue B
+ * Queue B. Max active set to 1
  */
 struct OperationQueue *q2;
 
@@ -53,6 +55,17 @@ struct GNUNET_TESTBED_Operation *op1;
  * This operation should go into q1 and q2
  */
 struct GNUNET_TESTBED_Operation *op2;
+
+/**
+ * This operation should go into both queues and should be started after op2 has
+ * been released.
+ */
+struct GNUNET_TESTBED_Operation *op3;
+
+/**
+ * The delay task identifier
+ */
+GNUNET_SCHEDULER_TaskIdentifier step_task;
 
 
 /**
@@ -83,13 +96,51 @@ enum Test
     /**
      * op2 released
      */
-  TEST_OP2_RELEASED
+  TEST_OP2_RELEASED,
+
+  /**
+   * Temporary pause where no operations should start as we set max active in q1
+   * to 0
+   */
+  TEST_PAUSE,
+
+  /**
+   * op3 has started
+   */
+  TEST_OP3_STARTED,
+
+  /**
+   * op3 has finished
+   */
+  TEST_OP3_RELEASED
 };
 
 /**
  * The test result
  */
 enum Test result;
+
+
+/**
+ * Function to call to start an operation once all
+ * queues the operation is part of declare that the
+ * operation can be activated.
+ */
+static void
+start_cb (void *cls);
+
+
+/**
+ * Function to cancel an operation (release all associated resources).  This can
+ * be because of a call to "GNUNET_TESTBED_operation_cancel" (before the
+ * operation generated an event) or AFTER the operation generated an event due
+ * to a call to "GNUNET_TESTBED_operation_done".  Thus it is not guaranteed that
+ * a callback to the 'OperationStart' preceeds the call to 'OperationRelease'.
+ * Implementations of this function are expected to clean up whatever state is
+ * in 'cls' and release all resources associated with the operation.
+ */
+static void
+release_cb (void *cls);
 
 
 /**
@@ -101,13 +152,27 @@ enum Test result;
 static void
 step (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != step_task);
+  step_task = GNUNET_SCHEDULER_NO_TASK;
   switch (result)
   {
   case TEST_OP1_STARTED:
     GNUNET_TESTBED_operation_release_ (op1);
+    GNUNET_TESTBED_operation_queue_reset_max_active_ (q1, 0);
+    op3 = GNUNET_TESTBED_operation_create_ (&op3, &start_cb, &release_cb);    
+    GNUNET_TESTBED_operation_queue_insert_ (q1, op3);
+    GNUNET_TESTBED_operation_queue_insert_ (q2, op3);
+    GNUNET_TESTBED_operation_begin_wait_ (op3);
     break;
   case TEST_OP2_STARTED:
     GNUNET_TESTBED_operation_release_ (op2);
+    break;
+  case TEST_OP2_RELEASED:
+    result = TEST_PAUSE;
+    GNUNET_TESTBED_operation_queue_reset_max_active_ (q1, 1);
+    break;
+  case TEST_OP3_STARTED:
+    GNUNET_TESTBED_operation_release_ (op3);
     break;
   default:
     GNUNET_assert (0);
@@ -128,12 +193,20 @@ start_cb (void *cls)
   case TEST_INIT:
     GNUNET_assert (&op1 == cls);
     result = TEST_OP1_STARTED;
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step, NULL);
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == step_task);
+    step_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step, NULL);
     break;
   case TEST_OP1_RELEASED:
     GNUNET_assert (&op2 == cls);
     result = TEST_OP2_STARTED;
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step, NULL);
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == step_task);
+    step_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step, NULL);
+    break;
+  case TEST_PAUSE:
+    GNUNET_assert (&op3 == cls);
+    result = TEST_OP3_STARTED;
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == step_task);
+    step_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step, NULL);
     break;
   default:
     GNUNET_assert (0);
@@ -142,15 +215,13 @@ start_cb (void *cls)
 
 
 /**
- * Function to call to cancel an operation (release all associated
- * resources).  This can be because of a call to
- * "GNUNET_TESTBED_operation_cancel" (before the operation generated
- * an event) or AFTER the operation generated an event due to a call
- * to "GNUNET_TESTBED_operation_done".  Thus it is not guaranteed that
- * a callback to the 'OperationStart' preceeds the call to
- * 'OperationRelease'.  Implementations of this function are expected
- * to clean up whatever state is in 'cls' and release all resources
- * associated with the operation.
+ * Function to cancel an operation (release all associated resources).  This can
+ * be because of a call to "GNUNET_TESTBED_operation_cancel" (before the
+ * operation generated an event) or AFTER the operation generated an event due
+ * to a call to "GNUNET_TESTBED_operation_done".  Thus it is not guaranteed that
+ * a callback to the 'OperationStart' preceeds the call to 'OperationRelease'.
+ * Implementations of this function are expected to clean up whatever state is
+ * in 'cls' and release all resources associated with the operation.
  */
 static void
 release_cb (void *cls)
@@ -160,10 +231,18 @@ release_cb (void *cls)
   case TEST_OP1_STARTED:
     GNUNET_assert (&op1 == cls);
     result = TEST_OP1_RELEASED;
+    op1 = NULL;
+    //GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step, NULL);
     break;
   case TEST_OP2_STARTED:
     GNUNET_assert (&op2 == cls);
     result = TEST_OP2_RELEASED;
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == step_task);
+    step_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step, NULL);
+    break;
+  case TEST_OP3_STARTED:
+    GNUNET_assert (&op3 == cls);
+    result = TEST_OP3_RELEASED;
     GNUNET_TESTBED_operation_queue_destroy_ (q1);
     GNUNET_TESTBED_operation_queue_destroy_ (q2);
     break;
@@ -217,10 +296,11 @@ main (int argc, char **argv)
       GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
                           "test_testbed_api_operations", "nohelp", options,
                           &run, NULL);
-  if ((GNUNET_OK != ret) || (TEST_OP2_RELEASED != result))
+  if ((GNUNET_OK != ret) || (TEST_OP3_RELEASED != result))
     return 1;
   op1 = NULL;
   op2 = NULL;
+  op3 = NULL;
   q1 = NULL;
   q2 = NULL;
   return 0;

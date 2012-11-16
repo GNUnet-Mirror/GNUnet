@@ -66,10 +66,15 @@ struct OperationQueue
   struct QueueEntry *tail;
 
   /**
-   * Number of operations that can be concurrently
-   * active in this queue.
+   * Number of operations that are currently active in this queue.
    */
   unsigned int active;
+
+  /**
+   * Max number of operations which can be active at any time in this queue
+   */
+  unsigned int max_active;
+
 };
 
 
@@ -158,9 +163,7 @@ call_start (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   op->start_task_id = GNUNET_SCHEDULER_NO_TASK;
   op->state = OP_STATE_STARTED;
   if (NULL != op->start)
-  {
     op->start (op->cb_cls);
-  }
 }
 
 
@@ -176,14 +179,10 @@ check_readiness (struct GNUNET_TESTBED_Operation *op)
 
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == op->start_task_id);
   for (i = 0; i < op->nqueues; i++)
-  {
-    if (0 == op->queues[i]->active)
+    if (op->queues[i]->active >= op->queues[i]->max_active)
       return;
-  }
   for (i = 0; i < op->nqueues; i++)
-  {
-    op->queues[i]->active--;
-  }
+    op->queues[i]->active++;
   op->state = OP_STATE_READY;
   op->start_task_id = GNUNET_SCHEDULER_add_now (&call_start, op);
 }
@@ -226,7 +225,7 @@ GNUNET_TESTBED_operation_queue_create_ (unsigned int max_active)
   struct OperationQueue *queue;
 
   queue = GNUNET_malloc (sizeof (struct OperationQueue));
-  queue->active = max_active;
+  queue->max_active = max_active;
   return queue;
 }
 
@@ -243,6 +242,34 @@ GNUNET_TESTBED_operation_queue_destroy_ (struct OperationQueue *queue)
   GNUNET_break (NULL == queue->head);
   GNUNET_break (NULL == queue->tail);
   GNUNET_free (queue);
+}
+
+
+/**
+ * Function to reset the maximum number of operations in the given queue. If
+ * max_active is lesser than the number of currently active operations, the
+ * active operations are not stopped immediately.
+ *
+ * @param queue the operation queue which has to be modified
+ * @param max_active the new maximum number of active operations
+ */
+void
+GNUNET_TESTBED_operation_queue_reset_max_active_ (struct OperationQueue *queue,
+                                                  unsigned int max_active)
+{
+  struct QueueEntry *entry;
+  
+  queue->max_active = max_active;
+  if (queue->active >= queue->max_active)
+    return;
+  entry = queue->head;
+  while ( (NULL != entry) &&
+          (queue->active < queue->max_active) )
+  {
+    if (OP_STATE_WAITING == entry->op->state)
+      check_readiness (entry->op);
+    entry = entry->next;
+  }
 }
 
 
@@ -314,7 +341,10 @@ GNUNET_TESTBED_operation_queue_remove_ (struct OperationQueue *queue,
       break;
   GNUNET_assert (NULL != entry);
   if (OP_STATE_STARTED == operation->state)
-    queue->active++;
+  {
+    GNUNET_assert (0 != queue->active);
+    queue->active--;
+  }
   entry2 = entry->next;
   GNUNET_CONTAINER_DLL_remove (queue->head, queue->tail, entry);
   GNUNET_free (entry);

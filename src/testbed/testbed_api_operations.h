@@ -59,6 +59,19 @@ GNUNET_TESTBED_operation_queue_destroy_ (struct OperationQueue *queue);
 
 
 /**
+ * Function to reset the maximum number of operations in the given queue. If
+ * max_active is lesser than the number of currently active operations, the
+ * active operations are not stopped immediately.
+ *
+ * @param queue the operation queue which has to be modified
+ * @param max_active the new maximum number of active operations
+ */
+void
+GNUNET_TESTBED_operation_queue_reset_max_active_ (struct OperationQueue *queue,
+                                                  unsigned int max_active);
+
+
+/**
  * Add an operation to a queue.  An operation can be in multiple queues at
  * once. Once the operation is inserted into all the queues
  * GNUNET_TESTBED_operation_begin_wait_() has to be called to actually start
