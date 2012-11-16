@@ -1866,6 +1866,7 @@ main (int argc, char *argv[])
   int stdin_open;
   struct MessageStreamTokenizer *stdin_mst;
   int raw_eno;
+  uid_t uid;
 
   /* assert privs so we can modify the firewall rules! */
   uid = getuid ();
