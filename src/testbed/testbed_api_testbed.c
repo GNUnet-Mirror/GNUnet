@@ -441,17 +441,34 @@ call_cc:
   if (GNUNET_TESTBED_TOPOLOGY_NONE != rc->topology)
   {
     if ( (GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI == rc->topology)
-         || (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING == rc->topology))
+         || (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING == rc->topology)
+         || (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD == rc->topology))
+    {
+      unsigned int rand_links;
+      
+      switch (rc->topology)
+      {
+      case GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI:
+        rand_links = rc->num_oc;
+        break;
+      case GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING:
+        rand_links = rc->num_oc - rc->num_peers;
+        break;
+      case GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD:
+        rand_links = GNUNET_TESTBED_2dtorus_calc_links (rc->num_peers, NULL, NULL);
+        break;
+      default:
+        GNUNET_break (0);
+        rand_links = 0;
+      }
       rc->topology_operation =
           GNUNET_TESTBED_overlay_configure_topology (NULL,
                                                      rc->num_peers,
                                                      rc->peers,
                                                      rc->topology,
-                                                     (GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI
-                                                      == rc->topology) ?
-                                                     rc->num_oc : 
-                                                     (rc->num_oc - rc->num_peers),
+                                                     rand_links,
                                                      GNUNET_TESTBED_TOPOLOGY_OPTION_END);
+    }
     else
       rc->topology_operation =
           GNUNET_TESTBED_overlay_configure_topology (NULL,
@@ -655,6 +672,12 @@ GNUNET_TESTBED_run (const char *host_filename,
     else if (0 == strcasecmp (topology, "SMALL_WORLD_RING"))
     {
       rc->topology = GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING;
+      rc->num_oc = num_peers;
+    }
+    else if (0 == strcasecmp (topology, "SMALL_WORLD"))
+    {
+      rc->topology = GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD;
+      rc->num_oc = GNUNET_TESTBED_2dtorus_calc_links (num_peers, NULL, NULL);
     }
     else if (0 == strcasecmp (topology, "CLIQUE"))
     {
@@ -682,7 +705,8 @@ GNUNET_TESTBED_run (const char *host_filename,
     GNUNET_free (topology);
   }
   if ( (GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI == rc->topology)
-       || (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING == rc->topology))
+       || (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING == rc->topology)
+       || (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD == rc->topology))
   { 
     if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg, "testbed",
                                                             "OVERLAY_RANDOM_LINKS",
@@ -700,9 +724,7 @@ GNUNET_TESTBED_run (const char *host_filename,
       GNUNET_free (rc);
       return;
     }
-    rc->num_oc = (unsigned int) random_links;
-    if (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING == rc->topology)
-      rc->num_oc += num_peers;
+    rc->num_oc += (unsigned int) random_links;
   }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_run_task, rc);

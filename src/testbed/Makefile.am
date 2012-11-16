@@ -96,7 +96,8 @@ check_PROGRAMS = \
  test_testbed_api_testbed_run_topologyclique \
  test_testbed_api_testbed_run_topologyring \
  test_testbed_api_testbed_run_topologysmallworldring \
- test_testbed_api_testbed_run_topology2dtorus
+ test_testbed_api_testbed_run_topology2dtorus \
+ test_testbed_api_testbed_run_topologysmallworld
 
 if ENABLE_TEST_RUN
  TESTS = \
@@ -116,7 +117,8 @@ if ENABLE_TEST_RUN
  test_testbed_api_testbed_run_topologyclique \
  test_testbed_api_testbed_run_topologyring \
  test_testbed_api_testbed_run_topologysmallworldring \
- test_testbed_api_testbed_run_topology2dtorus
+ test_testbed_api_testbed_run_topology2dtorus \
+ test_testbed_api_testbed_run_topologysmallworld
 endif
 
 test_testbed_api_hosts_SOURCES = \
@@ -226,6 +228,12 @@ test_testbed_api_testbed_run_topology2dtorus_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
 
+test_testbed_api_testbed_run_topologysmallworld_SOURCES = \
+ test_testbed_api_testbed_run.c
+test_testbed_api_testbed_run_topologysmallworld_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunettestbed.la
+
 EXTRA_DIST = \
   test_testbed_api.conf \
   test_testbed_api_testbed_run_topologyring.conf \
@@ -234,4 +242,5 @@ EXTRA_DIST = \
   test_testbed_api_testbed_run_topologyrandom.conf \
   test_testbed_api_testbed_run_topologysmallworldring.conf \
   test_testbed_api_testbed_run_topology2dtorus.conf \
+  test_testbed_api_testbed_run_topologysmallworld.conf \
   sample_hosts.txt

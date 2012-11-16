@@ -530,6 +530,12 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
   case GNUNET_TESTBED_TOPOLOGY_2D_TORUS:
     gen_topo_2dtorus (tc);
     break;
+  case GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD:
+    gen_topo_2dtorus (tc);
+    gen_topo_random (tc,
+                     va_arg (va, unsigned int),
+                     GNUNET_YES);
+    break;
   default:
     GNUNET_break (0);
     GNUNET_free (tc);
