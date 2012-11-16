@@ -204,7 +204,7 @@ main (int argc, char *argv[])
       fprintf (stderr, "dup2 failed: %s\n", strerror (errno));
     (void) close (commpipe[1]); /* Close unused side of pipe (out side) */
     /* Replace the child fork with a new process */
-    if (execl
+    if (execlp
         ("gnunet-helper-transport-wlan", "gnunet-helper-transport-wlan",
          argv[1], NULL) == -1)
     {
