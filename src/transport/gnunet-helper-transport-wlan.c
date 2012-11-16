@@ -1867,6 +1867,22 @@ main (int argc, char *argv[])
   struct MessageStreamTokenizer *stdin_mst;
   int raw_eno;
 
+  /* assert privs so we can modify the firewall rules! */
+  uid = getuid ();
+#ifdef HAVE_SETRESUID
+  if (0 != setresuid (uid, 0, 0))
+  {
+    fprintf (stderr, "Failed to setresuid to root: %s\n", strerror (errno));
+    return 254;
+  }
+#else
+  if (0 != seteuid (0)) 
+  {
+    fprintf (stderr, "Failed to seteuid back to root: %s\n", strerror (errno));
+    return 254;
+  }
+#endif
+
   /* make use of SGID capabilities on POSIX */
   memset (&dev, 0, sizeof (dev));
   dev.fd_raw = socket (PF_PACKET, SOCK_RAW, htons (ETH_P_ALL));
