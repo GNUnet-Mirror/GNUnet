@@ -73,6 +73,15 @@ static char *remote_host;
  */
 static unsigned long long  remote_port;
 
+/**
+ * Value to set
+ */
+static unsigned long long set_val;
+
+/**
+ * Set operation
+ */
+static int set_value;
 
 /**
  * Callback function to process statistic values.
@@ -158,23 +167,21 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-/**
- * Main function that will be run by the scheduler.
- *
- * @param cls closure
- * @param args remaining command-line arguments
- * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param cfg configuration
- */
+
 static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+resolver_test_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   struct GNUNET_STATISTICS_Handle *h;
-  unsigned long long val;
 
   if (NULL != remote_host)
   {
+      if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
+      {
+          FPRINTF (stderr, _("Trying to connect to remote host, but service `%s' is not running\n"), "resolver");
+          return;
+      }
+
       /* connect to a remote host */
       if (0 == remote_port)
       {
@@ -196,12 +203,17 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_CONFIGURATION_set_value_number ((struct GNUNET_CONFIGURATION_Handle *) cfg, "statistics", "PORT", remote_port);
   }
 
-  if (args[0] != NULL)
+  if (set_value)
   {
-    if ((1 != SSCANF (args[0], "%llu", &val)) || (subsystem == NULL) ||
-        (name == NULL))
+    if (subsystem == NULL)
     {
-      FPRINTF (stderr, _("Invalid argument `%s'\n"), args[0]);
+      FPRINTF (stderr, _("Missing argument: subsystem \n"));
+      ret = 1;
+      return;
+    }
+    if (name == NULL)
+    {
+      FPRINTF (stderr, _("Missing argument: name\n"));
       ret = 1;
       return;
     }
@@ -211,7 +223,7 @@ run (void *cls, char *const *args, const char *cfgfile,
       ret = 1;
       return;
     }
-    GNUNET_STATISTICS_set (h, name, (uint64_t) val, persistent);
+    GNUNET_STATISTICS_set (h, name, (uint64_t) set_val, persistent);
     GNUNET_STATISTICS_destroy (h, GNUNET_YES);
     h = NULL;
     return;
@@ -234,7 +246,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     {
       printf (_("No subsystem or name given\n"));
       GNUNET_STATISTICS_destroy (h, GNUNET_NO);
-      h = NULL;      
+      h = NULL;
       ret = 1;
       return;
     }
@@ -245,8 +257,41 @@ run (void *cls, char *const *args, const char *cfgfile,
       return;
     }
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, 
-				&shutdown_task, h);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                &shutdown_task, h);
+
+}
+
+
+/**
+ * Main function that will be run by the scheduler.
+ *
+ * @param cls closure
+ * @param args remaining command-line arguments
+ * @param cfgfile name of the configuration file used (for saving, can be NULL!)
+ * @param cfg configuration
+ */
+static void
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  set_value = GNUNET_NO;
+  if (NULL != args[0])
+  {
+      if (1 != SSCANF (args[0], "%llu", &set_val))
+      {
+          FPRINTF (stderr, _("Invalid argument `%s'\n"), args[0]);
+          ret = 1;
+          return;
+      }
+      set_value = GNUNET_YES;
+  }
+
+  if (NULL != remote_host)
+      GNUNET_CLIENT_service_test ("resolver", cfg, GNUNET_TIME_UNIT_SECONDS, &resolver_test_task, (void *) cfg);
+  else
+      GNUNET_SCHEDULER_add_now (&resolver_test_task, (void *) cfg);
+
 }
 
 
