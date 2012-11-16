@@ -1228,7 +1228,8 @@ GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation);
  *        use 'localhost'
  * @param hosts list of hosts to use for the testbed
  * @param num_peers number of peers to start
- * @param peer_cfg peer configuration template to use
+ * @param cfg the configuration to use as a template for peers and also for
+ *         checking the value of testbed helper binary
  * @param underlay_topology underlay topology to create
  * @param va topology-specific options
  * @return handle to the testbed
@@ -1238,7 +1239,7 @@ GNUNET_TESTBED_create_va (struct GNUNET_TESTBED_Controller *controller,
                           unsigned int num_hosts,
                           struct GNUNET_TESTBED_Host **hosts,
                           unsigned int num_peers,
-                          const struct GNUNET_CONFIGURATION_Handle *peer_cfg,
+                          const struct GNUNET_CONFIGURATION_Handle *cfg,
                           enum GNUNET_TESTBED_TopologyOption underlay_topology,
                           va_list va);
 
@@ -1255,7 +1256,8 @@ GNUNET_TESTBED_create_va (struct GNUNET_TESTBED_Controller *controller,
  *        use 'localhost'
  * @param hosts list of hosts to use for the testbed
  * @param num_peers number of peers to start
- * @param peer_cfg peer configuration template to use
+ * @param cfg the configuration to use as a template for peers and also for
+ *         checking the value of testbed helper binary
  * @param underlay_topology underlay topology to create
  * @param ... topology-specific options
  */
@@ -1264,7 +1266,7 @@ GNUNET_TESTBED_create (struct GNUNET_TESTBED_Controller *controller,
                        unsigned int num_hosts,
                        struct GNUNET_TESTBED_Host **hosts,
                        unsigned int num_peers,
-                       const struct GNUNET_CONFIGURATION_Handle *peer_cfg,
+                       const struct GNUNET_CONFIGURATION_Handle *cfg,
                        enum GNUNET_TESTBED_TopologyOption underlay_topology,
                        ...);
 
