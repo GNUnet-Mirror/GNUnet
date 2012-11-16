@@ -30,6 +30,20 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_hello_lib.h"
 
+/**
+ * Number of network types supported by ATS
+ */
+#define GNUNET_ATS_NetworkTypeCount 5
+
+/**
+ * ATS network types as array initializer
+ */
+#define GNUNET_ATS_NetworkType {GNUNET_ATS_NET_UNSPECIFIED, GNUNET_ATS_NET_LOOPBACK, GNUNET_ATS_NET_LAN, GNUNET_ATS_NET_WAN, GNUNET_ATS_NET_WLAN}
+
+/**
+ * ATS network types as string array initializer
+ */
+#define GNUNET_ATS_NetworkTypeString {"UNSPECIFIED", "LOOPBACK", "LAN", "WAN", "WLAN"}
 
 enum GNUNET_ATS_Network_Type
 {
@@ -39,6 +53,18 @@ enum GNUNET_ATS_Network_Type
   GNUNET_ATS_NET_WAN = 3,
   GNUNET_ATS_NET_WLAN = 4,
 };
+
+
+
+/**
+ * Number of property types supported by ATS
+ */
+#define GNUNET_ATS_PropertyCount 9
+
+/**
+ * ATS properties types as string array initializer
+ */
+#define GNUNET_ATS_PropertyStrings {"Terminator", "Utilization up", "Utilization down", "Network type", "Delay", "Distance", "Cost WAN", "Cost LAN", "Cost WLAN"}
 
 /**
  * Enum defining all known property types for ATS Enum values are used
@@ -413,14 +439,10 @@ enum GNUNET_ATS_Property
 #define GNUNET_ATS_QualityProperties {GNUNET_ATS_QUALITY_NET_DELAY, GNUNET_ATS_QUALITY_NET_DISTANCE}
 
 /**
- * Number of ATS quality properties
+ * ATS quality properties as string array initializer
  */
-#define GNUNET_ATS_NetworkTypeCount 5
+#define GNUNET_ATS_QualityPropertiesString {"Delay", "Distance"}
 
-/**
- * ATS quality properties as array initializer
- */
-#define GNUNET_ATS_NetworkType {GNUNET_ATS_NET_UNSPECIFIED, GNUNET_ATS_NET_LOOPBACK, GNUNET_ATS_NET_LAN, GNUNET_ATS_NET_WAN, GNUNET_ATS_NET_WLAN}
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
