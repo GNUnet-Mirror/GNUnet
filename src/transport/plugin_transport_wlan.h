@@ -80,6 +80,29 @@ struct GNUNET_TRANSPORT_WLAN_HelperControlMessage
   struct GNUNET_TRANSPORT_WLAN_MacAddress mac;
 };
 
+/**
+ * generic definitions for IEEE 802.3 frames
+ */
+struct GNUNET_TRANSPORT_WLAN_Ieee8023Frame
+{
+
+  /**
+   * Address 1: destination address in ad-hoc mode or AP, BSSID if station,
+   */
+  struct GNUNET_TRANSPORT_WLAN_MacAddress dst;
+
+  /**
+   * Address 2: source address if in ad-hoc-mode or station, BSSID if AP
+   */
+  struct GNUNET_TRANSPORT_WLAN_MacAddress src;
+
+  /**
+   * Packet type ID.
+   */
+  uint16_t type;
+
+};
+
 
 /**
  * generic definitions for IEEE 802.11 frames

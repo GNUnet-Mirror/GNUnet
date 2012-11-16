@@ -139,10 +139,19 @@
 
 /**
  * Packet format type for the messages we receive from 
+ * the kernel.  This is for Ethernet 10Mbps format (no
+ * performance information included).
+ */
+#define ARPHRD_ETHER        1 
+
+
+/**
+ * Packet format type for the messages we receive from 
  * the kernel.  This is for plain messages (with no
  * performance information included).
  */
 #define ARPHRD_IEEE80211        801
+
 
 /**
  * Packet format type for the messages we receive from 
@@ -1588,6 +1597,17 @@ linux_read (struct HardwareInfos *dev,
   case ARPHRD_IEEE80211:
     n = 0; /* no header */
     break;
+  case ARPHRD_ETHER:
+    {
+      ;
+      
+      if (sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee8023Frame) > caplen)
+	return 0; /* invalid */
+      memcpy (&buf[sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame)],
+	      tmpbuf + sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee8023Frame),
+	      caplen - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee8023Frame) - 4 /* 4 byte FCS */);
+      return caplen - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee8023Frame) - 4;
+    }	    
   default:
     errno = ENOTSUP; /* unsupported format */
     return -1;
@@ -1652,6 +1672,7 @@ open_device_raw (struct HardwareInfos *dev)
     return 1;
   }
   if (((ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211) &&
+       (ifr.ifr_hwaddr.sa_family != ARPHRD_ETHER) &&
        (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_PRISM) &&
        (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_FULL)) )
   {
