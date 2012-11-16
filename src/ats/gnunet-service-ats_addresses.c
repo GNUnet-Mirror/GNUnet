@@ -69,21 +69,53 @@ static int ats_mode;
 static int running;
 
 
+static unsigned int
+assemble_ats_information (struct ATS_Address *aa,  struct GNUNET_ATS_Information **dest)
+{
+  unsigned int ats_count = GNUNET_ATS_PropertyCount - 1;
+  struct GNUNET_ATS_Information *ats = GNUNET_malloc (ats_count * sizeof (struct GNUNET_ATS_Information));
+  (*dest) = ats;
+
+  ats[0].type = ntohl(GNUNET_ATS_UTILIZATION_UP);
+  ats[0].value = aa->atsp_utilization_out.value__;
+  ats[1].type = ntohl(GNUNET_ATS_UTILIZATION_DOWN);
+  ats[1].value = aa->atsp_utilization_in.value__;
+  ats[2].type = ntohl(GNUNET_ATS_NETWORK_TYPE);
+  ats[2].value = ntohl(aa->atsp_network_type);
+  ats[3].type = ntohl(GNUNET_ATS_QUALITY_NET_DELAY);
+  ats[3].value = ntohl(aa->atsp_latency.rel_value);
+  ats[4].type = ntohl(GNUNET_ATS_QUALITY_NET_DISTANCE);
+  ats[4].value = ntohl(aa->atsp_distance);
+  ats[5].type = ntohl(GNUNET_ATS_COST_WAN);
+  ats[5].value = ntohl (aa->atsp_cost_wan);
+  ats[6].type = ntohl(GNUNET_ATS_COST_LAN);
+  ats[6].value = ntohl (aa->atsp_cost_lan);
+  ats[7].type = ntohl(GNUNET_ATS_COST_WLAN);
+  ats[7].value = ntohl (aa->atsp_cost_wlan);
+  return ats_count;
+}
+
 static void
 send_bw_notification (struct ATS_Address *aa)
 {
+  struct GNUNET_ATS_Information *ats;
+  uint32_t ats_count;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New bandwidth for peer %s is %u/%u\n",
               GNUNET_i2s (&aa->peer), ntohl (aa->assigned_bw_in.value__),
               ntohl (aa->assigned_bw_out.value__));
+  ats_count = assemble_ats_information (aa, &ats);
+
   GAS_scheduling_transmit_address_suggestion (&aa->peer, aa->plugin, aa->addr,
                                               aa->addr_len, aa->session_id,
-                                              aa->ats, aa->ats_count,
+                                              ats, ats_count,
                                               aa->assigned_bw_out,
                                               aa->assigned_bw_in);
   GAS_reservations_set_bandwidth (&aa->peer, aa->assigned_bw_in);
   GAS_performance_notify_all_clients (&aa->peer, aa->plugin, aa->addr, aa->addr_len,
-                                  aa->ats, aa->ats_count, aa->assigned_bw_out,
+                                  ats, ats_count, aa->assigned_bw_out,
                                   aa->assigned_bw_in);
+  GNUNET_free (ats);
 }
 
 /**
@@ -1121,15 +1153,22 @@ peerinfo_it (void *cls,
 {
   struct PeerInfoIteratorContext *pi_ctx = cls;
   struct ATS_Address *addr = (struct ATS_Address *)  value;
+  struct GNUNET_ATS_Information *ats;
+  uint32_t ats_count;
 
   if ((NULL != pi_ctx->it) && (GNUNET_YES == addr->used))
+  {
+    ats_count = assemble_ats_information (addr, &ats);
+
     pi_ctx->it (pi_ctx->it_cls,
                 &addr->peer,
                 addr->plugin,
                 addr->addr, addr->addr_len,
-                addr->ats, addr->ats_count,
+                ats, ats_count,
                 addr->assigned_bw_out,
                 addr->assigned_bw_in);
+    GNUNET_free (ats);
+  }
   return GNUNET_YES;
 }
 

@@ -1363,7 +1363,7 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
   n->expect_latency_response = GNUNET_NO;
   n->latency = GNUNET_TIME_absolute_get_duration (n->last_keep_alive_time);
   n->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 	      "Latency for peer `%s' is %llu ms\n",
               GNUNET_i2s (&n->id), n->latency.rel_value);
   memcpy (ats_new, ats, sizeof (struct GNUNET_ATS_Information) * ats_count);
