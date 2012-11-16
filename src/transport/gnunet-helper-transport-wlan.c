@@ -1665,7 +1665,9 @@ open_device_raw (struct HardwareInfos *dev)
   if (((ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211) &&
        (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_PRISM) &&
        (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_FULL)) ||
-      (wrq.u.mode != IW_MODE_MONITOR))
+      ( (wrq.u.mode != IW_MODE_MONITOR) &&
+	(wrq.u.mode != IW_MODE_ADHOC) ))
+	
   {
     fprintf (stderr, "Error: interface `%.*s' is not in monitor mode\n",
              IFNAMSIZ, dev->iface);
