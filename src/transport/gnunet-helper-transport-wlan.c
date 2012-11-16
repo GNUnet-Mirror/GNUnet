@@ -1651,6 +1651,15 @@ open_device_raw (struct HardwareInfos *dev)
              IFNAMSIZ, dev->iface, strerror (errno));
     return 1;
   }
+  if (((ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211) &&
+       (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_PRISM) &&
+       (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_FULL)) )
+  {
+    fprintf (stderr, "Error: interface `%.*s' is not using a supported hardware address family (got %d)\n",
+             IFNAMSIZ, dev->iface,
+	     ifr.ifr_hwaddr.sa_family);
+    return 1;
+  }
 
   /* lookup iw mode */
   memset (&wrq, 0, sizeof (struct iwreq));
@@ -1662,12 +1671,8 @@ open_device_raw (struct HardwareInfos *dev)
     wrq.u.mode = IW_MODE_MONITOR;
   }
 
-  if (((ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211) &&
-       (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_PRISM) &&
-       (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_FULL)) ||
-      ( (wrq.u.mode != IW_MODE_MONITOR) &&
-	(wrq.u.mode != IW_MODE_ADHOC) ))
-	
+  if ( (wrq.u.mode != IW_MODE_MONITOR) &&
+       (wrq.u.mode != IW_MODE_ADHOC) )	
   {
     fprintf (stderr, "Error: interface `%.*s' is not in monitor or ad-hoc mode (got %d)\n",
              IFNAMSIZ, dev->iface,
