@@ -939,9 +939,7 @@ enum GNUNET_TESTBED_TopologyOption
   GNUNET_TESTBED_TOPOLOGY_RING,
 
   /**
-   * 2-d torus.  Followed by the number `x' (unsigned int) of peers along the
-   * poloidal and the number `y' (unsigned int) of peers along the toroidal. The
-   * total number of peers must be equal to `(x * y)'
+   * 2-d torus.  No options.
    */
   GNUNET_TESTBED_TOPOLOGY_2D_TORUS,
 

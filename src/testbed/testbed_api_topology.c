@@ -235,6 +235,92 @@ gen_topo_ring (struct TopologyContext *tc)
  * Generates ring topology
  *
  * @param tc the topology context
+ */
+static void
+gen_topo_2dtorus (struct TopologyContext *tc)
+{
+  double sq;
+  unsigned int sq_floor;
+  unsigned int rows;
+  unsigned int *rows_len;
+  unsigned int x;
+  unsigned int y;
+  unsigned int num_peers;
+  unsigned int cnt;
+  unsigned int offset;
+
+  sq = sqrt (tc->num_peers);
+  sq = floor (sq);
+  sq_floor = (unsigned int) sq;
+  rows = (sq_floor + 1);
+  rows_len = GNUNET_malloc (sizeof (unsigned int) * rows);
+  for (y = 0; y < rows - 1; y++)
+    rows_len[y] = sq_floor;
+  num_peers = sq_floor * sq_floor;
+  GNUNET_assert (num_peers <= tc->num_peers);
+  tc->link_array_size = 2 * num_peers;
+  x = 0;
+  y = 0;
+  while (num_peers < tc->num_peers)
+  {
+    if (x < y)
+      rows_len[rows - 1] = ++x;
+    else
+      rows_len[y++]++;
+  }
+  tc->link_array_size += (x < 2) ? x : 2 * x;
+  tc->link_array_size += (y < 2) ? y : 2 * y;
+  tc->link_array = GNUNET_malloc (sizeof (struct OverlayLink) *
+                                  tc->link_array_size);
+  cnt = 0;
+  offset = 0;
+  for (y = 0; y < rows; y++)
+  {
+    for (x = 0; x < rows_len[y] - 1; x++)
+    {
+      tc->link_array[cnt].tc = tc;
+      tc->link_array[cnt].A = offset + x;
+      tc->link_array[cnt].B = offset + x + 1;
+      cnt++;
+    }
+    if (0 == x)
+      break;
+    tc->link_array[cnt].tc = tc;
+    tc->link_array[cnt].A = offset + x;
+    tc->link_array[cnt].B = offset;
+    cnt++;
+    offset += rows_len[y];
+  }
+  for (x = 0; x < rows_len[0]; x++)
+  {
+    offset = 0;
+    for (y = 0; y < rows - 1; y++)
+    {
+      if (x == rows_len[y+1])
+        break;
+      GNUNET_assert (x < rows_len[y+1]);
+      tc->link_array[cnt].tc= tc;
+      tc->link_array[cnt].A = offset + x;
+      offset += rows_len[y];
+      tc->link_array[cnt].B = offset + x;
+      cnt++;
+    }
+    if (0 == offset)
+      break;
+    tc->link_array[cnt].tc = tc;
+    tc->link_array[cnt].A = offset + x;
+    tc->link_array[cnt].B = x;
+    cnt++;
+  }
+  GNUNET_assert (cnt == tc->link_array_size);
+  GNUNET_free (rows_len);
+}
+
+
+/**
+ * Generates ring topology
+ *
+ * @param tc the topology context
  * @param links the number of random links to establish
  * @param append GNUNET_YES to add links to existing link array; GNUNET_NO to
  *          create a new link array
@@ -404,6 +490,9 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
         }
       }
     }
+    break;
+  case GNUNET_TESTBED_TOPOLOGY_2D_TORUS:
+    gen_topo_2dtorus (tc);
     break;
   default:
     GNUNET_break (0);
