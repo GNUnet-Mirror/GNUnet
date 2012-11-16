@@ -72,7 +72,7 @@ struct GNUNET_CONSENSUS_Handle;
  * @param element_size size of the elements in the reconciled set in bytes
  * @param new_element callback, called when a new element is added to the set by
  *                    another peer
- * @param mew_element_cls closure for new_element
+ * @param new_element_cls closure for new_element
  * @return handle to use, NULL on error
  */
 struct GNUNET_CONSENSUS_Handle *
