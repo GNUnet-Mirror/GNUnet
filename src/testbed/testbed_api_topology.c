@@ -267,11 +267,14 @@ gen_topo_2dtorus (struct TopologyContext *tc)
       rows_len[rows - 1] = ++x;
     else
       rows_len[y++]++;
+    num_peers++;
   }
   tc->link_array_size += (x < 2) ? x : 2 * x;
   tc->link_array_size += (y < 2) ? y : 2 * y;
   tc->link_array = GNUNET_malloc (sizeof (struct OverlayLink) *
                                   tc->link_array_size);
+  if (0 == rows_len[rows - 1])
+    rows--;
   cnt = 0;
   offset = 0;
   for (y = 0; y < rows; y++)
