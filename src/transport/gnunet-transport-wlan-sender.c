@@ -101,8 +101,7 @@ main (int argc, char *argv[])
   unsigned int temp[6];
   struct GNUNET_TRANSPORT_WLAN_MacAddress inmac;
   struct GNUNET_TRANSPORT_WLAN_MacAddress outmac;
-  int pos;
-  long long count;
+  unsigned long long count;
   double bytes_per_s;
   time_t start;
   time_t akt;
@@ -173,34 +172,28 @@ main (int argc, char *argv[])
 
     radiotap = (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *) msg_buf;
     getRadiotapHeader (radiotap, WLAN_MTU);
-    pos = 0;
     getWlanHeader (&radiotap->frame, &outmac, &inmac,
                    WLAN_MTU);
     start = time (NULL);
     count = 0;
     while (1)
     {
-      ret = write (commpipe[1], msg_buf, WLAN_MTU - pos);
+      ret = write (commpipe[1], msg_buf, WLAN_MTU);
       if (0 > ret)
       {
 	fprintf (stderr, "write failed: %s\n", strerror (errno));
 	break;
       }
-      pos += ret;
-      if (pos % WLAN_MTU == 0)
+      count += ret;
+      akt =  time (NULL);
+      if (akt - start) > 30)
       {
-        pos = 0;
-        count++;
-
-        if ( (count % 1000 == 0) && ( (akt - start) > 30) )
-        {
-          akt = time (NULL);
-          bytes_per_s = count * WLAN_MTU / (akt - start);
-          bytes_per_s /= 1024;
-          printf ("send %f kbytes/s\n", bytes_per_s);
-        }
-      }
-
+	bytes_per_s = count / (akt - start);
+	bytes_per_s /= 1024;
+	printf ("send %f kbytes/s\n", bytes_per_s);
+	start = akt;
+	count = 0;
+      }     
     }
   }
   else
