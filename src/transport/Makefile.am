@@ -49,6 +49,7 @@ if LINUX
  WLAN_BIN = gnunet-helper-transport-wlan
  WLAN_BIN_DUMMY = gnunet-helper-transport-wlan-dummy
  WLAN_BIN_SENDER = gnunet-transport-wlan-sender
+ WLAN_BIN_RECEIVER = gnunet-transport-wlan-receiver
  WLAN_PLUGIN_LA = libgnunet_plugin_transport_wlan.la
  WLAN_PLUGIN_TEST = test_plugin_wlan
  WLAN_API_TEST = test_transport_api_wlan
@@ -77,7 +78,8 @@ UNIX_QUOTA_TEST = test_quota_compliance_unix \
 endif
 
 noinst_PROGRAMS = \
- $(WLAN_BIN_SENDER)
+ $(WLAN_BIN_SENDER) \
+ $(WLAN_BIN_RECEIVER)
 
 lib_LTLIBRARIES = \
   libgnunettransport.la \
@@ -137,6 +139,11 @@ gnunet_helper_transport_wlan_dummy_LDADD = \
 gnunet_transport_wlan_sender_SOURCES = \
  gnunet-transport-wlan-sender.c
 gnunet_transport_wlan_sender_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la 
+
+gnunet_transport_wlan_receiver_SOURCES = \
+ gnunet-transport-wlan-receiver.c
+gnunet_transport_wlan_receiver_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 
 gnunet_transport_SOURCES = \
