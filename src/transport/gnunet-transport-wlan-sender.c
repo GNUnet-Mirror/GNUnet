@@ -160,7 +160,7 @@ main (int argc, char *argv[])
 	     STRERROR (errno));    
     exit (1);
   }
-
+  memset (msg_buf, 0x42, sizeof (msg_buf));
   if (pid)
   {
     /* A positive (non-negative) PID indicates the parent process */
@@ -192,7 +192,7 @@ main (int argc, char *argv[])
         pos = 0;
         count++;
 
-        if (count % 1000 == 0)
+        if ( (count % 1000 == 0) && ( (akt - start) > 30) )
         {
           akt = time (NULL);
           bytes_per_s = count * WLAN_MTU / (akt - start);
