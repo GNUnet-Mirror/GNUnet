@@ -78,9 +78,12 @@ main (int argc, char *argv[])
     count = 0;
     while (1)
     {
-      ret = read (commpipe[1], msg_buf, sizeof (msg_buf));
+      ret = read (commpipe[0], msg_buf, sizeof (msg_buf));
       if (0 > ret)
+      {
+	fprintf (stderr, "read failed: %s\n", strerror (errno));
 	break;
+      }
       count += ret;
       akt = time (NULL);
       if (akt - start > 30)

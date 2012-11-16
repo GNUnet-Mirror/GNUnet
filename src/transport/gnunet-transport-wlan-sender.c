@@ -107,6 +107,7 @@ main (int argc, char *argv[])
   time_t start;
   time_t akt;
   int i;
+  ssize_t ret;
 
   if (4 != argc)
   {
@@ -179,7 +180,13 @@ main (int argc, char *argv[])
     count = 0;
     while (1)
     {
-      pos += write (commpipe[1], msg_buf, WLAN_MTU - pos);
+      ret = write (commpipe[1], msg_buf, WLAN_MTU - pos);
+      if (0 > ret)
+      {
+	fprintf (stderr, "write failed: %s\n", strerror (errno));
+	break;
+      }
+      pos += ret;
       if (pos % WLAN_MTU == 0)
       {
         pos = 0;
