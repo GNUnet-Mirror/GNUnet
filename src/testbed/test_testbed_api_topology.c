@@ -31,7 +31,7 @@
 /**
  * Number of peers we want to start
  */
-#define NUM_PEERS 50
+#define NUM_PEERS 10
 
 /**
  * Array of peers
