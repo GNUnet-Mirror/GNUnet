@@ -101,7 +101,7 @@ main (int argc, char *argv[])
   unsigned int temp[6];
   struct GNUNET_TRANSPORT_WLAN_MacAddress inmac;
   struct GNUNET_TRANSPORT_WLAN_MacAddress outmac;
-  struct GNUNET_TRANSPORT_WLAN_MacAddress mac;
+  struct GNUNET_TRANSPORT_WLAN_HelperControlMessage hcm;
   unsigned long long count;
   double bytes_per_s;
   time_t start;
@@ -182,13 +182,13 @@ main (int argc, char *argv[])
       fprintf (stderr,
 	       "Failed to close fd: %s\n",
 	       strerror (errno));
-    if (sizeof (mac) != read (macpipe[0], &mac, sizeof (mac)))
+    if (sizeof (hcm) != read (macpipe[0], &hcm, sizeof (hcm)))
       fprintf (stderr, 
-	       "Failed to read mac...\n");
+	       "Failed to read hcm...\n");
     fprintf (stderr,
-	     "Got mac %.2X:%.2X:%.2X:%.2X:%.2X:%.2X\n", 
-	     mac.mac[0], mac.mac[1],
-	     mac.mac[2], mac.mac[3], mac.mac[4], mac.mac[5]);				  
+	     "Got MAC %.2X:%.2X:%.2X:%.2X:%.2X:%.2X\n", 
+	     hcm.mac.mac[0], hcm.mac.mac[1],
+	     hcm.mac.mac[2], hcm.mac.mac[3], hcm.mac.mac[4], hcm.mac.mac[5]);				  
     radiotap = (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *) msg_buf;
     getRadiotapHeader (radiotap, WLAN_MTU);
     getWlanHeader (&radiotap->frame, &outmac, &inmac,
