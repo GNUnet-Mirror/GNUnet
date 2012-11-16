@@ -108,42 +108,42 @@ main (int argc, char *argv[])
   time_t akt;
   int i;
   ssize_t ret;
+  pid_t pid;
+  int commpipe[2];              /* This holds the fd for the input & output of the pipe */
+  int macpipe[2];              /* This holds the fd for the input & output of the pipe */
 
   if (4 != argc)
   {
     fprintf (stderr,
              "This program must be started with the interface and the targets and source mac as argument.\n");
     fprintf (stderr,
-             "Usage: interface-name mac-target mac-source\n"
+             "Usage: interface-name mac-DST mac-SRC\n"
              "e.g. mon0 11-22-33-44-55-66 12-34-56-78-90-ab\n");
     return 1;
   }
   if (6 !=
-      SSCANF (argv[3], "%x-%x-%x-%x-%x-%x", &temp[0], &temp[1], &temp[2],
+      SSCANF (argv[2], "%x-%x-%x-%x-%x-%x", &temp[0], &temp[1], &temp[2],
               &temp[3], &temp[4], &temp[5]))
   {
     fprintf (stderr,
-             "Usage: interface-name mac-target mac-source\n"
+             "Usage: interface-name mac-DST mac-SRC\n"
              "e.g. mon0 11-22-33-44-55-66 12-34-56-78-90-ab\n");
     return 1;
   }
   for (i = 0; i < 6; i++)
     outmac.mac[i] = temp[i];
   if (6 !=
-      SSCANF (argv[2], "%x-%x-%x-%x-%x-%x", &temp[0], &temp[1], &temp[2],
+      SSCANF (argv[3], "%x-%x-%x-%x-%x-%x", &temp[0], &temp[1], &temp[2],
               &temp[3], &temp[4], &temp[5]))
   {
     fprintf (stderr,
-             "Usage: interface-name mac-target mac-source\n"
+             "Usage: interface-name mac-DST mac-SRC\n"
              "e.g. mon0 11-22-33-44-55-66 12-34-56-78-90-ab\n");
     return 1;
   }
   for (i = 0; i < 6; i++)
     inmac.mac[i] = temp[i];
 
-  pid_t pid;
-  int commpipe[2];              /* This holds the fd for the input & output of the pipe */
-  int macpipe[2];              /* This holds the fd for the input & output of the pipe */
 
   /* Setup communication pipeline first */
   if (pipe (commpipe))

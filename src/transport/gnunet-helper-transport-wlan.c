@@ -1879,7 +1879,8 @@ stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
     break;
   case ARPHRD_ETHER:
     etheader.dst = header->frame.addr1;
-    etheader.src = header->frame.addr2;
+    /* etheader.src = header->frame.addr2; --- untrusted input */
+    etheader.src = dev->pl_mac;
     etheader.type = htons (ETH_P_IP);
     memcpy (write_pout.buf, &etheader, sizeof (etheader));
     memcpy (&write_pout.buf[sizeof (etheader)], &header[1], sendsize - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame));
