@@ -523,8 +523,30 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
     break;
   case GNUNET_OS_IPK_LIBDIR:
     if (isbasedir)
+    {
       dirname =
           DIR_SEPARATOR_STR "lib" DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR;
+      tmp = GNUNET_malloc (strlen (execpath) + strlen (dirname) + 1);
+      sprintf (tmp, "%s%s", execpath, dirname);
+      if ( (GNUNET_YES !=
+	    GNUNET_DISK_directory_test (tmp, GNUNET_YES)) &&
+	   (4 == sizeof (void *)) )
+      {
+	GNUNET_free (tmp);
+	dirname =
+	  DIR_SEPARATOR_STR "lib32" DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR;
+	tmp = GNUNET_malloc (strlen (execpath) + strlen (dirname) + 1);
+	sprintf (tmp, "%s%s", execpath, dirname);
+      }
+      if ( (GNUNET_YES !=
+	    GNUNET_DISK_directory_test (tmp, GNUNET_YES)) &&
+	   (8 == sizeof (void *)) )
+      {
+	dirname =
+	  DIR_SEPARATOR_STR "lib64" DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR;
+      }
+      GNUNET_free (tmp);
+    }
     else
       dirname = DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR;
     break;
@@ -547,9 +569,33 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
     break;
   case GNUNET_OS_IPK_LIBEXECDIR:
     if (isbasedir)
+    {
       dirname =
         DIR_SEPARATOR_STR "lib" DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR \
         "libexec" DIR_SEPARATOR_STR;
+      tmp = GNUNET_malloc (strlen (execpath) + strlen (dirname) + 1);
+      sprintf (tmp, "%s%s", execpath, dirname);
+      if ( (GNUNET_YES !=
+	    GNUNET_DISK_directory_test (tmp, GNUNET_YES)) &&
+	   (4 == sizeof (void *)) )
+      {
+	GNUNET_free (tmp);
+	dirname =
+	  DIR_SEPARATOR_STR "lib32" DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR \
+	  "libexec" DIR_SEPARATOR_STR;
+	tmp = GNUNET_malloc (strlen (execpath) + strlen (dirname) + 1);
+	sprintf (tmp, "%s%s", execpath, dirname);
+      }
+      if ( (GNUNET_YES !=
+	    GNUNET_DISK_directory_test (tmp, GNUNET_YES)) &&
+	   (8 == sizeof (void *)) )
+      {
+	dirname =
+	  DIR_SEPARATOR_STR "lib64" DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR \
+	  "libexec" DIR_SEPARATOR_STR;
+      }
+      GNUNET_free (tmp);
+    }
     else
       dirname =
         DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR \
