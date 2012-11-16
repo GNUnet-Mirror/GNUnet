@@ -29,6 +29,7 @@
 #include "gnunet_testbed_service.h"
 #include "testbed_api_peers.h"
 #include "testbed_api_hosts.h"
+#include "testbed_api_topology.h"
 
 /**
  * Generic loggins shorthand
@@ -672,38 +673,8 @@ GNUNET_TESTBED_run (const char *host_filename,
     }
     else if (0 == strcasecmp (topology, "2D_TORUS"))
     {
-      double sq;
-      unsigned int sq_floor;
-      unsigned int rows;
-      unsigned int *rows_len;
-      unsigned int x;
-      unsigned int y;
-      unsigned int n;
-
       rc->topology = GNUNET_TESTBED_TOPOLOGY_2D_TORUS;
-      sq = sqrt ((double) num_peers);
-      sq = floor (sq);
-      sq_floor = (unsigned int) sq;
-      rows = (sq_floor + 1);
-      rows_len = GNUNET_malloc (sizeof (unsigned int) * rows);
-      for (y = 0; y < rows - 1; y++)
-        rows_len[y] = sq_floor;
-      n = sq_floor * sq_floor;
-      GNUNET_assert (n <= num_peers);
-      rc->num_oc = 2 * n;
-      x = 0;
-      y = 0;
-      while (n < num_peers)
-      {
-        if (x < y)
-          rows_len[rows - 1] = ++x;
-        else
-          rows_len[y++]++;
-        n++;
-      }
-      rc->num_oc += (x < 2) ? x : 2 * x;
-      rc->num_oc += (y < 2) ? y : 2 * y;
-      GNUNET_free (rows_len);
+      rc->num_oc = GNUNET_TESTBED_2dtorus_calc_links (num_peers, NULL, NULL);
     }
     else
       LOG (GNUNET_ERROR_TYPE_WARNING,

@@ -28,6 +28,7 @@
 #include "testbed_api.h"
 #include "testbed_api_peers.h"
 #include "testbed_api_operations.h"
+#include "testbed_api_topology.h"
 
 /**
  * Generic loggins shorthand
@@ -232,6 +233,63 @@ gen_topo_ring (struct TopologyContext *tc)
 
 
 /**
+ * Returns the number of links that are required to generate a 2d torus for the
+ * given number of peers. Also returns the arrangment (number of rows and the
+ * length of each row)
+ *
+ * @param num_peers number of peers
+ * @param rows number of rows in the 2d torus. Can be NULL
+ * @param rows_len the length of each row. This array will be allocated
+ *          fresh. The caller should free it. Can be NULL
+ */
+unsigned int
+GNUNET_TESTBED_2dtorus_calc_links (unsigned int num_peers,
+                                   unsigned int *rows,
+                                   unsigned int **rows_len)
+{
+  double sq;
+  unsigned int sq_floor;
+  unsigned int _rows;
+  unsigned int *_rows_len;
+  unsigned int x;
+  unsigned int y;
+  unsigned int _num_peers;
+  unsigned int cnt;
+  
+  sq = sqrt (num_peers);
+  sq = floor (sq);
+  sq_floor = (unsigned int) sq;
+  _rows = (sq_floor + 1);
+  _rows_len = GNUNET_malloc (sizeof (unsigned int) * _rows);  
+  for (y = 0; y < _rows - 1; y++)
+    _rows_len[y] = sq_floor;
+  _num_peers = sq_floor * sq_floor;
+  cnt = 2 * _num_peers;
+  x = 0;
+  y = 0;
+  while (_num_peers < num_peers)
+  {
+    if (x < y)
+      _rows_len[_rows - 1] = ++x;
+    else
+      _rows_len[y++]++;
+    _num_peers++;
+  }
+  cnt += (x < 2) ? x : 2 * x;
+  cnt += (y < 2) ? y : 2 * y;
+  if (0 == _rows_len[_rows - 1])
+    _rows--;
+  if (NULL != rows)
+    *rows = _rows;
+  if (NULL != rows_len)
+    *rows_len = _rows_len;
+  else
+    GNUNET_free (_rows_len);
+  return cnt;
+}
+
+
+/**
  * Generates ring topology
  *
  * @param tc the topology context
@@ -239,42 +297,17 @@ gen_topo_ring (struct TopologyContext *tc)
 static void
 gen_topo_2dtorus (struct TopologyContext *tc)
 {
-  double sq;
-  unsigned int sq_floor;
   unsigned int rows;
   unsigned int *rows_len;
   unsigned int x;
   unsigned int y;
-  unsigned int num_peers;
   unsigned int cnt;
   unsigned int offset;
 
-  sq = sqrt (tc->num_peers);
-  sq = floor (sq);
-  sq_floor = (unsigned int) sq;
-  rows = (sq_floor + 1);
-  rows_len = GNUNET_malloc (sizeof (unsigned int) * rows);
-  for (y = 0; y < rows - 1; y++)
-    rows_len[y] = sq_floor;
-  num_peers = sq_floor * sq_floor;
-  GNUNET_assert (num_peers <= tc->num_peers);
-  tc->link_array_size = 2 * num_peers;
-  x = 0;
-  y = 0;
-  while (num_peers < tc->num_peers)
-  {
-    if (x < y)
-      rows_len[rows - 1] = ++x;
-    else
-      rows_len[y++]++;
-    num_peers++;
-  }
-  tc->link_array_size += (x < 2) ? x : 2 * x;
-  tc->link_array_size += (y < 2) ? y : 2 * y;
+  tc->link_array_size = GNUNET_TESTBED_2dtorus_calc_links (tc->num_peers, &rows,
+                                                           &rows_len);
   tc->link_array = GNUNET_malloc (sizeof (struct OverlayLink) *
                                   tc->link_array_size);
-  if (0 == rows_len[rows - 1])
-    rows--;
   cnt = 0;
   offset = 0;
   for (y = 0; y < rows; y++)

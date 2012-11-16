@@ -65,7 +65,7 @@ libgnunettestbed_la_SOURCES = \
   testbed_api_statistics.c \
   testbed_api_testbed.c \
   testbed_api_test.c \
-  testbed_api_topology.c
+  testbed_api_topology.c testbed_api_topology.h
 libgnunettestbed_la_LIBADD = $(XLIB) \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
