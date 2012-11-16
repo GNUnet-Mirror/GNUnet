@@ -158,7 +158,7 @@ main (int argc, char *argv[])
                 rxstr[i].regex);
 
 
-    // Create graph
+    /* Create graph */
     if (GNUNET_YES == GNUNET_REGEX_ITERATE_SAVE_DEBUG_GRAPH)
     {
       GNUNET_asprintf (&filename, "iteration_graph_%u.dot", i);
@@ -183,12 +183,13 @@ main (int argc, char *argv[])
       ctx.graph_filep = NULL;
     }
 
-    // Iterate over DFA edges
+    /* Iterate over DFA edges */
     transition_counter = 0;
     ctx.string_count = rxstr[i].string_count;
     ctx.strings = rxstr[i].strings;
     ctx.match_count = 0;
-    dfa = GNUNET_REGEX_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex), 0);
+    dfa =
+        GNUNET_REGEX_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex), 0);
     GNUNET_REGEX_iterate_all_edges (dfa, key_iterator, &ctx);
     num_transitions =
         GNUNET_REGEX_get_transition_count (dfa) - dfa->start->transition_count;
@@ -217,7 +218,7 @@ main (int argc, char *argv[])
 
     GNUNET_REGEX_automaton_destroy (dfa);
 
-    // Finish graph
+    /* Finish graph */
     if (GNUNET_YES == ctx.should_save_graph)
     {
       fwrite (graph_end_str, strlen (graph_end_str), 1, ctx.graph_filep);
@@ -234,7 +235,8 @@ main (int argc, char *argv[])
     ctx.strings = rxstr[i].strings;
     ctx.match_count = 0;
 
-    dfa = GNUNET_REGEX_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex), 0);
+    dfa =
+        GNUNET_REGEX_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex), 0);
     GNUNET_REGEX_dfa_add_multi_strides (NULL, dfa, 2);
     GNUNET_REGEX_iterate_all_edges (dfa, key_iterator, &ctx);
 

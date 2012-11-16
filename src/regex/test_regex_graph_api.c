@@ -28,7 +28,7 @@
 #include "gnunet_regex_lib.h"
 #include "regex_internal.h"
 
-#define KEEP_FILES 0
+#define KEEP_FILES 1
 
 /**
  * Check if 'filename' exists and is not empty.
@@ -43,7 +43,7 @@ filecheck (const char *filename)
   int error = 0;
   FILE *fp;
 
-  // Check if file was created and delete it again
+  /* Check if file was created and delete it again */
   if (NULL == (fp = fopen (filename, "r")))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not find graph %s\n", filename);
@@ -54,18 +54,16 @@ filecheck (const char *filename)
   if (1 > ftell (fp))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Graph writing failed, got empty file (%s)!\n", 
-		filename);
+                "Graph writing failed, got empty file (%s)!\n", filename);
     error = 2;
   }
-  
+
   GNUNET_assert (0 == fclose (fp));
 
   if (!KEEP_FILES)
   {
     if (0 != unlink (filename))
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, 
-				"unlink", filename);
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "unlink", filename);
   }
   return error;
 }
@@ -78,6 +76,7 @@ main (int argc, char *argv[])
   struct GNUNET_REGEX_Automaton *a;
   unsigned int i;
   const char *filename = "test_graph.dot";
+
   const char *regex[12] = {
     "ab(c|d)+c*(a(b|c)+d)+(bla)+",
     "(bla)*",
@@ -90,7 +89,6 @@ main (int argc, char *argv[])
     "a+X*y+c|p|R|Z*K*y*R+w|Y*6+n+h*k*w+V*F|W*B*e*",
     "a",
     "a|b",
-//    "abc(d+|e)fgh"
     "PADPADPADPADPADPabcdefghixxxxxxxxxxxxxjklmnop*qstoisdjfguisdfguihsdfgbdsuivggsd"
   };
 
@@ -98,7 +96,7 @@ main (int argc, char *argv[])
   error = 0;
   for (i = 0; i < 12; i++)
   {
-    // Check NFA graph creation
+    /* Check NFA graph creation */
     a = GNUNET_REGEX_construct_nfa (regex[i], strlen (regex[i]));
     GNUNET_REGEX_automaton_save_graph (a, filename, GNUNET_REGEX_GRAPH_DEFAULT);
     GNUNET_REGEX_automaton_destroy (a);
@@ -127,7 +125,7 @@ main (int argc, char *argv[])
     error += filecheck (filename);
 
 
-    // Check DFA graph creation
+    /* Check DFA graph creation */
     a = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]), 0);
     GNUNET_REGEX_automaton_save_graph (a, filename, GNUNET_REGEX_GRAPH_DEFAULT);
     GNUNET_REGEX_automaton_destroy (a);
@@ -148,10 +146,8 @@ main (int argc, char *argv[])
     error += filecheck (filename);
 
 
-    a = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]), 0);
-    GNUNET_REGEX_automaton_save_graph (a, filename, GNUNET_REGEX_GRAPH_DEFAULT);        //|
-    //                               GNUNET_REGEX_GRAPH_VERBOSE |
-    //GNUNET_REGEX_GRAPH_COLORING);
+    a = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]), 4);
+    GNUNET_REGEX_automaton_save_graph (a, filename, GNUNET_REGEX_GRAPH_DEFAULT);
     GNUNET_REGEX_automaton_destroy (a);
     error += filecheck (filename);
 

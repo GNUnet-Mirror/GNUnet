@@ -19,7 +19,7 @@
 */
 /**
  * @file src/regex/regex_internal.h
- * @brief common internal definitions for regex library
+ * @brief common internal definitions for regex library.
  * @author Maximilian Szengel
  */
 #ifndef REGEX_INTERNAL_H
@@ -43,8 +43,9 @@ extern "C"
 
 
 /**
- * Transition between two states. Each state can have 0-n transitions.  If label
- * is 0, this is considered to be an epsilon transition.
+ * Transition between two states. Transitions are stored at the states from
+ * which they origin ('from_state'). Each state can have 0-n transitions.
+ * If label is 0, this is considered to be an epsilon transition.
  */
 struct GNUNET_REGEX_Transition
 {
@@ -96,14 +97,24 @@ struct GNUNET_REGEX_State
   struct GNUNET_REGEX_State *next;
 
   /**
-   * This is a multi DLL for StateSet_p.
+   * This is a multi DLL for StateSet_MDLL.
    */
   struct GNUNET_REGEX_State *prev_SS;
 
   /**
-   * This is a multi DLL for StateSet_p.
+   * This is a multi DLL for StateSet_MDLL.
    */
   struct GNUNET_REGEX_State *next_SS;
+
+  /**
+   * This is a multi DLL for StateSet_MDLL Stack.
+   */
+  struct GNUNET_REGEX_State *prev_ST;
+
+  /**
+   * This is a multi DLL for StateSet_MDLL Stack.
+   */
+  struct GNUNET_REGEX_State *next_ST;
 
   /**
    * Unique state id.

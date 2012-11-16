@@ -106,7 +106,7 @@ GNUNET_REGEX_generate_random_regex (size_t rx_length, char *matching_str)
         current_char = '?';
         break;
       case 3:
-        if (i < rx_length - 1)  // '|' cannot be at the end
+        if (i < rx_length - 1)  /* '|' cannot be at the end */
           current_char = '|';
         else
           current_char = get_random_literal ();
