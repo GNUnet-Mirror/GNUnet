@@ -70,6 +70,8 @@ struct GNUNET_CONSENSUS_Handle;
  * @param session_id session identifier
  *                   Allows a group of peers to have more than consensus session.
  * @param element_size size of the elements in the reconciled set in bytes
+ * @param num_initial_elements number of entries in the 'initial_elements' array
+ * @param initial_elements our elements for the consensus (each of 'element_size'
  * @param new_element callback, called when a new element is added to the set by
  *                    another peer
  * @param new_element_cls closure for new_element
@@ -81,6 +83,7 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			 const struct GNUNET_PeerIdentity *peers,
                          const struct GNUNET_HashCode *session_id,
                          size_t element_size,
+			 unsigned int num_initial_elements,
                          const void **initial_elements,
                          GNUNET_CONSENSUS_NewElementCallback new_element,
                          void *new_element_cls);
