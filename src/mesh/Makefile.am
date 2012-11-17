@@ -23,6 +23,9 @@ AM_CLFAGS = -g
 libexec_PROGRAMS = \
  gnunet-service-mesh gnunet-service-mesh-new
 
+bin_PROGRAMS = \
+ gnunet-mesh
+
 lib_LTLIBRARIES = \
   libgnunetmesh.la \
   libgnunetmeshblock.la
@@ -87,6 +90,14 @@ gnunet_service_mesh_DEPENDENCIES = \
 if LINUX
 gnunet_service_mesh_LDFLAGS = -lrt
 endif
+
+gnunet_mesh_SOURCES = \
+ gnunet-mesh.c         
+gnunet_mesh_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+gnunet_mesh_DEPENDENCIES = \
+  libgnunetmesh.la
 
 gnunet_service_mesh_new_SOURCES = \
  gnunet-service-mesh-new.c \

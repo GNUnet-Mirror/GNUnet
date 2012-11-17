@@ -427,6 +427,47 @@ GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle
 
 
 /**
+ * Method called to retrieve information about each tunnel the mesh peer
+ * is aware of.
+ *
+ * @param cls Closure.
+ * @param initiator Peer that started the tunnel (owner).
+ * @param tunnel_number Tunnel number.
+ * @param peers Array of peer identities that participate in the tunnel.
+ * @param npeers Number of peers in peers.
+ */
+typedef void (*GNUNET_MESH_MonitorCB) (void *cls,
+                                       const struct GNUNET_PeerIdentity *initiator,
+                                       unsigned int tunnel_number,
+                                       const struct GNUNET_PeerIdentity *peers,
+                                       unsigned int npeers);
+
+
+/**
+ * Request information about the running mesh peer.
+ *
+ * @param h Handle to the mesh peer.
+ * @param callback Function to call with the requested data.
+ * @param monitor_cls Closure for @c callback.
+ */
+void
+GNUNET_MESH_monitor (struct GNUNET_MESH_Handle *h,
+                     GNUNET_MESH_MonitorCB callback,
+                     void *monitor_cls);
+
+
+/**
+ * Cancel a monitor request. The monitor callback will not be called.
+ *
+ * @param h Mesh handle.
+ *
+ * @return Closure given to GNUNET_MESH_monitor, if any.
+ */
+void *
+GNUNET_MESH_monitor_cancel (struct GNUNET_MESH_Handle *h);
+
+
+/**
  * Transition API for tunnel ctx management
  * 
  * FIXME deprecated

@@ -207,6 +207,16 @@ struct GNUNET_MESH_Handle
    */
   GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
 
+  /**
+   * Monitor callback
+   */
+  GNUNET_MESH_MonitorCB monitor_cb;
+
+  /**
+   * Monitor callback closure.
+   */
+  void *monitor_cls;
+
 #if DEBUG_ACK
   unsigned int acks_sent;
   unsigned int acks_recv;
@@ -1242,6 +1252,50 @@ process_ack (struct GNUNET_MESH_Handle *h,
 
 
 /**
+ * Process a local monitor reply, pass info to the user.
+ *
+ * @param h Mesh handle.
+ * @param message Message itself.
+ */
+static void
+process_monitor (struct GNUNET_MESH_Handle *h,
+                 const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_MESH_LocalMonitor *msg;
+  uint32_t npeers;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Monitor messasge received\n");
+
+  if (NULL == h->monitor_cb)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  ignored\n");
+    return;
+  }
+
+  msg = (struct GNUNET_MESH_LocalMonitor *) message;
+  npeers = ntohl (msg->npeers);
+  if (ntohs (message->size)  !=
+      (sizeof (struct GNUNET_MESH_LocalMonitor) +
+       npeers * sizeof (struct GNUNET_PeerIdentity)))
+  {
+    GNUNET_break_op (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Monitor message: size %hu - expected %u (%u peers)\n",
+                ntohs (message->size),
+                sizeof (struct GNUNET_MESH_LocalMonitor) +
+                npeers * sizeof (struct GNUNET_PeerIdentity),
+                npeers);
+    return;
+  }
+  h->monitor_cb (h->monitor_cls,
+                 &msg->owner,
+                 ntohl (msg->tunnel_id),
+                 (struct GNUNET_PeerIdentity *) &msg[1],
+                 npeers);
+}
+
+
+/**
  * Function to process all messages received from the service
  *
  * @param cls closure
@@ -1287,6 +1341,9 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
     break;
   case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
     process_ack (h, msg);
+    break;
+  case GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR:
+    process_monitor (h, msg);
     break;
   default:
     /* We shouldn't get any other packages, log and ignore */
@@ -1629,10 +1686,11 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
     {
       case GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT:
       case GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY:
+      case GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR:
         break;
       default:
         GNUNET_break (0);
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "unexpected msg %u\n",
+        LOG (GNUNET_ERROR_TYPE_ERROR, "unexpected msg %u\n",
              ntohs(msg->type));
     }
 
@@ -2139,6 +2197,49 @@ GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle *th)
     GNUNET_CLIENT_notify_transmit_ready_cancel (mesh->th);
     mesh->th = NULL;
   }
+}
+
+
+/**
+ * Request information about the running mesh peer.
+ *
+ * @param h Handle to the mesh peer.
+ * @param callback Function to call with the requested data.
+ * @param monitor_cls Closure for @c callback.
+ */
+void
+GNUNET_MESH_monitor (struct GNUNET_MESH_Handle *h,
+                     GNUNET_MESH_MonitorCB callback,
+                     void *monitor_cls)
+{
+  struct GNUNET_MessageHeader msg;
+
+  msg.size = htons (sizeof (msg));
+  msg.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR);
+  send_packet (h, &msg, NULL);
+  h->monitor_cb = callback;
+  h->monitor_cls = monitor_cls;
+
+  return;
+}
+
+
+/**
+ * Cancel a monitor request. The monitor callback will not be called.
+ *
+ * @param h Mesh handle.
+ *
+ * @return Closure given to GNUNET_MESH_monitor, if any.
+ */
+void *
+GNUNET_MESH_monitor_cancel (struct GNUNET_MESH_Handle *h)
+{
+  void *cls;
+
+  cls = h->monitor_cls;
+  h->monitor_cb = NULL;
+  h->monitor_cls = NULL;
+  return cls;
 }
 
 

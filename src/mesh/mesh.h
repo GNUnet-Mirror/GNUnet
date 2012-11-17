@@ -299,6 +299,40 @@ struct GNUNET_MESH_LocalAck
 };
 
 
+/**
+ * Message to inform the client about tunnels in the service.
+ */
+struct GNUNET_MESH_LocalMonitor
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * ID of the tunnel allowed to send more data.
+   */
+  MESH_TunnelNumber tunnel_id GNUNET_PACKED;
+
+  /**
+   * Number of peers in the tunnel.
+   */
+  uint32_t npeers GNUNET_PACKED;
+
+  /**
+   * Alignment.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * ID of the owner of the tunnel (can be local peer).
+   */
+  struct GNUNET_PeerIdentity owner;
+
+  /* struct GNUNET_PeerIdentity peers[npeers] */
+};
+
+
 GNUNET_NETWORK_STRUCT_END
 
 /******************************************************************************/

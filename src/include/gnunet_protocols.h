@@ -881,6 +881,11 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK              286
 
 /**
+ * Local monitoring of service.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR          287
+
+/**
  * 640kb should be enough for everybody
  */
 #define GNUNET_MESSAGE_TYPE_MESH_RESERVE_END            299

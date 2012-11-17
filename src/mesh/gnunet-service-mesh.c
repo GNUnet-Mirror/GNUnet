@@ -2516,6 +2516,9 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     }
 #endif
     GNUNET_break (0); // FIXME sometimes fails (testing disconnect?)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    " no direct connection to %s\n",
+                    GNUNET_i2s (peer));
     GNUNET_free (info->mesh_data->data);
     GNUNET_free (info->mesh_data);
     GNUNET_free (info);
@@ -8013,7 +8016,7 @@ handle_local_ack (void *cls, struct GNUNET_SERVER_Client *client,
   ack = ntohl (msg->max_pid);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ack %u\n", ack);
 
-  /* Does client own tunnel? I.E: Is this and ACK for BCK traffic? */
+  /* Does client own tunnel? I.E: Is this an ACK for BCK traffic? */
   if (NULL != t->owner && t->owner->handle == client)
   {
     /* The client owns the tunnel, ACK is for data to_origin, send BCK ACK. */
@@ -8027,9 +8030,124 @@ handle_local_ack (void *cls, struct GNUNET_SERVER_Client *client,
     tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
   }
 
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);  
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 
   return;
+}
+
+
+/**
+ * Iterator over all peers to send a monitoring client info about a tunnel.
+ *
+ * @param cls Closure (message being built).
+ * @param key Key (hashed tunnel ID, unused).
+ * @param value Peer info.
+ *
+ * @return GNUNET_YES, to keep iterating.
+ */
+static int
+monitor_peers_iterator (void *cls,
+                        const struct GNUNET_HashCode * key,
+                        void *value)
+{
+  struct GNUNET_MESH_LocalMonitor *msg = cls;
+  struct GNUNET_PeerIdentity *id;
+  struct MeshPeerInfo *info = value;
+
+  id = (struct GNUNET_PeerIdentity *) &msg[1];
+  GNUNET_PEER_resolve (info->id, &id[msg->npeers]);
+  msg->npeers++;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "*    sending info about peer %s [%u]\n",
+              GNUNET_i2s (&id[msg->npeers - 1]), msg->npeers);
+
+  return GNUNET_YES;
+}
+
+
+/**
+ * Iterator over all tunnels to send a monitoring client info about each tunnel.
+ *
+ * @param cls Closure (client handle).
+ * @param key Key (hashed tunnel ID, unused).
+ * @param value Tunnel info.
+ *
+ * @return GNUNET_YES, to keep iterating.
+ */
+static int
+monitor_tunnel_iterator (void *cls,
+                         const struct GNUNET_HashCode * key,
+                         void *value)
+{
+  struct GNUNET_SERVER_Client *client = cls;
+  struct MeshTunnel *t = value;
+  struct GNUNET_MESH_LocalMonitor *msg;
+  uint32_t npeers;
+
+  npeers = GNUNET_CONTAINER_multihashmap_size (t->peers);
+  msg = GNUNET_malloc (sizeof(struct GNUNET_MESH_LocalMonitor) +
+                       npeers * sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_PEER_resolve(t->id.oid, &msg->owner);
+  msg->tunnel_id = htonl (t->id.tid);
+  msg->header.size = htons (sizeof (struct GNUNET_MESH_LocalMonitor) +
+                            npeers * sizeof (struct GNUNET_PeerIdentity));
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR);
+  msg->npeers = 0;
+  (void) GNUNET_CONTAINER_multihashmap_iterate (t->peers,
+                                                monitor_peers_iterator,
+                                                msg);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "*  sending info about tunnel %s [%u] (%u peers)\n",
+              GNUNET_i2s (&msg->owner), t->id.tid, npeers);
+
+  if (msg->npeers != npeers)
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Monitor fail: size %u - iter %u\n",
+                npeers, msg->npeers);
+  }
+
+  msg->npeers = htonl (npeers);
+  GNUNET_SERVER_notification_context_unicast (nc, client,
+                                              &msg->header,
+                                              GNUNET_NO);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Handler for client's MONITOR request.
+ *
+ * @param cls Closure (unused).
+ * @param client Identification of the client.
+ * @param message The actual message.
+ */
+static void
+handle_local_monitor (void *cls, struct GNUNET_SERVER_Client *client,
+                      const struct GNUNET_MessageHeader *message)
+{
+  struct MeshClient *c;
+
+  /* Sanity check for client registration */
+  if (NULL == (c = client_get (client)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Received monitor request from client %u\n",
+              c->id);
+  GNUNET_CONTAINER_multihashmap_iterate (tunnels,
+                                         monitor_tunnel_iterator,
+                                         client);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Monitor request from client %u completed\n",
+              c->id);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -8085,6 +8203,9 @@ static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
   {&handle_local_ack, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK,
    sizeof (struct GNUNET_MESH_LocalAck)},
+  {&handle_local_monitor, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR,
+   sizeof (struct GNUNET_MessageHeader)},
   {NULL, NULL, 0, 0}
 };
 
