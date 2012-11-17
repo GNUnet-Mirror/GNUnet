@@ -207,13 +207,13 @@ resolver_test_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     if (subsystem == NULL)
     {
-      FPRINTF (stderr, _("Missing argument: subsystem \n"));
+      FPRINTF (stderr, "%s", _("Missing argument: subsystem \n"));
       ret = 1;
       return;
     }
     if (name == NULL)
     {
-      FPRINTF (stderr, _("Missing argument: name\n"));
+      FPRINTF (stderr, "%s", _("Missing argument: name\n"));
       ret = 1;
       return;
     }
