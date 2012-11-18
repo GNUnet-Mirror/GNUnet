@@ -201,7 +201,7 @@ GNUNET_CRYPTO_rsa_key_get_public (const struct GNUNET_CRYPTO_RsaPrivateKey
  * @return string representing  'pub'
  */
 char *
-GNUNET_CRYPTO_rsa_public_key_to_string (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pub)
+GNUNET_CRYPTO_rsa_public_key_to_string (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pub)
 {
   char *pubkeybuf;
   size_t keylen = (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)) * 8;

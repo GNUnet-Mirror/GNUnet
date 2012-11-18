@@ -27,16 +27,11 @@
 #include "gnunet_crypto_lib.h"
 #include "gnunet_configuration_lib.h"
 #include "gnunet_getopt_lib.h"
-#include "gnunet_peerinfo_service.h"
-#include "gnunet_transport_service.h"
 #include "gnunet_program_lib.h"
-#include "gnunet_transport_plugin.h"
+#include "gnunet_hello_lib.h"
+#include "gnunet_transport_service.h"
+#include "gnunet_peerinfo_service.h"
 #include "gnunet-peerinfo_plugins.h"
-
-/**
- * Prefix that every HELLO URI must start with.
- */
-#define HELLO_URI_PREFIX "gnunet://hello/"
 
 /**
  * How long until we time out during peerinfo iterations?
@@ -110,37 +105,6 @@ struct PrintContext
    * Current offset in 'address_list' (counted down).
    */
   unsigned int off;
-
-};
-
-
-/**
- * Context used for building our own URI.
- */
-struct GetUriContext
-{
-  /**
-   * Final URI.
-   */
-  char *uri;
-
-};
-
-
-/**
- * Context for 'add_address_to_hello'.
- */
-struct GNUNET_PEERINFO_HelloAddressParsingContext
-{
-  /**
-   * Position in the URI with the next address to parse.
-   */
-  const char *pos;
-
-  /**
-   * Set to GNUNET_SYSERR to indicate parse errors.
-   */
-  int ret;
 
 };
 
@@ -231,42 +195,6 @@ static struct GNUNET_PEERINFO_AddContext *ac;
 static void
 state_machine (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-
-
-/**
- * Replace all characters in the input 'in' according
- * to the mapping.  The mapping says to map each character
- * in 'oldchars' to the corresponding character (by offset)
- * in 'newchars'.  
- *
- * @param in input string to remap
- * @param oldchars characters to replace
- * @param newchars replacement characters, must have same length as 'oldchars'
- * @return copy of string with replacement applied.
- */
-static char *
-map_characters (const char *in,
-		const char *oldchars,
-		const char *newchars)
-{
-  char *ret;
-  const char *off;
-  size_t i;
-
-  GNUNET_assert (strlen (oldchars) == strlen (newchars));
-  ret = GNUNET_strdup (in);
-  i = 0;
-  while (ret[i] != '\0')
-  {
-    off = strchr (oldchars, ret[i]);
-    if (NULL != off)
-      ret[i] = newchars[off - oldchars];
-    i++;    
-  }
-  return ret;
-}
-
 
 
 /* ********************* 'get_info' ******************* */
@@ -438,65 +366,6 @@ print_peer_info (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * Function that is called on each address of this peer.
- * Expands the corresponding URI string.
- *
- * @param cls the 'GetUriContext'
- * @param address address to add
- * @param expiration expiration time for the address
- * @return GNUNET_OK (continue iteration).
- */
-static int
-compose_uri (void *cls, const struct GNUNET_HELLO_Address *address,
-             struct GNUNET_TIME_Absolute expiration)
-{
-  struct GetUriContext *guc = cls;
-  struct GNUNET_TRANSPORT_PluginFunctions *papi;
-  const char *addr;
-  char *uri_addr;
-  char *ret;
-  char tbuf[16];
-  struct tm *t;
-  time_t seconds;
-
-  papi = GPI_plugins_find (address->transport_name);
-  if (papi == NULL)
-  {
-    /* Not an error - we might just not have the right plugin. */
-    return GNUNET_OK;
-  }
-  if (NULL == papi->address_to_string)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"URI conversion not implemented for plugin `%s'\n",
-		address->transport_name);
-    return GNUNET_OK;
-  }
-  addr = papi->address_to_string (papi->cls, address->address, address->address_length);
-  if ( (addr == NULL) || (strlen(addr) == 0) )
-    return GNUNET_OK;
-   /* For URIs we use '(' and ')' instead of '[' and ']' as brackets are reserved
-      characters in URIs */
-  uri_addr = map_characters (addr, "[]", "()");
-  seconds = expiration.abs_value / 1000;
-  t = gmtime (&seconds);
-  GNUNET_assert (0 != strftime (tbuf, sizeof (tbuf),
-				"%Y%m%d%H%M%S",
-				t));
-  GNUNET_asprintf (&ret,
-		   "%s!%s!%s!%s",
-		   guc->uri,
-		   tbuf,
-		   address->transport_name, 
-		   uri_addr);
-  GNUNET_free (uri_addr);
-  GNUNET_free (guc->uri);
-  guc->uri = ret;
-  return GNUNET_OK;
-}
-
-
-/**
  * Print URI of the peer.
  *
  * @param cls the 'struct GetUriContext'
@@ -509,8 +378,6 @@ print_my_uri (void *cls, const struct GNUNET_PeerIdentity *peer,
               const struct GNUNET_HELLO_Message *hello, 
 	      const char *err_msg)
 {
-  struct GetUriContext *guc = cls;
-
   if (peer == NULL)
   {
     pic = NULL;
@@ -518,155 +385,22 @@ print_my_uri (void *cls, const struct GNUNET_PeerIdentity *peer,
       FPRINTF (stderr,
 	       _("Error in communication with PEERINFO service: %s\n"), 
 	       err_msg);
-    GNUNET_free_non_null (guc->uri);
-    GNUNET_free (guc);  
     tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
     return;
-  } 
-  if (NULL != hello)
-    GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &compose_uri, guc);   
-  printf ("%s\n", (const char *) guc->uri);
+  }
+
+  if (NULL == hello)
+    return;
+
+  char *uri = GNUNET_HELLO_compose_uri(hello, &GPI_plugins_find);
+  if (NULL != uri) {
+    printf ("%s\n", (const char *) uri);
+    GNUNET_free (uri);
+  }
 }
 
 
 /* ************************* import HELLO by URI ********************* */
-
-
-/**
- * We're building a HELLO.  Parse the next address from the
- * parsing context and append it.
- *
- * @param cls the 'struct GNUNET_PEERINFO_HelloAddressParsingContext'
- * @param max number of bytes available for HELLO construction
- * @param buffer where to copy the next address (in binary format)
- * @return number of bytes added to buffer
- */ 
-static size_t
-add_address_to_hello (void *cls, size_t max, void *buffer)
-{
-  struct GNUNET_PEERINFO_HelloAddressParsingContext *ctx = cls;
-  const char *tname;
-  const char *address;
-  char *uri_address;
-  char *plugin_address;
-  const char *end;
-  char *plugin_name;
-  struct tm expiration_time;
-  time_t expiration_seconds;
-  struct GNUNET_TIME_Absolute expire;
-  struct GNUNET_TRANSPORT_PluginFunctions *papi;
-  void *addr;
-  size_t addr_len;
-  struct GNUNET_HELLO_Address haddr;
-  size_t ret;
-
-  if (NULL == ctx->pos)
-    return 0;
-  if ('!' != ctx->pos[0])
-  {
-    ctx->ret = GNUNET_SYSERR;
-    GNUNET_break (0);
-    return 0;
-  }
-  ctx->pos++;
-  memset (&expiration_time, 0, sizeof (expiration_time));
-  tname = strptime (ctx->pos,
-		    "%Y%m%d%H%M%S",
-		    &expiration_time);
-
-  if (NULL == tname)
-  {
-    ctx->ret = GNUNET_SYSERR;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to parse HELLO message: missing expiration time\n"));
-    GNUNET_break (0);
-    return 0;
-  }
-  expiration_seconds = mktime (&expiration_time);
-  if (expiration_seconds == (time_t) -1)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to parse HELLO message: invalid expiration time\n"));
-    ctx->ret = GNUNET_SYSERR;
-    GNUNET_break (0);
-    return 0;
-  }
-  expire.abs_value = expiration_seconds * 1000;
-  if ('!' != tname[0])
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to parse HELLO message: malformed\n"));
-    ctx->ret = GNUNET_SYSERR;
-    GNUNET_break (0);
-    return 0;
-  }
-  tname++;
-  address = strchr (tname, (int) '!');
-  if (NULL == address)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to parse HELLO message: missing transport plugin\n"));
-    ctx->ret = GNUNET_SYSERR;
-    GNUNET_break (0);
-    return 0;
-  }
-  address++;
-  end = strchr (address, (int) '!');
-  ctx->pos = end;
-  plugin_name = GNUNET_strndup (tname, address - (tname+1));
-  papi = GPI_plugins_find (plugin_name);
-  if (NULL == papi)
-  {
-    /* Not an error - we might just not have the right plugin.
-     * Skip this part, advance to the next one and recurse.
-     * But only if this is not the end of string.
-     */
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Plugin `%s' not found\n"),
-                plugin_name);
-    GNUNET_free (plugin_name);
-    GNUNET_break (0);
-    return 0;
-  }
-  if (NULL == papi->string_to_address)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Plugin `%s' does not support URIs yet\n"),
-		plugin_name);
-    GNUNET_free (plugin_name);
-    GNUNET_break (0);
-    return 0;
-  }
-  uri_address = GNUNET_strndup (address, end - address);
-  /* For URIs we use '(' and ')' instead of '[' and ']' as brackets are reserved
-     characters in URIs; need to convert back to '[]' for the plugin */
-   plugin_address = map_characters (uri_address, "()", "[]");
-  GNUNET_free (uri_address);
-  if (GNUNET_OK !=
-      papi->string_to_address (papi->cls, 
-			       plugin_address,
-			       strlen (plugin_address) + 1,
-			       &addr,
-			       &addr_len))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to parse `%s' as an address for plugin `%s'\n"),
-		plugin_address,
-		plugin_name);
-    GNUNET_free (plugin_name);
-    GNUNET_free (plugin_address);
-    return 0;
-  }
-  GNUNET_free (plugin_address);
-  /* address.peer is unset - not used by add_address() */
-  haddr.address_length = addr_len;
-  haddr.address = addr;
-  haddr.transport_name = plugin_name;
-  ret = GNUNET_HELLO_add_address (&haddr, expire, buffer, max);
-  GNUNET_free (addr);
-  GNUNET_free (plugin_name);
-  return ret;
-}
 
 
 /**
@@ -698,31 +432,13 @@ add_continuation (void *cls,
 static int
 parse_hello_uri (const char *put_uri)
 {
-  const char *pks;
-  const char *exc;
   struct GNUNET_HELLO_Message *hello;
-  struct GNUNET_PEERINFO_HelloAddressParsingContext ctx;
 
-  if (0 != strncmp (put_uri,
-		    HELLO_URI_PREFIX,
-		    strlen (HELLO_URI_PREFIX)))
-    return GNUNET_SYSERR;
-  pks = &put_uri[strlen (HELLO_URI_PREFIX)];
-  exc = strstr (pks, "!");
+  int ret = GNUNET_HELLO_parse_uri(put_uri, &my_public_key, &hello, &GPI_plugins_find);
 
-  if (GNUNET_OK != GNUNET_STRINGS_string_to_data (pks,
-						  (NULL == exc) ? strlen (pks) : (exc - pks),
-						  (unsigned char *) &my_public_key, 
-						  sizeof (my_public_key)))
-    return GNUNET_SYSERR;
-  ctx.pos = exc;
-  ctx.ret = GNUNET_OK;
-  hello = GNUNET_HELLO_create (&my_public_key, &add_address_to_hello, &ctx);
-
-  if (NULL != hello)
-  {
+  if (NULL != hello) {
     /* WARNING: this adds the address from URI WITHOUT verification! */
-    if (GNUNET_OK == ctx.ret)    
+    if (GNUNET_OK == ret)
       ac = GNUNET_PEERINFO_add_peer (peerinfo, hello, &add_continuation, NULL);
     else
       tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
@@ -732,7 +448,7 @@ parse_hello_uri (const char *put_uri)
   /* wait 1s to give peerinfo operation a chance to succeed */
   /* FIXME: current peerinfo API sucks to require this; not to mention
      that we get no feedback to determine if the operation actually succeeded */
-  return ctx.ret;
+  return ret;
 }
 
 
@@ -907,20 +623,9 @@ state_machine (void *cls,
   }
   if (GNUNET_YES == get_uri)
   {
-    struct GetUriContext *guc;
-    char *pkey;
-
-    guc = GNUNET_malloc (sizeof (struct GetUriContext));
-    pkey = GNUNET_CRYPTO_rsa_public_key_to_string (&my_public_key);
-    GNUNET_asprintf (&guc->uri,
-		     "%s%s",
-		     HELLO_URI_PREFIX,
-		     pkey);
-    GNUNET_free (pkey);
     GPI_plugins_load (cfg);
     pic = GNUNET_PEERINFO_iterate (peerinfo, &my_peer_identity,
-				   TIMEOUT,
-				   &print_my_uri, guc);
+				   TIMEOUT, &print_my_uri, NULL);
     get_uri = GNUNET_NO;
     return;
   }

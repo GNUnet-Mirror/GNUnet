@@ -949,7 +949,7 @@ GNUNET_CRYPTO_kdf (void *result, size_t out_len, const void *xts,
  * @return string representing  'pub'
  */
 char *
-GNUNET_CRYPTO_rsa_public_key_to_string (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pub);
+GNUNET_CRYPTO_rsa_public_key_to_string (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pub);
 
 
 /**
