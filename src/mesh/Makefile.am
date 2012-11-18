@@ -97,7 +97,7 @@ gnunet_mesh_LDADD = \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/util/libgnunetutil.la
 gnunet_mesh_DEPENDENCIES = \
-  $(top_builddir)/src/mesh/libgnunetmesh.la
+  libgnunetmesh.la
 
 gnunet_service_mesh_new_SOURCES = \
  gnunet-service-mesh-new.c \
