@@ -338,12 +338,6 @@ struct GNUNET_MessageHeader *
 GNUNET_HELLO_get_header (struct GNUNET_HELLO_Message *hello);
 
 
-
-typedef size_t (*GNUNET_HELLO_GenerateAddressListCallback) (void *cls,
-                                                            size_t max,
-                                                            void *buf);
-
-
 typedef struct GNUNET_TRANSPORT_PluginFunctions *
 (*GNUNET_HELLO_TransportPluginsFind) (const char *name);
 
