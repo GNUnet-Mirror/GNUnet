@@ -1549,7 +1549,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 			pfn);
 	    GNUNET_free (pfn);
 	    pfn = NULL;
-	    filter = GNUNET_CONTAINER_bloomfilter_load (NULL, bf_size, 5);        /* approx. 3% false positives at max use */
+	    filter = GNUNET_CONTAINER_bloomfilter_init (NULL, bf_size, 5);        /* approx. 3% false positives at max use */
 	  }
 	}
       }
