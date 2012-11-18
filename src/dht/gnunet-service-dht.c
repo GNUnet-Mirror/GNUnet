@@ -66,11 +66,15 @@ struct GNUNET_MessageHeader *GDS_my_hello;
  */
 struct GNUNET_TRANSPORT_Handle *GDS_transport_handle;
 
-
 /**
  * Handle to get our current HELLO.
  */
 static struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
+
+/**
+ * Hello address expiration
+ */
+struct GNUNET_TIME_Relative hello_expiration;
 
 
 /**
@@ -141,6 +145,11 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   GDS_cfg = c;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (c, "transport", "HELLO_EXPIRATION", &hello_expiration))
+  {
+    hello_expiration = GNUNET_CONSTANTS_HELLO_ADDRESS_EXPIRATION;
+  }
   GDS_block_context = GNUNET_BLOCK_context_create (GDS_cfg);
   GDS_stats = GNUNET_STATISTICS_create ("dht", GDS_cfg);
   GDS_ROUTING_init ();

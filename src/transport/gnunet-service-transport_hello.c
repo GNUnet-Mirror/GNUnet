@@ -38,6 +38,11 @@
  */
 #define HELLO_REFRESH_PERIOD GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 6)
 
+/**
+ * Hello address expiration
+ */
+extern struct GNUNET_TIME_Relative hello_expiration;
+
 
 /**
  * Entry in linked list of network addresses for ourselves.  Also
@@ -159,9 +164,7 @@ refresh_hello_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   hello_task = GNUNET_SCHEDULER_NO_TASK;
   gc.addr_pos = oal_head;
-  gc.expiration =
-      GNUNET_TIME_relative_to_absolute
-      (GNUNET_CONSTANTS_HELLO_ADDRESS_EXPIRATION);
+  gc.expiration = GNUNET_TIME_relative_to_absolute (hello_expiration);
 
   GNUNET_free (our_hello);
   our_hello = GNUNET_HELLO_create (&GST_my_public_key, &address_generator, &gc);

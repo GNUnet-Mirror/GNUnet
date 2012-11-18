@@ -100,6 +100,12 @@
 #define LOG_ROUTE_DETAILS_STDERR GNUNET_NO
 
 
+/**
+ * Hello address expiration
+ */
+extern struct GNUNET_TIME_Relative hello_expiration;
+
+
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
@@ -1683,7 +1689,7 @@ handle_find_peer (const struct GNUNET_PeerIdentity *sender,
     {
       GDS_NEIGHBOURS_handle_reply (sender, GNUNET_BLOCK_TYPE_DHT_HELLO,
                                    GNUNET_TIME_relative_to_absolute
-                                   (GNUNET_CONSTANTS_HELLO_ADDRESS_EXPIRATION),
+                                   (hello_expiration),
                                    key, 0, NULL, 0, NULL, GDS_my_hello,
                                    GNUNET_HELLO_size ((const struct
                                                        GNUNET_HELLO_Message *)

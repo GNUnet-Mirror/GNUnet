@@ -91,6 +91,11 @@ struct GNUNET_ATS_SchedulingHandle *GST_ats;
  */
 static int connections;
 
+/**
+ * Hello address expiration
+ */
+struct GNUNET_TIME_Relative hello_expiration;
+
 
 /**
  * Transmit our HELLO message to the given (connected) neighbour.
@@ -114,7 +119,7 @@ transmit_our_hello (void *cls, const struct GNUNET_PeerIdentity *target,
   const struct GNUNET_MessageHeader *hello = cls;
 
   GST_neighbours_send (target, (const char *) hello, ntohs (hello->size),
-                       GNUNET_CONSTANTS_HELLO_ADDRESS_EXPIRATION, NULL, NULL);
+                       hello_expiration, NULL, NULL);
 }
 
 
@@ -674,6 +679,12 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                 ("Transport service is lacking key configuration settings.  Exiting.\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
+  }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (c, "transport", "HELLO_EXPIRATION",
+                                           &hello_expiration))
+  {
+    hello_expiration = GNUNET_CONSTANTS_HELLO_ADDRESS_EXPIRATION;
   }
   GST_server = server;
   GNUNET_SERVER_suspend (server);
