@@ -297,11 +297,6 @@ struct GNUNET_SERVER_Client
   int receive_pending;
 
   /**
-   * Finish pending write when disconnecting?
-   */
-  int finish_pending_write;
-
-  /**
    * Persist the file handle for this client no matter what happens,
    * force the OS to close once the process actually dies.  Should only
    * be used in special cases!
