@@ -16,6 +16,7 @@ libgnunetstream_la_SOURCES = \
 libgnunetstream_la_LIBADD = \
  $(top_builddir)/src/mesh/libgnunetmesh.la \
  $(top_builddir)/src/lockmanager/libgnunetlockmanager.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
 libgnunetstream_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \

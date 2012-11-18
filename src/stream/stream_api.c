@@ -39,6 +39,7 @@
 #include "gnunet_common.h"
 #include "gnunet_crypto_lib.h"
 #include "gnunet_lockmanager_service.h"
+#include "gnunet_statistics_service.h"
 #include "gnunet_stream_lib.h"
 #include "stream_protocol.h"
 
@@ -175,29 +176,14 @@ struct MessageQueue
 struct GNUNET_STREAM_Socket
 {
   /**
-   * Retransmission timeout
-   */
-  struct GNUNET_TIME_Relative retransmit_timeout;
-
-  /**
-   * The Acknowledgement Bitmap
-   */
-  GNUNET_STREAM_AckBitmap ack_bitmap;
-
-  /**
-   * Time when the Acknowledgement was queued
-   */
-  struct GNUNET_TIME_Absolute ack_time_registered;
-
-  /**
-   * Queued Acknowledgement deadline
-   */
-  struct GNUNET_TIME_Relative ack_time_deadline;
-
-  /**
    * The mesh handle
    */
   struct GNUNET_MESH_Handle *mesh;
+
+  /**
+   * Handle to statistics
+   */
+  struct GNUNET_STATISTICS_Handle *stat_handle;
 
   /**
    * The mesh tunnel handle
@@ -261,6 +247,11 @@ struct GNUNET_STREAM_Socket
   struct GNUNET_PeerIdentity other_peer;
 
   /**
+   * The Acknowledgement Bitmap
+   */
+  GNUNET_STREAM_AckBitmap ack_bitmap;
+
+  /**
    * Task identifier for retransmission task after timeout
    */
   GNUNET_SCHEDULER_TaskIdentifier data_retransmission_task_id;
@@ -274,6 +265,21 @@ struct GNUNET_STREAM_Socket
    * The task for sending timely Acks
    */
   GNUNET_SCHEDULER_TaskIdentifier ack_task_id;
+
+  /**
+   * Retransmission timeout
+   */
+  struct GNUNET_TIME_Relative retransmit_timeout;
+
+  /**
+   * Time when the Acknowledgement was queued
+   */
+  struct GNUNET_TIME_Absolute ack_time_registered;
+
+  /**
+   * Queued Acknowledgement deadline
+   */
+  struct GNUNET_TIME_Relative ack_time_deadline;
 
   /**
    * The state of the protocol associated with this socket
@@ -291,14 +297,14 @@ struct GNUNET_STREAM_Socket
   unsigned int retries;
 
   /**
-   * The application port number (type: uint32_t)
-   */
-  GNUNET_MESH_ApplicationType app_port;
-
-  /**
    * Whether testing mode is active or not
    */
   int testing_active;
+
+  /**
+   * The application port number (type: uint32_t)
+   */
+  GNUNET_MESH_ApplicationType app_port;
 
   /**
    * The write sequence number to be set incase of testing
@@ -362,6 +368,11 @@ struct GNUNET_STREAM_ListenSocket
    * The mesh handle
    */
   struct GNUNET_MESH_Handle *mesh;
+
+  /**
+   * Handle to statistics
+   */
+  struct GNUNET_STATISTICS_Handle *stat_handle;
 
   /**
    * Our configuration
@@ -2738,6 +2749,7 @@ new_tunnel_notify (void *cls,
   socket->tunnel = tunnel;
   socket->state = STATE_INIT;
   socket->lsocket = lsocket;
+  socket->stat_handle = lsocket->stat_handle;
   socket->retransmit_timeout = lsocket->retransmit_timeout;
   socket->testing_active = lsocket->testing_active;
   socket->testing_set_write_sequence_number_value =
@@ -2747,6 +2759,15 @@ new_tunnel_notify (void *cls,
        "%s: Peer %s initiated tunnel to us\n", 
        GNUNET_i2s (&socket->other_peer),
        GNUNET_i2s (&socket->other_peer));
+  if (NULL != socket->stat_handle)
+  {
+    GNUNET_STATISTICS_update (socket->stat_handle,
+                              "total inbound connections received",
+                              1, GNUNET_NO);
+    GNUNET_STATISTICS_update (socket->stat_handle,
+                              "inbound connections", 1, GNUNET_NO);
+  }
+  
   return socket;
 }
 
@@ -2777,6 +2798,13 @@ tunnel_cleaner (void *cls,
        "%s: Peer %s has terminated connection abruptly\n",
        GNUNET_i2s (&socket->other_peer),
        GNUNET_i2s (&socket->other_peer));
+  if (NULL != socket->stat_handle)
+  {
+    GNUNET_STATISTICS_update (socket->stat_handle,
+                              "connections terminated abruptly", 1, GNUNET_NO);
+    GNUNET_STATISTICS_update (socket->stat_handle,
+                              "inbound connections", -1, GNUNET_NO);
+  }
   socket->status = GNUNET_STREAM_SHUTDOWN;
   /* Clear Transmit handles */
   if (NULL != socket->transmit_handle)
@@ -2983,6 +3011,7 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert (NULL != socket->tunnel);
   GNUNET_MESH_peer_request_connect_add (socket->tunnel,
                                         &socket->other_peer);
+  socket->stat_handle = GNUNET_STATISTICS_create ("stream", cfg);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "%s() END\n", __func__);
   return socket;
 }
@@ -3138,11 +3167,14 @@ GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket)
     socket->tunnel = NULL;
   }
   /* Close mesh connection */
-  if (NULL != socket->mesh && NULL == socket->lsocket)
+  if ((NULL != socket->mesh) && (NULL == socket->lsocket))
   {
     GNUNET_MESH_disconnect (socket->mesh);
     socket->mesh = NULL;
-  }  
+  }
+  /* Close statistics connection */
+  if ( (NULL != socket->stat_handle) && (NULL == socket->lsocket) )
+    GNUNET_STATISTICS_destroy (socket->stat_handle, GNUNET_YES);
   /* Release receive buffer */
   if (NULL != socket->receive_buffer)
   {
@@ -3170,7 +3202,6 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
                       void *listen_cb_cls,
                       ...)
 {
-  /* FIXME: Add variable args for passing configration options? */
   struct GNUNET_STREAM_ListenSocket *lsocket;
   struct GNUNET_TIME_Relative listen_timeout;
   enum GNUNET_STREAM_Option option;
@@ -3237,6 +3268,8 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
   lsocket->lockmanager_acquire_timeout_task =
     GNUNET_SCHEDULER_add_delayed (listen_timeout,
                                   &lockmanager_acquire_timeout, lsocket);
+  lsocket->stat_handle = GNUNET_STATISTICS_create ("stream",
+                                                   lsocket->cfg);
   return lsocket;
 }
 
@@ -3252,6 +3285,8 @@ GNUNET_STREAM_listen_close (struct GNUNET_STREAM_ListenSocket *lsocket)
   /* Close MESH connection */
   if (NULL != lsocket->mesh)
     GNUNET_MESH_disconnect (lsocket->mesh);
+  if (NULL != lsocket->stat_handle)
+    GNUNET_STATISTICS_destroy (lsocket->stat_handle, GNUNET_YES);
   GNUNET_CONFIGURATION_destroy (lsocket->cfg);
   if (GNUNET_SCHEDULER_NO_TASK != lsocket->lockmanager_acquire_timeout_task)
     GNUNET_SCHEDULER_cancel (lsocket->lockmanager_acquire_timeout_task);
