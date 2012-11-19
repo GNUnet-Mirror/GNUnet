@@ -45,6 +45,7 @@ static char *pid_str;
 
 static char *type_str;
 static unsigned int value;
+static int verbose;
 
 static struct GNUNET_ATS_PerformanceHandle *ph;
 
@@ -85,6 +86,8 @@ void transport_addr_to_str_cb (void *cls, const char *address)
   if (NULL != address)
   {
       ats_str = GNUNET_strdup("");
+      if (verbose)
+      {
       for (c = 0; c <  pr->ats_count; c++)
       {
           ats_tmp = ats_str;
@@ -115,8 +118,8 @@ void transport_addr_to_str_cb (void *cls, const char *address)
           GNUNET_asprintf (&ats_str, "%s%s=%s, ", ats_tmp, ats_prop_arr[ats_type] , ats_prop_value);
           GNUNET_free (ats_tmp);
           GNUNET_free (ats_prop_value);
+        }
       }
-
 
       fprintf (stderr, _("Peer `%s' plugin `%s', address `%s', bw out: %u Bytes/s, bw in %u Bytes/s, %s\n"),
         GNUNET_i2s (&pr->address->peer), pr->address->transport_name, address,
@@ -308,9 +311,12 @@ main (int argc, char *const *argv)
        {'t', "type", "TYPE",
          gettext_noop ("preference type to set: latency | bandwidth"),
          1, &GNUNET_GETOPT_set_string, &type_str},
-         {'k', "value", "VALUE",
-           gettext_noop ("preference value"),
-           1, &GNUNET_GETOPT_set_uint, &value},
+       {'k', "value", "VALUE",
+         gettext_noop ("preference value"),
+         1, &GNUNET_GETOPT_set_uint, &value},
+       {'V', "verbose", NULL,
+        gettext_noop ("verbose output (include ATS address properties)"),
+        0, &GNUNET_GETOPT_set_one, &verbose},
     GNUNET_GETOPT_OPTION_END
   };
 
