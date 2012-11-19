@@ -158,7 +158,7 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
     GNUNET_GETOPT_OPTION_HELP (binaryHelp),
     GNUNET_GETOPT_OPTION_LOGLEVEL (&loglev),
     GNUNET_GETOPT_OPTION_LOGFILE (&logfile),
-    GNUNET_GETOPT_OPTION_VERSION (PACKAGE_VERSION)
+    GNUNET_GETOPT_OPTION_VERSION (PACKAGE_VERSION " " VCS_VERSION)
   };
   struct GNUNET_GETOPT_CommandLineOption *allopts;
   const char *gargs;

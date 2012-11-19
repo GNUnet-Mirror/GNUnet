@@ -1137,6 +1137,27 @@ AC_MSG_RESULT($use_gcov)
 AM_CONDITIONAL([USE_COVERAGE], [test "x$use_gcov" = "xyes"])
 
 
+# version info
+AC_PATH_PROG(svnversioncommand, svnversion)
+AC_PATH_PROG(gitcommand, git)
+if test "X$svnversioncommand" = "X" || test `$svnversioncommand -n '.'` = "exported"
+then
+  if test "X$gitcommand" = "X"
+  then
+    AC_DEFINE_UNQUOTED(VCS_VERSION, ["release"], [repository svn version])
+  else
+    gitver=$(git log -1 | grep "git-svn-id" | sed -e 's/.*@\([[0-9]]\+\) .*/\1/')
+    if "X$gitver" = "X"
+    then
+      AC_DEFINE_UNQUOTED(VCS_VERSION, ["release"], [repository svn version])
+    else
+      AC_DEFINE_UNQUOTED(VCS_VERSION, ["svn-$gitver"], [repository svn version])
+    fi
+  fi
+else
+  AC_DEFINE_UNQUOTED(VCS_VERSION, ["svn-`svnversion -n`"], [repository svn version])
+fi
+
 AC_CONFIG_FILES([ 
 Makefile
 contrib/Makefile

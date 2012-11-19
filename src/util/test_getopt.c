@@ -85,7 +85,7 @@ testVersion ()
     NULL
   };
   const struct GNUNET_GETOPT_CommandLineOption versionoptionlist[] = {
-    GNUNET_GETOPT_OPTION_VERSION (PACKAGE_VERSION),
+    GNUNET_GETOPT_OPTION_VERSION (PACKAGE_VERSION " " VCS_VERSION),
     GNUNET_GETOPT_OPTION_END
   };
 
