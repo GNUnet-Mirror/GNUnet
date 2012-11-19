@@ -197,7 +197,10 @@ GNUNET_STREAM_shutdown (struct GNUNET_STREAM_Socket *socket,
 
 
 /**
- * Cancels a pending shutdown
+ * Cancels a pending shutdown. Note that the shutdown messages may already
+ * be sent and the stream is shutdown already for the operation given to
+ * GNUNET_STREAM_shutdown(). This function only clears up any retranmissions of
+ * shutdown messages and frees the shutdown handle.
  *
  * @param handle the shutdown handle returned from GNUNET_STREAM_shutdown
  */
@@ -207,7 +210,7 @@ GNUNET_STREAM_shutdown_cancel (struct GNUNET_STREAM_ShutdownHandle *handle);
 
 /**
  * Closes the stream and frees the associated state. The stream should be
- * shutdown before closing.
+ * shutdown for both reading and writing before closing.
  *
  * @param socket the stream socket
  */
