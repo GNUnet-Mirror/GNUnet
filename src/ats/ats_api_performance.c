@@ -106,6 +106,38 @@ struct GNUNET_ATS_ReservationContext
 
 
 /**
+ * Linked list of pending reservations.
+ */
+struct GNUNET_ATS_AddressListHandle
+{
+
+  /**
+   * Kept in a DLL.
+   */
+  struct GNUNET_ATS_AddressListHandle *next;
+
+  /**
+   * Kept in a DLL.
+   */
+  struct GNUNET_ATS_AddressListHandle *prev;
+
+  /**
+   * Target peer.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Return all or specific peer only
+   */
+  int all_peers;
+
+  /**
+   * Return all or used address only
+   */
+  int all_addresses;
+};
+
+/**
  * ATS Handle to obtain and/or modify performance information.
  */
 struct GNUNET_ATS_PerformanceHandle
@@ -150,6 +182,16 @@ struct GNUNET_ATS_PerformanceHandle
    * Tail of linked list of pending reservation requests.
    */
   struct GNUNET_ATS_ReservationContext *reservation_tail;
+
+  /**
+   * Head of linked list of pending address list requests.
+   */
+  struct GNUNET_ATS_AddressListHandle *addresslist_head;
+
+  /**
+   * Tail of linked list of pending address list requests.
+   */
+  struct GNUNET_ATS_AddressListHandle *addresslist_tail;
 
   /**
    * Current request for transmission to ATS.
@@ -562,6 +604,59 @@ void
 GNUNET_ATS_reserve_bandwidth_cancel (struct GNUNET_ATS_ReservationContext *rc)
 {
   rc->rcb = NULL;
+}
+
+/**
+ * Get information about addresses known to the ATS subsystem.
+ *
+ * @param cfg configuration to use
+ * @param peer peer idm can be NULL for all peers
+ * @param all GNUNET_YES to get information about all addresses or GNUNET_NO to
+ *        get only address currently used
+ * @param infocb callback to call with the addresses,
+ *        will callback with address == NULL when done
+ * @param infocb_cls closure for infocb
+ * @return ats performance context
+ */
+struct GNUNET_ATS_AddressListHandle*
+GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *handle,
+                                       const struct GNUNET_PeerIdentity *peer,
+                                       int all,
+                                       GNUNET_ATS_PeerInformationCallback infocb,
+                                       void *infocb_cls)
+{
+  struct GNUNET_ATS_AddressListHandle *alh;
+
+  GNUNET_assert (NULL != handle);
+
+  alh = GNUNET_malloc (sizeof (struct GNUNET_ATS_AddressListHandle));
+  alh->all_addresses = all;
+  if (NULL == peer)
+    alh->all_peers = GNUNET_YES;
+  else
+  {
+      alh->all_peers = GNUNET_NO;
+      alh->peer = (*peer);
+  }
+
+  GNUNET_CONTAINER_DLL_insert (handle->addresslist_head, handle->addresslist_tail, alh);
+
+  /* TODO */
+
+  return alh;
+}
+
+
+/**
+ * Cancel a pending address listing operation
+ *
+ * @param handle the GNUNET_ATS_AddressListHandle handle to cancel
+ */
+void
+GNUNET_ATS_performance_list_addresses_cancel (struct GNUNET_ATS_AddressListHandle *handle)
+{
+
+
 }
 
 

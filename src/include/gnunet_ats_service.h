@@ -690,6 +690,11 @@ typedef void (*GNUNET_ATS_PeerInformationCallback) (void *cls,
                                                     GNUNET_ATS_Information *
                                                     ats, uint32_t ats_count);
 
+/**
+ * Handle for an address listing operation
+ */
+struct GNUNET_ATS_AddressListHandle;
+
 
 /**
  * Get handle to access performance API of the ATS subsystem.
@@ -703,6 +708,35 @@ struct GNUNET_ATS_PerformanceHandle *
 GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                              GNUNET_ATS_PeerInformationCallback infocb,
                              void *infocb_cls);
+
+
+/**
+ * Get information about addresses known to the ATS subsystem.
+ *
+ * @param cfg configuration to use
+ * @param peer peer idm can be NULL for all peers
+ * @param all GNUNET_YES to get information about all addresses or GNUNET_NO to
+ *        get only address currently used
+ * @param infocb callback to call with the addresses,
+ *        will callback with address == NULL when done
+ * @param infocb_cls closure for infocb
+ * @return ats performance context
+ */
+struct GNUNET_ATS_AddressListHandle *
+GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *handle,
+                                       const struct GNUNET_PeerIdentity *peer,
+                                       int all,
+                                       GNUNET_ATS_PeerInformationCallback infocb,
+                                       void *infocb_cls);
+
+
+/**
+ * Cancel a pending address listing operation
+ *
+ * @param handle the GNUNET_ATS_AddressListHandle handle to cancel
+ */
+void
+GNUNET_ATS_performance_list_addresses_cancel (struct GNUNET_ATS_AddressListHandle *handle);
 
 
 /**
