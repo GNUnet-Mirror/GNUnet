@@ -122,6 +122,21 @@ struct GNUNET_ATS_AddressListHandle
   struct GNUNET_ATS_AddressListHandle *prev;
 
   /**
+   * Performance handle
+   */
+  struct GNUNET_ATS_PerformanceHandle *ph;
+
+  /**
+   * Callback
+   */
+  GNUNET_ATS_PeerInformationCallback cb;
+
+  /**
+   * Callback closure
+   */
+  void *cb_cls;
+
+  /**
    * Target peer.
    */
   struct GNUNET_PeerIdentity peer;
@@ -519,11 +534,18 @@ GNUNET_ATS_performance_done (struct GNUNET_ATS_PerformanceHandle *ph)
 {
   struct PendingMessage *p;
   struct GNUNET_ATS_ReservationContext *rc;
+  struct GNUNET_ATS_AddressListHandle *alh;
 
   while (NULL != (p = ph->pending_head))
   {
     GNUNET_CONTAINER_DLL_remove (ph->pending_head, ph->pending_tail, p);
     GNUNET_free (p);
+  }
+  while (NULL != (alh = ph->addresslist_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (ph->addresslist_head, ph->addresslist_tail,
+                                 alh);
+    GNUNET_free (alh);
   }
   while (NULL != (rc = ph->reservation_head))
   {
@@ -630,6 +652,9 @@ GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *hand
   GNUNET_assert (NULL != handle);
 
   alh = GNUNET_malloc (sizeof (struct GNUNET_ATS_AddressListHandle));
+  alh->cb = infocb;
+  alh->cb_cls = infocb_cls;
+  alh->ph = handle;
   alh->all_addresses = all;
   if (NULL == peer)
     alh->all_peers = GNUNET_YES;
@@ -642,6 +667,7 @@ GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *hand
   GNUNET_CONTAINER_DLL_insert (handle->addresslist_head, handle->addresslist_tail, alh);
 
   /* TODO */
+  FPRINTF (stderr, "TBD");
 
   return alh;
 }
@@ -655,8 +681,10 @@ GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *hand
 void
 GNUNET_ATS_performance_list_addresses_cancel (struct GNUNET_ATS_AddressListHandle *handle)
 {
+  GNUNET_assert (NULL != handle);
 
-
+  GNUNET_CONTAINER_DLL_remove (handle->ph->addresslist_head, handle->ph->addresslist_tail, handle);
+  GNUNET_free (handle);
 }
 
 

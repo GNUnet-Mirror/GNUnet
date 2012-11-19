@@ -36,8 +36,6 @@
 static int ret;
 static int results;
 static int resolve_addresses_numeric;
-static int monitor;
-
 /**
  * For which peer should we change preference values?
  */
@@ -54,15 +52,28 @@ static int verbose;
 /**
  * List only addresses currently used (active)
  */
-static int list_used;
+static int op_list_used;
 
 /**
  * List all addresses
  */
-static int list_all;
+static int op_list_all;
+
+/**
+ * List all addresses
+ */
+static int op_set_pref;
+
+/**
+ * Monitor addresses used
+ */
+static int op_monitor;
+
 
 
 static struct GNUNET_ATS_PerformanceHandle *ph;
+
+struct GNUNET_ATS_AddressListHandle *alh;
 
 static struct GNUNET_CONFIGURATION_Handle *cfg;
 
@@ -183,12 +194,27 @@ void ats_perf_cb (void *cls,
   results++;
 }
 
+void la_cb (void *cls,
+            const struct GNUNET_HELLO_Address * address,
+            struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+            struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+            const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
+{
+
+}
+
 void end (void *cls,
           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PendingResolutions * pr;
   struct PendingResolutions * next;
   unsigned int pending;
+
+  if (NULL != alh)
+  {
+      GNUNET_ATS_performance_list_addresses_cancel (alh);
+      alh = NULL;
+  }
 
   GNUNET_ATS_performance_done (ph);
   ph = NULL;
@@ -225,23 +251,8 @@ void testservice_ats (void *cls,
       return;
   }
 
-  if ((GNUNET_YES == list_all) && (GNUNET_YES ==list_used))
-  {
-      FPRINTF (stderr, _("Please select one operation : %s or %s  \n"),"--used", "--all");
-      return;
-  }
-
-  if ((GNUNET_NO == list_all) && (GNUNET_NO == list_used))
-    list_used = GNUNET_YES; /* set default */
-
-
-  if (GNUNET_YES == list_all)
-  {
-      FPRINTF (stderr, _("NOT YET IMPLEMENTED\n"));
-      return;
-  }
-
   results = 0;
+
   if (NULL != pid_str)
   {
       if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (pid_str, &pid.hashPubKey))
@@ -254,44 +265,95 @@ void testservice_ats (void *cls,
         FPRINTF (stderr, "%s", _("Type required\n"));
         return;
       }
-
-      for (c = 0; c<strlen(type_str); c++)
-        if (isupper (type_str[c]))
-          type_str[c] = tolower (type_str[c]);
-
-
-      if (0 == strcasecmp("latency", type_str))
-        type = GNUNET_ATS_PREFERENCE_LATENCY;
-      else if (0 == strcasecmp("bandwidth", type_str))
-        type = GNUNET_ATS_PREFERENCE_BANDWIDTH;
-      else
-      {
-        FPRINTF (stderr, "%s", _("Type required\n"));
-        return;
-      }
-
-      /* set */
-      ph = GNUNET_ATS_performance_init (cfg, NULL, NULL);
-      if (NULL == ph)
-        fprintf (stderr, _("Cannot connect to ATS service, exiting...\n"));
-
-      GNUNET_ATS_change_preference (ph, &pid, type, (double) value, GNUNET_ATS_PREFERENCE_END);
-
-      end_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &end, NULL);
   }
-  else
+
+  c = op_list_all + op_list_used + op_monitor + op_set_pref;
+  if ((1 < c))
   {
-      ph = GNUNET_ATS_performance_init (cfg, ats_perf_cb, NULL);
-      if (NULL == ph)
-        fprintf (stderr, _("Cannot connect to ATS service, exiting...\n"));
-
-      if (GNUNET_NO == monitor)
-        end_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end, NULL);
-      else
-        end_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &end, NULL);
+      FPRINTF (stderr, _("Please select one operation : %s or %s or %s or %s\n"),
+               "--used", "--all", "--monitor", "--preference");
+      return;
   }
+  if ((0 == c))
+    op_list_used = GNUNET_YES; /* set default */
 
 
+    if (op_list_all)
+    {
+        ph = GNUNET_ATS_performance_init (cfg, NULL, NULL);
+        if (NULL == ph)
+        {
+          fprintf (stderr, _("Cannot connect to ATS service, exiting...\n"));
+          return;
+        }
+
+        alh = GNUNET_ATS_performance_list_addresses (ph,
+                                               (NULL == pid_str) ? NULL : &pid,
+                                               GNUNET_YES, la_cb, NULL);
+        if (NULL == alh)
+        {
+          fprintf (stderr, _("Cannot issue request to ATS service, exiting...\n"));
+          end_task = GNUNET_SCHEDULER_add_now (&end, NULL);
+          return;
+        }
+
+        end_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &end, NULL);
+
+    }
+    else if (op_list_used)
+    {
+        ph = GNUNET_ATS_performance_init (cfg, NULL, NULL);
+        if (NULL == ph)
+          fprintf (stderr, _("Cannot connect to ATS service, exiting...\n"));
+
+        alh = GNUNET_ATS_performance_list_addresses (ph,
+                                               (NULL == pid_str) ? NULL : &pid,
+                                               GNUNET_NO, la_cb, NULL);
+        if (NULL == alh)
+        {
+          fprintf (stderr, _("Cannot issue request to ATS service, exiting...\n"));
+          end_task = GNUNET_SCHEDULER_add_now (&end, NULL);
+          return;
+        }
+
+
+        end_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &end, NULL);
+    }
+    else if (op_monitor)
+    {
+        ph = GNUNET_ATS_performance_init (cfg, ats_perf_cb, NULL);
+        if (NULL == ph)
+          fprintf (stderr, _("Cannot connect to ATS service, exiting...\n"));
+        end_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &end, NULL);
+
+    }
+    else if (op_set_pref)
+    {
+        for (c = 0; c<strlen(type_str); c++)
+        {
+          if (isupper (type_str[c]))
+            type_str[c] = tolower (type_str[c]);
+        }
+
+        if (0 == strcasecmp("latency", type_str))
+          type = GNUNET_ATS_PREFERENCE_LATENCY;
+        else if (0 == strcasecmp("bandwidth", type_str))
+          type = GNUNET_ATS_PREFERENCE_BANDWIDTH;
+        else
+        {
+          FPRINTF (stderr, "%s", _("Type required\n"));
+          return;
+        }
+
+            /* set */
+            ph = GNUNET_ATS_performance_init (cfg, NULL, NULL);
+            if (NULL == ph)
+              fprintf (stderr, _("Cannot connect to ATS service, exiting...\n"));
+
+            GNUNET_ATS_change_preference (ph, &pid, type, (double) value, GNUNET_ATS_PREFERENCE_END);
+
+            end_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &end, NULL);
+    }
   ret = 1;
 }
 
@@ -327,25 +389,28 @@ main (int argc, char *const *argv)
 {
   int res;
   resolve_addresses_numeric = GNUNET_NO;
-  monitor = GNUNET_NO;
-  list_all = GNUNET_NO;
-  list_used = GNUNET_NO;
+  op_monitor = GNUNET_NO;
+  op_list_all = GNUNET_NO;
+  op_list_used = GNUNET_NO;
 
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
       {'u', "used", NULL,
        gettext_noop ("get list of active addresses currently used"),
-       0, &GNUNET_GETOPT_set_one, &list_used},
+       0, &GNUNET_GETOPT_set_one, &op_list_used},
        {'a', "all", NULL,
         gettext_noop ("get list of all active addresses"),
-        0, &GNUNET_GETOPT_set_one, &list_all},
+        0, &GNUNET_GETOPT_set_one, &op_list_all},
       {'n', "numeric", NULL,
        gettext_noop ("do not resolve IP addresses to hostnames"),
        0, &GNUNET_GETOPT_set_one, &resolve_addresses_numeric},
        {'m', "monitor", NULL,
         gettext_noop ("monitor mode"),
-        0, &GNUNET_GETOPT_set_one, &monitor},
-       {'p', "preference", "PEER",
+        0, &GNUNET_GETOPT_set_one, &op_monitor},
+       {'p', "preference", NULL,
          gettext_noop ("set preference for the given peer"),
+         0, &GNUNET_GETOPT_set_one, &op_set_pref},
+       {'i', "id", "TYPE",
+         gettext_noop ("peer id"),
          1, &GNUNET_GETOPT_set_string, &pid_str},
        {'t', "type", "TYPE",
          gettext_noop ("preference type to set: latency | bandwidth"),
