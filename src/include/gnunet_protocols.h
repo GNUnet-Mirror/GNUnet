@@ -1100,6 +1100,18 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_ATS_ADDRESS_ADD 353
 
+/**
+ * Type of the 'struct AddressListRequestMessage' sent by client to ATS
+ * to request information about addresses
+ */
+#define GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_REQUEST 354
+
+/**
+ * Type of the 'struct AddressListResponseMessage' sent by ATS to client
+ * with information about addresses
+ */
+#define GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_RESPONSE 355
+
 /*******************************************************************************
  * TRANSPORT message types
  ******************************************************************************/

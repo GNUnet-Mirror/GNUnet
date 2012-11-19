@@ -78,6 +78,17 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
 
 
 /**
+ * Handle 'address list request' messages from clients.
+ *
+ * @param cls unused, NULL
+ * @param client client that sent the request
+ * @param message the request message
+ */
+void
+GAS_handle_request_address_list (void *cls, struct GNUNET_SERVER_Client *client,
+                                 const struct GNUNET_MessageHeader *message);
+
+/**
  * Handle 'reservation request' messages from clients.
  *
  * @param cls unused, NULL

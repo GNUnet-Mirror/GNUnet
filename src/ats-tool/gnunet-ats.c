@@ -178,30 +178,26 @@ void ats_perf_cb (void *cls,
 {
   struct PendingResolutions * pr;
 
-  pr = GNUNET_malloc (sizeof (struct PendingResolutions) +
-                      ats_count * sizeof (struct GNUNET_ATS_Information));
 
-  pr->ats_count = ats_count;
-  pr->ats = (struct GNUNET_ATS_Information *) &pr[1];
-  if (ats_count > 0)
-    memcpy (pr->ats, ats, ats_count * sizeof (struct GNUNET_ATS_Information));
-  pr->address = GNUNET_HELLO_address_copy (address);
-  pr->bandwidth_in = bandwidth_in;
-  pr->bandwidth_out = bandwidth_out;
-  pr->tats_ctx = GNUNET_TRANSPORT_address_to_string(cfg, address,
-                    resolve_addresses_numeric, GNUNET_TIME_UNIT_FOREVER_REL, transport_addr_to_str_cb, pr);
-  GNUNET_CONTAINER_DLL_insert (head, tail, pr);
-  results++;
+  if (NULL != address)
+  {
+    pr = GNUNET_malloc (sizeof (struct PendingResolutions) +
+                        ats_count * sizeof (struct GNUNET_ATS_Information));
+
+    pr->ats_count = ats_count;
+    pr->ats = (struct GNUNET_ATS_Information *) &pr[1];
+    if (ats_count > 0)
+      memcpy (pr->ats, ats, ats_count * sizeof (struct GNUNET_ATS_Information));
+    pr->address = GNUNET_HELLO_address_copy (address);
+    pr->bandwidth_in = bandwidth_in;
+    pr->bandwidth_out = bandwidth_out;
+    pr->tats_ctx = GNUNET_TRANSPORT_address_to_string(cfg, address,
+                      resolve_addresses_numeric, GNUNET_TIME_UNIT_FOREVER_REL, transport_addr_to_str_cb, pr);
+    GNUNET_CONTAINER_DLL_insert (head, tail, pr);
+    results++;
+  }
 }
 
-void la_cb (void *cls,
-            const struct GNUNET_HELLO_Address * address,
-            struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-            struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-            const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
-{
-
-}
 
 void end (void *cls,
           const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -289,7 +285,7 @@ void testservice_ats (void *cls,
 
         alh = GNUNET_ATS_performance_list_addresses (ph,
                                                (NULL == pid_str) ? NULL : &pid,
-                                               GNUNET_YES, la_cb, NULL);
+                                               GNUNET_YES, ats_perf_cb, NULL);
         if (NULL == alh)
         {
           fprintf (stderr, _("Cannot issue request to ATS service, exiting...\n"));
@@ -308,7 +304,7 @@ void testservice_ats (void *cls,
 
         alh = GNUNET_ATS_performance_list_addresses (ph,
                                                (NULL == pid_str) ? NULL : &pid,
-                                               GNUNET_NO, la_cb, NULL);
+                                               GNUNET_NO, ats_perf_cb, NULL);
         if (NULL == alh)
         {
           fprintf (stderr, _("Cannot issue request to ATS service, exiting...\n"));

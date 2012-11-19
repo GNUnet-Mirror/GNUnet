@@ -188,6 +188,15 @@ struct PeerInformationMessage
 
 };
 
+struct AddressListRequestMessage
+{
+  struct GNUNET_MessageHeader header;
+
+  int32_t all GNUNET_PACKED;
+
+  struct GNUNET_PeerIdentity peer;
+};
+
 
 struct ReservationRequestMessage
 {

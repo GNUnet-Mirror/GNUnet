@@ -648,6 +648,8 @@ GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *hand
                                        void *infocb_cls)
 {
   struct GNUNET_ATS_AddressListHandle *alh;
+  struct PendingMessage *p;
+  struct AddressListRequestMessage *m;
 
   GNUNET_assert (NULL != handle);
 
@@ -666,8 +668,21 @@ GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *hand
 
   GNUNET_CONTAINER_DLL_insert (handle->addresslist_head, handle->addresslist_tail, alh);
 
-  /* TODO */
-  FPRINTF (stderr, "TBD");
+  p = GNUNET_malloc (sizeof (struct PendingMessage) +
+                     sizeof (struct AddressListRequestMessage));
+  p->size = sizeof (struct AddressListRequestMessage);
+  m = (struct AddressListRequestMessage *) &p[1];
+  m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_REQUEST);
+  m->header.size = htons (sizeof (struct AddressListRequestMessage));
+  m->all = htonl (all);
+  if (NULL != peer)
+    m->peer = *peer;
+  else
+  {
+      memset (&m->peer, '\0', sizeof (struct GNUNET_PeerIdentity));
+  }
+  GNUNET_CONTAINER_DLL_insert_tail (handle->pending_head, handle->pending_tail, p);
+  do_transmit (handle);
 
   return alh;
 }

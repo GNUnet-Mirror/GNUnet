@@ -284,6 +284,26 @@ GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
   GAS_addresses_iterate_peers (&peer_it, pc);
 }
 
+/**
+ * Handle 'address list request' messages from clients.
+ *
+ * @param cls unused, NULL
+ * @param client client that sent the request
+ * @param message the request message
+ */
+void
+GAS_handle_request_address_list (void *cls, struct GNUNET_SERVER_Client *client,
+                                 const struct GNUNET_MessageHeader *message)
+{
+  struct AddressListRequestMessage * alrm = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n",
+              "ADDRESSLIST_REQUEST");
+
+
+
+}
+
 
 
 /**
