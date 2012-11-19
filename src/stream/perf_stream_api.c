@@ -439,6 +439,15 @@ static void
 shutdown_completion (void *cls,
                      int operation)
 {
+  static int shutdowns;
+
+  if (++shutdowns == 1)
+  {
+    peer_data[0].shutdown_handle = NULL;
+    peer_data[1].shutdown_handle = GNUNET_STREAM_shutdown (peer_data[1].socket, SHUT_RDWR,
+                                                           &shutdown_completion, cls);
+    return;
+  }  
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "STREAM shutdown successful\n");
   GNUNET_SCHEDULER_add_now (&do_close, cls);
 }
