@@ -3214,6 +3214,8 @@ GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket)
     GNUNET_STREAM_io_write_cancel (socket->write_handle);
     //socket->write_handle = NULL;
   }
+  GNUNET_break (GNUNET_YES == socket->receive_closed);
+  GNUNET_break (GNUNET_YES == socket->transmit_closed);
   /* Terminate the ack'ing task if they are still present */
   if (socket->ack_task_id != GNUNET_SCHEDULER_NO_TASK)
   {

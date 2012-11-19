@@ -264,7 +264,6 @@ shutdown_completion (void *cls,
 }
 
 
-
 /**
  * Shutdown sockets gracefully
  */
