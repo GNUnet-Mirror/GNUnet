@@ -126,6 +126,11 @@ struct PeerData
   struct GNUNET_PeerIdentity id;
 
   /**
+   * Peer's shutdown handle
+   */
+  struct GNUNET_STREAM_ShutdownHandle *shutdown_handle;
+
+  /**
    * Bytes the peer has written
    */
   size_t bytes_wrote;
@@ -372,7 +377,7 @@ free_meter (struct ProgressMeter *meter)
  * Shutdown nicely
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_close (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   switch (test_step)
   {
@@ -419,7 +424,34 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (GNUNET_SCHEDULER_NO_TASK != read_task)
     GNUNET_SCHEDULER_cancel (read_task);
   result = GNUNET_SYSERR;
-  do_shutdown (cls, tc);
+  do_close (cls, tc);
+}
+
+
+/**
+ * Completion callback for shutdown
+ *
+ * @param cls the closure from GNUNET_STREAM_shutdown call
+ * @param operation the operation that was shutdown (SHUT_RD, SHUT_WR,
+ *          SHUT_RDWR) 
+ */
+static void 
+shutdown_completion (void *cls,
+                     int operation)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "STREAM shutdown successful\n");
+  GNUNET_SCHEDULER_add_now (&do_close, cls);
+}
+
+
+/**
+ * Shutdown sockets gracefully
+ */
+static void
+do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  peer_data[0].shutdown_handle = GNUNET_STREAM_shutdown (peer_data[0].socket, SHUT_RDWR,
+                                                         &shutdown_completion, cls);
 }
 
   
