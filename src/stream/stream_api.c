@@ -1640,20 +1640,30 @@ handle_transmit_close (struct GNUNET_STREAM_Socket *socket,
 
   switch (socket->state)
   {
-  case STATE_ESTABLISHED:
-    socket->state = STATE_RECEIVE_CLOSED;
-    /* Send TRANSMIT_CLOSE_ACK */
-    reply = GNUNET_malloc (sizeof (struct GNUNET_STREAM_MessageHeader));
-    reply->header.type = 
-      htons (GNUNET_MESSAGE_TYPE_STREAM_TRANSMIT_CLOSE_ACK);
-    reply->header.size = htons (sizeof (struct GNUNET_STREAM_MessageHeader));
-    queue_message (socket, reply, NULL, NULL, GNUNET_NO);
-    break;
+  case STATE_INIT:
+  case STATE_LISTEN:
+  case STATE_HELLO_WAIT:
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "%s: Ignoring RECEIVE_CLOSE as it cannot be handled now\n",
+         GNUNET_i2s (&socket->other_peer));
+    return GNUNET_OK;
   default:
-    /* FIXME: Call statistics? */
     break;
   }
-  return GNUNET_YES;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s: Received TRANSMIT_CLOSE from %s\n",
+       GNUNET_i2s (&socket->other_peer), GNUNET_i2s (&socket->other_peer));
+  socket->receive_closed = GNUNET_YES;
+  if (GNUNET_YES == socket->transmit_closed)
+    socket->state = STATE_CLOSED;
+  else
+    socket->state = STATE_RECEIVE_CLOSED;
+  /* Send TRANSMIT_CLOSE_ACK */
+  reply = GNUNET_malloc (sizeof (struct GNUNET_STREAM_MessageHeader));
+  reply->header.type = 
+      htons (GNUNET_MESSAGE_TYPE_STREAM_TRANSMIT_CLOSE_ACK);
+  reply->header.size = htons (sizeof (struct GNUNET_STREAM_MessageHeader));
+  queue_message (socket, reply, NULL, NULL, GNUNET_NO);
+  return GNUNET_OK;
 }
 
 
@@ -1734,7 +1744,7 @@ handle_generic_close_ack (struct GNUNET_STREAM_Socket *socket,
   shutdown_handle = socket->shutdown_handle;
   if (NULL == shutdown_handle)
   {
-    /* This happens when the shudown handle is cancelled */
+    /* This may happen when the shudown handle is cancelled */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "%s: Received CLOSE_ACK when shutdown handle is NULL\n",
          GNUNET_i2s (&socket->other_peer));
@@ -1759,7 +1769,7 @@ handle_generic_close_ack (struct GNUNET_STREAM_Socket *socket,
       break;
     default:
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "%s: Received CLOSE_ACK when in it not expected\n",
+           "%s: Received CLOSE_ACK when it is not expected\n",
            GNUNET_i2s (&socket->other_peer));
       return GNUNET_OK;
     }
@@ -1781,7 +1791,7 @@ handle_generic_close_ack (struct GNUNET_STREAM_Socket *socket,
       break;
     default:
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "%s: Received RECEIVE_CLOSE_ACK when in it not expected\n",
+           "%s: Received RECEIVE_CLOSE_ACK when it is not expected\n",
            GNUNET_i2s (&socket->other_peer));
       return GNUNET_OK;
     }
@@ -1804,7 +1814,7 @@ handle_generic_close_ack (struct GNUNET_STREAM_Socket *socket,
       break;
     default:
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "%s: Received TRANSMIT_CLOSE_ACK when in it not expected\n",
+           "%s: Received TRANSMIT_CLOSE_ACK when it is not expected\n",
            GNUNET_i2s (&socket->other_peer));          
       return GNUNET_OK;
     }
@@ -1889,23 +1899,31 @@ handle_receive_close (struct GNUNET_STREAM_Socket *socket,
     return GNUNET_OK;
   default:
     break;
-  }
-  
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "%s: Received RECEIVE_CLOSE from %s\n",
-       GNUNET_i2s (&socket->other_peer),
-       GNUNET_i2s (&socket->other_peer));
+  }  
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s: Received RECEIVE_CLOSE from %s\n",
+       GNUNET_i2s (&socket->other_peer), GNUNET_i2s (&socket->other_peer));
+  socket->transmit_closed = GNUNET_YES;
+  if (GNUNET_YES == socket->receive_closed)
+    socket->state = STATE_CLOSED;
+  else
+    socket->state = STATE_TRANSMIT_CLOSED;
   receive_close_ack =
     GNUNET_malloc (sizeof (struct GNUNET_STREAM_MessageHeader));
   receive_close_ack->header.size =
     htons (sizeof (struct GNUNET_STREAM_MessageHeader));
   receive_close_ack->header.type =
     htons (GNUNET_MESSAGE_TYPE_STREAM_RECEIVE_CLOSE_ACK);
-  queue_message (socket, receive_close_ack, &set_state_closed,
-                 NULL, GNUNET_NO);  
-  /* FIXME: Handle the case where write handle is present; the write operation
-     should be deemed as finised and the write continuation callback
-     has to be called with the stream status GNUNET_STREAM_SHUTDOWN */
+  queue_message (socket, receive_close_ack, NULL, NULL, GNUNET_NO);
+  /* If write handle is present call it with GNUNET_STREAM_SHUTDOWN to signal
+     that that stream has been shutdown */
+  if (NULL != socket->write_handle)
+  {
+    if (NULL != socket->write_handle->write_cont)
+      socket->write_handle->write_cont (socket->write_handle->write_cont_cls,
+                                        GNUNET_STREAM_SHUTDOWN, 0);
+    GNUNET_STREAM_io_write_cancel (socket->write_handle);
+    socket->write_handle = NULL;
+  }
   return GNUNET_OK;
 }
 
@@ -2005,10 +2023,8 @@ handle_close (struct GNUNET_STREAM_Socket *socket,
   default:
     break;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "%s: Received CLOSE from %s\n",
-       GNUNET_i2s (&socket->other_peer),
-       GNUNET_i2s (&socket->other_peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s: Received CLOSE from %s\n",
+       GNUNET_i2s (&socket->other_peer), GNUNET_i2s (&socket->other_peer));
   close_ack = GNUNET_malloc (sizeof (struct GNUNET_STREAM_MessageHeader));
   close_ack->header.size = htons (sizeof (struct GNUNET_STREAM_MessageHeader));
   close_ack->header.type = htons (GNUNET_MESSAGE_TYPE_STREAM_CLOSE_ACK);
@@ -2019,7 +2035,17 @@ handle_close (struct GNUNET_STREAM_Socket *socket,
   socket->transmit_closed = GNUNET_YES;
   GNUNET_free_non_null (socket->receive_buffer); /* Free the receive buffer */
   socket->receive_buffer = NULL;
-  socket->receive_buffer_size = 0;
+  socket->receive_buffer_size = 0;  
+  /* If write handle is present call it with GNUNET_STREAM_SHUTDOWN to signal
+     that that stream has been shutdown */
+  if (NULL != socket->write_handle)
+  {
+    if (NULL != socket->write_handle->write_cont)
+      socket->write_handle->write_cont (socket->write_handle->write_cont_cls,
+                                        GNUNET_STREAM_SHUTDOWN, 0);
+    GNUNET_STREAM_io_write_cancel (socket->write_handle);
+    socket->write_handle = NULL;
+  }
   return GNUNET_OK;
 }
 
@@ -3101,6 +3127,7 @@ GNUNET_STREAM_shutdown (struct GNUNET_STREAM_Socket *socket,
     msg->header.type = htons (GNUNET_MESSAGE_TYPE_STREAM_RECEIVE_CLOSE);
     queue_message (socket, msg, &set_state_receive_close_wait, NULL,
                    GNUNET_NO);
+    socket->receive_closed = GNUNET_YES;
     break;
   case SHUT_WR:
     handle->operation = SHUT_WR;
@@ -3111,6 +3138,7 @@ GNUNET_STREAM_shutdown (struct GNUNET_STREAM_Socket *socket,
     msg->header.type = htons (GNUNET_MESSAGE_TYPE_STREAM_TRANSMIT_CLOSE);
     queue_message (socket, msg, &set_state_transmit_close_wait, NULL,
                    GNUNET_NO);
+    socket->transmit_closed = GNUNET_YES;
     break;
   case SHUT_RDWR:
     handle->operation = SHUT_RDWR;
@@ -3124,6 +3152,8 @@ GNUNET_STREAM_shutdown (struct GNUNET_STREAM_Socket *socket,
            " down reading\n");
     msg->header.type = htons (GNUNET_MESSAGE_TYPE_STREAM_CLOSE);
     queue_message (socket, msg, &set_state_close_wait, NULL, GNUNET_NO);
+    socket->transmit_closed = GNUNET_YES;
+    socket->receive_closed = GNUNET_YES;
     break;
   default:
     LOG (GNUNET_ERROR_TYPE_WARNING,

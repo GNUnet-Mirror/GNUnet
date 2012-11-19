@@ -279,7 +279,10 @@ GNUNET_STREAM_listen_close (struct GNUNET_STREAM_ListenSocket *lsocket);
  * on a stream are executed
  *
  * @param cls the closure from GNUNET_STREAM_write
- * @param status the status of the stream at the time this function is called
+ * @param status the status of the stream at the time this function is called;
+ *          GNUNET_OK if writing to stream was completed successfully,
+ *          GNUNET_STREAM_SHUTDOWN if the stream is shutdown for writing in the
+ *          mean time.
  * @param size the number of bytes written
  */
 typedef void (*GNUNET_STREAM_CompletionContinuation) (void *cls,
