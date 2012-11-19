@@ -302,6 +302,16 @@ struct GNUNET_STREAM_Socket
   int testing_active;
 
   /**
+   * Is receive closed
+   */
+  int receive_closed;
+
+  /**
+   * Is transmission closed
+   */
+  int transmit_closed;
+
+  /**
    * The application port number (type: uint32_t)
    */
   GNUNET_MESH_ApplicationType app_port;
@@ -544,6 +554,11 @@ struct GNUNET_STREAM_ShutdownHandle
    * Close message retransmission task id
    */
   GNUNET_SCHEDULER_TaskIdentifier close_msg_retransmission_task_id;
+
+  /**
+   * Task scheduled to call the shutdown continuation callback
+   */
+  GNUNET_SCHEDULER_TaskIdentifier call_cont_task_id;
 
   /**
    * Which operation to shutdown? SHUT_RD, SHUT_WR or SHUT_RDWR
@@ -1673,6 +1688,28 @@ client_handle_transmit_close (void *cls,
 
 
 /**
+ * Task for calling the shutdown continuation callback
+ *
+ * @param cls the socket
+ * @param tc the scheduler task context
+ */
+static void
+call_cont_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_STREAM_Socket *socket = cls;
+  
+  GNUNET_assert (NULL != socket->shutdown_handle);
+  socket->shutdown_handle->call_cont_task_id = GNUNET_SCHEDULER_NO_TASK;
+  if (NULL != socket->shutdown_handle->completion_cb)
+    socket->shutdown_handle->completion_cb
+        (socket->shutdown_handle->completion_cls,
+         socket->shutdown_handle->operation);
+  GNUNET_free (socket->shutdown_handle);
+  socket->shutdown_handle = NULL;
+}
+
+
+/**
  * Generic handler for GNUNET_MESSAGE_TYPE_STREAM_*_CLOSE_ACK messages
  *
  * @param socket the socket
@@ -1697,6 +1734,7 @@ handle_generic_close_ack (struct GNUNET_STREAM_Socket *socket,
   shutdown_handle = socket->shutdown_handle;
   if (NULL == shutdown_handle)
   {
+    /* This happens when the shudown handle is cancelled */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "%s: Received CLOSE_ACK when shutdown handle is NULL\n",
          GNUNET_i2s (&socket->other_peer));
@@ -1774,9 +1812,8 @@ handle_generic_close_ack (struct GNUNET_STREAM_Socket *socket,
   default:
     GNUNET_assert (0);
   }
-  if (NULL != shutdown_handle->completion_cb) /* Shutdown completion */
-    shutdown_handle->completion_cb(shutdown_handle->completion_cls,
-                                   operation);
+  shutdown_handle->call_cont_task_id = GNUNET_SCHEDULER_add_now
+      (&call_cont_task, socket);
   if (GNUNET_SCHEDULER_NO_TASK
       != shutdown_handle->close_msg_retransmission_task_id)
   {
@@ -1785,8 +1822,6 @@ handle_generic_close_ack (struct GNUNET_STREAM_Socket *socket,
     shutdown_handle->close_msg_retransmission_task_id =
 	GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_free (shutdown_handle); /* Free shutdown handle */
-  socket->shutdown_handle = NULL;
   return GNUNET_OK;
 }
 
@@ -1970,7 +2005,6 @@ handle_close (struct GNUNET_STREAM_Socket *socket,
   default:
     break;
   }
-
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "%s: Received CLOSE from %s\n",
        GNUNET_i2s (&socket->other_peer),
@@ -1979,9 +2013,10 @@ handle_close (struct GNUNET_STREAM_Socket *socket,
   close_ack->header.size = htons (sizeof (struct GNUNET_STREAM_MessageHeader));
   close_ack->header.type = htons (GNUNET_MESSAGE_TYPE_STREAM_CLOSE_ACK);
   queue_message (socket, close_ack, &set_state_closed, NULL, GNUNET_NO);
-  if (socket->state == STATE_CLOSED)
+  if (STATE_CLOSED == socket->state)
     return GNUNET_OK;
-
+  socket->receive_closed = GNUNET_YES;
+  socket->transmit_closed = GNUNET_YES;
   GNUNET_free_non_null (socket->receive_buffer); /* Free the receive buffer */
   socket->receive_buffer = NULL;
   socket->receive_buffer_size = 0;
@@ -3037,13 +3072,22 @@ GNUNET_STREAM_shutdown (struct GNUNET_STREAM_Socket *socket,
   struct GNUNET_STREAM_MessageHeader *msg;
   
   GNUNET_assert (NULL == socket->shutdown_handle);
-
   handle = GNUNET_malloc (sizeof (struct GNUNET_STREAM_ShutdownHandle));
   handle->socket = socket;
   handle->completion_cb = completion_cb;
   handle->completion_cls = completion_cls;
   socket->shutdown_handle = handle;
-
+  if ( ((GNUNET_YES == socket->receive_closed) && (SHUT_RD == operation))
+       || ((GNUNET_YES == socket->transmit_closed) && (SHUT_WR == operation))
+       || ((GNUNET_YES == socket->transmit_closed) 
+           && (GNUNET_YES == socket->receive_closed)
+           && (SHUT_RDWR == operation)) )
+  {
+    handle->operation = operation;
+    handle->call_cont_task_id = GNUNET_SCHEDULER_add_now (&call_cont_task,
+                                                          socket);
+    return handle;
+  }
   msg = GNUNET_malloc (sizeof (struct GNUNET_STREAM_MessageHeader));
   msg->header.size = htons (sizeof (struct GNUNET_STREAM_MessageHeader));
   switch (operation)
@@ -3098,7 +3142,10 @@ GNUNET_STREAM_shutdown (struct GNUNET_STREAM_Socket *socket,
 
 
 /**
- * Cancels a pending shutdown
+ * Cancels a pending shutdown. Note that the shutdown messages may already be
+ * sent and the stream is shutdown already for the operation given to
+ * GNUNET_STREAM_shutdown(). This function only clears up any retranmissions of
+ * shutdown messages and frees the shutdown handle.
  *
  * @param handle the shutdown handle returned from GNUNET_STREAM_shutdown
  */
@@ -3107,6 +3154,8 @@ GNUNET_STREAM_shutdown_cancel (struct GNUNET_STREAM_ShutdownHandle *handle)
 {
   if (GNUNET_SCHEDULER_NO_TASK != handle->close_msg_retransmission_task_id)
     GNUNET_SCHEDULER_cancel (handle->close_msg_retransmission_task_id);
+  if (GNUNET_SCHEDULER_NO_TASK != handle->call_cont_task_id)
+    GNUNET_SCHEDULER_cancel (handle->call_cont_task_id);
   handle->socket->shutdown_handle = NULL;
   GNUNET_free (handle);
 }
