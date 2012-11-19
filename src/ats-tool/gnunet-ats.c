@@ -45,7 +45,22 @@ static char *pid_str;
 
 static char *type_str;
 static unsigned int value;
+
+/**
+ * Print verbose ATS information
+ */
 static int verbose;
+
+/**
+ * List only addresses currently used (active)
+ */
+static int list_used;
+
+/**
+ * List all addresses
+ */
+static int list_all;
+
 
 static struct GNUNET_ATS_PerformanceHandle *ph;
 
@@ -210,6 +225,22 @@ void testservice_ats (void *cls,
       return;
   }
 
+  if ((GNUNET_YES == list_all) && (GNUNET_YES ==list_used))
+  {
+      FPRINTF (stderr, _("Please select one operation : %s or %s  \n"),"--used", "--all");
+      return;
+  }
+
+  if ((GNUNET_NO == list_all) && (GNUNET_NO == list_used))
+    list_used = GNUNET_YES; /* set default */
+
+
+  if (GNUNET_YES == list_all)
+  {
+      FPRINTF (stderr, _("NOT YET IMPLEMENTED\n"));
+      return;
+  }
+
   results = 0;
   if (NULL != pid_str)
   {
@@ -297,8 +328,16 @@ main (int argc, char *const *argv)
   int res;
   resolve_addresses_numeric = GNUNET_NO;
   monitor = GNUNET_NO;
+  list_all = GNUNET_NO;
+  list_used = GNUNET_NO;
 
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+      {'u', "used", NULL,
+       gettext_noop ("get list of active addresses currently used"),
+       0, &GNUNET_GETOPT_set_one, &list_used},
+       {'a', "all", NULL,
+        gettext_noop ("get list of all active addresses"),
+        0, &GNUNET_GETOPT_set_one, &list_all},
       {'n', "numeric", NULL,
        gettext_noop ("do not resolve IP addresses to hostnames"),
        0, &GNUNET_GETOPT_set_one, &resolve_addresses_numeric},
