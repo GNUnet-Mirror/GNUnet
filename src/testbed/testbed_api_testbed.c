@@ -655,37 +655,12 @@ GNUNET_TESTBED_run (const char *host_filename,
                                                           "OVERLAY_TOPOLOGY",
                                                           &topology))
   {
-    if (0 == strcasecmp (topology, "RANDOM"))
+    if (GNUNET_NO == GNUNET_TESTBED_topology_get_ (&rc->topology,
+                                                    topology))
     {
-      rc->topology = GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI;      
-    }
-    else if (0 == strcasecmp (topology, "SMALL_WORLD_RING"))
-    {
-      rc->topology = GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING;
-    }
-    else if (0 == strcasecmp (topology, "SMALL_WORLD"))
-    {
-      rc->topology = GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD;
-    }
-    else if (0 == strcasecmp (topology, "CLIQUE"))
-    {
-      rc->topology = GNUNET_TESTBED_TOPOLOGY_CLIQUE;
-    }
-    else if (0 == strcasecmp (topology, "LINE"))
-    {
-      rc->topology = GNUNET_TESTBED_TOPOLOGY_LINE;
-    }
-    else if (0 == strcasecmp (topology, "RING"))
-    {
-      rc->topology = GNUNET_TESTBED_TOPOLOGY_RING;
-    }
-    else if (0 == strcasecmp (topology, "2D_TORUS"))
-    {
-      rc->topology = GNUNET_TESTBED_TOPOLOGY_2D_TORUS;
-    }
-    else
       LOG (GNUNET_ERROR_TYPE_WARNING,
            "Unknown topology %s given in configuration\n", topology);
+    }
     GNUNET_free (topology);
   }
   if ( (GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI == rc->topology)

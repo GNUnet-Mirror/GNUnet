@@ -111,6 +111,81 @@ struct TopologyContext
 
 
 /**
+ * A array of names representing topologies. Should be in sync with enum
+ * GNUNET_TESTBED_TopologyOption
+ */
+const char * topology_strings[] = {
+    
+    /**
+     * A clique (everyone connected to everyone else).  No options. If there are N
+     * peers this topology results in (N * (N -1)) connections.
+     */
+    "CLIQUE",
+
+    /**
+     * Small-world network (2d torus plus random links).  Followed
+     * by the number of random links to add (unsigned int).
+     */
+    "SMALL_WORLD",
+
+    /**
+     * Small-world network (ring plus random links).  Followed
+     * by the number of random links to add (unsigned int).
+     */
+    "SMALL_WORLD_RING",
+
+    /**
+     * Ring topology.  No options.
+     */
+    "RING",
+
+    /**
+     * 2-d torus.  No options.
+     */
+    "2D_TORUS",
+
+    /**
+     * Random graph.  Followed by the number of random links to be established
+     * (unsigned int)
+     */
+    "RANDOM", // GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI
+
+    /**
+     * Certain percentage of peers are unable to communicate directly
+     * replicating NAT conditions.  Followed by the fraction of
+     * NAT'ed peers (float).
+     */
+    "INTERNAT",
+
+    /**
+     * Scale free topology.   FIXME: options?
+     */
+    "SCALE_FREE",
+
+    /**
+     * Straight line topology.  No options.
+     */
+    "LINE",
+
+    /**
+     * Read a topology from a given file.  Followed by the name of the file (const char *).
+     */
+    "FROM_FILE",
+
+    /**
+     * All peers are disconnected.  No options.
+     */
+    "NONE",
+  
+    /**
+     * End of strings
+     */
+    NULL
+  
+  };
+
+
+/**
  * Callback to be called when an overlay_link operation complete
  *
  * @param cls element of the link_op array which points to the corresponding operation
@@ -679,6 +754,50 @@ GNUNET_TESTBED_overlay_configure_topology (void *op_cls, unsigned int num_peers,
                                                      topo, vargs);
   va_end (vargs);
   return op;
+}
+
+
+/**
+ * Get a topology from a string input.
+ *
+ * @param topology where to write the retrieved topology
+ * @param topology_string The string to attempt to
+ *        get a configuration value from
+ * @return GNUNET_YES if topology string matched a
+ *         known topology, GNUNET_NO if not
+ */
+int
+GNUNET_TESTBED_topology_get_ (enum GNUNET_TESTBED_TopologyOption *topology,
+                              const char *topology_string)
+{  
+  unsigned int cnt;
+
+  for (cnt = 0; NULL != topology_strings[cnt]; cnt++)
+  {
+    if (0 == strcasecmp (topology_string, topology_strings[cnt]))
+    {
+      if (NULL != topology)
+        *topology = cnt;
+      return GNUNET_YES;
+    }
+  }
+  return GNUNET_NO;
+}
+
+
+/**
+ * Returns the string corresponding to the given topology
+ *
+ * @param topology the topology
+ * @return the string (freshly allocated) of given topology; NULL if topology cannot be
+ *           expressed as a string
+ */
+char *
+GNUNET_TESTBED_topology_to_str_ (enum GNUNET_TESTBED_TopologyOption topology)
+{
+  if (GNUNET_TESTBED_TOPOLOGY_OPTION_END <= topology)
+    return NULL;
+  return GNUNET_strdup (topology_strings[topology]);
 }
 
 /* end of testbed_api_topology.c */

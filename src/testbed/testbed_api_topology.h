@@ -42,6 +42,31 @@ GNUNET_TESTBED_2dtorus_calc_links (unsigned int num_peers,
                                    unsigned int *rows,
                                    unsigned int **rows_len);
 
+
+/**
+ * Get a topology from a string input.
+ *
+ * @param topology where to write the retrieved topology
+ * @param topology_string The string to attempt to
+ *        get a configuration value from
+ * @return GNUNET_YES if topology string matched a
+ *         known topology, GNUNET_NO if not
+ */
+int
+GNUNET_TESTBED_topology_get_ (enum GNUNET_TESTBED_TopologyOption *topology,
+                              const char *topology_string);
+
+
+/**
+ * Returns the string corresponding to the given topology
+ *
+ * @param topology the topology
+ * @return the string (freshly allocated) of given topology; NULL if topology cannot be
+ *           expressed as a string
+ */
+char *
+GNUNET_TESTBED_topology_to_str_ (enum GNUNET_TESTBED_TopologyOption topology);
+
 #endif  
 /* end of  testbed_api_topology.h */
 
