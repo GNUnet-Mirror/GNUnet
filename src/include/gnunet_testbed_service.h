@@ -1062,6 +1062,8 @@ GNUNET_TESTBED_overlay_connect (void *op_cls,
  * @param op_cls closure argument to give with the operation event
  * @param num_peers number of peers in 'peers'
  * @param peers array of 'num_peers' with the peers to configure
+ * @param max_connections the maximums number of overlay connections that will
+ *          be made to achieve the given topology
  * @param topo desired underlay topology to use
  * @param va topology-specific options
  * @return handle to the operation, NULL if connecting these
@@ -1072,6 +1074,7 @@ struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
                                               unsigned int num_peers,
                                               struct GNUNET_TESTBED_Peer **peers,
+                                              unsigned int *max_connections,
                                               enum GNUNET_TESTBED_TopologyOption topo,
                                               va_list va);
 
@@ -1084,6 +1087,8 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
  * @param op_cls closure argument to give with the operation event
  * @param num_peers number of peers in 'peers'
  * @param peers array of 'num_peers' with the peers to configure
+ * @param max_connections the maximums number of overlay connections that will
+ *          be made to achieve the given topology
  * @param topo desired underlay topology to use
  * @param ... topology-specific options
  * @return handle to the operation, NULL if connecting these
@@ -1094,6 +1099,7 @@ struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_overlay_configure_topology (void *op_cls,
                                            unsigned int num_peers,
                                            struct GNUNET_TESTBED_Peer **peers,
+                                           unsigned int *max_connections,
                                            enum GNUNET_TESTBED_TopologyOption topo,
                                            ...);
 

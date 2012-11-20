@@ -1109,6 +1109,7 @@ do_configure_topology (void *cls,
   prof_start_time = GNUNET_TIME_absolute_get ();
   topology_op =
     GNUNET_TESTBED_overlay_configure_topology (NULL, num_peers, peer_handles,
+                                               NULL,
                                                GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI,
                                                num_links,
                                                GNUNET_TESTBED_TOPOLOGY_DISABLE_AUTO_RETRY,

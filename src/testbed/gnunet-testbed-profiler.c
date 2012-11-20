@@ -345,7 +345,7 @@ peer_churn_cb (void *cls, const char *emsg)
     {
     case GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI:
       topology_op =
-          GNUNET_TESTBED_overlay_configure_topology (NULL, num_peers, peers,
+          GNUNET_TESTBED_overlay_configure_topology (NULL, num_peers, peers, NULL,
                                                      topology,
                                                      num_links,
                                                      GNUNET_TESTBED_TOPOLOGY_DISABLE_AUTO_RETRY,
@@ -353,7 +353,7 @@ peer_churn_cb (void *cls, const char *emsg)
       break;
     case GNUNET_TESTBED_TOPOLOGY_CLIQUE:
       topology_op =
-          GNUNET_TESTBED_overlay_configure_topology (NULL, num_peers, peers,
+          GNUNET_TESTBED_overlay_configure_topology (NULL, num_peers, peers, NULL,
                                                      topology,
                                                      GNUNET_TESTBED_TOPOLOGY_DISABLE_AUTO_RETRY,
                                                      GNUNET_TESTBED_TOPOLOGY_OPTION_END);

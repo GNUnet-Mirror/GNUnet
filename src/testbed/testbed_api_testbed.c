@@ -217,6 +217,11 @@ struct RunContext
    * Expected overlay connects. Should be zero if no topology is relavant
    */
   unsigned int num_oc;
+
+  /**
+   * Number of random links to established
+   */
+  unsigned int random_links;
   
 };
 
@@ -444,29 +449,13 @@ call_cc:
          || (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING == rc->topology)
          || (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD == rc->topology))
     {
-      unsigned int rand_links;
-      
-      switch (rc->topology)
-      {
-      case GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI:
-        rand_links = rc->num_oc;
-        break;
-      case GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING:
-        rand_links = rc->num_oc - rc->num_peers;
-        break;
-      case GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD:
-        rand_links = GNUNET_TESTBED_2dtorus_calc_links (rc->num_peers, NULL, NULL);
-        break;
-      default:
-        GNUNET_break (0);
-        rand_links = 0;
-      }
       rc->topology_operation =
           GNUNET_TESTBED_overlay_configure_topology (NULL,
                                                      rc->num_peers,
                                                      rc->peers,
+                                                     &rc->num_oc,
                                                      rc->topology,
-                                                     rand_links,
+                                                     rc->random_links,
                                                      GNUNET_TESTBED_TOPOLOGY_OPTION_END);
     }
     else
@@ -474,6 +463,7 @@ call_cc:
           GNUNET_TESTBED_overlay_configure_topology (NULL,
                                                      rc->num_peers,
                                                      rc->peers,
+                                                     &rc->num_oc,
                                                      rc->topology,
                                                      GNUNET_TESTBED_TOPOLOGY_OPTION_END);
     if (NULL == rc->topology_operation)
@@ -672,32 +662,26 @@ GNUNET_TESTBED_run (const char *host_filename,
     else if (0 == strcasecmp (topology, "SMALL_WORLD_RING"))
     {
       rc->topology = GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING;
-      rc->num_oc = num_peers;
     }
     else if (0 == strcasecmp (topology, "SMALL_WORLD"))
     {
       rc->topology = GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD;
-      rc->num_oc = GNUNET_TESTBED_2dtorus_calc_links (num_peers, NULL, NULL);
     }
     else if (0 == strcasecmp (topology, "CLIQUE"))
     {
       rc->topology = GNUNET_TESTBED_TOPOLOGY_CLIQUE;
-      rc->num_oc = num_peers * (num_peers - 1);
     }
     else if (0 == strcasecmp (topology, "LINE"))
     {
       rc->topology = GNUNET_TESTBED_TOPOLOGY_LINE;
-      rc->num_oc = num_peers - 1;
     }
     else if (0 == strcasecmp (topology, "RING"))
     {
       rc->topology = GNUNET_TESTBED_TOPOLOGY_RING;
-      rc->num_oc = num_peers;
     }
     else if (0 == strcasecmp (topology, "2D_TORUS"))
     {
       rc->topology = GNUNET_TESTBED_TOPOLOGY_2D_TORUS;
-      rc->num_oc = GNUNET_TESTBED_2dtorus_calc_links (num_peers, NULL, NULL);
     }
     else
       LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -724,7 +708,7 @@ GNUNET_TESTBED_run (const char *host_filename,
       GNUNET_free (rc);
       return;
     }
-    rc->num_oc += (unsigned int) random_links;
+    rc->random_links = (unsigned int) random_links;
   }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_run_task, rc);

@@ -527,6 +527,8 @@ GNUNET_TESTBED_underlay_configure_topology (void *op_cls,
  * @param op_cls closure argument to give with the operation event
  * @param num_peers number of peers in 'peers'
  * @param peers array of 'num_peers' with the peers to configure
+ * @param max_connections the maximums number of overlay connections that will
+ *          be made to achieve the given topology
  * @param topo desired underlay topology to use
  * @param va topology-specific options
  * @return handle to the operation, NULL if connecting these
@@ -537,6 +539,7 @@ struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
                                               unsigned int num_peers,
                                               struct GNUNET_TESTBED_Peer **peers,
+                                              unsigned int *max_connections,
                                               enum GNUNET_TESTBED_TopologyOption
                                               topo, va_list va)
 {
@@ -637,6 +640,8 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
   GNUNET_TESTBED_operation_queue_insert_
       (c->opq_parallel_topology_config_operations, op);
   GNUNET_TESTBED_operation_begin_wait_ (op);
+  if (NULL != max_connections)
+    *max_connections = tc->link_array_size;
   return op;
 }
 
@@ -649,6 +654,8 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
  * @param op_cls closure argument to give with the operation event
  * @param num_peers number of peers in 'peers'
  * @param peers array of 'num_peers' with the peers to configure
+ * @param max_connections the maximums number of overlay connections that will
+ *          be made to achieve the given topology
  * @param topo desired underlay topology to use
  * @param ... topology-specific options
  * @return handle to the operation, NULL if connecting these
@@ -658,6 +665,7 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_overlay_configure_topology (void *op_cls, unsigned int num_peers,
                                            struct GNUNET_TESTBED_Peer **peers,
+                                           unsigned int *max_connections,
                                            enum GNUNET_TESTBED_TopologyOption
                                            topo, ...)
 {
@@ -667,7 +675,8 @@ GNUNET_TESTBED_overlay_configure_topology (void *op_cls, unsigned int num_peers,
   GNUNET_assert (topo < GNUNET_TESTBED_TOPOLOGY_OPTION_END);
   va_start (vargs, topo);
   op = GNUNET_TESTBED_overlay_configure_topology_va (op_cls, num_peers, peers,
-						     topo, vargs);
+						     max_connections,
+                                                     topo, vargs);
   va_end (vargs);
   return op;
 }
