@@ -81,9 +81,9 @@ monitor_callback (void *cls,
   unsigned int i;
 
   fprintf (stdout, "Tunnel %s [%u]: %u peers\n",
-           GNUNET_i2s (initiator), tunnel_number, npeers);
+           GNUNET_i2s_full (initiator), tunnel_number, npeers);
   for (i = 0; i < npeers; i++)
-    fprintf (stdout, " * %s\n", GNUNET_i2s (&peers[i]));
+    fprintf (stdout, " * %s\n", GNUNET_i2s_full (&peers[i]));
   fprintf (stdout, "\n");
 }
 
