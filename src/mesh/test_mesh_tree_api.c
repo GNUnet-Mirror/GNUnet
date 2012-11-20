@@ -86,33 +86,6 @@ test_debug (struct MeshTunnelTree *tree)
   tree_iterate_all (tree, &tree_cb, NULL);
 }
 
-/**
- * Iterator over a tunnel to build a message containing all peers the
- * tunnel's tree.
- *
- * @param cls Closure (pointer to pointer of message being built).
- * @param peer Short ID of a peer.
- * @param parent Short ID of the @c peer 's parent.
- *
- * @return GNUNET_YES, to keep iterating.
- */
-static int
-monitor_tunnel_iterator (void *cls,
-                         GNUNET_PEER_Id peer,
-                         GNUNET_PEER_Id parent)
-{
-  struct GNUNET_MESH_LocalMonitor **msg = cls;
-  struct GNUNET_PeerIdentity *pid;
-  size_t size;
-  
-  size = ntohs (*msg->header.size);
-  size += sizeof (struct GNUNET_PeerIdentity) * 2;
-  *msg = GNUNET_realloc (*msg, size);
-  *pid = &((*msg)[1]);
-  
-  return GNUNET_YES;
-}
-
 
 /**
  * Check if a node has all expected properties.
