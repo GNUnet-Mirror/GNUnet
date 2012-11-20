@@ -226,19 +226,21 @@ peerinfo_it (void *cls,
              bandwidth_out,
              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
-  GNUNET_assert (NULL != cls);
-  if (NULL != id)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for peer `%s' plugin `%s' BW out %llu, BW in %llu \n",
-        GNUNET_i2s (id),
-        plugin_name, ntohl (bandwidth_out.value__), ntohl (bandwidth_in.value__));
-    GAS_performance_notify_client(cls,
-        id,
-        plugin_name, plugin_addr, plugin_addr_len,
-        atsi, atsi_count,
-        bandwidth_out, bandwidth_in);
-  }
-
+  struct PerformanceClient *pc = cls;
+  GNUNET_assert (NULL != pc);
+  if (NULL == id)
+    return;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Callback for peer `%s' plugin `%s' BW out %llu, BW in %llu \n",
+              GNUNET_i2s (id),
+              plugin_name,
+              ntohl (bandwidth_out.value__),
+              ntohl (bandwidth_in.value__));
+  GAS_performance_notify_client(pc,
+                                id,
+                                plugin_name, plugin_addr, plugin_addr_len,
+                                atsi, atsi_count,
+                                bandwidth_out, bandwidth_in);
 }
 
 
@@ -295,11 +297,30 @@ void
 GAS_handle_request_address_list (void *cls, struct GNUNET_SERVER_Client *client,
                                  const struct GNUNET_MessageHeader *message)
 {
+  struct PerformanceClient *pc;
   struct AddressListRequestMessage * alrm = cls;
+  struct GNUNET_PeerIdentity allzeros;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n",
               "ADDRESSLIST_REQUEST");
 
+  if (NULL == (pc = find_client(client)))
+  {
+      GNUNET_break (0);
+      return;
+  }
+
+  memset (&allzeros, '\0', sizeof (struct GNUNET_PeerIdentity));
+  if (0 == memcmp (&alrm->peer, &allzeros, sizeof (struct GNUNET_PeerIdentity)))
+  {
+      /* Return addresses for all peers */
+      GAS_addresses_iterate_peers (&peer_it, pc);
+  }
+  else
+  {
+      /* Return addresses for a specific peer */
+      GAS_addresses_get_peer_info (&alrm->peer, &peerinfo_it, pc);
+  }
 
 
 }
