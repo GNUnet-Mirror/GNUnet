@@ -191,6 +191,28 @@ oprelease_overlay_configure_topology (void *cls)
 
 
 /**
+ * Populates the OverlayLink structure
+ *
+ * @param link the OverlayLink
+ * @param A the peer A
+ * @param B the peer B
+ * @param tc the TopologyContext
+ * @return 
+ */
+static void
+make_link (struct OverlayLink *link,
+           uint32_t A, 
+           uint32_t B,
+           struct TopologyContext *tc)
+{
+  link->A = A;
+  link->B = B;
+  link->op = NULL;
+  link->tc = tc;
+}
+
+
+/**
  * Generates line topology
  *
  * @param tc the topology context
@@ -204,11 +226,7 @@ gen_topo_line (struct TopologyContext *tc)
   tc->link_array = GNUNET_malloc (sizeof (struct OverlayLink) *
                                   tc->link_array_size);
   for (cnt=0; cnt < (tc->num_peers - 1); cnt++)
-  {
-    tc->link_array[cnt].A = cnt;
-    tc->link_array[cnt].B = cnt + 1;
-    tc->link_array[cnt].tc = tc;
-  }
+    make_link (&tc->link_array[cnt], cnt, cnt + 1, tc);
 }
 
 
@@ -225,10 +243,10 @@ gen_topo_ring (struct TopologyContext *tc)
   tc->link_array = GNUNET_realloc (tc->link_array,
                                    sizeof (struct OverlayLink) *
                                    tc->link_array_size);
-  tc->link_array[tc->link_array_size - 1].op = NULL;
-  tc->link_array[tc->link_array_size - 1].tc = tc;
-  tc->link_array[tc->link_array_size - 1].A = tc->num_peers - 1;
-  tc->link_array[tc->link_array_size - 1].B = 0;
+  make_link (&tc->link_array[tc->link_array_size - 1],
+             tc->num_peers - 1,
+             0,
+             tc);
 }
 
 
@@ -314,16 +332,18 @@ gen_topo_2dtorus (struct TopologyContext *tc)
   {
     for (x = 0; x < rows_len[y] - 1; x++)
     {
-      tc->link_array[cnt].tc = tc;
-      tc->link_array[cnt].A = offset + x;
-      tc->link_array[cnt].B = offset + x + 1;
+      make_link (&tc->link_array[cnt],
+                 offset + x,
+                 offset + x + 1,
+                 tc);
       cnt++;
     }
     if (0 == x)
       break;
-    tc->link_array[cnt].tc = tc;
-    tc->link_array[cnt].A = offset + x;
-    tc->link_array[cnt].B = offset;
+    make_link (&tc->link_array[cnt],
+               offset + x,
+               offset,
+               tc);
     cnt++;
     offset += rows_len[y];
   }
@@ -335,17 +355,19 @@ gen_topo_2dtorus (struct TopologyContext *tc)
       if (x == rows_len[y+1])
         break;
       GNUNET_assert (x < rows_len[y+1]);
-      tc->link_array[cnt].tc= tc;
-      tc->link_array[cnt].A = offset + x;
+      make_link (&tc->link_array[cnt],
+                 offset + x,
+                 offset + rows_len[y] + x,
+                 tc);
       offset += rows_len[y];
-      tc->link_array[cnt].B = offset + x;
       cnt++;
     }
     if (0 == offset)
       break;
-    tc->link_array[cnt].tc = tc;
-    tc->link_array[cnt].A = offset + x;
-    tc->link_array[cnt].B = x;
+    make_link (&tc->link_array[cnt],
+               offset + x,
+               x,
+               tc);
     cnt++;
   }
   GNUNET_assert (cnt == tc->link_array_size);
@@ -394,11 +416,58 @@ gen_topo_random (struct TopologyContext *tc, unsigned int links, int append)
       B_rand = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                          tc->num_peers);
     } while (A_rand == B_rand);
-    tc->link_array[index + cnt].op = NULL;
-    tc->link_array[index + cnt].A = A_rand;
-    tc->link_array[index + cnt].B = B_rand;
-    tc->link_array[index + cnt].tc = tc;
+    make_link (&tc->link_array[index + cnt], A_rand,  B_rand, tc);
   }
+}
+
+
+/**
+ * Generates scale free network. Its construction is described in:
+ *
+ * "Emergence of Scaling in Random Networks." Science 286, 509-512, 1999.
+ *
+ * @param tc the topology context
+ * @param links the number of random links to establish
+ * @param append GNUNET_YES to add links to existing link array; GNUNET_NO to
+ *          create a new link array
+ */
+static void
+gen_scale_free (struct TopologyContext *tc)
+{
+  double random;
+  double probability;
+  unsigned int cnt;
+  unsigned int previous_connections;
+  unsigned int i;
+  uint16_t *popularity;
+
+  popularity = GNUNET_malloc (sizeof (uint16_t) * tc->num_peers);
+  /* Initially connect peer 1 to peer 0 */
+  tc->link_array_size = 1;
+  tc->link_array =  GNUNET_malloc (sizeof (struct OverlayLink));
+  make_link (&tc->link_array[0], 0, 1, tc);
+  popularity[0]++;  /* increase popularity of 0 as 1 connected to it*/ 
+  for (cnt = 1; cnt < tc->num_peers; cnt++)
+  {
+    previous_connections = tc->link_array_size;
+    for (i = 0; i < cnt; i++)
+    {
+      probability = ((double) popularity[i]) / ((double) previous_connections);
+      random = ((double)
+           GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                     UINT64_MAX)) / ((double) UINT64_MAX);
+      if (random < probability)
+      {
+        tc->link_array_size++;
+        tc->link_array = GNUNET_realloc (tc->link_array,
+                                         (sizeof (struct OverlayLink) *
+                                          tc->link_array_size));
+        make_link (&tc->link_array[tc->link_array_size - 1], cnt, i, tc);
+        popularity[cnt]++;
+      }
+    }
+  }
+  GNUNET_free (popularity);
 }
 
 
@@ -535,6 +604,9 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
     gen_topo_random (tc,
                      va_arg (va, unsigned int),
                      GNUNET_YES);
+    break;
+  case GNUNET_TESTBED_TOPOLOGY_SCALE_FREE:
+    gen_scale_free (tc);
     break;
   default:
     GNUNET_break (0);
