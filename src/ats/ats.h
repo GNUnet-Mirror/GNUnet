@@ -172,6 +172,8 @@ struct PeerInformationMessage
 
   uint32_t address_active GNUNET_PACKED;
 
+  uint32_t id GNUNET_PACKED;
+
   struct GNUNET_PeerIdentity peer;
 
   uint16_t address_length GNUNET_PACKED;
@@ -193,6 +195,8 @@ struct PeerInformationMessage
 struct AddressListRequestMessage
 {
   struct GNUNET_MessageHeader header;
+
+  uint32_t id GNUNET_PACKED;
 
   int32_t all GNUNET_PACKED;
 

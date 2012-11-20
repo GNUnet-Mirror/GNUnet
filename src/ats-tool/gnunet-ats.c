@@ -36,6 +36,8 @@
 static int ret;
 static int results;
 static int resolve_addresses_numeric;
+static int receive_done;
+
 /**
  * For which peer should we change preference values?
  */
@@ -43,6 +45,7 @@ static char *pid_str;
 
 static char *type_str;
 static unsigned int value;
+static int pending;
 
 /**
  * Print verbose ATS information
@@ -97,6 +100,44 @@ struct PendingResolutions
 struct PendingResolutions *head;
 struct PendingResolutions *tail;
 
+void end (void *cls,
+          const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PendingResolutions * pr;
+  struct PendingResolutions * next;
+  unsigned int pending;
+
+  if (NULL != alh)
+  {
+      GNUNET_ATS_performance_list_addresses_cancel (alh);
+      alh = NULL;
+  }
+
+  if (NULL != ph)
+  {
+    GNUNET_ATS_performance_done (ph);
+    ph = NULL;
+  }
+
+  pending = 0;
+  next = head;
+  while (NULL != (pr = next))
+  {
+      next = pr->next;
+      GNUNET_CONTAINER_DLL_remove (head, tail, pr);
+      GNUNET_TRANSPORT_address_to_string_cancel (pr->tats_ctx);
+      GNUNET_free (pr->address);
+      GNUNET_free (pr);
+      pending ++;
+  }
+  if (0 < pending)
+    fprintf (stderr, _("%u address resolutions had a timeout\n"), pending);
+
+  fprintf (stderr, _("ATS returned results for %u addresses\n"), results);
+  ret = 0;
+}
+
+
 void transport_addr_to_str_cb (void *cls, const char *address)
 {
   struct PendingResolutions * pr = cls;
@@ -108,58 +149,65 @@ void transport_addr_to_str_cb (void *cls, const char *address)
   unsigned int c;
   uint32_t ats_type;
   uint32_t ats_value;
-
   if (NULL != address)
   {
-      ats_str = GNUNET_strdup("");
-      if (verbose)
-      {
-      for (c = 0; c <  pr->ats_count; c++)
-      {
-          ats_tmp = ats_str;
+    ats_str = GNUNET_strdup("");
+    if (verbose)
+    {
+    for (c = 0; c <  pr->ats_count; c++)
+    {
+        ats_tmp = ats_str;
 
-          ats_type = ntohl(pr->ats[c].type);
-          ats_value = ntohl(pr->ats[c].value);
+        ats_type = ntohl(pr->ats[c].type);
+        ats_value = ntohl(pr->ats[c].value);
 
-          if (ats_type > GNUNET_ATS_PropertyCount)
-          {
-              GNUNET_break (0);
-              continue;
-          }
-
-          switch (ats_type) {
-            case GNUNET_ATS_NETWORK_TYPE:
-              if (ats_value > GNUNET_ATS_NetworkTypeCount)
-              {
-                  GNUNET_break (0);
-                  continue;
-              }
-              GNUNET_asprintf (&ats_prop_value, "%s", ats_net_arr[ats_value]);
-              break;
-            default:
-              GNUNET_asprintf (&ats_prop_value, "%u", ats_value);
-              break;
-          }
-
-          GNUNET_asprintf (&ats_str, "%s%s=%s, ", ats_tmp, ats_prop_arr[ats_type] , ats_prop_value);
-          GNUNET_free (ats_tmp);
-          GNUNET_free (ats_prop_value);
+        if (ats_type > GNUNET_ATS_PropertyCount)
+        {
+            GNUNET_break (0);
+            continue;
         }
+
+        switch (ats_type) {
+          case GNUNET_ATS_NETWORK_TYPE:
+            if (ats_value > GNUNET_ATS_NetworkTypeCount)
+            {
+                GNUNET_break (0);
+                continue;
+            }
+            GNUNET_asprintf (&ats_prop_value, "%s", ats_net_arr[ats_value]);
+            break;
+          default:
+            GNUNET_asprintf (&ats_prop_value, "%u", ats_value);
+            break;
+        }
+
+        GNUNET_asprintf (&ats_str, "%s%s=%s, ", ats_tmp, ats_prop_arr[ats_type] , ats_prop_value);
+        GNUNET_free (ats_tmp);
+        GNUNET_free (ats_prop_value);
       }
+    }
 
-      fprintf (stderr, _("Peer `%s' plugin `%s', address `%s', bw out: %u Bytes/s, bw in %u Bytes/s, %s\n"),
-        GNUNET_i2s (&pr->address->peer), pr->address->transport_name, address,
-        ntohl (pr->bandwidth_out.value__), ntohl (pr->bandwidth_in.value__),ats_str);
-      GNUNET_free (ats_str);
+    fprintf (stderr, _("Peer `%s' plugin `%s', address `%s', bw out: %u Bytes/s, bw in %u Bytes/s, %s\n"),
+      GNUNET_i2s (&pr->address->peer), pr->address->transport_name, address,
+      ntohl (pr->bandwidth_out.value__), ntohl (pr->bandwidth_in.value__),ats_str);
+    GNUNET_free (ats_str);
   }
-  else if (NULL != pr)
+  else
   {
-      /* We're done */
-      GNUNET_CONTAINER_DLL_remove (head, tail, pr);
-      GNUNET_free (pr->address);
-      GNUNET_free (pr);
-  }
+    /* We're done */
+    GNUNET_CONTAINER_DLL_remove (head, tail, pr);
+    GNUNET_free (pr->address);
+    GNUNET_free (pr);
+    pending--;
 
+    if ((GNUNET_YES == receive_done) && (0 == pending))
+    {
+        /* All messages received and no resolutions pending*/
+        if (end_task != GNUNET_SCHEDULER_NO_TASK)
+          GNUNET_SCHEDULER_cancel (end_task);
+        end_task = GNUNET_SCHEDULER_add_now (end, NULL);
+    }
+  }
 }
 
 void ats_perf_cb (void *cls,
@@ -195,43 +243,22 @@ void ats_perf_cb (void *cls,
                       resolve_addresses_numeric, GNUNET_TIME_UNIT_FOREVER_REL, transport_addr_to_str_cb, pr);
     GNUNET_CONTAINER_DLL_insert (head, tail, pr);
     results++;
+    pending++;
+  }
+  else
+  {
+    /* All messages received */
+    receive_done = GNUNET_YES;
+    if (0 == pending)
+    {
+      /* All messages received and no resolutions pending*/
+      if (end_task != GNUNET_SCHEDULER_NO_TASK)
+        GNUNET_SCHEDULER_cancel (end_task);
+      end_task = GNUNET_SCHEDULER_add_now (end, NULL);
+    }
   }
 }
 
-
-void end (void *cls,
-          const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct PendingResolutions * pr;
-  struct PendingResolutions * next;
-  unsigned int pending;
-
-  if (NULL != alh)
-  {
-      GNUNET_ATS_performance_list_addresses_cancel (alh);
-      alh = NULL;
-  }
-
-  GNUNET_ATS_performance_done (ph);
-  ph = NULL;
-
-  pending = 0;
-  next = head;
-  while (NULL != (pr = next))
-  {
-      next = pr->next;
-      GNUNET_CONTAINER_DLL_remove (head, tail, pr);
-      GNUNET_TRANSPORT_address_to_string_cancel (pr->tats_ctx);
-      GNUNET_free (pr->address);
-      GNUNET_free (pr);
-      pending ++;
-  }
-  if (0 < pending)
-    fprintf (stderr, _("%u address resolutions had a timeout\n"), pending);
-
-  fprintf (stderr, _("ATS returned results for %u addresses\n"), results);
-  ret = 0;
-}
 
 void testservice_ats (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -292,9 +319,7 @@ void testservice_ats (void *cls,
           end_task = GNUNET_SCHEDULER_add_now (&end, NULL);
           return;
         }
-
         end_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &end, NULL);
-
     }
     else if (op_list_used)
     {
@@ -311,8 +336,6 @@ void testservice_ats (void *cls,
           end_task = GNUNET_SCHEDULER_add_now (&end, NULL);
           return;
         }
-
-
         end_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &end, NULL);
     }
     else if (op_monitor)
@@ -388,6 +411,8 @@ main (int argc, char *const *argv)
   op_monitor = GNUNET_NO;
   op_list_all = GNUNET_NO;
   op_list_used = GNUNET_NO;
+  pending = 0;
+  receive_done = GNUNET_NO;
 
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
       {'u', "used", NULL,

@@ -150,6 +150,11 @@ struct GNUNET_ATS_AddressListHandle
    * Return all or used address only
    */
   int all_addresses;
+
+  /**
+   * Request multiplexing
+   */
+  uint32_t id;
 };
 
 /**
@@ -218,6 +223,10 @@ struct GNUNET_ATS_PerformanceHandle
    */
   GNUNET_SCHEDULER_TaskIdentifier task;
 
+  /**
+   * Request multiplexing
+   */
+  uint32_t id;
 };
 
 
@@ -338,6 +347,7 @@ process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
+
   pi = (const struct PeerInformationMessage *) msg;
   ats_count = ntohl (pi->ats_count);
   plugin_address_length = ntohs (pi->address_length);
@@ -359,6 +369,7 @@ process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
   {
     return GNUNET_OK;
   }
+
   address.peer = pi->peer;
   address.address = plugin_address;
   address.address_length = plugin_address_length;
@@ -430,45 +441,89 @@ static int
 process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
                     const struct GNUNET_MessageHeader *msg)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "TO BE IMPLEMENTED\n");
-# if 0
-  TBD!
-  const struct ReservationResultMessage *rr;
-  struct GNUNET_ATS_ReservationContext *rc;
-  int32_t amount;
+  const struct PeerInformationMessage *pi;
+  struct GNUNET_ATS_AddressListHandle *alh;
+  struct GNUNET_ATS_AddressListHandle *next;
+  const struct GNUNET_ATS_Information *atsi;
+  const char *plugin_address;
+  const char *plugin_name;
+  struct GNUNET_HELLO_Address address;
+  struct GNUNET_PeerIdentity allzeros;
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_zero;
+  uint16_t plugin_address_length;
+  uint16_t plugin_name_length;
+  uint32_t ats_count;
+  uint32_t active;
+  uint32_t id;
 
-  if (ntohs (msg->size) < sizeof (struct ReservationResultMessage))
+  if (ntohs (msg->size) < sizeof (struct PeerInformationMessage))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  rr = (const struct ReservationResultMessage *) msg;
-  amount = ntohl (rr->amount);
-  rc = ph->reservation_head;
-  if (0 != memcmp (&rr->peer, &rc->peer, sizeof (struct GNUNET_PeerIdentity)))
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      _("Received %s message\n"), "ATS_ADDRESSLIST_RESPONSE");
+
+  pi = (const struct PeerInformationMessage *) msg;
+  id = ntohl (pi->id);
+  ats_count = ntohl (pi->ats_count);
+  active = ntohl (pi->address_active);
+  plugin_address_length = ntohs (pi->address_length);
+  plugin_name_length = ntohs (pi->plugin_name_length);
+  atsi = (const struct GNUNET_ATS_Information *) &pi[1];
+  plugin_address = (const char *) &atsi[ats_count];
+  plugin_name = &plugin_address[plugin_address_length];
+  if ((plugin_address_length + plugin_name_length +
+       ats_count * sizeof (struct GNUNET_ATS_Information) +
+       sizeof (struct PeerInformationMessage) != ntohs (msg->size)) ||
+      (ats_count >
+       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information))
+      || (plugin_name[plugin_name_length - 1] != '\0'))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  GNUNET_CONTAINER_DLL_remove (ph->reservation_head, ph->reservation_tail, rc);
-  if ((amount == 0) || (rc->rcb != NULL))
+
+  next = ph->addresslist_head;
+  while (NULL != (alh = next))
   {
-    /* tell client if not cancelled */
-    if (rc->rcb != NULL)
-      rc->rcb (rc->rcb_cls, &rr->peer, amount,
-               GNUNET_TIME_relative_ntoh (rr->res_delay));
-    GNUNET_free (rc);
-    return GNUNET_OK;
+      next = alh->next;
+      if (alh->id == id)
+        break;
   }
-  /* amount non-zero, but client cancelled, consider undo! */
-  if (GNUNET_YES != rc->undo)
+  if (NULL == alh)
   {
-    GNUNET_free (rc);
-    return GNUNET_OK;           /* do not try to undo failed undos or negative amounts */
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
   }
-  GNUNET_free (rc);
-  (void) GNUNET_ATS_reserve_bandwidth (ph, &rr->peer, -amount, NULL, NULL);
-#endif
+
+  memset (&allzeros, '\0', sizeof (allzeros));
+  if ((0 == memcmp (&allzeros, &pi->peer, sizeof (allzeros))) &&
+      (0 == plugin_name_length) &&
+      (0 == plugin_address_length) &&
+      (0 == ats_count))
+  {
+      /* Done */
+      bandwidth_zero.value__ = htonl (0);
+      alh->cb (ph->infocb_cls,
+              NULL,
+              bandwidth_zero, bandwidth_zero,
+              NULL, 0);
+      return GNUNET_OK;
+  }
+
+  address.peer = pi->peer;
+  address.address = plugin_address;
+  address.address_length = plugin_address_length;
+  address.transport_name = plugin_name;
+
+  if ((GNUNET_YES == alh->all_peers) || (GNUNET_YES == active))
+  {
+    alh->cb (ph->infocb_cls,
+            &address,
+            pi->bandwidth_out, pi->bandwidth_in,
+            atsi, ats_count);
+  }
   return GNUNET_OK;
 }
 
@@ -577,6 +632,7 @@ GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ph->cfg = cfg;
   ph->infocb = infocb;
   ph->infocb_cls = infocb_cls;
+  ph->id  = 0;
   reconnect (ph);
   return ph;
 }
@@ -712,6 +768,8 @@ GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *hand
   GNUNET_assert (NULL != handle);
 
   alh = GNUNET_malloc (sizeof (struct GNUNET_ATS_AddressListHandle));
+  alh->id = handle->id;
+  handle->id ++;
   alh->cb = infocb;
   alh->cb_cls = infocb_cls;
   alh->ph = handle;
@@ -733,6 +791,7 @@ GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *hand
   m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_REQUEST);
   m->header.size = htons (sizeof (struct AddressListRequestMessage));
   m->all = htonl (all);
+  m->id = htonl (alh->id);
   if (NULL != peer)
     m->peer = *peer;
   else

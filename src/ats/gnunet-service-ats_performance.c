@@ -72,6 +72,8 @@ struct AddressIteration
 
   int all;
 
+  uint32_t id;
+
   unsigned int msg_type;
 };
 
@@ -311,7 +313,62 @@ GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
   GAS_addresses_iterate_peers (&peer_it, pc);
 }
 
+static void transmit_req_addr (struct AddressIteration *ai,
+    const struct GNUNET_PeerIdentity *id,
+    const char *plugin_name,
+    const void *plugin_addr, size_t plugin_addr_len,
+    const int active,
+    const struct GNUNET_ATS_Information *atsi,
+    uint32_t atsi_count,
+    struct GNUNET_BANDWIDTH_Value32NBO
+    bandwidth_out,
+    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 
+{
+
+  struct GNUNET_ATS_Information *atsp;
+  struct PeerInformationMessage *msg;
+  char *addrp;
+  size_t plugin_name_length;
+  size_t msize;
+
+  if (NULL != plugin_name)
+    plugin_name_length = strlen (plugin_name) + 1;
+  else
+    plugin_name_length = 0;
+  msize = sizeof (struct PeerInformationMessage) +
+          atsi_count * sizeof (struct GNUNET_ATS_Information) +
+          plugin_addr_len + plugin_name_length;
+  char buf[msize] GNUNET_ALIGN;
+
+  GNUNET_assert (msize < GNUNET_SERVER_MAX_MESSAGE_SIZE);
+  GNUNET_assert (atsi_count <
+                 GNUNET_SERVER_MAX_MESSAGE_SIZE /
+                 sizeof (struct GNUNET_ATS_Information));
+  msg = (struct PeerInformationMessage *) buf;
+  msg->header.size = htons (msize);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_RESPONSE);
+  msg->ats_count = htonl (atsi_count);
+  msg->id = htonl (ai->id);
+  if (NULL != id)
+    msg->peer = *id;
+  else
+    memset (&msg->peer, '\0', sizeof (struct GNUNET_PeerIdentity));
+  msg->address_length = htons (plugin_addr_len);
+  msg->address_active = ntohl (active);
+  msg->plugin_name_length = htons (plugin_name_length);
+  msg->bandwidth_out = bandwidth_out;
+  msg->bandwidth_in = bandwidth_in;
+  atsp = (struct GNUNET_ATS_Information *) &msg[1];
+  memcpy (atsp, atsi, sizeof (struct GNUNET_ATS_Information) * atsi_count);
+  addrp = (char *) &atsp[atsi_count];
+  if (NULL != plugin_addr)
+    memcpy (addrp, plugin_addr, plugin_addr_len);
+  if (NULL != plugin_name)
+    strcpy (&addrp[plugin_addr_len], plugin_name);
+  GNUNET_SERVER_notification_context_unicast (nc, ai->pc->client, &msg->header,
+                                              GNUNET_YES);
+}
 
 static void
 req_addr_peerinfo_it (void *cls,
@@ -326,12 +383,6 @@ req_addr_peerinfo_it (void *cls,
              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   struct AddressIteration *ai = cls;
-  struct PeerInformationMessage *msg;
-  size_t plugin_name_length;
-  size_t msize;
-  struct GNUNET_ATS_Information *atsp;
-  char *addrp;
-
 
   GNUNET_assert (NULL != ai);
   GNUNET_assert (NULL != ai->pc);
@@ -340,46 +391,37 @@ req_addr_peerinfo_it (void *cls,
 
   if ((NULL == id) && (NULL == id) && (NULL == id))
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Address iteration done\n");
       return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Callback for peer `%s' plugin `%s' BW out %llu, BW in %llu \n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Callback for  %s peer `%s' plugin `%s' BW out %llu, BW in %llu \n",
+              (active == GNUNET_YES) ? "ACTIVE" : "INACTIVE",
               GNUNET_i2s (id),
               plugin_name,
               ntohl (bandwidth_out.value__),
               ntohl (bandwidth_in.value__));
 
   /* Transmit result */
-
-  plugin_name_length = strlen (plugin_name) + 1;
-  msize = sizeof (struct PeerInformationMessage) +
-          atsi_count * sizeof (struct GNUNET_ATS_Information) +
-          plugin_addr_len + plugin_name_length;
-  char buf[msize] GNUNET_ALIGN;
-
-  GNUNET_assert (msize < GNUNET_SERVER_MAX_MESSAGE_SIZE);
-  GNUNET_assert (atsi_count <
-                 GNUNET_SERVER_MAX_MESSAGE_SIZE /
-                 sizeof (struct GNUNET_ATS_Information));
-  msg = (struct PeerInformationMessage *) buf;
-  msg->header.size = htons (msize);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_RESPONSE);
-  msg->ats_count = htonl (atsi_count);
-  msg->peer = *id;
-  msg->address_length = htons (plugin_addr_len);
-  msg->address_active = ntohl (active);
-  msg->plugin_name_length = htons (plugin_name_length);
-  msg->bandwidth_out = bandwidth_out;
-  msg->bandwidth_in = bandwidth_in;
-  atsp = (struct GNUNET_ATS_Information *) &msg[1];
-  memcpy (atsp, atsi, sizeof (struct GNUNET_ATS_Information) * atsi_count);
-  addrp = (char *) &atsp[atsi_count];
-  memcpy (addrp, plugin_addr, plugin_addr_len);
-  strcpy (&addrp[plugin_addr_len], plugin_name);
-  GNUNET_SERVER_notification_context_unicast (nc, ai->pc->client, &msg->header,
-                                              GNUNET_YES);
+  if ((GNUNET_YES == ai->all) || (GNUNET_YES == active))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Sending result for  %s peer `%s' plugin `%s' BW out %llu, BW in %llu \n",
+                  (active == GNUNET_YES) ? "ACTIVE" : "INACTIVE",
+                  GNUNET_i2s (id),
+                  plugin_name,
+                  ntohl (bandwidth_out.value__),
+                  ntohl (bandwidth_in.value__));
+    transmit_req_addr (cls,
+        id,
+        plugin_name,
+        plugin_addr, plugin_addr_len,
+        active,
+        atsi,
+        atsi_count,
+        bandwidth_out, bandwidth_in);
+  }
 }
 
 
@@ -396,12 +438,12 @@ req_addr_peer_it (void *cls,
   struct AddressIteration *ai = cls;
   if (NULL != id)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Callback for peer `%s'\n", GNUNET_i2s (id));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for peer `%s'\n", GNUNET_i2s (id));
     GAS_addresses_get_peer_info (id, &req_addr_peerinfo_it, ai);
   }
   else
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peer iteration done\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer iteration done\n");
   }
 }
 
@@ -420,6 +462,7 @@ GAS_handle_request_address_list (void *cls, struct GNUNET_SERVER_Client *client,
   struct AddressIteration ai;
   struct AddressListRequestMessage * alrm = (struct AddressListRequestMessage *) message;
   struct GNUNET_PeerIdentity allzeros;
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_zero;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n",
               "ADDRESSLIST_REQUEST");
@@ -431,18 +474,22 @@ GAS_handle_request_address_list (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   ai.all = ntohl (alrm->all);
+  ai.id = ntohl (alrm->id);
   ai.pc = pc;
 
   memset (&allzeros, '\0', sizeof (struct GNUNET_PeerIdentity));
+  bandwidth_zero.value__ = htonl (0);
   if (0 == memcmp (&alrm->peer, &allzeros, sizeof (struct GNUNET_PeerIdentity)))
   {
       /* Return addresses for all peers */
       GAS_addresses_iterate_peers (&req_addr_peer_it, &ai);
+      transmit_req_addr (&ai, NULL, NULL, NULL, 0, GNUNET_NO, NULL, 0, bandwidth_zero, bandwidth_zero);
   }
   else
   {
       /* Return addresses for a specific peer */
       GAS_addresses_get_peer_info (&alrm->peer, &req_addr_peerinfo_it, &ai);
+      transmit_req_addr (&ai, NULL, NULL, NULL, 0, GNUNET_NO, NULL, 0, bandwidth_zero, bandwidth_zero);
   }
 }
 
