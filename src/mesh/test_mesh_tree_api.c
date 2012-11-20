@@ -40,6 +40,27 @@ static int cb_call;
 static struct GNUNET_PeerIdentity *pi[10];
 static struct MeshTunnelTree *tree;
 
+
+/**
+ * Whole tree iterator.
+ *
+ * @param cls Closure (unused).
+ * @param peer_id Short ID of the node.
+ * @param parent_id Short ID of the parent node.
+ */
+static void
+tree_cb (void *cls, GNUNET_PEER_Id peer_id, GNUNET_PEER_Id parent_id)
+{
+  fprintf (stdout, "%u -> %u\n", peer_id, parent_id);;
+}
+
+
+/**
+ * Node children iterator.
+ *
+ * @param cls Closure (unused).
+ * @param peer_idShort ID of the child.
+ */
 static void
 cb (void *cls, GNUNET_PEER_Id peer_id)
 {
@@ -50,6 +71,46 @@ cb (void *cls, GNUNET_PEER_Id peer_id)
     failed++;
   }
   cb_call--;
+}
+
+
+/**
+ * Print debug information about the state of the tree.
+ *
+ * @param tree Tree to debug-print.
+ */
+static void
+test_debug (struct MeshTunnelTree *tree)
+{
+  tree_debug (tree);
+  tree_iterate_all (tree, &tree_cb, NULL);
+}
+
+/**
+ * Iterator over a tunnel to build a message containing all peers the
+ * tunnel's tree.
+ *
+ * @param cls Closure (pointer to pointer of message being built).
+ * @param peer Short ID of a peer.
+ * @param parent Short ID of the @c peer 's parent.
+ *
+ * @return GNUNET_YES, to keep iterating.
+ */
+static int
+monitor_tunnel_iterator (void *cls,
+                         GNUNET_PEER_Id peer,
+                         GNUNET_PEER_Id parent)
+{
+  struct GNUNET_MESH_LocalMonitor **msg = cls;
+  struct GNUNET_PeerIdentity *pid;
+  size_t size;
+  
+  size = ntohs (*msg->header.size);
+  size += sizeof (struct GNUNET_PeerIdentity) * 2;
+  *msg = GNUNET_realloc (*msg, size);
+  *pid = &((*msg)[1]);
+  
+  return GNUNET_YES;
 }
 
 
@@ -116,6 +177,9 @@ test_assert (GNUNET_PEER_Id peer_id, enum MeshPeerState status,
 }
 
 
+/**
+ * Clean up and free all memory.
+ */
 static void
 finish (void)
 {
@@ -173,7 +237,7 @@ main (int argc, char *argv[])
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Adding first path: 1 2 3 4\n");
   tree_add_path (tree, path, &cb, NULL);
-  tree_debug (tree);
+  test_debug (tree);
   path1 = tree_get_path_to_peer (tree, 4);
   if (NULL == path1 || path->length != path1->length ||
       memcmp (path->peers, path1->peers, path->length) != 0)
@@ -190,7 +254,7 @@ main (int argc, char *argv[])
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Adding second path: 1 2 3\n");
   path->length--;
   tree_add_path (tree, path, &cb, NULL);
-  tree_debug (tree);
+  test_debug (tree);
 
   test_assert (4, MESH_PEER_SEARCHING, 0, 2);
   test_assert (3, MESH_PEER_SEARCHING, 1, 2);
@@ -201,7 +265,7 @@ main (int argc, char *argv[])
   path->length++;
   path->peers[3] = 5;
   tree_add_path (tree, path, &cb, NULL);
-  tree_debug (tree);
+  test_debug (tree);
 
   test_assert (5, MESH_PEER_SEARCHING, 0, 2);
   test_assert (4, MESH_PEER_SEARCHING, 0, 2);
@@ -243,7 +307,7 @@ main (int argc, char *argv[])
   tree_set_status (tree, 5, MESH_PEER_READY);
   cb_call = 1;
   node = tree_del_path (tree, 5, &cb, NULL);
-  tree_debug (tree);
+  test_debug (tree);
   if (cb_call != 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%u callbacks missed!\n", cb_call);
@@ -270,7 +334,7 @@ main (int argc, char *argv[])
   cb_call = 1;
   tree_find_peer (tree, 4)->status = MESH_PEER_READY;
   tree_add_path (tree, path, &cb, NULL);
-  tree_debug (tree);
+  test_debug (tree);
   if (cb_call != 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%u callbacks missed!\n", cb_call);
@@ -303,7 +367,7 @@ main (int argc, char *argv[])
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Adding first path: 2 1 3\n");
   tree_add_path (tree, path, &cb, NULL);
-  tree_debug (tree);
+  test_debug (tree);
 
   test_assert (3, MESH_PEER_SEARCHING, 0, 3);
   test_assert (1, MESH_PEER_RELAY, 1, 0);
@@ -315,7 +379,7 @@ main (int argc, char *argv[])
   path->peers[4] = 3;
   path->length = 5;
   tree_add_path (tree, path, &cb, NULL);
-  tree_debug (tree);
+  test_debug (tree);
 
   test_assert (3, MESH_PEER_SEARCHING, 0, 4);
   test_assert (5, MESH_PEER_RELAY, 1, 4);
@@ -335,7 +399,7 @@ main (int argc, char *argv[])
   path->peers[7] = 3;
   path->length = 8;
   tree_add_path (tree, path, &cb, NULL);
-  tree_debug (tree);
+  test_debug (tree);
 
   test_assert (3, MESH_PEER_SEARCHING, 0, 7);
   test_assert (5, MESH_PEER_RELAY, 1, 7);
@@ -351,7 +415,7 @@ main (int argc, char *argv[])
   path->peers[2] = 3;
   path->length = 3;
   tree_add_path (tree, path, &cb, NULL);
-  tree_debug (tree);
+  test_debug (tree);
 
   test_assert (3, MESH_PEER_SEARCHING, 0, 3);
   test_assert (1, MESH_PEER_RELAY, 1, 0);
