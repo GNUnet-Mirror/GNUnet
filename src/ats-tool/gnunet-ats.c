@@ -283,11 +283,6 @@ void testservice_ats (void *cls,
         FPRINTF (stderr, _("Failed to parse peer identity `%s'\n"), pid_str);
         return;
       }
-      if (NULL == type_str)
-      {
-        FPRINTF (stderr, "%s", _("Type required\n"));
-        return;
-      }
   }
 
   c = op_list_all + op_list_used + op_monitor + op_set_pref;
@@ -411,6 +406,7 @@ main (int argc, char *const *argv)
   op_monitor = GNUNET_NO;
   op_list_all = GNUNET_NO;
   op_list_used = GNUNET_NO;
+  op_set_pref = GNUNET_NO;
   pending = 0;
   receive_done = GNUNET_NO;
 

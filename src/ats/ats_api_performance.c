@@ -504,6 +504,8 @@ process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
       (0 == ats_count))
   {
       /* Done */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          _("Received last message for %s \n"), "ATS_ADDRESSLIST_RESPONSE");
       bandwidth_zero.value__ = htonl (0);
       alh->cb (ph->infocb_cls,
               NULL,
@@ -517,7 +519,7 @@ process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
   address.address_length = plugin_address_length;
   address.transport_name = plugin_name;
 
-  if ((GNUNET_YES == alh->all_peers) || (GNUNET_YES == active))
+  if ((GNUNET_YES == alh->all_addresses) || (GNUNET_YES == active))
   {
     alh->cb (ph->infocb_cls,
             &address,
