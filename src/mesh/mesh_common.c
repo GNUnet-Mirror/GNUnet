@@ -86,147 +86,157 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
       /**
        * Request the creation of a path
        */
-    case 256: return "GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE"; break;
+    case 256: return "GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE";
 
       /**
        * Request the modification of an existing path
        */
-    case 257: return "GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGE"; break;
+    case 257: return "GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGE";
 
       /**
        * Notify that a connection of a path is no longer valid
        */
-    case 258: return "GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN"; break;
+    case 258: return "GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN";
 
       /**
        * At some point, the route will spontaneously change
        */
-    case 259: return "GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGED"; break;
+    case 259: return "GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGED";
 
       /**
        * Transport data in the mesh (origin->end) unicast
        */
-    case 260: return "GNUNET_MESSAGE_TYPE_MESH_UNICAST"; break;
+    case 260: return "GNUNET_MESSAGE_TYPE_MESH_UNICAST";
 
       /**
        * Transport data to all peers in a tunnel
        */
-    case 261: return "GNUNET_MESSAGE_TYPE_MESH_MULTICAST"; break;
+    case 261: return "GNUNET_MESSAGE_TYPE_MESH_MULTICAST";
 
       /**
        * Transport data back in the mesh (end->origin)
        */
-    case 262: return "GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN"; break;
+    case 262: return "GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN";
 
       /**
        * Send origin an ACK that the path is complete
        */
-    case 263: return "GNUNET_MESSAGE_TYPE_MESH_PATH_ACK"; break;
+    case 263: return "GNUNET_MESSAGE_TYPE_MESH_PATH_ACK";
 
       /**
        * Avoid path timeouts
        */
-    case 264: return "GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE"; break;
+    case 264: return "GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE";
 
       /**
        * Request the destuction of a path
        */
-    case 265: return "GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY"; break;
+    case 265: return "GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY";
 
       /**
        * Request the destruction of a whole tunnel
        */
-    case 266: return "GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY"; break;
+    case 266: return "GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY";
 
       /**
        * ACK for a data packet.
        */
-    case 267: return "GNUNET_MESSAGE_TYPE_MESH_ACK"; break;
+    case 267: return "GNUNET_MESSAGE_TYPE_MESH_ACK";
 
       /**
        * POLL for ACK.
        */
-    case 268: return "GNUNET_MESSAGE_TYPE_MESH_POLL"; break;
+    case 268: return "GNUNET_MESSAGE_TYPE_MESH_POLL";
 
       /**
        * Connect to the mesh service, specifying subscriptions
        */
-    case 272: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT"; break;
+    case 272: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT";
 
       /**
        * Ask the mesh service to create a new tunnel
        */
-    case 273: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE"; break;
+    case 273: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE";
 
       /**
        * Ask the mesh service to destroy a tunnel
        */
-    case 274: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY"; break;
+    case 274: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY";
 
       /**
        * Ask the mesh service to add a peer to an existing tunnel
        */
-    case 275: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD"; break;
+    case 275: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD";
 
       /**
        * Ask the mesh service to remove a peer from a tunnel
        */
-    case 276: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DEL"; break;
+    case 276: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DEL";
 
       /**
        * Ask the mesh service to add a peer offering a service to an existing tunnel
        */
-    case 277: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_TYPE"; break;
+    case 277: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_TYPE";
 
       /**
        * Ask the mesh service to add a peer described by a service string
        */
-    case 278: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_ANNOUNCE_REGEX"; break;
+    case 278: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_ANNOUNCE_REGEX";
 
       /**
        * Ask the mesh service to add a peer described by a service string
        */
-    case 279: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_STRING"; break;
+    case 279: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_STRING";
 
       /**
        * Ask the mesh service to add a peer to the blacklist of an existing tunnel
        */
-    case 280: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_BLACKLIST"; break;
+    case 280: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_BLACKLIST";
 
       /**
        * Ask the mesh service to remove a peer from the blacklist of a tunnel
        */
-    case 281: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_UNBLACKLIST"; break;
+    case 281: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_UNBLACKLIST";
 
       /**
        * Set tunnel speed to slowest peer
        */
-    case 282: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MIN"; break;
+    case 282: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MIN";
 
       /**
        * Set tunnel speed to fastest peer
        */
-    case 283: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MAX"; break;
+    case 283: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MAX";
 
       /**
        * Set tunnel buffering on.
        */
-    case 284: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_BUFFER"; break;
+    case 284: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_BUFFER";
 
       /**
        * Set tunnel buffering off.
        */
-    case 285: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_NOBUFFER"; break;
+    case 285: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_NOBUFFER";
 
       /**
        * Local ACK for data.
        */
-    case 286: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK"; break;
+    case 286: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK";
+
+      /**
+       * Local monitoring of service.
+       */
+    case 287: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR";
+
+      /**
+       * Local monitoring of service of a specific tunnel.
+       */
+    case 288: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR_TUNNEL";
 
       /**
        * 640kb should be enough for everybody
        */
-    case 299: return "GNUNET_MESSAGE_TYPE_MESH_RESERVE_END"; break;
+    case 299: return "GNUNET_MESSAGE_TYPE_MESH_RESERVE_END";
     }
   sprintf(buf, "%u (UNKNOWN TYPE)", m);
   return buf;
