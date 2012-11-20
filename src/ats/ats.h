@@ -170,6 +170,8 @@ struct PeerInformationMessage
 
   uint32_t ats_count GNUNET_PACKED;
 
+  uint32_t address_active GNUNET_PACKED;
+
   struct GNUNET_PeerIdentity peer;
 
   uint16_t address_length GNUNET_PACKED;

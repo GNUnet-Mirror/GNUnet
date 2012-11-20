@@ -113,6 +113,7 @@ send_bw_notification (struct ATS_Address *aa)
                                               aa->assigned_bw_in);
   GAS_reservations_set_bandwidth (&aa->peer, aa->assigned_bw_in);
   GAS_performance_notify_all_clients (&aa->peer, aa->plugin, aa->addr, aa->addr_len,
+                                  aa->active,
                                   ats, ats_count, aa->assigned_bw_out,
                                   aa->assigned_bw_in);
   GNUNET_free (ats);
@@ -1114,7 +1115,8 @@ peer_it (void *cls,
 /**
  * Return all peers currently known to ATS
  *
- * @param p_it the iterator to call for every peer
+ * @param p_it the iterator to call for every peer, callbach with id == NULL
+ *        when done
  * @param p_it_cls the closure for the iterator
  */
 void

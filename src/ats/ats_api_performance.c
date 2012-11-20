@@ -420,6 +420,60 @@ process_rr_message (struct GNUNET_ATS_PerformanceHandle *ph,
 
 
 /**
+ * We received a reservation result message.  Validate and process it.
+ *
+ * @param ph our context with the callback
+ * @param msg the message
+ * @return GNUNET_OK if the message was well-formed
+ */
+static int
+process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
+                    const struct GNUNET_MessageHeader *msg)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "TO BE IMPLEMENTED\n");
+# if 0
+  TBD!
+  const struct ReservationResultMessage *rr;
+  struct GNUNET_ATS_ReservationContext *rc;
+  int32_t amount;
+
+  if (ntohs (msg->size) < sizeof (struct ReservationResultMessage))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  rr = (const struct ReservationResultMessage *) msg;
+  amount = ntohl (rr->amount);
+  rc = ph->reservation_head;
+  if (0 != memcmp (&rr->peer, &rc->peer, sizeof (struct GNUNET_PeerIdentity)))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_CONTAINER_DLL_remove (ph->reservation_head, ph->reservation_tail, rc);
+  if ((amount == 0) || (rc->rcb != NULL))
+  {
+    /* tell client if not cancelled */
+    if (rc->rcb != NULL)
+      rc->rcb (rc->rcb_cls, &rr->peer, amount,
+               GNUNET_TIME_relative_ntoh (rr->res_delay));
+    GNUNET_free (rc);
+    return GNUNET_OK;
+  }
+  /* amount non-zero, but client cancelled, consider undo! */
+  if (GNUNET_YES != rc->undo)
+  {
+    GNUNET_free (rc);
+    return GNUNET_OK;           /* do not try to undo failed undos or negative amounts */
+  }
+  GNUNET_free (rc);
+  (void) GNUNET_ATS_reserve_bandwidth (ph, &rr->peer, -amount, NULL, NULL);
+#endif
+  return GNUNET_OK;
+}
+
+
+/**
  * Type of a function to call when we receive a message
  * from the service.
  *
@@ -441,6 +495,10 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
     break;
   case GNUNET_MESSAGE_TYPE_ATS_RESERVATION_RESULT:
     if (GNUNET_OK != process_rr_message (ph, msg))
+      goto reconnect;
+    break;
+  case GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_RESPONSE:
+    if (GNUNET_OK != process_ar_message (ph, msg))
       goto reconnect;
     break;
   default:
