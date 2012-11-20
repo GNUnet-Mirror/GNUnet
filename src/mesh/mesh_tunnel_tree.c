@@ -583,11 +583,11 @@ tree_mark_peers_disconnected (struct MeshTunnelTree *tree,
  *
  * @param tree Tree to use. Must have "me" set.
  * @param cb Callback to call over each child.
- * @param cls Closure.
+ * @param cb_cls Closure for @c cb.
  */
 void
 tree_iterate_children (struct MeshTunnelTree *tree, MeshTreeCallback cb,
-                       void *cls)
+                       void *cb_cls)
 {
   struct MeshTunnelTreeNode *n;
 
@@ -598,7 +598,73 @@ tree_iterate_children (struct MeshTunnelTree *tree, MeshTreeCallback cb,
   }
   for (n = tree->me->children_head; NULL != n; n = n->next)
   {
-    cb (cls, n->peer);
+    cb (cb_cls, n->peer);
+  }
+}
+
+
+/**
+ * Struct to contain a list of pending nodes when iterating a tree.
+ */
+struct MeshTreePendingNode {
+
+  /**
+   * DLL next.
+   */
+  struct MeshTreePendingNode *next;
+
+  /**
+   * DLL prev.
+   */
+  struct MeshTreePendingNode *prev;
+
+  /**
+   * Pending node.
+   */
+  struct MeshTunnelTreeNode *node;
+};
+
+
+/**
+ * Iterate over all nodes in the tree.
+ *
+ * @param tree Tree to use..
+ * @param cb Callback to call over each child.
+ * @param cb_cls Closure for @c cb.
+ *
+ * TODO: recursive implementation? (s/heap/stack/g)
+ */
+void
+tree_iterate_all (struct MeshTunnelTree *tree,
+                  MeshWholeTreeCallback cb,
+                  void *cb_cls)
+{
+  struct MeshTunnelTreeNode *parent;
+  struct MeshTunnelTreeNode *n;
+  struct MeshTreePendingNode *head;
+  struct MeshTreePendingNode *tail;
+  struct MeshTreePendingNode *pending;
+
+  cb (cb_cls, tree->root->peer, 0);
+  pending = GNUNET_malloc (sizeof (struct MeshTreePendingNode));
+  pending->node = tree->root;
+  head = tail = NULL;
+  GNUNET_CONTAINER_DLL_insert (head, tail, pending);
+
+  while (NULL != head)
+  {
+    pending = head;
+    parent = pending->node;
+    GNUNET_CONTAINER_DLL_remove (head, tail, pending);
+    GNUNET_free (pending);
+    for (n = parent->children_head; NULL != n; n = n->next)
+    {
+      cb (cb_cls, n->peer, parent->peer);
+      pending = GNUNET_malloc (sizeof (struct MeshTreePendingNode));
+      pending->node = n;
+      /* Insert_tail: breadth first, Insert: depth first */
+      GNUNET_CONTAINER_DLL_insert (head, tail, pending);
+    }
   }
 }
 
