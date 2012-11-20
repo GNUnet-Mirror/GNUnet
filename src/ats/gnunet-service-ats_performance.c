@@ -220,6 +220,7 @@ peerinfo_it (void *cls,
              const struct GNUNET_PeerIdentity *id,
              const char *plugin_name,
              const void *plugin_addr, size_t plugin_addr_len,
+             const int active,
              const struct GNUNET_ATS_Information *atsi,
              uint32_t atsi_count,
              struct GNUNET_BANDWIDTH_Value32NBO
@@ -298,7 +299,7 @@ GAS_handle_request_address_list (void *cls, struct GNUNET_SERVER_Client *client,
                                  const struct GNUNET_MessageHeader *message)
 {
   struct PerformanceClient *pc;
-  struct AddressListRequestMessage * alrm = cls;
+  struct AddressListRequestMessage * alrm = (struct AddressListRequestMessage *) message;
   struct GNUNET_PeerIdentity allzeros;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n",

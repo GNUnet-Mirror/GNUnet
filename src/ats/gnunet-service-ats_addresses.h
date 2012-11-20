@@ -180,6 +180,7 @@ typedef void (*GNUNET_ATS_PeerInfo_Iterator) (void *p_it_cls,
     const struct GNUNET_PeerIdentity *id,
     const char *plugin_name,
     const void *plugin_addr, size_t plugin_addr_len,
+    const int address_active,
     const struct GNUNET_ATS_Information *atsi,
     uint32_t atsi_count,
     struct GNUNET_BANDWIDTH_Value32NBO
