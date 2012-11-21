@@ -16,6 +16,7 @@ src/ats-tool/gnunet-ats.c
 src/block/block.c
 src/block/plugin_block_template.c
 src/block/plugin_block_test.c
+src/consensus/gnunet-consensus.c
 src/core/core_api.c
 src/core/core_api_is_connected.c
 src/core/core_api_iterate_peers.c
@@ -128,6 +129,7 @@ src/integration-tests/connection_watchdog.c
 src/lockmanager/gnunet-service-lockmanager.c
 src/lockmanager/lockmanager_api.c
 src/mesh/gnunet-daemon-regexprofiler.c
+src/mesh/gnunet-mesh.c
 src/mesh/gnunet-regex-profiler.c
 src/mesh/gnunet-service-mesh.c
 src/mesh/gnunet-service-mesh-new.c
@@ -199,6 +201,7 @@ src/transport/gnunet-service-transport_plugins.c
 src/transport/gnunet-service-transport_validation.c
 src/transport/gnunet-transport.c
 src/transport/gnunet-transport-certificate-creation.c
+src/transport/gnunet-transport-wlan-receiver.c
 src/transport/gnunet-transport-wlan-sender.c
 src/transport/plugin_transport_http.c
 src/transport/plugin_transport_http_client.c
@@ -274,6 +277,7 @@ src/util/w32cat.c
 src/util/win.c
 src/util/winproc.c
 src/vpn/gnunet-helper-vpn.c
+src/vpn/gnunet-helper-vpn-windows.c
 src/vpn/gnunet-service-vpn.c
 src/vpn/gnunet-vpn.c
 src/vpn/vpn_api.c
