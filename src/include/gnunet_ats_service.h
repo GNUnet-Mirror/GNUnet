@@ -713,7 +713,7 @@ GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Get information about addresses known to the ATS subsystem.
  *
- * @param cfg configuration to use
+ * @param handle the performance handle to use
  * @param peer peer idm can be NULL for all peers
  * @param all GNUNET_YES to get information about all addresses or GNUNET_NO to
  *        get only address currently used

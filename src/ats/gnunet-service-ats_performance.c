@@ -138,6 +138,7 @@ GAS_performance_remove_client (struct GNUNET_SERVER_Client *client)
  * @param plugin_name 0-termintated string specifying the transport plugin
  * @param plugin_addr binary address for the plugin to use
  * @param plugin_addr_len number of bytes in plugin_addr
+ * @param active is this address active
  * @param atsi performance data for the address
  * @param atsi_count number of performance records in 'ats'
  * @param bandwidth_out assigned outbound bandwidth
@@ -202,6 +203,7 @@ GAS_performance_notify_client (struct PerformanceClient *pc,
  * @param plugin_name 0-termintated string specifying the transport plugin
  * @param plugin_addr binary address for the plugin to use
  * @param plugin_addr_len number of bytes in plugin_addr
+ * @param active is this address active
  * @param atsi performance data for the address
  * @param atsi_count number of performance records in 'ats'
  * @param bandwidth_out assigned outbound bandwidth

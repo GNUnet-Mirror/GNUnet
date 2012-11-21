@@ -747,7 +747,7 @@ GNUNET_ATS_reserve_bandwidth_cancel (struct GNUNET_ATS_ReservationContext *rc)
 /**
  * Get information about addresses known to the ATS subsystem.
  *
- * @param cfg configuration to use
+ * @param handle the performance handle to use
  * @param peer peer idm can be NULL for all peers
  * @param all GNUNET_YES to get information about all addresses or GNUNET_NO to
  *        get only address currently used
