@@ -38,20 +38,42 @@ extern "C"
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_time_lib.h"
+#include "gnunet_configuration_lib.h"
 
 
 /**
- * Called when a new element was received from another peer; elements
- * given to a consensus operation by the local peer are NOT given
+ * An element of the consensus set.
+ */
+struct GNUNET_CONSENSUS_Element
+{
+  /**
+   * The actual data of the element.
+   */
+   const void *data;
+
+   /**
+    * Size of the element's data.
+    */
+   uint16_t size;
+
+   /**
+    * Application specific element type
+    */
+   uint16_t type;
+};
+
+
+/**
+ * Called when a new element was received from another peer, or an error occured.
+ *
+ * Elements given to a consensus operation by the local peer are NOT given
  * to this callback.
  *
  * @param cls closure
- * @param element_size will match the size given to GNUNET_CONSENSUS_create
- * @param element
+ * @param element new element, NULL on error
  */
 typedef void (*GNUNET_CONSENSUS_NewElementCallback) (void *cls,
-						     size_t element_size,
-						     const void *element);
+                                                     struct GNUNET_CONSENSUS_Element *element);
 
 
 
@@ -67,9 +89,9 @@ struct GNUNET_CONSENSUS_Handle;
  * @param cfg
  * @param num_peers
  * @param peers array of peers participating in this consensus session
+ *              Inclusion of the local peer is optional.
  * @param session_id session identifier
  *                   Allows a group of peers to have more than consensus session.
- * @param element_size size of the elements in the reconciled set in bytes
  * @param num_initial_elements number of entries in the 'initial_elements' array
  * @param initial_elements our elements for the consensus (each of 'element_size'
  * @param new_element callback, called when a new element is added to the set by
@@ -82,9 +104,10 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			 unsigned int num_peers,
 			 const struct GNUNET_PeerIdentity *peers,
                          const struct GNUNET_HashCode *session_id,
-                         size_t element_size,
+                         /*
 			 unsigned int num_initial_elements,
-                         const void **initial_elements,
+                         const struct GNUNET_CONSENSUS_Element **initial_elements,
+                         */
                          GNUNET_CONSENSUS_NewElementCallback new_element,
                          void *new_element_cls);
 
@@ -107,7 +130,6 @@ typedef void (*GNUNET_CONSENSUS_InsertDoneCallback) (void *cls,
  * "GNUNET_CONSENSUS_conclude".
  *
  * @param consensus handle for the consensus session
- * @param element_size must match element size from GNUNET_CONSENSUS_create
  * @param element the element to be inserted
  * @param idc function called when we are done with this element and it 
  *            is thus allowed to call GNUNET_CONSENSUS_insert again
@@ -115,8 +137,7 @@ typedef void (*GNUNET_CONSENSUS_InsertDoneCallback) (void *cls,
  */
 void
 GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
-			 size_t element_size,
-			 const void *element,
+			 const struct GNUNET_CONSENSUS_Element *element,
 			 GNUNET_CONSENSUS_InsertDoneCallback idc,
 			 void *idc_cls);
 

@@ -16,6 +16,7 @@ src/ats-tool/gnunet-ats.c
 src/block/block.c
 src/block/plugin_block_template.c
 src/block/plugin_block_test.c
+src/consensus/consensus_api.c
 src/consensus/gnunet-consensus.c
 src/core/core_api.c
 src/core/core_api_is_connected.c

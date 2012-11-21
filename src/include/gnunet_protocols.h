@@ -1606,8 +1606,45 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_GNS_GET_AUTH_RESULT 505
 
 
+/*******************************************************************************
+ * CONSENSUS message types
+ ******************************************************************************/
+
 /**
- *  Next available: 520
+ * Join a consensus session. Sent by client to service as first message.
+ */
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_JOIN 520
+
+/**
+ * Insert an element. Sent by client to service.
+ */
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_INSERT 521
+
+/**
+ * The has accepted the inserted element and is ready to receive new elements.
+ * Sent by service to client.
+ */
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_INSERT_ACK 522
+
+/**
+ * Sent by service when a new element is added.
+ */
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT 523
+
+/**
+ * Sent by client to service in order to start the consensus conclusion.
+ */
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE 524
+
+/**
+ * Sent by service to client in order to signal a completed consensus conclusion.
+ * Last message sent in a consensus session.
+ */
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE_DONE 524
+
+
+/**
+ *  Next available: 570
  */
 
 

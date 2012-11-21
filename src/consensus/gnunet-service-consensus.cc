@@ -24,23 +24,87 @@
 #include <stdint.h>
 
 #include "platform.h"
+#include "gnunet_protocols.h"
 #include "gnunet_common.h"
 #include "gnunet_service_lib.h"
+#include "gnunet_consensus_service.h"
+#include "consensus.h"
 
 using namespace std;
 
+
+
+struct ConsensusSession
+{
+
+};
+
+
+
+struct ConsensusClient
+{
+
+};
+
+
+
 /**
- * Process statistics requests.
+ * Called when a client wants to join a consensus session.
+ */
+void
+client_join (void *cls,
+             struct GNUNET_SERVER_Client *client,
+             const struct GNUNET_MessageHeader *message)
+{
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "client joined");
+}
+
+
+/**
+ * Called when a client performs an insert operation.
+ */
+void
+client_insert (void *cls,
+             struct GNUNET_SERVER_Client *client,
+             const struct GNUNET_MessageHeader *message)
+{
+
+}
+
+
+
+/**
+ * Called when a client performs the conclude operation.
+ */
+void
+client_conclude (void *cls,
+             struct GNUNET_SERVER_Client *client,
+             const struct GNUNET_MessageHeader *message)
+{
+
+}
+
+
+
+/**
+ * Process consensus requests.
  *
  * @param cls closure
  * @param server the initialized server
  * @param c configuration to use
  */
 static void
-run (void *cls, struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, struct GNUNET_SERVER_Handle *server, const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  /* TODO */
+  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
+    {&client_join, NULL, GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_JOIN, 0},
+    {&client_insert, NULL, GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_INSERT, 0},
+    {&client_conclude, NULL, GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE,
+        sizeof (struct GNUNET_CONSENSUS_ConcludeMessage)},
+    {NULL, NULL, 0, 0}
+  };
+
+  GNUNET_SERVER_add_handlers(server, handlers);
 }
 
 
@@ -55,6 +119,6 @@ int
 main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "statistics", GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
+          GNUNET_SERVICE_run (argc, argv, "consensus", GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
 }
 
