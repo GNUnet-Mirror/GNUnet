@@ -494,6 +494,8 @@ tree_get_predecessor (struct MeshTunnelTree *tree)
  *
  * @return peerinfo of the peer who is the first hop in the tunnel
  *         NULL on error
+ * 
+ * FIXME use PEER_Id
  */
 struct GNUNET_PeerIdentity *
 tree_get_first_hop (struct MeshTunnelTree *t, GNUNET_PEER_Id peer)
