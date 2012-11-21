@@ -68,7 +68,7 @@ shutdown_task (void *cls,
  * @param cls Closure (unused).
  * @param initiator Peer that started the tunnel (owner).
  * @param tunnel_number Tunnel number.
- * @param peer Array of peer identities that participate in the tunnel.
+ * @param peers Array of peer identities that participate in the tunnel.
  * @param npeers Number of peers in peers.
  */
 static void
