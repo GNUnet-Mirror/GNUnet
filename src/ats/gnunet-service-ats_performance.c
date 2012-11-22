@@ -178,6 +178,7 @@ GAS_performance_notify_client (struct PerformanceClient *pc,
   msg = (struct PeerInformationMessage *) buf;
   msg->header.size = htons (msize);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_PEER_INFORMATION);
+  msg->id = htonl (0);
   msg->ats_count = htonl (atsi_count);
   msg->peer = *peer;
   msg->address_length = htons (plugin_addr_len);
