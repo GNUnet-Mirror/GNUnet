@@ -125,9 +125,9 @@ end ()
 }
 
 static void
-test_performance_api (void);
+test_performance_api (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
-void all_addresses_cb (void *cls,
+void all_addresses_peer_cb (void *cls,
                       const struct
                       GNUNET_HELLO_Address *
                       address,
@@ -140,6 +140,59 @@ void all_addresses_cb (void *cls,
                       const struct
                       GNUNET_ATS_Information *
                       ats, uint32_t ats_count)
+{
+  static int cb = 0;
+
+  if (address != NULL)
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for peer `%s'  address `%s'\n",
+           GNUNET_i2s (&address->peer), address->address);
+
+    if (0 != memcmp (&address->peer, &p[1].id,
+                     sizeof (struct GNUNET_PeerIdentity)))
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %i:  Received address for wrong peer\n", stage);
+        GNUNET_ATS_performance_list_addresses_cancel (phal);
+        phal = NULL;
+        GNUNET_SCHEDULER_add_now (&end, NULL);
+        ret = 4;
+        return;
+    }
+    cb ++;
+  }
+  else
+  {
+      phal = NULL;
+      if (2 == cb)
+      {
+        /* Received all addresses + terminator cb, next stage */
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %i:  SUCCESS\n", stage);
+        GNUNET_SCHEDULER_add_now (&test_performance_api, NULL);
+        return;
+      }
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %i:  FAIL\n", stage);
+        GNUNET_SCHEDULER_add_now (&end, NULL);
+        ret = 5;
+        return;
+      }
+  }
+}
+
+void all_addresses_cb (void *cls,
+                              const struct
+                              GNUNET_HELLO_Address *
+                              address,
+                              struct
+                              GNUNET_BANDWIDTH_Value32NBO
+                              bandwidth_out,
+                              struct
+                              GNUNET_BANDWIDTH_Value32NBO
+                              bandwidth_in,
+                              const struct
+                              GNUNET_ATS_Information *
+                              ats, uint32_t ats_count)
 {
   static int cb = 0;
 
@@ -186,7 +239,7 @@ void all_addresses_cb (void *cls,
       {
         /* Received all addresses + terminator cb, next stage */
         GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %i:  SUCCESS\n", stage);
-        test_performance_api ();
+        GNUNET_SCHEDULER_add_now (&test_performance_api, NULL);
         return;
       }
       else
@@ -197,11 +250,10 @@ void all_addresses_cb (void *cls,
         return;
       }
   }
-
 }
 
 static void
-test_performance_api (void)
+test_performance_api (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (NULL == ph)
     ph = GNUNET_ATS_performance_init (cfg, NULL, NULL);
@@ -218,6 +270,15 @@ test_performance_api (void)
                                              NULL,
                                              GNUNET_YES,
                                              &all_addresses_cb, NULL);
+      GNUNET_assert (NULL != phal);
+      break;
+    case 2:
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage 2: \n");
+      phal = GNUNET_ATS_performance_list_addresses (ph,
+                                             &p[1].id,
+                                             GNUNET_YES,
+                                             &all_addresses_peer_cb, NULL);
+      GNUNET_assert (NULL != phal);
       break;
     default:
       /* done */
@@ -249,7 +310,8 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   if ((GNUNET_YES >= suggest_p0) && (GNUNET_YES >= suggest_p1))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Have address suggestion for both peers\n");
-      test_performance_api ();
+      test_performance_api(NULL, NULL);
+      //GNUNET_SCHEDULER_add_now (&test_performance_api, NULL);
   }
 }
 
@@ -329,8 +391,13 @@ run (void *cls,
   }
 
   GNUNET_ATS_address_add (ats, &p0_ha[0], NULL, NULL, 0);
+
   GNUNET_ATS_address_add (ats, &p0_ha[1], NULL, NULL, 0);
+  GNUNET_ATS_address_in_use (ats, &p0_ha[1], NULL, GNUNET_YES);
+
   GNUNET_ATS_address_add (ats, &p1_ha[0], NULL, NULL, 0);
+  GNUNET_ATS_address_in_use (ats, &p1_ha[0], NULL, GNUNET_YES);
+
   GNUNET_ATS_address_add (ats, &p1_ha[1], NULL, NULL, 0);
 
   GNUNET_ATS_suggest_address (ats, &p[0].id);
