@@ -142,7 +142,59 @@ void all_active_addresses_peer_cb (void *cls,
                       GNUNET_ATS_Information *
                       ats, uint32_t ats_count)
 {
+  static int cb = 0;
+  int fail = GNUNET_NO;
 
+  if (address != NULL)
+  {
+    if (0 == memcmp (&address->peer, &p[0].id,
+                     sizeof (struct GNUNET_PeerIdentity)))
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+            "Did not expected callback for peer 0 address `%s', got address `%s'!\n",
+            s_ha[0]->address, address->address);
+        GNUNET_ATS_performance_list_addresses_cancel (phal);
+        fail = GNUNET_YES;
+    }
+
+    if (0 == memcmp (&address->peer, &p[1].id,
+                     sizeof (struct GNUNET_PeerIdentity)))
+    {
+        if (0 == strcmp(address->address, s_ha[1]->address))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Callback for peer 1 suggested address %s\n",
+              s_ha[1]->address);
+          cb ++;
+        }
+        else
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Expected callback for peer 1 address `%s', got address `%s'!\n",
+              s_ha[1]->address, address->address);
+          GNUNET_ATS_performance_list_addresses_cancel (phal);
+          fail = GNUNET_YES;
+        }
+    }
+  }
+  if ((address == NULL) || (GNUNET_YES == fail))
+  {
+      phal = NULL;
+      if ((1 == cb) && (GNUNET_NO == fail))
+      {
+        /* Received all addresses + terminator cb, next stage */
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %i:  SUCCESS\n", stage);
+        GNUNET_SCHEDULER_add_now (&test_performance_api, NULL);
+        return;
+      }
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %i:  FAIL\n", stage);
+        GNUNET_SCHEDULER_add_now (&end, NULL);
+        ret = 5;
+        return;
+      }
+  }
 }
 
 void all_active_addresses_cb (void *cls,
@@ -169,12 +221,16 @@ void all_active_addresses_cb (void *cls,
     {
         if (0 == strcmp(address->address, s_ha[0]->address))
         {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for peer 0 suggested address %s\n", s_ha[0]->address);
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Callback for peer 0 suggested address %s\n",
+              s_ha[0]->address);
           cb ++;
         }
         else
         {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Expected callback for peer 0 address `%s', got address `%s'!\n", s_ha[0]->address, address->address);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Expected callback for peer 0 address `%s', got address `%s'!\n",
+              s_ha[0]->address, address->address);
           GNUNET_ATS_performance_list_addresses_cancel (phal);
           fail = GNUNET_YES;
         }
@@ -185,12 +241,16 @@ void all_active_addresses_cb (void *cls,
     {
         if (0 == strcmp(address->address, s_ha[1]->address))
         {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for peer 1 suggested address %s\n", s_ha[1]->address);
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Callback for peer 1 suggested address %s\n",
+              s_ha[1]->address);
           cb ++;
         }
         else
         {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Expected callback for peer 1 address `%s', got address `%s'!\n", s_ha[1]->address, address->address);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Expected callback for peer 1 address `%s', got address `%s'!\n",
+              s_ha[1]->address, address->address);
           GNUNET_ATS_performance_list_addresses_cancel (phal);
           fail = GNUNET_YES;
         }
@@ -237,13 +297,15 @@ void all_addresses_peer_cb (void *cls,
 
   if (address != NULL)
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for peer `%s'  address `%s'\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          "Callback for peer `%s'  address `%s'\n",
            GNUNET_i2s (&address->peer), address->address);
 
     if (0 != memcmp (&address->peer, &p[1].id,
                      sizeof (struct GNUNET_PeerIdentity)))
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %i:  Received address for wrong peer\n", stage);
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+            "Stage %i:  Received address for wrong peer\n", stage);
         GNUNET_ATS_performance_list_addresses_cancel (phal);
         fail = GNUNET_YES;
         ret = 4;
@@ -289,13 +351,9 @@ void all_addresses_cb (void *cls,
 
   if (address != NULL)
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for peer `%s'  address `%s'\n",
-           GNUNET_i2s (&address->peer), address->address);
-
     if (0 == memcmp (&address->peer, &p[0].id,
                      sizeof (struct GNUNET_PeerIdentity)))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for peer 0 `%s'\n", GNUNET_i2s (&address->peer));
       if (0 == strcmp(address->address, p0_addresses[0].addr))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for peer 0 address 0\n");
@@ -310,7 +368,6 @@ void all_addresses_cb (void *cls,
     if (0 == memcmp (&address->peer, &p[1].id,
                      sizeof (struct GNUNET_PeerIdentity)));
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for peer 1 `%s'\n", GNUNET_i2s (&address->peer));
         if (0 == strcmp(address->address, p1_addresses[0].addr))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for peer 1 address 0\n");
@@ -377,6 +434,14 @@ test_performance_api (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                              NULL,
                                              GNUNET_NO,
                                              &all_active_addresses_cb, NULL);
+      GNUNET_assert (NULL != phal);
+      break;
+    case 4: /* Get specific peers, active addresses */
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Run stage 4: \n");
+      phal = GNUNET_ATS_performance_list_addresses (ph,
+                                             &p[1].id,
+                                             GNUNET_NO,
+                                             &all_active_addresses_peer_cb, NULL);
       GNUNET_assert (NULL != phal);
       break;
     default:
