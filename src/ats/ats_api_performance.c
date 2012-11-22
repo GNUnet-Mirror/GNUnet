@@ -511,6 +511,8 @@ process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
               NULL,
               bandwidth_zero, bandwidth_zero,
               NULL, 0);
+      GNUNET_CONTAINER_DLL_remove (ph->addresslist_head, ph->addresslist_tail, alh);
+      GNUNET_free (alh);
       return GNUNET_OK;
   }
 
@@ -801,6 +803,7 @@ GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *hand
       memset (&m->peer, '\0', sizeof (struct GNUNET_PeerIdentity));
   }
   GNUNET_CONTAINER_DLL_insert_tail (handle->pending_head, handle->pending_tail, p);
+
   do_transmit (handle);
 
   return alh;
