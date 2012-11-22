@@ -66,6 +66,7 @@ enum GNUNET_STREAM_Status
     
     /**
      * An error resulted in an unusable stream
+     * FIXME: status code unused?
      */
     GNUNET_STREAM_BROKEN
   };

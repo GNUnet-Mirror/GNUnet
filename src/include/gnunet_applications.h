@@ -50,6 +50,10 @@ extern "C"
  */
 #define GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER 2
 
+/**
+ * Transfer of blocks for non-anonymmous file-sharing.
+ */
+#define GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER 3
 
 /**
  * Internet IPv4 gateway (any TCP/UDP/ICMP).

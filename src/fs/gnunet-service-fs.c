@@ -46,6 +46,7 @@
 #include "gnunet-service-fs_pr.h"
 #include "gnunet-service-fs_push.h"
 #include "gnunet-service-fs_put.h"
+#include "gnunet-service-fs_stream.h"
 #include "fs.h"
 
 /**
@@ -439,6 +440,7 @@ handle_start_search (void *cls, struct GNUNET_SERVER_Client *client,
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GSF_stream_stop ();
   if (NULL != GSF_core)
   {
     GNUNET_CORE_disconnect (GSF_core);
@@ -595,6 +597,7 @@ main_init (struct GNUNET_SERVER_Handle *server,
       GNUNET_SCHEDULER_add_delayed (COVER_AGE_FREQUENCY, &age_cover_counters,
                                     NULL);
   datastore_get_load = GNUNET_LOAD_value_init (DATASTORE_LOAD_AUTODECLINE);
+  GSF_stream_start ();
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
   return GNUNET_OK;

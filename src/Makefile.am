@@ -52,11 +52,11 @@ SUBDIRS = \
   dht \
   hostlist \
   topology \
-  fs \
   regex \
   mesh \
   lockmanager \
   stream \
+  fs \
   $(LINUX_DIR) \
   $(MINGW_DIR) \
   integration-tests \

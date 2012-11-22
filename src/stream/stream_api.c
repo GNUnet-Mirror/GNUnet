@@ -34,7 +34,6 @@
  * @author Sree Harsha Totakura
  */
 
-
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_crypto_lib.h"
@@ -1918,6 +1917,8 @@ handle_receive_close (struct GNUNET_STREAM_Socket *socket,
      that that stream has been shutdown */
   if (NULL != socket->write_handle)
   {
+    // FIXME: this breaks if 'write_cont' decides to 
+    // call SOCKET_close!
     if (NULL != socket->write_handle->write_cont)
       socket->write_handle->write_cont (socket->write_handle->write_cont_cls,
                                         GNUNET_STREAM_SHUTDOWN, 0);
@@ -2040,6 +2041,8 @@ handle_close (struct GNUNET_STREAM_Socket *socket,
      that that stream has been shutdown */
   if (NULL != socket->write_handle)
   {
+    // FIXME: this breaks if 'write_cont' decides to 
+    // call SOCKET_close!
     if (NULL != socket->write_handle->write_cont)
       socket->write_handle->write_cont (socket->write_handle->write_cont_cls,
                                         GNUNET_STREAM_SHUTDOWN, 0);
@@ -3543,11 +3546,11 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
   case STATE_RECEIVE_CLOSE_WAIT:
   case STATE_CLOSED:
   case STATE_CLOSE_WAIT:
-    proc (proc_cls, GNUNET_STREAM_SHUTDOWN, NULL, 0);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "%s: %s() END\n",
          GNUNET_i2s (&socket->other_peer),
          __func__);
+    proc (proc_cls, GNUNET_STREAM_SHUTDOWN, NULL, 0);
     return NULL;
   default:
     break;

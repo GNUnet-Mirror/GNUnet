@@ -164,13 +164,15 @@ gnunet_service_fs_SOURCES =  \
  gnunet-service-fs_pe.c gnunet-service-fs_pe.h \
  gnunet-service-fs_pr.c gnunet-service-fs_pr.h \
  gnunet-service-fs_push.c gnunet-service-fs_push.h \
- gnunet-service-fs_put.c gnunet-service-fs_put.h 
+ gnunet-service-fs_put.c gnunet-service-fs_put.h \
+ gnunet-service-fs_stream.c gnunet-service-fs_sream.h 
 gnunet_service_fs_LDADD =  \
  $(top_builddir)/src/fs/libgnunetfs.la \
  $(top_builddir)/src/dht/libgnunetdht.la \
  $(top_builddir)/src/block/libgnunetblock.la \
  $(top_builddir)/src/datastore/libgnunetdatastore.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/stream/libgnunetstream.la \
  $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la \
