@@ -182,6 +182,11 @@ struct RunContext
   struct GNUNET_TESTBED_Operation *topology_operation;
 
   /**
+   * The file containing topology data. Only used if the topology is set to 'FROM_FILE'
+   */
+  char *topo_file;
+
+  /**
    * The event mask for the controller
    */
   uint64_t event_mask;
@@ -320,6 +325,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_free (dll_op);
     }
   }
+  GNUNET_free_non_null (rc->topo_file);
   GNUNET_free (rc);
 }
 
@@ -456,6 +462,18 @@ call_cc:
                                                      &rc->num_oc,
                                                      rc->topology,
                                                      rc->random_links,
+                                                     GNUNET_TESTBED_TOPOLOGY_OPTION_END);
+    }
+    else if (GNUNET_TESTBED_TOPOLOGY_FROM_FILE == rc->topology)
+    {
+      GNUNET_assert (NULL != rc->topo_file);
+      rc->topology_operation =
+          GNUNET_TESTBED_overlay_configure_topology (NULL,
+                                                     rc->num_peers,
+                                                     rc->peers,
+                                                     &rc->num_oc,
+                                                     rc->topology,
+                                                     rc->topo_file,
                                                      GNUNET_TESTBED_TOPOLOGY_OPTION_END);
     }
     else
@@ -666,7 +684,7 @@ GNUNET_TESTBED_run (const char *host_filename,
   if ( (GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI == rc->topology)
        || (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING == rc->topology)
        || (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD == rc->topology))
-  { 
+  {
     if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg, "testbed",
                                                             "OVERLAY_RANDOM_LINKS",
                                                             &random_links))
@@ -684,6 +702,18 @@ GNUNET_TESTBED_run (const char *host_filename,
       return;
     }
     rc->random_links = (unsigned int) random_links;
+  }
+  else if (GNUNET_TESTBED_TOPOLOGY_FROM_FILE == rc->topology)
+  {
+    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
+                                                            "TOPOLOGY_FILE",
+                                                            &rc->topo_file))
+    {
+      /* You need to set TOPOLOGY_FILE option to a topolog file */
+      GNUNET_break (0);
+      GNUNET_free (rc);
+      return;
+    }
   }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_run_task, rc);

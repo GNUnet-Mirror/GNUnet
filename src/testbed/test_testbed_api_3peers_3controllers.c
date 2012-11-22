@@ -232,7 +232,12 @@ enum Stage
   /**
    * Final success stage
    */
-  SUCCESS
+  SUCCESS,
+
+  /**
+   * Optional stage for marking test to be skipped
+   */
+  SKIP
 };
 
 /**
@@ -874,8 +879,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     (void) PRINTF ("%s",
                    "Unable to run the test as this system is not configured "
                    "to use password less SSH logins to localhost.\n"
-                   "Marking test as successful\n");
-    result = SUCCESS;
+                   "Skipping test\n");
+    result = SKIP;
     return;
   }
   cfg = GNUNET_CONFIGURATION_dup (config);
@@ -908,9 +913,17 @@ main (int argc, char **argv)
       GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
                           "test_testbed_api_3peers_3controllers", "nohelp",
                           options, &run, NULL);
-  if ((GNUNET_OK != ret) || (SUCCESS != result))
+  if (GNUNET_OK != ret)
     return 1;
-  return 0;
+  switch (result)
+  {
+  case SUCCESS:
+    return 0;
+  case SKIP:
+    return 77;                  /* Mark test as skipped */
+  default:
+    return 1;
+  }
 }
 
 /* end of test_testbed_api_3peers_3controllers.c */

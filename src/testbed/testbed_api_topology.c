@@ -502,9 +502,6 @@ gen_topo_random (struct TopologyContext *tc, unsigned int links, int append)
  * "Emergence of Scaling in Random Networks." Science 286, 509-512, 1999.
  *
  * @param tc the topology context
- * @param links the number of random links to establish
- * @param append GNUNET_YES to add links to existing link array; GNUNET_NO to
- *          create a new link array
  */
 static void
 gen_scale_free (struct TopologyContext *tc)
@@ -543,6 +540,159 @@ gen_scale_free (struct TopologyContext *tc)
     }
   }
   GNUNET_free (popularity);
+}
+
+
+/**
+ * Generates topology from the given file
+ *
+ * @param tc the topology context
+ * @param filename the filename of the file containing topology data
+ */
+static void
+gen_topo_from_file (struct TopologyContext *tc, const char *filename)
+{
+  char *data;
+  char *end;
+  char *buf;
+  uint64_t fs;
+  uint64_t offset;
+  unsigned long int peer_id;
+  unsigned long int other_peer_id;
+  enum ParseState {
+    
+    /**
+     * We read the peer index
+     */
+    PEER_INDEX,
+
+    /**
+     * We read the other peer indices
+     */
+    OTHER_PEER_INDEX,
+
+  } state;
+  int status;
+
+  status = GNUNET_SYSERR;
+  if (GNUNET_YES != GNUNET_DISK_file_test (filename))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR, _("Topology file %s not found\n"), filename);
+    return;
+  }
+  if (GNUNET_OK !=
+      GNUNET_DISK_file_size (filename, &fs, GNUNET_YES, GNUNET_YES))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR, _("Topology file %s has no data\n"), filename);
+    return;
+  }
+  data = GNUNET_malloc (fs);
+  if (fs != GNUNET_DISK_fn_read (filename, data, fs))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR, _("Topology file %s cannot be read\n"),
+         filename);
+    goto _exit;
+  }
+
+  offset = 0;
+  state = PEER_INDEX;
+  buf = data;
+  while (offset < fs)
+  {
+    if (0 != isspace (data[offset]))
+    {
+      offset++;
+      continue;
+    }
+    switch (state)
+    {
+    case PEER_INDEX:
+      buf = strchr (&data[offset], ':');
+      if (NULL == buf)
+      {
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("Failed to read peer index from toology file: %s"), filename);
+        goto _exit;
+      }
+      *buf = '\0';
+      errno = 0;
+      peer_id = (unsigned int) strtoul (&data[offset], &end, 10);
+      if (0 != errno)
+      {
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("Value in given topology file: %s out of range\n"), filename);
+        goto _exit;
+      }
+      if (&data[offset] == end)
+      {
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("Failed to read peer index from topology file: %s"), filename);
+        goto _exit;
+      }
+      if (tc->num_peers <= peer_id)
+      {
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("Topology file need more peers than the given ones\n"),
+             filename);
+        goto _exit;
+      }
+      state = OTHER_PEER_INDEX;
+      offset += ((unsigned int) (buf - &data[offset])) + 1;
+      break;
+    case OTHER_PEER_INDEX:
+      errno = 0;
+      other_peer_id = (unsigned int) strtoul (&data[offset],  &end, 10);
+      if (0 != errno)
+      {
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("Value in given topology file: %s out of range\n"), filename);
+        goto _exit;
+      }
+      if (&data[offset] == end)
+      {
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("Failed to read peer index from topology file: %s"), filename);
+        goto _exit;
+      }
+      if (tc->num_peers <= other_peer_id)
+      {
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("Topology file need more peers than the given ones\n"),
+             filename);
+        goto _exit;
+      }
+      tc->link_array_size++;
+      tc->link_array = GNUNET_realloc (tc->link_array, 
+                                       sizeof (struct OverlayLink) * 
+                                       tc->link_array_size);
+      offset += end - &data[offset];
+      make_link (&tc->link_array[tc->link_array_size - 1], peer_id,
+                 other_peer_id, tc);
+      while (('\n' != data[offset]) && ('|' != data[offset])
+             && (offset < fs))
+        offset++;
+      if ('\n' == data[offset])
+        state = PEER_INDEX;
+      else if ('|' == data[offset])
+      {
+        state = OTHER_PEER_INDEX;
+        offset++;
+      }
+      break;
+    }
+  }
+  status = GNUNET_OK;
+  
+ _exit:
+  GNUNET_free (data);
+  if (GNUNET_OK != status)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Removing and link data read from the file\n");
+    tc->link_array_size = 0;
+    GNUNET_free_non_null (tc->link_array);
+    tc->link_array = NULL;
+  }
 }
 
 
@@ -686,6 +836,15 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
   case GNUNET_TESTBED_TOPOLOGY_SCALE_FREE:
     gen_scale_free (tc);
     break;
+  case GNUNET_TESTBED_TOPOLOGY_FROM_FILE:
+    {
+      const char *filename;
+      
+      filename = va_arg (va, const char *);
+      GNUNET_assert (NULL != filename);
+      gen_topo_from_file (tc, filename);
+    }
+    break;
   default:
     GNUNET_break (0);
     GNUNET_free (tc);
@@ -715,6 +874,8 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
   GNUNET_TESTBED_operation_queue_insert_
       (c->opq_parallel_topology_config_operations, op);
   GNUNET_TESTBED_operation_begin_wait_ (op);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Generated %u connections\n", tc->link_array_size);
   if (NULL != max_connections)
     *max_connections = tc->link_array_size;
   return op;
