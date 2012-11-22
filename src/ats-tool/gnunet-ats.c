@@ -249,6 +249,7 @@ void ats_perf_cb (void *cls,
   {
     /* All messages received */
     receive_done = GNUNET_YES;
+    alh = NULL;
     if (0 == pending)
     {
       /* All messages received and no resolutions pending*/
