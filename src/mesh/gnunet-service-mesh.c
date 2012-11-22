@@ -1186,7 +1186,7 @@ tunnel_delete_peer (struct MeshTunnel *t, GNUNET_PEER_Id peer);
  * @return tunnel handler, NULL if doesn't exist.
  */
 static struct MeshTunnel *
-tunnel_get (struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid);
+tunnel_get (const struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid);
 
 
 /**
@@ -3237,7 +3237,7 @@ tunnel_get_by_pi (GNUNET_PEER_Id pi, MESH_TunnelNumber tid)
  * @return tunnel handler, NULL if doesn't exist
  */
 static struct MeshTunnel *
-tunnel_get (struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid)
+tunnel_get (const struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid)
 {
   return tunnel_get_by_pi (GNUNET_PEER_search (oid), tid);
 }
@@ -8066,6 +8066,7 @@ monitor_peers_iterator (void *cls,
 }
 
 
+
 /**
  * Iterator over all tunnels to send a monitoring client info about each tunnel.
  *
@@ -8076,44 +8077,44 @@ monitor_peers_iterator (void *cls,
  * @return GNUNET_YES, to keep iterating.
  */
 static int
-monitor_tunnel_iterator (void *cls,
-                         const struct GNUNET_HashCode * key,
-                         void *value)
+monitor_all_tunnels_iterator (void *cls,
+                              const struct GNUNET_HashCode * key,
+                              void *value)
 {
   struct GNUNET_SERVER_Client *client = cls;
   struct MeshTunnel *t = value;
   struct GNUNET_MESH_LocalMonitor *msg;
   uint32_t npeers;
-
+  
   npeers = GNUNET_CONTAINER_multihashmap_size (t->peers);
   msg = GNUNET_malloc (sizeof(struct GNUNET_MESH_LocalMonitor) +
-                       npeers * sizeof (struct GNUNET_PeerIdentity));
+  npeers * sizeof (struct GNUNET_PeerIdentity));
   GNUNET_PEER_resolve(t->id.oid, &msg->owner);
   msg->tunnel_id = htonl (t->id.tid);
   msg->header.size = htons (sizeof (struct GNUNET_MESH_LocalMonitor) +
-                            npeers * sizeof (struct GNUNET_PeerIdentity));
+  npeers * sizeof (struct GNUNET_PeerIdentity));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR);
   msg->npeers = 0;
   (void) GNUNET_CONTAINER_multihashmap_iterate (t->peers,
                                                 monitor_peers_iterator,
                                                 msg);
-
+  
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "*  sending info about tunnel %s [%u] (%u peers)\n",
               GNUNET_i2s (&msg->owner), t->id.tid, npeers);
-
+  
   if (msg->npeers != npeers)
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Monitor fail: size %u - iter %u\n",
                 npeers, msg->npeers);
   }
-
-  msg->npeers = htonl (npeers);
-  GNUNET_SERVER_notification_context_unicast (nc, client,
-                                              &msg->header,
-                                              GNUNET_NO);
-  return GNUNET_YES;
+  
+    msg->npeers = htonl (npeers);
+    GNUNET_SERVER_notification_context_unicast (nc, client,
+                                                &msg->header,
+                                                GNUNET_NO);
+    return GNUNET_YES;
 }
 
 
@@ -8142,10 +8143,174 @@ handle_local_monitor (void *cls, struct GNUNET_SERVER_Client *client,
               "Received monitor request from client %u\n",
               c->id);
   GNUNET_CONTAINER_multihashmap_iterate (tunnels,
-                                         monitor_tunnel_iterator,
+                                         monitor_all_tunnels_iterator,
                                          client);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Monitor request from client %u completed\n",
+              c->id);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * Data needed to build a Monitor_Tunnel message.
+ *
+ * Both arrays can be combined to look up the position of the parent of
+ * a peer: lookup[parent[peer]].
+ */
+struct MeshMonitorTunnelContext
+{
+  /**
+   * Partial message, including peer count.
+   */
+  struct GNUNET_MESH_LocalMonitor *msg;
+
+  /**
+   * Array with parents: peer->parent.
+   */
+  GNUNET_PEER_Id *parents;
+
+  /**
+   * Array with positions: peer->position.
+   */
+  uint32_t *lookup;
+
+  /**
+   * Size of the message so far.
+   */
+  size_t size;
+
+  /**
+   * Client requesting the info.
+   */
+  struct MeshClient *c;
+};
+
+
+/**
+ * Send a client a message about 
+ */
+static void
+send_client_monitor_tunnel (struct MeshMonitorTunnelContext *ctx)
+{
+  struct GNUNET_MESH_LocalMonitor *resp = ctx->msg;
+  struct GNUNET_PeerIdentity *pid;
+  unsigned int *parent;
+  unsigned int i;
+  size_t size;
+
+  size = sizeof (struct GNUNET_MESH_LocalMonitor);
+  size += (sizeof (struct GNUNET_PeerIdentity) + sizeof (int)) * resp->npeers;
+  resp->header.size = htons (size);
+  pid = (struct GNUNET_PeerIdentity *) &resp[1];
+  parent = (unsigned int *) &pid[resp->npeers];
+  for (i = 0; i < resp->npeers; i++)
+    parent[i] = htonl (ctx->lookup[ctx->parents[i]]);
+  GNUNET_SERVER_notification_context_unicast (nc, ctx->c->handle,
+                                              &resp->header, GNUNET_NO);
+}
+
+/**
+ * Iterator over a tunnel tree to build a message containing all peers
+ * the in the tunnel, including relay nodes.
+ *
+ * @param cls Closure (pointer to pointer of message being built).
+ * @param peer Short ID of a peer.
+ * @param parent Short ID of the @c peer 's parent.
+ *
+ * FIXME: limit iterating to a message size / split if necessary
+ */
+static void
+monitor_tunnel_iterator (void *cls,
+                         GNUNET_PEER_Id peer,
+                         GNUNET_PEER_Id parent)
+{
+  struct MeshMonitorTunnelContext *ctx = cls;
+  struct GNUNET_MESH_LocalMonitor *msg = ctx->msg;
+  struct GNUNET_PeerIdentity *pid;
+
+  msg = ctx->msg;
+  pid = (struct GNUNET_PeerIdentity *) &msg[1];
+  GNUNET_PEER_resolve(peer, &pid[msg->npeers]);
+  ctx->parents[msg->npeers] = parent;
+  ctx->lookup[peer] = msg->npeers;
+  ctx->size += sizeof (struct GNUNET_PeerIdentity) * sizeof (uint32_t);
+  msg->npeers++;
+
+  if ( (ctx->size + sizeof (struct GNUNET_PeerIdentity) * sizeof (uint32_t))
+       > USHRT_MAX )
+  {
+    send_client_monitor_tunnel (ctx);
+    ctx->size = sizeof (struct GNUNET_MESH_LocalMonitor);
+    ctx->msg->npeers = 0;
+  }
+}
+
+
+/**
+ * Handler for client's MONITOR_TUNNEL request.
+ *
+ * @param cls Closure (unused).
+ * @param client Identification of the client.
+ * @param message The actual message.
+ */
+static void
+handle_local_monitor_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
+                             const struct GNUNET_MessageHeader *message)
+{
+  const struct GNUNET_MESH_LocalMonitor *msg;
+  struct GNUNET_MESH_LocalMonitor *resp;
+  struct MeshMonitorTunnelContext ctx;
+  struct MeshClient *c;
+  struct MeshTunnel *t;
+
+  /* Sanity check for client registration */
+  if (NULL == (c = client_get (client)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  msg = (struct GNUNET_MESH_LocalMonitor *) message;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Received monitor tunnel  request from client %u\n",
+              c->id);
+  t = tunnel_get (&msg->owner, ntohl (msg->tunnel_id));
+  if (NULL == t)
+  {
+    /* We don't know the tunnel */
+    struct GNUNET_MESH_LocalMonitor warn;
+
+    warn = *msg;
+    warn.npeers = htonl (UINT_MAX);
+    GNUNET_SERVER_notification_context_unicast (nc, client,
+                                                &warn.header,
+                                                GNUNET_NO);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  resp = GNUNET_malloc (USHRT_MAX); /* avoid realloc'ing on each step */
+  *resp = *msg;
+  resp->npeers = 0;
+  ctx.msg = resp;
+  ctx.parents = GNUNET_malloc (sizeof (GNUNET_PEER_Id) * 1024); /* hard limit anyway */
+  ctx.lookup = GNUNET_malloc (sizeof (int) * 1024);
+  ctx.size = sizeof (struct GNUNET_MESH_LocalMonitor);
+  ctx.c = c;
+
+  tree_iterate_all (t->tree,
+                    monitor_tunnel_iterator,
+                    &ctx);
+  send_client_monitor_tunnel (&ctx);
+
+  GNUNET_free (ctx.parents);
+  GNUNET_free (ctx.lookup);
+  GNUNET_free (resp);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Monitor tunnel request from client %u completed\n",
               c->id);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -8206,6 +8371,9 @@ static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
   {&handle_local_monitor, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR,
    sizeof (struct GNUNET_MessageHeader)},
+  {&handle_local_monitor_tunnel, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR_TUNNEL,
+     sizeof (struct GNUNET_MESH_LocalMonitor)},
   {NULL, NULL, 0, 0}
 };
 

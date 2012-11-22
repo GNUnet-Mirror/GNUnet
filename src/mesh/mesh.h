@@ -305,7 +305,7 @@ struct GNUNET_MESH_LocalAck
 struct GNUNET_MESH_LocalMonitor
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR
+     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR[_TUNNEL]
    */
   struct GNUNET_MessageHeader header;
 
