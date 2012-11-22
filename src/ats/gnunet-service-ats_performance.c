@@ -493,6 +493,7 @@ GAS_handle_request_address_list (void *cls, struct GNUNET_SERVER_Client *client,
       GAS_addresses_get_peer_info (&alrm->peer, &req_addr_peerinfo_it, &ai);
       transmit_req_addr (&ai, NULL, NULL, NULL, 0, GNUNET_NO, NULL, 0, bandwidth_zero, bandwidth_zero);
   }
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
