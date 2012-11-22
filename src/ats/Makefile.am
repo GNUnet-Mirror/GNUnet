@@ -158,6 +158,7 @@ test_ats_api_performance_SOURCES = \
 test_ats_api_performance_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la
 
 EXTRA_DIST = \
