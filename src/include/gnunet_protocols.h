@@ -483,6 +483,16 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_FS_MIGRATION_STOP 139
 
+/**
+ * P2P request for content (one FS to another via a stream).
+ */
+#define GNUNET_MESSAGE_TYPE_FS_STREAM_QUERY 140
+
+/**
+ * P2P answer for content (one FS to another via a stream).
+ */
+#define GNUNET_MESSAGE_TYPE_FS_STREAM_REPLY 141
+
 
 /*******************************************************************************
  * DHT message types

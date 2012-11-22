@@ -196,12 +196,6 @@ static int active_to_migration;
 
 
 /**
- * Size of the datastore queue we assume for common requests.
- * Determined based on the network quota.
- */
-static unsigned int datastore_queue_size;
-
-/**
  * Heap with the request that will expire next at the top.  Contains
  * pointers of type "struct PendingRequest*"; these will *also* be
  * aliased from the "requests_by_peer" data structures and the
@@ -1307,7 +1301,7 @@ process_local_reply (void *cls, const struct GNUNET_HashCode * key, size_t size,
                                   (0 !=
                                    (GSF_PRO_PRIORITY_UNLIMITED &
                                     pr->public_data.options)) ? UINT_MAX :
-                                  datastore_queue_size
+                                  GSF_datastore_queue_size
                                   /* max queue size */ ,
                                   GNUNET_TIME_UNIT_FOREVER_REL,
                                   &process_local_reply, pr);
@@ -1347,7 +1341,7 @@ process_local_reply (void *cls, const struct GNUNET_HashCode * key, size_t size,
                                   (0 !=
                                    (GSF_PRO_PRIORITY_UNLIMITED &
                                     pr->public_data.options)) ? UINT_MAX :
-                                  datastore_queue_size
+                                  GSF_datastore_queue_size
                                   /* max queue size */ ,
                                   GNUNET_TIME_UNIT_FOREVER_REL,
                                   &process_local_reply, pr);
@@ -1405,7 +1399,7 @@ process_local_reply (void *cls, const struct GNUNET_HashCode * key, size_t size,
                                 (0 !=
                                  (GSF_PRO_PRIORITY_UNLIMITED & pr->
                                   public_data.options)) ? UINT_MAX :
-                                datastore_queue_size
+                                GSF_datastore_queue_size
                                 /* max queue size */ ,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &process_local_reply, pr);
@@ -1487,7 +1481,7 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
                                 (0 !=
                                  (GSF_PRO_PRIORITY_UNLIMITED & pr->
                                   public_data.options)) ? UINT_MAX :
-                                datastore_queue_size
+                                GSF_datastore_queue_size
                                 /* max queue size */ ,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 &process_local_reply, pr);
@@ -1639,8 +1633,6 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
 void
 GSF_pending_request_init_ ()
 {
-  unsigned long long dqs;
-
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (GSF_cfg, "fs",
                                              "MAX_PENDING_REQUESTS",
@@ -1649,16 +1641,6 @@ GSF_pending_request_init_ ()
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_INFO,
 			       "fs", "MAX_PENDING_REQUESTS");
   }
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_size (GSF_cfg, "fs", "DATASTORE_QUEUE_SIZE",
-                                           &dqs))
-  {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_INFO,
-			       "fs", "DATASTORE_QUEUE_SIZE");
-    dqs = 1024;
-  }
-  datastore_queue_size = (unsigned int) dqs;
-
   active_to_migration =
       GNUNET_CONFIGURATION_get_value_yesno (GSF_cfg, "FS", "CONTENT_CACHING");
   datastore_put_load = GNUNET_LOAD_value_init (DATASTORE_LOAD_AUTODECLINE);

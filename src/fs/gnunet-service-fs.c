@@ -116,6 +116,11 @@ struct GNUNET_TIME_Relative GSF_avg_latency = { 500 };
 double GSF_current_priorities;
 
 /**
+ * Size of the datastore queue we assume for common requests.
+ */
+unsigned int GSF_datastore_queue_size;
+
+/**
  * How many query messages have we received 'recently' that
  * have not yet been claimed as cover traffic?
  */
@@ -615,7 +620,18 @@ static void
 run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  unsigned long long dqs;
+
   GSF_cfg = cfg;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_size (GSF_cfg, "fs", "DATASTORE_QUEUE_SIZE",
+                                           &dqs))
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_INFO,
+			       "fs", "DATASTORE_QUEUE_SIZE");
+    dqs = 1024;
+  }
+  GSF_datastore_queue_size = (unsigned int) dqs;
   GSF_enable_randomized_delays =
       GNUNET_CONFIGURATION_get_value_yesno (cfg, "fs", "DELAY");
   GSF_dsh = GNUNET_DATASTORE_connect (cfg);

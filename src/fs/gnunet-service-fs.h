@@ -258,6 +258,12 @@ extern struct GNUNET_BLOCK_Context *GSF_block_ctx;
 extern int GSF_enable_randomized_delays;
 
 /**
+ * Size of the datastore queue we assume for common requests.
+ */
+extern unsigned int GSF_datastore_queue_size;
+
+
+/**
  * Test if the DATABASE (GET) load on this peer is too high
  * to even consider processing the query at
  * all.
