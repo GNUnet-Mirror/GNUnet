@@ -493,7 +493,7 @@ process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
   }
   if (NULL == alh)
   {
-      GNUNET_break (0);
+      /* was canceled */
       return GNUNET_SYSERR;
   }
 

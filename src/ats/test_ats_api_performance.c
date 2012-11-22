@@ -127,6 +127,100 @@ end ()
 static void
 test_performance_api (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
+void all_active_addresses_peer_cb (void *cls,
+                      const struct
+                      GNUNET_HELLO_Address *
+                      address,
+                      struct
+                      GNUNET_BANDWIDTH_Value32NBO
+                      bandwidth_out,
+                      struct
+                      GNUNET_BANDWIDTH_Value32NBO
+                      bandwidth_in,
+                      const struct
+                      GNUNET_ATS_Information *
+                      ats, uint32_t ats_count)
+{
+
+}
+
+void all_active_addresses_cb (void *cls,
+                      const struct
+                      GNUNET_HELLO_Address *
+                      address,
+                      struct
+                      GNUNET_BANDWIDTH_Value32NBO
+                      bandwidth_out,
+                      struct
+                      GNUNET_BANDWIDTH_Value32NBO
+                      bandwidth_in,
+                      const struct
+                      GNUNET_ATS_Information *
+                      ats, uint32_t ats_count)
+{
+  static int cb = 0;
+  int fail = GNUNET_NO;
+
+  if (address != NULL)
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for peer `%s'  address `%s'\n",
+           GNUNET_i2s (&address->peer), address->address);
+
+    if (0 == memcmp (&address->peer, &p[0].id,
+                     sizeof (struct GNUNET_PeerIdentity)))
+    {
+        if (0 == strcmp(address->address, p0_addresses[0].addr))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for peer 0 address 0\n");
+          cb ++;
+        }
+        else
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Expected callback for peer 0 address 0!\n");
+          GNUNET_ATS_performance_list_addresses_cancel (phal);
+          fail = GNUNET_YES;
+        }
+    }
+
+    if (0 == memcmp (&address->peer, &p[1].id,
+                     sizeof (struct GNUNET_PeerIdentity)))
+    {
+        if (0 == strcmp(address->address, p1_addresses[1].addr))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for peer 1 address 1\n");
+          cb ++;
+        }
+        else
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Expected callback for peer 1 address 1!\n");
+          GNUNET_ATS_performance_list_addresses_cancel (phal);
+          fail = GNUNET_YES;
+        }
+    }
+    cb ++;
+  }
+  if ((address == NULL) || (GNUNET_YES == fail))
+  {
+      phal = NULL;
+      if ((2 == cb) && (GNUNET_NO == fail))
+      {
+        /* Received all addresses + terminator cb, next stage */
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %i:  SUCCESS\n", stage);
+        GNUNET_SCHEDULER_add_now (&test_performance_api, NULL);
+        return;
+      }
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %i:  FAIL\n", stage);
+        GNUNET_SCHEDULER_add_now (&end, NULL);
+        ret = 5;
+        return;
+      }
+  }
+}
+
+
+
 void all_addresses_peer_cb (void *cls,
                       const struct
                       GNUNET_HELLO_Address *
@@ -142,6 +236,7 @@ void all_addresses_peer_cb (void *cls,
                       ats, uint32_t ats_count)
 {
   static int cb = 0;
+  int fail = GNUNET_NO;
 
   if (address != NULL)
   {
@@ -153,17 +248,16 @@ void all_addresses_peer_cb (void *cls,
     {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %i:  Received address for wrong peer\n", stage);
         GNUNET_ATS_performance_list_addresses_cancel (phal);
-        phal = NULL;
-        GNUNET_SCHEDULER_add_now (&end, NULL);
+        fail = GNUNET_YES;
         ret = 4;
-        return;
     }
     cb ++;
   }
-  else
+
+  if ((NULL == address) || (fail))
   {
       phal = NULL;
-      if (2 == cb)
+      if ((2 == cb) && (GNUNET_NO == fail))
       {
         /* Received all addresses + terminator cb, next stage */
         GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %i:  SUCCESS\n", stage);
@@ -264,20 +358,28 @@ test_performance_api (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   stage++;
   switch (stage) {
-    case 1:
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage 1: \n");
+    case 1: /* Get all peers, all addresses */
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Run stage 1: \n");
       phal = GNUNET_ATS_performance_list_addresses (ph,
                                              NULL,
                                              GNUNET_YES,
                                              &all_addresses_cb, NULL);
       GNUNET_assert (NULL != phal);
       break;
-    case 2:
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage 2: \n");
+    case 2: /* Get specific peer, all addresses */
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Run stage 2: \n");
       phal = GNUNET_ATS_performance_list_addresses (ph,
                                              &p[1].id,
                                              GNUNET_YES,
                                              &all_addresses_peer_cb, NULL);
+      GNUNET_assert (NULL != phal);
+      break;
+    case 3: /* Get all peers, active addresses */
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Run stage 3: \n");
+      phal = GNUNET_ATS_performance_list_addresses (ph,
+                                             NULL,
+                                             GNUNET_NO,
+                                             &all_active_addresses_cb, NULL);
       GNUNET_assert (NULL != phal);
       break;
     default:
@@ -391,14 +493,13 @@ run (void *cls,
   }
 
   GNUNET_ATS_address_add (ats, &p0_ha[0], NULL, NULL, 0);
-
   GNUNET_ATS_address_add (ats, &p0_ha[1], NULL, NULL, 0);
-  GNUNET_ATS_address_in_use (ats, &p0_ha[1], NULL, GNUNET_YES);
 
   GNUNET_ATS_address_add (ats, &p1_ha[0], NULL, NULL, 0);
-  GNUNET_ATS_address_in_use (ats, &p1_ha[0], NULL, GNUNET_YES);
-
   GNUNET_ATS_address_add (ats, &p1_ha[1], NULL, NULL, 0);
+
+  //GNUNET_ATS_address_in_use (ats, &p0_ha[0], NULL, GNUNET_YES);
+  //GNUNET_ATS_address_in_use (ats, &p1_ha[1], NULL, GNUNET_YES);
 
   GNUNET_ATS_suggest_address (ats, &p[0].id);
   GNUNET_ATS_suggest_address (ats, &p[1].id);
