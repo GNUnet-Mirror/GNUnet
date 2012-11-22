@@ -369,7 +369,7 @@ static void transmit_req_addr (struct AddressIteration *ai,
   if (NULL != plugin_name)
     strcpy (&addrp[plugin_addr_len], plugin_name);
   GNUNET_SERVER_notification_context_unicast (nc, ai->pc->client, &msg->header,
-                                              GNUNET_YES);
+                                              GNUNET_NO);
 }
 
 static void
