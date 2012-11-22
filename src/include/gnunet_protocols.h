@@ -886,6 +886,11 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR          287
 
 /**
+ * Local monitoring of service of a specific tunnel.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR_TUNNEL   288
+
+/**
  * 640kb should be enough for everybody
  */
 #define GNUNET_MESSAGE_TYPE_MESH_RESERVE_END            299

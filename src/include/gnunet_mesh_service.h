@@ -437,27 +437,77 @@ GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle
  * @param npeers Number of peers in peers.
  */
 typedef void (*GNUNET_MESH_MonitorCB) (void *cls,
-                                       const struct GNUNET_PeerIdentity *initiator,
+                                       const struct GNUNET_PeerIdentity *owner,
                                        unsigned int tunnel_number,
                                        const struct GNUNET_PeerIdentity *peers,
                                        unsigned int npeers);
 
 
 /**
+ * Method called to retrieve information about each tunnel the mesh peer
+ * is aware of.
+ *
+ * @param cls Closure.
+ * @param initiator Peer that started the tunnel (owner).
+ * @param tunnel_number Tunnel number.
+ * @param peers Array of peers that form the tunnel, including transit nodes.
+ *              The identities come in pairs, representing a peer
+ *              and his predecessor in the tree. The root does not
+ *              appear in the array.
+ * @param npeers Number of peers in peers (size is 2 x npeers!).
+ */
+typedef void (*GNUNET_MESH_MonitorTunnelCB) (
+                      void *cls,
+                      const struct GNUNET_PeerIdentity *owner,
+                      unsigned int tunnel_number,
+                      const struct GNUNET_PeerIdentity *peers,
+                      unsigned int npeers);
+
+
+/**
  * Request information about the running mesh peer.
+ * The callback will be called for every tunnel known to the service,
+ * listing all peers that blong to the tunnel (active only).
+ *
+ * If called again on the same handle, it will overwrite the previous
+ * callback and cls. To retrieve the cls, monitor_cancel must be
+ * called first.
+ *
+ * WARNING: unstable API, likely to change in the future!
  *
  * @param h Handle to the mesh peer.
  * @param callback Function to call with the requested data.
- * @param monitor_cls Closure for @c callback.
+ * @param callback_cls Closure for @c callback.
  */
 void
 GNUNET_MESH_monitor (struct GNUNET_MESH_Handle *h,
                      GNUNET_MESH_MonitorCB callback,
-                     void *monitor_cls);
+                     void *callback_cls);
+
+
+/**
+ * Request information about a specific tunnel of the running mesh peer.
+ *
+ * WARNING: unstable API, likely to change in the future!
+ *
+ * @param h Handle to the mesh peer.
+ * @param initiator ID of the owner of the tunnel.
+ * @param tunnel_number Tunnel number.
+ * @param callback Function to call with the requested data.
+ * @param callback_cls Closure for @c callback.
+ */
+void
+GNUNET_MESH_monitor_tunnel (struct GNUNET_MESH_Handle *h,
+                            struct GNUNET_PeerIdentity *initiator,
+                            unsigned int tunnel_number,
+                            GNUNET_MESH_MonitorTunnelCB callback,
+                            void *callback_cls);
 
 
 /**
  * Cancel a monitor request. The monitor callback will not be called.
+ *
+ * WARNING: unstable API, likely to change in the future!
  *
  * @param h Mesh handle.
  *
