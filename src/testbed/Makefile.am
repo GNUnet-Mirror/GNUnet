@@ -80,25 +80,26 @@ libgnunettestbed_la_LDFLAGS = \
  -version-info 0:0:0
 
 check_PROGRAMS = \
- test_testbed_api_hosts \
- test_testbed_api_controllerlink \
- test_testbed_api_2peers_1controller \
- test_testbed_api_3peers_3controllers \
- test_testbed_api \
- test_testbed_api_operations \
- test_testbed_api_testbed_run \
- test_testbed_api_test \
- test_gnunet_helper_testbed \
- test_testbed_api_topology \
- test_testbed_api_topology_clique \
- test_testbed_api_testbed_run_topologyrandom \
- test_testbed_api_testbed_run_topologyline \
- test_testbed_api_testbed_run_topologyclique \
- test_testbed_api_testbed_run_topologyring \
- test_testbed_api_testbed_run_topologysmallworldring \
- test_testbed_api_testbed_run_topology2dtorus \
- test_testbed_api_testbed_run_topologysmallworld \
- test_testbed_api_testbed_run_topologyfromfile
+  test_testbed_api_hosts \
+  test_testbed_api_controllerlink \
+  test_testbed_api_2peers_1controller \
+  test_testbed_api_3peers_3controllers \
+  test_testbed_api \
+  test_testbed_api_operations \
+  test_testbed_api_testbed_run \
+  test_testbed_api_test \
+  test_gnunet_helper_testbed \
+  test_testbed_api_topology \
+  test_testbed_api_topology_clique \
+  test_testbed_api_testbed_run_topologyrandom \
+  test_testbed_api_testbed_run_topologyline \
+  test_testbed_api_testbed_run_topologyclique \
+  test_testbed_api_testbed_run_topologyring \
+  test_testbed_api_testbed_run_topologysmallworldring \
+  test_testbed_api_testbed_run_topology2dtorus \
+  test_testbed_api_testbed_run_topologysmallworld \
+  test_testbed_api_testbed_run_topologyfromfile \
+  test_testbed_api_testbed_run_topologyscalefree
 
 if ENABLE_TEST_RUN
  TESTS = \
@@ -113,14 +114,15 @@ if ENABLE_TEST_RUN
   test_testbed_api_test \
   test_testbed_api_topology \
   test_testbed_api_topology_clique \
- test_testbed_api_testbed_run_topologyrandom \
- test_testbed_api_testbed_run_topologyline \
- test_testbed_api_testbed_run_topologyclique \
- test_testbed_api_testbed_run_topologyring \
- test_testbed_api_testbed_run_topologysmallworldring \
- test_testbed_api_testbed_run_topology2dtorus \
- test_testbed_api_testbed_run_topologysmallworld \
- test_testbed_api_testbed_run_topologyfromfile
+  test_testbed_api_testbed_run_topologyrandom \
+  test_testbed_api_testbed_run_topologyline \
+  test_testbed_api_testbed_run_topologyclique \
+  test_testbed_api_testbed_run_topologyring \
+  test_testbed_api_testbed_run_topologysmallworldring \
+  test_testbed_api_testbed_run_topology2dtorus \
+  test_testbed_api_testbed_run_topologysmallworld \
+  test_testbed_api_testbed_run_topologyfromfile \
+  test_testbed_api_testbed_run_topologyscalefree
 endif
 
 test_testbed_api_hosts_SOURCES = \
@@ -242,6 +244,12 @@ test_testbed_api_testbed_run_topologyfromfile_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
 
+test_testbed_api_testbed_run_topologyscalefree_SOURCES = \
+ test_testbed_api_testbed_run.c
+test_testbed_api_testbed_run_topologyscalefree_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunettestbed.la
+
 EXTRA_DIST = \
   test_testbed_api.conf \
   test_testbed_api_testbed_run_topologyring.conf \
@@ -252,5 +260,6 @@ EXTRA_DIST = \
   test_testbed_api_testbed_run_topology2dtorus.conf \
   test_testbed_api_testbed_run_topologysmallworld.conf \
   test_testbed_api_testbed_run_topologyfromfile.conf \
+  test_testbed_api_testbed_run_topologyscalefree.conf \
   overlay_topology.txt \
   sample_hosts.txt
