@@ -1,0 +1,7 @@
+[sysmon]
+AUTOSTART = YES
+@UNIXONLY@ PORT = 2098
+HOSTNAME = localhost
+HOME = $SERVICEHOME
+BINARY = gnunet-daemon-sysmon
+CFGFILE = sysmon-properties.conf
