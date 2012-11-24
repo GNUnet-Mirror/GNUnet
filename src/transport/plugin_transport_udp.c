@@ -2136,14 +2136,32 @@ udp_select_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
                                       (struct sockaddr *) &addr, &fromlen);
 #if MINGW
   /* On SOCK_DGRAM UDP sockets recvfrom might fail with a
-   * WSAECONNRESET error to indicate that previous sendto() (???)
+   * WSAECONNRESET error to indicate that previous sendto() (yes, sendto!)
    * on this socket has failed.
+   * Quote from MSDN:
+   *   WSAECONNRESET - The virtual circuit was reset by the remote side
+   *   executing a hard or abortive close. The application should close
+   *   the socket; it is no longer usable. On a UDP-datagram socket this
+   *   error indicates a previous send operation resulted in an ICMP Port
+   *   Unreachable message.
    */
   if ( (-1 == size) && (ECONNRESET == errno) )
     return;
 #endif
-  if ( (-1 == size) || (size < sizeof (struct GNUNET_MessageHeader)))
+  if (-1 == size)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "UDP failed to receive data: %s\n", STRERROR (errno));
+    /* Connection failure or something. Not a protocol violation. */
+    return;
+  }
+  if (size < sizeof (struct GNUNET_MessageHeader))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "UDP got %u bytes, which is not enough for a GNUnet message header\n",
+        (unsigned int) size);
+    /* _MAY_ be a connection failure (got partial message) */
+    /* But it _MAY_ also be that the other side uses non-GNUnet protocol. */
     GNUNET_break_op (0);
     return;
   }
