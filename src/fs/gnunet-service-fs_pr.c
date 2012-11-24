@@ -30,6 +30,13 @@
 #include "gnunet-service-fs_indexing.h"
 #include "gnunet-service-fs_pe.h"
 #include "gnunet-service-fs_pr.h"
+#include "gnunet-service-fs_stream.h"
+
+
+/**
+ * Desired replication level for GETs.
+ */
+#define DHT_GET_REPLICATION 5
 
 /**
  * Maximum size of the datastore queue for P2P operations.  Needs to
@@ -100,6 +107,11 @@ struct GSF_PendingRequest
    * DHT request handle for this request (or NULL for none).
    */
   struct GNUNET_DHT_GetHandle *gh;
+
+  /**
+   * Stream request handle for this request (or NULL for none).
+   */
+  struct GSF_StreamRequest *stream_request;
 
   /**
    * Function to call upon completion of the local get
@@ -624,6 +636,11 @@ clean_request (void *cls, const struct GNUNET_HashCode * key, void *value)
     GNUNET_DHT_get_stop (pr->gh);
     pr->gh = NULL;
   }
+  if (NULL != pr->stream_request)
+  {
+    GSF_stream_query_cancel (pr->stream_request);
+    pr->stream_request = NULL;
+  }
   if (GNUNET_SCHEDULER_NO_TASK != pr->warn_task)
   {
     GNUNET_SCHEDULER_cancel (pr->warn_task);
@@ -675,6 +692,11 @@ GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr, int full_cleanup)
     {
       GNUNET_DHT_get_stop (pr->gh);
       pr->gh = NULL;
+    }
+    if (NULL != pr->stream_request)
+    {
+      GSF_stream_query_cancel (pr->stream_request);
+      pr->stream_request = NULL;
     }
     if (GNUNET_SCHEDULER_NO_TASK != pr->warn_task)
     {
@@ -1121,7 +1143,7 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
   pr->gh =
       GNUNET_DHT_get_start (GSF_dht, 
                             pr->public_data.type, &pr->public_data.query,
-                            5 /* DEFAULT_GET_REPLICATION */ ,
+                            DHT_GET_REPLICATION,
                             GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
                             xquery, xquery_size, &handle_dht_reply, pr);
   if ( (NULL != pr->gh) && 
@@ -1129,6 +1151,72 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
     GNUNET_DHT_get_filter_known_results (pr->gh,
 					 pr->replies_seen_count,
 					 pr->replies_seen);
+}
+
+
+/**
+ * Function called with a reply from the stream.
+ * 
+ * @param cls the pending request struct
+ * @param type type of the block, ANY on error
+ * @param expiration expiration time for the block
+ * @param data_size number of bytes in 'data', 0 on error
+ * @param data reply block data, NULL on error
+ */
+static void
+stream_reply_proc (void *cls,
+		   enum GNUNET_BLOCK_Type type,
+		   struct GNUNET_TIME_Absolute expiration,
+		   size_t data_size,
+		   const void *data)
+{
+  struct GSF_PendingRequest *pr = cls;
+  struct ProcessReplyClosure prq;
+  struct GNUNET_HashCode query;
+
+  pr->stream_request = NULL;
+  if (GNUNET_YES !=
+      GNUNET_BLOCK_get_key (GSF_block_ctx,
+			    type,
+			    data, data_size, &query))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  GNUNET_STATISTICS_update (GSF_stats,
+                            gettext_noop ("# Replies received from STREAM"), 1,
+                            GNUNET_NO);
+  memset (&prq, 0, sizeof (prq));
+  prq.data = data;
+  prq.expiration = expiration;
+  /* do not allow migrated content to live longer than 1 year */
+  prq.expiration = GNUNET_TIME_absolute_min (GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_YEARS),
+					     prq.expiration);
+  prq.size = data_size;
+  prq.type = type;
+  process_reply (&prq, &query, pr);
+}
+
+
+/**
+ * Consider downloading via stream (if possible)
+ *
+ * @param pr the pending request to process
+ */
+void
+GSF_stream_lookup_ (struct GSF_PendingRequest *pr)
+{
+  if (0 != pr->public_data.anonymity_level)
+    return;
+  if (0 == pr->public_data.target)
+    return;
+  if (NULL != pr->stream_request)
+    return;
+  pr->stream_request = GSF_stream_query (pr->public_data.target,
+					 &pr->public_data.query,
+					 pr->public_data.type,
+					 &stream_reply_proc,
+					 pr);
 }
 
 
@@ -1456,6 +1544,7 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
                    GSF_LocalLookupContinuation cont, void *cont_cls)
 {
   GNUNET_assert (NULL == pr->gh);
+  GNUNET_assert (NULL == pr->stream_request);
   GNUNET_assert (NULL == pr->llc_cont);
   pr->llc_cont = cont;
   pr->llc_cont_cls = cont_cls;

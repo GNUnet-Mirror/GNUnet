@@ -93,8 +93,7 @@ struct GSF_PendingRequestData
   const struct GNUNET_HashCode *namespace;
 
   /**
-   * Identity of a peer hosting the content, only set if
-   * 'has_target' is GNUNET_YES.
+   * Identity of a peer hosting the content, otherwise NULl.
    * Allocated after struct only if needed. Do not free!
    */
   const struct GNUNET_PeerIdentity *target;
@@ -357,6 +356,15 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
  */
 void
 GSF_dht_lookup_ (struct GSF_PendingRequest *pr);
+
+
+/**
+ * Consider downloading via stream (if possible)
+ *
+ * @param pr the pending request to process
+ */
+void
+GSF_stream_lookup_ (struct GSF_PendingRequest *pr);
 
 
 /**

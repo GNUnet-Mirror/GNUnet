@@ -22,9 +22,6 @@
  * @file fs/gnunet-service-fs.c
  * @brief gnunet anonymity protocol implementation
  * @author Christian Grothoff
- *
- * To use:
- * - consider re-issue GSF_dht_lookup_ after non-DHT reply received
  */
 #include "platform.h"
 #include <float.h>
@@ -397,7 +394,26 @@ start_p2p_processing (void *cls, struct GSF_PendingRequest *pr,
     GSF_pending_request_cancel_ (pr, GNUNET_YES);
     return;
   }
-  GSF_dht_lookup_ (pr);
+  if (0 == prd->anonymity_level)
+  {
+    switch (prd->type)
+    {
+    case GNUNET_BLOCK_TYPE_FS_DBLOCK:
+    case GNUNET_BLOCK_TYPE_FS_IBLOCK:
+      /* the above block types MAY be available via 'stream' */
+      GSF_stream_lookup_ (pr);
+      break; 
+    case GNUNET_BLOCK_TYPE_FS_KBLOCK:
+    case GNUNET_BLOCK_TYPE_FS_SBLOCK:
+    case GNUNET_BLOCK_TYPE_FS_NBLOCK:
+      /* the above block types are in the DHT */
+      GSF_dht_lookup_ (pr);
+      break;
+    default:
+      GNUNET_break (0);
+      break;
+    }
+  }
   consider_forwarding (NULL, pr, result);
 }
 
