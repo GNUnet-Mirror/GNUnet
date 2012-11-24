@@ -1917,13 +1917,16 @@ handle_receive_close (struct GNUNET_STREAM_Socket *socket,
      that that stream has been shutdown */
   if (NULL != socket->write_handle)
   {
-    // FIXME: this breaks if 'write_cont' decides to 
-    // call SOCKET_close!
-    if (NULL != socket->write_handle->write_cont)
-      socket->write_handle->write_cont (socket->write_handle->write_cont_cls,
-                                        GNUNET_STREAM_SHUTDOWN, 0);
+    GNUNET_STREAM_CompletionContinuation wc;
+    void *wc_cls;
+
+    wc = socket->write_handle->write_cont;
+    wc_cls = socket->write_handle->write_cont_cls;
     GNUNET_STREAM_io_write_cancel (socket->write_handle);
     socket->write_handle = NULL;
+    if (NULL != wc)
+      wc (wc_cls,
+	  GNUNET_STREAM_SHUTDOWN, 0);
   }
   return GNUNET_OK;
 }
@@ -2041,13 +2044,16 @@ handle_close (struct GNUNET_STREAM_Socket *socket,
      that that stream has been shutdown */
   if (NULL != socket->write_handle)
   {
-    // FIXME: this breaks if 'write_cont' decides to 
-    // call SOCKET_close!
-    if (NULL != socket->write_handle->write_cont)
-      socket->write_handle->write_cont (socket->write_handle->write_cont_cls,
-                                        GNUNET_STREAM_SHUTDOWN, 0);
+    GNUNET_STREAM_CompletionContinuation wc;
+    void *wc_cls;
+
+    wc = socket->write_handle->write_cont;
+    wc_cls = socket->write_handle->write_cont_cls;
     GNUNET_STREAM_io_write_cancel (socket->write_handle);
     socket->write_handle = NULL;
+    if (NULL != wc)
+      wc (wc_cls,
+	  GNUNET_STREAM_SHUTDOWN, 0);
   }
   return GNUNET_OK;
 }

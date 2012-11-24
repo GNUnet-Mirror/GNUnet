@@ -246,12 +246,10 @@ struct GNUNET_STREAM_ListenSocket;
  * Listens for stream connections for a specific application ports
  *
  * @param cfg the configuration to use
- *
  * @param app_port the application port for which new streams will be
  *         accepted. If another stream is listening on the same port the
  *         listen_cb will be called to signal binding error and the returned
  *         ListenSocket will be invalidated.
- *
  * @param listen_cb this function will be called when a peer tries to establish
  *            a stream with us
  * @param listen_cb_cls closure for listen_cb
