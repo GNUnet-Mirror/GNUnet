@@ -215,6 +215,7 @@ check_PROGRAMS = \
  test_plugin_block_fs \
  test_fs_directory \
  test_fs_download \
+ test_fs_download_stream \
  test_fs_download_indexed \
  test_fs_download_persistence \
  test_fs_file_information \
@@ -300,8 +301,15 @@ test_fs_download_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la  
 
 test_fs_download_indexed_SOURCES = \
- test_fs_download_indexed.c
+ test_fs_download.c
 test_fs_download_indexed_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la  \
+  $(top_builddir)/src/fs/libgnunetfs.la  \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
+test_fs_download_stream_SOURCES = \
+ test_fs_download.c
+test_fs_download_stream_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la  \
   $(top_builddir)/src/fs/libgnunetfs.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
@@ -494,6 +502,8 @@ EXTRA_DIST = \
   fs_test_lib_data.conf \
   test_fs_data.conf \
   test_fs_download_data.conf \
+  test_fs_download_index.conf \
+  test_fs_download_stream.conf \
   test_fs_file_information_data.conf \
   fs_test_lib_data.conf \
   test_fs_list_indexed_data.conf \

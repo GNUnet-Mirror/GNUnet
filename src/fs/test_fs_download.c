@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2004, 2005, 2006, 2008, 2009, 2011 Christian Grothoff (and other contributing authors)
+     (C) 2004, 2005, 2006, 2008, 2009, 2011, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -45,6 +45,9 @@
  */
 #define LIFETIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
 
+static unsigned int anonymity_level;
+
+static int indexed;
 
 static struct GNUNET_TIME_Absolute start;
 
@@ -57,6 +60,8 @@ static struct GNUNET_FS_PublishContext *publish;
 static GNUNET_SCHEDULER_TaskIdentifier timeout_kill;
 
 static char *fn;
+
+static char *fn1;
 
 static int err;
 
@@ -141,18 +146,22 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
 				   (1 +
 				    GNUNET_TIME_absolute_get_duration
 				    (start).rel_value) / 1024LL));
-    GAUGER ("FS", "Publishing speed (insertion)",
-            (unsigned long long) (FILESIZE * 1000LL /
-                                  (1 +
-                                   GNUNET_TIME_absolute_get_duration
-                                   (start).rel_value) / 1024LL), "kb/s");
+    GAUGER ("FS", 
+	    (GNUNET_YES == indexed) 
+	    ? "Publishing speed (indexing)"
+	     : "Publishing speed (insertion)",
+	    (unsigned long long) (FILESIZE * 1000LL /
+				  (1 +
+				   GNUNET_TIME_absolute_get_duration
+				   (start).rel_value) / 1024LL), "kb/s");
     fn = GNUNET_DISK_mktemp ("gnunet-download-test-dst");
     start = GNUNET_TIME_absolute_get ();
     download =
         GNUNET_FS_download_start (fs,
                                   event->value.publish.specifics.
                                   completed.chk_uri, NULL, fn, NULL, 0,
-                                  FILESIZE, 1, GNUNET_FS_DOWNLOAD_OPTION_NONE,
+                                  FILESIZE, anonymity_level, 
+				  GNUNET_FS_DOWNLOAD_OPTION_NONE,
                                   "download", NULL);
     GNUNET_assert (download != NULL);
     break;
@@ -163,7 +172,10 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
 				   (1 +
 				    GNUNET_TIME_absolute_get_duration
 				    (start).rel_value) / 1024LL));
-    GAUGER ("FS", "Local download speed (inserted)",
+    GAUGER ("FS",
+	    (GNUNET_YES == indexed) 
+	    ? "Local download speed (indexed)"  
+	    : "Local download speed (inserted)",
             (unsigned long long) (FILESIZE * 1000LL /
                                   (1 +
                                    GNUNET_TIME_absolute_get_duration
@@ -235,6 +247,7 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
+  const char *binary_name = cls;
   const char *keywords[] = {
     "down_foo",
     "down_bar",
@@ -246,7 +259,14 @@ run (void *cls,
   size_t i;
   struct GNUNET_FS_BlockOptions bo;
 
-  fs = GNUNET_FS_start (cfg, "test-fs-download", &progress_cb, NULL,
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (cfg,
+					    "download-test",
+					    "USE_STREAM"))
+    anonymity_level = 0;
+  else
+    anonymity_level = 1;
+  fs = GNUNET_FS_start (cfg, binary_name, &progress_cb, NULL,
                         GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
   GNUNET_assert (NULL != fs);
   buf = GNUNET_malloc (FILESIZE);
@@ -255,12 +275,34 @@ run (void *cls,
   meta = GNUNET_CONTAINER_meta_data_create ();
   kuri = GNUNET_FS_uri_ksk_create_from_args (2, keywords);
   bo.content_priority = 42;
-  bo.anonymity_level = 1;
+  bo.anonymity_level = anonymity_level;
   bo.replication_level = 0;
   bo.expiration_time = GNUNET_TIME_relative_to_absolute (LIFETIME);
-  fi = GNUNET_FS_file_information_create_from_data (fs, "publish-context",
-                                                    FILESIZE, buf, kuri, meta,
-                                                    GNUNET_NO, &bo);
+
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (cfg,
+					    "download-test",
+					    "USE_INDEX"))
+  {
+    fn1 = GNUNET_DISK_mktemp ("gnunet-download-indexed-test");
+    GNUNET_assert (FILESIZE ==
+		   GNUNET_DISK_fn_write (fn1, buf, FILESIZE,
+					 GNUNET_DISK_PERM_USER_READ |
+					 GNUNET_DISK_PERM_USER_WRITE));
+    GNUNET_free (buf);
+    fi = GNUNET_FS_file_information_create_from_file (fs, "publish-context", fn1,
+						      kuri, meta, GNUNET_YES,
+						      &bo);
+    indexed = GNUNET_YES;
+  }
+  else
+  {
+    fi = GNUNET_FS_file_information_create_from_data (fs, "publish-context",
+						      FILESIZE, buf, kuri, meta,
+						      GNUNET_NO, &bo);
+    /* note: buf will be free'd as part of 'fi' now */
+    indexed = GNUNET_NO;
+  }
   GNUNET_FS_uri_destroy (kuri);
   GNUNET_CONTAINER_meta_data_destroy (meta);
   GNUNET_assert (NULL != fi);
@@ -277,10 +319,30 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
-  if (0 != GNUNET_TESTING_peer_run ("test-fs-download",
-				    "test_fs_download_data.conf",
-				    &run, NULL))
+  const char *binary_name;
+  const char *config_name;
+
+  binary_name = "test-fs-download";
+  config_name = "test_fs_download_data.conf";
+  if (NULL != strstr (argv[0], "indexed"))
+  {
+    binary_name = "test-fs-download-indexed";
+    config_name = "test_fs_download_indexed.conf";
+  }
+  if (NULL != strstr (argv[0], "stream"))
+  {
+    binary_name = "test-fs-download-stream";
+    config_name = "test_fs_download_stream.conf";
+  }
+  if (0 != GNUNET_TESTING_peer_run (binary_name,
+				    config_name,
+				    &run, (void *) binary_name))
     return 1;
+  if (NULL != fn1)
+  {
+    UNLINK (fn1);
+    GNUNET_free (fn1);
+  }
   return err;
 }
 
