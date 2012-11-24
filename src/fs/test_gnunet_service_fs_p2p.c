@@ -42,13 +42,15 @@
 
 #define SEED 42
 
+static const char *progname;
+
+static unsigned int anonymity_level;
+
 static struct GNUNET_TESTBED_Peer *daemons[NUM_DAEMONS];
 
 static int ok;
 
 static struct GNUNET_TIME_Absolute start_time;
-
-static struct GNUNET_TESTBED_Operation *op;
 
 
 static void
@@ -94,62 +96,51 @@ do_download (void *cls, const struct GNUNET_FS_Uri *uri)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Downloading %llu bytes\n",
               (unsigned long long) FILESIZE);
   start_time = GNUNET_TIME_absolute_get ();
-  GNUNET_FS_TEST_download (daemons[0], TIMEOUT, 1, SEED, uri, VERBOSE, &do_stop,
+  GNUNET_FS_TEST_download (daemons[0], TIMEOUT, 
+			   anonymity_level, SEED, uri, 
+			   VERBOSE, &do_stop,
                            NULL);
 }
 
 
 static void
 do_publish (void *cls,
-	    struct GNUNET_TESTBED_Operation *opret,
-	    const char *emsg)
-{
-  GNUNET_assert (op == opret);
-  GNUNET_TESTBED_operation_done (op);
-  op = NULL;
-
-  if (NULL != emsg)
-  {
-    GNUNET_SCHEDULER_shutdown ();
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Timeout during connect attempt, shutting down with error: %s\n",
-		emsg);
-    ok = 1;
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Publishing %llu bytes\n",
-              (unsigned long long) FILESIZE);
-  GNUNET_FS_TEST_publish (daemons[1], TIMEOUT, 1, GNUNET_NO, FILESIZE, SEED,
-                          VERBOSE, &do_download, NULL);
-}
-
-
-static void
-do_connect (void *cls,
 	    unsigned int num_peers,
 	    struct GNUNET_TESTBED_Peer **peers)
 {
   unsigned int i;
  
+  if (NULL != strstr (progname, "stream"))
+    anonymity_level = 0;
+  else
+    anonymity_level = 1;
   GNUNET_assert (NUM_DAEMONS == num_peers);
   for (i=0;i<num_peers;i++)
     daemons[i] = peers[i];
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Daemons started, will now try to connect them\n");
-  op = GNUNET_TESTBED_overlay_connect (NULL,
-				       &do_publish, NULL,
-				       daemons[0], daemons[1]);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Publishing %llu bytes\n",
+              (unsigned long long) FILESIZE);
+  GNUNET_FS_TEST_publish (daemons[1], TIMEOUT, 
+			  anonymity_level, GNUNET_NO, 
+			  FILESIZE, SEED,
+                          VERBOSE, &do_download, NULL);
 }
 
 
 int
 main (int argc, char *argv[])
 {
+  const char *config;
+
+  progname = argv[0];
+  if (NULL != strstr (progname, "stream"))
+    config = "test_gnunet_service_fs_p2p_stream.conf";
+  else
+    config = "fs_test_lib_data.conf";
   GNUNET_TESTBED_test_run ("test-gnunet-service-fs-p2p",
-			   "fs_test_lib_data.conf",
+			   config,
 			   NUM_DAEMONS,
 			   0, NULL, NULL,
-			   &do_connect, NULL);
+			   &do_publish, NULL);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
   return ok;
 }

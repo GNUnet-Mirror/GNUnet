@@ -142,30 +142,6 @@ do_wait (void *cls, const struct GNUNET_FS_Uri *uri)
 
 static void
 do_publish (void *cls, 
-	    struct GNUNET_TESTBED_Operation *oparg,
-	    const char *emsg)
-{
-  GNUNET_assert (op == oparg);
-  GNUNET_TESTBED_operation_done (op);
-  op = NULL;
-  if (NULL != emsg)
-  {
-    GNUNET_SCHEDULER_shutdown ();
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error connecting peers: %s\n",
-		emsg);
-    ok = 1;
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Publishing %llu bytes\n",
-              (unsigned long long) FILESIZE);
-  GNUNET_FS_TEST_publish (daemons[1], TIMEOUT, 1, GNUNET_NO, FILESIZE, SEED,
-                          VERBOSE, &do_wait, NULL);
-}
-
-
-static void
-do_connect (void *cls, 
 	    unsigned int num_peers,
 	    struct GNUNET_TESTBED_Peer **peers)
 {
@@ -174,11 +150,10 @@ do_connect (void *cls,
   GNUNET_assert (2 == num_peers);
   for (i=0;i<num_peers;i++)
     daemons[i] = peers[i];
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Daemons started, will now try to connect them\n");
-  op = GNUNET_TESTBED_overlay_connect (NULL,
-				       &do_publish, NULL,
-				       daemons[0], daemons[1]);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Publishing %llu bytes\n",
+              (unsigned long long) FILESIZE);
+  GNUNET_FS_TEST_publish (daemons[1], TIMEOUT, 1, GNUNET_NO, FILESIZE, SEED,
+                          VERBOSE, &do_wait, NULL);
 }
 
 
@@ -189,7 +164,7 @@ main (int argc, char *argv[])
 			   "fs_test_lib_data.conf",
 			   2,
 			   0, NULL, NULL,
-			   &do_connect,
+			   &do_publish,
 			   NULL);
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-service-fs-migration/");
   return ok;

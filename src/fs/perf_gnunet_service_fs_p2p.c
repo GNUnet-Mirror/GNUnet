@@ -294,21 +294,17 @@ do_download (void *cls, const struct GNUNET_FS_Uri *uri)
 
 
 static void
-do_publish (void *cls,
-	    struct GNUNET_TESTBED_Operation *op,
-	    const char *emsg)
+do_publish (void *cls, 
+	    unsigned int num_peers,
+	    struct GNUNET_TESTBED_Peer **peers)
 {
+  unsigned int i;
   int do_index;
   int anonymity;
-
-  GNUNET_TESTBED_operation_done (op);
-  if (NULL != emsg)
-  {
-    GNUNET_SCHEDULER_shutdown ();
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error trying to connect: %s\n", emsg);
-    ok = 1;
-    return;
-  }
+ 
+  GNUNET_assert (NUM_DAEMONS == num_peers);
+  for (i=0;i<num_peers;i++)
+    daemons[i] = peers[i];
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Publishing %llu bytes\n",
               (unsigned long long) FILESIZE);
   if (NULL != strstr (progname, "index"))
@@ -319,29 +315,9 @@ do_publish (void *cls,
     anonymity = 0;
   else
     anonymity = 1;
-
   GNUNET_FS_TEST_publish (daemons[NUM_DAEMONS - 1], TIMEOUT, anonymity,
                           do_index, FILESIZE, SEED, VERBOSE, &do_download,
                           NULL);
-}
-
-
-static void
-do_connect (void *cls, 
-	    unsigned int num_peers,
-	    struct GNUNET_TESTBED_Peer **peers)
-{
-  unsigned int i;
- 
-  GNUNET_assert (NUM_DAEMONS == num_peers);
-  for (i=0;i<num_peers;i++)
-    daemons[i] = peers[i];
-  GNUNET_TESTBED_overlay_connect (NULL,
-				  &do_publish,
-				  NULL,
-				  peers[0],
-				  peers[1]);
-  // FIXME: was supposed to connect in line...
 }
 
 
@@ -353,7 +329,7 @@ main (int argc, char *argv[])
 			   "perf_gnunet_service_fs_p2p.conf",
 			   NUM_DAEMONS,
 			   0, NULL, NULL,
-			   &do_connect, NULL);
+			   &do_publish, NULL);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
   return ok;
 }

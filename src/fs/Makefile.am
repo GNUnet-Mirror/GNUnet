@@ -235,6 +235,7 @@ check_PROGRAMS = \
  test_fs_uri \
  test_gnunet_service_fs_migration \
  test_gnunet_service_fs_p2p \
+ test_gnunet_service_fs_p2p_stream \
  $(FS_BENCHMARKS)
 
 test_plugin_block_fs_SOURCES = \
@@ -279,6 +280,7 @@ TESTS = \
  test_fs_test_lib \
  test_gnunet_service_fs_migration \
  test_gnunet_service_fs_p2p \
+ test_gnunet_service_fs_p2p_stream \
  perf_gnunet_service_fs_p2p \
  perf_gnunet_service_fs_p2p_index \
  perf_gnunet_service_fs_p2p_respect \
@@ -433,6 +435,14 @@ test_gnunet_service_fs_p2p_LDADD = \
   $(top_builddir)/src/fs/libgnunetfs.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
 
+test_gnunet_service_fs_p2p_stream_SOURCES = \
+ test_gnunet_service_fs_p2p.c
+test_gnunet_service_fs_p2p_stream_LDADD = \
+  $(top_builddir)/src/fs/libgnunetfstest.a \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/fs/libgnunetfs.la  \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
 test_gnunet_service_fs_migration_SOURCES = \
  test_gnunet_service_fs_migration.c
 test_gnunet_service_fs_migration_LDADD = \
@@ -513,6 +523,7 @@ EXTRA_DIST = \
   test_fs_unindex_data.conf \
   test_fs_uri_data.conf \
   test_gnunet_service_fs_migration_data.conf \
+  test_gnunet_service_fs_p2p_stream.conf \
   test_gnunet_fs_idx_data.conf \
   test_gnunet_fs_ns_data.conf \
   test_gnunet_fs_psd_data.conf \

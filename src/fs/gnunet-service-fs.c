@@ -562,6 +562,9 @@ static int
 main_init (struct GNUNET_SERVER_Handle *server,
            const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  static const struct GNUNET_CORE_MessageHandler no_p2p_handlers[] = {
+    {NULL, 0, 0}
+  };
   static const struct GNUNET_CORE_MessageHandler p2p_handlers[] = {
     {&handle_p2p_get,
      GNUNET_MESSAGE_TYPE_FS_GET, 0},
@@ -584,11 +587,21 @@ main_init (struct GNUNET_SERVER_Handle *server,
      0},
     {NULL, NULL, 0, 0}
   };
+  int anon_p2p_off;
 
+  /* this option is really only for testcases that need to disable
+     _anonymous_ file-sharing for some reason */
+  anon_p2p_off = (GNUNET_YES ==
+		  GNUNET_CONFIGURATION_get_value_yesno (GSF_cfg,
+							"fs",
+							"DISABLE_ANON_TRANSFER"));  
   GSF_core =
       GNUNET_CORE_connect (GSF_cfg, NULL, &peer_init_handler,
                            &peer_connect_handler, &GSF_peer_disconnect_handler_,
-                           NULL, GNUNET_NO, NULL, GNUNET_NO, p2p_handlers);
+                           NULL, GNUNET_NO, NULL, GNUNET_NO,
+			   (GNUNET_YES == anon_p2p_off)
+			   ? no_p2p_handlers
+			   : p2p_handlers);
   if (NULL == GSF_core)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

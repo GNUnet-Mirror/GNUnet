@@ -50,6 +50,10 @@ EXPECTED_NEIGHBOUR_COUNT = 128
 # Enable monkey?
 # PREFIX = @MONKEYPREFIX@
 
+# Disable anonymous file-sharing (but keep non-anonymous transfers)?
+# This option is mostly for testing.
+DISABLE_ANON_TRANSFER = NO
+
 
 [gnunet-auto-share]
 BINARY = gnunet-auto-share
