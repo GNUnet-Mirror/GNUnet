@@ -1175,11 +1175,23 @@ stream_reply_proc (void *cls,
   struct GNUNET_HashCode query;
 
   pr->stream_request = NULL;
+  if (GNUNET_BLOCK_TYPE_ANY == type)
+  {
+    GNUNET_break (NULL == data);
+    GNUNET_break (0 == data_size);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Error retrieiving block via stream\n");
+    /* FIXME: should re-try a few times... */
+    return;
+  }
   if (GNUNET_YES !=
       GNUNET_BLOCK_get_key (GSF_block_ctx,
 			    type,
 			    data, data_size, &query))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Failed to derive key for block of type %d\n",
+		(int) type);
     GNUNET_break_op (0);
     return;
   }
@@ -1209,7 +1221,11 @@ GSF_stream_lookup_ (struct GSF_PendingRequest *pr)
   if (0 != pr->public_data.anonymity_level)
     return;
   if (0 == pr->public_data.target)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Cannot do stream-based download, target peer not known\n");
     return;
+  }
   if (NULL != pr->stream_request)
     return;
   pr->stream_request = GSF_stream_query (pr->public_data.target,
