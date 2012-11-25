@@ -1181,7 +1181,11 @@ stream_reply_proc (void *cls,
     GNUNET_break (0 == data_size);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Error retrieiving block via stream\n");
-    /* FIXME: should re-try a few times... */
+    /* FIXME: maybe we should re-try a few times; but then
+       we MUST bound the number of re-tries to not keep
+       asking indefinitely with fresh streams; this should
+       be implemented if/when the stream code gets its
+       timeout/parallel-session limits */
     return;
   }
   if (GNUNET_YES !=
