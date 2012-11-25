@@ -365,7 +365,10 @@ static void
 reset_stream (struct StreamHandle *sh)
 {
   struct GSF_StreamRequest *sr;
-  
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Resetting stream to %s\n",
+	      GNUNET_i2s (&sh->target));
   if (NULL != sh->rh)
     GNUNET_STREAM_io_read_cancel (sh->rh);
   GNUNET_STREAM_close (sh->stream);
@@ -400,6 +403,9 @@ stream_timeout (void *cls,
 {
   struct StreamHandle *sh = cls;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Timeout on stream to %s\n",
+	      GNUNET_i2s (&sh->target));
   sh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   destroy_stream_handle (sh);
 }
@@ -456,6 +462,10 @@ handle_stream_reply (void *cls,
   struct StreamHandle *sh = cls;
 
   sh->rh = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received %u bytes from stream to %s\n",
+	      (unsigned int) size,
+	      GNUNET_i2s (&sh->target));
   if (GNUNET_SYSERR == 
       GNUNET_SERVER_mst_receive (sh->mst,
 				 NULL,
@@ -499,6 +509,10 @@ query_write_continuation (void *cls,
     reset_stream (sh);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Successfully transmitted %u bytes via stream to %s\n",
+	      (unsigned int) size,
+	      GNUNET_i2s (&sh->target));
   if (NULL == sh->rh)
     sh->rh = GNUNET_STREAM_read (sh->stream,
 				 GNUNET_TIME_UNIT_FOREVER_REL,
@@ -530,6 +544,9 @@ transmit_pending (struct StreamHandle *sh)
   GNUNET_CONTAINER_DLL_insert_tail (sh->waiting_head,
 				    sh->waiting_tail,
 				    sr);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending query via stream to %s\n",
+	      GNUNET_i2s (&sh->target));
   sr->was_transmitted = GNUNET_YES;
   sqm.header.size = htons (sizeof (sqm));
   sqm.header.type = htons (GNUNET_MESSAGE_TYPE_FS_STREAM_QUERY);
@@ -642,6 +659,9 @@ get_stream (const struct GNUNET_PeerIdentity *target)
     }
     return sh;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Creating stream to %s\n",
+	      GNUNET_i2s (target));
   sh = GNUNET_malloc (sizeof (struct StreamHandle));
   sh->mst = GNUNET_SERVER_mst_create (&reply_cb,
 				      sh);
@@ -679,6 +699,10 @@ GSF_stream_query (const struct GNUNET_PeerIdentity *target,
   struct StreamHandle *sh;
   struct GSF_StreamRequest *sr;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Preparing to send query for %s via stream to %s\n",
+	      GNUNET_h2s (query),
+	      GNUNET_i2s (target));
   sh = get_stream (target);
   sr = GNUNET_malloc (sizeof (struct GSF_StreamRequest));
   sr->sh = sh;
@@ -849,6 +873,9 @@ process_request (void *cls,
   int ret;
 
   sc->rh = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received %u byte query via stream\n",
+	      (unsigned int) size);
   switch (status)
   {
   case GNUNET_STREAM_OK:
@@ -897,13 +924,20 @@ write_continuation (void *cls,
   if ( (GNUNET_STREAM_OK == status) &&
        (size == sc->reply_size) )
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Transmitted %u byte reply via stream\n",
+		(unsigned int) size);
     GNUNET_STATISTICS_update (GSF_stats,
 			      gettext_noop ("# Blocks transferred via stream"), 1,
 			      GNUNET_NO);
     continue_reading (sc);
   }
   else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Transmission of reply failed, terminating stream\n");
     terminate_stream (sc);    
+  }
 }
 
 
@@ -957,6 +991,9 @@ handle_datastore_reply (void *cls,
     continue_reading (sc);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting transmission of %u byte reply via stream\n",
+	      (unsigned int) size);
   srm->header.size = htons ((uint16_t) msize);
   srm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_STREAM_REPLY);
   srm->type = htonl (type);
@@ -1052,6 +1089,9 @@ accept_cb (void *cls,
 
   if (NULL == socket)
     return GNUNET_SYSERR;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Accepting inbound stream connection from `%s'\n",
+	      GNUNET_i2s (initiator));
   GNUNET_STATISTICS_update (GSF_stats,
 			    gettext_noop ("# stream connections active"), 1,
 			    GNUNET_NO);

@@ -401,12 +401,16 @@ start_p2p_processing (void *cls, struct GSF_PendingRequest *pr,
     case GNUNET_BLOCK_TYPE_FS_DBLOCK:
     case GNUNET_BLOCK_TYPE_FS_IBLOCK:
       /* the above block types MAY be available via 'stream' */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Considering stream-based download for block\n");
       GSF_stream_lookup_ (pr);
       break; 
     case GNUNET_BLOCK_TYPE_FS_KBLOCK:
     case GNUNET_BLOCK_TYPE_FS_SBLOCK:
     case GNUNET_BLOCK_TYPE_FS_NBLOCK:
       /* the above block types are in the DHT */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Considering DHT-based search for block\n");
       GSF_dht_lookup_ (pr);
       break;
     default:
