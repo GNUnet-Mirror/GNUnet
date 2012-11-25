@@ -626,6 +626,8 @@ send_message_notify (void *cls, size_t size, void *buf)
 			       head);
   GNUNET_free (head->message);
   GNUNET_free (head);
+  if (NULL != socket->transmit_handle)
+    return ret; /* 'finish_cb' might have triggered message already! */
   head = socket->queue_head;
   if (NULL != head)    /* more pending messages to send */
   {
