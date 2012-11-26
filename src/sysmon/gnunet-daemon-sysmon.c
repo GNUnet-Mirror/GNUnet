@@ -49,6 +49,10 @@ struct SysmonProperty
  int value_type;
  struct GNUNET_TIME_Relative interval;
 
+ char * cmd;
+ char * cmd_args;
+ void * cmd_exec_handle;
+
  uint64_t num_val;
  char * str_val;
 
@@ -109,6 +113,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_SCHEDULER_cancel (sp->task_id);
         sp->task_id = GNUNET_SCHEDULER_NO_TASK;
       }
+      GNUNET_free_non_null (sp->cmd);
+      GNUNET_free_non_null (sp->cmd_args);
       GNUNET_free (sp->desc);
       GNUNET_free (sp);
   }
@@ -151,6 +157,54 @@ put_property (struct SysmonProperty *sp)
 }
 
 static void
+update_uptime (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct SysmonProperty *sp = cls;
+  sp->num_val ++;
+  put_property (sp);
+}
+
+static void
+exec_cmd_proc (void *cls, const char *line)
+{
+  struct SysmonProperty *sp = cls;
+  if (NULL == line)
+  {
+      GNUNET_OS_command_stop (sp->cmd_exec_handle);
+      sp->cmd_exec_handle = NULL;
+      return;
+  }
+
+
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Property output: `%s'\n", line);
+}
+
+static void
+exec_cmd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct SysmonProperty *sp = cls;
+  GNUNET_assert (NULL != sp->cmd);
+
+  if (NULL != sp->cmd_exec_handle)
+  {
+    GNUNET_OS_command_stop (sp->cmd_exec_handle);
+    sp->cmd_exec_handle = NULL;
+    GNUNET_break (0);
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Trying to exec : `%s'\n", sp->cmd);
+  if (NULL == (sp->cmd_exec_handle = GNUNET_OS_command_run (&exec_cmd_proc, sp,
+      GNUNET_TIME_UNIT_SECONDS,
+      sp->cmd, sp->cmd,
+      sp->cmd_args,
+      NULL)))
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Property `%s': command `%s' failed\n", sp->desc, sp->cmd);
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Property `%s': command `%s' DONE\n", sp->desc, sp->cmd);
+}
+
+static void
 load_property (void *cls,
                const char *section)
 {
@@ -181,10 +235,33 @@ load_property (void *cls,
         "DESCRIPTION", section);
     return;
   }
+  if (GNUNET_NO == GNUNET_CONFIGURATION_have_value (properties, section,"CMD"))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Missing value %s in section `%s'\n",
+        "CMD", section);
+    return;
+  }
   sp = GNUNET_malloc (sizeof (struct SysmonProperty));
 
   /* description */
   GNUNET_CONFIGURATION_get_value_string (properties, section, "DESCRIPTION", &sp->desc);
+
+  /* cmd */
+  GNUNET_CONFIGURATION_get_value_string (properties, section, "CMD", &tmp);
+  char *args = "";
+  if (NULL != strchr (tmp, ' '))
+  {
+      args = strchr (tmp, ' ');
+      if (strlen (args) > 1)
+      {
+          args[0] = '\0';
+          args++;
+      }
+  }
+  sp->cmd = GNUNET_strdup (tmp);
+  sp->cmd_args = GNUNET_strdup (args);
+  GNUNET_free (tmp);
+  sp->task = &exec_cmd;
 
   /* type */
   GNUNET_CONFIGURATION_get_value_string (properties, section, "TYPE", &tmp);
@@ -233,20 +310,14 @@ load_property (void *cls,
     }
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Loaded property `%s': type %u, value %u, interval %llu\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Loaded property `%s': %s, %s, interval %llu\n",
       (NULL != sp->desc) ? sp->desc: "<undefined>",
-      sp->type, sp->value_type, sp->interval.rel_value);
+      (t_continous == sp->type) ? "continious" : "static",
+      (v_numeric == sp->value_type) ? "numeric" : "string",
+      sp->interval.rel_value);
 
   GNUNET_CONTAINER_DLL_insert (sp_head, sp_tail, sp);
 
-}
-
-static void
-update_uptime (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct SysmonProperty *sp = cls;
-  sp->num_val ++;
-  put_property (sp);
 }
 
 static int
@@ -258,7 +329,7 @@ load_default_properties (void)
 
   /* GNUnet vcs revision */
   unsigned int revision;
-
+return GNUNET_OK;
   /* version */
 #ifdef VERSION
   if (3 != sscanf (VERSION, "%u.%u.%u", &ver[0], &ver[1], &ver[2]))
@@ -333,6 +404,7 @@ run_property (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct SysmonProperty *sp = cls;
   sp->task_id = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Running continous property `%s' \n", sp->desc);
   sp->task (cls, tc);
   sp->task_id = GNUNET_SCHEDULER_add_delayed (sp->interval, &run_property, sp);
 }
@@ -354,10 +426,9 @@ run_properties (void)
       {
           if (NULL == sp->task)
           {
-            continue;
             GNUNET_break (0);
+            continue;
           }
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Running continous property `%s' \n", sp->desc);
           sp->task_id = GNUNET_SCHEDULER_add_now (&run_property, sp);
       }
   }
