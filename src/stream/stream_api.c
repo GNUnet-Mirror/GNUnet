@@ -283,7 +283,12 @@ struct GNUNET_STREAM_Socket
   /**
    * Mesh transmit timeout
    */
-  struct GNUNET_TIME_Relative mesh_retry_timeout;  
+  struct GNUNET_TIME_Relative mesh_retry_timeout;
+
+  /**
+   * Data retransmission timeout
+   */
+  struct GNUNET_TIME_Relative data_retransmit_timeout;
 
   /**
    * The state of the protocol associated with this socket
@@ -294,11 +299,6 @@ struct GNUNET_STREAM_Socket
    * The status of the socket
    */
   enum GNUNET_STREAM_Status status;
-
-  /**
-   * The number of previous timeouts; FIXME: currently not used
-   */
-  unsigned int retries;
 
   /**
    * Whether testing mode is active or not
@@ -928,11 +928,14 @@ write_data (struct GNUNET_STREAM_Socket *socket)
   io_handle->packets_sent = packet;
   // FIXME: 8s is not good, should use GNUNET_TIME_STD_BACKOFF...
   if (GNUNET_SCHEDULER_NO_TASK == socket->data_retransmission_task_id)
+  {
+    socket->data_retransmit_timeout = GNUNET_TIME_STD_BACKOFF
+        (socket->data_retransmit_timeout);
     socket->data_retransmission_task_id = 
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply 
-                                    (GNUNET_TIME_UNIT_SECONDS, 8),
-                                    &data_retransmission_task,
-                                    socket);
+        GNUNET_SCHEDULER_add_delayed (socket->data_retransmit_timeout,
+                                      &data_retransmission_task,
+                                      socket);
+  }
 }
 
 
@@ -2555,6 +2558,7 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
     {
       GNUNET_SCHEDULER_cancel (socket->data_retransmission_task_id);
       socket->data_retransmission_task_id = GNUNET_SCHEDULER_NO_TASK;
+      socket->data_retransmit_timeout = GNUNET_TIME_UNIT_SECONDS;
     }
     for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
     {
@@ -3511,6 +3515,7 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
      using RTT */
   io_handle->messages[num_needed_packets - 1]->ack_deadline = 
       GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_ZERO);
+  socket->data_retransmit_timeout = GNUNET_TIME_UNIT_SECONDS;
   socket->write_handle = io_handle;
   write_data (socket);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -3595,19 +3600,16 @@ GNUNET_STREAM_io_write_cancel (struct GNUNET_STREAM_IOWriteHandle *ioh)
 
   GNUNET_assert (NULL != socket->write_handle);
   GNUNET_assert (socket->write_handle == ioh);
-
   if (GNUNET_SCHEDULER_NO_TASK != socket->data_retransmission_task_id)
   {
     GNUNET_SCHEDULER_cancel (socket->data_retransmission_task_id);
     socket->data_retransmission_task_id = GNUNET_SCHEDULER_NO_TASK;
   }
-
   for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
   {
     if (NULL == ioh->messages[packet]) break;
     GNUNET_free (ioh->messages[packet]);
-  }
-      
+  }      
   GNUNET_free (socket->write_handle);
   socket->write_handle = NULL;
 }
