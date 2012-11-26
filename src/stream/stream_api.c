@@ -36,7 +36,7 @@
 
 #include "platform.h"
 #include "gnunet_common.h"
-#include "gnunet_crypto_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_lockmanager_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_stream_lib.h"
@@ -279,6 +279,11 @@ struct GNUNET_STREAM_Socket
    * Queued Acknowledgement deadline
    */
   struct GNUNET_TIME_Relative ack_time_deadline;
+
+  /**
+   * Mesh transmit timeout
+   */
+  struct GNUNET_TIME_Relative mesh_retry_timeout;  
 
   /**
    * The state of the protocol associated with this socket
@@ -576,7 +581,6 @@ static const unsigned int default_timeout = 10;
  */
 static const char *locking_domain = "GNUNET_STREAM_APPLOCK";
 
-
 /**
  * Callback function for sending queued message
  *
@@ -598,20 +602,21 @@ send_message_notify (void *cls, size_t size, void *buf)
     return 0; /* just to be safe */
   if (0 == size)                /* request timed out */
   {
-    socket->retries++;
+    socket->mesh_retry_timeout = GNUNET_TIME_STD_BACKOFF
+        (socket->mesh_retry_timeout);    
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "%s: Message sending timed out. Retry %d \n",
+         "%s: Message sending to MESH timed out. Retrying in %s \n",
          GNUNET_i2s (&socket->other_peer),
-         socket->retries);
+         GNUNET_STRINGS_relative_time_to_string (socket->mesh_retry_timeout,
+                                                 GNUNET_YES));
     socket->transmit_handle = 
-      GNUNET_MESH_notify_transmit_ready (socket->tunnel,
-                                         GNUNET_NO, /* Corking */
-                                         /* FIXME: exponential backoff */
-                                         socket->retransmit_timeout,
-                                         &socket->other_peer,
-                                         ntohs (head->message->header.size),
-                                         &send_message_notify,
-                                         socket);
+        GNUNET_MESH_notify_transmit_ready (socket->tunnel,
+                                           GNUNET_NO, /* Corking */
+                                           socket->mesh_retry_timeout,
+                                           &socket->other_peer,
+                                           ntohs (head->message->header.size),
+                                           &send_message_notify,
+                                           socket);
     return 0;
   }
   ret = ntohs (head->message->header.size);
@@ -631,16 +636,15 @@ send_message_notify (void *cls, size_t size, void *buf)
   head = socket->queue_head;
   if (NULL != head)    /* more pending messages to send */
   {
-    socket->retries = 0;
+    socket->mesh_retry_timeout = GNUNET_TIME_relative_get_zero_ ();
     socket->transmit_handle = 
-      GNUNET_MESH_notify_transmit_ready (socket->tunnel,
-                                         GNUNET_NO, /* Corking */
-                                         /* FIXME: exponential backoff */
-                                         socket->retransmit_timeout,
-                                         &socket->other_peer,
-                                         ntohs (head->message->header.size),
-                                         &send_message_notify,
-                                         socket);
+        GNUNET_MESH_notify_transmit_ready (socket->tunnel,
+                                           GNUNET_NO, /* Corking */
+                                           socket->mesh_retry_timeout,
+                                           &socket->other_peer,
+                                           ntohs (head->message->header.size),
+                                           &send_message_notify,
+                                           socket);
   }
   return ret;
 }
@@ -694,11 +698,11 @@ queue_message (struct GNUNET_STREAM_Socket *socket,
                                       queue_entity);
   if (NULL == socket->transmit_handle)
   {
-    socket->retries = 0;
+    socket->mesh_retry_timeout = GNUNET_TIME_relative_get_zero_ ();
     socket->transmit_handle = 
 	GNUNET_MESH_notify_transmit_ready (socket->tunnel,
 					   GNUNET_NO, /* Corking */
-					   socket->retransmit_timeout,
+                                           socket->mesh_retry_timeout,
 					   &socket->other_peer,
 					   ntohs (message->header.size),
 					   &send_message_notify,
