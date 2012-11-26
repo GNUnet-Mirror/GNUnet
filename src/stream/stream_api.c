@@ -636,7 +636,7 @@ send_message_notify (void *cls, size_t size, void *buf)
   head = socket->queue_head;
   if (NULL != head)    /* more pending messages to send */
   {
-    socket->mesh_retry_timeout = GNUNET_TIME_relative_get_zero_ ();
+    socket->mesh_retry_timeout = GNUNET_TIME_UNIT_ZERO;
     socket->transmit_handle = 
         GNUNET_MESH_notify_transmit_ready (socket->tunnel,
                                            GNUNET_NO, /* Corking */
@@ -698,7 +698,7 @@ queue_message (struct GNUNET_STREAM_Socket *socket,
                                       queue_entity);
   if (NULL == socket->transmit_handle)
   {
-    socket->mesh_retry_timeout = GNUNET_TIME_relative_get_zero_ ();
+    socket->mesh_retry_timeout = GNUNET_TIME_UNIT_ZERO;
     socket->transmit_handle = 
 	GNUNET_MESH_notify_transmit_ready (socket->tunnel,
 					   GNUNET_NO, /* Corking */
