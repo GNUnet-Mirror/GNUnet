@@ -2515,7 +2515,8 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
 	    const struct GNUNET_STREAM_AckMessage *ack,
 	    const struct GNUNET_ATS_Information*atsi)
 {
-  struct GNUNET_STREAM_IOWriteHandle *write_handle;    
+  struct GNUNET_STREAM_IOWriteHandle *write_handle;
+  uint64_t ack_bitmap;
   unsigned int packet;
   int need_retransmission;
   uint32_t sequence_difference;
@@ -2571,17 +2572,13 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
       /* BS: Base sequence from ack; PS: sequence num of current packet */
       sequence_difference = ntohl (ack->base_sequence_number)
         - ntohl (socket->write_handle->messages[packet]->sequence_number);
-      if ((0 == sequence_difference) ||
-	  (GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH < sequence_difference))
+      if (0 == sequence_difference)
 	break; /* The message in our handle is not yet received */
       /* case where BS = PS + GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH */
       /* sequence_difference <= GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH */
       ackbitmap_modify_bit (&socket->write_handle->ack_bitmap,
 			    packet, GNUNET_YES);
     }
-    /* Update the receive window remaining
-       FIXME : Should update with the value from a data ack with greater
-       sequence number */
     if (((ntohl (ack->base_sequence_number)
          - (socket->write_handle->max_ack_base_num))
           <= GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH))
@@ -2602,6 +2599,15 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
     GNUNET_assert (ntohl
                    (socket->write_handle->messages[packet]->sequence_number)
                    == ntohl (ack->base_sequence_number));
+    /* Update our bitmap */
+    ack_bitmap = GNUNET_ntohll (ack->bitmap);
+    for (; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
+    {
+      if (ackbitmap_is_bit_set (&ack_bitmap, ntohl
+                                (socket->write_handle->messages[packet]->sequence_number)
+                                - ntohl (ack->base_sequence_number)))
+        ackbitmap_modify_bit (&socket->write_handle->ack_bitmap, packet, GNUNET_YES);
+    }
     /* Check if we have received all acknowledgements */
     need_retransmission = GNUNET_NO;
     for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
