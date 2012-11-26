@@ -151,8 +151,6 @@ static void
 message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_CONSENSUS_Handle *consensus = cls;
-  GNUNET_CONSENSUS_InsertDoneCallback idc;
-  void *idc_cls;
 
   if (msg == NULL)
   {
@@ -171,13 +169,6 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 
   switch (ntohs(msg->type))
   {
-    case GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_INSERT_ACK:
-      idc = consensus->idc;
-      consensus->idc = NULL;
-      idc_cls = consensus->idc_cls;
-      consensus->idc_cls = NULL;
-      idc(idc_cls, GNUNET_YES);
-      break;
     case GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT:
       handle_new_element(consensus, (struct GNUNET_CONSENSUS_ElementMessage *) msg);
       break;
@@ -210,7 +201,9 @@ transmit_insert (void *cls, size_t size, void *buf)
 {
   struct GNUNET_CONSENSUS_ElementMessage *msg;
   struct GNUNET_CONSENSUS_Handle *consensus;
+  GNUNET_CONSENSUS_InsertDoneCallback idc;
   int msize;
+  void *idc_cls;
 
   GNUNET_assert (NULL != buf);
 
@@ -219,7 +212,6 @@ transmit_insert (void *cls, size_t size, void *buf)
   GNUNET_assert (NULL != consensus->insert_element);
 
   consensus->th = NULL;
-
 
   msg = buf;
 
@@ -231,6 +223,13 @@ transmit_insert (void *cls, size_t size, void *buf)
   memcpy(&msg[1],
          consensus->insert_element->data,
          consensus->insert_element->size);
+
+
+  idc = consensus->idc;
+  consensus->idc = NULL;
+  idc_cls = consensus->idc_cls;
+  consensus->idc_cls = NULL;
+  idc(idc_cls, GNUNET_YES);
 
   return msize;
 }
@@ -328,6 +327,38 @@ transmit_conclude (void *cls, size_t size, void *buf)
 }
 
 
+/**
+ * Function called to notify a client about the connection
+ * begin ready to queue more data.  "buf" will be
+ * NULL and "size" zero if the connection was closed for
+ * writing in the meantime.
+ *
+ * @param cls the consensus handle
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to buf
+ */
+static size_t
+transmit_begin (void *cls, size_t size, void *buf)
+{
+  struct GNUNET_MessageHeader *msg;
+  struct GNUNET_CONSENSUS_Handle *consensus;
+  int msize;
+
+  GNUNET_assert (NULL != buf);
+
+  consensus = cls;
+  consensus->th = NULL;
+
+  msg = buf;
+
+  msize = sizeof (struct GNUNET_MessageHeader);
+
+  msg->type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_BEGIN);
+  msg->size = htons (msize);
+
+  return msize;
+}
 
 
 /**
@@ -339,9 +370,7 @@ transmit_conclude (void *cls, size_t size, void *buf)
  *              Inclusion of the local peer is optional.
  * @param session_id session identifier
  *                   Allows a group of peers to have more than consensus session.
- * @param num_initial_elements number of entries in the 'initial_elements' array
- * @param initial_elements our elements for the consensus (each of 'element_size'
- * @param new_element callback, called when a new element is added to the set by
+ * @param new_element_cb callback, called when a new element is added to the set by
  *                    another peer
  * @param new_element_cls closure for new_element
  * @return handle to use, NULL on error
@@ -351,11 +380,7 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			 unsigned int num_peers,
 			 const struct GNUNET_PeerIdentity *peers,
                          const struct GNUNET_HashCode *session_id,
-                         /*
-			 unsigned int num_initial_elements,
-                         const struct GNUNET_CONSENSUS_Element **initial_elements,
-                         */
-                         GNUNET_CONSENSUS_NewElementCallback new_element,
+                         GNUNET_CONSENSUS_NewElementCallback new_element_cb,
                          void *new_element_cls)
 {
   struct GNUNET_CONSENSUS_Handle *consensus;
@@ -364,7 +389,7 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   consensus = GNUNET_malloc (sizeof (struct GNUNET_CONSENSUS_Handle));
   consensus->cfg = cfg;
-  consensus->new_element_cb = new_element;
+  consensus->new_element_cb = new_element_cb;
   consensus->new_element_cls = new_element_cls;
   consensus->num_peers = num_peers;
   consensus->session_id = *session_id;
@@ -444,6 +469,25 @@ GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
                                            element->size + sizeof (struct GNUNET_CONSENSUS_ElementMessage),
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            GNUNET_NO, &transmit_insert, consensus);
+}
+
+
+/**
+ * Begin reconciling elements with other peers.
+ *
+ * @param consensus handle for the consensus session
+ */
+void
+GNUNET_CONSENSUS_begin (struct GNUNET_CONSENSUS_Handle *consensus)
+{
+  GNUNET_assert (NULL == consensus->idc);
+  GNUNET_assert (NULL == consensus->insert_element);
+
+  consensus->th =
+      GNUNET_CLIENT_notify_transmit_ready (consensus->client,
+                                           sizeof (struct GNUNET_MessageHeader),
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           GNUNET_NO, &transmit_begin, consensus);
 }
 
 
