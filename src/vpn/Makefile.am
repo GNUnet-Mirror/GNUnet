@@ -1,7 +1,7 @@
-INCLUDES = -I$(top_srcdir)/src/include
+INCLUDES = -I$(top_srcdir)/src/include -I$(top_builddir)/src/include
 
 if MINGW
-  WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
+  WINFLAGS = -Wl,--no-undefined,--export-all-symbols
   VPNBIN = gnunet-helper-vpn
 endif
 
@@ -39,8 +39,15 @@ bin_PROGRAMS = \
   gnunet-vpn
 
 if MINGW
-    gnunet_helper_vpn_SOURCES = \
-	gnunet-helper-vpn-windows.c
+  gnunet_helper_vpn_LDFLAGS = \
+    -no-undefined -Wl,--export-all-symbols 
+   
+  gnunet_helper_vpn_LDADD = \
+    -lsetupapi -lshell32 -liconv -lstdc++ \
+    -lcomdlg32 -lgdi32 -liphlpapi
+
+  gnunet_helper_vpn_SOURCES = \
+    gnunet-helper-vpn-windows.c
 else
     gnunet_helper_vpn_SOURCES = \
 	gnunet-helper-vpn.c
