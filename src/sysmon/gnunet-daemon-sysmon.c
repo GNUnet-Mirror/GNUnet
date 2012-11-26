@@ -27,6 +27,13 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 
+enum operation
+{
+  o_internal,
+  o_command
+};
+
+
 enum type
 {
   t_static,
@@ -39,25 +46,75 @@ enum value
   v_string
 };
 
+/**
+ * A system property to monitor
+ */
 struct SysmonProperty
 {
+  /**
+   * Next element in in the DLL
+   */
   struct SysmonProperty *next;
+
+  /**
+   * Previous element in in the DLL
+   */
   struct SysmonProperty *prev;
 
- char * desc;
- int type;
- int value_type;
- struct GNUNET_TIME_Relative interval;
+  /**
+   * Description used for statistics valuesd
+   */
+  char * desc;
 
- char * cmd;
- char * cmd_args;
- void * cmd_exec_handle;
+  /**
+   * Type
+   */
+  int type;
 
- uint64_t num_val;
- char * str_val;
+  /**
+   * Value type
+   */
+  int value_type;
 
- GNUNET_SCHEDULER_TaskIdentifier task_id;
- GNUNET_SCHEDULER_Task task;
+  /**
+   * Execution interval
+   */
+  struct GNUNET_TIME_Relative interval;
+
+  /**
+   * Command
+   */
+  char * cmd;
+
+  /**
+   * Command arguments
+   */
+  char * cmd_args;
+
+  /**
+   * Command execution handle
+   */
+  void * cmd_exec_handle;
+
+  /**
+   * Numerical value
+   */
+  uint64_t num_val;
+
+  /**
+   * String value
+   */
+  char * str_val;
+
+  /**
+   * Task id
+   */
+  GNUNET_SCHEDULER_TaskIdentifier task_id;
+
+  /**
+   * Task handle
+   */
+  GNUNET_SCHEDULER_Task task;
 
 };
 
@@ -80,7 +137,6 @@ struct GNUNET_STATISTICS_Handle *stats;
 /**
  * Shutdown task
  */
-
 GNUNET_SCHEDULER_TaskIdentifier end_task;
 
 struct SysmonProperty *sp_head;
@@ -175,9 +231,25 @@ exec_cmd_proc (void *cls, const char *line)
       return;
   }
 
-
+  switch (sp->value_type) {
+    case v_numeric:
+      if (1 != sscanf (line, "%lu", &sp->num_val))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Command output was not a numerical value: `%s'\n", line);
+        return;
+      }
+      break;
+    case v_string:
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "NOT IMPLEMENTED\n");
+      break;
+    default:
+      break;
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Property output: `%s'\n", line);
+  put_property (sp);
+
+
 }
 
 static void
@@ -192,16 +264,12 @@ exec_cmd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     sp->cmd_exec_handle = NULL;
     GNUNET_break (0);
   }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Trying to exec : `%s'\n", sp->cmd);
   if (NULL == (sp->cmd_exec_handle = GNUNET_OS_command_run (&exec_cmd_proc, sp,
       GNUNET_TIME_UNIT_SECONDS,
       sp->cmd, sp->cmd,
       sp->cmd_args,
       NULL)))
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Property `%s': command `%s' failed\n", sp->desc, sp->cmd);
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Property `%s': command `%s' DONE\n", sp->desc, sp->cmd);
 }
 
 static void
