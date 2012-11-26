@@ -499,6 +499,12 @@ struct GNUNET_STREAM_IOWriteHandle
    * the receiver.
    */
   unsigned int packets_sent;
+
+  /**
+   * The maximum of the base numbers of the received acks
+   */
+  uint32_t max_ack_base_num;
+
 };
 
 
@@ -926,7 +932,6 @@ write_data (struct GNUNET_STREAM_Socket *socket)
     packet++;
   }
   io_handle->packets_sent = packet;
-  // FIXME: 8s is not good, should use GNUNET_TIME_STD_BACKOFF...
   if (GNUNET_SCHEDULER_NO_TASK == socket->data_retransmission_task_id)
   {
     socket->data_retransmit_timeout = GNUNET_TIME_STD_BACKOFF
@@ -2510,10 +2515,11 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
 	    const struct GNUNET_STREAM_AckMessage *ack,
 	    const struct GNUNET_ATS_Information*atsi)
 {
+  struct GNUNET_STREAM_IOWriteHandle *write_handle;    
   unsigned int packet;
   int need_retransmission;
   uint32_t sequence_difference;
-  
+
   if (0 != memcmp (sender,
                    &socket->other_peer,
                    sizeof (struct GNUNET_PeerIdentity)))
@@ -2549,8 +2555,6 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
            ntohl (ack->base_sequence_number));
       return GNUNET_OK;
     }
-    /* FIXME: include the case when write_handle is cancelled - ignore the 
-       acks */
     LOG (GNUNET_ERROR_TYPE_DEBUG, "%s: Received DATA_ACK from %s\n",
          GNUNET_i2s (&socket->other_peer), GNUNET_i2s (&socket->other_peer));
     /* Cancel the retransmission task */
@@ -2562,13 +2566,14 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
     }
     for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
     {
-      if (NULL == socket->write_handle->messages[packet]) break;
+      if (NULL == socket->write_handle->messages[packet])
+        break;
       /* BS: Base sequence from ack; PS: sequence num of current packet */
       sequence_difference = ntohl (ack->base_sequence_number)
         - ntohl (socket->write_handle->messages[packet]->sequence_number);
       if ((0 == sequence_difference) ||
 	  (GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH < sequence_difference))
-	continue; /* The message in our handle is not yet received */
+	break; /* The message in our handle is not yet received */
       /* case where BS = PS + GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH */
       /* sequence_difference <= GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH */
       ackbitmap_modify_bit (&socket->write_handle->ack_bitmap,
@@ -2577,8 +2582,26 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
     /* Update the receive window remaining
        FIXME : Should update with the value from a data ack with greater
        sequence number */
-    socket->receiver_window_available = 
-      ntohl (ack->receive_window_remaining);
+    if (((ntohl (ack->base_sequence_number)
+         - (socket->write_handle->max_ack_base_num))
+          <= GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH))
+    {
+      socket->write_handle->max_ack_base_num = ntohl (ack->base_sequence_number);
+      socket->receiver_window_available = 
+          ntohl (ack->receive_window_remaining);
+    }
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Ignoring to modify receive window available as base: %u, max_ack_base: %u\n",
+                  ntohl (ack->base_sequence_number),
+                   socket->write_handle->max_ack_base_num);
+    if ((packet == GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH)
+        || ((packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH)
+            && (NULL == socket->write_handle->messages[packet])))
+      goto call_write_cont_cb;
+    GNUNET_assert (ntohl
+                   (socket->write_handle->messages[packet]->sequence_number)
+                   == ntohl (ack->base_sequence_number));
     /* Check if we have received all acknowledgements */
     need_retransmission = GNUNET_NO;
     for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
@@ -2594,28 +2617,26 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
     if (GNUNET_YES == need_retransmission)
     {
       write_data (socket);
+      return GNUNET_OK;
     }
-    else      /* We have to call the write continuation callback now */
+
+  call_write_cont_cb:
+    /* Free the packets */
+    for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
     {
-      struct GNUNET_STREAM_IOWriteHandle *write_handle;
-      
-      /* Free the packets */
-      for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
-      {
-        GNUNET_free_non_null (socket->write_handle->messages[packet]);
-      }
-      write_handle = socket->write_handle;
-      socket->write_handle = NULL;
-      if (NULL != write_handle->write_cont)
-        write_handle->write_cont (write_handle->write_cont_cls,
-				  socket->status,
-				  write_handle->size);
-      /* We are done with the write handle - Freeing it */
-      GNUNET_free (write_handle);
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "%s: Write completion callback completed\n",
-           GNUNET_i2s (&socket->other_peer));      
+      GNUNET_free_non_null (socket->write_handle->messages[packet]);
     }
+    write_handle = socket->write_handle;
+    socket->write_handle = NULL;
+    if (NULL != write_handle->write_cont)
+      write_handle->write_cont (write_handle->write_cont_cls,
+                                socket->status,
+                                write_handle->size);
+    /* We are done with the write handle - Freeing it */
+    GNUNET_free (write_handle);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "%s: Write completion callback completed\n",
+         GNUNET_i2s (&socket->other_peer));      
     break;
   default:
     break;
@@ -3481,6 +3502,7 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
   /* Divide the given buffer into packets for sending */
   max_data_packet_size =
       socket->max_payload_size + sizeof (struct GNUNET_STREAM_DataMessage);
+  io_handle->max_ack_base_num = socket->write_sequence_number;
   for (packet=0; packet < num_needed_packets; packet++)
   {
     if ((packet + 1) * socket->max_payload_size < size) 
