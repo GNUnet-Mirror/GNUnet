@@ -20,7 +20,7 @@
 
 /**
  * @file sysmon/gnunet-daemon-sysmon.c
- * @brief system monitoring aemon
+ * @brief system monitoring daemon
  * @author Matthias Wachs
  */
 #include "platform.h"
@@ -46,8 +46,15 @@ struct SysmonProperty
 
  char * desc;
  int type;
- int value;
+ int value_type;
  struct GNUNET_TIME_Relative interval;
+
+ uint64_t num_val;
+ char * str_val;
+
+ GNUNET_SCHEDULER_TaskIdentifier task_id;
+ GNUNET_SCHEDULER_Task task;
+
 };
 
 /**
@@ -96,6 +103,11 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
       GNUNET_CONTAINER_DLL_remove (sp_head, sp_tail, sp);
       next = sp->next;
+      if (GNUNET_SCHEDULER_NO_TASK != sp->task_id)
+      {
+        GNUNET_SCHEDULER_cancel (sp->task_id);
+        sp->task_id = GNUNET_SCHEDULER_NO_TASK;
+      }
       GNUNET_free_non_null (sp->desc);
       GNUNET_free (sp);
   }
@@ -103,7 +115,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 static void
-shutdown_now ()
+shutdown_now (void)
 {
   if (GNUNET_SCHEDULER_NO_TASK != end_task)
     GNUNET_SCHEDULER_cancel (end_task);
@@ -118,8 +130,28 @@ to_lower_str (char * str)
     str[c] = tolower(str[c]);
 }
 
-void load_property (void *cls,
-                    const char *section)
+static int
+put_property (struct SysmonProperty *sp)
+{
+  if (v_numeric ==sp->value_type)
+  {
+      GNUNET_STATISTICS_set (stats, sp->desc, sp->num_val, GNUNET_NO);
+  }
+  else if (v_string ==sp->value_type)
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "NOT IMPLEMENTED\n");
+  }
+  else
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+static void
+load_property (void *cls,
+               const char *section)
 {
   struct GNUNET_CONFIGURATION_Handle *properties = cls;
   struct SysmonProperty *sp;
@@ -142,8 +174,6 @@ void load_property (void *cls,
         "VALUE", section);
     return;
   }
-
-
   sp = GNUNET_malloc (sizeof (struct SysmonProperty));
 
   /* description */
@@ -170,9 +200,9 @@ void load_property (void *cls,
   GNUNET_CONFIGURATION_get_value_string(properties, section, "VALUE", &tmp);
   to_lower_str (tmp);
   if (0 == strcasecmp(tmp, "numeric"))
-    sp->value = v_numeric;
+    sp->value_type = v_numeric;
   else if (0 == strcasecmp(tmp, "string"))
-    sp->value = v_string;
+    sp->value_type = v_string;
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid value %s for %s in section `%s'\n",
@@ -182,14 +212,129 @@ void load_property (void *cls,
     return;
   }
   GNUNET_free (tmp);
+
   /* interval */
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Loaded property `%s': type %u, value %u,\n",
       (NULL != sp->desc) ? sp->desc: "<undefined>",
-      sp->type, sp->value);
+      sp->type, sp->value_type);
 
   GNUNET_CONTAINER_DLL_insert (sp_head, sp_tail, sp);
 
+}
+
+static void
+update_uptime (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct SysmonProperty *sp = cls;
+  sp->task_id = GNUNET_SCHEDULER_NO_TASK;
+  sp->num_val ++;
+  put_property (sp);
+  sp->task_id = GNUNET_SCHEDULER_add_delayed (sp->interval, sp->task, sp);
+}
+
+static int
+load_default_properties (void)
+{
+  struct SysmonProperty *sp;
+  /* GNUnet version array */
+  unsigned int ver[3];
+
+  /* GNUnet vcs revision */
+  unsigned int revision;
+
+  /* version */
+#ifdef VERSION
+  if (3 != sscanf (VERSION, "%u.%u.%u", &ver[0], &ver[1], &ver[2]))
+  {
+    ver[0] = 0;
+    ver[1] = 0;
+    ver[2] = 0;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not parse version string `%s'\n", VERSION);
+  }
+#else
+  ver[0] = 0;
+  ver[1] = 0;
+  ver[2] = 0;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Version string is undefined \n");
+#endif
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Version: %u.%u.%u\n", ver[0], ver[1], ver[2]);
+
+  sp = GNUNET_malloc (sizeof (struct SysmonProperty));
+  sp->desc = GNUNET_strdup ("GNUnet version");
+  sp->type = t_static;
+  sp->value_type = v_numeric;
+  sp->num_val = 100 * ver[0] + 10  * ver[1] + ver[2];
+  GNUNET_CONTAINER_DLL_insert (sp_head, sp_tail, sp);
+
+  /* revision */
+#ifdef VCS_VERSION
+  if (1 != sscanf (VCS_VERSION, "svn-%uM", &revision))
+  {
+    revision = 0;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not parse revision string `%s'\n", VCS_VERSION);
+  }
+#else
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "VCS revision string is undefined \n");
+  revision = 0;
+#endif
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Revision: %u\n", revision);
+
+  sp = GNUNET_malloc (sizeof (struct SysmonProperty));
+  sp->desc = GNUNET_strdup ("GNUnet vcs revision");
+  sp->type = t_static;
+  sp->value_type = v_numeric;
+  sp->num_val = (uint64_t) revision;
+  GNUNET_CONTAINER_DLL_insert (sp_head, sp_tail, sp);
+
+
+  /* GNUnet startup time  */
+  sp = GNUNET_malloc (sizeof (struct SysmonProperty));
+  sp->desc = GNUNET_strdup ("GNUnet startup time");
+  sp->type = t_static;
+  sp->value_type = v_numeric;
+  sp->num_val = (uint64_t) GNUNET_TIME_absolute_get().abs_value;
+  GNUNET_CONTAINER_DLL_insert (sp_head, sp_tail, sp);
+
+
+  /* GNUnet sysmon daemon uptime */
+  sp = GNUNET_malloc (sizeof (struct SysmonProperty));
+  sp->desc = GNUNET_strdup ("GNUnet uptime");
+  sp->type = t_continous;
+  sp->value_type = v_numeric;
+  sp->num_val = (uint64_t) 0;
+  sp->interval = GNUNET_TIME_UNIT_SECONDS;
+  sp->task_id = GNUNET_SCHEDULER_NO_TASK;
+  sp->task = update_uptime;
+  GNUNET_CONTAINER_DLL_insert (sp_head, sp_tail, sp);
+
+  return GNUNET_OK;
+}
+
+static int
+run_properties (void)
+{
+  struct SysmonProperty *sp;
+
+  for (sp = sp_head; NULL != sp; sp = sp->next)
+  {
+      if (t_static == sp->type)
+      {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Running static property `%s' \n", sp->desc);
+          put_property (sp);
+      }
+      else
+      {
+          if (NULL == sp->task)
+          {
+            continue;
+            GNUNET_break (0);
+          }
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Running continous property `%s' \n", sp->desc);
+          sp->task_id = GNUNET_SCHEDULER_add_now (&update_uptime, sp);
+      }
+  }
+  return GNUNET_OK;
 }
 
 /**
@@ -245,6 +390,24 @@ run (void *cls, char *const *args, const char *cfgfile,
   /* Creating statistics */
   stats = GNUNET_STATISTICS_create ("sysmon", mycfg);
   if (NULL == stats)
+  {
+    GNUNET_break (0);
+    shutdown_now();
+    ret = 1;
+    return;
+  }
+
+  /* load properties */
+  if (GNUNET_SYSERR == load_default_properties ())
+  {
+    GNUNET_break (0);
+    shutdown_now();
+    ret = 1;
+    return;
+  }
+
+  /* run properties */
+  if (GNUNET_SYSERR == run_properties ())
   {
     GNUNET_break (0);
     shutdown_now();
