@@ -131,7 +131,9 @@ struct GNUNET_CORE_MessageHandler
  * for good).  Note that the private key of the peer is intentionally
  * not exposed here; if you need it, your process should try to read
  * the private key file directly (which should work if you are
- * authorized...).
+ * authorized...).  Implementations of this function must not call
+ * GNUNET_CORE_disconnect (other than by scheduling a new task to
+ * do this later).
  *
  * @param cls closure
  * @param server handle to the server, NULL if we failed
