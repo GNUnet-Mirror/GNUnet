@@ -1057,6 +1057,8 @@ process_request (void *cls,
  * Sending a reply was completed, continue processing.
  *
  * @param cls closure with the struct StreamClient which sent the query
+ * @param status result code for the operation
+ * @param size number of bytes that were transmitted
  */
 static void
 write_continuation (void *cls,
