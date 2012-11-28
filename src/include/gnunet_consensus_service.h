@@ -66,6 +66,8 @@ struct GNUNET_CONSENSUS_Element
 /**
  * Called when a new element was received from another peer, or an error occured.
  *
+ * May deliver duplicate values.
+ *
  * Elements given to a consensus operation by the local peer are NOT given
  * to this callback.
  *

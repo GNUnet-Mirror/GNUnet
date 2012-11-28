@@ -31,9 +31,10 @@ gnunet_consensus_LDADD = \
   $(GN_LIBINTL)
 
 gnunet_service_consensus_SOURCES = \
- gnunet-service-consensus.cc
+ gnunet-service-consensus.c
 gnunet_service_consensus_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
   $(GN_LIBINTL) 
 
 libgnunetconsensus_la_SOURCES = \

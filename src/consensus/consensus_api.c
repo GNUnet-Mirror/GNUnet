@@ -124,7 +124,7 @@ handle_new_element(struct GNUNET_CONSENSUS_Handle *consensus,
   element.type = msg->element_type;
   element.size = msg->header.size - sizeof (struct GNUNET_CONSENSUS_ElementMessage);
   element.data = &msg[1];
-  consensus->new_element_cb(consensus->new_element_cls, &element);
+  consensus->new_element_cb (consensus->new_element_cls, &element);
 }
 
 static void
@@ -152,12 +152,15 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_CONSENSUS_Handle *consensus = cls;
 
+  LOG (GNUNET_ERROR_TYPE_INFO, "received message from consensus service\n");
+
   if (msg == NULL)
   {
     /* Error, timeout, death */
+    LOG (GNUNET_ERROR_TYPE_ERROR, "error receiving\n");
     GNUNET_CLIENT_disconnect (consensus->client);
     consensus->client = NULL;
-    consensus->new_element_cb(NULL, NULL);
+    consensus->new_element_cb (NULL, NULL);
     if (NULL != consensus->idc)
     {
       consensus->idc(consensus->idc_cls, GNUNET_NO);
@@ -170,10 +173,10 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   switch (ntohs(msg->type))
   {
     case GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT:
-      handle_new_element(consensus, (struct GNUNET_CONSENSUS_ElementMessage *) msg);
+      handle_new_element (consensus, (struct GNUNET_CONSENSUS_ElementMessage *) msg);
       break;
     case GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE_DONE:
-      handle_conclude_done(consensus, (struct GNUNET_CONSENSUS_ConcludeDoneMessage *) msg);
+      handle_conclude_done (consensus, (struct GNUNET_CONSENSUS_ConcludeDoneMessage *) msg);
       break;
     default:
       LOG(GNUNET_ERROR_TYPE_WARNING, "did not understand message type sent by service, ignoring");
@@ -220,16 +223,16 @@ transmit_insert (void *cls, size_t size, void *buf)
 
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_INSERT);
   msg->header.size = htons (msize);
-  memcpy(&msg[1],
-         consensus->insert_element->data,
-         consensus->insert_element->size);
+  memcpy (&msg[1],
+          consensus->insert_element->data,
+          consensus->insert_element->size);
 
 
   idc = consensus->idc;
   consensus->idc = NULL;
   idc_cls = consensus->idc_cls;
   consensus->idc_cls = NULL;
-  idc(idc_cls, GNUNET_YES);
+  idc (idc_cls, GNUNET_YES);
 
   return msize;
 }
@@ -253,9 +256,9 @@ transmit_join (void *cls, size_t size, void *buf)
   struct GNUNET_CONSENSUS_Handle *consensus;
   int msize;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "transmitting CLIENT_JOIN to service\n");
-
   GNUNET_assert (NULL != buf);
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "transmitting join message\n");
 
   consensus = cls;
   consensus->th = NULL;
@@ -282,7 +285,6 @@ transmit_join (void *cls, size_t size, void *buf)
                                              GNUNET_TIME_UNIT_FOREVER_REL,
                                              GNUNET_NO, &transmit_insert, consensus);
   }
-
 
   GNUNET_CLIENT_receive (consensus->client, &message_handler, consensus,
                          GNUNET_TIME_UNIT_FOREVER_REL);
@@ -321,7 +323,7 @@ transmit_conclude (void *cls, size_t size, void *buf)
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE);
   msg->header.size = htons (msize);
   msg->timeout =
-      GNUNET_TIME_relative_hton(GNUNET_TIME_absolute_get_remaining(consensus->conclude_deadline));
+      GNUNET_TIME_relative_hton (GNUNET_TIME_absolute_get_remaining(consensus->conclude_deadline));
 
   return msize;
 }
@@ -386,7 +388,6 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_CONSENSUS_Handle *consensus;
   size_t join_message_size;
 
-
   consensus = GNUNET_malloc (sizeof (struct GNUNET_CONSENSUS_Handle));
   consensus->cfg = cfg;
   consensus->new_element_cb = new_element_cb;
@@ -394,22 +395,18 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   consensus->num_peers = num_peers;
   consensus->session_id = *session_id;
 
-
-
   if (0 == num_peers)
   {
     consensus->peers = NULL;
   }
   else if (num_peers > 0)
   {
-
     consensus->peers = GNUNET_memdup (peers, num_peers * sizeof (struct GNUNET_PeerIdentity));
   }
   else
   {
     GNUNET_break (0);
   }
-
 
   consensus->client = GNUNET_CLIENT_connect ("consensus", cfg);
 
@@ -423,7 +420,6 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                            join_message_size,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            GNUNET_NO, &transmit_join, consensus);
-
 
   GNUNET_assert (consensus->th != NULL);
 

@@ -1636,10 +1636,10 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_INSERT 521
 
 /**
- * The has accepted the inserted element and is ready to receive new elements.
- * Sent by service to client.
+ * Begin accepting new elements from other participants.
+ * Sent by client to service.
  */
-#define GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_INSERT_ACK 522
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_BEGIN 522
 
 /**
  * Sent by service when a new element is added.

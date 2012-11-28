@@ -27,17 +27,49 @@
 #include "gnunet_testing_lib-new.h"
 
 
-static struct GNUNET_CONSENSUS_Handle *consensus;
+static struct GNUNET_CONSENSUS_Handle *consensus1;
+static struct GNUNET_CONSENSUS_Handle *consensus2;
+
+static int concluded1;
+static int concluded2;
+
+static int insert1;
+static int insert2;
 
 static struct GNUNET_HashCode session_id;
 
 
-void
+static void conclude_done (void *cls, 
+                           unsigned int num_peers_in_consensus,
+                           const struct GNUNET_PeerIdentity *peers_in_consensus)
+{
+  struct GNUNET_CONSENSUS_Handle *consensus;
+  consensus = (struct GNUNET_CONSENSUS_Handle *) cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "concluded\n");
+}
+
+static void
 on_new_element (void *cls,
                 struct GNUNET_CONSENSUS_Element *element)
 {
+  struct GNUNET_CONSENSUS_Handle *consensus;
+
+  GNUNET_assert (NULL != element);
+
+  consensus = *(struct GNUNET_CONSENSUS_Handle **) cls;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "received new element\n");
+
+  GNUNET_CONSENSUS_conclude (consensus, GNUNET_TIME_UNIT_FOREVER_REL, &conclude_done, consensus);
+
 }
+
+static void
+insert_done (void *cls, int success)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "insert done\n");
+}
+
 
 
 static void
@@ -47,10 +79,24 @@ run (void *cls,
 {
   char *str = "foo";
 
+  struct GNUNET_CONSENSUS_Element el1 = {"foo", 4, 0};
+  struct GNUNET_CONSENSUS_Element el2 = {"bar", 4, 0};
+
+  GNUNET_log_setup ("test_consensus_api",
+                    "DEBUG",
+                    NULL);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "testing consensus api\n");
+
   GNUNET_CRYPTO_hash (str, strlen (str), &session_id);
-  consensus = GNUNET_CONSENSUS_create (cfg, 0, NULL, &session_id, on_new_element, cls);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to consensus service.\n");
-  GNUNET_assert (consensus != NULL);
+  consensus1 = GNUNET_CONSENSUS_create (cfg, 0, NULL, &session_id, on_new_element, &consensus1);
+  /*
+  consensus2 = GNUNET_CONSENSUS_create (cfg, 0, NULL, &session_id, on_new_element, &consensus2);
+  GNUNET_assert (consensus1 != NULL);
+  GNUNET_assert (consensus2 != NULL);
+  GNUNET_CONSENSUS_insert (consensus1, &el1, &insert_done, &consensus1);
+  GNUNET_CONSENSUS_insert (consensus2, &el2, &insert_done, &consensus2);
+  */
 }
 
 
@@ -58,12 +104,6 @@ int
 main (int argc, char **argv)
 {
   int ret;
-
-  GNUNET_log_setup ("test_consensus_api",
-                    "DEBUG",
-                    NULL);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "testing consensus api\n");
 
   ret = GNUNET_TESTING_peer_run ("test_consensus_api",
                                  "test_consensus.conf",
