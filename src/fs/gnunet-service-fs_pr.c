@@ -64,6 +64,13 @@
 #define INSANE_STATISTICS GNUNET_NO
 
 /**
+ * If obtaining a block via stream fails, how often do we retry it before
+ * giving up for good (and sticking to non-anonymous transfer)?
+ */
+#define STREAM_RETRY_MAX 3
+
+
+/**
  * An active request.
  */
 struct GSF_PendingRequest
@@ -164,6 +171,12 @@ struct GSF_PendingRequest
    * used to detect wrap-around of the offset.
    */
   uint64_t first_uid;
+
+  /**
+   * How often have we retried this request via 'stream'?
+   * (used to bound overall retries).
+   */
+  unsigned int stream_retry_count;
 
   /**
    * Number of valid entries in the 'replies_seen' array.
@@ -1181,11 +1194,16 @@ stream_reply_proc (void *cls,
     GNUNET_break (0 == data_size);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Error retrieiving block via stream\n");
-    /* FIXME: maybe we should re-try a few times; but then
-       we MUST bound the number of re-tries to not keep
-       asking indefinitely with fresh streams; this should
-       be implemented if/when the stream code gets its
-       timeout/parallel-session limits */
+    pr->stream_retry_count++;
+    if (pr->stream_retry_count >= STREAM_RETRY_MAX)
+      return; /* give up on stream */
+    /* retry -- without delay, as this is non-anonymous
+       and mesh/stream connect will take some time anyway */
+    pr->stream_request = GSF_stream_query (pr->public_data.target,
+					   &pr->public_data.query,
+					   pr->public_data.type,
+					   &stream_reply_proc,
+					   pr);
     return;
   }
   if (GNUNET_YES !=
