@@ -30,6 +30,7 @@
 #include <glibtop/proclist.h>
 #include <glibtop/procstate.h>
 #include <glibtop/procargs.h>
+#include <glibtop/procmem.h>
 #include <glib.h>
 
 static int ret;
@@ -40,9 +41,8 @@ static void print_pids(guint64 which, guint64 arg)
     unsigned i;
     glibtop_proclist proc_list;
     glibtop_proc_args proc_args;
+    glibtop_proc_mem proc_mem;
     char *argss;
-    char **argv;
-    int argc;
 
     /* get process list */
     pids = glibtop_get_proclist(&proc_list, which, arg);
@@ -66,8 +66,15 @@ static void print_pids(guint64 which, guint64 arg)
           ret = 1;
           return;
         }
-        printf (" argument string: %s\n", argss);
+        printf ("\targument string: %s\n", argss);
         g_free (argss);
+
+        glibtop_get_proc_mem (&proc_mem, pids[i]);
+        printf ("\t%-50s: %lu\n", "total # of pages of memory", proc_mem.size);
+        printf ("\t%-50s: %lu\n", "number of pages of virtual memory",proc_mem.vsize);
+        printf ("\t%-50s: %lu\n", "number of resident set", proc_mem.resident);
+        printf ("\t%-50s: %lu\n", "number of pages of shared (mmap'd) memory", proc_mem.share);
+        printf ("\t%-50s: %lu\n", "resident set size", proc_mem.rss);
     }
 
     if (NULL != pids)
