@@ -1217,6 +1217,8 @@ src/regex/Makefile
 src/statistics/Makefile
 src/statistics/statistics.conf
 src/stream/Makefile
+src/sysmon/Makefile
+src/sysmon/sysmon.conf
 src/template/Makefile
 src/testbed/Makefile
 src/testbed/testbed.conf
