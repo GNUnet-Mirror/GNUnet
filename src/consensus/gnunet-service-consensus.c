@@ -282,7 +282,7 @@ transmit_pending (void *cls, size_t size, void *buf)
   msg->element_type = element->type;
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT);
   msg->header.size = htons (sizeof (struct GNUNET_CONSENSUS_ElementMessage) + element->size);
-  memcpy (&msg[1], &element[1], element->size);
+  memcpy (&msg[1], element->data, element->size);
 
 
   cli->pending_head = cli->pending_head->next;
