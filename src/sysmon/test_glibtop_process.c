@@ -19,7 +19,7 @@
 */
 
 /**
- * @file sysmon/test_glibtop.c
+ * @file sysmon/test_glibtop_process.c
  * @brief a brief test for glibtop
  * @author Matthias Wachs
  */
@@ -31,6 +31,7 @@
 #include <glibtop/procstate.h>
 #include <glibtop/procargs.h>
 #include <glibtop/procmem.h>
+#include <glibtop/proctime.h>
 #include <glib.h>
 
 static int ret;
@@ -42,6 +43,7 @@ static void print_pids(guint64 which, guint64 arg)
     glibtop_proclist proc_list;
     glibtop_proc_args proc_args;
     glibtop_proc_mem proc_mem;
+    glibtop_proc_time proc_time;
     char *argss;
 
     /* get process list */
@@ -69,12 +71,21 @@ static void print_pids(guint64 which, guint64 arg)
         printf ("\targument string: %s\n", argss);
         g_free (argss);
 
+        /* get memory info */
         glibtop_get_proc_mem (&proc_mem, pids[i]);
+        printf ("\tMemory information:\n");
         printf ("\t%-50s: %lu\n", "total # of pages of memory", proc_mem.size);
         printf ("\t%-50s: %lu\n", "number of pages of virtual memory",proc_mem.vsize);
         printf ("\t%-50s: %lu\n", "number of resident set", proc_mem.resident);
         printf ("\t%-50s: %lu\n", "number of pages of shared (mmap'd) memory", proc_mem.share);
         printf ("\t%-50s: %lu\n", "resident set size", proc_mem.rss);
+
+        /* get time info */
+        glibtop_get_proc_time (&proc_time, pids[i]);
+        printf ("\tTime information:\n");
+        printf ("\t%-50s: %lu\n", "real time accumulated by process", proc_time.rtime);
+        printf ("\t%-50s: %lu\n", "user-mode CPU time accumulated by process",proc_time.utime);
+        printf ("\t%-50s: %lu\n", "kernel-mode CPU time accumulated by process", proc_time.stime);
     }
 
     if (NULL != pids)
@@ -83,6 +94,7 @@ static void print_pids(guint64 which, guint64 arg)
       pids = NULL;
     }
 }
+
 
 /**
  * The main function.
@@ -107,5 +119,5 @@ main (int argc, char *const *argv)
   return ret;
 }
 
-/* end of test_glibtop.c */
+/* end of test_glibtop_process.c */
 
