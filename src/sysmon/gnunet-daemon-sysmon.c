@@ -224,6 +224,7 @@ static void
 exec_cmd_proc (void *cls, const char *line)
 {
   struct SysmonProperty *sp = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Property output: `%s'\n", line);
   if (NULL == line)
   {
       GNUNET_OS_command_stop (sp->cmd_exec_handle);
@@ -264,6 +265,7 @@ exec_cmd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     sp->cmd_exec_handle = NULL;
     GNUNET_break (0);
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Property `%s': command `%s' `%s'\n", sp->desc, sp->cmd, sp->cmd_args);
   if (NULL == (sp->cmd_exec_handle = GNUNET_OS_command_run (&exec_cmd_proc, sp,
       GNUNET_TIME_UNIT_SECONDS,
       sp->cmd, sp->cmd,
