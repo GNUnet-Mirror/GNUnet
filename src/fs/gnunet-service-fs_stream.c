@@ -22,9 +22,6 @@
  * @file fs/gnunet-service-fs_stream.c
  * @brief non-anonymous file-transfer
  * @author Christian Grothoff
- *
- * TODO:
- * - limit # concurrent clients
  */
 #include "platform.h"
 #include "gnunet_constants.h"
@@ -287,6 +284,16 @@ static struct StreamClient *sc_head;
  * Tail of DLL of stream clients.
  */ 
 static struct StreamClient *sc_tail;
+
+/**
+ * Number of active stream clients in the 'sc_*'-DLL.
+ */
+static unsigned int sc_count;
+
+/**
+ * Maximum allowed number of stream clients.
+ */
+static unsigned long long sc_count_max;
 
 /**
  * Map from peer identities to 'struct StreamHandles' with streams to
@@ -885,6 +892,7 @@ terminate_stream (struct StreamClient *sc)
   GNUNET_CONTAINER_DLL_remove (sc_head,
 			       sc_tail,
 			       sc);
+  sc_count--;
   GNUNET_free (sc);
 }
 
@@ -1237,6 +1245,13 @@ accept_cb (void *cls,
 
   if (NULL == socket)
     return GNUNET_SYSERR;
+  if (sc_count >= sc_count_max)
+  {
+    GNUNET_STATISTICS_update (GSF_stats,
+			      gettext_noop ("# stream client connections rejected"), 1,
+			      GNUNET_NO);
+    return GNUNET_SYSERR;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Accepting inbound stream connection from `%s'\n",
 	      GNUNET_i2s (initiator));
@@ -1254,6 +1269,7 @@ accept_cb (void *cls,
   GNUNET_CONTAINER_DLL_insert (sc_head,
 			       sc_tail,
 			       sc);
+  sc_count++;
   refresh_timeout_task (sc);
   return GNUNET_OK;
 }
@@ -1266,10 +1282,17 @@ void
 GSF_stream_start ()
 {
   stream_map = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_YES);
-  listen_socket = GNUNET_STREAM_listen (GSF_cfg,
-					GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
-					&accept_cb, NULL,
-					GNUNET_STREAM_OPTION_END);
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_number (GSF_cfg,
+					     "fs",
+					     "MAX_STREAM_CLIENTS",
+					     &sc_count_max))
+  {
+    listen_socket = GNUNET_STREAM_listen (GSF_cfg,
+					  GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
+					  &accept_cb, NULL,
+					  GNUNET_STREAM_OPTION_END);
+  } 
 }
 
 

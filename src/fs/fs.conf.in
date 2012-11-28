@@ -54,6 +54,14 @@ EXPECTED_NEIGHBOUR_COUNT = 128
 # This option is mostly for testing.
 DISABLE_ANON_TRANSFER = NO
 
+# Maximum number of non-anonymous transfers this peer will support
+# at the same time.  Excessive values mostly have the problem that
+# the service might use more memory, so we need to bound this at
+# some reasonable level.  And if we have a very, very large
+# number, we probably won't have enough bandwidth to suppor them
+# well anyway, so better have a moderate cap.
+MAX_STREAM_CLIENTS = 128
+
 
 [gnunet-auto-share]
 BINARY = gnunet-auto-share
