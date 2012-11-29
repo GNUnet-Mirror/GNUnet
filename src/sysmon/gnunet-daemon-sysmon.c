@@ -224,6 +224,7 @@ static void
 exec_cmd_proc (void *cls, const char *line)
 {
   struct SysmonProperty *sp = cls;
+  unsigned long long tmp;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Property output: `%s'\n", line);
   if (NULL == line)
   {
@@ -234,7 +235,7 @@ exec_cmd_proc (void *cls, const char *line)
 
   switch (sp->value_type) {
     case v_numeric:
-      if (1 != sscanf (line, "%lu", &sp->num_val))
+      if (1 != sscanf (line, "%llu", &tmp))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Command output was not a numerical value: `%s'\n", line);
         return;
@@ -245,7 +246,9 @@ exec_cmd_proc (void *cls, const char *line)
       break;
     default:
       break;
+
   }
+  sp->num_val = tmp;
 
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Property output: `%s'\n", line);
   put_property (sp);
