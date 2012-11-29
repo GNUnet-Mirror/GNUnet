@@ -1178,7 +1178,11 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
             if (GNUNET_YES == s->put_reconnect_required)
             {
                 s->put_reconnect_required = GNUNET_NO;
-                client_connect_put(s);
+                if (GNUNET_SYSERR == client_connect_put(s))
+                {
+                    GNUNET_break (s->client_put == NULL);
+                    GNUNET_break (s->put_tmp_disconnected == GNUNET_NO);
+                }
             }
         }
         if (easy_h == s->client_get)
@@ -1322,8 +1326,10 @@ client_connect_put (struct Session *s)
     s->client_put = NULL;
     s->put.easyhandle = NULL;
     s->put.s = NULL;
+    s->put_tmp_disconnected = GNUNET_YES;
     return GNUNET_SYSERR;
   }
+  s->put_tmp_disconnected = GNUNET_NO;
   return GNUNET_OK;
 }
 
