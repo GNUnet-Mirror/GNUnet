@@ -23,13 +23,58 @@
  * @brief 
  * @author Florian Dold
  */
-
-
+#include "platform.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_consensus_service.h"
 
 
-int
-main ()
+
+
+/**
+ * Called when a new element was received from another peer, or an error occured.
+ *
+ * May deliver duplicate values.
+ *
+ * Elements given to a consensus operation by the local peer are NOT given
+ * to this callback.
+ *
+ * @param cls closure
+ * @param element new element, NULL on error
+ * @return GNUNET_OK if the valid is well-formed and should be added to the consensus,
+ *         GNUNET_SYSERR if the element should be ignored and not be propagated
+ */
+static int
+cb (void *cls,
+    struct GNUNET_CONSENSUS_Element *element)
 {
+  return 0;
+}
+
+
+
+static void
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  static struct GNUNET_PeerIdentity pid;
+  static struct GNUNET_HashCode sid;
+  
+  GNUNET_CONSENSUS_create (cfg,
+			   1, &pid,
+			   &sid,
+			   &cb, NULL);
+  
+}
+
+
+int
+main (int argc, char **argv)
+{
+   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+        GNUNET_GETOPT_OPTION_END
+   };
+  GNUNET_PROGRAM_run (argc, argv, "gnunet-consensus",
+		      "help",
+		      options, &run, NULL);
   return 0;
 }

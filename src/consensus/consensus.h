@@ -23,8 +23,8 @@
  * @file consensus/consensus.h
  * @brief
  */
-#ifndef NSE_H
-#define NSE_H
+#ifndef CONSENSUS_H
+#define CONSENSUS_H
 
 #include "gnunet_common.h"
 
