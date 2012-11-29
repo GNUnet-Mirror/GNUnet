@@ -256,6 +256,21 @@ GNUNET_xstrdup_ (const char *str, const char *filename, int linenumber)
 }
 
 
+#if ! HAVE_STRNLEN
+static size_t
+strnlen (const char *s, 
+	 size_t n)
+{
+  const char *e;
+
+  e = memchr (s, '\0', n);
+  if (NULL == e)
+    return n;
+  return e - s;
+}
+#endif
+
+
 /**
  * Dup partially a string (same semantics as strndup).
  *
