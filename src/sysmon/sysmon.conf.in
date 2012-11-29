@@ -5,3 +5,4 @@ HOSTNAME = localhost
 HOME = $SERVICEHOME
 BINARY = gnunet-daemon-sysmon
 CFGFILE = sysmon-properties.conf
+UNIXPATH = /tmp/gnunet-daemon-sysmon.sock
