@@ -1353,6 +1353,9 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
     else
     {
       response = MHD_create_response_from_data (strlen (HTTP_ERROR_RESPONSE), HTTP_ERROR_RESPONSE, MHD_NO, MHD_NO);
+      MHD_add_response_header (response,
+			       MHD_HTTP_HEADER_CONTENT_TYPE,
+			       "text/html");
       res = MHD_queue_response (mhd_connection, MHD_HTTP_NOT_FOUND, response);
       MHD_destroy_response (response);
       return res;
