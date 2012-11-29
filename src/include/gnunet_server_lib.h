@@ -537,10 +537,10 @@ GNUNET_SERVER_transmit_context_destroy (struct GNUNET_SERVER_TransmitContext
 /**
  * The notification context is the key datastructure for a conveniance
  * API used for transmission of notifications to the client until the
- * client disconnects (or the notification context is destroyed, in
- * which case we disconnect these clients).  Essentially, all
- * (notification) messages are queued up until the client is able to
- * read them.
+ * client disconnects or is disconnected (or the notification context
+ * is destroyed, in which case we disconnect these clients).
+ * Essentially, all (notification) messages are queued up until the
+ * client is able to read them.
  */
 struct GNUNET_SERVER_NotificationContext;
 

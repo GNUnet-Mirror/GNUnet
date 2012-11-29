@@ -73,9 +73,11 @@ struct GNUNET_CONSENSUS_Element
  *
  * @param cls closure
  * @param element new element, NULL on error
+ * @return GNUNET_OK if the valid is well-formed and should be added to the consensus,
+ *         GNUNET_SYSERR if the element should be ignored and not be propagated
  */
-typedef void (*GNUNET_CONSENSUS_NewElementCallback) (void *cls,
-                                                     struct GNUNET_CONSENSUS_Element *element);
+typedef int (*GNUNET_CONSENSUS_NewElementCallback) (void *cls,
+						    struct GNUNET_CONSENSUS_Element *element);
 
 
 
