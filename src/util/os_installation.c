@@ -429,7 +429,7 @@ os_get_gnunet_path ()
 static char *
 os_get_exec_path ()
 {
-  char *ret;
+  char *ret = NULL;
 
 #if LINUX
   if (NULL != (ret = get_path_from_proc_exe ()))
@@ -444,7 +444,7 @@ os_get_exec_path ()
     return ret;
 #endif
   /* other attempts here */
-  return NULL;
+  return ret;
 }
 
 
