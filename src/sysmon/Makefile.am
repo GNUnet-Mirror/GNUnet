@@ -19,6 +19,7 @@ libexec_PROGRAMS = \
  gnunet_daemon_sysmon
 
 check_PROGRAMS = \
+ test_glibtop \
  test_glibtop_process \
  test_glibtop_network
  
@@ -27,6 +28,14 @@ gnunet_daemon_sysmon_SOURCES = \
 gnunet_daemon_sysmon_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(GN_LIBINTL)
+
+test_glibtop_SOURCES = \
+ test_glibtop.c      
+test_glibtop_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  -lgtop-2.0 \
   $(GN_LIBINTL)
 
 test_glibtop_process_SOURCES = \
