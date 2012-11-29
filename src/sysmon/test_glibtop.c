@@ -25,9 +25,7 @@
  */
 
 #include "platform.h"
-
 #include <glibtop.h>
-#include <glib.h>
 
 static int ret;
 

@@ -32,7 +32,6 @@
 #include <glibtop/procargs.h>
 #include <glibtop/procmem.h>
 #include <glibtop/proctime.h>
-#include <glib.h>
 
 static int ret;
 

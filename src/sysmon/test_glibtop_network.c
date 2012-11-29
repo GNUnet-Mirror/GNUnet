@@ -29,7 +29,6 @@
 #include <glibtop.h>
 #include <glibtop/netlist.h>
 #include <glibtop/netload.h>
-#include <glib.h>
 
 static int ret;
 
