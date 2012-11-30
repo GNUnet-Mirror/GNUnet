@@ -936,6 +936,37 @@ AM_CONDITIONAL(HAVE_GNUTLS, test x$gnutls = xtrue)
 AC_DEFINE_UNQUOTED([HAVE_GNUTLS], $gnutls, [We have gnutls])
 
 
+# Test if we are building for superMUC
+llapi=0
+AC_MSG_CHECKING(if testbed should use IBM LoadLeveler to run on SuperMUC)
+AC_ARG_WITH([ll],
+    [AS_HELP_STRING([--with-ll=PFX],
+       [use IBM LoadLeveler (installed at PFX) for running testbed on SuperMUC]. Default is no)],
+    [AC_MSG_RESULT([$with_ll])
+     case $with_ll in
+       no)
+         ;;
+       yes)
+         AC_CHECK_HEADERS([llapi.h],
+     	    AC_CHECK_LIB([llapi], [llsubmit],
+     	        llapi=true,
+		AC_MSG_ERROR(libllapi not found but --with-llapi given)),
+	    AC_MSG_ERROR(llapi.h not found but --with-llapi given))
+     	;;
+       *)
+         LDFLAGS="-L$with_ll/lib $LDFLAGS"
+         CPPFLAGS="-I$with_ll/include $CPPFLAGS"
+	 AC_CHECK_HEADERS([llapi.h],
+     	    AC_CHECK_LIB([llapi], [llsubmit],
+     	        llapi=true,
+		AC_MSG_ERROR(libllapi not found but --with-llapi given)),
+	    AC_MSG_ERROR(llapi.h not found but --with-llapi given))
+        ;;
+     esac
+    ],
+    [AC_MSG_RESULT(--with-ll not specified)])
+AM_CONDITIONAL(WITH_LL, test x$llapi = xtrue)
+AC_DEFINE_UNQUOTED(WITH_LL, $llapi, [Do we have to use IBM LoadLeveler])
 
 # should 'make check' run tests?
 AC_MSG_CHECKING(whether to run tests)
