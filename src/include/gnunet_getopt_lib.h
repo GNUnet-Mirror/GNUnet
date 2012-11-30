@@ -291,7 +291,7 @@ GNUNET_GETOPT_set_one (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
  * A pointer to this function should be passed as part of the
  * 'struct GNUNET_GETOPT_CommandLineOption' array to initialize options
  * of this type.  It should be followed by a pointer to a value of
- * type 'char *'.
+ * type 'char *', which will be allocated with the requested string.
  *
  * @param ctx command line processing context
  * @param scls additional closure (will point to the 'char *',
