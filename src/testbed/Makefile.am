@@ -9,6 +9,10 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+if WITH_LL
+  ll_binaries = ll-master
+endif
+
 libexecdir= $(pkglibdir)/libexec/
 
 pkgcfgdir= $(pkgdatadir)/config.d/
@@ -21,7 +25,8 @@ libexec_PROGRAMS = \
   gnunet-helper-testbed
 
 noinst_PROGRAMS = \
-  gnunet-testbed-profiler
+  gnunet-testbed-profiler \
+  $(ll_binaries)
 
 gnunet_service_testbed_SOURCES = \
   gnunet-service-testbed.c
@@ -52,6 +57,11 @@ gnunet_helper_testbed_LDADD = $(XLIB) \
 gnunet_helper_testbed_DEPENDENCIES = \
   gnunet-service-testbed.$(OBJEXT) \
   libgnunettestbed.la
+
+ll_master_SOURCES = \
+  ll_master.c
+ll_master_LDADD = $(XLIB) \
+ $(LTLIBINTL) -lz
 
 lib_LTLIBRARIES = \
   libgnunettestbed.la
