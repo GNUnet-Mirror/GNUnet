@@ -35,12 +35,20 @@
  */
 static int monitor_connections;
 
+/**
+ * Option -t
+ */
+static char *tunnel_id;
 
 /**
  * Mesh handle.
  */
 static struct GNUNET_MESH_Handle *mh;
 
+/**
+ * Shutdown task handle.
+ */
+GNUNET_SCHEDULER_TaskIdentifier sd;
 
 /**
  * Task run in monitor mode when the user presses CTRL-C to abort.
@@ -72,7 +80,7 @@ shutdown_task (void *cls,
  * @param npeers Number of peers in peers.
  */
 static void
-monitor_callback (void *cls,
+tunnels_callback (void *cls,
                  const struct GNUNET_PeerIdentity *initiator,
                  unsigned int tunnel_number,
                  const struct GNUNET_PeerIdentity *peers,
@@ -89,23 +97,60 @@ monitor_callback (void *cls,
 
 
 /**
- * Call MESH's monitor API, start monitoring process
+ * Method called to retrieve information about each tunnel the mesh peer
+ * is aware of.
+ *
+ * @param cls Closure.
+ * @param peer Peer in the tunnel's tree.
+ * @param parent Parent of the current peer. All 0 when peer is root.
+ * 
+ */
+static void
+tunnel_callback (void *cls,
+                 const struct GNUNET_PeerIdentity *peer,
+                 const struct GNUNET_PeerIdentity *parent)
+{
+}
+
+
+/**
+ * Call MESH's monitor API, get all tunnels known to peer.
  *
  * @param cls Closure (unused).
  * @param tc TaskContext
  */
 static void
-monitor (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+get_tunnels (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     return;
   }
-  GNUNET_MESH_monitor (mh, &monitor_callback, NULL);
-  if (GNUNET_YES == monitor_connections)
+  GNUNET_MESH_get_tunnels (mh, &tunnels_callback, NULL);
+  if (GNUNET_YES != monitor_connections)
   {
-    /* keep open */
+    GNUNET_SCHEDULER_shutdown();
   }
+}
+
+/**
+ * Call MESH's monitor API, get info of one tunnel.
+ *
+ * @param cls Closure (unused).
+ * @param tc TaskContext
+ */
+static void
+show_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_PeerIdentity pid;
+
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_hash_from_string (tunnel_id, &pid.hashPubKey))
+  {
+    GNUNET_SCHEDULER_shutdown();
+    return;
+  }
+  GNUNET_MESH_show_tunnel (mh, &pid, 0, tunnel_callback, NULL);
 }
 
 
@@ -140,9 +185,13 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (NULL == mh)
     GNUNET_SCHEDULER_add_now (shutdown_task, NULL);
   else
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                  shutdown_task, NULL);
-  GNUNET_SCHEDULER_add_now (&monitor, NULL);
+    sd = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                       shutdown_task, NULL);
+
+  if (NULL != tunnel_id)
+    GNUNET_SCHEDULER_add_now (&show_tunnel, NULL);
+  else
+    GNUNET_SCHEDULER_add_now (&get_tunnels, NULL);
 }
 
 
@@ -159,14 +208,16 @@ main (int argc, char *const *argv)
   int res;
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'m', "monitor", NULL,
-    gettext_noop ("provide inthe 'struct GNUNET_TRANSPORT_PeerIterateContextformation about all tunnels (continuously)"),
-     0, &GNUNET_GETOPT_set_one, &monitor_connections},
+     gettext_noop ("provide information about all tunnels (continuously) NOT IMPLEMENTED"), /* FIXME */
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &monitor_connections},
+    {'t', "tunnel", "OWNER_ID:TUNNEL_ID",
+     gettext_noop ("provide information about a particular tunnel"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &tunnel_id},
     GNUNET_GETOPT_OPTION_END
   };
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
-
 
   res = GNUNET_PROGRAM_run (argc, argv, "gnunet-mesh",
                       gettext_noop

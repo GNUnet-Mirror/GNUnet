@@ -210,17 +210,17 @@ struct GNUNET_MESH_Handle
   /**
    * Monitor callback
    */
-  GNUNET_MESH_MonitorCB monitor_cb;
+  GNUNET_MESH_TunnelsCB tunnels_cb;
 
   /**
    * Monitor callback closure.
    */
-  void *monitor_cls;
+  void *tunnels_cls;
 
   /**
    * Tunnel callback.
    */
-  GNUNET_MESH_MonitorTunnelCB tunnel_cb;
+  GNUNET_MESH_TunnelCB tunnel_cb;
 
   /**
    * Tunnel callback closure.
@@ -1276,7 +1276,7 @@ process_monitor (struct GNUNET_MESH_Handle *h,
 
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Monitor messasge received\n");
 
-  if (NULL == h->monitor_cb)
+  if (NULL == h->tunnels_cb)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  ignored\n");
     return;
@@ -1297,7 +1297,7 @@ process_monitor (struct GNUNET_MESH_Handle *h,
                 npeers);
     return;
   }
-  h->monitor_cb (h->monitor_cls,
+  h->tunnels_cb (h->tunnels_cls,
                  &msg->owner,
                  ntohl (msg->tunnel_id),
                  (struct GNUNET_PeerIdentity *) &msg[1],
@@ -2230,7 +2230,7 @@ GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle *th)
 /**
  * Request information about the running mesh peer.
  * The callback will be called for every tunnel known to the service,
- * listing all peers that blong to the tunnel (active only).
+ * listing all active peers that blong to the tunnel.
  *
  * If called again on the same handle, it will overwrite the previous
  * callback and cls. To retrieve the cls, monitor_cancel must be
@@ -2243,17 +2243,17 @@ GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle *th)
  * @param callback_cls Closure for @c callback.
  */
 void
-GNUNET_MESH_monitor (struct GNUNET_MESH_Handle *h,
-                     GNUNET_MESH_MonitorCB callback,
-                     void *callback_cls)
+GNUNET_MESH_get_tunnels (struct GNUNET_MESH_Handle *h,
+                         GNUNET_MESH_TunnelsCB callback,
+                         void *callback_cls)
 {
   struct GNUNET_MessageHeader msg;
 
   msg.size = htons (sizeof (msg));
   msg.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR);
   send_packet (h, &msg, NULL);
-  h->monitor_cb = callback;
-  h->monitor_cls = callback_cls;
+  h->tunnels_cb = callback;
+  h->tunnels_cls = callback_cls;
 
   return;
 }
@@ -2267,13 +2267,13 @@ GNUNET_MESH_monitor (struct GNUNET_MESH_Handle *h,
  * @return Closure given to GNUNET_MESH_monitor, if any.
  */
 void *
-GNUNET_MESH_monitor_cancel (struct GNUNET_MESH_Handle *h)
+GNUNET_MESH_get_tunnels_cancel (struct GNUNET_MESH_Handle *h)
 {
   void *cls;
 
-  cls = h->monitor_cls;
-  h->monitor_cb = NULL;
-  h->monitor_cls = NULL;
+  cls = h->tunnels_cls;
+  h->tunnels_cb = NULL;
+  h->tunnels_cls = NULL;
   return cls;
 }
 
@@ -2290,11 +2290,11 @@ GNUNET_MESH_monitor_cancel (struct GNUNET_MESH_Handle *h)
  * @param callback_cls Closure for @c callback.
  */
 void
-GNUNET_MESH_monitor_tunnel (struct GNUNET_MESH_Handle *h,
-                            struct GNUNET_PeerIdentity *initiator,
-                            unsigned int tunnel_number,
-                            GNUNET_MESH_MonitorTunnelCB callback,
-                            void *callback_cls)
+GNUNET_MESH_show_tunnel (struct GNUNET_MESH_Handle *h,
+                         struct GNUNET_PeerIdentity *initiator,
+                         unsigned int tunnel_number,
+                         GNUNET_MESH_TunnelCB callback,
+                         void *callback_cls)
 {
   struct GNUNET_MESH_LocalMonitor msg;
 

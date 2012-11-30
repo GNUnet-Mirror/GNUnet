@@ -436,7 +436,7 @@ GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle
  * @param peers Array of peer identities that participate in the tunnel.
  * @param npeers Number of peers in peers.
  */
-typedef void (*GNUNET_MESH_MonitorCB) (void *cls,
+typedef void (*GNUNET_MESH_TunnelsCB) (void *cls,
                                        const struct GNUNET_PeerIdentity *owner,
                                        unsigned int tunnel_number,
                                        const struct GNUNET_PeerIdentity *peers,
@@ -444,30 +444,22 @@ typedef void (*GNUNET_MESH_MonitorCB) (void *cls,
 
 
 /**
- * Method called to retrieve information about each tunnel the mesh peer
- * is aware of.
+ * Method called to retrieve information about a specific tunnel the mesh peer
+ * is aware of, including all transit nodes.
  *
  * @param cls Closure.
- * @param initiator Peer that started the tunnel (owner).
- * @param tunnel_number Tunnel number.
- * @param peers Array of peers that form the tunnel, including transit nodes.
- *              The identities come in pairs, representing a peer
- *              and his predecessor in the tree. The root does not
- *              appear in the array.
- * @param npeers Number of peers in peers (size is 2 x npeers!).
+ * @param peer Peer in the tunnel's tree.
+ * @param parent Parent of the current peer. All 0 when peer is root.
  */
-typedef void (*GNUNET_MESH_MonitorTunnelCB) (
-                      void *cls,
-                      const struct GNUNET_PeerIdentity *owner,
-                      unsigned int tunnel_number,
-                      const struct GNUNET_PeerIdentity *peers,
-                      unsigned int npeers);
+typedef void (*GNUNET_MESH_TunnelCB) (void *cls,
+                                      const struct GNUNET_PeerIdentity *peer,
+                                      const struct GNUNET_PeerIdentity *parent);
 
 
 /**
  * Request information about the running mesh peer.
  * The callback will be called for every tunnel known to the service,
- * listing all peers that blong to the tunnel (active only).
+ * listing all active peers that blong to the tunnel.
  *
  * If called again on the same handle, it will overwrite the previous
  * callback and cls. To retrieve the cls, monitor_cancel must be
@@ -480,9 +472,9 @@ typedef void (*GNUNET_MESH_MonitorTunnelCB) (
  * @param callback_cls Closure for @c callback.
  */
 void
-GNUNET_MESH_monitor (struct GNUNET_MESH_Handle *h,
-                     GNUNET_MESH_MonitorCB callback,
-                     void *callback_cls);
+GNUNET_MESH_get_tunnels (struct GNUNET_MESH_Handle *h,
+                         GNUNET_MESH_TunnelsCB callback,
+                         void *callback_cls);
 
 
 /**
@@ -497,11 +489,11 @@ GNUNET_MESH_monitor (struct GNUNET_MESH_Handle *h,
  * @param callback_cls Closure for @c callback.
  */
 void
-GNUNET_MESH_monitor_tunnel (struct GNUNET_MESH_Handle *h,
-                            struct GNUNET_PeerIdentity *initiator,
-                            unsigned int tunnel_number,
-                            GNUNET_MESH_MonitorTunnelCB callback,
-                            void *callback_cls);
+GNUNET_MESH_show_tunnel (struct GNUNET_MESH_Handle *h,
+                         struct GNUNET_PeerIdentity *initiator,
+                         unsigned int tunnel_number,
+                         GNUNET_MESH_TunnelCB callback,
+                         void *callback_cls);
 
 
 /**
@@ -514,7 +506,7 @@ GNUNET_MESH_monitor_tunnel (struct GNUNET_MESH_Handle *h,
  * @return Closure given to GNUNET_MESH_monitor, if any.
  */
 void *
-GNUNET_MESH_monitor_cancel (struct GNUNET_MESH_Handle *h);
+GNUNET_MESH_get_tunnels_cancel (struct GNUNET_MESH_Handle *h);
 
 
 /**
