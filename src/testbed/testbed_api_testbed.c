@@ -102,6 +102,11 @@ enum State
   RC_INIT = 0,
 
   /**
+   * Controllers on given hosts started and linked
+   */
+  RC_LINKED,
+
+  /**
    * The testbed run is ready and the master callback can be called now. At this
    * time the peers are all started and if a topology is provided in the
    * configuration the topology would have been attempted
@@ -129,6 +134,13 @@ struct RunContext
    * The controller handle
    */
   struct GNUNET_TESTBED_Controller *c;
+
+  /**
+   * The configuration of the controller. This is based on the cfg given to the
+   * function GNUNET_TESTBED_run(). We also use this config as a template while
+   * for peers
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
    * Handle to the host on which the controller runs
@@ -171,6 +183,11 @@ struct RunContext
   struct DLLOperation *dll_op_tail;
 
   /**
+   * An array of hosts loaded from the hostkeys file
+   */
+  struct GNUNET_TESTBED_Host **hosts;
+
+  /**
    * Array of peers which we create
    */
   struct GNUNET_TESTBED_Peer **peers;
@@ -187,6 +204,21 @@ struct RunContext
   char *topo_file;
 
   /**
+   * Host registration handle
+   */
+  struct GNUNET_TESTBED_HostRegistrationHandle *reg_handle;
+
+  /**
+   * Host registration task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier register_hosts_task;
+
+  /**
+   * Task to be run while shutting down
+   */
+  GNUNET_SCHEDULER_TaskIdentifier shutdown_run_task;
+
+  /**
    * The event mask for the controller
    */
   uint64_t event_mask;
@@ -200,6 +232,16 @@ struct RunContext
    * The topology which has to be achieved with the peers started in this context
    */
   enum GNUNET_TESTBED_TopologyOption topology;
+
+  /**
+   * Number of hosts in the given host file
+   */
+  unsigned int num_hosts;
+
+  /**
+   * Number of registered hosts
+   */
+  unsigned int reg_hosts;
 
   /**
    * Current peer count for an operation; Set this to 0 and increment for each
@@ -305,7 +347,10 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RunContext *rc = cls;
   struct DLLOperation *dll_op;
+  unsigned int hid;
 
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == rc->register_hosts_task);
+  GNUNET_assert (NULL == rc->reg_handle);
   GNUNET_assert (NULL == rc->peers);
   GNUNET_assert (RC_PEERS_DESTROYED == rc->state);
   if (NULL != rc->c)
@@ -314,6 +359,9 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TESTBED_controller_stop (rc->cproc);
   if (NULL != rc->h)
     GNUNET_TESTBED_host_destroy (rc->h);
+  for (hid = 0; hid < rc->num_hosts; hid++)
+        GNUNET_TESTBED_host_destroy (rc->hosts[hid]);
+  GNUNET_free_non_null (rc->hosts);
   if (NULL != rc->dll_op_head)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -325,8 +373,91 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_free (dll_op);
     }
   }
+  if (NULL != rc->cfg)
+    GNUNET_CONFIGURATION_destroy (rc->cfg);
   GNUNET_free_non_null (rc->topo_file);
   GNUNET_free (rc);
+}
+
+
+/**
+ * Stops the testbed run and releases any used resources
+ *
+ * @param cls the tesbed run handle
+ * @param tc the task context from scheduler
+ */
+static void
+shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct RunContext *rc = cls;
+  struct DLLOperation *dll_op;
+  unsigned int peer;
+
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != rc->shutdown_run_task);
+  rc->shutdown_run_task = GNUNET_SCHEDULER_NO_TASK;
+  /* Stop register hosts task if it is running */
+  if (GNUNET_SCHEDULER_NO_TASK != rc->register_hosts_task)
+  {
+    GNUNET_SCHEDULER_cancel (rc->register_hosts_task);
+    rc->register_hosts_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (NULL != rc->reg_handle)
+  {
+    GNUNET_TESTBED_cancel_registration (rc->reg_handle);
+    rc->reg_handle = NULL;
+  }
+  if (NULL != rc->c)
+  {
+    if (NULL != rc->peers)
+    {
+      if (NULL != rc->topology_operation)
+      {
+        GNUNET_TESTBED_operation_done (rc->topology_operation);
+        rc->topology_operation = NULL;
+      }
+      if (RC_INIT == rc->state)
+        rc->state = RC_READY;   /* Even though we haven't called the master callback */
+      rc->peer_count = 0;
+      /* Check if some peers are stopped */
+      for (peer = 0; peer < rc->num_peers; peer++)
+      {
+        if (PS_STOPPED != rc->peers[peer]->state)
+          break;
+      }
+      if (peer == rc->num_peers)
+      {
+        /* All peers are stopped */
+        rc->state = RC_PEERS_STOPPED;
+        for (peer = 0; peer < rc->num_peers; peer++)
+        {
+          dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
+          dll_op->op = GNUNET_TESTBED_peer_destroy (rc->peers[peer]);
+          GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail,
+                                            dll_op);
+        }
+        return;
+      }
+      /* Some peers are stopped */
+      for (peer = 0; peer < rc->num_peers; peer++)
+      {
+        if (PS_STARTED != rc->peers[peer]->state)
+        {
+          rc->peer_count++;
+          continue;
+        }
+        dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
+        dll_op->op = GNUNET_TESTBED_peer_stop (rc->peers[peer], NULL, NULL);
+        dll_op->cls = rc->peers[peer];
+        GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail,
+                                          dll_op);
+      }
+      if (rc->peer_count != rc->num_peers)
+        return;
+    }
+  }
+  rc->state = RC_PEERS_DESTROYED;       /* No peers are present so we consider the
+                                         * state where all peers are destroyed  */
+  GNUNET_SCHEDULER_add_now (&cleanup_task, rc);
 }
 
 
@@ -353,6 +484,36 @@ call_master (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Function to create peers
+ *
+ * @param rc the RunContext
+ */
+static void
+create_peers (struct RunContext *rc)
+{
+  struct DLLOperation *dll_op;
+  unsigned int peer;
+
+  rc->peers =
+      GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Peer *) * rc->num_peers);
+  GNUNET_assert (NULL != rc->c);
+  rc->peer_count = 0;
+  for (peer = 0; peer < rc->num_peers; peer++)
+  {
+    dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
+    dll_op->rc = rc;
+    dll_op->op =
+        GNUNET_TESTBED_peer_create (rc->c, 
+                                    (0 == rc->num_hosts)
+                                    ? rc->h : rc->hosts[peer % rc->num_hosts],
+                                    rc->cfg,
+                                    peer_create_cb, dll_op);
+    GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail, dll_op);
+  }
+}
+
+
+/**
  * Signature of the event handler function called by the
  * respective event controller.
  *
@@ -366,6 +527,38 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   struct DLLOperation *dll_op;
   unsigned int peer_id;
 
+  if (RC_INIT == rc->state)
+  {
+    switch (event->type)
+    {
+    case GNUNET_TESTBED_ET_OPERATION_FINISHED:
+      dll_op = event->details.operation_finished.op_cls;
+      if (NULL != event->details.operation_finished.emsg)
+      {
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("Linking controllers failed. Exiting"));
+        GNUNET_SCHEDULER_cancel (rc->shutdown_run_task);
+        rc->shutdown_run_task = GNUNET_SCHEDULER_add_now (&shutdown_run, rc);
+      }
+      else
+        rc->reg_hosts++;
+      GNUNET_assert (event->details.operation_finished.operation == dll_op->op);
+      GNUNET_CONTAINER_DLL_remove (rc->dll_op_head, rc->dll_op_tail, dll_op);
+      GNUNET_TESTBED_operation_done (dll_op->op);
+      GNUNET_free (dll_op);
+      if (rc->reg_hosts == rc->num_hosts)
+      {
+        rc->state = RC_LINKED;
+        create_peers (rc);
+      }
+      return;
+    default:
+      GNUNET_assert (0);
+      GNUNET_SCHEDULER_cancel (rc->shutdown_run_task);
+      rc->shutdown_run_task = GNUNET_SCHEDULER_add_now (&shutdown_run, rc);
+      return;
+    }
+  }
   if (NULL != rc->topology_operation)
   {
     switch (event->type)
@@ -376,6 +569,9 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       break;
     default:
       GNUNET_assert (0);
+      GNUNET_SCHEDULER_cancel (rc->shutdown_run_task);
+      rc->shutdown_run_task = GNUNET_SCHEDULER_add_now (&shutdown_run, rc);
+      return;
     }
     if (rc->oc_count == rc->num_oc)
     {
@@ -385,7 +581,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     }
     return;
   }
-  if ((RC_INIT != rc->state) &&
+  if ((RC_LINKED < rc->state) &&
       ((GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type) ||
        (GNUNET_TESTBED_ET_PEER_STOP == event->type)))
   {
@@ -496,6 +692,80 @@ call_cc:
 }
 
 
+/**
+ * Task to register all hosts available in the global host list
+ *
+ * @param cls the RunContext
+ * @param tc the scheduler task context
+ */
+static void
+register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Callback which will be called to after a host registration succeeded or failed
+ *
+ * @param cls the closure
+ * @param emsg the error message; NULL if host registration is successful
+ */
+static void
+host_registration_completion (void *cls, const char *emsg)
+{
+  struct RunContext *rc = cls;
+
+  rc->reg_handle = NULL;
+  if (NULL != emsg)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         _("Host registration failed for a host. Error: %s\n"), emsg);
+    GNUNET_SCHEDULER_cancel (rc->shutdown_run_task);
+    rc->shutdown_run_task = GNUNET_SCHEDULER_add_now (&shutdown_run, rc);
+    return;
+  }
+  rc->register_hosts_task = GNUNET_SCHEDULER_add_now (&register_hosts, rc);
+}
+
+
+/**
+ * Task to register all hosts available in the global host list
+ *
+ * @param cls RunContext
+ * @param tc the scheduler task context
+ */
+static void
+register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct RunContext *rc = cls;
+  struct DLLOperation *dll_op;
+  unsigned int slave;
+
+  rc->register_hosts_task = GNUNET_SCHEDULER_NO_TASK;
+  if (rc->reg_hosts == rc->num_hosts)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "All hosts successfully registered\n");
+    /* Start slaves */
+    for (slave = 0; slave < rc->num_hosts; slave++)
+    {
+      dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
+      dll_op->rc = rc;
+      dll_op->op = GNUNET_TESTBED_controller_link (dll_op,
+                                                   rc->c,
+                                                   rc->hosts[slave],
+                                                   rc->h,
+                                                   rc->cfg,
+                                                   GNUNET_YES);
+      GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail, dll_op);
+    }
+    rc->reg_hosts = 0;
+    return;
+  }
+  rc->reg_handle = GNUNET_TESTBED_register_host (rc->c,
+                                                 rc->hosts[rc->reg_hosts++],
+                                                 host_registration_completion,
+                                                 rc);
+}
+
 
 /**
  * Callback to signal successfull startup of the controller process
@@ -511,102 +781,28 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
                       int status)
 {
   struct RunContext *rc = cls;
-  struct DLLOperation *dll_op;
   uint64_t event_mask;
-  unsigned int peer;
 
   if (status != GNUNET_OK)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Testbed startup failed\n");
     return;
   }
+  rc->cfg = GNUNET_CONFIGURATION_dup (cfg);
   event_mask = rc->event_mask;
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
   if (rc->topology < GNUNET_TESTBED_TOPOLOGY_NONE)
     event_mask |= GNUNET_TESTBED_ET_CONNECT;
   rc->c =
-      GNUNET_TESTBED_controller_connect (cfg, rc->h, event_mask, &event_cb, rc);
-  rc->peers =
-      GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Peer *) * rc->num_peers);
-  GNUNET_assert (NULL != rc->c);
-  rc->peer_count = 0;
-  for (peer = 0; peer < rc->num_peers; peer++)
+      GNUNET_TESTBED_controller_connect (rc->cfg, rc->h, event_mask, &event_cb, rc);
+  if (0 < rc->num_hosts)
   {
-    dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-    dll_op->rc = rc;
-    dll_op->op =
-        GNUNET_TESTBED_peer_create (rc->c, rc->h, cfg, peer_create_cb, dll_op);
-    GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail, dll_op);
+    rc->register_hosts_task = GNUNET_SCHEDULER_add_now (&register_hosts, rc);
+    return;
   }
-}
-
-
-/**
- * Stops the testbed run and releases any used resources
- *
- * @param cls the tesbed run handle
- * @param tc the task context from scheduler
- */
-static void
-shutdown_run_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct RunContext *rc = cls;
-  struct DLLOperation *dll_op;
-  unsigned int peer;
-
-  if (NULL != rc->c)
-  {
-    if (NULL != rc->peers)
-    {
-      if (NULL != rc->topology_operation)
-      {
-        GNUNET_TESTBED_operation_done (rc->topology_operation);
-        rc->topology_operation = NULL;
-      }
-      if (RC_INIT == rc->state)
-        rc->state = RC_READY;   /* Even though we haven't called the master callback */
-      rc->peer_count = 0;
-      /* Check if some peers are stopped */
-      for (peer = 0; peer < rc->num_peers; peer++)
-      {
-        if (PS_STOPPED != rc->peers[peer]->state)
-          break;
-      }
-      if (peer == rc->num_peers)
-      {
-        /* All peers are stopped */
-        rc->state = RC_PEERS_STOPPED;
-        for (peer = 0; peer < rc->num_peers; peer++)
-        {
-          dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-          dll_op->op = GNUNET_TESTBED_peer_destroy (rc->peers[peer]);
-          GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail,
-                                            dll_op);
-        }
-        return;
-      }
-      /* Some peers are stopped */
-      for (peer = 0; peer < rc->num_peers; peer++)
-      {
-        if (PS_STARTED != rc->peers[peer]->state)
-        {
-          rc->peer_count++;
-          continue;
-        }
-        dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-        dll_op->op = GNUNET_TESTBED_peer_stop (rc->peers[peer], NULL, NULL);
-        dll_op->cls = rc->peers[peer];
-        GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail,
-                                          dll_op);
-      }
-      if (rc->peer_count != rc->num_peers)
-        return;
-    }
-  }
-  rc->state = RC_PEERS_DESTROYED;       /* No peers are present so we consider the
-                                         * state where all peers are destroyed  */
-  GNUNET_SCHEDULER_add_now (&cleanup_task, rc);
+  rc->state = RC_LINKED;
+  create_peers (rc);
 }
 
 
@@ -647,15 +843,32 @@ GNUNET_TESTBED_run (const char *host_filename,
   struct RunContext *rc;
   char *topology;
   unsigned long long random_links;
-
-  GNUNET_break (NULL == host_filename); /* Currently we do not support host
-                                         * files */
+  unsigned int hid;
+  
   GNUNET_assert (NULL != cc);
   GNUNET_assert (num_peers > 0);
   host_filename = NULL;
   rc = GNUNET_malloc (sizeof (struct RunContext));
-  rc->h = GNUNET_TESTBED_host_create (NULL, NULL, 0);
+  if (NULL != host_filename)
+  {
+    rc->num_hosts =
+        GNUNET_TESTBED_hosts_load_from_file (host_filename, &rc->hosts);
+    if (0 == rc->num_hosts)
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           _("No hosts loaded. Need at least one host\n"));
+      return;
+    }
+    rc->h = rc->hosts[0];
+    rc->num_hosts--;
+    if (0 < rc->num_hosts)
+      rc->hosts = &rc->hosts[1];
+  }
+  else
+    rc->h = GNUNET_TESTBED_host_create (NULL, NULL, 0);
   GNUNET_assert (NULL != rc->h);
+  /* FIXME: If we are starting controller on different host 127.0.0.1 may not ab
+  correct */
   rc->cproc =
       GNUNET_TESTBED_controller_start ("127.0.0.1", rc->h, cfg,
                                        &controller_status_cb, rc);
@@ -698,6 +911,10 @@ GNUNET_TESTBED_run (const char *host_filename,
     if (random_links > UINT32_MAX)
     {
       GNUNET_break (0);       /* Too big number */
+      GNUNET_TESTBED_host_destroy (rc->h);
+      for (hid = 0; hid < rc->num_hosts; hid++)
+        GNUNET_TESTBED_host_destroy (rc->hosts[hid]);
+      GNUNET_free_non_null (rc->hosts);
       GNUNET_free (rc);
       return;
     }
@@ -711,12 +928,17 @@ GNUNET_TESTBED_run (const char *host_filename,
     {
       /* You need to set TOPOLOGY_FILE option to a topolog file */
       GNUNET_break (0);
+      GNUNET_TESTBED_host_destroy (rc->h);
+      for (hid = 0; hid < rc->num_hosts; hid++)
+        GNUNET_TESTBED_host_destroy (rc->hosts[hid]);
+      GNUNET_free_non_null (rc->hosts);
       GNUNET_free (rc);
       return;
     }
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_run_task, rc);
+  rc->shutdown_run_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                    &shutdown_run, rc);
 }
 
 
