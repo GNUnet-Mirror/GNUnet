@@ -717,6 +717,17 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host, int status
   static unsigned int hosts_checked;
 
   *hc_handle = NULL;
+  if (GNUNET_NO == status)
+  {
+    if ((NULL != host) && (NULL != GNUNET_TESTBED_host_get_hostname_ (host)))
+      LOG (GNUNET_ERROR_TYPE_ERROR, _("Host %s cannot start testbed\n"),
+           GNUNET_TESTBED_host_get_hostname_ (host));
+    else
+      LOG (GNUNET_ERROR_TYPE_ERROR, _("Testbed cannot be started on localhost\n"));
+    GNUNET_SCHEDULER_cancel (abort_task);
+    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+    return;
+  }
   hosts_checked++;
   printf (_("\rChecked %u hosts"), hosts_checked);
   fflush (stdout);
