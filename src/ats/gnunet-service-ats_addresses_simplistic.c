@@ -61,4 +61,18 @@ GAS_simplistic_done (struct GAS_SIMPLISTIC_Handle *solver)
   GNUNET_free (solver);
 }
 
+/**
+ * Updates a single address
+ *
+ * @param solver the solver Handle
+ * @param addresses the address hashmap
+ *        the address has to be already removed from the hashmap
+ * @param address the address to update
+ */
+void
+GAS_simplistic_address_update (struct GAS_SIMPLISTIC_Handle *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
+{
+
+}
+
 /* end of gnunet-service-ats_addresses_simplistic.c */

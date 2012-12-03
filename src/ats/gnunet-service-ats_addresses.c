@@ -563,10 +563,19 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
       GNUNET_break (0);
       break;
     }
-#if HAVE_LIBGLPK
-  if (ats_mode == MODE_MLP)
-    GAS_mlp_address_update (solver, addresses, old);
-#endif
+
+  switch (ats_mode)
+  {
+    case MODE_MLP:
+      GAS_mlp_address_update (solver, addresses, old);
+      break;
+    case MODE_SIMPLISTIC:
+      GAS_simplistic_address_update (solver, addresses, old);
+      break;
+    default:
+      GNUNET_break (0);
+      break;
+  }
 }
 
 
@@ -1062,6 +1071,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       }
       break;
     default:
+      GNUNET_break (0);
       break;
   }
   /* up and running */
