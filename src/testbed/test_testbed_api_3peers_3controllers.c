@@ -874,6 +874,13 @@ static void
 host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *_host, int status)
 {
   hc_handle = NULL;
+  if (GNUNET_NO == status)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Cannot start testbed on localhost\n");
+    GNUNET_SCHEDULER_cancel (abort_task);
+    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+    return;
+  }
   cp1 = GNUNET_TESTBED_controller_start ("127.0.0.1", host, cfg, status_cb,
                                          NULL);
 }
