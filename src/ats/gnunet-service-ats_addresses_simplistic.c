@@ -75,4 +75,21 @@ GAS_simplistic_address_update (struct GAS_SIMPLISTIC_Handle *solver, struct GNUN
 
 }
 
+/**
+ * Changes the preferences for a peer in the  problem
+ *
+ * @param solver the solver handle
+ * @param peer the peer
+ * @param kind the kind to change the preference
+ * @param score the score
+ */
+void
+GAS_simplistic_address_change_preference (struct GAS_SIMPLISTIC_Handle *solver,
+                                   const struct GNUNET_PeerIdentity *peer,
+                                   enum GNUNET_ATS_PreferenceKind kind,
+                                   float score)
+{
+
+}
+
 /* end of gnunet-service-ats_addresses_simplistic.c */

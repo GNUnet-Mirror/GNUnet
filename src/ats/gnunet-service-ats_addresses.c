@@ -564,6 +564,7 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
       break;
     }
 
+  /* Tell solver about update */
   switch (ats_mode)
   {
     case MODE_MLP:
@@ -812,10 +813,20 @@ GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
     return GNUNET_SYSERR;
   }
   old->used = in_use;
-#if HAVE_LIBGLPK
-  if (ats_mode == MODE_MLP)
-     GAS_mlp_address_update (solver, addresses, old);
-#endif
+
+  /* Tell solver about update */
+  switch (ats_mode)
+  {
+    case MODE_MLP:
+      GAS_mlp_address_update (solver, addresses, old);
+      break;
+    case MODE_SIMPLISTIC:
+      GAS_simplistic_address_update (solver, addresses, old);
+      break;
+    default:
+      GNUNET_break (0);
+      break;
+  }
   return GNUNET_OK;
 }
 
@@ -955,10 +966,21 @@ GAS_addresses_change_preference (const struct GNUNET_PeerIdentity *peer,
 {
   if (GNUNET_NO == running)
     return;
-#if HAVE_LIBGLPK
-  if (ats_mode == MODE_MLP)
-    GAS_mlp_address_change_preference (solver, peer, kind, score);
-#endif
+
+
+  /* Tell solver about update */
+  switch (ats_mode)
+  {
+    case MODE_MLP:
+      GAS_mlp_address_change_preference (solver, peer, kind, score);
+      break;
+    case MODE_SIMPLISTIC:
+      GAS_simplistic_address_change_preference (solver, peer, kind, score);
+      break;
+    default:
+      GNUNET_break (0);
+      break;
+  }
 }
 
 
