@@ -232,6 +232,11 @@ static struct DLLOperation *dll_op_tail;
 static struct GNUNET_TESTBED_Operation *topology_op;
 
 /**
+ * The handle for whether a host is habitable or not
+ */
+struct GNUNET_TESTBED_HostHabitableCheckHandle **hc_handles;
+
+/**
  * Abort task identifier
  */
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
@@ -491,6 +496,14 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   shutdown_task = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
+  if (NULL != hc_handles)
+  {
+    for (nhost = 0; nhost < num_hosts; nhost++)
+      if (NULL != hc_handles[num_hosts])
+        GNUNET_TESTBED_is_host_habitable_cancel (hc_handles[num_hosts]);
+    GNUNET_free (hc_handles);
+    hc_handles = NULL;
+  }
   if (GNUNET_SCHEDULER_NO_TASK != register_hosts_task)
     GNUNET_SCHEDULER_cancel (register_hosts_task);
 
@@ -1668,6 +1681,35 @@ load_search_strings (const char *filename, char ***strings, unsigned int limit)
 
 
 /**
+ * Callbacks of this type are called by GNUNET_TESTBED_is_host_habitable to
+ * inform whether the given host is habitable or not. The Handle returned by
+ * GNUNET_TESTBED_is_host_habitable() is invalid after this callback is called
+ *
+ * @param cls NULL
+ * @param status GNUNET_YES if it is habitable; GNUNET_NO if not
+ */
+static void 
+host_habitable_cb (void *cls, int status)
+{
+  struct GNUNET_TESTBED_HostHabitableCheckHandle **hc_handle = cls;
+  static unsigned int hosts_checked;
+
+  *hc_handle = NULL;
+  if (++hosts_checked < num_hosts)
+    return;
+  GNUNET_free (hc_handles);
+  hc_handles = NULL;
+  mc_proc = 
+      GNUNET_TESTBED_controller_start (GNUNET_TESTBED_host_get_hostname
+                                       (hosts[0]),
+                                       hosts[0],
+                                       cfg,
+                                       status_cb,
+                                       NULL);
+}
+
+
+/**
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
@@ -1698,12 +1740,22 @@ run (void *cls, char *const *args, const char *cfgfile,
     fprintf (stderr, _("No hosts loaded. Need at least one host\n"));
     return;
   }
+  hc_handles = GNUNET_malloc (sizeof (struct
+                                      GNUNET_TESTBED_HostHabitableCheckHandle *) 
+                              * num_hosts);
   for (nhost = 0; nhost < num_hosts; nhost++)
-  {
-    if (GNUNET_YES != GNUNET_TESTBED_is_host_habitable (hosts[nhost], config))
+  {    
+    if (NULL == (hc_handles[nhost] = GNUNET_TESTBED_is_host_habitable (hosts[nhost], config,
+                                                                       &host_habitable_cb,
+                                                                       &hc_handles[nhost])))
     {
       fprintf (stderr, _("Host %s cannot start testbed\n"),
                          GNUNET_TESTBED_host_get_hostname (hosts[nhost]));
+      for (nhost = 0; nhost < num_hosts; nhost++)
+        if (NULL != hc_handles[num_hosts])
+          GNUNET_TESTBED_is_host_habitable_cancel (hc_handles[num_hosts]);
+      GNUNET_free (hc_handles);
+      hc_handles = NULL;
       break;
     }
   }
@@ -1771,13 +1823,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   for (i = 0; i < num_search_strings; i++)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "search string: %s\n", search_strings[i]);
   cfg = GNUNET_CONFIGURATION_dup (config);
-  mc_proc =
-      GNUNET_TESTBED_controller_start (GNUNET_TESTBED_host_get_hostname
-                                       (hosts[0]),
-                                       hosts[0],
-                                       cfg,
-                                       status_cb,
-                                       NULL);
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_SECONDS, 5), &do_abort,
