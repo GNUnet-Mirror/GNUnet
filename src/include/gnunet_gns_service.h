@@ -40,6 +40,12 @@ extern "C"
 
 
 /**
+ * String we use to indicate the local master zone or a
+ * root entry in the current zone.
+ */
+#define GNUNET_GNS_MASTERZONE_STR "+"
+
+/**
  * Connection to the GNS service.
  */
 struct GNUNET_GNS_Handle;

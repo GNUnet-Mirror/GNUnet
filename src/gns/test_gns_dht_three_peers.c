@@ -343,7 +343,7 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
   rd.record_type = GNUNET_GNS_RECORD_PSEU;
 
 
-  GNUNET_NAMESTORE_record_create (nh[0], key, "+", &rd, &cont_ns, nh[0]);
+  GNUNET_NAMESTORE_record_create (nh[0], key, GNUNET_GNS_MASTERZONE_STR, &rd, &cont_ns, nh[0]);
 
   GNUNET_CRYPTO_rsa_key_free(key);
   GNUNET_free(keyfile);

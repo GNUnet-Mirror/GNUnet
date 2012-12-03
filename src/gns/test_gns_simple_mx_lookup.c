@@ -265,12 +265,12 @@ do_check (void *cls,
   rd.record_type = GNUNET_GNS_RECORD_MX;
   sig = GNUNET_NAMESTORE_create_signature(bob_key,
                                           GNUNET_TIME_UNIT_FOREVER_ABS,
-                                          "+",
+                                          GNUNET_GNS_MASTERZONE_STR,
                                           &rd, 1);
   et.abs_value = rd.expiration_time;
   GNUNET_NAMESTORE_record_put (namestore_handle,
                                &bob_pkey,
-                               "+",
+                               GNUNET_GNS_MASTERZONE_STR,
                                et,
                                1,
                                &rd,

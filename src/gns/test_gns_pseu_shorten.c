@@ -279,27 +279,27 @@ put_pseu_dht (void *cls, int success)
 
   sig = GNUNET_NAMESTORE_create_signature(alice_key,
                                            GNUNET_TIME_UNIT_FOREVER_ABS,
-                                           "+",
+                                           GNUNET_GNS_MASTERZONE_STR,
                                            &rd, 1);
 
   GNUNET_assert (NULL != sig);
 
   GNUNET_break (GNUNET_OK == GNUNET_NAMESTORE_verify_signature (&alice_pkey,
                                                                  GNUNET_TIME_UNIT_FOREVER_ABS,
-                                                                 "+",
+                                                                 GNUNET_GNS_MASTERZONE_STR,
                                                                  1,
                                                                  &rd,
                                                                  sig));
   rd_payload_length = GNUNET_NAMESTORE_records_get_size (1, &rd);
-  nrb = GNUNET_malloc(rd_payload_length + strlen("+") + 1
+  nrb = GNUNET_malloc(rd_payload_length + strlen(GNUNET_GNS_MASTERZONE_STR) + 1
                       + sizeof(struct GNSNameRecordBlock));
   nrb->signature = *sig;
   nrb->public_key = alice_pkey;
   nrb->rd_count = htonl(1);
-  memset(&nrb[1], 0, strlen("+") + 1);
-  strcpy((char*)&nrb[1], "+");
+  memset(&nrb[1], 0, strlen(GNUNET_GNS_MASTERZONE_STR) + 1);
+  strcpy((char*)&nrb[1], GNUNET_GNS_MASTERZONE_STR);
   nrb_data = (char*)&nrb[1];
-  nrb_data += strlen("+") + 1;
+  nrb_data += strlen(GNUNET_GNS_MASTERZONE_STR) + 1;
 
   if (-1 == GNUNET_NAMESTORE_records_serialize (1,
                                                 &rd,
@@ -316,7 +316,7 @@ put_pseu_dht (void *cls, int success)
     end_badly_now ();
     return;
   }
-  GNUNET_CRYPTO_short_hash("+", strlen("+"), &name_hash);
+  GNUNET_CRYPTO_short_hash(GNUNET_GNS_MASTERZONE_STR, strlen(GNUNET_GNS_MASTERZONE_STR), &name_hash);
   GNUNET_CRYPTO_short_hash(&alice_pkey,
                      sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                      &zone_hash);
@@ -326,7 +326,7 @@ put_pseu_dht (void *cls, int success)
   GNUNET_CRYPTO_hash_xor(&zone_hash_double, &name_hash_double, &xor_hash);
 
   rd_payload_length += sizeof(struct GNSNameRecordBlock) +
-    strlen("+") + 1;
+    strlen(GNUNET_GNS_MASTERZONE_STR) + 1;
 
   GNUNET_DHT_put (dht_handle, &xor_hash,
                   0,

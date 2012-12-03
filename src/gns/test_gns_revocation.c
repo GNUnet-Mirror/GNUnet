@@ -257,7 +257,7 @@ do_check (void *cls,
 
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                   bob_key,
-                                  "+",
+                                  GNUNET_GNS_MASTERZONE_STR,
                                   &rd,
                                   &commence_testing,
                                   NULL);

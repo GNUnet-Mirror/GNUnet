@@ -433,7 +433,7 @@ process_auth_discovery_dht_result (void* cls,
     {
       for (i=0; i < num_records; i++)
       {
-        if ((strcmp (name, "+") == 0) &&
+        if ((strcmp (name, GNUNET_GNS_MASTERZONE_STR) == 0) &&
             (rd[i].record_type == GNUNET_GNS_RECORD_PSEU))
         {
           /* found pseu */
@@ -549,7 +549,7 @@ process_zone_to_name_discover (void *cls,
   {
     gph->namestore_task = GNUNET_NAMESTORE_lookup_record (namestore_handle,
                                     &gph->auth->zone,
-                                    "+",
+                                    GNUNET_GNS_MASTERZONE_STR,
                                     GNUNET_GNS_RECORD_PSEU,
                                     &process_auth_discovery_ns_result,
                                     gph);
@@ -2303,7 +2303,7 @@ process_delegation_result_dht (void* cls,
     /* Check for key revocation and delegate */
     rh->namestore_task = GNUNET_NAMESTORE_lookup_record (namestore_handle,
                                     &rh->authority,
-                                    "+",
+                                    GNUNET_GNS_MASTERZONE_STR,
                                     GNUNET_GNS_RECORD_REV,
                                     &process_pkey_revocation_result_ns,
                                     rh);
@@ -2444,7 +2444,7 @@ finish_lookup (struct ResolverHandle *rh,
     
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "GNS_POSTPROCESS: Postprocessing\n");
-    if (0 == strcmp(rh->name, "+"))
+    if (0 == strcmp(rh->name, GNUNET_GNS_MASTERZONE_STR))
       repl_string = rlh->name;
     else
       repl_string = rlh->name+strlen(rh->name)+1;
@@ -2604,7 +2604,7 @@ handle_record_ns (void* cls, struct ResolverHandle *rh,
     check_dht = GNUNET_NO;
   }
   
-  if ((0 != strcmp (rh->name, "+")) && (GNUNET_YES == is_srv (rh->name)))
+  if ((0 != strcmp (rh->name, GNUNET_GNS_MASTERZONE_STR)) && (GNUNET_YES == is_srv (rh->name)))
       check_dht = GNUNET_NO;
 
   if (GNUNET_YES == rh->only_cached)
@@ -3226,7 +3226,7 @@ process_delegation_result_ns (void* cls,
     /* Check for key revocation and delegate */
     rh->namestore_task = GNUNET_NAMESTORE_lookup_record (namestore_handle,
 							 &rh->authority,
-							 "+",
+							 GNUNET_GNS_MASTERZONE_STR,
 							 GNUNET_GNS_RECORD_REV,
 							 &process_pkey_revocation_result_ns,
 							 rh);
