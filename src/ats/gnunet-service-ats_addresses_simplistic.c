@@ -40,9 +40,7 @@ struct GAS_SIMPLISTIC_Handle
  *
  * @param cfg configuration handle
  * @param stats the GNUNET_STATISTICS handle
- * @param max_duration maximum numbers of iterations for the LP/MLP Solver
- * @param max_iterations maximum time limit for the LP/MLP Solver
- * @return struct GAS_MLP_Handle * on success, NULL on fail
+ * @return struct GAS_SIMPLISTIC_Handle * on success, NULL on fail
  */
 struct GAS_SIMPLISTIC_Handle *
 GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
