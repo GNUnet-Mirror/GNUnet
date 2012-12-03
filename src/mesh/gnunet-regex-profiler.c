@@ -499,8 +499,8 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != hc_handles)
   {
     for (nhost = 0; nhost < num_hosts; nhost++)
-      if (NULL != hc_handles[num_hosts])
-        GNUNET_TESTBED_is_host_habitable_cancel (hc_handles[num_hosts]);
+      if (NULL != hc_handles[nhost])
+        GNUNET_TESTBED_is_host_habitable_cancel (hc_handles[nhost]);
     GNUNET_free (hc_handles);
     hc_handles = NULL;
   }
@@ -1752,8 +1752,8 @@ run (void *cls, char *const *args, const char *cfgfile,
       fprintf (stderr, _("Host %s cannot start testbed\n"),
                          GNUNET_TESTBED_host_get_hostname (hosts[nhost]));
       for (nhost = 0; nhost < num_hosts; nhost++)
-        if (NULL != hc_handles[num_hosts])
-          GNUNET_TESTBED_is_host_habitable_cancel (hc_handles[num_hosts]);
+        if (NULL != hc_handles[nhost])
+          GNUNET_TESTBED_is_host_habitable_cancel (hc_handles[nhost]);
       GNUNET_free (hc_handles);
       hc_handles = NULL;
       break;
