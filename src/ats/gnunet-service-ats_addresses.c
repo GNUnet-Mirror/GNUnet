@@ -34,29 +34,37 @@
 #if HAVE_LIBGLPK
 #include "gnunet-service-ats_addresses_mlp.h"
 #endif
+#include "gnunet-service-ats_addresses_simplistic.h"
 
 #define ATS_BLOCKING_DELTA GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100)
 
+
+/**
+ * Available ressource assignment modes
+ */
 enum ATS_Mode
 {
   /*
+   * Simplistic mode:
+   *
    * Assign each peer an equal amount of bandwidth (bw)
    *
    * bw_per_peer = bw_total / #active addresses
    */
-  SIMPLE,
+  MODE_SIMPLISTIC,
 
   /*
-   * Use MLP solver to assign bandwidth
+   * MLP mode:
+   *
+   * Solve ressource assignment as an optimization problem
+   * Uses an mixed integer programming solver
    */
-  MLP
+  MODE_MLP
 };
 
 static struct GNUNET_CONTAINER_MultiHashMap *addresses;
 
-#if HAVE_LIBGLPK
-static struct GAS_MLP_Handle *mlp;
-#endif
+static void *solver;
 
 static unsigned long long wan_quota_in;
 
@@ -223,8 +231,8 @@ destroy_address (struct ATS_Address *addr)
                                                        addr));
 
 #if HAVE_LIBGLPK
-  if (ats_mode == MLP)
-    GAS_mlp_address_delete (mlp, addresses, addr);
+  if (ats_mode == MODE_MLP)
+    GAS_mlp_address_delete (solver, addresses, addr);
 #endif
 
   if (GNUNET_YES == addr->active)
@@ -556,8 +564,8 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
       break;
     }
 #if HAVE_LIBGLPK
-  if (ats_mode == MLP)
-    GAS_mlp_address_update (mlp, addresses, old);
+  if (ats_mode == MODE_MLP)
+    GAS_mlp_address_update (solver, addresses, old);
 #endif
 }
 
@@ -627,8 +635,8 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
   {
     /* session was set to 0, update address */
 #if HAVE_LIBGLPK
-  if (ats_mode == MLP)
-    GAS_mlp_address_update (mlp, addresses, aa);
+  if (ats_mode == MODE_MLP)
+    GAS_mlp_address_update (solver, addresses, aa);
 #endif
   }
 
@@ -796,8 +804,8 @@ GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
   }
   old->used = in_use;
 #if HAVE_LIBGLPK
-  if (ats_mode == MLP)
-     GAS_mlp_address_update (mlp, addresses, old);
+  if (ats_mode == MODE_MLP)
+     GAS_mlp_address_update (solver, addresses, old);
 #endif
   return GNUNET_OK;
 }
@@ -810,7 +818,7 @@ request_address_mlp (const struct GNUNET_PeerIdentity *peer)
   aa = NULL;
 
 #if HAVE_GLPK
-  /* Get preferred address from MLP */
+  /* Get preferred address from MODE_MLP */
   struct ATS_PreferedAddress * paddr = NULL;
   paddr = GAS_mlp_get_preferred_address (mlp, addresses, peer);
   aa = paddr->address;
@@ -870,7 +878,7 @@ request_address_simple (const struct GNUNET_PeerIdentity *peer)
   {
     aa->active = GNUNET_YES;
     active_addr_count++;
-    if (ats_mode == SIMPLE)
+    if (ats_mode == MODE_SIMPLISTIC)
     {
       recalculate_assigned_bw ();
     }
@@ -893,11 +901,11 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
   if (GNUNET_NO == running)
     return;
 
-  if (ats_mode == SIMPLE)
+  if (ats_mode == MODE_SIMPLISTIC)
   {
     request_address_simple (peer);
   }
-  if (ats_mode == MLP)
+  if (ats_mode == MODE_MLP)
   {
     request_address_mlp(peer);
   }
@@ -939,8 +947,8 @@ GAS_addresses_change_preference (const struct GNUNET_PeerIdentity *peer,
   if (GNUNET_NO == running)
     return;
 #if HAVE_LIBGLPK
-  if (ats_mode == MLP)
-    GAS_mlp_address_change_preference (mlp, peer, kind, score);
+  if (ats_mode == MODE_MLP)
+    GAS_mlp_address_change_preference (solver, peer, kind, score);
 #endif
 }
 
@@ -956,16 +964,13 @@ void
 GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     const struct GNUNET_STATISTICS_Handle *stats)
 {
-  int mode;
-
+  int c;
   char *quota_wan_in_str;
   char *quota_wan_out_str;
-
+  char *mode_str;
   running = GNUNET_NO;
 
-  addresses = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
-  GNUNET_assert (NULL != addresses);
-
+  /* Initialize the system with configuration values */
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", "WAN_QUOTA_IN", &quota_wan_in_str))
   {
     if (0 == strcmp(quota_wan_in_str, "unlimited") ||
@@ -994,47 +999,72 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     wan_quota_out = (UINT32_MAX) /10;
   }
 
-  mode = GNUNET_CONFIGURATION_get_value_yesno (cfg, "ats", "MLP");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MLP mode %u", mode);
-  switch (mode)
+  /* Initialize the addresses database */
+  addresses = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
+  GNUNET_assert (NULL != addresses);
+
+  /* Figure out configured solution method */
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (cfg, "ats", "MODE", &mode_str))
   {
-    /* MLP = YES */
-    case GNUNET_YES:
-#if HAVE_LIBGLPK
-      ats_mode = MLP;
-      /* Init the MLP solver with default values */
-      mlp = GAS_mlp_init (cfg, stats, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
-      if (NULL == mlp)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "No ressource assignment method configured, using simplistic approch\n");
+      ats_mode = MODE_SIMPLISTIC;
+  }
+  else
+  {
+      for (c = 0; c < strlen (mode_str); c++)
+        mode_str[c] = toupper (mode_str[c]);
+      if (0 == strcmp (mode_str, "SIMPLISTIC"))
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP mode was configured, but libglpk is not installed, switching to simple mode\n");
-        GNUNET_STATISTICS_update (GSA_stats, "MLP mode enabled", 0, GNUNET_NO);
-        break;
+          ats_mode = MODE_SIMPLISTIC;
+      }
+      else if (0 == strcmp (mode_str, "MLP"))
+      {
+          ats_mode = MODE_MLP;
+#if !HAVE_LIBGLPK
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Assignment method `%s' configured, but GLPK is not availabe, please install \n", mode_str);
+          ats_mode = MODE_SIMPLISTIC;
+#endif
       }
       else
       {
-        GNUNET_STATISTICS_update (GSA_stats, "MLP enabled", 1, GNUNET_NO);
-        break;
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid ressource assignment method `%s' configured, using simplistic approch\n", mode_str);
+          ats_mode = MODE_SIMPLISTIC;
       }
-#else
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP mode was configured, but libglpk is not installed, switching to simple mode");
-      GNUNET_STATISTICS_update (GSA_stats, "MLP enabled", 0, GNUNET_NO);
-      ats_mode = SIMPLE;
-      break;
-#endif
-    /* MLP = NO */
-    case GNUNET_NO:
-      GNUNET_STATISTICS_update (GSA_stats, "MLP enabled", 0, GNUNET_NO);
-      ats_mode = SIMPLE;
-      break;
-    /* No configuration value */
-    case GNUNET_SYSERR:
-      GNUNET_STATISTICS_update (GSA_stats, "MLP enabled", 0, GNUNET_NO);
-      ats_mode = SIMPLE;
+  }
+
+  /* Start configured solution method */
+  switch (ats_mode)
+  {
+    case MODE_MLP:
+      /* Init the MLP solver with default values */
+      solver = GAS_mlp_init (cfg, stats, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
+      if (NULL != solver)
+      {
+          ats_mode = MODE_MLP;
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS started in %s mode\n", "MLP");
+          break;
+      }
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to initialize MLP solver!\n");
+    case MODE_SIMPLISTIC:
+      /* Init the simplistic solver with default values */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS started in %s mode\n", "SIMPLISTIC");
+      solver = GAS_simplistic_init (cfg, stats);
+      if (NULL != solver)
+      {
+          ats_mode = MODE_SIMPLISTIC;
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS started in %s mode\n", "SIMPLISTIC");
+          break;
+      }
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to initialize simplistic solver!\n");
+        return;
+      }
       break;
     default:
       break;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS started with %s mode\n", (SIMPLE == ats_mode) ? "SIMPLE" : "MLP");
+  /* up and running */
   running = GNUNET_YES;
 }
 
@@ -1079,12 +1109,21 @@ GAS_addresses_done ()
   running = GNUNET_NO;
   GNUNET_CONTAINER_multihashmap_destroy (addresses);
   addresses = NULL;
-#if HAVE_LIBGLPK
-  if (ats_mode == MLP)
+
+  /* Stop configured solution method */
+  switch (ats_mode)
   {
-    GAS_mlp_done (mlp);
+    case MODE_MLP:
+      /* Init the MLP solver with default values */
+      GAS_mlp_done (solver);
+      break;
+    case MODE_SIMPLISTIC:
+      /* Init the simplistic solver with default values */
+      GAS_simplistic_done (solver);
+      break;
+    default:
+      break;
   }
-#endif
 }
 
 struct PeerIteratorContext
