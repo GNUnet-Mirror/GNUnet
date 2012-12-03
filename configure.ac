@@ -965,7 +965,7 @@ AC_ARG_WITH([ll],
      esac
     ],
     [AC_MSG_RESULT(--with-ll not specified)])
-AM_CONDITIONAL(WITH_LL, test x$llapi = xtrue)
+AM_CONDITIONAL([WITH_LL], [test "x$llapi" = "xtrue"])
 AC_DEFINE_UNQUOTED(WITH_LL, $llapi, [Do we have to use IBM LoadLeveler])
 
 # should 'make check' run tests?
