@@ -719,9 +719,9 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host, int status
   *hc_handle = NULL;
   if (GNUNET_NO == status)
   {
-    if ((NULL != host) && (NULL != GNUNET_TESTBED_host_get_hostname_ (host)))
+    if ((NULL != host) && (NULL != GNUNET_TESTBED_host_get_hostname (host)))
       LOG (GNUNET_ERROR_TYPE_ERROR, _("Host %s cannot start testbed\n"),
-           GNUNET_TESTBED_host_get_hostname_ (host));
+           GNUNET_TESTBED_host_get_hostname (host));
     else
       LOG (GNUNET_ERROR_TYPE_ERROR, _("Testbed cannot be started on localhost\n"));
     GNUNET_SCHEDULER_cancel (abort_task);
@@ -737,7 +737,7 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host, int status
   GNUNET_free (hc_handles);
   hc_handles = NULL;
   mc_proc = 
-      GNUNET_TESTBED_controller_start (GNUNET_TESTBED_host_get_hostname_ 
+      GNUNET_TESTBED_controller_start (GNUNET_TESTBED_host_get_hostname 
                                        (hosts[0]),
                                        hosts[0],
                                        cfg,
@@ -786,8 +786,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                                                        &host_habitable_cb,
                                                                        &hc_handles[nhost])))
     {
-      fprintf (stderr, _("Host %s cannot start testbed\n"),
-	       GNUNET_TESTBED_host_get_hostname_ (hosts[nhost]));
+      GNUNET_break (0);
       for (nhost = 0; nhost < num_hosts; nhost++)
         if (NULL != hc_handles[nhost])
           GNUNET_TESTBED_is_host_habitable_cancel (hc_handles[nhost]);

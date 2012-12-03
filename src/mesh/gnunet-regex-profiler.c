@@ -1697,8 +1697,23 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host, int status
   static unsigned int hosts_checked;
 
   *hc_handle = NULL;
-  if (++hosts_checked < num_hosts)
+  if (GNUNET_NO == status)
+  {
+    if ((NULL != host) && (NULL != GNUNET_TESTBED_host_get_hostname (host)))
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Host %s cannot start testbed\n"),
+                  GNUNET_TESTBED_host_get_hostname (host));
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Testbed cannot be started on localhost\n"));
+    GNUNET_SCHEDULER_cancel (abort_task);
+    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
     return;
+  }
+  hosts_checked++;
+  /* printf (_("\rChecked %u hosts"), hosts_checked); */
+  /* fflush (stdout); */
+  if (hosts_checked < num_hosts)
+    return;
+  /* printf (_("\nAll hosts can start testbed. Creating peers\n")); */
   GNUNET_free (hc_handles);
   hc_handles = NULL;
   mc_proc = 
@@ -1742,6 +1757,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     fprintf (stderr, _("No hosts loaded. Need at least one host\n"));
     return;
   }
+  printf (_("Checking whether given hosts can start testbed. Please wait\n"));
   hc_handles = GNUNET_malloc (sizeof (struct
                                       GNUNET_TESTBED_HostHabitableCheckHandle *) 
                               * num_hosts);
@@ -1751,8 +1767,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                                                        &host_habitable_cb,
                                                                        &hc_handles[nhost])))
     {
-      fprintf (stderr, _("Host %s cannot start testbed\n"),
-                         GNUNET_TESTBED_host_get_hostname (hosts[nhost]));
+      GNUNET_break (0);
       for (nhost = 0; nhost < num_hosts; nhost++)
         if (NULL != hc_handles[nhost])
           GNUNET_TESTBED_is_host_habitable_cancel (hc_handles[nhost]);

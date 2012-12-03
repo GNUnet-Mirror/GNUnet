@@ -67,16 +67,6 @@ GNUNET_TESTBED_host_get_id_ (const struct GNUNET_TESTBED_Host *host);
 
 
 /**
- * Obtain the host's hostname.
- *
- * @param host handle to the host, NULL means 'localhost'
- * @return hostname of the host
- */
-const char *
-GNUNET_TESTBED_host_get_hostname_ (const struct GNUNET_TESTBED_Host *host);
-
-
-/**
  * Obtain the host's username
  *
  * @param host handle to the host, NULL means 'localhost'

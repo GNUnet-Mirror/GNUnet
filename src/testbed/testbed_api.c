@@ -1169,7 +1169,7 @@ helper_mst (void *cls, void *client, const struct GNUNET_MessageHeader *message)
                  (cp->cfg, config, config_size, GNUNET_NO));
   GNUNET_free (config);
   if ((NULL == cp->host) ||
-      (NULL == (hostname = GNUNET_TESTBED_host_get_hostname_ (cp->host))))
+      (NULL == (hostname = GNUNET_TESTBED_host_get_hostname (cp->host))))
     hostname = "localhost";
   /* Change the hostname so that we can connect to it */
   GNUNET_CONFIGURATION_set_value_string (cp->cfg, "testbed", "hostname",
@@ -1409,7 +1409,7 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
     unsigned int argp;
 
     username = GNUNET_TESTBED_host_get_username_ (host);
-    hostname = GNUNET_TESTBED_host_get_hostname_ (host);
+    hostname = GNUNET_TESTBED_host_get_hostname (host);
     GNUNET_asprintf (&port, "%u", GNUNET_TESTBED_host_get_ssh_port_ (host));
     if (NULL == username)
       GNUNET_asprintf (&dst, "%s", hostname);
@@ -1590,7 +1590,7 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle
       GNUNET_TESTBED_operation_queue_create_
       (controller->num_parallel_connects);
   controller->num_parallel_connects_threshold = num_parallel_connects_threshold;
-  controller_hostname = GNUNET_TESTBED_host_get_hostname_ (host);
+  controller_hostname = GNUNET_TESTBED_host_get_hostname (host);
   if (NULL == controller_hostname)
     controller_hostname = "127.0.0.1";
   msg =
@@ -1713,7 +1713,7 @@ GNUNET_TESTBED_register_host (struct GNUNET_TESTBED_Controller *controller,
 
   if (NULL != controller->rh)
     return NULL;
-  hostname = GNUNET_TESTBED_host_get_hostname_ (host);
+  hostname = GNUNET_TESTBED_host_get_hostname (host);
   if (GNUNET_YES == GNUNET_TESTBED_is_host_registered_ (host, controller))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "Host hostname: %s already registered\n",
