@@ -133,17 +133,51 @@ GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host);
 
 
 /**
+ * The handle for whether a host is habitable or not
+ */
+struct GNUNET_TESTBED_HostHabitableCheckHandle;
+
+
+/**
+ * Callbacks of this type are called by GNUNET_TESTBED_is_host_habitable to
+ * inform whether the given host is habitable or not. The Handle returned by
+ * GNUNET_TESTBED_is_host_habitable() is invalid after this callback is called
+ *
+ * @param cls the closure given to GNUNET_TESTBED_is_host_habitable()
+ * @param status GNUNET_YES if it is habitable; GNUNET_NO if not
+ */
+typedef void (*GNUNET_TESTBED_HostHabitableCallback) (void *cls,
+                                                      int status);
+
+
+/**
  * Checks whether a host can be used to start testbed service
  *
  * @param host the host to check
- * @param config the configuration handle to lookup the path of the testbed helper
- * @return GNUNET_YES if testbed service can be started on the given host
- *           remotely; GNUNET_NO if not
+ * @param config the configuration handle to lookup the path of the testbed
+ *          helper
+ * @param cb the callback to call to inform about habitability of the given host
+ * @param cb_cls the closure for the callback
+ * @return NULL upon any error or a handle which can be passed to
+ *           GNUNET_TESTBED_is_host_habitable_cancel()
  */
-int
+struct GNUNET_TESTBED_HostHabitableCheckHandle *
 GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host,
-                                  const struct GNUNET_CONFIGURATION_Handle *config);
+                                  const struct GNUNET_CONFIGURATION_Handle
+                                  *config,
+                                  GNUNET_TESTBED_HostHabitableCallback cb,
+                                  void *cb_cls);
 
+
+/**
+ * Function to cancel a request started using GNUNET_TESTBED_is_host_habitable()
+ *
+ * @param struct handle the habitability check handle
+ */
+void
+GNUNET_TESTBED_is_host_habitable_cancel (struct
+                                         GNUNET_TESTBED_HostHabitableCheckHandle
+                                         *handle);
 
 /**
  * Obtain the host's hostname.

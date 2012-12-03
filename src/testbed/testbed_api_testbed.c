@@ -969,23 +969,23 @@ GNUNET_TESTBED_create_va (struct GNUNET_TESTBED_Controller *controller,
                           enum GNUNET_TESTBED_TopologyOption underlay_topology,
                           va_list va)
 {
-  unsigned int nhost;
+  /* unsigned int nhost; */
 
-  GNUNET_assert (underlay_topology < GNUNET_TESTBED_TOPOLOGY_NONE);
-  if (num_hosts != 0)
-  {
-    for (nhost = 0; nhost < num_hosts; nhost++)
-    {
-      if (GNUNET_YES != GNUNET_TESTBED_is_host_habitable (hosts[nhost], cfg))
-      {
-        LOG (GNUNET_ERROR_TYPE_ERROR, _("Host %s cannot start testbed\n"),
-             GNUNET_TESTBED_host_get_hostname_ (hosts[nhost]));
-        break;
-      }
-    }
-    if (num_hosts != nhost)
-      return NULL;
-  }
+  /* GNUNET_assert (underlay_topology < GNUNET_TESTBED_TOPOLOGY_NONE); */
+  /* if (num_hosts != 0) */
+  /* { */
+  /*   for (nhost = 0; nhost < num_hosts; nhost++) */
+  /*   { */
+  /*     if (GNUNET_YES != GNUNET_TESTBED_is_host_habitable (hosts[nhost], cfg)) */
+  /*     { */
+  /*       LOG (GNUNET_ERROR_TYPE_ERROR, _("Host %s cannot start testbed\n"), */
+  /*            GNUNET_TESTBED_host_get_hostname_ (hosts[nhost])); */
+  /*       break; */
+  /*     } */
+  /*   } */
+  /*   if (num_hosts != nhost) */
+  /*     return NULL; */
+  /* } */
   /* We need controller callback here to get operation done events while
      linking hosts */
   GNUNET_break (0);

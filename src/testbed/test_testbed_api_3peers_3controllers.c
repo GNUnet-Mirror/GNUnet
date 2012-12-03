@@ -144,6 +144,11 @@ static struct GNUNET_CONFIGURATION_Handle *cfg2;
 static struct GNUNET_TESTBED_Operation *common_operation;
 
 /**
+ * The handle for whether a host is habitable or not
+ */
+struct GNUNET_TESTBED_HostHabitableCheckHandle *hc_handle;
+
+/**
  * Abort task identifier
  */
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
@@ -256,6 +261,8 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
+  if (NULL != hc_handle)
+    GNUNET_TESTBED_is_host_habitable_cancel (hc_handle);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == delayed_connect_task);
   if (NULL != reg_handle)
     GNUNET_TESTBED_cancel_registration (reg_handle);
@@ -854,6 +861,23 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int stat
 
 
 /**
+ * Callbacks of this type are called by GNUNET_TESTBED_is_host_habitable to
+ * inform whether the given host is habitable or not. The Handle returned by
+ * GNUNET_TESTBED_is_host_habitable() is invalid after this callback is called
+ *
+ * @param cls NULL
+ * @param status GNUNET_YES if it is habitable; GNUNET_NO if not
+ */
+static void 
+host_habitable_cb (void *cls, int status)
+{
+  hc_handle = NULL;
+  cp1 = GNUNET_TESTBED_controller_start ("127.0.0.1", host, cfg, status_cb,
+                                         NULL);
+}
+
+
+/**
  * Main run function.
  *
  * @param cls NULL
@@ -872,7 +896,9 @@ run (void *cls, char *const *args, const char *cfgfile,
     abort_test();
     return;
   }
-  if (GNUNET_YES != GNUNET_TESTBED_is_host_habitable (host, config))
+  if (NULL == (hc_handle = GNUNET_TESTBED_is_host_habitable (host, config,
+                                                             &host_habitable_cb,
+                                                             NULL)))
   {
     GNUNET_TESTBED_host_destroy (host);
     host = NULL;
@@ -884,8 +910,6 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
   cfg = GNUNET_CONFIGURATION_dup (config);
-  cp1 = GNUNET_TESTBED_controller_start ("127.0.0.1", host, cfg, status_cb,
-                                         NULL);
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_MINUTES, 3), &do_abort,

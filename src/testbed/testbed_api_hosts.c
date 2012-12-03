@@ -482,74 +482,201 @@ GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host,
 
 
 /**
- * Checks whether a host can be used to start testbed service
- *
- * @param host the host to check
- * @param config the configuration handle to lookup the path of the testbed helper
- * @return GNUNET_YES if testbed service can be started on the given host
- *           remotely; GNUNET_NO if not
+ * The handle for whether a host is habitable or not
  */
-int
-GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host,
-                                  const struct GNUNET_CONFIGURATION_Handle *config)
+struct GNUNET_TESTBED_HostHabitableCheckHandle
 {
-  char *remote_args[11];
-  char *helper_binary_path;
-  char *portstr;
-  char *ssh_addr;
-  const char *hostname;
+  /* /\** */
+  /*  * The host to check */
+  /*  *\/ */
+  /* const struct GNUNET_TESTBED_Host *host; */
+
+  /* /\** */
+  /*  * the configuration handle to lookup the path of the testbed helper */
+  /*  *\/ */
+  /* const struct GNUNET_CONFIGURATION_Handle *cfg; */
+  
+  /**
+   * The callback to call once we have the status
+   */
+  GNUNET_TESTBED_HostHabitableCallback cb;
+
+  /**
+   * The callback closure
+   */
+  void *cb_cls;
+
+  /**
+   * The process handle for the SSH process
+   */
   struct GNUNET_OS_Process *auxp;
+
+  /**
+   * The SSH destination address string
+   */
+  char *ssh_addr;
+
+  /**
+   * The destination port string
+   */
+  char *portstr;
+
+  /**
+   * The path for hte testbed helper binary
+   */
+  char *helper_binary_path;
+
+  /**
+   * Task id for the habitability check task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier habitability_check_task;
+
+  /**
+   * How long we wait before checking the process status. Should grow
+   * exponentially
+   */
+  struct GNUNET_TIME_Relative wait_time;
+
+};
+
+
+/**
+ * Task for checking whether a host is habitable or not
+ *
+ * @param cls GNUNET_TESTBED_HostHabitableCheckHandle
+ * @param tc the scheduler task context
+ */
+static void
+habitability_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_TESTBED_HostHabitableCheckHandle *h = cls;
+  void *cb_cls;
+  GNUNET_TESTBED_HostHabitableCallback cb;  
   unsigned long code;
   enum GNUNET_OS_ProcessStatusType type;
   int ret;
+
+  h->habitability_check_task = GNUNET_SCHEDULER_NO_TASK;
+  ret = GNUNET_OS_process_status (h->auxp, &type, &code);
+  if (GNUNET_SYSERR == ret)
+  {
+    GNUNET_break (0);
+    ret = GNUNET_NO;
+    goto call_cb;
+  }
+  if (GNUNET_NO == ret)
+  {
+    h->wait_time = GNUNET_TIME_STD_BACKOFF (h->wait_time);
+    h->habitability_check_task =
+        GNUNET_SCHEDULER_add_delayed (h->wait_time,
+                                      &habitability_check, h);
+    return;
+  }
+  GNUNET_OS_process_destroy (h->auxp);
+  h->auxp = NULL;
+  ret = (0 != code) ? GNUNET_NO : GNUNET_YES;
+  
+ call_cb:
+  GNUNET_free (h->ssh_addr);
+  GNUNET_free (h->portstr);
+  GNUNET_free (h->helper_binary_path);
+  if (NULL != h->auxp)
+    GNUNET_OS_process_destroy (h->auxp);
+  cb = h->cb;
+  cb_cls = h->cb_cls;
+  GNUNET_free (h);
+  if (NULL != cb)
+    cb (cb_cls, ret);
+}
+
+
+/**
+ * Checks whether a host can be used to start testbed service
+ *
+ * @param host the host to check
+ * @param config the configuration handle to lookup the path of the testbed
+ *          helper
+ * @param cb the callback to call to inform about habitability of the given host
+ * @param cb_cls the closure for the callback
+ * @return NULL upon any error or a handle which can be passed to
+ *           GNUNET_TESTBED_is_host_habitable_cancel()
+ */
+struct GNUNET_TESTBED_HostHabitableCheckHandle *
+GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host,
+                                  const struct GNUNET_CONFIGURATION_Handle
+                                  *config,
+                                  GNUNET_TESTBED_HostHabitableCallback cb,
+                                  void *cb_cls)
+{
+  struct GNUNET_TESTBED_HostHabitableCheckHandle *h;
+  char *remote_args[11];
+  const char *hostname;
   unsigned int argp;
 
-  portstr = NULL;
-  ssh_addr = NULL;
+  h = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_HostHabitableCheckHandle));
+  h->cb = cb;
+  h->cb_cls = cb_cls;
   hostname = (NULL == host->hostname) ? "127.0.0.1" : host->hostname;
   if (NULL == host->username)
-    ssh_addr = GNUNET_strdup (hostname);
+    h->ssh_addr = GNUNET_strdup (hostname);
   else
-    GNUNET_asprintf (&ssh_addr, "%s@%s", host->username, hostname);
+    GNUNET_asprintf (&h->ssh_addr, "%s@%s", host->username, hostname);
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (config, "testbed",
                                                           "HELPER_BINARY_PATH",
-                                                          &helper_binary_path))
-      helper_binary_path = GNUNET_OS_get_libexec_binary_path (HELPER_TESTBED_BINARY);
+                                                          &h->helper_binary_path))
+    h->helper_binary_path =
+        GNUNET_OS_get_libexec_binary_path (HELPER_TESTBED_BINARY);
   argp = 0;
   remote_args[argp++] = "ssh";
-  GNUNET_asprintf (&portstr, "%u", host->port);
+  GNUNET_asprintf (&h->portstr, "%u", host->port);
   remote_args[argp++] = "-p";
-  remote_args[argp++] = portstr;
+  remote_args[argp++] = h->portstr;
   remote_args[argp++] = "-o";
   remote_args[argp++] = "BatchMode=yes";
   remote_args[argp++] = "-o";
   remote_args[argp++] = "NoHostAuthenticationForLocalhost=yes";
-  remote_args[argp++] = ssh_addr;
+  remote_args[argp++] = h->ssh_addr;
   remote_args[argp++] = "stat";
-  remote_args[argp++] = helper_binary_path;
+  remote_args[argp++] = h->helper_binary_path;
   remote_args[argp++] = NULL;
   GNUNET_assert (argp == 11);
-  auxp =
+  h->auxp =
       GNUNET_OS_start_process_vap (GNUNET_NO, GNUNET_OS_INHERIT_STD_ERR, NULL,
                                    NULL, "ssh", remote_args);
-  if (NULL == auxp)
+  if (NULL == h->auxp)
   {
-    GNUNET_free (ssh_addr);
-    GNUNET_free (portstr);
-    return GNUNET_NO;
+    GNUNET_break (0);         /* Cannot exec SSH? */
+    GNUNET_free (h->ssh_addr);
+    GNUNET_free (h->portstr);
+    GNUNET_free (h->helper_binary_path);
+    GNUNET_free (h);
+    return NULL;
   }
-  do
-  {
-    ret = GNUNET_OS_process_status (auxp, &type, &code);
-    GNUNET_assert (GNUNET_SYSERR != ret);
-    (void) usleep (300);
-  }
-  while (GNUNET_NO == ret);  
-  GNUNET_OS_process_destroy (auxp);
-  GNUNET_free (ssh_addr);
-  GNUNET_free (portstr);
-  GNUNET_free (helper_binary_path);
-  return (0 != code) ? GNUNET_NO : GNUNET_YES;
+  h->wait_time = GNUNET_TIME_STD_BACKOFF (h->wait_time);
+  h->habitability_check_task =
+      GNUNET_SCHEDULER_add_delayed (h->wait_time,
+                                    &habitability_check, h);
+  return h;
 }
 
+
+/**
+ * Function to cancel a request started using GNUNET_TESTBED_is_host_habitable()
+ *
+ * @param struct handle the habitability check handle
+ */
+void
+GNUNET_TESTBED_is_host_habitable_cancel (struct
+                                         GNUNET_TESTBED_HostHabitableCheckHandle
+                                         *handle)
+{
+  GNUNET_SCHEDULER_cancel (handle->habitability_check_task);
+  (void) GNUNET_OS_process_kill (handle->auxp, SIGTERM);
+  (void) GNUNET_OS_process_wait (handle->auxp);
+  GNUNET_OS_process_destroy (handle->auxp);
+  GNUNET_free (handle->ssh_addr);
+  GNUNET_free (handle->portstr);
+  GNUNET_free (handle->helper_binary_path);
+  GNUNET_free (handle);
+}
 /* end of testbed_api_hosts.c */
