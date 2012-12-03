@@ -706,10 +706,12 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int stat
  * GNUNET_TESTBED_is_host_habitable() is invalid after this callback is called
  *
  * @param cls NULL
+ * @param host the host whose status is being reported; will be NULL if the host
+ *          given to GNUNET_TESTBED_is_host_habitable() is NULL
  * @param status GNUNET_YES if it is habitable; GNUNET_NO if not
  */
 static void 
-host_habitable_cb (void *cls, int status)
+host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host, int status)
 {
   struct GNUNET_TESTBED_HostHabitableCheckHandle **hc_handle = cls;
   static unsigned int hosts_checked;

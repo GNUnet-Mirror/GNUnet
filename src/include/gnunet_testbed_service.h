@@ -144,9 +144,14 @@ struct GNUNET_TESTBED_HostHabitableCheckHandle;
  * GNUNET_TESTBED_is_host_habitable() is invalid after this callback is called
  *
  * @param cls the closure given to GNUNET_TESTBED_is_host_habitable()
+ * @param host the host whose status is being reported; will be NULL if the host
+ *          given to GNUNET_TESTBED_is_host_habitable() is NULL
  * @param status GNUNET_YES if it is habitable; GNUNET_NO if not
  */
 typedef void (*GNUNET_TESTBED_HostHabitableCallback) (void *cls,
+                                                      const struct
+                                                      GNUNET_TESTBED_Host
+                                                      *host,
                                                       int status);
 
 

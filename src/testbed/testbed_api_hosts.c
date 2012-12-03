@@ -486,10 +486,10 @@ GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host,
  */
 struct GNUNET_TESTBED_HostHabitableCheckHandle
 {
-  /* /\** */
-  /*  * The host to check */
-  /*  *\/ */
-  /* const struct GNUNET_TESTBED_Host *host; */
+  /**
+   * The host to check
+   */
+  const struct GNUNET_TESTBED_Host *host;
 
   /* /\** */
   /*  * the configuration handle to lookup the path of the testbed helper */
@@ -551,7 +551,8 @@ habitability_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TESTBED_HostHabitableCheckHandle *h = cls;
   void *cb_cls;
-  GNUNET_TESTBED_HostHabitableCallback cb;  
+  GNUNET_TESTBED_HostHabitableCallback cb;
+  const struct GNUNET_TESTBED_Host *host;
   unsigned long code;
   enum GNUNET_OS_ProcessStatusType type;
   int ret;
@@ -584,9 +585,10 @@ habitability_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_OS_process_destroy (h->auxp);
   cb = h->cb;
   cb_cls = h->cb_cls;
+  host = h->host;
   GNUNET_free (h);
   if (NULL != cb)
-    cb (cb_cls, ret);
+    cb (cb_cls, host, ret);
 }
 
 
@@ -616,6 +618,7 @@ GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host,
   h = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_HostHabitableCheckHandle));
   h->cb = cb;
   h->cb_cls = cb_cls;
+  h->host = host;
   hostname = (NULL == host->hostname) ? "127.0.0.1" : host->hostname;
   if (NULL == host->username)
     h->ssh_addr = GNUNET_strdup (hostname);

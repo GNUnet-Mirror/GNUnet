@@ -188,6 +188,11 @@ struct RunContext
   struct GNUNET_TESTBED_Host **hosts;
 
   /**
+   * The handle for whether a host is habitable or not
+   */
+  struct GNUNET_TESTBED_HostHabitableCheckHandle **hc_handles;
+
+  /**
    * Array of peers which we create
    */
   struct GNUNET_TESTBED_Peer **peers;
@@ -239,7 +244,8 @@ struct RunContext
   unsigned int num_hosts;
 
   /**
-   * Number of registered hosts
+   * Number of registered hosts. Also used as a counter while checking
+   * habitabillity of hosts
    */
   unsigned int reg_hosts;
 
@@ -352,6 +358,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == rc->register_hosts_task);
   GNUNET_assert (NULL == rc->reg_handle);
   GNUNET_assert (NULL == rc->peers);
+  GNUNET_assert (NULL == rc->hc_handles);
   GNUNET_assert (RC_PEERS_DESTROYED == rc->state);
   if (NULL != rc->c)
     GNUNET_TESTBED_controller_disconnect (rc->c);
@@ -392,9 +399,18 @@ shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct RunContext *rc = cls;
   struct DLLOperation *dll_op;
   unsigned int peer;
+  unsigned int nhost;
 
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != rc->shutdown_run_task);
   rc->shutdown_run_task = GNUNET_SCHEDULER_NO_TASK;
+  if (NULL != rc->hc_handles)
+  {
+    for (nhost = 0; nhost < rc->num_hosts; nhost++)
+      if (NULL != rc->hc_handles[nhost])
+        GNUNET_TESTBED_is_host_habitable_cancel (rc->hc_handles[nhost]);
+    GNUNET_free (rc->hc_handles);
+    rc->hc_handles = NULL;
+  }
   /* Stop register hosts task if it is running */
   if (GNUNET_SCHEDULER_NO_TASK != rc->register_hosts_task)
   {
@@ -788,6 +804,7 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Testbed startup failed\n");
     return;
   }
+  GNUNET_CONFIGURATION_destroy (rc->cfg);
   rc->cfg = GNUNET_CONFIGURATION_dup (cfg);
   event_mask = rc->event_mask;
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
@@ -803,6 +820,57 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
   rc->state = RC_LINKED;
   create_peers (rc);
+}
+
+
+/**
+ * Callbacks of this type are called by GNUNET_TESTBED_is_host_habitable to
+ * inform whether the given host is habitable or not. The Handle returned by
+ * GNUNET_TESTBED_is_host_habitable() is invalid after this callback is called
+ *
+ * @param cls NULL
+ * @param host the host whose status is being reported; will be NULL if the host
+ *          given to GNUNET_TESTBED_is_host_habitable() is NULL
+ * @param status GNUNET_YES if it is habitable; GNUNET_NO if not
+ */
+static void 
+host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host, int status)
+{
+  struct RunContext *rc = cls;
+  unsigned int nhost;
+  
+  for (nhost = 0; nhost < rc->num_hosts; nhost++)
+  {
+    if (host == rc->hosts[nhost])
+      break;
+  }
+  GNUNET_assert (nhost != rc->num_hosts);
+  rc->hc_handles[nhost] = NULL;
+  rc->reg_hosts++;
+  if (rc->reg_hosts < rc->num_hosts)
+    return;
+  GNUNET_free (rc->hc_handles);
+  rc->hc_handles = NULL;
+  rc->h = rc->hosts[0];
+  rc->num_hosts--;
+  if (0 < rc->num_hosts)
+    rc->hosts = &rc->hosts[1];
+  else
+  {
+    GNUNET_free (rc->hosts);
+    rc->hosts = NULL;
+  }
+  /* FIXME: If we are starting controller on different host 127.0.0.1 may not ab
+  correct */
+  rc->cproc =
+      GNUNET_TESTBED_controller_start ("127.0.0.1", rc->h, rc->cfg,
+                                       &controller_status_cb, rc);
+  if (NULL == rc->cproc)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR, _("Cannot start the master controller"));
+    GNUNET_SCHEDULER_cancel (rc->shutdown_run_task);
+    rc->shutdown_run_task = GNUNET_SCHEDULER_add_now (&shutdown_run, rc);
+  }
 }
 
 
@@ -844,6 +912,7 @@ GNUNET_TESTBED_run (const char *host_filename,
   char *topology;
   unsigned long long random_links;
   unsigned int hid;
+  unsigned int nhost;
   
   GNUNET_assert (NULL != cc);
   GNUNET_assert (num_peers > 0);
@@ -857,22 +926,16 @@ GNUNET_TESTBED_run (const char *host_filename,
     {
       LOG (GNUNET_ERROR_TYPE_WARNING,
            _("No hosts loaded. Need at least one host\n"));
-      return;
+      goto error_cleanup;
     }
-    rc->h = rc->hosts[0];
-    rc->num_hosts--;
-    if (0 < rc->num_hosts)
-      rc->hosts = &rc->hosts[1];
   }
   else
-    rc->h = GNUNET_TESTBED_host_create (NULL, NULL, 0);
-  GNUNET_assert (NULL != rc->h);
-  /* FIXME: If we are starting controller on different host 127.0.0.1 may not ab
-  correct */
-  rc->cproc =
-      GNUNET_TESTBED_controller_start ("127.0.0.1", rc->h, cfg,
-                                       &controller_status_cb, rc);
-  GNUNET_assert (NULL != rc->cproc);
+  {
+    rc->hosts = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Host *));
+    rc->hosts[0] = GNUNET_TESTBED_host_create (NULL, NULL, 0);
+    rc->num_hosts = 1;
+  }
+  rc->cfg = GNUNET_CONFIGURATION_dup (cfg);
   rc->num_peers = num_peers;
   rc->event_mask = event_mask;
   rc->event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
@@ -881,8 +944,8 @@ GNUNET_TESTBED_run (const char *host_filename,
   rc->master = master;
   rc->master_cls = master_cls;
   rc->state = RC_INIT;
-  rc->topology = GNUNET_TESTBED_TOPOLOGY_NONE;
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
+  rc->topology = GNUNET_TESTBED_TOPOLOGY_NONE;  
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (rc->cfg, "testbed",
                                                           "OVERLAY_TOPOLOGY",
                                                           &topology))
   {
@@ -894,51 +957,77 @@ GNUNET_TESTBED_run (const char *host_filename,
     }
     GNUNET_free (topology);
   }
-  if ( (GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI == rc->topology)
-       || (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING == rc->topology)
-       || (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD == rc->topology))
+  switch (rc->topology)
   {
-    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg, "testbed",
+  case GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI:
+  case GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING:
+  case GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD:
+    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (rc->cfg, "testbed",
                                                             "OVERLAY_RANDOM_LINKS",
                                                             &random_links))
     {
       /* OVERLAY option RANDOM & SMALL_WORLD_RING requires OVERLAY_RANDOM_LINKS
          option to be set to the number of random links to be established  */
       GNUNET_break (0);
-      GNUNET_free (rc);
-      return;
+      goto error_cleanup;
     }
     if (random_links > UINT32_MAX)
     {
       GNUNET_break (0);       /* Too big number */
-      GNUNET_TESTBED_host_destroy (rc->h);
-      for (hid = 0; hid < rc->num_hosts; hid++)
-        GNUNET_TESTBED_host_destroy (rc->hosts[hid]);
-      GNUNET_free_non_null (rc->hosts);
-      GNUNET_free (rc);
-      return;
+      goto error_cleanup;
     }
     rc->random_links = (unsigned int) random_links;
-  }
-  else if (GNUNET_TESTBED_TOPOLOGY_FROM_FILE == rc->topology)
-  {
-    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
+    break;
+  case GNUNET_TESTBED_TOPOLOGY_FROM_FILE:
+    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (rc->cfg, "testbed",
                                                             "TOPOLOGY_FILE",
                                                             &rc->topo_file))
     {
       /* You need to set TOPOLOGY_FILE option to a topolog file */
       GNUNET_break (0);
-      GNUNET_TESTBED_host_destroy (rc->h);
-      for (hid = 0; hid < rc->num_hosts; hid++)
-        GNUNET_TESTBED_host_destroy (rc->hosts[hid]);
-      GNUNET_free_non_null (rc->hosts);
-      GNUNET_free (rc);
-      return;
+      goto error_cleanup;
+    }
+    break;
+  default:   
+    /* Do nothing */
+    break;
+  }
+  rc->hc_handles = GNUNET_malloc (sizeof (struct
+                                          GNUNET_TESTBED_HostHabitableCheckHandle *) 
+                                  * rc->num_hosts);
+  for (nhost = 0; nhost < rc->num_hosts; nhost++) 
+  {    
+    if (NULL == (rc->hc_handles[nhost] = 
+                 GNUNET_TESTBED_is_host_habitable (rc->hosts[nhost], rc->cfg,
+                                                   &host_habitable_cb,
+                                                   rc)))
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING, "Host %s cannot start testbed\n",
+	       GNUNET_TESTBED_host_get_hostname_ (rc->hosts[nhost]));
+      for (nhost = 0; nhost < rc->num_hosts; nhost++)
+        if (NULL != rc->hc_handles[nhost])
+          GNUNET_TESTBED_is_host_habitable_cancel (rc->hc_handles[nhost]);
+      GNUNET_free (rc->hc_handles);
+      rc->hc_handles = NULL;
+      goto error_cleanup;
     }
   }
   rc->shutdown_run_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                     &shutdown_run, rc);
+  return;
+
+ error_cleanup:  
+  if (NULL != rc->h)
+    GNUNET_TESTBED_host_destroy (rc->h);
+  if (NULL != rc->hosts)
+  {
+    for (hid = 0; hid < rc->num_hosts; hid++)
+      if (NULL != rc->hosts[hid])
+        GNUNET_TESTBED_host_destroy (rc->hosts[hid]);
+    GNUNET_free (rc->hosts);
+  }
+  GNUNET_free (rc);
 }
 
 
