@@ -715,8 +715,12 @@ host_habitable_cb (void *cls, int status)
   static unsigned int hosts_checked;
 
   *hc_handle = NULL;
-  if (++hosts_checked < num_hosts)
+  hosts_checked++;
+  printf (_("\rChecked %u hosts"), hosts_checked);
+  fflush (stdout);
+  if (hosts_checked < num_hosts)
     return;
+  printf (_("\nAll hosts can start testbed. Creating peers\n"));
   GNUNET_free (hc_handles);
   hc_handles = NULL;
   mc_proc = 
@@ -759,6 +763,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     fprintf (stderr, _("No hosts loaded. Need at least one host\n"));
     return;
   }
+  printf (_("Checking whether given hosts can start testbed. Please wait\n"));
   hc_handles = GNUNET_malloc (sizeof (struct
                                       GNUNET_TESTBED_HostHabitableCheckHandle *) 
                               * num_hosts);
