@@ -1527,8 +1527,9 @@ update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address)
  * @param address the address to update
  */
 void
-GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
+GAS_mlp_address_update (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
 {
+  struct GAS_MLP_Handle *mlp = solver;
   int new;
   struct MLP_information *mlpi;
   struct GAS_MLP_SolutionContext ctx;
@@ -1712,7 +1713,7 @@ mlp_get_preferred_address_it (void *cls, const struct GNUNET_HashCode * key, voi
  * @return suggested address
  */
 struct ATS_PreferedAddress *
-GAS_mlp_get_preferred_address (struct GAS_MLP_Handle *mlp,
+GAS_mlp_get_preferred_address (void *solver,
                                struct GNUNET_CONTAINER_MultiHashMap * addresses,
                                const struct GNUNET_PeerIdentity *peer)
 {

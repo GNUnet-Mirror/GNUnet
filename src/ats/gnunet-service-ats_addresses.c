@@ -63,10 +63,6 @@ enum ATS_Mode
 };
 
 
-
-
-
-
 struct GAS_Addresses_Handle
 {
   struct GNUNET_CONTAINER_MultiHashMap *addresses;
@@ -86,9 +82,11 @@ struct GAS_Addresses_Handle
 
   /* Solver functions */
   GAS_solver_init s_init;
-  GAS_solver_done s_done;
+  GAS_solver_address_update s_update;
+  GAS_solver_get_preferred_address s_get;
   GAS_solver_address_delete s_del;
   GAS_solver_address_change_preference s_pref;
+  GAS_solver_done s_done;
 };
 
 struct GAS_Addresses_Handle *handle;
@@ -1084,6 +1082,8 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 #if HAVE_LIBGLPK
       ah->ats_mode = MODE_MLP;
       ah->s_init = &GAS_mlp_init;
+      ah->s_update = &GAS_mlp_address_update;
+      ah->s_get = &GAS_mlp_get_preferred_address;
       ah->s_pref = &GAS_mlp_address_change_preference;
       ah->s_del =  &GAS_mlp_address_delete;
       ah->s_done = &GAS_mlp_done;
@@ -1096,6 +1096,8 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       /* Init the simplistic solver with default values */
       ah->ats_mode = MODE_SIMPLISTIC;
       ah->s_init = &GAS_simplistic_init;
+      ah->s_update = &GAS_simplistic_address_update;
+      ah->s_get = &GAS_simplistic_get_preferred_address;
       ah->s_pref = &GAS_simplistic_address_change_preference;
       ah->s_del  = &GAS_simplistic_address_delete;
       ah->s_done = &GAS_simplistic_done;
@@ -1107,6 +1109,8 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
 
   GNUNET_assert (NULL != ah->s_init);
+  GNUNET_assert (NULL != ah->s_update);
+  GNUNET_assert (NULL != ah->s_get);
   GNUNET_assert (NULL != ah->s_pref);
   GNUNET_assert (NULL != ah->s_del);
   GNUNET_assert (NULL != ah->s_done);

@@ -62,6 +62,11 @@ GAS_simplistic_address_update (void *solver, struct GNUNET_CONTAINER_MultiHashMa
 void
 GAS_simplistic_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
 
+struct ATS_PreferedAddress *
+GAS_simplistic_get_preferred_address (void *solver,
+                               struct GNUNET_CONTAINER_MultiHashMap * addresses,
+                               const struct GNUNET_PeerIdentity *peer);
+
 /**
  * Changes the preferences for a peer in the  problem
  *

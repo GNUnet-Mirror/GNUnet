@@ -95,6 +95,11 @@ struct ATS_Address
   int used;
 };
 
+
+typedef void *
+ (*GAS_solver_init) (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                     const struct GNUNET_STATISTICS_Handle *stats);
+
 typedef void
 (*GAS_solver_address_change_preference) (void *solver,
                                          const struct GNUNET_PeerIdentity *peer,
@@ -102,12 +107,20 @@ typedef void
                                          float score);
 
 typedef void
- (*GAS_solver_address_delete) (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
+ (*GAS_solver_address_delete) (void *solver,
+                               struct GNUNET_CONTAINER_MultiHashMap *addresses,
+                               struct ATS_Address *address);
+
+typedef void
+(*GAS_solver_address_update) (void *solver,
+                              struct GNUNET_CONTAINER_MultiHashMap *addresses,
+                              struct ATS_Address *address);
 
 
-typedef void *
- (*GAS_solver_init) (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                     const struct GNUNET_STATISTICS_Handle *stats);
+typedef struct ATS_PreferedAddress *
+(*GAS_solver_get_preferred_address) (void *solver,
+                                     struct GNUNET_CONTAINER_MultiHashMap *addresses,
+                                     const struct GNUNET_PeerIdentity *peer);
 
 
 typedef void

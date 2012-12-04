@@ -351,7 +351,9 @@ GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp, struct GAS_MLP_SolutionContex
  * @param address the address to update
  */
 void
-GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
+GAS_mlp_address_update (void *solver,
+                        struct GNUNET_CONTAINER_MultiHashMap * addresses,
+                        struct ATS_Address *address);
 
 
 /**
@@ -392,7 +394,7 @@ GAS_mlp_address_change_preference (void *solver,
  * @return suggested address
  */
 struct ATS_PreferedAddress *
-GAS_mlp_get_preferred_address (struct GAS_MLP_Handle *mlp,
+GAS_mlp_get_preferred_address (void *solver,
                                struct GNUNET_CONTAINER_MultiHashMap * addresses,
                                const struct GNUNET_PeerIdentity *peer);
 
@@ -400,7 +402,7 @@ GAS_mlp_get_preferred_address (struct GAS_MLP_Handle *mlp,
  * Shutdown the MLP problem solving component
  */
 void
-GAS_mlp_done ();
+GAS_mlp_done (void *solver);
 
 #endif
 /* end of gnunet-service-ats_addresses_mlp.h */
