@@ -1074,6 +1074,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid ressource assignment method `%s' configured, using simplistic approch\n", mode_str);
           ah->ats_mode = MODE_SIMPLISTIC;
       }
+      GNUNET_free (mode_str);
   }
   /* Start configured solution method */
   switch (ah->ats_mode)
