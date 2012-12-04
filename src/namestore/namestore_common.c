@@ -435,13 +435,13 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
       return NULL; /* malformed */
     vpn = data;
     GNUNET_CRYPTO_hash_to_enc (&vpn->peer, &s_peer);
-    if (0 == GNUNET_asprintf (&vpn_str, "%hu %s %s",
-			      vpn->proto,
+    if (0 == GNUNET_asprintf (&vpn_str, "%u %s %s",
+			      (unsigned int) ntohl (vpn->proto),
 			      (const char*) &s_peer,
 			      (const char*) &vpn[1]))
     {
-        GNUNET_free (vpn_str);
-        return NULL;
+      GNUNET_free (vpn_str);
+      return NULL;
     }
     return vpn_str;
   case GNUNET_DNSPARSER_TYPE_SRV:
