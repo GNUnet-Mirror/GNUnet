@@ -3435,8 +3435,8 @@ gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
     else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Cannot handle this TLD %s\n", string_hash);
-      
+                  _("Not a GADS TLD: `%s'\n", 
+		  name);      
       if (GNUNET_SCHEDULER_NO_TASK != rh->timeout_task)
         GNUNET_SCHEDULER_cancel (rh->timeout_task);
       GNUNET_CONTAINER_DLL_remove (rlh_head, rlh_tail, rh);
