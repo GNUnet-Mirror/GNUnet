@@ -8562,7 +8562,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CORE_disconnect (core_handle);
     core_handle = NULL;
   }
- if (NULL != keygen)
+  if (NULL != keygen)
   {
     GNUNET_CRYPTO_rsa_key_create_stop (keygen);
     keygen = NULL;
@@ -8583,6 +8583,11 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_SCHEDULER_cancel (announce_id_task);
     announce_id_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != announce_applications_task)
+  {
+    GNUNET_SCHDULER_cancel (announce_applications_task);
+    announce_applications_task = GNUNET_SCHEDULER_NO_TASK;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shut down\n");
 }
