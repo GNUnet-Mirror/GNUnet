@@ -436,7 +436,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
     vpn = data;
     GNUNET_CRYPTO_hash_to_enc (&vpn->peer, &s_peer);
     if (0 == GNUNET_asprintf (&vpn_str, "%u %s %s",
-			      (unsigned int) ntohl (vpn->proto),
+			      (unsigned int) ntohs (vpn->proto),
 			      (const char*) &s_peer,
 			      (const char*) &vpn[1]))
     {
