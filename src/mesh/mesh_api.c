@@ -227,6 +227,16 @@ struct GNUNET_MESH_Handle
    */
   void *tunnel_cls;
 
+  /**
+   * All the peer in the tunnel so far.
+   */
+  struct GNUNET_PeerIdentity *peers;
+
+  /**
+   * How many peers we have in this tunnel so far.
+   */
+  unsigned int tunnel_npeers;
+
 #if DEBUG_ACK
   unsigned int acks_sent;
   unsigned int acks_recv;
@@ -1262,19 +1272,19 @@ process_ack (struct GNUNET_MESH_Handle *h,
 
 
 /**
- * Process a local monitor reply, pass info to the user.
+ * Process a local reply about info on all tunnels, pass info to the user.
  *
  * @param h Mesh handle.
  * @param message Message itself.
  */
 static void
-process_monitor (struct GNUNET_MESH_Handle *h,
-                 const struct GNUNET_MessageHeader *message)
+process_get_tunnels (struct GNUNET_MESH_Handle *h,
+                     const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_LocalMonitor *msg;
   uint32_t npeers;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Monitor messasge received\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Get Tunnels messasge received\n");
 
   if (NULL == h->tunnels_cb)
   {
@@ -1284,13 +1294,13 @@ process_monitor (struct GNUNET_MESH_Handle *h,
 
   msg = (struct GNUNET_MESH_LocalMonitor *) message;
   npeers = ntohl (msg->npeers);
-  if (ntohs (message->size)  !=
+  if (ntohs (message->size) !=
       (sizeof (struct GNUNET_MESH_LocalMonitor) +
        npeers * sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break_op (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Monitor message: size %hu - expected %u (%u peers)\n",
+                "Get tunnels message: size %hu - expected %u (%u peers)\n",
                 ntohs (message->size),
                 sizeof (struct GNUNET_MESH_LocalMonitor) +
                 npeers * sizeof (struct GNUNET_PeerIdentity),
@@ -1313,9 +1323,60 @@ process_monitor (struct GNUNET_MESH_Handle *h,
  * @param message Message itself.
  */
 static void
-process_monitor_tunnel (struct GNUNET_MESH_Handle *h,
-                        const struct GNUNET_MessageHeader *message)
+process_show_tunnel (struct GNUNET_MESH_Handle *h,
+                     const struct GNUNET_MessageHeader *message)
 {
+  struct GNUNET_MESH_LocalMonitor *msg;
+  struct GNUNET_PeerIdentity *new_peers;
+  uint32_t *new_parents;
+  size_t esize;
+  uint32_t npeers;
+  unsigned int i;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Show Tunnel messasge received\n");
+
+  if (NULL == h->tunnel_cb)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  ignored\n");
+    return;
+  }
+
+  /* Verify message sanity */
+  msg = (struct GNUNET_MESH_LocalMonitor *) message;
+  npeers = ntohl (msg->npeers);
+  esize = sizeof (struct GNUNET_MESH_LocalMonitor);
+  esize += npeers * (sizeof (struct GNUNET_PeerIdentity) + sizeof (uint32_t));
+  if (ntohs (message->size) != esize)
+  {
+    GNUNET_break_op (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Show tunnel message: size %hu - expected %u (%u peers)\n",
+                ntohs (message->size),
+                esize,
+                npeers);
+
+    h->tunnel_cb (h->tunnel_cls, NULL, NULL);
+    h->tunnel_cb = NULL;
+    h->tunnel_cls = NULL;
+    h->tunnel_npeers = 0;
+    GNUNET_free_non_null (h->peers);
+    h->peers = NULL;
+
+    return;
+  }
+
+  new_peers = (struct GNUNET_PeerIdentity *) &msg[1];
+  new_parents = (uint32_t *) &new_peers[npeers];
+
+  h->peers = GNUNET_realloc (h->peers, h->tunnel_npeers + npeers);
+  memcpy (&h->peers[h->tunnel_npeers],
+          new_peers,
+          npeers * sizeof (struct GNUNET_PeerIdentity));
+  h->tunnel_npeers += npeers;
+  for (i = 0; i < npeers; i++)
+    h->tunnel_cb (h->tunnel_cls,
+                  &new_peers[i],
+                  &h->peers[new_parents[i]]);
 }
 
 
@@ -1366,11 +1427,11 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
   case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
     process_ack (h, msg);
     break;
-  case GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR:
-    process_monitor (h, msg);
+  case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS:
+        process_get_tunnels (h, msg);
     break;
-  case GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR_TUNNEL:
-    process_monitor_tunnel (h, msg);
+  case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL:
+        process_show_tunnel (h, msg);
     break;
   default:
     /* We shouldn't get any other packages, log and ignore */
@@ -1713,7 +1774,8 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
     {
       case GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT:
       case GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY:
-      case GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR:
+      case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS:
+      case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL:
         break;
       default:
         GNUNET_break (0);
@@ -2250,7 +2312,7 @@ GNUNET_MESH_get_tunnels (struct GNUNET_MESH_Handle *h,
   struct GNUNET_MessageHeader msg;
 
   msg.size = htons (sizeof (msg));
-  msg.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR);
+  msg.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS);
   send_packet (h, &msg, NULL);
   h->tunnels_cb = callback;
   h->tunnels_cls = callback_cls;
@@ -2299,7 +2361,7 @@ GNUNET_MESH_show_tunnel (struct GNUNET_MESH_Handle *h,
   struct GNUNET_MESH_LocalMonitor msg;
 
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR_TUNNEL);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL);
   msg.npeers = htonl (0);
   msg.owner = *initiator;
   msg.tunnel_id = htonl (tunnel_number);

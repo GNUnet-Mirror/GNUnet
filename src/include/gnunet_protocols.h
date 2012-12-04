@@ -891,14 +891,14 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK              286
 
 /**
- * Local monitoring of service.
+ * Local information about all tunnels of service.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR          287
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS     287
 
 /**
- * Local monitoring of service of a specific tunnel.
+ * Local information of service about a specific tunnel.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR_TUNNEL   288
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL      288
 
 /**
  * 640kb should be enough for everybody
