@@ -396,7 +396,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
 		     ntohl (soa->refresh),
 		     ntohl (soa->retry), 
 		     ntohl (soa->expire),
-		     ntohl (soa->minimum)))
+		     ntohl (soa->minimum));
     return result;
   case GNUNET_DNSPARSER_TYPE_PTR:
     return GNUNET_strndup (data, data_size);
