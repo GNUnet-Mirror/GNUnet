@@ -8586,7 +8586,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (GNUNET_SCHEDULER_NO_TASK != announce_applications_task)
   {
-    GNUNET_SCHDULER_cancel (announce_applications_task);
+    GNUNET_SCHEDULER_cancel (announce_applications_task);
     announce_applications_task = GNUNET_SCHEDULER_NO_TASK;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shut down\n");
