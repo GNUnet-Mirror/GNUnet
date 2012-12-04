@@ -79,7 +79,7 @@ check (void *cls, char *const *args, const char *cfgfile,
 
   addresses = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
 
-  mlp = GAS_mlp_init (cfg, NULL, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
+  mlp = GAS_mlp_init (cfg, NULL);
   mlp->auto_solve = GNUNET_NO;
 
   struct GNUNET_PeerIdentity p[10];

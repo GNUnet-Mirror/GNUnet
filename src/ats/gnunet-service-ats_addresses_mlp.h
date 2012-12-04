@@ -321,11 +321,9 @@ struct MLP_information
  * @param max_iterations maximum time limit for the LP/MLP Solver
  * @return struct GAS_MLP_Handle * on success, NULL on fail
  */
-struct GAS_MLP_Handle *
+void *
 GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-              const struct GNUNET_STATISTICS_Handle *stats,
-              struct GNUNET_TIME_Relative max_duration,
-              unsigned int max_iterations);
+              const struct GNUNET_STATISTICS_Handle *stats);
 
 /**
  * Solves the MLP problem on demand
@@ -367,7 +365,7 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
  * @param address the address to delete
  */
 void
-GAS_mlp_address_delete (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
+GAS_mlp_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
 
 
 /**
@@ -379,7 +377,7 @@ GAS_mlp_address_delete (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
  * @param score the score
  */
 void
-GAS_mlp_address_change_preference (struct GAS_MLP_Handle *mlp,
+GAS_mlp_address_change_preference (void *solver,
                                    const struct GNUNET_PeerIdentity *peer,
                                    enum GNUNET_ATS_PreferenceKind kind,
                                    float score);

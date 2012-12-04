@@ -1073,11 +1073,9 @@ GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp, struct GAS_MLP_SolutionContex
  * @param max_iterations maximum time limit for the LP/MLP Solver
  * @return struct GAS_MLP_Handle * on success, NULL on fail
  */
-struct GAS_MLP_Handle *
+void *
 GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-              const struct GNUNET_STATISTICS_Handle *stats,
-              struct GNUNET_TIME_Relative max_duration,
-              unsigned int max_iterations)
+              const struct GNUNET_STATISTICS_Handle *stats)
 {
   struct GAS_MLP_Handle * mlp = GNUNET_malloc (sizeof (struct GAS_MLP_Handle));
 
@@ -1091,6 +1089,9 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   int c;
   char * quota_out_str;
   char * quota_in_str;
+
+  struct GNUNET_TIME_Relative max_duration;
+  long long unsigned int max_iterations;
 
   /* Init GLPK environment */
   int res = glp_init_env();
@@ -1124,6 +1125,21 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert (mlp->prob != NULL);
 
   mlp->BIG_M = (double) BIG_M_VALUE;
+
+  /* Get maximum number of iterations */
+
+
+  /* Get timeout for iterations */
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_time(cfg, "ats", "MAX_DURATION", &max_duration))
+  {
+    max_duration = MLP_MAX_EXEC_DURATION;
+  }
+
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_size(cfg, "ats", "MAX_ITERATIONS", &max_iterations))
+  {
+    max_iterations = MLP_MAX_ITERATIONS;
+  }
 
   /* Get diversity coefficient from configuration */
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
@@ -1614,8 +1630,9 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
  * @param address the address to delete
  */
 void
-GAS_mlp_address_delete (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
+GAS_mlp_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
 {
+  struct GAS_MLP_Handle *mlp = solver;
   GNUNET_STATISTICS_update (mlp->stats,"# LP address deletions", 1, GNUNET_NO);
   struct GAS_MLP_SolutionContext ctx;
 
@@ -1718,16 +1735,18 @@ GAS_mlp_get_preferred_address (struct GAS_MLP_Handle *mlp,
  * @param score the score
  */
 void
-GAS_mlp_address_change_preference (struct GAS_MLP_Handle *mlp,
+GAS_mlp_address_change_preference (void *solver,
                                    const struct GNUNET_PeerIdentity *peer,
                                    enum GNUNET_ATS_PreferenceKind kind,
                                    float score)
 {
+  struct GAS_MLP_Handle *mlp = solver;
   GNUNET_STATISTICS_update (mlp->stats,"# LP address preference changes", 1, GNUNET_NO);
 
   //struct ATS_Peer *p = mlp_find_peer (mlp, peer);
   //FIXME to finish implementation
   /* Here we have to do the matching */
+
 }
 
 /**
@@ -1735,8 +1754,9 @@ GAS_mlp_address_change_preference (struct GAS_MLP_Handle *mlp,
  * @param mlp the MLP handle
  */
 void
-GAS_mlp_done (struct GAS_MLP_Handle *mlp)
+GAS_mlp_done (void *solver)
 {
+  struct GAS_MLP_Handle *mlp = solver;
   struct ATS_Peer * peer;
   struct ATS_Address *addr;
 

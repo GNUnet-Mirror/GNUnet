@@ -42,7 +42,7 @@ struct GAS_SIMPLISTIC_Handle
  * @param stats the GNUNET_STATISTICS handle
  * @return struct GAS_SIMPLISTIC_Handle * on success, NULL on fail
  */
-struct GAS_SIMPLISTIC_Handle *
+void *
 GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      const struct GNUNET_STATISTICS_Handle *stats)
 {
@@ -54,7 +54,7 @@ GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * Shutdown the simplistic problem solving component
  */
 void
-GAS_simplistic_done (struct GAS_SIMPLISTIC_Handle *solver)
+GAS_simplistic_done (void *solver)
 {
   GNUNET_free (solver);
 }
@@ -68,7 +68,13 @@ GAS_simplistic_done (struct GAS_SIMPLISTIC_Handle *solver)
  * @param address the address to update
  */
 void
-GAS_simplistic_address_update (struct GAS_SIMPLISTIC_Handle *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
+GAS_simplistic_address_update (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
+{
+
+}
+
+void
+GAS_simplistic_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
 {
 
 }
@@ -82,7 +88,7 @@ GAS_simplistic_address_update (struct GAS_SIMPLISTIC_Handle *solver, struct GNUN
  * @param score the score
  */
 void
-GAS_simplistic_address_change_preference (struct GAS_SIMPLISTIC_Handle *solver,
+GAS_simplistic_address_change_preference (void *solver,
                                    const struct GNUNET_PeerIdentity *peer,
                                    enum GNUNET_ATS_PreferenceKind kind,
                                    float score)

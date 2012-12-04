@@ -195,7 +195,7 @@ check (void *cls, char *const *args, const char *cfgfile,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up %u peers with %u addresses per peer\n", peers, addresses);
 
-  mlp = GAS_mlp_init (cfg, NULL, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
+  mlp = GAS_mlp_init (cfg, NULL);
   if (NULL == mlp)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to init MLP\n");

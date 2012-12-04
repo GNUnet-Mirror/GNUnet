@@ -64,8 +64,6 @@ enum ATS_Mode
 
 static struct GNUNET_CONTAINER_MultiHashMap *addresses;
 
-static void *solver;
-
 static unsigned long long wan_quota_in;
 
 static unsigned long long wan_quota_out;
@@ -75,6 +73,21 @@ static unsigned int active_addr_count;
 static int ats_mode;
 
 static int running;
+
+void *solver;
+
+struct GAS_Addresses_Handle
+{
+  int ats_mode;
+  /* Solver handle */
+  void *solver;
+
+  /* Solver functions */
+  GAS_solver_init s_init;
+  GAS_solver_done s_done;
+  GAS_solver_address_delete s_del;
+  GAS_solver_address_change_preference s_pref;
+};
 
 
 static unsigned int
@@ -991,10 +1004,11 @@ GAS_addresses_change_preference (const struct GNUNET_PeerIdentity *peer,
  * @param cfg configuration to use
  * @param stats the statistics handle to use
  */
-void
+struct GAS_Addresses_Handle *
 GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     const struct GNUNET_STATISTICS_Handle *stats)
 {
+  struct GAS_Addresses_Handle *ah;
   int c;
   char *quota_wan_in_str;
   char *quota_wan_out_str;
@@ -1063,41 +1077,56 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       }
   }
 
+
+  ah = GNUNET_malloc (sizeof (struct GAS_Addresses_Handle));
+
   /* Start configured solution method */
   switch (ats_mode)
   {
     case MODE_MLP:
       /* Init the MLP solver with default values */
-      solver = GAS_mlp_init (cfg, stats, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
-      if (NULL != solver)
-      {
-          ats_mode = MODE_MLP;
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS started in %s mode\n", "MLP");
-          break;
-      }
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to initialize MLP solver!\n");
+#if HAVE_LIBGLPK
+      ah->ats_mode = MODE_MLP;
+      ah->s_init = &GAS_mlp_init;
+      ah->s_pref = &GAS_mlp_address_change_preference;
+      ah->s_del =  &GAS_mlp_address_delete;
+      ah->s_done = &GAS_mlp_done;
+#else
+      GNUNET_freee (ah);
+      return NULL;
+#endif
+      break;
     case MODE_SIMPLISTIC:
       /* Init the simplistic solver with default values */
+      ah->ats_mode = MODE_SIMPLISTIC;
+      ah->s_init = &GAS_simplistic_init;
+      ah->s_pref = &GAS_simplistic_address_change_preference;
+      ah->s_del  = &GAS_simplistic_address_delete;
+      ah->s_done = &GAS_simplistic_done;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS started in %s mode\n", "SIMPLISTIC");
-      solver = GAS_simplistic_init (cfg, stats);
-      if (NULL != solver)
-      {
-          ats_mode = MODE_SIMPLISTIC;
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS started in %s mode\n", "SIMPLISTIC");
-          break;
-      }
-      else
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to initialize simplistic solver!\n");
-        return;
-      }
       break;
     default:
-      GNUNET_break (0);
+      return NULL;
       break;
   }
+
+  GNUNET_assert (NULL != ah->s_init);
+  GNUNET_assert (NULL != ah->s_pref);
+  GNUNET_assert (NULL != ah->s_del);
+  GNUNET_assert (NULL != ah->s_done);
+
+  ah->solver = ah->s_init (cfg, stats);
+  /* REMOVE */ solver = ah->solver;
+  if (NULL == ah->solver)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to initialize MLP solver!\n");
+    GNUNET_free (ah);
+    return NULL;
+  }
+
   /* up and running */
   running = GNUNET_YES;
+  return ah;
 }
 
 
