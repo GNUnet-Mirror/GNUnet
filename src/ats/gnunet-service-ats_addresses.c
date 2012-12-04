@@ -62,34 +62,85 @@ enum ATS_Mode
   MODE_MLP
 };
 
-
+/**
+ * Handle for ATS address component
+ */
 struct GAS_Addresses_Handle
 {
+  /**
+   * A multihashmap to store all addresses
+   */
   struct GNUNET_CONTAINER_MultiHashMap *addresses;
 
+  /**
+   * Configure WAN quota in
+   */
   unsigned long long wan_quota_in;
 
+  /**
+   * Configure WAN quota out
+   */
   unsigned long long wan_quota_out;
 
+  /**
+   * Number of active addresses
+   */
   unsigned int active_addr_count;
 
+  /**
+   * Is ATS addresses running
+   */
   int running;
 
-
+  /**
+   * Configured ATS solver
+   */
   int ats_mode;
-  /* Solver handle */
+
+  /**
+   *  Solver handle
+   */
   void *solver;
 
   /* Solver functions */
+
+  /**
+   * Initialize solver
+   */
   GAS_solver_init s_init;
+
+  /**
+   * Update address in solver
+   */
   GAS_solver_address_update s_update;
+
+  /**
+   * Get address from solver
+   */
   GAS_solver_get_preferred_address s_get;
+
+  /**
+   * Delete address in solver
+   */
   GAS_solver_address_delete s_del;
+
+  /**
+   * Change preference for quality in solver
+   */
   GAS_solver_address_change_preference s_pref;
+
+  /**
+   * Shutdown solver
+   */
   GAS_solver_done s_done;
 };
 
+
+/**
+ * Temporary handle
+ */
 struct GAS_Addresses_Handle *handle;
+
 
 static unsigned int
 assemble_ats_information (struct ATS_Address *aa,  struct GNUNET_ATS_Information **dest)
@@ -410,6 +461,7 @@ lookup_address (const struct GNUNET_PeerIdentity *peer,
 }
 
 
+#if 0
 static int
 compare_address_session_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
@@ -449,7 +501,7 @@ find_exact_address (const struct GNUNET_PeerIdentity *peer,
                                               &compare_address_session_it, &cac);
   return cac.exact_address;
 }
-
+#endif
 
 void
 GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
