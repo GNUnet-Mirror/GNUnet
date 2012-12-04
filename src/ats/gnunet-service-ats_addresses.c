@@ -577,18 +577,7 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
     }
 
   /* Tell solver about update */
-  switch (handle->ats_mode)
-  {
-    case MODE_MLP:
-      GAS_mlp_address_update (handle->solver, handle->addresses, old);
-      break;
-    case MODE_SIMPLISTIC:
-      GAS_simplistic_address_update (handle->solver, handle->addresses, old);
-      break;
-    default:
-      GNUNET_break (0);
-      break;
-  }
+  handle->s_update (handle->solver, handle->addresses, old);
 }
 
 
@@ -827,18 +816,8 @@ GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
   old->used = in_use;
 
   /* Tell solver about update */
-  switch (handle->ats_mode)
-  {
-    case MODE_MLP:
-      GAS_mlp_address_update (handle->solver, handle->addresses, old);
-      break;
-    case MODE_SIMPLISTIC:
-      GAS_simplistic_address_update (handle->solver, handle->addresses, old);
-      break;
-    default:
-      GNUNET_break (0);
-      break;
-  }
+  handle->s_update (handle->solver, handle->addresses, old);
+
   return GNUNET_OK;
 }
 
@@ -978,20 +957,8 @@ GAS_addresses_change_preference (const struct GNUNET_PeerIdentity *peer,
   if (GNUNET_NO == handle->running)
     return;
 
-
   /* Tell solver about update */
-  switch (handle->ats_mode)
-  {
-    case MODE_MLP:
-      GAS_mlp_address_change_preference (handle->solver, peer, kind, score);
-      break;
-    case MODE_SIMPLISTIC:
-      GAS_simplistic_address_change_preference (handle->solver, peer, kind, score);
-      break;
-    default:
-      GNUNET_break (0);
-      break;
-  }
+  handle->s_pref (handle->solver, peer, kind, score);
 }
 
 
