@@ -941,11 +941,7 @@ GNUNET_TESTBED_run (const char *host_filename,
     }
   }
   else
-  {
-    rc->hosts = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Host *));
-    rc->hosts[0] = GNUNET_TESTBED_host_create (NULL, NULL, 0);
-    rc->num_hosts = 1;
-  }
+    rc->h = GNUNET_TESTBED_host_create (NULL, NULL, 0);
   rc->cfg = GNUNET_CONFIGURATION_dup (cfg);
   rc->num_peers = num_peers;
   rc->event_mask = event_mask;
@@ -1003,31 +999,38 @@ GNUNET_TESTBED_run (const char *host_filename,
     /* Do nothing */
     break;
   }
-  rc->hc_handles = GNUNET_malloc (sizeof (struct
-                                          GNUNET_TESTBED_HostHabitableCheckHandle *) 
-                                  * rc->num_hosts);
-  for (nhost = 0; nhost < rc->num_hosts; nhost++) 
-  {    
-    if (NULL == (rc->hc_handles[nhost] = 
-                 GNUNET_TESTBED_is_host_habitable (rc->hosts[nhost], rc->cfg,
-                                                   &host_habitable_cb,
-                                                   rc)))
-    {
-      GNUNET_break (0);
-      for (nhost = 0; nhost < rc->num_hosts; nhost++)
-        if (NULL != rc->hc_handles[nhost])
-          GNUNET_TESTBED_is_host_habitable_cancel (rc->hc_handles[nhost]);
-      GNUNET_free (rc->hc_handles);
-      rc->hc_handles = NULL;
-      goto error_cleanup;
+  if (NULL != host_filename)
+  {
+    rc->hc_handles = GNUNET_malloc (sizeof (struct
+                                            GNUNET_TESTBED_HostHabitableCheckHandle *) 
+                                    * rc->num_hosts);
+    for (nhost = 0; nhost < rc->num_hosts; nhost++) 
+    {    
+      if (NULL == (rc->hc_handles[nhost] = 
+                   GNUNET_TESTBED_is_host_habitable (rc->hosts[nhost], rc->cfg,
+                                                     &host_habitable_cb,
+                                                     rc)))
+      {
+        GNUNET_break (0);
+        for (nhost = 0; nhost < rc->num_hosts; nhost++)
+          if (NULL != rc->hc_handles[nhost])
+            GNUNET_TESTBED_is_host_habitable_cancel (rc->hc_handles[nhost]);
+        GNUNET_free (rc->hc_handles);
+        rc->hc_handles = NULL;
+        goto error_cleanup;
+      }
     }
   }
+  else
+    rc->cproc =
+      GNUNET_TESTBED_controller_start ("127.0.0.1", rc->h, rc->cfg,
+                                       &controller_status_cb, rc);
   rc->shutdown_run_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                     &shutdown_run, rc);
   return;
 
- error_cleanup:  
+ error_cleanup:
   if (NULL != rc->h)
     GNUNET_TESTBED_host_destroy (rc->h);
   if (NULL != rc->hosts)
