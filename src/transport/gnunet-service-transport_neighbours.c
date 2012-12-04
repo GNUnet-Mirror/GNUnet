@@ -92,6 +92,177 @@
  */
 #define BLACKLIST_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
 
+#define DEBUG_MALLOC GNUNET_NO
+
+#if DEBUG_MALLOC
+
+struct Allocator
+{
+  struct Allocator *prev;
+  struct Allocator *next;
+
+  unsigned int bytes_alloced;
+  unsigned int max_alloced;
+  unsigned int diff;
+  unsigned int line;
+
+  struct GNUNET_TIME_Absolute max_alloced_when;
+  struct GNUNET_TIME_Absolute last_alloced_when;
+
+};
+
+struct Allocator *aehead;
+struct Allocator *aetail;
+
+struct Allocation
+{
+  struct Allocation *prev;
+  struct Allocation *next;
+
+  struct Allocator *alloc;
+  unsigned int bytes_alloced;
+  void *p;
+  unsigned int line;
+};
+
+struct Allocation *ahead;
+struct Allocation *atail;
+
+static int bytes_alloced;
+
+static struct Allocator *
+find_allocator (int line)
+{
+  struct Allocator *cur = aehead;
+  while (NULL != cur)
+  {
+      if (line == cur->line)
+        return cur;
+      cur = cur->next;
+  }
+  return cur;
+}
+
+static void
+print_allocators ()
+{
+  static int start = GNUNET_YES;
+  static struct GNUNET_TIME_Absolute next;
+  static struct GNUNET_TIME_Relative rem;
+  struct Allocator *cur = aehead;
+  if (start)
+  {
+      next = GNUNET_TIME_UNIT_ZERO_ABS;
+      start = GNUNET_NO;
+  }
+  if (0 == (rem = GNUNET_TIME_absolute_get_remaining(next)).rel_value)
+  {
+      fprintf (stderr, "Allocated in `%s' total: %5u bytes\n", __FILE__, bytes_alloced);
+      while (NULL != cur)
+      {
+          char *last_alloc = GNUNET_strdup (GNUNET_STRINGS_absolute_time_to_string(cur->max_alloced_when));
+          fprintf (stderr, "Allocated from line %4u :%5u bytes (diff %5i bytes, max alloc: %5u @ %s, last alloc %s)\n",
+              cur->line, cur->bytes_alloced, cur->diff, cur->max_alloced,
+              last_alloc,
+              GNUNET_STRINGS_absolute_time_to_string(cur->last_alloced_when));
+          GNUNET_free (last_alloc);
+          cur->diff = 0;
+          cur = cur->next;
+      }
+      fprintf (stderr, "\n");
+    next = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), GNUNET_TIME_UNIT_SECONDS);
+  }
+}
+
+#endif
+
+static void
+MEMDEBUG_add_alloc (void *p, size_t size, int line)
+{
+#if DEBUG_MALLOC
+  struct Allocation *alloc = GNUNET_malloc (sizeof (struct Allocation));
+  struct Allocator *allocator = find_allocator(line);
+  if (NULL == allocator)
+  {
+      allocator = GNUNET_malloc (sizeof (struct Allocator));
+      allocator->line = line;
+      GNUNET_CONTAINER_DLL_insert (aehead, aetail, allocator);
+  }
+  alloc->alloc = allocator;
+  alloc->p = p;
+  alloc->line = line;
+  alloc->bytes_alloced = size;
+  allocator->bytes_alloced += size;
+  allocator->last_alloced_when = GNUNET_TIME_absolute_get();
+  if (allocator->bytes_alloced >= allocator->max_alloced)
+  {
+      allocator->max_alloced = allocator->bytes_alloced;
+      allocator->max_alloced_when = allocator->last_alloced_when;
+  }
+  allocator->diff += size;
+  GNUNET_CONTAINER_DLL_insert (ahead, atail, alloc);
+  print_allocators ();
+  bytes_alloced += size;
+#endif
+}
+
+
+static void *
+MEMDEBUG_malloc (size_t size, int line)
+{
+  void * ret;
+
+  ret = GNUNET_malloc (size);
+#if DEBUG_MALLOC
+  if (NULL != ret)
+      MEMDEBUG_add_alloc (ret, size, line);
+#endif
+  return ret;
+
+}
+
+static void
+MEMDEBUG_free (void * alloc, int line)
+{
+#if DEBUG_MALLOC
+  struct Allocation *cur;
+  struct Allocator *allocator;
+  cur = ahead;
+  while (NULL != cur)
+  {
+      if (alloc == cur->p)
+        break;
+      cur = cur->next;
+  }
+  if (NULL == cur)
+  {
+    fprintf (stderr, "Unmonitored free from line %4u\n", line);
+    GNUNET_break (0);
+    return;
+  }
+  allocator = cur->alloc;
+  if (NULL == allocator)
+  {
+      GNUNET_break (0);
+  }
+  GNUNET_CONTAINER_DLL_remove (ahead, atail, cur);
+  allocator->bytes_alloced -= cur->bytes_alloced;
+  allocator->diff -= cur->bytes_alloced;
+  GNUNET_assert (allocator->bytes_alloced >= 0);
+  bytes_alloced -= cur->bytes_alloced;
+  GNUNET_assert (bytes_alloced >= 0);
+  GNUNET_free (cur);
+#endif
+  GNUNET_free (alloc);
+}
+
+static void
+MEMDEBUG_free_non_null (void * alloc, int line)
+{
+  if (alloc != NULL)
+    MEMDEBUG_free (alloc, line);
+}
+
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
@@ -760,7 +931,8 @@ free_address (struct NeighbourAddress *na)
   na->ats_active = GNUNET_NO;
   if (NULL != na->address)
   {
-    GNUNET_HELLO_address_free (na->address);
+    MEMDEBUG_free (na->address, __LINE__);
+    //GNUNET_HELLO_address_free (na->address);
     na->address = NULL;
   }
   na->session = NULL;
@@ -825,6 +997,7 @@ set_address (struct NeighbourAddress *na,
     return;
   }
   na->address = GNUNET_HELLO_address_copy (address);
+  MEMDEBUG_add_alloc (na->address, GNUNET_HELLO_address_get_size (na->address), __LINE__);
   na->bandwidth_in = bandwidth_in;
   na->bandwidth_out = bandwidth_out;
   na->session = session;
@@ -864,7 +1037,7 @@ free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
     GNUNET_CONTAINER_DLL_remove (n->messages_head, n->messages_tail, mq);
     if (NULL != mq->cont)
       mq->cont (mq->cont_cls, GNUNET_SYSERR, mq->message_buf_size, 0);
-    GNUNET_free (mq);
+    MEMDEBUG_free (mq, __LINE__);
   }
   /* It is too late to send other peer disconnect notifications, but at
      least internally we need to get clean... */
@@ -880,7 +1053,10 @@ free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
   n->state = S_DISCONNECT_FINISHED;
 
   if (NULL != n->primary_address.address)
+  {
     backup_primary = GNUNET_HELLO_address_copy(n->primary_address.address);
+    MEMDEBUG_add_alloc (backup_primary, GNUNET_HELLO_address_get_size(backup_primary), __LINE__);
+  }
   else
     backup_primary = NULL;
 
@@ -904,7 +1080,7 @@ free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
       (NULL != (papi = GST_plugins_find (backup_primary->transport_name))))
     papi->disconnect (papi->cls, &n->id);
 
-  GNUNET_free_non_null (backup_primary);
+  MEMDEBUG_free_non_null (backup_primary, __LINE__);
 
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (neighbours,
@@ -922,7 +1098,7 @@ free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
     n->task = GNUNET_SCHEDULER_NO_TASK;
   }
   /* free rest of memory */
-  GNUNET_free (n);
+  MEMDEBUG_free (n, __LINE__);
 }
 
 /**
@@ -1142,7 +1318,7 @@ transmit_send_continuation (void *cls,
 
   if (NULL == (n = lookup_neighbour (receiver)))
   {
-    GNUNET_free (mq);
+    MEMDEBUG_free (mq, __LINE__);
     return; /* disconnect or other error while transmitting, can happen */
   }
   if (n->is_active == mq)
@@ -1188,7 +1364,7 @@ transmit_send_continuation (void *cls,
               (success == GNUNET_OK) ? "success" : "FAILURE");
   if (NULL != mq->cont)
     mq->cont (mq->cont_cls, success, size_payload, physical);
-  GNUNET_free (mq);
+  MEMDEBUG_free (mq, __LINE__);
 }
 
 
@@ -1508,7 +1684,7 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
 			 gettext_noop
 			 ("# bytes in message queue for other peers"),
 			 bytes_in_send_queue, GNUNET_NO);
-  mq = GNUNET_malloc (sizeof (struct MessageQueue) + msg_size);
+  mq = MEMDEBUG_malloc (sizeof (struct MessageQueue) + msg_size, __LINE__);
   mq->cont = cont;
   mq->cont_cls = cont_cls;
   memcpy (&mq[1], msg, msg_size);
@@ -1618,7 +1794,7 @@ setup_neighbour (const struct GNUNET_PeerIdentity *peer)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Creating new neighbour entry for `%s'\n", 
 	      GNUNET_i2s (peer));
-  n = GNUNET_malloc (sizeof (struct NeighbourMapEntry));
+  n = MEMDEBUG_malloc (sizeof (struct NeighbourMapEntry), __LINE__);
   n->id = *peer;
   n->state = S_NOT_CONNECTED;
   n->latency = GNUNET_TIME_UNIT_FOREVER_REL;
@@ -1955,11 +2131,12 @@ handle_test_blacklist_cont (void *cls,
     break;
   }
  cleanup:
-  GNUNET_HELLO_address_free (bcc->na.address);
+  MEMDEBUG_free (bcc->na.address, __LINE__);
+  //GNUNET_HELLO_address_free (bcc->na.address);
   GNUNET_CONTAINER_DLL_remove (bc_head,
 			       bc_tail,
 			       bcc);
-  GNUNET_free (bcc);
+  MEMDEBUG_free (bcc, __LINE__);
 }
 
 
@@ -1987,10 +2164,11 @@ check_blacklist (const struct GNUNET_PeerIdentity *peer,
   struct GST_BlacklistCheck *bc;
 
   bcc =
-      GNUNET_malloc (sizeof (struct BlackListCheckContext) +
-                     sizeof (struct GNUNET_ATS_Information) * ats_count);
+      MEMDEBUG_malloc (sizeof (struct BlackListCheckContext) +
+                     sizeof (struct GNUNET_ATS_Information) * ats_count, __LINE__);
   bcc->ats_count = ats_count;
   bcc->na.address = GNUNET_HELLO_address_copy (address);
+  MEMDEBUG_add_alloc (bcc->na.address, GNUNET_HELLO_address_get_size (address), __LINE__);
   bcc->na.session = session;
   bcc->na.connect_timestamp = ts;
   bcc->ats = (struct GNUNET_ATS_Information *) &bcc[1];
@@ -2744,11 +2922,12 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     if (bcc->na.session == session)
     {
       GST_blacklist_test_cancel (bcc->bc);
-      GNUNET_HELLO_address_free (bcc->na.address);
+      MEMDEBUG_free (bcc->na.address, __LINE__);
+      //GNUNET_HELLO_address_free (bcc->na.address);
       GNUNET_CONTAINER_DLL_remove (bc_head,
 				   bc_tail,
 				   bcc);
-      GNUNET_free (bcc);
+      MEMDEBUG_free (bcc, __LINE__);
     }
   }
   if (NULL == (n = lookup_neighbour (peer)))
