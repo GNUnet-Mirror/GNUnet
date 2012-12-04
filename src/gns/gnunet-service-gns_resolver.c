@@ -1342,7 +1342,8 @@ handle_record_vpn (void* cls, struct ResolverHandle *rh,
 
   /* results found yay */
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_REC_VPN-%llu: Record resolved from VPN!", rh->id);
+             "GNS_PHASE_REC_VPN-%llu: Record resolved from VPN!\n",
+	     rh->id);
 
   finish_lookup(rh, rlh, rd_count, rd);
 }
