@@ -352,16 +352,16 @@ int
 main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'s', "shorten", NULL,
+    {'s', "shorten", "NAME",
      gettext_noop ("try to shorten a given name"), 1,
      &GNUNET_GETOPT_set_string, &shorten_name},
-    {'u', "lookup", NULL,
+    {'u', "lookup", "NAME",
       gettext_noop ("Lookup a record for the given name"), 1,
       &GNUNET_GETOPT_set_string, &lookup_name},
-    {'a', "authority", NULL,
+    {'a', "authority", "NAME",
       gettext_noop ("Get the authority of a particular name"), 1,
       &GNUNET_GETOPT_set_string, &auth_name},
-    {'t', "type", NULL,
+    {'t', "type", "TYPE",
       gettext_noop ("Specify the type of the record to lookup"), 1,
       &GNUNET_GETOPT_set_string, &lookup_type},
     {'r', "raw", NULL,
