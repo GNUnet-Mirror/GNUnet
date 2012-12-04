@@ -20,7 +20,7 @@
 
 /**
  * @file ats/gnunet-service-ats_addresses_simplistic.h
- * @brief ats mlp problem solver
+ * @brief ats simplistic ressource assignment
  * @author Matthias Wachs
  * @author Christian Grothoff
  */
@@ -28,14 +28,13 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet-service-ats_addresses.h"
 
-struct GAS_SIMPLISTIC_Handle;
 
 /**
  * Init the simplistic problem solving component
  *
  * @param cfg configuration handle
  * @param stats the GNUNET_STATISTICS handle
- * @return struct GAS_SIMPLISTIC_Handle * on success, NULL on fail
+ * @return handle for the solver on success, NULL on fail
  */
 void *
 GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -43,35 +42,53 @@ GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 /**
  * Shutdown the simplistic problem solving component
+ *
+ * @param solver the respective handle to shutdown
  */
 void
 GAS_simplistic_done (void * solver);
 
 
 /**
- * Updates a single address
+ * Updates a single address in the solve
  *
  * @param solver the solver Handle
- * @param addresses the address hashmap
- *        the address has to be already removed from the hashmap
- * @param address the address to update
+ * @param addresses the address hashmap containing all addresses
+ * @param address the update address
  */
 void
 GAS_simplistic_address_update (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
 
+
+/**
+ * Remove an address from the solver
+ *
+ * @param solver the solver handle
+ * @param addresses the address hashmap containing all addresses
+ * @param address the address to remove
+ */
 void
 GAS_simplistic_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
 
+
+/**
+ * Get the prefered address for a specific peer
+ *
+ * @param solver the solver handle
+ * @param addresses the address hashmap containing all addresses
+ * @param peer the identity of the peer
+ */
 struct ATS_PreferedAddress *
 GAS_simplistic_get_preferred_address (void *solver,
                                struct GNUNET_CONTAINER_MultiHashMap * addresses,
                                const struct GNUNET_PeerIdentity *peer);
 
+
 /**
- * Changes the preferences for a peer in the  problem
+ * Changes the preferences for a peer in the problem
  *
  * @param solver the solver handle
- * @param peer the peer
+ * @param peer the peer to change the preference for
  * @param kind the kind to change the preference
  * @param score the score
  */

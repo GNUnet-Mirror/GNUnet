@@ -946,9 +946,6 @@ GAS_addresses_handle_backoff_reset (const struct GNUNET_PeerIdentity *peer)
 }
 
 
-
-// FIXME: this function should likely end up in the LP-subsystem and
-// not with 'addresses' in the future...
 void
 GAS_addresses_change_preference (const struct GNUNET_PeerIdentity *peer,
                                  enum GNUNET_ATS_PreferenceKind kind,
