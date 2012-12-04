@@ -62,22 +62,24 @@ enum ATS_Mode
   MODE_MLP
 };
 
-static struct GNUNET_CONTAINER_MultiHashMap *addresses;
 
-static unsigned long long wan_quota_in;
 
-static unsigned long long wan_quota_out;
 
-static unsigned int active_addr_count;
 
-static int ats_mode;
-
-static int running;
-
-void *solver;
 
 struct GAS_Addresses_Handle
 {
+  struct GNUNET_CONTAINER_MultiHashMap *addresses;
+
+  unsigned long long wan_quota_in;
+
+  unsigned long long wan_quota_out;
+
+  unsigned int active_addr_count;
+
+  int running;
+
+
   int ats_mode;
   /* Solver handle */
   void *solver;
@@ -89,6 +91,7 @@ struct GAS_Addresses_Handle
   GAS_solver_address_change_preference s_pref;
 };
 
+struct GAS_Addresses_Handle *handle;
 
 static unsigned int
 assemble_ats_information (struct ATS_Address *aa,  struct GNUNET_ATS_Information **dest)
@@ -156,12 +159,12 @@ update_bw_simple_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 
   if (GNUNET_YES != aa->active)
     return GNUNET_OK;
-  GNUNET_assert (active_addr_count > 0);
+  GNUNET_assert (handle->active_addr_count > 0);
 
 
   /* Simple method */
-  aa->assigned_bw_in.value__ = htonl (wan_quota_in / active_addr_count);
-  aa->assigned_bw_out.value__ = htonl (wan_quota_out / active_addr_count);
+  aa->assigned_bw_in.value__ = htonl (handle->wan_quota_in / handle->active_addr_count);
+  aa->assigned_bw_out.value__ = htonl (handle->wan_quota_out / handle->active_addr_count);
 
   send_bw_notification (aa);
 
@@ -180,10 +183,10 @@ recalculate_assigned_bw ()
               "Recalculating bandwidth for all active connections\n");
   GNUNET_STATISTICS_update (GSA_stats, "# bandwidth recalculations performed",
                             1, GNUNET_NO);
-  GNUNET_STATISTICS_set (GSA_stats, "# active addresses", active_addr_count,
+  GNUNET_STATISTICS_set (GSA_stats, "# active addresses", handle->active_addr_count,
                          GNUNET_NO);
 
-  GNUNET_CONTAINER_multihashmap_iterate (addresses, &update_bw_simple_it, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (handle->addresses, &update_bw_simple_it, NULL);
 }
 
 /**
@@ -239,18 +242,18 @@ destroy_address (struct ATS_Address *addr)
 
   ret = GNUNET_NO;
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (addresses,
+                 GNUNET_CONTAINER_multihashmap_remove (handle->addresses,
                                                        &addr->peer.hashPubKey,
                                                        addr));
 
 #if HAVE_LIBGLPK
-  if (ats_mode == MODE_MLP)
-    GAS_mlp_address_delete (solver, addresses, addr);
+  if (handle->ats_mode == MODE_MLP)
+    GAS_mlp_address_delete (handle->solver, handle->addresses, addr);
 #endif
 
   if (GNUNET_YES == addr->active)
   {
-    active_addr_count--;
+    handle->active_addr_count--;
     addr->active = GNUNET_NO;
     ret = GNUNET_YES;
   }
@@ -359,7 +362,7 @@ find_address (const struct GNUNET_PeerIdentity *peer,
   cac.exact_address = NULL;
   cac.base_address = NULL;
   cac.search = addr;
-  GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
+  GNUNET_CONTAINER_multihashmap_get_multiple (handle->addresses, &peer->hashPubKey,
                                               &compare_address_it, &cac);
 
 #if 0
@@ -409,7 +412,6 @@ lookup_address (const struct GNUNET_PeerIdentity *peer,
 }
 
 
-#if DEADCODE
 static int
 compare_address_session_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
@@ -420,7 +422,7 @@ compare_address_session_it (void *cls, const struct GNUNET_HashCode * key, void 
   {
       if ((0 == memcmp (aa->addr, cac->search->addr, aa->addr_len)) && (aa->session_id == cac->search->session_id))
       {
-        cac->exact_address = aa;
+       cac->exact_address = aa;
         return GNUNET_NO;
       }
   }
@@ -445,11 +447,10 @@ find_exact_address (const struct GNUNET_PeerIdentity *peer,
 
   cac.exact_address = NULL;
   cac.search = addr;
-  GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
+  GNUNET_CONTAINER_multihashmap_get_multiple (handle->addresses, &peer->hashPubKey,
                                               &compare_address_session_it, &cac);
   return cac.exact_address;
 }
-#endif
 
 
 void
@@ -462,10 +463,10 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
   struct ATS_Address *aa;
   struct ATS_Address *old;
 
-  if (GNUNET_NO == running)
+  if (GNUNET_NO == handle->running)
     return;
 
-  GNUNET_assert (NULL != addresses);
+  GNUNET_assert (NULL != handle->addresses);
 
   aa = create_address (peer,
                        plugin_name,
@@ -483,7 +484,7 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
   {
     /* We have a new address */
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONTAINER_multihashmap_put (addresses,
+                   GNUNET_CONTAINER_multihashmap_put (handle->addresses,
                                                       &peer->hashPubKey, aa,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Added new address for peer `%s' session id %u, %p\n",
@@ -526,10 +527,10 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
   struct ATS_Address *old;
   uint32_t i;
 
-  if (GNUNET_NO == running)
+  if (GNUNET_NO == handle->running)
     return;
 
-  GNUNET_assert (NULL != addresses);
+  GNUNET_assert (NULL != handle->addresses);
 
   /* Get existing address */
   old = lookup_address (peer, plugin_name, plugin_addr, plugin_addr_len,
@@ -578,13 +579,13 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
     }
 
   /* Tell solver about update */
-  switch (ats_mode)
+  switch (handle->ats_mode)
   {
     case MODE_MLP:
-      GAS_mlp_address_update (solver, addresses, old);
+      GAS_mlp_address_update (handle->solver, handle->addresses, old);
       break;
     case MODE_SIMPLISTIC:
-      GAS_simplistic_address_update (solver, addresses, old);
+      GAS_simplistic_address_update (handle->solver, handle->addresses, old);
       break;
     default:
       GNUNET_break (0);
@@ -642,7 +643,7 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
   if (GNUNET_YES == aa->active)
   {
     aa->active = GNUNET_NO;
-    active_addr_count--;
+    handle->active_addr_count--;
     recalculate_assigned_bw ();
   }
 
@@ -658,8 +659,8 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
   {
     /* session was set to 0, update address */
 #if HAVE_LIBGLPK
-  if (ats_mode == MODE_MLP)
-    GAS_mlp_address_update (solver, addresses, aa);
+  if (handle->ats_mode == MODE_MLP)
+    GAS_mlp_address_update (handle->solver, handle->addresses, aa);
 #endif
   }
 
@@ -675,7 +676,7 @@ GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
   struct ATS_Address *aa;
   struct ATS_Address *old;
 
-  if (GNUNET_NO == running)
+  if (GNUNET_NO == handle->running)
     return;
 
   /* Get existing address */
@@ -692,7 +693,7 @@ GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
   GNUNET_break (0 < strlen (plugin_name));
   aa = create_address (peer, plugin_name, plugin_addr, plugin_addr_len, session_id);
 
-  GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
+  GNUNET_CONTAINER_multihashmap_get_multiple (handle->addresses, &peer->hashPubKey,
                                               &destroy_by_session_id, aa);
 
   free_address (aa);
@@ -801,7 +802,7 @@ GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
 
   struct ATS_Address *old;
 
-  if (GNUNET_NO == running)
+  if (GNUNET_NO == handle->running)
     return GNUNET_SYSERR;
 
   old = lookup_address (peer, plugin_name, plugin_addr, plugin_addr_len, session_id, NULL, 0);
@@ -828,13 +829,13 @@ GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
   old->used = in_use;
 
   /* Tell solver about update */
-  switch (ats_mode)
+  switch (handle->ats_mode)
   {
     case MODE_MLP:
-      GAS_mlp_address_update (solver, addresses, old);
+      GAS_mlp_address_update (handle->solver, handle->addresses, old);
       break;
     case MODE_SIMPLISTIC:
-      GAS_simplistic_address_update (solver, addresses, old);
+      GAS_simplistic_address_update (handle->solver, handle->addresses, old);
       break;
     default:
       GNUNET_break (0);
@@ -871,8 +872,7 @@ request_address_mlp (const struct GNUNET_PeerIdentity *peer)
   if (aa->active == GNUNET_NO)
   {
     aa->active = GNUNET_YES;
-    active_addr_count++;
-
+    handle->active_addr_count++;
     send_bw_notification (aa);
   }
   else
@@ -895,7 +895,7 @@ request_address_simple (const struct GNUNET_PeerIdentity *peer)
   aa = NULL;
 
   /* Get address with: stick to current address, lower distance, lower latency */
-  GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
+  GNUNET_CONTAINER_multihashmap_get_multiple (handle->addresses, &peer->hashPubKey,
                                               &find_address_it, &aa);
   if (aa == NULL)
   {
@@ -910,8 +910,8 @@ request_address_simple (const struct GNUNET_PeerIdentity *peer)
   if (aa->active == GNUNET_NO)
   {
     aa->active = GNUNET_YES;
-    active_addr_count++;
-    if (ats_mode == MODE_SIMPLISTIC)
+    handle->active_addr_count++;
+    if (handle->ats_mode == MODE_SIMPLISTIC)
     {
       recalculate_assigned_bw ();
     }
@@ -931,14 +931,14 @@ request_address_simple (const struct GNUNET_PeerIdentity *peer)
 void
 GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
 {
-  if (GNUNET_NO == running)
+  if (GNUNET_NO == handle->running)
     return;
 
-  if (ats_mode == MODE_SIMPLISTIC)
+  if (handle->ats_mode == MODE_SIMPLISTIC)
   {
     request_address_simple (peer);
   }
-  if (ats_mode == MODE_MLP)
+  if (handle->ats_mode == MODE_MLP)
   {
     request_address_mlp(peer);
   }
@@ -962,7 +962,7 @@ reset_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 void
 GAS_addresses_handle_backoff_reset (const struct GNUNET_PeerIdentity *peer)
 {
-  GNUNET_break (GNUNET_SYSERR != GNUNET_CONTAINER_multihashmap_get_multiple (addresses,
+  GNUNET_break (GNUNET_SYSERR != GNUNET_CONTAINER_multihashmap_get_multiple (handle->addresses,
                                               &peer->hashPubKey,
                                               &reset_address_it,
                                               NULL));
@@ -977,18 +977,18 @@ GAS_addresses_change_preference (const struct GNUNET_PeerIdentity *peer,
                                  enum GNUNET_ATS_PreferenceKind kind,
                                  float score)
 {
-  if (GNUNET_NO == running)
+  if (GNUNET_NO == handle->running)
     return;
 
 
   /* Tell solver about update */
-  switch (ats_mode)
+  switch (handle->ats_mode)
   {
     case MODE_MLP:
-      GAS_mlp_address_change_preference (solver, peer, kind, score);
+      GAS_mlp_address_change_preference (handle->solver, peer, kind, score);
       break;
     case MODE_SIMPLISTIC:
-      GAS_simplistic_address_change_preference (solver, peer, kind, score);
+      GAS_simplistic_address_change_preference (handle->solver, peer, kind, score);
       break;
     default:
       GNUNET_break (0);
@@ -1009,50 +1009,49 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     const struct GNUNET_STATISTICS_Handle *stats)
 {
   struct GAS_Addresses_Handle *ah;
-  int c;
   char *quota_wan_in_str;
   char *quota_wan_out_str;
   char *mode_str;
-  running = GNUNET_NO;
+  int c;
+
+  ah = GNUNET_malloc (sizeof (struct GAS_Addresses_Handle));
+  handle = ah;
+  handle->running = GNUNET_NO;
 
   /* Initialize the system with configuration values */
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", "WAN_QUOTA_IN", &quota_wan_in_str))
   {
     if (0 == strcmp(quota_wan_in_str, "unlimited") ||
-        (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_wan_in_str, &wan_quota_in)))
-      wan_quota_in = (UINT32_MAX) /10;
+        (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_wan_in_str, &ah->wan_quota_in)))
+      ah->wan_quota_in = (UINT32_MAX) /10;
 
     GNUNET_free (quota_wan_in_str);
     quota_wan_in_str = NULL;
   }
   else
-  {
-    wan_quota_in = (UINT32_MAX) /10;
-  }
+      ah->wan_quota_in = (UINT32_MAX) /10;
 
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", "WAN_QUOTA_OUT", &quota_wan_out_str))
   {
     if (0 == strcmp(quota_wan_out_str, "unlimited") ||
-        (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_wan_out_str, &wan_quota_out)))
-      wan_quota_out = (UINT32_MAX) /10;
+        (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_wan_out_str, &ah->wan_quota_out)))
+      ah->wan_quota_out = (UINT32_MAX) /10;
 
     GNUNET_free (quota_wan_out_str);
     quota_wan_out_str = NULL;
   }
   else
-  {
-    wan_quota_out = (UINT32_MAX) /10;
-  }
+    ah->wan_quota_out = (UINT32_MAX) /10;
 
   /* Initialize the addresses database */
-  addresses = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
-  GNUNET_assert (NULL != addresses);
+  ah->addresses = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
+  GNUNET_assert (NULL != ah->addresses);
 
   /* Figure out configured solution method */
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (cfg, "ats", "MODE", &mode_str))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "No ressource assignment method configured, using simplistic approch\n");
-      ats_mode = MODE_SIMPLISTIC;
+      ah->ats_mode = MODE_SIMPLISTIC;
   }
   else
   {
@@ -1060,28 +1059,24 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
         mode_str[c] = toupper (mode_str[c]);
       if (0 == strcmp (mode_str, "SIMPLISTIC"))
       {
-          ats_mode = MODE_SIMPLISTIC;
+          ah->ats_mode = MODE_SIMPLISTIC;
       }
       else if (0 == strcmp (mode_str, "MLP"))
       {
-          ats_mode = MODE_MLP;
+          ah->ats_mode = MODE_MLP;
 #if !HAVE_LIBGLPK
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Assignment method `%s' configured, but GLPK is not availabe, please install \n", mode_str);
-          ats_mode = MODE_SIMPLISTIC;
+          ah->ats_mode = MODE_SIMPLISTIC;
 #endif
       }
       else
       {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid ressource assignment method `%s' configured, using simplistic approch\n", mode_str);
-          ats_mode = MODE_SIMPLISTIC;
+          ah->ats_mode = MODE_SIMPLISTIC;
       }
   }
-
-
-  ah = GNUNET_malloc (sizeof (struct GAS_Addresses_Handle));
-
   /* Start configured solution method */
-  switch (ats_mode)
+  switch (ah->ats_mode)
   {
     case MODE_MLP:
       /* Init the MLP solver with default values */
@@ -1092,7 +1087,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       ah->s_del =  &GAS_mlp_address_delete;
       ah->s_done = &GAS_mlp_done;
 #else
-      GNUNET_freee (ah);
+      GNUNET_free (ah);
       return NULL;
 #endif
       break;
@@ -1116,7 +1111,6 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert (NULL != ah->s_done);
 
   ah->solver = ah->s_init (cfg, stats);
-  /* REMOVE */ solver = ah->solver;
   if (NULL == ah->solver)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to initialize MLP solver!\n");
@@ -1125,7 +1119,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
 
   /* up and running */
-  running = GNUNET_YES;
+  ah->running = GNUNET_YES;
   return ah;
 }
 
@@ -1151,12 +1145,12 @@ free_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 void
 GAS_addresses_destroy_all ()
 {
-  if (GNUNET_NO == running)
+  if (GNUNET_NO == handle->running)
     return;
 
-  if (addresses != NULL)
-    GNUNET_CONTAINER_multihashmap_iterate (addresses, &free_address_it, NULL);
-  GNUNET_assert (active_addr_count == 0);
+  if (handle->addresses != NULL)
+    GNUNET_CONTAINER_multihashmap_iterate (handle->addresses, &free_address_it, NULL);
+  GNUNET_assert (handle->active_addr_count == 0);
 }
 
 
@@ -1164,27 +1158,17 @@ GAS_addresses_destroy_all ()
  * Shutdown address subsystem.
  */
 void
-GAS_addresses_done ()
+GAS_addresses_done (struct GAS_Addresses_Handle *handle)
 {
-  GAS_addresses_destroy_all ();
-  running = GNUNET_NO;
-  GNUNET_CONTAINER_multihashmap_destroy (addresses);
-  addresses = NULL;
+  GNUNET_assert (NULL != handle);
 
+  GAS_addresses_destroy_all ();
+  handle->running = GNUNET_NO;
+  GNUNET_CONTAINER_multihashmap_destroy (handle->addresses);
+  handle->addresses = NULL;
+  GNUNET_free (handle);
   /* Stop configured solution method */
-  switch (ats_mode)
-  {
-    case MODE_MLP:
-      /* Init the MLP solver with default values */
-      GAS_mlp_done (solver);
-      break;
-    case MODE_SIMPLISTIC:
-      /* Init the simplistic solver with default values */
-      GAS_simplistic_done (solver);
-      break;
-    default:
-      break;
-  }
+
 }
 
 struct PeerIteratorContext
@@ -1227,15 +1211,15 @@ GAS_addresses_iterate_peers (GNUNET_ATS_Peer_Iterator p_it, void *p_it_cls)
 
   if (NULL == p_it)
       return;
-  GNUNET_assert (NULL != addresses);
+  GNUNET_assert (NULL != handle->addresses);
 
-  size = GNUNET_CONTAINER_multihashmap_size(addresses);
+  size = GNUNET_CONTAINER_multihashmap_size(handle->addresses);
   if (0 != size)
   {
     ip_ctx.it = p_it;
     ip_ctx.it_cls = p_it_cls;
     ip_ctx.peers_returned = GNUNET_CONTAINER_multihashmap_create (size, GNUNET_NO);
-    GNUNET_CONTAINER_multihashmap_iterate (addresses, &peer_it, &ip_ctx);
+    GNUNET_CONTAINER_multihashmap_iterate (handle->addresses, &peer_it, &ip_ctx);
     GNUNET_CONTAINER_multihashmap_destroy (ip_ctx.peers_returned);
   }
   p_it (p_it_cls, NULL);
@@ -1289,7 +1273,7 @@ GAS_addresses_get_peer_info (const struct GNUNET_PeerIdentity *peer, GNUNET_ATS_
   struct PeerInfoIteratorContext pi_ctx;
   struct GNUNET_BANDWIDTH_Value32NBO zero_bw;
   GNUNET_assert (NULL != peer);
-  GNUNET_assert (NULL != addresses);
+  GNUNET_assert (NULL != handle->addresses);
   if (NULL == pi_it)
     return; /* does not make sense without callback */
 
@@ -1297,7 +1281,7 @@ GAS_addresses_get_peer_info (const struct GNUNET_PeerIdentity *peer, GNUNET_ATS_
   pi_ctx.it = pi_it;
   pi_ctx.it_cls = pi_it_cls;
 
-  GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey, &peerinfo_it, &pi_ctx);
+  GNUNET_CONTAINER_multihashmap_get_multiple (handle->addresses, &peer->hashPubKey, &peerinfo_it, &pi_ctx);
 
   if (NULL != pi_it)
     pi_it (pi_it_cls, NULL, NULL, NULL, 0, GNUNET_NO, NULL, 0, zero_bw, zero_bw);

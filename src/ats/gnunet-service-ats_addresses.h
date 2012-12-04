@@ -128,7 +128,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * Shutdown address subsystem.
  */
 void
-GAS_addresses_done (void);
+GAS_addresses_done (struct GAS_Addresses_Handle *handle);
 
 void
 GAS_addresses_handle_backoff_reset (const struct GNUNET_PeerIdentity *peer);
