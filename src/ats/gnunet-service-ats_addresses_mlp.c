@@ -1125,16 +1125,13 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   mlp->BIG_M = (double) BIG_M_VALUE;
 
-  /* Get maximum number of iterations */
-
-
   /* Get timeout for iterations */
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_time(cfg, "ats", "MAX_DURATION", &max_duration))
   {
     max_duration = MLP_MAX_EXEC_DURATION;
   }
 
-
+  /* Get maximum number of iterations */
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_size(cfg, "ats", "MAX_ITERATIONS", &max_iterations))
   {
     max_iterations = MLP_MAX_ITERATIONS;

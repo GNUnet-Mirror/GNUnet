@@ -193,7 +193,7 @@ GAS_handle_request_address_cancel (void *cls,
               "REQUEST_ADDRESS_CANCEL");
   GNUNET_break (0 == ntohl (msg->reserved));
 
-  /* TODO */
+  GAS_addresses_request_address_cancel (&msg->peer);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }

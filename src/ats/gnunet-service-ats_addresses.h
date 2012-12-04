@@ -172,16 +172,17 @@ void
 GAS_addresses_destroy_all (void);
 
 
-// FIXME: this function should likely end up in the LP-subsystem and
-// not with 'addresses' in the future...
-// Note: this call should trigger an address suggestion
-// (GAS_scheduling_transmit_address_suggestion)
+/**
+ * Cancel address suggestions for a peer
+ *
+ * @param peer the respective peer
+ */
+void
+GAS_addresses_request_address_cancel (const struct GNUNET_PeerIdentity *peer);
+
 void
 GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer);
 
-
-// FIXME: this function should likely end up in the LP-subsystem and
-// not with 'addresses' in the future...
 void
 GAS_addresses_change_preference (const struct GNUNET_PeerIdentity *peer,
                                  enum GNUNET_ATS_PreferenceKind kind,

@@ -65,6 +65,17 @@ enum ATS_Mode
 /**
  * Handle for ATS address component
  */
+struct GAS_Addresses_Suggestion_Requests
+{
+  struct GAS_Addresses_Suggestion_Requests *next;
+  struct GAS_Addresses_Suggestion_Requests *prev;
+
+  struct GNUNET_PeerIdentity id;
+};
+
+/**
+ * Handle for ATS address component
+ */
 struct GAS_Addresses_Handle
 {
   /**
@@ -101,6 +112,16 @@ struct GAS_Addresses_Handle
    *  Solver handle
    */
   void *solver;
+
+  /**
+   * Address suggestion requests DLL head
+   */
+  struct GAS_Addresses_Suggestion_Requests *r_head;
+
+  /**
+   * Address suggestion requests DLL tail
+   */
+  struct GAS_Addresses_Suggestion_Requests *r_tail;
 
   /* Solver functions */
 
@@ -957,11 +978,54 @@ request_address_simple (const struct GNUNET_PeerIdentity *peer)
 }
 
 
+/**
+ * Cancel address suggestions for a peer
+ *
+ * @param peer the respective peer
+ */
+void
+GAS_addresses_request_address_cancel (const struct GNUNET_PeerIdentity *peer)
+{
+  struct GAS_Addresses_Suggestion_Requests *cur = handle->r_head;
+  while (NULL != cur)
+  {
+      if (0 == memcmp (peer, &cur->id, sizeof (cur->id)))
+        break; /* found */
+      cur = cur->next;
+  }
+
+  if (NULL == cur)
+  {
+      GNUNET_break (0);
+      return;
+  }
+  GNUNET_CONTAINER_DLL_remove (handle->r_head, handle->r_tail, cur);
+  GNUNET_free (cur);
+}
+
+
+/**
+ * Add an address suggestions for a peer
+ *
+ * @param peer the respective peer
+ */
 void
 GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
 {
+  struct GAS_Addresses_Suggestion_Requests *cur = handle->r_head;
+
   if (GNUNET_NO == handle->running)
     return;
+  while (NULL != cur)
+  {
+      if (0 == memcmp (peer, &cur->id, sizeof (cur->id)))
+        return; /* already suggesting */
+      cur = cur->next;
+  }
+
+  cur = GNUNET_malloc (sizeof (struct GAS_Addresses_Suggestion_Requests));
+  cur->id = (*peer);
+  GNUNET_CONTAINER_DLL_insert (handle->r_head, handle->r_tail, cur);
 
   if (handle->ats_mode == MODE_SIMPLISTIC)
   {
@@ -1181,12 +1245,19 @@ GAS_addresses_destroy_all ()
 void
 GAS_addresses_done (struct GAS_Addresses_Handle *handle)
 {
-  GNUNET_assert (NULL != handle);
+  struct GAS_Addresses_Suggestion_Requests *cur;
 
+  GNUNET_assert (NULL != handle);
   GAS_addresses_destroy_all ();
   handle->running = GNUNET_NO;
   GNUNET_CONTAINER_multihashmap_destroy (handle->addresses);
   handle->addresses = NULL;
+  while (NULL != (cur = handle->r_head))
+  {
+      GNUNET_CONTAINER_DLL_remove (handle->r_head, handle->r_tail, cur);
+      GNUNET_free (cur);
+  }
+
   GNUNET_free (handle);
   /* Stop configured solution method */
 
