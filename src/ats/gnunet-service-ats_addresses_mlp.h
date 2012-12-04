@@ -20,7 +20,7 @@
 
 /**
  * @file ats/gnunet-service-ats_addresses_mlp.h
- * @brief ats mlp problem solver
+ * @brief ats MLP problem solver
  * @author Matthias Wachs
  * @author Christian Grothoff
  */
@@ -33,8 +33,6 @@
 
 #ifndef GNUNET_SERVICE_ATS_ADDRESSES_MLP_H
 #define GNUNET_SERVICE_ATS_ADDRESSES_MLP_H
-
-#define DEBUG_MLP GNUNET_EXTRA_LOGGING
 
 #define BIG_M_VALUE (UINT32_MAX) /10
 #define BIG_M_STRING "unlimited"
@@ -317,23 +315,11 @@ struct MLP_information
  *
  * @param cfg configuration handle
  * @param stats the GNUNET_STATISTICS handle
- * @param max_duration maximum numbers of iterations for the LP/MLP Solver
- * @param max_iterations maximum time limit for the LP/MLP Solver
- * @return struct GAS_MLP_Handle * on success, NULL on fail
+ * @return struct GAS_MLP_Handle on success, NULL on fail
  */
 void *
 GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
               const struct GNUNET_STATISTICS_Handle *stats);
-
-/**
- * Solves the MLP problem on demand
- *
- * @param mlp the MLP Handle
- * @param ctx solution context
- * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
- */
-int
-GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp, struct GAS_MLP_SolutionContext *ctx);
 
 
 /**
@@ -345,7 +331,7 @@ GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp, struct GAS_MLP_SolutionContex
  * Otherwise the addresses' values can be updated and the existing base can
  * be reused
  *
- * @param mlp the MLP Handle
+ * @param solver the MLP Handle
  * @param addresses the address hashmap
  *        the address has to be already added from the hashmap
  * @param address the address to update
@@ -361,19 +347,21 @@ GAS_mlp_address_update (void *solver,
  *
  * The MLP problem has to be recreated and the problem has to be resolved
  *
- * @param mlp the MLP Handle
+ * @param solver the MLP Handle
  * @param addresses the address hashmap
  *        the address has to be already removed from the hashmap
  * @param address the address to delete
  */
 void
-GAS_mlp_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
+GAS_mlp_address_delete (void *solver,
+                        struct GNUNET_CONTAINER_MultiHashMap *addresses,
+                        struct ATS_Address *address);
 
 
 /**
  * Changes the preferences for a peer in the MLP problem
  *
- * @param mlp the MLP Handle
+ * @param solver the MLP Handle
  * @param peer the peer
  * @param kind the kind to change the preference
  * @param score the score
@@ -388,7 +376,7 @@ GAS_mlp_address_change_preference (void *solver,
 /**
  * Get the preferred address for a specific peer
  *
- * @param mlp the MLP Handle
+ * @param solver the MLP Handle
  * @param addresses address hashmap
  * @param peer the peer
  * @return suggested address
@@ -400,6 +388,8 @@ GAS_mlp_get_preferred_address (void *solver,
 
 /**
  * Shutdown the MLP problem solving component
+ *
+ * @param solver the solver handle
  */
 void
 GAS_mlp_done (void *solver);

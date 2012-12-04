@@ -930,7 +930,7 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp, struct GAS_MLP_SolutionContex
   return GNUNET_OK;
 }
 
-int GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp, struct GAS_MLP_SolutionContext *ctx);
+int GAS_mlp_solve_problem (void *solver, struct GAS_MLP_SolutionContext *ctx);
 
 
 static void
@@ -954,13 +954,14 @@ mlp_scheduler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Solves the MLP problem
  *
- * @param mlp the MLP Handle
+ * @param solver the MLP Handle
  * @param ctx solution context
  * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
  */
 int
-GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp, struct GAS_MLP_SolutionContext *ctx)
+GAS_mlp_solve_problem (void *solver, struct GAS_MLP_SolutionContext *ctx)
 {
+  struct GAS_MLP_Handle *mlp = solver;
   int res;
   /* Check if solving is already running */
   if (GNUNET_YES == mlp->semaphore)
@@ -1069,9 +1070,7 @@ GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp, struct GAS_MLP_SolutionContex
  *
  * @param cfg the GNUNET_CONFIGURATION_Handle handle
  * @param stats the GNUNET_STATISTICS handle
- * @param max_duration maximum numbers of iterations for the LP/MLP Solver
- * @param max_iterations maximum time limit for the LP/MLP Solver
- * @return struct GAS_MLP_Handle * on success, NULL on fail
+ * @return struct GAS_MLP_Handle on success, NULL on fail
  */
 void *
 GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -1521,7 +1520,7 @@ update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address)
  * Otherwise the addresses' values can be updated and the existing base can
  * be reused
  *
- * @param mlp the MLP Handle
+ * @param solver the MLP Handle
  * @param addresses the address hashmap
  *        the address has to be already removed from the hashmap
  * @param address the address to update
@@ -1625,7 +1624,7 @@ GAS_mlp_address_update (void *solver, struct GNUNET_CONTAINER_MultiHashMap * add
  *
  * The MLP problem has to be recreated and the problem has to be resolved
  *
- * @param mlp the MLP Handle
+ * @param solver the MLP Handle
  * @param addresses the address hashmap
  *        the address has to be already removed from the hashmap
  * @param address the address to delete
@@ -1707,7 +1706,7 @@ mlp_get_preferred_address_it (void *cls, const struct GNUNET_HashCode * key, voi
 /**
  * Get the preferred address for a specific peer
  *
- * @param mlp the MLP Handle
+ * @param solver the MLP Handle
  * @param addresses address hashmap
  * @param peer the peer
  * @return suggested address
@@ -1730,7 +1729,7 @@ GAS_mlp_get_preferred_address (void *solver,
 /**
  * Changes the preferences for a peer in the MLP problem
  *
- * @param mlp the MLP Handle
+ * @param solver the MLP Handle
  * @param peer the peer
  * @param kind the kind to change the preference
  * @param score the score
@@ -1752,7 +1751,8 @@ GAS_mlp_address_change_preference (void *solver,
 
 /**
  * Shutdown the MLP problem solving component
- * @param mlp the MLP handle
+ *
+ * @param solver the solver handle
  */
 void
 GAS_mlp_done (void *solver)
