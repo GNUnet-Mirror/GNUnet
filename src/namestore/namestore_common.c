@@ -389,18 +389,14 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
     if (NULL == memchr (soa_mname, 0, 
 			data_size - (sizeof (struct soa_data) + strlen (soa_rname) + 1)))
       return NULL;
-    if (0 == GNUNET_asprintf (&result, 
-			      "rname=%s mname=%s %lu,%lu,%lu,%lu,%lu",
-			      soa_rname, soa_mname,
-			      ntohl (soa->serial), 
-			      ntohl (soa->refresh),
-			      ntohl (soa->retry), 
-			      ntohl (soa->expire),
-			      ntohl (soa->minimum)))
-    {
-      GNUNET_free (result);
-      return NULL;
-    }
+    GNUNET_asprintf (&result, 
+		     "rname=%s mname=%s %lu,%lu,%lu,%lu,%lu",
+		     soa_rname, soa_mname,
+		     ntohl (soa->serial), 
+		     ntohl (soa->refresh),
+		     ntohl (soa->retry), 
+		     ntohl (soa->expire),
+		     ntohl (soa->minimum)))
     return result;
   case GNUNET_DNSPARSER_TYPE_PTR:
     return GNUNET_strndup (data, data_size);
@@ -518,14 +514,14 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
   char soa_mname[253 + 1];
   char s_peer[103 + 1];
   char s_serv[253 + 1];
-  uint32_t soa_serial;
-  uint32_t soa_refresh;
-  uint32_t soa_retry;
-  uint32_t soa_expire;
-  uint32_t soa_min;
+  unsigned int soa_serial;
+  unsigned int soa_refresh;
+  unsigned int soa_retry;
+  unsigned int soa_expire;
+  unsigned int soa_min;
   uint16_t mx_pref;
   uint16_t mx_pref_n;
-  uint16_t proto;
+  unsigned int proto;
   
   switch (type)
   {
@@ -632,7 +628,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     *data_size = strlen (s);
     return GNUNET_OK;
   case GNUNET_NAMESTORE_TYPE_VPN:
-    if (3 != SSCANF (s,"%hu %103s %253s",
+    if (3 != SSCANF (s,"%u %103s %253s",
 		     &proto, s_peer, s_serv))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -649,7 +645,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
       *data_size = 0;
       return GNUNET_SYSERR;
     }
-    vpn->proto = htons (proto);
+    vpn->proto = htons ((uint16_t) proto);
     strcpy ((char*)&vpn[1], s_serv);
     return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_TLSA:
