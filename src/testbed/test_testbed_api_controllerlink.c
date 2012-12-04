@@ -168,8 +168,12 @@ enum Stage
   /**
    * Destory master peer and mark test as success
    */
-  SUCCESS
+  SUCCESS,
 
+  /**
+   * Marks test as skipped
+   */
+  SKIP
 };
 
 /**
@@ -654,9 +658,14 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *_host, int statu
   hc_handle = NULL;
   if (GNUNET_NO == status)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Cannot start testbed on localhost\n");
+    (void) PRINTF ("%s",
+                   "Unable to run the test as this system is not configured "
+                   "to use password less SSH logins to localhost.\n"
+                   "Skipping test\n");
     GNUNET_SCHEDULER_cancel (abort_task);
-    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+    abort_task = GNUNET_SCHEDULER_NO_TASK;
+    (void) GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    result = SKIP;
     return;
   }
   cp = GNUNET_TESTBED_controller_start ("127.0.0.1", host, cfg, status_cb,
@@ -688,7 +697,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                    "Unable to run the test as this system is not configured "
                    "to use password less SSH logins to localhost.\n"
                    "Marking test as successful\n");
-    result = SUCCESS;
+    result = SKIP;
     return;
   }
   cfg = GNUNET_CONFIGURATION_dup (config);  
@@ -719,9 +728,17 @@ main (int argc, char **argv)
       GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
                           "test_testbed_api_controllerlink", "nohelp", options,
                           &run, NULL);
-  if ((GNUNET_OK != ret) || (SUCCESS != result))
+  if (GNUNET_OK != ret)
     return 1;
-  return 0;
+  switch (result)
+  {
+  case SUCCESS:
+    return 0;
+  case SKIP:
+    return 77;                  /* Mark test as skipped */
+  default:
+    return 1;
+  }
 }
 
 /* end of test_testbed_api_controllerlink.c */
