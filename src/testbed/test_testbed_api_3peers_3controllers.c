@@ -876,9 +876,14 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *_host, int statu
   hc_handle = NULL;
   if (GNUNET_NO == status)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Cannot start testbed on localhost\n");
+    (void) PRINTF ("%s",
+                   "Unable to run the test as this system is not configured "
+                   "to use password less SSH logins to localhost.\n"
+                   "Skipping test\n");
     GNUNET_SCHEDULER_cancel (abort_task);
-    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+    abort_task = GNUNET_SCHEDULER_NO_TASK;
+    (void) GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    result = SKIP;
     return;
   }
   cp1 = GNUNET_TESTBED_controller_start ("127.0.0.1", host, cfg, status_cb,
