@@ -5,25 +5,57 @@ HOME = $SERVICEHOME
 BINARY = gnunet-service-gns
 UNIXPATH = /tmp/gnunet-service-gns.sock
 @UNIXONLY@PORT = 2102
+
+# Where to store the key for the Master zone
 ZONEKEY = $SERVICEHOME/gns/zonekey.zkey
+
+# Where to store the key for the Private zone
 PRIVATE_ZONEKEY = $SERVICEHOME/gns/zonekey_priv.zkey
+
+# Where to store the key for the Shorten zone
 SHORTEN_ZONEKEY = $SERVICEHOME/gns/zonekey_short.zkey
+
+# Should we hijack DNS queries using the Linux firewall? 
+# (this only works on GNU/Linux systems)
 HIJACK_DNS = NO
+
+# Automatically import PKEYs we learn into the shorten zone?
 AUTO_IMPORT_PKEY = YES
+
+# When we automatically import PKEYs into shorten zone, require confirmation
+# before they become active? (Not useful right now as the GUI to confirm
+# doesn't exist)
 AUTO_IMPORT_CONFIRMATION_REQ = NO
+
+# How many queries is GADS allowed to perform in the background at the same time?
 MAX_PARALLEL_BACKGROUND_QUERIES = 25
+
+# When do queries fail with timeout?
 DEFAULT_LOOKUP_TIMEOUT = 10 s
+
+# How frequently do we try to publish our full zone?
 ZONE_PUBLISH_TIME_WINDOW = 4 h
+
 # PREFIX = valgrind --leak-check=full --track-origins=yes
 
 [gns-proxy]
+# Where is the certificate for the GNS proxy stored?
 PROXY_CACERT = $SERVICEHOME/gns/gnsCAcert.pem
 PROXY_UNIXPATH = /tmp/gnunet-gns-proxy.sock
 
 [fcfsd]
+# On what port does the FCFS daemon listen for HTTP clients?
 HTTPPORT = 18080
+
+# Where is the zone key for the FCFS zone stored?
 ZONEKEY = $SERVICEHOME/fcfsd/zonekey.zkey
+
+# For ARM, not very useful.  FIXME: Dead option?
 HOSTNAME = localhost
+
+# FIXME: Dead option?
 HOME = $SERVICEHOME
+
+# Name of the fcfs binary (for ARM)
 BINARY = gnunet-gns-fcfsd
 

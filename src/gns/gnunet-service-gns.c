@@ -1142,7 +1142,7 @@ handle_lookup (void *cls,
   }
   
   if (1 == ntohl (sh_msg->use_default_zone))
-    clh->zone = zone_hash; //Default zone
+    clh->zone = zone_hash;  /* Default zone */
   else
     clh->zone = sh_msg->zone;
   
@@ -1293,13 +1293,14 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (c, "gns", "HIJACK_DNS"))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "DNS hijacking enabled... connecting to service.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"DNS hijacking enabled. Connecting to DNS service.\n");
 
-    if (gns_interceptor_init(zone_hash, zone_key, c) == GNUNET_SYSERR)
+    if (GNUNET_SYSERR ==
+	gns_interceptor_init (zone_hash, zone_key, c))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-               "Failed to enable the dns interceptor!\n");
+               "Failed to enable the DNS interceptor!\n");
     }
   }
   

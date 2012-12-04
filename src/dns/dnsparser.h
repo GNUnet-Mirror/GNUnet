@@ -172,20 +172,22 @@ struct srv_data
   /* followed by 'target' name */
 };
 
+
 /**
  * Payload of GNS VPN record
  */
 struct vpn_data
 {
   /**
-   * The protocol to use
-   */
-  uint16_t proto;
-
-  /**
    * The peer to contact
    */
   struct GNUNET_HashCode peer;
+
+  /**
+   * The protocol to use
+   */
+  uint16_t proto GNUNET_PACKED;
+
 
   /* followed by the servicename / identifier / password (0-terminated) */
 };
