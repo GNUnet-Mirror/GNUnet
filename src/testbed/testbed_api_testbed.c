@@ -854,7 +854,7 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host, int status
     else
       LOG (GNUNET_ERROR_TYPE_ERROR, _("Testbed cannot be started on localhost\n"));
     GNUNET_SCHEDULER_cancel (rc->shutdown_run_task);
-    rc->shutdown_run_task = GNUNET_SCHEDULER_add_now (&shutdown_run, NULL);
+    rc->shutdown_run_task = GNUNET_SCHEDULER_add_now (&shutdown_run, rc);
     return;
   }
   rc->reg_hosts++;
