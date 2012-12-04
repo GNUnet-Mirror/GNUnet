@@ -46,16 +46,58 @@ int
 GNUNET_DNSPARSER_check_label (const char *label)
 {
   char *output;
+  size_t slen;
   
+  if (NULL != strchr (label, "."))
+    return GNUNET_SYSERR; /* not a label! Did you mean GNUNET_DNSPARSER_check_name? */
   if (IDNA_SUCCESS != 
       idna_to_ascii_8z (label, &output, IDNA_USE_STD3_ASCII_RULES))
     return GNUNET_SYSERR;
+  slen = strlen (output);
 #if WINDOWS
   idn_free (output);
 #else
   free (output);
 #endif
-  return GNUNET_OK;
+  return (slen > 63) ? GNUNET_SYSERR : GNUNET_OK;
+}
+
+
+/**
+ * Check if a label in UTF-8 format can be coded into valid IDNA.
+ * This can fail if the ASCII-conversion becomes longer than 253 characters.
+ *
+ * @param name name to check (UTF-8 string)
+ * @return GNUNET_OK if the label can be converted to IDNA,
+ *         GNUNET_SYSERR if the label is not valid for DNS names
+ */
+int
+GNUNET_DNSPARSER_check_name (const char *label)
+{
+  char *ldup;
+  char *output;
+  size_t slen;
+  char *tok;
+  
+  ldup = GNUNET_strdup (label);
+  for (tok = strtok (ldup, "."); NULL != tok; tok = strtok (NULL, "."))
+    if (GNUNET_OK !=
+	GNUNET_DNSPARSER_check_label (tok))
+    {
+      GNUNET_free (ldup);
+      return GNUNET_SYSERR;
+    }
+  GNUNET_free (ldup);
+  if (IDNA_SUCCESS != 
+      idna_to_ascii_8z (label, &output, IDNA_USE_STD3_ASCII_RULES))
+    return GNUNET_SYSERR;
+  slen = strlen (output);
+#if WINDOWS
+  idn_free (output);
+#else
+  free (output);
+#endif
+  return (slen > 253) ? GNUNET_SYSERR : GNUNET_OK;
 }
 
 

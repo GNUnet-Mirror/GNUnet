@@ -187,7 +187,7 @@ struct vpn_data
    */
   struct GNUNET_HashCode peer;
 
-  /* followed by the servicename */
+  /* followed by the servicename / identifier / password (0-terminated) */
 };
 
 GNUNET_NETWORK_STRUCT_END

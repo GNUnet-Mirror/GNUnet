@@ -538,6 +538,19 @@ GNUNET_DNSPARSER_check_label (const char *label);
 
 
 /**
+ * Check if a hostname in UTF-8 format can be coded into valid IDNA.
+ * This can fail if a label becomes longer than 63 characters or if
+ * the entire name exceeds 253 characters.
+ *
+ * @param name name to check (UTF-8 string)
+ * @return GNUNET_OK if the label can be converted to IDNA,
+ *         GNUNET_SYSERR if the label is not valid for DNS names
+ */
+int
+GNUNET_DNSPARSER_check_name (const char *name);
+
+
+/**
  * Parse a UDP payload of a DNS packet in to a nice struct for further
  * processing and manipulation.
  *

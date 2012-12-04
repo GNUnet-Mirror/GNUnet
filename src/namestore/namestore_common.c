@@ -348,18 +348,19 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
 				  size_t data_size)
 {
   uint16_t mx_pref;
-  struct soa_data *soa;
-  struct vpn_data *vpn;
-  struct srv_data *srv;
-  struct tlsa_data *tlsa;
+  const struct soa_data *soa;
+  const struct vpn_data *vpn;
+  const struct srv_data *srv;
+  const struct tlsa_data *tlsa;
   struct GNUNET_CRYPTO_ShortHashAsciiEncoded enc;
   struct GNUNET_CRYPTO_HashAsciiEncoded s_peer;
+  const char *cdata;
   char* vpn_str;
   char* srv_str;
   char* tlsa_str;
   char* result;
-  char* soa_rname;
-  char* soa_mname;
+  const char* soa_rname;
+  const char* soa_mname;
   char tmp[INET6_ADDRSTRLEN];
 
   switch (type)
@@ -373,20 +374,32 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
       return NULL;
     return GNUNET_strdup (tmp);
   case GNUNET_DNSPARSER_TYPE_NS:
-    return GNUNET_strdup (data);
+    return GNUNET_strndup (data, data_size);
   case GNUNET_DNSPARSER_TYPE_CNAME:
-    return GNUNET_strdup (data);
+    return GNUNET_strndup (data, data_size);
   case GNUNET_DNSPARSER_TYPE_SOA:
-    soa = (struct soa_data*)data;
-    soa_rname = (char*)&soa[1];
-    soa_mname = (char*)&soa[1]+strlen(soa_rname)+1;
-    if (0 == GNUNET_asprintf(&result, "rname=%s mname=%s %lu,%lu,%lu,%lu,%lu",
-                     soa_rname, soa_mname,
-                     ntohl (soa->serial), ntohl (soa->refresh),
-                     ntohl (soa->retry), ntohl (soa->expire), ntohl (soa->minimum)))
+    if (data_size <= sizeof (struct soa_data))
+      return NULL;
+    soa = data;
+    soa_rname = (const char*) &soa[1];
+    soa_mname = memchr (soa_rname, 0, data_size - sizeof (struct soa_data) - 1);
+    if (NULL == soa_mname)
+      return NULL;
+    soa_mname++;
+    if (NULL == memchr (soa_mname, 0, 
+			data_size - (sizeof (struct soa_data) + strlen (soa_rname) + 1)))
+      return NULL;
+    if (0 == GNUNET_asprintf (&result, 
+			      "rname=%s mname=%s %lu,%lu,%lu,%lu,%lu",
+			      soa_rname, soa_mname,
+			      ntohl (soa->serial), 
+			      ntohl (soa->refresh),
+			      ntohl (soa->retry), 
+			      ntohl (soa->expire),
+			      ntohl (soa->minimum)))
     {
-        GNUNET_free (result);
-        return NULL;
+      GNUNET_free (result);
+      return NULL;
     }
     return result;
   case GNUNET_DNSPARSER_TYPE_PTR:
@@ -420,42 +433,54 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
   case GNUNET_NAMESTORE_TYPE_LEHO:
     return GNUNET_strndup (data, data_size);
   case GNUNET_NAMESTORE_TYPE_VPN:
-    vpn = (struct vpn_data*)data;
-
+    cdata = data;
+    if ( (data_size <= sizeof (struct vpn_data)) ||
+	 ('\0' != cdata[data_size - 1]) )
+      return NULL; /* malformed */
+    vpn = data;
     GNUNET_CRYPTO_hash_to_enc (&vpn->peer, &s_peer);
     if (0 == GNUNET_asprintf (&vpn_str, "%hu %s %s",
-                                      vpn->proto,
-                                      (char*)&s_peer,
-                                      (char*)&vpn[1]))
+			      vpn->proto,
+			      (const char*) &s_peer,
+			      (const char*) &vpn[1]))
     {
         GNUNET_free (vpn_str);
         return NULL;
     }
     return vpn_str;
   case GNUNET_DNSPARSER_TYPE_SRV:
-    srv = (struct srv_data*)data;
+    cdata = data;
+    if ( (data_size <= sizeof (struct srv_data)) ||
+	 ('\0' != cdata[data_size - 1]) )
+      return NULL; /* malformed */
+    srv = data;
 
-    if (0 == GNUNET_asprintf (&srv_str, "%d %d %d %s",
-                                      ntohs (srv->prio),
-                                      ntohs (srv->weight),
-                                      ntohs (srv->port),
-                                      (char*)&srv[1]))
+    if (0 == GNUNET_asprintf (&srv_str, 
+			      "%d %d %d %s",
+			      ntohs (srv->prio),
+			      ntohs (srv->weight),
+			      ntohs (srv->port),
+			      (const char *)&srv[1]))
     {
       GNUNET_free (srv_str);
       return NULL;
     }
     return srv_str;
   case GNUNET_DNSPARSER_TYPE_TLSA:
-    tlsa = (struct tlsa_data*)data;
-
-    if (0 == GNUNET_asprintf (&tlsa_str, "%c %c %c %s",
-                                      tlsa->usage,
-                                      tlsa->selector,
-                                      tlsa->matching_type,
-                                      tlsa[1]))
+    cdata = data;
+    if ( (data_size <= sizeof (struct tlsa_data)) ||
+	 ('\0' != cdata[data_size - 1]) )
+      return NULL; /* malformed */
+    tlsa = data;
+    if (0 == GNUNET_asprintf (&tlsa_str, 
+			      "%c %c %c %s",
+			      tlsa->usage,
+			      tlsa->selector,
+			      tlsa->matching_type,
+			      (const char *) &tlsa[1]))
     {
-        GNUNET_free (tlsa_str);
-        return NULL;
+      GNUNET_free (tlsa_str);
+      return NULL;
     }
     return tlsa_str;
   default:
