@@ -20,19 +20,19 @@
 
 
 #include "platform.h"
-#include "gnunet_protocols.h"
 #include "gnunet_common.h"
-#include "gnunet_service_lib.h"
+#include "gnunet_protocols.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_consensus_service.h"
 #include "gnunet_core_service.h"
-#include "gnunet_container_lib.h"
+#include "gnunet_mesh_service.h"
 #include "consensus.h"
 
 
-struct ConsensusClient;
+struct ConsensusSession;
 
 static void
-send_next (struct ConsensusClient *cli);
+send_next (struct ConsensusSession *session);
 
 
 /**
@@ -58,8 +58,7 @@ struct PendingElement
 
 
 /**
- * A consensus session consists of one or more local clients,
- * as well as zero or more remote authorities.
+ * A consensus session consists of one local client and the remote authorities.
  */
 struct ConsensusSession
 {
@@ -74,18 +73,8 @@ struct ConsensusSession
   struct ConsensusSession *prev;
 
   /**
-   * Consensus clients are kept in a DLL.
+   * Local consensus identification, chosen by clients.
    */
-  struct ConsensusClient *clients_head;
-
-  /**
-   * Consensus clients are kept in a DLL.
-   */
-  struct ConsensusClient *clients_tail;
-
-  /**
-  * Local consensus identification, chosen by clients.
-  */
   struct GNUNET_HashCode *local_id;
  
   /**
@@ -93,24 +82,6 @@ struct ConsensusSession
   * from the local id and participating authorities.
   */
   struct GNUNET_HashCode *global_id;
-
-  /**
-   * Values in the consensus set of this session.
-   */
-  struct GNUNET_CONTAINER_MultiHashMap *values;
-};
-
-
-struct ConsensusClient
-{
-  /**
-   * Consensus clients are kept in a DLL.
-   */
-  struct ConsensusClient *next;
-  /**
-   * Consensus clients are kept in a DLL.
-   */
-  struct ConsensusClient *prev;
 
   /**
    * Corresponding server handle.
@@ -123,24 +94,30 @@ struct ConsensusClient
   int begin;
 
   /**
-   * Session this client belongs to
-   */
-  struct ConsensusSession *session;
-
-  /**
-   * Values in the consensus set of this client.
-   * Includes pending elements.
+   * Values in the consensus set of this session,
+   * all of them either have been sent or approved by the client.
    */
   struct GNUNET_CONTAINER_MultiHashMap *values;
 
   /**
-   * Elements that have not been set to the client yet.
+   * Elements that have not been sent to the client yet.
    */
-  struct PendingElement *pending_head;
+  struct PendingElement *transmit_pending_head;
+
   /**
-   * Elements that have not been set to the client yet.
+   * Elements that have not been sent to the client yet.
    */
-  struct PendingElement *pending_tail;
+  struct PendingElement *transmit_pending_tail;
+
+  /**
+   * Elements that have not been sent to the client yet.
+   */
+  struct PendingElement *approval_pending_head;
+
+  /**
+   * Elements that have not been sent to the client yet.
+   */
+  struct PendingElement *approval_pending_tail;
 
   /**
    * Currently active transmit handle for sending to the client
@@ -157,6 +134,11 @@ struct ConsensusClient
    * Client has been informed about the conclusion.
    */
   int conclude_sent;
+
+  /**
+   * Number of other peers in the consensus
+   */
+  int num_peers;
 };
 
 
@@ -185,30 +167,6 @@ static struct GNUNET_SERVER_Handle *srv;
  */
 static struct GNUNET_PeerIdentity *my_peer;
 
-
-struct ConsensusClient *
-find_client (const struct GNUNET_SERVER_Client *srv_client)
-{
-  struct ConsensusSession *session;
-  struct ConsensusClient *client;
-
-  session = sessions_head;
-  while (NULL != session)
-  {
-    client = session->clients_head;
-    while (NULL != client)
-    {
-      if (client->client == srv_client)
-      {
-        return client;
-      }
-      client = client->next;
-    }
-    session = session->next;
-  }
-  return NULL;
-}
-
 static void
 disconnect_client (struct GNUNET_SERVER_Client *client)
 {
@@ -221,47 +179,19 @@ compute_global_id (struct GNUNET_HashCode *dst,
                    const struct GNUNET_PeerIdentity *peers,
                    int num_peers)
 {
+  int i;
+  struct GNUNET_HashCode tmp;
+
   *dst = *local_id;
-
-  /* FIXME: hash other peers into global id */
-}
-
-
-
-/**
- * Iterator over hash map entries.
- *
- * @param cls closure, the client
- * @param key current key code
- * @param value value in the hash map
- * @return GNUNET_YES if we should continue to
- *         iterate,
- *         GNUNET_NO if not.
- */
-int
-update_pending (void *cls,
-                 const struct GNUNET_HashCode *key,
-                 void *value)
-{
-  struct ConsensusClient *cli;
-  struct GNUNET_CONSENSUS_Element *element;
-  struct PendingElement *pending_element;
-
-  cli = (struct ConsensusClient *) cls;
-  element = (struct GNUNET_CONSENSUS_Element *) value;
-  pending_element = GNUNET_malloc (sizeof (struct PendingElement));
-  pending_element->element = element;
-
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (cli->values, key))
+  for (i = 0; i < num_peers; ++i)
   {
-    GNUNET_CONTAINER_DLL_insert_tail (cli->pending_head, cli->pending_tail, pending_element);
-    GNUNET_CONTAINER_multihashmap_put (cli->values, key, element, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    /* FIXME: maybe hash_xor/hash allow aliased source/target, and we can get by without tmp */
+    GNUNET_CRYPTO_hash_xor (dst, &peers[0].hashPubKey, &tmp);
+    *dst = tmp;
+    GNUNET_CRYPTO_hash (dst, sizeof (struct GNUNET_PeerIdentity), &tmp);
+    *dst = tmp;
   }
-  
-  return GNUNET_YES;
 }
-
-
 
 
 static size_t
@@ -269,25 +199,24 @@ transmit_pending (void *cls, size_t size, void *buf)
 {
   struct GNUNET_CONSENSUS_Element *element;
   struct GNUNET_CONSENSUS_ElementMessage *msg;
-  struct ConsensusClient *cli;
+  struct ConsensusSession *session;
 
-  cli = (struct ConsensusClient *) cls;
+  session = (struct ConsensusSession *) cls;
   msg = (struct GNUNET_CONSENSUS_ElementMessage *) buf;
-  element = cli->pending_head->element;
+  element = session->transmit_pending_head->element;
 
   GNUNET_assert (NULL != element);
 
-  cli->th = NULL;
+  session->th = NULL;
 
   msg->element_type = element->type;
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT);
   msg->header.size = htons (sizeof (struct GNUNET_CONSENSUS_ElementMessage) + element->size);
   memcpy (&msg[1], element->data, element->size);
 
+  session->transmit_pending_head = session->transmit_pending_head->next;
 
-  cli->pending_head = cli->pending_head->next;
-
-  send_next (cli);
+  send_next (session);
 
   return sizeof (struct GNUNET_CONSENSUS_ElementMessage) + element->size;
 }
@@ -299,7 +228,7 @@ transmit_conclude_done (void *cls, size_t size, void *buf)
   struct GNUNET_CONSENSUS_ConcludeDoneMessage *msg;
 
   msg = (struct GNUNET_CONSENSUS_ConcludeDoneMessage *) buf;
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE_DONE);
   msg->header.size = htons (sizeof (struct GNUNET_CONSENSUS_ConcludeDoneMessage));
   msg->num_peers = htons (0);
 
@@ -313,38 +242,43 @@ transmit_conclude_done (void *cls, size_t size, void *buf)
  * @param cli the client to send the next message to
  */
 static void
-send_next (struct ConsensusClient *cli)
+send_next (struct ConsensusSession *session)
 {
   int msize;
 
-  GNUNET_assert (NULL != cli);
+  GNUNET_assert (NULL != session);
 
-  if (NULL != cli->th)
+  if (NULL != session->th)
   {
     return;
   }
 
-  if ((cli->conclude_requested == GNUNET_YES) && (cli->conclude_sent == GNUNET_NO))
+  if ((session->conclude_requested == GNUNET_YES) && (session->conclude_sent == GNUNET_NO))
   {
     /* just the conclude message with no other authorities in the dummy */
     msize = sizeof (struct GNUNET_CONSENSUS_ConcludeMessage);
-    cli->th =
-        GNUNET_SERVER_notify_transmit_ready (cli->client, msize,
-                                             GNUNET_TIME_UNIT_FOREVER_REL, &transmit_conclude_done, cli);
-    cli->conclude_sent = GNUNET_YES;
+    session->th =
+        GNUNET_SERVER_notify_transmit_ready (session->client, msize,
+                                             GNUNET_TIME_UNIT_FOREVER_REL, &transmit_conclude_done, session);
+    session->conclude_sent = GNUNET_YES;
   }
-  else if (NULL != cli->pending_head)
+  else if (NULL != session->transmit_pending_head)
   {
-    msize = cli->pending_head->element->size + sizeof (struct GNUNET_CONSENSUS_ElementMessage);
-    cli->th =
-        GNUNET_SERVER_notify_transmit_ready (cli->client, msize,
-                                             GNUNET_TIME_UNIT_FOREVER_REL, &transmit_pending, cli);
+    msize = session->transmit_pending_head->element->size + sizeof (struct GNUNET_CONSENSUS_ElementMessage);
+    session->th =
+        GNUNET_SERVER_notify_transmit_ready (session->client, msize,
+                                             GNUNET_TIME_UNIT_FOREVER_REL, &transmit_pending, session);
+    /* TODO: insert into ack pending */
   }
 }
 
 
 /**
  * Called when a client wants to join a consensus session.
+ *
+ * @param cls unused
+ * @param client client that sent the message
+ * @param m message sent by the client
  */
 static void
 client_join (void *cls,
@@ -354,58 +288,42 @@ client_join (void *cls,
   struct GNUNET_HashCode global_id;
   const struct GNUNET_CONSENSUS_JoinMessage *msg;
   struct ConsensusSession *session;
-  struct ConsensusClient *consensus_client;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "join\n");
-
-  fprintf(stderr, "foobar\n");
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "client joined\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "client joining\n");
 
   msg = (struct GNUNET_CONSENSUS_JoinMessage *) m;
-  
-  /* kill the client if it already is in a session */
-  if (NULL != find_client (client))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "client tried to join twice\n");
-    disconnect_client (client);
-    return;
-  }
-
-  consensus_client = GNUNET_malloc (sizeof (struct ConsensusClient));
-  consensus_client->client = client;
-  consensus_client->begin = GNUNET_NO;
-  consensus_client->values = GNUNET_CONTAINER_multihashmap_create (4, GNUNET_NO);
-
-  GNUNET_SERVER_client_keep (client);
-
-  GNUNET_assert (NULL != consensus_client->values);
 
   compute_global_id (&global_id, &msg->session_id, (struct GNUNET_PeerIdentity *) &m[1], msg->num_peers);
 
-  /* look if we already have a session for this local id */
   session = sessions_head;
   while (NULL != session)
   {
-    if (0 == memcmp(&global_id, session->global_id, sizeof (struct GNUNET_HashCode)))
+    if (client == session->client)
     {
-      GNUNET_CONTAINER_DLL_insert (session->clients_head, session->clients_tail, consensus_client);
-      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "client already in session\n");
+      disconnect_client (client);
       return;
     }
-    session = session->next;
+    if (0 == memcmp (session->global_id, &global_id, sizeof (struct GNUNET_HashCode)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "session already owned by another client\n");
+      disconnect_client (client);
+      return;
+    }
   }
+
+  GNUNET_SERVER_client_keep (client);
 
   /* session does not exist yet, create it */
   session = GNUNET_malloc (sizeof (struct ConsensusSession));
   session->local_id = GNUNET_memdup (&msg->session_id, sizeof (struct GNUNET_HashCode));
   session->global_id = GNUNET_memdup (&global_id, sizeof (struct GNUNET_HashCode));
   session->values = GNUNET_CONTAINER_multihashmap_create (4, GNUNET_NO);
+  session->client = client;
 
   GNUNET_CONTAINER_DLL_insert (sessions_head, sessions_tail, session);
-  GNUNET_CONTAINER_DLL_insert (session->clients_head, session->clients_tail, consensus_client);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "created new session");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "created new session\n");
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -419,18 +337,22 @@ client_insert (void *cls,
              struct GNUNET_SERVER_Client *client,
              const struct GNUNET_MessageHeader *m)
 {
-  struct ConsensusClient *consensus_client;
+  struct ConsensusSession *session;
   struct GNUNET_CONSENSUS_ElementMessage *msg;
   struct GNUNET_CONSENSUS_Element *element;
-  struct PendingElement *pending_element;
   struct GNUNET_HashCode key;
   int element_size;
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "insert\n");
 
-  consensus_client = find_client (client);
+  session = sessions_head;
+  while (NULL != session)
+  {
+    if (session->client == client)
+      break;
+  }
 
-  if (NULL == consensus_client)
+  if (NULL == session)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "client tried to insert, but client is not in any session\n");
     GNUNET_SERVER_client_disconnect (client);
@@ -449,28 +371,12 @@ client_insert (void *cls,
 
   GNUNET_CRYPTO_hash (element, element_size, &key);
 
-  GNUNET_CONTAINER_multihashmap_put (consensus_client->session->values, &key, element,
+  GNUNET_CONTAINER_multihashmap_put (session->values, &key, element,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
-  GNUNET_CONTAINER_multihashmap_put (consensus_client->values, &key, element,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
-
-  /* send the new value to all clients that don't have it */
-
-  consensus_client = consensus_client->session->clients_head;
-  while (NULL != consensus_client)
-  {
-    if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (consensus_client->values, &key))
-    {
-      pending_element = GNUNET_malloc (sizeof (struct PendingElement));
-      pending_element->element = element;
-      GNUNET_CONTAINER_DLL_insert_tail (consensus_client->pending_head, consensus_client->pending_tail, pending_element);
-      GNUNET_CONTAINER_multihashmap_put (consensus_client->values, &key, element,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-      send_next (consensus_client);
-    }
-  }
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
+
+  send_next (session);
 }
 
 
@@ -482,20 +388,27 @@ client_begin (void *cls,
              struct GNUNET_SERVER_Client *client,
              const struct GNUNET_MessageHeader *message)
 {
-  struct ConsensusClient *consensus_client;
+  struct ConsensusSession *session;
 
-  consensus_client = find_client (client);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "client requested begin\n");
 
-  if (NULL == consensus_client)
+  session = sessions_head;
+  while (NULL != session)
   {
+    if (session->client == client)
+      break;
+  }
+
+  if (NULL == session)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "client tried to 'begin', but client is not in any session\n");
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
 
-  consensus_client->begin = GNUNET_YES;
+  session->begin = GNUNET_YES;
 
-  GNUNET_CONTAINER_multihashmap_iterate (consensus_client->session->values, &update_pending, NULL);
-  send_next (consensus_client);
+  send_next (session);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -510,18 +423,33 @@ client_conclude (void *cls,
              struct GNUNET_SERVER_Client *client,
              const struct GNUNET_MessageHeader *message)
 {
-  struct ConsensusClient *consensus_client;
+  struct ConsensusSession *session;
 
-  consensus_client = find_client (client);
-  if (NULL == consensus_client)
+  session = sessions_head;
+  while ((session != NULL) && (session->client != client))
+  {
+    session = session->next;
+  }
+  if (NULL == session)
   {
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
-  consensus_client->conclude_requested = GNUNET_YES;
-  send_next (consensus_client);
-
+  session->conclude_requested = GNUNET_YES;
+  send_next (session);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * Called when a client sends an ack
+ */
+void
+client_ack (void *cls,
+             struct GNUNET_SERVER_Client *client,
+             const struct GNUNET_MessageHeader *message)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "client ack received\n");
 }
 
 /**
@@ -538,7 +466,7 @@ disconnect_core (void *cls,
   core = (struct GNUNET_CORE_Handle *) cls;
   GNUNET_CORE_disconnect (core);
 
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "disconnected from core\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "disconnected from core\n");
 }
 
 
@@ -554,16 +482,14 @@ core_startup (void *cls,
         sizeof (struct GNUNET_MessageHeader)},
     {&client_conclude, NULL, GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE,
         sizeof (struct GNUNET_CONSENSUS_ConcludeMessage)},
+    {&client_ack, NULL, GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_ACK,
+        sizeof (struct GNUNET_CONSENSUS_AckMessage)},
     {NULL, NULL, 0, 0}
   };
 
-
   GNUNET_SERVER_add_handlers (srv, handlers);
-
   my_peer = GNUNET_memdup(peer, sizeof (struct GNUNET_PeerIdentity));
-
   GNUNET_SCHEDULER_add_now (&disconnect_core, core);
-
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "connected to core\n");
 }
 
@@ -583,7 +509,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server, const struct GNUNET_CONFIGU
     {NULL, 0, 0}
   };
 
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "run\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "consensus  running\n");
 
   cfg = c;
   srv = server;

@@ -24,6 +24,7 @@
  * @author Florian Dold
  */
 #include "platform.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_client_lib.h"
 #include "gnunet_consensus_service.h"
@@ -32,6 +33,13 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "consensus-api",__VA_ARGS__)
 
+struct ElementAck
+{
+  struct ElementAck *next;
+  struct ElementAck *prev;
+  int keep;
+  struct GNUNET_CONSENSUS_Element *element;
+};
 
 /**
  * Handle for the service.
@@ -113,20 +121,138 @@ struct GNUNET_CONSENSUS_Handle
    * Deadline for the conclude operation.
    */
   struct GNUNET_TIME_Absolute conclude_deadline;
+
+  struct ElementAck *ack_head;
+  struct ElementAck *ack_tail;
+
+  /**
+   * Set to GNUNET_YES if the begin message has been transmitted to the service
+   */
+  int begin_sent;
+
+  /**
+   * Set to GNUNET_YES it the begin message should be transmitted to the service
+   */
+  int begin_requested;
 };
 
 
+static size_t
+transmit_ack (void *cls, size_t size, void *buf);
+
+static size_t
+transmit_insert (void *cls, size_t size, void *buf);
+
+static size_t
+transmit_conclude (void *cls, size_t size, void *buf);
+
+static size_t
+transmit_begin (void *cls, size_t size, void *buf);
+
+
+/**
+ * Call notify_transmit_ready for ack if necessary and possible.
+ */
+static void
+ntr_ack (struct GNUNET_CONSENSUS_Handle *consensus)
+{
+  if ((NULL == consensus->th) && (NULL != consensus->ack_head))
+  {
+    consensus->th =
+        GNUNET_CLIENT_notify_transmit_ready (consensus->client,
+                                             sizeof (struct GNUNET_CONSENSUS_AckMessage),
+                                             GNUNET_TIME_UNIT_FOREVER_REL,
+                                             GNUNET_NO, &transmit_ack, consensus);
+  }
+}
+
+
+/**
+ * Call notify_transmit_ready for ack if necessary and possible.
+ */
+static void
+ntr_insert (struct GNUNET_CONSENSUS_Handle *consensus)
+{
+  if ((NULL == consensus->th) && (NULL != consensus->insert_element))
+  {
+    consensus->th =
+        GNUNET_CLIENT_notify_transmit_ready (consensus->client,
+                                             sizeof (struct GNUNET_CONSENSUS_ElementMessage) + 
+                                                consensus->insert_element->size,
+                                             GNUNET_TIME_UNIT_FOREVER_REL,
+                                             GNUNET_NO, &transmit_insert, consensus);
+  }
+}
+
+
+/**
+ * Call notify_transmit_ready for ack if necessary and possible.
+ */
+static void
+ntr_conclude (struct GNUNET_CONSENSUS_Handle *consensus)
+{
+  if ((NULL == consensus->th) && (NULL != consensus->conclude_cb))
+  {
+    consensus->th =
+        GNUNET_CLIENT_notify_transmit_ready (consensus->client,
+                                             sizeof (struct GNUNET_CONSENSUS_ConcludeMessage),
+                                             GNUNET_TIME_absolute_get_remaining (consensus->conclude_deadline),
+                                             GNUNET_NO, &transmit_conclude, consensus);
+  }
+}
+
+
+/**
+ * Call notify_transmit_ready for ack if necessary and possible.
+ */
+static void
+ntr_begin (struct GNUNET_CONSENSUS_Handle *consensus)
+{
+  if ((NULL == consensus->th) && (GNUNET_YES == consensus->begin_requested) &&
+      (GNUNET_NO == consensus->begin_sent))
+  {
+    consensus->th =
+        GNUNET_CLIENT_notify_transmit_ready (consensus->client,
+                                             sizeof (struct GNUNET_MessageHeader),
+                                             GNUNET_TIME_UNIT_FOREVER_REL,
+                                             GNUNET_NO, &transmit_begin, consensus);
+  }
+}
+
+/**
+ * Called when the server has sent is a new element
+ * 
+ * @param consensus consensus handle
+ * @param msg element message
+ */
 static void
 handle_new_element(struct GNUNET_CONSENSUS_Handle *consensus,
                    struct GNUNET_CONSENSUS_ElementMessage *msg)
 {
   struct GNUNET_CONSENSUS_Element element;
+  struct ElementAck *ack;
+  int ret;
+
   element.type = msg->element_type;
   element.size = msg->header.size - sizeof (struct GNUNET_CONSENSUS_ElementMessage);
   element.data = &msg[1];
-  consensus->new_element_cb (consensus->new_element_cls, &element);
+
+  ret = consensus->new_element_cb (consensus->new_element_cls, &element);
+  ack = GNUNET_malloc (sizeof (struct ElementAck));
+  ack->keep = ret;
+  GNUNET_CONTAINER_DLL_insert_tail (consensus->ack_head, consensus->ack_tail,ack);
+
+  ntr_ack (consensus);
 }
 
+
+/**
+ * Called when the server has announced
+ * that the conclusion is over.
+ * 
+ * @param consensus consensus handle
+ * @param msg conclude done message
+ */
 static void
 handle_conclude_done(struct GNUNET_CONSENSUS_Handle *consensus,
                      struct GNUNET_CONSENSUS_ConcludeDoneMessage *msg)
@@ -170,7 +296,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     return;
   }
 
-  switch (ntohs(msg->type))
+  switch (ntohs (msg->type))
   {
     case GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT:
       handle_new_element (consensus, (struct GNUNET_CONSENSUS_ElementMessage *) msg);
@@ -187,6 +313,43 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 
 
 
+
+/**
+ * Function called to notify a client about the connection
+ * begin ready to queue more data.  "buf" will be
+ * NULL and "size" zero if the connection was closed for
+ * writing in the meantime.
+ *
+ * @param cls closure
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to buf
+ */
+static size_t
+transmit_ack (void *cls, size_t size, void *buf)
+{
+  struct GNUNET_CONSENSUS_AckMessage *msg;
+  struct GNUNET_CONSENSUS_Handle *consensus;
+
+  consensus = (struct GNUNET_CONSENSUS_Handle *) cls;
+
+  GNUNET_assert (NULL != consensus->ack_head);
+
+  msg = (struct GNUNET_CONSENSUS_AckMessage *) buf;
+  msg->keep = consensus->ack_head->keep;
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_ACK);
+  msg->header.size = htons (sizeof (struct GNUNET_CONSENSUS_AckMessage));
+
+  consensus->ack_head = consensus->ack_head->next;
+
+  consensus->th = NULL;
+
+  ntr_insert (consensus);
+  ntr_ack (consensus);
+  ntr_conclude (consensus);
+
+  return sizeof (struct GNUNET_CONSENSUS_AckMessage);
+}
 
 /**
  * Function called to notify a client about the connection
@@ -227,12 +390,18 @@ transmit_insert (void *cls, size_t size, void *buf)
           consensus->insert_element->data,
           consensus->insert_element->size);
 
+  consensus->insert_element = NULL;
 
   idc = consensus->idc;
   consensus->idc = NULL;
   idc_cls = consensus->idc_cls;
   consensus->idc_cls = NULL;
   idc (idc_cls, GNUNET_YES);
+
+
+  ntr_ack (consensus);
+  ntr_insert (consensus);
+  ntr_conclude (consensus);
 
   return msize;
 }
@@ -273,18 +442,14 @@ transmit_join (void *cls, size_t size, void *buf)
   msg->header.size = htons (msize);
   msg->session_id = consensus->session_id;
   msg->num_peers = htons (consensus->num_peers);
-  memcpy(&msg[1],
-         consensus->peers,
-         consensus->num_peers * sizeof (struct GNUNET_PeerIdentity));
+  if (0 != msg->num_peers)
+    memcpy(&msg[1],
+           consensus->peers,
+           consensus->num_peers * sizeof (struct GNUNET_PeerIdentity));
 
-  if (consensus->insert_element != NULL)
-  {
-    consensus->th =
-        GNUNET_CLIENT_notify_transmit_ready (consensus->client,
-                                             msize,
-                                             GNUNET_TIME_UNIT_FOREVER_REL,
-                                             GNUNET_NO, &transmit_insert, consensus);
-  }
+  ntr_insert (consensus);
+  ntr_begin (consensus);
+  ntr_conclude (consensus);
 
   GNUNET_CLIENT_receive (consensus->client, &message_handler, consensus,
                          GNUNET_TIME_UNIT_FOREVER_REL);
@@ -325,6 +490,8 @@ transmit_conclude (void *cls, size_t size, void *buf)
   msg->timeout =
       GNUNET_TIME_relative_hton (GNUNET_TIME_absolute_get_remaining(consensus->conclude_deadline));
 
+  ntr_ack (consensus);
+
   return msize;
 }
 
@@ -358,6 +525,10 @@ transmit_begin (void *cls, size_t size, void *buf)
 
   msg->type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_BEGIN);
   msg->size = htons (msize);
+
+  ntr_ack (consensus);
+  ntr_insert (consensus);
+  ntr_conclude (consensus);
 
   return msize;
 }
@@ -421,8 +592,8 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            GNUNET_NO, &transmit_join, consensus);
 
-  GNUNET_assert (consensus->th != NULL);
 
+  GNUNET_assert (consensus->th != NULL);
   return consensus;
 }
 
@@ -444,9 +615,9 @@ GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
 			 GNUNET_CONSENSUS_InsertDoneCallback idc,
 			 void *idc_cls)
 {
-
   GNUNET_assert (NULL == consensus->idc);
   GNUNET_assert (NULL == consensus->insert_element);
+  GNUNET_assert (NULL == consensus->conclude_cb);
 
   consensus->idc = idc;
   consensus->idc_cls = idc_cls;
@@ -454,17 +625,10 @@ GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
 
   if (consensus->joined == 0)
   {
-    GNUNET_assert (NULL != consensus->th);
     return;
   }
 
-  GNUNET_assert (NULL == consensus->th);
-
-  consensus->th =
-      GNUNET_CLIENT_notify_transmit_ready (consensus->client,
-                                           element->size + sizeof (struct GNUNET_CONSENSUS_ElementMessage),
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                           GNUNET_NO, &transmit_insert, consensus);
+  ntr_insert (consensus);
 }
 
 
@@ -478,12 +642,12 @@ GNUNET_CONSENSUS_begin (struct GNUNET_CONSENSUS_Handle *consensus)
 {
   GNUNET_assert (NULL == consensus->idc);
   GNUNET_assert (NULL == consensus->insert_element);
+  GNUNET_assert (GNUNET_NO == consensus->begin_requested);
+  GNUNET_assert (GNUNET_NO == consensus->begin_sent);
 
-  consensus->th =
-      GNUNET_CLIENT_notify_transmit_ready (consensus->client,
-                                           sizeof (struct GNUNET_MessageHeader),
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                           GNUNET_NO, &transmit_begin, consensus);
+  consensus->begin_requested = GNUNET_YES;
+
+  ntr_begin (consensus);
 }
 
 
@@ -503,22 +667,17 @@ GNUNET_CONSENSUS_conclude (struct GNUNET_CONSENSUS_Handle *consensus,
 			   GNUNET_CONSENSUS_ConcludeCallback conclude,
 			   void *conclude_cls)
 {
-  GNUNET_assert (NULL == consensus->th);
+  GNUNET_assert (NULL != conclude);
   GNUNET_assert (NULL == consensus->conclude_cb);
 
   consensus->conclude_cls = conclude_cls;
   consensus->conclude_cb = conclude;
   consensus->conclude_deadline = GNUNET_TIME_relative_to_absolute(timeout);
 
-  consensus->th =
-      GNUNET_CLIENT_notify_transmit_ready (consensus->client,
-                                           sizeof (struct GNUNET_CONSENSUS_ConcludeMessage),
-                                           timeout,
-                                           GNUNET_NO, &transmit_conclude, consensus);
-  if (NULL == consensus->th)
-  {
-    conclude(conclude_cls, 0, NULL);
-  }
+
+  /* if transmitting the conclude message is not possible right now, transmit_join
+   * or transmit_ack will handle it */
+  ntr_conclude (consensus);
 }
 
 
@@ -536,7 +695,8 @@ GNUNET_CONSENSUS_destroy (struct GNUNET_CONSENSUS_Handle *consensus)
     GNUNET_CLIENT_disconnect (consensus->client);
     consensus->client = NULL;
   }
-  GNUNET_free (consensus->peers);
+  if (NULL != consensus->peers)
+    GNUNET_free (consensus->peers);
   GNUNET_free (consensus);
 }
 

@@ -90,6 +90,20 @@ struct GNUNET_CONSENSUS_ElementMessage
   /* rest: element data */
 };
 
+struct GNUNET_CONSENSUS_AckMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_ACK
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Do we want to keep and propagate the element?
+   */
+  uint8_t keep;
+
+};
+
 GNUNET_NETWORK_STRUCT_END
 
 #endif
