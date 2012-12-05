@@ -598,9 +598,9 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Deleting address for peer `%s': `%s' %u\n",
                 GNUNET_i2s (&aa->peer), aa->plugin, aa->session_id);
-    /*FIXME
-    if (GNUNET_YES == destroy_address (aa))
-      recalculate_assigned_bw (); */
+
+    destroy_address (aa);
+      // FIXME if (GNUNET_YES == destroy_address (aa))recalculate_assigned_bw ();
     return GNUNET_OK;
   }
   /* session != 0, just remove session */
