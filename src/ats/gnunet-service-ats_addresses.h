@@ -34,47 +34,95 @@
 
 #define ATS_BLOCKING_DELTA GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100)
 
-
+/**
+ * Address with additional information
+ */
 struct ATS_Address
 {
+  /**
+   * Next element in DLL
+   */
   struct ATS_Address *next;
 
+  /**
+   * Previous element in DLL
+   */
   struct ATS_Address *prev;
 
+  /**
+   * Peer ID
+   */
   struct GNUNET_PeerIdentity peer;
 
-  size_t addr_len;
-
+  /**
+   * Session ID, 0 if no session is given
+   */
   uint32_t session_id;
 
-  uint32_t ats_count;
-
+  /**
+   * Address
+   */
   const void *addr;
 
+  /**
+   * Address length
+   */
+  size_t addr_len;
+
+  /**
+   * Plugin name
+   */
   char *plugin;
 
+  /**
+   * MLP specific information
+   * TODO remove or rename
+   */
   void *mlp_information;
 
+  /**
+   * ATS information
+   */
   struct GNUNET_ATS_Information *ats;
 
+  /**
+   * Number of ATS information
+   */
+  uint32_t ats_count;
+
+  /* CHECK USAGE */
   struct GNUNET_TIME_Relative atsp_latency;
 
+  /* CHECK USAGE */
   struct GNUNET_BANDWIDTH_Value32NBO atsp_utilization_in;
 
+  /* CHECK USAGE */
   struct GNUNET_BANDWIDTH_Value32NBO atsp_utilization_out;
 
+
+  /* CHECK USAGE */
   uint32_t atsp_distance;
 
+  /* CHECK USAGE */
   uint32_t atsp_cost_wan;
 
+  /* CHECK USAGE */
   uint32_t atsp_cost_lan;
 
+  /* CHECK USAGE */
   uint32_t atsp_cost_wlan;
 
+  /* CHECK USAGE */
   uint32_t atsp_network_type;
 
+  /**
+   * Inbound bandwidth assigned by solver in NBO
+   */
   struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_in;
 
+  /**
+   * Outbound bandwidth assigned by solver in NBO
+   */
   struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_out;
 
   /**
