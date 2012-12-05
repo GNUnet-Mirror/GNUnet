@@ -210,7 +210,7 @@ setup_interface ()
    * 
    * TODO: Finde a more sane way to do this!
    */
-  
+
   InfFilePath = calloc (MAX_PATH, sizeof (TCHAR));
   if (InfFilePath == NULL)
     {
@@ -263,7 +263,7 @@ setup_interface ()
     {
       goto cleanup3;
     }
-  
+
   /* Deploy all the information collected into the registry */
   if (!SetupDiSetDeviceRegistryProperty (DeviceInfo,
                                          &DeviceNode,
@@ -274,14 +274,12 @@ setup_interface ()
       goto cleanup3;
     }
   /* Install our new class(=device) into the system */
-  if (!SetupDiCallClassInstaller (DIF_REGISTERDEVICE,
-                                  DeviceInfo,
-                                  &DeviceNode))
+  if (SetupDiCallClassInstaller (DIF_REGISTERDEVICE,
+                                 DeviceInfo,
+                                 &DeviceNode))
     {
-      goto cleanup3;
+      return TRUE;
     }
-
-  return TRUE;
 
   //disabled for debug-reasons...
 cleanup3:
@@ -293,6 +291,34 @@ cleanup2:
 cleanup1:
   //GNUNET_free(InfFilePath);
   ;
+  return FALSE;
+
+}
+
+static boolean
+remove_interface ()
+{
+  SP_REMOVEDEVICE_PARAMS remove;
+
+  remove.ClassInstallHeader.cbSize = sizeof (SP_CLASSINSTALL_HEADER);
+  remove.HwProfile = 0;
+  remove.Scope = DI_REMOVEDEVICE_GLOBAL;
+  remove.ClassInstallHeader.InstallFunction = DIF_REMOVE;
+  
+
+  if (SetupDiSetClassInstallParams (DeviceInfo,
+                                    (PSP_DEVINFO_DATA) &DeviceNode,
+                                    &remove.ClassInstallHeader,
+                                    sizeof (remove)))
+    {
+      if (SetupDiCallClassInstaller (DIF_REMOVE, 
+                                     DeviceInfo, 
+                                     (PSP_DEVINFO_DATA) &DeviceNode))
+        {
+          return TRUE;
+        }
+    }
+
   return FALSE;
 
 }
