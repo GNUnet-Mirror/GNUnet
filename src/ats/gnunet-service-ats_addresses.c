@@ -37,9 +37,6 @@
 #include "gnunet-service-ats_addresses_simplistic.h"
 
 
-#define BIG_M_VALUE (UINT32_MAX) /10
-#define BIG_M_STRING "unlimited"
-
 /**
  * Available ressource assignment modes
  */
