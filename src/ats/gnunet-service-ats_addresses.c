@@ -1019,14 +1019,15 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
   while (NULL != cur)
   {
       if (0 == memcmp (peer, &cur->id, sizeof (cur->id)))
-        return; /* already suggesting */
+        break; /* already suggesting */
       cur = cur->next;
   }
-
-  cur = GNUNET_malloc (sizeof (struct GAS_Addresses_Suggestion_Requests));
-  cur->id = (*peer);
-  GNUNET_CONTAINER_DLL_insert (handle->r_head, handle->r_tail, cur);
-
+  if (NULL == cur)
+  {
+      cur = GNUNET_malloc (sizeof (struct GAS_Addresses_Suggestion_Requests));
+      cur->id = (*peer);
+      GNUNET_CONTAINER_DLL_insert (handle->r_head, handle->r_tail, cur);
+  }
   if (handle->ats_mode == MODE_SIMPLISTIC)
   {
     request_address_simple (peer);
