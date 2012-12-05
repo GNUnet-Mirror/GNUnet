@@ -29,8 +29,8 @@
 #include "gnunet_ats_service.h"
 #include "gnunet_testing_lib-new.h"
 #include "ats.h"
+#include "test_ats_api_common.h"
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
@@ -40,29 +40,7 @@ static int ret;
 
 static int stage;
 
-struct Address
-{
-  char *plugin;
-  size_t plugin_len;
-
-  void *addr;
-  size_t addr_len;
-
-  struct GNUNET_ATS_Information *ats;
-  int ats_count;
-
-  void *session;
-};
-
-struct PeerContext
-{
-  struct GNUNET_PeerIdentity id;
-
-  struct Address *addr;
-};
-
-
-static struct Address test_addr;
+static struct Test_Address test_addr;
 
 static struct PeerContext p;
 
