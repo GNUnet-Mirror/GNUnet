@@ -61,6 +61,10 @@ start_job (struct GNUNET_FS_QueueEntry *qe)
   qe->h->active_blocks += qe->blocks;
   qe->h->active_downloads++;
   qe->start_time = GNUNET_TIME_absolute_get ();
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting job %p (%u active)\n",
+	      qe,
+	      qe->h->active_downloads);
   GNUNET_CONTAINER_DLL_remove (qe->h->pending_head, qe->h->pending_tail, qe);
   GNUNET_CONTAINER_DLL_insert_after (qe->h->running_head, qe->h->running_tail,
                                      qe->h->running_tail, qe);
@@ -85,6 +89,10 @@ stop_job (struct GNUNET_FS_QueueEntry *qe)
       GNUNET_TIME_relative_add (qe->run_time,
                                 GNUNET_TIME_absolute_get_duration
                                 (qe->start_time));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Stopping job %p (%u active)\n",
+	      qe,
+	      qe->h->active_downloads);
   GNUNET_CONTAINER_DLL_remove (qe->h->running_head, qe->h->running_tail, qe);
   GNUNET_CONTAINER_DLL_insert_after (qe->h->pending_head, qe->h->pending_tail,
                                      qe->h->pending_tail, qe);
@@ -318,24 +326,31 @@ GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h, GNUNET_FS_QueueStart start,
   if (h->queue_job != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (h->queue_job);
   h->queue_job = GNUNET_SCHEDULER_add_now (&process_job_queue, h);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Queueing job %p\n",
+	      qe);
   return qe;
 }
 
 
 /**
  * Dequeue a job from the queue.
- * @param qh handle for the job
+ *
+ * @param qe handle for the job
  */
 void
-GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qh)
+GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qe)
 {
   struct GNUNET_FS_Handle *h;
 
-  h = qh->h;
-  if (NULL != qh->client)
-    stop_job (qh);
-  GNUNET_CONTAINER_DLL_remove (h->pending_head, h->pending_tail, qh);
-  GNUNET_free (qh);
+  h = qe->h;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Dequeueing job %p\n",
+	      qe);
+  if (NULL != qe->client)
+    stop_job (qe);
+  GNUNET_CONTAINER_DLL_remove (h->pending_head, h->pending_tail, qe);
+  GNUNET_free (qe);
   if (h->queue_job != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (h->queue_job);
   h->queue_job = GNUNET_SCHEDULER_add_now (&process_job_queue, h);

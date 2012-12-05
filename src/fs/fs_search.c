@@ -211,6 +211,10 @@ probe_failure_handler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
   sr->probe_ctx = NULL;
   GNUNET_FS_search_result_sync_ (sr);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Probe #%u for search result %p failed\n",
+	      sr->availability_trials,
+	      sr);
   signal_probe_result (sr);
 }
 
@@ -232,6 +236,10 @@ probe_success_handler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
   sr->probe_ctx = NULL;
   GNUNET_FS_search_result_sync_ (sr);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Probe #%u for search result %p succeeded\n",
+	      sr->availability_trials,
+	      sr);
   signal_probe_result (sr);
 }
 
@@ -361,6 +369,11 @@ GNUNET_FS_search_start_probe_ (struct GNUNET_FS_SearchResult *sr)
     len = len - off;
   else
     len = DBLOCK_SIZE;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting probe #%u (at offset %llu) for search result %p\n",
+	      sr->availability_trials + 1,
+	      (unsigned long long) off,
+	      sr);
   sr->remaining_probe_time =
       GNUNET_TIME_relative_multiply (sr->sc->h->avg_block_latency,
                                      2 * (1 + sr->availability_trials));

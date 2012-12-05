@@ -2081,6 +2081,11 @@ create_download_context (struct GNUNET_FS_Handle *h,
     return NULL;
   }
   dc = GNUNET_malloc (sizeof (struct GNUNET_FS_DownloadContext));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting download %p, %u bytes at offset %llu\n",
+	      dc,
+	      (unsigned long long) length,
+	      (unsigned long long) offset);
   dc->h = h;
   dc->uri = GNUNET_FS_uri_dup (uri);
   dc->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
@@ -2258,6 +2263,10 @@ GNUNET_FS_download_start_downloading_ (struct GNUNET_FS_DownloadContext *dc)
 			(0 == (dc->options & GNUNET_FS_DOWNLOAD_IS_PROBE))
 			? GNUNET_FS_QUEUE_PRIORITY_NORMAL 
 			: GNUNET_FS_QUEUE_PRIORITY_PROBE);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Download %p put into queue as job %p\n",
+	      dc,
+	      dc->job_queue);
 }
 
 

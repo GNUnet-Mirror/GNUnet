@@ -633,10 +633,11 @@ GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h, GNUNET_FS_QueueStart start,
 
 /**
  * Dequeue a job from the queue.
- * @param qh handle for the job
+ *
+ * @param qe handle for the job
  */
 void
-GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qh);
+GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qe);
 
 
 /**
