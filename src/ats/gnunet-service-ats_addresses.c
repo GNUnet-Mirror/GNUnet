@@ -36,8 +36,9 @@
 #endif
 #include "gnunet-service-ats_addresses_simplistic.h"
 
-#define ATS_BLOCKING_DELTA GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100)
 
+#define BIG_M_VALUE (UINT32_MAX) /10
+#define BIG_M_STRING "unlimited"
 
 /**
  * Available ressource assignment modes
@@ -760,95 +761,6 @@ GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
 }
 
 
-/**
- * Find a "good" address to use for a peer.  If we already have an existing
- * address, we stick to it.  Otherwise, we pick by lowest distance and then
- * by lowest latency.
- *
- * @param cls the 'struct ATS_Address**' where we store the result
- * @param key unused
- * @param value another 'struct ATS_Address*' to consider using
- * @return GNUNET_OK (continue to iterate)
- */
-static int
-find_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
-{
-  struct ATS_Address **ap = cls;
-  struct ATS_Address *aa = (struct ATS_Address *) value;
-  struct ATS_Address *ab = *ap;
-  struct GNUNET_TIME_Absolute now;
-
-  now = GNUNET_TIME_absolute_get();
-
-  if (aa->blocked_until.abs_value == GNUNET_TIME_absolute_max (now, aa->blocked_until).abs_value)
-  {
-    /* This address is blocked for suggestion */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Address %p blocked for suggestion for %llu ms \n",
-                aa,
-                GNUNET_TIME_absolute_get_difference(now, aa->blocked_until).rel_value);
-    return GNUNET_OK;
-  }
-
-  aa->block_interval = GNUNET_TIME_relative_add (aa->block_interval, ATS_BLOCKING_DELTA);
-  aa->blocked_until = GNUNET_TIME_absolute_add (now, aa->block_interval);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Address %p ready for suggestion, block interval now %llu \n", aa, aa->block_interval);
-
-  /* FIXME this is a hack */
-
-
-  if (NULL != ab)
-  {
-    if ((0 == strcmp (ab->plugin, "tcp")) &&
-        (0 == strcmp (aa->plugin, "tcp")))
-    {
-      if ((0 != ab->addr_len) &&
-          (0 == aa->addr_len))
-      {
-        /* saved address was an outbound address, but we have an inbound address */
-        *ap = aa;
-        return GNUNET_OK;
-      }
-      if (0 == ab->addr_len)
-      {
-        /* saved address was an inbound address, so do not overwrite */
-        return GNUNET_OK;
-      }
-    }
-  }
-  /* FIXME end of hack */
-
-  if (NULL == ab)
-  {
-    *ap = aa;
-    return GNUNET_OK;
-  }
-  if ((ntohl (ab->assigned_bw_in.value__) == 0) &&
-      (ntohl (aa->assigned_bw_in.value__) > 0))
-  {
-    /* stick to existing connection */
-    *ap = aa;
-    return GNUNET_OK;
-  }
-  if (ab->atsp_distance > aa->atsp_distance)
-  {
-    /* user shorter distance */
-    *ap = aa;
-    return GNUNET_OK;
-  }
-  if (ab->atsp_latency.rel_value > aa->atsp_latency.rel_value)
-  {
-    /* user lower latency */
-    *ap = aa;
-    return GNUNET_OK;
-  }
-  /* don't care */
-  return GNUNET_OK;
-}
-
-
 int
 GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
                       const char *plugin_name, const void *plugin_addr,
@@ -938,45 +850,6 @@ request_address_mlp (const struct GNUNET_PeerIdentity *peer)
 }
 
 
-static void 
-request_address_simple (const struct GNUNET_PeerIdentity *peer)
-{
-  struct ATS_Address *aa;
-  aa = NULL;
-
-  /* Get address with: stick to current address, lower distance, lower latency */
-  GNUNET_CONTAINER_multihashmap_get_multiple (handle->addresses, &peer->hashPubKey,
-                                              &find_address_it, &aa);
-  if (aa == NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-                "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
-    return;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "Suggesting address %p for peer `%s'\n", aa, GNUNET_i2s (peer));
-
-  if (aa->active == GNUNET_NO)
-  {
-    aa->active = GNUNET_YES;
-    handle->active_addr_count++;
-    if (handle->ats_mode == MODE_SIMPLISTIC)
-    {
-      recalculate_assigned_bw ();
-    }
-  }
-  else
-  {
-    /* just to be sure... */
-    GAS_scheduling_transmit_address_suggestion (peer, aa->plugin, aa->addr,
-                                                aa->addr_len, aa->session_id,
-                                                aa->ats, aa->ats_count,
-                                                aa->assigned_bw_out,
-                                                aa->assigned_bw_in);
-  }
-}
-
 
 /**
  * Cancel address suggestions for a peer
@@ -1013,6 +886,9 @@ void
 GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
 {
   struct GAS_Addresses_Suggestion_Requests *cur = handle->r_head;
+  struct ATS_Address *aa;
+  struct GNUNET_ATS_Information *ats;
+  unsigned int ats_count;
 
   if (GNUNET_NO == handle->running)
     return;
@@ -1028,14 +904,25 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
       cur->id = (*peer);
       GNUNET_CONTAINER_DLL_insert (handle->r_head, handle->r_tail, cur);
   }
-  if (handle->ats_mode == MODE_SIMPLISTIC)
-  {
-    request_address_simple (peer);
-  }
-  if (handle->ats_mode == MODE_MLP)
-  {
-    request_address_mlp(peer);
-  }
+
+  aa = handle->s_get (handle->solver, handle->addresses, peer);
+  if (NULL == aa)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Suggesting address %p for peer `%s'\n", aa, GNUNET_i2s (peer));
+
+  ats_count = assemble_ats_information (aa, &ats);
+  GAS_scheduling_transmit_address_suggestion (peer,
+                                              aa->plugin,
+                                              aa->addr, aa->addr_len,
+                                              aa->session_id,
+                                              ats, ats_count,
+                                              aa->assigned_bw_out,
+                                              aa->assigned_bw_in);
+  GNUNET_free (ats);
+
 }
 
 
@@ -1045,7 +932,8 @@ reset_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
   struct ATS_Address *aa = value;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Resetting interval for peer `%s' address %p from %llu to 0\n", GNUNET_i2s (&aa->peer), aa, aa->block_interval);
+              "Resetting interval for peer `%s' address %p from %llu to 0\n",
+              GNUNET_i2s (&aa->peer), aa, aa->block_interval);
 
   aa->blocked_until = GNUNET_TIME_UNIT_ZERO_ABS;
   aa->block_interval = GNUNET_TIME_UNIT_ZERO;
@@ -1075,6 +963,87 @@ GAS_addresses_change_preference (const struct GNUNET_PeerIdentity *peer,
   handle->s_pref (handle->solver, peer, kind, score);
 }
 
+static unsigned int
+load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg, unsigned long long *out_dest, unsigned long long *in_dest, int dest_length)
+{
+  int quotas[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
+  char * entry_in = NULL;
+  char * entry_out = NULL;
+  char * quota_out_str;
+  char * quota_in_str;
+  int c;
+
+  for (c = 0; (c < GNUNET_ATS_NetworkTypeCount) && (c < dest_length); c++)
+  {
+    in_dest[c] = 0;
+    out_dest[c] = 0;
+    switch (quotas[c]) {
+      case GNUNET_ATS_NET_UNSPECIFIED:
+        entry_out = "UNSPECIFIED_QUOTA_OUT";
+        entry_in = "UNSPECIFIED_QUOTA_IN";
+        break;
+      case GNUNET_ATS_NET_LOOPBACK:
+        entry_out = "LOOPBACK_QUOTA_OUT";
+        entry_in = "LOOPBACK_QUOTA_IN";
+        break;
+      case GNUNET_ATS_NET_LAN:
+        entry_out = "LAN_QUOTA_OUT";
+        entry_in = "LAN_QUOTA_IN";
+        break;
+      case GNUNET_ATS_NET_WAN:
+        entry_out = "WAN_QUOTA_OUT";
+        entry_in = "WAN_QUOTA_IN";
+        break;
+      case GNUNET_ATS_NET_WLAN:
+        entry_out = "WLAN_QUOTA_OUT";
+        entry_in = "WLAN_QUOTA_IN";
+        break;
+      default:
+        break;
+    }
+
+    if ((entry_in == NULL) || (entry_out == NULL))
+      continue;
+
+    /* quota out */
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_out, &quota_out_str))
+    {
+      if (0 == strcmp(quota_out_str, BIG_M_STRING) ||
+          (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_out_str, &out_dest[c])))
+        out_dest[c] = UINT32_MAX;
+
+      GNUNET_free (quota_out_str);
+      quota_out_str = NULL;
+    }
+    else if (GNUNET_ATS_NET_UNSPECIFIED == quotas[c])
+      out_dest[c] = UINT32_MAX;
+    else
+      out_dest[c] = UINT32_MAX;
+
+    /* quota in */
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_in, &quota_in_str))
+    {
+      if (0 == strcmp(quota_in_str, BIG_M_STRING) ||
+          (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_in_str, &in_dest[c])))
+        in_dest[c] = UINT32_MAX;
+
+      GNUNET_free (quota_in_str);
+      quota_in_str = NULL;
+    }
+    else if (GNUNET_ATS_NET_UNSPECIFIED == quotas[c])
+    {
+      in_dest[c] = UINT32_MAX;
+    }
+    else
+    {
+        in_dest[c] = UINT32_MAX;
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Loaded quota: %s %u, %s %u\n", entry_in, in_dest[c], entry_out, out_dest[c]);
+
+  }
+  return GNUNET_ATS_NetworkTypeCount;
+}
+
 
 
 /**
@@ -1088,39 +1057,16 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     const struct GNUNET_STATISTICS_Handle *stats)
 {
   struct GAS_Addresses_Handle *ah;
-  char *quota_wan_in_str;
-  char *quota_wan_out_str;
+  int quotas[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
+  unsigned long long  quotas_in[GNUNET_ATS_NetworkTypeCount];
+  unsigned long long  quotas_out[GNUNET_ATS_NetworkTypeCount];
+  int quota_count;
   char *mode_str;
   int c;
 
   ah = GNUNET_malloc (sizeof (struct GAS_Addresses_Handle));
   handle = ah;
   handle->running = GNUNET_NO;
-
-  /* Initialize the system with configuration values */
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", "WAN_QUOTA_IN", &quota_wan_in_str))
-  {
-    if (0 == strcmp(quota_wan_in_str, "unlimited") ||
-        (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_wan_in_str, &ah->wan_quota_in)))
-      ah->wan_quota_in = (UINT32_MAX) /10;
-
-    GNUNET_free (quota_wan_in_str);
-    quota_wan_in_str = NULL;
-  }
-  else
-      ah->wan_quota_in = (UINT32_MAX) /10;
-
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", "WAN_QUOTA_OUT", &quota_wan_out_str))
-  {
-    if (0 == strcmp(quota_wan_out_str, "unlimited") ||
-        (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_wan_out_str, &ah->wan_quota_out)))
-      ah->wan_quota_out = (UINT32_MAX) /10;
-
-    GNUNET_free (quota_wan_out_str);
-    quota_wan_out_str = NULL;
-  }
-  else
-    ah->wan_quota_out = (UINT32_MAX) /10;
 
   /* Initialize the addresses database */
   ah->addresses = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
@@ -1196,10 +1142,12 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert (NULL != ah->s_del);
   GNUNET_assert (NULL != ah->s_done);
 
-  ah->solver = ah->s_init (cfg, stats);
+  quota_count = load_quotas(cfg, quotas_in, quotas_out, GNUNET_ATS_NetworkTypeCount);
+
+  ah->solver = ah->s_init (cfg, stats, quotas, quotas_in, quotas_out, quota_count);
   if (NULL == ah->solver)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to initialize MLP solver!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to initialize solver!\n");
     GNUNET_free (ah);
     return NULL;
   }

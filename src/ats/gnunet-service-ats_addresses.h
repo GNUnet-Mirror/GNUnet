@@ -32,6 +32,9 @@
 #include "gnunet_statistics_service.h"
 #include "ats.h"
 
+#define ATS_BLOCKING_DELTA GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100)
+
+
 struct ATS_Address
 {
   struct ATS_Address *next;
@@ -98,7 +101,11 @@ struct ATS_Address
 
 typedef void *
  (*GAS_solver_init) (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                     const struct GNUNET_STATISTICS_Handle *stats);
+                     const struct GNUNET_STATISTICS_Handle *stats,
+                     int *network,
+                     unsigned long long *out_dest,
+                     unsigned long long *in_dest,
+                     int dest_length);
 
 typedef void
 (*GAS_solver_address_change_preference) (void *solver,
@@ -117,7 +124,7 @@ typedef void
                               struct ATS_Address *address);
 
 
-typedef struct ATS_PreferedAddress *
+typedef struct ATS_Address *
 (*GAS_solver_get_preferred_address) (void *solver,
                                      struct GNUNET_CONTAINER_MultiHashMap *addresses,
                                      const struct GNUNET_PeerIdentity *peer);

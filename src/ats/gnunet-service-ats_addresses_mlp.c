@@ -31,6 +31,8 @@
 #include "gnunet_statistics_service.h"
 #include "glpk.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind, "ats-mlp",__VA_ARGS__)
+
 #define WRITE_MLP GNUNET_NO
 #define DEBUG_ATS GNUNET_NO
 #define VERBOSE_GLPK GNUNET_NO
@@ -1074,7 +1076,9 @@ GAS_mlp_solve_problem (void *solver, struct GAS_MLP_SolutionContext *ctx)
  */
 void *
 GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-              const struct GNUNET_STATISTICS_Handle *stats)
+              const struct GNUNET_STATISTICS_Handle *stats,
+              int *network,
+              unsigned long long *out_dest, unsigned long long *in_dest, int dest_length)
 {
   struct GAS_MLP_Handle * mlp = GNUNET_malloc (sizeof (struct GAS_MLP_Handle));
 
@@ -1708,15 +1712,12 @@ mlp_get_preferred_address_it (void *cls, const struct GNUNET_HashCode * key, voi
  * @param peer the peer
  * @return suggested address
  */
-struct ATS_PreferedAddress *
+struct ATS_Address *
 GAS_mlp_get_preferred_address (void *solver,
                                struct GNUNET_CONTAINER_MultiHashMap * addresses,
                                const struct GNUNET_PeerIdentity *peer)
 {
-  struct ATS_PreferedAddress * aa = GNUNET_malloc (sizeof (struct ATS_PreferedAddress));
-  aa->address = NULL;
-  aa->bandwidth_in = 0;
-  aa->bandwidth_out = 0;
+  struct ATS_Address * aa = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Getting preferred address for `%s'\n", GNUNET_i2s (peer));
   GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey, mlp_get_preferred_address_it, aa);
   return aa;

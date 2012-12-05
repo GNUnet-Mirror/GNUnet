@@ -175,6 +175,87 @@ update_addresses (struct ATS_Address * a, unsigned int addrs, unsigned int perce
 
 }
 
+static unsigned int
+load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg, unsigned long long *out_dest, unsigned long long *in_dest, int dest_length)
+{
+  int quotas[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
+  char * entry_in = NULL;
+  char * entry_out = NULL;
+  char * quota_out_str;
+  char * quota_in_str;
+  int c;
+
+  for (c = 0; (c < GNUNET_ATS_NetworkTypeCount) && (c < dest_length); c++)
+  {
+    in_dest[c] = 0;
+    out_dest[c] = 0;
+    switch (quotas[c]) {
+      case GNUNET_ATS_NET_UNSPECIFIED:
+        entry_out = "UNSPECIFIED_QUOTA_OUT";
+        entry_in = "UNSPECIFIED_QUOTA_IN";
+        break;
+      case GNUNET_ATS_NET_LOOPBACK:
+        entry_out = "LOOPBACK_QUOTA_OUT";
+        entry_in = "LOOPBACK_QUOTA_IN";
+        break;
+      case GNUNET_ATS_NET_LAN:
+        entry_out = "LAN_QUOTA_OUT";
+        entry_in = "LAN_QUOTA_IN";
+        break;
+      case GNUNET_ATS_NET_WAN:
+        entry_out = "WAN_QUOTA_OUT";
+        entry_in = "WAN_QUOTA_IN";
+        break;
+      case GNUNET_ATS_NET_WLAN:
+        entry_out = "WLAN_QUOTA_OUT";
+        entry_in = "WLAN_QUOTA_IN";
+        break;
+      default:
+        break;
+    }
+
+    if ((entry_in == NULL) || (entry_out == NULL))
+      continue;
+
+    /* quota out */
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_out, &quota_out_str))
+    {
+      if (0 == strcmp(quota_out_str, BIG_M_STRING) ||
+          (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_out_str, &out_dest[c])))
+        out_dest[c] = UINT32_MAX;
+
+      GNUNET_free (quota_out_str);
+      quota_out_str = NULL;
+    }
+    else if (GNUNET_ATS_NET_UNSPECIFIED == quotas[c])
+      out_dest[c] = UINT32_MAX;
+    else
+      out_dest[c] = UINT32_MAX;
+
+    /* quota in */
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_in, &quota_in_str))
+    {
+      if (0 == strcmp(quota_in_str, BIG_M_STRING) ||
+          (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_in_str, &in_dest[c])))
+        in_dest[c] = UINT32_MAX;
+
+      GNUNET_free (quota_in_str);
+      quota_in_str = NULL;
+    }
+    else if (GNUNET_ATS_NET_UNSPECIFIED == quotas[c])
+    {
+      in_dest[c] = UINT32_MAX;
+    }
+    else
+    {
+        in_dest[c] = UINT32_MAX;
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Loaded quota: %s %u, %s %u\n", entry_in, in_dest[c], entry_out, out_dest[c]);
+
+  }
+  return GNUNET_ATS_NetworkTypeCount;
+}
+
 
 static void
 check (void *cls, char *const *args, const char *cfgfile,
@@ -186,6 +267,10 @@ check (void *cls, char *const *args, const char *cfgfile,
   int update = GNUNET_NO;
   int range = GNUNET_NO;
   int res;
+  int quotas[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
+  unsigned long long  quotas_in[GNUNET_ATS_NetworkTypeCount];
+  unsigned long long  quotas_out[GNUNET_ATS_NetworkTypeCount];
+  int quota_count;
 
 #if !HAVE_LIBGLPK
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "GLPK not installed!");
@@ -195,7 +280,8 @@ check (void *cls, char *const *args, const char *cfgfile,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up %u peers with %u addresses per peer\n", peers, addresses);
 
-  mlp = GAS_mlp_init (cfg, NULL);
+  quota_count = load_quotas(cfg, quotas_in, quotas_out, GNUNET_ATS_NetworkTypeCount);
+  mlp = GAS_mlp_init (cfg, NULL, quotas, quotas_in, quotas_out, quota_count);
   if (NULL == mlp)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to init MLP\n");

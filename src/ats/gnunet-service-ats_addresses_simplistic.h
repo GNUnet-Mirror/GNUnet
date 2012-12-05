@@ -38,7 +38,9 @@
  */
 void *
 GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                     const struct GNUNET_STATISTICS_Handle *stats);
+    const struct GNUNET_STATISTICS_Handle *stats,
+    int *network,
+    unsigned long long *out_dest, unsigned long long *in_dest, int dest_length);
 
 /**
  * Shutdown the simplistic problem solving component
@@ -78,7 +80,7 @@ GAS_simplistic_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMa
  * @param addresses the address hashmap containing all addresses
  * @param peer the identity of the peer
  */
-struct ATS_PreferedAddress *
+struct ATS_Address *
 GAS_simplistic_get_preferred_address (void *solver,
                                struct GNUNET_CONTAINER_MultiHashMap * addresses,
                                const struct GNUNET_PeerIdentity *peer);
