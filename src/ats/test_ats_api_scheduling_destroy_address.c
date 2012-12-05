@@ -59,6 +59,24 @@ static struct PeerContext p;
 
 
 static void
+create_test_address (struct Test_Address *dest, char * plugin, void *session, void *addr, size_t addrlen)
+{
+  dest->plugin = GNUNET_strdup (plugin);
+  dest->session = session;
+  dest->addr = GNUNET_malloc (addrlen);
+  memcpy (dest->addr, addr, addrlen);
+  dest->addr_len = addrlen;
+}
+
+static void
+free_test_address (struct Test_Address *dest)
+{
+  GNUNET_free (dest->plugin);
+  GNUNET_free (dest->addr);
+}
+
+
+static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   die_task = GNUNET_SCHEDULER_NO_TASK;
@@ -67,6 +85,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_ATS_scheduling_done (sched_ats);
   if (perf_ats != NULL)
     GNUNET_ATS_performance_done (perf_ats);
+  free_test_address (&test_addr);
   ret = GNUNET_SYSERR;
 }
 
@@ -80,11 +99,12 @@ end ()
     GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
+  free_test_address (&test_addr);
   GNUNET_ATS_scheduling_done (sched_ats);
   sched_ats = NULL;
   GNUNET_ATS_performance_done (perf_ats);
   perf_ats = NULL;
+  free_test_address (&test_addr);
 }
 
 void address_callback (void *cls,
@@ -163,10 +183,7 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
               GNUNET_i2s_full(&p.id));
 
-  test_addr.plugin = "test";
-  test_addr.session = NULL;
-  test_addr.addr = GNUNET_strdup ("test");
-  test_addr.addr_len = 4;
+  create_test_address (&test_addr, "test", &test_addr, "test", strlen ("test") + 1);
 
   /* Adding address without session */
   hello_address.peer = p.id;
