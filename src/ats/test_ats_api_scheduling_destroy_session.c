@@ -48,11 +48,29 @@ static struct GNUNET_HELLO_Address hello_address;
 
 
 static void
+create_test_address (struct Test_Address *dest, char * plugin, void *session, void *addr, size_t addrlen)
+{
+  dest->plugin = GNUNET_strdup (plugin);
+  dest->session = session;
+  dest->addr = GNUNET_malloc (addrlen);
+  memcpy (dest->addr, addr, addrlen);
+  dest->addr_len = addrlen;
+}
+
+static void
+free_test_address (struct Test_Address *dest)
+{
+  GNUNET_free (dest->plugin);
+  GNUNET_free (dest->addr);
+}
+
+static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   die_task = GNUNET_SCHEDULER_NO_TASK;
   if (ats != NULL)
     GNUNET_ATS_scheduling_done (ats);
+  free_test_address (&test_addr);
   ret = GNUNET_SYSERR;
 }
 
@@ -67,6 +85,7 @@ end ()
     die_task = GNUNET_SCHEDULER_NO_TASK;
   }
   GNUNET_ATS_scheduling_done (ats);
+  free_test_address (&test_addr);
   if (2 == stage)
     ret = 0;
   else
@@ -151,10 +170,7 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
               GNUNET_i2s (&p.id));
 
-  test_addr.plugin = "test";
-  test_addr.session = &test_addr;
-  test_addr.addr = GNUNET_strdup ("test");
-  test_addr.addr_len = 4;
+  create_test_address (&test_addr, "test", &test_addr, "test", strlen ("test") + 1);
 
   /* Adding address with session */
   hello_address.peer = p.id;
