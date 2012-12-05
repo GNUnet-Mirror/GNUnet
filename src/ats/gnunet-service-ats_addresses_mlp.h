@@ -96,12 +96,20 @@ struct GAS_MLP_Handle
   /**
    * GLPK LP control parameter
    */
+#if HAVE_LIBGLPK
   glp_smcp control_param_lp;
+#else
+  void *control_param_lp;
+#endif
 
   /**
    * GLPK LP control parameter
    */
+#if HAVE_LIBGLPK
   glp_iocp control_param_mlp;
+#else
+  void *control_param_mlp;
+#endif
 
   /**
    * Solves the task in an regular interval

@@ -31,9 +31,7 @@
 #include "gnunet-service-ats_performance.h"
 #include "gnunet-service-ats_scheduling.h"
 #include "gnunet-service-ats_reservations.h"
-#if HAVE_LIBGLPK
 #include "gnunet-service-ats_addresses_mlp.h"
-#endif
 #include "gnunet-service-ats_addresses_simplistic.h"
 
 
