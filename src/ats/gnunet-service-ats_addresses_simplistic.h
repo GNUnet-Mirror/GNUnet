@@ -80,7 +80,7 @@ GAS_simplistic_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMa
  * @param addresses the address hashmap containing all addresses
  * @param peer the identity of the peer
  */
-struct ATS_Address *
+const struct ATS_Address *
 GAS_simplistic_get_preferred_address (void *solver,
                                struct GNUNET_CONTAINER_MultiHashMap * addresses,
                                const struct GNUNET_PeerIdentity *peer);

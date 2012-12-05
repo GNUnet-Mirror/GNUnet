@@ -172,7 +172,7 @@ typedef void
                               struct ATS_Address *address);
 
 
-typedef struct ATS_Address *
+typedef const struct ATS_Address *
 (*GAS_solver_get_preferred_address) (void *solver,
                                      struct GNUNET_CONTAINER_MultiHashMap *addresses,
                                      const struct GNUNET_PeerIdentity *peer);

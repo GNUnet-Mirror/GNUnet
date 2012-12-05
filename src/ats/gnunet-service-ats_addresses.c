@@ -165,7 +165,7 @@ struct GAS_Addresses_Handle *handle;
 
 
 static unsigned int
-assemble_ats_information (struct ATS_Address *aa,  struct GNUNET_ATS_Information **dest)
+assemble_ats_information (const struct ATS_Address *aa,  struct GNUNET_ATS_Information **dest)
 {
   unsigned int ats_count = GNUNET_ATS_PropertyCount - 1;
   struct GNUNET_ATS_Information *ats = GNUNET_malloc (ats_count * sizeof (struct GNUNET_ATS_Information));
@@ -188,76 +188,6 @@ assemble_ats_information (struct ATS_Address *aa,  struct GNUNET_ATS_Information
   ats[7].type = ntohl(GNUNET_ATS_COST_WLAN);
   ats[7].value = ntohl (aa->atsp_cost_wlan);
   return ats_count;
-}
-
-static void
-send_bw_notification (struct ATS_Address *aa)
-{
-  struct GNUNET_ATS_Information *ats;
-  uint32_t ats_count;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New bandwidth for peer %s is %u/%u\n",
-              GNUNET_i2s (&aa->peer), ntohl (aa->assigned_bw_in.value__),
-              ntohl (aa->assigned_bw_out.value__));
-  ats_count = assemble_ats_information (aa, &ats);
-
-  GAS_scheduling_transmit_address_suggestion (&aa->peer, aa->plugin, aa->addr,
-                                              aa->addr_len, aa->session_id,
-                                              ats, ats_count,
-                                              aa->assigned_bw_out,
-                                              aa->assigned_bw_in);
-  GAS_reservations_set_bandwidth (&aa->peer, aa->assigned_bw_in);
-  GAS_performance_notify_all_clients (&aa->peer, aa->plugin, aa->addr, aa->addr_len,
-                                  aa->active,
-                                  ats, ats_count, aa->assigned_bw_out,
-                                  aa->assigned_bw_in);
-  GNUNET_free (ats);
-}
-
-/**
- * Update a bandwidth assignment for a peer.  This trivial method currently
- * simply assigns the same share to all active connections.
- *
- * @param cls unused
- * @param key unused
- * @param value the 'struct ATS_Address'
- * @return GNUNET_OK (continue to iterate)
- */
-static int
-update_bw_simple_it (void *cls, const struct GNUNET_HashCode * key, void *value)
-{
-  struct ATS_Address *aa = value;
-
-  if (GNUNET_YES != aa->active)
-    return GNUNET_OK;
-  GNUNET_assert (handle->active_addr_count > 0);
-
-
-  /* Simple method */
-  aa->assigned_bw_in.value__ = htonl (handle->wan_quota_in / handle->active_addr_count);
-  aa->assigned_bw_out.value__ = htonl (handle->wan_quota_out / handle->active_addr_count);
-
-  send_bw_notification (aa);
-
-  return GNUNET_OK;
-}
-
-
-/**
- * Some (significant) input changed, recalculate bandwidth assignment
- * for all peers.
- */
-static void
-recalculate_assigned_bw ()
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Recalculating bandwidth for all active connections\n");
-  GNUNET_STATISTICS_update (GSA_stats, "# bandwidth recalculations performed",
-                            1, GNUNET_NO);
-  GNUNET_STATISTICS_set (GSA_stats, "# active addresses", handle->active_addr_count,
-                         GNUNET_NO);
-
-  GNUNET_CONTAINER_multihashmap_iterate (handle->addresses, &update_bw_simple_it, NULL);
 }
 
 /**
@@ -685,9 +615,9 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Deleting address for peer `%s': `%s' %u\n",
                 GNUNET_i2s (&aa->peer), aa->plugin, aa->session_id);
-
+    /*FIXME
     if (GNUNET_YES == destroy_address (aa))
-      recalculate_assigned_bw ();
+      recalculate_assigned_bw (); */
     return GNUNET_OK;
   }
   /* session != 0, just remove session */
@@ -705,7 +635,7 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
   {
     aa->active = GNUNET_NO;
     handle->active_addr_count--;
-    recalculate_assigned_bw ();
+    //FIXME recalculate_assigned_bw ();
   }
 
   /* session == 0 and addrlen == 0 : destroy address */
@@ -807,50 +737,6 @@ GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
 }
 
 
-static void 
-request_address_mlp (const struct GNUNET_PeerIdentity *peer)
-{
-  struct ATS_Address *aa;
-  aa = NULL;
-
-#if HAVE_GLPK
-  /* Get preferred address from MODE_MLP */
-  struct ATS_PreferedAddress * paddr = NULL;
-  paddr = GAS_mlp_get_preferred_address (mlp, addresses, peer);
-  aa = paddr->address;
-  aa->assigned_bw_out = GNUNET_BANDWIDTH_value_init(paddr->bandwidth_out);
-  /* FIXME use bw in value */
-  paddr->bandwidth_in = paddr->bandwidth_out;
-  aa->assigned_bw_in = GNUNET_BANDWIDTH_value_init (paddr->bandwidth_in);
-  GNUNET_free (paddr);
-#endif
-
-  if (aa == NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-                "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
-    return;
-  }
-  if (aa->active == GNUNET_NO)
-  {
-    aa->active = GNUNET_YES;
-    handle->active_addr_count++;
-    send_bw_notification (aa);
-  }
-  else
-  {
-    /* just to be sure... */
-    GAS_scheduling_transmit_address_suggestion (peer, aa->plugin, aa->addr,
-                                                aa->addr_len, aa->session_id,
-                                                aa->ats, aa->ats_count,
-                                                aa->assigned_bw_out,
-                                                aa->assigned_bw_in);
-  }
-
-}
-
-
-
 /**
  * Cancel address suggestions for a peer
  *
@@ -886,7 +772,7 @@ void
 GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
 {
   struct GAS_Addresses_Suggestion_Requests *cur = handle->r_head;
-  struct ATS_Address *aa;
+  const struct ATS_Address *aa;
   struct GNUNET_ATS_Information *ats;
   unsigned int ats_count;
 
@@ -905,6 +791,7 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
       GNUNET_CONTAINER_DLL_insert (handle->r_head, handle->r_tail, cur);
   }
 
+  /* Get prefered address from solver */
   aa = handle->s_get (handle->solver, handle->addresses, peer);
   if (NULL == aa)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
