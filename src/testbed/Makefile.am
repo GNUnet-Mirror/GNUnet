@@ -10,7 +10,9 @@ if USE_COVERAGE
 endif
 
 if WITH_LL
-  ll_binaries = ll-master
+  ll_binaries = \
+    ll-master \
+    ll-monitor
 endif
 
 libexecdir= $(pkglibdir)/libexec/
@@ -61,7 +63,13 @@ gnunet_helper_testbed_DEPENDENCIES = \
 ll_master_SOURCES = \
   ll_master.c
 ll_master_LDADD = $(XLIB) \
- $(LTLIBINTL) -lz
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(LTLIBINTL) -lz -lllapi
+
+ll_monitor_SOURCES = \
+  ll_monitor.c
+ll_monitor_LDADD = $(XLIB) \
+ $(LTLIBINTL) -lz -lllapi
 
 lib_LTLIBRARIES = \
   libgnunettestbed.la
@@ -272,4 +280,5 @@ EXTRA_DIST = \
   test_testbed_api_testbed_run_topologyfromfile.conf \
   test_testbed_api_testbed_run_topologyscalefree.conf \
   overlay_topology.txt \
-  sample_hosts.txt
+  sample_hosts.txt \
+  sample.job

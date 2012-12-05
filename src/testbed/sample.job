@@ -1,0 +1,16 @@
+#!/bin/bash
+# This job command file is called job.cmd
+#@ job_type = parallel
+#@ class = general
+#@ node = 1
+#@ output = job$(jobid).out
+#@ error = job$(jobid).err
+#@ total_tasks=16
+#@ wall_clock_limit = 0:0:1
+#@ network.MPI = sn_all,not_shared,us
+##@ ... other LoadLeveler keywords (see below)
+#@ notification = always
+#@ notify_user = totakura@in.tum.de
+#@ queue
+
+#@ executable = /bin/bash
