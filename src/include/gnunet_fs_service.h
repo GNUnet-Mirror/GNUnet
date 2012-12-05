@@ -68,6 +68,12 @@ extern "C"
 
 
 /**
+ * How often do we signal applications that a probe for a particular
+ * search result is running? (used to visualize probes).
+ */
+#define GNUNET_FS_PROBE_UPDATE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100)
+
+/**
  * A Universal Resource Identifier (URI), opaque.
  */
 struct GNUNET_FS_Uri;
@@ -1268,6 +1274,11 @@ struct GNUNET_FS_ProgressInfo
 	   * criteria).
 	   */
           uint32_t applicability_rank;
+
+	  /**
+	   * How long has the current probe been active?
+	   */
+	  struct GNUNET_TIME_Relative current_probe_time;
 
         } update;
 

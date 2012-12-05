@@ -2241,6 +2241,11 @@ GNUNET_FS_download_start_from_search (struct GNUNET_FS_Handle *h,
     GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
     sr->probe_ctx = NULL;
   }
+  if (GNUNET_SCHEDULER_NO_TASK != sr->probe_ping_task)
+  {
+    GNUNET_SCHEDULER_cancel (sr->probe_ping_task);
+    sr->probe_ping_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   return dc;
 }
 

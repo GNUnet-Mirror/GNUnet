@@ -578,6 +578,12 @@ struct GNUNET_FS_SearchResult
   GNUNET_SCHEDULER_TaskIdentifier probe_cancel_task;
 
   /**
+   * Task we use to report periodically to the application that the
+   * probe is still running.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier probe_ping_task;
+
+  /**
    * When did the current probe become active?
    */
   struct GNUNET_TIME_Absolute probe_active_time;
