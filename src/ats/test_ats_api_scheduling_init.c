@@ -43,6 +43,11 @@ static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   die_task = GNUNET_SCHEDULER_NO_TASK;
+  if (GNUNET_SCHEDULER_NO_TASK != wait_task)
+  {
+    GNUNET_SCHEDULER_cancel (wait_task);
+    wait_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (ats != NULL)
   {
     GNUNET_ATS_scheduling_done (ats);
@@ -65,6 +70,19 @@ end_badly_now ()
 static void
 delay (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  static int v_delay = 5;
+  static int v_cur = 0;
+
+  if (v_cur < v_delay)
+  {
+    wait_task = GNUNET_SCHEDULER_NO_TASK;
+    wait_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &delay, NULL);
+    fprintf (stderr,".");
+    v_cur ++;
+    return;
+  }
+
+  fprintf (stderr,"\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown ATS\n");
   GNUNET_ATS_scheduling_done (ats);
   ats = NULL;
@@ -106,7 +124,7 @@ run (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Waiting for %llu sec\n", (long long unsigned int) DELAY.rel_value);
-  wait_task = GNUNET_SCHEDULER_add_delayed (DELAY, &delay, NULL);
+  wait_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &delay, NULL);
 }
 
 

@@ -484,9 +484,10 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
                 "Added already existing address for peer `%s' `%s' %p with new session %u\n",
                 GNUNET_i2s (peer), plugin_name, session_id);
       GNUNET_break (0);
+      return;
   }
 
-  /* We have a base address with out an session, update this address */
+  /* We have an address without an session, update this address */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
             "Updated existing address for peer `%s' %p with new session %u\n",
             GNUNET_i2s (peer), old, session_id);
@@ -661,13 +662,10 @@ GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
     return;
   }
 
-
   GNUNET_break (0 < strlen (plugin_name));
   aa = create_address (peer, plugin_name, plugin_addr, plugin_addr_len, session_id);
-
   GNUNET_CONTAINER_multihashmap_get_multiple (handle->addresses, &peer->hashPubKey,
                                               &destroy_by_session_id, aa);
-
   free_address (aa);
 }
 

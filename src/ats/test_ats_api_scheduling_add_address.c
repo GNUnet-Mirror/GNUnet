@@ -27,39 +27,33 @@
 #include "gnunet_ats_service.h"
 #include "gnunet_testing_lib-new.h"
 #include "ats.h"
-
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#include "test_ats_api_common.h"
 
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
-static struct GNUNET_ATS_SchedulingHandle *ats;
+/**
+ * Scheduling handle
+ */
+static struct GNUNET_ATS_SchedulingHandle *sched_ats;
 
+/**
+ * Performance handle
+ */
+static struct GNUNET_ATS_PerformanceHandle *perf_ats;
+
+/**
+ * Return value
+ */
 static int ret;
 
-struct Address
-{
-  char *plugin;
-  size_t plugin_len;
+/**
+ * Test address
+ */
+static struct Test_Address test_addr;
 
-  void *addr;
-  size_t addr_len;
-
-  struct GNUNET_ATS_Information *ats;
-  int ats_count;
-
-  void *session;
-};
-
-struct PeerContext
-{
-  struct GNUNET_PeerIdentity id;
-
-  struct Address *addr;
-};
-
-
-static struct Address test_addr;
-
+/**
+ * Test peer
+ */
 static struct PeerContext p;
 
 
@@ -67,8 +61,11 @@ static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   die_task = GNUNET_SCHEDULER_NO_TASK;
-  if (ats != NULL)
-    GNUNET_ATS_scheduling_done (ats);
+
+  if (sched_ats != NULL)
+    GNUNET_ATS_scheduling_done (sched_ats);
+  if (perf_ats != NULL)
+    GNUNET_ATS_performance_done (perf_ats);
   ret = GNUNET_SYSERR;
 }
 
@@ -82,34 +79,51 @@ end ()
     GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_ATS_scheduling_done (ats);
+
+  GNUNET_ATS_scheduling_done (sched_ats);
+  sched_ats = NULL;
+  GNUNET_ATS_performance_done (perf_ats);
+  perf_ats = NULL;
   ret = 0;
 }
 
-
-static void
-address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
-                    struct Session *session,
-                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                    const struct GNUNET_ATS_Information *ats,
-                    uint32_t ats_count)
+void address_callback (void *cls,
+                      const struct
+                      GNUNET_HELLO_Address *
+                      address,
+                      struct
+                      GNUNET_BANDWIDTH_Value32NBO
+                      bandwidth_out,
+                      struct
+                      GNUNET_BANDWIDTH_Value32NBO
+                      bandwidth_in,
+                      const struct
+                      GNUNET_ATS_Information *
+                      ats, uint32_t ats_count)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS suggests address `%s'\n",
-              GNUNET_i2s (&address->peer));
-
-  GNUNET_assert (0 ==
-                 memcmp (&address->peer, &p.id,
-                         sizeof (struct GNUNET_PeerIdentity)));
-  GNUNET_assert (0 == strcmp (address->transport_name, test_addr.plugin));
-  GNUNET_assert (address->address_length == test_addr.addr_len);
-  GNUNET_assert (0 ==
-                 memcmp (address->address, test_addr.plugin,
-                         address->address_length));
-  GNUNET_assert (test_addr.session == session);
-
-  ret = 0;
-
+  static int counter = 0;
+  if (NULL != address)
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received callback for peer `%s'\n",
+                  GNUNET_i2s (&address->peer));
+      if (0 < counter)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Too many callbacks!\n");
+        ret = 1;
+      }
+      else if ((0 == memcmp (&address->peer, &p.id, sizeof (struct GNUNET_PeerIdentity))) &&
+          (0 == strcmp (address->transport_name, test_addr.plugin)) &&
+          (address->address_length == test_addr.addr_len) &&
+          (0 == memcmp (address->address, test_addr.plugin, address->address_length)))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for correct address `%s'\n",
+                    GNUNET_i2s (&address->peer));
+        ret = 0;
+      }
+      counter ++;
+      return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received last callback, shutdown\n");
   GNUNET_SCHEDULER_add_now (&end, NULL);
 }
 
@@ -119,24 +133,39 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  struct GNUNET_HELLO_Address address0;
-
-  ret = GNUNET_SYSERR;
+  struct GNUNET_HELLO_Address hello_address;
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
-  ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL);
 
-  if (ats == NULL)
+  /* Connect to ATS scheduling */
+  sched_ats = GNUNET_ATS_scheduling_init (cfg, NULL, NULL);
+  if (sched_ats == NULL)
   {
-    ret = GNUNET_SYSERR;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not connect to ATS scheduling!\n");
+    ret = 1;
     end ();
     return;
   }
 
-  /* set up peer */
-  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK,
-                                    &p.id.hashPubKey);
+  /* Connect to ATS performance */
+  perf_ats = GNUNET_ATS_performance_init (cfg, NULL, NULL);
+  if (perf_ats == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not connect to ATS performance!\n");
+    ret = 1;
+    end ();
+    return;
+  }
+
+  /* Set up peer */
+  if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID, &p.id.hashPubKey))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not setup peer!\n");
+      ret = GNUNET_SYSERR;
+      end ();
+      return;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
-              GNUNET_i2s (&p.id));
+              GNUNET_i2s_full(&p.id));
 
   test_addr.plugin = "test";
   test_addr.session = NULL;
@@ -144,25 +173,13 @@ run (void *cls,
   test_addr.addr_len = 4;
 
   /* Adding address without session */
-  address0.peer = p.id;
-  address0.transport_name = test_addr.plugin;
-  address0.address = test_addr.addr;
-  address0.address_length = test_addr.addr_len;
-  GNUNET_ATS_address_add (ats, &address0, test_addr.session, NULL, 0);
+  hello_address.peer = p.id;
+  hello_address.transport_name = test_addr.plugin;
+  hello_address.address = test_addr.addr;
+  hello_address.address_length = test_addr.addr_len;
+  GNUNET_ATS_address_add (sched_ats, &hello_address, test_addr.session, NULL, 0);
 
-  test_addr.session = &test_addr;
-  /* Update address with session */
-  GNUNET_ATS_address_add (ats, &address0, test_addr.session, NULL, 0);
-
-  /* Update address with session */
-  test_addr.session = &address0;
-  GNUNET_assert (GNUNET_OK == GNUNET_ATS_address_add (ats, &address0, test_addr.session, NULL, 0));
-  GNUNET_log_skip (2, GNUNET_NO);
-  GNUNET_assert (GNUNET_SYSERR == GNUNET_ATS_address_add (ats, &address0, test_addr.session, NULL, 0));
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Requesting peer `%s'\n",
-              GNUNET_i2s (&p.id));
-  GNUNET_ATS_suggest_address (ats, &p.id);
+  GNUNET_ATS_performance_list_addresses (perf_ats, &p.id, GNUNET_YES, address_callback, NULL);
 }
 
 
