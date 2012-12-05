@@ -92,11 +92,6 @@ struct GAS_Addresses_Handle
   unsigned long long wan_quota_out;
 
   /**
-   * Number of active addresses
-   */
-  unsigned int active_addr_count;
-
-  /**
    * Is ATS addresses running
    */
   int running;
@@ -244,17 +239,7 @@ destroy_address (struct ATS_Address *addr)
                                                        &addr->peer.hashPubKey,
                                                        addr));
 
-#if HAVE_LIBGLPK
-  if (handle->ats_mode == MODE_MLP)
-    GAS_mlp_address_delete (handle->solver, handle->addresses, addr);
-#endif
-
-  if (GNUNET_YES == addr->active)
-  {
-    handle->active_addr_count--;
-    addr->active = GNUNET_NO;
-    ret = GNUNET_YES;
-  }
+  handle->s_del (handle->solver, handle->addresses, addr);
   free_address (addr);
   return ret;
 }
@@ -471,7 +456,6 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
                        plugin_name,
                        plugin_addr, plugin_addr_len,
                        session_id);
-
   aa->mlp_information = NULL;
   aa->ats = GNUNET_malloc (atsi_count * sizeof (struct GNUNET_ATS_Information));
   aa->ats_count = atsi_count;
@@ -488,31 +472,33 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Added new address for peer `%s' session id %u, %p\n",
                 GNUNET_i2s (peer), session_id, aa);
+    /* Tell solver about update */
+    handle->s_update (handle->solver, handle->addresses, aa);
     return;
   }
 
-  if (old->session_id == 0)
+  if (old->session_id != 0)
   {
-    /* We have a base address with out an session, update this address */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Updated existing address for peer `%s' %p with new session %u\n",
-              GNUNET_i2s (peer), old, session_id);
-    GNUNET_free_non_null (old->ats);
-    old->session_id = session_id;
-    old->ats = NULL;
-    old->ats_count = 0;
-    old->ats = aa->ats;
-    old->ats_count = aa->ats_count;
-    GNUNET_free (aa->plugin);
-    GNUNET_free (aa);
-    return;
+      /* This address and session is already existing */
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Added already existing address for peer `%s' `%s' %p with new session %u\n",
+                GNUNET_i2s (peer), plugin_name, session_id);
+      GNUNET_break (0);
   }
 
-  /* This address and session is already existing */
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-            "Added already existing address for peer `%s' `%s' %p with new session %u\n",
-            GNUNET_i2s (peer), plugin_name, session_id);
-  GNUNET_break (0);
+  /* We have a base address with out an session, update this address */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+            "Updated existing address for peer `%s' %p with new session %u\n",
+            GNUNET_i2s (peer), old, session_id);
+  GNUNET_free_non_null (old->ats);
+  old->session_id = session_id;
+  old->ats = NULL;
+  old->ats_count = 0;
+  old->ats = aa->ats;
+  old->ats_count = aa->ats_count;
+  GNUNET_free (aa->plugin);
+  GNUNET_free (aa);
+  handle->s_update (handle->solver, handle->addresses, old);
 }
 
 
@@ -576,7 +562,6 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
       GNUNET_break (0);
       break;
     }
-
   /* Tell solver about update */
   handle->s_update (handle->solver, handle->addresses, old);
 }
@@ -631,7 +616,6 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
   if (GNUNET_YES == aa->active)
   {
     aa->active = GNUNET_NO;
-    handle->active_addr_count--;
     //FIXME recalculate_assigned_bw ();
   }
 
@@ -752,7 +736,8 @@ GAS_addresses_request_address_cancel (const struct GNUNET_PeerIdentity *peer)
 
   if (NULL == cur)
   {
-      GNUNET_break (0);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "No address requests pending for peer `%s', cannot remove!\n", GNUNET_i2s (peer));
       return;
   }
   GNUNET_CONTAINER_DLL_remove (handle->r_head, handle->r_tail, cur);
@@ -1068,7 +1053,6 @@ GAS_addresses_destroy_all ()
 
   if (handle->addresses != NULL)
     GNUNET_CONTAINER_multihashmap_iterate (handle->addresses, &free_address_it, NULL);
-  GNUNET_assert (handle->active_addr_count == 0);
 }
 
 
