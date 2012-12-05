@@ -186,9 +186,10 @@ signal_probe_result (struct GNUNET_FS_SearchResult *sr)
   pi.value.search.specifics.update.cctx = sr->client_info;
   pi.value.search.specifics.update.meta = sr->meta;
   pi.value.search.specifics.update.uri = sr->uri;
-  pi.value.search.specifics.update.availability_rank = sr->availability_success;
-  pi.value.search.specifics.update.availability_certainty =
-      sr->availability_trials;
+  pi.value.search.specifics.update.availability_rank 
+    = 2 * sr->availability_success - sr->availability_trials;
+  pi.value.search.specifics.update.availability_certainty 
+    = sr->availability_trials;
   pi.value.search.specifics.update.applicability_rank = sr->optional_support;
   sr->client_info = GNUNET_FS_search_make_status_ (&pi, sr->sc);
   GNUNET_FS_search_start_probe_ (sr);
@@ -310,11 +311,19 @@ GNUNET_FS_search_probe_progress_ (void *cls,
     sr = NULL;
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_ACTIVE:
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == sr->probe_cancel_task);
-    sr->probe_active_time = GNUNET_TIME_absolute_get ();
-    sr->probe_cancel_task =
+    if (GNUNET_SCHEDULER_NO_TASK == sr->probe_cancel_task)
+    {
+      sr->probe_active_time = GNUNET_TIME_absolute_get ();
+      sr->probe_cancel_task =
         GNUNET_SCHEDULER_add_delayed (sr->remaining_probe_time,
                                       &probe_failure_handler, sr);
+    }
+    else
+    {
+      /* should only happen if the cancel task was already
+	 created on 'DOWNLOAD_INACTIVE' as we were out of time */
+      GNUNET_break (0 == sr->remaining_probe_time.rel_value);
+    }
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_INACTIVE:
     if (GNUNET_SCHEDULER_NO_TASK != sr->probe_cancel_task)
@@ -325,6 +334,9 @@ GNUNET_FS_search_probe_progress_ (void *cls,
     dur = GNUNET_TIME_absolute_get_duration (sr->probe_active_time);
     sr->remaining_probe_time =
         GNUNET_TIME_relative_subtract (sr->remaining_probe_time, dur);
+    if (0 == sr->remaining_probe_time.rel_value)
+      sr->probe_cancel_task =
+        GNUNET_SCHEDULER_add_now (&probe_failure_handler, sr);
     GNUNET_FS_search_result_sync_ (sr);
     break;
   default:
