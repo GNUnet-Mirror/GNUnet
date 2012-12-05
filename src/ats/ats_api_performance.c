@@ -507,7 +507,8 @@ process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
           _("Received last message for %s \n"), "ATS_ADDRESSLIST_RESPONSE");
       bandwidth_zero.value__ = htonl (0);
-      alh->cb (ph->infocb_cls,
+      if (NULL != alh->cb)
+        alh->cb (ph->infocb_cls,
               NULL,
               bandwidth_zero, bandwidth_zero,
               NULL, 0);
@@ -523,7 +524,8 @@ process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
 
   if ((GNUNET_YES == alh->all_addresses) || (GNUNET_YES == active))
   {
-    alh->cb (ph->infocb_cls,
+    if (NULL != alh->cb)
+      alh->cb (ph->infocb_cls,
             &address,
             pi->bandwidth_out, pi->bandwidth_in,
             atsi, ats_count);
@@ -770,6 +772,8 @@ GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *hand
   struct AddressListRequestMessage *m;
 
   GNUNET_assert (NULL != handle);
+  if (NULL == infocb)
+    return NULL;
 
   alh = GNUNET_malloc (sizeof (struct GNUNET_ATS_AddressListHandle));
   alh->id = handle->id;
