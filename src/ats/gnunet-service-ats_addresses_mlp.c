@@ -1685,19 +1685,19 @@ static int
 mlp_get_preferred_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
 
-  struct ATS_PreferedAddress *aa = (struct ATS_PreferedAddress *) cls;
+  struct ATS_Address *aa = (struct ATS_Address *) cls;
   struct ATS_Address *addr = value;
   struct MLP_information *mlpi = addr->mlp_information;
   if (mlpi == NULL)
     return GNUNET_YES;
   if (mlpi->n == GNUNET_YES)
   {
-    aa->address = addr;
+    aa = addr;
     if (mlpi->b > (double) UINT32_MAX)
-      aa->bandwidth_out = UINT32_MAX;
+      aa->assigned_bw_out.value__ = htonl (UINT32_MAX);
     else
-      aa->bandwidth_out = (uint32_t) mlpi->b;
-    aa->bandwidth_in = 0;
+      aa->assigned_bw_out.value__ = htonl((uint32_t) mlpi->b);
+    aa->assigned_bw_in.value__ = htonl(0);
     return GNUNET_NO;
   }
   return GNUNET_YES;
@@ -1712,7 +1712,7 @@ mlp_get_preferred_address_it (void *cls, const struct GNUNET_HashCode * key, voi
  * @param peer the peer
  * @return suggested address
  */
-struct ATS_Address *
+const struct ATS_Address *
 GAS_mlp_get_preferred_address (void *solver,
                                struct GNUNET_CONTAINER_MultiHashMap * addresses,
                                const struct GNUNET_PeerIdentity *peer)

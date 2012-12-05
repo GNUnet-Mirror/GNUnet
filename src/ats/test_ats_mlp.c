@@ -137,7 +137,7 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg, unsigned long long *
     {
         in_dest[c] = UINT32_MAX;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Loaded quota: %s %u, %s %u\n", entry_in, in_dest[c], entry_out, out_dest[c]);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Loaded quota: %s %u, %s %u\n", entry_in, in_dest[c], entry_out, out_dest[c]);
 
   }
   return GNUNET_ATS_NetworkTypeCount;

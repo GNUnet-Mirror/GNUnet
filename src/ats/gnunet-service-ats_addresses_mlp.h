@@ -64,13 +64,6 @@ struct ATS_Peer
   struct ATS_Address *tail;
 };
 
-struct ATS_PreferedAddress
-{
-  uint32_t bandwidth_out;
-  uint32_t bandwidth_in;
-  struct ATS_Address *address;
-};
-
 struct GAS_MLP_SolutionContext
 {
   int lp_result;
@@ -383,7 +376,7 @@ GAS_mlp_address_change_preference (void *solver,
  * @param peer the peer
  * @return suggested address
  */
-struct ATS_Address *
+const struct ATS_Address *
 GAS_mlp_get_preferred_address (void *solver,
                                struct GNUNET_CONTAINER_MultiHashMap * addresses,
                                const struct GNUNET_PeerIdentity *peer);

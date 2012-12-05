@@ -136,7 +136,7 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg, unsigned long long *
     {
         in_dest[c] = UINT32_MAX;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Loaded quota: %s %u, %s %u\n", entry_in, in_dest[c], entry_out, out_dest[c]);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Loaded quota: %s %u, %s %u\n", entry_in, in_dest[c], entry_out, out_dest[c]);
 
   }
   return GNUNET_ATS_NetworkTypeCount;
@@ -152,7 +152,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   return;
 #endif
   struct ATS_Address addr[10];
-  struct ATS_PreferedAddress *res[10];
+  struct ATS_Address *res[10];
   int quotas[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
   unsigned long long  quotas_in[GNUNET_ATS_NetworkTypeCount];
   unsigned long long  quotas_out[GNUNET_ATS_NetworkTypeCount];
@@ -218,8 +218,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (GNUNET_OK == ctx.mlp_result);
 
   res[0] = GAS_mlp_get_preferred_address(mlp, addresses, &p[0]);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Preferred address `%s' outbound bandwidth: %u Bps\n",res[0]->address->plugin, res[0]->bandwidth_out);
-  GNUNET_free (res[0]);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Preferred address `%s' outbound bandwidth: %u Bps\n",res[0]->plugin, ntohl(res[0]->assigned_bw_out.value__));
 
   /* Delete an address */
   GNUNET_CONTAINER_multihashmap_remove (addresses, &addr[0].peer.hashPubKey, &addr[0]);
