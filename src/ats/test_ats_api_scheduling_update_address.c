@@ -234,6 +234,14 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
     }
 
     /* Update address */
+    /* Prepare ATS Information */
+    test_ats_info[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
+    test_ats_info[0].value = htonl(GNUNET_ATS_NET_LAN);
+    test_ats_info[1].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
+    test_ats_info[1].value = htonl(3);
+    test_ats_count = 2;
+
+    GNUNET_ATS_address_update (sched_ats, &test_hello_address, test_session, test_ats_info, test_ats_count);
 
     /* Request address */
     GNUNET_ATS_suggest_address (sched_ats, &p.id);
@@ -253,6 +261,14 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage 1: Callback with incorrect address `%s'\n",
                     GNUNET_i2s (&address->peer));
         ret = 1;
+      }
+
+      if (GNUNET_OK != compare_ats(atsi, ats_count, test_ats_info, test_ats_count))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage 1: Callback with incorrect ats info \n");
+        ret = 1;
+        GNUNET_SCHEDULER_add_now (&end, NULL);
+        return;
       }
 
       GNUNET_SCHEDULER_add_now (&end, NULL);

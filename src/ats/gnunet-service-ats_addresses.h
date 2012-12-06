@@ -83,12 +83,12 @@ struct ATS_Address
   /**
    * ATS information
    */
-  struct GNUNET_ATS_Information *ats;
+  //struct GNUNET_ATS_Information *ats;
 
   /**
    * Number of ATS information
    */
-  uint32_t ats_count;
+  //uint32_t ats_count;
 
   /* CHECK USAGE */
   struct GNUNET_TIME_Relative atsp_latency;

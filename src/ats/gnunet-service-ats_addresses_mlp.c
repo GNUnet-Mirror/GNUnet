@@ -347,7 +347,7 @@ create_constraint_it (void *cls, const struct GNUNET_HashCode * key, void *value
  *
  * @return the index on success, otherwise GNUNET_SYSERR
  */
-
+#if 0
 static int
 mlp_lookup_ats (struct ATS_Address *addr, int ats_index)
 {
@@ -367,6 +367,7 @@ mlp_lookup_ats (struct ATS_Address *addr, int ats_index)
   else
     return GNUNET_SYSERR;
 }
+#endif
 
 /**
  * Adds the problem constraints for all addresses
@@ -1363,28 +1364,32 @@ update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address)
 
   GNUNET_assert (NULL != address);
   GNUNET_assert (NULL != address->mlp_information);
-  GNUNET_assert (NULL != address->ats);
+//  GNUNET_assert (NULL != address->ats);
 
   struct MLP_information *mlpi = address->mlp_information;
-  struct GNUNET_ATS_Information *ats = address->ats;
+  //struct GNUNET_ATS_Information *ats = address->ats;
   GNUNET_assert (mlpi != NULL);
 
   int c;
   for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
   {
-    int index = mlp_lookup_ats(address, mlp->q[c]);
+
+    /* FIXME int index = mlp_lookup_ats(address, mlp->q[c]); */
+    int index = GNUNET_SYSERR;
 
     if (index == GNUNET_SYSERR)
       continue;
-
+    /* FIXME
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating address for peer `%s' value `%s': %f\n",
         GNUNET_i2s (&address->peer),
         mlp_ats_to_string(mlp->q[c]),
         (double) ats[index].value);
 
-    int i = mlpi->q_avg_i[c];
+    int i = mlpi->q_avg_i[c];*/
     double * qp = mlpi->q[c];
+    /* FIXME
     qp[i] = (double) ats[index].value;
+    */
 
     int t;
     for (t = 0; t < MLP_AVERAGING_QUEUE_LENGTH; t++)

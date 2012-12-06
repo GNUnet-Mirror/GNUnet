@@ -182,6 +182,59 @@ assemble_ats_information (const struct ATS_Address *aa,  struct GNUNET_ATS_Infor
   return ats_count;
 }
 
+static unsigned int
+disassemble_ats_information (const struct GNUNET_ATS_Information *src,
+                             uint32_t ats_count,
+                             struct ATS_Address *dest)
+{
+  int i;
+  int res = 0;
+  for (i = 0; i < ats_count; i++)
+    switch (ntohl (src[i].type))
+    {
+    case GNUNET_ATS_UTILIZATION_UP:
+      dest->atsp_utilization_out.value__ = src[i].value;
+      res ++;
+      break;
+    case GNUNET_ATS_UTILIZATION_DOWN:
+      dest->atsp_utilization_in.value__ = src[i].value;
+      res ++;
+      break;
+    case GNUNET_ATS_QUALITY_NET_DELAY:
+      dest->atsp_latency.rel_value = ntohl (src[i].value);
+      res ++;
+      break;
+    case GNUNET_ATS_QUALITY_NET_DISTANCE:
+      dest->atsp_distance = ntohl (src[i].value);
+      res ++;
+      break;
+    case GNUNET_ATS_COST_WAN:
+      dest->atsp_cost_wan = ntohl (src[i].value);
+      res ++;
+      break;
+    case GNUNET_ATS_COST_LAN:
+      dest->atsp_cost_lan = ntohl (src[i].value);
+      res ++;
+      break;
+    case GNUNET_ATS_COST_WLAN:
+      dest->atsp_cost_wlan = ntohl (src[i].value);
+      res ++;
+      break;
+    case GNUNET_ATS_NETWORK_TYPE:
+      dest->atsp_network_type = ntohl (src[i].value);
+      res ++;
+      break;
+    case GNUNET_ATS_ARRAY_TERMINATOR:
+      break;
+    default:
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Received unsupported ATS type %u\n", ntohl (src[i].type));
+      GNUNET_break (0);
+      break;
+    }
+  return res;
+}
+
 /**
  * Free the given address
  * @param addr address to destroy
@@ -189,7 +242,6 @@ assemble_ats_information (const struct ATS_Address *aa,  struct GNUNET_ATS_Infor
 static void
 free_address (struct ATS_Address *addr)
 {
-  GNUNET_free_non_null (addr->ats);
   GNUNET_free (addr->plugin);
   GNUNET_free (addr);
 }
@@ -376,9 +428,6 @@ lookup_address (const struct GNUNET_PeerIdentity *peer,
                        session_id);
 
   aa->mlp_information = NULL;
-  aa->ats = GNUNET_malloc (atsi_count * sizeof (struct GNUNET_ATS_Information));
-  aa->ats_count = atsi_count;
-  memcpy (aa->ats, atsi, atsi_count * sizeof (struct GNUNET_ATS_Information));
 
   /* Get existing address or address with session == 0 */
   old = find_address (peer, aa);
@@ -446,6 +495,7 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
 {
   struct ATS_Address *aa;
   struct ATS_Address *old;
+  unsigned int ats_res;
 
   if (GNUNET_NO == handle->running)
     return;
@@ -457,9 +507,12 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
                        plugin_addr, plugin_addr_len,
                        session_id);
   aa->mlp_information = NULL;
-  aa->ats = GNUNET_malloc (atsi_count * sizeof (struct GNUNET_ATS_Information));
-  aa->ats_count = atsi_count;
-  memcpy (aa->ats, atsi, atsi_count * sizeof (struct GNUNET_ATS_Information));
+  if (atsi_count != (ats_res = disassemble_ats_information(atsi, atsi_count, aa)))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "While adding address: had %u ATS elements to add, could only add %u\n",
+                atsi_count, ats_res);
+  }
 
   /* Get existing address or address with session == 0 */
   old = find_address (peer, aa);
@@ -491,12 +544,13 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
             "Updated existing address for peer `%s' %p with new session %u\n",
             GNUNET_i2s (peer), old, session_id);
-  GNUNET_free_non_null (old->ats);
   old->session_id = session_id;
-  old->ats = NULL;
-  old->ats_count = 0;
-  old->ats = aa->ats;
-  old->ats_count = aa->ats_count;
+  if (atsi_count != (ats_res = disassemble_ats_information(atsi, atsi_count, old)))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "While updating address: had %u ATS elements to add, could only add %u\n",
+                atsi_count, ats_res);
+  }
   GNUNET_free (aa->plugin);
   GNUNET_free (aa);
   handle->s_update (handle->solver, handle->addresses, old);
