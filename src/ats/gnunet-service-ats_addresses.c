@@ -775,19 +775,20 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
   else
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Suggesting address %p for peer `%s'\n", aa, GNUNET_i2s (peer));
 
-  ats_count = assemble_ats_information (aa, &ats);
-  GAS_scheduling_transmit_address_suggestion (peer,
-                                              aa->plugin,
-                                              aa->addr, aa->addr_len,
-                                              aa->session_id,
-                                              ats, ats_count,
-                                              aa->assigned_bw_out,
-                                              aa->assigned_bw_in);
-  GNUNET_free (ats);
-
+    ats_count = assemble_ats_information (aa, &ats);
+    GAS_scheduling_transmit_address_suggestion (peer,
+                                                aa->plugin,
+                                                aa->addr, aa->addr_len,
+                                                aa->session_id,
+                                                ats, ats_count,
+                                                aa->assigned_bw_out,
+                                                aa->assigned_bw_in);
+    GNUNET_free (ats);
+  }
 }
 
 

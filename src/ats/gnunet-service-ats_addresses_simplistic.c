@@ -262,13 +262,15 @@ GAS_simplistic_get_preferred_address (void *solver,
   if (NULL == aa)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
   else
+  {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Suggesting address %p for peer `%s'\n", aa, GNUNET_i2s (peer));
 
-  if (GNUNET_NO == aa->active)
-  {
-    aa->active = GNUNET_YES;
-    s->active_addresses++;
-    recalculate_assigned_bw (s, addresses);
+    if (GNUNET_NO == aa->active)
+    {
+      aa->active = GNUNET_YES;
+      s->active_addresses++;
+      recalculate_assigned_bw (s, addresses);
+    }
   }
 
   return aa;
