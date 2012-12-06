@@ -66,6 +66,9 @@ libexec_PROGRAMS = \
   gnunet-helper-fs-publish \
   gnunet-service-fs 
 
+noinst_PROGRAMS = \
+  gnunet-fs-profiler
+
 bin_PROGRAMS = \
   gnunet-auto-share \
   gnunet-directory \
@@ -88,6 +91,13 @@ gnunet_directory_LDADD = \
   $(GN_LIBINTL)
 gnunet_directory_DEPENDENCIES = \
   libgnunetfs.la
+
+gnunet_fs_profiler_SOURCES = \
+ gnunet-fs-profiler.c
+gnunet_fs_profiler_LDADD = \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
 
 gnunet_fs_SOURCES = \
  gnunet-fs.c
