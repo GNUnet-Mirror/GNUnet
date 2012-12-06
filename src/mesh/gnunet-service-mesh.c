@@ -8602,7 +8602,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Callback for hostkey read/generation
  *
- * @param cls NULL
+ * @param cls Closure (Configuration handle).
  * @param pk the private key
  * @param emsg error message
  */
@@ -8611,6 +8611,7 @@ key_generation_cb (void *cls,
                    struct GNUNET_CRYPTO_RsaPrivateKey *pk,
                    const char *emsg)
 {
+  const struct GNUNET_CONFIGURATION_Handle *c = cls;
   struct MeshPeerInfo *peer;
   struct MeshPeerPath *p;
 
@@ -8639,7 +8640,23 @@ key_generation_cb (void *cls,
 //                                               NULL,
 //                                               NULL);
 
-
+  core_handle = GNUNET_CORE_connect (c, /* Main configuration */
+                                     NULL,      /* Closure passed to MESH functions */
+                                     &core_init,        /* Call core_init once connected */
+                                     &core_connect,     /* Handle connects */
+                                     &core_disconnect,  /* remove peers on disconnects */
+                                     NULL,      /* Don't notify about all incoming messages */
+                                     GNUNET_NO, /* For header only in notification */
+                                     NULL,      /* Don't notify about all outbound messages */
+                                     GNUNET_NO, /* For header-only out notification */
+                                     core_handlers);    /* Register these handlers */
+  
+  if (core_handle == NULL)
+  {
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
 
   next_tid = 0;
   next_local_tid = GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
@@ -8684,23 +8701,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "starting to run\n");
   server_handle = server;
-  core_handle = GNUNET_CORE_connect (c, /* Main configuration */
-                                     NULL,      /* Closure passed to MESH functions */
-                                     &core_init,        /* Call core_init once connected */
-                                     &core_connect,     /* Handle connects */
-                                     &core_disconnect,  /* remove peers on disconnects */
-                                     NULL,      /* Don't notify about all incoming messages */
-                                     GNUNET_NO, /* For header only in notification */
-                                     NULL,      /* Don't notify about all outbound messages */
-                                     GNUNET_NO, /* For header-only out notification */
-                                     core_handlers);    /* Register these handlers */
-
-  if (core_handle == NULL)
-  {
-    GNUNET_break (0);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (c, "GNUNETD", "HOSTKEY",
@@ -8827,7 +8827,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   /* Scheduled the task to clean up when shutdown is called */
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
-  keygen = GNUNET_CRYPTO_rsa_key_create_start (keyfile, &key_generation_cb, NULL);
+  keygen = GNUNET_CRYPTO_rsa_key_create_start (keyfile,
+                                               &key_generation_cb,
+                                               (void *) c);
   GNUNET_free (keyfile);
 }
 
