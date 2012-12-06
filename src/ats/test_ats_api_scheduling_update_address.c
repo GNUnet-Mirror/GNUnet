@@ -163,12 +163,12 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
     }
     else
     {
-        ret = 1;
-        GNUNET_SCHEDULER_add_now (&end, NULL);
+      ret = 1;
+      GNUNET_SCHEDULER_add_now (&end, NULL);
+      return;
     }
 
     /* Update address */
-
 
     /* Request address */
     GNUNET_ATS_suggest_address (sched_ats, &p.id);
@@ -192,7 +192,6 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
       GNUNET_SCHEDULER_add_now (&end, NULL);
   }
-
 }
 
 static void

@@ -149,31 +149,6 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
                     const struct GNUNET_ATS_Information *atsi,
                     uint32_t ats_count)
 {
-  if (0 != memcmp (&address->peer, &p.id, sizeof (struct GNUNET_PeerIdentity)))
-  {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid peer id'\n");
-      ret = 1;
-  }
-  else if (0 != strcmp (address->transport_name, test_addr.plugin))
-  {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid plugin'\n");
-      ret = 1;
-  }
-  else if (address->address_length != test_addr.addr_len)
-  {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid address length'\n");
-      ret = 1;
-  }
-  else if (0 != memcmp (address->address, test_addr.plugin, address->address_length))
-  {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid address'\n");
-      ret = 1;
-  }
-  else
-  {
-
-  }
-
   if (GNUNET_OK == compare_addresses (address, session, &test_hello_address, test_session))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback with correct address `%s'\n",
@@ -184,7 +159,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback with invalid address `%s'\n",
                   GNUNET_i2s (&address->peer));
-      ret = 0;
+      ret = 1;
   }
   GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
   GNUNET_SCHEDULER_add_now (&end, NULL);
