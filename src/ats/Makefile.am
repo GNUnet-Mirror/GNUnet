@@ -65,8 +65,6 @@ check_PROGRAMS = \
  test_ats_api_scheduling_destroy_session \
  test_ats_api_scheduling_block_and_reset \
  test_ats_api_performance 
-# test_ats_api_scheduling \
-# 
 # $(GN_MLP_TEST) \
 # $(GN_MLP_TEST_AVG) \
 # $(GN_MLP_PERF)
@@ -153,37 +151,12 @@ if HAVE_LIBGLPK
 #  $(top_builddir)/src/statistics/libgnunetstatistics.la
 endif
 
-
-#test_ats_api_scheduling_SOURCES = \
-# test_ats_api_scheduling.c
-#test_ats_api_scheduling_LDADD = \
-#  $(top_builddir)/src/util/libgnunetutil.la \
-#  $(top_builddir)/src/testing/libgnunettesting.la \
-#  $(top_builddir)/src/ats/libgnunetats.la  
-
-#test_ats_api_scheduling_destroy_address_SOURCES = \
-# test_ats_api_scheduling_destroy_address.c
-#test_ats_api_scheduling_destroy_address_LDADD = \
-#  $(top_builddir)/src/util/libgnunetutil.la \
-#  $(top_builddir)/src/testing/libgnunettesting.la \
-#  $(top_builddir)/src/ats/libgnunetats.la
-
-
-#test_ats_api_scheduling_get_type_SOURCES = \
-# test_ats_api_scheduling_get_type.c
-#test_ats_api_scheduling_get_type_LDADD = \
-#  $(top_builddir)/src/util/libgnunetutil.la \
-#  $(top_builddir)/src/ats/libgnunetats.la  
-
 #test_ats_api_bandwidth_consumption_SOURCES = \
 # test_ats_api_bandwidth_consumption.c
 #test_ats_api_bandwidth_consumption_LDADD = \
 #  $(top_builddir)/src/util/libgnunetutil.la \
 #  $(top_builddir)/src/testing/libgnunettesting.la \
 #  $(top_builddir)/src/ats/libgnunetats.la  
-
-
-
 
 
 EXTRA_DIST = \
