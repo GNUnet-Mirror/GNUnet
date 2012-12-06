@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file ats/test_ats_api_scheduling.c
+ * @file ats/test_ats_api_scheduling_init.c
  * @brief test automatic transport selection scheduling API init/shutdown
  * @author Christian Grothoff
  * @author Matthias Wachs
@@ -131,11 +131,11 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
-  if (0 != GNUNET_TESTING_peer_run ("test_ats_api_scheduling",
+  if (0 != GNUNET_TESTING_peer_run ("test_ats_api_scheduling_init",
 				    "test_ats_api.conf",
 				    &run, NULL))
     return 1;
   return ret;
 }
 
-/* end of file test_ats_api_scheduling.c */
+/* end of file test_ats_api_scheduling_init.c */
