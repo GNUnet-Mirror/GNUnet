@@ -63,7 +63,7 @@ static struct PeerContext p;
 /**
  * HELLO address
  */
-struct GNUNET_HELLO_Address hello_address;
+struct GNUNET_HELLO_Address test_hello_address;
 
 /**
  * Session
@@ -177,7 +177,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
                 GNUNET_i2s (&address->peer));
     /* Destroying session for address */
     test_session = NULL;
-    GNUNET_ATS_address_destroyed (sched_ats, &hello_address, test_addr.session);
+    GNUNET_ATS_address_destroyed (sched_ats, &test_hello_address, test_addr.session);
     /* Request address */
     GNUNET_ATS_suggest_address (sched_ats, &p.id);
     return;
@@ -231,7 +231,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Destroying address for `%s'\n",
                 GNUNET_i2s (&address->peer));
     /* Destroying complete address */
-    GNUNET_ATS_address_destroyed (sched_ats, &hello_address, session);
+    GNUNET_ATS_address_destroyed (sched_ats, &test_hello_address, session);
     /* Request address */
     GNUNET_ATS_suggest_address (sched_ats, &p.id);
     wait_task = GNUNET_SCHEDULER_add_delayed (WAIT_TIMEOUT, &end, NULL);
@@ -274,11 +274,11 @@ run (void *cls,
   /* Adding address with session */
   create_test_address (&test_addr, "test", &test_addr, "test", strlen ("test") + 1);
   test_session = &test_addr;
-  hello_address.peer = p.id;
-  hello_address.transport_name = test_addr.plugin;
-  hello_address.address = test_addr.addr;
-  hello_address.address_length = test_addr.addr_len;
-  GNUNET_ATS_address_add (sched_ats, &hello_address, test_addr.session, NULL, 0);
+  test_hello_address.peer = p.id;
+  test_hello_address.transport_name = test_addr.plugin;
+  test_hello_address.address = test_addr.addr;
+  test_hello_address.address_length = test_addr.addr_len;
+  GNUNET_ATS_address_add (sched_ats, &test_hello_address, test_addr.session, NULL, 0);
 
   /* Request address */
   GNUNET_ATS_suggest_address (sched_ats, &p.id);
