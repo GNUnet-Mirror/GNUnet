@@ -742,7 +742,7 @@ GAS_addresses_request_address_cancel (const struct GNUNET_PeerIdentity *peer)
                   "No address requests pending for peer `%s', cannot remove!\n", GNUNET_i2s (peer));
       return;
   }
-
+  GAS_addresses_handle_backoff_reset (peer);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Removed request pending for peer `%s\n", GNUNET_i2s (peer));
   GNUNET_CONTAINER_DLL_remove (handle->r_head, handle->r_tail, cur);
