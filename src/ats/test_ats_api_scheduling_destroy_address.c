@@ -61,6 +61,7 @@ static struct PeerContext p;
 static void
 create_test_address (struct Test_Address *dest, char * plugin, void *session, void *addr, size_t addrlen)
 {
+
   dest->plugin = GNUNET_strdup (plugin);
   dest->session = session;
   dest->addr = GNUNET_malloc (addrlen);
@@ -104,7 +105,6 @@ end ()
   sched_ats = NULL;
   GNUNET_ATS_performance_done (perf_ats);
   perf_ats = NULL;
-  free_test_address (&test_addr);
 }
 
 void address_callback (void *cls,
@@ -183,7 +183,7 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
               GNUNET_i2s_full(&p.id));
 
-  create_test_address (&test_addr, "test", &test_addr, "test", strlen ("test") + 1);
+  create_test_address (&test_addr, "test", NULL, "test", strlen ("test") + 1);
 
   /* Adding address without session */
   hello_address.peer = p.id;
