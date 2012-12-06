@@ -32,15 +32,15 @@
 
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
+static GNUNET_SCHEDULER_TaskIdentifier wait_task;
+
+#define WAIT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
+
 /**
  * Scheduling handle
  */
 static struct GNUNET_ATS_SchedulingHandle *sched_ats;
-
-/**
- * Performance handle
- */
-static struct GNUNET_ATS_PerformanceHandle *perf_ats;
 
 /**
  * Return value
@@ -56,6 +56,11 @@ static struct Test_Address test_addr;
  * Test peer
  */
 static struct PeerContext p;
+
+/**
+ * HELLO address
+ */
+struct GNUNET_HELLO_Address hello_address;
 
 
 static void
@@ -84,8 +89,6 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (sched_ats != NULL)
     GNUNET_ATS_scheduling_done (sched_ats);
-  if (perf_ats != NULL)
-    GNUNET_ATS_performance_done (perf_ats);
   free_test_address (&test_addr);
   ret = GNUNET_SYSERR;
 }
@@ -95,6 +98,7 @@ static void
 end ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down\n");
+  wait_task = GNUNET_SCHEDULER_NO_TASK;
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (die_task);
@@ -103,44 +107,72 @@ end ()
   free_test_address (&test_addr);
   GNUNET_ATS_scheduling_done (sched_ats);
   sched_ats = NULL;
-  GNUNET_ATS_performance_done (perf_ats);
-  perf_ats = NULL;
 }
 
-void address_callback (void *cls,
-                      const struct
-                      GNUNET_HELLO_Address *
-                      address,
-                      struct
-                      GNUNET_BANDWIDTH_Value32NBO
-                      bandwidth_out,
-                      struct
-                      GNUNET_BANDWIDTH_Value32NBO
-                      bandwidth_in,
-                      const struct
-                      GNUNET_ATS_Information *
-                      ats, uint32_t ats_count)
+static void
+address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
+                    struct Session *session,
+                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                    const struct GNUNET_ATS_Information *atsi,
+                    uint32_t ats_count)
 {
-  static int counter = 0;
-  if (NULL != address)
+  static int stage = 0;
+  int res = 0;
+
+  if (0 ==stage)
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received callback for peer `%s'\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 0: Received suggestion for peer `%s'\n",
+                GNUNET_i2s(&address->peer));
+
+    if (0 != memcmp (&address->peer, &p.id, sizeof (struct GNUNET_PeerIdentity)))
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid peer id'\n");
+        res = 1;
+    }
+    else if (0 != strcmp (address->transport_name, test_addr.plugin))
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid plugin'\n");
+        res = 1;
+    }
+    else if (address->address_length != test_addr.addr_len)
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid address length'\n");
+        res = 1;
+    }
+    else if (0 != memcmp (address->address, test_addr.plugin, address->address_length))
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid address'\n");
+        res = 1;
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for correct address `%s'\n",
                   GNUNET_i2s (&address->peer));
-      counter ++;
-      return;
+      res = 0;
+    }
+    GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
+    if (1 == res)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for invalid address `%s'\n",
+                  GNUNET_i2s (&address->peer));
+      GNUNET_SCHEDULER_add_now (&end, NULL);
+      ret = 1;
+    }
+    stage ++;
+    ret = 0;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Destroying address for `%s'\n",
+                GNUNET_i2s (&address->peer));
+    /* Destroying address */
+    GNUNET_ATS_address_destroyed (sched_ats, &hello_address, test_addr.session);
+    /* Request address */
+    GNUNET_ATS_suggest_address (sched_ats, &p.id);
+    wait_task = GNUNET_SCHEDULER_add_delayed (WAIT_TIMEOUT, &end, NULL);
+    return;
   }
-  if (counter > 0)
-  {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received %u unexpected addresses callbacks\n", counter);
-      ret = counter;
-  }
-  else
-  {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received no unexpected addresses callbacks\n", counter);
-      ret = 0;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received last callback, shutdown\n");
-  GNUNET_SCHEDULER_add_now (&end, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage 1: Unexpected address suggestion\n");
+  ret = 1;
+
 }
 
 
@@ -149,24 +181,13 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  struct GNUNET_HELLO_Address hello_address;
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
 
   /* Connect to ATS scheduling */
-  sched_ats = GNUNET_ATS_scheduling_init (cfg, NULL, NULL);
+  sched_ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL);
   if (sched_ats == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not connect to ATS scheduling!\n");
-    ret = 1;
-    end ();
-    return;
-  }
-
-  /* Connect to ATS performance */
-  perf_ats = GNUNET_ATS_performance_init (cfg, NULL, NULL);
-  if (perf_ats == NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not connect to ATS performance!\n");
     ret = 1;
     end ();
     return;
@@ -192,11 +213,8 @@ run (void *cls,
   hello_address.address_length = test_addr.addr_len;
   GNUNET_ATS_address_add (sched_ats, &hello_address, test_addr.session, NULL, 0);
 
-  /* Destroying address */
-  GNUNET_ATS_address_destroyed (sched_ats, &hello_address, test_addr.session);
-
-  /* Get list of addresses, expect 0 addresses only NULL callback */
-  GNUNET_ATS_performance_list_addresses (perf_ats, &p.id, GNUNET_YES, address_callback, NULL);
+  /* Request address */
+  GNUNET_ATS_suggest_address (sched_ats, &p.id);
 }
 
 
