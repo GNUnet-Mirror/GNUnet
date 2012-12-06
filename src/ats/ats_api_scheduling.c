@@ -355,7 +355,7 @@ find_session (struct GNUNET_ATS_SchedulingHandle *sh, uint32_t session_id,
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-scheduling-api",
               "Session %p belongs to peer `%s'\n",
-              sh->session_array[session_id].session, GNUNET_i2s_full ((struct GNUNET_PeerIdentity *)sh->session_array[session_id].session));
+              sh->session_array[session_id].session, GNUNET_i2s_full ((struct GNUNET_PeerIdentity *) &sh->session_array[session_id].peer));
 /*
     GNUNET_break (0);
     sh->reconnect = GNUNET_YES;

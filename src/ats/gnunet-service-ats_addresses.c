@@ -31,7 +31,9 @@
 #include "gnunet-service-ats_performance.h"
 #include "gnunet-service-ats_scheduling.h"
 #include "gnunet-service-ats_reservations.h"
+#if HAVE_LIBGLPK
 #include "gnunet-service-ats_addresses_mlp.h"
+#endif
 #include "gnunet-service-ats_addresses_simplistic.h"
 
 
@@ -723,6 +725,10 @@ void
 GAS_addresses_request_address_cancel (const struct GNUNET_PeerIdentity *peer)
 {
   struct GAS_Addresses_Suggestion_Requests *cur = handle->r_head;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received request: `%s' for peer %s\n", "request_address_cancel", GNUNET_i2s (peer));
+
   while (NULL != cur)
   {
       if (0 == memcmp (peer, &cur->id, sizeof (cur->id)))
@@ -736,6 +742,9 @@ GAS_addresses_request_address_cancel (const struct GNUNET_PeerIdentity *peer)
                   "No address requests pending for peer `%s', cannot remove!\n", GNUNET_i2s (peer));
       return;
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Removed request pending for peer `%s\n", GNUNET_i2s (peer));
   GNUNET_CONTAINER_DLL_remove (handle->r_head, handle->r_tail, cur);
   GNUNET_free (cur);
 }
