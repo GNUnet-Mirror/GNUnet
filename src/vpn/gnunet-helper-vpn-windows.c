@@ -73,10 +73,23 @@
  * 
  * If we crash this device might stay around.
  */
-HDEVINFO DeviceInfo = INVALID_HANDLE_VALUE;
-SP_DEVINFO_DATA DeviceNode;
-TCHAR class[128];
-GUID guid;
+static HDEVINFO DeviceInfo = INVALID_HANDLE_VALUE;
+
+/**
+ * FIXME
+ */
+static SP_DEVINFO_DATA DeviceNode;
+
+/**
+ * FIXME
+ */
+static TCHAR class[128];
+
+/**
+ * FIXME
+ */
+static GUID guid;
+
 
 /**
  * Creates a tun-interface called dev;
@@ -101,6 +114,7 @@ init_tun (char *dev)
   return fd;
 }
 
+
 /**
  * @brief Sets the IPv6-Address given in address on the interface dev
  *
@@ -111,7 +125,7 @@ init_tun (char *dev)
 static void
 set_address6 (const char *dev, const char *address, unsigned long prefix_len)
 {
-  int fd = 0;
+  int fd = -1;
 
   /*
    * parse the new address
@@ -152,7 +166,7 @@ set_address6 (const char *dev, const char *address, unsigned long prefix_len)
 static void
 set_address4 (const char *dev, const char *address, const char *mask)
 {
-  int fd = 0;
+  int fd = -1;
 
   /*
    * Parse the address
@@ -190,6 +204,10 @@ set_address4 (const char *dev, const char *address, const char *mask)
     }
 }
 
+
+/**
+ * FIXME.
+ */
 static boolean
 setup_interface ()
 {
@@ -199,11 +217,12 @@ setup_interface ()
    * We do not directly input all the props here, because openvpn will update
    * these details over time.
    */
-  TCHAR InfFile[] = "tapw32.inf";
-  TCHAR hwid[] = "TAP0901";
-  TCHAR * InfFilePath;
-  TCHAR * hwIdList;
+  TCHAR InfFile[] = _T("tapw32.inf"); // FIXME: inline or #define, no 'variable'
+  TCHAR hwid[] = _T("TAP0901");
+  TCHAR InfFilePath[MAX_PATH];
+  TCHAR hwIdList[LINE_LEN + 4];
 
+#if DEAD
   /** 
    * Locate the inf-file, we need to store it somewhere where the system can
    * find it. A good choice would be CWD/PDW or %WINDIR$\system32\
@@ -211,13 +230,12 @@ setup_interface ()
    * TODO: Finde a more sane way to do this!
    */
 
-  InfFilePath = calloc (MAX_PATH, sizeof (TCHAR));
-  if (InfFilePath == NULL)
-    {
+  if (NULL == (InfFilePath = calloc (MAX_PATH, sizeof (TCHAR))))
       return FALSE;
-    }
+#endif
   GetFullPathName (InfFile, MAX_PATH, InfFilePath, NULL);
 
+#if DEAD
   /** 
    * Set the device's hardware ID and add it to a list.
    * This information will later on identify this device in registry. 
@@ -230,6 +248,7 @@ setup_interface ()
     {
       goto cleanup1;
     }
+#endif
   strncpy (hwIdList, hwid, LINE_LEN);
 
   /** 
@@ -295,6 +314,7 @@ cleanup1:
 
 }
 
+
 static boolean
 remove_interface ()
 {
@@ -304,24 +324,18 @@ remove_interface ()
   remove.HwProfile = 0;
   remove.Scope = DI_REMOVEDEVICE_GLOBAL;
   remove.ClassInstallHeader.InstallFunction = DIF_REMOVE;
-  
-
-  if (SetupDiSetClassInstallParams (DeviceInfo,
-                                    (PSP_DEVINFO_DATA) &DeviceNode,
-                                    &remove.ClassInstallHeader,
-                                    sizeof (remove)))
-    {
-      if (SetupDiCallClassInstaller (DIF_REMOVE, 
-                                     DeviceInfo, 
-                                     (PSP_DEVINFO_DATA) &DeviceNode))
-        {
-          return TRUE;
-        }
-    }
-
-  return FALSE;
-
+  if (! SetupDiSetClassInstallParams (DeviceInfo,
+				      (PSP_DEVINFO_DATA) &DeviceNode,
+				      &remove.ClassInstallHeader,
+				      sizeof (remove)))
+    return FALSE;
+  if (! SetupDiCallClassInstaller (DIF_REMOVE, 
+				   DeviceInfo, 
+				   (PSP_DEVINFO_DATA) &DeviceNode))
+    return FALSE;
+  return TRUE;
 }
+
 
 /**
  * Start forwarding to and from the tunnel.
@@ -346,7 +360,9 @@ run (int fd_tun)
   size_t bufin_rpos = 0;
   unsigned char *bufin_read = NULL;
   /* Hello, I am a stub function! I did my job, yay me! */
+
 }
+
 
 /**
  * Open VPN tunnel interface.
@@ -359,7 +375,6 @@ run (int fd_tun)
  *             4: IPv4 address (1.2.3.4), "-" to disable
  *             5: IPv4 netmask (255.255.0.0), ignored if #4 is "-"
  */
-
 int
 main (int argc, char **argv)
 {
