@@ -51,6 +51,16 @@ static struct Test_Address test_addr;
  */
 static struct PeerContext p;
 
+/**
+ * HELLO address
+ */
+struct GNUNET_HELLO_Address test_hello_address;
+
+/**
+ * Session
+ */
+static void *test_session;
+
 
 static void
 create_test_address (struct Test_Address *dest, char * plugin, void *session, void *addr, size_t addrlen)
@@ -96,6 +106,41 @@ end ()
   free_test_address (&test_addr);
 }
 
+static int
+compare_addresses (const struct GNUNET_HELLO_Address *address1, void *session1,
+                   const struct GNUNET_HELLO_Address *address2, void *session2)
+{
+  if (0 != memcmp (&address1->peer, &address2->peer, sizeof (struct GNUNET_PeerIdentity)))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid peer id'\n");
+      return GNUNET_SYSERR;
+  }
+  if (0 != strcmp (address1->transport_name, address2->transport_name))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid plugin'\n");
+      return GNUNET_SYSERR;
+  }
+  if (address1->address_length != address2->address_length)
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid address length'\n");
+      return GNUNET_SYSERR;
+
+  }
+  else if (0 != memcmp (address1->address, address2->address, address2->address_length))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid address'\n");
+      return GNUNET_SYSERR;
+  }
+  if (session1 != session2)
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid session1 %p vs session2 %p'\n",
+                  session1, session2);
+      return GNUNET_SYSERR;
+
+  }
+  return GNUNET_OK;
+}
+
 static void
 address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
                     struct Session *session,
@@ -126,9 +171,20 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for correct address `%s'\n",
-                GNUNET_i2s (&address->peer));
-    ret = 0;
+
+  }
+
+  if (GNUNET_OK == compare_addresses (address, session, &test_hello_address, test_session))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback with correct address `%s'\n",
+                  GNUNET_i2s (&address->peer));
+      ret = 0;
+  }
+  else
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback with invalid address `%s'\n",
+                  GNUNET_i2s (&address->peer));
+      ret = 0;
   }
   GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
   GNUNET_SCHEDULER_add_now (&end, NULL);
@@ -139,7 +195,7 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  struct GNUNET_HELLO_Address hello_address;
+
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
 
   /* Connect to ATS scheduling */
@@ -166,13 +222,15 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
               GNUNET_i2s_full(&p.id));
 
-  create_test_address (&test_addr, "test", &test_addr, "test", strlen ("test") + 1);
+
   /* Adding address without session */
-  hello_address.peer = p.id;
-  hello_address.transport_name = test_addr.plugin;
-  hello_address.address = test_addr.addr;
-  hello_address.address_length = test_addr.addr_len;
-  GNUNET_ATS_address_add (sched_ats, &hello_address, test_addr.session, NULL, 0);
+  test_session = &test_addr;
+  create_test_address (&test_addr, "test", test_session, "test", strlen ("test") + 1);
+  test_hello_address.peer = p.id;
+  test_hello_address.transport_name = test_addr.plugin;
+  test_hello_address.address = test_addr.addr;
+  test_hello_address.address_length = test_addr.addr_len;
+  GNUNET_ATS_address_add (sched_ats, &test_hello_address, test_session, NULL, 0);
 
   GNUNET_ATS_suggest_address (sched_ats, &p.id);
 }
