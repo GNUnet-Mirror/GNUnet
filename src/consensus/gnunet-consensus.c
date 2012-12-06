@@ -48,12 +48,6 @@ static struct GNUNET_DISK_FileHandle *stdin_fh;
  */
 static GNUNET_SCHEDULER_TaskIdentifier stdin_tid = GNUNET_SCHEDULER_NO_TASK;
 
-/**
- * Element currently being sent to the service
- */
-static struct GNUNET_CONSENSUS_Element *element;
-
-
 
 static void
 stdin_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
@@ -76,23 +70,22 @@ conclude_cb (void *cls,
 }
 
 
-
 static void
 insert_done_cb (void *cls,
                 int success)
 {
+  struct GNUNET_CONSENSUS_Element *element = cls;
+
+  GNUNET_free (element);
   if (GNUNET_YES != success)
   {
     printf ("insert failed\n");
     GNUNET_SCHEDULER_shutdown ();
+    return;
   }
-
-  GNUNET_free (element);
-
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == stdin_tid);
-
   stdin_tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, stdin_fh,
-                                        &stdin_cb, NULL);    
+					      &stdin_cb, NULL);    
 }
 
 
@@ -107,20 +100,18 @@ stdin_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   char buf[1024];
   char *ret;
-  ret = fgets (buf, 1024, stdin);
+  struct GNUNET_CONSENSUS_Element *element;
 
   stdin_tid = GNUNET_SCHEDULER_NO_TASK;
-
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return; /* we're done here */
+  ret = fgets (buf, 1024, stdin);
   if (NULL == ret)
   {
     if (feof (stdin))
     {
       printf ("concluding ...\n");
       GNUNET_CONSENSUS_conclude (consensus, GNUNET_TIME_UNIT_FOREVER_REL, conclude_cb, NULL);
-    }
-    else
-    {
-      GNUNET_SCHEDULER_shutdown ();
     }
     return;
   }
@@ -131,10 +122,10 @@ stdin_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   element->type = 0;
   element->size = strlen(buf) + 1;
   element->data = &element[1];
-  strcpy((char *) &element[1], buf);
-
-  GNUNET_CONSENSUS_insert (consensus, element, insert_done_cb, NULL);
+  strcpy ((char *) &element[1], buf);
+  GNUNET_CONSENSUS_insert (consensus, element, &insert_done_cb, element); 
 }
+
 
 /**
  * Called when a new element was received from another peer, or an error occured.
@@ -157,6 +148,7 @@ cb (void *cls,
   return GNUNET_YES;
 }
 
+
 /**
  * Function run on shutdown to clean up.
  *
@@ -166,14 +158,12 @@ cb (void *cls,
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "shutting down\n");
-  if (NULL == consensus)
+  if (NULL != consensus)
   {
-    return;
+    GNUNET_CONSENSUS_destroy (consensus);
+    consensus = NULL;
   }
-
-  GNUNET_CONSENSUS_destroy (consensus);
 }
 
 

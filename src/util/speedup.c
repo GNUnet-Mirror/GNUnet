@@ -83,8 +83,9 @@ GNUNET_SPEEDUP_stop_ ( )
     GNUNET_SCHEDULER_cancel (speedup_task);
     speedup_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Stopped execution speed up\n");
+  if ((0 != interval.rel_value) && (0 != delta.rel_value))
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Stopped execution speed up\n");
 }
 
 

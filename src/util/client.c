@@ -943,8 +943,16 @@ client_delayed_retry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CLIENT_TransmitHandle *th = cls;
   struct GNUNET_TIME_Relative delay;
-
+  
   th->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+  {
+    /* give up, was shutdown */
+    th->client->th = NULL;
+    th->notify (th->notify_cls, 0, NULL);
+    GNUNET_free (th);
+    return;
+  }
   th->client->connection =
       do_connect (th->client->service_name, th->client->cfg, th->client->attempts++);
   th->client->first_message = GNUNET_YES;
@@ -1006,7 +1014,8 @@ client_notify (void *cls, size_t size, void *buf)
     delay = GNUNET_TIME_absolute_get_remaining (th->timeout);
     delay.rel_value /= 2;
     if ((GNUNET_YES != th->auto_retry) || (0 == --th->attempts_left) ||
-        (delay.rel_value < 1))
+        (delay.rel_value < 1)||
+	(0 != (GNUNET_SCHEDULER_get_reason() & GNUNET_SCHEDULER_REASON_SHUTDOWN)))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Transmission failed %u times, giving up.\n",

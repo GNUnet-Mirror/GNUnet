@@ -128,12 +128,12 @@ static struct GNUNET_TIME_Relative timeout;
 /**
  * Do we want to give our stdout to gnunet-service-arm?
  */
-static unsigned int no_stdout = 0;
+static unsigned int no_stdout;
 
 /**
  * Do we want to give our stderr to gnunet-service-arm?
  */
-static unsigned int no_stderr = 0;
+static unsigned int no_stderr;
 
 
 /**
@@ -206,8 +206,7 @@ confirm_cb (void *cls,
     FPRINTF (stderr, "%s",  _("Unknown response code from ARM.\n"));
     break;
   }
-  GNUNET_SCHEDULER_add_continuation (&cps_loop, NULL,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_now (&cps_loop, NULL);
 }
 
 
@@ -233,39 +232,6 @@ list_cb (void *cls, int result, unsigned int count, const char *const*list)
   FPRINTF (stdout, "%s", _("Running services:\n"));
   for (i=0; i<count; i++)
     FPRINTF (stdout, "%s\n", list[i]);
-}
-
-
-/**
- * Main function that will be run by the scheduler.
- *
- * @param cls closure
- * @param args remaining command-line arguments
- * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param c configuration
- */
-static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *c)
-{
-  cfg = c;
-  config_file = cfgfile;
-  if (GNUNET_CONFIGURATION_get_value_string
-      (cfg, "PATHS", "SERVICEHOME", &dir) != GNUNET_OK)
-  {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-			       "PATHS", "SERVICEHOME");
-    return;
-    }
-  if (NULL == (h = GNUNET_ARM_connect (cfg, NULL)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Fatal error initializing ARM API.\n"));
-    ret = 1;
-    return;
-  }
-  GNUNET_SCHEDULER_add_continuation (&cps_loop, NULL,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
@@ -304,8 +270,63 @@ delete_files ()
  * @param tc context, unused
  */
 static void
+shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_ARM_disconnect (h);
+  h = NULL;
+  if ((end == GNUNET_YES) && (delete == GNUNET_YES))
+    delete_files ();	
+}
+
+
+/**
+ * Main function that will be run by the scheduler.
+ *
+ * @param cls closure
+ * @param args remaining command-line arguments
+ * @param cfgfile name of the configuration file used (for saving, can be NULL!)
+ * @param c configuration
+ */
+static void
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
+{
+  cfg = c;
+  config_file = cfgfile;
+  if (GNUNET_CONFIGURATION_get_value_string
+      (cfg, "PATHS", "SERVICEHOME", &dir) != GNUNET_OK)
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+			       "PATHS", "SERVICEHOME");
+    return;
+    }
+  if (NULL == (h = GNUNET_ARM_connect (cfg, NULL)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Fatal error initializing ARM API.\n"));
+    ret = 1;
+    return;
+  }
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+				&shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_now (&cps_loop, NULL);
+}
+
+
+/**
+ * Main continuation-passing-style loop.  Runs the various
+ * jobs that we've been asked to do in order.
+ *
+ * @param cls closure, unused
+ * @param tc context, unused
+ */
+static void
 cps_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (NULL == h)
+    return;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
   while (1)
   {
     switch (phase++)
@@ -393,9 +414,7 @@ cps_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       }
       /* Fall through */
     default:		/* last phase */
-      GNUNET_ARM_disconnect (h);
-      if ((end == GNUNET_YES) && (delete == GNUNET_YES))
-	delete_files ();
+      GNUNET_SCHEDULER_shutdown ();
       return;
     }
   }
