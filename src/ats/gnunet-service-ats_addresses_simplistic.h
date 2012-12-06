@@ -28,6 +28,7 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet-service-ats_addresses.h"
 
+#define BIG_M_STRING "unlimited"
 
 /**
  * Init the simplistic problem solving component
