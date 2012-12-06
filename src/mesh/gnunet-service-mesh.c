@@ -5949,9 +5949,9 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     /* TODO notify that we dont know this tunnel (whom)? */
     GNUNET_STATISTICS_update (stats, "# data on unknown tunnel", 1, GNUNET_NO);
     GNUNET_break_op (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received to_origin with PID %u on unknown tunnel\n",
-                pid);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Received to_origin with PID %u on unknown tunnel %s [%u]\n",
+                pid, GNUNET_i2s (&msg->oid), ntohl (msg->tid));
     return GNUNET_OK;
   }
 
@@ -8403,6 +8403,12 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
       NULL == server)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Wrong CORE service\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                " core id %s\n",
+                GNUNET_i2s (identity));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                " my id %s\n",
+                GNUNET_i2s (&my_full_id));
     GNUNET_SCHEDULER_shutdown (); // Try gracefully
     if (10 < i++)
       GNUNET_abort(); // Try harder
@@ -8612,7 +8618,8 @@ key_generation_cb (void *cls,
   if (NULL == pk)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Mesh service could not access hostkey.  Exiting.\n"));
+                _("Mesh service could not access hostkey: %s. Exiting.\n"),
+                emsg);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
