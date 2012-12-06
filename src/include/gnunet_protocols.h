@@ -1655,7 +1655,38 @@ extern "C"
  * Sent by service to client in order to signal a completed consensus conclusion.
  * Last message sent in a consensus session.
  */
-#define GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE_DONE 524
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE_DONE 525
+
+/**
+ * Sent by client to service, telling whether a received element should
+ * be accepted and propagated further or not.
+ */
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_ACK 527
+
+/**
+ * Update another peer's consensus set with new elements.
+ */
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS 528
+
+/**
+ * Request elements (by their hash) from another peer.
+ */
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_REQUEST_ELEMENTS 529
+
+/**
+ * Strata estimator.
+ */
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_STRATA 530
+
+/**
+ * IBF containing all elements of a peer.
+ */
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_IBF 531
+
+/**
+ * Request reconcilliation with another peer.
+ */
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_RECONCILE 532
 
 
 /**
