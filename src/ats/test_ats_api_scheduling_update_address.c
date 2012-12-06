@@ -63,6 +63,17 @@ struct GNUNET_HELLO_Address test_hello_address;
  */
 static void *test_session;
 
+/**
+ * Test ats info
+ */
+struct GNUNET_ATS_Information test_ats_info[2];
+
+/**
+ * Test ats count
+ */
+uint32_t test_ats_count;
+
+
 static void
 create_test_address (struct Test_Address *dest, char * plugin, void *session, void *addr, size_t addrlen)
 {
@@ -143,6 +154,50 @@ compare_addresses (const struct GNUNET_HELLO_Address *address1, void *session1,
   return GNUNET_OK;
 }
 
+static int
+compare_ats (const struct GNUNET_ATS_Information *ats_is, uint32_t ats_count_is,
+             const struct GNUNET_ATS_Information *ats_should, uint32_t ats_count_should)
+{
+  unsigned int c_o;
+  unsigned int c_i;
+  char *prop[] = GNUNET_ATS_PropertyStrings;
+  uint32_t type1;
+  uint32_t type2;
+  uint32_t val1;
+  uint32_t val2;
+  int res = GNUNET_OK;
+
+  for (c_o = 0; c_o < ats_count_is; c_o++)
+  {
+    for (c_i = 0; c_i < ats_count_should; c_i++)
+    {
+        type1 = ntohl(ats_is[c_o].type);
+        type2 = ntohl(ats_should[c_i].type);
+        if (type1 == type2)
+        {
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS type `%s'\n",
+                        prop[type1]);
+            val1 = ntohl(ats_is[c_o].value);
+            val2 = ntohl(ats_should[c_i].value);
+            if (val1 != val2)
+            {
+                GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ATS value `%s' not equal: %u != %u\n",
+                            prop[type1],
+                            val1, val2);
+                res = GNUNET_SYSERR;
+            }
+            else
+            {
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS value `%s' equal: %u == %u\n",
+                          prop[type1],
+                          val1, val2);
+            }
+        }
+    }
+  }
+  return res;
+}
+
 static void
 address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
                     struct Session *session,
@@ -163,6 +218,16 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
     }
     else
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage 0: Callback with incorrect address `%s'\n",
+                    GNUNET_i2s (&address->peer));
+      ret = 1;
+      GNUNET_SCHEDULER_add_now (&end, NULL);
+      return;
+    }
+
+    if (GNUNET_OK != compare_ats(atsi, ats_count, test_ats_info, test_ats_count))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage 0: Callback with incorrect ats info \n");
       ret = 1;
       GNUNET_SCHEDULER_add_now (&end, NULL);
       return;
@@ -185,7 +250,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
       }
       else
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 1: Callback with incorrect address `%s'\n",
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage 1: Callback with incorrect address `%s'\n",
                     GNUNET_i2s (&address->peer));
         ret = 1;
       }
@@ -225,6 +290,13 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
               GNUNET_i2s_full(&p.id));
 
+  /* Prepare ATS Information */
+  test_ats_info[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  test_ats_info[0].value = htonl(GNUNET_ATS_NET_WAN);
+  test_ats_info[1].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
+  test_ats_info[1].value = htonl(1);
+  test_ats_count = 2;
+
   /* Adding address without session */
   test_session = &test_addr;
   create_test_address (&test_addr, "test", &test_addr, "test", strlen ("test") + 1);
@@ -232,7 +304,7 @@ run (void *cls,
   test_hello_address.transport_name = test_addr.plugin;
   test_hello_address.address = test_addr.addr;
   test_hello_address.address_length = test_addr.addr_len;
-  GNUNET_ATS_address_add (sched_ats, &test_hello_address, test_session, NULL, 0);
+  GNUNET_ATS_address_add (sched_ats, &test_hello_address, test_session, test_ats_info, test_ats_count);
 
   /* Request address */
   GNUNET_ATS_suggest_address (sched_ats, &p.id);
