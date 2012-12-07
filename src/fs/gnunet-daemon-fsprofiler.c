@@ -22,6 +22,10 @@
  * @file fs/gnunet-daemon-fsprofiler.c
  * @brief daemon that publishes and downloads (random) files
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - actually collect performance metrics
+ * - how to signal driver that we're done?
  */
 #include "platform.h"
 #include "gnunet_fs_service.h"
@@ -67,6 +71,11 @@ struct Pattern
    * Task to run the operation.
    */
   GNUNET_SCHEDULER_TaskIdentifier task;
+
+  /**
+   * Secondary task to run the operation.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier stask;
 
   /**
    * X-value.
@@ -192,6 +201,23 @@ parse_pattern (struct Pattern **head,
 
 
 /**
+ * Create a KSK URI from a number.
+ *
+ * @param kval the number
+ * @return corresponding KSK URI
+ */
+static struct GNUNET_FS_Uri *
+make_keywords (uint64_t kval)
+{
+  char kw[128];
+
+  GNUNET_snprintf (kw, sizeof (kw),
+		   "%llu", (unsigned long long) kval);
+  return GNUNET_FS_uri_ksk_create (kw, NULL);
+}
+
+
+/**
  * Create a file of the given length with a deterministic amount
  * of data to be published under keyword 'kval'.
  *
@@ -209,7 +235,6 @@ make_file (uint64_t length,
   struct GNUNET_FS_BlockOptions bo;
   char *data;
   struct GNUNET_FS_Uri *keywords;
-  char kw[128];
   unsigned long long i;
   uint64_t xor;
 
@@ -228,9 +253,7 @@ make_file (uint64_t length,
   bo.anonymity_level = (uint32_t) anonymity_level;
   bo.content_priority = 128;
   bo.replication_level = (uint32_t) replication_level;
-  GNUNET_snprintf (kw, sizeof (kw),
-		   "%llu", (unsigned long long) kval);
-  keywords = GNUNET_FS_uri_ksk_create (kw, NULL);
+  keywords = make_keywords (kval);
   fi = GNUNET_FS_file_information_create_from_data (fs_handle,
 						    ctx,
 						    length,
@@ -265,6 +288,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     if (GNUNET_SCHEDULER_NO_TASK != p->task)
       GNUNET_SCHEDULER_cancel (p->task);
+    if (GNUNET_SCHEDULER_NO_TASK != p->stask)
+      GNUNET_SCHEDULER_cancel (p->stask);
     if (NULL != p->ctx)
       GNUNET_FS_download_stop (p->ctx, GNUNET_YES);
     if (NULL != p->sctx)
@@ -282,6 +307,54 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_STATISTICS_destroy (stats_handle, GNUNET_YES);
     stats_handle = NULL;
   }
+}
+
+
+/**
+ * Task run when a publish operation should be stopped.
+ *
+ * @param cls the 'struct Pattern' of the publish operation to stop
+ * @param tc unused
+ */
+static void
+publish_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Pattern *p = cls;
+
+  p->task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_FS_publish_stop (p->ctx);
+}
+
+
+/**
+ * Task run when a download operation should be stopped.
+ *
+ * @param cls the 'struct Pattern' of the download operation to stop
+ * @param tc unused
+ */
+static void
+download_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Pattern *p = cls;
+
+  p->task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_FS_download_stop (p->ctx, GNUNET_YES);
+}
+
+
+/**
+ * Task run when a download operation should be stopped.
+ *
+ * @param cls the 'struct Pattern' of the download operation to stop
+ * @param tc unused
+ */
+static void
+search_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Pattern *p = cls;
+
+  p->stask = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_FS_search_stop (p->sctx);
 }
 
 
@@ -304,13 +377,98 @@ static void *
 progress_cb (void *cls,
 	     const struct GNUNET_FS_ProgressInfo *info)
 {
-  // FIXME:
-  // - search result => start download
-  // - publishing done => staitstic, terminate 'struct Pattern'
-  // - download done => statistic, terminate 'struct Pattern'
-  // => all patterns done => then what!? (how do we tell the
-  //    drive that we are done!?)
-  return NULL;
+  struct Pattern *p;
+  const struct GNUNET_FS_Uri *uri;
+
+  switch (info->status)
+  {
+  case GNUNET_FS_STATUS_PUBLISH_START:
+  case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
+    p = info->value.publish.cctx;
+    return p;
+  case GNUNET_FS_STATUS_PUBLISH_ERROR:
+    // FIXME: statistics...
+    p = info->value.publish.cctx;
+    p->task = GNUNET_SCHEDULER_add_now (&publish_stop_task, p);
+    return p;
+  case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
+    // FIXME: statistics...
+    p = info->value.publish.cctx;
+    p->task = GNUNET_SCHEDULER_add_now (&publish_stop_task, p);
+    return p;
+  case GNUNET_FS_STATUS_PUBLISH_STOPPED:
+    p = info->value.publish.cctx;
+    p->ctx = NULL;
+    GNUNET_CONTAINER_DLL_remove (publish_head, publish_tail, p);
+    GNUNET_free (p);
+    return NULL;
+  case GNUNET_FS_STATUS_DOWNLOAD_START:
+  case GNUNET_FS_STATUS_DOWNLOAD_PROGRESS:
+  case GNUNET_FS_STATUS_DOWNLOAD_ACTIVE:
+  case GNUNET_FS_STATUS_DOWNLOAD_INACTIVE:
+    p = info->value.download.cctx;
+    return p;
+  case GNUNET_FS_STATUS_DOWNLOAD_ERROR:
+    // FIXME: statistics
+    p = info->value.download.cctx;
+    p->task = GNUNET_SCHEDULER_add_now (&download_stop_task, p);
+    return p;
+  case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
+    // FIXME: statistics
+    p = info->value.download.cctx;
+    p->task = GNUNET_SCHEDULER_add_now (&download_stop_task, p);
+    return p;
+  case GNUNET_FS_STATUS_DOWNLOAD_STOPPED:
+    p = info->value.download.cctx;
+    p->ctx = NULL;
+    if (NULL == p->sctx)
+    {
+      GNUNET_CONTAINER_DLL_remove (download_head, download_tail, p);
+      GNUNET_free (p);
+    }
+    return NULL;
+  case GNUNET_FS_STATUS_SEARCH_START:
+  case GNUNET_FS_STATUS_SEARCH_RESULT_NAMESPACE:
+    p = info->value.search.cctx;
+    return p;
+  case GNUNET_FS_STATUS_SEARCH_RESULT:
+    p = info->value.search.cctx;
+    uri = info->value.search.specifics.result.uri;
+    if (GNUNET_YES != GNUNET_FS_uri_test_chk (uri))
+      return NULL; /* not what we want */
+    if (p->y != GNUNET_FS_uri_chk_get_file_size (uri))
+      return NULL; /* not what we want */
+    p->ctx = GNUNET_FS_download_start (fs_handle, uri,
+				       NULL, NULL, NULL, 
+				       0, GNUNET_FS_uri_chk_get_file_size (uri),
+				       anonymity_level,
+				       GNUNET_FS_DOWNLOAD_NO_TEMPORARIES,
+				       p,
+				       NULL);
+    p->stask = GNUNET_SCHEDULER_add_now (&search_stop_task, p);
+    return NULL;
+  case GNUNET_FS_STATUS_SEARCH_UPDATE:
+  case GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED:
+    return NULL; /* don't care */
+  case GNUNET_FS_STATUS_SEARCH_ERROR:
+    // FIXME: statistics
+    p = info->value.search.cctx;
+    p->stask = GNUNET_SCHEDULER_add_now (&search_stop_task, p);
+    return p;
+  case GNUNET_FS_STATUS_SEARCH_STOPPED:
+    p = info->value.search.cctx;
+    p->sctx = NULL;
+    if (NULL == p->ctx)
+    {
+      GNUNET_CONTAINER_DLL_remove (download_head, download_tail, p);
+      GNUNET_free (p);
+    }
+    return NULL;
+  default: 
+    /* unexpected event during profiling */
+    GNUNET_break (0);
+    return NULL;
+  }
 }
 
 
@@ -349,11 +507,16 @@ start_download (void *cls,
 		const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Pattern *p = cls;
+  struct GNUNET_FS_Uri *keywords;
 
   p->task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-  // FIXME: start search operation
+  keywords = make_keywords (p->x);
+  p->sctx = GNUNET_FS_search_start (fs_handle, keywords,
+				    anonymity_level,
+				    GNUNET_FS_SEARCH_OPTION_NONE,
+				    p);
 }
 
 
