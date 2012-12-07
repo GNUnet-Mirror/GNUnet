@@ -48,7 +48,7 @@ GNUNET_DNSPARSER_check_label (const char *label)
   char *output;
   size_t slen;
   
-  if (NULL != strchr (label, "."))
+  if (NULL != strchr (label, '.'))
     return GNUNET_SYSERR; /* not a label! Did you mean GNUNET_DNSPARSER_check_name? */
   if (IDNA_SUCCESS != 
       idna_to_ascii_8z (label, &output, IDNA_USE_STD3_ASCII_RULES))
