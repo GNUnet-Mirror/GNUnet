@@ -32,16 +32,10 @@
  */
 
 #include <stdio.h>
+#include <tchar.h>
 #include <windows.h>
 #include <setupapi.h>
 #include "platform.h"
-
-//#include <tchar.h>
-//#include <stdlib.h>
-//#include <regstr.h>
-//#include <string.h>
-//#include <malloc.h>
-//#include <objbase.h>
 
 /**
  * Need 'struct GNUNET_MessageHeader'.
@@ -64,6 +58,18 @@
  */
 #define MAX_SIZE 65536
 
+/**
+ * Name or Path+Name of our driver in Unicode.
+ * The .sys and .cat files HAVE to be in the same location as this file!
+ */
+#define INF_FILE _T("tapw32.inf")
+
+/**
+ * Hardware ID used in the inf-file. 
+ * This might change over time, as openvpn advances their driver
+ */
+#define HARDWARE_ID _T("TAP0901")
+
 /** 
  * This is our own local instance of a virtual network interface
  * It is (somewhat) equivalent to using tun/tap in unixoid systems
@@ -76,54 +82,29 @@
 static HDEVINFO DeviceInfo = INVALID_HANDLE_VALUE;
 
 /**
- * FIXME
+ * Registry Key we hand over to windows to spawn a new virtual interface
  */
 static SP_DEVINFO_DATA DeviceNode;
 
 /**
- * FIXME
+ * Class-tag of our virtual device
  */
 static TCHAR class[128];
 
 /**
- * FIXME
+ * GUID of our virtual device in the form of 
+ * {12345678-1234-1234-1234-123456789abc} - in hex
  */
 static GUID guid;
-
-
-/**
- * Creates a tun-interface called dev;
- *
- * @param dev is asumed to point to a char[IFNAMSIZ]
- *        if *dev == '\\0', uses the name supplied by the kernel;
- * @return the fd to the tun or -1 on error
- */
-static int
-init_tun (char *dev)
-{
-  int fd;
-
-  if (NULL == dev)
-    {
-      errno = EINVAL;
-      return -1;
-    }
-
-  /* Hello, I am a stub function! I did my job, yay me! */
-
-  return fd;
-}
-
 
 /**
  * @brief Sets the IPv6-Address given in address on the interface dev
  *
- * @param dev the interface to configure
  * @param address the IPv6-Address
  * @param prefix_len the length of the network-prefix
  */
 static void
-set_address6 (const char *dev, const char *address, unsigned long prefix_len)
+set_address6 (const char *address, unsigned long prefix_len)
 {
   int fd = -1;
 
@@ -206,7 +187,9 @@ set_address4 (const char *dev, const char *address, const char *mask)
 
 
 /**
- * FIXME.
+ * Setup a new virtual interface to use for tunneling. 
+ * 
+ * @return: TRUE if setup was successful, else FALSE
  */
 static boolean
 setup_interface ()
@@ -217,25 +200,18 @@ setup_interface ()
    * We do not directly input all the props here, because openvpn will update
    * these details over time.
    */
-  TCHAR InfFile[] = _T("tapw32.inf"); // FIXME: inline or #define, no 'variable'
-  TCHAR hwid[] = _T("TAP0901");
   TCHAR InfFilePath[MAX_PATH];
   TCHAR hwIdList[LINE_LEN + 4];
 
-#if DEAD
   /** 
    * Locate the inf-file, we need to store it somewhere where the system can
    * find it. A good choice would be CWD/PDW or %WINDIR$\system32\
    * 
-   * TODO: Finde a more sane way to do this!
+   * TODO: Find a more sane way to do this!
+   * TODO: How about win64 in the future? 
    */
+  GetFullPathName (INF_FILE, MAX_PATH, InfFilePath, NULL);
 
-  if (NULL == (InfFilePath = calloc (MAX_PATH, sizeof (TCHAR))))
-      return FALSE;
-#endif
-  GetFullPathName (InfFile, MAX_PATH, InfFilePath, NULL);
-
-#if DEAD
   /** 
    * Set the device's hardware ID and add it to a list.
    * This information will later on identify this device in registry. 
@@ -243,13 +219,7 @@ setup_interface ()
    * TODO: Currently we just use TAP0901 as HWID, 
    * but we might want to add additional information
    */
-  hwIdList = calloc (LINE_LEN + 4, sizeof (TCHAR));
-  if (hwIdList == NULL)
-    {
-      goto cleanup1;
-    }
-#endif
-  strncpy (hwIdList, hwid, LINE_LEN);
+  strncpy (hwIdList, HARDWARE_ID, LINE_LEN);
 
   /** 
    * Bootstrap our device info using the drivers inf-file
@@ -258,19 +228,16 @@ setup_interface ()
                            &guid,
                            class, sizeof (class) / sizeof (TCHAR),
                            NULL))
-    {
-      goto cleanup2;
-    }
-
+      return FALSE;
+  
   /** 
    * Collect all the other needed information... 
    * let the system fill our this form 
    */
   DeviceInfo = SetupDiCreateDeviceInfoList (&guid, NULL);
   if (DeviceInfo == INVALID_HANDLE_VALUE)
-    {
-      goto cleanup3;
-    }
+      goto cleanup;
+  
   DeviceNode.cbSize = sizeof (SP_DEVINFO_DATA);
   if (!SetupDiCreateDeviceInfo (DeviceInfo,
                                 class,
@@ -279,56 +246,60 @@ setup_interface ()
                                 NULL,
                                 DICD_GENERATE_ID,
                                 &DeviceNode))
-    {
-      goto cleanup3;
-    }
-
+      goto cleanup;
+  
   /* Deploy all the information collected into the registry */
   if (!SetupDiSetDeviceRegistryProperty (DeviceInfo,
                                          &DeviceNode,
                                          SPDRP_HARDWAREID,
                                          (LPBYTE) hwIdList,
                                          (lstrlen (hwIdList) + 2) * sizeof (TCHAR)))
-    {
-      goto cleanup3;
-    }
+      goto cleanup;
+  
   /* Install our new class(=device) into the system */
   if (SetupDiCallClassInstaller (DIF_REGISTERDEVICE,
                                  DeviceInfo,
                                  &DeviceNode))
-    {
       return TRUE;
-    }
-
+  
   //disabled for debug-reasons...
-cleanup3:
-  //GNUNET_free(DeviceInfo);
-  ;
-cleanup2:
-  //GNUNET_free(hwIdList);
-  ;
-cleanup1:
-  //GNUNET_free(InfFilePath);
-  ;
+cleanup:
+//  GNUNET_free(DeviceInfo);
   return FALSE;
 
 }
 
 
+/**
+ * Remove our new virtual interface to use for tunneling. 
+ * This function must be called AFTER setup_interface!
+ * 
+ * @return: TRUE if destruction was successful, else FALSE
+ */
 static boolean
 remove_interface ()
 {
   SP_REMOVEDEVICE_PARAMS remove;
-
+  
+  if (INVALID_HANDLE_VALUE == DeviceInfo)
+    return FALSE;
+  
   remove.ClassInstallHeader.cbSize = sizeof (SP_CLASSINSTALL_HEADER);
   remove.HwProfile = 0;
   remove.Scope = DI_REMOVEDEVICE_GLOBAL;
   remove.ClassInstallHeader.InstallFunction = DIF_REMOVE;
+  /*
+   * 1. Prepare our existing device information set, and place the 
+   *    uninstall related information into the structure
+   */
   if (! SetupDiSetClassInstallParams (DeviceInfo,
 				      (PSP_DEVINFO_DATA) &DeviceNode,
 				      &remove.ClassInstallHeader,
 				      sizeof (remove)))
     return FALSE;
+  /*
+   * 2. Uninstall the virtual interface using the class installer
+   */
   if (! SetupDiCallClassInstaller (DIF_REMOVE, 
 				   DeviceInfo, 
 				   (PSP_DEVINFO_DATA) &DeviceNode))
@@ -336,6 +307,33 @@ remove_interface ()
   return TRUE;
 }
 
+/**
+ * Creates a tun-interface called dev;
+ *
+ * @param hwid is asumed to point to a TCHAR[LINE_LEN]
+ *        if *dev == '\\0', uses the name supplied by the kernel;
+ * @return the fd to the tun or -1 on error
+ */
+static int
+init_tun (TCHAR *hwid)
+{
+  int fd;
+
+  if (NULL == hwid)
+    {
+      errno = EINVAL;
+      return -1;
+    }
+
+  if (FALSE == setup_interface()){
+      errno = ENODEV;
+      return -1;
+    }
+  
+  
+
+  return fd;
+}
 
 /**
  * Start forwarding to and from the tunnel.
@@ -357,7 +355,7 @@ run (int fd_tun)
    */
   unsigned char bufin[MAX_SIZE];
   ssize_t bufin_size = 0;
-  size_t bufin_rpos = 0;
+  ssize_t bufin_rpos = 0;
   unsigned char *bufin_read = NULL;
   /* Hello, I am a stub function! I did my job, yay me! */
 
@@ -369,7 +367,7 @@ run (int fd_tun)
  *
  * @param argc must be 6
  * @param argv 0: binary name (gnunet-helper-vpn)
- *             1: tunnel interface name (gnunet-vpn)
+ *             1: tunnel interface name (gnunet-vpn) (unused, can be used as additional HWID in the future)
  *             2: IPv6 address (::1), "-" to disable
  *             3: IPv6 netmask length in bits (64), ignored if #2 is "-"
  *             4: IPv4 address (1.2.3.4), "-" to disable
@@ -378,7 +376,7 @@ run (int fd_tun)
 int
 main (int argc, char **argv)
 {
-  //char dev[IFNAMSIZ];
+  TCHAR hwid[LINE_LEN];
   int fd_tun;
   int global_ret;
 
@@ -388,21 +386,19 @@ main (int argc, char **argv)
       return 1;
     }
 
-  /*
-   * strncpy (dev, argv[1], IFNAMSIZ);
-   * dev[IFNAMSIZ - 1] = '\0';
-   */
-  /*  if (-1 == (fd_tun = init_tun (dev)))
+   strncpy (hwid, argv[1], LINE_LEN);
+   hwid[LINE_LEN - 1] = _T('\0');
+
+  if (-1 == (fd_tun = init_tun (hwid)))
     {
-      fprintf (stderr, "Fatal: could not initialize tun-interface  with IPv6 %s/%s and IPv4 %s/%s\n",
-               dev,
+      fprintf (stderr, "Fatal: could not initialize virtual-interface %s with IPv6 %s/%s and IPv4 %s/%s\n",
+               hwid,
                argv[2],
                argv[3],
                argv[4],
                argv[5]);
       return 1;
     }
-   */
 
   if (0 != strcmp (argv[2], "-"))
     {
@@ -415,7 +411,7 @@ main (int argc, char **argv)
           return 1;
         }
 
-      //set_address6 (dev, address, prefix_len);
+      set_address6 (address, prefix_len);
     }
 
   if (0 != strcmp (argv[4], "-"))
