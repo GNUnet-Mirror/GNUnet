@@ -570,7 +570,7 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
                       uint32_t atsi_count)
 {
   struct ATS_Address *old;
-  uint32_t i;
+  uint32_t ats_res;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received `%s' for peer `%s'\n",
@@ -593,40 +593,13 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
     return;
   }
 
-  for (i = 0; i < atsi_count; i++)
-    switch (ntohl (atsi[i].type))
-    {
-    case GNUNET_ATS_UTILIZATION_UP:
-      old->atsp_utilization_out.value__ = atsi[i].value;
-      break;
-    case GNUNET_ATS_UTILIZATION_DOWN:
-      old->atsp_utilization_in.value__ = atsi[i].value;
-      break;
-    case GNUNET_ATS_QUALITY_NET_DELAY:
-      old->atsp_latency.rel_value = ntohl (atsi[i].value);
-      break;
-    case GNUNET_ATS_QUALITY_NET_DISTANCE:
-      old->atsp_distance = ntohl (atsi[i].value);
-      break;
-    case GNUNET_ATS_COST_WAN:
-      old->atsp_cost_wan = ntohl (atsi[i].value);
-      break;
-    case GNUNET_ATS_COST_LAN:
-      old->atsp_cost_lan = ntohl (atsi[i].value);
-      break;
-    case GNUNET_ATS_COST_WLAN:
-      old->atsp_cost_wlan = ntohl (atsi[i].value);
-      break;
-    case GNUNET_ATS_NETWORK_TYPE:
-      old->atsp_network_type = ntohl (atsi[i].value);
-      break;
+  if (atsi_count != (ats_res = disassemble_ats_information (atsi, atsi_count, old)))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "While adding address: had %u ATS elements to add, could only add %u\n",
+                atsi_count, ats_res);
+  }
 
-    default:
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Received unsupported ATS type %u\n", ntohl (atsi[i].type));
-      GNUNET_break (0);
-      break;
-    }
   /* Tell solver about update */
   handle->s_update (handle->solver, handle->addresses, old);
 }
