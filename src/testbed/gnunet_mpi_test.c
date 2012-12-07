@@ -1,6 +1,5 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include <mpi.h>
 
 /**
  * Generic logging shorthand
@@ -14,21 +13,15 @@ int main (int argc, char *argv[])
   char *filename;
   pid_t pid;
   pid_t ppid;
-  int ntasks;
   int rank;
   int msg_size;
   int ret;
 
   ret = GNUNET_SYSERR;
-  if (MPI_SUCCESS != MPI_Init (&argc, &argv))
-    return 1;
-  if (MPI_SUCCESS != MPI_Comm_size (MPI_COMM_WORLD, &ntasks))
-    goto finalize;
-  if (MPI_SUCCESS != MPI_Comm_rank (MPI_COMM_WORLD, &rank))
-    goto finalize;
+  rank = 0;
   pid = getpid();
   (void) GNUNET_asprintf (&filename, "%d-%d.mpiout", (int) pid, rank);
-  msg_size = GNUNET_asprintf (&msg, "My rank is: %d\n", rank);
+  msg_size = GNUNET_asprintf (&msg, "My pid is: %d\n", pid);
   printf ("%s", msg);
   if (msg_size == GNUNET_DISK_fn_write (filename,
                                         msg, msg_size,
@@ -91,6 +84,5 @@ int main (int argc, char *argv[])
   ret = GNUNET_OK;
 
  finalize:
-  (void) MPI_Finalize ();
   return (GNUNET_OK == ret) ? 0 : 1;
 }
