@@ -939,7 +939,7 @@ GNUNET_TESTBED_topology_get_ (enum GNUNET_TESTBED_TopologyOption *topology,
     if (0 == strcasecmp (topology_string, topology_strings[cnt]))
     {
       if (NULL != topology)
-        *topology = cnt;
+        *topology = (enum GNUNET_TESTBED_TopologyOption) cnt;
       return GNUNET_YES;
     }
   }

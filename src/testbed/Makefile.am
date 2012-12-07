@@ -10,9 +10,12 @@ if USE_COVERAGE
 endif
 
 if WITH_LL
-  ll_binaries = \
+  CC = mpcc
+  ll_noinst_binaries = \
     ll-master \
-    ll-monitor
+    ll-monitor 
+  ll_binaries = \
+    gnunet-mpi-test
 endif
 
 libexecdir= $(pkglibdir)/libexec/
@@ -26,9 +29,12 @@ libexec_PROGRAMS = \
   gnunet-service-testbed \
   gnunet-helper-testbed
 
+bin_PROGRAMS = \
+  $(ll_binaries)
+
 noinst_PROGRAMS = \
   gnunet-testbed-profiler \
-  $(ll_binaries)
+  $(ll_noinst_binaries)
 
 gnunet_service_testbed_SOURCES = \
   gnunet-service-testbed.c
@@ -70,6 +76,10 @@ ll_monitor_SOURCES = \
   ll_monitor.c
 ll_monitor_LDADD = $(XLIB) \
  $(LTLIBINTL) -lz -lllapi
+
+gnunet_mpi_test_SOURCES = gnunet_mpi_test.c
+gnunet_mpi_test_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la
 
 lib_LTLIBRARIES = \
   libgnunettestbed.la
