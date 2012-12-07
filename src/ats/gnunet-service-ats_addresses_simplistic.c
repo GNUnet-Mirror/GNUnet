@@ -53,13 +53,13 @@ struct GAS_SIMPLISTIC_Handle
    * Array of inbound quotas
    *
    */
-  unsigned long long *quota_in;
+  unsigned long long *total_quota_in;
 
   /**
    * Array of outbound quotas
    *
    */
-  unsigned long long *quota_out;
+  unsigned long long *total_quota_out;
 
   /**
    * Active addresses per network type
@@ -103,11 +103,11 @@ GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   solver->quota_net = GNUNET_malloc (dest_length * sizeof (int));
   memcpy (solver->quota_net, network, dest_length * sizeof (int));
 
-  solver->quota_in  = GNUNET_malloc (dest_length * sizeof (unsigned long long));
-  memcpy (solver->quota_in, in_quota, dest_length * sizeof (int));
+  solver->total_quota_in  = GNUNET_malloc (dest_length * sizeof (unsigned long long));
+  memcpy (solver->total_quota_in, in_quota, dest_length * sizeof (int));
 
-  solver->quota_out = GNUNET_malloc (dest_length * sizeof (unsigned long long));
-  memcpy (solver->quota_out, out_quota, dest_length * sizeof (unsigned long long));
+  solver->total_quota_out = GNUNET_malloc (dest_length * sizeof (unsigned long long));
+  memcpy (solver->total_quota_out, out_quota, dest_length * sizeof (unsigned long long));
 
   solver->active_addresses_per_net = GNUNET_malloc (dest_length * sizeof (unsigned int));
 
@@ -126,10 +126,24 @@ GAS_simplistic_done (void *solver)
   struct GAS_SIMPLISTIC_Handle *s = solver;
   GNUNET_assert (s != NULL);
   GNUNET_free (s->quota_net);
-  GNUNET_free (s->quota_in);
-  GNUNET_free (s->quota_out);
+  GNUNET_free (s->total_quota_in);
+  GNUNET_free (s->total_quota_out);
   GNUNET_free (s->active_addresses_per_net);
   GNUNET_free (s);
+}
+
+static void
+update_quota (struct GAS_SIMPLISTIC_Handle *s, unsigned int net)
+{
+  unsigned long long quota_in;
+  unsigned long long quota_out;
+
+  quota_in = s->total_quota_in[net] / s->active_addresses_per_net[net];
+  quota_out = s->total_quota_out[net] / s->active_addresses_per_net[net];
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+              "New quota for network type %u (in/out): %llu/%llu \n",
+              net, quota_in, quota_out);
 }
 
 /**
@@ -142,8 +156,24 @@ GAS_simplistic_done (void *solver)
 void
 GAS_simplistic_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
 {
+  struct GAS_SIMPLISTIC_Handle *s = solver;
+  GNUNET_assert (NULL != s);
+  int c;
+  for (c = 0; c < s->networks; c++)
+  {
+      if (address->atsp_network_type == s->quota_net[c])
+      {
+          s->active_addresses_per_net[c] ++;
+          LOG (GNUNET_ERROR_TYPE_DEBUG,
+                      "Adding new address for network type %u (now %u total)\n",
+                      address->atsp_network_type,
+                      s->active_addresses_per_net[c]);
+          break;
+      }
+  }
 
-
+  /* Update quota for this network type */
+  update_quota (s, c);
 }
 
 
@@ -158,8 +188,25 @@ GAS_simplistic_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap *
 void
 GAS_simplistic_address_update (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
 {
+#if 0
+  struct GAS_SIMPLISTIC_Handle *s = solver;
+  GNUNET_assert (NULL != s);
+  int c;
+  for (c = 0; c < s->networks; c++)
+  {
+      if (address->atsp_network_type == s->quota_net[c])
+      {
+          LOG (GNUNET_ERROR_TYPE_DEBUG,
+                      "Updating address for network type %u (%u total)\n",
+                      address->atsp_network_type,
+                      s->active_addresses_per_net[c]);
+          break;
+      }
+  }
 
-
+  /* Update quota for this network type */
+  update_quota (s, c);
+#endif
 }
 
 
@@ -173,7 +220,27 @@ GAS_simplistic_address_update (void *solver, struct GNUNET_CONTAINER_MultiHashMa
 void
 GAS_simplistic_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
 {
+#if 0
+  struct GAS_SIMPLISTIC_Handle *s = solver;
+  GNUNET_assert (NULL != s);
+  int c;
+  for (c = 0; c < s->networks; c++)
+  {
+      if (address->atsp_network_type == s->quota_net[c])
+      {
+          GNUNET_assert (s->active_addresses_per_net[c] > 0);
+          s->active_addresses_per_net[c] --;
+          LOG (GNUNET_ERROR_TYPE_DEBUG,
+                      "Deleting address for network type %u (now %u total)\n",
+                      address->atsp_network_type,
+                      s->active_addresses_per_net[c]);
+          break;
+      }
+  }
 
+  /* Update quota for this network type */
+  update_quota (s, c);
+#endif
 }
 
 
