@@ -176,11 +176,26 @@ typedef void *
                      unsigned long long *in_quota,
                      int dest_length);
 
+
 typedef void
 (*GAS_solver_address_change_preference) (void *solver,
                                          const struct GNUNET_PeerIdentity *peer,
                                          enum GNUNET_ATS_PreferenceKind kind,
                                          float score);
+
+/**
+ * Add a single address to the solver
+ *
+ * @param solver the solver Handle
+ * @param addresses the address hashmap containing all addresses
+ * @param address the address to add
+ */
+typedef void
+(*GAS_solver_address_add) (void *solver,
+                           struct GNUNET_CONTAINER_MultiHashMap * addresses,
+                           struct ATS_Address *address);
+
+
 
 typedef void
  (*GAS_solver_address_delete) (void *solver,

@@ -1517,6 +1517,20 @@ update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address)
   }
 }
 
+
+/**
+ * Add a single address to the solve
+ *
+ * @param solver the solver Handle
+ * @param addresses the address hashmap containing all addresses
+ * @param address the address to add
+ */
+void
+GAS_mlp_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
+{
+
+}
+
 /**
  * Updates a single address in the MLP problem
  *

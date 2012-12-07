@@ -124,6 +124,11 @@ struct GAS_Addresses_Handle
   GAS_solver_init s_init;
 
   /**
+   * Add an address to the solver
+   */
+  GAS_solver_address_add s_add;
+
+  /**
    * Update address in solver
    */
   GAS_solver_address_update s_update;
@@ -478,7 +483,7 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Added new address for peer `%s' session id %u, %p\n",
                 GNUNET_i2s (peer), session_id, aa);
     /* Tell solver about update */
-    handle->s_update (handle->solver, handle->addresses, aa);
+    handle->s_add (handle->solver, handle->addresses, aa);
     return;
   }
 
@@ -505,7 +510,7 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
   }
   GNUNET_free (aa->plugin);
   GNUNET_free (aa);
-  handle->s_update (handle->solver, handle->addresses, old);
+  handle->s_add (handle->solver, handle->addresses, old);
 }
 
 
@@ -997,6 +1002,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 #if HAVE_LIBGLPK
       ah->ats_mode = MODE_MLP;
       ah->s_init = &GAS_mlp_init;
+      ah->s_add = &GAS_mlp_address_add;
       ah->s_update = &GAS_mlp_address_update;
       ah->s_get = &GAS_mlp_get_preferred_address;
       ah->s_pref = &GAS_mlp_address_change_preference;
@@ -1011,6 +1017,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       /* Init the simplistic solver with default values */
       ah->ats_mode = MODE_SIMPLISTIC;
       ah->s_init = &GAS_simplistic_init;
+      ah->s_add = &GAS_simplistic_address_add;
       ah->s_update = &GAS_simplistic_address_update;
       ah->s_get = &GAS_simplistic_get_preferred_address;
       ah->s_pref = &GAS_simplistic_address_change_preference;
@@ -1024,6 +1031,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
 
   GNUNET_assert (NULL != ah->s_init);
+  GNUNET_assert (NULL != ah->s_add);
   GNUNET_assert (NULL != ah->s_update);
   GNUNET_assert (NULL != ah->s_get);
   GNUNET_assert (NULL != ah->s_pref);

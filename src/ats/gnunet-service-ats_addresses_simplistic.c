@@ -39,6 +39,8 @@ struct GAS_SIMPLISTIC_Handle
 
   unsigned int active_addresses;
 
+  unsigned int networks;
+
   /**
    * Network type array
    *
@@ -96,6 +98,8 @@ GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct GAS_SIMPLISTIC_Handle *solver = GNUNET_malloc (sizeof (struct GAS_SIMPLISTIC_Handle));
 
+  solver->networks = dest_length;
+
   solver->quota_net = GNUNET_malloc (dest_length * sizeof (int));
   memcpy (solver->quota_net, network, dest_length * sizeof (int));
 
@@ -129,6 +133,22 @@ GAS_simplistic_done (void *solver)
 }
 
 /**
+ * Add a single address to the solve
+ *
+ * @param solver the solver Handle
+ * @param addresses the address hashmap containing all addresses
+ * @param address the address to add
+ */
+void
+GAS_simplistic_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
+{
+
+
+}
+
+
+
+/**
  * Updates a single address in the solve
  *
  * @param solver the solver Handle
@@ -138,6 +158,7 @@ GAS_simplistic_done (void *solver)
 void
 GAS_simplistic_address_update (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
 {
+
 
 }
 

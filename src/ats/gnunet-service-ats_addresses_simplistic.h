@@ -67,6 +67,16 @@ GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GAS_simplistic_done (void * solver);
 
+/**
+ * Add a single address to the solve
+ *
+ * @param solver the solver Handle
+ * @param addresses the address hashmap containing all addresses
+ * @param address the address to add
+ */
+void
+GAS_simplistic_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
+
 
 /**
  * Updates a single address in the solve
