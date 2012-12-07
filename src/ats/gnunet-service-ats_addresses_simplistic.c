@@ -148,13 +148,6 @@ find_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
     return GNUNET_OK;
   }
 
-  current->block_interval = GNUNET_TIME_relative_add (current->block_interval, ATS_BLOCKING_DELTA);
-  current->blocked_until = GNUNET_TIME_absolute_add (now, current->block_interval);
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Address %p ready for suggestion, block interval now %llu \n",
-       current, current->block_interval);
-
   if (NULL != previous)
   {
     if ((0 == strcmp (previous->plugin, "tcp")) &&

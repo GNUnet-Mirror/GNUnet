@@ -497,6 +497,11 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
   struct ATS_Address *old;
   unsigned int ats_res;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' for peer `%s'\n",
+              "ADDRESS ADD",
+              GNUNET_i2s (peer));
+
   if (GNUNET_NO == handle->running)
     return;
 
@@ -566,6 +571,11 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
 {
   struct ATS_Address *old;
   uint32_t i;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received `%s' for peer `%s'\n",
+                "ADDRESS UPDATE",
+                GNUNET_i2s (peer));
 
   if (GNUNET_NO == handle->running)
     return;
@@ -703,6 +713,11 @@ GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
   struct ATS_Address *aa;
   struct ATS_Address *old;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' for peer `%s'\n",
+              "ADDRESS DESTROY",
+              GNUNET_i2s (peer));
+
   if (GNUNET_NO == handle->running)
     return;
 
@@ -729,13 +744,12 @@ GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
                       const char *plugin_name, const void *plugin_addr,
                       size_t plugin_addr_len, uint32_t session_id, int in_use)
 {
-#if DEBUG_ATS
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' message for peer `%s': %i\n", "ADDRESS_IN_USE",
-              GNUNET_i2s (peer), in_use);
-#endif
-
   struct ATS_Address *old;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received `%s' for peer `%s'\n",
+                "ADDRESS IN USE",
+                GNUNET_i2s (peer));
 
   if (GNUNET_NO == handle->running)
     return GNUNET_SYSERR;
@@ -813,9 +827,14 @@ void
 GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
 {
   struct GAS_Addresses_Suggestion_Requests *cur = handle->r_head;
-  const struct ATS_Address *aa;
+  struct ATS_Address *aa;
   struct GNUNET_ATS_Information *ats;
   unsigned int ats_count;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' for peer `%s'\n",
+              "REQUEST ADDRESS",
+              GNUNET_i2s (peer));
 
   if (GNUNET_NO == handle->running)
     return;
@@ -833,25 +852,35 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
   }
 
   /* Get prefered address from solver */
-  aa = handle->s_get (handle->solver, handle->addresses, peer);
+  aa = (struct ATS_Address *) handle->s_get (handle->solver, handle->addresses, peer);
   if (NULL == aa)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
-  else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Suggesting address %p for peer `%s'\n", aa, GNUNET_i2s (peer));
-
-    ats_count = assemble_ats_information (aa, &ats);
-    GAS_scheduling_transmit_address_suggestion (peer,
-                                                aa->plugin,
-                                                aa->addr, aa->addr_len,
-                                                aa->session_id,
-                                                ats, ats_count,
-                                                aa->assigned_bw_out,
-                                                aa->assigned_bw_in);
-    GNUNET_free (ats);
+                "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
+    return;
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Suggesting address %p for peer `%s'\n", aa, GNUNET_i2s (peer));
+
+  ats_count = assemble_ats_information (aa, &ats);
+  GAS_scheduling_transmit_address_suggestion (peer,
+                                              aa->plugin,
+                                              aa->addr, aa->addr_len,
+                                              aa->session_id,
+                                              ats, ats_count,
+                                              aa->assigned_bw_out,
+                                              aa->assigned_bw_in);
+
+  aa->block_interval = GNUNET_TIME_relative_add (aa->block_interval, ATS_BLOCKING_DELTA);
+  aa->blocked_until = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), aa->block_interval);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+       "Address %p ready for suggestion, block interval now %llu \n",
+       aa, aa->block_interval);
+
+
+  GNUNET_free (ats);
 }
 
 
@@ -873,6 +902,11 @@ reset_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 void
 GAS_addresses_handle_backoff_reset (const struct GNUNET_PeerIdentity *peer)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' for peer `%s'\n",
+              "RESET BACKOFF",
+              GNUNET_i2s (peer));
+
   GNUNET_break (GNUNET_SYSERR != GNUNET_CONTAINER_multihashmap_get_multiple (handle->addresses,
                                               &peer->hashPubKey,
                                               &reset_address_it,
@@ -885,6 +919,11 @@ GAS_addresses_change_preference (const struct GNUNET_PeerIdentity *peer,
                                  enum GNUNET_ATS_PreferenceKind kind,
                                  float score)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' for peer `%s'\n",
+              "CHANGE PREFERENCE",
+              GNUNET_i2s (peer));
+
   if (GNUNET_NO == handle->running)
     return;
 
@@ -1124,6 +1163,8 @@ GAS_addresses_done (struct GAS_Addresses_Handle *handle)
 {
   struct GAS_Addresses_Suggestion_Requests *cur;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Shutting down addresses\n");
   GNUNET_assert (NULL != handle);
   GAS_addresses_destroy_all ();
   handle->running = GNUNET_NO;
