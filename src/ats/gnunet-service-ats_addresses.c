@@ -314,11 +314,6 @@ compare_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
   struct CompareAddressContext *cac = cls;
   struct ATS_Address *aa = value;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Comparing peer %4s: address length %u session %u <-> address length %u session %u\n",
-      GNUNET_h2s (key),
-      aa->addr_len, aa->session_id,
-      cac->search->addr_len, cac->search->session_id);
-
   /* Find an matching exact address:
    *
    * Compare by:
@@ -400,12 +395,6 @@ find_address (const struct GNUNET_PeerIdentity *peer,
   GNUNET_CONTAINER_multihashmap_get_multiple (handle->addresses, &peer->hashPubKey,
                                               &compare_address_it, &cac);
 
-#if 0
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Found exact address: %s           base address: %s\n",
-              (cac.exact_address != NULL) ? "YES" : "NO",
-              (cac.base_address != NULL) ? "YES" : "NO");
-#endif
   if (cac.exact_address == NULL)
     return cac.base_address;
   return cac.exact_address;
@@ -443,48 +432,6 @@ lookup_address (const struct GNUNET_PeerIdentity *peer,
   return old;
 }
 
-
-#if 0
-static int
-compare_address_session_it (void *cls, const struct GNUNET_HashCode * key, void *value)
-{
-  struct CompareAddressContext *cac = cls;
-  struct ATS_Address *aa = value;
-
-  if ((aa->addr_len == cac->search->addr_len) && (0 == strcmp (aa->plugin, cac->search->plugin)))
-  {
-      if ((0 == memcmp (aa->addr, cac->search->addr, aa->addr_len)) && (aa->session_id == cac->search->session_id))
-      {
-       cac->exact_address = aa;
-        return GNUNET_NO;
-      }
-  }
-  return GNUNET_YES;
-}
-
-
-/**
- * Find an existing equivalent address record.
- * Compares by peer identity and network address AND by session ID
- * (one of the two must match).
- *
- * @param peer peer to lookup addresses for
- * @param addr existing address record
- * @return existing address record, NULL for none
- */
-static struct ATS_Address *
-find_exact_address (const struct GNUNET_PeerIdentity *peer,
-              const struct ATS_Address *addr)
-{
-  struct CompareAddressContext cac;
-
-  cac.exact_address = NULL;
-  cac.search = addr;
-  GNUNET_CONTAINER_multihashmap_get_multiple (handle->addresses, &peer->hashPubKey,
-                                              &compare_address_session_it, &cac);
-  return cac.exact_address;
-}
-#endif
 
 void
 GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,

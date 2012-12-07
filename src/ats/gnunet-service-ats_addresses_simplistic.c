@@ -36,26 +36,62 @@
  */
 struct GAS_SIMPLISTIC_Handle
 {
-  unsigned int active_addresses;
-  int *quota_net;
-  unsigned long long *quota_in;
-  unsigned long long *quota_out;
-};
 
+  unsigned int active_addresses;
+
+  /**
+   * Network type array
+   *
+   * quotas[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
+   *
+   */
+  int *quota_net;
+
+  /**
+   * Array of inbound quotas
+   *
+   */
+  unsigned long long *quota_in;
+
+  /**
+   * Array of outbound quotas
+   *
+   */
+  unsigned long long *quota_out;
+
+  /**
+   * Active addresses per network type
+   */
+  unsigned int *active_addresses_per_net;
+};
 
 /**
  * Init the simplistic problem solving component
  *
+ * Quotas:
+ * network[i] contains the network type as type GNUNET_ATS_NetworkType[i]
+ * out_quota[i] contains outbound quota for network type i
+ * in_quota[i] contains inbound quota for network type i
+ *
+ * Example
+ * network = {GNUNET_ATS_NET_UNSPECIFIED, GNUNET_ATS_NET_LOOPBACK, GNUNET_ATS_NET_LAN, GNUNET_ATS_NET_WAN, GNUNET_ATS_NET_WLAN}
+ * network[2]   == GNUNET_ATS_NET_LAN
+ * out_quota[2] == 65353
+ * in_quota[2]  == 65353
+ *
  * @param cfg configuration handle
  * @param stats the GNUNET_STATISTICS handle
+ * @param network array of GNUNET_ATS_NetworkType with length dest_length
+ * @param out_quota array of outbound quotas
+ * param in_quota array of outbound quota
  * @return handle for the solver on success, NULL on fail
  */
 void *
 GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      const struct GNUNET_STATISTICS_Handle *stats,
                      int *network,
-                     unsigned long long *out_dest,
-                     unsigned long long *in_dest,
+                     unsigned long long *out_quota,
+                     unsigned long long *in_quota,
                      int dest_length)
 {
   struct GAS_SIMPLISTIC_Handle *solver = GNUNET_malloc (sizeof (struct GAS_SIMPLISTIC_Handle));
@@ -64,10 +100,12 @@ GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   memcpy (solver->quota_net, network, dest_length * sizeof (int));
 
   solver->quota_in  = GNUNET_malloc (dest_length * sizeof (unsigned long long));
-  memcpy (solver->quota_in, out_dest, dest_length * sizeof (int));
+  memcpy (solver->quota_in, in_quota, dest_length * sizeof (int));
 
   solver->quota_out = GNUNET_malloc (dest_length * sizeof (unsigned long long));
-  memcpy (solver->quota_out, out_dest, dest_length * sizeof (unsigned long long));
+  memcpy (solver->quota_out, out_quota, dest_length * sizeof (unsigned long long));
+
+  solver->active_addresses_per_net = GNUNET_malloc (dest_length * sizeof (unsigned int));
 
   return solver;
 }
@@ -86,6 +124,7 @@ GAS_simplistic_done (void *solver)
   GNUNET_free (s->quota_net);
   GNUNET_free (s->quota_in);
   GNUNET_free (s->quota_out);
+  GNUNET_free (s->active_addresses_per_net);
   GNUNET_free (s);
 }
 
@@ -212,8 +251,6 @@ update_bw_simple_it (void *cls, const struct GNUNET_HashCode * key, void *value)
   aa->assigned_bw_in.value__ = htonl (UINT32_MAX / s->active_addresses);
   aa->assigned_bw_out.value__ = htonl (UINT32_MAX / s->active_addresses);
 
-  //send_bw_notification (aa);
-
   return GNUNET_OK;
 }
 
@@ -284,7 +321,7 @@ GAS_simplistic_address_change_preference (void *solver,
                                    enum GNUNET_ATS_PreferenceKind kind,
                                    float score)
 {
-
+  /* FIXME : implement this */
 }
 
 /* end of gnunet-service-ats_addresses_simplistic.c */

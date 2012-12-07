@@ -33,15 +33,31 @@
 /**
  * Init the simplistic problem solving component
  *
+ * Quotas:
+ * network[i] contains the network type as type GNUNET_ATS_NetworkType[i]
+ * out_quota[i] contains outbound quota for network type i
+ * in_quota[i] contains inbound quota for network type i
+ *
+ * Example
+ * network = {GNUNET_ATS_NET_UNSPECIFIED, GNUNET_ATS_NET_LOOPBACK, GNUNET_ATS_NET_LAN, GNUNET_ATS_NET_WAN, GNUNET_ATS_NET_WLAN}
+ * network[2]   == GNUNET_ATS_NET_LAN
+ * out_quota[2] == 65353
+ * in_quota[2]  == 65353
+ *
  * @param cfg configuration handle
  * @param stats the GNUNET_STATISTICS handle
+ * @param network array of GNUNET_ATS_NetworkType with length dest_length
+ * @param out_quota array of outbound quotas
+ * param in_quota array of outbound quota
  * @return handle for the solver on success, NULL on fail
  */
 void *
 GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    const struct GNUNET_STATISTICS_Handle *stats,
-    int *network,
-    unsigned long long *out_dest, unsigned long long *in_dest, int dest_length);
+                     const struct GNUNET_STATISTICS_Handle *stats,
+                     int *network,
+                     unsigned long long *out_quota,
+                     unsigned long long *in_quota,
+                     int dest_length);
 
 /**
  * Shutdown the simplistic problem solving component
