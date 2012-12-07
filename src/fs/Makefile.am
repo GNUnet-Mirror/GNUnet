@@ -67,7 +67,8 @@ libexec_PROGRAMS = \
   gnunet-service-fs 
 
 noinst_PROGRAMS = \
-  gnunet-fs-profiler
+  gnunet-fs-profiler \
+  gnunet-daemon-fsprofiler
 
 bin_PROGRAMS = \
   gnunet-auto-share \
@@ -164,6 +165,16 @@ gnunet_search_LDADD = \
  -lextractor \
   $(GN_LIBINTL)
 gnunet_search_DEPENDENCIES = \
+  libgnunetfs.la
+
+gnunet_daemon_fsprofiler_SOURCES =  \
+ gnunet-daemon-fsprofiler.c
+gnunet_daemon_fsprofiler_LDADD = \
+  $(top_builddir)/src/fs/libgnunetfs.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+gnunet_daemon_fsprofiler_DEPENDENCIES = \
   libgnunetfs.la
 
 gnunet_service_fs_SOURCES =  \
