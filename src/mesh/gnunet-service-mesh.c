@@ -923,6 +923,11 @@ static unsigned long long max_tunnels;
  */
 static unsigned long long max_msgs_queue;
 
+/**
+ * How many peers do we want to remember?
+ */
+static unsigned long long max_peers;
+
 
 /*************************** Static global variables **************************/
 
@@ -2328,6 +2333,23 @@ send_client_tunnel_disconnect (struct MeshTunnel *t, struct MeshClient *c)
 
 
 /**
+ * Iterator over all the peers to remove the oldest not-used entry.
+ *
+ * @param cls Closure (unsued).
+ * @param key ID of the peer.
+ * @param value Peer_Info of the peer.
+ *
+ * FIXME implement
+ */
+static int
+peer_info_timeout (void *cls,
+                   const struct GNUNET_HashCode *key,
+                   void *value)
+{
+  return GNUNET_YES;
+}
+
+/**
  * Retrieve the MeshPeerInfo stucture associated with the peer, create one
  * and insert it in the appropiate structures if the peer is not known yet.
  *
@@ -2345,10 +2367,17 @@ peer_info_get (const struct GNUNET_PeerIdentity *peer)
   {
     peer_info =
         (struct MeshPeerInfo *) GNUNET_malloc (sizeof (struct MeshPeerInfo));
+    if (GNUNET_CONTAINER_multihashmap_size (peers) > max_peers)
+    {
+      GNUNET_CONTAINER_multihashmap_iterate (peers,
+                                             &peer_info_timeout,
+                                             NULL);
+    }
     GNUNET_CONTAINER_multihashmap_put (peers, &peer->hashPubKey, peer_info,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
     peer_info->id = GNUNET_PEER_intern (peer);
   }
+  peer_info->last_contact = GNUNET_TIME_absolute_get();
 
   return peer_info;
 }
@@ -8797,6 +8826,16 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                 ("%s service is lacking key configuration settings (%s). Using default (%u).\n"),
                 "mesh", "default ttl", 64);
     default_ttl = 64;
+  }
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_PEERS",
+                                             &max_peers))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("%s service is lacking key configuration settings (%s). Using default (%u).\n"),
+                "mesh", "max peers", 1000);
+    max_peers = 1000;
   }
 
   if (GNUNET_OK !=
