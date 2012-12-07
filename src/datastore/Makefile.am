@@ -87,6 +87,7 @@ plugin_LTLIBRARIES = \
   $(SQLITE_PLUGIN) \
   $(MYSQL_PLUGIN) \
   $(POSTGRES_PLUGIN) \
+  libgnunet_plugin_datastore_heap.la \
   libgnunet_plugin_datastore_template.la 
 
 
@@ -97,6 +98,15 @@ libgnunet_plugin_datastore_sqlite_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lsqlite3 \
   $(LTLIBINTL)
 libgnunet_plugin_datastore_sqlite_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
+
+libgnunet_plugin_datastore_heap_la_SOURCES = \
+  plugin_datastore_heap.c
+libgnunet_plugin_datastore_heap_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL)
+libgnunet_plugin_datastore_heap_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 
@@ -132,6 +142,11 @@ libgnunet_plugin_datastore_template_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 check_PROGRAMS = \
+  test_datastore_api_heap \
+  test_datastore_api_management_heap \
+  perf_datastore_api_heap \
+  perf_plugin_datastore_heap \
+  test_plugin_datastore_heap \
   $(SQLITE_TESTS) \
   $(MYSQL_TESTS) \
   $(POSTGRES_TESTS)
@@ -139,6 +154,40 @@ check_PROGRAMS = \
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
 endif
+
+test_datastore_api_heap_SOURCES = \
+ test_datastore_api.c
+test_datastore_api_heap_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/datastore/libgnunetdatastore.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+test_datastore_api_management_heap_SOURCES = \
+ test_datastore_api_management.c
+test_datastore_api_management_heap_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/datastore/libgnunetdatastore.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+perf_datastore_api_heap_SOURCES = \
+ perf_datastore_api.c
+perf_datastore_api_heap_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/datastore/libgnunetdatastore.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+perf_plugin_datastore_heap_SOURCES = \
+ perf_plugin_datastore.c
+perf_plugin_datastore_heap_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+test_plugin_datastore_heap_SOURCES = \
+ test_plugin_datastore.c
+test_plugin_datastore_heap_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
 
 test_datastore_api_sqlite_SOURCES = \
  test_datastore_api.c

@@ -164,7 +164,8 @@ iterate_zeros (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
   hits[i / 8] |= (1 << (i % 8));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Found result type=%u, priority=%u, size=%u, expire=%llu\n",
+	      "Found result %d type=%u, priority=%u, size=%u, expire=%llu\n",
+	      i,
 	      type, priority, size, (unsigned long long) expiration.abs_value);
   crc->cnt++;
   if (crc->cnt == PUT_10 / 4 - 1)

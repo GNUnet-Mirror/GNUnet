@@ -29,4 +29,5 @@ CONFIG = ~/.my.cnf
 # PORT = 3306
 
 
-
+[datastore-heap]
+HASHMAPSIZE = 1024

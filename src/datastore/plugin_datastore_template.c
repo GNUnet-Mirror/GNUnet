@@ -213,6 +213,21 @@ template_plugin_drop (void *cls)
 
 
 /**
+ * Get all of the keys in the datastore.
+ *
+ * @param cls closure
+ * @param proc function to call on each key
+ * @param proc_cls closure for proc
+ */
+static void
+template_get_keys (void *cls,
+		   PluginKeyProcessor proc,
+		   void *proc_cls)
+{
+}
+
+
+/**
  * Entry point for the plugin.
  *
  * @param cls the "struct GNUNET_DATASTORE_PluginEnvironment*"
@@ -237,6 +252,7 @@ libgnunet_plugin_datastore_template_init (void *cls)
   api->get_expiration = &template_plugin_get_expiration;
   api->get_zero_anonymity = &template_plugin_get_zero_anonymity;
   api->drop = &template_plugin_drop;
+  api->get_keys = &template_get_keys;
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "template",
                    _("Template database running\n"));
   return api;
