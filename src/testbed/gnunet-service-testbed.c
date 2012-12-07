@@ -2415,11 +2415,16 @@ handle_peer_create (void *cls, struct GNUNET_SERVER_Client *client,
       return;
     }
     GNUNET_free (config);
+    GNUNET_CONFIGURATION_set_value_number (cfg,
+					   "TESTBED",
+					   "PEERID",
+					   (unsigned long long) peer_id);
     peer = GNUNET_malloc (sizeof (struct Peer));
     peer->is_remote = GNUNET_NO;
     peer->details.local.cfg = cfg;
     peer->id = peer_id;
-    LOG_DEBUG ("Creating peer with id: %u\n", peer->id);
+    LOG_DEBUG ("Creating peer with id: %u\n", 
+	       (unsigned int) peer->id);
     peer->details.local.peer =
         GNUNET_TESTING_peer_configure (master_context->system,
                                        peer->details.local.cfg, peer->id,
