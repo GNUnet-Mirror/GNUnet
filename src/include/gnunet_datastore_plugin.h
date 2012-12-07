@@ -208,9 +208,6 @@ typedef void (*PluginGetRandom) (void *cls, PluginDatumProcessor proc,
  * priority should be added to the existing priority, ignoring the
  * priority in value.
  *
- * Note that it is possible for multiple values to match this put.
- * In that case, all of the respective values are updated.
- *
  * @param cls closure
  * @param uid unique identifier of the datum
  * @param delta by how much should the priority
