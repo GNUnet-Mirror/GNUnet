@@ -156,118 +156,137 @@ GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
 				  const size_t size,
 				  int allow_inline)
 {
-  char line[256];
-  char tag[64];
-  char value[192];
+  char *line;
+  size_t line_size;
   char *pos;
   unsigned int nr;
   size_t r_bytes;
   size_t to_read;
-  int i;
+  size_t i;
   int emptyline;
   int ret;
   char *section;
+  char *eq;
+  char *tag;
+  char *value;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Deserializing config file\n");
   ret = GNUNET_OK;
   section = GNUNET_strdup ("");
   nr = 0;
   r_bytes = 0;
-  memset (line, 0, 256);
   while (r_bytes < size)
   {
-    /* fgets-like behaviour on buffer. read size is 255 bytes */
+    /* fgets-like behaviour on buffer */
     to_read = size - r_bytes;
-    if (to_read > 255)
-      to_read = 255;
-    memcpy (line, mem + r_bytes, to_read);
-    line[to_read] = '\0';
-    if (NULL != (pos = strstr (line, "\n")))
+    pos = memchr (&mem[r_bytes], '\n', to_read);
+    if (NULL == pos)
     {
-      pos[1] = '\0';
-      r_bytes += (pos - line) + 1;
+      line = GNUNET_strndup (&mem[r_bytes], line_size = to_read);
+      r_bytes += line_size;    
     }
     else
-      r_bytes += to_read;
-    /* fgets-like behaviour end */
+    {
+      line = GNUNET_strndup (&mem[r_bytes], line_size = (pos - &mem[r_bytes]));
+      r_bytes += line_size + 1;
+    }
+    /* increment line number */
     nr++;
-    for (i = 0; i < 255; i++)
+    /* ignore comments */
+    if ( ('#' == line[0]) || ('%' == line[0]) )
+      continue; 
+    /* tabs and '\r' are whitespace */
+    emptyline = GNUNET_YES;
+    for (i = 0; i < line_size; i++)
+    {
       if (line[i] == '\t')
         line[i] = ' ';
-    if (line[0] == '\n' || line[0] == '#' || line[0] == '%' || line[0] == '\r')
+      if (line[i] == '\r')
+        line[i] = ' ';
+      if (' ' != line[i])
+        emptyline = GNUNET_NO;
+    }
+    /* ignore empty lines */
+    if (GNUNET_YES == emptyline)
       continue;
-    emptyline = 1;
-    for (i = 0; (i < 255 && line[i] != 0); i++)
-      if (line[i] != ' ' && line[i] != '\n' && line[i] != '\r')
-        emptyline = 0;
-    if (emptyline == 1)
-      continue;
+
     /* remove tailing whitespace */
-    for (i = strlen (line) - 1; (i >= 0) && (isspace ((unsigned char) line[i]));
-         i--)
+    for (i = line_size - 1; (i >= 1) && (isspace ((unsigned char) line[i]));i--)
       line[i] = '\0';
-    if (1 == SSCANF (line, "@INLINE@ %191[^\n]", value))
+
+    /* handle special "@INLINE@" directive */
+    if (0 == strncasecmp (line, 
+			  "@INLINE@ ",
+			  strlen ("@INLINE@ ")))
     {      
       /* @INLINE@ value */
+      value = &line[strlen ("@INLINE@ ")];
       if (GNUNET_YES == allow_inline)
       {
 	if (GNUNET_OK != GNUNET_CONFIGURATION_parse (cfg, value))
+	{
 	  ret = GNUNET_SYSERR;    /* failed to parse included config */
+	  break;
+	}
       }
       else
+      {
 	LOG (GNUNET_ERROR_TYPE_DEBUG,
-	     "Ignoring parsing INLINE configurations as allow_inline is false\n");
+	     "Ignoring parsing @INLINE@ configurations, not allowed!\n");
+	ret = GNUNET_SYSERR;
+	break;
+      }
+      continue;
     }
-    else if (1 == SSCANF (line, "[%99[^]]]", value))
+    if ( ('[' == line[0]) && (']' == line[line_size - 1]) )
     {
       /* [value] */
+      line[line_size - 1] = '\0';
+      value = &line[1];
       GNUNET_free (section);
       section = GNUNET_strdup (value);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Config section `%s'\n", section);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	   "Config section `%s'\n", 
+	   section);
+      continue;
     }
-    else if (2 == SSCANF (line, " %63[^= ] = %191[^\n]", tag, value))
+    if (NULL != (eq = strchr (line, '=')))
     {
       /* tag = value */
-      /* Strip LF */
-      i = strlen (value) - 1;
-      while ((i >= 0) && (isspace ((unsigned char) value[i])))
-        value[i--] = '\0';
+      tag = GNUNET_strndup (line, eq - line); 
+      /* remove tailing whitespace */
+      for (i = strlen (tag) - 1; (i >= 1) && (isspace ((unsigned char) tag[i]));i--)
+	tag[i] = '\0';
+      
+      /* Strip whitespace */
+      value = eq + 1;
+      while (isspace ((unsigned char) value[0]))
+	value++;
+      for (i = strlen (value) - 1; (i >= 1) && (isspace ((unsigned char) value[i]));i--)
+	value[i] = '\0';
+
       /* remove quotes */
       i = 0;
-      if (value[0] == '"')
+      if ( ('"' == value[0]) &&
+	   ('"' == value[strlen (value) - 1]) )
       {
-        i = 1;
-        while ((value[i] != '\0') && (value[i] != '"'))
-          i++;
-        if (value[i] == '"')
-        {
-          value[i] = '\0';
-          i = 1;
-        }
-        else
-          i = 0;
+	value[strlen (value) - 1] = '\0';
+	value++;
       }
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Config value %s=%s\n", tag, value);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Config value %s=\"%s\"\n", tag, value);
       GNUNET_CONFIGURATION_set_value_string (cfg, section, tag, &value[i]);
+      continue;
     }
-    else if (1 == SSCANF (line, " %63[^= ] =[^\n]", tag))
-    {
-      /* tag = */
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Config value %s is empty\n", tag);
-      GNUNET_CONFIGURATION_set_value_string (cfg, section, tag, "");
-    }
-    else
-    {
-      /* parse error */
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-           _("Syntax error while deserializing operation at line %u\n"), nr);
-      ret = GNUNET_SYSERR;
-      break;
-    }
+    /* parse error */
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+	 _("Syntax error while deserializing in line %u\n"), 
+	 nr);
+    ret = GNUNET_SYSERR;
+    break;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Finished deserializing config\n", tag);
   GNUNET_free (section);  
-  GNUNET_assert (r_bytes == size);
+  GNUNET_assert ( (GNUNET_OK != ret) || (r_bytes == size) );
   return ret;
 }
 
