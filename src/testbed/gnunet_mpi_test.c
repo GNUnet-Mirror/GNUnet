@@ -12,6 +12,7 @@ int main (int argc, char *argv[])
 {
   char *msg;
   char *filename;
+  char **argv2;
   struct GNUNET_OS_Process *proc;
   unsigned long code;
   pid_t pid;
@@ -20,8 +21,14 @@ int main (int argc, char *argv[])
   int rank;
   int msg_size;
   int ret;
+  unsigned int cnt;
 
   ret = GNUNET_SYSERR;
+  if (argc < 2)
+  {
+    printf ("Need arguments: gnunet-mpi-test <cmd> <cmd_args>");
+    return 1;
+  }
   if (MPI_SUCCESS != MPI_Init (&argc, &argv))
   {
     GNUNET_break (0);
@@ -55,22 +62,27 @@ int main (int argc, char *argv[])
     GNUNET_break (0);
     goto finalize;
   }
-
+  
   ret = GNUNET_SYSERR;
-  proc = GNUNET_OS_start_process (GNUNET_NO,
-                                  GNUNET_OS_INHERIT_STD_ALL,
-                                  NULL,
-                                  NULL,
-                                  "uptime", NULL);
+  argv2 = GNUNET_malloc (sizeof (char *) * (argc));
+  for (cnt = 1; cnt < argc; cnt++)
+    argv2[cnt - 1] = argv[cnt];
+  proc = GNUNET_OS_start_process_vap (GNUNET_NO,
+                                      GNUNET_OS_INHERIT_STD_ALL,
+                                      NULL,
+                                      NULL,
+                                      argv2[0], argv2);
   if (NULL == proc)
   {
     printf ("Cannot exec\n");
+    GNUNET_free (argv2);
     goto finalize;
   }
   do {
     (void) sleep (1);
     ret = GNUNET_OS_process_status (proc, &proc_status, &code);
   } while (GNUNET_NO == ret);
+  GNUNET_free (argv2);
   GNUNET_assert (GNUNET_NO != ret);
   if (GNUNET_OK == ret)
   {
