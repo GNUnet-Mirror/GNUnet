@@ -10,6 +10,7 @@ if USE_COVERAGE
 endif
 
 if WITH_LL
+  CC = mpcc
   ll_noinst_binaries = \
     ll-master \
     ll-monitor 
