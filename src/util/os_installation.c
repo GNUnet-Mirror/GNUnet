@@ -396,6 +396,9 @@ os_get_gnunet_path ()
 #if LINUX
   if (NULL != (ret = get_path_from_proc_maps ()))
     return ret;
+  /* try path *first*, before /proc/exe, as /proc/exe can be wrong */
+  if (NULL != (ret = get_path_from_PATH ("gnunet-arm")))
+    return ret;
   if (NULL != (ret = get_path_from_proc_exe ()))
     return ret;
 #endif
