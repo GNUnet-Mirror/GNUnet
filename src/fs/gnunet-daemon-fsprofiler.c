@@ -24,7 +24,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - actually collect performance metrics
  * - how to signal driver that we're done?
  */
 #include "platform.h"
@@ -387,13 +386,19 @@ progress_cb (void *cls,
     p = info->value.publish.cctx;
     return p;
   case GNUNET_FS_STATUS_PUBLISH_ERROR:
-    // FIXME: statistics...
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Publishing failed\n");
+    GNUNET_STATISTICS_update (stats_handle,
+			      "# failed publish operations", 1, GNUNET_NO);
     p = info->value.publish.cctx;
     p->task = GNUNET_SCHEDULER_add_now (&publish_stop_task, p);
     return p;
   case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
-    // FIXME: statistics...
     p = info->value.publish.cctx;
+    GNUNET_STATISTICS_update (stats_handle,
+			      "# publishing time (ms)", 
+			      (long long) GNUNET_TIME_absolute_get_duration (p->start_time).rel_value, 
+			      GNUNET_NO);
     p->task = GNUNET_SCHEDULER_add_now (&publish_stop_task, p);
     return p;
   case GNUNET_FS_STATUS_PUBLISH_STOPPED:
@@ -409,14 +414,19 @@ progress_cb (void *cls,
     p = info->value.download.cctx;
     return p;
   case GNUNET_FS_STATUS_DOWNLOAD_ERROR:
-    // FIXME: statistics
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Download failed\n");
+    GNUNET_STATISTICS_update (stats_handle,
+			      "# failed downloads", 1, GNUNET_NO);
     p = info->value.download.cctx;
     p->task = GNUNET_SCHEDULER_add_now (&download_stop_task, p);
     return p;
   case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
-    // FIXME: statistics
     p = info->value.download.cctx;
-    p->task = GNUNET_SCHEDULER_add_now (&download_stop_task, p);
+    GNUNET_STATISTICS_update (stats_handle,
+			      "# download time (ms)", 
+			      (long long) GNUNET_TIME_absolute_get_duration (p->start_time).rel_value, 
+			      GNUNET_NO);    p->task = GNUNET_SCHEDULER_add_now (&download_stop_task, p);
     return p;
   case GNUNET_FS_STATUS_DOWNLOAD_STOPPED:
     p = info->value.download.cctx;
@@ -438,6 +448,11 @@ progress_cb (void *cls,
       return NULL; /* not what we want */
     if (p->y != GNUNET_FS_uri_chk_get_file_size (uri))
       return NULL; /* not what we want */
+    GNUNET_STATISTICS_update (stats_handle,
+			      "# search time (ms)", 
+			      (long long) GNUNET_TIME_absolute_get_duration (p->start_time).rel_value, 
+			      GNUNET_NO);
+    p->start_time = GNUNET_TIME_absolute_get ();
     p->ctx = GNUNET_FS_download_start (fs_handle, uri,
 				       NULL, NULL, NULL, 
 				       0, GNUNET_FS_uri_chk_get_file_size (uri),
@@ -451,7 +466,10 @@ progress_cb (void *cls,
   case GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED:
     return NULL; /* don't care */
   case GNUNET_FS_STATUS_SEARCH_ERROR:
-    // FIXME: statistics
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Search failed\n");
+    GNUNET_STATISTICS_update (stats_handle,
+			      "# failed searches", 1, GNUNET_NO);
     p = info->value.search.cctx;
     p->stask = GNUNET_SCHEDULER_add_now (&search_stop_task, p);
     return p;
@@ -489,6 +507,7 @@ start_publish (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   fi = make_file (p->x, p->y, p);
+  p->start_time = GNUNET_TIME_absolute_get ();
   p->ctx = GNUNET_FS_publish_start (fs_handle,
 				    fi,
 				    NULL, NULL, NULL,
@@ -513,6 +532,7 @@ start_download (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   keywords = make_keywords (p->x);
+  p->start_time = GNUNET_TIME_absolute_get ();
   p->sctx = GNUNET_FS_search_start (fs_handle, keywords,
 				    anonymity_level,
 				    GNUNET_FS_SEARCH_OPTION_NONE,

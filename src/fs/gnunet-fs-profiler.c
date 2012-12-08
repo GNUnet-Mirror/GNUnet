@@ -42,6 +42,86 @@ static char *host_filename;
  */
 static unsigned int num_peers;
 
+/**
+ * After how long do we abort the test?
+ */
+static struct GNUNET_TIME_Relative timeout;
+
+/**
+ * Handle to the task run during termination.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier terminate_taskid;
+
+
+/**
+ * Function called after we've collected the statistics.
+ *
+ * @param cls NULL
+ * @param op the operation that has been finished
+ * @param emsg error message in case the operation has failed; will be NULL if
+ *          operation has executed successfully.
+ */
+static void
+shutdown_task (void *cls,
+	       struct GNUNET_TESTBED_Operation *op,
+	       const char *emsg)
+{
+  if (NULL != emsg)
+    fprintf (stderr,
+	     "Error collecting statistics: %s\n",
+	     emsg);
+  GNUNET_SCHEDULER_shutdown ();
+}
+
+
+/**
+ * Callback function to process statistic values from all peers.
+ * Prints them out.
+ *
+ * @param cls closure
+ * @param peer the peer the statistic belong to
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
+ * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ */
+static int
+process_stats (void *cls,
+	       const struct GNUNET_TESTBED_Peer *peer,
+	       const char *subsystem,
+	       const char *name,
+	       uint64_t value,
+	       int is_persistent)
+{
+  fprintf (stdout,
+	   "%p-%s: %s = %llu\n",
+	   peer,
+	   subsystem,
+	   name,
+	   (unsigned long long) value);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Task run on timeout to terminate.  Triggers printing out
+ * all statistics.
+ *
+ * @param cls NULL
+ * @param tc unused
+ */
+static void
+terminate_task (void *cls,
+		const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  terminate_taskid = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_TESTBED_get_statistics (0, NULL,
+				 &process_stats,
+				 &shutdown_task,
+				 NULL);
+}
+
 
 /**
  * The testbed has been started, now begin the experiment.
@@ -54,8 +134,16 @@ master_task (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   // const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+  // FIXME: enable clients to signal 'completion' before timeout;
+  // in that case, run the 'terminate_task' "immediately"
 
-  GNUNET_SCHEDULER_shutdown ();
+  if (0 != timeout.rel_value)
+    terminate_taskid = GNUNET_SCHEDULER_add_delayed (timeout,
+						     &terminate_task, NULL);
+  else
+    terminate_taskid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, 
+						     &terminate_task,
+						     NULL);
 }
 
 
@@ -93,10 +181,12 @@ main (int argc, char *const *argv)
     {'n', "num-peers", "COUNT",
      gettext_noop ("run the experiment with COUNT peers"),
      1, &GNUNET_GETOPT_set_uint, &num_peers},
-    {'t', "testbed", "HOSTFILE",
+    {'H', "hosts", "HOSTFILE",
      gettext_noop ("specifies name of a file with the HOSTS the testbed should use"),
      1, &GNUNET_GETOPT_set_string, &host_filename},
-
+    {'t', "timeout", "DELAY",
+     gettext_noop ("automatically terminate experiment after DELAY"),
+     1, &GNUNET_GETOPT_set_relative_time, &timeout},
     GNUNET_GETOPT_OPTION_END
   };
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
