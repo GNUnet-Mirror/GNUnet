@@ -641,12 +641,11 @@ try_read_key (const char *filename)
   if (fs > UINT16_MAX)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("File `%s' does not contain a valid private key (too long, %llu bytes).  Deleting it.\n"),	
+         _("File `%s' does not contain a valid private key (too long, %llu bytes).  Renaming it.\n"),	
          filename,
 	 (unsigned long long) fs);
     GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fd));
-    if (0 != UNLINK (filename))    
-      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "unlink", filename);
+    GNUNET_DISK_file_backup (filename);
     return NULL;
   }
 
@@ -662,8 +661,7 @@ try_read_key (const char *filename)
          filename,
 	 (unsigned long long) fs);
     GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fd));
-    if (0 != UNLINK (filename))    
-      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "unlink", filename);
+    GNUNET_DISK_file_backup (filename);
     GNUNET_free (enc);
     return NULL;
   }
@@ -857,10 +855,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
     LOG (GNUNET_ERROR_TYPE_ERROR,
          _("File `%s' does not contain a valid private key.  Deleting it.\n"),
          filename);
-    if (0 != UNLINK (filename))
-    {
-      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "unlink", filename);
-    }
+    GNUNET_DISK_file_backup (filename);
   }
   GNUNET_free (enc);
   if (GNUNET_YES !=

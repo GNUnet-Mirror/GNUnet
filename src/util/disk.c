@@ -495,6 +495,38 @@ GNUNET_DISK_mkdtemp (const char *t)
 
 
 /**
+ * Move a file out of the way (create a backup) by
+ * renaming it to "orig.NUM~" where NUM is the smallest
+ * number that is not used yet.
+ *
+ * @param fil name of the file to back up
+ */
+void
+GNUNET_DISK_file_backup (const char *fil)
+{
+  size_t slen;
+  char *target;
+  unsigned int num;
+
+  slen = strlen (fil) + 20;
+  target = GNUNET_malloc (slen);
+  num = 0;
+  do
+  {
+    GNUNET_snprintf (target, slen,
+		     "%s.%u~",
+		     fil,
+		     num++);
+  } while (0 == access (target, F_OK));
+  if (0 != rename (fil, target))
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+			      "rename",
+			      fil);
+  GNUNET_free (target);  
+}
+
+
+/**
  * Create an (empty) temporary file on disk.  If the given name is not
  * an absolute path, the current 'TMPDIR' will be prepended.  In any case,
  * 6 random characters will be appended to the name to create a unique
