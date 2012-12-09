@@ -286,7 +286,7 @@ iterate_cb (void *cls,
                                            rd->data,
                                            rd->data_size);
 
-  if (bytes_free < (strlen (name) + strlen (pkey) + 10))
+  if (bytes_free < (strlen (name) + strlen (pkey) + 40))
   {
     new_buf = GNUNET_malloc (zr->buf_len * 2);
     memcpy (new_buf, zr->zoneinfo, zr->write_offset);
