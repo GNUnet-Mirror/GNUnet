@@ -70,6 +70,12 @@
  */
 #define HARDWARE_ID _T("TAP0901")
 
+/*
+ * Our local process' PID. Used for creating a sufficiently unique additional 
+ * hardware ID for our device.
+ */
+static TCHAR secondary_hwid[LINE_LEN / 2];
+  
 /** 
  * This is our own local instance of a virtual network interface
  * It is (somewhat) equivalent to using tun/tap in unixoid systems
@@ -200,17 +206,10 @@ setup_interface ()
    * We do not directly input all the props here, because openvpn will update
    * these details over time.
    */
-  TCHAR InfFilePath[MAX_PATH];
-  TCHAR hwIdList[LINE_LEN + 4];
+  TCHAR inf_file_path[MAX_PATH];
+  TCHAR hwidlist[LINE_LEN + 4];
+  int str_lenth = 0;
 
-  /** 
-   * Locate the inf-file, we need to store it somewhere where the system can
-   * find it. A good choice would be CWD/PDW or %WINDIR$\system32\
-   * 
-   * TODO: Find a more sane way to do this!
-   * TODO: How about win64 in the future? 
-   */
-  GetFullPathName (INF_FILE, MAX_PATH, InfFilePath, NULL);
 
   /** 
    * Set the device's hardware ID and add it to a list.
@@ -219,12 +218,30 @@ setup_interface ()
    * TODO: Currently we just use TAP0901 as HWID, 
    * but we might want to add additional information
    */
-  strncpy (hwIdList, HARDWARE_ID, LINE_LEN);
+  strncpy (hwidlist, HARDWARE_ID, LINE_LEN);
+  /**
+   * this is kind of over-complicated, but allows keeps things independent of 
+   * how the openvpn-hwid is actually stored. 
+   * 
+   * A HWID list is double-\0 terminated and \0 separated
+   */
+  str_lenth = strlen (hwidlist) + 1 ;
+  hwidlist[str_lenth] = _T("\0");
+  strncpy (&hwidlist[str_lenth], secondary_hwid, LINE_LEN - str_lenth);
+  
+  /** 
+   * Locate the inf-file, we need to store it somewhere where the system can
+   * find it. A good choice would be CWD/PDW or %WINDIR$\system32\
+   * 
+   * TODO: How about win64 in the future? 
+   *       We need to use a different driver for amd64/i386 !
+   */
+  GetFullPathName (INF_FILE, MAX_PATH, inf_file_path, NULL);
 
   /** 
    * Bootstrap our device info using the drivers inf-file
    */
-  if (!SetupDiGetINFClass (InfFilePath,
+  if (!SetupDiGetINFClass (inf_file_path,
                            &guid,
                            class, sizeof (class) / sizeof (TCHAR),
                            NULL))
@@ -236,7 +253,7 @@ setup_interface ()
    */
   DeviceInfo = SetupDiCreateDeviceInfoList (&guid, NULL);
   if (DeviceInfo == INVALID_HANDLE_VALUE)
-      goto cleanup;
+      return FALSE;
   
   DeviceNode.cbSize = sizeof (SP_DEVINFO_DATA);
   if (!SetupDiCreateDeviceInfo (DeviceInfo,
@@ -246,15 +263,15 @@ setup_interface ()
                                 NULL,
                                 DICD_GENERATE_ID,
                                 &DeviceNode))
-      goto cleanup;
+      return FALSE;
   
   /* Deploy all the information collected into the registry */
   if (!SetupDiSetDeviceRegistryProperty (DeviceInfo,
                                          &DeviceNode,
                                          SPDRP_HARDWAREID,
-                                         (LPBYTE) hwIdList,
-                                         (lstrlen (hwIdList) + 2) * sizeof (TCHAR)))
-      goto cleanup;
+                                         (LPBYTE) hwidlist,
+                                         (lstrlen (hwidlist) + 2) * sizeof (TCHAR)))
+      return FALSE;
   
   /* Install our new class(=device) into the system */
   if (SetupDiCallClassInstaller (DIF_REGISTERDEVICE,
@@ -262,11 +279,7 @@ setup_interface ()
                                  &DeviceNode))
       return TRUE;
   
-  //disabled for debug-reasons...
-cleanup:
-//  GNUNET_free(DeviceInfo);
   return FALSE;
-
 }
 
 
@@ -304,6 +317,9 @@ remove_interface ()
 				   DeviceInfo, 
 				   (PSP_DEVINFO_DATA) &DeviceNode))
     return FALSE;
+  
+  SetupDiDestroyDeviceInfoList(DeviceInfo);
+  
   return TRUE;
 }
 
@@ -377,9 +393,10 @@ int
 main (int argc, char **argv)
 {
   TCHAR hwid[LINE_LEN];
+  TCHAR pid_as_string[LINE_LEN / 4];
   int fd_tun;
   int global_ret;
-
+  
   if (6 != argc)
     {
       fprintf (stderr, "Fatal: must supply 5 arguments!\n");
@@ -388,6 +405,15 @@ main (int argc, char **argv)
 
    strncpy (hwid, argv[1], LINE_LEN);
    hwid[LINE_LEN - 1] = _T('\0');
+   
+   /* 
+   * We use our PID for finding/resolving the control-panel name of our virtual 
+   * device. PIDs are (of course) unique at runtime, thus we can safely use it 
+   * as additional hardware-id for our device.
+   */
+  _itot(_getpid(), pid_as_string, 10);
+  strncpy (secondary_hwid, hwid, LINE_LEN); 
+  strncat (secondary_hwid, pid_as_string, LINE_LEN); 
 
   if (-1 == (fd_tun = init_tun (hwid)))
     {
