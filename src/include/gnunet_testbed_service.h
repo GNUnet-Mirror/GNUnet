@@ -727,7 +727,7 @@ typedef void (*GNUNET_TESTBED_PeerCreateCallback) (void *cls,
  * 'GNUNET_TESTBED_peer_get_information'.
  *
  * @param controller controller process to use
- * @param host host to run the peer on
+ * @param host host to run the peer on; cannot be NULL
  * @param cfg Template configuration to use for the peer. Should exist until
  *          operation is cancelled or GNUNET_TESTBED_operation_done() is called
  * @param cb the callback to call when the peer has been created

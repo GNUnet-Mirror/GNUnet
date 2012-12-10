@@ -395,9 +395,7 @@ GNUNET_TESTBED_peer_lookup_by_id_ (uint32_t id)
  * path exists, a direct link with a subordinate controller is setup
  * for the first delegated peer to a particular host; the subordinate
  * controller is then destroyed once the last peer that was delegated
- * to the remote host is stopped.  This function is used in particular
- * if some other controller has already assigned a unique ID to the
- * peer.
+ * to the remote host is stopped.
  *
  * Creating the peer only creates the handle to manipulate and further
  * configure the peer; use "GNUNET_TESTBED_peer_start" and
@@ -409,9 +407,8 @@ GNUNET_TESTBED_peer_lookup_by_id_ (uint32_t id)
  * The "final" configuration can be obtained using
  * 'GNUNET_TESTBED_peer_get_information'.
  *
- * @param unique_id unique ID for this peer
  * @param controller controller process to use
- * @param host host to run the peer on
+ * @param host host to run the peer on; cannot be NULL
  * @param cfg Template configuration to use for the peer. Should exist until
  *          operation is cancelled or GNUNET_TESTBED_operation_done() is called
  * @param cb the callback to call when the peer has been created
@@ -419,22 +416,21 @@ GNUNET_TESTBED_peer_lookup_by_id_ (uint32_t id)
  * @return the operation handle
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
-                                     struct GNUNET_TESTBED_Controller
-                                     *controller,
-                                     struct GNUNET_TESTBED_Host *host,
-                                     const struct GNUNET_CONFIGURATION_Handle
-                                     *cfg, GNUNET_TESTBED_PeerCreateCallback cb,
-                                     void *cls)
+GNUNET_TESTBED_peer_create (struct GNUNET_TESTBED_Controller *controller,
+                            struct GNUNET_TESTBED_Host *host,
+                            const struct GNUNET_CONFIGURATION_Handle *cfg,
+                            GNUNET_TESTBED_PeerCreateCallback cb, void *cls)
 {
+  
   struct GNUNET_TESTBED_Peer *peer;
   struct PeerCreateData *data;
   struct OperationContext *opc;
+  static uint32_t id_gen;
 
   peer = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Peer));
   peer->controller = controller;
   peer->host = host;
-  peer->unique_id = unique_id;
+  peer->unique_id = id_gen++;
   peer->state = PS_INVALID;
   data = GNUNET_malloc (sizeof (struct PeerCreateData));
   data->host = host;
@@ -454,48 +450,6 @@ GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
                                           opc->op);
   GNUNET_TESTBED_operation_begin_wait_ (opc->op);
   return opc->op;
-}
-
-
-/**
- * Create the given peer at the specified host using the given
- * controller.  If the given controller is not running on the target
- * host, it should find or create a controller at the target host and
- * delegate creating the peer.  Explicit delegation paths can be setup
- * using 'GNUNET_TESTBED_controller_link'.  If no explicit delegation
- * path exists, a direct link with a subordinate controller is setup
- * for the first delegated peer to a particular host; the subordinate
- * controller is then destroyed once the last peer that was delegated
- * to the remote host is stopped.
- *
- * Creating the peer only creates the handle to manipulate and further
- * configure the peer; use "GNUNET_TESTBED_peer_start" and
- * "GNUNET_TESTBED_peer_stop" to actually start/stop the peer's
- * processes.
- *
- * Note that the given configuration will be adjusted by the
- * controller to avoid port/path conflicts with other peers.
- * The "final" configuration can be obtained using
- * 'GNUNET_TESTBED_peer_get_information'.
- *
- * @param controller controller process to use
- * @param host host to run the peer on
- * @param cfg Template configuration to use for the peer. Should exist until
- *          operation is cancelled or GNUNET_TESTBED_operation_done() is called
- * @param cb the callback to call when the peer has been created
- * @param cls the closure to the above callback
- * @return the operation handle
- */
-struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_peer_create (struct GNUNET_TESTBED_Controller *controller,
-                            struct GNUNET_TESTBED_Host *host,
-                            const struct GNUNET_CONFIGURATION_Handle *cfg,
-                            GNUNET_TESTBED_PeerCreateCallback cb, void *cls)
-{
-  static uint32_t id_gen;
-
-  return GNUNET_TESTBED_peer_create_with_id_ (id_gen++, controller, host, cfg,
-                                              cb, cls);
 }
 
 
