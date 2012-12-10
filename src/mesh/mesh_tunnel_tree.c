@@ -672,6 +672,34 @@ tree_iterate_all (struct MeshTunnelTree *tree,
 
 
 /**
+ * Iterator to count the children in a tree.
+ */
+static void
+count_children_cb (void *cls, GNUNET_PEER_Id peer)
+{
+  unsigned int *i = cls;
+
+  (*i)++;
+}
+
+
+/**
+ * Count how many children does the local node have in the tree.
+ *
+ * @param tree Tree to use. Must have "me" set.
+ */
+unsigned int
+tree_count_children (struct MeshTunnelTree *tree)
+{
+  unsigned int i;
+
+  i = 0;
+  tree_iterate_children(tree, &count_children_cb, &i);
+  return i;
+}
+
+
+/**
  * Recusively update the info about what is the first hop to reach the node
  *
  * @param tree Tree this nodes belongs to.

@@ -243,6 +243,14 @@ tree_iterate_all (struct MeshTunnelTree *tree,
                   MeshWholeTreeCallback cb,
                   void *cb_cls);
 
+/**
+ * Count how many children does the local node have in the tree.
+ *
+ * @param tree Tree to use. Must have "me" set.
+ */
+unsigned int
+tree_count_children (struct MeshTunnelTree *tree);
+
 
 /**
  * Recusively update the info about what is the first hop to reach the node
