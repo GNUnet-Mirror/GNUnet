@@ -4547,8 +4547,19 @@ tunnel_destroy_empty_delayed (void *cls,
     return;
 
   if (0 != t->nclients ||
-      0 != GNUNET_CONTAINER_multihashmap_size (t->children_fc))
+      0 != tree_count_children (t->tree))
     return;
+
+  #if MESH_DEBUG
+  {
+    struct GNUNET_PeerIdentity id;
+
+    GNUNET_PEER_resolve (t->id.oid, &id);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "executing destruction of empty tunnel %s [%X]\n",
+                GNUNET_i2s (&id), t->id.tid);
+  }
+  #endif
 
   tunnel_destroy (t);
 }
@@ -4564,8 +4575,25 @@ tunnel_destroy_empty (struct MeshTunnel *t)
 {
   if (GNUNET_SCHEDULER_NO_TASK != t->delayed_destroy || 
       0 != t->nclients ||
-      0 != GNUNET_CONTAINER_multihashmap_size (t->children_fc))
+      0 != tree_count_children (t->tree))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%u %u %u\n",
+                t->delayed_destroy, t->nclients, tree_count_children(t->tree));
     return;
+  }
+
+  #if MESH_DEBUG
+  {
+    struct GNUNET_PeerIdentity id;
+
+    GNUNET_PEER_resolve (t->id.oid, &id);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "scheduling destruction of empty tunnel %s [%X]\n",
+                GNUNET_i2s (&id), t->id.tid);
+  }
+  #endif
+
   t->delayed_destroy =
       GNUNET_SCHEDULER_add_delayed (TUNNEL_DESTROY_EMPTY_TIME,
                                     &tunnel_destroy_empty_delayed,
@@ -4691,16 +4719,12 @@ tunnel_destroy_iterator (void *cls,
   if (c != t->owner)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %u is destination.\n", c->id);
-    tunnel_delete_client(t, c);
-    client_delete_tunnel(c, t);
-    if (0 != t->nclients)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "  More destination clients present. keeping the tunnel.\n");
-      return GNUNET_OK;
-    }
+    tunnel_delete_client (t, c);
+    client_delete_tunnel (c, t);
+    tunnel_destroy_empty (t);
+    return GNUNET_OK;
   }
-  tunnel_send_destroy(t);
+  tunnel_send_destroy (t);
   t->owner = NULL;
   t->destroy = GNUNET_YES;
 
