@@ -563,10 +563,11 @@ handle_stream_reply (void *cls,
     reset_stream_async (sh);
     return size;
   }
-  sh->rh = GNUNET_STREAM_read (sh->stream,
-			       GNUNET_TIME_UNIT_FOREVER_REL,
-			       &handle_stream_reply,
-			       sh);
+  if (NULL == sh->rh)
+    sh->rh = GNUNET_STREAM_read (sh->stream,
+				 GNUNET_TIME_UNIT_FOREVER_REL,
+				 &handle_stream_reply,
+				 sh);
   return size;
 }
 
