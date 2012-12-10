@@ -275,9 +275,14 @@ client_response_handler (void *cls, enum GNUNET_BLOCK_EvaluationResult eval,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Queued reply to query `%s' for local client\n",
               GNUNET_h2s (&prd->query), (unsigned int) prd->type);
-  if (eval != GNUNET_BLOCK_EVALUATION_OK_LAST)
+  if (GNUNET_BLOCK_EVALUATION_OK_LAST != eval)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Evaluation %d - keeping query alive\n",
+		(int) eval);
     return;
-  if (GNUNET_SCHEDULER_NO_TASK != cr->kill_task)
+  }
+  if (GNUNET_SCHEDULER_NO_TASK == cr->kill_task)
     cr->kill_task = GNUNET_SCHEDULER_add_now (&client_request_destroy, cr);
 }
 
@@ -480,18 +485,13 @@ GSF_client_disconnect_handler_ (void *cls, struct GNUNET_SERVER_Client *client)
   pos = client_head;
   while ((pos != NULL) && (pos->client != client))
     pos = pos->next;
-  if (pos == NULL)
+  if (NULL == pos)
     return;
   while (NULL != (cr = pos->cr_head))
   {
-    GNUNET_CONTAINER_DLL_remove (pos->cr_head, pos->cr_tail, cr);
-    GSF_pending_request_cancel_ (cr->pr, GNUNET_YES);
-    GNUNET_STATISTICS_update (GSF_stats,
-                              gettext_noop ("# client searches active"), -1,
-                              GNUNET_NO);
     if (GNUNET_SCHEDULER_NO_TASK != cr->kill_task)
       GNUNET_SCHEDULER_cancel (cr->kill_task);
-    GNUNET_free (cr);
+    client_request_destroy (cr, NULL);
   }
   while (NULL != (res = pos->res_head))
   {

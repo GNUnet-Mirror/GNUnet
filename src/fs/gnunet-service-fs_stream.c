@@ -1037,7 +1037,7 @@ continue_reading (struct StreamClient *sc)
     GNUNET_SERVER_mst_receive (sc->mst,
 			       NULL,
 			       NULL, 0,
-			       GNUNET_NO, GNUNET_YES);
+			       GNUNET_NO, GNUNET_NO);
   if (GNUNET_NO == ret)
     return; 
   refresh_timeout_task (sc);
@@ -1088,7 +1088,7 @@ process_request (void *cls,
       GNUNET_SERVER_mst_receive (sc->mst,
 				 NULL,
 				 data, size,
-				 GNUNET_NO, GNUNET_YES);
+				 GNUNET_NO, GNUNET_NO);
     if (GNUNET_NO == ret)
       return size; /* more messages in MST */
     if (GNUNET_SYSERR == ret)
@@ -1219,6 +1219,8 @@ handle_datastore_reply (void *cls,
   sc->qe = NULL;
   if (GNUNET_BLOCK_TYPE_FS_ONDEMAND == type)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Performing on-demand encoding\n");
     if (GNUNET_OK !=
 	GNUNET_FS_handle_on_demand_block (key,
 					  size, data, type,
@@ -1227,6 +1229,8 @@ handle_datastore_reply (void *cls,
 					  &handle_datastore_reply,
 					  sc))
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "On-demand encoding request failed\n");
       continue_writing (sc);
     }
     return;
@@ -1238,8 +1242,9 @@ handle_datastore_reply (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Starting transmission of %u byte reply via stream\n",
-	      (unsigned int) size);
+	      "Starting transmission of %u byte reply for query `%s' via stream\n",
+	      (unsigned int) size,
+	      GNUNET_h2s (key));
   wqi = GNUNET_malloc (sizeof (struct WriteQueueItem) + msize);
   wqi->msize = msize;
   srm = (struct StreamReplyMessage *) &wqi[1];
@@ -1302,7 +1307,11 @@ request_cb (void *cls,
 				       GNUNET_TIME_UNIT_FOREVER_REL,
 				       &handle_datastore_reply, sc);
     if (NULL == sc->qe)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Queueing request with datastore failed (queue full?)\n");
       continue_writing (sc);
+    }
     return GNUNET_OK;
   default:
     GNUNET_break_op (0);
