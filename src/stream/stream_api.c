@@ -3581,8 +3581,11 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
        __func__);
   /* Return NULL if there is already a read handle; the user has to cancel that
      first before continuing or has to wait until it is completed */
-  if (NULL != socket->read_handle) 
+  if (NULL != socket->read_handle)
+  {
+    GNUNET_break (0);
     return NULL;
+  }
   GNUNET_assert (NULL != proc);
   switch (socket->state)
   {
