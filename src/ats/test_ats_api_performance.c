@@ -366,7 +366,7 @@ void all_addresses_cb (void *cls,
       }
     }
     if (0 == memcmp (&address->peer, &p[1].id,
-                     sizeof (struct GNUNET_PeerIdentity)));
+                     sizeof (struct GNUNET_PeerIdentity)))
     {
         if (0 == strcmp(address->address, p1_addresses[0].addr))
         {
