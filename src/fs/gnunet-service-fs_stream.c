@@ -1158,7 +1158,10 @@ continue_writing (struct StreamClient *sc)
   if (NULL != sc->wh)
     return; /* write already pending */
   if (NULL == (wqi = sc->wqi_head))
+  {
     continue_reading (sc);
+    return;
+  }
   GNUNET_CONTAINER_DLL_remove (sc->wqi_head,
 			       sc->wqi_tail,
 			       wqi);
