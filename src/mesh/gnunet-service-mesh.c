@@ -523,6 +523,11 @@ struct MeshTunnel
      * Total messages pending for this tunnels, payload or not.
      */
   unsigned int pending_messages;
+
+  /**
+   * If the tunnel is empty, destoy it.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier delayed_destroy;
 };
 
 
@@ -4488,17 +4493,9 @@ tunnel_destroy (struct MeshTunnel *t)
     }
   }
 
-  if (t->nclients > 0)
-  {
-    if (GNUNET_YES !=
-        GNUNET_CONTAINER_multihashmap_remove (incoming_tunnels, &hash, t))
-    {
-      GNUNET_break (0);
-      r = GNUNET_SYSERR;
-    }
-    GNUNET_free (t->clients);
-    GNUNET_free (t->clients_fc);
-  }
+  (void) GNUNET_CONTAINER_multihashmap_remove (incoming_tunnels, &hash, t);
+  GNUNET_free_non_null (t->clients);
+  GNUNET_free_non_null (t->clients_fc);
 
   if (NULL != t->peers)
   {
@@ -4529,6 +4526,50 @@ tunnel_destroy (struct MeshTunnel *t)
   GNUNET_STATISTICS_update (stats, "# tunnels", -1, GNUNET_NO);
   GNUNET_free (t);
   return r;
+}
+
+#define TUNNEL_DESTROY_EMPTY_TIME GNUNET_TIME_UNIT_MILLISECONDS
+
+/**
+ * Tunnel is empty: destroy it.
+ * 
+ * @param cls Closure (Tunnel).
+ * @param tc TaskContext. 
+ */
+static void
+tunnel_destroy_empty_delayed (void *cls,
+                        const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct MeshTunnel *t = cls;
+
+  t->delayed_destroy = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+  if (0 != t->nclients ||
+      0 != GNUNET_CONTAINER_multihashmap_size (t->children_fc))
+    return;
+
+  tunnel_destroy (t);
+}
+
+
+/**
+ * Schedule tunnel destruction if is empty and no new traffic comes in a time.
+ * 
+ * @param t Tunnel to destroy if empty.
+ */
+static void
+tunnel_destroy_empty (struct MeshTunnel *t)
+{
+  if (GNUNET_SCHEDULER_NO_TASK != t->delayed_destroy || 
+      0 != t->nclients ||
+      0 != GNUNET_CONTAINER_multihashmap_size (t->children_fc))
+    return;
+  t->delayed_destroy =
+      GNUNET_SCHEDULER_add_delayed (TUNNEL_DESTROY_EMPTY_TIME,
+                                    &tunnel_destroy_empty_delayed,
+                                    t);
 }
 
 
@@ -4639,19 +4680,25 @@ tunnel_delete_peer (struct MeshTunnel *t, GNUNET_PEER_Id peer)
  * @return GNUNET_OK, keep iterating.
  */
 static int
-tunnel_destroy_iterator (void *cls, const struct GNUNET_HashCode * key, void *value)
+tunnel_destroy_iterator (void *cls,
+                         const struct GNUNET_HashCode * key,
+                         void *value)
 {
   struct MeshTunnel *t = value;
   struct MeshClient *c = cls;
 
-  send_client_tunnel_disconnect(t, c);
+  send_client_tunnel_disconnect (t, c);
   if (c != t->owner)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Client %u is destination, keeping the tunnel alive.\n", c->id);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %u is destination.\n", c->id);
     tunnel_delete_client(t, c);
     client_delete_tunnel(c, t);
-    return GNUNET_OK;
+    if (0 != t->nclients)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "  More destination clients present. keeping the tunnel.\n");
+      return GNUNET_OK;
+    }
   }
   tunnel_send_destroy(t);
   t->owner = NULL;
@@ -6735,7 +6782,6 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     return;
   }
 
-//   return; uncomment for regex_profiler
   c = clients;
   while (NULL != c)
   {
@@ -7073,19 +7119,7 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   if (c != t->owner || tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
   {
     client_ignore_tunnel (c, t);
-#if 0
-    // TODO: when to destroy incoming tunnel?
-    if (t->nclients == 0)
-    {
-      GNUNET_assert (GNUNET_YES ==
-                     GNUNET_CONTAINER_multihashmap_remove (incoming_tunnels,
-                                                           &hash, t));
-      GNUNET_assert (GNUNET_YES ==
-                     GNUNET_CONTAINER_multihashmap_remove (t->peers,
-                                                           &my_full_id.hashPubKey,
-                                                           t));
-    }
-#endif
+    tunnel_destroy_empty (t);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
