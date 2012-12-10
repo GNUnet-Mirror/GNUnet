@@ -154,7 +154,7 @@ void transport_addr_to_str_cb (void *cls, const char *address)
     ats_str = GNUNET_strdup("");
     if (verbose)
     {
-    for (c = 0; c <  pr->ats_count; c++)
+    for (c = 0; c < pr->ats_count; c++)
     {
         ats_tmp = ats_str;
 
@@ -180,8 +180,8 @@ void transport_addr_to_str_cb (void *cls, const char *address)
             GNUNET_asprintf (&ats_prop_value, "%u", ats_value);
             break;
         }
-
-        GNUNET_asprintf (&ats_str, "%s%s=%s, ", ats_tmp, ats_prop_arr[ats_type] , ats_prop_value);
+        if (ats_type < GNUNET_ATS_PropertyCount)
+          GNUNET_asprintf (&ats_str, "%s%s=%s, ", ats_tmp, ats_prop_arr[ats_type] , ats_prop_value);
         GNUNET_free (ats_tmp);
         GNUNET_free (ats_prop_value);
       }
