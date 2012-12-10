@@ -5978,8 +5978,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     /* TODO notify that we dont know this tunnel (whom)? */
     GNUNET_STATISTICS_update (stats, "# data on unknown tunnel", 1, GNUNET_NO);
-    GNUNET_break_op (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received to_origin with PID %u on unknown tunnel %s [%u]\n",
                 pid, GNUNET_i2s (&msg->oid), ntohl (msg->tid));
     return GNUNET_OK;
