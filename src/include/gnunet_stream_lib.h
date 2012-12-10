@@ -46,29 +46,23 @@ enum GNUNET_STREAM_Status
     /**
      * All previous read/write operations are successfully done
      */
-    GNUNET_STREAM_OK = 0,
+    GNUNET_STREAM_OK,
 
     /**
      * A timeout occured while reading/writing the stream
      */
-    GNUNET_STREAM_TIMEOUT = 1,
+    GNUNET_STREAM_TIMEOUT,
 
     /**
      * Other side has shutdown the socket for this type of operation
      * (reading/writing)
      */
-    GNUNET_STREAM_SHUTDOWN = 2,
+    GNUNET_STREAM_SHUTDOWN,
 
     /**
      * A serious error occured while operating on this stream
      */
-    GNUNET_STREAM_SYSERR = 3,
-    
-    /**
-     * An error resulted in an unusable stream
-     * FIXME: status code unused?
-     */
-    GNUNET_STREAM_BROKEN
+    GNUNET_STREAM_SYSERR
   };
 
 /**
@@ -279,9 +273,13 @@ GNUNET_STREAM_listen_close (struct GNUNET_STREAM_ListenSocket *lsocket);
  *
  * @param cls the closure from GNUNET_STREAM_write
  * @param status the status of the stream at the time this function is called;
- *          GNUNET_OK if writing to stream was completed successfully,
+ *          GNUNET_STREAM_OK if writing to stream was completed successfully;
+ *          GNUNET_STREAM_TIMEOUT if the given data is not sent successfully
+ *          (this doesn't mean that the data is never sent, the receiver may
+ *          have read the data but its ACKs may have been lost);
  *          GNUNET_STREAM_SHUTDOWN if the stream is shutdown for writing in the
- *          mean time.
+ *          mean time; GNUNET_STREAM_SYSERR if the stream is broken and cannot
+ *          be processed.
  * @param size the number of bytes written
  */
 typedef void (*GNUNET_STREAM_CompletionContinuation) (void *cls,
@@ -315,9 +313,10 @@ struct GNUNET_STREAM_IOReadHandle;
  *          stream 
  * @param write_cont_cls the closure
  *
- * @return handle to cancel the operation; if a previous write is pending or
- *           the stream has been shutdown for this operation then write_cont is
- *           immediately called and NULL is returned.
+ * @return handle to cancel the operation; if a previous write is pending NULL
+ *           is returned. If the stream has been shutdown for this operation or
+ *           is broken then write_cont is immediately called and NULL is
+ *           returned.
  */
 struct GNUNET_STREAM_IOWriteHandle *
 GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,

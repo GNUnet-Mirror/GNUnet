@@ -1049,7 +1049,6 @@ process_request (void *cls,
   case GNUNET_STREAM_TIMEOUT:
   case GNUNET_STREAM_SHUTDOWN:
   case GNUNET_STREAM_SYSERR:
-  case GNUNET_STREAM_BROKEN:
     terminate_stream_async (sc);
     return size;
   default:

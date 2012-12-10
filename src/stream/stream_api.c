@@ -2603,6 +2603,7 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
     ack_bitmap = GNUNET_ntohll (ack->bitmap);
     for (; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
     {
+      if (NULL == socket->write_handle->messages[packet]) break;
       if (ackbitmap_is_bit_set (&ack_bitmap, ntohl
                                 (socket->write_handle->messages[packet]->sequence_number)
                                 - ntohl (ack->base_sequence_number)))
@@ -2912,7 +2913,7 @@ tunnel_cleaner (void *cls,
     GNUNET_STATISTICS_update (socket->stat_handle,
                               "inbound connections", -1, GNUNET_NO);
   }
-  socket->status = GNUNET_STREAM_SHUTDOWN;
+  socket->status = GNUNET_STREAM_SYSERR;
   /* Clear Transmit handles */
   if (NULL != socket->transmit_handle)
   {
@@ -2935,12 +2936,6 @@ tunnel_cleaner (void *cls,
   {
     GNUNET_SCHEDULER_cancel (socket->control_retransmission_task_id);
     socket->control_retransmission_task_id = GNUNET_SCHEDULER_NO_TASK;
-  }
-  /* Clear Transmit handles */
-  if (NULL != socket->transmit_handle)
-  {
-    GNUNET_MESH_notify_transmit_ready_cancel (socket->transmit_handle);
-    socket->transmit_handle = NULL;
   }
   /* Clear existing message queue */
   while (NULL != (head = socket->queue_head)) {
@@ -3437,9 +3432,10 @@ GNUNET_STREAM_listen_close (struct GNUNET_STREAM_ListenSocket *lsocket)
  *          stream 
  * @param write_cont_cls the closure
  *
- * @return handle to cancel the operation; if a previous write is pending or
- *           the stream has been shutdown for this operation then write_cont is
- *           immediately called and NULL is returned.
+ * @return handle to cancel the operation; if a previous write is pending NULL
+ *           is returned. If the stream has been shutdown for this operation or
+ *           is broken then write_cont is immediately called and NULL is
+ *           returned.
  */
 struct GNUNET_STREAM_IOWriteHandle *
 GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
@@ -3466,6 +3462,12 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
     GNUNET_break (0);
     return NULL;
   }
+  if (NULL == socket->tunnel)
+  {
+    if (NULL != write_cont)
+      write_cont (write_cont_cls, GNUNET_STREAM_SYSERR, 0);
+    return NULL;
+  }
   switch (socket->state)
   {
   case STATE_TRANSMIT_CLOSED:
@@ -3481,7 +3483,6 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
   case STATE_LISTEN:
   case STATE_HELLO_WAIT:
     if (NULL != write_cont)
-      /* FIXME: GNUNET_STREAM_SYSERR?? */
       write_cont (write_cont_cls, GNUNET_STREAM_SYSERR, 0);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "%s() END\n", __func__);
