@@ -6038,6 +6038,13 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
   predecessor = tree_get_predecessor (t->tree);
   if (0 == predecessor)
   {
+    if (GNUNET_YES == t->destroy)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "to orig received on a dying tunnel %s [%X]\n",
+                  GNUNET_i2s (&msg->oid), ntohl(msg->tid));
+      return GNUNET_OK;
+    }
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
                 "unknown to origin at %s\n",
                 GNUNET_i2s (&my_full_id));
