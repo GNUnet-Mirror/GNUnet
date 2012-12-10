@@ -36,6 +36,8 @@
 #include "ats.h"
 #include "test_ats_api_common.h"
 
+#define DEBUG_ATS_INFO GNUNET_NO
+
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 /**
@@ -56,7 +58,8 @@ static struct Test_Address test_addr[2];
 /**
  * Test peer
  */
-static struct PeerContext p;
+static struct PeerContext p[2];
+
 
 /**
  * HELLO address
@@ -189,22 +192,28 @@ compare_ats (const struct GNUNET_ATS_Information *ats_is, uint32_t ats_count_is,
         type2 = ntohl(ats_should[c_i].type);
         if (type1 == type2)
         {
+#if DEBUG_ATS_INFO
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS type `%s'\n",
                         prop[type1]);
+#endif
             val1 = ntohl(ats_is[c_o].value);
             val2 = ntohl(ats_should[c_i].value);
             if (val1 != val2)
             {
+#if DEBUG_ATS_INFO
                 GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ATS value `%s' not equal: %u != %u\n",
                             prop[type1],
                             val1, val2);
+#endif
                 res = GNUNET_SYSERR;
             }
             else
             {
+#if DEBUG_ATS_INFO
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS value `%s' equal: %u == %u\n",
                           prop[type1],
                           val1, val2);
+#endif
             }
         }
     }
@@ -220,50 +229,144 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
                     const struct GNUNET_ATS_Information *atsi,
                     uint32_t ats_count)
 {
-  if (GNUNET_OK == compare_addresses (address, session, &test_hello_address[0], test_session[0]))
+  static int stage = 0;
+  unsigned int bw_in = ntohl(bandwidth_in.value__);
+  unsigned int bw_out = ntohl(bandwidth_out.value__);
+  if (0 == stage)
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 0: Callback with correct address `%s'\n",
-                  GNUNET_i2s (&address->peer));
-      ret = 0;
-  }
-  else
-  {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 0: Callback with invalid address `%s'\n",
-                  GNUNET_i2s (&address->peer));
+    if (GNUNET_OK == compare_addresses (address, session, &test_hello_address[0], test_session[0]))
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 0: Callback with correct address `%s'\n",
+                    GNUNET_i2s (&address->peer));
+        ret = 0;
+    }
+    else
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 0: Callback with invalid address `%s'\n",
+                    GNUNET_i2s (&address->peer));
+        ret = 1;
+    }
+
+    if (GNUNET_OK != compare_ats(atsi, ats_count, test_ats_info, test_ats_count))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage 0: Callback with incorrect ats info \n");
       ret = 1;
-  }
+    }
 
-  if (GNUNET_OK != compare_ats(atsi, ats_count, test_ats_info, test_ats_count))
+    if (bw_in > wan_quota_in)
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggested WAN inbound quota %u bigger than allowed quota %llu \n",
+            bw_in, wan_quota_in);
+        ret = 1;
+    }
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Suggested WAN inbound quota %u, allowed quota %llu \n",
+          bw_in, wan_quota_in);
+
+    if (bw_out > wan_quota_out)
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggested WAN outbound quota %u bigger than allowed quota %llu \n",
+            bw_out, wan_quota_out);
+        ret = 1;
+    }
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Suggested WAN outbound quota %u, allowed quota %llu \n",
+          bw_out, wan_quota_out);
+
+    if (1 == ret)
+    {
+      GNUNET_ATS_suggest_address_cancel (sched_ats, &p[0].id);
+      GNUNET_SCHEDULER_add_now (&end, NULL);
+      return;
+    }
+    p[0].bw_out_assigned = bw_out;
+    p[0].bw_in_assigned = bw_in;
+    stage ++;
+
+    /* Add a 2nd address */
+    /* Prepare ATS Information */
+    test_ats_info[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
+    test_ats_info[0].value = htonl(GNUNET_ATS_NET_WAN);
+    test_ats_info[1].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
+    test_ats_info[1].value = htonl(1);
+    test_ats_count = 2;
+
+    /* Adding address with session */
+    test_session[1] = &test_addr[1];
+    create_test_address (&test_addr[1], "test1", test_session[1], "test1", strlen ("test1") + 1);
+    test_hello_address[1].peer = p[1].id;
+    test_hello_address[1].transport_name = test_addr[1].plugin;
+    test_hello_address[1].address = test_addr[1].addr;
+    test_hello_address[1].address_length = test_addr[1].addr_len;
+    GNUNET_ATS_address_add (sched_ats, &test_hello_address[1], test_session[1], test_ats_info, test_ats_count);
+  }
+  if (1 == stage)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage 0: Callback with incorrect ats info \n");
-    ret = 1;
+      /* Expecting callback for address[0] with updated quota and no callback for address[1]*/
+      if (GNUNET_OK == compare_addresses (address, session, &test_hello_address[0], test_session[0]))
+      {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 1: Callback with correct address `%s'\n",
+                      GNUNET_i2s (&address->peer));
+          ret = 0;
+      }
+      else
+      {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 1: Callback with invalid address `%s'\n",
+                      GNUNET_i2s (&address->peer));
+          ret = 1;
+      }
+
+      if (GNUNET_OK != compare_ats(atsi, ats_count, test_ats_info, test_ats_count))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage 1: Callback with incorrect ats info \n");
+        ret = 1;
+      }
+
+      if (bw_in > wan_quota_in)
+      {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggested WAN inbound quota %u bigger than allowed quota %llu \n",
+              bw_in, wan_quota_in);
+          ret = 1;
+      }
+      else if (p[0].bw_in_assigned > bw_in)
+      {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggested WAN inbound quota %u bigger than last quota %llu \n",
+              bw_in, p[0].bw_in_assigned);
+          ret = 1;
+      }
+      else
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Suggested WAN inbound quota %u, allowed quota %llu \n",
+            bw_in, wan_quota_in);
+
+      if (bw_out > wan_quota_out)
+      {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggested WAN outbound quota %u bigger than allowed quota %llu \n",
+              bw_out, wan_quota_out);
+          ret = 1;
+      }
+      else if (p[0].bw_out_assigned > bw_out)
+      {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggested WAN inbound quota %u bigger than last quota %llu \n",
+              bw_out, p[0].bw_out_assigned);
+          ret = 1;
+      }
+      else
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Suggested WAN outbound quota %u, allowed quota %llu \n",
+            bw_out, wan_quota_out);
+
+      if (1 == ret)
+      {
+        GNUNET_ATS_suggest_address_cancel (sched_ats, &p[1].id);
+        GNUNET_SCHEDULER_add_now (&end, NULL);
+        return;
+      }
+      stage ++;
+
+      GNUNET_ATS_suggest_address_cancel (sched_ats, &p[1].id);
+      GNUNET_SCHEDULER_add_now (&end, NULL);
+      return;
   }
 
-  if (ntohl(bandwidth_in.value__) > wan_quota_in)
-  {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggested WAN inbound quota %u bigger than allowed quota %llu \n",
-          (unsigned int) ntohl(bandwidth_in.value__), wan_quota_in);
-      ret = 1;
-  }
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Suggested WAN inbound quota %u, allowed quota %llu \n",
-        (unsigned int) ntohl(bandwidth_in.value__), wan_quota_in);
-
-  if (ntohl(bandwidth_out.value__) > wan_quota_out)
-  {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggested WAN outbound quota %u bigger than allowed quota %llu \n",
-          (unsigned int) ntohl(bandwidth_out.value__), wan_quota_out);
-      ret = 1;
-  }
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Suggested WAN outbound quota %u, allowed quota %llu \n",
-        (unsigned int) ntohl(bandwidth_out.value__), wan_quota_out);
-
-
-
-
-  GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
-  GNUNET_SCHEDULER_add_now (&end, NULL);
 }
 
 static void
@@ -320,8 +423,8 @@ run (void *cls,
     return;
   }
 
-  /* Set up peer */
-  if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID, &p.id.hashPubKey))
+  /* Set up peer 0 */
+  if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID0, &p[0].id.hashPubKey))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not setup peer!\n");
       ret = GNUNET_SYSERR;
@@ -329,10 +432,24 @@ run (void *cls,
       return;
   }
 
-  GNUNET_assert (0 == strcmp (PEERID, GNUNET_i2s_full (&p.id)));
+  GNUNET_assert (0 == strcmp (PEERID0, GNUNET_i2s_full (&p[0].id)));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
-              GNUNET_i2s(&p.id));
+              GNUNET_i2s(&p[0].id));
+
+  /* Set up peer 1*/
+  if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID1, &p[1].id.hashPubKey))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not setup peer!\n");
+      ret = GNUNET_SYSERR;
+      end ();
+      return;
+  }
+
+  GNUNET_assert (0 == strcmp (PEERID1, GNUNET_i2s_full (&p[1].id)));
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
+              GNUNET_i2s(&p[1].id));
 
   /* Prepare ATS Information */
   test_ats_info[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
@@ -341,16 +458,16 @@ run (void *cls,
   test_ats_info[1].value = htonl(1);
   test_ats_count = 2;
 
-  /* Adding address without session */
+  /* Adding address with session */
   test_session[0] = &test_addr[0];
-  create_test_address (&test_addr[0], "test", test_session, "test", strlen ("test") + 1);
-  test_hello_address[0].peer = p.id;
+  create_test_address (&test_addr[0], "test0", test_session[0], "test0", strlen ("test0") + 1);
+  test_hello_address[0].peer = p[0].id;
   test_hello_address[0].transport_name = test_addr[0].plugin;
   test_hello_address[0].address = test_addr[0].addr;
   test_hello_address[0].address_length = test_addr[0].addr_len;
   GNUNET_ATS_address_add (sched_ats, &test_hello_address[0], test_session[0], test_ats_info, test_ats_count);
 
-  GNUNET_ATS_suggest_address (sched_ats, &p.id);
+  GNUNET_ATS_suggest_address (sched_ats, &p[0].id);
 }
 
 

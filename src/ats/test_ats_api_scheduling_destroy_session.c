@@ -251,7 +251,7 @@ run (void *cls,
   }
 
   /* Set up peer */
-  if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID, &p.id.hashPubKey))
+  if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID0, &p.id.hashPubKey))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not setup peer!\n");
       ret = GNUNET_SYSERR;
