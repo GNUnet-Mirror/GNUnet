@@ -145,7 +145,24 @@ void
 GAS_simplistic_done (void *solver)
 {
   struct GAS_SIMPLISTIC_Handle *s = solver;
+  struct AddressWrapper *cur;
+  struct AddressWrapper *next;
+  int c;
   GNUNET_assert (s != NULL);
+
+  for (c = 0; c < s->networks; c++)
+  {
+      next = s->network_entries[c].head;
+      while (NULL != (cur = next))
+      {
+          next = cur->next;
+          GNUNET_CONTAINER_DLL_remove (s->network_entries[c].head,
+                                       s->network_entries[c].tail,
+                                       cur);
+          GNUNET_free (cur);
+
+      }
+  }
   GNUNET_free (s->network_entries);
   GNUNET_free (s);
 }
