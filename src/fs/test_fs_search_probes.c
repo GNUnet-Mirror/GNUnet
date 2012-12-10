@@ -130,9 +130,9 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
     fs = NULL;
     break;
   case GNUNET_FS_STATUS_SEARCH_UPDATE:
-    GNUNET_assert (0 < event->value.search.specifics.update.availability_rank);
-    GNUNET_assert (0 < event->value.search.specifics.update.availability_certainty);
-    GNUNET_SCHEDULER_add_now (&abort_search_task, NULL);
+    if ( (0 < event->value.search.specifics.update.availability_rank) &&
+	 (0 < event->value.search.specifics.update.availability_certainty) )
+      GNUNET_SCHEDULER_add_now (&abort_search_task, NULL);
     break;
   case GNUNET_FS_STATUS_SEARCH_START:
     GNUNET_assert (search == NULL);
