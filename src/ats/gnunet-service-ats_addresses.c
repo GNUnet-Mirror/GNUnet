@@ -806,7 +806,6 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
        "Address %p ready for suggestion, block interval now %llu \n",
        aa, aa->block_interval);
 
-
   GNUNET_free (ats);
 }
 
@@ -940,6 +939,41 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg, unsigned long long *
 }
 
 
+static void
+bandwidth_changed_cb (struct ATS_Address *address)
+{
+  struct GAS_Addresses_Suggestion_Requests *cur;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Bandwidth assignment changed for peer %s \n", GNUNET_i2s(&address->peer));
+  struct GNUNET_ATS_Information *ats;
+  unsigned int ats_count;
+
+  cur = handle->r_head;
+  while (NULL != cur)
+  {
+      if (0 == memcmp (&address->peer, &cur->id, sizeof (cur->id)))
+        break; /* we have an address request pending*/
+      cur = cur->next;
+  }
+  if (NULL == cur)
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Nobody is interested in peer `%s' :(\n",GNUNET_i2s (&address->peer));
+      return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending bandwidth update for peer `%s'\n",GNUNET_i2s (&address->peer));
+
+  ats_count = assemble_ats_information (address, &ats);
+  GAS_scheduling_transmit_address_suggestion (&address->peer,
+                                              address->plugin,
+                                              address->addr, address->addr_len,
+                                              address->session_id,
+                                              ats, ats_count,
+                                              address->assigned_bw_out,
+                                              address->assigned_bw_in);
+}
+
 
 /**
  * Initialize address subsystem.
@@ -1042,7 +1076,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   quota_count = load_quotas(cfg, quotas_in, quotas_out, GNUNET_ATS_NetworkTypeCount);
 
-  ah->solver = ah->s_init (cfg, stats, quotas, quotas_in, quotas_out, quota_count);
+  ah->solver = ah->s_init (cfg, stats, quotas, quotas_in, quotas_out, quota_count, &bandwidth_changed_cb);
   if (NULL == ah->solver)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to initialize solver!\n");

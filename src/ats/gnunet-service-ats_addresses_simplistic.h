@@ -49,6 +49,7 @@
  * @param network array of GNUNET_ATS_NetworkType with length dest_length
  * @param out_quota array of outbound quotas
  * param in_quota array of outbound quota
+ * @param bw_changed_cb callback to call when assigned changes
  * @return handle for the solver on success, NULL on fail
  */
 void *
@@ -57,7 +58,8 @@ GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      int *network,
                      unsigned long long *out_quota,
                      unsigned long long *in_quota,
-                     int dest_length);
+                     int dest_length,
+                     GAS_bandwidth_changed_cb bw_changed_cb);
 
 /**
  * Shutdown the simplistic problem solving component

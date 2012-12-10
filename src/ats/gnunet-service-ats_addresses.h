@@ -148,6 +148,15 @@ struct ATS_Address
 
 
 /**
+ * Callback to call from solver when bandwidth for address has changed
+ *
+ * @param address the with changed bandwidth assigned
+ */
+
+typedef void
+ (*GAS_bandwidth_changed_cb) (struct ATS_Address *address);
+
+/**
  * Init the simplistic problem solving component
  *
  * Quotas:
@@ -165,7 +174,8 @@ struct ATS_Address
  * @param stats the GNUNET_STATISTICS handle
  * @param network array of GNUNET_ATS_NetworkType with length dest_length
  * @param out_quota array of outbound quotas
- * param in_quota array of outbound quota
+ * @param in_quota array of outbound quota
+ * @param bw_changed_cb callback to call when assigned changes
  * @return handle for the solver on success, NULL on fail
  */
 typedef void *
@@ -174,7 +184,8 @@ typedef void *
                      int *network,
                      unsigned long long *out_quota,
                      unsigned long long *in_quota,
-                     int dest_length);
+                     int dest_length,
+                     GAS_bandwidth_changed_cb bw_changed_cb);
 
 
 typedef void

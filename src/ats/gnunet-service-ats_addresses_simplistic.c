@@ -41,6 +41,7 @@ struct GAS_SIMPLISTIC_Handle
   struct Network *network_entries;
 
   unsigned int networks;
+  GAS_bandwidth_changed_cb bw_changed;
 };
 
 struct Network
@@ -71,6 +72,17 @@ struct Network
    * Number of active addresses for this network
    */
   unsigned int active_addresses;
+
+  struct AddressWrapper *head;
+  struct AddressWrapper *tail;
+};
+
+struct AddressWrapper
+{
+  struct AddressWrapper *next;
+  struct AddressWrapper *prev;
+
+  struct ATS_Address *addr;
 };
 
 /**
@@ -100,13 +112,15 @@ GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      int *network,
                      unsigned long long *out_quota,
                      unsigned long long *in_quota,
-                     int dest_length)
+                     int dest_length,
+                     GAS_bandwidth_changed_cb bw_changed_cb)
 {
   int c;
   struct GAS_SIMPLISTIC_Handle *s = GNUNET_malloc (sizeof (struct GAS_SIMPLISTIC_Handle));
   struct Network * cur;
   char * net_str[GNUNET_ATS_NetworkTypeCount] = {"UNSPECIFIED", "LOOPBACK", "LAN", "WAN", "WLAN"};
 
+  s->bw_changed = bw_changed_cb;
   s->networks = dest_length;
   s->network_entries = GNUNET_malloc (dest_length * sizeof (struct Network));
 
@@ -141,6 +155,7 @@ update_quota (struct GAS_SIMPLISTIC_Handle *s, struct Network *net)
 {
   unsigned long long quota_in;
   unsigned long long quota_out;
+  struct AddressWrapper *cur;
 
   quota_in = net->total_quota_in / net->active_addresses;
   quota_out = net->total_quota_out / net->active_addresses;
@@ -148,6 +163,22 @@ update_quota (struct GAS_SIMPLISTIC_Handle *s, struct Network *net)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "New quota for network type `%s' (in/out): %llu/%llu \n",
               net->desc, quota_in, quota_out);
+
+  cur = net->head;
+  while (NULL != cur)
+  {
+      /* Compare to current bandwidth assigned */
+      if ((quota_in != ntohl(cur->addr->assigned_bw_in.value__)) ||
+          (quota_out != ntohl(cur->addr->assigned_bw_out.value__)))
+      {
+        cur->addr->assigned_bw_in.value__ = htonl (quota_in);
+        cur->addr->assigned_bw_out.value__ = htonl (quota_out);
+        /* Notify on change */
+        s->bw_changed (cur->addr);
+      }
+      cur = cur->next;
+  }
+
 }
 
 /**
@@ -162,26 +193,30 @@ GAS_simplistic_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap *
 {
   struct GAS_SIMPLISTIC_Handle *s = solver;
   struct Network *cur = NULL;
+  struct AddressWrapper *aw = NULL;
   GNUNET_assert (NULL != s);
   int c;
   for (c = 0; c < s->networks; c++)
   {
       cur = &s->network_entries[c];
       if (address->atsp_network_type == cur->type)
-      {
-          cur->active_addresses ++;
-          LOG (GNUNET_ERROR_TYPE_DEBUG,
-                      "Adding new address for network type `%s' (now %u total)\n",
-                      cur->desc,
-                      cur->active_addresses);
           break;
-      }
   }
   if (NULL == cur)
   {
     GNUNET_break (0);
     return;
   }
+
+  aw = GNUNET_malloc (sizeof (struct AddressWrapper));
+  aw->addr = address;
+  GNUNET_CONTAINER_DLL_insert (cur->head, cur->tail, aw);
+  cur->active_addresses ++;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+              "Adding new address for network type `%s' (now %u total)\n",
+              cur->desc,
+              cur->active_addresses);
 
   /* Update quota for this network type */
   update_quota (s, cur);

@@ -1079,7 +1079,10 @@ void *
 GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
               const struct GNUNET_STATISTICS_Handle *stats,
               int *network,
-              unsigned long long *out_dest, unsigned long long *in_dest, int dest_length)
+              unsigned long long *out_dest,
+              unsigned long long *in_dest,
+              int dest_length,
+              GAS_bandwidth_changed_cb bw_changed_cb)
 {
   struct GAS_MLP_Handle * mlp = GNUNET_malloc (sizeof (struct GAS_MLP_Handle));
 
