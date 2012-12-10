@@ -64,7 +64,8 @@ check_PROGRAMS = \
  test_ats_api_scheduling_destroy_address \
  test_ats_api_scheduling_destroy_session \
  test_ats_api_scheduling_block_and_reset \
- test_ats_api_performance 
+ test_ats_simplistic \
+ test_ats_api_performance
 # $(GN_MLP_TEST) \
 # $(GN_MLP_TEST_AVG) \
 # $(GN_MLP_PERF)
@@ -124,6 +125,15 @@ test_ats_api_performance_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la    
+
+test_ats_simplistic_SOURCES = \
+ test_ats_simplistic.c
+test_ats_simplistic_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/ats/libgnunetats.la    
+
 
 if HAVE_LIBGLPK
 #test_ats_mlp_SOURCES = \

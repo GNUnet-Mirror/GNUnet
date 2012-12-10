@@ -401,8 +401,8 @@ update_bw_simple_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 
   /* Simple method */
 
-  aa->assigned_bw_in.value__ = htonl (UINT32_MAX / s->active_addresses);
-  aa->assigned_bw_out.value__ = htonl (UINT32_MAX / s->active_addresses);
+  //aa->assigned_bw_in.value__ = htonl (UINT32_MAX / s->active_addresses);
+  //aa->assigned_bw_out.value__ = htonl (UINT32_MAX / s->active_addresses);
 
   return GNUNET_OK;
 }
