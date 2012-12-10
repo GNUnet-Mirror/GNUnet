@@ -75,7 +75,12 @@
  * hardware ID for our device.
  */
 static TCHAR secondary_hwid[LINE_LEN / 2];
-  
+
+/*
+ * Device's Friendly Name, used to identify a network device in netsh.
+ * eg: "TAP-Windows Adapter V9 #4"
+ */
+static TCHAR device_friendly_name[LINE_LEN / 2];
 /** 
  * This is our own local instance of a virtual network interface
  * It is (somewhat) equivalent to using tun/tap in unixoid systems
@@ -191,7 +196,6 @@ set_address4 (const char *dev, const char *address, const char *mask)
     }
 }
 
-
 /**
  * Setup a new virtual interface to use for tunneling. 
  * 
@@ -256,7 +260,7 @@ setup_interface ()
       return FALSE;
   
   DeviceNode.cbSize = sizeof (SP_DEVINFO_DATA);
-  if (!SetupDiCreateDeviceInfo (DeviceInfo,
+  if (! SetupDiCreateDeviceInfo (DeviceInfo,
                                 class,
                                 &guid,
                                 NULL,
@@ -274,12 +278,24 @@ setup_interface ()
       return FALSE;
   
   /* Install our new class(=device) into the system */
-  if (SetupDiCallClassInstaller (DIF_REGISTERDEVICE,
+  if (! SetupDiCallClassInstaller (DIF_REGISTERDEVICE,
                                  DeviceInfo,
                                  &DeviceNode))
-      return TRUE;
+      return FALSE;
   
-  return FALSE;
+  /* Now, pull the device device's FriendlyName off the registry. */
+  if ( !SetupDiGetDeviceRegistryProperty(DeviceInfo,
+                                   (PSP_DEVINFO_DATA) & DeviceNode,
+                                   SPDRP_FRIENDLYNAME,
+                                   NULL,
+                                   (LPBYTE)device_friendly_name,
+                                   LINE_LEN / 2,
+                                   NULL) || strlen(device_friendly_name) < 1){
+      return FALSE;
+    }
+  device_friendly_name[LINE_LEN / 2 - 1] = _T("\0");
+  
+  return TRUE;
 }
 
 
@@ -341,13 +357,12 @@ init_tun (TCHAR *hwid)
       return -1;
     }
 
-  if (FALSE == setup_interface()){
+  if (! setup_interface()){
       errno = ENODEV;
       return -1;
     }
   
   
-
   return fd;
 }
 
@@ -383,7 +398,7 @@ run (int fd_tun)
  *
  * @param argc must be 6
  * @param argv 0: binary name (gnunet-helper-vpn)
- *             1: tunnel interface name (gnunet-vpn) (unused, can be used as additional HWID in the future)
+ *             1: tunnel interface name (gnunet-vpn)
  *             2: IPv6 address (::1), "-" to disable
  *             3: IPv6 netmask length in bits (64), ignored if #2 is "-"
  *             4: IPv4 address (1.2.3.4), "-" to disable
@@ -473,6 +488,7 @@ main (int argc, char **argv)
   //run (fd_tun);
   global_ret = 0;
 cleanup:
-  //close (fd_tun);
+  remove_interface();
+
   return global_ret;
 }
