@@ -283,6 +283,7 @@ GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
       }
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Config value %s=\"%s\"\n", tag, value);
       GNUNET_CONFIGURATION_set_value_string (cfg, section, tag, &value[i]);
+      GNUNET_free (tag);
       continue;
     }
     /* parse error */
