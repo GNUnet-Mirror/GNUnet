@@ -157,6 +157,7 @@ GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
 				  int allow_inline)
 {
   char *line;
+  char *line_orig;
   size_t line_size;
   char *pos;
   unsigned int nr;
@@ -175,26 +176,26 @@ GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
   section = GNUNET_strdup ("");
   nr = 0;
   r_bytes = 0;
+  line_orig = NULL;
   while (r_bytes < size)
   {
+    GNUNET_free_non_null (line_orig);
     /* fgets-like behaviour on buffer */
     to_read = size - r_bytes;
     pos = memchr (&mem[r_bytes], '\n', to_read);
     if (NULL == pos)
     {
-      line = GNUNET_strndup (&mem[r_bytes], line_size = to_read);
+      line_orig = GNUNET_strndup (&mem[r_bytes], line_size = to_read);
       r_bytes += line_size;    
     }
     else
     {
-      line = GNUNET_strndup (&mem[r_bytes], line_size = (pos - &mem[r_bytes]));
+      line_orig = GNUNET_strndup (&mem[r_bytes], line_size = (pos - &mem[r_bytes]));
       r_bytes += line_size + 1;
     }
+    line = line_orig;
     /* increment line number */
     nr++;
-    /* ignore comments */
-    if ( ('#' == line[0]) || ('%' == line[0]) )
-      continue; 
     /* tabs and '\r' are whitespace */
     emptyline = GNUNET_YES;
     for (i = 0; i < line_size; i++)
@@ -213,6 +214,13 @@ GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
     /* remove tailing whitespace */
     for (i = line_size - 1; (i >= 1) && (isspace ((unsigned char) line[i]));i--)
       line[i] = '\0';
+
+    /* remove leading whitespace */
+    for (; line[0] != '\0' && (isspace ((unsigned char) line[0])); line++);
+
+    /* ignore comments */
+    if ( ('#' == line[0]) || ('%' == line[0]) )
+      continue;
 
     /* handle special "@INLINE@" directive */
     if (0 == strncasecmp (line, 
