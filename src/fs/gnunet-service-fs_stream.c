@@ -1156,9 +1156,15 @@ continue_writing (struct StreamClient *sc)
   struct WriteQueueItem *wqi;
 
   if (NULL != sc->wh)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Write pending, waiting for it to complete\n");
     return; /* write already pending */
+  }
   if (NULL == (wqi = sc->wqi_head))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Write queue empty, reading more requests\n");
     continue_reading (sc);
     return;
   }
@@ -1173,6 +1179,8 @@ continue_writing (struct StreamClient *sc)
   GNUNET_free (wqi);
   if (NULL == sc->wh)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Write failed; terminating stream\n");
     terminate_stream (sc);
     return;
   }
@@ -1233,6 +1241,7 @@ handle_datastore_reply (void *cls,
 	      "Starting transmission of %u byte reply via stream\n",
 	      (unsigned int) size);
   wqi = GNUNET_malloc (sizeof (struct WriteQueueItem) + msize);
+  wqi->msize = msize;
   srm = (struct StreamReplyMessage *) &wqi[1];
   srm->header.size = htons ((uint16_t) msize);
   srm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_STREAM_REPLY);
