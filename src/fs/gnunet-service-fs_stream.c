@@ -38,6 +38,11 @@
  */
 #define IDLE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 2)
 
+/**
+ * After how long do we reset connections without replies?
+ */
+#define CLIENT_RETRY_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+
 
 /**
  * A message in the queue to be written to the stream.
@@ -524,9 +529,10 @@ reset_stream_task (void *cls,
 static void
 reset_stream_async (struct StreamHandle *sh)
 {
-  if (GNUNET_SCHEDULER_NO_TASK == sh->reset_task)
-    sh->reset_task = GNUNET_SCHEDULER_add_now (&reset_stream_task,
-					       sh);
+  if (GNUNET_SCHEDULER_NO_TASK != sh->reset_task)
+    GNUNET_SCHEDULER_cancel (sh->reset_task);
+  sh->reset_task = GNUNET_SCHEDULER_add_now (&reset_stream_task,
+					     sh);
 }
 
 
@@ -549,6 +555,10 @@ handle_stream_reply (void *cls,
   struct StreamHandle *sh = cls;
 
   sh->rh = NULL;
+  GNUNET_SCHEDULER_cancel (sh->reset_task);
+  sh->reset_task = GNUNET_SCHEDULER_add_delayed (CLIENT_RETRY_TIMEOUT,
+						 &reset_stream_task,
+						 sh);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received %u bytes from stream to %s\n",
 	      (unsigned int) size,
@@ -811,6 +821,9 @@ get_stream (const struct GNUNET_PeerIdentity *target)
 	      "Creating stream to %s\n",
 	      GNUNET_i2s (target));
   sh = GNUNET_malloc (sizeof (struct StreamHandle));
+  sh->reset_task = GNUNET_SCHEDULER_add_delayed (CLIENT_RETRY_TIMEOUT,
+						 &reset_stream_task,
+						 sh);
   sh->mst = GNUNET_SERVER_mst_create (&reply_cb,
 				      sh);
   sh->waiting_map = GNUNET_CONTAINER_multihashmap_create (512, GNUNET_YES);
@@ -1128,6 +1141,9 @@ write_continuation (void *cls,
   struct StreamClient *sc = cls;
   
   sc->wh = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Write continuation called on 'server' side with status %d\n",
+	      status);
   if ( (GNUNET_STREAM_OK != status) ||
        (size != sc->reply_size) )
   {
@@ -1177,6 +1193,10 @@ continue_writing (struct StreamClient *sc)
 				GNUNET_TIME_UNIT_FOREVER_REL,
 				&write_continuation,
 				sc);
+  if (NULL != sc->wh)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Gave %u bytes for stream for transmission\n",
+		(unsigned int) wqi->msize);
   GNUNET_free (wqi);
   if (NULL == sc->wh)
   {
