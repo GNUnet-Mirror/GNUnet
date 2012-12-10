@@ -1019,8 +1019,8 @@ disconnect_session (struct Session *session)
   GNUNET_free (session);
 }
 
-/* FIXME WORKAROUND FOR MANTIS 0002445 */
-struct result
+
+struct FindSessionContext
 {
   struct Session *s;
   int res;
@@ -1030,20 +1030,37 @@ int session_it (void *cls,
                const struct GNUNET_HashCode * key,
                void *value)
 {
-  struct result *res = cls;
-
+  struct FindSessionContext *res = cls;
   if (res->s == value)
   {
     res->res = GNUNET_OK;
     return GNUNET_NO;
   }
   else
-  {
     return GNUNET_YES;
-  }
 }
 
-/* FIXME END WORKAROUND FOR MANTIS 0002445 */
+int find_session (struct Plugin *plugin, struct Session *session)
+{
+  struct FindSessionContext session_map_res;
+  struct FindSessionContext nat_map_res;
+
+  session_map_res.s = session;
+  session_map_res.res = GNUNET_SYSERR;
+  GNUNET_CONTAINER_multihashmap_iterate (plugin->sessionmap, &session_it, &session_map_res);
+
+  nat_map_res.s = session;
+  nat_map_res.res = GNUNET_SYSERR;
+  GNUNET_CONTAINER_multihashmap_iterate (plugin->nat_wait_conns, &session_it, &nat_map_res);
+
+  if ((session_map_res.res == GNUNET_SYSERR) && (nat_map_res.res == GNUNET_SYSERR))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
 
 /**
  * Function that can be used by the transport service to transmit
@@ -1086,26 +1103,12 @@ tcp_plugin_send (void *cls,
   GNUNET_assert (NULL != plugin);
   GNUNET_assert (NULL != session);
 
-  /* FIXME WORKAROUND FOR MANTIS 0002445 */
-  struct result res1;
-  struct result res2;
-
-  res1.s = session;
-  res1.res = GNUNET_SYSERR;
-  GNUNET_CONTAINER_multihashmap_iterate (plugin->sessionmap, &session_it, &res1);
-
-  res2.s = session;
-  res2.res = GNUNET_SYSERR;
-  GNUNET_CONTAINER_multihashmap_iterate (plugin->sessionmap, &session_it, &res2);
-
-  if ((res1.res == GNUNET_SYSERR) && (res2.res == GNUNET_SYSERR))
+  if (GNUNET_SYSERR == find_session(plugin, session))
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-         "WORKAROUND MANTIS BUG 2445: This Trying to send to invalid session %p\n", session);
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _("Trying to send with invalid session %p\n"));
+      return GNUNET_SYSERR;
   }
-  /* FIXME END WORKAROUND FOR MANTIS 0002445 */
 
   /* create new message entry */
   pm = GNUNET_malloc (sizeof (struct PendingMessage) + msgbuf_size);
