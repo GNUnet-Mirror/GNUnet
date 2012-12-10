@@ -1103,7 +1103,7 @@ GAS_addresses_done (struct GAS_Addresses_Handle *handle)
       GNUNET_CONTAINER_DLL_remove (handle->r_head, handle->r_tail, cur);
       GNUNET_free (cur);
   }
-
+  handle->s_done (handle->solver);
   GNUNET_free (handle);
   /* Stop configured solution method */
 
