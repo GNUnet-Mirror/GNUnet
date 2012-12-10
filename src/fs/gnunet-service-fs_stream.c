@@ -1049,6 +1049,15 @@ continue_reading (struct StreamClient *sc)
 
 
 /**
+ * Transmit the next entry from the write queue.
+ *
+ * @param sc where to process the write queue
+ */
+static void
+continue_writing (struct StreamClient *sc);
+
+
+/**
  * Functions of this signature are called whenever data is available from the
  * stream.
  *
@@ -1098,18 +1107,9 @@ process_request (void *cls,
     GNUNET_break (0);
     return size;
   }
-  continue_reading (sc);
+  continue_writing (sc);
   return size;
 }
-
-
-/**
- * Transmit the next entry from the write queue.
- *
- * @param sc where to process the write queue
- */
-static void
-continue_writing (struct StreamClient *sc);
 
 
 /**
@@ -1127,26 +1127,21 @@ write_continuation (void *cls,
   struct StreamClient *sc = cls;
   
   sc->wh = NULL;
-  if ( (GNUNET_STREAM_OK == status) &&
-       (size == sc->reply_size) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Transmitted %u byte reply via stream\n",
-		(unsigned int) size);
-    GNUNET_STATISTICS_update (GSF_stats,
-			      gettext_noop ("# Blocks transferred via stream"), 1,
-			      GNUNET_NO);
-    if (NULL != sc->wqi_head)
-      continue_writing (sc);
-    else
-      continue_reading (sc);
-  }
-  else
+  if ( (GNUNET_STREAM_OK != status) ||
+       (size != sc->reply_size) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Transmission of reply failed, terminating stream\n");
     terminate_stream (sc);    
+    return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitted %u byte reply via stream\n",
+	      (unsigned int) size);
+  GNUNET_STATISTICS_update (GSF_stats,
+			    gettext_noop ("# Blocks transferred via stream"), 1,
+			    GNUNET_NO);
+  continue_writing (sc);
 }
 
 
@@ -1221,14 +1216,14 @@ handle_datastore_reply (void *cls,
 					  &handle_datastore_reply,
 					  sc))
     {
-      continue_reading (sc);
+      continue_writing (sc);
     }
     return;
   }
   if (msize > GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
-    continue_reading (sc);
+    continue_writing (sc);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1295,7 +1290,7 @@ request_cb (void *cls,
 				       GNUNET_TIME_UNIT_FOREVER_REL,
 				       &handle_datastore_reply, sc);
     if (NULL == sc->qe)
-      continue_reading (sc);
+      continue_writing (sc);
     return GNUNET_OK;
   default:
     GNUNET_break_op (0);
