@@ -392,7 +392,7 @@ req_addr_peerinfo_it (void *cls,
   if (NULL == find_client (ai->pc->client))
     return; /* Client disconnected */
 
-  if ((NULL == id) && (NULL == id) && (NULL == id))
+  if ((NULL == id) && (NULL == plugin_name) && (NULL == plugin_addr))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Address iteration done\n");
