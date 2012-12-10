@@ -294,6 +294,7 @@ GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
 	 nr);
     ret = GNUNET_SYSERR;
     GNUNET_free_non_null (line_orig);
+    line_orig = NULL;
     break;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Finished deserializing config\n");
