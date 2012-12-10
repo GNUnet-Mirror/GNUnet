@@ -692,6 +692,7 @@ heap_plugin_get_zero_anonymity (void *cls, uint64_t offset,
     }
     break;
   }
+  GNUNET_assert (NULL != zabt);
   value = zabt->array[offset];
   if (GNUNET_NO ==
       proc (proc_cls, 

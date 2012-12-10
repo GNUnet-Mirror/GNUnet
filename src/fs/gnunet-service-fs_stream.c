@@ -847,9 +847,10 @@ GSF_stream_query_cancel (struct GSF_StreamRequest *sr)
   struct StreamHandle *sh = sr->sh;
 
   if (GNUNET_YES == sr->was_transmitted)
-    GNUNET_CONTAINER_multihashmap_remove (sh->waiting_map,
-					  &sr->query,
-					  sr);
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_CONTAINER_multihashmap_remove (sh->waiting_map,
+							 &sr->query,
+							 sr));
   else
     GNUNET_CONTAINER_DLL_remove (sh->pending_head,
 				 sh->pending_tail,
