@@ -5955,6 +5955,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshPeerInfo *peer_info;
   struct MeshTunnel *t;
   struct MeshTunnelChildInfo *cinfo;
+  GNUNET_PEER_Id predecessor;
   size_t size;
   uint32_t pid;
 
@@ -6034,7 +6035,24 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return GNUNET_OK;
   }
-  GNUNET_PEER_resolve (tree_get_predecessor (t->tree), &id);
+  predecessor = tree_get_predecessor (t->tree);
+  if (0 == predecessor)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+                "unknown to origin at %s\n",
+                GNUNET_i2s (&my_full_id));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+                "from peer %s\n",
+                GNUNET_i2s (peer));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+                "for tunnel %s [%X]\n",
+                GNUNET_i2s (&msg->oid), ntohl(msg->tid));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+                "current tree:\n");
+    tree_debug (t->tree);
+    return GNUNET_OK;
+  }
+  GNUNET_PEER_resolve (predecessor, &id);
   send_prebuilt_message (message, &id, t);
   GNUNET_STATISTICS_update (stats, "# to origin forwarded", 1, GNUNET_NO);
 
