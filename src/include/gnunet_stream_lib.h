@@ -291,13 +291,13 @@ typedef void (*GNUNET_STREAM_CompletionContinuation) (void *cls,
 /**
  * Handle to cancel IO write operations.
  */
-struct GNUNET_STREAM_IOWriteHandle;
+struct GNUNET_STREAM_WriteHandle;
 
 
 /**
  * Handle to cancel IO read operations.
  */
-struct GNUNET_STREAM_IOReadHandle;
+struct GNUNET_STREAM_ReadHandle;
 
 /**
  * Tries to write the given data to the stream. The maximum size of data that
@@ -318,7 +318,7 @@ struct GNUNET_STREAM_IOReadHandle;
  *           is broken then write_cont is immediately called and NULL is
  *           returned.
  */
-struct GNUNET_STREAM_IOWriteHandle *
+struct GNUNET_STREAM_WriteHandle *
 GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
                      const void *data,
                      size_t size,
@@ -347,7 +347,7 @@ typedef size_t (*GNUNET_STREAM_DataProcessor) (void *cls,
 /**
  * Tries to read data from the stream. Should not be called when another read
  * handle is present; the existing read handle should be canceled with
- * GNUNET_STREAM_io_read_cancel(). Only one read handle per socket is present at
+ * GNUNET_STREAM_read_cancel(). Only one read handle per socket is present at
  * any time
  *
  * @param socket the socket representing a stream
@@ -358,7 +358,7 @@ typedef size_t (*GNUNET_STREAM_DataProcessor) (void *cls,
  *           been shutdown for this type of opeartion (the DataProcessor is
  *           immediately called with GNUNET_STREAM_SHUTDOWN as status)
  */
-struct GNUNET_STREAM_IOReadHandle *
+struct GNUNET_STREAM_ReadHandle *
 GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
                     struct GNUNET_TIME_Relative timeout,
 		    GNUNET_STREAM_DataProcessor proc,
@@ -383,7 +383,7 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
  * @param ioh handle to operation to cancel
  */
 void
-GNUNET_STREAM_io_write_cancel (struct GNUNET_STREAM_IOWriteHandle *iowh);
+GNUNET_STREAM_write_cancel (struct GNUNET_STREAM_WriteHandle *iowh);
 
 
 /**
@@ -392,7 +392,7 @@ GNUNET_STREAM_io_write_cancel (struct GNUNET_STREAM_IOWriteHandle *iowh);
  * @param ioh handle to operation to cancel
  */
 void
-GNUNET_STREAM_io_read_cancel (struct GNUNET_STREAM_IOReadHandle *iorh);
+GNUNET_STREAM_read_cancel (struct GNUNET_STREAM_ReadHandle *iorh);
 
 
 #if 0

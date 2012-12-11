@@ -103,12 +103,12 @@ struct PeerData
   /**
    * Peer's io write handle
    */
-  struct GNUNET_STREAM_IOWriteHandle *io_write_handle;
+  struct GNUNET_STREAM_WriteHandle *io_write_handle;
 
   /**
    * Peer's io read handle
    */
-  struct GNUNET_STREAM_IOReadHandle *io_read_handle;
+  struct GNUNET_STREAM_ReadHandle *io_read_handle;
 
   /**
    * The peer handle when we use the testbed servie

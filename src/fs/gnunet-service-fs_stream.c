@@ -89,12 +89,12 @@ struct StreamClient
   /**
    * Handle for active read operation, or NULL.
    */ 
-  struct GNUNET_STREAM_IOReadHandle *rh;
+  struct GNUNET_STREAM_ReadHandle *rh;
 
   /**
    * Handle for active write operation, or NULL.
    */ 
-  struct GNUNET_STREAM_IOWriteHandle *wh;
+  struct GNUNET_STREAM_WriteHandle *wh;
 
   /**
    * Head of write queue.
@@ -268,12 +268,12 @@ struct StreamHandle
   /**
    * Handle for active read operation, or NULL.
    */ 
-  struct GNUNET_STREAM_IOReadHandle *rh;
+  struct GNUNET_STREAM_ReadHandle *rh;
 
   /**
    * Handle for active write operation, or NULL.
    */ 
-  struct GNUNET_STREAM_IOWriteHandle *wh;
+  struct GNUNET_STREAM_WriteHandle *wh;
 
   /**
    * Tokenizer for replies.
@@ -387,9 +387,9 @@ destroy_stream_handle (struct StreamHandle *sh)
 					 &free_waiting_entry,
 					 sh);
   if (NULL != sh->wh)
-    GNUNET_STREAM_io_write_cancel (sh->wh);
+    GNUNET_STREAM_write_cancel (sh->wh);
   if (NULL != sh->rh)
-    GNUNET_STREAM_io_read_cancel (sh->rh);
+    GNUNET_STREAM_read_cancel (sh->rh);
   if (GNUNET_SCHEDULER_NO_TASK != sh->timeout_task)
     GNUNET_SCHEDULER_cancel (sh->timeout_task);
   if (GNUNET_SCHEDULER_NO_TASK != sh->reset_task)
@@ -472,7 +472,7 @@ reset_stream (struct StreamHandle *sh)
 	      GNUNET_i2s (&sh->target));
   if (NULL != sh->rh)
   {
-    GNUNET_STREAM_io_read_cancel (sh->rh);
+    GNUNET_STREAM_read_cancel (sh->rh);
     sh->rh = NULL;
   }
   GNUNET_STREAM_close (sh->stream);
@@ -934,9 +934,9 @@ terminate_stream (struct StreamClient *sc)
   if (GNUNET_SCHEDULER_NO_TASK != sc->timeout_task)
     GNUNET_SCHEDULER_cancel (sc->timeout_task); 
  if (NULL != sc->rh)
-    GNUNET_STREAM_io_read_cancel (sc->rh);
+    GNUNET_STREAM_read_cancel (sc->rh);
   if (NULL != sc->wh)
-    GNUNET_STREAM_io_write_cancel (sc->wh);
+    GNUNET_STREAM_write_cancel (sc->wh);
   if (NULL != sc->qe)
     GNUNET_DATASTORE_cancel (sc->qe);
   GNUNET_SERVER_mst_destroy (sc->mst);

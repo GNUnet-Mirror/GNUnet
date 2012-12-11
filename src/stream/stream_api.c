@@ -217,12 +217,12 @@ struct GNUNET_STREAM_Socket
   /**
    * The write IO_handle associated with this socket
    */
-  struct GNUNET_STREAM_IOWriteHandle *write_handle;
+  struct GNUNET_STREAM_WriteHandle *write_handle;
 
   /**
    * The read IO_handle associated with this socket
    */
-  struct GNUNET_STREAM_IOReadHandle *read_handle;
+  struct GNUNET_STREAM_ReadHandle *read_handle;
 
   /**
    * The shutdown handle associated with this socket
@@ -459,7 +459,7 @@ struct GNUNET_STREAM_ListenSocket
 /**
  * The IO Write Handle
  */
-struct GNUNET_STREAM_IOWriteHandle
+struct GNUNET_STREAM_WriteHandle
 {
   /**
    * The socket to which this write handle is associated
@@ -511,7 +511,7 @@ struct GNUNET_STREAM_IOWriteHandle
 /**
  * The IO Read Handle
  */
-struct GNUNET_STREAM_IOReadHandle
+struct GNUNET_STREAM_ReadHandle
 {
   /**
    * The socket to which this read handle is associated
@@ -901,7 +901,7 @@ ackbitmap_is_bit_set (const GNUNET_STREAM_AckBitmap *bitmap,
 static void 
 write_data (struct GNUNET_STREAM_Socket *socket)
 {
-  struct GNUNET_STREAM_IOWriteHandle *io_handle = socket->write_handle;
+  struct GNUNET_STREAM_WriteHandle *io_handle = socket->write_handle;
   unsigned int packet;
   
   for (packet=0; packet < io_handle->packets_sent; packet++)
@@ -958,7 +958,7 @@ write_data (struct GNUNET_STREAM_Socket *socket)
 static void
 cleanup_read_handle (struct GNUNET_STREAM_Socket *socket)
 {
-  struct GNUNET_STREAM_IOReadHandle *read_handle;
+  struct GNUNET_STREAM_ReadHandle *read_handle;
 
   read_handle = socket->read_handle;
   /* Read io time task should be there; if it is already executed then this
@@ -987,7 +987,7 @@ call_read_processor (void *cls,
                      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_STREAM_Socket *socket = cls;
-  struct GNUNET_STREAM_IOReadHandle *read_handle;
+  struct GNUNET_STREAM_ReadHandle *read_handle;
   GNUNET_STREAM_DataProcessor proc;
   void *proc_cls;
   size_t read_size;
@@ -1101,7 +1101,7 @@ read_io_timeout (void *cls,
                  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_STREAM_Socket *socket = cls;
-  struct GNUNET_STREAM_IOReadHandle *read_handle;
+  struct GNUNET_STREAM_ReadHandle *read_handle;
   GNUNET_STREAM_DataProcessor proc;
   void *proc_cls;
 
@@ -1964,7 +1964,7 @@ handle_receive_close (struct GNUNET_STREAM_Socket *socket,
 
     wc = socket->write_handle->write_cont;
     wc_cls = socket->write_handle->write_cont_cls;
-    GNUNET_STREAM_io_write_cancel (socket->write_handle);
+    GNUNET_STREAM_write_cancel (socket->write_handle);
     socket->write_handle = NULL;
     if (NULL != wc)
       wc (wc_cls,
@@ -2091,7 +2091,7 @@ handle_close (struct GNUNET_STREAM_Socket *socket,
 
     wc = socket->write_handle->write_cont;
     wc_cls = socket->write_handle->write_cont_cls;
-    GNUNET_STREAM_io_write_cancel (socket->write_handle);
+    GNUNET_STREAM_write_cancel (socket->write_handle);
     socket->write_handle = NULL;
     if (NULL != wc)
       wc (wc_cls,
@@ -2543,7 +2543,7 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
 	    const struct GNUNET_STREAM_AckMessage *ack,
 	    const struct GNUNET_ATS_Information*atsi)
 {
-  struct GNUNET_STREAM_IOWriteHandle *write_handle;
+  struct GNUNET_STREAM_WriteHandle *write_handle;
   uint64_t ack_bitmap;
   unsigned int packet;
   int need_retransmission;
@@ -3274,13 +3274,13 @@ GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
 	 "Closing STREAM socket when a read handle is pending\n");
-    GNUNET_STREAM_io_read_cancel (socket->read_handle);
+    GNUNET_STREAM_read_cancel (socket->read_handle);
   }
   if (NULL != socket->write_handle)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
 	 "Closing STREAM socket when a write handle is pending\n");
-    GNUNET_STREAM_io_write_cancel (socket->write_handle);
+    GNUNET_STREAM_write_cancel (socket->write_handle);
     //socket->write_handle = NULL;
   }
   /* Terminate the ack'ing task if they are still present */
@@ -3465,7 +3465,7 @@ GNUNET_STREAM_listen_close (struct GNUNET_STREAM_ListenSocket *lsocket)
  *           is broken then write_cont is immediately called and NULL is
  *           returned.
  */
-struct GNUNET_STREAM_IOWriteHandle *
+struct GNUNET_STREAM_WriteHandle *
 GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
                      const void *data,
                      size_t size,
@@ -3473,7 +3473,7 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
                      GNUNET_STREAM_CompletionContinuation write_cont,
                      void *write_cont_cls)
 {
-  struct GNUNET_STREAM_IOWriteHandle *io_handle;
+  struct GNUNET_STREAM_WriteHandle *io_handle;
   struct GNUNET_STREAM_DataMessage *data_msg;
   const void *sweep;
   struct GNUNET_TIME_Relative ack_deadline;
@@ -3524,7 +3524,7 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
     size = GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH  * socket->max_payload_size;
   num_needed_packets =
       (size + (socket->max_payload_size - 1)) / socket->max_payload_size;
-  io_handle = GNUNET_malloc (sizeof (struct GNUNET_STREAM_IOWriteHandle));
+  io_handle = GNUNET_malloc (sizeof (struct GNUNET_STREAM_WriteHandle));
   io_handle->socket = socket;
   io_handle->write_cont = write_cont;
   io_handle->write_cont_cls = write_cont_cls;
@@ -3609,7 +3609,8 @@ probe_data_availability (void *cls,
 /**
  * Tries to read data from the stream. Should not be called when another read
  * handle is present; the existing read handle should be canceled with
- * GNUNET_STREAM_io_read_cancel(). Only one read handle per socket is present at any time
+ * GNUNET_STREAM_read_cancel(). Only one read handle per socket is present at
+ * any time
  *
  * @param socket the socket representing a stream
  * @param timeout the timeout period
@@ -3622,13 +3623,13 @@ probe_data_availability (void *cls,
  *           read handle is present (only one read handle per socket is present
  *           at any time)
  */
-struct GNUNET_STREAM_IOReadHandle *
+struct GNUNET_STREAM_ReadHandle *
 GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
                     struct GNUNET_TIME_Relative timeout,
 		    GNUNET_STREAM_DataProcessor proc,
 		    void *proc_cls)
 {
-  struct GNUNET_STREAM_IOReadHandle *read_handle;
+  struct GNUNET_STREAM_ReadHandle *read_handle;
   
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "%s: %s()\n", 
@@ -3657,7 +3658,7 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
   default:
     break;
   }
-  read_handle = GNUNET_malloc (sizeof (struct GNUNET_STREAM_IOReadHandle));
+  read_handle = GNUNET_malloc (sizeof (struct GNUNET_STREAM_ReadHandle));
   read_handle->proc = proc;
   read_handle->proc_cls = proc_cls;
   read_handle->socket = socket;
@@ -3678,7 +3679,7 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
  * @param ioh handle to operation to cancel
  */
 void
-GNUNET_STREAM_io_write_cancel (struct GNUNET_STREAM_IOWriteHandle *ioh)
+GNUNET_STREAM_write_cancel (struct GNUNET_STREAM_WriteHandle *ioh)
 {
   struct GNUNET_STREAM_Socket *socket = ioh->socket;
   unsigned int packet;
@@ -3706,7 +3707,7 @@ GNUNET_STREAM_io_write_cancel (struct GNUNET_STREAM_IOWriteHandle *ioh)
  * @param ioh handle to operation to cancel
  */
 void
-GNUNET_STREAM_io_read_cancel (struct GNUNET_STREAM_IOReadHandle *ioh)
+GNUNET_STREAM_read_cancel (struct GNUNET_STREAM_ReadHandle *ioh)
 {
   struct GNUNET_STREAM_Socket *socket;
   
