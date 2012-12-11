@@ -212,9 +212,13 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
                           struct Network *net,
                           struct ATS_Address *address_except)
 {
-  unsigned long long quota_in;
-  unsigned long long quota_out;
+  unsigned long long quota_in = 0;
+  unsigned long long quota_out = 0;
   struct AddressWrapper *cur;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+              "Recalculate quota for network type `%s' for %u addresses (in/out): %llu/%llu \n",
+              net->desc, net->active_addresses, quota_in, quota_out);
 
   if (net->active_addresses == 0)
     return; /* no addresses to update */
@@ -329,14 +333,25 @@ GAS_simplistic_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMa
 {
   struct GAS_SIMPLISTIC_Handle *s = solver;
   struct Network *net;
+  struct AddressWrapper *aw;
+
   /* Remove an adress completely, we have to:
    * - Remove from specific network
-   * - Decrease number of total addresses */
+   * - Decrease number of total addresses
+   * - If active:
+   *   - decrease number of active addreses
+   *   - update quotas
+   */
+
   net = (struct Network *) address->solver_information;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Deleting %s address %p for peer `%s' from network `%s' (total: %u/ active: %u)\n",
+      (GNUNET_NO == address->active) ? "inactive" : "active",
+      address, GNUNET_i2s (&address->peer),
+      net->desc, net->total_addresses, net->active_addresses);
+
   GNUNET_break (0 < net->total_addresses);
-
-
+  net->total_addresses --;
 
   if (GNUNET_YES == address->active)
   {
@@ -347,6 +362,14 @@ GAS_simplistic_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMa
       net->active_addresses --;
       update_quota_per_network (s, net, NULL);
   }
+
+  for (aw = net->head; NULL != aw; aw = aw->next)
+  {
+      if (aw->addr == address)
+        break;
+  }
+  GNUNET_CONTAINER_DLL_remove (net->head, net->tail, aw);
+  GNUNET_free (aw);
 
 }
 

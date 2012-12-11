@@ -324,8 +324,6 @@ destroy_address (struct ATS_Address *addr)
                  GNUNET_CONTAINER_multihashmap_remove (handle->addresses,
                                                        &addr->peer.hashPubKey,
                                                        addr));
-
-  handle->s_del (handle->solver, handle->addresses, addr);
   free_address (addr);
   return ret;
 }

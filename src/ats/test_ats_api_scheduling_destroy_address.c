@@ -67,6 +67,18 @@ struct GNUNET_HELLO_Address test_hello_address;
  */
 static void *test_session;
 
+/**
+ * Test ats info
+ */
+struct GNUNET_ATS_Information test_ats_info[2];
+
+/**
+ * Test ats count
+ */
+uint32_t test_ats_count;
+
+
+
 static void
 create_test_address (struct Test_Address *dest, char * plugin, void *session, void *addr, size_t addrlen)
 {
@@ -227,6 +239,13 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
               GNUNET_i2s_full(&p.id));
 
+  /* Prepare ATS Information */
+  test_ats_info[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  test_ats_info[0].value = htonl(GNUNET_ATS_NET_WAN);
+  test_ats_info[1].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
+  test_ats_info[1].value = htonl(1);
+  test_ats_count = 2;
+
   /* Adding address without session */
   test_session  = NULL;
   create_test_address (&test_addr, "test", test_session, "test", strlen ("test") + 1);
@@ -234,7 +253,7 @@ run (void *cls,
   test_hello_address.transport_name = test_addr.plugin;
   test_hello_address.address = test_addr.addr;
   test_hello_address.address_length = test_addr.addr_len;
-  GNUNET_ATS_address_add (sched_ats, &test_hello_address, test_session, NULL, 0);
+  GNUNET_ATS_address_add (sched_ats, &test_hello_address, test_session, test_ats_info, 2);
 
   /* Request address */
   GNUNET_ATS_suggest_address (sched_ats, &p.id);
