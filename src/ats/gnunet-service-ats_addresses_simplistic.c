@@ -152,6 +152,7 @@ GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   for (c = 0; c < dest_length; c++)
   {
       cur = &s->network_entries[c];
+      cur->active_addresses = 0;
       cur->type = network[c];
       cur->total_quota_in = in_quota[c];
       cur->total_quota_out = out_quota[c];
@@ -193,7 +194,7 @@ GAS_simplistic_done (void *solver)
 }
 
 static void
-update_quota (struct GAS_SIMPLISTIC_Handle *s, struct Network *net)
+update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s, struct Network *net)
 {
   unsigned long long quota_in;
   unsigned long long quota_out;
@@ -203,8 +204,8 @@ update_quota (struct GAS_SIMPLISTIC_Handle *s, struct Network *net)
   quota_out = net->total_quota_out / net->active_addresses;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "New quota for network type `%s' (in/out): %llu/%llu \n",
-              net->desc, quota_in, quota_out);
+              "New per address quota for network type `%s' for %u addresses (in/out): %llu/%llu \n",
+              net->desc, net->active_addresses, quota_in, quota_out);
 
   cur = net->head;
   while (NULL != cur)
@@ -216,7 +217,8 @@ update_quota (struct GAS_SIMPLISTIC_Handle *s, struct Network *net)
         cur->addr->assigned_bw_in.value__ = htonl (quota_in);
         cur->addr->assigned_bw_out.value__ = htonl (quota_out);
         /* Notify on change */
-        s->bw_changed (cur->addr);
+        if (GNUNET_YES == cur->addr->active)
+          s->bw_changed (cur->addr);
       }
       cur = cur->next;
   }
@@ -262,7 +264,7 @@ GAS_simplistic_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap *
               cur->active_addresses);
 
   /* Update quota for this network type */
-  update_quota (s, cur);
+  update_quota_per_network (s, cur);
 }
 
 
@@ -294,7 +296,7 @@ GAS_simplistic_address_update (void *solver, struct GNUNET_CONTAINER_MultiHashMa
   }
 
   /* Update quota for this network type */
-  update_quota (s, c);
+  update_quota_per_network (s, c);
 #endif
 }
 
@@ -328,7 +330,7 @@ GAS_simplistic_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMa
   }
 
   /* Update quota for this network type */
-  update_quota (s, c);
+  update_quota_per_network (s, c);
 #endif
 }
 
@@ -435,26 +437,28 @@ GAS_simplistic_get_preferred_address (void *solver,
                                const struct GNUNET_PeerIdentity *peer)
 {
   struct GAS_SIMPLISTIC_Handle *s = solver;
-  struct ATS_Address *aa;
-  struct ATS_Address *previous;
+  struct Network *net_prev;
+  struct Network *net_cur;
+  struct ATS_Address *cur;
+  struct ATS_Address *prev;
 
   GNUNET_assert (s != NULL);
-  aa = NULL;
+  cur = NULL;
   /* Get address with: stick to current address, lower distance, lower latency */
   GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
-                                              &find_address_it, &aa);
-  if (NULL == aa)
+                                              &find_address_it, &cur);
+  if (NULL == cur)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
     return NULL;
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Suggesting address %p for peer `%s'\n", aa, GNUNET_i2s (peer));
-
-  if (GNUNET_YES == aa->active)
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Suggesting address %p for peer `%s'\n", cur, GNUNET_i2s (peer));
+  net_cur = (struct Network *) cur->solver_information;
+  if (GNUNET_YES == cur->active)
   {
       /* This address was selected previously, so no need to update quotas */
-      return aa;
+      return cur;
   }
 
   /* This address was not active, so we have to:
@@ -464,17 +468,23 @@ GAS_simplistic_get_preferred_address (void *solver,
    * - update quota for this address network
    */
 
-  previous = find_active_address (solver, addresses, peer);
-  if (NULL == previous)
+  prev = find_active_address (s, addresses, peer);
+  if (NULL != prev)
   {
-     /* No currently address, nothing to do */
-     return aa;
+      net_prev = (struct Network *) prev->solver_information;
+      prev->active = GNUNET_NO; /* No active any longer */
+      prev->assigned_bw_in = GNUNET_BANDWIDTH_value_init (0); /* no bw assigned */
+      prev->assigned_bw_out = GNUNET_BANDWIDTH_value_init (0); /* no bw assigned */
+      s->bw_changed (prev); /* notify about bw change, REQUIERED? */
+      net_cur->active_addresses --;
+      update_quota_per_network (s, net_prev);
   }
 
-  aa->active = GNUNET_YES;
-  s->active_addresses++;
+  cur->active = GNUNET_YES;
+  net_cur->active_addresses ++;
+  update_quota_per_network (s, net_cur);
 
-  return aa;
+  return cur;
 }
 
 

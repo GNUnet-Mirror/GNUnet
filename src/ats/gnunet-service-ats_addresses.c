@@ -972,6 +972,7 @@ bandwidth_changed_cb (struct ATS_Address *address)
                                               ats, ats_count,
                                               address->assigned_bw_out,
                                               address->assigned_bw_in);
+  GNUNET_free (ats);
 }
 
 

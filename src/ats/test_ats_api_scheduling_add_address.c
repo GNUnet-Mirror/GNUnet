@@ -111,7 +111,8 @@ end ()
     GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_ATS_scheduling_done (sched_ats);
+  if (NULL != sched_ats)
+    GNUNET_ATS_scheduling_done (sched_ats);
   sched_ats = NULL;
   free_test_address (&test_addr);
 }
@@ -204,27 +205,31 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
                     const struct GNUNET_ATS_Information *atsi,
                     uint32_t ats_count)
 {
-  if (GNUNET_OK == compare_addresses (address, session, &test_hello_address, test_session))
+  static int stage = 0;
+  if (0 == stage)
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 0: Callback with correct address `%s'\n",
-                  GNUNET_i2s (&address->peer));
-      ret = 0;
-  }
-  else
-  {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 0: Callback with invalid address `%s'\n",
-                  GNUNET_i2s (&address->peer));
+    if (GNUNET_OK == compare_addresses (address, session, &test_hello_address, test_session))
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 0: Callback with correct address `%s'\n",
+                    GNUNET_i2s (&address->peer));
+        ret = 0;
+    }
+    else
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 0: Callback with invalid address `%s'\n",
+                    GNUNET_i2s (&address->peer));
+        ret = 1;
+    }
+
+    if (GNUNET_OK != compare_ats(atsi, ats_count, test_ats_info, test_ats_count))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage 0: Callback with incorrect ats info \n");
       ret = 1;
+    }
+    stage ++;
+    GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
+    GNUNET_SCHEDULER_add_now (&end, NULL);
   }
-
-  if (GNUNET_OK != compare_ats(atsi, ats_count, test_ats_info, test_ats_count))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage 0: Callback with incorrect ats info \n");
-    ret = 1;
-  }
-
-  GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
-  GNUNET_SCHEDULER_add_now (&end, NULL);
 }
 
 static void
