@@ -32,6 +32,31 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-simplistic",__VA_ARGS__)
 
 /**
+ * ATS simplistic solver
+ *
+ * Assigns in and outbound bandwidth equally for all addresses in specific
+ * network type (WAN, LAN) based on configured in and outbound quota for this
+ * network.
+ *
+ * For each peer only a single is selected and marked as "active" in the address
+ * struct.
+ *
+ * E.g.:
+ *
+ * You have the networks WAN and LAN and quotas
+ * WAN_TOTAL_IN, WAN_TOTAL_OUT
+ * LAN_TOTAL_IN, LAN_TOTAL_OUT
+ *
+ * If you have x addresses in the network segment LAN, the quotas are
+ * QUOTA_PER_ADDRESS = LAN_TOTAL_OUT / x
+ *
+ * Quotas are automatically recalculated and reported back when addresses are
+ * added, updated or deleted and can be requested using "get_prefered_address".
+ *
+ */
+
+
+/**
  * A handle for the simplistic solver
  */
 struct GAS_SIMPLISTIC_Handle
@@ -195,8 +220,8 @@ update_quota (struct GAS_SIMPLISTIC_Handle *s, struct Network *net)
       }
       cur = cur->next;
   }
-
 }
+
 
 /**
  * Add a single address to the solve
@@ -237,8 +262,6 @@ GAS_simplistic_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap *
 
   /* Update quota for this network type */
   update_quota (s, cur);
-
-
 }
 
 
@@ -388,39 +411,15 @@ find_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
   return GNUNET_OK;
 }
 
-static int
-update_bw_simple_it (void *cls, const struct GNUNET_HashCode * key, void *value)
+static struct ATS_Address *
+find_active_address (void *solver,
+                     struct GNUNET_CONTAINER_MultiHashMap * addresses,
+                     const struct GNUNET_PeerIdentity *peer)
 {
-  struct GAS_SIMPLISTIC_Handle *s = cls;
-  struct ATS_Address *aa = value;
+  struct ATS_Address * aa = NULL;
 
-  if (GNUNET_YES != aa->active)
-    return GNUNET_OK;
-  GNUNET_assert (s->active_addresses > 0);
-
-
-  /* Simple method */
-
-  //aa->assigned_bw_in.value__ = htonl (UINT32_MAX / s->active_addresses);
-  //aa->assigned_bw_out.value__ = htonl (UINT32_MAX / s->active_addresses);
-
-  return GNUNET_OK;
+  return aa;
 }
-
-/**
- * Some (significant) input changed, recalculate bandwidth assignment
- * for all peers.
- */
-static void
-recalculate_assigned_bw (void *solver,
-                         struct GNUNET_CONTAINER_MultiHashMap * addresses)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Recalculating bandwidth for all active connections\n");
-  GNUNET_CONTAINER_multihashmap_iterate (addresses, &update_bw_simple_it, solver);
-}
-
-
 
 /**
  * Get the prefered address for a specific peer
@@ -436,6 +435,7 @@ GAS_simplistic_get_preferred_address (void *solver,
 {
   struct GAS_SIMPLISTIC_Handle *s = solver;
   struct ATS_Address *aa;
+  struct ATS_Address *previous;
 
   GNUNET_assert (s != NULL);
   aa = NULL;
@@ -443,18 +443,41 @@ GAS_simplistic_get_preferred_address (void *solver,
   GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
                                               &find_address_it, &aa);
   if (NULL == aa)
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
-  else
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Suggesting address %p for peer `%s'\n", aa, GNUNET_i2s (peer));
-
-    if (GNUNET_NO == aa->active)
-    {
-      aa->active = GNUNET_YES;
-      s->active_addresses++;
-      recalculate_assigned_bw (s, addresses);
-    }
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
+    return NULL;
   }
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Suggesting address %p for peer `%s'\n", aa, GNUNET_i2s (peer));
+
+  if (GNUNET_YES == aa->active)
+  {
+      /* This address was selected previously, so no need to update quotas */
+      return aa;
+  }
+
+  /* This address was not active, so we have to:
+   *
+   * - mark previous active address as not active
+   * - update quota for previous address network
+   * - update quota for this address network
+   */
+
+  previous = find_active_address (solver, addresses, peer);
+  if (NULL == previous)
+  {
+     /* No currently address, nothing to do */
+     return aa;
+  }
+
+
+  if (GNUNET_NO == aa->active)
+  {
+    aa->active = GNUNET_YES;
+    s->active_addresses++;
+    //update_quota (s, aa->);
+  }
+
 
   return aa;
 }
