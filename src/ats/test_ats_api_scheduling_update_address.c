@@ -66,7 +66,7 @@ static void *test_session;
 /**
  * Test ats info
  */
-struct GNUNET_ATS_Information test_ats_info[2];
+struct GNUNET_ATS_Information test_ats_info[3];
 
 /**
  * Test ats count
@@ -236,9 +236,11 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
     /* Update address */
     /* Prepare ATS Information */
     test_ats_info[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
-    test_ats_info[0].value = htonl(GNUNET_ATS_NET_LAN);
+    test_ats_info[0].value = htonl(GNUNET_ATS_NET_WAN);
     test_ats_info[1].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
     test_ats_info[1].value = htonl(3);
+    test_ats_info[1].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
+    test_ats_info[1].value = htonl(30);
     test_ats_count = 2;
 
     GNUNET_ATS_address_update (sched_ats, &test_hello_address, test_session, test_ats_info, test_ats_count);
@@ -311,6 +313,8 @@ run (void *cls,
   test_ats_info[0].value = htonl(GNUNET_ATS_NET_WAN);
   test_ats_info[1].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   test_ats_info[1].value = htonl(1);
+  test_ats_info[1].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
+  test_ats_info[1].value = htonl(10);
   test_ats_count = 2;
 
   /* Adding address without session */

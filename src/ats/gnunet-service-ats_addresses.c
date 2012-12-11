@@ -210,6 +210,8 @@ disassemble_ats_information (const struct GNUNET_ATS_Information *src,
       res ++;
       break;
     case GNUNET_ATS_QUALITY_NET_DISTANCE:
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Old ATS type %u %u\n", dest->atsp_distance, ntohl (src[i].type));
       dest->atsp_distance = ntohl (src[i].value);
       res ++;
       break;
@@ -465,7 +467,6 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
                        plugin_name,
                        plugin_addr, plugin_addr_len,
                        session_id);
-  aa->solver_information = NULL;
   if (atsi_count != (ats_res = disassemble_ats_information(atsi, atsi_count, aa)))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -484,10 +485,12 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Added new address for peer `%s' session id %u, %p\n",
                 GNUNET_i2s (peer), session_id, aa);
-    /* Tell solver about update */
+    /* Tell solver about new address */
     handle->s_add (handle->solver, handle->addresses, aa);
     return;
   }
+  GNUNET_free (aa->plugin);
+  GNUNET_free (aa);
 
   if (old->session_id != 0)
   {
@@ -510,9 +513,8 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
                 "While updating address: had %u ATS elements to add, could only add %u\n",
                 atsi_count, ats_res);
   }
-  GNUNET_free (aa->plugin);
-  GNUNET_free (aa);
-  handle->s_add (handle->solver, handle->addresses, old);
+
+  handle->s_update (handle->solver, handle->addresses, old);
 }
 
 
@@ -523,13 +525,8 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
                       const struct GNUNET_ATS_Information *atsi,
                       uint32_t atsi_count)
 {
-  struct ATS_Address *old;
+  struct ATS_Address *aa;
   uint32_t ats_res;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received `%s' for peer `%s'\n",
-                "ADDRESS UPDATE",
-                GNUNET_i2s (peer));
 
   if (GNUNET_NO == handle->running)
     return;
@@ -537,9 +534,9 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
   GNUNET_assert (NULL != handle->addresses);
 
   /* Get existing address */
-  old = lookup_address (peer, plugin_name, plugin_addr, plugin_addr_len,
+  aa = lookup_address (peer, plugin_name, plugin_addr, plugin_addr_len,
                        session_id, atsi, atsi_count);
-  if (old == NULL)
+  if (aa == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Tried to update unknown address for peer `%s' `%s' session id %u\n",
                 GNUNET_i2s (peer), plugin_name, session_id);
@@ -547,15 +544,23 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
     return;
   }
 
-  if (atsi_count != (ats_res = disassemble_ats_information (atsi, atsi_count, old)))
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received `%s' for peer `%s' address \n",
+                "ADDRESS UPDATE",
+                GNUNET_i2s (peer), aa);
+
+  if (atsi_count != (ats_res = disassemble_ats_information (atsi, atsi_count, aa)))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "While adding address: had %u ATS elements to add, could only add %u\n",
                 atsi_count, ats_res);
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+            "Updated %u ATS elements for address %p\n",
+            ats_res, aa);
 
   /* Tell solver about update */
-  handle->s_update (handle->solver, handle->addresses, old);
+  handle->s_update (handle->solver, handle->addresses, aa);
 }
 
 

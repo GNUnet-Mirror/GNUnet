@@ -51,7 +51,7 @@
  * QUOTA_PER_ADDRESS = LAN_TOTAL_OUT / x
  *
  * Quotas are automatically recalculated and reported back when addresses are
- * added, updated or deleted and can be requested using "get_prefered_address".
+ * - requested
  *
  */
 
@@ -97,6 +97,11 @@ struct Network
    * Number of active addresses for this network
    */
   unsigned int active_addresses;
+
+  /**
+   * Number of total addresses for this network
+   */
+  unsigned int total_addresses;
 
   struct AddressWrapper *head;
   struct AddressWrapper *tail;
@@ -152,6 +157,7 @@ GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   for (c = 0; c < dest_length; c++)
   {
       cur = &s->network_entries[c];
+      cur->total_addresses = 0;
       cur->active_addresses = 0;
       cur->type = network[c];
       cur->total_quota_in = in_quota[c];
@@ -193,12 +199,25 @@ GAS_simplistic_done (void *solver)
   GNUNET_free (s);
 }
 
+/**
+ * Update the quotas for a network type
+ *
+ * @param network the network type to update
+ * @param address_except address excluded from notifcation, since we suggest
+ * this address
+ */
+
 static void
-update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s, struct Network *net)
+update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
+                          struct Network *net,
+                          struct ATS_Address *address_except)
 {
   unsigned long long quota_in;
   unsigned long long quota_out;
   struct AddressWrapper *cur;
+
+  if (net->active_addresses == 0)
+    return; /* no addresses to update */
 
   quota_in = net->total_quota_in / net->active_addresses;
   quota_out = net->total_quota_out / net->active_addresses;
@@ -217,7 +236,7 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s, struct Network *net)
         cur->addr->assigned_bw_in.value__ = htonl (quota_in);
         cur->addr->assigned_bw_out.value__ = htonl (quota_out);
         /* Notify on change */
-        if (GNUNET_YES == cur->addr->active)
+        if ((GNUNET_YES == cur->addr->active) && (cur->addr != address_except))
           s->bw_changed (cur->addr);
       }
       cur = cur->next;
@@ -255,16 +274,13 @@ GAS_simplistic_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap *
   aw = GNUNET_malloc (sizeof (struct AddressWrapper));
   aw->addr = address;
   GNUNET_CONTAINER_DLL_insert (cur->head, cur->tail, aw);
-  cur->active_addresses ++;
+  cur->total_addresses ++;
   aw->addr->solver_information = cur;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Adding new address for network type `%s' (now %u total)\n",
               cur->desc,
               cur->active_addresses);
-
-  /* Update quota for this network type */
-  update_quota_per_network (s, cur);
 }
 
 
@@ -477,12 +493,12 @@ GAS_simplistic_get_preferred_address (void *solver,
       prev->assigned_bw_out = GNUNET_BANDWIDTH_value_init (0); /* no bw assigned */
       s->bw_changed (prev); /* notify about bw change, REQUIERED? */
       net_cur->active_addresses --;
-      update_quota_per_network (s, net_prev);
+      update_quota_per_network (s, net_prev, NULL);
   }
 
   cur->active = GNUNET_YES;
   net_cur->active_addresses ++;
-  update_quota_per_network (s, net_cur);
+  update_quota_per_network (s, net_cur, cur);
 
   return cur;
 }
