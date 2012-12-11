@@ -366,11 +366,14 @@ GAS_simplistic_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMa
       address->active = GNUNET_NO;
       if (net->active_addresses < 1)
         GNUNET_break (0);
-      net->active_addresses --;
+      else
+        net->active_addresses --;
+      if (s->active_addresses < 1)
+        GNUNET_break (0);
+      else
+        s->active_addresses --;
       update_quota_per_network (s, net, NULL);
   }
-
-
 }
 
 
@@ -540,11 +543,19 @@ GAS_simplistic_get_preferred_address (void *solver,
       prev->assigned_bw_in = GNUNET_BANDWIDTH_value_init (0); /* no bw assigned */
       prev->assigned_bw_out = GNUNET_BANDWIDTH_value_init (0); /* no bw assigned */
       s->bw_changed (prev); /* notify about bw change, REQUIERED? */
-      net_cur->active_addresses --;
+      if (net_prev->active_addresses < 1)
+        GNUNET_break (0);
+      else
+        net_prev->active_addresses --;
+      if (s->active_addresses < 1)
+        GNUNET_break (0);
+      else
+        s->active_addresses --;
       update_quota_per_network (s, net_prev, NULL);
   }
 
   cur->active = GNUNET_YES;
+  s->active_addresses ++;
   net_cur->active_addresses ++;
   update_quota_per_network (s, net_cur, cur);
 
