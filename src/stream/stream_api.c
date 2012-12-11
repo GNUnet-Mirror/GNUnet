@@ -3616,12 +3616,9 @@ probe_data_availability (void *cls,
  * @param timeout the timeout period
  * @param proc function to call with data (once only)
  * @param proc_cls the closure for proc
- *
- * @return handle to cancel the operation; NULL is returned if: the stream has
+ * @return handle to cancel the operation; NULL is returned if the stream has
  *           been shutdown for this type of opeartion (the DataProcessor is
- *           immediately called with GNUNET_STREAM_SHUTDOWN as status) OR another
- *           read handle is present (only one read handle per socket is present
- *           at any time)
+ *           immediately called with GNUNET_STREAM_SHUTDOWN as status)
  */
 struct GNUNET_STREAM_ReadHandle *
 GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
@@ -3674,18 +3671,30 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
 
 
 /**
- * Cancel pending write operation.
+ * Cancels pending write operation. Also cancels packet retransmissions which
+ * may have resulted otherwise.
  *
- * @param ioh handle to operation to cancel
+ * CAUTION: Normally a write operation is considered successful if the data
+ * given to it is sent and acknowledged by the receiver. As data is divided
+ * into packets, it is possible that not all packets are received by the
+ * receiver. Any missing packets are then retransmitted till the receiver
+ * acknowledges all packets or until a timeout . During this scenario if the
+ * write operation is cancelled all such retransmissions are also
+ * cancelled. This may leave the receiver's receive buffer incompletely filled
+ * as some missing packets are never retransmitted. So this operation should be
+ * used before shutting down transmission from our side or before closing the
+ * socket.
+ *
+ * @param wh write operation handle to cancel
  */
 void
-GNUNET_STREAM_write_cancel (struct GNUNET_STREAM_WriteHandle *ioh)
+GNUNET_STREAM_write_cancel (struct GNUNET_STREAM_WriteHandle *wh)
 {
-  struct GNUNET_STREAM_Socket *socket = ioh->socket;
+  struct GNUNET_STREAM_Socket *socket = wh->socket;
   unsigned int packet;
 
   GNUNET_assert (NULL != socket->write_handle);
-  GNUNET_assert (socket->write_handle == ioh);
+  GNUNET_assert (socket->write_handle == wh);
   if (GNUNET_SCHEDULER_NO_TASK != socket->data_retransmission_task_id)
   {
     GNUNET_SCHEDULER_cancel (socket->data_retransmission_task_id);
@@ -3693,8 +3702,8 @@ GNUNET_STREAM_write_cancel (struct GNUNET_STREAM_WriteHandle *ioh)
   }
   for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
   {
-    if (NULL == ioh->messages[packet]) break;
-    GNUNET_free (ioh->messages[packet]);
+    if (NULL == wh->messages[packet]) break;
+    GNUNET_free (wh->messages[packet]);
   }      
   GNUNET_free (socket->write_handle);
   socket->write_handle = NULL;
@@ -3704,16 +3713,16 @@ GNUNET_STREAM_write_cancel (struct GNUNET_STREAM_WriteHandle *ioh)
 /**
  * Cancel pending read operation.
  *
- * @param ioh handle to operation to cancel
+ * @param rh read operation handle to cancel
  */
 void
-GNUNET_STREAM_read_cancel (struct GNUNET_STREAM_ReadHandle *ioh)
+GNUNET_STREAM_read_cancel (struct GNUNET_STREAM_ReadHandle *rh)
 {
   struct GNUNET_STREAM_Socket *socket;
   
-  socket = ioh->socket;
+  socket = rh->socket;
   GNUNET_assert (NULL != socket->read_handle);
-  GNUNET_assert (ioh == socket->read_handle);
+  GNUNET_assert (rh == socket->read_handle);
   cleanup_read_handle (socket);
 }
 

@@ -354,7 +354,7 @@ typedef size_t (*GNUNET_STREAM_DataProcessor) (void *cls,
  * @param timeout the timeout period
  * @param proc function to call with data (once only)
  * @param proc_cls the closure for proc
- * @return handle to cancel the operation; NULL is returned if: the stream has
+ * @return handle to cancel the operation; NULL is returned if the stream has
  *           been shutdown for this type of opeartion (the DataProcessor is
  *           immediately called with GNUNET_STREAM_SHUTDOWN as status)
  */
@@ -380,19 +380,19 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
  * used before shutting down transmission from our side or before closing the
  * socket.
  *
- * @param ioh handle to operation to cancel
+ * @param wh write operation handle to cancel
  */
 void
-GNUNET_STREAM_write_cancel (struct GNUNET_STREAM_WriteHandle *iowh);
+GNUNET_STREAM_write_cancel (struct GNUNET_STREAM_WriteHandle *wh);
 
 
 /**
  * Cancel pending read operation.
  *
- * @param ioh handle to operation to cancel
+ * @param rh read operation handle to cancel
  */
 void
-GNUNET_STREAM_read_cancel (struct GNUNET_STREAM_ReadHandle *iorh);
+GNUNET_STREAM_read_cancel (struct GNUNET_STREAM_ReadHandle *rh);
 
 
 #if 0
