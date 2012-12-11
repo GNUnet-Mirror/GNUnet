@@ -1414,18 +1414,6 @@ GNUNET_TESTBED_run (const char *host_filename,
 
 
 /**
- * Signature of a main function for a testcase.
- *
- * @param cls closure
- * @param num_peers number of peers in 'peers'
- * @param peers handle to peers run in the testbed
- */
-typedef void (*GNUNET_TESTBED_TestMaster)(void *cls,
-                                          unsigned int num_peers,
-                                          struct GNUNET_TESTBED_Peer **peers);
-
-
-/**
  * Convenience method for running a "simple" test on the local system
  * with a single call from 'main'.  Underlay and overlay topology are
  * configured using the "UNDERLAY" and "OVERLAY" options in the
