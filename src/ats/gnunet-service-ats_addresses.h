@@ -75,20 +75,9 @@ struct ATS_Address
   char *plugin;
 
   /**
-   * MLP specific information
-   * TODO remove or rename
+   * Solver specific information for this address
    */
-  void *mlp_information;
-
-  /**
-   * ATS information
-   */
-  //struct GNUNET_ATS_Information *ats;
-
-  /**
-   * Number of ATS information
-   */
-  //uint32_t ats_count;
+  void *solver_information;
 
   /* CHECK USAGE */
   struct GNUNET_TIME_Relative atsp_latency;

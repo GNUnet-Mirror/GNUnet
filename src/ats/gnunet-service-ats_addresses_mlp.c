@@ -246,8 +246,8 @@ create_constraint_it (void *cls, const struct GNUNET_HashCode * key, void *value
   unsigned int row_index;
   char *name;
 
-  GNUNET_assert (address->mlp_information != NULL);
-  mlpi = (struct MLP_information *) address->mlp_information;
+  GNUNET_assert (address->solver_information != NULL);
+  mlpi = (struct MLP_information *) address->solver_information;
 
   /* c 1) bandwidth capping
    * b_t  + (-M) * n_t <= 0
@@ -560,7 +560,7 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
     /* For all addresses of this peer */
     while (addr != NULL)
     {
-      mlpi = (struct MLP_information *) addr->mlp_information;
+      mlpi = (struct MLP_information *) addr->solver_information;
 
       /* coefficient for c 2) */
       ia[mlp->ci] = peer->r_c2;
@@ -611,7 +611,7 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
     for (tp = mlp->peer_head; tp != NULL; tp = tp->next)
       for (ta = tp->head; ta != NULL; ta = ta->next)
         {
-          mlpi = ta->mlp_information;
+          mlpi = ta->solver_information;
           value = mlpi->q_averaged[c];
 
           mlpi->r_q[c] = mlp->r_q[c];
@@ -643,8 +643,8 @@ create_columns_it (void *cls, const struct GNUNET_HashCode * key, void *value)
   unsigned int col;
   char *name;
 
-  GNUNET_assert (address->mlp_information != NULL);
-  mlpi = address->mlp_information;
+  GNUNET_assert (address->solver_information != NULL);
+  mlpi = address->solver_information;
 
   /* Add bandwidth column */
   col = glp_add_cols (mlp->prob, 2);
@@ -1042,7 +1042,7 @@ GAS_mlp_solve_problem (void *solver, struct GAS_MLP_SolutionContext *ctx)
       double b = 0.0;
       double n = 0.0;
 
-      mlpi = a->mlp_information;
+      mlpi = a->solver_information;
 
       b = glp_mip_col_val(mlp->prob, mlpi->c_b);
       mlpi->b = b;
@@ -1366,10 +1366,10 @@ update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address)
       GNUNET_i2s (&address->peer));
 
   GNUNET_assert (NULL != address);
-  GNUNET_assert (NULL != address->mlp_information);
+  GNUNET_assert (NULL != address->solver_information);
 //  GNUNET_assert (NULL != address->ats);
 
-  struct MLP_information *mlpi = address->mlp_information;
+  struct MLP_information *mlpi = address->solver_information;
   //struct GNUNET_ATS_Information *ats = address->ats;
   GNUNET_assert (mlpi != NULL);
 
@@ -1559,7 +1559,7 @@ GAS_mlp_address_update (void *solver, struct GNUNET_CONTAINER_MultiHashMap * add
   GNUNET_STATISTICS_update (mlp->stats, "# MLP address updates", 1, GNUNET_NO);
 
   /* We add a new address */
-  if (address->mlp_information == NULL)
+  if (address->solver_information == NULL)
     new = GNUNET_YES;
   else
     new = GNUNET_NO;
@@ -1580,7 +1580,7 @@ GAS_mlp_address_update (void *solver, struct GNUNET_CONTAINER_MultiHashMap * add
       mlpi->q_averaged[c] = 0.0;
     }
 
-    address->mlp_information = mlpi;
+    address->solver_information = mlpi;
     mlp->addr_in_problem ++;
     GNUNET_STATISTICS_update (mlp->stats, "# addresses in MLP", 1, GNUNET_NO);
 
@@ -1660,10 +1660,10 @@ GAS_mlp_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMap * add
   struct GAS_MLP_SolutionContext ctx;
 
   /* Free resources */
-  if (address->mlp_information != NULL)
+  if (address->solver_information != NULL)
   {
-    GNUNET_free (address->mlp_information);
-    address->mlp_information = NULL;
+    GNUNET_free (address->solver_information);
+    address->solver_information = NULL;
 
     mlp->addr_in_problem --;
     GNUNET_STATISTICS_update (mlp->stats, "# addresses in MLP", -1, GNUNET_NO);
@@ -1709,7 +1709,7 @@ mlp_get_preferred_address_it (void *cls, const struct GNUNET_HashCode * key, voi
 
   struct ATS_Address *aa = (struct ATS_Address *) cls;
   struct ATS_Address *addr = value;
-  struct MLP_information *mlpi = addr->mlp_information;
+  struct MLP_information *mlpi = addr->solver_information;
   if (mlpi == NULL)
     return GNUNET_YES;
   if (mlpi->n == GNUNET_YES)
@@ -1798,8 +1798,8 @@ GAS_mlp_done (void *solver)
     for (addr = peer->head; NULL != addr; addr = peer->head)
     {
       GNUNET_CONTAINER_DLL_remove(peer->head, peer->tail, addr);
-      GNUNET_free (addr->mlp_information);
-      addr->mlp_information = NULL;
+      GNUNET_free (addr->solver_information);
+      addr->solver_information = NULL;
     }
     GNUNET_free (peer);
     peer = mlp->peer_head;

@@ -335,7 +335,7 @@ check (void *cls, char *const *args, const char *cfgfile,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up address %u for peer %u\n", c2, c);
       /* Setting required information */
-      a[ca].mlp_information = NULL;
+      a[ca].solver_information = NULL;
       a[ca].prev = NULL;
       a[ca].next = NULL;
 

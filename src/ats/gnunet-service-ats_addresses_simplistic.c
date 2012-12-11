@@ -254,6 +254,7 @@ GAS_simplistic_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap *
   aw->addr = address;
   GNUNET_CONTAINER_DLL_insert (cur->head, cur->tail, aw);
   cur->active_addresses ++;
+  aw->addr->solver_information = cur;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Adding new address for network type `%s' (now %u total)\n",
@@ -470,14 +471,8 @@ GAS_simplistic_get_preferred_address (void *solver,
      return aa;
   }
 
-
-  if (GNUNET_NO == aa->active)
-  {
-    aa->active = GNUNET_YES;
-    s->active_addresses++;
-    //update_quota (s, aa->);
-  }
-
+  aa->active = GNUNET_YES;
+  s->active_addresses++;
 
   return aa;
 }

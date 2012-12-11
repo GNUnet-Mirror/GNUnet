@@ -276,7 +276,7 @@ create_address (const struct GNUNET_PeerIdentity *peer,
   aa->plugin = GNUNET_strdup (plugin_name);
   aa->session_id = session_id;
   aa->active = GNUNET_NO;
-  aa->mlp_information = NULL;
+  aa->solver_information = NULL;
   aa->assigned_bw_in = GNUNET_BANDWIDTH_value_init(0);
   aa->assigned_bw_out = GNUNET_BANDWIDTH_value_init(0);
   return aa;
@@ -465,7 +465,7 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
                        plugin_name,
                        plugin_addr, plugin_addr_len,
                        session_id);
-  aa->mlp_information = NULL;
+  aa->solver_information = NULL;
   if (atsi_count != (ats_res = disassemble_ats_information(atsi, atsi_count, aa)))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

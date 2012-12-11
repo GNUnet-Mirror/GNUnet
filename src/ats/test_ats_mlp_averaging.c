@@ -46,7 +46,7 @@ struct GAS_MLP_Handle *mlp;
 static void
 create_address (struct ATS_Address *addr, char * plugin, int ats_count, struct GNUNET_ATS_Information *ats)
 {
-  addr->mlp_information = NULL;
+  addr->solver_information = NULL;
   addr->next = NULL;
   addr->prev = NULL;
   addr->plugin = GNUNET_strdup (plugin);
