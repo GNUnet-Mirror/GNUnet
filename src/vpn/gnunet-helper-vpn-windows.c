@@ -35,6 +35,7 @@
 #include <tchar.h>
 #include <windows.h>
 #include <setupapi.h>
+#include <ddk/cfgmgr32.h>
 #include "platform.h"
 
 /**
@@ -70,6 +71,12 @@
  */
 #define HARDWARE_ID _T("TAP0901")
 
+/**
+ * Location of the network interface list resides in registry.
+ * TODO: is this fixed on all version of windows? Checked with XP and 7
+ */
+#define INTERFACE_REGISTRY_LOCATION "SYSTEM\\CurrentControlSet\\Control\\Network\\{4D36E972-E325-11CE-BFC1-08002BE10318}"
+
 /*
  * Our local process' PID. Used for creating a sufficiently unique additional 
  * hardware ID for our device.
@@ -77,10 +84,11 @@
 static TCHAR secondary_hwid[LINE_LEN / 2];
 
 /*
- * Device's Friendly Name, used to identify a network device in netsh.
- * eg: "TAP-Windows Adapter V9 #4"
+ * Device's visible Name, used to identify a network device in netsh.
+ * eg: "Local Area Connection 9"
  */
-static TCHAR device_friendly_name[LINE_LEN / 2];
+static TCHAR device_visible_name[256];
+
 /** 
  * This is our own local instance of a virtual network interface
  * It is (somewhat) equivalent to using tun/tap in unixoid systems
@@ -212,6 +220,7 @@ setup_interface ()
    */
   TCHAR inf_file_path[MAX_PATH];
   TCHAR hwidlist[LINE_LEN + 4];
+  
   int str_lenth = 0;
 
 
@@ -222,16 +231,15 @@ setup_interface ()
    * TODO: Currently we just use TAP0901 as HWID, 
    * but we might want to add additional information
    */
-  strncpy (hwidlist, HARDWARE_ID, LINE_LEN);
+  _tcsncpy (hwidlist, HARDWARE_ID, LINE_LEN);
   /**
    * this is kind of over-complicated, but allows keeps things independent of 
    * how the openvpn-hwid is actually stored. 
    * 
    * A HWID list is double-\0 terminated and \0 separated
    */
-  str_lenth = strlen (hwidlist) + 1 ;
-  hwidlist[str_lenth] = _T("\0");
-  strncpy (&hwidlist[str_lenth], secondary_hwid, LINE_LEN - str_lenth);
+  str_lenth = _tcslen (hwidlist) + 1 ;
+  _tcsncpy (&hwidlist[str_lenth], secondary_hwid, LINE_LEN - str_lenth);
   
   /** 
    * Locate the inf-file, we need to store it somewhere where the system can
@@ -283,18 +291,6 @@ setup_interface ()
                                  &DeviceNode))
       return FALSE;
   
-  /* Now, pull the device device's FriendlyName off the registry. */
-  if ( !SetupDiGetDeviceRegistryProperty(DeviceInfo,
-                                   (PSP_DEVINFO_DATA) & DeviceNode,
-                                   SPDRP_FRIENDLYNAME,
-                                   NULL,
-                                   (LPBYTE)device_friendly_name,
-                                   LINE_LEN / 2,
-                                   NULL) || strlen(device_friendly_name) < 1){
-      return FALSE;
-    }
-  device_friendly_name[LINE_LEN / 2 - 1] = _T("\0");
-  
   return TRUE;
 }
 
@@ -340,6 +336,133 @@ remove_interface ()
 }
 
 /**
+ * Do all the lookup necessary to retrieve the inteface's actual name
+ * off the registry. 
+ * 
+ * @return: TRUE if we were able to lookup the interface's name, else FALSE
+ */
+static boolean
+resolve_interface_name ()
+{
+
+  SP_DEVINFO_LIST_DETAIL_DATA device_details;
+  TCHAR pnp_instance_id [MAX_DEVICE_ID_LEN];
+  HKEY adapter_key_handle;
+  LONG status;
+  DWORD len;
+  int i = 0;
+  boolean retval=FALSE;
+  TCHAR adapter[] = _T (INTERFACE_REGISTRY_LOCATION);
+
+  /* We can obtain the PNP instance ID from our setupapi handle */
+  device_details.cbSize = sizeof (device_details);
+  if (CR_SUCCESS != CM_Get_Device_ID_Ex (DeviceNode.DevInst,
+                                         (PWSTR) pnp_instance_id,
+                                         MAX_DEVICE_ID_LEN,
+                                         0, //must be 0
+                                         NULL)) //hMachine, we are local
+    return FALSE;
+
+  /* Now we can use this ID to locate the correct networks interface in registry */
+  if (ERROR_SUCCESS != RegOpenKeyEx (
+                                     HKEY_LOCAL_MACHINE,
+                                     adapter,
+                                     0,
+                                     KEY_READ,
+                                     &adapter_key_handle))
+    return FALSE;
+
+  /* Of course there is a multitude of entries here, with arbitrary names, 
+   * thus we need to iterate through there.
+   */
+  while (FALSE == retval)
+    {
+      TCHAR instance_key[256];
+      TCHAR query_key [256];
+      HKEY instance_key_handle;
+      TCHAR pnpinstanceid_name[] = _T("PnpInstanceID");
+      TCHAR pnpinstanceid_value[256];
+      TCHAR adaptername_name[] = _T("Name");
+      DWORD data_type;
+
+      len = sizeof (adapter_key_handle);
+      /* optain a subkey of {4D36E972-E325-11CE-BFC1-08002BE10318} */
+      status = RegEnumKeyEx (
+                             adapter_key_handle,
+                             i,
+                             instance_key,
+                             &len,
+                             NULL,
+                             NULL,
+                             NULL,
+                             NULL);
+
+      /* this may fail due to one of two reasons: 
+       * we are at the end of the list*/
+      if (ERROR_NO_MORE_ITEMS == status)
+        break;
+      // * we found a broken registry key, continue with the next key.
+      if (ERROR_SUCCESS != status)
+        goto cleanup;
+
+      /* prepare our new querty string: */
+      _sntprintf (query_key, 256, _T ("%s\\%s\\Connection"),
+                _T (INTERFACE_REGISTRY_LOCATION),
+                instance_key);
+
+      /* look inside instance_key\\Connection */
+      status = RegOpenKeyEx (
+                             HKEY_LOCAL_MACHINE,
+                             query_key,
+                             0,
+                             KEY_READ,
+                             &instance_key_handle);
+
+      if (status != ERROR_SUCCESS)
+        continue;
+      
+      /* now, read our PnpInstanceID */
+      len = sizeof (pnpinstanceid_value);
+      status = RegQueryValueEx (instance_key_handle,
+                                pnpinstanceid_name,
+                                NULL, //reserved, always NULL according to MSDN
+                                &data_type,
+                                (LPBYTE) pnpinstanceid_value,
+                                &len);
+
+      if (status != ERROR_SUCCESS || data_type != REG_SZ)
+        goto cleanup;
+      
+      /* compare the value we got to our devices PNPInstanceID*/
+      if ( 0 != _tcsncmp (pnpinstanceid_value, pnp_instance_id, 
+                         sizeof (pnpinstanceid_value)/sizeof(TCHAR)))
+        goto cleanup;
+      
+      len = sizeof (device_visible_name);
+      status = RegQueryValueEx (
+                                instance_key_handle,
+                                adaptername_name,
+                                NULL, //reserved, always NULL according to MSDN
+                                &data_type,
+                                (LPBYTE) device_visible_name,
+                                &len);
+
+      if (status == ERROR_SUCCESS && data_type == REG_SZ)
+        {
+          retval = TRUE;
+        }
+      cleanup:
+      RegCloseKey (instance_key_handle);
+      
+      ++i;
+    }
+
+  RegCloseKey (adapter_key_handle);
+
+  return retval;
+}
+
+/**
  * Creates a tun-interface called dev;
  *
  * @param hwid is asumed to point to a TCHAR[LINE_LEN]
@@ -358,6 +481,11 @@ init_tun (TCHAR *hwid)
     }
 
   if (! setup_interface()){
+      errno = ENODEV;
+      return -1;
+    }
+  
+  if (! resolve_interface_name()){
       errno = ENODEV;
       return -1;
     }
