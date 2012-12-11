@@ -352,6 +352,13 @@ GAS_simplistic_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMa
 
   GNUNET_break (0 < net->total_addresses);
   net->total_addresses --;
+  for (aw = net->head; NULL != aw; aw = aw->next)
+  {
+      if (aw->addr == address)
+        break;
+  }
+  GNUNET_CONTAINER_DLL_remove (net->head, net->tail, aw);
+  GNUNET_free (aw);
 
   if (GNUNET_YES == address->active)
   {
@@ -363,13 +370,6 @@ GAS_simplistic_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMa
       update_quota_per_network (s, net, NULL);
   }
 
-  for (aw = net->head; NULL != aw; aw = aw->next)
-  {
-      if (aw->addr == address)
-        break;
-  }
-  GNUNET_CONTAINER_DLL_remove (net->head, net->tail, aw);
-  GNUNET_free (aw);
 
 }
 
