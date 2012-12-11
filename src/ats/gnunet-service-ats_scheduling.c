@@ -43,6 +43,11 @@ static struct GNUNET_SERVER_Client *my_client;
 
 
 /**
+ * Handle to address subsystem
+ */
+static struct GAS_Addresses_Handle *address_handle;
+
+/**
  * Register a new scheduling client.
  *
  * @param client handle of the new client
@@ -74,7 +79,7 @@ GAS_scheduling_remove_client (struct GNUNET_SERVER_Client *client)
 {
   if (my_client != client)
     return;
-  GAS_addresses_destroy_all ();
+  GAS_addresses_destroy_all (address_handle);
   my_client = NULL;
 }
 
@@ -481,8 +486,9 @@ GAS_handle_address_destroyed (void *cls, struct GNUNET_SERVER_Client *client,
  * @param server handle to our server
  */
 void
-GAS_scheduling_init (struct GNUNET_SERVER_Handle *server)
+GAS_scheduling_init (struct GNUNET_SERVER_Handle *server, struct GAS_Addresses_Handle *ah)
 {
+  address_handle = ah;
   nc = GNUNET_SERVER_notification_context_create (server, 128);
 }
 

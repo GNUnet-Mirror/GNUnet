@@ -168,8 +168,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GSA_stats = GNUNET_STATISTICS_create ("ats", cfg);
   GAS_reservations_init ();
   GAS_performance_init (server);
-  GAS_scheduling_init (server);
   GSA_addresses = GAS_addresses_init (cfg, GSA_stats);
+  GAS_scheduling_init (server, GSA_addresses);
+
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect_handler, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,

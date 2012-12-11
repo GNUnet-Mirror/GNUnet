@@ -1159,21 +1159,26 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 static int
 free_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
+  struct GAS_Addresses_Handle *handle = cls;
   struct ATS_Address *aa = value;
-
+  handle->s_del (handle->solver, handle->addresses, aa);
   destroy_address (aa);
   return GNUNET_OK;
 }
 
 
 void
-GAS_addresses_destroy_all ()
+GAS_addresses_destroy_all (struct GAS_Addresses_Handle *handle)
 {
   if (GNUNET_NO == handle->running)
     return;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s'\n",
+              "DESTROY ALL");
+
   if (handle->addresses != NULL)
-    GNUNET_CONTAINER_multihashmap_iterate (handle->addresses, &free_address_it, NULL);
+    GNUNET_CONTAINER_multihashmap_iterate (handle->addresses, &free_address_it, handle);
 }
 
 
@@ -1188,7 +1193,7 @@ GAS_addresses_done (struct GAS_Addresses_Handle *handle)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Shutting down addresses\n");
   GNUNET_assert (NULL != handle);
-  GAS_addresses_destroy_all ();
+  GAS_addresses_destroy_all (handle);
   handle->running = GNUNET_NO;
   GNUNET_CONTAINER_multihashmap_destroy (handle->addresses);
   handle->addresses = NULL;

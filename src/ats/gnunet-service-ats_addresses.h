@@ -260,7 +260,7 @@ GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
 
 
 void
-GAS_addresses_destroy_all (void);
+GAS_addresses_destroy_all (struct GAS_Addresses_Handle *handle);
 
 
 /**

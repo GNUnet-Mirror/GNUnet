@@ -61,6 +61,7 @@
  */
 struct GAS_SIMPLISTIC_Handle
 {
+  unsigned int total_addresses;
   unsigned int active_addresses;
 
   struct Network *network_entries;
@@ -153,6 +154,8 @@ GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   s->bw_changed = bw_changed_cb;
   s->networks = dest_length;
   s->network_entries = GNUNET_malloc (dest_length * sizeof (struct Network));
+  s->active_addresses = 0;
+  s->total_addresses = 0;
 
   for (c = 0; c < dest_length; c++)
   {
@@ -184,6 +187,24 @@ GAS_simplistic_done (void *solver)
 
   for (c = 0; c < s->networks; c++)
   {
+      if (s->network_entries[c].total_addresses > 0)
+      {
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+                    "Had %u addresses for network `%s' not deleted during shutdown\n",
+                    s->network_entries[c].total_addresses,
+                    s->network_entries[c].desc);
+        GNUNET_break (0);
+      }
+
+      if (s->network_entries[c].active_addresses > 0)
+      {
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+                    "Had %u active addresses for network `%s' not deleted during shutdown\n",
+                    s->network_entries[c].active_addresses,
+                    s->network_entries[c].desc);
+        GNUNET_break (0);
+      }
+
       next = s->network_entries[c].head;
       while (NULL != (cur = next))
       {
@@ -195,6 +216,21 @@ GAS_simplistic_done (void *solver)
 
       }
   }
+  if (s->total_addresses > 0)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+                "Had %u addresses not deleted during shutdown\n",
+                s->total_addresses);
+    GNUNET_break (0);
+  }
+  if (s->active_addresses > 0)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+                "Had %u active addresses not deleted during shutdown\n",
+                s->active_addresses);
+    GNUNET_break (0);
+  }
+
   GNUNET_free (s->network_entries);
   GNUNET_free (s);
 }
@@ -279,6 +315,7 @@ GAS_simplistic_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap *
   aw->addr = address;
   GNUNET_CONTAINER_DLL_insert (cur->head, cur->tail, aw);
   cur->total_addresses ++;
+  s->total_addresses ++;
   aw->addr->solver_information = cur;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -350,8 +387,16 @@ GAS_simplistic_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMa
       address, GNUNET_i2s (&address->peer),
       net->desc, net->total_addresses, net->active_addresses);
 
-  GNUNET_break (0 < net->total_addresses);
-  net->total_addresses --;
+
+  if (net->total_addresses < 1)
+    GNUNET_break (0);
+  else
+    net->total_addresses --;
+  if (s->total_addresses < 1)
+    GNUNET_break (0);
+  else
+    s->total_addresses --;
+
   for (aw = net->head; NULL != aw; aw = aw->next)
   {
       if (aw->addr == address)
@@ -542,7 +587,7 @@ GAS_simplistic_get_preferred_address (void *solver,
       prev->active = GNUNET_NO; /* No active any longer */
       prev->assigned_bw_in = GNUNET_BANDWIDTH_value_init (0); /* no bw assigned */
       prev->assigned_bw_out = GNUNET_BANDWIDTH_value_init (0); /* no bw assigned */
-      s->bw_changed (prev); /* notify about bw change, REQUIERED? */
+      s->bw_changed (prev); /* notify about bw change, REQUIRED? */
       if (net_prev->active_addresses < 1)
         GNUNET_break (0);
       else

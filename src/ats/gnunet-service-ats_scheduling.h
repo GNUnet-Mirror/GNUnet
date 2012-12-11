@@ -169,7 +169,7 @@ GAS_handle_address_destroyed (void *cls, struct GNUNET_SERVER_Client *client,
  * @param server handle to our server
  */
 void
-GAS_scheduling_init (struct GNUNET_SERVER_Handle *server);
+GAS_scheduling_init (struct GNUNET_SERVER_Handle *server, struct GAS_Addresses_Handle *addresses);
 
 
 /**
