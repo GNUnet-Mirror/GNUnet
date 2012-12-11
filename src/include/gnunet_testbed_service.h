@@ -996,7 +996,7 @@ enum GNUNET_TESTBED_TopologyOption
   GNUNET_TESTBED_TOPOLOGY_INTERNAT,
 
   /**
-   * Scale free topology.   FIXME: options?
+   * Scale free topology. No options.
    */
   GNUNET_TESTBED_TOPOLOGY_SCALE_FREE,
 

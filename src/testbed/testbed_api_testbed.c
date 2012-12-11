@@ -926,7 +926,6 @@ GNUNET_TESTBED_run (const char *host_filename,
   unsigned int hid;
   unsigned int nhost;
   
-  GNUNET_assert (NULL != cc);
   GNUNET_assert (num_peers > 0);
   host_filename = NULL;
   rc = GNUNET_malloc (sizeof (struct RunContext));

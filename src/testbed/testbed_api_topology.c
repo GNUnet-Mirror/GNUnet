@@ -158,7 +158,7 @@ const char * topology_strings[] = {
     "INTERNAT",
 
     /**
-     * Scale free topology.   FIXME: options?
+     * Scale free topology. No options.
      */
     "SCALE_FREE",
 
