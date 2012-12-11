@@ -200,7 +200,8 @@ typedef void
 typedef void
  (*GAS_solver_address_delete) (void *solver,
                                struct GNUNET_CONTAINER_MultiHashMap *addresses,
-                               struct ATS_Address *address);
+                               struct ATS_Address *address,
+                               int session_only);
 
 typedef void
 (*GAS_solver_address_update) (void *solver,

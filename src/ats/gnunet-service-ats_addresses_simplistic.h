@@ -97,9 +97,12 @@ GAS_simplistic_address_update (void *solver, struct GNUNET_CONTAINER_MultiHashMa
  * @param solver the solver handle
  * @param addresses the address hashmap containing all addresses
  * @param address the address to remove
+ * @param session_only delete only session not whole address
  */
 void
-GAS_simplistic_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
+GAS_simplistic_address_delete (void *solver,
+    struct GNUNET_CONTAINER_MultiHashMap * addresses,
+    struct ATS_Address *address, int session_only);
 
 
 /**

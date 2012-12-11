@@ -19,10 +19,14 @@
 */
 /**
  * @file ats/test_ats_api_common.h
- * @brief shared definitions
+ * @brief shared definitions for ats testcases
  * @author Christian Grothoff
  * @author Matthias Wachs
  */
+
+#include "platform.h"
+#include "gnunet_common.h"
+#include "gnunet_ats_service.h"
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
@@ -53,5 +57,19 @@ struct PeerContext
 
   unsigned long long bw_in_assigned;
 };
+
+void
+free_test_address (struct Test_Address *dest);
+
+void
+create_test_address (struct Test_Address *dest, char * plugin, void *session, void *addr, size_t addrlen);
+
+int
+compare_addresses (const struct GNUNET_HELLO_Address *address1, void *session1,
+                   const struct GNUNET_HELLO_Address *address2, void *session2);
+
+int
+compare_ats (const struct GNUNET_ATS_Information *ats_is, uint32_t ats_count_is,
+             const struct GNUNET_ATS_Information *ats_should, uint32_t ats_count_should);
 
 /* end of file test_ats_api_common.h */

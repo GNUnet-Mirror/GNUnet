@@ -91,23 +91,6 @@ unsigned long long wan_quota_out;
  */
 unsigned long long wan_quota_in;
 
-static void
-create_test_address (struct Test_Address *dest, char * plugin, void *session, void *addr, size_t addrlen)
-{
-  dest->plugin = GNUNET_strdup (plugin);
-  dest->session = session;
-  dest->addr = GNUNET_malloc (addrlen);
-  memcpy (dest->addr, addr, addrlen);
-  dest->addr_len = addrlen;
-}
-
-static void
-free_test_address (struct Test_Address *dest)
-{
-  GNUNET_free (dest->plugin);
-  GNUNET_free (dest->addr);
-}
-
 
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -135,91 +118,6 @@ end ()
   free_test_address (&test_addr[0]);
 }
 
-static int
-compare_addresses (const struct GNUNET_HELLO_Address *address1, void *session1,
-                   const struct GNUNET_HELLO_Address *address2, void *session2)
-{
-  if (0 != memcmp (&address1->peer, &address2->peer, sizeof (struct GNUNET_PeerIdentity)))
-  {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid peer id'\n");
-      return GNUNET_SYSERR;
-  }
-  if (0 != strcmp (address1->transport_name, address2->transport_name))
-  {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid plugin'\n");
-      return GNUNET_SYSERR;
-  }
-  if (address1->address_length != address2->address_length)
-  {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid address length'\n");
-      return GNUNET_SYSERR;
-
-  }
-  else if (0 != memcmp (address1->address, address2->address, address2->address_length))
-  {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid address'\n");
-      return GNUNET_SYSERR;
-  }
-  if (session1 != session2)
-  {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid session1 %p vs session2 %p'\n",
-                  session1, session2);
-      return GNUNET_SYSERR;
-
-  }
-  return GNUNET_OK;
-}
-
-
-static int
-compare_ats (const struct GNUNET_ATS_Information *ats_is, uint32_t ats_count_is,
-             const struct GNUNET_ATS_Information *ats_should, uint32_t ats_count_should)
-{
-  unsigned int c_o;
-  unsigned int c_i;
-  char *prop[] = GNUNET_ATS_PropertyStrings;
-  uint32_t type1;
-  uint32_t type2;
-  uint32_t val1;
-  uint32_t val2;
-  int res = GNUNET_OK;
-
-  for (c_o = 0; c_o < ats_count_is; c_o++)
-  {
-    for (c_i = 0; c_i < ats_count_should; c_i++)
-    {
-        type1 = ntohl(ats_is[c_o].type);
-        type2 = ntohl(ats_should[c_i].type);
-        if (type1 == type2)
-        {
-#if DEBUG_ATS_INFO
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS type `%s'\n",
-                        prop[type1]);
-#endif
-            val1 = ntohl(ats_is[c_o].value);
-            val2 = ntohl(ats_should[c_i].value);
-            if (val1 != val2)
-            {
-#if DEBUG_ATS_INFO
-                GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ATS value `%s' not equal: %u != %u\n",
-                            prop[type1],
-                            val1, val2);
-#endif
-                res = GNUNET_SYSERR;
-            }
-            else
-            {
-#if DEBUG_ATS_INFO
-              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS value `%s' equal: %u == %u\n",
-                          prop[type1],
-                          val1, val2);
-#endif
-            }
-        }
-    }
-  }
-  return res;
-}
 
 static void
 address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,

@@ -79,56 +79,56 @@ TESTS = $(check_PROGRAMS)
 endif
 
 test_ats_api_scheduling_init_SOURCES = \
- test_ats_api_scheduling_init.c
+ test_ats_api_scheduling_init.c test_ats_api_common.c
 test_ats_api_scheduling_init_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la  
 
 test_ats_api_scheduling_add_address_SOURCES = \
- test_ats_api_scheduling_add_address.c
+ test_ats_api_scheduling_add_address.c test_ats_api_common.c
 test_ats_api_scheduling_add_address_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la  
 
 test_ats_api_scheduling_add_session_SOURCES = \
- test_ats_api_scheduling_add_session.c
+ test_ats_api_scheduling_add_session.c test_ats_api_common.c
 test_ats_api_scheduling_add_session_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la  
 
 test_ats_api_scheduling_update_address_SOURCES = \
- test_ats_api_scheduling_update_address.c
+ test_ats_api_scheduling_update_address.c test_ats_api_common.c
 test_ats_api_scheduling_update_address_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la  
 
 test_ats_api_scheduling_destroy_address_SOURCES = \
- test_ats_api_scheduling_destroy_address.c
+ test_ats_api_scheduling_destroy_address.c test_ats_api_common.c
 test_ats_api_scheduling_destroy_address_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la  
 
 test_ats_api_scheduling_destroy_session_SOURCES = \
- test_ats_api_scheduling_destroy_session.c
+ test_ats_api_scheduling_destroy_session.c test_ats_api_common.c
 test_ats_api_scheduling_destroy_session_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la
   
 test_ats_api_scheduling_destroy_inbound_connection_SOURCES = \
- test_ats_api_scheduling_destroy_inbound_connection.c  
+ test_ats_api_scheduling_destroy_inbound_connection.c test_ats_api_common.c
 test_ats_api_scheduling_destroy_inbound_connection_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la
   
 test_ats_api_scheduling_block_and_reset_SOURCES = \
- test_ats_api_scheduling_block_and_reset.c
+ test_ats_api_scheduling_block_and_reset.c test_ats_api_common.c
 test_ats_api_scheduling_block_and_reset_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
@@ -143,7 +143,7 @@ test_ats_api_performance_LDADD = \
   $(top_builddir)/src/ats/libgnunetats.la    
 
 test_ats_simplistic_SOURCES = \
- test_ats_simplistic.c
+ test_ats_simplistic.c test_ats_api_common.c
 test_ats_simplistic_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \

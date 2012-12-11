@@ -1651,9 +1651,13 @@ GAS_mlp_address_update (void *solver, struct GNUNET_CONTAINER_MultiHashMap * add
  * @param addresses the address hashmap
  *        the address has to be already removed from the hashmap
  * @param address the address to delete
+ * @param session_only delete only session not whole address
  */
 void
-GAS_mlp_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
+GAS_mlp_address_delete (void *solver,
+    struct GNUNET_CONTAINER_MultiHashMap * addresses,
+    struct ATS_Address *address,
+    int session_only)
 {
   struct GAS_MLP_Handle *mlp = solver;
   GNUNET_STATISTICS_update (mlp->stats,"# LP address deletions", 1, GNUNET_NO);

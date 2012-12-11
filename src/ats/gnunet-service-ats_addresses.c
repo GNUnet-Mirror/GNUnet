@@ -636,7 +636,7 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
                   GNUNET_i2s (&aa->peer), aa->session_id, aa);
 
       /* Notify solver about deletion */
-      handle->s_del (handle->solver, handle->addresses, aa);
+      handle->s_del (handle->solver, handle->addresses, aa, GNUNET_NO);
       destroy_address (aa);
       dc->result = GNUNET_NO;
       return GNUNET_OK; /* Continue iteration */
@@ -666,7 +666,7 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
                     GNUNET_i2s (&aa->peer), aa->plugin, aa->session_id);
 
         /* Notify solver about deletion */
-        handle->s_del (handle->solver, handle->addresses, aa);
+        handle->s_del (handle->solver, handle->addresses, aa, GNUNET_NO);
         destroy_address (aa);
         dc->result = GNUNET_NO;
         return GNUNET_OK; /* Continue iteration */
@@ -677,10 +677,9 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "Deleting session for peer `%s': `%s' %u\n",
                     GNUNET_i2s (&aa->peer), aa->plugin, aa->session_id);
+        /* Notify solver to delete session */
+        handle->s_del (handle->solver, handle->addresses, aa, GNUNET_YES);
         aa->session_id = 0;
-
-        /* update address */
-
         return GNUNET_OK;
     }
   }
@@ -1162,7 +1161,7 @@ free_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct GAS_Addresses_Handle *handle = cls;
   struct ATS_Address *aa = value;
-  handle->s_del (handle->solver, handle->addresses, aa);
+  handle->s_del (handle->solver, handle->addresses, aa, GNUNET_NO);
   destroy_address (aa);
   return GNUNET_OK;
 }

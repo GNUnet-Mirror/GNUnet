@@ -368,11 +368,13 @@ GAS_mlp_address_update (void *solver,
  * @param addresses the address hashmap
  *        the address has to be already removed from the hashmap
  * @param address the address to delete
+ * @param session_only delete only session not whole address
  */
 void
 GAS_mlp_address_delete (void *solver,
                         struct GNUNET_CONTAINER_MultiHashMap *addresses,
-                        struct ATS_Address *address);
+                        struct ATS_Address *address,
+                        int session_only);
 
 
 /**

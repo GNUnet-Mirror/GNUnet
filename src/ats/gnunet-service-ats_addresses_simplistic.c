@@ -364,9 +364,12 @@ GAS_simplistic_address_update (void *solver, struct GNUNET_CONTAINER_MultiHashMa
  * @param solver the solver handle
  * @param addresses the address hashmap containing all addresses
  * @param address the address to remove
+ * @param session_only delete only session not whole address
  */
 void
-GAS_simplistic_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
+GAS_simplistic_address_delete (void *solver,
+    struct GNUNET_CONTAINER_MultiHashMap * addresses,
+    struct ATS_Address *address, int session_only)
 {
   struct GAS_SIMPLISTIC_Handle *s = solver;
   struct Network *net;
@@ -382,28 +385,40 @@ GAS_simplistic_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMa
 
   net = (struct Network *) address->solver_information;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Deleting %s address %p for peer `%s' from network `%s' (total: %u/ active: %u)\n",
-      (GNUNET_NO == address->active) ? "inactive" : "active",
-      address, GNUNET_i2s (&address->peer),
-      net->desc, net->total_addresses, net->active_addresses);
 
-
-  if (net->total_addresses < 1)
-    GNUNET_break (0);
-  else
-    net->total_addresses --;
-  if (s->total_addresses < 1)
-    GNUNET_break (0);
-  else
-    s->total_addresses --;
-
-  for (aw = net->head; NULL != aw; aw = aw->next)
+  if (GNUNET_NO == session_only)
   {
-      if (aw->addr == address)
-        break;
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Deleting %s address %p for peer `%s' from network `%s' (total: %u/ active: %u)\n",
+        (GNUNET_NO == address->active) ? "inactive" : "active",
+        address, GNUNET_i2s (&address->peer),
+        net->desc, net->total_addresses, net->active_addresses);
+
+    /* Remove address */
+    if (net->total_addresses < 1)
+      GNUNET_break (0);
+    else
+      net->total_addresses --;
+    if (s->total_addresses < 1)
+      GNUNET_break (0);
+    else
+      s->total_addresses --;
+
+    for (aw = net->head; NULL != aw; aw = aw->next)
+    {
+        if (aw->addr == address)
+          break;
+    }
+    GNUNET_CONTAINER_DLL_remove (net->head, net->tail, aw);
+    GNUNET_free (aw);
   }
-  GNUNET_CONTAINER_DLL_remove (net->head, net->tail, aw);
-  GNUNET_free (aw);
+  else
+  {
+      /* Remove session only: remove if active and update */
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Deleting %s session %p for peer `%s' from network `%s' (total: %u/ active: %u)\n",
+          (GNUNET_NO == address->active) ? "inactive" : "active",
+          address, GNUNET_i2s (&address->peer),
+          net->desc, net->total_addresses, net->active_addresses);
+  }
 
   if (GNUNET_YES == address->active)
   {
