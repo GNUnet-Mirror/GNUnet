@@ -163,14 +163,14 @@ struct RunContext
   void *cc_cls;
 
   /**
-   * Master task to call when testbed initialization is done
+   * TestMaster callback to call when testbed initialization is done
    */
-  GNUNET_SCHEDULER_Task master;
-
+  GNUNET_TESTBED_TestMaster test_master;
+  
   /**
-   * The closure for the master task
+   * The closure for the TestMaster callback
    */
-  void *master_cls;
+  void *test_master_cls;
 
   /**
    * The head element of DLL operations
@@ -493,9 +493,8 @@ call_master (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TESTBED_operation_done (rc->topology_operation);
     rc->topology_operation = NULL;
   }
-  if (NULL != rc->master)
-    GNUNET_SCHEDULER_add_continuation (rc->master, rc->master_cls,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  if (NULL != rc->test_master)
+    rc->test_master (rc->test_master_cls, rc->num_peers, rc->peers);
 }
 
 
@@ -645,7 +644,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   }
 
 call_cc:
-  if ((0 != (rc->event_mask && (1LL << event->type))) && (NULL != rc->cc))
+  if ((0 != (rc->event_mask & (1LL << event->type))) && (NULL != rc->cc))
     rc->cc (rc->cc_cls, event);
   if (GNUNET_TESTBED_ET_PEER_START != event->type)
     return;
@@ -809,6 +808,7 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   event_mask = rc->event_mask;
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
+  event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
   if (rc->topology < GNUNET_TESTBED_TOPOLOGY_NONE)
     event_mask |= GNUNET_TESTBED_ET_CONNECT;
   rc->c =
@@ -909,15 +909,16 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host, int status
  *          set in the event_mask as this is the only way get access to the
  *          handle of each peer
  * @param cc_cls closure for cc
- * @param master task to run once the testbed is ready
- * @param master_cls
+ * @param test_master this callback will be called once the test is ready
+ * @param test_master_cls closure for 'test_master'.
  */
 void
 GNUNET_TESTBED_run (const char *host_filename,
                     const struct GNUNET_CONFIGURATION_Handle *cfg,
                     unsigned int num_peers, uint64_t event_mask,
                     GNUNET_TESTBED_ControllerCallback cc, void *cc_cls,
-                    GNUNET_SCHEDULER_Task master, void *master_cls)
+                    GNUNET_TESTBED_TestMaster test_master,
+                    void *test_master_cls)
 {
   struct RunContext *rc;
   char *topology;
@@ -945,11 +946,10 @@ GNUNET_TESTBED_run (const char *host_filename,
   rc->cfg = GNUNET_CONFIGURATION_dup (cfg);
   rc->num_peers = num_peers;
   rc->event_mask = event_mask;
-  rc->event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
   rc->cc = cc;
   rc->cc_cls = cc_cls;
-  rc->master = master;
-  rc->master_cls = master_cls;
+  rc->test_master = test_master;
+  rc->test_master_cls = test_master_cls;
   rc->state = RC_INIT;
   rc->topology = GNUNET_TESTBED_TOPOLOGY_NONE;  
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (rc->cfg, "testbed",

@@ -1363,6 +1363,18 @@ GNUNET_TESTBED_get_statistics (unsigned int num_peers,
 
 
 /**
+ * Signature of a main function for a testcase.
+ *
+ * @param cls closure
+ * @param num_peers number of peers in 'peers'
+ * @param peers handle to peers run in the testbed
+ */
+typedef void (*GNUNET_TESTBED_TestMaster)(void *cls,
+                                          unsigned int num_peers,
+                                          struct GNUNET_TESTBED_Peer **peers);
+
+
+/**
  * Convenience method for running a testbed with
  * a single call.  Underlay and overlay topology
  * are configured using the "UNDERLAY" and "OVERLAY"
@@ -1387,8 +1399,8 @@ GNUNET_TESTBED_get_statistics (unsigned int num_peers,
  *        set in the event_mask as this is the only way get access to the
  *        handle of each peer
  * @param cc_cls closure for cc
- * @param master task to run once the testbed is ready
- * @param master_cls closure for 'task'.
+ * @param test_master this callback will be called once the test is ready
+ * @param test_master_cls closure for 'test_master'.
  */
 void
 GNUNET_TESTBED_run (const char *host_filename,
@@ -1397,8 +1409,8 @@ GNUNET_TESTBED_run (const char *host_filename,
                     uint64_t event_mask,
                     GNUNET_TESTBED_ControllerCallback cc,
                     void *cc_cls,
-                    GNUNET_SCHEDULER_Task master,
-                    void *master_cls);
+                    GNUNET_TESTBED_TestMaster test_master,
+                    void *test_master_cls);
 
 
 /**
@@ -1442,8 +1454,8 @@ typedef void (*GNUNET_TESTBED_TestMaster)(void *cls,
  *        set in the event_mask as this is the only way get access to the
  *        handle of each peer
  * @param cc_cls closure for cc
- * @param test_master task to run once the test is ready
- * @param test_master_cls closure for 'task'.
+ * @param test_master this callback will be called once the test is ready
+ * @param test_master_cls closure for 'test_master'.
  * @param GNUNET_SYSERR on error, GNUNET_OK on success
  */
 int

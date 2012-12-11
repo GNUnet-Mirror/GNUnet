@@ -124,14 +124,14 @@ terminate_task (void *cls,
 
 
 /**
- * The testbed has been started, now begin the experiment.
+ * Signature of a main function for a testcase.
  *
- * @param cls configuration handle
- * @param tc scheduler context
- */ 
+ * @param cls closure
+ * @param num_peers number of peers in 'peers'
+ * @param peers handle to peers run in the testbed
+ */
 static void
-master_task (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+test_master (void *cls, unsigned int num_peers, struct GNUNET_TESTBED_Peer **peers)
 {
   // const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   // FIXME: enable clients to signal 'completion' before timeout;
@@ -163,7 +163,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 		      cfg,
 		      num_peers,
 		      0, NULL, NULL,
-		      &master_task, (void *) cfg);
+		      &test_master, (void *) cfg);
 }
 
 

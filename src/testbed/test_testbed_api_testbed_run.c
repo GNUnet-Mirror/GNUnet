@@ -90,13 +90,14 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Task to be executed when peers are ready
+ * Signature of a main function for a testcase.
  *
- * @param cls NULL
- * @param tc the task context
+ * @param cls closure
+ * @param num_peers number of peers in 'peers'
+ * @param peers handle to peers run in the testbed
  */
 static void
-master_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+test_master (void *cls, unsigned int num_peers, struct GNUNET_TESTBED_Peer **peers_)
 {
   result = GNUNET_OK;
   GNUNET_assert (NULL != peers[0]);
@@ -153,7 +154,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
   GNUNET_TESTBED_run (NULL, config, NUM_PEERS, event_mask, &controller_event_cb,
-                      NULL, &master_task, NULL);
+                      NULL, &test_master, NULL);
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_SECONDS, 300), &do_abort,

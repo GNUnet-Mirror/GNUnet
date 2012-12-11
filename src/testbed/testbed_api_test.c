@@ -62,56 +62,7 @@ struct TestRunContext
    * Number of peers to start
    */
   unsigned int num_peers;
-
-  /**
-   * counter for loading peers
-   */
-  unsigned int peer_cnt;
-
-  /**
-   * Followed by peers list
-   */
-  struct GNUNET_TESTBED_Peer *peers[0];
 };
-
-
-/**
- * Controller event callback
- *
- * @param cls NULL
- * @param event the controller event
- */
-static void
-controller_event_cb (void *cls,
-                     const struct GNUNET_TESTBED_EventInformation *event)
-{
-  struct TestRunContext *rc = cls;
-
-  if ((NULL != rc->cc) && (0 != (rc->event_mask & (1LL << event->type))))
-    rc->cc (rc->cc_cls, event);
-  if (rc->peer_cnt == rc->num_peers)
-    return;
-  GNUNET_assert (GNUNET_TESTBED_ET_PEER_START == event->type);
-  GNUNET_assert (NULL == rc->peers[rc->peer_cnt]);
-  GNUNET_assert (NULL != event->details.peer_start.peer);
-  rc->peers[rc->peer_cnt++] = event->details.peer_start.peer;
-}
-
-
-/**
- * Task to be executed when peers are ready
- *
- * @param cls NULL
- * @param tc the task context
- */
-static void
-master_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct TestRunContext *rc = cls;
-
-  GNUNET_assert (rc->peer_cnt == rc->num_peers);
-  rc->test_master (rc->test_master_cls, rc->num_peers, rc->peers);
-}
 
 
 /**
@@ -127,12 +78,9 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
   struct TestRunContext *rc = cls;
-  uint64_t event_mask;
-  
-  event_mask = rc->event_mask;
-  event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
-  GNUNET_TESTBED_run (NULL, config, rc->num_peers, event_mask,
-                      &controller_event_cb, rc, &master_task, rc);
+
+  GNUNET_TESTBED_run (NULL, config, rc->num_peers, rc->event_mask,
+                      rc->cc, rc->cc_cls, rc->test_master, rc->test_master_cls);
 }
 
 
