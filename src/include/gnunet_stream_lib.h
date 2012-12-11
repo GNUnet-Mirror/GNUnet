@@ -345,18 +345,18 @@ typedef size_t (*GNUNET_STREAM_DataProcessor) (void *cls,
 
 
 /**
- * Tries to read data from the stream.
+ * Tries to read data from the stream. Should not be called when another read
+ * handle is present; the existing read handle should be canceled with
+ * GNUNET_STREAM_io_read_cancel(). Only one read handle per socket is present at
+ * any time
  *
  * @param socket the socket representing a stream
  * @param timeout the timeout period
  * @param proc function to call with data (once only)
  * @param proc_cls the closure for proc
- *
  * @return handle to cancel the operation; NULL is returned if: the stream has
  *           been shutdown for this type of opeartion (the DataProcessor is
- *           immediately called with GNUNET_STREAM_SHUTDOWN as status) OR another
- *           read handle is present (only one read handle per socket is present
- *           at any time)
+ *           immediately called with GNUNET_STREAM_SHUTDOWN as status)
  */
 struct GNUNET_STREAM_IOReadHandle *
 GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
