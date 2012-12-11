@@ -648,41 +648,42 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
     if (aa->session_id != des->session_id)
       return GNUNET_OK; /* irrelevant */
 
-    if (aa->session_id != 0)
-      GNUNET_break (0 == strcmp (des->plugin, aa->plugin));
+    if ((aa->session_id != 0) &&
+        (0 != strcmp (des->plugin, aa->plugin)))
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Different plugins during removal: `%s' vs `%s' \n",
+                    des->plugin, aa->plugin);
+        GNUNET_break (0);
+        return GNUNET_OK;
+    }
 
-    /* Session died */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Deleting session for peer `%s': `%s' %u\n",
-                GNUNET_i2s (&aa->peer), aa->plugin, aa->session_id);
-    aa->session_id = 0;
-  }
-
-#if 0
-/* Old code */
-    /*
-    if (GNUNET_YES == aa->active)
-      aa->active = GNUNET_NO;
-  */
-    /* session == 0 and addrlen == 0 : destroy address */
     if (aa->addr_len == 0)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Deleting session and address for peer `%s': `%s' %u\n",
-                  GNUNET_i2s (&aa->peer), aa->plugin, aa->session_id);
-      (void) destroy_address (aa);
+        /* Inbound connection died, delete full address */
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Deleting inbound address for peer `%s': `%s' session %u\n",
+                    GNUNET_i2s (&aa->peer), aa->plugin, aa->session_id);
+
+        /* Notify solver about deletion */
+        handle->s_del (handle->solver, handle->addresses, aa);
+        destroy_address (aa);
+        dc->result = GNUNET_NO;
+        return GNUNET_OK; /* Continue iteration */
     }
     else
     {
-      /* session was set to 0, update address */
-  #if HAVE_LIBGLPK
-    if (handle->ats_mode == MODE_MLP)
-      GAS_mlp_address_update (handle->solver, handle->addresses, aa);
-  #endif
-    }
+        /* Session died */
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Deleting session for peer `%s': `%s' %u\n",
+                    GNUNET_i2s (&aa->peer), aa->plugin, aa->session_id);
+        aa->session_id = 0;
 
+        /* update address */
+
+        return GNUNET_OK;
+    }
   }
-#endif
   return GNUNET_OK;
 }
 
