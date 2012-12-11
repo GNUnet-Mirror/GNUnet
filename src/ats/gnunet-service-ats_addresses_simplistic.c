@@ -327,27 +327,27 @@ GAS_simplistic_address_update (void *solver, struct GNUNET_CONTAINER_MultiHashMa
 void
 GAS_simplistic_address_delete (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
 {
-#if 0
   struct GAS_SIMPLISTIC_Handle *s = solver;
-  GNUNET_assert (NULL != s);
-  int c;
-  for (c = 0; c < s->networks; c++)
+  struct Network *net;
+  /* Remove an adress completely, we have to:
+   * - Remove from specific network
+   * - Decrease number of total addresses */
+  net = (struct Network *) address->solver_information;
+
+  GNUNET_break (0 < net->total_addresses);
+
+
+
+  if (GNUNET_YES == address->active)
   {
-      if (address->atsp_network_type == s->quota_net[c])
-      {
-          GNUNET_assert (s->active_addresses_per_net[c] > 0);
-          s->active_addresses_per_net[c] --;
-          LOG (GNUNET_ERROR_TYPE_DEBUG,
-                      "Deleting address for network type %u (now %u total)\n",
-                      address->atsp_network_type,
-                      s->active_addresses_per_net[c]);
-          break;
-      }
+      /* Address was active, remove from network and update quotas*/
+      address->active = GNUNET_NO;
+      if (net->active_addresses < 1)
+        GNUNET_break (0);
+      net->active_addresses --;
+      update_quota_per_network (s, net, NULL);
   }
 
-  /* Update quota for this network type */
-  update_quota_per_network (s, c);
-#endif
 }
 
 
@@ -430,14 +430,37 @@ find_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
   return GNUNET_OK;
 }
 
+static int
+find_active_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
+{
+  struct ATS_Address * dest = (struct ATS_Address *) (*(struct ATS_Address **)cls);
+  struct ATS_Address * aa = (struct ATS_Address *) value;
+
+  if (GNUNET_YES == aa->active)
+  {
+      if (dest != NULL)
+      {
+          /* should never happen */
+          LOG (GNUNET_ERROR_TYPE_ERROR, "Multiple active addresses for peer `%s'\n", GNUNET_i2s (&aa->peer));
+          GNUNET_break (0);
+          return GNUNET_NO;
+      }
+      dest = aa;
+  }
+  return GNUNET_OK;
+}
+
 static struct ATS_Address *
 find_active_address (void *solver,
                      struct GNUNET_CONTAINER_MultiHashMap * addresses,
                      const struct GNUNET_PeerIdentity *peer)
 {
-  struct ATS_Address * aa = NULL;
+  struct ATS_Address * dest = NULL;
 
-  return aa;
+  GNUNET_CONTAINER_multihashmap_get_multiple(addresses,
+       &peer->hashPubKey,
+       &find_active_address_it, &dest);
+  return dest;
 }
 
 /**
