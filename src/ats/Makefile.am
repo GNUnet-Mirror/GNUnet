@@ -60,6 +60,7 @@ gnunet_service_ats_DEPENDENCIES = \
 check_PROGRAMS = \
  test_ats_api_scheduling_init \
  test_ats_api_scheduling_add_address \
+ test_ats_api_scheduling_add_session \
  test_ats_api_scheduling_update_address \
  test_ats_api_scheduling_destroy_address \
  test_ats_api_scheduling_destroy_session \
@@ -86,6 +87,13 @@ test_ats_api_scheduling_init_LDADD = \
 test_ats_api_scheduling_add_address_SOURCES = \
  test_ats_api_scheduling_add_address.c
 test_ats_api_scheduling_add_address_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/ats/libgnunetats.la  
+
+test_ats_api_scheduling_add_session_SOURCES = \
+ test_ats_api_scheduling_add_session.c
+test_ats_api_scheduling_add_session_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la  

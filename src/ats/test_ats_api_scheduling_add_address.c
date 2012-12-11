@@ -272,7 +272,7 @@ run (void *cls,
   test_ats_count = 2;
 
   /* Adding address without session */
-  test_session = &test_addr;
+  test_session = NULL;
   create_test_address (&test_addr, "test", test_session, "test", strlen ("test") + 1);
   test_hello_address.peer = p.id;
   test_hello_address.transport_name = test_addr.plugin;

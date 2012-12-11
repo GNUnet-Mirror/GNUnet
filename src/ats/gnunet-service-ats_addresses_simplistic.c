@@ -469,7 +469,9 @@ GAS_simplistic_get_preferred_address (void *solver,
     return NULL;
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Suggesting address %p for peer `%s'\n", cur, GNUNET_i2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Suggesting %s address %p for peer `%s'\n",
+      (GNUNET_NO == cur->active) ? "inactive" : "active",
+      cur, GNUNET_i2s (peer));
   net_cur = (struct Network *) cur->solver_information;
   if (GNUNET_YES == cur->active)
   {

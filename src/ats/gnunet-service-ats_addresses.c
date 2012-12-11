@@ -210,8 +210,6 @@ disassemble_ats_information (const struct GNUNET_ATS_Information *src,
       res ++;
       break;
     case GNUNET_ATS_QUALITY_NET_DISTANCE:
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Old ATS type %u %u\n", dest->atsp_distance, ntohl (src[i].type));
       dest->atsp_distance = ntohl (src[i].value);
       res ++;
       break;
