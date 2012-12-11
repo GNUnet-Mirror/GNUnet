@@ -82,11 +82,11 @@ do_connect (void *cls,
 int
 main (int argc, char *argv[])
 {
-  GNUNET_TESTBED_test_run ("test-gnunet-daemon-topology",
-			   "test_gnunet_daemon_topology_data.conf",
-			   NUM_PEERS,
-			   0, NULL, NULL,
-			   &do_connect, NULL);
+  (void) GNUNET_TESTBED_test_run ("test-gnunet-daemon-topology",
+                                  "test_gnunet_daemon_topology_data.conf",
+                                  NUM_PEERS,
+                                  0, NULL, NULL,
+                                  &do_connect, NULL);
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-topology");
   return ok;
 }

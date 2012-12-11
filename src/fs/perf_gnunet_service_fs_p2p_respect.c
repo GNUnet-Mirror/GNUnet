@@ -435,11 +435,11 @@ int
 main (int argc, char *argv[])
 {
   progname = argv[0];
-  GNUNET_TESTBED_test_run ("perf-gnunet-service-fs-p2p-respect",
-			   "perf_gnunet_service_fs_p2p.conf",
-			   NUM_DAEMONS,
-			   0, NULL, NULL,
-			   &do_connect, NULL);
+  (void) GNUNET_TESTBED_test_run ("perf-gnunet-service-fs-p2p-respect",
+                                  "perf_gnunet_service_fs_p2p.conf",
+                                  NUM_DAEMONS,
+                                  0, NULL, NULL,
+                                  &do_connect, NULL);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
   return ok;
 }

@@ -136,11 +136,11 @@ main (int argc, char *argv[])
     config = "test_gnunet_service_fs_p2p_stream.conf";
   else
     config = "fs_test_lib_data.conf";
-  GNUNET_TESTBED_test_run ("test-gnunet-service-fs-p2p",
-			   config,
-			   NUM_DAEMONS,
-			   0, NULL, NULL,
-			   &do_publish, NULL);
+  (void) GNUNET_TESTBED_test_run ("test-gnunet-service-fs-p2p",
+                                  config,
+                                  NUM_DAEMONS,
+                                  0, NULL, NULL,
+                                  &do_publish, NULL);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
   return ok;
 }

@@ -160,12 +160,12 @@ do_publish (void *cls,
 int
 main (int argc, char *argv[])
 {
-  GNUNET_TESTBED_test_run ("test-gnunet-service-fs-migration",
-			   "fs_test_lib_data.conf",
-			   2,
-			   0, NULL, NULL,
-			   &do_publish,
-			   NULL);
+  (void) GNUNET_TESTBED_test_run ("test-gnunet-service-fs-migration",
+                                  "fs_test_lib_data.conf",
+                                  2,
+                                  0, NULL, NULL,
+                                  &do_publish,
+                                  NULL);
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-service-fs-migration/");
   return ok;
 }

@@ -632,10 +632,10 @@ main (int argc, char *argv[])
   event_mask = 0;
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
-  GNUNET_TESTBED_test_run ("test_gns_dht_three_peers", "test_gns_dht_default.conf",
-                           3, event_mask,
-                           &testbed_controller_cb, NULL,
-                           &testbed_master, NULL);
+  (void) GNUNET_TESTBED_test_run ("test_gns_dht_three_peers", "test_gns_dht_default.conf",
+                                  3, event_mask,
+                                  &testbed_controller_cb, NULL,
+                                  &testbed_master, NULL);
   if (GNUNET_SYSERR == ok)
     return 1;
   return 0;

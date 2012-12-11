@@ -204,11 +204,11 @@ GNUNET_DHT_TEST_run (const char *testname,
   ctx->dhts = GNUNET_malloc (num_peers * sizeof (struct GNUNET_DHT_Handle *));
   ctx->app_main = tmain;
   ctx->app_main_cls = tmain_cls;
-  GNUNET_TESTBED_test_run (testname,
-			   cfgname,
-			   num_peers,
-			   0LL, NULL, NULL,
-			   &dht_test_run, ctx);
+  (void) GNUNET_TESTBED_test_run (testname,
+                                  cfgname,
+                                  num_peers,
+                                  0LL, NULL, NULL,
+                                  &dht_test_run, ctx);
 }
 
 /* end of dht_test_lib.c */

@@ -154,9 +154,11 @@ main (int argc, char **argv)
   event_mask = 0;
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
-  GNUNET_TESTBED_test_run ("test_testbed_api_test", "test_testbed_api.conf",
-                           NUM_PEERS, event_mask, &controller_event_cb, NULL,
-                           &test_master, NULL);
+  (void) GNUNET_TESTBED_test_run ("test_testbed_api_test",
+                                  "test_testbed_api.conf", 
+                                  NUM_PEERS, event_mask, &controller_event_cb,
+                                  NULL, 
+                                  &test_master, NULL);
   if (GNUNET_OK != result)
     return 1;
   return 0;

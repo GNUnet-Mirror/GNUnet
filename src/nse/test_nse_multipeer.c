@@ -214,11 +214,11 @@ int
 main (int argc, char *argv[])
 {
   ok = 1;
-  GNUNET_TESTBED_test_run ("test-nse-multipeer",
-			   "test_nse.conf",
-			   NUM_PEERS,
-			   0, NULL, NULL,
-			   &run, NULL);
+  (void) GNUNET_TESTBED_test_run ("test-nse-multipeer",
+                                  "test_nse.conf",
+                                  NUM_PEERS,
+                                  0, NULL, NULL,
+                                  &run, NULL);
   return ok;
 }
 

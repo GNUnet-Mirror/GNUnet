@@ -139,14 +139,14 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
 
-  GNUNET_TESTBED_test_run ("gnunet-consensus-start-peers",
-                           config_template_file,
-                           num_peers_requested,
-                           0,
-                           controller_cb,
-                           NULL,
-                           test_master,
-                           NULL);
+  (void) GNUNET_TESTBED_test_run ("gnunet-consensus-start-peers",
+                                  config_template_file,
+                                  num_peers_requested,
+                                  0,
+                                  controller_cb,
+                                  NULL,
+                                  test_master,
+                                  NULL);
 }
 
 

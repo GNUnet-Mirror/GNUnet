@@ -1444,8 +1444,9 @@ typedef void (*GNUNET_TESTBED_TestMaster)(void *cls,
  * @param cc_cls closure for cc
  * @param test_master task to run once the test is ready
  * @param test_master_cls closure for 'task'.
+ * @param GNUNET_SYSERR on error, GNUNET_OK on success
  */
-void
+int
 GNUNET_TESTBED_test_run (const char *testname,
                          const char *cfg_filename,
                          unsigned int num_peers,

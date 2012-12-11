@@ -1032,8 +1032,9 @@ int main (int argc, char **argv)
     (void) memset (peer_data, 0, sizeof (peer_data));
     result = INIT;
     reset_read = GNUNET_NO;
-    GNUNET_TESTBED_test_run (test_name, cfg_file, num_peers, event_mask,
-    			     &controller_event_cb, NULL, &test_master, NULL);
+    (void) GNUNET_TESTBED_test_run (test_name, cfg_file, num_peers, event_mask,
+                                    &controller_event_cb, NULL, &test_master, 
+                                    NULL);
     if (DOWNLINK_OK != result)
       goto return_fail;
   }

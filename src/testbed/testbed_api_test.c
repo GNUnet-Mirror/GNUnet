@@ -168,7 +168,7 @@ run (void *cls, char *const *args, const char *cfgfile,
  * @param test_master task to run once the test is ready
  * @param test_master_cls closure for 'task'.
  */
-void
+int
 GNUNET_TESTBED_test_run (const char *testname, const char *cfg_filename,
                          unsigned int num_peers,
                          uint64_t event_mask,
@@ -187,6 +187,7 @@ GNUNET_TESTBED_test_run (const char *testname, const char *cfg_filename,
     GNUNET_GETOPT_OPTION_END
   };
   struct TestRunContext *rc;
+  int ret;
 
   argv2[0] = GNUNET_strdup (testname);
   argv2[2] = GNUNET_strdup (cfg_filename);
@@ -200,11 +201,12 @@ GNUNET_TESTBED_test_run (const char *testname, const char *cfg_filename,
   rc->event_mask = event_mask;
   rc->cc = cc;
   rc->cc_cls = cc_cls;
-  (void) GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                             testname, "nohelp", options, &run, rc);
+  ret = GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
+                            testname, "nohelp", options, &run, rc);
   GNUNET_free (rc);
   GNUNET_free (argv2[0]);
   GNUNET_free (argv2[2]);
+  return ret;
 }
 
 /* end of testbed_api_test.c */
