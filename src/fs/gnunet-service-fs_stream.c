@@ -392,6 +392,8 @@ destroy_stream_handle (struct StreamHandle *sh)
     GNUNET_STREAM_io_read_cancel (sh->rh);
   if (GNUNET_SCHEDULER_NO_TASK != sh->timeout_task)
     GNUNET_SCHEDULER_cancel (sh->timeout_task);
+  if (GNUNET_SCHEDULER_NO_TASK != sh->reset_task)
+    GNUNET_SCHEDULER_cancel (sh->reset_task);
   GNUNET_STREAM_close (sh->stream);
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONTAINER_multihashmap_remove (stream_map,
@@ -469,7 +471,10 @@ reset_stream (struct StreamHandle *sh)
 	      "Resetting stream to %s\n",
 	      GNUNET_i2s (&sh->target));
   if (NULL != sh->rh)
+  {
     GNUNET_STREAM_io_read_cancel (sh->rh);
+    sh->rh = NULL;
+  }
   GNUNET_STREAM_close (sh->stream);
   sh->is_ready = GNUNET_NO;
   GNUNET_CONTAINER_multihashmap_iterate (sh->waiting_map,
@@ -1055,6 +1060,8 @@ continue_reading (struct StreamClient *sc)
   if (GNUNET_NO == ret)
     return; 
   refresh_timeout_task (sc);
+  if (NULL != sc->rh)
+    return;
   sc->rh = GNUNET_STREAM_read (sc->socket,
 			       GNUNET_TIME_UNIT_FOREVER_REL,
 			       &process_request,
