@@ -394,6 +394,30 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param tc the task context from scheduler
  */
 static void
+shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Function to shutdown now
+ *
+ * @param rc the RunContext
+ */
+static void
+shutdown_now (struct RunContext *rc)
+{
+  if (GNUNET_SCHEDULER_NO_TASK != rc->shutdown_run_task)
+    GNUNET_SCHEDULER_cancel (rc->shutdown_run_task);
+  rc->shutdown_run_task = GNUNET_SCHEDULER_add_now (&shutdown_run, rc);
+}
+
+
+/**
+ * Stops the testbed run and releases any used resources
+ *
+ * @param cls the tesbed run handle
+ * @param tc the task context from scheduler
+ */
+static void
 shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RunContext *rc = cls;
@@ -552,8 +576,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       {
         LOG (GNUNET_ERROR_TYPE_ERROR,
              _("Linking controllers failed. Exiting"));
-        GNUNET_SCHEDULER_cancel (rc->shutdown_run_task);
-        rc->shutdown_run_task = GNUNET_SCHEDULER_add_now (&shutdown_run, rc);
+        shutdown_now (rc);
       }
       else
         rc->reg_hosts++;
@@ -568,9 +591,8 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       }
       return;
     default:
-      GNUNET_assert (0);
-      GNUNET_SCHEDULER_cancel (rc->shutdown_run_task);
-      rc->shutdown_run_task = GNUNET_SCHEDULER_add_now (&shutdown_run, rc);
+      GNUNET_break (0);
+      shutdown_now (rc);
       return;
     }
   }
@@ -583,9 +605,8 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       rc->oc_count++;
       break;
     default:
-      GNUNET_assert (0);
-      GNUNET_SCHEDULER_cancel (rc->shutdown_run_task);
-      rc->shutdown_run_task = GNUNET_SCHEDULER_add_now (&shutdown_run, rc);
+      GNUNET_break (0);
+      shutdown_now (rc);
       return;
     }
     if (rc->oc_count == rc->num_oc)
@@ -733,8 +754,7 @@ host_registration_completion (void *cls, const char *emsg)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          _("Host registration failed for a host. Error: %s\n"), emsg);
-    GNUNET_SCHEDULER_cancel (rc->shutdown_run_task);
-    rc->shutdown_run_task = GNUNET_SCHEDULER_add_now (&shutdown_run, rc);
+    shutdown_now (rc);
     return;
   }
   rc->register_hosts_task = GNUNET_SCHEDULER_add_now (&register_hosts, rc);
@@ -800,8 +820,15 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   if (status != GNUNET_OK)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Testbed startup failed\n");
-    return;
+    switch (rc->state)
+    {
+    case RC_INIT:
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Testbed startup failed\n");
+      return;
+    default:
+      shutdown_now (rc);
+      return;
+    }
   }
   GNUNET_CONFIGURATION_destroy (rc->cfg);
   rc->cfg = GNUNET_CONFIGURATION_dup (cfg);
@@ -853,8 +880,7 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host, int status
            GNUNET_TESTBED_host_get_hostname (host));
     else
       LOG (GNUNET_ERROR_TYPE_ERROR, _("Testbed cannot be started on localhost\n"));
-    GNUNET_SCHEDULER_cancel (rc->shutdown_run_task);
-    rc->shutdown_run_task = GNUNET_SCHEDULER_add_now (&shutdown_run, rc);
+    shutdown_now (rc);
     return;
   }
   rc->reg_hosts++;
@@ -879,8 +905,7 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host, int status
   if (NULL == rc->cproc)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR, _("Cannot start the master controller"));
-    GNUNET_SCHEDULER_cancel (rc->shutdown_run_task);
-    rc->shutdown_run_task = GNUNET_SCHEDULER_add_now (&shutdown_run, rc);
+    shutdown_now (rc);
   }
 }
 
