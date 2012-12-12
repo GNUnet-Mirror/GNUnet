@@ -105,8 +105,11 @@ static void
 stop_scanner_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   kill_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_FS_directory_scan_abort (ds);
-  ds = NULL;
+  if (NULL != ds)
+  {
+    GNUNET_FS_directory_scan_abort (ds);
+    ds = NULL;
+  } 
   if (namespace != NULL)
   {
     GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
