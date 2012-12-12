@@ -2050,7 +2050,7 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
                                 &session->target,
                                 message,
                                 (const struct GNUNET_ATS_Information *) &distance,
-                                1, session,
+                                2, session,
                                 (GNUNET_YES == session->inbound) ? NULL : session->addr,
                                 (GNUNET_YES == session->inbound) ? 0 : session->addrlen);
 
