@@ -822,6 +822,7 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const stru
 {
   GNUNET_assert (sh != NULL);
   struct ATS_Network * cur = sh->net_head;
+  char *networks[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
   int type = GNUNET_ATS_NET_UNSPECIFIED;
   struct GNUNET_ATS_Information ats;
 
@@ -862,15 +863,7 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const stru
       struct sockaddr_in * mask4 = (struct sockaddr_in *) cur->netmask;
 
       if (((a4->sin_addr.s_addr & mask4->sin_addr.s_addr)) == net4->sin_addr.s_addr)
-      {
-        char * net = GNUNET_strdup (GNUNET_a2s ((const struct sockaddr *) net4, addrlen));
-        GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-scheduling-api",
-            "`%s' is in network `%s'\n",
-            GNUNET_a2s ((const struct sockaddr *)a4, addrlen),
-            net);
-        GNUNET_free (net);
         type = GNUNET_ATS_NET_LAN;
-      }
     }
     if (addr->sa_family == AF_INET6)
     {
@@ -888,14 +881,7 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const stru
           res = GNUNET_NO;
 
       if (res == GNUNET_YES)
-      {
-        char * net = GNUNET_strdup (GNUNET_a2s ((const struct sockaddr *) net6, addrlen));
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' is in network `%s'\n",
-              GNUNET_a2s ((const struct sockaddr *) a6, addrlen),
-              net);
-        GNUNET_free (net);
         type = GNUNET_ATS_NET_LAN;
-      }
     }
     cur = cur->next;
   }
@@ -904,7 +890,13 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const stru
   if (type == GNUNET_ATS_NET_UNSPECIFIED)
     type = GNUNET_ATS_NET_WAN;
   ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  ats.value = htonl (type);  
+  ats.value = htonl (type);
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-scheduling-api",
+                   "`%s' is in network `%s'\n",
+                   GNUNET_a2s ((const struct sockaddr *) addr, addrlen),
+                   networks[type]);
+
   return ats;
 }
 
