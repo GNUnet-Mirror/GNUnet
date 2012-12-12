@@ -65,14 +65,15 @@ create_unique_cfgs (const char * template, const unsigned int no)
   if ((create_cfg_template != NULL) && (GNUNET_OK != GNUNET_CONFIGURATION_load(cfg_tmpl, create_cfg_template)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not load template `%s'\n", create_cfg_template);
-    GNUNET_CONFIGURATION_destroy(cfg_tmpl);
+    GNUNET_CONFIGURATION_destroy (cfg_tmpl);
 
     return 1;
   }
   /* load defaults */
   if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg_tmpl,  NULL))
   {
-    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not load template `%s'\n", create_cfg_template);
+    GNUNET_CONFIGURATION_destroy (cfg_templ);
     return 1;
   }
 
