@@ -1150,7 +1150,7 @@ free_session (struct Session *s)
 static void
 dequeue (struct Plugin *plugin, struct UDP_MessageWrapper * udpw)
 {
-  if (plugin->bytes_in_buffer - udpw->msg_size < 0)
+  if (plugin->bytes_in_buffer < udpw->msg_size)
       GNUNET_break (0);
   else
   {
