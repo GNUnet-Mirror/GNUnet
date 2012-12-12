@@ -579,6 +579,15 @@ GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SchedulingHandle *sh,
 
 
 /**
+ * Convert a GNUNET_ATS_NetworkType to a string
+ *
+ * @param net the network type
+ * @return a string or NULL if invalid
+ */
+const char *
+GNUNET_ATS_print_network_type (uint32_t net);
+
+/**
  * Returns where the address is located: LAN or WAN or ...
  * @param sh the GNUNET_ATS_SchedulingHandle handle
  * @param addr address

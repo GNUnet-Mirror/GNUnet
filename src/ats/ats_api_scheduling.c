@@ -808,6 +808,21 @@ get_addresses (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                      sh);
 }
 
+/**
+ * Convert a GNUNET_ATS_NetworkType to a string
+ *
+ * @param net the network type
+ * @return a string or NULL if invalid
+ */
+const char *
+GNUNET_ATS_print_network_type (uint32_t net)
+{
+  char *networks[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
+  if (net < GNUNET_ATS_NetworkTypeCount)
+    return networks[net];
+  return NULL;
+}
+
 
 /**
  * Returns where the address is located: LAN or WAN or ...
@@ -822,7 +837,7 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const stru
 {
   GNUNET_assert (sh != NULL);
   struct ATS_Network * cur = sh->net_head;
-  char *networks[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
+
   int type = GNUNET_ATS_NET_UNSPECIFIED;
   struct GNUNET_ATS_Information ats;
 
@@ -895,8 +910,7 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const stru
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-scheduling-api",
                    "`%s' is in network `%s'\n",
                    GNUNET_a2s ((const struct sockaddr *) addr, addrlen),
-                   networks[type]);
-
+                   GNUNET_ATS_print_network_type(type));
   return ats;
 }
 
