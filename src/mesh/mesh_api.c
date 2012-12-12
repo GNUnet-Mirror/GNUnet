@@ -1834,9 +1834,11 @@ GNUNET_MESH_announce_regex (struct GNUNET_MESH_Handle *h,
 
   len = strlen (regex);
   msgsize = sizeof(struct GNUNET_MESH_RegexAnnounce) + len;
-  if (UINT16_MAX > msgsize)
+  if (UINT16_MAX < msgsize)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Regex size %u too big.\n", len);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Regex size %u (%u) too big.\n",
+         len, msgsize);
     GNUNET_abort();
   }
 
