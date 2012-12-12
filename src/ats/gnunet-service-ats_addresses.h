@@ -34,6 +34,8 @@
 
 #define ATS_BLOCKING_DELTA GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100)
 
+struct GAS_Addresses_Handle;
+
 /**
  * Address with additional information
  */
@@ -143,7 +145,7 @@ struct ATS_Address
  */
 
 typedef void
- (*GAS_bandwidth_changed_cb) (struct ATS_Address *address);
+ (*GAS_bandwidth_changed_cb) (void *cls, struct ATS_Address *address);
 
 /**
  * Init the simplistic problem solving component
@@ -174,7 +176,8 @@ typedef void *
                      unsigned long long *out_quota,
                      unsigned long long *in_quota,
                      int dest_length,
-                     GAS_bandwidth_changed_cb bw_changed_cb);
+                     GAS_bandwidth_changed_cb bw_changed_cb,
+                     void *bw_changed_cb_cls);
 
 
 typedef void
@@ -236,18 +239,21 @@ void
 GAS_addresses_done (struct GAS_Addresses_Handle *handle);
 
 void
-GAS_addresses_handle_backoff_reset (const struct GNUNET_PeerIdentity *peer);
+GAS_addresses_handle_backoff_reset (struct GAS_Addresses_Handle *handle,
+                                    const struct GNUNET_PeerIdentity *peer);
 
 /**
  * This address is now used or not used anymore
  */
 int
-GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
+GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
+                      const struct GNUNET_PeerIdentity *peer,
                       const char *plugin_name, const void *plugin_addr,
                       size_t plugin_addr_len, uint32_t session_id, int in_use);
 
 void
-GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
+GAS_addresses_update (struct GAS_Addresses_Handle *handle,
+                      const struct GNUNET_PeerIdentity *peer,
                       const char *plugin_name, const void *plugin_addr,
                       size_t plugin_addr_len, uint32_t session_id,
                       const struct GNUNET_ATS_Information *atsi,
@@ -255,7 +261,8 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
 
 
 void
-GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
+GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
+                       const struct GNUNET_PeerIdentity *peer,
                        const char *plugin_name, const void *plugin_addr,
                        size_t plugin_addr_len, uint32_t session_id);
 
@@ -270,22 +277,26 @@ GAS_addresses_destroy_all (struct GAS_Addresses_Handle *handle);
  * @param peer the respective peer
  */
 void
-GAS_addresses_request_address_cancel (const struct GNUNET_PeerIdentity *peer);
+GAS_addresses_request_address_cancel (struct GAS_Addresses_Handle *handle,
+                                      const struct GNUNET_PeerIdentity *peer);
 
 void
-GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer);
+GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
+                               const struct GNUNET_PeerIdentity *peer);
 
 void
-GAS_addresses_change_preference (const struct GNUNET_PeerIdentity *peer,
+GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
+                                 const struct GNUNET_PeerIdentity *peer,
                                  enum GNUNET_ATS_PreferenceKind kind,
                                  float score);
 
 void
-GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
-                      const char *plugin_name, const void *plugin_addr,
-                      size_t plugin_addr_len, uint32_t session_id,
-                      const struct GNUNET_ATS_Information *atsi,
-                      uint32_t atsi_count);
+GAS_addresses_add (struct GAS_Addresses_Handle *handle,
+                   const struct GNUNET_PeerIdentity *peer,
+                   const char *plugin_name, const void *plugin_addr,
+                   size_t plugin_addr_len, uint32_t session_id,
+                   const struct GNUNET_ATS_Information *atsi,
+                   uint32_t atsi_count);
 
 
 typedef void (*GNUNET_ATS_Peer_Iterator) (void *p_it_cls,
@@ -298,7 +309,9 @@ typedef void (*GNUNET_ATS_Peer_Iterator) (void *p_it_cls,
  * @param p_it_cls the closure for the iterator
  */
 void
-GAS_addresses_iterate_peers (GNUNET_ATS_Peer_Iterator p_it, void *p_it_cls);
+GAS_addresses_iterate_peers (struct GAS_Addresses_Handle *handle,
+                             GNUNET_ATS_Peer_Iterator p_it,
+                             void *p_it_cls);
 
 typedef void (*GNUNET_ATS_PeerInfo_Iterator) (void *p_it_cls,
     const struct GNUNET_PeerIdentity *id,
@@ -319,7 +332,10 @@ typedef void (*GNUNET_ATS_PeerInfo_Iterator) (void *p_it_cls,
  * @param pi_it_cls the closure for the iterator
  */
 void
-GAS_addresses_get_peer_info (const struct GNUNET_PeerIdentity *peer, GNUNET_ATS_PeerInfo_Iterator pi_it, void *pi_it_cls);
+GAS_addresses_get_peer_info (struct GAS_Addresses_Handle *handle,
+                             const struct GNUNET_PeerIdentity *peer,
+                             GNUNET_ATS_PeerInfo_Iterator pi_it,
+                             void *pi_it_cls);
 
 #endif
 

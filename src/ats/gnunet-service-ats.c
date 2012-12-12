@@ -167,8 +167,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GSA_server = server;
   GSA_stats = GNUNET_STATISTICS_create ("ats", cfg);
   GAS_reservations_init ();
-  GAS_performance_init (server);
   GSA_addresses = GAS_addresses_init (cfg, GSA_stats);
+  GAS_performance_init (server, GSA_addresses);
   GAS_scheduling_init (server, GSA_addresses);
 
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect_handler, NULL);

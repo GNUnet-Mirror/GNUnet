@@ -16,16 +16,16 @@ if USE_COVERAGE
 endif
 
 libexec_PROGRAMS = \
- gnunet_daemon_sysmon
+ gnunet_service_sysmon
 
 check_PROGRAMS = \
  test_glibtop \
  test_glibtop_process \
  test_glibtop_network
  
-gnunet_daemon_sysmon_SOURCES = \
- gnunet-daemon-sysmon.c         
-gnunet_daemon_sysmon_LDADD = \
+gnunet_service_sysmon_SOURCES = \
+ gnunet-service-sysmon.c         
+gnunet_service_sysmon_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(GN_LIBINTL)

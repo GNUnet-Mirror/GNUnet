@@ -59,7 +59,8 @@ GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      unsigned long long *out_quota,
                      unsigned long long *in_quota,
                      int dest_length,
-                     GAS_bandwidth_changed_cb bw_changed_cb);
+                     GAS_bandwidth_changed_cb bw_changed_cb,
+                     void *bw_changed_cb_cls);
 
 /**
  * Shutdown the simplistic problem solving component

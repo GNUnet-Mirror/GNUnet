@@ -68,6 +68,7 @@ struct GAS_SIMPLISTIC_Handle
 
   unsigned int networks;
   GAS_bandwidth_changed_cb bw_changed;
+  void *bw_changed_cls;
 };
 
 struct Network
@@ -144,7 +145,8 @@ GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      unsigned long long *out_quota,
                      unsigned long long *in_quota,
                      int dest_length,
-                     GAS_bandwidth_changed_cb bw_changed_cb)
+                     GAS_bandwidth_changed_cb bw_changed_cb,
+                     void *bw_changed_cb_cls)
 {
   int c;
   struct GAS_SIMPLISTIC_Handle *s = GNUNET_malloc (sizeof (struct GAS_SIMPLISTIC_Handle));
@@ -152,6 +154,7 @@ GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   char * net_str[GNUNET_ATS_NetworkTypeCount] = {"UNSPECIFIED", "LOOPBACK", "LAN", "WAN", "WLAN"};
 
   s->bw_changed = bw_changed_cb;
+  s->bw_changed_cls = bw_changed_cb_cls;
   s->networks = dest_length;
   s->network_entries = GNUNET_malloc (dest_length * sizeof (struct Network));
   s->active_addresses = 0;
@@ -277,7 +280,7 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
         cur->addr->assigned_bw_out.value__ = htonl (quota_out);
         /* Notify on change */
         if ((GNUNET_YES == cur->addr->active) && (cur->addr != address_except))
-          s->bw_changed (cur->addr);
+          s->bw_changed (s->bw_changed_cls, cur->addr);
       }
       cur = cur->next;
   }
@@ -606,7 +609,7 @@ GAS_simplistic_get_preferred_address (void *solver,
       prev->active = GNUNET_NO; /* No active any longer */
       prev->assigned_bw_in = GNUNET_BANDWIDTH_value_init (0); /* no bw assigned */
       prev->assigned_bw_out = GNUNET_BANDWIDTH_value_init (0); /* no bw assigned */
-      s->bw_changed (prev); /* notify about bw change, REQUIRED? */
+      s->bw_changed (s->bw_changed_cls, prev); /* notify about bw change, REQUIRED? */
       if (net_prev->active_addresses < 1)
         GNUNET_break (0);
       else

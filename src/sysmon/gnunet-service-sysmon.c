@@ -19,8 +19,8 @@
 */
 
 /**
- * @file sysmon/gnunet-daemon-sysmon.c
- * @brief system monitoring daemon
+ * @file sysmon/gnunet-service-sysmon.c
+ * @brief system monitoring service
  * @author Matthias Wachs
  */
 #include "platform.h"
@@ -508,18 +508,40 @@ run_properties (void)
   return GNUNET_OK;
 }
 
+
 /**
- * Main function that will be run by the scheduler.
+ * Task run during shutdown.
  *
- * @param cls closure
- * @param args remaining command-line arguments
- * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param cfg configuration
+ * @param cls unused
+ * @param tc unused
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  /* FIXME: do clean up here */
+}
+
+
+/**
+ * Process template requests.
+ *
+ * @param cls closure
+ * @param server the initialized server
+ * @param cfg configuration to use
+ */
+static void
+run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *mycfg)
 {
+  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
+    /* FIXME: add handlers here! */
+    {NULL, NULL, 0, 0}
+  };
+  /* FIXME: do setup here */
+  GNUNET_SERVER_add_handlers (server, handlers);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
+                                NULL);
+
   struct GNUNET_CONFIGURATION_Handle *properties;
   char *file;
 
@@ -590,7 +612,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
 
 /**
- * The main function.
+ * The main function for the template service.
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments
@@ -599,18 +621,9 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
-    return 2;
-
-  ret = (GNUNET_OK ==
-	 GNUNET_PROGRAM_run (argc, argv, "gnunet-daemon-sysmon",
-			     gettext_noop ("GNUnet system monitoring and information daemon"), options, &run,
-			     NULL)) ? ret : 1;
-  GNUNET_free ((void*) argv);
-  return ret;
+  return (GNUNET_OK ==
+          GNUNET_SERVICE_run (argc, argv, "sysmon",
+                              GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
 }
 
-/* end of gnunet-daemon-sysmon.c */
+/* end of gnunet-service-sysmon.c */
