@@ -25,6 +25,7 @@
  */
 #include "platform.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_ats_service.h"
 #include "gauger.h"
 #include "transport-testing.h"
 
@@ -450,11 +451,10 @@ start_cb (struct PeerContext *p, void *cls)
   receiver = p1;
 
   char *sender_c = GNUNET_strdup (GNUNET_i2s (&sender->id));
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Test tries to send from %u (%s) -> peer %u (%s)\n", sender->no,
               sender_c, receiver->no, GNUNET_i2s (&receiver->id));
-
+  GNUNET_free (sender_c);
   cc = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb,
                                                NULL);
 
@@ -464,16 +464,28 @@ static char *
 generate_config (char *cfg_file, unsigned long long quota_in,
                  unsigned long long quota_out)
 {
+  char *networks[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
+  char *in_name;
+  char *out_name;
   char *fname = NULL;
   struct GNUNET_CONFIGURATION_Handle *cfg = GNUNET_CONFIGURATION_create ();
+  int c;
 
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (cfg, cfg_file));
   GNUNET_asprintf (&fname, "q_in_%llu_q_out_%llu_%s", quota_in, quota_out,
                    cfg_file);
+
   GNUNET_CONFIGURATION_set_value_string (cfg, "PATHS", "DEFAULTCONFIG", fname);
-  GNUNET_CONFIGURATION_set_value_number (cfg, "ats", "WAN_QUOTA_IN", quota_in);
-  GNUNET_CONFIGURATION_set_value_number (cfg, "ats", "WAN_QUOTA_OUT",
-                                         quota_out);
+
+  for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
+  {
+      GNUNET_asprintf (&in_name, "%s_QUOTA_IN", networks[c]);
+      GNUNET_asprintf (&out_name, "%s_QUOTA_OUT", networks[c]);
+      GNUNET_CONFIGURATION_set_value_number (cfg, "ats", in_name, quota_in);
+      GNUNET_CONFIGURATION_set_value_number (cfg, "ats", out_name, quota_out);
+      GNUNET_free (in_name);
+      GNUNET_free (out_name);
+  }
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_write (cfg, fname));
   GNUNET_CONFIGURATION_destroy (cfg);
   return fname;
