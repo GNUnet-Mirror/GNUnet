@@ -310,6 +310,7 @@ create_address (const struct GNUNET_PeerIdentity *peer,
   aa->plugin = GNUNET_strdup (plugin_name);
   aa->session_id = session_id;
   aa->active = GNUNET_NO;
+  aa->used = GNUNET_NO;
   aa->solver_information = NULL;
   aa->assigned_bw_in = GNUNET_BANDWIDTH_value_init(0);
   aa->assigned_bw_out = GNUNET_BANDWIDTH_value_init(0);
@@ -520,9 +521,6 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
                 GNUNET_i2s (peer), session_id, aa);
     /* Tell solver about new address */
     handle->s_add (handle->solver, handle->addresses, aa);
-
-
-
     return;
   }
   GNUNET_free (aa->plugin);
@@ -530,7 +528,8 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
 
   if (ea->session_id != 0)
   {
-      /* This addresswith the same session is already existing */
+      /* This address with the same session is already existing
+       * Should not happen */
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Added already existing address for peer `%s' `%s' %p with new session %u\n",
                 GNUNET_i2s (peer), plugin_name, session_id);
@@ -539,18 +538,21 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   }
 
   /* We have an address without an session, update this address */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-            "Updated existing address for peer `%s' %p with new session %u\n",
-            GNUNET_i2s (peer), ea, session_id);
+
+  /* Notify solver about update with atsi information and session */
+  handle->s_update (handle->solver, handle->addresses, ea, session_id, ea->used, atsi, atsi_count);
+
+  /* Do the update */
   ea->session_id = session_id;
   if (atsi_count != (ats_res = disassemble_ats_information(atsi, atsi_count, ea)))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "While updating address: had %u ATS elements to add, could only add %u\n",
-                atsi_count, ats_res);
+                  "While updating address: had %u ATS elements to add, could only add %u\n",
+                  atsi_count, ats_res);
   }
-
-  handle->s_update (handle->solver, handle->addresses, ea);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+           "Updated existing address for peer `%s' %p with new session %u\n",
+           GNUNET_i2s (peer), ea, session_id);
 }
 
 
@@ -586,6 +588,10 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
                 "ADDRESS UPDATE",
                 GNUNET_i2s (peer), aa);
 
+  /* Tell solver about update */
+  handle->s_update (handle->solver, handle->addresses, aa, session_id, aa->used, atsi, atsi_count);
+
+  /* Update address */
   if (atsi_count != (ats_res = disassemble_ats_information (atsi, atsi_count, aa)))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -595,9 +601,6 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
             "Updated %u ATS elements for address %p\n",
             ats_res, aa);
-
-  /* Tell solver about update */
-  handle->s_update (handle->solver, handle->addresses, aa);
 }
 
 
@@ -779,10 +782,10 @@ GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
                 (GNUNET_NO == in_use) ? "NO" : "YES");
     return GNUNET_SYSERR;
   }
-  ea->used = in_use;
 
   /* Tell solver about update */
-  handle->s_update (handle->solver, handle->addresses, ea);
+  handle->s_update (handle->solver, handle->addresses, ea, session_id, in_use, NULL, 0);
+  ea->used = in_use;
 
   return GNUNET_OK;
 }

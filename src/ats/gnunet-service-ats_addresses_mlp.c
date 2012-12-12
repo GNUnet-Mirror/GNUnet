@@ -1550,7 +1550,13 @@ GAS_mlp_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addres
  * @param address the address to update
  */
 void
-GAS_mlp_address_update (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
+GAS_mlp_address_update (void *solver,
+                        struct GNUNET_CONTAINER_MultiHashMap *addresses,
+                        struct ATS_Address *address,
+                        uint32_t session,
+                        int in_use,
+                        const struct GNUNET_ATS_Information *atsi,
+                        uint32_t atsi_count)
 {
   struct GAS_MLP_Handle *mlp = solver;
   int new;

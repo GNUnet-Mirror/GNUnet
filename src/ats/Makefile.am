@@ -52,6 +52,7 @@ gnunet_service_ats_SOURCES = \
 gnunet_service_ats_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetats.la \
   $(GN_LIBGLPK) \
   $(GN_LIBINTL)
 gnunet_service_ats_DEPENDENCIES = \

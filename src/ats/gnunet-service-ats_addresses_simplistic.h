@@ -89,7 +89,13 @@ GAS_simplistic_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap *
  * @param address the update address
  */
 void
-GAS_simplistic_address_update (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
+GAS_simplistic_address_update (void *solver,
+    struct GNUNET_CONTAINER_MultiHashMap *addresses,
+    struct ATS_Address *address,
+    uint32_t session,
+    int in_use,
+    const struct GNUNET_ATS_Information *atsi,
+    uint32_t atsi_count);
 
 
 /**

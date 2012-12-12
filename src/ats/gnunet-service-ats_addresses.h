@@ -209,7 +209,11 @@ typedef void
 typedef void
 (*GAS_solver_address_update) (void *solver,
                               struct GNUNET_CONTAINER_MultiHashMap *addresses,
-                              struct ATS_Address *address);
+                              struct ATS_Address *address,
+                              uint32_t session,
+                              int in_use,
+                              const struct GNUNET_ATS_Information *atsi,
+                              uint32_t atsi_count);
 
 
 typedef const struct ATS_Address *
