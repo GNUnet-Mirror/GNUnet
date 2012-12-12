@@ -147,7 +147,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   static int stage = 0;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u\n", stage);
-  if (2 == stage)
+  if (3 == stage)
   {
       /* Suggestion after resetting block interval */
       reset_block_duration = GNUNET_TIME_absolute_get_difference(reset_block_start, GNUNET_TIME_absolute_get());
@@ -196,7 +196,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
       GNUNET_SCHEDULER_add_now (&end, NULL);
 
   }
-  if (1 == stage)
+  if (2 == stage)
   {
       /* Suggestion after block*/
       block_duration = GNUNET_TIME_absolute_get_difference(block_start, GNUNET_TIME_absolute_get());
@@ -205,13 +205,13 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
       if (GNUNET_OK == compare_addresses (address, session, &test_hello_address, test_session))
       {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 0: Callback with correct address `%s'\n",
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage %u: Callback with correct address `%s'\n", stage,
                       GNUNET_i2s (&address->peer));
           ret = 0;
       }
       else
       {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 0: Callback with invalid address `%s'\n",
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage %u: Callback with invalid address `%s'\n", stage,
                       GNUNET_i2s (&address->peer));
           GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
           GNUNET_SCHEDULER_add_now (&end, NULL);
@@ -220,7 +220,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
       if (GNUNET_OK != compare_ats(atsi, ats_count, test_ats_info, test_ats_count))
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage 0: Callback with incorrect ats info \n");
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback with incorrect ats info \n");
         GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
         GNUNET_SCHEDULER_add_now (&end, NULL);
         ret = 1;
@@ -232,18 +232,18 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
       reset_block_start = GNUNET_TIME_absolute_get();
       GNUNET_ATS_suggest_address (sched_ats, &p.id);
   }
-  if (0 == stage)
+  if (1 == stage)
   {
     /* Initial suggestion */
     if (GNUNET_OK == compare_addresses (address, session, &test_hello_address, test_session))
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 0: Callback with correct address `%s'\n",
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage %u: Callback with correct address `%s'\n", stage,
                     GNUNET_i2s (&address->peer));
         ret = 0;
     }
     else
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 0: Callback with invalid address `%s'\n",
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage %u: Callback with invalid address `%s'\n", stage,
                     GNUNET_i2s (&address->peer));
         GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
         GNUNET_SCHEDULER_add_now (&end, NULL);
@@ -252,18 +252,50 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
     if (GNUNET_OK != compare_ats(atsi, ats_count, test_ats_info, test_ats_count))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage 0: Callback with incorrect ats info \n");
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback with incorrect ats info \n");
       GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
       GNUNET_SCHEDULER_add_now (&end, NULL);
       ret = 1;
     }
     stage ++;
     initial_duration = GNUNET_TIME_absolute_get_difference(initial_start, GNUNET_TIME_absolute_get());
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Initial suggestion took about %llu ms\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Initial suggestion took about %llu ms\n", stage,
                 (long long unsigned int) block_duration.rel_value);
 
     block_start = GNUNET_TIME_absolute_get();
     wait_task = GNUNET_SCHEDULER_add_delayed (WAIT, &request_task, NULL);
+  }
+  if (0 == stage)
+  {
+    /* Startup suggestion */
+    if (GNUNET_OK == compare_addresses (address, session, &test_hello_address, test_session))
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage %u: Callback with correct address `%s'\n", stage,
+                    GNUNET_i2s (&address->peer));
+        ret = 0;
+    }
+    else
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage %u: Callback with invalid address `%s'\n", stage,
+                    GNUNET_i2s (&address->peer));
+        GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
+        GNUNET_SCHEDULER_add_now (&end, NULL);
+        ret = 1;
+    }
+
+    if (GNUNET_OK != compare_ats(atsi, ats_count, test_ats_info, test_ats_count))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback with incorrect ats info \n");
+      GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
+      GNUNET_SCHEDULER_add_now (&end, NULL);
+      ret = 1;
+    }
+    stage ++;
+
+    GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
+
+    initial_start = GNUNET_TIME_absolute_get();
+    GNUNET_ATS_suggest_address (sched_ats, &p.id);
   }
 }
 
