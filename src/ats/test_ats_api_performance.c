@@ -465,26 +465,24 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   static int suggest_p1 = GNUNET_NO;
   static int running = GNUNET_NO;
 
-  if (0 == memcmp (&address->peer, &p[0].id,
-                   sizeof (struct GNUNET_PeerIdentity)))
+  if ((GNUNET_NO == suggest_p0) && (0 == memcmp (&address->peer, &p[0].id,
+                   sizeof (struct GNUNET_PeerIdentity))))
   {
     suggest_p0 = GNUNET_YES;;
 
     if (s_ha[0] != NULL)
       GNUNET_free (s_ha[0]);
     s_ha[0] = GNUNET_HELLO_address_copy (address);
-
     GNUNET_ATS_suggest_address_cancel (atsh, &p[0].id);
   }
-  if (0 == memcmp (&address->peer, &p[1].id,
-                   sizeof (struct GNUNET_PeerIdentity)))
+  if ((GNUNET_NO == suggest_p1) && (0 == memcmp (&address->peer, &p[1].id,
+                   sizeof (struct GNUNET_PeerIdentity))))
   {
     suggest_p1 = GNUNET_YES;
 
     if (s_ha[1] != NULL)
       GNUNET_free (s_ha[1]);
     s_ha[1] = GNUNET_HELLO_address_copy (address);
-
     GNUNET_ATS_suggest_address_cancel (atsh, &p[1].id);
   }
 
