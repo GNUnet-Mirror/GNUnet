@@ -1402,7 +1402,7 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
   else
   {
     char *helper_binary_path;
-    const char *remote_args[10];
+    const char *remote_args[12];
     const char *username;
     char *port;
     char *dst;
@@ -1429,9 +1429,11 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
                                                             "HELPER_BINARY_PATH",
                                                             &helper_binary_path))
       helper_binary_path = GNUNET_OS_get_libexec_binary_path (HELPER_TESTBED_BINARY);
+    remote_args[argp++] = "sh";
+    remote_args[argp++] = "-lc";
     remote_args[argp++] = helper_binary_path;
     remote_args[argp++] = NULL;
-    GNUNET_assert (argp == 10);
+    GNUNET_assert (argp == 12);
     cp->helper_argv = copy_argv (remote_args);
     GNUNET_free (port);
     GNUNET_free (dst);

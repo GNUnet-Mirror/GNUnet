@@ -781,7 +781,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                       GNUNET_TESTBED_HostHabitableCheckHandle *) 
                               * num_hosts);
   for (nhost = 0; nhost < num_hosts; nhost++)
-  {    
+  {
     if (NULL == (hc_handles[nhost] = GNUNET_TESTBED_is_host_habitable (hosts[nhost], config,
                                                                        &host_habitable_cb,
                                                                        &hc_handles[nhost])))
