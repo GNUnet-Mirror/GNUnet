@@ -2633,6 +2633,7 @@ handle_peer_stop (void *cls, struct GNUNET_SERVER_Client *client,
   struct Peer *peer;
   uint32_t peer_id;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received PEER_STOP msg\n");
   msg = (const struct GNUNET_TESTBED_PeerStopMessage *) message;
   peer_id = ntohl (msg->peer_id);
   if ((peer_id >= peer_list_size) || (NULL == peer_list[peer_id]))
@@ -2645,6 +2646,7 @@ handle_peer_stop (void *cls, struct GNUNET_SERVER_Client *client,
   peer = peer_list[peer_id];
   if (GNUNET_YES == peer->is_remote)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Forwarding PEER_STOP msg\n");
     fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
     GNUNET_SERVER_client_keep (client);
     fopc->client = client;
@@ -2664,11 +2666,13 @@ handle_peer_stop (void *cls, struct GNUNET_SERVER_Client *client,
   }
   if (GNUNET_OK != GNUNET_TESTING_peer_stop (peer->details.local.peer))
   {
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Stopping peer %u failed\n", peer_id);
     send_operation_fail_msg (client, GNUNET_ntohll (msg->operation_id),
                              "Peer not running");
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Peer %u successfully stopped\n", peer_id);
   peer->details.local.is_running = GNUNET_NO;
   reply = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerEventMessage));
   reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEEREVENT);
