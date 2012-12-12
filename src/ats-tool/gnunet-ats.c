@@ -144,7 +144,6 @@ void transport_addr_to_str_cb (void *cls, const char *address)
   char *ats_str;
   char *ats_tmp;
   char *ats_prop_arr[GNUNET_ATS_PropertyCount] = GNUNET_ATS_PropertyStrings;
-  char *ats_net_arr[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
   char *ats_prop_value;
   unsigned int c;
   uint32_t ats_type;
@@ -174,15 +173,17 @@ void transport_addr_to_str_cb (void *cls, const char *address)
                 GNUNET_break (0);
                 continue;
             }
-            GNUNET_asprintf (&ats_prop_value, "%s", ats_net_arr[ats_value]);
+            GNUNET_asprintf (&ats_prop_value, "%s", GNUNET_ATS_print_network_type(ats_value));
             break;
           default:
             GNUNET_asprintf (&ats_prop_value, "%u", ats_value);
             break;
         }
         if (ats_type < GNUNET_ATS_PropertyCount)
+        {
           GNUNET_asprintf (&ats_str, "%s%s=%s, ", ats_tmp, ats_prop_arr[ats_type] , ats_prop_value);
-        GNUNET_free (ats_tmp);
+          GNUNET_free (ats_tmp);
+        }
         GNUNET_free (ats_prop_value);
       }
     }
