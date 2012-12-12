@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2007, 2008, 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
+     (C) 2007, 2008, 2009, 2010, 2011, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -253,6 +253,46 @@ GNUNET_NAT_mini_map_start (uint16_t port, int is_tcp,
 void
 GNUNET_NAT_mini_map_stop (struct GNUNET_NAT_MiniHandle *mini);
 
+
+/**
+ * Handle to auto-configuration in progress.
+ */
+struct GNUNET_NAT_AutoHandle;
+
+
+/**
+ * Function called with the result from the autoconfiguration.
+ *
+ * @param cls closure
+ * @param diff minimal suggested changes to the original configuration
+ *             to make it work (as best as we can)
+ */
+typedef void (*GNUNET_NAT_AutoResultCallback)(void *cls,
+					      const struct GNUNET_CONFIGURATION_Handle *diff);
+
+
+/**
+ * Start auto-configuration routine.  The resolver service should
+ * be available when this function is called.
+ *
+ * @param cfg initial configuration
+ * @param cb function to call with autoconfiguration result
+ * @param cb_cls closure for cb
+ * @return handle to cancel operation
+ */
+struct GNUNET_NAT_AutoHandle *
+GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
+			     GNUNET_NAT_AutoResultCallback cb,
+			     void *cb_cls);
+			     
+
+/**
+ * Abort autoconfiguration.
+ *
+ * @param ah handle for operation to abort
+ */
+void
+GNUNET_NAT_autoconfig_cancel (struct GNUNET_NAT_AutoHandle *ah);
 
 #endif
 
