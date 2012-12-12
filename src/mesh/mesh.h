@@ -193,7 +193,12 @@ struct GNUNET_MESH_RegexAnnounce
      */
   uint16_t compression_characters;
 
-  /* regex  */
+    /**
+     * Is this the last message for this regex? (for regex > 65k)
+     */
+  int16_t last;
+
+  /* regex payload  */
 };
 
 

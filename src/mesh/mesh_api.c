@@ -1829,30 +1829,30 @@ GNUNET_MESH_announce_regex (struct GNUNET_MESH_Handle *h,
                             unsigned int compression_characters)
 {
   struct GNUNET_MESH_RegexAnnounce *msg;
+  size_t payload;
   size_t len;
   size_t msgsize;
+  size_t offset;
+  char buffer[UINT16_MAX];
 
   len = strlen (regex);
-  msgsize = sizeof(struct GNUNET_MESH_RegexAnnounce) + len;
-  if (UINT16_MAX < msgsize)
+  payload = UINT16_MAX - sizeof(struct GNUNET_MESH_RegexAnnounce);
+  msg = (struct GNUNET_MESH_RegexAnnounce *) buffer;
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ANNOUNCE_REGEX);
+  msg->compression_characters = htons (compression_characters);
+  offset = 0;
+  do
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-         "Regex size %u (%u) too big.\n",
-         len, msgsize);
-    GNUNET_abort();
-  }
+    msgsize = (len > offset + payload) ? payload : len;
+    memcpy (&msg[1], &regex[offset], msgsize);
+    offset += msgsize;
+    msgsize += sizeof(struct GNUNET_MESH_RegexAnnounce);
 
-  {
-    char buffer[msgsize];
-
-    msg = (struct GNUNET_MESH_RegexAnnounce *) buffer;
     msg->header.size = htons (msgsize);
-    msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ANNOUNCE_REGEX);
-    msg->compression_characters = htons (compression_characters);
-    memcpy (&msg[1], regex, len);
+    msg->last = htons (offset >= len);
 
-    send_packet(h, &msg->header, NULL);
-  }
+    send_packet (h, &msg->header, NULL);
+  } while (len > offset);
 }
 
 /**
