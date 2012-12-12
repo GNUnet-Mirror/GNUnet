@@ -748,6 +748,11 @@ struct MeshClient
      */
   GNUNET_SCHEDULER_TaskIdentifier regex_announce_task;
 
+    /**
+     * Tmp store for partially retrieved regex.
+     */
+  char *partial_regex;
+
 };
 
 
@@ -6982,6 +6987,7 @@ handle_local_announce_regex (void *cls, struct GNUNET_SERVER_Client *client,
   struct MeshClient *c;
   char *regex;
   size_t len;
+  size_t offset;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "announce regex started\n");
 
@@ -6995,10 +7001,34 @@ handle_local_announce_regex (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
   msg = (const struct GNUNET_MESH_RegexAnnounce *) message;
+
   len = ntohs (message->size) - sizeof(struct GNUNET_MESH_RegexAnnounce);
-  regex = GNUNET_malloc (len + 1);
-  memcpy (regex, &msg[1], len);
-  regex[len] = '\0';
+  if (NULL != c->partial_regex)
+  {
+    regex = c->partial_regex;
+    offset = strlen (c->partial_regex);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "  continuation, already have %u bytes\n",
+                offset);
+  }
+  else
+  {
+    regex = NULL;
+    offset = 0;
+  }
+
+  regex = GNUNET_realloc (regex, offset + len + 1);
+  memcpy (&regex[offset], &msg[1], len);
+  regex[offset + len] = '\0';
+  if (0 == ntohs (msg->last))
+  {
+    c->partial_regex = regex;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "  not ended, stored %u bytes for later\n",
+                len);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
   rd.regex = regex;
   rd.compression = ntohs (msg->compression_characters);
   rd.dfa = NULL;
@@ -7006,6 +7036,7 @@ handle_local_announce_regex (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  regex %s\n", regex);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  cm %u\n", ntohs(rd.compression));
   GNUNET_array_append (c->regexes, c->n_regex, rd);
+  c->partial_regex = NULL;
   if (GNUNET_SCHEDULER_NO_TASK == c->regex_announce_task)
   {
     c->regex_announce_task = GNUNET_SCHEDULER_add_now(&announce_regex, c);
