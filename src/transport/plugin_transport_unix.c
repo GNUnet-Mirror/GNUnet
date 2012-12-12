@@ -566,7 +566,7 @@ resend:
                                         &len);
       if (size < msgbuf_size)
       {
-        LOG (GNUNET_ERROR_TYPE_ERROR,
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
                     "Trying to increase socket buffer size from %i to %i for message size %i\n",
                     size, ((msgbuf_size / 1000) + 2) * 1000, msgbuf_size);
         size = ((msgbuf_size / 1000) + 2) * 1000;
