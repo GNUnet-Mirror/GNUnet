@@ -234,7 +234,6 @@ GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
 	if (GNUNET_OK != GNUNET_CONFIGURATION_parse (cfg, value))
 	{
 	  ret = GNUNET_SYSERR;    /* failed to parse included config */
-	  GNUNET_free_non_null (line_orig);
 	  break;
 	}
       }
@@ -243,7 +242,6 @@ GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
 	LOG (GNUNET_ERROR_TYPE_DEBUG,
 	     "Ignoring parsing @INLINE@ configurations, not allowed!\n");
 	ret = GNUNET_SYSERR;
-	GNUNET_free_non_null (line_orig);
 	break;
       }
       continue;
@@ -293,8 +291,6 @@ GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
 	 _("Syntax error while deserializing in line %u\n"), 
 	 nr);
     ret = GNUNET_SYSERR;
-    GNUNET_free_non_null (line_orig);
-    line_orig = NULL;
     break;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Finished deserializing config\n");
