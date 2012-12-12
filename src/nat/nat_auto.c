@@ -25,6 +25,7 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_resolver_service.h"
 #include "gnunet_nat_lib.h"
 #include "nat.h"
 
@@ -49,7 +50,7 @@ enum AutoPhase
   /**
    * Test if we are online.
    */
-  AUTO_ONLINE = 1,
+  AUTO_ONLINE,
 
   /**
    * Test our external IP.
@@ -128,12 +129,17 @@ struct GNUNET_NAT_AutoHandle
   /**
    * Task identifier for the timeout.
    */
-  GNUNET_SCHEDULER_TaskIdentifier tsk;
+  GNUNET_SCHEDULER_TaskIdentifier task;
 
   /**
    * Where are we in the test?
    */
   enum AutoPhase phase;
+
+  /**
+   * Do we have IPv6?
+   */
+  int have_v6;
 
 };
 
@@ -141,19 +147,10 @@ struct GNUNET_NAT_AutoHandle
 /**
  * Run the next phase of the auto test.
  *
- * @param ac auto test handle
+ * @param ah auto test handle
  */
 static void
-next_phase (struct GNUNET_NAT_AutoHandle *ac);
-
-
-
-    GNUNET_break (0);
-    return;
-  }
-  gtk_toggle_button_set_active (button, on ? TRUE : FALSE);
-}
-
+next_phase (struct GNUNET_NAT_AutoHandle *ah);
 
 
 /**
@@ -166,20 +163,45 @@ next_phase (struct GNUNET_NAT_AutoHandle *ac);
 static void
 fail_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_NAT_AutoHandle *ac = cls;
+  struct GNUNET_NAT_AutoHandle *ah = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("NAT traversal with ICMP Server timed out.\n"));
-  GNUNET_assert (NULL != ac->tst);
-  ac->tsk = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_NAT_test_stop (ac->tst);
-  ac->tst = NULL;
-  update_icmp_server_enable_button (GNUNET_NO);
-  if (NULL != cfg)
-    GNUNET_CONFIGURATION_set_value_string (cfg, "nat", "ENABLE_ICMP_SERVER", "NO");
-  next_phase (ac);
+  GNUNET_assert (NULL != ah->tst);
+  ah->task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_NAT_test_stop (ah->tst);
+  ah->tst = NULL;
+  GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", 
+					 "ENABLE_ICMP_SERVER",
+					 "NO");
+  next_phase (ah);
 }
 
+
+/**
+ * Function called by NAT on success.
+ * Clean up and update GUI (with success).
+ *
+ * @param cls the auto handle
+ * @param success currently always GNUNET_OK
+ */
+static void
+result_callback (void *cls, int success)
+{
+  struct GNUNET_NAT_AutoHandle *ah = cls;
+
+  GNUNET_SCHEDULER_cancel (ah->task);
+  ah->task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_NAT_test_stop (ah->tst);
+  ah->tst = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      success 
+	      ? _("NAT traversal with ICMP Server succeeded.\n")
+	      : _("NAT traversal with ICMP Server failed.\n"));
+  GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "ENABLE_ICMP_SERVER", 
+					 success ? "YES": "NO");
+  next_phase (ah);
+}
 
 /**
  * Main function for the connection reversal test.
@@ -190,32 +212,33 @@ fail_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 reversal_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_NAT_AutoHandle *ac = cls;
+  struct GNUNET_NAT_AutoHandle *ah = cls;
 
+  ah->task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Testing connection reversal with ICMP server.\n"));
-  GNUNET_assert (NULL != cfg);
-  GNUNET_RESOLVER_connect (cfg);
-  ac->tst = GNUNET_NAT_test_start (cfg, GNUNET_YES, 0, 0, &result_callback, ac);
-  if (NULL == ac->tst)
+  GNUNET_RESOLVER_connect (ah->cfg);
+  ah->tst = GNUNET_NAT_test_start (ah->cfg, GNUNET_YES, 0, 0,
+				   &result_callback, ah);
+  if (NULL == ah->tst)
   {
-    next_phase (ac);
+    next_phase (ah);
     return;
   }
-  ac->tsk = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &fail_timeout, ac);
+  ah->task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &fail_timeout, ah);
 }
 
 
 /**
  * Test if we are online at all.
  *
- * @param ac auto setup context
+ * @param ah auto setup context
  */
 static void
-test_online (struct GNUNET_NAT_AutoHandle *ac)
+test_online (struct GNUNET_NAT_AutoHandle *ah)
 {
   // FIXME: not implemented
-  next_phase (ac);
+  next_phase (ah);
 }
 
 
@@ -228,14 +251,13 @@ test_online (struct GNUNET_NAT_AutoHandle *ac)
 static void
 set_external_ipv4 (void *cls, const struct in_addr *addr)
 {
-  struct GNUNET_NAT_AutoHandle *ac = cls;
+  struct GNUNET_NAT_AutoHandle *ah = cls;
   char buf[INET_ADDRSTRLEN];
-  GObject *o;
 
-  ac->eh = NULL;
+  ah->eh = NULL;
   if (NULL == addr)
   {
-    next_phase (ac);
+    next_phase (ah);
     return;
   }
   /* enable 'behind nat' */
@@ -245,39 +267,33 @@ set_external_ipv4 (void *cls, const struct in_addr *addr)
 			 addr,
 			 buf,
 			 sizeof (buf)));
-  if (NULL != cfg)
-    GNUNET_CONFIGURATION_set_value_string (cfg, "nat", "BEHIND_NAT", "YES");
-  o = GNUNET_SETUP_get_object ("GNUNET_setup_transport_nat_checkbutton");
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (o), TRUE);
+  GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "BEHIND_NAT", "YES");
 
   /* set external IP address */
   if (NULL == inet_ntop (AF_INET, addr, buf, sizeof (buf)))
   {
     GNUNET_break (0);
-    next_phase (ac);
+    next_phase (ah);
     return;
   }
-  if (NULL != cfg)
-    GNUNET_CONFIGURATION_set_value_string (cfg, "nat", "EXTERNAL_ADDRESS",
-					   buf);
-  o = GNUNET_SETUP_get_object ("GNUNET_setup_transport_external_ip_address_entry");
-  gtk_entry_set_text (GTK_ENTRY (o), buf);
-  next_phase (ac);
+  GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "EXTERNAL_ADDRESS",
+					 buf);
+  next_phase (ah);
 }
 
 
 /**
  * Determine our external IPv4 address.
  *
- * @param ac auto setup context
+ * @param ah auto setup context
  */
 static void
-test_external_ip (struct GNUNET_NAT_AutoHandle *ac)
+test_external_ip (struct GNUNET_NAT_AutoHandle *ah)
 {
   // FIXME: CPS?
   /* try to detect external IP */
-  ac->eh = GNUNET_NAT_mini_get_external_ipv4 (TIMEOUT,
-					      &set_external_ipv4, ac);
+  ah->eh = GNUNET_NAT_mini_get_external_ipv4 (TIMEOUT,
+					      &set_external_ipv4, ah);
 }
 
 
@@ -285,7 +301,7 @@ test_external_ip (struct GNUNET_NAT_AutoHandle *ac)
  * Process list of local IP addresses.  Find and set the
  * one of the default interface.
  *
- * @param cls pointer to int to store if we have a non-local IPv6 address
+ * @param cls our NAT auto handle
  * @param name name of the interface (can be NULL for unknown)
  * @param isDefault is this presumably the default interface
  * @param addr address of this interface (can be NULL for unknown or unassigned)
@@ -299,10 +315,9 @@ nipo (void *cls, const char *name, int isDefault, const struct sockaddr *addr,
       const struct sockaddr *broadcast_addr, const struct sockaddr *netmask,
       socklen_t addrlen)
 {
-  int *have_v6 = cls;
+  struct GNUNET_NAT_AutoHandle *ah = cls;
   const struct sockaddr_in *in;
   char buf[INET_ADDRSTRLEN];
-  GtkEntry *entry;
 
   if (!isDefault)
     return GNUNET_OK;
@@ -311,7 +326,7 @@ nipo (void *cls, const char *name, int isDefault, const struct sockaddr *addr,
 		     addrlen)) &&
        (! IN6_IS_ADDR_LINKLOCAL(addr)) )
   {
-    *have_v6 = GNUNET_YES;
+    ah->have_v6 = GNUNET_YES;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		_("This system has a global IPv6 address, setting IPv6 to supported.\n"));
     return GNUNET_OK;
@@ -326,14 +341,11 @@ nipo (void *cls, const char *name, int isDefault, const struct sockaddr *addr,
     GNUNET_break (0);
     return GNUNET_OK;
   }
-  GNUNET_CONFIGURATION_set_value_string (cfg, "nat", "INTERNAL_ADDRESS", buf);
+  GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "INTERNAL_ADDRESS",
+					 buf);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Detected internal network address `%s'.\n"),
 	      buf);
-  entry =
-      GTK_ENTRY (GNUNET_SETUP_get_object
-                 ("GNUNET_setup_transport_internal_ip_entry"));
-  gtk_entry_set_text (entry, buf);
   /* no need to continue iteration */
   return GNUNET_SYSERR;
 }
@@ -342,52 +354,43 @@ nipo (void *cls, const char *name, int isDefault, const struct sockaddr *addr,
 /**
  * Determine our local IP addresses; detect internal IP & IPv6-support 
  *
- * @param ac auto setup context
+ * @param ah auto setup context
  */
 static void
-test_local_ip (struct GNUNET_NAT_AutoHandle *ac)
+test_local_ip (struct GNUNET_NAT_AutoHandle *ah)
 {
-  GtkToggleButton *button;
-  int have_v6;
-
-  have_v6 = GNUNET_NO;
-  GNUNET_OS_network_interfaces_list (&nipo, &have_v6);
-  button = GTK_TOGGLE_BUTTON (GNUNET_SETUP_get_object ("GNUNET_setup_transport_disable_ipv6_checkbutton"));
-  gtk_toggle_button_set_active (button,
-				(GNUNET_YES == have_v6) ? FALSE : TRUE);
-  if (NULL != cfg)
-    GNUNET_CONFIGURATION_set_value_string (cfg, "nat", "DISABLEV6", 
-					   (GNUNET_YES == have_v6) ? "NO" : "YES");
-  next_phase (ac);
+  ah->have_v6 = GNUNET_NO;
+  GNUNET_OS_network_interfaces_list (&nipo, ah);
+  GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "DISABLEV6", 
+					 (GNUNET_YES == ah->have_v6) ? "NO" : "YES");
+  next_phase (ah);
 }
 
 
 /**
  * Test if NAT has been punched
  *
- * @param ac auto setup context
+ * @param ah auto setup context
  */
 static void
-test_nat_punched (struct GNUNET_NAT_AutoHandle *ac)
+test_nat_punched (struct GNUNET_NAT_AutoHandle *ah)
 {
   // FIXME: not implemented
-  next_phase (ac);
+  next_phase (ah);
 }
 
 
 /**
  * Test if UPnPC works.
  *
- * @param ac auto setup context
+ * @param ah auto setup context
  */
 static void
-test_upnpc (struct GNUNET_NAT_AutoHandle *ac)
+test_upnpc (struct GNUNET_NAT_AutoHandle *ah)
 {
   int have_upnpc;
-  GtkToggleButton *button;
 
   /* test if upnpc is available */
-  button = GTK_TOGGLE_BUTTON (GNUNET_SETUP_get_object ("GNUNET_setup_transport_upnp_enable_checkbutton"));
   have_upnpc = (GNUNET_SYSERR !=
 		GNUNET_OS_check_helper_binary ("upnpc"));
   /* FIXME: test if upnpc is actually working, that is, if transports
@@ -396,24 +399,19 @@ test_upnpc (struct GNUNET_NAT_AutoHandle *ac)
 	      (have_upnpc) 
 	      ? _("upnpc found, enabling its use\n")
 	      : _("upnpc not found\n"));
-  gtk_toggle_button_set_active (button,
-				have_upnpc
-				? TRUE
-				: FALSE);
-  if (NULL != cfg)
-    GNUNET_CONFIGURATION_set_value_string (cfg, "nat", "ENABLE_UPNP", 
-					   (GNUNET_YES == have_upnpc) ? "YES" : "NO");
-  next_phase (ac);
+  GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "ENABLE_UPNP", 
+					 (GNUNET_YES == have_upnpc) ? "YES" : "NO");
+  next_phase (ah);
 }
 
 
 /**
  * Test if ICMP server is working
  *
- * @param ac auto setup context
+ * @param ah auto setup context
  */
 static void
-test_icmp_server (struct GNUNET_NAT_AutoHandle *ac)
+test_icmp_server (struct GNUNET_NAT_AutoHandle *ah)
 {
   int hns;
   char *tmp;
@@ -423,10 +421,10 @@ test_icmp_server (struct GNUNET_NAT_AutoHandle *ac)
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-server");
   hns =
       ((GNUNET_OK ==
-        GNUNET_CONFIGURATION_get_value_string (cfg, "nat", "EXTERNAL_ADDRESS",
+        GNUNET_CONFIGURATION_get_value_string (ah->cfg, "nat", "EXTERNAL_ADDRESS",
                                                &tmp)) && (0 < strlen (tmp)) &&
        (GNUNET_YES ==
-        GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "BEHIND_NAT")) &&
+        GNUNET_CONFIGURATION_get_value_yesno (ah->cfg, "nat", "BEHIND_NAT")) &&
        (GNUNET_YES ==
         GNUNET_OS_check_helper_binary (binary)));
   GNUNET_free_non_null (tmp);
@@ -436,21 +434,20 @@ test_icmp_server (struct GNUNET_NAT_AutoHandle *ac)
 	      ? _("gnunet-helper-nat-server found, testing it\n")
 	      : _("No working gnunet-helper-nat-server found\n"));
   if (hns)
-     GNUNET_SCHEDULER_add_now (&reversal_test, ac);
+    ah->task = GNUNET_SCHEDULER_add_now (&reversal_test, ah);
   else
-    next_phase (ac);
+    next_phase (ah);
 }
 
 
 /**
  * Test if ICMP client is working
  *
- * @param ac auto setup context
+ * @param ah auto setup context
  */
 static void
-test_icmp_client (struct GNUNET_NAT_AutoHandle *ac)
+test_icmp_client (struct GNUNET_NAT_AutoHandle *ah)
 {
-  GtkToggleButton *button;
   int hnc;
   char *tmp;
   char *binary;
@@ -459,10 +456,10 @@ test_icmp_client (struct GNUNET_NAT_AutoHandle *ac)
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-client");
   hnc =
       ((GNUNET_OK ==
-        GNUNET_CONFIGURATION_get_value_string (cfg, "nat", "INTERNAL_ADDRESS",
+        GNUNET_CONFIGURATION_get_value_string (ah->cfg, "nat", "INTERNAL_ADDRESS",
                                                &tmp)) && (0 < strlen (tmp)) &&
        (GNUNET_YES !=
-        GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "BEHIND_NAT")) &&
+        GNUNET_CONFIGURATION_get_value_yesno (ah->cfg, "nat", "BEHIND_NAT")) &&
        (GNUNET_YES ==
         GNUNET_OS_check_helper_binary (binary)));
   GNUNET_free_non_null (tmp);
@@ -471,11 +468,7 @@ test_icmp_client (struct GNUNET_NAT_AutoHandle *ac)
 	      (hnc) 
 	      ? _("gnunet-helper-nat-client found, enabling it\n")
 	      : _("gnunet-helper-nat-client not found or behind NAT, disabling it\n"));
-  button =
-      GTK_TOGGLE_BUTTON (GNUNET_SETUP_get_object
-                         ("GNUNET_setup_transport_icmp_client_enable_checkbutton"));
-  gtk_toggle_button_set_active (button, hnc ? TRUE : FALSE);
-  next_phase (ac);
+  next_phase (ah);
 }
 
 
@@ -483,38 +476,44 @@ test_icmp_client (struct GNUNET_NAT_AutoHandle *ac)
  * Run the next phase of the auto test.
  */
 static void
-next_phase (struct GNUNET_NAT_AutoHandle *ac)
+next_phase (struct GNUNET_NAT_AutoHandle *ah)
 {
-  ac->phase++;
-  switch (ac->phase)
+  struct GNUNET_CONFIGURATION_Handle *diff;
+
+  ah->phase++;
+  switch (ah->phase)
   {
   case AUTO_INIT:
     GNUNET_assert (0);
     break;
   case AUTO_ONLINE:
-    test_online (ac);
+    test_online (ah);
     break;
   case AUTO_EXTERNAL_IP:
-    test_external_ip (ac);
+    test_external_ip (ah);
     break;
   case AUTO_LOCAL_IP:
-    test_local_ip (ac);
+    test_local_ip (ah);
     break;
   case AUTO_NAT_PUNCHED:
-    test_nat_punched (ac);
+    test_nat_punched (ah);
     break;
   case AUTO_UPNPC:
-    test_upnpc (ac);
+    test_upnpc (ah);
     break;
   case AUTO_ICMP_SERVER:
-    test_icmp_server (ac);
+    test_icmp_server (ah);
     break;
   case AUTO_ICMP_CLIENT:
-    test_icmp_client (ac);
+    test_icmp_client (ah);
     break;
   case AUTO_DONE:
-    ac->fin_cb (ac->fin_cb_cls);
-    GNUNET_free (ac);
+    diff = GNUNET_CONFIGURATION_get_diff (ah->initial_cfg,
+					  ah->cfg);
+    ah->fin_cb (ah->fin_cb_cls,
+		diff);
+    GNUNET_CONFIGURATION_destroy (diff);
+    GNUNET_NAT_autoconfig_cancel (ah);
     return;
   }
 }
@@ -535,24 +534,23 @@ GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			     GNUNET_NAT_AutoResultCallback cb,
 			     void *cb_cls)
 {
-  struct GNUNET_NAT_AutoHandle *ac;
+  struct GNUNET_NAT_AutoHandle *ah;
 
-  ac = GNUNET_malloc (sizeof (struct GNUNET_NAT_AutoHandle));
-  ac->fin_cb = cb;
-  ac->fin_cb_cls = cb_cls;
-  ac->cfg = GNUNET_CONFIGURATION_dup (cfg);
-  ac->init_cfg = GNUNET_CONFIGURATION_dup (cfg);
+  ah = GNUNET_malloc (sizeof (struct GNUNET_NAT_AutoHandle));
+  ah->fin_cb = cb;
+  ah->fin_cb_cls = cb_cls;
+  ah->cfg = GNUNET_CONFIGURATION_dup (cfg);
+  ah->initial_cfg = GNUNET_CONFIGURATION_dup (cfg);
 
   /* never use loopback addresses if user wanted autoconfiguration */
-  GNUNET_CONFIGURATION_set_value_string (ac->cfg, "nat", 
+  GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", 
 					 "USE_LOCALADDR", 
 					 "NO");
-  next_phase (ac);
-  return ac;
+  next_phase (ah);
+  return ah;
 }
 
 			     
-
 /**
  * Abort autoconfiguration.
  *
@@ -561,6 +559,24 @@ GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_NAT_autoconfig_cancel (struct GNUNET_NAT_AutoHandle *ah)
 {
+  if (NULL != ah->tst)
+  {
+    GNUNET_NAT_test_stop (ah->tst);
+    ah->tst = NULL;
+  }
+  if (NULL != ah->eh)
+  {
+    GNUNET_NAT_mini_get_external_ipv4_cancel (ah->eh);
+    ah->eh = NULL;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != ah->task)
+  {
+    GNUNET_SCHEDULER_cancel (ah->task);
+    ah->task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  GNUNET_CONFIGURATION_destroy (ah->cfg);
+  GNUNET_CONFIGURATION_destroy (ah->initial_cfg);
+  GNUNET_free (ah);
 }
 
 

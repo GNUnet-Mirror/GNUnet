@@ -54,8 +54,9 @@ lib_LTLIBRARIES = libgnunetnat.la
 
 libgnunetnat_la_SOURCES = \
   nat.c nat.h \
+  nat_auto.c \
   nat_test.c \
-  nat_mini.c
+  nat_mini.c 
 
 libgnunetnat_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
