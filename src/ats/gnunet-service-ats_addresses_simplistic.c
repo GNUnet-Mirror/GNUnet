@@ -327,96 +327,6 @@ GAS_simplistic_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap *
               cur->active_addresses);
 }
 
-
-
-/**
- * Updates a single address in the solve
- *
- * @param solver the solver Handle
- * @param addresses the address hashmap containing all addresses
- * @param address the update address
- */
-void
-GAS_simplistic_address_update (void *solver,
-                              struct GNUNET_CONTAINER_MultiHashMap *addresses,
-                              struct ATS_Address *address,
-                              uint32_t session,
-                              int in_use,
-                              const struct GNUNET_ATS_Information *atsi,
-                              uint32_t atsi_count)
-{
-  int i;
-  uint32_t value;
-  uint32_t type;
-  for (i = 0; i < atsi_count; i++)
-  {
-    type = ntohl (atsi[i].type);
-    value = ntohl (atsi[i].value);
-    switch (type)
-    {
-    case GNUNET_ATS_UTILIZATION_UP:
-      //if (address->atsp_utilization_out.value__ != atsi[i].value)
-
-      break;
-    case GNUNET_ATS_UTILIZATION_DOWN:
-      //if (address->atsp_utilization_in.value__ != atsi[i].value)
-
-      break;
-    case GNUNET_ATS_QUALITY_NET_DELAY:
-      //if (address->atsp_latency.rel_value != value)
-
-      break;
-    case GNUNET_ATS_QUALITY_NET_DISTANCE:
-      //if (address->atsp_distance != value)
-
-      break;
-    case GNUNET_ATS_COST_WAN:
-      //if (address->atsp_cost_wan != value)
-
-      break;
-    case GNUNET_ATS_COST_LAN:
-      //if (address->atsp_cost_lan != value)
-
-      break;
-    case GNUNET_ATS_COST_WLAN:
-      //if (address->atsp_cost_wlan != value)
-
-      break;
-    case GNUNET_ATS_NETWORK_TYPE:
-      if (address->atsp_network_type != value)
-        LOG (GNUNET_ERROR_TYPE_ERROR, "Network changed from `%s' to `%s'\n",
-            GNUNET_ATS_print_network_type(address->atsp_network_type),
-            GNUNET_ATS_print_network_type(value));
-      break;
-    case GNUNET_ATS_ARRAY_TERMINATOR:
-      break;
-    default:
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Received unsupported ATS type %u\n", type);
-      GNUNET_break (0);
-      break;
-
-    }
-
-  }
-
-
-  if (address->session_id != session)
-  {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "Session changed from %u to %u\n", address->session_id, session);
-      address->session_id = session;
-  }
-  if (address->used != in_use)
-  {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "Usage changed from %u to %u\n", address->used, in_use);
-      address->used = in_use;
-  }
-
-}
-
-
 /**
  * Remove an address from the solver
  *
@@ -497,6 +407,107 @@ GAS_simplistic_address_delete (void *solver,
         s->active_addresses --;
       update_quota_per_network (s, net, NULL);
   }
+}
+
+/**
+ * Updates a single address in the solve
+ *
+ * @param solver the solver Handle
+ * @param addresses the address hashmap containing all addresses
+ * @param address the update address
+ */
+void
+GAS_simplistic_address_update (void *solver,
+                              struct GNUNET_CONTAINER_MultiHashMap *addresses,
+                              struct ATS_Address *address,
+                              uint32_t session,
+                              int in_use,
+                              const struct GNUNET_ATS_Information *atsi,
+                              uint32_t atsi_count)
+{
+  int i;
+  uint32_t value;
+  uint32_t type;
+  for (i = 0; i < atsi_count; i++)
+  {
+    type = ntohl (atsi[i].type);
+    value = ntohl (atsi[i].value);
+    switch (type)
+    {
+    case GNUNET_ATS_UTILIZATION_UP:
+      //if (address->atsp_utilization_out.value__ != atsi[i].value)
+
+      break;
+    case GNUNET_ATS_UTILIZATION_DOWN:
+      //if (address->atsp_utilization_in.value__ != atsi[i].value)
+
+      break;
+    case GNUNET_ATS_QUALITY_NET_DELAY:
+      //if (address->atsp_latency.rel_value != value)
+
+      break;
+    case GNUNET_ATS_QUALITY_NET_DISTANCE:
+      //if (address->atsp_distance != value)
+
+      break;
+    case GNUNET_ATS_COST_WAN:
+      //if (address->atsp_cost_wan != value)
+
+      break;
+    case GNUNET_ATS_COST_LAN:
+      //if (address->atsp_cost_lan != value)
+
+      break;
+    case GNUNET_ATS_COST_WLAN:
+      //if (address->atsp_cost_wlan != value)
+
+      break;
+    case GNUNET_ATS_NETWORK_TYPE:
+      if (address->atsp_network_type != value)
+      {
+
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "Network changed from `%s' to `%s'\n",
+            GNUNET_ATS_print_network_type(address->atsp_network_type),
+            GNUNET_ATS_print_network_type(value));
+#if 0
+        /* FIXME */
+        int active = address->active;
+        address->atsp_network_type = value;
+        /* Remove address from old network */
+        GAS_simplistic_address_delete (solver, addresses, address, GNUNET_NO);
+        /* Add to new network */
+        GAS_simplistic_address_add (solver, addresses, address);
+        address->active = active;
+        update_quota_per_network(solver, address->solver_information, NULL);
+#endif
+      }
+      break;
+    case GNUNET_ATS_ARRAY_TERMINATOR:
+      break;
+    default:
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Received unsupported ATS type %u\n", type);
+      GNUNET_break (0);
+      break;
+
+    }
+
+  }
+
+
+  if (address->session_id != session)
+  {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+                  "Session changed from %u to %u\n", address->session_id, session);
+      address->session_id = session;
+  }
+  if (address->used != in_use)
+  {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+                  "Usage changed from %u to %u\n", address->used, in_use);
+      address->used = in_use;
+  }
+
 }
 
 
