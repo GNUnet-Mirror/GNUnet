@@ -154,6 +154,7 @@ int
 GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
                             const char *filename);
 
+
 /**
  * Write only configuration entries that have been changed to configuration file
  * @param cfgDefault default configuration
@@ -166,6 +167,21 @@ GNUNET_CONFIGURATION_write_diffs (const struct GNUNET_CONFIGURATION_Handle
                                   *cfgDefault,
                                   const struct GNUNET_CONFIGURATION_Handle
                                   *cfgNew, const char *filename);
+
+
+/**
+ * Compute configuration with only entries that have been changed
+ *
+ * @param cfgDefault original configuration
+ * @param cfgNew new configuration
+ * @return configuration with only the differences, never NULL
+ */
+struct GNUNET_CONFIGURATION_Handle *
+GNUNET_CONFIGURATION_get_diff (const struct GNUNET_CONFIGURATION_Handle
+			       *cfgDefault,
+			       const struct GNUNET_CONFIGURATION_Handle
+			       *cfgNew);
+
 
 /**
  * Test if there are configuration options that were

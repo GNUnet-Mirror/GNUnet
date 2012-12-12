@@ -736,8 +736,8 @@ findEntry (const struct GNUNET_CONFIGURATION_Handle *cfg, const char *section,
  * @param value value to copy (of the default conf.)
  */
 static void
-compareEntries (void *cls, const char *section, const char *option,
-                const char *value)
+compare_entries (void *cls, const char *section, const char *option,
+		 const char *value)
 {
   struct DiffHandle *dh = cls;
   struct ConfigEntry *entNew;
@@ -746,6 +746,28 @@ compareEntries (void *cls, const char *section, const char *option,
   if ((entNew != NULL) && (strcmp (entNew->val, value) == 0))
     return;
   GNUNET_CONFIGURATION_set_value_string (dh->cfgDiff, section, option, value);
+}
+
+
+/**
+ * Compute configuration with only entries that have been changed
+ *
+ * @param cfgDefault original configuration
+ * @param cfgNew new configuration
+ * @return configuration with only the differences, never NULL
+ */
+struct GNUNET_CONFIGURATION_Handle *
+GNUNET_CONFIGURATION_get_diff (const struct GNUNET_CONFIGURATION_Handle
+			       *cfgDefault,
+			       const struct GNUNET_CONFIGURATION_Handle
+			       *cfgNew)
+{
+  struct DiffHandle diffHandle;
+
+  diffHandle.cfgDiff = GNUNET_CONFIGURATION_create ();
+  diffHandle.cfgDefault = cfgDefault;
+  GNUNET_CONFIGURATION_iterate (cfgNew, &compare_entries, &diffHandle);
+  return diffHandle.cfgDiff;
 }
 
 
@@ -763,13 +785,11 @@ GNUNET_CONFIGURATION_write_diffs (const struct GNUNET_CONFIGURATION_Handle
                                   *cfgNew, const char *filename)
 {
   int ret;
-  struct DiffHandle diffHandle;
+  struct GNUNET_CONFIGURATION_Handle *diff;
 
-  diffHandle.cfgDiff = GNUNET_CONFIGURATION_create ();
-  diffHandle.cfgDefault = cfgDefault;
-  GNUNET_CONFIGURATION_iterate (cfgNew, compareEntries, &diffHandle);
-  ret = GNUNET_CONFIGURATION_write (diffHandle.cfgDiff, filename);
-  GNUNET_CONFIGURATION_destroy (diffHandle.cfgDiff);
+  diff = GNUNET_CONFIGURATION_get_diff (cfgDefault, cfgNew);
+  ret = GNUNET_CONFIGURATION_write (diff, filename);
+  GNUNET_CONFIGURATION_destroy (diff);
   return ret;
 }
 
