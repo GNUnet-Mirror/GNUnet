@@ -259,6 +259,7 @@ stream_read_task (void *cls,
     case PEER1_WRITE_SHUTDOWN:
       GNUNET_assert (&peer2 == peer);
       GNUNET_assert (NULL == peer->io_read_handle);
+      peer2.test_ok = GNUNET_YES;
       transition ();            /* to PEER1_HALFCLOSE_READ */
       break;
     default:
@@ -614,8 +615,8 @@ input_processor (void *cls,
         }
       break;
     case PEER1_WRITE_SHUTDOWN:
-      GNUNET_assert (GNUNET_STREAM_SHUTDOWN == status);
-      peer2.test_ok = GNUNET_YES;
+      GNUNET_assert (0);        /* This callback will not be called when stream
+                                   is shutdown */
       break;
     case PEER1_HALFCLOSE_WRITE_FAIL:
     case PEER1_READ_SHUTDOWN:
@@ -868,7 +869,7 @@ test_master (void *cls, unsigned int num_peers,
   setup_state = INIT;
   abort_task =
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_SECONDS, 40), &do_abort,
+                                  (GNUNET_TIME_UNIT_SECONDS, 1000), &do_abort,
                                   NULL);
 }
 
