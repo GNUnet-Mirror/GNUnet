@@ -385,7 +385,6 @@ GAS_simplistic_address_delete (void *solver,
 
   net = (struct Network *) address->solver_information;
 
-
   if (GNUNET_NO == session_only)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Deleting %s address %p for peer `%s' from network `%s' (total: %u/ active: %u)\n",
@@ -407,6 +406,11 @@ GAS_simplistic_address_delete (void *solver,
     {
         if (aw->addr == address)
           break;
+    }
+    if (NULL == aw )
+    {
+        GNUNET_break (0);
+        return;
     }
     GNUNET_CONTAINER_DLL_remove (net->head, net->tail, aw);
     GNUNET_free (aw);
