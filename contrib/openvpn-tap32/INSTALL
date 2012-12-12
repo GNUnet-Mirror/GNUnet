@@ -1,0 +1,4 @@
+You need devcon.exe or equivalent functionality to install the openvpn-signed driver included in tap-win32-signed.zip.
+This version of tap32 works with gnunet-vpn-helper-windows and can be loaded/installed by it. 
+
+Additional information is included in OemWin2k.inf which is included in the driver archives.
