@@ -77,6 +77,15 @@
  */
 #define INTERFACE_REGISTRY_LOCATION "SYSTEM\\CurrentControlSet\\Control\\Network\\{4D36E972-E325-11CE-BFC1-08002BE10318}"
 
+/**
+ * TCHAR wrappers, which is missing in mingw's includes:
+ */
+#ifdef	_UNICODE
+#define _tpopen       _wpopen
+#else
+#define _tpopen       _popen
+#endif
+
 /*
  * Our local process' PID. Used for creating a sufficiently unique additional 
  * hardware ID for our device.
@@ -117,41 +126,68 @@ static TCHAR class[128];
 static GUID guid;
 
 /**
+ * Wrapper for executing a shellcommand in windows.
+ * 
+ * @param command - the command + parameters to execute
+ * @return * exitcode of the program executed, 
+ *         * EINVAL (cmd/file not found)
+ *         * EPIPE (could not read STDOUT)
+ */
+static int
+execute_shellcommand (TCHAR * command)
+{
+  FILE *pipe;
+
+  if (NULL == command ||
+      NULL == (pipe = _tpopen (command, "rt")))
+    return EINVAL;
+
+#ifdef TESTING
+  {
+    TCHAR output[LINE_LEN];
+    
+    _tprintf (_T ("executed command: %s"), command);
+    while (NULL != _fgetts (output, sizeof (output), pipe))
+      _tprintf (output);
+  }
+#endif
+
+  if (!feof (pipe))
+    return EPIPE;
+
+  return _pclose (pipe);
+}
+
+/**
  * @brief Sets the IPv6-Address given in address on the interface dev
  *
  * @param address the IPv6-Address
  * @param prefix_len the length of the network-prefix
  */
 static void
-set_address6 (const char *address, unsigned long prefix_len)
+set_address6 (const TCHAR *address, unsigned long prefix_len)
 {
-  int fd = -1;
+  int ret = EINVAL;
+  TCHAR command[LINE_LEN];
+
+  /* TODO: Check if address makes sense? */
 
   /*
-   * parse the new address
+   * prepare the command
    */
 
-  /*
-   * Get the index of the if
-   */
-
+  _sntprintf (command, LINE_LEN,
+              _T ("netsh interface ipv6 add address \"%s\" %s/%d"),
+              device_visible_name, address, prefix_len);
   /*
    * Set the address
    */
+  ret = execute_shellcommand (command);
 
-  /*
-   * Get the flags
-   */
-
-
-  /*
-   * Add the UP and RUNNING flags
-   */
-
-
-  if (0 != close (fd))
+  /* Did it work?*/
+  if (0 != ret)
     {
-      fprintf (stderr, "close failed: %s\n", strerror (errno));
+      _ftprintf (stderr, _T ("Setting IPv6 address failed: %s\n"), strerror (ret));
       exit (1);
     }
 }
@@ -164,42 +200,28 @@ set_address6 (const char *address, unsigned long prefix_len)
  * @param mask the netmask
  */
 static void
-set_address4 (const char *dev, const char *address, const char *mask)
+set_address4 (const char *address, const char *mask)
 {
-  int fd = -1;
+  int ret = EINVAL;
+  TCHAR command[LINE_LEN];
+
+  /* TODO: Check if address & prefix_len make sense*/
 
   /*
-   * Parse the address
+   * prepare the command
    */
-
+  _sntprintf (command, LINE_LEN,
+              _T ("netsh interface ipv4 add address \"%s\" %s %s"),
+              device_visible_name, address, mask);
   /*
    * Set the address
    */
+  ret = execute_shellcommand (command);
 
-  /*
-   * Parse the netmask
-   */
-
-
-  /*
-   * Set the netmask
-   */
-
-
-  /*
-   * Get the flags
-   */
-
-
-  /*
-   * Add the UP and RUNNING flags
-   */
-
-
-  if (0 != close (fd))
+  /* Did it work?*/
+  if (0 != ret)
     {
-      fprintf (stderr, "close failed: %s\n", strerror (errno));
-      (void) close (fd);
+      _ftprintf (stderr, _T ("Setting IPv4 address failed: %s\n"), strerror (ret));
       exit (1);
     }
 }
@@ -220,7 +242,7 @@ setup_interface ()
    */
   TCHAR inf_file_path[MAX_PATH];
   TCHAR hwidlist[LINE_LEN + 4];
-  
+
   int str_lenth = 0;
 
 
@@ -238,9 +260,9 @@ setup_interface ()
    * 
    * A HWID list is double-\0 terminated and \0 separated
    */
-  str_lenth = _tcslen (hwidlist) + 1 ;
+  str_lenth = _tcslen (hwidlist) + 1;
   _tcsncpy (&hwidlist[str_lenth], secondary_hwid, LINE_LEN - str_lenth);
-  
+
   /** 
    * Locate the inf-file, we need to store it somewhere where the system can
    * find it. A good choice would be CWD/PDW or %WINDIR$\system32\
@@ -257,43 +279,42 @@ setup_interface ()
                            &guid,
                            class, sizeof (class) / sizeof (TCHAR),
                            NULL))
-      return FALSE;
-  
+    return FALSE;
+
   /** 
    * Collect all the other needed information... 
    * let the system fill our this form 
    */
   DeviceInfo = SetupDiCreateDeviceInfoList (&guid, NULL);
   if (DeviceInfo == INVALID_HANDLE_VALUE)
-      return FALSE;
-  
+    return FALSE;
+
   DeviceNode.cbSize = sizeof (SP_DEVINFO_DATA);
-  if (! SetupDiCreateDeviceInfo (DeviceInfo,
+  if (!SetupDiCreateDeviceInfo (DeviceInfo,
                                 class,
                                 &guid,
                                 NULL,
                                 NULL,
                                 DICD_GENERATE_ID,
                                 &DeviceNode))
-      return FALSE;
-  
+    return FALSE;
+
   /* Deploy all the information collected into the registry */
   if (!SetupDiSetDeviceRegistryProperty (DeviceInfo,
                                          &DeviceNode,
                                          SPDRP_HARDWAREID,
                                          (LPBYTE) hwidlist,
                                          (lstrlen (hwidlist) + 2) * sizeof (TCHAR)))
-      return FALSE;
-  
+    return FALSE;
+
   /* Install our new class(=device) into the system */
-  if (! SetupDiCallClassInstaller (DIF_REGISTERDEVICE,
-                                 DeviceInfo,
-                                 &DeviceNode))
-      return FALSE;
-  
+  if (!SetupDiCallClassInstaller (DIF_REGISTERDEVICE,
+                                  DeviceInfo,
+                                  &DeviceNode))
+    return FALSE;
+
   return TRUE;
 }
-
 
 /**
  * Remove our new virtual interface to use for tunneling. 
@@ -305,10 +326,10 @@ static boolean
 remove_interface ()
 {
   SP_REMOVEDEVICE_PARAMS remove;
-  
+
   if (INVALID_HANDLE_VALUE == DeviceInfo)
     return FALSE;
-  
+
   remove.ClassInstallHeader.cbSize = sizeof (SP_CLASSINSTALL_HEADER);
   remove.HwProfile = 0;
   remove.Scope = DI_REMOVEDEVICE_GLOBAL;
@@ -317,21 +338,21 @@ remove_interface ()
    * 1. Prepare our existing device information set, and place the 
    *    uninstall related information into the structure
    */
-  if (! SetupDiSetClassInstallParams (DeviceInfo,
-				      (PSP_DEVINFO_DATA) &DeviceNode,
-				      &remove.ClassInstallHeader,
-				      sizeof (remove)))
+  if (!SetupDiSetClassInstallParams (DeviceInfo,
+                                     (PSP_DEVINFO_DATA) & DeviceNode,
+                                     &remove.ClassInstallHeader,
+                                     sizeof (remove)))
     return FALSE;
   /*
    * 2. Uninstall the virtual interface using the class installer
    */
-  if (! SetupDiCallClassInstaller (DIF_REMOVE, 
-				   DeviceInfo, 
-				   (PSP_DEVINFO_DATA) &DeviceNode))
+  if (!SetupDiCallClassInstaller (DIF_REMOVE,
+                                  DeviceInfo,
+                                  (PSP_DEVINFO_DATA) & DeviceNode))
     return FALSE;
-  
-  SetupDiDestroyDeviceInfoList(DeviceInfo);
-  
+
+  SetupDiDestroyDeviceInfoList (DeviceInfo);
+
   return TRUE;
 }
 
@@ -351,7 +372,7 @@ resolve_interface_name ()
   LONG status;
   DWORD len;
   int i = 0;
-  boolean retval=FALSE;
+  boolean retval = FALSE;
   TCHAR adapter[] = _T (INTERFACE_REGISTRY_LOCATION);
 
   /* We can obtain the PNP instance ID from our setupapi handle */
@@ -380,9 +401,9 @@ resolve_interface_name ()
       TCHAR instance_key[256];
       TCHAR query_key [256];
       HKEY instance_key_handle;
-      TCHAR pnpinstanceid_name[] = _T("PnpInstanceID");
+      TCHAR pnpinstanceid_name[] = _T ("PnpInstanceID");
       TCHAR pnpinstanceid_value[256];
-      TCHAR adaptername_name[] = _T("Name");
+      TCHAR adaptername_name[] = _T ("Name");
       DWORD data_type;
 
       len = sizeof (adapter_key_handle);
@@ -407,8 +428,8 @@ resolve_interface_name ()
 
       /* prepare our new querty string: */
       _sntprintf (query_key, 256, _T ("%s\\%s\\Connection"),
-                _T (INTERFACE_REGISTRY_LOCATION),
-                instance_key);
+                  _T (INTERFACE_REGISTRY_LOCATION),
+                  instance_key);
 
       /* look inside instance_key\\Connection */
       status = RegOpenKeyEx (
@@ -420,7 +441,7 @@ resolve_interface_name ()
 
       if (status != ERROR_SUCCESS)
         continue;
-      
+
       /* now, read our PnpInstanceID */
       len = sizeof (pnpinstanceid_value);
       status = RegQueryValueEx (instance_key_handle,
@@ -432,12 +453,12 @@ resolve_interface_name ()
 
       if (status != ERROR_SUCCESS || data_type != REG_SZ)
         goto cleanup;
-      
+
       /* compare the value we got to our devices PNPInstanceID*/
-      if ( 0 != _tcsncmp (pnpinstanceid_value, pnp_instance_id, 
-                         sizeof (pnpinstanceid_value)/sizeof(TCHAR)))
+      if (0 != _tcsncmp (pnpinstanceid_value, pnp_instance_id,
+                         sizeof (pnpinstanceid_value) / sizeof (TCHAR)))
         goto cleanup;
-      
+
       len = sizeof (device_visible_name);
       status = RegQueryValueEx (
                                 instance_key_handle,
@@ -451,9 +472,9 @@ resolve_interface_name ()
         {
           retval = TRUE;
         }
-      cleanup:
+cleanup:
       RegCloseKey (instance_key_handle);
-      
+
       ++i;
     }
 
@@ -472,7 +493,7 @@ resolve_interface_name ()
 static int
 init_tun (TCHAR *hwid)
 {
-  int fd;
+  int fd=-1;
 
   if (NULL == hwid)
     {
@@ -480,17 +501,19 @@ init_tun (TCHAR *hwid)
       return -1;
     }
 
-  if (! setup_interface()){
+  if (!setup_interface ())
+    {
       errno = ENODEV;
       return -1;
     }
-  
-  if (! resolve_interface_name()){
+
+  if (!resolve_interface_name ())
+    {
       errno = ENODEV;
       return -1;
     }
-  
-  
+
+
   return fd;
 }
 
@@ -520,7 +543,6 @@ run (int fd_tun)
 
 }
 
-
 /**
  * Open VPN tunnel interface.
  *
@@ -539,24 +561,24 @@ main (int argc, char **argv)
   TCHAR pid_as_string[LINE_LEN / 4];
   int fd_tun;
   int global_ret;
-  
+
   if (6 != argc)
     {
       fprintf (stderr, "Fatal: must supply 5 arguments!\n");
       return 1;
     }
 
-   strncpy (hwid, argv[1], LINE_LEN);
-   hwid[LINE_LEN - 1] = _T('\0');
-   
-   /* 
+  strncpy (hwid, argv[1], LINE_LEN);
+  hwid[LINE_LEN - 1] = _T ('\0');
+
+  /* 
    * We use our PID for finding/resolving the control-panel name of our virtual 
    * device. PIDs are (of course) unique at runtime, thus we can safely use it 
    * as additional hardware-id for our device.
    */
-  _itot(_getpid(), pid_as_string, 10);
-  strncpy (secondary_hwid, hwid, LINE_LEN); 
-  strncat (secondary_hwid, pid_as_string, LINE_LEN); 
+  _itot (_getpid (), pid_as_string, 10);
+  strncpy (secondary_hwid, hwid, LINE_LEN);
+  strncat (secondary_hwid, pid_as_string, LINE_LEN);
 
   if (-1 == (fd_tun = init_tun (hwid)))
     {
@@ -577,7 +599,8 @@ main (int argc, char **argv)
       if ((prefix_len < 1) || (prefix_len > 127))
         {
           fprintf (stderr, "Fatal: prefix_len out of range\n");
-          return 1;
+          global_ret = -1;
+          goto cleanup;
         }
 
       set_address6 (address, prefix_len);
@@ -588,13 +611,10 @@ main (int argc, char **argv)
       const char *address = argv[4];
       const char *mask = argv[5];
 
-      set_address4 (NULL, address, mask);
+      set_address4 (address, mask);
     }
-
-  if (setup_interface ())
-    {
-      ;
-    }
+  
+  /*TODO: attach network interface! (need to research how that works with ovpn )*/
 
   /*
   uid_t uid = getuid ();
@@ -613,10 +633,10 @@ main (int argc, char **argv)
     // no exit, we might as well die with SIGPIPE should it ever happen 
   }
    */
-  //run (fd_tun);
+  run (fd_tun);
   global_ret = 0;
 cleanup:
-  remove_interface();
+  remove_interface ();
 
   return global_ret;
 }
