@@ -61,13 +61,40 @@
  */
 struct GAS_SIMPLISTIC_Handle
 {
+  /**
+   * Statistics handle
+   */
+
+  struct GNUNET_STATISTICS_Handle *stats;
+
+  /**
+   * Total number of addresses for solver
+   */
   unsigned int total_addresses;
+
+  /**
+   * Number of active addresses for solver
+   */
   unsigned int active_addresses;
 
+  /**
+   * Networks array
+   */
   struct Network *network_entries;
 
+  /**
+   * Number of networks
+   */
   unsigned int networks;
+
+  /**
+   * Callback
+   */
   GAS_bandwidth_changed_cb bw_changed;
+
+  /**
+   * Callback cls
+   */
   void *bw_changed_cls;
 };
 
@@ -104,6 +131,16 @@ struct Network
    * Number of total addresses for this network
    */
   unsigned int total_addresses;
+
+  /**
+   * String for statistics total addresses
+   */
+  char *stat_total;
+
+  /**
+   * String for statistics active addresses
+   */
+  char *stat_active;
 
   struct AddressWrapper *head;
   struct AddressWrapper *tail;
@@ -156,6 +193,8 @@ GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct Network * cur;
   char * net_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
 
+
+  s->stats = (struct GNUNET_STATISTICS_Handle *) stats;
   s->bw_changed = bw_changed_cb;
   s->bw_changed_cls = bw_changed_cb_cls;
   s->networks = dest_length;
@@ -172,6 +211,8 @@ GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       cur->total_quota_in = in_quota[c];
       cur->total_quota_out = out_quota[c];
       cur->desc = net_str[c];
+      GNUNET_asprintf (&cur->stat_total, "# ATS addresses %s total", cur->desc);
+      GNUNET_asprintf (&cur->stat_active, "# ATS active addresses %s total", cur->desc);
   }
   return s;
 }
@@ -219,8 +260,9 @@ GAS_simplistic_done (void *solver)
                                        s->network_entries[c].tail,
                                        cur);
           GNUNET_free (cur);
-
       }
+      GNUNET_free (s->network_entries[c].stat_total);
+      GNUNET_free (s->network_entries[c].stat_active);
   }
   if (s->total_addresses > 0)
   {
@@ -298,13 +340,17 @@ addresse_increment (struct GAS_SIMPLISTIC_Handle *s,
 {
   if (GNUNET_YES == total)
   {
-  s->total_addresses ++;
-  net->total_addresses ++;
+      s->total_addresses ++;
+      net->total_addresses ++;
+      GNUNET_STATISTICS_update (s->stats, "# ATS addresses total", 1, GNUNET_NO);
+      GNUNET_STATISTICS_update (s->stats, net->stat_total, 1, GNUNET_NO);
   }
   if (GNUNET_YES == active)
   {
     net->active_addresses ++;
     s->active_addresses ++;
+    GNUNET_STATISTICS_update (s->stats, "# ATS active addresses total", 1, GNUNET_NO);
+    GNUNET_STATISTICS_update (s->stats, net->stat_active, 1, GNUNET_NO);
   }
 
 }
@@ -324,14 +370,20 @@ addresse_decrement (struct GAS_SIMPLISTIC_Handle *s,
       res = GNUNET_SYSERR;
     }
     else
+    {
       s->total_addresses --;
+      GNUNET_STATISTICS_update (s->stats, "# ATS addresses total", -1, GNUNET_NO);
+    }
     if (net->total_addresses < 1)
     {
       GNUNET_break (0);
       res = GNUNET_SYSERR;
     }
     else
+    {
       net->total_addresses --;
+      GNUNET_STATISTICS_update (s->stats, net->stat_total, -1, GNUNET_NO);
+    }
   }
 
   if (GNUNET_YES == active)
@@ -342,14 +394,20 @@ addresse_decrement (struct GAS_SIMPLISTIC_Handle *s,
       res = GNUNET_SYSERR;
     }
     else
+    {
       net->active_addresses --;
+      GNUNET_STATISTICS_update (s->stats, net->stat_active, -1, GNUNET_NO);
+    }
     if (s->active_addresses < 1)
     {
       GNUNET_break (0);
       res = GNUNET_SYSERR;
     }
     else
+    {
       s->active_addresses --;
+      GNUNET_STATISTICS_update (s->stats, "# ATS addresses total", -1, GNUNET_NO);
+    }
   }
   return res;
 }
