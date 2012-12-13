@@ -643,7 +643,7 @@ sighandler_shutdown ()
     exit (1);                   /* we have fork'ed since the signal handler was created,
                                  * ignore the signal, see https://gnunet.org/vfork discussion */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got signal %d from parent, writing to shutdown pipe\n");
+       "Got shutdown signal from parent, writing to shutdown pipe\n");
   GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle
                           (shutdown_pipe_handle, GNUNET_DISK_PIPE_END_WRITE),
                           &c, sizeof (c));
