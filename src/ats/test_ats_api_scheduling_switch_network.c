@@ -104,6 +104,21 @@ end ()
   free_test_address (&test_addr);
 }
 
+static uint32_t
+find_ats_value (const struct GNUNET_ATS_Information *atsi,
+                uint32_t ats_count,
+                uint32_t value)
+{
+  int c;
+  for (c = 0; c < ats_count; c ++)
+  {
+      if (ntohl(atsi[c].type) == value)
+          return ntohl (atsi[c].value);
+  }
+  GNUNET_break (0);
+  return UINT32_MAX;
+}
+
 
 static void
 address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
@@ -174,12 +189,20 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
         ret = 1;
     }
 
-
     GNUNET_log (level, "Stage %u: WAN inbound quota out %s: Received %llu, configured %llu\n",
         stage,
         text,
         (unsigned long long int) ntohl(bandwidth_out.value__),
         quota_out[GNUNET_ATS_NET_WAN]);
+
+    if (GNUNET_ATS_NET_WAN != find_ats_value (atsi, ats_count, GNUNET_ATS_NETWORK_TYPE))
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Incorrect network type, exptected %s, got %s \n",
+            stage,
+            GNUNET_ATS_print_network_type(GNUNET_ATS_NET_WAN),
+            GNUNET_ATS_print_network_type(find_ats_value (atsi, ats_count, GNUNET_ATS_NETWORK_TYPE)));
+        ret = 1;
+    }
 
     if (1 == ret)
     {
@@ -264,6 +287,15 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
             text,
             (unsigned long long int) ntohl(bandwidth_out.value__),
             quota_out[GNUNET_ATS_NET_LAN]);
+
+        if (GNUNET_ATS_NET_LAN != find_ats_value (atsi, ats_count, GNUNET_ATS_NETWORK_TYPE))
+        {
+            GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Incorrect network type, exptected %s, got %s \n",
+                stage,
+                GNUNET_ATS_print_network_type(GNUNET_ATS_NET_LAN),
+                GNUNET_ATS_print_network_type(find_ats_value (atsi, ats_count, GNUNET_ATS_NETWORK_TYPE)));
+            ret = 1;
+        }
 
       GNUNET_SCHEDULER_add_now (&end, NULL);
   }
