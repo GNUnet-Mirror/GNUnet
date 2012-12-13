@@ -321,6 +321,7 @@ create_address (const struct GNUNET_PeerIdentity *peer,
 /**
  * Destroy the given address.
  *
+ * @param handle the address handle
  * @param addr address to destroy
  * @return GNUNET_YES if bandwidth allocations should be recalcualted
  */
@@ -421,6 +422,7 @@ compare_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
  * Compares by peer identity and network address OR by session ID
  * (one of the two must match).
  *
+ * @param handle the address handle
  * @param peer peer to lookup addresses for
  * @param addr existing address record
  * @return existing address record, NULL for none
@@ -794,6 +796,7 @@ GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
 /**
  * Cancel address suggestions for a peer
  *
+ * @param handle the address handle
  * @param peer the respective peer
  */
 void
@@ -829,6 +832,7 @@ GAS_addresses_request_address_cancel (struct GAS_Addresses_Handle *handle,
 /**
  * Add an address suggestions for a peer
  *
+ * @param handle the address handle
  * @param peer the respective peer
  */
 void
@@ -1268,6 +1272,7 @@ peer_it (void *cls,
 /**
  * Return all peers currently known to ATS
  *
+ * @param handle the address handle
  * @param p_it the iterator to call for every peer, callbach with id == NULL
  *        when done
  * @param p_it_cls the closure for the iterator
@@ -1332,6 +1337,7 @@ peerinfo_it (void *cls,
 /**
  * Return all peers currently known to ATS
  *
+ * @param handle the address handle
  * @param peer the respective peer
  * @param pi_it the iterator to call for every peer
  * @param pi_it_cls the closure for the iterator

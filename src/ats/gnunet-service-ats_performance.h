@@ -87,7 +87,8 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
  * @param message the request message
  */
 void
-GAS_handle_request_address_list (void *cls, struct GNUNET_SERVER_Client *client,
+GAS_handle_request_address_list (void *cls,
+                                 struct GNUNET_SERVER_Client *client,
                                  const struct GNUNET_MessageHeader *message);
 
 /**
@@ -98,7 +99,8 @@ GAS_handle_request_address_list (void *cls, struct GNUNET_SERVER_Client *client,
  * @param message the request message
  */
 void
-GAS_handle_reservation_request (void *cls, struct GNUNET_SERVER_Client *client,
+GAS_handle_reservation_request (void *cls,
+                                struct GNUNET_SERVER_Client *client,
                                 const struct GNUNET_MessageHeader *message);
 
 
@@ -110,7 +112,8 @@ GAS_handle_reservation_request (void *cls, struct GNUNET_SERVER_Client *client,
  * @param message the request message
  */
 void
-GAS_handle_preference_change (void *cls, struct GNUNET_SERVER_Client *client,
+GAS_handle_preference_change (void *cls,
+                              struct GNUNET_SERVER_Client *client,
                               const struct GNUNET_MessageHeader *message);
 
 
@@ -118,6 +121,7 @@ GAS_handle_preference_change (void *cls, struct GNUNET_SERVER_Client *client,
  * Initialize performance subsystem.
  *
  * @param server handle to our server
+ * @param addresses the address handle to use
  */
 void
 GAS_performance_init (struct GNUNET_SERVER_Handle *server,

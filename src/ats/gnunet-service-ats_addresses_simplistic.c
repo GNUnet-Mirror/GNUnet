@@ -135,7 +135,10 @@ struct AddressWrapper
  * @param stats the GNUNET_STATISTICS handle
  * @param network array of GNUNET_ATS_NetworkType with length dest_length
  * @param out_quota array of outbound quotas
- * param in_quota array of outbound quota
+ * @param in_quota array of outbound quota
+ * @param dest_length array length for quota arrays
+ * @param bw_changed_cb callback for changed bandwidth amounts
+ * @param bw_changed_cb_cls cls for callback
  * @return handle for the solver on success, NULL on fail
  */
 void *
@@ -241,7 +244,8 @@ GAS_simplistic_done (void *solver)
 /**
  * Update the quotas for a network type
  *
- * @param network the network type to update
+ * @param s the solver handle
+ * @param net the network type to update
  * @param address_except address excluded from notifcation, since we suggest
  * this address
  */
@@ -415,6 +419,10 @@ GAS_simplistic_address_delete (void *solver,
  * @param solver the solver Handle
  * @param addresses the address hashmap containing all addresses
  * @param address the update address
+ * @param session the new session (if changed otherwise current)
+ * @param in_use the new address in use state (if changed otherwise current)
+ * @param atsi the latest ATS information
+ * @param atsi_count the atsi count
  */
 void
 GAS_simplistic_address_update (void *solver,

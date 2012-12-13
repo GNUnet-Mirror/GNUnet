@@ -316,7 +316,12 @@ struct MLP_information
  *
  * @param cfg configuration handle
  * @param stats the GNUNET_STATISTICS handle
- * @param bw_changed_cb callback to call when assigned changes
+ * @param network array of GNUNET_ATS_NetworkType with length dest_length
+ * @param out_dest array of outbound quotas
+ * @param in_dest array of outbound quota
+ * @param dest_length array length for quota arrays
+ * @param bw_changed_cb callback for changed bandwidth amounts
+ * @param bw_changed_cb_cls cls for callback
  * @return struct GAS_MLP_Handle on success, NULL on fail
  */
 void *
@@ -349,10 +354,13 @@ GAS_mlp_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addres
  * Otherwise the addresses' values can be updated and the existing base can
  * be reused
  *
- * @param solver the MLP Handle
- * @param addresses the address hashmap
- *        the address has to be already added from the hashmap
- * @param address the address to update
+ * @param solver the solver Handle
+ * @param addresses the address hashmap containing all addresses
+ * @param address the update address
+ * @param session the new session (if changed otherwise current)
+ * @param in_use the new address in use state (if changed otherwise current)
+ * @param atsi the latest ATS information
+ * @param atsi_count the atsi count
  */
 void
 GAS_mlp_address_update (void *solver,
