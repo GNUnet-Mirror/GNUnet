@@ -63,12 +63,12 @@ check_PROGRAMS = \
  test_ats_api_scheduling_add_address \
  test_ats_api_scheduling_add_session \
  test_ats_api_scheduling_update_address \
- test_ats_api_scheduling_switch_network \
  test_ats_api_scheduling_destroy_address \
  test_ats_api_scheduling_destroy_session \
  test_ats_api_scheduling_destroy_inbound_connection \
  test_ats_api_scheduling_block_and_reset \
  test_ats_simplistic \
+ test_ats_simplistic_switch_networks \
  test_ats_api_performance
 # $(GN_MLP_TEST) \
 # $(GN_MLP_TEST_AVG) \
@@ -107,15 +107,6 @@ test_ats_api_scheduling_update_address_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la  
-
-test_ats_api_scheduling_switch_network_SOURCES = \
- test_ats_api_scheduling_switch_network.c test_ats_api_common.c
-test_ats_api_scheduling_switch_network_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/ats/libgnunetats.la  
-
-  
 
 test_ats_api_scheduling_destroy_address_SOURCES = \
  test_ats_api_scheduling_destroy_address.c test_ats_api_common.c
@@ -161,6 +152,12 @@ test_ats_simplistic_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la    
 
+test_ats_simplistic_switch_networks_SOURCES = \
+ test_ats_simplistic_switch_networks.c test_ats_api_common.c
+test_ats_simplistic_switch_networks_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/ats/libgnunetats.la
 
 if HAVE_LIBGLPK
 #test_ats_mlp_SOURCES = \

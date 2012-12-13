@@ -154,7 +154,7 @@ GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   int c;
   struct GAS_SIMPLISTIC_Handle *s = GNUNET_malloc (sizeof (struct GAS_SIMPLISTIC_Handle));
   struct Network * cur;
-  char * net_str[GNUNET_ATS_NetworkTypeCount] = {"UNSPECIFIED", "LOOPBACK", "LAN", "WAN", "WLAN"};
+  char * net_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
 
   s->bw_changed = bw_changed_cb;
   s->bw_changed_cls = bw_changed_cb_cls;
@@ -302,17 +302,17 @@ void
 GAS_simplistic_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
 {
   struct GAS_SIMPLISTIC_Handle *s = solver;
-  struct Network *cur = NULL;
+  struct Network *net = NULL;
   struct AddressWrapper *aw = NULL;
   GNUNET_assert (NULL != s);
   int c;
   for (c = 0; c < s->networks; c++)
   {
-      cur = &s->network_entries[c];
-      if (address->atsp_network_type == cur->type)
+      net = &s->network_entries[c];
+      if (address->atsp_network_type == net->type)
           break;
   }
-  if (NULL == cur)
+  if (NULL == net)
   {
     GNUNET_break (0);
     return;
@@ -320,15 +320,16 @@ GAS_simplistic_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap *
 
   aw = GNUNET_malloc (sizeof (struct AddressWrapper));
   aw->addr = address;
-  GNUNET_CONTAINER_DLL_insert (cur->head, cur->tail, aw);
-  cur->total_addresses ++;
+  GNUNET_CONTAINER_DLL_insert (net->head, net->tail, aw);
+  net->total_addresses ++;
   s->total_addresses ++;
-  aw->addr->solver_information = cur;
+  aw->addr->solver_information = net;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Adding new address for network type `%s' (now %u total)\n",
-              cur->desc,
-              cur->active_addresses);
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "After adding address now total %u and active %u addresses in network `%s'\n",
+      net->total_addresses,
+      net->active_addresses,
+      net->desc);
 }
 
 /**
@@ -397,6 +398,7 @@ GAS_simplistic_address_delete (void *solver,
           net->desc, net->total_addresses, net->active_addresses);
   }
 
+
   if (GNUNET_YES == address->active)
   {
       /* Address was active, remove from network and update quotas*/
@@ -411,6 +413,23 @@ GAS_simplistic_address_delete (void *solver,
         s->active_addresses --;
       update_quota_per_network (s, net, NULL);
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "After deleting address now total %u and active %u addresses in network `%s'\n",
+      net->total_addresses,
+      net->active_addresses,
+      net->desc);
+
+}
+
+static struct Network *
+find_network (struct GAS_SIMPLISTIC_Handle *s, uint32_t type)
+{
+  int c;
+  for (c = 0 ; c < s->networks; c++)
+  {
+      if (s->network_entries[c].type == type)
+        return &s->network_entries[c];
+  }
+  return NULL;
 }
 
 /**
@@ -433,9 +452,12 @@ GAS_simplistic_address_update (void *solver,
                               const struct GNUNET_ATS_Information *atsi,
                               uint32_t atsi_count)
 {
+  struct GAS_SIMPLISTIC_Handle *s = (struct GAS_SIMPLISTIC_Handle *) solver;
   int i;
   uint32_t value;
   uint32_t type;
+  int save_active = GNUNET_NO;
+  struct Network *new_net = NULL;
   for (i = 0; i < atsi_count; i++)
   {
     type = ntohl (atsi[i].type);
@@ -474,20 +496,35 @@ GAS_simplistic_address_update (void *solver,
       if (address->atsp_network_type != value)
       {
 
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "Network changed from `%s' to `%s'\n",
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "Network type changed, moving %s address from `%s' to `%s'\n",
+            (GNUNET_YES == address->active) ? "active" : "inactive",
             GNUNET_ATS_print_network_type(address->atsp_network_type),
             GNUNET_ATS_print_network_type(value));
-#if 0
-        /* FIXME */
-        int active = address->active;
-        address->atsp_network_type = value;
-        /* Remove address from old network */
+
+        save_active = address->active;
+        /* remove from old network */
         GAS_simplistic_address_delete (solver, addresses, address, GNUNET_NO);
-        /* Add to new network */
+
+        /* set new network type */
+        address->atsp_network_type = value;
+        new_net = find_network (solver, value);
+        address->solver_information = new_net;
+        if (address->solver_information == NULL)
+        {
+            GNUNET_break (0);
+            address->atsp_network_type = GNUNET_ATS_NET_UNSPECIFIED;
+            return;
+        }
+
+        /* restore active state, add to new network and update*/
+        address->active = save_active;
         GAS_simplistic_address_add (solver, addresses, address);
-        address->active = active;
-        update_quota_per_network(solver, address->solver_information, NULL);
-#endif
+        if (GNUNET_YES == save_active)
+        {
+          s->active_addresses ++;
+          new_net->active_addresses ++;
+          update_quota_per_network (solver, new_net, NULL);
+        }
       }
       break;
     case GNUNET_ATS_ARRAY_TERMINATOR:
