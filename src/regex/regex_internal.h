@@ -84,6 +84,29 @@ struct GNUNET_REGEX_Transition
 /**
  * A state. Can be used in DFA and NFA automatons.
  */
+struct GNUNET_REGEX_State;
+
+
+/**
+ * Set of states.
+ */
+struct GNUNET_REGEX_StateSet
+{
+  /**
+   * Array of states.
+   */
+  struct GNUNET_REGEX_State **states;
+
+  /**
+   * Length of the 'states' array.
+   */
+  unsigned int len;
+};
+
+
+/**
+ * A state. Can be used in DFA and NFA automatons.
+ */
 struct GNUNET_REGEX_State
 {
   /**
@@ -210,7 +233,7 @@ struct GNUNET_REGEX_State
    * Set of states on which this state is based on. Used when creating a DFA out
    * of several NFA states.
    */
-  struct GNUNET_REGEX_StateSet *nfa_set;
+  struct GNUNET_REGEX_StateSet nfa_set;
 };
 
 
