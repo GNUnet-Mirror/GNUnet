@@ -489,6 +489,7 @@ accept_connection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ServiceList *sl = sli->sl;
 
   sli->accept_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_assert (GNUNET_NO == in_shutdown);
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   start_process (sl);
