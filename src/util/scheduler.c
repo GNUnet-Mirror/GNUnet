@@ -724,6 +724,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
                                 GNUNET_DISK_PIPE_END_READ);
   GNUNET_assert (pr != NULL);
   my_pid = getpid ();
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Registering signal handlers\n");
   shc_int = GNUNET_SIGNAL_handler_install (SIGINT, &sighandler_shutdown);
   shc_term = GNUNET_SIGNAL_handler_install (SIGTERM, &sighandler_shutdown);
 #ifndef MINGW
