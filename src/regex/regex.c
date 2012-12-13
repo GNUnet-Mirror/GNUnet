@@ -3052,3 +3052,131 @@ GNUNET_REGEX_ipv6toregex (const struct in6_addr *ipv6, unsigned int prefixlen,
   if (prefixlen < 128)
     strcat (rxstr, "(0|1)+");
 }
+
+
+struct RegexCombineCtx {
+  struct RegexCombineCtx *next;
+  struct RegexCombineCtx *prev;
+
+  struct RegexCombineCtx *head;
+  struct RegexCombineCtx *tail;
+
+  char *s;
+};
+
+
+static char *
+regex_combine (struct RegexCombineCtx *ctx)
+{
+  struct RegexCombineCtx *p;
+  size_t len;
+  char *regex;
+  char *tmp;
+  char *s;
+
+  if (NULL != ctx->s)
+    GNUNET_asprintf (&regex, "%s(", ctx->s);
+  else
+    regex = GNUNET_strdup ("(");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "prefix: %s\n", regex);
+
+  for (p = ctx->head; NULL != p; p = p->next)
+  {
+    s = regex_combine (p);
+    GNUNET_asprintf (&tmp, "%s%s|", regex, s);
+    GNUNET_free_non_null (s);
+    GNUNET_free_non_null (regex);
+    regex = tmp;
+  }
+  len = strlen (regex);
+  if (1 == len)
+    return GNUNET_strdup ("");
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "pre-partial: %s\n", regex);
+  if ('|' == regex[len - 1])
+    regex[len - 1] = ')';
+  if ('(' == regex[len - 1])
+    regex[len - 1] = '\0';
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "partial: %s\n", regex);
+  return regex;
+}
+
+static void
+regex_add (struct RegexCombineCtx *ctx, const char *regex)
+{
+  struct RegexCombineCtx *p;
+  const char *rest;
+
+  rest = &regex[1];
+  for (p = ctx->head; NULL != p; p = p->next)
+  {
+    if (p->s[0] == regex[0])
+    {
+      if (1 == strlen(p->s))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "common char %s\n", p->s);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "adding %s\n", rest);
+        regex_add (p, rest);
+      }
+      else
+      {
+        struct RegexCombineCtx *new;
+        new = GNUNET_malloc (sizeof (struct RegexCombineCtx));
+        new->s = GNUNET_strdup (&p->s[1]);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " p has now %s\n", p->s);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " p will have %.1s\n", p->s);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " regex is %s\n", regex);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " new has now %s\n", new->s);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " rest is now %s\n", rest);
+        p->s[1] = '\0'; /* dont realloc */
+        GNUNET_CONTAINER_DLL_insert (p->head, p->tail, new);
+        regex_add (p, rest);
+      }
+      return;
+    }
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " no  match\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " new state %s\n", regex);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " under %s\n", ctx->s);
+  p = GNUNET_malloc (sizeof (struct RegexCombineCtx));
+  p->s = GNUNET_strdup (regex);
+  GNUNET_CONTAINER_DLL_insert (ctx->head, ctx->tail, p);
+}
+/*
+static void
+debug (struct RegexCombineCtx *ctx, int lvl)
+{
+  struct RegexCombineCtx *p;
+  unsigned int i;
+
+  for (i = 0; i < lvl; i++) fprintf (stderr, " ");
+  fprintf (stderr, "%s\n", ctx->s);
+
+  for (p = ctx->head; NULL != p; p = p->next)
+  {
+    debug (p, lvl + 2);
+  }
+}*/
+
+char *
+GNUNET_REGEX_combine (char * const regexes[])
+{
+  unsigned int i;
+  char *combined;
+  const char *current;
+  struct RegexCombineCtx *ctx;
+
+  ctx = GNUNET_malloc (sizeof (struct RegexCombineCtx));
+  for (i = 0; regexes[i]; i++)
+  {
+    current = regexes[i];
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Regex %u: %s\n", i, current);
+    regex_add (ctx, current);
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\nCombining...\n");
+
+  combined = regex_combine (ctx);
+
+  return combined;
+}
