@@ -1934,6 +1934,75 @@ nfa_state_create (struct GNUNET_REGEX_Context *ctx, int accepting)
 
 
 /**
+ * Calculates the NFA closure set for the given state.
+ *
+ * @param cls set to sorted nfa closure on 'label' (epsilon closure if 'label' is NULL)
+ * @param nfa the NFA containing 's'
+ * @param s starting point state
+ * @param label transitioning label on which to base the closure on,
+ *                pass NULL for epsilon transition
+ */
+static void
+nfa_closure_create (struct GNUNET_REGEX_StateSet *cls,
+		    struct GNUNET_REGEX_Automaton *nfa,
+                    struct GNUNET_REGEX_State *s, const char *label)
+{
+  unsigned int i;
+  struct GNUNET_REGEX_StateSet_MDLL cls_stack;
+  struct GNUNET_REGEX_State *clsstate;
+  struct GNUNET_REGEX_State *currentstate;
+  struct GNUNET_REGEX_Transition *ctran;
+
+  memset (cls, 0, sizeof (struct GNUNET_REGEX_StateSet));
+  if (NULL == s)
+    return;
+
+  cls_stack.head = NULL;
+  cls_stack.tail = NULL;
+
+  /* Add start state to closure only for epsilon closure */
+  if (NULL == label)
+    state_set_append (cls, s);
+
+  GNUNET_CONTAINER_MDLL_insert (ST, cls_stack.head, cls_stack.tail, s);
+  cls_stack.len = 1;
+
+  while (cls_stack.len > 0)
+  {
+    currentstate = cls_stack.tail;
+    GNUNET_CONTAINER_MDLL_remove (ST, cls_stack.head, cls_stack.tail,
+                                  currentstate);
+    cls_stack.len--;
+
+    for (ctran = currentstate->transitions_head; NULL != ctran;
+         ctran = ctran->next)
+    {
+      if (NULL == (clsstate = ctran->to_state))
+	continue;
+      if (0 != nullstrcmp (label, ctran->label))
+	continue;
+      if (0 == clsstate->contained)
+      {
+	state_set_append (cls, clsstate);
+	GNUNET_CONTAINER_MDLL_insert_tail (ST, cls_stack.head, cls_stack.tail,
+					   clsstate);
+	cls_stack.len++;
+	clsstate->contained = 1;
+      }      
+    }
+  }
+
+  for (i = 0; i < cls->off; i++)
+    cls->states[i]->contained = 0;
+
+  /* sort the states */
+  if (cls->off > 1)
+    qsort (cls->states, cls->off, sizeof (struct GNUNET_REGEX_State *),
+           &state_compare);
+}
+
+
+/**
  * Calculates the closure set for the given set of states.
  *
  * @param ret set to sorted nfa closure on 'label' (epsilon closure if 'label' is NULL)
@@ -1948,11 +2017,11 @@ nfa_closure_set_create (struct GNUNET_REGEX_StateSet *ret,
                         struct GNUNET_REGEX_StateSet *states, const char *label)
 {
   struct GNUNET_REGEX_State *s;
+  struct GNUNET_REGEX_StateSet sset;
   unsigned int i;
-  struct GNUNET_REGEX_StateSet_MDLL cls_stack;
-  struct GNUNET_REGEX_State *clsstate;
-  struct GNUNET_REGEX_State *currentstate;
-  struct GNUNET_REGEX_Transition *ctran;
+  unsigned int j;
+  unsigned int k;
+  unsigned int contains;
 
   memset (ret, 0, sizeof (struct GNUNET_REGEX_StateSet));
   if (NULL == states)
@@ -1961,41 +2030,23 @@ nfa_closure_set_create (struct GNUNET_REGEX_StateSet *ret,
   for (i = 0; i < states->off; i++)
   {
     s = states->states[i];
-
-    /* Add start state to closure only for epsilon closure */
-    if (NULL == label)
-      state_set_append (ret, s);
-    
-    /* initialize work stack */
-    cls_stack.head = NULL;
-    cls_stack.tail = NULL;
-    GNUNET_CONTAINER_MDLL_insert (ST, cls_stack.head, cls_stack.tail, s);
-    cls_stack.len = 1;
-
-    while (NULL != (currentstate = cls_stack.tail))
+    nfa_closure_create (&sset, nfa, s, label);
+    for (j = 0; j < sset.off; j++)
     {
-      GNUNET_CONTAINER_MDLL_remove (ST, cls_stack.head, cls_stack.tail,
-				    currentstate);
-      cls_stack.len--;      
-      for (ctran = currentstate->transitions_head; NULL != ctran;
-	   ctran = ctran->next)
+      contains = 0;
+      for (k = 0; k < ret->off; k++)
       {
-	if (NULL == (clsstate = ctran->to_state))
-	  continue;
-	if (0 != clsstate->contained)
-	  continue;
-	if (0 != nullstrcmp (label, ctran->label))
-	  continue;
-	state_set_append (ret, clsstate);
-	GNUNET_CONTAINER_MDLL_insert_tail (ST, cls_stack.head, cls_stack.tail,
-					   clsstate);
-	cls_stack.len++;
-	clsstate->contained = 1;
-      }    
+        if (sset.states[j]->id == ret->states[k]->id)
+        {
+          contains = 1;
+          break;
+        }
+      }
+      if (!contains)
+	state_set_append (ret, sset.states[j]);
     }
+    state_set_clear (&sset);
   }
-  for (i = 0; i < ret->off; i++)
-    ret->states[i]->contained = 0;
 
   if (ret->off > 1)
     qsort (ret->states, ret->off, sizeof (struct GNUNET_REGEX_State *),
@@ -2418,19 +2469,6 @@ error:
   return NULL;
 }
 
-static unsigned long long doopy,loopy;
-
-static const struct GNUNET_HashCode *
-get_state_key (struct GNUNET_REGEX_StateSet *nfa_set)
-{
-  static struct GNUNET_HashCode key;
-
-  GNUNET_CRYPTO_hash (nfa_set->states,
-		      sizeof (struct GNUNET_REGEX_State *) * nfa_set->off,
-		      &key);
-  return &key;
-}
-
 
 /**
  * Create DFA states based on given 'nfa' and starting with 'dfa_state'.
@@ -2440,22 +2478,19 @@ get_state_key (struct GNUNET_REGEX_StateSet *nfa_set)
  * @param dfa DFA automaton.
  * @param dfa_state current dfa state, pass epsilon closure of first nfa state
  *                  for starting.
- * @param state_map map to find states under their proof quickly
  */
 static void
 construct_dfa_states (struct GNUNET_REGEX_Context *ctx,
                       struct GNUNET_REGEX_Automaton *nfa,
                       struct GNUNET_REGEX_Automaton *dfa,
-                      struct GNUNET_REGEX_State *dfa_state,
-		      struct GNUNET_CONTAINER_MultiHashMap *state_map)
+                      struct GNUNET_REGEX_State *dfa_state)
 {
   struct GNUNET_REGEX_Transition *ctran;
-  struct GNUNET_REGEX_State *state_iter;
   struct GNUNET_REGEX_State *new_dfa_state;
   struct GNUNET_REGEX_State *state_contains;
+  struct GNUNET_REGEX_State *state_iter;
   struct GNUNET_REGEX_StateSet tmp;
   struct GNUNET_REGEX_StateSet nfa_set;
-  const struct GNUNET_HashCode *key;
 
   for (ctran = dfa_state->transitions_head; NULL != ctran; ctran = ctran->next)
   {
@@ -2466,19 +2501,22 @@ construct_dfa_states (struct GNUNET_REGEX_Context *ctx,
     nfa_closure_set_create (&nfa_set, nfa, &tmp, NULL);
     state_set_clear (&tmp);
 
-    /* FIXME: this O(n) loop can be done in O(1) with a hash map */
-    state_contains = GNUNET_CONTAINER_multihashmap_get (state_map,
-							key = get_state_key (&nfa_set));
+    state_contains = NULL;
+    for (state_iter = dfa->states_head; NULL != state_iter;
+         state_iter = state_iter->next)
+    {
+      if (0 == state_set_compare (&state_iter->nfa_set, &nfa_set))
+      {
+        state_contains = state_iter;
+	break;
+      }
+    }
     if (NULL == state_contains)
     {
       new_dfa_state = dfa_state_create (ctx, &nfa_set);
       automaton_add_state (dfa, new_dfa_state);
       ctran->to_state = new_dfa_state;
-      GNUNET_CONTAINER_multihashmap_put (state_map,
-					 key,
-					 new_dfa_state,
-					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-      construct_dfa_states (ctx, nfa, dfa, new_dfa_state, state_map);
+      construct_dfa_states (ctx, nfa, dfa, new_dfa_state);
     }
     else
     {
@@ -2513,8 +2551,6 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
   struct GNUNET_REGEX_Automaton *dfa;
   struct GNUNET_REGEX_Automaton *nfa;
   struct GNUNET_REGEX_StateSet nfa_start_eps_cls;
-  struct GNUNET_REGEX_StateSet singleton_set;
-  struct GNUNET_CONTAINER_MultiHashMap *state_map;
 
   GNUNET_REGEX_context_init (&ctx);
 
@@ -2534,18 +2570,12 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
   dfa->regex = GNUNET_strdup (regex);
 
   /* Create DFA start state from epsilon closure */
-  memset (&singleton_set, 0, sizeof (struct GNUNET_REGEX_StateSet));
-  state_set_append (&singleton_set, nfa->start);
-  nfa_closure_set_create (&nfa_start_eps_cls, nfa, &singleton_set, NULL);
-  state_set_clear (&singleton_set);
+  nfa_closure_create (&nfa_start_eps_cls, nfa, nfa->start, NULL);
   dfa->start = dfa_state_create (&ctx, &nfa_start_eps_cls);
   automaton_add_state (dfa, dfa->start);
 
   fprintf (stderr, "D");
-  state_map = GNUNET_CONTAINER_multihashmap_create (1024 * 16, GNUNET_NO);
-  construct_dfa_states (&ctx, nfa, dfa, dfa->start, state_map);
-  GNUNET_CONTAINER_multihashmap_destroy (state_map);
-  fprintf (stderr, "D-X: %llu/%llu\n", loopy, doopy);
+  construct_dfa_states (&ctx, nfa, dfa, dfa->start);
   GNUNET_REGEX_automaton_destroy (nfa);
 
   /* Minimize DFA */
@@ -2553,7 +2583,7 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
   dfa_minimize (&ctx, dfa);
 
   /* Create proofs and hashes for all states */
-  // automaton_create_proofs (dfa);
+  automaton_create_proofs (dfa);
 
   /* Compress linear DFA paths */
   if (1 != max_path_len)
@@ -2651,7 +2681,6 @@ evaluate_nfa (struct GNUNET_REGEX_Automaton *a, const char *string)
   struct GNUNET_REGEX_State *s;
   struct GNUNET_REGEX_StateSet sset;
   struct GNUNET_REGEX_StateSet new_sset;
-  struct GNUNET_REGEX_StateSet singleton_set;
   unsigned int i;
   int result;
 
@@ -2667,10 +2696,7 @@ evaluate_nfa (struct GNUNET_REGEX_Automaton *a, const char *string)
     return 0;
 
   result = 1;
-  memset (&singleton_set, 0, sizeof (struct GNUNET_REGEX_StateSet));
-  state_set_append (&singleton_set, a->start);
-  nfa_closure_set_create (&sset, a, &singleton_set, NULL);
-  state_set_clear (&singleton_set);
+  nfa_closure_create (&sset, a, a->start, NULL);
 
   str[1] = '\0';
   for (strp = string; NULL != strp && *strp; strp++)
