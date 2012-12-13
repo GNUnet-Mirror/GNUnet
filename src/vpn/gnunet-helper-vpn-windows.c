@@ -86,13 +86,13 @@
 #define _tpopen       _popen
 #endif
 
-/*
+/**
  * Our local process' PID. Used for creating a sufficiently unique additional 
  * hardware ID for our device.
  */
 static TCHAR secondary_hwid[LINE_LEN / 2];
 
-/*
+/**
  * Device's visible Name, used to identify a network device in netsh.
  * eg: "Local Area Connection 9"
  */
@@ -188,7 +188,7 @@ set_address6 (const TCHAR *address, unsigned long prefix_len)
   if (0 != ret)
     {
       _ftprintf (stderr, _T ("Setting IPv6 address failed: %s\n"), strerror (ret));
-      exit (1);
+      exit (1); // FIXME: return error code, shut down interface / unload driver
     }
 }
 
@@ -222,7 +222,7 @@ set_address4 (const char *address, const char *mask)
   if (0 != ret)
     {
       _ftprintf (stderr, _T ("Setting IPv4 address failed: %s\n"), strerror (ret));
-      exit (1);
+      exit (1);  // FIXME: return error code, shut down interface / unload driver
     }
 }
 
@@ -396,7 +396,7 @@ resolve_interface_name ()
   /* Of course there is a multitude of entries here, with arbitrary names, 
    * thus we need to iterate through there.
    */
-  while (FALSE == retval)
+  while (! retval)
     {
       TCHAR instance_key[256];
       TCHAR query_key [256];
@@ -486,20 +486,12 @@ cleanup:
 /**
  * Creates a tun-interface called dev;
  *
- * @param hwid is asumed to point to a TCHAR[LINE_LEN]
- *        if *dev == '\\0', uses the name supplied by the kernel;
  * @return the fd to the tun or -1 on error
  */
 static int
-init_tun (TCHAR *hwid)
+init_tun ()
 {
   int fd=-1;
-
-  if (NULL == hwid)
-    {
-      errno = EINVAL;
-      return -1;
-    }
 
   if (!setup_interface ())
     {
@@ -578,9 +570,9 @@ main (int argc, char **argv)
    */
   _itot (_getpid (), pid_as_string, 10);
   strncpy (secondary_hwid, hwid, LINE_LEN);
-  strncat (secondary_hwid, pid_as_string, LINE_LEN);
+  strncat (secondary_hwid, pid_as_string, LINE_LEN); // BUFFER OVERFLOW!
 
-  if (-1 == (fd_tun = init_tun (hwid)))
+  if (-1 == (fd_tun = init_tun ()))
     {
       fprintf (stderr, "Fatal: could not initialize virtual-interface %s with IPv6 %s/%s and IPv4 %s/%s\n",
                hwid,
