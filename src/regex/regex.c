@@ -2526,7 +2526,7 @@ construct_dfa_states (struct GNUNET_REGEX_Context *ctx,
       continue;
 
     tmp = nfa_closure_set_create (nfa, dfa_state->nfa_set, ctran->label);
-    nfa_set = nfa_closure_set_create (nfa, tmp, 0);
+    nfa_set = nfa_closure_set_create (nfa, tmp, NULL);
     state_set_clear (tmp);
     new_dfa_state = dfa_state_create (ctx, nfa_set);
     state_contains = NULL;
@@ -2595,7 +2595,7 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
   dfa->regex = GNUNET_strdup (regex);
 
   /* Create DFA start state from epsilon closure */
-  nfa_start_eps_cls = nfa_closure_create (nfa, nfa->start, 0);
+  nfa_start_eps_cls = nfa_closure_create (nfa, nfa->start, NULL);
   dfa->start = dfa_state_create (&ctx, nfa_start_eps_cls);
   automaton_add_state (dfa, dfa->start);
 
