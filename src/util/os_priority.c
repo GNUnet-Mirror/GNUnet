@@ -340,6 +340,7 @@ parent_control_handler (void *cls,
   {
     if (-1 == ret)
       LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "GNUNET_DISK_file_read");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Closing control pipe\n");
     GNUNET_DISK_file_close (control_pipe);
     control_pipe = NULL;
     return;
@@ -437,6 +438,7 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
 #endif
   if (NULL != proc->control_pipe)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending signal %d to pid: %u via pipe\n", sig, proc->pid);
     ret = GNUNET_DISK_file_write (proc->control_pipe, &csig, sizeof (csig));
     if (sizeof (csig) == ret)
       return 0;
@@ -486,6 +488,7 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
     }
     return 0;
 #else
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending signal %d to pid: %u via system call\n", sig, proc->pid);
     return PLIBC_KILL (proc->pid, sig);
 #endif
   default:
@@ -493,6 +496,7 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
     errno = EINVAL;
     return -1;
 #else
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending signal %d to pid: %u via system call\n", sig, proc->pid);
     return PLIBC_KILL (proc->pid, sig);
 #endif    
   }
