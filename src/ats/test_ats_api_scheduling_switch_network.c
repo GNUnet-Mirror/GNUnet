@@ -19,8 +19,7 @@
 */
 /**
  * @file ats/test_ats_api_scheduling_update_address.c
- * @brief test updating an address: add address, get and compare it, update it
- *        get it again and compre
+ * @brief test updating networtk type of an address
  * @author Christian Grothoff
  * @author Matthias Wachs
  */
@@ -115,6 +114,8 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
                     uint32_t ats_count)
 {
   static int stage = 0;
+  int level;
+  char *text;
   if (0 == stage)
   {
     GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
@@ -143,19 +144,47 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
     if (ntohl(bandwidth_out.value__) == quota_out[GNUNET_ATS_NET_WAN])
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: WAN quota out correct \n", stage);
+        level = GNUNET_ERROR_TYPE_DEBUG;
+        text =  "correct";
+        ret = 0;
     }
     else
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: WAN quota out wrong \n", stage);
+        level = GNUNET_ERROR_TYPE_ERROR;
+        text = "wrong";
+        ret = 1;
     }
+
+    GNUNET_log (level, "Stage %u: WAN outbound quota out %s: Received %llu, configured %llu\n",
+        stage,
+        text,
+        (unsigned long long int) ntohl(bandwidth_out.value__),
+        quota_out[GNUNET_ATS_NET_WAN]);
+
     if (ntohl(bandwidth_in.value__) == quota_in[GNUNET_ATS_NET_WAN])
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: WAN quota in correct \n", stage);
+        level = GNUNET_ERROR_TYPE_DEBUG;
+        text =  "correct";
+        ret = 0;
     }
     else
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: WAN quota in wrong \n", stage);
+        level = GNUNET_ERROR_TYPE_ERROR;
+        text = "wrong";
+        ret = 1;
+    }
+
+
+    GNUNET_log (level, "Stage %u: WAN inbound quota out %s: Received %llu, configured %llu\n",
+        stage,
+        text,
+        (unsigned long long int) ntohl(bandwidth_out.value__),
+        quota_out[GNUNET_ATS_NET_WAN]);
+
+    if (1 == ret)
+    {
+        GNUNET_SCHEDULER_add_now (&end, NULL);
+        return;
     }
 
     /* Update address */
@@ -200,23 +229,41 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
       if (ntohl(bandwidth_out.value__) == quota_out[GNUNET_ATS_NET_LAN])
       {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: LAN quota out correct \n", stage);
+          level = GNUNET_ERROR_TYPE_DEBUG;
+          text =  "correct";
           ret = 0;
       }
       else
       {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: LAN quota out wrong \n", stage);
+          level = GNUNET_ERROR_TYPE_ERROR;
+          text = "wrong";
           ret = 1;
       }
+
+      GNUNET_log (level, "Stage %u: LAN outbound quota out %s: Received %llu, configured %llu\n",
+          stage,
+          text,
+          (unsigned long long int) ntohl(bandwidth_out.value__),
+          quota_out[GNUNET_ATS_NET_LAN]);
+
       if (ntohl(bandwidth_in.value__) == quota_in[GNUNET_ATS_NET_LAN])
-      {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: LAN quota in correct \n", stage);
-      }
-      else
-      {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: LAN quota in wrong \n", stage);
-          ret = 1;
-      }
+        {
+            level = GNUNET_ERROR_TYPE_DEBUG;
+            text =  "correct";
+            ret = 0;
+        }
+        else
+        {
+            level = GNUNET_ERROR_TYPE_ERROR;
+            text = "wrong";
+            ret = 1;
+        }
+
+        GNUNET_log (level, "Stage %u: LAN inbound quota out %s: Received %llu, configured %llu\n",
+            stage,
+            text,
+            (unsigned long long int) ntohl(bandwidth_out.value__),
+            quota_out[GNUNET_ATS_NET_LAN]);
 
       GNUNET_SCHEDULER_add_now (&end, NULL);
   }
