@@ -384,8 +384,6 @@ automaton_merge_states (struct GNUNET_REGEX_Context *ctx,
   struct GNUNET_REGEX_Transition *t_next;
   int is_dup;
 
-  GNUNET_assert (NULL != ctx && NULL != a && NULL != s1 && NULL != s2);
-
   if (s1 == s2)
     return;
 
@@ -1096,18 +1094,11 @@ automaton_create_proofs_simplify (char *R_last_ij, char *R_last_ik,
  * proof) fields. The starting state will only have a valid proof/hash if it has
  * any incoming transitions.
  *
- * @param a automaton for which to assign proofs and hashes.
+ * @param a automaton for which to assign proofs and hashes, must not be NULL
  */
 static void
 automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
 {
-  if (NULL == a)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Could not create proofs, automaton was NULL\n");
-    return;
-  }
-
   unsigned int n = a->state_count;
   struct GNUNET_REGEX_State *states[n];
   char **R_last;
@@ -1261,8 +1252,8 @@ dfa_state_create (struct GNUNET_REGEX_Context *ctx,
                   struct GNUNET_REGEX_StateSet *nfa_states)
 {
   struct GNUNET_REGEX_State *s;
-  char *name;
-  int len = 0;
+  char *pos;
+  size_t len;
   struct GNUNET_REGEX_State *cstate;
   struct GNUNET_REGEX_Transition *ctran;
   unsigned int i;
@@ -1284,21 +1275,17 @@ dfa_state_create (struct GNUNET_REGEX_Context *ctx,
     return s;
 
   /* Create a name based on 'nfa_states' */
-  /* FIXME: insanely costly string operations here! */
-  s->name = GNUNET_malloc (sizeof (char) * 2);
+  len = nfa_states->len * 14 + 4;
+  s->name = GNUNET_malloc (len);
   strcat (s->name, "{");
-  name = NULL;
+  pos = s->name + 1;
 
   for (i = 0; i < nfa_states->len; i++)
   {
     cstate = nfa_states->states[i];
-    GNUNET_asprintf (&name, "%i,", cstate->id);
-
-    len = strlen (s->name) + strlen (name) + 1;
-    s->name = GNUNET_realloc (s->name, len);
-    strcat (s->name, name);
-    GNUNET_free (name);
-    name = NULL;    
+    GNUNET_snprintf (pos, pos - s->name + len,
+		     "%i,", cstate->id);
+    pos += strlen (pos);
 
     /* Add a transition for each distinct label to NULL state */
     for (ctran = cstate->transitions_head; NULL != ctran; ctran = ctran->next)    
@@ -1309,9 +1296,9 @@ dfa_state_create (struct GNUNET_REGEX_Context *ctx,
      * accepting. */
     if (cstate->accepting)
       s->accepting = 1;
-  }
-
-  s->name[strlen (s->name) - 1] = '}';
+  }  
+  pos[-1] = '}';
+  s->name = GNUNET_realloc (s->name, strlen (s->name) + 1);
 
   return s;
 }
@@ -1361,6 +1348,7 @@ dfa_move (struct GNUNET_REGEX_State **s, const char *str)
   return max_len;
 }
 
+
 /**
  * Set the given state 'marked' to GNUNET_YES. Used by the
  * 'dfa_remove_unreachable_states' function to detect unreachable states in the
@@ -1370,11 +1358,12 @@ dfa_move (struct GNUNET_REGEX_State **s, const char *str)
  * @param count count, not used.
  * @param s state where the marked attribute will be set to GNUNET_YES.
  */
-void
+static void
 mark_states (void *cls, const unsigned int count, struct GNUNET_REGEX_State *s)
 {
   s->marked = GNUNET_YES;
 }
+
 
 /**
  * Remove all unreachable states from DFA 'a'. Unreachable states are those
@@ -1457,7 +1446,7 @@ static void
 dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
                                      struct GNUNET_REGEX_Automaton *a)
 {
-  int *table;
+  uint32_t *table;
   struct GNUNET_REGEX_State *s1;
   struct GNUNET_REGEX_State *s2;
   struct GNUNET_REGEX_Transition *t1;
@@ -1468,8 +1457,10 @@ dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
   unsigned int num_equal_edges;
   unsigned int i;
   unsigned int state_cnt;
+  unsigned long long idx;
+  unsigned long long idx1;
 
-  if (NULL == a || 0 == a->state_count)
+  if ( (NULL == a) || (0 == a->state_count) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Could not merge nondistinguishable states, automaton was NULL.\n");
@@ -1477,29 +1468,20 @@ dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
   }
 
   state_cnt = a->state_count;
-  table =
-      (int *) GNUNET_malloc_large (sizeof (int) * state_cnt * a->state_count);
+  table = GNUNET_malloc_large ((sizeof (uint32_t) * state_cnt * a->state_count / 32)  + 1);
 
-  for (i = 0, s1 = a->states_head; i < state_cnt && NULL != s1;
-       i++, s1 = s1->next)
-  {
-    s1->marked = i;
-  }
+  for (i = 0, s1 = a->states_head; NULL != s1; s1 = s1->next)
+    s1->marked = i++;
 
   /* Mark all pairs of accepting/!accepting states */
   for (s1 = a->states_head; NULL != s1; s1 = s1->next)
-  {
     for (s2 = a->states_head; NULL != s2; s2 = s2->next)
-    {
-      table[((s1->marked * state_cnt) + s2->marked)] = 0;
-
-      if ((s1->accepting && !s2->accepting) ||
-          (!s1->accepting && s2->accepting))
+      if ( (s1->accepting && !s2->accepting) ||
+	   (!s1->accepting && s2->accepting) )
       {
-        table[((s1->marked * state_cnt) + s2->marked)] = 1;
+	idx = s1->marked * state_cnt + s2->marked;
+        table[idx / 32] |= (1 << (idx % 32));
       }
-    }
-  }
 
   /* Find all equal states */
   change = 1;
@@ -1510,35 +1492,37 @@ dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
     {
       for (s2 = a->states_head; NULL != s2 && s1 != s2; s2 = s2->next)
       {
-        if (0 != table[((s1->marked * state_cnt) + s2->marked)])
+	idx = s1->marked * state_cnt + s2->marked;
+        if (0 != (table[idx / 32] & (1 << (idx % 32))))
           continue;
-
         num_equal_edges = 0;
         for (t1 = s1->transitions_head; NULL != t1; t1 = t1->next)
         {
           for (t2 = s2->transitions_head; NULL != t2; t2 = t2->next)
           {
             if (0 == strcmp (t1->label, t2->label))
-            {
-              num_equal_edges++;
-              if (0 !=
-                  table[((t1->to_state->marked * state_cnt) +
-                         t2->to_state->marked)] ||
-                  0 !=
-                  table[((t2->to_state->marked * state_cnt) +
-                         t1->to_state->marked)])
-              {
-                table[((s1->marked * state_cnt) + s2->marked)] = 1;
-                change = 1;
-              }
-            }
-          }
+	    {
+	      num_equal_edges++;
+	      /* same edge, but targets definitively different, so we're different
+		 as well */
+	      if (t1->to_state->marked > t2->to_state->marked)
+		idx1 = t1->to_state->marked * state_cnt + t2->to_state->marked;
+	      else
+		idx1 = t2->to_state->marked * state_cnt + t1->to_state->marked;
+	      if (0 != (table[idx1 / 32] & (1 << (idx1 % 32))))
+	      {
+		table[idx / 32] |= (1 << (idx % 32));
+		change = 1; /* changed a marker, need to run again */
+	      }
+	    }
+	  }
         }
-        if (num_equal_edges != s1->transition_count ||
-            num_equal_edges != s2->transition_count)
+        if ( (num_equal_edges != s1->transition_count) ||
+	     (num_equal_edges != s2->transition_count) )
         {
           /* Make sure ALL edges of possible equal states are the same */
-          table[((s1->marked * state_cnt) + s2->marked)] = -2;
+	  table[idx / 32] |= (1 << (idx % 32));
+	  change = 1;  /* changed a marker, need to run again */
         }
       }
     }
@@ -1551,7 +1535,8 @@ dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
     for (s2 = a->states_head; NULL != s2 && s1 != s2; s2 = s2_next)
     {
       s2_next = s2->next;
-      if (0 == table[((s1->marked * state_cnt) + s2->marked)])
+      idx = s1->marked * state_cnt + s2->marked;
+      if (0 == (table[idx / 32] & (1 << (idx % 32))))
         automaton_merge_states (ctx, a, s1, s2);
     }
   }
@@ -2578,6 +2563,7 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
   GNUNET_REGEX_context_init (&ctx);
 
   /* Create NFA */
+  fprintf (stderr, "N");
   nfa = GNUNET_REGEX_construct_nfa (regex, len);
 
   if (NULL == nfa)
@@ -2596,14 +2582,17 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
   dfa->start = dfa_state_create (&ctx, nfa_start_eps_cls);
   automaton_add_state (dfa, dfa->start);
 
+  fprintf (stderr, "D");
   construct_dfa_states (&ctx, nfa, dfa, dfa->start);
 
   GNUNET_REGEX_automaton_destroy (nfa);
 
   /* Minimize DFA */
+  fprintf (stderr, "M");
   dfa_minimize (&ctx, dfa);
 
   /* Create proofs and hashes for all states */
+  fprintf (stderr, "P");
   automaton_create_proofs (dfa);
 
   /* Compress linear DFA paths */
