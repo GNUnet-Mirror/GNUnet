@@ -78,6 +78,7 @@ GNUNET_SPEEDUP_start_ (const struct GNUNET_CONFIGURATION_Handle *cfg);
 int
 GNUNET_SPEEDUP_stop_ (void);
 
+
 /**
  * Initial task called by the scheduler for each
  * program.  Runs the program-specific main task.
@@ -86,8 +87,10 @@ static void
 program_main (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct CommandContext *cc = cls;
-  GNUNET_SPEEDUP_start_(cc->cfg);
 
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+    return;
+  GNUNET_SPEEDUP_start_(cc->cfg);
   GNUNET_RESOLVER_connect (cc->cfg);
   cc->task (cc->task_cls, cc->args, cc->cfgfile, cc->cfg);
 }

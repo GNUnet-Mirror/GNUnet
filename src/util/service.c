@@ -1504,6 +1504,8 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_SERVICE_Context *sctx = cls;
   unsigned int i;
 
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+    return;
   GNUNET_RESOLVER_connect (sctx->cfg);
   if (NULL != sctx->lsocks)
     sctx->server =
