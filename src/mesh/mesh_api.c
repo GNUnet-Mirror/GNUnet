@@ -1843,7 +1843,7 @@ GNUNET_MESH_announce_regex (struct GNUNET_MESH_Handle *h,
   offset = 0;
   do
   {
-    msgsize = (len > offset + payload) ? payload : len;
+    msgsize = (len - offset > payload) ? payload : len - offset;
     memcpy (&msg[1], &regex[offset], msgsize);
     offset += msgsize;
     msgsize += sizeof(struct GNUNET_MESH_RegexAnnounce);
