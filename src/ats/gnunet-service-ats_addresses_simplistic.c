@@ -290,6 +290,70 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
   }
 }
 
+static void
+addresse_increment (struct GAS_SIMPLISTIC_Handle *s,
+                                struct Network *net,
+                                int total,
+                                int active)
+{
+  if (GNUNET_YES == total)
+  {
+  s->total_addresses ++;
+  net->total_addresses ++;
+  }
+  if (GNUNET_YES == active)
+  {
+    net->active_addresses ++;
+    s->active_addresses ++;
+  }
+
+}
+
+static int
+addresse_decrement (struct GAS_SIMPLISTIC_Handle *s,
+                    struct Network *net,
+                    int total,
+                    int active)
+{
+  int res = GNUNET_OK;
+  if (GNUNET_YES == total)
+  {
+    if (s->total_addresses < 1)
+    {
+      GNUNET_break (0);
+      res = GNUNET_SYSERR;
+    }
+    else
+      s->total_addresses --;
+    if (net->total_addresses < 1)
+    {
+      GNUNET_break (0);
+      res = GNUNET_SYSERR;
+    }
+    else
+      net->total_addresses --;
+  }
+
+  if (GNUNET_YES == active)
+  {
+    if (net->active_addresses < 1)
+    {
+      GNUNET_break (0);
+      res = GNUNET_SYSERR;
+    }
+    else
+      net->active_addresses --;
+    if (s->active_addresses < 1)
+    {
+      GNUNET_break (0);
+      res = GNUNET_SYSERR;
+    }
+    else
+      s->active_addresses --;
+  }
+  return res;
+}
+
 
 /**
  * Add a single address to the solve
@@ -321,8 +385,7 @@ GAS_simplistic_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap *
   aw = GNUNET_malloc (sizeof (struct AddressWrapper));
   aw->addr = address;
   GNUNET_CONTAINER_DLL_insert (net->head, net->tail, aw);
-  net->total_addresses ++;
-  s->total_addresses ++;
+  addresse_increment (s, net, GNUNET_YES, GNUNET_NO);
   aw->addr->solver_information = net;
 
 
@@ -367,15 +430,7 @@ GAS_simplistic_address_delete (void *solver,
         net->desc, net->total_addresses, net->active_addresses);
 
     /* Remove address */
-    if (net->total_addresses < 1)
-      GNUNET_break (0);
-    else
-      net->total_addresses --;
-    if (s->total_addresses < 1)
-      GNUNET_break (0);
-    else
-      s->total_addresses --;
-
+    addresse_decrement (s, net, GNUNET_YES, GNUNET_NO);
     for (aw = net->head; NULL != aw; aw = aw->next)
     {
         if (aw->addr == address)
@@ -403,14 +458,8 @@ GAS_simplistic_address_delete (void *solver,
   {
       /* Address was active, remove from network and update quotas*/
       address->active = GNUNET_NO;
-      if (net->active_addresses < 1)
+      if (GNUNET_SYSERR == addresse_decrement (s, net, GNUNET_NO, GNUNET_YES))
         GNUNET_break (0);
-      else
-        net->active_addresses --;
-      if (s->active_addresses < 1)
-        GNUNET_break (0);
-      else
-        s->active_addresses --;
       update_quota_per_network (s, net, NULL);
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "After deleting address now total %u and active %u addresses in network `%s'\n",
@@ -521,8 +570,7 @@ GAS_simplistic_address_update (void *solver,
         GAS_simplistic_address_add (solver, addresses, address);
         if (GNUNET_YES == save_active)
         {
-          s->active_addresses ++;
-          new_net->active_addresses ++;
+          addresse_increment (s, new_net, GNUNET_NO, GNUNET_YES);
           update_quota_per_network (solver, new_net, NULL);
         }
       }
@@ -538,8 +586,6 @@ GAS_simplistic_address_update (void *solver,
     }
 
   }
-
-
   if (address->session_id != session)
   {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -722,20 +768,13 @@ GAS_simplistic_get_preferred_address (void *solver,
       prev->assigned_bw_in = GNUNET_BANDWIDTH_value_init (0); /* no bw assigned */
       prev->assigned_bw_out = GNUNET_BANDWIDTH_value_init (0); /* no bw assigned */
       s->bw_changed (s->bw_changed_cls, prev); /* notify about bw change, REQUIRED? */
-      if (net_prev->active_addresses < 1)
+      if (GNUNET_SYSERR == addresse_decrement (s, net_prev, GNUNET_NO, GNUNET_YES))
         GNUNET_break (0);
-      else
-        net_prev->active_addresses --;
-      if (s->active_addresses < 1)
-        GNUNET_break (0);
-      else
-        s->active_addresses --;
       update_quota_per_network (s, net_prev, NULL);
   }
 
   cur->active = GNUNET_YES;
-  s->active_addresses ++;
-  net_cur->active_addresses ++;
+  addresse_increment(s, net_cur, GNUNET_NO, GNUNET_YES);
   update_quota_per_network (s, net_cur, cur);
 
   return cur;
@@ -756,7 +795,7 @@ GAS_simplistic_address_change_preference (void *solver,
                                    enum GNUNET_ATS_PreferenceKind kind,
                                    float score)
 {
-  /* FIXME : implement this */
+
 }
 
 /* end of gnunet-service-ats_addresses_simplistic.c */
