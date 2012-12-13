@@ -2571,7 +2571,7 @@ construct_dfa_states (struct GNUNET_REGEX_Context *ctx,
  */
 struct GNUNET_REGEX_Automaton *
 GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
-                            int max_path_len)
+                            unsigned int max_path_len)
 {
   struct GNUNET_REGEX_Context ctx;
   struct GNUNET_REGEX_Automaton *dfa;

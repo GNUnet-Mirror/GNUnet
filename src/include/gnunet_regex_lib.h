@@ -98,7 +98,7 @@ struct GNUNET_REGEX_Edge
  */
 struct GNUNET_REGEX_Automaton *
 GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
-                            int max_path_len);
+                            unsigned int max_path_len);
 
 
 /**
