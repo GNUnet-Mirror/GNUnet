@@ -1276,14 +1276,8 @@ dfa_state_create (struct GNUNET_REGEX_Context *ctx,
 
   s = GNUNET_malloc (sizeof (struct GNUNET_REGEX_State));
   s->id = ctx->state_id++;
-  s->accepting = 0;
-  s->marked = GNUNET_NO;
-  s->name = NULL;
-  s->scc_id = 0;
   s->index = -1;
   s->lowlink = -1;
-  s->contained = 0;
-  s->proof = NULL;
 
   if (NULL == nfa_states)
   {
@@ -1306,21 +1300,16 @@ dfa_state_create (struct GNUNET_REGEX_Context *ctx,
     cstate = nfa_states->states[i];
     GNUNET_asprintf (&name, "%i,", cstate->id);
 
-    if (NULL != name)
-    {
-      len = strlen (s->name) + strlen (name) + 1;
-      s->name = GNUNET_realloc (s->name, len);
-      strcat (s->name, name);
-      GNUNET_free (name);
-      name = NULL;
-    }
+    len = strlen (s->name) + strlen (name) + 1;
+    s->name = GNUNET_realloc (s->name, len);
+    strcat (s->name, name);
+    GNUNET_free (name);
+    name = NULL;    
 
     /* Add a transition for each distinct label to NULL state */
-    for (ctran = cstate->transitions_head; NULL != ctran; ctran = ctran->next)
-    {
+    for (ctran = cstate->transitions_head; NULL != ctran; ctran = ctran->next)    
       if (NULL != ctran->label)
-        state_add_transition (ctx, s, ctran->label, NULL);
-    }
+        state_add_transition (ctx, s, ctran->label, NULL);    
 
     /* If the nfa_states contain an accepting state, the new dfa state is also
      * accepting. */
@@ -2562,6 +2551,7 @@ construct_dfa_states (struct GNUNET_REGEX_Context *ctx,
   }
 }
 
+
 /**
  * Construct DFA for the given 'regex' of length 'len'.
  *
@@ -2602,11 +2592,7 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
 
   dfa = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Automaton));
   dfa->type = DFA;
-  dfa->state_count = 0;
-  dfa->states_head = NULL;
-  dfa->states_tail = NULL;
   dfa->regex = GNUNET_strdup (regex);
-  dfa->is_multistrided = GNUNET_NO;
 
   /* Create DFA start state from epsilon closure */
   nfa_start_eps_cls = nfa_closure_create (nfa, nfa->start, 0);
