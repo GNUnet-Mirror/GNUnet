@@ -60,6 +60,22 @@ struct GNUNET_REGEX_StateSet_MDLL
 
 
 /**
+ * Append state to the given StateSet '
+ *
+ * @param set set to be modified
+ * @param state state to be appended
+ */
+static void
+state_set_append (struct GNUNET_REGEX_StateSet *set,
+		  struct GNUNET_REGEX_State *state)
+{
+  if (set->off == set->size)
+    GNUNET_array_grow (set->states, set->size, set->size * 2 + 4);
+  set->states[set->off++] = state;
+}
+
+
+/**
  * Compare two strings for equality. If either is NULL they are not equal.
  *
  * @param str1 first string for comparison.
@@ -231,12 +247,12 @@ state_set_compare (struct GNUNET_REGEX_StateSet *sset1,
   if (NULL == sset1 || NULL == sset2)
     return 1;
 
-  result = sset1->len - sset2->len;
+  result = sset1->off - sset2->off;
   if (result < 0)
     return -1;
   if (result > 0)
     return 1;
-  for (i = 0; i < sset1->len; i++)
+  for (i = 0; i < sset1->off; i++)
     if (0 != (result = state_compare (&sset1->states[i], &sset2->states[i])))
       break;
   return result;
@@ -251,7 +267,8 @@ state_set_compare (struct GNUNET_REGEX_StateSet *sset1,
 static void
 state_set_clear (struct GNUNET_REGEX_StateSet *set)
 {
-  GNUNET_array_grow (set->states, set->len, 0);
+  GNUNET_array_grow (set->states, set->size, 0);
+  set->off = 0;
 }
 
 
@@ -1250,16 +1267,16 @@ dfa_state_create (struct GNUNET_REGEX_Context *ctx,
 
   s->nfa_set = *nfa_states;
 
-  if (nfa_states->len < 1)
+  if (nfa_states->off < 1)
     return s;
 
   /* Create a name based on 'nfa_states' */
-  len = nfa_states->len * 14 + 4;
+  len = nfa_states->off * 14 + 4;
   s->name = GNUNET_malloc (len);
   strcat (s->name, "{");
   pos = s->name + 1;
 
-  for (i = 0; i < nfa_states->len; i++)
+  for (i = 0; i < nfa_states->off; i++)
   {
     cstate = nfa_states->states[i];
     GNUNET_snprintf (pos, pos - s->name + len,
@@ -1749,6 +1766,7 @@ dfa_compress_paths_helper (struct GNUNET_REGEX_Automaton *dfa,
   }
 }
 
+
 /**
  * Compress paths in the given 'dfa'. Linear paths like 0->1->2->3 will be
  * compressed to 0->3 by combining transitions.
@@ -1944,7 +1962,7 @@ nfa_closure_create (struct GNUNET_REGEX_StateSet *cls,
 
   /* Add start state to closure only for epsilon closure */
   if (NULL == label)
-    GNUNET_array_append (cls->states, cls->len, s);
+    state_set_append (cls, s);
 
   GNUNET_CONTAINER_MDLL_insert (ST, cls_stack.head, cls_stack.tail, s);
   cls_stack.len = 1;
@@ -1965,7 +1983,7 @@ nfa_closure_create (struct GNUNET_REGEX_StateSet *cls,
 	continue;
       if (0 == clsstate->contained)
       {
-	GNUNET_array_append (cls->states, cls->len, clsstate);
+	state_set_append (cls, clsstate);
 	GNUNET_CONTAINER_MDLL_insert_tail (ST, cls_stack.head, cls_stack.tail,
 					   clsstate);
 	cls_stack.len++;
@@ -1974,12 +1992,12 @@ nfa_closure_create (struct GNUNET_REGEX_StateSet *cls,
     }
   }
 
-  for (i = 0; i < cls->len; i++)
+  for (i = 0; i < cls->off; i++)
     cls->states[i]->contained = 0;
 
   /* sort the states */
-  if (cls->len > 1)
-    qsort (cls->states, cls->len, sizeof (struct GNUNET_REGEX_State *),
+  if (cls->off > 1)
+    qsort (cls->states, cls->off, sizeof (struct GNUNET_REGEX_State *),
            &state_compare);
 }
 
@@ -2009,14 +2027,14 @@ nfa_closure_set_create (struct GNUNET_REGEX_StateSet *ret,
   if (NULL == states)
     return;
 
-  for (i = 0; i < states->len; i++)
+  for (i = 0; i < states->off; i++)
   {
     s = states->states[i];
     nfa_closure_create (&sset, nfa, s, label);
-    for (j = 0; j < sset.len; j++)
+    for (j = 0; j < sset.off; j++)
     {
       contains = 0;
-      for (k = 0; k < ret->len; k++)
+      for (k = 0; k < ret->off; k++)
       {
         if (sset.states[j]->id == ret->states[k]->id)
         {
@@ -2025,14 +2043,14 @@ nfa_closure_set_create (struct GNUNET_REGEX_StateSet *ret,
         }
       }
       if (!contains)
-        GNUNET_array_append (ret->states, ret->len, sset.states[j]);
+	state_set_append (ret, sset.states[j]);
     }
     state_set_clear (&sset);
   }
 
-  if (ret->len > 1)
-    qsort (ret->states, ret->len, sizeof (struct GNUNET_REGEX_State *),
-           state_compare);
+  if (ret->off > 1)
+    qsort (ret->states, ret->off, sizeof (struct GNUNET_REGEX_State *),
+           &state_compare);
 }
 
 
@@ -2289,7 +2307,8 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
   unsigned int count;
   unsigned int altcount;
   unsigned int atomcount;
-  unsigned int pcount;
+  unsigned int poff;
+  unsigned int psize;
   struct
   {
     int altcount;
@@ -2312,7 +2331,8 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
   error_msg = NULL;
   altcount = 0;
   atomcount = 0;
-  pcount = 0;
+  poff = 0;
+  psize = 0;
 
   for (count = 0; count < len && *regexp; count++, regexp++)
   {
@@ -2324,9 +2344,11 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
         --atomcount;
         nfa_add_concatenation (&ctx);
       }
-      GNUNET_array_grow (p, pcount, pcount + 1);
-      p[pcount - 1].altcount = altcount;
-      p[pcount - 1].atomcount = atomcount;
+      if (poff == psize)
+	GNUNET_array_grow (p, psize, psize * 2 + 4);
+      p[poff].altcount = altcount;
+      p[poff].atomcount = atomcount;
+      poff++;
       altcount = 0;
       atomcount = 0;
       break;
@@ -2341,7 +2363,7 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
       altcount++;
       break;
     case ')':
-      if (0 == pcount)
+      if (0 == poff)
       {
         error_msg = "Missing opening '('";
         goto error;
@@ -2349,18 +2371,18 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
       if (0 == atomcount)
       {
         /* Ignore this: "()" */
-        pcount--;
-        altcount = p[pcount].altcount;
-        atomcount = p[pcount].atomcount;
+        poff--;
+        altcount = p[poff].altcount;
+        atomcount = p[poff].atomcount;
         break;
       }
       while (--atomcount > 0)
         nfa_add_concatenation (&ctx);
       for (; altcount > 0; altcount--)
         nfa_add_alternation (&ctx);
-      pcount--;
-      altcount = p[pcount].altcount;
-      atomcount = p[pcount].atomcount;
+      poff--;
+      altcount = p[poff].altcount;
+      atomcount = p[poff].atomcount;
       atomcount++;
       break;
     case '*':
@@ -2399,7 +2421,7 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
       break;
     }
   }
-  if (0 != pcount)
+  if (0 != poff)
   {
     error_msg = "Unbalanced parenthesis";
     goto error;
@@ -2409,7 +2431,7 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
   for (; altcount > 0; altcount--)
     nfa_add_alternation (&ctx);
 
-  GNUNET_free_non_null (p);
+  GNUNET_array_grow (p, psize, 0);
 
   nfa = ctx.stack_tail;
   GNUNET_CONTAINER_DLL_remove (ctx.stack_head, ctx.stack_tail, nfa);
@@ -2449,6 +2471,7 @@ error:
 
 
 static unsigned long long loopy;
+static unsigned long long doopy;
 
 /**
  * Create DFA states based on given 'nfa' and starting with 'dfa_state'.
@@ -2483,6 +2506,7 @@ construct_dfa_states (struct GNUNET_REGEX_Context *ctx,
 
     /* FIXME: this O(n) loop can be done in O(1) with a hash map */
     state_contains = NULL;
+    doopy++;
     for (state_iter = dfa->states_head; NULL != state_iter;
          state_iter = state_iter->next)
     {
@@ -2559,7 +2583,7 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
 
   fprintf (stderr, "D");
   construct_dfa_states (&ctx, nfa, dfa, dfa->start);
-  // fprintf (stderr, "D-X: %llu\n", loopy);
+  fprintf (stderr, "D-X: %llu/%llu\n", loopy, doopy);
   GNUNET_REGEX_automaton_destroy (nfa);
 
   /* Minimize DFA */
@@ -2567,7 +2591,6 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
   dfa_minimize (&ctx, dfa);
 
   /* Create proofs and hashes for all states */
-  // fprintf (stderr, "P");
   automaton_create_proofs (dfa);
 
   /* Compress linear DFA paths */
@@ -2693,7 +2716,7 @@ evaluate_nfa (struct GNUNET_REGEX_Automaton *a, const char *string)
     state_set_clear (&new_sset);
   }
 
-  for (i = 0; i < sset.len; i++)
+  for (i = 0; i < sset.off; i++)
   {
     s = sset.states[i];
     if ( (NULL != s) && (s->accepting) )

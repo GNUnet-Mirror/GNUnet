@@ -98,9 +98,14 @@ struct GNUNET_REGEX_StateSet
   struct GNUNET_REGEX_State **states;
 
   /**
+   * Number of entries in *use* in the 'states' array.
+   */
+  unsigned int off;
+
+  /**
    * Length of the 'states' array.
    */
-  unsigned int len;
+  unsigned int size;
 };
 
 
