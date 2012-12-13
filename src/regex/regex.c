@@ -188,11 +188,8 @@ state_remove_transition (struct GNUNET_REGEX_State *state,
 static int
 state_compare (const void *a, const void *b)
 {
-  struct GNUNET_REGEX_State **s1;
-  struct GNUNET_REGEX_State **s2;
-
-  s1 = (struct GNUNET_REGEX_State **) a;
-  s2 = (struct GNUNET_REGEX_State **) b;
+  struct GNUNET_REGEX_State **s1 = (struct GNUNET_REGEX_State **) a;
+  struct GNUNET_REGEX_State **s2 = (struct GNUNET_REGEX_State **) b;
 
   return (*s1)->id - (*s2)->id;
 }
@@ -237,10 +234,7 @@ state_get_edges (struct GNUNET_REGEX_State *s, struct GNUNET_REGEX_Edge *edges)
  *
  * @param sset1 first state set
  * @param sset2 second state set
- *
- * @return an integer less than, equal to, or greater than zero
- *         if the first argument is considered to be respectively
- *         less than, equal to, or greater than the second.
+ * @return 0 if the sets are equal, otherwise non-zero
  */
 static int
 state_set_compare (struct GNUNET_REGEX_StateSet *sset1,
@@ -253,14 +247,13 @@ state_set_compare (struct GNUNET_REGEX_StateSet *sset1,
     return 1;
 
   result = sset1->len - sset2->len;
-
+  if (result < 0)
+    return -1;
+  if (result > 0)
+    return 1;
   for (i = 0; i < sset1->len; i++)
-  {
-    if (0 != result)
+    if (0 != (result = state_compare (&sset1->states[i], &sset2->states[i])))
       break;
-
-    result = state_compare (&sset1->states[i], &sset2->states[i]);
-  }
   return result;
 }
 
@@ -1291,6 +1284,7 @@ dfa_state_create (struct GNUNET_REGEX_Context *ctx,
     return s;
 
   /* Create a name based on 'nfa_states' */
+  /* FIXME: insanely costly string operations here! */
   s->name = GNUNET_malloc (sizeof (char) * 2);
   strcat (s->name, "{");
   name = NULL;
@@ -2001,19 +1995,18 @@ nfa_closure_create (struct GNUNET_REGEX_Automaton *nfa,
     for (ctran = currentstate->transitions_head; NULL != ctran;
          ctran = ctran->next)
     {
-      if (NULL != ctran->to_state && 0 == nullstrcmp (label, ctran->label))
+      if (NULL == (clsstate = ctran->to_state))
+	continue;
+      if (0 != nullstrcmp (label, ctran->label))
+	continue;
+      if (0 == clsstate->contained)
       {
-        clsstate = ctran->to_state;
-
-        if (NULL != clsstate && 0 == clsstate->contained)
-        {
-          GNUNET_array_append (cls->states, cls->len, clsstate);
-          GNUNET_CONTAINER_MDLL_insert_tail (ST, cls_stack.head, cls_stack.tail,
-                                             clsstate);
-          cls_stack.len++;
-          clsstate->contained = 1;
-        }
-      }
+	GNUNET_array_append (cls->states, cls->len, clsstate);
+	GNUNET_CONTAINER_MDLL_insert_tail (ST, cls_stack.head, cls_stack.tail,
+					   clsstate);
+	cls_stack.len++;
+	clsstate->contained = 1;
+      }      
     }
   }
 
@@ -2023,7 +2016,7 @@ nfa_closure_create (struct GNUNET_REGEX_Automaton *nfa,
   /* sort the states */
   if (cls->len > 1)
     qsort (cls->states, cls->len, sizeof (struct GNUNET_REGEX_State *),
-           state_compare);
+           &state_compare);
 
   return cls;
 }
@@ -2528,17 +2521,22 @@ construct_dfa_states (struct GNUNET_REGEX_Context *ctx,
     tmp = nfa_closure_set_create (nfa, dfa_state->nfa_set, ctran->label);
     nfa_set = nfa_closure_set_create (nfa, tmp, NULL);
     state_set_clear (tmp);
-    new_dfa_state = dfa_state_create (ctx, nfa_set);
+
+    /* FIXME: this O(n) loop can be done in O(1) with a hash map */
     state_contains = NULL;
     for (state_iter = dfa->states_head; NULL != state_iter;
          state_iter = state_iter->next)
     {
-      if (0 == state_set_compare (state_iter->nfa_set, new_dfa_state->nfa_set))
+      if (0 == state_set_compare (state_iter->nfa_set, nfa_set))
+      {
         state_contains = state_iter;
+	break;
+      }
     }
 
     if (NULL == state_contains)
     {
+      new_dfa_state = dfa_state_create (ctx, nfa_set);
       automaton_add_state (dfa, new_dfa_state);
       ctran->to_state = new_dfa_state;
       construct_dfa_states (ctx, nfa, dfa, new_dfa_state);
@@ -2546,7 +2544,6 @@ construct_dfa_states (struct GNUNET_REGEX_Context *ctx,
     else
     {
       ctran->to_state = state_contains;
-      automaton_destroy_state (new_dfa_state);
     }
   }
 }

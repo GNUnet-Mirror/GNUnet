@@ -45,7 +45,7 @@ extern "C"
 /**
  * Transition between two states. Transitions are stored at the states from
  * which they origin ('from_state'). Each state can have 0-n transitions.
- * If label is 0, this is considered to be an epsilon transition.
+ * If label is NULL, this is considered to be an epsilon transition.
  */
 struct GNUNET_REGEX_Transition
 {
