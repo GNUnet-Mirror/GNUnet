@@ -2420,6 +2420,18 @@ error:
 
 static unsigned long long doopy,loopy;
 
+static const struct GNUNET_HashCode *
+get_state_key (struct GNUNET_REGEX_StateSet *nfa_set)
+{
+  static struct GNUNET_HashCode key;
+
+  GNUNET_CRYPTO_hash (nfa_set->states,
+		      sizeof (struct GNUNET_REGEX_State *) * nfa_set->off,
+		      &key);
+  return &key;
+}
+
+
 /**
  * Create DFA states based on given 'nfa' and starting with 'dfa_state'.
  *
@@ -2428,12 +2440,14 @@ static unsigned long long doopy,loopy;
  * @param dfa DFA automaton.
  * @param dfa_state current dfa state, pass epsilon closure of first nfa state
  *                  for starting.
+ * @param state_map map to find states under their proof quickly
  */
 static void
 construct_dfa_states (struct GNUNET_REGEX_Context *ctx,
                       struct GNUNET_REGEX_Automaton *nfa,
                       struct GNUNET_REGEX_Automaton *dfa,
-                      struct GNUNET_REGEX_State *dfa_state)
+                      struct GNUNET_REGEX_State *dfa_state,
+		      struct GNUNET_CONTAINER_MultiHashMap *state_map)
 {
   struct GNUNET_REGEX_Transition *ctran;
   struct GNUNET_REGEX_State *state_iter;
@@ -2441,6 +2455,7 @@ construct_dfa_states (struct GNUNET_REGEX_Context *ctx,
   struct GNUNET_REGEX_State *state_contains;
   struct GNUNET_REGEX_StateSet tmp;
   struct GNUNET_REGEX_StateSet nfa_set;
+  const struct GNUNET_HashCode *key;
 
   for (ctran = dfa_state->transitions_head; NULL != ctran; ctran = ctran->next)
   {
@@ -2452,25 +2467,18 @@ construct_dfa_states (struct GNUNET_REGEX_Context *ctx,
     state_set_clear (&tmp);
 
     /* FIXME: this O(n) loop can be done in O(1) with a hash map */
-    state_contains = NULL;
-    doopy++;
-    for (state_iter = dfa->states_head; NULL != state_iter;
-         state_iter = state_iter->next)
-    {
-      loopy++;
-      if (0 == state_set_compare (&state_iter->nfa_set, &nfa_set))
-      {
-        state_contains = state_iter;
-	break;
-      }
-    }
-    loopy--;
+    state_contains = GNUNET_CONTAINER_multihashmap_get (state_map,
+							key = get_state_key (&nfa_set));
     if (NULL == state_contains)
     {
       new_dfa_state = dfa_state_create (ctx, &nfa_set);
       automaton_add_state (dfa, new_dfa_state);
       ctran->to_state = new_dfa_state;
-      construct_dfa_states (ctx, nfa, dfa, new_dfa_state);
+      GNUNET_CONTAINER_multihashmap_put (state_map,
+					 key,
+					 new_dfa_state,
+					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+      construct_dfa_states (ctx, nfa, dfa, new_dfa_state, state_map);
     }
     else
     {
@@ -2506,6 +2514,7 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
   struct GNUNET_REGEX_Automaton *nfa;
   struct GNUNET_REGEX_StateSet nfa_start_eps_cls;
   struct GNUNET_REGEX_StateSet singleton_set;
+  struct GNUNET_CONTAINER_MultiHashMap *state_map;
 
   GNUNET_REGEX_context_init (&ctx);
 
@@ -2533,7 +2542,9 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
   automaton_add_state (dfa, dfa->start);
 
   fprintf (stderr, "D");
-  construct_dfa_states (&ctx, nfa, dfa, dfa->start);
+  state_map = GNUNET_CONTAINER_multihashmap_create (1024 * 16, GNUNET_NO);
+  construct_dfa_states (&ctx, nfa, dfa, dfa->start, state_map);
+  GNUNET_CONTAINER_multihashmap_destroy (state_map);
   fprintf (stderr, "D-X: %llu/%llu\n", loopy, doopy);
   GNUNET_REGEX_automaton_destroy (nfa);
 
