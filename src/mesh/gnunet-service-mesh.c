@@ -2273,6 +2273,9 @@ send_client_peer_connected (const struct MeshTunnel *t, const GNUNET_PEER_Id id)
 {
   struct GNUNET_MESH_PeerControl pc;
 
+  if (NULL == t->owner || GNUNET_YES == t->destroy)
+    return;
+
   pc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD);
   pc.header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
   pc.tunnel_id = htonl (t->local_tid);
