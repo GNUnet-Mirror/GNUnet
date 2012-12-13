@@ -584,7 +584,9 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Aborting...\n");
+  unsigned long i = (unsigned long) cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Aborting %lu...\n", i);
   abort_task = GNUNET_SCHEDULER_NO_TASK;
   result = GNUNET_SYSERR;
   if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
@@ -1161,7 +1163,7 @@ peer_churn_cb (void *cls, const char *emsg)
     GNUNET_TESTBED_operation_done (op);
     if (GNUNET_SCHEDULER_NO_TASK != abort_task)
       GNUNET_SCHEDULER_cancel (abort_task);
-    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, (void*) __LINE__);
     return;
   }
   GNUNET_TESTBED_operation_done (op);
@@ -1209,7 +1211,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
     GNUNET_free (dll_op);
     if (GNUNET_SCHEDULER_NO_TASK != abort_task)
       GNUNET_SCHEDULER_cancel (abort_task);
-    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, (void*) __LINE__);
     return;
   }
 
@@ -1334,7 +1336,7 @@ controller_event_cb (void *cls,
           GNUNET_TESTBED_operation_done (op);
           if (GNUNET_SCHEDULER_NO_TASK != abort_task)
             GNUNET_SCHEDULER_cancel (abort_task);
-          abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+          abort_task = GNUNET_SCHEDULER_add_now (&do_abort, (void*) __LINE__);
           return;
         }
         GNUNET_TESTBED_operation_done (op);
@@ -1521,7 +1523,7 @@ host_registration_completion (void *cls, const char *emsg)
                 _("Host registration failed for a host. Error: %s\n"), emsg);
     if (GNUNET_SCHEDULER_NO_TASK != abort_task)
       GNUNET_SCHEDULER_cancel (abort_task);
-    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, (void*) __LINE__);
     return;
   }
   register_hosts_task = GNUNET_SCHEDULER_add_now (&register_hosts, NULL);
@@ -1584,7 +1586,8 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int stat
   if (GNUNET_OK != status)
   {
     mc_proc = NULL;
-    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+    printf("CRAPPP\n");
+    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, (void*) __LINE__);
     return;
   }
   event_mask = 0;
@@ -1599,12 +1602,12 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int stat
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Unable to connect to master controller -- Check config\n"));
-    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, (void*) __LINE__);
     return;
   }
   register_hosts_task = GNUNET_SCHEDULER_add_now (&register_hosts, NULL);
   abort_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                             &do_abort, NULL);
+                                             &do_abort, (void*) __LINE__);
 }
 
 
@@ -1705,7 +1708,7 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host, int status
     else
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Testbed cannot be started on localhost\n"));
     GNUNET_SCHEDULER_cancel (abort_task);
-    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, (void*) __LINE__);
     return;
   }
   hosts_checked++;
@@ -1843,7 +1846,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_SECONDS, 5), &do_abort,
-                                    NULL);
+                                    (void*) __LINE__);
 }
 
 
