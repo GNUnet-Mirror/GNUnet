@@ -6716,6 +6716,9 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     GNUNET_array_append (info->peers, info->n_peers, peer_info->id);
   }
 
+  if (GNUNET_SCHEDULER_NO_TASK != info->timeout)
+    return;
+
   info->timeout = GNUNET_SCHEDULER_add_delayed (connect_timeout,
                                                 &regex_connect_timeout,
                                                 info);
