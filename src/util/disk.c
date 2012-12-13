@@ -436,12 +436,14 @@ mktemp_name (const char *t)
   return fn;
 }
 
+
 #if WINDOWS
 static char *
 mkdtemp (char *fn)
 {
   char *random_fn;
   char *tfn;
+
   while (1)
   {
     tfn = GNUNET_strdup (fn);
