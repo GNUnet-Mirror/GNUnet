@@ -2476,6 +2476,8 @@ error:
 }
 
 
+static unsigned long long loopy;
+
 /**
  * Create DFA states based on given 'nfa' and starting with 'dfa_state'.
  *
@@ -2512,13 +2514,14 @@ construct_dfa_states (struct GNUNET_REGEX_Context *ctx,
     for (state_iter = dfa->states_head; NULL != state_iter;
          state_iter = state_iter->next)
     {
+      loopy++;
       if (0 == state_set_compare (state_iter->nfa_set, nfa_set))
       {
         state_contains = state_iter;
 	break;
       }
     }
-
+    loopy--;
     if (NULL == state_contains)
     {
       new_dfa_state = dfa_state_create (ctx, nfa_set);
@@ -2563,7 +2566,7 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
   GNUNET_REGEX_context_init (&ctx);
 
   /* Create NFA */
-  // fprintf (stderr, "N");
+  fprintf (stderr, "N");
   nfa = GNUNET_REGEX_construct_nfa (regex, len);
 
   if (NULL == nfa)
@@ -2582,18 +2585,18 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
   dfa->start = dfa_state_create (&ctx, nfa_start_eps_cls);
   automaton_add_state (dfa, dfa->start);
 
-  // fprintf (stderr, "D");
+  fprintf (stderr, "D");
   construct_dfa_states (&ctx, nfa, dfa, dfa->start);
-
+  fprintf (stderr, "D-X: %llu\n", loopy);
   GNUNET_REGEX_automaton_destroy (nfa);
 
   /* Minimize DFA */
-  // fprintf (stderr, "M");
+  fprintf (stderr, "M");
   dfa_minimize (&ctx, dfa);
 
   /* Create proofs and hashes for all states */
-  //  fprintf (stderr, "P");
-  automaton_create_proofs (dfa);
+  fprintf (stderr, "P");
+  // automaton_create_proofs (dfa);
 
   /* Compress linear DFA paths */
   if (1 != max_path_len)
