@@ -20,7 +20,7 @@ libgnunetregex_la_LDFLAGS = \
    -version-info 0:0:0
 
 if HAVE_MYSQL
-noinst_PROGRAMS = \
+noinst_mysql_progs = \
 gnunet-regex-simulation-profiler
 
 gnunet_regex_simulation_profiler_SOURCES = \
@@ -32,6 +32,18 @@ gnunet_regex_simulation_profiler_LDADD = \
 gnunet_regex_simulation_profiler_DEPENDENCIES = \
   libgnunetregex.la
 endif
+
+noinst_PROGRAMS = $(noinst_mysql_progs) \
+  perf-regex
+
+perf_regex_SOURCES = \
+  perf-regex.c
+perf_regex_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/regex/libgnunetregex.la
+perf_regex_DEPENDENCIES = \
+  libgnunetregex.la
+
 
 check_PROGRAMS = \
   test_regex_eval_api \
