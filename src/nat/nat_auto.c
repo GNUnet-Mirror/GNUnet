@@ -324,7 +324,7 @@ nipo (void *cls, const char *name, int isDefault, const struct sockaddr *addr,
   if ( (sizeof (struct sockaddr_in6) == addrlen) &&
        (0 != memcmp (&in6addr_loopback, addr,
 		     addrlen)) &&
-       (! IN6_IS_ADDR_LINKLOCAL(addr)) )
+       (! IN6_IS_ADDR_LINKLOCAL((const struct sockaddr_in6 *) addr)) )
   {
     ah->have_v6 = GNUNET_YES;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
