@@ -948,7 +948,7 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
 static unsigned int
 load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg, unsigned long long *out_dest, unsigned long long *in_dest, int dest_length)
 {
-  int quotas[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
+  char *network_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
   char * entry_in = NULL;
   char * entry_out = NULL;
   char * quota_out_str;
@@ -959,69 +959,62 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg, unsigned long long *
   {
     in_dest[c] = 0;
     out_dest[c] = 0;
-    switch (quotas[c]) {
-      case GNUNET_ATS_NET_UNSPECIFIED:
-        entry_out = "UNSPECIFIED_QUOTA_OUT";
-        entry_in = "UNSPECIFIED_QUOTA_IN";
-        break;
-      case GNUNET_ATS_NET_LOOPBACK:
-        entry_out = "LOOPBACK_QUOTA_OUT";
-        entry_in = "LOOPBACK_QUOTA_IN";
-        break;
-      case GNUNET_ATS_NET_LAN:
-        entry_out = "LAN_QUOTA_OUT";
-        entry_in = "LAN_QUOTA_IN";
-        break;
-      case GNUNET_ATS_NET_WAN:
-        entry_out = "WAN_QUOTA_OUT";
-        entry_in = "WAN_QUOTA_IN";
-        break;
-      case GNUNET_ATS_NET_WLAN:
-        entry_out = "WLAN_QUOTA_OUT";
-        entry_in = "WLAN_QUOTA_IN";
-        break;
-      default:
-        break;
-    }
 
-    if ((entry_in == NULL) || (entry_out == NULL))
-      continue;
+    GNUNET_asprintf (&entry_out, "%s_QUOTA_OUT", network_str[c]);
+    GNUNET_asprintf (&entry_in, "%s_QUOTA_IN", network_str[c]);
+
 
     /* quota out */
     if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_out, &quota_out_str))
     {
-      if (0 == strcmp(quota_out_str, BIG_M_STRING) ||
-          (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_out_str, &out_dest[c])))
-        out_dest[c] = UINT32_MAX;
-
+      if (0 == strcmp(quota_out_str, BIG_M_STRING))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Outbound quota configure for network `%s' is unlimited (%llu)\n"),
+            network_str[c], GNUNET_ATS_MaxBandwidth);
+        out_dest[c] = GNUNET_ATS_MaxBandwidth;
+      }
+      else if (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_out_str, &out_dest[c]))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Could not convert quota configure for network `%s':  `%s', assigning default bandwidth %llu\n"),
+            network_str[c], quota_out_str, GNUNET_ATS_DefaultBandwidth);
+        out_dest[c] = GNUNET_ATS_DefaultBandwidth;
+      }
       GNUNET_free (quota_out_str);
-      quota_out_str = NULL;
     }
-    else if (GNUNET_ATS_NET_UNSPECIFIED == quotas[c])
-      out_dest[c] = UINT32_MAX;
     else
-      out_dest[c] = UINT32_MAX;
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("No outbound quota configure for network `%s', assigning default bandwidth %llu\n"),
+          network_str[c], GNUNET_ATS_DefaultBandwidth);
+      out_dest[c] = GNUNET_ATS_DefaultBandwidth;
+    }
 
     /* quota in */
     if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_in, &quota_in_str))
     {
-      if (0 == strcmp(quota_in_str, BIG_M_STRING) ||
-          (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_in_str, &in_dest[c])))
-        in_dest[c] = UINT32_MAX;
+      if (0 == strcmp(quota_in_str, BIG_M_STRING))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Inbound quota configure for network `%s' is unlimited (%llu)\n"),
+            network_str[c], GNUNET_ATS_MaxBandwidth);
+        in_dest[c] = GNUNET_ATS_MaxBandwidth;
+      }
 
+      else if (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_in_str, &in_dest[c]))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Could not convert quota configure for network `%s':  `%s', assigning default bandwidth %llu\n"),
+            network_str[c], quota_in_str, GNUNET_ATS_DefaultBandwidth);
+        in_dest[c] = GNUNET_ATS_DefaultBandwidth;
+      }
       GNUNET_free (quota_in_str);
-      quota_in_str = NULL;
-    }
-    else if (GNUNET_ATS_NET_UNSPECIFIED == quotas[c])
-    {
-      in_dest[c] = UINT32_MAX;
     }
     else
     {
-        in_dest[c] = UINT32_MAX;
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("No inbound quota configure for network `%s', assigning default bandwidth %llu\n"),
+          network_str[c], GNUNET_ATS_DefaultBandwidth);
+      in_dest[c] = GNUNET_ATS_DefaultBandwidth;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Loaded quota: %s %u, %s %u\n", entry_in, in_dest[c], entry_out, out_dest[c]);
-
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Loaded quota for network `%s' (in/out): %llu %llu\n", network_str[c], in_dest[c], out_dest[c]);
+    GNUNET_free (entry_out);
+    GNUNET_free (entry_in);
   }
   return GNUNET_ATS_NetworkTypeCount;
 }

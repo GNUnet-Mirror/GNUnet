@@ -14,6 +14,8 @@ UNIX_MATCH_GID = YES
 MODE = simplistic 
 
 # Network specific inbound/outbound quotas
+UNSPECIFIED_QUOTA_IN = 64 KiB
+UNSPECIFIED_QUOTA_OUT = 64 KiB
 # LOOPBACK
 LOOPBACK_QUOTA_IN = unlimited
 LOOPBACK_QUOTA_OUT = unlimited

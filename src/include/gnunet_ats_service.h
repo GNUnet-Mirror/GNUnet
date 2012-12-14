@@ -54,7 +54,15 @@ enum GNUNET_ATS_Network_Type
   GNUNET_ATS_NET_WLAN = 4,
 };
 
+/**
+ * Default bandwidth assigned to a network : 64 KB/s
+ */
+#define GNUNET_ATS_DefaultBandwidth 65536
 
+/**
+ * Default bandwidth assigned to a network : 4095 MB/s
+ */
+#define GNUNET_ATS_MaxBandwidth UINT32_MAX
 
 /**
  * Number of property types supported by ATS
