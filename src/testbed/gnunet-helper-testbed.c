@@ -52,6 +52,16 @@
 
 
 /**
+ * We need pipe control only on WINDOWS
+ */
+#if WINDOWS
+#define PIPE_CONTROL GNUNET_YES
+#else
+#define PIPE_CONTROL GNUNET_NO
+#endif
+
+
+/**
  * Context for a single write on a chunk of memory
  */
 struct WriteContext
@@ -321,7 +331,7 @@ tokenizer_cb (void *cls, void *client,
   LOG_DEBUG ("Staring testbed with config: %s\n", config);
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-testbed");
   testbed =
-      GNUNET_OS_start_process (GNUNET_YES,
+      GNUNET_OS_start_process (PIPE_CONTROL,
                                GNUNET_OS_INHERIT_STD_ERR /*verbose? */ , NULL,
                                NULL, 
 			       binary,

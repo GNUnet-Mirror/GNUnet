@@ -36,6 +36,17 @@
 #define LOG(kind,...)                                           \
   GNUNET_log_from (kind, "testing-api", __VA_ARGS__)
 
+
+/**
+ * We need pipe control only on WINDOWS
+ */
+#if WINDOWS
+#define PIPE_CONTROL GNUNET_YES
+#else
+#define PIPE_CONTROL GNUNET_NO
+#endif
+
+
 /**
  * Lowest port used for GNUnet testing.  Should be high enough to not
  * conflict with other applications running on the hosts but be low
@@ -984,7 +995,9 @@ GNUNET_TESTING_peer_start (struct GNUNET_TESTING_Peer *peer)
     return GNUNET_SYSERR;
   }
   GNUNET_assert (NULL != peer->cfgfile);
-  peer->main_process = GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL,
+  peer->main_process = GNUNET_OS_start_process (PIPE_CONTROL, 
+                                                GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                                NULL, NULL,
                                                 peer->main_binary,
                                                 peer->main_binary,
                                                 peer->args,
