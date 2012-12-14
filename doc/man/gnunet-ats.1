@@ -15,11 +15,20 @@ addresses and the assigned input and output bandwidth.
 
 .SH OPTIONS
 .B
+.IP "\-a,  \-\-aa"
+List all addresses currently known to ats.
+.B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.
 .B
 .IP "\-h, \-\-help"
 Print short help on options.
+.B
+.IP "\-i, \-\-id=PEERID"
+Print information for a specific peer identity only
+.B
+.IP "\-k, \-\-value=VALUE"
+Value to set for when changing preference values
 .B
 .IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
 Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
@@ -30,9 +39,23 @@ Monitor changes to the bandwidth assignments continously
 .IP "\-n, \-\-numeric"
 Do not resolve IP addresses to hostnames
 .B
+.IP "\-k, \-\-preference=E"
+Set preference values, -i, -k and -t required
+.B
+.IP "\-q, \-\-quotas"
+Print quotas for all network types
+.B
+.IP "\-t, \-\-type=VALUE"
+Preference type to change: latency | bandwidth
+.B
+.IP "\-u, \-\-used"
+Print addresses actively used only
+.B
+.IP "\-V, \-\-verbose"
+Print verbose output (include ATS address properties)
+.B
 .IP "\-v, \-\-version"
 Print GNUnet version number.
-
 
 .SH BUGS
 Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <bug\-gnunet@gnu.org>
