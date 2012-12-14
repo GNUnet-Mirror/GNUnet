@@ -323,6 +323,7 @@ parent_control_handler (void *cls,
                         const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_DISK_FileHandle *control_pipe = cls;
+  char *pipe_name;
   char sig;
   ssize_t ret;
   
@@ -345,7 +346,10 @@ parent_control_handler (void *cls,
     control_pipe = NULL;
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got control code %d from parent\n", sig);
+  pipe_name = getenv (GNUNET_OS_CONTROL_PIPE);
+  GNUNET_assert ( (NULL == pipe_name) || (strlen (pipe_name) <= 0) );
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Got control code %d from parent via pipe %s\n", sig, pipe_name);
   GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
 				  control_pipe, &parent_control_handler,
 				  control_pipe);
