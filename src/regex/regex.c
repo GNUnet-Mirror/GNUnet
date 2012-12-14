@@ -539,6 +539,31 @@ GNUNET_REGEX_automaton_traverse (const struct GNUNET_REGEX_Automaton *a,
 
 
 /**
+ * String container for faster string operations.
+ */
+struct StringBuffer
+{
+  /**
+   * Buffer holding the string.
+   */
+  char *sbuf;
+  
+  /**
+   * Length of the string in the buffer.
+   */
+  size_t slen;
+
+  /**
+   * Number of bytes allocated for 'sbuf'
+   */
+  size_t blen;
+};
+
+
+
+
+
+/**
  * Check if the given string 'str' needs parentheses around it when
  * using it to generate a regex.
  *
@@ -642,7 +667,7 @@ has_epsilon (const char *str)
  *         epsilon could be found, NULL if 'str' was NULL
  */
 static char *
-remove_epsilon (char *str)
+remove_epsilon (const char *str)
 {
   size_t len;
 
@@ -709,8 +734,10 @@ number_states (void *cls, const unsigned int count,
  *                 is expected to be NULL when called!
  */
 static void
-automaton_create_proofs_simplify (char *R_last_ij, char *R_last_ik,
-                                  char *R_last_kk, char *R_last_kj,
+automaton_create_proofs_simplify (const char *R_last_ij, 
+				  const char *R_last_ik,
+                                  const char *R_last_kk,
+				  const char *R_last_kj,
                                   char **R_cur_ij)
 {
   char *R_cur_l;
@@ -789,8 +816,9 @@ automaton_create_proofs_simplify (char *R_last_ij, char *R_last_ik,
      * as parentheses, so we can better compare the contents */
     R_temp_ij = remove_parentheses (remove_epsilon (R_last_ij));
 
-    if (0 == strcmp (R_temp_ij, R_temp_ik) && 0 == strcmp (R_temp_ik, R_temp_kk)
-        && 0 == strcmp (R_temp_kk, R_temp_kj))
+    if ( (0 == strcmp (R_temp_ij, R_temp_ik)) && 
+	 (0 == strcmp (R_temp_ik, R_temp_kk)) && 
+	 (0 == strcmp (R_temp_kk, R_temp_kj)) )
     {
       if (0 == strlen (R_temp_ij))
       {
@@ -1092,13 +1120,14 @@ automaton_create_proofs_simplify (char *R_last_ij, char *R_last_ik,
  *
  * @param a automaton for which to assign proofs and hashes, must not be NULL
  */
-static void
+static int
 automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
 {
   unsigned int n = a->state_count;
   struct GNUNET_REGEX_State *states[n];
   char **R_last;
   char **R_cur;
+  char **R_swap;
   char *temp;
   struct GNUNET_REGEX_Transition *t;
   char *complete_regex;
@@ -1108,6 +1137,14 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
 
   R_last = GNUNET_malloc_large (sizeof (char *) * n * n);
   R_cur = GNUNET_malloc_large (sizeof (char *) * n * n);
+  if ( (NULL == R_last) ||
+       (NULL == R_cur) )
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "malloc");
+    GNUNET_free_non_null (R_cur);
+    GNUNET_free_non_null (R_last);
+    return GNUNET_SYSERR;
+  }
 
   /* create depth-first numbering of the states, initializes 'state' */
   GNUNET_REGEX_automaton_traverse (a, a->start, NULL, NULL, &number_states,
@@ -1119,16 +1156,13 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
   /* Compute regular expressions of length "1" between each pair of states */
   for (i = 0; i < n; i++)
   {
-    for (j = 0; j < n; j++)
-    {
-      R_cur[i * n + j] = NULL;
-      R_last[i * n + j] = NULL;
-    }
     for (t = states[i]->transitions_head; NULL != t; t = t->next)
     {
       j = t->to_state->dfs_id;
       if (NULL == R_last[i * n + j])
+      {
         GNUNET_asprintf (&R_last[i * n + j], "%s", t->label);
+      }
       else
       {
         temp = R_last[i * n + j];
@@ -1137,8 +1171,11 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
         GNUNET_free (temp);
       }
     }
+    /* add self-loop: i is reachable from i via epsilon-transition */
     if (NULL == R_last[i * n + i])
+    {
       GNUNET_asprintf (&R_last[i * n + i], "");
+    }
     else
     {
       temp = R_last[i * n + i];
@@ -1176,12 +1213,15 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
     }
 
     /* set R_last = R_cur */
+    R_swap = R_last;
+    R_last = R_cur;
+    R_cur = R_swap;
+    /* clear 'R_cur' for next iteration */
     for (i = 0; i < n; i++)
     {
       for (j = 0; j < n; j++)
       {
-        GNUNET_free_non_null (R_last[i * n + j]);
-        R_last[i * n + j] = R_cur[i * n + j];
+        GNUNET_free_non_null (R_cur[i * n + j]);
         R_cur[i * n + j] = NULL;
       }
     }
@@ -1224,13 +1264,12 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
   a->canonical_regex = complete_regex;
 
   /* cleanup */
-  for (i = 0; i < n; i++)
-  {
+  for (i = 0; i < n; i++)  
     for (j = 0; j < n; j++)
-      GNUNET_free_non_null (R_last[i * n + j]);
-  }
+      GNUNET_free_non_null (R_last[i * n + j]);  
   GNUNET_free (R_cur);
   GNUNET_free (R_last);
+  return GNUNET_OK;
 }
 
 
@@ -1438,8 +1477,9 @@ dfa_remove_dead_states (struct GNUNET_REGEX_Automaton *a)
  *
  * @param ctx context
  * @param a DFA automaton
+ * @return GNUNET_OK on success
  */
-static void
+static int
 dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
                                      struct GNUNET_REGEX_Automaton *a)
 {
@@ -1461,11 +1501,16 @@ dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Could not merge nondistinguishable states, automaton was NULL.\n");
-    return;
+    return GNUNET_SYSERR;
   }
 
   state_cnt = a->state_count;
   table = GNUNET_malloc_large ((sizeof (uint32_t) * state_cnt * a->state_count / 32)  + 1);
+  if (NULL == table)
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "malloc");
+    return GNUNET_SYSERR;
+  }
 
   for (i = 0, s1 = a->states_head; NULL != s1; s1 = s1->next)
     s1->marked = i++;
@@ -1539,6 +1584,7 @@ dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
   }
 
   GNUNET_free (table);
+  return GNUNET_OK;
 }
 
 
@@ -1548,13 +1594,14 @@ dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
  *
  * @param ctx context
  * @param a DFA automaton
+ * @return GNUNET_OK on success
  */
-static void
+static int
 dfa_minimize (struct GNUNET_REGEX_Context *ctx,
               struct GNUNET_REGEX_Automaton *a)
 {
   if (NULL == a)
-    return;
+    return GNUNET_SYSERR;
 
   GNUNET_assert (DFA == a->type);
 
@@ -1565,7 +1612,9 @@ dfa_minimize (struct GNUNET_REGEX_Context *ctx,
   dfa_remove_dead_states (a);
 
   /* 3. Merge nondistinguishable states */
-  dfa_merge_nondistinguishable_states (ctx, a);
+  if (GNUNET_OK != dfa_merge_nondistinguishable_states (ctx, a))
+    return GNUNET_SYSERR;
+  return GNUNET_OK;
 }
 
 
@@ -2533,10 +2582,18 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
 
   /* Minimize DFA */
   // fprintf (stderr, "M");
-  dfa_minimize (&ctx, dfa);
+  if (GNUNET_OK != dfa_minimize (&ctx, dfa))
+  {
+    GNUNET_REGEX_automaton_destroy (dfa);
+    return NULL;
+  }
 
   /* Create proofs and hashes for all states */
-  automaton_create_proofs (dfa);
+  if (GNUNET_OK != automaton_create_proofs (dfa))
+  {
+    GNUNET_REGEX_automaton_destroy (dfa);
+    return NULL;
+  }
 
   /* Compress linear DFA paths */
   if (1 != max_path_len)
