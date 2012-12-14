@@ -57,7 +57,8 @@ struct RegexStringPair
   char *strings[20];
 };
 
-void
+
+static void
 key_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
               int accepting, unsigned int num_edges,
               const struct GNUNET_REGEX_Edge *edges)
@@ -67,6 +68,7 @@ key_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
   char *out_str;
   char *state_id = GNUNET_strdup (GNUNET_h2s (key));
 
+  GNUNET_assert (NULL != proof);
   if (GNUNET_YES == ctx->should_save_graph)
   {
     if (GNUNET_YES == accepting)

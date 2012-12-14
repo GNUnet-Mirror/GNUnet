@@ -38,7 +38,7 @@
  *
  * @return 0 on success, 1 on failure
  */
-unsigned int
+static unsigned int
 test_proof (const char *regex)
 {
   unsigned int error;
@@ -47,9 +47,11 @@ test_proof (const char *regex)
   const char *c_rx2;
 
   dfa = GNUNET_REGEX_construct_dfa (regex, strlen (regex), 1);
+  GNUNET_assert (NULL != dfa);
   c_rx1 = GNUNET_strdup (GNUNET_REGEX_get_canonical_regex (dfa));
   GNUNET_REGEX_automaton_destroy (dfa);
   dfa = GNUNET_REGEX_construct_dfa (c_rx1, strlen (c_rx1), 1);
+  GNUNET_assert (NULL != dfa);
   c_rx2 = GNUNET_REGEX_get_canonical_regex (dfa);
 
   error = (0 == strcmp (c_rx1, c_rx2)) ? 0 : 1;
@@ -67,6 +69,7 @@ test_proof (const char *regex)
   return error;
 }
 
+
 /**
  * Use 'test_proof' function to randomly test the canonical regexes of 'count'
  * random expressions of length 'rx_length'.
@@ -76,7 +79,7 @@ test_proof (const char *regex)
  *
  * @return 0 on succes, number of failures otherwise.
  */
-unsigned int
+static unsigned int
 test_proofs_random (unsigned int count, size_t rx_length)
 {
   unsigned int i;
@@ -95,13 +98,14 @@ test_proofs_random (unsigned int count, size_t rx_length)
   return failures;
 }
 
+
 /**
  * Test a number of known examples of regexes for proper canonicalization.
  *
  * @return 0 on success, number of failures otherwise.
  */
-unsigned int
-test_proofs_static (void)
+static unsigned int
+test_proofs_static ()
 {
   unsigned int i;
   unsigned int error;
@@ -128,6 +132,8 @@ test_proofs_static (void)
   {
     dfa1 = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]), 1);
     dfa2 = GNUNET_REGEX_construct_dfa (regex[i + 1], strlen (regex[i + 1]), 1);
+    GNUNET_assert (NULL != dfa1);
+    GNUNET_assert (NULL != dfa2);
 
     canon_rx1 = GNUNET_REGEX_get_canonical_regex (dfa1);
     canon_rx2 = GNUNET_REGEX_get_canonical_regex (dfa2);
