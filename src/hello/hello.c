@@ -769,7 +769,6 @@ map_characters (const char *in,
  * @param cls the 'GNUNET_HELLO_GetUriContext'
  * @param address address to add
  * @param expiration expiration time for the address
- * @param plugins_find Function to find transport plugins by name
  * @return GNUNET_OK (continue iteration).
  */
 static int
