@@ -527,7 +527,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param cls closure
  * @param server the initialized server
- * @param cfg configuration to use
+ * @param mycfg configuration to use
  */
 static void
 run (void *cls, struct GNUNET_SERVER_Handle *server,
