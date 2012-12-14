@@ -72,14 +72,14 @@ GNUNET_DNSPARSER_check_label (const char *label)
  *         GNUNET_SYSERR if the label is not valid for DNS names
  */
 int
-GNUNET_DNSPARSER_check_name (const char *label)
+GNUNET_DNSPARSER_check_name (const char *name)
 {
   char *ldup;
   char *output;
   size_t slen;
   char *tok;
   
-  ldup = GNUNET_strdup (label);
+  ldup = GNUNET_strdup (name);
   for (tok = strtok (ldup, "."); NULL != tok; tok = strtok (NULL, "."))
     if (GNUNET_OK !=
 	GNUNET_DNSPARSER_check_label (tok))
@@ -89,7 +89,7 @@ GNUNET_DNSPARSER_check_name (const char *label)
     }
   GNUNET_free (ldup);
   if (IDNA_SUCCESS != 
-      idna_to_ascii_8z (label, &output, IDNA_USE_STD3_ASCII_RULES))
+      idna_to_ascii_8z (name, &output, IDNA_USE_STD3_ASCII_RULES))
     return GNUNET_SYSERR;
   slen = strlen (output);
 #if WINDOWS
