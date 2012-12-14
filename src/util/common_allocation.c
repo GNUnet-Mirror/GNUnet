@@ -286,6 +286,8 @@ GNUNET_xstrndup_ (const char *str, size_t len, const char *filename,
 {
   char *res;
 
+  if (0 == len)
+    return GNUNET_strdup ("");
   GNUNET_assert_at (str != NULL, filename, linenumber);
   len = strnlen (str, len);
   res = GNUNET_xmalloc_ (len + 1, filename, linenumber);
