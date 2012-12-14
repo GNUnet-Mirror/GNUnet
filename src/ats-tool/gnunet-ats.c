@@ -30,6 +30,8 @@
 
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5)
 
+#define BIG_M_STRING "unlimited"
+
 /**
  * Final status code.
  */
@@ -66,6 +68,11 @@ static int op_list_all;
  * List all addresses
  */
 static int op_set_pref;
+
+/**
+ * Print quotas configured
+ */
+static int op_print_quotas;
 
 /**
  * Monitor addresses used
@@ -261,6 +268,67 @@ void ats_perf_cb (void *cls,
   }
 }
 
+static unsigned int
+print_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  char *network_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
+  char * entry_in = NULL;
+  char * entry_out = NULL;
+  char * quota_out_str;
+  char * quota_in_str;
+  unsigned long long int quota_out;
+  unsigned long long int quota_in;
+  int c;
+
+  for (c = 0; (c < GNUNET_ATS_NetworkTypeCount); c++)
+  {
+
+    GNUNET_asprintf (&entry_out, "%s_QUOTA_OUT", network_str[c]);
+    GNUNET_asprintf (&entry_in, "%s_QUOTA_IN", network_str[c]);
+
+    /* quota out */
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_out, &quota_out_str))
+    {
+      if (0 == strcmp(quota_out_str, BIG_M_STRING) ||
+          (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_out_str, &quota_out)))
+        quota_out = UINT32_MAX;
+
+      GNUNET_free (quota_out_str);
+      GNUNET_asprintf (&quota_out_str, "%llu", quota_out);
+    }
+    else
+    {
+        fprintf (stderr, "Outbound quota for network `%11s' not configured!\n",
+            network_str[c]);
+        GNUNET_asprintf (&quota_out_str, "-");
+    }
+    GNUNET_free (entry_out);
+
+    /* quota in */
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_in, &quota_in_str))
+    {
+      if (0 == strcmp(quota_in_str, BIG_M_STRING) ||
+          (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_in_str, &quota_in)))
+          quota_in = UINT32_MAX;
+      GNUNET_free (quota_in_str);
+      GNUNET_asprintf (&quota_in_str, "%llu", quota_in);
+    }
+    else
+    {
+        fprintf (stderr, "Inbound quota for network `%11s' not configured!\n",
+            network_str[c]);
+        GNUNET_asprintf (&quota_in_str, "-");
+    }
+    GNUNET_free (entry_in);
+
+    fprintf (stderr, _("Quota for network `%11s' (in/out): %10s / %10s\n"), network_str[c], quota_in_str, quota_out_str );
+    GNUNET_free (quota_out_str);
+    GNUNET_free (quota_in_str);
+  }
+  return GNUNET_ATS_NetworkTypeCount;
+}
+
+
 
 void testservice_ats (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -290,14 +358,17 @@ void testservice_ats (void *cls,
   c = op_list_all + op_list_used + op_monitor + op_set_pref;
   if ((1 < c))
   {
-      FPRINTF (stderr, _("Please select one operation : %s or %s or %s or %s\n"),
-               "--used", "--all", "--monitor", "--preference");
+      FPRINTF (stderr, _("Please select one operation : %s or %s or %s or %s or %s\n"),
+               "--used", "--all", "--monitor", "--preference", "--quotas");
       return;
   }
   if ((0 == c))
     op_list_used = GNUNET_YES; /* set default */
-
-
+    if (op_print_quotas)
+    {
+        ret = print_quotas (cfg);
+        return;
+    }
     if (op_list_all)
     {
         ph = GNUNET_ATS_performance_init (cfg, NULL, NULL);
@@ -428,6 +499,9 @@ main (int argc, char *const *argv)
        {'p', "preference", NULL,
          gettext_noop ("set preference for the given peer"),
          0, &GNUNET_GETOPT_set_one, &op_set_pref},
+       {'q', "quotas", NULL,
+         gettext_noop ("print all configured quotas"),
+         0, &GNUNET_GETOPT_set_one, &op_print_quotas},
        {'i', "id", "TYPE",
          gettext_noop ("peer id"),
          1, &GNUNET_GETOPT_set_string, &pid_str},
