@@ -162,7 +162,7 @@ load_regexes (const char *filename, char **rx)
   while (offset < (filesize - 1))
   {
     offset++;
-    if (((data[offset] == '\n')) && (buf != &data[offset]))
+    if ((data[offset] == '\n') && (buf != &data[offset]))
     {
       data[offset] = '|';
       buf = &data[offset + 1];
