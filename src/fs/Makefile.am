@@ -186,7 +186,7 @@ gnunet_service_fs_SOURCES =  \
  gnunet-service-fs_pr.c gnunet-service-fs_pr.h \
  gnunet-service-fs_push.c gnunet-service-fs_push.h \
  gnunet-service-fs_put.c gnunet-service-fs_put.h \
- gnunet-service-fs_stream.c gnunet-service-fs_sream.h 
+ gnunet-service-fs_stream.c gnunet-service-fs_stream.h 
 gnunet_service_fs_LDADD =  \
  $(top_builddir)/src/fs/libgnunetfs.la \
  $(top_builddir)/src/dht/libgnunetdht.la \
@@ -533,7 +533,7 @@ EXTRA_DIST = \
   fs_test_lib_data.conf \
   test_fs_data.conf \
   test_fs_download_data.conf \
-  test_fs_download_index.conf \
+  test_fs_download_indexed.conf \
   test_fs_download_stream.conf \
   test_fs_file_information_data.conf \
   fs_test_lib_data.conf \
