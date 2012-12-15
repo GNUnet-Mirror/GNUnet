@@ -391,6 +391,9 @@ transmit_message_callback (void *cls, size_t buf_size, void *buf)
   if (NULL == buf)
   {
     /* failed, try again... */
+    if (GNUNET_SCHEDULER_NO_TASK != pp->task)
+      GNUNET_SCHEDULER_cancel (pp->task);
+
     pp->task = GNUNET_SCHEDULER_add_now (&schedule_peer_transmission, pp);
     GNUNET_STATISTICS_update (GSF_stats,
                               gettext_noop
@@ -401,12 +404,16 @@ transmit_message_callback (void *cls, size_t buf_size, void *buf)
   rp = GNUNET_CONTAINER_heap_peek (pp->priority_heap);
   if (NULL == rp)
   {
+    if (GNUNET_SCHEDULER_NO_TASK != pp->task)
+      GNUNET_SCHEDULER_cancel (pp->task);
     pp->task = GNUNET_SCHEDULER_add_now (&schedule_peer_transmission, pp);
     return 0;
   }
   msize = GSF_pending_request_get_message_ (get_latest (rp), buf_size, buf);
   if (msize > buf_size)
   {
+    if (GNUNET_SCHEDULER_NO_TASK != pp->task)
+      GNUNET_SCHEDULER_cancel (pp->task);
     /* buffer to small (message changed), try again */
     pp->task = GNUNET_SCHEDULER_add_now (&schedule_peer_transmission, pp);
     return 0;
