@@ -3703,18 +3703,20 @@ GNUNET_REGEX_combine (char * const regexes[])
   unsigned int i;
   char *combined;
   const char *current;
-  struct RegexCombineCtx *ctx;
+  struct RegexCombineCtx ctx;
 
-  ctx = GNUNET_malloc (sizeof (struct RegexCombineCtx));
+  memset (&ctx, 0, sizeof (struct RegexCombineCtx));
   for (i = 0; regexes[i]; i++)
   {
     current = regexes[i];
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Regex %u: %s\n", i, current);
-    regex_add (ctx, current);
+    regex_add (&ctx, current);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\nCombining...\n");
 
-  combined = regex_combine (ctx);
+  combined = regex_combine (&ctx);
 
   return combined;
 }
+
+/* end of regex.c */

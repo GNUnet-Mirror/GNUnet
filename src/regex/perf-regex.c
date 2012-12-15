@@ -51,6 +51,7 @@ main (int argc, char *const *argv)
   char *buffer;
   char *regex;
   unsigned int nr;
+  unsigned int i;
   int compression;
   long size;
   size_t len;
@@ -112,12 +113,16 @@ main (int argc, char *const *argv)
 
   GNUNET_asprintf (&regex, "GNVPN-0001-PAD(%s)(0|1)*", buffer);
   
-//   fprintf (stderr, "Combined regex:\n%s\n", regex);
+  fprintf (stderr, "Combined regex:\n%s\n", regex);
 //   return 0;
 
   compression = atoi (argv[2]);
   dfa = GNUNET_REGEX_construct_dfa (regex, size, compression);
   GNUNET_REGEX_automaton_destroy (dfa);
+  GNUNET_free (buffer);
+  for (i=0;i<nr;i++)
+    GNUNET_free (regexes[i]);
+  GNUNET_array_grow (regexes, nr, 0);
   return 0;
 }
 
