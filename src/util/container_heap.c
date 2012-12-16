@@ -400,6 +400,8 @@ GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *heap)
     heap->root = root->left_child;
     insert_node (heap, heap->root, root->right_child);
   }
+  if (heap->walk_pos == root)
+    heap->walk_pos = heap->root;
   GNUNET_free (root);
 #if EXTRA_CHECKS
   GNUNET_assert (((heap->size == 0) && (heap->root == NULL)) ||
