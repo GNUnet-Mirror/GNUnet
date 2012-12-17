@@ -39,6 +39,13 @@ struct RegexCombineCtx {
 };
 
 
+/**
+ * Extract a string from all prefix-combined regexes.
+ *
+ * @param ctx Context with 0 or more regexes.
+ *
+ * @return Regex that matches any of the added regexes.
+ */
 static char *
 regex_combine (struct RegexCombineCtx *ctx)
 {
@@ -76,6 +83,13 @@ regex_combine (struct RegexCombineCtx *ctx)
   return regex;
 }
 
+
+/**
+ * Add a single regex to a context, combining with exisiting regex by-prefix.
+ *
+ * @param ctx Context with 0 or more regexes.
+ * @param regex Regex to add.
+ */
 static void
 regex_add (struct RegexCombineCtx *ctx, const char *regex)
 {
@@ -120,6 +134,27 @@ regex_add (struct RegexCombineCtx *ctx, const char *regex)
 
 
 /**
+ * Free all resources used by the context node and all its children.
+ *
+ * @param ctx Context to free.
+ */
+static void
+regex_ctx_destroy (struct RegexCombineCtx *ctx)
+{
+  struct RegexCombineCtx *p;
+  struct RegexCombineCtx *next;
+
+  for (p = ctx->head; NULL != p; p = next)
+  {
+    next = p->next;
+    regex_ctx_destroy (p);
+  }
+  GNUNET_free (ctx->s);
+  GNUNET_free (ctx);
+}
+
+
+/**
  * Return a prefix-combine regex that matches the same strings as
  * any of the original regexes.
  *
@@ -133,18 +168,20 @@ GNUNET_REGEX_combine (char * const regexes[])
   unsigned int i;
   char *combined;
   const char *current;
-  struct RegexCombineCtx ctx;
+  struct RegexCombineCtx *ctx;
 
-  memset (&ctx, 0, sizeof (struct RegexCombineCtx));
+  ctx = GNUNET_malloc (sizeof (struct RegexCombineCtx));
   for (i = 0; regexes[i]; i++)
   {
     current = regexes[i];
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Regex %u: %s\n", i, current);
-    regex_add (&ctx, current);
+    regex_add (ctx, current);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\nCombining...\n");
 
-  combined = regex_combine (&ctx);
+  combined = regex_combine (ctx);
+
+  regex_ctx_destroy (ctx);
 
   return combined;
 }
