@@ -437,7 +437,7 @@ typedef void (*GNUNET_TESTBED_ControllerStatusCallback) (void *cls,
 
 
 /**
- * Starts a controller process at the host.
+ * Starts a controller process at the given host.
  *
  * @param trusted_ip the ip address of the controller which will be set as TRUSTED
  *          HOST(all connections form this ip are permitted by the testbed) when
@@ -550,7 +550,9 @@ typedef void (* GNUNET_TESTBED_HostRegistrationCompletion) (void *cls,
 
 
 /**
- * Register a host with the controller
+ * Register a host with the controller. This makes the controller aware of the
+ * host. A host should be registered at the controller before starting a
+ * sub-controller on that host using GNUNET_TESTBED_controller_link().
  *
  * @param controller the controller handle
  * @param host the host to register
