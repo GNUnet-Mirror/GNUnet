@@ -19,7 +19,7 @@
 */
 
 /**
- * @file regex/prof-regex.c
+ * @file src/regex/prof-regex.c
  * @brief Test how long it takes to create a automaton from a string regex.
  * @author Bartlomiej Polot
  */
@@ -27,6 +27,7 @@
 #include <time.h>
 #include "platform.h"
 #include "gnunet_regex_lib.h"
+#include "regex_test_lib.h"
 
 static const char *exe;
 
@@ -54,8 +55,6 @@ main (int argc, char *const *argv)
   unsigned int i;
   int compression;
   long size;
-  size_t len;
-  FILE *f;
 
   GNUNET_log_setup ("perf-regex", "DEBUG", NULL);
   exe = argv[0];
@@ -64,50 +63,7 @@ main (int argc, char *const *argv)
     usage();
     return 1;
   }
-  f = fopen (argv[1], "r");
-  if (NULL == f)
-  {
-    fprintf (stderr, "Can't open file %s\n", argv[1]);
-    usage();
-    return 2;
-  }
-  fseek (f, 0, SEEK_END);
-  size = ftell (f);
-  fprintf (stderr, "using file %s, size %ld\n", argv[1], size);
-  fseek (f, 0, SEEK_SET);
-  buffer = GNUNET_malloc (size + 1);
-  regexes = GNUNET_malloc (sizeof (char *));
-  nr = 1;
-  do
-  {
-    if (NULL == fgets (buffer, size + 1, f))
-    {
-      fprintf (stderr, "Can't read file %s\n", argv[1]);
-      usage();
-      return 3;
-    }
-    len = strlen (buffer);
-    if (len < 1)
-      continue;
-    if ('\n' == buffer[len - 1])
-    {
-      len--;
-      buffer[len] = '\0';
-    }
-    if (len < 6 || strncmp (&buffer[len - 6], "(0|1)*", 6) != 0)
-    {
-      fprintf (stderr, "\nWARNING:\n");
-      fprintf (stderr, "%s (line %u) does not end in (0|1)*\n", buffer, nr);
-    }
-    else
-    {
-      buffer[len - 6] = '\0';
-    }
-    GNUNET_array_grow (regexes, nr, nr+1);
-    regexes[nr - 2] = GNUNET_strdup (buffer);
-    regexes[nr - 1] = NULL;
-  } while (ftell(f) < size);
-  GNUNET_free (buffer);
+  regexes = GNUNET_REGEX_read_from_file (argv[1]);
 
   buffer = GNUNET_REGEX_combine (regexes);
 

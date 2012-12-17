@@ -33,6 +33,17 @@ gnunet_regex_simulation_profiler_DEPENDENCIES = \
   libgnunetregex.la
 endif
 
+noinst_LTLIBRARIES = libgnunetregextest.la
+
+libgnunetregextest_la_SOURCES = \
+  regex_test_lib.c regex_test_lib.h
+libgnunetregextest_la_LIBADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/regex/libgnunetregex.la
+libgnunetregextest_la_DEPENDENCIES = \
+  libgnunetregex.la
+
+
 noinst_PROGRAMS = $(noinst_mysql_progs) \
   perf-regex
 
@@ -40,7 +51,8 @@ perf_regex_SOURCES = \
   perf-regex.c
 perf_regex_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/regex/libgnunetregex.la
+  $(top_builddir)/src/regex/libgnunetregex.la \
+  $(top_builddir)/src/regex/libgnunetregextest.la
 perf_regex_DEPENDENCIES = \
   libgnunetregex.la
 

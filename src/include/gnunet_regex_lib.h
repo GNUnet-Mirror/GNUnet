@@ -249,16 +249,6 @@ GNUNET_REGEX_ipv6toregex (const struct in6_addr *ipv6,
                           unsigned int prefixlen, char *rxstr);
 
 
-/**
- * Combine an array of regexes into a single prefix-shared regex.
- *
- * @param regexes A NULL-terminated array of regexes.
- *
- * @retrun A string with a single regex that matches any of the original regexes
- */
-char *
-GNUNET_REGEX_combine(char * const regexes[]);
-
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
