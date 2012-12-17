@@ -67,15 +67,17 @@ struct GNUNET_TESTING_Peer;
  * @param testdir only the directory name without any path. This is used for all
  *          service homes; the directory will be created in a temporary location
  *          depending on the underlying OS
- * @param controller hostname of the controlling host, service configurations
- *        are modified to allow control connections from this host; can be NULL
+ * @param trusted_ip the ip address which will be set as TRUSTED HOST in all
+ *          service configurations generated to allow control connections from
+ *          this ip. This can either be a single ip address or a network address
+ *          in CIDR notation.
  * @param hostname the hostname of the system we are using for testing; NULL for
  *          localhost
  * @return handle to this system, NULL on error
  */
 struct GNUNET_TESTING_System *
 GNUNET_TESTING_system_create (const char *testdir,
-			      const char *controller,
+			      const char *trusted_ip,
 			      const char *hostname);
 
 
@@ -89,6 +91,10 @@ GNUNET_TESTING_system_create (const char *testdir,
  * @param testdir only the directory name without any path. This is used for
  *          all service homes; the directory will be created in a temporary
  *          location depending on the underlying OS
+ * @param trusted_ip the ip address which will be set as TRUSTED HOST in all
+ *          service configurations generated to allow control connections from
+ *          this ip. This can either be a single ip address or a network address
+ *          in CIDR notation.
  * @param controller hostname of the controlling host, 
  *        service configurations are modified to allow 
  *        control connections from this host; can be NULL
@@ -100,7 +106,7 @@ GNUNET_TESTING_system_create (const char *testdir,
  */
 struct GNUNET_TESTING_System *
 GNUNET_TESTING_system_create_with_portrange (const char *testdir,
-					     const char *controller,
+					     const char *trusted_ip,
 					     const char *hostname,
 					     uint16_t lowport,
 					     uint16_t highport);

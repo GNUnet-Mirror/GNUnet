@@ -75,9 +75,10 @@ struct GNUNET_TESTING_System
   char *tmppath;
 
   /**
-   * The hostname of the controller
+   * The trusted ip. Can either be a single ip address or a network address in
+   * CIDR notation.
    */
-  char *controller;
+  char *trusted_ip;
 
   /**
    * our hostname
@@ -271,9 +272,10 @@ hostkeys_unload (struct GNUNET_TESTING_System *system)
  * @param testdir only the directory name without any path. This is used for
  *          all service homes; the directory will be created in a temporary
  *          location depending on the underlying OS
- * @param controller hostname of the controlling host, 
- *        service configurations are modified to allow 
- *        control connections from this host; can be NULL
+ * @param trusted_ip the ip address which will be set as TRUSTED HOST in all
+ *          service configurations generated to allow control connections from
+ *          this ip. This can either be a single ip address or a network address
+ *          in CIDR notation.
  * @param hostname the hostname of the system we are using for testing; NULL for
  *          localhost
  * @param lowport lowest port number this system is allowed to allocate (inclusive)
@@ -282,7 +284,7 @@ hostkeys_unload (struct GNUNET_TESTING_System *system)
  */
 struct GNUNET_TESTING_System *
 GNUNET_TESTING_system_create_with_portrange (const char *testdir,
-					     const char *controller,
+					     const char *trusted_ip,
 					     const char *hostname,
 					     uint16_t lowport,
 					     uint16_t highport)
@@ -299,8 +301,8 @@ GNUNET_TESTING_system_create_with_portrange (const char *testdir,
     GNUNET_free (system);
     return NULL;
   }
-  if (NULL != controller)
-    system->controller = GNUNET_strdup (controller);
+  if (NULL != trusted_ip)
+    system->trusted_ip = GNUNET_strdup (trusted_ip);
   if (NULL != hostname)
     system->hostname = GNUNET_strdup (hostname);
   if (GNUNET_OK != hostkeys_load (system))
@@ -320,19 +322,21 @@ GNUNET_TESTING_system_create_with_portrange (const char *testdir,
  * @param testdir only the directory name without any path. This is used for all
  *          service homes; the directory will be created in a temporary location
  *          depending on the underlying OS
- * @param controller hostname of the controlling host, service configurations
- *        are modified to allow control connections from this host; can be NULL
+ * @param trusted_ip the ip address which will be set as TRUSTED HOST in all
+ *          service configurations generated to allow control connections from
+ *          this ip. This can either be a single ip address or a network address
+ *          in CIDR notation.
  * @param hostname the hostname of the system we are using for testing; NULL for
  *          localhost
  * @return handle to this system, NULL on error
  */
 struct GNUNET_TESTING_System *
 GNUNET_TESTING_system_create (const char *testdir,
-			      const char *controller,
+			      const char *trusted_ip,
 			      const char *hostname)
 {
   return GNUNET_TESTING_system_create_with_portrange (testdir,
-						      controller,
+						      trusted_ip,
 						      hostname,
 						      LOW_PORT,
 						      HIGH_PORT);
@@ -355,7 +359,7 @@ GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system,
   if (GNUNET_YES == remove_paths)
     GNUNET_DISK_directory_remove (system->tmppath);
   GNUNET_free (system->tmppath);
-  GNUNET_free_non_null (system->controller);
+  GNUNET_free_non_null (system->trusted_ip);
   GNUNET_free_non_null (system->hostname);
   GNUNET_free (system);
 }
@@ -677,8 +681,8 @@ update_config (void *cls, const char *section, const char *option,
 
 
 /**
- * Section iterator to set ACCEPT_FROM/ACCEPT_FROM6 depending on the ip of the
- * controller in all sections
+ * Section iterator to set ACCEPT_FROM/ACCEPT_FROM6 to include the address of
+ * 'trusted_hosts' in all sections
  *
  * @param cls the UpdateContext
  * @param section name of the section
@@ -756,8 +760,8 @@ update_config_sections (void *cls,
   }
   GNUNET_free_non_null (val);
   ACCEPT_FROM_key = "ACCEPT_FROM";  
-  if ((NULL != uc->system->controller) && 
-      (NULL != strstr (uc->system->controller, ":"))) /* IPv6 in use */
+  if ((NULL != uc->system->trusted_ip) && 
+      (NULL != strstr (uc->system->trusted_ip, ":"))) /* IPv6 in use */
     ACCEPT_FROM_key = "ACCEPT_FROM6";
   if (GNUNET_OK != 
       GNUNET_CONFIGURATION_get_value_string (uc->cfg, section, ACCEPT_FROM_key,
@@ -765,11 +769,11 @@ update_config_sections (void *cls,
   {
     orig_allowed_hosts = GNUNET_strdup ("127.0.0.1;");
   }
-  if (NULL == uc->system->controller)
+  if (NULL == uc->system->trusted_ip)
     allowed_hosts = GNUNET_strdup (orig_allowed_hosts);
   else
     GNUNET_asprintf (&allowed_hosts, "%s%s;", orig_allowed_hosts,
-                     uc->system->controller);
+                     uc->system->trusted_ip);
   GNUNET_free (orig_allowed_hosts);
   GNUNET_CONFIGURATION_set_value_string (uc->cfg, section, ACCEPT_FROM_key,
                                          allowed_hosts);
@@ -813,7 +817,7 @@ GNUNET_TESTING_configuration_create (struct GNUNET_TESTING_System *system,
                                          uc.service_home);
   /* make PORTs and UNIXPATHs unique */
   GNUNET_CONFIGURATION_iterate (cfg, &update_config, &uc);
-  /* allow connections to services from system controller host */
+  /* allow connections to services from system trusted_ip host */
   GNUNET_CONFIGURATION_iterate_sections (cfg, &update_config_sections, &uc);
   /* enable loopback-based connections between peers */
   GNUNET_CONFIGURATION_set_value_string (cfg, 

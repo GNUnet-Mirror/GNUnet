@@ -439,8 +439,10 @@ typedef void (*GNUNET_TESTBED_ControllerStatusCallback) (void *cls,
 /**
  * Starts a controller process at the host.
  *
- * @param controller_ip the ip address of the controller. Will be set as TRUSTED
- *          host when starting testbed controller at host
+ * @param trusted_ip the ip address of the controller which will be set as TRUSTED
+ *          HOST(all connections form this ip are permitted by the testbed) when
+ *          starting testbed controller at host. This can either be a single ip
+ *          address or a network address in CIDR notation.
  * @param host the host where the controller has to be started; NULL for
  *          localhost
  * @param cfg template configuration to use for the remote controller; the
@@ -457,7 +459,7 @@ typedef void (*GNUNET_TESTBED_ControllerStatusCallback) (void *cls,
  * @return the controller process handle, NULL on errors
  */
 struct GNUNET_TESTBED_ControllerProc *
-GNUNET_TESTBED_controller_start (const char *controller_ip,
+GNUNET_TESTBED_controller_start (const char *trusted_ip,
                                  struct GNUNET_TESTBED_Host *host,
                                  const struct GNUNET_CONFIGURATION_Handle *cfg,
                                  GNUNET_TESTBED_ControllerStatusCallback cb,

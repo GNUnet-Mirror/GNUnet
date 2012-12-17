@@ -242,14 +242,14 @@ tokenizer_cb (void *cls, void *client,
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct WriteContext *wc;
   char *binary;
-  char *controller;
+  char *trusted_ip;
   char *hostname;
   char *config;
   char *xconfig;
   size_t config_size;
   uLongf ul_config_size;
   size_t xconfig_size;
-  uint16_t cname_size;
+  uint16_t trusted_ip_size;
   uint16_t hostname_size;
   uint16_t msize;
   
@@ -261,16 +261,16 @@ tokenizer_cb (void *cls, void *client,
     goto error;
   }
   msg = (const struct GNUNET_TESTBED_HelperInit *) message;
-  cname_size = ntohs (msg->cname_size);
-  controller = (char *) &msg[1];
-  if ('\0' != controller[cname_size])
+  trusted_ip_size = ntohs (msg->trusted_ip_size);
+  trusted_ip = (char *) &msg[1];
+  if ('\0' != trusted_ip[trusted_ip_size])
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Controller name cannot be empty -- exiting\n");
+         "Trusted IP cannot be empty -- exiting\n");
     goto error;
   }
   hostname_size = ntohs (msg->hostname_size);
-  if ((sizeof (struct GNUNET_TESTBED_HelperInit) + cname_size + 1 +
+  if ((sizeof (struct GNUNET_TESTBED_HelperInit) + trusted_ip_size + 1 +
        hostname_size) >= msize)
   {
     GNUNET_break (0);
@@ -280,11 +280,11 @@ tokenizer_cb (void *cls, void *client,
   ul_config_size = (uLongf) ntohs (msg->config_size);
   config = GNUNET_malloc (ul_config_size);
   xconfig_size =
-      ntohs (message->size) - (cname_size + 1 +
+      ntohs (message->size) - (trusted_ip_size + 1 +
                                sizeof (struct GNUNET_TESTBED_HelperInit));
   if (Z_OK !=
       uncompress ((Bytef *) config, &ul_config_size,
-                  (const Bytef *) (controller + cname_size + 1 + hostname_size),
+                  (const Bytef *) (trusted_ip + trusted_ip_size + 1 + hostname_size),
                   (uLongf) xconfig_size))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -306,10 +306,10 @@ tokenizer_cb (void *cls, void *client,
   if (0 != hostname_size)
   {
     hostname = GNUNET_malloc (hostname_size + 1);
-    (void) strncpy (hostname, ((char *) &msg[1]) + cname_size + 1, hostname_size);
+    (void) strncpy (hostname, ((char *) &msg[1]) + trusted_ip_size + 1, hostname_size);
     hostname[hostname_size] = '\0';
   }
-  test_system = GNUNET_TESTING_system_create ("testbed-helper", controller,
+  test_system = GNUNET_TESTING_system_create ("testbed-helper", trusted_ip,
 					      hostname);
   GNUNET_free_non_null (hostname);
   hostname = NULL;
@@ -341,7 +341,7 @@ tokenizer_cb (void *cls, void *client,
   if (NULL == testbed)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Error staring gnunet-service-testbed -- exiting\n");
+         "Error starting gnunet-service-testbed -- exiting\n");
     GNUNET_CONFIGURATION_destroy (cfg);
     goto error;
   }

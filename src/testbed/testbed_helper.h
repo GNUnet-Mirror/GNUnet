@@ -44,7 +44,7 @@ struct GNUNET_TESTBED_HelperInit
    * The controller hostname size excluding the NULL termination character -
    * strlen (hostname); cannot be zero
    */
-  uint16_t cname_size GNUNET_PACKED;
+  uint16_t trusted_ip_size GNUNET_PACKED;
 
   /**
    * The hostname size excluding the NULL termination character - strlen
@@ -57,7 +57,7 @@ struct GNUNET_TESTBED_HelperInit
    */
   uint16_t config_size GNUNET_PACKED;
 
-  /* Followed by NULL terminated controller hostname */
+  /* Followed by NULL terminated trusted ip */
 
   /* Followed by hostname of the machine on which helper runs. This is not NULL
      terminated */

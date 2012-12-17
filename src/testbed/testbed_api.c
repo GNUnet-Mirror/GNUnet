@@ -1357,9 +1357,12 @@ free_argv (char **argv)
 
 
 /**
- * Starts a controller process at the host. FIXME: add controller start callback
- * with the configuration with which the controller is started
+ * Starts a controller process at the given host
  *
+ * @param trusted_ip the ip address of the controller which will be set as TRUSTED
+ *          HOST(all connections form this ip are permitted by the testbed) when
+ *          starting testbed controller at host. This can either be a single ip
+ *          address or a network address in CIDR notation.
  * @param controller_ip the ip address of the controller. Will be set as TRUSTED
  *          host when starting testbed controller at host
  * @param host the host where the controller has to be started; NULL for
@@ -1378,7 +1381,7 @@ free_argv (char **argv)
  * @return the controller process handle, NULL on errors
  */
 struct GNUNET_TESTBED_ControllerProc *
-GNUNET_TESTBED_controller_start (const char *controller_ip,
+GNUNET_TESTBED_controller_start (const char *trusted_ip,
                                  struct GNUNET_TESTBED_Host *host,
                                  const struct GNUNET_CONFIGURATION_Handle *cfg,
                                  GNUNET_TESTBED_ControllerStatusCallback cb,
@@ -1402,7 +1405,8 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
   else
   {
     char *helper_binary_path;
-    const char *remote_args[12];
+#define NUM_REMOTE_ARGS 12
+    const char *remote_args[NUM_REMOTE_ARGS];
     const char *username;
     char *port;
     char *dst;
@@ -1433,7 +1437,7 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
     remote_args[argp++] = "-lc";
     remote_args[argp++] = helper_binary_path;
     remote_args[argp++] = NULL;
-    GNUNET_assert (argp == 12);
+    GNUNET_assert (NUM_REMOTE_ARGS == argp);
     cp->helper_argv = copy_argv (remote_args);
     GNUNET_free (port);
     GNUNET_free (dst);
@@ -1452,7 +1456,7 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
   cp->host = host;
   cp->cb = cb;
   cp->cls = cls;
-  msg = GNUNET_TESTBED_create_helper_init_msg_ (controller_ip, hostname, cfg);
+  msg = GNUNET_TESTBED_create_helper_init_msg_ (trusted_ip, hostname, cfg);
   cp->msg = &msg->header;
   cp->shandle =
       GNUNET_HELPER_send (cp->helper, &msg->header, GNUNET_NO, &clear_msg, cp);
@@ -2109,14 +2113,17 @@ GNUNET_TESTBED_overlay_write_topology_to_file (struct GNUNET_TESTBED_Controller
  * Creates a helper initialization message. This function is here because we
  * want to use this in testing
  *
- * @param cname the ip address of the controlling host
+ * @param trusted_ip the ip address of the controller which will be set as TRUSTED
+ *          HOST(all connections form this ip are permitted by the testbed) when
+ *          starting testbed controller at host. This can either be a single ip
+ *          address or a network address in CIDR notation.
  * @param hostname the hostname of the destination this message is intended for
  * @param cfg the configuration that has to used to start the testbed service
  *          thru helper
  * @return the initialization message
  */
 struct GNUNET_TESTBED_HelperInit *
-GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
+GNUNET_TESTBED_create_helper_init_msg_ (const char *trusted_ip,
 					const char *hostname,
                                         const struct GNUNET_CONFIGURATION_Handle
                                         *cfg)
@@ -2126,7 +2133,7 @@ GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
   char *xconfig;
   size_t config_size;
   size_t xconfig_size;
-  uint16_t cname_len;
+  uint16_t trusted_ip_len;
   uint16_t hostname_len;
   uint16_t msg_size;
 
@@ -2135,23 +2142,23 @@ GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
   xconfig_size =
       GNUNET_TESTBED_compress_config_ (config, config_size, &xconfig);
   GNUNET_free (config);
-  cname_len = strlen (cname);
+  trusted_ip_len = strlen (trusted_ip);
   hostname_len = (NULL == hostname) ? 0 : strlen (hostname);
   msg_size =
-      xconfig_size + cname_len + 1 + sizeof (struct GNUNET_TESTBED_HelperInit);
+      xconfig_size + trusted_ip_len + 1 + sizeof (struct GNUNET_TESTBED_HelperInit);
   msg_size += hostname_len;
   msg = GNUNET_realloc (xconfig, msg_size);
-  (void) memmove (((void *) &msg[1]) + cname_len + 1 + hostname_len,
+  (void) memmove (((void *) &msg[1]) + trusted_ip_len + 1 + hostname_len,
 		  msg,
 		  xconfig_size);
   msg->header.size = htons (msg_size);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_INIT);
-  msg->cname_size = htons (cname_len);
+  msg->trusted_ip_size = htons (trusted_ip_len);
   msg->hostname_size = htons (hostname_len);
   msg->config_size = htons (config_size);
-  (void) strcpy ((char *) &msg[1], cname);
+  (void) strcpy ((char *) &msg[1], trusted_ip);
   if (0 != hostname_len)
-    (void) strncpy (((char *) &msg[1]) + cname_len + 1, hostname, hostname_len);
+    (void) strncpy (((char *) &msg[1]) + trusted_ip_len + 1, hostname, hostname_len);
   return msg;
 }
 
