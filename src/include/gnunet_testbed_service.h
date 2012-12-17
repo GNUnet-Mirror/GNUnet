@@ -69,11 +69,6 @@ struct GNUNET_TESTBED_Operation;
  */
 struct GNUNET_TESTBED_Controller;
 
-/**
- * Handle to a large-scale testbed that is managed at a high level.
- */
-struct GNUNET_TESTBED_Testbed;
-
 
 /**
  * Create a host to run peers and controllers on.
@@ -1257,71 +1252,6 @@ GNUNET_TESTBED_service_connect (void *op_cls,
  */
 void
 GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation);
-
-
-/**
- * Configure and run a testbed using the given
- * master controller on 'num_hosts' starting
- * 'num_peers' using the given peer configuration.
- *
- * @param controller master controller for the testbed
- *                   (must not be destroyed until after the
- *                    testbed is destroyed).
- * @param num_hosts number of hosts in 'hosts', 0 to only
- *        use 'localhost'
- * @param hosts list of hosts to use for the testbed
- * @param num_peers number of peers to start
- * @param cfg the configuration to use as a template for peers and also for
- *         checking the value of testbed helper binary
- * @param underlay_topology underlay topology to create
- * @param va topology-specific options
- * @return handle to the testbed
- */
-struct GNUNET_TESTBED_Testbed *
-GNUNET_TESTBED_create_va (struct GNUNET_TESTBED_Controller *controller,
-                          unsigned int num_hosts,
-                          struct GNUNET_TESTBED_Host **hosts,
-                          unsigned int num_peers,
-                          const struct GNUNET_CONFIGURATION_Handle *cfg,
-                          enum GNUNET_TESTBED_TopologyOption underlay_topology,
-                          va_list va);
-
-
-/**
- * Configure and run a testbed using the given
- * master controller on 'num_hosts' starting
- * 'num_peers' using the given peer configuration.
- *
- * @param controller master controller for the testbed
- *                   (must not be destroyed until after the
- *                    testbed is destroyed).
- * @param num_hosts number of hosts in 'hosts', 0 to only
- *        use 'localhost'
- * @param hosts list of hosts to use for the testbed
- * @param num_peers number of peers to start
- * @param cfg the configuration to use as a template for peers and also for
- *         checking the value of testbed helper binary
- * @param underlay_topology underlay topology to create
- * @param ... topology-specific options
- */
-struct GNUNET_TESTBED_Testbed *
-GNUNET_TESTBED_create (struct GNUNET_TESTBED_Controller *controller,
-                       unsigned int num_hosts,
-                       struct GNUNET_TESTBED_Host **hosts,
-                       unsigned int num_peers,
-                       const struct GNUNET_CONFIGURATION_Handle *cfg,
-                       enum GNUNET_TESTBED_TopologyOption underlay_topology,
-                       ...);
-
-
-/**
- * Destroy a testbed.  Stops all running peers and then
- * destroys all peers.  Does NOT destroy the master controller.
- *
- * @param testbed testbed to destroy
- */
-void
-GNUNET_TESTBED_destroy (struct GNUNET_TESTBED_Testbed *testbed);
 
 
 /**
