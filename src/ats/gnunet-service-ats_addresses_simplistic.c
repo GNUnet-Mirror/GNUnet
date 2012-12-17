@@ -843,12 +843,14 @@ GAS_simplistic_get_preferred_address (void *solver,
  * Changes the preferences for a peer in the problem
  *
  * @param solver the solver handle
+ * @param client the client with this preference
  * @param peer the peer to change the preference for
  * @param kind the kind to change the preference
  * @param score the score
  */
 void
 GAS_simplistic_address_change_preference (void *solver,
+                                   void *client,
                                    const struct GNUNET_PeerIdentity *peer,
                                    enum GNUNET_ATS_PreferenceKind kind,
                                    float score)

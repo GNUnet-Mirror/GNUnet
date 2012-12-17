@@ -182,6 +182,7 @@ typedef void *
 
 typedef void
 (*GAS_solver_address_change_preference) (void *solver,
+                                         void *client,
                                          const struct GNUNET_PeerIdentity *peer,
                                          enum GNUNET_ATS_PreferenceKind kind,
                                          float score);
@@ -290,6 +291,7 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
 
 void
 GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
+                                 void *client,
                                  const struct GNUNET_PeerIdentity *peer,
                                  enum GNUNET_ATS_PreferenceKind kind,
                                  float score);

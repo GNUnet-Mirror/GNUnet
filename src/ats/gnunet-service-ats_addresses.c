@@ -929,20 +929,21 @@ GAS_addresses_handle_backoff_reset (struct GAS_Addresses_Handle *handle,
 
 void
 GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
+                                 void *client,
                                  const struct GNUNET_PeerIdentity *peer,
                                  enum GNUNET_ATS_PreferenceKind kind,
                                  float score)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' for peer `%s'\n",
+              "Received `%s' for peer `%s' for client %p\n",
               "CHANGE PREFERENCE",
-              GNUNET_i2s (peer));
+              GNUNET_i2s (peer), client);
 
   if (GNUNET_NO == handle->running)
     return;
 
   /* Tell solver about update */
-  handle->s_pref (handle->solver, peer, kind, score);
+  handle->s_pref (handle->solver, client, peer, kind, score);
 }
 
 static unsigned int

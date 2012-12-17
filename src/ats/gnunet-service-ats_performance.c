@@ -587,7 +587,9 @@ GAS_handle_preference_change (void *cls,
                             1, GNUNET_NO);
   pi = (const struct PreferenceInformation *) &msg[1];
   for (i = 0; i < nump; i++)
-    GAS_addresses_change_preference (GSA_addresses, &msg->peer,
+    GAS_addresses_change_preference (GSA_addresses,
+                                     client,
+                                     &msg->peer,
                                      (enum GNUNET_ATS_PreferenceKind)
                                      ntohl (pi[i].preference_kind),
                                      pi[i].preference_value);
