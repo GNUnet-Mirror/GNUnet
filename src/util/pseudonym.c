@@ -248,6 +248,12 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   fn = get_data_filename (cfg, PS_METADATA_DIR, nsid);
   GNUNET_assert (fn != NULL);
+  if (GNUNET_YES !=
+      GNUNET_DISK_file_test (fn))
+  {
+    GNUNET_free (fn);
+    return GNUNET_SYSERR;
+  }
   fileR = GNUNET_BIO_read_open (fn);
   if (fileR == NULL)
   {
