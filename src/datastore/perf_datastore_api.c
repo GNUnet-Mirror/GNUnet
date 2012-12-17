@@ -334,6 +334,7 @@ main (int argc, char *argv[])
 			       &run,
 			       NULL))
     return 1;
+  FPRINTF (stderr, "%s", "\n");
   return ok;
 }
 
