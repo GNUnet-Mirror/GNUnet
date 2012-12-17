@@ -248,10 +248,10 @@ static struct GNUNET_TESTBED_Controller *controller;
  */
 static struct GNUNET_TESTBED_ControllerProc *copro;
 
-/**
- * Testbed handle.
- */
-static struct GNUNET_TESTBED_Testbed *testbed;
+/* /\** */
+/*  * Testbed handle. */
+/*  *\/ */
+/* static struct GNUNET_TESTBED_Testbed *testbed; */
 
 
 /**
@@ -288,8 +288,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending test.\n");    
   close_monitor_connections ();
-  if (NULL != testbed)
-    GNUNET_TESTBED_destroy (testbed);
+  /* if (NULL != testbed) */
+  /*   GNUNET_TESTBED_destroy (testbed); */
   if (NULL != controller)
     GNUNET_TESTBED_controller_disconnect (controller);
   if (NULL != copro)
@@ -904,12 +904,12 @@ controller_start_cb (void *cls,
 					       0 /* mask */,
 					       &master_controller_cb, NULL);
 
-  testbed = GNUNET_TESTBED_create (controller,
-				   num_hosts, hosts, 
-				   num_peers,
-				   cfg,
-				   0 /* FIXME: topology */,
-				   NULL /* FIXME: topology options */);
+  /* testbed = GNUNET_TESTBED_create (controller, */
+  /*       			   num_hosts, hosts,  */
+  /*       			   num_peers, */
+  /*       			   cfg, */
+  /*       			   0 /\* FIXME: topology *\/, */
+  /*       			   NULL /\* FIXME: topology options *\/); */
 }
 
 
