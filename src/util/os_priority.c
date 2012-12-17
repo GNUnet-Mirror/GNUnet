@@ -904,7 +904,12 @@ start_process (int pipe_control,
       GNUNET_array_append (lscp, ls, k);
     GNUNET_array_append (lscp, ls, -1);
   }
+#if DARWIN
+  /* see https://gnunet.org/vfork */
+  ret = vfork ();
+#else
   ret = fork ();
+#endif
   if (-1 == ret)
   {
     int eno = errno;
