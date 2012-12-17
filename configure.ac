@@ -424,8 +424,22 @@ else
 	AM_CONDITIONAL(HAVE_GLIB2, true)
 	AC_DEFINE([HAVE_GLIB2],[1],[Have glib2])
 	LIBS="$LIBS $GLIB_LIBS"
-	CFLAGS="$CFLAGS $GLIB_CFLAGS"    
+	CFLAGS="$CFLAGS $GLIB_CFLAGS"
 fi
+
+#libgtop
+PKG_CHECK_MODULES(LIBGTOP,libgtop-2.0,  [gtop=true] , [gtop=false] )
+if test x$gtop = xfalse
+then
+	AM_CONDITIONAL(HAVE_LIBGTOP, false)
+	AC_MSG_WARN([GNUnet requires libgtop])
+else
+	AM_CONDITIONAL(HAVE_LIBGTOP, true)
+	AC_DEFINE([HAVE_LIBGTOP],[1],[Have libgtop])
+	LIBS="$LIBS $LIBGTOP_LIBS"
+	CFLAGS="$CFLAGS $LIBGTOP_CFLAGS"
+fi
+
 
 
 
