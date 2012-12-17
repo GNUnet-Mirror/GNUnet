@@ -1,11 +1,11 @@
-INCLUDES = -I$(top_srcdir)/src/include -I/usr/include/libgtop-2.0/
+INCLUDES = -I$(top_srcdir)/src/include
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
 libexecdir= $(pkglibdir)/libexec/
 
-if HAVE_GLIB2
-  GN_LIBTOP = -lgtop-2.0
+if HAVE_LIBGTOP
+  GN_LIBTOP = -lgtop-2.0 -lglib-2.0
   GN_SYSMON = gnunet_service_sysmon
   GN_SYSMON_TEST_INIT = test_glibtop
   GN_SYSMON_TEST_PROCESS = test_glibtop_process
