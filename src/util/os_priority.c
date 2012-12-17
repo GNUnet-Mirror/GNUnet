@@ -931,7 +931,10 @@ start_process (int pipe_control,
   if (NULL != childpipename)
   {
     setenv (GNUNET_OS_CONTROL_PIPE, childpipename, 1);
+#ifndef DARWIN
+    /* due to vfork, we must NOT free memory on DARWIN! */
     GNUNET_free (childpipename);
+#endif
   }
   if (NULL != pipe_stdin)
   {
@@ -1004,7 +1007,10 @@ start_process (int pipe_control,
     GNUNET_snprintf (fds, sizeof (fds), "%u", i);
     setenv ("LISTEN_FDS", fds, 1);
   }
+#ifndef DARWIN
+  /* due to vfork, we must NOT free memory on DARWIN! */
   GNUNET_array_grow (lscp, ls, 0);
+#endif
   execvp (filename, argv);
   LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "execvp", filename);
   _exit (1);
