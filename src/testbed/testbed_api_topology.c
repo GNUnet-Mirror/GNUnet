@@ -266,11 +266,11 @@ oprelease_overlay_configure_topology (void *cls)
 
 
 /**
- * Populates the OverlayLink structure
+ * Populates the OverlayLink structure.
  *
  * @param link the OverlayLink
- * @param A the peer A
- * @param B the peer B
+ * @param A the peer A. Should be different from B
+ * @param B the peer B. Should be different from A
  * @param tc the TopologyContext
  * @return 
  */
@@ -280,6 +280,8 @@ make_link (struct OverlayLink *link,
            uint32_t B,
            struct TopologyContext *tc)
 {
+  GNUNET_assert (A != B);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting peer %u to %u\n", B, A);
   link->A = A;
   link->B = B;
   link->op = NULL;
@@ -633,7 +635,7 @@ gen_topo_from_file (struct TopologyContext *tc, const char *filename)
       if (tc->num_peers <= peer_id)
       {
         LOG (GNUNET_ERROR_TYPE_ERROR,
-             _("Topology file need more peers than the given ones\n"),
+             _("Topology file needs more peers than given ones\n"),
              filename);
         goto _exit;
       }
@@ -658,17 +660,23 @@ gen_topo_from_file (struct TopologyContext *tc, const char *filename)
       if (tc->num_peers <= other_peer_id)
       {
         LOG (GNUNET_ERROR_TYPE_ERROR,
-             _("Topology file need more peers than the given ones\n"),
+             _("Topology file needs more peers than given ones\n"),
              filename);
         goto _exit;
       }
-      tc->link_array_size++;
-      tc->link_array = GNUNET_realloc (tc->link_array, 
-                                       sizeof (struct OverlayLink) * 
-                                       tc->link_array_size);
-      offset += end - &data[offset];
-      make_link (&tc->link_array[tc->link_array_size - 1], peer_id,
-                 other_peer_id, tc);
+      if (peer_id != other_peer_id)
+      {
+        tc->link_array_size++;
+        tc->link_array = GNUNET_realloc (tc->link_array, 
+                                         sizeof (struct OverlayLink) * 
+                                         tc->link_array_size);
+        offset += end - &data[offset];
+        make_link (&tc->link_array[tc->link_array_size - 1], peer_id,
+                   other_peer_id, tc);
+      }
+      else
+        LOG (GNUNET_ERROR_TYPE_WARNING,
+             _("Ignoring to connect peer %u to peer %u\n"), peer_id, other_peer_id);
       while (('\n' != data[offset]) && ('|' != data[offset])
              && (offset < fs))
         offset++;
@@ -689,7 +697,7 @@ gen_topo_from_file (struct TopologyContext *tc, const char *filename)
   if (GNUNET_OK != status)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Removing and link data read from the file\n");
+         "Removing link data read from the file\n");
     tc->link_array_size = 0;
     GNUNET_free_non_null (tc->link_array);
     tc->link_array = NULL;
