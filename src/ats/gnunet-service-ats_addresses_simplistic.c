@@ -96,6 +96,9 @@ struct GAS_SIMPLISTIC_Handle
    * Callback cls
    */
   void *bw_changed_cls;
+
+  struct PreferenceClient *pc_head;
+  struct PreferenceClient *pc_tail;
 };
 
 struct Network
@@ -152,6 +155,13 @@ struct AddressWrapper
   struct AddressWrapper *prev;
 
   struct ATS_Address *addr;
+};
+
+struct PreferenceClient
+{
+  struct PreferenceClient *prev;
+  struct PreferenceClient *next;
+   void *client;
 };
 
 /**
@@ -227,6 +237,8 @@ void
 GAS_simplistic_done (void *solver)
 {
   struct GAS_SIMPLISTIC_Handle *s = solver;
+  struct PreferenceClient *pc;
+  struct PreferenceClient *next_pc;
   struct AddressWrapper *cur;
   struct AddressWrapper *next;
   int c;
@@ -278,8 +290,15 @@ GAS_simplistic_done (void *solver)
                 s->active_addresses);
     GNUNET_break (0);
   }
-
   GNUNET_free (s->network_entries);
+
+  next_pc = s->pc_head;
+  while (NULL != (pc = next_pc))
+  {
+      next_pc = pc->next;
+      GNUNET_CONTAINER_DLL_remove (s->pc_head, s->pc_tail, pc);
+      GNUNET_free (pc);
+  }
   GNUNET_free (s);
 }
 
@@ -855,6 +874,32 @@ GAS_simplistic_address_change_preference (void *solver,
                                    enum GNUNET_ATS_PreferenceKind kind,
                                    float score)
 {
+  struct GAS_SIMPLISTIC_Handle *s = solver;
+  struct PreferenceClient *cur;
+
+  GNUNET_assert (NULL != solver);
+  GNUNET_assert (NULL != client);
+  GNUNET_assert (NULL != peer);
+
+  LOG (GNUNET_ERROR_TYPE_ERROR, "Client %p changes preference for peer `%s' %d\n",
+                                client,
+                                GNUNET_i2s (peer),
+                                score);
+
+  for (cur = s->pc_head; NULL != cur; cur = cur->next)
+  {
+      if (client == cur->client)
+        break;
+  }
+
+  if (NULL == cur)
+  {
+    cur = GNUNET_malloc (sizeof (struct PreferenceClient));
+    cur->client = client;
+    GNUNET_CONTAINER_DLL_insert (s->pc_head, s->pc_tail, cur);
+  }
+
+
 
 }
 
