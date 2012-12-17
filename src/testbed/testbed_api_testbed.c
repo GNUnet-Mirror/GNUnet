@@ -982,8 +982,9 @@ GNUNET_TESTBED_run (const char *host_filename,
     if (GNUNET_NO == GNUNET_TESTBED_topology_get_ (&rc->topology,
                                                     topology))
     {
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-           "Unknown topology %s given in configuration\n", topology);
+      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+				 "testbed", "OVERLAY_TOPLOGY",
+				 _("Specified topology must be supported by testbed"));
     }
     GNUNET_free (topology);
   }
@@ -998,7 +999,8 @@ GNUNET_TESTBED_run (const char *host_filename,
     {
       /* OVERLAY option RANDOM & SMALL_WORLD_RING requires OVERLAY_RANDOM_LINKS
          option to be set to the number of random links to be established  */
-      GNUNET_break (0);
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+				 "testbed", "OVERLAY_RANDOM_LINKS");
       goto error_cleanup;
     }
     if (random_links > UINT32_MAX)
@@ -1013,8 +1015,8 @@ GNUNET_TESTBED_run (const char *host_filename,
                                                             "TOPOLOGY_FILE",
                                                             &rc->topo_file))
     {
-      /* You need to set TOPOLOGY_FILE option to a topolog file */
-      GNUNET_break (0);
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+				 "testbed", "TOPOLOGY_FILE");
       goto error_cleanup;
     }
     break;
