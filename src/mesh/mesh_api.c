@@ -1719,8 +1719,12 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
   h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
 
   /* count handlers and apps, calculate size */
-  for (h->n_applications = 0; stypes[h->n_applications]; h->n_applications++) ;
-  for (h->n_handlers = 0; handlers[h->n_handlers].type; h->n_handlers++) ;
+  for (h->n_applications = 0;
+       stypes && stypes[h->n_applications];
+       h->n_applications++) ;
+  for (h->n_handlers = 0;
+       handlers && handlers[h->n_handlers].type;
+       h->n_handlers++) ;
   send_connect (h);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GNUNET_MESH_connect() END\n");
   return h;
