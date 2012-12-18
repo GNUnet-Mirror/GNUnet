@@ -245,15 +245,12 @@ test_mesh_local_traffic_both_LDADD = \
 test_mesh_local_traffic_both_DEPENDENCIES = \
   libgnunetmesh.la
 
-
 test_mesh_2dtorus_SOURCES = \
  test_mesh_2dtorus.c
 test_mesh_2dtorus_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/mesh/libgnunetmeshtest.a
 test_mesh_2dtorus_DEPENDENCIES = \
-  libgnunetmesh.la \
   libgnunetmeshtest.a
 
 test_mesh_regex_SOURCES = \
