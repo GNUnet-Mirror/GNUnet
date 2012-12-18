@@ -91,6 +91,7 @@ tmain (void *cls,
   peers_running = num_peers;
   timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, 
                                                &shutdown_task, ctx);
+  ok = GNUNET_OK;
   GNUNET_MESH_TEST_cleanup (ctx);
 }
 
@@ -102,6 +103,7 @@ int
 main (int argc, char *argv[])
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Start\n");
+  ok = GNUNET_SYSERR;
 
   GNUNET_MESH_TEST_run ("test_mesh_2dtorus",
                         "test_mesh_2dtorus.conf",
