@@ -73,18 +73,18 @@ static void print_pids(guint64 which, guint64 arg)
         /* get memory info */
         glibtop_get_proc_mem (&proc_mem, pids[i]);
         printf ("\tMemory information:\n");
-        printf ("\t%-50s: %lu\n", "total # of pages of memory", proc_mem.size);
-        printf ("\t%-50s: %lu\n", "number of pages of virtual memory",proc_mem.vsize);
-        printf ("\t%-50s: %lu\n", "number of resident set", proc_mem.resident);
-        printf ("\t%-50s: %lu\n", "number of pages of shared (mmap'd) memory", proc_mem.share);
-        printf ("\t%-50s: %lu\n", "resident set size", proc_mem.rss);
+        printf ("\t%-50s: %llu\n", "total # of pages of memory", (long long unsigned int) proc_mem.size);
+        printf ("\t%-50s: %llu\n", "number of pages of virtual memory", (long long unsigned int) proc_mem.vsize);
+        printf ("\t%-50s: %llu\n", "number of resident set", (long long unsigned int) proc_mem.resident);
+        printf ("\t%-50s: %llu\n", "number of pages of shared (mmap'd) memory", (long long unsigned int) proc_mem.share);
+        printf ("\t%-50s: %llu\n", "resident set size", (long long unsigned int) proc_mem.rss);
 
         /* get time info */
         glibtop_get_proc_time (&proc_time, pids[i]);
         printf ("\tTime information:\n");
-        printf ("\t%-50s: %lu\n", "real time accumulated by process", proc_time.rtime);
-        printf ("\t%-50s: %lu\n", "user-mode CPU time accumulated by process",proc_time.utime);
-        printf ("\t%-50s: %lu\n", "kernel-mode CPU time accumulated by process", proc_time.stime);
+        printf ("\t%-50s: %llu\n", "real time accumulated by process", (long long unsigned int) proc_time.rtime);
+        printf ("\t%-50s: %llu\n", "user-mode CPU time accumulated by process", (long long unsigned int) proc_time.utime);
+        printf ("\t%-50s: %llu\n", "kernel-mode CPU time accumulated by process", (long long unsigned int) proc_time.stime);
     }
 
     if (NULL != pids)
