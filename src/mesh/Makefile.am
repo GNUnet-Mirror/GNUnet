@@ -149,6 +149,18 @@ gnunet_daemon_regexprofiler_LDADD = \
 gnunet_daemon_regexprofiler_DEPENDENCIES = \
   libgnunetmesh.la
 
+noinst_LIBRARIES = libgnunetmeshtest.a
+
+libgnunetmeshtest_a_SOURCES = \
+  mesh_test_lib.c mesh_test_lib.h
+libgnunetmeshtest_a_LIBADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testbed/libgnunettestbed.la \
+ $(top_builddir)/src/mesh/libgnunetmesh.la
+libgnunetmeshtest_a_DEPENDENCIES = \
+  libgnunetmesh.la
+
+
 check_PROGRAMS = \
  test_mesh_api \
  test_mesh_tree_api \
@@ -238,7 +250,11 @@ test_mesh_2dtorus_SOURCES = \
  test_mesh_2dtorus.c
 test_mesh_2dtorus_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/mesh/libgnunetmeshtest.a
+test_mesh_2dtorus_DEPENDENCIES = \
+  libgnunetmesh.la \
+  libgnunetmeshtest.a
 
 test_mesh_regex_SOURCES = \
  test_mesh_regex.c

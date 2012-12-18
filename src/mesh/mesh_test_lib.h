@@ -73,7 +73,7 @@ GNUNET_MESH_TEST_run (const char *testname,
                       void *tmain_cls,
                       GNUNET_MESH_InboundTunnelNotificationHandler new_tunnel,
                       GNUNET_MESH_TunnelEndHandler cleaner,
-                      GNUNET_MESH_MessageHandler* handlers,
+                      struct GNUNET_MESH_MessageHandler* handlers,
                       const GNUNET_MESH_ApplicationType* stypes);
 
 
