@@ -65,6 +65,11 @@ main (int argc, char *const *argv)
   }
   regexes = GNUNET_REGEX_read_from_file (argv[1]);
 
+  if (NULL == regexes)
+  {
+    usage();
+    return 2;
+  }
   buffer = GNUNET_REGEX_combine (regexes);
 
   GNUNET_asprintf (&regex, "GNVPN-0001-PAD(%s)(0|1)*", buffer);
