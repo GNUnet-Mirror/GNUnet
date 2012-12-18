@@ -830,6 +830,22 @@ GNUNET_ATS_performance_list_addresses_cancel (struct GNUNET_ATS_AddressListHandl
 
 
 /**
+ * Convert a GNUNET_ATS_PreferenceType to a string
+ *
+ * @param type the preference type
+ * @return a string or NULL if invalid
+ */
+const char *
+GNUNET_ATS_print_preference_type (uint32_t type)
+{
+  char *prefs[GNUNET_ATS_PreferenceCount] = GNUNET_ATS_PreferenceTypeString;
+  if (type < GNUNET_ATS_PreferenceCount)
+    return prefs[type];
+  return NULL;
+}
+
+
+/**
  * Change preferences for the given peer. Preference changes are forgotten if peers
  * disconnect.
  *

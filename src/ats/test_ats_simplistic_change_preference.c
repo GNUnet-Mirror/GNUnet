@@ -46,6 +46,12 @@ static GNUNET_SCHEDULER_TaskIdentifier die_task;
 static struct GNUNET_ATS_SchedulingHandle *sched_ats;
 
 /**
+ * Scheduling handle
+ */
+static struct GNUNET_ATS_PerformanceHandle *perf_ats;
+
+
+/**
  * Return value
  */
 static int ret;
@@ -99,6 +105,8 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (sched_ats != NULL)
     GNUNET_ATS_scheduling_done (sched_ats);
+  if (perf_ats != NULL)
+    GNUNET_ATS_performance_done (perf_ats);
   free_test_address (&test_addr[0]);
   ret = GNUNET_SYSERR;
 }
@@ -113,6 +121,8 @@ end ()
     GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  GNUNET_ATS_performance_done (perf_ats);
+  perf_ats = NULL;
   GNUNET_ATS_scheduling_done (sched_ats);
   sched_ats = NULL;
   free_test_address (&test_addr[0]);
@@ -177,26 +187,17 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
       GNUNET_SCHEDULER_add_now (&end, NULL);
       return;
     }
-    p[0].bw_out_assigned = bw_out;
-    p[0].bw_in_assigned = bw_in;
+
     stage ++;
 
-    /* Add a 2nd address */
-    /* Prepare ATS Information */
-    test_ats_info[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
-    test_ats_info[0].value = htonl(GNUNET_ATS_NET_WAN);
-    test_ats_info[1].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-    test_ats_info[1].value = htonl(1);
-    test_ats_count = 2;
+    /* Change preference */
+    GNUNET_ATS_change_preference (perf_ats,
+        &p[0].id,
+        GNUNET_ATS_PREFERENCE_BANDWIDTH,(double) 1000, GNUNET_ATS_PREFERENCE_END);
 
-    /* Adding address with session */
-    test_session[1] = &test_addr[1];
-    create_test_address (&test_addr[1], "test1", test_session[1], "test1", strlen ("test1") + 1);
-    test_hello_address[1].peer = p[1].id;
-    test_hello_address[1].transport_name = test_addr[1].plugin;
-    test_hello_address[1].address = test_addr[1].addr;
-    test_hello_address[1].address_length = test_addr[1].addr_len;
-    GNUNET_ATS_address_add (sched_ats, &test_hello_address[1], test_session[1], test_ats_info, test_ats_count);
+    /* Request address */
+    GNUNET_ATS_suggest_address (sched_ats, &p[0].id);
+    return;
   }
   if (1 == stage)
   {
@@ -321,6 +322,15 @@ run (void *cls,
     return;
   }
 
+  perf_ats = GNUNET_ATS_performance_init (cfg, NULL, NULL);
+  if (perf_ats == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not connect to ATS performance!\n");
+    ret = 1;
+    end ();
+    return;
+  }
+
   /* Set up peer 0 */
   if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID0, &p[0].id.hashPubKey))
   {
@@ -372,7 +382,7 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
-  if (0 != GNUNET_TESTING_peer_run ("test_ats_simplististic",
+  if (0 != GNUNET_TESTING_peer_run ("test_ats_simplistic_change_preference",
                                     "test_ats_api.conf",
                                     &run, NULL))
     return 1;

@@ -157,11 +157,23 @@ struct AddressWrapper
   struct ATS_Address *addr;
 };
 
+
+struct PreferencePeer
+{
+  struct GNUNET_PeerIdentity id;
+
+  float prefs[GNUNET_ATS_PreferenceCount];
+};
+
 struct PreferenceClient
 {
   struct PreferenceClient *prev;
   struct PreferenceClient *next;
-   void *client;
+  void *client;
+
+  float prefs[GNUNET_ATS_PreferenceCount];
+
+  struct GNUNET_CONTAINER_MultiHashMap *peers;
 };
 
 /**
@@ -227,6 +239,18 @@ GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   return s;
 }
 
+
+static int
+delete_peers (void *cls,
+              const struct GNUNET_HashCode * key,
+              void *value)
+{
+  struct GNUNET_CONTAINER_MultiHashMap *m = cls;
+  struct PreferencePeer *p = (struct PreferencePeer *) value;
+  GNUNET_CONTAINER_multihashmap_remove (m, &p->id.hashPubKey, p);
+  GNUNET_free (p);
+  return GNUNET_OK;
+}
 
 /**
  * Shutdown the simplistic problem solving component
@@ -297,6 +321,8 @@ GAS_simplistic_done (void *solver)
   {
       next_pc = pc->next;
       GNUNET_CONTAINER_DLL_remove (s->pc_head, s->pc_tail, pc);
+      GNUNET_CONTAINER_multihashmap_iterate (pc->peers, &delete_peers, pc->peers);
+      GNUNET_CONTAINER_multihashmap_destroy (pc->peers);
       GNUNET_free (pc);
   }
   GNUNET_free (s);
@@ -858,6 +884,17 @@ GAS_simplistic_get_preferred_address (void *solver,
 }
 
 
+static double
+update_pref_value (struct PreferenceClient *cur, int kind, float score)
+{
+  float res = (cur->prefs[kind] + score) / 2; /* change update algorithm here */;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Client %p changes preference for peer type %s from %f to %f\n",
+                                cur->client,
+                                GNUNET_ATS_print_preference_type (kind),
+                                cur->prefs[kind], res);
+  return res;
+}
+
 /**
  * Changes the preferences for a peer in the problem
  *
@@ -876,30 +913,61 @@ GAS_simplistic_address_change_preference (void *solver,
 {
   struct GAS_SIMPLISTIC_Handle *s = solver;
   struct PreferenceClient *cur;
+  struct PreferencePeer *p;
+  int i;
 
   GNUNET_assert (NULL != solver);
   GNUNET_assert (NULL != client);
   GNUNET_assert (NULL != peer);
 
-  LOG (GNUNET_ERROR_TYPE_ERROR, "Client %p changes preference for peer `%s' %d\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Client %p changes preference for peer `%s' %s %f\n",
                                 client,
                                 GNUNET_i2s (peer),
+                                GNUNET_ATS_print_preference_type (kind),
                                 score);
+
+  if (kind >= GNUNET_ATS_PreferenceCount)
+  {
+      GNUNET_break (0);
+      return;
+  }
 
   for (cur = s->pc_head; NULL != cur; cur = cur->next)
   {
       if (client == cur->client)
         break;
   }
-
   if (NULL == cur)
   {
     cur = GNUNET_malloc (sizeof (struct PreferenceClient));
     cur->client = client;
+    cur->peers = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
     GNUNET_CONTAINER_DLL_insert (s->pc_head, s->pc_tail, cur);
   }
 
+  p = GNUNET_CONTAINER_multihashmap_get (cur->peers, &peer->hashPubKey);
+  if (NULL == p)
+  {
+      p = GNUNET_malloc (sizeof (struct PreferencePeer));
+      p->id = (*peer);
+      for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
+        p->prefs[i] = 1;
+      GNUNET_CONTAINER_multihashmap_put (cur->peers,
+                                         &peer->hashPubKey,
+                                         p,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  }
 
+  switch (kind) {
+    case GNUNET_ATS_PREFERENCE_BANDWIDTH:
+    case GNUNET_ATS_PREFERENCE_LATENCY:
+      p->prefs[kind] = update_pref_value (cur, kind, score);
+      break;
+    case GNUNET_ATS_PREFERENCE_END:
+      break;
+    default:
+      break;
+  }
 
 }
 
