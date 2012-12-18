@@ -24,6 +24,7 @@
  */
 #include "platform.h"
 #include "mesh_test_lib.h"
+#include "gnunet_mesh_service.h"
 
 /**
  * Test context for a MESH Test.
@@ -63,17 +64,17 @@ struct GNUNET_MESH_TEST_Context
   /**
    * Handler for incoming tunnels.
    */
-  GNUNET_MESH_InboundTunnelNotificationHandler new_tunnel;
+  GNUNET_MESH_InboundTunnelNotificationHandler *new_tunnel;
 
   /**
    * Cleaner for destroyed incoming tunnels.
    */
-  GNUNET_MESH_TunnelEndHandler cleaner;
+  GNUNET_MESH_TunnelEndHandler *cleaner;
 
   /**
    * Message handlers.
    */
-  GNUNET_MESH_MessageHandler* handlers;
+  struct GNUNET_MESH_MessageHandler* handlers;
 
   /**
    * Application types.
@@ -266,7 +267,7 @@ GNUNET_MESH_TEST_run (const char *testname,
                       void *tmain_cls,
                       GNUNET_MESH_InboundTunnelNotificationHandler new_tunnel,
                       GNUNET_MESH_TunnelEndHandler cleaner,
-                      GNUNET_MESH_MessageHandler* handlers,
+                      struct GNUNET_MESH_MessageHandler* handlers,
                       const GNUNET_MESH_ApplicationType* stypes)
 {
   struct GNUNET_MESH_TEST_Context *ctx;
