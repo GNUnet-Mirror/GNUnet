@@ -394,6 +394,7 @@ GAS_mlp_address_delete (void *solver,
  * Changes the preferences for a peer in the MLP problem
  *
  * @param solver the MLP Handle
+ * @param client client
  * @param peer the peer
  * @param kind the kind to change the preference
  * @param score the score
