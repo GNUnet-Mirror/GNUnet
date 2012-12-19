@@ -18,8 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file ats/test_ats_api_scheduling_add_address.c
- * @brief test adding addresses in automatic transport selection scheduling API
+ * @file ats/test_ats_api_scheduling_min_bw.c
+ * @brief add in address for a network where quota is below min bw: no suggest expected
  * @author Christian Grothoff
  * @author Matthias Wachs
  */
@@ -182,4 +182,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of file test_ats_api_scheduling_add_address.c */
+/* end of file test_ats_api_scheduling_min_bw.c */
