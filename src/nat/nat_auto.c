@@ -322,8 +322,8 @@ nipo (void *cls, const char *name, int isDefault, const struct sockaddr *addr,
   if (!isDefault)
     return GNUNET_OK;
   if ( (sizeof (struct sockaddr_in6) == addrlen) &&
-       (0 != memcmp (&in6addr_loopback, addr,
-		     addrlen)) &&
+       (0 != memcmp (&in6addr_loopback, &((const struct sockaddr_in6 *) addr)->sin6_addr,
+		     sizeof (struct in6_addr))) &&
        (! IN6_IS_ADDR_LINKLOCAL(&((const struct sockaddr_in6 *) addr)->sin6_addr)) )
   {
     ah->have_v6 = GNUNET_YES;

@@ -164,6 +164,8 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
     }
     GNUNET_free (canonical_regex);
     GNUNET_free (matching_str);
+    canonical_regex = NULL;
+    matching_str = NULL;
   }
 
   GNUNET_free (rand_rx);
