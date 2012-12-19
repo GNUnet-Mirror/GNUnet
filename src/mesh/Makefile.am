@@ -254,15 +254,17 @@ test_mesh_2dtorus_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 test_mesh_2dtorus_DEPENDENCIES = \
   libgnunetmeshtest.a \
-  libgnunetmesh.a
+  libgnunetmesh.la
 
 test_mesh_regex_SOURCES = \
  test_mesh_regex.c
 test_mesh_regex_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmeshtest.a \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
 test_mesh_regex_DEPENDENCIES = \
+  libgnunetmeshtest.a \
   libgnunetmesh.la
 
 
