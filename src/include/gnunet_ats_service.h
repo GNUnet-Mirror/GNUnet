@@ -820,6 +820,21 @@ void
 GNUNET_ATS_reserve_bandwidth_cancel (struct GNUNET_ATS_ReservationContext *rc);
 
 
+/**
+ * Number of preference types supported by ATS
+ */
+#define GNUNET_ATS_PreferenceCount 3
+
+/**
+ * ATS preference types as array initializer
+ */
+#define GNUNET_ATS_PreferenceType {GNUNET_ATS_PREFERENCE_END, GNUNET_ATS_PREFERENCE_BANDWIDTH, GNUNET_ATS_PREFERENCE_LATENCY}
+
+/**
+ * ATS preference types as string array initializer
+ */
+#define GNUNET_ATS_PreferenceTypeString {"END", "BANDWIDTH", "LATENCY"}
+
 
 /**
  * Enum defining all known preference categories.
@@ -850,6 +865,14 @@ enum GNUNET_ATS_PreferenceKind
   GNUNET_ATS_PREFERENCE_LATENCY
 };
 
+/**
+ * Convert a GNUNET_ATS_PreferenceType to a string
+ *
+ * @param type the preference type
+ * @return a string or NULL if invalid
+ */
+const char *
+GNUNET_ATS_print_preference_type (uint32_t type);
 
 /**
  * Change preferences for the given peer. Preference changes are forgotten if peers
