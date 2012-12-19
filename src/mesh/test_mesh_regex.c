@@ -86,6 +86,11 @@ static struct GNUNET_MESH_Tunnel *t[MESH_REGEX_PEERS];
 static struct GNUNET_MESH_Tunnel *incoming_t[MESH_REGEX_PEERS];
 
 /**
+ * Test context (to shut down).
+ */
+struct GNUNET_MESH_TEST_Context *test_ctx;
+
+/**
  * Regular expressions for the announces.
  */
 static char *regexes[MESH_REGEX_PEERS] = {"(0|1)"
@@ -149,6 +154,7 @@ disconnect_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_SCHEDULER_cancel (shutdown_handle);
   }
+  GNUNET_MESH_TEST_cleanup (test_ctx);
   shutdown_handle = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
@@ -254,13 +260,14 @@ incoming_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
                  const struct GNUNET_ATS_Information *atsi)
 {
   long i = (long) cls;
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Incoming tunnel from %s to peer %d\n",
-              GNUNET_i2s (initiator), (long) cls);
-  if (i > 1L && i <= 1L + MESH_REGEX_PEERS)
+              GNUNET_i2s (initiator), i);
+  if (i >= 10L && i <= 10L + MESH_REGEX_PEERS)
   {
-    incoming_t[i - 2] = tunnel;
-    ok[i - 2] = GNUNET_OK;
+    incoming_t[i - 10L] = tunnel;
+    ok[i - 10L] = GNUNET_OK;
   }
   else
   {
@@ -294,14 +301,15 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
                const struct GNUNET_MessageHeader *message,
                const struct GNUNET_ATS_Information *atsi)
 {
-  int i;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "test: GOT DATA!\n");
+  unsigned int i;
+  long peer_number = (long) cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "got data on peer %ld!\n", peer_number);
   for (i = 0; i < MESH_REGEX_PEERS; i++)
   {
     if (GNUNET_OK != ok[i]) {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: %u DATA MISSING!\n", i);
+              "data from peer %u still missing!\n", i + 10);
       return GNUNET_OK;
     }
   }
@@ -310,9 +318,9 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task =
-        GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
   }
+  disconnect_task =
+      GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
   return GNUNET_OK;
 }
 
@@ -343,9 +351,9 @@ tmain (void *cls,
 {
   unsigned int i;
 
-  shutdown_handle =
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                    &shutdown_task, NULL);
+  shutdown_handle = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                                  &shutdown_task, NULL);
+  test_ctx = ctx;
   if (16 != num_peers)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
