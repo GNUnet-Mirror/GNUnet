@@ -3015,6 +3015,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   char *ipv4mask;
   char *binary;
   char *regex;
+  char *prefixed_regex;
 
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-exit");
   if (GNUNET_YES !=
@@ -3209,19 +3210,37 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   if ( (GNUNET_YES == ipv4_enabled) && (GNUNET_YES == ipv4_exit) )
   {
     if (GNUNET_OK !=
-	GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "EXIT_RANGE_IPV4_REGEX", &regex))
+	GNUNET_CONFIGURATION_get_value_string (cfg,
+                                               "exit",
+                                               "EXIT_RANGE_IPV4_REGEX",
+                                               &regex))
       regex = GNUNET_strdup ("(0|1)*");
-    GNUNET_MESH_announce_regex (mesh_handle, regex, REGEX_MAX_PATH_LEN_IPV4);
+    (void) GNUNET_asprintf (&prefixed_regex, "%s%s%s",
+                            GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
+                            "4", regex);
+    GNUNET_MESH_announce_regex (mesh_handle,
+                                prefixed_regex,
+                                REGEX_MAX_PATH_LEN_IPV4);
     GNUNET_free (regex);
+    GNUNET_free (prefixed_regex);
   }
 
   if (GNUNET_YES == ipv6_enabled && GNUNET_YES == ipv6_exit)
   {
     if (GNUNET_OK !=
-	GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "EXIT_RANGE_IPV6_REGEX", &regex))
+	GNUNET_CONFIGURATION_get_value_string (cfg,
+                                               "exit",
+                                               "EXIT_RANGE_IPV6_REGEX",
+                                               &regex))
       regex = GNUNET_strdup ("(0|1)*");
-    GNUNET_MESH_announce_regex (mesh_handle, regex, REGEX_MAX_PATH_LEN_IPV6);
+    (void) GNUNET_asprintf (&prefixed_regex, "%s%s%s",
+                            GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
+                            "6", regex);
+    GNUNET_MESH_announce_regex (mesh_handle,
+                                prefixed_regex,
+                                REGEX_MAX_PATH_LEN_IPV6);
     GNUNET_free (regex);
+    GNUNET_free (prefixed_regex);
   }
 
   helper_handle = GNUNET_HELPER_start (GNUNET_NO,
