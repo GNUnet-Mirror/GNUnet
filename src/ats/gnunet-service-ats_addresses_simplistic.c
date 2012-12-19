@@ -717,26 +717,36 @@ GAS_simplistic_address_update (void *solver,
             return;
         }
 
-        /* restore active state, add to new network and update*/
-        address->active = save_active;
+        /* Add to new network and update*/
         GAS_simplistic_address_add (solver, addresses, address);
         if (GNUNET_YES == save_active)
         {
-          /* check if bandwidth available*/
-          if (GNUNET_NO == (bw_available_in_network (new_net)))
+          /* check if bandwidth available in new network */
+          if (GNUNET_YES == (bw_available_in_network (new_net)))
           {
+              /* Suggest updated address */
+              address->active = GNUNET_YES;
+              addresse_increment (s, new_net, GNUNET_NO, GNUNET_YES);
+              update_quota_per_network (solver, new_net, NULL);
+          }
+          else
+          {
+            LOG (GNUNET_ERROR_TYPE_DEBUG, "Not enough bandwidth in new network, suggesting alternative address ..\n");
+
+            /* Set old address to zero bw */
+            address->assigned_bw_in = GNUNET_BANDWIDTH_value_init (0);
+            address->assigned_bw_out = GNUNET_BANDWIDTH_value_init (0);
+            s->bw_changed  (s->bw_changed_cls, address);
+
             /* Find new address to suggest since no bandwidth in network*/
             new = (struct ATS_Address *) GAS_simplistic_get_preferred_address (s, addresses, &address->peer);
             if (NULL != new)
             {
                 /* Have an alternative address to suggest */
-                s->bw_changed  (s->bw_changed_cls, address);
+                s->bw_changed  (s->bw_changed_cls, new);
             }
-            else
-              continue;
+
           }
-          addresse_increment (s, new_net, GNUNET_NO, GNUNET_YES);
-          update_quota_per_network (solver, new_net, NULL);
         }
       }
       break;
