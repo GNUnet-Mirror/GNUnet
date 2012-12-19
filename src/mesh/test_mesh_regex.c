@@ -147,9 +147,7 @@ disconnect_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   for (i = 0; i < MESH_REGEX_PEERS; i++)
   {
     GNUNET_MESH_tunnel_destroy (t[i]);
-    GNUNET_MESH_disconnect (h2[i]);
   }
-  GNUNET_MESH_disconnect (h1);
   if (GNUNET_SCHEDULER_NO_TASK != shutdown_handle)
   {
     GNUNET_SCHEDULER_cancel (shutdown_handle);
@@ -435,11 +433,11 @@ main (int argc, char *argv[])
   if (GNUNET_OK != result || regex_peers != MESH_REGEX_PEERS)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "test: FAILED! %u connected peers\n",
+                "FAILED! %u connected peers\n",
                 regex_peers);
     return 1;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "test: success\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "success :)\n");
   return 0;
 }
 
