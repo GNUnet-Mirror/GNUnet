@@ -176,6 +176,19 @@ struct PreferenceClient
   struct GNUNET_CONTAINER_MultiHashMap *peers;
 };
 
+
+/**
+ * Get the prefered address for a specific peer
+ *
+ * @param solver the solver handle
+ * @param addresses the address hashmap containing all addresses
+ * @param peer the identity of the peer
+ */
+const struct ATS_Address *
+GAS_simplistic_get_preferred_address (void *solver,
+                               struct GNUNET_CONTAINER_MultiHashMap * addresses,
+                               const struct GNUNET_PeerIdentity *peer);
+
 /**
  * Init the simplistic problem solving component
  *
@@ -328,6 +341,43 @@ GAS_simplistic_done (void *solver)
   GNUNET_free (s);
 }
 
+static unsigned long long int
+calculate_new_quota (unsigned long long int total,
+                     unsigned int addresses)
+{
+  return (total / addresses);
+}
+
+/**
+ * Test if bandwidth is available in this network
+ *
+ * @param s the solver handle
+ * @param net the network type to update
+ * @return GNUNET_YES or GNUNET_NO
+ */
+
+static int
+bw_available_in_network (struct Network *net)
+{
+  unsigned int na = net->active_addresses + 1;
+  uint32_t min_bw = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
+  if ((calculate_new_quota (net->total_quota_in, na) > min_bw) &&
+      (calculate_new_quota (net->total_quota_out, na) > min_bw))
+  {    
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Enough bandwidth available for %u active addresses in network `%s'\n",
+         na,
+         net->desc);
+                                                                      
+    return GNUNET_YES;
+  }
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Not enough bandwidth available for %u active addresses in network `%s'\n",
+         na,
+         net->desc);  
+  return GNUNET_NO;
+}
+
 /**
  * Update the quotas for a network type
  *
@@ -336,7 +386,6 @@ GAS_simplistic_done (void *solver)
  * @param address_except address excluded from notifcation, since we suggest
  * this address
  */
-
 static void
 update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
                           struct Network *net,
@@ -353,8 +402,8 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
   if (net->active_addresses == 0)
     return; /* no addresses to update */
 
-  quota_in = net->total_quota_in / net->active_addresses;
-  quota_out = net->total_quota_out / net->active_addresses;
+  quota_in = calculate_new_quota (net->total_quota_in, net->active_addresses);
+  quota_out = calculate_new_quota (net->total_quota_out, net->active_addresses);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "New per address quota for network type `%s' for %u addresses (in/out): %llu/%llu \n",
@@ -556,7 +605,6 @@ GAS_simplistic_address_delete (void *solver,
           net->desc, net->total_addresses, net->active_addresses);
   }
 
-
   if (GNUNET_YES == address->active)
   {
       /* Address was active, remove from network and update quotas*/
@@ -604,6 +652,7 @@ GAS_simplistic_address_update (void *solver,
                               const struct GNUNET_ATS_Information *atsi,
                               uint32_t atsi_count)
 {
+  struct ATS_Address *new;
   struct GAS_SIMPLISTIC_Handle *s = (struct GAS_SIMPLISTIC_Handle *) solver;
   int i;
   uint32_t value;
@@ -673,6 +722,19 @@ GAS_simplistic_address_update (void *solver,
         GAS_simplistic_address_add (solver, addresses, address);
         if (GNUNET_YES == save_active)
         {
+          /* check if bandwidth available*/
+          if (GNUNET_NO == (bw_available_in_network (new_net)))
+          {
+            /* Find new address to suggest since no bandwidth in network*/
+            new = (struct ATS_Address *) GAS_simplistic_get_preferred_address (s, addresses, &address->peer);
+            if (NULL != new)
+            {
+                /* Have an alternative address to suggest */
+                s->bw_changed  (s->bw_changed_cls, address);
+            }
+            else
+              continue;
+          }
           addresse_increment (s, new_net, GNUNET_NO, GNUNET_YES);
           update_quota_per_network (solver, new_net, NULL);
         }
@@ -723,6 +785,7 @@ find_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
   struct ATS_Address *current = (struct ATS_Address *) value;
   struct ATS_Address *previous = *previous_p;
   struct GNUNET_TIME_Absolute now;
+  struct Network *net = (struct Network *) current->solver_information;
 
   now = GNUNET_TIME_absolute_get();
 
@@ -735,6 +798,9 @@ find_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
                 GNUNET_TIME_absolute_get_difference(now, current->blocked_until).rel_value);
     return GNUNET_OK;
   }
+
+  if (GNUNET_NO == bw_available_in_network (net))
+    return GNUNET_OK; /* There's no bandwidth available in this network */
 
   if (NULL != previous)
   {
@@ -874,6 +940,12 @@ GAS_simplistic_get_preferred_address (void *solver,
       if (GNUNET_SYSERR == addresse_decrement (s, net_prev, GNUNET_NO, GNUNET_YES))
         GNUNET_break (0);
       update_quota_per_network (s, net_prev, NULL);
+  }
+
+  if (GNUNET_NO == (bw_available_in_network (cur->solver_information)))
+  {
+    GNUNET_break (0); /* This should never happen*/
+    return NULL;
   }
 
   cur->active = GNUNET_YES;
