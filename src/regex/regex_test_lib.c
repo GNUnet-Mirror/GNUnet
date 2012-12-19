@@ -71,7 +71,10 @@ regex_combine (struct RegexCombineCtx *ctx)
   }
   len = strlen (regex);
   if (1 == len)
+  {
+    GNUNET_free (regex);
     return GNUNET_strdup ("");
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "pre-partial: %s\n", regex);
   if ('|' == regex[len - 1])
