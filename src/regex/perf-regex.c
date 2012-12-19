@@ -51,8 +51,6 @@ main (int argc, char *const *argv)
   char **regexes;
   char *buffer;
   char *regex;
-  unsigned int nr;
-  unsigned int i;
   int compression;
   long size;
 
