@@ -23,6 +23,8 @@
  * @brief library for writing MESH tests
  */
 #include "platform.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_testing_lib.h"
 #include "mesh_test_lib.h"
 #include "gnunet_mesh_service.h"
 
