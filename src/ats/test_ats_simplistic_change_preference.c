@@ -59,23 +59,23 @@ static int ret;
 /**
  * Test address
  */
-static struct Test_Address test_addr[2];
+static struct Test_Address test_addr;
 
 /**
  * Test peer
  */
-static struct PeerContext p[2];
+static struct PeerContext p;
 
 
 /**
  * HELLO address
  */
-struct GNUNET_HELLO_Address test_hello_address[2];
+struct GNUNET_HELLO_Address test_hello_address;
 
 /**
  * Session
  */
-static void *test_session[2];
+static void *test_session;
 
 /**
  * Test ats info
@@ -107,7 +107,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_ATS_scheduling_done (sched_ats);
   if (perf_ats != NULL)
     GNUNET_ATS_performance_done (perf_ats);
-  free_test_address (&test_addr[0]);
+  free_test_address (&test_addr);
   ret = GNUNET_SYSERR;
 }
 
@@ -125,7 +125,7 @@ end ()
   perf_ats = NULL;
   GNUNET_ATS_scheduling_done (sched_ats);
   sched_ats = NULL;
-  free_test_address (&test_addr[0]);
+  free_test_address (&test_addr);
 }
 
 
@@ -142,7 +142,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   unsigned int bw_out = ntohl(bandwidth_out.value__);
   if (0 == stage)
   {
-    if (GNUNET_OK == compare_addresses (address, session, &test_hello_address[0], test_session[0]))
+    if (GNUNET_OK == compare_addresses (address, session, &test_hello_address, test_session))
     {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 0: Callback with correct address `%s'\n",
                     GNUNET_i2s (&address->peer));
@@ -183,7 +183,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
     if (1 == ret)
     {
-      GNUNET_ATS_suggest_address_cancel (sched_ats, &p[0].id);
+      GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
       GNUNET_SCHEDULER_add_now (&end, NULL);
       return;
     }
@@ -192,17 +192,18 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
     /* Change preference */
     GNUNET_ATS_change_preference (perf_ats,
-        &p[0].id,
+        &p.id,
         GNUNET_ATS_PREFERENCE_BANDWIDTH,(double) 1000, GNUNET_ATS_PREFERENCE_END);
 
     /* Request address */
-    GNUNET_ATS_suggest_address (sched_ats, &p[0].id);
+    GNUNET_ATS_reset_backoff (sched_ats, &p.id);
+    GNUNET_ATS_suggest_address (sched_ats, &p.id);
     return;
   }
   if (1 == stage)
   {
-      /* Expecting callback for address[0] with updated quota and no callback for address[1]*/
-      if (GNUNET_OK == compare_addresses (address, session, &test_hello_address[0], test_session[0]))
+      /* Expecting callback for address with updated quota and no callback for address[1]*/
+      if (GNUNET_OK == compare_addresses (address, session, &test_hello_address, test_session))
       {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 1: Callback with correct address `%s'\n",
                       GNUNET_i2s (&address->peer));
@@ -227,10 +228,10 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
               bw_in, wan_quota_in);
           ret = 1;
       }
-      else if (p[0].bw_in_assigned > bw_in)
+      else if (p.bw_in_assigned > bw_in)
       {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggested WAN inbound quota %u bigger than last quota %llu \n",
-              bw_in, p[0].bw_in_assigned);
+              bw_in, p.bw_in_assigned);
           ret = 1;
       }
       else
@@ -243,10 +244,10 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
               bw_out, wan_quota_out);
           ret = 1;
       }
-      else if (p[0].bw_out_assigned > bw_out)
+      else if (p.bw_out_assigned > bw_out)
       {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggested WAN inbound quota %u bigger than last quota %llu \n",
-              bw_out, p[0].bw_out_assigned);
+              bw_out, p.bw_out_assigned);
           ret = 1;
       }
       else
@@ -255,13 +256,13 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
       if (1 == ret)
       {
-        GNUNET_ATS_suggest_address_cancel (sched_ats, &p[1].id);
+        GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
         GNUNET_SCHEDULER_add_now (&end, NULL);
         return;
       }
       stage ++;
 
-      GNUNET_ATS_suggest_address_cancel (sched_ats, &p[1].id);
+      GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
       GNUNET_SCHEDULER_add_now (&end, NULL);
       return;
   }
@@ -332,7 +333,7 @@ run (void *cls,
   }
 
   /* Set up peer 0 */
-  if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID0, &p[0].id.hashPubKey))
+  if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID0, &p.id.hashPubKey))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not setup peer!\n");
       ret = GNUNET_SYSERR;
@@ -340,24 +341,11 @@ run (void *cls,
       return;
   }
 
-  GNUNET_assert (0 == strcmp (PEERID0, GNUNET_i2s_full (&p[0].id)));
+  GNUNET_assert (0 == strcmp (PEERID0, GNUNET_i2s_full (&p.id)));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
-              GNUNET_i2s(&p[0].id));
+              GNUNET_i2s(&p.id));
 
-  /* Set up peer 1*/
-  if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID1, &p[1].id.hashPubKey))
-  {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not setup peer!\n");
-      ret = GNUNET_SYSERR;
-      end ();
-      return;
-  }
-
-  GNUNET_assert (0 == strcmp (PEERID1, GNUNET_i2s_full (&p[1].id)));
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
-              GNUNET_i2s(&p[1].id));
 
   /* Prepare ATS Information */
   test_ats_info[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
@@ -367,15 +355,15 @@ run (void *cls,
   test_ats_count = 2;
 
   /* Adding address with session */
-  test_session[0] = &test_addr[0];
-  create_test_address (&test_addr[0], "test0", test_session[0], "test0", strlen ("test0") + 1);
-  test_hello_address[0].peer = p[0].id;
-  test_hello_address[0].transport_name = test_addr[0].plugin;
-  test_hello_address[0].address = test_addr[0].addr;
-  test_hello_address[0].address_length = test_addr[0].addr_len;
-  GNUNET_ATS_address_add (sched_ats, &test_hello_address[0], test_session[0], test_ats_info, test_ats_count);
+  test_session = &test_addr;
+  create_test_address (&test_addr, "test0", test_session, "test0", strlen ("test0") + 1);
+  test_hello_address.peer = p.id;
+  test_hello_address.transport_name = test_addr.plugin;
+  test_hello_address.address = test_addr.addr;
+  test_hello_address.address_length = test_addr.addr_len;
+  GNUNET_ATS_address_add (sched_ats, &test_hello_address, test_session, test_ats_info, test_ats_count);
 
-  GNUNET_ATS_suggest_address (sched_ats, &p[0].id);
+  GNUNET_ATS_suggest_address (sched_ats, &p.id);
 }
 
 
