@@ -82,9 +82,7 @@ main (int argc, char *const *argv)
   dfa = GNUNET_REGEX_construct_dfa (regex, size, compression);
   GNUNET_REGEX_automaton_destroy (dfa);
   GNUNET_free (buffer);
-  for (i=0;NULL != regexes[i];i++)
-    GNUNET_free_non_null (regexes[i]);
-  GNUNET_free (regexes);
+  GNUNET_REGEX_free_from_file (regexes);
   return 0;
 }
 
