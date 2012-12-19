@@ -25,6 +25,14 @@
 #ifndef MESH_TEST_LIB_H
 #define MESH_TEST_LIB_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#if 0                           /* keep Emacsens' auto-indent happy */
+}
+#endif
+#endif
+
 #include "gnunet_testbed_service.h"
 #include "gnunet_mesh_service.h"
 
@@ -86,4 +94,13 @@ void
 GNUNET_MESH_TEST_cleanup (struct GNUNET_MESH_TEST_Context *ctx);
 
 
+#if 0                           /* keep Emacsens' auto-indent happy */
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
+
+
+/* ifndef MESH_TEST_LIB_H */
 #endif
