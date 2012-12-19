@@ -817,7 +817,7 @@ GAS_addresses_request_address_cancel (struct GAS_Addresses_Handle *handle,
 
   if (NULL == cur)
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "No address requests pending for peer `%s', cannot remove!\n", GNUNET_i2s (peer));
       return;
   }
