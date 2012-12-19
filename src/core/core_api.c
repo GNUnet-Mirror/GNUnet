@@ -1286,6 +1286,11 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
   struct PeerRecord *pr;
   struct GNUNET_CORE_TransmitHandle *th;
 
+  if (notify_size > GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE)
+  {
+     GNUNET_break (0);
+     return NULL;
+  }
   GNUNET_assert (NULL != notify);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Asking core for transmission of %u bytes to `%s'\n",
