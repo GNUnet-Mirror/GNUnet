@@ -224,6 +224,7 @@ GNUNET_REGEX_read_from_file (const char *filename)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Can't get size of file %s\n", filename);
+    GNUNET_DISK_file_close (f);
     return NULL;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
