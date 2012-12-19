@@ -264,7 +264,9 @@ GNUNET_REGEX_read_from_file (const char *filename)
     GNUNET_array_grow (regexes, nr, nr + 1);
     regexes[nr - 2] = regex;
     regexes[nr - 1] = NULL;
+    regex = NULL;
   } while (offset < size);
+  GNUNET_free_non_null (regex);
   GNUNET_free (buffer);
 
   return regexes;
