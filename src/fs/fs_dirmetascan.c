@@ -428,6 +428,8 @@ helper_died_cb (void *cls)
   struct GNUNET_FS_DirScanner *ds = cls;
 
   ds->helper = NULL;
+  if (GNUNET_SCHEDULER_NO_TASK != ds->stop_task)
+    return; /* normal death, was finished */
   ds->progress_callback (ds->progress_callback_cls, 
 			 NULL, GNUNET_SYSERR,
 			 GNUNET_FS_DIRSCANNER_INTERNAL_ERROR);  
