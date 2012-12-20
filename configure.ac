@@ -1282,7 +1282,6 @@ src/template/Makefile
 src/testbed/Makefile
 src/testbed/testbed.conf
 src/testing/Makefile
-src/testing_old/Makefile
 src/topology/Makefile
 src/transport/Makefile
 src/transport/transport.conf

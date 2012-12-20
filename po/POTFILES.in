@@ -18,6 +18,7 @@ src/block/plugin_block_template.c
 src/block/plugin_block_test.c
 src/consensus/consensus_api.c
 src/consensus/gnunet-consensus.c
+src/consensus/gnunet-consensus-ibf.c
 src/consensus/gnunet-consensus-start-peers.c
 src/consensus/gnunet-service-consensus.c
 src/consensus/ibf.c
