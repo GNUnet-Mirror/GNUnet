@@ -285,6 +285,11 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+/**
+ * Abort test: schedule disconnect and shutdown immediately
+ * 
+ * @param line Line in the code the abort is requested from (__LINE__).
+ */
 void
 abort_test (long line)
 {
@@ -292,9 +297,9 @@ abort_test (long line)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
   }
-    disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
-                                                    &disconnect_mesh_peers,
-                                                    (void *) line);
+  disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
+                                                  &disconnect_mesh_peers,
+                                                  (void *) line);
 }
 
 /**
