@@ -97,6 +97,8 @@ struct GAS_SIMPLISTIC_Handle
    */
   void *bw_changed_cls;
 
+  struct GNUNET_CONTAINER_MultiHashMap *prefs;
+
   struct PreferenceClient *pc_head;
   struct PreferenceClient *pc_tail;
 };
@@ -241,6 +243,7 @@ GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   s->network_entries = GNUNET_malloc (dest_length * sizeof (struct Network));
   s->active_addresses = 0;
   s->total_addresses = 0;
+  s->prefs = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
 
   for (c = 0; c < dest_length; c++)
   {
@@ -255,6 +258,16 @@ GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_asprintf (&cur->stat_active, "# ATS active addresses %s total", cur->desc);
   }
   return s;
+}
+
+static int
+free_pref (void *cls,
+           const struct GNUNET_HashCode * key,
+           void *value)
+{
+  float *v = value;
+  GNUNET_free (v);
+  return GNUNET_OK;
 }
 
 /**
@@ -337,15 +350,12 @@ GAS_simplistic_done (void *solver)
       }
       GNUNET_free (pc);
   }
+
+  GNUNET_CONTAINER_multihashmap_iterate (s->prefs, &free_pref, NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (s->prefs);
   GNUNET_free (s);
 }
 
-static unsigned long long int
-calculate_new_quota (unsigned long long int total,
-                     unsigned int addresses)
-{
-  return (total / addresses);
-}
 
 /**
  * Test if bandwidth is available in this network
@@ -400,9 +410,68 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
 
   if (net->active_addresses == 0)
     return; /* no addresses to update */
+#if 0
+  /* Idea TODO
+   *
+   * Assign every peer in network minimum Bandwidth
+   * Distribute bandwidth left according to preference
+   */
+  unsigned long long remaining_quota_in = 0;
+  unsigned long long quota_out_used = 0;
 
-  quota_in = calculate_new_quota (net->total_quota_in, net->active_addresses);
-  quota_out = calculate_new_quota (net->total_quota_out, net->active_addresses);
+  unsigned long long remaining_quota_out = 0;
+  unsigned long long quota_in_used = 0;
+  uint32_t min_bw = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
+  float total_prefs;
+  float cur_pref;
+  float *t;
+
+  remaining_quota_in = net->total_quota_in - (net->active_addresses * min_bw);
+  remaining_quota_out = net->total_quota_out - (net->active_addresses * min_bw);
+  total_prefs = 0.0;
+  LOG (GNUNET_ERROR_TYPE_ERROR,
+              "Remaining: (in/out): %llu/%llu \n",
+              remaining_quota_in, remaining_quota_out);
+  for (cur = net->head; NULL != cur; cur = cur->next)
+  {
+     t = GNUNET_CONTAINER_multihashmap_get (s->prefs, &cur->addr->peer.hashPubKey);
+     if (NULL == t)
+       total_prefs += 1.0;
+     else
+       total_prefs += (*t);
+  }
+  for (cur = net->head; NULL != cur; cur = cur->next)
+  {
+     t = GNUNET_CONTAINER_multihashmap_get (s->prefs, &cur->addr->peer.hashPubKey);
+     if (NULL == t)
+       cur_pref = 1.0;
+     else
+       cur_pref += (*t);
+     LOG (GNUNET_ERROR_TYPE_ERROR,
+                 "Current pref vs total pref: (in/out): %f/%f \n",
+                 cur_pref, total_prefs);
+     quota_in = min_bw + (cur_pref / total_prefs) * (float) remaining_quota_in;
+     quota_out = min_bw + (cur_pref / total_prefs) * (float) remaining_quota_out;
+     LOG (GNUNET_ERROR_TYPE_ERROR,
+                 "New quota would be: (in/out): %llu /%llu\n",
+                 quota_in,
+                 quota_out);
+     quota_in_used += quota_in;
+     quota_out_used += quota_out;
+
+  }
+  LOG (GNUNET_ERROR_TYPE_ERROR,
+              "Total quota would be: (in/out): %llu /%llu\n",
+              quota_in,
+              quota_out);
+  LOG (GNUNET_ERROR_TYPE_ERROR,
+                          "New quota would be: (in/out): %llu /%llu\n",
+                          quota_in_used,
+                          quota_out_used);
+  /* End TODO */
+#endif
+  quota_in = net->total_quota_in / net->active_addresses;
+  quota_out = net->total_quota_out / net->active_addresses;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "New per address quota for network type `%s' for %u addresses (in/out): %llu/%llu \n",
@@ -519,6 +588,7 @@ GAS_simplistic_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap *
   struct GAS_SIMPLISTIC_Handle *s = solver;
   struct Network *net = NULL;
   struct AddressWrapper *aw = NULL;
+
   GNUNET_assert (NULL != s);
   int c;
   for (c = 0; c < s->networks; c++)
@@ -980,14 +1050,23 @@ GAS_simplistic_address_change_preference (void *solver,
                                    enum GNUNET_ATS_PreferenceKind kind,
                                    float score)
 {
-  struct GAS_SIMPLISTIC_Handle *s = solver;
-  struct PreferenceClient *cur;
-  struct PreferencePeer *p;
-  int i;
 
   GNUNET_assert (NULL != solver);
   GNUNET_assert (NULL != client);
   GNUNET_assert (NULL != peer);
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Client %p changes preference for peer `%s' %s %f\n",
+                                client,
+                                GNUNET_i2s (peer),
+                                GNUNET_ATS_print_preference_type (kind),
+                                score);
+
+  if (kind >= GNUNET_ATS_PreferenceCount)
+  {
+      GNUNET_break (0);
+      return;
+  }
+#if 0
 
   /**
    * Idea:
@@ -1018,17 +1097,10 @@ GAS_simplistic_address_change_preference (void *solver,
    *
    **/
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Client %p changes preference for peer `%s' %s %f\n",
-                                client,
-                                GNUNET_i2s (peer),
-                                GNUNET_ATS_print_preference_type (kind),
-                                score);
-
-  if (kind >= GNUNET_ATS_PreferenceCount)
-  {
-      GNUNET_break (0);
-      return;
-  }
+  struct GAS_SIMPLISTIC_Handle *s = solver;
+  struct PreferenceClient *cur;
+  struct PreferencePeer *p;
+  int i;
 
   for (cur = s->pc_head; NULL != cur; cur = cur->next)
   {
@@ -1103,6 +1175,11 @@ GAS_simplistic_address_change_preference (void *solver,
         GNUNET_i2s (&p->id),
         p->f_rel_total);
   }
+
+  /* Update global map */
+  /* TODO */
+#endif
+
 }
 
 /* end of gnunet-service-ats_addresses_simplistic.c */
