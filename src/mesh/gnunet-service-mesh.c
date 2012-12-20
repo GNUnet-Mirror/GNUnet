@@ -4401,6 +4401,7 @@ tunnel_send_destroy (struct MeshTunnel *t, int send_back)
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY);
+  GNUNET_PEER_resolve (parent, &id);
   send_prebuilt_message(&msg.header, &id, t);
 }
 
@@ -4559,7 +4560,7 @@ tunnel_destroy (struct MeshTunnel *t)
  */
 static void
 tunnel_destroy_empty_delayed (void *cls,
-                        const struct GNUNET_SCHEDULER_TaskContext *tc)
+                              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshTunnel *t = cls;
 
@@ -4582,6 +4583,7 @@ tunnel_destroy_empty_delayed (void *cls,
   }
   #endif
 
+  tunnel_send_destroy (t, GNUNET_YES);
   tunnel_destroy (t);
 }
 
