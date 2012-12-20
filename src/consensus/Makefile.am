@@ -17,7 +17,8 @@ endif
 
 bin_PROGRAMS = \
  gnunet-consensus \
- gnunet-consensus-start-peers
+ gnunet-consensus-start-peers \
+ gnunet-consensus-ibf
 
 libexec_PROGRAMS = \
  gnunet-service-consensus
@@ -26,7 +27,7 @@ lib_LTLIBRARIES = \
   libgnunetconsensus.la
 
 gnunet_consensus_SOURCES = \
- gnunet-consensus.c         
+ gnunet-consensus.c
 gnunet_consensus_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/consensus/libgnunetconsensus.la \
@@ -38,6 +39,13 @@ gnunet_consensus_start_peers_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/consensus/libgnunetconsensus.la \
+  $(GN_LIBINTL)
+
+gnunet_consensus_ibf_SOURCES = \
+ gnunet-consensus-ibf.c \
+ ibf.c
+gnunet_consensus_ibf_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 
 gnunet_service_consensus_SOURCES = \
@@ -69,6 +77,6 @@ test_consensus_api_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/consensus/libgnunetconsensus.la
 
-
 EXTRA_DIST = \
   test_consensus.conf
+
