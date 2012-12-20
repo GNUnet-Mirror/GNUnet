@@ -526,7 +526,10 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
         return GNUNET_OK;
       show_end_data();
     }
-    GNUNET_MESH_tunnel_destroy (t);
+    if (test == P2P_SIGNAL)
+      GNUNET_MESH_tunnel_destroy (incoming_t);
+    else
+      GNUNET_MESH_tunnel_destroy (t);
     t = NULL;
   }
 

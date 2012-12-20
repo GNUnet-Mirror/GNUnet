@@ -173,6 +173,7 @@ check_PROGRAMS = \
  test_mesh_regex \
  test_mesh_small_unicast \
  test_mesh_small_multicast \
+ test_mesh_small_signal \
  test_mesh_small_speed \
  test_mesh_small_speed_nobuf \
  test_mesh_small_speed_min \
@@ -287,6 +288,17 @@ test_mesh_small_multicast_LDADD = \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 test_mesh_small_multicast_DEPENDENCIES = \
+  libgnunetmeshtest.a \
+  libgnunetmesh.la
+
+test_mesh_small_signal_SOURCES = \
+ test_mesh_small.c
+test_mesh_small_signal_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmeshtest.a \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
+test_mesh_small_signal_DEPENDENCIES = \
   libgnunetmeshtest.a \
   libgnunetmesh.la
 
