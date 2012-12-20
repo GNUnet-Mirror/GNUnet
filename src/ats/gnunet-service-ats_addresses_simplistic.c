@@ -360,8 +360,8 @@ bw_available_in_network (struct Network *net)
 {
   unsigned int na = net->active_addresses + 1;
   uint32_t min_bw = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
-  if ((calculate_new_quota (net->total_quota_in, na) > min_bw) &&
-      (calculate_new_quota (net->total_quota_out, na) > min_bw))
+  if (((net->total_quota_in / na) > min_bw) &&
+      ((net->total_quota_out / na) > min_bw))
   {    
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Enough bandwidth available for %u active addresses in network `%s'\n",
@@ -1098,7 +1098,7 @@ GAS_simplistic_address_change_preference (void *solver,
         p->f_rel_total += p->f_rel[i];
     }
     p->f_rel_total /=  GNUNET_ATS_PreferenceCount - 1.0;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Client %p: peer `%s' has total relative preference of %3f\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Client %p: peer `%s' has total relative preference of %f\n",
         cur,
         GNUNET_i2s (&p->id),
         p->f_rel_total);
