@@ -765,7 +765,9 @@ tree_del_path (struct MeshTunnelTree *t, GNUNET_PEER_Id peer_id,
   GNUNET_CONTAINER_DLL_remove (parent->children_head, parent->children_tail, n);
   n->parent = NULL;
 
-  while (MESH_PEER_RELAY == parent->status && NULL == parent->children_head)
+  while (MESH_PEER_RELAY == parent->status &&
+         NULL == parent->children_head &&
+         parent->peer != t->me->peer)
   {
 #if MESH_TREE_DEBUG
     GNUNET_PEER_resolve (parent->peer, &id);
@@ -1066,7 +1068,7 @@ tree_del_peer (struct MeshTunnelTree *t, GNUNET_PEER_Id peer,
     GNUNET_break (0);
     return GNUNET_YES;
   }
-  GNUNET_break_op (NULL == n->children_head);
+  GNUNET_break (NULL == n->children_head);
   tree_node_destroy (n);
   if (NULL == t->root->children_head && t->me != t->root)
   {
