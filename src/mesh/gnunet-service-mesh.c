@@ -4387,20 +4387,18 @@ tunnel_send_destroy (struct MeshTunnel *t, int send_back)
   struct GNUNET_PeerIdentity id;
   GNUNET_PEER_Id parent;
 
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY);
+  GNUNET_PEER_resolve (t->id.oid, &msg.oid);
+  msg.tid = htonl (t->id.tid);
   if (tree_count_children(t->tree) > 0)
   {
-    msg.header.size = htons (sizeof (msg));
-    msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY);
-    GNUNET_PEER_resolve (t->id.oid, &msg.oid);
-    msg.tid = htonl (t->id.tid);
     tunnel_send_multicast (t, &msg.header);
   }
   parent = tree_get_predecessor(t->tree);
   if (GNUNET_NO == send_back || 0 == parent)
     return;
 
-  msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY);
   GNUNET_PEER_resolve (parent, &id);
   send_prebuilt_message(&msg.header, &id, t);
 }
