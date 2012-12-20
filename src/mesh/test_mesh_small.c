@@ -54,6 +54,7 @@
 #define SPEED_ACK 4
 #define SPEED_MIN 5
 #define SPEED_NOBUF 6
+#define P2P_SIGNAL 10
 
 /**
  * Which test are we running?
@@ -759,10 +760,10 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task =
-        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &disconnect_mesh_peers,
-                                      (void *) __LINE__);
   }
+  disconnect_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                                  &disconnect_mesh_peers,
+                                                  (void *) __LINE__);
 }
 
 /**
@@ -883,6 +884,13 @@ main (int argc, char *argv[])
     test = MULTICAST;
     test_name = "multicast";
     ok_goal = 10;
+  }
+  else if (strstr (argv[0], "test_mesh_small_signal") != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SIGNAL\n");
+    test = P2P_SIGNAL;
+    test_name = "signal";
+    ok_goal = 5;
   }
   else if (strstr (argv[0], "test_mesh_small_speed_ack") != NULL)
   {
