@@ -6417,7 +6417,6 @@ handle_mesh_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     /* TODO notify that we dont know that tunnel */
     GNUNET_STATISTICS_update (stats, "# keepalive on unknown tunnel", 1, GNUNET_NO);
-    GNUNET_break_op (0);
     return GNUNET_OK;
   }
 
