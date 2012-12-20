@@ -692,6 +692,7 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
   switch (test)
   {
     case UNICAST:
+    case P2P_SIGNAL:
     case SPEED:
     case SPEED_ACK:
       // incoming_t is NULL unless we send a relevant data packet
