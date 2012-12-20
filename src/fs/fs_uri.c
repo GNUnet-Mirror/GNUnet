@@ -1906,7 +1906,7 @@ uri_ksk_to_string (const struct GNUNET_FS_Uri *uri)
         continue;               /* skip leading space */
       if (needs_percent (keyword[j]))
       {
-        sprintf (&ret[wpos], "%%%02X", keyword[j]);
+        sprintf (&ret[wpos], "%%%02X", (unsigned char) keyword[j]);
         wpos += 3;
       }
       else
