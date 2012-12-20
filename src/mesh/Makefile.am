@@ -271,82 +271,100 @@ test_mesh_regex_DEPENDENCIES = \
 test_mesh_small_unicast_SOURCES = \
  test_mesh_small.c
 test_mesh_small_unicast_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmeshtest.a \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
 test_mesh_small_unicast_DEPENDENCIES = \
+  libgnunetmeshtest.a \
   libgnunetmesh.la
 
 test_mesh_small_multicast_SOURCES = \
  test_mesh_small.c
 test_mesh_small_multicast_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmeshtest.a \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
 test_mesh_small_multicast_DEPENDENCIES = \
+  libgnunetmeshtest.a \
   libgnunetmesh.la
 
 test_mesh_small_speed_ack_SOURCES = \
  test_mesh_small.c
 test_mesh_small_speed_ack_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmeshtest.a \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
 test_mesh_small_speed_ack_DEPENDENCIES = \
+  libgnunetmeshtest.a \
   libgnunetmesh.la
 
 test_mesh_small_speed_SOURCES = \
  test_mesh_small.c
 test_mesh_small_speed_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmeshtest.a \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
 test_mesh_small_speed_DEPENDENCIES = \
+  libgnunetmeshtest.a \
   libgnunetmesh.la
 
 test_mesh_small_speed_min_SOURCES = \
  test_mesh_small.c
 test_mesh_small_speed_min_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmeshtest.a \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
 test_mesh_small_speed_min_DEPENDENCIES = \
+  libgnunetmeshtest.a \
   libgnunetmesh.la
 
 test_mesh_small_speed_nobuf_SOURCES = \
  test_mesh_small.c
 test_mesh_small_speed_nobuf_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmeshtest.a \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
 test_mesh_small_speed_nobuf_DEPENDENCIES = \
+  libgnunetmeshtest.a \
   libgnunetmesh.la
 
 test_mesh_small_speed_backwards_SOURCES = \
  test_mesh_small.c
 test_mesh_small_speed_backwards_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmeshtest.a \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
 test_mesh_small_speed_backwards_DEPENDENCIES = \
+  libgnunetmeshtest.a \
   libgnunetmesh.la
 
 test_mesh_small_speed_min_backwards_SOURCES = \
  test_mesh_small.c
 test_mesh_small_speed_min_backwards_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmeshtest.a \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
 test_mesh_small_speed_min_backwards_DEPENDENCIES = \
+  libgnunetmeshtest.a \
   libgnunetmesh.la
 
 test_mesh_small_speed_nobuf_backwards_SOURCES = \
  test_mesh_small.c
 test_mesh_small_speed_nobuf_backwards_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmeshtest.a \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
 test_mesh_small_speed_nobuf_backwards_DEPENDENCIES = \
+  libgnunetmeshtest.a \
   libgnunetmesh.la
 
 
