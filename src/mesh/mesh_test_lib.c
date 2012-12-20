@@ -202,7 +202,11 @@ GNUNET_MESH_TEST_cleanup (struct GNUNET_MESH_TEST_Context *ctx)
   unsigned int i;
 
   for (i = 0; i < ctx->num_peers; i++)
+  {
+    GNUNET_assert (NULL != ctx->ops[i]);
     GNUNET_TESTBED_operation_done (ctx->ops[i]);
+    ctx->ops[i] = NULL;
+  }
   GNUNET_free (ctx->ops);
   GNUNET_free (ctx->meshes);
   GNUNET_free (ctx);
@@ -273,7 +277,7 @@ GNUNET_MESH_TEST_run (const char *testname,
                       const GNUNET_MESH_ApplicationType* stypes)
 {
   struct GNUNET_MESH_TEST_Context *ctx;
-  
+
   ctx = GNUNET_malloc (sizeof (struct GNUNET_MESH_TEST_Context));
   ctx->num_peers = num_peers;
   ctx->ops = GNUNET_malloc (num_peers * sizeof (struct GNUNET_TESTBED_Operation *));
