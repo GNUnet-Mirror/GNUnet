@@ -233,7 +233,6 @@ show_end_data (void)
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  fprintf(stderr, "b");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending test.\n");
   shutdown_handle = GNUNET_SCHEDULER_NO_TASK;
 }
@@ -251,7 +250,6 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   long line = (long) cls;
   unsigned int i;
 
-  fprintf(stderr, "a");
   for (i = 0; i < 3; i++)
     if (NULL != t_op[i])
     {
@@ -673,7 +671,7 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_PeerIdentity *dest;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "peer %s connected\n", GNUNET_i2s (peer));
+              "%ld peer %s connected\n", i, GNUNET_i2s (peer));
 
   if (0 == memcmp (p_id[2], peer, sizeof (struct GNUNET_PeerIdentity)) &&
       i == 0L)
@@ -792,6 +790,7 @@ pi_cb (void *cls,
     return;
   }
   p_id[i] = pinfo->result.id;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  id: %s\n", GNUNET_i2s (p_id[i]));
   p_ids++;
   if ((MULTICAST == test && p_ids < 3) || p_ids < 2)
     return;
@@ -822,7 +821,7 @@ tmain (void *cls,
   peers_running = num_peers;
   h1 = meshes[0];
   h2 = meshes[num_peers - 1];
-  t = GNUNET_MESH_tunnel_create (h1, NULL, &ch, &dh, (void *) 1L);
+  t = GNUNET_MESH_tunnel_create (h1, NULL, &ch, &dh, (void *) 0L);
   if (SPEED_MIN == test)
   {
     GNUNET_MESH_tunnel_speed_min(t);
@@ -949,7 +948,7 @@ main (int argc, char *argv[])
   }
 
   p_ids = 0;
-  GNUNET_MESH_TEST_run (test_name,
+  GNUNET_MESH_TEST_run ("test_mesh_small",
                         "test_mesh_small.conf",
                         5,
                         &tmain,
