@@ -1021,10 +1021,11 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
 			       "topology", "FRIENDS");
     return;
   }
-  if (GNUNET_OK != GNUNET_DISK_file_test (fn))
-    GNUNET_DISK_fn_write (fn, NULL, 0,
-                          GNUNET_DISK_PERM_USER_READ |
-                          GNUNET_DISK_PERM_USER_WRITE);
+  if ( (GNUNET_OK != GNUNET_DISK_file_test (fn)) &&
+       (GNUNET_OK != GNUNET_DISK_fn_write (fn, NULL, 0,
+					   GNUNET_DISK_PERM_USER_READ |
+					   GNUNET_DISK_PERM_USER_WRITE)) )
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "write", fn);
   if (GNUNET_OK != GNUNET_DISK_file_size (fn,
       &fsize, GNUNET_NO, GNUNET_YES))
   {
