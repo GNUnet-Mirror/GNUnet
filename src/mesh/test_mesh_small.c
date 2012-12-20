@@ -527,10 +527,15 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
       show_end_data();
     }
     if (test == P2P_SIGNAL)
+    {
       GNUNET_MESH_tunnel_destroy (incoming_t);
+      incoming_t = NULL;
+    }
     else
+    {
       GNUNET_MESH_tunnel_destroy (t);
-    t = NULL;
+      t = NULL;
+    }
   }
 
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
