@@ -337,6 +337,8 @@ tree_notify_connection_broken (struct MeshTunnelTree *t, GNUNET_PEER_Id p1,
  * If the tree is not local and no longer has any paths, the root node will be
  * destroyed and marked as NULL.
  *
+ * FIXME: dont destroy the root
+ *
  * @param t Tunnel tree to use.
  * @param peer Short ID of the peer to remove from the tunnel tree.
  * @param cb Callback to notify client of disconnected peers.

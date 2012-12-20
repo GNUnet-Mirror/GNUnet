@@ -665,6 +665,16 @@ dh (void *cls, const struct GNUNET_PeerIdentity *peer)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "peer %s disconnected\n",
               GNUNET_i2s (peer));
+  if (P2P_SIGNAL == test)
+  {
+    ok ++;
+    if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
+    {
+      GNUNET_SCHEDULER_cancel (disconnect_task);
+    }
+    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers,
+                                                (void *) __LINE__);
+  }
   return;
 }
 
