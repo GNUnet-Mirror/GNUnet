@@ -336,7 +336,7 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   else
   {
     tunnel = t;
-    destination = p_id[1];
+    destination = p_id[2];
   }
   th = GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
                                           GNUNET_TIME_UNIT_FOREVER_REL,
@@ -450,18 +450,18 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
 
   switch (client)
   {
-  case 1L:
+  case 0L:
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Root client got a message!\n");
     peers_responded++;
     if (test == MULTICAST && peers_responded < 2)
       return GNUNET_OK;
     break;
-  case 2L:
   case 3L:
+  case 4L:
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Leaf client %li got a message.\n",
                 client);
-    client = 2L;
+    client = 4L;
     break;
   default:
     GNUNET_assert (0);
@@ -472,11 +472,11 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " payload: (%u)\n", ntohl (*data));
   if (SPEED == test && GNUNET_YES == test_backwards)
   {
-    expected_target_client = 1L;
+    expected_target_client = 0L;
   }
   else
   {
-    expected_target_client = 2L;
+    expected_target_client = 4L;
   }
 
   if (GNUNET_NO == initialized)
@@ -485,13 +485,13 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
     start_time = GNUNET_TIME_absolute_get ();
     if (SPEED == test)
     {
-      GNUNET_assert (2L == client);
+      GNUNET_assert (4L == client);
       GNUNET_SCHEDULER_add_now (&data_task, NULL);
       return GNUNET_OK;
     }
   }
 
-  if (client == expected_target_client) // Normally 2 or 3
+  if (client == expected_target_client) // Normally 3 or 4
   {
     data_received++;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -510,7 +510,7 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
         return GNUNET_OK;
     }
   }
-  else // Normally 1
+  else // Normally 0
   {
     if (test == SPEED_ACK || test == SPEED)
     {
@@ -573,7 +573,7 @@ incoming_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
               GNUNET_i2s (initiator), (long) cls);
   ok++;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
-  if ((long) cls == 2L)
+  if ((long) cls == 4L)
     incoming_t = tunnel;
   else if ((long) cls == 3L)
     incoming_t2 = tunnel;
@@ -612,7 +612,7 @@ tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Incoming tunnel disconnected at peer %d\n",
               i);
-  if (2L == i)
+  if (4L == i)
   {
     ok++;
     incoming_t = NULL;
@@ -675,14 +675,14 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "peer %s connected\n", GNUNET_i2s (peer));
 
-  if (0 == memcmp (p_id[1], peer, sizeof (struct GNUNET_PeerIdentity)) &&
-      i == 1L)
+  if (0 == memcmp (p_id[2], peer, sizeof (struct GNUNET_PeerIdentity)) &&
+      i == 0L)
   {
     ok++;
   }
   if (test == MULTICAST &&
-      0 == memcmp (p_id[2], peer, sizeof (struct GNUNET_PeerIdentity)) &&
-      i == 1L)
+      0 == memcmp (p_id[1], peer, sizeof (struct GNUNET_PeerIdentity)) &&
+      i == 0L)
   {
     ok++;
   }
@@ -693,7 +693,7 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
     case SPEED:
     case SPEED_ACK:
       // incoming_t is NULL unless we send a relevant data packet
-      dest = p_id[1];
+      dest = p_id[2];
       break;
     case MULTICAST:
       peers_in_tunnel++;
@@ -747,13 +747,13 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test_task\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "add peer 2\n");
-  GNUNET_MESH_peer_request_connect_add (t, p_id[1]);
+  GNUNET_MESH_peer_request_connect_add (t, p_id[2]);
 
   if (test == MULTICAST)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "add peer 3\n");
-    GNUNET_MESH_peer_request_connect_add (t, p_id[2]);
+    GNUNET_MESH_peer_request_connect_add (t, p_id[1]);
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -785,7 +785,6 @@ pi_cb (void *cls,
   long i = (long) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "id callback for %ld\n", i);
-  t_op[i] = NULL;
   if (NULL == pinfo || NULL != emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "pi_cb: %s\n", emsg);
@@ -796,6 +795,7 @@ pi_cb (void *cls,
   p_ids++;
   if ((MULTICAST == test && p_ids < 3) || p_ids < 2)
     return;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got all IDs, starting test\n");
   test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                             &do_test, NULL);
 }
@@ -842,15 +842,19 @@ tmain (void *cls,
   t_op[0] = GNUNET_TESTBED_peer_get_information (peers[0],
                                                  GNUNET_TESTBED_PIT_IDENTITY,
                                                  &pi_cb, (void *) 0L);
-  t_op[1] = GNUNET_TESTBED_peer_get_information (peers[num_peers - 1],
+  t_op[2] = GNUNET_TESTBED_peer_get_information (peers[num_peers - 1],
                                                  GNUNET_TESTBED_PIT_IDENTITY,
-                                                 &pi_cb, (void *) 1L);
+                                                 &pi_cb, (void *) 2L);
   if (MULTICAST == test)
   {
     h3 = meshes[num_peers - 2];
-    t_op[2] = GNUNET_TESTBED_peer_get_information (peers[num_peers - 2],
+    t_op[1] = GNUNET_TESTBED_peer_get_information (peers[num_peers - 2],
                                                    GNUNET_TESTBED_PIT_IDENTITY,
-                                                   &pi_cb, (void *) 2L);
+                                                   &pi_cb, (void *) 1L);
+  }
+  else
+  {
+    t_op[1] = NULL;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "requested peer ids\n");
 }
