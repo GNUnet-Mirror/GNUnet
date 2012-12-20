@@ -2157,6 +2157,32 @@ client_delete_tunnel (struct MeshClient *c, struct MeshTunnel *t)
 
 
 /**
+ * Notify the owner of a tunnel that a peer has disconnected.
+ * 
+ * @param c Client (owner of tunnel).
+ * @param t Tunnel this message is about.
+ * @param peer_id Short ID of the disconnected peer.
+ */
+void
+client_notify_peer_disconnected (struct MeshClient *c,
+                                 struct MeshTunnel *t,
+                                 GNUNET_PEER_Id peer_id)
+{
+  struct GNUNET_MESH_PeerControl msg;
+
+  if (NULL == t->owner || NULL == nc)
+    return;
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DEL);
+  msg.tunnel_id = htonl (t->local_tid);
+  GNUNET_PEER_resolve (peer_id, &msg.peer);
+  GNUNET_SERVER_notification_context_unicast (nc, t->owner->handle,
+                                              &msg.header, GNUNET_NO);
+}
+
+
+/**
  * Send the message to all clients that have subscribed to its type
  *
  * @param msg Pointer to the message itself
@@ -3408,17 +3434,8 @@ tunnel_notify_client_peer_disconnected (void *cls, GNUNET_PEER_Id peer_id)
   struct MeshPeerInfo *peer;
   struct MeshPathInfo *path_info;
 
-  if (NULL != t->owner && NULL != nc)
-  {
-    struct GNUNET_MESH_PeerControl msg;
+  client_notify_peer_disconnected (t->owner, t, peer_id);
 
-    msg.header.size = htons (sizeof (msg));
-    msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DEL);
-    msg.tunnel_id = htonl (t->local_tid);
-    GNUNET_PEER_resolve (peer_id, &msg.peer);
-    GNUNET_SERVER_notification_context_unicast (nc, t->owner->handle,
-                                                &msg.header, GNUNET_NO);
-  }
   peer = peer_info_get_short (peer_id);
   path_info = GNUNET_malloc (sizeof (struct MeshPathInfo));
   path_info->peer = peer;
@@ -4695,6 +4712,19 @@ tunnel_new (GNUNET_PEER_Id owner,
   return t;
 }
 
+/**
+ * Callback when removing children from a tunnel tree. Notify owner.
+ *
+ * @param cls Closure (tunnel).
+ * @param peer_id Short ID of the peer deleted.
+ */
+void
+tunnel_child_removed (void *cls, GNUNET_PEER_Id peer_id)
+{
+  struct MeshTunnel *t = cls;
+
+  client_notify_peer_disconnected (t->owner, t, peer_id);
+}
 
 /**
  * Removes an explicit path from a tunnel, freeing all intermediate nodes
@@ -4709,7 +4739,7 @@ tunnel_delete_peer (struct MeshTunnel *t, GNUNET_PEER_Id peer)
 {
   int r;
 
-  r = tree_del_peer (t->tree, peer, NULL, NULL);
+  r = tree_del_peer (t->tree, peer, &tunnel_child_removed, t);
   if (GNUNET_NO == r)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -5789,6 +5819,8 @@ handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct GNUNET_MESH_TunnelDestroy *msg;
   struct MeshTunnel *t;
+  GNUNET_PEER_Id parent;
+  GNUNET_PEER_Id pid;
 
   msg = (struct GNUNET_MESH_TunnelDestroy *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -5798,6 +5830,7 @@ handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
               "  for tunnel %s [%u]\n",
               GNUNET_i2s (&msg->oid), ntohl (msg->tid));
   t = tunnel_get (&msg->oid, ntohl (msg->tid));
+  /* Check signature */
   if (NULL == t)
   {
     /* Probably already got the message from another path,
@@ -5808,10 +5841,13 @@ handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
                               1, GNUNET_NO);
     return GNUNET_OK;
   }
-  if (t->id.oid == myid)
+  parent = tree_get_predecessor(t->tree);
+  pid = GNUNET_PEER_search (peer);
+  if (pid != parent)
   {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
+    tree_del_peer (t->tree, pid, &tunnel_child_removed, t);
+    if (tree_count_children(t->tree) > 0 || NULL != t->owner)
+      return GNUNET_OK;
   }
   if (t->local_tid_dest >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
   {
