@@ -4584,7 +4584,10 @@ tunnel_destroy_empty_delayed (void *cls,
   #endif
 
   tunnel_send_destroy (t, GNUNET_YES);
-  tunnel_destroy (t);
+  if (0 == t->pending_messages)
+    tunnel_destroy (t);
+  else
+    t->destroy = GNUNET_YES;
 }
 
 
