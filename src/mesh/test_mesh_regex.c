@@ -262,7 +262,7 @@ incoming_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Incoming tunnel from %s to peer %d\n",
               GNUNET_i2s (initiator), i);
-  if (i >= 10L && i <= 10L + MESH_REGEX_PEERS)
+  if ( (i >= 10L) && (i < 10L + MESH_REGEX_PEERS))
   {
     incoming_t[i - 10L] = tunnel;
     ok[i - 10L] = GNUNET_OK;
