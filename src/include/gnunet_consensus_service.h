@@ -223,6 +223,7 @@ typedef void (*GNUNET_CONSENSUS_ConcludeCallback) (void *cls,
 void
 GNUNET_CONSENSUS_conclude (struct GNUNET_CONSENSUS_Handle *consensus,
 			   struct GNUNET_TIME_Relative timeout,
+			   //			   unsigned int min_group_size_in_consensus,
 			   GNUNET_CONSENSUS_ConcludeCallback conclude,
 			   void *conclude_cls);
 
