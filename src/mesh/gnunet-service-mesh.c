@@ -4532,6 +4532,7 @@ tunnel_destroy (struct MeshTunnel *t)
 
   (void) GNUNET_CONTAINER_multihashmap_remove (incoming_tunnels, &hash, t);
   GNUNET_free_non_null (t->clients);
+  GNUNET_free_non_null (t->ignore);
   GNUNET_free_non_null (t->clients_fc);
 
   if (NULL != t->peers)
