@@ -234,11 +234,11 @@ read_blacklist_file ()
 			       "transport", "BLACKLIST_FILE");
     return;
   }
-  if ( (GNUNET_OK != GNUNET_DISK_file_test (fn)) &&
-       (GNUNET_OK != GNUNET_DISK_fn_write (fn, NULL, 0,
-					   GNUNET_DISK_PERM_USER_READ |
-					   GNUNET_DISK_PERM_USER_WRITE)) )
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "write", fn);
+  if (GNUNET_OK != GNUNET_DISK_file_test (fn))
+  {
+    GNUNET_free (fn);
+    return; /* no blacklist */
+  }
   if (GNUNET_OK != GNUNET_DISK_file_size (fn,
       &fsize, GNUNET_NO, GNUNET_YES))
   {
@@ -247,9 +247,9 @@ read_blacklist_file ()
     GNUNET_free (fn);
     return;
   }
-  if (fsize == 0)
+  if (0 == fsize)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Blacklist file `%s' is empty.\n"),
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Blacklist file `%s' is empty.\n",
                 fn);
     GNUNET_free (fn);
     return;
