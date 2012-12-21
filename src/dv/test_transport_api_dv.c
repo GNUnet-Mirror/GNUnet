@@ -22,7 +22,6 @@
  * @brief base testcase for testing distance vector transport
  */
 #include "platform.h"
-#include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
 
 #define TEST_ALL GNUNET_NO
