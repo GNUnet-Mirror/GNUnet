@@ -742,7 +742,7 @@ tree_del_path (struct MeshTunnelTree *t, GNUNET_PEER_Id peer_id,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tree:   Deleting path to %s.\n",
               GNUNET_i2s (&id));
 #endif
-  if (peer_id == t->root->peer)
+  if (NULL == t->root || peer_id == t->root->peer)
     return NULL;
 
   for (n = t->disconnected_head; NULL != n; n = n->next)

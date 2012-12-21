@@ -5850,14 +5850,14 @@ handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
                               1, GNUNET_NO);
     return GNUNET_OK;
   }
-  parent = tree_get_predecessor(t->tree);
+  parent = tree_get_predecessor (t->tree);
   pid = GNUNET_PEER_search (peer);
   if (pid != parent)
   {
     unsigned int nc;
 
     tree_del_peer (t->tree, pid, &tunnel_child_removed, t);
-    nc = tree_count_children(t->tree);
+    nc = tree_count_children (t->tree);
     if (nc > 0 || NULL != t->owner || t->nclients > 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
