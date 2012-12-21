@@ -379,6 +379,8 @@ tree_node_destroy (struct MeshTunnelTreeNode *parent)
   struct MeshTunnelTreeNode *n;
   struct MeshTunnelTreeNode *next;
 
+  if (NULL == parent)
+    return;
 #if MESH_TREE_DEBUG
   struct GNUNET_PeerIdentity id;
 
@@ -594,10 +596,7 @@ tree_iterate_children (struct MeshTunnelTree *tree, MeshTreeCallback cb,
   struct MeshTunnelTreeNode *n;
 
   if (NULL == tree->me)
-  {
-    GNUNET_break (0);
     return;
-  }
   for (n = tree->me->children_head; NULL != n; n = n->next)
   {
     cb (cb_cls, n->peer);
@@ -766,8 +765,7 @@ tree_del_path (struct MeshTunnelTree *t, GNUNET_PEER_Id peer_id,
   n->parent = NULL;
 
   while (MESH_PEER_RELAY == parent->status &&
-         NULL == parent->children_head &&
-         parent->peer != t->me->peer)
+         NULL == parent->children_head)
   {
 #if MESH_TREE_DEBUG
     GNUNET_PEER_resolve (parent->peer, &id);
@@ -775,6 +773,8 @@ tree_del_path (struct MeshTunnelTree *t, GNUNET_PEER_Id peer_id,
                 GNUNET_i2s (&id));
 #endif
     n = parent->parent;
+    if (parent == t->me)
+      t->me = NULL;
     tree_node_destroy (parent);
     parent = n;
   }
@@ -1135,6 +1135,8 @@ void
 tree_debug (struct MeshTunnelTree *t)
 {
   tree_node_debug (t->root, 0);
+  FPRINTF (stderr, "root: %p\n", t->root);
+  FPRINTF (stderr, "me:   %p\n", t->me);
 }
 
 
