@@ -638,7 +638,6 @@ process_lock_release (struct Lock *lock)
   lock->cl_entry = wl_entry->cl_entry;
   lock_wl_remove (lock, wl_entry);
   send_success_msg (lock->cl_entry->client, lock->domain_name, lock->lock_num);
-  return;
 }
 
 
@@ -800,6 +799,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CONTAINER_multihashmap_iterate (lock_map, &lock_delete_iterator, NULL);
   GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (lock_map));
   GNUNET_CONTAINER_multihashmap_destroy (lock_map);
+  lock_map = NULL;
 }
 
 
