@@ -4395,29 +4395,37 @@ tunnel_unlock_bck_queue (struct MeshTunnel *t)
  * valid.
  *
  * @param t The tunnel whose peers to notify.
- * @param send_back Do we need to notify our parent node?
+ * @param parent ID of the parent, in case the tree is already destroyed.
  */
 static void
-tunnel_send_destroy (struct MeshTunnel *t, int send_back)
+tunnel_send_destroy (struct MeshTunnel *t, GNUNET_PEER_Id parent)
 {
   struct GNUNET_MESH_TunnelDestroy msg;
   struct GNUNET_PeerIdentity id;
-  GNUNET_PEER_Id parent;
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY);
   GNUNET_PEER_resolve (t->id.oid, &msg.oid);
   msg.tid = htonl (t->id.tid);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "  sending tunnel destroy for tunnel: %s [%X]\n",
+              GNUNET_i2s (&msg.oid), t->id.tid);
   if (tree_count_children(t->tree) > 0)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  sending multicast to children\n");
     tunnel_send_multicast (t, &msg.header);
   }
-  parent = tree_get_predecessor(t->tree);
-  if (GNUNET_NO == send_back || 0 == parent)
+  if (0 == parent)
+    parent = tree_get_predecessor (t->tree);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  parent: %u\n", parent);
+  if (0 == parent)
     return;
 
   GNUNET_PEER_resolve (parent, &id);
-  send_prebuilt_message(&msg.header, &id, t);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "  sending back to %s\n",
+              GNUNET_i2s (&id));
+  send_prebuilt_message (&msg.header, &id, t);
 }
 
 
@@ -4599,7 +4607,7 @@ tunnel_destroy_empty_delayed (void *cls,
   }
   #endif
 
-  tunnel_send_destroy (t, GNUNET_YES);
+  tunnel_send_destroy (t, 0);
   if (0 == t->pending_messages)
     tunnel_destroy (t);
   else
@@ -4779,7 +4787,7 @@ tunnel_destroy_iterator (void *cls,
     tunnel_destroy_empty (t);
     return GNUNET_OK;
   }
-  tunnel_send_destroy (t, GNUNET_YES);
+  tunnel_send_destroy (t, 0);
   t->owner = NULL;
   t->destroy = GNUNET_YES;
 
@@ -5846,11 +5854,17 @@ handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
   pid = GNUNET_PEER_search (peer);
   if (pid != parent)
   {
+    unsigned int nc;
+
     tree_del_peer (t->tree, pid, &tunnel_child_removed, t);
-    if (tree_count_children(t->tree) > 0 ||
-      NULL != t->owner ||
-      t->nclients > 0)
+    nc = tree_count_children(t->tree);
+    if (nc > 0 || NULL != t->owner || t->nclients > 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "still in use: %u cl, %u ch\n",
+                  t->nclients, nc);
       return GNUNET_OK;
+    }
   }
   if (t->local_tid_dest >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
   {
@@ -5859,7 +5873,7 @@ handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
                 t->local_tid, t->local_tid_dest);
     send_clients_tunnel_destroy (t);
   }
-  tunnel_send_destroy (t, GNUNET_YES);
+  tunnel_send_destroy (t, parent);
   t->destroy = GNUNET_YES;
   // TODO: add timeout to destroy the tunnel anyway
   return GNUNET_OK;
@@ -7242,14 +7256,14 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  send_client_tunnel_disconnect(t, c);
-  client_delete_tunnel(c, t);
+  send_client_tunnel_disconnect (t, c);
+  client_delete_tunnel (c, t);
 
   /* Don't try to ACK the client about the tunnel_destroy multicast packet */
   t->owner = NULL;
-  tunnel_send_destroy (t, GNUNET_YES);
+  tunnel_send_destroy (t, 0);
   t->destroy = GNUNET_YES;
-  // The tunnel will be destroyed when the last message is transmitted.
+  /* The tunnel will be destroyed when the last message is transmitted. */
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
 }
