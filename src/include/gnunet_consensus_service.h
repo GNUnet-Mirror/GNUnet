@@ -154,6 +154,49 @@ GNUNET_CONSENSUS_begin (struct GNUNET_CONSENSUS_Handle *consensus);
 
 
 
+struct GNUNET_CONSENSUS_DeltaRequest;
+
+/**
+ * We are finished inserting new elements into the consensus;
+ * try to conclude the consensus within a given time window.
+ *
+ * @param consensus consensus session
+ * @param timeout timeout after which the conculde callback
+ *                must be called
+ * @param conclude called when the conclusion was successful
+ * @param conclude_cls closure for the conclude callback
+ */
+struct GNUNET_CONSENSUS_DeltaRequest *
+GNUNET_CONSENSUS_get_delta (struct GNUNET_CONSENSUS_Handle *consensus,
+			    uint32_t group_id,
+			    GNUNET_CONSENSUS_NewElementCallback remove_element_cb,
+			    void *remove_element_cb_cls);
+
+
+void
+GNUNET_CONSENSUS_get_delta_cancel (struct GNUNET_CONSENSUS_DeltaRequest *dr);
+
+
+struct GNUNET_CONSENSUS_Group
+{
+  uint32_t group_id; /* offset into groups? */
+  unsigned int num_members;
+  uint64_t total_elements_in_group;
+  const struct GNUNET_PeerIdentity **members;
+};
+				       
+
+/**
+ * Called when a conclusion was successful.
+ *
+ * @param cls
+ * @param num_peers_in_consensus
+ * @param peers_in_consensus
+ */
+typedef void (*GNUNET_CONSENSUS_NewConcludeCallback) (void *cls, 
+						      unsigned int consensus_group_count,
+						      const struct GNUNET_CONSENSUS_Group *groups);
+
 
 /**
  * Called when a conclusion was successful.
