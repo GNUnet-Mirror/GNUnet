@@ -501,6 +501,9 @@ int
 main (int argc, char *const *argv)
 {
   char *sbin_iptables;
+  char *bin_vpn;
+  char *bin_exit;
+  char *bin_dns;
   char *const iptables_args[] =
   {
     "iptables", "-t", "mangle", "-L", "-v", NULL
@@ -535,20 +538,29 @@ main (int argc, char *const *argv)
     return 0;
   }
 
+  bin_vpn = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-vpn");
+  bin_exit = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-exit");
+  bin_dns = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-dns");
   if ( (0 != geteuid ()) &&
        ( (GNUNET_YES !=
-	  GNUNET_OS_check_helper_binary ("gnunet-helper-vpn")) ||
+	  GNUNET_OS_check_helper_binary (bin_vpn)) ||
 	 (GNUNET_YES !=
-	  GNUNET_OS_check_helper_binary ("gnunet-helper-exit")) ||
+	  GNUNET_OS_check_helper_binary (bin_exit)) ||
 	 (GNUNET_YES !=
-	  GNUNET_OS_check_helper_binary ("gnunet-helper-dns"))) )
-  {
+	  GNUNET_OS_check_helper_binary (bin_dns))) )
+  {    
     fprintf (stderr,
 	     "WARNING: gnunet-helper-{exit,vpn,dns} binaries in $PATH are not SUID, refusing to run test (as it would have to fail).\n");
     fprintf (stderr,
 	     "Change $PATH ('.' in $PATH before $GNUNET_PREFIX/bin is problematic) or permissions (run 'make install' as root) to fix this!\n");
+    GNUNET_free (bin_vpn);    
+    GNUNET_free (bin_exit);
+    GNUNET_free (bin_dns);
     return 0;
   }
+  GNUNET_free (bin_vpn);    
+  GNUNET_free (bin_exit);
+  GNUNET_free (bin_dns);
   GNUNET_CRYPTO_rsa_setup_hostkey ("test_gns_vpn.conf");
   
   dest_ip = "169.254.86.1";

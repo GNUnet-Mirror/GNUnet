@@ -1272,18 +1272,21 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   struct in_addr dns_exit4;
   struct in6_addr dns_exit6;
   char *dns_exit;
+  char *binary;
 
   cfg = cfg_;
+  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-dns");
   if (GNUNET_YES !=
-      GNUNET_OS_check_helper_binary ("gnunet-helper-dns"))
+      GNUNET_OS_check_helper_binary (binary))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("`%s' must be installed SUID, refusing to run\n"),
-		"gnunet-helper-dns");
+		binary);
     global_ret = 1;
+    GNUNET_free (binary);
     return;
   }
-
+  GNUNET_free (binary);
   stats = GNUNET_STATISTICS_create ("dns", cfg);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,

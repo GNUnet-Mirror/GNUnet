@@ -444,18 +444,21 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
+  char *binary;
 
   if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary ("gnunet-gns-proxy"))
   {
     fprintf (stderr, "Proxy binary not in PATH... skipping!\n");
     return 0;
   }
-
-  if (GNUNET_YES != GNUNET_OS_check_helper_binary ("gnunet-helper-dns"))
+  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-dns");
+  if (GNUNET_YES != GNUNET_OS_check_helper_binary (binary))
   {
     fprintf (stderr, "DNS helper binary has wrong permissions... skipping!\n");
+    GNUNET_free (binary);
     return 0;
   }
+    GNUNET_free (binary);
 
   GNUNET_CRYPTO_rsa_setup_hostkey ("test_gns_proxy.conf");
   
