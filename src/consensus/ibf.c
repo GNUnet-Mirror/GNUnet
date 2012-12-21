@@ -134,7 +134,8 @@ ibf_insert_on_side (struct InvertibleBloomFilter *ibf,
       unsigned int j;
       int collided;
     
-      if ((i % 16) == 0)
+      if ( (0 != i) &&
+	   (0 == (i % 16)) )
 	GNUNET_CRYPTO_hash (&bucket_indices, sizeof (struct GNUNET_HashCode),
 			    &bucket_indices);
       
