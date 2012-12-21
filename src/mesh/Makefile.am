@@ -327,6 +327,7 @@ TESTS = test_mesh_api \
  test_mesh_local_traffic_both \
  test_mesh_2dtorus test_mesh_regex \
  test_mesh_small_unicast test_mesh_small_multicast \
+ test_mesh_small_signal \
  test_mesh_small_speed \
  test_mesh_small_speed_min \
  test_mesh_small_speed_nobuf \
