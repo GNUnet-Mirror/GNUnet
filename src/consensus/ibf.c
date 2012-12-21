@@ -113,49 +113,50 @@ ibf_insert_on_side (struct InvertibleBloomFilter *ibf,
   struct GNUNET_HashCode bucket_indices;
   struct GNUNET_HashCode key_copy;
   struct GNUNET_HashCode key_hash;
-  int *used_buckets;
   unsigned int i;
 
 
   GNUNET_assert ((1 == side) || (-1 == side));
   GNUNET_assert (NULL != ibf);
 
-  used_buckets = alloca (ibf->hash_num * sizeof (int));
-
-  /* copy the key, if key and an entry in the IBF alias */
-  key_copy = *key;
-
-  bucket_indices = key_copy;
-  GNUNET_CRYPTO_hash (key, sizeof (struct GNUNET_HashCode), &key_hash);
-
-  for (i = 0; i < ibf->hash_num; i++)
   {
-    unsigned int bucket;
-    unsigned int j;
-    int collided;
-    
-    if ((i % 16) == 0)
-      GNUNET_CRYPTO_hash (&bucket_indices, sizeof (struct GNUNET_HashCode),
-                          &bucket_indices);
+    int used_buckets[ibf->hash_num];
 
-    bucket = bucket_indices.bits[i%16] % ibf->size;
-    collided = GNUNET_NO;
-    for (j = 0; j < i; j++)
-      if (used_buckets[j] == bucket)
-        collided = GNUNET_YES;
-    if (GNUNET_YES == collided)
+    /* copy the key, if key and an entry in the IBF alias */
+    key_copy = *key;
+
+    bucket_indices = key_copy;
+    GNUNET_CRYPTO_hash (key, sizeof (struct GNUNET_HashCode), &key_hash);
+    
+    for (i = 0; i < ibf->hash_num; i++)
     {
-      used_buckets[i] = -1;
-      continue;
-    }
-    used_buckets[i] = bucket;
-
-    ibf->count[bucket] += side;
+      unsigned int bucket;
+      unsigned int j;
+      int collided;
     
-    GNUNET_CRYPTO_hash_xor (&key_copy, &ibf->id_sum[bucket],
-                            &ibf->id_sum[bucket]);
-    GNUNET_CRYPTO_hash_xor (&key_hash, &ibf->hash_sum[bucket],
-                            &ibf->hash_sum[bucket]);
+      if ((i % 16) == 0)
+	GNUNET_CRYPTO_hash (&bucket_indices, sizeof (struct GNUNET_HashCode),
+			    &bucket_indices);
+      
+      bucket = bucket_indices.bits[i%16] % ibf->size;
+      collided = GNUNET_NO;
+      for (j = 0; j < i; j++)
+	if (used_buckets[j] == bucket)
+	  collided = GNUNET_YES;
+      if (GNUNET_YES == collided)
+	{
+	  used_buckets[i] = -1;
+	  continue;
+	}
+      used_buckets[i] = bucket;
+      
+      ibf->count[bucket] += side;
+      
+      GNUNET_CRYPTO_hash_xor (&key_copy, &ibf->id_sum[bucket],
+			      &ibf->id_sum[bucket]);
+      GNUNET_CRYPTO_hash_xor (&key_hash, &ibf->hash_sum[bucket],
+			      &ibf->hash_sum[bucket]);
+    }
   }
 }
 
