@@ -5846,7 +5846,9 @@ handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (pid != parent)
   {
     tree_del_peer (t->tree, pid, &tunnel_child_removed, t);
-    if (tree_count_children(t->tree) > 0 || NULL != t->owner)
+    if (tree_count_children(t->tree) > 0 ||
+      NULL != t->owner ||
+      t->nclients > 0)
       return GNUNET_OK;
   }
   if (t->local_tid_dest >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
