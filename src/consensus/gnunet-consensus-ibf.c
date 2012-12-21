@@ -68,6 +68,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   int i;
   int side;
   int res;
+  struct GNUNET_TIME_Absolute start_time;
+  struct GNUNET_TIME_Relative delta_time;
 
   set_a = GNUNET_CONTAINER_multihashmap_create (((asize == 0) ? 1 : (asize + csize)),
                                                  GNUNET_NO);
@@ -85,7 +87,6 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &id);
     if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (set_a, &id))
       continue;
-    printf("A: %s\n", GNUNET_h2s (&id));
     GNUNET_CONTAINER_multihashmap_put (
         set_a, &id, NULL, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
     i++;
@@ -98,7 +99,6 @@ run (void *cls, char *const *args, const char *cfgfile,
       continue;
     if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (set_b, &id))
       continue;
-    printf("B: %s\n", GNUNET_h2s (&id));
     GNUNET_CONTAINER_multihashmap_put (
         set_b, &id, NULL, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
     i++;
@@ -111,24 +111,29 @@ run (void *cls, char *const *args, const char *cfgfile,
       continue;
     if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (set_b, &id))
       continue;
-    printf("C: %s\n", GNUNET_h2s (&id));
     GNUNET_CONTAINER_multihashmap_put (
         set_c, &id, NULL, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
     i++;
   }
 
-
   ibf_a = ibf_create (ibf_size, hash_num, 0);
   ibf_b = ibf_create (ibf_size, hash_num, 0);
+
+  start_time = GNUNET_TIME_absolute_get ();
 
   GNUNET_CONTAINER_multihashmap_iterate (set_a, &insert_iterator, ibf_a);
   GNUNET_CONTAINER_multihashmap_iterate (set_b, &insert_iterator, ibf_b);
   GNUNET_CONTAINER_multihashmap_iterate (set_c, &insert_iterator, ibf_a);
   GNUNET_CONTAINER_multihashmap_iterate (set_c, &insert_iterator, ibf_b);
 
+  delta_time = GNUNET_TIME_absolute_get_duration (start_time);
 
-  printf ("-----------------\n");
+  printf ("encoded in: %s\n", GNUNET_STRINGS_relative_time_to_string (delta_time, GNUNET_NO));
+
   ibf_subtract (ibf_a, ibf_b);
+
+
+  start_time = GNUNET_TIME_absolute_get ();
 
   for (;;)
   {
@@ -142,14 +147,14 @@ run (void *cls, char *const *args, const char *cfgfile,
     {
       if ((0 == GNUNET_CONTAINER_multihashmap_size (set_b)) &&
           (0 == GNUNET_CONTAINER_multihashmap_size (set_a)))
-        printf ("decode succeeded\n");
+      {
+        delta_time = GNUNET_TIME_absolute_get_duration (start_time);
+        printf ("decoded successfully in: %s\n", GNUNET_STRINGS_relative_time_to_string (delta_time, GNUNET_NO));
+      }
       else
         printf ("decode missed elements\n");
       return;
     }
-
-    printf("R: %s\n", GNUNET_h2s (&id));
-    printf("s: %d\n", side);
 
     if (side == 1)
       res = GNUNET_CONTAINER_multihashmap_remove (set_a, &id, NULL);

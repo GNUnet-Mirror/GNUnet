@@ -75,6 +75,9 @@ ibf_insert (struct InvertibleBloomFilter *ibf, const struct GNUNET_HashCode *id)
 /**
  * Subtract ibf2 from ibf1, storing the result in ibf1.
  * The two IBF's must have the same parameters size and hash_num.
+ *
+ * @param ibf1 IBF that is subtracted from
+ * @param ibf2 IBF that will be subtracted from ibf1
  */
 void
 ibf_subtract (struct InvertibleBloomFilter *ibf1, struct InvertibleBloomFilter *ibf2);
@@ -84,10 +87,10 @@ ibf_subtract (struct InvertibleBloomFilter *ibf1, struct InvertibleBloomFilter *
  * Decode and remove an element from the IBF, if possible.
  *
  * @param ibf the invertible bloom filter to decode
- * @param ret_id the hash code of the decoded element, if successful
  * @param side sign of the cell's count where the decoded element came from.
  *             A negative sign indicates that the element was recovered resides in an IBF
  *             that was previously subtracted from.
+ * @param ret_id the hash code of the decoded element, if successful
  * @return GNUNET_YES if decoding an element was successful, GNUNET_NO if the IBF is empty,
  *         GNUNET_SYSERR if the decoding has faile
  */
