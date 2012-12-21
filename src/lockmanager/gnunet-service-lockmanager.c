@@ -595,7 +595,7 @@ handle_acquire (void *cls, struct GNUNET_SERVER_Client *client,
   {
     if (lock->cl_entry == cl_entry)
     {                           /* Client is requesting a lock it already owns */
-      GNUNET_break (0);
+      GNUNET_break_op (0);
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
@@ -718,32 +718,6 @@ handle_release (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 
-static int
-stop_lock_attempt (void *cls,
-		   const struct GNUNET_HashCode *key,
-		   void *value)
-{
-  struct ClientList *cl_entry = cls;
-  struct Lock *lock = value;
-  struct WaitList *wl;
-  struct WaitList *next;
-
-  next = lock->wl_head;
-  while (NULL != (wl = next))
-  {
-    next = wl->next;
-    if (wl->cl_entry == cl_entry)
-    {
-      GNUNET_CONTAINER_DLL_remove (lock->wl_head,
-				   lock->wl_tail,
-				   wl);
-      GNUNET_free (wl);
-    }
-  }
-  return GNUNET_OK;
-}
-
-
 /**
  * Callback for client disconnect
  *
@@ -756,6 +730,7 @@ client_disconnect_cb (void *cls, struct GNUNET_SERVER_Client *client)
   struct ClientList *cl_entry;
   struct LockList *ll_entry;
   struct Lock *lock;
+  struct WaitList *wl_entry;
 
   if (NULL == client)
     return;
@@ -768,11 +743,15 @@ client_disconnect_cb (void *cls, struct GNUNET_SERVER_Client *client)
   {
     lock = ll_entry->lock;
     cl_ll_remove_lock (cl_entry, ll_entry);
-    process_lock_release (lock);
+    if (lock->cl_entry == cl_entry)
+      process_lock_release (lock);
+    else
+    {
+      wl_entry = lock_wl_find (lock, cl_entry);
+      GNUNET_assert (NULL != wl_entry);
+      lock_wl_remove (lock, wl_entry);
+    }
   }
-  GNUNET_CONTAINER_multihashmap_iterate (lock_map,
-					 &stop_lock_attempt,
-					 cl_entry);
   cl_remove_client (cl_entry);
 }
 
