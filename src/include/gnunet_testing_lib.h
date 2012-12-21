@@ -19,7 +19,7 @@
  */
 
 /**
- * @file include/gnunet_testing_lib-new.h
+ * @file include/gnunet_testing_lib.h
  * @brief convenience API for writing testcases for GNUnet;
  *        can start/stop one or more peers on a system;
  *        testing is responsible for managing private keys,
@@ -30,8 +30,8 @@
  * @author Christian Grothoff
  */
 
-#ifndef GNUNET_TESTING_LIB_NEW_H
-#define GNUNET_TESTING_LIB_NEW_H
+#ifndef GNUNET_TESTING_LIB_H
+#define GNUNET_TESTING_LIB_H
 
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"

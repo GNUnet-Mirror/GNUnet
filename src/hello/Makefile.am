@@ -18,7 +18,7 @@ libgnunethello_la_LIBADD = \
  $(LTLIBINTL)
 libgnunethello_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
-  -version-info 0:0:0
+  -version-info 1:0:1
 
 noinst_PROGRAMS = \
  gnunet-hello

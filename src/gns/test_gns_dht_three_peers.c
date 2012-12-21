@@ -30,7 +30,7 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_disk_lib.h"
-#include "gnunet_testing_lib-new.h"
+#include "gnunet_testing_lib.h"
 #include "gnunet_testbed_service.h"
 #include "gnunet_core_service.h"
 #include "gnunet_dht_service.h"

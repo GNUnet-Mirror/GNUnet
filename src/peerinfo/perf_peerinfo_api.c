@@ -27,7 +27,7 @@
 #include "platform.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_testing_lib-new.h"
+#include "gnunet_testing_lib.h"
 #include "gnunet_peerinfo_service.h"
 #include "peerinfo.h"
 #include <gauger.h>

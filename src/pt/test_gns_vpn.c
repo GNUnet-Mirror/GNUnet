@@ -28,7 +28,7 @@
 #include <microhttpd.h>
 #include "gnunet_namestore_service.h"
 #include "gnunet_gns_service.h"
-#include "gnunet_testing_lib-new.h"
+#include "gnunet_testing_lib.h"
 
 #define PORT 8080
 #define TEST_DOMAIN "www.gads"

@@ -30,7 +30,7 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_peerinfo_service.h"
-#include "gnunet_testing_lib-new.h"
+#include "gnunet_testing_lib.h"
 #include "peerinfo.h"
 
 static struct GNUNET_PEERINFO_IteratorContext *ic;

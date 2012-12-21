@@ -31,7 +31,7 @@
 #include "gnunet_program_lib.h"
 #include "gnunet_container_lib.h"
 #include "gnunet_transport_service.h"
-#include "gnunet_testing_lib-new.h"
+#include "gnunet_testing_lib.h"
 
 
 #define GNUNET_TRANSPORT_TESTING_ConnectRequest void *

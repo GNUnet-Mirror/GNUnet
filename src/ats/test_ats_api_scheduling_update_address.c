@@ -26,7 +26,7 @@
  */
 #include "platform.h"
 #include "gnunet_ats_service.h"
-#include "gnunet_testing_lib-new.h"
+#include "gnunet_testing_lib.h"
 #include "ats.h"
 #include "test_ats_api_common.h"
 

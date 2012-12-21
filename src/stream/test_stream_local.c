@@ -30,7 +30,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_mesh_service.h"
 #include "gnunet_stream_lib.h"
-#include "gnunet_testing_lib-new.h"
+#include "gnunet_testing_lib.h"
 
 /**
  * Relative seconds shorthand

@@ -27,7 +27,7 @@
 #include <curl/curl.h>
 #include <microhttpd.h>
 #include "gnunet_vpn_service.h"
-#include "gnunet_testing_lib-new.h"
+#include "gnunet_testing_lib.h"
 
 #define PORT 48080
 

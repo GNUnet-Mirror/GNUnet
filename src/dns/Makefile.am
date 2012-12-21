@@ -89,7 +89,7 @@ libgnunetdnsparser_la_LIBADD = \
   -lidn
 libgnunetdnsparser_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
-  -version-info 0:0:0
+  -version-info 1:0:1
 
 libgnunetdnsstub_la_SOURCES = \
  dnsstub.c 

@@ -23,7 +23,7 @@
  * in particular query replacement and clean shutdown
  */
 #include "platform.h"
-#include "gnunet_testing_lib-new.h"
+#include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
 #include "block_dns.h"
 #include "gns.h"

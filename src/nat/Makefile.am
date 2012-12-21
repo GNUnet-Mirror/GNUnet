@@ -64,7 +64,7 @@ libgnunetnat_la_LIBADD = \
 
 libgnunetnat_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
-  -version-info 0:1:0
+  -version-info 1:0:1
 
 check_PROGRAMS = \
   test_nat \

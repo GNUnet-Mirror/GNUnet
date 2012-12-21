@@ -80,7 +80,6 @@ gnunetinclude_HEADERS = \
   gnunet_strings_lib.h \
   gnunet_testbed_service.h \
   gnunet_testing_lib.h \
-  gnunet_testing_lib-new.h \
   gnunet_time_lib.h \
   gnunet_transport_service.h \
   gnunet_transport_plugin.h \

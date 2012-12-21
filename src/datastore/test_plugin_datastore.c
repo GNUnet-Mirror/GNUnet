@@ -27,7 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_datastore_plugin.h"
-#include "gnunet_testing_lib-new.h"
+#include "gnunet_testing_lib.h"
 
 /**
  * Number of put operations to perform.

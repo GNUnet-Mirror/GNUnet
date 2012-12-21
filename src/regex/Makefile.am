@@ -17,7 +17,7 @@ libgnunetregex_la_LIBADD = -lm \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunetregex_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
-   -version-info 0:0:0
+   -version-info 1:1:0
 
 if HAVE_MYSQL
 noinst_mysql_progs = \

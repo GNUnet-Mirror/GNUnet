@@ -24,7 +24,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_consensus_service.h"
-#include "gnunet_testing_lib-new.h"
+#include "gnunet_testing_lib.h"
 
 
 static struct GNUNET_CONSENSUS_Handle *consensus1;

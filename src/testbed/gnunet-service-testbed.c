@@ -36,7 +36,7 @@
 #include "testbed.h"
 #include "testbed_api.h"
 #include "testbed_api_hosts.h"
-#include "gnunet_testing_lib-new.h"
+#include "gnunet_testing_lib.h"
 
 /**
  * Generic logging

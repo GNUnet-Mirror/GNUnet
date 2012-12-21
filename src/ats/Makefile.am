@@ -35,7 +35,7 @@ libgnunetats_la_LIBADD = \
 
 libgnunetats_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS) \
-  -version-info 3:0:3
+  -version-info 4:0:0
 
 
 libexec_PROGRAMS = \

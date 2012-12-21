@@ -54,7 +54,7 @@ libgnunetmesh_la_LIBADD = \
   $(LTLIBINTL)
 libgnunetmesh_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
-  -version-info 1:0:0
+  -version-info 2:0:1
 
 libgnunetmeshblock_la_SOURCES = \
   mesh_block_lib.c mesh_block_lib.h

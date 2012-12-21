@@ -28,7 +28,7 @@
 #include "platform.h"
 #include "gnunet_configuration_lib.h"
 #include "gnunet_os_lib.h"
-#include "gnunet_testing_lib-new.h"
+#include "gnunet_testing_lib.h"
 
 #define LOG(kind,...)                           \
   GNUNET_log (kind, __VA_ARGS__)
