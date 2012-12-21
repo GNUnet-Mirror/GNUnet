@@ -389,7 +389,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
   if (size < size_payload || NULL == buf)
   {
     GNUNET_break (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "size %u, buf %p, data_sent %u, data_received %u\n",
                 size,
                 buf,
