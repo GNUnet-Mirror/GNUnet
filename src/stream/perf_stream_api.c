@@ -243,7 +243,7 @@ static uint32_t data[DATA_SIZE / 4];
  * Payload sizes to test each major test with
  */
 static uint16_t payload_size[] = 
-{ 20, 500, 2000, 7000, 13000, 25000, 50000};//, 60000, 63000, 64000 };
+{ 20, 500, 2000, 7000, 13000, 25000, 30000};//, 50000, 60000, 63000, 64000 };
 
 /**
  * Current step of testing
@@ -939,14 +939,6 @@ controller_event_cb (void *cls,
       GNUNET_assert (0);
     }
     break;
-  case GNUNET_TESTBED_ET_CONNECT:
-    GNUNET_TESTBED_operation_done (common_op);
-    /* Get the peer identity and configuration of peers */
-    common_op =
-	GNUNET_TESTBED_peer_get_information (peer_data[0].peer,
-					     GNUNET_TESTBED_PIT_IDENTITY,
-					     &peerinfo_cb, &peer_data[0]);
-    break;
   default:
     GNUNET_assert (0);
   }
@@ -971,9 +963,11 @@ test_master (void *cls, unsigned int num_peers_,
   peer_data[0].peer = peers[0];
   peer_data[1].peer = peers[1];
   if (2 == num_peers)
-    common_op = GNUNET_TESTBED_overlay_connect (NULL, NULL, NULL,
-						peer_data[0].peer,
-						peer_data[1].peer);
+        /* Get the peer identity and configuration of peers */
+    common_op =
+	GNUNET_TESTBED_peer_get_information (peer_data[0].peer,
+					     GNUNET_TESTBED_PIT_IDENTITY,
+					     &peerinfo_cb, &peer_data[0]);
   else
     GNUNET_break (0);
   abort_task =
@@ -1021,7 +1015,6 @@ int main (int argc, char **argv)
   test_step = TEST_STEP_2_HOP;
   num_peers = 2;
   event_mask = 0;
-  event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
   for (payload_size_index = 0;
        payload_size_index < (sizeof (payload_size) / sizeof (uint16_t));

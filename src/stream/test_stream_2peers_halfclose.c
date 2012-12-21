@@ -143,11 +143,6 @@ enum Test
 enum SetupState
 {
   /**
-   * The initial state
-   */
-  INIT,
-
-  /**
    * Get the identity of peer 1
    */
   PEER1_GET_IDENTITY,
@@ -824,14 +819,6 @@ controller_event_cb (void *cls,
 {
   switch (event->type)
   {
-  case GNUNET_TESTBED_ET_CONNECT:
-    GNUNET_assert (INIT == setup_state);
-    GNUNET_TESTBED_operation_done (op);
-    op = GNUNET_TESTBED_peer_get_information (peer1.peer,
-                                              GNUNET_TESTBED_PIT_IDENTITY,
-					      &peerinfo_cb, NULL);
-    setup_state = PEER1_GET_IDENTITY;
-    break;
   case GNUNET_TESTBED_ET_OPERATION_FINISHED:
     switch (setup_state)
     {
@@ -865,8 +852,10 @@ test_master (void *cls, unsigned int num_peers,
   GNUNET_assert (NULL != peers[1]);
   peer1.peer = peers[0];
   peer2.peer = peers[1];
-  op = GNUNET_TESTBED_overlay_connect (NULL, NULL, NULL, peer2.peer, peer1.peer);
-  setup_state = INIT;
+  op = GNUNET_TESTBED_peer_get_information (peer1.peer,
+                                            GNUNET_TESTBED_PIT_IDENTITY,
+                                            &peerinfo_cb, NULL);
+  setup_state = PEER1_GET_IDENTITY;
   abort_task =
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                   (GNUNET_TIME_UNIT_SECONDS, 1000), &do_abort,
@@ -883,7 +872,6 @@ int main (int argc, char **argv)
 
   result = GNUNET_NO;
   event_mask = 0;
-  event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
   (void) GNUNET_TESTBED_test_run ("test_stream_2peers_halfclose",
                                   "test_stream_local.conf", NUM_PEERS,
