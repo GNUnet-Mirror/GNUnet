@@ -436,6 +436,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct GNUNET_DATASTORE_PluginFunctions *api;
   struct CpsRunContext *crc;
 
+  if (NULL == c)
+  {
+    GNUNET_break (0);
+    return;
+  }
   api = load_plugin (c);
   if (api == NULL)
   {
