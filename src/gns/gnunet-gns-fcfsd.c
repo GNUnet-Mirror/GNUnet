@@ -292,10 +292,12 @@ iterate_cb (void *cls,
     memcpy (new_buf, zr->zoneinfo, zr->write_offset);
     GNUNET_free (zr->zoneinfo);
     zr->zoneinfo = new_buf;
+    zr->buf_len *= 2;
   }
-
-  sprintf (zr->zoneinfo+zr->write_offset, "<tr><td>%s</td><td>%s</td></tr>", name, pkey);
-
+  sprintf (zr->zoneinfo + zr->write_offset, 
+	   "<tr><td>%s</td><td>%s</td></tr>", 
+	   name, 
+	   pkey);
   zr->write_offset = strlen (zr->zoneinfo);
   GNUNET_NAMESTORE_zone_iterator_next (zr->list_it);
   GNUNET_free (pkey);
