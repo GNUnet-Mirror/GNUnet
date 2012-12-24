@@ -1,6 +1,6 @@
 [sysmon]
 AUTOSTART = YES
-@UNIXONLY@ PORT = 2098
+@UNIXONLY@ PORT = 2104
 HOSTNAME = localhost
 HOME = $SERVICEHOME
 BINARY = gnunet-daemon-sysmon
