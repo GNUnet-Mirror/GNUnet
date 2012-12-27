@@ -920,22 +920,22 @@ static uint64_t event_mask;
 /**
  * The size of the host list
  */
-static uint32_t host_list_size;
+static unsigned int host_list_size;
 
 /**
  * The size of the route list
  */
-static uint32_t route_list_size;
+static unsigned int route_list_size;
 
 /**
  * The size of directly linked neighbours list
  */
-static uint32_t slave_list_size;
+static unsigned int slave_list_size;
 
 /**
  * The size of the peer list
  */
-static uint32_t peer_list_size;
+static unsigned int peer_list_size;
 
 /*********/
 /* Tasks */
@@ -1024,21 +1024,27 @@ queue_message (struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Similar to GNUNET_realloc; however clears tail part of newly allocated memory
+ * Similar to GNUNET_array_grow(); however instead of calling GNUNET_array_grow()
+ * several times we call it only once. The array is also made to grow in steps
+ * of LIST_GROW_STEP.
  *
- * @param ptr the memory block to realloc
- * @param size the size of ptr
- * @param new_size the size to which ptr has to be realloc'ed
- * @return the newly reallocated memory block
+ * @param ptr the array pointer to grow
+ * @param size the size of array
+ * @param accommodate_size the size which the array has to accommdate; after
+ *          this call the array will be big enough to accommdate sizes upto
+ *          accommodate_size
  */
-static void *
-TESTBED_realloc (void *ptr, size_t size, size_t new_size)
-{
-  ptr = GNUNET_realloc (ptr, new_size);
-  if (new_size > size)
-    (void) memset (ptr + size, 0, new_size - size);
-  return ptr;
-}
+#define array_grow_large_enough(ptr, size, accommodate_size) \
+  do                                                                    \
+  {                                                                     \
+    unsigned int growth_size;                                           \
+    GNUNET_assert (size <= accommodate_size);                            \
+    growth_size = size;                                                 \
+    while (growth_size <= accommodate_size)                             \
+      growth_size += LIST_GROW_STEP;                                    \
+    GNUNET_array_grow (ptr, size, growth_size);                         \
+    GNUNET_assert (size > accommodate_size);                            \
+  } while (0)
 
 
 /**
@@ -1052,20 +1058,10 @@ static int
 host_list_add (struct GNUNET_TESTBED_Host *host)
 {
   uint32_t host_id;
-  uint32_t orig_size;
 
   host_id = GNUNET_TESTBED_host_get_id_ (host);
-  orig_size = host_list_size;  
   if (host_list_size <= host_id)
-  {
-    while (host_list_size <= host_id)
-      host_list_size += LIST_GROW_STEP;
-    host_list =
-        TESTBED_realloc (host_list,
-                         sizeof (struct GNUNET_TESTBED_Host *) * orig_size,
-                         sizeof (struct GNUNET_TESTBED_Host *)
-			 * host_list_size);
-  }
+    array_grow_large_enough (host_list, host_list_size, host_id);
   if (NULL != host_list[host_id])
   {
     LOG_DEBUG ("A host with id: %u already exists\n", host_id);
@@ -1084,18 +1080,8 @@ host_list_add (struct GNUNET_TESTBED_Host *host)
 static void
 route_list_add (struct Route *route)
 {
-  uint32_t orig_size;
-
-  orig_size = route_list_size;  
   if (route->dest >= route_list_size)
-  {
-    while (route->dest >= route_list_size)
-      route_list_size += LIST_GROW_STEP;
-    route_list =
-        TESTBED_realloc (route_list,
-			 sizeof (struct Route *) * orig_size,
-                         sizeof (struct Route *) * route_list_size);
-  }
+    array_grow_large_enough (route_list, route_list_size, route->dest);
   GNUNET_assert (NULL == route_list[route->dest]);
   route_list[route->dest] = route;
 }
@@ -1109,17 +1095,8 @@ route_list_add (struct Route *route)
 static void
 slave_list_add (struct Slave *slave)
 {
-  uint32_t orig_size;
-
-  orig_size = slave_list_size;  
   if (slave->host_id >= slave_list_size)
-  {
-    while (slave->host_id >= slave_list_size)
-      slave_list_size += LIST_GROW_STEP;
-    slave_list =
-        TESTBED_realloc (slave_list, sizeof (struct Slave *) * orig_size,
-                         sizeof (struct Slave *) * slave_list_size);
-  }
+    array_grow_large_enough (slave_list, slave_list_size, slave->host_id);
   GNUNET_assert (NULL == slave_list[slave->host_id]);
   slave_list[slave->host_id] = slave;
 }
@@ -1133,17 +1110,8 @@ slave_list_add (struct Slave *slave)
 static void
 peer_list_add (struct Peer *peer)
 {
-  uint32_t orig_size;
-
-  orig_size = peer_list_size;
   if (peer->id >= peer_list_size)
-  {
-    while (peer->id >= peer_list_size)
-      peer_list_size += LIST_GROW_STEP;
-    peer_list =
-        TESTBED_realloc (peer_list, sizeof (struct Peer *) * orig_size,
-                         sizeof (struct Peer *) * peer_list_size);
-  }  
+    array_grow_large_enough (peer_list, peer_list_size, peer->id);
   GNUNET_assert (NULL == peer_list[peer->id]);
   peer_list[peer->id] = peer;
 }
@@ -1157,8 +1125,8 @@ peer_list_add (struct Peer *peer)
 static void
 peer_list_remove (struct Peer *peer)
 {
+  unsigned int orig_size;
   uint32_t id;
-  uint32_t orig_size;
 
   peer_list[peer->id] = NULL;
   orig_size = peer_list_size;

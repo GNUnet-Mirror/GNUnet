@@ -292,11 +292,7 @@ GNUNET_TESTBED_operation_queue_insert_ (struct OperationQueue *queue,
   entry = GNUNET_malloc (sizeof (struct QueueEntry));
   entry->op = operation;
   GNUNET_CONTAINER_DLL_insert_tail (queue->head, queue->tail, entry);
-  operation->queues =
-      GNUNET_realloc (operation->queues,
-                      sizeof (struct OperationQueue *) *
-                      (++operation->nqueues));
-  operation->queues[operation->nqueues - 1] = queue;
+  GNUNET_array_append (operation->queues, operation->nqueues, queue);
 }
 
 

@@ -127,7 +127,7 @@ static struct GNUNET_TESTBED_Host **host_list;
 /**
  * The size of the available hosts list
  */
-static uint32_t host_list_size;
+static unsigned int host_list_size;
 
 
 /**
@@ -230,7 +230,7 @@ GNUNET_TESTBED_host_create_with_id (uint32_t id, const char *hostname,
                                     const char *username, uint16_t port)
 {
   struct GNUNET_TESTBED_Host *host;
-  uint32_t new_size;
+  unsigned int new_size;
 
   if ((id < host_list_size) && (NULL != host_list[id]))
   {
@@ -246,15 +246,8 @@ GNUNET_TESTBED_host_create_with_id (uint32_t id, const char *hostname,
   while (id >= new_size)
     new_size += HOST_LIST_GROW_STEP;
   if (new_size != host_list_size)
-  {
-    host_list =
-        GNUNET_realloc (host_list,
-                        sizeof (struct GNUNET_TESTBED_Host *) * new_size);
-    (void) memset (&host_list[host_list_size], 0,
-                   sizeof (struct GNUNET_TESTBED_Host *) * (new_size -
-                                                            host_list_size));
-    host_list_size = new_size;
-  }
+    GNUNET_array_grow (host_list, host_list_size, new_size);
+  GNUNET_assert (id < host_list_size);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding host with id: %u\n", host->id);
   host_list[id] = host;
   return host;
