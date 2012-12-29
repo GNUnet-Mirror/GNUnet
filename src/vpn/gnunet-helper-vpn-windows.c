@@ -32,11 +32,11 @@
  */
 
 #include <stdio.h>
-#include <tchar.h>
 #include <windows.h>
 #include <setupapi.h>
 #include <ddk/cfgmgr32.h>
 #include "platform.h"
+#include <Winsock2.h>
 
 /**
  * Need 'struct GNUNET_MessageHeader'.
@@ -63,13 +63,13 @@
  * Name or Path+Name of our driver in Unicode.
  * The .sys and .cat files HAVE to be in the same location as this file!
  */
-#define INF_FILE _T("tapw32.inf")
+#define INF_FILE "tapw32.inf"
 
 /**
  * Hardware ID used in the inf-file. 
  * This might change over time, as openvpn advances their driver
  */
-#define HARDWARE_ID _T("TAP0901")
+#define HARDWARE_ID "TAP0901"
 
 /**
  * Location of the network interface list resides in registry.
@@ -78,25 +78,16 @@
 #define INTERFACE_REGISTRY_LOCATION "SYSTEM\\CurrentControlSet\\Control\\Network\\{4D36E972-E325-11CE-BFC1-08002BE10318}"
 
 /**
- * TCHAR wrappers, which is missing in mingw's includes:
- */
-#ifdef	_UNICODE
-#define _tpopen       _wpopen
-#else
-#define _tpopen       _popen
-#endif
-
-/**
  * Our local process' PID. Used for creating a sufficiently unique additional 
  * hardware ID for our device.
  */
-static TCHAR secondary_hwid[LINE_LEN / 2];
+static char secondary_hwid[LINE_LEN / 2];
 
 /**
  * Device's visible Name, used to identify a network device in netsh.
  * eg: "Local Area Connection 9"
  */
-static TCHAR device_visible_name[256];
+static char device_visible_name[256];
 
 /** 
  * This is our own local instance of a virtual network interface
@@ -117,7 +108,7 @@ static SP_DEVINFO_DATA DeviceNode;
 /**
  * Class-tag of our virtual device
  */
-static TCHAR class[128];
+static char class[128];
 
 /**
  * GUID of our virtual device in the form of 
@@ -125,6 +116,48 @@ static TCHAR class[128];
  */
 static GUID guid;
 
+
+/**
+ * inet_pton() wrapper for WSAStringToAddress()
+ *
+ * this is needed as long as we support WinXP, because only Vista+ support 
+ * inet_pton at all, and mingw does not yet offer inet_pton/ntop at all
+ * 
+ * @param af - IN - the aftype this address is supposed to be (v4/v6) 
+ * @param src - IN - the presentation form of the address
+ * @param dst - OUT - the numerical form of the address
+ * @return 0 on success, 1 on failure
+ */
+#if WINVER >= 0x0600
+int inet_pton (int af, const char *src, void *dst);
+#else
+int
+inet_pton (int af, const char *src, void *dst)
+{
+  struct sockaddr_storage addr;
+  int size = sizeof (addr);
+  char local_copy[INET6_ADDRSTRLEN + 1];
+
+  ZeroMemory (&addr, sizeof (addr));
+  /* stupid non-const API */
+  strncpy (local_copy, src, INET6_ADDRSTRLEN + 1);
+  local_copy[INET6_ADDRSTRLEN] = 0;
+
+  if (WSAStringToAddressA (local_copy, af, NULL, (struct sockaddr *) &addr, &size) == 0)
+    {
+      switch (af)
+        {
+        case AF_INET:
+          *(struct in_addr *) dst = ((struct sockaddr_in *) &addr)->sin_addr;
+          return 1;
+        case AF_INET6:
+          *(struct in6_addr *) dst = ((struct sockaddr_in6 *) &addr)->sin6_addr;
+          return 1;
+        }
+    }
+  return 0;
+}
+#endif
 /**
  * Wrapper for executing a shellcommand in windows.
  * 
@@ -134,21 +167,21 @@ static GUID guid;
  *         * EPIPE (could not read STDOUT)
  */
 static int
-execute_shellcommand (TCHAR * command)
+execute_shellcommand (char * command)
 {
   FILE *pipe;
 
   if (NULL == command ||
-      NULL == (pipe = _tpopen (command, "rt")))
+      NULL == (pipe = _popen (command, "rt")))
     return EINVAL;
 
 #ifdef TESTING
   {
-    TCHAR output[LINE_LEN];
-    
-    _tprintf (_T ("executed command: %s"), command);
-    while (NULL != _fgetts (output, sizeof (output), pipe))
-      _tprintf (output);
+    char output[LINE_LEN];
+
+    printf ("executed command: %s", command);
+    while (NULL != fgets (output, sizeof (output), pipe))
+      printf (output);
   }
 #endif
 
@@ -165,19 +198,29 @@ execute_shellcommand (TCHAR * command)
  * @param prefix_len the length of the network-prefix
  */
 static void
-set_address6 (const TCHAR *address, unsigned long prefix_len)
+set_address6 (const char *address, unsigned long prefix_len)
 {
   int ret = EINVAL;
-  TCHAR command[LINE_LEN];
+  char command[LINE_LEN];
+  struct sockaddr_in6 sa6;
 
-  /* TODO: Check if address makes sense? */
+  /*
+   * parse the new address
+   */
+  memset (&sa6, 0, sizeof (struct sockaddr_in6));
+  sa6.sin6_family = AF_INET6;
+  if (1 != inet_pton (AF_INET6, address, &sa6.sin6_addr.s6_addr))
+    {
+      fprintf (stderr, "Failed to parse address `%s': %s\n", address,
+               strerror (errno));
+      exit (1);
+    }
 
   /*
    * prepare the command
    */
-
-  _sntprintf (command, LINE_LEN,
-              _T ("netsh interface ipv6 add address \"%s\" %s/%d"),
+  snprintf (command, LINE_LEN,
+              "netsh interface ipv6 add address \"%s\" %s/%d",
               device_visible_name, address, prefix_len);
   /*
    * Set the address
@@ -187,7 +230,7 @@ set_address6 (const TCHAR *address, unsigned long prefix_len)
   /* Did it work?*/
   if (0 != ret)
     {
-      _ftprintf (stderr, _T ("Setting IPv6 address failed: %s\n"), strerror (ret));
+      fprintf (stderr, "Setting IPv6 address failed: %s\n", strerror (ret));
       exit (1); // FIXME: return error code, shut down interface / unload driver
     }
 }
@@ -203,15 +246,26 @@ static void
 set_address4 (const char *address, const char *mask)
 {
   int ret = EINVAL;
-  TCHAR command[LINE_LEN];
+  char command[LINE_LEN];
 
-  /* TODO: Check if address & prefix_len make sense*/
+  struct sockaddr_in addr;
+  addr.sin_family = AF_INET;
+
+  /*
+   * Parse the address
+   */
+  if (1 != inet_pton (AF_INET, address, &addr.sin_addr.s_addr))
+    {
+      fprintf (stderr, "Failed to parse address `%s': %s\n", address,
+               strerror (errno));
+      exit (1);
+    }
 
   /*
    * prepare the command
    */
-  _sntprintf (command, LINE_LEN,
-              _T ("netsh interface ipv4 add address \"%s\" %s %s"),
+  snprintf (command, LINE_LEN,
+              "netsh interface ipv4 add address \"%s\" %s %s",
               device_visible_name, address, mask);
   /*
    * Set the address
@@ -221,8 +275,8 @@ set_address4 (const char *address, const char *mask)
   /* Did it work?*/
   if (0 != ret)
     {
-      _ftprintf (stderr, _T ("Setting IPv4 address failed: %s\n"), strerror (ret));
-      exit (1);  // FIXME: return error code, shut down interface / unload driver
+      fprintf (stderr, "Setting IPv4 address failed: %s\n", strerror (ret));
+      exit (1); // FIXME: return error code, shut down interface / unload driver
     }
 }
 
@@ -240,8 +294,8 @@ setup_interface ()
    * We do not directly input all the props here, because openvpn will update
    * these details over time.
    */
-  TCHAR inf_file_path[MAX_PATH];
-  TCHAR hwidlist[LINE_LEN + 4];
+  char inf_file_path[MAX_PATH];
+  char hwidlist[LINE_LEN + 4];
 
   int str_lenth = 0;
 
@@ -253,15 +307,15 @@ setup_interface ()
    * TODO: Currently we just use TAP0901 as HWID, 
    * but we might want to add additional information
    */
-  _tcsncpy (hwidlist, HARDWARE_ID, LINE_LEN);
+  strncpy (hwidlist, HARDWARE_ID, LINE_LEN);
   /**
    * this is kind of over-complicated, but allows keeps things independent of 
    * how the openvpn-hwid is actually stored. 
    * 
    * A HWID list is double-\0 terminated and \0 separated
    */
-  str_lenth = _tcslen (hwidlist) + 1;
-  _tcsncpy (&hwidlist[str_lenth], secondary_hwid, LINE_LEN - str_lenth);
+  str_lenth = strlen (hwidlist) + 1;
+  strncpy (&hwidlist[str_lenth], secondary_hwid, LINE_LEN - str_lenth);
 
   /** 
    * Locate the inf-file, we need to store it somewhere where the system can
@@ -270,14 +324,14 @@ setup_interface ()
    * TODO: How about win64 in the future? 
    *       We need to use a different driver for amd64/i386 !
    */
-  GetFullPathName (INF_FILE, MAX_PATH, inf_file_path, NULL);
+  GetFullPathNameA (INF_FILE, MAX_PATH, inf_file_path, NULL);
 
   /** 
    * Bootstrap our device info using the drivers inf-file
    */
-  if (!SetupDiGetINFClass (inf_file_path,
+  if (!SetupDiGetINFClassA (inf_file_path,
                            &guid,
-                           class, sizeof (class) / sizeof (TCHAR),
+                           class, sizeof (class) / sizeof (char),
                            NULL))
     return FALSE;
 
@@ -290,7 +344,7 @@ setup_interface ()
     return FALSE;
 
   DeviceNode.cbSize = sizeof (SP_DEVINFO_DATA);
-  if (!SetupDiCreateDeviceInfo (DeviceInfo,
+  if (!SetupDiCreateDeviceInfoA (DeviceInfo,
                                 class,
                                 &guid,
                                 NULL,
@@ -300,11 +354,11 @@ setup_interface ()
     return FALSE;
 
   /* Deploy all the information collected into the registry */
-  if (!SetupDiSetDeviceRegistryProperty (DeviceInfo,
+  if (!SetupDiSetDeviceRegistryPropertyA (DeviceInfo,
                                          &DeviceNode,
                                          SPDRP_HARDWAREID,
                                          (LPBYTE) hwidlist,
-                                         (lstrlen (hwidlist) + 2) * sizeof (TCHAR)))
+                                         (strlen (hwidlist) + 2) * sizeof (char)))
     return FALSE;
 
   /* Install our new class(=device) into the system */
@@ -338,7 +392,7 @@ remove_interface ()
    * 1. Prepare our existing device information set, and place the 
    *    uninstall related information into the structure
    */
-  if (!SetupDiSetClassInstallParams (DeviceInfo,
+  if (!SetupDiSetClassInstallParamsA (DeviceInfo,
                                      (PSP_DEVINFO_DATA) & DeviceNode,
                                      &remove.ClassInstallHeader,
                                      sizeof (remove)))
@@ -367,25 +421,25 @@ resolve_interface_name ()
 {
 
   SP_DEVINFO_LIST_DETAIL_DATA device_details;
-  TCHAR pnp_instance_id [MAX_DEVICE_ID_LEN];
+  char pnp_instance_id [MAX_DEVICE_ID_LEN];
   HKEY adapter_key_handle;
   LONG status;
   DWORD len;
   int i = 0;
   boolean retval = FALSE;
-  TCHAR adapter[] = _T (INTERFACE_REGISTRY_LOCATION);
+  char adapter[] = INTERFACE_REGISTRY_LOCATION;
 
   /* We can obtain the PNP instance ID from our setupapi handle */
   device_details.cbSize = sizeof (device_details);
-  if (CR_SUCCESS != CM_Get_Device_ID_Ex (DeviceNode.DevInst,
-                                         (PWSTR) pnp_instance_id,
+  if (CR_SUCCESS != CM_Get_Device_ID_ExA (DeviceNode.DevInst,
+                                         (PCHAR) pnp_instance_id,
                                          MAX_DEVICE_ID_LEN,
                                          0, //must be 0
                                          NULL)) //hMachine, we are local
     return FALSE;
 
   /* Now we can use this ID to locate the correct networks interface in registry */
-  if (ERROR_SUCCESS != RegOpenKeyEx (
+  if (ERROR_SUCCESS != RegOpenKeyExA (
                                      HKEY_LOCAL_MACHINE,
                                      adapter,
                                      0,
@@ -396,19 +450,19 @@ resolve_interface_name ()
   /* Of course there is a multitude of entries here, with arbitrary names, 
    * thus we need to iterate through there.
    */
-  while (! retval)
+  while (!retval)
     {
-      TCHAR instance_key[256];
-      TCHAR query_key [256];
+      char instance_key[256];
+      char query_key [256];
       HKEY instance_key_handle;
-      TCHAR pnpinstanceid_name[] = _T ("PnpInstanceID");
-      TCHAR pnpinstanceid_value[256];
-      TCHAR adaptername_name[] = _T ("Name");
+      char pnpinstanceid_name[] = "PnpInstanceID";
+      char pnpinstanceid_value[256];
+      char adaptername_name[] = "Name";
       DWORD data_type;
 
       len = sizeof (adapter_key_handle);
       /* optain a subkey of {4D36E972-E325-11CE-BFC1-08002BE10318} */
-      status = RegEnumKeyEx (
+      status = RegEnumKeyExA (
                              adapter_key_handle,
                              i,
                              instance_key,
@@ -426,13 +480,13 @@ resolve_interface_name ()
       if (ERROR_SUCCESS != status)
         goto cleanup;
 
-      /* prepare our new querty string: */
-      _sntprintf (query_key, 256, _T ("%s\\%s\\Connection"),
-                  _T (INTERFACE_REGISTRY_LOCATION),
+      /* prepare our new query string: */
+      snprintf (query_key, 256, "%s\\%s\\Connection",
+                  INTERFACE_REGISTRY_LOCATION,
                   instance_key);
 
       /* look inside instance_key\\Connection */
-      status = RegOpenKeyEx (
+      status = RegOpenKeyExA (
                              HKEY_LOCAL_MACHINE,
                              query_key,
                              0,
@@ -444,7 +498,7 @@ resolve_interface_name ()
 
       /* now, read our PnpInstanceID */
       len = sizeof (pnpinstanceid_value);
-      status = RegQueryValueEx (instance_key_handle,
+      status = RegQueryValueExA (instance_key_handle,
                                 pnpinstanceid_name,
                                 NULL, //reserved, always NULL according to MSDN
                                 &data_type,
@@ -455,12 +509,12 @@ resolve_interface_name ()
         goto cleanup;
 
       /* compare the value we got to our devices PNPInstanceID*/
-      if (0 != _tcsncmp (pnpinstanceid_value, pnp_instance_id,
-                         sizeof (pnpinstanceid_value) / sizeof (TCHAR)))
+      if (0 != strncmp (pnpinstanceid_value, pnp_instance_id,
+                         sizeof (pnpinstanceid_value) / sizeof (char)))
         goto cleanup;
 
       len = sizeof (device_visible_name);
-      status = RegQueryValueEx (
+      status = RegQueryValueExA (
                                 instance_key_handle,
                                 adaptername_name,
                                 NULL, //reserved, always NULL according to MSDN
@@ -491,7 +545,7 @@ cleanup:
 static int
 init_tun ()
 {
-  int fd=-1;
+  int fd = -1;
 
   if (!setup_interface ())
     {
@@ -505,7 +559,13 @@ init_tun ()
       return -1;
     }
 
-
+  //openvpn
+  /* get driver MTU */
+  // tun.c:2869
+  
+  /* tun up: */
+  // tun.c: 3024
+  
   return fd;
 }
 
@@ -532,7 +592,19 @@ run (int fd_tun)
   ssize_t bufin_rpos = 0;
   unsigned char *bufin_read = NULL;
   /* Hello, I am a stub function! I did my job, yay me! */
+  
+  //openvpn  
+  
+  // mainloop:
+  // tunnel_point_to_point
+  //openvpn.c:62
+  
+  /* setup ansync IO */
+  //forward.c: 1515
 
+  
+  //teardown:
+  //init.c:3472
 }
 
 /**
@@ -549,8 +621,7 @@ run (int fd_tun)
 int
 main (int argc, char **argv)
 {
-  TCHAR hwid[LINE_LEN];
-  TCHAR pid_as_string[LINE_LEN / 4];
+  char hwid[LINE_LEN];
   int fd_tun;
   int global_ret;
 
@@ -561,16 +632,16 @@ main (int argc, char **argv)
     }
 
   strncpy (hwid, argv[1], LINE_LEN);
-  hwid[LINE_LEN - 1] = _T ('\0');
+  hwid[LINE_LEN - 1] = '\0';
 
   /* 
    * We use our PID for finding/resolving the control-panel name of our virtual 
    * device. PIDs are (of course) unique at runtime, thus we can safely use it 
    * as additional hardware-id for our device.
    */
-  _itot (_getpid (), pid_as_string, 10);
-  strncpy (secondary_hwid, hwid, LINE_LEN);
-  strncat (secondary_hwid, pid_as_string, LINE_LEN); // BUFFER OVERFLOW!
+  snprintf (secondary_hwid, LINE_LEN / 2, "%s-%d",
+              hwid,
+              _getpid ());
 
   if (-1 == (fd_tun = init_tun ()))
     {
@@ -605,26 +676,11 @@ main (int argc, char **argv)
 
       set_address4 (address, mask);
     }
-  
-  /*TODO: attach network interface! (need to research how that works with ovpn )*/
 
-  /*
-  uid_t uid = getuid ();
-  if (0 != setresuid (uid, uid, uid))
-  {
-    fprintf (stderr, "Failed to setresuid: %s\n", strerror (errno));
-    global_ret = 2;
-    goto cleanup;
-  }
-   */
+  //eventuell: 
+  // tap_allow_nonadmin_access
+  //tun.c:2023
 
-  /*if (SIG_ERR == signal (SIGPIPE, SIG_IGN))
-  {
-    fprintf (stderr, "Failed to protect against SIGPIPE: %s\n",
-             strerror (errno));
-    // no exit, we might as well die with SIGPIPE should it ever happen 
-  }
-   */
   run (fd_tun);
   global_ret = 0;
 cleanup:
