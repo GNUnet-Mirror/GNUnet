@@ -36,6 +36,7 @@
 #include <setupapi.h>
 #include <ddk/cfgmgr32.h>
 #include "platform.h"
+#include "tap-windows.h"
 #include <Winsock2.h>
 
 /**
@@ -72,6 +73,31 @@
 #define HARDWARE_ID "TAP0901"
 
 /**
+ * Component ID if our driver
+ */
+#define TAP_WIN_COMPONENT_ID "tap0901"
+
+/**
+ * Minimum major-id of the driver version we can work with
+ */
+#define TAP_WIN_MIN_MAJOR 9
+
+/**
+ * Minimum minor-id of the driver version we can work with. 
+ * v <= 7 has buggy IPv6.
+ * v == 8 is broken for small IPv4 Packets
+ */
+#define TAP_WIN_MIN_MINOR 9
+
+/**
+ * Time to wait for our virtual device to go up after telling it to do so.
+ * 
+ * openvpn doesn't specify a value, 4 seems sane for testing, even for openwrt
+ * (in fact, 4 was chosen by a fair dice roll...)
+ */
+#define TAP32_POSTUP_WAITTIME 4
+
+/**
  * Location of the network interface list resides in registry.
  * TODO: is this fixed on all version of windows? Checked with XP and 7
  */
@@ -106,17 +132,10 @@ static HDEVINFO DeviceInfo = INVALID_HANDLE_VALUE;
 static SP_DEVINFO_DATA DeviceNode;
 
 /**
- * Class-tag of our virtual device
- */
-static char class[128];
-
-/**
  * GUID of our virtual device in the form of 
  * {12345678-1234-1234-1234-123456789abc} - in hex
  */
-static GUID guid;
-
-
+static char device_guid[256];
 /**
  * inet_pton() wrapper for WSAStringToAddress()
  *
@@ -131,6 +150,7 @@ static GUID guid;
 #if WINVER >= 0x0600
 int inet_pton (int af, const char *src, void *dst);
 #else
+
 int
 inet_pton (int af, const char *src, void *dst)
 {
@@ -158,6 +178,7 @@ inet_pton (int af, const char *src, void *dst)
   return 0;
 }
 #endif
+
 /**
  * Wrapper for executing a shellcommand in windows.
  * 
@@ -220,8 +241,8 @@ set_address6 (const char *address, unsigned long prefix_len)
    * prepare the command
    */
   snprintf (command, LINE_LEN,
-              "netsh interface ipv6 add address \"%s\" %s/%d",
-              device_visible_name, address, prefix_len);
+            "netsh interface ipv6 add address \"%s\" %s/%d",
+            device_visible_name, address, prefix_len);
   /*
    * Set the address
    */
@@ -265,8 +286,8 @@ set_address4 (const char *address, const char *mask)
    * prepare the command
    */
   snprintf (command, LINE_LEN,
-              "netsh interface ipv4 add address \"%s\" %s %s",
-              device_visible_name, address, mask);
+            "netsh interface ipv4 add address \"%s\" %s %s",
+            device_visible_name, address, mask);
   /*
    * Set the address
    */
@@ -296,9 +317,9 @@ setup_interface ()
    */
   char inf_file_path[MAX_PATH];
   char hwidlist[LINE_LEN + 4];
-
+  char class_name[128];
+  GUID class_guid;
   int str_lenth = 0;
-
 
   /** 
    * Set the device's hardware ID and add it to a list.
@@ -330,35 +351,35 @@ setup_interface ()
    * Bootstrap our device info using the drivers inf-file
    */
   if (!SetupDiGetINFClassA (inf_file_path,
-                           &guid,
-                           class, sizeof (class) / sizeof (char),
-                           NULL))
+                            &class_guid,
+                            class_name, sizeof (class_name) / sizeof (char),
+                            NULL))
     return FALSE;
 
   /** 
    * Collect all the other needed information... 
    * let the system fill our this form 
    */
-  DeviceInfo = SetupDiCreateDeviceInfoList (&guid, NULL);
+  DeviceInfo = SetupDiCreateDeviceInfoList (&class_guid, NULL);
   if (DeviceInfo == INVALID_HANDLE_VALUE)
     return FALSE;
 
   DeviceNode.cbSize = sizeof (SP_DEVINFO_DATA);
   if (!SetupDiCreateDeviceInfoA (DeviceInfo,
-                                class,
-                                &guid,
-                                NULL,
-                                NULL,
-                                DICD_GENERATE_ID,
-                                &DeviceNode))
+                                 class_name,
+                                 &class_guid,
+                                 NULL,
+                                 NULL,
+                                 DICD_GENERATE_ID,
+                                 &DeviceNode))
     return FALSE;
 
   /* Deploy all the information collected into the registry */
   if (!SetupDiSetDeviceRegistryPropertyA (DeviceInfo,
-                                         &DeviceNode,
-                                         SPDRP_HARDWAREID,
-                                         (LPBYTE) hwidlist,
-                                         (strlen (hwidlist) + 2) * sizeof (char)))
+                                          &DeviceNode,
+                                          SPDRP_HARDWAREID,
+                                          (LPBYTE) hwidlist,
+                                          (strlen (hwidlist) + 2) * sizeof (char)))
     return FALSE;
 
   /* Install our new class(=device) into the system */
@@ -393,9 +414,9 @@ remove_interface ()
    *    uninstall related information into the structure
    */
   if (!SetupDiSetClassInstallParamsA (DeviceInfo,
-                                     (PSP_DEVINFO_DATA) & DeviceNode,
-                                     &remove.ClassInstallHeader,
-                                     sizeof (remove)))
+                                      (PSP_DEVINFO_DATA) & DeviceNode,
+                                      &remove.ClassInstallHeader,
+                                      sizeof (remove)))
     return FALSE;
   /*
    * 2. Uninstall the virtual interface using the class installer
@@ -432,19 +453,19 @@ resolve_interface_name ()
   /* We can obtain the PNP instance ID from our setupapi handle */
   device_details.cbSize = sizeof (device_details);
   if (CR_SUCCESS != CM_Get_Device_ID_ExA (DeviceNode.DevInst,
-                                         (PCHAR) pnp_instance_id,
-                                         MAX_DEVICE_ID_LEN,
-                                         0, //must be 0
-                                         NULL)) //hMachine, we are local
+                                          (PCHAR) pnp_instance_id,
+                                          MAX_DEVICE_ID_LEN,
+                                          0, //must be 0
+                                          NULL)) //hMachine, we are local
     return FALSE;
 
   /* Now we can use this ID to locate the correct networks interface in registry */
   if (ERROR_SUCCESS != RegOpenKeyExA (
-                                     HKEY_LOCAL_MACHINE,
-                                     adapter,
-                                     0,
-                                     KEY_READ,
-                                     &adapter_key_handle))
+                                      HKEY_LOCAL_MACHINE,
+                                      adapter,
+                                      0,
+                                      KEY_READ,
+                                      &adapter_key_handle))
     return FALSE;
 
   /* Of course there is a multitude of entries here, with arbitrary names, 
@@ -463,14 +484,14 @@ resolve_interface_name ()
       len = sizeof (adapter_key_handle);
       /* optain a subkey of {4D36E972-E325-11CE-BFC1-08002BE10318} */
       status = RegEnumKeyExA (
-                             adapter_key_handle,
-                             i,
-                             instance_key,
-                             &len,
-                             NULL,
-                             NULL,
-                             NULL,
-                             NULL);
+                              adapter_key_handle,
+                              i,
+                              instance_key,
+                              &len,
+                              NULL,
+                              NULL,
+                              NULL,
+                              NULL);
 
       /* this may fail due to one of two reasons: 
        * we are at the end of the list*/
@@ -482,16 +503,16 @@ resolve_interface_name ()
 
       /* prepare our new query string: */
       snprintf (query_key, 256, "%s\\%s\\Connection",
-                  INTERFACE_REGISTRY_LOCATION,
-                  instance_key);
+                INTERFACE_REGISTRY_LOCATION,
+                instance_key);
 
       /* look inside instance_key\\Connection */
       status = RegOpenKeyExA (
-                             HKEY_LOCAL_MACHINE,
-                             query_key,
-                             0,
-                             KEY_READ,
-                             &instance_key_handle);
+                              HKEY_LOCAL_MACHINE,
+                              query_key,
+                              0,
+                              KEY_READ,
+                              &instance_key_handle);
 
       if (status != ERROR_SUCCESS)
         continue;
@@ -499,33 +520,40 @@ resolve_interface_name ()
       /* now, read our PnpInstanceID */
       len = sizeof (pnpinstanceid_value);
       status = RegQueryValueExA (instance_key_handle,
-                                pnpinstanceid_name,
-                                NULL, //reserved, always NULL according to MSDN
-                                &data_type,
-                                (LPBYTE) pnpinstanceid_value,
-                                &len);
+                                 pnpinstanceid_name,
+                                 NULL, //reserved, always NULL according to MSDN
+                                 &data_type,
+                                 (LPBYTE) pnpinstanceid_value,
+                                 &len);
 
       if (status != ERROR_SUCCESS || data_type != REG_SZ)
         goto cleanup;
 
       /* compare the value we got to our devices PNPInstanceID*/
       if (0 != strncmp (pnpinstanceid_value, pnp_instance_id,
-                         sizeof (pnpinstanceid_value) / sizeof (char)))
+                        sizeof (pnpinstanceid_value) / sizeof (char)))
         goto cleanup;
 
       len = sizeof (device_visible_name);
       status = RegQueryValueExA (
-                                instance_key_handle,
-                                adaptername_name,
-                                NULL, //reserved, always NULL according to MSDN
-                                &data_type,
-                                (LPBYTE) device_visible_name,
-                                &len);
+                                 instance_key_handle,
+                                 adaptername_name,
+                                 NULL, //reserved, always NULL according to MSDN
+                                 &data_type,
+                                 (LPBYTE) device_visible_name,
+                                 &len);
 
-      if (status == ERROR_SUCCESS && data_type == REG_SZ)
-        {
-          retval = TRUE;
-        }
+      if (status != ERROR_SUCCESS || data_type != REG_SZ)
+        goto cleanup;
+
+      /* 
+       * we have successfully found OUR instance, 
+       * save the device GUID before exiting
+       */
+
+      strncpy (device_guid, instance_key, 256);
+      retval = TRUE;
+
 cleanup:
       RegCloseKey (instance_key_handle);
 
@@ -537,36 +565,111 @@ cleanup:
   return retval;
 }
 
+static boolean
+check_tapw32_version (HANDLE handle)
+{
+  {
+    ULONG version[3];
+    DWORD len;
+    memset (&(version), 0, sizeof (version));
+
+
+    if (DeviceIoControl (handle, TAP_WIN_IOCTL_GET_VERSION,
+                         &version, sizeof (version),
+                         &version, sizeof (version), &len, NULL))
+      {
+#ifdef TESTING
+        fprintf (stderr, "TAP-Windows Driver Version %d.%d %s",
+                 (int) version[0],
+                 (int) version[1],
+                 (version[2] ? "(DEBUG)" : ""));
+#endif
+      }
+
+    if (version[0] != TAP_WIN_MIN_MAJOR || version[1] < TAP_WIN_MIN_MINOR)
+      {
+        fprintf (stderr, "ERROR:  This version of gnunet requires a TAP-Windows driver that is at least version %d.%d!\n",
+                 TAP_WIN_MIN_MAJOR,
+                 TAP_WIN_MIN_MINOR);
+        return FALSE;
+      }
+    return TRUE;
+  }
+}
+
 /**
  * Creates a tun-interface called dev;
  *
  * @return the fd to the tun or -1 on error
  */
-static int
+static HANDLE
 init_tun ()
 {
-  int fd = -1;
+  char device_path[256];
+  HANDLE handle;
 
   if (!setup_interface ())
     {
       errno = ENODEV;
-      return -1;
+      return INVALID_HANDLE_VALUE;
     }
 
   if (!resolve_interface_name ())
     {
       errno = ENODEV;
-      return -1;
+      return INVALID_HANDLE_VALUE;
     }
 
-  //openvpn
-  /* get driver MTU */
-  // tun.c:2869
-  
-  /* tun up: */
-  // tun.c: 3024
-  
-  return fd;
+  /* Open Windows TAP-Windows adapter */
+  snprintf (device_path, sizeof (device_path), "%s%s%s",
+            USERMODEDEVICEDIR,
+            device_guid,
+            TAP_WIN_SUFFIX);
+
+  handle = CreateFile (
+                       device_path,
+                       GENERIC_READ | GENERIC_WRITE,
+                       0, /* was: FILE_SHARE_READ */
+                       0,
+                       OPEN_EXISTING,
+                       FILE_ATTRIBUTE_SYSTEM | FILE_FLAG_OVERLAPPED,
+                       0
+                       );
+
+  if (handle == INVALID_HANDLE_VALUE)
+    {
+      fprintf (stderr, "CreateFile failed on TAP device: %s\n", device_path);
+      return handle;
+    }
+
+  /* get driver version info */
+  if (!check_tapw32_version (handle))
+    {
+      CloseHandle (handle);
+      return INVALID_HANDLE_VALUE;
+    }
+
+  return handle;
+}
+
+static boolean
+tun_up (HANDLE handle)
+{
+  ULONG status = TRUE;
+  DWORD len;
+  if (DeviceIoControl (handle, TAP_WIN_IOCTL_SET_MEDIA_STATUS,
+                       &status, sizeof (status),
+                       &status, sizeof (status), &len, NULL))
+    {
+      fprintf (stderr, "The TAP-Windows driver ignored our request to set the interface UP (TAP_WIN_IOCTL_SET_MEDIA_STATUS DeviceIoControl call)!\n");
+      return FALSE;
+    }
+
+  /* Wait for the device to go UP, might take some time. */
+  Sleep ((TAP32_POSTUP_WAITTIME)*1000);
+
+  return TRUE;
+
 }
 
 /**
@@ -575,7 +678,7 @@ init_tun ()
  * @param fd_tun tunnel FD
  */
 static void
-run (int fd_tun)
+run (HANDLE handle)
 {
   /*
    * The buffer filled by reading from fd_tun
@@ -591,19 +694,29 @@ run (int fd_tun)
   ssize_t bufin_size = 0;
   ssize_t bufin_rpos = 0;
   unsigned char *bufin_read = NULL;
-  /* Hello, I am a stub function! I did my job, yay me! */
-  
+
   //openvpn  
-  
+  // Set Device to Subnet-Mode? 
+  // do we really need tun.c:2925 ?
+  // Why do we also assign IPv4's there??? Foobar??
+
+  /* tun up: */
+  if (!tun_up (handle))
+    goto teardown;
+
+  // tun.c:3038 
+
   // mainloop:
   // tunnel_point_to_point
   //openvpn.c:62
-  
+
+  // init.c:3337
   /* setup ansync IO */
   //forward.c: 1515
 
-  
-  //teardown:
+
+teardown:
+  ;
   //init.c:3472
 }
 
@@ -622,7 +735,7 @@ int
 main (int argc, char **argv)
 {
   char hwid[LINE_LEN];
-  int fd_tun;
+  HANDLE handle;
   int global_ret;
 
   if (6 != argc)
@@ -640,10 +753,10 @@ main (int argc, char **argv)
    * as additional hardware-id for our device.
    */
   snprintf (secondary_hwid, LINE_LEN / 2, "%s-%d",
-              hwid,
-              _getpid ());
+            hwid,
+            _getpid ());
 
-  if (-1 == (fd_tun = init_tun ()))
+  if (INVALID_HANDLE_VALUE == (handle = init_tun ()))
     {
       fprintf (stderr, "Fatal: could not initialize virtual-interface %s with IPv6 %s/%s and IPv4 %s/%s\n",
                hwid,
@@ -681,7 +794,7 @@ main (int argc, char **argv)
   // tap_allow_nonadmin_access
   //tun.c:2023
 
-  run (fd_tun);
+  run (handle);
   global_ret = 0;
 cleanup:
   remove_interface ();
