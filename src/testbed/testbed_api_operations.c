@@ -189,6 +189,26 @@ check_readiness (struct GNUNET_TESTBED_Operation *op)
 
 
 /**
+ * Defers a ready to be executed operation back to waiting
+ *
+ * @param op the operation to defer
+ */
+static void
+defer (struct GNUNET_TESTBED_Operation *op)
+{
+  unsigned int i;
+
+  GNUNET_assert (OP_STATE_READY == op->state);
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != op->start_task_id);
+  GNUNET_SCHEDULER_cancel (op->start_task_id);
+  op->start_task_id = GNUNET_SCHEDULER_NO_TASK;
+  for (i = 0; i < op->nqueues; i++)
+    op->queues[i]->active--;
+  op->state = OP_STATE_WAITING;
+}
+
+
+/**
  * Create an 'operation' to be performed.
  *
  * @param cls closure for the callbacks
@@ -260,8 +280,18 @@ GNUNET_TESTBED_operation_queue_reset_max_active_ (struct OperationQueue *queue,
   struct QueueEntry *entry;
   
   queue->max_active = max_active;
-  if (queue->active >= queue->max_active)
-    return;
+  /* if (queue->active >= queue->max_active) */
+  /*   return; */
+
+  entry = queue->head;
+  while ( (queue->active > queue->max_active) &&
+          (NULL != entry))
+  {
+    if (entry->op->state == OP_STATE_READY)
+      defer (entry->op);
+    entry = entry->next;
+  }
+
   entry = queue->head;
   while ( (NULL != entry) &&
           (queue->active < queue->max_active) )
@@ -336,10 +366,16 @@ GNUNET_TESTBED_operation_queue_remove_ (struct OperationQueue *queue,
     if (entry->op == operation)
       break;
   GNUNET_assert (NULL != entry);
-  if (OP_STATE_STARTED == operation->state)
+  switch (operation->state)
   {
+  case OP_STATE_INIT:
+  case OP_STATE_WAITING:
+    break;
+  case OP_STATE_READY:
+  case OP_STATE_STARTED:
     GNUNET_assert (0 != queue->active);
     queue->active--;
+    break;
   }
   entry2 = entry->next;
   GNUNET_CONTAINER_DLL_remove (queue->head, queue->tail, entry);
