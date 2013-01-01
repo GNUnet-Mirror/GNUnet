@@ -18,11 +18,40 @@
       Boston, MA 02111-1307, USA.
  */
 
-#include <gnunet/platform.h>
-#include <gnunet/gnunet_common.h>
+#include "platform.h"
+#include "gnunet_util_lib.h"
+
+struct SDEntry
+{
+  /**
+   * DLL next pointer
+   */
+  struct SDEntry *next;
+
+  /**
+   * DLL prev pointer
+   */
+  struct SDEntry *prev;
+  
+  /**
+   * The value to store
+   */
+  unsigned int amount;
+};
+
 
 struct SDHandle
 {
+  /**
+   * DLL head for storing entries
+   */
+  struct SDEntry *head;
+  
+  /**
+   * DLL tail for storing entries
+   */
+  struct SDEntry *tail;
+  
   /**
    * Squared sum of data values
    */
@@ -36,43 +65,78 @@ struct SDHandle
   /**
    * The average of data amounts
    */
-  unsigned int avg;
+  float avg;
 
   /**
    * The variance
    */
-  unsigned int vr;
+  double vr;
 
   /**
-   * Number of data values
+   * Number of data values; also the length of DLL containing SDEntries
    */
   unsigned int cnt;
+  
+  /**
+   * max number of entries we can have in the DLL
+   */
+  unsigned int max_cnt;
 };
 
 
 struct SDHandle *
-GNUNET_TESTBED_SD_init ()
+SD_init (unsigned int max_cnt)
 {
-  return GNUNET_malloc (sizeof (struct SDHandle));
+  struct SDHandle *h;
+  
+  GNUNET_assert (1 < max_cnt);
+  h = GNUNET_malloc (sizeof (struct SDHandle));
+  h->max_cnt = max_cnt;
+  return h;
 }
 
 void
-GNUNET_TESTBED_SD_destroy (struct SDHandle *h)
+SD_destroy (struct SDHandle *h)
 {
+  struct SDEntry *entry;
+  
+  while (NULL != (entry = h->head))
+  {
+    GNUNET_CONTAINER_DLL_remove (h->head, h->tail, entry);
+    GNUNET_free (entry);
+  }
   GNUNET_free (h);
 }
 
 void
-GNUNET_TESTBED_SD_add_data (struct SDHandle *h, unsigned int amount)
+SD_add_data (struct SDHandle *h, unsigned int amount)
 {
-  unsigned long sqavg;
+  struct SDEntry *entry;
+  double sqavg;
+  double sqsum_avg;
 
+  entry = NULL;
+  if (h->cnt == h->max_cnt)
+  {
+    entry = h->head;
+    GNUNET_CONTAINER_DLL_remove (h->head, h->tail, entry);
+    h->sum -= entry->amount;
+    h->sqsum -= ((unsigned long) entry->amount) * 
+        ((unsigned long) entry->amount);
+    h->cnt--;
+  }
+  GNUNET_assert (h->cnt < h->max_cnt);
+  if (NULL == entry)
+    entry = GNUNET_malloc (sizeof (struct SDEntry));
+  entry->amount = amount;
+  GNUNET_CONTAINER_DLL_insert_tail (h->head, h->tail, entry);
   h->sum += amount;
   h->cnt++;
+  h->avg = ((float) h->sum) / ((float) h->cnt);
   h->sqsum += ((unsigned long) amount) * ((unsigned long) amount);
-  h->avg = h->sum / h->cnt;
-  sqavg = h->avg * h->avg;
-  h->vr = (h->sqsum / h->cnt) - sqavg;
+  sqsum_avg = ((double) h->sqsum) / ((double) h->cnt);
+  sqavg = ((double) h->avg) * ((double) h->avg);
+  h->vr = sqsum_avg - sqavg;
 }
 
 
@@ -82,23 +146,24 @@ GNUNET_TESTBED_SD_add_data (struct SDHandle *h, unsigned int amount)
  * @param h the SDhandle
  * @param amount the value for which the deviation is returned
  * @return the deviation from the average; GNUNET_SYSERR if the deviation cannot
- *           be calculated
+ *           be calculated; a maximum of 4 is returned for deviations equal to
+ *           or larger than 4
  */
 int
-GNUNET_TESTBED_SD_deviation_factor (struct SDHandle *h, unsigned int amount)
+SD_deviation_factor (struct SDHandle *h, unsigned int amount)
 {
-  unsigned long diff;
+  double diff;
   unsigned int n;
 
   if (h->cnt < 2)
     return GNUNET_SYSERR;
-  if (amount > h->avg)
-    diff = amount - h->avg;
+  if (((float) amount) > h->avg)
+    diff = ((float) amount) - h->avg;
   else
-    diff = h->avg - amount;
+    diff = h->avg - ((float) amount);
   diff *= diff;
   for (n = 1; n < 4; n++)
-    if (diff < (n * n * h->vr))
+    if (diff < (((double) (n * n)) * h->vr))
       break;
   return n;
 }
@@ -107,17 +172,17 @@ GNUNET_TESTBED_SD_deviation_factor (struct SDHandle *h, unsigned int amount)
 int
 main ()
 {
-  struct SDHandle * h = GNUNET_TESTBED_SD_init ();
+  struct SDHandle * h = SD_init (20);
   
-  GNUNET_TESTBED_SD_add_data (h, 40);
-  GNUNET_TESTBED_SD_add_data (h, 30);
-  GNUNET_TESTBED_SD_add_data (h, 40);
-  GNUNET_TESTBED_SD_add_data (h, 10);
-  GNUNET_TESTBED_SD_add_data (h, 30);
-  printf ("Average: %d\n", h->avg);
-  printf ("Variance: %d\n", h->vr);
-  printf ("Standard Deviation: %d\n", (int) sqrt (h->vr));
-  printf ("Deviation factor: %d\n", GNUNET_TESTBED_SD_deviation (h, 40));
-  GNUNET_TESTBED_SD_destroy (h);
+  SD_add_data (h, 40);
+  SD_add_data (h, 30);
+  SD_add_data (h, 40);
+  SD_add_data (h, 10);
+  SD_add_data (h, 30);
+  printf ("Average: %f\n", h->avg);
+  printf ("Variance: %f\n", h->vr);
+  printf ("Standard Deviation: %f\n", sqrt (h->vr));
+  printf ("Deviation factor: %d\n", SD_deviation_factor (h, 60));
+  SD_destroy (h);
   return 0;
 }

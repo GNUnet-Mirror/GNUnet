@@ -179,6 +179,30 @@ struct OperationContext
 
 
 /**
+ * Opaque handle for SD calculations
+ */
+struct SDHandle;
+
+
+/**
+ * A slot to record time taken by an overlay connect operation
+ */
+struct TimeSlot
+{
+  /**
+   * A key to identify this timeslot
+   */
+  void *key;
+    
+  /**
+   * Time
+   */
+  struct GNUNET_TIME_Relative time;
+  
+};
+
+
+/**
  * Handle to interact with a GNUnet testbed controller.  Each
  * controller has at least one master handle which is created when the
  * controller is created; this master handle interacts with the
@@ -189,7 +213,6 @@ struct OperationContext
  */
 struct GNUNET_TESTBED_Controller
 {
-
   /**
    * The host where the controller is running
    */
@@ -277,10 +300,22 @@ struct GNUNET_TESTBED_Controller
   struct OperationQueue *opq_parallel_overlay_connect_operations;
 
   /**
+   * An array of timing slots; size should be equal to the current number of parallel
+   * overlay connects 
+   */
+  struct TimeSlot *tslots;
+
+  /**
+   * Handle for SD calculations amount parallel overlay connect operation finish
+   * times
+   */
+  struct SDHandle *poc_sd;
+
+  /**
    * The controller event mask
    */
   uint64_t event_mask;
-
+  
   /**
    * Did we start the receive loop yet?
    */
@@ -297,9 +332,9 @@ struct GNUNET_TESTBED_Controller
   unsigned int num_parallel_connects;
 
   /**
-   * The threshold for the number of parallel overlay connects we do
+   * Counter to indicate when all the available time slots are filled
    */
-  unsigned int num_parallel_connects_threshold;
+  unsigned int tslots_filled;
 
   /**
    * The operation id counter. use current value and increment
@@ -499,6 +534,25 @@ GNUNET_TESTBED_controller_link_ (void *op_cls,
                                 const struct GNUNET_CONFIGURATION_Handle
                                 *slave_cfg,
                                  int is_subordinate);
+
+unsigned int
+GNUNET_TESTBED_get_tslot_ (struct GNUNET_TESTBED_Controller *c, void *key);
+
+
+void
+GNUNET_TESTBED_update_time_slot_ (struct GNUNET_TESTBED_Controller *c,
+                                  unsigned int index,
+                                  void *key,
+                                  struct GNUNET_TIME_Relative time);
+
+
+int
+GNUNET_TESTBED_release_time_slot_ (struct GNUNET_TESTBED_Controller *c,
+                                  unsigned int index,
+                                   void *key);
+
+
+
 
 #endif
 /* end of testbed_api.h */

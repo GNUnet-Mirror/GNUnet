@@ -219,31 +219,14 @@ struct OverlayConnectData
   struct OperationContext *sub_opc;
 
   /**
-   * State information for this context data
+   * The starting time of this operation
    */
-  enum OCDState {
-    
-    /**
-     * The initial state
-     */
-    OCD_INIT,
+  struct GNUNET_TIME_Absolute tstart;
 
-    /**
-     * State where we attempt to acquire peer2's controller's configuration
-     */
-    OCD_CFG_ACQUIRE,
-
-    /**
-     * State where we link peer1's controller to peer2's controller
-     */
-    OCD_LINK_CONTROLLERS,
-    
-    /**
-     * State where we re-ask controller of peer1 to attempt an overlay connect
-     * between peer1 and peer2
-     */
-    OCD_REATTEMPT_OVERLAY_CONNECT
-  } state;
+  /**
+   * The timing slot index for this operation
+   */
+  unsigned int tslot_index;
 
 };
 
