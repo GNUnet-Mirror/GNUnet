@@ -90,7 +90,7 @@
 #define TAP_WIN_MIN_MINOR 9
 
 /**
- * Time to wait for our virtual device to go up after telling it to do so.
+ * Time in seconds to wait for our virtual device to go up after telling it to do so.
  * 
  * openvpn doesn't specify a value, 4 seems sane for testing, even for openwrt
  * (in fact, 4 was chosen by a fair dice roll...)
@@ -648,6 +648,8 @@ init_tun ()
       CloseHandle (handle);
       return INVALID_HANDLE_VALUE;
     }
+  
+  /* TODO (opt?): get MTU-Size */
 
   return handle;
 }
@@ -698,23 +700,77 @@ run (HANDLE handle)
   //openvpn  
   // Set Device to Subnet-Mode? 
   // do we really need tun.c:2925 ?
-  // Why do we also assign IPv4's there??? Foobar??
+  // Why does openvpn assign IPv4's there??? Foobar??
 
   /* tun up: */
+  /* we do this HERE and not beforehand (in init_tun()), in contrast to openvpn
+   * to remove the need to flush the arp cache, handle DHCP and wrong IPs.
+   *  
+   * DHCP and such are all features we will never use in gnunet afaik.
+   * But for openvpn those are essential.
+   */
   if (!tun_up (handle))
     goto teardown;
+ 
+  fd_set fds_w;
+  fd_set fds_r;
 
-  // tun.c:3038 
+  /* read refers to reading from fd_tun, writing to stdout */
+  int read_open = 1;
 
+  /* write refers to reading from stdin, writing to fd_tun */
+  int write_open = 1;
+
+  // Setup should be complete here.
+  // If something is missing, check init.c:3400+
+  
   // mainloop:
   // tunnel_point_to_point
-  //openvpn.c:62
+  // openvpn.c:62
+  
+  while ((1 == read_open) || (1 == write_open))
+  {
+    FD_ZERO (&fds_w);
+    FD_ZERO (&fds_r);
+    
+    // openvpn.c:80 ?
+    
+    /*
+     * We are supposed to read and the buffer is empty
+     * -> select on read from tun
+     */
+    if (read_open && (0 == buftun_size))
+    //  FD_SET (fd_tun, &fds_r);
+      ;
+
+    /*
+     * We are supposed to read and the buffer is not empty
+     * -> select on write to stdout
+     */
+    if (read_open && (0 != buftun_size))
+      FD_SET (1, &fds_w);
+
+    /*
+     * We are supposed to write and the buffer is empty
+     * -> select on read from stdin
+     */
+    if (write_open && (NULL == bufin_read))
+      FD_SET (0, &fds_r);
+
+    /*
+     * We are supposed to write and the buffer is not empty
+     * -> select on write to tun
+     */
+    if (write_open && (NULL != bufin_read))
+    //  FD_SET (fd_tun, &fds_w);
+      ;
+
 
   // init.c:3337
   /* setup ansync IO */
   //forward.c: 1515
 
-
+    }
 teardown:
   ;
   //init.c:3472
