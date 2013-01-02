@@ -2522,16 +2522,30 @@ decide_npoc (struct GNUNET_TESTBED_Controller *c)
     return;
   }
   GNUNET_assert (0 <= sd);
-  if (sd <= 1)
+  if (0 == sd)
   {
     SD_add_data (c->poc_sd, (unsigned int) avg.rel_value);
     GNUNET_TESTBED_set_num_parallel_overlay_connects_
         (c, c->num_parallel_connects * 2);
     return;
   }
+  if (1 == sd)
+  {
+    SD_add_data (c->poc_sd, (unsigned int) avg.rel_value);
+    GNUNET_TESTBED_set_num_parallel_overlay_connects_
+        (c, c->num_parallel_connects + 1);
+    return;
+  }  
   if (1 == c->num_parallel_connects)
   {
     GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c, 1);
+    return;
+  }
+  if (2 == sd)
+  {
+    SD_add_data (c->poc_sd, (unsigned int) avg.rel_value);
+    GNUNET_TESTBED_set_num_parallel_overlay_connects_
+        (c, c->num_parallel_connects - 1);
     return;
   }
   GNUNET_TESTBED_set_num_parallel_overlay_connects_ 
