@@ -198,7 +198,11 @@ struct TimeSlot
    * Time
    */
   struct GNUNET_TIME_Relative time;
-  
+
+  /**
+   * Number of timing values accumulated
+   */
+  unsigned int nvals;
 };
 
 

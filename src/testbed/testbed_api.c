@@ -2506,13 +2506,19 @@ decide_npoc (struct GNUNET_TESTBED_Controller *c)
   struct GNUNET_TIME_Relative avg;
   int sd;
   unsigned int slot;
+  unsigned int nvals;
 
   if (c->tslots_filled != c->num_parallel_connects)
     return;
   avg = GNUNET_TIME_UNIT_ZERO;
+  nvals = 0;
   for (slot = 0; slot < c->num_parallel_connects; slot++)
+  {
     avg = GNUNET_TIME_relative_add (avg, c->tslots[slot].time);
-  avg = GNUNET_TIME_relative_divide (avg, c->num_parallel_connects);
+    nvals += c->tslots[slot].nvals;
+  }
+  GNUNET_assert (nvals >= c->num_parallel_connects);
+  avg = GNUNET_TIME_relative_divide (avg, nvals);
   GNUNET_assert (GNUNET_TIME_UNIT_FOREVER_REL.rel_value != avg.rel_value);
   sd = SD_deviation_factor (c->poc_sd, (unsigned int) avg.rel_value);
   if (GNUNET_SYSERR == sd)
@@ -2595,12 +2601,12 @@ GNUNET_TESTBED_update_time_slot_ (struct GNUNET_TESTBED_Controller *c,
                                   void *key,
                                   struct GNUNET_TIME_Relative time)
 {
-  struct GNUNET_TIME_Relative avg;
   struct TimeSlot *slot;
 
   if (GNUNET_NO == GNUNET_TESTBED_release_time_slot_ (c, index, key))
     return;
   slot = &c->tslots[index];
+  slot->nvals++;
   if (GNUNET_TIME_UNIT_ZERO.rel_value == slot->time.rel_value)
   {
     slot->time = time;
@@ -2608,9 +2614,7 @@ GNUNET_TESTBED_update_time_slot_ (struct GNUNET_TESTBED_Controller *c,
     decide_npoc (c);
     return;
   }
-  avg = GNUNET_TIME_relative_add (slot->time, time);
-  avg = GNUNET_TIME_relative_divide (avg, 2);
-  slot->time = avg;
+  slot->time = GNUNET_TIME_relative_add (slot->time, time);
 }
 
 
