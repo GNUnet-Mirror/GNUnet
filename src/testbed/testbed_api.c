@@ -772,7 +772,6 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
   cb_cls = data->cb_cls;
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
-  //GNUNET_free (data);
   if (0 !=
       ((GNUNET_TESTBED_ET_CONNECT | GNUNET_TESTBED_ET_DISCONNECT) &
        c->event_mask))
@@ -942,7 +941,6 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
       data = opc->data;
       if (NULL != data->cb)
         data->cb (data->cb_cls, opc->op, emsg);
-      GNUNET_free (data);
     }
     break;
   case OP_FORWARDED:
