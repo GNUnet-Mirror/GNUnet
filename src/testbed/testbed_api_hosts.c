@@ -646,7 +646,7 @@ GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host,
 /**
  * Function to cancel a request started using GNUNET_TESTBED_is_host_habitable()
  *
- * @param struct handle the habitability check handle
+ * @param handle the habitability check handle
  */
 void
 GNUNET_TESTBED_is_host_habitable_cancel (struct

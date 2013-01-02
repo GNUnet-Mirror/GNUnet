@@ -379,9 +379,13 @@ GNUNET_TESTBED_operation_add_ (struct GNUNET_TESTBED_Operation *op);
 
 
 /**
- * Creates a helper initialization message. Only for testing.
+ * Creates a helper initialization message. This function is here because we
+ * want to use this in testing
  *
- * @param cname the ip address of the controlling host
+ * @param trusted_ip the ip address of the controller which will be set as TRUSTED
+ *          HOST(all connections form this ip are permitted by the testbed) when
+ *          starting testbed controller at host. This can either be a single ip
+ *          address or a network address in CIDR notation.
  * @param hostname the hostname of the destination this message is intended for
  * @param cfg the configuration that has to used to start the testbed service
  *          thru helper
@@ -535,10 +539,28 @@ GNUNET_TESTBED_controller_link_ (void *op_cls,
                                 *slave_cfg,
                                  int is_subordinate);
 
+
+/**
+ * Returns a timing slot which will be exclusively locked
+ *
+ * @param c the controller handle
+ * @param key a pointer which is associated to the returned slot; should not be
+ *          NULL. It serves as a key to determine the correct owner of the slot
+ * @return the time slot index in the array of time slots in the controller
+ *           handle
+ */
 unsigned int
 GNUNET_TESTBED_get_tslot_ (struct GNUNET_TESTBED_Controller *c, void *key);
 
 
+/**
+ * Function to update a time slot
+ *
+ * @param c the controller handle
+ * @param index the index of the time slot to update
+ * @param key the key to identify ownership of the slot
+ * @param time the new time
+ */
 void
 GNUNET_TESTBED_update_time_slot_ (struct GNUNET_TESTBED_Controller *c,
                                   unsigned int index,
@@ -546,6 +568,16 @@ GNUNET_TESTBED_update_time_slot_ (struct GNUNET_TESTBED_Controller *c,
                                   struct GNUNET_TIME_Relative time);
 
 
+/**
+ * Releases a time slot thus making it available for be used again
+ *
+ * @param c the controller handle
+ * @param index the index of the the time slot
+ * @param key the key to prove ownership of the timeslot
+ * @return GNUNET_YES if the time slot is successfully removed; GNUNET_NO if the
+ *           time slot cannot be removed - this could be because of the index
+ *           greater than existing number of time slots or `key' being different
+ */
 int
 GNUNET_TESTBED_release_time_slot_ (struct GNUNET_TESTBED_Controller *c,
                                   unsigned int index,

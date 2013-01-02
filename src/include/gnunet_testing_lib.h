@@ -95,9 +95,6 @@ GNUNET_TESTING_system_create (const char *testdir,
  *          service configurations generated to allow control connections from
  *          this ip. This can either be a single ip address or a network address
  *          in CIDR notation.
- * @param controller hostname of the controlling host, 
- *        service configurations are modified to allow 
- *        control connections from this host; can be NULL
  * @param hostname the hostname of the system we are using for testing; NULL for
  *          localhost
  * @param lowport lowest port number this system is allowed to allocate (inclusive)

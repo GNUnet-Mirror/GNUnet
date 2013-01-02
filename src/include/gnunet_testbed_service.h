@@ -172,7 +172,7 @@ GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host,
 /**
  * Function to cancel a request started using GNUNET_TESTBED_is_host_habitable()
  *
- * @param struct handle the habitability check handle
+ * @param handle the habitability check handle
  */
 void
 GNUNET_TESTBED_is_host_habitable_cancel (struct
@@ -1378,7 +1378,7 @@ GNUNET_TESTBED_run (const char *host_filename,
  * @param cc_cls closure for cc
  * @param test_master this callback will be called once the test is ready
  * @param test_master_cls closure for 'test_master'.
- * @param GNUNET_SYSERR on error, GNUNET_OK on success
+ * @return GNUNET_SYSERR on error, GNUNET_OK on success
  */
 int
 GNUNET_TESTBED_test_run (const char *testname,

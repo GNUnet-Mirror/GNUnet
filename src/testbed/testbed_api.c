@@ -312,10 +312,10 @@ struct SDHandle
 
 
 /**
- * FIXME: doc
+ * Initialize standard deviation calculation handle
  *
- * @param 
- * @return 
+ * @param max_cnt the maximum number of readings to keep
+ * @return the initialized handle
  */
 static struct SDHandle *
 SD_init (unsigned int max_cnt)
@@ -330,10 +330,9 @@ SD_init (unsigned int max_cnt)
 
 
 /**
- * FIXME: doc
+ * Frees the memory allocated to the SD handle
  *
- * @param 
- * @return 
+ * @param h the SD handle
  */
 static void
 SD_destroy (struct SDHandle *h)
@@ -348,6 +347,13 @@ SD_destroy (struct SDHandle *h)
   GNUNET_free (h);
 }
 
+
+/**
+ * Add a reading to SD
+ *
+ * @param h the SD handle
+ * @param amount the reading value
+ */
 static void
 SD_add_data (struct SDHandle *h, unsigned int amount)
 {
@@ -385,9 +391,10 @@ SD_add_data (struct SDHandle *h, unsigned int amount)
  *
  * @param h the SDhandle
  * @param amount the value for which the deviation is returned
+
  * @return the deviation from the average; GNUNET_SYSERR if the deviation cannot
- *           be calculated; a maximum of 4 is returned for deviations equal to
- *           or larger than 4
+ *           be calculated OR 0 if the deviation is less than the average; a
+ *           maximum of 4 is returned for deviations equal to or larger than 4
  */
 static int
 SD_deviation_factor (struct SDHandle *h, unsigned int amount)
@@ -1464,10 +1471,10 @@ oprelease_get_slave_config (void *cls)
 
 
 /**
- * FIXME: doc
+ * Initializes the operation queue for parallel overlay connects
  *
- * @param 
- * @return 
+ * @param c the controller handle
+ * @param npoc the number of parallel overlay connects - the queue size
  */
 static void
 GNUNET_TESTBED_set_num_parallel_overlay_connects_ (struct
@@ -1528,8 +1535,6 @@ free_argv (char **argv)
  *          HOST(all connections form this ip are permitted by the testbed) when
  *          starting testbed controller at host. This can either be a single ip
  *          address or a network address in CIDR notation.
- * @param controller_ip the ip address of the controller. Will be set as TRUSTED
- *          host when starting testbed controller at host
  * @param host the host where the controller has to be started; NULL for
  *          localhost
  * @param cfg template configuration to use for the remote controller; the
@@ -2469,6 +2474,8 @@ GNUNET_TESTBED_get_next_op_id (struct GNUNET_TESTBED_Controller *controller)
  * Returns a timing slot which will be exclusively locked
  *
  * @param c the controller handle
+ * @param key a pointer which is associated to the returned slot; should not be
+ *          NULL. It serves as a key to determine the correct owner of the slot
  * @return the time slot index in the array of time slots in the controller
  *           handle
  */
@@ -2489,6 +2496,12 @@ GNUNET_TESTBED_get_tslot_ (struct GNUNET_TESTBED_Controller *c, void *key)
 }
 
 
+/**
+ * Decides whether any change in the number of parallel overlay connects is
+ * necessary to adapt to the load on the system
+ *
+ * @param c the controller handle
+ */
 static void
 decide_npoc (struct GNUNET_TESTBED_Controller *c)
 {
@@ -2528,6 +2541,16 @@ decide_npoc (struct GNUNET_TESTBED_Controller *c)
 }
 
 
+/**
+ * Releases a time slot thus making it available for be used again
+ *
+ * @param c the controller handle
+ * @param index the index of the the time slot
+ * @param key the key to prove ownership of the timeslot
+ * @return GNUNET_YES if the time slot is successfully removed; GNUNET_NO if the
+ *           time slot cannot be removed - this could be because of the index
+ *           greater than existing number of time slots or `key' being different
+ */
 int
 GNUNET_TESTBED_release_time_slot_ (struct GNUNET_TESTBED_Controller *c,
                                   unsigned int index,
@@ -2551,6 +2574,7 @@ GNUNET_TESTBED_release_time_slot_ (struct GNUNET_TESTBED_Controller *c,
  *
  * @param c the controller handle
  * @param index the index of the time slot to update
+ * @param key the key to identify ownership of the slot
  * @param time the new time
  */
 void
