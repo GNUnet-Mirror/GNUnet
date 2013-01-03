@@ -564,12 +564,14 @@ GNUNET_TESTBED_get_tslot_ (struct GNUNET_TESTBED_Controller *c, void *key);
  * @param index the index of the time slot to update
  * @param key the key to identify ownership of the slot
  * @param time the new time
+ * @param failed should this reading be treated as coming from a fail event
  */
 void
 GNUNET_TESTBED_update_time_slot_ (struct GNUNET_TESTBED_Controller *c,
                                   unsigned int index,
                                   void *key,
-                                  struct GNUNET_TIME_Relative time);
+                                  struct GNUNET_TIME_Relative time,
+                                  int failed);
 
 
 /**

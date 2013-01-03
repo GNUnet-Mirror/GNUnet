@@ -939,6 +939,7 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
     {
       struct OverlayConnectData *data;
       data = opc->data;
+      data->failed = GNUNET_YES;
       if (NULL != data->cb)
         data->cb (data->cb_cls, opc->op, emsg);
     }
@@ -2594,15 +2595,27 @@ GNUNET_TESTBED_release_time_slot_ (struct GNUNET_TESTBED_Controller *c,
  * @param index the index of the time slot to update
  * @param key the key to identify ownership of the slot
  * @param time the new time
+ * @param failed should this reading be treated as coming from a fail event
  */
 void
 GNUNET_TESTBED_update_time_slot_ (struct GNUNET_TESTBED_Controller *c,
                                   unsigned int index,
                                   void *key,
-                                  struct GNUNET_TIME_Relative time)
+                                  struct GNUNET_TIME_Relative time,
+                                  int failed)
 {
   struct TimeSlot *slot;
 
+  if (GNUNET_YES == failed)
+  {
+    if (1 == c->num_parallel_connects)
+    {
+      GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c, 1);
+      return;
+    }
+    GNUNET_TESTBED_set_num_parallel_overlay_connects_ 
+        (c, c->num_parallel_connects - 1);
+  }
   if (GNUNET_NO == GNUNET_TESTBED_release_time_slot_ (c, index, key))
     return;
   slot = &c->tslots[index];

@@ -379,7 +379,7 @@ oprelease_overlay_connect (void *cls)
   case OPC_STATE_FINISHED:
     duration = GNUNET_TIME_absolute_get_duration (data->tstart);
     GNUNET_TESTBED_update_time_slot_ (opc->c, data->tslot_index,
-                                      data, duration);    
+                                      data, duration, data->failed);
   }
   GNUNET_free (data);
   GNUNET_free (opc);

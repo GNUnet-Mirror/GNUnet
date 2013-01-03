@@ -224,6 +224,11 @@ struct OverlayConnectData
   struct GNUNET_TIME_Absolute tstart;
 
   /**
+   * Has this operation failed
+   */
+  int failed;
+
+  /**
    * The timing slot index for this operation
    */
   unsigned int tslot_index;
