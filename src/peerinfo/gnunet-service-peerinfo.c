@@ -171,6 +171,8 @@ get_host_filename (const struct GNUNET_PeerIdentity *id)
   struct GNUNET_CRYPTO_HashAsciiEncoded fil;
   char *fn;
 
+  if (NULL == networkIdDirectory)
+    return NULL;
   GNUNET_CRYPTO_hash_to_enc (&id->hashPubKey, &fil);
   GNUNET_asprintf (&fn, "%s%s%s", networkIdDirectory, DIR_SEPARATOR_STR, &fil);
   return fn;
@@ -271,8 +273,11 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
   GNUNET_CONTAINER_multihashmap_put (hostmap, &entry->identity.hashPubKey, entry,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   fn = get_host_filename (identity);
-  entry->hello = read_host_file (fn, GNUNET_YES);
-  GNUNET_free (fn);
+  if (NULL != fn)
+  {
+    entry->hello = read_host_file (fn, GNUNET_YES);
+    GNUNET_free (fn);
+  }
   notify_all (entry);
 }
 
@@ -457,7 +462,8 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
     host->hello = mrg;
   }
   fn = get_host_filename (peer);
-  if (GNUNET_OK == GNUNET_DISK_directory_create_for_file (fn))
+  if ( (NULL != fn) &&
+       (GNUNET_OK == GNUNET_DISK_directory_create_for_file (fn)) )
   {
     cnt = 0;
     (void) GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &count_addresses,
@@ -479,7 +485,7 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
 	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "write", fn);
     }
   }
-  GNUNET_free (fn);
+  GNUNET_free_non_null (fn);
   notify_all (host);
 }
 
@@ -775,35 +781,41 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   char *peerdir;
   char *ip;
   struct DirScanContext dsc;
+  int noio;
 
   hostmap = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_YES);
   stats = GNUNET_STATISTICS_create ("peerinfo", cfg);
   notify_list = GNUNET_SERVER_notification_context_create (server, 0);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_filename (cfg, "peerinfo",
-                                                          "HOSTS",
-                                                          &networkIdDirectory));
-  GNUNET_DISK_directory_create (networkIdDirectory);
-  GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                      &cron_scan_directory_data_hosts, NULL);
-  GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                      &cron_clean_data_hosts, NULL);
+  noio = GNUNET_CONFIGURATION_get_value_yesno (cfg, "peerionfo", "NO_IO");
+  if (GNUNET_YES != noio)
+  {
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_CONFIGURATION_get_value_filename (cfg, "peerinfo",
+							    "HOSTS",
+							    &networkIdDirectory));
+    GNUNET_DISK_directory_create (networkIdDirectory);
+    GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
+					&cron_scan_directory_data_hosts, NULL);
+    GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
+					&cron_clean_data_hosts, NULL);
+    ip = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
+    GNUNET_asprintf (&peerdir,
+		     "%shellos",
+		     ip);
+    GNUNET_free (ip);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		_("Importing HELLOs from `%s'\n"),
+		peerdir);
+    dsc.matched = 0;
+    dsc.remove_files = GNUNET_NO;
+    GNUNET_DISK_directory_scan (peerdir,
+				&hosts_directory_scan_callback, &dsc);
+    GNUNET_free (peerdir);
+  }
+  GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
-  GNUNET_SERVER_add_handlers (server, handlers);
-  ip = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
-  GNUNET_asprintf (&peerdir,
-		   "%shellos",
-		   ip);
-  GNUNET_free (ip);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("Importing HELLOs from `%s'\n"),
-	      peerdir);
-  dsc.matched = 0;
-  dsc.remove_files = GNUNET_NO;
-  GNUNET_DISK_directory_scan (peerdir,
-			      &hosts_directory_scan_callback, &dsc);
-  GNUNET_free (peerdir);
+
 }
 
 

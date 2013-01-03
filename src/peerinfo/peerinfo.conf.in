@@ -20,5 +20,9 @@ UNIX_MATCH_GID = YES
 # PREFIX =
 HOSTS = $SERVICEHOME/data/hosts/
 
+# Option to disable all disk IO; only useful for testbed runs
+# (large-scale experiments); disables persistence of HELLOs!
+NO_IO = NO
+
 [uri]
 hello = gnunet-peerinfo
