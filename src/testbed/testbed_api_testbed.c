@@ -218,6 +218,11 @@ struct RunContext
   enum GNUNET_TESTBED_TopologyOption topology;
 
   /**
+   * Have we already shutdown
+   */
+  int shutdown;
+
+  /**
    * Number of hosts in the given host file
    */
   unsigned int num_hosts;
@@ -316,7 +321,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
   rc->peer_count++;
   if (rc->peer_count < rc->num_peers)
     return;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Required peers created successfully\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%u peers created successfully\n", rc->num_peers);
   GNUNET_SCHEDULER_add_now (&start_peers_task, rc);
 }
 
@@ -382,6 +387,8 @@ shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 static void
 shutdown_now (struct RunContext *rc)
 {
+  if (GNUNET_YES == rc->shutdown)
+    return;
   if (GNUNET_SCHEDULER_NO_TASK != rc->shutdown_run_task)
     GNUNET_SCHEDULER_cancel (rc->shutdown_run_task);
   rc->shutdown_run_task = GNUNET_SCHEDULER_add_now (&shutdown_run, rc);
@@ -405,6 +412,8 @@ shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != rc->shutdown_run_task);
   rc->shutdown_run_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_assert (GNUNET_NO == rc->shutdown);
+  rc->shutdown = GNUNET_YES;
   if (NULL != rc->hc_handles)
   {
     for (nhost = 0; nhost < rc->num_hosts; nhost++)
@@ -470,6 +479,7 @@ shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           rc->peer_count++;
           continue;
         }
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "Stopping peer %u\n", peer);
         dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
         dll_op->op = GNUNET_TESTBED_peer_stop (rc->peers[peer], NULL, NULL);
         dll_op->cls = rc->peers[peer];
