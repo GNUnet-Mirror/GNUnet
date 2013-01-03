@@ -52,7 +52,15 @@ struct GNUNET_CONSENSUS_ConcludeMessage
    */
   struct GNUNET_MessageHeader header;
 
+  /**
+   * Timeout for conclude
+   */
   struct GNUNET_TIME_RelativeNBO timeout;
+
+  /**
+   * Minimum group size required for a consensus group.
+   */
+  uint32_t min_group_size;
 };
 
 
@@ -102,6 +110,7 @@ struct GNUNET_CONSENSUS_AckMessage
    */
   uint8_t keep;
 
+  /* FIXME: add message hash? */
 };
 
 GNUNET_NETWORK_STRUCT_END

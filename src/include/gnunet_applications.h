@@ -71,6 +71,11 @@ extern "C"
  */
 #define GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX "GNUNET-VPN-VER-0001-"
 
+/**
+ * Consensus.
+ */
+#define GNUNET_APPLICATION_TYPE_CONSENSUS 18
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

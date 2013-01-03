@@ -62,10 +62,10 @@ stdin_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  */
 static void
 conclude_cb (void *cls, 
-             unsigned int num_peers_in_consensus,
-             const struct GNUNET_PeerIdentity *peers_in_consensus)
+             unsigned int consensus_group_count,
+             const struct GNUNET_CONSENSUS_Group *groups)
 {
-  printf("reached conclusion with %d peers\n", num_peers_in_consensus);
+  printf("reached conclusion\n");
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -111,7 +111,7 @@ stdin_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (feof (stdin))
     {
       printf ("concluding ...\n");
-      GNUNET_CONSENSUS_conclude (consensus, GNUNET_TIME_UNIT_FOREVER_REL, conclude_cb, NULL);
+      GNUNET_CONSENSUS_conclude (consensus, GNUNET_TIME_UNIT_FOREVER_REL, 0, conclude_cb, NULL);
     }
     return;
   }
@@ -144,6 +144,12 @@ static int
 cb (void *cls,
     struct GNUNET_CONSENSUS_Element *element)
 {
+  if (NULL == element)
+  {
+    printf("error receiving from consensus\n");
+    GNUNET_SCHEDULER_shutdown ();
+    return GNUNET_NO;
+  }
   printf("got element\n");
   return GNUNET_YES;
 }
@@ -178,9 +184,11 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (NULL == session_id_str)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "no session id given\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "no session id given (missing -s/--session-id)\n");
     return;
   }
+
+  GNUNET_CRYPTO_hash (session_id_str, strlen (session_id_str), &sid);
 
   for (count = 0; NULL != args[count]; count++);
  
@@ -212,9 +220,6 @@ run (void *cls, char *const *args, const char *cfgfile,
                                count, pids,
                                &sid,
                                &cb, NULL);
-
-  GNUNET_CONSENSUS_begin (consensus);
-
 
   stdin_fh = GNUNET_DISK_get_handle_from_native (stdin);
   stdin_tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, stdin_fh,

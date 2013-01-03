@@ -76,8 +76,8 @@ struct GNUNET_CONSENSUS_Element
  * @return GNUNET_OK if the valid is well-formed and should be added to the consensus,
  *         GNUNET_SYSERR if the element should be ignored and not be propagated
  */
-typedef int (*GNUNET_CONSENSUS_NewElementCallback) (void *cls,
-						    struct GNUNET_CONSENSUS_Element *element);
+typedef int (*GNUNET_CONSENSUS_ElementCallback) (void *cls,
+                                                    struct GNUNET_CONSENSUS_Element *element);
 
 
 
@@ -105,10 +105,10 @@ struct GNUNET_CONSENSUS_Handle;
  */
 struct GNUNET_CONSENSUS_Handle *
 GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			 unsigned int num_peers,
-			 const struct GNUNET_PeerIdentity *peers,
+                         unsigned int num_peers,
+                         const struct GNUNET_PeerIdentity *peers,
                          const struct GNUNET_HashCode *session_id,
-                         GNUNET_CONSENSUS_NewElementCallback new_element_cb,
+                         GNUNET_CONSENSUS_ElementCallback new_element_cb,
                          void *new_element_cls);
 
 
@@ -122,7 +122,7 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *        the insertion and thus the consensus failed for good
  */
 typedef void (*GNUNET_CONSENSUS_InsertDoneCallback) (void *cls,
-						     int success);
+                                                     int success);
 
 
 /**
@@ -138,9 +138,9 @@ typedef void (*GNUNET_CONSENSUS_InsertDoneCallback) (void *cls,
  */
 void
 GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
-			 const struct GNUNET_CONSENSUS_Element *element,
-			 GNUNET_CONSENSUS_InsertDoneCallback idc,
-			 void *idc_cls);
+                         const struct GNUNET_CONSENSUS_Element *element,
+                         GNUNET_CONSENSUS_InsertDoneCallback idc,
+                         void *idc_cls);
 
 
 /**
@@ -168,9 +168,9 @@ struct GNUNET_CONSENSUS_DeltaRequest;
  */
 struct GNUNET_CONSENSUS_DeltaRequest *
 GNUNET_CONSENSUS_get_delta (struct GNUNET_CONSENSUS_Handle *consensus,
-			    uint32_t group_id,
-			    GNUNET_CONSENSUS_NewElementCallback remove_element_cb,
-			    void *remove_element_cb_cls);
+                            uint32_t group_id,
+                            GNUNET_CONSENSUS_ElementCallback remove_element_cb,
+                            void *remove_element_cb_cls);
 
 
 void
@@ -184,19 +184,7 @@ struct GNUNET_CONSENSUS_Group
   uint64_t total_elements_in_group;
   const struct GNUNET_PeerIdentity **members;
 };
-				       
-
-/**
- * Called when a conclusion was successful.
- *
- * @param cls
- * @param num_peers_in_consensus
- * @param peers_in_consensus
- */
-typedef void (*GNUNET_CONSENSUS_NewConcludeCallback) (void *cls, 
-						      unsigned int consensus_group_count,
-						      const struct GNUNET_CONSENSUS_Group *groups);
-
+                                       
 
 /**
  * Called when a conclusion was successful.
@@ -206,8 +194,8 @@ typedef void (*GNUNET_CONSENSUS_NewConcludeCallback) (void *cls,
  * @param peers_in_consensus
  */
 typedef void (*GNUNET_CONSENSUS_ConcludeCallback) (void *cls, 
-						   unsigned int num_peers_in_consensus,
-						   const struct GNUNET_PeerIdentity *peers_in_consensus);
+                                                   unsigned int consensus_group_count,
+                                                   const struct GNUNET_CONSENSUS_Group *groups);
 
 
 /**
@@ -222,10 +210,10 @@ typedef void (*GNUNET_CONSENSUS_ConcludeCallback) (void *cls,
  */
 void
 GNUNET_CONSENSUS_conclude (struct GNUNET_CONSENSUS_Handle *consensus,
-			   struct GNUNET_TIME_Relative timeout,
-			   //			   unsigned int min_group_size_in_consensus,
-			   GNUNET_CONSENSUS_ConcludeCallback conclude,
-			   void *conclude_cls);
+                           struct GNUNET_TIME_Relative timeout,
+                           unsigned int min_group_size_in_consensus,
+                           GNUNET_CONSENSUS_ConcludeCallback conclude,
+                           void *conclude_cls);
 
 
 /**

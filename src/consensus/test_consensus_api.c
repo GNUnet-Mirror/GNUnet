@@ -27,14 +27,9 @@
 #include "gnunet_testing_lib.h"
 
 
-static struct GNUNET_CONSENSUS_Handle *consensus1;
-static struct GNUNET_CONSENSUS_Handle *consensus2;
+static struct GNUNET_CONSENSUS_Handle *consensus;
 
-static int concluded1;
-static int concluded2;
-
-static int insert1;
-static int insert2;
+static int insert;
 
 static struct GNUNET_HashCode session_id;
 
@@ -48,20 +43,12 @@ static void conclude_done (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "concluded\n");
 }
 
-static void
+static int
 on_new_element (void *cls,
                 struct GNUNET_CONSENSUS_Element *element)
 {
-  struct GNUNET_CONSENSUS_Handle *consensus;
-
-  GNUNET_assert (NULL != element);
-
-  consensus = *(struct GNUNET_CONSENSUS_Handle **) cls;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "received new element\n");
-
-  GNUNET_CONSENSUS_conclude (consensus, GNUNET_TIME_UNIT_FOREVER_REL, &conclude_done, consensus);
-
+  GNUNET_assert (0);
+  return GNUNET_YES;
 }
 
 static void
@@ -69,7 +56,6 @@ insert_done (void *cls, int success)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "insert done\n");
 }
-
 
 
 static void
@@ -89,11 +75,9 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "testing consensus api\n");
 
   GNUNET_CRYPTO_hash (str, strlen (str), &session_id);
-  consensus1 = GNUNET_CONSENSUS_create (cfg, 0, NULL, &session_id, on_new_element, &consensus1);
+  consensus = GNUNET_CONSENSUS_create (cfg, 0, NULL, &session_id, on_new_element, &consensus);
+  GNUNET_assert (consensus != NULL);
   /*
-  consensus2 = GNUNET_CONSENSUS_create (cfg, 0, NULL, &session_id, on_new_element, &consensus2);
-  GNUNET_assert (consensus1 != NULL);
-  GNUNET_assert (consensus2 != NULL);
   GNUNET_CONSENSUS_insert (consensus1, &el1, &insert_done, &consensus1);
   GNUNET_CONSENSUS_insert (consensus2, &el2, &insert_done, &consensus2);
   */
