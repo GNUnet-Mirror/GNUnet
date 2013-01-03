@@ -2007,11 +2007,18 @@ GNUNET_MESH_tunnel_buffer (struct GNUNET_MESH_Tunnel *tunnel, int buffer)
   send_packet (h, &msg.header, NULL);
 }
 
+
 /**
  * Request that a peer should be added to the tunnel.  The existing
  * connect handler will be called ONCE with either success or failure.
  * This function should NOT be called again with the same peer before the
  * connect handler is called.
+ * FIXME: I think the above documentation is false. I think it should
+ * read: "The connect handler will be called once the peer was actually
+ * successfully added to the multicast group. This function should
+ * not be called twice for the same peer (unless, of course,
+ * the peer was removed using GNUNET_MESH_peer_Request_connect_del in
+ * the meantime).
  *
  * @param tunnel handle to existing tunnel
  * @param peer peer to add
@@ -2043,8 +2050,6 @@ GNUNET_MESH_peer_request_connect_add (struct GNUNET_MESH_Tunnel *tunnel,
   msg.tunnel_id = htonl (tunnel->tid);
   msg.peer = *peer;
   send_packet (tunnel->mesh, &msg.header, tunnel);
-
-  return;
 }
 
 

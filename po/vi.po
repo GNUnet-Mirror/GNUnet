@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.8.0a\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2012-12-21 16:05+0100\n"
+"POT-Creation-Date: 2012-12-24 12:30+0100\n"
 "PO-Revision-Date: 2008-09-10 22:05+0930\n"
 "Last-Translator: Clytie Siddall <clytie@riverland.net.au>\n"
 "Language-Team: Vietnamese <vi-VN@googlegroups.com>\n"
@@ -3224,60 +3224,60 @@ msgstr ""
 msgid "GNUnet GNS access tool"
 msgstr ""
 
-#: src/gns/gnunet-gns-fcfsd.c:449
+#: src/gns/gnunet-gns-fcfsd.c:451
 #, fuzzy, c-format
 msgid "Unsupported form value `%s'\n"
 msgstr "Lệnh không được hỗ trợ « %s ». Đang hủy bỏ.\n"
 
-#: src/gns/gnunet-gns-fcfsd.c:478
+#: src/gns/gnunet-gns-fcfsd.c:480
 #, fuzzy, c-format
 msgid "Failed to create record for domain `%s': %s\n"
 msgstr "Không thể truy cập đến tập tin gnunet-directory « %s »\n"
 
-#: src/gns/gnunet-gns-fcfsd.c:522
+#: src/gns/gnunet-gns-fcfsd.c:524
 #, c-format
 msgid "Found existing name `%s' for the given key\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-fcfsd.c:584
+#: src/gns/gnunet-gns-fcfsd.c:586
 #, c-format
 msgid "Found %u existing records for domain `%s'\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-fcfsd.c:646
+#: src/gns/gnunet-gns-fcfsd.c:648
 #, fuzzy, c-format
 msgid "Failed to create page for `%s'\n"
 msgstr "Không thể tạo miền tên.\n"
 
-#: src/gns/gnunet-gns-fcfsd.c:662
+#: src/gns/gnunet-gns-fcfsd.c:664
 #, fuzzy, c-format
 msgid "Failed to setup post processor for `%s'\n"
 msgstr "Lỗi cập nhật dữ liệu cho mô-đun « %s »\n"
 
-#: src/gns/gnunet-gns-fcfsd.c:698
+#: src/gns/gnunet-gns-fcfsd.c:700
 msgid "Domain name must not contain `.'\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-fcfsd.c:706
+#: src/gns/gnunet-gns-fcfsd.c:708
 msgid "Domain name must not contain `+'\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-fcfsd.c:910 src/namestore/gnunet-namestore.c:364
+#: src/gns/gnunet-gns-fcfsd.c:912 src/namestore/gnunet-namestore.c:364
 #, fuzzy
 msgid "Failed to read or create private zone key\n"
 msgstr "Lỗi cập nhật dữ liệu cho mô-đun « %s »\n"
 
-#: src/gns/gnunet-gns-fcfsd.c:920 src/namestore/gnunet-namestore.c:375
+#: src/gns/gnunet-gns-fcfsd.c:922 src/namestore/gnunet-namestore.c:375
 #, fuzzy
 msgid "Failed to connect to namestore\n"
 msgstr "Không kết nối được đến trình nền gnunetd."
 
-#: src/gns/gnunet-gns-fcfsd.c:936 src/gns/gnunet-gns-proxy.c:2857
+#: src/gns/gnunet-gns-fcfsd.c:938 src/gns/gnunet-gns-proxy.c:2857
 #, fuzzy
 msgid "Failed to start HTTP server\n"
 msgstr "Lỗi bắt đầu thu thập.\n"
 
-#: src/gns/gnunet-gns-fcfsd.c:970
+#: src/gns/gnunet-gns-fcfsd.c:972
 msgid "GNUnet GNS first come first serve registration service"
 msgstr ""
 
