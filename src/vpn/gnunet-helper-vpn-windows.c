@@ -136,6 +136,33 @@ static SP_DEVINFO_DATA DeviceNode;
  * {12345678-1234-1234-1234-123456789abc} - in hex
  */
 static char device_guid[256];
+
+/* Overlapped IO Begins here (warning: nasty!) */
+
+/** 
+ * A overlapped-IO Object + read/writebuffer + buffer-size for windows asynchronous IO handling
+ */
+struct overlapped_facility
+{
+  int iostate;
+  BOOL status; // BOOL is winbool, NOT boolean!
+  DWORD flags;
+
+  OVERLAPPED overlapped;
+
+  DWORD buffer_size;
+  unsigned char buffer[MAX_SIZE];
+};
+
+/** 
+ * Operlapped IO states for its objects
+ */
+#define IOSTATE_INITIAL          0
+#define IOSTATE_QUEUED           1 /* overlapped I/O has been queued */
+#define IOSTATE_IMMEDIATE_RETURN 2 /* I/O function returned immediately without queueing */
+
+#if WINVER < 0x0600
+
 /**
  * inet_pton() wrapper for WSAStringToAddress()
  *
@@ -147,10 +174,6 @@ static char device_guid[256];
  * @param dst - OUT - the numerical form of the address
  * @return 0 on success, 1 on failure
  */
-#if WINVER >= 0x0600
-int inet_pton (int af, const char *src, void *dst);
-#else
-
 int
 inet_pton (int af, const char *src, void *dst)
 {
@@ -648,7 +671,7 @@ init_tun ()
       CloseHandle (handle);
       return INVALID_HANDLE_VALUE;
     }
-  
+
   /* TODO (opt?): get MTU-Size */
 
   return handle;
@@ -675,6 +698,30 @@ tun_up (HANDLE handle)
 }
 
 /**
+ * Initialize a overlapped structure
+ * 
+ * @param elem the element to initilize
+ * @param initial_state the initial state for this instance
+ * @param signaled if the hEvent created should default to signaled or not
+ * @return true on success, else false
+ */
+static boolean
+initialize_overlapped_facility (struct overlapped_facility * elem,
+                                BOOL initial_state,
+                                BOOL signaled)
+{
+
+  elem->status = initial_state;
+  elem->iostate = 0;
+  elem->buffer_size = MAX_SIZE;
+  elem->overlapped.hEvent = CreateEvent (NULL, TRUE, signaled, NULL);
+  if (NULL == elem->overlapped.hEvent)
+    return FALSE;
+
+  return TRUE;
+}
+
+/**
  * Start forwarding to and from the tunnel.
  *
  * @param fd_tun tunnel FD
@@ -682,25 +729,19 @@ tun_up (HANDLE handle)
 static void
 run (HANDLE handle)
 {
-  /*
-   * The buffer filled by reading from fd_tun
-   */
-  unsigned char buftun[MAX_SIZE];
-  ssize_t buftun_size = 0;
-  unsigned char *buftun_read = NULL;
+  /* read refers to reading from fd_tun, writing to stdout */
+  int read_open = 1;
+  /* write refers to reading from stdin, writing to fd_tun */
+  int write_open = 1;
 
-  /*
-   * The buffer filled by reading from stdin
-   */
-  unsigned char bufin[MAX_SIZE];
-  ssize_t bufin_size = 0;
-  ssize_t bufin_rpos = 0;
-  unsigned char *bufin_read = NULL;
-
-  //openvpn  
-  // Set Device to Subnet-Mode? 
-  // do we really need tun.c:2925 ?
-  // Why does openvpn assign IPv4's there??? Foobar??
+  /* IO-Facility for reading from our virtual interface */
+  struct overlapped_facility tap_read;
+  /* IO-Facility for writing to our virtual interface */
+  struct overlapped_facility tap_write;
+  /* IO-Facility for reading from stdin */
+  struct overlapped_facility std_in;
+  /* IO-Facility for writing to stdout */
+  struct overlapped_facility std_out;
 
   /* tun up: */
   /* we do this HERE and not beforehand (in init_tun()), in contrast to openvpn
@@ -711,65 +752,53 @@ run (HANDLE handle)
    */
   if (!tun_up (handle))
     goto teardown;
- 
-  fd_set fds_w;
-  fd_set fds_r;
 
-  /* read refers to reading from fd_tun, writing to stdout */
-  int read_open = 1;
+  if (!)
+    goto teardown;
 
-  /* write refers to reading from stdin, writing to fd_tun */
-  int write_open = 1;
+  /* Initialize our overlapped IO structures*/
+  if (initialize_overlapped_facility (&tap_read, TRUE, FALSE)
+      && initialize_overlapped_facility (&tap_write, FALSE, TRUE)
+      && initialize_overlapped_facility (&std_in, TRUE, FALSE)
+      && initialize_overlapped_facility (&std_out, FALSE, TRUE))
+    goto teardown;
+
+
+  //openvpn  
+  // Set Device to Subnet-Mode? 
+  // do we really need tun.c:2925 ?
+  // Why does openvpn assign IPv4's there??? Foobar??
 
   // Setup should be complete here.
   // If something is missing, check init.c:3400+
-  
+
   // mainloop:
   // tunnel_point_to_point
   // openvpn.c:62
-  
+
   while ((1 == read_open) || (1 == write_open))
-  {
-    FD_ZERO (&fds_w);
-    FD_ZERO (&fds_r);
-    
-    // openvpn.c:80 ?
-    
-    /*
-     * We are supposed to read and the buffer is empty
-     * -> select on read from tun
-     */
-    if (read_open && (0 == buftun_size))
-    //  FD_SET (fd_tun, &fds_r);
-      ;
+    {
 
-    /*
-     * We are supposed to read and the buffer is not empty
-     * -> select on write to stdout
-     */
-    if (read_open && (0 != buftun_size))
-      FD_SET (1, &fds_w);
+      /* READ from stdin is possible */
+      if (std_in.status)
+        {
 
-    /*
-     * We are supposed to write and the buffer is empty
-     * -> select on read from stdin
-     */
-    if (write_open && (NULL == bufin_read))
-      FD_SET (0, &fds_r);
+        }
+      /* READ from tap is possible */
+      if (tap_read.status)
+        {
 
-    /*
-     * We are supposed to write and the buffer is not empty
-     * -> select on write to tun
-     */
-    if (write_open && (NULL != bufin_read))
-    //  FD_SET (fd_tun, &fds_w);
-      ;
+        }
+      /* WRITE to tap is possible */
+      if (tap_write.status)
+        {
 
+        }
+      /* WRITE to STDOUT is possible */
+      if (std_out.status)
+        {
 
-  // init.c:3337
-  /* setup ansync IO */
-  //forward.c: 1515
-
+        }
     }
 teardown:
   ;
