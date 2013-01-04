@@ -422,6 +422,7 @@ struct LCFContextQueue
 /**
  * A peer
  */
+
 struct Peer
 {
   
@@ -3556,7 +3557,9 @@ timeout_rocc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RequestOverlayConnectContext *rocc = cls;
   
+  GNUNET_assert (rocc->timeout_rocc_task_id != GNUNET_SCHEDULER_NO_TASK);
   rocc->timeout_rocc_task_id = GNUNET_SCHEDULER_NO_TASK;
+  LOG_DEBUG ("rocc timed out\n");
   cleanup_rocc (rocc);
 }
 
@@ -3611,6 +3614,8 @@ rocc_hello_sent_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   
   rocc->ohh = NULL;
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == rocc->attempt_connect_task_id);
+  LOG_DEBUG ("HELLO of peer %4s sent to local peer with id: %u\n",
+             GNUNET_i2s (&rocc->a_id), rocc->peer->id);
   if (GNUNET_SCHEDULER_REASON_TIMEOUT == tc->reason)
   {
     GNUNET_break (0);
@@ -3637,7 +3642,10 @@ attempt_connect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RequestOverlayConnectContext *rocc = cls;
 
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != rocc->attempt_connect_task_id);
   rocc->attempt_connect_task_id = GNUNET_SCHEDULER_NO_TASK;
+  LOG_DEBUG ("Offering HELLO of peer %4s to local peer with id: %u\n",
+             GNUNET_i2s (&rocc->a_id), rocc->peer->id);
   rocc->ohh = GNUNET_TRANSPORT_offer_hello (rocc->tcc.th, rocc->hello,
                                             rocc_hello_sent_cb, rocc);
   if (NULL == rocc->ohh)
@@ -3708,6 +3716,10 @@ handle_overlay_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
   }
   rocc = GNUNET_malloc (sizeof (struct RequestOverlayConnectContext));
   GNUNET_CONTAINER_DLL_insert_tail (roccq_head, roccq_tail, rocc);
+  memcpy (&rocc->a_id, &msg->peer_identity,
+          sizeof (struct GNUNET_PeerIdentity));
+  LOG_DEBUG ("Received request for overlay connection to peer %4s\n",
+             GNUNET_i2s (&rocc->a_id));
   rocc->peer = peer;
   rocc->peer->reference_cnt++;
   rocc->tcc.th = GNUNET_TRANSPORT_connect (rocc->peer->details.local.cfg, NULL, rocc,
@@ -3719,8 +3731,6 @@ handle_overlay_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  memcpy (&rocc->a_id, &msg->peer_identity,
-          sizeof (struct GNUNET_PeerIdentity));
   rocc->tcc.pid = &rocc->a_id;
   rocc->hello = GNUNET_malloc (hsize);
   memcpy (rocc->hello, msg->hello, hsize);
