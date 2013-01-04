@@ -42,7 +42,7 @@
  * Generic logging
  */
 #define LOG(kind,...)                           \
-  GNUNET_log (kind, __VA_ARGS__)
+  GNUNET_log_nocheck (kind, __VA_ARGS__)
 
 /**
  * Debug logging
@@ -4065,7 +4065,16 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
      sizeof (struct GNUNET_TESTBED_SlaveGetConfigurationMessage)},
     {NULL}
   };
+  char *logfile;
 
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                            "TESTBED",
+                                                            "LOG_FILE",
+                                                            &logfile))
+  {
+    GNUNET_break (GNUNET_OK == GNUNET_log_setup ("testbed", "DEBUG", logfile));
+    GNUNET_free (logfile);
+  }
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string 
 		 (cfg, "testbed", "HOSTNAME", &hostname));
   our_config = GNUNET_CONFIGURATION_dup (cfg);
