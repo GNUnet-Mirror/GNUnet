@@ -786,7 +786,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   hostmap = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_YES);
   stats = GNUNET_STATISTICS_create ("peerinfo", cfg);
   notify_list = GNUNET_SERVER_notification_context_create (server, 0);
-  noio = GNUNET_CONFIGURATION_get_value_yesno (cfg, "peerionfo", "NO_IO");
+  noio = GNUNET_CONFIGURATION_get_value_yesno (cfg, "peerinfo", "NO_IO");
   if (GNUNET_YES != noio)
   {
     GNUNET_assert (GNUNET_OK ==
