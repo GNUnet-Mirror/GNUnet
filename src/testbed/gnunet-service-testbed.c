@@ -42,7 +42,7 @@
  * Generic logging
  */
 #define LOG(kind,...)                           \
-  GNUNET_log_nocheck (kind, __VA_ARGS__)
+  GNUNET_log (kind, __VA_ARGS__)
 
 /**
  * Debug logging
@@ -2930,7 +2930,7 @@ try_connect_cb (void *cls, const int result)
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == tcc->task);
   tcc->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                             (GNUNET_TIME_UNIT_MILLISECONDS,
-                                             pow (10, ++tcc->retries)),
+                                             500 + pow(2, ++tcc->retries)),
                                             &try_connect_task, tcc);
 }
 
@@ -3763,6 +3763,7 @@ handle_overlay_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
 	     hsize);
   rocc->peer = peer;
   rocc->peer->reference_cnt++;
+  rocc->tcc.op_id = rocc->op_id;
   rocc->tcc.th = GNUNET_TRANSPORT_connect (rocc->peer->details.local.cfg, NULL, rocc,
                                            NULL, &transport_connect_notify, NULL);
   if (NULL == rocc->tcc.th)
