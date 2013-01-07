@@ -115,6 +115,7 @@ run (void *cls, char *const *args, const char *cfgfile,
  * @param cc_cls closure for cc
  * @param test_master task to run once the test is ready
  * @param test_master_cls closure for 'task'.
+ * @return GNUNET_SYSERR on error, GNUNET_OK on success
  */
 int
 GNUNET_TESTBED_test_run (const char *testname, const char *cfg_filename,
