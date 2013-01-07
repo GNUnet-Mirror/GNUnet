@@ -43,6 +43,7 @@ notify_connect_complete (void *cls,
 			 struct GNUNET_TESTBED_Operation *op,
 			 const char *emsg)
 {
+  GNUNET_TESTBED_operation_done (op);
   if (NULL != emsg)
   {
     FPRINTF (stderr, "Failed to connect two peers: %s\n", emsg);
@@ -50,7 +51,6 @@ notify_connect_complete (void *cls,
     ok = 1;
     return;
   }
-  GNUNET_TESTBED_operation_done (op);
   connect_left--;
   if (0 == connect_left)
   {

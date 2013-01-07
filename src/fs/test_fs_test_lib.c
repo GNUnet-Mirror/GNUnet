@@ -86,6 +86,7 @@ do_publish (void *cls,
 	    struct GNUNET_TESTBED_Operation *op,
 	    const char *emsg)
 {
+  GNUNET_TESTBED_operation_done (op);
   if (NULL != emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to connect peers: %s\n", emsg);
@@ -94,7 +95,6 @@ do_publish (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_TESTBED_operation_done (op);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Publishing %llu bytes\n",
               (unsigned long long) FILESIZE);
   GNUNET_FS_TEST_publish (the_peers[0], TIMEOUT, 1, GNUNET_NO, FILESIZE, SEED,
