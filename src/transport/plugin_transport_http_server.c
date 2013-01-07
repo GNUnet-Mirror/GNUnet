@@ -45,6 +45,11 @@
 #define _RECEIVE 0
 #define _SEND 1
 
+
+/* Enable output for debbuging URL's of incoming requests */
+#define DEBUG_URL_PARSE GNUNET_NO
+
+
 /**
  * Encapsulation of all of the state of the plugin.
  */
@@ -891,8 +896,6 @@ server_mhd_connection_timeout (struct HTTP_Server_Plugin *plugin, struct Session
 static int
 server_parse_url (struct HTTP_Server_Plugin *plugin, const char * url, struct GNUNET_PeerIdentity * target, uint32_t *tag)
 {
-  int debug = GNUNET_YES;
-
   char * tag_start = NULL;
   char * tag_end = NULL;
   char * target_start = NULL;
@@ -916,7 +919,7 @@ server_parse_url (struct HTTP_Server_Plugin *plugin, const char * url, struct GN
 
   if (NULL == separator)
   {
-      if (debug) GNUNET_break (0);
+      if (DEBUG_URL_PARSE) GNUNET_break (0);
       return GNUNET_SYSERR;
   }
   tag_start = separator + 1;
@@ -924,42 +927,42 @@ server_parse_url (struct HTTP_Server_Plugin *plugin, const char * url, struct GN
   if (strlen (tag_start) == 0)
   {
     /* No tag after separator */
-    if (debug) GNUNET_break (0);
+    if (DEBUG_URL_PARSE) GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   ctag = strtoul (tag_start, &tag_end, 10);
   if (ctag == 0)
   {
     /* tag == 0 , invalid */
-    if (debug) GNUNET_break (0);
+    if (DEBUG_URL_PARSE) GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   if ((ctag == ULONG_MAX) && (ERANGE == errno))
   {
     /* out of range: > ULONG_MAX */
-    if (debug) GNUNET_break (0);
+    if (DEBUG_URL_PARSE) GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   if (ctag > UINT32_MAX)
   {
     /* out of range: > UINT32_MAX */
-    if (debug) GNUNET_break (0);
+    if (DEBUG_URL_PARSE) GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   (*tag) = (uint32_t) ctag;
   if (NULL == tag_end)
   {
       /* no char after tag */
-      if (debug) GNUNET_break (0);
+      if (DEBUG_URL_PARSE) GNUNET_break (0);
       return GNUNET_SYSERR;
   }
   if (url[strlen(url)] != tag_end[0])
   {
       /* there are more not converted chars after tag */
-      if (debug) GNUNET_break (0);
+      if (DEBUG_URL_PARSE) GNUNET_break (0);
       return GNUNET_SYSERR;
   }
-  if (debug)
+  if (DEBUG_URL_PARSE)
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
        "Found tag `%u' in url\n", (*tag));
 
@@ -975,7 +978,7 @@ server_parse_url (struct HTTP_Server_Plugin *plugin, const char * url, struct GN
   if (hash_length != plugin->peer_id_length)
   {
       /* no char after tag */
-      if (debug) GNUNET_break (0);
+      if (DEBUG_URL_PARSE) GNUNET_break (0);
       return GNUNET_SYSERR;
   }
   memcpy (hash, target_start, hash_length);
@@ -984,7 +987,7 @@ server_parse_url (struct HTTP_Server_Plugin *plugin, const char * url, struct GN
   if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((const char *) hash, &(target->hashPubKey)))
   {
       /* hash conversion failed */
-      if (debug) GNUNET_break (0);
+      if (DEBUG_URL_PARSE) GNUNET_break (0);
       return GNUNET_SYSERR;
   }
 
