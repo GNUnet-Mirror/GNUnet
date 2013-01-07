@@ -264,6 +264,8 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != hc_handle)
     GNUNET_TESTBED_is_host_habitable_cancel (hc_handle);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == delayed_connect_task);
+  if (NULL != common_operation)
+    GNUNET_TESTBED_operation_done (common_operation);
   if (NULL != reg_handle)
     GNUNET_TESTBED_cancel_registration (reg_handle);
   if (NULL != controller1)
@@ -360,57 +362,22 @@ op_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
     abort_test();
     return;
   }
+  
   switch(result)
   {
   case PEER3_STARTED:
-    if ((NULL != peer1.operation) ||
-        (NULL != peer2.operation) ||
-        (NULL == common_operation))
-    {
-      GNUNET_break (0);
-      abort_test();
-      return;
-    }
-    GNUNET_TESTBED_operation_done (common_operation);
-    common_operation = NULL;
-    result = PEERS_1_2_CONNECTED;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Peers connected\n");
-    common_operation = 
-        GNUNET_TESTBED_overlay_connect (NULL, &op_comp_cb, NULL, peer2.peer,
-					  peer3.peer);
-    break;
-  case PEERS_1_2_CONNECTED:
-    if (NULL == common_operation)
-    {
-      GNUNET_break (0);
-      abort_test();
-      return;
-    }
-    GNUNET_TESTBED_operation_done (common_operation);
-    common_operation = NULL;
-    result = PEERS_2_3_CONNECTED;
-    delayed_connect_task =
-          GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (3),
-                                        &do_delayed_connect, NULL);
-    break;
   case PEERS_2_3_CONNECTED:
-    if ((NULL != peer1.operation) ||
-        (NULL != peer2.operation) ||
-        (NULL == common_operation))
-    {
-      GNUNET_break (0);
-      abort_test();
-      return;
-    }
-    GNUNET_TESTBED_operation_done (common_operation);
-    common_operation = NULL;
-    result = PEERS_CONNECTED_2;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Peers connected again\n");
-    peer1.operation = GNUNET_TESTBED_peer_stop (peer1.peer, NULL, NULL);
-    peer2.operation = GNUNET_TESTBED_peer_stop (peer2.peer, NULL, NULL);
-    peer3.operation = GNUNET_TESTBED_peer_stop (peer3.peer, NULL, NULL);
+  case PEERS_1_2_CONNECTED: 
     break;
   default:
+    GNUNET_break (0);
+    abort_test();
+    return;
+  }
+  if ((NULL != peer1.operation) ||
+      (NULL != peer2.operation) ||
+      (NULL != peer3.operation))
+  {
     GNUNET_break (0);
     abort_test();
     return;
@@ -696,7 +663,8 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   case GNUNET_TESTBED_ET_CONNECT:
     if ((NULL != peer1.operation) ||
         (NULL != peer2.operation) ||
-        (NULL != peer3.operation))
+        (NULL != peer3.operation) ||
+        (NULL == common_operation))
     {
       GNUNET_break (0);
       abort_test();
@@ -705,34 +673,51 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     switch (result)
     {
     case PEER3_STARTED:
-      if ((NULL == common_operation) ||
-          (event->details.peer_connect.peer1 != peer2.peer) ||
+      if ((event->details.peer_connect.peer1 != peer2.peer) ||
           (event->details.peer_connect.peer2 != peer1.peer))
       {
         GNUNET_break (0);
         abort_test();
         return;
       }
+      GNUNET_TESTBED_operation_done (common_operation);
+      common_operation = NULL;
+      result = PEERS_1_2_CONNECTED;
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Peers connected\n");
+      common_operation = 
+          GNUNET_TESTBED_overlay_connect (NULL, &op_comp_cb, NULL, peer2.peer,
+					  peer3.peer);
       break;
-    case PEERS_2_3_CONNECTED:
-      if ((NULL == common_operation) ||
-          (event->details.peer_connect.peer1 != peer1.peer) ||
-          (event->details.peer_connect.peer2 != peer2.peer))
-      {
-        GNUNET_break (0);
-        abort_test();
-        return;
-      }
-      break;
-    case PEERS_1_2_CONNECTED: 
-      if ((NULL == common_operation) ||
-          (event->details.peer_connect.peer1 != peer2.peer) ||
+    case PEERS_1_2_CONNECTED:
+      if ((event->details.peer_connect.peer1 != peer2.peer) ||
           (event->details.peer_connect.peer2 != peer3.peer))
       {
         GNUNET_break (0);
         abort_test();
         return;
       }
+      GNUNET_TESTBED_operation_done (common_operation);
+      common_operation = NULL;
+      result = PEERS_2_3_CONNECTED;
+      delayed_connect_task =
+          GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (3),
+                                        &do_delayed_connect, NULL);
+      break;
+    case PEERS_2_3_CONNECTED:
+      if ((event->details.peer_connect.peer1 != peer1.peer) ||
+          (event->details.peer_connect.peer2 != peer2.peer))
+      {
+        GNUNET_break (0);
+        abort_test();
+        return;
+      }
+      GNUNET_TESTBED_operation_done (common_operation);
+      common_operation = NULL;
+      result = PEERS_CONNECTED_2;
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Peers connected again\n");
+      peer1.operation = GNUNET_TESTBED_peer_stop (peer1.peer, NULL, NULL);
+      peer2.operation = GNUNET_TESTBED_peer_stop (peer2.peer, NULL, NULL);
+      peer3.operation = GNUNET_TESTBED_peer_stop (peer3.peer, NULL, NULL);
       break;
     default:
       GNUNET_break (0);

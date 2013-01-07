@@ -772,6 +772,8 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
   cb_cls = data->cb_cls;
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
+  if (NULL != cb)
+    cb (cb_cls, opc->op, NULL);
   if (0 !=
       ((GNUNET_TESTBED_ET_CONNECT | GNUNET_TESTBED_ET_DISCONNECT) &
        c->event_mask))
@@ -779,8 +781,6 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
     if (NULL != c->cc)
       c->cc (c->cc_cls, &event);
   }
-  if (NULL != cb)
-    cb (cb_cls, opc->op, NULL);
   return GNUNET_YES;
 }
 

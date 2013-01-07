@@ -265,24 +265,11 @@ op_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
     FAIL_TEST (NULL == peer1.operation);
     FAIL_TEST (NULL == peer2.operation);
     FAIL_TEST (NULL != common_operation);
-    GNUNET_TESTBED_operation_done (common_operation);
-    common_operation = NULL;
-    result = PEERS_CONNECTED;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Peers connected\n");
-    delayed_connect_task =
-	GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (3),
-				      &do_delayed_connect, NULL);
     break;
   case PEERS_CONNECTED:
     FAIL_TEST (NULL == peer1.operation);
     FAIL_TEST (NULL == peer2.operation);
     FAIL_TEST (NULL != common_operation);
-    GNUNET_TESTBED_operation_done (common_operation);
-    common_operation = NULL;
-    result = PEERS_CONNECTED_2;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Peers connected again\n");
-    peer1.operation = GNUNET_TESTBED_peer_stop (peer1.peer, NULL, NULL);
-    peer2.operation = GNUNET_TESTBED_peer_stop (peer2.peer, NULL, NULL);
     break;
   default:
     FAIL_TEST (0);
@@ -375,12 +362,29 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     switch (result)
     {
     case PEERS_STARTED:
-    case PEERS_CONNECTED:
       FAIL_TEST (NULL == peer1.operation);
       FAIL_TEST (NULL == peer2.operation);
       FAIL_TEST (NULL != common_operation);
       FAIL_TEST ((event->details.peer_connect.peer1 == peer1.peer) &&
 		     (event->details.peer_connect.peer2 == peer2.peer));
+      GNUNET_TESTBED_operation_done (common_operation);
+      common_operation = NULL;
+      result = PEERS_CONNECTED;
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Peers connected\n");
+      delayed_connect_task =
+          GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (3),
+                                        &do_delayed_connect, NULL);
+      break;
+    case PEERS_CONNECTED:
+      FAIL_TEST (NULL == peer1.operation);
+      FAIL_TEST (NULL == peer2.operation);
+      FAIL_TEST (NULL != common_operation);
+      GNUNET_TESTBED_operation_done (common_operation);
+      common_operation = NULL;
+      result = PEERS_CONNECTED_2;
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Peers connected again\n");
+      peer1.operation = GNUNET_TESTBED_peer_stop (peer1.peer, NULL, NULL);
+      peer2.operation = GNUNET_TESTBED_peer_stop (peer2.peer, NULL, NULL);
       break;
     default:
       FAIL_TEST (0);
