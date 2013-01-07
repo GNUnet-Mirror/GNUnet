@@ -71,7 +71,7 @@ static struct GNUNET_GNS_Handle *gh;
 static struct GNUNET_GNS_LookupRequest *lookup_handle;
 
 static struct GNUNET_TESTBED_Operation *get_cfg_ops[3];
-static struct GNUNET_TESTBED_Operation *connect_ops[3];
+static struct GNUNET_TESTBED_Operation *topology_op;
 static struct GNUNET_CONFIGURATION_Handle *cfg_handles[3];
 static struct GNUNET_NAMESTORE_Handle *nh[3];
 
@@ -109,18 +109,17 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_TESTBED_operation_done(get_cfg_ops[c]);
         get_cfg_ops[c] = NULL;
     }
-    if (NULL != connect_ops[c])
-    {
-        GNUNET_TESTBED_operation_done(connect_ops[c]);
-        connect_ops[c] = NULL;
-    }
     if (NULL != cfg_handles[c])
     {
       GNUNET_CONFIGURATION_destroy (cfg_handles[c]);
       cfg_handles[c] = NULL;
     }
   }
-  
+  if (NULL != topology_op)
+  {
+    GNUNET_TESTBED_operation_done (topology_op);
+    topology_op = NULL;
+  }
   if (NULL != lookup_handle)
   {
     GNUNET_GNS_cancel_lookup_request (lookup_handle);
@@ -181,27 +180,11 @@ setup_end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   setup_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Timeout during setup, test failed\n");
 
-  if (NULL != connect_ops[0])
+  if (NULL != topology_op)
   {
-    GNUNET_TESTBED_operation_done (connect_ops[0]);
-    connect_ops[0] = NULL;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not connect peer 0 and 1\n");
+    GNUNET_TESTBED_operation_done (topology_op);
+    topology_op = NULL;
   }
-
-  if (NULL != connect_ops[1])
-  {
-    GNUNET_TESTBED_operation_done (connect_ops[1]);
-    connect_ops[1] = NULL;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not connect peer 1 and 2\n");
-  }
-
-  if (NULL != connect_ops[2])
-  {
-    GNUNET_TESTBED_operation_done (connect_ops[2]);
-    connect_ops[2] = NULL;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not connect peer 0 and 2\n");
-  }
-
   GNUNET_SCHEDULER_shutdown ();
   ok = GNUNET_SYSERR;
 }
@@ -312,17 +295,11 @@ static void connect_peers ()
   {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers started\n");
 
-      connect_ops[0] = GNUNET_TESTBED_overlay_connect (NULL, NULL, NULL,
-						       cpeers[0],
-						       cpeers[1]);
-
-      connect_ops[1] = GNUNET_TESTBED_overlay_connect (NULL, NULL, NULL,
-						       cpeers[1],
-						       cpeers[2]);
-
-      connect_ops[2] = GNUNET_TESTBED_overlay_connect (NULL, NULL, NULL,
-						       cpeers[0],
-						       cpeers[2]);
+      topology_op = 
+          GNUNET_TESTBED_overlay_configure_topology  (NULL, 3, cpeers,
+                                                      NULL,
+                                                      GNUNET_TESTBED_TOPOLOGY_RING,
+                                                      GNUNET_TESTBED_TOPOLOGY_OPTION_END);
   }
 }
 
@@ -647,32 +624,11 @@ void testbed_controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformat
       break;
     case GNUNET_TESTBED_ET_CONNECT:
       connections ++;
-      if ((event->details.peer_connect.peer1 == cpeers[0]) &&
-          (event->details.peer_connect.peer2 == cpeers[1]))
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer 0 and 1 are connected\n");
-        GNUNET_TESTBED_operation_done (connect_ops[0]);
-        connect_ops[0] = NULL;
-      }
-
-      if ((event->details.peer_connect.peer1 == cpeers[1]) &&
-          (event->details.peer_connect.peer2 == cpeers[2]))
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer 1 and 2 are connected\n");
-        GNUNET_TESTBED_operation_done (connect_ops[1]);
-        connect_ops[1] = NULL;
-      }
-
-      if ((event->details.peer_connect.peer1 == cpeers[0]) &&
-          (event->details.peer_connect.peer2 == cpeers[2]))
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer 0 and 2 are connected\n");
-        GNUNET_TESTBED_operation_done (connect_ops[2]);
-        connect_ops[2] = NULL;
-      }
       if (connections == 3)
       {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers connected\n");
+          GNUNET_TESTBED_operation_done (topology_op);
+          topology_op = NULL;
           all_connected ();
       }
       break;
