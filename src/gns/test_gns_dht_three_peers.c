@@ -49,7 +49,7 @@
 
 /* Timeout for entire testcase */
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60)
-#define SETUP_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10)
+#define SETUP_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60)
 
 /* Global return value (0 for success, anything else for failure) */
 static int ok;
