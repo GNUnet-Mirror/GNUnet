@@ -67,10 +67,9 @@ struct GNUNET_NETWORK_FDSet
 
 };
 
-
+#include "platform.h"
 #include "gnunet_disk_lib.h"
 #include "gnunet_time_lib.h"
-
 
 /**
  * Test if the given protocol family is supported by this system.
