@@ -700,9 +700,42 @@ tun_up (HANDLE handle)
 }
 
 static boolean
-attempt_std_in (  struct overlapped_facility * std_in,
-                  struct overlapped_facility * tap_write)
+attempt_std_in (HANDLE stdin_handle,  
+                struct overlapped_facility * std_in,
+                struct overlapped_facility * tap_write)
 {
+ 
+  // We could use PeekConsoleInput() or WaitForSingleObject()
+  // however, the interwebs states that WaitForSingleObject with filehandles 
+  // might misbehave on some windows (unspecified which ones!).
+  // unfortunately, peekconsoleinput () just waits for KEYPRESS-event, which would never happen on a pipe or a file
+  
+  // See:
+  // http://www.cplusplus.com/forum/windows/28837/
+  // http://stackoverflow.com/questions/4551644/using-overlapped-io-for-console-input
+  // http://cygwin.com/ml/cygwin/2012-05/msg00322.html
+  
+  // possible soltion?
+  // http://stackoverflow.com/questions/3661106/overlapped-readfileex-on-child-process-redirected-stdout-never-fires
+  
+  // we may read from STDIN, and no job was active
+  if (IOSTATE_READY == std_in->iostate){
+      
+    }
+  // we must complete a previous read from stdin, before doing more work
+  else if (IOSTATE_QUEUED == std_in->iostate ){
+      // there is some data to be read from STDIN! 
+/*      if (PeekConsoleInput(stdin_handle,
+                           &std_in->buffer[MAX_SIZE],
+                           MAX_SIZE,
+                           &std_in->buffer_size)){
+          
+          
+          
+        }*/
+      // else { // nothing to do, try again next time }
+    }
+  
   return TRUE;
 }
 
@@ -745,7 +778,7 @@ attempt_tap_read (HANDLE tap_handle,
           else if (0 < tap_read->buffer_size)
             { /* If we have have read our buffer, wait for our write-partner*/
               tap_read->iostate = IOSTATE_WAITING;
-              // TODO: shall we attempt to fill our bufferm or should we wait for our write-partner to finish?
+              // TODO: shall we attempt to fill our buffer or should we wait for our write-partner to finish?
             }
         }
       else /* operation was either queued or failed*/
@@ -789,7 +822,7 @@ attempt_tap_read (HANDLE tap_handle,
           else if (0 < tap_read->buffer_size)
             { /* If we have have read our buffer, wait for our write-partner*/
               tap_read->iostate = IOSTATE_WAITING;
-              // TODO: shall we attempt to fill our bufferm or should we wait for our write-partner to finish?
+              // TODO: shall we attempt to fill our buffer or should we wait for our write-partner to finish?
             }
         }
       else
@@ -814,8 +847,9 @@ attempt_tap_write (HANDLE tap_handle,
 }
 
 static boolean
-attempt_std_out ( struct overlapped_facility * std_out,
-                  struct overlapped_facility * tap_read)
+attempt_std_out (HANDLE stdout_handle,
+                 struct overlapped_facility * std_out,
+                 struct overlapped_facility * tap_read)
 {
   return TRUE;
 }
@@ -861,6 +895,10 @@ run (HANDLE tap_handle)
   struct overlapped_facility std_in;
   /* IO-Facility for writing to stdout */
   struct overlapped_facility std_out;
+  
+  /* Handles for STDIN and STDOUT */
+  HANDLE stdin_handle = INVALID_HANDLE_VALUE;
+  HANDLE stdout_handle = INVALID_HANDLE_VALUE;
 
   /* tun up: */
   /* we do this HERE and not beforehand (in init_tun()), in contrast to openvpn
@@ -873,13 +911,22 @@ run (HANDLE tap_handle)
     goto teardown;
 
   /* Initialize our overlapped IO structures*/
-  if (initialize_overlapped_facility (&tap_read, TRUE, FALSE)
+  if (!(initialize_overlapped_facility (&tap_read, TRUE, FALSE)
       && initialize_overlapped_facility (&tap_write, FALSE, TRUE)
       && initialize_overlapped_facility (&std_in, TRUE, FALSE)
-      && initialize_overlapped_facility (&std_out, FALSE, TRUE))
+      && initialize_overlapped_facility (&std_out, FALSE, TRUE)))
     goto teardown;
 
+  stdin_handle = GetStdHandle ( STD_INPUT_HANDLE );
+  
+  if (stdin_handle == INVALID_HANDLE_VALUE)
+      fprintf (stderr, "CreateFile failed for stdin\n");
 
+  stdin_handle = GetStdHandle ( STD_OUTPUT_HANDLE );
+  
+  if (stdin_handle == INVALID_HANDLE_VALUE)
+      fprintf (stderr, "CreateFile failed for stdout\n");
+  
   //openvpn  
   // Set Device to Subnet-Mode? 
   // do we really need tun.c:2925 ?
@@ -900,7 +947,7 @@ run (HANDLE tap_handle)
       /* perform READ from stdin if possible */
       if ((std_in.path_open && tap_write.path_open)
           || IOSTATE_QUEUED == std_in.iostate)
-        if (!attempt_std_in (&std_in, &tap_write))
+        if (!attempt_std_in (stdin_handle, &std_in, &tap_write))
           break;
 
       /* perform READ from tap if possible */
@@ -916,7 +963,7 @@ run (HANDLE tap_handle)
 
       /* perform WRITE to STDOUT if possible */
       if ( IOSTATE_READY == std_out.iostate && std_out.path_open)
-        if (!attempt_std_out (&std_out, &tap_read))
+        if (!attempt_std_out (stdout_handle, &std_out, &tap_read))
           break;
       
       // check if any path is blocked
