@@ -559,10 +559,25 @@ revalidate_address (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   rdelay =
       GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                 canonical_delay.rel_value);
-  delay =
-      GNUNET_TIME_relative_add (canonical_delay,
+
+  /* Debug code for mantis 0002726*/
+  if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value ==
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, rdelay).rel_value)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Revalidation interval for peer `%s' for is FOREVER (debug: rdelay: %llu, canonical delay %llu)\n",
+                GNUNET_i2s (&ve->pid),
+                (unsigned long long) delay.rel_value,
+                (unsigned long long) canonical_delay.rel_value);
+    delay = canonical_delay;
+  }
+  else
+  {
+      delay = GNUNET_TIME_relative_add (canonical_delay,
                                 GNUNET_TIME_relative_multiply
                                 (GNUNET_TIME_UNIT_MILLISECONDS, rdelay));
+  }
+  /* End debug code for mantis 0002726*/
   ve->revalidation_task =
       GNUNET_SCHEDULER_add_delayed (delay, &revalidate_address, ve);
 
