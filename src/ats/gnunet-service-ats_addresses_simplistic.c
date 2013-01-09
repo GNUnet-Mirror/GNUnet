@@ -1050,6 +1050,10 @@ GAS_simplistic_address_change_preference (void *solver,
                                    enum GNUNET_ATS_PreferenceKind kind,
                                    float score)
 {
+  struct GAS_SIMPLISTIC_Handle *s = solver;
+  struct PreferenceClient *cur;
+  struct PreferencePeer *p;
+  int i;
 
   GNUNET_assert (NULL != solver);
   GNUNET_assert (NULL != client);
@@ -1066,7 +1070,6 @@ GAS_simplistic_address_change_preference (void *solver,
       GNUNET_break (0);
       return;
   }
-#if 0
 
   /**
    * Idea:
@@ -1096,11 +1099,6 @@ GAS_simplistic_address_change_preference (void *solver,
    * }
    *
    **/
-
-  struct GAS_SIMPLISTIC_Handle *s = solver;
-  struct PreferenceClient *cur;
-  struct PreferencePeer *p;
-  int i;
 
   for (cur = s->pc_head; NULL != cur; cur = cur->next)
   {
@@ -1178,8 +1176,6 @@ GAS_simplistic_address_change_preference (void *solver,
 
   /* Update global map */
   /* TODO */
-#endif
-
 }
 
 /* end of gnunet-service-ats_addresses_simplistic.c */
