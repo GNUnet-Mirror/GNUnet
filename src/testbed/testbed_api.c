@@ -1512,6 +1512,38 @@ copy_argv (const char *const *argv)
 
 
 /**
+ * Function to join NULL terminated list of arguments
+ *
+ * @param argv1 the NULL terminated list of arguments. Cannot be NULL.
+ * @param argv2 the NULL terminated list of arguments. Cannot be NULL.
+ * @return the joined NULL terminated arguments
+ */
+static char **
+join_argv (const char *const *argv1, const char *const *argv2)
+{
+  char **argvj;
+  char *argv;
+  unsigned int carg;
+  unsigned int cnt;
+
+  carg = 0;
+  argvj = NULL;
+  for (cnt = 0; NULL != argv1[cnt]; cnt++)
+  {
+    argv = GNUNET_strdup (argv1[cnt]);
+    GNUNET_array_append (argvj, carg, argv);
+  }
+  for (cnt = 0; NULL != argv2[cnt]; cnt++)
+  {
+    argv = GNUNET_strdup (argv2[cnt]);
+    GNUNET_array_append (argvj, carg, argv);
+  }
+  GNUNET_array_append (argvj, carg, NULL);
+  return argvj;
+}
+
+
+/**
  * Frees the given NULL terminated arguments
  *
  * @param argv the NULL terminated list of arguments
@@ -1524,6 +1556,96 @@ free_argv (char **argv)
   for (argp = 0; NULL != argv[argp]; argp++)
     GNUNET_free (argv[argp]);
   GNUNET_free (argv);
+}
+
+
+/**
+ * Generates arguments for opening a remote shell. Builds up the arguments
+ * from the environment variable GNUNET_TESTBED_RSH_CMD. The variable
+ * should not mention `-p' (port) option and destination address as these will
+ * be set locally in the function from its parameteres. If the environmental
+ * variable is not found then it defaults to `ssh -o BatchMode=yes -o
+ * NoHostAuthenticationForLocalhost=yes'
+ *
+ * @param port the destination port number
+ * @param dst the destination address
+ * @return NULL terminated list of arguments
+ */
+static char **
+gen_rsh_args (const char *port, const char *dst)
+{
+  static const char *default_ssh_args[] = {
+    "ssh",
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "NoHostAuthenticationForLocalhost=yes",
+    NULL
+  };
+  char **ssh_args;
+  char *ssh_cmd;
+  char *ssh_cmd_cp;
+  char *arg;
+  unsigned int cnt;
+
+  ssh_args = NULL;  
+  if (NULL != (ssh_cmd = getenv ("GNUNET_TESTBED_RSH_CMD")))
+  {
+    ssh_cmd = GNUNET_strdup (ssh_cmd);
+    ssh_cmd_cp = ssh_cmd;
+    for (cnt = 0; 
+         NULL != (arg = strtok (ssh_cmd, " "));
+         ssh_cmd = NULL)
+      GNUNET_array_append (ssh_args, cnt, GNUNET_strdup (arg));
+    GNUNET_free (ssh_cmd_cp);
+  }
+  else
+  {
+      ssh_args = copy_argv (default_ssh_args);
+      cnt = (sizeof (default_ssh_args)) / (sizeof (const char *));
+      GNUNET_array_grow (ssh_args, cnt, cnt - 1);
+  }
+  GNUNET_array_append (ssh_args, cnt, GNUNET_strdup ("-p"));
+  GNUNET_array_append (ssh_args, cnt, GNUNET_strdup (port));
+  GNUNET_array_append (ssh_args, cnt, GNUNET_strdup (dst));
+  GNUNET_array_append (ssh_args, cnt, NULL);
+  return ssh_args;
+}
+
+
+/**
+ * Generates the arguments needed for executing the given binary in a remote
+ * shell. Builds the arguments from the environmental variable
+ * GNUNET_TETSBED_RSH_CMD_SUFFIX. If the environmental variable is not found,
+ * only the given binary name will be present in the returned arguments
+ *
+ * @param helper_binary_path the path of the binary to execute
+ * @return NULL-terminated args
+ */
+static char **
+gen_rsh_suffix_args (const char *helper_binary_path)
+{
+  char **rshell_args;
+  char *rshell_cmd;
+  char *rshell_cmd_cp;
+  char *arg;
+  unsigned int cnt;
+  
+  rshell_args = NULL;
+  cnt = 0;
+  if (NULL != (rshell_cmd = getenv ("GNUNET_TESTBED_RSH_CMD_SUFFIX")))
+  {
+    rshell_cmd = GNUNET_strdup (rshell_cmd);
+    rshell_cmd_cp = rshell_cmd;
+    for (;
+         NULL != (arg = strtok (rshell_cmd, " "));
+         rshell_cmd = NULL)
+      GNUNET_array_append (rshell_args, cnt, GNUNET_strdup (arg));
+    GNUNET_free (rshell_cmd_cp);
+  }  
+  GNUNET_array_append (rshell_args, cnt, GNUNET_strdup (helper_binary_path));
+  GNUNET_array_append (rshell_args, cnt, NULL);
+  return rshell_args;
 }
 
 
@@ -1574,12 +1696,11 @@ GNUNET_TESTBED_controller_start (const char *trusted_ip,
   else
   {
     char *helper_binary_path;
-#define NUM_REMOTE_ARGS 12
-    const char *remote_args[NUM_REMOTE_ARGS];
+    char **ssh_args;
+    char **rshell_args;
     const char *username;
     char *port;
     char *dst;
-    unsigned int argp;
 
     username = GNUNET_TESTBED_host_get_username_ (host);
     hostname = GNUNET_TESTBED_host_get_hostname (host);
@@ -1589,25 +1710,18 @@ GNUNET_TESTBED_controller_start (const char *trusted_ip,
     else
       GNUNET_asprintf (&dst, "%s@%s", username, hostname);
     LOG_DEBUG ("Starting SSH to destination %s\n", dst);
-    argp = 0;
-    remote_args[argp++] = "ssh";
-    remote_args[argp++] = "-p";
-    remote_args[argp++] = port;
-    remote_args[argp++] = "-o";
-    remote_args[argp++] = "BatchMode=yes";
-    remote_args[argp++] = "-o";
-    remote_args[argp++] = "NoHostAuthenticationForLocalhost=yes";
-    remote_args[argp++] = dst;
+
     if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
                                                             "HELPER_BINARY_PATH",
                                                             &helper_binary_path))
-      helper_binary_path = GNUNET_OS_get_libexec_binary_path (HELPER_TESTBED_BINARY);
-    remote_args[argp++] = "sh";
-    remote_args[argp++] = "-lc";
-    remote_args[argp++] = helper_binary_path;
-    remote_args[argp++] = NULL;
-    GNUNET_assert (NUM_REMOTE_ARGS == argp);
-    cp->helper_argv = copy_argv (remote_args);
+      helper_binary_path = GNUNET_OS_get_libexec_binary_path
+          (HELPER_TESTBED_BINARY);
+    ssh_args = gen_rsh_args (port, dst);
+    rshell_args = gen_rsh_suffix_args (helper_binary_path);
+    cp->helper_argv = join_argv ((const char **) ssh_args,
+                                 (const char **)rshell_args);
+    free_argv (ssh_args);
+    free_argv (rshell_args);
     GNUNET_free (port);
     GNUNET_free (dst);
     cp->helper =
