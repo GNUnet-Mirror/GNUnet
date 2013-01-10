@@ -144,13 +144,12 @@ static char device_guid[256];
  */
 struct io_facility
 {
-  DWORD handle_type;
   HANDLE handle;
-  
+
   BOOL path_open; // BOOL is winbool, NOT boolean!
   int facility_state;
   BOOL status;
-  
+
   OVERLAPPED overlapped;
   DWORD buffer_size;
   unsigned char buffer[MAX_SIZE];
@@ -164,7 +163,8 @@ struct io_facility
 #define IOSTATE_QUEUED           1 /* overlapped I/O has been queued */
 #define IOSTATE_WAITING          3 /* overlapped I/O has finished, but is waiting for it's write-partner */
 
-#if WINVER < 0x0600
+// ReOpenFile is only available as of XP SP2 and 2003 SP1
+WINBASEAPI HANDLE WINAPI ReOpenFile (HANDLE, DWORD, DWORD, DWORD);
 
 /**
  * inet_pton() wrapper for WSAStringToAddress()
@@ -203,7 +203,6 @@ inet_pton (int af, const char *src, void *dst)
     }
   return 0;
 }
-#endif
 
 /**
  * Wrapper for executing a shellcommand in windows.
@@ -705,39 +704,96 @@ attempt_std_in (struct io_facility * std_in,
                 struct io_facility * tap_write)
 {
 
-  // We could use PeekConsoleInput() or WaitForSingleObject()
-  // however, the interwebs states that WaitForSingleObject with filehandles 
-  // might misbehave on some windows (unspecified which ones!).
-  // unfortunately, peekconsoleinput () just waits for KEYPRESS-event, which would never happen on a pipe or a file
-
-  // See:
-  // http://www.cplusplus.com/forum/windows/28837/
-  // http://stackoverflow.com/questions/4551644/using-overlapped-io-for-console-input
-  // http://cygwin.com/ml/cygwin/2012-05/msg00322.html
-
-  // possible soltion?
-  // http://stackoverflow.com/questions/3661106/overlapped-readfileex-on-child-process-redirected-stdout-never-fires
-
-  // we may read from STDIN, and no job was active
   if (IOSTATE_READY == std_in->facility_state)
     {
-
-    }
-    // we must complete a previous read from stdin, before doing more work
-  else if (IOSTATE_QUEUED == std_in->facility_state)
-    {
-      // there is some data to be read from STDIN! 
-      /*      if (PeekConsoleInput(stdin_handle,
+      if (!ResetEvent (std_in->overlapped.hEvent))
+        {
+          return FALSE;
+        }
+/*      std_in->status = ReadFile (std_in->handle,
                                  &std_in->buffer[MAX_SIZE],
                                  MAX_SIZE,
-                                 &std_in->buffer_size)){
-          
-          
-          
-              }*/
-      // else { // nothing to do, try again next time }
-    }
+                                 &std_in->buffer_size,
+                                 &std_in->overlapped);
+*/
+      /* Check how the task is handled */
+      if (std_in->status)
+        {/* async event processed immediately*/
 
+          /* reset event manually*/
+          if (!SetEvent (std_in->overlapped.hEvent))
+            return FALSE;
+
+          /* we successfully read something from the TAP and now need to
+           * send it our via STDOUT. Is that possible at the moment? */
+          if (IOSTATE_READY == tap_write->facility_state && 0 < std_in->buffer_size)
+            { /* hand over this buffers content */
+              memcpy (tap_write->buffer,
+                      std_in->buffer,
+                      MAX_SIZE);
+              tap_write->buffer_size = std_in->buffer_size;
+              tap_write->facility_state = IOSTATE_READY;
+            }
+          else if (0 < std_in->buffer_size)
+            { /* If we have have read our buffer, wait for our write-partner*/
+              std_in->facility_state = IOSTATE_WAITING;
+              // TODO: shall we attempt to fill our buffer or should we wait for our write-partner to finish?
+            }
+        }
+      else /* operation was either queued or failed*/
+        {
+          int err = GetLastError ();
+          if (ERROR_IO_PENDING == err)
+            { /* operation queued */
+              std_in->facility_state = IOSTATE_QUEUED;
+            }
+          else
+            { /* error occurred, let the rest of the elements finish */
+              std_in->path_open = FALSE;
+              std_in->facility_state = IOSTATE_FAILED;
+            }
+        }
+    }
+    // We are queued and should check if the read has finished
+  else if (IOSTATE_QUEUED == std_in->facility_state)
+    {
+      // there was an operation going on already, check if that has completed now.
+      std_in->status = GetOverlappedResult (std_in->handle,
+                                            &std_in->overlapped,
+                                            &std_in->buffer_size,
+                                            FALSE);
+      if (std_in->status)
+        {/* successful return for a queued operation */
+          if (!ResetEvent (std_in->overlapped.hEvent))
+            return FALSE;
+
+          /* we successfully read something from the TAP and now need to
+           * send it our via STDOUT. Is that possible at the moment? */
+          if (IOSTATE_READY == tap_write->facility_state && 0 < std_in->buffer_size)
+            { /* hand over this buffers content */
+              memcpy (tap_write->buffer,
+                      std_in->buffer,
+                      MAX_SIZE);
+              tap_write->buffer_size = std_in->buffer_size;
+              tap_write->facility_state = IOSTATE_READY;
+              std_in->facility_state = IOSTATE_READY;
+            }
+          else if (0 < std_in->buffer_size)
+            { /* If we have have read our buffer, wait for our write-partner*/
+              std_in->facility_state = IOSTATE_WAITING;
+              // TODO: shall we attempt to fill our buffer or should we wait for our write-partner to finish?
+            }
+        }
+      else
+        { /* operation still pending/queued or failed? */
+          int err = GetLastError ();
+          if (ERROR_IO_INCOMPLETE != err && ERROR_IO_PENDING != err)
+            { /* error occurred, let the rest of the elements finish */
+              std_in->path_open = FALSE;
+              std_in->facility_state = IOSTATE_FAILED;
+            }
+        }
+    }
   return TRUE;
 }
 
@@ -863,13 +919,12 @@ attempt_std_out (struct io_facility * std_out,
  */
 static boolean
 initialize_io_facility (struct io_facility * elem,
-                                BOOL initial_state,
-                                BOOL signaled)
+                        BOOL initial_state,
+                        BOOL signaled)
 {
 
   elem->path_open = TRUE;
   elem->status = initial_state;
-  elem->handle_type = 0;
   elem->handle = INVALID_HANDLE_VALUE;
   elem->facility_state = 0;
   elem->buffer_size = 0;
@@ -897,6 +952,9 @@ run (HANDLE tap_handle)
   /* IO-Facility for writing to stdout */
   struct io_facility std_out;
 
+  HANDLE parent_std_in_handle = GetStdHandle (STD_INPUT_HANDLE);
+  HANDLE parent_std_out_handle = GetStdHandle (STD_OUTPUT_HANDLE);
+
   /* tun up: */
   /* we do this HERE and not beforehand (in init_tun()), in contrast to openvpn
    * to remove the need to flush the arp cache, handle DHCP and wrong IPs.
@@ -915,8 +973,6 @@ run (HANDLE tap_handle)
     goto teardown;
 
   /* Handles for STDIN and STDOUT */
-  std_in.handle = GetStdHandle (STD_INPUT_HANDLE);
-  std_out.handle = GetStdHandle (STD_OUTPUT_HANDLE);
   tap_read.handle = tap_handle;
   tap_write.handle = tap_handle;
 
@@ -925,11 +981,34 @@ run (HANDLE tap_handle)
    * This part is a problem, because in windows we need to handle files, 
    * pipes and the console differently.
    */
-  std_in.handle_type = GetFileType (std_in.handle);
-  std_out.handle_type = GetFileType (std_out.handle);
-  /* the tap handle is always a file, but we still set this for consistency */
-  tap_read.handle_type = FILE_TYPE_DISK;
-  tap_write.handle_type = FILE_TYPE_DISK;
+  if (FILE_TYPE_PIPE != GetFileType (parent_std_in_handle) ||
+      FILE_TYPE_PIPE != GetFileType (parent_std_out_handle))
+    {
+      fprintf (stderr, "Fatal: stdin/stdout must be pipes!\n");
+      goto teardown;
+    }
+
+  std_in.handle = ReOpenFile (parent_std_in_handle,
+                              GENERIC_READ,
+                              FILE_SHARE_WRITE | FILE_SHARE_READ,
+                              FILE_FLAG_OVERLAPPED);
+
+  if (INVALID_HANDLE_VALUE == std_in.handle)
+    {
+      fprintf (stderr, "Fatal: Could not reopen stdin for in overlapped mode!\n");
+      goto teardown;
+    }
+
+  std_out.handle = ReOpenFile (parent_std_out_handle,
+                               GENERIC_WRITE,
+                               FILE_SHARE_READ,
+                               FILE_FLAG_OVERLAPPED);
+
+  if (INVALID_HANDLE_VALUE == std_out.handle)
+    {
+      fprintf (stderr, "Fatal: Could not reopen stdout for in overlapped mode!\n");
+      goto teardown;
+    }
 
   //openvpn  
   // Set Device to Subnet-Mode? 
