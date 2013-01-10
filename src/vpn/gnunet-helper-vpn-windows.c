@@ -678,7 +678,12 @@ init_tun ()
 
   return handle;
 }
-
+/**
+ * Brings a TAP device up and sets it to connected state.
+ * 
+ * @param handle the handle to our TAP device 
+ * @return True if the operation succeeded, else false
+ */
 static boolean
 tun_up (HANDLE handle)
 {
@@ -699,142 +704,69 @@ tun_up (HANDLE handle)
 
 }
 
+/**
+ * Attempts to read off an input facility (tap or named pipe) in overlapped mode.
+ * 
+ * 1. 
+ * If the input facility is in IOSTATE_READY, it will issue a new read operation to the
+ * input handle. Then it goes into IOSTATE_QUEUED state. 
+ * In case the read succeeded instantly the input facility enters 3.
+ * 
+ * 2. 
+ * If the input facility is in IOSTATE_QUEUED state, it will check if the queued read has finished already.
+ * If it has finished, go to state 3.
+ * If it has failed, set IOSTATE_FAILED
+ * 
+ * 3.
+ * If the output facility is in state IOSTATE_READY, the read-buffer is copied to the output buffer.
+ *   The input facility enters state IOSTATE_READY
+ *   The output facility enters state IOSTATE_READY
+ * If the output facility is in state IOSTATE_QUEUED, the input facility enters IOSTATE_WAITING
+ * 
+ * IOSTATE_WAITING is reset by the output facility, once it has completed.
+ * 
+ * @param input_facility input named pipe or file to work with.
+ * @param output_facility output pipe or file to hand over data to.
+ * @return false if an event reset was impossible (OS error), else true
+ */
 static boolean
-attempt_std_in (struct io_facility * std_in,
-                struct io_facility * tap_write)
+attempt_read (struct io_facility * input_facility,
+              struct io_facility * output_facility)
 {
 
-  if (IOSTATE_READY == std_in->facility_state)
+  if (IOSTATE_READY == input_facility->facility_state)
     {
-      if (!ResetEvent (std_in->overlapped.hEvent))
+      if (!ResetEvent (input_facility->overlapped.hEvent))
         {
           return FALSE;
         }
-/*      std_in->status = ReadFile (std_in->handle,
-                                 &std_in->buffer[MAX_SIZE],
-                                 MAX_SIZE,
-                                 &std_in->buffer_size,
-                                 &std_in->overlapped);
-*/
-      /* Check how the task is handled */
-      if (std_in->status)
-        {/* async event processed immediately*/
-
-          /* reset event manually*/
-          if (!SetEvent (std_in->overlapped.hEvent))
-            return FALSE;
-
-          /* we successfully read something from the TAP and now need to
-           * send it our via STDOUT. Is that possible at the moment? */
-          if (IOSTATE_READY == tap_write->facility_state && 0 < std_in->buffer_size)
-            { /* hand over this buffers content */
-              memcpy (tap_write->buffer,
-                      std_in->buffer,
-                      MAX_SIZE);
-              tap_write->buffer_size = std_in->buffer_size;
-              tap_write->facility_state = IOSTATE_READY;
-            }
-          else if (0 < std_in->buffer_size)
-            { /* If we have have read our buffer, wait for our write-partner*/
-              std_in->facility_state = IOSTATE_WAITING;
-              // TODO: shall we attempt to fill our buffer or should we wait for our write-partner to finish?
-            }
-        }
-      else /* operation was either queued or failed*/
-        {
-          int err = GetLastError ();
-          if (ERROR_IO_PENDING == err)
-            { /* operation queued */
-              std_in->facility_state = IOSTATE_QUEUED;
-            }
-          else
-            { /* error occurred, let the rest of the elements finish */
-              std_in->path_open = FALSE;
-              std_in->facility_state = IOSTATE_FAILED;
-            }
-        }
-    }
-    // We are queued and should check if the read has finished
-  else if (IOSTATE_QUEUED == std_in->facility_state)
-    {
-      // there was an operation going on already, check if that has completed now.
-      std_in->status = GetOverlappedResult (std_in->handle,
-                                            &std_in->overlapped,
-                                            &std_in->buffer_size,
-                                            FALSE);
-      if (std_in->status)
-        {/* successful return for a queued operation */
-          if (!ResetEvent (std_in->overlapped.hEvent))
-            return FALSE;
-
-          /* we successfully read something from the TAP and now need to
-           * send it our via STDOUT. Is that possible at the moment? */
-          if (IOSTATE_READY == tap_write->facility_state && 0 < std_in->buffer_size)
-            { /* hand over this buffers content */
-              memcpy (tap_write->buffer,
-                      std_in->buffer,
-                      MAX_SIZE);
-              tap_write->buffer_size = std_in->buffer_size;
-              tap_write->facility_state = IOSTATE_READY;
-              std_in->facility_state = IOSTATE_READY;
-            }
-          else if (0 < std_in->buffer_size)
-            { /* If we have have read our buffer, wait for our write-partner*/
-              std_in->facility_state = IOSTATE_WAITING;
-              // TODO: shall we attempt to fill our buffer or should we wait for our write-partner to finish?
-            }
-        }
-      else
-        { /* operation still pending/queued or failed? */
-          int err = GetLastError ();
-          if (ERROR_IO_INCOMPLETE != err && ERROR_IO_PENDING != err)
-            { /* error occurred, let the rest of the elements finish */
-              std_in->path_open = FALSE;
-              std_in->facility_state = IOSTATE_FAILED;
-            }
-        }
-    }
-  return TRUE;
-}
-
-static boolean
-attempt_tap_read (struct io_facility * tap_read,
-                  struct io_facility * std_out)
-{
-
-  if (IOSTATE_READY == tap_read->facility_state)
-    {
-      if (!ResetEvent (tap_read->overlapped.hEvent))
-        {
-          return FALSE;
-        }
-      tap_read->status = ReadFile (tap_read->handle,
-                                   &tap_read->buffer[MAX_SIZE],
+      input_facility->status = ReadFile (input_facility->handle,
+                                   &input_facility->buffer[MAX_SIZE],
                                    MAX_SIZE,
-                                   &tap_read->buffer_size,
-                                   &tap_read->overlapped);
+                                   &input_facility->buffer_size,
+                                   &input_facility->overlapped);
 
       /* Check how the task is handled */
-      if (tap_read->status)
+      if (input_facility->status)
         {/* async event processed immediately*/
 
           /* reset event manually*/
-          if (!SetEvent (tap_read->overlapped.hEvent))
+          if (!SetEvent (input_facility->overlapped.hEvent))
             return FALSE;
 
           /* we successfully read something from the TAP and now need to
            * send it our via STDOUT. Is that possible at the moment? */
-          if (IOSTATE_READY == std_out->facility_state && 0 < tap_read->buffer_size)
+          if (IOSTATE_READY == output_facility->facility_state && 0 < input_facility->buffer_size)
             { /* hand over this buffers content */
-              memcpy (std_out->buffer,
-                      tap_read->buffer,
+              memcpy (output_facility->buffer,
+                      input_facility->buffer,
                       MAX_SIZE);
-              std_out->buffer_size = tap_read->buffer_size;
-              std_out->facility_state = IOSTATE_READY;
+              output_facility->buffer_size = input_facility->buffer_size;
+              output_facility->facility_state = IOSTATE_READY;
             }
-          else if (0 < tap_read->buffer_size)
+          else if (0 < input_facility->buffer_size)
             { /* If we have have read our buffer, wait for our write-partner*/
-              tap_read->facility_state = IOSTATE_WAITING;
+              input_facility->facility_state = IOSTATE_WAITING;
               // TODO: shall we attempt to fill our buffer or should we wait for our write-partner to finish?
             }
         }
@@ -843,42 +775,42 @@ attempt_tap_read (struct io_facility * tap_read,
           int err = GetLastError ();
           if (ERROR_IO_PENDING == err)
             { /* operation queued */
-              tap_read->facility_state = IOSTATE_QUEUED;
+              input_facility->facility_state = IOSTATE_QUEUED;
             }
           else
             { /* error occurred, let the rest of the elements finish */
-              tap_read->path_open = FALSE;
-              tap_read->facility_state = IOSTATE_FAILED;
+              input_facility->path_open = FALSE;
+              input_facility->facility_state = IOSTATE_FAILED;
             }
         }
     }
     // We are queued and should check if the read has finished
-  else if (IOSTATE_QUEUED == tap_read->facility_state)
+  else if (IOSTATE_QUEUED == input_facility->facility_state)
     {
       // there was an operation going on already, check if that has completed now.
-      tap_read->status = GetOverlappedResult (tap_read->handle,
-                                              &tap_read->overlapped,
-                                              &tap_read->buffer_size,
+      input_facility->status = GetOverlappedResult (input_facility->handle,
+                                              &input_facility->overlapped,
+                                              &input_facility->buffer_size,
                                               FALSE);
-      if (tap_read->status)
+      if (input_facility->status)
         {/* successful return for a queued operation */
-          if (!ResetEvent (tap_read->overlapped.hEvent))
+          if (!ResetEvent (input_facility->overlapped.hEvent))
             return FALSE;
 
           /* we successfully read something from the TAP and now need to
            * send it our via STDOUT. Is that possible at the moment? */
-          if (IOSTATE_READY == std_out->facility_state && 0 < tap_read->buffer_size)
+          if (IOSTATE_READY == output_facility->facility_state && 0 < input_facility->buffer_size)
             { /* hand over this buffers content */
-              memcpy (std_out->buffer,
-                      tap_read->buffer,
+              memcpy (output_facility->buffer,
+                      input_facility->buffer,
                       MAX_SIZE);
-              std_out->buffer_size = tap_read->buffer_size;
-              std_out->facility_state = IOSTATE_READY;
-              tap_read->facility_state = IOSTATE_READY;
+              output_facility->buffer_size = input_facility->buffer_size;
+              output_facility->facility_state = IOSTATE_READY;
+              input_facility->facility_state = IOSTATE_READY;
             }
-          else if (0 < tap_read->buffer_size)
+          else if (0 < input_facility->buffer_size)
             { /* If we have have read our buffer, wait for our write-partner*/
-              tap_read->facility_state = IOSTATE_WAITING;
+              input_facility->facility_state = IOSTATE_WAITING;
               // TODO: shall we attempt to fill our buffer or should we wait for our write-partner to finish?
             }
         }
@@ -887,25 +819,34 @@ attempt_tap_read (struct io_facility * tap_read,
           int err = GetLastError ();
           if (ERROR_IO_INCOMPLETE != err && ERROR_IO_PENDING != err)
             { /* error occurred, let the rest of the elements finish */
-              tap_read->path_open = FALSE;
-              tap_read->facility_state = IOSTATE_FAILED;
+              input_facility->path_open = FALSE;
+              input_facility->facility_state = IOSTATE_FAILED;
             }
         }
     }
   return TRUE;
 }
 
+/**
+ * Attempts to write to an output facility (tap or named pipe) in overlapped mode.
+ *
+ * TODO: high level description
+ * 
+ * @param output_facility output pipe or file to hand over data to.
+ * @param input_facility input named pipe or file to work with.
+ * @return false if an event reset was impossible (OS error), else true
+ */
 static boolean
-attempt_tap_write (struct io_facility * tap_write,
-                   struct io_facility * std_in)
+attempt_write (struct io_facility * output_facility,
+               struct io_facility * input_facility)
 {
-  return TRUE;
-}
+  if (IOSTATE_READY == output_facility->facility_state && output_facility->buffer_size > 0 ){
+      
+    }
+  else if (IOSTATE_QUEUED == output_facility->facility_state){
+      
+    }
 
-static boolean
-attempt_std_out (struct io_facility * std_out,
-                 struct io_facility * tap_read)
-{
   return TRUE;
 }
 
@@ -984,7 +925,7 @@ run (HANDLE tap_handle)
   if (FILE_TYPE_PIPE != GetFileType (parent_std_in_handle) ||
       FILE_TYPE_PIPE != GetFileType (parent_std_out_handle))
     {
-      fprintf (stderr, "Fatal: stdin/stdout must be pipes!\n");
+      fprintf (stderr, "Fatal: stdin/stdout must be named pipes!\n");
       goto teardown;
     }
 
@@ -995,7 +936,7 @@ run (HANDLE tap_handle)
 
   if (INVALID_HANDLE_VALUE == std_in.handle)
     {
-      fprintf (stderr, "Fatal: Could not reopen stdin for in overlapped mode!\n");
+      fprintf (stderr, "Fatal: Could not reopen stdin for in overlapped mode, has to be a named pipe!\n");
       goto teardown;
     }
 
@@ -1006,7 +947,7 @@ run (HANDLE tap_handle)
 
   if (INVALID_HANDLE_VALUE == std_out.handle)
     {
-      fprintf (stderr, "Fatal: Could not reopen stdout for in overlapped mode!\n");
+      fprintf (stderr, "Fatal: Could not reopen stdout for in overlapped mode, has to be a named pipe!\n");
       goto teardown;
     }
 
@@ -1030,23 +971,23 @@ run (HANDLE tap_handle)
       /* perform READ from stdin if possible */
       if ((std_in.path_open && tap_write.path_open)
           || IOSTATE_QUEUED == std_in.facility_state)
-        if (!attempt_std_in (&std_in, &tap_write))
+        if (!attempt_read (&std_in, &tap_write))
           break;
 
       /* perform READ from tap if possible */
       if ((tap_read.path_open && std_out.path_open)
           || IOSTATE_QUEUED == tap_read.facility_state)
-        if (!attempt_tap_read (&tap_read, &std_out))
+        if (!attempt_read (&tap_read, &std_out))
           break;
 
       /* perform WRITE to tap if possible */
       if (IOSTATE_READY == tap_write.facility_state && tap_write.path_open)
-        if (!attempt_tap_write (&tap_write, &std_in))
+        if (!attempt_write (&tap_write, &std_in))
           break;
 
       /* perform WRITE to STDOUT if possible */
       if (IOSTATE_READY == std_out.facility_state && std_out.path_open)
-        if (!attempt_std_out (&std_out, &tap_read))
+        if (!attempt_write (&std_out, &tap_read))
           break;
 
       // check if any path is blocked
