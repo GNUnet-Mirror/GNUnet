@@ -38,6 +38,8 @@
 
 #define DEBUG_ATS_INFO GNUNET_NO
 
+#define SLEEP GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 /**
@@ -197,6 +199,12 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 }
 
 static void
+sleep_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_ATS_suggest_address (sched_ats, &p[0].id);
+}
+
+static void
 run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
@@ -332,7 +340,7 @@ run (void *cls,
   GNUNET_ATS_change_preference (perf_ats,
       &p[1].id,
       GNUNET_ATS_PREFERENCE_LATENCY,(double) 100, GNUNET_ATS_PREFERENCE_END);
-  GNUNET_ATS_suggest_address (sched_ats, &p[0].id);
+  GNUNET_SCHEDULER_add_delayed (SLEEP, &sleep_task, NULL);
 }
 
 
