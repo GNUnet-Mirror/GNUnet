@@ -428,10 +428,21 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
   float cur_pref = 0.0;
   float *t = NULL;
 
+  if ((net->active_addresses * min_bw) > net->total_quota_in)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  if ((net->active_addresses * min_bw) > net->total_quota_out)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
   remaining_quota_in = net->total_quota_in - (net->active_addresses * min_bw);
   remaining_quota_out = net->total_quota_out - (net->active_addresses * min_bw);
   total_prefs = 0.0;
-  LOG (GNUNET_ERROR_TYPE_ERROR, "Remaining bandwidth : (in/out): %llu/%llu \n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Remaining bandwidth : (in/out): %llu/%llu \n",
               remaining_quota_in, remaining_quota_out);
   for (cur = net->head; NULL != cur; cur = cur->next)
   {
@@ -450,7 +461,7 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
        cur_pref = (*t);
      quota_in = min_bw + (cur_pref / total_prefs) * (float) remaining_quota_in;
      quota_out = min_bw + (cur_pref / total_prefs) * (float) remaining_quota_out;
-     LOG (GNUNET_ERROR_TYPE_ERROR,
+     LOG (GNUNET_ERROR_TYPE_DEBUG,
                  "New quota for peer `%s' with preference (cur/total) %.3f/%.3f (in/out): %llu /%llu\n",
                  GNUNET_i2s (&cur->addr->peer),
                  cur_pref,
@@ -461,18 +472,20 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
      quota_out_used += quota_out;
 
   }
-  LOG (GNUNET_ERROR_TYPE_ERROR,
-              "Total quota would be: (in/out): %llu /%llu\n",
-              quota_in,
-              quota_out);
-  LOG (GNUNET_ERROR_TYPE_ERROR,
-                          "New quota would be: (in/out): %llu /%llu\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+                          "Total bandwidth assigned is: (in/out): %llu /%llu\n",
                           quota_in_used,
                           quota_out_used);
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "New per address quota for network type `%s' for %u addresses (in/out): %llu/%llu \n",
-              net->desc, net->active_addresses, quota_in, quota_out);
+  if (quota_out_used > quota_out)
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+                            "DEBUG! Total inbount bandwidth assigned is larget than allowed  %llu /%llu\n",
+                            quota_out_used,
+                            quota_out); /* FIXME: Can happen atm, we have some rounding error */
+  if (quota_in_used > quota_in)
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+                            "DEBUG! Total inbount bandwidth assigned is larget than allowed  %llu /%llu\n",
+                            quota_in_used,
+                            quota_in); /* FIXME: Can happen atm, we have some rounding error */
 
   cur = net->head;
   while (NULL != cur)
@@ -1047,6 +1060,7 @@ GAS_simplistic_address_change_preference (void *solver,
                                    enum GNUNET_ATS_PreferenceKind kind,
                                    float score)
 {
+  static struct GNUNET_TIME_Absolute next_update;
   struct GAS_SIMPLISTIC_Handle *s = solver;
   struct PreferenceClient *cur;
   struct PreferencePeer *p;
@@ -1202,6 +1216,7 @@ GAS_simplistic_address_change_preference (void *solver,
       GNUNET_i2s (peer), p_rel_global);
 
   /* Update global map */
+  /* FIXME: We should update all peers since they have influence on each other */
   if (NULL != (dest = GNUNET_CONTAINER_multihashmap_get(s->prefs, &peer->hashPubKey)))
       (*dest) = p_rel_global;
   else
@@ -1214,6 +1229,13 @@ GAS_simplistic_address_change_preference (void *solver,
           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   }
 
+  /* FIXME: We should update quotas if UPDATE_INTERVAL is reached */
+  if (GNUNET_TIME_absolute_get().abs_value > next_update.abs_value)
+  {
+      /* update quotas*/
+      next_update = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(),
+                                              MIN_UPDATE_INTERVAL);
+  }
 
 }
 
