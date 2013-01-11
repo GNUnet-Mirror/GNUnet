@@ -1054,6 +1054,10 @@ GAS_simplistic_address_change_preference (void *solver,
   struct PreferenceClient *cur;
   struct PreferencePeer *p;
   int i;
+  int clients;
+  float p_rel_global;
+  float *dest;
+
 
   GNUNET_assert (NULL != solver);
   GNUNET_assert (NULL != client);
@@ -1153,7 +1157,7 @@ GAS_simplistic_address_change_preference (void *solver,
     cur->f_total[kind] += p->f[kind];
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Client %p has total preference for %s of %f\n",
-      cur,
+      cur->client,
       GNUNET_ATS_print_preference_type (kind),
       cur->f_total[kind]);
 
@@ -1163,7 +1167,7 @@ GAS_simplistic_address_change_preference (void *solver,
     /* Calculate relative preference for specific kind */
     p->f_rel[kind] = (cur->f_total[kind] + p->f[kind]) / cur->f_total[kind];
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Client %p: peer `%s' has relative preference for %s of %f\n",
-        cur,
+        cur->client,
         GNUNET_i2s (&p->id),
         GNUNET_ATS_print_preference_type (kind),
         p->f_rel[kind]);
@@ -1175,15 +1179,44 @@ GAS_simplistic_address_change_preference (void *solver,
     {
         p->f_rel_total += p->f_rel[i];
     }
-    p->f_rel_total /=  GNUNET_ATS_PreferenceCount - 1.0;
+    p->f_rel_total /=  (GNUNET_ATS_PreferenceCount - 1.0); /* -1 due to terminator */
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Client %p: peer `%s' has total relative preference of %f\n",
-        cur,
+        cur->client,
         GNUNET_i2s (&p->id),
         p->f_rel_total);
   }
 
+  /* Calculcate global total relative peer preference over all clients */
+  p_rel_global = 0.0;
+  clients = 0;
+  for (cur = s->pc_head; NULL != cur; cur = cur->next)
+  {
+      for (p = cur->p_head; NULL != p; p = p->next)
+          if (0 == memcmp (&p->id, peer, sizeof (p->id)))
+              break;
+      if (NULL != p)
+      {
+          clients++;
+          p_rel_global += p->f_rel_total;
+      }
+  }
+  p_rel_global /= clients;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Global preference value for peer `%s': %f\n",
+      GNUNET_i2s (peer), p_rel_global);
+
   /* Update global map */
-  /* TODO */
+  if (NULL != (dest = GNUNET_CONTAINER_multihashmap_get(s->prefs, &peer->hashPubKey)))
+      (*dest) = p_rel_global;
+  else
+  {
+      dest = GNUNET_malloc (sizeof (float));
+      (*dest) = p_rel_global;
+      GNUNET_CONTAINER_multihashmap_put(s->prefs,
+          &peer->hashPubKey,
+          dest,
+          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  }
+
 }
 
 /* end of gnunet-service-ats_addresses_simplistic.c */
