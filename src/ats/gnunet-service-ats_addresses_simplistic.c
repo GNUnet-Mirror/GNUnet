@@ -402,6 +402,16 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
                           struct Network *net,
                           struct ATS_Address *address_except)
 {
+  unsigned long long remaining_quota_in = 0;
+  unsigned long long quota_out_used = 0;
+
+  unsigned long long remaining_quota_out = 0;
+  unsigned long long quota_in_used = 0;
+  uint32_t min_bw = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
+  float total_prefs;
+  float cur_pref;
+  float *t = NULL;
+
   unsigned long long quota_in = 0;
   unsigned long long quota_out = 0;
   struct AddressWrapper *cur;
@@ -418,15 +428,6 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
    * Assign every peer in network minimum Bandwidth
    * Distribute bandwidth left according to preference
    */
-  unsigned long long remaining_quota_in = 0;
-  unsigned long long quota_out_used = 0;
-
-  unsigned long long remaining_quota_out = 0;
-  unsigned long long quota_in_used = 0;
-  uint32_t min_bw = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
-  float total_prefs;
-  float cur_pref = 0.0;
-  float *t = NULL;
 
   if ((net->active_addresses * min_bw) > net->total_quota_in)
   {
@@ -441,9 +442,9 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
 
   remaining_quota_in = net->total_quota_in - (net->active_addresses * min_bw);
   remaining_quota_out = net->total_quota_out - (net->active_addresses * min_bw);
-  total_prefs = 0.0;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Remaining bandwidth : (in/out): %llu/%llu \n",
               remaining_quota_in, remaining_quota_out);
+  total_prefs = 0.0;
   for (cur = net->head; NULL != cur; cur = cur->next)
   {
      t = GNUNET_CONTAINER_multihashmap_get (s->prefs, &cur->addr->peer.hashPubKey);
@@ -454,6 +455,7 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
   }
   for (cur = net->head; NULL != cur; cur = cur->next)
   {
+     cur_pref = 0.0;
      t = GNUNET_CONTAINER_multihashmap_get (s->prefs, &cur->addr->peer.hashPubKey);
      if (NULL == t)
        cur_pref = DEFAULT_PREFERENCE;
@@ -470,6 +472,22 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
                  quota_out);
      quota_in_used += quota_in;
      quota_out_used += quota_out;
+     /* Prevent overflow due to rounding errors */
+     if (quota_in > UINT32_MAX)
+       quota_in = UINT32_MAX;
+     if (quota_out > UINT32_MAX)
+       quota_out = UINT32_MAX;
+
+     /* Compare to current bandwidth assigned */
+     if ((quota_in != ntohl(cur->addr->assigned_bw_in.value__)) ||
+         (quota_out != ntohl(cur->addr->assigned_bw_out.value__)))
+     {
+       cur->addr->assigned_bw_in.value__ = htonl (quota_in);
+       cur->addr->assigned_bw_out.value__ = htonl (quota_out);
+       /* Notify on change */
+       if ((GNUNET_YES == cur->addr->active) && (cur->addr != address_except))
+         s->bw_changed (s->bw_changed_cls, cur->addr);
+     }
 
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -486,22 +504,6 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
                             "DEBUG! Total inbount bandwidth assigned is larget than allowed  %llu /%llu\n",
                             quota_in_used,
                             quota_in); /* FIXME: Can happen atm, we have some rounding error */
-
-  cur = net->head;
-  while (NULL != cur)
-  {
-      /* Compare to current bandwidth assigned */
-      if ((quota_in != ntohl(cur->addr->assigned_bw_in.value__)) ||
-          (quota_out != ntohl(cur->addr->assigned_bw_out.value__)))
-      {
-        cur->addr->assigned_bw_in.value__ = htonl (quota_in);
-        cur->addr->assigned_bw_out.value__ = htonl (quota_out);
-        /* Notify on change */
-        if ((GNUNET_YES == cur->addr->active) && (cur->addr != address_except))
-          s->bw_changed (s->bw_changed_cls, cur->addr);
-      }
-      cur = cur->next;
-  }
 }
 
 static void
