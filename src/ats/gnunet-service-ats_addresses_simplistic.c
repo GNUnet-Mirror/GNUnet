@@ -55,6 +55,8 @@
  *
  */
 
+#define DEFAULT_PREFERENCE 1.0
+#define MIN_UPDATE_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 /**
  * A handle for the simplistic solver
@@ -410,7 +412,7 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
 
   if (net->active_addresses == 0)
     return; /* no addresses to update */
-#if 0
+
   /* Idea TODO
    *
    * Assign every peer in network minimum Bandwidth
@@ -423,20 +425,19 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
   unsigned long long quota_in_used = 0;
   uint32_t min_bw = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
   float total_prefs;
-  float cur_pref;
-  float *t;
+  float cur_pref = 0.0;
+  float *t = NULL;
 
   remaining_quota_in = net->total_quota_in - (net->active_addresses * min_bw);
   remaining_quota_out = net->total_quota_out - (net->active_addresses * min_bw);
   total_prefs = 0.0;
-  LOG (GNUNET_ERROR_TYPE_ERROR,
-              "Remaining: (in/out): %llu/%llu \n",
+  LOG (GNUNET_ERROR_TYPE_ERROR, "Remaining bandwidth : (in/out): %llu/%llu \n",
               remaining_quota_in, remaining_quota_out);
   for (cur = net->head; NULL != cur; cur = cur->next)
   {
      t = GNUNET_CONTAINER_multihashmap_get (s->prefs, &cur->addr->peer.hashPubKey);
      if (NULL == t)
-       total_prefs += 1.0;
+       total_prefs += DEFAULT_PREFERENCE;
      else
        total_prefs += (*t);
   }
@@ -444,16 +445,16 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
   {
      t = GNUNET_CONTAINER_multihashmap_get (s->prefs, &cur->addr->peer.hashPubKey);
      if (NULL == t)
-       cur_pref = 1.0;
+       cur_pref = DEFAULT_PREFERENCE;
      else
-       cur_pref += (*t);
-     LOG (GNUNET_ERROR_TYPE_ERROR,
-                 "Current pref vs total pref: (in/out): %f/%f \n",
-                 cur_pref, total_prefs);
+       cur_pref = (*t);
      quota_in = min_bw + (cur_pref / total_prefs) * (float) remaining_quota_in;
      quota_out = min_bw + (cur_pref / total_prefs) * (float) remaining_quota_out;
      LOG (GNUNET_ERROR_TYPE_ERROR,
-                 "New quota would be: (in/out): %llu /%llu\n",
+                 "New quota for peer `%s' with preference (cur/total) %.3f/%.3f (in/out): %llu /%llu\n",
+                 GNUNET_i2s (&cur->addr->peer),
+                 cur_pref,
+                 total_prefs,
                  quota_in,
                  quota_out);
      quota_in_used += quota_in;
@@ -468,10 +469,6 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
                           "New quota would be: (in/out): %llu /%llu\n",
                           quota_in_used,
                           quota_out_used);
-  /* End TODO */
-#endif
-  quota_in = net->total_quota_in / net->active_addresses;
-  quota_out = net->total_quota_out / net->active_addresses;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "New per address quota for network type `%s' for %u addresses (in/out): %llu/%llu \n",
@@ -1134,7 +1131,7 @@ GAS_simplistic_address_change_preference (void *solver,
          * No value set, so absolute preference 0 */
         p->f[i] = 0.0;
         /* Default value per peer relative preference for a quality: 1.0 */
-        p->f_rel[i] = 1.0;
+        p->f_rel[i] = DEFAULT_PREFERENCE;
       }
       GNUNET_CONTAINER_DLL_insert (cur->p_head, cur->p_tail, p);
   }
@@ -1156,17 +1153,17 @@ GAS_simplistic_address_change_preference (void *solver,
   for (p = cur->p_head; NULL != p; p = p->next)
     cur->f_total[kind] += p->f[kind];
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Client %p has total preference for %s of %f\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Client %p has total preference for %s of %.3f\n",
       cur->client,
       GNUNET_ATS_print_preference_type (kind),
       cur->f_total[kind]);
 
-  /* Recalcalculate relative preference */
+  /* Recalcalculate relative preference for all peers */
   for (p = cur->p_head; NULL != p; p = p->next)
   {
     /* Calculate relative preference for specific kind */
     p->f_rel[kind] = (cur->f_total[kind] + p->f[kind]) / cur->f_total[kind];
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Client %p: peer `%s' has relative preference for %s of %f\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Client %p: peer `%s' has relative preference for %s of %.3f\n",
         cur->client,
         GNUNET_i2s (&p->id),
         GNUNET_ATS_print_preference_type (kind),
@@ -1180,7 +1177,7 @@ GAS_simplistic_address_change_preference (void *solver,
         p->f_rel_total += p->f_rel[i];
     }
     p->f_rel_total /=  (GNUNET_ATS_PreferenceCount - 1.0); /* -1 due to terminator */
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Client %p: peer `%s' has total relative preference of %f\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Client %p: peer `%s' has total relative preference of %.3f\n",
         cur->client,
         GNUNET_i2s (&p->id),
         p->f_rel_total);
@@ -1201,7 +1198,7 @@ GAS_simplistic_address_change_preference (void *solver,
       }
   }
   p_rel_global /= clients;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Global preference value for peer `%s': %f\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Global preference value for peer `%s': %.3f\n",
       GNUNET_i2s (peer), p_rel_global);
 
   /* Update global map */
@@ -1216,6 +1213,7 @@ GAS_simplistic_address_change_preference (void *solver,
           dest,
           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   }
+
 
 }
 
