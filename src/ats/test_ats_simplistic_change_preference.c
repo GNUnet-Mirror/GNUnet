@@ -146,20 +146,23 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   {
     if (GNUNET_OK == compare_addresses (address, session, &test_hello_address[0], test_session[0]))
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 0: Callback with correct address `%s'\n",
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage %u: Callback with correct address `%s'\n",
+                    stage,
                     GNUNET_i2s (&address->peer));
         ret = 0;
     }
     else
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 0: Callback with invalid address `%s'\n",
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage %u: Callback with invalid address `%s'\n",
+            stage,
                     GNUNET_i2s (&address->peer));
         ret = 1;
     }
 
     if (GNUNET_OK != compare_ats(atsi, ats_count, test_ats_info, test_ats_count))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage 0: Callback with incorrect ats info \n");
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback with incorrect ats info \n",
+          stage);
       ret = 1;
     }
 
@@ -193,7 +196,67 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
     stage ++;
 
     GNUNET_ATS_suggest_address_cancel (sched_ats, &p[0].id);
+    GNUNET_ATS_suggest_address (sched_ats, &p[1].id);
+    return;
+  }
+  if (1 == stage)
+  {
+    if (GNUNET_OK == compare_addresses (address, session, &test_hello_address[1], test_session[1]))
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage %u: Callback with correct address `%s'\n",
+                    stage,
+                    GNUNET_i2s (&address->peer));
+        ret = 0;
+    }
+    else
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage %u: Callback with invalid address `%s'\n",
+                    stage,
+                    GNUNET_i2s (&address->peer));
+        ret = 1;
+    }
+
+    if (GNUNET_OK != compare_ats(atsi, ats_count, test_ats_info, test_ats_count))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback with incorrect ats info \n",
+          stage);
+      ret = 1;
+    }
+
+    if (bw_in > wan_quota_in)
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggested WAN inbound quota %u bigger than allowed quota %llu \n",
+            bw_in, wan_quota_in);
+        ret = 1;
+    }
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Suggested WAN inbound quota %u, allowed quota %llu \n",
+          bw_in, wan_quota_in);
+
+    if (bw_out > wan_quota_out)
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggested WAN outbound quota %u bigger than allowed quota %llu \n",
+            bw_out, wan_quota_out);
+        ret = 1;
+    }
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Suggested WAN outbound quota %u, allowed quota %llu \n",
+          bw_out, wan_quota_out);
+
+    if (1 == ret)
+    {
+      GNUNET_ATS_suggest_address_cancel (sched_ats, &p[0].id);
+      GNUNET_ATS_suggest_address_cancel (sched_ats, &p[0].id);
+      GNUNET_SCHEDULER_add_now (&end, NULL);
+      return;
+    }
+
+    stage ++;
+
+    GNUNET_ATS_suggest_address_cancel (sched_ats, &p[0].id);
+    GNUNET_ATS_suggest_address_cancel (sched_ats, &p[1].id);
     GNUNET_SCHEDULER_add_now (&end, NULL);
+
     return;
   }
 }

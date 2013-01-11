@@ -447,29 +447,40 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
   total_prefs = 0.0;
   for (cur = net->head; NULL != cur; cur = cur->next)
   {
-     t = GNUNET_CONTAINER_multihashmap_get (s->prefs, &cur->addr->peer.hashPubKey);
-     if (NULL == t)
-       total_prefs += DEFAULT_PREFERENCE;
-     else
-       total_prefs += (*t);
+      if (GNUNET_YES == cur->addr->active)
+      {
+        t = GNUNET_CONTAINER_multihashmap_get (s->prefs, &cur->addr->peer.hashPubKey);
+        if (NULL == t)
+          total_prefs += DEFAULT_PREFERENCE;
+        else
+          total_prefs += (*t);
+      }
   }
   for (cur = net->head; NULL != cur; cur = cur->next)
   {
-     cur_pref = 0.0;
-     t = GNUNET_CONTAINER_multihashmap_get (s->prefs, &cur->addr->peer.hashPubKey);
-     if (NULL == t)
-       cur_pref = DEFAULT_PREFERENCE;
+     if (GNUNET_YES == cur->addr->active)
+     {
+       cur_pref = 0.0;
+       t = GNUNET_CONTAINER_multihashmap_get (s->prefs, &cur->addr->peer.hashPubKey);
+       if (NULL == t)
+         cur_pref = DEFAULT_PREFERENCE;
+       else
+         cur_pref = (*t);
+       quota_in = min_bw + (cur_pref / total_prefs) * (float) remaining_quota_in;
+       quota_out = min_bw + (cur_pref / total_prefs) * (float) remaining_quota_out;
+
+       LOG (GNUNET_ERROR_TYPE_DEBUG,
+                   "New quota for peer `%s' with preference (cur/total) %.3f/%.3f (in/out): %llu /%llu\n",
+                   GNUNET_i2s (&cur->addr->peer),
+                   cur_pref, total_prefs,
+                   quota_in, quota_out);
+     }
      else
-       cur_pref = (*t);
-     quota_in = min_bw + (cur_pref / total_prefs) * (float) remaining_quota_in;
-     quota_out = min_bw + (cur_pref / total_prefs) * (float) remaining_quota_out;
-     LOG (GNUNET_ERROR_TYPE_DEBUG,
-                 "New quota for peer `%s' with preference (cur/total) %.3f/%.3f (in/out): %llu /%llu\n",
-                 GNUNET_i2s (&cur->addr->peer),
-                 cur_pref,
-                 total_prefs,
-                 quota_in,
-                 quota_out);
+     {
+       quota_in = 0;
+       quota_out = 0;
+     }
+
      quota_in_used += quota_in;
      quota_out_used += quota_out;
      /* Prevent overflow due to rounding errors */
@@ -496,12 +507,12 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
                           quota_out_used);
   if (quota_out_used > quota_out)
     LOG (GNUNET_ERROR_TYPE_WARNING,
-                            "DEBUG! Total inbount bandwidth assigned is larget than allowed  %llu /%llu\n",
+                            "DEBUG! Total inbound bandwidth assigned is larget than allowed  %llu /%llu\n",
                             quota_out_used,
                             quota_out); /* FIXME: Can happen atm, we have some rounding error */
   if (quota_in_used > quota_in)
     LOG (GNUNET_ERROR_TYPE_WARNING,
-                            "DEBUG! Total inbount bandwidth assigned is larget than allowed  %llu /%llu\n",
+                            "DEBUG! Total inbound bandwidth assigned is larget than allowed  %llu /%llu\n",
                             quota_in_used,
                             quota_in); /* FIXME: Can happen atm, we have some rounding error */
 }
