@@ -1093,18 +1093,20 @@ GAS_simplistic_address_change_preference (void *solver,
    *     So we can calculate a relative preference value fr_p_i:
    *
    *     f_k_p_i_rel = (f_t + f_p_i) / f_t
-   *     f_k_p_i_rel = [1..2]
+   *     f_k_p_i_rel = [1..2], default 1.0
    *    }
    *    f_p_i_rel = sum (f_k_p_i_rel) / #k
    * }
    *
    **/
 
+  /* Find preference client */
   for (cur = s->pc_head; NULL != cur; cur = cur->next)
   {
       if (client == cur->client)
         break;
   }
+  /* Not found: create new preference client */
   if (NULL == cur)
   {
     cur = GNUNET_malloc (sizeof (struct PreferenceClient));
@@ -1112,23 +1114,28 @@ GAS_simplistic_address_change_preference (void *solver,
     GNUNET_CONTAINER_DLL_insert (s->pc_head, s->pc_tail, cur);
   }
 
+  /* Find entry for peer */
   for (p = cur->p_head; NULL != p; p = p->next)
     if (0 == memcmp (&p->id, peer, sizeof (p->id)))
         break;
 
+  /* Not found: create new peer entry */
   if (NULL == p)
   {
-      /* Add a new peer entry */
       p = GNUNET_malloc (sizeof (struct PreferencePeer));
       p->id = (*peer);
       for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
       {
+        /* Default value per peer absolut preference for a quality:
+         * No value set, so absolute preference 0 */
         p->f[i] = 0.0;
+        /* Default value per peer relative preference for a quality: 1.0 */
         p->f_rel[i] = 1.0;
       }
       GNUNET_CONTAINER_DLL_insert (cur->p_head, cur->p_tail, p);
   }
 
+  /* Update preference value according to type */
   switch (kind) {
     case GNUNET_ATS_PREFERENCE_BANDWIDTH:
     case GNUNET_ATS_PREFERENCE_LATENCY:
@@ -1139,7 +1146,8 @@ GAS_simplistic_address_change_preference (void *solver,
     default:
       break;
   }
-  /* Recalcalculate total preference for kind*/
+
+  /* Recalcalculate total preference for this quality kind over all peers*/
   cur->f_total[kind] = 0;
   for (p = cur->p_head; NULL != p; p = p->next)
     cur->f_total[kind] += p->f[kind];
