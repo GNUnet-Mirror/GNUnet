@@ -274,13 +274,15 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
     if (GNUNET_OK != compare_ats(atsi, ats_count, test_ats_info[1], test_ats_count))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback with incorrect ats info \n");
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback with incorrect ats info \n",
+          stage);
       ret = 1;
     }
 
     if ((bw_in == 0) || (bw_out == 0))
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: ATS did not set bandwidth correctly \n");
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: ATS did not set bandwidth correctly \n",
+            stage);
         ret = 1;
     }
 
