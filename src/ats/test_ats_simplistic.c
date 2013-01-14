@@ -254,13 +254,10 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
       if (1 == ret)
       {
-        GNUNET_ATS_suggest_address_cancel (sched_ats, &p[1].id);
         GNUNET_SCHEDULER_add_now (&end, NULL);
         return;
       }
       stage ++;
-
-      GNUNET_ATS_suggest_address_cancel (sched_ats, &p[1].id);
       GNUNET_SCHEDULER_add_now (&end, NULL);
       return;
   }
