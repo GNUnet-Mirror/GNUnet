@@ -94,6 +94,15 @@ struct ATS_Network
   socklen_t length;
 };
 
+/**
+ * Handle for address suggestions
+ */
+struct GNUNET_ATS_SuggestHandle
+{
+  struct GNUNET_ATS_SuggestHandle *prev;
+  struct GNUNET_ATS_SuggestHandle *next;
+  struct GNUNET_PeerIdentity id;
+};
 
 
 /**
@@ -116,6 +125,16 @@ struct GNUNET_ATS_SchedulingHandle
    * Closure for 'suggest_cb'.
    */
   void *suggest_cb_cls;
+
+  /**
+   * DLL for suggestions head
+   */
+  struct GNUNET_ATS_SuggestHandle *sug_head;
+
+  /**
+   * DLL for suggestions tail
+   */
+  struct GNUNET_ATS_SuggestHandle *sug_tail;
 
   /**
    * Connection to ATS service.
@@ -953,7 +972,8 @@ void
 GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh)
 {
   struct PendingMessage *p;
-
+  struct GNUNET_ATS_SuggestHandle *cur;
+  struct GNUNET_ATS_SuggestHandle *next;
   while (NULL != (p = sh->pending_head))
   {
     GNUNET_CONTAINER_DLL_remove (sh->pending_head, sh->pending_tail, p);
@@ -968,6 +988,14 @@ GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh)
   {
     GNUNET_SCHEDULER_cancel (sh->task);
     sh->task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  next = sh->sug_head;
+  while (NULL != (cur = next))
+  {
+  		next = cur->next;
+  		GNUNET_CONTAINER_DLL_remove (sh->sug_head, sh->sug_tail, cur);
+  		GNUNET_free (cur);
   }
 
   delete_networks (sh);
@@ -1014,13 +1042,15 @@ GNUNET_ATS_reset_backoff (struct GNUNET_ATS_SchedulingHandle *sh,
  *
  * @param sh handle
  * @param peer identity of the peer we need an address for
+ * @return suggest handle
  */
-void
+struct GNUNET_ATS_SuggestHandle *
 GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
                             const struct GNUNET_PeerIdentity *peer)
 {
   struct PendingMessage *p;
   struct RequestAddressMessage *m;
+  struct GNUNET_ATS_SuggestHandle *s;
 
   // FIXME: ATS needs to remember this in case of
   // a disconnect!
@@ -1035,6 +1065,10 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
   m->peer = *peer;
   GNUNET_CONTAINER_DLL_insert_tail (sh->pending_head, sh->pending_tail, p);
   do_transmit (sh);
+  s = GNUNET_malloc (sizeof (struct GNUNET_ATS_SuggestHandle));
+  s->id = (*peer);
+  GNUNET_CONTAINER_DLL_insert_tail (sh->sug_head, sh->sug_tail, s);
+  return s;
 }
 
 
@@ -1050,6 +1084,21 @@ GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SchedulingHandle *sh,
 {
   struct PendingMessage *p;
   struct RequestAddressMessage *m;
+  struct GNUNET_ATS_SuggestHandle *s;
+
+  for (s = sh->sug_head; NULL != s; s = s->next)
+  	if (0 == memcmp(peer, &s->id, sizeof (s->id)))
+  		break;
+  if (NULL == s)
+  {
+  	GNUNET_break (0);
+  	return;
+  }
+  else
+  {
+  	GNUNET_CONTAINER_DLL_remove (sh->sug_head, sh->sug_tail, s);
+  	GNUNET_free (s);
+  }
 
   p = GNUNET_malloc (sizeof (struct PendingMessage) +
                      sizeof (struct RequestAddressMessage));
