@@ -26,6 +26,15 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
+#if HAVE_LIBGTOP
+#include <glibtop.h>
+#include <glibtop/proclist.h>
+#include <glibtop/procstate.h>
+#include <glibtop/procargs.h>
+#include <glibtop/procmem.h>
+#include <glibtop/proctime.h>
+#endif
+
 
 enum operation
 {
@@ -172,9 +181,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	struct SysmonGtopProcProperty *gt_cur;
 	struct SysmonGtopProcProperty *gt_next;
 
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sysdaemon stopping ... \n");
-
   end_task = GNUNET_SCHEDULER_NO_TASK;
 
   if (NULL != stats)
@@ -209,6 +216,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 			GNUNET_free (gt_cur);
 	}
 
+#if HAVE_LIBGTOP
+  glibtop_close();
+#endif
 }
 
 static void
@@ -321,12 +331,67 @@ exec_cmd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Property `%s': command `%s' failed\n", sp->desc, sp->cmd);
 }
 
+#if HAVE_LIBGTOP
 static void
 exec_gtop_proc_mon (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
    struct SysmonGtopProcProperty *sp = cls;
-   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Property `%s'\n", sp->binary);
+   glibtop_proclist proc_list;
+   glibtop_proc_args proc_args;
+   glibtop_proc_mem proc_mem;
+   glibtop_proc_time proc_time;
+   pid_t *pids = NULL;
+   unsigned i;
+   char *argss;
+
+   /* get process list */
+   pids = glibtop_get_proclist(&proc_list, GLIBTOP_KERN_PROC_ALL, 0);
+   if (NULL == pids)
+   {
+     fprintf (stderr, "Could not retrieve process list!\n");
+     ret = 1;
+     return;
+   }
+
+   printf("Found %lu processes\n", (unsigned long) proc_list.number);
+   for (i = 0; i < proc_list.number; ++i)
+   {
+       //printf("PID %u:\n", pids[i]);
+
+       /* get process args */
+       argss = glibtop_get_proc_args (&proc_args, pids[i], 1024);
+       if (NULL == argss)
+       {
+         fprintf (stderr, "Could not retrieve process args!\n");
+         ret = 1;
+         return;
+       }
+       //printf ("\targument string: %s\n", argss);
+       if (NULL != strstr (argss, sp->binary))
+       {
+				 /* get memory info */
+				 glibtop_get_proc_mem (&proc_mem, pids[i]);
+				 printf ("\tMemory information:\n");
+				 printf ("\t%-50s: %llu\n", "total # of pages of memory", (long long unsigned int) proc_mem.size);
+				 printf ("\t%-50s: %llu\n", "number of pages of virtual memory", (long long unsigned int) proc_mem.vsize);
+				 printf ("\t%-50s: %llu\n", "number of resident set", (long long unsigned int) proc_mem.resident);
+				 printf ("\t%-50s: %llu\n", "number of pages of shared (mmap'd) memory", (long long unsigned int) proc_mem.share);
+				 printf ("\t%-50s: %llu\n", "resident set size", (long long unsigned int) proc_mem.rss);
+
+				 /* get time info */
+				 glibtop_get_proc_time (&proc_time, pids[i]);
+				 printf ("\tTime information:\n");
+				 printf ("\t%-50s: %llu\n", "real time accumulated by process", (long long unsigned int) proc_time.rtime);
+				 printf ("\t%-50s: %llu\n", "user-mode CPU time accumulated by process", (long long unsigned int) proc_time.utime);
+				 printf ("\t%-50s: %llu\n", "kernel-mode CPU time accumulated by process", (long long unsigned int) proc_time.stime);
+   	 	 }
+       g_free (argss);
+   }
+
+   g_free(pids);
+   pids = NULL;
 }
+#endif
 
 static void
 load_property (void *cls,
@@ -553,7 +618,7 @@ load_gtop_properties (void)
 		  sp->type = t_continous;
 		  sp->value_type = v_numeric;
 		  sp->num_val = (uint64_t) 0;
-		  sp->interval = GNUNET_TIME_UNIT_SECONDS;
+		  sp->interval = GNUNET_TIME_UNIT_MINUTES;
 		  sp->task_id = GNUNET_SCHEDULER_NO_TASK;
 		  sp->task = exec_gtop_proc_mon;
 		  sp->task_cls = pp;
@@ -681,10 +746,11 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
 
 #if HAVE_LIBGTOP
-  if (GNUNET_SYSERR == load_gtop_properties ())
-  {
-  	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to load gtop properties \n");
-  }
+  if (NULL != glibtop_init())
+		if ( GNUNET_SYSERR == load_gtop_properties ())
+		{
+				GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to load gtop properties \n");
+		}
 #endif
 
   /* run properties */
