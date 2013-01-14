@@ -6,3 +6,4 @@ HOME = $SERVICEHOME
 BINARY = gnunet-daemon-sysmon
 CFGFILE = sysmon-properties.conf
 UNIXPATH = /tmp/gnunet-service-sysmon.sock
+MONITOR_SERVICES = fs transport

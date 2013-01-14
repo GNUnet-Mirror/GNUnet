@@ -30,6 +30,7 @@
 enum operation
 {
   o_internal,
+  o_ligbtop,
   o_command
 };
 
@@ -60,6 +61,9 @@ struct SysmonProperty
    * Previous element in in the DLL
    */
   struct SysmonProperty *prev;
+
+	struct SysmonGtopProcProperty *gtop_proc_head;
+	struct SysmonGtopProcProperty *gtop_proc_tail;
 
   /**
    * Description used for statistics valuesd
@@ -119,6 +123,17 @@ struct SysmonProperty
 };
 
 /**
+ * A system property to monitor
+ */
+struct SysmonGtopProcProperty
+{
+	struct SysmonGtopProcProperty *prev;
+	struct SysmonGtopProcProperty *next;
+	char * binary;
+};
+
+
+/**
  * Final status code.
  */
 static int ret;
@@ -141,6 +156,9 @@ GNUNET_SCHEDULER_TaskIdentifier end_task;
 
 struct SysmonProperty *sp_head;
 struct SysmonProperty *sp_tail;
+
+struct SysmonGtopProcProperty *pp_head;
+struct SysmonGtopProcProperty *pp_tail;
 
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -198,16 +216,15 @@ put_property (struct SysmonProperty *sp)
 {
   if (v_numeric ==sp->value_type)
   {
-      /* GNUNET_STATISTICS_set (stats, sp->desc, sp->num_val, GNUNET_NO); */
-
   		fprintf (stderr, "%s : %s : %llu\n",
   				GNUNET_STRINGS_absolute_time_to_string(GNUNET_TIME_absolute_get()),
   				sp->desc, (unsigned long long) sp->num_val);
   }
   else if (v_string ==sp->value_type)
   {
-      /* GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "NOT IMPLEMENTED\n"); */
-  		fprintf (stderr, "SYSMON STRING\n");
+  		fprintf (stderr, "%s : %s : %s\n",
+  				GNUNET_STRINGS_absolute_time_to_string(GNUNET_TIME_absolute_get()),
+  				sp->desc, sp->str_val);
   }
   else
   {
@@ -286,6 +303,12 @@ exec_cmd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       sp->cmd_args,
       NULL)))
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Property `%s': command `%s' failed\n", sp->desc, sp->cmd);
+}
+
+static void
+exec_gtop_proc_mon (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  //struct SysmonGtopProcProperty *sp = cls;
 }
 
 static void
@@ -478,6 +501,48 @@ load_default_properties (void)
   return GNUNET_OK;
 }
 
+static int
+load_gtop_properties (void)
+{
+	char *services;
+	char *s;
+	char *binary;
+	struct SysmonGtopProcProperty *pp;
+	int c;
+	/* Load network monitoring tasks */
+
+	/* Load service memory monitoring tasks */
+	if (GNUNET_NO == GNUNET_CONFIGURATION_have_value (cfg, "sysmon", "MONITOR_SERVICES"))
+		return GNUNET_OK;
+
+	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "sysmon", "MONITOR_SERVICES", &services))
+		return GNUNET_SYSERR;
+
+	s = strtok (services, " ");
+	c = 0;
+	while (NULL != s)
+	{
+		if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, s, "BINARY", &binary))
+		{
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Monitoring service `%s' with binary `%s'\n", s, binary);
+			pp = GNUNET_malloc (sizeof (struct SysmonGtopProcProperty));
+			pp->binary = binary;
+			GNUNET_CONTAINER_DLL_insert (pp_head, pp_tail, pp);
+			c++
+		}
+		s = strtok (NULL, " ");
+	}
+	GNUNET_free (services);
+
+	if (c > 0)
+	{
+
+	}
+
+	return GNUNET_OK;
+
+}
+
 
 static void
 run_property (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -525,7 +590,18 @@ run_properties (void)
 static void
 cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  /* FIXME: do clean up here */
+	struct SysmonGtopProcProperty *cur;
+	struct SysmonGtopProcProperty *next;
+
+	next = pp_head;
+	while (NULL != (cur = next))
+	{
+			next = cur->next;
+			GNUNET_CONTAINER_DLL_remove (pp_head, pp_tail, cur);
+			GNUNET_free (cur->binary);
+			GNUNET_free (cur);
+	}
+
 }
 
 
@@ -605,6 +681,13 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     ret = 1;
     return;
   }
+
+#if HAVE_LIBGTOP
+  if (GNUNET_SYSERR == load_gtop_properties ())
+  {
+  	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to load gtop properties \n");
+  }
+#endif
 
   /* run properties */
   if (GNUNET_SYSERR == run_properties ())
