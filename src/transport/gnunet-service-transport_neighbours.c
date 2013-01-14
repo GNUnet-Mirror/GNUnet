@@ -657,6 +657,11 @@ struct NeighbourMapEntry
   struct GNUNET_TIME_Absolute connect_ack_timestamp;
 
   /**
+   * ATS address suggest handle
+   */
+  struct GNUNET_ATS_SuggestHandle *suggest_handle;
+
+  /**
    * Time where we should cut the connection (timeout) if we don't
    * make progress in the state machine (or get a KEEPALIVE_RESPONSE
    * if we are in S_CONNECTED).
@@ -1090,7 +1095,11 @@ free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
   // which states we do this from in the future (ATS should
   // have given us a 'suggest_address' handle, and if we have
   // such a handle, we should cancel the operation here!
-  GNUNET_ATS_suggest_address_cancel (GST_ats, &n->id);
+  if (NULL != n->suggest_handle)
+  {
+  	GNUNET_ATS_suggest_address_cancel (GST_ats, &n->id);
+  	n->suggest_handle = NULL;
+  }
 
   if (GNUNET_SCHEDULER_NO_TASK != n->task)
   {
@@ -1910,7 +1919,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
   n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
 
   GNUNET_ATS_reset_backoff (GST_ats, target);
-  GNUNET_ATS_suggest_address (GST_ats, target);
+  n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, target);
 }
 
 
@@ -1975,7 +1984,7 @@ handle_test_blacklist_cont (void *cls,
       n->state = S_INIT_ATS;
       n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
       // FIXME: do we need to ask ATS again for suggestions?
-      GNUNET_ATS_suggest_address (GST_ats, &n->id);
+      n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, &n->id);
     }
     break;
   case S_CONNECT_SENT:
@@ -2001,7 +2010,7 @@ handle_test_blacklist_cont (void *cls,
     n->state = S_CONNECT_RECV_ATS;
     n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
     GNUNET_ATS_reset_backoff (GST_ats, peer);
-    GNUNET_ATS_suggest_address (GST_ats, peer);
+    n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, peer);
     break;
   case S_CONNECT_RECV_ATS:
     /* still waiting on ATS suggestion, don't care about blacklist */
@@ -2030,7 +2039,7 @@ handle_test_blacklist_cont (void *cls,
       n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
       // FIXME: do we need to ask ATS again for suggestions?
       GNUNET_ATS_reset_backoff (GST_ats, peer);
-      GNUNET_ATS_suggest_address (GST_ats, &n->id);
+      n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, &n->id);
     }
     break;
   case S_CONNECT_RECV_ACK:
@@ -2075,7 +2084,7 @@ handle_test_blacklist_cont (void *cls,
       n->state = S_RECONNECT_ATS;
       n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
       // FIXME: do we need to ask ATS again for suggestions?
-      GNUNET_ATS_suggest_address (GST_ats, &n->id);
+      n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, &n->id);
     }
     break;
   case S_RECONNECT_SENT:
@@ -2286,7 +2295,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
     n = setup_neighbour (peer);
     n->state = S_CONNECT_RECV_ATS;
     GNUNET_ATS_reset_backoff (GST_ats, peer);
-    GNUNET_ATS_suggest_address (GST_ats, peer);
+    n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, peer);
     break;
   case S_DISCONNECT_FINISHED:
     /* should not be possible */
@@ -2963,7 +2972,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     n->state = S_INIT_ATS;
     n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
     // FIXME: need to ask ATS for suggestions again?
-    GNUNET_ATS_suggest_address (GST_ats, &n->id);
+    n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, &n->id);
     break;
   case S_CONNECT_RECV_BLACKLIST_INBOUND:
   case S_CONNECT_RECV_ATS:    
@@ -2978,7 +2987,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     n->state = S_RECONNECT_ATS;
     n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
     /* FIXME: is this ATS call needed? */
-    GNUNET_ATS_suggest_address (GST_ats, &n->id);
+    n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, &n->id);
     break;
   case S_RECONNECT_ATS:
     /* we don't have an address, how can it go down? */
@@ -2989,7 +2998,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     n->state = S_RECONNECT_ATS;
     n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
     // FIXME: need to ask ATS for suggestions again?
-    GNUNET_ATS_suggest_address (GST_ats, &n->id);
+    n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, &n->id);
     break;
   case S_CONNECTED_SWITCHING_BLACKLIST:
     /* primary went down while we were checking secondary against
