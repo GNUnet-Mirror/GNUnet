@@ -198,11 +198,16 @@ put_property (struct SysmonProperty *sp)
 {
   if (v_numeric ==sp->value_type)
   {
-      GNUNET_STATISTICS_set (stats, sp->desc, sp->num_val, GNUNET_NO);
+      /* GNUNET_STATISTICS_set (stats, sp->desc, sp->num_val, GNUNET_NO); */
+
+  		fprintf (stderr, "%s : %s : %llu\n",
+  				GNUNET_STRINGS_absolute_time_to_string(GNUNET_TIME_absolute_get()),
+  				sp->desc, (unsigned long long) sp->num_val);
   }
   else if (v_string ==sp->value_type)
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "NOT IMPLEMENTED\n");
+      /* GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "NOT IMPLEMENTED\n"); */
+  		fprintf (stderr, "SYSMON STRING\n");
   }
   else
   {
@@ -215,8 +220,14 @@ put_property (struct SysmonProperty *sp)
 static void
 update_uptime (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct SysmonProperty *sp = cls;
-  sp->num_val ++;
+	struct SysmonProperty *sp = cls;
+	static int first_run = GNUNET_YES;
+
+	if (GNUNET_YES == first_run)
+			first_run = GNUNET_NO;
+	else
+			sp->num_val += sp->interval.rel_value / 1000;
+
   put_property (sp);
 }
 
@@ -402,7 +413,6 @@ load_default_properties (void)
 
   /* GNUnet vcs revision */
   unsigned int revision;
-return GNUNET_OK;
   /* version */
 #ifdef VERSION
   if (3 != sscanf (VERSION, "%u.%u.%u", &ver[0], &ver[1], &ver[2]))
@@ -426,7 +436,6 @@ return GNUNET_OK;
   sp->value_type = v_numeric;
   sp->num_val = 100 * ver[0] + 10  * ver[1] + ver[2];
   GNUNET_CONTAINER_DLL_insert (sp_head, sp_tail, sp);
-
   /* revision */
 #ifdef VCS_VERSION
   if (1 != sscanf (VCS_VERSION, "svn-%uM", &revision))
@@ -439,7 +448,6 @@ return GNUNET_OK;
   revision = 0;
 #endif
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Revision: %u\n", revision);
-
   sp = GNUNET_malloc (sizeof (struct SysmonProperty));
   sp->desc = GNUNET_strdup ("GNUnet vcs revision");
   sp->type = t_static;
@@ -457,17 +465,16 @@ return GNUNET_OK;
   GNUNET_CONTAINER_DLL_insert (sp_head, sp_tail, sp);
 
 
-  /* GNUnet sysmon daemon uptime */
+  /* GNUnet sysmon daemon uptime in seconds */
   sp = GNUNET_malloc (sizeof (struct SysmonProperty));
   sp->desc = GNUNET_strdup ("GNUnet uptime");
   sp->type = t_continous;
   sp->value_type = v_numeric;
   sp->num_val = (uint64_t) 0;
-  sp->interval = GNUNET_TIME_UNIT_SECONDS;
+  sp->interval = GNUNET_TIME_UNIT_MINUTES;
   sp->task_id = GNUNET_SCHEDULER_NO_TASK;
   sp->task = update_uptime;
   GNUNET_CONTAINER_DLL_insert (sp_head, sp_tail, sp);
-
   return GNUNET_OK;
 }
 
@@ -607,7 +614,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     ret = 1;
     return;
   }
-
 }
 
 
