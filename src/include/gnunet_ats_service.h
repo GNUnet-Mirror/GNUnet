@@ -494,11 +494,19 @@ GNUNET_NETWORK_STRUCT_END
  */
 struct GNUNET_ATS_SchedulingHandle;
 
+/**
+ * Handle for address suggestion requests
+ *
+ */
+struct GNUNET_ATS_SuggestHandle;
+
+
 
 /**
  * Opaque session handle, defined by plugins.  Contents not known to ATS.
  */
 struct Session;
+
 
 
 /**
@@ -569,8 +577,9 @@ GNUNET_ATS_reset_backoff (struct GNUNET_ATS_SchedulingHandle *sh,
  *
  * @param sh handle
  * @param peer identity of the peer we need an address for
+ * @return suggestion handle
  */
-void
+struct GNUNET_ATS_SuggestHandle *
 GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
                             const struct GNUNET_PeerIdentity *peer);
 
