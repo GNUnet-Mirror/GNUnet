@@ -502,19 +502,25 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
 
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-                          "Total bandwidth assigned is: (in/out): %llu /%llu\n",
+                          "Total bandwidth assigned is (in/out): %llu /%llu\n",
                           quota_in_used,
                           quota_out_used);
-  if (quota_out_used > quota_out)
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-                            "DEBUG! Total inbound bandwidth assigned is larget than allowed  %llu /%llu\n",
+  if (quota_out_used > net->total_quota_out + 1) /* +1 is required due to rounding errors */
+  {
+      GNUNET_break (0);
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+                            "Total inbound bandwidth assigned is larget than allowed  %llu /%llu\n",
                             quota_out_used,
-                            quota_out); /* FIXME: Can happen atm, we have some rounding error */
-  if (quota_in_used > quota_in)
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-                            "DEBUG! Total inbound bandwidth assigned is larget than allowed  %llu /%llu\n",
+                            quota_out);
+  }
+  if (quota_in_used > net->total_quota_in + 1) /* +1 is required due to rounding errors */
+  {
+      GNUNET_break (0);
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+                            "Total inbound bandwidth assigned is larget than allowed  %llu /%llu\n",
                             quota_in_used,
-                            quota_in); /* FIXME: Can happen atm, we have some rounding error */
+                            quota_in);
+  }
 }
 
 static void
