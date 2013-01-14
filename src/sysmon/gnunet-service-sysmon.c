@@ -120,6 +120,10 @@ struct SysmonProperty
    */
   GNUNET_SCHEDULER_Task task;
 
+  /**
+   * Task closure
+   */
+  void *task_cls;
 };
 
 /**
@@ -165,6 +169,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct SysmonProperty *sp;
   struct SysmonProperty *next;
+	struct SysmonGtopProcProperty *gt_cur;
+	struct SysmonGtopProcProperty *gt_next;
+
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sysdaemon stopping ... \n");
 
@@ -179,9 +186,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   next = sp_head;
   while (NULL != (sp = next))
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping `%s' \n", sp->desc);
+  		next = sp->next;
+  		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping `%s' \n", sp->desc);
       GNUNET_CONTAINER_DLL_remove (sp_head, sp_tail, sp);
-      next = sp->next;
       if (GNUNET_SCHEDULER_NO_TASK != sp->task_id)
       {
         GNUNET_SCHEDULER_cancel (sp->task_id);
@@ -192,6 +199,15 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_free (sp->desc);
       GNUNET_free (sp);
   }
+
+  gt_next = pp_head;
+	while (NULL != (gt_cur = gt_next))
+	{
+			gt_next = gt_cur->next;
+			GNUNET_CONTAINER_DLL_remove (pp_head, pp_tail, gt_cur);
+			GNUNET_free (gt_cur->binary);
+			GNUNET_free (gt_cur);
+	}
 
 }
 
@@ -308,7 +324,8 @@ exec_cmd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 exec_gtop_proc_mon (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  //struct SysmonGtopProcProperty *sp = cls;
+   struct SysmonGtopProcProperty *sp = cls;
+   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Property `%s'\n", sp->binary);
 }
 
 static void
@@ -497,6 +514,7 @@ load_default_properties (void)
   sp->interval = GNUNET_TIME_UNIT_MINUTES;
   sp->task_id = GNUNET_SCHEDULER_NO_TASK;
   sp->task = update_uptime;
+  sp->task_cls = sp;
   GNUNET_CONTAINER_DLL_insert (sp_head, sp_tail, sp);
   return GNUNET_OK;
 }
@@ -508,7 +526,7 @@ load_gtop_properties (void)
 	char *s;
 	char *binary;
 	struct SysmonGtopProcProperty *pp;
-	int c;
+	struct SysmonProperty *sp;
 	/* Load network monitoring tasks */
 
 	/* Load service memory monitoring tasks */
@@ -519,7 +537,6 @@ load_gtop_properties (void)
 		return GNUNET_SYSERR;
 
 	s = strtok (services, " ");
-	c = 0;
 	while (NULL != s)
 	{
 		if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, s, "BINARY", &binary))
@@ -528,16 +545,23 @@ load_gtop_properties (void)
 			pp = GNUNET_malloc (sizeof (struct SysmonGtopProcProperty));
 			pp->binary = binary;
 			GNUNET_CONTAINER_DLL_insert (pp_head, pp_tail, pp);
-			c++
+
+		  /* GNUnet sysmon daemon uptime in seconds */
+
+		  sp = GNUNET_malloc (sizeof (struct SysmonProperty));
+		  GNUNET_asprintf(&sp->desc, "Process Monitoring for service %s", s);
+		  sp->type = t_continous;
+		  sp->value_type = v_numeric;
+		  sp->num_val = (uint64_t) 0;
+		  sp->interval = GNUNET_TIME_UNIT_SECONDS;
+		  sp->task_id = GNUNET_SCHEDULER_NO_TASK;
+		  sp->task = exec_gtop_proc_mon;
+		  sp->task_cls = pp;
+		  GNUNET_CONTAINER_DLL_insert (sp_head, sp_tail, sp);
 		}
 		s = strtok (NULL, " ");
 	}
 	GNUNET_free (services);
-
-	if (c > 0)
-	{
-
-	}
 
 	return GNUNET_OK;
 
@@ -550,7 +574,7 @@ run_property (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct SysmonProperty *sp = cls;
   sp->task_id = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Running continous property `%s' \n", sp->desc);
-  sp->task (cls, tc);
+  sp->task (sp->task_cls, tc);
   sp->task_id = GNUNET_SCHEDULER_add_delayed (sp->interval, &run_property, sp);
 }
 
@@ -582,30 +606,6 @@ run_properties (void)
 
 
 /**
- * Task run during shutdown.
- *
- * @param cls unused
- * @param tc unused
- */
-static void
-cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-	struct SysmonGtopProcProperty *cur;
-	struct SysmonGtopProcProperty *next;
-
-	next = pp_head;
-	while (NULL != (cur = next))
-	{
-			next = cur->next;
-			GNUNET_CONTAINER_DLL_remove (pp_head, pp_tail, cur);
-			GNUNET_free (cur->binary);
-			GNUNET_free (cur);
-	}
-
-}
-
-
-/**
  * Process template requests.
  *
  * @param cls closure
@@ -622,8 +622,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   };
   /* FIXME: do setup here */
   GNUNET_SERVER_add_handlers (server, handlers);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
-                                NULL);
 
   struct GNUNET_CONFIGURATION_Handle *properties;
   char *file;
