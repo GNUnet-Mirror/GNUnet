@@ -394,7 +394,6 @@ exec_gtop_proc_mon (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    	 	 }
        g_free (argss);
    }
-   printf ("\n");
    g_free(pids);
    pids = NULL;
 }
@@ -410,6 +409,8 @@ exec_gtop_net_mon (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    char ** tmp;
    uint8_t *address;
    uint8_t *netmask;
+   char address6_string[INET6_ADDRSTRLEN];
+   char prefix6_string[INET6_ADDRSTRLEN];
 
    tmp = glibtop_get_netlist (&netlist);
 
@@ -420,13 +421,19 @@ exec_gtop_net_mon (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
      glibtop_get_netload (&netload, tmp[i]);
      address = (uint8_t *) &netload.address;
      netmask = (uint8_t *) &netload.subnet;
+   	 inet_ntop (AF_INET6, netload.address6, address6_string, INET6_ADDRSTRLEN);
+   	 inet_ntop (AF_INET6, netload.prefix6,  prefix6_string,  INET6_ADDRSTRLEN);
      printf ("\t%-50s: %u.%u.%u.%u\n", "IPv4 subnet", netmask[0], netmask[1], netmask[2],netmask[3]);
      printf ("\t%-50s: %u.%u.%u.%u\n", "IPv4 address", address[0], address[1], address[2],address[3]);
+     printf ("\t%-50s: %s\n", "IPv6 prefix", prefix6_string);
+     printf ("\t%-50s: %s\n", "IPv6 address", address6_string);
+
 
      printf ("\t%-50s: %llu\n", "bytes in", (long long unsigned int) netload.bytes_in);
      printf ("\t%-50s: %llu\n", "bytes out", (long long unsigned int) netload.bytes_out);
      printf ("\t%-50s: %llu\n", "bytes total", (long long unsigned int) netload.bytes_total);
    }
+   printf ("\n");
 }
 #endif
 
@@ -648,7 +655,7 @@ load_gtop_properties (void)
 	{
 		if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, s, "BINARY", &binary))
 		{
-			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Monitoring service `%s' with binary `%s'\n", s, binary);
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Monitoring service `%s' with binary `%s'\n", s, binary);
 			pp = GNUNET_malloc (sizeof (struct SysmonGtopProcProperty));
 			pp->srv = GNUNET_strdup (s);
 			pp->binary = binary;
