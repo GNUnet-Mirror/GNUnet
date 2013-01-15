@@ -507,19 +507,19 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
                           quota_out_used);
   if (quota_out_used > net->total_quota_out + 1) /* +1 is required due to rounding errors */
   {
-      GNUNET_break (0);
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-                            "Total inbound bandwidth assigned is larget than allowed  %llu /%llu\n",
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+                            "Total outbound bandwidth assigned is larger than allowed (used/allowed) for %u active addresses: %llu /%llu\n",
+                            net->active_addresses,
                             quota_out_used,
-                            quota_out);
+                            net->total_quota_out);
   }
   if (quota_in_used > net->total_quota_in + 1) /* +1 is required due to rounding errors */
   {
-      GNUNET_break (0);
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-                            "Total inbound bandwidth assigned is larget than allowed  %llu /%llu\n",
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+                            "Total inbound bandwidth assigned is larger than allowed (used/allowed) for %u active addresses: %llu /%llu\n",
+                            net->active_addresses,
                             quota_in_used,
-                            quota_in);
+                            net->total_quota_in);
   }
 }
 
