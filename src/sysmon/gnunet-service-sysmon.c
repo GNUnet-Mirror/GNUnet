@@ -377,22 +377,22 @@ exec_gtop_proc_mon (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
        {
 				 /* get memory info */
 				 glibtop_get_proc_mem (&proc_mem, pids[i]);
-		  	 printf ("%s : %s process information\n",
+		  	 fprintf (stderr, "%s : %s process information\n",
 		  				GNUNET_STRINGS_absolute_time_to_string(GNUNET_TIME_absolute_get()),
 							sp->srv);
-				 printf ("\t%s memory information:\n", sp->binary);
-				 printf ("\t%-50s: %llu\n", "total # of pages of memory", (long long unsigned int) proc_mem.size);
-				 printf ("\t%-50s: %llu\n", "number of pages of virtual memory", (long long unsigned int) proc_mem.vsize);
-				 printf ("\t%-50s: %llu\n", "number of resident set", (long long unsigned int) proc_mem.resident);
-				 printf ("\t%-50s: %llu\n", "number of pages of shared (mmap'd) memory", (long long unsigned int) proc_mem.share);
-				 printf ("\t%-50s: %llu\n", "resident set size", (long long unsigned int) proc_mem.rss);
+				 fprintf (stderr, "\t%s memory information:\n", sp->binary);
+				 fprintf (stderr, "\t%-50s: %llu\n", "total # of pages of memory", (long long unsigned int) proc_mem.size);
+				 fprintf (stderr, "\t%-50s: %llu\n", "number of pages of virtual memory", (long long unsigned int) proc_mem.vsize);
+				 fprintf (stderr, "\t%-50s: %llu\n", "number of resident set", (long long unsigned int) proc_mem.resident);
+				 fprintf (stderr, "\t%-50s: %llu\n", "number of pages of shared (mmap'd) memory", (long long unsigned int) proc_mem.share);
+				 fprintf (stderr, "\t%-50s: %llu\n", "resident set size", (long long unsigned int) proc_mem.rss);
 
 				 /* get time info */
 				 glibtop_get_proc_time (&proc_time, pids[i]);
-				 printf ("\t%s time information:\n", sp->binary);
-				 printf ("\t%-50s: %llu\n", "real time accumulated by process", (long long unsigned int) proc_time.rtime);
-				 printf ("\t%-50s: %llu\n", "user-mode CPU time accumulated by process", (long long unsigned int) proc_time.utime);
-				 printf ("\t%-50s: %llu\n", "kernel-mode CPU time accumulated by process", (long long unsigned int) proc_time.stime);
+				 fprintf (stderr, "\t%s time information:\n", sp->binary);
+				 fprintf (stderr, "\t%-50s: %llu\n", "real time accumulated by process", (long long unsigned int) proc_time.rtime);
+				 fprintf (stderr, "\t%-50s: %llu\n", "user-mode CPU time accumulated by process", (long long unsigned int) proc_time.utime);
+				 fprintf (stderr, "\t%-50s: %llu\n", "kernel-mode CPU time accumulated by process", (long long unsigned int) proc_time.stime);
    	 	 }
        g_free (argss);
    }
@@ -416,28 +416,28 @@ exec_gtop_net_mon (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
    tmp = glibtop_get_netlist (&netlist);
 
-	 printf ("%s : Network information: %u devices\n",
+	 fprintf (stderr, "%s : Network information: %u devices\n",
 				GNUNET_STRINGS_absolute_time_to_string(GNUNET_TIME_absolute_get()),
 				netlist.number);
    for (i = 0; i < netlist.number; ++i)
    {
-     printf ("Device %i: %s\n", i, tmp[i]);
+     fprintf (stderr, "Device %i: %s\n", i, tmp[i]);
      glibtop_get_netload (&netload, tmp[i]);
      address = (uint8_t *) &netload.address;
      netmask = (uint8_t *) &netload.subnet;
    	 inet_ntop (AF_INET6, netload.address6, address6_string, INET6_ADDRSTRLEN);
    	 inet_ntop (AF_INET6, netload.prefix6,  prefix6_string,  INET6_ADDRSTRLEN);
-     printf ("\t%-50s: %u.%u.%u.%u\n", "IPv4 subnet", netmask[0], netmask[1], netmask[2],netmask[3]);
-     printf ("\t%-50s: %u.%u.%u.%u\n", "IPv4 address", address[0], address[1], address[2],address[3]);
-     printf ("\t%-50s: %s\n", "IPv6 prefix", prefix6_string);
-     printf ("\t%-50s: %s\n", "IPv6 address", address6_string);
+     fprintf (stderr, "\t%-50s: %u.%u.%u.%u\n", "IPv4 subnet", netmask[0], netmask[1], netmask[2],netmask[3]);
+     fprintf (stderr, "\t%-50s: %u.%u.%u.%u\n", "IPv4 address", address[0], address[1], address[2],address[3]);
+     fprintf (stderr, "\t%-50s: %s\n", "IPv6 prefix", prefix6_string);
+     fprintf (stderr, "\t%-50s: %s\n", "IPv6 address", address6_string);
 
 
-     printf ("\t%-50s: %llu\n", "bytes in", (long long unsigned int) netload.bytes_in);
-     printf ("\t%-50s: %llu\n", "bytes out", (long long unsigned int) netload.bytes_out);
-     printf ("\t%-50s: %llu\n", "bytes total", (long long unsigned int) netload.bytes_total);
+     fprintf (stderr, "\t%-50s: %llu\n", "bytes in", (long long unsigned int) netload.bytes_in);
+     fprintf (stderr, "\t%-50s: %llu\n", "bytes out", (long long unsigned int) netload.bytes_out);
+     fprintf (stderr, "\t%-50s: %llu\n", "bytes total", (long long unsigned int) netload.bytes_total);
    }
-   printf ("\n");
+   fprintf (stderr, "\n");
 }
 #endif
 
