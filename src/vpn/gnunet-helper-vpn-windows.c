@@ -152,6 +152,7 @@ struct io_facility
 
   OVERLAPPED overlapped;
   DWORD buffer_size;
+  DWORD buffer_size_written;
   unsigned char buffer[MAX_SIZE];
 };
 
@@ -307,6 +308,10 @@ set_address4 (const char *address, const char *mask)
       exit (1);
     }
 
+  // Set Device to Subnet-Mode? 
+  // do we really need tun.c:2925 ?
+  
+  
   /*
    * prepare the command
    */
@@ -678,6 +683,7 @@ init_tun ()
 
   return handle;
 }
+
 /**
  * Brings a TAP device up and sets it to connected state.
  * 
@@ -741,10 +747,10 @@ attempt_read (struct io_facility * input_facility,
           return FALSE;
         }
       input_facility->status = ReadFile (input_facility->handle,
-                                   &input_facility->buffer[MAX_SIZE],
-                                   MAX_SIZE,
-                                   &input_facility->buffer_size,
-                                   &input_facility->overlapped);
+                                         input_facility->buffer,
+                                         MAX_SIZE,
+                                         &input_facility->buffer_size,
+                                         &input_facility->overlapped);
 
       /* Check how the task is handled */
       if (input_facility->status)
@@ -756,7 +762,9 @@ attempt_read (struct io_facility * input_facility,
 
           /* we successfully read something from the TAP and now need to
            * send it our via STDOUT. Is that possible at the moment? */
-          if (IOSTATE_READY == output_facility->facility_state && 0 < input_facility->buffer_size)
+          if ((IOSTATE_READY == output_facility->facility_state ||
+               IOSTATE_WAITING == output_facility->facility_state)
+              && 0 < input_facility->buffer_size)
             { /* hand over this buffers content */
               memcpy (output_facility->buffer,
                       input_facility->buffer,
@@ -781,6 +789,10 @@ attempt_read (struct io_facility * input_facility,
             { /* error occurred, let the rest of the elements finish */
               input_facility->path_open = FALSE;
               input_facility->facility_state = IOSTATE_FAILED;
+              if (IOSTATE_WAITING == output_facility->facility_state)
+                output_facility->path_open = FALSE;
+
+              fprintf (stderr, "Fatal: Read from handle failed, allowing write to finish!\n");
             }
         }
     }
@@ -789,9 +801,9 @@ attempt_read (struct io_facility * input_facility,
     {
       // there was an operation going on already, check if that has completed now.
       input_facility->status = GetOverlappedResult (input_facility->handle,
-                                              &input_facility->overlapped,
-                                              &input_facility->buffer_size,
-                                              FALSE);
+                                                    &input_facility->overlapped,
+                                                    &input_facility->buffer_size,
+                                                    FALSE);
       if (input_facility->status)
         {/* successful return for a queued operation */
           if (!ResetEvent (input_facility->overlapped.hEvent))
@@ -799,7 +811,9 @@ attempt_read (struct io_facility * input_facility,
 
           /* we successfully read something from the TAP and now need to
            * send it our via STDOUT. Is that possible at the moment? */
-          if (IOSTATE_READY == output_facility->facility_state && 0 < input_facility->buffer_size)
+          if ((IOSTATE_READY == output_facility->facility_state ||
+               IOSTATE_WAITING == output_facility->facility_state)
+              && 0 < input_facility->buffer_size)
             { /* hand over this buffers content */
               memcpy (output_facility->buffer,
                       input_facility->buffer,
@@ -821,6 +835,9 @@ attempt_read (struct io_facility * input_facility,
             { /* error occurred, let the rest of the elements finish */
               input_facility->path_open = FALSE;
               input_facility->facility_state = IOSTATE_FAILED;
+              if (IOSTATE_WAITING == output_facility->facility_state)
+                output_facility->path_open = FALSE;
+              fprintf (stderr, "Fatal: Read from handle failed, allowing write to finish!\n");
             }
         }
     }
@@ -840,11 +857,90 @@ static boolean
 attempt_write (struct io_facility * output_facility,
                struct io_facility * input_facility)
 {
-  if (IOSTATE_READY == output_facility->facility_state && output_facility->buffer_size > 0 ){
-      
+  if (IOSTATE_READY == output_facility->facility_state
+      && output_facility->buffer_size > 0)
+    {
+      if (!ResetEvent (output_facility->overlapped.hEvent))
+        {
+          return FALSE;
+        }
+
+      output_facility->status = WriteFile (output_facility->handle,
+                                           output_facility->buffer,
+                                           output_facility->buffer_size,
+                                           &output_facility->buffer_size_written,
+                                           &output_facility->overlapped);
+
+      /* Check how the task is handled */
+      if (output_facility->status &&
+          output_facility->buffer_size_written == output_facility->buffer_size)
+        {/* async event processed immediately*/
+
+          /* reset event manually*/
+          if (!SetEvent (output_facility->overlapped.hEvent))
+            return FALSE;
+
+          /* we are now waiting for our buffer to be filled*/
+          output_facility->facility_state = IOSTATE_WAITING;
+          output_facility->buffer_size = 0;
+          output_facility->buffer_size_written = 0;
+
+          /* we successfully wrote something and now need to reset our reader */
+          if (IOSTATE_WAITING == input_facility->facility_state)
+            input_facility->facility_state = IOSTATE_READY;
+          else if (IOSTATE_FAILED == input_facility->facility_state)
+            output_facility->path_open = FALSE;
+        }
+      else /* operation was either queued or failed*/
+        {
+          int err = GetLastError ();
+          if (ERROR_IO_PENDING == err)
+            { /* operation queued */
+              output_facility->facility_state = IOSTATE_QUEUED;
+            }
+          else
+            { /* error occurred, close this path */
+              output_facility->path_open = FALSE;
+              output_facility->facility_state = IOSTATE_FAILED;
+              fprintf (stderr, "Fatal: Write to handle failed, exiting!\n");
+            }
+        }
+
     }
-  else if (IOSTATE_QUEUED == output_facility->facility_state){
-      
+  else if (IOSTATE_QUEUED == output_facility->facility_state)
+    {
+      // there was an operation going on already, check if that has completed now.
+      output_facility->status = GetOverlappedResult (output_facility->handle,
+                                                     &output_facility->overlapped,
+                                                     &output_facility->buffer_size_written,
+                                                     FALSE);
+      if (output_facility->status &&
+          output_facility->buffer_size_written == output_facility->buffer_size)
+        {/* successful return for a queued operation */
+          if (!ResetEvent (output_facility->overlapped.hEvent))
+            return FALSE;
+
+          /* we are now waiting for our buffer to be filled*/
+          output_facility->facility_state = IOSTATE_WAITING;
+          output_facility->buffer_size = 0;
+          output_facility->buffer_size_written = 0;
+
+          /* we successfully wrote something and now need to reset our reader */
+          if (IOSTATE_WAITING == input_facility->facility_state)
+            input_facility->facility_state = IOSTATE_READY;
+          else if (IOSTATE_FAILED == input_facility->facility_state)
+            output_facility->path_open = FALSE;
+        }
+      else
+        { /* operation still pending/queued or failed? */
+          int err = GetLastError ();
+          if (ERROR_IO_INCOMPLETE != err && ERROR_IO_PENDING != err)
+            { /* error occurred, close this path */
+              output_facility->path_open = FALSE;
+              output_facility->facility_state = IOSTATE_FAILED;
+              fprintf (stderr, "Fatal: Write to handle failed, exiting!\n");
+            }
+        }
     }
 
   return TRUE;
@@ -904,14 +1000,14 @@ run (HANDLE tap_handle)
    * But for openvpn those are essential.
    */
   if (!tun_up (tap_handle))
-    goto teardown;
+    return;
 
   /* Initialize our overlapped IO structures*/
   if (!(initialize_io_facility (&tap_read, TRUE, FALSE)
         && initialize_io_facility (&tap_write, FALSE, TRUE)
         && initialize_io_facility (&std_in, TRUE, FALSE)
         && initialize_io_facility (&std_out, FALSE, TRUE)))
-    goto teardown;
+    goto teardown_final;
 
   /* Handles for STDIN and STDOUT */
   tap_read.handle = tap_handle;
@@ -951,50 +1047,34 @@ run (HANDLE tap_handle)
       goto teardown;
     }
 
-  //openvpn  
-  // Set Device to Subnet-Mode? 
-  // do we really need tun.c:2925 ?
-  // Why does openvpn assign IPv4's there??? Foobar??
-
-  // Setup should be complete here.
-  // If something is missing, check init.c:3400+
-
-  // mainloop:
-  // tunnel_point_to_point
-  // openvpn.c:62
-
-  while (std_in.path_open
-         || std_out.path_open
-         || tap_read.path_open
-         || tap_write.path_open)
+  while (std_out.path_open || tap_write.path_open)
     {
       /* perform READ from stdin if possible */
-      if ((std_in.path_open && tap_write.path_open)
-          || IOSTATE_QUEUED == std_in.facility_state)
-        if (!attempt_read (&std_in, &tap_write))
-          break;
+      if (std_in.path_open && tap_write.path_open && !attempt_read (&std_in, &tap_write))
+        break;
 
       /* perform READ from tap if possible */
-      if ((tap_read.path_open && std_out.path_open)
-          || IOSTATE_QUEUED == tap_read.facility_state)
-        if (!attempt_read (&tap_read, &std_out))
-          break;
+      if (tap_read.path_open && std_out.path_open && !attempt_read (&tap_read, &std_out))
+        break;
 
       /* perform WRITE to tap if possible */
-      if (IOSTATE_READY == tap_write.facility_state && tap_write.path_open)
-        if (!attempt_write (&tap_write, &std_in))
-          break;
+      if (tap_write.path_open && !attempt_write (&tap_write, &std_in))
+        break;
 
       /* perform WRITE to STDOUT if possible */
-      if (IOSTATE_READY == std_out.facility_state && std_out.path_open)
-        if (!attempt_write (&std_out, &tap_read))
-          break;
-
-      // check if any path is blocked
+      if (std_out.path_open && !attempt_write (&std_out, &tap_read))
+        break;
     }
+
 teardown:
-  ;
-  //init.c:3472
+
+  CancelIo (tap_handle);
+  CancelIo (std_in.handle);
+  CancelIo (std_out.handle);
+
+teardown_final:
+
+  CloseHandle (tap_handle);
 }
 
 /**
@@ -1066,10 +1146,6 @@ main (int argc, char **argv)
 
       set_address4 (address, mask);
     }
-
-  //eventuell: 
-  // tap_allow_nonadmin_access
-  //tun.c:2023
 
   run (handle);
   global_ret = 0;
