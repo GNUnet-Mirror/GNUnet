@@ -55,8 +55,8 @@ print_netlist ()
     printf ("\t%-50s: %u.%u.%u.%u\n", "IPv4 subnet", netmask[0], netmask[1], netmask[2],netmask[3]);
     printf ("\t%-50s: %u.%u.%u.%u\n", "IPv4 address", address[0], address[1], address[2],address[3]);
 
-    printf ("\t%-50s: %llu\n", "packets in", (long long unsigned int) netload.packets_in);
-    printf ("\t%-50s: %llu\n", "packets out", (long long unsigned int) netload.packets_out);
+    printf ("\t%-50s: %llu\n", "bytes in", (long long unsigned int) netload.bytes_in);
+    printf ("\t%-50s: %llu\n", "bytes out", (long long unsigned int) netload.bytes_out);
     printf ("\t%-50s: %llu\n", "packets total", (long long unsigned int) netload.packets_total);
   }
 }

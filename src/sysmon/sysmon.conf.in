@@ -6,4 +6,6 @@ HOME = $SERVICEHOME
 BINARY = gnunet_service_sysmon
 #CFGFILE = sysmon-properties.conf
 UNIXPATH = /tmp/gnunet-service-sysmon.sock
-MONITOR_SERVICES = fs transport sysmon
+MONITOR_SERVICES = transport sysmon
+MONITOR_SERVICES_INTERVAL = 5 s
+MONITOR_NETWORK_INTERVAL = 5 s

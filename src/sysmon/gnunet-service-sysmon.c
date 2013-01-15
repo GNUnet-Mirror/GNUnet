@@ -34,6 +34,8 @@
 #include <glibtop/procargs.h>
 #include <glibtop/procmem.h>
 #include <glibtop/proctime.h>
+#include <glibtop/netlist.h>
+#include <glibtop/netload.h>
 #endif
 
 
@@ -146,6 +148,7 @@ struct SysmonGtopProcProperty
 {
 	struct SysmonGtopProcProperty *prev;
 	struct SysmonGtopProcProperty *next;
+	char * srv;
 	char * binary;
 };
 
@@ -216,6 +219,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	{
 			gt_next = gt_cur->next;
 			GNUNET_CONTAINER_DLL_remove (pp_head, pp_tail, gt_cur);
+			GNUNET_free (gt_cur->srv);
 			GNUNET_free (gt_cur->binary);
 			GNUNET_free (gt_cur);
 	}
@@ -356,8 +360,6 @@ exec_gtop_proc_mon (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
      ret = 1;
      return;
    }
-
-   printf("Found %lu processes\n", (unsigned long) proc_list.number);
    for (i = 0; i < proc_list.number; ++i)
    {
        //printf("PID %u:\n", pids[i]);
@@ -375,7 +377,8 @@ exec_gtop_proc_mon (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
        {
 				 /* get memory info */
 				 glibtop_get_proc_mem (&proc_mem, pids[i]);
-				 printf ("\tMemory information:\n");
+				 printf ("%s process information:\n", sp->srv);
+				 printf ("\t%s memory information:\n", sp->binary);
 				 printf ("\t%-50s: %llu\n", "total # of pages of memory", (long long unsigned int) proc_mem.size);
 				 printf ("\t%-50s: %llu\n", "number of pages of virtual memory", (long long unsigned int) proc_mem.vsize);
 				 printf ("\t%-50s: %llu\n", "number of resident set", (long long unsigned int) proc_mem.resident);
@@ -384,16 +387,46 @@ exec_gtop_proc_mon (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 				 /* get time info */
 				 glibtop_get_proc_time (&proc_time, pids[i]);
-				 printf ("\tTime information:\n");
+				 printf ("\t%s time information:\n", sp->binary);
 				 printf ("\t%-50s: %llu\n", "real time accumulated by process", (long long unsigned int) proc_time.rtime);
 				 printf ("\t%-50s: %llu\n", "user-mode CPU time accumulated by process", (long long unsigned int) proc_time.utime);
 				 printf ("\t%-50s: %llu\n", "kernel-mode CPU time accumulated by process", (long long unsigned int) proc_time.stime);
    	 	 }
        g_free (argss);
    }
-
+   printf ("\n");
    g_free(pids);
    pids = NULL;
+}
+#endif
+
+#if HAVE_LIBGTOP
+static void
+exec_gtop_net_mon (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+   glibtop_netlist netlist;
+   glibtop_netload netload;
+   int i;
+   char ** tmp;
+   uint8_t *address;
+   uint8_t *netmask;
+
+   tmp = glibtop_get_netlist (&netlist);
+
+   printf ("Network information: %u devices\n", netlist.number);
+   for (i = 0; i < netlist.number; ++i)
+   {
+     printf ("Device %i: %s\n", i, tmp[i]);
+     glibtop_get_netload (&netload, tmp[i]);
+     address = (uint8_t *) &netload.address;
+     netmask = (uint8_t *) &netload.subnet;
+     printf ("\t%-50s: %u.%u.%u.%u\n", "IPv4 subnet", netmask[0], netmask[1], netmask[2],netmask[3]);
+     printf ("\t%-50s: %u.%u.%u.%u\n", "IPv4 address", address[0], address[1], address[2],address[3]);
+
+     printf ("\t%-50s: %llu\n", "bytes in", (long long unsigned int) netload.bytes_in);
+     printf ("\t%-50s: %llu\n", "bytes out", (long long unsigned int) netload.bytes_out);
+     printf ("\t%-50s: %llu\n", "bytes total", (long long unsigned int) netload.bytes_total);
+   }
 }
 #endif
 
@@ -598,7 +631,7 @@ load_gtop_properties (void)
 	char *binary;
 	struct SysmonGtopProcProperty *pp;
 	struct SysmonProperty *sp;
-	/* Load network monitoring tasks */
+	struct GNUNET_TIME_Relative interval;
 
 	/* Load service memory monitoring tasks */
 	if (GNUNET_NO == GNUNET_CONFIGURATION_have_value (cfg, "sysmon", "MONITOR_SERVICES"))
@@ -607,6 +640,9 @@ load_gtop_properties (void)
 	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "sysmon", "MONITOR_SERVICES", &services))
 		return GNUNET_SYSERR;
 
+	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time (cfg,"sysmon", "MONITOR_SERVICES_INTERVAL", &interval))
+		interval = GNUNET_TIME_UNIT_MINUTES;
+
 	s = strtok (services, " ");
 	while (NULL != s)
 	{
@@ -614,17 +650,16 @@ load_gtop_properties (void)
 		{
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Monitoring service `%s' with binary `%s'\n", s, binary);
 			pp = GNUNET_malloc (sizeof (struct SysmonGtopProcProperty));
+			pp->srv = GNUNET_strdup (s);
 			pp->binary = binary;
 			GNUNET_CONTAINER_DLL_insert (pp_head, pp_tail, pp);
-
-		  /* GNUnet sysmon daemon uptime in seconds */
 
 		  sp = GNUNET_malloc (sizeof (struct SysmonProperty));
 		  GNUNET_asprintf(&sp->desc, "Process Monitoring for service %s", s);
 		  sp->type = t_continous;
 		  sp->value_type = v_numeric;
 		  sp->num_val = (uint64_t) 0;
-		  sp->interval = GNUNET_TIME_UNIT_MINUTES;
+		  sp->interval = interval;
 		  sp->task_id = GNUNET_SCHEDULER_NO_TASK;
 		  sp->task = exec_gtop_proc_mon;
 		  sp->task_cls = pp;
@@ -634,9 +669,26 @@ load_gtop_properties (void)
 	}
 	GNUNET_free (services);
 
+	/* Load network monitoring tasks */
+
+	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time (cfg,"sysmon", "MONITOR_NETWORK_INTERVAL", &interval))
+		interval = GNUNET_TIME_UNIT_MINUTES;
+
+  sp = GNUNET_malloc (sizeof (struct SysmonProperty));
+  GNUNET_asprintf(&sp->desc, "Network interface monitoring");
+  sp->type = t_continous;
+  sp->value_type = v_numeric;
+  sp->num_val = (uint64_t) 0;
+  sp->interval = interval;
+  sp->task_id = GNUNET_SCHEDULER_NO_TASK;
+  sp->task = exec_gtop_net_mon;
+  sp->task_cls = sp;
+  GNUNET_CONTAINER_DLL_insert (sp_head, sp_tail, sp);
+
 	return GNUNET_OK;
 }
 #endif
+
 
 static void
 run_property (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
