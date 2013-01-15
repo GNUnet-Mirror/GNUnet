@@ -513,7 +513,7 @@ resolve_interface_name ()
       char adaptername_name[] = "Name";
       DWORD data_type;
       
-      len = sizeof (adapter_key_handle);
+      len = 256 * sizeof(char);
       /* optain a subkey of {4D36E972-E325-11CE-BFC1-08002BE10318} */
       status = RegEnumKeyExA (
                               adapter_key_handle,
@@ -524,7 +524,7 @@ resolve_interface_name ()
                               NULL,
                               NULL,
                               NULL);
-
+      
       /* this may fail due to one of two reasons: 
        * we are at the end of the list*/
       if (ERROR_NO_MORE_ITEMS == status)
@@ -532,7 +532,7 @@ resolve_interface_name ()
       // * we found a broken registry key, continue with the next key.
       if (ERROR_SUCCESS != status)
         goto cleanup;
-
+      
       /* prepare our new query string: */
       snprintf (query_key, 256, "%s\\%s\\Connection",
                 INTERFACE_REGISTRY_LOCATION,
@@ -547,7 +547,7 @@ resolve_interface_name ()
                               &instance_key_handle);
 
       if (status != ERROR_SUCCESS)
-        continue;
+        goto cleanup;
 
       /* now, read our PnpInstanceID */
       len = sizeof (pnpinstanceid_value);
@@ -585,15 +585,15 @@ resolve_interface_name ()
 
       strncpy (device_guid, instance_key, 256);
       retval = TRUE;
-
+      
 cleanup:
       RegCloseKey (instance_key_handle);
 
       ++i;
     }
-
+      
   RegCloseKey (adapter_key_handle);
-
+  
   return retval;
 }
 
@@ -1149,7 +1149,7 @@ main (int argc, char **argv)
       set_address4 (address, mask);
     }
 
-  //run (handle);
+  run (handle);
   global_ret = 0;
 cleanup:
   remove_interface ();
