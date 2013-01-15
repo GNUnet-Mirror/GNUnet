@@ -584,6 +584,7 @@ load_default_properties (void)
   return GNUNET_OK;
 }
 
+#if HAVE_LIBGTOP
 static int
 load_gtop_properties (void)
 {
@@ -629,9 +630,8 @@ load_gtop_properties (void)
 	GNUNET_free (services);
 
 	return GNUNET_OK;
-
 }
-
+#endif
 
 static void
 run_property (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
