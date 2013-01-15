@@ -6,7 +6,6 @@ libexecdir= $(pkglibdir)/libexec/
 
 if HAVE_LIBGTOP
   GN_LIBTOP = -lgtop-2.0 -lglib-2.0
-  GN_SYSMON = gnunet_service_sysmon
   GN_SYSMON_TEST_INIT = test_glibtop
   GN_SYSMON_TEST_PROCESS = test_glibtop_process
   GN_SYSMON_TEST_NETWORK = test_glibtop_network 
@@ -24,14 +23,12 @@ if USE_COVERAGE
 endif
 
 libexec_PROGRAMS = \
- $(GN_SYSMON)
+ gnunet_service_sysmon
 
 check_PROGRAMS = \
  $(GN_SYSMON_TEST_INIT) \
  $(GN_SYSMON_TEST_PROCESS) \
  $(GN_SYSMON_TEST_NETWORK)
-
-if HAVE_GLIB2
  
 gnunet_service_sysmon_SOURCES = \
  gnunet-service-sysmon.c         
@@ -41,6 +38,7 @@ gnunet_service_sysmon_LDADD = \
   $(GN_LIBTOP) \
   $(GN_LIBINTL)
 
+if HAVE_GLIB2
 test_glibtop_SOURCES = \
  test_glibtop.c      
 test_glibtop_LDADD = \
