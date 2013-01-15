@@ -35,9 +35,10 @@
 #include <windows.h>
 #include <setupapi.h>
 #include <ddk/cfgmgr32.h>
+#include <Winsock2.h>
 #include "platform.h"
 #include "tap-windows.h"
-#include <Winsock2.h>
+
 
 /**
  * Need 'struct GNUNET_MessageHeader'.
@@ -64,7 +65,7 @@
  * Name or Path+Name of our driver in Unicode.
  * The .sys and .cat files HAVE to be in the same location as this file!
  */
-#define INF_FILE "tapw32.inf"
+#define INF_FILE "OemWin2k.inf"
 
 /**
  * Hardware ID used in the inf-file. 
@@ -346,6 +347,7 @@ setup_interface ()
    * these details over time.
    */
   char inf_file_path[MAX_PATH];
+  char * temp_inf_filename;
   char hwidlist[LINE_LEN + 4];
   char class_name[128];
   GUID class_guid;
@@ -367,7 +369,7 @@ setup_interface ()
    */
   str_lenth = strlen (hwidlist) + 1;
   strncpy (&hwidlist[str_lenth], secondary_hwid, LINE_LEN - str_lenth);
-
+  
   /** 
    * Locate the inf-file, we need to store it somewhere where the system can
    * find it. A good choice would be CWD/PDW or %WINDIR$\system32\
@@ -375,8 +377,8 @@ setup_interface ()
    * TODO: How about win64 in the future? 
    *       We need to use a different driver for amd64/i386 !
    */
-  GetFullPathNameA (INF_FILE, MAX_PATH, inf_file_path, NULL);
-
+  GetFullPathNameA (INF_FILE, MAX_PATH, inf_file_path, &temp_inf_filename);
+  
   /** 
    * Bootstrap our device info using the drivers inf-file
    */
@@ -385,7 +387,7 @@ setup_interface ()
                             class_name, sizeof (class_name) / sizeof (char),
                             NULL))
     return FALSE;
-
+   
   /** 
    * Collect all the other needed information... 
    * let the system fill our this form 
@@ -393,7 +395,7 @@ setup_interface ()
   DeviceInfo = SetupDiCreateDeviceInfoList (&class_guid, NULL);
   if (DeviceInfo == INVALID_HANDLE_VALUE)
     return FALSE;
-
+  
   DeviceNode.cbSize = sizeof (SP_DEVINFO_DATA);
   if (!SetupDiCreateDeviceInfoA (DeviceInfo,
                                  class_name,
@@ -403,7 +405,7 @@ setup_interface ()
                                  DICD_GENERATE_ID,
                                  &DeviceNode))
     return FALSE;
-
+  
   /* Deploy all the information collected into the registry */
   if (!SetupDiSetDeviceRegistryPropertyA (DeviceInfo,
                                           &DeviceNode,
@@ -411,13 +413,13 @@ setup_interface ()
                                           (LPBYTE) hwidlist,
                                           (strlen (hwidlist) + 2) * sizeof (char)))
     return FALSE;
-
+  
   /* Install our new class(=device) into the system */
   if (!SetupDiCallClassInstaller (DIF_REGISTERDEVICE,
                                   DeviceInfo,
                                   &DeviceNode))
     return FALSE;
-
+ 
   return TRUE;
 }
 
@@ -488,7 +490,7 @@ resolve_interface_name ()
                                           0, //must be 0
                                           NULL)) //hMachine, we are local
     return FALSE;
-
+  
   /* Now we can use this ID to locate the correct networks interface in registry */
   if (ERROR_SUCCESS != RegOpenKeyExA (
                                       HKEY_LOCAL_MACHINE,
@@ -510,7 +512,7 @@ resolve_interface_name ()
       char pnpinstanceid_value[256];
       char adaptername_name[] = "Name";
       DWORD data_type;
-
+      
       len = sizeof (adapter_key_handle);
       /* optain a subkey of {4D36E972-E325-11CE-BFC1-08002BE10318} */
       status = RegEnumKeyExA (
@@ -1112,7 +1114,7 @@ main (int argc, char **argv)
   snprintf (secondary_hwid, LINE_LEN / 2, "%s-%d",
             hwid,
             _getpid ());
-
+  
   if (INVALID_HANDLE_VALUE == (handle = init_tun ()))
     {
       fprintf (stderr, "Fatal: could not initialize virtual-interface %s with IPv6 %s/%s and IPv4 %s/%s\n",
@@ -1147,7 +1149,7 @@ main (int argc, char **argv)
       set_address4 (address, mask);
     }
 
-  run (handle);
+  //run (handle);
   global_ret = 0;
 cleanup:
   remove_interface ();
