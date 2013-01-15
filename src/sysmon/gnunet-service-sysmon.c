@@ -20,7 +20,8 @@
 
 /**
  * @file sysmon/gnunet-service-sysmon.c
- * @brief system monitoring service
+ * @brief system monitoring service, can use libgtop to retrieve system information
+ * in a plattform independent way
  * @author Matthias Wachs
  */
 #include "platform.h"
@@ -49,6 +50,9 @@ enum type
   t_static,
   t_continous
 };
+
+#define V_NUMERIC_STR "numeric"
+#define V_STRING_STR "string"
 
 enum value
 {
@@ -447,6 +451,7 @@ load_property (void *cls,
           args++;
       }
   }
+  sp->task_cls = sp;
   sp->cmd = GNUNET_strdup (tmp);
   sp->cmd_args = GNUNET_strdup (args);
   GNUNET_free (tmp);
@@ -472,9 +477,9 @@ load_property (void *cls,
   /* value */
   GNUNET_CONFIGURATION_get_value_string (properties, section, "VALUE", &tmp);
   to_lower_str (tmp);
-  if (0 == strcasecmp(tmp, "numeric"))
+  if (0 == strcasecmp(tmp, V_NUMERIC_STR))
     sp->value_type = v_numeric;
-  else if (0 == strcasecmp(tmp, "string"))
+  else if (0 == strcasecmp(tmp, V_STRING_STR))
     sp->value_type = v_string;
   else
   {
@@ -681,7 +686,7 @@ static void
 run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *mycfg)
 {
-  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
+	static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     /* FIXME: add handlers here! */
     {NULL, NULL, 0, 0}
   };
@@ -694,47 +699,34 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   end_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, NULL);
   cfg = mycfg;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sysdaemon starting ... \n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sysmon starting ... \n");
 
-  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_filename (mycfg, "sysmon", "CFGFILE", &file))
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_filename (mycfg, "sysmon", "CFGFILE", &file))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Sysmon configuration file not set, exit! \n");
-    shutdown_now();
-    ret = 1;
-    return;
-  }
+  	  properties = GNUNET_CONFIGURATION_create();
+  	  if (NULL == properties)
+  	  {
+  	    GNUNET_break (0);
+  	    shutdown_now();
+  	    ret = 1;
+  	    return;
+  	  }
+  	  if ((GNUNET_YES == GNUNET_DISK_file_test(file)) &&
+  	  		(GNUNET_OK == GNUNET_CONFIGURATION_load (properties, file)))
+    	  GNUNET_CONFIGURATION_iterate_sections (properties, &load_property, properties);
 
-  properties = GNUNET_CONFIGURATION_create();
-  if (NULL == properties)
-  {
-    GNUNET_break (0);
-    shutdown_now();
-    ret = 1;
-    return;
-  }
-  if (GNUNET_YES == GNUNET_DISK_file_test(file))
-  	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_load (properties, file))
-		{
-				GNUNET_break (0);
-				GNUNET_CONFIGURATION_destroy (properties);
-				GNUNET_free (file);
-				ret = 1;
-				shutdown_now();
-				return;
-		}
-  GNUNET_free (file);
-  GNUNET_CONFIGURATION_iterate_sections (properties, &load_property, properties);
+  	  GNUNET_CONFIGURATION_destroy (properties);
+  	  GNUNET_free (file);
 
-  GNUNET_CONFIGURATION_destroy (properties);
-
-  /* Creating statistics */
-  stats = GNUNET_STATISTICS_create ("sysmon", mycfg);
-  if (NULL == stats)
-  {
-    GNUNET_break (0);
-    shutdown_now();
-    ret = 1;
-    return;
+  	  /* Creating statistics */
+  	  stats = GNUNET_STATISTICS_create ("sysmon", mycfg);
+  	  if (NULL == stats)
+  	  {
+  	    GNUNET_break (0);
+  	    shutdown_now();
+  	    ret = 1;
+  	    return;
+  	  }
   }
 
   /* load properties */
@@ -766,7 +758,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
 
 /**
- * The main function for the template service.
+ * The main function for the sysmon service.
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments

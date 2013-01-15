@@ -68,3 +68,6 @@ endif
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
 endif
+
+EXTRA_DIST = \
+sysmon-properties.conf

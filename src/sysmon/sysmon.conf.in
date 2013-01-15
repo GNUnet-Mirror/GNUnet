@@ -4,6 +4,6 @@ AUTOSTART = YES
 HOSTNAME = localhost
 HOME = $SERVICEHOME
 BINARY = gnunet_service_sysmon
-CFGFILE = sysmon-properties.conf
+#CFGFILE = sysmon-properties.conf
 UNIXPATH = /tmp/gnunet-service-sysmon.sock
 MONITOR_SERVICES = fs transport sysmon
