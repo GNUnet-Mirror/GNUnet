@@ -43,7 +43,7 @@ if MINGW
     -no-undefined -Wl,--export-all-symbols 
    
   gnunet_helper_vpn_LDADD = \
-    -lsetupapi -lshell32 -liconv -lstdc++ \
+    -lsetupapi -lnewdev -lshell32 -liconv -lstdc++ \
     -lcomdlg32 -lgdi32 -liphlpapi
 
   gnunet_helper_vpn_SOURCES = \

@@ -35,10 +35,10 @@
 #include <windows.h>
 #include <setupapi.h>
 #include <ddk/cfgmgr32.h>
+#include <ddk/newdev.h>
 #include <Winsock2.h>
 #include "platform.h"
 #include "tap-windows.h"
-
 
 /**
  * Need 'struct GNUNET_MessageHeader'.
@@ -165,7 +165,9 @@ struct io_facility
 #define IOSTATE_QUEUED           1 /* overlapped I/O has been queued */
 #define IOSTATE_WAITING          3 /* overlapped I/O has finished, but is waiting for it's write-partner */
 
-// ReOpenFile is only available as of XP SP2 and 2003 SP1
+/**
+ * ReOpenFile is only available as of XP SP2 and 2003 SP1
+ */ 
 WINBASEAPI HANDLE WINAPI ReOpenFile (HANDLE, DWORD, DWORD, DWORD);
 
 /**
@@ -401,7 +403,7 @@ setup_interface ()
                                  class_name,
                                  &class_guid,
                                  NULL,
-                                 NULL,
+                                 0,
                                  DICD_GENERATE_ID,
                                  &DeviceNode))
     return FALSE;
@@ -411,15 +413,22 @@ setup_interface ()
                                           &DeviceNode,
                                           SPDRP_HARDWAREID,
                                           (LPBYTE) hwidlist,
-                                          (strlen (hwidlist) + 2) * sizeof (char)))
+                                          (lstrlenA (hwidlist) + 2) * sizeof (char)))
     return FALSE;
   
   /* Install our new class(=device) into the system */
   if (!SetupDiCallClassInstaller (DIF_REGISTERDEVICE,
                                   DeviceInfo,
                                   &DeviceNode))
-    return FALSE;
- 
+      return FALSE;
+  
+  if(!UpdateDriverForPlugAndPlayDevicesA(NULL,
+                             HARDWARE_ID, // I can haz secondary HWID too?
+                             inf_file_path,
+                             INSTALLFLAG_FORCE | INSTALLFLAG_NONINTERACTIVE,
+                             NULL)) //reboot required? NEVER!
+      return FALSE;
+  
   return TRUE;
 }
 
@@ -651,7 +660,7 @@ init_tun ()
       errno = ENODEV;
       return INVALID_HANDLE_VALUE;
     }
-
+  
   /* Open Windows TAP-Windows adapter */
   snprintf (device_path, sizeof (device_path), "%s%s%s",
             USERMODEDEVICEDIR,
@@ -673,14 +682,14 @@ init_tun ()
       fprintf (stderr, "CreateFile failed on TAP device: %s\n", device_path);
       return handle;
     }
-
+  
   /* get driver version info */
   if (!check_tapw32_version (handle))
     {
       CloseHandle (handle);
       return INVALID_HANDLE_VALUE;
     }
-
+  
   /* TODO (opt?): get MTU-Size */
 
   return handle;
