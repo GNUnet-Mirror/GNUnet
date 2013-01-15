@@ -696,7 +696,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sysdaemon starting ... \n");
 
-  if (GNUNET_SYSERR ==GNUNET_CONFIGURATION_get_value_filename (mycfg, "sysmon", "CFGFILE", &file))
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_filename (mycfg, "sysmon", "CFGFILE", &file))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Sysmon configuration file not set, exit! \n");
     shutdown_now();
@@ -712,15 +712,16 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     ret = 1;
     return;
   }
-  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_load (properties, file))
-  {
-      GNUNET_break (0);
-      GNUNET_CONFIGURATION_destroy (properties);
-      GNUNET_free (file);
-      ret = 1;
-      shutdown_now();
-      return;
-  }
+  if (GNUNET_YES == GNUNET_DISK_file_test(file))
+  	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_load (properties, file))
+		{
+				GNUNET_break (0);
+				GNUNET_CONFIGURATION_destroy (properties);
+				GNUNET_free (file);
+				ret = 1;
+				shutdown_now();
+				return;
+		}
   GNUNET_free (file);
   GNUNET_CONFIGURATION_iterate_sections (properties, &load_property, properties);
 
