@@ -168,9 +168,9 @@ struct PreferencePeer
   struct PreferencePeer *prev;
   struct GNUNET_PeerIdentity id;
 
-  float f[GNUNET_ATS_PreferenceCount];
-  float f_rel[GNUNET_ATS_PreferenceCount];
-  float f_rel_total;
+  double f[GNUNET_ATS_PreferenceCount];
+  double f_rel[GNUNET_ATS_PreferenceCount];
+  double f_rel_total;
 };
 
 struct PreferenceClient
@@ -179,7 +179,7 @@ struct PreferenceClient
   struct PreferenceClient *next;
   void *client;
 
-  float f_total[GNUNET_ATS_PreferenceCount];
+  double f_total[GNUNET_ATS_PreferenceCount];
 
   struct PreferencePeer *p_head;
   struct PreferencePeer *p_tail;
@@ -1079,7 +1079,7 @@ GAS_simplistic_address_change_preference (void *solver,
                                    void *client,
                                    const struct GNUNET_PeerIdentity *peer,
                                    enum GNUNET_ATS_PreferenceKind kind,
-                                   float score)
+                                   float score_f)
 {
   static struct GNUNET_TIME_Absolute next_update;
   struct GAS_SIMPLISTIC_Handle *s = solver;
@@ -1087,9 +1087,9 @@ GAS_simplistic_address_change_preference (void *solver,
   struct PreferencePeer *p;
   int i;
   int clients;
-  float p_rel_global;
-  float *dest;
-
+  double p_rel_global;
+  double *dest;
+  double score = score_f;
 
   GNUNET_assert (NULL != solver);
   GNUNET_assert (NULL != client);
