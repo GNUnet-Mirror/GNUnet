@@ -377,7 +377,9 @@ exec_gtop_proc_mon (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
        {
 				 /* get memory info */
 				 glibtop_get_proc_mem (&proc_mem, pids[i]);
-				 printf ("%s process information:\n", sp->srv);
+		  	 printf ("%s : %s process information\n",
+		  				GNUNET_STRINGS_absolute_time_to_string(GNUNET_TIME_absolute_get()),
+							sp->srv);
 				 printf ("\t%s memory information:\n", sp->binary);
 				 printf ("\t%-50s: %llu\n", "total # of pages of memory", (long long unsigned int) proc_mem.size);
 				 printf ("\t%-50s: %llu\n", "number of pages of virtual memory", (long long unsigned int) proc_mem.vsize);
@@ -414,7 +416,9 @@ exec_gtop_net_mon (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
    tmp = glibtop_get_netlist (&netlist);
 
-   printf ("Network information: %u devices\n", netlist.number);
+	 printf ("%s : Network information: %u devices\n",
+				GNUNET_STRINGS_absolute_time_to_string(GNUNET_TIME_absolute_get()),
+				netlist.number);
    for (i = 0; i < netlist.number; ++i)
    {
      printf ("Device %i: %s\n", i, tmp[i]);
