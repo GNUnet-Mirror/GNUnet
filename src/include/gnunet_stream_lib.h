@@ -301,7 +301,7 @@ struct GNUNET_STREAM_ReadHandle;
 
 /**
  * Tries to write the given data to the stream. The maximum size of data that
- * can be written as part of a write operation is (64 * (64000 - sizeof (struct
+ * can be written per a write operation is ~ 4MB (64 * (64000 - sizeof (struct
  * GNUNET_STREAM_DataMessage))). If size is greater than this it is not an API
  * violation, however only the said number of maximum bytes will be written.
  *

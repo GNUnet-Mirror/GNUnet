@@ -40,7 +40,7 @@
 #include "gnunet_lockmanager_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_stream_lib.h"
-#include "stream_protocol.h"
+#include "stream.h"
 
 /**
  * Generic logging shorthand
@@ -462,11 +462,6 @@ struct GNUNET_STREAM_WriteHandle
   struct GNUNET_STREAM_Socket *socket;
 
   /**
-   * The packet_buffers associated with this Handle
-   */
-  struct GNUNET_STREAM_DataMessage *messages[GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH];
-
-  /**
    * The write continuation callback
    */
   GNUNET_STREAM_CompletionContinuation write_cont;
@@ -475,6 +470,11 @@ struct GNUNET_STREAM_WriteHandle
    * Write continuation closure
    */
   void *write_cont_cls;
+
+  /**
+   * The packet_buffers associated with this Handle
+   */
+  struct GNUNET_STREAM_DataMessage *messages[GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH];
 
   /**
    * The bitmap of this IOHandle; Corresponding bit for a message is set when
@@ -3488,7 +3488,7 @@ GNUNET_STREAM_listen_close (struct GNUNET_STREAM_ListenSocket *lsocket)
 
 /**
  * Tries to write the given data to the stream. The maximum size of data that
- * can be written as part of a write operation is (64 * (64000 - sizeof (struct
+ * can be written per a write operation is ~ 4MB (64 * (64000 - sizeof (struct
  * GNUNET_STREAM_DataMessage))). If size is greater than this it is not an API
  * violation, however only the said number of maximum bytes will be written.
  *

@@ -12,7 +12,7 @@ endif
 lib_LTLIBRARIES = libgnunetstream.la
 
 libgnunetstream_la_SOURCES = \
-  stream_api.c stream_protocol.h
+  stream_api.c stream.h
 libgnunetstream_la_LIBADD = \
  $(top_builddir)/src/mesh/libgnunetmesh.la \
  $(top_builddir)/src/lockmanager/libgnunetlockmanager.la \

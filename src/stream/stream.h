@@ -19,13 +19,13 @@
 */
 
 /**
- * @file stream/stream_protocol.h
+ * @file stream/stream.h
  * @brief P2P protocol for the stream connections
  * @author Sree Harsha Totakura
  */
 
-#ifndef STREAM_PROTOCOL_H
-#define STREAM_PROTOCOL_H
+#ifndef STREAM_H
+#define STREAM_H
 
 #ifdef	__cplusplus
 extern "C"
@@ -187,4 +187,4 @@ GNUNET_NETWORK_STRUCT_END
 }
 #endif
 
-#endif  /* STREAM_PROTOCOL_H */
+#endif  /* STREAM.H */
