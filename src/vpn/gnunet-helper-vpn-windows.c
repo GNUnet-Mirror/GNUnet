@@ -39,7 +39,6 @@
 #include <Winsock2.h>
 #include "platform.h"
 #include "tap-windows.h"
-
 /**
  * Need 'struct GNUNET_MessageHeader'.
  */
@@ -100,7 +99,6 @@
 
 /**
  * Location of the network interface list resides in registry.
- * TODO: is this fixed on all version of windows? Checked with XP and 7
  */
 #define INTERFACE_REGISTRY_LOCATION "SYSTEM\\CurrentControlSet\\Control\\Network\\{4D36E972-E325-11CE-BFC1-08002BE10318}"
 
@@ -138,8 +136,6 @@ static SP_DEVINFO_DATA DeviceNode;
  */
 static char device_guid[256];
 
-/* Overlapped IO Begins here (warning: nasty!) */
-
 /** 
  * A IO Object + read/writebuffer + buffer-size for windows asynchronous IO handling
  */
@@ -167,46 +163,8 @@ struct io_facility
 
 /**
  * ReOpenFile is only available as of XP SP2 and 2003 SP1
- */ 
-WINBASEAPI HANDLE WINAPI ReOpenFile (HANDLE, DWORD, DWORD, DWORD);
-
-/**
- * inet_pton() wrapper for WSAStringToAddress()
- *
- * this is needed as long as we support WinXP, because only Vista+ support 
- * inet_pton at all, and mingw does not yet offer inet_pton/ntop at all
- * 
- * @param af - IN - the aftype this address is supposed to be (v4/v6) 
- * @param src - IN - the presentation form of the address
- * @param dst - OUT - the numerical form of the address
- * @return 0 on success, 1 on failure
  */
-int
-inet_pton (int af, const char *src, void *dst)
-{
-  struct sockaddr_storage addr;
-  int size = sizeof (addr);
-  char local_copy[INET6_ADDRSTRLEN + 1];
-
-  ZeroMemory (&addr, sizeof (addr));
-  /* stupid non-const API */
-  strncpy (local_copy, src, INET6_ADDRSTRLEN + 1);
-  local_copy[INET6_ADDRSTRLEN] = 0;
-
-  if (WSAStringToAddressA (local_copy, af, NULL, (struct sockaddr *) &addr, &size) == 0)
-    {
-      switch (af)
-        {
-        case AF_INET:
-          *(struct in_addr *) dst = ((struct sockaddr_in *) &addr)->sin_addr;
-          return 1;
-        case AF_INET6:
-          *(struct in6_addr *) dst = ((struct sockaddr_in6 *) &addr)->sin6_addr;
-          return 1;
-        }
-    }
-  return 0;
-}
+WINBASEAPI HANDLE WINAPI ReOpenFile (HANDLE, DWORD, DWORD, DWORD);
 
 /**
  * Wrapper for executing a shellcommand in windows.
@@ -226,17 +184,10 @@ execute_shellcommand (char * command)
     return EINVAL;
 
 #ifdef TESTING
-  {
-    char output[LINE_LEN];
-
-    printf ("executed command: %s", command);
-    while (NULL != fgets (output, sizeof (output), pipe))
-      printf (output);
-  }
+  char output[LINE_LEN];
+  while (NULL != fgets (output, sizeof (output), pipe))
+    printf (output);
 #endif
-
-  if (!feof (pipe))
-    return EPIPE;
 
   return _pclose (pipe);
 }
@@ -247,7 +198,7 @@ execute_shellcommand (char * command)
  * @param address the IPv6-Address
  * @param prefix_len the length of the network-prefix
  */
-static void
+static int
 set_address6 (const char *address, unsigned long prefix_len)
 {
   int ret = EINVAL;
@@ -263,7 +214,7 @@ set_address6 (const char *address, unsigned long prefix_len)
     {
       fprintf (stderr, "Failed to parse address `%s': %s\n", address,
                strerror (errno));
-      exit (1);
+      return -1;
     }
 
   /*
@@ -279,10 +230,8 @@ set_address6 (const char *address, unsigned long prefix_len)
 
   /* Did it work?*/
   if (0 != ret)
-    {
-      fprintf (stderr, "Setting IPv6 address failed: %s\n", strerror (ret));
-      exit (1); // FIXME: return error code, shut down interface / unload driver
-    }
+    fprintf (stderr, "Setting IPv6 address failed: %s\n", strerror (ret));
+  return ret;
 }
 
 /**
@@ -292,7 +241,7 @@ set_address6 (const char *address, unsigned long prefix_len)
  * @param address the IPv4-Address
  * @param mask the netmask
  */
-static void
+static int
 set_address4 (const char *address, const char *mask)
 {
   int ret = EINVAL;
@@ -308,13 +257,11 @@ set_address4 (const char *address, const char *mask)
     {
       fprintf (stderr, "Failed to parse address `%s': %s\n", address,
                strerror (errno));
-      exit (1);
+      return -1;
     }
-
   // Set Device to Subnet-Mode? 
   // do we really need tun.c:2925 ?
-  
-  
+
   /*
    * prepare the command
    */
@@ -328,10 +275,8 @@ set_address4 (const char *address, const char *mask)
 
   /* Did it work?*/
   if (0 != ret)
-    {
-      fprintf (stderr, "Setting IPv4 address failed: %s\n", strerror (ret));
-      exit (1); // FIXME: return error code, shut down interface / unload driver
-    }
+    fprintf (stderr, "Setting IPv4 address failed: %s\n", strerror (ret));
+  return ret;
 }
 
 /**
@@ -353,14 +298,11 @@ setup_interface ()
   char hwidlist[LINE_LEN + 4];
   char class_name[128];
   GUID class_guid;
-  int str_lenth = 0;
+  int str_length = 0;
 
   /** 
    * Set the device's hardware ID and add it to a list.
    * This information will later on identify this device in registry. 
-   * 
-   * TODO: Currently we just use TAP0901 as HWID, 
-   * but we might want to add additional information
    */
   strncpy (hwidlist, HARDWARE_ID, LINE_LEN);
   /**
@@ -369,9 +311,10 @@ setup_interface ()
    * 
    * A HWID list is double-\0 terminated and \0 separated
    */
-  str_lenth = strlen (hwidlist) + 1;
-  strncpy (&hwidlist[str_lenth], secondary_hwid, LINE_LEN - str_lenth);
-  
+  str_length = strlen (hwidlist) + 1;
+  strncpy (&hwidlist[str_length], secondary_hwid, LINE_LEN);
+  str_length += strlen (&hwidlist[str_length]) + 1;
+
   /** 
    * Locate the inf-file, we need to store it somewhere where the system can
    * find it. A good choice would be CWD/PDW or %WINDIR$\system32\
@@ -380,7 +323,7 @@ setup_interface ()
    *       We need to use a different driver for amd64/i386 !
    */
   GetFullPathNameA (INF_FILE, MAX_PATH, inf_file_path, &temp_inf_filename);
-  
+
   /** 
    * Bootstrap our device info using the drivers inf-file
    */
@@ -389,7 +332,7 @@ setup_interface ()
                             class_name, sizeof (class_name) / sizeof (char),
                             NULL))
     return FALSE;
-   
+
   /** 
    * Collect all the other needed information... 
    * let the system fill our this form 
@@ -397,7 +340,7 @@ setup_interface ()
   DeviceInfo = SetupDiCreateDeviceInfoList (&class_guid, NULL);
   if (DeviceInfo == INVALID_HANDLE_VALUE)
     return FALSE;
-  
+
   DeviceNode.cbSize = sizeof (SP_DEVINFO_DATA);
   if (!SetupDiCreateDeviceInfoA (DeviceInfo,
                                  class_name,
@@ -407,28 +350,28 @@ setup_interface ()
                                  DICD_GENERATE_ID,
                                  &DeviceNode))
     return FALSE;
-  
+
   /* Deploy all the information collected into the registry */
   if (!SetupDiSetDeviceRegistryPropertyA (DeviceInfo,
                                           &DeviceNode,
                                           SPDRP_HARDWAREID,
                                           (LPBYTE) hwidlist,
-                                          (lstrlenA (hwidlist) + 2) * sizeof (char)))
+                                          str_length * sizeof (char)))
     return FALSE;
-  
+
   /* Install our new class(=device) into the system */
   if (!SetupDiCallClassInstaller (DIF_REGISTERDEVICE,
                                   DeviceInfo,
                                   &DeviceNode))
-      return FALSE;
-  
-  if(!UpdateDriverForPlugAndPlayDevicesA(NULL,
-                             HARDWARE_ID, // I can haz secondary HWID too?
-                             inf_file_path,
-                             INSTALLFLAG_FORCE | INSTALLFLAG_NONINTERACTIVE,
-                             NULL)) //reboot required? NEVER!
-      return FALSE;
-  
+    return FALSE;
+
+  if (!UpdateDriverForPlugAndPlayDevicesA (NULL,
+                                           secondary_hwid,
+                                           inf_file_path,
+                                           INSTALLFLAG_FORCE | INSTALLFLAG_NONINTERACTIVE,
+                                           NULL)) //reboot required? NEVER!
+    return FALSE;
+
   return TRUE;
 }
 
@@ -491,6 +434,9 @@ resolve_interface_name ()
   boolean retval = FALSE;
   char adapter[] = INTERFACE_REGISTRY_LOCATION;
 
+  /* Registry is incredibly slow, wait a few seconds for it to refresh */
+  sleep (5);
+
   /* We can obtain the PNP instance ID from our setupapi handle */
   device_details.cbSize = sizeof (device_details);
   if (CR_SUCCESS != CM_Get_Device_ID_ExA (DeviceNode.DevInst,
@@ -499,7 +445,7 @@ resolve_interface_name ()
                                           0, //must be 0
                                           NULL)) //hMachine, we are local
     return FALSE;
-  
+
   /* Now we can use this ID to locate the correct networks interface in registry */
   if (ERROR_SUCCESS != RegOpenKeyExA (
                                       HKEY_LOCAL_MACHINE,
@@ -521,8 +467,8 @@ resolve_interface_name ()
       char pnpinstanceid_value[256];
       char adaptername_name[] = "Name";
       DWORD data_type;
-      
-      len = 256 * sizeof(char);
+
+      len = 256 * sizeof (char);
       /* optain a subkey of {4D36E972-E325-11CE-BFC1-08002BE10318} */
       status = RegEnumKeyExA (
                               adapter_key_handle,
@@ -533,7 +479,7 @@ resolve_interface_name ()
                               NULL,
                               NULL,
                               NULL);
-      
+
       /* this may fail due to one of two reasons: 
        * we are at the end of the list*/
       if (ERROR_NO_MORE_ITEMS == status)
@@ -541,10 +487,10 @@ resolve_interface_name ()
       // * we found a broken registry key, continue with the next key.
       if (ERROR_SUCCESS != status)
         goto cleanup;
-      
+
       /* prepare our new query string: */
       snprintf (query_key, 256, "%s\\%s\\Connection",
-                INTERFACE_REGISTRY_LOCATION,
+                adapter,
                 instance_key);
 
       /* look inside instance_key\\Connection */
@@ -594,15 +540,15 @@ resolve_interface_name ()
 
       strncpy (device_guid, instance_key, 256);
       retval = TRUE;
-      
+
 cleanup:
       RegCloseKey (instance_key_handle);
 
       ++i;
     }
-      
+
   RegCloseKey (adapter_key_handle);
-  
+
   return retval;
 }
 
@@ -660,7 +606,7 @@ init_tun ()
       errno = ENODEV;
       return INVALID_HANDLE_VALUE;
     }
-  
+
   /* Open Windows TAP-Windows adapter */
   snprintf (device_path, sizeof (device_path), "%s%s%s",
             USERMODEDEVICEDIR,
@@ -682,14 +628,14 @@ init_tun ()
       fprintf (stderr, "CreateFile failed on TAP device: %s\n", device_path);
       return handle;
     }
-  
+
   /* get driver version info */
   if (!check_tapw32_version (handle))
     {
       CloseHandle (handle);
       return INVALID_HANDLE_VALUE;
     }
-  
+
   /* TODO (opt?): get MTU-Size */
 
   return handle;
@@ -1104,7 +1050,7 @@ main (int argc, char **argv)
 {
   char hwid[LINE_LEN];
   HANDLE handle;
-  int global_ret;
+  int global_ret = 0;
 
   if (6 != argc)
     {
@@ -1123,7 +1069,7 @@ main (int argc, char **argv)
   snprintf (secondary_hwid, LINE_LEN / 2, "%s-%d",
             hwid,
             _getpid ());
-  
+
   if (INVALID_HANDLE_VALUE == (handle = init_tun ()))
     {
       fprintf (stderr, "Fatal: could not initialize virtual-interface %s with IPv6 %s/%s and IPv4 %s/%s\n",
@@ -1132,7 +1078,8 @@ main (int argc, char **argv)
                argv[3],
                argv[4],
                argv[5]);
-      return 1;
+      global_ret = -1;
+      goto cleanup;
     }
 
   if (0 != strcmp (argv[2], "-"))
@@ -1147,7 +1094,8 @@ main (int argc, char **argv)
           goto cleanup;
         }
 
-      set_address6 (address, prefix_len);
+      if (0 != (global_ret = set_address6 (address, prefix_len)))
+        goto cleanup;
     }
 
   if (0 != strcmp (argv[4], "-"))
@@ -1155,13 +1103,14 @@ main (int argc, char **argv)
       const char *address = argv[4];
       const char *mask = argv[5];
 
-      set_address4 (address, mask);
+      if (0 != (global_ret = set_address4 (address, mask)))
+        goto cleanup;
     }
 
   run (handle);
   global_ret = 0;
 cleanup:
-  remove_interface ();
 
+  remove_interface ();
   return global_ret;
 }
