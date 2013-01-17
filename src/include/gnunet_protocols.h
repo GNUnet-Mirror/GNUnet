@@ -1681,7 +1681,12 @@ extern "C"
 /**
  * Elements, and requests for further elements
  */
-#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS_AND_REQUESTS 543
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS 543
+
+/*
+ * Initialization message for consensus p2p communication.
+ */
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_HELLO 544
 
 
 /**

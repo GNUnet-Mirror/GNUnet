@@ -77,7 +77,7 @@ struct GNUNET_CONSENSUS_Element
  *         GNUNET_SYSERR if the element should be ignored and not be propagated
  */
 typedef int (*GNUNET_CONSENSUS_ElementCallback) (void *cls,
-                                                    struct GNUNET_CONSENSUS_Element *element);
+                                                 struct GNUNET_CONSENSUS_Element *element);
 
 
 
@@ -116,6 +116,8 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * Called when an insertion (transmission to consensus service,
  * which does not imply fully consensus on this element with
  * all other peers) was successful.
+ * May not call GNUNET_CONSENSUS_destroy; schedule a task to call
+ * GNUNET_CONSENSUS_destroy instead.
  *
  * @param cls
  * @param success GNUNET_OK on success, GNUNET_SYSERR if 
@@ -129,6 +131,8 @@ typedef void (*GNUNET_CONSENSUS_InsertDoneCallback) (void *cls,
  * Insert an element in the set being reconsiled.  Only transmit changes to
  * other peers if "GNUNET_CONSENSUS_begin" has been called.
  * Must not be called after "GNUNET_CONSENSUS_conclude".
+ * May not call GNUNET_CONSENSUS_destroy; schedule a task to call
+ * GNUNET_CONSENSUS_destroy instead.
  *
  * @param consensus handle for the consensus session
  * @param element the element to be inserted
@@ -179,7 +183,6 @@ GNUNET_CONSENSUS_get_delta_cancel (struct GNUNET_CONSENSUS_DeltaRequest *dr);
 
 struct GNUNET_CONSENSUS_Group
 {
-  uint32_t group_id; /* offset into groups? */
   unsigned int num_members;
   uint64_t total_elements_in_group;
   const struct GNUNET_PeerIdentity **members;
@@ -190,12 +193,10 @@ struct GNUNET_CONSENSUS_Group
  * Called when a conclusion was successful.
  *
  * @param cls
- * @param num_peers_in_consensus
- * @param peers_in_consensus
+ * @param group
+ * @return GNUNET_YES if more consensus groups should be offered, GNUNET_NO if not
  */
-typedef void (*GNUNET_CONSENSUS_ConcludeCallback) (void *cls, 
-                                                   unsigned int consensus_group_count,
-                                                   const struct GNUNET_CONSENSUS_Group *groups);
+typedef int (*GNUNET_CONSENSUS_ConcludeCallback) (void *cls, const struct GNUNET_CONSENSUS_Group *group);
 
 
 /**
