@@ -31,6 +31,7 @@ gnunet_consensus_SOURCES = \
 gnunet_consensus_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/consensus/libgnunetconsensus.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(GN_LIBINTL)
 gnunet_consensus_DEPENDENCIES = \
   libgnunetconsensus.la
@@ -53,10 +54,12 @@ gnunet_consensus_ibf_LDADD = \
   $(GN_LIBINTL)
 
 gnunet_service_consensus_SOURCES = \
- gnunet-service-consensus.c
+ gnunet-service-consensus.c \
+ ibf.c
 gnunet_service_consensus_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/stream/libgnunetstream.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(GN_LIBINTL)
 

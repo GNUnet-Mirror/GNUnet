@@ -54,11 +54,6 @@ struct QueuedMessage
   struct GNUNET_MessageHeader *msg;
 
   /**
-   * Size of the message in msg.
-   */
-  size_t size;
-
-  /**
    * Will be called after transmit, if not NULL
    */
   GNUNET_CONSENSUS_InsertDoneCallback idc;
@@ -154,7 +149,7 @@ struct GNUNET_CONSENSUS_Handle
  * @param consensus consensus handle
  */
 static void
-schedule_transmit (struct GNUNET_CONSENSUS_Handle *consensus);
+send_next (struct GNUNET_CONSENSUS_Handle *consensus);
 
 
 /**
@@ -168,16 +163,17 @@ schedule_transmit (struct GNUNET_CONSENSUS_Handle *consensus);
  * @param buf where the callee should write the message
  * @return number of bytes written to buf
  */
-static size_t transmit_queued (void *cls, size_t size,
-                               void *buf)
+static size_t
+transmit_queued (void *cls, size_t size,
+                 void *buf)
 {
   struct GNUNET_CONSENSUS_Handle *consensus;
   struct QueuedMessage *qmsg;
-  size_t ret_size;
-
-  printf("transmitting queued\n");
+  size_t msg_size;
 
   consensus = (struct GNUNET_CONSENSUS_Handle *) cls;
+  consensus->th = NULL;
+
   qmsg = consensus->messages_head;
   GNUNET_CONTAINER_DLL_remove (consensus->messages_head, consensus->messages_tail, qmsg);
   GNUNET_assert (qmsg);
@@ -188,10 +184,14 @@ static size_t transmit_queued (void *cls, size_t size,
     {
       qmsg->idc (qmsg->idc_cls, GNUNET_YES);
     }
+    return 0;
   }
 
-  memcpy (buf, qmsg->msg, qmsg->size);
-  ret_size = qmsg->size;
+  msg_size = ntohs (qmsg->msg->size);
+
+  GNUNET_assert (size >= msg_size);
+
+  memcpy (buf, qmsg->msg, msg_size);
   if (NULL != qmsg->idc)
   {
     qmsg->idc (qmsg->idc_cls, GNUNET_YES);
@@ -199,9 +199,9 @@ static size_t transmit_queued (void *cls, size_t size,
   GNUNET_free (qmsg->msg);
   GNUNET_free (qmsg);
 
-  schedule_transmit (consensus);
+  send_next (consensus);
 
-  return ret_size;
+  return msg_size;
 }
 
 
@@ -211,7 +211,7 @@ static size_t transmit_queued (void *cls, size_t size,
  * @param consensus consensus handle
  */
 static void
-schedule_transmit (struct GNUNET_CONSENSUS_Handle *consensus)
+send_next (struct GNUNET_CONSENSUS_Handle *consensus)
 {
   if (NULL != consensus->th)
     return;
@@ -219,9 +219,10 @@ schedule_transmit (struct GNUNET_CONSENSUS_Handle *consensus)
   if (NULL != consensus->messages_head)
   {
     LOG (GNUNET_ERROR_TYPE_INFO, "scheduling queued\n");
-    GNUNET_CLIENT_notify_transmit_ready (consensus->client, consensus->messages_head->size, 
-                                         GNUNET_TIME_UNIT_FOREVER_REL,
-                                         GNUNET_NO, &transmit_queued, consensus);
+    consensus->th = 
+        GNUNET_CLIENT_notify_transmit_ready (consensus->client, ntohs (consensus->messages_head->msg->size),
+                                             GNUNET_TIME_UNIT_FOREVER_REL,
+                                             GNUNET_NO, &transmit_queued, consensus);
   }
 }
 
@@ -270,8 +271,7 @@ handle_conclude_done (struct GNUNET_CONSENSUS_Handle *consensus,
                      struct GNUNET_CONSENSUS_ConcludeDoneMessage *msg)
 {
   GNUNET_assert (NULL != consensus->conclude_cb);
-  consensus->conclude_cb (consensus->conclude_cls,
-                         0, NULL);
+  consensus->conclude_cb (consensus->conclude_cls, NULL);
   consensus->conclude_cb = NULL;
 }
 
@@ -356,7 +356,7 @@ transmit_join (void *cls, size_t size, void *buf)
            consensus->peers,
            consensus->num_peers * sizeof (struct GNUNET_PeerIdentity));
 
-  schedule_transmit (consensus);
+  send_next (consensus);
 
   GNUNET_CLIENT_receive (consensus->client, &message_handler, consensus,
                          GNUNET_TIME_UNIT_FOREVER_REL);
@@ -454,13 +454,12 @@ GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
 
   qmsg = GNUNET_malloc (sizeof (struct QueuedMessage));
   qmsg->msg = (struct GNUNET_MessageHeader *) element_msg;
-  qmsg->size = element_msg_size;
   qmsg->idc = idc;
   qmsg->idc_cls = idc_cls;
 
   GNUNET_CONTAINER_DLL_insert_tail (consensus->messages_head, consensus->messages_tail, qmsg);
 
-  schedule_transmit (consensus);
+  send_next (consensus);
 }
 
 
@@ -500,11 +499,10 @@ GNUNET_CONSENSUS_conclude (struct GNUNET_CONSENSUS_Handle *consensus,
 
   qmsg = GNUNET_malloc (sizeof (struct QueuedMessage));
   qmsg->msg = (struct GNUNET_MessageHeader *) conclude_msg;
-  qmsg->size = sizeof (struct GNUNET_CONSENSUS_ConcludeMessage);
 
   GNUNET_CONTAINER_DLL_insert_tail (consensus->messages_head, consensus->messages_tail, qmsg);
 
-  schedule_transmit (consensus);
+  send_next (consensus);
 }
 
 

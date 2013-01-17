@@ -17,6 +17,7 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
+
 /**
  * @file consensus/test_consensus_api.c
  * @brief testcase for consensus_api.c
@@ -29,18 +30,20 @@
 
 static struct GNUNET_CONSENSUS_Handle *consensus;
 
-static int insert;
-
 static struct GNUNET_HashCode session_id;
 
 
-static void conclude_done (void *cls, 
-                           unsigned int num_peers_in_consensus,
-                           const struct GNUNET_PeerIdentity *peers_in_consensus)
+static int
+conclude_done (void *cls, const struct GNUNET_CONSENSUS_Group *group)
 {
-  struct GNUNET_CONSENSUS_Handle *consensus;
-  consensus = (struct GNUNET_CONSENSUS_Handle *) cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "concluded\n");
+  if (NULL == group)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "conclude over\n");
+    GNUNET_SCHEDULER_shutdown ();
+    return GNUNET_NO;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "concluded\n");
+  return GNUNET_YES;
 }
 
 static int
@@ -54,7 +57,30 @@ on_new_element (void *cls,
 static void
 insert_done (void *cls, int success)
 {
+  /* make sure cb is only called once */
+  static int called = GNUNET_NO;
+  GNUNET_assert (GNUNET_NO == called);
+  called = GNUNET_YES;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "insert done\n");
+  GNUNET_CONSENSUS_conclude (consensus, GNUNET_TIME_UNIT_SECONDS, 0, &conclude_done, NULL);
+}
+
+
+/**
+ * Signature of the main function of a task.
+ *
+ * @param cls closure
+ * @param tc context information (why was this task triggered now)
+ */
+static void
+on_shutdown (void *cls,
+          const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (NULL != consensus)
+  {
+    GNUNET_CONSENSUS_destroy (consensus);
+    consensus = NULL;
+  }
 }
 
 
@@ -69,18 +95,19 @@ run (void *cls,
   struct GNUNET_CONSENSUS_Element el2 = {"bar", 4, 0};
 
   GNUNET_log_setup ("test_consensus_api",
-                    "DEBUG",
+                    "INFO",
                     NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "testing consensus api\n");
 
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &on_shutdown, NULL);
+
   GNUNET_CRYPTO_hash (str, strlen (str), &session_id);
   consensus = GNUNET_CONSENSUS_create (cfg, 0, NULL, &session_id, on_new_element, &consensus);
   GNUNET_assert (consensus != NULL);
-  /*
-  GNUNET_CONSENSUS_insert (consensus1, &el1, &insert_done, &consensus1);
-  GNUNET_CONSENSUS_insert (consensus2, &el2, &insert_done, &consensus2);
-  */
+
+  GNUNET_CONSENSUS_insert (consensus, &el1, NULL, &consensus);
+  GNUNET_CONSENSUS_insert (consensus, &el2, &insert_done, &consensus);
 }
 
 

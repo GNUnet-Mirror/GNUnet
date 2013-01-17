@@ -39,14 +39,52 @@ extern "C"
 #endif
 #endif
 
+/**
+ * Size of one ibf bucket in bytes
+ */
+#define IBF_BUCKET_SIZE (64+64+1)
+
 
 /**
- * Opaque handle to an invertible bloom filter (IBF).
+ * Invertible bloom filter (IBF).
  *
  * An IBF is a counting bloom filter that has the ability to restore
  * the hashes of its stored elements with high probability.
  */
-struct InvertibleBloomFilter;
+struct InvertibleBloomFilter
+{
+  /**
+   * How many cells does this IBF have?
+   */
+  unsigned int size;
+
+  /**
+   * In how many cells do we hash one element?
+   * Usually 4 or 3.
+   */
+  unsigned int hash_num;
+
+  /**
+   * Salt for mingling hashes
+   */
+  uint32_t salt;
+
+  /**
+   * xor sums of the elements' hash codes, used to identify the elements.
+   */
+  struct GNUNET_HashCode *id_sum;
+
+  /**
+   * xor sums of the "hash of the hash".
+   */
+  struct GNUNET_HashCode *hash_sum;
+
+  /**
+   * How many times has a bucket been hit?
+   * Can be negative, as a result of IBF subtraction.
+   */
+  int8_t *count;
+};
 
 
 /**
@@ -105,15 +143,6 @@ ibf_decode (struct InvertibleBloomFilter *ibf, int *side, struct GNUNET_HashCode
  */
 struct InvertibleBloomFilter *
 ibf_dup (struct InvertibleBloomFilter *ibf);
-
-
-/*
-ibf_hton ();
-
-ibf_ntoh ();
-
-ibf_get_nbo_size ();
-*/
 
 /**
  * Destroy all resources associated with the invertible bloom filter.

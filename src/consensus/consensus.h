@@ -71,6 +71,10 @@ struct GNUNET_CONSENSUS_ConcludeDoneMessage
    */
   struct GNUNET_MessageHeader header;
 
+  uint32_t group_id;
+
+  uint32_t num_elements;
+
   uint16_t num_peers;
 
   /** PeerIdentity[num_peers] */

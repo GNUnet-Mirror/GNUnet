@@ -147,9 +147,6 @@ run (void *cls, char *const *args, const char *cfgfile,
                                   NULL,
                                   test_master,
                                   NULL);
-
-
-  printf("hello there!\n");
 }
 
 

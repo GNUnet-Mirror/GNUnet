@@ -25,50 +25,8 @@
  * @author Florian Dold
  */
 
+
 #include "ibf.h"
-
-
-/**
- * Opaque handle to an invertible bloom filter (IBF).
- *
- * An IBF is a counting bloom filter that has the ability to restore
- * the hashes of its stored elements with high probability.
- */
-struct InvertibleBloomFilter
-{
-  /**
-   * How many cells does this IBF have?
-   */
-  unsigned int size;
-
-  /**
-   * In how many cells do we hash one element?
-   * Usually 4 or 3.
-   */
-  unsigned int hash_num;
-
-  /**
-   * Salt for mingling hashes
-   */
-  uint32_t salt;
-
-  /**
-   * How many times has a bucket been hit?
-   * Can be negative, as a result of IBF subtraction.
-   */
-  int8_t *count;
-
-  /**
-   * xor sums of the elements' hash codes, used to identify the elements.
-   */
-  struct GNUNET_HashCode *id_sum;
-
-  /**
-   * xor sums of the "hash of the hash".
-   */
-  struct GNUNET_HashCode *hash_sum;
-
-};
 
 
 /**
@@ -152,6 +110,8 @@ ibf_insert_on_side (struct InvertibleBloomFilter *ibf,
       used_buckets[i] = bucket;
       
       ibf->count[bucket] += side;
+
+      GNUNET_log_from(GNUNET_ERROR_TYPE_INFO, "ibf", "inserting in bucket %d \n", bucket);
       
       GNUNET_CRYPTO_hash_xor (&key_copy, &ibf->id_sum[bucket],
 			      &ibf->id_sum[bucket]);
@@ -214,8 +174,6 @@ ibf_decode (struct InvertibleBloomFilter *ibf,
   int i;
 
   GNUNET_assert (NULL != ibf);
-  GNUNET_assert (NULL != ret_id);
-  GNUNET_assert (NULL != ret_side);
 
   for (i = 0; i < ibf->size; i++)
   {
@@ -227,8 +185,10 @@ ibf_decode (struct InvertibleBloomFilter *ibf,
     if (0 != memcmp (&hash, &ibf->hash_sum[i], sizeof (struct GNUNET_HashCode)))
       continue;
 
-    *ret_side = ibf->count[i];
-    *ret_id = ibf->id_sum[i];
+    if (NULL != ret_side)
+      *ret_side = ibf->count[i];
+    if (NULL != ret_id)
+      *ret_id = ibf->id_sum[i];
 
     /* insert on the opposite side, effectively removing the element */
     ibf_insert_on_side (ibf, &ibf->id_sum[i], -ibf->count[i]);
@@ -269,3 +229,36 @@ ibf_subtract (struct InvertibleBloomFilter *ibf1, struct InvertibleBloomFilter *
   }
 }
 
+/**
+ * Create a copy of an IBF, the copy has to be destroyed properly.
+ *
+ * @param ibf the IBF to copy
+ */
+struct InvertibleBloomFilter *
+ibf_dup (struct InvertibleBloomFilter *ibf)
+{
+  struct InvertibleBloomFilter *copy;
+  copy = GNUNET_malloc (sizeof *copy);
+  copy->hash_num = ibf->hash_num;
+  copy->salt = ibf->salt;
+  copy->size = ibf->size;
+  copy->hash_sum = GNUNET_memdup (ibf->hash_sum, ibf->size * sizeof (struct GNUNET_HashCode));
+  copy->id_sum = GNUNET_memdup (ibf->id_sum, ibf->size * sizeof (struct GNUNET_HashCode));
+  copy->count = GNUNET_memdup (ibf->count, ibf->size * sizeof (uint8_t));
+  return copy;
+}
+
+/**
+ * Destroy all resources associated with the invertible bloom filter.
+ * No more ibf_*-functions may be called on ibf after calling destroy.
+ *
+ * @param ibf the intertible bloom filter to destroy
+ */
+void
+ibf_destroy (struct InvertibleBloomFilter *ibf)
+{
+  GNUNET_free (ibf->hash_sum);
+  GNUNET_free (ibf->id_sum);
+  GNUNET_free (ibf->count);
+  GNUNET_free (ibf);
+}
