@@ -26,7 +26,7 @@
 
 #include "platform.h"
 #include "gnunet_common.h"
-
+#include "gnunet_transport_plugin.h"
 /**
  * Timeout values for testing
  */
@@ -49,6 +49,11 @@
 #define TIMEOUT_LOG GNUNET_ERROR_TYPE_DEBUG
 
 #endif
+
+struct SplittedHTTPAddress;
+
+struct SplittedHTTPAddress *
+http_split_address (const char * addr);
 
 /**
  * Convert the transports address to a nice, human-readable

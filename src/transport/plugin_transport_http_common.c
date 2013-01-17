@@ -28,6 +28,80 @@
 #include "gnunet_common.h"
 #include "gnunet_transport_plugin.h"
 
+struct SplittedHTTPAddress
+{
+	char *protocoll;
+	char *host;
+	char *port;
+	char *path;
+};
+
+struct SplittedHTTPAddress *
+http_split_address (const char * addr)
+{
+	struct SplittedHTTPAddress  *sp;
+	char *src = GNUNET_strdup (addr);
+	char *protocoll_start = NULL;
+	char *host_start = NULL;
+	char *port_start = NULL;
+	char *path_start = NULL;
+
+	protocoll_start = src;
+	sp = GNUNET_malloc (sizeof (struct SplittedHTTPAddress));
+
+	host_start = strstr (src, "://");
+	if (NULL == host_start)
+	{
+			GNUNET_free (src);
+			GNUNET_free (sp);
+			return NULL;
+	}
+
+	host_start[0] = '\0';
+	sp->protocoll = GNUNET_strdup (protocoll_start);
+
+	host_start += strlen ("://");
+	if (strlen (host_start) == 0)
+	if (NULL == host_start)
+	{
+			GNUNET_free (src);
+			GNUNET_free (sp);
+			return NULL;
+	}
+	port_start = strstr (host_start, ":");
+	if (NULL == port_start)
+	{
+		path_start = strstr (host_start, "/");
+	}
+	else
+	{
+		port_start[0] = '\0';
+		port_start ++;
+		sp->host = GNUNET_strdup (host_start);
+		path_start = strstr (port_start, "/");
+	}
+
+	if (NULL == path_start)
+  {
+			if (NULL != port_start)
+				sp->port = GNUNET_strdup (port_start);
+			sp->path = NULL;
+  }
+	else
+	{
+			if (NULL != port_start)
+			{
+					path_start[0] = '\0';
+					sp->port = GNUNET_strdup (port_start);
+					path_start[0] = '/';
+			}
+			sp->path = GNUNET_strdup(path_start);
+	}
+	GNUNET_free (src);
+	fprintf (stderr, "protocoll: `%s', host `%s' port `%s' path `%s'\n", sp->protocoll, sp->host, sp->port, sp->path);
+	return sp;
+}
+
 /**
  * Convert the transports address to a nice, human-readable
  * format.
@@ -59,6 +133,7 @@ http_common_plugin_address_pretty_printer (void *cls, const char *type,
       asc (asc_cls, NULL);
       return;
   }
+  http_split_address (addr);
   asc (asc_cls, saddr);
   asc (asc_cls, NULL);
 }

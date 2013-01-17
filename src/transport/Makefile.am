@@ -316,6 +316,7 @@ check_PROGRAMS = \
  test_plugin_udp \
  $(UNIX_TEST) \
  $(WLAN_PLUGIN_TEST) \
+ test_http_common \
  $(HTTP_CLIENT_PLUGIN_TEST) \
  $(HTTPS_CLIENT_PLUGIN_TEST) \
  $(HTTP_SERVER_PLUGIN_TEST) \
@@ -487,6 +488,16 @@ test_plugin_unix_LDADD = \
 test_plugin_wlan_SOURCES = \
  test_plugin_transport.c
 test_plugin_wlan_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la  \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
+
+
+test_http_common_SOURCES = \
+ test_http_common.c plugin_transport_http_common.c
+test_http_common_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/hello/libgnunethello.la \

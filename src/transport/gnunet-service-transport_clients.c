@@ -756,7 +756,6 @@ static void
 transmit_address_to_client (void *cls, const char *buf)
 {
   struct AddressToStringContext *actx = cls;
-
   if (NULL == buf)
   {
     GNUNET_SERVER_transmit_context_append_data (actx->tc, NULL, 0,
