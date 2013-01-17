@@ -280,7 +280,8 @@ operation_timeout (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   op_timeout = GNUNET_SCHEDULER_NO_TASK;
-  if ((try_connect) || (benchmark_send) || (benchmark_receive))
+  if ((try_connect) || (benchmark_send) ||
+  		(benchmark_receive))
   {
       FPRINTF (stdout, _("Failed to connect to `%s'\n"), GNUNET_h2s_full (&pid.hashPubKey));
       if (GNUNET_SCHEDULER_NO_TASK != end)
@@ -289,6 +290,16 @@ operation_timeout (void *cls,
       ret = 1;
       return;
   }
+  if (iterate_connections)
+  {
+      FPRINTF (stdout, _("Failed to list connections, timeout occured\n"));
+      if (GNUNET_SCHEDULER_NO_TASK != end)
+        GNUNET_SCHEDULER_cancel (end);
+      end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+      ret = 1;
+      return;
+  }
+
 }
 
 
@@ -661,7 +672,15 @@ process_string (void *cls, const char *address)
     if ((0 == address_resolutions) && (iterate_connections))
     {
         if (GNUNET_SCHEDULER_NO_TASK != end)
+        {
           GNUNET_SCHEDULER_cancel (end);
+          end = GNUNET_SCHEDULER_NO_TASK;
+        }
+        if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
+        {
+        	GNUNET_SCHEDULER_cancel (op_timeout);
+        	op_timeout = GNUNET_SCHEDULER_NO_TASK;
+        }
         ret = 0;
         end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     }
@@ -694,6 +713,11 @@ process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
     FPRINTF (stdout, _("Peer `%s' disconnected\n"), GNUNET_i2s (peer));
     return;
   }
+
+  if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
+  	GNUNET_SCHEDULER_cancel (op_timeout);
+  op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
+                                             &operation_timeout, NULL);
 
   rc = GNUNET_malloc(sizeof (struct ResolutionContext));
   rc->addrcp = GNUNET_HELLO_address_copy(address);
@@ -852,6 +876,8 @@ testservice_task (void *cls,
                                                 GNUNET_YES,
                                                 TIMEOUT,
                                                 &process_address, (void *) cfg);
+    op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
+                                               &operation_timeout, NULL);
   }
   else if (monitor_connections) /* -m: List all active addresses continously */
   {
