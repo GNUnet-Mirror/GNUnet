@@ -37,6 +37,7 @@
 #include <ddk/cfgmgr32.h>
 #include <ddk/newdev.h>
 #include <Winsock2.h>
+#include <time.h>
 #include "platform.h"
 #include "tap-windows.h"
 /**
@@ -184,6 +185,7 @@ execute_shellcommand (const char *command)
     return EINVAL;
 
 #ifdef TESTING
+  fprintf (stderr, "DEBUG: Command output: \n");
   char output[LINE_LEN];
   while (NULL != fgets (output, sizeof (output), pipe))
     fprintf (stderr, "%s", output);
@@ -212,7 +214,7 @@ set_address6 (const char *address, unsigned long prefix_len)
   sa6.sin6_family = AF_INET6;
   if (1 != inet_pton (AF_INET6, address, &sa6.sin6_addr.s6_addr))
     {
-      fprintf (stderr, "Failed to parse address `%s': %s\n", address,
+      fprintf (stderr, "ERROR: Failed to parse address `%s': %s\n", address,
                strerror (errno));
       return -1;
     }
@@ -221,7 +223,7 @@ set_address6 (const char *address, unsigned long prefix_len)
    * prepare the command
    */
   snprintf (command, LINE_LEN,
-            "netsh interface ipv6 add address \"%s\" %s/%d",
+            "netsh interface ipv6 add address \"%s\" %s/%d store=active",
             device_visible_name, address, prefix_len);
   /*
    * Set the address
@@ -230,9 +232,40 @@ set_address6 (const char *address, unsigned long prefix_len)
 
   /* Did it work?*/
   if (0 != ret)
-    fprintf (stderr, "Setting IPv6 address failed: %s\n", strerror (ret));
+    fprintf (stderr, "FATAL: Setting IPv6 address failed: %s\n", strerror (ret));
   return ret;
 }
+
+/**
+ * @brief Removes the IPv6-Address given in address from the interface dev
+ *
+ * @param dev the interface to remove
+ * @param address the IPv4-Address
+ * @param mask the netmask
+ */
+static void
+remove_address6 (const char *address)
+{
+  char command[LINE_LEN];
+  int ret = EINVAL;
+  
+  // sanity checking was already done in set_address6
+  /*
+   * prepare the command
+   */
+  snprintf (command, LINE_LEN,
+            "netsh interface ipv6 delete address \"%s\" store=persistent",
+            device_visible_name, address);
+  /*
+   * Set the address
+   */
+  ret = execute_shellcommand (command);
+
+  /* Did it work?*/
+  if (0 != ret)
+    fprintf (stderr, "FATAL: removing IPv6 address failed: %s\n", strerror (ret));
+}
+
 
 /**
  * @brief Sets the IPv4-Address given in address on the interface dev
@@ -255,7 +288,7 @@ set_address4 (const char *address, const char *mask)
    */
   if (1 != inet_pton (AF_INET, address, &addr.sin_addr.s_addr))
     {
-      fprintf (stderr, "Failed to parse address `%s': %s\n", address,
+      fprintf (stderr, "ERROR: Failed to parse address `%s': %s\n", address,
                strerror (errno));
       return -1;
     }
@@ -266,7 +299,7 @@ set_address4 (const char *address, const char *mask)
    * prepare the command
    */
   snprintf (command, LINE_LEN,
-            "netsh interface ipv4 add address \"%s\" %s %s",
+            "netsh interface ipv4 add address \"%s\" %s %s store=active",
             device_visible_name, address, mask);
   /*
    * Set the address
@@ -275,8 +308,39 @@ set_address4 (const char *address, const char *mask)
 
   /* Did it work?*/
   if (0 != ret)
-    fprintf (stderr, "Setting IPv4 address failed: %s\n", strerror (ret));
+    fprintf (stderr, "FATAL: Setting IPv4 address failed: %s\n", strerror (ret));
   return ret;
+}
+
+/**
+ * @brief Removes the IPv4-Address given in address from the interface dev
+ *
+ * @param dev the interface to remove
+ * @param address the IPv4-Address
+ * @param mask the netmask
+ */
+static void
+remove_address4 (const char *address)
+{
+  char command[LINE_LEN];
+  int ret = EINVAL;
+  
+  // sanity checking was already done in set_address4
+
+  /*
+   * prepare the command
+   */
+  snprintf (command, LINE_LEN,
+            "netsh interface ipv4 delete address \"%s\" gateway=all store=persistent",
+            device_visible_name, address);
+  /*
+   * Set the address
+   */
+  ret = execute_shellcommand (command);
+
+  /* Did it work?*/
+  if (0 != ret)
+    fprintf (stderr, "FATAL: removing IPv4 address failed: %s\n", strerror (ret));
 }
 
 /**
@@ -327,7 +391,7 @@ setup_interface ()
   /** 
    * Bootstrap our device info using the drivers inf-file
    */
-  if (!SetupDiGetINFClassA (inf_file_path,
+  if ( ! SetupDiGetINFClassA (inf_file_path,
                             &class_guid,
                             class_name, sizeof (class_name) / sizeof (char),
                             NULL))
@@ -342,7 +406,7 @@ setup_interface ()
     return FALSE;
 
   DeviceNode.cbSize = sizeof (SP_DEVINFO_DATA);
-  if (!SetupDiCreateDeviceInfoA (DeviceInfo,
+  if ( ! SetupDiCreateDeviceInfoA (DeviceInfo,
                                  class_name,
                                  &class_guid,
                                  NULL,
@@ -352,7 +416,7 @@ setup_interface ()
     return FALSE;
 
   /* Deploy all the information collected into the registry */
-  if (!SetupDiSetDeviceRegistryPropertyA (DeviceInfo,
+  if ( ! SetupDiSetDeviceRegistryPropertyA (DeviceInfo,
                                           &DeviceNode,
                                           SPDRP_HARDWAREID,
                                           (LPBYTE) hwidlist,
@@ -360,14 +424,14 @@ setup_interface ()
     return FALSE;
 
   /* Install our new class(=device) into the system */
-  if (!SetupDiCallClassInstaller (DIF_REGISTERDEVICE,
+  if ( ! SetupDiCallClassInstaller (DIF_REGISTERDEVICE,
                                   DeviceInfo,
                                   &DeviceNode))
     return FALSE;
 
   /* This system call tends to take a while (several seconds!) on
      "modern" Windoze systems */
-  if (!UpdateDriverForPlugAndPlayDevicesA (NULL,
+  if ( ! UpdateDriverForPlugAndPlayDevicesA (NULL,
                                            secondary_hwid,
                                            inf_file_path,
                                            INSTALLFLAG_FORCE | INSTALLFLAG_NONINTERACTIVE,
@@ -399,7 +463,7 @@ remove_interface ()
    * 1. Prepare our existing device information set, and place the 
    *    uninstall related information into the structure
    */
-  if (!SetupDiSetClassInstallParamsA (DeviceInfo,
+  if ( ! SetupDiSetClassInstallParamsA (DeviceInfo,
                                       (PSP_DEVINFO_DATA) & DeviceNode,
                                       &remove.ClassInstallHeader,
                                       sizeof (remove)))
@@ -407,7 +471,7 @@ remove_interface ()
   /*
    * 2. Uninstall the virtual interface using the class installer
    */
-  if (!SetupDiCallClassInstaller (DIF_REMOVE,
+  if ( ! SetupDiCallClassInstaller (DIF_REMOVE,
                                   DeviceInfo,
                                   (PSP_DEVINFO_DATA) & DeviceNode))
     return FALSE;
@@ -426,18 +490,15 @@ remove_interface ()
 static boolean
 resolve_interface_name ()
 {
-
   SP_DEVINFO_LIST_DETAIL_DATA device_details;
   char pnp_instance_id [MAX_DEVICE_ID_LEN];
   HKEY adapter_key_handle;
   LONG status;
   DWORD len;
   int i = 0;
+  int retrys;
   boolean retval = FALSE;
   char adapter[] = INTERFACE_REGISTRY_LOCATION;
-
-  /* Registry is incredibly slow, wait a few seconds for it to refresh */
-  sleep (5); // FIXME: instead use sleep (1) in a retrying loop; maybe even nanosleep for 50-250ms instead
 
   /* We can obtain the PNP instance ID from our setupapi handle */
   device_details.cbSize = sizeof (device_details);
@@ -448,142 +509,145 @@ resolve_interface_name ()
                                           NULL)) //hMachine, we are local
     return FALSE;
 
-  /* Now we can use this ID to locate the correct networks interface in registry */
-  if (ERROR_SUCCESS != RegOpenKeyExA (
-                                      HKEY_LOCAL_MACHINE,
-                                      adapter,
-                                      0,
-                                      KEY_READ,
-                                      &adapter_key_handle))
-    return FALSE;
-
-  /* Of course there is a multitude of entries here, with arbitrary names, 
-   * thus we need to iterate through there.
-   */
-  while (!retval)
+  /* Registry is incredibly slow, retry for up to 30 seconds to allow registry to refresh */
+  for (retrys = 0; retrys < 120 && !retval; retrys++)
     {
-      char instance_key[256];
-      char query_key [256];
-      HKEY instance_key_handle;
-      char pnpinstanceid_name[] = "PnpInstanceID";
-      char pnpinstanceid_value[256];
-      char adaptername_name[] = "Name";
-      DWORD data_type;
+      /* sleep for 250ms*/
+      Sleep (250);
 
-      len = 256 * sizeof (char);
-      /* optain a subkey of {4D36E972-E325-11CE-BFC1-08002BE10318} */
-      status = RegEnumKeyExA (
-                              adapter_key_handle,
-                              i,
-                              instance_key,
-                              &len,
-                              NULL,
-                              NULL,
-                              NULL,
-                              NULL);
+      /* Now we can use this ID to locate the correct networks interface in registry */
+      if (ERROR_SUCCESS != RegOpenKeyExA (
+                                          HKEY_LOCAL_MACHINE,
+                                          adapter,
+                                          0,
+                                          KEY_READ,
+                                          &adapter_key_handle))
+        return FALSE;
 
-      /* this may fail due to one of two reasons: 
-       * we are at the end of the list*/
-      if (ERROR_NO_MORE_ITEMS == status)
-        break;
-      // * we found a broken registry key, continue with the next key.
-      if (ERROR_SUCCESS != status)
-        goto cleanup;
-
-      /* prepare our new query string: */
-      snprintf (query_key, 256, "%s\\%s\\Connection",
-                adapter,
-                instance_key);
-
-      /* look inside instance_key\\Connection */
-      status = RegOpenKeyExA (
-                              HKEY_LOCAL_MACHINE,
-                              query_key,
-                              0,
-                              KEY_READ,
-                              &instance_key_handle);
-
-      if (status != ERROR_SUCCESS)
-        goto cleanup;
-
-      /* now, read our PnpInstanceID */
-      len = sizeof (pnpinstanceid_value);
-      status = RegQueryValueExA (instance_key_handle,
-                                 pnpinstanceid_name,
-                                 NULL, //reserved, always NULL according to MSDN
-                                 &data_type,
-                                 (LPBYTE) pnpinstanceid_value,
-                                 &len);
-
-      if (status != ERROR_SUCCESS || data_type != REG_SZ)
-        goto cleanup;
-
-      /* compare the value we got to our devices PNPInstanceID*/
-      if (0 != strncmp (pnpinstanceid_value, pnp_instance_id,
-                        sizeof (pnpinstanceid_value) / sizeof (char)))
-        goto cleanup;
-
-      len = sizeof (device_visible_name);
-      status = RegQueryValueExA (
-                                 instance_key_handle,
-                                 adaptername_name,
-                                 NULL, //reserved, always NULL according to MSDN
-                                 &data_type,
-                                 (LPBYTE) device_visible_name,
-                                 &len);
-
-      if (status != ERROR_SUCCESS || data_type != REG_SZ)
-        goto cleanup;
-
-      /* 
-       * we have successfully found OUR instance, 
-       * save the device GUID before exiting
+      /* Of course there is a multitude of entries here, with arbitrary names, 
+       * thus we need to iterate through there.
        */
+      while ( ! retval)
+        {
+          char instance_key[256];
+          char query_key [256];
+          HKEY instance_key_handle;
+          char pnpinstanceid_name[] = "PnpInstanceID";
+          char pnpinstanceid_value[256];
+          char adaptername_name[] = "Name";
+          DWORD data_type;
 
-      strncpy (device_guid, instance_key, 256);
-      retval = TRUE;
+          len = 256 * sizeof (char);
+          /* optain a subkey of {4D36E972-E325-11CE-BFC1-08002BE10318} */
+          status = RegEnumKeyExA (
+                                  adapter_key_handle,
+                                  i,
+                                  instance_key,
+                                  &len,
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  NULL);
+
+          /* this may fail due to one of two reasons: 
+           * we are at the end of the list*/
+          if (ERROR_NO_MORE_ITEMS == status)
+            break;
+          // * we found a broken registry key, continue with the next key.
+          if (ERROR_SUCCESS != status)
+            goto cleanup;
+
+          /* prepare our new query string: */
+          snprintf (query_key, 256, "%s\\%s\\Connection",
+                    adapter,
+                    instance_key);
+
+          /* look inside instance_key\\Connection */
+          status = RegOpenKeyExA (
+                                  HKEY_LOCAL_MACHINE,
+                                  query_key,
+                                  0,
+                                  KEY_READ,
+                                  &instance_key_handle);
+
+          if (status != ERROR_SUCCESS)
+            goto cleanup;
+
+          /* now, read our PnpInstanceID */
+          len = sizeof (pnpinstanceid_value);
+          status = RegQueryValueExA (instance_key_handle,
+                                     pnpinstanceid_name,
+                                     NULL, //reserved, always NULL according to MSDN
+                                     &data_type,
+                                     (LPBYTE) pnpinstanceid_value,
+                                     &len);
+
+          if (status != ERROR_SUCCESS || data_type != REG_SZ)
+            goto cleanup;
+
+          /* compare the value we got to our devices PNPInstanceID*/
+          if (0 != strncmp (pnpinstanceid_value, pnp_instance_id,
+                            sizeof (pnpinstanceid_value) / sizeof (char)))
+            goto cleanup;
+
+          len = sizeof (device_visible_name);
+          status = RegQueryValueExA (
+                                     instance_key_handle,
+                                     adaptername_name,
+                                     NULL, //reserved, always NULL according to MSDN
+                                     &data_type,
+                                     (LPBYTE) device_visible_name,
+                                     &len);
+
+          if (status != ERROR_SUCCESS || data_type != REG_SZ)
+            goto cleanup;
+
+          /* 
+           * we have successfully found OUR instance, 
+           * save the device GUID before exiting
+           */
+
+          strncpy (device_guid, instance_key, 256);
+          retval = TRUE;
+          fprintf (stderr, "DEBUG: Interface Name lookup succeeded on retry %d\n", retrys);
 
 cleanup:
-      RegCloseKey (instance_key_handle);
+          RegCloseKey (instance_key_handle);
 
-      ++i;
+          ++i;
+        }
+
+      RegCloseKey (adapter_key_handle);
     }
-
-  RegCloseKey (adapter_key_handle);
-
   return retval;
 }
 
 static boolean
 check_tapw32_version (HANDLE handle)
 {
-  {
-    ULONG version[3];
-    DWORD len;
-    memset (&(version), 0, sizeof (version));
+  ULONG version[3];
+  DWORD len;
+  memset (&(version), 0, sizeof (version));
 
 
-    if (DeviceIoControl (handle, TAP_WIN_IOCTL_GET_VERSION,
-                         &version, sizeof (version),
-                         &version, sizeof (version), &len, NULL))
-      {
-#ifdef TESTING
-        fprintf (stderr, "TAP-Windows Driver Version %d.%d %s",
-                 (int) version[0],
-                 (int) version[1],
-                 (version[2] ? "(DEBUG)" : ""));
-#endif
-      }
+  if (DeviceIoControl (handle, TAP_WIN_IOCTL_GET_VERSION,
+                       &version, sizeof (version),
+                       &version, sizeof (version), &len, NULL))
+    {
+      fprintf (stderr, "INFO: TAP-Windows Driver Version %d.%d %s\n",
+               (int) version[0],
+               (int) version[1],
+               (version[2] ? "(DEBUG)" : ""));
+    }
 
-    if (version[0] != TAP_WIN_MIN_MAJOR || version[1] < TAP_WIN_MIN_MINOR)
-      {
-        fprintf (stderr, "ERROR:  This version of gnunet requires a TAP-Windows driver that is at least version %d.%d!\n",
-                 TAP_WIN_MIN_MAJOR,
-                 TAP_WIN_MIN_MINOR);
-        return FALSE;
-      }
-    return TRUE;
-  }
+  if (version[0] != TAP_WIN_MIN_MAJOR || version[1] < TAP_WIN_MIN_MINOR)
+    {
+      fprintf (stderr, "FATAL:  This version of gnunet requires a TAP-Windows driver that is at least version %d.%d!\n",
+               TAP_WIN_MIN_MAJOR,
+               TAP_WIN_MIN_MINOR);
+      return FALSE;
+    }
+  return TRUE;
 }
 
 /**
@@ -597,13 +661,13 @@ init_tun ()
   char device_path[256];
   HANDLE handle;
 
-  if (!setup_interface ())
+  if ( ! setup_interface ())
     {
       errno = ENODEV;
       return INVALID_HANDLE_VALUE;
     }
 
-  if (!resolve_interface_name ())
+  if ( ! resolve_interface_name ())
     {
       errno = ENODEV;
       return INVALID_HANDLE_VALUE;
@@ -627,12 +691,12 @@ init_tun ()
 
   if (handle == INVALID_HANDLE_VALUE)
     {
-      fprintf (stderr, "CreateFile failed on TAP device: %s\n", device_path);
+      fprintf (stderr, "FATAL: CreateFile failed on TAP device: %s\n", device_path);
       return handle;
     }
 
   /* get driver version info */
-  if (!check_tapw32_version (handle))
+  if ( ! check_tapw32_version (handle))
     {
       CloseHandle (handle);
       return INVALID_HANDLE_VALUE;
@@ -654,11 +718,11 @@ tun_up (HANDLE handle)
 {
   ULONG status = TRUE;
   DWORD len;
-  if (DeviceIoControl (handle, TAP_WIN_IOCTL_SET_MEDIA_STATUS,
+  if ( ! DeviceIoControl (handle, TAP_WIN_IOCTL_SET_MEDIA_STATUS,
                        &status, sizeof (status),
                        &status, sizeof (status), &len, NULL))
     {
-      fprintf (stderr, "The TAP-Windows driver ignored our request to set the interface UP (TAP_WIN_IOCTL_SET_MEDIA_STATUS DeviceIoControl call)!\n");
+      fprintf (stderr, "FATAL: TAP driver ignored request to UP interface (DeviceIoControl call)!\n");
       return FALSE;
     }
 
@@ -699,113 +763,113 @@ attempt_read (struct io_facility * input_facility,
               struct io_facility * output_facility)
 {
   switch (input_facility->facility_state)
-  {
-  case IOSTATE_READY:
     {
-      if (!ResetEvent (input_facility->overlapped.hEvent))
-        {
-          return FALSE;
-        }
-      input_facility->status = ReadFile (input_facility->handle,
-                                         input_facility->buffer,
-                                         MAX_SIZE,
-                                         &input_facility->buffer_size,
-                                         &input_facility->overlapped);
-
-      /* Check how the task is handled */
-      if (input_facility->status)
-        {/* async event processed immediately*/
-
-          /* reset event manually*/
-          if (!SetEvent (input_facility->overlapped.hEvent))
+    case IOSTATE_READY:
+      {
+        if ( ! ResetEvent (input_facility->overlapped.hEvent))
+          {
             return FALSE;
+          }
+        input_facility->status = ReadFile (input_facility->handle,
+                                           input_facility->buffer,
+                                           MAX_SIZE,
+                                           &input_facility->buffer_size,
+                                           &input_facility->overlapped);
 
-          /* we successfully read something from the TAP and now need to
-           * send it our via STDOUT. Is that possible at the moment? */
-          if ((IOSTATE_READY == output_facility->facility_state ||
-               IOSTATE_WAITING == output_facility->facility_state)
-              && 0 < input_facility->buffer_size)
-            { /* hand over this buffers content */
-              memcpy (output_facility->buffer,
-                      input_facility->buffer,
-                      MAX_SIZE);
-              output_facility->buffer_size = input_facility->buffer_size;
-              output_facility->facility_state = IOSTATE_READY;
-            }
-          else if (0 < input_facility->buffer_size)
-            { /* If we have have read our buffer, wait for our write-partner*/
-              input_facility->facility_state = IOSTATE_WAITING;
-              // TODO: shall we attempt to fill our buffer or should we wait for our write-partner to finish?
-            }
-        }
-      else /* operation was either queued or failed*/
-        {
-          int err = GetLastError ();
-          if (ERROR_IO_PENDING == err)
-            { /* operation queued */
-              input_facility->facility_state = IOSTATE_QUEUED;
-            }
-          else
-            { /* error occurred, let the rest of the elements finish */
-              input_facility->path_open = FALSE;
-              input_facility->facility_state = IOSTATE_FAILED;
-              if (IOSTATE_WAITING == output_facility->facility_state)
-                output_facility->path_open = FALSE;
+        /* Check how the task is handled */
+        if (input_facility->status)
+          {/* async event processed immediately*/
 
-              fprintf (stderr, "Fatal: Read from handle failed, allowing write to finish!\n");
-            }
-        }
+            /* reset event manually*/
+            if ( ! SetEvent (input_facility->overlapped.hEvent))
+              return FALSE;
+
+            /* we successfully read something from the TAP and now need to
+             * send it our via STDOUT. Is that possible at the moment? */
+            if ((IOSTATE_READY == output_facility->facility_state ||
+                 IOSTATE_WAITING == output_facility->facility_state)
+                && 0 < input_facility->buffer_size)
+              { /* hand over this buffers content */
+                memcpy (output_facility->buffer,
+                        input_facility->buffer,
+                        MAX_SIZE);
+                output_facility->buffer_size = input_facility->buffer_size;
+                output_facility->facility_state = IOSTATE_READY;
+              }
+            else if (0 < input_facility->buffer_size)
+              { /* If we have have read our buffer, wait for our write-partner*/
+                input_facility->facility_state = IOSTATE_WAITING;
+                // TODO: shall we attempt to fill our buffer or should we wait for our write-partner to finish?
+              }
+          }
+        else /* operation was either queued or failed*/
+          {
+            int err = GetLastError ();
+            if (ERROR_IO_PENDING == err)
+              { /* operation queued */
+                input_facility->facility_state = IOSTATE_QUEUED;
+              }
+            else
+              { /* error occurred, let the rest of the elements finish */
+                input_facility->path_open = FALSE;
+                input_facility->facility_state = IOSTATE_FAILED;
+                if (IOSTATE_WAITING == output_facility->facility_state)
+                  output_facility->path_open = FALSE;
+
+                fprintf (stderr, "FATAL: Read from handle failed, allowing write to finish!\n");
+              }
+          }
+      }
+      return TRUE;
+      // We are queued and should check if the read has finished
+    case IOSTATE_QUEUED:
+      {
+        // there was an operation going on already, check if that has completed now.
+        input_facility->status = GetOverlappedResult (input_facility->handle,
+                                                      &input_facility->overlapped,
+                                                      &input_facility->buffer_size,
+                                                      FALSE);
+        if (input_facility->status)
+          {/* successful return for a queued operation */
+            if ( ! ResetEvent (input_facility->overlapped.hEvent))
+              return FALSE;
+
+            /* we successfully read something from the TAP and now need to
+             * send it our via STDOUT. Is that possible at the moment? */
+            if ((IOSTATE_READY == output_facility->facility_state ||
+                 IOSTATE_WAITING == output_facility->facility_state)
+                && 0 < input_facility->buffer_size)
+              { /* hand over this buffers content */
+                memcpy (output_facility->buffer,
+                        input_facility->buffer,
+                        MAX_SIZE);
+                output_facility->buffer_size = input_facility->buffer_size;
+                output_facility->facility_state = IOSTATE_READY;
+                input_facility->facility_state = IOSTATE_READY;
+              }
+            else if (0 < input_facility->buffer_size)
+              { /* If we have have read our buffer, wait for our write-partner*/
+                input_facility->facility_state = IOSTATE_WAITING;
+                // TODO: shall we attempt to fill our buffer or should we wait for our write-partner to finish?
+              }
+          }
+        else
+          { /* operation still pending/queued or failed? */
+            int err = GetLastError ();
+            if (ERROR_IO_INCOMPLETE != err && ERROR_IO_PENDING != err)
+              { /* error occurred, let the rest of the elements finish */
+                input_facility->path_open = FALSE;
+                input_facility->facility_state = IOSTATE_FAILED;
+                if (IOSTATE_WAITING == output_facility->facility_state)
+                  output_facility->path_open = FALSE;
+                fprintf (stderr, "FATAL: Read from handle failed, allowing write to finish!\n");
+              }
+          }
+      }
+      return TRUE;
+    default:
+      return TRUE;
     }
-    return TRUE;
-    // We are queued and should check if the read has finished
-  case IOSTATE_QUEUED:
-    {
-      // there was an operation going on already, check if that has completed now.
-      input_facility->status = GetOverlappedResult (input_facility->handle,
-                                                    &input_facility->overlapped,
-                                                    &input_facility->buffer_size,
-                                                    FALSE);
-      if (input_facility->status)
-        {/* successful return for a queued operation */
-          if (!ResetEvent (input_facility->overlapped.hEvent))
-            return FALSE;
-
-          /* we successfully read something from the TAP and now need to
-           * send it our via STDOUT. Is that possible at the moment? */
-          if ((IOSTATE_READY == output_facility->facility_state ||
-               IOSTATE_WAITING == output_facility->facility_state)
-              && 0 < input_facility->buffer_size)
-            { /* hand over this buffers content */
-              memcpy (output_facility->buffer,
-                      input_facility->buffer,
-                      MAX_SIZE);
-              output_facility->buffer_size = input_facility->buffer_size;
-              output_facility->facility_state = IOSTATE_READY;
-              input_facility->facility_state = IOSTATE_READY;
-            }
-          else if (0 < input_facility->buffer_size)
-            { /* If we have have read our buffer, wait for our write-partner*/
-              input_facility->facility_state = IOSTATE_WAITING;
-              // TODO: shall we attempt to fill our buffer or should we wait for our write-partner to finish?
-            }
-        }
-      else
-        { /* operation still pending/queued or failed? */
-          int err = GetLastError ();
-          if (ERROR_IO_INCOMPLETE != err && ERROR_IO_PENDING != err)
-            { /* error occurred, let the rest of the elements finish */
-              input_facility->path_open = FALSE;
-              input_facility->facility_state = IOSTATE_FAILED;
-              if (IOSTATE_WAITING == output_facility->facility_state)
-                output_facility->path_open = FALSE;
-              fprintf (stderr, "Fatal: Read from handle failed, allowing write to finish!\n");
-            }
-        }
-    }
-    return TRUE;
-  default:
-    return TRUE;
-  }
 }
 
 /**
@@ -824,7 +888,7 @@ attempt_write (struct io_facility * output_facility,
   if (IOSTATE_READY == output_facility->facility_state
       && output_facility->buffer_size > 0)
     {
-      if (!ResetEvent (output_facility->overlapped.hEvent))
+      if ( ! ResetEvent (output_facility->overlapped.hEvent))
         {
           return FALSE;
         }
@@ -841,7 +905,7 @@ attempt_write (struct io_facility * output_facility,
         {/* async event processed immediately*/
 
           /* reset event manually*/
-          if (!SetEvent (output_facility->overlapped.hEvent))
+          if ( ! SetEvent (output_facility->overlapped.hEvent))
             return FALSE;
 
           /* we are now waiting for our buffer to be filled*/
@@ -866,7 +930,7 @@ attempt_write (struct io_facility * output_facility,
             { /* error occurred, close this path */
               output_facility->path_open = FALSE;
               output_facility->facility_state = IOSTATE_FAILED;
-              fprintf (stderr, "Fatal: Write to handle failed, exiting!\n");
+              fprintf (stderr, "FATAL: Write to handle failed, exiting!\n");
             }
         }
 
@@ -881,7 +945,7 @@ attempt_write (struct io_facility * output_facility,
       if (output_facility->status &&
           output_facility->buffer_size_written == output_facility->buffer_size)
         {/* successful return for a queued operation */
-          if (!ResetEvent (output_facility->overlapped.hEvent))
+          if ( ! ResetEvent (output_facility->overlapped.hEvent))
             return FALSE;
 
           /* we are now waiting for our buffer to be filled*/
@@ -902,7 +966,7 @@ attempt_write (struct io_facility * output_facility,
             { /* error occurred, close this path */
               output_facility->path_open = FALSE;
               output_facility->facility_state = IOSTATE_FAILED;
-              fprintf (stderr, "Fatal: Write to handle failed, exiting!\n");
+              fprintf (stderr, "FATAL: Write to handle failed, exiting!\n");
             }
         }
     }
@@ -963,11 +1027,11 @@ run (HANDLE tap_handle)
    * DHCP and such are all features we will never use in gnunet afaik.
    * But for openvpn those are essential.
    */
-  if (!tun_up (tap_handle))
+  if ( ! tun_up (tap_handle))
     return;
 
   /* Initialize our overlapped IO structures*/
-  if (!(initialize_io_facility (&tap_read, TRUE, FALSE)
+  if ( ! (initialize_io_facility (&tap_read, TRUE, FALSE)
         && initialize_io_facility (&tap_write, FALSE, TRUE)
         && initialize_io_facility (&std_in, TRUE, FALSE)
         && initialize_io_facility (&std_out, FALSE, TRUE)))
@@ -985,7 +1049,9 @@ run (HANDLE tap_handle)
   if (FILE_TYPE_PIPE != GetFileType (parent_std_in_handle) ||
       FILE_TYPE_PIPE != GetFileType (parent_std_out_handle))
     {
-      fprintf (stderr, "Fatal: stdin/stdout must be named pipes!\n");
+      fprintf (stderr, "ERROR: stdin/stdout must be named pipes!\n");
+      printf("\nPress Enter to continue...");
+      getchar();
       goto teardown;
     }
 
@@ -996,7 +1062,7 @@ run (HANDLE tap_handle)
 
   if (INVALID_HANDLE_VALUE == std_in.handle)
     {
-      fprintf (stderr, "Fatal: Could not reopen stdin for in overlapped mode, has to be a named pipe!\n");
+      fprintf (stderr, "FATAL: Could not reopen stdin for in overlapped mode, has to be a named pipe!\n");
       goto teardown;
     }
 
@@ -1007,7 +1073,7 @@ run (HANDLE tap_handle)
 
   if (INVALID_HANDLE_VALUE == std_out.handle)
     {
-      fprintf (stderr, "Fatal: Could not reopen stdout for in overlapped mode, has to be a named pipe!\n");
+      fprintf (stderr, "FATAL: Could not reopen stdout for in overlapped mode, has to be a named pipe!\n");
       goto teardown;
     }
 
@@ -1058,10 +1124,12 @@ main (int argc, char **argv)
   char hwid[LINE_LEN];
   HANDLE handle;
   int global_ret = 0;
+  boolean have_ip4=FALSE;
+  boolean have_ip6=FALSE;
 
   if (6 != argc)
     {
-      fprintf (stderr, "Fatal: must supply 5 arguments!\n");
+      fprintf (stderr, "FATAL: must supply 5 arguments!\n");
       return 1;
     }
 
@@ -1079,7 +1147,7 @@ main (int argc, char **argv)
 
   if (INVALID_HANDLE_VALUE == (handle = init_tun ()))
     {
-      fprintf (stderr, "Fatal: could not initialize virtual-interface %s with IPv6 %s/%s and IPv4 %s/%s\n",
+      fprintf (stderr, "FATAL: could not initialize virtual-interface %s with IPv6 %s/%s and IPv4 %s/%s\n",
                hwid,
                argv[2],
                argv[3],
@@ -1096,13 +1164,15 @@ main (int argc, char **argv)
 
       if ((prefix_len < 1) || (prefix_len > 127))
         {
-          fprintf (stderr, "Fatal: prefix_len out of range\n");
+          fprintf (stderr, "FATAL: prefix_len out of range\n");
           global_ret = -1;
           goto cleanup;
         }
 
       if (0 != (global_ret = set_address6 (address, prefix_len)))
         goto cleanup;
+      
+      have_ip6 = TRUE;
     }
 
   if (0 != strcmp (argv[4], "-"))
@@ -1112,12 +1182,22 @@ main (int argc, char **argv)
 
       if (0 != (global_ret = set_address4 (address, mask)))
         goto cleanup;
+      
+      have_ip4 = TRUE;
     }
 
   run (handle);
   global_ret = 0;
 cleanup:
 
+  if (have_ip4){
+      const char *address = argv[4];
+      remove_address4(address);
+    }
+  if (have_ip6){
+      const char *address = argv[2];
+      remove_address6(address);
+    }
   remove_interface ();
   return global_ret;
 }
