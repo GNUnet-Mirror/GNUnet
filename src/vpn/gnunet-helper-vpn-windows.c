@@ -175,7 +175,7 @@ WINBASEAPI HANDLE WINAPI ReOpenFile (HANDLE, DWORD, DWORD, DWORD);
  *         * EPIPE (could not read STDOUT)
  */
 static int
-execute_shellcommand (char * command)
+execute_shellcommand (const char *command)
 {
   FILE *pipe;
 
@@ -186,7 +186,7 @@ execute_shellcommand (char * command)
 #ifdef TESTING
   char output[LINE_LEN];
   while (NULL != fgets (output, sizeof (output), pipe))
-    printf (output);
+    fprintf (stderr, "%s", output);
 #endif
 
   return _pclose (pipe);
@@ -365,6 +365,8 @@ setup_interface ()
                                   &DeviceNode))
     return FALSE;
 
+  /* This system call tends to take a while (several seconds!) on
+     "modern" Windoze systems */
   if (!UpdateDriverForPlugAndPlayDevicesA (NULL,
                                            secondary_hwid,
                                            inf_file_path,
@@ -435,7 +437,7 @@ resolve_interface_name ()
   char adapter[] = INTERFACE_REGISTRY_LOCATION;
 
   /* Registry is incredibly slow, wait a few seconds for it to refresh */
-  sleep (5);
+  sleep (5); // FIXME: instead use sleep (1) in a retrying loop; maybe even nanosleep for 50-250ms instead
 
   /* We can obtain the PNP instance ID from our setupapi handle */
   device_details.cbSize = sizeof (device_details);
@@ -661,7 +663,7 @@ tun_up (HANDLE handle)
     }
 
   /* Wait for the device to go UP, might take some time. */
-  Sleep ((TAP32_POSTUP_WAITTIME)*1000);
+  Sleep (TAP32_POSTUP_WAITTIME * 1000);
 
   return TRUE;
 
@@ -696,8 +698,9 @@ static boolean
 attempt_read (struct io_facility * input_facility,
               struct io_facility * output_facility)
 {
-
-  if (IOSTATE_READY == input_facility->facility_state)
+  switch (input_facility->facility_state)
+  {
+  case IOSTATE_READY:
     {
       if (!ResetEvent (input_facility->overlapped.hEvent))
         {
@@ -753,8 +756,9 @@ attempt_read (struct io_facility * input_facility,
             }
         }
     }
+    return TRUE;
     // We are queued and should check if the read has finished
-  else if (IOSTATE_QUEUED == input_facility->facility_state)
+  case IOSTATE_QUEUED:
     {
       // there was an operation going on already, check if that has completed now.
       input_facility->status = GetOverlappedResult (input_facility->handle,
@@ -798,7 +802,10 @@ attempt_read (struct io_facility * input_facility,
             }
         }
     }
-  return TRUE;
+    return TRUE;
+  default:
+    return TRUE;
+  }
 }
 
 /**
