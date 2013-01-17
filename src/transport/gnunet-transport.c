@@ -727,6 +727,9 @@ process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
     /* done */
     address_resolution_in_progress = GNUNET_NO;
     pic = NULL;
+    if (GNUNET_SCHEDULER_NO_TASK != end)
+      GNUNET_SCHEDULER_cancel (end);
+    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
   }
   if (address == NULL)
@@ -739,6 +742,9 @@ process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
   	GNUNET_SCHEDULER_cancel (op_timeout);
   op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
                                              &operation_timeout, NULL);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received address for peer `%s': %s\n",
+  		GNUNET_i2s (peer), address->transport_name);
 
   rc = GNUNET_malloc(sizeof (struct ResolutionContext));
   GNUNET_assert (NULL != rc);
