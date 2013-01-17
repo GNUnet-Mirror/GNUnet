@@ -1212,7 +1212,7 @@ typedef void (*GNUNET_TESTBED_ServiceConnectCompletionCallback) (void *cls,
  * 'GNUNET_TESTBED_operation_cancel' can be used to abort this
  * operation until the event callback has been called.
  *
- * @param op_cls closure to pass in operation event
+ * @param op_cls closure to pass in operation event // FIXME: didn't we say we'd no longer use the global callback for these? -CG
  * @param peer peer that runs the service
  * @param service_name name of the service to connect to
  * @param cb the callback to call when this operation finishes
