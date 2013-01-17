@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2012 Christian Grothoff (and other contributing authors)
+     (C) 2012,2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -20,11 +20,11 @@
 
 /**
  * @author Bartlomiej Polot
- * @file mesh/mesh_block_lib.h
+ * @file regex/regex_block_lib.h
  */
 
-#ifndef MESH_BLOCK_LIB_H_
-#define MESH_BLOCK_LIB_H_
+#ifndef REGEX_BLOCK_LIB_H_
+#define REGEX_BLOCK_LIB_H_
 
 #ifdef __cplusplus
 extern "C"
@@ -36,7 +36,7 @@ extern "C"
 #endif
 
 #include "platform.h"
-#include "block_mesh.h"
+#include "block_regex.h"
 
 /**
  * Check if the regex block is well formed, including all edges
@@ -50,9 +50,9 @@ extern "C"
  *         GNUNET_SYSERR if the block is invalid.
  */
 int
-GNUNET_MESH_regex_block_check (const struct MeshRegexBlock *block,
-                               size_t size,
-                               const char *xquery);
+GNUNET_REGEX_block_check (const struct RegexBlock *block,
+                          size_t size,
+                          const char *xquery);
 
 /**
  * Iterator over edges in a block.
@@ -64,10 +64,10 @@ GNUNET_MESH_regex_block_check (const struct MeshRegexBlock *block,
  *
  * @return GNUNET_YES if should keep iterating, GNUNET_NO otherwise.
  */
-typedef int (*GNUNET_MESH_EgdeIterator)(void *cls,
-                                        const char *token,
-                                        size_t len,
-                                        const struct GNUNET_HashCode *key);
+typedef int (*GNUNET_REGEX_EgdeIterator)(void *cls,
+                                         const char *token,
+                                         size_t len,
+                                         const struct GNUNET_HashCode *key);
 
 
 /**
@@ -81,10 +81,10 @@ typedef int (*GNUNET_MESH_EgdeIterator)(void *cls,
  * @return GNUNET_SYSERR if an error has been encountered, GNUNET_OK otherwise
  */
 int
-GNUNET_MESH_regex_block_iterate (const struct MeshRegexBlock *block,
-                                 size_t size,
-                                 GNUNET_MESH_EgdeIterator iterator,
-                                 void *iter_cls);
+GNUNET_REGEX_block_iterate (const struct RegexBlock *block,
+                            size_t size,
+                            GNUNET_REGEX_EgdeIterator iterator,
+                            void *iter_cls);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -93,6 +93,6 @@ GNUNET_MESH_regex_block_iterate (const struct MeshRegexBlock *block,
 }
 #endif
 
-/* ifndef MESH_BLOCK_LIB_H */
+/* ifndef REGEX_BLOCK_LIB_H */
 #endif
-/* end of mesh_block_lib.h */
+/* end of regex_block_lib.h */

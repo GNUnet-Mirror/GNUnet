@@ -27,8 +27,7 @@ bin_PROGRAMS = \
  gnunet-mesh
 
 lib_LTLIBRARIES = \
-  libgnunetmesh.la \
-  libgnunetmeshblock.la
+  libgnunetmesh.la
 
 plugin_LTLIBRARIES = \
  libgnunet_plugin_block_mesh.la
@@ -36,13 +35,11 @@ plugin_LTLIBRARIES = \
 libgnunet_plugin_block_mesh_la_SOURCES = \
  plugin_block_mesh.c
 libgnunet_plugin_block_mesh_la_LIBADD = \
- $(top_builddir)/src/mesh/libgnunetmeshblock.la \
  $(top_builddir)/src/block/libgnunetblock.la \
  $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_block_mesh_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_block_mesh_la_DEPENDENCIES = \
- libgnunetmeshblock.la \
  $(top_builddir)/src/block/libgnunetblock.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
@@ -56,16 +53,6 @@ libgnunetmesh_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 2:0:1
 
-libgnunetmeshblock_la_SOURCES = \
-  mesh_block_lib.c mesh_block_lib.h
-libgnunetmeshblock_la_LIBADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(XLIB) \
-  $(LTLIBINTL)
-libgnunetmeshblock_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
-  -version-info 2:0:0
-
 gnunet_service_mesh_SOURCES = \
  gnunet-service-mesh.c \
  mesh_tunnel_tree.c mesh_tunnel_tree.h \
@@ -77,7 +64,6 @@ gnunet_service_mesh_LDADD = \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/block/libgnunetblock.la \
-  $(top_builddir)/src/mesh/libgnunetmeshblock.la \
   $(top_builddir)/src/regex/libgnunetregex.la
 gnunet_service_mesh_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -85,7 +71,6 @@ gnunet_service_mesh_DEPENDENCIES = \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/block/libgnunetblock.la \
-  libgnunetmeshblock.la \
   $(top_builddir)/src/regex/libgnunetregex.la
 if LINUX
 gnunet_service_mesh_LDFLAGS = -lrt
@@ -110,7 +95,6 @@ gnunet_service_mesh_new_LDADD = \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/block/libgnunetblock.la \
-  $(top_builddir)/src/mesh/libgnunetmeshblock.la \
   $(top_builddir)/src/regex/libgnunetregex.la
 gnunet_service_mesh_new_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -118,7 +102,6 @@ gnunet_service_mesh_new_DEPENDENCIES = \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/block/libgnunetblock.la \
-  libgnunetmeshblock.la \
   $(top_builddir)/src/regex/libgnunetregex.la
 if LINUX
 gnunet_service_mesh_new_LDFLAGS = -lrt

@@ -113,12 +113,12 @@ enum GNUNET_BLOCK_Type
     /**
      * Block to store a mesh regex state
      */
-  GNUNET_BLOCK_TYPE_MESH_REGEX = 22,
+  GNUNET_BLOCK_TYPE_REGEX = 22,
 
     /**
      * Block to store a mesh regex accepting state
      */
-  GNUNET_BLOCK_TYPE_MESH_REGEX_ACCEPT = 23
+  GNUNET_BLOCK_TYPE_REGEX_ACCEPT = 23
 };
 
 

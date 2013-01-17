@@ -20,8 +20,7 @@
 /**
  * @file src/regex/regex.c
  * @brief library to create Deterministic Finite Automatons (DFAs) from regular
- * expressions (regexes). Used by mesh for announcing regexes in the network and
- * matching strings against published regexes.
+ * expressions (regexes).
  * @author Maximilian Szengel
  */
 #include "platform.h"

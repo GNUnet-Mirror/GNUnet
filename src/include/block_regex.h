@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2012 Christian Grothoff (and other contributing authors)
+     (C) 2012,2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -19,37 +19,30 @@
 */
 
 /**
- * @file include/block_mesh.h
- * @brief fs block formats (shared between fs and block)
+ * @file include/block_regex.h
+ * @brief regex block formats
  * @author Bartlomiej Polot
  */
-#ifndef BLOCK_MESH_H
-#define BLOCK_MESH_H
+#ifndef BLOCK_REGEX_H
+#define BLOCK_REGEX_H
+
+#ifdef __cplusplus
+extern "C"
+{
+#if 0
+  /* keep Emacsens' auto-indent happy */
+}
+#endif
+#endif
 
 #include "gnunet_util_lib.h"
-#include "gnunet_mesh_service.h"
 #include <stdint.h>
 
-/**
- * @brief peer block (announce peer + type)
- */
-struct PBlock
-{
-    /**
-     * Identity of the peer
-     */
-  struct GNUNET_PeerIdentity id;
-
-    /**
-     * Type of service offered
-     */
-  GNUNET_MESH_ApplicationType type;
-};
 
 /**
- * @brief A MeshRegexBlock contains one or more of this struct in the payload.
+ * @brief A RegexBlock contains one or more of this struct in the payload.
  */
-struct MeshRegexEdge
+struct RegexEdge
 {
       /**
        * Destination of this edge.
@@ -67,7 +60,7 @@ struct MeshRegexEdge
 /**
  * @brief Block to announce a regex state.
  */
-struct MeshRegexBlock
+struct RegexBlock
 {
       /**
        * The key of the state.
@@ -90,13 +83,13 @@ struct MeshRegexBlock
     int accepting;
 
     /* char proof[n_proof] */
-    /* struct MeshEdge edges[n_edges] */
+    /* struct RegexEdge edges[n_edges] */
 };
 
 /**
  * @brief Block to announce a peer accepting a state.
  */
-struct MeshRegexAccept
+struct RegexAccept
 {
       /**
        * The key of the state.
@@ -116,4 +109,12 @@ struct MeshRegexAccept
     struct GNUNET_PeerIdentity id;
 
 };
+
+#if 0                           /* keep Emacsens' auto-indent happy */
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
+
 #endif

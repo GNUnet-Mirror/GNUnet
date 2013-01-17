@@ -28,6 +28,8 @@
 #define GNUNET_REGEX_LIB_H
 
 #include "gnunet_util_lib.h"
+#include "gnunet_dht_service.h"
+#include "gnunet_statistics_service.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -248,6 +250,105 @@ void
 GNUNET_REGEX_ipv6toregex (const struct in6_addr *ipv6,
                           unsigned int prefixlen, char *rxstr);
 
+
+
+/**
+ * Handle to store cached data about a regex announce.
+ */
+struct GNUNET_REGEX_announce_handle;
+
+/**
+ * Handle to store data about a regex search.
+ */
+struct GNUNET_REGEX_search_handle;
+
+/**
+ * Announce a regular expression: put all states of the automaton in the DHT.
+ * Does not free resources, must call GNUNET_REGEX_announce_cancel for that.
+ * 
+ * @param dht An existing and valid DHT service handle.
+ * @param id ID to announce as provider of regex. Own ID in most cases.
+ * @param regex Regular expression to announce.
+ * @param compression How many characters per edge can we squeeze?
+ * @param stats Optional statistics handle to report usage. Can be NULL.
+ * 
+ * @return Handle to reuse o free cached resources.
+ *         Must be freed by calling GNUNET_REGEX_announce_cancel.
+ */
+struct GNUNET_REGEX_announce_handle *
+GNUNET_REGEX_announce (struct GNUNET_DHT_Handle *dht,
+                       struct GNUNET_PeerIdentity *id,
+                       const char *regex,
+                       uint16_t compression,
+                       struct GNUNET_STATISTICS_Handle *stats);
+
+/**
+ * Announce again a regular expression previously announced.
+ * Does use caching to speed up process.
+ * 
+ * @param h Handle returned by a previous GNUNET_REGEX_announce call.
+ */
+void
+GNUNET_REGEX_reannounce (struct GNUNET_REGEX_announce_handle *h);
+
+
+/**
+ * Clear all cached data used by a regex announce.
+ * Does not close DHT connection.
+ * 
+ * @param h Handle returned by a previous GNUNET_REGEX_announce call.
+ */
+void
+GNUNET_REGEX_announce_cancel (struct GNUNET_REGEX_announce_handle *h);
+
+
+/**
+ * Search callback function.
+ *
+ * @param cls Closure provided in GNUNET_REGEX_search.
+ * @param id Peer providing a regex that matches the string.
+ * @param get_path Path of the get request.
+ * @param get_path_length Lenght of get_path.
+ * @param put_path Path of the put request.
+ * @param put_path_length Length of the put_path.
+ */
+typedef void (*GNUNET_REGEX_Found)(void *cls,
+                                   const struct GNUNET_PeerIdentity *id,
+                                   const struct GNUNET_PeerIdentity *get_path,
+                                   unsigned int get_path_length,
+                                   const struct GNUNET_PeerIdentity *put_path,
+                                   unsigned int put_path_length);
+
+
+/**
+ * Search for a peer offering a regex matching certain string in the DHT.
+ * The search runs until GNUNET_REGEX_search_cancel is called, even if results
+ * are returned.
+ *
+ * @param dht An existing and valid DHT service handle.
+ * @param string String to match against the regexes in the DHT.
+ * @param callback Callback for found peers.
+ * @param callback_cls Closure for @c callback.
+ * @param stats Optional statistics handle to report usage. Can be NULL.
+ * 
+ * @return Handle to stop search and free resources.
+ *         Must be freed by calling GNUNET_REGEX_search_cancel.
+ */
+struct GNUNET_REGEX_search_handle *
+GNUNET_REGEX_search (struct GNUNET_DHT_Handle *dht,
+                     const char *string,
+                     GNUNET_REGEX_Found callback,
+                     void *callback_cls,
+                     struct GNUNET_STATISTICS_Handle *stats);
+
+/**
+ * Stop search and free all data used by a GNUNET_REGEX_search call.
+ * Does not close DHT connection.
+ * 
+ * @param h Handle returned by a previous GNUNET_REGEX_search call.
+ */
+void
+GNUNET_REGEX_search_cancel (struct GNUNET_REGEX_search_handle *h);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

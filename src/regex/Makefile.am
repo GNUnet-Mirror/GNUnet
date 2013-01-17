@@ -8,16 +8,52 @@ if USE_COVERAGE
   AM_CFLAGS = --coverage
 endif
 
-lib_LTLIBRARIES = libgnunetregex.la
+lib_LTLIBRARIES = libgnunetregexblock.la \
+  libgnunetregex.la
+
+
+libgnunetregexblock_la_SOURCES = \
+  regex_block_lib.c regex_block_lib.h
+libgnunetregexblock_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(XLIB) \
+  $(LTLIBINTL)
+libgnunetregexblock_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  -version-info 1:0:0
 
 libgnunetregex_la_SOURCES = \
   regex_internal.h regex.c \
-  regex_graph.c regex_random.c
+  regex_graph.c regex_random.c \
+  regex_dht.c
 libgnunetregex_la_LIBADD = -lm \
-  $(top_builddir)/src/util/libgnunetutil.la
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/dht/libgnunetdht.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/regex/libgnunetregexblock.la
 libgnunetregex_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
    -version-info 1:1:0
+
+
+plugindir = $(libdir)/gnunet
+
+plugin_LTLIBRARIES = \
+ libgnunet_plugin_block_regex.la
+
+libgnunet_plugin_block_regex_la_SOURCES = \
+ plugin_block_regex.c
+libgnunet_plugin_block_regex_la_LIBADD = \
+ $(top_builddir)/src/regex/libgnunetregexblock.la \
+ $(top_builddir)/src/block/libgnunetblock.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+libgnunet_plugin_block_regex_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+libgnunet_plugin_block_regex_la_DEPENDENCIES = \
+ $(top_builddir)/src/regex/libgnunetregexblock.la \
+ $(top_builddir)/src/block/libgnunetblock.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
 
 if HAVE_MYSQL
 noinst_mysql_progs = \
