@@ -39,9 +39,9 @@
  * How long do we wait for the NAT test to report success?
  * Should match NAT_SERVER_TIMEOUT in 'nat_test.c'.
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
-#define RESOLUTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
-#define OP_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+#define RESOLUTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+#define OP_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
  * Benchmarking block size in KB
@@ -273,12 +273,25 @@ shutdown_task (void *cls,
   }
 }
 
+struct ResolutionContext *rc_head;
+struct ResolutionContext *rc_tail;
+
+struct ResolutionContext
+{
+	struct ResolutionContext *next;
+	struct ResolutionContext *prev;
+  struct GNUNET_HELLO_Address *addrcp;
+  struct GNUNET_TRANSPORT_AddressToStringContext *asc;
+  int printed;
+};
 
 
 static void
 operation_timeout (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+	struct ResolutionContext *cur;
+	struct ResolutionContext *next;
   op_timeout = GNUNET_SCHEDULER_NO_TASK;
   if ((try_connect) || (benchmark_send) ||
   		(benchmark_receive))
@@ -292,7 +305,20 @@ operation_timeout (void *cls,
   }
   if (iterate_connections)
   {
-      FPRINTF (stdout, _("Failed to list connections, timeout occured\n"));
+  		next = rc_head;
+  		while (NULL != (cur = next))
+  		{
+  				next = cur->next;
+  				FPRINTF (stdout, _("Failed to resolve address for peer `%s'\n"),
+  						GNUNET_i2s (&cur->addrcp->peer));
+
+  				GNUNET_CONTAINER_DLL_remove (rc_head, rc_tail, cur);
+  				GNUNET_TRANSPORT_address_to_string_cancel (cur->asc);
+  				GNUNET_free (cur->addrcp);
+  				GNUNET_free (cur);
+
+  		}
+  		FPRINTF (stdout, _("Failed to list connections, timeout occured\n"));
       if (GNUNET_SCHEDULER_NO_TASK != end)
         GNUNET_SCHEDULER_cancel (end);
       end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
@@ -641,13 +667,6 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 }
 
-struct ResolutionContext
-{
-  struct GNUNET_HELLO_Address *addrcp;
-
-  int printed;
-};
-
 
 static void
 process_string (void *cls, const char *address)
@@ -668,6 +687,7 @@ process_string (void *cls, const char *address)
     if (GNUNET_NO == rc->printed)
       FPRINTF (stdout, _("Peer `%s': %s <unable to resolve address>\n"), GNUNET_i2s (&addrcp->peer), addrcp->transport_name);
     GNUNET_free (rc->addrcp);
+    GNUNET_CONTAINER_DLL_remove (rc_head, rc_tail, rc);
     GNUNET_free (rc);
     if ((0 == address_resolutions) && (iterate_connections))
     {
@@ -685,6 +705,7 @@ process_string (void *cls, const char *address)
         end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     }
   }
+
 }
 
 /**
@@ -720,15 +741,17 @@ process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
                                              &operation_timeout, NULL);
 
   rc = GNUNET_malloc(sizeof (struct ResolutionContext));
+  GNUNET_assert (NULL != rc);
+  GNUNET_CONTAINER_DLL_insert (rc_head, rc_tail, rc);
+  address_resolutions ++;
+
   rc->addrcp = GNUNET_HELLO_address_copy(address);
   rc->printed = GNUNET_NO;
-
-  GNUNET_assert (NULL != rc);
-  address_resolutions ++;
   /* Resolve address to string */
-  GNUNET_TRANSPORT_address_to_string (cfg, address, numeric,
+  rc->asc = GNUNET_TRANSPORT_address_to_string (cfg, address, numeric,
                                       RESOLUTION_TIMEOUT, &process_string,
                                       rc);
+
 }
 
 void try_connect_cb (void *cls,
