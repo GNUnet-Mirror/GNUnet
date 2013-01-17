@@ -2163,7 +2163,8 @@ create_selectable_pipe (PHANDLE read_pipe_ptr, PHANDLE write_pipe_ptr,
   /* Default to error. */
   *read_pipe_ptr = *write_pipe_ptr = INVALID_HANDLE_VALUE;
 
-  HANDLE read_pipe = INVALID_HANDLE_VALUE, write_pipe = INVALID_HANDLE_VALUE;
+  HANDLE read_pipe;
+  HANDLE write_pipe;
 
   /* Ensure that there is enough pipe buffer space for atomic writes.  */
   if (psize < PIPE_BUF)
