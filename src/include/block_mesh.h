@@ -26,6 +26,14 @@
 #ifndef BLOCK_MESH_H
 #define BLOCK_MESH_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#if 0                           /* keep Emacsens' auto-indent happy */
+}
+#endif
+#endif
+
 #include "gnunet_util_lib.h"
 #include "gnunet_mesh_service.h"
 #include <stdint.h>
@@ -45,5 +53,12 @@ struct PBlock
      */
   GNUNET_MESH_ApplicationType type;
 };
+
+#if 0                           /* keep Emacsens' auto-indent happy */
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 
 #endif

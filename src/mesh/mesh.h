@@ -25,6 +25,15 @@
 
 #ifndef MESH_H_
 #define MESH_H_
+
+#ifdef __cplusplus
+extern "C"
+{
+#if 0                           /* keep Emacsens' auto-indent happy */
+}
+#endif
+#endif
+
 #include <stdint.h>
 
 #define MESH_DEBUG              GNUNET_YES
@@ -434,5 +443,12 @@ GMC_min_pid (uint32_t a, uint32_t b);
  */
 const char *
 GNUNET_MESH_DEBUG_M2S (uint16_t m);
+
+#if 0                           /* keep Emacsens' auto-indent happy */
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 
 #endif
