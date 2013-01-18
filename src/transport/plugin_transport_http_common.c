@@ -149,6 +149,7 @@ http_split_address (const char * addr)
 			GNUNET_free (sp);
 			return NULL;
 	}
+	GNUNET_free (src);
 	//fprintf (stderr, "addr: `%s' protocol: `%s', host `%s' port `%u' path `%s'\n", addr, sp->protocol, sp->host, sp->port, sp->path);
 	return sp;
 }
