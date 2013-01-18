@@ -1164,12 +1164,10 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
                                 &pong->purpose, &pong->signature,
                                 &ve->public_key))
   {
-    GNUNET_break_op (0);
-    /*
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		"Invalid signature on address %s:%s from peer `%s'\n",
 		tname, GST_plugins_a2s (ve->address),
-		GNUNET_i2s (sender));*/
+		GNUNET_i2s (sender));
     return;
   }
 
