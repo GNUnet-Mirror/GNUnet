@@ -155,11 +155,12 @@ void transport_addr_to_str_cb (void *cls, const char *address)
   unsigned int c;
   uint32_t ats_type;
   uint32_t ats_value;
+  uint32_t network;
   if (NULL != address)
   {
     ats_str = GNUNET_strdup("");
-    if (verbose)
-    {
+
+
     for (c = 0; c < pr->ats_count; c++)
     {
         ats_tmp = ats_str;
@@ -180,23 +181,24 @@ void transport_addr_to_str_cb (void *cls, const char *address)
                 GNUNET_break (0);
                 continue;
             }
+            network = ats_value;
             GNUNET_asprintf (&ats_prop_value, "%s", GNUNET_ATS_print_network_type(ats_value));
             break;
           default:
             GNUNET_asprintf (&ats_prop_value, "%u", ats_value);
             break;
         }
-        if (ats_type < GNUNET_ATS_PropertyCount)
+        if ((verbose) && (ats_type < GNUNET_ATS_PropertyCount))
         {
           GNUNET_asprintf (&ats_str, "%s%s=%s, ", ats_tmp, ats_prop_arr[ats_type] , ats_prop_value);
           GNUNET_free (ats_tmp);
         }
         GNUNET_free (ats_prop_value);
-      }
-    }
+		}
 
-    fprintf (stderr, _("Peer `%s' plugin `%s', address `%s', bw out: %u Bytes/s, bw in %u Bytes/s, %s\n"),
+    fprintf (stderr, _("Peer `%s' plugin `%s', address `%s', `%s' bw out: %u Bytes/s, bw in %u Bytes/s, %s\n"),
       GNUNET_i2s (&pr->address->peer), pr->address->transport_name, address,
+      GNUNET_ATS_print_network_type(network),
       ntohl (pr->bandwidth_out.value__), ntohl (pr->bandwidth_in.value__),ats_str);
     GNUNET_free (ats_str);
   }
