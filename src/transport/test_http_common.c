@@ -18,13 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file transport/test_transport_api.c
- * @brief base test case for transport implementations
- *
- * This test case serves as a base for tcp, udp, and udp-nat
- * transport test cases.  Based on the executable being run
- * the correct test case will be performed.  Conservation of
- * C code apparently.
+ * @file transport/test_http_common.c
+ * @brief base test case for common http functionality
  */
 #include "platform.h"
 #include "gnunet_transport_service.h"
@@ -33,10 +28,10 @@
 
 struct SplittedHTTPAddress
 {
-	char *protocoll;
+	char *protocol;
 	char *host;
-	char *port;
 	char *path;
+	int port;
 };
 
 void
@@ -46,25 +41,386 @@ clean (struct SplittedHTTPAddress *addr)
 	{
 		GNUNET_free_non_null (addr->host);
 		GNUNET_free_non_null (addr->path);
-		GNUNET_free_non_null (addr->port);
-		GNUNET_free_non_null (addr->protocoll);
+		GNUNET_free_non_null (addr->protocol);
 		GNUNET_free_non_null (addr);
 	}
+}
+
+
+int
+check (struct SplittedHTTPAddress *addr,
+			 char * protocol,
+			 char * host,
+			 int port,
+			 char * path)
+{
+
+	if (NULL == addr)
+		return GNUNET_NO;
+	if (((NULL == addr->protocol) && (NULL != protocol)) ||
+			((NULL != addr->protocol) && (NULL == protocol)))
+	{
+		GNUNET_break (0);
+		return GNUNET_NO;
+	}
+	else if ((NULL != addr->protocol) && (NULL != protocol))
+	{
+		if (0 != strcmp(addr->protocol, protocol))
+		{
+			GNUNET_break (0);
+			return GNUNET_NO;
+		}
+	}
+
+	if (((NULL == addr->host) && (NULL != host)) ||
+			((NULL != addr->host) && (NULL == host)))
+	{
+		GNUNET_break (0);
+		return GNUNET_NO;
+	}
+	else if ((NULL != addr->host) && (NULL != host))
+	{
+		if (0 != strcmp(addr->host, host))
+		{
+			GNUNET_break (0);
+			return GNUNET_NO;
+		}
+	}
+
+
+	if (((NULL == addr->path) && (NULL != path)) ||
+			((NULL != addr->path) && (NULL == path)))
+	{
+		GNUNET_break (0);
+		return GNUNET_NO;
+	}
+	else if ((NULL != addr->path) && (NULL != path))
+	{
+		if (0 != strcmp(addr->path, path))
+		{
+			GNUNET_break (0);
+			return GNUNET_NO;
+		}
+	}
+
+	if ((addr->port != port))
+	{
+		GNUNET_break (0);
+		return GNUNET_NO;
+	}
+
+	return GNUNET_OK;
+}
+
+void
+test_hostname ()
+{
+  struct SplittedHTTPAddress * spa;
+  spa = http_split_address ("http://test.local");
+  if (NULL == spa)
+  {
+  	GNUNET_break (0);
+  }
+  else
+  {
+  		if (GNUNET_OK != check(spa, "http", "test.local", HTTP_DEFAULT_PORT, ""))
+  		{
+  				GNUNET_break (0);
+  		}
+  		clean (spa);
+  }
+
+  spa = http_split_address ("http://test.local");
+  if (NULL == spa)
+  {
+  	GNUNET_break (0);
+  }
+  else
+  {
+  		if (GNUNET_OK != check(spa, "http", "test.local", HTTP_DEFAULT_PORT, ""))
+  		{
+  				GNUNET_break (0);
+  		}
+  		clean (spa);
+  }
+
+
+  spa = http_split_address ("http://test.local/");
+  if (NULL == spa)
+  {
+  	GNUNET_break (0);
+  }
+  else
+  {
+  		if (GNUNET_OK != check(spa, "http", "test.local", HTTP_DEFAULT_PORT, "/"))
+  		{
+  				GNUNET_break (0);
+  		}
+  		clean (spa);
+  }
+
+  spa = http_split_address ("http://test.local/path");
+  if (NULL == spa)
+  {
+  	GNUNET_break (0);
+  }
+  else
+  {
+  		if (GNUNET_OK != check(spa, "http", "test.local", HTTP_DEFAULT_PORT, "/path"))
+  		{
+  				GNUNET_break (0);
+  		}
+  		clean (spa);
+  }
+
+  spa = http_split_address ("http://test.local/path/");
+  if (NULL == spa)
+  {
+  	GNUNET_break (0);
+  }
+  else
+  {
+  		if (GNUNET_OK != check(spa, "http", "test.local", HTTP_DEFAULT_PORT, "/path/"))
+  		{
+  				GNUNET_break (0);
+  		}
+  		clean (spa);
+
+
+  }
+
+  spa = http_split_address ("http://test.local:1000/path/");
+  if (NULL == spa)
+  {
+  	GNUNET_break (0);
+  }
+  else
+  {
+  		if (GNUNET_OK != check(spa, "http", "test.local", 1000, "/path/"))
+  		{
+  				GNUNET_break (0);
+  		}
+  		clean (spa);
+  }
+}
+
+void
+test_ipv4 ()
+{
+  struct SplittedHTTPAddress * spa;
+  spa = http_split_address ("http://127.0.0.1");
+  if (NULL == spa)
+  {
+  	GNUNET_break (0);
+  }
+  else
+  {
+  		if (GNUNET_OK != check(spa, "http", "127.0.0.1", HTTP_DEFAULT_PORT, ""))
+  		{
+  				GNUNET_break (0);
+  		}
+  		clean (spa);
+  }
+
+  spa = http_split_address ("http://127.0.0.1");
+  if (NULL == spa)
+  {
+  	GNUNET_break (0);
+  }
+  else
+  {
+  		if (GNUNET_OK != check(spa, "http", "127.0.0.1", HTTP_DEFAULT_PORT, ""))
+  		{
+  				GNUNET_break (0);
+  		}
+  		clean (spa);
+  }
+
+
+  spa = http_split_address ("http://127.0.0.1/");
+  if (NULL == spa)
+  {
+  	GNUNET_break (0);
+  }
+  else
+  {
+  		if (GNUNET_OK != check(spa, "http", "127.0.0.1", HTTP_DEFAULT_PORT, "/"))
+  		{
+  				GNUNET_break (0);
+  		}
+  		clean (spa);
+  }
+
+  spa = http_split_address ("http://127.0.0.1/path");
+  if (NULL == spa)
+  {
+  	GNUNET_break (0);
+  }
+  else
+  {
+  		if (GNUNET_OK != check(spa, "http", "127.0.0.1", HTTP_DEFAULT_PORT, "/path"))
+  		{
+  				GNUNET_break (0);
+  		}
+  		clean (spa);
+  }
+
+  spa = http_split_address ("http://127.0.0.1/path/");
+  if (NULL == spa)
+  {
+  	GNUNET_break (0);
+  }
+  else
+  {
+  		if (GNUNET_OK != check(spa, "http", "127.0.0.1", HTTP_DEFAULT_PORT, "/path/"))
+  		{
+  				GNUNET_break (0);
+  		}
+  		clean (spa);
+
+
+  }
+
+  spa = http_split_address ("http://127.0.0.1:1000/path/");
+  if (NULL == spa)
+  {
+  	GNUNET_break (0);
+  }
+  else
+  {
+  		if (GNUNET_OK != check(spa, "http", "127.0.0.1", 1000, "/path/"))
+  		{
+  				GNUNET_break (0);
+  		}
+  		clean (spa);
+  }
+}
+
+void
+test_ipv6 ()
+{
+  struct SplittedHTTPAddress * spa;
+  spa = http_split_address ("http://[::1]");
+  if (NULL == spa)
+  {
+  	GNUNET_break (0);
+  }
+  else
+  {
+  		if (GNUNET_OK != check(spa, "http", "[::1]", HTTP_DEFAULT_PORT, ""))
+  		{
+  				GNUNET_break (0);
+  		}
+  		clean (spa);
+  }
+
+  spa = http_split_address ("http://[::1]");
+  if (NULL == spa)
+  {
+  	GNUNET_break (0);
+  }
+  else
+  {
+  		if (GNUNET_OK != check(spa, "http", "[::1]", HTTP_DEFAULT_PORT, ""))
+  		{
+  				GNUNET_break (0);
+  		}
+  		clean (spa);
+  }
+
+
+  spa = http_split_address ("http://[::1]/");
+  if (NULL == spa)
+  {
+  	GNUNET_break (0);
+  }
+  else
+  {
+  		if (GNUNET_OK != check(spa, "http", "[::1]", HTTP_DEFAULT_PORT, "/"))
+  		{
+  				GNUNET_break (0);
+  		}
+  		clean (spa);
+  }
+
+  spa = http_split_address ("http://[::1]/path");
+  if (NULL == spa)
+  {
+  	GNUNET_break (0);
+  }
+  else
+  {
+  		if (GNUNET_OK != check(spa, "http", "[::1]", HTTP_DEFAULT_PORT, "/path"))
+  		{
+  				GNUNET_break (0);
+  		}
+  		clean (spa);
+  }
+
+  spa = http_split_address ("http://[::1]/path/");
+  if (NULL == spa)
+  {
+  	GNUNET_break (0);
+  }
+  else
+  {
+  		if (GNUNET_OK != check(spa, "http", "[::1]", HTTP_DEFAULT_PORT, "/path/"))
+  		{
+  				GNUNET_break (0);
+  		}
+  		clean (spa);
+
+
+  }
+
+  spa = http_split_address ("http://[::1]:1000/path/");
+  if (NULL == spa)
+  {
+  	GNUNET_break (0);
+  }
+  else
+  {
+  		if (GNUNET_OK != check(spa, "http", "[::1]", 1000, "/path/"))
+  		{
+  				GNUNET_break (0);
+  		}
+  		clean (spa);
+  }
 }
 
 int
 main (int argc, char *argv[])
 {
   int ret = 0;
+  struct SplittedHTTPAddress * spa;
+  GNUNET_log_setup ("test", "DEBUG", NULL);
 
-  clean(http_split_address (""));
-  clean(http_split_address ("http://"));
-  clean(http_split_address ("http://test/path"));
-  clean(http_split_address ("http://test:8999/path"));
-  clean(http_split_address ("http://1.2.3.4:8999/path"));
-  clean(http_split_address ("http://1.2.3.4:8999"));
+  spa = http_split_address ("");
+  if (NULL != spa)
+  {
+  	clean (spa);
+  	GNUNET_break (0);
+  }
+
+  http_split_address ("http://");
+  if (NULL != spa)
+  {
+		clean (spa);
+  	GNUNET_break (0);
+  }
+
+  http_split_address ("://");
+  if (NULL != spa)
+  {
+		clean (spa);
+  	GNUNET_break (0);
+  }
+
+  test_hostname ();
+  test_ipv4 ();
+  test_ipv6 ();
 
   return ret;
 }
 
-/* end of test_transport_api.c */
+/* end of test_http_common.c */

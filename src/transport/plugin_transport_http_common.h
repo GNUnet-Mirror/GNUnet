@@ -50,6 +50,10 @@
 
 #endif
 
+#define HTTP_DEFAULT_PORT 80
+#define HTTPS_DEFAULT_PORT 443
+
+
 struct SplittedHTTPAddress;
 
 struct SplittedHTTPAddress *
@@ -147,7 +151,7 @@ http_common_socket_from_address (const void *addr, size_t addrlen, int *res);
  * @return the size
  */
 size_t
-http_common_address_get_size (void *addr);
+http_common_address_get_size (const void *addr);
 
 
 /**

@@ -27,13 +27,14 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_transport_plugin.h"
+#include "plugin_transport_http_common.h"
 
 struct SplittedHTTPAddress
 {
-	char *protocoll;
+	char *protocol;
 	char *host;
-	char *port;
 	char *path;
+	int port;
 };
 
 struct SplittedHTTPAddress *
@@ -41,13 +42,16 @@ http_split_address (const char * addr)
 {
 	struct SplittedHTTPAddress  *sp;
 	char *src = GNUNET_strdup (addr);
-	char *protocoll_start = NULL;
+	char *protocol_start = NULL;
 	char *host_start = NULL;
+	char *v6_end = NULL;
 	char *port_start = NULL;
 	char *path_start = NULL;
 
-	protocoll_start = src;
+	protocol_start = src;
 	sp = GNUNET_malloc (sizeof (struct SplittedHTTPAddress));
+
+	/* Address string consists of protocol://host[:port]path*/
 
 	host_start = strstr (src, "://");
 	if (NULL == host_start)
@@ -58,47 +62,94 @@ http_split_address (const char * addr)
 	}
 
 	host_start[0] = '\0';
-	sp->protocoll = GNUNET_strdup (protocoll_start);
+	sp->protocol = GNUNET_strdup (protocol_start);
 
 	host_start += strlen ("://");
 	if (strlen (host_start) == 0)
-	if (NULL == host_start)
 	{
 			GNUNET_free (src);
+			GNUNET_free (sp->protocol);
 			GNUNET_free (sp);
 			return NULL;
 	}
-	port_start = strstr (host_start, ":");
-	if (NULL == port_start)
+
+	/* Find path start */
+	path_start = strchr (host_start, '/');
+	if (NULL != path_start)
 	{
-		path_start = strstr (host_start, "/");
+			sp->path = GNUNET_strdup (path_start);
+			path_start[0] = '\0';
 	}
 	else
+		sp->path = GNUNET_strdup ("");
+
+	if (strlen(host_start) < 1)
 	{
-		port_start[0] = '\0';
-		port_start ++;
-		sp->host = GNUNET_strdup (host_start);
-		path_start = strstr (port_start, "/");
+			GNUNET_free (src);
+			GNUNET_free (sp->protocol);
+			GNUNET_free (sp->path);
+			GNUNET_free (sp);
+			return NULL;
 	}
 
-	if (NULL == path_start)
-  {
-			if (NULL != port_start)
-				sp->port = GNUNET_strdup (port_start);
-			sp->path = NULL;
-  }
+	if (NULL != (port_start = strrchr (host_start, ':')))
+	{
+			/* *We COULD have a port, but also an IPv6 address! */
+			if (NULL != (v6_end = strchr(host_start, ']')))
+			{
+					if  (v6_end < port_start)
+					{
+							/* IPv6 address + port */
+							port_start[0] = '\0';
+							port_start ++;
+							sp->port = atoi (port_start);
+					}
+					else
+					{
+							/* IPv6 address + no port */
+							if (0 == strcmp(sp->protocol, "https"))
+								sp->port = HTTPS_DEFAULT_PORT;
+							else if (0 == strcmp(sp->protocol, "http"))
+								sp->port = HTTP_DEFAULT_PORT;
+					}
+			}
+			else
+			{
+					/* No IPv6 address */
+					port_start[0] = '\0';
+					port_start ++;
+					sp->port = atoi (port_start);
+			}
+	}
 	else
 	{
-			if (NULL != port_start)
-			{
-					path_start[0] = '\0';
-					sp->port = GNUNET_strdup (port_start);
-					path_start[0] = '/';
-			}
-			sp->path = GNUNET_strdup(path_start);
+		/* No ':' as port separator, default port for protocol */
+		if (0 == strcmp(sp->protocol, "https"))
+			sp->port = HTTPS_DEFAULT_PORT;
+		else if (0 == strcmp(sp->protocol, "http"))
+			sp->port = HTTP_DEFAULT_PORT;
+		else
+		{
+				GNUNET_break (0);
+				GNUNET_free (src);
+				GNUNET_free (sp->protocol);
+				GNUNET_free (sp->path);
+				GNUNET_free (sp);
+				return NULL;
+		}
 	}
-	GNUNET_free (src);
-	fprintf (stderr, "protocoll: `%s', host `%s' port `%s' path `%s'\n", sp->protocoll, sp->host, sp->port, sp->path);
+	if (strlen (host_start) > 0)
+			sp->host = GNUNET_strdup (host_start);
+	else
+	{
+			GNUNET_break (0);
+			GNUNET_free (src);
+			GNUNET_free (sp->protocol);
+			GNUNET_free (sp->path);
+			GNUNET_free (sp);
+			return NULL;
+	}
+	//fprintf (stderr, "addr: `%s' protocol: `%s', host `%s' port `%u' path `%s'\n", addr, sp->protocol, sp->host, sp->port, sp->path);
 	return sp;
 }
 
@@ -133,7 +184,6 @@ http_common_plugin_address_pretty_printer (void *cls, const char *type,
       asc (asc_cls, NULL);
       return;
   }
-  http_split_address (addr);
   asc (asc_cls, saddr);
   asc (asc_cls, NULL);
 }
@@ -314,7 +364,7 @@ http_common_address_get_size (const void *addr)
  * @param addrlen2 address 2 length
  * @return GNUNET_YES if equal, GNUNET_NO if not, GNUNET_SYSERR on error
  */
-int
+size_t
 http_common_cmp_addresses (const void *addr1, size_t addrlen1, const void *addr2, size_t addrlen2)
 {
   const char *a1 = (const char *) addr1;
