@@ -112,7 +112,7 @@ check (struct SplittedHTTPAddress *addr,
 	return GNUNET_OK;
 }
 
-void
+int
 check_pass (char *src,
 						char * protocol,
 						char * host,
@@ -124,33 +124,55 @@ check_pass (char *src,
   if (NULL == spa)
   {
   	GNUNET_break (0);
+  	return GNUNET_SYSERR;
   }
   else
   {
   		if (GNUNET_OK != check(spa, protocol, host, port, path))
   		{
+  				clean (spa);
   				GNUNET_break (0);
+  		  	return GNUNET_SYSERR;
   		}
   		clean (spa);
   }
+  return GNUNET_OK;
 }
 
+int
+check_fail (char *src)
+{
+	struct SplittedHTTPAddress * spa;
+  spa = http_split_address (src);
+  if (NULL != spa)
+  {
+  	GNUNET_break (0);
+  	clean (spa);
+  	return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
 void
-test_hostname ()
+test_pass_hostname ()
 {
   check_pass("http://test.local", "http", "test.local", HTTP_DEFAULT_PORT, "");
   check_pass("http://test.local/", "http", "test.local", HTTP_DEFAULT_PORT, "/");
   check_pass("http://test.local/path", "http", "test.local", HTTP_DEFAULT_PORT, "/path");
   check_pass("http://test.local/path/", "http", "test.local", HTTP_DEFAULT_PORT, "/path/");
+  check_pass("http://test.local/path/more", "http", "test.local", HTTP_DEFAULT_PORT, "/path/more");
   check_pass("http://test.local:81", "http", "test.local", 81, "");
   check_pass("http://test.local:81/", "http", "test.local", 81, "/");
   check_pass("http://test.local:81/path", "http", "test.local", 81, "/path");
   check_pass("http://test.local:81/path/", "http", "test.local", 81, "/path/");
+  check_pass("http://test.local:81/path/more", "http", "test.local", 81, "/path/more");
 
 }
 
+
 void
-test_ipv4 ()
+test_pass_ipv4 ()
 {
   check_pass("http://127.0.0.1", "http", "127.0.0.1", HTTP_DEFAULT_PORT, "");
   check_pass("http://127.0.0.1/", "http", "127.0.0.1", HTTP_DEFAULT_PORT, "/");
@@ -160,10 +182,11 @@ test_ipv4 ()
   check_pass("http://127.0.0.1:81/", "http", "127.0.0.1", 81, "/");
   check_pass("http://127.0.0.1:81/path", "http", "127.0.0.1", 81, "/path");
   check_pass("http://127.0.0.1:81/path/", "http", "127.0.0.1", 81, "/path/");
+  check_pass("http://127.0.0.1:81/path/more", "http", "127.0.0.1", 81, "/path/more");
 }
 
 void
-test_ipv6 ()
+test_fail_ipv6 ()
 {
   check_pass("http://[::1]", "http", "[::1]", HTTP_DEFAULT_PORT, "");
   check_pass("http://[::1]/", "http", "[::1]", HTTP_DEFAULT_PORT, "/");
@@ -173,9 +196,34 @@ test_ipv6 ()
   check_pass("http://[::1]:81/", "http", "[::1]", 81, "/");
   check_pass("http://[::1]:81/path", "http", "[::1]", 81, "/path");
   check_pass("http://[::1]:81/path/", "http", "[::1]", 81, "/path/");
+  check_pass("http://[::1]:81/path/more", "http", "[::1]", 81, "/path/more");
 }
 
 
+void
+test_fail ()
+{
+	if (GNUNET_SYSERR == check_fail (""))
+		GNUNET_break (0);
+	if (GNUNET_SYSERR == check_fail ("http"))
+		GNUNET_break (0);
+	if (GNUNET_SYSERR == check_fail ("://"))
+		GNUNET_break (0);
+	if (GNUNET_SYSERR == check_fail ("http://"))
+		GNUNET_break (0);
+	if (GNUNET_SYSERR == check_fail ("//localhost"))
+		GNUNET_break (0);
+	if (GNUNET_SYSERR == check_fail ("//:80"))
+		GNUNET_break (0);
+	if (GNUNET_SYSERR == check_fail ("//:80/"))
+		GNUNET_break (0);
+	if (GNUNET_SYSERR == check_fail ("//:80:"))
+		GNUNET_break (0);
+	if (GNUNET_SYSERR == check_fail ("http://localhost:a/"))
+		GNUNET_break (0);
+	if (GNUNET_SYSERR == check_fail ("http://127.0.0.1:a/"))
+		GNUNET_break (0);
+}
 
 int
 main (int argc, char *argv[])
@@ -205,9 +253,10 @@ main (int argc, char *argv[])
   	GNUNET_break (0);
   }
 
-  test_hostname ();
-  test_ipv4 ();
-  test_ipv6 ();
+  test_pass_hostname ();
+  test_pass_ipv4 ();
+  test_fail_ipv6 ();
+  test_fail ();
 
   return ret;
 }

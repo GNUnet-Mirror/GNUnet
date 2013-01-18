@@ -47,7 +47,6 @@ http_split_address (const char * addr)
 	char *v6_end = NULL;
 	char *port_start = NULL;
 	char *path_start = NULL;
-
 	protocol_start = src;
 	sp = GNUNET_malloc (sizeof (struct SplittedHTTPAddress));
 
@@ -103,6 +102,14 @@ http_split_address (const char * addr)
 							port_start[0] = '\0';
 							port_start ++;
 							sp->port = atoi (port_start);
+							if ((0 == sp->port) || (65535 < sp->port))
+							{
+								GNUNET_free (src);
+								GNUNET_free (sp->protocol);
+								GNUNET_free (sp->path);
+								GNUNET_free (sp);
+								return NULL;
+							}
 					}
 					else
 					{
@@ -119,6 +126,14 @@ http_split_address (const char * addr)
 					port_start[0] = '\0';
 					port_start ++;
 					sp->port = atoi (port_start);
+					if ((0 == sp->port) || (65535 < sp->port))
+					{
+						GNUNET_free (src);
+						GNUNET_free (sp->protocol);
+						GNUNET_free (sp->path);
+						GNUNET_free (sp);
+						return NULL;
+					}
 			}
 	}
 	else
@@ -150,7 +165,6 @@ http_split_address (const char * addr)
 			return NULL;
 	}
 	GNUNET_free (src);
-	//fprintf (stderr, "addr: `%s' protocol: `%s', host `%s' port `%u' path `%s'\n", addr, sp->protocol, sp->host, sp->port, sp->path);
 	return sp;
 }
 
