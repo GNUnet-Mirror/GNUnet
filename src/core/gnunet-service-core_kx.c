@@ -1555,7 +1555,7 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
   if (0 != memcmp (&ph, &m->hmac, sizeof (struct GNUNET_HashCode)))
   {
     /* checksum failed */
-    GNUNET_break_op (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Failed checksum validation for a message from `%s'\n", GNUNET_i2s (&kx->peer));
     return;
   }
   derive_iv (&iv, &kx->decrypt_key, m->iv_seed, &GSC_my_identity);
