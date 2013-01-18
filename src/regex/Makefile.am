@@ -31,6 +31,8 @@ libgnunetregex_la_LIBADD = -lm \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/regex/libgnunetregexblock.la
+libgnunetregex_la_DEPENDENCIES = \
+  libgnunetregexblock.la
 libgnunetregex_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
    -version-info 1:1:0
@@ -50,10 +52,7 @@ libgnunet_plugin_block_regex_la_LIBADD = \
 libgnunet_plugin_block_regex_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_block_regex_la_DEPENDENCIES = \
- $(top_builddir)/src/regex/libgnunetregexblock.la \
- $(top_builddir)/src/block/libgnunetblock.la \
- $(top_builddir)/src/util/libgnunetutil.la
-
+ libgnunetregexblock.la
 
 if HAVE_MYSQL
 noinst_mysql_progs = \
