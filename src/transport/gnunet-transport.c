@@ -318,7 +318,7 @@ operation_timeout (void *cls,
   				GNUNET_free (cur);
 
   		}
-  		FPRINTF (stdout, _("Failed to list connections, timeout occured\n"));
+  		FPRINTF (stdout, "%s", _("Failed to list connections, timeout occured\n"));
       if (GNUNET_SCHEDULER_NO_TASK != end)
         GNUNET_SCHEDULER_cancel (end);
       end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
