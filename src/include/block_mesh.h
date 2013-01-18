@@ -20,7 +20,7 @@
 
 /**
  * @file include/block_mesh.h
- * @brief fs block formats (shared between fs and block)
+ * @brief Mesh block formats.
  * @author Bartlomiej Polot
  */
 #ifndef BLOCK_MESH_H
