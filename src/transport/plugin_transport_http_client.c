@@ -1450,11 +1450,12 @@ http_client_plugin_get_session (void *cls,
       {
           salen = sizeof (struct sockaddr_in);
       }
-      else if (AF_INET == sa->sa_family)
+      else if (AF_INET6 == sa->sa_family)
       {
           salen = sizeof (struct sockaddr_in6);
       }
       ats = plugin->env->get_address_type (plugin->env->cls, sa, salen);
+      //fprintf (stderr, "Address %s is in %s\n", GNUNET_a2s (sa,salen), GNUNET_ATS_print_network_type(ntohl(ats.value)));
       GNUNET_free (sa);
   }
   else if (GNUNET_NO == res)

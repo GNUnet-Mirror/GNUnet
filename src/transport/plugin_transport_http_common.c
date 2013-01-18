@@ -37,6 +37,18 @@ struct SplittedHTTPAddress
 	int port;
 };
 
+static void
+http_clean_splitted (struct SplittedHTTPAddress *spa)
+{
+	if (NULL != spa)
+	{
+			GNUNET_free_non_null (spa->protocol);
+			GNUNET_free_non_null (spa->host);
+			GNUNET_free_non_null (spa->path);
+			GNUNET_free_non_null (spa);
+	}
+}
+
 struct SplittedHTTPAddress *
 http_split_address (const char * addr)
 {
@@ -289,11 +301,10 @@ http_common_address_from_socket (const char *protocol, const struct sockaddr *ad
 struct sockaddr *
 http_common_socket_from_address (const void *addr, size_t addrlen, int *res)
 {
+	struct SplittedHTTPAddress * spa;
   struct sockaddr_storage *s;
-  char *addrs;
-  char *addrs_org;
-  char *addrs_end;
   (*res) = GNUNET_SYSERR;
+  char * to_conv;
 
   if (NULL == addr)
     {
@@ -311,50 +322,35 @@ http_common_socket_from_address (const void *addr, size_t addrlen, int *res)
       return NULL;
     }
 
-  addrs_org = strdup ((char *) addr);
-  addrs = strstr (addrs_org , "://");
-  if (NULL == addrs)
+  spa = http_split_address (addr);
+  if (NULL == spa)
   {
-    GNUNET_break (0);
-    GNUNET_free (addrs_org);
-    return NULL;
+      (*res) = GNUNET_SYSERR;
+      return NULL;
   }
-
-  if (strlen (addrs) < 3)
-  {
-    GNUNET_break (0);
-    GNUNET_free (addrs_org);
-    return NULL;
-  }
-
-  addrs += 3;
-
-  addrs_end = strchr (addrs, '/');
-  if (NULL != addrs_end)
-    addrs[strlen (addrs) - strlen(addrs_end)] = '\0';
 
   s = GNUNET_malloc (sizeof (struct sockaddr_storage));
-  if (GNUNET_SYSERR == GNUNET_STRINGS_to_address_ip (addrs, strlen(addrs), s))
+  GNUNET_asprintf (&to_conv, "%s:%u", spa->host, spa->port);
+  if (GNUNET_SYSERR == GNUNET_STRINGS_to_address_ip (to_conv, strlen(to_conv), s))
   {
     /* could be a hostname */
-    GNUNET_free (s);
-    GNUNET_free (addrs_org);
+  	GNUNET_free (s);
     (*res) = GNUNET_NO;
-    return NULL;
+    s = NULL;
+  }
+  else if ((AF_INET != s->ss_family) && (AF_INET6 != s->ss_family))
+  {
+
+		GNUNET_free (s);
+		(*res) = GNUNET_SYSERR;
+		s = NULL;
   }
   else
   {
-    if ((AF_INET != s->ss_family) && (AF_INET6 != s->ss_family))
-    {
-      GNUNET_break (0);
-      GNUNET_free (s);
-      GNUNET_free (addrs_org);
-      (*res) = GNUNET_SYSERR;
-      return NULL;
-    }
+  		(*res) = GNUNET_YES;
   }
-  (*res) = GNUNET_YES;
-  GNUNET_free (addrs_org);
+	http_clean_splitted (spa);
+  GNUNET_free (to_conv);
   return (struct sockaddr *) s;
 }
 
