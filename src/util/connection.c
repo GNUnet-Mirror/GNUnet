@@ -733,27 +733,68 @@ try_connect_using_address (void *cls, const struct sockaddr *addr,
   ap->addrlen = addrlen;
   ap->connection = connection;
 
-  switch (ap->addr->sa_family)
-  {
-  case AF_INET:
-    ((struct sockaddr_in *) ap->addr)->sin_port = htons (connection->port);
-    break;
-  case AF_INET6:
-    ((struct sockaddr_in6 *) ap->addr)->sin6_port = htons (connection->port);
-    break;
-  default:
-    GNUNET_break (0);
-    GNUNET_free (ap);
-    return;                     /* not supported by us */
-  }
   ap->sock = GNUNET_NETWORK_socket_create (ap->addr->sa_family, SOCK_STREAM, 0);
   if (NULL == ap->sock)
   {
     GNUNET_free (ap);
     return;                     /* not supported by OS */
   }
+  switch (ap->addr->sa_family)
+  {
+  case AF_INET:
+    {
+      struct sockaddr_in bnd;
+
+      ((struct sockaddr_in *) ap->addr)->sin_port = htons (connection->port);
+
+      bnd.sin_family = AF_INET;
+      bnd.sin_port = htons (0);
+      bnd.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      bnd.sin_len = sizeof (bnd);
+#endif
+      if (0 == memcmp (&bnd.sin_addr.s_addr,
+		       &((struct sockaddr_in *) ap->addr)->sin_addr.s_addr,
+		       sizeof (bnd.sin_addr.s_addr)))
+      {
+	/* bind source IP to FORCE it to be loopback */
+	(void) GNUNET_NETWORK_socket_bind (ap->sock, 
+					   (const struct sockaddr *) &bnd,
+					   sizeof (bnd));
+      }
+    }
+    break;
+  case AF_INET6:
+    {
+      struct sockaddr_in6 bnd;
+
+      ((struct sockaddr_in6 *) ap->addr)->sin6_port = htons (connection->port);
+    
+      bnd.sin6_family = AF_INET6;
+      bnd.sin6_port = htons (0);
+      bnd.sin6_addr = in6addr_loopback;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      bnd.sin6_len = sizeof (bnd);
+#endif
+      if (0 == memcmp (&bnd.sin6_addr,
+		       &((struct sockaddr_in6 *) ap->addr)->sin6_addr,
+		       sizeof (bnd.sin6_addr)))
+      {
+	/* bind source IP to FORCE it to be loopback */
+	(void) GNUNET_NETWORK_socket_bind (ap->sock, 
+					   (const struct sockaddr *) &bnd, 
+					   sizeof (bnd));
+      }
+    }
+    break;
+  default:
+    GNUNET_break (0);
+    GNUNET_free (ap);
+    return;                     /* not supported by us */
+  }
   LOG (GNUNET_ERROR_TYPE_INFO, _("Trying to connect to `%s' (%p)\n"),
        GNUNET_a2s (ap->addr, ap->addrlen), connection);
+  
   if ((GNUNET_OK !=
        GNUNET_NETWORK_socket_connect (ap->sock, ap->addr, ap->addrlen)) &&
       (EINPROGRESS != errno))
