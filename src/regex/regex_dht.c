@@ -29,6 +29,8 @@
 #include "gnunet_dht_service.h"
 #include "gnunet_statistics_service.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind,"regex-dht",__VA_ARGS__)
+
 #define DHT_REPLICATION 5
 #define DHT_TTL         GNUNET_TIME_UNIT_HOURS
 
@@ -89,24 +91,20 @@ regex_iterator (void *cls,
   unsigned int offset;
   char *aux;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "  regex dht put for state %s\n",
-              GNUNET_h2s (key));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "   proof: %s\n",
-              proof);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "   num edges: %u\n",
-              num_edges);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "  regex dht put for state %s\n",
+       GNUNET_h2s (key));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "   proof: %s\n", proof);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "   num edges: %u\n", num_edges);
 
   opt = GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE;
   if (GNUNET_YES == accepting)
   {
     struct RegexAccept block;
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "   state %s is accepting, putting own id\n",
-                GNUNET_h2s(key));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "   state %s is accepting, putting own id\n",
+         GNUNET_h2s(key));
     size = sizeof (block);
     block.key = *key;
     block.id = *(h->id);
@@ -144,10 +142,8 @@ regex_iterator (void *cls,
    */
   for (i = 0; i < num_edges; i++)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "    edge %s towards %s\n",
-                edges[i].label,
-                GNUNET_h2s(&edges[i].destination));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "    edge %s towards %s\n",
+         edges[i].label, GNUNET_h2s(&edges[i].destination));
 
     /* aux points at the end of the last block */
     len = strlen (edges[i].label);
@@ -190,7 +186,7 @@ GNUNET_REGEX_announce (struct GNUNET_DHT_Handle *dht,
 {
   struct GNUNET_REGEX_announce_handle *h;
 
-  GNUNET_assert (NULL == dht);
+  GNUNET_assert (NULL != dht);
   h = GNUNET_malloc (sizeof (struct GNUNET_REGEX_announce_handle));
   h->regex = regex;
   h->dht = dht;
@@ -348,8 +344,8 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   struct RegexSearchContext *ctx = cls;
   struct GNUNET_REGEX_search_handle *info = ctx->info;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got regex results from DHT!\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  for %s\n", info->description);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got regex results from DHT!\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  for %s\n", info->description);
 
   GNUNET_STATISTICS_update (info->stats, "# regex accepting blocks found",
                             1, GNUNET_NO);
@@ -377,7 +373,7 @@ regex_find_path (const struct GNUNET_HashCode *key,
 {
   struct GNUNET_DHT_GetHandle *get_h;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found peer by service\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Found peer by service\n");
   get_h = GNUNET_DHT_get_start (ctx->info->dht,    /* handle */
                                 GNUNET_BLOCK_TYPE_REGEX_ACCEPT, /* type */
                                 key,     /* key to search */
@@ -428,10 +424,8 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   void *copy;
   size_t len;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "DHT GET STRING RETURNED RESULTS\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "  key: %s\n", GNUNET_h2s (key));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "DHT GET STRING RETURNED RESULTS\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  key: %s\n", GNUNET_h2s (key));
 
   copy = GNUNET_malloc (size);
   memcpy (copy, data, size);
@@ -459,7 +453,7 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     }
     else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  block not accepting!\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  block not accepting!\n");
       // FIXME REGEX this block not successful, wait for more? start timeout?
     }
     return;
@@ -491,15 +485,15 @@ regex_result_iterator (void *cls,
   if (GNUNET_YES == ntohl(block->accepting) &&
       ctx->position == strlen (ctx->info->description))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "* Found accepting known block\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "* Found accepting known block\n");
     regex_find_path (key, ctx);
     return GNUNET_YES; // We found an accept state!
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "* %u, %u, [%u]\n",
-                ctx->position, strlen(ctx->info->description),
-                ntohl(block->accepting));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "* %u, %u, [%u]\n",
+         ctx->position, strlen(ctx->info->description),
+         ntohl(block->accepting));
 
   }
   regex_next_edge(block, SIZE_MAX, ctx);
@@ -535,39 +529,39 @@ regex_edge_iterator (void *cls,
   GNUNET_STATISTICS_update (info->stats, "# regex edges iterated",
                             1, GNUNET_NO);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*    Start of regex edge iterator\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     descr : %s\n", info->description);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     posit : %u\n", ctx->position);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "*    Start of regex edge iterator\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "*     descr : %s\n", info->description);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "*     posit : %u\n", ctx->position);
   current = &info->description[ctx->position];
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     currt : %s\n", current);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "*     currt : %s\n", current);
   current_len = strlen (info->description) - ctx->position;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     ctlen : %u\n", current_len);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     tklen : %u\n", len);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     token : %.*s\n", len, token);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     nextk : %s\n", GNUNET_h2s(key));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "*     ctlen : %u\n", current_len);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "*     tklen : %u\n", len);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "*     token : %.*s\n", len, token);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "*     nextk : %s\n", GNUNET_h2s(key));
   if (len > current_len)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     Token too long, END\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "*     Token too long, END\n");
     return GNUNET_YES; // Token too long, wont match
   }
   if (0 != strncmp (current, token, len))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     Token doesn't match, END\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "*     Token doesn't match, END\n");
     return GNUNET_YES; // Token doesn't match
   }
 
   if (len > ctx->longest_match)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     Token is longer, KEEP\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "*     Token is longer, KEEP\n");
     ctx->longest_match = len;
     ctx->hash = *key;
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     Token is not longer, IGNORE\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "*     Token is not longer, IGNORE\n");
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*    End of regex edge iterator\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "*    End of regex edge iterator\n");
   return GNUNET_YES;
 }
 
@@ -612,7 +606,7 @@ regex_next_edge (const struct RegexBlock *block,
   if (GNUNET_YES ==
       GNUNET_CONTAINER_multihashmap_contains(info->dht_get_handles, &ctx->hash))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     GET running, END\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "*     GET running, END\n");
     GNUNET_CONTAINER_multihashmap_get_multiple (info->dht_get_results,
                                                 &ctx->hash,
                                                 &regex_result_iterator,
@@ -658,7 +652,9 @@ GNUNET_REGEX_search (struct GNUNET_DHT_Handle *dht,
 {
   struct GNUNET_REGEX_search_handle *h;
 
-  GNUNET_assert (NULL == dht);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "GNUNET_REGEX_search: %s\n", string);
+  GNUNET_assert (NULL != dht);
+  GNUNET_assert (NULL != callback);
   h = GNUNET_malloc (sizeof (struct GNUNET_REGEX_search_handle));
   h->dht = dht;
   h->description = GNUNET_strdup (string);
