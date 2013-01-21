@@ -7195,7 +7195,6 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
 {
   struct GNUNET_MESH_ConnectPeerByString *msg;
   struct MeshRegexSearchInfo *info;
-  struct GNUNET_HashCode key;
   struct MeshTunnel *t;
   struct MeshClient *c;
   MESH_TunnelNumber tid;
@@ -7260,13 +7259,6 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
   /* Find string itself */
   len = size - sizeof(struct GNUNET_MESH_ConnectPeerByString);
   string = (const char *) &msg[1];
-
-  /* Initialize context */
-  size = GNUNET_REGEX_get_first_key (string, len, &key);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "  consumed %u bits out of %u\n", size, len);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "  looking for %s\n", GNUNET_h2s (&key));
 
   info = GNUNET_malloc (sizeof (struct MeshRegexSearchInfo));
   info->t = t;
