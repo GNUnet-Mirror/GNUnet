@@ -1194,7 +1194,6 @@ recalculate_preferences (struct PreferencePeer *p)
       GNUNET_i2s (&p->id), p_rel_global);
 
   /* Update global map */
-  /* FIXME: We should update all peers since they have influence on each other */
   if (NULL != (dest = GNUNET_CONTAINER_multihashmap_get(s->prefs, &p->id.hashPubKey)))
       (*dest) = p_rel_global;
   else
@@ -1242,16 +1241,16 @@ preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 	p->aging_task = GNUNET_SCHEDULER_NO_TASK;
 
-  LOG (GNUNET_ERROR_TYPE_ERROR, "Aging preferences for peer `%s'\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Aging preferences for peer `%s'\n",
   		GNUNET_i2s (&p->id));
 
   for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
   {
-  		if (p->f[1] > 1.0)
+  		if (p->f[i] > 1.0)
   		{
   			backup = p->f[i];
   			p->f[i] *= PREF_AGING_FACTOR;
-  			LOG (GNUNET_ERROR_TYPE_ERROR, "Aged preference for peer `%s' from %.3f to %.3f\n",
+  			LOG (GNUNET_ERROR_TYPE_DEBUG, "Aged preference for peer `%s' from %.3f to %.3f\n",
   	  		GNUNET_i2s (&p->id), backup, p->f[i]);
   		}
   }
