@@ -1234,6 +1234,7 @@ static void
 preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 	int i;
+	double *t = NULL;
 	double backup;
 	struct PreferencePeer *p = cls;
 	GNUNET_assert (NULL != p);
@@ -1244,6 +1245,19 @@ preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Aging preferences for peer `%s'\n",
   		GNUNET_i2s (&p->id));
 
+  /* Issue for aging :
+   *
+   * Not for every peer preference values are set by default, so reducing the
+   * absolute preference value does not help for aging because it does not have
+   * influence on the relative values.
+   *
+   * So we have to reduce the relative value to have an immediate impact on
+   * quota calculation. In addition we cannot call recalculate_preferences here
+   * but instead reduce the absolute value to have an aging impact on future
+   * calls to change_preference where recalculate_preferences is called
+   *
+   */
+  /* Aging absolute values: */
   for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
   {
   		if (p->f[i] > 1.0)
@@ -1254,10 +1268,20 @@ preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   	  		GNUNET_i2s (&p->id), backup, p->f[i]);
   		}
   }
-
-  recalculate_preferences (p);
-  update_all_networks (p->s);
-
+  /* Updating relative value */
+  t = GNUNET_CONTAINER_multihashmap_get (p->s->prefs, &p->id.hashPubKey);
+  if (NULL == t)
+  {
+  	GNUNET_break (0);
+  }
+  else
+  {
+		if ((*t) > 1.0)
+			(*t) = (*t) * PREF_AGING_FACTOR;
+		else
+			(*t) = 1.0;
+		update_all_networks (p->s);
+  }
   p->aging_task = GNUNET_SCHEDULER_add_delayed (PREF_AGING_INTERVAL,
   		&preference_aging, p);
 }
