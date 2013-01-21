@@ -56,6 +56,7 @@
 
 #define MESH_BLOOM_SIZE         128
 
+#define MESH_DEBUG_REGEX        GNUNET_YES
 #define MESH_DEBUG_DHT          GNUNET_NO
 #define MESH_DEBUG_CONNECTION   GNUNET_NO
 #define MESH_DEBUG_TIMING       __LINUX__ && GNUNET_NO
@@ -74,6 +75,12 @@
 #define DEBUG_DHT(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 #else
 #define DEBUG_DHT(...)
+#endif
+
+#if MESH_DEBUG_REGEX
+#define DEBUG_REGEX(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
+#else
+#define DEBUG_REGEX(...)
 #endif
 
 #if MESH_DEBUG_TIMING
@@ -1255,6 +1262,7 @@ queue_send (void *cls, size_t size, void *buf);
 static void
 regex_cancel_search (struct MeshRegexSearchInfo *regex_search)
 {
+  DEBUG_REGEX ("Search for %s canelled.\n", regex_search->description);
   GNUNET_REGEX_search_cancel (regex_search->search_handle);
   if (0 < regex_search->n_peers)
     GNUNET_free (regex_search->peers);
@@ -1282,16 +1290,16 @@ regex_connect_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_PEER_Id id;
   GNUNET_PEER_Id old;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Regex connect timeout\n");
+  DEBUG_REGEX ("Regex connect timeout\n");
   info->timeout = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " due to shutdown\n");
+    DEBUG_REGEX (" due to shutdown\n");
     return;
   }
 
   old = info->peer;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  timed out: %u\n", old);
+  DEBUG_REGEX ("  timed out: %u\n", old);
 
   if (0 < info->n_peers)
   {
@@ -1305,7 +1313,7 @@ regex_connect_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     // Try to connect to same peer again.
     id = info->peer;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  trying: %u\n", id);
+  DEBUG_REGEX ("  trying: %u\n", id);
 
   peer_info = peer_info_get_short(id);
   tunnel_add_peer (info->t, peer_info);
@@ -1315,7 +1323,7 @@ regex_connect_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   info->timeout = GNUNET_SCHEDULER_add_delayed (connect_timeout,
                                                 &regex_connect_timeout,
                                                 info);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Regex connect timeout END\n");
+  DEBUG_REGEX ("Regex connect timeout END\n");
 }
 
 
@@ -1342,8 +1350,8 @@ regex_found_handler (void *cls,
   struct MeshPeerPath *p;
   struct MeshPeerInfo *peer_info;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got regex results from DHT!\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  for %s\n", info->description);
+  DEBUG_REGEX ("Got regex results from DHT!\n");
+  DEBUG_REGEX ("  for %s\n", info->description);
 
   peer_info = peer_info_get (id);
   p = path_build_from_dht (get_path, get_path_length,
@@ -1381,10 +1389,10 @@ regex_found_handler (void *cls,
 static void
 regex_put (struct MeshRegexDescriptor *regex)
 {
-  DEBUG_DHT ("  regex_put (%s) start\n", regex->regex);
+  DEBUG_REGEX ("  regex_put (%s) start\n", regex->regex);
   if (NULL == regex->h)
   {
-    DEBUG_DHT ("  first put, creating DFA\n");
+    DEBUG_REGEX ("  first put, creating DFA\n");
     regex->h = GNUNET_REGEX_announce (dht_handle,
                                       &my_full_id,
                                       regex->regex,
@@ -1393,10 +1401,10 @@ regex_put (struct MeshRegexDescriptor *regex)
   }
   else
   {
-    DEBUG_DHT ("  not first put, using cached data\n");
+    DEBUG_REGEX ("  not first put, using cached data\n");
     GNUNET_REGEX_reannounce (regex->h);
   }
-  DEBUG_DHT ("  regex_put (%s) end\n", regex->regex);
+  DEBUG_REGEX ("  regex_put (%s) end\n", regex->regex);
 }
 
 
@@ -1416,13 +1424,13 @@ regex_announce (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   c->regex_announce_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-  DEBUG_DHT ("Starting PUT for regex\n");
+  DEBUG_REGEX ("Starting announce for regex\n");
   for (i = 0; i < c->n_regex; i++)
     regex_put (&c->regexes[i]);
   c->regex_announce_task = GNUNET_SCHEDULER_add_delayed (app_announce_time,
                                                          &regex_announce,
                                                          cls);
-  DEBUG_DHT ("Finished PUT for regex\n");
+  DEBUG_REGEX ("Finished announce for regex\n");
 }
 
 
@@ -6524,16 +6532,16 @@ handle_local_announce_regex (void *cls, struct GNUNET_SERVER_Client *client,
   rd.h = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  length %u\n", len);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  regex %s\n", regex);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  cm %u\n", ntohs(rd.compression));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  compr %u\n", ntohs (rd.compression));
   GNUNET_array_append (c->regexes, c->n_regex, rd);
   c->partial_regex = NULL;
   if (GNUNET_SCHEDULER_NO_TASK == c->regex_announce_task)
   {
-    c->regex_announce_task = GNUNET_SCHEDULER_add_now(&regex_announce, c);
+    c->regex_announce_task = GNUNET_SCHEDULER_add_now (&regex_announce, c);
   }
   else
   {
-    regex_put(&rd);
+    regex_put (&rd);
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "announce regex processed\n");
