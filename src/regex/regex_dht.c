@@ -425,13 +425,16 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   size_t len;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "DHT GET STRING RETURNED RESULTS\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  for: %s\n", ctx->info->description);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  key: %s\n", GNUNET_h2s (key));
 
   copy = GNUNET_malloc (size);
   memcpy (copy, data, size);
-  GNUNET_break (GNUNET_OK ==
-                GNUNET_CONTAINER_multihashmap_put(info->dht_get_results, key, copy,
-                                                  GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+  GNUNET_break (
+    GNUNET_OK ==
+    GNUNET_CONTAINER_multihashmap_put (info->dht_get_results, key, copy,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE)
+               );
   len = ntohl (block->n_proof);
   {
     char proof[len + 1];
@@ -449,7 +452,7 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   {
     if (GNUNET_YES == ntohl (block->accepting))
     {
-      regex_find_path(key, ctx);
+      regex_find_path (key, ctx);
     }
     else
     {
@@ -651,7 +654,13 @@ GNUNET_REGEX_search (struct GNUNET_DHT_Handle *dht,
                      struct GNUNET_STATISTICS_Handle *stats)
 {
   struct GNUNET_REGEX_search_handle *h;
+  struct GNUNET_DHT_GetHandle *get_h;
+  struct RegexSearchContext *ctx;
+  struct GNUNET_HashCode key;
+  size_t size;
+  size_t len;
 
+  /* Initialize handle */
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GNUNET_REGEX_search: %s\n", string);
   GNUNET_assert (NULL != dht);
   GNUNET_assert (NULL != callback);
@@ -661,9 +670,40 @@ GNUNET_REGEX_search (struct GNUNET_DHT_Handle *dht,
   h->callback = callback;
   h->callback_cls = callback_cls;
   h->stats = stats;
-  
   h->dht_get_handles = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_YES);
   h->dht_get_results = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_YES);
+
+  /* Initialize context */
+  len = strlen (string);
+  size = GNUNET_REGEX_get_first_key (string, len, &key);
+  ctx = GNUNET_malloc (sizeof (struct RegexSearchContext));
+  ctx->position = size;
+  ctx->info = h;
+  GNUNET_array_append (h->contexts, h->n_contexts, ctx);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "  consumed %u bits out of %u\n", size, len);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "  looking for %s\n", GNUNET_h2s (&key));
+
+  /* Start search in DHT */
+  get_h = GNUNET_DHT_get_start (h->dht,    /* handle */
+                                GNUNET_BLOCK_TYPE_REGEX, /* type */
+                                &key,     /* key to search */
+                                DHT_REPLICATION, /* replication level */
+                                GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                                &h->description[size],           /* xquery */
+                                // FIXME add BLOOMFILTER to exclude filtered peers
+                                len + 1 - size,                /* xquery bits */
+                                // FIXME add BLOOMFILTER SIZE
+                                &dht_get_string_handler, ctx);
+  GNUNET_break (
+    GNUNET_OK ==
+    GNUNET_CONTAINER_multihashmap_put (h->dht_get_handles,
+                                       &key,
+                                       get_h,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST)
+               );
+
   return h;
 }
 
