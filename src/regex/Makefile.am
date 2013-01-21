@@ -89,7 +89,8 @@ perf_regex_LDADD = \
   $(top_builddir)/src/regex/libgnunetregex.la \
   $(top_builddir)/src/regex/libgnunetregextest.la
 perf_regex_DEPENDENCIES = \
-  libgnunetregex.la
+  libgnunetregex.la \
+  libgnunetregextest.la
 
 
 check_PROGRAMS = \
