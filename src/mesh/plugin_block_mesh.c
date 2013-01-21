@@ -162,6 +162,7 @@ block_plugin_mesh_get_key (void *cls, enum GNUNET_BLOCK_Type type,
     GNUNET_CRYPTO_hash (&pb->type, sizeof(GNUNET_MESH_ApplicationType), key);
     return GNUNET_OK;
   default:
+    GNUNET_break (0);
     return GNUNET_SYSERR;
   }
 }
