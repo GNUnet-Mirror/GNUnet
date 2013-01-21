@@ -143,7 +143,6 @@ src/mesh/gnunet-regex-profiler.c
 src/mesh/gnunet-service-mesh.c
 src/mesh/gnunet-service-mesh-new.c
 src/mesh/mesh_api.c
-src/mesh/mesh_block_lib.c
 src/mesh/mesh_common.c
 src/mesh/mesh_test_lib.c
 src/mesh/mesh_tunnel_tree.c
