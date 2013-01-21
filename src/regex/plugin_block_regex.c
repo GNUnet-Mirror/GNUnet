@@ -37,6 +37,28 @@
 
 
 /**
+ * Show debug info about outgoing edges from a block.
+ * 
+ * @param cls Closure (uunsed).
+ * @param token Edge label.
+ * @param len Length of @c token.
+ * @param key Block the edge point to.
+ * 
+ * @return GNUNET_YES to keep iterating.
+ */
+static int
+rdebug (void *cls,
+             const char *token,
+             size_t len,
+             const struct GNUNET_HashCode *key)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    %s: %.*s\n",
+              GNUNET_h2s (key), len, token);
+  return GNUNET_YES;
+}
+
+
+/**
  * Function called to validate a reply or a request.  For
  * request evaluation, simply pass "NULL" for the reply_block.
  * Note that it is assumed that the reply has already been
@@ -84,7 +106,13 @@ block_plugin_regex_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
       }
       else
       {
+        const struct RegexBlock *rblock = reply_block;
+
         GNUNET_break_op (0);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Block with no xquery\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  key: %s, %u edges\n",
+                    GNUNET_h2s (&rblock->key), ntohl (rblock->n_edges));
+        GNUNET_REGEX_block_iterate (rblock, reply_block_size, &rdebug, NULL);
         return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
       }
       switch (GNUNET_REGEX_block_check (reply_block,
