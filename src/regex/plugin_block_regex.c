@@ -176,10 +176,17 @@ block_plugin_regex_get_key (void *cls, enum GNUNET_BLOCK_Type type,
 {
   switch (type)
   {
-  default:
-    /* FIXME */
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
+    case GNUNET_BLOCK_TYPE_REGEX:
+      GNUNET_assert (sizeof (struct RegexBlock) <= block_size);
+      *key = ((struct RegexBlock *) block)->key;
+      return GNUNET_OK;
+    case GNUNET_BLOCK_TYPE_REGEX_ACCEPT:
+      GNUNET_assert (sizeof (struct RegexAccept) <= block_size);
+      *key = ((struct RegexAccept *) block)->key;
+      return GNUNET_OK;
+    default:
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
   }
 }
 
