@@ -144,15 +144,104 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
                     uint32_t ats_count)
 {
   static int stage = 0;
+  static int sug_p0 = GNUNET_NO;
+  static int sug_p1 = GNUNET_NO;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Callback for peer `%s': (in/out) %llu/%llu\n",
-  		GNUNET_i2s (&address->peer),
-  		ntohl (bandwidth_in.value__),
-  		ntohl (bandwidth_out.value__));
+  if (0 == stage)
+  {
+  		/* Callback for initial suggestion */
+  		if (0 == memcmp (&address->peer, &p[0].id, sizeof (p[0].id)))
+  		{
+				GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback for peer `%s': (in/out) %llu/%llu\n",
+						stage,
+						GNUNET_i2s (&address->peer),
+						ntohl (bandwidth_in.value__),
+						ntohl (bandwidth_out.value__));
+				sug_p0 = GNUNET_YES;
+  		}
+  		if (0 == memcmp (&address->peer, &p[1].id, sizeof (p[1].id)))
+  		{
+				GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback for peer `%s': (in/out) %llu/%llu\n",
+						stage,
+						GNUNET_i2s (&address->peer),
+						ntohl (bandwidth_in.value__),
+						ntohl (bandwidth_out.value__));
+				sug_p1 = GNUNET_YES;
+  		}
+  		if ((GNUNET_YES == sug_p0) && (GNUNET_YES == sug_p1))
+  		{
+  		  /* Changing preference for peer 0 */
+  			stage ++;
+  			GNUNET_ATS_change_preference (perf_ats, &p[0].id, GNUNET_ATS_PREFERENCE_BANDWIDTH,(double) 1000, GNUNET_ATS_PREFERENCE_END);
+				sug_p0 = GNUNET_NO;
+				sug_p1 = GNUNET_NO;
+  			return;
+  		}
 
+  }
+  if (1 == stage)
+  {
+  		/* Callback due to preference change */
+  		if (0 == memcmp (&address->peer, &p[0].id, sizeof (p[0].id)))
+  		{
+				GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback for peer `%s': (in/out) %llu/%llu\n",
+						stage,
+						GNUNET_i2s (&address->peer),
+						ntohl (bandwidth_in.value__),
+						ntohl (bandwidth_out.value__));
+				sug_p0 = GNUNET_YES;
+  		}
+  		if (0 == memcmp (&address->peer, &p[1].id, sizeof (p[1].id)))
+  		{
+				GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback for peer `%s': (in/out) %llu/%llu\n",
+						stage,
+						GNUNET_i2s (&address->peer),
+						ntohl (bandwidth_in.value__),
+						ntohl (bandwidth_out.value__));
+				sug_p1 = GNUNET_YES;
+  		}
+  		if ((GNUNET_YES == sug_p0) && (GNUNET_YES == sug_p1))
+  		{
+  		  /* Changing preference for peer 0 */
+  			stage ++;
+				sug_p0 = GNUNET_NO;
+				sug_p1 = GNUNET_NO;
+  			return;
+  		}
+  }
+  if (2 == stage)
+  {
+  		/* Callback due to preference aging */
+  		if (0 == memcmp (&address->peer, &p[0].id, sizeof (p[0].id)))
+  		{
+				GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback for peer `%s': (in/out) %llu/%llu\n",
+						stage,
+						GNUNET_i2s (&address->peer),
+						ntohl (bandwidth_in.value__),
+						ntohl (bandwidth_out.value__));
+				sug_p0 = GNUNET_YES;
+  		}
+  		if (0 == memcmp (&address->peer, &p[1].id, sizeof (p[1].id)))
+  		{
+				GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback for peer `%s': (in/out) %llu/%llu\n",
+						stage,
+						GNUNET_i2s (&address->peer),
+						ntohl (bandwidth_in.value__),
+						ntohl (bandwidth_out.value__));
+				sug_p1 = GNUNET_YES;
+  		}
+  }
+
+
+
+
+/*
   stage ++;
   if (3 == stage)
     GNUNET_SCHEDULER_add_now (&end, NULL);
+*/
+
+
 
 }
 
@@ -273,9 +362,6 @@ run (void *cls,
   test_hello_address[1].address = test_addr[1].addr;
   test_hello_address[1].address_length = test_addr[1].addr_len;
   GNUNET_ATS_address_add (sched_ats, &test_hello_address[1], test_session[1], test_ats_info, test_ats_count);
-
-  GNUNET_ATS_change_preference (perf_ats, &p[1].id, GNUNET_ATS_PREFERENCE_BANDWIDTH,(double) 1000, GNUNET_ATS_PREFERENCE_END);
-  GNUNET_ATS_change_preference (perf_ats, &p[1].id, GNUNET_ATS_PREFERENCE_BANDWIDTH,(double) 1000, GNUNET_ATS_PREFERENCE_END);
 
   GNUNET_ATS_suggest_address (sched_ats, &p[0].id);
   GNUNET_ATS_suggest_address (sched_ats, &p[1].id);
