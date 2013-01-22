@@ -440,6 +440,11 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
 static void
 print_overlay_links_summary ()
 {
+  static int printed_already;
+
+  if (GNUNET_YES == printed_already)
+    return;
+  printed_already = GNUNET_YES;
   prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
   printf ("\n%u links established in %.2f seconds\n",
 	  established_links, ((double) prof_time.rel_value) / 1000.00);
@@ -575,6 +580,7 @@ controller_event_cb (void *cls,
       print_overlay_links_summary ();
       result = GNUNET_OK;
       fprintf (stdout, "Testbed running, waiting for keystroke to shut down\n");
+      fflush (stdout);
       (void) getc (stdin);
       shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     }    
