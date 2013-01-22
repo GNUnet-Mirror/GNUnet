@@ -1198,7 +1198,7 @@ recalculate_preferences (struct PreferencePeer *p)
       (*dest) = p_rel_global;
   else
   {
-      dest = GNUNET_malloc (sizeof (float));
+      dest = GNUNET_malloc (sizeof (double));
       (*dest) = p_rel_global;
       GNUNET_CONTAINER_multihashmap_put(s->prefs,
           &p->id.hashPubKey,
