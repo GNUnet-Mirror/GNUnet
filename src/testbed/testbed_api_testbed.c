@@ -1084,9 +1084,12 @@ GNUNET_TESTBED_run (const char *host_filename,
 				 "testbed", "OVERLAY_TOPOLOGY_FILE");
       goto error_cleanup;
     }
-    break;
   default:   
-    /* Do nothing */
+    /* Warn if OVERLAY_RANDOM_LINKS is present that it will be ignored */
+    if (GNUNET_YES == GNUNET_CONFIGURATION_have_value (rc->cfg, "testbed",
+                                                       "OVERLAY_RANDOM_LINKS"))
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "Ignoring value of `OVERLAY_RANDOM_LINKS' in given configuration\n");
     break;
   }
   if (NULL != host_filename)
