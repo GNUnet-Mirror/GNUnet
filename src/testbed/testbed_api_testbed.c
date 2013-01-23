@@ -142,6 +142,11 @@ struct RunContext
   void *cc_cls;
 
   /**
+   * The trusted IP string
+   */
+  char *trusted_ip;
+
+  /**
    * TestMaster callback to call when testbed initialization is done
    */
   GNUNET_TESTBED_TestMaster test_master;
@@ -365,6 +370,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != rc->cfg)
     GNUNET_CONFIGURATION_destroy (rc->cfg);
   GNUNET_free_non_null (rc->topo_file);
+  GNUNET_free_non_null (rc->trusted_ip);
   GNUNET_free (rc);
 }
 
@@ -846,6 +852,48 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
+ * Callback function invoked for each interface found.
+ *
+ * @param cls closure
+ * @param name name of the interface (can be NULL for unknown)
+ * @param isDefault is this presumably the default interface
+ * @param addr address of this interface (can be NULL for unknown or unassigned)
+ * @param broadcast_addr the broadcast address (can be NULL for unknown or unassigned)
+ * @param netmask the network mask (can be NULL for unknown or unassigned))
+ * @param addrlen length of the address
+ * @return GNUNET_OK to continue iteration, GNUNET_SYSERR to abort
+ */
+static int
+netint_proc (void *cls, const char *name,
+             int isDefault,
+             const struct sockaddr *addr,
+             const struct sockaddr *broadcast_addr,
+             const struct sockaddr *netmask,
+             socklen_t addrlen)
+{
+   struct RunContext *rc = cls;
+   char hostip[NI_MAXHOST];
+   char *buf;
+
+   if (sizeof (struct sockaddr_in) != addrlen)
+     return GNUNET_OK;          /* Only consider IPv4 for now */
+   if (0 != getnameinfo(addr, addrlen,
+                        hostip, NI_MAXHOST,
+                        NULL, 0, NI_NUMERICHOST))
+     GNUNET_log_strerror(GNUNET_ERROR_TYPE_WARNING, "getnameinfo");
+   if (NULL == rc->trusted_ip)
+   {
+     rc->trusted_ip = GNUNET_strdup (hostip);
+     return GNUNET_YES;
+   }
+   (void) GNUNET_asprintf (&buf, "%s; %s", rc->trusted_ip, hostip);
+   GNUNET_free (rc->trusted_ip);
+   rc->trusted_ip = buf;
+   return GNUNET_YES;
+}
+
+
+/**
  * Callbacks of this type are called by GNUNET_TESTBED_is_host_habitable to
  * inform whether the given host is habitable or not. The Handle returned by
  * GNUNET_TESTBED_is_host_habitable() is invalid after this callback is called
@@ -892,11 +940,14 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host, int status
     GNUNET_free (rc->hosts);
     rc->hosts = NULL;
   }
-  /* FIXME: If we are starting controller on different host 127.0.0.1 may not ab
-  correct */
+  GNUNET_OS_network_interfaces_list (netint_proc, rc);
+  if (NULL == rc->trusted_ip)
+    rc->trusted_ip = GNUNET_strdup ("127.0.0.1");
   rc->cproc =
-      GNUNET_TESTBED_controller_start ("127.0.0.1", rc->h, rc->cfg,
+      GNUNET_TESTBED_controller_start (rc->trusted_ip, rc->h, rc->cfg,
                                        &controller_status_cb, rc);
+  GNUNET_free (rc->trusted_ip);
+  rc->trusted_ip = NULL;
   if (NULL == rc->cproc)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR, _("Cannot start the master controller"));
