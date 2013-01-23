@@ -169,7 +169,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   		/* Callback for initial suggestion */
   		if (0 == memcmp (&address->peer, &p[0].id, sizeof (p[0].id)))
   		{
-				GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback for peer 0 `%s': (in/out) %llu/%llu\n",
+				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 0 `%s': (in/out) %llu/%llu\n",
 						stage,
 						GNUNET_i2s (&address->peer),
 						ntohl (bandwidth_in.value__),
@@ -180,7 +180,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   		}
   		if (0 == memcmp (&address->peer, &p[1].id, sizeof (p[1].id)))
   		{
-				GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback for peer 1 `%s': (in/out) %llu/%llu\n",
+				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 1 `%s': (in/out) %llu/%llu\n",
 						stage,
 						GNUNET_i2s (&address->peer),
 						ntohl (bandwidth_in.value__),
@@ -205,7 +205,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   		/* Callback due to preference change */
   		if (0 == memcmp (&address->peer, &p[0].id, sizeof (p[0].id)))
   		{
-				GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback for peer 0 `%s': (in/out) %llu/%llu\n",
+				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 0 `%s': (in/out) %llu/%llu\n",
 						stage,
 						GNUNET_i2s (&address->peer),
 						ntohl (bandwidth_in.value__),
@@ -222,7 +222,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   		}
   		if (0 == memcmp (&address->peer, &p[1].id, sizeof (p[1].id)))
   		{
-				GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback for peer 1 `%s': (in/out) %llu/%llu\n",
+				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 1 `%s': (in/out) %llu/%llu\n",
 						stage,
 						GNUNET_i2s (&address->peer),
 						ntohl (bandwidth_in.value__),
@@ -231,9 +231,15 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
 				/* Peer 1 should get less bandwidth */
 				if (cur_bandwidth_out >= p1_last_bandwidth_out)
+				{
 					GNUNET_break (0);
+					goto error;
+				}
 				if (cur_bandwidth_in >= p1_last_bandwidth_in)
+				{
 					GNUNET_break (0);
+					goto error;
+				}
 				p1_last_bandwidth_out = ntohl(bandwidth_out.value__);
 				p1_last_bandwidth_in = ntohl(bandwidth_in.value__);
   		}
@@ -250,7 +256,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   		/* Callback due to preference aging */
   		if (0 == memcmp (&address->peer, &p[0].id, sizeof (p[0].id)))
   		{
-				GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback for peer 0 `%s': (in/out) %llu/%llu\n",
+				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 0 `%s': (in/out) %llu/%llu\n",
 						stage,
 						GNUNET_i2s (&address->peer),
 						ntohl (bandwidth_in.value__),
@@ -267,7 +273,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   		}
   		if (0 == memcmp (&address->peer, &p[1].id, sizeof (p[1].id)))
   		{
-				GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback for peer 1 `%s': (in/out) %llu/%llu\n",
+				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 1 `%s': (in/out) %llu/%llu\n",
 						stage,
 						GNUNET_i2s (&address->peer),
 						ntohl (bandwidth_in.value__),
@@ -275,17 +281,34 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 				sug_p1 = GNUNET_YES;
 				/* Peer 1 should get more bandwidth */
 				if (cur_bandwidth_out <= p1_last_bandwidth_out)
+				{
 					GNUNET_break (0);
+					goto error;
+				}
 				if (cur_bandwidth_in <= p1_last_bandwidth_in)
+				{
 					GNUNET_break (0);
+					goto error;
+				}
 				p0_last_bandwidth_out = ntohl(bandwidth_out.value__);
 				p0_last_bandwidth_in = ntohl(bandwidth_in.value__);
   		}
 
-  		/* Done ! */
-      GNUNET_SCHEDULER_add_now (&end,NULL);
-      return;
+  		if ((GNUNET_YES == sug_p0) && (GNUNET_YES == sug_p1))
+  		{
+  	  		/* Done ! */
+  			stage ++;
+  			ret = 0;
+        GNUNET_SCHEDULER_add_now (&end,NULL);
+  			return;
+  		}
   }
+  return;
+
+error:
+	/* Error ! */
+	ret = 1;
+	GNUNET_SCHEDULER_add_now (&end,NULL);
 }
 
 static void
