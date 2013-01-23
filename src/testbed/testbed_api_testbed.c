@@ -280,6 +280,23 @@ struct RunContext
 
 
 /**
+ * Function to return the string representation of the duration between current
+ * time and `pstart_time' in `RunContext'
+ *
+ * @param rc the RunContext
+ * @return the representation string; this is NOT reentrant
+ */
+static const char *
+prof_time (struct RunContext *rc)
+{
+  struct GNUNET_TIME_Relative ptime;
+
+  ptime = GNUNET_TIME_absolute_get_duration (rc->pstart_time);
+  return GNUNET_STRINGS_relative_time_to_string (ptime, GNUNET_YES);
+}
+
+
+/**
  * Task for starting peers
  *
  * @param cls the RunHandle
@@ -319,7 +336,6 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
 {
   struct DLLOperation *dll_op = cls;
   struct RunContext *rc;
-  struct GNUNET_TIME_Relative ptime;
 
   GNUNET_assert (NULL != dll_op);
   rc = dll_op->rc;
@@ -339,9 +355,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
   rc->peer_count++;
   if (rc->peer_count < rc->num_peers)
     return;
-  ptime = GNUNET_TIME_absolute_get_duration (rc->pstart_time);
-  DEBUG ("%u peers created in %s\n", rc->num_peers,
-         GNUNET_STRINGS_relative_time_to_string (ptime, GNUNET_YES));
+  DEBUG ("%u peers created in %s\n", rc->num_peers, prof_time (rc));
   GNUNET_SCHEDULER_add_now (&start_peers_task, rc);
 }
 
@@ -490,9 +504,15 @@ shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                             dll_op);
         }
         if (all_peers_destroyed == GNUNET_NO)
+        {
+          DEBUG ("Destroying peers\n");
+          rc->pstart_time = GNUNET_TIME_absolute_get ();
           return;
+        }
       }
       /* Some peers are stopped */
+      DEBUG ("Stopping peers\n");
+      rc->pstart_time = GNUNET_TIME_absolute_get ();
       for (peer = 0; peer < rc->num_peers; peer++)
       {
         if ((NULL == rc->peers[peer]) || (PS_STARTED != rc->peers[peer]->state))
@@ -500,7 +520,6 @@ shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           rc->peer_count++;
           continue;
         }
-        DEBUG ("Stopping peer %u\n", peer);
         dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
         dll_op->op = GNUNET_TESTBED_peer_stop (rc->peers[peer], NULL, NULL);
         dll_op->cls = rc->peers[peer];
@@ -659,6 +678,9 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   case RC_LINKED:
   case RC_READY:
     rc->state = RC_PEERS_STOPPED;
+    DEBUG ("Peers stopped in %s\n", prof_time (rc));
+    DEBUG ("Destroying peers\n");
+    rc->pstart_time = GNUNET_TIME_absolute_get ();
     rc->peer_count = 0;
     for (peer_id = 0; peer_id < rc->num_peers; peer_id++)
     {
@@ -672,7 +694,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     rc->state = RC_PEERS_DESTROYED;
     GNUNET_free (rc->peers);
     rc->peers = NULL;
-    DEBUG ("All peers successfully destroyed\n");
+    DEBUG ("Peers destroyed in %s\n", prof_time (rc));
     GNUNET_SCHEDULER_add_now (&cleanup_task, rc);
     break;
   default:
@@ -698,9 +720,7 @@ call_cc:
   if (rc->peer_count < rc->num_peers)
     return;  
   DEBUG ("%u peers started in %s\n", rc->num_peers,
-         GNUNET_STRINGS_relative_time_to_string
-         (GNUNET_TIME_absolute_get_duration(rc->pstart_time),
-          GNUNET_YES));
+         prof_time (rc));
   if (GNUNET_TESTBED_TOPOLOGY_NONE != rc->topology)
   {
     if ( (GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI == rc->topology)
