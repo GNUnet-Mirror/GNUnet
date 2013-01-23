@@ -141,6 +141,7 @@ print_overlay_links_summary ()
   if (GNUNET_YES == printed_already)
     return;
   printed_already = GNUNET_YES;
+  printf ("%u links succeeded\n", established_links);
   printf ("%u links failed due to timeouts\n", failed_links);
 }
 
@@ -166,7 +167,7 @@ controller_event_cb (void *cls,
       failed_links++;
       if (++cont_fails > num_cont_fails)
       {
-        printf ("\nAborting due to very high failure rate");
+        printf ("\nAborting due to very high failure rate\n");
         print_overlay_links_summary ();	  
         GNUNET_SCHEDULER_cancel (abort_task);
         abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
@@ -203,7 +204,9 @@ static void test_run (void *cls,
                       struct GNUNET_TESTBED_Peer **peers)
 {
   result = GNUNET_OK;
-  fprintf (stdout, "\nTestbed running, waiting for keystroke to shut down\n");
+  fprintf (stdout, "\n");
+  print_overlay_links_summary ();
+  fprintf (stdout, "Testbed running, waiting for keystroke to shut down\n");
   fflush (stdout);
   (void) getc (stdin);
   fprintf (stdout, "Shutting down. Please wait\n");

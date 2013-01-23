@@ -551,7 +551,8 @@ call_master (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   
   if (NULL != rc->topology_operation)
   {
-    GNUNET_TESTBED_operation_done (rc->topology_operation);
+    DEBUG ("Overlay topology generated in %s\n", prof_time (rc));
+    GNUNET_TESTBED_operation_done (rc->topology_operation);    
     rc->topology_operation = NULL;
   }
   if (NULL != rc->test_master)
@@ -722,7 +723,7 @@ call_cc:
   DEBUG ("%u peers started in %s\n", rc->num_peers,
          prof_time (rc));
   if (GNUNET_TESTBED_TOPOLOGY_NONE != rc->topology)
-  {
+  {    
     if ( (GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI == rc->topology)
          || (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING == rc->topology)
          || (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD == rc->topology))
@@ -760,7 +761,11 @@ call_cc:
       LOG (GNUNET_ERROR_TYPE_WARNING,
            "Not generating topology. Check number of peers\n");
     else
+    {
+      DEBUG ("Creating overlay topology\n");
+      rc->pstart_time = GNUNET_TIME_absolute_get ();    
       return;
+    }
   }
   rc->state = RC_READY;
   GNUNET_SCHEDULER_add_continuation (&call_master, rc,
