@@ -26,6 +26,7 @@
  */
 
 #include "platform.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_testbed_service.h"
 #include "testbed_api_peers.h"
 #include "testbed_api_hosts.h"
@@ -37,6 +38,11 @@
 #define LOG(kind,...)                                           \
   GNUNET_log_from (kind, "testbed-api-testbed", __VA_ARGS__)
 
+/**
+ * Debug logging shortcut
+ */
+#define DEBUG(...)                              \
+  LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
 /**
  * DLL of operations
@@ -198,6 +204,11 @@ struct RunContext
   struct GNUNET_TESTBED_HostRegistrationHandle *reg_handle;
 
   /**
+   * Profiling start time
+   */
+  struct GNUNET_TIME_Absolute pstart_time;
+
+  /**
    * Host registration task
    */
   GNUNET_SCHEDULER_TaskIdentifier register_hosts_task;
@@ -281,7 +292,8 @@ start_peers_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct DLLOperation *dll_op;
   unsigned int peer;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting Peers\n");
+  DEBUG ("Starting Peers\n");
+  rc->pstart_time = GNUNET_TIME_absolute_get ();
   for (peer = 0; peer < rc->num_peers; peer++)
   {
     dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
@@ -307,6 +319,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
 {
   struct DLLOperation *dll_op = cls;
   struct RunContext *rc;
+  struct GNUNET_TIME_Relative ptime;
 
   GNUNET_assert (NULL != dll_op);
   rc = dll_op->rc;
@@ -326,7 +339,9 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
   rc->peer_count++;
   if (rc->peer_count < rc->num_peers)
     return;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "%u peers created successfully\n", rc->num_peers);
+  ptime = GNUNET_TIME_absolute_get_duration (rc->pstart_time);
+  DEBUG ("%u peers created in %s\n", rc->num_peers,
+         GNUNET_STRINGS_relative_time_to_string (ptime, GNUNET_YES));
   GNUNET_SCHEDULER_add_now (&start_peers_task, rc);
 }
 
@@ -485,7 +500,7 @@ shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           rc->peer_count++;
           continue;
         }
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "Stopping peer %u\n", peer);
+        DEBUG ("Stopping peer %u\n", peer);
         dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
         dll_op->op = GNUNET_TESTBED_peer_stop (rc->peers[peer], NULL, NULL);
         dll_op->cls = rc->peers[peer];
@@ -535,7 +550,9 @@ create_peers (struct RunContext *rc)
 {
   struct DLLOperation *dll_op;
   unsigned int peer;
-
+ 
+  DEBUG ("Creating peers\n");
+  rc->pstart_time = GNUNET_TIME_absolute_get ();
   rc->peers =
       GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Peer *) * rc->num_peers);
   GNUNET_assert (NULL != rc->c);
@@ -618,7 +635,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       GNUNET_SCHEDULER_add_continuation (&call_master, rc,
                                          GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     }
-    return;
+    goto call_cc;
   }
   for (dll_op = rc->dll_op_head; NULL != dll_op; dll_op = dll_op->next)
   {
@@ -655,7 +672,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     rc->state = RC_PEERS_DESTROYED;
     GNUNET_free (rc->peers);
     rc->peers = NULL;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "All peers successfully destroyed\n");
+    DEBUG ("All peers successfully destroyed\n");
     GNUNET_SCHEDULER_add_now (&cleanup_task, rc);
     break;
   default:
@@ -679,8 +696,11 @@ call_cc:
   GNUNET_free (dll_op);
   rc->peer_count++;
   if (rc->peer_count < rc->num_peers)
-    return;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Peers started successfully\n");
+    return;  
+  DEBUG ("%u peers started in %s\n", rc->num_peers,
+         GNUNET_STRINGS_relative_time_to_string
+         (GNUNET_TIME_absolute_get_duration(rc->pstart_time),
+          GNUNET_YES));
   if (GNUNET_TESTBED_TOPOLOGY_NONE != rc->topology)
   {
     if ( (GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI == rc->topology)
@@ -777,8 +797,7 @@ register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   rc->register_hosts_task = GNUNET_SCHEDULER_NO_TASK;
   if (rc->reg_hosts == rc->num_hosts)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "All hosts successfully registered\n");
+    DEBUG ("All hosts successfully registered\n");
     /* Start slaves */
     for (slave = 0; slave < rc->num_hosts; slave++)
     {
