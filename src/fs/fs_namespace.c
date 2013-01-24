@@ -544,27 +544,36 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   struct GNUNET_HashCode id;           /* hash of hc = identifier */
   struct GNUNET_HashCode query;        /* id ^ nsid = DB query */
 
-  if (NULL == meta)
-    mmeta = GNUNET_CONTAINER_meta_data_create ();
-  else
-    mmeta = GNUNET_CONTAINER_meta_data_duplicate (meta);
-  uris = GNUNET_FS_uri_to_string (uri);
-  slen = strlen (uris) + 1;
   idlen = strlen (identifier);
   if (NULL != update)
     nidlen = strlen (update) + 1;
   else
     nidlen = 1;
+  uris = GNUNET_FS_uri_to_string (uri);
+  slen = strlen (uris) + 1;
+  if ( (slen >= MAX_SBLOCK_SIZE - sizeof (struct SBlock)) ||
+       (nidlen >= MAX_SBLOCK_SIZE - sizeof (struct SBlock) - slen) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Identifiers or URI too long to create SBlock"));
+    GNUNET_free (uris);
+    return NULL;
+  }
+  if (NULL == meta)
+    mmeta = GNUNET_CONTAINER_meta_data_create ();
+  else
+    mmeta = GNUNET_CONTAINER_meta_data_duplicate (meta);
   mdsize = GNUNET_CONTAINER_meta_data_get_serialized_size (mmeta);
   size = sizeof (struct SBlock) + slen + nidlen + mdsize;
-  if (size > MAX_SBLOCK_SIZE)
+  if ( (size > MAX_SBLOCK_SIZE) ||
+       (size < sizeof (struct SBlock) + slen + nidlen) )
   {
     size = MAX_SBLOCK_SIZE;
-    mdsize = size - (sizeof (struct SBlock) + slen + nidlen);
+    mdsize = MAX_SBLOCK_SIZE - (sizeof (struct SBlock) + slen + nidlen);
   }
   sb = GNUNET_malloc (sizeof (struct SBlock) + size);
   dest = (char *) &sb[1];
-  if (update != NULL)
+  if (NULL != update)
     memcpy (dest, update, nidlen);
   else
     memset (dest, 0, 1);
