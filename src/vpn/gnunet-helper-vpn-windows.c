@@ -812,7 +812,7 @@ attempt_read_tap (struct io_facility * input_facility,
             return FALSE;
           }
         status = ReadFile (input_facility->handle,
-                           input_facility->buffer + sizeof (struct GNUNET_MessageHeader),
+                           input_facility->buffer,
                            sizeof (input_facility->buffer) - sizeof (struct GNUNET_MessageHeader),
                            &input_facility->buffer_size,
                            &input_facility->overlapped);
@@ -830,11 +830,17 @@ attempt_read_tap (struct io_facility * input_facility,
             if ((IOSTATE_READY == output_facility->facility_state ||
                  IOSTATE_WAITING == output_facility->facility_state)
                 && 0 < input_facility->buffer_size)
-              { /* hand over this buffers content */
-                memcpy (output_facility->buffer,
+              { /* hand over this buffers content and apply message header for gnunet */
+                struct GNUNET_MessageHeader * hdr = (struct GNUNET_MessageHeader *) output_facility->buffer;
+                unsigned short size = input_facility->buffer_size + sizeof (struct GNUNET_MessageHeader);
+                
+                memcpy (output_facility->buffer + sizeof (struct GNUNET_MessageHeader),
                         input_facility->buffer,
-                        sizeof (input_facility->buffer));
-                output_facility->buffer_size = input_facility->buffer_size;
+                        input_facility->buffer_size);
+
+                output_facility->buffer_size = size;
+                hdr->size = htons(size);
+                hdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
                 output_facility->facility_state = IOSTATE_READY;
               }
             else if (0 < input_facility->buffer_size)
@@ -882,11 +888,17 @@ attempt_read_tap (struct io_facility * input_facility,
             if ((IOSTATE_READY == output_facility->facility_state ||
                  IOSTATE_WAITING == output_facility->facility_state)
                 && 0 < input_facility->buffer_size)
-              { /* hand over this buffers content */
-                memcpy (output_facility->buffer,
+              { /* hand over this buffers content and apply message header for gnunet */
+                struct GNUNET_MessageHeader * hdr = (struct GNUNET_MessageHeader *) output_facility->buffer;
+                unsigned short size = input_facility->buffer_size + sizeof (struct GNUNET_MessageHeader);
+                
+                memcpy (output_facility->buffer + sizeof (struct GNUNET_MessageHeader),
                         input_facility->buffer,
                         input_facility->buffer_size);
-                output_facility->buffer_size = input_facility->buffer_size;
+
+                output_facility->buffer_size = size;
+                hdr->size = htons(size);
+                hdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
                 output_facility->facility_state = IOSTATE_READY;
                 input_facility->facility_state = IOSTATE_READY;
               }
@@ -961,15 +973,14 @@ attempt_read_stdin (struct io_facility * input_facility,
                            &input_facility->overlapped);
 
         /* Check how the task is handled */
-        if (status && (0 < input_facility->buffer_size))
+        if (status && (sizeof(struct GNUNET_MessageHeader) < input_facility->buffer_size))
           {/* async event processed immediately*/
-            struct GNUNET_MessageHeader *hdr;
+            struct GNUNET_MessageHeader * hdr = (struct GNUNET_MessageHeader *) input_facility->buffer;
 
             /* reset event manually*/
             if (!SetEvent (input_facility->overlapped.hEvent))
               return FALSE;
 
-            hdr = (struct GNUNET_MessageHeader *) input_facility->buffer;
             if (ntohs (hdr->type) != GNUNET_MESSAGE_TYPE_VPN_HELPER ||
                 ntohs (hdr->size) > sizeof (input_facility->buffer))
               {
@@ -977,21 +988,22 @@ attempt_read_stdin (struct io_facility * input_facility,
                 input_facility->facility_state = IOSTATE_READY;
                 return TRUE;
               }
-            //if (ntohs (hdr->size) > input_facility->buffer_size );
+            if (ntohs (hdr->size) > input_facility->buffer_size );
             // TODO: add support for partial read
 
             /* we successfully read something from the TAP and now need to
              * send it our via STDOUT. Is that possible at the moment? */
-            if (IOSTATE_READY == output_facility->facility_state ||
-                IOSTATE_WAITING == output_facility->facility_state)
-              { /* hand over this buffers content */
-                memcpy (output_facility->buffer,
+            if ((IOSTATE_READY == output_facility->facility_state ||
+                IOSTATE_WAITING == output_facility->facility_state) 
+                 && sizeof(struct GNUNET_MessageHeader) < input_facility->buffer_size )
+              { /* hand over this buffers content and strip gnunet message header */
+                memcpy (output_facility->buffer + sizeof(struct GNUNET_MessageHeader),
                         input_facility->buffer,
-                        sizeof (input_facility->buffer));
-                output_facility->buffer_size = input_facility->buffer_size;
+                        input_facility->buffer_size - sizeof(struct GNUNET_MessageHeader));
+                output_facility->buffer_size = input_facility->buffer_size - sizeof(struct GNUNET_MessageHeader);
                 output_facility->facility_state = IOSTATE_READY;
               }
-            else if (0 < input_facility->buffer_size)
+            else if ( IOSTATE_QUEUED == output_facility->facility_state )
               { /* If we have have read our buffer, wait for our write-partner*/
                 input_facility->facility_state = IOSTATE_WAITING;
                 // TODO: shall we attempt to fill our buffer or should we wait for our write-partner to finish?
@@ -1037,27 +1049,41 @@ attempt_read_stdin (struct io_facility * input_facility,
                                       FALSE);
         if (status)
           {/* successful return for a queued operation */
+            struct GNUNET_MessageHeader * hdr = (struct GNUNET_MessageHeader *) input_facility->buffer;
+            
             if (!ResetEvent (input_facility->overlapped.hEvent))
               return FALSE;
+            
+            if (ntohs (hdr->type) != GNUNET_MESSAGE_TYPE_VPN_HELPER ||
+                ntohs (hdr->size) > sizeof (input_facility->buffer))
+              {
+                fprintf (stderr, "WARNING: Protocol violation, got GNUnet Message type %h, size %h!\n", ntohs (hdr->type), ntohs (hdr->size));
+                input_facility->facility_state = IOSTATE_READY;
+                return TRUE;
+              }
+            if (ntohs (hdr->size) > input_facility->buffer_size );
+            // TODO: add support for partial read
 
             /* we successfully read something from the TAP and now need to
              * send it our via STDOUT. Is that possible at the moment? */
             if ((IOSTATE_READY == output_facility->facility_state ||
                  IOSTATE_WAITING == output_facility->facility_state)
-                && 0 < input_facility->buffer_size)
-              { /* hand over this buffers content */
-                memcpy (output_facility->buffer,
+                && sizeof(struct GNUNET_MessageHeader) < input_facility->buffer_size)
+              { /* hand over this buffers content and strip gnunet message header */
+                memcpy (output_facility->buffer + sizeof(struct GNUNET_MessageHeader),
                         input_facility->buffer,
-                        input_facility->buffer_size);
-                output_facility->buffer_size = input_facility->buffer_size;
+                        input_facility->buffer_size - sizeof(struct GNUNET_MessageHeader));
+                output_facility->buffer_size = input_facility->buffer_size - sizeof(struct GNUNET_MessageHeader);
                 output_facility->facility_state = IOSTATE_READY;
                 input_facility->facility_state = IOSTATE_READY;
               }
-            else if (0 < input_facility->buffer_size)
+            else if (sizeof(struct GNUNET_MessageHeader) < input_facility->buffer_size)
               { /* If we have have read our buffer, wait for our write-partner*/
                 input_facility->facility_state = IOSTATE_WAITING;
                 // TODO: shall we attempt to fill our buffer or should we wait for our write-partner to finish?
               }
+            else if (sizeof(struct GNUNET_MessageHeader) >= input_facility->buffer_size)
+              input_facility->facility_state = IOSTATE_READY;
           }
         else
           { /* operation still pending/queued or failed? */
