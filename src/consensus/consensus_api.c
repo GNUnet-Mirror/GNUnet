@@ -248,7 +248,7 @@ handle_new_element (struct GNUNET_CONSENSUS_Handle *consensus,
   struct GNUNET_CONSENSUS_AckMessage *ack_msg;
   int ret;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "received new element\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "received new element\n");
 
   element.type = msg->element_type;
   element.size = ntohs (msg->header.size) - sizeof (struct GNUNET_CONSENSUS_ElementMessage);
@@ -297,7 +297,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_CONSENSUS_Handle *consensus = cls;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "received message from consensus service\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "received message from consensus service\n");
 
   if (msg == NULL)
   {
@@ -344,7 +344,7 @@ transmit_join (void *cls, size_t size, void *buf)
 
   GNUNET_assert (NULL != buf);
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "transmitting join message\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "transmitting join message\n");
 
   consensus = cls;
   consensus->th = NULL;
@@ -450,7 +450,7 @@ GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
   struct GNUNET_CONSENSUS_ElementMessage *element_msg;
   size_t element_msg_size;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "inserting, size=%llu\n", element->size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "inserting, size=%llu\n", element->size);
 
   element_msg_size = (sizeof (struct GNUNET_CONSENSUS_ElementMessage) +
                                element->size);

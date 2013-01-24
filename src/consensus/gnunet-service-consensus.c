@@ -1220,8 +1220,6 @@ client_join (void *cls,
 {
   struct ConsensusSession *session;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "join received\n");
-
   // make sure the client has not already joined a session
   session = sessions_head;
   while (NULL != session)
@@ -1270,8 +1268,6 @@ client_insert (void *cls,
   struct GNUNET_CONSENSUS_Element *element;
   struct GNUNET_HashCode key;
   int element_size;
-
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "insert\n");
 
   session = sessions_head;
   while (NULL != session)
