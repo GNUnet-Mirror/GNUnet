@@ -681,6 +681,7 @@ handle_p2p_element (struct ConsensusPeerInformation *cpi, const struct GNUNET_Me
   element = GNUNET_malloc (size + sizeof *element);
   element->size = size;
   memcpy (&element[1], &element_msg[1], size);
+  element->data = &element[1];
 
   pending_element = GNUNET_malloc (sizeof *pending_element);
   pending_element->element = element;
@@ -1296,6 +1297,8 @@ client_insert (void *cls,
   memcpy (&element[1], &msg[1], element_size);
   element->data = &element[1];
 
+  GNUNET_assert (NULL != element->data);
+
   GNUNET_CRYPTO_hash (element, element_size, &key);
 
   GNUNET_CONTAINER_multihashmap_put (session->values, &key, element,
@@ -1542,7 +1545,14 @@ write_values (void *cls, enum GNUNET_STREAM_Status status, size_t size)
   element_msg->size = htons (msize);
   element_msg->type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS);
 
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "copying element, size=%d\n", element->size);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "element at %p\n", element);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "data at %p\n", element->data);
+
   memcpy (&element_msg[1], element->data, element->size);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "copying done\n");
 
   cpi->wh = GNUNET_STREAM_write (cpi->socket, element_msg, msize, GNUNET_TIME_UNIT_FOREVER_REL,
                                  write_values, cpi);
