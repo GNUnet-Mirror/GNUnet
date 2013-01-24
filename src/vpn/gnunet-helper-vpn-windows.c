@@ -1360,7 +1360,7 @@ run (HANDLE tap_handle)
     }
 #endif
   
-  while (std_out.path_open && tap_write.path_open)
+  while (std_out.path_open || tap_write.path_open)
     {
       /* perform READ from stdin if possible */
       if (std_in.path_open && (!attempt_read_stdin (&std_in, &tap_write)))
