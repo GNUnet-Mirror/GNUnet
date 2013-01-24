@@ -21,8 +21,8 @@
 /**
  * @file mesh/gnunet-regex-profiler.c
  * @brief Regex profiler for testing distributed regex use.
- * @author Bart Polot
- * @author Max Szengel
+ * @author Bartlomiej Polot
+ * @author Maximilian Szengel
  *
  */
 
@@ -33,7 +33,6 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_regex_lib.h"
 #include "gnunet_dht_service.h"
-// #include "gnunet_stream_lib.h"
 #include "gnunet_testbed_service.h"
 
 /**
@@ -393,12 +392,12 @@ static char * regex_prefix;
  * @param put_path_length Length of the put_path.
  */
 static void
-mesh_peer_connect_handler (void *cls,
-                           const struct GNUNET_PeerIdentity *id,
-                           const struct GNUNET_PeerIdentity *get_path,
-                           unsigned int get_path_length,
-                           const struct GNUNET_PeerIdentity *put_path,
-                           unsigned int put_path_length);
+regex_found_handler (void *cls,
+                     const struct GNUNET_PeerIdentity *id,
+                     const struct GNUNET_PeerIdentity *get_path,
+                     unsigned int get_path_length,
+                     const struct GNUNET_PeerIdentity *put_path,
+                     unsigned int put_path_length);
 
 
 /**
@@ -798,12 +797,12 @@ do_collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param put_path_length Length of the put_path.
  */
 static void
-mesh_peer_connect_handler (void *cls,
-                           const struct GNUNET_PeerIdentity *id,
-                           const struct GNUNET_PeerIdentity *get_path,
-                           unsigned int get_path_length,
-                           const struct GNUNET_PeerIdentity *put_path,
-                           unsigned int put_path_length)
+regex_found_handler (void *cls,
+                     const struct GNUNET_PeerIdentity *id,
+                     const struct GNUNET_PeerIdentity *get_path,
+                     unsigned int get_path_length,
+                     const struct GNUNET_PeerIdentity *put_path,
+                     unsigned int put_path_length)
 {
   struct RegexPeer *peer = cls;
   char output_buffer[512];
@@ -811,9 +810,9 @@ mesh_peer_connect_handler (void *cls,
 
   if (GNUNET_YES == peer->search_str_matched)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"String %s on peer %u already matched!\n",
-		peer->search_str, peer->id);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+                "String %s on peer %u already matched!\n",
+                peer->search_str, peer->id);
     return;
   }
 
@@ -821,6 +820,7 @@ mesh_peer_connect_handler (void *cls,
 
   if (NULL == id)
   {
+    // FIXME not possible right now
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "String matching timed out for string %s on peer %u (%i/%i)\n",
                 peer->search_str, peer->id, peers_found, num_search_strings);
@@ -850,17 +850,16 @@ mesh_peer_connect_handler (void *cls,
       size =
         GNUNET_snprintf (output_buffer,
                          sizeof (output_buffer),
-                         "%p Peer: %u\n%p Host: %s\n%p Policy file: %s\n%p Search string: %s\n%p Search duration: %s\n\n",
-			 peer,
-                         peer->id,
+                         "%p Peer: %u\n%p Host: %s\n%p Policy file: %s\n"
+                         "%p Search string: %s\n%p Search duration: %s\n\n",
+                         peer, peer->id,
                          peer,
                          GNUNET_TESTBED_host_get_hostname (peer->host_handle),
-			 peer,
-                         peer->policy_file,
-			 peer,
-                         peer->search_str,
-			 peer,
-                         GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
+                         peer, peer->policy_file,
+                         peer, peer->search_str,
+                         peer,
+                         GNUNET_STRINGS_relative_time_to_string (prof_time,
+                                                                 GNUNET_NO));
 
       if (size != GNUNET_DISK_file_write (data_file, output_buffer, size))
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to write to file!\n");
@@ -981,10 +980,10 @@ dht_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
   GNUNET_assert (peer->dht_handle == ca_result);
 
   peer->search_str_matched = GNUNET_NO;
-  peer->search_handle = 
-    GNUNET_REGEX_search (peer->dht_handle, peer->search_str,
-                         &mesh_peer_connect_handler, NULL, 
-                         NULL);
+  peer->search_handle = GNUNET_REGEX_search (peer->dht_handle,
+                                             peer->search_str,
+                                             &regex_found_handler, NULL,
+                                             NULL);
   peer->prof_start_time = GNUNET_TIME_absolute_get ();
 
   if (peer_cnt < (num_search_strings - 1))
@@ -998,18 +997,22 @@ dht_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
     peers[next_p].search_str_matched = GNUNET_NO;
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		"Searching for string \"%s\" on peer %d with file %s\n",
-		peers[next_p].search_str, next_p, peers[next_p].policy_file);
+                "Searching for string \"%s\" on peer %d with file %s\n",
+                peers[next_p].search_str, next_p, peers[next_p].policy_file);
 
+    /* FIXME
+     * dont connect to a new dht for each peer, we might want to seach for n
+     * strings on m peers where n > m
+     */
     peers[next_p].dht_op_handle =
       GNUNET_TESTBED_service_connect (NULL,
-				      peers[next_p].peer_handle,
-				      "dht",
-				      &dht_connect_cb,
-				      &peers[next_p],
-				      &dht_ca,
-				      &dht_da,
-				      &peers[next_p]);
+                                      peers[next_p].peer_handle,
+                                      "dht",
+                                      &dht_connect_cb,
+                                      &peers[next_p],
+                                      &dht_ca,
+                                      &dht_da,
+                                      &peers[next_p]);
   }
 }
 
