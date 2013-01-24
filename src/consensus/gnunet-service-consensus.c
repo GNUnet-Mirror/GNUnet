@@ -1546,13 +1546,10 @@ write_values (void *cls, enum GNUNET_STREAM_Status status, size_t size)
   element_msg->type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS);
 
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "copying element, size=%d\n", element->size);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "element at %p\n", element);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "data at %p\n", element->data);
+  GNUNET_assert (NULL != element->data);
+
 
   memcpy (&element_msg[1], element->data, element->size);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "copying done\n");
 
   cpi->wh = GNUNET_STREAM_write (cpi->socket, element_msg, msize, GNUNET_TIME_UNIT_FOREVER_REL,
                                  write_values, cpi);
