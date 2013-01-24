@@ -71,12 +71,7 @@
  * Hardware ID used in the inf-file. 
  * This might change over time, as openvpn advances their driver
  */
-#define HARDWARE_ID "TAP0901"
-
-/**
- * Component ID if our driver
- */
-#define TAP_WIN_COMPONENT_ID "tap0901"
+#define HARDWARE_ID "tap0901"
 
 /**
  * Minimum major-id of the driver version we can work with
@@ -142,30 +137,65 @@ static char device_guid[256];
  */
 struct io_facility
 {
+  /**
+   * The mode the state machine associated with this object is in. IOSTATE_*
+   */
+  int facility_state;
+
+  /**
+   * If the path is open or blocked in general (used for quickly checking)
+   */
+  BOOL path_open; // BOOL is winbool (int), NOT boolean (unsigned char)!
+
+  /**
+   * Windows Object-Handle (used for accessing TAP and STDIN/STDOUT)
+   */
   HANDLE handle;
 
-  BOOL path_open; // BOOL is winbool, NOT boolean!
-  int facility_state;
-  BOOL status;
-
+  /**
+   * Overlaped IO structure used for asynchronous IO in windows.
+   */
   OVERLAPPED overlapped;
-  DWORD buffer_size;
-  DWORD buffer_size_written;
+
+  /**
+   * Buffer for reading things to and writing from...
+   */
   unsigned char buffer[MAX_SIZE];
+
+  /**
+   * How much of this buffer was used when reading or how much data can be written
+   */
+  DWORD buffer_size;
+
+  /**
+   * Amount of data written, is compared to buffer_size.
+   */
+  DWORD buffer_size_written;
 };
 
 /** 
  * Operlapped IO states for facility objects
+ * overlapped I/O has failed, stop processing 
  */
-#define IOSTATE_FAILED          -1 /* overlapped I/O has failed, stop processing */
-#define IOSTATE_READY            0 /* overlapped I/O is ready for work */
-#define IOSTATE_QUEUED           1 /* overlapped I/O has been queued */
-#define IOSTATE_WAITING          3 /* overlapped I/O has finished, but is waiting for it's write-partner */
+#define IOSTATE_FAILED          -1 
+/** 
+ * overlapped I/O is ready for work 
+ */
+#define IOSTATE_READY            0 
+/** 
+ * overlapped I/O has been queued 
+ */
+#define IOSTATE_QUEUED           1 
+/** 
+ * overlapped I/O has finished, but is waiting for it's write-partner 
+ */
+#define IOSTATE_WAITING          3 
 
 /**
  * ReOpenFile is only available as of XP SP2 and 2003 SP1
  */
 WINBASEAPI HANDLE WINAPI ReOpenFile (HANDLE, DWORD, DWORD, DWORD);
+
 
 /**
  * Wrapper for executing a shellcommand in windows.
@@ -193,6 +223,7 @@ execute_shellcommand (const char *command)
 
   return _pclose (pipe);
 }
+
 
 /**
  * @brief Sets the IPv6-Address given in address on the interface dev
@@ -236,6 +267,7 @@ set_address6 (const char *address, unsigned long prefix_len)
   return ret;
 }
 
+
 /**
  * @brief Removes the IPv6-Address given in address from the interface dev
  *
@@ -248,7 +280,7 @@ remove_address6 (const char *address)
 {
   char command[LINE_LEN];
   int ret = EINVAL;
-  
+
   // sanity checking was already done in set_address6
   /*
    * prepare the command
@@ -312,6 +344,7 @@ set_address4 (const char *address, const char *mask)
   return ret;
 }
 
+
 /**
  * @brief Removes the IPv4-Address given in address from the interface dev
  *
@@ -324,7 +357,7 @@ remove_address4 (const char *address)
 {
   char command[LINE_LEN];
   int ret = EINVAL;
-  
+
   // sanity checking was already done in set_address4
 
   /*
@@ -342,6 +375,7 @@ remove_address4 (const char *address)
   if (0 != ret)
     fprintf (stderr, "FATAL: removing IPv4 address failed: %s\n", strerror (ret));
 }
+
 
 /**
  * Setup a new virtual interface to use for tunneling. 
@@ -391,7 +425,7 @@ setup_interface ()
   /** 
    * Bootstrap our device info using the drivers inf-file
    */
-  if ( ! SetupDiGetINFClassA (inf_file_path,
+  if (!SetupDiGetINFClassA (inf_file_path,
                             &class_guid,
                             class_name, sizeof (class_name) / sizeof (char),
                             NULL))
@@ -406,7 +440,7 @@ setup_interface ()
     return FALSE;
 
   DeviceNode.cbSize = sizeof (SP_DEVINFO_DATA);
-  if ( ! SetupDiCreateDeviceInfoA (DeviceInfo,
+  if (!SetupDiCreateDeviceInfoA (DeviceInfo,
                                  class_name,
                                  &class_guid,
                                  NULL,
@@ -416,7 +450,7 @@ setup_interface ()
     return FALSE;
 
   /* Deploy all the information collected into the registry */
-  if ( ! SetupDiSetDeviceRegistryPropertyA (DeviceInfo,
+  if (!SetupDiSetDeviceRegistryPropertyA (DeviceInfo,
                                           &DeviceNode,
                                           SPDRP_HARDWAREID,
                                           (LPBYTE) hwidlist,
@@ -424,14 +458,14 @@ setup_interface ()
     return FALSE;
 
   /* Install our new class(=device) into the system */
-  if ( ! SetupDiCallClassInstaller (DIF_REGISTERDEVICE,
+  if (!SetupDiCallClassInstaller (DIF_REGISTERDEVICE,
                                   DeviceInfo,
                                   &DeviceNode))
     return FALSE;
 
   /* This system call tends to take a while (several seconds!) on
      "modern" Windoze systems */
-  if ( ! UpdateDriverForPlugAndPlayDevicesA (NULL,
+  if (!UpdateDriverForPlugAndPlayDevicesA (NULL,
                                            secondary_hwid,
                                            inf_file_path,
                                            INSTALLFLAG_FORCE | INSTALLFLAG_NONINTERACTIVE,
@@ -440,6 +474,7 @@ setup_interface ()
 
   return TRUE;
 }
+
 
 /**
  * Remove our new virtual interface to use for tunneling. 
@@ -463,7 +498,7 @@ remove_interface ()
    * 1. Prepare our existing device information set, and place the 
    *    uninstall related information into the structure
    */
-  if ( ! SetupDiSetClassInstallParamsA (DeviceInfo,
+  if (!SetupDiSetClassInstallParamsA (DeviceInfo,
                                       (PSP_DEVINFO_DATA) & DeviceNode,
                                       &remove.ClassInstallHeader,
                                       sizeof (remove)))
@@ -471,7 +506,7 @@ remove_interface ()
   /*
    * 2. Uninstall the virtual interface using the class installer
    */
-  if ( ! SetupDiCallClassInstaller (DIF_REMOVE,
+  if (!SetupDiCallClassInstaller (DIF_REMOVE,
                                   DeviceInfo,
                                   (PSP_DEVINFO_DATA) & DeviceNode))
     return FALSE;
@@ -480,6 +515,7 @@ remove_interface ()
 
   return TRUE;
 }
+
 
 /**
  * Do all the lookup necessary to retrieve the inteface's actual name
@@ -527,7 +563,7 @@ resolve_interface_name ()
       /* Of course there is a multitude of entries here, with arbitrary names, 
        * thus we need to iterate through there.
        */
-      while ( ! retval)
+      while (!retval)
         {
           char instance_key[256];
           char query_key [256];
@@ -622,6 +658,7 @@ cleanup:
   return retval;
 }
 
+
 static boolean
 check_tapw32_version (HANDLE handle)
 {
@@ -650,6 +687,7 @@ check_tapw32_version (HANDLE handle)
   return TRUE;
 }
 
+
 /**
  * Creates a tun-interface called dev;
  *
@@ -661,13 +699,13 @@ init_tun ()
   char device_path[256];
   HANDLE handle;
 
-  if ( ! setup_interface ())
+  if (!setup_interface ())
     {
       errno = ENODEV;
       return INVALID_HANDLE_VALUE;
     }
 
-  if ( ! resolve_interface_name ())
+  if (!resolve_interface_name ())
     {
       errno = ENODEV;
       return INVALID_HANDLE_VALUE;
@@ -696,7 +734,7 @@ init_tun ()
     }
 
   /* get driver version info */
-  if ( ! check_tapw32_version (handle))
+  if (!check_tapw32_version (handle))
     {
       CloseHandle (handle);
       return INVALID_HANDLE_VALUE;
@@ -706,6 +744,7 @@ init_tun ()
 
   return handle;
 }
+
 
 /**
  * Brings a TAP device up and sets it to connected state.
@@ -718,9 +757,9 @@ tun_up (HANDLE handle)
 {
   ULONG status = TRUE;
   DWORD len;
-  if ( ! DeviceIoControl (handle, TAP_WIN_IOCTL_SET_MEDIA_STATUS,
-                       &status, sizeof (status),
-                       &status, sizeof (status), &len, NULL))
+  if (!DeviceIoControl (handle, TAP_WIN_IOCTL_SET_MEDIA_STATUS,
+                        &status, sizeof (status),
+                        &status, sizeof (status), &len, NULL))
     {
       fprintf (stderr, "FATAL: TAP driver ignored request to UP interface (DeviceIoControl call)!\n");
       return FALSE;
@@ -732,6 +771,7 @@ tun_up (HANDLE handle)
   return TRUE;
 
 }
+
 
 /**
  * Attempts to read off an input facility (tap or named pipe) in overlapped mode.
@@ -759,29 +799,30 @@ tun_up (HANDLE handle)
  * @return false if an event reset was impossible (OS error), else true
  */
 static boolean
-attempt_read (struct io_facility * input_facility,
-              struct io_facility * output_facility)
+attempt_read_tap (struct io_facility * input_facility,
+                  struct io_facility * output_facility)
 {
   switch (input_facility->facility_state)
     {
     case IOSTATE_READY:
       {
-        if ( ! ResetEvent (input_facility->overlapped.hEvent))
+        BOOL status; // BOOL is winbool, NOT boolean!
+        if (!ResetEvent (input_facility->overlapped.hEvent))
           {
             return FALSE;
           }
-        input_facility->status = ReadFile (input_facility->handle,
-                                           input_facility->buffer,
-                                           MAX_SIZE,
-                                           &input_facility->buffer_size,
-                                           &input_facility->overlapped);
+        status = ReadFile (input_facility->handle,
+                           input_facility->buffer + sizeof (struct GNUNET_MessageHeader),
+                           sizeof (input_facility->buffer) - sizeof (struct GNUNET_MessageHeader),
+                           &input_facility->buffer_size,
+                           &input_facility->overlapped);
 
         /* Check how the task is handled */
-        if (input_facility->status)
+        if (status)
           {/* async event processed immediately*/
 
             /* reset event manually*/
-            if ( ! SetEvent (input_facility->overlapped.hEvent))
+            if (!SetEvent (input_facility->overlapped.hEvent))
               return FALSE;
 
             /* we successfully read something from the TAP and now need to
@@ -792,7 +833,7 @@ attempt_read (struct io_facility * input_facility,
               { /* hand over this buffers content */
                 memcpy (output_facility->buffer,
                         input_facility->buffer,
-                        MAX_SIZE);
+                        sizeof (input_facility->buffer));
                 output_facility->buffer_size = input_facility->buffer_size;
                 output_facility->facility_state = IOSTATE_READY;
               }
@@ -824,14 +865,16 @@ attempt_read (struct io_facility * input_facility,
       // We are queued and should check if the read has finished
     case IOSTATE_QUEUED:
       {
+        BOOL status; // BOOL is winbool, NOT boolean!
+
         // there was an operation going on already, check if that has completed now.
-        input_facility->status = GetOverlappedResult (input_facility->handle,
-                                                      &input_facility->overlapped,
-                                                      &input_facility->buffer_size,
-                                                      FALSE);
-        if (input_facility->status)
+        status = GetOverlappedResult (input_facility->handle,
+                                      &input_facility->overlapped,
+                                      &input_facility->buffer_size,
+                                      FALSE);
+        if (status)
           {/* successful return for a queued operation */
-            if ( ! ResetEvent (input_facility->overlapped.hEvent))
+            if (!ResetEvent (input_facility->overlapped.hEvent))
               return FALSE;
 
             /* we successfully read something from the TAP and now need to
@@ -842,7 +885,7 @@ attempt_read (struct io_facility * input_facility,
               { /* hand over this buffers content */
                 memcpy (output_facility->buffer,
                         input_facility->buffer,
-                        MAX_SIZE);
+                        input_facility->buffer_size);
                 output_facility->buffer_size = input_facility->buffer_size;
                 output_facility->facility_state = IOSTATE_READY;
                 input_facility->facility_state = IOSTATE_READY;
@@ -873,6 +916,170 @@ attempt_read (struct io_facility * input_facility,
 }
 
 /**
+ * Attempts to read off an input facility (tap or named pipe) in overlapped mode.
+ * 
+ * 1. 
+ * If the input facility is in IOSTATE_READY, it will issue a new read operation to the
+ * input handle. Then it goes into IOSTATE_QUEUED state. 
+ * In case the read succeeded instantly the input facility enters 3.
+ * 
+ * 2. 
+ * If the input facility is in IOSTATE_QUEUED state, it will check if the queued read has finished already.
+ * If it has finished, go to state 3.
+ * If it has failed, set IOSTATE_FAILED
+ * 
+ * 3.
+ * If the facility is finished with ready
+ *   The read-buffer is copied to the output buffer, except for the GNUNET_MessageHeader.
+ *   The input facility enters state IOSTATE_READY
+ *   The output facility enters state IOSTATE_READY
+ * If the output facility is in state IOSTATE_QUEUED, the input facility enters IOSTATE_WAITING
+ * 
+ * IOSTATE_WAITING is reset by the output facility, once it has completed.
+ * 
+ * @param input_facility input named pipe or file to work with.
+ * @param output_facility output pipe or file to hand over data to.
+ * @return false if an event reset was impossible (OS error), else true
+ */
+static boolean
+attempt_read_stdin (struct io_facility * input_facility,
+                    struct io_facility * output_facility)
+{
+  switch (input_facility->facility_state)
+    {
+    case IOSTATE_READY:
+      {
+        BOOL status; // BOOL is winbool, NOT boolean!
+        if (!ResetEvent (input_facility->overlapped.hEvent))
+          {
+            return FALSE;
+          }
+        status = ReadFile (input_facility->handle,
+                           input_facility->buffer,
+                           sizeof (input_facility->buffer),
+                           &input_facility->buffer_size,
+                           &input_facility->overlapped);
+
+        /* Check how the task is handled */
+        if (status && (0 < input_facility->buffer_size))
+          {/* async event processed immediately*/
+            struct GNUNET_MessageHeader *hdr;
+
+            /* reset event manually*/
+            if (!SetEvent (input_facility->overlapped.hEvent))
+              return FALSE;
+
+            hdr = (struct GNUNET_MessageHeader *) input_facility->buffer;
+            if (ntohs (hdr->type) != GNUNET_MESSAGE_TYPE_VPN_HELPER ||
+                ntohs (hdr->size) > sizeof (input_facility->buffer))
+              {
+                fprintf (stderr, "WARNING: Protocol violation, got GNUnet Message type %h, size %h!\n", ntohs (hdr->type), ntohs (hdr->size));
+                input_facility->facility_state = IOSTATE_READY;
+                return TRUE;
+              }
+            //if (ntohs (hdr->size) > input_facility->buffer_size );
+            // TODO: add support for partial read
+
+            /* we successfully read something from the TAP and now need to
+             * send it our via STDOUT. Is that possible at the moment? */
+            if (IOSTATE_READY == output_facility->facility_state ||
+                IOSTATE_WAITING == output_facility->facility_state)
+              { /* hand over this buffers content */
+                memcpy (output_facility->buffer,
+                        input_facility->buffer,
+                        sizeof (input_facility->buffer));
+                output_facility->buffer_size = input_facility->buffer_size;
+                output_facility->facility_state = IOSTATE_READY;
+              }
+            else if (0 < input_facility->buffer_size)
+              { /* If we have have read our buffer, wait for our write-partner*/
+                input_facility->facility_state = IOSTATE_WAITING;
+                // TODO: shall we attempt to fill our buffer or should we wait for our write-partner to finish?
+              }
+
+            input_facility->facility_state = IOSTATE_READY;
+          }
+        else if (status && 0 >= input_facility->buffer_size)
+          {
+            if (!SetEvent (input_facility->overlapped.hEvent))
+              return FALSE;
+
+            input_facility->facility_state = IOSTATE_READY;
+          }
+        else /* operation was either queued or failed*/
+          {
+            int err = GetLastError ();
+            if (ERROR_IO_PENDING == err)
+              { /* operation queued */
+                input_facility->facility_state = IOSTATE_QUEUED;
+              }
+            else
+              { /* error occurred, let the rest of the elements finish */
+                input_facility->path_open = FALSE;
+                input_facility->facility_state = IOSTATE_FAILED;
+                if (IOSTATE_WAITING == output_facility->facility_state)
+                  output_facility->path_open = FALSE;
+
+                fprintf (stderr, "FATAL: Read from handle failed, allowing write to finish!\n");
+              }
+          }
+      }
+      return TRUE;
+      // We are queued and should check if the read has finished
+    case IOSTATE_QUEUED:
+      {
+        BOOL status; // BOOL is winbool, NOT boolean!
+
+        // there was an operation going on already, check if that has completed now.
+        status = GetOverlappedResult (input_facility->handle,
+                                      &input_facility->overlapped,
+                                      &input_facility->buffer_size,
+                                      FALSE);
+        if (status)
+          {/* successful return for a queued operation */
+            if (!ResetEvent (input_facility->overlapped.hEvent))
+              return FALSE;
+
+            /* we successfully read something from the TAP and now need to
+             * send it our via STDOUT. Is that possible at the moment? */
+            if ((IOSTATE_READY == output_facility->facility_state ||
+                 IOSTATE_WAITING == output_facility->facility_state)
+                && 0 < input_facility->buffer_size)
+              { /* hand over this buffers content */
+                memcpy (output_facility->buffer,
+                        input_facility->buffer,
+                        input_facility->buffer_size);
+                output_facility->buffer_size = input_facility->buffer_size;
+                output_facility->facility_state = IOSTATE_READY;
+                input_facility->facility_state = IOSTATE_READY;
+              }
+            else if (0 < input_facility->buffer_size)
+              { /* If we have have read our buffer, wait for our write-partner*/
+                input_facility->facility_state = IOSTATE_WAITING;
+                // TODO: shall we attempt to fill our buffer or should we wait for our write-partner to finish?
+              }
+          }
+        else
+          { /* operation still pending/queued or failed? */
+            int err = GetLastError ();
+            if (ERROR_IO_INCOMPLETE != err && ERROR_IO_PENDING != err)
+              { /* error occurred, let the rest of the elements finish */
+                input_facility->path_open = FALSE;
+                input_facility->facility_state = IOSTATE_FAILED;
+                if (IOSTATE_WAITING == output_facility->facility_state)
+                  output_facility->path_open = FALSE;
+                fprintf (stderr, "FATAL: Read from handle failed, allowing write to finish!\n");
+              }
+          }
+      }
+      return TRUE;
+    default:
+      return TRUE;
+    }
+}
+
+
+/**
  * Attempts to write to an output facility (tap or named pipe) in overlapped mode.
  *
  * TODO: high level description
@@ -888,24 +1095,26 @@ attempt_write (struct io_facility * output_facility,
   if (IOSTATE_READY == output_facility->facility_state
       && output_facility->buffer_size > 0)
     {
-      if ( ! ResetEvent (output_facility->overlapped.hEvent))
+      BOOL status; // BOOL is winbool, NOT boolean!
+
+      if (!ResetEvent (output_facility->overlapped.hEvent))
         {
           return FALSE;
         }
 
-      output_facility->status = WriteFile (output_facility->handle,
-                                           output_facility->buffer,
-                                           output_facility->buffer_size,
-                                           &output_facility->buffer_size_written,
-                                           &output_facility->overlapped);
+      status = WriteFile (output_facility->handle,
+                          output_facility->buffer,
+                          output_facility->buffer_size,
+                          &output_facility->buffer_size_written,
+                          &output_facility->overlapped);
 
       /* Check how the task is handled */
-      if (output_facility->status &&
+      if (status &&
           output_facility->buffer_size_written == output_facility->buffer_size)
         {/* async event processed immediately*/
 
           /* reset event manually*/
-          if ( ! SetEvent (output_facility->overlapped.hEvent))
+          if (!SetEvent (output_facility->overlapped.hEvent))
             return FALSE;
 
           /* we are now waiting for our buffer to be filled*/
@@ -937,15 +1146,16 @@ attempt_write (struct io_facility * output_facility,
     }
   else if (IOSTATE_QUEUED == output_facility->facility_state)
     {
+      BOOL status; // BOOL is winbool, NOT boolean!
       // there was an operation going on already, check if that has completed now.
-      output_facility->status = GetOverlappedResult (output_facility->handle,
-                                                     &output_facility->overlapped,
-                                                     &output_facility->buffer_size_written,
-                                                     FALSE);
-      if (output_facility->status &&
+      status = GetOverlappedResult (output_facility->handle,
+                                    &output_facility->overlapped,
+                                    &output_facility->buffer_size_written,
+                                    FALSE);
+      if (status &&
           output_facility->buffer_size_written == output_facility->buffer_size)
         {/* successful return for a queued operation */
-          if ( ! ResetEvent (output_facility->overlapped.hEvent))
+          if (!ResetEvent (output_facility->overlapped.hEvent))
             return FALSE;
 
           /* we are now waiting for our buffer to be filled*/
@@ -974,6 +1184,7 @@ attempt_write (struct io_facility * output_facility,
   return TRUE;
 }
 
+
 /**
  * Initialize a overlapped structure
  * 
@@ -984,14 +1195,13 @@ attempt_write (struct io_facility * output_facility,
  */
 static boolean
 initialize_io_facility (struct io_facility * elem,
-                        BOOL initial_state,
+                        int initial_state,
                         BOOL signaled)
 {
 
   elem->path_open = TRUE;
-  elem->status = initial_state;
   elem->handle = INVALID_HANDLE_VALUE;
-  elem->facility_state = 0;
+  elem->facility_state = initial_state;
   elem->buffer_size = 0;
   elem->overlapped.hEvent = CreateEvent (NULL, TRUE, signaled, NULL);
   if (NULL == elem->overlapped.hEvent)
@@ -999,6 +1209,7 @@ initialize_io_facility (struct io_facility * elem,
 
   return TRUE;
 }
+
 
 /**
  * Start forwarding to and from the tunnel.
@@ -1027,14 +1238,14 @@ run (HANDLE tap_handle)
    * DHCP and such are all features we will never use in gnunet afaik.
    * But for openvpn those are essential.
    */
-  if ( ! tun_up (tap_handle))
+  if (!tun_up (tap_handle))
     return;
 
   /* Initialize our overlapped IO structures*/
-  if ( ! (initialize_io_facility (&tap_read, TRUE, FALSE)
-        && initialize_io_facility (&tap_write, FALSE, TRUE)
-        && initialize_io_facility (&std_in, TRUE, FALSE)
-        && initialize_io_facility (&std_out, FALSE, TRUE)))
+  if (!(initialize_io_facility (&tap_read, IOSTATE_READY, FALSE)
+        && initialize_io_facility (&tap_write, IOSTATE_WAITING, TRUE)
+        && initialize_io_facility (&std_in, IOSTATE_READY, FALSE)
+        && initialize_io_facility (&std_out, IOSTATE_WAITING, TRUE)))
     goto teardown_final;
 
   /* Handles for STDIN and STDOUT */
@@ -1050,8 +1261,6 @@ run (HANDLE tap_handle)
       FILE_TYPE_PIPE != GetFileType (parent_std_out_handle))
     {
       fprintf (stderr, "ERROR: stdin/stdout must be named pipes!\n");
-      printf("\nPress Enter to continue...");
-      getchar();
       goto teardown;
     }
 
@@ -1080,19 +1289,19 @@ run (HANDLE tap_handle)
   while (std_out.path_open || tap_write.path_open)
     {
       /* perform READ from stdin if possible */
-      if (std_in.path_open && tap_write.path_open && !attempt_read (&std_in, &tap_write))
+      if (std_in.path_open && tap_write.path_open && (!attempt_read_stdin (&std_in, &tap_write)))
         break;
 
       /* perform READ from tap if possible */
-      if (tap_read.path_open && std_out.path_open && !attempt_read (&tap_read, &std_out))
+      if (tap_read.path_open && std_out.path_open && (!attempt_read_tap (&tap_read, &std_out)))
         break;
 
       /* perform WRITE to tap if possible */
-      if (tap_write.path_open && !attempt_write (&tap_write, &std_in))
+      if (tap_write.path_open && (!attempt_write (&tap_write, &std_in)))
         break;
 
       /* perform WRITE to STDOUT if possible */
-      if (std_out.path_open && !attempt_write (&std_out, &tap_read))
+      if (std_out.path_open && (!attempt_write (&std_out, &tap_read)))
         break;
     }
 
@@ -1106,6 +1315,7 @@ teardown_final:
 
   CloseHandle (tap_handle);
 }
+
 
 /**
  * Open VPN tunnel interface.
@@ -1124,8 +1334,8 @@ main (int argc, char **argv)
   char hwid[LINE_LEN];
   HANDLE handle;
   int global_ret = 0;
-  boolean have_ip4=FALSE;
-  boolean have_ip6=FALSE;
+  boolean have_ip4 = FALSE;
+  boolean have_ip6 = FALSE;
 
   if (6 != argc)
     {
@@ -1171,7 +1381,7 @@ main (int argc, char **argv)
 
       if (0 != (global_ret = set_address6 (address, prefix_len)))
         goto cleanup;
-      
+
       have_ip6 = TRUE;
     }
 
@@ -1182,7 +1392,7 @@ main (int argc, char **argv)
 
       if (0 != (global_ret = set_address4 (address, mask)))
         goto cleanup;
-      
+
       have_ip4 = TRUE;
     }
 
@@ -1190,13 +1400,15 @@ main (int argc, char **argv)
   global_ret = 0;
 cleanup:
 
-  if (have_ip4){
+  if (have_ip4)
+    {
       const char *address = argv[4];
-      remove_address4(address);
+      remove_address4 (address);
     }
-  if (have_ip6){
+  if (have_ip6)
+    {
       const char *address = argv[2];
-      remove_address6(address);
+      remove_address6 (address);
     }
   remove_interface ();
   return global_ret;
