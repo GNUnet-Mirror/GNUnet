@@ -46,6 +46,11 @@ struct QueueEntry
    * The operation this entry holds
    */
   struct GNUNET_TESTBED_Operation *op;
+
+  /**
+   * How many units of resources does the operation need
+   */
+  unsigned int nres;
 };
 
 
@@ -132,6 +137,12 @@ struct GNUNET_TESTBED_Operation
   struct OperationQueue **queues;
 
   /**
+   * Array of number resources an operation need from each queue. This numbers
+   * in this array should correspond to the queues array
+   */
+  unsigned int *nres;
+
+  /**
    * The id of the task which calls OperationStart for this operation
    */
   GNUNET_SCHEDULER_TaskIdentifier start_task_id;
@@ -179,10 +190,13 @@ check_readiness (struct GNUNET_TESTBED_Operation *op)
 
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == op->start_task_id);
   for (i = 0; i < op->nqueues; i++)
-    if (op->queues[i]->active >= op->queues[i]->max_active)
+  {
+    GNUNET_assert (0 < op->nres[i]);
+    if ((op->queues[i]->active + op->nres[i]) > op->queues[i]->max_active)
       return;
+  }
   for (i = 0; i < op->nqueues; i++)
-    op->queues[i]->active++;
+    op->queues[i]->active += op->nres[i];
   op->state = OP_STATE_READY;
   op->start_task_id = GNUNET_SCHEDULER_add_now (&call_start, op);
 }
@@ -311,18 +325,47 @@ GNUNET_TESTBED_operation_queue_reset_max_active_ (struct OperationQueue *queue,
  *
  * @param queue queue to add the operation to
  * @param operation operation to add to the queue
+ * @param nres the number of units of the resources of queue needed by the
+ *          operation. Should be greater than 0.
+ */
+void
+GNUNET_TESTBED_operation_queue_insert2_ (struct OperationQueue *queue,
+                                         struct GNUNET_TESTBED_Operation
+                                         *operation,
+                                         unsigned int nres)
+{
+  struct QueueEntry *entry;
+  unsigned int qsize;
+
+  GNUNET_assert (0 < nres);
+  entry = GNUNET_malloc (sizeof (struct QueueEntry));
+  entry->op = operation;
+  entry->nres = nres;
+  GNUNET_CONTAINER_DLL_insert_tail (queue->head, queue->tail, entry);
+  qsize = operation->nqueues;
+  GNUNET_array_append (operation->queues, operation->nqueues, queue);
+  GNUNET_array_append (operation->nres, qsize, nres);
+  GNUNET_assert (qsize == operation->nqueues);
+}
+
+
+/**
+ * Add an operation to a queue.  An operation can be in multiple queues at
+ * once. Once the operation is inserted into all the queues
+ * GNUNET_TESTBED_operation_begin_wait_() has to be called to actually start
+ * waiting for the operation to become active. The operation is assumed to take
+ * 1 queue resource. Use GNUNET_TESTBED_operation_queue_insert2_() if it
+ * requires more than 1
+ *
+ * @param queue queue to add the operation to
+ * @param operation operation to add to the queue
  */
 void
 GNUNET_TESTBED_operation_queue_insert_ (struct OperationQueue *queue,
                                         struct GNUNET_TESTBED_Operation
                                         *operation)
 {
-  struct QueueEntry *entry;
-
-  entry = GNUNET_malloc (sizeof (struct QueueEntry));
-  entry->op = operation;
-  GNUNET_CONTAINER_DLL_insert_tail (queue->head, queue->tail, entry);
-  GNUNET_array_append (operation->queues, operation->nqueues, queue);
+  return GNUNET_TESTBED_operation_queue_insert2_ (queue, operation, 1);
 }
 
 
@@ -366,6 +409,7 @@ GNUNET_TESTBED_operation_queue_remove_ (struct OperationQueue *queue,
     if (entry->op == operation)
       break;
   GNUNET_assert (NULL != entry);
+  GNUNET_assert (0 < entry->nres);
   switch (operation->state)
   {
   case OP_STATE_INIT:
@@ -374,7 +418,8 @@ GNUNET_TESTBED_operation_queue_remove_ (struct OperationQueue *queue,
   case OP_STATE_READY:
   case OP_STATE_STARTED:
     GNUNET_assert (0 != queue->active);
-    queue->active--;
+    GNUNET_assert (queue->active >= entry->nres);
+    queue->active -= entry->nres;
     break;
   }
   entry2 = entry->next;
@@ -408,6 +453,7 @@ GNUNET_TESTBED_operation_release_ (struct GNUNET_TESTBED_Operation *operation)
   for (i = 0; i < operation->nqueues; i++)
     GNUNET_TESTBED_operation_queue_remove_ (operation->queues[i], operation);
   GNUNET_free (operation->queues);
+  GNUNET_free (operation->nres);
   if (NULL != operation->release)
     operation->release (operation->cb_cls);
   GNUNET_free (operation);

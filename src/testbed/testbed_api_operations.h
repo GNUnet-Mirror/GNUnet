@@ -79,6 +79,24 @@ GNUNET_TESTBED_operation_queue_reset_max_active_ (struct OperationQueue *queue,
  *
  * @param queue queue to add the operation to
  * @param operation operation to add to the queue
+ * @param nres the number of units of the resources of queue needed by the
+ *          operation. Should be greater than 0.
+ */
+void
+GNUNET_TESTBED_operation_queue_insert2_ (struct OperationQueue *queue,
+                                         struct GNUNET_TESTBED_Operation
+                                         *operation,
+                                         unsigned int nres);
+
+
+/**
+ * Add an operation to a queue.  An operation can be in multiple queues at
+ * once. Once the operation is inserted into all the queues
+ * GNUNET_TESTBED_operation_begin_wait_() has to be called to actually start
+ * waiting for the operation to become active.
+ *
+ * @param queue queue to add the operation to
+ * @param operation operation to add to the queue
  */
 void
 GNUNET_TESTBED_operation_queue_insert_ (struct OperationQueue *queue,
