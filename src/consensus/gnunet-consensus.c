@@ -288,6 +288,11 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   static char *session_str = "gnunet-consensus/test";
 
+  if (num_peers < replication)
+  {
+    fprintf (stderr, "k must be <=n\n");
+    return;
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "running gnunet-consensus\n");
 
