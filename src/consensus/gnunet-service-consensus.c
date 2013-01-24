@@ -704,6 +704,7 @@ handle_p2p_element (struct ConsensusPeerInformation *cpi, const struct GNUNET_Me
 static int
 handle_p2p_hello (struct IncomingSocket *inc, const struct ConsensusHello *hello)
 {
+  /* FIXME: session might not exist yet */
   struct ConsensusSession *session;
   session = sessions_head;
   while (NULL != session)
