@@ -108,30 +108,6 @@ gnunet_service_mesh_new_LDFLAGS = -lrt
 endif
 
 
-noinst_PROGRAMS = \
-  gnunet-regex-profiler \
-  gnunet-daemon-regexprofiler
-
-gnunet_regex_profiler_SOURCES = \
-  gnunet-regex-profiler.c
-gnunet_regex_profiler_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testbed/libgnunettestbed.la \
-  $(top_builddir)/src/mesh/libgnunetmesh.la \
-  $(top_builddir)/src/regex/libgnunetregex.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la
-gnunet_regex_profiler_DEPENDENCIES = \
-   libgnunetmesh.la
-
-gnunet_daemon_regexprofiler_SOURCES = \
-  gnunet-daemon-regexprofiler.c
-gnunet_daemon_regexprofiler_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/mesh/libgnunetmesh.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la
-gnunet_daemon_regexprofiler_DEPENDENCIES = \
-  libgnunetmesh.la
-
 noinst_LIBRARIES = libgnunetmeshtest.a
 
 libgnunetmeshtest_a_SOURCES = \

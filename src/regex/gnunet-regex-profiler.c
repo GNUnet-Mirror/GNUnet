@@ -31,8 +31,9 @@
 #include "platform.h"
 #include "gnunet_applications.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_mesh_service.h"
-#include "gnunet_stream_lib.h"
+#include "gnunet_regex_lib.h"
+#include "gnunet_dht_service.h"
+// #include "gnunet_stream_lib.h"
 #include "gnunet_testbed_service.h"
 
 /**
@@ -149,19 +150,19 @@ struct RegexPeer
   int search_str_matched;
 
   /**
-   * Peer's mesh handle.
+   * Peer's dht handle.
    */
-  struct GNUNET_MESH_Handle *mesh_handle;
+  struct GNUNET_DHT_Handle *dht_handle;
 
   /**
-   * Peer's mesh tunnel handle.
+   * Handle to a running regex search.
    */
-  struct GNUNET_MESH_Tunnel *mesh_tunnel_handle;
+   struct GNUNET_REGEX_search_handle *search_handle;
 
   /**
-   * Testbed operation handle for the mesh service.
+   * Testbed operation handle for the dht service.
    */
-  struct GNUNET_TESTBED_Operation *mesh_op_handle;
+  struct GNUNET_TESTBED_Operation *dht_op_handle;
 
   /**
    * Peers's statistics handle.
@@ -382,32 +383,23 @@ static char * regex_prefix;
 
 
 /**
- * Method called whenever a peer has connected to the tunnel.
+ * Search callback function.
  *
- * @param cls closure
- * @param peer_id peer identity the tunnel was created to, NULL on timeout
- * @param atsi performance data for the connection
- *
+ * @param cls Closure provided in GNUNET_REGEX_search.
+ * @param id Peer providing a regex that matches the string.
+ * @param get_path Path of the get request.
+ * @param get_path_length Lenght of get_path.
+ * @param put_path Path of the put request.
+ * @param put_path_length Length of the put_path.
  */
 static void
 mesh_peer_connect_handler (void *cls,
-                           const struct GNUNET_PeerIdentity* peer_id,
-                           const struct GNUNET_ATS_Information * atsi);
+                           const struct GNUNET_PeerIdentity *id,
+                           const struct GNUNET_PeerIdentity *get_path,
+                           unsigned int get_path_length,
+                           const struct GNUNET_PeerIdentity *put_path,
+                           unsigned int put_path_length);
 
-
-/**
- * Method called whenever a peer has disconnected from the tunnel.
- * Implementations of this callback must NOT call
- * GNUNET_MESH_tunnel_destroy immediately, but instead schedule those
- * to run in some other task later.  However, calling
- * "GNUNET_MESH_notify_transmit_ready_cancel" is allowed.
- *
- * @param cls closure
- * @param peer_id peer identity the tunnel stopped working with
- */
-static void
-mesh_peer_disconnect_handler (void *cls,
-                              const struct GNUNET_PeerIdentity * peer_id);
 
 /**
  * Mesh connect callback.
@@ -418,11 +410,11 @@ mesh_peer_disconnect_handler (void *cls,
  * @param emsg error message.
  */
 static void
-mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
+dht_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
                  void *ca_result, const char *emsg);
 
 /**
- * Mesh connect adapter.
+ * DHT connect adapter.
  *
  * @param cls not used.
  * @param cfg configuration handle.
@@ -430,18 +422,18 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
  * @return
  */
 static void *
-mesh_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg);
+dht_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
  * Adapter function called to destroy a connection to
- * the mesh service
+ * the DHT service
  *
  * @param cls closure
  * @param op_result service handle returned from the connect adapter
  */
 static void
-mesh_da (void *cls, void *op_result);
+dht_da (void *cls, void *op_result);
 
 
 /**
@@ -532,8 +524,8 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to write to file!\n");
     }
 
-    if (NULL != peers[peer_cnt].mesh_op_handle)
-      GNUNET_TESTBED_operation_done (peers[peer_cnt].mesh_op_handle);
+    if (NULL != peers[peer_cnt].dht_op_handle)
+      GNUNET_TESTBED_operation_done (peers[peer_cnt].dht_op_handle);
     if (NULL != peers[peer_cnt].stats_op_handle)
       GNUNET_TESTBED_operation_done (peers[peer_cnt].stats_op_handle);
   }
@@ -795,37 +787,23 @@ do_collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /******************************************************************************/
 
 /**
- * Method called whenever a peer has disconnected from the tunnel.
- * Implementations of this callback must NOT call
- * GNUNET_MESH_tunnel_destroy immediately, but instead schedule those
- * to run in some other task later.  However, calling
- * "GNUNET_MESH_notify_transmit_ready_cancel" is allowed.
+ * Method called when we've found a peer that announced a regex
+ * that matches our search string. Now get the statistics.
  *
- * @param cls closure
- * @param peer_id peer identity the tunnel stopped working with
- */
-static void
-mesh_peer_disconnect_handler (void *cls,
-                              const struct GNUNET_PeerIdentity * peer_id)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Mesh peer disconnect handler.\n");
-}
-
-
-/**
- * Method called when the mesh connection succeeded (or timed out), which means
- * we've found a peer that announced a regex that matches our search string. Now
- * get the statistics.
- *
- * @param cls closure
- * @param peer_id peer identity the tunnel was created to, NULL on timeout
- * @param atsi performance data for the connection
- *
+ * @param cls Closure provided in GNUNET_REGEX_search.
+ * @param id Peer providing a regex that matches the string.
+ * @param get_path Path of the get request.
+ * @param get_path_length Lenght of get_path.
+ * @param put_path Path of the put request.
+ * @param put_path_length Length of the put_path.
  */
 static void
 mesh_peer_connect_handler (void *cls,
-                           const struct GNUNET_PeerIdentity* peer_id,
-                           const struct GNUNET_ATS_Information * atsi)
+                           const struct GNUNET_PeerIdentity *id,
+                           const struct GNUNET_PeerIdentity *get_path,
+                           unsigned int get_path_length,
+                           const struct GNUNET_PeerIdentity *put_path,
+                           unsigned int put_path_length)
 {
   struct RegexPeer *peer = cls;
   char output_buffer[512];
@@ -841,7 +819,7 @@ mesh_peer_connect_handler (void *cls,
 
   peers_found++;
 
-  if (NULL == peer_id)
+  if (NULL == id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "String matching timed out for string %s on peer %u (%i/%i)\n",
@@ -889,8 +867,8 @@ mesh_peer_connect_handler (void *cls,
     }
   }
 
-  GNUNET_TESTBED_operation_done (peer->mesh_op_handle);
-  peer->mesh_op_handle = NULL;
+  GNUNET_TESTBED_operation_done (peer->dht_op_handle);
+  peer->dht_op_handle = NULL;
 
   if (peers_found == num_search_strings)
   {
@@ -959,14 +937,14 @@ do_connect_by_string (void *cls,
 
     /* First connect to mesh service, then search for string. Next
        connect will be in mesh_connect_cb */
-    peers[0].mesh_op_handle =
+    peers[0].dht_op_handle =
       GNUNET_TESTBED_service_connect (NULL,
                                       peers[0].peer_handle,
-                                      "mesh",
-                                      &mesh_connect_cb,
+                                      "dht",
+                                      &dht_connect_cb,
                                       &peers[0],
-                                      &mesh_ca,
-                                      &mesh_da,
+                                      &dht_ca,
+                                      &dht_da,
                                       &peers[0]);
 
   search_timeout_task = GNUNET_SCHEDULER_add_delayed (search_timeout,
@@ -975,7 +953,7 @@ do_connect_by_string (void *cls,
 
 
 /**
- * Mesh connect callback. Called when we are connected to the mesh service for
+ * DHT connect callback. Called when we are connected to the dht service for
  * the peer in 'cls'. If successfull we connect to the stats service of this
  * peer and then try to match the search string of this peer.
  *
@@ -985,8 +963,8 @@ do_connect_by_string (void *cls,
  * @param emsg error message.
  */
 static void
-mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
-                 void *ca_result, const char *emsg)
+dht_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
+                void *ca_result, const char *emsg)
 {
   struct RegexPeer *peer = (struct RegexPeer *) cls;
   static unsigned int peer_cnt;
@@ -994,26 +972,20 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
 
   if (NULL != emsg || NULL == op || NULL == ca_result)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Mesh connect failed: %s\n", emsg);
-    GNUNET_assert (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "DHT connect failed: %s\n", emsg);
+    GNUNET_abort ();
   }
 
-  GNUNET_assert (NULL != peer->mesh_handle);
-  GNUNET_assert (peer->mesh_op_handle == op);
-  GNUNET_assert (peer->mesh_handle == ca_result);
-
-  peer->mesh_tunnel_handle = 
-    GNUNET_MESH_tunnel_create (peer->mesh_handle,
-			       NULL,
-			       &mesh_peer_connect_handler,
-			       &mesh_peer_disconnect_handler,
-			       peer);
-
-  peer->prof_start_time = GNUNET_TIME_absolute_get ();
+  GNUNET_assert (NULL != peer->dht_handle);
+  GNUNET_assert (peer->dht_op_handle == op);
+  GNUNET_assert (peer->dht_handle == ca_result);
 
   peer->search_str_matched = GNUNET_NO;
-  GNUNET_MESH_peer_request_connect_by_string (peer->mesh_tunnel_handle,
-                                              peer->search_str);
+  peer->search_handle = 
+    GNUNET_REGEX_search (peer->dht_handle, peer->search_str,
+                         &mesh_peer_connect_handler, NULL, 
+                         NULL);
+  peer->prof_start_time = GNUNET_TIME_absolute_get ();
 
   if (peer_cnt < (num_search_strings - 1))
   {
@@ -1024,75 +996,66 @@ mesh_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
 
     peers[next_p].search_str = search_strings[next_p];
     peers[next_p].search_str_matched = GNUNET_NO;
-    
+
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"Searching for string \"%s\" on peer %d with file %s\n",
 		peers[next_p].search_str, next_p, peers[next_p].policy_file);
 
-    peers[next_p].mesh_op_handle =
+    peers[next_p].dht_op_handle =
       GNUNET_TESTBED_service_connect (NULL,
 				      peers[next_p].peer_handle,
-				      "mesh",
-				      &mesh_connect_cb,
+				      "dht",
+				      &dht_connect_cb,
 				      &peers[next_p],
-				      &mesh_ca,
-				      &mesh_da,
+				      &dht_ca,
+				      &dht_da,
 				      &peers[next_p]);
   }
 }
 
 
 /**
- * Mesh connect adapter. Opens a connection to the mesh service.
+ * DHT connect adapter. Opens a connection to the dht service.
  *
- * @param cls not used.
- * @param cfg configuration handle.
+ * @param cls Closure (peer).
+ * @param cfg Configuration handle.
  *
  * @return
  */
 static void *
-mesh_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
+dht_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_MESH_ApplicationType app;
   struct RegexPeer *peer = cls;
 
-  static struct GNUNET_MESH_MessageHandler handlers[] = {
-    {NULL, 0, 0}
-  };
+  peer->dht_handle = GNUNET_DHT_connect (cfg, 32);
 
-  app = (GNUNET_MESH_ApplicationType)0;
-
-  peer->mesh_handle =
-    GNUNET_MESH_connect (cfg, peer, NULL, NULL, handlers, &app);
-
-  return peer->mesh_handle;
+  return peer->dht_handle;
 }
 
 
 /**
- * Adapter function called to destroy a connection to
- * the mesh service
+ * Adapter function called to destroy a connection to the dht service.
  *
- * @param cls closure
- * @param op_result service handle returned from the connect adapter
+ * @param cls Closure (peer).
+ * @param op_result Service handle returned from the connect adapter.
  */
 static void
-mesh_da (void *cls, void *op_result)
+dht_da (void *cls, void *op_result)
 {
   struct RegexPeer *peer = (struct RegexPeer *) cls;
 
-  GNUNET_assert (peer->mesh_handle == op_result);
+  GNUNET_assert (peer->dht_handle == op_result);
 
-  if (NULL != peer->mesh_tunnel_handle)
+  if (NULL != peer->search_handle)
   {
-    GNUNET_MESH_tunnel_destroy (peer->mesh_tunnel_handle);
-    peer->mesh_tunnel_handle = NULL;
+    GNUNET_REGEX_search_cancel (peer->search_handle);
+    peer->search_handle = NULL;
   }
 
-  if (NULL != peer->mesh_handle)
+  if (NULL != peer->dht_handle)
   {
-    GNUNET_MESH_disconnect (peer->mesh_handle);
-    peer->mesh_handle = NULL;
+    GNUNET_DHT_disconnect (peer->dht_handle);
+    peer->dht_handle = NULL;
   }
 }
 
@@ -1370,8 +1333,8 @@ controller_event_cb (void *cls,
             peer->policy_file = NULL;
             /* Do not start peers on hosts[0] (master controller) */
             peer->host_handle = hosts[1 + (peer_cnt % (num_hosts -1))];
-            peer->mesh_handle = NULL;
-            peer->mesh_tunnel_handle = NULL;
+            peer->dht_handle = NULL;
+            peer->search_handle = NULL;
             peer->stats_handle = NULL;
             peer->stats_op_handle = NULL;
             peer->search_str = NULL;

@@ -80,7 +80,9 @@ libgnunetregextest_la_DEPENDENCIES = \
 
 
 noinst_PROGRAMS = $(noinst_mysql_progs) \
-  perf-regex
+  perf-regex \
+  gnunet-regex-profiler \
+  gnunet-daemon-regexprofiler
 
 perf_regex_SOURCES = \
   perf-regex.c
@@ -91,6 +93,28 @@ perf_regex_LDADD = \
 perf_regex_DEPENDENCIES = \
   libgnunetregex.la \
   libgnunetregextest.la
+
+gnunet_regex_profiler_SOURCES = \
+  gnunet-regex-profiler.c
+gnunet_regex_profiler_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/regex/libgnunetregex.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la
+gnunet_regex_profiler_DEPENDENCIES = \
+   libgnunetregex.la
+
+gnunet_daemon_regexprofiler_SOURCES = \
+  gnunet-daemon-regexprofiler.c
+gnunet_daemon_regexprofiler_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/dht/libgnunetdht.la \
+  $(top_builddir)/src/regex/libgnunetregex.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la
+gnunet_daemon_regexprofiler_DEPENDENCIES = \
+  $(top_builddir)/src/dht/libgnunetdht.la \
+  libgnunetregex.la
+
 
 
 check_PROGRAMS = \

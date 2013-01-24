@@ -8243,13 +8243,6 @@ key_generation_cb (void *cls,
               "Mesh for peer [%s] starting\n",
               GNUNET_i2s(&my_full_id));
 
-//   transport_handle = GNUNET_TRANSPORT_connect(c,
-//                                               &my_full_id,
-//                                               NULL,
-//                                               NULL,
-//                                               NULL,
-//                                               NULL);
-
   core_handle = GNUNET_CORE_connect (c, /* Main configuration */
                                      NULL,      /* Closure passed to MESH functions */
                                      &core_init,        /* Call core_init once connected */
