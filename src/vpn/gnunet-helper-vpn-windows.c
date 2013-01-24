@@ -400,7 +400,7 @@ remove_address4 (const char *address)
  * 
  * @return: TRUE if setup was successful, else FALSE
  */
-static boolean
+static BOOL
 setup_interface ()
 {
   /*
@@ -500,7 +500,7 @@ setup_interface ()
  * 
  * @return: TRUE if destruction was successful, else FALSE
  */
-static boolean
+static BOOL
 remove_interface ()
 {
   SP_REMOVEDEVICE_PARAMS remove;
@@ -541,7 +541,7 @@ remove_interface ()
  * 
  * @return: TRUE if we were able to lookup the interface's name, else FALSE
  */
-static boolean
+static BOOL
 resolve_interface_name ()
 {
   SP_DEVINFO_LIST_DETAIL_DATA device_details;
@@ -551,7 +551,7 @@ resolve_interface_name ()
   DWORD len;
   int i = 0;
   int retrys;
-  boolean retval = FALSE;
+  BOOL retval = FALSE;
   char adapter[] = INTERFACE_REGISTRY_LOCATION;
 
   /* We can obtain the PNP instance ID from our setupapi handle */
@@ -683,7 +683,7 @@ cleanup:
  * @param handle the handle to our tap device
  * @return TRUE if the version is sufficient, else FALSE
  */
-static boolean
+static BOOL
 check_tapw32_version (HANDLE handle)
 {
   ULONG version[3];
@@ -774,7 +774,7 @@ init_tun ()
  * @param handle the handle to our TAP device 
  * @return True if the operation succeeded, else false
  */
-static boolean
+static BOOL
 tun_up (HANDLE handle)
 {
   ULONG status = TRUE;
@@ -820,18 +820,18 @@ tun_up (HANDLE handle)
  * @param output_facility output pipe or file to hand over data to.
  * @return false if an event reset was impossible (OS error), else true
  */
-static boolean
+static BOOL
 attempt_read_tap (struct io_facility * input_facility,
                   struct io_facility * output_facility)
 {
   struct GNUNET_MessageHeader * hdr;
   unsigned short size;
+  BOOL status;
   
   switch (input_facility->facility_state)
     {
     case IOSTATE_READY:
-      {
-        BOOL status; // BOOL is winbool, NOT boolean!
+      { 
         if (!ResetEvent (input_facility->overlapped.hEvent))
           {
             return FALSE;
@@ -898,8 +898,6 @@ attempt_read_tap (struct io_facility * input_facility,
       // We are queued and should check if the read has finished
     case IOSTATE_QUEUED:
       {
-        BOOL status; // BOOL is winbool, NOT boolean!
-
         // there was an operation going on already, check if that has completed now.
         status = GetOverlappedResult (input_facility->handle,
                                       &input_facility->overlapped,
@@ -950,7 +948,6 @@ attempt_read_tap (struct io_facility * input_facility,
       }
       return TRUE;
     case IOSTATE_RESUME:
-    {
       hdr = (struct GNUNET_MessageHeader *) output_facility->buffer;
       size = input_facility->buffer_size + sizeof (struct GNUNET_MessageHeader);
 
@@ -964,7 +961,6 @@ attempt_read_tap (struct io_facility * input_facility,
       output_facility->facility_state = IOSTATE_READY;
       input_facility->facility_state = IOSTATE_READY;
       return TRUE;
-    }
     default:
       return TRUE;
     }
@@ -996,15 +992,15 @@ attempt_read_tap (struct io_facility * input_facility,
  * @param output_facility output pipe or file to hand over data to.
  * @return false if an event reset was impossible (OS error), else true
  */
-static boolean
+static BOOL
 attempt_read_stdin (struct io_facility * input_facility,
                     struct io_facility * output_facility)
 {
+  BOOL status;
   switch (input_facility->facility_state)
     {
     case IOSTATE_READY:
       {
-        BOOL status; // BOOL is winbool, NOT boolean!
         if (!ResetEvent (input_facility->overlapped.hEvent))
           return FALSE;
         input_facility->buffer_size = 0;
@@ -1083,8 +1079,6 @@ attempt_read_stdin (struct io_facility * input_facility,
       // We are queued and should check if the read has finished
     case IOSTATE_QUEUED:
       {
-        BOOL status; // BOOL is winbool, NOT boolean!
-
         // there was an operation going on already, check if that has completed now.
         status = GetOverlappedResult (input_facility->handle,
                                       &input_facility->overlapped,
@@ -1164,11 +1158,11 @@ attempt_read_stdin (struct io_facility * input_facility,
  * @param input_facility input named pipe or file to work with.
  * @return false if an event reset was impossible (OS error), else true
  */
-static boolean
+static BOOL
 attempt_write (struct io_facility * output_facility,
                struct io_facility * input_facility)
 {
-  BOOL status; // BOOL is winbool, NOT boolean!
+  BOOL status;
 
   switch (output_facility->facility_state)
     {
@@ -1200,7 +1194,7 @@ attempt_write (struct io_facility * output_facility,
 
           /* we successfully wrote something and now need to reset our reader */
           if (IOSTATE_WAITING == input_facility->facility_state)
-            input_facility->facility_state = IOSTATE_READY;
+            input_facility->facility_state = IOSTATE_RESUME;
           else if (IOSTATE_FAILED == input_facility->facility_state)
             output_facility->path_open = FALSE;
         }
@@ -1238,7 +1232,7 @@ attempt_write (struct io_facility * output_facility,
 
           /* we successfully wrote something and now need to reset our reader */
           if (IOSTATE_WAITING == input_facility->facility_state)
-            input_facility->facility_state = IOSTATE_READY;
+            input_facility->facility_state = IOSTATE_RESUME;
           else if (IOSTATE_FAILED == input_facility->facility_state)
             output_facility->path_open = FALSE;
         }
@@ -1266,7 +1260,7 @@ attempt_write (struct io_facility * output_facility,
  * @param signaled if the hEvent created should default to signaled or not
  * @return true on success, else false
  */
-static boolean
+static BOOL
 initialize_io_facility (struct io_facility * elem,
                         int initial_state,
                         BOOL signaled)
@@ -1406,8 +1400,8 @@ main (int argc, char **argv)
   char hwid[LINE_LEN];
   HANDLE handle;
   int global_ret = 0;
-  boolean have_ip4 = FALSE;
-  boolean have_ip6 = FALSE;
+  BOOL have_ip4 = FALSE;
+  BOOL have_ip6 = FALSE;
 
   if (6 != argc)
     {
