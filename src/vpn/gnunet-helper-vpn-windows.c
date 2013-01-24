@@ -132,15 +132,46 @@ static SP_DEVINFO_DATA DeviceNode;
  */
 static char device_guid[256];
 
+
+/**
+ * Possible states of an IO facility.
+ */
+enum IO_State
+{
+
+  /** 
+   * overlapped I/O is ready for work 
+   */
+  IOSTATE_READY = 0,
+
+  /** 
+   * overlapped I/O has been queued 
+   */
+  IOSTATE_QUEUED,
+
+  /** 
+   * overlapped I/O has finished, but is waiting for it's write-partner 
+   */
+  IOSTATE_WAITING, 
+  
+  /** 
+   * Operlapped IO states for facility objects
+   * overlapped I/O has failed, stop processing 
+   */
+  IOSTATE_FAILED 
+
+};
+
+
 /** 
  * A IO Object + read/writebuffer + buffer-size for windows asynchronous IO handling
  */
 struct io_facility
 {
   /**
-   * The mode the state machine associated with this object is in. IOSTATE_*
+   * The mode the state machine associated with this object is in.
    */
-  int facility_state;
+  enum IO_State facility_state;
 
   /**
    * If the path is open or blocked in general (used for quickly checking)
@@ -173,23 +204,6 @@ struct io_facility
   DWORD buffer_size_written;
 };
 
-/** 
- * Operlapped IO states for facility objects
- * overlapped I/O has failed, stop processing 
- */
-#define IOSTATE_FAILED          -1 
-/** 
- * overlapped I/O is ready for work 
- */
-#define IOSTATE_READY            0 
-/** 
- * overlapped I/O has been queued 
- */
-#define IOSTATE_QUEUED           1 
-/** 
- * overlapped I/O has finished, but is waiting for it's write-partner 
- */
-#define IOSTATE_WAITING          3 
 
 /**
  * ReOpenFile is only available as of XP SP2 and 2003 SP1
@@ -210,8 +224,8 @@ execute_shellcommand (const char *command)
 {
   FILE *pipe;
 
-  if (NULL == command ||
-      NULL == (pipe = _popen (command, "rt")))
+  if ( (NULL == command) ||
+       (NULL == (pipe = _popen (command, "rt"))) )
     return EINVAL;
 
 #ifdef TESTING
@@ -659,6 +673,9 @@ cleanup:
 }
 
 
+/**
+ * FIXME.
+ */
 static boolean
 check_tapw32_version (HANDLE handle)
 {
@@ -699,7 +716,7 @@ init_tun ()
   char device_path[256];
   HANDLE handle;
 
-  if (!setup_interface ())
+  if (! setup_interface ())
     {
       errno = ENODEV;
       return INVALID_HANDLE_VALUE;
@@ -927,6 +944,7 @@ attempt_read_tap (struct io_facility * input_facility,
     }
 }
 
+
 /**
  * Attempts to read off an input facility (tap or named pipe) in overlapped mode.
  * 
@@ -1118,6 +1136,7 @@ static boolean
 attempt_write (struct io_facility * output_facility,
                struct io_facility * input_facility)
 {
+  // FIXME: use switch...
   if (IOSTATE_READY == output_facility->facility_state
       && output_facility->buffer_size > 0)
     {
@@ -1224,7 +1243,6 @@ initialize_io_facility (struct io_facility * elem,
                         int initial_state,
                         BOOL signaled)
 {
-
   elem->path_open = TRUE;
   elem->handle = INVALID_HANDLE_VALUE;
   elem->facility_state = initial_state;
