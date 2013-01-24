@@ -176,7 +176,6 @@ transmit_queued (void *cls, size_t size,
 
   qmsg = consensus->messages_head;
   GNUNET_CONTAINER_DLL_remove (consensus->messages_head, consensus->messages_tail, qmsg);
-  GNUNET_assert (qmsg);
 
   if (NULL == buf)
   {
@@ -196,8 +195,8 @@ transmit_queued (void *cls, size_t size,
   {
     qmsg->idc (qmsg->idc_cls, GNUNET_YES);
   }
-  GNUNET_free (qmsg->msg);
-  GNUNET_free (qmsg);
+
+  /* FIXME: free the messages */
 
   send_next (consensus);
 
@@ -218,12 +217,20 @@ send_next (struct GNUNET_CONSENSUS_Handle *consensus)
 
   if (NULL != consensus->messages_head)
   {
-    LOG (GNUNET_ERROR_TYPE_INFO, "scheduling queued\n");
     consensus->th = 
         GNUNET_CLIENT_notify_transmit_ready (consensus->client, ntohs (consensus->messages_head->msg->size),
                                              GNUNET_TIME_UNIT_FOREVER_REL,
                                              GNUNET_NO, &transmit_queued, consensus);
   }
+}
+
+static void
+queue_message (struct GNUNET_CONSENSUS_Handle *consensus, struct GNUNET_MessageHeader *msg)
+{
+  struct QueuedMessage *qm;
+  qm = GNUNET_malloc (sizeof *qm);
+  qm->msg = msg;
+  GNUNET_CONTAINER_DLL_insert_tail (consensus->messages_head, consensus->messages_tail, qm);
 }
 
 
@@ -239,23 +246,24 @@ handle_new_element (struct GNUNET_CONSENSUS_Handle *consensus,
 {
   struct GNUNET_CONSENSUS_Element element;
   struct GNUNET_CONSENSUS_AckMessage *ack_msg;
-  struct QueuedMessage *queued_msg;
   int ret;
 
+  LOG (GNUNET_ERROR_TYPE_INFO, "received new element\n");
+
   element.type = msg->element_type;
-  element.size = msg->header.size - sizeof (struct GNUNET_CONSENSUS_ElementMessage);
+  element.size = ntohs (msg->header.size) - sizeof (struct GNUNET_CONSENSUS_ElementMessage);
   element.data = &msg[1];
 
   ret = consensus->new_element_cb (consensus->new_element_cls, &element);
 
-  queued_msg = GNUNET_malloc (sizeof (struct QueuedMessage) + sizeof (struct GNUNET_CONSENSUS_AckMessage));
-  queued_msg->msg = (struct GNUNET_MessageHeader *) &queued_msg[1];
-
-  ack_msg = (struct GNUNET_CONSENSUS_AckMessage *) queued_msg->msg;
+  ack_msg = GNUNET_malloc (sizeof *ack_msg);
+  ack_msg->header.size = htons (sizeof *ack_msg);
+  ack_msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_ACK);
   ack_msg->keep = ret;
 
-  GNUNET_CONTAINER_DLL_insert_tail (consensus->messages_head, consensus->messages_tail,
-                                    queued_msg);
+  queue_message (consensus, (struct GNUNET_MessageHeader *) ack_msg);
+
+  send_next (consensus);
 }
 
 

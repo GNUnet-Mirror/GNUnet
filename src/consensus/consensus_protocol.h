@@ -49,13 +49,15 @@ struct StrataMessage
 
 struct DifferenceDigest
 {
-
   struct GNUNET_MessageHeader header;
+  uint8_t order;
+  uint8_t round;
 };
 
 struct Element
 {
   struct GNUNET_MessageHeader header;
+  struct GNUNET_HashCode hash;
 };
 
 struct ConsensusHello

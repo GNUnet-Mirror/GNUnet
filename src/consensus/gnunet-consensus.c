@@ -177,6 +177,7 @@ static int
 new_element_cb (void *cls,
                 struct GNUNET_CONSENSUS_Element *element)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "received new element\n");
   return GNUNET_YES;
 }
 
@@ -263,7 +264,10 @@ test_master (void *cls,
   int i;
 
 
+  GNUNET_log_setup ("gnunet-consensus", "INFO", NULL);
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "test master\n");
+
 
   peers = started_peers;
 

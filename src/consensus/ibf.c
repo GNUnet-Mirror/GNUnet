@@ -111,8 +111,6 @@ ibf_insert_on_side (struct InvertibleBloomFilter *ibf,
       
       ibf->count[bucket] += side;
 
-      GNUNET_log_from(GNUNET_ERROR_TYPE_INFO, "ibf", "inserting in bucket %d \n", bucket);
-      
       GNUNET_CRYPTO_hash_xor (&key_copy, &ibf->id_sum[bucket],
 			      &ibf->id_sum[bucket]);
       GNUNET_CRYPTO_hash_xor (&key_hash, &ibf->hash_sum[bucket],
