@@ -54,7 +54,7 @@
  * Should we print (interesting|debug) messages that can happen during
  * normal operation?
  */
-#define DEBUG GNUNET_NO
+//#define DEBUG GNUNET_YES
 
 /**
  * Maximum size of a GNUnet message (GNUNET_SERVER_MAX_MESSAGE_SIZE)
@@ -232,7 +232,7 @@ execute_shellcommand (const char *command)
        (NULL == (pipe = _popen (command, "rt"))) )
     return EINVAL;
 
-#ifdef TESTING
+#ifdef DEBUG
   fprintf (stderr, "DEBUG: Command output: \n");
   char output[LINE_LEN];
   while (NULL != fgets (output, sizeof (output), pipe))
@@ -996,6 +996,7 @@ static BOOL
 attempt_read_stdin (struct io_facility * input_facility,
                     struct io_facility * output_facility)
 {
+  struct GNUNET_MessageHeader * hdr;
   BOOL status;
   switch (input_facility->facility_state)
     {
@@ -1013,7 +1014,7 @@ attempt_read_stdin (struct io_facility * input_facility,
         /* Check how the task is handled */
         if (status && (sizeof (struct GNUNET_MessageHeader) < input_facility->buffer_size))
           {/* async event processed immediately*/
-            struct GNUNET_MessageHeader * hdr = (struct GNUNET_MessageHeader *) input_facility->buffer;
+            hdr = (struct GNUNET_MessageHeader *) input_facility->buffer;
 
             /* reset event manually*/
             if (!SetEvent (input_facility->overlapped.hEvent))
@@ -1086,7 +1087,7 @@ attempt_read_stdin (struct io_facility * input_facility,
                                       FALSE);
         if (status)
           {/* successful return for a queued operation */
-            struct GNUNET_MessageHeader * hdr = (struct GNUNET_MessageHeader *) input_facility->buffer;
+            hdr = (struct GNUNET_MessageHeader *) input_facility->buffer;
             
             if (!ResetEvent (input_facility->overlapped.hEvent))
               return FALSE;
@@ -1318,6 +1319,12 @@ run (HANDLE tap_handle)
   tap_read.handle = tap_handle;
   tap_write.handle = tap_handle;
 
+#ifdef DEBUG_TO_CONSOLE
+  /* Debug output to console STDIN/STDOUT*/
+  std_in.handle = parent_std_in_handle;
+  std_out.handle = parent_std_out_handle;
+#else
+  
   /* 
    * Find out the types of our handles. 
    * This part is a problem, because in windows we need to handle files, 
@@ -1351,15 +1358,16 @@ run (HANDLE tap_handle)
       fprintf (stderr, "FATAL: Could not reopen stdout for in overlapped mode, has to be a named pipe!\n");
       goto teardown;
     }
-
-  while (std_out.path_open || tap_write.path_open)
+#endif
+  
+  while (std_out.path_open && tap_write.path_open)
     {
       /* perform READ from stdin if possible */
-      if (std_in.path_open && tap_write.path_open && (!attempt_read_stdin (&std_in, &tap_write)))
+      if (std_in.path_open && (!attempt_read_stdin (&std_in, &tap_write)))
         break;
 
       /* perform READ from tap if possible */
-      if (tap_read.path_open && std_out.path_open && (!attempt_read_tap (&tap_read, &std_out)))
+      if (tap_read.path_open && (!attempt_read_tap (&tap_read, &std_out)))
         break;
 
       /* perform WRITE to tap if possible */
@@ -1388,7 +1396,7 @@ teardown_final:
  *
  * @param argc must be 6
  * @param argv 0: binary name (gnunet-helper-vpn)
- *             1: tunnel interface name (gnunet-vpn)
+ *             1: tunnel interface prefix (gnunet-vpn)
  *             2: IPv6 address (::1), "-" to disable
  *             3: IPv6 netmask length in bits (64), ignored if #2 is "-"
  *             4: IPv4 address (1.2.3.4), "-" to disable
@@ -1405,7 +1413,7 @@ main (int argc, char **argv)
 
   if (6 != argc)
     {
-      fprintf (stderr, "FATAL: must supply 5 arguments!\n");
+      fprintf (stderr, "FATAL: must supply 5 arguments!\nUsage:\ngnunet-helper-vpn <if name prefix> <address6 or \"-\"> <netbits6> <address4 or \"-\"> <netmask4>\n", argv[0]);
       return 1;
     }
 
