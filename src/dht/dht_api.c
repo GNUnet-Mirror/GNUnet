@@ -642,7 +642,7 @@ transmit_pending (void *cls, size_t size, void *buf)
  * @param key query of the request
  * @param value the 'struct GNUNET_DHT_RouteHandle' of a request matching the same key
  * @return GNUNET_YES to continue to iterate over all results,
- *         GNUNET_NO if the reply is malformed
+ *         GNUNET_NO if the reply is malformed or we found a matching request
  */
 static int
 process_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
@@ -703,7 +703,7 @@ process_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
                     GNUNET_TIME_absolute_ntoh (dht_msg->expiration), key,
                     get_path, get_path_length, put_path, put_path_length,
                     ntohl (dht_msg->type), data_length, data);
-  return GNUNET_YES;
+  return GNUNET_NO;
 }
 
 /**
