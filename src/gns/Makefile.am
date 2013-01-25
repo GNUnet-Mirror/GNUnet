@@ -54,14 +54,14 @@ endif
 endif
 
 libexec_PROGRAMS = \
-  gnunet-service-gns $(DO_FCFSD)
-
-bin_PROGRAMS = \
+  gnunet-service-gns $(DO_FCFSD) \
   $(DO_PROXY) \
   $(DO_W32_HELPER) \
-  $(DO_W32_NSPTOOLS) \
-  gnunet-gns \
   gnunet-dns2gns
+
+bin_PROGRAMS = \
+  $(DO_W32_NSPTOOLS) \
+  gnunet-gns 
 
 bin_SCRIPTS = gnunet-gns-proxy-setup-ca
 

@@ -39,11 +39,19 @@ ZONE_PUBLISH_TIME_WINDOW = 4 h
 # PREFIX = valgrind --leak-check=full --track-origins=yes
 
 [gns-proxy]
+BINARY = gnunet-gns-proxy
+AUTOSTART = NO
+
 # Where is the certificate for the GNS proxy stored?
 PROXY_CACERT = $SERVICEHOME/gns/gnsCAcert.pem
 PROXY_UNIXPATH = /tmp/gnunet-gns-proxy.sock
 
+
 [fcfsd]
+# Name of the fcfs binary (for ARM)
+BINARY = gnunet-gns-fcfsd
+AUTOSTART = NO
+
 # On what port does the FCFS daemon listen for HTTP clients?
 HTTPPORT = 18080
 
@@ -56,11 +64,7 @@ HOSTNAME = localhost
 # FIXME: Dead option?
 HOME = $SERVICEHOME
 
-# Name of the fcfs binary (for ARM)
-BINARY = gnunet-gns-fcfsd
-
 
 [dns2gns]
 BINARY = gnunet-dns2gns
 AUTOSTART = NO
-
