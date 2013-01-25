@@ -59,3 +59,8 @@ HOME = $SERVICEHOME
 # Name of the fcfs binary (for ARM)
 BINARY = gnunet-gns-fcfsd
 
+
+[dns2gns]
+BINARY = gnunet-dns2gns
+AUTOSTART = NO
+
