@@ -2188,13 +2188,18 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
                                                         &num));
   GST_cache_init ((unsigned int) num);
   GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONFIGURATION_get_value_number (cfg, "TESTBED",
+                                                        "MAX_OPEN_FDS",
+                                                        &num));
+  GST_opq_openfds = 
+      GNUNET_TESTBED_operation_queue_create_ ((unsigned int) num);
+  GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
                                                         "HOSTNAME", &hostname));
   our_config = GNUNET_CONFIGURATION_dup (cfg);
   GNUNET_SERVER_add_handlers (server, message_handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect_cb, NULL);
   ss_map = GNUNET_CONTAINER_multihashmap_create (5, GNUNET_NO);
-  GST_opq_openfds = GNUNET_TESTBED_operation_queue_create_ (GST_QLEN_OPENFDS);
   shutdown_task_id =
       GNUNET_SCHEDULER_add_delayed_with_priority (GNUNET_TIME_UNIT_FOREVER_REL,
                                                   GNUNET_SCHEDULER_PRIORITY_IDLE,

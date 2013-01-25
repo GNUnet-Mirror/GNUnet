@@ -55,11 +55,6 @@
 #define LIST_GROW_STEP 10
 
 /**
- * How long should the operation queue for open file descriptors be?
- */
-#define GST_QLEN_OPENFDS 512
-
-/**
  * Default timeout for operations which may take some time
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 15)
