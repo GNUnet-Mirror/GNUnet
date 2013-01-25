@@ -130,17 +130,17 @@ struct PeerEventData
    * The handle of the peer to start
    */
   struct GNUNET_TESTBED_Peer *peer;
-  
+
   /**
    * The Peer churn callback to call when this operation is completed
    */
   GNUNET_TESTBED_PeerChurnCallback pcc;
-   
+
   /**
    * Closure for the above callback
    */
   void *pcc_cls;
-    
+
 };
 
 
@@ -172,7 +172,7 @@ struct PeerInfoData
    * The Peer info callback to call when this operation has completed
    */
   GNUNET_TESTBED_PeerInfoCallback cb;
-    
+
   /**
    * The closure for peer info callback
    */
@@ -205,7 +205,7 @@ struct OverlayConnectData
    * The operation completion callback to call once this operation is done
    */
   GNUNET_TESTBED_OperationCompletionCallback cb;
-  
+
   /**
    * The closure for the above callback
    */

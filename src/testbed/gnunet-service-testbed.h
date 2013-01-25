@@ -96,7 +96,7 @@ struct ForwardedOperationContext
    * The prev pointer for DLL
    */
   struct ForwardedOperationContext *prev;
-  
+
   /**
    * The generated operation context
    */
@@ -240,7 +240,7 @@ struct Slave
 
 struct Peer
 {
-  
+
   union
   {
     struct
@@ -255,7 +255,7 @@ struct Peer
        * peer is configured with
        */
       struct GNUNET_CONFIGURATION_Handle *cfg;
-      
+
       /**
        * Is the peer running
        */
@@ -329,7 +329,7 @@ struct Context
    * The TESTING system handle for starting peers locally
    */
   struct GNUNET_TESTING_System *system;
-  
+
   /**
    * Our host id according to this context
    */
@@ -389,12 +389,12 @@ struct ForwardedOverlayConnectContext
    * the id of peer 1
    */
   uint32_t peer1;
-  
+
   /**
    * The id of peer 2
    */
   uint32_t peer2;
-  
+
   /**
    * Id of the host where peer2 is running
    */
@@ -447,11 +447,12 @@ struct RegisteredHostContext
    * Tail of the ForwardedOverlayConnectContext DLL
    */
   struct ForwardedOverlayConnectContext *focc_dll_tail;
-  
+
   /**
    * Enumeration of states for this context
    */
-  enum RHCState {
+  enum RHCState
+  {
 
     /**
      * The initial state
@@ -473,7 +474,6 @@ struct RegisteredHostContext
      * State where we attempt to do the overlay connection again
      */
     RHC_OL_CONNECT
-    
   } state;
 
 };
@@ -493,12 +493,12 @@ enum LCFContextState
    * Delegated host has been registered at the forwarding controller
    */
   DELEGATED_HOST_REGISTERED,
-  
+
   /**
    * The slave host has been registred at the forwarding controller
    */
   SLAVE_HOST_REGISTERED,
-  
+
   /**
    * The context has been finished (may have error)
    */
@@ -639,7 +639,7 @@ extern unsigned int GST_slave_list_size;
  */
 void
 GST_queue_message (struct GNUNET_SERVER_Client *client,
-                       struct GNUNET_MessageHeader *msg);
+                   struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -669,7 +669,7 @@ GST_hello_cache_lookup (const struct GNUNET_PeerIdentity *id);
  */
 void
 GST_hello_cache_add (const struct GNUNET_PeerIdentity *id,
-                         const struct GNUNET_MessageHeader *hello);
+                     const struct GNUNET_MessageHeader *hello);
 
 
 /**
@@ -709,23 +709,22 @@ GST_find_dest_route (uint32_t host_id);
  */
 void
 GST_handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
-                                const struct GNUNET_MessageHeader *message);
+                            const struct GNUNET_MessageHeader *message);
 
 
 /**
  * Adds a host registration's request to a slave's registration queue
  *
  * @param slave the slave controller at which the given host has to be
- *          registered 
+ *          registered
  * @param cb the host registration completion callback
  * @param cb_cls the closure for the host registration completion callback
  * @param host the host which has to be registered
  */
 void
 GST_queue_host_registration (struct Slave *slave,
-                                 GNUNET_TESTBED_HostRegistrationCompletion cb,
-                                 void *cb_cls,
-                                 struct GNUNET_TESTBED_Host *host);
+                             GNUNET_TESTBED_HostRegistrationCompletion cb,
+                             void *cb_cls, struct GNUNET_TESTBED_Host *host);
 
 
 /**
@@ -736,7 +735,7 @@ GST_queue_host_registration (struct Slave *slave,
  */
 void
 GST_forwarded_operation_reply_relay (void *cls,
-                                         const struct GNUNET_MessageHeader *msg);
+                                     const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -747,7 +746,7 @@ GST_forwarded_operation_reply_relay (void *cls,
  */
 void
 GST_forwarded_operation_timeout (void *cls,
-                                     const struct GNUNET_SCHEDULER_TaskContext *tc);
+                                 const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -759,7 +758,7 @@ GST_forwarded_operation_timeout (void *cls,
  */
 void
 GST_send_operation_fail_msg (struct GNUNET_SERVER_Client *client,
-                                 uint64_t operation_id, const char *emsg);
+                             uint64_t operation_id, const char *emsg);
 
 
 /**
@@ -771,9 +770,8 @@ GST_send_operation_fail_msg (struct GNUNET_SERVER_Client *client,
  */
 void
 GST_handle_overlay_request_connect (void *cls,
-                                        struct GNUNET_SERVER_Client *client, 
-                                        const struct GNUNET_MessageHeader
-                                        *message);
+                                    struct GNUNET_SERVER_Client *client,
+                                    const struct GNUNET_MessageHeader *message);
 
 
 /**

@@ -8,7 +8,8 @@
 #define LOG(kind,...)                                           \
   GNUNET_log_from (kind, "gnunet-mpi-test", __VA_ARGS__)
 
-int main (int argc, char *argv[])
+int
+main (int argc, char *argv[])
 {
   char *msg;
   char *filename;
@@ -44,16 +45,16 @@ int main (int argc, char *argv[])
     GNUNET_break (0);
     goto finalize;
   }
-  pid = getpid();
+  pid = getpid ();
   (void) GNUNET_asprintf (&filename, "%d-%d.mpiout", (int) pid, rank);
   msg_size = GNUNET_asprintf (&msg, "My rank is: %d\n", rank);
   printf ("%s", msg);
-  if (msg_size == GNUNET_DISK_fn_write (filename,
-                                        msg, msg_size,
-                                        GNUNET_DISK_PERM_USER_READ
-                                        | GNUNET_DISK_PERM_GROUP_READ
-                                        | GNUNET_DISK_PERM_USER_WRITE
-                                        | GNUNET_DISK_PERM_GROUP_WRITE))
+  if (msg_size ==
+      GNUNET_DISK_fn_write (filename, msg, msg_size,
+                            GNUNET_DISK_PERM_USER_READ |
+                            GNUNET_DISK_PERM_GROUP_READ |
+                            GNUNET_DISK_PERM_USER_WRITE |
+                            GNUNET_DISK_PERM_GROUP_WRITE))
     ret = GNUNET_OK;
   GNUNET_free (filename);
   GNUNET_free (msg);
@@ -62,26 +63,26 @@ int main (int argc, char *argv[])
     GNUNET_break (0);
     goto finalize;
   }
-  
+
   ret = GNUNET_SYSERR;
   argv2 = GNUNET_malloc (sizeof (char *) * (argc));
   for (cnt = 1; cnt < argc; cnt++)
     argv2[cnt - 1] = argv[cnt];
-  proc = GNUNET_OS_start_process_vap (GNUNET_NO,
-                                      GNUNET_OS_INHERIT_STD_ALL,
-                                      NULL,
-                                      NULL,
-                                      argv2[0], argv2);
+  proc =
+      GNUNET_OS_start_process_vap (GNUNET_NO, GNUNET_OS_INHERIT_STD_ALL, NULL,
+                                   NULL, argv2[0], argv2);
   if (NULL == proc)
   {
     printf ("Cannot exec\n");
     GNUNET_free (argv2);
     goto finalize;
   }
-  do {
+  do
+  {
     (void) sleep (1);
     ret = GNUNET_OS_process_status (proc, &proc_status, &code);
-  } while (GNUNET_NO == ret);
+  }
+  while (GNUNET_NO == ret);
   GNUNET_free (argv2);
   GNUNET_assert (GNUNET_NO != ret);
   if (GNUNET_OK == ret)
@@ -97,7 +98,7 @@ int main (int argc, char *argv[])
   else
     GNUNET_break (0);
 
- finalize:
+finalize:
   (void) MPI_Finalize ();
   if (GNUNET_OK == ret)
     return 0;

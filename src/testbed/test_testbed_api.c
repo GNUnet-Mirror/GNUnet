@@ -218,9 +218,9 @@ dht_disconnect_adapter (void *cls, void *op_result)
  * @param emsg error message in case the operation has failed; will be NULL if
  *          operation has executed successfully.
  */
-static void 
+static void
 service_connect_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
-			 void *ca_result, const char *emsg)
+                         void *ca_result, const char *emsg)
 {
   switch (sub_test)
   {
@@ -229,8 +229,8 @@ service_connect_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
     GNUNET_assert (NULL == emsg);
     GNUNET_assert (NULL == cls);
     GNUNET_assert (ca_result == dht_handle);
-    GNUNET_TESTBED_operation_done (operation);        /* This results in call to
-						       * disconnect adapter */
+    GNUNET_TESTBED_operation_done (operation);  /* This results in call to
+                                                 * disconnect adapter */
     break;
   default:
     GNUNET_assert (0);
@@ -248,10 +248,10 @@ service_connect_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
  * @param emsg error message if the operation has failed; will be NULL if the
  *          operation is successfull
  */
-static void 
+static void
 peerinfo_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op,
-	     const struct GNUNET_TESTBED_PeerInformation *pinfo,
-	     const char *emsg)
+             const struct GNUNET_TESTBED_PeerInformation *pinfo,
+             const char *emsg)
 {
   switch (sub_test)
   {
@@ -300,7 +300,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       GNUNET_assert (NULL == event->details.operation_finished.op_cls);
       GNUNET_assert (NULL == event->details.operation_finished.emsg);
       GNUNET_assert (NULL != dht_handle);
-      GNUNET_assert (event->details.operation_finished.generic == dht_handle);     
+      GNUNET_assert (event->details.operation_finished.generic == dht_handle);
       break;
     default:
       GNUNET_assert (0);
@@ -313,10 +313,10 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     GNUNET_assert (OTHER == sub_test);
     GNUNET_TESTBED_operation_done (operation);
     operation =
-        GNUNET_TESTBED_service_connect (NULL, peer, "dht", 
-					&service_connect_comp_cb, NULL,
-					&dht_connect_adapter,
-					&dht_disconnect_adapter, NULL);
+        GNUNET_TESTBED_service_connect (NULL, peer, "dht",
+                                        &service_connect_comp_cb, NULL,
+                                        &dht_connect_adapter,
+                                        &dht_disconnect_adapter, NULL);
     GNUNET_assert (NULL != operation);
     break;
   case GNUNET_TESTBED_ET_PEER_STOP:
@@ -325,10 +325,10 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     result = GNUNET_YES;
     sub_test = PEER_GETCONFIG;
     GNUNET_TESTBED_operation_done (operation);
-    operation = 
-	GNUNET_TESTBED_peer_get_information (peer,
-					     GNUNET_TESTBED_PIT_CONFIGURATION,
-					     &peerinfo_cb, NULL);
+    operation =
+        GNUNET_TESTBED_peer_get_information (peer,
+                                             GNUNET_TESTBED_PIT_CONFIGURATION,
+                                             &peerinfo_cb, NULL);
     break;
   default:
     GNUNET_assert (0);          /* We should never reach this state */

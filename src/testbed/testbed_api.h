@@ -86,7 +86,6 @@ enum OperationType
    * Get slave config operation
    */
   OP_GET_SLAVE_CONFIG
-
 };
 
 
@@ -193,7 +192,7 @@ struct TimeSlot
    * A key to identify this timeslot
    */
   void *key;
-    
+
   /**
    * Time
    */
@@ -305,7 +304,7 @@ struct GNUNET_TESTBED_Controller
 
   /**
    * An array of timing slots; size should be equal to the current number of parallel
-   * overlay connects 
+   * overlay connects
    */
   struct TimeSlot *tslots;
 
@@ -319,7 +318,7 @@ struct GNUNET_TESTBED_Controller
    * The controller event mask
    */
   uint64_t event_mask;
-  
+
   /**
    * Did we start the receive loop yet?
    */
@@ -396,8 +395,7 @@ GNUNET_TESTBED_operation_add_ (struct GNUNET_TESTBED_Operation *op);
  * @return the initialization message
  */
 struct GNUNET_TESTBED_HelperInit *
-GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
-					const char *hostname,
+GNUNET_TESTBED_create_helper_init_msg_ (const char *cname, const char *hostname,
                                         const struct GNUNET_CONFIGURATION_Handle
                                         *cfg);
 
@@ -510,9 +508,9 @@ struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_controller_link_2_ (void *op_cls,
                                    struct GNUNET_TESTBED_Controller *master,
                                    uint32_t delegated_host_id,
-                                   uint32_t slave_host_id,
-                                   const char *sxcfg, size_t sxcfg_size,
-                                   size_t scfg_size, int is_subordinate);
+                                   uint32_t slave_host_id, const char *sxcfg,
+                                   size_t sxcfg_size, size_t scfg_size,
+                                   int is_subordinate);
 
 
 /**
@@ -536,12 +534,11 @@ GNUNET_TESTBED_controller_link_2_ (void *op_cls,
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_controller_link_ (void *op_cls,
-				struct GNUNET_TESTBED_Controller *master,
-                                uint32_t delegated_host_id,
-                                uint32_t slave_host_id,
-                                const struct GNUNET_CONFIGURATION_Handle
-                                *slave_cfg,
-                                 int is_subordinate);
+                                 struct GNUNET_TESTBED_Controller *master,
+                                 uint32_t delegated_host_id,
+                                 uint32_t slave_host_id,
+                                 const struct GNUNET_CONFIGURATION_Handle
+                                 *slave_cfg, int is_subordinate);
 
 
 /**
@@ -568,10 +565,8 @@ GNUNET_TESTBED_get_tslot_ (struct GNUNET_TESTBED_Controller *c, void *key);
  */
 void
 GNUNET_TESTBED_update_time_slot_ (struct GNUNET_TESTBED_Controller *c,
-                                  unsigned int index,
-                                  void *key,
-                                  struct GNUNET_TIME_Relative time,
-                                  int failed);
+                                  unsigned int index, void *key,
+                                  struct GNUNET_TIME_Relative time, int failed);
 
 
 /**
@@ -586,8 +581,7 @@ GNUNET_TESTBED_update_time_slot_ (struct GNUNET_TESTBED_Controller *c,
  */
 int
 GNUNET_TESTBED_release_time_slot_ (struct GNUNET_TESTBED_Controller *c,
-                                  unsigned int index,
-                                   void *key);
+                                   unsigned int index, void *key);
 
 
 

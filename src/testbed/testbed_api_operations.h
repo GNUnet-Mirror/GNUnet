@@ -85,8 +85,7 @@ GNUNET_TESTBED_operation_queue_reset_max_active_ (struct OperationQueue *queue,
 void
 GNUNET_TESTBED_operation_queue_insert2_ (struct OperationQueue *queue,
                                          struct GNUNET_TESTBED_Operation
-                                         *operation,
-                                         unsigned int nres);
+                                         *operation, unsigned int nres);
 
 
 /**
@@ -115,7 +114,7 @@ GNUNET_TESTBED_operation_queue_insert_ (struct OperationQueue *queue,
  */
 void
 GNUNET_TESTBED_operation_begin_wait_ (struct GNUNET_TESTBED_Operation
-				      *operation);
+                                      *operation);
 
 
 /**

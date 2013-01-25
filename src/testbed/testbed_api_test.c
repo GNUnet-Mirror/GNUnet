@@ -52,7 +52,7 @@ struct TestRunContext
    * Closure for the above callback
    */
   void *cc_cls;
-  
+
   /**
    * event mask for the controller callback
    */
@@ -79,8 +79,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   struct TestRunContext *rc = cls;
 
-  GNUNET_TESTBED_run (NULL, config, rc->num_peers, rc->event_mask,
-                      rc->cc, rc->cc_cls, rc->test_master, rc->test_master_cls);
+  GNUNET_TESTBED_run (NULL, config, rc->num_peers, rc->event_mask, rc->cc,
+                      rc->cc_cls, rc->test_master, rc->test_master_cls);
 }
 
 
@@ -119,10 +119,8 @@ run (void *cls, char *const *args, const char *cfgfile,
  */
 int
 GNUNET_TESTBED_test_run (const char *testname, const char *cfg_filename,
-                         unsigned int num_peers,
-                         uint64_t event_mask,
-                         GNUNET_TESTBED_ControllerCallback cc,
-                         void *cc_cls,
+                         unsigned int num_peers, uint64_t event_mask,
+                         GNUNET_TESTBED_ControllerCallback cc, void *cc_cls,
                          GNUNET_TESTBED_TestMaster test_master,
                          void *test_master_cls)
 {
@@ -150,8 +148,9 @@ GNUNET_TESTBED_test_run (const char *testname, const char *cfg_filename,
   rc->event_mask = event_mask;
   rc->cc = cc;
   rc->cc_cls = cc_cls;
-  ret = GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                            testname, "nohelp", options, &run, rc);
+  ret =
+      GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
+                          testname, "nohelp", options, &run, rc);
   GNUNET_free (rc);
   GNUNET_free (argv2[0]);
   GNUNET_free (argv2[2]);

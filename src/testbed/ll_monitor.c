@@ -23,7 +23,7 @@
  * @brief The load level monitor process. This is called whenever a job event
  *          happens. This file is called with the following syntax:
  *          "monitor_program job_id user_arg state exit_status"
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "platform.h"
@@ -63,7 +63,7 @@ main (int argc, char **argv)
   PRINTF ("\t Exit status: %s \n", exit_status);
 
   if (-1 == asprintf (&outfile, "job-%s.status", job_id))
-    return 1;  
+    return 1;
   out = fopen (outfile, "a");
   if (NULL == out)
     return 1;

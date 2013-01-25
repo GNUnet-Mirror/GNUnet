@@ -156,7 +156,7 @@ struct RunContext
    * TestMaster callback to call when testbed initialization is done
    */
   GNUNET_TESTBED_TestMaster test_master;
-  
+
   /**
    * The closure for the TestMaster callback
    */
@@ -275,7 +275,7 @@ struct RunContext
    * Number of random links to established
    */
   unsigned int random_links;
-  
+
 };
 
 
@@ -394,7 +394,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != rc->h)
     GNUNET_TESTBED_host_destroy (rc->h);
   for (hid = 0; hid < rc->num_hosts; hid++)
-        GNUNET_TESTBED_host_destroy (rc->hosts[hid]);
+    GNUNET_TESTBED_host_destroy (rc->hosts[hid]);
   GNUNET_free_non_null (rc->hosts);
   if (NULL != rc->cfg)
     GNUNET_CONFIGURATION_destroy (rc->cfg);
@@ -530,7 +530,7 @@ shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         return;
       GNUNET_free (rc->peers);
       rc->peers = NULL;
-    }    
+    }
   }
   rc->state = RC_PEERS_DESTROYED;       /* No peers are present so we consider the
                                          * state where all peers are destroyed  */
@@ -548,11 +548,11 @@ static void
 call_master (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RunContext *rc = cls;
-  
+
   if (NULL != rc->topology_operation)
   {
     DEBUG ("Overlay topology generated in %s\n", prof_time (rc));
-    GNUNET_TESTBED_operation_done (rc->topology_operation);    
+    GNUNET_TESTBED_operation_done (rc->topology_operation);
     rc->topology_operation = NULL;
   }
   if (NULL != rc->test_master)
@@ -570,7 +570,7 @@ create_peers (struct RunContext *rc)
 {
   struct DLLOperation *dll_op;
   unsigned int peer;
- 
+
   DEBUG ("Creating peers\n");
   rc->pstart_time = GNUNET_TIME_absolute_get ();
   rc->peers =
@@ -582,11 +582,11 @@ create_peers (struct RunContext *rc)
     dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
     dll_op->rc = rc;
     dll_op->op =
-        GNUNET_TESTBED_peer_create (rc->c, 
-                                    (0 == rc->num_hosts)
-                                    ? rc->h : rc->hosts[peer % rc->num_hosts],
-                                    rc->cfg,
-                                    peer_create_cb, dll_op);
+        GNUNET_TESTBED_peer_create (rc->c,
+                                    (0 ==
+                                     rc->num_hosts) ? rc->h : rc->hosts[peer %
+                                                                        rc->num_hosts],
+                                    rc->cfg, peer_create_cb, dll_op);
     GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail, dll_op);
   }
 }
@@ -614,8 +614,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       dll_op = event->details.operation_finished.op_cls;
       if (NULL != event->details.operation_finished.emsg)
       {
-        LOG (GNUNET_ERROR_TYPE_ERROR,
-             _("Linking controllers failed. Exiting"));
+        LOG (GNUNET_ERROR_TYPE_ERROR, _("Linking controllers failed. Exiting"));
         shutdown_now (rc);
       }
       else
@@ -719,20 +718,17 @@ call_cc:
   GNUNET_free (dll_op);
   rc->peer_count++;
   if (rc->peer_count < rc->num_peers)
-    return;  
-  DEBUG ("%u peers started in %s\n", rc->num_peers,
-         prof_time (rc));
+    return;
+  DEBUG ("%u peers started in %s\n", rc->num_peers, prof_time (rc));
   if (GNUNET_TESTBED_TOPOLOGY_NONE != rc->topology)
-  {    
-    if ( (GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI == rc->topology)
-         || (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING == rc->topology)
-         || (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD == rc->topology))
+  {
+    if ((GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI == rc->topology) ||
+        (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING == rc->topology) ||
+        (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD == rc->topology))
     {
       rc->topology_operation =
-          GNUNET_TESTBED_overlay_configure_topology (NULL,
-                                                     rc->num_peers,
-                                                     rc->peers,
-                                                     &rc->num_oc,
+          GNUNET_TESTBED_overlay_configure_topology (NULL, rc->num_peers,
+                                                     rc->peers, &rc->num_oc,
                                                      rc->topology,
                                                      rc->random_links,
                                                      GNUNET_TESTBED_TOPOLOGY_OPTION_END);
@@ -741,20 +737,16 @@ call_cc:
     {
       GNUNET_assert (NULL != rc->topo_file);
       rc->topology_operation =
-          GNUNET_TESTBED_overlay_configure_topology (NULL,
-                                                     rc->num_peers,
-                                                     rc->peers,
-                                                     &rc->num_oc,
+          GNUNET_TESTBED_overlay_configure_topology (NULL, rc->num_peers,
+                                                     rc->peers, &rc->num_oc,
                                                      rc->topology,
                                                      rc->topo_file,
                                                      GNUNET_TESTBED_TOPOLOGY_OPTION_END);
     }
     else
       rc->topology_operation =
-          GNUNET_TESTBED_overlay_configure_topology (NULL,
-                                                     rc->num_peers,
-                                                     rc->peers,
-                                                     &rc->num_oc,
+          GNUNET_TESTBED_overlay_configure_topology (NULL, rc->num_peers,
+                                                     rc->peers, &rc->num_oc,
                                                      rc->topology,
                                                      GNUNET_TESTBED_TOPOLOGY_OPTION_END);
     if (NULL == rc->topology_operation)
@@ -763,7 +755,7 @@ call_cc:
     else
     {
       DEBUG ("Creating overlay topology\n");
-      rc->pstart_time = GNUNET_TIME_absolute_get ();    
+      rc->pstart_time = GNUNET_TIME_absolute_get ();
       return;
     }
   }
@@ -828,21 +820,18 @@ register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
       dll_op->rc = rc;
-      dll_op->op = GNUNET_TESTBED_controller_link (dll_op,
-                                                   rc->c,
-                                                   rc->hosts[slave],
-                                                   rc->h,
-                                                   rc->cfg,
-                                                   GNUNET_YES);
-      GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail, dll_op);
+      dll_op->op =
+          GNUNET_TESTBED_controller_link (dll_op, rc->c, rc->hosts[slave],
+                                          rc->h, rc->cfg, GNUNET_YES);
+      GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail,
+                                        dll_op);
     }
     rc->reg_hosts = 0;
     return;
   }
-  rc->reg_handle = GNUNET_TESTBED_register_host (rc->c,
-                                                 rc->hosts[rc->reg_hosts++],
-                                                 host_registration_completion,
-                                                 rc);
+  rc->reg_handle =
+      GNUNET_TESTBED_register_host (rc->c, rc->hosts[rc->reg_hosts++],
+                                    host_registration_completion, rc);
 }
 
 
@@ -871,7 +860,7 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
       return;
     default:
       rc->cproc = NULL;
-      shutdown_now (rc);      
+      shutdown_now (rc);
       return;
     }
   }
@@ -884,7 +873,8 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (rc->topology < GNUNET_TESTBED_TOPOLOGY_NONE)
     event_mask |= GNUNET_TESTBED_ET_CONNECT;
   rc->c =
-      GNUNET_TESTBED_controller_connect (rc->cfg, rc->h, event_mask, &event_cb, rc);
+      GNUNET_TESTBED_controller_connect (rc->cfg, rc->h, event_mask, &event_cb,
+                                         rc);
   if (0 < rc->num_hosts)
   {
     rc->register_hosts_task = GNUNET_SCHEDULER_add_now (&register_hosts, rc);
@@ -908,32 +898,28 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return GNUNET_OK to continue iteration, GNUNET_SYSERR to abort
  */
 static int
-netint_proc (void *cls, const char *name,
-             int isDefault,
-             const struct sockaddr *addr,
-             const struct sockaddr *broadcast_addr,
-             const struct sockaddr *netmask,
-             socklen_t addrlen)
+netint_proc (void *cls, const char *name, int isDefault,
+             const struct sockaddr *addr, const struct sockaddr *broadcast_addr,
+             const struct sockaddr *netmask, socklen_t addrlen)
 {
-   struct RunContext *rc = cls;
-   char hostip[NI_MAXHOST];
-   char *buf;
+  struct RunContext *rc = cls;
+  char hostip[NI_MAXHOST];
+  char *buf;
 
-   if (sizeof (struct sockaddr_in) != addrlen)
-     return GNUNET_OK;          /* Only consider IPv4 for now */
-   if (0 != getnameinfo(addr, addrlen,
-                        hostip, NI_MAXHOST,
-                        NULL, 0, NI_NUMERICHOST))
-     GNUNET_log_strerror(GNUNET_ERROR_TYPE_WARNING, "getnameinfo");
-   if (NULL == rc->trusted_ip)
-   {
-     rc->trusted_ip = GNUNET_strdup (hostip);
-     return GNUNET_YES;
-   }
-   (void) GNUNET_asprintf (&buf, "%s; %s", rc->trusted_ip, hostip);
-   GNUNET_free (rc->trusted_ip);
-   rc->trusted_ip = buf;
-   return GNUNET_YES;
+  if (sizeof (struct sockaddr_in) != addrlen)
+    return GNUNET_OK;           /* Only consider IPv4 for now */
+  if (0 !=
+      getnameinfo (addr, addrlen, hostip, NI_MAXHOST, NULL, 0, NI_NUMERICHOST))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "getnameinfo");
+  if (NULL == rc->trusted_ip)
+  {
+    rc->trusted_ip = GNUNET_strdup (hostip);
+    return GNUNET_YES;
+  }
+  (void) GNUNET_asprintf (&buf, "%s; %s", rc->trusted_ip, hostip);
+  GNUNET_free (rc->trusted_ip);
+  rc->trusted_ip = buf;
+  return GNUNET_YES;
 }
 
 
@@ -947,12 +933,13 @@ netint_proc (void *cls, const char *name,
  *          given to GNUNET_TESTBED_is_host_habitable() is NULL
  * @param status GNUNET_YES if it is habitable; GNUNET_NO if not
  */
-static void 
-host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host, int status)
+static void
+host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host,
+                   int status)
 {
   struct RunContext *rc = cls;
   unsigned int nhost;
-  
+
   for (nhost = 0; nhost < rc->num_hosts; nhost++)
   {
     if (host == rc->hosts[nhost])
@@ -966,7 +953,8 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host, int status
       LOG (GNUNET_ERROR_TYPE_ERROR, _("Host %s cannot start testbed\n"),
            GNUNET_TESTBED_host_get_hostname (host));
     else
-      LOG (GNUNET_ERROR_TYPE_ERROR, _("Testbed cannot be started on localhost\n"));
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _("Testbed cannot be started on localhost\n"));
     shutdown_now (rc);
     return;
   }
@@ -1040,7 +1028,7 @@ GNUNET_TESTBED_run (const char *host_filename,
   unsigned long long random_links;
   unsigned int hid;
   unsigned int nhost;
-  
+
   GNUNET_assert (num_peers > 0);
   rc = GNUNET_malloc (sizeof (struct RunContext));
   if (NULL != host_filename)
@@ -1064,17 +1052,17 @@ GNUNET_TESTBED_run (const char *host_filename,
   rc->test_master = test_master;
   rc->test_master_cls = test_master_cls;
   rc->state = RC_INIT;
-  rc->topology = GNUNET_TESTBED_TOPOLOGY_NONE;  
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (rc->cfg, "testbed",
-                                                          "OVERLAY_TOPOLOGY",
-                                                          &topology))
+  rc->topology = GNUNET_TESTBED_TOPOLOGY_NONE;
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_string (rc->cfg, "testbed",
+                                             "OVERLAY_TOPOLOGY", &topology))
   {
-    if (GNUNET_NO == GNUNET_TESTBED_topology_get_ (&rc->topology,
-                                                    topology))
+    if (GNUNET_NO == GNUNET_TESTBED_topology_get_ (&rc->topology, topology))
     {
-      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
-				 "testbed", "OVERLAY_TOPLOGY",
-				 _("Specified topology must be supported by testbed"));
+      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "testbed",
+                                 "OVERLAY_TOPLOGY",
+                                 _
+                                 ("Specified topology must be supported by testbed"));
     }
     GNUNET_free (topology);
   }
@@ -1083,51 +1071,54 @@ GNUNET_TESTBED_run (const char *host_filename,
   case GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI:
   case GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING:
   case GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD:
-    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (rc->cfg, "testbed",
-                                                            "OVERLAY_RANDOM_LINKS",
-                                                            &random_links))
+    if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_number (rc->cfg, "testbed",
+                                               "OVERLAY_RANDOM_LINKS",
+                                               &random_links))
     {
       /* OVERLAY option RANDOM & SMALL_WORLD_RING requires OVERLAY_RANDOM_LINKS
-         option to be set to the number of random links to be established  */
-      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-				 "testbed", "OVERLAY_RANDOM_LINKS");
+       * option to be set to the number of random links to be established  */
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "testbed",
+                                 "OVERLAY_RANDOM_LINKS");
       goto error_cleanup;
     }
     if (random_links > UINT32_MAX)
     {
-      GNUNET_break (0);       /* Too big number */
+      GNUNET_break (0);         /* Too big number */
       goto error_cleanup;
     }
     rc->random_links = (unsigned int) random_links;
     break;
   case GNUNET_TESTBED_TOPOLOGY_FROM_FILE:
-    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (rc->cfg, "testbed",
-                                                            "OVERLAY_TOPOLOGY_FILE",
-                                                            &rc->topo_file))
+    if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_string (rc->cfg, "testbed",
+                                               "OVERLAY_TOPOLOGY_FILE",
+                                               &rc->topo_file))
     {
-      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-				 "testbed", "OVERLAY_TOPOLOGY_FILE");
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "testbed",
+                                 "OVERLAY_TOPOLOGY_FILE");
       goto error_cleanup;
     }
-  default:   
+  default:
     /* Warn if OVERLAY_RANDOM_LINKS is present that it will be ignored */
-    if (GNUNET_YES == GNUNET_CONFIGURATION_have_value (rc->cfg, "testbed",
-                                                       "OVERLAY_RANDOM_LINKS"))
+    if (GNUNET_YES ==
+        GNUNET_CONFIGURATION_have_value (rc->cfg, "testbed",
+                                         "OVERLAY_RANDOM_LINKS"))
       LOG (GNUNET_ERROR_TYPE_WARNING,
            "Ignoring value of `OVERLAY_RANDOM_LINKS' in given configuration\n");
     break;
   }
   if (NULL != host_filename)
   {
-    rc->hc_handles = GNUNET_malloc (sizeof (struct
-                                            GNUNET_TESTBED_HostHabitableCheckHandle *) 
-                                    * rc->num_hosts);
-    for (nhost = 0; nhost < rc->num_hosts; nhost++) 
-    {    
-      if (NULL == (rc->hc_handles[nhost] = 
-                   GNUNET_TESTBED_is_host_habitable (rc->hosts[nhost], rc->cfg,
-                                                     &host_habitable_cb,
-                                                     rc)))
+    rc->hc_handles =
+        GNUNET_malloc (sizeof (struct GNUNET_TESTBED_HostHabitableCheckHandle *)
+                       * rc->num_hosts);
+    for (nhost = 0; nhost < rc->num_hosts; nhost++)
+    {
+      if (NULL ==
+          (rc->hc_handles[nhost] =
+           GNUNET_TESTBED_is_host_habitable (rc->hosts[nhost], rc->cfg,
+                                             &host_habitable_cb, rc)))
       {
         GNUNET_break (0);
         for (nhost = 0; nhost < rc->num_hosts; nhost++)
@@ -1141,14 +1132,14 @@ GNUNET_TESTBED_run (const char *host_filename,
   }
   else
     rc->cproc =
-      GNUNET_TESTBED_controller_start ("127.0.0.1", rc->h, rc->cfg,
-                                       &controller_status_cb, rc);
+        GNUNET_TESTBED_controller_start ("127.0.0.1", rc->h, rc->cfg,
+                                         &controller_status_cb, rc);
   rc->shutdown_run_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                    &shutdown_run, rc);
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_run,
+                                    rc);
   return;
 
- error_cleanup:
+error_cleanup:
   if (NULL != rc->h)
     GNUNET_TESTBED_host_destroy (rc->h);
   if (NULL != rc->hosts)

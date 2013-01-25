@@ -45,7 +45,7 @@ struct HelloCacheEntry
    * The key for this entry
    */
   struct GNUNET_HashCode key;
-  
+
   /**
    * The HELLO message
    */
@@ -106,9 +106,8 @@ static void
 GST_hello_cache_remove (struct HelloCacheEntry *entry)
 {
   GNUNET_CONTAINER_DLL_remove (lru_hcache_head, lru_hcache_tail, entry);
-  GNUNET_assert (GNUNET_YES == 
-                 GNUNET_CONTAINER_multihashmap_remove (hello_cache,
-                                                       &entry->key,
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multihashmap_remove (hello_cache, &entry->key,
                                                        entry));
   GNUNET_free (entry->hello);
   GNUNET_free (entry);
@@ -124,10 +123,10 @@ GST_hello_cache_remove (struct HelloCacheEntry *entry)
  */
 void
 GST_hello_cache_add (const struct GNUNET_PeerIdentity *id,
-                         const struct GNUNET_MessageHeader *hello)
+                     const struct GNUNET_MessageHeader *hello)
 {
   struct HelloCacheEntry *entry;
-  
+
   if (NULL == hello_cache)
     return;
   entry = GNUNET_CONTAINER_multihashmap_get (hello_cache, &id->hashPubKey);
@@ -140,11 +139,10 @@ GST_hello_cache_add (const struct GNUNET_PeerIdentity *id,
       GNUNET_assert (NULL != lru_hcache_head);
       GST_hello_cache_remove (lru_hcache_head);
     }
-    GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put 
-                   (hello_cache,
-                    &entry->key,
-                    entry,
-                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multihashmap_put (hello_cache, &entry->key,
+                                                      entry,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
   }
   else
   {
@@ -180,8 +178,8 @@ void
 GST_cache_clear ()
 {
   if (NULL != hello_cache)
-    GNUNET_assert
-        (GNUNET_CONTAINER_multihashmap_size (hello_cache) <= hello_cache_size);
+    GNUNET_assert (GNUNET_CONTAINER_multihashmap_size (hello_cache) <=
+                   hello_cache_size);
   while (NULL != lru_hcache_head)
     GST_hello_cache_remove (lru_hcache_head);
   if (NULL != hello_cache)

@@ -105,7 +105,7 @@ controller_event_cb (void *cls,
     result = GNUNET_SYSERR;
     GNUNET_SCHEDULER_cancel (shutdown_task);
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
-  }  
+  }
 }
 
 
@@ -129,16 +129,16 @@ test_master (void *cls, unsigned int num_peers,
     GNUNET_assert (NULL != peers_[peer]);
   peers = peers_;
   overlay_connects = 0;
-  op = GNUNET_TESTBED_overlay_configure_topology (NULL, NUM_PEERS, peers,
-                                                  NULL,
+  op = GNUNET_TESTBED_overlay_configure_topology (NULL, NUM_PEERS, peers, NULL,
                                                   GNUNET_TESTBED_TOPOLOGY_CLIQUE,
-						  /* GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI, */
-                                                  /* NUM_PEERS, */ 
+                                                  /* GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI, */
+                                                  /* NUM_PEERS, */
                                                   GNUNET_TESTBED_TOPOLOGY_OPTION_END);
   GNUNET_assert (NULL != op);
-  shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                                (GNUNET_TIME_UNIT_SECONDS, 300),
-                                                do_shutdown, NULL);
+  shutdown_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_SECONDS, 300),
+                                    do_shutdown, NULL);
 }
 
 
@@ -155,9 +155,8 @@ main (int argc, char **argv)
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
   (void) GNUNET_TESTBED_test_run ("test_testbed_api_test",
-                                  "test_testbed_api.conf", 
-                                  NUM_PEERS, event_mask, &controller_event_cb,
-                                  NULL, 
+                                  "test_testbed_api.conf", NUM_PEERS,
+                                  event_mask, &controller_event_cb, NULL,
                                   &test_master, NULL);
   if (GNUNET_OK != result)
     return 1;

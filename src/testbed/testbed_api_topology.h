@@ -21,7 +21,7 @@
 /**
  * @file testbed/testbed_api_topology.h
  * @brief header for intra library exported functions
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #ifndef TESTBED_API_TOPOLOGY_H
@@ -38,8 +38,7 @@
  *          fresh. The caller should free it. Can be NULL.
  */
 unsigned int
-GNUNET_TESTBED_2dtorus_calc_links (unsigned int num_peers,
-                                   unsigned int *rows,
+GNUNET_TESTBED_2dtorus_calc_links (unsigned int num_peers, unsigned int *rows,
                                    unsigned int **rows_len);
 
 
@@ -67,6 +66,5 @@ GNUNET_TESTBED_topology_get_ (enum GNUNET_TESTBED_TopologyOption *topology,
 char *
 GNUNET_TESTBED_topology_to_str_ (enum GNUNET_TESTBED_TopologyOption topology);
 
-#endif  
+#endif
 /* end of  testbed_api_topology.h */
-

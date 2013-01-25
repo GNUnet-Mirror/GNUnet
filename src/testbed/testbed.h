@@ -30,7 +30,6 @@
 #include "gnunet_util_lib.h"
 
 GNUNET_NETWORK_STRUCT_BEGIN
-
 /**
  * Initial message from a client to a testing control service.
  */
@@ -430,12 +429,12 @@ struct GNUNET_TESTBED_RequestConnectMessage
    * Identity of A
    */
   struct GNUNET_PeerIdentity peer_identity;
-  
+
   /**
    * To be followed by the HELLO message of A
    */
   struct GNUNET_MessageHeader hello[0];
-  
+
 };
 
 
@@ -702,6 +701,5 @@ struct GNUNET_TESTBED_SlaveConfiguration
 
 
 GNUNET_NETWORK_STRUCT_END
-
 #endif
 /* end of testbed.h */

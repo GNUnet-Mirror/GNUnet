@@ -21,7 +21,7 @@
 /**
  * @file testbed/ll_master.c
  * @brief The load level master. Creates child processes through LoadLeveler
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "platform.h"
@@ -56,12 +56,10 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     fprintf (stderr, _("Job command file not given. Exiting\n"));
     return;
-  }  
-  ret = llsubmit (args[0],
-                  NULL, //char *monitor_program, 
-                  NULL, //char *monitor_arg, 
-                  &job_info,
-                  LL_JOB_VERSION);
+  }
+  ret = llsubmit (args[0], NULL,        //char *monitor_program,
+                  NULL,         //char *monitor_arg,
+                  &job_info, LL_JOB_VERSION);
   if (0 != ret)
     return;
   status = GNUNET_OK;
@@ -86,8 +84,8 @@ main (int argc, char **argv)
   status = GNUNET_SYSERR;
   ret =
       GNUNET_PROGRAM_run (argc, argv, "ll-master",
-                          "LoadLeveler master process for starting child processes", options,
-                          &run, NULL);
+                          "LoadLeveler master process for starting child processes",
+                          options, &run, NULL);
   if (GNUNET_OK != ret)
     return 1;
   return (GNUNET_OK == status) ? 0 : 1;

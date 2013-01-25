@@ -259,7 +259,7 @@ struct SDEntry
    * DLL prev pointer
    */
   struct SDEntry *prev;
-  
+
   /**
    * The value to store
    */
@@ -273,12 +273,12 @@ struct SDHandle
    * DLL head for storing entries
    */
   struct SDEntry *head;
-  
+
   /**
    * DLL tail for storing entries
    */
   struct SDEntry *tail;
-  
+
   /**
    * Squared sum of data values
    */
@@ -303,7 +303,7 @@ struct SDHandle
    * Number of data values; also the length of DLL containing SDEntries
    */
   unsigned int cnt;
-  
+
   /**
    * max number of entries we can have in the DLL
    */
@@ -321,7 +321,7 @@ static struct SDHandle *
 SD_init (unsigned int max_cnt)
 {
   struct SDHandle *h;
-  
+
   GNUNET_assert (1 < max_cnt);
   h = GNUNET_malloc (sizeof (struct SDHandle));
   h->max_cnt = max_cnt;
@@ -338,7 +338,7 @@ static void
 SD_destroy (struct SDHandle *h)
 {
   struct SDEntry *entry;
-  
+
   while (NULL != (entry = h->head))
   {
     GNUNET_CONTAINER_DLL_remove (h->head, h->tail, entry);
@@ -367,8 +367,8 @@ SD_add_data (struct SDHandle *h, unsigned int amount)
     entry = h->head;
     GNUNET_CONTAINER_DLL_remove (h->head, h->tail, entry);
     h->sum -= entry->amount;
-    h->sqsum -= ((unsigned long) entry->amount) * 
-        ((unsigned long) entry->amount);
+    h->sqsum -=
+        ((unsigned long) entry->amount) * ((unsigned long) entry->amount);
     h->cnt--;
   }
   GNUNET_assert (h->cnt < h->max_cnt);
@@ -407,7 +407,7 @@ SD_deviation_factor (struct SDHandle *h, unsigned int amount)
   if (((float) amount) > h->avg)
     diff = ((float) amount) - h->avg;
   else
-    return 0; //diff = h->avg - ((float) amount);
+    return 0;                   //diff = h->avg - ((float) amount);
   diff *= diff;
   for (n = 1; n < 4; n++)
     if (diff < (((double) (n * n)) * h->vr))
@@ -502,8 +502,8 @@ handle_addhostconfirm (struct GNUNET_TESTBED_Controller *c,
  */
 static void
 handle_forwarded_operation_msg (struct GNUNET_TESTBED_Controller *c,
-				struct OperationContext *opc,
-				const struct GNUNET_MessageHeader *msg)
+                                struct OperationContext *opc,
+                                const struct GNUNET_MessageHeader *msg)
 {
   struct ForwardedOperationData *fo_data;
 
@@ -549,35 +549,35 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
   switch (opc->type)
   {
   case OP_FORWARDED:
-    {
-      handle_forwarded_operation_msg
-	  (c, opc, (const struct GNUNET_MessageHeader *) msg);
-      return GNUNET_YES;
-    }
+  {
+    handle_forwarded_operation_msg (c, opc,
+                                    (const struct GNUNET_MessageHeader *) msg);
+    return GNUNET_YES;
+  }
     break;
   case OP_PEER_DESTROY:
-    {
-      struct GNUNET_TESTBED_Peer *peer;
-      
-      peer = opc->data;
-      GNUNET_free (peer);
-      opc->data = NULL;
-      //PEERDESTROYDATA
-    }
+  {
+    struct GNUNET_TESTBED_Peer *peer;
+
+    peer = opc->data;
+    GNUNET_free (peer);
+    opc->data = NULL;
+    //PEERDESTROYDATA
+  }
     break;
   case OP_LINK_CONTROLLERS:
-    {
-      struct ControllerLinkData *data;
-      
-      data = opc->data;
-      GNUNET_assert (NULL != data);      
-      GNUNET_free (data);
-      opc->data = NULL;
-    }
+  {
+    struct ControllerLinkData *data;
+
+    data = opc->data;
+    GNUNET_assert (NULL != data);
+    GNUNET_free (data);
+    opc->data = NULL;
+  }
     break;
   default:
     GNUNET_assert (0);
-  }  
+  }
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
   if (0 != (c->event_mask & (1L << GNUNET_TESTBED_ET_OPERATION_FINISHED)))
@@ -623,7 +623,7 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
   if (OP_FORWARDED == opc->type)
   {
     handle_forwarded_operation_msg (c, opc,
-				    (const struct GNUNET_MessageHeader *) msg);
+                                    (const struct GNUNET_MessageHeader *) msg);
     return GNUNET_YES;
   }
   GNUNET_assert (OP_PEER_CREATE == opc->type);
@@ -676,7 +676,7 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
   if (OP_FORWARDED == opc->type)
   {
     handle_forwarded_operation_msg (c, opc,
-				    (const struct GNUNET_MessageHeader *) msg);
+                                    (const struct GNUNET_MessageHeader *) msg);
     return GNUNET_YES;
   }
   GNUNET_assert ((OP_PEER_START == opc->type) || (OP_PEER_STOP == opc->type));
@@ -746,7 +746,7 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
   if (OP_FORWARDED == opc->type)
   {
     handle_forwarded_operation_msg (c, opc,
-				    (const struct GNUNET_MessageHeader *) msg);
+                                    (const struct GNUNET_MessageHeader *) msg);
     return GNUNET_YES;
   }
   GNUNET_assert (OP_OVERLAY_CONNECT == opc->type);
@@ -816,7 +816,7 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
   if (OP_FORWARDED == opc->type)
   {
     handle_forwarded_operation_msg (c, opc,
-				    (const struct GNUNET_MessageHeader *) msg);
+                                    (const struct GNUNET_MessageHeader *) msg);
     return GNUNET_YES;
   }
   data = opc->data;
@@ -835,11 +835,11 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
   case GNUNET_TESTBED_PIT_IDENTITY:
     pinfo->result.id = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
     (void) memcpy (pinfo->result.id, &msg->peer_identity,
-		   sizeof (struct GNUNET_PeerIdentity));
+                   sizeof (struct GNUNET_PeerIdentity));
     break;
   case GNUNET_TESTBED_PIT_CONFIGURATION:
-    pinfo->result.cfg =        /* Freed in oprelease_peer_getinfo */
-	GNUNET_TESTBED_extract_config_ (&msg->header);
+    pinfo->result.cfg =         /* Freed in oprelease_peer_getinfo */
+        GNUNET_TESTBED_extract_config_ (&msg->header);
     break;
   case GNUNET_TESTBED_PIT_GENERIC:
     GNUNET_assert (0);          /* never reach here */
@@ -882,7 +882,7 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
   if (OP_FORWARDED == opc->type)
   {
     handle_forwarded_operation_msg (c, opc,
-				    (const struct GNUNET_MessageHeader *) msg);
+                                    (const struct GNUNET_MessageHeader *) msg);
     return GNUNET_YES;
   }
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
@@ -893,11 +893,12 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
   if (OP_PEER_INFO == opc->type)
   {
     struct PeerInfoData *data;
+
     data = opc->data;
     if (NULL != data->cb)
       data->cb (data->cb_cls, opc->op, NULL, emsg);
     GNUNET_free (data);
-    return GNUNET_YES;  /* We do not call controller callback for peer info */
+    return GNUNET_YES;          /* We do not call controller callback for peer info */
   }
   if ((0 != (GNUNET_TESTBED_ET_OPERATION_FINISHED & c->event_mask)) &&
       (NULL != c->cc))
@@ -912,45 +913,48 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
   switch (opc->type)
   {
   case OP_PEER_CREATE:
-    {
-      struct PeerCreateData *data;      
-      data = opc->data;
-      GNUNET_free (data->peer);
-      if (NULL != data->cb)
-        data->cb (data->cls, NULL, emsg);
-      GNUNET_free (data);      
-    }
+  {
+    struct PeerCreateData *data;
+
+    data = opc->data;
+    GNUNET_free (data->peer);
+    if (NULL != data->cb)
+      data->cb (data->cls, NULL, emsg);
+    GNUNET_free (data);
+  }
     break;
   case OP_PEER_START:
   case OP_PEER_STOP:
-    {
-      struct PeerEventData *data;
-      data = opc->data;
-      if (NULL != data->pcc)
-        data->pcc (data->pcc_cls, emsg);
-      GNUNET_free (data);
-    }
+  {
+    struct PeerEventData *data;
+
+    data = opc->data;
+    if (NULL != data->pcc)
+      data->pcc (data->pcc_cls, emsg);
+    GNUNET_free (data);
+  }
     break;
   case OP_PEER_DESTROY:
     break;
   case OP_PEER_INFO:
     GNUNET_assert (0);
   case OP_OVERLAY_CONNECT:
-    {
-      struct OverlayConnectData *data;
-      data = opc->data;
-      data->failed = GNUNET_YES;
-      if (NULL != data->cb)
-        data->cb (data->cb_cls, opc->op, emsg);
-    }
+  {
+    struct OverlayConnectData *data;
+
+    data = opc->data;
+    data->failed = GNUNET_YES;
+    if (NULL != data->cb)
+      data->cb (data->cb_cls, opc->op, emsg);
+  }
     break;
   case OP_FORWARDED:
     GNUNET_assert (0);
-  case OP_LINK_CONTROLLERS:     /* No secondary callback */
+  case OP_LINK_CONTROLLERS:    /* No secondary callback */
     break;
   default:
     GNUNET_break (0);
-  }  
+  }
   return GNUNET_YES;
 }
 
@@ -967,7 +971,7 @@ GNUNET_TESTBED_generate_slavegetconfig_msg_ (uint64_t op_id, uint32_t slave_id)
 {
   struct GNUNET_TESTBED_SlaveGetConfigurationMessage *msg;
   uint16_t msize;
-  
+
   msize = sizeof (struct GNUNET_TESTBED_SlaveGetConfigurationMessage);
   msg = GNUNET_malloc (msize);
   msg->header.size = htons (msize);
@@ -989,11 +993,11 @@ GNUNET_TESTBED_generate_slavegetconfig_msg_ (uint64_t op_id, uint32_t slave_id)
  */
 static int
 handle_slave_config (struct GNUNET_TESTBED_Controller *c,
-		     const struct GNUNET_TESTBED_SlaveConfiguration * msg)
+                     const struct GNUNET_TESTBED_SlaveConfiguration *msg)
 {
   struct OperationContext *opc;
   uint64_t op_id;
-  struct GNUNET_TESTBED_EventInformation event;  
+  struct GNUNET_TESTBED_EventInformation event;
 
   op_id = GNUNET_ntohll (msg->operation_id);
   if (NULL == (opc = find_opc (c, op_id)))
@@ -1014,7 +1018,7 @@ handle_slave_config (struct GNUNET_TESTBED_Controller *c,
       (NULL != c->cc))
   {
     opc->data = GNUNET_TESTBED_extract_config_ (&msg->header);
-    event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;   
+    event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
     event.details.operation_finished.generic = opc->data;
     event.details.operation_finished.operation = opc->op;
     event.details.operation_finished.op_cls = opc->op_cls;
@@ -1113,11 +1117,11 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                               msg);
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG:
-    GNUNET_assert (msize >
-		   sizeof (struct GNUNET_TESTBED_SlaveConfiguration));
-    status = 
-	handle_slave_config (c, (const struct 
-				 GNUNET_TESTBED_SlaveConfiguration *) msg);
+    GNUNET_assert (msize > sizeof (struct GNUNET_TESTBED_SlaveConfiguration));
+    status =
+        handle_slave_config (c,
+                             (const struct GNUNET_TESTBED_SlaveConfiguration *)
+                             msg);
     break;
   default:
     GNUNET_assert (0);
@@ -1482,10 +1486,10 @@ GNUNET_TESTBED_set_num_parallel_overlay_connects_ (struct
 {
   fprintf (stderr, "%d", npoc);
   GNUNET_free_non_null (c->tslots);
-  c->tslots_filled = 0;  
+  c->tslots_filled = 0;
   c->num_parallel_connects = npoc;
   c->tslots = GNUNET_malloc (npoc * sizeof (struct TimeSlot));
-  GNUNET_TESTBED_operation_queue_reset_max_active_ 
+  GNUNET_TESTBED_operation_queue_reset_max_active_
       (c->opq_parallel_overlay_connect_operations, npoc);
 }
 
@@ -1503,7 +1507,7 @@ copy_argv (const char *const *argv)
   unsigned int argp;
 
   GNUNET_assert (NULL != argv);
-  for (argp = 0; NULL != argv[argp]; argp++);
+  for (argp = 0; NULL != argv[argp]; argp++) ;
   argv_dup = GNUNET_malloc (sizeof (char *) * (argp + 1));
   for (argp = 0; NULL != argv[argp]; argp++)
     argv_dup[argp] = strdup (argv[argp]);
@@ -1552,7 +1556,7 @@ static void
 free_argv (char **argv)
 {
   unsigned int argp;
-  
+
   for (argp = 0; NULL != argv[argp]; argp++)
     GNUNET_free (argv[argp]);
   GNUNET_free (argv);
@@ -1588,22 +1592,20 @@ gen_rsh_args (const char *port, const char *dst)
   char *arg;
   unsigned int cnt;
 
-  ssh_args = NULL;  
+  ssh_args = NULL;
   if (NULL != (ssh_cmd = getenv ("GNUNET_TESTBED_RSH_CMD")))
   {
     ssh_cmd = GNUNET_strdup (ssh_cmd);
     ssh_cmd_cp = ssh_cmd;
-    for (cnt = 0; 
-         NULL != (arg = strtok (ssh_cmd, " "));
-         ssh_cmd = NULL)
+    for (cnt = 0; NULL != (arg = strtok (ssh_cmd, " ")); ssh_cmd = NULL)
       GNUNET_array_append (ssh_args, cnt, GNUNET_strdup (arg));
     GNUNET_free (ssh_cmd_cp);
   }
   else
   {
-      ssh_args = copy_argv (default_ssh_args);
-      cnt = (sizeof (default_ssh_args)) / (sizeof (const char *));
-      GNUNET_array_grow (ssh_args, cnt, cnt - 1);
+    ssh_args = copy_argv (default_ssh_args);
+    cnt = (sizeof (default_ssh_args)) / (sizeof (const char *));
+    GNUNET_array_grow (ssh_args, cnt, cnt - 1);
   }
   GNUNET_array_append (ssh_args, cnt, GNUNET_strdup ("-p"));
   GNUNET_array_append (ssh_args, cnt, GNUNET_strdup (port));
@@ -1630,19 +1632,17 @@ gen_rsh_suffix_args (const char *helper_binary_path)
   char *rshell_cmd_cp;
   char *arg;
   unsigned int cnt;
-  
+
   rshell_args = NULL;
   cnt = 0;
   if (NULL != (rshell_cmd = getenv ("GNUNET_TESTBED_RSH_CMD_SUFFIX")))
   {
     rshell_cmd = GNUNET_strdup (rshell_cmd);
     rshell_cmd_cp = rshell_cmd;
-    for (;
-         NULL != (arg = strtok (rshell_cmd, " "));
-         rshell_cmd = NULL)
+    for (; NULL != (arg = strtok (rshell_cmd, " ")); rshell_cmd = NULL)
       GNUNET_array_append (rshell_args, cnt, GNUNET_strdup (arg));
     GNUNET_free (rshell_cmd_cp);
-  }  
+  }
   GNUNET_array_append (rshell_args, cnt, GNUNET_strdup (helper_binary_path));
   GNUNET_array_append (rshell_args, cnt, NULL);
   return rshell_args;
@@ -1681,9 +1681,10 @@ GNUNET_TESTBED_controller_start (const char *trusted_ip,
   struct GNUNET_TESTBED_ControllerProc *cp;
   struct GNUNET_TESTBED_HelperInit *msg;
   const char *hostname;
+
   static char *const binary_argv[] = {
     HELPER_TESTBED_BINARY, NULL
-  };  
+  };
 
   hostname = NULL;
   cp = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ControllerProc));
@@ -1711,15 +1712,16 @@ GNUNET_TESTBED_controller_start (const char *trusted_ip,
       GNUNET_asprintf (&dst, "%s@%s", username, hostname);
     LOG_DEBUG ("Starting SSH to destination %s\n", dst);
 
-    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
-                                                            "HELPER_BINARY_PATH",
-                                                            &helper_binary_path))
-      helper_binary_path = GNUNET_OS_get_libexec_binary_path
-          (HELPER_TESTBED_BINARY);
+    if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
+                                               "HELPER_BINARY_PATH",
+                                               &helper_binary_path))
+      helper_binary_path =
+          GNUNET_OS_get_libexec_binary_path (HELPER_TESTBED_BINARY);
     ssh_args = gen_rsh_args (port, dst);
     rshell_args = gen_rsh_suffix_args (helper_binary_path);
-    cp->helper_argv = join_argv ((const char **) ssh_args,
-                                 (const char **)rshell_args);
+    cp->helper_argv =
+        join_argv ((const char **) ssh_args, (const char **) rshell_args);
     free_argv (ssh_args);
     free_argv (rshell_args);
     GNUNET_free (port);
@@ -1865,10 +1867,10 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle
   controller->opq_parallel_service_connections =
       GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
                                               max_parallel_service_connections);
-  controller->opq_parallel_topology_config_operations=
+  controller->opq_parallel_topology_config_operations =
       GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
                                               max_parallel_topology_config_operations);
-  controller->opq_parallel_overlay_connect_operations=
+  controller->opq_parallel_overlay_connect_operations =
       GNUNET_TESTBED_operation_queue_create_ (0);
   GNUNET_TESTBED_set_num_parallel_overlay_connects_ (controller, 1);
   controller->poc_sd = SD_init (10);
@@ -1927,7 +1929,7 @@ GNUNET_TESTBED_controller_configure_sharing (struct GNUNET_TESTBED_Controller
   GNUNET_TESTBED_queue_message_ (controller,
                                  (struct GNUNET_MessageHeader *) msg);
   GNUNET_break (0);             /* This function is not yet implemented on the
-                                   testbed service */
+                                 * testbed service */
 }
 
 
@@ -2084,9 +2086,9 @@ struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_controller_link_2_ (void *op_cls,
                                    struct GNUNET_TESTBED_Controller *master,
                                    uint32_t delegated_host_id,
-                                   uint32_t slave_host_id,
-                                   const char *sxcfg, size_t sxcfg_size,
-                                   size_t scfg_size, int is_subordinate)
+                                   uint32_t slave_host_id, const char *sxcfg,
+                                   size_t sxcfg_size, size_t scfg_size,
+                                   int is_subordinate)
 {
   struct OperationContext *opc;
   struct GNUNET_TESTBED_ControllerLinkMessage *msg;
@@ -2143,30 +2145,27 @@ GNUNET_TESTBED_controller_link_2_ (void *op_cls,
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_controller_link_2 (void *op_cls,
-				  struct GNUNET_TESTBED_Controller *master,
+                                  struct GNUNET_TESTBED_Controller *master,
                                   struct GNUNET_TESTBED_Host *delegated_host,
                                   struct GNUNET_TESTBED_Host *slave_host,
                                   const char *sxcfg, size_t sxcfg_size,
                                   size_t scfg_size, int is_subordinate)
-{ 
+{
   uint32_t delegated_host_id;
   uint32_t slave_host_id;
 
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_TESTBED_is_host_registered_ (delegated_host, master));
   delegated_host_id = GNUNET_TESTBED_host_get_id_ (delegated_host);
-  slave_host_id = 
-      GNUNET_TESTBED_host_get_id_ ((NULL != slave_host)
-                                   ? slave_host : master->host);
+  slave_host_id =
+      GNUNET_TESTBED_host_get_id_ ((NULL !=
+                                    slave_host) ? slave_host : master->host);
   if ((NULL != slave_host) && (0 != GNUNET_TESTBED_host_get_id_ (slave_host)))
     GNUNET_assert (GNUNET_YES ==
                    GNUNET_TESTBED_is_host_registered_ (slave_host, master));
-  
-  return GNUNET_TESTBED_controller_link_2_ (op_cls,
-                                            master,
-                                            delegated_host_id,
-                                            slave_host_id,
-                                            sxcfg, sxcfg_size,
+
+  return GNUNET_TESTBED_controller_link_2_ (op_cls, master, delegated_host_id,
+                                            slave_host_id, sxcfg, sxcfg_size,
                                             scfg_size, is_subordinate);
 }
 
@@ -2217,12 +2216,11 @@ GNUNET_TESTBED_compress_config_ (const char *config, size_t size,
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_controller_link_ (void *op_cls,
-				struct GNUNET_TESTBED_Controller *master,
-                                uint32_t delegated_host_id,
-                                uint32_t slave_host_id,
-                                const struct GNUNET_CONFIGURATION_Handle
-                                *slave_cfg,
-                                int is_subordinate)
+                                 struct GNUNET_TESTBED_Controller *master,
+                                 uint32_t delegated_host_id,
+                                 uint32_t slave_host_id,
+                                 const struct GNUNET_CONFIGURATION_Handle
+                                 *slave_cfg, int is_subordinate)
 {
   struct GNUNET_TESTBED_Operation *op;
   char *config;
@@ -2234,8 +2232,8 @@ GNUNET_TESTBED_controller_link_ (void *op_cls,
   cc_size = GNUNET_TESTBED_compress_config_ (config, config_size, &cconfig);
   GNUNET_free (config);
   /* Configuration doesn't fit in 1 message */
-  GNUNET_assert ((UINT16_MAX - 
-		  sizeof (struct GNUNET_TESTBED_ControllerLinkMessage)) >=
+  GNUNET_assert ((UINT16_MAX -
+                  sizeof (struct GNUNET_TESTBED_ControllerLinkMessage)) >=
                  cc_size);
   op = GNUNET_TESTBED_controller_link_2_ (op_cls, master, delegated_host_id,
                                           slave_host_id, (const char *) cconfig,
@@ -2276,7 +2274,7 @@ GNUNET_TESTBED_controller_link_ (void *op_cls,
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_controller_link (void *op_cls,
-				struct GNUNET_TESTBED_Controller *master,
+                                struct GNUNET_TESTBED_Controller *master,
                                 struct GNUNET_TESTBED_Host *delegated_host,
                                 struct GNUNET_TESTBED_Host *slave_host,
                                 const struct GNUNET_CONFIGURATION_Handle
@@ -2287,19 +2285,17 @@ GNUNET_TESTBED_controller_link (void *op_cls,
 
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_TESTBED_is_host_registered_ (delegated_host, master));
-  slave_host_id = 
-      GNUNET_TESTBED_host_get_id_ ((NULL != slave_host)
-                                   ? slave_host : master->host);
+  slave_host_id =
+      GNUNET_TESTBED_host_get_id_ ((NULL !=
+                                    slave_host) ? slave_host : master->host);
   delegated_host_id = GNUNET_TESTBED_host_get_id_ (delegated_host);
   if ((NULL != slave_host) && (0 != slave_host_id))
     GNUNET_assert (GNUNET_YES ==
                    GNUNET_TESTBED_is_host_registered_ (slave_host, master));
-  return GNUNET_TESTBED_controller_link_ (op_cls, master,
-                                          delegated_host_id,
-                                          slave_host_id,
-                                          slave_cfg,
+  return GNUNET_TESTBED_controller_link_ (op_cls, master, delegated_host_id,
+                                          slave_host_id, slave_cfg,
                                           is_subordinate);
-                                          
+
 }
 
 
@@ -2319,7 +2315,7 @@ struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_get_slave_config_ (void *op_cls,
                                   struct GNUNET_TESTBED_Controller *master,
                                   uint32_t slave_host_id)
-{  
+{
   struct OperationContext *opc;
   struct GetSlaveConfigData *data;
 
@@ -2336,7 +2332,7 @@ GNUNET_TESTBED_get_slave_config_ (void *op_cls,
       GNUNET_TESTBED_operation_create_ (opc, &opstart_get_slave_config,
                                         &oprelease_get_slave_config);
   GNUNET_TESTBED_operation_queue_insert_ (master->opq_parallel_operations,
-					  opc->op); 
+                                          opc->op);
   GNUNET_TESTBED_operation_begin_wait_ (opc->op);
   return opc->op;
 }
@@ -2365,7 +2361,8 @@ GNUNET_TESTBED_get_slave_config (void *op_cls,
   if (GNUNET_NO == GNUNET_TESTBED_is_host_registered_ (slave_host, master))
     return NULL;
   return GNUNET_TESTBED_get_slave_config_ (op_cls, master,
-                                           GNUNET_TESTBED_host_get_id_ (slave_host));
+                                           GNUNET_TESTBED_host_get_id_
+                                           (slave_host));
 }
 
 
@@ -2402,7 +2399,7 @@ GNUNET_TESTBED_overlay_write_topology_to_file (struct GNUNET_TESTBED_Controller
  */
 struct GNUNET_TESTBED_HelperInit *
 GNUNET_TESTBED_create_helper_init_msg_ (const char *trusted_ip,
-					const char *hostname,
+                                        const char *hostname,
                                         const struct GNUNET_CONFIGURATION_Handle
                                         *cfg)
 {
@@ -2423,12 +2420,12 @@ GNUNET_TESTBED_create_helper_init_msg_ (const char *trusted_ip,
   trusted_ip_len = strlen (trusted_ip);
   hostname_len = (NULL == hostname) ? 0 : strlen (hostname);
   msg_size =
-      xconfig_size + trusted_ip_len + 1 + sizeof (struct GNUNET_TESTBED_HelperInit);
+      xconfig_size + trusted_ip_len + 1 +
+      sizeof (struct GNUNET_TESTBED_HelperInit);
   msg_size += hostname_len;
   msg = GNUNET_realloc (xconfig, msg_size);
-  (void) memmove (((void *) &msg[1]) + trusted_ip_len + 1 + hostname_len,
-		  msg,
-		  xconfig_size);
+  (void) memmove (((void *) &msg[1]) + trusted_ip_len + 1 + hostname_len, msg,
+                  xconfig_size);
   msg->header.size = htons (msg_size);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_INIT);
   msg->trusted_ip_size = htons (trusted_ip_len);
@@ -2436,7 +2433,8 @@ GNUNET_TESTBED_create_helper_init_msg_ (const char *trusted_ip,
   msg->config_size = htons (config_size);
   (void) strcpy ((char *) &msg[1], trusted_ip);
   if (0 != hostname_len)
-    (void) strncpy (((char *) &msg[1]) + trusted_ip_len + 1, hostname, hostname_len);
+    (void) strncpy (((char *) &msg[1]) + trusted_ip_len + 1, hostname,
+                    hostname_len);
   return msg;
 }
 
@@ -2469,7 +2467,7 @@ GNUNET_TESTBED_operation_cancel (struct GNUNET_TESTBED_Operation *operation)
 void
 GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
 {
-    GNUNET_TESTBED_operation_release_ (operation);
+  GNUNET_TESTBED_operation_release_ (operation);
 }
 
 
@@ -2484,7 +2482,7 @@ GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
  */
 struct GNUNET_CONFIGURATION_Handle *
 GNUNET_TESTBED_extract_config_ (const struct GNUNET_MessageHeader *msg)
-{  
+{
   struct GNUNET_CONFIGURATION_Handle *cfg;
   Bytef *data;
   const Bytef *xdata;
@@ -2495,35 +2493,35 @@ GNUNET_TESTBED_extract_config_ (const struct GNUNET_MessageHeader *msg)
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG:
-    {
-      const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *imsg;
+  {
+    const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *imsg;
 
-      imsg = (const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *)
-	  msg;
-      data_len = (uLong) ntohs (imsg->config_size);
-      xdata_len = ntohs (imsg->header.size)
-	  - sizeof (struct GNUNET_TESTBED_PeerConfigurationInformationMessage);
-      xdata = (const Bytef *) &imsg[1];
-    }
+    imsg =
+        (const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *) msg;
+    data_len = (uLong) ntohs (imsg->config_size);
+    xdata_len =
+        ntohs (imsg->header.size) -
+        sizeof (struct GNUNET_TESTBED_PeerConfigurationInformationMessage);
+    xdata = (const Bytef *) &imsg[1];
+  }
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG:
-    {
-      const struct GNUNET_TESTBED_SlaveConfiguration *imsg;
+  {
+    const struct GNUNET_TESTBED_SlaveConfiguration *imsg;
 
-      imsg = (const struct GNUNET_TESTBED_SlaveConfiguration *) msg;
-      data_len = (uLong) ntohs (imsg->config_size);
-      xdata_len =  ntohs (imsg->header.size) 
-	  - sizeof (struct GNUNET_TESTBED_SlaveConfiguration);
-      xdata = (const Bytef *) &imsg[1];
-    }
+    imsg = (const struct GNUNET_TESTBED_SlaveConfiguration *) msg;
+    data_len = (uLong) ntohs (imsg->config_size);
+    xdata_len =
+        ntohs (imsg->header.size) -
+        sizeof (struct GNUNET_TESTBED_SlaveConfiguration);
+    xdata = (const Bytef *) &imsg[1];
+  }
     break;
   default:
     GNUNET_assert (0);
-  }  
+  }
   data = GNUNET_malloc (data_len);
-  if (Z_OK !=
-      (ret =
-       uncompress (data, &data_len, xdata, xdata_len)))
+  if (Z_OK != (ret = uncompress (data, &data_len, xdata, xdata_len)))
     GNUNET_assert (0);
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_assert (GNUNET_OK ==
@@ -2549,7 +2547,7 @@ GNUNET_TESTBED_parse_error_string_ (const struct
 {
   uint16_t msize;
   const char *emsg;
-  
+
   msize = ntohs (msg->header.size);
   if (sizeof (struct GNUNET_TESTBED_OperationFailureEventMessage) >= msize)
     return NULL;
@@ -2572,12 +2570,12 @@ GNUNET_TESTBED_parse_error_string_ (const struct
  * @return the incremented operation id.
  */
 uint64_t
-GNUNET_TESTBED_get_next_op_id (struct GNUNET_TESTBED_Controller *controller)
+GNUNET_TESTBED_get_next_op_id (struct GNUNET_TESTBED_Controller * controller)
 {
-  uint64_t op_id;  
+  uint64_t op_id;
 
   op_id = (uint64_t) GNUNET_TESTBED_host_get_id_ (controller->host);
-  op_id = op_id <<  32;
+  op_id = op_id << 32;
   op_id |= (uint64_t) controller->operation_counter++;
   return op_id;
 }
@@ -2639,24 +2637,27 @@ decide_npoc (struct GNUNET_TESTBED_Controller *c)
   if (GNUNET_SYSERR == sd)
   {
     SD_add_data (c->poc_sd, (unsigned int) avg.rel_value);
-    GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c, c->num_parallel_connects);
+    GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c,
+                                                       c->num_parallel_connects);
     return;
   }
   GNUNET_assert (0 <= sd);
   if (0 == sd)
   {
     SD_add_data (c->poc_sd, (unsigned int) avg.rel_value);
-    GNUNET_TESTBED_set_num_parallel_overlay_connects_
-        (c, c->num_parallel_connects * 2);
+    GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c,
+                                                       c->num_parallel_connects
+                                                       * 2);
     return;
   }
   if (1 == sd)
   {
     SD_add_data (c->poc_sd, (unsigned int) avg.rel_value);
-    GNUNET_TESTBED_set_num_parallel_overlay_connects_
-        (c, c->num_parallel_connects + 1);
+    GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c,
+                                                       c->num_parallel_connects
+                                                       + 1);
     return;
-  }  
+  }
   if (1 == c->num_parallel_connects)
   {
     GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c, 1);
@@ -2665,12 +2666,14 @@ decide_npoc (struct GNUNET_TESTBED_Controller *c)
   if (2 == sd)
   {
     SD_add_data (c->poc_sd, (unsigned int) avg.rel_value);
-    GNUNET_TESTBED_set_num_parallel_overlay_connects_
-        (c, c->num_parallel_connects - 1);
+    GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c,
+                                                       c->num_parallel_connects
+                                                       - 1);
     return;
   }
-  GNUNET_TESTBED_set_num_parallel_overlay_connects_ 
-      (c, c->num_parallel_connects / 2);
+  GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c,
+                                                     c->num_parallel_connects /
+                                                     2);
 }
 
 
@@ -2686,8 +2689,7 @@ decide_npoc (struct GNUNET_TESTBED_Controller *c)
  */
 int
 GNUNET_TESTBED_release_time_slot_ (struct GNUNET_TESTBED_Controller *c,
-                                  unsigned int index,
-                                   void *key)
+                                   unsigned int index, void *key)
 {
   struct TimeSlot *slot;
 
@@ -2713,10 +2715,8 @@ GNUNET_TESTBED_release_time_slot_ (struct GNUNET_TESTBED_Controller *c,
  */
 void
 GNUNET_TESTBED_update_time_slot_ (struct GNUNET_TESTBED_Controller *c,
-                                  unsigned int index,
-                                  void *key,
-                                  struct GNUNET_TIME_Relative time,
-                                  int failed)
+                                  unsigned int index, void *key,
+                                  struct GNUNET_TIME_Relative time, int failed)
 {
   struct TimeSlot *slot;
 
@@ -2727,8 +2727,9 @@ GNUNET_TESTBED_update_time_slot_ (struct GNUNET_TESTBED_Controller *c,
       GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c, 1);
       return;
     }
-    GNUNET_TESTBED_set_num_parallel_overlay_connects_ 
-        (c, c->num_parallel_connects - 1);
+    GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c,
+                                                       c->num_parallel_connects
+                                                       - 1);
   }
   if (GNUNET_NO == GNUNET_TESTBED_release_time_slot_ (c, index, key))
     return;

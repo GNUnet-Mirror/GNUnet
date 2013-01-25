@@ -378,8 +378,8 @@ oprelease_overlay_connect (void *cls)
     break;
   case OPC_STATE_FINISHED:
     duration = GNUNET_TIME_absolute_get_duration (data->tstart);
-    GNUNET_TESTBED_update_time_slot_ (opc->c, data->tslot_index,
-                                      data, duration, data->failed);
+    GNUNET_TESTBED_update_time_slot_ (opc->c, data->tslot_index, data, duration,
+                                      data->failed);
   }
   GNUNET_free (data);
   GNUNET_free (opc);
@@ -435,7 +435,7 @@ GNUNET_TESTBED_peer_create (struct GNUNET_TESTBED_Controller *controller,
                             const struct GNUNET_CONFIGURATION_Handle *cfg,
                             GNUNET_TESTBED_PeerCreateCallback cb, void *cls)
 {
-  
+
   struct GNUNET_TESTBED_Peer *peer;
   struct PeerCreateData *data;
   struct OperationContext *opc;
@@ -478,14 +478,12 @@ GNUNET_TESTBED_peer_create (struct GNUNET_TESTBED_Controller *controller,
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_peer_start (void *op_cls,
-                           struct GNUNET_TESTBED_Peer *peer,
-			   GNUNET_TESTBED_PeerChurnCallback pcc,
-			   void *pcc_cls)
+GNUNET_TESTBED_peer_start (void *op_cls, struct GNUNET_TESTBED_Peer *peer,
+                           GNUNET_TESTBED_PeerChurnCallback pcc, void *pcc_cls)
 {
   struct OperationContext *opc;
   struct PeerEventData *data;
-  
+
   data = GNUNET_malloc (sizeof (struct PeerEventData));
   data->peer = peer;
   data->pcc = pcc;
@@ -518,12 +516,11 @@ GNUNET_TESTBED_peer_start (void *op_cls,
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_peer_stop (struct GNUNET_TESTBED_Peer *peer,
-			  GNUNET_TESTBED_PeerChurnCallback pcc,
-			  void *pcc_cls)
+                          GNUNET_TESTBED_PeerChurnCallback pcc, void *pcc_cls)
 {
   struct OperationContext *opc;
   struct PeerEventData *data;
- 
+
   data = GNUNET_malloc (sizeof (struct PeerEventData));
   data->peer = peer;
   data->pcc = pcc;
@@ -558,10 +555,9 @@ GNUNET_TESTBED_peer_stop (struct GNUNET_TESTBED_Peer *peer,
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_peer_get_information (struct GNUNET_TESTBED_Peer *peer,
-				     enum GNUNET_TESTBED_PeerInformationType
-				     pit,
-				     GNUNET_TESTBED_PeerInfoCallback cb,
-				     void *cb_cls)
+                                     enum GNUNET_TESTBED_PeerInformationType
+                                     pit, GNUNET_TESTBED_PeerInfoCallback cb,
+                                     void *cb_cls)
 {
   struct OperationContext *opc;
   struct PeerInfoData *data;
@@ -676,9 +672,8 @@ GNUNET_TESTBED_underlay_configure_link (void *op_cls,
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_overlay_connect (void *op_cls,
                                 GNUNET_TESTBED_OperationCompletionCallback cb,
-                                void *cb_cls,
-				struct GNUNET_TESTBED_Peer *p1,
-				struct GNUNET_TESTBED_Peer *p2)
+                                void *cb_cls, struct GNUNET_TESTBED_Peer *p1,
+                                struct GNUNET_TESTBED_Peer *p2)
 {
   struct OperationContext *opc;
   struct OverlayConnectData *data;
@@ -698,8 +693,9 @@ GNUNET_TESTBED_overlay_connect (void *op_cls,
   opc->op =
       GNUNET_TESTBED_operation_create_ (opc, &opstart_overlay_connect,
                                         &oprelease_overlay_connect);
-  GNUNET_TESTBED_operation_queue_insert_
-      (opc->c->opq_parallel_overlay_connect_operations, opc->op);
+  GNUNET_TESTBED_operation_queue_insert_ (opc->
+                                          c->opq_parallel_overlay_connect_operations,
+                                          opc->op);
   GNUNET_TESTBED_operation_begin_wait_ (opc->op);
   return opc->op;
 }

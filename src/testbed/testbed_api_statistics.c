@@ -29,7 +29,7 @@
 
 
 /**
- * Convenience method that iterates over all (running) peers 
+ * Convenience method that iterates over all (running) peers
  * and retrieves all statistics from each peer.
  *
  * @param num_peers number of peers to iterate over
@@ -41,7 +41,7 @@
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_get_statistics (unsigned int num_peers,
-			       struct GNUNET_TESTBED_Peer **peers,
+                               struct GNUNET_TESTBED_Peer **peers,
                                GNUNET_TESTBED_StatisticsIterator proc,
                                GNUNET_TESTBED_OperationCompletionCallback cont,
                                void *cls)

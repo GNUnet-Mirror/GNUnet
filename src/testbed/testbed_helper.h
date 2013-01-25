@@ -29,11 +29,10 @@
 #define TESTBED_HELPER_H
 
 GNUNET_NETWORK_STRUCT_BEGIN
-
 /**
  * Initialization message for gnunet-helper-testbed to start testbed service
  */
-struct GNUNET_TESTBED_HelperInit
+    struct GNUNET_TESTBED_HelperInit
 {
   /**
    * Type is GNUNET_MESSAGE_TYPE_TESTBED_HELPER_INIT
@@ -60,7 +59,7 @@ struct GNUNET_TESTBED_HelperInit
   /* Followed by NULL terminated trusted ip */
 
   /* Followed by hostname of the machine on which helper runs. This is not NULL
-     terminated */
+   * terminated */
 
   /* Followed by serialized and compressed configuration which should be
    * config_size long when un-compressed */
@@ -86,7 +85,5 @@ struct GNUNET_TESTBED_HelperReply
 };
 
 GNUNET_NETWORK_STRUCT_END
-
 #endif
-
 /* end of testbed_helper.h */

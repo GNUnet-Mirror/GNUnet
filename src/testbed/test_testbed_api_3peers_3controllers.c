@@ -31,7 +31,7 @@
  *                  A
  *                 / \
  *                /   \
- *               B === C 
+ *               B === C
  * A is the master controller and B, C are slave controllers. B links to C
  * laterally.
  * Peers are mapped to controllers in the following relations:
@@ -320,7 +320,7 @@ abort_test ()
  * @param emsg error message in case the operation has failed; will be NULL if
  *          operation has executed successfully.
  */
-static void 
+static void
 op_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg);
 
 
@@ -337,11 +337,12 @@ do_delayed_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != common_operation)
   {
     GNUNET_break (0);
-    abort_test();
+    abort_test ();
     return;
   }
-  common_operation = GNUNET_TESTBED_overlay_connect (NULL, &op_comp_cb, NULL, 
-						     peer1.peer, peer2.peer);
+  common_operation =
+      GNUNET_TESTBED_overlay_connect (NULL, &op_comp_cb, NULL, peer1.peer,
+                                      peer2.peer);
 }
 
 
@@ -353,33 +354,32 @@ do_delayed_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param emsg error message in case the operation has failed; will be NULL if
  *          operation has executed successfully.
  */
-static void 
+static void
 op_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
 {
   if (common_operation != op)
   {
     GNUNET_break (0);
-    abort_test();
+    abort_test ();
     return;
   }
-  
-  switch(result)
+
+  switch (result)
   {
   case PEER3_STARTED:
   case PEERS_2_3_CONNECTED:
-  case PEERS_1_2_CONNECTED: 
+  case PEERS_1_2_CONNECTED:
     break;
   default:
     GNUNET_break (0);
-    abort_test();
+    abort_test ();
     return;
   }
-  if ((NULL != peer1.operation) ||
-      (NULL != peer2.operation) ||
+  if ((NULL != peer1.operation) || (NULL != peer2.operation) ||
       (NULL != peer3.operation))
   {
     GNUNET_break (0);
-    abort_test();
+    abort_test ();
     return;
   }
 }
@@ -400,12 +400,10 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
   switch (result)
   {
   case CONTROLLER1_UP:
-    if ((NULL == peer1.operation) ||
-        (NULL == peer) ||
-        (NULL != peer1.peer))
+    if ((NULL == peer1.operation) || (NULL == peer) || (NULL != peer1.peer))
     {
       GNUNET_break (0);
-      abort_test();
+      abort_test ();
       return;
     }
     peer1.peer = peer;
@@ -414,12 +412,10 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
     peer1.operation = GNUNET_TESTBED_peer_start (NULL, peer, NULL, NULL);
     break;
   case CONTROLLER2_UP:
-    if ((NULL == peer2.operation) ||
-        (NULL == peer) ||
-        (NULL != peer2.peer))
+    if ((NULL == peer2.operation) || (NULL == peer) || (NULL != peer2.peer))
     {
       GNUNET_break (0);
-      abort_test();
+      abort_test ();
       return;
     }
     peer2.peer = peer;
@@ -428,12 +424,10 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
     peer2.operation = GNUNET_TESTBED_peer_start (NULL, peer, NULL, NULL);
     break;
   case CONTROLLER3_UP:
-    if ((NULL == peer3.operation) ||
-        (NULL == peer) ||
-        (NULL != peer3.peer))
+    if ((NULL == peer3.operation) || (NULL == peer) || (NULL != peer3.peer))
     {
       GNUNET_break (0);
-      abort_test();
+      abort_test ();
       return;
     }
     peer3.peer = peer;
@@ -443,9 +437,9 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
     break;
   default:
     GNUNET_break (0);
-    abort_test();
+    abort_test ();
     return;
-  }  
+  }
 }
 
 
@@ -462,20 +456,20 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   switch (event->type)
   {
   case GNUNET_TESTBED_ET_OPERATION_FINISHED:
-    if ((NULL != event->details.operation_finished.op_cls)
-        || (NULL != event->details.operation_finished.emsg))
+    if ((NULL != event->details.operation_finished.op_cls) ||
+        (NULL != event->details.operation_finished.emsg))
     {
       GNUNET_break (0);
-      abort_test();
+      abort_test ();
       return;
     }
     switch (result)
-    {      
+    {
     case PEERS_STOPPED:
       if (NULL != event->details.operation_finished.generic)
       {
         GNUNET_break (0);
-        abort_test();
+        abort_test ();
         return;
       }
       if (event->details.operation_finished.operation == peer1.operation)
@@ -499,7 +493,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       else
       {
         GNUNET_break (0);
-        abort_test();
+        abort_test ();
         return;
       }
       if ((NULL == peer1.peer) && (NULL == peer2.peer) && (NULL == peer3.peer))
@@ -513,7 +507,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
           (NULL == common_operation))
       {
         GNUNET_break (0);
-        abort_test();
+        abort_test ();
         return;
       }
       GNUNET_TESTBED_operation_done (common_operation);
@@ -525,7 +519,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       if (NULL == peer2.operation)
       {
         GNUNET_break (0);
-        abort_test();
+        abort_test ();
         return;
       }
       break;
@@ -534,7 +528,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
           (NULL == common_operation))
       {
         GNUNET_break (0);
-        abort_test();
+        abort_test ();
         return;
       }
       GNUNET_TESTBED_operation_done (common_operation);
@@ -546,24 +540,24 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       if (NULL == peer3.operation)
       {
         GNUNET_break (0);
-        abort_test();
+        abort_test ();
         return;
       }
       break;
     default:
       GNUNET_break (0);
-      abort_test();
+      abort_test ();
       return;
     }
     break;
-  case GNUNET_TESTBED_ET_PEER_START:    
+  case GNUNET_TESTBED_ET_PEER_START:
     switch (result)
     {
     case PEER1_CREATED:
       if (event->details.peer_start.host != host)
       {
         GNUNET_break (0);
-        abort_test();
+        abort_test ();
         return;
       }
       peer1.is_running = GNUNET_YES;
@@ -571,14 +565,14 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       peer1.operation = NULL;
       result = PEER1_STARTED;
       common_operation =
-          GNUNET_TESTBED_controller_link (NULL, controller1, neighbour1, NULL, cfg,
-                                          GNUNET_YES); 
+          GNUNET_TESTBED_controller_link (NULL, controller1, neighbour1, NULL,
+                                          cfg, GNUNET_YES);
       break;
     case PEER2_CREATED:
       if (event->details.peer_start.host != neighbour1)
       {
         GNUNET_break (0);
-        abort_test();
+        abort_test ();
         return;
       }
       peer2.is_running = GNUNET_YES;
@@ -588,16 +582,16 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       if (NULL != common_operation)
       {
         GNUNET_break (0);
-        abort_test();
+        abort_test ();
         return;
       }
       common_operation =
-          GNUNET_TESTBED_controller_link (NULL, controller1, neighbour2, NULL, cfg,
-                                          GNUNET_YES);
+          GNUNET_TESTBED_controller_link (NULL, controller1, neighbour2, NULL,
+                                          cfg, GNUNET_YES);
       if (NULL == common_operation)
       {
         GNUNET_break (0);
-        abort_test();
+        abort_test ();
         return;
       }
       break;
@@ -605,7 +599,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       if (event->details.peer_start.host != neighbour2)
       {
         GNUNET_break (0);
-        abort_test();
+        abort_test ();
         return;
       }
       peer3.is_running = GNUNET_YES;
@@ -618,15 +612,15 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       break;
     default:
       GNUNET_break (0);
-      abort_test();
+      abort_test ();
       return;
-    }    
+    }
     break;
   case GNUNET_TESTBED_ET_PEER_STOP:
     if (PEERS_CONNECTED_2 != result)
     {
       GNUNET_break (0);
-      abort_test();
+      abort_test ();
       return;
     }
     if (event->details.peer_stop.peer == peer1.peer)
@@ -647,11 +641,10 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     else
     {
       GNUNET_break (0);
-      abort_test();
+      abort_test ();
       return;
     }
-    if ((GNUNET_NO == peer1.is_running) &&
-        (GNUNET_NO == peer2.is_running) &&
+    if ((GNUNET_NO == peer1.is_running) && (GNUNET_NO == peer2.is_running) &&
         (GNUNET_NO == peer3.is_running))
     {
       result = PEERS_STOPPED;
@@ -661,13 +654,11 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     }
     break;
   case GNUNET_TESTBED_ET_CONNECT:
-    if ((NULL != peer1.operation) ||
-        (NULL != peer2.operation) ||
-        (NULL != peer3.operation) ||
-        (NULL == common_operation))
+    if ((NULL != peer1.operation) || (NULL != peer2.operation) ||
+        (NULL != peer3.operation) || (NULL == common_operation))
     {
       GNUNET_break (0);
-      abort_test();
+      abort_test ();
       return;
     }
     switch (result)
@@ -677,38 +668,38 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
           (event->details.peer_connect.peer2 != peer1.peer))
       {
         GNUNET_break (0);
-        abort_test();
+        abort_test ();
         return;
       }
       GNUNET_TESTBED_operation_done (common_operation);
       common_operation = NULL;
       result = PEERS_1_2_CONNECTED;
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Peers connected\n");
-      common_operation = 
+      common_operation =
           GNUNET_TESTBED_overlay_connect (NULL, &op_comp_cb, NULL, peer2.peer,
-					  peer3.peer);
+                                          peer3.peer);
       break;
     case PEERS_1_2_CONNECTED:
       if ((event->details.peer_connect.peer1 != peer2.peer) ||
           (event->details.peer_connect.peer2 != peer3.peer))
       {
         GNUNET_break (0);
-        abort_test();
+        abort_test ();
         return;
       }
       GNUNET_TESTBED_operation_done (common_operation);
       common_operation = NULL;
       result = PEERS_2_3_CONNECTED;
       delayed_connect_task =
-          GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (3),
-                                        &do_delayed_connect, NULL);
+          GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (3), &do_delayed_connect,
+                                        NULL);
       break;
     case PEERS_2_3_CONNECTED:
       if ((event->details.peer_connect.peer1 != peer1.peer) ||
           (event->details.peer_connect.peer2 != peer2.peer))
       {
         GNUNET_break (0);
-        abort_test();
+        abort_test ();
         return;
       }
       GNUNET_TESTBED_operation_done (common_operation);
@@ -721,13 +712,13 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       break;
     default:
       GNUNET_break (0);
-      abort_test();
+      abort_test ();
       return;
     }
     break;
   default:
     GNUNET_break (0);
-    abort_test();
+    abort_test ();
     return;
   }
 }
@@ -749,16 +740,16 @@ registration_comp (void *cls, const char *emsg)
     if (NULL == neighbour2)
     {
       GNUNET_break (0);
-      abort_test();
+      abort_test ();
       return;
     }
     reg_handle =
-        GNUNET_TESTBED_register_host (controller1, neighbour2, &registration_comp,
-                                      neighbour2);
+        GNUNET_TESTBED_register_host (controller1, neighbour2,
+                                      &registration_comp, neighbour2);
     if (NULL == reg_handle)
     {
       GNUNET_break (0);
-      abort_test();
+      abort_test ();
       return;
     }
     return;
@@ -766,7 +757,7 @@ registration_comp (void *cls, const char *emsg)
   if (cls != neighbour2)
   {
     GNUNET_break (0);
-    abort_test();
+    abort_test ();
     return;
   }
   peer1.operation =
@@ -775,7 +766,7 @@ registration_comp (void *cls, const char *emsg)
   if (NULL == peer1.operation)
   {
     GNUNET_break (0);
-    abort_test();
+    abort_test ();
     return;
   }
 }
@@ -791,15 +782,16 @@ registration_comp (void *cls, const char *emsg)
  *          GNUNET_TESTBED_controller_stop() shouldn't be called in this case
  */
 static void
-status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int status)
+status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config,
+           int status)
 {
   uint64_t event_mask;
-  
+
   if (GNUNET_OK != status)
   {
     GNUNET_break (0);
     cp1 = NULL;
-    abort_test();
+    abort_test ();
     return;
   }
   event_mask = 0;
@@ -811,12 +803,12 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int stat
   {
   case INIT:
     controller1 =
-        GNUNET_TESTBED_controller_connect (config, host, event_mask, &controller_cb,
-                                           NULL);
+        GNUNET_TESTBED_controller_connect (config, host, event_mask,
+                                           &controller_cb, NULL);
     if (NULL == controller1)
     {
       GNUNET_break (0);
-      abort_test();
+      abort_test ();
       return;
     }
     result = CONTROLLER1_UP;
@@ -824,24 +816,24 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int stat
     if (NULL == neighbour1)
     {
       GNUNET_break (0);
-      abort_test();
+      abort_test ();
       return;
     }
     reg_handle =
-        GNUNET_TESTBED_register_host (controller1, neighbour1, &registration_comp,
-                                      neighbour1);
+        GNUNET_TESTBED_register_host (controller1, neighbour1,
+                                      &registration_comp, neighbour1);
     if (NULL == reg_handle)
     {
       GNUNET_break (0);
-      abort_test();
+      abort_test ();
       return;
     }
     break;
   default:
     GNUNET_break (0);
-    abort_test();
+    abort_test ();
     return;
-  }  
+  }
 }
 
 
@@ -855,8 +847,9 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int stat
  *          given to GNUNET_TESTBED_is_host_habitable() is NULL
  * @param status GNUNET_YES if it is habitable; GNUNET_NO if not
  */
-static void 
-host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *_host, int status)
+static void
+host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *_host,
+                   int status)
 {
   hc_handle = NULL;
   if (GNUNET_NO == status)
@@ -871,8 +864,8 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *_host, int statu
     result = SKIP;
     return;
   }
-  cp1 = GNUNET_TESTBED_controller_start ("127.0.0.1", host, cfg, status_cb,
-                                         NULL);
+  cp1 =
+      GNUNET_TESTBED_controller_start ("127.0.0.1", host, cfg, status_cb, NULL);
 }
 
 
@@ -892,12 +885,13 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (NULL == host)
   {
     GNUNET_break (0);
-    abort_test();
+    abort_test ();
     return;
   }
-  if (NULL == (hc_handle = GNUNET_TESTBED_is_host_habitable (host, config,
-                                                             &host_habitable_cb,
-                                                             NULL)))
+  if (NULL ==
+      (hc_handle =
+       GNUNET_TESTBED_is_host_habitable (host, config, &host_habitable_cb,
+                                         NULL)))
   {
     GNUNET_TESTBED_host_destroy (host);
     host = NULL;
@@ -923,8 +917,8 @@ int
 main (int argc, char **argv)
 {
   char *const argv2[] = { "test_testbed_api_3peers_3controllers",
-                          "-c", "test_testbed_api.conf",
-                          NULL
+    "-c", "test_testbed_api.conf",
+    NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END

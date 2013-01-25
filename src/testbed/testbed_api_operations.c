@@ -92,17 +92,17 @@ enum OperationState
    * The operation is just created and is in initial state
    */
   OP_STATE_INIT,
-  
+
   /**
    * The operation is currently waiting for resources
    */
   OP_STATE_WAITING,
-  
+
   /**
    * The operation is ready to be started
    */
   OP_STATE_READY,
-  
+
   /**
    * The operation has started
    */
@@ -292,14 +292,13 @@ GNUNET_TESTBED_operation_queue_reset_max_active_ (struct OperationQueue *queue,
                                                   unsigned int max_active)
 {
   struct QueueEntry *entry;
-  
+
   queue->max_active = max_active;
   /* if (queue->active >= queue->max_active) */
   /*   return; */
 
   entry = queue->head;
-  while ( (queue->active > queue->max_active) &&
-          (NULL != entry))
+  while ((queue->active > queue->max_active) && (NULL != entry))
   {
     if (entry->op->state == OP_STATE_READY)
       defer (entry->op);
@@ -307,8 +306,7 @@ GNUNET_TESTBED_operation_queue_reset_max_active_ (struct OperationQueue *queue,
   }
 
   entry = queue->head;
-  while ( (NULL != entry) &&
-          (queue->active < queue->max_active) )
+  while ((NULL != entry) && (queue->active < queue->max_active))
   {
     if (OP_STATE_WAITING == entry->op->state)
       check_readiness (entry->op);
@@ -331,8 +329,7 @@ GNUNET_TESTBED_operation_queue_reset_max_active_ (struct OperationQueue *queue,
 void
 GNUNET_TESTBED_operation_queue_insert2_ (struct OperationQueue *queue,
                                          struct GNUNET_TESTBED_Operation
-                                         *operation,
-                                         unsigned int nres)
+                                         *operation, unsigned int nres)
 {
   struct QueueEntry *entry;
   unsigned int qsize;
@@ -380,7 +377,7 @@ GNUNET_TESTBED_operation_queue_insert_ (struct OperationQueue *queue,
  */
 void
 GNUNET_TESTBED_operation_begin_wait_ (struct GNUNET_TESTBED_Operation
-				      *operation)
+                                      *operation)
 {
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == operation->start_task_id);
   operation->state = OP_STATE_WAITING;

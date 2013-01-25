@@ -74,7 +74,7 @@ static int result;
  */
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{  
+{
   shutdown_task = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
@@ -111,7 +111,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   LOG (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
   abort_task = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
-     GNUNET_SCHEDULER_cancel (shutdown_task);
+    GNUNET_SCHEDULER_cancel (shutdown_task);
   shutdown_task = GNUNET_SCHEDULER_add_now (do_shutdown, NULL);
 }
 
@@ -125,10 +125,10 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param emsg error message if the operation has failed; will be NULL if the
  *          operation is successfull
  */
-static void 
+static void
 peerinfo_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op_,
-	     const struct GNUNET_TESTBED_PeerInformation *pinfo,
-	     const char *emsg)
+             const struct GNUNET_TESTBED_PeerInformation *pinfo,
+             const char *emsg)
 {
   FAIL_TEST (op == op_);
   FAIL_TEST (NULL == cb_cls);
@@ -150,7 +150,7 @@ peerinfo_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op_,
  * @param emsg error message in case the operation has failed; will be NULL if
  *          operation has executed successfully.
  */
-static void 
+static void
 op_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op_, const char *emsg)
 {
   FAIL_TEST (NULL == cls);
@@ -162,8 +162,8 @@ op_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op_, const char *emsg)
   }
   GNUNET_TESTBED_operation_done (op);
   op = GNUNET_TESTBED_peer_get_information (peers[0],
-					    GNUNET_TESTBED_PIT_IDENTITY,
-					    &peerinfo_cb, NULL);
+                                            GNUNET_TESTBED_PIT_IDENTITY,
+                                            &peerinfo_cb, NULL);
 }
 
 
@@ -181,11 +181,11 @@ controller_event_cb (void *cls,
   {
   case GNUNET_TESTBED_ET_CONNECT:
     FAIL_TEST (event->details.peer_connect.peer1 == peers[0]);
-    FAIL_TEST (event->details.peer_connect.peer2 == peers[1]);    
+    FAIL_TEST (event->details.peer_connect.peer2 == peers[1]);
     break;
   default:
     FAIL_TEST (0);
-  }  
+  }
 }
 
 
@@ -208,7 +208,8 @@ test_master (void *cls, unsigned int num_peers,
   for (peer = 0; peer < num_peers; peer++)
     FAIL_TEST (NULL != peers_[peer]);
   peers = peers_;
-  op = GNUNET_TESTBED_overlay_connect (NULL, &op_comp_cb, NULL, peers[0], peers[1]);
+  op = GNUNET_TESTBED_overlay_connect (NULL, &op_comp_cb, NULL, peers[0],
+                                       peers[1]);
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_MINUTES, 3), &do_abort,
@@ -229,9 +230,8 @@ main (int argc, char **argv)
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
   (void) GNUNET_TESTBED_test_run ("test_testbed_api_test",
-                                  "test_testbed_api.conf",
-                                  NUM_PEERS, event_mask, &controller_event_cb,
-                                  NULL,
+                                  "test_testbed_api.conf", NUM_PEERS,
+                                  event_mask, &controller_event_cb, NULL,
                                   &test_master, NULL);
   if (GNUNET_OK != result)
     return 1;

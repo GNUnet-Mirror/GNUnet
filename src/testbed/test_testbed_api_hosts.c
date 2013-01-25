@@ -98,8 +98,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (0 == GNUNET_TESTBED_host_get_id_ (host));
   GNUNET_assert (host == GNUNET_TESTBED_host_lookup_by_id_ (0));
   hosts = NULL;
-  num_hosts =  GNUNET_TESTBED_hosts_load_from_file ("sample_hosts.txt",
-                                                    &hosts);
+  num_hosts = GNUNET_TESTBED_hosts_load_from_file ("sample_hosts.txt", &hosts);
   GNUNET_assert (15 == num_hosts);
   GNUNET_assert (NULL != hosts);
   status = GNUNET_YES;

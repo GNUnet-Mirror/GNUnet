@@ -70,7 +70,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
-  GNUNET_SCHEDULER_shutdown ();	/* Stop scheduler to shutdown testbed run */
+  GNUNET_SCHEDULER_shutdown (); /* Stop scheduler to shutdown testbed run */
 }
 
 
@@ -97,7 +97,8 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param peers handle to peers run in the testbed
  */
 static void
-test_master (void *cls, unsigned int num_peers, struct GNUNET_TESTBED_Peer **peers_)
+test_master (void *cls, unsigned int num_peers,
+             struct GNUNET_TESTBED_Peer **peers_)
 {
   result = GNUNET_OK;
   GNUNET_assert (NULL != peers[0]);
@@ -201,8 +202,8 @@ main (int argc, char **argv)
 #endif
   if (0 != strcmp ("run", testname))
   {
-    GNUNET_asprintf (&config_filename, 
-                     "test_testbed_api_testbed_run_%s.conf", testname);
+    GNUNET_asprintf (&config_filename, "test_testbed_api_testbed_run_%s.conf",
+                     testname);
   }
   else
     config_filename = GNUNET_strdup ("test_testbed_api.conf");

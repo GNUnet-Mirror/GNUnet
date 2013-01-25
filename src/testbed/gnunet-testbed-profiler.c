@@ -21,7 +21,7 @@
 /**
  * @file testbed/gnunet-testbed-profiler.c
  * @brief Profiling driver for the testbed.
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "platform.h"
@@ -107,7 +107,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel (abort_task);
   if (NULL != cfg)
     GNUNET_CONFIGURATION_destroy (cfg);
-  GNUNET_SCHEDULER_shutdown ();	/* Stop scheduler to shutdown testbed run */
+  GNUNET_SCHEDULER_shutdown (); /* Stop scheduler to shutdown testbed run */
 }
 
 
@@ -168,7 +168,7 @@ controller_event_cb (void *cls,
       if (++cont_fails > num_cont_fails)
       {
         printf ("\nAborting due to very high failure rate\n");
-        print_overlay_links_summary ();	  
+        print_overlay_links_summary ();
         GNUNET_SCHEDULER_cancel (abort_task);
         abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
         return;
@@ -176,15 +176,15 @@ controller_event_cb (void *cls,
     }
     break;
   case GNUNET_TESTBED_ET_CONNECT:
-    {
-      if (0 != cont_fails)
-        cont_fails--;
-      if (0 == established_links)
-        printf ("Establishing links. Please wait\n");
-      printf (".");
-      fflush (stdout);
-      established_links++;
-    }
+  {
+    if (0 != cont_fails)
+      cont_fails--;
+    if (0 == established_links)
+      printf ("Establishing links. Please wait\n");
+    printf (".");
+    fflush (stdout);
+    established_links++;
+  }
     break;
   default:
     GNUNET_break (0);
@@ -199,9 +199,8 @@ controller_event_cb (void *cls,
  * @param num_peers number of peers in 'peers'
  * @param peers handle to peers run in the testbed
  */
-static void test_run (void *cls,
-                      unsigned int num_peers,
-                      struct GNUNET_TESTBED_Peer **peers)
+static void
+test_run (void *cls, unsigned int num_peers, struct GNUNET_TESTBED_Peer **peers)
 {
   result = GNUNET_OK;
   fprintf (stdout, "\n");
@@ -241,13 +240,10 @@ run (void *cls, char *const *args, const char *cfgfile,
   event_mask = 0;
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
-  GNUNET_TESTBED_run (args[0], cfg, 
-                      num_peers, event_mask,
-                      controller_event_cb, NULL,
-                      &test_run, NULL);
+  GNUNET_TESTBED_run (args[0], cfg, num_peers, event_mask, controller_event_cb,
+                      NULL, &test_run, NULL);
   abort_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                    &do_abort,
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_abort,
                                     NULL);
 }
 
@@ -261,24 +257,24 @@ int
 main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    { 'p', "num-peers", "COUNT",
-      gettext_noop ("create COUNT number of peers"),
-      GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_peers },
-    { 'e', "num-errors", "COUNT",
-      gettext_noop ("tolerate COUNT number of continious timeout failures"),
-      GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_cont_fails },
+    {'p', "num-peers", "COUNT",
+     gettext_noop ("create COUNT number of peers"),
+     GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_peers},
+    {'e', "num-errors", "COUNT",
+     gettext_noop ("tolerate COUNT number of continious timeout failures"),
+     GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_cont_fails},
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
-    return 2;  
+    return 2;
   result = GNUNET_SYSERR;
   ret =
-      GNUNET_PROGRAM_run (argc, argv, "gnunet-testbed-profiler [OPTIONS] hosts-file",
-                          _("Profiler for testbed"),
-                          options, &run, NULL);
-  GNUNET_free ((void*) argv);
+      GNUNET_PROGRAM_run (argc, argv,
+                          "gnunet-testbed-profiler [OPTIONS] hosts-file",
+                          _("Profiler for testbed"), options, &run, NULL);
+  GNUNET_free ((void *) argv);
   if (GNUNET_OK != ret)
     return ret;
   if (GNUNET_OK != result)

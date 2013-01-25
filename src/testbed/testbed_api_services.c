@@ -43,12 +43,11 @@ enum State
    * The configuration request has been sent
    */
   CFG_REQUEST_QUEUED,
-  
+
   /**
    * connected to service
    */
   SERVICE_CONNECTED
-
 };
 
 
@@ -149,23 +148,24 @@ configuration_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
   info.details.operation_finished.op_cls = data->op_cls;
   if (GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONFAILEVENT == mtype)
   {
-    emsg = GNUNET_TESTBED_parse_error_string_ ((const struct
-                                                GNUNET_TESTBED_OperationFailureEventMessage
-                                                *) msg);
+    emsg =
+        GNUNET_TESTBED_parse_error_string_ ((const struct
+                                             GNUNET_TESTBED_OperationFailureEventMessage
+                                             *) msg);
     if (NULL == emsg)
       emsg = "Unknown error";
     info.details.operation_finished.emsg = emsg;
     info.details.operation_finished.generic = NULL;
     goto call_cb;
-  }  
+  }
   data->cfg = GNUNET_TESTBED_extract_config_ (msg);
   GNUNET_assert (NULL == data->op_result);
-  data->op_result = data->ca (data->cada_cls, data->cfg);  
+  data->op_result = data->ca (data->cada_cls, data->cfg);
   info.details.operation_finished.emsg = NULL;
   info.details.operation_finished.generic = data->op_result;
   data->state = SERVICE_CONNECTED;
-  
- call_cb:
+
+call_cb:
   if ((0 != (GNUNET_TESTBED_ET_OPERATION_FINISHED & c->event_mask)) &&
       (NULL != c->cc))
     c->cc (c->cc_cls, &info);
@@ -237,7 +237,7 @@ oprelease_service_connect (void *cls)
  * maintain connections with other systems.  The actual service
  * handle is then returned via the 'op_result' member in the event
  * callback.  The 'ca' callback is used to create the connection
- * when the time is right; the 'da' callback will be used to 
+ * when the time is right; the 'da' callback will be used to
  * destroy the connection (upon 'GNUNET_TESTBED_operation_done').
  * 'GNUNET_TESTBED_operation_cancel' can be used to abort this
  * operation until the event callback has been called.
@@ -253,14 +253,13 @@ oprelease_service_connect (void *cls)
  * @return handle for the operation
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_service_connect (void *op_cls,
-				struct GNUNET_TESTBED_Peer *peer,
-				const char *service_name,
-                                GNUNET_TESTBED_ServiceConnectCompletionCallback cb,
-                                void *cb_cls,
-				GNUNET_TESTBED_ConnectAdapter ca,
-				GNUNET_TESTBED_DisconnectAdapter da,
-				void *cada_cls)
+GNUNET_TESTBED_service_connect (void *op_cls, struct GNUNET_TESTBED_Peer *peer,
+                                const char *service_name,
+                                GNUNET_TESTBED_ServiceConnectCompletionCallback
+                                cb, void *cb_cls,
+                                GNUNET_TESTBED_ConnectAdapter ca,
+                                GNUNET_TESTBED_DisconnectAdapter da,
+                                void *cada_cls)
 {
   struct ServiceConnectData *data;
 

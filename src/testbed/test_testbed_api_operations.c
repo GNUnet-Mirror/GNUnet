@@ -60,7 +60,7 @@ struct GNUNET_TESTBED_Operation *op2;
  * This operation should go into both queues and should consume 2 units of
  * resources on both queues. Since op2 needs a resource from both queues and is
  * queues before this operation, it will be blocked until op2 is released even
- * though q1 has 
+ * though q1 has
  */
 struct GNUNET_TESTBED_Operation *op3;
 
@@ -145,7 +145,7 @@ enum Test
    * op4 has started
    */
   TEST_OP4_STARTED,
-  
+
   /**
    * op4 has released
    */
@@ -258,39 +258,42 @@ start_cb (void *cls)
     GNUNET_assert (&op1 == cls);
     result = TEST_OP1_STARTED;
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == step_task);
-    step_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step, NULL);
+    step_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step, NULL);
     break;
   case TEST_PAUSE:
     GNUNET_assert (&op2 == cls);
     result = TEST_OP2_STARTED;
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == step_task);
-    step_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step, NULL);
+    step_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step, NULL);
     break;
   case TEST_OP2_RELEASED:
     GNUNET_assert (&op3 == cls);
     result = TEST_OP3_STARTED;
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == step_task);
-    step_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step, NULL);
+    step_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step, NULL);
     break;
   case TEST_OP3_RELEASED:
     GNUNET_assert (&op4 == cls);
     result = TEST_OP4_STARTED;
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == step_task);
-    step_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step,
-                                              NULL);
+    step_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step, NULL);
     break;
   case TEST_OP4_RELEASED:
+  {
+    static int nops;
+
+    nops++;
+    if (nops == 3)
     {
-      static int nops;
-      
-      nops++;
-      if (nops == 3)
-      {
-        result = TEST_OP5_6_7_STARTED;
-        GNUNET_TESTBED_operation_release_ (op5);
-        op5 = NULL;
-      }
+      result = TEST_OP5_6_7_STARTED;
+      GNUNET_TESTBED_operation_release_ (op5);
+      op5 = NULL;
     }
+  }
     break;
   default:
     GNUNET_assert (0);
@@ -316,8 +319,8 @@ release_cb (void *cls)
     GNUNET_assert (&op1 == cls);
     result = TEST_OP1_RELEASED;
     op1 = NULL;
-    step_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step,
-                                              NULL);
+    step_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step, NULL);
     break;
   case TEST_OP2_STARTED:
     GNUNET_assert (&op2 == cls);

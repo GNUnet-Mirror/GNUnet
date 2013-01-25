@@ -28,12 +28,12 @@
 /**
  * The controller architecture we try to achieve in this test case:
  *
- *                    Master Controller 
+ *                    Master Controller
  *                    //             \\
  *                   //               \\
  *         Slave Controller 1---------Slave Controller 3
- *                  ||                  
- *                  ||                 
+ *                  ||
+ *                  ||
  *         Slave Controller 2
  */
 
@@ -64,7 +64,7 @@ enum Stage
    * Initial stage
    */
   INIT,
-  
+
   /**
    * Master controller has started
    */
@@ -314,8 +314,8 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Calls abort now
  *
- * @param 
- * @return 
+ * @param
+ * @return
  */
 static void
 do_abort_now (void *cls)
@@ -376,7 +376,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
   case SLAVE1_LINK_SUCCESS:
     result = SLAVE1_PEER_CREATE_SUCCESS;
     slave1_peer = peer;
-    GNUNET_TESTBED_operation_done (op);   
+    GNUNET_TESTBED_operation_done (op);
     op = GNUNET_TESTBED_peer_start (NULL, slave1_peer, NULL, NULL);
     break;
   case SLAVE2_LINK_SUCCESS:
@@ -448,7 +448,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     check_operation_success (event);
     GNUNET_TESTBED_operation_done (op);
     result = SLAVE2_LINK_SUCCESS;
-    op = GNUNET_TESTBED_peer_create (mc, slave2, cfg, peer_create_cb, NULL);    
+    op = GNUNET_TESTBED_peer_create (mc, slave2, cfg, peer_create_cb, NULL);
     GNUNET_assert (NULL != op);
     break;
   case MASTER_PEER_CREATE_SUCCESS:
@@ -469,7 +469,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     GNUNET_TESTBED_operation_done (op);
     result = SLAVE1_PEER_START_SUCCESS;
     op = GNUNET_TESTBED_controller_link (NULL, mc, slave2, slave, cfg,
-                                         GNUNET_YES);  
+                                         GNUNET_YES);
     break;
   case SLAVE2_PEER_CREATE_SUCCESS:
     GNUNET_assert (GNUNET_TESTBED_ET_PEER_STOP == event->type);
@@ -529,7 +529,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     op = NULL;
     result = SLAVE3_STARTED;
     op = GNUNET_TESTBED_get_slave_config (NULL, mc, slave3);
-    GNUNET_assert (NULL != op);    
+    GNUNET_assert (NULL != op);
     break;
   case SLAVE3_STARTED:
     GNUNET_assert (NULL != event);
@@ -540,22 +540,23 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     cfg3 = GNUNET_CONFIGURATION_dup (event->details.operation_finished.generic);
     GNUNET_TESTBED_operation_done (op);
     result = SLAVE3_GET_CONFIG_SUCCESS;
-    op = GNUNET_TESTBED_controller_link (NULL, mc, slave3, slave, cfg3, GNUNET_NO);
+    op = GNUNET_TESTBED_controller_link (NULL, mc, slave3, slave, cfg3,
+                                         GNUNET_NO);
     break;
   case SLAVE3_GET_CONFIG_SUCCESS:
     result = SLAVE3_LINK_SUCCESS;
     GNUNET_TESTBED_operation_done (op);
     op = GNUNET_TESTBED_peer_destroy (master_peer);
     break;
- case SLAVE3_LINK_SUCCESS:
-   check_operation_success (event);
-   result = SUCCESS;
-   GNUNET_TESTBED_operation_done (op);
-   op = NULL;       
-   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                 (GNUNET_TIME_UNIT_SECONDS, 3),
-                                 &do_shutdown, NULL);
-   break;
+  case SLAVE3_LINK_SUCCESS:
+    check_operation_success (event);
+    result = SUCCESS;
+    GNUNET_TESTBED_operation_done (op);
+    op = NULL;
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                  (GNUNET_TIME_UNIT_SECONDS, 3), &do_shutdown,
+                                  NULL);
+    break;
   default:
     GNUNET_assert (0);
   }
@@ -588,7 +589,8 @@ registration_cont (void *cls, const char *emsg)
     GNUNET_assert (NULL != mc);
     result = SLAVE2_REGISTERED;
     GNUNET_assert (NULL != cfg);
-    op = GNUNET_TESTBED_controller_link (NULL, mc, slave, NULL, cfg, GNUNET_YES);
+    op = GNUNET_TESTBED_controller_link (NULL, mc, slave, NULL, cfg,
+                                         GNUNET_YES);
     GNUNET_assert (NULL != op);
     break;
   case SLAVE2_PEER_DESTROY_SUCCESS:
@@ -596,7 +598,8 @@ registration_cont (void *cls, const char *emsg)
     GNUNET_assert (NULL != mc);
     GNUNET_assert (NULL == op);
     result = SLAVE3_REGISTERED;
-    op = GNUNET_TESTBED_controller_link (NULL, mc, slave3, NULL, cfg, GNUNET_YES);
+    op = GNUNET_TESTBED_controller_link (NULL, mc, slave3, NULL, cfg,
+                                         GNUNET_YES);
     GNUNET_assert (NULL != op);
     break;
   default:
@@ -634,7 +637,7 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config,
     op = GNUNET_TESTBED_peer_create (mc, host, cfg, peer_create_cb, NULL);
     GNUNET_assert (NULL != op);
     break;
-  default:    
+  default:
     GNUNET_break (0);
     cp = NULL;
     do_abort_now (NULL);
@@ -652,8 +655,9 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config,
  *          given to GNUNET_TESTBED_is_host_habitable() is NULL
  * @param status GNUNET_YES if it is habitable; GNUNET_NO if not
  */
-static void 
-host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *_host, int status)
+static void
+host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *_host,
+                   int status)
 {
   hc_handle = NULL;
   if (GNUNET_NO == status)
@@ -669,7 +673,7 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *_host, int statu
     return;
   }
   cp = GNUNET_TESTBED_controller_start ("127.0.0.1", host, cfg, status_cb,
-                                        NULL);  
+                                        NULL);
 }
 
 
@@ -687,9 +691,10 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   host = GNUNET_TESTBED_host_create (NULL, NULL, 0);
   GNUNET_assert (NULL != host);
-  if (NULL == (hc_handle = GNUNET_TESTBED_is_host_habitable (host, config,
-                                                             &host_habitable_cb,
-                                                             NULL)))
+  if (NULL ==
+      (hc_handle =
+       GNUNET_TESTBED_is_host_habitable (host, config, &host_habitable_cb,
+                                         NULL)))
   {
     GNUNET_TESTBED_host_destroy (host);
     host = NULL;
@@ -700,7 +705,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     result = SKIP;
     return;
   }
-  cfg = GNUNET_CONFIGURATION_dup (config);  
+  cfg = GNUNET_CONFIGURATION_dup (config);
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_MINUTES, 5), &do_abort,
@@ -742,4 +747,3 @@ main (int argc, char **argv)
 }
 
 /* end of test_testbed_api_controllerlink.c */
-

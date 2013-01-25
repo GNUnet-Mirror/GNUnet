@@ -332,18 +332,18 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
     if (((data[offset] == '\n')) && (buf != &data[offset]))
     {
       data[offset] = '\0';
-      ret = SSCANF (buf, "%255[a-zA-Z0-9_]@%255[a-zA-Z0-9.]:%5hd",
-                    username, hostname, &port);
-      if  (3 == ret)
+      ret =
+          SSCANF (buf, "%255[a-zA-Z0-9_]@%255[a-zA-Z0-9.]:%5hd", username,
+                  hostname, &port);
+      if (3 == ret)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "Successfully read host %s, port %d and user %s from file\n",
                     hostname, port, username);
         /* We store hosts in a static list; hence we only require the starting
-           host pointer in that list to access the newly created list of hosts */
+         * host pointer in that list to access the newly created list of hosts */
         if (NULL == starting_host)
-          starting_host = GNUNET_TESTBED_host_create (hostname, username,
-                                                      port);
+          starting_host = GNUNET_TESTBED_host_create (hostname, username, port);
         else
           (void) GNUNET_TESTBED_host_create (hostname, username, port);
         count++;
@@ -360,8 +360,7 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
   if (NULL == starting_host)
     return 0;
   *hosts = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Host *) * count);
-  memcpy (*hosts,
-          &host_list[GNUNET_TESTBED_host_get_id_ (starting_host)],
+  memcpy (*hosts, &host_list[GNUNET_TESTBED_host_get_id_ (starting_host)],
           sizeof (struct GNUNET_TESTBED_Host *) * count);
   return count;
 }
@@ -475,7 +474,7 @@ struct GNUNET_TESTBED_HostHabitableCheckHandle
   /*  * the configuration handle to lookup the path of the testbed helper */
   /*  *\/ */
   /* const struct GNUNET_CONFIGURATION_Handle *cfg; */
-  
+
   /**
    * The callback to call once we have the status
    */
@@ -549,15 +548,14 @@ habitability_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     h->wait_time = GNUNET_TIME_STD_BACKOFF (h->wait_time);
     h->habitability_check_task =
-        GNUNET_SCHEDULER_add_delayed (h->wait_time,
-                                      &habitability_check, h);
+        GNUNET_SCHEDULER_add_delayed (h->wait_time, &habitability_check, h);
     return;
   }
   GNUNET_OS_process_destroy (h->auxp);
   h->auxp = NULL;
   ret = (0 != code) ? GNUNET_NO : GNUNET_YES;
-  
- call_cb:
+
+call_cb:
   GNUNET_free (h->ssh_addr);
   GNUNET_free (h->portstr);
   GNUNET_free (h->helper_binary_path);
@@ -604,9 +602,10 @@ GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host,
     h->ssh_addr = GNUNET_strdup (hostname);
   else
     GNUNET_asprintf (&h->ssh_addr, "%s@%s", host->username, hostname);
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (config, "testbed",
-                                                          "HELPER_BINARY_PATH",
-                                                          &h->helper_binary_path))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (config, "testbed",
+                                             "HELPER_BINARY_PATH",
+                                             &h->helper_binary_path))
     h->helper_binary_path =
         GNUNET_OS_get_libexec_binary_path (HELPER_TESTBED_BINARY);
   argp = 0;
@@ -628,7 +627,7 @@ GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host,
                                    NULL, "ssh", remote_args);
   if (NULL == h->auxp)
   {
-    GNUNET_break (0);         /* Cannot exec SSH? */
+    GNUNET_break (0);           /* Cannot exec SSH? */
     GNUNET_free (h->ssh_addr);
     GNUNET_free (h->portstr);
     GNUNET_free (h->helper_binary_path);
@@ -637,8 +636,7 @@ GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host,
   }
   h->wait_time = GNUNET_TIME_STD_BACKOFF (h->wait_time);
   h->habitability_check_task =
-      GNUNET_SCHEDULER_add_delayed (h->wait_time,
-                                    &habitability_check, h);
+      GNUNET_SCHEDULER_add_delayed (h->wait_time, &habitability_check, h);
   return h;
 }
 
@@ -662,4 +660,5 @@ GNUNET_TESTBED_is_host_habitable_cancel (struct
   GNUNET_free (handle->helper_binary_path);
   GNUNET_free (handle);
 }
+
 /* end of testbed_api_hosts.c */

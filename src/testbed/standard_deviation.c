@@ -32,7 +32,7 @@ struct SDEntry
    * DLL prev pointer
    */
   struct SDEntry *prev;
-  
+
   /**
    * The value to store
    */
@@ -46,12 +46,12 @@ struct SDHandle
    * DLL head for storing entries
    */
   struct SDEntry *head;
-  
+
   /**
    * DLL tail for storing entries
    */
   struct SDEntry *tail;
-  
+
   /**
    * Squared sum of data values
    */
@@ -76,7 +76,7 @@ struct SDHandle
    * Number of data values; also the length of DLL containing SDEntries
    */
   unsigned int cnt;
-  
+
   /**
    * max number of entries we can have in the DLL
    */
@@ -88,7 +88,7 @@ struct SDHandle *
 SD_init (unsigned int max_cnt)
 {
   struct SDHandle *h;
-  
+
   GNUNET_assert (1 < max_cnt);
   h = GNUNET_malloc (sizeof (struct SDHandle));
   h->max_cnt = max_cnt;
@@ -99,7 +99,7 @@ void
 SD_destroy (struct SDHandle *h)
 {
   struct SDEntry *entry;
-  
+
   while (NULL != (entry = h->head))
   {
     GNUNET_CONTAINER_DLL_remove (h->head, h->tail, entry);
@@ -121,8 +121,8 @@ SD_add_data (struct SDHandle *h, unsigned int amount)
     entry = h->head;
     GNUNET_CONTAINER_DLL_remove (h->head, h->tail, entry);
     h->sum -= entry->amount;
-    h->sqsum -= ((unsigned long) entry->amount) * 
-        ((unsigned long) entry->amount);
+    h->sqsum -=
+        ((unsigned long) entry->amount) * ((unsigned long) entry->amount);
     h->cnt--;
   }
   GNUNET_assert (h->cnt < h->max_cnt);
@@ -172,8 +172,8 @@ SD_deviation_factor (struct SDHandle *h, unsigned int amount)
 int
 main ()
 {
-  struct SDHandle * h = SD_init (20);
-  
+  struct SDHandle *h = SD_init (20);
+
   SD_add_data (h, 40);
   SD_add_data (h, 30);
   SD_add_data (h, 40);
