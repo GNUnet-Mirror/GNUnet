@@ -393,7 +393,7 @@ timeout_queue_entry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                             gettext_noop ("# queue entry timeouts"), 1,
                             GNUNET_NO);
   qe->task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_assert (qe->was_transmitted == GNUNET_NO);
+  GNUNET_assert (GNUNET_NO == qe->was_transmitted);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Timeout of request in datastore queue\n");
   qe->response_proc (qe->h, NULL);
 }
@@ -475,7 +475,7 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h, size_t msize,
       GNUNET_assert (pos->response_proc != NULL);
       /* move 'pos' element to head so that it will be
        * killed on 'NULL' call below */
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Dropping request from datastore queue\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Dropping request from datastore queue\n");     
       GNUNET_CONTAINER_DLL_remove (h->queue_head, h->queue_tail, pos);
       GNUNET_CONTAINER_DLL_insert (h->queue_head, h->queue_tail, pos);
       GNUNET_STATISTICS_update (h->stats,
@@ -1148,14 +1148,14 @@ process_result_message (void *cls, const struct GNUNET_MessageHeader *msg)
   const struct DataMessage *dm;
   int was_transmitted;
 
-  if (msg == NULL)
+  if (NULL == msg)
   {
     qe = h->queue_head;
     GNUNET_assert (NULL != qe);
     rc = qe->qc.rc;
     was_transmitted = qe->was_transmitted;
     free_queue_entry (qe);
-    if (was_transmitted == GNUNET_YES)
+    if (GNUNET_YES == was_transmitted)
     {
       LOG (GNUNET_ERROR_TYPE_WARNING,
            _("Failed to receive response from database.\n"));
@@ -1165,7 +1165,7 @@ process_result_message (void *cls, const struct GNUNET_MessageHeader *msg)
     {
       process_queue (h);
     }
-    if (rc.proc != NULL)
+    if (NULL != rc.proc)
       rc.proc (rc.proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS,
                0);
     return;
