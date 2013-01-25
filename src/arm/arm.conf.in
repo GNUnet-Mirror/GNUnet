@@ -10,7 +10,6 @@ DEFAULTSERVICES = topology hostlist dht nse mesh fs
 UNIXPATH = /tmp/gnunet-service-arm.sock
 UNIX_MATCH_UID = YES
 UNIX_MATCH_GID = YES
-CONFIG = $DEFAULTCONFIG
 
 # In the "-l" option, format characters from 'strftime' are allowed;
 # In the GLOBAL_POSTFIX, "{}" stands for the name of the respective
