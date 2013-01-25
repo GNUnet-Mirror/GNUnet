@@ -50,6 +50,11 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_tun_lib.h"
 
+/**
+ * Port number for DNS
+ */
+#define DNS_PORT 53
+
 
 /**
  * Generic logging shorthand
@@ -1066,7 +1071,8 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
 		ntohs (tun->proto));
     return GNUNET_OK;
   }
-  if (msize <= sizeof (struct GNUNET_TUN_UdpHeader) + sizeof (struct GNUNET_TUN_DnsHeader))
+  if ( (msize <= sizeof (struct GNUNET_TUN_UdpHeader) + sizeof (struct GNUNET_TUN_DnsHeader)) ||
+       (DNS_PORT != ntohs (udp->destination_port)) )
   {    
     /* non-DNS packet received on TUN, ignore */
     GNUNET_STATISTICS_update (stats,
