@@ -29,6 +29,65 @@
 #include <zlib.h>
 
 
+/***********/
+/* Globals */
+/***********/
+
+/**
+ * Our configuration
+ */
+struct GNUNET_CONFIGURATION_Handle *our_config;
+
+/**
+ * The master context; generated with the first INIT message
+ */
+struct Context *GST_context;
+
+/**
+ * A list of directly linked neighbours
+ */
+struct Slave **GST_slave_list;
+
+/**
+ * A list of peers we know about
+ */
+struct Peer **GST_peer_list;
+
+/**
+ * Array of hosts
+ */
+struct GNUNET_TESTBED_Host **GST_host_list;
+
+/**
+ * DLL head for forwarded operation contexts
+ */
+struct ForwardedOperationContext *fopcq_head;
+
+/**
+ * DLL tail for forwarded operation contexts
+ */
+struct ForwardedOperationContext *fopcq_tail;
+
+/**
+ * The size of the host list
+ */
+unsigned int GST_host_list_size;
+
+/**
+ * The size of directly linked neighbours list
+ */
+unsigned int GST_slave_list_size;
+
+/**
+ * The size of the peer list
+ */
+unsigned int GST_peer_list_size;
+
+
+/***********************************/
+/* Local definitions and variables */
+/***********************************/
+
 /**
  * The message queue for sending messages to clients
  */
@@ -55,35 +114,15 @@ struct MessageQueue
   struct MessageQueue *prev;
 };
 
-
-/**
- * The master context; generated with the first INIT message
- */
-struct Context *GST_context;
-
 /**
  * Our hostname; we give this to all the peers we start
  */
 static char *hostname;
 
-
-/***********/
-/* Handles */
-/***********/
-
-/**
- * Our configuration
- */
-struct GNUNET_CONFIGURATION_Handle *our_config;
-
 /**
  * Current Transmit Handle; NULL if no notify transmit exists currently
  */
 static struct GNUNET_SERVER_TransmitHandle *transmit_handle;
-
-/****************/
-/* Lists & Maps */
-/****************/
 
 /**
  * The head for the LCF queue
@@ -106,19 +145,9 @@ static struct MessageQueue *mq_head;
 static struct MessageQueue *mq_tail;
 
 /**
- * DLL head for forwarded operation contexts
+ * The hashmap of shared services
  */
-struct ForwardedOperationContext *fopcq_head;
-
-/**
- * DLL tail for forwarded operation contexts
- */
-struct ForwardedOperationContext *fopcq_tail;
-
-/**
- * Array of hosts
- */
-struct GNUNET_TESTBED_Host **GST_host_list;
+static struct GNUNET_CONTAINER_MultiHashMap *ss_map;
 
 /**
  * A list of routes
@@ -126,48 +155,14 @@ struct GNUNET_TESTBED_Host **GST_host_list;
 static struct Route **route_list;
 
 /**
- * A list of directly linked neighbours
- */
-struct Slave **GST_slave_list;
-
-/**
- * A list of peers we know about
- */
-struct Peer **GST_peer_list;
-
-/**
- * The hashmap of shared services
- */
-static struct GNUNET_CONTAINER_MultiHashMap *ss_map;
-
-/**
  * The event mask for the events we listen from sub-controllers
  */
 static uint64_t event_mask;
 
 /**
- * The size of the host list
- */
-unsigned int GST_host_list_size;
-
-/**
  * The size of the route list
  */
 static unsigned int route_list_size;
-
-/**
- * The size of directly linked neighbours list
- */
-unsigned int GST_slave_list_size;
-
-/**
- * The size of the peer list
- */
-unsigned int GST_peer_list_size;
-
-/*********/
-/* Tasks */
-/*********/
 
 /**
  * The lcf_task handle
