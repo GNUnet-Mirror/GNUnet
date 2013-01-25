@@ -578,7 +578,7 @@ struct GNUNET_CONFIGURATION_Handle *our_config;
 /**
  * The master context; generated with the first INIT message
  */
-extern struct Context *TESTBED_context;
+extern struct Context *GST_context;
 
 /**
  * DLL head for forwarded operation contexts
@@ -593,32 +593,32 @@ extern struct ForwardedOperationContext *fopcq_tail;
 /**
  * A list of peers we know about
  */
-extern struct Peer **TESTBED_peer_list;
+extern struct Peer **GST_peer_list;
 
 /**
  * Array of hosts
  */
-extern struct GNUNET_TESTBED_Host **TESTBED_host_list;
+extern struct GNUNET_TESTBED_Host **GST_host_list;
 
 /**
  * A list of directly linked neighbours
  */
-extern struct Slave **TESTBED_slave_list;
+extern struct Slave **GST_slave_list;
 
 /**
  * The size of the peer list
  */
-extern unsigned int TESTBED_peer_list_size;
+extern unsigned int GST_peer_list_size;
 
 /**
  * The size of the host list
  */
-extern unsigned int TESTBED_host_list_size;
+extern unsigned int GST_host_list_size;
 
 /**
  * The size of directly linked neighbours list
  */
-extern unsigned int TESTBED_slave_list_size;
+extern unsigned int GST_slave_list_size;
 
 
 /**
@@ -628,7 +628,7 @@ extern unsigned int TESTBED_slave_list_size;
  * @param msg the message to queue
  */
 void
-TESTBED_queue_message (struct GNUNET_SERVER_Client *client,
+GST_queue_message (struct GNUNET_SERVER_Client *client,
                        struct GNUNET_MessageHeader *msg);
 
 
@@ -638,7 +638,7 @@ TESTBED_queue_message (struct GNUNET_SERVER_Client *client,
  * @param peer the peer structure to destroy
  */
 void
-TESTBED_destroy_peer (struct Peer *peer);
+GST_destroy_peer (struct Peer *peer);
 
 
 /**
@@ -648,7 +648,7 @@ TESTBED_destroy_peer (struct Peer *peer);
  * @return the HELLO message; NULL if not found
  */
 const struct GNUNET_MessageHeader *
-TESTBED_hello_cache_lookup (const struct GNUNET_PeerIdentity *id);
+GST_hello_cache_lookup (const struct GNUNET_PeerIdentity *id);
 
 /**
  * Caches the HELLO of the given peer. Updates the HELLO if it was already
@@ -658,7 +658,7 @@ TESTBED_hello_cache_lookup (const struct GNUNET_PeerIdentity *id);
  * @param hello the HELLO message
  */
 void
-TESTBED_hello_cache_add (const struct GNUNET_PeerIdentity *id,
+GST_hello_cache_add (const struct GNUNET_PeerIdentity *id,
                          const struct GNUNET_MessageHeader *hello);
 
 
@@ -668,14 +668,14 @@ TESTBED_hello_cache_add (const struct GNUNET_PeerIdentity *id,
  * @param size the size of the cache
  */
 void
-TESTBED_cache_init (unsigned int size);
+GST_cache_init (unsigned int size);
 
 
 /**
  * Clear cache
  */
 void
-TESTBED_cache_clear ();
+GST_cache_clear ();
 
 
 /**
@@ -687,7 +687,7 @@ TESTBED_cache_clear ();
  *           is found
  */
 struct Route *
-TESTBED_find_dest_route (uint32_t host_id);
+GST_find_dest_route (uint32_t host_id);
 
 
 /**
@@ -698,7 +698,7 @@ TESTBED_find_dest_route (uint32_t host_id);
  * @param message the actual message
  */
 void
-TESTBED_handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
+GST_handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
                                 const struct GNUNET_MessageHeader *message);
 
 
@@ -712,7 +712,7 @@ TESTBED_handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
  * @param host the host which has to be registered
  */
 void
-TESTBED_queue_host_registration (struct Slave *slave,
+GST_queue_host_registration (struct Slave *slave,
                                  GNUNET_TESTBED_HostRegistrationCompletion cb,
                                  void *cb_cls,
                                  struct GNUNET_TESTBED_Host *host);
@@ -725,7 +725,7 @@ TESTBED_queue_host_registration (struct Slave *slave,
  * @param msg the message to relay
  */
 void
-TESTBED_forwarded_operation_reply_relay (void *cls,
+GST_forwarded_operation_reply_relay (void *cls,
                                          const struct GNUNET_MessageHeader *msg);
 
 
@@ -736,7 +736,7 @@ TESTBED_forwarded_operation_reply_relay (void *cls,
  * @param tc the task context from scheduler
  */
 void
-TESTBED_forwarded_operation_timeout (void *cls,
+GST_forwarded_operation_timeout (void *cls,
                                      const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
@@ -748,7 +748,7 @@ TESTBED_forwarded_operation_timeout (void *cls,
  * @param emsg the error message; can be NULL
  */
 void
-TESTBED_send_operation_fail_msg (struct GNUNET_SERVER_Client *client,
+GST_send_operation_fail_msg (struct GNUNET_SERVER_Client *client,
                                  uint64_t operation_id, const char *emsg);
 
 
@@ -760,7 +760,7 @@ TESTBED_send_operation_fail_msg (struct GNUNET_SERVER_Client *client,
  * @param message the actual message
  */
 void
-TESTBED_handle_overlay_request_connect (void *cls,
+GST_handle_overlay_request_connect (void *cls,
                                         struct GNUNET_SERVER_Client *client, 
                                         const struct GNUNET_MessageHeader
                                         *message);
@@ -772,7 +772,7 @@ TESTBED_handle_overlay_request_connect (void *cls,
  * @param rhc the RegisteredHostContext
  */
 void
-TESTBED_process_next_focc (struct RegisteredHostContext *rhc);
+GST_process_next_focc (struct RegisteredHostContext *rhc);
 
 
 /**
@@ -781,21 +781,21 @@ TESTBED_process_next_focc (struct RegisteredHostContext *rhc);
  * @param focc the ForwardedOverlayConnectContext to cleanup
  */
 void
-TESTBED_cleanup_focc (struct ForwardedOverlayConnectContext *focc);
+GST_cleanup_focc (struct ForwardedOverlayConnectContext *focc);
 
 
 /**
  * Clears all pending overlay connect contexts in queue
  */
 void
-TESTBED_free_occq ();
+GST_free_occq ();
 
 
 /**
  * Clears all pending remote overlay connect contexts in queue
  */
 void
-TESTBED_free_roccq ();
+GST_free_roccq ();
 
 
 
