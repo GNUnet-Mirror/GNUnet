@@ -900,6 +900,8 @@ service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     do_disconnect (handle);
     return;
   }
+  GNUNET_CLIENT_receive (handle->client, &service_message_handler, handle,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
   ret = GNUNET_SYSERR;
   msize = ntohs (msg->size);
   switch (ntohs (msg->type))
@@ -941,13 +943,15 @@ service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_break (0);
       break;
     }
-    ret = GNUNET_OK;
     dht_msg = (const struct GNUNET_DHT_ClientResultMessage *) msg;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Received reply for `%s' from DHT service %p\n",
-	 GNUNET_h2s (&dht_msg->key), handle);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received reply for `%s' from DHT service %p\n",
+         GNUNET_h2s (&dht_msg->key), handle);
     GNUNET_CONTAINER_multihashmap_get_multiple (handle->active_requests,
-						&dht_msg->key, &process_reply,
-						(void *) dht_msg);
+                                                      &dht_msg->key,
+                                                      &process_reply,
+                                                      (void *) dht_msg);
+    ret = GNUNET_OK;
     break;
   case GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT_OK:
     if (ntohs (msg->size) != sizeof (struct GNUNET_DHT_ClientPutConfirmationMessage))
@@ -971,8 +975,6 @@ service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     do_disconnect (handle);
     return;
   }
-  GNUNET_CLIENT_receive (handle->client, &service_message_handler, handle,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 
