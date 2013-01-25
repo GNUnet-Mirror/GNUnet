@@ -978,7 +978,7 @@ dht_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
   peer->search_str_matched = GNUNET_NO;
   peer->search_handle = GNUNET_REGEX_search (peer->dht_handle,
                                              peer->search_str,
-                                             &regex_found_handler, NULL,
+                                             &regex_found_handler, peer,
                                              NULL);
   peer->prof_start_time = GNUNET_TIME_absolute_get ();
 
