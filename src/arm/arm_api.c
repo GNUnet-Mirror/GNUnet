@@ -359,17 +359,7 @@ arm_service_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (pos->h->cfg, "arm", "CONFIG",
 					       &config))
-  {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING,
-			       "arm", "CONFIG");
-    if (pos->callback != NULL)
-      pos->callback (pos->cls, GNUNET_ARM_PROCESS_UNKNOWN);
-    GNUNET_free (cbinary);
-    GNUNET_free (pos);
-    GNUNET_free (loprefix);
-    GNUNET_free (lopostfix);
-    return;
-  }
+    config = NULL;
   binary = GNUNET_OS_get_libexec_binary_path (cbinary);
   GNUNET_free (cbinary);
   if ((GNUNET_YES ==
@@ -383,28 +373,39 @@ arm_service_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     /* Means we are ONLY running locally */
     /* we're clearly running a test, don't daemonize */
-    proc = do_start_process (GNUNET_NO, pos->std_inheritance,
-			     NULL, loprefix, binary, "-c", config,
-			     /* no daemonization! */
-			     lopostfix, NULL);
+    if (NULL == config)
+      proc = do_start_process (GNUNET_NO, pos->std_inheritance,
+			       NULL, loprefix, binary,
+			       /* no daemonization! */
+			       lopostfix, NULL);
+    else
+      proc = do_start_process (GNUNET_NO, pos->std_inheritance,
+			       NULL, loprefix, binary, "-c", config,
+			       /* no daemonization! */
+			       lopostfix, NULL);
   }
   else
   {
-    proc = do_start_process (GNUNET_NO, pos->std_inheritance,
-			     NULL, loprefix, binary, "-c", config,
-			     "-d", lopostfix, NULL);
+    if (NULL == config)
+      proc = do_start_process (GNUNET_NO, pos->std_inheritance,
+			       NULL, loprefix, binary,
+			       "-d", lopostfix, NULL);
+    else
+      proc = do_start_process (GNUNET_NO, pos->std_inheritance,
+			       NULL, loprefix, binary, "-c", config,
+			       "-d", lopostfix, NULL);
   }
   GNUNET_free (binary);
-  GNUNET_free (config);
+  GNUNET_free_non_null (config);
   GNUNET_free (loprefix);
   GNUNET_free (lopostfix);
-  if (proc == NULL)
-    {
-      if (pos->callback != NULL)
-	pos->callback (pos->cls, GNUNET_ARM_PROCESS_FAILURE);
-      GNUNET_free (pos);
-      return;
-    }
+  if (NULL == proc)
+  {
+    if (pos->callback != NULL)
+      pos->callback (pos->cls, GNUNET_ARM_PROCESS_FAILURE);
+    GNUNET_free (pos);
+    return;
+  }
   if (pos->callback != NULL)
     pos->callback (pos->cls, GNUNET_ARM_PROCESS_STARTING);
   GNUNET_free (proc);
