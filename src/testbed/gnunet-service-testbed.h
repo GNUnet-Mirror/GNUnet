@@ -24,6 +24,7 @@
  * @author Sree Harsha Totakura
  */
 
+#include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testbed_service.h"
 #include "gnunet_transport_service.h"
@@ -783,28 +784,41 @@ struct LCFContextQueue
 
 
 /**
- * Hello cache entry
+ * Looks up in the hello cache and returns the HELLO of the given peer
+ *
+ * @param id the peer identity of the peer whose HELLO has to be looked up
+ * @return the HELLO message; NULL if not found
  */
-struct HelloCacheEntry
-{
-  /**
-   * DLL next ptr for least recently used hello cache entries
-   */
-  struct HelloCacheEntry *next;
+const struct GNUNET_MessageHeader *
+TESTBED_hello_cache_lookup (const struct GNUNET_PeerIdentity *id);
 
-  /**
-   * DLL prev ptr for least recently used hello cache entries
-   */
-  struct HelloCacheEntry *prev;
+/**
+ * Caches the HELLO of the given peer. Updates the HELLO if it was already
+ * cached before
+ *
+ * @param id the peer identity of the peer whose HELLO has to be cached
+ * @param hello the HELLO message
+ */
+void
+TESTBED_hello_cache_add (const struct GNUNET_PeerIdentity *id,
+                         const struct GNUNET_MessageHeader *hello);
 
-  /**
-   * The key for this entry
-   */
-  struct GNUNET_HashCode key;
-  
-  /**
-   * The HELLO message
-   */
-  struct GNUNET_MessageHeader *hello;
-};
 
+/**
+ * Initializes the cache
+ *
+ * @param size the size of the cache
+ */
+void
+TESTBED_cache_init (unsigned int size);
+
+
+/**
+ * Clear cache
+ */
+void
+TESTBED_cache_clear ();
+
+
+
+/* End of gnunet-service-testbed.h */

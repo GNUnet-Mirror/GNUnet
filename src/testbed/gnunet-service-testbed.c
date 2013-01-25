@@ -24,7 +24,6 @@
  * @author Sree Harsha Totakura
  */
 
-#include "platform.h"
 #include "gnunet-service-testbed.h"
 
 #include <zlib.h>
@@ -138,18 +137,6 @@ static struct ForwardedOperationContext *fopcq_head;
 static struct ForwardedOperationContext *fopcq_tail;
 
 /**
- * DLL head for least recently used hello cache entries; least recently used
- * cache items are at the head
- */
-static struct HelloCacheEntry *lru_hcache_head;
-
-/**
- * DLL tail for least recently used hello cache entries; recently used cache
- * items are at the tail
- */
-static struct HelloCacheEntry *lru_hcache_tail;
-
-/**
  * Array of hosts
  */
 static struct GNUNET_TESTBED_Host **host_list;
@@ -173,11 +160,6 @@ static struct Peer **peer_list;
  * The hashmap of shared services
  */
 static struct GNUNET_CONTAINER_MultiHashMap *ss_map;
-
-/**
- * Hashmap to maintain HELLO cache
- */
-static struct GNUNET_CONTAINER_MultiHashMap *hello_cache;
 
 /**
  * The event mask for the events we listen from sub-controllers
@@ -204,11 +186,6 @@ static unsigned int slave_list_size;
  */
 static unsigned int peer_list_size;
 
-/**
- * The size of hello cache
- */
-static unsigned int hello_cache_size;
-
 /*********/
 /* Tasks */
 /*********/
@@ -222,87 +199,6 @@ static GNUNET_SCHEDULER_TaskIdentifier lcf_proc_task_id;
  * The shutdown task handle
  */
 static GNUNET_SCHEDULER_TaskIdentifier shutdown_task_id;
-
-
-/**
- * Looks up in the hello cache and returns the HELLO of the given peer
- *
- * @param id the peer identity of the peer whose HELLO has to be looked up
- * @return the HELLO message; NULL if not found
- */
-static const struct GNUNET_MessageHeader *
-hello_cache_lookup (const struct GNUNET_PeerIdentity *id)
-{
-  struct HelloCacheEntry *entry;
-
-  if (NULL == hello_cache)
-    return NULL;
-  entry = GNUNET_CONTAINER_multihashmap_get (hello_cache, &id->hashPubKey);
-  if (NULL == entry)
-    return NULL;
-  GNUNET_CONTAINER_DLL_remove (lru_hcache_head, lru_hcache_tail, entry);
-  GNUNET_CONTAINER_DLL_insert_tail (lru_hcache_head, lru_hcache_tail, entry);
-  return entry->hello;
-}
-
-
-/**
- * Removes the given hello cache centry from hello cache and frees its resources
- *
- * @param entry the entry to remove
- */
-static void
-hello_cache_remove (struct HelloCacheEntry *entry)
-{
-  GNUNET_CONTAINER_DLL_remove (lru_hcache_head, lru_hcache_tail, entry);
-  GNUNET_assert (GNUNET_YES == 
-                 GNUNET_CONTAINER_multihashmap_remove (hello_cache,
-                                                       &entry->key,
-                                                       entry));
-  GNUNET_free (entry->hello);
-  GNUNET_free (entry);
-}
-
-
-/**
- * Caches the HELLO of the given peer. Updates the HELLO if it was already
- * cached before
- *
- * @param id the peer identity of the peer whose HELLO has to be cached
- * @param hello the HELLO message
- */
-static void
-hello_cache_add (const struct GNUNET_PeerIdentity *id,
-                 const struct GNUNET_MessageHeader *hello)
-{
-  struct HelloCacheEntry *entry;
-  
-  if (NULL == hello_cache)
-    return;
-  entry = GNUNET_CONTAINER_multihashmap_get (hello_cache, &id->hashPubKey);
-  if (NULL == entry)
-  {
-    entry = GNUNET_malloc (sizeof (struct HelloCacheEntry));
-    memcpy (&entry->key, &id->hashPubKey, sizeof (struct GNUNET_HashCode));
-    if (GNUNET_CONTAINER_multihashmap_size (hello_cache) == hello_cache_size)
-    {
-      GNUNET_assert (NULL != lru_hcache_head);
-      hello_cache_remove (lru_hcache_head);
-    }
-    GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put 
-                   (hello_cache,
-                    &entry->key,
-                    entry,
-                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
-  }
-  else
-  {
-    GNUNET_CONTAINER_DLL_remove (lru_hcache_head, lru_hcache_tail, entry);
-    GNUNET_free (entry->hello);
-  }
-  entry->hello = GNUNET_copy_message (hello);
-  GNUNET_CONTAINER_DLL_insert_tail (lru_hcache_head, lru_hcache_tail, entry);
-}
 
 
 /**
@@ -2496,7 +2392,7 @@ hello_update_cb (void *cls, const struct GNUNET_MessageHeader *hello)
   LOG_DEBUG ("0x%llx: Received HELLO of %s\n",
              occ->op_id, GNUNET_i2s (&occ->peer_identity));
   occ->hello = GNUNET_malloc (msize);
-  hello_cache_add (&occ->peer_identity, hello);
+  TESTBED_hello_cache_add (&occ->peer_identity, hello);
   memcpy (occ->hello, hello, msize);
   GNUNET_TRANSPORT_get_hello_cancel (occ->ghh);
   occ->ghh = NULL;
@@ -2541,7 +2437,7 @@ core_startup_cb (void *cls, struct GNUNET_CORE_Handle *server,
   LOG_DEBUG ("0x%llx: Acquiring HELLO of peer %s\n",
              occ->op_id, GNUNET_i2s (&occ->peer_identity));
   /* Lookup for HELLO in hello cache */
-  if (NULL != (hello = hello_cache_lookup (&occ->peer_identity)))
+  if (NULL != (hello = TESTBED_hello_cache_lookup (&occ->peer_identity)))
   {
     LOG_DEBUG ("0x%llx: HELLO of peer %s found in cache\n",
                occ->op_id, GNUNET_i2s (&occ->peer_identity));
@@ -3429,16 +3325,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_free_non_null (hostname);
   GNUNET_CONFIGURATION_destroy (our_config);
   /* Free hello cache */
-  if (NULL != hello_cache)
-    GNUNET_assert
-        (GNUNET_CONTAINER_multihashmap_size (hello_cache) <= hello_cache_size);
-  while (NULL != lru_hcache_head)
-    hello_cache_remove (lru_hcache_head);
-  if (NULL != hello_cache)
-  {
-    GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (hello_cache));
-    GNUNET_CONTAINER_multihashmap_destroy (hello_cache);
-  }
+  TESTBED_cache_clear ();
 }
 
 
@@ -3516,16 +3403,13 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
                  GNUNET_CONFIGURATION_get_value_number (cfg, "TESTBED",
                                                         "HELLO_CACHE_SIZE",
                                                         &num));
-  hello_cache_size = (unsigned int) num;
+  TESTBED_cache_init ((unsigned int) num);
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string 
 		 (cfg, "testbed", "HOSTNAME", &hostname));
   our_config = GNUNET_CONFIGURATION_dup (cfg);
   GNUNET_SERVER_add_handlers (server, message_handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect_cb, NULL);
   ss_map = GNUNET_CONTAINER_multihashmap_create (5, GNUNET_NO);
-  if (1 < hello_cache_size)
-    hello_cache = GNUNET_CONTAINER_multihashmap_create (hello_cache_size / 2,
-                                                        GNUNET_YES);
   shutdown_task_id =
       GNUNET_SCHEDULER_add_delayed_with_priority (GNUNET_TIME_UNIT_FOREVER_REL,
                                                   GNUNET_SCHEDULER_PRIORITY_IDLE,
