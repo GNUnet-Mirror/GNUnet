@@ -401,7 +401,7 @@ regex_found_handler (void *cls,
 
 
 /**
- * Mesh connect callback.
+ * DHT connect callback.
  *
  * @param cls internal peer id.
  * @param op operation handle.
@@ -410,7 +410,7 @@ regex_found_handler (void *cls,
  */
 static void
 dht_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
-                 void *ca_result, const char *emsg);
+                void *ca_result, const char *emsg);
 
 /**
  * DHT connect adapter.
@@ -509,16 +509,12 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_snprintf (output_buffer,
                          sizeof (output_buffer),
                          "%p Search string not found: %s (%d)\n%p On peer: %u (%p)\n%p With policy file: %s\n%p After: %s\n",
-			 peer,
-                         peer->search_str,
-                         peer->search_str_matched,
-			 peer,
-                         peer->id,
+                         peer, peer->search_str, peer->search_str_matched,
+                         peer, peer->id, peer,
+                         peer, peer->policy_file,
                          peer,
-			 peer,
-                         peer->policy_file,
-			 peer,
-                         GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
+                         GNUNET_STRINGS_relative_time_to_string (prof_time,
+                                                                 GNUNET_NO));
       if (size != GNUNET_DISK_file_write (data_file, output_buffer, size))
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to write to file!\n");
     }

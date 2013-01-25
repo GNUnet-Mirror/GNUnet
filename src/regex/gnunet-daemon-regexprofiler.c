@@ -168,7 +168,7 @@ announce_regex (const char * regex)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Announcing regex: %s\n", regex);
   GNUNET_STATISTICS_update (stats_handle, "# regexes announced", 1, GNUNET_NO);
   announce_handle = GNUNET_REGEX_announce (dht_handle,
-                                           NULL,
+                                           &my_full_id,
                                            regex,
                                            (unsigned int) max_path_compression,
                                            stats_handle);
@@ -411,7 +411,7 @@ main (int argc, char *const *argv)
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
-  sleep (60);
+  sleep (30);
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc, argv, "regexprofiler",
                               gettext_noop
