@@ -39,6 +39,8 @@
 #include "gnunet_protocols.h"
 #include "gnunet_applications.h"
 #include "gnunet_mesh_service.h"
+#include "gnunet_dnsparser_lib.h"
+#include "gnunet_dnsstub_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_constants.h"
 #include "gnunet_tun_lib.h"
@@ -56,6 +58,14 @@
  * based regex.
  */
 #define REGEX_MAX_PATH_LEN_IPV6 8
+
+
+/**
+ * Generic logging shorthand
+ */
+#define LOG(kind, ...)                          \
+  GNUNET_log_from (kind, "exit", __VA_ARGS__);
+
 
 
 /**
@@ -196,39 +206,85 @@ struct TunnelState
   struct GNUNET_MESH_Tunnel *tunnel;
 
   /**
-   * Heap node for this state in the connections_heap.
-   */
-  struct GNUNET_CONTAINER_HeapNode *heap_node;
-
-  /**
-   * Key this state has in the connections_map.
-   */
-  struct GNUNET_HashCode state_key;
-
-  /**
-   * Associated service record, or NULL for no service.
-   */
-  struct LocalService *serv;
-
-  /**
-   * Head of DLL of messages for this tunnel.
-   */
-  struct TunnelMessageQueue *head;
-
-  /**
-   * Tail of DLL of messages for this tunnel.
-   */
-  struct TunnelMessageQueue *tail;
-
-  /**
    * Active tunnel transmission request (or NULL).
    */
   struct GNUNET_MESH_TransmitHandle *th;
 
   /**
-   * Primary redirection information for this connection.
+   * GNUNET_NO if this is a tunnel for TCP/UDP, 
+   * GNUNET_YES if this is a tunnel for DNS,
+   * GNUNET_SYSERR if the tunnel is not yet initialized.
    */
-  struct RedirectInformation ri;
+  int is_dns;
+
+  union 
+  {
+    struct 
+    {
+
+      /**
+       * Heap node for this state in the connections_heap.
+       */
+      struct GNUNET_CONTAINER_HeapNode *heap_node;
+      
+      /**
+       * Key this state has in the connections_map.
+       */
+      struct GNUNET_HashCode state_key;
+      
+      /**
+       * Associated service record, or NULL for no service.
+       */
+      struct LocalService *serv;
+      
+      /**
+       * Head of DLL of messages for this tunnel.
+       */
+      struct TunnelMessageQueue *head;
+      
+      /**
+       * Tail of DLL of messages for this tunnel.
+       */
+      struct TunnelMessageQueue *tail;
+      
+      /**
+       * Primary redirection information for this connection.
+       */
+      struct RedirectInformation ri;
+    } tcp_udp;
+
+    struct
+    {
+
+      /**
+       * DNS reply ready for transmission.
+       */
+      char *reply;
+      
+      /**
+       * Socket we are using to transmit this request (must match if we receive
+       * a response).
+       */
+      struct GNUNET_DNSSTUB_RequestSocket *rs;
+      
+      /**
+       * Number of bytes in 'reply'.
+       */
+      size_t reply_length;
+      
+      /**
+       * Original DNS request ID as used by the client.
+       */
+      uint16_t original_id;
+      
+      /**
+       * DNS request ID that we used for forwarding.
+       */
+      uint16_t my_id;
+      
+    } dns;
+
+  } specifics;
 
 };
 
@@ -273,7 +329,6 @@ static struct in_addr exit_ipv4addr;
  */
 static struct in_addr exit_ipv4mask;
 
-
 /**
  * Statistics.
  */
@@ -311,6 +366,16 @@ static struct GNUNET_CONTAINER_MultiHashMap *udp_services;
 static struct GNUNET_CONTAINER_MultiHashMap *tcp_services;
 
 /**
+ * Array of all open DNS requests from tunnels.
+ */
+static struct TunnelState *tunnels[UINT16_MAX + 1];
+
+/**
+ * Handle to the DNS Stub resolver.
+ */
+static struct GNUNET_DNSSTUB_Context *dnsstub;
+
+/**
  * Are we an IPv4-exit?
  */
 static int ipv4_exit;
@@ -329,6 +394,160 @@ static int ipv4_enabled;
  * Do we support IPv6 at all on the TUN interface?
  */
 static int ipv6_enabled;
+
+
+/**
+ * We got a reply from DNS for a request of a MESH tunnel.  Send it
+ * via the tunnel (after changing the request ID back).
+ *
+ * @param cls the 'struct TunnelState'
+ * @param size number of bytes available in buf
+ * @param buf where to copy the reply
+ * @return number of bytes written to buf
+ */
+static size_t
+transmit_reply_to_mesh (void *cls,
+			size_t size,
+			void *buf)
+{
+  struct TunnelState *ts = cls;
+  size_t off;
+  size_t ret;
+  char *cbuf = buf;
+  struct GNUNET_MessageHeader hdr;
+  struct GNUNET_TUN_DnsHeader dns;
+
+  GNUNET_assert (GNUNET_YES == ts->is_dns);
+  ts->th = NULL;
+  GNUNET_assert (ts->specifics.dns.reply != NULL);
+  if (size == 0)
+    return 0;
+  ret = sizeof (struct GNUNET_MessageHeader) + ts->specifics.dns.reply_length; 
+  GNUNET_assert (ret <= size);
+  hdr.size = htons (ret);
+  hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_FROM_INTERNET);
+  memcpy (&dns, ts->specifics.dns.reply, sizeof (dns));
+  dns.id = ts->specifics.dns.original_id;
+  off = 0;
+  memcpy (&cbuf[off], &hdr, sizeof (hdr));
+  off += sizeof (hdr);
+  memcpy (&cbuf[off], &dns, sizeof (dns));
+  off += sizeof (dns);
+  memcpy (&cbuf[off], &ts->specifics.dns.reply[sizeof (dns)], ts->specifics.dns.reply_length - sizeof (dns));
+  off += ts->specifics.dns.reply_length - sizeof (dns);
+  GNUNET_free (ts->specifics.dns.reply);
+  ts->specifics.dns.reply = NULL;
+  ts->specifics.dns.reply_length = 0;  
+  GNUNET_assert (ret == off);
+  return ret;
+}
+
+
+/**
+ * Callback called from DNSSTUB resolver when a resolution
+ * succeeded.
+ *
+ * @param cls NULL
+ * @param rs the socket that received the response
+ * @param dns the response itself
+ * @param r number of bytes in dns
+ */
+static void
+process_dns_result (void *cls,
+		    struct GNUNET_DNSSTUB_RequestSocket *rs,
+		    const struct GNUNET_TUN_DnsHeader *dns,
+		    size_t r)
+{
+  struct TunnelState *ts;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Processing DNS result from stub resolver\n");
+  GNUNET_assert (NULL == cls);
+  /* Handle case that this is a reply to a request from a MESH DNS tunnel */
+  ts = tunnels[dns->id];
+  if ( (NULL == ts) ||
+       (ts->specifics.dns.rs != rs) )
+    return;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Got a response from the stub resolver for DNS request received via MESH!\n");
+  tunnels[dns->id] = NULL;
+  GNUNET_free_non_null (ts->specifics.dns.reply);
+  ts->specifics.dns.reply = GNUNET_malloc (r);
+  ts->specifics.dns.reply_length = r;
+  memcpy (ts->specifics.dns.reply, dns, r);
+  if (NULL != ts->th)
+    GNUNET_MESH_notify_transmit_ready_cancel (ts->th);
+  ts->th = GNUNET_MESH_notify_transmit_ready (ts->tunnel,
+					      GNUNET_NO,
+					      GNUNET_TIME_UNIT_FOREVER_REL,
+					      NULL,
+					      sizeof (struct GNUNET_MessageHeader) + r,
+					      &transmit_reply_to_mesh,
+					      ts);
+}
+
+
+/**
+ * Process a request via mesh to perform a DNS query.
+ *
+ * @param cls closure, NULL
+ * @param tunnel connection to the other end
+ * @param tunnel_ctx pointer to our 'struct TunnelState *'
+ * @param sender who sent the message
+ * @param message the actual message
+ * @param atsi performance data for the connection
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+receive_dns_request (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
+                     void **tunnel_ctx,
+                     const struct GNUNET_PeerIdentity *sender GNUNET_UNUSED,
+                     const struct GNUNET_MessageHeader *message,
+                     const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
+{
+  struct TunnelState *ts = *tunnel_ctx;
+  const struct GNUNET_TUN_DnsHeader *dns;
+  size_t mlen = ntohs (message->size);
+  size_t dlen = mlen - sizeof (struct GNUNET_MessageHeader);
+  char buf[dlen] GNUNET_ALIGN;
+  struct GNUNET_TUN_DnsHeader *dout;
+
+  if (NULL == dnsstub)
+    return GNUNET_SYSERR;
+  if (GNUNET_NO == ts->is_dns)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if (GNUNET_SYSERR == ts->is_dns)
+  {
+    /* tunnel is DNS from now on */
+    ts->is_dns = GNUNET_YES;
+  }
+  if (dlen < sizeof (struct GNUNET_TUN_DnsHeader))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  dns = (const struct GNUNET_TUN_DnsHeader *) &message[1];
+  ts->specifics.dns.original_id = dns->id;
+  if (tunnels[ts->specifics.dns.my_id] == ts)
+    tunnels[ts->specifics.dns.my_id] = NULL;
+  ts->specifics.dns.my_id = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
+						   UINT16_MAX + 1);
+  tunnels[ts->specifics.dns.my_id] = ts;
+  memcpy (buf, dns, dlen);
+  dout = (struct GNUNET_TUN_DnsHeader *) buf;
+  dout->id = ts->specifics.dns.my_id;
+  ts->specifics.dns.rs = GNUNET_DNSSTUB_resolve2 (dnsstub,
+						  buf, dlen,
+						  &process_dns_result,
+						  NULL);
+  if (NULL == ts->specifics.dns.rs)
+    return GNUNET_SYSERR;
+  return GNUNET_OK;
+}
 
 
 /**
@@ -439,7 +658,7 @@ get_redirect_state (int af,
   /* Mark this connection as freshly used */
   if (NULL == state_key)
     GNUNET_CONTAINER_heap_update_cost (connections_heap, 
-				       state->heap_node,
+				       state->specifics.tcp_udp.heap_node,
 				       GNUNET_TIME_absolute_get ().abs_value);
   return state;
 }
@@ -542,7 +761,7 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
   struct TunnelMessageQueue *tnq;
 
   s->th = NULL;
-  tnq = s->head;
+  tnq = s->specifics.tcp_udp.head;
   if (NULL == tnq)
     return 0;
   if (0 == size)
@@ -559,11 +778,11 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
   GNUNET_assert (size >= tnq->len);
   memcpy (buf, tnq->payload, tnq->len);
   size = tnq->len;
-  GNUNET_CONTAINER_DLL_remove (s->head, 
-			       s->tail,
+  GNUNET_CONTAINER_DLL_remove (s->specifics.tcp_udp.head, 
+			       s->specifics.tcp_udp.tail,
 			       tnq);  
   GNUNET_free (tnq);
-  if (NULL != (tnq = s->head))
+  if (NULL != (tnq = s->specifics.tcp_udp.head))
     s->th = GNUNET_MESH_notify_transmit_ready (tunnel, 
 					       GNUNET_NO /* corking */, 
 					       GNUNET_TIME_UNIT_FOREVER_REL,
@@ -592,7 +811,7 @@ send_packet_to_mesh_tunnel (struct GNUNET_MESH_Tunnel *mesh_tunnel,
 
   s = GNUNET_MESH_tunnel_get_data (mesh_tunnel);
   GNUNET_assert (NULL != s);
-  GNUNET_CONTAINER_DLL_insert_tail (s->head, s->tail, tnq);
+  GNUNET_CONTAINER_DLL_insert_tail (s->specifics.tcp_udp.head, s->specifics.tcp_udp.tail, tnq);
   if (NULL == s->th)
     s->th = GNUNET_MESH_notify_transmit_ready (mesh_tunnel,
                                                GNUNET_NO /* cork */,
@@ -1220,7 +1439,7 @@ setup_fresh_address (int af,
  * cleaning up 'old' states.
  *
  * @param state skeleton state to setup a record for; should
- *              'state->ri.remote_address' filled in so that
+ *              'state->specifics.tcp_udp.ri.remote_address' filled in so that
  *              this code can determine which AF/protocol is
  *              going to be used (the 'tunnel' should also
  *              already be set); after calling this function,
@@ -1237,47 +1456,47 @@ setup_state_record (struct TunnelState *state)
   /* generate fresh, unique address */
   do
   {
-    if (NULL == state->serv)
-      setup_fresh_address (state->ri.remote_address.af,
-			   state->ri.remote_address.proto,
-			   &state->ri.local_address);
+    if (NULL == state->specifics.tcp_udp.serv)
+      setup_fresh_address (state->specifics.tcp_udp.ri.remote_address.af,
+			   state->specifics.tcp_udp.ri.remote_address.proto,
+			   &state->specifics.tcp_udp.ri.local_address);
     else
-      setup_fresh_address (state->serv->address.af,
-			   state->serv->address.proto,
-			   &state->ri.local_address);
-  } while (NULL != get_redirect_state (state->ri.remote_address.af,
-				       state->ri.remote_address.proto,
-				       &state->ri.remote_address.address,
-				       state->ri.remote_address.port,
-				       &state->ri.local_address.address,
-				       state->ri.local_address.port,
+      setup_fresh_address (state->specifics.tcp_udp.serv->address.af,
+			   state->specifics.tcp_udp.serv->address.proto,
+			   &state->specifics.tcp_udp.ri.local_address);
+  } while (NULL != get_redirect_state (state->specifics.tcp_udp.ri.remote_address.af,
+				       state->specifics.tcp_udp.ri.remote_address.proto,
+				       &state->specifics.tcp_udp.ri.remote_address.address,
+				       state->specifics.tcp_udp.ri.remote_address.port,
+				       &state->specifics.tcp_udp.ri.local_address.address,
+				       state->specifics.tcp_udp.ri.local_address.port,
 				       &key));
   {
     char buf[INET6_ADDRSTRLEN];
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Picked local address %s:%u for new connection\n",
-		inet_ntop (state->ri.local_address.af, 
-			   &state->ri.local_address.address,
+		inet_ntop (state->specifics.tcp_udp.ri.local_address.af, 
+			   &state->specifics.tcp_udp.ri.local_address.address,
 			   buf, sizeof (buf)),
-		(unsigned int) state->ri.local_address.port);
+		(unsigned int) state->specifics.tcp_udp.ri.local_address.port);
   }
-  state->state_key = key;
+  state->specifics.tcp_udp.state_key = key;
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONTAINER_multihashmap_put (connections_map, 
 						    &key, state,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  state->heap_node = GNUNET_CONTAINER_heap_insert (connections_heap,
+  state->specifics.tcp_udp.heap_node = GNUNET_CONTAINER_heap_insert (connections_heap,
 						   state,
 						   GNUNET_TIME_absolute_get ().abs_value);   
   while (GNUNET_CONTAINER_heap_get_size (connections_heap) > max_connections)
   {
     s = GNUNET_CONTAINER_heap_remove_root (connections_heap);
     GNUNET_assert (state != s);
-    s->heap_node = NULL;
+    s->specifics.tcp_udp.heap_node = NULL;
     GNUNET_MESH_tunnel_destroy (s->tunnel);
     GNUNET_assert (GNUNET_OK ==
 		   GNUNET_CONTAINER_multihashmap_remove (connections_map,
-							 &s->state_key, 
+							 &s->specifics.tcp_udp.state_key, 
 							 s));
     GNUNET_free (s);
   }
@@ -1548,10 +1767,11 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
       GNUNET_assert (0);
       break;
     }
-    (void) GNUNET_HELPER_send (helper_handle,
-			       (const struct GNUNET_MessageHeader*) buf,
-			       GNUNET_YES,
-			       NULL, NULL);
+    if (NULL != helper_handle)
+      (void) GNUNET_HELPER_send (helper_handle,
+				 (const struct GNUNET_MessageHeader*) buf,
+				 GNUNET_YES,
+				 NULL, NULL);
   }
 }
 
@@ -1580,6 +1800,16 @@ receive_tcp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   const struct GNUNET_EXIT_TcpServiceStartMessage *start;
   uint16_t pkt_len = ntohs (message->size);
 
+  if (GNUNET_YES == state->is_dns)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if (GNUNET_SYSERR == state->is_dns)
+  {
+    /* tunnel is UDP/TCP from now on */
+    state->is_dns = GNUNET_NO;
+  }
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# TCP service creation requests received via mesh"),
 			    1, GNUNET_NO);
@@ -1595,8 +1825,8 @@ receive_tcp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   start = (const struct GNUNET_EXIT_TcpServiceStartMessage*) message;
   pkt_len -= sizeof (struct GNUNET_EXIT_TcpServiceStartMessage);
   if ( (NULL == state) ||
-       (NULL != state->serv) ||
-       (NULL != state->heap_node) )
+       (NULL != state->specifics.tcp_udp.serv) ||
+       (NULL != state->specifics.tcp_udp.heap_node) )
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -1613,8 +1843,8 @@ receive_tcp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 	      GNUNET_i2s (sender),
 	      GNUNET_h2s (&start->service_descriptor),
 	      (unsigned int) ntohs (start->tcp_header.destination_port));  
-  if (NULL == (state->serv = find_service (tcp_services, &start->service_descriptor, 
-					   ntohs (start->tcp_header.destination_port))))
+  if (NULL == (state->specifics.tcp_udp.serv = find_service (tcp_services, &start->service_descriptor, 
+							     ntohs (start->tcp_header.destination_port))))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
 		_("No service found for %s on port %d!\n"),
@@ -1625,10 +1855,10 @@ receive_tcp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 			      1, GNUNET_NO);
     return GNUNET_SYSERR;
   }
-  state->ri.remote_address = state->serv->address;    
+  state->specifics.tcp_udp.ri.remote_address = state->specifics.tcp_udp.serv->address;    
   setup_state_record (state);
-  send_tcp_packet_via_tun (&state->ri.remote_address,
-			   &state->ri.local_address,
+  send_tcp_packet_via_tun (&state->specifics.tcp_udp.ri.remote_address,
+			   &state->specifics.tcp_udp.ri.local_address,
 			   &start->tcp_header,
 			   &start[1], pkt_len);
   return GNUNET_YES;
@@ -1662,6 +1892,16 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   const void *payload;
   int af;
 
+  if (GNUNET_YES == state->is_dns)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if (GNUNET_SYSERR == state->is_dns)
+  {
+    /* tunnel is UDP/TCP from now on */
+    state->is_dns = GNUNET_NO;
+  }
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Bytes received from MESH"),
 			    pkt_len, GNUNET_NO);
@@ -1676,8 +1916,8 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   start = (const struct GNUNET_EXIT_TcpInternetStartMessage*) message;
   pkt_len -= sizeof (struct GNUNET_EXIT_TcpInternetStartMessage);  
   if ( (NULL == state) ||
-       (NULL != state->serv) ||
-       (NULL != state->heap_node) )
+       (NULL != state->specifics.tcp_udp.serv) ||
+       (NULL != state->specifics.tcp_udp.heap_node) )
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -1688,7 +1928,7 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     return GNUNET_SYSERR;
   }
   af = (int) ntohl (start->af);
-  state->ri.remote_address.af = af;
+  state->specifics.tcp_udp.ri.remote_address.af = af;
   switch (af)
   {
   case AF_INET:
@@ -1705,7 +1945,7 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     v4 = (const struct in_addr*) &start[1];
     payload = &v4[1];
     pkt_len -= sizeof (struct in_addr);
-    state->ri.remote_address.address.ipv4 = *v4;
+    state->specifics.tcp_udp.ri.remote_address.address.ipv4 = *v4;
     break;
   case AF_INET6:
     if (pkt_len < sizeof (struct in6_addr))
@@ -1721,7 +1961,7 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     v6 = (const struct in6_addr*) &start[1];
     payload = &v6[1];
     pkt_len -= sizeof (struct in6_addr);
-    state->ri.remote_address.address.ipv6 = *v6;
+    state->specifics.tcp_udp.ri.remote_address.address.ipv6 = *v6;
     break;
   default:
     GNUNET_break_op (0);
@@ -1733,15 +1973,15 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 		"Received data from %s for starting TCP stream to %s:%u\n",
 		GNUNET_i2s (sender),
 		inet_ntop (af, 
-			   &state->ri.remote_address.address,
+			   &state->specifics.tcp_udp.ri.remote_address.address,
 			   buf, sizeof (buf)),
 		(unsigned int) ntohs (start->tcp_header.destination_port));  
   }
-  state->ri.remote_address.proto = IPPROTO_TCP;
-  state->ri.remote_address.port = ntohs (start->tcp_header.destination_port);
+  state->specifics.tcp_udp.ri.remote_address.proto = IPPROTO_TCP;
+  state->specifics.tcp_udp.ri.remote_address.port = ntohs (start->tcp_header.destination_port);
   setup_state_record (state);
-  send_tcp_packet_via_tun (&state->ri.remote_address,
-			   &state->ri.local_address,
+  send_tcp_packet_via_tun (&state->specifics.tcp_udp.ri.remote_address,
+			   &state->specifics.tcp_udp.ri.local_address,
 			   &start->tcp_header,
 			   payload, pkt_len);
   return GNUNET_YES;
@@ -1772,6 +2012,16 @@ receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   const struct GNUNET_EXIT_TcpDataMessage *data;
   uint16_t pkt_len = ntohs (message->size);
 
+  if (GNUNET_YES == state->is_dns)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if (GNUNET_SYSERR == state->is_dns)
+  {
+    /* tunnel is UDP/TCP from now on */
+    state->is_dns = GNUNET_NO;
+  }
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Bytes received from MESH"),
 			    pkt_len, GNUNET_NO);
@@ -1786,7 +2036,7 @@ receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   data = (const struct GNUNET_EXIT_TcpDataMessage*) message;
   pkt_len -= sizeof (struct GNUNET_EXIT_TcpDataMessage);  
   if ( (NULL == state) ||
-       (NULL == state->heap_node) )
+       (NULL == state->specifics.tcp_udp.heap_node) )
   {
     /* connection should have been up! */
     GNUNET_STATISTICS_update (stats,
@@ -1807,14 +2057,14 @@ receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 		"Received additional %u bytes of data from %s for TCP stream to %s:%u\n",
 		pkt_len,
 		GNUNET_i2s (sender),
-		inet_ntop (state->ri.remote_address.af, 
-			   &state->ri.remote_address.address,
+		inet_ntop (state->specifics.tcp_udp.ri.remote_address.af, 
+			   &state->specifics.tcp_udp.ri.remote_address.address,
 			   buf, sizeof (buf)),
-		(unsigned int) state->ri.remote_address.port);
+		(unsigned int) state->specifics.tcp_udp.ri.remote_address.port);
   }
 
-  send_tcp_packet_via_tun (&state->ri.remote_address,
-			   &state->ri.local_address,
+  send_tcp_packet_via_tun (&state->specifics.tcp_udp.ri.remote_address,
+			   &state->specifics.tcp_udp.ri.local_address,
 			   &data->tcp_header,
 			   &data[1], pkt_len);
   return GNUNET_YES;
@@ -1914,10 +2164,11 @@ send_icmp_packet_via_tun (const struct SocketAddress *destination_address,
     GNUNET_TUN_calculate_icmp_checksum (icmp,
 					payload,
 					payload_length);
-    (void) GNUNET_HELPER_send (helper_handle,
-			       (const struct GNUNET_MessageHeader*) buf,
-			       GNUNET_YES,
-			       NULL, NULL);
+    if (NULL != helper_handle)
+      (void) GNUNET_HELPER_send (helper_handle,
+				 (const struct GNUNET_MessageHeader*) buf,
+				 GNUNET_YES,
+				 NULL, NULL);
   }
 }
 
@@ -1937,12 +2188,12 @@ make_up_icmpv4_payload (struct TunnelState *state,
 			struct GNUNET_TUN_UdpHeader *udp)
 {
   GNUNET_TUN_initialize_ipv4_header (ipp,
-				     state->ri.remote_address.proto,
+				     state->specifics.tcp_udp.ri.remote_address.proto,
 				     sizeof (struct GNUNET_TUN_TcpHeader),
-				     &state->ri.remote_address.address.ipv4,
-				     &state->ri.local_address.address.ipv4);
-  udp->source_port = htons (state->ri.remote_address.port);
-  udp->destination_port = htons (state->ri.local_address.port);
+				     &state->specifics.tcp_udp.ri.remote_address.address.ipv4,
+				     &state->specifics.tcp_udp.ri.local_address.address.ipv4);
+  udp->source_port = htons (state->specifics.tcp_udp.ri.remote_address.port);
+  udp->destination_port = htons (state->specifics.tcp_udp.ri.local_address.port);
   udp->len = htons (0);
   udp->crc = htons (0);
 }
@@ -1963,12 +2214,12 @@ make_up_icmpv6_payload (struct TunnelState *state,
 			struct GNUNET_TUN_UdpHeader *udp)
 {
   GNUNET_TUN_initialize_ipv6_header (ipp,
-				     state->ri.remote_address.proto,
+				     state->specifics.tcp_udp.ri.remote_address.proto,
 				     sizeof (struct GNUNET_TUN_TcpHeader),
-				     &state->ri.remote_address.address.ipv6,
-				     &state->ri.local_address.address.ipv6);
-  udp->source_port = htons (state->ri.remote_address.port);
-  udp->destination_port = htons (state->ri.local_address.port);
+				     &state->specifics.tcp_udp.ri.remote_address.address.ipv6,
+				     &state->specifics.tcp_udp.ri.local_address.address.ipv6);
+  udp->source_port = htons (state->specifics.tcp_udp.ri.remote_address.port);
+  udp->destination_port = htons (state->specifics.tcp_udp.ri.local_address.port);
   udp->len = htons (0);
   udp->crc = htons (0);
 }
@@ -2002,6 +2253,16 @@ receive_icmp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   char buf[sizeof (struct GNUNET_TUN_IPv6Header) + 8] GNUNET_ALIGN;
   int af;
 
+  if (GNUNET_YES == state->is_dns)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if (GNUNET_SYSERR == state->is_dns)
+  {
+    /* tunnel is UDP/TCP from now on */
+    state->is_dns = GNUNET_NO;
+  }
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Bytes received from MESH"),
 			    pkt_len, GNUNET_NO);
@@ -2017,8 +2278,8 @@ receive_icmp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   pkt_len -= sizeof (struct GNUNET_EXIT_IcmpInternetMessage);  
 
   af = (int) ntohl (msg->af);
-  if ( (NULL != state->heap_node) &&
-       (af != state->ri.remote_address.af) )
+  if ( (NULL != state->specifics.tcp_udp.heap_node) &&
+       (af != state->specifics.tcp_udp.ri.remote_address.af) )
   {
     /* other peer switched AF on this tunnel; not allowed */
     GNUNET_break_op (0);
@@ -2041,11 +2302,11 @@ receive_icmp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     v4 = (const struct in_addr*) &msg[1];
     payload = &v4[1];
     pkt_len -= sizeof (struct in_addr);
-    state->ri.remote_address.address.ipv4 = *v4;
-    if (NULL == state->heap_node)
+    state->specifics.tcp_udp.ri.remote_address.address.ipv4 = *v4;
+    if (NULL == state->specifics.tcp_udp.heap_node)
     {
-      state->ri.remote_address.af = af;
-      state->ri.remote_address.proto = IPPROTO_ICMP;
+      state->specifics.tcp_udp.ri.remote_address.af = af;
+      state->specifics.tcp_udp.ri.remote_address.proto = IPPROTO_ICMP;
       setup_state_record (state);
     }
     /* check that ICMP type is something we want to support 
@@ -2099,11 +2360,11 @@ receive_icmp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     v6 = (const struct in6_addr*) &msg[1];
     payload = &v6[1];
     pkt_len -= sizeof (struct in6_addr);
-    state->ri.remote_address.address.ipv6 = *v6;
-    if (NULL == state->heap_node)
+    state->specifics.tcp_udp.ri.remote_address.address.ipv6 = *v6;
+    if (NULL == state->specifics.tcp_udp.heap_node)
     {
-      state->ri.remote_address.af = af;
-      state->ri.remote_address.proto = IPPROTO_ICMPV6;
+      state->specifics.tcp_udp.ri.remote_address.af = af;
+      state->specifics.tcp_udp.ri.remote_address.proto = IPPROTO_ICMPV6;
       setup_state_record (state);
     }
     /* check that ICMP type is something we want to support 
@@ -2156,11 +2417,11 @@ receive_icmp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 		"Received ICMP data from %s for forwarding to %s\n",
 		GNUNET_i2s (sender),
 		inet_ntop (af, 
-			   &state->ri.remote_address.address,
+			   &state->specifics.tcp_udp.ri.remote_address.address,
 			   buf, sizeof (buf)));
   }
-  send_icmp_packet_via_tun (&state->ri.remote_address,
-			    &state->ri.local_address,
+  send_icmp_packet_via_tun (&state->specifics.tcp_udp.ri.remote_address,
+			    &state->specifics.tcp_udp.ri.local_address,
 			    &msg->icmp_header,
 			    payload, pkt_len);
   return GNUNET_YES;
@@ -2180,7 +2441,7 @@ static uint16_t
 make_up_icmp_service_payload (struct TunnelState *state,
 			      char *buf)
 {
-  switch (state->serv->address.af)
+  switch (state->specifics.tcp_udp.serv->address.af)
   {
   case AF_INET:
     {
@@ -2244,6 +2505,16 @@ receive_icmp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel
   char buf[sizeof (struct GNUNET_TUN_IPv6Header) + 8] GNUNET_ALIGN;
   const void *payload;
 
+  if (GNUNET_YES == state->is_dns)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if (GNUNET_SYSERR == state->is_dns)
+  {
+    /* tunnel is UDP/TCP from now on */
+    state->is_dns = GNUNET_NO;
+  }
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Bytes received from MESH"),
 			    pkt_len, GNUNET_NO);
@@ -2262,7 +2533,7 @@ receive_icmp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel
 	      "Received data from %s for forwarding to ICMP service %s\n",
 	      GNUNET_i2s (sender),
 	      GNUNET_h2s (&msg->service_descriptor));
-  if (NULL == state->serv)
+  if (NULL == state->specifics.tcp_udp.serv)
   {
     /* first packet to service must not be ICMP (cannot determine service!) */
     GNUNET_break_op (0);
@@ -2270,7 +2541,7 @@ receive_icmp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel
   }
   icmp = msg->icmp_header;
   payload = &msg[1];
-  state->ri.remote_address = state->serv->address;    
+  state->specifics.tcp_udp.ri.remote_address = state->specifics.tcp_udp.serv->address;    
   setup_state_record (state);
 
   /* check that ICMP type is something we want to support,
@@ -2281,15 +2552,15 @@ receive_icmp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel
     switch (msg->icmp_header.type)
     {
     case GNUNET_TUN_ICMPTYPE_ECHO_REPLY:
-      if (state->serv->address.af == AF_INET6)
+      if (state->specifics.tcp_udp.serv->address.af == AF_INET6)
 	icmp.type = GNUNET_TUN_ICMPTYPE6_ECHO_REPLY;
       break;
     case GNUNET_TUN_ICMPTYPE_ECHO_REQUEST:
-      if (state->serv->address.af == AF_INET6)
+      if (state->specifics.tcp_udp.serv->address.af == AF_INET6)
 	icmp.type = GNUNET_TUN_ICMPTYPE6_ECHO_REQUEST;
       break;
     case GNUNET_TUN_ICMPTYPE_DESTINATION_UNREACHABLE:
-      if (state->serv->address.af == AF_INET6)
+      if (state->specifics.tcp_udp.serv->address.af == AF_INET6)
 	icmp.type = GNUNET_TUN_ICMPTYPE6_DESTINATION_UNREACHABLE;
       if (0 != pkt_len)
       {
@@ -2300,7 +2571,7 @@ receive_icmp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel
       pkt_len = make_up_icmp_service_payload (state, buf);
       break;
     case GNUNET_TUN_ICMPTYPE_TIME_EXCEEDED:
-      if (state->serv->address.af == AF_INET6)
+      if (state->specifics.tcp_udp.serv->address.af == AF_INET6)
 	icmp.type = GNUNET_TUN_ICMPTYPE6_TIME_EXCEEDED;
       if (0 != pkt_len)
       {
@@ -2311,7 +2582,7 @@ receive_icmp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel
       pkt_len = make_up_icmp_service_payload (state, buf);
       break;
     case GNUNET_TUN_ICMPTYPE_SOURCE_QUENCH:
-      if (state->serv->address.af == AF_INET6)
+      if (state->specifics.tcp_udp.serv->address.af == AF_INET6)
       {
 	GNUNET_STATISTICS_update (stats,
 				  gettext_noop ("# ICMPv4 packets dropped (impossible PT to v6)"),
@@ -2339,15 +2610,15 @@ receive_icmp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel
     switch (msg->icmp_header.type)
     {
     case GNUNET_TUN_ICMPTYPE6_ECHO_REPLY:
-      if (state->serv->address.af == AF_INET)
+      if (state->specifics.tcp_udp.serv->address.af == AF_INET)
 	icmp.type = GNUNET_TUN_ICMPTYPE_ECHO_REPLY;
       break;
     case GNUNET_TUN_ICMPTYPE6_ECHO_REQUEST:
-      if (state->serv->address.af == AF_INET)
+      if (state->specifics.tcp_udp.serv->address.af == AF_INET)
 	icmp.type = GNUNET_TUN_ICMPTYPE_ECHO_REQUEST;
       break;
     case GNUNET_TUN_ICMPTYPE6_DESTINATION_UNREACHABLE:
-      if (state->serv->address.af == AF_INET)
+      if (state->specifics.tcp_udp.serv->address.af == AF_INET)
 	icmp.type = GNUNET_TUN_ICMPTYPE_DESTINATION_UNREACHABLE;
       if (0 != pkt_len)
       {
@@ -2358,7 +2629,7 @@ receive_icmp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel
       pkt_len = make_up_icmp_service_payload (state, buf);
       break;
     case GNUNET_TUN_ICMPTYPE6_TIME_EXCEEDED:
-      if (state->serv->address.af == AF_INET)
+      if (state->specifics.tcp_udp.serv->address.af == AF_INET)
 	icmp.type = GNUNET_TUN_ICMPTYPE_TIME_EXCEEDED;
       if (0 != pkt_len)
       {
@@ -2370,7 +2641,7 @@ receive_icmp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel
       break;
     case GNUNET_TUN_ICMPTYPE6_PACKET_TOO_BIG:
     case GNUNET_TUN_ICMPTYPE6_PARAMETER_PROBLEM:
-      if (state->serv->address.af == AF_INET)
+      if (state->specifics.tcp_udp.serv->address.af == AF_INET)
       {
 	GNUNET_STATISTICS_update (stats,
 				  gettext_noop ("# ICMPv6 packets dropped (impossible PT to v4)"),
@@ -2399,8 +2670,8 @@ receive_icmp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel
     return GNUNET_SYSERR;
   }
 
-  send_icmp_packet_via_tun (&state->ri.remote_address,
-			    &state->ri.local_address,
+  send_icmp_packet_via_tun (&state->specifics.tcp_udp.ri.remote_address,
+			    &state->specifics.tcp_udp.ri.local_address,
 			    &icmp,
 			    payload, pkt_len);
   return GNUNET_YES;
@@ -2490,10 +2761,11 @@ send_udp_packet_via_tun (const struct SocketAddress *destination_address,
       GNUNET_assert (0);
       break;
     }
-    (void) GNUNET_HELPER_send (helper_handle,
-			       (const struct GNUNET_MessageHeader*) buf,
-			       GNUNET_YES,
-			       NULL, NULL);
+    if (NULL != helper_handle)
+      (void) GNUNET_HELPER_send (helper_handle,
+				 (const struct GNUNET_MessageHeader*) buf,
+				 GNUNET_YES,
+				 NULL, NULL);
   }
 }
 
@@ -2525,6 +2797,16 @@ receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   const void *payload;
   int af;
 
+  if (GNUNET_YES == state->is_dns)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if (GNUNET_SYSERR == state->is_dns)
+  {
+    /* tunnel is UDP/TCP from now on */
+    state->is_dns = GNUNET_NO;
+  }
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Bytes received from MESH"),
 			    pkt_len, GNUNET_NO);
@@ -2539,7 +2821,7 @@ receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   msg = (const struct GNUNET_EXIT_UdpInternetMessage*) message;
   pkt_len -= sizeof (struct GNUNET_EXIT_UdpInternetMessage);  
   af = (int) ntohl (msg->af);
-  state->ri.remote_address.af = af;
+  state->specifics.tcp_udp.ri.remote_address.af = af;
   switch (af)
   {
   case AF_INET:
@@ -2556,7 +2838,7 @@ receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     v4 = (const struct in_addr*) &msg[1];
     payload = &v4[1];
     pkt_len -= sizeof (struct in_addr);
-    state->ri.remote_address.address.ipv4 = *v4;
+    state->specifics.tcp_udp.ri.remote_address.address.ipv4 = *v4;
     break;
   case AF_INET6:
     if (pkt_len < sizeof (struct in6_addr))
@@ -2572,7 +2854,7 @@ receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     v6 = (const struct in6_addr*) &msg[1];
     payload = &v6[1];
     pkt_len -= sizeof (struct in6_addr);
-    state->ri.remote_address.address.ipv6 = *v6;
+    state->specifics.tcp_udp.ri.remote_address.address.ipv6 = *v6;
     break;
   default:
     GNUNET_break_op (0);
@@ -2584,18 +2866,18 @@ receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 		"Received data from %s for forwarding to UDP %s:%u\n",
 		GNUNET_i2s (sender),
 		inet_ntop (af, 
-			   &state->ri.remote_address.address,
+			   &state->specifics.tcp_udp.ri.remote_address.address,
 			   buf, sizeof (buf)),
 		(unsigned int) ntohs (msg->destination_port));  
   }
-  state->ri.remote_address.proto = IPPROTO_UDP;
-  state->ri.remote_address.port = msg->destination_port;
-  if (NULL == state->heap_node)
+  state->specifics.tcp_udp.ri.remote_address.proto = IPPROTO_UDP;
+  state->specifics.tcp_udp.ri.remote_address.port = msg->destination_port;
+  if (NULL == state->specifics.tcp_udp.heap_node)
     setup_state_record (state);
   if (0 != ntohs (msg->source_port))
-    state->ri.local_address.port = msg->source_port;
-  send_udp_packet_via_tun (&state->ri.remote_address,
-			   &state->ri.local_address,
+    state->specifics.tcp_udp.ri.local_address.port = msg->source_port;
+  send_udp_packet_via_tun (&state->specifics.tcp_udp.ri.remote_address,
+			   &state->specifics.tcp_udp.ri.local_address,
 			   payload, pkt_len);
   return GNUNET_YES;
 }
@@ -2625,6 +2907,16 @@ receive_udp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   const struct GNUNET_EXIT_UdpServiceMessage *msg;
   uint16_t pkt_len = ntohs (message->size);
 
+  if (GNUNET_YES == state->is_dns)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if (GNUNET_SYSERR == state->is_dns)
+  {
+    /* tunnel is UDP/TCP from now on */
+    state->is_dns = GNUNET_NO;
+  }
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Bytes received from MESH"),
 			    pkt_len, GNUNET_NO);
@@ -2639,13 +2931,13 @@ receive_udp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   }
   msg = (const struct GNUNET_EXIT_UdpServiceMessage*) message;
   pkt_len -= sizeof (struct GNUNET_EXIT_UdpServiceMessage);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received data from %s for forwarding to UDP service %s on port %u\n",
-	      GNUNET_i2s (sender),
-	      GNUNET_h2s (&msg->service_descriptor),
-	      (unsigned int) ntohs (msg->destination_port));  
-  if (NULL == (state->serv = find_service (udp_services, &msg->service_descriptor, 
-					   ntohs (msg->destination_port))))
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received data from %s for forwarding to UDP service %s on port %u\n",
+       GNUNET_i2s (sender),
+       GNUNET_h2s (&msg->service_descriptor),
+       (unsigned int) ntohs (msg->destination_port));  
+  if (NULL == (state->specifics.tcp_udp.serv = find_service (udp_services, &msg->service_descriptor, 
+							     ntohs (msg->destination_port))))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
 		_("No service found for %s on port %d!\n"),
@@ -2656,12 +2948,12 @@ receive_udp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 			      1, GNUNET_NO);
     return GNUNET_SYSERR;
   }
-  state->ri.remote_address = state->serv->address;    
+  state->specifics.tcp_udp.ri.remote_address = state->specifics.tcp_udp.serv->address;    
   setup_state_record (state);
   if (0 != ntohs (msg->source_port))
-    state->ri.local_address.port = msg->source_port;
-  send_udp_packet_via_tun (&state->ri.remote_address,
-			   &state->ri.local_address,
+    state->specifics.tcp_udp.ri.local_address.port = msg->source_port;
+  send_udp_packet_via_tun (&state->specifics.tcp_udp.ri.remote_address,
+			   &state->specifics.tcp_udp.ri.local_address,
 			   &msg[1], pkt_len);
   return GNUNET_YES;
 }
@@ -2683,6 +2975,7 @@ new_tunnel (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 {
   struct TunnelState *s = GNUNET_malloc (sizeof (struct TunnelState));
 
+  s->is_dns = GNUNET_SYSERR;
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Inbound MESH tunnels created"),
 			    1, GNUNET_NO);
@@ -2710,23 +3003,37 @@ clean_tunnel (void *cls GNUNET_UNUSED, const struct GNUNET_MESH_Tunnel *tunnel,
   struct TunnelState *s = tunnel_ctx;
   struct TunnelMessageQueue *tnq;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Tunnel destroyed\n");
-  while (NULL != (tnq = s->head))
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Tunnel destroyed\n");
+  if (GNUNET_SYSERR == s->is_dns)
   {
-    GNUNET_CONTAINER_DLL_remove (s->head,
-				 s->tail,
-				 tnq);
-    GNUNET_free (tnq);
+    GNUNET_free (s);
+    return;
   }
-  if (s->heap_node != NULL)
+  if (GNUNET_YES == s->is_dns)
   {
-    GNUNET_assert (GNUNET_YES ==
-		   GNUNET_CONTAINER_multihashmap_remove (connections_map,
-							 &s->state_key,
-							 s));
-    GNUNET_CONTAINER_heap_remove_node (s->heap_node);
-    s->heap_node = NULL;
+    if (tunnels[s->specifics.dns.my_id] == s)
+      tunnels[s->specifics.dns.my_id] = NULL;
+    GNUNET_free_non_null (s->specifics.dns.reply);      
+  }
+  else
+  {
+    while (NULL != (tnq = s->specifics.tcp_udp.head))
+    {
+      GNUNET_CONTAINER_DLL_remove (s->specifics.tcp_udp.head,
+				   s->specifics.tcp_udp.tail,
+				   tnq);
+      GNUNET_free (tnq);
+    }
+    if (NULL != s->specifics.tcp_udp.heap_node)
+    {
+      GNUNET_assert (GNUNET_YES ==
+		     GNUNET_CONTAINER_multihashmap_remove (connections_map,
+							   &s->specifics.tcp_udp.state_key,
+							   s));
+      GNUNET_CONTAINER_heap_remove_node (s->specifics.tcp_udp.heap_node);
+      s->specifics.tcp_udp.heap_node = NULL;
+    }
   }
   if (NULL != s->th)
   {
@@ -2764,6 +3071,7 @@ cleanup (void *cls GNUNET_UNUSED,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Exit service is shutting down now\n");
+
   if (helper_handle != NULL)
   {
     GNUNET_HELPER_stop (helper_handle);
@@ -2796,6 +3104,11 @@ cleanup (void *cls GNUNET_UNUSED,
     GNUNET_CONTAINER_multihashmap_iterate (udp_services, &free_service_record, NULL);
     GNUNET_CONTAINER_multihashmap_destroy (udp_services);
     udp_services = NULL;
+  }
+  if (NULL != dnsstub)
+  {
+    GNUNET_DNSSTUB_stop (dnsstub);
+    dnsstub = NULL;
   }
   if (stats != NULL)
   {
@@ -2998,10 +3311,12 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     {&receive_tcp_service, GNUNET_MESSAGE_TYPE_VPN_TCP_TO_SERVICE_START, 0},
     {&receive_tcp_remote, GNUNET_MESSAGE_TYPE_VPN_TCP_TO_INTERNET_START, 0},
     {&receive_tcp_data, GNUNET_MESSAGE_TYPE_VPN_TCP_DATA_TO_EXIT, 0},
+    {&receive_dns_request, GNUNET_MESSAGE_TYPE_VPN_DNS_TO_INTERNET, 0},
     {NULL, 0, 0}
   };
 
   static GNUNET_MESH_ApplicationType apptypes[] = {
+    GNUNET_APPLICATION_TYPE_END,
     GNUNET_APPLICATION_TYPE_END,
     GNUNET_APPLICATION_TYPE_END,
     GNUNET_APPLICATION_TYPE_END
@@ -3016,25 +3331,31 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   char *binary;
   char *regex;
   char *prefixed_regex;
+  struct in_addr dns_exit4;
+  struct in6_addr dns_exit6;
+  char *dns_exit;
 
-  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-exit");
-  if (GNUNET_YES !=
-      GNUNET_OS_check_helper_binary (binary))
-  {
-    GNUNET_free (binary);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("`%s' must be installed SUID, refusing to run\n"),
-		"gnunet-helper-exit");
-    global_ret = 1;
-    return;
-  }
-  GNUNET_free (binary);
   cfg = cfg_;
-  stats = GNUNET_STATISTICS_create ("exit", cfg);
   ipv4_exit = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "EXIT_IPV4");
   ipv6_exit = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "EXIT_IPV6"); 
   ipv4_enabled = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "ENABLE_IPV4");
   ipv6_enabled = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "ENABLE_IPV6"); 
+  if ( (ipv4_exit) || (ipv6_exit) )
+  {
+    binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-exit");
+    if (GNUNET_YES !=
+	GNUNET_OS_check_helper_binary (binary))
+    {
+      GNUNET_free (binary);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("`%s' must be installed SUID, refusing to run\n"),
+		  "gnunet-helper-exit");
+      global_ret = 1;
+      return;
+    }
+    GNUNET_free (binary);
+  }
+  stats = GNUNET_STATISTICS_create ("exit", cfg);
 
   if ( (ipv4_exit || ipv4_enabled) &&
        GNUNET_OK != GNUNET_NETWORK_test_pf (PF_INET))
@@ -3071,6 +3392,26 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     GNUNET_SCHEDULER_shutdown ();
     return;    
   }
+
+  dns_exit = NULL;
+  if ( (GNUNET_YES ==
+	GNUNET_CONFIGURATION_get_value_yesno (cfg_, "exit", "ENABLE_DNS")) &&
+       ( (GNUNET_OK !=
+	  GNUNET_CONFIGURATION_get_value_string (cfg, "exit", 
+						 "DNS_RESOLVER",
+						 &dns_exit)) ||
+	 ( (1 != inet_pton (AF_INET, dns_exit, &dns_exit4)) &&
+	   (1 != inet_pton (AF_INET6, dns_exit, &dns_exit6)) ) ) )
+  {
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "dns", "DNS_RESOLVER",
+		_("need a valid IPv4 or IPv6 address\n"));
+    GNUNET_free_non_null (dns_exit);
+    dns_exit = NULL;
+  }
+  if (NULL != dns_exit)
+    dnsstub = GNUNET_DNSSTUB_start (dns_exit);
+
+
   app_idx = 0;
   if (GNUNET_YES == ipv4_exit)    
   {
@@ -3080,6 +3421,11 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   if (GNUNET_YES == ipv6_exit)    
   {
     apptypes[app_idx] = GNUNET_APPLICATION_TYPE_IPV6_GATEWAY;
+    app_idx++;
+  }
+  if (NULL != dns_exit)
+  {
+    apptypes[app_idx] = GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER;
     app_idx++;
   }
 
@@ -3242,12 +3588,12 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     GNUNET_free (regex);
     GNUNET_free (prefixed_regex);
   }
-
-  helper_handle = GNUNET_HELPER_start (GNUNET_NO,
-				       "gnunet-helper-exit", 
-				       exit_argv,
-				       &message_token,
-				       NULL, NULL);
+  if ((ipv4_exit) || (ipv6_exit))
+    helper_handle = GNUNET_HELPER_start (GNUNET_NO,
+					 "gnunet-helper-exit", 
+					 exit_argv,
+					 &message_token,
+					 NULL, NULL);
 }
 
 

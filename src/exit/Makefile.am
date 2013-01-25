@@ -36,6 +36,7 @@ gnunet_helper_exit_SOURCES = \
 gnunet_daemon_exit_SOURCES = \
  gnunet-daemon-exit.c exit.h 
 gnunet_daemon_exit_LDADD = \
+  $(top_builddir)/src/dns/libgnunetdnsstub.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/tun/libgnunettun.la \
