@@ -69,6 +69,11 @@ struct ForwardedOperationContext *fopcq_head;
 struct ForwardedOperationContext *fopcq_tail;
 
 /**
+ * Operation queue for open file descriptors
+ */
+struct OperationQueue *GST_opq_openfds;
+
+/**
  * The size of the host list
  */
 unsigned int GST_host_list_size;
@@ -2113,6 +2118,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CONFIGURATION_destroy (our_config);
   /* Free hello cache */
   GST_cache_clear ();
+  GNUNET_TESTBED_operation_queue_destroy_ (GST_opq_openfds);
+  GST_opq_openfds = NULL;
 }
 
 
@@ -2197,6 +2204,7 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_SERVER_add_handlers (server, message_handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect_cb, NULL);
   ss_map = GNUNET_CONTAINER_multihashmap_create (5, GNUNET_NO);
+  GST_opq_openfds = GNUNET_TESTBED_operation_queue_create_ (GST_QLEN_OPENFDS);
   shutdown_task_id =
       GNUNET_SCHEDULER_add_delayed_with_priority (GNUNET_TIME_UNIT_FOREVER_REL,
                                                   GNUNET_SCHEDULER_PRIORITY_IDLE,

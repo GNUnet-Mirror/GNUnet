@@ -55,6 +55,11 @@
 #define LIST_GROW_STEP 10
 
 /**
+ * How long should the operation queue for open file descriptors be?
+ */
+#define GST_QLEN_OPENFDS 512
+
+/**
  * Default timeout for operations which may take some time
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 15)
@@ -604,6 +609,11 @@ extern struct GNUNET_TESTBED_Host **GST_host_list;
  * A list of directly linked neighbours
  */
 extern struct Slave **GST_slave_list;
+
+/**
+ * Operation queue for open file descriptors
+ */
+extern struct OperationQueue *GST_opq_openfds;
 
 /**
  * The size of the peer list

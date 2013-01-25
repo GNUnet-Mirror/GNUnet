@@ -1006,13 +1006,24 @@ GST_handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
   uint32_t p2; 
   uint32_t peer2_host_id;
 
+  if (sizeof (struct GNUNET_TESTBED_OverlayConnectMessage)
+      != ntohs (message->size))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   msg = (const struct GNUNET_TESTBED_OverlayConnectMessage *) message;
   p1 = ntohl (msg->peer1);
   p2 = ntohl (msg->peer2);
-  peer2_host_id = ntohl (msg->peer2_host_id);
-  GNUNET_assert (p1 < GST_peer_list_size);
-  GNUNET_assert (NULL != GST_peer_list[p1]);
+  if ((p1 >= GST_peer_list_size) || (NULL == GST_peer_list[p1]))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   peer = GST_peer_list[p1];
+  peer2_host_id = ntohl (msg->peer2_host_id);
   operation_id = GNUNET_ntohll (msg->operation_id);  
   LOG_DEBUG ("Received overlay connect for peers %u and %u with op id: 0x%llx\n",
 	     p1, p2, operation_id);
