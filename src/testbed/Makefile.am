@@ -37,7 +37,8 @@ noinst_PROGRAMS = \
   $(ll_noinst_binaries)
 
 gnunet_service_testbed_SOURCES = \
-  gnunet-service-testbed.c
+  gnunet-service-testbed.c \
+  gnunet-service-testbed.h
 gnunet_service_testbed_LDADD = $(XLIB) \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/core/libgnunetcore.la \
