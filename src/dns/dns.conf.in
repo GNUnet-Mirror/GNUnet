@@ -15,14 +15,6 @@ UNIX_MATCH_GID = YES
 # we never use it, even if @UNIXONLY@ is not set (just to be safe)
 @UNIXONLY@ PORT = 0
 
-# This option should be set to YES to allow the DNS service to 
-# perform lookups against the locally configured DNS resolver.
-# (set to "NO" if no normal ISP is locally available and thus
-# requests for normal ".com"/".org"/etc. must be routed via 
-# the GNUnet VPN (the GNUNET PT daemon then needs to be configured
-# to intercept and route DNS queries via mesh).
-PROVIDE_EXIT = YES
-
 # Name of the virtual interface we use to intercept DNS traffic.
 IFNAME = gnunet-dns
 

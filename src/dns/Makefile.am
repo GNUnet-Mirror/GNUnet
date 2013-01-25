@@ -75,7 +75,6 @@ gnunet_service_dns_SOURCES = \
 gnunet_service_dns_LDADD = \
   $(top_builddir)/src/dns/libgnunetdnsstub.la \
   $(top_builddir)/src/tun/libgnunettun.la \
-  $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
