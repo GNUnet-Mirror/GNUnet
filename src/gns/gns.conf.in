@@ -68,3 +68,6 @@ HOME = $SERVICEHOME
 [dns2gns]
 BINARY = gnunet-dns2gns
 AUTOSTART = NO
+
+# -d: DNS resolver to use, -s: suffix to use, -f: fcfs suffix to use
+OPTIONS = -d 8.8.8.8
