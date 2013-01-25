@@ -306,261 +306,6 @@ struct Peer
 
 
 /**
- * Context information for transport try connect
- */
-struct TryConnectContext
-{
-  /**
-   * The identity of the peer to which the transport has to attempt a connection
-   */
-  struct GNUNET_PeerIdentity *pid;
-
-  /**
-   * The transport handle
-   */
-  struct GNUNET_TRANSPORT_Handle *th;
-
-  /**
-   * the try connect handle
-   */
-  struct GNUNET_TRANSPORT_TryConnectHandle *tch;
-
-  /**
-   * The task handle
-   */
-  GNUNET_SCHEDULER_TaskIdentifier task;
-
-  /**
-   * The id of the operation which is resposible for this context
-   */
-  uint64_t op_id;
-
-  /**
-   * The number of times we attempted to connect
-   */
-  unsigned int retries;
-
-};
-
-
-/**
- * Context information for connecting 2 peers in overlay
- */
-struct OverlayConnectContext
-{
-  /**
-   * The next pointer for maintaining a DLL
-   */
-  struct OverlayConnectContext *next;
-
-  /**
-   * The prev pointer for maintaining a DLL
-   */
-  struct OverlayConnectContext *prev;
-  
-  /**
-   * The client which has requested for overlay connection
-   */
-  struct GNUNET_SERVER_Client *client;
-
-  /**
-   * the peer which has to connect to the other peer
-   */
-  struct Peer *peer;
-
-  /**
-   * Transport handle of the first peer to get its HELLO
-   */
-  struct GNUNET_TRANSPORT_Handle *p1th;
-
-  /**
-   * Core handles of the first peer; used to notify when second peer connects to it
-   */
-  struct GNUNET_CORE_Handle *ch;
-
-  /**
-   * HELLO of the other peer
-   */
-  struct GNUNET_MessageHeader *hello;
-
-  /**
-   * Get hello handle to acquire HELLO of first peer
-   */
-  struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
-
-  /**
-   * The handle for offering HELLO
-   */
-  struct GNUNET_TRANSPORT_OfferHelloHandle *ohh;
-
-  /**
-   * The error message we send if this overlay connect operation has timed out
-   */
-  char *emsg;
-
-  /**
-   * Operation context for suboperations
-   */
-  struct OperationContext *opc;
-
-  /**
-   * Controller of peer 2; NULL if the peer is local
-   */
-  struct GNUNET_TESTBED_Controller *peer2_controller;
-
-  /**
-   * The transport try connect context
-   */
-  struct TryConnectContext tcc;
-
-  /**
-   * The peer identity of the first peer
-   */
-  struct GNUNET_PeerIdentity peer_identity;
-
-  /**
-   * The peer identity of the other peer
-   */
-  struct GNUNET_PeerIdentity other_peer_identity;
-
-  /**
-   * The id of the operation responsible for creating this context
-   */
-  uint64_t op_id;
-
-  /**
-   * The id of the task for sending HELLO of peer 2 to peer 1 and ask peer 1 to
-   * connect to peer 2
-   */
-  GNUNET_SCHEDULER_TaskIdentifier send_hello_task;
-
-  /**
-   * The id of the overlay connect timeout task
-   */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
-
-  /**
-   * The id of the cleanup task
-   */
-  GNUNET_SCHEDULER_TaskIdentifier cleanup_task;
-
-  /**
-   * The id of peer A
-   */
-  uint32_t peer_id;
-
-  /**
-   * The id of peer B
-   */
-  uint32_t other_peer_id;
-
-};
-
-
-/**
- * Context information for RequestOverlayConnect
- * operations. RequestOverlayConnect is used when peers A, B reside on different
- * hosts and the host controller for peer B is asked by the host controller of
- * peer A to make peer B connect to peer A
- */
-struct RequestOverlayConnectContext
-{
-  /**
-   * the next pointer for DLL
-   */
-  struct RequestOverlayConnectContext *next;
-
-  /**
-   * the prev pointer for DLL
-   */
-  struct RequestOverlayConnectContext *prev;
-
-  /**
-   * The peer handle of peer B
-   */
-  struct Peer *peer;
-  
-  /**
-   * Peer A's HELLO
-   */
-  struct GNUNET_MessageHeader *hello;
-
-  /**
-   * The handle for offering HELLO
-   */
-  struct GNUNET_TRANSPORT_OfferHelloHandle *ohh;
-
-  /**
-   * The transport try connect context
-   */
-  struct TryConnectContext tcc;
-
-  /**
-   * The peer identity of peer A
-   */
-  struct GNUNET_PeerIdentity a_id;
-
-  /**
-   * Task for offering HELLO of A to B and doing try_connect
-   */
-  GNUNET_SCHEDULER_TaskIdentifier attempt_connect_task_id;
-  
-  /**
-   * Task to timeout RequestOverlayConnect
-   */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_rocc_task_id;
-  
-  /**
-   * The id of the operation responsible for creating this context
-   */
-  uint64_t op_id;
-};
-
-
-/**
- * Context information to used during operations which forward the overlay
- * connect message
- */
-struct ForwardedOverlayConnectContext
-{
-  /**
-   * next ForwardedOverlayConnectContext in the DLL
-   */
-  struct ForwardedOverlayConnectContext *next;
-
-  /**
-   * previous ForwardedOverlayConnectContext in the DLL
-   */
-  struct ForwardedOverlayConnectContext *prev;
-
-  /**
-   * A copy of the original overlay connect message
-   */
-  struct GNUNET_MessageHeader *orig_msg;
-
-  /**
-   * The id of the operation which created this context information
-   */
-  uint64_t operation_id;
-
-  /**
-   * the id of peer 1
-   */
-  uint32_t peer1;
-  
-  /**
-   * The id of peer 2
-   */
-  uint32_t peer2;
-  
-  /**
-   * Id of the host where peer2 is running
-   */
-  uint32_t peer2_host_id;
-};
-
-
-/**
  * The main context information associated with the client which started us
  */
 struct Context
@@ -606,6 +351,49 @@ struct SharedService
    * Number of peers currently sharing the service
    */
   uint32_t num_sharing;
+};
+
+
+/**
+ * Context information to used during operations which forward the overlay
+ * connect message
+ */
+struct ForwardedOverlayConnectContext
+{
+  /**
+   * next ForwardedOverlayConnectContext in the DLL
+   */
+  struct ForwardedOverlayConnectContext *next;
+
+  /**
+   * previous ForwardedOverlayConnectContext in the DLL
+   */
+  struct ForwardedOverlayConnectContext *prev;
+
+  /**
+   * A copy of the original overlay connect message
+   */
+  struct GNUNET_MessageHeader *orig_msg;
+
+  /**
+   * The id of the operation which created this context information
+   */
+  uint64_t operation_id;
+
+  /**
+   * the id of peer 1
+   */
+  uint32_t peer1;
+  
+  /**
+   * The id of peer 2
+   */
+  uint32_t peer2;
+  
+  /**
+   * Id of the host where peer2 is running
+   */
+  uint32_t peer2_host_id;
 };
 
 
@@ -782,6 +570,76 @@ struct LCFContextQueue
   struct LCFContextQueue *prev;
 };
 
+/**
+ * Our configuration
+ */
+struct GNUNET_CONFIGURATION_Handle *our_config;
+
+/**
+ * The master context; generated with the first INIT message
+ */
+extern struct Context *TESTBED_context;
+
+/**
+ * DLL head for forwarded operation contexts
+ */
+extern struct ForwardedOperationContext *fopcq_head;
+
+/**
+ * DLL tail for forwarded operation contexts
+ */
+extern struct ForwardedOperationContext *fopcq_tail;
+
+/**
+ * A list of peers we know about
+ */
+extern struct Peer **TESTBED_peer_list;
+
+/**
+ * Array of hosts
+ */
+extern struct GNUNET_TESTBED_Host **TESTBED_host_list;
+
+/**
+ * A list of directly linked neighbours
+ */
+extern struct Slave **TESTBED_slave_list;
+
+/**
+ * The size of the peer list
+ */
+extern unsigned int TESTBED_peer_list_size;
+
+/**
+ * The size of the host list
+ */
+extern unsigned int TESTBED_host_list_size;
+
+/**
+ * The size of directly linked neighbours list
+ */
+extern unsigned int TESTBED_slave_list_size;
+
+
+/**
+ * Queues a message in send queue for sending to the service
+ *
+ * @param client the client to whom the queued message has to be sent
+ * @param msg the message to queue
+ */
+void
+TESTBED_queue_message (struct GNUNET_SERVER_Client *client,
+                       struct GNUNET_MessageHeader *msg);
+
+
+/**
+ * Function to destroy a peer
+ *
+ * @param peer the peer structure to destroy
+ */
+void
+TESTBED_destroy_peer (struct Peer *peer);
+
 
 /**
  * Looks up in the hello cache and returns the HELLO of the given peer
@@ -818,6 +676,126 @@ TESTBED_cache_init (unsigned int size);
  */
 void
 TESTBED_cache_clear ();
+
+
+/**
+ * Finds the route with directly connected host as destination through which
+ * the destination host can be reached
+ *
+ * @param host_id the id of the destination host
+ * @return the route with directly connected destination host; NULL if no route
+ *           is found
+ */
+struct Route *
+TESTBED_find_dest_route (uint32_t host_id);
+
+
+/**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_OLCONNECT messages
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+void
+TESTBED_handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
+                                const struct GNUNET_MessageHeader *message);
+
+
+/**
+ * Adds a host registration's request to a slave's registration queue
+ *
+ * @param slave the slave controller at which the given host has to be
+ *          registered 
+ * @param cb the host registration completion callback
+ * @param cb_cls the closure for the host registration completion callback
+ * @param host the host which has to be registered
+ */
+void
+TESTBED_queue_host_registration (struct Slave *slave,
+                                 GNUNET_TESTBED_HostRegistrationCompletion cb,
+                                 void *cb_cls,
+                                 struct GNUNET_TESTBED_Host *host);
+
+
+/**
+ * Callback to relay the reply msg of a forwarded operation back to the client
+ *
+ * @param cls ForwardedOperationContext
+ * @param msg the message to relay
+ */
+void
+TESTBED_forwarded_operation_reply_relay (void *cls,
+                                         const struct GNUNET_MessageHeader *msg);
+
+
+/**
+ * Task to free resources when forwarded operation has been timedout
+ *
+ * @param cls the ForwardedOperationContext
+ * @param tc the task context from scheduler
+ */
+void
+TESTBED_forwarded_operation_timeout (void *cls,
+                                     const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Send operation failure message to client
+ *
+ * @param client the client to which the failure message has to be sent to
+ * @param operation_id the id of the failed operation
+ * @param emsg the error message; can be NULL
+ */
+void
+TESTBED_send_operation_fail_msg (struct GNUNET_SERVER_Client *client,
+                                 uint64_t operation_id, const char *emsg);
+
+
+/**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_REQUESTCONNECT messages
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+void
+TESTBED_handle_overlay_request_connect (void *cls,
+                                        struct GNUNET_SERVER_Client *client, 
+                                        const struct GNUNET_MessageHeader
+                                        *message);
+
+
+/**
+ * Processes a forwarded overlay connect context in the queue of the given RegisteredHostContext
+ *
+ * @param rhc the RegisteredHostContext
+ */
+void
+TESTBED_process_next_focc (struct RegisteredHostContext *rhc);
+
+
+/**
+ * Cleans up ForwardedOverlayConnectContext
+ *
+ * @param focc the ForwardedOverlayConnectContext to cleanup
+ */
+void
+TESTBED_cleanup_focc (struct ForwardedOverlayConnectContext *focc);
+
+
+/**
+ * Clears all pending overlay connect contexts in queue
+ */
+void
+TESTBED_free_occq ();
+
+
+/**
+ * Clears all pending remote overlay connect contexts in queue
+ */
+void
+TESTBED_free_roccq ();
 
 
 
