@@ -137,9 +137,7 @@ src/hostlist/hostlist-server.c
 src/integration-tests/connection_watchdog.c
 src/lockmanager/gnunet-service-lockmanager.c
 src/lockmanager/lockmanager_api.c
-src/mesh/gnunet-daemon-regexprofiler.c
 src/mesh/gnunet-mesh.c
-src/mesh/gnunet-regex-profiler.c
 src/mesh/gnunet-service-mesh.c
 src/mesh/gnunet-service-mesh-new.c
 src/mesh/mesh_api.c
@@ -173,9 +171,14 @@ src/peerinfo-tool/gnunet-peerinfo.c
 src/peerinfo-tool/gnunet-peerinfo_plugins.c
 src/postgres/postgres.c
 src/pt/gnunet-daemon-pt.c
+src/regex/gnunet-daemon-regexprofiler.c
+src/regex/gnunet-regex-profiler.c
 src/regex/gnunet-regex-simulation-profiler.c
 src/regex/perf-regex.c
+src/regex/plugin_block_regex.c
+src/regex/regex_block_lib.c
 src/regex/regex.c
+src/regex/regex_dht.c
 src/regex/regex_graph.c
 src/regex/regex_random.c
 src/regex/regex_test_lib.c
@@ -189,6 +192,8 @@ src/template/gnunet-template.c
 src/testbed/gnunet-helper-testbed.c
 src/testbed/gnunet_mpi_test.c
 src/testbed/gnunet-service-testbed.c
+src/testbed/gnunet-service-testbed_hc.c
+src/testbed/gnunet-service-testbed_oc.c
 src/testbed/gnunet-testbed-profiler.c
 src/testbed/ll_master.c
 src/testbed/ll_monitor.c
