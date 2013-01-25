@@ -135,6 +135,12 @@ static char *fcfs_suffix;
 static char *dns_ip;
 
 /**
+ * UDP Port we listen on for inbound DNS requests.
+ */
+static unsigned int listen_port = 53;
+
+
+/**
  * Task run on shutdown.  Cleans up everything.
  *
  * @param cls unused
@@ -598,7 +604,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 #if HAVE_SOCKADDR_IN_SIN_LEN
       v4.sin_len = sizeof (v4);
 #endif
-      v4.sin_port = htons (53);
+      v4.sin_port = htons (listen_port);
       if (GNUNET_OK !=
 	  GNUNET_NETWORK_socket_bind (listen_socket4,
 				      (struct sockaddr *) &v4,
@@ -621,7 +627,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 #if HAVE_SOCKADDR_IN_SIN_LEN
       v6.sin6_len = sizeof (v6);
 #endif
-      v6.sin6_port = htons (53);
+      v6.sin6_port = htons (listen_port);
       if (GNUNET_OK !=
 	  GNUNET_NETWORK_socket_bind (listen_socket6,
 				      (struct sockaddr *) &v6,
@@ -678,6 +684,9 @@ main (int argc,
     {'f', "fcfs", "NAME",
       gettext_noop ("Authoritative FCFS suffix to use (optional); default: fcfs.zkey.eu"), 1,
       &GNUNET_GETOPT_set_string, &fcfs_suffix},
+    {'p', "port", "UDPPORT",
+      gettext_noop ("UDP port to listen on for inbound DNS requests; default: 53"), 1,
+      &GNUNET_GETOPT_set_uint, &listen_port},
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
