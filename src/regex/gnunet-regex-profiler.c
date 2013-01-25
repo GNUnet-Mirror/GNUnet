@@ -19,7 +19,7 @@
 */
 
 /**
- * @file mesh/gnunet-regex-profiler.c
+ * @file regex/gnunet-regex-profiler.c
  * @brief Regex profiler for testing distributed regex use.
  * @author Bartlomiej Polot
  * @author Maximilian Szengel
@@ -1853,8 +1853,9 @@ main (int argc, char *const *argv)
 
   result = GNUNET_SYSERR;
   ret =
-      GNUNET_PROGRAM_run (argc, argv, "gnunet-regex-profiler [OPTIONS] hosts-file policy-dir search-strings-file",
-                          _("Profiler for regex/mesh"),
+      GNUNET_PROGRAM_run (argc, argv,
+                          "gnunet-regex-profiler [OPTIONS] hosts-file policy-dir search-strings-file",
+                          _("Profiler for regex"),
                           options, &run, NULL);
 
   if (GNUNET_OK != ret)
