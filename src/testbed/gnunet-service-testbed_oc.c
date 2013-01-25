@@ -127,6 +127,11 @@ struct OverlayConnectContext
   struct OperationContext *opc;
 
   /**
+   * The local operation we create for this overlay connection
+   */
+  struct GNUNET_TESTBED_Operation *lop;
+
+  /**
    * Controller of peer 2; NULL if the peer is local
    */
   struct GNUNET_TESTBED_Controller *peer2_controller;
@@ -370,6 +375,11 @@ GST_process_next_focc (struct RegisteredHostContext *rhc)
 static void
 cleanup_occ (struct OverlayConnectContext *occ)
 {
+  if (NULL != occ->lop)
+  {
+    GNUNET_TESTBED_operation_release_ (occ->lop);
+    return;
+  }
   LOG_DEBUG ("0x%llx: Cleaning up occ\n", occ->op_id);
   GNUNET_free_non_null (occ->emsg);
   GNUNET_free_non_null (occ->hello);
@@ -413,6 +423,7 @@ cleanup_occ (struct OverlayConnectContext *occ)
       (0 == GST_peer_list[occ->other_peer_id]->reference_cnt))
     GST_destroy_peer (GST_peer_list[occ->other_peer_id]);
   GNUNET_CONTAINER_DLL_remove (occq_head, occq_tail, occ);
+  GNUNET_assert (NULL == occ->lop);
   GNUNET_free (occ);
 }
 
@@ -445,6 +456,7 @@ timeout_overlay_connect (void *cls,
 {
   struct OverlayConnectContext *occ = cls;
 
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != occ->timeout_task);
   occ->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   LOG (GNUNET_ERROR_TYPE_WARNING,
        "0x%llx: Timeout while connecting peers %u and %u\n", occ->op_id,
@@ -851,6 +863,58 @@ error_return:
 
 
 /**
+ * Callback which will be called when overlay connect operation is started
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void
+opstart_overlay_connect (void *cls)
+{
+  struct OverlayConnectContext *occ = cls;
+
+  const struct GNUNET_CORE_MessageHandler no_handlers[] = {
+    {NULL, 0, 0}
+  };
+
+  GNUNET_assert (NULL != occ->lop);
+  /* Connect to the core of 1st peer and wait for the 2nd peer to connect */
+  occ->emsg = GNUNET_strdup ("Timeout while connecting to CORE");
+  GNUNET_asprintf (&occ->emsg,
+                   "0x%llx: Timeout while connecting to CORE of peer with "
+                   "id: %u", occ->op_id, occ->peer_id);
+  occ->peer->reference_cnt++;
+  occ->ch =
+      GNUNET_CORE_connect (occ->peer->details.local.cfg, occ, &core_startup_cb,
+                           &overlay_connect_notify, NULL, NULL, GNUNET_NO, NULL,
+                           GNUNET_NO, no_handlers);
+  if (GNUNET_SCHEDULER_NO_TASK != occ->timeout_task)
+    GNUNET_SCHEDULER_cancel (occ->timeout_task);
+  if (NULL == occ->ch)
+    occ->timeout_task =
+        GNUNET_SCHEDULER_add_now (&timeout_overlay_connect, occ);
+  else
+    occ->timeout_task =
+        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &timeout_overlay_connect, occ);
+}
+
+
+/**
+ * Callback which will be called when overlay connect operation is released
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void
+oprelease_overlay_connect (void *cls)
+{
+  struct OverlayConnectContext *occ = cls;
+
+  GNUNET_assert (NULL != occ->lop);
+  occ->lop = NULL;
+  cleanup_occ (occ);
+}
+
+
+/**
  * Callback to be called when forwarded get peer config operation as part of
  * overlay connect is successfull. Connection to Peer 1's core is made and is
  * checked for new connection from peer 2
@@ -864,32 +928,28 @@ overlay_connect_get_config (void *cls, const struct GNUNET_MessageHeader *msg)
   struct OverlayConnectContext *occ = cls;
   const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *cmsg;
 
-  const struct GNUNET_CORE_MessageHandler no_handlers[] = {
-    {NULL, 0, 0}
-  };
-
   occ->opc = NULL;
   if (GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG != ntohs (msg->type))
-    goto error_return;
+  {
+    GNUNET_SCHEDULER_cancel (occ->timeout_task);
+    occ->timeout_task =
+        GNUNET_SCHEDULER_add_now (&timeout_overlay_connect, occ);
+  }
   cmsg =
       (const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *) msg;
   memcpy (&occ->other_peer_identity, &cmsg->peer_identity,
           sizeof (struct GNUNET_PeerIdentity));
   GNUNET_free_non_null (occ->emsg);
-  GNUNET_asprintf (&occ->emsg, "0x%llx: Timeout while connecting to CORE",
-                   occ->op_id);
-  occ->peer->reference_cnt++;
-  occ->ch =
-      GNUNET_CORE_connect (occ->peer->details.local.cfg, occ, &core_startup_cb,
-                           &overlay_connect_notify, NULL, NULL, GNUNET_NO, NULL,
-                           GNUNET_NO, no_handlers);
-  if (NULL == occ->ch)
-    goto error_return;
+  occ->emsg = NULL;
+  GNUNET_assert (NULL == occ->lop);
+  occ->lop =
+      GNUNET_TESTBED_operation_create_ (occ, &opstart_overlay_connect,
+                                        &oprelease_overlay_connect);
+  /* This operation needs in total 2 connections (one to core and one to
+   * transport) */
+  GNUNET_TESTBED_operation_queue_insert2_ (GST_opq_openfds, occ->lop, 2);
+  GNUNET_TESTBED_operation_begin_wait_ (occ->lop);
   return;
-
-error_return:
-  GNUNET_SCHEDULER_cancel (occ->timeout_task);
-  occ->timeout_task = GNUNET_SCHEDULER_add_now (&timeout_overlay_connect, occ);
 }
 
 
@@ -991,10 +1051,6 @@ GST_handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
                             const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TESTBED_OverlayConnectMessage *msg;
-
-  const struct GNUNET_CORE_MessageHandler no_handlers[] = {
-    {NULL, 0, 0}
-  };
   struct Peer *peer;
   struct OverlayConnectContext *occ;
   struct GNUNET_TESTBED_Controller *peer2_controller;
@@ -1189,6 +1245,7 @@ GST_handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_asprintf (&occ->emsg,
                      "0x%llx: Timeout while getting peer identity of peer "
                      "with id: %u", occ->op_id, occ->other_peer_id);
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == occ->timeout_task);
     occ->timeout_task =
         GNUNET_SCHEDULER_add_delayed (TIMEOUT, &timeout_overlay_connect, occ);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -1197,22 +1254,13 @@ GST_handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_TESTING_peer_get_identity (GST_peer_list[occ->other_peer_id]->
                                     details.local.peer,
                                     &occ->other_peer_identity);
-  /* Connect to the core of 1st peer and wait for the 2nd peer to connect */
-  occ->emsg = GNUNET_strdup ("Timeout while connecting to CORE");
-  GNUNET_asprintf (&occ->emsg,
-                   "0x%llx: Timeout while connecting to CORE of peer with "
-                   "id: %u", occ->op_id, occ->peer_id);
-  occ->peer->reference_cnt++;
-  occ->ch =
-      GNUNET_CORE_connect (occ->peer->details.local.cfg, occ, &core_startup_cb,
-                           &overlay_connect_notify, NULL, NULL, GNUNET_NO, NULL,
-                           GNUNET_NO, no_handlers);
-  if (NULL == occ->ch)
-    occ->timeout_task =
-        GNUNET_SCHEDULER_add_now (&timeout_overlay_connect, occ);
-  else
-    occ->timeout_task =
-        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &timeout_overlay_connect, occ);
+  occ->lop =
+      GNUNET_TESTBED_operation_create_ (occ, &opstart_overlay_connect,
+                                        &oprelease_overlay_connect);
+  /* This operation needs in total 2 connections (one to core and one to
+   * transport) */
+  GNUNET_TESTBED_operation_queue_insert2_ (GST_opq_openfds, occ->lop, 2);
+  GNUNET_TESTBED_operation_begin_wait_ (occ->lop);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
