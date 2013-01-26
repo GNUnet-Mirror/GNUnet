@@ -2146,6 +2146,7 @@ deserialize_unindex_file (void *cls, const char *filename)
     if (NULL == uc->ksk_uri)
     {
       GNUNET_break (0);
+      GNUNET_free_non_null (emsg);
       goto cleanup;
     }
   }
