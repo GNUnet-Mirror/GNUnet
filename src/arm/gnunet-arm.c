@@ -291,6 +291,7 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  char *armconfig;
   cfg = c;
   config_file = cfgfile;
   if (GNUNET_CONFIGURATION_get_value_string
@@ -300,6 +301,18 @@ run (void *cls, char *const *args, const char *cfgfile,
 			       "PATHS", "SERVICEHOME");
     return;
     }
+  if (NULL != cfgfile)
+  {
+    if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_filename (cfg, "arm", "CONFIG",
+					       &armconfig))
+    {
+      GNUNET_CONFIGURATION_set_value_string (cfg, "arm", "CONFIG",
+                                             cfgfile);
+    }
+    else
+      GNUNET_free (armconfig);
+  }
   if (NULL == (h = GNUNET_ARM_connect (cfg, NULL)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

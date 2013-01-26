@@ -107,6 +107,20 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  char *armconfig;
+
+  if (NULL != cfgfile)
+  {
+    if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_filename (c, "arm", "CONFIG",
+					       &armconfig))
+    {
+      GNUNET_CONFIGURATION_set_value_string (c, "arm", "CONFIG",
+                                             cfgfile);
+    }
+    else
+      GNUNET_free (armconfig);
+  }
   arm = GNUNET_ARM_connect (c, NULL);
   GNUNET_ARM_start_service (arm, "arm",
 			    GNUNET_OS_INHERIT_STD_OUT_AND_ERR, START_TIMEOUT, 
