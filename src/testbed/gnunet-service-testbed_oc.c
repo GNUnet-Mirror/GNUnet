@@ -1282,6 +1282,11 @@ GST_handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
 static void
 cleanup_rocc (struct RemoteOverlayConnectCtx *rocc)
 {
+  if (NULL != rocc->lop)
+  {
+    GNUNET_TESTBED_operation_release_ (rocc->lop);
+    return;
+  }
   LOG_DEBUG ("0x%llx: Cleaning up rocc\n", rocc->op_id);
   if (GNUNET_SCHEDULER_NO_TASK != rocc->attempt_connect_task_id)
     GNUNET_SCHEDULER_cancel (rocc->attempt_connect_task_id);
@@ -1419,6 +1424,52 @@ attempt_connect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Callback which will be called when remote overlay connect operation is
+ * started
+ *
+ * @param cls the remote overlay connect context
+ */
+static void
+opstart_remote_overlay_connect (void *cls)
+{
+  struct RemoteOverlayConnectCtx *rocc = cls;
+  
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == rocc->timeout_rocc_task_id);
+  rocc->tcc.op_id = rocc->op_id;
+  rocc->tcc.th =
+      GNUNET_TRANSPORT_connect (rocc->peer->details.local.cfg, NULL, rocc, NULL,
+                                &transport_connect_notify, NULL);
+  if (NULL == rocc->tcc.th)
+  {
+    rocc->timeout_rocc_task_id =
+      GNUNET_SCHEDULER_add_now (&timeout_rocc_task, rocc);
+    return;
+  }
+  rocc->tcc.pid = &rocc->a_id;
+  rocc->attempt_connect_task_id =
+      GNUNET_SCHEDULER_add_now (&attempt_connect_task, rocc);
+  rocc->timeout_rocc_task_id =
+      GNUNET_SCHEDULER_add_delayed (TIMEOUT, &timeout_rocc_task, rocc);
+}
+
+
+/**
+ * Callback which will be called when remote overlay connect operation is
+ * released
+ *
+ * @param cls the remote overlay connect context
+ */
+static void
+oprelease_remote_overlay_connect (void *cls)
+{
+  struct RemoteOverlayConnectCtx *rocc = cls;
+
+  GNUNET_assert (NULL != rocc->lop);
+  rocc->lop = NULL;
+  cleanup_rocc (rocc);
+}
+
+/**
  * Handler for GNUNET_MESSAGE_TYPE_TESTBED_REQUESTCONNECT messages
  *
  * @param cls NULL
@@ -1487,25 +1538,15 @@ GST_handle_remote_overlay_connect (void *cls,
              "from local peer %u to peer %4s with hello size: %u\n",
              rocc->op_id, peer_id, GNUNET_i2s (&rocc->a_id), hsize);
   rocc->peer = peer;
-  rocc->peer->reference_cnt++;
-  rocc->tcc.op_id = rocc->op_id;
-  rocc->tcc.th =
-      GNUNET_TRANSPORT_connect (rocc->peer->details.local.cfg, NULL, rocc, NULL,
-                                &transport_connect_notify, NULL);
-  if (NULL == rocc->tcc.th)
-  {
-    GNUNET_break (0);
-    GNUNET_free (rocc);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  rocc->tcc.pid = &rocc->a_id;
+  rocc->peer->reference_cnt++;  
   rocc->hello = GNUNET_malloc (hsize);
   memcpy (rocc->hello, msg->hello, hsize);
-  rocc->attempt_connect_task_id =
-      GNUNET_SCHEDULER_add_now (&attempt_connect_task, rocc);
-  rocc->timeout_rocc_task_id =
-      GNUNET_SCHEDULER_add_delayed (TIMEOUT, &timeout_rocc_task, rocc);
+  rocc->lop =
+      GNUNET_TESTBED_operation_create_ (rocc, &opstart_remote_overlay_connect,
+                                        &oprelease_remote_overlay_connect);
+  /* This operation needs only 1 connection to transport */
+  GNUNET_TESTBED_operation_queue_insert2_ (GST_opq_openfds, rocc->lop, 1);
+   GNUNET_TESTBED_operation_begin_wait_ (rocc->lop);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
