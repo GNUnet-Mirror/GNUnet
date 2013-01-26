@@ -217,7 +217,8 @@ percent_decode_keyword (const char *in, char **emsg)
       if (1 != SSCANF (&out[rpos + 1], "%2X", &hx))
       {
         GNUNET_free (out);
-        *emsg = GNUNET_strdup (_("`%' must be followed by HEX number"));
+        *emsg = GNUNET_strdup (_(/* xgettext:no-c-format */
+				 "`%' must be followed by HEX number"));
         return NULL;
       }
       rpos += 3;
