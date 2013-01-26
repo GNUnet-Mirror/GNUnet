@@ -64,7 +64,7 @@ opstart_peer_create (void *cls)
   msg = GNUNET_realloc (xconfig, msize);
   memmove (&msg[1], msg, xc_size);
   msg->header.size = htons (msize);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_CREATEPEER);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_CREATE_PEER);
   msg->operation_id = GNUNET_htonll (opc->id);
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (data->peer->host));
   msg->peer_id = htonl (data->peer->unique_id);
@@ -118,7 +118,7 @@ opstart_peer_destroy (void *cls)
   opc->state = OPC_STATE_STARTED;
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerDestroyMessage));
   msg->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerDestroyMessage));
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_DESTROY_PEER);
   msg->peer_id = htonl (peer->unique_id);
   msg->operation_id = GNUNET_htonll (opc->id);
   GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
@@ -164,7 +164,7 @@ opstart_peer_start (void *cls)
   opc->state = OPC_STATE_STARTED;
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerStartMessage));
   msg->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerStartMessage));
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_STARTPEER);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_START_PEER);
   msg->peer_id = htonl (peer->unique_id);
   msg->operation_id = GNUNET_htonll (opc->id);
   GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
@@ -211,7 +211,7 @@ opstart_peer_stop (void *cls)
   GNUNET_assert (PS_STARTED == peer->state);
   opc->state = OPC_STATE_STARTED;
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerStopMessage));
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_STOPPEER);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_STOP_PEER);
   msg->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerStopMessage));
   msg->peer_id = htonl (peer->unique_id);
   msg->operation_id = GNUNET_htonll (opc->id);
@@ -258,7 +258,7 @@ GNUNET_TESTBED_generate_peergetconfig_msg_ (uint32_t peer_id,
                      (struct GNUNET_TESTBED_PeerGetConfigurationMessage));
   msg->header.size =
       htons (sizeof (struct GNUNET_TESTBED_PeerGetConfigurationMessage));
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_GETPEERCONFIG);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_GET_PEER_CONFIGURATION);
   msg->peer_id = htonl (peer_id);
   msg->operation_id = GNUNET_htonll (operation_id);
   return msg;
@@ -345,7 +345,7 @@ opstart_overlay_connect (void *cls)
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_OverlayConnectMessage));
   msg->header.size =
       htons (sizeof (struct GNUNET_TESTBED_OverlayConnectMessage));
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_OLCONNECT);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_OVERLAY_CONNECT);
   msg->peer1 = htonl (data->p1->unique_id);
   msg->peer2 = htonl (data->p2->unique_id);
   msg->operation_id = GNUNET_htonll (opc->id);

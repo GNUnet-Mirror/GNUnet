@@ -33,7 +33,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Initial message from a client to a testing control service.
  */
-struct GNUNET_TESTBED_InitMessage
+    struct GNUNET_TESTBED_InitMessage
 {
 
   /**
@@ -66,7 +66,7 @@ struct GNUNET_TESTBED_AddHostMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_ADDHOST
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST
    */
   struct GNUNET_MessageHeader header;
 
@@ -103,7 +103,7 @@ struct GNUNET_TESTBED_HostConfirmedMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTCONFIRMED
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST_SUCCESS
    */
   struct GNUNET_MessageHeader header;
 
@@ -126,7 +126,7 @@ struct GNUNET_TESTBED_ConfigureSharedServiceMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_SERVICESHARE
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_SHARE_SERVICE
    */
   struct GNUNET_MessageHeader header;
 
@@ -155,7 +155,7 @@ struct GNUNET_TESTBED_ControllerLinkMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_LCONTROLLERS
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS
    */
   struct GNUNET_MessageHeader header;
 
@@ -199,7 +199,7 @@ struct GNUNET_TESTBED_PeerCreateMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_CREATEPEER
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_CREATE_PEER
    */
   struct GNUNET_MessageHeader header;
 
@@ -237,7 +237,7 @@ struct GNUNET_TESTBED_PeerReconfigureMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPDE_TESTBED_PEERRECONF
+   * Type is GNUNET_MESSAGE_TYPDE_TESTBED_RECONFIGURE_PEER
    */
   struct GNUNET_MessageHeader header;
 
@@ -265,7 +265,7 @@ struct GNUNET_TESTBED_PeerStartMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_STARTPEER
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_START_PEER
    */
   struct GNUNET_MessageHeader header;
 
@@ -290,7 +290,7 @@ struct GNUNET_TESTBED_PeerStopMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_STOPPEER
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_STOP_PEER
    */
   struct GNUNET_MessageHeader header;
 
@@ -315,7 +315,7 @@ struct GNUNET_TESTBED_PeerDestroyMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_DESTROY_PEER
    */
   struct GNUNET_MessageHeader header;
 
@@ -340,7 +340,7 @@ struct GNUNET_TESTBED_ConfigureUnderlayLinkMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_CONFIGULLINK
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_CONFIGURE_UNDERLAY_LINK
    */
   struct GNUNET_MessageHeader header;
 
@@ -377,7 +377,7 @@ struct GNUNET_TESTBED_OverlayConnectMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_OLCONNECT
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_OVERLAY_CONNECT
    */
   struct GNUNET_MessageHeader header;
 
@@ -408,10 +408,10 @@ struct GNUNET_TESTBED_OverlayConnectMessage
  * Message sent from host controller of a peer(A) to the host controller of
  * another peer(B) to request B to connect to A
  */
-struct GNUNET_TESTBED_RequestConnectMessage
+struct GNUNET_TESTBED_RemoteOverlayConnectMessage
 {
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_REQUESTCONNECT
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_REMOTE_OVERLAY_CONNECT
    */
   struct GNUNET_MessageHeader header;
 
@@ -445,7 +445,7 @@ struct GNUNET_TESTBED_PeerEventMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_PEEREVENT
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_PEER_EVENT
    */
   struct GNUNET_MessageHeader header;
 
@@ -480,7 +480,7 @@ struct GNUNET_TESTBED_ConnectionEventMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_PEERCONEVENT
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONNECT_EVENT
    */
   struct GNUNET_MessageHeader header;
 
@@ -515,7 +515,7 @@ struct GNUNET_TESTBED_OperationFailureEventMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONFAILEVENT
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_OPERATION_FAIL_EVENT
    */
   struct GNUNET_MessageHeader header;
 
@@ -542,7 +542,7 @@ struct GNUNET_TESTBED_PeerCreateSuccessEventMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_CREATE_PEER_SUCCESS
    */
   struct GNUNET_MessageHeader header;
 
@@ -568,7 +568,7 @@ struct GNUNET_TESTBED_GenericOperationSuccessEventMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_GENERICOPSUCCESS
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_GENERIC_OPERATION_SUCCESS
    */
   struct GNUNET_MessageHeader header;
 
@@ -594,7 +594,7 @@ struct GNUNET_TESTBED_PeerGetConfigurationMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_GETPEERCONFIG
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_GET_PEER_CONFIGURATION
    */
   struct GNUNET_MessageHeader header;
 
@@ -618,7 +618,7 @@ struct GNUNET_TESTBED_PeerConfigurationInformationMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONFIGURATION
    */
   struct GNUNET_MessageHeader header;
 
@@ -653,7 +653,7 @@ struct GNUNET_TESTBED_PeerConfigurationInformationMessage
 struct GNUNET_TESTBED_SlaveGetConfigurationMessage
 {
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_GETSLAVECONFIG
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_GET_SLAVE_CONFIGURATION
    */
   struct GNUNET_MessageHeader header;
 
@@ -671,12 +671,12 @@ struct GNUNET_TESTBED_SlaveGetConfigurationMessage
 
 
 /**
- * Reply to GETSLAVECONFIG message
+ * Reply to GNUNET_MESSAGE_TYPE_TESTBED_GET_SLAVE_CONFIG message
  */
 struct GNUNET_TESTBED_SlaveConfiguration
 {
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_SLAVE_CONFIGURATION
    */
   struct GNUNET_MessageHeader header;
 

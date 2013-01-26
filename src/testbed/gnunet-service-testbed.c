@@ -436,7 +436,7 @@ GST_send_operation_fail_msg (struct GNUNET_SERVER_Client *client,
   msize += emsg_len;
   msg = GNUNET_malloc (msize);
   msg->header.size = htons (msize);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONFAILEVENT);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_OPERATION_FAIL_EVENT);
   msg->event_type = htonl (GNUNET_TESTBED_ET_OPERATION_FINISHED);
   msg->operation_id = GNUNET_htonll (operation_id);
   if (0 != emsg_len)
@@ -461,7 +461,8 @@ send_operation_success_msg (struct GNUNET_SERVER_Client *client,
   msize = sizeof (struct GNUNET_TESTBED_GenericOperationSuccessEventMessage);
   msg = GNUNET_malloc (msize);
   msg->header.size = htons (msize);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_GENERICOPSUCCESS);
+  msg->header.type =
+      htons (GNUNET_MESSAGE_TYPE_TESTBED_GENERIC_OPERATION_SUCCESS);
   msg->operation_id = GNUNET_htonll (operation_id);
   msg->event_type = htonl (GNUNET_TESTBED_ET_OPERATION_FINISHED);
   GST_queue_message (client, &msg->header);
@@ -1018,7 +1019,7 @@ handle_add_host (void *cls, struct GNUNET_SERVER_Client *client,
     LOG_DEBUG ("Added host %u at %u\n", host_id, GST_context->host_id);
     reply = GNUNET_malloc (reply_size);
   }
-  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTCONFIRM);
+  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST_SUCCESS);
   reply->header.size = htons (reply_size);
   reply->host_id = htonl (host_id);
   GST_queue_message (client, &reply->header);
@@ -1351,7 +1352,7 @@ peer_create_success_cb (void *cls, const struct GNUNET_MessageHeader *msg)
   struct ForwardedOperationContext *fopc = cls;
   struct Peer *remote_peer;
 
-  if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS)
+  if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_TESTBED_CREATE_PEER_SUCCESS)
   {
     GNUNET_assert (NULL != fopc->cls);
     remote_peer = fopc->cls;
@@ -1401,7 +1402,8 @@ peer_destroy_success_cb (void *cls, const struct GNUNET_MessageHeader *msg)
   struct ForwardedOperationContext *fopc = cls;
   struct Peer *remote_peer;
 
-  if (GNUNET_MESSAGE_TYPE_TESTBED_GENERICOPSUCCESS == ntohs (msg->type))
+  if (GNUNET_MESSAGE_TYPE_TESTBED_GENERIC_OPERATION_SUCCESS ==
+      ntohs (msg->type))
   {
     remote_peer = fopc->cls;
     GNUNET_assert (NULL != remote_peer);
@@ -1520,7 +1522,8 @@ handle_peer_create (void *cls, struct GNUNET_SERVER_Client *client,
                        (struct GNUNET_TESTBED_PeerCreateSuccessEventMessage));
     reply->header.size =
         htons (sizeof (struct GNUNET_TESTBED_PeerCreateSuccessEventMessage));
-    reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS);
+    reply->header.type =
+        htons (GNUNET_MESSAGE_TYPE_TESTBED_CREATE_PEER_SUCCESS);
     reply->peer_id = msg->peer_id;
     reply->operation_id = msg->operation_id;
     GST_queue_message (client, &reply->header);
@@ -1681,7 +1684,7 @@ handle_peer_start (void *cls, struct GNUNET_SERVER_Client *client,
   }
   peer->details.local.is_running = GNUNET_YES;
   reply = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerEventMessage));
-  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEEREVENT);
+  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEER_EVENT);
   reply->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerEventMessage));
   reply->event_type = htonl (GNUNET_TESTBED_ET_PEER_START);
   reply->host_id = htonl (GST_context->host_id);
@@ -1753,7 +1756,7 @@ handle_peer_stop (void *cls, struct GNUNET_SERVER_Client *client,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Peer %u successfully stopped\n", peer_id);
   peer->details.local.is_running = GNUNET_NO;
   reply = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerEventMessage));
-  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEEREVENT);
+  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEER_EVENT);
   reply->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerEventMessage));
   reply->event_type = htonl (GNUNET_TESTBED_ET_PEER_STOP);
   reply->host_id = htonl (GST_context->host_id);
@@ -1830,7 +1833,7 @@ handle_peer_get_config (void *cls, struct GNUNET_SERVER_Client *client,
   reply = GNUNET_realloc (xconfig, msize);
   (void) memmove (&reply[1], reply, xc_size);
   reply->header.size = htons (msize);
-  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG);
+  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONFIGURATION);
   reply->peer_id = msg->peer_id;
   reply->operation_id = msg->operation_id;
   GNUNET_TESTING_peer_get_identity (GST_peer_list[peer_id]->details.local.peer,
@@ -1890,7 +1893,7 @@ handle_slave_get_config (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_break (config_size <= UINT16_MAX);
   reply = GNUNET_realloc (xconfig, reply_size);
   (void) memmove (&reply[1], reply, xconfig_size);
-  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG);
+  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_SLAVE_CONFIGURATION);
   reply->header.size = htons ((uint16_t) reply_size);
   reply->slave_id = msg->slave_id;
   reply->operation_id = msg->operation_id;
@@ -2150,25 +2153,28 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
 {
   static const struct GNUNET_SERVER_MessageHandler message_handlers[] = {
     {&handle_init, NULL, GNUNET_MESSAGE_TYPE_TESTBED_INIT, 0},
-    {&handle_add_host, NULL, GNUNET_MESSAGE_TYPE_TESTBED_ADDHOST, 0},
+    {&handle_add_host, NULL, GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST, 0},
     {&handle_configure_shared_service, NULL,
-     GNUNET_MESSAGE_TYPE_TESTBED_SERVICESHARE, 0},
+     GNUNET_MESSAGE_TYPE_TESTBED_SHARE_SERVICE, 0},
     {&handle_link_controllers, NULL,
-     GNUNET_MESSAGE_TYPE_TESTBED_LCONTROLLERS, 0},
-    {&handle_peer_create, NULL, GNUNET_MESSAGE_TYPE_TESTBED_CREATEPEER, 0},
-    {&handle_peer_destroy, NULL, GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER,
+     GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS, 0},
+    {&handle_peer_create, NULL, GNUNET_MESSAGE_TYPE_TESTBED_CREATE_PEER, 0},
+    {&handle_peer_destroy, NULL, GNUNET_MESSAGE_TYPE_TESTBED_DESTROY_PEER,
      sizeof (struct GNUNET_TESTBED_PeerDestroyMessage)},
-    {&handle_peer_start, NULL, GNUNET_MESSAGE_TYPE_TESTBED_STARTPEER,
+    {&handle_peer_start, NULL, GNUNET_MESSAGE_TYPE_TESTBED_START_PEER,
      sizeof (struct GNUNET_TESTBED_PeerStartMessage)},
-    {&handle_peer_stop, NULL, GNUNET_MESSAGE_TYPE_TESTBED_STOPPEER,
+    {&handle_peer_stop, NULL, GNUNET_MESSAGE_TYPE_TESTBED_STOP_PEER,
      sizeof (struct GNUNET_TESTBED_PeerStopMessage)},
-    {&handle_peer_get_config, NULL, GNUNET_MESSAGE_TYPE_TESTBED_GETPEERCONFIG,
+    {&handle_peer_get_config, NULL,
+     GNUNET_MESSAGE_TYPE_TESTBED_GET_PEER_CONFIGURATION,
      sizeof (struct GNUNET_TESTBED_PeerGetConfigurationMessage)},
-    {&GST_handle_overlay_connect, NULL, GNUNET_MESSAGE_TYPE_TESTBED_OLCONNECT,
+    {&GST_handle_overlay_connect, NULL,
+     GNUNET_MESSAGE_TYPE_TESTBED_OVERLAY_CONNECT,
      sizeof (struct GNUNET_TESTBED_OverlayConnectMessage)},
-    {&GST_handle_overlay_request_connect, NULL,
-     GNUNET_MESSAGE_TYPE_TESTBED_REQUESTCONNECT, 0},
-    {handle_slave_get_config, NULL, GNUNET_MESSAGE_TYPE_TESTBED_GETSLAVECONFIG,
+    {&GST_handle_remote_overlay_connect, NULL,
+     GNUNET_MESSAGE_TYPE_TESTBED_REMOTE_OVERLAY_CONNECT, 0},
+    {handle_slave_get_config, NULL,
+     GNUNET_MESSAGE_TYPE_TESTBED_GET_SLAVE_CONFIGURATION,
      sizeof (struct GNUNET_TESTBED_SlaveGetConfigurationMessage)},
     {NULL}
   };
@@ -2189,10 +2195,8 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
   GST_cache_init ((unsigned int) num);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_number (cfg, "TESTBED",
-                                                        "MAX_OPEN_FDS",
-                                                        &num));
-  GST_opq_openfds = 
-      GNUNET_TESTBED_operation_queue_create_ ((unsigned int) num);
+                                                        "MAX_OPEN_FDS", &num));
+  GST_opq_openfds = GNUNET_TESTBED_operation_queue_create_ ((unsigned int) num);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
                                                         "HOSTNAME", &hostname));

@@ -146,7 +146,7 @@ configuration_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
   info.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
   info.details.operation_finished.operation = data->operation;
   info.details.operation_finished.op_cls = data->op_cls;
-  if (GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONFAILEVENT == mtype)
+  if (GNUNET_MESSAGE_TYPE_TESTBED_OPERATION_FAIL_EVENT == mtype)
   {
     emsg =
         GNUNET_TESTBED_parse_error_string_ ((const struct

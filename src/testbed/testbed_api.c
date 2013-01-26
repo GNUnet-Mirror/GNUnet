@@ -975,7 +975,8 @@ GNUNET_TESTBED_generate_slavegetconfig_msg_ (uint64_t op_id, uint32_t slave_id)
   msize = sizeof (struct GNUNET_TESTBED_SlaveGetConfigurationMessage);
   msg = GNUNET_malloc (msize);
   msg->header.size = htons (msize);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_GETSLAVECONFIG);
+  msg->header.type =
+      htons (GNUNET_MESSAGE_TYPE_TESTBED_GET_SLAVE_CONFIGURATION);
   msg->operation_id = GNUNET_htonll (op_id);
   msg->slave_id = htonl (slave_id);
   return msg;
@@ -1053,7 +1054,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   msize = ntohs (msg->size);
   switch (ntohs (msg->type))
   {
-  case GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTCONFIRM:
+  case GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST_SUCCESS:
     GNUNET_assert (msize >=
                    sizeof (struct GNUNET_TESTBED_HostConfirmedMessage));
     status =
@@ -1061,7 +1062,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                                (const struct GNUNET_TESTBED_HostConfirmedMessage
                                 *) msg);
     break;
-  case GNUNET_MESSAGE_TYPE_TESTBED_GENERICOPSUCCESS:
+  case GNUNET_MESSAGE_TYPE_TESTBED_GENERIC_OPERATION_SUCCESS:
     GNUNET_assert (msize ==
                    sizeof (struct
                            GNUNET_TESTBED_GenericOperationSuccessEventMessage));
@@ -1071,7 +1072,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                            GNUNET_TESTBED_GenericOperationSuccessEventMessage *)
                           msg);
     break;
-  case GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS:
+  case GNUNET_MESSAGE_TYPE_TESTBED_CREATE_PEER_SUCCESS:
     GNUNET_assert (msize ==
                    sizeof (struct
                            GNUNET_TESTBED_PeerCreateSuccessEventMessage));
@@ -1081,7 +1082,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                                      GNUNET_TESTBED_PeerCreateSuccessEventMessage
                                      *) msg);
     break;
-  case GNUNET_MESSAGE_TYPE_TESTBED_PEEREVENT:
+  case GNUNET_MESSAGE_TYPE_TESTBED_PEER_EVENT:
     GNUNET_assert (msize == sizeof (struct GNUNET_TESTBED_PeerEventMessage));
     status =
         handle_peer_event (c,
@@ -1089,7 +1090,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                            msg);
 
     break;
-  case GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG:
+  case GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONFIGURATION:
     GNUNET_assert (msize >=
                    sizeof (struct
                            GNUNET_TESTBED_PeerConfigurationInformationMessage));
@@ -1099,7 +1100,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                              GNUNET_TESTBED_PeerConfigurationInformationMessage
                              *) msg);
     break;
-  case GNUNET_MESSAGE_TYPE_TESTBED_PEERCONEVENT:
+  case GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONNECT_EVENT:
     GNUNET_assert (msize ==
                    sizeof (struct GNUNET_TESTBED_ConnectionEventMessage));
     status =
@@ -1107,7 +1108,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                               (const struct
                                GNUNET_TESTBED_ConnectionEventMessage *) msg);
     break;
-  case GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONFAILEVENT:
+  case GNUNET_MESSAGE_TYPE_TESTBED_OPERATION_FAIL_EVENT:
     GNUNET_assert (msize >=
                    sizeof (struct GNUNET_TESTBED_OperationFailureEventMessage));
     status =
@@ -1116,7 +1117,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                                GNUNET_TESTBED_OperationFailureEventMessage *)
                               msg);
     break;
-  case GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG:
+  case GNUNET_MESSAGE_TYPE_TESTBED_SLAVE_CONFIGURATION:
     GNUNET_assert (msize > sizeof (struct GNUNET_TESTBED_SlaveConfiguration));
     status =
         handle_slave_config (c,
@@ -1922,7 +1923,7 @@ GNUNET_TESTBED_controller_configure_sharing (struct GNUNET_TESTBED_Controller
       service_name_size;
   msg = GNUNET_malloc (msg_size);
   msg->header.size = htons (msg_size);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_SERVICESHARE);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_SHARE_SERVICE);
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (controller->host));
   msg->num_peers = htonl (num_peers);
   memcpy (&msg[1], service_name, service_name_size);
@@ -2026,7 +2027,7 @@ GNUNET_TESTBED_register_host (struct GNUNET_TESTBED_Controller *controller,
   msg_size += strlen (hostname) + 1;
   msg = GNUNET_malloc (msg_size);
   msg->header.size = htons (msg_size);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_ADDHOST);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST);
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (host));
   msg->ssh_port = htons (GNUNET_TESTBED_host_get_ssh_port_ (host));
   if (NULL != username)
@@ -2097,7 +2098,7 @@ GNUNET_TESTBED_controller_link_2_ (void *op_cls,
 
   msg_size = sxcfg_size + sizeof (struct GNUNET_TESTBED_ControllerLinkMessage);
   msg = GNUNET_malloc (msg_size);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_LCONTROLLERS);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS);
   msg->header.size = htons (msg_size);
   msg->delegated_host_id = htonl (delegated_host_id);
   msg->slave_host_id = htonl (slave_host_id);
@@ -2492,7 +2493,7 @@ GNUNET_TESTBED_extract_config_ (const struct GNUNET_MessageHeader *msg)
 
   switch (ntohs (msg->type))
   {
-  case GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG:
+  case GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONFIGURATION:
   {
     const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *imsg;
 
@@ -2505,7 +2506,7 @@ GNUNET_TESTBED_extract_config_ (const struct GNUNET_MessageHeader *msg)
     xdata = (const Bytef *) &imsg[1];
   }
     break;
-  case GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG:
+  case GNUNET_MESSAGE_TYPE_TESTBED_SLAVE_CONFIGURATION:
   {
     const struct GNUNET_TESTBED_SlaveConfiguration *imsg;
 

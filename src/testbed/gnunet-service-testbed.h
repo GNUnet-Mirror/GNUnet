@@ -764,9 +764,9 @@ GST_send_operation_fail_msg (struct GNUNET_SERVER_Client *client,
  * @param message the actual message
  */
 void
-GST_handle_overlay_request_connect (void *cls,
-                                    struct GNUNET_SERVER_Client *client,
-                                    const struct GNUNET_MessageHeader *message);
+GST_handle_remote_overlay_connect (void *cls,
+                                   struct GNUNET_SERVER_Client *client,
+                                   const struct GNUNET_MessageHeader *message);
 
 
 /**
