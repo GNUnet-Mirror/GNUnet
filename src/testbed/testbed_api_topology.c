@@ -414,7 +414,7 @@ gen_topo_2dtorus (struct TopologyContext *tc)
     offset = 0;
     for (y = 0; y < rows - 1; y++)
     {
-      if (x == rows_len[y + 1])
+      if (x >= rows_len[y + 1])
         break;
       GNUNET_assert (x < rows_len[y + 1]);
       make_link (&tc->link_array[cnt], offset + x, offset + rows_len[y] + x,
