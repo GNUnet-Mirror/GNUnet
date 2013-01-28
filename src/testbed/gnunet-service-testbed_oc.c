@@ -1433,7 +1433,7 @@ static void
 opstart_remote_overlay_connect (void *cls)
 {
   struct RemoteOverlayConnectCtx *rocc = cls;
-  
+
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == rocc->timeout_rocc_task_id);
   rocc->tcc.op_id = rocc->op_id;
   rocc->tcc.th =
@@ -1442,7 +1442,7 @@ opstart_remote_overlay_connect (void *cls)
   if (NULL == rocc->tcc.th)
   {
     rocc->timeout_rocc_task_id =
-      GNUNET_SCHEDULER_add_now (&timeout_rocc_task, rocc);
+        GNUNET_SCHEDULER_add_now (&timeout_rocc_task, rocc);
     return;
   }
   rocc->tcc.pid = &rocc->a_id;
@@ -1538,7 +1538,7 @@ GST_handle_remote_overlay_connect (void *cls,
              "from local peer %u to peer %4s with hello size: %u\n",
              rocc->op_id, peer_id, GNUNET_i2s (&rocc->a_id), hsize);
   rocc->peer = peer;
-  rocc->peer->reference_cnt++;  
+  rocc->peer->reference_cnt++;
   rocc->hello = GNUNET_malloc (hsize);
   memcpy (rocc->hello, msg->hello, hsize);
   rocc->lop =
@@ -1546,7 +1546,7 @@ GST_handle_remote_overlay_connect (void *cls,
                                         &oprelease_remote_overlay_connect);
   /* This operation needs only 1 connection to transport */
   GNUNET_TESTBED_operation_queue_insert2_ (GST_opq_openfds, rocc->lop, 1);
-   GNUNET_TESTBED_operation_begin_wait_ (rocc->lop);
+  GNUNET_TESTBED_operation_begin_wait_ (rocc->lop);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 

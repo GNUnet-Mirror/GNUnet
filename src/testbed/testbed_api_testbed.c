@@ -830,8 +830,9 @@ register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   rc->reg_handle =
-      GNUNET_TESTBED_register_host (rc->c, rc->hosts[rc->reg_hosts++],
+      GNUNET_TESTBED_register_host (rc->c, rc->hosts[rc->reg_hosts],
                                     host_registration_completion, rc);
+  rc->reg_hosts++;
 }
 
 
@@ -859,6 +860,8 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Testbed startup failed\n");
       return;
     default:
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Controller crash detected. Shutting down.\n");
       rc->cproc = NULL;
       shutdown_now (rc);
       return;
@@ -877,6 +880,7 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
                                          rc);
   if (0 < rc->num_hosts)
   {
+    rc->reg_hosts = 0;
     rc->register_hosts_task = GNUNET_SCHEDULER_add_now (&register_hosts, rc);
     return;
   }
