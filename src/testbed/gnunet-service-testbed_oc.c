@@ -792,7 +792,7 @@ hello_update_cb (void *cls, const struct GNUNET_MessageHeader *hello)
   LOG_DEBUG ("0x%llx: Received HELLO of %s\n", occ->op_id,
              GNUNET_i2s (&occ->peer_identity));
   occ->hello = GNUNET_malloc (msize);
-  GST_hello_cache_add (&occ->peer_identity, hello);
+  GST_cache_add (&occ->peer_identity, hello);
   memcpy (occ->hello, hello, msize);
   GNUNET_TRANSPORT_get_hello_cancel (occ->ghh);
   occ->ghh = NULL;
@@ -837,7 +837,7 @@ core_startup_cb (void *cls, struct GNUNET_CORE_Handle *server,
   LOG_DEBUG ("0x%llx: Acquiring HELLO of peer %s\n", occ->op_id,
              GNUNET_i2s (&occ->peer_identity));
   /* Lookup for HELLO in hello cache */
-  if (NULL != (hello = GST_hello_cache_lookup (&occ->peer_identity)))
+  if (NULL != (hello = GST_cache_lookup (&occ->peer_identity)))
   {
     LOG_DEBUG ("0x%llx: HELLO of peer %s found in cache\n", occ->op_id,
                GNUNET_i2s (&occ->peer_identity));

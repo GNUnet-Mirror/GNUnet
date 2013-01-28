@@ -27,19 +27,19 @@
 #include "gnunet-service-testbed.h"
 
 /**
- * Hello cache entry
+ * Cache entry
  */
-struct HelloCacheEntry
+struct CacheEntry 
 {
   /**
-   * DLL next ptr for least recently used hello cache entries
+   * DLL next ptr for least recently used cache entries
    */
-  struct HelloCacheEntry *next;
+  struct CacheEntry *next;
 
   /**
-   * DLL prev ptr for least recently used hello cache entries
+   * DLL prev ptr for least recently used cache entries
    */
-  struct HelloCacheEntry *prev;
+  struct CacheEntry *prev;
 
   /**
    * The key for this entry
@@ -53,42 +53,42 @@ struct HelloCacheEntry
 };
 
 /**
- * Hashmap to maintain HELLO cache
+ * Hashmap to maintain cache
  */
-static struct GNUNET_CONTAINER_MultiHashMap *hello_cache;
+static struct GNUNET_CONTAINER_MultiHashMap *cache;
 
 /**
- * DLL head for least recently used hello cache entries; least recently used
+ * DLL head for least recently used cache entries; least recently used
  * cache items are at the head
  */
-static struct HelloCacheEntry *lru_hcache_head;
+static struct CacheEntry *lru_hcache_head;
 
 /**
- * DLL tail for least recently used hello cache entries; recently used cache
+ * DLL tail for least recently used cache entries; recently used cache
  * items are at the tail
  */
-static struct HelloCacheEntry *lru_hcache_tail;
+static struct CacheEntry *lru_hcache_tail;
 
 /**
- * The size of HELLO cache
+ * The size of cache
  */
-static unsigned int hello_cache_size;
+static unsigned int cache_size;
 
 
 /**
- * Looks up in the hello cache and returns the HELLO of the given peer
+ * Looks up in the cache and returns the HELLO of the given peer
  *
  * @param id the peer identity of the peer whose HELLO has to be looked up
  * @return the HELLO message; NULL if not found
  */
 const struct GNUNET_MessageHeader *
-GST_hello_cache_lookup (const struct GNUNET_PeerIdentity *id)
+GST_cache_lookup (const struct GNUNET_PeerIdentity *id)
 {
-  struct HelloCacheEntry *entry;
+  struct CacheEntry *entry;
 
-  if (NULL == hello_cache)
+  if (NULL == cache)
     return NULL;
-  entry = GNUNET_CONTAINER_multihashmap_get (hello_cache, &id->hashPubKey);
+  entry = GNUNET_CONTAINER_multihashmap_get (cache, &id->hashPubKey);
   if (NULL == entry)
     return NULL;
   GNUNET_CONTAINER_DLL_remove (lru_hcache_head, lru_hcache_tail, entry);
@@ -98,16 +98,16 @@ GST_hello_cache_lookup (const struct GNUNET_PeerIdentity *id)
 
 
 /**
- * Removes the given hello cache centry from hello cache and frees its resources
+ * Removes the given cache entry from cache and frees its resources
  *
  * @param entry the entry to remove
  */
 static void
-GST_hello_cache_remove (struct HelloCacheEntry *entry)
+GST_cache_remove (struct CacheEntry *entry)
 {
   GNUNET_CONTAINER_DLL_remove (lru_hcache_head, lru_hcache_tail, entry);
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (hello_cache, &entry->key,
+                 GNUNET_CONTAINER_multihashmap_remove (cache, &entry->key,
                                                        entry));
   GNUNET_free (entry->hello);
   GNUNET_free (entry);
@@ -122,25 +122,25 @@ GST_hello_cache_remove (struct HelloCacheEntry *entry)
  * @param hello the HELLO message
  */
 void
-GST_hello_cache_add (const struct GNUNET_PeerIdentity *id,
+GST_cache_add (const struct GNUNET_PeerIdentity *id,
                      const struct GNUNET_MessageHeader *hello)
 {
-  struct HelloCacheEntry *entry;
+  struct CacheEntry *entry;
 
-  if (NULL == hello_cache)
+  if (NULL == cache)
     return;
-  entry = GNUNET_CONTAINER_multihashmap_get (hello_cache, &id->hashPubKey);
+  entry = GNUNET_CONTAINER_multihashmap_get (cache, &id->hashPubKey);
   if (NULL == entry)
   {
-    entry = GNUNET_malloc (sizeof (struct HelloCacheEntry));
+    entry = GNUNET_malloc (sizeof (struct CacheEntry));
     memcpy (&entry->key, &id->hashPubKey, sizeof (struct GNUNET_HashCode));
-    if (GNUNET_CONTAINER_multihashmap_size (hello_cache) == hello_cache_size)
+    if (GNUNET_CONTAINER_multihashmap_size (cache) == cache_size)
     {
       GNUNET_assert (NULL != lru_hcache_head);
-      GST_hello_cache_remove (lru_hcache_head);
+      GST_cache_remove (lru_hcache_head);
     }
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONTAINER_multihashmap_put (hello_cache, &entry->key,
+                   GNUNET_CONTAINER_multihashmap_put (cache, &entry->key,
                                                       entry,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
   }
@@ -164,10 +164,10 @@ GST_cache_init (unsigned int size)
 {
   if (0 == size)
     return;
-  hello_cache_size = size;
+  cache_size = size;
   if (size > 1)
     size = size / 2;
-  hello_cache = GNUNET_CONTAINER_multihashmap_create (size, GNUNET_YES);
+  cache = GNUNET_CONTAINER_multihashmap_create (size, GNUNET_YES);
 }
 
 
@@ -177,15 +177,15 @@ GST_cache_init (unsigned int size)
 void
 GST_cache_clear ()
 {
-  if (NULL != hello_cache)
-    GNUNET_assert (GNUNET_CONTAINER_multihashmap_size (hello_cache) <=
-                   hello_cache_size);
+  if (NULL != cache)
+    GNUNET_assert (GNUNET_CONTAINER_multihashmap_size (cache) <=
+                   cache_size);
   while (NULL != lru_hcache_head)
-    GST_hello_cache_remove (lru_hcache_head);
-  if (NULL != hello_cache)
+    GST_cache_remove (lru_hcache_head);
+  if (NULL != cache)
   {
-    GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (hello_cache));
-    GNUNET_CONTAINER_multihashmap_destroy (hello_cache);
+    GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (cache));
+    GNUNET_CONTAINER_multihashmap_destroy (cache);
   }
 }
 

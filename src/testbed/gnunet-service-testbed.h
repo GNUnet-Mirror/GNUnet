@@ -653,7 +653,7 @@ GST_destroy_peer (struct Peer *peer);
  * @return the HELLO message; NULL if not found
  */
 const struct GNUNET_MessageHeader *
-GST_hello_cache_lookup (const struct GNUNET_PeerIdentity *id);
+GST_cache_lookup (const struct GNUNET_PeerIdentity *id);
 
 /**
  * Caches the HELLO of the given peer. Updates the HELLO if it was already
@@ -663,8 +663,8 @@ GST_hello_cache_lookup (const struct GNUNET_PeerIdentity *id);
  * @param hello the HELLO message
  */
 void
-GST_hello_cache_add (const struct GNUNET_PeerIdentity *id,
-                     const struct GNUNET_MessageHeader *hello);
+GST_cache_add (const struct GNUNET_PeerIdentity *id,
+               const struct GNUNET_MessageHeader *hello);
 
 
 /**
