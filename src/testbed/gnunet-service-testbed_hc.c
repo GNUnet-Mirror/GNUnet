@@ -333,7 +333,7 @@ cache_get_handle (unsigned int peer_id,
   entry->demand++;
   cgh->entry = entry;
   GNUNET_CONTAINER_DLL_insert (entry->cghq_head, entry->cghq_tail, cgh);
-  if (NULL != handle)
+  if ((NULL != entry->transport_handle) || (NULL != entry->transport_op))
   {
     if (GNUNET_SCHEDULER_NO_TASK == entry->notify_task)
       entry->notify_task = GNUNET_SCHEDULER_add_now (&call_cgh_cb, entry);
