@@ -426,8 +426,6 @@ GST_cache_get_handle_done (struct GSTCacheGetHandle *cgh)
   GNUNET_assert (NULL != cgh->entry);
   GNUNET_assert (0 < cgh->entry->demand);
   cgh->entry->demand--;
-  if (GNUNET_NO == cgh->entry->cghq_head->notify_called)
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != cgh->entry->notify_task);
   if (GNUNET_SCHEDULER_NO_TASK != cgh->entry->notify_task)
   {
     GNUNET_SCHEDULER_cancel (cgh->entry->notify_task);
