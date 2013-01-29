@@ -647,43 +647,6 @@ GST_destroy_peer (struct Peer *peer);
 
 
 /**
- * Looks up in the hello cache and returns the HELLO of the given peer
- *
- * @param id the peer identity of the peer whose HELLO has to be looked up
- * @return the HELLO message; NULL if not found
- */
-const struct GNUNET_MessageHeader *
-GST_cache_lookup (const struct GNUNET_PeerIdentity *id);
-
-/**
- * Caches the HELLO of the given peer. Updates the HELLO if it was already
- * cached before
- *
- * @param id the peer identity of the peer whose HELLO has to be cached
- * @param hello the HELLO message
- */
-void
-GST_cache_add (const struct GNUNET_PeerIdentity *id,
-               const struct GNUNET_MessageHeader *hello);
-
-
-/**
- * Initializes the cache
- *
- * @param size the size of the cache
- */
-void
-GST_cache_init (unsigned int size);
-
-
-/**
- * Clear cache
- */
-void
-GST_cache_clear ();
-
-
-/**
  * Finds the route with directly connected host as destination through which
  * the destination host can be reached
  *
@@ -801,5 +764,83 @@ void
 GST_free_roccq ();
 
 
+/**
+ * Initializes the cache
+ *
+ * @param size the size of the cache
+ */
+void
+GST_cache_init (unsigned int size);
+
+
+/**
+ * Clear cache
+ */
+void
+GST_cache_clear ();
+
+
+/**
+ * Looks up in the hello cache and returns the HELLO of the given peer
+ *
+ * @param peer_id the index of the peer whose HELLO has to be looked up
+ * @return the HELLO message; NULL if not found
+ */
+const struct GNUNET_MessageHeader *
+GST_cache_lookup_hello (const unsigned int peer_id);
+
+
+/**
+ * Caches the HELLO of the given peer. Updates the HELLO if it was already
+ * cached before
+ *
+ * @param id the peer identity of the peer whose HELLO has to be cached
+ * @param hello the HELLO message
+ */
+void
+GST_cache_add_hello (const unsigned int peer_id,
+                     const struct GNUNET_MessageHeader *hello);
+
+
+/**
+ * Callback from cache with needed handles set
+ *
+ * @param cls the closure passed to GST_cache_get_handle_transport()
+ * @param ch the handle to CORE. Can be NULL if it is not requested
+ * @param th the handle to TRANSPORT. Can be NULL if it is not requested
+ */
+typedef void (*GST_cache_callback) (void *cls, struct GNUNET_CORE_Handle *ch, 
+                                    struct GNUNET_TRANSPORT_Handle *th);
+
+
+/**
+ * Get a transport handle with the given configuration. If the handle is already
+ * cached before, it will be retured in the given callback; the peer_id is used to lookup in the
+ * cache. If not a new operation is started to open the transport handle and
+ * will be given in the callback when it is available.
+ *
+ * @param peer_id the index of the peer
+ * @param cfg the configuration with which the transport handle has to be
+ *          created if it was not present in the cache
+ * @param cb the callback to notify when the transport handle is available
+ * @param cb_cls the closure for the above callback
+ * @return the handle which can be used cancel or mark that the handle is no
+ *           longer being used
+ */
+struct GSTCacheGetHandle *
+GST_cache_get_handle_transport (unsigned int peer_id,
+                                const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                GST_cache_callback cb,
+                                void *cb_cls);
+
+
+/**
+ * Mark the GetCacheHandle as being done if a handle has been provided already
+ * or as being cancelled if the callback for the handle hasn't been called.
+ *
+ * @param cgh the CacheGetHandle handle
+ */
+void
+GST_cache_get_handle_done (struct GSTCacheGetHandle *cgh);
 
 /* End of gnunet-service-testbed.h */
