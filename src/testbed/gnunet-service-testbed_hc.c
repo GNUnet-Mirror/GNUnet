@@ -46,21 +46,15 @@ enum CacheGetType
 
 struct GSTCacheGetHandle
 {
-  struct GNUNET_TESTBED_Operation *op;
-  
+  struct GSTCacheGetHandle *next;
+
+  struct GSTCacheGetHandle *prev;
+
   struct CacheEntry *entry;
   
-  struct GNUNET_CORE_Handle *ch;
-
-  struct GNUNET_TRANSPORT_Handle *th;
-  
-  void *handle;
-
   GST_cache_callback cb;
    
   void *cb_cls;
-
-  GNUNET_SCHEDULER_TaskIdentifier notify_task;
 
   enum CacheGetType type;
 
@@ -99,13 +93,6 @@ struct CacheEntry
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
-   * The cache get handle which created this entry. Will be NULL after the
-   * operation for creating a core or transport handler is started, i.e. in the
-   * function opstart_get_handle_transport
-   */
-  struct GSTCacheGetHandle *cgh;
-
-  /**
    * The key for this entry
    */
   struct GNUNET_HashCode key;
@@ -114,6 +101,21 @@ struct CacheEntry
    * The HELLO message
    */
   struct GNUNET_MessageHeader *hello;
+
+  /**
+   * the head of the CacheGetHandle queue
+   */
+  struct GSTCacheGetHandle *cghq_head;
+
+  /**
+   * the tail of the CacheGetHandle queue
+   */
+  struct GSTCacheGetHandle *cghq_tail;
+
+  /**
+   * The task that calls the cache callback
+   */
+  GNUNET_SCHEDULER_TaskIdentifier notify_task;
 
   /**
    * Number of operations this cache entry is being used
@@ -151,6 +153,11 @@ static unsigned int lru_cache_size;
  * the threshold size for the LRU queue
  */
 static unsigned int lru_cache_threshold_size;
+
+/**
+ * The total number of elements in cache
+ */
+static unsigned int cache_size;
 
 
 /**
@@ -219,24 +226,30 @@ add_entry (const struct GNUNET_HashCode *key)
                  GNUNET_CONTAINER_multihashmap_put (cache, &entry->key,
                                                     entry,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+  cache_size++;
   return entry;
 }
 
 
 static void
-cache_notify_callback (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+call_cgh_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GSTCacheGetHandle *cgh = cls;
-  
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != cgh->notify_task);
-  cgh->notify_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_assert (NULL != cgh->entry);
-  cgh->entry->demand++;
+  struct CacheEntry *entry = cls;
+  struct GSTCacheGetHandle *cgh;
+
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != entry->notify_task);
+  entry->notify_task = GNUNET_SCHEDULER_NO_TASK;
+  cgh = entry->cghq_head;
+  GNUNET_assert (GNUNET_NO == cgh->notify_called);
+  GNUNET_CONTAINER_DLL_remove (entry->cghq_head, entry->cghq_tail, cgh);
   cgh->notify_called = GNUNET_YES;
+  GNUNET_CONTAINER_DLL_insert_tail (entry->cghq_head, entry->cghq_tail, cgh);
+  if (GNUNET_NO == entry->cghq_head->notify_called)
+    entry->notify_task = GNUNET_SCHEDULER_add_now (&call_cgh_cb, entry);
   switch (cgh->type)
   {
   case CGT_TRANSPORT_HANDLE:
-    cgh->cb (cgh->cb_cls, NULL, cgh->handle);
+    cgh->cb (cgh->cb_cls, NULL, entry->transport_handle);
     break;
   }
 }
@@ -246,13 +259,9 @@ static void
 opstart_get_handle_transport (void *cls)
 {
   struct CacheEntry *entry = cls;
-  struct GSTCacheGetHandle *cgh = entry->cgh;
 
   GNUNET_assert (NULL != entry);
-  GNUNET_assert (NULL != cgh);
-  GNUNET_assert (NULL != entry->cfg);
   LOG_DEBUG ("Opening a transport connection\n");
-  entry->cgh = NULL;
   entry->transport_handle = GNUNET_TRANSPORT_connect (entry->cfg,
                                                       NULL, NULL,
                                                       NULL,
@@ -263,9 +272,11 @@ opstart_get_handle_transport (void *cls)
     GNUNET_break (0);
     return;
   }
-  cgh->handle = entry->transport_handle;
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == cgh->notify_task);
-  cgh->notify_task = GNUNET_SCHEDULER_add_now (&cache_notify_callback, cgh);
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == entry->notify_task);
+  if (0 == entry->demand)
+    return;
+  if (GNUNET_NO == entry->cghq_head->notify_called)
+    entry->notify_task = GNUNET_SCHEDULER_add_now (&call_cgh_cb, entry);
 }
 
 
@@ -287,13 +298,11 @@ cache_get_handle (unsigned int peer_id,
                   const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_HashCode key;
-  struct GNUNET_CORE_Handle *ch;
   void *handle;
   struct CacheEntry *entry;
 
   GNUNET_assert (0 != cgh->type);
   GNUNET_CRYPTO_hash (&peer_id, sizeof (peer_id), &key);
-  ch = NULL;
   handle = NULL;
   entry = NULL;
   switch (cgh->type)
@@ -306,18 +315,20 @@ cache_get_handle (unsigned int peer_id,
   {
     GNUNET_assert (NULL != entry);
     LOG_DEBUG ("Found existing transport handle in cache\n");
-    cgh->entry = entry;
-    cgh->ch = ch;
-    cgh->handle = handle;
-    cgh->notify_task = GNUNET_SCHEDULER_add_now (&cache_notify_callback, cgh);
-    return cgh;
   }
   if (NULL == entry)
     entry = add_entry (&key);
   if (NULL == entry->cfg)
     entry->cfg = GNUNET_CONFIGURATION_dup (cfg);
+  entry->demand++;
   cgh->entry = entry;
-  entry->cgh = cgh;
+  GNUNET_CONTAINER_DLL_insert (entry->cghq_head, entry->cghq_tail, cgh);
+  if (NULL != handle)
+  {
+    if (GNUNET_SCHEDULER_NO_TASK == entry->notify_task)
+      entry->notify_task = GNUNET_SCHEDULER_add_now (&call_cgh_cb, entry);
+    return cgh;
+  }
   switch (cgh->type)
   {
   case CGT_TRANSPORT_HANDLE:
@@ -349,11 +360,15 @@ cache_clear_iterator (void *cls,
                       void *value)
 {
   struct CacheEntry *entry = value;
+  static unsigned int ncleared;
 
   GNUNET_assert (NULL != entry);
+  GNUNET_break (0 == entry->demand);
+  LOG_DEBUG ("Clearing entry %u of %u\n", ++ncleared, cache_size);
   GNUNET_CONTAINER_multihashmap_remove (cache, key, value);
   GNUNET_free_non_null (entry->hello);
   GNUNET_break (NULL == entry->transport_handle);
+  GNUNET_break (NULL == entry->cfg);
   GNUNET_free (entry);
   return GNUNET_YES;
 }
@@ -397,17 +412,28 @@ GST_cache_init (unsigned int size)
 void
 GST_cache_get_handle_done (struct GSTCacheGetHandle *cgh)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != cgh->notify_task)
-    GNUNET_SCHEDULER_cancel (cgh->notify_task);
-  if (GNUNET_YES == cgh->notify_called)
+  GNUNET_assert (NULL != cgh->entry);
+  cgh->entry->demand--;
+  if (GNUNET_NO == cgh->entry->cghq_head->notify_called)
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != cgh->entry->notify_task);
+  if (GNUNET_SCHEDULER_NO_TASK != cgh->entry->notify_task)
   {
-    cgh->entry->demand--;
-    if (0 == cgh->entry->demand)
-    {
-      GNUNET_CONTAINER_DLL_insert_tail (lru_cache_head, lru_cache_tail, cgh->entry);
-      if (lru_cache_size > lru_cache_threshold_size)
-        cache_remove (lru_cache_head);
-    }
+    GNUNET_SCHEDULER_cancel (cgh->entry->notify_task);
+    cgh->entry->notify_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  GNUNET_CONTAINER_DLL_remove (cgh->entry->cghq_head,
+                               cgh->entry->cghq_tail,
+                               cgh);  
+  if (0 == cgh->entry->demand)
+  {
+    GNUNET_CONTAINER_DLL_insert_tail (lru_cache_head, lru_cache_tail, cgh->entry);
+    if (lru_cache_size > lru_cache_threshold_size)
+      cache_remove (lru_cache_head);
+  }
+  else
+  {
+    if (GNUNET_NO == cgh->entry->cghq_head->notify_called)
+      cgh->entry->notify_task = GNUNET_SCHEDULER_add_now (&call_cgh_cb, cgh->entry);
   }
   GNUNET_free (cgh);
 }
@@ -455,10 +481,12 @@ GST_cache_lookup_hello (const unsigned int peer_id)
   struct CacheEntry *entry;
   struct GNUNET_HashCode key;
   
+  LOG_DEBUG ("Looking up HELLO for peer %u\n", peer_id);
   GNUNET_CRYPTO_hash (&peer_id, sizeof (peer_id), &key);
   entry = cache_lookup (&key);
   if (NULL == entry)
     return NULL;
+  LOG_DEBUG ("HELLO found for peer %u\n", peer_id);
   return entry->hello;
 }
 
