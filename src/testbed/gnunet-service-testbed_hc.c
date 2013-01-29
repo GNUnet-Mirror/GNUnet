@@ -121,6 +121,11 @@ struct CacheEntry
    * Number of operations this cache entry is being used
    */
   unsigned int demand;
+
+  /**
+   * The id of the peer this entry corresponds to
+   */
+  unsigned int peer_id;
 };
 
 /**
@@ -184,13 +189,11 @@ cache_lookup_handles (const struct GNUNET_HashCode *pid,
 {
   struct CacheEntry *entry;
   
-  GNUNET_assert ((NULL != th));
+  GNUNET_assert (NULL != th);
   entry = cache_lookup (pid);  
   if (NULL == entry)
     return NULL;
-  if (0 == entry->demand)
-    GNUNET_CONTAINER_DLL_remove (lru_cache_head, lru_cache_tail, entry);
-  if ((NULL != th) && (NULL != entry->transport_handle))
+  if (NULL != entry->transport_handle)
     *th = entry->transport_handle;
   return entry;
 }
@@ -202,25 +205,30 @@ cache_remove (struct CacheEntry *entry)
   /* We keep the entry in the hash table so that the HELLO can still be found
      in cache; we will however disconnect the core and transport handles */
   GNUNET_assert (0 == entry->demand);
-  GNUNET_assert (NULL != entry->cfg);
-  GNUNET_CONTAINER_DLL_remove (lru_cache_head, lru_cache_tail, entry);
+  if ((NULL != entry->next) || (NULL != entry->prev))
+    GNUNET_CONTAINER_DLL_remove (lru_cache_head, lru_cache_tail, entry);
+  LOG_DEBUG ("Cleaning up handles from an entry in cache\n");
   if (NULL != entry->transport_handle)
   {
     GNUNET_assert (NULL != entry->transport_op);
     GNUNET_TESTBED_operation_done (entry->transport_op);
     entry->transport_op = NULL;
   }
-  GNUNET_CONFIGURATION_destroy (entry->cfg);
-  entry->cfg = NULL;
+  if (NULL != entry->cfg)
+  {
+    GNUNET_CONFIGURATION_destroy (entry->cfg);
+    entry->cfg = NULL;
+  }
 }
 
 
 static struct CacheEntry *
-add_entry (const struct GNUNET_HashCode *key)
+add_entry (const struct GNUNET_HashCode *key, unsigned int peer_id)
 {
   struct CacheEntry *entry;
 
   entry = GNUNET_malloc (sizeof (struct CacheEntry));
+  entry->peer_id = peer_id;
   memcpy (&entry->key, key, sizeof (struct GNUNET_HashCode));
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap_put (cache, &entry->key,
@@ -261,7 +269,7 @@ opstart_get_handle_transport (void *cls)
   struct CacheEntry *entry = cls;
 
   GNUNET_assert (NULL != entry);
-  LOG_DEBUG ("Opening a transport connection\n");
+  LOG_DEBUG ("Opening a transport connection to peer %u\n", entry->peer_id);
   entry->transport_handle = GNUNET_TRANSPORT_connect (entry->cfg,
                                                       NULL, NULL,
                                                       NULL,
@@ -315,9 +323,11 @@ cache_get_handle (unsigned int peer_id,
   {
     GNUNET_assert (NULL != entry);
     LOG_DEBUG ("Found existing transport handle in cache\n");
+    if (0 == entry->demand)
+      GNUNET_CONTAINER_DLL_remove (lru_cache_head, lru_cache_tail, entry);
   }
   if (NULL == entry)
-    entry = add_entry (&key);
+    entry = add_entry (&key, peer_id);
   if (NULL == entry->cfg)
     entry->cfg = GNUNET_CONFIGURATION_dup (cfg);
   entry->demand++;
@@ -333,7 +343,6 @@ cache_get_handle (unsigned int peer_id,
   {
   case CGT_TRANSPORT_HANDLE:
     GNUNET_assert (NULL == entry->transport_op);
-    LOG_DEBUG ("Creating an operation for opening transport handle");
     entry->transport_op = GNUNET_TESTBED_operation_create_ (entry, &opstart_get_handle_transport,
                                                             &oprelease_get_handle_transport);
     GNUNET_TESTBED_operation_queue_insert_ (GST_opq_openfds,
@@ -366,6 +375,8 @@ cache_clear_iterator (void *cls,
   GNUNET_break (0 == entry->demand);
   LOG_DEBUG ("Clearing entry %u of %u\n", ++ncleared, cache_size);
   GNUNET_CONTAINER_multihashmap_remove (cache, key, value);
+  if (0 == entry->demand)
+    cache_remove (entry);
   GNUNET_free_non_null (entry->hello);
   GNUNET_break (NULL == entry->transport_handle);
   GNUNET_break (NULL == entry->cfg);
@@ -413,6 +424,7 @@ void
 GST_cache_get_handle_done (struct GSTCacheGetHandle *cgh)
 {
   GNUNET_assert (NULL != cgh->entry);
+  GNUNET_assert (0 < cgh->entry->demand);
   cgh->entry->demand--;
   if (GNUNET_NO == cgh->entry->cghq_head->notify_called)
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != cgh->entry->notify_task);
@@ -486,7 +498,8 @@ GST_cache_lookup_hello (const unsigned int peer_id)
   entry = cache_lookup (&key);
   if (NULL == entry)
     return NULL;
-  LOG_DEBUG ("HELLO found for peer %u\n", peer_id);
+  if (NULL != entry->hello)
+    LOG_DEBUG ("HELLO found for peer %u\n", peer_id);
   return entry->hello;
 }
 
@@ -508,7 +521,7 @@ GST_cache_add_hello (const unsigned int peer_id,
   GNUNET_CRYPTO_hash (&peer_id, sizeof (peer_id), &key);
   entry = GNUNET_CONTAINER_multihashmap_get (cache, &key);
   if (NULL == entry)
-    entry = add_entry (&key);
+    entry = add_entry (&key, peer_id);
   GNUNET_free_non_null (entry->hello);
   entry->hello = GNUNET_copy_message (hello);
 }
