@@ -121,6 +121,18 @@ GNUNET_NETWORK_socket_box_native (SOCKTYPE fd);
 
 
 /**
+ * Set if a socket should use blocking or non-blocking IO.
+ *
+ * @param fd socket
+ * @param doBlock blocking mode
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_NETWORK_socket_set_blocking (struct GNUNET_NETWORK_Handle *fd, 
+				    int doBlock);
+
+
+/**
  * Bind to a connected socket
  *
  * @param desc socket to bind
