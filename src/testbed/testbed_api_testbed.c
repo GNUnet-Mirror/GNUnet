@@ -942,6 +942,7 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host,
                    int status)
 {
   struct RunContext *rc = cls;
+  struct GNUNET_TESTBED_Host **old_hosts;
   unsigned int nhost;
 
   for (nhost = 0; nhost < rc->num_hosts; nhost++)
@@ -970,7 +971,14 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host,
   rc->h = rc->hosts[0];
   rc->num_hosts--;
   if (0 < rc->num_hosts)
-    rc->hosts = &rc->hosts[1];
+  {
+    old_hosts = rc->hosts;
+    rc->hosts = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Host *) 
+                               * rc->num_hosts);
+    memcpy (rc->hosts, &old_hosts[1], (sizeof (struct GNUNET_TESTBED_Host *)
+                                       * rc->num_hosts));
+    GNUNET_free (old_hosts);
+  }
   else
   {
     GNUNET_free (rc->hosts);
