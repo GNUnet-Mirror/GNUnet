@@ -144,12 +144,13 @@ GNUNET_NETWORK_shorten_unixpath (char *unixpath)
 
 /**
  * Set if a socket should use blocking or non-blocking IO.
+ *
  * @param fd socket
  * @param doBlock blocking mode
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-static int
-socket_set_blocking (struct GNUNET_NETWORK_Handle *fd, int doBlock)
+int
+GNUNET_NETWORK_socket_set_blocking (struct GNUNET_NETWORK_Handle *fd, int doBlock)
 {
 
 #if MINGW
@@ -307,7 +308,7 @@ initialize_network_handle (struct GNUNET_NETWORK_Handle *h,
     LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                   "socket_set_inheritable");
 
-  if (GNUNET_SYSERR == socket_set_blocking (h, GNUNET_NO))
+  if (GNUNET_SYSERR == GNUNET_NETWORK_socket_set_blocking (h, GNUNET_NO))
   {
     GNUNET_break (0);
     GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (h));

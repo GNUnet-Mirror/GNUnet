@@ -864,8 +864,9 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (const struct
     GNUNET_free (connection);
     return NULL;
   }
-  if (GNUNET_OK !=
-      GNUNET_NETWORK_socket_connect (connection->sock, connection->addr, connection->addrlen))
+  if ( (GNUNET_OK !=
+	GNUNET_NETWORK_socket_connect (connection->sock, connection->addr, connection->addrlen)) &&
+       (EINPROGRESS != errno) )
   {
     /* Just return; we expect everything to work eventually so don't fail HARD */
     GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (connection->sock));
