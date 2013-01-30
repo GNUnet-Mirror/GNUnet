@@ -32,7 +32,7 @@
 /**
  * File-size we use for testing.
  */
-#define FILESIZE (1024 * 1024 * 100)
+#define FILESIZE (1024 * 1024 * 10)
 
 /**
  * How long until we give up on transmitting the message?
