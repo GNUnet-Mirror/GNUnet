@@ -1249,7 +1249,18 @@ GNUNET_TRANSPORT_offer_hello_cancel (struct GNUNET_TRANSPORT_OfferHelloHandle *o
   GNUNET_free (ohh);
 }
 
+int
+GNUNET_TRANSPORT_check_neighbour_connected (struct GNUNET_TRANSPORT_Handle *handle,
+                              					const struct GNUNET_PeerIdentity *peer)
+{
+	GNUNET_assert (NULL != handle);
+	GNUNET_assert (NULL != peer);
 
+	if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(handle->neighbours, &peer->hashPubKey))
+			return GNUNET_YES;
+	else
+		return GNUNET_NO;
+}
 
 /**
  * Obtain the HELLO message for this peer.

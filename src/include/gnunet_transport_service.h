@@ -270,6 +270,19 @@ struct GNUNET_TRANSPORT_GetHelloHandle;
 
 
 /**
+  * Checks if a neighbour is connected
+  *
+  * @param handle connection to transport service
+  * @peer the peer to check
+  * @return GNUNET_YES or GNUNET_NO
+  *
+  */
+int
+GNUNET_TRANSPORT_check_neighbour_connected (struct GNUNET_TRANSPORT_Handle *handle,
+                              					const struct GNUNET_PeerIdentity *peer);
+
+
+/**
  * Obtain updates on changes to the HELLO message for this peer.
  *
  * @param handle connection to transport service
