@@ -808,9 +808,12 @@ GST_cache_add_hello (const unsigned int peer_id,
  * @param cls the closure passed to GST_cache_get_handle_transport()
  * @param ch the handle to CORE. Can be NULL if it is not requested
  * @param th the handle to TRANSPORT. Can be NULL if it is not requested
+ * @param peer_id the identity of the peer. Will be NULL if ch is NULL. In other
+ *          cases, its value being NULL means that CORE connection has failed.
  */
 typedef void (*GST_cache_callback) (void *cls, struct GNUNET_CORE_Handle *ch, 
-                                    struct GNUNET_TRANSPORT_Handle *th);
+                                    struct GNUNET_TRANSPORT_Handle *th,
+                                    const struct GNUNET_PeerIdentity *peer_id);
 
 
 /**

@@ -728,10 +728,12 @@ send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls the closure passed to GST_cache_get_handle_transport()
  * @param ch the handle to CORE. Can be NULL if it is not requested
  * @param th the handle to TRANSPORT. Can be NULL if it is not requested
+ * @param ignore_ peer identity which is ignored in this callback
  */
 static void 
 p2_transport_connect_cache_callback (void *cls, struct GNUNET_CORE_Handle *ch, 
-                                     struct GNUNET_TRANSPORT_Handle *th)
+                                     struct GNUNET_TRANSPORT_Handle *th,
+                                     const struct GNUNET_PeerIdentity *ignore_)
 {
   struct OverlayConnectContext *occ = cls;
 
@@ -1461,10 +1463,12 @@ attempt_connect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls the closure passed to GST_cache_get_handle_transport()
  * @param ch the handle to CORE. Can be NULL if it is not requested
  * @param th the handle to TRANSPORT. Can be NULL if it is not requested
+ * @param ignore_ peer identity which is ignored in this callback
  */
 static void 
 rocc_cache_get_handle_transport_cb (void *cls, struct GNUNET_CORE_Handle *ch, 
-                                    struct GNUNET_TRANSPORT_Handle *th)
+                                    struct GNUNET_TRANSPORT_Handle *th,
+                                    const struct GNUNET_PeerIdentity *ignore_)
 {
   struct RemoteOverlayConnectCtx *rocc = cls;
   

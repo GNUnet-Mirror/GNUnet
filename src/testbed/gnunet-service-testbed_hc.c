@@ -179,6 +179,13 @@ struct CacheEntry
   struct GNUNET_TESTBED_Operation *core_op;
 
   /**
+   * The peer identity of this peer. Will be set upon opening a connection to
+   * the peers CORE service. Will be NULL until then and after the CORE
+   * connection is closed
+   */
+  struct GNUNET_PeerIdentity *peer_identity;
+
+  /**
    * The configuration of the peer. Should be not NULL as long as the core_handle
    * or transport_handle are valid
    */
@@ -334,6 +341,8 @@ cache_remove (struct CacheEntry *entry)
     GNUNET_TESTBED_operation_done (entry->core_op);
     entry->core_op = NULL;
   }
+  GNUNET_free_non_null (entry->peer_identity);
+  entry->peer_identity = NULL;
   if (NULL != entry->cfg)
   {
     GNUNET_CONFIGURATION_destroy (entry->cfg);
@@ -359,30 +368,54 @@ add_entry (const struct GNUNET_HashCode *key, unsigned int peer_id)
 }
 
 
+static struct GSTCacheGetHandle *
+search_suitable_gst (const struct CacheEntry *entry,
+                     const struct GSTCacheGetHandle *head)
+{
+  const struct GSTCacheGetHandle *cgh;
+
+  for (cgh=head; NULL != cgh; cgh=cgh->next)
+  {
+    if (GNUNET_YES == cgh->notify_called)
+      return NULL;
+    switch (cgh->type)
+    {
+    case CGT_TRANSPORT_HANDLE:
+      if (NULL == entry->transport_handle_)
+        continue;
+      break;
+    case CGT_CORE_HANDLE:
+      if (NULL == entry->core_handle)
+        continue;
+      break;
+    }
+    break;
+  }  
+  return (struct GSTCacheGetHandle *) cgh;
+}
+
+
 static void
 call_cgh_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct CacheEntry *entry = cls;
   struct GSTCacheGetHandle *cgh;
-
+  const struct GSTCacheGetHandle *cgh2;
+  
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != entry->notify_task);
   entry->notify_task = GNUNET_SCHEDULER_NO_TASK;
-  cgh = entry->cgh_qhead;
-  GNUNET_assert (GNUNET_NO == cgh->notify_called);
+  cgh = search_suitable_gst (entry, entry->cgh_qhead);
+  GNUNET_assert (NULL != cgh);
+  cgh2 = NULL;
+  if (NULL != cgh->next)
+    cgh2 = search_suitable_gst (entry, cgh->next);
   GNUNET_CONTAINER_DLL_remove (entry->cgh_qhead, entry->cgh_qtail, cgh);
   cgh->notify_called = GNUNET_YES;
   GNUNET_CONTAINER_DLL_insert_tail (entry->cgh_qhead, entry->cgh_qtail, cgh);
-  if (GNUNET_NO == entry->cgh_qhead->notify_called)
+  if (NULL != cgh2)
     entry->notify_task = GNUNET_SCHEDULER_add_now (&call_cgh_cb, entry);
-  switch (cgh->type)
-  {
-  case CGT_TRANSPORT_HANDLE:
-    cgh->cb (cgh->cb_cls, NULL, entry->transport_handle_);
-    break;
-  case CGT_CORE_HANDLE:
-    cgh->cb (cgh->cb_cls, entry->core_handle, NULL);
-    break;
-  }
+  cgh->cb (cgh->cb_cls, entry->core_handle, 
+           entry->transport_handle_, entry->peer_identity);
 }
 
 /**
@@ -498,6 +531,14 @@ core_peer_connect_cb (void *cls,
 {
   struct CacheEntry *entry = cls;
 
+  if (NULL == peer)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  GNUNET_assert (NULL == entry->peer_identity);
+  entry->peer_identity = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
+  memcpy (entry->peer_identity, peer, sizeof (struct GNUNET_PeerIdentity));
   if (0 == entry->demand)
     return;
   if (GNUNET_NO == entry->cgh_qhead->notify_called)
