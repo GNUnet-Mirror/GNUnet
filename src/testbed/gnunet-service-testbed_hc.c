@@ -26,37 +26,17 @@
 
 #include "gnunet-service-testbed.h"
 
-
+/**
+ * Redefine LOG with a changed log component string
+ */
 #ifdef LOG
 #undef LOG
 #endif
-
 #define LOG(kind,...)                                   \
   GNUNET_log_from (kind, "testbed-cache", __VA_ARGS__)
 
 
-enum CacheGetType
-{    
-  CGT_TRANSPORT_HANDLE = 1
-};
-
-
-struct GSTCacheGetHandle
-{
-  struct GSTCacheGetHandle *next;
-
-  struct GSTCacheGetHandle *prev;
-
-  struct CacheEntry *entry;
-  
-  GST_cache_callback cb;
-   
-  void *cb_cls;
-
-  enum CacheGetType type;
-
-  int notify_called;
-};
+struct GSTCacheGetHandle;
 
 
 /**
@@ -90,6 +70,37 @@ struct ConnectNotifyContext
    * The closure for the notify callback
    */
   void *cb_cls;
+
+  /**
+   * The GSTCacheGetHandle reposible for creating this context
+   */
+  struct GSTCacheGetHandle *cgh;
+};
+
+
+enum CacheGetType
+{    
+  CGT_TRANSPORT_HANDLE = 1
+};
+
+
+struct GSTCacheGetHandle
+{
+  struct GSTCacheGetHandle *next;
+
+  struct GSTCacheGetHandle *prev;
+
+  struct CacheEntry *entry;
+  
+  GST_cache_callback cb;
+   
+  void *cb_cls;
+
+  struct ConnectNotifyContext *nctxt;
+
+  enum CacheGetType type;
+
+  int notify_called;
 };
 
 /**
@@ -325,7 +336,8 @@ peer_connect_notify_cb (void *cls,
   GST_cache_peer_connect_notify cb;
   void *cb_cls;
 
-  while (NULL != (ctxt = entry->nctxt_qhead))
+  
+  for (ctxt=entry->nctxt_qhead; NULL != ctxt; ctxt=ctxt->next)
   {
     if (0 == memcmp (ctxt->target, peer, sizeof (struct GNUNET_PeerIdentity)))
       break;
@@ -334,6 +346,8 @@ peer_connect_notify_cb (void *cls,
     return;
   cb = ctxt->cb;
   cb_cls = ctxt->cb_cls;
+  GNUNET_assert (NULL != ctxt->cgh);
+  ctxt->cgh->nctxt = NULL;
   GNUNET_CONTAINER_DLL_remove (entry->nctxt_qhead, entry->nctxt_qtail, ctxt);
   GNUNET_free (ctxt);
   cb (cb_cls, peer);
@@ -426,6 +440,9 @@ cache_get_handle (unsigned int peer_id,
     ctxt->target = target;
     ctxt->cb = connect_notify_cb;
     ctxt->cb_cls = connect_notify_cb_cls;
+    GNUNET_assert (NULL == cgh->nctxt);
+    cgh->nctxt = ctxt;
+    ctxt->cgh = cgh;
     GNUNET_CONTAINER_DLL_insert_tail (entry->nctxt_qhead, entry->nctxt_qtail, ctxt);
   }
   if ((NULL != entry->transport_handle) || (NULL != entry->transport_op))
@@ -534,6 +551,13 @@ GST_cache_get_handle_done (struct GSTCacheGetHandle *cgh)
     entry->notify_task = GNUNET_SCHEDULER_NO_TASK;
   }
   GNUNET_CONTAINER_DLL_remove (entry->cgh_qhead, entry->cgh_qtail, cgh);
+  if (NULL != cgh->nctxt)
+  {
+    GNUNET_assert (cgh == cgh->nctxt->cgh);
+    GNUNET_CONTAINER_DLL_remove (entry->nctxt_qhead, entry->nctxt_qtail, cgh->nctxt);
+    GNUNET_free (cgh->nctxt);
+  }
+  
   if (0 == entry->demand)
   {
     GNUNET_CONTAINER_DLL_insert_tail (lru_cache_head, lru_cache_tail, entry);

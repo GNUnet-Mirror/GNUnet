@@ -25,7 +25,15 @@
  */
 
 #include "gnunet-service-testbed.h"
-#include "testbed_api_operations.h"
+
+/**
+ * Redefine LOG with a changed log component string
+ */
+#ifdef LOG
+#undef LOG
+#endif
+#define LOG(kind,...)                                   \
+  GNUNET_log_from (kind, "testbed-OC", __VA_ARGS__)
 
 
 /**
@@ -1468,6 +1476,14 @@ rocc_cache_get_handle_transport_cb (void *cls, struct GNUNET_CORE_Handle *ch,
   }
   rocc->tcc.th_ = th;
   rocc->tcc.pid = &rocc->a_id;
+  if (GNUNET_YES == GNUNET_TRANSPORT_check_neighbour_connected (rocc->tcc.th_,
+                                                                rocc->tcc.pid))
+  {
+    LOG_DEBUG ("0x%llx: Target peer %4s already connected to local peer: %u\n",
+               rocc->op_id, GNUNET_i2s (&rocc->a_id), rocc->peer->id);
+    cleanup_rocc (rocc);
+    return;
+  }
   rocc->attempt_connect_task_id =
       GNUNET_SCHEDULER_add_now (&attempt_connect_task, rocc);  
 }
