@@ -1369,4 +1369,29 @@ GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle *th)
 }
 
 
+/**
+ * Check if the given peer is currently connected. This function is for special
+ * cirumstances (GNUNET_TESTBED uses it), normal users of the CORE API are
+ * expected to track which peers are connected based on the connect/disconnect
+ * callbacks from GNUNET_CORE_connect.  This function is NOT part of the
+ * 'versioned', 'official' API. The difference between this function and the
+ * function GNUNET_CORE_is_peer_connected() is that this one returns
+ * synchronously after looking in the CORE API cache. The function
+ * GNUNET_CORE_is_peer_connected() sends a message to the CORE service and hence
+ * its response is given asynchronously.
+ *
+ * @param h the core handle
+ * @param pid the identity of the peer to check if it has been connected to us
+ * @return GNUNET_YES if the peer is connected to us; GNUNET_NO if not
+ */
+int
+GNUNET_CORE_is_peer_connected_sync (const struct GNUNET_CORE_Handle *h,
+                                    const struct GNUNET_PeerIdentity *pid)
+{
+  GNUNET_assert (NULL != h);
+  GNUNET_assert (NULL != pid);
+  return GNUNET_CONTAINER_multihashmap_contains (h->peers, &pid->hashPubKey);
+}
+
+
 /* end of core_api.c */
