@@ -65,7 +65,7 @@
  * Name or Path+Name of our driver in Unicode.
  * The .sys and .cat files HAVE to be in the same location as this file!
  */
-#define INF_FILE "OemWin2k.inf"
+#define INF_FILE "share/gnunet/tapw32/OemWin2k.inf"
 
 /**
  * Hardware ID used in the inf-file. 
@@ -430,7 +430,7 @@ setup_interface ()
   str_length = strlen (hwidlist) + 1;
   strncpy (&hwidlist[str_length], secondary_hwid, LINE_LEN);
   str_length += strlen (&hwidlist[str_length]) + 1;
-
+  
   /** 
    * Locate the inf-file, we need to store it somewhere where the system can
    * find it. A good choice would be CWD/PDW or %WINDIR$\system32\
@@ -440,6 +440,7 @@ setup_interface ()
    */
   GetFullPathNameA (INF_FILE, MAX_PATH, inf_file_path, &temp_inf_filename);
 
+  fprintf (stderr, "INFO: Located our driver's .inf file at %s\n", inf_file_path);
   /** 
    * Bootstrap our device info using the drivers inf-file
    */
@@ -490,6 +491,7 @@ setup_interface ()
                                            NULL)) //reboot required? NEVER!
     return FALSE;
 
+  fprintf (stderr, "DEBUG: successfully created a network device\n");
   return TRUE;
 }
 
@@ -530,6 +532,8 @@ remove_interface ()
     return FALSE;
 
   SetupDiDestroyDeviceInfoList (DeviceInfo);
+  
+  fprintf (stderr, "DEBUG: removed interface successfully\n");
 
   return TRUE;
 }
@@ -562,6 +566,8 @@ resolve_interface_name ()
                                           0, //must be 0
                                           NULL)) //hMachine, we are local
     return FALSE;
+  
+  fprintf (stderr, "DEBUG: Resolving interface name for network device %s\n",pnp_instance_id);
 
   /* Registry is incredibly slow, retry for up to 30 seconds to allow registry to refresh */
   for (retrys = 0; retrys < 120 && !retval; retrys++)
@@ -663,7 +669,7 @@ resolve_interface_name ()
 
           strncpy (device_guid, instance_key, 256);
           retval = TRUE;
-          fprintf (stderr, "DEBUG: Interface Name lookup succeeded on retry %d\n", retrys);
+          fprintf (stderr, "DEBUG: Interface Name lookup succeeded on retry %d, got \"%s\" %s\n", retrys, device_visible_name, device_guid);
 
 cleanup:
           RegCloseKey (instance_key_handle);
@@ -700,7 +706,7 @@ check_tapw32_version (HANDLE handle)
                (version[2] ? "(DEBUG)" : ""));
 
   if (version[0] != TAP_WIN_MIN_MAJOR || version[1] < TAP_WIN_MIN_MINOR){
-      fprintf (stderr, "FATAL:  This version of gnunet requires a TAP-Windows driver that is at least version %d.%d!\n",
+      fprintf (stderr, "FATAL:  This version of gnunet requires a TAP-Windows driver that is at least version %d.%d\n",
                TAP_WIN_MIN_MAJOR,
                TAP_WIN_MIN_MINOR);
       return FALSE;
@@ -727,7 +733,7 @@ init_tun ()
       return INVALID_HANDLE_VALUE;
     }
 
-  if (!resolve_interface_name ())
+  if (! resolve_interface_name ())
     {
       errno = ENODEV;
       return INVALID_HANDLE_VALUE;
@@ -756,7 +762,7 @@ init_tun ()
     }
 
   /* get driver version info */
-  if (!check_tapw32_version (handle))
+  if (! check_tapw32_version (handle))
     {
       CloseHandle (handle);
       return INVALID_HANDLE_VALUE;
@@ -764,6 +770,7 @@ init_tun ()
 
   /* TODO (opt?): get MTU-Size */
 
+  fprintf (stderr, "DEBUG: successfully opened TAP device\n");
   return handle;
 }
 
@@ -779,16 +786,17 @@ tun_up (HANDLE handle)
 {
   ULONG status = TRUE;
   DWORD len;
-  if (!DeviceIoControl (handle, TAP_WIN_IOCTL_SET_MEDIA_STATUS,
+  if (! DeviceIoControl (handle, TAP_WIN_IOCTL_SET_MEDIA_STATUS,
                         &status, sizeof (status),
                         &status, sizeof (status), &len, NULL))
     {
-      fprintf (stderr, "FATAL: TAP driver ignored request to UP interface (DeviceIoControl call)!\n");
+      fprintf (stderr, "FATAL: TAP driver ignored request to UP interface (DeviceIoControl call)\n");
       return FALSE;
     }
 
   /* Wait for the device to go UP, might take some time. */
   Sleep (TAP32_POSTUP_WAITTIME * 1000);
+  fprintf (stderr, "DEBUG: successfully set TAP device to UP\n");
 
   return TRUE;
 
@@ -832,7 +840,7 @@ attempt_read_tap (struct io_facility * input_facility,
     {
     case IOSTATE_READY:
       { 
-        if (!ResetEvent (input_facility->overlapped.hEvent))
+        if (! ResetEvent (input_facility->overlapped.hEvent))
           {
             return FALSE;
           }
@@ -849,9 +857,11 @@ attempt_read_tap (struct io_facility * input_facility,
           {/* async event processed immediately*/
 
             /* reset event manually*/
-            if (!SetEvent (input_facility->overlapped.hEvent))
+            if (! SetEvent (input_facility->overlapped.hEvent))
               return FALSE;
-
+            
+            fprintf (stderr, "DEBUG: tap read succeeded immediately\n");
+            
             /* we successfully read something from the TAP and now need to
              * send it our via STDOUT. Is that possible at the moment? */
             if ((IOSTATE_READY == output_facility->facility_state ||
@@ -890,7 +900,7 @@ attempt_read_tap (struct io_facility * input_facility,
                 if (IOSTATE_WAITING == output_facility->facility_state)
                   output_facility->path_open = FALSE;
 
-                fprintf (stderr, "FATAL: Read from handle failed, allowing write to finish!\n");
+                fprintf (stderr, "FATAL: Read from handle failed, allowing write to finish\n");
               }
           }
       }
@@ -905,9 +915,11 @@ attempt_read_tap (struct io_facility * input_facility,
                                       FALSE);
         if (status)
           {/* successful return for a queued operation */
-            if (!ResetEvent (input_facility->overlapped.hEvent))
+            if (! ResetEvent (input_facility->overlapped.hEvent))
               return FALSE;
 
+            fprintf (stderr, "DEBUG: tap read succeeded delayed\n");
+            
             /* we successfully read something from the TAP and now need to
              * send it our via STDOUT. Is that possible at the moment? */
             if ((IOSTATE_READY == output_facility->facility_state ||
@@ -936,13 +948,13 @@ attempt_read_tap (struct io_facility * input_facility,
         else
           { /* operation still pending/queued or failed? */
             int err = GetLastError ();
-            if (ERROR_IO_INCOMPLETE != err && ERROR_IO_PENDING != err)
+            if ((ERROR_IO_INCOMPLETE != err) && (ERROR_IO_PENDING != err))
               { /* error occurred, let the rest of the elements finish */
                 input_facility->path_open = FALSE;
                 input_facility->facility_state = IOSTATE_FAILED;
                 if (IOSTATE_WAITING == output_facility->facility_state)
                   output_facility->path_open = FALSE;
-                fprintf (stderr, "FATAL: Read from handle failed, allowing write to finish!\n");
+                fprintf (stderr, "FATAL: Read from handle failed, allowing write to finish\n");
               }
           }
       }
@@ -1002,7 +1014,7 @@ attempt_read_stdin (struct io_facility * input_facility,
     {
     case IOSTATE_READY:
       {
-        if (!ResetEvent (input_facility->overlapped.hEvent))
+        if (! ResetEvent (input_facility->overlapped.hEvent))
           return FALSE;
         input_facility->buffer_size = 0;
         status = ReadFile (input_facility->handle,
@@ -1017,13 +1029,15 @@ attempt_read_stdin (struct io_facility * input_facility,
             hdr = (struct GNUNET_MessageHeader *) input_facility->buffer;
 
             /* reset event manually*/
-            if (!SetEvent (input_facility->overlapped.hEvent))
+            if (! SetEvent (input_facility->overlapped.hEvent))
               return FALSE;
 
+            fprintf (stderr, "DEBUG: stdin read succeeded immediately\n");
+            
             if (ntohs (hdr->type) != GNUNET_MESSAGE_TYPE_VPN_HELPER ||
                 ntohs (hdr->size) > sizeof (input_facility->buffer))
               {
-                fprintf (stderr, "WARNING: Protocol violation, got GNUnet Message type %h, size %h!\n", ntohs (hdr->type), ntohs (hdr->size));
+                fprintf (stderr, "WARNING: Protocol violation, got GNUnet Message type %h, size %h\n", ntohs (hdr->type), ntohs (hdr->size));
                 input_facility->facility_state = IOSTATE_READY;
                 return TRUE;
               }
@@ -1038,8 +1052,8 @@ attempt_read_stdin (struct io_facility * input_facility,
                     IOSTATE_WAITING == output_facility->facility_state)
                   {
                     /* hand over this buffers content and strip gnunet message header */
-                    memcpy (output_facility->buffer + sizeof (struct GNUNET_MessageHeader),
-                            input_facility->buffer,
+                    memcpy (output_facility->buffer,
+                            input_facility->buffer + sizeof (struct GNUNET_MessageHeader),
                             input_facility->buffer_size - sizeof (struct GNUNET_MessageHeader));
                     output_facility->buffer_size = input_facility->buffer_size - sizeof (struct GNUNET_MessageHeader);
                     output_facility->facility_state = IOSTATE_READY;
@@ -1053,7 +1067,7 @@ attempt_read_stdin (struct io_facility * input_facility,
           }
         else if (status && 0 >= input_facility->buffer_size)
           {
-            if (!SetEvent (input_facility->overlapped.hEvent))
+            if (! SetEvent (input_facility->overlapped.hEvent))
               return FALSE;
 
             input_facility->facility_state = IOSTATE_READY;
@@ -1072,7 +1086,7 @@ attempt_read_stdin (struct io_facility * input_facility,
                 if (IOSTATE_WAITING == output_facility->facility_state)
                   output_facility->path_open = FALSE;
 
-                fprintf (stderr, "FATAL: Read from handle failed, allowing write to finish!\n");
+                fprintf (stderr, "FATAL: Read from handle failed, allowing write to finish\n");
               }
           }
       }
@@ -1089,13 +1103,15 @@ attempt_read_stdin (struct io_facility * input_facility,
           {/* successful return for a queued operation */
             hdr = (struct GNUNET_MessageHeader *) input_facility->buffer;
             
-            if (!ResetEvent (input_facility->overlapped.hEvent))
+            if (! ResetEvent (input_facility->overlapped.hEvent))
               return FALSE;
             
-            if (ntohs (hdr->type) != GNUNET_MESSAGE_TYPE_VPN_HELPER ||
-                ntohs (hdr->size) > sizeof (input_facility->buffer))
+            fprintf (stderr, "DEBUG: stdin read succeeded delayed\n");
+            
+            if ((ntohs (hdr->type) != GNUNET_MESSAGE_TYPE_VPN_HELPER) ||
+                (ntohs (hdr->size) > sizeof (input_facility->buffer)))
               {
-                fprintf (stderr, "WARNING: Protocol violation, got GNUnet Message type %h, size %h!\n", ntohs (hdr->type), ntohs (hdr->size));
+                fprintf (stderr, "WARNING: Protocol violation, got GNUnet Message type %h, size %h\n", ntohs (hdr->type), ntohs (hdr->size));
                 input_facility->facility_state = IOSTATE_READY;
                 return TRUE;
               }
@@ -1108,8 +1124,8 @@ attempt_read_stdin (struct io_facility * input_facility,
                  IOSTATE_WAITING == output_facility->facility_state)
                 && sizeof(struct GNUNET_MessageHeader) < input_facility->buffer_size)
               { /* hand over this buffers content and strip gnunet message header */
-                memcpy (output_facility->buffer + sizeof(struct GNUNET_MessageHeader),
-                        input_facility->buffer,
+                memcpy (output_facility->buffer,
+                        input_facility->buffer + sizeof(struct GNUNET_MessageHeader),
                         input_facility->buffer_size - sizeof(struct GNUNET_MessageHeader));
                 output_facility->buffer_size = input_facility->buffer_size - sizeof(struct GNUNET_MessageHeader);
                 output_facility->facility_state = IOSTATE_READY;
@@ -1126,20 +1142,20 @@ attempt_read_stdin (struct io_facility * input_facility,
         else
           { /* operation still pending/queued or failed? */
             int err = GetLastError ();
-            if (ERROR_IO_INCOMPLETE != err && ERROR_IO_PENDING != err)
+            if ((ERROR_IO_INCOMPLETE != err) && (ERROR_IO_PENDING != err))
               { /* error occurred, let the rest of the elements finish */
                 input_facility->path_open = FALSE;
                 input_facility->facility_state = IOSTATE_FAILED;
                 if (IOSTATE_WAITING == output_facility->facility_state)
                   output_facility->path_open = FALSE;
-                fprintf (stderr, "FATAL: Read from handle failed, allowing write to finish!\n");
+                fprintf (stderr, "FATAL: Read from handle failed, allowing write to finish\n");
               }
           }
       }
       return TRUE;
     case IOSTATE_RESUME: /* Our buffer was filled already but our write facility was busy. */
-      memcpy (output_facility->buffer + sizeof (struct GNUNET_MessageHeader),
-              input_facility->buffer,
+      memcpy (output_facility->buffer,
+              input_facility->buffer + sizeof (struct GNUNET_MessageHeader),
               input_facility->buffer_size - sizeof (struct GNUNET_MessageHeader));
       output_facility->buffer_size = input_facility->buffer_size - sizeof (struct GNUNET_MessageHeader);
       output_facility->facility_state = IOSTATE_READY;
@@ -1169,7 +1185,7 @@ attempt_write (struct io_facility * output_facility,
     {
     case IOSTATE_READY:
 
-      if (!ResetEvent (output_facility->overlapped.hEvent))
+      if (! ResetEvent (output_facility->overlapped.hEvent))
         return FALSE;
 
       output_facility->buffer_size_written = 0;
@@ -1184,8 +1200,10 @@ attempt_write (struct io_facility * output_facility,
           output_facility->buffer_size_written == output_facility->buffer_size)
         {/* async event processed immediately*/
 
+          fprintf (stderr, "DEBUG: write succeeded immediately\n");
+          
           /* reset event manually*/
-          if (!SetEvent (output_facility->overlapped.hEvent))
+          if (! SetEvent (output_facility->overlapped.hEvent))
             return FALSE;
 
           /* we are now waiting for our buffer to be filled*/
@@ -1210,7 +1228,7 @@ attempt_write (struct io_facility * output_facility,
             { /* error occurred, close this path */
               output_facility->path_open = FALSE;
               output_facility->facility_state = IOSTATE_FAILED;
-              fprintf (stderr, "FATAL: Write to handle failed, exiting!\n");
+              fprintf (stderr, "FATAL: Write to handle failed, exiting\n");
             }
         }
       return TRUE;
@@ -1223,14 +1241,16 @@ attempt_write (struct io_facility * output_facility,
       if (status &&
           output_facility->buffer_size_written == output_facility->buffer_size)
         {/* successful return for a queued operation */
-          if (!ResetEvent (output_facility->overlapped.hEvent))
+          if (! ResetEvent (output_facility->overlapped.hEvent))
             return FALSE;
+          
+          fprintf (stderr, "DEBUG: write succeeded delayed\n");
 
           /* we are now waiting for our buffer to be filled*/
           output_facility->facility_state = IOSTATE_WAITING;
           output_facility->buffer_size = 0;
           output_facility->buffer_size_written = 0;
-
+          
           /* we successfully wrote something and now need to reset our reader */
           if (IOSTATE_WAITING == input_facility->facility_state)
             input_facility->facility_state = IOSTATE_RESUME;
@@ -1240,11 +1260,11 @@ attempt_write (struct io_facility * output_facility,
       else
         { /* operation still pending/queued or failed? */
           int err = GetLastError ();
-          if (ERROR_IO_INCOMPLETE != err && ERROR_IO_PENDING != err)
+          if ((ERROR_IO_INCOMPLETE != err) && (ERROR_IO_PENDING != err))
             { /* error occurred, close this path */
               output_facility->path_open = FALSE;
               output_facility->facility_state = IOSTATE_FAILED;
-              fprintf (stderr, "FATAL: Write to handle failed, exiting!\n");
+              fprintf (stderr, "FATAL: Write to handle failed, exiting\n");
             }
         }
     default: 
@@ -1305,11 +1325,11 @@ run (HANDLE tap_handle)
    * DHCP and such are all features we will never use in gnunet afaik.
    * But for openvpn those are essential.
    */
-  if (!tun_up (tap_handle))
+  if (! tun_up (tap_handle))
     return;
 
   /* Initialize our overlapped IO structures*/
-  if (!(initialize_io_facility (&tap_read, IOSTATE_READY, FALSE)
+  if (! (initialize_io_facility (&tap_read, IOSTATE_READY, FALSE)
         && initialize_io_facility (&tap_write, IOSTATE_WAITING, TRUE)
         && initialize_io_facility (&std_in, IOSTATE_READY, FALSE)
         && initialize_io_facility (&std_out, IOSTATE_WAITING, TRUE)))
@@ -1323,17 +1343,18 @@ run (HANDLE tap_handle)
   /* Debug output to console STDIN/STDOUT*/
   std_in.handle = parent_std_in_handle;
   std_out.handle = parent_std_out_handle;
-#else
   
+#else
+  fprintf (stderr, "DEBUG: reopening stdin/out for overlapped IO\n");
   /* 
    * Find out the types of our handles. 
    * This part is a problem, because in windows we need to handle files, 
    * pipes and the console differently.
    */
-  if (FILE_TYPE_PIPE != GetFileType (parent_std_in_handle) ||
-      FILE_TYPE_PIPE != GetFileType (parent_std_out_handle))
+  if ((FILE_TYPE_PIPE != GetFileType (parent_std_in_handle)) ||
+      (FILE_TYPE_PIPE != GetFileType (parent_std_out_handle)))
     {
-      fprintf (stderr, "ERROR: stdin/stdout must be named pipes!\n");
+      fprintf (stderr, "ERROR: stdin/stdout must be named pipes\n");
       goto teardown;
     }
 
@@ -1344,7 +1365,7 @@ run (HANDLE tap_handle)
 
   if (INVALID_HANDLE_VALUE == std_in.handle)
     {
-      fprintf (stderr, "FATAL: Could not reopen stdin for in overlapped mode, has to be a named pipe!\n");
+      fprintf (stderr, "FATAL: Could not reopen stdin for in overlapped mode, has to be a named pipe\n");
       goto teardown;
     }
 
@@ -1355,38 +1376,42 @@ run (HANDLE tap_handle)
 
   if (INVALID_HANDLE_VALUE == std_out.handle)
     {
-      fprintf (stderr, "FATAL: Could not reopen stdout for in overlapped mode, has to be a named pipe!\n");
+      fprintf (stderr, "FATAL: Could not reopen stdout for in overlapped mode, has to be a named pipe\n");
       goto teardown;
     }
 #endif
   
+  fprintf (stderr, "DEBUG: mainloop has begun\n");
+  
   while (std_out.path_open || tap_write.path_open)
     {
       /* perform READ from stdin if possible */
-      if (std_in.path_open && (!attempt_read_stdin (&std_in, &tap_write)))
+      if (std_in.path_open && (! attempt_read_stdin (&std_in, &tap_write)))
         break;
 
       /* perform READ from tap if possible */
-      if (tap_read.path_open && (!attempt_read_tap (&tap_read, &std_out)))
+      if (tap_read.path_open && (! attempt_read_tap (&tap_read, &std_out)))
         break;
 
       /* perform WRITE to tap if possible */
-      if (tap_write.path_open && (!attempt_write (&tap_write, &std_in)))
+      if (tap_write.path_open && (! attempt_write (&tap_write, &std_in)))
         break;
 
       /* perform WRITE to STDOUT if possible */
-      if (std_out.path_open && (!attempt_write (&std_out, &tap_read)))
+      if (std_out.path_open && (! attempt_write (&std_out, &tap_read)))
         break;
     }
 
 teardown:
 
+  fprintf (stderr, "DEBUG: teardown initiated\n");
+      
   CancelIo (tap_handle);
   CancelIo (std_in.handle);
   CancelIo (std_out.handle);
 
 teardown_final:
-
+      
   CloseHandle (tap_handle);
 }
 
@@ -1413,7 +1438,7 @@ main (int argc, char **argv)
 
   if (6 != argc)
     {
-      fprintf (stderr, "FATAL: must supply 5 arguments!\nUsage:\ngnunet-helper-vpn <if name prefix> <address6 or \"-\"> <netbits6> <address4 or \"-\"> <netmask4>\n", argv[0]);
+      fprintf (stderr, "FATAL: must supply 5 arguments\nUsage:\ngnunet-helper-vpn <if name prefix> <address6 or \"-\"> <netbits6> <address4 or \"-\"> <netmask4>\n", argv[0]);
       return 1;
     }
 
@@ -1441,6 +1466,7 @@ main (int argc, char **argv)
       goto cleanup;
     }
 
+  fprintf (stderr, "DEBUG: Setting IPs, if needed\n");
   if (0 != strcmp (argv[2], "-"))
     {
       const char *address = argv[2];
@@ -1448,11 +1474,12 @@ main (int argc, char **argv)
 
       if ((prefix_len < 1) || (prefix_len > 127))
         {
-          fprintf (stderr, "FATAL: prefix_len out of range\n");
+          fprintf (stderr, "FATAL: ipv6 prefix_len out of range\n");
           global_ret = -1;
           goto cleanup;
         }
 
+      fprintf (stderr, "DEBUG: Setting IP6 address: %s/%d\n",address,prefix_len);
       if (0 != (global_ret = set_address6 (address, prefix_len)))
         goto cleanup;
 
@@ -1464,6 +1491,7 @@ main (int argc, char **argv)
       const char *address = argv[4];
       const char *mask = argv[5];
 
+      fprintf (stderr, "DEBUG: Setting IP4 address: %s/%s\n",address,mask);
       if (0 != (global_ret = set_address4 (address, mask)))
         goto cleanup;
 
@@ -1477,13 +1505,19 @@ cleanup:
   if (have_ip4)
     {
       const char *address = argv[4];
+      fprintf (stderr, "DEBUG: Removing IP4 address\n");
       remove_address4 (address);
     }
   if (have_ip6)
     {
       const char *address = argv[2];
+      fprintf (stderr, "DEBUG: Removing IP6 address\n");
       remove_address6 (address);
     }
+
+  fprintf (stderr, "DEBUG: removing interface\n");
   remove_interface ();
+  fprintf (stderr, "DEBUG: graceful exit completed\n");
+
   return global_ret;
 }
