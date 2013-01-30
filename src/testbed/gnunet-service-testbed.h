@@ -814,6 +814,22 @@ typedef void (*GST_cache_callback) (void *cls, struct GNUNET_CORE_Handle *ch,
 
 
 /**
+ * Callback to notify when the target peer given to
+ * GST_cache_get_handle_transport() is connected. Note that this callback may
+ * not be called if the target peer is already connected. Use
+ * GNUNET_TRANSPORT_check_neighbour_connected() to check if the target peer is
+ * already connected or not. This callback will be called only once or never (in
+ * case the target cannot be connected).
+ *
+ * @param cls the closure given to GST_cache_get_handle_done() for this callback
+ * @param target the peer identity of the target peer. The pointer should be
+ *          valid until GST_cache_get_handle_done() is called.
+ */
+typedef void (*GST_cache_peer_connect_notify) (void *cls,
+                                               const struct GNUNET_PeerIdentity *target);
+
+
+/**
  * Get a transport handle with the given configuration. If the handle is already
  * cached before, it will be retured in the given callback; the peer_id is used to lookup in the
  * cache. If not a new operation is started to open the transport handle and
@@ -824,6 +840,12 @@ typedef void (*GST_cache_callback) (void *cls, struct GNUNET_CORE_Handle *ch,
  *          created if it was not present in the cache
  * @param cb the callback to notify when the transport handle is available
  * @param cb_cls the closure for the above callback
+ * @param target the peer identify of the peer whose connection to our TRANSPORT
+ *          subsystem will be notified through the connect_notify_cb. Can be NULL
+ * @param connect_notify_cb the callback to call when the given target peer is
+ *          connected. This callback will only be called once or never again (in
+ *          case the target peer cannot be connected). Can be NULL
+ * @param connect_notify_cb_cls the closure for the above callback
  * @return the handle which can be used cancel or mark that the handle is no
  *           longer being used
  */
@@ -831,7 +853,10 @@ struct GSTCacheGetHandle *
 GST_cache_get_handle_transport (unsigned int peer_id,
                                 const struct GNUNET_CONFIGURATION_Handle *cfg,
                                 GST_cache_callback cb,
-                                void *cb_cls);
+                                void *cb_cls,
+                                const struct GNUNET_PeerIdentity *target,
+                                GST_cache_peer_connect_notify connect_notify_cb,
+                                void *connect_notify_cb_cls);
 
 
 /**

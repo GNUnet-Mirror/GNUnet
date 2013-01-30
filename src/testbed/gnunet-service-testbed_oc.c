@@ -764,7 +764,8 @@ p2_transport_connect (struct OverlayConnectContext *occ)
                                         GST_peer_list[occ->other_peer_id]->
                                         details.local.cfg,
                                         &p2_transport_connect_cache_callback,
-                                        occ);
+                                        occ,
+                                        NULL, NULL, NULL);
     return;
   }
   GNUNET_asprintf (&occ->emsg, "0x%llx: Timeout while offering HELLO to %s",
@@ -1362,15 +1363,13 @@ timeout_rocc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param ats_count number of entries in ats (excluding 0-termination)
  */
 static void
-transport_connect_notify (void *cls, const struct GNUNET_PeerIdentity *new_peer,
-                          const struct GNUNET_ATS_Information *ats,
-                          uint32_t ats_count)
+cache_transport_peer_connect_notify (void *cls, 
+                                     const struct GNUNET_PeerIdentity *new_peer)
 {
   struct RemoteOverlayConnectCtx *rocc = cls;
 
   LOG_DEBUG ("0x%llx: Request Overlay connect notify\n", rocc->op_id);
-  if (0 != memcmp (new_peer, &rocc->a_id, sizeof (struct GNUNET_PeerIdentity)))
-    return;
+  GNUNET_assert (0 == memcmp (new_peer, &rocc->a_id, sizeof (struct GNUNET_PeerIdentity)));
   LOG_DEBUG ("0x%llx: Peer %4s connected\n", rocc->op_id,
              GNUNET_i2s (&rocc->a_id));
   cleanup_rocc (rocc);
@@ -1546,10 +1545,14 @@ GST_handle_remote_overlay_connect (void *cls,
   rocc->peer->reference_cnt++;
   rocc->hello = GNUNET_malloc (hsize);
   memcpy (rocc->hello, msg->hello, hsize);
-  rocc->tcc.cgh_th = GST_cache_get_handle_transport (peer_id,
-                                                     rocc->peer->details.local.cfg,
-                                                     &rocc_cache_get_handle_transport_cb,
-                                                     rocc);
+  rocc->tcc.cgh_th = 
+      GST_cache_get_handle_transport (peer_id,
+                                      rocc->peer->details.local.cfg,
+                                      &rocc_cache_get_handle_transport_cb,
+                                      rocc, 
+                                      &rocc->a_id,
+                                      &cache_transport_peer_connect_notify,
+                                      rocc);
   rocc->timeout_rocc_task_id =
       GNUNET_SCHEDULER_add_delayed (TIMEOUT, &timeout_rocc_task, rocc);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
