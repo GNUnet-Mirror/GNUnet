@@ -36,6 +36,26 @@
   GNUNET_log_from (kind, "testbed-cache", __VA_ARGS__)
 
 
+/**
+ * Type of cache-get requests
+ */
+enum CacheGetType
+{
+  /**
+   * Get transport handle
+   */
+  CGT_TRANSPORT_HANDLE = 1,
+
+  /**
+   * Get core handle
+   */
+  CGT_CORE_HANDLE
+};
+
+
+/**
+ * The cache-get request handle
+ */
 struct GSTCacheGetHandle;
 
 
@@ -78,28 +98,49 @@ struct ConnectNotifyContext
 };
 
 
-enum CacheGetType
-{    
-  CGT_TRANSPORT_HANDLE = 1
-};
-
-
+/**
+ * The cache-get request handle
+ */
 struct GSTCacheGetHandle
 {
+  /**
+   * The next ptr for the DLL. Used in struct CacheEntry
+   */
   struct GSTCacheGetHandle *next;
 
+  /**
+   * The prev ptr for the DLL. Used in struct CacheEntry
+   */
   struct GSTCacheGetHandle *prev;
 
+  /**
+   * The cache entry object this handle corresponds to
+   */
   struct CacheEntry *entry;
   
+  /**
+   * The cache callback to call when a handle is available
+   */
   GST_cache_callback cb;
    
+  /**
+   * The closure for the above callback
+   */
   void *cb_cls;
 
+  /**
+   * The peer connect notify context created for this handle; can be NULL
+   */  
   struct ConnectNotifyContext *nctxt;
 
+  /**
+   * The type of this cache-get request
+   */
   enum CacheGetType type;
 
+  /**
+   * Did we call the cache callback already?
+   */
   int notify_called;
 };
 
@@ -121,12 +162,22 @@ struct CacheEntry
   /**
    * The transport handle to the peer corresponding to this entry; can be NULL
    */
-  struct GNUNET_TRANSPORT_Handle *transport_handle;
+  struct GNUNET_TRANSPORT_Handle *transport_handle_;
 
   /**
    * The operation handle for transport handle
    */
-  struct GNUNET_TESTBED_Operation *transport_op;
+  struct GNUNET_TESTBED_Operation *transport_op_;
+
+  /**
+   * The core handle to the peer corresponding to this entry; can be NULL
+   */
+  struct GNUNET_CORE_Handle *core_handle;
+
+  /**
+   * The operation handle for core handle
+   */
+  struct GNUNET_TESTBED_Operation *core_op;
 
   /**
    * The configuration of the peer. Should be not NULL as long as the core_handle
@@ -239,16 +290,19 @@ cache_lookup (const struct GNUNET_HashCode *key)
 
 static struct CacheEntry *
 cache_lookup_handles (const struct GNUNET_HashCode *pid,
-                      struct GNUNET_TRANSPORT_Handle **th)
+                      struct GNUNET_TRANSPORT_Handle **th,
+                      struct GNUNET_CORE_Handle **ch)
 {
   struct CacheEntry *entry;
   
-  GNUNET_assert (NULL != th);
+  GNUNET_assert ((NULL != th) || (NULL != ch));
   entry = cache_lookup (pid);  
   if (NULL == entry)
     return NULL;
-  if (NULL != entry->transport_handle)
-    *th = entry->transport_handle;
+  if ((NULL != entry->transport_handle_) && (NULL != th))
+    *th = entry->transport_handle_;
+  if ((NULL != entry->core_handle) && (NULL != ch))
+    *ch = entry->core_handle;
   return entry;
 }
 
@@ -256,17 +310,30 @@ cache_lookup_handles (const struct GNUNET_HashCode *pid,
 static void
 cache_remove (struct CacheEntry *entry)
 {
+  struct ConnectNotifyContext *ctxt;
+  
   /* We keep the entry in the hash table so that the HELLO can still be found
      in cache; we will however disconnect the core and transport handles */
   GNUNET_assert (0 == entry->demand);
   if ((NULL != entry->next) || (NULL != entry->prev))
     GNUNET_CONTAINER_DLL_remove (lru_cache_head, lru_cache_tail, entry);
-  LOG_DEBUG ("Cleaning up handles from an entry in cache\n");
-  if (NULL != entry->transport_handle)
+  while (NULL != (ctxt = entry->nctxt_qhead))
   {
-    GNUNET_assert (NULL != entry->transport_op);
-    GNUNET_TESTBED_operation_done (entry->transport_op);
-    entry->transport_op = NULL;
+    GNUNET_CONTAINER_DLL_remove (entry->nctxt_qhead, entry->nctxt_qtail, ctxt);
+    GNUNET_free (ctxt);
+  }
+  LOG_DEBUG ("Cleaning up handles from an entry in cache\n");
+  if (NULL != entry->transport_handle_)
+  {
+    GNUNET_assert (NULL != entry->transport_op_);
+    GNUNET_TESTBED_operation_done (entry->transport_op_);
+    entry->transport_op_ = NULL;
+  }
+  if (NULL != entry->core_handle)
+  {
+    GNUNET_assert (NULL != entry->core_op);
+    GNUNET_TESTBED_operation_done (entry->core_op);
+    entry->core_op = NULL;
   }
   if (NULL != entry->cfg)
   {
@@ -311,7 +378,10 @@ call_cgh_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   switch (cgh->type)
   {
   case CGT_TRANSPORT_HANDLE:
-    cgh->cb (cgh->cb_cls, NULL, entry->transport_handle);
+    cgh->cb (cgh->cb_cls, NULL, entry->transport_handle_);
+    break;
+  case CGT_CORE_HANDLE:
+    cgh->cb (cgh->cb_cls, entry->core_handle, NULL);
     break;
   }
 }
@@ -361,17 +431,17 @@ opstart_get_handle_transport (void *cls)
 
   GNUNET_assert (NULL != entry);
   LOG_DEBUG ("Opening a transport connection to peer %u\n", entry->peer_id);
-  entry->transport_handle = GNUNET_TRANSPORT_connect (entry->cfg,
+  entry->transport_handle_ = GNUNET_TRANSPORT_connect (entry->cfg,
                                                       NULL, entry,
                                                       NULL,
                                                       &peer_connect_notify_cb,
                                                       NULL);
-  if (NULL == entry->transport_handle)
+  if (NULL == entry->transport_handle_)
   {
     GNUNET_break (0);
     return;
   }
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == entry->notify_task);
+  //GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == entry->notify_task);
   if (0 == entry->demand)
     return;
   if (GNUNET_NO == entry->cgh_qhead->notify_called)
@@ -383,17 +453,97 @@ static void
 oprelease_get_handle_transport (void *cls)
 {
   struct CacheEntry *entry = cls;
-  struct ConnectNotifyContext *ctxt;
   
-  while (NULL != (ctxt = entry->nctxt_qhead))
-  {
-    GNUNET_CONTAINER_DLL_remove (entry->nctxt_qhead, entry->nctxt_qtail, ctxt);
-    GNUNET_free (ctxt);
-  }
-  if (NULL == entry->transport_handle)
+  if (NULL == entry->transport_handle_)
     return;
-  GNUNET_TRANSPORT_disconnect (entry->transport_handle);
-  entry->transport_handle = NULL;
+  GNUNET_TRANSPORT_disconnect (entry->transport_handle_);
+  entry->transport_handle_ = NULL;
+}
+
+
+/**
+ * Function called after GNUNET_CORE_connect has succeeded (or failed
+ * for good).  Note that the private key of the peer is intentionally
+ * not exposed here; if you need it, your process should try to read
+ * the private key file directly (which should work if you are
+ * authorized...).  Implementations of this function must not call
+ * GNUNET_CORE_disconnect (other than by scheduling a new task to
+ * do this later).
+ *
+ * @param cls closure
+ * @param server handle to the server, NULL if we failed
+ * @param my_identity ID of this peer, NULL if we failed
+ */
+static void core_startup_cb (void *cls,
+                             struct GNUNET_CORE_Handle * server,
+                             const struct GNUNET_PeerIdentity *
+                             my_identity)
+{
+  GNUNET_break (0);
+}
+
+
+/**
+ * Method called whenever a given peer connects.
+ *
+ * @param cls closure
+ * @param peer peer identity this notification is about
+ * @param atsi performance data for the connection
+ * @param atsi_count number of records in 'atsi'
+ */
+static void 
+core_peer_connect_cb (void *cls,
+                      const struct GNUNET_PeerIdentity * peer,
+                      const struct GNUNET_ATS_Information * atsi,
+                      unsigned int atsi_count)
+{
+  struct CacheEntry *entry = cls;
+
+  if (0 == entry->demand)
+    return;
+  if (GNUNET_NO == entry->cgh_qhead->notify_called)
+    entry->notify_task = GNUNET_SCHEDULER_add_now (&call_cgh_cb, entry);
+}
+
+
+static void
+opstart_get_handle_core (void *cls)
+{
+  struct CacheEntry *entry = cls;
+  const struct GNUNET_CORE_MessageHandler no_handlers[] = {
+    {NULL, 0, 0}
+  };
+
+  GNUNET_assert (NULL != entry);
+  LOG_DEBUG ("Opening a CORE connection to peer %u\n", entry->peer_id);
+  entry->core_handle = GNUNET_CORE_connect (entry->cfg,
+                                                 entry,
+                                                 &core_startup_cb,
+                                                 &core_peer_connect_cb,
+                                                 NULL, /* disconnect cb */
+                                                 NULL, /* inbound notify */
+                                                 GNUNET_NO,
+                                                 NULL, /* outbound notify */
+                                                 GNUNET_NO,
+                                                 no_handlers);
+  if (NULL == entry->core_handle)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  //GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == entry->notify_task);
+}
+
+
+static void
+oprelease_get_handle_core (void *cls)
+{
+  struct CacheEntry *entry = cls;
+  
+  if (NULL == entry->core_handle)
+    return;
+  GNUNET_CORE_disconnect (entry->core_handle);
+  entry->core_handle = NULL;
 }
 
 
@@ -409,6 +559,7 @@ cache_get_handle (unsigned int peer_id,
   void *handle;
   struct CacheEntry *entry;
   struct ConnectNotifyContext *ctxt;
+  struct GNUNET_TESTBED_Operation *op;
 
   GNUNET_assert (0 != cgh->type);
   GNUNET_CRYPTO_hash (&peer_id, sizeof (peer_id), &key);
@@ -417,7 +568,12 @@ cache_get_handle (unsigned int peer_id,
   switch (cgh->type)
   {
   case CGT_TRANSPORT_HANDLE:
-    entry = cache_lookup_handles (&key, (struct GNUNET_TRANSPORT_Handle **) &handle);
+    entry = cache_lookup_handles (&key, (struct GNUNET_TRANSPORT_Handle **)
+                                  &handle, NULL);
+    break;
+  case CGT_CORE_HANDLE:
+    entry = cache_lookup_handles (&key, NULL, 
+                                  (struct GNUNET_CORE_Handle **) &handle);
     break;
   }
   if (NULL != handle)
@@ -445,25 +601,31 @@ cache_get_handle (unsigned int peer_id,
     ctxt->cgh = cgh;
     GNUNET_CONTAINER_DLL_insert_tail (entry->nctxt_qhead, entry->nctxt_qtail, ctxt);
   }
-  if ((NULL != entry->transport_handle)
-      && (GNUNET_SCHEDULER_NO_TASK == entry->notify_task))
+  if (NULL != handle)
   {
-    entry->notify_task = GNUNET_SCHEDULER_add_now (&call_cgh_cb, entry);
+    if (GNUNET_SCHEDULER_NO_TASK == entry->notify_task)
+      entry->notify_task = GNUNET_SCHEDULER_add_now (&call_cgh_cb, entry);
     return cgh;
   }
-  if (NULL != entry->transport_op)
-    return cgh;
   switch (cgh->type)
   {
   case CGT_TRANSPORT_HANDLE:
-    GNUNET_assert (NULL == entry->transport_op);
-    entry->transport_op = GNUNET_TESTBED_operation_create_ (entry, &opstart_get_handle_transport,
-                                                            &oprelease_get_handle_transport);
-    GNUNET_TESTBED_operation_queue_insert_ (GST_opq_openfds,
-                                            entry->transport_op);
-    GNUNET_TESTBED_operation_begin_wait_ (entry->transport_op);
+    if (NULL != entry->transport_op_)
+      return cgh;
+    op = GNUNET_TESTBED_operation_create_ (entry, &opstart_get_handle_transport,
+                                           &oprelease_get_handle_transport);
+    entry->transport_op_ = op;
+    break;
+  case CGT_CORE_HANDLE:
+    if (NULL != entry->core_op)
+      return cgh;
+    op = GNUNET_TESTBED_operation_create_ (entry, &opstart_get_handle_core,
+                                           &oprelease_get_handle_core);
+    entry->core_op = op;
     break;
   }
+  GNUNET_TESTBED_operation_queue_insert_ (GST_opq_openfds, op);
+  GNUNET_TESTBED_operation_begin_wait_ (op);
   return cgh;
 }
 
@@ -492,7 +654,10 @@ cache_clear_iterator (void *cls,
   if (0 == entry->demand)
     cache_remove (entry);
   GNUNET_free_non_null (entry->hello);
-  GNUNET_break (NULL == entry->transport_handle);
+  GNUNET_break (NULL == entry->transport_handle_);
+  GNUNET_break (NULL == entry->transport_op_);
+  GNUNET_break (NULL == entry->core_handle);
+  GNUNET_break (NULL == entry->core_op);
   GNUNET_break (NULL == entry->cfg);
   GNUNET_assert (NULL == entry->cgh_qhead);
   GNUNET_assert (NULL == entry->cgh_qtail);
@@ -610,6 +775,46 @@ GST_cache_get_handle_transport (unsigned int peer_id,
   cgh->cb = cb;
   cgh->cb_cls = cb_cls;
   cgh->type = CGT_TRANSPORT_HANDLE;
+  return cache_get_handle (peer_id, cgh, cfg,
+                           target, connect_notify_cb, connect_notify_cb_cls);
+}
+
+
+/**
+ * Get a transport handle with the given configuration. If the handle is already
+ * cached before, it will be retured in the given callback; the peer_id is used to lookup in the
+ * cache. If not a new operation is started to open the transport handle and
+ * will be given in the callback when it is available.
+ *
+ * @param peer_id the index of the peer
+ * @param cfg the configuration with which the transport handle has to be
+ *          created if it was not present in the cache
+ * @param cb the callback to notify when the transport handle is available
+ * @param cb_cls the closure for the above callback
+ * @param target the peer identify of the peer whose connection to our TRANSPORT
+ *          subsystem will be notified through the connect_notify_cb. Can be NULL
+ * @param connect_notify_cb the callback to call when the given target peer is
+ *          connected. This callback will only be called once or never again (in
+ *          case the target peer cannot be connected). Can be NULL
+ * @param connect_notify_cb_cls the closure for the above callback
+ * @return the handle which can be used cancel or mark that the handle is no
+ *           longer being used
+ */
+struct GSTCacheGetHandle *
+GST_cache_get_handle_core (unsigned int peer_id,
+                           const struct GNUNET_CONFIGURATION_Handle *cfg,
+                           GST_cache_callback cb,
+                           void *cb_cls,
+                           const struct GNUNET_PeerIdentity *target,
+                           GST_cache_peer_connect_notify connect_notify_cb,
+                           void *connect_notify_cb_cls)
+{
+  struct GSTCacheGetHandle *cgh;
+
+  cgh = GNUNET_malloc (sizeof (struct GSTCacheGetHandle));
+  cgh->cb = cb;
+  cgh->cb_cls = cb_cls;
+  cgh->type = CGT_CORE_HANDLE;
   return cache_get_handle (peer_id, cgh, cfg,
                            target, connect_notify_cb, connect_notify_cb_cls);
 }
