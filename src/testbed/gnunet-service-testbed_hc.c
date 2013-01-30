@@ -445,12 +445,14 @@ cache_get_handle (unsigned int peer_id,
     ctxt->cgh = cgh;
     GNUNET_CONTAINER_DLL_insert_tail (entry->nctxt_qhead, entry->nctxt_qtail, ctxt);
   }
-  if ((NULL != entry->transport_handle) || (NULL != entry->transport_op))
+  if ((NULL != entry->transport_handle)
+      && (GNUNET_SCHEDULER_NO_TASK == entry->notify_task))
   {
-    if (GNUNET_SCHEDULER_NO_TASK == entry->notify_task)
-      entry->notify_task = GNUNET_SCHEDULER_add_now (&call_cgh_cb, entry);
+    entry->notify_task = GNUNET_SCHEDULER_add_now (&call_cgh_cb, entry);
     return cgh;
   }
+  if (NULL != entry->transport_op)
+    return cgh;
   switch (cgh->type)
   {
   case CGT_TRANSPORT_HANDLE:
