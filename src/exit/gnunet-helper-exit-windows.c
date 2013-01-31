@@ -17,7 +17,18 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
  */
-
+/**
+ * @file exit/gnunet-helper-exit-windows.c
+ * @brief the helper for the EXIT service in win32 builds. 
+ * Opens a virtual network-interface, sends data received on the if to stdout, 
+ * sends data received on stdin to the interface
+ * @author Christian M. Fuchs
+ *
+ * The following list of people have reviewed this code and considered
+ * it safe since the last modification (if you reviewed it, please
+ * have your name added to the list):
+ *
+ */
 #include <stdio.h>
 #include <windows.h>
 #include <setupapi.h>
@@ -1441,12 +1452,13 @@ teardown_final:
  * Open VPN tunnel interface.
  *
  * @param argc must be 6
- * @param argv 0: binary name (gnunet-helper-vpn)
- *             1: tunnel interface prefix (gnunet-vpn)
- *             2: IPv6 address (::1), "-" to disable
- *             3: IPv6 netmask length in bits (64), ignored if #2 is "-"
- *             4: IPv4 address (1.2.3.4), "-" to disable
- *             5: IPv4 netmask (255.255.0.0), ignored if #4 is "-"
+ * @param argv 0: binary name ("gnunet-helper-exit")
+ *             1: tunnel interface name ("gnunet-exit")
+ *             2: IPv4 "physical" interface name ("eth0"), or "%" to not do IPv4 NAT
+ *             3: IPv6 address ("::1"), or "-" to skip IPv6
+ *             4: IPv6 netmask length in bits ("64") [ignored if #4 is "-"]
+ *             5: IPv4 address ("1.2.3.4"), or "-" to skip IPv4
+ *             6: IPv4 netmask ("255.255.0.0") [ignored if #4 is "-"]
  */
 int
 main (int argc, char **argv)
@@ -1479,19 +1491,19 @@ main (int argc, char **argv)
     {
       fprintf (stderr, "FATAL: could not initialize virtual-interface %s with IPv6 %s/%s and IPv4 %s/%s\n",
                hwid,
-               argv[2],
                argv[3],
                argv[4],
-               argv[5]);
+               argv[5],
+               argv[6]);
       global_ret = -1;
       goto cleanup;
     }
 
   fprintf (stderr, "DEBUG: Setting IPs, if needed\n");
-  if (0 != strcmp (argv[2], "-"))
+  if (0 != strcmp (argv[3], "-"))
     {
-      const char *address = argv[2];
-      long prefix_len = atol (argv[3]);
+      const char *address = argv[3];
+      long prefix_len = atol (argv[4]);
 
       if ((prefix_len < 1) || (prefix_len > 127))
         {
@@ -1507,15 +1519,27 @@ main (int argc, char **argv)
       have_ip6 = TRUE;
     }
 
-  if (0 != strcmp (argv[4], "-"))
+  if (0 != strcmp (argv[5], "-"))
     {
-      const char *address = argv[4];
-      const char *mask = argv[5];
+      const char *address = argv[5];
+      const char *mask = argv[6];
 
       fprintf (stderr, "DEBUG: Setting IP4 address: %s/%s\n",address,mask);
       if (0 != (global_ret = set_address4 (address, mask)))
         goto cleanup;
 
+      // setup NAT, if possible
+      if (0 != strcmp (argv[2], "%"))
+        {
+          /* TODO: " Windows Firewall with Advanced Security" (lol)
+           * 
+           * MS has REMOVED the routing/nat capabilities since Vista, thus
+           * we can not setup NAT like in XP. Our best bet is 
+           * to determine if we are running on XP, if we do, use netsh routing
+           * else we need to use WFAS and do things ourselfs
+           */
+        }
+      
       have_ip4 = TRUE;
     }
 
@@ -1525,13 +1549,13 @@ cleanup:
 
   if (have_ip4)
     {
-      const char *address = argv[4];
+      const char *address = argv[5];
       fprintf (stderr, "DEBUG: Removing IP4 address\n");
       remove_address4 (address);
     }
   if (have_ip6)
     {
-      const char *address = argv[2];
+      const char *address = argv[3];
       fprintf (stderr, "DEBUG: Removing IP6 address\n");
       remove_address6 (address);
     }
