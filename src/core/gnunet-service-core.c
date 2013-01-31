@@ -56,7 +56,7 @@ static struct GNUNET_SERVER_Handle *GSC_server;
 /**
  * Hostkey generation context
  */
-struct GNUNET_CRYPTO_RsaKeyGenerationContext *GST_keygen;
+static struct GNUNET_CRYPTO_RsaKeyGenerationContext *keygen;
 
 
 /**
@@ -70,10 +70,10 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Core service shutting down.\n");
-  if (NULL != GST_keygen)
+  if (NULL != keygen)
   {
-    GNUNET_CRYPTO_rsa_key_create_stop (GST_keygen);
-    GST_keygen = NULL;
+    GNUNET_CRYPTO_rsa_key_create_stop (keygen);
+    keygen = NULL;
   }
   GSC_CLIENTS_done ();
   GSC_NEIGHBOURS_done ();
@@ -102,7 +102,7 @@ key_generation_cb (void *cls,
                    struct GNUNET_CRYPTO_RsaPrivateKey *pk,
                    const char *emsg)
 {
-  GST_keygen = NULL;
+  keygen = NULL;
   if (NULL == pk)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -155,9 +155,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                 NULL);
   GNUNET_SERVER_suspend (server);
   GSC_TYPEMAP_init ();
-  GST_keygen = GNUNET_CRYPTO_rsa_key_create_start (keyfile, &key_generation_cb, NULL);
+  keygen = GNUNET_CRYPTO_rsa_key_create_start (keyfile, &key_generation_cb, NULL);
   GNUNET_free (keyfile);
-  if (NULL == GST_keygen)
+  if (NULL == keygen)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Transport service is unable to access hostkey. Exiting.\n"));

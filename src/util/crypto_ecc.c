@@ -22,13 +22,6 @@
  * @file util/crypto_ecc.c
  * @brief public key cryptography (ECC) with libgcrypt
  * @author Christian Grothoff
- *
- * This is just a first, completely untested, draft hack for future ECC support.
- * TODO:
- * - fix public key generation; somehow the result is currently considered invalid by libgcrypt
- *   => suspect that libgcrypt does NOT take pabgn from "CURVE" for public key if not
- *      explicitly given!
- * - actually test it!
  */
 #include "platform.h"
 #include <gcrypt.h>
