@@ -205,9 +205,9 @@ struct io_facility
   DWORD buffer_size;
 
   /**
-   * Amount of data written, is compared to buffer_size.
+   * Amount of data actually written or read by readfile/writefile.
    */
-  DWORD buffer_size_written;
+  DWORD buffer_size_processed;
 };
 
 /**
@@ -904,10 +904,8 @@ attempt_read_tap (struct io_facility * input_facility,
                 output_facility->facility_state = IOSTATE_READY;
               }
             else if (0 < input_facility->buffer_size)
-              { /* If we have have read our buffer, wait for our write-partner*/
+                /* If we have have read our buffer, wait for our write-partner*/
                 input_facility->facility_state = IOSTATE_WAITING;
-                // TODO: shall we attempt to fill our buffer or should we wait for our write-partner to finish?
-              }
           }
         else /* operation was either queued or failed*/
           {
@@ -1033,31 +1031,33 @@ attempt_read_stdin (struct io_facility * input_facility,
                     struct io_facility * output_facility)
 {
   struct GNUNET_MessageHeader * hdr;
-  BOOL status;
+  
   switch (input_facility->facility_state)
     {
     case IOSTATE_READY:
       {
+        input_facility->buffer_size = 0;
+        
+partial_read_iostate_ready:
         if (! ResetEvent (input_facility->overlapped.hEvent))
           return FALSE;
-        input_facility->buffer_size = 0;
-        status = ReadFile (input_facility->handle,
-                           input_facility->buffer,
-                           sizeof (input_facility->buffer),
-                           &input_facility->buffer_size,
-                           &input_facility->overlapped);
-
+       
         /* Check how the task is handled */
-        if (status && (sizeof (struct GNUNET_MessageHeader) < input_facility->buffer_size))
+        if (ReadFile (input_facility->handle,
+                           input_facility->buffer + input_facility->buffer_size,
+                           sizeof (input_facility->buffer) - input_facility->buffer_size,
+                           &input_facility->buffer_size_processed,
+                           &input_facility->overlapped))
           {/* async event processed immediately*/
             hdr = (struct GNUNET_MessageHeader *) input_facility->buffer;
 
             /* reset event manually*/
-            if (! SetEvent (input_facility->overlapped.hEvent))
+            if (!SetEvent (input_facility->overlapped.hEvent))
               return FALSE;
 
             fprintf (stderr, "DEBUG: stdin read succeeded immediately\n");
-            
+            input_facility->buffer_size += input_facility->buffer_size_processed;
+
             if (ntohs (hdr->type) != GNUNET_MESSAGE_TYPE_VPN_HELPER ||
                 ntohs (hdr->size) > sizeof (input_facility->buffer))
               {
@@ -1065,44 +1065,36 @@ attempt_read_stdin (struct io_facility * input_facility,
                 input_facility->facility_state = IOSTATE_READY;
                 return TRUE;
               }
-            if (ntohs (hdr->size) > input_facility->buffer_size);
-            // TODO: add support for partial read
+            /* we got the a part of a packet */
+            if (ntohs (hdr->size) > input_facility->buffer_size)
+              goto partial_read_iostate_ready;
 
-            /* we successfully read something from the TAP and now need to
+            /* have we read more than 0 bytes of payload? (sizeread > header)*/
+            if (input_facility->buffer_size > sizeof (struct GNUNET_MessageHeader) &&
+                ((IOSTATE_READY == output_facility->facility_state) ||
+                 (IOSTATE_WAITING == output_facility->facility_state)))
+              {/* we successfully read something from the TAP and now need to
              * send it our via STDOUT. Is that possible at the moment? */
-            if (sizeof (struct GNUNET_MessageHeader) < input_facility->buffer_size)
-              {
-                if (IOSTATE_READY == output_facility->facility_state ||
-                    IOSTATE_WAITING == output_facility->facility_state)
-                  {
-                    /* hand over this buffers content and strip gnunet message header */
-                    memcpy (output_facility->buffer,
-                            input_facility->buffer + sizeof (struct GNUNET_MessageHeader),
-                            input_facility->buffer_size - sizeof (struct GNUNET_MessageHeader));
-                    output_facility->buffer_size = input_facility->buffer_size - sizeof (struct GNUNET_MessageHeader);
-                    output_facility->facility_state = IOSTATE_READY;
 
-                  }
-                else if (IOSTATE_QUEUED == output_facility->facility_state)
-                  /* If we have have read our buffer, wait for our write-partner*/
-                  input_facility->facility_state = IOSTATE_WAITING;
-                // TODO: shall we attempt to fill our buffer or should we wait for our write-partner to finish?
+                /* hand over this buffers content and strip gnunet message header */
+                memcpy (output_facility->buffer,
+                        input_facility->buffer + sizeof (struct GNUNET_MessageHeader),
+                        input_facility->buffer_size - sizeof (struct GNUNET_MessageHeader));
+                output_facility->buffer_size = input_facility->buffer_size - sizeof (struct GNUNET_MessageHeader);
+                output_facility->facility_state = IOSTATE_READY;
+                input_facility->facility_state = IOSTATE_READY;
               }
-          }
-        else if (status && 0 >= input_facility->buffer_size)
-          {
-            if (! SetEvent (input_facility->overlapped.hEvent))
-              return FALSE;
-
-            input_facility->facility_state = IOSTATE_READY;
-          }
+            else if (input_facility->buffer_size > sizeof (struct GNUNET_MessageHeader))
+              /* If we have have read our buffer, wait for our write-partner*/
+              input_facility->facility_state = IOSTATE_WAITING;
+            else /* we read nothing */
+              input_facility->facility_state = IOSTATE_READY;
+          } 
         else /* operation was either queued or failed*/
           {
             int err = GetLastError ();
-            if (ERROR_IO_PENDING == err)
-              { /* operation queued */
+            if (ERROR_IO_PENDING == err) /* operation queued */
                 input_facility->facility_state = IOSTATE_QUEUED;
-              }
             else
               { /* error occurred, let the rest of the elements finish */
                 input_facility->path_open = FALSE;
@@ -1121,7 +1113,7 @@ attempt_read_stdin (struct io_facility * input_facility,
         // there was an operation going on already, check if that has completed now.
         if (GetOverlappedResult (input_facility->handle,
                                  &input_facility->overlapped,
-                                 &input_facility->buffer_size,
+                                 &input_facility->buffer_size_processed,
                                  FALSE))
           {/* successful return for a queued operation */
             hdr = (struct GNUNET_MessageHeader *) input_facility->buffer;
@@ -1130,6 +1122,7 @@ attempt_read_stdin (struct io_facility * input_facility,
               return FALSE;
             
             fprintf (stderr, "DEBUG: stdin read succeeded delayed\n");
+            input_facility->buffer_size += input_facility->buffer_size_processed;
             
             if ((ntohs (hdr->type) != GNUNET_MESSAGE_TYPE_VPN_HELPER) ||
                 (ntohs (hdr->size) > sizeof (input_facility->buffer)))
@@ -1138,14 +1131,15 @@ attempt_read_stdin (struct io_facility * input_facility,
                 input_facility->facility_state = IOSTATE_READY;
                 return TRUE;
               }
+            /* we got the a part of a packet */
             if (ntohs (hdr->size) > input_facility->buffer_size );
-            // TODO: add support for partial read
+              goto partial_read_iostate_ready;
 
             /* we successfully read something from the TAP and now need to
              * send it our via STDOUT. Is that possible at the moment? */
             if ((IOSTATE_READY == output_facility->facility_state ||
                  IOSTATE_WAITING == output_facility->facility_state)
-                && sizeof(struct GNUNET_MessageHeader) < input_facility->buffer_size)
+                && input_facility->buffer_size > sizeof(struct GNUNET_MessageHeader))
               { /* hand over this buffers content and strip gnunet message header */
                 memcpy (output_facility->buffer,
                         input_facility->buffer + sizeof(struct GNUNET_MessageHeader),
@@ -1154,12 +1148,9 @@ attempt_read_stdin (struct io_facility * input_facility,
                 output_facility->facility_state = IOSTATE_READY;
                 input_facility->facility_state = IOSTATE_READY;
               }
-            else if (sizeof(struct GNUNET_MessageHeader) < input_facility->buffer_size)
-              { /* If we have have read our buffer, wait for our write-partner*/
-                input_facility->facility_state = IOSTATE_WAITING;
-                // TODO: shall we attempt to fill our buffer or should we wait for our write-partner to finish?
-              }
-            else if (sizeof(struct GNUNET_MessageHeader) >= input_facility->buffer_size)
+            else if (input_facility->buffer_size > sizeof(struct GNUNET_MessageHeader))
+              input_facility->facility_state = IOSTATE_WAITING;
+            else
               input_facility->facility_state = IOSTATE_READY;
           }
         else
@@ -1212,16 +1203,16 @@ attempt_write (struct io_facility * output_facility,
       if (! ResetEvent (output_facility->overlapped.hEvent))
         return FALSE;
 
-      output_facility->buffer_size_written = 0;
+      output_facility->buffer_size_processed = 0;
       status = WriteFile (output_facility->handle,
                           output_facility->buffer,
                           output_facility->buffer_size,
-                          &output_facility->buffer_size_written,
+                          &output_facility->buffer_size_processed,
                           &output_facility->overlapped);
 
       /* Check how the task was handled */
       if (status &&
-          output_facility->buffer_size_written == output_facility->buffer_size)
+          output_facility->buffer_size_processed == output_facility->buffer_size)
         {/* async event processed immediately*/
 
           fprintf (stderr, "DEBUG: write succeeded immediately\n");
@@ -1233,7 +1224,7 @@ attempt_write (struct io_facility * output_facility,
           /* we are now waiting for our buffer to be filled*/
           output_facility->facility_state = IOSTATE_WAITING;
           output_facility->buffer_size = 0;
-          output_facility->buffer_size_written = 0;
+          output_facility->buffer_size_processed = 0;
 
           /* we successfully wrote something and now need to reset our reader */
           if (IOSTATE_WAITING == input_facility->facility_state)
@@ -1260,10 +1251,10 @@ attempt_write (struct io_facility * output_facility,
       // there was an operation going on already, check if that has completed now.
       status = GetOverlappedResult (output_facility->handle,
                                     &output_facility->overlapped,
-                                    &output_facility->buffer_size_written,
+                                    &output_facility->buffer_size_processed,
                                     FALSE);
       if (status &&
-          output_facility->buffer_size_written == output_facility->buffer_size)
+          output_facility->buffer_size_processed == output_facility->buffer_size)
         {/* successful return for a queued operation */
           if (! ResetEvent (output_facility->overlapped.hEvent))
             return FALSE;
@@ -1273,7 +1264,7 @@ attempt_write (struct io_facility * output_facility,
           /* we are now waiting for our buffer to be filled*/
           output_facility->facility_state = IOSTATE_WAITING;
           output_facility->buffer_size = 0;
-          output_facility->buffer_size_written = 0;
+          output_facility->buffer_size_processed = 0;
           
           /* we successfully wrote something and now need to reset our reader */
           if (IOSTATE_WAITING == input_facility->facility_state)
