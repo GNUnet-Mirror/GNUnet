@@ -946,6 +946,38 @@ do_connect_by_string (void *cls,
                                                       &do_connect_by_string_timeout, NULL);
 }
 
+/**
+ * Start searching for the next string in the DHT.
+ *
+ * @param cls Index of the next peer in the peers array.
+ * @param tc TaskContext.
+ */
+void
+find_next_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  long next_p = (long) cls;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Searching for string \"%s\" on peer %d with file %s\n",
+              peers[next_p].search_str, next_p, peers[next_p].policy_file);
+
+  /* FIXME
+    * dont connect to a new dht for each peer, we might want to seach for n
+    * strings on m peers where n > m
+    */
+  peers[next_p].dht_op_handle =
+    GNUNET_TESTBED_service_connect (NULL,
+                                    peers[next_p].peer_handle,
+                                    "dht",
+                                    &dht_connect_cb,
+                                    &peers[next_p],
+                                    &dht_ca,
+                                    &dht_da,
+                                    &peers[next_p]);
+}
 
 /**
  * DHT connect callback. Called when we are connected to the dht service for
@@ -992,23 +1024,11 @@ dht_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
     peers[next_p].search_str = search_strings[next_p];
     peers[next_p].search_str_matched = GNUNET_NO;
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Searching for string \"%s\" on peer %d with file %s\n",
-                peers[next_p].search_str, next_p, peers[next_p].policy_file);
-
-    /* FIXME
-     * dont connect to a new dht for each peer, we might want to seach for n
-     * strings on m peers where n > m
-     */
-    peers[next_p].dht_op_handle =
-      GNUNET_TESTBED_service_connect (NULL,
-                                      peers[next_p].peer_handle,
-                                      "dht",
-                                      &dht_connect_cb,
-                                      &peers[next_p],
-                                      &dht_ca,
-                                      &dht_da,
-                                      &peers[next_p]);
+    /* Don't start all searches at once */
+    /* TODO add some intelligence to the timeout */
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                  &find_next_string,
+                                  (void *) (long) next_p);
   }
 }
 
