@@ -399,6 +399,11 @@ call_cgh_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CONTAINER_DLL_insert_tail (entry->cgh_qhead, entry->cgh_qtail, cgh);
   if (NULL != cgh2)
     entry->notify_task = GNUNET_SCHEDULER_add_now (&call_cgh_cb, entry);
+  if (NULL != cgh->nctxt)
+  {/* Register the peer connect notify callback */
+    GNUNET_CONTAINER_DLL_insert_tail (entry->nctxt_qhead, entry->nctxt_qtail,
+                                      cgh->nctxt);
+  }
   LOG_DEBUG ("Calling notify for handle type %u\n", cgh->type);
   cgh->cb (cgh->cb_cls, entry->core_handle, 
            entry->transport_handle_, entry->peer_identity);
@@ -658,7 +663,6 @@ cache_get_handle (unsigned int peer_id,
     GNUNET_assert (NULL == cgh->nctxt);
     cgh->nctxt = ctxt;
     ctxt->cgh = cgh;
-    GNUNET_CONTAINER_DLL_insert_tail (entry->nctxt_qhead, entry->nctxt_qtail, ctxt);
   }
   if (NULL != handle)
   {
@@ -780,7 +784,8 @@ GST_cache_get_handle_done (struct GSTCacheGetHandle *cgh)
   if (NULL != cgh->nctxt)
   {
     GNUNET_assert (cgh == cgh->nctxt->cgh);
-    GNUNET_CONTAINER_DLL_remove (entry->nctxt_qhead, entry->nctxt_qtail, cgh->nctxt);
+    if (GNUNET_YES == cgh->notify_called)
+      GNUNET_CONTAINER_DLL_remove (entry->nctxt_qhead, entry->nctxt_qtail, cgh->nctxt);
     GNUNET_free (cgh->nctxt);
   }
   GNUNET_free (cgh);  

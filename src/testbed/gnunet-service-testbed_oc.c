@@ -546,9 +546,6 @@ overlay_connect_notify (void *cls,
     GNUNET_SCHEDULER_cancel (occ->tcc.task);
     occ->tcc.task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GST_cache_get_handle_done (occ->cgh_ch);
-  occ->peer->reference_cnt--;
-  occ->cgh_ch = NULL;
   GNUNET_free_non_null (occ->emsg);
   occ->emsg = NULL;
   send_overlay_connect_success_msg (occ);
