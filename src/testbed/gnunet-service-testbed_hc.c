@@ -324,7 +324,11 @@ cache_remove (struct CacheEntry *entry)
      in cache; we will however disconnect the core and transport handles */
   GNUNET_assert (0 == entry->demand);
   if ((NULL != entry->next) || (NULL != entry->prev))
+  {
+    GNUNET_assert (0 < lru_cache_size);
     GNUNET_CONTAINER_DLL_remove (lru_cache_head, lru_cache_tail, entry);
+    lru_cache_size--;
+  }
   while (NULL != (ctxt = entry->nctxt_qhead))
   {
     GNUNET_CONTAINER_DLL_remove (entry->nctxt_qhead, entry->nctxt_qtail, ctxt);
@@ -648,7 +652,11 @@ cache_get_handle (unsigned int peer_id,
   {
     GNUNET_assert (NULL != entry);
     if (0 == entry->demand)
+    {
+      GNUNET_assert (0 < lru_cache_size);
       GNUNET_CONTAINER_DLL_remove (lru_cache_head, lru_cache_tail, entry);
+      lru_cache_size--;
+    }
   }
   if (NULL == entry)
     entry = add_entry (&key, peer_id);
@@ -791,19 +799,21 @@ GST_cache_get_handle_done (struct GSTCacheGetHandle *cgh)
     GNUNET_CONTAINER_DLL_remove (entry->nctxt_qhead, entry->nctxt_qtail, cgh->nctxt);
     GNUNET_free (cgh->nctxt);
   }
-  
+  GNUNET_free (cgh);  
   if (0 == entry->demand)
   {
     GNUNET_CONTAINER_DLL_insert_tail (lru_cache_head, lru_cache_tail, entry);
+    lru_cache_size++;
     if (lru_cache_size > lru_cache_threshold_size)
       cache_remove (lru_cache_head);
   }
   else
   {
-    if (GNUNET_NO == entry->cgh_qhead->notify_called)
+    struct GSTCacheGetHandle *cgh2;
+
+    if (NULL != (cgh2 = search_suitable_cgh (entry, entry->cgh_qhead)))
       entry->notify_task = GNUNET_SCHEDULER_add_now (&call_cgh_cb, entry);
   }
-  GNUNET_free (cgh);
 }
 
 
