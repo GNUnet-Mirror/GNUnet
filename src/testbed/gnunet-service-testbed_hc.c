@@ -343,8 +343,6 @@ cache_remove (struct CacheEntry *entry)
     GNUNET_TESTBED_operation_done (entry->core_op);
     entry->core_op = NULL;
   }
-  GNUNET_free_non_null (entry->peer_identity);
-  entry->peer_identity = NULL;
   if (NULL != entry->cfg)
   {
     GNUNET_CONFIGURATION_destroy (entry->cfg);
@@ -371,7 +369,7 @@ add_entry (const struct GNUNET_HashCode *key, unsigned int peer_id)
 
 
 static struct GSTCacheGetHandle *
-search_suitable_gst (const struct CacheEntry *entry,
+search_suitable_cgh (const struct CacheEntry *entry,
                      const struct GSTCacheGetHandle *head)
 {
   const struct GSTCacheGetHandle *cgh;
@@ -406,11 +404,11 @@ call_cgh_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != entry->notify_task);
   entry->notify_task = GNUNET_SCHEDULER_NO_TASK;
-  cgh = search_suitable_gst (entry, entry->cgh_qhead);
+  cgh = search_suitable_cgh (entry, entry->cgh_qhead);
   GNUNET_assert (NULL != cgh);
   cgh2 = NULL;
   if (NULL != cgh->next)
-    cgh2 = search_suitable_gst (entry, cgh->next);
+    cgh2 = search_suitable_cgh (entry, cgh->next);
   GNUNET_CONTAINER_DLL_remove (entry->cgh_qhead, entry->cgh_qtail, cgh);
   cgh->notify_called = GNUNET_YES;
   GNUNET_CONTAINER_DLL_insert_tail (entry->cgh_qhead, entry->cgh_qtail, cgh);
@@ -565,7 +563,7 @@ core_peer_connect_cb (void *cls,
                       const struct GNUNET_ATS_Information * atsi,
                       unsigned int atsi_count)
 {  
-  peer_connect_notify_cb (cls, peer, CGT_TRANSPORT_HANDLE);
+  peer_connect_notify_cb (cls, peer, CGT_CORE_HANDLE);
 }
 
 
@@ -579,16 +577,17 @@ opstart_get_handle_core (void *cls)
 
   GNUNET_assert (NULL != entry);
   LOG_DEBUG ("Opening a CORE connection to peer %u\n", entry->peer_id);
-  entry->core_handle = GNUNET_CORE_connect (entry->cfg,
-                                                 entry,
-                                                 &core_startup_cb,
-                                                 &core_peer_connect_cb,
-                                                 NULL, /* disconnect cb */
-                                                 NULL, /* inbound notify */
-                                                 GNUNET_NO,
-                                                 NULL, /* outbound notify */
-                                                 GNUNET_NO,
-                                                 no_handlers);
+  /* void?: We also get the handle when the connection to CORE is successful */
+  (void) GNUNET_CORE_connect (entry->cfg,
+                              entry,
+                              &core_startup_cb,
+                              &core_peer_connect_cb,
+                              NULL, /* disconnect cb */
+                              NULL, /* inbound notify */
+                              GNUNET_NO,
+                              NULL, /* outbound notify */
+                              GNUNET_NO,
+                              no_handlers);
   if (NULL == entry->core_handle)
   {
     GNUNET_break (0);
@@ -607,6 +606,8 @@ oprelease_get_handle_core (void *cls)
     return;
   GNUNET_CORE_disconnect (entry->core_handle);
   entry->core_handle = NULL;
+  GNUNET_free_non_null (entry->peer_identity);
+  entry->peer_identity = NULL;
 }
 
 
@@ -847,17 +848,18 @@ GST_cache_get_handle_transport (unsigned int peer_id,
 
 
 /**
- * Get a transport handle with the given configuration. If the handle is already
- * cached before, it will be retured in the given callback; the peer_id is used to lookup in the
- * cache. If not a new operation is started to open the transport handle and
- * will be given in the callback when it is available.
+ * Get a CORE handle with the given configuration. If the handle is already
+ * cached before, it will be retured in the given callback; the peer_id is used
+ * to lookup in the cache. If the handle is not cached before, a new operation
+ * is started to open the CORE handle and will be given in the callback when it
+ * is available along with the peer identity
  *
  * @param peer_id the index of the peer
  * @param cfg the configuration with which the transport handle has to be
  *          created if it was not present in the cache
  * @param cb the callback to notify when the transport handle is available
  * @param cb_cls the closure for the above callback
- * @param target the peer identify of the peer whose connection to our TRANSPORT
+ * @param target the peer identify of the peer whose connection to our CORE
  *          subsystem will be notified through the connect_notify_cb. Can be NULL
  * @param connect_notify_cb the callback to call when the given target peer is
  *          connected. This callback will only be called once or never again (in
