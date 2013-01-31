@@ -18,19 +18,6 @@
      Boston, MA 02111-1307, USA.
  */
 
-/**
- * @file exit/gnunet-helper-exit-windows.c
- * @brief the helper for the exit service in win32 builds. 
- * Opens a virtual network-interface, sends data received on the if to stdout, 
- * sends data received on stdin to the interface
- * @author Christian M. Fuchs
- *
- * The following list of people have reviewed this code and considered
- * it safe since the last modification (if you reviewed it, please
- * have your name added to the list):
- *
- */
-
 #include <stdio.h>
 #include <windows.h>
 #include <setupapi.h>
@@ -60,7 +47,7 @@
 /* FIXME: define with varargs... */
 #define LOG_DEBUG(msg) fprintf (stderr, "%s", msg);
 #else
-#deifne LOG_DEBUG(msg) do {} while (0)
+#define LOG_DEBUG(msg) do {} while (0)
 #endif
 
 
@@ -70,10 +57,16 @@
 #define MAX_SIZE 65536
 
 /**
- * Name or Path+Name of our driver in Unicode.
+ * Name or Path+Name of our win32 driver.
  * The .sys and .cat files HAVE to be in the same location as this file!
  */
 #define INF_FILE "share/gnunet/tapw32/OemWin2k.inf"
+
+/**
+ * Name or Path+Name of our win64 driver.
+ * The .sys and .cat files HAVE to be in the same location as this file!
+ */
+#define INF_FILE64 "share/gnunet/tapw64/OemWin2k.inf"
 
 /**
  * Hardware ID used in the inf-file. 
@@ -222,7 +215,34 @@ struct io_facility
  */
 WINBASEAPI HANDLE WINAPI ReOpenFile (HANDLE, DWORD, DWORD, DWORD);
 
+/**
+ * IsWow64Process definition for our is_win64, as this is a kernel function
+ */
+typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS) (HANDLE, PBOOL);
 
+/**
+ * Determines if the host OS is win32 or win64
+ * 
+ * @return true if 
+ */
+BOOL
+is_win64 ()
+{
+#if defined(_WIN64)
+  //this is a win64 binary, 
+  return TRUE; 
+#elif defined(_WIN32)
+  //this is a 32bit binary, and we need to check if we are running in WOW64
+  BOOL success = FALSE;
+  BOOL on_wow64 = FALSE;
+  LPFN_ISWOW64PROCESS IsWow64Process = (LPFN_ISWOW64PROCESS) GetProcAddress (GetModuleHandle ("kernel32"), "IsWow64Process");
+  
+  if (NULL != IsWow64Process)
+      success = IsWow64Process (GetCurrentProcess (), &on_wow64);
+  
+  return success && on_wow64;
+#endif
+}
 /**
  * Wrapper for executing a shellcommand in windows.
  * 
@@ -441,12 +461,12 @@ setup_interface ()
   
   /** 
    * Locate the inf-file, we need to store it somewhere where the system can
-   * find it. A good choice would be CWD/PDW or %WINDIR$\system32\
-   * 
-   * TODO: How about win64 in the future? 
-   *       We need to use a different driver for amd64/i386 !
+   * find it. We need to pick the correct driver for win32/win64.
    */
-  GetFullPathNameA (INF_FILE, MAX_PATH, inf_file_path, &temp_inf_filename);
+  if (is_win64())
+    GetFullPathNameA (INF_FILE64, MAX_PATH, inf_file_path, &temp_inf_filename);
+  else
+    GetFullPathNameA (INF_FILE, MAX_PATH, inf_file_path, &temp_inf_filename);
 
   fprintf (stderr, "INFO: Located our driver's .inf file at %s\n", inf_file_path);
   /** 
