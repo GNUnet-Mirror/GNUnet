@@ -296,25 +296,6 @@ cache_lookup (const struct GNUNET_HashCode *key)
 }
 
 
-static struct CacheEntry *
-cache_lookup_handles (const struct GNUNET_HashCode *pid,
-                      struct GNUNET_TRANSPORT_Handle **th,
-                      struct GNUNET_CORE_Handle **ch)
-{
-  struct CacheEntry *entry;
-  
-  GNUNET_assert ((NULL != th) || (NULL != ch));
-  entry = cache_lookup (pid);  
-  if (NULL == entry)
-    return NULL;
-  if ((NULL != entry->transport_handle_) && (NULL != th))
-    *th = entry->transport_handle_;
-  if ((NULL != entry->core_handle) && (NULL != ch))
-    *ch = entry->core_handle;
-  return entry;
-}
-
-
 static void
 cache_remove (struct CacheEntry *entry)
 {
@@ -418,6 +399,7 @@ call_cgh_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CONTAINER_DLL_insert_tail (entry->cgh_qhead, entry->cgh_qtail, cgh);
   if (NULL != cgh2)
     entry->notify_task = GNUNET_SCHEDULER_add_now (&call_cgh_cb, entry);
+  LOG_DEBUG ("Calling notify for handle type %u\n", cgh->type);
   cgh->cb (cgh->cb_cls, entry->core_handle, 
            entry->transport_handle_, entry->peer_identity);
 }
@@ -437,26 +419,36 @@ peer_connect_notify_cb (void *cls,
 {
   struct CacheEntry *entry = cls;
   struct ConnectNotifyContext *ctxt;
+  struct ConnectNotifyContext *ctxt2;
   GST_cache_peer_connect_notify cb;
   void *cb_cls;
 
   
-  for (ctxt=entry->nctxt_qhead; NULL != ctxt; ctxt=ctxt->next)
+  for (ctxt=entry->nctxt_qhead; NULL != ctxt;)
   {
     GNUNET_assert (NULL != ctxt->cgh);
     if (type != ctxt->cgh->type)
+    {
+      ctxt = ctxt->next;
       continue;
-    if (0 == memcmp (ctxt->target, peer, sizeof (struct GNUNET_PeerIdentity)))
-      break;
+    }
+    if (0 != memcmp (ctxt->target, peer, sizeof (struct GNUNET_PeerIdentity)))
+    {
+      ctxt = ctxt->next;
+      continue;
+    }
+    cb = ctxt->cb;
+    cb_cls = ctxt->cb_cls;
+    ctxt->cgh->nctxt = NULL;
+    ctxt2 = ctxt->next;
+    GNUNET_CONTAINER_DLL_remove (entry->nctxt_qhead, entry->nctxt_qtail, ctxt);
+    GNUNET_free (ctxt);
+    ctxt = ctxt2;
+    cb (cb_cls, peer);  
   }
   if (NULL == ctxt)
     return;
-  cb = ctxt->cb;
-  cb_cls = ctxt->cb_cls;
-  ctxt->cgh->nctxt = NULL;
-  GNUNET_CONTAINER_DLL_remove (entry->nctxt_qhead, entry->nctxt_qtail, ctxt);
-  GNUNET_free (ctxt);
-  cb (cb_cls, peer);
+  
 }
 
 
@@ -592,11 +584,6 @@ opstart_get_handle_core (void *cls)
                               NULL, /* outbound notify */
                               GNUNET_NO,
                               no_handlers);
-  if (NULL == entry->core_handle)
-  {
-    GNUNET_break (0);
-    return;
-  }
   //GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == entry->notify_task);
 }
 
@@ -632,30 +619,27 @@ cache_get_handle (unsigned int peer_id,
   GNUNET_assert (0 != cgh->type);
   GNUNET_CRYPTO_hash (&peer_id, sizeof (peer_id), &key);
   handle = NULL;
-  entry = NULL;
-  switch (cgh->type)
+  entry = cache_lookup (&key);
+  if (NULL != entry)
   {
-  case CGT_TRANSPORT_HANDLE:
-    entry = cache_lookup_handles (&key, (struct GNUNET_TRANSPORT_Handle **)
-                                  &handle, NULL);
-    if (NULL != handle)
-      LOG_DEBUG ("Found TRANSPORT handle in cache for peer %u\n", entry->peer_id);
-    break;
-  case CGT_CORE_HANDLE:
-    entry = cache_lookup_handles (&key, NULL, 
-                                  (struct GNUNET_CORE_Handle **) &handle);
-    if (NULL != handle)
-      LOG_DEBUG ("Found CORE handle in cache for peer %u\n", entry->peer_id);
-    break;
-  }
-  if (NULL != handle)
-  {
-    GNUNET_assert (NULL != entry);
     if (0 == entry->demand)
     {
       GNUNET_assert (0 < lru_cache_size);
       GNUNET_CONTAINER_DLL_remove (lru_cache_head, lru_cache_tail, entry);
       lru_cache_size--;
+    }
+    switch (cgh->type)
+    {
+    case CGT_TRANSPORT_HANDLE:
+      handle = entry->transport_handle_;
+      if (NULL != handle)
+        LOG_DEBUG ("Found TRANSPORT handle in cache for peer %u\n", entry->peer_id);
+      break;
+    case CGT_CORE_HANDLE:
+      handle = entry->core_handle;
+      if (NULL != handle)
+        LOG_DEBUG ("Found CORE handle in cache for peer %u\n", entry->peer_id);
+      break;
     }
   }
   if (NULL == entry)
