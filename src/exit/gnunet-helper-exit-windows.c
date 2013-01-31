@@ -444,7 +444,7 @@ setup_interface ()
   /** 
    * Bootstrap our device info using the drivers inf-file
    */
-  if (!SetupDiGetINFClassA (inf_file_path,
+  if ( ! SetupDiGetINFClassA (inf_file_path,
                             &class_guid,
                             class_name, sizeof (class_name) / sizeof (char),
                             NULL))
@@ -459,7 +459,7 @@ setup_interface ()
     return FALSE;
 
   DeviceNode.cbSize = sizeof (SP_DEVINFO_DATA);
-  if (!SetupDiCreateDeviceInfoA (DeviceInfo,
+  if ( ! SetupDiCreateDeviceInfoA (DeviceInfo,
                                  class_name,
                                  &class_guid,
                                  NULL,
@@ -469,7 +469,7 @@ setup_interface ()
     return FALSE;
 
   /* Deploy all the information collected into the registry */
-  if (!SetupDiSetDeviceRegistryPropertyA (DeviceInfo,
+  if ( ! SetupDiSetDeviceRegistryPropertyA (DeviceInfo,
                                           &DeviceNode,
                                           SPDRP_HARDWAREID,
                                           (LPBYTE) hwidlist,
@@ -477,14 +477,14 @@ setup_interface ()
     return FALSE;
 
   /* Install our new class(=device) into the system */
-  if (!SetupDiCallClassInstaller (DIF_REGISTERDEVICE,
+  if ( ! SetupDiCallClassInstaller (DIF_REGISTERDEVICE,
                                   DeviceInfo,
                                   &DeviceNode))
     return FALSE;
 
   /* This system call tends to take a while (several seconds!) on
      "modern" Windoze systems */
-  if (!UpdateDriverForPlugAndPlayDevicesA (NULL,
+  if ( ! UpdateDriverForPlugAndPlayDevicesA (NULL,
                                            secondary_hwid,
                                            inf_file_path,
                                            INSTALLFLAG_FORCE | INSTALLFLAG_NONINTERACTIVE,
@@ -518,7 +518,7 @@ remove_interface ()
    * 1. Prepare our existing device information set, and place the 
    *    uninstall related information into the structure
    */
-  if (!SetupDiSetClassInstallParamsA (DeviceInfo,
+  if ( ! SetupDiSetClassInstallParamsA (DeviceInfo,
                                       (PSP_DEVINFO_DATA) & DeviceNode,
                                       &remove.ClassInstallHeader,
                                       sizeof (remove)))
@@ -526,7 +526,7 @@ remove_interface ()
   /*
    * 2. Uninstall the virtual interface using the class installer
    */
-  if (!SetupDiCallClassInstaller (DIF_REMOVE,
+  if ( ! SetupDiCallClassInstaller (DIF_REMOVE,
                                   DeviceInfo,
                                   (PSP_DEVINFO_DATA) & DeviceNode))
     return FALSE;
@@ -623,14 +623,12 @@ resolve_interface_name ()
                     instance_key);
 
           /* look inside instance_key\\Connection */
-          status = RegOpenKeyExA (
+          if (ERROR_SUCCESS != RegOpenKeyExA (
                                   HKEY_LOCAL_MACHINE,
                                   query_key,
                                   0,
                                   KEY_READ,
-                                  &instance_key_handle);
-
-          if (status != ERROR_SUCCESS)
+                                  &instance_key_handle))
             goto cleanup;
 
           /* now, read our PnpInstanceID */
@@ -696,7 +694,6 @@ check_tapw32_version (HANDLE handle)
   DWORD len;
   memset (&(version), 0, sizeof (version));
 
-
   if (DeviceIoControl (handle, TAP_WIN_IOCTL_GET_VERSION,
                        &version, sizeof (version),
                        &version, sizeof (version), &len, NULL))
@@ -705,7 +702,8 @@ check_tapw32_version (HANDLE handle)
                (int) version[1],
                (version[2] ? "(DEBUG)" : ""));
 
-  if (version[0] != TAP_WIN_MIN_MAJOR || version[1] < TAP_WIN_MIN_MINOR){
+  if ((version[0] != TAP_WIN_MIN_MAJOR) ||
+      (version[1] < TAP_WIN_MIN_MINOR )){
       fprintf (stderr, "FATAL:  This version of gnunet requires a TAP-Windows driver that is at least version %d.%d\n",
                TAP_WIN_MIN_MAJOR,
                TAP_WIN_MIN_MINOR);
@@ -755,7 +753,7 @@ init_tun ()
                        0
                        );
 
-  if (handle == INVALID_HANDLE_VALUE)
+  if (INVALID_HANDLE_VALUE == handle)
     {
       fprintf (stderr, "FATAL: CreateFile failed on TAP device: %s\n", device_path);
       return handle;
@@ -799,7 +797,6 @@ tun_up (HANDLE handle)
   fprintf (stderr, "DEBUG: successfully set TAP device to UP\n");
 
   return TRUE;
-
 }
 
 
@@ -834,7 +831,6 @@ attempt_read_tap (struct io_facility * input_facility,
 {
   struct GNUNET_MessageHeader * hdr;
   unsigned short size;
-  BOOL status;
   
   switch (input_facility->facility_state)
     {
@@ -844,16 +840,15 @@ attempt_read_tap (struct io_facility * input_facility,
           {
             return FALSE;
           }
-        
+
         input_facility->buffer_size = 0;
-        status = ReadFile (input_facility->handle,
-                           input_facility->buffer,
-                           sizeof (input_facility->buffer) - sizeof (struct GNUNET_MessageHeader),
-                           &input_facility->buffer_size,
-                           &input_facility->overlapped);
 
         /* Check how the task is handled */
-        if (status)
+        if (ReadFile (input_facility->handle,
+                      input_facility->buffer,
+                      sizeof (input_facility->buffer) - sizeof (struct GNUNET_MessageHeader),
+                      &input_facility->buffer_size,
+                      &input_facility->overlapped))
           {/* async event processed immediately*/
 
             /* reset event manually*/
@@ -866,7 +861,7 @@ attempt_read_tap (struct io_facility * input_facility,
              * send it our via STDOUT. Is that possible at the moment? */
             if ((IOSTATE_READY == output_facility->facility_state ||
                  IOSTATE_WAITING == output_facility->facility_state)
-                && 0 < input_facility->buffer_size)
+                && (0 < input_facility->buffer_size))
               { /* hand over this buffers content and apply message header for gnunet */
                 hdr = (struct GNUNET_MessageHeader *) output_facility->buffer;
                 size = input_facility->buffer_size + sizeof (struct GNUNET_MessageHeader);
@@ -909,11 +904,11 @@ attempt_read_tap (struct io_facility * input_facility,
     case IOSTATE_QUEUED:
       {
         // there was an operation going on already, check if that has completed now.
-        status = GetOverlappedResult (input_facility->handle,
-                                      &input_facility->overlapped,
-                                      &input_facility->buffer_size,
-                                      FALSE);
-        if (status)
+
+        if (GetOverlappedResult (input_facility->handle,
+                                 &input_facility->overlapped,
+                                 &input_facility->buffer_size,
+                                 FALSE))
           {/* successful return for a queued operation */
             if (! ResetEvent (input_facility->overlapped.hEvent))
               return FALSE;
@@ -977,6 +972,7 @@ attempt_read_tap (struct io_facility * input_facility,
       return TRUE;
     }
 }
+
 
 /**
  * Attempts to read off an input facility (tap or named pipe) in overlapped mode.
@@ -1095,11 +1091,10 @@ attempt_read_stdin (struct io_facility * input_facility,
     case IOSTATE_QUEUED:
       {
         // there was an operation going on already, check if that has completed now.
-        status = GetOverlappedResult (input_facility->handle,
-                                      &input_facility->overlapped,
-                                      &input_facility->buffer_size,
-                                      FALSE);
-        if (status)
+        if (GetOverlappedResult (input_facility->handle,
+                                 &input_facility->overlapped,
+                                 &input_facility->buffer_size,
+                                 FALSE))
           {/* successful return for a queued operation */
             hdr = (struct GNUNET_MessageHeader *) input_facility->buffer;
             
@@ -1165,6 +1160,7 @@ attempt_read_stdin (struct io_facility * input_facility,
       return TRUE;
     }
 }
+
 
 /**
  * Attempts to write to an output facility (tap or named pipe) in overlapped mode.
