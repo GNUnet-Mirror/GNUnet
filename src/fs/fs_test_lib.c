@@ -192,6 +192,7 @@ report_uri (void *cls,
   GNUNET_TESTBED_operation_done (po->fs_op);
   po->publish_cont (po->publish_cont_cls, po->publish_uri);
   GNUNET_FS_uri_destroy (po->publish_uri);
+  (void) GNUNET_DISK_directory_remove (po->publish_tmp_file);
   GNUNET_free_non_null (po->publish_tmp_file);
   GNUNET_free (po);
 }
@@ -217,6 +218,7 @@ publish_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TESTBED_operation_done (po->fs_op);
   GNUNET_FS_publish_stop (po->publish_context);
   po->publish_cont (po->publish_cont_cls, NULL);
+  (void) GNUNET_DISK_directory_remove (po->publish_tmp_file);
   GNUNET_free_non_null (po->publish_tmp_file);
   GNUNET_free (po);
 }
