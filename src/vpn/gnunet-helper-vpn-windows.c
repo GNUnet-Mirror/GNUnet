@@ -221,6 +221,11 @@ struct io_facility
    * Amount of data actually written or read by readfile/writefile.
    */
   DWORD buffer_size_processed;
+  
+  /**
+   * How much of this buffer we have writte in total
+   */
+  DWORD buffer_size_written;
 };
 
 /**
@@ -1207,37 +1212,36 @@ static BOOL
 attempt_write (struct io_facility * output_facility,
                struct io_facility * input_facility)
 {
-  BOOL status;
-
   switch (output_facility->facility_state)
     {
     case IOSTATE_READY:
-
+      output_facility->buffer_size_written = 0;
+      
+continue_partial_write:
       if (! ResetEvent (output_facility->overlapped.hEvent))
         return FALSE;
 
-      output_facility->buffer_size_processed = 0;
-      status = WriteFile (output_facility->handle,
-                          output_facility->buffer,
-                          output_facility->buffer_size,
-                          &output_facility->buffer_size_processed,
-                          &output_facility->overlapped);
-
       /* Check how the task was handled */
-      if (status &&
-          output_facility->buffer_size_processed == output_facility->buffer_size)
+      if (WriteFile (output_facility->handle,
+                          output_facility->buffer + output_facility->buffer_size_written,
+                          output_facility->buffer_size - output_facility->buffer_size_written,
+                          &output_facility->buffer_size_processed,
+                          &output_facility->overlapped))
         {/* async event processed immediately*/
 
           fprintf (stderr, "DEBUG: write succeeded immediately\n");
+          output_facility->buffer_size_written += output_facility->buffer_size_processed;
           
           /* reset event manually*/
           if (! SetEvent (output_facility->overlapped.hEvent))
             return FALSE;
 
+          /* partial write */
+          if (output_facility->buffer_size_written < output_facility->buffer_size)
+            goto continue_partial_write;
+          
           /* we are now waiting for our buffer to be filled*/
           output_facility->facility_state = IOSTATE_WAITING;
-          output_facility->buffer_size = 0;
-          output_facility->buffer_size_processed = 0;
 
           /* we successfully wrote something and now need to reset our reader */
           if (IOSTATE_WAITING == input_facility->facility_state)
@@ -1262,22 +1266,24 @@ attempt_write (struct io_facility * output_facility,
       return TRUE;
     case IOSTATE_QUEUED:
       // there was an operation going on already, check if that has completed now.
-      status = GetOverlappedResult (output_facility->handle,
+      
+      if (GetOverlappedResult (output_facility->handle,
                                     &output_facility->overlapped,
                                     &output_facility->buffer_size_processed,
-                                    FALSE);
-      if (status &&
-          output_facility->buffer_size_processed == output_facility->buffer_size)
+                                    FALSE))
         {/* successful return for a queued operation */
           if (! ResetEvent (output_facility->overlapped.hEvent))
             return FALSE;
           
           fprintf (stderr, "DEBUG: write succeeded delayed\n");
-
+          output_facility->buffer_size_written += output_facility->buffer_size_processed;
+          
+          /* partial write */
+          if (output_facility->buffer_size_written < output_facility->buffer_size)
+            goto continue_partial_write;
+          
           /* we are now waiting for our buffer to be filled*/
           output_facility->facility_state = IOSTATE_WAITING;
-          output_facility->buffer_size = 0;
-          output_facility->buffer_size_processed = 0;
           
           /* we successfully wrote something and now need to reset our reader */
           if (IOSTATE_WAITING == input_facility->facility_state)
