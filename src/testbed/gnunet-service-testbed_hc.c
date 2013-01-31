@@ -94,6 +94,7 @@ struct ConnectNotifyContext
    * The GSTCacheGetHandle reposible for creating this context
    */
   struct GSTCacheGetHandle *cgh;
+
 };
 
 
@@ -238,6 +239,7 @@ struct CacheEntry
    */
   unsigned int peer_id;
 };
+
 
 /**
  * Hashmap to maintain cache
@@ -424,14 +426,12 @@ call_cgh_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param cls closure
  * @param peer the peer that connected
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
+ * @param type the type of the handle this notification is for
  */
 static void 
 peer_connect_notify_cb (void *cls,
                         const struct GNUNET_PeerIdentity *peer,
-                        const struct GNUNET_ATS_Information *ats,
-                        uint32_t ats_count)
+                        const enum CacheGetType type)
 {
   struct CacheEntry *entry = cls;
   struct ConnectNotifyContext *ctxt;
@@ -441,6 +441,9 @@ peer_connect_notify_cb (void *cls,
   
   for (ctxt=entry->nctxt_qhead; NULL != ctxt; ctxt=ctxt->next)
   {
+    GNUNET_assert (NULL != ctxt->cgh);
+    if (type != ctxt->cgh->type)
+      continue;
     if (0 == memcmp (ctxt->target, peer, sizeof (struct GNUNET_PeerIdentity)))
       break;
   }
@@ -448,11 +451,29 @@ peer_connect_notify_cb (void *cls,
     return;
   cb = ctxt->cb;
   cb_cls = ctxt->cb_cls;
-  GNUNET_assert (NULL != ctxt->cgh);
   ctxt->cgh->nctxt = NULL;
   GNUNET_CONTAINER_DLL_remove (entry->nctxt_qhead, entry->nctxt_qtail, ctxt);
   GNUNET_free (ctxt);
   cb (cb_cls, peer);
+}
+
+
+/**
+ * Function called to notify transport users that another
+ * peer connected to us.
+ *
+ * @param cls closure
+ * @param peer the peer that connected
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
+ */
+static void 
+transport_peer_connect_notify_cb (void *cls,
+                                  const struct GNUNET_PeerIdentity *peer,
+                                  const struct GNUNET_ATS_Information *ats,
+                                  uint32_t ats_count)
+{
+  peer_connect_notify_cb (cls, peer, CGT_TRANSPORT_HANDLE);
 }
 
 
@@ -463,11 +484,11 @@ opstart_get_handle_transport (void *cls)
 
   GNUNET_assert (NULL != entry);
   LOG_DEBUG ("Opening a transport connection to peer %u\n", entry->peer_id);
-  entry->transport_handle_ = GNUNET_TRANSPORT_connect (entry->cfg,
-                                                      NULL, entry,
-                                                      NULL,
-                                                      &peer_connect_notify_cb,
-                                                      NULL);
+  entry->transport_handle_ = 
+      GNUNET_TRANSPORT_connect (entry->cfg,
+                                NULL, entry,
+                                NULL,
+                                &transport_peer_connect_notify_cb, NULL);
   if (NULL == entry->transport_handle_)
   {
     GNUNET_break (0);
@@ -506,12 +527,27 @@ oprelease_get_handle_transport (void *cls)
  * @param server handle to the server, NULL if we failed
  * @param my_identity ID of this peer, NULL if we failed
  */
-static void core_startup_cb (void *cls,
-                             struct GNUNET_CORE_Handle * server,
-                             const struct GNUNET_PeerIdentity *
-                             my_identity)
+static void 
+core_startup_cb (void *cls,
+                 struct GNUNET_CORE_Handle * server,
+                 const struct GNUNET_PeerIdentity *my_identity)
 {
-  GNUNET_break (0);
+  struct CacheEntry *entry = cls;
+
+  if (NULL == my_identity)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  GNUNET_assert (NULL == entry->peer_identity);
+  entry->core_handle = server;
+  entry->peer_identity = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
+  memcpy (entry->peer_identity, my_identity,
+          sizeof (struct GNUNET_PeerIdentity));
+  if (0 == entry->demand)
+    return;
+  if (GNUNET_NO == entry->cgh_qhead->notify_called)
+    entry->notify_task = GNUNET_SCHEDULER_add_now (&call_cgh_cb, entry);
 }
 
 
@@ -528,21 +564,8 @@ core_peer_connect_cb (void *cls,
                       const struct GNUNET_PeerIdentity * peer,
                       const struct GNUNET_ATS_Information * atsi,
                       unsigned int atsi_count)
-{
-  struct CacheEntry *entry = cls;
-
-  if (NULL == peer)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  GNUNET_assert (NULL == entry->peer_identity);
-  entry->peer_identity = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
-  memcpy (entry->peer_identity, peer, sizeof (struct GNUNET_PeerIdentity));
-  if (0 == entry->demand)
-    return;
-  if (GNUNET_NO == entry->cgh_qhead->notify_called)
-    entry->notify_task = GNUNET_SCHEDULER_add_now (&call_cgh_cb, entry);
+{  
+  peer_connect_notify_cb (cls, peer, CGT_TRANSPORT_HANDLE);
 }
 
 
@@ -610,16 +633,19 @@ cache_get_handle (unsigned int peer_id,
   case CGT_TRANSPORT_HANDLE:
     entry = cache_lookup_handles (&key, (struct GNUNET_TRANSPORT_Handle **)
                                   &handle, NULL);
+    if (NULL != handle)
+      LOG_DEBUG ("Found TRANSPORT handle in cache for peer %u\n", entry->peer_id);
     break;
   case CGT_CORE_HANDLE:
     entry = cache_lookup_handles (&key, NULL, 
                                   (struct GNUNET_CORE_Handle **) &handle);
+    if (NULL != handle)
+      LOG_DEBUG ("Found CORE handle in cache for peer %u\n", entry->peer_id);
     break;
   }
   if (NULL != handle)
   {
     GNUNET_assert (NULL != entry);
-    LOG_DEBUG ("Found existing transport handle in cache\n");
     if (0 == entry->demand)
       GNUNET_CONTAINER_DLL_remove (lru_cache_head, lru_cache_tail, entry);
   }
