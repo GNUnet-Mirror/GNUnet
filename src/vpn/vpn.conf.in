@@ -1,6 +1,6 @@
 [vpn]
 AUTOSTART = YES
-@UNIXONLY@ PORT = 0
+@UNIXONLY@ PORT = 2105
 HOSTNAME = localhost
 HOME = $SERVICEHOME
 BINARY = gnunet-service-vpn
