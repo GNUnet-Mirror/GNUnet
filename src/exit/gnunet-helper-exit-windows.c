@@ -54,7 +54,15 @@
  * Should we print (interesting|debug) messages that can happen during
  * normal operation?
  */
-//#define DEBUG GNUNET_YES
+#define DEBUG GNUNET_NO
+
+#if DEBUG
+/* FIXME: define with varargs... */
+#define LOG_DEBUG(msg) fprintf (stderr, "%s", msg);
+#else
+#deifne LOG_DEBUG(msg) do {} while (0)
+#endif
+
 
 /**
  * Maximum size of a GNUnet message (GNUNET_SERVER_MAX_MESSAGE_SIZE)
@@ -232,7 +240,7 @@ execute_shellcommand (const char *command)
        (NULL == (pipe = _popen (command, "rt"))) )
     return EINVAL;
 
-#ifdef DEBUG
+#if DEBUG
   fprintf (stderr, "DEBUG: Command output: \n");
   char output[LINE_LEN];
   while (NULL != fgets (output, sizeof (output), pipe))
