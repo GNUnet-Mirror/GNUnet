@@ -319,6 +319,7 @@ close_handles (struct CacheEntry *entry)
     GNUNET_assert (0 < lru_cache_size);
     GNUNET_CONTAINER_DLL_remove (lru_cache_head, lru_cache_tail, entry);
     lru_cache_size--;
+    entry->in_lru = GNUNET_NO;
   }
   while (NULL != (ctxt = entry->nctxt_qhead))
   {
