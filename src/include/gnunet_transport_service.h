@@ -283,7 +283,8 @@ GNUNET_TRANSPORT_check_neighbour_connected (struct GNUNET_TRANSPORT_Handle *hand
 
 
 /**
- * Obtain updates on changes to the HELLO message for this peer.
+ * Obtain updates on changes to the HELLO message for this peer. The callback
+ * given in this function is never called synchronously.
  *
  * @param handle connection to transport service
  * @param rec function to call with the HELLO

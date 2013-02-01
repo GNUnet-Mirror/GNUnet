@@ -1289,7 +1289,8 @@ call_hello_update_cb_async (void *cls,
 
 
 /**
- * Obtain the HELLO message for this peer.
+ * Obtain the HELLO message for this peer.  The callback given in this function
+ * is never called synchronously.
  *
  * @param handle connection to transport service
  * @param rec function to call with the HELLO, sender will be our peer
