@@ -181,6 +181,11 @@ struct GNUNET_TRANSPORT_GetHelloHandle
   GNUNET_TRANSPORT_HelloUpdateCallback rec;
 
   /**
+   * Task for calling the HelloUpdateCallback when we already have a HELLO
+   */
+  GNUNET_SCHEDULER_TaskIdentifier notify_task;
+
+  /**
    * Closure for rec.
    */
   void *rec_cls;
@@ -1262,6 +1267,27 @@ GNUNET_TRANSPORT_check_neighbour_connected (struct GNUNET_TRANSPORT_Handle *hand
 		return GNUNET_NO;
 }
 
+
+/**
+ * Task to call the HelloUpdateCallback of the GetHelloHandle
+ *
+ * @param cls the GetHelloHandle
+ * @param tc the scheduler task context
+ */
+static void
+call_hello_update_cb_async (void *cls,
+                            const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_TRANSPORT_GetHelloHandle *ghh = cls;
+
+  GNUNET_assert (NULL != ghh->handle->my_hello);
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != ghh->notify_task);
+  ghh->notify_task = GNUNET_SCHEDULER_NO_TASK;
+  ghh->rec (ghh->rec_cls, 
+            (const struct GNUNET_MessageHeader *) ghh->handle->my_hello);
+}
+
+
 /**
  * Obtain the HELLO message for this peer.
  *
@@ -1286,7 +1312,8 @@ GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
   hwl->handle = handle;
   GNUNET_CONTAINER_DLL_insert (handle->hwl_head, handle->hwl_tail, hwl);
   if (handle->my_hello != NULL)
-    rec (rec_cls, (const struct GNUNET_MessageHeader *) handle->my_hello);
+    hwl->notify_task = GNUNET_SCHEDULER_add_now (&call_hello_update_cb_async,
+                                                 hwl);
   return hwl;
 }
 
@@ -1301,6 +1328,8 @@ GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_GetHelloHandle *ghh)
 {
   struct GNUNET_TRANSPORT_Handle *handle = ghh->handle;
 
+  if (GNUNET_SCHEDULER_NO_TASK != ghh->notify_task)
+    GNUNET_SCHEDULER_cancel (ghh->notify_task);
   GNUNET_CONTAINER_DLL_remove (handle->hwl_head, handle->hwl_tail, ghh);
   GNUNET_free (ghh);
 }
