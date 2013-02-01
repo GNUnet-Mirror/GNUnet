@@ -56,6 +56,7 @@ static struct GNUNET_TIME_Absolute start_time;
 static void
 do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  char *fn = cls;
   struct GNUNET_TIME_Relative del;
   char *fancy;
 
@@ -79,11 +80,17 @@ do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                 "Timeout during download, shutting down with error\n");
     ok = 1;
   }
+  if (NULL != fn)
+  {
+    GNUNET_DISK_directory_remove (fn);
+    GNUNET_free (fn);
+  }
 }
 
 
 static void
-do_download (void *cls, const struct GNUNET_FS_Uri *uri)
+do_download (void *cls, const struct GNUNET_FS_Uri *uri,
+	     const char *fn)
 {
   if (NULL == uri)
   {
@@ -99,7 +106,9 @@ do_download (void *cls, const struct GNUNET_FS_Uri *uri)
   GNUNET_FS_TEST_download (daemons[0], TIMEOUT, 
 			   anonymity_level, SEED, uri, 
 			   VERBOSE, &do_stop,
-                           NULL);
+                           (NULL == fn) 
+			   ? NULL
+			   : GNUNET_strdup (fn));
 }
 
 

@@ -50,6 +50,8 @@ static int ret;
 static void
 do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  char *fn = cls;
+
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
   {
     GNUNET_break (0);
@@ -60,12 +62,18 @@ do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Finished download, shutting down\n",
                 (unsigned long long) FILESIZE);
   }
+  if (NULL != fn)
+  {
+    GNUNET_DISK_directory_remove (fn);
+    GNUNET_free (fn);
+  }
   GNUNET_SCHEDULER_shutdown ();
 }
 
 
 static void
-do_download (void *cls, const struct GNUNET_FS_Uri *uri)
+do_download (void *cls, const struct GNUNET_FS_Uri *uri,
+	     const char *fn)
 {
   if (NULL == uri)
   {
@@ -77,7 +85,7 @@ do_download (void *cls, const struct GNUNET_FS_Uri *uri)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Downloading %llu bytes\n",
               (unsigned long long) FILESIZE);
   GNUNET_FS_TEST_download (the_peers[0], TIMEOUT, 1, SEED, uri, VERBOSE, &do_stop,
-                           NULL);
+                           (NULL == fn) ? NULL : GNUNET_strdup (fn));
 }
 
 

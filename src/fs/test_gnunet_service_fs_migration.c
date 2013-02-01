@@ -55,6 +55,14 @@ static struct GNUNET_TIME_Absolute start_time;
 static struct GNUNET_TESTBED_Operation *op;
 
 
+struct DownloadContext
+{
+  char *fn;
+
+  struct GNUNET_FS_Uri *uri;
+};
+
+
 static void
 do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -88,10 +96,17 @@ static void
 do_download (void *cls, 
 	     const char *emsg)
 {
-  struct GNUNET_FS_Uri *uri = cls;
+  struct DownloadContext *dc = cls;
+  struct GNUNET_FS_Uri *uri = dc->uri;
 
   GNUNET_TESTBED_operation_done (op);
   op = NULL;
+  if (NULL != dc->fn)
+  {
+    GNUNET_DISK_directory_remove (dc->fn);
+    GNUNET_free (dc->fn);
+  }
+  GNUNET_free (dc);
   if (NULL != emsg)
   {
     GNUNET_SCHEDULER_shutdown ();
@@ -113,18 +128,19 @@ do_download (void *cls,
 static void
 stop_source_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_FS_Uri *uri = cls;
+  struct DownloadContext *dc = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping source peer\n");
-  op = GNUNET_TESTBED_peer_stop (daemons[1], &do_download, uri);
+  op = GNUNET_TESTBED_peer_stop (daemons[1], &do_download, dc);
   GNUNET_assert (NULL != op);
 }
 
 
 static void
-do_wait (void *cls, const struct GNUNET_FS_Uri *uri)
+do_wait (void *cls, const struct GNUNET_FS_Uri *uri,
+	 const char *fn)
 {
-  struct GNUNET_FS_Uri *d;
+  struct DownloadContext *dc;
 
   if (NULL == uri)
   {
@@ -135,8 +151,11 @@ do_wait (void *cls, const struct GNUNET_FS_Uri *uri)
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Waiting to allow content to migrate\n");
-  d = GNUNET_FS_uri_dup (uri);
-  (void) GNUNET_SCHEDULER_add_delayed (MIGRATION_DELAY, &stop_source_peer, d);
+  dc = GNUNET_malloc (sizeof (struct DownloadContext));
+  dc->uri = GNUNET_FS_uri_dup (uri);
+  if (NULL != fn)
+    dc->fn = GNUNET_strdup (fn);
+  (void) GNUNET_SCHEDULER_add_delayed (MIGRATION_DELAY, &stop_source_peer, dc);
 }
 
 

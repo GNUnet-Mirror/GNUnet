@@ -39,10 +39,13 @@
  *
  * @param cls closure (user defined)
  * @param uri a URI, NULL for errors
+ * @param fn name of the file on disk to be removed upon
+ *           completion, or NULL for inserted files (also NULL on error)
  */
 typedef void (*GNUNET_FS_TEST_UriContinuation) (void *cls,
                                                 const struct GNUNET_FS_Uri *
-                                                uri);
+                                                uri,
+						const char *fn);
 
 
 /**

@@ -86,6 +86,9 @@ static struct GNUNET_FS_Uri *uri1;
 
 static struct GNUNET_FS_Uri *uri2;
 
+static char *fn1;
+
+static char *fn2;
 
 /**
  * Master context for 'stat_run'.
@@ -130,6 +133,23 @@ static struct StatValues stats[] = {
   {"datacache", "# bytes stored"},
   {NULL, NULL}
 };
+
+
+static void
+cleanup ()
+{
+  GNUNET_SCHEDULER_shutdown ();
+  if (NULL != fn1)
+  {
+    GNUNET_DISK_directory_remove (fn1);
+    GNUNET_free (fn1);
+  }
+  if (NULL != fn2)
+  {
+    GNUNET_DISK_directory_remove (fn2);
+    GNUNET_free (fn2);
+  }
+}
 
 
 /**
@@ -244,7 +264,7 @@ stat_run (void *cls,
   if (NUM_DAEMONS == sm->daemon)
   {
     GNUNET_free (sm);
-    GNUNET_SCHEDULER_shutdown ();
+    cleanup ();
     return;
   }
   sm->op =
@@ -273,7 +293,7 @@ do_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                 "Timeout during download for type `%s', shutting down with error\n",
                 type);
     ok = 1;
-    GNUNET_SCHEDULER_shutdown ();
+    cleanup ();
     return;
   }
   del = GNUNET_TIME_absolute_get_duration (start_time);
@@ -301,19 +321,22 @@ do_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-do_downloads (void *cls, const struct GNUNET_FS_Uri *u2)
+do_downloads (void *cls, const struct GNUNET_FS_Uri *u2,
+	      const char *fn)
 {
   int anonymity;
   unsigned int i;
 
   if (NULL == u2)
   {
-    GNUNET_SCHEDULER_shutdown ();
+    cleanup ();
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Timeout during upload attempt, shutting down with error\n");
     ok = 1;
     return;
   }
+  if (NULL != fn)
+    fn2 = GNUNET_strdup (fn);
   uri2 = GNUNET_FS_uri_dup (u2);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Downloading %llu bytes\n",
               (unsigned long long) FILESIZE);
@@ -340,19 +363,22 @@ do_downloads (void *cls, const struct GNUNET_FS_Uri *u2)
 
 static void
 do_publish2 (void *cls,	     
-	     const struct GNUNET_FS_Uri *u1)
+	     const struct GNUNET_FS_Uri *u1,
+	     const char *fn)
 {
   int do_index;
   int anonymity;
 
   if (NULL == u1)
-    {
-    GNUNET_SCHEDULER_shutdown ();
+  {
+    cleanup ();
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Timeout during upload attempt, shutting down with error\n");
     ok = 1;
     return;
   }
+  if (NULL != fn)
+    fn1 = GNUNET_strdup (fn);
   uri1 = GNUNET_FS_uri_dup (u1);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Publishing %llu bytes\n",
               (unsigned long long) FILESIZE);
@@ -383,7 +409,7 @@ do_publish1 (void *cls,
   GNUNET_TESTBED_operation_done (op);
   if (NULL != emsg)
   {
-    GNUNET_SCHEDULER_shutdown ();
+    cleanup ();
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error trying to connect: %s\n", emsg);
     ok = 1;
     return;

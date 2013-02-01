@@ -234,18 +234,25 @@ stat_run (void *cls,
 static void
 do_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  char *fn = cls;
   struct GNUNET_TIME_Relative del;
   char *fancy;
   struct StatMaster *sm;
 
+  if (NULL != fn)
+  {
+    GNUNET_DISK_directory_remove (fn);
+    GNUNET_free (fn);
+  }
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT)) 
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Timeout during download, shutting down with error\n");
     ok = 1;
-    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_SCHEDULER_shutdown ();   
     return;
   }
+
   del = GNUNET_TIME_absolute_get_duration (start_time);
   if (del.rel_value == 0)
     del.rel_value = 1;
@@ -269,7 +276,9 @@ do_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-do_download (void *cls, const struct GNUNET_FS_Uri *uri)
+do_download (void *cls, 
+	     const struct GNUNET_FS_Uri *uri,
+	     const char *fn)
 {
   int anonymity;
 
@@ -289,7 +298,8 @@ do_download (void *cls, const struct GNUNET_FS_Uri *uri)
   else
     anonymity = 1;
   GNUNET_FS_TEST_download (daemons[0], TIMEOUT, anonymity, SEED, uri, VERBOSE,
-                           &do_report, NULL);
+                           &do_report, 
+			   (NULL == fn) ? NULL : GNUNET_strdup (fn));
 }
 
 
