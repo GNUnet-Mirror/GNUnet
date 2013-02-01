@@ -238,6 +238,11 @@ struct CacheEntry
    * The id of the peer this entry corresponds to
    */
   unsigned int peer_id;
+
+  /**
+   * Is this entry in LRU cache queue?
+   */
+  unsigned int in_lru;
 };
 
 
@@ -309,7 +314,7 @@ close_handles (struct CacheEntry *entry)
   struct ConnectNotifyContext *ctxt;
   
   GNUNET_assert (0 == entry->demand);
-  if ((NULL != entry->next) || (NULL != entry->prev))
+  if (GNUNET_YES == entry->in_lru)
   {
     GNUNET_assert (0 < lru_cache_size);
     GNUNET_CONTAINER_DLL_remove (lru_cache_head, lru_cache_tail, entry);
@@ -695,11 +700,13 @@ cache_get_handle (unsigned int peer_id,
   entry = cache_lookup (&key);
   if (NULL != entry)
   {
-    if (0 == entry->demand)
+    if (GNUNET_YES == entry->in_lru)
     {
+      GNUNET_assert (0 == entry->demand);
       GNUNET_assert (0 < lru_cache_size);
       GNUNET_CONTAINER_DLL_remove (lru_cache_head, lru_cache_tail, entry);
       lru_cache_size--;
+      entry->in_lru = GNUNET_NO;
     }
     switch (cgh->type)
     {
@@ -859,9 +866,10 @@ GST_cache_get_handle_done (struct GSTCacheGetHandle *cgh)
   }
   GNUNET_free (cgh);  
   if (0 == entry->demand)
-  {
+  {    
     GNUNET_CONTAINER_DLL_insert_tail (lru_cache_head, lru_cache_tail, entry);
     lru_cache_size++;
+    entry->in_lru = GNUNET_YES;
     if (lru_cache_size > lru_cache_threshold_size)
       close_handles (lru_cache_head);
   }
