@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2012 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2012, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -113,7 +113,7 @@ static struct GNUNET_ARM_Handle *h;
 /**
  * Our configuration.
  */
-static const struct GNUNET_CONFIGURATION_Handle *cfg;
+static struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * Processing stage that we are in.  Simple counter.
@@ -276,6 +276,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   h = NULL;
   if ((end == GNUNET_YES) && (delete == GNUNET_YES))
     delete_files ();	
+  GNUNET_CONFIGURATION_destroy (cfg);
+  cfg = NULL;
 }
 
 
@@ -292,7 +294,8 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *armconfig;
-  cfg = c;
+
+  cfg = GNUNET_CONFIGURATION_dup (c);
   config_file = cfgfile;
   if (GNUNET_CONFIGURATION_get_value_string
       (cfg, "PATHS", "SERVICEHOME", &dir) != GNUNET_OK)
@@ -305,7 +308,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     if (GNUNET_OK !=
         GNUNET_CONFIGURATION_get_value_filename (cfg, "arm", "CONFIG",
-					       &armconfig))
+						 &armconfig))
     {
       GNUNET_CONFIGURATION_set_value_string (cfg, "arm", "CONFIG",
                                              cfgfile);
@@ -318,6 +321,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Fatal error initializing ARM API.\n"));
     ret = 1;
+    GNUNET_CONFIGURATION_destroy (cfg);
+    cfg = NULL;
     return;
   }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
