@@ -531,10 +531,11 @@ opstart_get_handle_transport (void *cls)
     GNUNET_break (0);
     return;
   }
-  //GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == entry->notify_task);
   if (0 == entry->demand)
     return;
-  if (GNUNET_NO == entry->cgh_qhead->notify_called)
+  if (GNUNET_SCHEDULER_NO_TASK != entry->notify_task)
+    return;
+  if (NULL != search_suitable_cgh (entry, entry->cgh_qhead))
     entry->notify_task = GNUNET_SCHEDULER_add_now (&call_cgh_cb, entry);
 }
 
@@ -588,8 +589,10 @@ core_startup_cb (void *cls,
   memcpy (entry->peer_identity, my_identity,
           sizeof (struct GNUNET_PeerIdentity));
   if (0 == entry->demand)
+    return;  
+  if (GNUNET_SCHEDULER_NO_TASK != entry->notify_task)
     return;
-  if (GNUNET_NO == entry->cgh_qhead->notify_called)
+  if (NULL != search_suitable_cgh (entry, entry->cgh_qhead))
     entry->notify_task = GNUNET_SCHEDULER_add_now (&call_cgh_cb, entry);
 }
 
