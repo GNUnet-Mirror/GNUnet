@@ -19,7 +19,7 @@
 */
 
 /**
- * @file testbed/gnunet-service-testbed_hc.h
+ * @file testbed/gnunet-service-testbed_cache.h
  * @brief testbed cache implementation
  * @author Sree Harsha Totakura
  */
@@ -121,7 +121,7 @@ struct GSTCacheGetHandle
   /**
    * The cache callback to call when a handle is available
    */
-  GST_cache_callback cb;
+  GST_cache_handle_ready_cb cb;
    
   /**
    * The closure for the above callback
@@ -296,13 +296,18 @@ cache_lookup (const struct GNUNET_HashCode *key)
 }
 
 
+/**
+ * Function to disconnect the core and transport handles; free the existing
+ * configuration; and remove from the LRU cache list. The entry is left to be in
+ * the hash table so that the HELLO can still be found later
+ *
+ * @param entry the cache entry
+ */
 static void
-cache_remove (struct CacheEntry *entry)
+close_handles (struct CacheEntry *entry)
 {
   struct ConnectNotifyContext *ctxt;
   
-  /* We keep the entry in the hash table so that the HELLO can still be found
-     in cache; we will however disconnect the core and transport handles */
   GNUNET_assert (0 == entry->demand);
   if ((NULL != entry->next) || (NULL != entry->prev))
   {
@@ -336,6 +341,13 @@ cache_remove (struct CacheEntry *entry)
 }
 
 
+/**
+ * Creates a new cache entry and then puts it into the cache's hashtable.
+ *
+ * @param key the hash code to use for inserting the newly created entry
+ * @param peer_id the index of the peer to tag the newly created entry
+ * @return the newly created entry
+ */
 static struct CacheEntry *
 add_entry (const struct GNUNET_HashCode *key, unsigned int peer_id)
 {
@@ -353,6 +365,17 @@ add_entry (const struct GNUNET_HashCode *key, unsigned int peer_id)
 }
 
 
+/**
+ * Function to find a suitable GSTCacheGetHandle which is waiting for one of the
+ * handles in given entry to be available.
+ *
+ * @param entry the cache entry whose GSTCacheGetHandle list has to be searched
+ * @param head the starting list element in the GSTCacheGetHandle where the
+ *          search has to be begin
+ * @return a suitable GSTCacheGetHandle whose handle ready notify callback
+ *           hasn't been called yet. NULL if no such suitable GSTCacheGetHandle
+ *           is found
+ */
 static struct GSTCacheGetHandle *
 search_suitable_cgh (const struct CacheEntry *entry,
                      const struct GSTCacheGetHandle *head)
@@ -380,6 +403,13 @@ search_suitable_cgh (const struct CacheEntry *entry,
 }
 
 
+/**
+ * Task to call the handle ready notify callback of a queued GSTCacheGetHandle
+ * of an entry when one or all of its handles are available.
+ *
+ * @param cls the cache entry
+ * @param tc the task context from scheduler
+ */
 static void
 call_cgh_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -409,13 +439,15 @@ call_cgh_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
            entry->transport_handle_, entry->peer_identity);
 }
 
+
 /**
- * Function called to notify transport users that another
- * peer connected to us.
+ * Function called from peer connect notify callbacks from CORE and TRANSPORT
+ * connections. This function calls the pendning peer connect notify callbacks
+ * which are queued in an entry.
  *
- * @param cls closure
+ * @param cls the cache entry
  * @param peer the peer that connected
- * @param type the type of the handle this notification is for
+ * @param type the type of the handle this notification corresponds to
  */
 static void 
 peer_connect_notify_cb (void *cls,
@@ -476,6 +508,12 @@ transport_peer_connect_notify_cb (void *cls,
 }
 
 
+/**
+ * Function called when resources for opening a connection to TRANSPORT are
+ * available.
+ *
+ * @param cls the cache entry
+ */
 static void
 opstart_get_handle_transport (void *cls)
 {
@@ -501,6 +539,12 @@ opstart_get_handle_transport (void *cls)
 }
 
 
+/**
+ * Function called when the operation responsible for opening a TRANSPORT
+ * connection is marked as done.
+ *
+ * @param cls the cache entry
+ */
 static void
 oprelease_get_handle_transport (void *cls)
 {
@@ -551,7 +595,7 @@ core_startup_cb (void *cls,
 
 
 /**
- * Method called whenever a given peer connects.
+ * Method called whenever a given peer connects at CORE level
  *
  * @param cls closure
  * @param peer peer identity this notification is about
@@ -568,6 +612,12 @@ core_peer_connect_cb (void *cls,
 }
 
 
+/**
+ * Function called when resources for opening a connection to CORE are
+ * available.
+ *
+ * @param cls the cache entry
+ */
 static void
 opstart_get_handle_core (void *cls)
 {
@@ -593,6 +643,12 @@ opstart_get_handle_core (void *cls)
 }
 
 
+/**
+ * Function called when the operation responsible for opening a TRANSPORT
+ * connection is marked as done.
+ *
+ * @param cls the cache entry
+ */
 static void
 oprelease_get_handle_core (void *cls)
 {
@@ -607,6 +663,15 @@ oprelease_get_handle_core (void *cls)
 }
 
 
+/**
+ * Function to get a handle with given configuration. The type of the handle is
+ * implicitly provided in the GSTCacheGetHandle. If the handle is already cached
+ * before, it will be retured in the given callback; the peer_id is used to
+ * lookup in the cache; if not, a new operation is started to open the transport
+ * handle and will be given in the callback when it is available.
+ *
+ * @param cls the cache entry
+ */
 static struct GSTCacheGetHandle *
 cache_get_handle (unsigned int peer_id,
                   struct GSTCacheGetHandle *cgh,
@@ -692,6 +757,7 @@ cache_get_handle (unsigned int peer_id,
   return cgh;
 }
 
+
 /**
  * Iterator over hash map entries.
  *
@@ -715,7 +781,7 @@ cache_clear_iterator (void *cls,
   LOG_DEBUG ("Clearing entry %u of %u\n", ++ncleared, cache_size);
   GNUNET_CONTAINER_multihashmap_remove (cache, key, value);
   if (0 == entry->demand)
-    cache_remove (entry);
+    close_handles (entry);
   GNUNET_free_non_null (entry->hello);
   GNUNET_break (NULL == entry->transport_handle_);
   GNUNET_break (NULL == entry->transport_op_);
@@ -794,7 +860,7 @@ GST_cache_get_handle_done (struct GSTCacheGetHandle *cgh)
     GNUNET_CONTAINER_DLL_insert_tail (lru_cache_head, lru_cache_tail, entry);
     lru_cache_size++;
     if (lru_cache_size > lru_cache_threshold_size)
-      cache_remove (lru_cache_head);
+      close_handles (lru_cache_head);
   }
   else
   {
@@ -807,10 +873,10 @@ GST_cache_get_handle_done (struct GSTCacheGetHandle *cgh)
 
 
 /**
- * Get a transport handle with the given configuration. If the handle is already
- * cached before, it will be retured in the given callback; the peer_id is used to lookup in the
- * cache. If not a new operation is started to open the transport handle and
- * will be given in the callback when it is available.
+ * Get a transport handle with the given configuration.  If the handle is
+ * already cached before, it will be retured in the given callback; the peer_id
+ * is used to lookup in the cache; if not, a new operation is started to open the
+ * transport handle and will be given in the callback when it is available.
  *
  * @param peer_id the index of the peer
  * @param cfg the configuration with which the transport handle has to be
@@ -829,7 +895,7 @@ GST_cache_get_handle_done (struct GSTCacheGetHandle *cgh)
 struct GSTCacheGetHandle *
 GST_cache_get_handle_transport (unsigned int peer_id,
                                 const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                GST_cache_callback cb,
+                                GST_cache_handle_ready_cb cb,
                                 void *cb_cls,
                                 const struct GNUNET_PeerIdentity *target,
                                 GST_cache_peer_connect_notify connect_notify_cb,
@@ -870,7 +936,7 @@ GST_cache_get_handle_transport (unsigned int peer_id,
 struct GSTCacheGetHandle *
 GST_cache_get_handle_core (unsigned int peer_id,
                            const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           GST_cache_callback cb,
+                           GST_cache_handle_ready_cb cb,
                            void *cb_cls,
                            const struct GNUNET_PeerIdentity *target,
                            GST_cache_peer_connect_notify connect_notify_cb,

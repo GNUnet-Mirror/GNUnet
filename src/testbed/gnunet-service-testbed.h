@@ -803,17 +803,24 @@ GST_cache_add_hello (const unsigned int peer_id,
 
 
 /**
- * Callback from cache with needed handles set
+ * Functions of this type are called when the needed handle is available for
+ * usage. These functions are to be registered with either of the functions
+ * GST_cache_get_handle_transport() or GST_cache_get_handle_core(). The
+ * corresponding handles will be set and if they are not, then it signals an
+ * error while opening the handles.
  *
- * @param cls the closure passed to GST_cache_get_handle_transport()
+ * @param cls the closure passed to GST_cache_get_handle_transport() or
+ *          GST_cache_get_handle_core()
  * @param ch the handle to CORE. Can be NULL if it is not requested
  * @param th the handle to TRANSPORT. Can be NULL if it is not requested
  * @param peer_id the identity of the peer. Will be NULL if ch is NULL. In other
  *          cases, its value being NULL means that CORE connection has failed.
  */
-typedef void (*GST_cache_callback) (void *cls, struct GNUNET_CORE_Handle *ch, 
-                                    struct GNUNET_TRANSPORT_Handle *th,
-                                    const struct GNUNET_PeerIdentity *peer_id);
+typedef void (*GST_cache_handle_ready_cb) (void *cls,
+                                           struct GNUNET_CORE_Handle *ch, 
+                                           struct GNUNET_TRANSPORT_Handle *th,
+                                           const struct 
+                                           GNUNET_PeerIdentity *peer_id);
 
 
 /**
@@ -855,7 +862,7 @@ typedef void (*GST_cache_peer_connect_notify) (void *cls,
 struct GSTCacheGetHandle *
 GST_cache_get_handle_transport (unsigned int peer_id,
                                 const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                GST_cache_callback cb,
+                                GST_cache_handle_ready_cb cb,
                                 void *cb_cls,
                                 const struct GNUNET_PeerIdentity *target,
                                 GST_cache_peer_connect_notify connect_notify_cb,
@@ -886,7 +893,7 @@ GST_cache_get_handle_transport (unsigned int peer_id,
 struct GSTCacheGetHandle *
 GST_cache_get_handle_core (unsigned int peer_id,
                            const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           GST_cache_callback cb,
+                           GST_cache_handle_ready_cb cb,
                            void *cb_cls,
                            const struct GNUNET_PeerIdentity *target,
                            GST_cache_peer_connect_notify connect_notify_cb,
