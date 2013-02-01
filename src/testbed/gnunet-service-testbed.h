@@ -817,10 +817,10 @@ GST_cache_add_hello (const unsigned int peer_id,
  *          cases, its value being NULL means that CORE connection has failed.
  */
 typedef void (*GST_cache_handle_ready_cb) (void *cls,
-                                           struct GNUNET_CORE_Handle *ch, 
-                                           struct GNUNET_TRANSPORT_Handle *th,
-                                           const struct 
-                                           GNUNET_PeerIdentity *peer_id);
+                                           struct GNUNET_CORE_Handle * ch,
+                                           struct GNUNET_TRANSPORT_Handle * th,
+                                           const struct GNUNET_PeerIdentity *
+                                           peer_id);
 
 
 /**
@@ -836,7 +836,8 @@ typedef void (*GST_cache_handle_ready_cb) (void *cls,
  *          valid until GST_cache_get_handle_done() is called.
  */
 typedef void (*GST_cache_peer_connect_notify) (void *cls,
-                                               const struct GNUNET_PeerIdentity *target);
+                                               const struct GNUNET_PeerIdentity
+                                               * target);
 
 
 /**
@@ -862,8 +863,7 @@ typedef void (*GST_cache_peer_connect_notify) (void *cls,
 struct GSTCacheGetHandle *
 GST_cache_get_handle_transport (unsigned int peer_id,
                                 const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                GST_cache_handle_ready_cb cb,
-                                void *cb_cls,
+                                GST_cache_handle_ready_cb cb, void *cb_cls,
                                 const struct GNUNET_PeerIdentity *target,
                                 GST_cache_peer_connect_notify connect_notify_cb,
                                 void *connect_notify_cb_cls);
@@ -893,8 +893,7 @@ GST_cache_get_handle_transport (unsigned int peer_id,
 struct GSTCacheGetHandle *
 GST_cache_get_handle_core (unsigned int peer_id,
                            const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           GST_cache_handle_ready_cb cb,
-                           void *cb_cls,
+                           GST_cache_handle_ready_cb cb, void *cb_cls,
                            const struct GNUNET_PeerIdentity *target,
                            GST_cache_peer_connect_notify connect_notify_cb,
                            void *connect_notify_cb_cls);

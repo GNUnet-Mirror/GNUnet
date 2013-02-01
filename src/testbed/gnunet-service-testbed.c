@@ -2190,8 +2190,7 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_number (cfg, "TESTBED",
-                                                        "CACHE_SIZE",
-                                                        &num));
+                                                        "CACHE_SIZE", &num));
   GST_cache_init ((unsigned int) num);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_number (cfg, "TESTBED",
