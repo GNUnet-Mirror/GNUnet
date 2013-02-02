@@ -925,6 +925,10 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
       left -= strlen (pos->plugin_name) + 1;
     if (NULL != pos->mime_type)
       left -= strlen (pos->mime_type) + 1;
+
+    GNUNET_free_non_null (cdata);
+    cdata = NULL;
+
     i++;
   }
   GNUNET_free (ent);
