@@ -377,6 +377,11 @@ extract_files (struct ScanTreeNode *item)
       return GNUNET_SYSERR;    
     return GNUNET_OK;
   }
+  else if (size > (UINT16_MAX - sizeof (struct GNUNET_MessageHeader) - slen))
+  {
+    /* We can't transfer more than 64k bytes in one message. */
+    size = UINT16_MAX - sizeof (struct GNUNET_MessageHeader) - slen;
+  }
   {
     char buf[size + slen];
     char *dst = &buf[slen];
