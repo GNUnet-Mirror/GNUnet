@@ -897,7 +897,10 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
       }
       if (NULL != *target)
       {
-        memcpy (*target, dst, clen + sizeof (struct MetaDataHeader));
+        if (GNUNET_YES == comp)
+          memcpy (*target, dst, clen + sizeof (struct MetaDataHeader));
+        else
+          memcpy (*target, dst, left + sizeof (struct MetaDataHeader));
         GNUNET_free (dst);
       }
       else
