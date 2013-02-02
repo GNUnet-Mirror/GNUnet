@@ -804,7 +804,7 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
   mdata = (char *) &ent[md->item_count];
   off = size - (md->item_count * sizeof (struct MetaDataEntry));
   i = 0;
-  for (pos = md->items_tail; NULL != pos; pos = pos->prev)
+  for (pos = md->items_head; NULL != pos; pos = pos->next)
   {
     ent[i].type = htonl ((uint32_t) pos->type);
     ent[i].format = htonl ((uint32_t) pos->format);
@@ -835,7 +835,7 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
   cdata = NULL;
   left = size;
   i = 0;
-  for (pos = md->items_tail; NULL != pos; pos = pos->prev)
+  for (pos = md->items_head; NULL != pos; pos = pos->next)
   {
     comp = GNUNET_NO;
     if (0 == (opt & GNUNET_CONTAINER_META_DATA_SERIALIZE_NO_COMPRESS))
