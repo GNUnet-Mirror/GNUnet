@@ -880,6 +880,7 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
         hdr->entries = htonl (md->item_count - i);
         memcpy (&dst[sizeof (struct MetaDataHeader)], cdata, clen);
         GNUNET_free (cdata);
+	cdata = NULL;
         GNUNET_free (ent);
         rlen = clen + sizeof (struct MetaDataHeader);
       }
