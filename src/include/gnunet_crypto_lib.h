@@ -1264,6 +1264,15 @@ GNUNET_CRYPTO_ecc_key_create_from_file (const char *filename);
  */
 struct GNUNET_CRYPTO_EccKeyGenerationContext;
 
+/**
+ * Create a new private key. Caller must free return value.  Blocking version
+ * (blocks to gather entropy).
+ *
+ * @return fresh private key
+ */
+struct GNUNET_CRYPTO_EccPrivateKey *
+GNUNET_CRYPTO_ecc_key_create (void);
+
 
 /**
  * Create a new private key by reading it from a file.  If the files
@@ -1300,6 +1309,20 @@ GNUNET_CRYPTO_ecc_key_create_stop (struct GNUNET_CRYPTO_EccKeyGenerationContext 
  */
 void
 GNUNET_CRYPTO_ecc_setup_hostkey (const char *cfg_name);
+
+
+/**
+ * Derive key material from a public and a private ECC key.
+ *
+ * @param key private key to use for the ECDH (x)
+ * @param pub public key to use for the ECDY (yG)
+ * @param key_material where to write the key material (xyG)
+ * @return GNUNET_SYSERR on error, GNUNET_OK on success
+ */
+int
+GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *key,
+                        const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pub,
+                        struct GNUNET_HashCode *key_material);
 
 
 /**

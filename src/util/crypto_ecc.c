@@ -366,8 +366,8 @@ GNUNET_CRYPTO_ecc_decode_key (const char *buf,
  *
  * @return fresh private key
  */
-static struct GNUNET_CRYPTO_EccPrivateKey *
-ecc_key_create ()
+struct GNUNET_CRYPTO_EccPrivateKey *
+GNUNET_CRYPTO_ecc_key_create ()
 {
   struct GNUNET_CRYPTO_EccPrivateKey *ret;
   gcry_sexp_t s_key;
@@ -555,7 +555,7 @@ GNUNET_CRYPTO_ecc_key_create_from_file (const char *filename)
     }
     LOG (GNUNET_ERROR_TYPE_INFO,
          _("Creating a new private key.  This may take a while.\n"));
-    ret = ecc_key_create ();
+    ret = GNUNET_CRYPTO_ecc_key_create ();
     GNUNET_assert (ret != NULL);
     enc = GNUNET_CRYPTO_ecc_encode_key (ret);
     GNUNET_assert (enc != NULL);
@@ -1048,6 +1048,33 @@ GNUNET_CRYPTO_ecc_verify (uint32_t purpose,
          __LINE__, gcry_strerror (rc));
     return GNUNET_SYSERR;
   }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Derive key material from a public and a private ECC key.
+ *
+ * @param key private key to use for the ECDH (x)
+ * @param pub public key to use for the ECDY (yG)
+ * @param key_material where to write the key material (xyG)
+ * @return GNUNET_SYSERR on error, GNUNET_OK on success
+ */
+int
+GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *key,
+                        const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pub,
+                        struct GNUNET_HashCode *key_material)
+{ 
+  gcry_sexp_t psexp;
+
+  if (! (psexp = decode_public_key (pub)))
+    return GNUNET_SYSERR;
+  
+
+  gcry_sexp_release (psexp);
+  GNUNET_break (0); // not implemented
+  /* FIXME: this totally breaks security ... */
+  memset (key_material, 42, sizeof (struct GNUNET_HashCode));
   return GNUNET_OK;
 }
 
