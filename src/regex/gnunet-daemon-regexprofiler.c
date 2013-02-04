@@ -74,6 +74,11 @@ static GNUNET_SCHEDULER_TaskIdentifier reannounce_task;
 static struct GNUNET_TIME_Relative reannounce_freq;
 
 /**
+ * Random delay to spread out load on the DHT.
+ */
+static struct GNUNET_TIME_Relative announce_delay;
+
+/**
  * Local peer's PeerID.
  */
 static struct GNUNET_PeerIdentity my_full_id;
@@ -135,18 +140,38 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Announce a previously announced regex re-using cached data.
  * 
- * @param cls Clocuse (not used).
+ * @param cls Closure (regex to announce if needed).
  * @param tc TaskContext.
  */
 static void
 reannounce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  char *regex = cls;
   reannounce_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-  reannounce_task = GNUNET_SCHEDULER_add_delayed(reannounce_freq,
-                                                 &reannounce_regex,
-                                                 cls);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Announcing regex: %s\n", regex);
+  GNUNET_STATISTICS_update (stats_handle, "# regexes announced", 1, GNUNET_NO);
+  if (NULL == announce_handle && NULL != regex)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "First time, creating regex: %s\n",
+                regex);
+    announce_handle = GNUNET_REGEX_announce (dht_handle,
+                                            &my_full_id,
+                                            regex,
+                                            (unsigned int) max_path_compression,
+                                            stats_handle);
+  }
+  else
+  {
+    GNUNET_assert (NULL != announce_handle);
+    GNUNET_REGEX_reannounce (announce_handle);
+  }
+  reannounce_task = GNUNET_SCHEDULER_add_delayed (reannounce_freq,
+                                                  &reannounce_regex,
+                                                  cls);
 }
 
 
@@ -165,17 +190,10 @@ announce_regex (const char * regex)
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Announcing regex: %s\n", regex);
-  GNUNET_STATISTICS_update (stats_handle, "# regexes announced", 1, GNUNET_NO);
-  announce_handle = GNUNET_REGEX_announce (dht_handle,
-                                           &my_full_id,
-                                           regex,
-                                           (unsigned int) max_path_compression,
-                                           stats_handle);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == reannounce_task);
-  reannounce_task = GNUNET_SCHEDULER_add_delayed (reannounce_freq,
+  reannounce_task = GNUNET_SCHEDULER_add_delayed (announce_delay,
                                                   reannounce_regex,
-                                                  NULL);
+                                                  (void *) regex);
 }
 
 
@@ -349,12 +367,15 @@ run (void *cls, char *const *args GNUNET_UNUSED,
       GNUNET_CONFIGURATION_get_value_time (cfg, "REGEXPROFILER",
                                            "REANNOUNCE_FREQ", &reannounce_freq))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
                 "reannounce_freq not given. Using 10 minutes.\n");
     reannounce_freq =
-      GNUNET_TIME_relative_multiply(GNUNET_TIME_relative_get_minute_(), 10);
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 10);
 
   }
+    announce_delay =
+    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                   GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 600));
 
   stats_handle = GNUNET_STATISTICS_create ("regexprofiler", cfg);
 
