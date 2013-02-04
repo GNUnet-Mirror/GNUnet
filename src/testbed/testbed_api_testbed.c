@@ -92,6 +92,11 @@ enum State
   RC_LINKED,
 
   /**
+   * Peers are created
+   */
+  RC_PEERS_CREATED,
+
+  /**
    * The testbed run is ready and the master callback can be called now. At this
    * time the peers are all started and if a topology is provided in the
    * configuration the topology would have been attempted
@@ -356,6 +361,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
   if (rc->peer_count < rc->num_peers)
     return;
   DEBUG ("%u peers created in %s\n", rc->num_peers, prof_time (rc));
+  rc->state = RC_PEERS_CREATED;
   GNUNET_SCHEDULER_add_now (&start_peers_task, rc);
 }
 
@@ -675,7 +681,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     return;
   switch (rc->state)
   {
-  case RC_LINKED:
+  case RC_PEERS_CREATED:
   case RC_READY:
     rc->state = RC_PEERS_STOPPED;
     DEBUG ("Peers stopped in %s\n", prof_time (rc));

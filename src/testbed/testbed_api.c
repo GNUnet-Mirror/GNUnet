@@ -312,6 +312,17 @@ struct SDHandle
 
 
 /**
+ * This variable is set to the operation that has been last marked as done. It
+ * is used to verify whether the state associated with an operation is valid
+ * after the first notify callback is called. Such checks are necessary for
+ * certain operations where we have 2 notify callbacks. Examples are
+ * OP_PEER_CREATE, OP_PEER_START/STOP, OP_OVERLAY_CONNECT.
+ *
+ * This variable should ONLY be used to compare; it is a dangling pointer!!
+ */
+static const struct GNUNET_TESTBED_Operation *last_finished_operation;
+
+/**
  * Initialize standard deviation calculation handle
  *
  * @param max_cnt the maximum number of readings to keep
@@ -909,6 +920,8 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
     event.details.operation_finished.emsg = emsg;
     event.details.operation_finished.generic = NULL;
     c->cc (c->cc_cls, &event);
+    if (event.details.operation_finished.operation == last_finished_operation)
+      return GNUNET_YES;
   }
   switch (opc->type)
   {
@@ -2468,6 +2481,7 @@ GNUNET_TESTBED_operation_cancel (struct GNUNET_TESTBED_Operation *operation)
 void
 GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
 {
+  last_finished_operation = operation;
   GNUNET_TESTBED_operation_release_ (operation);
 }
 
