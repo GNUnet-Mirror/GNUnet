@@ -2309,6 +2309,8 @@ libgnunet_plugin_transport_tcp_init (void *cls)
     return api;
   }
 
+  GNUNET_assert (NULL != env->cfg);
+  GNUNET_assert (NULL != env->stats);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-tcp",
                                              "MAX_CONNECTIONS",
@@ -2376,8 +2378,8 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   }
   else
   {
-    plugin->nat =
-        GNUNET_NAT_register (env->cfg, GNUNET_YES, 0, 0, NULL, NULL, NULL,
+    plugin->nat = GNUNET_NAT_register (plugin->env->cfg,
+    												 GNUNET_YES, 0, 0, NULL, NULL, NULL,
                              &try_connection_reversal, plugin);
   }
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
