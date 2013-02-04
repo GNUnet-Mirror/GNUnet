@@ -44,12 +44,14 @@
  * @param connect_cb function to call if we connect to a peer
  * @param disconnect_cb function to call if we disconnect from a peer
  * @param peer_address_cb function to call if a neighbour's active address changes
+ * @param max_fds maximum number of fds to use
  */
 void
 GST_neighbours_start (void *cls,
-                      NotifyConnect connect_cb,
+    									NotifyConnect connect_cb,
                       GNUNET_TRANSPORT_NotifyDisconnect disconnect_cb,
-                      GNUNET_TRANSPORT_PeerIterateCallback peer_address_cb);
+                      GNUNET_TRANSPORT_PeerIterateCallback peer_address_cb,
+                      unsigned int max_fds);
 
 
 /**

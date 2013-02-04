@@ -47,6 +47,12 @@
 #define MIN_QUOTA_REFRESH_TIME 2000
 
 /**
+ * What's the maximum number of sockets transport uses for validation and
+ * neighbors
+ */
+#define DEFAULT_MAX_FDS 256
+
+/**
  * Maximum frequency for re-evaluating latencies for all transport addresses.
  */
 #define LATENCY_EVALUATION_MAX_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)

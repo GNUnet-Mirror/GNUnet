@@ -601,6 +601,9 @@ key_generation_cb (void *cls,
                    const char *emsg)
 {
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded tmp;
+  long long unsigned int max_fd_cfg;
+  int max_fd_rlimit;
+  int max_fd;
 
   GST_keygen = NULL;
   if (NULL == pk)
@@ -641,6 +644,33 @@ key_generation_cb (void *cls,
     return;
   }
 
+  max_fd_rlimit = 0;
+  max_fd_cfg = 0;
+  max_fd = 0;
+#if HAVE_GETRLIMIT
+  struct rlimit r_file;
+  if (0 == getrlimit (RLIMIT_NOFILE, &r_file))
+  {
+		max_fd_rlimit = r_file.rlim_cur;
+		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+								"Maximum number of open files was: %u/%u\n", r_file.rlim_cur,
+								r_file.rlim_max);
+  }
+  max_fd_rlimit = (9 * max_fd_rlimit) / 10; /* Keep 10% for rest of transport */
+#endif
+  GNUNET_CONFIGURATION_get_value_number (GST_cfg, "transport", "MAX_FD", &max_fd_cfg);
+
+  if (max_fd_cfg > max_fd_rlimit)
+  	max_fd = max_fd_cfg;
+  else
+  	max_fd = max_fd_rlimit;
+  if (max_fd < DEFAULT_MAX_FDS)
+  	max_fd = DEFAULT_MAX_FDS;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Limiting number of sockets to %u: validation %u, neighbors: %u\n",
+              max_fd, (max_fd / 3) , (max_fd / 3) * 2);
+
   /* start subsystems */
   GST_hello_start (&process_hello_update, NULL);
   GNUNET_assert (NULL != GST_hello_get());
@@ -654,9 +684,10 @@ key_generation_cb (void *cls,
   GST_neighbours_start (NULL,
                         &neighbours_connect_notification,
                         &neighbours_disconnect_notification,
-                        &neighbours_address_notification);
+                        &neighbours_address_notification,
+                        (max_fd / 3) * 2);
   GST_clients_start (GST_server);
-  GST_validation_start ();
+  GST_validation_start ((max_fd / 3));
   if (NULL != GST_server)
     GNUNET_SERVER_resume (GST_server);
 }

@@ -34,9 +34,11 @@
 
 /**
  * Start the validation subsystem.
+ *
+ * @param max_fds maximum number of fds to use
  */
 void
-GST_validation_start (void);
+GST_validation_start (unsigned int max_fds);
 
 
 /**

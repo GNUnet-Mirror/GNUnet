@@ -2345,6 +2345,8 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   if (NULL == (papi = GST_plugins_find (address->transport_name)))
   {
     /* we don't have the plugin for this address */
+  	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  	              "2348 : `%s' \n", address->transport_name);
     GNUNET_ATS_address_destroyed (GST_ats, address, NULL);
     return;
   }
@@ -3390,12 +3392,14 @@ GST_neighbour_get_current_address (const struct GNUNET_PeerIdentity *peer)
  * @param disconnect_cb function to call if we disconnect from a peer
  * @param peer_address_cb function to call if we change an active address
  *                   of a neighbour
+ * @param max_fds maximum number of fds to use
  */
 void
 GST_neighbours_start (void *cls,
-    NotifyConnect connect_cb,
+    									NotifyConnect connect_cb,
                       GNUNET_TRANSPORT_NotifyDisconnect disconnect_cb,
-                      GNUNET_TRANSPORT_PeerIterateCallback peer_address_cb)
+                      GNUNET_TRANSPORT_PeerIterateCallback peer_address_cb,
+                      unsigned int max_fds)
 {
   callback_cls = cls;
   connect_notify_cb = connect_cb;

@@ -308,6 +308,16 @@ static struct GNUNET_PEERINFO_NotifyContext *pnc;
 
 
 /**
+ * Minimum delay between to validations
+ */
+static struct GNUNET_TIME_Relative validation_delay;
+
+/**
+ * When is next validation allowed
+ */
+static struct GNUNET_TIME_Absolute validation_next;
+
+/**
  * Context for the validation entry match function.
  */
 struct ValidationEntryMatchContext
@@ -433,6 +443,7 @@ transmit_ping_if_allowed (void *cls, const struct GNUNET_PeerIdentity *pid,
   struct ValidationEntry *ve = cls;
   struct TransportPingMessage ping;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
+  struct GNUNET_TIME_Absolute next;
   const struct GNUNET_MessageHeader *hello;
   ssize_t ret;
   size_t tsize;
@@ -440,8 +451,20 @@ transmit_ping_if_allowed (void *cls, const struct GNUNET_PeerIdentity *pid,
   uint16_t hsize;
 
   ve->bc = NULL;
+
+  if (GNUNET_NO == result)
+  {
+  	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Blacklist denies to send PING to `%s' %s %s\n",
+  	              GNUNET_i2s (pid), GST_plugins_a2s (ve->address), ve->address->transport_name);
+  		return;
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmitting plain PING to `%s' %s %s\n",
               GNUNET_i2s (pid), GST_plugins_a2s (ve->address), ve->address->transport_name);
+
+  next = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), validation_delay);
+  if (next.abs_value > validation_next.abs_value)
+  	validation_next = next; /* We're going to send a PING so delay next validation */
 
   slen = strlen (ve->address->transport_name) + 1;
   hello = GST_hello_get ();
@@ -529,6 +552,7 @@ revalidate_address (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ValidationEntry *ve = cls;
   struct GNUNET_TIME_Relative canonical_delay;
   struct GNUNET_TIME_Relative delay;
+  struct GNUNET_TIME_Relative blocked_for;
   struct GST_BlacklistCheck *bc;
   uint32_t rdelay;
 
@@ -552,6 +576,14 @@ revalidate_address (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     ve->revalidation_task =
         GNUNET_SCHEDULER_add_delayed (delay, &revalidate_address, ve);
     return;
+  }
+  blocked_for = GNUNET_TIME_absolute_get_remaining(validation_next);
+  if ((blocked_for.rel_value) > 0)
+  {
+  		/* Validations are blocked, have to wait for blocked_for ms */
+      ve->revalidation_task =
+          GNUNET_SCHEDULER_add_delayed (blocked_for, &revalidate_address, ve);
+      return;
   }
   ve->revalidation_block = GNUNET_TIME_relative_to_absolute (canonical_delay);
 
@@ -707,10 +739,15 @@ process_peerinfo_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 /**
  * Start the validation subsystem.
+ *
+ * @param max_fds maximum number of fds to use
  */
 void
-GST_validation_start ()
+GST_validation_start (unsigned int max_fds)
 {
+	validation_next = GNUNET_TIME_absolute_get();
+	validation_delay.rel_value = (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value) /  max_fds;
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Delay between validations: %u ms\n ", validation_delay.rel_value);
   validation_map = GNUNET_CONTAINER_multihashmap_create (VALIDATION_MAP_SIZE,
 							 GNUNET_NO);
   pnc = GNUNET_PEERINFO_notify (GST_cfg, &process_peerinfo_hello, NULL);
