@@ -172,9 +172,19 @@ reannounce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_assert (NULL != announce_handle);
     GNUNET_REGEX_reannounce (announce_handle);
   }
-  reannounce_task = GNUNET_SCHEDULER_add_delayed (reannounce_freq,
-                                                  &reannounce_regex,
-                                                  cls);
+
+  reannounce_task = GNUNET_SCHEDULER_add_delayed (
+    GNUNET_TIME_relative_add (reannounce_freq,
+                              GNUNET_TIME_relative_multiply (
+                                GNUNET_TIME_UNIT_SECONDS,
+                                GNUNET_CRYPTO_random_u32 (
+                                  GNUNET_CRYPTO_QUALITY_WEAK,
+                                  600
+                                )
+                              )
+                             ),
+    &reannounce_regex,
+    cls);
 }
 
 
