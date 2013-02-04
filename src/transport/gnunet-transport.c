@@ -59,6 +59,10 @@ static char *cpid;
  */
 static struct GNUNET_TRANSPORT_Handle *handle;
 
+/**
+ * Configuration handle
+ */
+static struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * Try_connect handle
@@ -668,6 +672,10 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 }
 
 
+static void resolve_address (const struct GNUNET_HELLO_Address *address,
+														 int numeric);
+
+
 static void
 process_string (void *cls, const char *address)
 {
@@ -685,7 +693,14 @@ process_string (void *cls, const char *address)
     GNUNET_assert (address_resolutions > 0);
     address_resolutions --;
     if (GNUNET_NO == rc->printed)
-      FPRINTF (stdout, _("Peer `%s': %s <unable to resolve address>\n"), GNUNET_i2s (&addrcp->peer), addrcp->transport_name);
+    {
+    	if (numeric == GNUNET_NO)
+    	{
+    		resolve_address (rc->addrcp, GNUNET_YES ); /* Failed to resolve address, try numeric lookup */
+    	}
+    	else
+      	FPRINTF (stdout, _("Peer `%s': %s <unable to resolve address>\n"), GNUNET_i2s (&addrcp->peer), addrcp->transport_name);
+    }
     GNUNET_free (rc->addrcp);
     GNUNET_CONTAINER_DLL_remove (rc_head, rc_tail, rc);
     GNUNET_free (rc);
@@ -705,7 +720,24 @@ process_string (void *cls, const char *address)
         end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     }
   }
+}
 
+static void resolve_address (const struct GNUNET_HELLO_Address *address,
+														 int numeric)
+{
+  struct ResolutionContext *rc;
+
+  rc = GNUNET_malloc(sizeof (struct ResolutionContext));
+  GNUNET_assert (NULL != rc);
+  GNUNET_CONTAINER_DLL_insert (rc_head, rc_tail, rc);
+  address_resolutions ++;
+
+  rc->addrcp = GNUNET_HELLO_address_copy(address);
+  rc->printed = GNUNET_NO;
+  /* Resolve address to string */
+  rc->asc = GNUNET_TRANSPORT_address_to_string (cfg, address, numeric,
+                                      RESOLUTION_TIMEOUT, &process_string,
+                                      rc);
 }
 
 /**
@@ -719,9 +751,6 @@ static void
 process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
                  const struct GNUNET_HELLO_Address *address)
 {
-  const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-  struct ResolutionContext *rc;
-
   if (peer == NULL)
   {
     /* done */
@@ -745,19 +774,7 @@ process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received address for peer `%s': %s\n",
   		GNUNET_i2s (peer), address->transport_name);
-
-  rc = GNUNET_malloc(sizeof (struct ResolutionContext));
-  GNUNET_assert (NULL != rc);
-  GNUNET_CONTAINER_DLL_insert (rc_head, rc_tail, rc);
-  address_resolutions ++;
-
-  rc->addrcp = GNUNET_HELLO_address_copy(address);
-  rc->printed = GNUNET_NO;
-  /* Resolve address to string */
-  rc->asc = GNUNET_TRANSPORT_address_to_string (cfg, address, numeric,
-                                      RESOLUTION_TIMEOUT, &process_string,
-                                      rc);
-
+  resolve_address (address, numeric);
 }
 
 void try_connect_cb (void *cls,
@@ -788,7 +805,6 @@ static void
 testservice_task (void *cls,
                   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   int counter = 0;
   ret = 1;
 
@@ -955,9 +971,10 @@ testservice_task (void *cls,
  */
 static void
 run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const struct GNUNET_CONFIGURATION_Handle *mycfg)
 {
-  if (test_configuration)
+	cfg = (struct GNUNET_CONFIGURATION_Handle *) mycfg;
+	if (test_configuration)
   {
     do_test_configuration (cfg);
     return;
