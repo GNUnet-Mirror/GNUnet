@@ -149,7 +149,10 @@ reannounce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char *regex = cls;
   reannounce_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+  {
+    GNUNET_free (regex);
     return;
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Announcing regex: %s\n", regex);
   GNUNET_STATISTICS_update (stats_handle, "# regexes announced", 1, GNUNET_NO);
@@ -184,6 +187,8 @@ reannounce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 announce_regex (const char * regex)
 {
+  char *copy;
+
   if (NULL == regex || 0 == strlen (regex))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot announce empty regex\n");
@@ -191,9 +196,10 @@ announce_regex (const char * regex)
   }
 
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == reannounce_task);
+  copy = GNUNET_strdup (regex);
   reannounce_task = GNUNET_SCHEDULER_add_delayed (announce_delay,
                                                   reannounce_regex,
-                                                  (void *) regex);
+                                                  (void *) copy);
 }
 
 
