@@ -945,7 +945,7 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
   if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->addresses,
                                                           &peer->hashPubKey))
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Received `%s' for unknown peer `%s' from client %p\n",
                   "CHANGE PREFERENCE",
                   GNUNET_i2s (peer), client);
