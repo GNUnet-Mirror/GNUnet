@@ -385,6 +385,11 @@ struct Plugin
   unsigned long long max_connections;
 
   /**
+   * How many more TCP sessions do we have right now?
+   */
+  unsigned long long cur_connections;
+
+  /**
    * ID of task used to update our addresses when one expires.
    */
   GNUNET_SCHEDULER_TaskIdentifier address_update_task;
@@ -486,13 +491,12 @@ plugin_tcp_access_check (void *cls,
                          const struct sockaddr *addr, socklen_t addrlen)
 {
   struct Plugin *plugin = cls;
-
-  LOG (GNUNET_ERROR_TYPE_ERROR,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Accepting new incoming TCP connection from `%s'\n",
        GNUNET_a2s (addr, addrlen));
-  if (0 == plugin->max_connections)
+  if (plugin->cur_connections >= plugin->max_connections)
     return GNUNET_NO;
-  plugin->max_connections--;
+  plugin->cur_connections ++;
   return GNUNET_YES;
 }
 
@@ -1355,7 +1359,7 @@ tcp_plugin_get_session (void *cls,
     return NULL;
   }
 
-  if (0 == plugin->max_connections)
+  if (plugin->cur_connections >= plugin->max_connections)
   {
     /* saturated */
     return NULL;
@@ -1408,7 +1412,7 @@ tcp_plugin_get_session (void *cls,
   }
 
   /* create new outbound session */
-  GNUNET_assert (0 != plugin->max_connections);
+  GNUNET_assert (plugin->cur_connections <= plugin->max_connections);
   sa = GNUNET_CONNECTION_create_from_sockaddr (af, sb, sbs);
   if (sa == NULL)
   {
@@ -1417,7 +1421,9 @@ tcp_plugin_get_session (void *cls,
 	 GNUNET_i2s (&address->peer), GNUNET_a2s (sb, sbs));
     return NULL;
   }
-  plugin->max_connections--;
+  plugin->cur_connections++;
+  if (plugin->cur_connections == plugin->max_connections)
+  	GNUNET_SERVER_suspend (plugin->server); /* Maximum number of connections rechead */
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Asked to transmit to `%4s', creating fresh session using address `%s'.\n",
@@ -1436,7 +1442,7 @@ tcp_plugin_get_session (void *cls,
 				     &session->target.hashPubKey, 
 				     session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   inc_sessions (plugin, session, __LINE__);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Creating new session for `%s' address `%s' session %p\n",
        GNUNET_i2s (&address->peer),
        tcp_address_to_string(NULL, address->address, address->address_length),
@@ -1875,6 +1881,11 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
   else
   {
     GNUNET_SERVER_client_keep (client);
+    if (plugin->service != NULL) /* Otherwise value is incremented in tcp_access_check */
+    	plugin->cur_connections++;
+    if (plugin->cur_connections == plugin->max_connections)
+    	GNUNET_SERVER_suspend (plugin->server); /* Maximum number of connections rechead */
+
     session = create_session (plugin, &wm->clientIdentity, client, GNUNET_NO);
     session->inbound = GNUNET_YES;
     if (GNUNET_OK == GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
@@ -2088,11 +2099,10 @@ disconnect_notify (void *cls, struct GNUNET_SERVER_Client *client)
 
   if (client == NULL)
     return;
-  plugin->max_connections++;
   session = lookup_session_by_client (plugin, client);
   if (session == NULL)
     return;                     /* unknown, nothing to do */
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Destroying session of `%4s' with %s due to network-level disconnect.\n",
        GNUNET_i2s (&session->target),
        (session->addr !=
@@ -2100,6 +2110,15 @@ disconnect_notify (void *cls, struct GNUNET_SERVER_Client *client)
 				       session->addr,
 				       session->addrlen) :
        "*");
+
+  if (plugin->cur_connections == plugin->max_connections)
+  	GNUNET_SERVER_resume (plugin->server); /* Resume server  */
+
+  if (plugin->cur_connections < 1)
+  	GNUNET_break (0);
+  else
+  	plugin->cur_connections--;
+
   GNUNET_STATISTICS_update (session->plugin->env->stats,
                             gettext_noop
                             ("# network-level TCP disconnect events"), 1,
@@ -2352,6 +2371,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->sessionmap = GNUNET_CONTAINER_multihashmap_create (max_connections, GNUNET_YES);
   plugin->max_connections = max_connections;
+  plugin->cur_connections = 0;
   plugin->open_port = bport;
   plugin->adv_port = aport;
   plugin->env = env;
@@ -2421,6 +2441,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
        i < sizeof (my_handlers) / sizeof (struct GNUNET_SERVER_MessageHandler);
        i++)
     plugin->handlers[i].callback_cls = plugin;
+
   GNUNET_SERVER_add_handlers (plugin->server, plugin->handlers);
   GNUNET_SERVER_disconnect_notify (plugin->server, &disconnect_notify, plugin);
   plugin->nat_wait_conns = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_YES);
