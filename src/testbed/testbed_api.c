@@ -2635,9 +2635,12 @@ decide_npoc (struct GNUNET_TESTBED_Controller *c)
   avg = GNUNET_TIME_relative_divide (avg, nvals);
   GNUNET_assert (GNUNET_TIME_UNIT_FOREVER_REL.rel_value != avg.rel_value);
   sd = SD_deviation_factor (c->poc_sd, (unsigned int) avg.rel_value);
+  if ( (sd <= 5) ||
+       (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+				       c->num_parallel_connects)) )
+    SD_add_data (c->poc_sd, (unsigned int) avg.rel_value);
   if (GNUNET_SYSERR == sd)
   {
-    SD_add_data (c->poc_sd, (unsigned int) avg.rel_value);
     GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c,
                                                        c->num_parallel_connects);
     return;
@@ -2645,7 +2648,6 @@ decide_npoc (struct GNUNET_TESTBED_Controller *c)
   GNUNET_assert (0 <= sd);
   if (0 == sd)
   {
-    SD_add_data (c->poc_sd, (unsigned int) avg.rel_value);
     GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c,
                                                        c->num_parallel_connects
                                                        * 2);
@@ -2653,7 +2655,6 @@ decide_npoc (struct GNUNET_TESTBED_Controller *c)
   }
   if (1 == sd)
   {
-    SD_add_data (c->poc_sd, (unsigned int) avg.rel_value);
     GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c,
                                                        c->num_parallel_connects
                                                        + 1);
@@ -2666,7 +2667,6 @@ decide_npoc (struct GNUNET_TESTBED_Controller *c)
   }
   if (2 == sd)
   {
-    SD_add_data (c->poc_sd, (unsigned int) avg.rel_value);
     GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c,
                                                        c->num_parallel_connects
                                                        - 1);
