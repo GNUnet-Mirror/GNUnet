@@ -38,7 +38,10 @@ usage(void)
 }
 
 /**
- * The main function to obtain peer information.
+ * The main function of the regex performace test.
+ * 
+ * Read a set of regex from a file, combine them and create a DFA from the
+ * resulting combined regex.
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments
