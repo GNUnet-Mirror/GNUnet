@@ -170,7 +170,7 @@ GNUNET_CRYPTO_ecc_key_get_public (const struct GNUNET_CRYPTO_EccPrivateKey *priv
  * @return string representing  'pub'
  */
 char *
-GNUNET_CRYPTO_ecc_public_key_to_string (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pub)
+GNUNET_CRYPTO_ecc_public_key_to_string (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pub)
 {
   char *pubkeybuf;
   size_t keylen = (sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded)) * 8;
@@ -340,8 +340,9 @@ GNUNET_CRYPTO_ecc_decode_key (const char *buf,
   if (len < sizeof (uint16_t)) 
     return NULL;
   memcpy (&be, buf, sizeof (be));
-  if (len != ntohs (be))
+  if (len < ntohs (be))
     return NULL;
+  len = ntohs (be);
   if (0 != (rc = gcry_sexp_sscan (&sexp,
 				  &erroff,
 				  &buf[2],
@@ -644,7 +645,7 @@ GNUNET_CRYPTO_ecc_key_create_from_file (const char *filename)
   GNUNET_assert (fs == GNUNET_DISK_file_read (fd, enc, fs));
   len = ntohs (enc->size);
   ret = NULL;
-  if ((len != fs) ||
+  if ((len > fs) ||
       (NULL == (ret = GNUNET_CRYPTO_ecc_decode_key ((char *) enc, len))))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
@@ -936,7 +937,6 @@ data_to_pkcs1 (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
 
   GNUNET_CRYPTO_short_hash (purpose, ntohl (purpose->size), &hc);
 #define FORMATSTRING "(4:data(5:flags3:raw)(5:value32:01234567890123456789012345678901))"
-#define FORMATSTRING2 "(4:data(4:hash6:sha25632:01234567890123456789012345678901))"
   bufSize = strlen (FORMATSTRING) + 1;
   {
     char buff[bufSize];
@@ -1065,16 +1065,76 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *key,
                         const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pub,
                         struct GNUNET_HashCode *key_material)
 { 
-  gcry_sexp_t psexp;
+  size_t size;
+  size_t slen;
+  int rc;
+  gcry_sexp_t data;  
+  unsigned char sdata_buf[2048]; /* big enough to print 'sdata' and 'r_sig' */
 
-  if (! (psexp = decode_public_key (pub)))
-    return GNUNET_SYSERR;
-  
+  /* first, extract the q value from the public key */
+  {
+    gcry_sexp_t psexp;
+    gcry_mpi_t sdata;
+    
+    if (! (psexp = decode_public_key (pub)))
+      return GNUNET_SYSERR;
+    rc = key_from_sexp (&sdata, psexp, "public-key", "q");
+    if (rc)
+      rc = key_from_sexp (&sdata, psexp, "ecc", "q");
+    GNUNET_assert (0 == rc);  
+    gcry_sexp_release (psexp);
+    size = sizeof (sdata_buf);
+    GNUNET_assert (0 ==
+		   gcry_mpi_print (GCRYMPI_FMT_USG, sdata_buf, size, &size,
+				   sdata));
+    gcry_mpi_release (sdata);
+  }
+  /* convert q value into an S-expression -- whatever format libgcrypt wants,
+     re-using format from sign operation for now... */
+  {
+    char *sexp_string;
 
-  gcry_sexp_release (psexp);
-  GNUNET_break (0); // not implemented
-  /* FIXME: this totally breaks security ... */
-  memset (key_material, 42, sizeof (struct GNUNET_HashCode));
+#define FORMATPREFIX "(4:data(5:flags3:raw)(5:value%u:"
+#define FORMATPOSTFIX "))"
+    sexp_string = GNUNET_malloc (strlen (FORMATPREFIX) + size + 12 +
+				  strlen (FORMATPOSTFIX) + 1);
+    GNUNET_snprintf (sexp_string,
+		     strlen (FORMATPREFIX) + 12,
+		     FORMATPREFIX,
+		     size);
+    slen = strlen (sexp_string);
+    memcpy (&sexp_string[slen],
+	    sdata_buf, 
+	    size);
+    memcpy (&sexp_string[slen + size],
+	    FORMATPOSTFIX,
+	    strlen (FORMATPOSTFIX) + 1);  
+    GNUNET_assert (0 == gcry_sexp_new (&data, 
+				       sexp_string, 
+				       slen + size + strlen (FORMATPOSTFIX), 
+				       0));
+    GNUNET_free (sexp_string);
+  }
+  /* then call the 'multiply' function, hoping it simply multiplies the points;
+     here we need essentially a WRAPPER around _gcry_mpi_ex_mul_point! - FIXME-WK!*/
+#if WK
+  {
+    gcry_sexp_t result;
+    
+    rc = gcry_ecc_mul_point (&result, data /* scalar */, key->sexp /* point and ctx */);
+    GNUNET_assert (0 == rc);
+    slen = gcry_sexp_sprint (result, GCRYSEXP_FMT_DEFAULT, sdata_buf, sizeof (sdata_buf));
+    GNUNET_assert (0 != slen);
+  }
+#else
+  /* use broken version, insecure! */
+  GNUNET_break (0);
+  slen = sprintf ((char*) sdata_buf, "FIXME-this is not key material");
+#endif
+  gcry_sexp_release (data);
+
+  /* finally, get a string of the resulting S-expression and hash it to generate the key material */
+  GNUNET_CRYPTO_hash (sdata_buf, slen, key_material);
   return GNUNET_OK;
 }
 
