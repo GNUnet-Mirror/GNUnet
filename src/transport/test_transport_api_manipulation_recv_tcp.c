@@ -18,13 +18,14 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file transport/test_transport_api.c
- * @brief base test case for transport implementations
+ * @file transport/test_transport_api_manipulation_recv_tcp.c
+ * @brief base test case for transport traffic manipulation implementation
  *
- * This test case serves as a base for tcp, udp, and udp-nat
- * transport test cases.  Based on the executable being run
- * the correct test case will be performed.  Conservation of
- * C code apparently.
+ * This test case will setup 2 peers and connect them, the first message
+ * will be sent without manipulation, then a receive delay of 1 second will
+ * be configured and 2 more message will be sent. Time will be measured
+ *
+ * In addition the distance on receiver side will be manipulated to be 10
  */
 #include "platform.h"
 #include "gnunet_transport_service.h"
@@ -489,4 +490,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of test_transport_api.c */
+/* end of test_transport_api_manipulation_recv_tcp.c */

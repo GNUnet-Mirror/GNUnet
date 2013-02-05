@@ -22,7 +22,7 @@
  * @file transport/gnunet-service-transport_manipulation.c
  * @brief transport component manipulation traffic for simulation
  * @author Christian Grothoff
- * @author
+ * @author Matthias Wachs
  */
 #include "platform.h"
 #include "gnunet-service-transport_blacklist.h"
