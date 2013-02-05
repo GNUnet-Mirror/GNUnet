@@ -30,6 +30,7 @@
 #include "gnunet-service-transport_neighbours.h"
 #include "gnunet-service-transport_plugins.h"
 #include "gnunet-service-transport_validation.h"
+#include "gnunet-service-transport_manipulation.h"
 #include "gnunet-service-transport.h"
 #include "transport.h"
 
@@ -693,7 +694,7 @@ clients_handle_send (void *cls, struct GNUNET_SERVER_Client *client,
   stcc->target = obm->peer;
   stcc->client = client;
   GNUNET_SERVER_client_keep (client);
-  GST_neighbours_send (&obm->peer, obmm, msize,
+  GST_manipulation_send (&obm->peer, obmm, msize,
                        GNUNET_TIME_relative_ntoh (obm->timeout),
                        &handle_send_transmit_continuation, stcc);
 }
@@ -1006,6 +1007,8 @@ GST_clients_start (struct GNUNET_SERVER_Handle *server)
     {&GST_blacklist_handle_reply, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_REPLY,
      sizeof (struct BlacklistMessage)},
+    {&GST_manipulation_set_metric, NULL,
+     GNUNET_MESSAGE_TYPE_TRANSPORT_TRAFFIC_METRIC, 0},
     {NULL, NULL, 0, 0}
   };
   nc = GNUNET_SERVER_notification_context_create (server, 0);
