@@ -67,6 +67,37 @@ extern struct GNUNET_CRYPTO_RsaPrivateKey *GST_my_private_key;
  */
 extern struct GNUNET_ATS_SchedulingHandle *GST_ats;
 
+/**
+ * Function called by the transport for each received message.
+ * This function should also be called with "NULL" for the
+ * message to signal that the other peer disconnected.
+ *
+ * @param cls closure, const char* with the name of the plugin we received the message from
+ * @param peer (claimed) identity of the other peer
+ * @param message the message, NULL if we only care about
+ *                learning about the delay until we should receive again -- FIXME!
+ * @param ats performance information
+ * @param ats_count number of records in ats
+ * @param session identifier used for this session (NULL for plugins
+ *                that do not offer bi-directional communication to the sender
+ *                using the same "connection")
+ * @param sender_address binary address of the sender (if we established the
+ *                connection or are otherwise sure of it; should be NULL
+ *                for inbound TCP/UDP connections since it it not clear
+ *                that we could establish ourselves a connection to that
+ *                IP address and get the same system)
+ * @param sender_address_len number of bytes in sender_address
+ * @return how long the plugin should wait until receiving more data
+ *         (plugins that do not support this, can ignore the return value)
+ */
+struct GNUNET_TIME_Relative
+GST_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
+                             const struct GNUNET_MessageHeader *message,
+                             const struct GNUNET_ATS_Information *ats,
+                             uint32_t ats_count, struct Session *session,
+                             const char *sender_address,
+                             uint16_t sender_address_len);
+
 
 #endif
 /* end of file gnunet-service-transport_plugins.h */

@@ -37,6 +37,7 @@
 #include "gnunet-service-transport_neighbours.h"
 #include "gnunet-service-transport_plugins.h"
 #include "gnunet-service-transport_validation.h"
+#include "gnunet-service-transport_manipulation.h"
 #include "transport.h"
 
 /* globals */
@@ -229,8 +230,8 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
  * @return how long the plugin should wait until receiving more data
  *         (plugins that do not support this, can ignore the return value)
  */
-static struct GNUNET_TIME_Relative
-plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
+struct GNUNET_TIME_Relative
+GST_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
                              const struct GNUNET_MessageHeader *message,
                              const struct GNUNET_ATS_Information *ats,
                              uint32_t ats_count, struct Session *session,
@@ -568,6 +569,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GST_clients_stop ();
   GST_blacklist_stop ();
   GST_hello_stop ();
+  GST_manipulation_stop ();
 
   if (NULL != GST_peerinfo)
   {
@@ -677,7 +679,8 @@ key_generation_cb (void *cls,
   GST_blacklist_start (GST_server);
   GST_ats =
       GNUNET_ATS_scheduling_init (GST_cfg, &ats_request_address_change, NULL);
-  GST_plugins_load (&plugin_env_receive_callback,
+  GST_manipulation_init ();
+  GST_plugins_load (&GST_manipulation_recv,
                     &plugin_env_address_change_notification,
                     &plugin_env_session_end,
                     &plugin_env_address_to_type);

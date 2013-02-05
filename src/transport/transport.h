@@ -415,6 +415,34 @@ struct AddressIterateMessage
 
 
 /**
+ * Message from the library to the transport service
+ * asking for binary addresses known for a peer.
+ */
+struct TrafficMetricMessage
+{
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_TRAFFIC_METRIC
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * SEND, RECEIVE or BOTH?
+   */
+  uint16_t direction;
+
+  /**
+   * Traffic metrics count
+   */
+  uint16_t ats_count;
+
+  /**
+   * The identity of the peer to look up.
+   */
+  struct GNUNET_PeerIdentity peer;
+};
+
+
+/**
  * Message from the transport service to the library
  * containing binary addresses known for a peer.
  * Memory layout:
