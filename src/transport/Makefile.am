@@ -343,7 +343,8 @@ check_PROGRAMS = \
  $(HTTPS_API_TIMEOUT_TEST) \
  $(WLAN_API_TEST) \
  test_transport_api_multi \
- test_transport_api_manipulation_tcp \
+ test_transport_api_manipulation_send_tcp \
+ test_transport_api_manipulation_recv_tcp \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
  test_transport_api_unreliability_udp \
@@ -391,7 +392,8 @@ TESTS = \
  $(HTTPS_API_TIMEOUT_TEST) \
  $(WLAN_API_TEST) \
  test_transport_api_multi \
- test_transport_api_manipulation_tcp \
+ test_transport_api_manipulation_send_tcp \
+ test_transport_api_manipulation_recv_tcp \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
  test_transport_api_unreliability_udp \
@@ -592,9 +594,17 @@ test_transport_api_tcp_nat_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
-test_transport_api_manipulation_tcp_SOURCES = \
- test_transport_api_manipulation.c
-test_transport_api_manipulation_tcp_LDADD = \
+test_transport_api_manipulation_send_tcp_SOURCES = \
+ test_transport_api_manipulation_send_tcp.c
+test_transport_api_manipulation_send_tcp_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
+
+test_transport_api_manipulation_recv_tcp_SOURCES = \
+ test_transport_api_manipulation_recv_tcp.c
+test_transport_api_manipulation_recv_tcp_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \

@@ -176,7 +176,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Peer %u (`%4s') received message of type %d and size %u size from peer %u (`%4s')!\n",
               p->no, ps, ntohs (message->type), ntohs (message->size), t->no,
               GNUNET_i2s (&t->id));
@@ -196,13 +196,13 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     return;
   }
 
-
   if (0 == messages_recv)
   {
   	/* Received non-delayed message */
   	dur_normal = GNUNET_TIME_absolute_get_duration(start_normal);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received non-delayed message after %llu\n",
+                "Received non-delayed message %u after %llu\n",
+                messages_recv,
                 (long long unsigned int) dur_normal.rel_value);
     send_task = GNUNET_SCHEDULER_add_now (&sendtask, NULL);
   }
@@ -210,8 +210,9 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
   	/* Received manipulated message */
     	dur_delayed = GNUNET_TIME_absolute_get_duration(start_delayed);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Received delayed message after %llu\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Received delayed message %u after %llu\n",
+                  messages_recv,
                   (long long unsigned int) dur_delayed.rel_value);
       if (dur_delayed.rel_value < 1000)
       {
@@ -221,15 +222,12 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                     "Delayed message was not delayed correctly: took only %llu\n",
                     (long long unsigned int) dur_delayed.rel_value);
       }
-
       for (c = 0; c < ats_count; c++)
       {
       	if (ntohl (ats[c].type) == GNUNET_ATS_QUALITY_NET_DISTANCE)
         {
       			if (ntohl (ats[c].value) == 10)
-      			{
       				ok += 0;
-      			}
       			else
       			{
     					GNUNET_break (0);
@@ -237,20 +235,10 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
       			}
         }
       }
-
       /* shutdown */
       end ();
   }
   messages_recv ++;
-
-
-
-/*
-
-
-  //
-   *
-   */
 }
 
 
@@ -320,8 +308,7 @@ sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 		ats[1].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
 		ats[1].value = htonl (10);
 
-	  GNUNET_TRANSPORT_set_traffic_metric (p1->th, &p2->id, TM_BOTH, ats, 2);
-	  GNUNET_TRANSPORT_set_traffic_metric (p2->th, &p1->id, TM_BOTH, ats, 2);
+	  GNUNET_TRANSPORT_set_traffic_metric (p2->th, &p1->id, TM_SEND, ats, 2);
 
 		start_delayed = GNUNET_TIME_absolute_get();
   }
@@ -410,7 +397,15 @@ start_cb (struct PeerContext *p, void *cls)
               "Test tries to connect peer %u (`%s') -> peer %u (`%s')\n",
               p1->no, sender_c, p2->no, GNUNET_i2s (&p2->id));
   GNUNET_free (sender_c);
+  /*
+  struct GNUNET_ATS_Information ats[2];
+	ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
+	ats[0].value = htonl (1000);
+	ats[1].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
+	ats[1].value = htonl (10);
 
+  GNUNET_TRANSPORT_set_traffic_metric (p1->th, &p2->id, TM_RECEIVE, ats, 2);
+*/
   cc = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb,
                                                NULL);
 
@@ -451,7 +446,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 static int
 check ()
 {
-  static char *const argv[] = { "test-transport-api",
+  static char *const argv[] = { "test-transport-api-manipulation",
     "-c",
     "test_transport_api_data.conf",
     NULL
