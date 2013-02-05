@@ -179,6 +179,29 @@ test_async_creation (void *cls,
 }
 
 
+static void
+test_ecdh ()
+{
+  struct GNUNET_CRYPTO_EccPrivateKey *priv1;
+  struct GNUNET_CRYPTO_EccPrivateKey *priv2;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pub1;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pub2;
+  struct GNUNET_HashCode ecdh1;
+  struct GNUNET_HashCode ecdh2;
+
+  priv1 = GNUNET_CRYPTO_ecc_key_create ();
+  priv2 = GNUNET_CRYPTO_ecc_key_create ();
+  GNUNET_CRYPTO_ecc_key_get_public (priv1, &pub1);
+  GNUNET_CRYPTO_ecc_key_get_public (priv2, &pub2);
+  GNUNET_CRYPTO_ecc_ecdh (priv1, &pub2, &ecdh1);
+  GNUNET_CRYPTO_ecc_ecdh (priv2, &pub1, &ecdh2);
+  GNUNET_CRYPTO_ecc_key_free (priv1);
+  GNUNET_CRYPTO_ecc_key_free (priv2);
+  GNUNET_assert (0 == memcmp (&ecdh1, &ecdh2,
+			      sizeof (struct GNUNET_HashCode)));
+}
+
+
 int
 main (int argc, char *argv[])
 {
@@ -205,6 +228,7 @@ main (int argc, char *argv[])
     failureCount++;
   GNUNET_CRYPTO_ecc_key_free (key);
   GNUNET_assert (0 == UNLINK (KEYFILE));
+  test_ecdh ();
 
   if (failureCount != 0)
   {
