@@ -23,7 +23,8 @@ bin_SCRIPTS = \
 
 dist_pkgdata_DATA = \
  gnunet-logo-color.png \
- testing_hostkeys.dat
+ testing_hostkeys.dat \
+ testing_hostkeys.ecc
 
 EXTRA_DIST = \
  coverage.sh \
