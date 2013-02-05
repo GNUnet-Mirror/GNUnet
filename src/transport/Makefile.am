@@ -862,6 +862,7 @@ test_transport_api_multi_LDADD = \
 
 EXTRA_DIST = \
 test_plugin_hostkey \
+test_plugin_hostkey.ecc \
 template_cfg_peer1.conf\
 template_cfg_peer2.conf\
 test_plugin_transport_data.conf\
