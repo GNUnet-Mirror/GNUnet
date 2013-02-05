@@ -43,6 +43,13 @@ extern "C"
  */
 #define GNUNET_TRANSPORT_VERSION 0x00000000
 
+enum TRAFFIC_METRIC_DIRECTION
+{
+	TM_SEND = 0,
+	TM_RECEIVE = 1,
+	TM_BOTH = 2
+};
+
 
 /**
  * Function called by the transport for each received message.
@@ -280,6 +287,14 @@ struct GNUNET_TRANSPORT_GetHelloHandle;
 int
 GNUNET_TRANSPORT_check_neighbour_connected (struct GNUNET_TRANSPORT_Handle *handle,
                               					const struct GNUNET_PeerIdentity *peer);
+
+
+void
+GNUNET_TRANSPORT_set_traffic_metric (struct GNUNET_TRANSPORT_Handle *handle,
+																		const struct GNUNET_PeerIdentity *peer,
+																		int direction,
+																		const struct GNUNET_ATS_Information *ats,
+																		size_t ats_count);
 
 
 /**

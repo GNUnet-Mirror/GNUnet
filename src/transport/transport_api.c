@@ -1180,6 +1180,66 @@ send_hello (void *cls, size_t size, void *buf)
 
 
 /**
+ * Send traffic metric message to the service.
+ *
+ * @param cls the message to send
+ * @param size number of bytes available in buf
+ * @param buf where to copy the message
+ * @return number of bytes copied to buf
+ */
+static size_t
+send_metric (void *cls, size_t size, void *buf)
+{
+	struct TrafficMetricMessage *msg = cls;
+  uint16_t ssize;
+  if (buf == NULL)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Timeout while trying to transmit `%s' request.\n", "TRAFFIC_METRIC");
+    GNUNET_free (msg);
+    return 0;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Transmitting `%s' request.\n", "TRAFFIC_METRIC");
+  ssize = ntohs (msg->header.size);
+  GNUNET_assert (size >= ssize);
+  memcpy (buf, msg, ssize);
+  GNUNET_free (msg);
+  return ssize;
+}
+
+void
+GNUNET_TRANSPORT_set_traffic_metric (struct GNUNET_TRANSPORT_Handle *handle,
+																		const struct GNUNET_PeerIdentity *peer,
+																		int direction,
+																		const struct GNUNET_ATS_Information *ats,
+																		size_t ats_count)
+{
+  struct TrafficMetricMessage *msg;
+
+  GNUNET_assert (NULL != handle);
+  GNUNET_assert (NULL != peer);
+  GNUNET_assert (direction >= TM_SEND);
+  GNUNET_assert (direction <= TM_BOTH);
+
+  if (0 == ats_count)
+  	return;
+
+  size_t len = sizeof (struct TrafficMetricMessage) +
+  						 ats_count * sizeof (struct GNUNET_ATS_Information);
+
+  msg = GNUNET_malloc (len);
+  msg->header.size = htons (len);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_TRAFFIC_METRIC);
+  msg->direction = htons (direction);
+  msg->ats_count = htons (ats_count);
+  msg->peer = (*peer);
+  memcpy (&msg[1], ats, ats_count * sizeof (struct GNUNET_ATS_Information));
+  schedule_control_transmit (handle, len, &send_metric, msg);
+}
+
+
+
+/**
  * Offer the transport service the HELLO of another peer.  Note that
  * the transport service may just ignore this message if the HELLO is
  * malformed or useless due to our local configuration.

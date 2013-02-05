@@ -164,7 +164,8 @@ gnunet_service_transport_SOURCES = \
  gnunet-service-transport_hello.h gnunet-service-transport_hello.c \
  gnunet-service-transport_neighbours.h gnunet-service-transport_neighbours.c \
  gnunet-service-transport_plugins.h gnunet-service-transport_plugins.c \
- gnunet-service-transport_validation.h gnunet-service-transport_validation.c 
+ gnunet-service-transport_validation.h gnunet-service-transport_validation.c \
+ gnunet-service-transport_manipulation.h gnunet-service-transport_manipulation.c 
 gnunet_service_transport_LDADD = \
   $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/hello/libgnunethello.la \
@@ -342,6 +343,7 @@ check_PROGRAMS = \
  $(HTTPS_API_TIMEOUT_TEST) \
  $(WLAN_API_TEST) \
  test_transport_api_multi \
+ test_transport_api_manipulation_tcp \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
  test_transport_api_unreliability_udp \
@@ -389,6 +391,7 @@ TESTS = \
  $(HTTPS_API_TIMEOUT_TEST) \
  $(WLAN_API_TEST) \
  test_transport_api_multi \
+ test_transport_api_manipulation_tcp \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
  test_transport_api_unreliability_udp \
@@ -429,7 +432,6 @@ test_transport_testing_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
-
 
 test_transport_api_blacklisting_SOURCES = \
  test_transport_api_blacklisting.c
@@ -589,6 +591,15 @@ test_transport_api_tcp_nat_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
+
+test_transport_api_manipulation_tcp_SOURCES = \
+ test_transport_api_manipulation.c
+test_transport_api_manipulation_tcp_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
+
 
 test_transport_api_reliability_tcp_SOURCES = \
  test_transport_api_reliability.c
