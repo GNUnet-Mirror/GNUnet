@@ -28,13 +28,35 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
+
+/**
+ * Struct to hold the tree formed by prefix-combining the regexes.
+ */
 struct RegexCombineCtx {
+
+  /**
+   * Next node with same prefix but different token.
+   */
   struct RegexCombineCtx *next;
+
+  /**
+   * Prev node with same prefix but different token.
+   */
   struct RegexCombineCtx *prev;
 
+  /**
+   * First child node with same prefix and token.
+   */
   struct RegexCombineCtx *head;
+
+  /**
+   * Last child node.
+   */
   struct RegexCombineCtx *tail;
 
+  /**
+   * Token.
+   */
   char *s;
 };
 
@@ -258,10 +280,11 @@ GNUNET_REGEX_read_from_file (const char *filename)
     else
     {
       len -= 6;
-      buffer[len] = '\0';
+      regex[len] = '\0';
     }
     regex = GNUNET_realloc (regex, len + 1);
     GNUNET_array_grow (regexes, nr, nr + 1);
+    GNUNET_assert (NULL == regexes[nr - 2]);
     regexes[nr - 2] = regex;
     regexes[nr - 1] = NULL;
     regex = NULL;
