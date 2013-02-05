@@ -70,6 +70,7 @@ src/dv/gnunet-service-dv.c
 src/dv/plugin_transport_dv.c
 src/exit/gnunet-daemon-exit.c
 src/exit/gnunet-helper-exit.c
+src/exit/gnunet-helper-exit-windows.c
 src/fragmentation/defragmentation.c
 src/fragmentation/fragmentation.c
 src/fs/fs_api.c
@@ -192,7 +193,7 @@ src/template/gnunet-template.c
 src/testbed/gnunet-helper-testbed.c
 src/testbed/gnunet_mpi_test.c
 src/testbed/gnunet-service-testbed.c
-src/testbed/gnunet-service-testbed_hc.c
+src/testbed/gnunet-service-testbed_cache.c
 src/testbed/gnunet-service-testbed_oc.c
 src/testbed/gnunet-testbed-profiler.c
 src/testbed/ll_master.c
@@ -217,6 +218,7 @@ src/transport/gnunet-service-transport_blacklist.c
 src/transport/gnunet-service-transport.c
 src/transport/gnunet-service-transport_clients.c
 src/transport/gnunet-service-transport_hello.c
+src/transport/gnunet-service-transport_manipulation.c
 src/transport/gnunet-service-transport_neighbours.c
 src/transport/gnunet-service-transport_plugins.c
 src/transport/gnunet-service-transport_validation.c

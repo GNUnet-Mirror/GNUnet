@@ -35,7 +35,7 @@ libgnunetregex_la_DEPENDENCIES = \
   libgnunetregexblock.la
 libgnunetregex_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
-   -version-info 1:1:0
+   -version-info 2:0:1
 
 
 plugindir = $(libdir)/gnunet

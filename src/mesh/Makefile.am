@@ -51,7 +51,7 @@ libgnunetmesh_la_LIBADD = \
   $(LTLIBINTL)
 libgnunetmesh_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
-  -version-info 2:0:1
+  -version-info 2:1:1
 
 gnunet_service_mesh_SOURCES = \
  gnunet-service-mesh.c \

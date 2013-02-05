@@ -109,7 +109,7 @@ libgnunettransport_la_LIBADD = \
   $(GN_LIBINTL) 
 libgnunettransport_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
-  -version-info 2:0:0
+  -version-info 3:0:1
 
 libexec_PROGRAMS = \
  $(WLAN_BIN) \
