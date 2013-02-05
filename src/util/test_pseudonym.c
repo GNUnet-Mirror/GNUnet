@@ -180,7 +180,7 @@ main (int argc, char *argv[])
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &fid);
   GNUNET_log_skip (1, GNUNET_NO);
   CHECK (0 == GNUNET_PSEUDONYM_rank (cfg, &fid, 0));
-  GNUNET_log_skip (0, GNUNET_YES);
+  GNUNET_log_skip (0, GNUNET_NO);
   CHECK (GNUNET_OK == GNUNET_PSEUDONYM_get_info (cfg, &fid, NULL, NULL, &noname, &noname_is_a_dup));
   CHECK (noname != NULL);
   CHECK (noname_is_a_dup == GNUNET_YES);
