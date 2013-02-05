@@ -842,7 +842,7 @@ GNUNET_log_skip (int n, int check_reset)
     ok = (0 == skip_log);
     skip_log = 0;
     if (check_reset)
-      GNUNET_assert (ok);
+      GNUNET_break (ok);
   }
   else
   {
