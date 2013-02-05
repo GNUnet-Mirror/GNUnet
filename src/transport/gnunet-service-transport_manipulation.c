@@ -263,9 +263,7 @@ GST_manipulation_recv (void *cls, const struct GNUNET_PeerIdentity *peer,
 					/* Set distance */
 					if ((ntohl(ats[d].type) == GNUNET_ATS_QUALITY_NET_DISTANCE) &&
 						 (UINT32_MAX != tmp->metrics[TM_RECEIVE][DISTANCE]))
-					{
 							ats_new[d].value = htonl(tmp->metrics[TM_RECEIVE][DISTANCE]);
-					}
 			}
 			/* Manipulate receive delay */
 			if (UINT32_MAX != tmp->metrics[TM_RECEIVE][DELAY])
@@ -283,6 +281,9 @@ GST_manipulation_recv (void *cls, const struct GNUNET_PeerIdentity *peer,
 							return m_delay;
 					}
 			}
+			else
+				return GST_receive_callback (cls, peer, message, &ats_new[0], ats_count,
+						session, sender_address, sender_address_len);
 	}
 
 	return GST_receive_callback (cls, peer, message, ats, ats_count,

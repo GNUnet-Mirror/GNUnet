@@ -176,7 +176,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer %u (`%4s') received message of type %d and size %u size from peer %u (`%4s')!\n",
               p->no, ps, ntohs (message->type), ntohs (message->size), t->no,
               GNUNET_i2s (&t->id));
@@ -210,7 +210,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
   	/* Received manipulated message */
     	dur_delayed = GNUNET_TIME_absolute_get_duration(start_delayed);
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Received delayed message %u after %llu\n",
                   messages_recv,
                   (long long unsigned int) dur_delayed.rel_value);
@@ -284,7 +284,7 @@ notify_ready (void *cls, size_t size, void *buf)
 static void
 sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_ATS_Information ats[2];
+  struct GNUNET_ATS_Information ats[1];
   send_task = GNUNET_SCHEDULER_NO_TASK;
 
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
@@ -305,10 +305,10 @@ sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
 		ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
 		ats[0].value = htonl (1000);
-		ats[1].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-		ats[1].value = htonl (10);
-
-	  GNUNET_TRANSPORT_set_traffic_metric (p2->th, &p1->id, TM_SEND, ats, 2);
+		GNUNET_TRANSPORT_set_traffic_metric (p2->th, &p1->id, TM_SEND, ats, 1);
+		ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
+		ats[0].value = htonl (10);
+		GNUNET_TRANSPORT_set_traffic_metric (p1->th, &p2->id, TM_BOTH, ats, 1);
 
 		start_delayed = GNUNET_TIME_absolute_get();
   }
