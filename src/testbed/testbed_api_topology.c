@@ -38,6 +38,12 @@
 
 
 /**
+ * Default number of retires
+ */
+#define DEFAULT_RETRY_CNT 3
+
+
+/**
  * Context information for topology operations
  */
 struct TopologyContext;
@@ -72,6 +78,25 @@ struct OverlayLink
 };
 
 
+struct RetryListEntry
+{
+  /**
+   * the next pointer for the DLL
+   */
+  struct RetryListEntry *next;
+
+  /**
+   * the prev pointer for the DLL
+   */
+  struct RetryListEntry *prev;
+  
+  /**
+   * The link to be retired
+   */
+  struct OverlayLink *link;
+};
+
+
 /**
  * Context information for topology operations
  */
@@ -93,6 +118,26 @@ struct TopologyContext
   void *op_cls;
 
   /**
+   * topology generation completion callback
+   */
+  GNUNET_TESTBED_TopologyCompletionCallback comp_cb;
+
+  /**
+   * The closure for the above callback
+   */
+  void *comp_cb_cls;
+
+  /**
+   * DLL head for retry list
+   */
+  struct RetryListEntry *rl_head;
+
+  /**
+   * DLL tail for retry list
+   */
+  struct RetryListEntry *rl_tail;
+  
+  /**
    * The number of peers
    */
   unsigned int num_peers;
@@ -103,10 +148,29 @@ struct TopologyContext
   unsigned int link_array_size;
 
   /**
-   * should the automatic retry be disabled
+   * How many retries to do before we give up
    */
-  int disable_retry;
+  unsigned int retry_cnt;
 
+  /**
+   * Number of links to try
+   */
+  unsigned int nlinks;
+
+  /**
+   * How many links have been completed
+   */
+  unsigned int ncompleted;
+
+  /**
+   * Total successfully established overlay connections
+   */
+  unsigned int nsuccess;
+
+  /**
+   * Total failed overlay connections
+   */
+  unsigned int nfailures;
 };
 
 
@@ -198,20 +262,50 @@ overlay_link_completed (void *cls, struct GNUNET_TESTBED_Operation *op,
 {
   struct OverlayLink *link = cls;
   struct TopologyContext *tc;
+  struct RetryListEntry *retry_entry;
 
   GNUNET_assert (op == link->op);
   GNUNET_TESTBED_operation_done (op);
   link->op = NULL;
   tc = link->tc;
-  if ((NULL != emsg) && (GNUNET_NO == tc->disable_retry))
+  if (NULL != emsg)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Error while establishing a link: %s -- Retrying\n", emsg);
-    link->op =
-        GNUNET_TESTBED_overlay_connect (tc->op_cls, &overlay_link_completed,
-                                        link, tc->peers[link->A],
-                                        tc->peers[link->B]);
+    tc->nfailures++;
+    if (0 != tc->retry_cnt)
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "Error while establishing a link: %s -- Retrying\n", emsg);
+      retry_entry = GNUNET_malloc (sizeof (struct RetryListEntry));
+      retry_entry->link = link;
+      GNUNET_CONTAINER_DLL_insert_tail (tc->rl_head, tc->rl_tail, retry_entry);
+    }
+  }
+  else
+    tc->nsuccess++;
+  tc->ncompleted++;
+  if (tc->ncompleted < tc->nlinks)
     return;
+  if ((0 != tc->retry_cnt) && (NULL != tc->rl_head))
+  {
+    tc->retry_cnt--;
+    tc->ncompleted = 0;
+    tc->nlinks = 0;
+    while (NULL != (retry_entry = tc->rl_head))
+    {
+      link = retry_entry->link;      
+      link->op =
+          GNUNET_TESTBED_overlay_connect (tc->op_cls, &overlay_link_completed,
+                                          link, tc->peers[link->A],
+                                          tc->peers[link->B]);
+      tc->nlinks++;
+      GNUNET_CONTAINER_DLL_remove (tc->rl_head, tc->rl_tail, retry_entry);
+      GNUNET_free (retry_entry);
+    }
+    return;
+  }
+  if (NULL != tc->comp_cb)
+  {
+    tc->comp_cb (tc->comp_cb_cls, tc->nsuccess, tc->nfailures);
   }
 }
 
@@ -228,6 +322,7 @@ opstart_overlay_configure_topology (void *cls)
   struct TopologyContext *tc = cls;
   unsigned int p;
 
+  tc->nlinks = tc->link_array_size;
   for (p = 0; p < tc->link_array_size; p++)
   {
     tc->link_array[p].op =
@@ -248,8 +343,14 @@ static void
 oprelease_overlay_configure_topology (void *cls)
 {
   struct TopologyContext *tc = cls;
+  struct RetryListEntry *retry_entry;
   unsigned int p;
 
+  while (NULL != (retry_entry = tc->rl_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (tc->rl_head, tc->rl_tail, retry_entry);
+    GNUNET_free (retry_entry);
+  }
   if (NULL != tc->link_array)
   {
     for (p = 0; p < tc->link_array_size; p++)
@@ -741,11 +842,15 @@ GNUNET_TESTBED_underlay_configure_topology (void *op_cls,
  * This function then connects the given peers in the P2P overlay
  * using the given topology.
  *
- * @param op_cls closure argument to give with the operation event
+ * @param op_cls closure argument to give with the peer connect operation events
+ *          generated through this function
  * @param num_peers number of peers in 'peers'
  * @param peers array of 'num_peers' with the peers to configure
  * @param max_connections the maximums number of overlay connections that will
  *          be made to achieve the given topology
+ * @param comp_cb the completion callback to call when the topology generation
+ *          is completed
+ * @param comp_cb_cls closure for the above completion callback
  * @param topo desired underlay topology to use
  * @param va topology-specific options
  * @return handle to the operation, NULL if connecting these
@@ -755,11 +860,13 @@ GNUNET_TESTBED_underlay_configure_topology (void *op_cls,
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
                                               unsigned int num_peers,
-                                              struct GNUNET_TESTBED_Peer
-                                              **peers,
+                                              struct GNUNET_TESTBED_Peer **peers,
                                               unsigned int *max_connections,
-                                              enum GNUNET_TESTBED_TopologyOption
-                                              topo, va_list va)
+                                              GNUNET_TESTBED_TopologyCompletionCallback
+                                              comp_cb,
+                                              void *comp_cb_cls,
+                                              enum GNUNET_TESTBED_TopologyOption topo,
+                                              va_list va)
 {
   struct TopologyContext *tc;
   struct GNUNET_TESTBED_Operation *op;
@@ -774,6 +881,7 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
   tc->peers = peers;
   tc->num_peers = num_peers;
   tc->op_cls = op_cls;
+  tc->retry_cnt = DEFAULT_RETRY_CNT;
   switch (topo)
   {
   case GNUNET_TESTBED_TOPOLOGY_LINE:
@@ -847,8 +955,8 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
 
     switch (secondary_option)
     {
-    case GNUNET_TESTBED_TOPOLOGY_DISABLE_AUTO_RETRY:
-      tc->disable_retry = GNUNET_YES;
+    case GNUNET_TESTBED_TOPOLOGY_RETRY_CNT:
+      tc->retry_cnt =  va_arg (va, unsigned int);
       break;
     case GNUNET_TESTBED_TOPOLOGY_OPTION_END:
       break;
@@ -880,11 +988,15 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
  * This function then connects the given peers in the P2P overlay
  * using the given topology.
  *
- * @param op_cls closure argument to give with the operation event
+ * @param op_cls closure argument to give with the peer connect operation events
+ *          generated through this function
  * @param num_peers number of peers in 'peers'
  * @param peers array of 'num_peers' with the peers to configure
  * @param max_connections the maximums number of overlay connections that will
  *          be made to achieve the given topology
+ * @param comp_cb the completion callback to call when the topology generation
+ *          is completed
+ * @param comp_cb_cls closure for the above completion callback
  * @param topo desired underlay topology to use
  * @param ... topology-specific options
  * @return handle to the operation, NULL if connecting these
@@ -892,11 +1004,15 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
  *         not running or underlay disallows) or if num_peers is less than 2
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_overlay_configure_topology (void *op_cls, unsigned int num_peers,
+GNUNET_TESTBED_overlay_configure_topology (void *op_cls,
+                                           unsigned int num_peers,
                                            struct GNUNET_TESTBED_Peer **peers,
                                            unsigned int *max_connections,
-                                           enum GNUNET_TESTBED_TopologyOption
-                                           topo, ...)
+                                           GNUNET_TESTBED_TopologyCompletionCallback
+                                           comp_cb,
+                                           void *comp_cb_cls,
+                                           enum GNUNET_TESTBED_TopologyOption topo,
+                                           ...)
 {
   struct GNUNET_TESTBED_Operation *op;
   va_list vargs;
@@ -904,7 +1020,9 @@ GNUNET_TESTBED_overlay_configure_topology (void *op_cls, unsigned int num_peers,
   GNUNET_assert (topo < GNUNET_TESTBED_TOPOLOGY_OPTION_END);
   va_start (vargs, topo);
   op = GNUNET_TESTBED_overlay_configure_topology_va (op_cls, num_peers, peers,
-                                                     max_connections, topo,
+                                                     max_connections, 
+                                                     comp_cb, comp_cb_cls,
+                                                     topo,
                                                      vargs);
   va_end (vargs);
   return op;

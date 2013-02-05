@@ -735,6 +735,8 @@ call_cc:
       rc->topology_operation =
           GNUNET_TESTBED_overlay_configure_topology (NULL, rc->num_peers,
                                                      rc->peers, &rc->num_oc,
+                                                     NULL,
+                                                     NULL,
                                                      rc->topology,
                                                      rc->random_links,
                                                      GNUNET_TESTBED_TOPOLOGY_OPTION_END);
@@ -745,6 +747,8 @@ call_cc:
       rc->topology_operation =
           GNUNET_TESTBED_overlay_configure_topology (NULL, rc->num_peers,
                                                      rc->peers, &rc->num_oc,
+                                                     NULL,
+                                                     NULL,
                                                      rc->topology,
                                                      rc->topo_file,
                                                      GNUNET_TESTBED_TOPOLOGY_OPTION_END);
@@ -753,6 +757,8 @@ call_cc:
       rc->topology_operation =
           GNUNET_TESTBED_overlay_configure_topology (NULL, rc->num_peers,
                                                      rc->peers, &rc->num_oc,
+                                                     NULL,
+                                                     NULL,
                                                      rc->topology,
                                                      GNUNET_TESTBED_TOPOLOGY_OPTION_END);
     if (NULL == rc->topology_operation)

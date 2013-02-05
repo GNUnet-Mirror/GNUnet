@@ -1025,10 +1025,13 @@ enum GNUNET_TESTBED_TopologyOption
      GNUNET_TESTBED_TOPOLOGY_OPTION_END */
 
   /**
-   * Disable automatic retrying for failed overlay connections. The default is
-   * to always retry failed overlay connections. This parameter takes no options.
+   * How many times should the failed overlay connect operations be retried
+   * before giving up.  The default if this option is not specified is to retry
+   * 3 times.  This option takes and unsigned integer as a parameter.  Use this
+   * option with parameter 0 to disable retrying of failed overlay connect
+   * operations.
    */
-  GNUNET_TESTBED_TOPOLOGY_DISABLE_AUTO_RETRY
+  GNUNET_TESTBED_TOPOLOGY_RETRY_CNT
 };
 
 
@@ -1093,15 +1096,33 @@ GNUNET_TESTBED_overlay_connect (void *op_cls,
 
 
 /**
+ * Callbacks of this type are called when topology configuration is completed
+ *
+ * @param cls the operation closure given to
+ *          GNUNET_TESTBED_overlay_configure_topology_va() and
+ *          GNUNET_TESTBED_overlay_configure() calls
+ * @param nsuccess the number of successful overlay connects
+ * @param nfailures the number of overlay connects which failed
+ */
+typedef void (*GNUNET_TESTBED_TopologyCompletionCallback) (void *cls, 
+                                                          unsigned int nsuccess,
+                                                          unsigned int nfailures);
+
+
+/**
  * All peers must have been started before calling this function.
  * This function then connects the given peers in the P2P overlay
  * using the given topology.
  *
- * @param op_cls closure argument to give with the operation event
+ * @param op_cls closure argument to give with the peer connect operation events
+ *          generated through this function
  * @param num_peers number of peers in 'peers'
  * @param peers array of 'num_peers' with the peers to configure
  * @param max_connections the maximums number of overlay connections that will
  *          be made to achieve the given topology
+ * @param comp_cb the completion callback to call when the topology generation
+ *          is completed
+ * @param comp_cb_cls closure for the above completion callback
  * @param topo desired underlay topology to use
  * @param va topology-specific options
  * @return handle to the operation, NULL if connecting these
@@ -1113,6 +1134,9 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
                                               unsigned int num_peers,
                                               struct GNUNET_TESTBED_Peer **peers,
                                               unsigned int *max_connections,
+                                              GNUNET_TESTBED_TopologyCompletionCallback
+                                              comp_cb,
+                                              void *comp_cb_cls,
                                               enum GNUNET_TESTBED_TopologyOption topo,
                                               va_list va);
 
@@ -1122,11 +1146,15 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
  * This function then connects the given peers in the P2P overlay
  * using the given topology.
  *
- * @param op_cls closure argument to give with the operation event
+ * @param op_cls closure argument to give with the peer connect operation events
+ *          generated through this function
  * @param num_peers number of peers in 'peers'
  * @param peers array of 'num_peers' with the peers to configure
  * @param max_connections the maximums number of overlay connections that will
  *          be made to achieve the given topology
+ * @param comp_cb the completion callback to call when the topology generation
+ *          is completed
+ * @param comp_cb_cls closure for the above completion callback
  * @param topo desired underlay topology to use
  * @param ... topology-specific options
  * @return handle to the operation, NULL if connecting these
@@ -1138,6 +1166,9 @@ GNUNET_TESTBED_overlay_configure_topology (void *op_cls,
                                            unsigned int num_peers,
                                            struct GNUNET_TESTBED_Peer **peers,
                                            unsigned int *max_connections,
+                                           GNUNET_TESTBED_TopologyCompletionCallback
+                                           comp_cb,
+                                           void *comp_cb_cls,
                                            enum GNUNET_TESTBED_TopologyOption topo,
                                            ...);
 

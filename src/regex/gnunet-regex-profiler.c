@@ -1107,9 +1107,12 @@ do_configure_topology (void *cls,
   topology_op =
     GNUNET_TESTBED_overlay_configure_topology (NULL, num_peers, peer_handles,
                                                NULL,
+                                               NULL,
+                                               NULL,
                                                GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI,
                                                num_links,
-                                               GNUNET_TESTBED_TOPOLOGY_DISABLE_AUTO_RETRY,
+                                               GNUNET_TESTBED_TOPOLOGY_RETRY_CNT,
+                                               (unsigned int) 0,
                                                GNUNET_TESTBED_TOPOLOGY_OPTION_END);
   if (NULL == topology_op)
   {

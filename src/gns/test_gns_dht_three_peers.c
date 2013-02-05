@@ -296,7 +296,8 @@ static void connect_peers ()
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers started\n");
 
       topology_op = 
-          GNUNET_TESTBED_overlay_configure_topology  (NULL, 3, cpeers,
+          GNUNET_TESTBED_overlay_configure_topology  (NULL, 3, cpeers, NULL,
+                                                      NULL,
                                                       NULL,
                                                       GNUNET_TESTBED_TOPOLOGY_RING,
                                                       GNUNET_TESTBED_TOPOLOGY_OPTION_END);

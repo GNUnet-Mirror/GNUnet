@@ -130,6 +130,8 @@ test_master (void *cls, unsigned int num_peers,
   peers = peers_;
   overlay_connects = 0;
   op = GNUNET_TESTBED_overlay_configure_topology (NULL, NUM_PEERS, peers, NULL,
+                                                  NULL,
+                                                  NULL,
                                                   GNUNET_TESTBED_TOPOLOGY_CLIQUE,
                                                   /* GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI, */
                                                   /* NUM_PEERS, */
