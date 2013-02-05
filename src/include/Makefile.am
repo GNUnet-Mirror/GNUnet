@@ -14,7 +14,8 @@ EXTRA_DIST = \
   block_fs.h \
   block_dns.h \
   block_gns.h \
-  block_mesh.h
+  block_mesh.h \
+  block_regex.h
 
 gnunetinclude_HEADERS = \
   platform.h plibc.h $(WINPROC) gettext.h \
