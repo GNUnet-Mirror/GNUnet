@@ -39,7 +39,7 @@
  * Time to expire a cache entry
  */
 #define CACHE_EXPIRY                            \
-  GNUNET_TIME_UNIT_FOREVER_REL //GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
 
 /**
