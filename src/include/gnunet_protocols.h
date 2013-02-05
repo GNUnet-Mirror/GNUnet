@@ -1268,6 +1268,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON 384
 
+/**
+ * Message containing traffic metrics for transport service
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_TRAFFIC_METRIC 385
+
 /*******************************************************************************
  * STREAM messages types
  ******************************************************************************/
