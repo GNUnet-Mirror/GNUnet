@@ -1393,9 +1393,9 @@ controller_event_cb (void *cls,
      /* Control reaches here when a peer linking operation fails */
      if (NULL != event->details.operation_finished.emsg)
      {
-       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                    _("An operation has failed while linking\n"));
-       printf ("F");
+       printf ("F%u ", retry_links);
        fflush (stdout);
        retry_links++;
      }
