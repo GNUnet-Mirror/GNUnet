@@ -56,7 +56,7 @@ static struct GNUNET_SERVER_Handle *GSC_server;
 /**
  * Hostkey generation context
  */
-static struct GNUNET_CRYPTO_RsaKeyGenerationContext *keygen;
+static struct GNUNET_CRYPTO_EccKeyGenerationContext *keygen;
 
 
 /**
@@ -72,7 +72,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Core service shutting down.\n");
   if (NULL != keygen)
   {
-    GNUNET_CRYPTO_rsa_key_create_stop (keygen);
+    GNUNET_CRYPTO_ecc_key_create_stop (keygen);
     keygen = NULL;
   }
   GSC_CLIENTS_done ();
@@ -99,14 +99,14 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 key_generation_cb (void *cls,
-                   struct GNUNET_CRYPTO_RsaPrivateKey *pk,
+                   struct GNUNET_CRYPTO_EccPrivateKey *pk,
                    const char *emsg)
 {
   keygen = NULL;
   if (NULL == pk)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Failed to read hostkey: %s\n"),
+		_("Failed to read or generate private key: %s\n"),
 		emsg);
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -141,7 +141,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GSC_cfg = c;
   GSC_server = server;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (GSC_cfg, "GNUNETD", "HOSTKEY",
+      GNUNET_CONFIGURATION_get_value_filename (GSC_cfg, "PEER", "PRIVATE_KEY",
                                                &keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -155,7 +155,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                 NULL);
   GNUNET_SERVER_suspend (server);
   GSC_TYPEMAP_init ();
-  keygen = GNUNET_CRYPTO_rsa_key_create_start (keyfile, &key_generation_cb, NULL);
+  keygen = GNUNET_CRYPTO_ecc_key_create_start (keyfile, &key_generation_cb, NULL);
   GNUNET_free (keyfile);
   if (NULL == keygen)
   {

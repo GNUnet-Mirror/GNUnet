@@ -91,9 +91,6 @@ testWeakKey ()
   weak_key.key[30] = (char) (0xaa);
   weak_key.key[31] = (char) (0xaa);
   /* memset(&weak_key, 0, 32); */
-  weak_key.crc32 =
-      htonl (GNUNET_CRYPTO_crc32_n (&weak_key, GNUNET_CRYPTO_AES_KEY_LENGTH));
-
   size =
       GNUNET_CRYPTO_aes_encrypt (WEAK_KEY_TESTSTRING,
                                  strlen (WEAK_KEY_TESTSTRING) + 1, &weak_key,

@@ -323,10 +323,6 @@ struct GNUNET_CRYPTO_AesSessionKey
    */
   unsigned char key[GNUNET_CRYPTO_AES_KEY_LENGTH];
 
-  /**
-   * checksum!
-   */
-  uint32_t crc32 GNUNET_PACKED;
 };
 GNUNET_NETWORK_STRUCT_END
 
@@ -448,17 +444,6 @@ GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode, unsigned int n);
  */
 void
 GNUNET_CRYPTO_aes_create_session_key (struct GNUNET_CRYPTO_AesSessionKey *key);
-
-
-/**
- * Check that a new session key is well-formed.
- *
- * @param key key to check
- * @return GNUNET_OK if the key is valid
- */
-int
-GNUNET_CRYPTO_aes_check_session_key (const struct GNUNET_CRYPTO_AesSessionKey
-                                     *key);
 
 
 /**
@@ -1199,7 +1184,7 @@ GNUNET_CRYPTO_ecc_key_get_public (const struct GNUNET_CRYPTO_EccPrivateKey *priv
  * @return string representing  'pub'
  */
 char *
-GNUNET_CRYPTO_ecc_public_key_to_string (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pub);
+GNUNET_CRYPTO_ecc_public_key_to_string (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pub);
 
 
 /**

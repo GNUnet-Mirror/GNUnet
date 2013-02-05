@@ -65,38 +65,12 @@ struct GNUNET_CRYPTO_EccPrivateKey
 
 
 /**
- * Create a new private key. Caller must free return value.
- *
- * @return fresh private key
- */
-static struct GNUNET_CRYPTO_EccPrivateKey *
-ecc_key_create ()
-{
-  struct GNUNET_CRYPTO_EccPrivateKey *ret;
-  gcry_sexp_t s_key;
-  gcry_sexp_t s_keyparam;
-
-  GNUNET_assert (0 ==
-                 gcry_sexp_build (&s_keyparam, NULL,
-                                  "(genkey(ecc(nbits %d)(ecc-use-e 3:257)))",
-                                  2048));
-  GNUNET_assert (0 == gcry_pk_genkey (&s_key, s_keyparam));
-  gcry_sexp_release (s_keyparam);
-#if EXTRA_CHECKS
-  GNUNET_assert (0 == gcry_pk_testkey (s_key));
-#endif
-  ret = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EccPrivateKey));
-  ret->sexp = s_key;
-  return ret;
-}
-
-
-/**
  * Create a flat file with a large number of key pairs for testing.
  */
 static void
 create_keys (const char *fn)
 {
+  static char pad[GNUNET_TESTING_HOSTKEYFILESIZE];
   FILE *f;
   struct GNUNET_CRYPTO_EccPrivateKey *pk;
   struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *enc;
@@ -116,28 +90,34 @@ create_keys (const char *fn)
   {    
     fprintf (stderr,
 	     ".");
-    if (NULL == (pk = ecc_key_create ()))
+    if (NULL == (pk = GNUNET_CRYPTO_ecc_key_create ()))
     {
        GNUNET_break (0);
        break;
     }
     enc = GNUNET_CRYPTO_ecc_encode_key (pk);
-    if (htons (enc->size) != fwrite (enc, 1, htons (enc->size), f))
-      {
-	fprintf (stderr,
-		 _("\nFailed to write to `%s': %s\n"),
-		 fn,
-		 STRERROR (errno));
-	GNUNET_CRYPTO_ecc_key_free (pk);
-	GNUNET_free (enc);
-	break;
-      }
+    GNUNET_assert (ntohs (enc->size) <= GNUNET_TESTING_HOSTKEYFILESIZE);
+    if ( (ntohs (enc->size) != fwrite (enc, 1, ntohs (enc->size), f)) ||
+	 (GNUNET_TESTING_HOSTKEYFILESIZE - ntohs (enc->size)
+	  != fwrite (pad, 1, GNUNET_TESTING_HOSTKEYFILESIZE - ntohs (enc->size), f)) )
+    {
+      fprintf (stderr,
+	       _("\nFailed to write to `%s': %s\n"),
+	       fn,
+	       STRERROR (errno));
+      GNUNET_CRYPTO_ecc_key_free (pk);
+      GNUNET_free (enc);
+      break;
+    }
     GNUNET_CRYPTO_ecc_key_free (pk);
     GNUNET_free (enc);
   }
-  if (0 == make_keys)
+  if (UINT_MAX == make_keys)
     fprintf (stderr,
-	     _("Finished!\n"));
+	     _("\nFinished!\n"));
+  else
+    fprintf (stderr,
+	     _("\nError, %u keys not generated\n"), make_keys);
   fclose (f);
 }
 

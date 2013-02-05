@@ -400,8 +400,8 @@ handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   type = ntohs (message->type);
   switch (type)
   {
-  case GNUNET_MESSAGE_TYPE_CORE_SET_KEY:
-    GSC_KX_handle_set_key (n->kxinfo, message);
+  case GNUNET_MESSAGE_TYPE_CORE_EPHEMERAL_KEY:
+    GSC_KX_handle_ephemeral_key (n->kxinfo, message);
     break;
   case GNUNET_MESSAGE_TYPE_CORE_PING:
     GSC_KX_handle_ping (n->kxinfo, message);

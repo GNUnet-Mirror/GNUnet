@@ -43,12 +43,12 @@
 #define WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
-#define HOSTKEY_FILE "test_plugin_hostkey"
+#define HOSTKEY_FILE "test_plugin_hostkey.ecc"
 
 /**
  * Our public key.
  */
-static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key;
+static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded my_public_key;
 
 /**
  * Our identity.
@@ -58,7 +58,7 @@ static struct GNUNET_PeerIdentity my_identity;
 /**
  * Our private key.
  */
-static struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
+static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
 
 /**
  * Our configuration.
@@ -533,7 +533,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 							    "NEIGHBOUR_LIMIT",
 							    &tneigh)) ||
        (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (c,
-							      "GNUNETD", "HOSTKEY",
+							      "PEER", "PRIVATE_KEY",
 							      &keyfile)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -576,7 +576,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
 
   max_connect_per_transport = (uint32_t) tneigh;
-  my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+  my_private_key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
   if (NULL == my_private_key)
   {
@@ -585,7 +585,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     end_badly_now ();
     return;
   }
-  GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
+  GNUNET_CRYPTO_ecc_key_get_public (my_private_key, &my_public_key);
   GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
                       &my_identity.hashPubKey);
 

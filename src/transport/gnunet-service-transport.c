@@ -65,7 +65,7 @@ struct GNUNET_PEERINFO_Handle *GST_peerinfo;
 /**
  * Hostkey generation context
  */
-struct GNUNET_CRYPTO_RsaKeyGenerationContext *GST_keygen;
+struct GNUNET_CRYPTO_EccKeyGenerationContext *GST_keygen;
 
 /**
  * Handle to our service's server.
@@ -75,12 +75,12 @@ static struct GNUNET_SERVER_Handle *GST_server;
 /**
  * Our public key.
  */
-struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded GST_my_public_key;
+struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded GST_my_public_key;
 
 /**
  * Our private key.
  */
-struct GNUNET_CRYPTO_RsaPrivateKey *GST_my_private_key;
+struct GNUNET_CRYPTO_EccPrivateKey *GST_my_private_key;
 
 /**
  * ATS handle.
@@ -557,7 +557,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (NULL != GST_keygen)
   {
-    GNUNET_CRYPTO_rsa_key_create_stop (GST_keygen);
+    GNUNET_CRYPTO_ecc_key_create_stop (GST_keygen);
     GST_keygen = NULL;
   }
   GST_neighbours_stop ();
@@ -583,7 +583,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (NULL != GST_my_private_key)
   {
-    GNUNET_CRYPTO_rsa_key_free (GST_my_private_key);
+    GNUNET_CRYPTO_ecc_key_free (GST_my_private_key);
     GST_my_private_key = NULL;
   }
   GST_server = NULL;
@@ -599,10 +599,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 key_generation_cb (void *cls,
-                   struct GNUNET_CRYPTO_RsaPrivateKey *pk,
+                   struct GNUNET_CRYPTO_EccPrivateKey *pk,
                    const char *emsg)
 {
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded tmp;
   long long unsigned int max_fd_cfg;
   int max_fd_rlimit;
   int max_fd;
@@ -627,14 +626,10 @@ key_generation_cb (void *cls,
     return;
   }
   GST_peerinfo = GNUNET_PEERINFO_connect (GST_cfg);
-  memset (&GST_my_public_key, '\0', sizeof (GST_my_public_key));
-  memset (&tmp, '\0', sizeof (tmp));
-  GNUNET_CRYPTO_rsa_key_get_public (GST_my_private_key, &GST_my_public_key);
+  GNUNET_CRYPTO_ecc_key_get_public (GST_my_private_key, &GST_my_public_key);
   GNUNET_CRYPTO_hash (&GST_my_public_key, sizeof (GST_my_public_key),
                       &GST_my_identity.hashPubKey);
-
   GNUNET_assert (NULL != GST_my_private_key);
-  GNUNET_assert (0 != memcmp (&GST_my_public_key, &tmp, sizeof (GST_my_public_key)));
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
@@ -712,7 +707,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   /* setup globals */
   GST_cfg = c;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (c, "GNUNETD", "HOSTKEY",
+      GNUNET_CONFIGURATION_get_value_filename (c, "PEER", "PRIVATE_KEY",
                                                &keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -729,7 +724,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
   GST_server = server;
   GNUNET_SERVER_suspend (server);
-  GST_keygen = GNUNET_CRYPTO_rsa_key_create_start (keyfile, &key_generation_cb, NULL);
+  GST_keygen = GNUNET_CRYPTO_ecc_key_create_start (keyfile, &key_generation_cb, NULL);
   GNUNET_free (keyfile);
   if (NULL == GST_keygen)
   {

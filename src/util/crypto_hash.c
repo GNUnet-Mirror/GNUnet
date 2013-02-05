@@ -419,8 +419,6 @@ GNUNET_CRYPTO_hash_to_aes_key (const struct GNUNET_HashCode * hc,
                  GNUNET_CRYPTO_AES_KEY_LENGTH +
                  sizeof (struct GNUNET_CRYPTO_AesInitializationVector));
   memcpy (skey, hc, GNUNET_CRYPTO_AES_KEY_LENGTH);
-  skey->crc32 =
-      htonl (GNUNET_CRYPTO_crc32_n (skey, GNUNET_CRYPTO_AES_KEY_LENGTH));
   memcpy (iv, &((char *) hc)[GNUNET_CRYPTO_AES_KEY_LENGTH],
           sizeof (struct GNUNET_CRYPTO_AesInitializationVector));
 }

@@ -37,15 +37,15 @@ struct GSC_KeyExchangeInfo;
 
 
 /**
- * We received a SET_KEY message.  Validate and update
+ * We received a EPHEMERAL_KEY message.  Validate and update
  * our key material and status.
  *
  * @param kx key exchange status for the corresponding peer
  * @param msg the set key message we received
  */
 void
-GSC_KX_handle_set_key (struct GSC_KeyExchangeInfo *kx,
-                       const struct GNUNET_MessageHeader *msg);
+GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
+			     const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -125,7 +125,7 @@ GSC_KX_stop (struct GSC_KeyExchangeInfo *kx);
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
-GSC_KX_init (struct GNUNET_CRYPTO_RsaPrivateKey *pk);
+GSC_KX_init (struct GNUNET_CRYPTO_EccPrivateKey *pk);
 
 
 /**

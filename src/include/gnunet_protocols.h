@@ -313,11 +313,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CORE_PEER_CONNECTED 80
 
 /**
- * Session key exchange between peers.
- */
-#define GNUNET_MESSAGE_TYPE_CORE_SET_KEY 81
-
-/**
  * Encapsulation for an encrypted message between peers.
  */
 #define GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE 82
@@ -346,6 +341,12 @@ extern "C"
  * uncompressed type map of the sender
  */
 #define GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP 87
+
+/**
+ * Session key exchange between peers.
+ */
+#define GNUNET_MESSAGE_TYPE_CORE_EPHEMERAL_KEY 88
+
 
 /*******************************************************************************
  * DATASTORE message types

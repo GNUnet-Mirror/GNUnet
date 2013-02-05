@@ -28,7 +28,7 @@
 #include "gnunet_testing_lib.h"
 
 
-#define HOSTKEYFILESIZE 914
+#define HOSTKEYFILESIZE 1024
 
 /**
  * Final status code.
@@ -119,11 +119,13 @@ create_unique_cfgs (const char * template, const unsigned int no)
 static int
 create_hostkeys (const unsigned int no)
 {
+  static char pad[HOSTKEYFILESIZE];
   struct GNUNET_TESTING_System *system;
   struct GNUNET_PeerIdentity id;
   struct GNUNET_DISK_FileHandle *fd;
-  struct GNUNET_CRYPTO_RsaPrivateKey *pk;
-  struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *pkb;
+  struct GNUNET_CRYPTO_EccPrivateKey *pk;
+  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *pkb;
+  ssize_t ret;
 
   system = GNUNET_TESTING_system_create ("testing", NULL, NULL);
   pk = GNUNET_TESTING_hostkey_get (system, create_no, &id);
@@ -140,14 +142,20 @@ create_hostkeys (const unsigned int no)
 			      GNUNET_DISK_PERM_USER_READ |
 			      GNUNET_DISK_PERM_USER_WRITE);
   GNUNET_assert (fd != NULL);
-  pkb = GNUNET_CRYPTO_rsa_encode_key (pk);
-  GNUNET_assert (HOSTKEYFILESIZE ==
-		 GNUNET_DISK_file_write (fd, pkb, ntohs (pkb->len)));
+  pkb = GNUNET_CRYPTO_ecc_encode_key (pk);
+  ret = GNUNET_DISK_file_write (fd, pkb, 
+				ntohs (pkb->size));
+  GNUNET_assert (ntohs (pkb->size) == ret);
+  GNUNET_assert (ntohs (pkb->size) < HOSTKEYFILESIZE);
+  GNUNET_assert (HOSTKEYFILESIZE - ret ==
+		 GNUNET_DISK_file_write (fd, pad, 
+					 HOSTKEYFILESIZE - ret));
+  
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fd));
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
 		   "Wrote hostkey to file: `%s'\n", create_hostkey);
   GNUNET_free (pkb);
-  GNUNET_CRYPTO_rsa_key_free (pk);
+  GNUNET_CRYPTO_ecc_key_free (pk);
   GNUNET_TESTING_system_destroy (system, GNUNET_YES);
   return 0;
 }

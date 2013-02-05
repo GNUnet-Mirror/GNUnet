@@ -149,13 +149,13 @@ struct TransportPongMessage
   /**
    * Signature.
    */
-  struct GNUNET_CRYPTO_RsaSignature signature;
+  struct GNUNET_CRYPTO_EccSignature signature;
 
   /**
    * GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN to confirm that this is a
    * plausible address for the signing peer.
    */
-  struct GNUNET_CRYPTO_RsaSignaturePurpose purpose;
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
 
   /**
    * When does this signature expire?
@@ -190,7 +190,7 @@ struct ValidationEntry
   /**
    * Public key of the peer.
    */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded public_key;
 
   /**
    * The identity of the peer. FIXME: duplicated (also in 'address')
@@ -636,7 +636,7 @@ revalidate_address (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *         if we don't have an existing entry and no public key was given
  */
 static struct ValidationEntry *
-find_validation_entry (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
+find_validation_entry (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded
                        *public_key, const struct GNUNET_HELLO_Address *address)
 {
   struct ValidationEntryMatchContext vemc;
@@ -688,7 +688,7 @@ add_valid_address (void *cls, const struct GNUNET_HELLO_Address *address,
   const struct GNUNET_HELLO_Message *hello = cls;
   struct ValidationEntry *ve;
   struct GNUNET_PeerIdentity pid;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded public_key;
 
   if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value == 0)
     return GNUNET_OK;           /* expired */
@@ -789,7 +789,7 @@ GST_validation_stop ()
  */
 static void
 multicast_pong (void *cls,
-                const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
+                const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded
                 *public_key, struct GNUNET_TIME_Absolute valid_until,
                 struct GNUNET_TIME_Absolute validation_block,
                 const struct GNUNET_HELLO_Address *address)
@@ -835,7 +835,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   const struct TransportPingMessage *ping;
   struct TransportPongMessage *pong;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
-  struct GNUNET_CRYPTO_RsaSignature *sig_cache;
+  struct GNUNET_CRYPTO_EccSignature *sig_cache;
   struct GNUNET_TIME_Absolute *sig_cache_exp;
   const char *addr;
   const char *addrend;
@@ -931,7 +931,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   {
     addrend = NULL;             /* make gcc happy */
     slen = 0;
-    static struct GNUNET_CRYPTO_RsaSignature no_address_signature;
+    static struct GNUNET_CRYPTO_EccSignature no_address_signature;
     static struct GNUNET_TIME_Absolute no_address_signature_expiration;
 
     sig_cache = &no_address_signature;
@@ -951,7 +951,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
       htons (sizeof (struct TransportPongMessage) + alen + slen);
   pong->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PONG);
   pong->purpose.size =
-      htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
+      htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
              sizeof (uint32_t) + sizeof (struct GNUNET_TIME_AbsoluteNBO) +
              alen + slen);
   pong->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN);
@@ -981,7 +981,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating buggy PONG signature to indicate ownership.\n");
     pong->expiration = GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (PONG_SIGNATURE_LIFETIME));
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CRYPTO_rsa_sign (GST_my_private_key, &pong->purpose,
+                   GNUNET_CRYPTO_ecc_sign (GST_my_private_key, &pong->purpose,
                                            &pong->signature));
   }
   else
@@ -1001,7 +1001,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
       *sig_cache_exp = GNUNET_TIME_relative_to_absolute (PONG_SIGNATURE_LIFETIME);
       pong->expiration = GNUNET_TIME_absolute_hton (*sig_cache_exp);
       GNUNET_assert (GNUNET_OK ==
-                     GNUNET_CRYPTO_rsa_sign (GST_my_private_key, &pong->purpose,
+                     GNUNET_CRYPTO_ecc_sign (GST_my_private_key, &pong->purpose,
                                              sig_cache));
     }
     else
@@ -1080,7 +1080,7 @@ struct ValidateAddressContext
   /**
    * Public key of the peer whose address is being validated.
    */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded public_key;
 };
 
 
@@ -1197,7 +1197,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   }
 
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
+      GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
                                 &pong->purpose, &pong->signature,
                                 &ve->public_key))
   {

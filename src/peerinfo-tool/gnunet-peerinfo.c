@@ -167,7 +167,7 @@ static struct GNUNET_PeerIdentity my_peer_identity;
 /**
  * My public key.
  */
-static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key;
+static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded my_public_key;
 
 /**
  * Head of list of print contexts.
@@ -524,7 +524,7 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  struct GNUNET_CRYPTO_RsaPrivateKey *priv;
+  struct GNUNET_CRYPTO_EccPrivateKey *priv;
   char *fn;
 
   cfg = c;
@@ -551,22 +551,22 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     /* load private key */
     if (GNUNET_OK !=
-	GNUNET_CONFIGURATION_get_value_filename (cfg, "GNUNETD", "HOSTKEY",
+	GNUNET_CONFIGURATION_get_value_filename (cfg, "PEER", "PRIVATE_KEY",
 						 &fn))
     {
       FPRINTF (stderr, _("Could not find option `%s:%s' in configuration.\n"),
 	       "GNUNETD", "HOSTKEYFILE");
       return;
     }
-    if (NULL == (priv = GNUNET_CRYPTO_rsa_key_create_from_file (fn)))
+    if (NULL == (priv = GNUNET_CRYPTO_ecc_key_create_from_file (fn)))
     {
       FPRINTF (stderr, _("Loading hostkey from `%s' failed.\n"), fn);
       GNUNET_free (fn);
       return;
     }
     GNUNET_free (fn);
-    GNUNET_CRYPTO_rsa_key_get_public (priv, &my_public_key);
-    GNUNET_CRYPTO_rsa_key_free (priv);
+    GNUNET_CRYPTO_ecc_key_get_public (priv, &my_public_key);
+    GNUNET_CRYPTO_ecc_key_free (priv);
     GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key), &my_peer_identity.hashPubKey);
   }
 

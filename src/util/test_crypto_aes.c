@@ -95,17 +95,6 @@ verifyCrypto ()
   ret = 0;
 
   memcpy (key.key, raw_key, GNUNET_CRYPTO_AES_KEY_LENGTH);
-  key.crc32 =
-      htonl (GNUNET_CRYPTO_crc32_n (&key, GNUNET_CRYPTO_AES_KEY_LENGTH));
-
-  if (ntohl (key.crc32) != (unsigned int) 38125195LL)
-  {
-    printf ("Static key has different CRC: %u - %u\n", ntohl (key.crc32),
-            key.crc32);
-
-    ret = 1;
-    goto error;
-  }
 
   if (GNUNET_CRYPTO_AES_KEY_LENGTH !=
       GNUNET_CRYPTO_aes_encrypt (plain, GNUNET_CRYPTO_AES_KEY_LENGTH, &key,

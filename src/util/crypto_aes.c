@@ -42,29 +42,6 @@ GNUNET_CRYPTO_aes_create_session_key (struct GNUNET_CRYPTO_AesSessionKey *key)
 {
   gcry_randomize (&key->key[0], GNUNET_CRYPTO_AES_KEY_LENGTH,
                   GCRY_STRONG_RANDOM);
-  key->crc32 =
-      htonl (GNUNET_CRYPTO_crc32_n (key, GNUNET_CRYPTO_AES_KEY_LENGTH));
-}
-
-
-/**
- * Check that a new session key is well-formed.
- *
- * @return GNUNET_OK if the key is valid
- */
-int
-GNUNET_CRYPTO_aes_check_session_key (const struct GNUNET_CRYPTO_AesSessionKey
-                                     *key)
-{
-  uint32_t crc;
-
-  crc = GNUNET_CRYPTO_crc32_n (key, GNUNET_CRYPTO_AES_KEY_LENGTH);
-  if (ntohl (key->crc32) != crc)
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  return GNUNET_OK;
 }
 
 
@@ -85,12 +62,6 @@ setup_cipher (gcry_cipher_hd_t *handle,
 {
   int rc;
 
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_aes_check_session_key (sessionkey))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
   GNUNET_assert (0 ==
                  gcry_cipher_open (handle, GCRY_CIPHER_AES256,
                                    GCRY_CIPHER_MODE_CFB, 0));

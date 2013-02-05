@@ -53,11 +53,6 @@ extern "C"
 #define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DISCONNECT 2
 
 /**
- * Purpose is to set a session key.
- */
-#define GNUNET_SIGNATURE_PURPOSE_SET_KEY 3
-
-/**
  * Signature for a namespace/pseudonym advertisement (by
  * the namespace owner).
  */
@@ -115,11 +110,17 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_NSE_SEND 14
 
-
 /**
  * Signature of a gnunet naming system record block
  */
 #define GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN 15
+
+/**
+ * Purpose is to set a session key.
+ */
+#define GNUNET_SIGNATURE_PURPOSE_SET_ECC_KEY 16
+
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

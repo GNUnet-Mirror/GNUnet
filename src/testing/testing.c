@@ -202,7 +202,7 @@ hostkeys_load (struct GNUNET_TESTING_System *system)
   
   GNUNET_assert (NULL == system->hostkeys_data);
   data_dir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
-  GNUNET_asprintf (&filename, "%s/testing_hostkeys.dat", data_dir);
+  GNUNET_asprintf (&filename, "%s/testing_hostkeys.ecc", data_dir);
   GNUNET_free (data_dir);  
 
   if (GNUNET_YES != GNUNET_DISK_file_test (filename))
@@ -525,13 +525,13 @@ reserve_path (struct GNUNET_TESTING_System *system)
  *        key; if NULL, GNUNET_SYSERR is returned immediately
  * @return NULL on error (not enough keys)
  */
-struct GNUNET_CRYPTO_RsaPrivateKey *
+struct GNUNET_CRYPTO_EccPrivateKey *
 GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
 			    uint32_t key_number,
 			    struct GNUNET_PeerIdentity *id)
 {  
-  struct GNUNET_CRYPTO_RsaPrivateKey *private_key;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
+  struct GNUNET_CRYPTO_EccPrivateKey *private_key;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded public_key;
   
   if ((NULL == id) || (NULL == system->hostkeys_data))
     return NULL;
@@ -541,7 +541,7 @@ GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
          _("Key number %u does not exist\n"), key_number);
     return NULL;
   }   
-  private_key = GNUNET_CRYPTO_rsa_decode_key (system->hostkeys_data +
+  private_key = GNUNET_CRYPTO_ecc_decode_key (system->hostkeys_data +
                                               (key_number *
                                                GNUNET_TESTING_HOSTKEYFILESIZE),
                                               GNUNET_TESTING_HOSTKEYFILESIZE);
@@ -551,9 +551,9 @@ GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
          _("Error while decoding key %u\n"), key_number);
     return NULL;
   }
-  GNUNET_CRYPTO_rsa_key_get_public (private_key, &public_key);
+  GNUNET_CRYPTO_ecc_key_get_public (private_key, &public_key);
   GNUNET_CRYPTO_hash (&public_key,
-                      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                      sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
                       &(id->hashPubKey));
   return private_key;
 }
@@ -855,7 +855,7 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
   char *config_filename;
   char *libexec_binary;
   char *emsg_;
-  struct GNUNET_CRYPTO_RsaPrivateKey *pk;
+  struct GNUNET_CRYPTO_EccPrivateKey *pk;
 
   if (NULL != emsg)
     *emsg = NULL;
@@ -897,12 +897,13 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
     return NULL;
   }
   if (NULL != pk)
-    GNUNET_CRYPTO_rsa_key_free (pk);
+    GNUNET_CRYPTO_ecc_key_free (pk);
   GNUNET_assert (GNUNET_OK == 
                  GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS",
                                                         "SERVICEHOME",
                                                         &service_home));
-  GNUNET_snprintf (hostkey_filename, sizeof (hostkey_filename), "%s/.hostkey",
+  /* FIXME: might be better to evaluate actual configuration option here... */
+  GNUNET_snprintf (hostkey_filename, sizeof (hostkey_filename), "%s/private.ecc",
                    service_home);
   GNUNET_free (service_home);
   fd = GNUNET_DISK_file_open (hostkey_filename,
@@ -978,7 +979,7 @@ void
 GNUNET_TESTING_peer_get_identity (const struct GNUNET_TESTING_Peer *peer,
 				  struct GNUNET_PeerIdentity *id)
 {
-  GNUNET_CRYPTO_rsa_key_free (GNUNET_TESTING_hostkey_get (peer->system,
+  GNUNET_CRYPTO_ecc_key_free (GNUNET_TESTING_hostkey_get (peer->system,
 							  peer->key_number,
 							  id));
 }

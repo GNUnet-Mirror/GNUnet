@@ -25,7 +25,6 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_testing_lib.h"
 #include <gcrypt.h>
 
 
@@ -48,107 +47,6 @@ static int print_short_identity;
  * Use weak random number generator for key generation.
  */
 static int weak_random;
-
-/**
- * Option set to create a bunch of keys at once.
- */
-static unsigned int make_keys;
-
-/**
- * The private information of an RSA key pair.
- * NOTE: this must match the definition in crypto_ksk.c and crypto_rsa.c!
- */
-struct GNUNET_CRYPTO_RsaPrivateKey
-{
-  gcry_sexp_t sexp;
-};
-
-
-/**
- * Create a new private key. Caller must free return value.
- *
- * @return fresh private key
- */
-static struct GNUNET_CRYPTO_RsaPrivateKey *
-rsa_key_create ()
-{
-  struct GNUNET_CRYPTO_RsaPrivateKey *ret;
-  gcry_sexp_t s_key;
-  gcry_sexp_t s_keyparam;
-
-  GNUNET_assert (0 ==
-                 gcry_sexp_build (&s_keyparam, NULL,
-                                  "(genkey(rsa(nbits %d)(rsa-use-e 3:257)))",
-                                  2048));
-  GNUNET_assert (0 == gcry_pk_genkey (&s_key, s_keyparam));
-  gcry_sexp_release (s_keyparam);
-#if EXTRA_CHECKS
-  GNUNET_assert (0 == gcry_pk_testkey (s_key));
-#endif
-  ret = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_RsaPrivateKey));
-  ret->sexp = s_key;
-  return ret;
-}
-
-
-/**
- * Create a flat file with a large number of key pairs for testing.
- */
-static void
-create_keys (const char *fn)
-{
-  FILE *f;
-  struct GNUNET_CRYPTO_RsaPrivateKey *pk;
-  struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *enc;
-
-  if (NULL == (f = fopen (fn, "w+")))
-    {
-      fprintf (stderr,
-	       _("Failed to open `%s': %s\n"),
-	       fn,
-	       STRERROR (errno));
-      return;
-    }
-  fprintf (stderr,
-	   _("Generating %u keys, please wait"),
-	   make_keys);
-  while (0 < make_keys--)
-  {    
-    fprintf (stderr,
-	     ".");
-    if (NULL == (pk = rsa_key_create ()))
-    {
-       GNUNET_break (0);
-       break;
-    }
-    enc = GNUNET_CRYPTO_rsa_encode_key (pk);
-    if (GNUNET_TESTING_HOSTKEYFILESIZE != htons (enc->len))
-    {
-      /* sometimes we get a different key length because 'd' or 'u' start
-	 with leading bits; skip those... */
-      GNUNET_CRYPTO_rsa_key_free (pk);
-      GNUNET_free (enc);
-      make_keys++;
-      continue;
-    }
-    if (htons (enc->len) != fwrite (enc, 1, htons (enc->len), f))
-      {
-	fprintf (stderr,
-		 _("\nFailed to write to `%s': %s\n"),
-		 fn,
-		 STRERROR (errno));
-	GNUNET_CRYPTO_rsa_key_free (pk);
-	GNUNET_free (enc);
-	break;
-      }
-    GNUNET_CRYPTO_rsa_key_free (pk);
-    GNUNET_free (enc);
-  }
-  if (0 == make_keys)
-    fprintf (stderr,
-	     _("Finished!\n"));
-  fclose (f);
-}
 
 
 /**
@@ -174,11 +72,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   if (0 != weak_random)    
     GNUNET_CRYPTO_random_disable_entropy_gathering ();  
-  if (make_keys > 0)
-  {
-    create_keys (args[0]);
-    return;
-  }
   pk = GNUNET_CRYPTO_rsa_key_create_from_file (args[0]);
   if (NULL == pk)
     return;
@@ -225,9 +118,6 @@ int
 main (int argc, char *const*argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    { 'g', "generate-keys", "COUNT",
-      gettext_noop ("create COUNT public-private key pairs (for testing)"),
-      1, &GNUNET_GETOPT_set_uint, &make_keys },
     { 'p', "print-public-key", NULL,
       gettext_noop ("print the public key in ASCII format"),
       0, &GNUNET_GETOPT_set_one, &print_public_key },

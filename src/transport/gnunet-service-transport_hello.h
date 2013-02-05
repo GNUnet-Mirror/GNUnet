@@ -92,7 +92,7 @@ GST_hello_modify_addresses (int addremove,
  */
 int
 GST_hello_test_address (const struct GNUNET_HELLO_Address *address,
-                        struct GNUNET_CRYPTO_RsaSignature **sig,
+                        struct GNUNET_CRYPTO_EccSignature **sig,
                         struct GNUNET_TIME_Absolute **sig_expiration);
 
 
