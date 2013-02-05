@@ -36,6 +36,13 @@
 
 
 /**
+ * Time to expire a cache entry
+ */
+#define CACHE_EXPIRY                            \
+  GNUNET_TIME_UNIT_FOREVER_REL //GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
+
+
+/**
  * Type of cache-get requests
  */
 enum CacheGetType
@@ -230,6 +237,12 @@ struct CacheEntry
   GNUNET_SCHEDULER_TaskIdentifier notify_task;
 
   /**
+   * The task to expire this cache entry, free any handlers it has opened and
+   * mark their corresponding operations as done.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier expire_task;
+
+  /**
    * Number of operations this cache entry is being used
    */
   unsigned int demand;
@@ -317,10 +330,16 @@ close_handles (struct CacheEntry *entry)
   if (GNUNET_YES == entry->in_lru)
   {
     GNUNET_assert (0 < lru_cache_size);
+    if (GNUNET_SCHEDULER_NO_TASK != entry->expire_task)
+    {
+      GNUNET_SCHEDULER_cancel (entry->expire_task);
+      entry->expire_task = GNUNET_SCHEDULER_NO_TASK;
+    }
     GNUNET_CONTAINER_DLL_remove (lru_cache_head, lru_cache_tail, entry);
     lru_cache_size--;
     entry->in_lru = GNUNET_NO;
   }
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == entry->expire_task);
   while (NULL != (ctxt = entry->nctxt_qhead))
   {
     GNUNET_CONTAINER_DLL_remove (entry->nctxt_qhead, entry->nctxt_qtail, ctxt);
@@ -344,6 +363,24 @@ close_handles (struct CacheEntry *entry)
     GNUNET_CONFIGURATION_destroy (entry->cfg);
     entry->cfg = NULL;
   }
+}
+
+
+/**
+ * The task to expire this cache entry, free any handlers it has opened and
+ * mark their corresponding operations as done.
+ *
+ * @param cls the CacheEntry
+ * @param tc the scheduler task context
+ */
+static void
+expire_cache_entry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct CacheEntry *entry = cls;
+
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != entry->expire_task);
+  entry->expire_task = GNUNET_SCHEDULER_NO_TASK;
+  close_handles (entry);
 }
 
 
@@ -697,6 +734,11 @@ cache_get_handle (unsigned int peer_id, struct GSTCacheGetHandle *cgh,
     {
       GNUNET_assert (0 == entry->demand);
       GNUNET_assert (0 < lru_cache_size);
+      if (GNUNET_SCHEDULER_NO_TASK != entry->expire_task)
+      {
+        GNUNET_SCHEDULER_cancel (entry->expire_task);
+        entry->expire_task = GNUNET_SCHEDULER_NO_TASK;
+      }
       GNUNET_CONTAINER_DLL_remove (lru_cache_head, lru_cache_tail, entry);
       lru_cache_size--;
       entry->in_lru = GNUNET_NO;
@@ -785,6 +827,7 @@ cache_clear_iterator (void *cls, const struct GNUNET_HashCode *key, void *value)
   if (0 == entry->demand)
     close_handles (entry);
   GNUNET_free_non_null (entry->hello);
+  GNUNET_break (GNUNET_SCHEDULER_NO_TASK == entry->expire_task);
   GNUNET_break (NULL == entry->transport_handle_);
   GNUNET_break (NULL == entry->transport_op_);
   GNUNET_break (NULL == entry->core_handle);
@@ -860,6 +903,8 @@ GST_cache_get_handle_done (struct GSTCacheGetHandle *cgh)
   GNUNET_free (cgh);
   if (0 == entry->demand)
   {
+    entry->expire_task =
+        GNUNET_SCHEDULER_add_delayed (CACHE_EXPIRY, &expire_cache_entry, entry);
     GNUNET_CONTAINER_DLL_insert_tail (lru_cache_head, lru_cache_tail, entry);
     lru_cache_size++;
     entry->in_lru = GNUNET_YES;
