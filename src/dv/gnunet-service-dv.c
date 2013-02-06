@@ -292,7 +292,7 @@ struct DirectNeighbor
   /**
    * PublicKey of neighbor.
    */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
 
   /**
    * Head of DLL of nodes that this direct neighbor referred to us.
@@ -364,7 +364,7 @@ struct DistantNeighbor
   /**
    * PublicKey of neighbor.
    */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pkey;
 
   /**
    * Last time we received routing information from this peer
@@ -1775,7 +1775,7 @@ neighbor_send_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     message->neighbor_id = htonl (about->our_id);
 
     memcpy (&message->pkey, about->pkey,
-            sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+            sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
     memcpy (&message->neighbor, &about->identity,
             sizeof (struct GNUNET_PeerIdentity));
 
@@ -2322,15 +2322,15 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
 static int
 add_pkey_to_extended (void *cls, const struct GNUNET_HashCode * key, void *abs_value)
 {
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey = cls;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pkey = cls;
   struct DistantNeighbor *distant_neighbor = abs_value;
 
   if (distant_neighbor->pkey == NULL)
   {
     distant_neighbor->pkey =
-        GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+        GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
     memcpy (distant_neighbor->pkey, pkey,
-            sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+            sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
   }
 
   return GNUNET_YES;
@@ -2507,7 +2507,7 @@ generate_hello_address (void *cls, size_t max, void *buf)
  */
 static struct DistantNeighbor *
 addUpdateNeighbor (const struct GNUNET_PeerIdentity *peer,
-                   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey,
+                   struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pkey,
                    unsigned int referrer_peer_id,
                    struct DirectNeighbor *referrer, unsigned int cost)
 {
@@ -2624,9 +2624,9 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity *peer,
     {
       neighbor->pkey =
           GNUNET_malloc (sizeof
-                         (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+                         (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
       memcpy (neighbor->pkey, pkey,
-              sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+              sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
     }
     else
       neighbor->pkey = pkey;
@@ -3036,9 +3036,9 @@ process_peerinfo (void *cls, const struct GNUNET_PeerIdentity *peer,
     {
       distant->pkey =
           GNUNET_malloc (sizeof
-                         (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+                         (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
       memcpy (distant->pkey, &neighbor->pkey,
-              sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+              sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
     }
 
     sent =

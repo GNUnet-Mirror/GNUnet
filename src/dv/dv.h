@@ -205,7 +205,7 @@ typedef struct
   /**
    * PublicKey of neighbor.
    */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
 
   /**
    * Neighbor ID to use when sending to this peer
