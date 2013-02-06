@@ -892,12 +892,10 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
     break;
   case GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI:
     gen_topo_random (tc, va_arg (va, unsigned int), GNUNET_NO);
-
     break;
   case GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING:
     gen_topo_ring (tc);
     gen_topo_random (tc, va_arg (va, unsigned int), GNUNET_YES);
-
     break;
   case GNUNET_TESTBED_TOPOLOGY_CLIQUE:
     tc->link_array_size = num_peers * (num_peers - 1);

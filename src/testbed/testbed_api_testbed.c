@@ -266,12 +266,6 @@ struct RunContext
   unsigned int num_peers;
 
   /**
-   * counter to count overlay connect attempts. This counter includes both
-   * successful and failed overlay connects
-   */
-  unsigned int oc_count;
-
-  /**
    * Expected overlay connects. Should be zero if no topology is relavant
    */
   unsigned int num_oc;
@@ -567,6 +561,27 @@ call_master (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Callbacks of this type are called when topology configuration is completed
+ *
+ * @param cls the operation closure given to
+ *          GNUNET_TESTBED_overlay_configure_topology_va() and
+ *          GNUNET_TESTBED_overlay_configure() calls
+ * @param nsuccess the number of successful overlay connects
+ * @param nfailures the number of overlay connects which failed
+ */
+static void
+topology_completion_callback (void *cls, unsigned int nsuccess,
+                              unsigned int nfailures)
+{
+  struct RunContext *rc = cls;
+
+  rc->state = RC_READY;
+  GNUNET_SCHEDULER_add_continuation (&call_master, rc,
+                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+}
+
+
+/**
  * Function to create peers
  *
  * @param rc the RunContext
@@ -641,27 +656,6 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       return;
     }
   }
-  if (NULL != rc->topology_operation)
-  {
-    switch (event->type)
-    {
-    case GNUNET_TESTBED_ET_OPERATION_FINISHED:
-    case GNUNET_TESTBED_ET_CONNECT:
-      rc->oc_count++;
-      break;
-    default:
-      GNUNET_break (0);
-      shutdown_now (rc);
-      return;
-    }
-    if (rc->oc_count == rc->num_oc)
-    {
-      rc->state = RC_READY;
-      GNUNET_SCHEDULER_add_continuation (&call_master, rc,
-                                         GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-    }
-    goto call_cc;
-  }
   for (dll_op = rc->dll_op_head; NULL != dll_op; dll_op = dll_op->next)
   {
     if ((GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type) &&
@@ -735,8 +729,8 @@ call_cc:
       rc->topology_operation =
           GNUNET_TESTBED_overlay_configure_topology (NULL, rc->num_peers,
                                                      rc->peers, &rc->num_oc,
-                                                     NULL,
-                                                     NULL,
+                                                     &topology_completion_callback,
+                                                     rc,
                                                      rc->topology,
                                                      rc->random_links,
                                                      GNUNET_TESTBED_TOPOLOGY_OPTION_END);
@@ -747,8 +741,8 @@ call_cc:
       rc->topology_operation =
           GNUNET_TESTBED_overlay_configure_topology (NULL, rc->num_peers,
                                                      rc->peers, &rc->num_oc,
-                                                     NULL,
-                                                     NULL,
+                                                     &topology_completion_callback,
+                                                     rc,
                                                      rc->topology,
                                                      rc->topo_file,
                                                      GNUNET_TESTBED_TOPOLOGY_OPTION_END);
@@ -757,8 +751,8 @@ call_cc:
       rc->topology_operation =
           GNUNET_TESTBED_overlay_configure_topology (NULL, rc->num_peers,
                                                      rc->peers, &rc->num_oc,
-                                                     NULL,
-                                                     NULL,
+                                                     &topology_completion_callback,
+                                                     rc,
                                                      rc->topology,
                                                      GNUNET_TESTBED_TOPOLOGY_OPTION_END);
     if (NULL == rc->topology_operation)
