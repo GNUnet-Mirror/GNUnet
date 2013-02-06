@@ -882,6 +882,8 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
   tc->num_peers = num_peers;
   tc->op_cls = op_cls;
   tc->retry_cnt = DEFAULT_RETRY_CNT;
+  tc->comp_cb = comp_cb;
+  tc->comp_cb_cls = comp_cb_cls;
   switch (topo)
   {
   case GNUNET_TESTBED_TOPOLOGY_LINE:
