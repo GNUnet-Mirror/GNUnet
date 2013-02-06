@@ -1571,7 +1571,7 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int stat
   if (GNUNET_OK != status)
   {
     mc_proc = NULL;
-    printf("CRAPPP\n");
+    printf("Oh, dear!\n");
     abort_task = GNUNET_SCHEDULER_add_now (&do_abort, (void*) __LINE__);
     return;
   }
