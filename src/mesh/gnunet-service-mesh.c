@@ -903,7 +903,7 @@ static unsigned long long max_peers;
 /**
  * Hostkey generation context
  */
-static struct GNUNET_CRYPTO_RsaKeyGenerationContext *keygen;
+static struct GNUNET_CRYPTO_EccKeyGenerationContext *keygen;
 
 /**
  * DLL with all the clients, head.
@@ -979,12 +979,12 @@ static struct GNUNET_PeerIdentity my_full_id;
 /**
  * Own private key.
  */
-static struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
+static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
 
 /**
  * Own public key.
  */
-static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key;
+static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded my_public_key;
 
 /**
  * Tunnel ID for the next created tunnel (global tunnel number).
@@ -8180,7 +8180,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (NULL != keygen)
   {
-    GNUNET_CRYPTO_rsa_key_create_stop (keygen);
+    GNUNET_CRYPTO_ecc_key_create_stop (keygen);
     keygen = NULL;
   }
   GNUNET_CONTAINER_multihashmap_iterate (tunnels, &shutdown_tunnel, NULL);
@@ -8210,15 +8210,15 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Callback for hostkey read/generation
+ * Callback for hostkey read/generation.
  *
  * @param cls Closure (Configuration handle).
- * @param pk the private key
- * @param emsg error message
+ * @param pk The ECC private key.
+ * @param emsg Error message, if any.
  */
 static void
 key_generation_cb (void *cls,
-                   struct GNUNET_CRYPTO_RsaPrivateKey *pk,
+                   struct GNUNET_CRYPTO_EccPrivateKey *pk,
                    const char *emsg)
 {
   const struct GNUNET_CONFIGURATION_Handle *c = cls;
@@ -8235,7 +8235,7 @@ key_generation_cb (void *cls,
     return;
   }
   my_private_key = pk;
-  GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
+  GNUNET_CRYPTO_ecc_key_get_public (my_private_key, &my_public_key);
   GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
                       &my_full_id.hashPubKey);
   myid = GNUNET_PEER_intern (&my_full_id);
@@ -8440,7 +8440,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   /* Scheduled the task to clean up when shutdown is called */
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
-  keygen = GNUNET_CRYPTO_rsa_key_create_start (keyfile,
+  keygen = GNUNET_CRYPTO_ecc_key_create_start (keyfile,
                                                &key_generation_cb,
                                                (void *) c);
   GNUNET_free (keyfile);
