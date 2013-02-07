@@ -76,7 +76,7 @@ main (int argc, char *const *argv)
   GNUNET_asprintf (&regex, "GNVPN-0001-PAD(%s)(0|1)*", buffer);
   size = strlen (regex);
 
-  // fprintf (stderr, "Combined regex (%ld bytes):\n%s\n", size, regex);
+  fprintf (stderr, "Combined regex (%ld bytes):\n%s\n", size, regex);
   //   return 0;
 
   compression = atoi (argv[2]);

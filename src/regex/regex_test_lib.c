@@ -174,7 +174,7 @@ regex_ctx_destroy (struct RegexCombineCtx *ctx)
     next = p->next;
     regex_ctx_destroy (p);
   }
-  GNUNET_free (ctx->s);
+  GNUNET_free_non_null (ctx->s); /* 's' on root node is null */
   GNUNET_free (ctx);
 }
 
