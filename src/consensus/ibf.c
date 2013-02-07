@@ -30,6 +30,37 @@
 
 
 /**
+ * Create a key from a hashcode.
+ *
+ * @param hash the hashcode
+ * @return a key
+ */
+uint64_t
+ibf_key_from_hashcode (const struct GNUNET_HashCode *hash)
+{
+  return GNUNET_ntohll (*(uint64_t *) hash);
+}
+
+
+/**
+ * Create a hashcode from a key, by replicating the key
+ * until the hascode is filled
+ *
+ * @param key the key
+ * @param dst hashcode to store the result in
+ */
+void
+ibf_hashcode_from_key (uint64_t key, struct GNUNET_HashCode *dst)
+{
+  uint64_t *p;
+  int i;
+  p = (uint64_t *) dst;
+  for (i = 0; i < 8; i++)
+    *p++ = key;
+}
+
+
+/**
  * Create an invertible bloom filter.
  *
  * @param size number of IBF buckets
@@ -39,7 +70,7 @@
  * @return the newly created invertible bloom filter
  */
 struct InvertibleBloomFilter *
-ibf_create (unsigned int size, unsigned int hash_num, uint32_t salt)
+ibf_create (uint32_t size, unsigned int hash_num, uint32_t salt)
 {
   struct InvertibleBloomFilter *ibf;
 
@@ -53,71 +84,52 @@ ibf_create (unsigned int size, unsigned int hash_num, uint32_t salt)
   return ibf;
 }
 
-
-
 /**
- * Insert an element into an IBF, with either positive or negative sign.
- *
- * @param ibf the IBF
- * @param id the element's hash code
- * @param side the sign of side determines the sign of the 
- *        inserted element.
+ * Store unique bucket indices for the specified key in dst.
  */
-void
-ibf_insert_on_side (struct InvertibleBloomFilter *ibf,
-                    const struct GNUNET_HashCode *key,
-                    int side)
+static inline void
+ibf_get_indices (const struct InvertibleBloomFilter *ibf,
+                 uint64_t key, int *dst)
 {
   struct GNUNET_HashCode bucket_indices;
-  struct GNUNET_HashCode key_copy;
-  struct GNUNET_HashCode key_hash;
-  unsigned int i;
-
-
-  GNUNET_assert ((1 == side) || (-1 == side));
-  GNUNET_assert (NULL != ibf);
-
+  unsigned int filled = 0;
+  int i;
+  GNUNET_CRYPTO_hash (&key, sizeof key, &bucket_indices);
+  for (i = 0; filled < ibf->hash_num; i++)
   {
-    int used_buckets[ibf->hash_num];
-
-    /* copy the key, if key and an entry in the IBF alias */
-    key_copy = *key;
-
-    bucket_indices = key_copy;
-    GNUNET_CRYPTO_hash (key, sizeof (struct GNUNET_HashCode), &key_hash);
-    
-    for (i = 0; i < ibf->hash_num; i++)
-    {
-      unsigned int bucket;
-      unsigned int j;
-      int collided;
-    
-      if ( (0 != i) &&
-	   (0 == (i % 16)) )
-	GNUNET_CRYPTO_hash (&bucket_indices, sizeof (struct GNUNET_HashCode),
-			    &bucket_indices);
-      
-      bucket = bucket_indices.bits[i%16] % ibf->size;
-      collided = GNUNET_NO;
-      for (j = 0; j < i; j++)
-	if (used_buckets[j] == bucket)
-	  collided = GNUNET_YES;
-      if (GNUNET_YES == collided)
-	{
-	  used_buckets[i] = -1;
-	  continue;
-	}
-      used_buckets[i] = bucket;
-      
-      ibf->count[bucket] += side;
-
-      GNUNET_CRYPTO_hash_xor (&key_copy, &ibf->id_sum[bucket],
-			      &ibf->id_sum[bucket]);
-      GNUNET_CRYPTO_hash_xor (&key_hash, &ibf->hash_sum[bucket],
-			      &ibf->hash_sum[bucket]);
-    }
+    unsigned int bucket;
+    unsigned int j;
+    if ( (0 != i) && (0 == (i % 16)) )
+      GNUNET_CRYPTO_hash (&bucket_indices, sizeof (struct GNUNET_HashCode), &bucket_indices);
+    bucket = bucket_indices.bits[i] % ibf->size;
+    for (j = 0; j < filled; j++)
+      if (dst[j] == bucket)
+        goto try_next;;
+    dst[filled++] = bucket;
+    try_next: ;
   }
 }
+
+
+static void
+ibf_insert_into  (struct InvertibleBloomFilter *ibf,
+                  uint64_t key,
+                  const int *buckets, int side)
+{
+  int i;
+  struct GNUNET_HashCode key_hash_sha;
+  uint32_t key_hash;
+  GNUNET_CRYPTO_hash (&key, sizeof key, &key_hash_sha);
+  key_hash = key_hash_sha.bits[0];
+  for (i = 0; i < ibf->hash_num; i++)
+  {
+    const int bucket = buckets[i];
+    ibf->count[bucket] += side;
+    ibf->id_sum[bucket] ^= key;
+    ibf->hash_sum[bucket] ^= key_hash;
+  }
+}
+
 
 /**
  * Insert an element into an IBF.
@@ -126,27 +138,28 @@ ibf_insert_on_side (struct InvertibleBloomFilter *ibf,
  * @param id the element's hash code
  */
 void
-ibf_insert (struct InvertibleBloomFilter *ibf, const struct GNUNET_HashCode *key)
+ibf_insert (struct InvertibleBloomFilter *ibf, uint64_t key)
 {
-  ibf_insert_on_side (ibf, key, 1);
+  int buckets[ibf->hash_num];
+  ibf_get_indices (ibf, key, buckets);
+  ibf_insert_into (ibf, key, buckets, 1);
 }
 
+/**
+ * Test is the IBF is empty, i.e. all counts, keys and key hashes are zero.
+ */
 static int
 ibf_is_empty (struct InvertibleBloomFilter *ibf)
 {
   int i;
   for (i = 0; i < ibf->size; i++)
   {
-    int j;
     if (0 != ibf->count[i])
       return GNUNET_NO;
-    for (j = 0; j < 16; ++j)
-    {
-      if (0 != ibf->hash_sum[i].bits[j])
-        return GNUNET_NO;
-      if (0 != ibf->id_sum[i].bits[j])
-        return GNUNET_NO;
-    }
+    if (0 != ibf->hash_sum[i])
+      return GNUNET_NO;
+    if (0 != ibf->id_sum[i])
+      return GNUNET_NO;
   }
   return GNUNET_YES;
 }
@@ -166,21 +179,40 @@ ibf_is_empty (struct InvertibleBloomFilter *ibf)
  */
 int
 ibf_decode (struct InvertibleBloomFilter *ibf,
-            int *ret_side, struct GNUNET_HashCode *ret_id)
+            int *ret_side, uint64_t *ret_id)
 {
-  struct GNUNET_HashCode hash;
+  uint32_t hash;
   int i;
+  struct GNUNET_HashCode key_hash_sha;
+  int buckets[ibf->hash_num];
 
   GNUNET_assert (NULL != ibf);
 
   for (i = 0; i < ibf->size; i++)
   {
+    int j;
+    int hit;
+
+    /* we can only decode from pure buckets */
     if ((1 != ibf->count[i]) && (-1 != ibf->count[i]))
       continue;
 
-    GNUNET_CRYPTO_hash (&ibf->id_sum[i], sizeof (struct GNUNET_HashCode), &hash);
+    GNUNET_CRYPTO_hash (&ibf->id_sum[i], sizeof (uint64_t), &key_hash_sha);
+    hash = key_hash_sha.bits[0];
 
-    if (0 != memcmp (&hash, &ibf->hash_sum[i], sizeof (struct GNUNET_HashCode)))
+    /* test if the hash matches the key */
+    if (hash != ibf->hash_sum[i])
+      continue;
+
+    /* test if key in bucket hits its own location,
+     * if not, the key hash was subject to collision */
+    hit = GNUNET_NO;
+    ibf_get_indices (ibf, ibf->id_sum[i], buckets);
+    for (j = 0; j < ibf->hash_num; j++)
+      if (buckets[j] == i)
+        hit = GNUNET_YES;
+
+    if (GNUNET_NO == hit)
       continue;
 
     if (NULL != ret_side)
@@ -189,7 +221,7 @@ ibf_decode (struct InvertibleBloomFilter *ibf,
       *ret_id = ibf->id_sum[i];
 
     /* insert on the opposite side, effectively removing the element */
-    ibf_insert_on_side (ibf, &ibf->id_sum[i], -ibf->count[i]);
+    ibf_insert_into (ibf, ibf->id_sum[i], buckets, -ibf->count[i]);
 
     return GNUNET_YES;
   }
@@ -200,7 +232,6 @@ ibf_decode (struct InvertibleBloomFilter *ibf,
 }
 
 
-
 /**
  * Subtract ibf2 from ibf1, storing the result in ibf1.
  * The two IBF's must have the same parameters size and hash_num.
@@ -209,7 +240,7 @@ ibf_decode (struct InvertibleBloomFilter *ibf,
  * @param ibf2 IBF that will be subtracted from ibf1
  */
 void
-ibf_subtract (struct InvertibleBloomFilter *ibf1, struct InvertibleBloomFilter *ibf2)
+ibf_subtract (struct InvertibleBloomFilter *ibf1, const struct InvertibleBloomFilter *ibf2)
 {
   int i;
 
@@ -220,10 +251,8 @@ ibf_subtract (struct InvertibleBloomFilter *ibf1, struct InvertibleBloomFilter *
   for (i = 0; i < ibf1->size; i++)
   {
     ibf1->count[i] -= ibf2->count[i];
-    GNUNET_CRYPTO_hash_xor (&ibf1->id_sum[i], &ibf2->id_sum[i],
-                            &ibf1->id_sum[i]);
-    GNUNET_CRYPTO_hash_xor (&ibf1->hash_sum[i], &ibf2->hash_sum[i], 
-                            &ibf1->hash_sum[i]);
+    ibf1->hash_sum[i] ^= ibf2->hash_sum[i];
+    ibf1->id_sum[i] ^= ibf2->id_sum[i];
   }
 }
 

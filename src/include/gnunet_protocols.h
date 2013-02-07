@@ -1662,7 +1662,6 @@ extern "C"
 /* message types 526-539 reserved for consensus client/service messages */
 
 
-
 /**
  * Sent by client to service, telling whether a received element should
  * be accepted and propagated further or not.
@@ -1683,6 +1682,12 @@ extern "C"
  * Elements, and requests for further elements
  */
 #define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS 543
+
+
+/**
+ * Elements, and requests for further elements
+ */
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS_REQUEST 544
 
 /*
  * Initialization message for consensus p2p communication.

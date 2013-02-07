@@ -42,7 +42,7 @@ extern "C"
 /**
  * Size of one ibf bucket in bytes
  */
-#define IBF_BUCKET_SIZE (64+64+1)
+#define IBF_BUCKET_SIZE (8+4+1)
 
 
 /**
@@ -56,7 +56,7 @@ struct InvertibleBloomFilter
   /**
    * How many cells does this IBF have?
    */
-  unsigned int size;
+  uint32_t size;
 
   /**
    * In how many cells do we hash one element?
@@ -72,12 +72,12 @@ struct InvertibleBloomFilter
   /**
    * xor sums of the elements' hash codes, used to identify the elements.
    */
-  struct GNUNET_HashCode *id_sum;
+  uint64_t *id_sum;
 
   /**
    * xor sums of the "hash of the hash".
    */
-  struct GNUNET_HashCode *hash_sum;
+  uint32_t *hash_sum;
 
   /**
    * How many times has a bucket been hit?
@@ -88,16 +88,37 @@ struct InvertibleBloomFilter
 
 
 /**
+ * Create a key from a hashcode.
+ *
+ * @param hash the hashcode
+ * @return a key
+ */
+uint64_t
+ibf_key_from_hashcode (const struct GNUNET_HashCode *hash);
+
+
+/**
+ * Create a hashcode from a key, by replicating the key
+ * until the hascode is filled
+ *
+ * @param key the key
+ * @param dst hashcode to store the result in
+ */
+void
+ibf_hashcode_from_key (uint64_t key, struct GNUNET_HashCode *dst);
+
+
+/**
  * Create an invertible bloom filter.
  *
  * @param size number of IBF buckets
- * @param hash_num number of buckets one element is hashed in
+ * @param hash_num number of buckets one element is hashed in, usually 3 or 4
  * @param salt salt for mingling hashes, different salt may
  *        result in less (or more) collisions
  * @return the newly created invertible bloom filter
  */
 struct InvertibleBloomFilter *
-ibf_create(unsigned int size, unsigned int hash_num, uint32_t salt);
+ibf_create(uint32_t size, unsigned int hash_num, uint32_t salt);
 
 
 /**
@@ -107,7 +128,7 @@ ibf_create(unsigned int size, unsigned int hash_num, uint32_t salt);
  * @param id the element's hash code
  */
 void
-ibf_insert (struct InvertibleBloomFilter *ibf, const struct GNUNET_HashCode *id);
+ibf_insert (struct InvertibleBloomFilter *ibf, uint64_t id);
 
 
 /**
@@ -118,7 +139,7 @@ ibf_insert (struct InvertibleBloomFilter *ibf, const struct GNUNET_HashCode *id)
  * @param ibf2 IBF that will be subtracted from ibf1
  */
 void
-ibf_subtract (struct InvertibleBloomFilter *ibf1, struct InvertibleBloomFilter *ibf2);
+ibf_subtract (struct InvertibleBloomFilter *ibf1, const struct InvertibleBloomFilter *ibf2);
 
 
 /**
@@ -133,7 +154,7 @@ ibf_subtract (struct InvertibleBloomFilter *ibf1, struct InvertibleBloomFilter *
  *         GNUNET_SYSERR if the decoding has faile
  */
 int
-ibf_decode (struct InvertibleBloomFilter *ibf, int *side, struct GNUNET_HashCode *ret_id);
+ibf_decode (struct InvertibleBloomFilter *ibf, int *side, uint64_t *ret_id);
 
 
 /**

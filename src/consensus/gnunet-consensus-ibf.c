@@ -38,15 +38,38 @@ static unsigned int csize = 10;
 static unsigned int hash_num = 3;
 static unsigned int ibf_size = 80;
 
+/* FIXME: add parameter for this */
+static enum GNUNET_CRYPTO_Quality random_quality = GNUNET_CRYPTO_QUALITY_WEAK;
 
 static struct GNUNET_CONTAINER_MultiHashMap *set_a;
 static struct GNUNET_CONTAINER_MultiHashMap *set_b;
 /* common elements in a and b */
 static struct GNUNET_CONTAINER_MultiHashMap *set_c;
 
+static struct GNUNET_CONTAINER_MultiHashMap *key_to_hashcode;
+
 static struct InvertibleBloomFilter *ibf_a;
 static struct InvertibleBloomFilter *ibf_b;
 
+
+static void
+register_hashcode (struct GNUNET_HashCode *hash)
+{
+  struct GNUNET_HashCode replicated;
+  uint64_t key;
+  key = ibf_key_from_hashcode (hash);
+  ibf_hashcode_from_key (key, &replicated);
+  GNUNET_CONTAINER_multihashmap_put (key_to_hashcode, &replicated, GNUNET_memdup (hash, sizeof *hash),
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+}
+
+static void
+iter_hashcodes (uint64_t key, GNUNET_CONTAINER_HashMapIterator iter, void *cls)
+{
+  struct GNUNET_HashCode replicated;
+  ibf_hashcode_from_key (key, &replicated);
+  GNUNET_CONTAINER_multihashmap_get_multiple (key_to_hashcode, &replicated, iter, cls);
+}
 
 
 static int
@@ -55,7 +78,19 @@ insert_iterator (void *cls,
                  void *value)
 {
   struct InvertibleBloomFilter *ibf = (struct InvertibleBloomFilter *) cls;
-  ibf_insert (ibf, key);
+  ibf_insert (ibf, ibf_key_from_hashcode (key));
+  return GNUNET_YES;
+}
+
+
+static int
+remove_iterator (void *cls,
+                 const struct GNUNET_HashCode *key,
+                 void *value)
+{
+  struct GNUNET_CONTAINER_MultiHashMap *hashmap = cls;
+  /* if remove fails, there just was a collision with another key */
+  (void) GNUNET_CONTAINER_multihashmap_remove (hashmap, value, NULL);
   return GNUNET_YES;
 }
 
@@ -65,6 +100,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_HashCode id;
+  uint64_t ibf_key;
   int i;
   int side;
   int res;
@@ -78,46 +114,56 @@ run (void *cls, char *const *args, const char *cfgfile,
   set_c = GNUNET_CONTAINER_multihashmap_create (((csize == 0) ? 1 : csize),
                                                 GNUNET_NO);
 
+  key_to_hashcode = GNUNET_CONTAINER_multihashmap_create (((asize+bsize+csize == 0) ? 1 : (asize+bsize+csize)),
+                                                          GNUNET_NO);
+
   printf ("hash-num=%u, size=%u, #(A-B)=%u, #(B-A)=%u, #(A&B)=%u\n",
           hash_num, ibf_size, asize, bsize, csize);
 
   i = 0;
   while (i < asize)
   {
-    GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &id);
+    GNUNET_CRYPTO_hash_create_random (random_quality, &id);
     if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (set_a, &id))
       continue;
     GNUNET_CONTAINER_multihashmap_put (
         set_a, &id, NULL, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    register_hashcode (&id);
     i++;
   }
   i = 0;
   while (i < bsize)
   {
-    GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &id);
+    GNUNET_CRYPTO_hash_create_random (random_quality, &id);
     if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (set_a, &id))
       continue;
     if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (set_b, &id))
       continue;
     GNUNET_CONTAINER_multihashmap_put (
         set_b, &id, NULL, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    register_hashcode (&id);
     i++;
   }
   i = 0;
   while (i < csize)
   {
-    GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &id);
+    GNUNET_CRYPTO_hash_create_random (random_quality, &id);
     if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (set_a, &id))
       continue;
     if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (set_b, &id))
       continue;
+    if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (set_c, &id))
+      continue;
     GNUNET_CONTAINER_multihashmap_put (
         set_c, &id, NULL, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    register_hashcode (&id);
     i++;
   }
 
   ibf_a = ibf_create (ibf_size, hash_num, 0);
   ibf_b = ibf_create (ibf_size, hash_num, 0);
+
+  printf ("generated sets\n");
 
   start_time = GNUNET_TIME_absolute_get ();
 
@@ -137,7 +183,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   for (;;)
   {
-    res = ibf_decode (ibf_a, &side, &id);
+    res = ibf_decode (ibf_a, &side, &ibf_key);
     if (GNUNET_SYSERR == res) 
     {
       printf ("decode failed\n");
@@ -157,14 +203,9 @@ run (void *cls, char *const *args, const char *cfgfile,
     }
 
     if (side == 1)
-      res = GNUNET_CONTAINER_multihashmap_remove (set_a, &id, NULL);
+      iter_hashcodes (ibf_key, remove_iterator, set_a);
     if (side == -1)
-      res = GNUNET_CONTAINER_multihashmap_remove (set_b, &id, NULL);
-    if (GNUNET_YES != res)
-    {
-      printf ("decoded wrong element\n");
-      return;
-    }
+      iter_hashcodes (ibf_key, remove_iterator, set_b);
   }
 }
 

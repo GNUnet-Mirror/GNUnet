@@ -60,6 +60,13 @@ struct Element
   struct GNUNET_HashCode hash;
 };
 
+
+struct ElementRequest
+{
+  struct GNUNET_MessageHeader header;
+  /* struct GNUNET_HashCode[] rest */
+};
+
 struct ConsensusHello
 {
   struct GNUNET_MessageHeader header;
