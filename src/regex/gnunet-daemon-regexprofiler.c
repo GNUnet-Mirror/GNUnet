@@ -61,7 +61,7 @@ static struct GNUNET_REGEX_announce_handle *announce_handle;
 /**
  * Hostkey generation context
  */
-static struct GNUNET_CRYPTO_RsaKeyGenerationContext *keygen;
+static struct GNUNET_CRYPTO_EccKeyGenerationContext *keygen;
 
 /**
  * Periodically reannounce regex.
@@ -118,7 +118,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (NULL != keygen)
   {
-    GNUNET_CRYPTO_rsa_key_create_stop (keygen);
+    GNUNET_CRYPTO_ecc_key_create_stop (keygen);
     keygen = NULL;
   }
   if (NULL != announce_handle)
@@ -281,10 +281,10 @@ load_regexes (const char *filename, char **rx)
  */
 static void
 key_generation_cb (void *cls,
-                   struct GNUNET_CRYPTO_RsaPrivateKey *pk,
+                   struct GNUNET_CRYPTO_EccPrivateKey *pk,
                    const char *emsg)
 {
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded my_public_key;
 
   keygen = NULL;
   if (NULL == pk)
@@ -296,7 +296,7 @@ key_generation_cb (void *cls,
     return;
   }
 
-  GNUNET_CRYPTO_rsa_key_get_public (pk, &my_public_key);
+  GNUNET_CRYPTO_ecc_key_get_public (pk, &my_public_key);
   GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
                       &my_full_id.hashPubKey);
 
@@ -419,7 +419,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   GNUNET_asprintf (&rx_with_pfx, "%s(%s)", regex_prefix, regex);
   GNUNET_free (regex);
 
-  keygen = GNUNET_CRYPTO_rsa_key_create_start (keyfile,
+  keygen = GNUNET_CRYPTO_ecc_key_create_start (keyfile,
                                                &key_generation_cb,
                                                NULL);
   GNUNET_free (keyfile);
