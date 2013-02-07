@@ -170,7 +170,7 @@ struct GNUNET_NSE_FloodMessage
   /**
    * Purpose.
    */
-  struct GNUNET_CRYPTO_RsaSignaturePurpose purpose;
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
 
   /**
    * The current timestamp value (which all
@@ -188,7 +188,7 @@ struct GNUNET_NSE_FloodMessage
   /**
    * Public key of the originator.
    */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
 
   /**
    * Proof of work, causing leading zeros when hashed with pkey.
@@ -198,7 +198,7 @@ struct GNUNET_NSE_FloodMessage
   /**
    * Signature (over range specified in purpose).
    */
-  struct GNUNET_CRYPTO_RsaSignature signature;
+  struct GNUNET_CRYPTO_EccSignature signature;
 };
 GNUNET_NETWORK_STRUCT_END
 
@@ -287,12 +287,12 @@ static struct GNUNET_TIME_Absolute current_timestamp;
 /**
  * The public key of this peer.
  */
-static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key;
+static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded my_public_key;
 
 /**
  * The private key of this peer.
  */
-static struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
+static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
 
 /**
  * The peer identity of this peer.
@@ -312,7 +312,7 @@ static struct GNUNET_SERVER_Handle *srv;
 /**
  * Hostkey generation context
  */
-static struct GNUNET_CRYPTO_RsaKeyGenerationContext *keygen;
+static struct GNUNET_CRYPTO_EccKeyGenerationContext *keygen;
 
 
 /**
@@ -693,7 +693,7 @@ setup_flood_message (unsigned int slot,
   fm->proof_of_work = my_proof;
   if (nse_work_required > 0)
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CRYPTO_rsa_sign (my_private_key, &fm->purpose,
+                   GNUNET_CRYPTO_ecc_sign (my_private_key, &fm->purpose,
                                            &fm->signature));
   else
     memset (&fm->signature, 0, sizeof (fm->signature));
@@ -825,16 +825,16 @@ count_leading_zeroes (const struct GNUNET_HashCode * hash)
  * @return GNUNET_YES if valid, GNUNET_NO if not
  */
 static int
-check_proof_of_work (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey,
+check_proof_of_work (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pkey,
                      uint64_t val)
 {
-  char buf[sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
+  char buf[sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded) +
            sizeof (val)] GNUNET_ALIGN;
   struct GNUNET_HashCode result;
 
   memcpy (buf, &val, sizeof (val));
   memcpy (&buf[sizeof (val)], pkey,
-          sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+          sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
   GNUNET_CRYPTO_hash (buf, sizeof (buf), &result);
   return (count_leading_zeroes (&result) >=
           nse_work_required) ? GNUNET_YES : GNUNET_NO;
@@ -943,7 +943,7 @@ verify_message_crypto (const struct GNUNET_NSE_FloodMessage *incoming_flood)
   }
   if ((nse_work_required > 0) &&
       (GNUNET_OK !=
-       GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_NSE_SEND,
+       GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_NSE_SEND,
                                  &incoming_flood->purpose,
                                  &incoming_flood->signature,
                                  &incoming_flood->pkey)))
@@ -1273,7 +1273,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (NULL != keygen)
   {
-    GNUNET_CRYPTO_rsa_key_create_stop (keygen);
+    GNUNET_CRYPTO_ecc_key_create_stop (keygen);
     keygen = NULL;
   }
   if (NULL != nc)
@@ -1298,7 +1298,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (NULL != my_private_key)
   {
-    GNUNET_CRYPTO_rsa_key_free (my_private_key);
+    GNUNET_CRYPTO_ecc_key_free (my_private_key);
     my_private_key = NULL;
   }
 #if ENABLE_HISTOGRAM
@@ -1367,7 +1367,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
  */
 static void
 key_generation_cb (void *cls,
-                   struct GNUNET_CRYPTO_RsaPrivateKey *pk,
+                   struct GNUNET_CRYPTO_EccPrivateKey *pk,
                    const char *emsg)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
@@ -1392,7 +1392,7 @@ key_generation_cb (void *cls,
     return;
   }
   my_private_key = pk;
-  GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
+  GNUNET_CRYPTO_ecc_key_get_public (my_private_key, &my_public_key);
   GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
                       &my_identity.hashPubKey);
   if (GNUNET_OK !=
@@ -1401,7 +1401,7 @@ key_generation_cb (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
                 ("NSE service is lacking key configuration settings.  Exiting.\n"));
-    GNUNET_CRYPTO_rsa_key_free (my_private_key);
+    GNUNET_CRYPTO_ecc_key_free (my_private_key);
     my_private_key = NULL;    
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -1499,7 +1499,7 @@ run (void *cls,
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
   GNUNET_SERVER_suspend (srv);
-  keygen = GNUNET_CRYPTO_rsa_key_create_start (keyfile, &key_generation_cb, NULL);
+  keygen = GNUNET_CRYPTO_ecc_key_create_start (keyfile, &key_generation_cb, NULL);
   GNUNET_free (keyfile);
 }
 
