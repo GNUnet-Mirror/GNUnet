@@ -327,13 +327,13 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   cfg = cfg_;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "GNUNETD", "HOSTKEY",
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "PEER", "PRIVATEKEY",
                                                &keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
                 ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
-                "regexprofiler", "hostkey");
+                "regexdaemon", "peer/privatekey");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
