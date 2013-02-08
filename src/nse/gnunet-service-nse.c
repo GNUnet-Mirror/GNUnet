@@ -1475,7 +1475,8 @@ run (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
-                ("NSE service is lacking key configuration settings.  Exiting.\n"));
+                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
+                "NSE", "interval/workdelay/workbits");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -1487,12 +1488,13 @@ run (void *cls,
     return;
   }
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "GNUNETD", "HOSTKEY",
+      GNUNET_CONFIGURATION_get_value_filename (c, "PEER", "PRIVATEKEY",
                                                &keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
-                ("NSE service is lacking key configuration settings.  Exiting.\n"));
+                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
+                "NSE", "peer/privatekey");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
