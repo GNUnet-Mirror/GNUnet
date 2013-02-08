@@ -327,7 +327,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   cfg = cfg_;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "PEER", "PRIVATEKEY",
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "PEER", "PRIVATE_KEY",
                                                &keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

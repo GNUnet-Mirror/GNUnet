@@ -1488,7 +1488,7 @@ run (void *cls,
     return;
   }
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (c, "PEER", "PRIVATEKEY",
+      GNUNET_CONFIGURATION_get_value_filename (c, "PEER", "PRIVATE_KEY",
                                                &keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
