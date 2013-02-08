@@ -8306,13 +8306,13 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   server_handle = server;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (c, "GNUNETD", "HOSTKEY",
+      GNUNET_CONFIGURATION_get_value_filename (c, "PEER", "PRIVATEKEY",
                                                &keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
                 ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
-                "mesh", "hostkey");
+                "mesh", "peer/privatekey");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
