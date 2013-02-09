@@ -1255,6 +1255,10 @@ client_connect_get (struct Session *s)
 #if CURL_TCP_NODELAY
   curl_easy_setopt (ps->recv_endpoint, CURLOPT_TCP_NODELAY, 1);
 #endif
+  curl_easy_setopt (s->client_get, CURLOPT_FOLLOWLOCATION, 0);
+  curl_easy_setopt (curl, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+  curl_easy_setopt (curl, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+
   mret = curl_multi_add_handle (s->plugin->curl_multi_handle, s->client_get);
   if (mret != CURLM_OK)
   {
