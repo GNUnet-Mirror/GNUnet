@@ -1144,7 +1144,7 @@ peer_churn_cb (void *cls, const char *emsg)
   if (NULL != emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-         _("An operation has failed while starting peers\n"));
+         _("An operation has failed while starting peers: %s\n"), emsg);
     GNUNET_TESTBED_operation_done (op);
     if (GNUNET_SCHEDULER_NO_TASK != abort_task)
       GNUNET_SCHEDULER_cancel (abort_task);
@@ -1225,7 +1225,8 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
     for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
     {
       dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-      dll_op->op = GNUNET_TESTBED_peer_start (dll_op, peers[peer_cnt].peer_handle,
+      dll_op->op = GNUNET_TESTBED_peer_start (dll_op,
+                                              peers[peer_cnt].peer_handle,
                                               &peer_churn_cb, dll_op);
       GNUNET_CONTAINER_DLL_insert_tail (dll_op_head, dll_op_tail, dll_op);
     }
@@ -1750,15 +1751,18 @@ run (void *cls, char *const *args, const char *cfgfile,
                                       GNUNET_TESTBED_HostHabitableCheckHandle *) 
                               * num_hosts);
   for (nhost = 0; nhost < num_hosts; nhost++)
-  {    
-    if (NULL == (hc_handles[nhost] = GNUNET_TESTBED_is_host_habitable (hosts[nhost], config,
-                                                                       &host_habitable_cb,
-                                                                       &hc_handles[nhost])))
+  {
+    hc_handles[nhost] = GNUNET_TESTBED_is_host_habitable (hosts[nhost], config,
+                                                          &host_habitable_cb,
+                                                          &hc_handles[nhost]);
+    if (NULL == hc_handles[nhost])
     {
+      int i;
+
       GNUNET_break (0);
-      for (nhost = 0; nhost < num_hosts; nhost++)
-        if (NULL != hc_handles[nhost])
-          GNUNET_TESTBED_is_host_habitable_cancel (hc_handles[nhost]);
+      for (i = 0; i <= nhost; i++)
+        if (NULL != hc_handles[i])
+          GNUNET_TESTBED_is_host_habitable_cancel (hc_handles[i]);
       GNUNET_free (hc_handles);
       hc_handles = NULL;
       break;
