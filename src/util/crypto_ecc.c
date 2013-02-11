@@ -831,7 +831,6 @@ GNUNET_CRYPTO_ecc_key_create_start (const char *filename,
 {
   struct GNUNET_CRYPTO_EccKeyGenerationContext *gc;
   struct GNUNET_CRYPTO_EccPrivateKey *pk;
-  const char *weak_random;
 
   if (NULL != (pk = try_read_key (filename)))
   {
@@ -859,10 +858,6 @@ GNUNET_CRYPTO_ecc_key_create_start (const char *filename,
     GNUNET_free (gc);
     return NULL;
   }
-  weak_random = NULL;
-  if (GNUNET_YES ==
-      GNUNET_CRYPTO_random_is_weak ())
-    weak_random = "-w";
   gc->gnunet_ecc = GNUNET_OS_start_process (GNUNET_NO,
 					    GNUNET_OS_INHERIT_STD_ERR,
 					    NULL, 
@@ -870,7 +865,6 @@ GNUNET_CRYPTO_ecc_key_create_start (const char *filename,
 					    "gnunet-ecc",
 					    "gnunet-ecc",					    
 					    gc->filename,
-					    weak_random,
 					    NULL);
   if (NULL == gc->gnunet_ecc)
   {

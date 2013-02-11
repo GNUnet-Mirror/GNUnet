@@ -175,7 +175,6 @@ main (int argc, char *argv[])
   int weak_keys;
 
   GNUNET_log_setup ("test-crypto-aes-weak", "WARNING", NULL);
-  GNUNET_CRYPTO_random_disable_entropy_gathering ();
   if (GENERATE_WEAK_KEYS)
   {
     weak_keys = getWeakKeys ();

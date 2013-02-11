@@ -1499,11 +1499,6 @@ GNUNET_CONFIGURATION_load (struct GNUNET_CONFIGURATION_Handle *cfg,
       (filename != NULL))
     GNUNET_CONFIGURATION_set_value_string (cfg, "PATHS", "DEFAULTCONFIG",
                                            filename);
-  if ((GNUNET_YES ==
-       GNUNET_CONFIGURATION_have_value (cfg, "TESTING", "WEAKRANDOM")) &&
-      (GNUNET_YES ==
-       GNUNET_CONFIGURATION_get_value_yesno (cfg, "TESTING", "WEAKRANDOM")))
-    GNUNET_CRYPTO_random_disable_entropy_gathering ();
   return GNUNET_OK;
 }
 

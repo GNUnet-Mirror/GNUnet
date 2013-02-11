@@ -24,6 +24,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include <gcrypt.h>
 #include "gnunet_util_lib.h"
 #include "gnunet-service-core.h"
 #include "gnunet-service-core_clients.h"

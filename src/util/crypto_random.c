@@ -35,13 +35,6 @@
 #define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
 
 
-/**
- * GNUNET_YES if we are using a 'weak' (low-entropy) PRNG.
- */ 
-static int weak_random;
-
-
-
 /* TODO: ndurner, move this to plibc? */
 /* The code is derived from glibc, obviously */
 #if MINGW
@@ -237,31 +230,6 @@ GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode, uint64_t max)
 
 
 /**
- * Check if we are using weak random number generation.
- *
- * @return GNUNET_YES if weak number generation is on
- */
-int
-GNUNET_CRYPTO_random_is_weak ()
-{
-  return weak_random;
-}
-
-
-/**
- * This function should only be called in testcases
- * where strong entropy gathering is not desired
- * (for example, for hostkey generation).
- */
-void
-GNUNET_CRYPTO_random_disable_entropy_gathering ()
-{
-  weak_random = GNUNET_YES;
-  gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
-}
-
-
-/**
  * Process ID of the "find" process that we use for
  * entropy gathering.
  */
@@ -332,10 +300,12 @@ killfind ()
 }
 
 
-void __attribute__ ((constructor)) GNUNET_CRYPTO_random_init ()
+void __attribute__ ((constructor)) 
+GNUNET_CRYPTO_random_init ()
 {
-  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
-  if (!gcry_check_version (NEED_LIBGCRYPT_VERSION))
+  gcry_error_t rc;
+
+  if (! gcry_check_version (NEED_LIBGCRYPT_VERSION))
   {
     FPRINTF (stderr,
              _
@@ -343,6 +313,15 @@ void __attribute__ ((constructor)) GNUNET_CRYPTO_random_init ()
              NEED_LIBGCRYPT_VERSION);
     GNUNET_abort ();
   }
+  if ((rc = gcry_control (GCRYCTL_DISABLE_SECMEM, 0)))
+    FPRINTF (stderr, "Failed to set libgcrypt option %s: %s\n", "DISABLE_SECMEM",
+	     gcry_strerror (rc));
+  /* we only generate ephemeral keys in-process; for those,
+     we are fine with "just" using GCRY_STRONG_RANDOM */
+  if ((rc = gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0)))
+    FPRINTF (stderr,  "Failed to set libgcrypt option %s: %s\n", "ENABLE_QUICK_RANDOM",
+	     gcry_strerror (rc));
+  
 #ifdef GCRYCTL_INITIALIZATION_FINISHED
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 #endif
@@ -357,7 +336,8 @@ void __attribute__ ((constructor)) GNUNET_CRYPTO_random_init ()
 }
 
 
-void __attribute__ ((destructor)) GNUNET_CRYPTO_random_fini ()
+void __attribute__ ((destructor)) 
+GNUNET_CRYPTO_random_fini ()
 {
   gcry_set_progress_handler (NULL, NULL);
 }

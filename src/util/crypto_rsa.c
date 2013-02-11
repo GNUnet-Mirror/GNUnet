@@ -998,7 +998,6 @@ GNUNET_CRYPTO_rsa_key_create_start (const char *filename,
 {
   struct GNUNET_CRYPTO_RsaKeyGenerationContext *gc;
   struct GNUNET_CRYPTO_RsaPrivateKey *pk;
-  const char *weak_random;
 
   if (NULL != (pk = try_read_key (filename)))
   {
@@ -1026,10 +1025,6 @@ GNUNET_CRYPTO_rsa_key_create_start (const char *filename,
     GNUNET_free (gc);
     return NULL;
   }
-  weak_random = NULL;
-  if (GNUNET_YES ==
-      GNUNET_CRYPTO_random_is_weak ())
-    weak_random = "-w";
   gc->gnunet_rsa = GNUNET_OS_start_process (GNUNET_NO,
 					    GNUNET_OS_INHERIT_STD_ERR,
 					    NULL, 
@@ -1037,7 +1032,6 @@ GNUNET_CRYPTO_rsa_key_create_start (const char *filename,
 					    "gnunet-rsa",
 					    "gnunet-rsa",					    
 					    gc->filename,
-					    weak_random,
 					    NULL);
   if (NULL == gc->gnunet_rsa)
   {

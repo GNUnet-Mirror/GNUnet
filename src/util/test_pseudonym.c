@@ -112,7 +112,6 @@ main (int argc, char *argv[])
 
   GNUNET_log_setup ("test-pseudonym", "WARNING", NULL);
   ok = GNUNET_YES;
-  GNUNET_CRYPTO_random_disable_entropy_gathering ();
   (void) GNUNET_DISK_directory_remove ("/tmp/gnunet-pseudonym-test");
   cfg = GNUNET_CONFIGURATION_create ();
   if (-1 == GNUNET_CONFIGURATION_parse (cfg, "test_pseudonym_data.conf"))

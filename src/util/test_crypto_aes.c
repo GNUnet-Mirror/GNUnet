@@ -147,7 +147,6 @@ main (int argc, char *argv[])
   int failureCount = 0;
 
   GNUNET_log_setup ("test-crypto-aes", "WARNING", NULL);
-  GNUNET_CRYPTO_random_disable_entropy_gathering ();
   GNUNET_assert (strlen (INITVALUE) >
                  sizeof (struct GNUNET_CRYPTO_AesInitializationVector));
   failureCount += testSymcipher ();

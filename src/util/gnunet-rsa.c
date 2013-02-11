@@ -43,11 +43,6 @@ static int print_peer_identity;
  */
 static int print_short_identity;
 
-/**
- * Use weak random number generator for key generation.
- */
-static int weak_random;
-
 
 /**
  * Main function that will be run by the scheduler.
@@ -70,8 +65,6 @@ run (void *cls, char *const *args, const char *cfgfile,
     fprintf (stderr, _("No hostkey file specified on command line\n"));
     return;
   }
-  if (0 != weak_random)    
-    GNUNET_CRYPTO_random_disable_entropy_gathering ();  
   pk = GNUNET_CRYPTO_rsa_key_create_from_file (args[0]);
   if (NULL == pk)
     return;
@@ -127,9 +120,6 @@ main (int argc, char *const*argv)
     { 's', "print-short-identity", NULL,
       gettext_noop ("print the short hash of the public key in ASCII format"),
       0, &GNUNET_GETOPT_set_one, &print_short_identity },
-    { 'w', "weak-random", NULL,
-      gettext_noop ("use insecure, weak random number generator for key generation (for testing only)"),
-      0, &GNUNET_GETOPT_set_one, &weak_random },
     GNUNET_GETOPT_OPTION_END
   };
   int ret;

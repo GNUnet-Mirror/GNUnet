@@ -325,7 +325,6 @@ main (int argc, char *argv[])
   int failureCount = 0;
 
   GNUNET_log_setup ("test-crypto-rsa", "WARNING", NULL);
-  GNUNET_CRYPTO_random_disable_entropy_gathering ();
   if (GNUNET_OK != testCreateFromFile ())
     failureCount++;
   GNUNET_SCHEDULER_run (&test_async_creation, NULL);
