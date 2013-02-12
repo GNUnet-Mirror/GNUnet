@@ -32,6 +32,7 @@
 #include "gnunet_applications.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_regex_lib.h"
+#include "gnunet_arm_service.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_testbed_service.h"
 
@@ -149,7 +150,12 @@ struct RegexPeer
   int search_str_matched;
 
   /**
-   * Peer's dht handle.
+   * Peer's ARM handle.
+   */
+  struct GNUNET_ARM_Handle *arm_handle;
+
+  /**
+   * Peer's DHT handle.
    */
   struct GNUNET_DHT_Handle *dht_handle;
 
@@ -159,9 +165,9 @@ struct RegexPeer
    struct GNUNET_REGEX_search_handle *search_handle;
 
   /**
-   * Testbed operation handle for the dht service.
+   * Testbed operation handle for the ARM and DHT services.
    */
-  struct GNUNET_TESTBED_Operation *dht_op_handle;
+  struct GNUNET_TESTBED_Operation *op_handle;
 
   /**
    * Peers's statistics handle.
@@ -519,8 +525,8 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to write to file!\n");
     }
 
-    if (NULL != peers[peer_cnt].dht_op_handle)
-      GNUNET_TESTBED_operation_done (peers[peer_cnt].dht_op_handle);
+    if (NULL != peers[peer_cnt].op_handle)
+      GNUNET_TESTBED_operation_done (peers[peer_cnt].op_handle);
     if (NULL != peers[peer_cnt].stats_op_handle)
       GNUNET_TESTBED_operation_done (peers[peer_cnt].stats_op_handle);
   }
@@ -862,8 +868,8 @@ regex_found_handler (void *cls,
     }
   }
 
-  GNUNET_TESTBED_operation_done (peer->dht_op_handle);
-  peer->dht_op_handle = NULL;
+  GNUNET_TESTBED_operation_done (peer->op_handle);
+  peer->op_handle = NULL;
 
   if (peers_found == num_search_strings)
   {
@@ -932,7 +938,7 @@ do_connect_by_string (void *cls,
 
     /* First connect to mesh service, then search for string. Next
        connect will be in mesh_connect_cb */
-    peers[0].dht_op_handle =
+    peers[0].op_handle =
       GNUNET_TESTBED_service_connect (NULL,
                                       peers[0].peer_handle,
                                       "dht",
@@ -968,7 +974,7 @@ find_next_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     * dont connect to a new dht for each peer, we might want to seach for n
     * strings on m peers where n > m
     */
-  peers[next_p].dht_op_handle =
+  peers[next_p].op_handle =
     GNUNET_TESTBED_service_connect (NULL,
                                     peers[next_p].peer_handle,
                                     "dht",
@@ -978,6 +984,232 @@ find_next_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                     &dht_da,
                                     &peers[next_p]);
 }
+
+
+/**
+ * ARM connect adapter. Opens a connection to the ARM service.
+ *
+ * @param cls Closure (peer).
+ * @param cfg Configuration handle.
+ *
+ * @return
+ */
+static void *
+arm_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  struct RegexPeer *peer = cls;
+
+  peer->arm_handle = GNUNET_ARM_connect (cfg, NULL);
+
+  return peer->arm_handle;
+}
+
+
+/**
+ * Adapter function called to destroy a connection to the ARM service.
+ *
+ * @param cls Closure (peer).
+ * @param op_result Service handle returned from the connect adapter.
+ */
+static void
+arm_da (void *cls, void *op_result)
+{
+  struct RegexPeer *peer = (struct RegexPeer *) cls;
+
+  GNUNET_assert (peer->arm_handle == op_result);
+
+  if (NULL != peer->arm_handle)
+  {
+    GNUNET_ARM_disconnect (peer->arm_handle);
+    peer->arm_handle = NULL;
+  }
+}
+
+
+/**
+ * Start announcing the next regex in the DHT.
+ *
+ * @param cls Index of the next peer in the peers array.
+ * @param tc TaskContext.
+ */
+void
+announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Callback function invoked when ARM peration is complete: deamon is started.
+ *
+ * @param cls Closure (RegexPeer).
+ * @param result Outcome of the operation.
+ */
+static void
+arm_start_cb (void *cls, enum GNUNET_ARM_ProcessStatus result)
+{
+  struct RegexPeer *peer = (struct RegexPeer *) cls;
+  static unsigned int peer_cnt;
+  unsigned int next_p;
+
+  switch (result)
+  {
+      /**
+       * Service is currently being started (due to client request).
+       */
+    case GNUNET_ARM_PROCESS_STARTING:
+      GNUNET_TESTBED_operation_done (peer->op_handle);
+      peer->op_handle = NULL;
+
+      if (peer_cnt < (num_peers - 1))
+      {
+        next_p = (++peer_cnt % num_peers);
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                      &announce_next_regex,
+                                      (void *) (long) next_p);
+      }
+      else
+      {
+        printf ("All daemons started. Waiting %s to start string searches\n",
+                GNUNET_STRINGS_relative_time_to_string (search_delay,
+                                                        GNUNET_NO));
+        fflush (stdout);
+        GNUNET_SCHEDULER_add_delayed (search_delay,
+                                      do_connect_by_string, 
+                                      NULL);
+      }
+      break;
+
+      /**
+       * Service name is unknown to ARM.
+       */
+    case GNUNET_ARM_PROCESS_UNKNOWN:
+      /**
+       * Service is now down (due to client request).
+       */
+    case GNUNET_ARM_PROCESS_DOWN:
+      /**
+       * Service is already running.
+       */
+    case GNUNET_ARM_PROCESS_ALREADY_RUNNING:
+      /**
+       * Service is already being stopped by some other client.
+       */
+    case GNUNET_ARM_PROCESS_ALREADY_STOPPING:
+      /**
+       * Service is already down (no action taken)
+       */
+    case GNUNET_ARM_PROCESS_ALREADY_DOWN: 
+      /**
+       * ARM is currently being shut down (no more process starts)
+       */
+    case GNUNET_ARM_PROCESS_SHUTDOWN:
+      /**
+       * Error in communication with ARM
+       */
+    case GNUNET_ARM_PROCESS_COMMUNICATION_ERROR:
+      /**
+       * Timeout in communication with ARM
+       */
+    case GNUNET_ARM_PROCESS_COMMUNICATION_TIMEOUT:
+      /**
+      * Failure to perform operation
+      */
+    case GNUNET_ARM_PROCESS_FAILURE:
+    default:
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "ARM returned %d\n", result);
+      GNUNET_abort ();
+  }
+}
+
+
+/**
+ * ARM connect callback. Called when we are connected to the arm service for
+ * the peer in 'cls'. If successfull we start the regex deamon to start
+ * announcing the regex of this peer.
+ *
+ * @param cls internal peer id.
+ * @param op operation handle.
+ * @param ca_result connect adapter result.
+ * @param emsg error message.
+ */
+static void
+arm_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
+                void *ca_result, const char *emsg)
+{
+  struct RegexPeer *peer = (struct RegexPeer *) cls;
+
+  if (NULL != emsg || NULL == op || NULL == ca_result)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ARM connect failed: %s\n", emsg);
+    GNUNET_abort ();
+  }
+
+  GNUNET_assert (NULL != peer->arm_handle);
+  GNUNET_assert (peer->op_handle == op);
+  GNUNET_assert (peer->arm_handle == ca_result);
+
+  GNUNET_ARM_start_service (ca_result, "regexprofiler",
+                            GNUNET_OS_INHERIT_STD_NONE,
+                            GNUNET_TIME_UNIT_FOREVER_REL,
+                            &arm_start_cb,
+                            peer);
+}
+
+
+/**
+ * Task to start the daemons on each peer so that the regexes are announced
+ * into the DHT.
+ *
+ * @param cls NULL
+ * @param tc the task context
+ */
+static void
+do_announce (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  printf ("Starting announce.\n");
+  fflush (stdout);
+
+    /* First connect to arm service, then announce. Next
+       announce will be in arm_connect_cb */
+    peers[0].op_handle =
+      GNUNET_TESTBED_service_connect (NULL,
+                                      peers[0].peer_handle,
+                                      "arm",
+                                      &arm_connect_cb,
+                                      &peers[0],
+                                      &arm_ca,
+                                      &arm_da,
+                                      &peers[0]);
+
+}
+
+
+/**
+ * Start announcing the next regex in the DHT.
+ *
+ * @param cls Index of the next peer in the peers array.
+ * @param tc TaskContext.
+ */
+void
+announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  long next_p = (long) cls;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+  printf ("Starting daemon %ld\n", next_p);
+  fflush (stdout);
+
+  peers[next_p].op_handle =
+    GNUNET_TESTBED_service_connect (NULL,
+                                    peers[next_p].peer_handle,
+                                    "arm",
+                                    &arm_connect_cb,
+                                    &peers[next_p],
+                                    &arm_ca,
+                                    &arm_da,
+                                    &peers[next_p]);
+}
+
 
 /**
  * DHT connect callback. Called when we are connected to the dht service for
@@ -1004,7 +1236,7 @@ dht_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
   }
 
   GNUNET_assert (NULL != peer->dht_handle);
-  GNUNET_assert (peer->dht_op_handle == op);
+  GNUNET_assert (peer->op_handle == op);
   GNUNET_assert (peer->dht_handle == ca_result);
 
   peer->search_str_matched = GNUNET_NO;
@@ -1155,7 +1387,7 @@ peer_churn_cb (void *cls, const char *emsg)
   if (++started_peers == num_peers)
   {
     prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "All peers started successfully in %s\n",
                 GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
     result = GNUNET_OK;
@@ -1216,7 +1448,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
   if (++created_peers == num_peers)
   {
     prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "All peers created successfully in %s\n",
                 GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
     /* Now peers are to be started */
@@ -1444,18 +1676,14 @@ controller_event_cb (void *cls,
            GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to write to file!\n");
        }
 
-       printf ("\nWaiting %s before starting to search.\n",
-               GNUNET_STRINGS_relative_time_to_string (search_delay, GNUNET_YES));
+       printf ("\nWaiting %s before starting to announce.\n",
+               GNUNET_STRINGS_relative_time_to_string (search_delay, GNUNET_NO));
        fflush (stdout);
-
-       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                   "Waiting %s before starting to search.\n",
-                   GNUNET_STRINGS_relative_time_to_string (search_delay, GNUNET_NO));
 
        state = STATE_SEARCH_REGEX;
 
        search_task = GNUNET_SCHEDULER_add_delayed (search_delay,
-                                                   &do_connect_by_string, NULL);
+                                                   &do_announce, NULL);
      }
    }
    break;
