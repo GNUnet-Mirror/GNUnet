@@ -352,12 +352,12 @@ close_handles (struct CacheEntry *entry)
     GNUNET_TESTBED_operation_done (entry->transport_op_);
     entry->transport_op_ = NULL;
   }
-  if (NULL != entry->core_handle)
+  if (NULL != entry->core_op)
   {
-    GNUNET_assert (NULL != entry->core_op);
     GNUNET_TESTBED_operation_done (entry->core_op);
     entry->core_op = NULL;
   }
+  GNUNET_assert (NULL == entry->core_handle);
   if (NULL != entry->cfg)
   {
     GNUNET_CONFIGURATION_destroy (entry->cfg);
@@ -669,16 +669,16 @@ opstart_get_handle_core (void *cls)
 
   GNUNET_assert (NULL != entry);
   LOG_DEBUG ("Opening a CORE connection to peer %u\n", entry->peer_id);
-  /* void?: We also get the handle when the connection to CORE is successful */
-  (void) GNUNET_CORE_connect (entry->cfg, entry,        /* closure */
-                              &core_startup_cb, /* core startup notify */
-                              &core_peer_connect_cb,    /* peer connect notify */
-                              NULL,     /* peer disconnect notify */
-                              NULL,     /* inbound notify */
-                              GNUNET_NO,        /* inbound header only? */
-                              NULL,     /* outbound notify */
-                              GNUNET_NO,        /* outbound header only? */
-                              no_handlers);
+  entry->core_handle =
+      GNUNET_CORE_connect (entry->cfg, entry,        /* closure */
+                           &core_startup_cb, /* core startup notify */
+                           &core_peer_connect_cb,    /* peer connect notify */
+                           NULL,     /* peer disconnect notify */
+                           NULL,     /* inbound notify */
+                           GNUNET_NO,        /* inbound header only? */
+                           NULL,     /* outbound notify */
+                           GNUNET_NO,        /* outbound header only? */
+                           no_handlers);
 }
 
 
@@ -824,8 +824,7 @@ cache_clear_iterator (void *cls, const struct GNUNET_HashCode *key, void *value)
   GNUNET_break (0 == entry->demand);
   LOG_DEBUG ("Clearing entry %u of %u\n", ++ncleared, cache_size);
   GNUNET_CONTAINER_multihashmap_remove (cache, key, value);
-  if (0 == entry->demand)
-    close_handles (entry);
+  close_handles (entry);
   GNUNET_free_non_null (entry->hello);
   GNUNET_break (GNUNET_SCHEDULER_NO_TASK == entry->expire_task);
   GNUNET_break (NULL == entry->transport_handle_);
