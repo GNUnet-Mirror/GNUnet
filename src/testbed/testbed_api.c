@@ -1783,7 +1783,7 @@ GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_ControllerProc *cproc)
   if (NULL != cproc->shandle)
     GNUNET_HELPER_send_cancel (cproc->shandle);
   if (NULL != cproc->helper)
-    GNUNET_HELPER_stop (cproc->helper);
+    GNUNET_HELPER_soft_stop (cproc->helper);
   if (NULL != cproc->cfg)
     GNUNET_CONFIGURATION_destroy (cproc->cfg);
   if (NULL != cproc->helper_argv)
