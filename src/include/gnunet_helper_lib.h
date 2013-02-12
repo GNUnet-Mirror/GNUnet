@@ -81,6 +81,16 @@ GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h);
 
 
 /**
+ * Kills the helper by closing its stdin (the helper is expected to catch the
+ * resulting SIGPIPE and shutdown), closes the pipe and frees the handle
+ *
+ * @param h handle to helper to stop
+ */
+void
+GNUNET_HELPER_soft_stop (struct GNUNET_HELPER_Handle *h);
+
+
+/**
  * Continuation function.
  * 
  * @param cls closure

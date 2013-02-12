@@ -165,15 +165,26 @@ struct GNUNET_HELPER_Handle
  * Stop the helper process, we're closing down or had an error.
  *
  * @param h handle to the helper process
+ * @param soft_kill if GNUNET_YES, signals termination by closing the helper's
+ *          stdin; GNUNET_NO to signal termination by sending SIGTERM to helper
  */
 static void
-stop_helper (struct GNUNET_HELPER_Handle *h)
+stop_helper (struct GNUNET_HELPER_Handle *h, int soft_kill)
 {
   struct GNUNET_HELPER_SendHandle *sh;
 
   if (NULL != h->helper_proc)
   {
-    GNUNET_break (0 == GNUNET_OS_process_kill (h->helper_proc, SIGTERM));
+    if (GNUNET_YES == soft_kill)
+    { 
+      /* soft-kill only possible with pipes */
+      GNUNET_assert (NULL != h->helper_in);
+      GNUNET_DISK_pipe_close (h->helper_in);
+      h->helper_in = NULL;
+      h->fh_to_helper = NULL;
+    }
+    else
+      GNUNET_break (0 == GNUNET_OS_process_kill (h->helper_proc, SIGTERM));
     GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (h->helper_proc));
     GNUNET_OS_process_destroy (h->helper_proc);
     h->helper_proc = NULL;
@@ -266,7 +277,7 @@ helper_read (void *cls,
       GNUNET_HELPER_stop (h);
       return;
     }
-    stop_helper (h);
+    stop_helper (h, GNUNET_NO);
     /* Restart the helper */
     h->restart_task =
 	GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &restart_task, h);
@@ -285,7 +296,7 @@ helper_read (void *cls,
       GNUNET_HELPER_stop (h);
       return;
     }
-    stop_helper (h);
+    stop_helper (h, GNUNET_NO);
     /* Restart the helper */
     h->restart_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
@@ -310,7 +321,7 @@ helper_read (void *cls,
       GNUNET_HELPER_stop (h);
       return;
     }     
-    stop_helper (h);
+    stop_helper (h, GNUNET_NO);
     /* Restart the helper */
     h->restart_task =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
@@ -333,7 +344,7 @@ start_helper (struct GNUNET_HELPER_Handle *h)
   if ( (h->helper_in == NULL) || (h->helper_out == NULL))
   {
     /* out of file descriptors? try again later... */
-    stop_helper (h);
+    stop_helper (h, GNUNET_NO);
     h->restart_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
 				    &restart_task, h);    
@@ -354,7 +365,7 @@ start_helper (struct GNUNET_HELPER_Handle *h)
   if (NULL == h->helper_proc)
   {
     /* failed to start process? try again later... */
-    stop_helper (h);
+    stop_helper (h, GNUNET_NO);
     h->restart_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
 				    &restart_task, h);    
@@ -437,9 +448,11 @@ GNUNET_HELPER_start (int with_control_pipe,
  * @brief Kills the helper, closes the pipe and frees the h
  *
  * @param h h to helper to stop
+ * @param soft_kill if GNUNET_YES, signals termination by closing the helper's
+ *          stdin; GNUNET_NO to signal termination by sending SIGTERM to helper
  */
-void
-GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h)
+static void
+kill_helper (struct GNUNET_HELPER_Handle *h, int soft_kill)
 {
   struct GNUNET_HELPER_SendHandle *sh;
   unsigned int c;
@@ -455,13 +468,38 @@ GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h)
       sh->cont (sh->cont_cls, GNUNET_SYSERR);
     GNUNET_free (sh);
   }
-  stop_helper (h);
+  stop_helper (h, soft_kill);
   GNUNET_SERVER_mst_destroy (h->mst);
   GNUNET_free (h->binary_name);
   for (c = 0; h->binary_argv[c] != NULL; c++)
     GNUNET_free (h->binary_argv[c]);
   GNUNET_free (h->binary_argv);
   GNUNET_free (h);
+}
+
+
+/**
+ * Kills the helper, closes the pipe and frees the handle
+ *
+ * @param h handle to helper to stop
+ */
+void
+GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h)
+{
+  kill_helper (h, GNUNET_NO);
+}
+
+
+/**
+ * Kills the helper by closing its stdin (the helper is expected to catch the
+ * resulting SIGPIPE and shutdown), closes the pipe and frees the handle
+ *
+ * @param h handle to helper to stop
+ */
+void
+GNUNET_HELPER_soft_stop (struct GNUNET_HELPER_Handle *h)
+{
+  kill_helper (h, GNUNET_YES);
 }
 
 
@@ -505,7 +543,7 @@ helper_write (void *cls,
       GNUNET_HELPER_stop (h);
       return;
     }
-    stop_helper (h);
+    stop_helper (h, GNUNET_NO);
     /* Restart the helper */
     h->restart_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
