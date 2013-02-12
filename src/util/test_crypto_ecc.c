@@ -201,6 +201,27 @@ test_ecdh ()
 			      sizeof (struct GNUNET_HashCode)));
 }
 
+static void
+perf_keygen ()
+{
+  struct GNUNET_TIME_Absolute start;
+  struct GNUNET_CRYPTO_EccPrivateKey *pk;
+  int i;
+
+  start = GNUNET_TIME_absolute_get ();
+  for (i=0;i<10;i++)
+  {
+    fprintf (stderr, ".");
+    pk = GNUNET_CRYPTO_ecc_key_create ();
+    GNUNET_CRYPTO_ecc_key_free (pk);
+  }
+  fprintf (stderr, "\n");
+  printf ("Creating 10 ECC keys took %llu ms\n",
+          (unsigned long long)
+          GNUNET_TIME_absolute_get_duration (start).rel_value);
+}
+
+
 
 int
 main (int argc, char *argv[])
@@ -228,6 +249,7 @@ main (int argc, char *argv[])
   GNUNET_CRYPTO_ecc_key_free (key);
   GNUNET_assert (0 == UNLINK (KEYFILE));
   test_ecdh ();
+  perf_keygen ();
 
   if (failureCount != 0)
   {
