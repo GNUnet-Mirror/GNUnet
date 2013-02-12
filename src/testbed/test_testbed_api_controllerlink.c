@@ -252,6 +252,11 @@ static struct GNUNET_TESTBED_Peer *master_peer;
 struct GNUNET_TESTBED_HostHabitableCheckHandle *hc_handle;
 
 /**
+ * The task handle for the delay task
+ */
+GNUNET_SCHEDULER_TaskIdentifier delay_task_id;
+
+/**
  * Event mask
  */
 uint64_t event_mask;
@@ -273,6 +278,11 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
+  if (GNUNET_SCHEDULER_NO_TASK != delay_task_id)
+  {
+    GNUNET_SCHEDULER_cancel (delay_task_id);
+    delay_task_id = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (NULL != hc_handle)
     GNUNET_TESTBED_is_host_habitable_cancel (hc_handle);
   if (NULL != slave3)
@@ -335,6 +345,7 @@ do_abort_now (void *cls)
 static void
 delay_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  delay_task_id = GNUNET_SCHEDULER_NO_TASK;
   switch (result)
   {
   case SLAVE2_PEER_CREATE_SUCCESS:
@@ -383,9 +394,11 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
     result = SLAVE2_PEER_CREATE_SUCCESS;
     slave2_peer = peer;
     GNUNET_TESTBED_operation_done (op);
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_SECONDS, 1), &delay_task,
-                                  NULL);
+    delay_task_id =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                      (GNUNET_TIME_UNIT_SECONDS, 1),
+                                      &delay_task,
+                                      NULL);
     break;
   default:
     GNUNET_assert (0);
@@ -496,9 +509,10 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     result = MASTER_SLAVE2_PEERS_CONNECTED;
     GNUNET_TESTBED_operation_done (op);
     op = NULL;
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_SECONDS, 1), &delay_task,
-                                  NULL);
+    delay_task_id =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                      (GNUNET_TIME_UNIT_SECONDS, 1), &delay_task,
+                                      NULL);
     break;
   case MASTER_SLAVE2_PEERS_CONNECTED:
     GNUNET_assert (GNUNET_TESTBED_ET_PEER_STOP == event->type);
