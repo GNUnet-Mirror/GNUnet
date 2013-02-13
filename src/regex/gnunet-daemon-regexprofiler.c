@@ -59,11 +59,6 @@ static struct GNUNET_DHT_Handle *dht_handle;
 static struct GNUNET_REGEX_announce_handle *announce_handle;
 
 /**
- * Hostkey generation context
- */
-static struct GNUNET_CRYPTO_EccKeyGenerationContext *keygen;
-
-/**
  * Periodically reannounce regex.
  */
 static GNUNET_SCHEDULER_TaskIdentifier reannounce_task;
@@ -77,11 +72,6 @@ static struct GNUNET_TIME_Relative reannounce_freq;
  * Random delay to spread out load on the DHT.
  */
 static struct GNUNET_TIME_Relative announce_delay;
-
-/**
- * Local peer's PeerID.
- */
-static struct GNUNET_PeerIdentity my_full_id;
 
 /**
  * Maximal path compression length for regex announcing.
@@ -116,11 +106,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shutting down\n");
 
-  if (NULL != keygen)
-  {
-    GNUNET_CRYPTO_ecc_key_create_stop (keygen);
-    keygen = NULL;
-  }
   if (NULL != announce_handle)
   {
     GNUNET_REGEX_announce_cancel (announce_handle);
@@ -146,7 +131,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 reannounce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct GNUNET_PeerIdentity id;
   char *regex = cls;
+
   reannounce_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
@@ -161,8 +148,9 @@ reannounce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "First time, creating regex: %s\n",
                 regex);
+    memset (&id, 0, sizeof (struct GNUNET_PeerIdentity));
     announce_handle = GNUNET_REGEX_announce (dht_handle,
-                                            &my_full_id,
+                                            &id,
                                             regex,
                                             (unsigned int) max_path_compression,
                                             stats_handle);
@@ -273,42 +261,6 @@ load_regexes (const char *filename, char **rx)
 
 
 /**
- * Callback for hostkey read/generation
- *
- * @param cls Closure (not used).
- * @param pk The private key of the local peer.
- * @param emsg Error message if applicable.
- */
-static void
-key_generation_cb (void *cls,
-                   struct GNUNET_CRYPTO_EccPrivateKey *pk,
-                   const char *emsg)
-{
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded my_public_key;
-
-  keygen = NULL;
-  if (NULL == pk)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Regexprofiler could not access hostkey: %s. Exiting.\n"),
-                emsg);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-
-  GNUNET_CRYPTO_ecc_key_get_public (pk, &my_public_key);
-  GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
-                      &my_full_id.hashPubKey);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Regexprofiler for peer [%s] starting\n",
-              GNUNET_i2s(&my_full_id));
-  announce_regex (rx_with_pfx);
-  GNUNET_free (rx_with_pfx);
-}
-
-
-/**
  * @brief Main function that will be run by the scheduler.
  *
  * @param cls closure
@@ -322,21 +274,8 @@ run (void *cls, char *const *args GNUNET_UNUSED,
      const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
   char *regex = NULL;
-  char *keyfile;
 
   cfg = cfg_;
-
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "PEER", "PRIVATE_KEY",
-                                               &keyfile))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
-                "regexdaemon", "peer/privatekey");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg, "REGEXPROFILER", "MAX_PATH_COMPRESSION",
@@ -417,12 +356,9 @@ run (void *cls, char *const *args GNUNET_UNUSED,
 
   /* Announcing regexes from policy_filename */
   GNUNET_asprintf (&rx_with_pfx, "%s(%s)", regex_prefix, regex);
+  announce_regex (rx_with_pfx);
   GNUNET_free (regex);
-
-  keygen = GNUNET_CRYPTO_ecc_key_create_start (keyfile,
-                                               &key_generation_cb,
-                                               NULL);
-  GNUNET_free (keyfile);
+  GNUNET_free (rx_with_pfx);
 
   /* Scheduled the task to clean up when shutdown is called */
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
