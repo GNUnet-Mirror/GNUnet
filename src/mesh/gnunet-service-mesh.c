@@ -771,7 +771,7 @@ struct MeshClient
   struct GNUNET_SERVER_Client *handle;
 
     /**
-     * Applications that this client has claimed to provide
+     * Applications that this client has claimed to provide: H(app) = app.
      */
   struct GNUNET_CONTAINER_MultiHashMap *apps;
 
@@ -997,7 +997,7 @@ static MESH_TunnelNumber next_tid;
 static MESH_TunnelNumber next_local_tid;
 
 /**
- * All application types provided by this peer.
+ * All application types provided by this peer: H(app) = *Client.
  */
 static struct GNUNET_CONTAINER_MultiHashMap *applications;
 
@@ -6094,9 +6094,10 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
 static int
 deregister_app (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
-  struct GNUNET_CONTAINER_MultiHashMap *h = cls;
+  struct MeshClient *c = cls;
+
   GNUNET_break (GNUNET_YES ==
-                GNUNET_CONTAINER_multihashmap_remove (h, key, value));
+                GNUNET_CONTAINER_multihashmap_remove (applications, key, c));
   return GNUNET_OK;
 }
 
@@ -6337,7 +6338,7 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     /* deregister clients applications */
     if (NULL != c->apps)
     {
-      GNUNET_CONTAINER_multihashmap_iterate (c->apps, &deregister_app, c->apps);
+      GNUNET_CONTAINER_multihashmap_iterate (c->apps, &deregister_app, c);
       GNUNET_CONTAINER_multihashmap_destroy (c->apps);
     }
     if (0 == GNUNET_CONTAINER_multihashmap_size (applications) &&
