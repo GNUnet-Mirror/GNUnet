@@ -115,13 +115,6 @@ struct Session
   struct GSC_TypeMap *tmap;
 
   /**
-   * At what time did we initially establish this session?
-   * (currently unused, should be integrated with ATS in the
-   * future...).
-   */
-  struct GNUNET_TIME_Absolute time_established;
-
-  /**
    * Task to transmit corked messages with a delay.
    */
   GNUNET_SCHEDULER_TaskIdentifier cork_task;
@@ -137,6 +130,12 @@ struct Session
    */
   int ready_to_transmit;
 
+  /**
+   * Is this the first time we're sending the typemap? If so,
+   * we want to send it a bit faster the second time.  0 if
+   * we are sending for the first time, 1 if not.
+   */
+  int first_typemap;
 };
 
 
@@ -226,7 +225,15 @@ transmit_typemap_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_MessageHeader *hdr;
   struct GNUNET_TIME_Relative delay;
 
-  delay = TYPEMAP_FREQUENCY;
+  if (0 == session->first_typemap)
+  {
+    delay = GNUNET_TIME_UNIT_ZERO;
+    session->first_typemap = 1;
+  }
+  else
+  {
+    delay = TYPEMAP_FREQUENCY;
+  }
   /* randomize a bit to avoid spont. sync */
   delay.rel_value +=
       GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000);
@@ -259,7 +266,6 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
   session->tmap = GSC_TYPEMAP_create ();
   session->peer = *peer;
   session->kxinfo = kx;
-  session->time_established = GNUNET_TIME_absolute_get ();
   session->typemap_task =
       GNUNET_SCHEDULER_add_now (&transmit_typemap_task, session);
   GNUNET_assert (GNUNET_OK ==

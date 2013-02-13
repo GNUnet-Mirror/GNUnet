@@ -270,8 +270,11 @@ enum KxStateMachine
   KX_STATE_UP,
 
   /**
-   * We're rekeying, so we have sent the other peer our new ephemeral
-   * key, but we did not get a matching PONG yet.
+   * We're rekeying (or had a timeout), so we have sent the other peer
+   * our new ephemeral key, but we did not get a matching PONG yet.
+   * This is equivalent to being 'KX_STATE_KEY_RECEIVED', except that
+   * the session is marked as 'up' with sessions (as we don't want to
+   * drop and re-establish P2P connections simply due to rekeying).
    */
   KX_STATE_REKEY_SENT
 
@@ -1222,6 +1225,11 @@ struct DeliverMessageContext
   const struct GNUNET_ATS_Information *atsi;
 
   /**
+   * Key exchange context.
+   */
+  struct GSC_KeyExchangeInfo *kx;
+
+  /**
    * Sender of the message.
    */
   const struct GNUNET_PeerIdentity *peer;
@@ -1276,11 +1284,11 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
   }
   if (0 == GNUNET_TIME_absolute_get_remaining (kx->foreign_key_expires).rel_value)
   {
-    kx->status = KX_STATE_KEY_SENT;
     GNUNET_STATISTICS_update (GSC_stats,
-                              gettext_noop
-                              ("# DATA message dropped (session key expired)"),
+                              gettext_noop ("# sessions terminated by key expiration"),
                               1, GNUNET_NO);
+    GSC_SESSIONS_end (&kx->peer);
+    kx->status = KX_STATE_KEY_SENT;
     send_key (kx);
     return;
   }
@@ -1379,6 +1387,7 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
                             gettext_noop ("# bytes of payload decrypted"),
                             size - sizeof (struct EncryptedMessage), GNUNET_NO);
   dmc.atsi = atsi;
+  dmc.kx = kx;
   dmc.atsi_count = atsi_count;
   dmc.peer = &kx->peer;
   if (GNUNET_OK !=
@@ -1404,6 +1413,14 @@ deliver_message (void *cls, void *client, const struct GNUNET_MessageHeader *m)
 {
   struct DeliverMessageContext *dmc = client;
 
+  if (KX_STATE_UP != dmc->kx->status)
+  {
+    GNUNET_STATISTICS_update (GSC_stats,
+                              gettext_noop
+                              ("# PAYLOAD dropped (out of order)"),
+                              1, GNUNET_NO);
+    return GNUNET_OK;
+  }
   switch (ntohs (m->type))
   {
   case GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP:
