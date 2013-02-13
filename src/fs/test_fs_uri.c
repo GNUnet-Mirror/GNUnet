@@ -307,7 +307,6 @@ main (int argc, char *argv[])
   GNUNET_log_setup ("test_fs_uri",
                     "WARNING",
                     NULL);
-  GNUNET_CRYPTO_random_disable_entropy_gathering ();
   failureCount += testKeyword ();
   failureCount += testLocation ();
   for (i = 0; i < 255; i++)
