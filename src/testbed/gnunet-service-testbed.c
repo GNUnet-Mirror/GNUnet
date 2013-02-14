@@ -74,6 +74,11 @@ struct ForwardedOperationContext *fopcq_tail;
 struct OperationQueue *GST_opq_openfds;
 
 /**
+ * Timeout for operations which may take some time
+ */
+const struct GNUNET_TIME_Relative GST_timeout;
+
+/**
  * The size of the host list
  */
 unsigned int GST_host_list_size;
@@ -765,7 +770,7 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                &lcf_forwarded_operation_reply_relay,
                                                lcf);
     lcf->fopc->timeout_task =
-        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &lcf_forwarded_operation_timeout,
+        GNUNET_SCHEDULER_add_delayed (GST_timeout, &lcf_forwarded_operation_timeout,
                                       lcf);
     GNUNET_CONTAINER_DLL_insert_tail (fopcq_head, fopcq_tail, lcf->fopc);
     lcf->state = FINISHED;
@@ -1558,7 +1563,7 @@ handle_peer_create (void *cls, struct GNUNET_SERVER_Client *client,
                                              &msg->header,
                                              peer_create_success_cb, fo_ctxt);
   fo_ctxt->timeout_task =
-      GNUNET_SCHEDULER_add_delayed (TIMEOUT, &peer_create_forward_timeout,
+      GNUNET_SCHEDULER_add_delayed (GST_timeout, &peer_create_forward_timeout,
                                     fo_ctxt);
   GNUNET_CONTAINER_DLL_insert_tail (fopcq_head, fopcq_tail, fo_ctxt);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -1610,7 +1615,7 @@ handle_peer_destroy (void *cls, struct GNUNET_SERVER_Client *client,
                                                fopc->operation_id, &msg->header,
                                                &peer_destroy_success_cb, fopc);
     fopc->timeout_task =
-        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &GST_forwarded_operation_timeout,
+        GNUNET_SCHEDULER_add_delayed (GST_timeout, &GST_forwarded_operation_timeout,
                                       fopc);
     GNUNET_CONTAINER_DLL_insert_tail (fopcq_head, fopcq_tail, fopc);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -1669,7 +1674,7 @@ handle_peer_start (void *cls, struct GNUNET_SERVER_Client *client,
                                                &GST_forwarded_operation_reply_relay,
                                                fopc);
     fopc->timeout_task =
-        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &GST_forwarded_operation_timeout,
+        GNUNET_SCHEDULER_add_delayed (GST_timeout, &GST_forwarded_operation_timeout,
                                       fopc);
     GNUNET_CONTAINER_DLL_insert_tail (fopcq_head, fopcq_tail, fopc);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -1739,7 +1744,7 @@ handle_peer_stop (void *cls, struct GNUNET_SERVER_Client *client,
                                                &GST_forwarded_operation_reply_relay,
                                                fopc);
     fopc->timeout_task =
-        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &GST_forwarded_operation_timeout,
+        GNUNET_SCHEDULER_add_delayed (GST_timeout, &GST_forwarded_operation_timeout,
                                       fopc);
     GNUNET_CONTAINER_DLL_insert_tail (fopcq_head, fopcq_tail, fopc);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -1815,7 +1820,7 @@ handle_peer_get_config (void *cls, struct GNUNET_SERVER_Client *client,
                                                &GST_forwarded_operation_reply_relay,
                                                fopc);
     fopc->timeout_task =
-        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &GST_forwarded_operation_timeout,
+        GNUNET_SCHEDULER_add_delayed (GST_timeout, &GST_forwarded_operation_timeout,
                                       fopc);
     GNUNET_CONTAINER_DLL_insert_tail (fopcq_head, fopcq_tail, fopc);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -2197,8 +2202,14 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
                                                         "MAX_OPEN_FDS", &num));
   GST_opq_openfds = GNUNET_TESTBED_operation_queue_create_ ((unsigned int) num);
   GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONFIGURATION_get_value_time (cfg, "TESTBED",
+                                                      "OPERATION_TIMEOUT",
+                                                      (struct
+                                                       GNUNET_TIME_Relative *)
+                                                      &GST_timeout));
+  GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
-                                                        "HOSTNAME", &hostname));
+                                                        "HOSTNAME", &hostname));  
   our_config = GNUNET_CONFIGURATION_dup (cfg);
   GNUNET_SERVER_add_handlers (server, message_handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect_cb, NULL);

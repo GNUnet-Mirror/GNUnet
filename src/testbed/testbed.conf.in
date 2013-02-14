@@ -4,6 +4,7 @@ AUTOSTART = NO
 HOSTNAME = localhost
 HOME = $SERVICEHOME
 BINARY = gnunet-service-testbed
+OPERATION_TIMEOUT = 30 s
 # Set this to the path where the testbed helper is installed
 # HELPER_BINARY_PATH = @prefix@/lib/gnunet/libexec/gnunet-helper-testbed
 ACCEPT_FROM = 127.0.0.1;

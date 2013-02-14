@@ -381,7 +381,7 @@ GST_process_next_focc (struct RegisteredHostContext *rhc)
   GNUNET_free (focc->orig_msg);
   focc->orig_msg = NULL;
   fopc->timeout_task =
-      GNUNET_SCHEDULER_add_delayed (TIMEOUT, &forwarded_overlay_connect_timeout,
+      GNUNET_SCHEDULER_add_delayed (GST_timeout, &forwarded_overlay_connect_timeout,
                                     fopc);
   GNUNET_CONTAINER_DLL_insert_tail (fopcq_head, fopcq_tail, fopc);
 }
@@ -1221,7 +1221,7 @@ GST_handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
                                                &GST_forwarded_operation_reply_relay,
                                                fopc);
     fopc->timeout_task =
-        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &GST_forwarded_operation_timeout,
+        GNUNET_SCHEDULER_add_delayed (GST_timeout, &GST_forwarded_operation_timeout,
                                       fopc);
     GNUNET_CONTAINER_DLL_insert_tail (fopcq_head, fopcq_tail, fopc);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -1264,7 +1264,7 @@ GST_handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
   occ->peer2_controller = peer2_controller;
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == occ->timeout_task);
   occ->timeout_task =
-      GNUNET_SCHEDULER_add_delayed (TIMEOUT, &timeout_overlay_connect, occ);
+      GNUNET_SCHEDULER_add_delayed (GST_timeout, &timeout_overlay_connect, occ);
   /* Get the identity of the second peer */
   if (NULL != occ->peer2_controller)
   {
@@ -1564,7 +1564,7 @@ GST_handle_remote_overlay_connect (void *cls,
                                       &cache_transport_peer_connect_notify,
                                       rocc);
   rocc->timeout_rocc_task_id =
-      GNUNET_SCHEDULER_add_delayed (TIMEOUT, &timeout_rocc_task, rocc);
+      GNUNET_SCHEDULER_add_delayed (GST_timeout, &timeout_rocc_task, rocc);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 

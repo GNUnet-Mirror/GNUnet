@@ -54,11 +54,6 @@
  */
 #define LIST_GROW_STEP 10
 
-/**
- * Default timeout for operations which may take some time
- */
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 15)
-
 
 /**
  * A routing entry
@@ -609,6 +604,11 @@ extern struct Slave **GST_slave_list;
  * Operation queue for open file descriptors
  */
 extern struct OperationQueue *GST_opq_openfds;
+
+/**
+ * Timeout for operations which may take some time
+ */
+const extern struct GNUNET_TIME_Relative GST_timeout;
 
 /**
  * The size of the peer list
