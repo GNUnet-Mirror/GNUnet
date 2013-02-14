@@ -2258,9 +2258,8 @@ create_selectable_pipe (PHANDLE read_pipe_ptr, PHANDLE write_pipe_ptr,
      * a waste, since only a single direction is actually used.
      * It's important to only allow a single instance, to ensure that
      * the pipe was not created earlier by some other process, even if
-     * the pid has been reused.  We avoid FILE_FLAG_FIRST_PIPE_INSTANCE
-     * because that is only available for Win2k SP2 and WinXP.  */
-    read_pipe = CreateNamedPipeA (pipename, PIPE_ACCESS_INBOUND | dwReadMode, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE, 1,   /* max instances */
+     * the pid has been reused.  */
+    read_pipe = CreateNamedPipeA (pipename, PIPE_ACCESS_INBOUND | FILE_FLAG_FIRST_PIPE_INSTANCE | dwReadMode, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE, 1,   /* max instances */
                                   psize,        /* output buffer size */
                                   psize,        /* input buffer size */
                                   NMPWAIT_USE_DEFAULT_WAIT, sa_ptr);
