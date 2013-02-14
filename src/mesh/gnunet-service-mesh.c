@@ -2026,7 +2026,9 @@ peer_info_delete_tunnel (void *cls, const struct GNUNET_HashCode * key, void *va
     {
       peer->ntunnels--;
       peer->tunnels[i] = peer->tunnels[peer->ntunnels];
-      peer->tunnels = GNUNET_realloc (peer->tunnels, peer->ntunnels);
+      peer->tunnels = 
+        GNUNET_realloc (peer->tunnels, 
+                        peer->ntunnels * sizeof(struct MeshTunnel *));
       return GNUNET_YES;
     }
   }
