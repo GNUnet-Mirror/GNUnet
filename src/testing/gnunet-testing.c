@@ -28,8 +28,6 @@
 #include "gnunet_testing_lib.h"
 
 
-#define HOSTKEYFILESIZE 1024
-
 /**
  * Final status code.
  */
@@ -119,7 +117,7 @@ create_unique_cfgs (const char * template, const unsigned int no)
 static int
 create_hostkeys (const unsigned int no)
 {
-  static char pad[HOSTKEYFILESIZE];
+  static char pad[GNUNET_TESTING_HOSTKEYFILESIZE];
   struct GNUNET_TESTING_System *system;
   struct GNUNET_PeerIdentity id;
   struct GNUNET_DISK_FileHandle *fd;
@@ -146,10 +144,10 @@ create_hostkeys (const unsigned int no)
   ret = GNUNET_DISK_file_write (fd, pkb, 
 				ntohs (pkb->size));
   GNUNET_assert (ntohs (pkb->size) == ret);
-  GNUNET_assert (ntohs (pkb->size) < HOSTKEYFILESIZE);
-  GNUNET_assert (HOSTKEYFILESIZE - ret ==
+  GNUNET_assert (ntohs (pkb->size) < GNUNET_TESTING_HOSTKEYFILESIZE);
+  GNUNET_assert (GNUNET_TESTING_HOSTKEYFILESIZE - ret ==
 		 GNUNET_DISK_file_write (fd, pad, 
-					 HOSTKEYFILESIZE - ret));
+					 GNUNET_TESTING_HOSTKEYFILESIZE - ret));
   
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fd));
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
