@@ -440,10 +440,10 @@ struct MeshTunnel
      */
   uint32_t last_fwd_ack;
 
-  /**
-   * BCK ACK value received from the hop towards the owner of the tunnel,
-   * (previous node / owner): up to what message PID can we sent back to him.
-   */
+    /**
+     * BCK ACK value received from the hop towards the owner of the tunnel,
+     * (previous node / owner): up to what message PID can we sent back to him.
+     */
   uint32_t bck_ack;
 
     /**
@@ -486,11 +486,6 @@ struct MeshTunnel
      * Number of peers that are connected and potentially ready to receive data
      */
   unsigned int peers_ready;
-
-    /**
-     * Number of peers that have been added to the tunnel
-     */
-  unsigned int peers_total;
 
     /**
      * Client owner of the tunnel, if any
@@ -3035,7 +3030,6 @@ tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
   if (GNUNET_NO ==
       GNUNET_CONTAINER_multihashmap_contains (t->peers, &id.hashPubKey))
   {
-    t->peers_total++;
     GNUNET_array_append (peer->tunnels, peer->ntunnels, t);
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONTAINER_multihashmap_put (t->peers, &id.hashPubKey,
@@ -7915,8 +7909,7 @@ handle_local_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   *resp = *msg;
   resp->npeers = 0;
   ctx.msg = resp;
-  ctx.lookup = GNUNET_CONTAINER_multihashmap_create (4 * t->peers_total,
-                                                     GNUNET_YES);
+  ctx.lookup = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_YES);
   ctx.c = c;
 
   /* Collect and send information */
