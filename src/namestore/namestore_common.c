@@ -523,6 +523,8 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
   uint16_t mx_pref_n;
   unsigned int proto;
   
+  if (NULL == s)
+    return GNUNET_SYSERR;
   switch (type)
   {
   case 0:
