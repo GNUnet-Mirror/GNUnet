@@ -1866,7 +1866,7 @@ GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h)
   return ret;
 }
 
-#ifndef WINDOWS
+#ifdef WINDOWS
 /**
  * Get a GNUnet file handle from a W32 handle.
  *
