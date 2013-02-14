@@ -230,5 +230,6 @@ endif
 
 EXTRA_DIST = \
   ats.h \
-  test_ats_api.conf
+  test_ats_api.conf \
+  test_ats_mlp.conf
 
