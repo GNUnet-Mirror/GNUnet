@@ -1459,7 +1459,7 @@ announce_application (void *cls, const struct GNUNET_HashCode * key, void *value
     return GNUNET_YES;
   }
   block.type = htonl (block.type);
-
+  DEBUG_DHT ("Putting APP key: %s\n", GNUNET_h2s (key));
   GNUNET_break (NULL != 
                 GNUNET_DHT_put (dht_handle, key,
 				dht_replication_level,
