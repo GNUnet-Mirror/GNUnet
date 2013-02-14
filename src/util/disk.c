@@ -1866,55 +1866,103 @@ GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h)
   return ret;
 }
 
+#ifndef WINDOWS
+/**
+ * Get a GNUnet file handle from a W32 handle.
+ *
+ * @param handle native handle
+ * @return GNUnet file handle corresponding to the W32 handle
+ */
+struct GNUNET_DISK_FileHandle *
+GNUNET_DISK_get_handle_from_w32_handle (HANDLE osfh)
+{
+  struct GNUNET_DISK_FileHandle *fh;
+
+  DWORD dwret;
+  enum GNUNET_FILE_Type ftype;
+
+  dwret = GetFileType (osfh);
+  switch (dwret)
+  {
+  case FILE_TYPE_DISK:
+    ftype = GNUNET_DISK_HANLDE_TYPE_FILE;
+    break;
+  case FILE_TYPE_PIPE:
+    ftype = GNUNET_DISK_HANLDE_TYPE_PIPE;
+    break;
+  default:
+    return NULL;
+  }
+
+  fh = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
+
+  fh->h = osfh;
+  fh->type = ftype;
+  if (ftype == GNUNET_DISK_HANLDE_TYPE_PIPE)
+  {
+    /**
+     * Note that we can't make it overlapped if it isn't already.
+     * (ReOpenFile() is only available in 2003/Vista).
+     * The process that opened this file in the first place (usually a parent
+     * process, if this is stdin/stdout/stderr) must make it overlapped,
+     * otherwise we're screwed, as selecting on non-overlapped handle
+     * will block.
+     */
+    fh->oOverlapRead = GNUNET_malloc (sizeof (OVERLAPPED));
+    fh->oOverlapWrite = GNUNET_malloc (sizeof (OVERLAPPED));
+    fh->oOverlapRead->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
+    fh->oOverlapWrite->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
+  }
+
+  return fh;
+}
+#endif
 
 /**
- * Get a handle from a native FD.
+ * Get a handle from a native integer FD.
  *
- * @param fd native file descriptor
+ * @param fd native integer file descriptor
+ * @return file handle corresponding to the descriptor
+ */
+struct GNUNET_DISK_FileHandle *
+GNUNET_DISK_get_handle_from_int_fd (int fno)
+{
+  struct GNUNET_DISK_FileHandle *fh;
+
+#ifndef WINDOWS
+  fh = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
+
+  fh->fd = fno;
+#else
+  intptr_t osfh;
+
+  osfh = _get_osfhandle (fno);
+  if (INVALID_HANDLE_VALUE == (HANDLE) osfh)
+    return NULL;
+
+  fh = GNUNET_DISK_get_handle_from_w32_handle ((HANDLE) osfh);
+#endif
+
+  return fh;
+}
+
+
+/**
+ * Get a handle from a native streaming FD.
+ *
+ * @param fd native streaming file descriptor
  * @return file handle corresponding to the descriptor
  */
 struct GNUNET_DISK_FileHandle *
 GNUNET_DISK_get_handle_from_native (FILE *fd)
 {
-  struct GNUNET_DISK_FileHandle *fh;
   int fno;
-#if MINGW
-  intptr_t osfh;
-#endif
 
   fno = fileno (fd);
   if (-1 == fno)
     return NULL;
 
-#if MINGW
-  osfh = _get_osfhandle (fno);
-  if (INVALID_HANDLE_VALUE == (HANDLE) osfh)
-    return NULL;
-#endif
-
-  fh = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
-
-#if MINGW
-  fh->h = (HANDLE) osfh;
-  /* Assume it to be a pipe. TODO: use some kind of detection
-   * function to figure out handle type.
-   * Note that we can't make it overlapped if it isn't already.
-   * (ReOpenFile() is only available in 2003/Vista).
-   * The process that opened this file in the first place (usually a parent
-   * process, if this is stdin/stdout/stderr) must make it overlapped,
-   * otherwise we're screwed, as selecting on non-overlapped handle
-   * will block.
-   */
-  fh->type = GNUNET_DISK_HANLDE_TYPE_PIPE;
-  fh->oOverlapRead = GNUNET_malloc (sizeof (OVERLAPPED));
-  fh->oOverlapWrite = GNUNET_malloc (sizeof (OVERLAPPED));
-  fh->oOverlapRead->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
-  fh->oOverlapWrite->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
-#else
-  fh->fd = fno;
-#endif
-
-  return fh;
+  return GNUNET_DISK_get_handle_from_int_fd (fno);
 }
 
 

@@ -504,6 +504,27 @@ GNUNET_DISK_pipe_handle (const struct GNUNET_DISK_PipeHandle *p,
                          enum GNUNET_DISK_PipeEnd n);
 
 
+#if WINDOWS
+/**
+ * Get a GNUnet file handle from a W32 handle (W32-only).
+ * Do not call on non-W32 platforms (returns NULL).
+ *
+ * @param handle native handle
+ * @return GNUnet file handle corresponding to the W32 handle
+ */
+struct GNUNET_DISK_FileHandle *
+GNUNET_DISK_get_handle_from_w32_handle (HANDLE osfh);
+#endif
+
+/**
+ * Get a handle from a native integer FD.
+ *
+ * @param fd native integer file descriptor
+ * @return file handle corresponding to the descriptor
+ */
+struct GNUNET_DISK_FileHandle *
+GNUNET_DISK_get_handle_from_int_fd (int fno);
+
 /**
  * Get a handle from a native FD.
  *
