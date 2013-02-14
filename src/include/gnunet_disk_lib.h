@@ -467,6 +467,22 @@ GNUNET_DISK_pipe_close_end (struct GNUNET_DISK_PipeHandle *p,
                             enum GNUNET_DISK_PipeEnd end);
 
 /**
+ * Detaches one of the ends from the pipe.
+ * Detached end is a fully-functional FileHandle, it will
+ * not be affected by anything you do with the pipe afterwards.
+ * Each end of a pipe can only be detched from it once (i.e.
+ * it is not duplicated).
+ *
+ * @param p pipe to detach an end from
+ * @param end which end of the pipe to detach
+ * @return Detached end on success, NULL on failure
+ * (or if that end is not present or is closed).
+ */
+struct GNUNET_DISK_FileHandle *
+GNUNET_DISK_pipe_detach_end (struct GNUNET_DISK_PipeHandle *p,
+                             enum GNUNET_DISK_PipeEnd end);
+
+/**
  * Close an open file.
  *
  * @param h file handle
