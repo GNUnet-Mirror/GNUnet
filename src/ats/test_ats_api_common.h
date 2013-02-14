@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_ats_service.h"
+#include "gnunet-service-ats_addresses.h"
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
@@ -71,6 +72,12 @@ compare_addresses (const struct GNUNET_HELLO_Address *address1, void *session1,
 int
 compare_ats (const struct GNUNET_ATS_Information *ats_is, uint32_t ats_count_is,
              const struct GNUNET_ATS_Information *ats_should, uint32_t ats_count_should);
+
+struct ATS_Address *
+create_address (const struct GNUNET_PeerIdentity *peer,
+                const char *plugin_name,
+                const void *plugin_addr, size_t plugin_addr_len,
+                uint32_t session_id);
 
 /**
  * Load quotas for networks from configuration

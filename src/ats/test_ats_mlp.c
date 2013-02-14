@@ -52,31 +52,20 @@ struct GNUNET_STATISTICS_Handle * stats;
  */
 struct GNUNET_CONTAINER_MultiHashMap * addresses;
 
+/**
+ * Peer
+ */
+struct GNUNET_PeerIdentity p;
+
+/**
+ * ATS Address
+ */
+struct ATS_Address *address;
+
 #if 0
 
 #define MLP_MAX_EXEC_DURATION   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3)
 #define MLP_MAX_ITERATIONS      INT_MAX
-
-
-
-
-
-
-
-
-
-
-
-static void
-create_address (struct ATS_Address *addr, char * plugin, int ats_count, struct GNUNET_ATS_Information *ats)
-{
-  addr->solver_information = NULL;
-  addr->next = NULL;
-  addr->prev = NULL;
-  addr->plugin = GNUNET_strdup (plugin);
-  addr->ats_count = ats_count;
-  addr->ats = ats;
-}
 
 static void
 set_ats (struct GNUNET_ATS_Information *ats, uint32_t type, uint32_t value)
@@ -85,87 +74,6 @@ set_ats (struct GNUNET_ATS_Information *ats, uint32_t type, uint32_t value)
   ats->value = value;
 }
 
-
-unsigned int
-load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg, unsigned long long *out_dest, unsigned long long *in_dest, int dest_length)
-{
-  int quotas[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
-  char * entry_in = NULL;
-  char * entry_out = NULL;
-  char * quota_out_str;
-  char * quota_in_str;
-  int c;
-
-  for (c = 0; (c < GNUNET_ATS_NetworkTypeCount) && (c < dest_length); c++)
-  {
-    in_dest[c] = 0;
-    out_dest[c] = 0;
-    switch (quotas[c]) {
-      case GNUNET_ATS_NET_UNSPECIFIED:
-        entry_out = "UNSPECIFIED_QUOTA_OUT";
-        entry_in = "UNSPECIFIED_QUOTA_IN";
-        break;
-      case GNUNET_ATS_NET_LOOPBACK:
-        entry_out = "LOOPBACK_QUOTA_OUT";
-        entry_in = "LOOPBACK_QUOTA_IN";
-        break;
-      case GNUNET_ATS_NET_LAN:
-        entry_out = "LAN_QUOTA_OUT";
-        entry_in = "LAN_QUOTA_IN";
-        break;
-      case GNUNET_ATS_NET_WAN:
-        entry_out = "WAN_QUOTA_OUT";
-        entry_in = "WAN_QUOTA_IN";
-        break;
-      case GNUNET_ATS_NET_WLAN:
-        entry_out = "WLAN_QUOTA_OUT";
-        entry_in = "WLAN_QUOTA_IN";
-        break;
-      default:
-        break;
-    }
-
-    if ((entry_in == NULL) || (entry_out == NULL))
-      continue;
-
-    /* quota out */
-    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_out, &quota_out_str))
-    {
-      if (0 == strcmp(quota_out_str, BIG_M_STRING) ||
-          (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_out_str, &out_dest[c])))
-        out_dest[c] = UINT32_MAX;
-
-      GNUNET_free (quota_out_str);
-      quota_out_str = NULL;
-    }
-    else if (GNUNET_ATS_NET_UNSPECIFIED == quotas[c])
-      out_dest[c] = UINT32_MAX;
-    else
-      out_dest[c] = UINT32_MAX;
-
-    /* quota in */
-    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_in, &quota_in_str))
-    {
-      if (0 == strcmp(quota_in_str, BIG_M_STRING) ||
-          (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_in_str, &in_dest[c])))
-        in_dest[c] = UINT32_MAX;
-
-      GNUNET_free (quota_in_str);
-      quota_in_str = NULL;
-    }
-    else if (GNUNET_ATS_NET_UNSPECIFIED == quotas[c])
-    {
-      in_dest[c] = UINT32_MAX;
-    }
-    else
-    {
-        in_dest[c] = UINT32_MAX;
-    }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Loaded quota: %s %u, %s %u\n", entry_in, in_dest[c], entry_out, out_dest[c]);
-
-  }
-  return GNUNET_ATS_NetworkTypeCount;
-}
 #endif
 
 int addr_it (void *cls,
@@ -196,7 +104,11 @@ end_now (int res)
   		GNUNET_CONTAINER_multihashmap_destroy (addresses);
   		addresses = NULL ;
   }
-
+  if (NULL != address)
+  {
+  	GNUNET_free (address);
+  	address = NULL;
+  }
 	ret = res;
 }
 
@@ -238,7 +150,6 @@ check (void *cls, char *const *args, const char *cfgfile,
   }
 
   addresses = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
-
   mlp  = GAS_mlp_init (cfg, stats, quotas, quotas_out, quotas_in,
   		GNUNET_ATS_NetworkTypeCount, &bandwidth_changed_cb, NULL);
   if (NULL == mlp)
@@ -248,6 +159,26 @@ check (void *cls, char *const *args, const char *cfgfile,
       return;
   }
 
+  /* Create peer */
+  if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID0, &p.hashPubKey))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not setup peer!\n");
+      end_now (1);
+      return;
+  }
+
+  /* Create address */
+  address = create_address (&p, "test_plugin", "test_addr", strlen("test_addr")+1, 0);
+  if (NULL == address)
+  {
+    	GNUNET_break (0);
+      end_now (1);
+      return;
+  }
+  GNUNET_CONTAINER_multihashmap_put (addresses, &p.hashPubKey, address,
+  		GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+
+  GAS_mlp_address_add (mlp, addresses, address);
 
 
   end_now (0);

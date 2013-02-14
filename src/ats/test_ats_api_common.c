@@ -242,4 +242,37 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
   return GNUNET_ATS_NetworkTypeCount;
 }
 
+/**
+ * Create a ATS_address with the given information
+ * @param peer peer
+ * @param plugin_name plugin
+ * @param plugin_addr address
+ * @param plugin_addr_len address length
+ * @param session_id session
+ * @return the ATS_Address
+ */
+struct ATS_Address *
+create_address (const struct GNUNET_PeerIdentity *peer,
+                const char *plugin_name,
+                const void *plugin_addr, size_t plugin_addr_len,
+                uint32_t session_id)
+{
+  struct ATS_Address *aa = NULL;
+
+  aa = GNUNET_malloc (sizeof (struct ATS_Address) + plugin_addr_len + strlen (plugin_name) + 1);
+  aa->peer = *peer;
+  aa->addr_len = plugin_addr_len;
+  aa->addr = &aa[1];
+  aa->plugin = (char *) &aa[1] + plugin_addr_len;
+  memcpy (&aa[1], plugin_addr, plugin_addr_len);
+  memcpy (aa->plugin, plugin_name, strlen (plugin_name) + 1);
+  aa->session_id = session_id;
+  aa->active = GNUNET_NO;
+  aa->used = GNUNET_NO;
+  aa->solver_information = NULL;
+  aa->assigned_bw_in = GNUNET_BANDWIDTH_value_init(0);
+  aa->assigned_bw_out = GNUNET_BANDWIDTH_value_init(0);
+  return aa;
+}
+
 /* end of file test_ats_api_common.c */
