@@ -18,9 +18,19 @@
       Boston, MA 02111-1307, USA.
  */
 
+/**
+ * @file testbed/testbed_api_sd.c
+ * @brief functions to calculate standard deviation
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ */
+
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "testbed_api_sd.h"
 
+/**
+ * An entry to hold data which will be used to calculate SD
+ */
 struct SDEntry
 {
   /**
@@ -40,6 +50,9 @@ struct SDEntry
 };
 
 
+/**
+ * Opaque handle for calculating SD
+ */
 struct SDHandle
 {
   /**
@@ -84,8 +97,14 @@ struct SDHandle
 };
 
 
+/**
+ * Initialize standard deviation calculation handle
+ *
+ * @param max_cnt the maximum number of readings to keep
+ * @return the initialized handle
+ */
 struct SDHandle *
-SD_init (unsigned int max_cnt)
+GNUNET_TESTBED_SD_init_ (unsigned int max_cnt)
 {
   struct SDHandle *h;
 
@@ -95,8 +114,14 @@ SD_init (unsigned int max_cnt)
   return h;
 }
 
+
+/**
+ * Frees the memory allocated to the SD handle
+ *
+ * @param h the SD handle
+ */
 void
-SD_destroy (struct SDHandle *h)
+GNUNET_TESTBED_SD_destroy_ (struct SDHandle *h)
 {
   struct SDEntry *entry;
 
@@ -108,8 +133,15 @@ SD_destroy (struct SDHandle *h)
   GNUNET_free (h);
 }
 
+
+/**
+ * Add a reading to SD
+ *
+ * @param h the SD handle
+ * @param amount the reading value
+ */
 void
-SD_add_data (struct SDHandle *h, unsigned int amount)
+GNUNET_TESTBED_SD_add_data_ (struct SDHandle *h, unsigned int amount)
 {
   struct SDEntry *entry;
   double sqavg;
@@ -145,12 +177,13 @@ SD_add_data (struct SDHandle *h, unsigned int amount)
  *
  * @param h the SDhandle
  * @param amount the value for which the deviation is returned
+
  * @return the deviation from the average; GNUNET_SYSERR if the deviation cannot
- *           be calculated; a maximum of 4 is returned for deviations equal to
- *           or larger than 4
+ *           be calculated OR 0 if the deviation is less than the average; a
+ *           maximum of 4 is returned for deviations equal to or larger than 4
  */
 int
-SD_deviation_factor (struct SDHandle *h, unsigned int amount)
+GNUNET_TESTBED_SD_deviation_factor_ (struct SDHandle *h, unsigned int amount)
 {
   double diff;
   unsigned int n;
@@ -160,7 +193,7 @@ SD_deviation_factor (struct SDHandle *h, unsigned int amount)
   if (((float) amount) > h->avg)
     diff = ((float) amount) - h->avg;
   else
-    diff = h->avg - ((float) amount);
+    return 0;                   //diff = h->avg - ((float) amount);
   diff *= diff;
   for (n = 1; n < 4; n++)
     if (diff < (((double) (n * n)) * h->vr))
@@ -168,21 +201,4 @@ SD_deviation_factor (struct SDHandle *h, unsigned int amount)
   return n;
 }
 
-
-int
-main ()
-{
-  struct SDHandle *h = SD_init (20);
-
-  SD_add_data (h, 40);
-  SD_add_data (h, 30);
-  SD_add_data (h, 40);
-  SD_add_data (h, 10);
-  SD_add_data (h, 30);
-  printf ("Average: %f\n", h->avg);
-  printf ("Variance: %f\n", h->vr);
-  printf ("Standard Deviation: %f\n", sqrt (h->vr));
-  printf ("Deviation factor: %d\n", SD_deviation_factor (h, 60));
-  SD_destroy (h);
-  return 0;
-}
+/* end of testbed_api_sd.c */

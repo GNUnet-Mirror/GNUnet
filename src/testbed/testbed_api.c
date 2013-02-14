@@ -41,6 +41,7 @@
 #include "testbed_api_hosts.h"
 #include "testbed_api_peers.h"
 #include "testbed_api_operations.h"
+#include "testbed_api_sd.h"
 
 /**
  * Generic logging shorthand
@@ -248,69 +249,6 @@ struct ControllerLinkData
 };
 
 
-struct SDEntry
-{
-  /**
-   * DLL next pointer
-   */
-  struct SDEntry *next;
-
-  /**
-   * DLL prev pointer
-   */
-  struct SDEntry *prev;
-
-  /**
-   * The value to store
-   */
-  unsigned int amount;
-};
-
-
-struct SDHandle
-{
-  /**
-   * DLL head for storing entries
-   */
-  struct SDEntry *head;
-
-  /**
-   * DLL tail for storing entries
-   */
-  struct SDEntry *tail;
-
-  /**
-   * Squared sum of data values
-   */
-  unsigned long long sqsum;
-
-  /**
-   * Sum of the data values
-   */
-  unsigned long sum;
-
-  /**
-   * The average of data amounts
-   */
-  float avg;
-
-  /**
-   * The variance
-   */
-  double vr;
-
-  /**
-   * Number of data values; also the length of DLL containing SDEntries
-   */
-  unsigned int cnt;
-
-  /**
-   * max number of entries we can have in the DLL
-   */
-  unsigned int max_cnt;
-};
-
-
 /**
  * This variable is set to the operation that has been last marked as done. It
  * is used to verify whether the state associated with an operation is valid
@@ -321,110 +259,6 @@ struct SDHandle
  * This variable should ONLY be used to compare; it is a dangling pointer!!
  */
 static const struct GNUNET_TESTBED_Operation *last_finished_operation;
-
-/**
- * Initialize standard deviation calculation handle
- *
- * @param max_cnt the maximum number of readings to keep
- * @return the initialized handle
- */
-static struct SDHandle *
-SD_init (unsigned int max_cnt)
-{
-  struct SDHandle *h;
-
-  GNUNET_assert (1 < max_cnt);
-  h = GNUNET_malloc (sizeof (struct SDHandle));
-  h->max_cnt = max_cnt;
-  return h;
-}
-
-
-/**
- * Frees the memory allocated to the SD handle
- *
- * @param h the SD handle
- */
-static void
-SD_destroy (struct SDHandle *h)
-{
-  struct SDEntry *entry;
-
-  while (NULL != (entry = h->head))
-  {
-    GNUNET_CONTAINER_DLL_remove (h->head, h->tail, entry);
-    GNUNET_free (entry);
-  }
-  GNUNET_free (h);
-}
-
-
-/**
- * Add a reading to SD
- *
- * @param h the SD handle
- * @param amount the reading value
- */
-static void
-SD_add_data (struct SDHandle *h, unsigned int amount)
-{
-  struct SDEntry *entry;
-  double sqavg;
-  double sqsum_avg;
-
-  entry = NULL;
-  if (h->cnt == h->max_cnt)
-  {
-    entry = h->head;
-    GNUNET_CONTAINER_DLL_remove (h->head, h->tail, entry);
-    h->sum -= entry->amount;
-    h->sqsum -=
-        ((unsigned long) entry->amount) * ((unsigned long) entry->amount);
-    h->cnt--;
-  }
-  GNUNET_assert (h->cnt < h->max_cnt);
-  if (NULL == entry)
-    entry = GNUNET_malloc (sizeof (struct SDEntry));
-  entry->amount = amount;
-  GNUNET_CONTAINER_DLL_insert_tail (h->head, h->tail, entry);
-  h->sum += amount;
-  h->cnt++;
-  h->avg = ((float) h->sum) / ((float) h->cnt);
-  h->sqsum += ((unsigned long) amount) * ((unsigned long) amount);
-  sqsum_avg = ((double) h->sqsum) / ((double) h->cnt);
-  sqavg = ((double) h->avg) * ((double) h->avg);
-  h->vr = sqsum_avg - sqavg;
-}
-
-
-/**
- * Returns the factor by which the given amount differs from the standard deviation
- *
- * @param h the SDhandle
- * @param amount the value for which the deviation is returned
-
- * @return the deviation from the average; GNUNET_SYSERR if the deviation cannot
- *           be calculated OR 0 if the deviation is less than the average; a
- *           maximum of 4 is returned for deviations equal to or larger than 4
- */
-static int
-SD_deviation_factor (struct SDHandle *h, unsigned int amount)
-{
-  double diff;
-  unsigned int n;
-
-  if (h->cnt < 2)
-    return GNUNET_SYSERR;
-  if (((float) amount) > h->avg)
-    diff = ((float) amount) - h->avg;
-  else
-    return 0;                   //diff = h->avg - ((float) amount);
-  diff *= diff;
-  for (n = 1; n < 4; n++)
-    if (diff < (((double) (n * n)) * h->vr))
-      break;
-  return n;
-}
 
 
 /**
@@ -1887,7 +1721,7 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle
   controller->opq_parallel_overlay_connect_operations =
       GNUNET_TESTBED_operation_queue_create_ (0);
   GNUNET_TESTBED_set_num_parallel_overlay_connects_ (controller, 1);
-  controller->poc_sd = SD_init (10);
+  controller->poc_sd = GNUNET_TESTBED_SD_init_ (10);
   controller_hostname = GNUNET_TESTBED_host_get_hostname (host);
   if (NULL == controller_hostname)
     controller_hostname = "127.0.0.1";
@@ -1980,7 +1814,7 @@ GNUNET_TESTBED_controller_disconnect (struct GNUNET_TESTBED_Controller
       (controller->opq_parallel_topology_config_operations);
   GNUNET_TESTBED_operation_queue_destroy_
       (controller->opq_parallel_overlay_connect_operations);
-  SD_destroy (controller->poc_sd);
+  GNUNET_TESTBED_SD_destroy_ (controller->poc_sd);
   GNUNET_free_non_null (controller->tslots);
   GNUNET_free (controller);
 }
@@ -2648,11 +2482,11 @@ decide_npoc (struct GNUNET_TESTBED_Controller *c)
   GNUNET_assert (nvals >= c->num_parallel_connects);
   avg = GNUNET_TIME_relative_divide (avg, nvals);
   GNUNET_assert (GNUNET_TIME_UNIT_FOREVER_REL.rel_value != avg.rel_value);
-  sd = SD_deviation_factor (c->poc_sd, (unsigned int) avg.rel_value);
+  sd = GNUNET_TESTBED_SD_deviation_factor_ (c->poc_sd, (unsigned int) avg.rel_value);
   if ( (sd <= 5) ||
        (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
 				       c->num_parallel_connects)) )
-    SD_add_data (c->poc_sd, (unsigned int) avg.rel_value);
+    GNUNET_TESTBED_SD_add_data_ (c->poc_sd, (unsigned int) avg.rel_value);
   if (GNUNET_SYSERR == sd)
   {
     GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c,

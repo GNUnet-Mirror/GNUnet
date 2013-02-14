@@ -96,7 +96,8 @@ libgnunettestbed_la_SOURCES = \
   testbed_api_statistics.c \
   testbed_api_testbed.c \
   testbed_api_test.c \
-  testbed_api_topology.c testbed_api_topology.h
+  testbed_api_topology.c testbed_api_topology.h \
+  testbed_api_sd.c testbed_api_sd.h
 libgnunettestbed_la_LIBADD = $(XLIB) \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -116,6 +117,7 @@ check_PROGRAMS = \
   test_testbed_api_2peers_1controller \
   test_testbed_api_3peers_3controllers \
   test_testbed_api \
+  test_testbed_api_sd \
   test_testbed_api_operations \
   test_testbed_api_testbed_run \
   test_testbed_api_test \
@@ -135,6 +137,7 @@ check_PROGRAMS = \
 if ENABLE_TEST_RUN
  TESTS = \
   test_testbed_api \
+  test_testbed_api_sd \
   test_testbed_api_hosts \
   test_testbed_api_2peers_1controller \
   test_testbed_api_3peers_3controllers \
@@ -168,6 +171,12 @@ test_testbed_api_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/dht/libgnunetdht.la \
+ libgnunettestbed.la
+
+test_testbed_api_sd_SOURCES = \
+ test_testbed_api_sd.c
+test_testbed_api_sd_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
 
 test_testbed_api_2peers_1controller_SOURCES = \
