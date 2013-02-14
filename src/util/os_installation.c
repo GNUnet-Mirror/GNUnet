@@ -490,27 +490,27 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
     execpath[--n] = '\0';
 
   isbasedir = 1;
-  if ((n > 5) &&
-      ((0 == strcasecmp (&execpath[n - 5], "lib32")) ||
-       (0 == strcasecmp (&execpath[n - 5], "lib64"))))
+  if ((n > 6) &&
+      ((0 == strcasecmp (&execpath[n - 6], "/lib32")) ||
+       (0 == strcasecmp (&execpath[n - 6], "/lib64"))))
   {
     if ( (GNUNET_OS_IPK_LIBDIR != dirkind) &&
 	 (GNUNET_OS_IPK_LIBEXECDIR != dirkind) )
     {
       /* strip '/lib32' or '/lib64' */
-      execpath[n - 5] = '\0';
-      n -= 5;
+      execpath[n - 6] = '\0';
+      n -= 6;
     }
     else
       isbasedir = 0;
   }
-  else if ((n > 3) &&
-           ((0 == strcasecmp (&execpath[n - 3], "bin")) ||
-            (0 == strcasecmp (&execpath[n - 3], "lib"))))
+  else if ((n > 4) &&
+           ((0 == strcasecmp (&execpath[n - 4], "/bin")) ||
+            (0 == strcasecmp (&execpath[n - 4], "/lib"))))
   {
     /* strip '/bin' or '/lib' */
-    execpath[n - 3] = '\0';
-    n -= 3;
+    execpath[n - 4] = '\0';
+    n -= 4;
   }
   /* in case this was a directory named foo-bin, remove "foo-" */
   while ((n > 1) && (execpath[n - 1] == DIR_SEPARATOR))
