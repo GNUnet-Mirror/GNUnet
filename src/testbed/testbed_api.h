@@ -178,34 +178,6 @@ struct OperationContext
 
 
 /**
- * Opaque handle for SD calculations
- */
-struct SDHandle;
-
-
-/**
- * A slot to record time taken by an overlay connect operation
- */
-struct TimeSlot
-{
-  /**
-   * A key to identify this timeslot
-   */
-  void *key;
-
-  /**
-   * Time
-   */
-  struct GNUNET_TIME_Relative time;
-
-  /**
-   * Number of timing values accumulated
-   */
-  unsigned int nvals;
-};
-
-
-/**
  * Handle to interact with a GNUnet testbed controller.  Each
  * controller has at least one master handle which is created when the
  * controller is created; this master handle interacts with the
@@ -298,23 +270,6 @@ struct GNUNET_TESTBED_Controller
   struct OperationQueue *opq_parallel_topology_config_operations;
 
   /**
-   * Operation queue for simultaneous overlay connect operations
-   */
-  struct OperationQueue *opq_parallel_overlay_connect_operations;
-
-  /**
-   * An array of timing slots; size should be equal to the current number of parallel
-   * overlay connects
-   */
-  struct TimeSlot *tslots;
-
-  /**
-   * Handle for SD calculations amount parallel overlay connect operation finish
-   * times
-   */
-  struct SDHandle *poc_sd;
-
-  /**
    * The controller event mask
    */
   uint64_t event_mask;
@@ -328,16 +283,6 @@ struct GNUNET_TESTBED_Controller
    * Did we create the host for this?
    */
   int aux_host;
-
-  /**
-   * The number of parallel overlay connects we do currently
-   */
-  unsigned int num_parallel_connects;
-
-  /**
-   * Counter to indicate when all the available time slots are filled
-   */
-  unsigned int tslots_filled;
 
   /**
    * The operation id counter. use current value and increment
@@ -539,49 +484,6 @@ GNUNET_TESTBED_controller_link_ (void *op_cls,
                                  uint32_t slave_host_id,
                                  const struct GNUNET_CONFIGURATION_Handle
                                  *slave_cfg, int is_subordinate);
-
-
-/**
- * Returns a timing slot which will be exclusively locked
- *
- * @param c the controller handle
- * @param key a pointer which is associated to the returned slot; should not be
- *          NULL. It serves as a key to determine the correct owner of the slot
- * @return the time slot index in the array of time slots in the controller
- *           handle
- */
-unsigned int
-GNUNET_TESTBED_get_tslot_ (struct GNUNET_TESTBED_Controller *c, void *key);
-
-
-/**
- * Function to update a time slot
- *
- * @param c the controller handle
- * @param index the index of the time slot to update
- * @param key the key to identify ownership of the slot
- * @param time the new time
- * @param failed should this reading be treated as coming from a fail event
- */
-void
-GNUNET_TESTBED_update_time_slot_ (struct GNUNET_TESTBED_Controller *c,
-                                  unsigned int index, void *key,
-                                  struct GNUNET_TIME_Relative time, int failed);
-
-
-/**
- * Releases a time slot thus making it available for be used again
- *
- * @param c the controller handle
- * @param index the index of the the time slot
- * @param key the key to prove ownership of the timeslot
- * @return GNUNET_YES if the time slot is successfully removed; GNUNET_NO if the
- *           time slot cannot be removed - this could be because of the index
- *           greater than existing number of time slots or `key' being different
- */
-int
-GNUNET_TESTBED_release_time_slot_ (struct GNUNET_TESTBED_Controller *c,
-                                   unsigned int index, void *key);
 
 
 

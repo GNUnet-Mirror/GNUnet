@@ -340,7 +340,7 @@ opstart_overlay_connect (void *cls)
   opc->state = OPC_STATE_STARTED;
   data = opc->data;
   GNUNET_assert (NULL != data);
-  data->tslot_index = GNUNET_TESTBED_get_tslot_ (opc->c, data);
+  data->tslot_index = GNUNET_TESTBED_get_tslot_ (data->p1->host, data);
   data->tstart = GNUNET_TIME_absolute_get ();
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_OverlayConnectMessage));
   msg->header.size =
@@ -373,13 +373,14 @@ oprelease_overlay_connect (void *cls)
   case OPC_STATE_INIT:
     break;
   case OPC_STATE_STARTED:
-    (void) GNUNET_TESTBED_release_time_slot_ (opc->c, data->tslot_index, data);
+    (void) GNUNET_TESTBED_release_time_slot_ (data->p1->host, data->tslot_index,
+                                              data);
     GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
     break;
   case OPC_STATE_FINISHED:
     duration = GNUNET_TIME_absolute_get_duration (data->tstart);
-    GNUNET_TESTBED_update_time_slot_ (opc->c, data->tslot_index, data, duration,
-                                      data->failed);
+    GNUNET_TESTBED_update_time_slot_ (data->p1->host, data->tslot_index, data,
+                                      duration, data->failed);
   }
   GNUNET_free (data);
   GNUNET_free (opc);
@@ -693,9 +694,7 @@ GNUNET_TESTBED_overlay_connect (void *op_cls,
   opc->op =
       GNUNET_TESTBED_operation_create_ (opc, &opstart_overlay_connect,
                                         &oprelease_overlay_connect);
-  GNUNET_TESTBED_operation_queue_insert_ (opc->
-                                          c->opq_parallel_overlay_connect_operations,
-                                          opc->op);
+  GNUNET_TESTBED_host_queue_oc (p1->host, opc->op);
   GNUNET_TESTBED_operation_begin_wait_ (opc->op);
   return opc->op;
 }

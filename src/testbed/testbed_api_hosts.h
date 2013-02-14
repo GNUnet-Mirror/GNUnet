@@ -87,49 +87,6 @@ GNUNET_TESTBED_host_get_ssh_port_ (const struct GNUNET_TESTBED_Host *host);
 
 
 /**
- * Opaque wrapper around GNUNET_HELPER_Handle
- */
-struct GNUNET_TESTBED_HelperHandle;
-
-
-/* /\** */
-/*  * Run a given helper process at the given host.  Communication */
-/*  * with the helper will be via GNUnet messages on stdin/stdout. */
-/*  * Runs the process via 'ssh' at the specified host, or locally. */
-/*  * Essentially an SSH-wrapper around the 'gnunet_helper_lib.h' API. */
-/*  *  */
-/*  * @param controller_ip the ip address of the controller. Will be set as TRUSTED */
-/*  *          host when starting testbed controller at host */
-/*  * @param host host to use, use "NULL" for localhost */
-/*  * @param binary_argv binary name and command-line arguments to give to the */
-/*  *          binary */
-/*  * @param cfg template configuration to use for the remote controller; the */
-/*  *          remote controller will be started with a slightly modified */
-/*  *          configuration (port numbers, unix domain sockets and service home */
-/*  *          values are changed as per TESTING library on the remote host) */
-/*  * @param cb the callback to run when helper process dies; cannot be NULL */
-/*  * @param cb_cls the closure for the above callback */
-/*  * @return handle to terminate the command, NULL on error */
-/*  *\/ */
-/* struct GNUNET_TESTBED_HelperHandle * */
-/* GNUNET_TESTBED_host_run_ (const char *controller_ip, */
-/* 			  const struct GNUNET_TESTBED_Host *host, */
-/* 			  const struct GNUNET_CONFIGURATION_Handle *cfg, */
-/* 			  GNUNET_HELPER_ExceptionCallback cb, */
-/* 			  void *cb_cls); */
-
-
-
-/* /\** */
-/*  * Stops a helper in the HelperHandle using GNUNET_HELPER_stop */
-/*  * */
-/*  * @param handle the handle returned from GNUNET_TESTBED_host_start_ */
-/*  *\/ */
-/* void */
-/* GNUNET_TESTBED_host_stop_ (struct GNUNET_TESTBED_HelperHandle *handle); */
-
-
-/**
  * Marks a host as registered with a controller
  *
  * @param host the host to mark
@@ -154,6 +111,72 @@ GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host,
                                     *controller);
 
 
+/**
+ * (re)sets the operation queue for parallel overlay connects
+ *
+ * @param h the host handle
+ * @param npoc the number of parallel overlay connects - the queue size
+ */
+void
+GNUNET_TESTBED_set_num_parallel_overlay_connects_ (struct
+                                                   GNUNET_TESTBED_Host *h,
+                                                   unsigned int npoc);
+
+
+/**
+ * Releases a time slot thus making it available for be used again
+ *
+ * @param h the host handle
+ * @param index the index of the the time slot
+ * @param key the key to prove ownership of the timeslot
+ * @return GNUNET_YES if the time slot is successfully removed; GNUNET_NO if the
+ *           time slot cannot be removed - this could be because of the index
+ *           greater than existing number of time slots or `key' being different
+ */
+int
+GNUNET_TESTBED_release_time_slot_ (struct GNUNET_TESTBED_Host *h,
+                                   unsigned int index, void *key);
+
+
+/**
+ * Function to update a time slot
+ *
+ * @param h the host handle
+ * @param index the index of the time slot to update
+ * @param key the key to identify ownership of the slot
+ * @param time the new time
+ * @param failed should this reading be treated as coming from a fail event
+ */
+void
+GNUNET_TESTBED_update_time_slot_ (struct GNUNET_TESTBED_Host *h,
+                                  unsigned int index, void *key,
+                                  struct GNUNET_TIME_Relative time, int failed);
+
+
+/**
+ * Returns a timing slot which will be exclusively locked
+ *
+ * @param h the host handle
+ * @param key a pointer which is associated to the returned slot; should not be
+ *          NULL. It serves as a key to determine the correct owner of the slot
+ * @return the time slot index in the array of time slots in the controller
+ *           handle
+ */
+unsigned int
+GNUNET_TESTBED_get_tslot_ (struct GNUNET_TESTBED_Host *h, void *key);
+
+
+/**
+ * Queues the given operation in the queue for parallel overlay connects of the
+ * given host
+ *
+ * @param h the host handle
+ * @param op the operation to queue in the given host's parally overlay connect
+ *          queue 
+ */
+void
+GNUNET_TESTBED_host_queue_oc (struct GNUNET_TESTBED_Host *h, 
+                              struct GNUNET_TESTBED_Operation *op);
 
 #endif
 /* end of testbed_api_hosts.h */

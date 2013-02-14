@@ -1322,27 +1322,6 @@ oprelease_get_slave_config (void *cls)
 
 
 /**
- * Initializes the operation queue for parallel overlay connects
- *
- * @param c the controller handle
- * @param npoc the number of parallel overlay connects - the queue size
- */
-static void
-GNUNET_TESTBED_set_num_parallel_overlay_connects_ (struct
-                                                   GNUNET_TESTBED_Controller *c,
-                                                   unsigned int npoc)
-{
-  fprintf (stderr, "%d", npoc);
-  GNUNET_free_non_null (c->tslots);
-  c->tslots_filled = 0;
-  c->num_parallel_connects = npoc;
-  c->tslots = GNUNET_malloc (npoc * sizeof (struct TimeSlot));
-  GNUNET_TESTBED_operation_queue_reset_max_active_
-      (c->opq_parallel_overlay_connect_operations, npoc);
-}
-
-
-/**
  * Function to copy NULL terminated list of arguments
  *
  * @param argv the NULL terminated list of arguments. Cannot be NULL.
@@ -1718,10 +1697,6 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle
   controller->opq_parallel_topology_config_operations =
       GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
                                               max_parallel_topology_config_operations);
-  controller->opq_parallel_overlay_connect_operations =
-      GNUNET_TESTBED_operation_queue_create_ (0);
-  GNUNET_TESTBED_set_num_parallel_overlay_connects_ (controller, 1);
-  controller->poc_sd = GNUNET_TESTBED_SD_init_ (10);
   controller_hostname = GNUNET_TESTBED_host_get_hostname (host);
   if (NULL == controller_hostname)
     controller_hostname = "127.0.0.1";
@@ -1812,10 +1787,6 @@ GNUNET_TESTBED_controller_disconnect (struct GNUNET_TESTBED_Controller
       (controller->opq_parallel_service_connections);
   GNUNET_TESTBED_operation_queue_destroy_
       (controller->opq_parallel_topology_config_operations);
-  GNUNET_TESTBED_operation_queue_destroy_
-      (controller->opq_parallel_overlay_connect_operations);
-  GNUNET_TESTBED_SD_destroy_ (controller->poc_sd);
-  GNUNET_free_non_null (controller->tslots);
   GNUNET_free (controller);
 }
 
@@ -2427,171 +2398,6 @@ GNUNET_TESTBED_get_next_op_id (struct GNUNET_TESTBED_Controller * controller)
   op_id = op_id << 32;
   op_id |= (uint64_t) controller->operation_counter++;
   return op_id;
-}
-
-
-/**
- * Returns a timing slot which will be exclusively locked
- *
- * @param c the controller handle
- * @param key a pointer which is associated to the returned slot; should not be
- *          NULL. It serves as a key to determine the correct owner of the slot
- * @return the time slot index in the array of time slots in the controller
- *           handle
- */
-unsigned int
-GNUNET_TESTBED_get_tslot_ (struct GNUNET_TESTBED_Controller *c, void *key)
-{
-  unsigned int slot;
-
-  GNUNET_assert (NULL != c->tslots);
-  GNUNET_assert (NULL != key);
-  for (slot = 0; slot < c->num_parallel_connects; slot++)
-    if (NULL == c->tslots[slot].key)
-    {
-      c->tslots[slot].key = key;
-      return slot;
-    }
-  GNUNET_assert (0);            /* We should always find a free tslot */
-}
-
-
-/**
- * Decides whether any change in the number of parallel overlay connects is
- * necessary to adapt to the load on the system
- *
- * @param c the controller handle
- */
-static void
-decide_npoc (struct GNUNET_TESTBED_Controller *c)
-{
-  struct GNUNET_TIME_Relative avg;
-  int sd;
-  unsigned int slot;
-  unsigned int nvals;
-
-  if (c->tslots_filled != c->num_parallel_connects)
-    return;
-  avg = GNUNET_TIME_UNIT_ZERO;
-  nvals = 0;
-  for (slot = 0; slot < c->num_parallel_connects; slot++)
-  {
-    avg = GNUNET_TIME_relative_add (avg, c->tslots[slot].time);
-    nvals += c->tslots[slot].nvals;
-  }
-  GNUNET_assert (nvals >= c->num_parallel_connects);
-  avg = GNUNET_TIME_relative_divide (avg, nvals);
-  GNUNET_assert (GNUNET_TIME_UNIT_FOREVER_REL.rel_value != avg.rel_value);
-  sd = GNUNET_TESTBED_SD_deviation_factor_ (c->poc_sd, (unsigned int) avg.rel_value);
-  if ( (sd <= 5) ||
-       (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-				       c->num_parallel_connects)) )
-    GNUNET_TESTBED_SD_add_data_ (c->poc_sd, (unsigned int) avg.rel_value);
-  if (GNUNET_SYSERR == sd)
-  {
-    GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c,
-                                                       c->num_parallel_connects);
-    return;
-  }
-  GNUNET_assert (0 <= sd);
-  if (0 == sd)
-  {
-    GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c,
-                                                       c->num_parallel_connects
-                                                       * 2);
-    return;
-  }
-  if (1 == sd)
-  {
-    GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c,
-                                                       c->num_parallel_connects
-                                                       + 1);
-    return;
-  }
-  if (1 == c->num_parallel_connects)
-  {
-    GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c, 1);
-    return;
-  }
-  if (2 == sd)
-  {
-    GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c,
-                                                       c->num_parallel_connects
-                                                       - 1);
-    return;
-  }
-  GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c,
-                                                     c->num_parallel_connects /
-                                                     2);
-}
-
-
-/**
- * Releases a time slot thus making it available for be used again
- *
- * @param c the controller handle
- * @param index the index of the the time slot
- * @param key the key to prove ownership of the timeslot
- * @return GNUNET_YES if the time slot is successfully removed; GNUNET_NO if the
- *           time slot cannot be removed - this could be because of the index
- *           greater than existing number of time slots or `key' being different
- */
-int
-GNUNET_TESTBED_release_time_slot_ (struct GNUNET_TESTBED_Controller *c,
-                                   unsigned int index, void *key)
-{
-  struct TimeSlot *slot;
-
-  GNUNET_assert (NULL != key);
-  if (index >= c->num_parallel_connects)
-    return GNUNET_NO;
-  slot = &c->tslots[index];
-  if (key != slot->key)
-    return GNUNET_NO;
-  slot->key = NULL;
-  return GNUNET_YES;
-}
-
-
-/**
- * Function to update a time slot
- *
- * @param c the controller handle
- * @param index the index of the time slot to update
- * @param key the key to identify ownership of the slot
- * @param time the new time
- * @param failed should this reading be treated as coming from a fail event
- */
-void
-GNUNET_TESTBED_update_time_slot_ (struct GNUNET_TESTBED_Controller *c,
-                                  unsigned int index, void *key,
-                                  struct GNUNET_TIME_Relative time, int failed)
-{
-  struct TimeSlot *slot;
-
-  if (GNUNET_YES == failed)
-  {
-    if (1 == c->num_parallel_connects)
-    {
-      GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c, 1);
-      return;
-    }
-    GNUNET_TESTBED_set_num_parallel_overlay_connects_ (c,
-                                                       c->num_parallel_connects
-                                                       - 1);
-  }
-  if (GNUNET_NO == GNUNET_TESTBED_release_time_slot_ (c, index, key))
-    return;
-  slot = &c->tslots[index];
-  slot->nvals++;
-  if (GNUNET_TIME_UNIT_ZERO.rel_value == slot->time.rel_value)
-  {
-    slot->time = time;
-    c->tslots_filled++;
-    decide_npoc (c);
-    return;
-  }
-  slot->time = GNUNET_TIME_relative_add (slot->time, time);
 }
 
 
