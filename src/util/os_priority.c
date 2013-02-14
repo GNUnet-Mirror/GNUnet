@@ -1189,7 +1189,7 @@ start_process (int pipe_control,
                                        &stdin_handle, sizeof (HANDLE));
     start.hStdInput = stdin_handle;
   }
-  if (stdih)
+  else if (stdih)
   {
     if (std_inheritance & GNUNET_OS_INHERIT_STD_IN)
     {
@@ -1212,7 +1212,7 @@ start_process (int pipe_control,
                                        &stdout_handle, sizeof (HANDLE));
     start.hStdOutput = stdout_handle;
   }
-  if (stdoh)
+  else if (stdoh)
   {
     if (std_inheritance & GNUNET_OS_INHERIT_STD_OUT)
     {
