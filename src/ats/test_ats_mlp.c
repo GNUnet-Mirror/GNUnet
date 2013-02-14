@@ -19,7 +19,7 @@
 */
 /**
  * @file ats/test_ats_mlp.c
- * @brief test for the MLP solver
+ * @brief basic test for the MLP solver
  * @author Christian Grothoff
  * @author Matthias Wachs
 
@@ -29,8 +29,28 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_ats_service.h"
 #include "gnunet-service-ats_addresses_mlp.h"
+#include "test_ats_api_common.h"
 
+/**
+ * Return value
+ */
 static int ret;
+
+/**
+ * MLP solver handle
+ */
+struct GAS_MLP_Handle *mlp;
+
+
+/**
+ * Statistics handle
+ */
+struct GNUNET_STATISTICS_Handle * stats;
+
+/**
+ * Hashmap containing addresses
+ */
+struct GNUNET_CONTAINER_MultiHashMap * addresses;
 
 #if 0
 
@@ -40,11 +60,11 @@ static int ret;
 
 
 
-struct GNUNET_STATISTICS_Handle * stats;
 
-struct GNUNET_CONTAINER_MultiHashMap * addresses;
 
-struct GAS_MLP_Handle *mlp;
+
+
+
 
 
 static void
@@ -148,17 +168,90 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg, unsigned long long *
 }
 #endif
 
+int addr_it (void *cls,
+             const struct GNUNET_HashCode * key,
+             void *value)
+{
+	GNUNET_CONTAINER_multihashmap_remove (addresses, key, value);
+	return GNUNET_OK;
+}
+
+
+static void
+end_now (int res)
+{
+  if (NULL != stats)
+  {
+  	  GNUNET_STATISTICS_destroy(stats, GNUNET_NO);
+  	  stats = NULL;
+  }
+  if (NULL != mlp)
+  {
+  		GAS_mlp_done (mlp);
+  		mlp = NULL;
+  }
+  if (NULL != addresses)
+  {
+  		GNUNET_CONTAINER_multihashmap_iterate (addresses, &addr_it, NULL);
+  		GNUNET_CONTAINER_multihashmap_destroy (addresses);
+  		addresses = NULL ;
+  }
+
+	ret = res;
+}
+
+static void
+bandwidth_changed_cb (void *cls, struct ATS_Address *address)
+{
+
+}
+
 static void
 check (void *cls, char *const *args, const char *cfgfile,
        const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-
+  int quotas[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
+  unsigned long long  quotas_in[GNUNET_ATS_NetworkTypeCount];
+  unsigned long long  quotas_out[GNUNET_ATS_NetworkTypeCount];
 
 #if !HAVE_LIBGLPK
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "GLPK not installed!");
   ret = 1;
   return;
 #endif
+
+  stats = GNUNET_STATISTICS_create("ats", cfg);
+  if (NULL == stats)
+  {
+  	GNUNET_break (0);
+    end_now (1);
+    return;
+  }
+
+
+  if (GNUNET_ATS_NetworkTypeCount != load_quotas (cfg, quotas_out, quotas_in,
+  			GNUNET_ATS_NetworkTypeCount))
+  {
+    	GNUNET_break (0);
+      end_now (1);
+      return;
+  }
+
+  addresses = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+
+  mlp  = GAS_mlp_init (cfg, stats, quotas, quotas_out, quotas_in,
+  		GNUNET_ATS_NetworkTypeCount, &bandwidth_changed_cb, NULL);
+  if (NULL == mlp)
+  {
+    	GNUNET_break (0);
+      end_now (1);
+      return;
+  }
+
+
+
+  end_now (0);
+
 
 #if 0
   struct ATS_Address addr[10];
@@ -169,9 +262,9 @@ check (void *cls, char *const *args, const char *cfgfile,
   unsigned long long  quotas_out[GNUNET_ATS_NetworkTypeCount];
   int quota_count;
 
-  stats = GNUNET_STATISTICS_create("ats", cfg);
 
-  addresses = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+
+
 
   quota_count = load_quotas(cfg, quotas_in, quotas_out, GNUNET_ATS_NetworkTypeCount);
   mlp = GAS_mlp_init (cfg, NULL, quotas, quotas_in, quotas_out, quota_count);
@@ -253,12 +346,8 @@ check (void *cls, char *const *args, const char *cfgfile,
 
   GNUNET_assert (mlp->addr_in_problem == 0);
 
-  GAS_mlp_done (mlp);
-
   GNUNET_free (addr[0].plugin);
   GNUNET_free (addr[1].plugin);
-  GNUNET_CONTAINER_multihashmap_destroy (addresses);
-  GNUNET_STATISTICS_destroy(stats, GNUNET_NO);
 #endif
 
   ret = 0;

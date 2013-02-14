@@ -196,24 +196,21 @@ test_ats_simplistic_pref_aging_LDADD = \
 
 if HAVE_LIBGLPK
 test_ats_mlp_SOURCES = \
-  $(GN_MLP_SRC) \
-  test_ats_mlp.c
+  $(GN_MLP_SRC) test_ats_mlp.c test_ats_api_common.c
 test_ats_mlp_LDADD = \
   $(GN_LIBGLPK) \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la
 
 #test_ats_mlp_averaging_SOURCES = \
-# $(GN_MLP_SRC) \
-# test_ats_mlp_averaging.c
+# $(GN_MLP_SRC) test_ats_mlp_averaging.c test_ats_api_common.c
 #test_ats_mlp_averaging_LDADD = \
 #  $(GN_LIBGLPK) \
 #  $(top_builddir)/src/util/libgnunetutil.la \
 #  $(top_builddir)/src/statistics/libgnunetstatistics.la
 
 #perf_ats_mlp_SOURCES = \
-# $(GN_MLP_SRC) \
-# perf_ats_mlp.c
+# $(GN_MLP_SRC) perf_ats_mlp.c test_ats_api_common.c
 #perf_ats_mlp_LDADD = \
 #  $(GN_LIBGLPK) \
 #  $(top_builddir)/src/util/libgnunetutil.la \

@@ -72,4 +72,19 @@ int
 compare_ats (const struct GNUNET_ATS_Information *ats_is, uint32_t ats_count_is,
              const struct GNUNET_ATS_Information *ats_should, uint32_t ats_count_should);
 
+/**
+ * Load quotas for networks from configuration
+ *
+ * @param cfg configuration handle
+ * @param out_dest where to write outbound quotas
+ * @param in_dest where to write inbound quotas
+ * @param dest_length length of inbound and outbound arrays
+ * @return number of networks loaded
+ */
+unsigned int
+load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
+						 unsigned long long *out_dest,
+						 unsigned long long *in_dest,
+						 int dest_length);
+
 /* end of file test_ats_api_common.h */

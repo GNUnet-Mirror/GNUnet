@@ -956,6 +956,16 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
   handle->s_pref (handle->solver, client, peer, kind, score);
 }
 
+
+/**
+ * Load quotas for networks from configuration
+ *
+ * @param cfg configuration handle
+ * @param out_dest where to write outbound quotas
+ * @param in_dest where to write inbound quotas
+ * @param dest_length length of inbound and outbound arrays
+ * @return number of networks loaded
+ */
 static unsigned int
 load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg, unsigned long long *out_dest, unsigned long long *in_dest, int dest_length)
 {

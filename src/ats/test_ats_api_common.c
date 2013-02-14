@@ -27,6 +27,8 @@
 #include "test_ats_api_common.h"
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+#define BIG_M_STRING "unlimited"
+
 
 #define PEERID0 "2AK99KD8RM9UA9LC3QKA0IQ5UBFC0FBB50EBGCFQT8448DGGACNAC4CJQDD1CPFS494O41U88DJD1FLIG8VA5CQR9IN4L96GP104MVO"
 #define PEERID1 "5ED7I0AR3MSTAL7FQN04S22E0EQ3CR9RLASCDLVMM1BNFPUPTCT46DLKNJ4DACASJ6U0DR5J8S3R2UJL49682JS7MOVRAB8P8A4PJH0"
@@ -135,5 +137,109 @@ compare_ats (const struct GNUNET_ATS_Information *ats_is, uint32_t ats_count_is,
   return res;
 }
 
+
+/**
+ * Load quotas for networks from configuration
+ *
+ * @param cfg configuration handle
+ * @param out_dest where to write outbound quotas
+ * @param in_dest where to write inbound quotas
+ * @param dest_length length of inbound and outbound arrays
+ * @return number of networks loaded
+ */
+unsigned int
+load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
+						 unsigned long long *out_dest,
+						 unsigned long long *in_dest,
+						 int dest_length)
+{
+  char *network_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
+  char * entry_in = NULL;
+  char * entry_out = NULL;
+  char * quota_out_str;
+  char * quota_in_str;
+  int c;
+  int res;
+
+  for (c = 0; (c < GNUNET_ATS_NetworkTypeCount) && (c < dest_length); c++)
+  {
+    in_dest[c] = 0;
+    out_dest[c] = 0;
+    GNUNET_asprintf (&entry_out, "%s_QUOTA_OUT", network_str[c]);
+    GNUNET_asprintf (&entry_in, "%s_QUOTA_IN", network_str[c]);
+
+    /* quota out */
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_out, &quota_out_str))
+    {
+      res = GNUNET_NO;
+      if (0 == strcmp(quota_out_str, BIG_M_STRING))
+      {
+        out_dest[c] = GNUNET_ATS_MaxBandwidth;
+        res = GNUNET_YES;
+      }
+      if ((GNUNET_NO == res) && (GNUNET_OK == GNUNET_STRINGS_fancy_size_to_bytes (quota_out_str, &out_dest[c])))
+        res = GNUNET_YES;
+      if ((GNUNET_NO == res) && (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (cfg, "ats", entry_out,  &out_dest[c])))
+         res = GNUNET_YES;
+
+      if (GNUNET_NO == res)
+      {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Could not load quota for network `%s':  `%s', assigning default bandwidth %llu\n"),
+              network_str[c], quota_out_str, GNUNET_ATS_DefaultBandwidth);
+          out_dest[c] = GNUNET_ATS_DefaultBandwidth;
+      }
+      else
+      {
+          GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Outbound quota configure for network `%s' is %llu\n"),
+              network_str[c], out_dest[c]);
+      }
+      GNUNET_free (quota_out_str);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("No outbound quota configured for network `%s', assigning default bandwidth %llu\n"),
+          network_str[c], GNUNET_ATS_DefaultBandwidth);
+      out_dest[c] = GNUNET_ATS_DefaultBandwidth;
+    }
+
+    /* quota in */
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_in, &quota_in_str))
+    {
+      res = GNUNET_NO;
+      if (0 == strcmp(quota_in_str, BIG_M_STRING))
+      {
+        in_dest[c] = GNUNET_ATS_MaxBandwidth;
+        res = GNUNET_YES;
+      }
+      if ((GNUNET_NO == res) && (GNUNET_OK == GNUNET_STRINGS_fancy_size_to_bytes (quota_in_str, &in_dest[c])))
+        res = GNUNET_YES;
+      if ((GNUNET_NO == res) && (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (cfg, "ats", entry_in,  &in_dest[c])))
+         res = GNUNET_YES;
+
+      if (GNUNET_NO == res)
+      {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Could not load quota for network `%s':  `%s', assigning default bandwidth %llu\n"),
+              network_str[c], quota_in_str, GNUNET_ATS_DefaultBandwidth);
+          in_dest[c] = GNUNET_ATS_DefaultBandwidth;
+      }
+      else
+      {
+          GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Inbound quota configured for network `%s' is %llu\n"),
+              network_str[c], in_dest[c]);
+      }
+      GNUNET_free (quota_in_str);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("No outbound quota configure for network `%s', assigning default bandwidth %llu\n"),
+          network_str[c], GNUNET_ATS_DefaultBandwidth);
+      out_dest[c] = GNUNET_ATS_DefaultBandwidth;
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Loaded quota for network `%s' (in/out): %llu %llu\n", network_str[c], in_dest[c], out_dest[c]);
+    GNUNET_free (entry_out);
+    GNUNET_free (entry_in);
+  }
+  return GNUNET_ATS_NetworkTypeCount;
+}
 
 /* end of file test_ats_api_common.c */
