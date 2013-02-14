@@ -30,11 +30,15 @@
 #include "gnunet_ats_service.h"
 #include "gnunet-service-ats_addresses_mlp.h"
 
+static int ret;
+
+#if 0
+
 #define MLP_MAX_EXEC_DURATION   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3)
 #define MLP_MAX_ITERATIONS      INT_MAX
 
 
-static int ret;
+
 
 struct GNUNET_STATISTICS_Handle * stats;
 
@@ -142,18 +146,21 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg, unsigned long long *
   }
   return GNUNET_ATS_NetworkTypeCount;
 }
-
-
+#endif
 
 static void
 check (void *cls, char *const *args, const char *cfgfile,
        const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+
+
 #if !HAVE_LIBGLPK
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "GLPK not installed!");
   ret = 1;
   return;
 #endif
+
+#if 0
   struct ATS_Address addr[10];
   struct ATS_Address *res[10];
   struct GAS_MLP_SolutionContext ctx;
@@ -252,6 +259,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_free (addr[1].plugin);
   GNUNET_CONTAINER_multihashmap_destroy (addresses);
   GNUNET_STATISTICS_destroy(stats, GNUNET_NO);
+#endif
 
   ret = 0;
   return;
