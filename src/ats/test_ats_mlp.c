@@ -264,7 +264,7 @@ main (int argc, char *argv[])
 
   static char *const argv2[] = { "test_ats_mlp",
     "-c",
-    "test_ats_api.conf",
+    "test_ats_mlp.conf",
     "-L", "WARNING",
     NULL
   };
