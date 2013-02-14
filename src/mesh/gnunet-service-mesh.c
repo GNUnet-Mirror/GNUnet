@@ -5983,6 +5983,11 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
       tree_set_status (t->tree, peer_info->id, MESH_PEER_READY);
       send_client_peer_connected (t, peer_info->id);
     }
+    if (NULL != peer_info->dhtget)
+    {
+      GNUNET_DHT_get_stop (peer_info->dhtget);
+      peer_info->dhtget = NULL;
+    }
     return GNUNET_OK;
   }
 
@@ -5990,12 +5995,6 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
               "  not for us, retransmitting...\n");
   GNUNET_PEER_resolve (tree_get_predecessor (t->tree), &id);
   peer_info = peer_info_get (&msg->oid);
-  if (NULL == peer_info)
-  {
-    /* If we know the tunnel, we should DEFINITELY know the peer */
-    GNUNET_break (0);
-    return GNUNET_OK;
-  }
   send_prebuilt_message (message, &id, t);
   return GNUNET_OK;
 }
@@ -6207,10 +6206,10 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   GNUNET_PEER_resolve (path_info->peer->id, &pi);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  for %s\n", GNUNET_i2s (&pi));
 
-  p = path_build_from_dht (get_path, get_path_length, put_path,
-                           put_path_length);
+  p = path_build_from_dht (get_path, get_path_length,
+                           put_path, put_path_length);
   path_add_to_peers (p, GNUNET_NO);
-  path_destroy(p);
+  path_destroy (p);
   for (i = 0; i < path_info->peer->ntunnels; i++)
   {
     tunnel_add_peer (path_info->peer->tunnels[i], path_info->peer);
