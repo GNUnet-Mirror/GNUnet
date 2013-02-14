@@ -62,6 +62,12 @@ struct GNUNET_PeerIdentity p;
  */
 struct ATS_Address *address;
 
+/**
+ * Timeout task
+ */
+GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+
 #if 0
 
 #define MLP_MAX_EXEC_DURATION   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3)
@@ -88,6 +94,11 @@ int addr_it (void *cls,
 static void
 end_now (int res)
 {
+	if (GNUNET_SCHEDULER_NO_TASK != timeout_task)
+	{
+			GNUNET_SCHEDULER_cancel (timeout_task);
+			timeout_task = GNUNET_SCHEDULER_NO_TASK;
+	}
   if (NULL != stats)
   {
   	  GNUNET_STATISTICS_destroy(stats, GNUNET_NO);
@@ -119,6 +130,12 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 }
 
 static void
+end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+	end_now (1);
+}
+
+static void
 check (void *cls, char *const *args, const char *cfgfile,
        const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
@@ -131,6 +148,8 @@ check (void *cls, char *const *args, const char *cfgfile,
   ret = 1;
   return;
 #endif
+
+  timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
 
   stats = GNUNET_STATISTICS_create("ats", cfg);
   if (NULL == stats)
@@ -179,8 +198,6 @@ check (void *cls, char *const *args, const char *cfgfile,
   		GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 
   GAS_mlp_address_add (mlp, addresses, address);
-
-
   end_now (0);
 
 
