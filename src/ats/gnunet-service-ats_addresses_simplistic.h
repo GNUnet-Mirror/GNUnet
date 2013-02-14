@@ -31,6 +31,15 @@
 #define BIG_M_STRING "unlimited"
 
 /**
+ * ATS simplistic solver
+ *
+ * General description
+ */
+
+
+
+
+/**
  * Init the simplistic problem solving component
  *
  * Quotas:

@@ -37,7 +37,30 @@
 #include "gnunet-service-ats_addresses_simplistic.h"
 
 /**
- * ATS address management
+ * ATS addresses : ATS address management
+ *
+ * General
+ *
+ * This component manages the addresses known to ATS service and suggests
+ * addresses to transport service when it is interested in address suggestions
+ * for a peer.
+ *
+ * Address management and suggestions
+ *
+ * Transport service notifies ATS about changes to the addresses known to him.
+ * When transport learns a new address it tells ATS about it using
+ * GAS_address_add.
+ *
+ * Bandwidth assignment
+ *
+ * The addresses are used to perform resource allocation operations. ATS
+ * addresses takes care of instantiating the solver configured and notifies the
+ * respective solver about address changes and receives changes to the bandwidth
+ * assignment from the solver. The current bandwidth assignment is sent to
+ * transport.
+ *
+ *
+ * Address lifecycle:
  *
  * Adding addresses:
  *
