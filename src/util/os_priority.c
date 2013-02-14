@@ -155,7 +155,7 @@ GNUNET_OS_install_parent_control_handler (void *cls,
 #if WINDOWS
   control_pipe = GNUNET_DISK_get_handle_from_w32_handle ((HANDLE) pipe_fd);
 #else
-  control_pipe = GNUNET_DISK_get_handle_from_crt_fd ((int) pipe_fd);
+  control_pipe = GNUNET_DISK_get_handle_from_int_fd ((int) pipe_fd);
 #endif
   if (NULL == control_pipe)
   {
