@@ -1819,32 +1819,51 @@ GNUNET_DISK_file_open (const char *fn, enum GNUNET_DISK_OpenFlags flags,
 int
 GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h)
 {
+  int ret;
   if (h == NULL)
   {
     errno = EINVAL;
     return GNUNET_SYSERR;
   }
 
+  ret = GNUNET_OK;
+
 #if MINGW
   if (!CloseHandle (h->h))
   {
     SetErrnoFromWinError (GetLastError ());
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "close");
+    ret = GNUNET_SYSERR;
+  }
+  if (h->oOverlapRead)
+  {
+    if (!CloseHandle (h->oOverlapRead->hEvent))
+    {
+      SetErrnoFromWinError (GetLastError ());
+      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "close");
+      ret = GNUNET_SYSERR;
+    }
     GNUNET_free (h->oOverlapRead);
+  }
+  if (h->oOverlapWrite)
+  {
+    if (!CloseHandle (h->oOverlapWrite->hEvent))
+    {
+      SetErrnoFromWinError (GetLastError ());
+      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "close");
+      ret = GNUNET_SYSERR;
+    }
     GNUNET_free (h->oOverlapWrite);
-    GNUNET_free (h);
-    return GNUNET_SYSERR;
   }
 #else
   if (close (h->fd) != 0)
   {
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "close");
-    GNUNET_free (h);
-    return GNUNET_SYSERR;
+    ret = GNUNET_SYSERR;
   }
 #endif
   GNUNET_free (h);
-  return GNUNET_OK;
+  return ret;
 }
 
 
