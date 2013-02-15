@@ -43,7 +43,10 @@
  *
  * This component manages the addresses known to ATS service and suggests
  * addresses to transport service when it is interested in address suggestions
- * for a peer.
+ * for a peer. ATS addresses also instantiates the bandwidth assignment
+ * mechanism, notifies it about changes to addresses and forwards changes
+ * to bandwidth assignments to transport, depending if transport is interested
+ * in this change.
  *
  * Address management and suggestions
  *
