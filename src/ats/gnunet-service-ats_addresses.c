@@ -100,7 +100,9 @@
  * s_update about the update.
  *
  * -- Deleting an address
- * Addresses does an lookup for the
+ * Addresses does an lookup for the exact address and session and if removes
+ * this address. If session != 0 the session is set to 0 and the address is
+ * kept. If session == 0, the addresses is removed.
  *
  * -- Requesting an address suggestion
  * FIXME
