@@ -143,13 +143,32 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel (abort_task);
   if (NULL != reg_handle)
     GNUNET_TESTBED_cancel_registration (reg_handle);
-  GNUNET_TESTBED_controller_disconnect (controller);
-  GNUNET_CONFIGURATION_destroy (cfg);
+  if (NULL != controller)
+    GNUNET_TESTBED_controller_disconnect (controller);
+  if (NULL != cfg)
+    GNUNET_CONFIGURATION_destroy (cfg);
   if (NULL != cp)
     GNUNET_TESTBED_controller_stop (cp);
-  GNUNET_TESTBED_host_destroy (neighbour);
+  if (NULL != neighbour)
+    GNUNET_TESTBED_host_destroy (neighbour);
+  if (NULL != host)
   GNUNET_TESTBED_host_destroy (host);
 }
+
+
+/**
+ * shortcut to exit during failure
+ */
+#define FAIL_TEST(cond, ret) do {                                   \
+    if (!(cond)) {                                              \
+      GNUNET_break(0);                                          \
+      if (GNUNET_SCHEDULER_NO_TASK != abort_task)               \
+        GNUNET_SCHEDULER_cancel (abort_task);                   \
+      abort_task = GNUNET_SCHEDULER_NO_TASK;                    \
+      GNUNET_SCHEDULER_add_now (do_shutdown, NULL);             \
+      ret;                                                   \
+    }                                                          \
+  } while (0)
 
 
 /**
@@ -180,8 +199,8 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void *
 dht_connect_adapter (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_assert (NULL == cls);
-  GNUNET_assert (OTHER == sub_test);
+  FAIL_TEST (NULL == cls, return NULL);
+  FAIL_TEST (OTHER == sub_test, return NULL);
   sub_test = PEER_SERVICE_CONNECT;
   dht_handle = GNUNET_DHT_connect (cfg, 10);
   return dht_handle;
@@ -198,14 +217,14 @@ dht_connect_adapter (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 static void
 dht_disconnect_adapter (void *cls, void *op_result)
 {
-  GNUNET_assert (NULL != op_result);
-  GNUNET_assert (op_result == dht_handle);
+  FAIL_TEST (NULL != op_result, return);
+  FAIL_TEST (op_result == dht_handle, return);
   GNUNET_DHT_disconnect (dht_handle);
   dht_handle = NULL;
-  GNUNET_assert (PEER_SERVICE_CONNECT == sub_test);
-  GNUNET_assert (NULL != operation);
+  FAIL_TEST (PEER_SERVICE_CONNECT == sub_test, return);
+  FAIL_TEST (NULL != operation, return);
   operation = GNUNET_TESTBED_peer_stop (peer, NULL, NULL);
-  GNUNET_assert (NULL != operation);
+  FAIL_TEST (NULL != operation, return);
 }
 
 
@@ -225,15 +244,15 @@ service_connect_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
   switch (sub_test)
   {
   case PEER_SERVICE_CONNECT:
-    GNUNET_assert (operation == op);
-    GNUNET_assert (NULL == emsg);
-    GNUNET_assert (NULL == cls);
-    GNUNET_assert (ca_result == dht_handle);
+    FAIL_TEST (operation == op, return);
+    FAIL_TEST (NULL == emsg, return);
+    FAIL_TEST (NULL == cls, return);
+    FAIL_TEST (ca_result == dht_handle, return);
     GNUNET_TESTBED_operation_done (operation);  /* This results in call to
                                                  * disconnect adapter */
     break;
   default:
-    GNUNET_assert (0);
+    FAIL_TEST (0, return);
   }
 }
 
@@ -256,18 +275,18 @@ peerinfo_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op,
   switch (sub_test)
   {
   case PEER_GETCONFIG:
-    GNUNET_assert (NULL != pinfo);
-    GNUNET_assert (NULL == emsg);
-    GNUNET_assert (NULL == cb_cls);
-    GNUNET_assert (operation == op);
-    GNUNET_assert (GNUNET_TESTBED_PIT_CONFIGURATION == pinfo->pit);
-    GNUNET_assert (NULL != pinfo->result.cfg);
+    FAIL_TEST (NULL != pinfo, return);
+    FAIL_TEST (NULL == emsg, return);
+    FAIL_TEST (NULL == cb_cls, return);
+    FAIL_TEST (operation == op, return);
+    FAIL_TEST (GNUNET_TESTBED_PIT_CONFIGURATION == pinfo->pit, return);
+    FAIL_TEST (NULL != pinfo->result.cfg, return);
     sub_test = PEER_DESTROY;
     GNUNET_TESTBED_operation_done (operation);
     operation = GNUNET_TESTBED_peer_destroy (peer);
     break;
   default:
-    GNUNET_assert (0);
+    FAIL_TEST (0, return);
   }
 }
 
@@ -288,40 +307,40 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     switch (sub_test)
     {
     case PEER_DESTROY:
-      GNUNET_assert (event->details.operation_finished.operation == operation);
-      GNUNET_assert (NULL == event->details.operation_finished.op_cls);
-      GNUNET_assert (NULL == event->details.operation_finished.emsg);
-      GNUNET_assert (NULL == event->details.operation_finished.generic);
+      FAIL_TEST (event->details.operation_finished.operation == operation, return);
+      FAIL_TEST (NULL == event->details.operation_finished.op_cls, return);
+      FAIL_TEST (NULL == event->details.operation_finished.emsg, return);
+      FAIL_TEST (NULL == event->details.operation_finished.generic, return);
       GNUNET_TESTBED_operation_done (operation);
       GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
       break;
     case PEER_SERVICE_CONNECT:
-      GNUNET_assert (event->details.operation_finished.operation == operation);
-      GNUNET_assert (NULL == event->details.operation_finished.op_cls);
-      GNUNET_assert (NULL == event->details.operation_finished.emsg);
-      GNUNET_assert (NULL != dht_handle);
-      GNUNET_assert (event->details.operation_finished.generic == dht_handle);
+      FAIL_TEST (event->details.operation_finished.operation == operation, return);
+      FAIL_TEST (NULL == event->details.operation_finished.op_cls, return);
+      FAIL_TEST (NULL == event->details.operation_finished.emsg, return);
+      FAIL_TEST (NULL != dht_handle, return);
+      FAIL_TEST (event->details.operation_finished.generic == dht_handle, return);
       break;
     default:
-      GNUNET_assert (0);
+      FAIL_TEST (0, return);
       break;
     }
     break;
   case GNUNET_TESTBED_ET_PEER_START:
-    GNUNET_assert (event->details.peer_start.host == host);
-    GNUNET_assert (event->details.peer_start.peer == peer);
-    GNUNET_assert (OTHER == sub_test);
+    FAIL_TEST (event->details.peer_start.host == host, return);
+    FAIL_TEST (event->details.peer_start.peer == peer, return);
+    FAIL_TEST (OTHER == sub_test, return);
     GNUNET_TESTBED_operation_done (operation);
     operation =
         GNUNET_TESTBED_service_connect (NULL, peer, "dht",
                                         &service_connect_comp_cb, NULL,
                                         &dht_connect_adapter,
                                         &dht_disconnect_adapter, NULL);
-    GNUNET_assert (NULL != operation);
+    FAIL_TEST (NULL != operation, return);
     break;
   case GNUNET_TESTBED_ET_PEER_STOP:
-    GNUNET_assert (event->details.peer_stop.peer == peer);
-    GNUNET_assert (PEER_SERVICE_CONNECT == sub_test);
+    FAIL_TEST (event->details.peer_stop.peer == peer, return);
+    FAIL_TEST (PEER_SERVICE_CONNECT == sub_test, return);
     result = GNUNET_YES;
     sub_test = PEER_GETCONFIG;
     GNUNET_TESTBED_operation_done (operation);
@@ -331,7 +350,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
                                              &peerinfo_cb, NULL);
     break;
   default:
-    GNUNET_assert (0);          /* We should never reach this state */
+    FAIL_TEST (0, return);          /* We should never reach this state */
   }
 }
 
@@ -351,12 +370,12 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
   struct GNUNET_TESTBED_Peer **peer_ptr;
 
   peer_ptr = cls;
-  GNUNET_assert (NULL != peer);
-  GNUNET_assert (NULL != peer_ptr);
+  FAIL_TEST (NULL != peer, return);
+  FAIL_TEST (NULL != peer_ptr, return);
   *peer_ptr = peer;
   GNUNET_TESTBED_operation_done (operation);
   operation = GNUNET_TESTBED_peer_start (NULL, peer, NULL, NULL);
-  GNUNET_assert (NULL != operation);
+  FAIL_TEST (NULL != operation, return);
 }
 
 
@@ -369,12 +388,12 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
 static void
 registration_comp (void *cls, const char *emsg)
 {
-  GNUNET_assert (cls == neighbour);
+  FAIL_TEST (cls == neighbour, return);
   reg_handle = NULL;
   operation =
       GNUNET_TESTBED_peer_create (controller, host, cfg, &peer_create_cb,
                                   &peer);
-  GNUNET_assert (NULL != operation);
+  FAIL_TEST (NULL != operation, return);
 }
 
 
@@ -392,7 +411,12 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg, int status)
 {
   uint64_t event_mask;
 
-  GNUNET_assert (GNUNET_OK == status);
+  if (GNUNET_OK != status)
+  {
+    cp = NULL;
+    FAIL_TEST (0, return);
+    return;
+  }  
   event_mask = 0;
   event_mask |= (1L << GNUNET_TESTBED_ET_PEER_START);
   event_mask |= (1L << GNUNET_TESTBED_ET_PEER_STOP);
@@ -401,13 +425,13 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg, int status)
   controller =
       GNUNET_TESTBED_controller_connect (cfg, host, event_mask, &controller_cb,
                                          NULL);
-  GNUNET_assert (NULL != controller);
+  FAIL_TEST (NULL != controller, return);
   neighbour = GNUNET_TESTBED_host_create ("localhost", NULL, 0);
-  GNUNET_assert (NULL != neighbour);
+  FAIL_TEST (NULL != neighbour, return);
   reg_handle =
       GNUNET_TESTBED_register_host (controller, neighbour, &registration_comp,
                                     neighbour);
-  GNUNET_assert (NULL != reg_handle);
+  FAIL_TEST (NULL != reg_handle, return);
 }
 
 
@@ -425,7 +449,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
   host = GNUNET_TESTBED_host_create (NULL, NULL, 0);
-  GNUNET_assert (NULL != host);
+  FAIL_TEST (NULL != host, return);
   cfg = GNUNET_CONFIGURATION_dup (config);
   cp = GNUNET_TESTBED_controller_start ("127.0.0.1", host, cfg, status_cb,
                                         NULL);

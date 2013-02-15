@@ -733,7 +733,7 @@ GNUNET_TESTBED_set_num_parallel_overlay_connects_ (struct
                                                    GNUNET_TESTBED_Host *h,
                                                    unsigned int npoc)
 {
-  fprintf (stderr, "%d", npoc);
+  //fprintf (stderr, "%d", npoc);
   GNUNET_free_non_null (h->tslots);
   h->tslots_filled = 0;
   h->num_parallel_connects = npoc;

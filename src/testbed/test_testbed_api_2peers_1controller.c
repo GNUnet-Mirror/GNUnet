@@ -166,6 +166,7 @@ enum Stage
  */
 static enum Stage result;
 
+
 /**
  * shortcut to exit during failure
  */
@@ -179,6 +180,7 @@ static enum Stage result;
       return;                                                   \
     }                                                          \
   } while (0)
+
 
 /**
  * Shutdown nicely
