@@ -32,11 +32,18 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-simplistic",__VA_ARGS__)
 
 /**
- * ATS simplistic solver
+ * ATS addresses : simplistic solver
  *
- * Assigns in and outbound bandwidth equally for all addresses in specific
- * network type (WAN, LAN) based on configured in and outbound quota for this
- * network.
+ * This solver ssigns in and outbound bandwidth equally for all addresses in
+ * specific network type (WAN, LAN) based on configured in and outbound quota
+ * for this network.
+ *
+ * The solver is notified by addresses about changes to the addresses and
+ * recalculates the bandwith assigned if required. The solver notifies addresses
+ * by calling the GAS_bandwidth_changed_cb callback.
+ *
+ * - Initialization
+ *
  *
  * For each peer only a single is selected and marked as "active" in the address
  * struct.

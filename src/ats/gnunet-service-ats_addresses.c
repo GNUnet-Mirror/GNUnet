@@ -48,11 +48,25 @@
  * to bandwidth assignments to transport, depending if transport is interested
  * in this change.
  *
+ * - Input data
+ *
+ * -- Addresses
+ *
+ * -- Quotas
+ *
+ * -- Preference values
+ *
+ *
  * - Initialization
  * During initialization a hashmap to store addresses is created. The most
  * important step is to load the configured solver using configuration
  * "[ats]:MODE". Current solvers are MODE_SIMPLISTIC, MODE_MLP. Interaction
  * is done using a solver API
+ *
+ *
+ * - Loading quotas
+ * FIXME
+ *
  *
  * - Solver API
  *
@@ -140,27 +154,10 @@
  * - (updated address) || (address in use)
  * - (delete address)
  *
- * Adding addresses:
- *
- * - If you add a new address without a session, a new address with session 0
- *   will be added or an existing address with session 0 used
- * - If you add this address again now with a session a, the existing address
- *   will be updated with this session
- * - If you add this address again now with a session b, a new address object
- *   with this session will be added
-
- * Destroying addresses:
- *
- * - If you destroy an address without a session, the address itself and all
- *   address instances with an session will be removed
- * - If you destroy an address with a session, the session for this address
- *   will be removed
- *
- * Conclusion
- * Addresses without a session will be updated with a new session and if the
- * the session is destroyed the session is removed and address itself still
- * exists for suggestion
- *
+ * - Changing peer preferences
+ * The bandwidth assigned to a peer can be influenced by setting a preference
+ * for a peer. The prefernce will be given to to the solver with s_pref which
+ * has to take care of the preference value
  */
 
 
