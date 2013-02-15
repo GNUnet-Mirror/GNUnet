@@ -39,7 +39,7 @@
 /**
  * ATS addresses : ATS address management
  *
- * General
+ * - General
  *
  * This component manages the addresses known to ATS service and suggests
  * addresses to transport service when it is interested in address suggestions
@@ -48,19 +48,31 @@
  * to bandwidth assignments to transport, depending if transport is interested
  * in this change.
  *
- * Address management and suggestions
+ * - Initialization
+ *  FIXME
+ *
+ * - Solver API
+ *  FIXME
+ *
+ * - Address management and suggestions:
  *
  * Transport service notifies ATS about changes to the addresses known to him.
- * When transport learns a new address it tells ATS about it using
- * GAS_address_add.
  *
- * Bandwidth assignment
+ * When transport learns a new address it tells ATS about it using
+ * GAS_address_add. It creates a new address object and tells the solver using
+ * s_add to
+ * add it. ATS informationen are extracted given t
+ *
+ *
+ *
+ * - Bandwidth assignment
  *
  * The addresses are used to perform resource allocation operations. ATS
  * addresses takes care of instantiating the solver configured and notifies the
  * respective solver about address changes and receives changes to the bandwidth
  * assignment from the solver. The current bandwidth assignment is sent to
  * transport.
+ *
  *
  *
  * Address lifecycle:
