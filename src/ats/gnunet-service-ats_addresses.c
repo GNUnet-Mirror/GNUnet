@@ -1100,7 +1100,7 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg, unsigned long long *
     if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_out, &quota_out_str))
     {
       res = GNUNET_NO;
-      if (0 == strcmp(quota_out_str, BIG_M_STRING))
+      if (0 == strcmp(quota_out_str, GNUNET_ATS_MaxBandwidthString))
       {
         out_dest[c] = GNUNET_ATS_MaxBandwidth;
         res = GNUNET_YES;
@@ -1134,7 +1134,7 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg, unsigned long long *
     if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_in, &quota_in_str))
     {
       res = GNUNET_NO;
-      if (0 == strcmp(quota_in_str, BIG_M_STRING))
+      if (0 == strcmp(quota_in_str, GNUNET_ATS_MaxBandwidthString))
       {
         in_dest[c] = GNUNET_ATS_MaxBandwidth;
         res = GNUNET_YES;

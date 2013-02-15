@@ -59,6 +59,12 @@ enum GNUNET_ATS_Network_Type
  */
 #define GNUNET_ATS_DefaultBandwidth 65536
 
+
+/**
+ * Textual equivalent for GNUNET_ATS_MaxBandwidth
+ */
+#define GNUNET_ATS_MaxBandwidthString "unlimited"
+
 /**
  * Maximum bandwidth assigned to a network : 4095 MB/s
  */
