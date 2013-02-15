@@ -59,7 +59,7 @@
  * Solver functions:
  * s_init: init the solver with required information
  * s_add: add a new address
- * s_update: update an address
+ * s_update: update ATS values or session for an address
  * s_get: get prefered address for a peer
  * s_del: delete an address
  * s_pref: change preference value for a peer
@@ -74,15 +74,24 @@
  * - Address management:
  * Transport service notifies ATS about changes to the addresses known to him.
  *
+ * -- Addresses and sessions
+ * Addresses consist of the address itself and a numerical session.
+ * When a new addresswithout a session is added it has no session, so it gets
+ * session 0 assigned. When an address with a session is added and an address
+ * object with session 0 is found, this object is updated with the
+ * session otherwise a new address object with this session assigned is created.
+ *
  * -- Adding an address:
 
  * When transport learns a new address it tells ATS and ATS is telling addresses
  * about it using GAS_address_add. If not known to addresses it creates a new
  * address object and calls solver's s_add. ATS information are deserialized
- * and solver is notified using s_update.
+ * and solver is notified about the session and ATS information using s_update.
  *
  * -- Updating an address
- * FIXME
+ * Addresses does an lookup up for the existing address, dissambles included
+ * ATS information and notifies the solver using s_update about the update.
+ *
  *
  * -- Deleting an address
  * FIXME
