@@ -105,9 +105,21 @@
  * kept. If session == 0, the addresses is removed.
  *
  * -- Requesting an address suggestion
- * FIXME
+ * The address client issues a request address message to be notified about
+ * address suggestions for a specific peer. Addresses asks the solver with s_get.
+ * If no address is available, it will not send a response, otherwise it will
+ * respond with the choosen address.
  *
- * - Address suggestions:
+ * -- Address suggestions
+ * Addresses will notify the client automatically on any bandwidth_changed_cb
+ * by the solver if a address suggestion request is pending. If no address is
+ * available it will not respond at all If the client is not interested anymore,
+ * it has to cancel the address suggestion request.
+ *
+ * -- Suggestions blocks and reset
+ * After suggesting an address it is blocked for ATS_BLOCKING_DELTA sec. to
+ * prevent the client from being thrashed. If the client requires immediately
+ * it can reset this block using GAS_addresses_handle_backoff_reset.
  *
  * - Bandwidth assignment
  *
