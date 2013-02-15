@@ -71,16 +71,26 @@
  * - Shutdown
  * During shutdown all addresses are freed and the solver told to shutdown
  *
- * - Address management and suggestions:
- *
+ * - Address management:
  * Transport service notifies ATS about changes to the addresses known to him.
  *
- * When transport learns a new address it tells ATS about it using
- * GAS_address_add. It creates a new address object and tells the solver using
- * s_add to
- * add it. ATS informationen are extracted given t
+ * -- Adding an address:
+
+ * When transport learns a new address it tells ATS and ATS is telling addresses
+ * about it using GAS_address_add. If not known to addresses it creates a new
+ * address object and calls solver's s_add. ATS information are deserialized
+ * and solver is notified using s_update.
  *
+ * -- Updating an address
+ * FIXME
  *
+ * -- Deleting an address
+ * FIXME
+ *
+ * -- Requesting an address suggestion
+ * FIXME
+ *
+ * - Address suggestions:
  *
  * - Bandwidth assignment
  *
