@@ -151,6 +151,13 @@ GNUNET_OS_install_parent_control_handler (void *cls,
     putenv (GNUNET_OS_CONTROL_PIPE "=");
     return;
   }
+  if (pipe_fd >= FD_SETSIZE)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "GNUNET_OS_CONTROL_PIPE `%s' contains garbage?\n", env_buf);
+    putenv (GNUNET_OS_CONTROL_PIPE "=");
+    return;
+  }
   /* Gcc will issue a warning here. What to do with it? */
 #if WINDOWS
   control_pipe = GNUNET_DISK_get_handle_from_w32_handle ((HANDLE) pipe_fd);
