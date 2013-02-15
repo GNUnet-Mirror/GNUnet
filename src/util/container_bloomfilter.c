@@ -348,7 +348,7 @@ typedef int (*BitIterator) (void *cls,
  */
 static void
 iterateBits (const struct GNUNET_CONTAINER_BloomFilter *bf,
-             BitIterator callback, void *arg, const struct GNUNET_HashCode * key)
+             BitIterator callback, void *arg, const struct GNUNET_HashCode *key)
 {
   struct GNUNET_HashCode tmp[2];
   int bitCount;
@@ -366,7 +366,7 @@ iterateBits (const struct GNUNET_CONTAINER_BloomFilter *bf,
     {
       if (GNUNET_YES !=
           callback (arg, bf,
-                    (((uint32_t *) & tmp[round & 1])[slot]) %
+                    ntohl ((((uint32_t *) & tmp[round & 1])[slot])) %
                     ((bf->bitArraySize * 8LL))))
         return;
       slot++;
