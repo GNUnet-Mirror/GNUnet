@@ -188,20 +188,16 @@ static int
 check_kill ()
 {
   char *fn;
-#if !WINDOWS
-  GNUNET_asprintf (&fn, "cat");
-#else
-  GNUNET_asprintf (&fn, "w32cat");
-#endif
+
   hello_pipe_stdin = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_YES, GNUNET_NO);
   hello_pipe_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
   if ((hello_pipe_stdout == NULL) || (hello_pipe_stdin == NULL))
   {
-    GNUNET_free (fn);
     return 1;
   }
+  fn = GNUNET_OS_get_libexec_binary_path ("gnunet-service-resolver");
   proc =
-    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_ERR, hello_pipe_stdin, hello_pipe_stdout, "gnunet-service-resolver",
+    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_ERR, hello_pipe_stdin, hello_pipe_stdout, fn,
 			     "gnunet-service-resolver", "-", NULL); 
   sleep (1); /* give process time to start, so we actually use the pipe-kill mechanism! */
   GNUNET_free (fn);
@@ -223,20 +219,16 @@ static int
 check_instant_kill ()
 {
   char *fn;
-#if !WINDOWS
-  GNUNET_asprintf (&fn, "cat");
-#else
-  GNUNET_asprintf (&fn, "w32cat");
-#endif
+
   hello_pipe_stdin = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_YES, GNUNET_NO);
   hello_pipe_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
   if ((hello_pipe_stdout == NULL) || (hello_pipe_stdin == NULL))
   {
-    GNUNET_free (fn);
     return 1;
   }
+  fn = GNUNET_OS_get_libexec_binary_path ("gnunet-service-resolver");
   proc =
-    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_ERR, hello_pipe_stdin, hello_pipe_stdout, "gnunet-service-resolver",
+    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_ERR, hello_pipe_stdin, hello_pipe_stdout, fn,
 			     "gnunet-service-resolver", "-", NULL); 
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
   {
