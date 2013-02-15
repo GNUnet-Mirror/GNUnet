@@ -655,6 +655,7 @@ start_process (int pipe_control,
   {
     childpipe_read = NULL;
     childpipe_write = NULL;
+    childpipe_read_fd = -1;
   }
   if (NULL != pipe_stdout)
   {
@@ -730,6 +731,8 @@ start_process (int pipe_control,
     snprintf (fdbuf, 100, "%x", childpipe_read_fd);
     setenv (GNUNET_OS_CONTROL_PIPE, fdbuf, 1);
   }
+  else
+    unsetenv (GNUNET_OS_CONTROL_PIPE);
   if (NULL != pipe_stdin)
   {
     GNUNET_break (0 == close (fd_stdin_write));
