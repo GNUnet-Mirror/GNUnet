@@ -2004,7 +2004,7 @@ GNUNET_FS_search_result_sync_ (struct GNUNET_FS_SearchResult *sr)
     goto cleanup;
   }
   if ( (NULL != sr->uri) &&
-       (ksk == sr->sc->uri->type) &&
+       (GNUNET_FS_URI_KSK == sr->sc->uri->type) &&
        (GNUNET_OK != GNUNET_BIO_write (wh, sr->keyword_bitmap,
 				       (sr->sc->uri->data.ksk.keywordCount + 7) / 8)) )
   {
@@ -2340,7 +2340,7 @@ deserialize_search_result (void *cls, const char *filename)
     GNUNET_break (0);
     goto cleanup;
   }
-  if (ksk == sr->sc->uri->type)
+  if (GNUNET_FS_URI_KSK == sr->sc->uri->type)
   {
     sr->keyword_bitmap = GNUNET_malloc ((sr->sc->uri->data.ksk.keywordCount + 7) / 8); /* round up, count bits */
     if (GNUNET_OK != GNUNET_BIO_read (rh, "keyword-bitmap",

@@ -125,7 +125,7 @@ struct Location
   /**
    * Identity of the peer sharing the file.
    */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded peer;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded peer;
 
   /**
    * Time when this location URI expires.
@@ -136,35 +136,36 @@ struct Location
    * RSA signature over the GNUNET_EC_FileIdentifier,
    * GNUNET_hash of the peer and expiration time.
    */
-  struct GNUNET_CRYPTO_RsaSignature contentSignature;
+  struct GNUNET_CRYPTO_EccSignature contentSignature;
 
 };
 
 /**
  * Types of URIs.
  */
-enum uri_types
+enum GNUNET_FS_UriType
 {
     /**
      * Content-hash-key (simple file).
      */
-  chk,
+  GNUNET_FS_URI_CHK,
 
     /**
      * Signed key space (file in namespace).
      */
-  sks,
+  GNUNET_FS_URI_SKS,
 
     /**
      * Keyword search key (query with keywords).
      */
-  ksk,
+  GNUNET_FS_URI_KSK,
 
     /**
      * Location (chk with identity of hosting peer).
      */
-  loc
+  GNUNET_FS_URI_LOC
 };
+
 
 /**
  * A Universal Resource Identifier (URI), opaque.
@@ -174,7 +175,7 @@ struct GNUNET_FS_Uri
   /**
    * Type of the URI.
    */
-  enum uri_types type;
+  enum GNUNET_FS_UriType type;
 
   union
   {

@@ -55,13 +55,13 @@ GNUNET_FS_getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext
   {
     u = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
     *uri = u;
-    u->type = ksk;
+    u->type = GNUNET_FS_URI_KSK;
     u->data.ksk.keywordCount = 0;
     u->data.ksk.keywords = NULL;
   }
   else
   {
-    GNUNET_assert (u->type == ksk);
+    GNUNET_assert (u->type == GNUNET_FS_URI_KSK);
   }
   slen = strlen (value);
   if (slen == 0)

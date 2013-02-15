@@ -102,22 +102,22 @@ GNUNET_FS_uri_to_key (const struct GNUNET_FS_Uri *uri, struct GNUNET_HashCode * 
 {
   switch (uri->type)
   {
-  case chk:
+  case GNUNET_FS_URI_CHK:
     *key = uri->data.chk.chk.query;
     return;
-  case sks:
+  case GNUNET_FS_URI_SKS:
     GNUNET_CRYPTO_hash (uri->data.sks.identifier,
                         strlen (uri->data.sks.identifier), key);
     break;
-  case ksk:
+  case GNUNET_FS_URI_KSK:
     if (uri->data.ksk.keywordCount > 0)
       GNUNET_CRYPTO_hash (uri->data.ksk.keywords[0],
                           strlen (uri->data.ksk.keywords[0]), key);
     break;
-  case loc:
+  case GNUNET_FS_URI_LOC:
     GNUNET_CRYPTO_hash (&uri->data.loc.fi,
                         sizeof (struct FileIdentifier) +
-                        sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                        sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
                         key);
     break;
   default:
@@ -144,7 +144,7 @@ GNUNET_FS_uri_ksk_to_string_fancy (const struct GNUNET_FS_Uri *uri)
   char **keywords;
   unsigned int keywordCount;
 
-  if ((uri == NULL) || (uri->type != ksk))
+  if ((uri == NULL) || (uri->type != GNUNET_FS_URI_KSK))
   {
     GNUNET_break (0);
     return NULL;
@@ -330,7 +330,7 @@ uri_ksk_parse (const char *s, char **emsg)
   GNUNET_assert (max == 0);
   GNUNET_free (dup);
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
-  ret->type = ksk;
+  ret->type = GNUNET_FS_URI_KSK;
   ret->data.ksk.keywordCount = iret;
   ret->data.ksk.keywords = keywords;
   return ret;
@@ -383,7 +383,7 @@ uri_sks_parse (const char *s, char **emsg)
   identifier =
       GNUNET_strdup (&s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)]);
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
-  ret->type = sks;
+  ret->type = GNUNET_FS_URI_SKS;
   ret->data.sks.ns = ns;
   ret->data.sks.identifier = identifier;
   return ret;
@@ -441,7 +441,7 @@ uri_chk_parse (const char *s, char **emsg)
   }
   fi.file_length = GNUNET_htonll (flen);
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
-  ret->type = chk;
+  ret->type = GNUNET_FS_URI_CHK;
   ret->data.chk = fi;
   return ret;
 }
@@ -520,13 +520,13 @@ enc2bin (const char *input, void *data, size_t size)
  */
 struct LocUriAssembly
 {
-  struct GNUNET_CRYPTO_RsaSignaturePurpose purpose;
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
 
   struct GNUNET_TIME_AbsoluteNBO exptime;
 
   struct FileIdentifier fi;
 
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded peer;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded peer;
 
 };
 
@@ -552,7 +552,7 @@ uri_loc_parse (const char *s, char **emsg)
   unsigned long long exptime;
   unsigned long long flen;
   struct GNUNET_TIME_Absolute et;
-  struct GNUNET_CRYPTO_RsaSignature sig;
+  struct GNUNET_CRYPTO_EccSignature sig;
   struct LocUriAssembly ass;
   int ret;
   size_t slen;
@@ -597,7 +597,7 @@ uri_loc_parse (const char *s, char **emsg)
   npos++;
   ret =
       enc2bin (&s[npos], &ass.peer,
-               sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+               sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
   if (ret == -1)
   {
     *emsg =
@@ -610,7 +610,7 @@ uri_loc_parse (const char *s, char **emsg)
     *emsg = GNUNET_strdup (_("SKS URI malformed (could not find signature)"));
     goto ERR;
   }
-  ret = enc2bin (&s[npos], &sig, sizeof (struct GNUNET_CRYPTO_RsaSignature));
+  ret = enc2bin (&s[npos], &sig, sizeof (struct GNUNET_CRYPTO_EccSignature));
   if (ret == -1)
   {
     *emsg = GNUNET_strdup (_("SKS URI malformed (could not decode signature)"));
@@ -634,7 +634,7 @@ uri_loc_parse (const char *s, char **emsg)
   et.abs_value = exptime;
   ass.exptime = GNUNET_TIME_absolute_hton (et);
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT,
+      GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT,
                                 &ass.purpose, &sig, &ass.peer))
   {
     *emsg =
@@ -642,7 +642,7 @@ uri_loc_parse (const char *s, char **emsg)
     goto ERR;
   }
   uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
-  uri->type = loc;
+  uri->type = GNUNET_FS_URI_LOC;
   uri->data.loc.fi = ass.fi;
   uri->data.loc.peer = ass.peer;
   uri->data.loc.expirationTime = et;
@@ -696,15 +696,15 @@ GNUNET_FS_uri_destroy (struct GNUNET_FS_Uri *uri)
   GNUNET_assert (uri != NULL);
   switch (uri->type)
   {
-  case ksk:
+  case GNUNET_FS_URI_KSK:
     for (i = 0; i < uri->data.ksk.keywordCount; i++)
       GNUNET_free (uri->data.ksk.keywords[i]);
     GNUNET_array_grow (uri->data.ksk.keywords, uri->data.ksk.keywordCount, 0);
     break;
-  case sks:
+  case GNUNET_FS_URI_SKS:
     GNUNET_free (uri->data.sks.identifier);
     break;
-  case loc:
+  case GNUNET_FS_URI_LOC:
     break;
   default:
     /* do nothing */
@@ -722,7 +722,7 @@ GNUNET_FS_uri_destroy (struct GNUNET_FS_Uri *uri)
 unsigned int
 GNUNET_FS_uri_ksk_get_keyword_count (const struct GNUNET_FS_Uri *uri)
 {
-  if (uri->type != ksk)
+  if (uri->type != GNUNET_FS_URI_KSK)
     return 0;
   return uri->data.ksk.keywordCount;
 }
@@ -745,7 +745,7 @@ GNUNET_FS_uri_ksk_get_keywords (const struct GNUNET_FS_Uri *uri,
   unsigned int i;
   char *keyword;
 
-  if (uri->type != ksk)
+  if (uri->type != GNUNET_FS_URI_KSK)
     return -1;
   if (iterator == NULL)
     return uri->data.ksk.keywordCount;
@@ -777,7 +777,7 @@ GNUNET_FS_uri_ksk_add_keyword (struct GNUNET_FS_Uri *uri, const char *keyword,
   const char *old;
   char *n;
 
-  GNUNET_assert (uri->type == ksk);
+  GNUNET_assert (uri->type == GNUNET_FS_URI_KSK);
   for (i = 0; i < uri->data.ksk.keywordCount; i++)
   {
     old = uri->data.ksk.keywords[i];
@@ -803,7 +803,7 @@ GNUNET_FS_uri_ksk_remove_keyword (struct GNUNET_FS_Uri *uri,
   unsigned int i;
   char *old;
 
-  GNUNET_assert (uri->type == ksk);
+  GNUNET_assert (uri->type == GNUNET_FS_URI_KSK);
   for (i = 0; i < uri->data.ksk.keywordCount; i++)
   {
     old = uri->data.ksk.keywords[i];
@@ -831,10 +831,10 @@ int
 GNUNET_FS_uri_loc_get_peer_identity (const struct GNUNET_FS_Uri *uri,
                                      struct GNUNET_PeerIdentity *peer)
 {
-  if (uri->type != loc)
+  if (uri->type != GNUNET_FS_URI_LOC)
     return GNUNET_SYSERR;
   GNUNET_CRYPTO_hash (&uri->data.loc.peer,
-                      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                      sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
                       &peer->hashPubKey);
   return GNUNET_OK;
 }
@@ -849,7 +849,7 @@ GNUNET_FS_uri_loc_get_peer_identity (const struct GNUNET_FS_Uri *uri,
 struct GNUNET_TIME_Absolute
 GNUNET_FS_uri_loc_get_expiration (const struct GNUNET_FS_Uri *uri)
 {
-  GNUNET_assert (uri->type == loc);
+  GNUNET_assert (uri->type == GNUNET_FS_URI_LOC);
   return uri->data.loc.expirationTime;
 }
 
@@ -866,10 +866,10 @@ GNUNET_FS_uri_loc_get_uri (const struct GNUNET_FS_Uri *uri)
 {
   struct GNUNET_FS_Uri *ret;
 
-  if (uri->type != loc)
+  if (uri->type != GNUNET_FS_URI_LOC)
     return NULL;
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
-  ret->type = chk;
+  ret->type = GNUNET_FS_URI_CHK;
   ret->data.chk = uri->data.loc.fi;
   return ret;
 }
@@ -889,22 +889,22 @@ GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
                           struct GNUNET_TIME_Absolute expiration_time)
 {
   struct GNUNET_FS_Uri *uri;
-  struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key;
+  struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded my_public_key;
   char *keyfile;
   struct LocUriAssembly ass;
 
-  if (baseUri->type != chk)
+  if (baseUri->type != GNUNET_FS_URI_CHK)
     return NULL;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "GNUNETD", "HOSTKEY",
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "PEER", "PRIVATE_KEY",
                                                &keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Lacking key configuration settings.\n"));
     return NULL;
   }
-  if (NULL == (my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile)))
+  if (NULL == (my_private_key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Could not access hostkey file `%s'.\n"), keyfile);
@@ -912,21 +912,21 @@ GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
     return NULL;
   }
   GNUNET_free (keyfile);
-  GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
+  GNUNET_CRYPTO_ecc_key_get_public (my_private_key, &my_public_key);
   ass.purpose.size = htonl (sizeof (struct LocUriAssembly));
   ass.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT);
   ass.exptime = GNUNET_TIME_absolute_hton (expiration_time);
   ass.fi = baseUri->data.chk;
   ass.peer = my_public_key;
   uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
-  uri->type = loc;
+  uri->type = GNUNET_FS_URI_LOC;
   uri->data.loc.fi = baseUri->data.chk;
   uri->data.loc.expirationTime = expiration_time;
   uri->data.loc.peer = my_public_key;
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_rsa_sign (my_private_key, &ass.purpose,
+                 GNUNET_CRYPTO_ecc_sign (my_private_key, &ass.purpose,
                                          &uri->data.loc.contentSignature));
-  GNUNET_CRYPTO_rsa_key_free (my_private_key);
+  GNUNET_CRYPTO_ecc_key_free (my_private_key);
   return uri;
 }
 
@@ -947,7 +947,7 @@ GNUNET_FS_uri_sks_create (struct GNUNET_FS_Namespace *ns, const char *id,
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pk;
 
   ns_uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
-  ns_uri->type = sks;
+  ns_uri->type = GNUNET_FS_URI_SKS;
   GNUNET_CRYPTO_rsa_key_get_public (ns->key, &pk);
   GNUNET_CRYPTO_hash (&pk, sizeof (pk), &ns_uri->data.sks.ns);
   ns_uri->data.sks.identifier = GNUNET_strdup (id);
@@ -968,7 +968,7 @@ GNUNET_FS_uri_sks_create_from_nsid (struct GNUNET_HashCode * nsid, const char *i
   struct GNUNET_FS_Uri *ns_uri;
 
   ns_uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
-  ns_uri->type = sks;
+  ns_uri->type = GNUNET_FS_URI_SKS;
   ns_uri->data.sks.ns = *nsid;
   ns_uri->data.sks.identifier = GNUNET_strdup (id);
   return ns_uri;
@@ -1002,7 +1002,7 @@ GNUNET_FS_uri_ksk_merge (const struct GNUNET_FS_Uri *u1,
     return GNUNET_FS_uri_dup (u2);
   if (u2 == NULL)
     return GNUNET_FS_uri_dup (u1);
-  if ((u1->type != ksk) || (u2->type != ksk))
+  if ((u1->type != GNUNET_FS_URI_KSK) || (u2->type != GNUNET_FS_URI_KSK))
   {
     GNUNET_break (0);
     return NULL;
@@ -1027,7 +1027,7 @@ GNUNET_FS_uri_ksk_merge (const struct GNUNET_FS_Uri *u1,
       kl[kc++] = GNUNET_strdup (kp);
   }
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
-  ret->type = ksk;
+  ret->type = GNUNET_FS_URI_KSK;
   ret->data.ksk.keywordCount = kc;
   ret->data.ksk.keywords = kl;
   return ret;
@@ -1052,7 +1052,7 @@ GNUNET_FS_uri_dup (const struct GNUNET_FS_Uri *uri)
   memcpy (ret, uri, sizeof (struct GNUNET_FS_Uri));
   switch (ret->type)
   {
-  case ksk:
+  case GNUNET_FS_URI_KSK:
     if (ret->data.ksk.keywordCount >=
         GNUNET_MAX_MALLOC_CHECKED / sizeof (char *))
     {
@@ -1070,10 +1070,10 @@ GNUNET_FS_uri_dup (const struct GNUNET_FS_Uri *uri)
     else
       ret->data.ksk.keywords = NULL;    /* just to be sure */
     break;
-  case sks:
+  case GNUNET_FS_URI_SKS:
     ret->data.sks.identifier = GNUNET_strdup (uri->data.sks.identifier);
     break;
-  case loc:
+  case GNUNET_FS_URI_LOC:
     break;
   default:
     break;
@@ -1218,7 +1218,7 @@ GNUNET_FS_uri_ksk_create_from_args (unsigned int argc, const char **argv)
     return uri;
   GNUNET_free_non_null (emsg);
   uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
-  uri->type = ksk;
+  uri->type = GNUNET_FS_URI_KSK;
   uri->data.ksk.keywordCount = argc;
   uri->data.ksk.keywords = GNUNET_malloc (argc * sizeof (char *));
   for (i = 0; i < argc; i++)
@@ -1265,12 +1265,12 @@ GNUNET_FS_uri_test_equal (const struct GNUNET_FS_Uri *u1,
     return GNUNET_NO;
   switch (u1->type)
   {
-  case chk:
+  case GNUNET_FS_URI_CHK:
     if (0 ==
         memcmp (&u1->data.chk, &u2->data.chk, sizeof (struct FileIdentifier)))
       return GNUNET_YES;
     return GNUNET_NO;
-  case sks:
+  case GNUNET_FS_URI_SKS:
     if ((0 ==
          memcmp (&u1->data.sks.ns, &u2->data.sks.ns,
                  sizeof (struct GNUNET_HashCode))) &&
@@ -1278,7 +1278,7 @@ GNUNET_FS_uri_test_equal (const struct GNUNET_FS_Uri *u1,
 
       return GNUNET_YES;
     return GNUNET_NO;
-  case ksk:
+  case GNUNET_FS_URI_KSK:
     if (u1->data.ksk.keywordCount != u2->data.ksk.keywordCount)
       return GNUNET_NO;
     for (i = 0; i < u1->data.ksk.keywordCount; i++)
@@ -1296,11 +1296,11 @@ GNUNET_FS_uri_test_equal (const struct GNUNET_FS_Uri *u1,
         return GNUNET_NO;
     }
     return GNUNET_YES;
-  case loc:
+  case GNUNET_FS_URI_LOC:
     if (memcmp
         (&u1->data.loc, &u2->data.loc,
          sizeof (struct FileIdentifier) +
-         sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
+         sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded) +
          sizeof (struct GNUNET_TIME_Absolute) + sizeof (unsigned short) +
          sizeof (unsigned short)) != 0)
       return GNUNET_NO;
@@ -1320,7 +1320,7 @@ GNUNET_FS_uri_test_equal (const struct GNUNET_FS_Uri *u1,
 int
 GNUNET_FS_uri_test_sks (const struct GNUNET_FS_Uri *uri)
 {
-  return uri->type == sks;
+  return uri->type == GNUNET_FS_URI_SKS;
 }
 
 
@@ -1380,7 +1380,7 @@ GNUNET_FS_uri_sks_to_string_fancy (struct GNUNET_CONFIGURATION_Handle *cfg,
   char *name;
   char *unique_name;
 
-  if (uri->type != sks)
+  if (uri->type != GNUNET_FS_URI_SKS)
     return NULL;
   (void) GNUNET_PSEUDONYM_get_info (cfg, &uri->data.sks.ns,
 				    NULL, NULL, &name, NULL);
@@ -1404,13 +1404,13 @@ GNUNET_FS_uri_test_ksk (const struct GNUNET_FS_Uri *uri)
 #if EXTRA_CHECKS
   unsigned int i;
 
-  if (uri->type == ksk)
+  if (uri->type == GNUNET_FS_URI_KSK)
   {
     for (i=0;i < uri->data.ksk.keywordCount; i++)
       GNUNET_assert (uri->data.ksk.keywords[i] != NULL);
   }
 #endif
-  return uri->type == ksk;
+  return uri->type == GNUNET_FS_URI_KSK;
 }
 
 
@@ -1423,7 +1423,7 @@ GNUNET_FS_uri_test_ksk (const struct GNUNET_FS_Uri *uri)
 int
 GNUNET_FS_uri_test_chk (const struct GNUNET_FS_Uri *uri)
 {
-  return uri->type == chk;
+  return uri->type == GNUNET_FS_URI_CHK;
 }
 
 
@@ -1439,9 +1439,9 @@ GNUNET_FS_uri_chk_get_file_size (const struct GNUNET_FS_Uri * uri)
 {
   switch (uri->type)
   {
-  case chk:
+  case GNUNET_FS_URI_CHK:
     return GNUNET_ntohll (uri->data.chk.file_length);
-  case loc:
+  case GNUNET_FS_URI_LOC:
     return GNUNET_ntohll (uri->data.loc.fi.file_length);
   default:
     GNUNET_assert (0);
@@ -1459,7 +1459,7 @@ GNUNET_FS_uri_chk_get_file_size (const struct GNUNET_FS_Uri * uri)
 int
 GNUNET_FS_uri_test_loc (const struct GNUNET_FS_Uri *uri)
 {
-  return uri->type == loc;
+  return uri->type == GNUNET_FS_URI_LOC;
 }
 
 
@@ -1806,7 +1806,7 @@ GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData
   if (md == NULL)
     return NULL;
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
-  ret->type = ksk;
+  ret->type = GNUNET_FS_URI_KSK;
   ent = GNUNET_CONTAINER_meta_data_iterate (md, NULL, NULL);
   if (ent > 0)
   {
@@ -1871,7 +1871,7 @@ uri_ksk_to_string (const struct GNUNET_FS_Uri *uri)
   size_t slen;
   const char *keyword;
 
-  if (uri->type != ksk)
+  if (uri->type != GNUNET_FS_URI_KSK)
     return NULL;
   keywords = uri->data.ksk.keywords;
   keywordCount = uri->data.ksk.keywordCount;
@@ -1936,7 +1936,7 @@ uri_sks_to_string (const struct GNUNET_FS_Uri *uri)
   char *ret;
   struct GNUNET_CRYPTO_HashAsciiEncoded nsasc;
 
-  if (uri->type != sks)
+  if (uri->type != GNUNET_FS_URI_SKS)
     return NULL;
   ns = &uri->data.sks.ns;
   identifier = uri->data.sks.identifier;
@@ -1961,7 +1961,7 @@ uri_chk_to_string (const struct GNUNET_FS_Uri *uri)
   struct GNUNET_CRYPTO_HashAsciiEncoded keyhash;
   struct GNUNET_CRYPTO_HashAsciiEncoded queryhash;
 
-  if (uri->type != chk)
+  if (uri->type != GNUNET_FS_URI_CHK)
     return NULL;
   fi = &uri->data.chk;
   GNUNET_CRYPTO_hash_to_enc (&fi->chk.key, &keyhash);
@@ -2040,10 +2040,10 @@ uri_loc_to_string (const struct GNUNET_FS_Uri *uri)
   GNUNET_CRYPTO_hash_to_enc (&uri->data.loc.fi.chk.query, &queryhash);
   peerId =
       bin2enc (&uri->data.loc.peer,
-               sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+               sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
   peerSig =
       bin2enc (&uri->data.loc.contentSignature,
-               sizeof (struct GNUNET_CRYPTO_RsaSignature));
+               sizeof (struct GNUNET_CRYPTO_EccSignature));
   GNUNET_asprintf (&ret, "%s%s%s.%s.%llu.%s.%s.%llu", GNUNET_FS_URI_PREFIX,
                    GNUNET_FS_URI_LOC_INFIX, (const char *) &keyhash,
                    (const char *) &queryhash,
@@ -2073,13 +2073,13 @@ GNUNET_FS_uri_to_string (const struct GNUNET_FS_Uri *uri)
   }
   switch (uri->type)
   {
-  case ksk:
+  case GNUNET_FS_URI_KSK:
     return uri_ksk_to_string (uri);
-  case sks:
+  case GNUNET_FS_URI_SKS:
     return uri_sks_to_string (uri);
-  case chk:
+  case GNUNET_FS_URI_CHK:
     return uri_chk_to_string (uri);
-  case loc:
+  case GNUNET_FS_URI_LOC:
     return uri_loc_to_string (uri);
   default:
     GNUNET_break (0);

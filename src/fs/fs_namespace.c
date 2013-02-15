@@ -598,7 +598,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   GNUNET_CRYPTO_hash (identifier, idlen, &key);
   GNUNET_CRYPTO_hash (&key, sizeof (struct GNUNET_HashCode), &id);
   sks_uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
-  sks_uri->type = sks;
+  sks_uri->type = GNUNET_FS_URI_SKS;
   GNUNET_CRYPTO_rsa_key_get_public (ns->key, &sb_enc->subspace);
   GNUNET_CRYPTO_hash (&sb_enc->subspace,
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),

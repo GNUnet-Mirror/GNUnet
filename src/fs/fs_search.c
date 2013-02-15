@@ -400,7 +400,7 @@ GNUNET_FS_search_start_probe_ (struct GNUNET_FS_SearchResult *sr)
     return;
   if (sr->availability_trials > AVAILABILITY_TRIALS_MAX)
     return;
-  if ( (chk != sr->uri->type) && (loc != sr->uri->type))
+  if ( (GNUNET_FS_URI_CHK != sr->uri->type) && (GNUNET_FS_URI_LOC != sr->uri->type))
     return;
   len = GNUNET_FS_uri_chk_get_file_size (sr->uri);
   if (0 == len)
@@ -566,7 +566,7 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc, const char *id_update,
   /* search for updates */
   if (0 == strlen (id_update))
     return;                     /* no updates */
-  uu.type = sks;
+  uu.type = GNUNET_FS_URI_SKS;
   uu.data.sks.ns = sc->uri->data.sks.ns;
   uu.data.sks.identifier = GNUNET_strdup (id_update);
   (void) search_start (sc->h, &uu, sc->anonymity, sc->options, NULL, sr);
@@ -729,7 +729,7 @@ process_nblock (struct GNUNET_FS_SearchContext *sc, const struct NBlock *nb,
   }
 
   uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
-  uri->type = sks;
+  uri->type = GNUNET_FS_URI_SKS;
   uri->data.sks.identifier = GNUNET_strdup (pt);
   GNUNET_CRYPTO_hash (&nb->subspace,
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),

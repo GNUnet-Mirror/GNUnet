@@ -1884,7 +1884,7 @@ GNUNET_FS_download_start_task_ (void *cls,
     dc->top_request->state = BRS_CHK_SET;
     dc->top_request->chk =
         (dc->uri->type ==
-         chk) ? dc->uri->data.chk.chk : dc->uri->data.loc.fi.chk;
+         GNUNET_FS_URI_CHK) ? dc->uri->data.chk.chk : dc->uri->data.loc.fi.chk;
     /* signal start */
     GNUNET_FS_download_sync_ (dc);
     if (NULL != dc->search)
