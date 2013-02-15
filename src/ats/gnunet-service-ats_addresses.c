@@ -41,18 +41,35 @@
  *
  * - General
  *
- * This component manages the addresses known to ATS service and suggests
- * addresses to transport service when it is interested in address suggestions
- * for a peer. ATS addresses also instantiates the bandwidth assignment
- * mechanism, notifies it about changes to addresses and forwards changes
+ * This ATS addresses ("addresses") component manages the addresses known to ATS
+ * service and suggests addresses to transport service when it is interested in
+ * address suggestion for a peer. ATS addresses also instantiates the bandwidth assignment
+ * mechanism (solver), notifies it about changes to addresses and forwards changes
  * to bandwidth assignments to transport, depending if transport is interested
  * in this change.
  *
  * - Initialization
- *  FIXME
+ * During initialization a hashmap to store addresses is created. The most
+ * important step is to load the configured solver using configuration
+ * "[ats]:MODE". Current solvers are MODE_SIMPLISTIC, MODE_MLP. Interaction
+ * is done using a solver API
  *
  * - Solver API
- *  FIXME
+ *
+ * Solver functions:
+ * s_init: init the solver with required information
+ * s_add: add a new address
+ * s_update: update an address
+ * s_get: get prefered address for a peer
+ * s_del: delete an address
+ * s_pref: change preference value for a peer
+ * s_done: shutdown solver
+ * Callbacks:
+ * addresses provides a bandwidth_changed_cb callback to the solver which is
+ * called when bandwidth assigned to peer has changed
+ *
+ * - Shutdown
+ * During shutdown all addresses are freed and the solver told to shutdown
  *
  * - Address management and suggestions:
  *
