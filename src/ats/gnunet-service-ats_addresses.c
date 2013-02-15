@@ -37,6 +37,10 @@
 #include "gnunet-service-ats_addresses_simplistic.h"
 
 /**
+ * NOTE: Do not change this documentation. This documentation is based on
+ * gnunet.org:/vcs/fsnsg/ats-paper.git/tech-doku/ats-tech-guide.tex
+ * use build_txt.sh to generate plaintext output
+ *
  * ATS addresses : ATS address management
  *
  * - General
@@ -46,11 +50,20 @@
  * address suggestion for a peer. ATS addresses also instantiates the bandwidth assignment
  * mechanism (solver), notifies it about changes to addresses and forwards changes
  * to bandwidth assignments to transport, depending if transport is interested
- * in this change.
+ * in this change. ATS calculates bandwidth assigned depending on the network
+ * address
+ * All addresses belong to one of the networks ATS defines.
  *
  * - Input data
+ * Here a short description of the input data used for ATS
  *
  * -- Addresses
+ * Addresses are added by specifying peer ID, plugin, address, address length
+ * and session, if available. ATS information can be specified if available.
+ *
+ * -- Networks
+ *
+ *
  *
  * -- Quotas
  *
