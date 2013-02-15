@@ -81,6 +81,12 @@
  * object with session 0 is found, this object is updated with the
  * session otherwise a new address object with this session assigned is created.
  *
+ * Terminology:
+ * Addresses a1,a2 with session s1, s2 are "exact" if:
+ *  (a1 == a2) && (s1 == s2)
+ * Addresses a1,a2 with session s1, s2 are "equivalent" if:
+ *  (a1 == a2) && ((s1 == s2) || (s1 == 0) || (s2 ==0)
+ *
  * -- Adding an address:
 
  * When transport learns a new address it tells ATS and ATS is telling addresses
@@ -89,12 +95,12 @@
  * and solver is notified about the session and ATS information using s_update.
  *
  * -- Updating an address
- * Addresses does an lookup up for the existing address, dissambles included
- * ATS information and notifies the solver using s_update about the update.
- *
+ * Addresses does an lookup up for the existing address with the given session.
+ * If disassembles included ATS information and notifies the solver using
+ * s_update about the update.
  *
  * -- Deleting an address
- * FIXME
+ * Addresses does an lookup for the
  *
  * -- Requesting an address suggestion
  * FIXME
