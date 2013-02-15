@@ -76,7 +76,7 @@
  *
  * -- Addresses and sessions
  * Addresses consist of the address itself and a numerical session.
- * When a new addresswithout a session is added it has no session, so it gets
+ * When a new address without a session is added it has no session, so it gets
  * session 0 assigned. When an address with a session is added and an address
  * object with session 0 is found, this object is updated with the
  * session otherwise a new address object with this session assigned is created.
@@ -121,21 +121,29 @@
  * prevent the client from being thrashed. If the client requires immediately
  * it can reset this block using GAS_addresses_handle_backoff_reset.
  *
+ * -- Address in use
+ * The client can notify addresses that it successfully uses an address and
+ * wants this address to be kept by calling GSA_address_in_use. Adresses
+ * will mark the address as used an notify the solver about the use.
+ *
  * - Bandwidth assignment
  *
  * The addresses are used to perform resource allocation operations. ATS
  * addresses takes care of instantiating the solver configured and notifies the
  * respective solver about address changes and receives changes to the bandwidth
  * assignment from the solver. The current bandwidth assignment is sent to
- * transport.
- *
- *
+ * transport. The specific solvers will be described in the specific section.
  *
  * Address lifecycle:
  *
+ * - (add address)
+ * - (updated address) || (address in use)
+ * - (delete address)
+ *
  * Adding addresses:
  *
- * - If you add a new address without a session, a new address will be added
+ * - If you add a new address without a session, a new address with session 0
+ *   will be added or an existing address with session 0 used
  * - If you add this address again now with a session a, the existing address
  *   will be updated with this session
  * - If you add this address again now with a session b, a new address object
