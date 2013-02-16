@@ -151,7 +151,12 @@ GNUNET_OS_install_parent_control_handler (void *cls,
     putenv (GNUNET_OS_CONTROL_PIPE "=");
     return;
   }
+#if !defined (WINDOWS)
   if (pipe_fd >= FD_SETSIZE)
+#else
+  if ((FILE_TYPE_UNKNOWN == GetFileType ((HANDLE) pipe_fd))
+      && (0 != GetLastError ()))
+#endif
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "GNUNET_OS_CONTROL_PIPE `%s' contains garbage?\n", env_buf);
