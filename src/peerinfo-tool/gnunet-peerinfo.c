@@ -432,7 +432,7 @@ add_continuation (void *cls,
 static int
 parse_hello_uri (const char *put_uri)
 {
-  struct GNUNET_HELLO_Message *hello;
+  struct GNUNET_HELLO_Message *hello = NULL;
 
   int ret = GNUNET_HELLO_parse_uri(put_uri, &my_public_key, &hello, &GPI_plugins_find);
 
