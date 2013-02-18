@@ -1061,7 +1061,9 @@ arm_start_cb (void *cls, enum GNUNET_ARM_ProcessStatus result)
       if (peer_cnt < (num_peers - 1))
       {
         next_p = (++peer_cnt % num_peers);
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
+                                        GNUNET_TIME_UNIT_MILLISECONDS,
+                                        200),
                                       &announce_next_regex,
                                       (void *) (long) next_p);
       }
@@ -1650,9 +1652,13 @@ controller_event_cb (void *cls,
      {
        fflush (stdout);
        prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
-       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                    "%u links established in %s\n",
                    num_links,
+                   GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
+       prof_time = GNUNET_TIME_relative_divide(prof_time, num_links);
+       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                   "Average of %s per connection\n",
                    GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
        result = GNUNET_OK;
        GNUNET_free (peer_handles);
