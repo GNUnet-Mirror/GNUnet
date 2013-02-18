@@ -63,6 +63,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (0 != ret)
     return;
   status = GNUNET_OK;
+  printf ("Job name: %s\n Submitted to host: %s\n", job_info.job_name,
+          job_info.submit_host);
 }
 
 
