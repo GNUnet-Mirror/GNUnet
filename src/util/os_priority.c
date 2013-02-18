@@ -1072,7 +1072,6 @@ start_process (int pipe_control,
       if (childpipe_write)
         GNUNET_DISK_file_close (childpipe_write);
       GNUNET_free (cmd);
-      GNUNET_free (path);
       return NULL;
     }
     /* Unlike *nix variant, we don't dup the handle, so can't close
@@ -1093,7 +1092,6 @@ start_process (int pipe_control,
     if (lsocks_pipe == NULL)
     {
       GNUNET_free (cmd);
-      GNUNET_free (path);
       GNUNET_DISK_pipe_close (lsocks_pipe);
       if (GNUNET_YES == pipe_control)
       {
@@ -1184,7 +1182,6 @@ start_process (int pipe_control,
 
   GNUNET_free (env_block);
   GNUNET_free (cmd);
-  GNUNET_free (path);
   free (wpath);
   free (wcmd);
   if (GNUNET_YES == pipe_control)
