@@ -32,7 +32,111 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-simplistic",__VA_ARGS__)
 
 /**
+ *
+ * NOTE: Do not change this documentation. This documentation is based on
+ * gnunet.org:/vcs/fsnsg/ats-paper.git/tech-doku/ats-tech-guide.tex
+ * use build_txt.sh to generate plaintext output
+ *
  * ATS addresses : simplistic solver
+ *
+ * The simplistic solver ("simplistic") distributes the available bandwidth
+ * fair over all the addresses influenced by the preference values. For each
+ * available network type an in- and outbound quota is configured and the
+ * bandwidth available in these networks is distributed over the addresses.
+ * The solver first assigns every addresses the minimum amount of bandwidth
+ * GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT and then distributes the remaining
+ * bandwidth available according to the preference values. For each peer only
+ * a single address gets bandwidth assigned and only one address marked as
+ * active.
+ * The most important functionality for the solver is implemented in:
+ *   * find_address_it
+ *     is an hashmap iterator returning the prefered address for an peer
+ *   * update_quota_per_network
+ *     distributes available bandwidth for a network over active addresses
+ *
+ * Bandwidth assignment is only recalculated on demand when an address is
+ * requested by a client for a peer or when the addresses available have
+ * changed or an address changed the network it is located in. When the
+ * bandwidth assignment has changed the callback is called with the new
+ * bandwidth assignments. The bandwidth distribution for a network is
+ * recalculated due to:
+ *   * address suggestion requests
+ *   * address deletions
+ *   * address switching networks during address update
+ *   * preference changes
+ *
+ *  3.1 Data structures used
+ *
+ * For each ATS network (e.g. WAN, LAN, loopback) a struct Network is used to
+ * specify network related information as total adresses and active addresses
+ * in this network and the configured in- and outbound quota. Each network
+ * also contains a list of addresses added to the solver located in this
+ * network. The simplistic solver uses the addresses' solver_information
+ * field to store the simplistic network it belongs to for each address.
+ *
+ *  3.2 Initializing
+ *
+ * When the simplistic solver is initialized the solver creates a new solver
+ * handle and initializes the network structures with the quotas passed from
+ * addresses and returns the handle solver.
+ *
+ *  3.3 Adding an address
+ *
+ * When a new address is added to the solver using s_add, a lookup for the
+ * network for this address is done and the address is enqueued in in the
+ * linked list of the network.
+ *
+ *  3.4 Updating an address
+ *
+ * The main purpose of address updates is to update the ATS information for
+ * addresse selection. Important for the simplistic solver is when an address
+ * switches network it is located in. This is common because addresses added
+ * by transport's validation mechanism are commonly located in
+ * GNUNET_ATS_NET_UNSPECIFIED. Addresses in validation are located in this
+ * network type and only if a connection is successful on return of payload
+ * data transport switches to the real network the address is located in.
+ * When an address changes networks it is first of all removed from the old
+ * network using the solver API function GAS_simplistic_address_delete and
+ * the network in the address struct is updated. A lookup for the respective
+ * new simplistic network is done and stored in the addresse's
+ * solver_information field. Next the address is re-added to the solver using
+ * the solver API function GAS_simplistic_address_add. If the address was
+ * marked as in active, the solver checks if bandwidth is available in the
+ * network and if yes sets the address to active and updates the bandwidth
+ * distribution in this network. If no bandwidth is available it sets the
+ * bandwidth for this address to 0 and tries to suggest an alternative
+ * address. If an alternative address was found, addresses' callback is
+ * called for this address.
+ *
+ *  3.5 Deleting an address
+ *
+ * When an address is removed from the solver removes the respective address
+ * from the network and if the address was marked as active, it updates the
+ * bandwidth distribution for this network.
+ *
+ *  3.6 Requesting addresses
+ *
+ * When an address is requested for a peer the solver performs a lookup for
+ * the peer entry in addresses address hashmap and selects the best address.
+ * The selection of the most suitable address is done in the find_address_it
+ * hashmap iterator described in detail in section 3.7. If no address is
+ * returned, no address can be suggested at the moment. If the address
+ * returned is marked as active, the solver can return this address. If the
+ * address is not marked as active, the solver checks if another address
+ * belongign to this peer is marked as active and marks the address as
+ * inactive, updates the bandwidth for this address to 0, call the bandwidth
+ * changed callback for this address due to the change and updates quota
+ * assignment for the addresse's network. the now in-active address is
+ * belonging to. The solver marks the new address as active and updates the
+ * bandwidth assignment for this network.
+ *
+ *  3.7 Choosing addresses
+ *
+ *  3.8 Changing preferences
+ *
+ *  3.9 Shutdown
+ *
+ * OLD DOCUMENTATION
  *
  * This solver ssigns in and outbound bandwidth equally for all addresses in
  * specific network type (WAN, LAN) based on configured in and outbound quota
@@ -445,8 +549,7 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
   if (net->active_addresses == 0)
     return; /* no addresses to update */
 
-  /* Idea TODO
-   *
+  /* Idea
    * Assign every peer in network minimum Bandwidth
    * Distribute bandwidth left according to preference
    */
@@ -1129,7 +1232,7 @@ recalculate_preferences (struct PreferencePeer *p)
    *     We have a sum of all preferences f_t = sum (f_p_i)
    *     So we can calculate a relative preference value fr_p_i:
    *
-   *     f_k_p_i_rel = (f_t + f_p_i) / f_t
+   *     f_k_p_i_ *  / f_t
    *     f_k_p_i_rel = [1..2], default 1.0
    *    }
    *    f_p_i_rel = sum (f_k_p_i_rel) / #k
