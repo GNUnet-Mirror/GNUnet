@@ -594,9 +594,12 @@ state_machine (void *cls,
   {
     GPI_plugins_load (cfg);
     if (GNUNET_SYSERR == parse_hello_uri (put_uri))
+    {
       fprintf (stderr,
 	       _("Invalid URI `%s'\n"),
-	       put_uri);    
+	       put_uri);
+      GNUNET_SCHEDULER_shutdown ();
+    }
     GNUNET_free (put_uri);
     put_uri = NULL;
     return;
