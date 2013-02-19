@@ -31,6 +31,75 @@
 #include "gnunet_statistics_service.h"
 #include "glpk.h"
 
+/**
+ *
+ * NOTE: Do not modify this documentation. This documentation is based on
+ * gnunet.org:/vcs/fsnsg/ats-paper.git/tech-doku/ats-tech-guide.tex
+ * use build_txt.sh to generate plaintext output
+ *
+ *   4 MLP solver
+ *
+ *    The MLP solver (mlp) tries to finds an optimal bandwidth assignmentby
+ *    optimizing an mixed integer programming problem. The MLP solver uses a
+ *    number of constraints to find the best adddress for a peer and an optimal
+ *    bandwidth assignment. mlp uses the GNU Linear Programming Kit to solve the
+ *    MLP problem.
+ *
+ *     4.1 Input data
+ *
+ *    The quotas for each network segment are passed by addresses. MLP can be
+ *    adapted using configuration settings and uses the following parameters:
+ *      * MLP_MAX_DURATION:
+ *        Maximum duration for a MLP solution procees (default: 3 sec.)
+ *      * MLP_MAX_DURATION:
+ *        Maximum number of iterations for a MLP solution process (default:
+ *        1024)
+ *      * MLP_MIN_CONNECTIONS:
+ *        Minimum number of desired connections (default: 4)
+ *      * MLP_MIN_BANDWIDTH:
+ *        Minimum amount of bandwidth assigned to an address (default: 1024)
+ *      * MLP_COEFFICIENT_D:
+ *        Diversity coefficient (default: 1.0)
+ *      * MLP_COEFFICIENT_R:
+ *        Relativity coefficient (default: 1.0)
+ *      * MLP_COEFFICIENT_U:
+ *        Utilization coefficient (default: 1.0)
+ *      * MLP_COEFFICIENT_D:
+ *        Diversity coefficient (default: 1.0)
+ *      * MLP_COEFFICIENT_QUALITY_DELAY:
+ *        Quality delay coefficient (default: 1.0)
+ *      * MLP_COEFFICIENT_QUALITY_DISTANCE:
+ *        Quality distance coefficient (default: 1.0)
+ *      * MLP_COEFFICIENT_QUALITY_DISTANCE:
+ *        Quality distance coefficient (default: 1.0)
+ *      * MLP_COEFFICIENT_QUALITY_DISTANCE:
+ *        Quality distance coefficient (default: 1.0)
+ *      * MLP_COEFFICIENT_QUALITY_DISTANCE:
+ *        Quality distance coefficient (default: 1.0)
+ *
+ *     4.2 Data structures used
+ *
+ *    mlp has for each known peer a struct ATS_Peer containing information about
+ *    a specific peer. The address field solver_information contains information
+ *    about the mlp properties of this address.
+ *
+ *     4.3 Initializing
+ *
+ *    During initialization mlp initializes the GLPK libray used to solve the
+ *    MLP problem: it initializes the glpk environment and creates an initial LP
+ *    problem. Next it loads the configuration values from the configuration or
+ *    uses the default values configured in -addresses_mlp.h. The quotas used
+ *    are given by addresses but may have to be adjusted. mlp uses a upper limit
+ *    for the bandwidth assigned called BIG M and a minimum amount of bandwidth
+ *    an address gets assigned as well as a minium desired number of
+ *    connections. If the configured quota is bigger than BIG M, it is reduced
+ *    to BIG M. If the configured quota is smaller than MLP_MIN_CONNECTIONS
+ *    *MLP_MIN_BANDWIDTH it is increased to this value.
+ *
+ *     4.4 Shutdown
+ *     TBD
+ */
+
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-mlp",__VA_ARGS__)
 
 #define WRITE_MLP GNUNET_NO
