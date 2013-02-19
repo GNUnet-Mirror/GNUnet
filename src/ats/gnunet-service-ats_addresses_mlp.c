@@ -1035,6 +1035,10 @@ GAS_mlp_solve_problem (void *solver, struct GAS_MLP_SolutionContext *ctx)
 {
   struct GAS_MLP_Handle *mlp = solver;
   int res;
+
+  GNUNET_assert (NULL != solver);
+  GNUNET_assert (NULL != ctx);
+
   /* Check if solving is already running */
   if (GNUNET_YES == mlp->semaphore)
   {
@@ -1097,7 +1101,9 @@ GAS_mlp_solve_problem (void *solver, struct GAS_MLP_SolutionContext *ctx)
 # endif
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Problem solved %s (LP duration %llu / MLP duration %llu)\n",
-      (GNUNET_OK == res) ? "successfully" : "failed", ctx->lp_duration.rel_value, ctx->mlp_duration.rel_value);
+      (GNUNET_OK == res) ? "successfully" : "failed",
+      ctx->lp_duration.rel_value,
+      ctx->mlp_duration.rel_value);
   /* Process result */
   struct ATS_Peer *p = NULL;
   struct ATS_Address *a = NULL;
@@ -1118,12 +1124,29 @@ GAS_mlp_solve_problem (void *solver, struct GAS_MLP_SolutionContext *ctx)
 
       n = glp_mip_col_val(mlp->prob, mlpi->c_n);
       if (n == 1.0)
+      {
+      	/* This is the address to be used */
         mlpi->n = GNUNET_YES;
+      }
       else
+      {
+      	/* This is the address not used */
         mlpi->n = GNUNET_NO;
+      }
 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\tAddress %s %f\n",
           (n == 1.0) ? "[x]" : "[ ]", b);
+
+      /* Notify addresses */
+      if ((ntohl(a->assigned_bw_in.value__) != b) ||
+      		(ntohl(a->assigned_bw_out.value__) != b) ||
+      		(mlpi->n != a->active))
+      {
+      		a->assigned_bw_in.value__ = htonl(b);
+      		a->assigned_bw_out.value__ = htonl(b);
+      		a->active = mlpi->n;
+      		mlp->bw_changed_cb (mlp->bw_changed_cb_cls, a);
+      }
     }
   }
 
