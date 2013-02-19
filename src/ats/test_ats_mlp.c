@@ -126,12 +126,14 @@ end_now (int res)
 static void
 bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 {
-
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bandwidth_changed_cb\n");
+	end_now (0);
 }
 
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+	timeout_task = GNUNET_SCHEDULER_NO_TASK;
 	end_now (1);
 }
 
@@ -159,7 +161,7 @@ check (void *cls, char *const *args, const char *cfgfile,
     return;
   }
 
-
+  /* Load quotas */
   if (GNUNET_ATS_NetworkTypeCount != load_quotas (cfg, quotas_out, quotas_in,
   			GNUNET_ATS_NetworkTypeCount))
   {
@@ -168,7 +170,10 @@ check (void *cls, char *const *args, const char *cfgfile,
       return;
   }
 
+  /* Setup address hashmap */
   addresses = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+
+  /* Init MLP solver */
   mlp  = GAS_mlp_init (cfg, stats, quotas, quotas_out, quotas_in,
   		GNUNET_ATS_NetworkTypeCount, &bandwidth_changed_cb, NULL);
   if (NULL == mlp)
@@ -197,8 +202,10 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_CONTAINER_multihashmap_put (addresses, &p.hashPubKey, address,
   		GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 
+  /* Adding address */
   GAS_mlp_address_add (mlp, addresses, address);
-  end_now (0);
+
+  GAS_mlp_get_preferred_address (mlp, addresses, &p);
 
 
 #if 0
