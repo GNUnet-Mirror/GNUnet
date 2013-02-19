@@ -145,6 +145,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   int quotas[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
   unsigned long long  quotas_in[GNUNET_ATS_NetworkTypeCount];
   unsigned long long  quotas_out[GNUNET_ATS_NetworkTypeCount];
+  struct GNUNET_ATS_Information ats;
 
 #if !HAVE_LIBGLPK
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "GLPK not installed!");
@@ -206,8 +207,15 @@ check (void *cls, char *const *args, const char *cfgfile,
   /* Adding address */
   GAS_mlp_address_add (mlp, addresses, address);
 
+  /* Updating address */
+  ats.type =  htonl (GNUNET_ATS_NETWORK_TYPE);
+  ats.value = htonl (GNUNET_ATS_NET_LAN);
+  GAS_mlp_address_update (mlp, addresses, address, 1, GNUNET_NO, &ats, 1);
+
   /* Retrieving preferred address for peer and wait for callback */
   GAS_mlp_get_preferred_address (mlp, addresses, &p);
+
+  GAS_mlp_address_delete (mlp, addresses, address, GNUNET_NO);
 
   /* Shutdown */
   GAS_mlp_done (mlp);

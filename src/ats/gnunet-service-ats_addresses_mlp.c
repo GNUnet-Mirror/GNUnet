@@ -1622,7 +1622,8 @@ GAS_mlp_address_update (void *solver,
   struct MLP_information *mlpi;
   struct GAS_MLP_SolutionContext ctx;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating address for peer `%s'\n", GNUNET_i2s(&address->peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating address for peer `%s'\n",
+  		GNUNET_i2s(&address->peer));
 
   GNUNET_STATISTICS_update (mlp->stats, "# MLP address updates", 1, GNUNET_NO);
 
@@ -1729,7 +1730,9 @@ GAS_mlp_address_delete (void *solver,
 {
   struct GAS_MLP_Handle *mlp = solver;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Deleting address for peer `%s'\n", GNUNET_i2s(&address->peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Deleting address for peer `%s'\n",
+  		GNUNET_i2s(&address->peer));
+
   GNUNET_STATISTICS_update (mlp->stats,"# LP address deletions", 1, GNUNET_NO);
   struct GAS_MLP_SolutionContext ctx;
 
@@ -1814,7 +1817,8 @@ GAS_mlp_get_preferred_address (void *solver,
                                const struct GNUNET_PeerIdentity *peer)
 {
   struct ATS_Address * aa = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Getting preferred address for `%s'\n", GNUNET_i2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Getting preferred address for `%s'\n",
+  		GNUNET_i2s (peer));
   GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey, mlp_get_preferred_address_it, aa);
   return aa;
 }
@@ -1837,6 +1841,9 @@ GAS_mlp_address_change_preference (void *solver,
                                    float score)
 {
   struct GAS_MLP_Handle *mlp = solver;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Changing preference for address for peer `%s'\n",
+  		GNUNET_i2s(peer));
   GNUNET_STATISTICS_update (mlp->stats,"# LP address preference changes", 1, GNUNET_NO);
 
   //struct ATS_Peer *p = mlp_find_peer (mlp, peer);
@@ -1858,6 +1865,8 @@ GAS_mlp_done (void *solver)
   struct ATS_Address *addr;
 
   GNUNET_assert (mlp != NULL);
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down mlp solver\n");
 
   if (mlp->mlp_task != GNUNET_SCHEDULER_NO_TASK)
   {
@@ -1884,8 +1893,9 @@ GAS_mlp_done (void *solver)
 
   /* Clean up GLPK environment */
   glp_free_env();
-
   GNUNET_free (mlp);
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutdown down of mlp solver complete\n");
 }
 
 
