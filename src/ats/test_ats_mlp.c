@@ -134,6 +134,7 @@ static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 	timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Test failed: timeout\n"));
 	end_now (1);
 }
 
@@ -205,108 +206,8 @@ check (void *cls, char *const *args, const char *cfgfile,
   /* Adding address */
   GAS_mlp_address_add (mlp, addresses, address);
 
+  /* Retrieving preferred address for peer and wait for callback */
   GAS_mlp_get_preferred_address (mlp, addresses, &p);
-
-
-#if 0
-  struct ATS_Address addr[10];
-  struct ATS_Address *res[10];
-  struct GAS_MLP_SolutionContext ctx;
-  int quotas[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
-  unsigned long long  quotas_in[GNUNET_ATS_NetworkTypeCount];
-  unsigned long long  quotas_out[GNUNET_ATS_NetworkTypeCount];
-  int quota_count;
-
-
-
-
-
-  quota_count = load_quotas(cfg, quotas_in, quotas_out, GNUNET_ATS_NetworkTypeCount);
-  mlp = GAS_mlp_init (cfg, NULL, quotas, quotas_in, quotas_out, quota_count);
-  mlp->auto_solve = GNUNET_NO;
-
-  struct GNUNET_PeerIdentity p[10];
-
-  /* Creating peer 1 */
-  GNUNET_CRYPTO_hash_create_random(GNUNET_CRYPTO_QUALITY_WEAK, &p[0].hashPubKey);
-  /* Creating peer 2 */
-  GNUNET_CRYPTO_hash_create_random(GNUNET_CRYPTO_QUALITY_WEAK, &p[1].hashPubKey);
-
-  /* Creating peer 1 address 1 */
-  addr[0].peer.hashPubKey = p[0].hashPubKey;
-  struct GNUNET_ATS_Information a1_ats[3];
-  set_ats (&a1_ats[0], GNUNET_ATS_QUALITY_NET_DISTANCE, 1);
-  set_ats (&a1_ats[1], GNUNET_ATS_QUALITY_NET_DELAY, 1);
-  set_ats (&a1_ats[2], GNUNET_ATS_ARRAY_TERMINATOR, 0);
-  create_address (&addr[0], "dummy", 3, &a1_ats[0]);
-  addr[0].atsp_network_type = GNUNET_ATS_NET_WAN;
-
-  /* Creating peer 1  address 2 */
-  addr[1].peer.hashPubKey = p[0].hashPubKey;
-  struct GNUNET_ATS_Information a2_ats[3];
-  set_ats (&a2_ats[1], GNUNET_ATS_QUALITY_NET_DISTANCE, 1);
-  set_ats (&a2_ats[0], GNUNET_ATS_QUALITY_NET_DELAY, 1);
-  set_ats (&a2_ats[2], GNUNET_ATS_ARRAY_TERMINATOR, 0);
-  create_address (&addr[1], "dummy2", 3, &a2_ats[0]);
-  addr[1].atsp_network_type = GNUNET_ATS_NET_LAN;
-
-  /* Creating peer 2  address 1 */
-  addr[2].peer.hashPubKey = p[1].hashPubKey;
-  struct GNUNET_ATS_Information a3_ats[3];
-  set_ats (&a3_ats[1], GNUNET_ATS_QUALITY_NET_DISTANCE, 1);
-  set_ats (&a3_ats[0], GNUNET_ATS_QUALITY_NET_DELAY, 1);
-  set_ats (&a3_ats[2], GNUNET_ATS_ARRAY_TERMINATOR, 0);
-  create_address (&addr[2], "dummy3", 3, &a3_ats[0]);
-  addr[2].atsp_network_type = GNUNET_ATS_NET_LAN;
-
-  GNUNET_CONTAINER_multihashmap_put(addresses, &addr[0].peer.hashPubKey, &addr[0], GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-
-  /* Add peer 1 address 1 */
-  GAS_mlp_address_update (mlp, addresses, &addr[0]);
-
-  GNUNET_assert (mlp != NULL);
-  GNUNET_assert (mlp->addr_in_problem == 1);
-
-  /* Update an peer 1 address 1  */
-  set_ats (&a1_ats[1], GNUNET_ATS_QUALITY_NET_DELAY, 1);
-  GAS_mlp_address_update (mlp, addresses, &addr[0]);
-  GNUNET_assert (mlp->addr_in_problem == 1);
-
-  /* Add peer 1 address 2 */
-  GNUNET_CONTAINER_multihashmap_put(addresses, &addr[0].peer.hashPubKey, &addr[1], GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  GAS_mlp_address_update (mlp, addresses, &addr[1]);
-  GNUNET_assert (mlp->addr_in_problem == 2);
-
-  /* Add peer 2 address 1 */
-  GNUNET_CONTAINER_multihashmap_put(addresses, &addr[2].peer.hashPubKey, &addr[2], GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  GAS_mlp_address_update (mlp, addresses, &addr[2]);
-  GNUNET_assert (mlp->addr_in_problem == 3);
-
-  GNUNET_assert (GNUNET_OK == GAS_mlp_solve_problem(mlp, &ctx));
-  GNUNET_assert (GNUNET_OK == ctx.lp_result);
-  GNUNET_assert (GNUNET_OK == ctx.mlp_result);
-
-  res[0] = GAS_mlp_get_preferred_address(mlp, addresses, &p[0]);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Preferred address `%s' outbound bandwidth: %u Bps\n",res[0]->plugin, res[0]->assigned_bw_out);
-  res[1] = GAS_mlp_get_preferred_address(mlp, addresses, &p[1]);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Preferred address `%s' outbound bandwidth: %u Bps\n",res[1]->plugin, res[1]->assigned_bw_out);
-
-  /* Delete an address */
-  GNUNET_CONTAINER_multihashmap_remove (addresses, &addr[0].peer.hashPubKey, &addr[0]);
-  GAS_mlp_address_delete (mlp, addresses, &addr[0]);
-  GNUNET_CONTAINER_multihashmap_remove (addresses, &addr[1].peer.hashPubKey, &addr[1]);
-  GAS_mlp_address_delete (mlp, addresses, &addr[1]);
-  GNUNET_CONTAINER_multihashmap_remove (addresses, &addr[2].peer.hashPubKey, &addr[2]);
-  GAS_mlp_address_delete (mlp, addresses, &addr[2]);
-
-  GNUNET_assert (mlp->addr_in_problem == 0);
-
-  GNUNET_free (addr[0].plugin);
-  GNUNET_free (addr[1].plugin);
-#endif
-
-  ret = 0;
-  return;
 }
 
 

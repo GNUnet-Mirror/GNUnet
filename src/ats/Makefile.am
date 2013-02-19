@@ -200,7 +200,8 @@ test_ats_mlp_SOURCES = \
 test_ats_mlp_LDADD = \
   $(GN_LIBGLPK) \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/ats/libgnunetats.la  
 
 #test_ats_mlp_averaging_SOURCES = \
 # $(GN_MLP_SRC) test_ats_mlp_averaging.c test_ats_api_common.c

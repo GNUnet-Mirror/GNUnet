@@ -1101,8 +1101,8 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   unsigned int n_min;
   struct GNUNET_TIME_Relative i_exec;
   int c;
-  char * quota_out_str;
-  char * quota_in_str;
+  int c2;
+  int found;
 
   struct GNUNET_TIME_Relative max_duration;
   long long unsigned int max_iterations;
@@ -1111,21 +1111,21 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   int res = glp_init_env();
   switch (res) {
     case 0:
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "GLPK: `%s'\n",
+    	LOG (GNUNET_ERROR_TYPE_DEBUG, "GLPK: `%s'\n",
           "initialization successful");
       break;
     case 1:
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "GLPK: `%s'\n",
+    	LOG (GNUNET_ERROR_TYPE_DEBUG, "GLPK: `%s'\n",
           "environment is already initialized");
       break;
     case 2:
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not init GLPK: `%s'\n",
+    	LOG (GNUNET_ERROR_TYPE_ERROR, "Could not init GLPK: `%s'\n",
           "initialization failed (insufficient memory)");
       GNUNET_free(mlp);
       return NULL;
       break;
     case 3:
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not init GLPK: `%s'\n",
+    	LOG (GNUNET_ERROR_TYPE_ERROR, "Could not init GLPK: `%s'\n",
           "initialization failed (unsupported programming model)");
       GNUNET_free(mlp);
       return NULL;
@@ -1136,54 +1136,57 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   /* Create initial MLP problem */
   mlp->prob = glp_create_prob();
-  GNUNET_assert (mlp->prob != NULL);
+  if (NULL == mlp->prob)
+  {
+  		GNUNET_assert (mlp->prob != NULL);
+  }
 
   mlp->BIG_M = (double) BIG_M_VALUE;
 
   /* Get timeout for iterations */
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_time(cfg, "ats", "MAX_DURATION", &max_duration))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_time(cfg, "ats", "MLP_MAX_DURATION", &max_duration))
   {
     max_duration = MLP_MAX_EXEC_DURATION;
   }
 
   /* Get maximum number of iterations */
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_size(cfg, "ats", "MAX_ITERATIONS", &max_iterations))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_size(cfg, "ats", "MLP_MAX_ITERATIONS", &max_iterations))
   {
     max_iterations = MLP_MAX_ITERATIONS;
   }
 
   /* Get diversity coefficient from configuration */
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
-                                                      "COEFFICIENT_D",
+                                                      "MLP_COEFFICIENT_D",
                                                       &tmp))
     D = (double) tmp / 100;
   else
-    D = 1.0;
+    D = DEFAULT_D;
 
   /* Get proportionality coefficient from configuration */
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
-                                                      "COEFFICIENT_R",
+                                                      "MLP_COEFFICIENT_R",
                                                       &tmp))
     R = (double) tmp / 100;
   else
-    R = 1.0;
+    R = DEFAULT_R;
 
   /* Get utilization coefficient from configuration */
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
-                                                      "COEFFICIENT_U",
+                                                      "MLP_COEFFICIENT_U",
                                                       &tmp))
     U = (double) tmp / 100;
   else
-    U = 1.0;
+    U = DEFAULT_U;
 
   /* Get quality metric coefficients from configuration */
-  int i_delay = -1;
-  int i_distance = -1;
+  int i_delay = NaN;
+  int i_distance = NaN;
   int q[GNUNET_ATS_QualityPropertiesCount] = GNUNET_ATS_QualityProperties;
   for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
   {
     /* initialize quality coefficients with default value 1.0 */
-    mlp->co_Q[c] = 1.0;
+    mlp->co_Q[c] = DEFAULT_QUALITY;
 
     mlp->q[c] = q[c];
     if (q[c] == GNUNET_ATS_QUALITY_NET_DELAY)
@@ -1192,24 +1195,24 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       i_distance = c;
   }
 
-  if ((i_delay != -1) && (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
-                                                      "COEFFICIENT_QUALITY_DELAY",
+  if ((i_delay != NaN) && (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
+                                                      "MLP_COEFFICIENT_QUALITY_DELAY",
                                                       &tmp)))
 
     mlp->co_Q[i_delay] = (double) tmp / 100;
   else
-    mlp->co_Q[i_delay] = 1.0;
+    mlp->co_Q[i_delay] = DEFAULT_QUALITY;
 
-  if ((i_distance != -1) && (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
-                                                      "COEFFICIENT_QUALITY_DISTANCE",
+  if ((i_distance != NaN) && (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
+                                                      "MLP_COEFFICIENT_QUALITY_DISTANCE",
                                                       &tmp)))
     mlp->co_Q[i_distance] = (double) tmp / 100;
   else
-    mlp->co_Q[i_distance] = 1.0;
+    mlp->co_Q[i_distance] = DEFAULT_QUALITY;
 
   /* Get minimum bandwidth per used address from configuration */
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
-                                                      "MIN_BANDWIDTH",
+                                                      "MLP_MIN_BANDWIDTH",
                                                       &tmp))
     b_min = tmp;
   else
@@ -1219,103 +1222,78 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   /* Get minimum number of connections from configuration */
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
-                                                      "MIN_CONNECTIONS",
+                                                      "MLP_MIN_CONNECTIONS",
                                                       &tmp))
     n_min = tmp;
   else
-    n_min = 4;
+    n_min = DEFAULT_MIN_CONNECTIONS;
 
   /* Init network quotas */
   int quotas[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
   {
-    mlp->quota_index[c] = quotas[c];
-    static char * entry_in = NULL;
-    static char * entry_out = NULL;
-    unsigned long long quota_in = 0;
-    unsigned long long quota_out = 0;
+  		found = GNUNET_NO;
+  	  for (c2 = 0; c2 < dest_length; c2++)
+  	  {
+  	  		if (quotas[c] == network[c2])
+  	  	  {
+  	  	  		mlp->quota_index[c] = network[c2];
+  	  	      mlp->quota_out[c] = out_dest[c2];
+  	  	      mlp->quota_in[c] = in_dest[c2];
+  	  	      found = GNUNET_YES;
+  	  	      LOG (GNUNET_ERROR_TYPE_DEBUG, "Quota for network `%s' (in/out) %llu/%llu\n",
+  	  	      						GNUNET_ATS_print_network_type(mlp->quota_index[c]),
+  	  	      						mlp->quota_out[c],
+  	  	      						mlp->quota_in[c]);
+  	  	      break;
+  	  	  }
+  	  }
 
-    switch (quotas[c]) {
-      case GNUNET_ATS_NET_UNSPECIFIED:
-        entry_out = "UNSPECIFIED_QUOTA_OUT";
-        entry_in = "UNSPECIFIED_QUOTA_IN";
-        break;
-      case GNUNET_ATS_NET_LOOPBACK:
-        entry_out = "LOOPBACK_QUOTA_OUT";
-        entry_in = "LOOPBACK_QUOTA_IN";
-        break;
-      case GNUNET_ATS_NET_LAN:
-        entry_out = "LAN_QUOTA_OUT";
-        entry_in = "LAN_QUOTA_IN";
-        break;
-      case GNUNET_ATS_NET_WAN:
-        entry_out = "WAN_QUOTA_OUT";
-        entry_in = "WAN_QUOTA_IN";
-        break;
-      case GNUNET_ATS_NET_WLAN:
-        entry_out = "WLAN_QUOTA_OUT";
-        entry_in = "WLAN_QUOTA_IN";
-        break;
-      default:
-        break;
-    }
+      /* Check if defined quota could make problem unsolvable */
+      if ((n_min * b_min) > mlp->quota_out[c])
+      {
+        LOG (GNUNET_ERROR_TYPE_INFO, _("Adjusting inconsistent outbound quota configuration for network `%s', is %llu must be at least %llu\n"),
+        		GNUNET_ATS_print_network_type(mlp->quota_index[c]),
+        		mlp->quota_out[c],
+        		(n_min * b_min));
+        mlp->quota_out[c] = (n_min * b_min);
+      }
+      if ((n_min * b_min) > mlp->quota_in[c])
+      {
+        LOG (GNUNET_ERROR_TYPE_INFO, _("Adjusting inconsistent inbound quota configuration for network `%s', is %llu must be at least %llu\n"),
+        		GNUNET_ATS_print_network_type(mlp->quota_index[c]),
+        		mlp->quota_in[c],
+        		(n_min * b_min));
+        mlp->quota_in[c] = (n_min * b_min);
+      }
 
-    if ((entry_in == NULL) || (entry_out == NULL))
-      continue;
+      /* Check if bandwidth is too big to make problem solvable */
+      if (mlp->BIG_M < mlp->quota_out[c])
+      {
+        LOG (GNUNET_ERROR_TYPE_INFO, _("Adjusting outbound quota configuration for network `%s'from %llu to %.0f\n"),
+        		GNUNET_ATS_print_network_type(mlp->quota_index[c]),
+        		mlp->quota_out[c],
+        		mlp->BIG_M);
+        mlp->quota_out[c] = mlp->BIG_M;
+      }
+      if (mlp->BIG_M < mlp->quota_in[c])
+      {
+        LOG (GNUNET_ERROR_TYPE_INFO, _("Adjusting inbound quota configuration for network `%s' from %llu to %.0f\n"),
+        		GNUNET_ATS_print_network_type(mlp->quota_index[c]),
+        		mlp->quota_in[c],
+        		mlp->BIG_M);
+        mlp->quota_in[c] = mlp->BIG_M;
+      }
 
-    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_out, &quota_out_str))
-    {
-      if (0 == strcmp(quota_out_str, BIG_M_STRING) ||
-          (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_out_str, &quota_out)))
-        quota_out = mlp->BIG_M;
-
-      GNUNET_free (quota_out_str);
-      quota_out_str = NULL;
-    }
-    else if (GNUNET_ATS_NET_UNSPECIFIED == quotas[c])
-    {
-      quota_out = mlp->BIG_M;
-    }
-    else
-    {
-      quota_out = mlp->BIG_M;
-    }
-
-    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_in, &quota_in_str))
-    {
-      if (0 == strcmp(quota_in_str, BIG_M_STRING) ||
-          (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_in_str, &quota_in)))
-        quota_in = mlp->BIG_M;
-
-      GNUNET_free (quota_in_str);
-      quota_in_str = NULL;
-    }
-    else if (GNUNET_ATS_NET_UNSPECIFIED == quotas[c])
-    {
-      quota_in = mlp->BIG_M;
-    }
-    else
-    {
-      quota_in = mlp->BIG_M;
-    }
-
-    /* Check if defined quota could make problem unsolvable */
-    if (((n_min * b_min) > quota_out) && (GNUNET_ATS_NET_UNSPECIFIED != quotas[c]))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Inconsistent quota configuration value `%s': " 
-		  "outbound quota (%u Bps) too small for combination of minimum connections and minimum bandwidth per peer (%u * %u Bps = %u)\n", entry_out, quota_out, n_min, b_min, n_min * b_min);
-
-      GAS_mlp_done(mlp);
-      mlp = NULL;
-      return NULL;
-    }
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found `%s' quota %llu and `%s' quota %llu\n",
-                entry_out, quota_out, entry_in, quota_in);
-    GNUNET_STATISTICS_update ((struct GNUNET_STATISTICS_Handle *) stats, entry_out, quota_out, GNUNET_NO);
-    GNUNET_STATISTICS_update ((struct GNUNET_STATISTICS_Handle *) stats, entry_in, quota_in, GNUNET_NO);
-    mlp->quota_out[c] = quota_out;
-    mlp->quota_in[c] = quota_in;
+  	  if (GNUNET_NO == found)
+			{
+  	  	mlp->quota_in[c] = ntohl(GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
+  	  	mlp->quota_out[c] = ntohl(GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
+				LOG (GNUNET_ERROR_TYPE_INFO, _("Using default quota configuration for network `%s' (in/out) %llu/%llu\n"),
+						GNUNET_ATS_print_network_type(mlp->quota_index[c]),
+						mlp->quota_in[c],
+						mlp->quota_out[c]);
+			}
   }
 
   /* Get minimum number of connections from configuration */
@@ -1326,6 +1304,8 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   else
     mlp->exec_interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30);
 
+
+  /* Assign options to handle */
   mlp->stats = (struct GNUNET_STATISTICS_Handle *) stats;
   mlp->max_iterations = max_iterations;
   mlp->max_exec_duration = max_duration;
@@ -1363,6 +1343,9 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   mlp->n_min = n_min;
   mlp->m_q = GNUNET_ATS_QualityPropertiesCount;
   mlp->semaphore = GNUNET_NO;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "solver ready\n");
+
   return mlp;
 }
 
@@ -1538,7 +1521,7 @@ update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address)
 void
 GAS_mlp_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
 {
-
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding address for peer `%s'\n", GNUNET_i2s(&address->peer));
 }
 
 /**
@@ -1571,6 +1554,8 @@ GAS_mlp_address_update (void *solver,
   int new;
   struct MLP_information *mlpi;
   struct GAS_MLP_SolutionContext ctx;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating address for peer `%s'\n", GNUNET_i2s(&address->peer));
 
   GNUNET_STATISTICS_update (mlp->stats, "# MLP address updates", 1, GNUNET_NO);
 
@@ -1676,6 +1661,8 @@ GAS_mlp_address_delete (void *solver,
     int session_only)
 {
   struct GAS_MLP_Handle *mlp = solver;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Deleting address for peer `%s'\n", GNUNET_i2s(&address->peer));
   GNUNET_STATISTICS_update (mlp->stats,"# LP address deletions", 1, GNUNET_NO);
   struct GAS_MLP_SolutionContext ctx;
 

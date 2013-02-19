@@ -40,7 +40,15 @@
 #define MLP_AVERAGING_QUEUE_LENGTH 3
 
 #define MLP_MAX_EXEC_DURATION   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3)
-#define MLP_MAX_ITERATIONS      INT_MAX
+#define MLP_MAX_ITERATIONS      1024
+
+#define DEFAULT_D 1.0
+#define DEFAULT_R 1.0
+#define DEFAULT_U 1.0
+#define DEFAULT_QUALITY 1.0
+#define DEFAULT_MIN_CONNECTIONS 4
+
+#define NaN -1
 
 struct ATS_Peer
 {
