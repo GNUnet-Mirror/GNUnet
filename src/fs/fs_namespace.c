@@ -240,6 +240,12 @@ GNUNET_FS_namespace_create (struct GNUNET_FS_Handle *h, const char *name)
   struct GNUNET_FS_Namespace *ret;
 
   dn = get_namespace_directory (h);
+  if (NULL == dn)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Can't determine where namespace directory is\n"));
+    return NULL;
+  }
   GNUNET_asprintf (&fn, "%s%s%s", dn, DIR_SEPARATOR_STR, name);
   GNUNET_free (dn);
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Namespace));
