@@ -2240,6 +2240,45 @@ GNUNET_FS_namespace_create (struct GNUNET_FS_Handle *h, const char *name);
 
 
 /**
+ * Context for creating a namespace asynchronously.
+ */
+struct GNUNET_FS_NamespaceCreationContext;
+
+/**
+ * Function called upon completion of 'GNUNET_FS_namespace_create_start'.
+ *
+ * @param cls closure
+ * @param ns NULL on error, otherwise the namespace (which must be free'd by the callee)
+ * @param emsg NULL on success, otherwise an error message
+ */
+typedef void (*GNUNET_FS_NamespaceCreationCallback)(void *cls,
+    struct GNUNET_FS_Namespace *ns, const char *emsg);
+
+
+/**
+ * Create a namespace with the given name; if one already
+ * exists, return a handle to the existing namespace immediately.
+ * Otherwise create a namespace asynchronously.
+ *
+ * @param h handle to the file sharing subsystem
+ * @param name name to use for the namespace
+ * @return namespace creation context, NULL on error (i.e. invalid filename)
+ */
+struct GNUNET_FS_NamespaceCreationContext *
+GNUNET_FS_namespace_create_start (struct GNUNET_FS_Handle *h, const char *name,
+    GNUNET_FS_NamespaceCreationCallback cont, void *cont_cls);
+
+
+/**
+ * Abort namespace creation.
+ *
+ * @param ncc namespace creation context to abort
+ */
+void
+GNUNET_FS_namespace_create_stop (struct GNUNET_FS_NamespaceCreationContext *ncc);
+
+
+/**
  * Duplicate a namespace handle.
  *
  * @param ns namespace handle

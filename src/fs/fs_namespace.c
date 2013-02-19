@@ -38,6 +38,43 @@
 
 
 /**
+ * Context for creating a namespace asynchronously.
+ */
+struct GNUNET_FS_NamespaceCreationContext
+{
+  /**
+   * Context for asynchronous key creation.
+   */
+  struct GNUNET_CRYPTO_RsaKeyGenerationContext *keycreator;
+
+  /**
+   * Name of the file to store key in / read key from.
+   */
+  char *filename;
+
+  /**
+   * Name of the namespace.
+   */
+  char *name;
+
+  /**
+   * Global fs handle
+   */
+  struct GNUNET_FS_Handle *h;
+
+  /**
+   * Function to call when generation ends (successfully or not)
+   */
+  GNUNET_FS_NamespaceCreationCallback cont;
+
+  /**
+   * Client value to pass to continuation function.
+   */
+  void *cont_cls;
+};
+
+
+/**
  * Return the name of the directory in which we store
  * our local namespaces (or rather, their public keys).
  *
@@ -264,6 +301,118 @@ GNUNET_FS_namespace_create (struct GNUNET_FS_Handle *h, const char *name)
   ret->name = GNUNET_strdup (name);
   ret->filename = fn;
   return ret;
+}
+
+
+/**
+ * Function called upon completion of 'GNUNET_CRYPTO_rsa_key_create_start'.
+ *
+ * @param cls closure
+ * @param pk NULL on error, otherwise the private key (which must be free'd by the callee)
+ * @param emsg NULL on success, otherwise an error message
+ */
+static void
+ns_key_created (void *cls, struct GNUNET_CRYPTO_RsaPrivateKey *pk,
+    const char *emsg)
+{
+  struct GNUNET_FS_NamespaceCreationContext *ncc = cls;
+
+  ncc->keycreator = NULL;
+
+  if (pk)
+  {
+    struct GNUNET_FS_Namespace *ret;
+    ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Namespace));
+    ret->rc = 1;
+    ret->key = pk;
+    ret->h = ncc->h;
+    ret->name = ncc->name;
+    ret->filename = ncc->filename;
+    ncc->cont (ncc->cont_cls, ret, NULL);
+  }
+  else
+  {
+    GNUNET_free (ncc->filename);
+    GNUNET_free (ncc->name);
+    ncc->cont (ncc->cont_cls, NULL, emsg);
+  }
+  GNUNET_free (ncc);
+}
+
+
+/**
+ * Create a namespace with the given name.
+ * If one already exists, the continuation will be called with a handle to
+ * the existing namespace.
+ * Otherwise creates a new namespace.
+ *
+ * @param h handle to the file sharing subsystem
+ * @param name name to use for the namespace
+ * @return namespace creation context, NULL on error (i.e. invalid filename)
+ */
+struct GNUNET_FS_NamespaceCreationContext *
+GNUNET_FS_namespace_create_start (struct GNUNET_FS_Handle *h, const char *name, 
+    GNUNET_FS_NamespaceCreationCallback cont, void *cont_cls)
+{
+  char *dn;
+  char *fn;
+  struct GNUNET_FS_NamespaceCreationContext *ret;
+
+  dn = get_namespace_directory (h);
+  if (NULL == dn)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Can't determine where namespace directory is\n"));
+    return NULL;
+  }
+  GNUNET_asprintf (&fn, "%s%s%s", dn, DIR_SEPARATOR_STR, name);
+  GNUNET_free (dn);
+
+  ret = GNUNET_malloc (sizeof (struct GNUNET_FS_NamespaceCreationContext));
+  ret->filename = fn;
+  ret->h = h;
+  ret->name = GNUNET_strdup (name);
+  ret->cont = cont;
+  ret->cont_cls = cont_cls;
+
+  ret->keycreator = GNUNET_CRYPTO_rsa_key_create_start (fn,
+      ns_key_created, ret);
+
+  if (NULL == ret->keycreator)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        _("Failed to start creating or reading private key for namespace `%s'\n"),
+        name);
+    GNUNET_free (fn);
+    GNUNET_free (ret->name);
+    GNUNET_free (ret);
+    return NULL;
+  }
+  return ret;
+}
+
+
+/**
+ * Abort namespace creation.
+ *
+ * @param ncc namespace creation context to abort
+ */
+void
+GNUNET_FS_namespace_create_stop (struct GNUNET_FS_NamespaceCreationContext *ncc)
+{
+  if (NULL != ncc->keycreator)
+  {
+    GNUNET_CRYPTO_rsa_key_create_stop (ncc->keycreator);
+    ncc->keycreator = NULL;
+  }
+  if (NULL != ncc->filename)
+  {
+    if (0 != UNLINK (ncc->filename))
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", ncc->filename);
+    GNUNET_free (ncc->filename);
+  }
+  GNUNET_free_non_null (ncc->name);
+  GNUNET_free (ncc);
 }
 
 
