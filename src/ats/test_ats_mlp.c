@@ -208,6 +208,11 @@ check (void *cls, char *const *args, const char *cfgfile,
 
   /* Retrieving preferred address for peer and wait for callback */
   GAS_mlp_get_preferred_address (mlp, addresses, &p);
+
+  /* Shutdown */
+  GAS_mlp_done (mlp);
+  mlp = NULL;
+  end_now (0);
 }
 
 

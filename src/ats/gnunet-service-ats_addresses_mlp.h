@@ -91,6 +91,16 @@ struct GAS_MLP_Handle
   struct GNUNET_STATISTICS_Handle *stats;
 
   /**
+   * Addresses' bandwidth changed callback
+   */
+  GAS_bandwidth_changed_cb bw_changed_cb;
+
+  /**
+   * Addresses' bandwidth changed callback closure
+   */
+  void *bw_changed_cb_cls;
+
+  /**
    * GLPK (MLP) problem object
    */
 #if HAVE_LIBGLPK
@@ -146,6 +156,9 @@ struct GAS_MLP_Handle
    */
   int auto_solve;
 
+  /**
+   * Is a solution attemp running?
+   */
   int semaphore;
 
   /* state information */

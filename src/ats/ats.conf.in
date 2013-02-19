@@ -32,8 +32,10 @@ WLAN_QUOTA_OUT = 1 MiB
 
 
 # MLP specific settings
-ATS_MIN_INTERVAL = 15000
-ATS_EXEC_INTERVAL = 30000
+MLP_MIN_INTERVAL = 15000
+
+# check if required
+#MLP_EXEC_INTERVAL = 30000
 
 # MLP defaults
 # MLP_MAX_DURATION = 3 s

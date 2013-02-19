@@ -1138,7 +1138,9 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   mlp->prob = glp_create_prob();
   if (NULL == mlp->prob)
   {
-  		GNUNET_assert (mlp->prob != NULL);
+  		LOG (GNUNET_ERROR_TYPE_ERROR, "Failed to create MLP problem!");
+  		GNUNET_free (mlp);
+      return NULL;
   }
 
   mlp->BIG_M = (double) BIG_M_VALUE;
@@ -1298,44 +1300,16 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   /* Get minimum number of connections from configuration */
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_time (cfg, "ats",
-                                                        "ATS_EXEC_INTERVAL",
+                                                        "MLP_EXEC_INTERVAL",
                                                         &i_exec))
     mlp->exec_interval = i_exec;
   else
     mlp->exec_interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30);
 
-
   /* Assign options to handle */
   mlp->stats = (struct GNUNET_STATISTICS_Handle *) stats;
-  mlp->max_iterations = max_iterations;
-  mlp->max_exec_duration = max_duration;
-  mlp->auto_solve = GNUNET_YES;
-
-  /* Redirect GLPK output to GNUnet logging */
-  glp_error_hook((void *) mlp, &mlp_term_hook);
-
-  /* Init LP solving parameters */
-  glp_init_smcp(&mlp->control_param_lp);
-
-  mlp->control_param_lp.msg_lev = GLP_MSG_OFF;
-#if VERBOSE_GLPK
-  mlp->control_param_lp.msg_lev = GLP_MSG_ALL;
-#endif
-
-  mlp->control_param_lp.it_lim = max_iterations;
-  mlp->control_param_lp.tm_lim = max_duration.rel_value;
-
-  /* Init MLP solving parameters */
-  glp_init_iocp(&mlp->control_param_mlp);
-
-  mlp->control_param_mlp.msg_lev = GLP_MSG_OFF;
-#if VERBOSE_GLPK
-  mlp->control_param_mlp.msg_lev = GLP_MSG_ALL;
-#endif
-  mlp->control_param_mlp.tm_lim = max_duration.rel_value;
-
-  mlp->last_execution = GNUNET_TIME_UNIT_FOREVER_ABS;
-
+  mlp->bw_changed_cb = bw_changed_cb;
+  mlp->bw_changed_cb_cls = bw_changed_cb_cls;
   mlp->co_D = D;
   mlp->co_R = R;
   mlp->co_U = U;
@@ -1343,6 +1317,30 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   mlp->n_min = n_min;
   mlp->m_q = GNUNET_ATS_QualityPropertiesCount;
   mlp->semaphore = GNUNET_NO;
+  mlp->max_iterations = max_iterations;
+  mlp->max_exec_duration = max_duration;
+  mlp->last_execution = GNUNET_TIME_UNIT_FOREVER_ABS;
+  mlp->auto_solve = GNUNET_YES;
+
+  /* Redirect GLPK output to GNUnet logging */
+  glp_error_hook((void *) mlp, &mlp_term_hook);
+
+  /* Init LP solving parameters */
+  glp_init_smcp(&mlp->control_param_lp);
+  mlp->control_param_lp.msg_lev = GLP_MSG_OFF;
+#if VERBOSE_GLPK
+  mlp->control_param_lp.msg_lev = GLP_MSG_ALL;
+#endif
+  mlp->control_param_lp.it_lim = max_iterations;
+  mlp->control_param_lp.tm_lim = max_duration.rel_value;
+
+  /* Init MLP solving parameters */
+  glp_init_iocp(&mlp->control_param_mlp);
+  mlp->control_param_mlp.msg_lev = GLP_MSG_OFF;
+#if VERBOSE_GLPK
+  mlp->control_param_mlp.msg_lev = GLP_MSG_ALL;
+#endif
+  mlp->control_param_mlp.tm_lim = max_duration.rel_value;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "solver ready\n");
 
