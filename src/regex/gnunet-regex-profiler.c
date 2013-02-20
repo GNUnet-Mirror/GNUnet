@@ -336,6 +336,11 @@ static char **search_strings;
 static int num_search_strings;
 
 /**
+ * How many searches are running in parallel
+ */
+static unsigned int parallel_searches;
+
+/**
  * Index of peer/string search.
  */
 static unsigned int peer_cnt;
@@ -836,6 +841,7 @@ regex_found_handler (void *cls,
   }
 
   peers_found++;
+  parallel_searches--;
 
   if (GNUNET_SCHEDULER_NO_TASK != peer->timeout)
   {
@@ -859,14 +865,10 @@ regex_found_handler (void *cls,
   else
   {
     prof_time = GNUNET_TIME_absolute_get_duration (peer->prof_start_time);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "String %s successfully matched on peer %u after %s (%i/%i)\n",
-                peer->search_str, peer->id, GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO),
-                peers_found, num_search_strings);
 
-    printf ("String %s successfully matched on peer %u after %s (%i/%i)\n",
+    printf ("String %s successfully matched on peer %u after %s (%i/%i) (%u||)\n",
             peer->search_str, peer->id, GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO),
-            peers_found, num_search_strings);
+            peers_found, num_search_strings, parallel_searches);
     fflush (stdout);
 
     peer->search_str_matched = GNUNET_YES;
@@ -995,13 +997,15 @@ find_next_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       peer_cnt >= (num_search_strings - 1))
     return;
 
+  parallel_searches++;
   peers[peer_cnt].search_str = search_strings[peer_cnt];
   peers[peer_cnt].search_str_matched = GNUNET_NO;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Searching for string \"%s\" on peer %d with file %s\n",
+              "Searching for string \"%s\" on peer %d with file %s (%u||)\n",
               peers[peer_cnt].search_str,
               peer_cnt,
-              peers[peer_cnt].policy_file);
+              peers[peer_cnt].policy_file,
+              parallel_searches);
 
   peers[peer_cnt].op_handle =
     GNUNET_TESTBED_service_connect (NULL,
