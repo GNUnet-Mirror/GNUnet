@@ -350,11 +350,11 @@ struct MLP_information
  * Solves the MLP problem
  *
  * @param solver the MLP Handle
- * @param ctx solution context
+ * @param addresses the address hashmap
  * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
  */
 int
-GAS_mlp_solve_problem (void *solver);
+GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses);
 
 
 /**
