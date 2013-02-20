@@ -130,6 +130,21 @@ struct GAS_MLP_Handle
 #endif
 
   /**
+   * Peers with pending address requests
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *peers;
+
+  /**
+   * Was the problem updated since last solution
+   */
+  int mlp_prob_updated;
+
+  /**
+   * Has the problem size changed since last solution
+   */
+  int mlp_prob_changed;
+
+  /**
    * Solves the task in an regular interval
    */
   GNUNET_SCHEDULER_TaskIdentifier mlp_task;
@@ -330,6 +345,16 @@ struct MLP_information
   /* Averaging index */
   int q_avg_i[GNUNET_ATS_QualityPropertiesCount];
 };
+
+/**
+ * Solves the MLP problem
+ *
+ * @param solver the MLP Handle
+ * @param ctx solution context
+ * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
+ */
+int
+GAS_mlp_solve_problem (void *solver);
 
 
 /**
