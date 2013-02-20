@@ -1167,6 +1167,8 @@ error_cleanup:
         GNUNET_TESTBED_host_destroy (rc->hosts[hid]);
     GNUNET_free (rc->hosts);
   }
+  if (NULL != rc->cfg)
+    GNUNET_CONFIGURATION_destroy (rc->cfg);
   GNUNET_free (rc);
 }
 

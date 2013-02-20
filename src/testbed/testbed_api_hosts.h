@@ -175,8 +175,8 @@ GNUNET_TESTBED_get_tslot_ (struct GNUNET_TESTBED_Host *h, void *key);
  *          queue 
  */
 void
-GNUNET_TESTBED_host_queue_oc (struct GNUNET_TESTBED_Host *h, 
-                              struct GNUNET_TESTBED_Operation *op);
+GNUNET_TESTBED_host_queue_oc_ (struct GNUNET_TESTBED_Host *h, 
+                               struct GNUNET_TESTBED_Operation *op);
 
 #endif
 /* end of testbed_api_hosts.h */

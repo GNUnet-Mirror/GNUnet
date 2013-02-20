@@ -917,8 +917,8 @@ GNUNET_TESTBED_update_time_slot_ (struct GNUNET_TESTBED_Host *h,
  *          queue 
  */
 void
-GNUNET_TESTBED_host_queue_oc (struct GNUNET_TESTBED_Host *h, 
-                              struct GNUNET_TESTBED_Operation *op)
+GNUNET_TESTBED_host_queue_oc_ (struct GNUNET_TESTBED_Host *h, 
+                               struct GNUNET_TESTBED_Operation *op)
 {  
   GNUNET_TESTBED_operation_queue_insert_
       (h->opq_parallel_overlay_connect_operations, op);

@@ -694,7 +694,7 @@ GNUNET_TESTBED_overlay_connect (void *op_cls,
   opc->op =
       GNUNET_TESTBED_operation_create_ (opc, &opstart_overlay_connect,
                                         &oprelease_overlay_connect);
-  GNUNET_TESTBED_host_queue_oc (p1->host, opc->op);
+  GNUNET_TESTBED_host_queue_oc_ (p1->host, opc->op);
   GNUNET_TESTBED_operation_begin_wait_ (opc->op);
   return opc->op;
 }
