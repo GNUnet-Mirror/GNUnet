@@ -1750,7 +1750,7 @@ handle_peer_stop (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  if (GNUNET_OK != GNUNET_TESTING_peer_stop (peer->details.local.peer))
+  if (GNUNET_OK != GNUNET_TESTING_peer_kill (peer->details.local.peer))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "Stopping peer %u failed\n", peer_id);
     GST_send_operation_fail_msg (client, GNUNET_ntohll (msg->operation_id),
@@ -1769,6 +1769,7 @@ handle_peer_stop (void *cls, struct GNUNET_SERVER_Client *client,
   reply->operation_id = msg->operation_id;
   GST_queue_message (client, &reply->header);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_TESTING_peer_wait (peer->details.local.peer);
 }
 
 
