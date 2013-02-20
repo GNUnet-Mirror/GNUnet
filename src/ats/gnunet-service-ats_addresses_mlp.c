@@ -37,15 +37,48 @@
  * gnunet.org:/vcs/fsnsg/ats-paper.git/tech-doku/ats-tech-guide.tex
  * use build_txt.sh to generate plaintext output
  *
- *   4 MLP solver
- *
  *    The MLP solver (mlp) tries to finds an optimal bandwidth assignmentby
  *    optimizing an mixed integer programming problem. The MLP solver uses a
  *    number of constraints to find the best adddress for a peer and an optimal
  *    bandwidth assignment. mlp uses the GNU Linear Programming Kit to solve the
  *    MLP problem.
  *
- *     4.1 Input data
+ *    We defined a constraint system to find an optimal bandwidth assignment.
+ *    This constraint system uses as an input data addresses, bandwidth quotas,
+ *    preferences and quality values. This constraint system is stored in an
+ *    matrix based equotation system.
+ *
+ *   5 Using GLPK
+ *
+ *    A (M)LP problem consists of a target function to optimizes, constraints
+ *    and rows and columns. FIXME GLP uses three arrays to index the matrix: two
+ *    integer arrays storing the row and column indices in the matrix and an
+ *    float array to store the coeeficient.
+ *
+ *    To solve the problem we first find an initial solution for the LP problem
+ *    using the LP solver and then find an MLP solution based on this solution
+ *    using the MLP solver.
+ *
+ *    Solving (M)LP problems has the property that finding an initial solution
+ *    for the LP problem is computationally expensive and finding the MLP
+ *    solution is cheaper. This is especially interesting an existing LP
+ *    solution can be reused if only coefficients in the matrix have changed
+ *    (addresses updated). Only when the problem size changes (addresses added
+ *    or deleted) a new LP solution has to be found.
+ *
+ *    Intended usage
+ *    The mlp solver solves the bandwidth assignment problem only on demand when
+ *    an address suggestion is requested. When an address is requested mlp the
+ *    solves the mlp problem and if the active address or the bandwidth assigned
+ *    changes it calls the callback to addresses. The mlp solver gets notified
+ *    about new addresses (adding sessions), removed addresses (address
+ *    deletions) and address updates. To benefit from the mlp properties
+ *    mentioned in section 5 the solver rembers if since the last solution
+ *    addresses were added or deleted (problem size changed, problem has to be
+ *    rebuild and solved from sratch) or if addresses were updated and the
+ *    existing solution can be reused.
+ *
+ *     5.1 Input data
  *
  *    The quotas for each network segment are passed by addresses. MLP can be
  *    adapted using configuration settings and uses the following parameters:
@@ -77,13 +110,13 @@
  *      * MLP_COEFFICIENT_QUALITY_DISTANCE:
  *        Quality distance coefficient (default: 1.0)
  *
- *     4.2 Data structures used
+ *     5.2 Data structures used
  *
  *    mlp has for each known peer a struct ATS_Peer containing information about
  *    a specific peer. The address field solver_information contains information
  *    about the mlp properties of this address.
  *
- *     4.3 Initializing
+ *     5.3 Initializing
  *
  *    During initialization mlp initializes the GLPK libray used to solve the
  *    MLP problem: it initializes the glpk environment and creates an initial LP
@@ -96,8 +129,8 @@
  *    to BIG M. If the configured quota is smaller than MLP_MIN_CONNECTIONS
  *    *MLP_MIN_BANDWIDTH it is increased to this value.
  *
- *     4.4 Shutdown
- *     TBD
+ *     5.4 Shutdown
+
  */
 
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-mlp",__VA_ARGS__)
@@ -1612,6 +1645,7 @@ void
 GAS_mlp_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
 {
 	LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding address for peer `%s'\n", GNUNET_i2s(&address->peer));
+	return;
 }
 
 /**
@@ -1647,6 +1681,7 @@ GAS_mlp_address_update (void *solver,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating address for peer `%s'\n",
   		GNUNET_i2s(&address->peer));
+  return;
 
   GNUNET_STATISTICS_update (mlp->stats, "# MLP address updates", 1, GNUNET_NO);
 
@@ -1755,6 +1790,7 @@ GAS_mlp_address_delete (void *solver,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Deleting address for peer `%s'\n",
   		GNUNET_i2s(&address->peer));
+  return;
 
   GNUNET_STATISTICS_update (mlp->stats,"# LP address deletions", 1, GNUNET_NO);
   struct GAS_MLP_SolutionContext ctx;
