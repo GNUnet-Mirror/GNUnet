@@ -454,7 +454,7 @@ registration_comp (void *cls, const char *emsg)
  *          GNUNET_TESTBED_controller_stop() shouldn't be called in this case
  */
 static void
-status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg, int status)
+status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg_, int status)
 {
   uint64_t event_mask;
 
@@ -469,10 +469,10 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg, int status)
   event_mask |= (1L << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1L << GNUNET_TESTBED_ET_OPERATION_FINISHED);
   controller =
-      GNUNET_TESTBED_controller_connect (cfg, host, event_mask, &controller_cb,
+      GNUNET_TESTBED_controller_connect (cfg_, host, event_mask, &controller_cb,
                                          NULL);
   FAIL_TEST (NULL != controller);
-  neighbour = GNUNET_TESTBED_host_create ("localhost", NULL, 0);
+  neighbour = GNUNET_TESTBED_host_create ("localhost", NULL, cfg, 0);
   FAIL_TEST (NULL != neighbour);
   reg_handle =
       GNUNET_TESTBED_register_host (controller, neighbour, &registration_comp,
@@ -494,9 +494,9 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
-  host = GNUNET_TESTBED_host_create (NULL, NULL, 0);
-  FAIL_TEST (NULL != host);
   cfg = GNUNET_CONFIGURATION_dup (config);
+  host = GNUNET_TESTBED_host_create (NULL, NULL, cfg, 0);
+  FAIL_TEST (NULL != host);
   cp = GNUNET_TESTBED_controller_start ("127.0.0.1", host, cfg, status_cb,
                                         NULL);
   abort_task =

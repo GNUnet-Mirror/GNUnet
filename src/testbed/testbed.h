@@ -87,9 +87,19 @@ struct GNUNET_TESTBED_AddHostMessage
    */
   uint16_t user_name_length GNUNET_PACKED;
 
-  /* followed by 0-terminated user name */
+  /**
+   * Number of bytes in the host name (excluding 0-termination) that follows the
+   * user name; cannot be 0
+   */
+  uint16_t hostname_length GNUNET_PACKED;
 
-  /* followed by 0-terminated host name */
+  /* followed by non 0-terminated user name */
+
+  /* followed by non 0-terminated host name */
+
+  /* followed by gzip compressed configuration to start or connect to a
+     controller on this host.  While starting the controller this configration
+     is used as a template */
 
 };
 

@@ -484,7 +484,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     FAIL_TEST (event->details.peer_start.peer == master_peer);
     GNUNET_TESTBED_operation_done (op);
     result = MASTER_PEER_START_SUCCESS;
-    slave = GNUNET_TESTBED_host_create_with_id (1, "127.0.0.1", NULL, 0);
+    slave = GNUNET_TESTBED_host_create_with_id (1, "127.0.0.1", NULL, cfg, 0);
     FAIL_TEST (NULL != slave);
     rh = GNUNET_TESTBED_register_host (mc, slave, &registration_cont, NULL);
     FAIL_TEST (NULL != rh);
@@ -548,7 +548,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     GNUNET_TESTBED_operation_done (op);
     op = NULL;
     result = SLAVE2_PEER_DESTROY_SUCCESS;
-    slave3 = GNUNET_TESTBED_host_create_with_id (3, "127.0.0.1", NULL, 0);
+    slave3 = GNUNET_TESTBED_host_create_with_id (3, "127.0.0.1", NULL, cfg, 0);
     rh = GNUNET_TESTBED_register_host (mc, slave3, &registration_cont, NULL);
     break;
   case SLAVE3_REGISTERED:
@@ -607,7 +607,7 @@ registration_cont (void *cls, const char *emsg)
     FAIL_TEST (NULL == emsg);
     FAIL_TEST (NULL != mc);
     result = SLAVE1_REGISTERED;
-    slave2 = GNUNET_TESTBED_host_create_with_id (2, "127.0.0.1", NULL, 0);
+    slave2 = GNUNET_TESTBED_host_create_with_id (2, "127.0.0.1", NULL, cfg, 0);
     FAIL_TEST (NULL != slave2);
     rh = GNUNET_TESTBED_register_host (mc, slave2, &registration_cont, NULL);
     FAIL_TEST (NULL != rh);
@@ -717,7 +717,8 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
-  host = GNUNET_TESTBED_host_create (NULL, NULL, 0);
+  cfg = GNUNET_CONFIGURATION_dup (config);
+  host = GNUNET_TESTBED_host_create (NULL, NULL, cfg, 0);
   FAIL_TEST (NULL != host);
   if (NULL ==
       (hc_handle =
@@ -725,6 +726,8 @@ run (void *cls, char *const *args, const char *cfgfile,
                                          NULL)))
   {
     GNUNET_TESTBED_host_destroy (host);
+    GNUNET_CONFIGURATION_destroy (cfg);
+    cfg = NULL;
     host = NULL;
     (void) PRINTF ("%s",
                    "Unable to run the test as this system is not configured "
@@ -733,7 +736,6 @@ run (void *cls, char *const *args, const char *cfgfile,
     result = SKIP;
     return;
   }
-  cfg = GNUNET_CONFIGURATION_dup (config);
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_MINUTES, 5), &do_abort,

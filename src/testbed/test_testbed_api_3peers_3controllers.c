@@ -736,7 +736,7 @@ registration_comp (void *cls, const char *emsg)
   reg_handle = NULL;
   if (cls == neighbour1)
   {
-    neighbour2 = GNUNET_TESTBED_host_create ("127.0.0.1", NULL, 0);
+    neighbour2 = GNUNET_TESTBED_host_create ("127.0.0.1", NULL, cfg, 0);
     if (NULL == neighbour2)
     {
       GNUNET_break (0);
@@ -812,7 +812,7 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config,
       return;
     }
     result = CONTROLLER1_UP;
-    neighbour1 = GNUNET_TESTBED_host_create ("127.0.0.1", NULL, 0);
+    neighbour1 = GNUNET_TESTBED_host_create ("127.0.0.1", NULL, cfg, 0);
     if (NULL == neighbour1)
     {
       GNUNET_break (0);
@@ -881,7 +881,8 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
-  host = GNUNET_TESTBED_host_create (NULL, NULL, 0);
+  cfg = GNUNET_CONFIGURATION_dup (config);
+  host = GNUNET_TESTBED_host_create (NULL, NULL, cfg, 0);
   if (NULL == host)
   {
     GNUNET_break (0);
@@ -902,7 +903,6 @@ run (void *cls, char *const *args, const char *cfgfile,
     result = SKIP;
     return;
   }
-  cfg = GNUNET_CONFIGURATION_dup (config);
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_MINUTES, 3), &do_abort,

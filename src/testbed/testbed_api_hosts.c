@@ -36,11 +36,19 @@
 #include "testbed_api_operations.h"
 #include "testbed_api_sd.h"
 
+#include <zlib.h>
+
 /**
  * Generic logging shorthand
  */
 #define LOG(kind, ...)                          \
   GNUNET_log_from (kind, "testbed-api-hosts", __VA_ARGS__);
+
+/**
+ * Debug logging shorthand
+ */
+#define LOG_DEBUG(...)                          \
+  LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__);
 
 /**
  * Number of extra elements we create space for when we grow host list
@@ -121,6 +129,13 @@ struct GNUNET_TESTBED_Host
   const char *username;
 
   /**
+   * the configuration to use as a template while starting a controller on this
+   * host.  Operation queue size specific to a host are also read from this
+   * configuration handle
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
    * The head for the list of controllers where this host is registered
    */
   struct RegisteredController *rc_head;
@@ -146,7 +161,7 @@ struct GNUNET_TESTBED_Host
    * Handle for SD calculations amount parallel overlay connect operation finish
    * times
    */
-  struct SDHandle *poc_sd;
+  struct SDHandle *poc_sd;  
 
   /**
    * The number of parallel overlay connects we do currently
@@ -157,6 +172,11 @@ struct GNUNET_TESTBED_Host
    * Counter to indicate when all the available time slots are filled
    */
   unsigned int tslots_filled;
+
+  /**
+   * Is a controller started on this host?
+   */
+  int controller_started;
 
   /**
    * Global ID we use to refer to a host on the network
@@ -205,12 +225,17 @@ GNUNET_TESTBED_host_lookup_by_id_ (uint32_t id)
  *
  * @param id global host ID assigned to the host; 0 is
  *        reserved to always mean 'localhost'
+ * @param cfg the configuration to use as a template while starting a controller
+ *          on this host.  Operation queue sizes specific to a host are also
+ *          read from this configuration handle
  * @return handle to the host, NULL on error
  */
 struct GNUNET_TESTBED_Host *
-GNUNET_TESTBED_host_create_by_id_ (uint32_t id)
+GNUNET_TESTBED_host_create_by_id_ (uint32_t id,
+                                   const struct GNUNET_CONFIGURATION_Handle
+                                   *cfg)
 {
-  return GNUNET_TESTBED_host_create_with_id (id, NULL, NULL, 0);
+  return GNUNET_TESTBED_host_create_with_id (id, NULL, NULL, cfg, 0);
 }
 
 
@@ -268,18 +293,50 @@ GNUNET_TESTBED_host_get_ssh_port_ (const struct GNUNET_TESTBED_Host * host)
 
 
 /**
+ * Check whether a controller is already started on the given host
+ *
+ * @param host the handle to the host
+ * @return GNUNET_YES if the controller is already started; GNUNET_NO if not
+ */
+int
+GNUNET_TESTBED_host_controller_started (const struct GNUNET_TESTBED_Host *host)
+{
+  return host->controller_started;
+}
+
+
+/**
+ * Obtain the host's configuration template
+ *
+ * @param host handle to the host
+ * @return the host's configuration template
+ */
+const struct GNUNET_CONFIGURATION_Handle *
+GNUNET_TESTBED_host_get_cfg_ (const struct GNUNET_TESTBED_Host *host)
+{
+  return host->cfg;
+}
+
+
+/**
  * Create a host to run peers and controllers on.
  *
  * @param id global host ID assigned to the host; 0 is
  *        reserved to always mean 'localhost'
  * @param hostname name of the host, use "NULL" for localhost
  * @param username username to use for the login; may be NULL
+ * @param cfg the configuration to use as a template while starting a controller
+ *          on this host.  Operation queue sizes specific to a host are also
+ *          read from this configuration handle
  * @param port port number to use for ssh; use 0 to let ssh decide
  * @return handle to the host, NULL on error
  */
 struct GNUNET_TESTBED_Host *
 GNUNET_TESTBED_host_create_with_id (uint32_t id, const char *hostname,
-                                    const char *username, uint16_t port)
+                                    const char *username, 
+                                    const struct GNUNET_CONFIGURATION_Handle
+                                    *cfg,
+                                    uint16_t port)
 {
   struct GNUNET_TESTBED_Host *host;
   unsigned int new_size;
@@ -293,7 +350,8 @@ GNUNET_TESTBED_host_create_with_id (uint32_t id, const char *hostname,
   host->hostname = (NULL != hostname) ? GNUNET_strdup (hostname) : NULL;
   host->username = (NULL != username) ? GNUNET_strdup (username) : NULL;
   host->id = id;
-  host->port = (0 == port) ? 22 : port;  
+  host->port = (0 == port) ? 22 : port;
+  host->cfg = GNUNET_CONFIGURATION_dup (cfg);
   host->opq_parallel_overlay_connect_operations =
       GNUNET_TESTBED_operation_queue_create_ (0);
   GNUNET_TESTBED_set_num_parallel_overlay_connects_ (host, 1);
@@ -315,19 +373,24 @@ GNUNET_TESTBED_host_create_with_id (uint32_t id, const char *hostname,
  *
  * @param hostname name of the host, use "NULL" for localhost
  * @param username username to use for the login; may be NULL
+ * @param cfg the configuration to use as a template while starting a controller
+ *          on this host.  Operation queue sizes specific to a host are also
+ *          read from this configuration handle
  * @param port port number to use for ssh; use 0 to let ssh decide
  * @return handle to the host, NULL on error
  */
 struct GNUNET_TESTBED_Host *
 GNUNET_TESTBED_host_create (const char *hostname, const char *username,
+                            const struct GNUNET_CONFIGURATION_Handle *cfg,
                             uint16_t port)
 {
   static uint32_t uid_generator;
 
   if (NULL == hostname)
-    return GNUNET_TESTBED_host_create_with_id (0, hostname, username, port);
+    return GNUNET_TESTBED_host_create_with_id (0, hostname, username, 
+                                               cfg, port);
   return GNUNET_TESTBED_host_create_with_id (++uid_generator, hostname,
-                                             username, port);
+                                             username, cfg, port);
 }
 
 
@@ -335,12 +398,17 @@ GNUNET_TESTBED_host_create (const char *hostname, const char *username,
  * Load a set of hosts from a configuration file.
  *
  * @param filename file with the host specification
+ * @param cfg the configuration to use as a template while starting a controller
+ *          on any of the loaded hosts.  Operation queue sizes specific to a host
+ *          are also read from this configuration handle
  * @param hosts set to the hosts found in the file; caller must free this if
  *          number of hosts returned is greater than 0
  * @return number of hosts returned in 'hosts', 0 on error
  */
 unsigned int
 GNUNET_TESTBED_hosts_load_from_file (const char *filename,
+                                     const struct GNUNET_CONFIGURATION_Handle
+                                     *cfg,
                                      struct GNUNET_TESTBED_Host ***hosts)
 {
   //struct GNUNET_TESTBED_Host **host_array;
@@ -399,9 +467,10 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
         /* We store hosts in a static list; hence we only require the starting
          * host pointer in that list to access the newly created list of hosts */
         if (NULL == starting_host)
-          starting_host = GNUNET_TESTBED_host_create (hostname, username, port);
+          starting_host = GNUNET_TESTBED_host_create (hostname, username, cfg,
+                                                      port);
         else
-          (void) GNUNET_TESTBED_host_create (hostname, username, port);
+          (void) GNUNET_TESTBED_host_create (hostname, username, cfg, port);
         count++;
       }
       else
@@ -449,6 +518,7 @@ GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
       (host->opq_parallel_overlay_connect_operations);
   GNUNET_TESTBED_SD_destroy_ (host->poc_sd);
   GNUNET_free_non_null (host->tslots);
+  GNUNET_CONFIGURATION_destroy (host->cfg);
   GNUNET_free (host);
   while (host_list_size >= HOST_LIST_GROW_STEP)
   {
@@ -521,6 +591,437 @@ GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host,
 
 
 /**
+ * Handle for controller process
+ */
+struct GNUNET_TESTBED_ControllerProc
+{
+  /**
+   * The process handle
+   */
+  struct GNUNET_HELPER_Handle *helper;
+
+  /**
+   * The arguments used to start the helper
+   */
+  char **helper_argv;
+
+  /**
+   * The host where the helper is run
+   */
+  struct GNUNET_TESTBED_Host *host;
+
+  /**
+   * The controller error callback
+   */
+  GNUNET_TESTBED_ControllerStatusCallback cb;
+
+  /**
+   * The closure for the above callback
+   */
+  void *cls;
+
+  /**
+   * The send handle for the helper
+   */
+  struct GNUNET_HELPER_SendHandle *shandle;
+
+  /**
+   * The message corresponding to send handle
+   */
+  struct GNUNET_MessageHeader *msg;
+
+  /**
+   * The configuration of the running testbed service
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+
+};
+
+
+/**
+ * Function to copy NULL terminated list of arguments
+ *
+ * @param argv the NULL terminated list of arguments. Cannot be NULL.
+ * @return the copied NULL terminated arguments
+ */
+static char **
+copy_argv (const char *const *argv)
+{
+  char **argv_dup;
+  unsigned int argp;
+
+  GNUNET_assert (NULL != argv);
+  for (argp = 0; NULL != argv[argp]; argp++) ;
+  argv_dup = GNUNET_malloc (sizeof (char *) * (argp + 1));
+  for (argp = 0; NULL != argv[argp]; argp++)
+    argv_dup[argp] = strdup (argv[argp]);
+  return argv_dup;
+}
+
+
+/**
+ * Function to join NULL terminated list of arguments
+ *
+ * @param argv1 the NULL terminated list of arguments. Cannot be NULL.
+ * @param argv2 the NULL terminated list of arguments. Cannot be NULL.
+ * @return the joined NULL terminated arguments
+ */
+static char **
+join_argv (const char *const *argv1, const char *const *argv2)
+{
+  char **argvj;
+  char *argv;
+  unsigned int carg;
+  unsigned int cnt;
+
+  carg = 0;
+  argvj = NULL;
+  for (cnt = 0; NULL != argv1[cnt]; cnt++)
+  {
+    argv = GNUNET_strdup (argv1[cnt]);
+    GNUNET_array_append (argvj, carg, argv);
+  }
+  for (cnt = 0; NULL != argv2[cnt]; cnt++)
+  {
+    argv = GNUNET_strdup (argv2[cnt]);
+    GNUNET_array_append (argvj, carg, argv);
+  }
+  GNUNET_array_append (argvj, carg, NULL);
+  return argvj;
+}
+
+
+/**
+ * Frees the given NULL terminated arguments
+ *
+ * @param argv the NULL terminated list of arguments
+ */
+static void
+free_argv (char **argv)
+{
+  unsigned int argp;
+
+  for (argp = 0; NULL != argv[argp]; argp++)
+    GNUNET_free (argv[argp]);
+  GNUNET_free (argv);
+}
+
+
+/**
+ * Generates arguments for opening a remote shell. Builds up the arguments
+ * from the environment variable GNUNET_TESTBED_RSH_CMD. The variable
+ * should not mention `-p' (port) option and destination address as these will
+ * be set locally in the function from its parameteres. If the environmental
+ * variable is not found then it defaults to `ssh -o BatchMode=yes -o
+ * NoHostAuthenticationForLocalhost=yes'
+ *
+ * @param port the destination port number
+ * @param dst the destination address
+ * @return NULL terminated list of arguments
+ */
+static char **
+gen_rsh_args (const char *port, const char *dst)
+{
+  static const char *default_ssh_args[] = {
+    "ssh",
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "NoHostAuthenticationForLocalhost=yes",
+    NULL
+  };
+  char **ssh_args;
+  char *ssh_cmd;
+  char *ssh_cmd_cp;
+  char *arg;
+  unsigned int cnt;
+
+  ssh_args = NULL;
+  if (NULL != (ssh_cmd = getenv ("GNUNET_TESTBED_RSH_CMD")))
+  {
+    ssh_cmd = GNUNET_strdup (ssh_cmd);
+    ssh_cmd_cp = ssh_cmd;
+    for (cnt = 0; NULL != (arg = strtok (ssh_cmd, " ")); ssh_cmd = NULL)
+      GNUNET_array_append (ssh_args, cnt, GNUNET_strdup (arg));
+    GNUNET_free (ssh_cmd_cp);
+  }
+  else
+  {
+    ssh_args = copy_argv (default_ssh_args);
+    cnt = (sizeof (default_ssh_args)) / (sizeof (const char *));
+    GNUNET_array_grow (ssh_args, cnt, cnt - 1);
+  }
+  GNUNET_array_append (ssh_args, cnt, GNUNET_strdup ("-p"));
+  GNUNET_array_append (ssh_args, cnt, GNUNET_strdup (port));
+  GNUNET_array_append (ssh_args, cnt, GNUNET_strdup (dst));
+  GNUNET_array_append (ssh_args, cnt, NULL);
+  return ssh_args;
+}
+
+
+/**
+ * Generates the arguments needed for executing the given binary in a remote
+ * shell. Builds the arguments from the environmental variable
+ * GNUNET_TETSBED_RSH_CMD_SUFFIX. If the environmental variable is not found,
+ * only the given binary name will be present in the returned arguments
+ *
+ * @param append_args the arguments to append after generating the suffix
+ *          arguments. Can be NULL; if not must be NULL terminated 'char *' array
+ * @return NULL-terminated args
+ */
+static char **
+gen_rsh_suffix_args (const char * const *append_args)
+{
+  char **rshell_args;
+  char *rshell_cmd;
+  char *rshell_cmd_cp;
+  char *arg;
+  unsigned int cnt;
+  unsigned int append_cnt;
+
+  rshell_args = NULL;
+  cnt = 0;
+  if (NULL != (rshell_cmd = getenv ("GNUNET_TESTBED_RSH_CMD_SUFFIX")))
+  {
+    rshell_cmd = GNUNET_strdup (rshell_cmd);
+    rshell_cmd_cp = rshell_cmd;
+    for (; NULL != (arg = strtok (rshell_cmd, " ")); rshell_cmd = NULL)
+      GNUNET_array_append (rshell_args, cnt, GNUNET_strdup (arg));
+    GNUNET_free (rshell_cmd_cp);
+  }
+  if (NULL != append_args)
+  {
+    for (append_cnt = 0; NULL != append_args[append_cnt]; append_cnt++)      
+      GNUNET_array_append (rshell_args, cnt, GNUNET_strdup (append_args[append_cnt]));
+  }
+  GNUNET_array_append (rshell_args, cnt, NULL);
+  return rshell_args;
+}
+
+
+/**
+ * Functions with this signature are called whenever a
+ * complete message is received by the tokenizer.
+ *
+ * Do not call GNUNET_SERVER_mst_destroy in callback
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR to stop further processing
+ */
+static int
+helper_mst (void *cls, void *client, const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_TESTBED_ControllerProc *cp = cls;
+  const struct GNUNET_TESTBED_HelperReply *msg;
+  const char *hostname;
+  char *config;
+  uLongf config_size;
+  uLongf xconfig_size;
+
+  msg = (const struct GNUNET_TESTBED_HelperReply *) message;
+  GNUNET_assert (sizeof (struct GNUNET_TESTBED_HelperReply) <
+                 ntohs (msg->header.size));
+  GNUNET_assert (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_REPLY ==
+                 ntohs (msg->header.type));
+  config_size = (uLongf) ntohs (msg->config_size);
+  xconfig_size =
+      (uLongf) (ntohs (msg->header.size) -
+                sizeof (struct GNUNET_TESTBED_HelperReply));
+  config = GNUNET_malloc (config_size);
+  GNUNET_assert (Z_OK ==
+                 uncompress ((Bytef *) config, &config_size,
+                             (const Bytef *) &msg[1], xconfig_size));
+  GNUNET_assert (NULL == cp->cfg);
+  cp->cfg = GNUNET_CONFIGURATION_create ();
+  GNUNET_assert (GNUNET_CONFIGURATION_deserialize
+                 (cp->cfg, config, config_size, GNUNET_NO));
+  GNUNET_free (config);
+  if ((NULL == cp->host) ||
+      (NULL == (hostname = GNUNET_TESTBED_host_get_hostname (cp->host))))
+    hostname = "localhost";
+  /* Change the hostname so that we can connect to it */
+  GNUNET_CONFIGURATION_set_value_string (cp->cfg, "testbed", "hostname",
+                                         hostname);
+  cp->cb (cp->cls, cp->cfg, GNUNET_OK);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Continuation function from GNUNET_HELPER_send()
+ *
+ * @param cls closure
+ * @param result GNUNET_OK on success,
+ *               GNUNET_NO if helper process died
+ *               GNUNET_SYSERR during GNUNET_HELPER_stop
+ */
+static void
+clear_msg (void *cls, int result)
+{
+  struct GNUNET_TESTBED_ControllerProc *cp = cls;
+
+  GNUNET_assert (NULL != cp->shandle);
+  cp->shandle = NULL;
+  GNUNET_free (cp->msg);
+}
+
+
+/**
+ * Callback that will be called when the helper process dies. This is not called
+ * when the helper process is stoped using GNUNET_HELPER_stop()
+ *
+ * @param cls the closure from GNUNET_HELPER_start()
+ */
+static void
+helper_exp_cb (void *cls)
+{
+  struct GNUNET_TESTBED_ControllerProc *cp = cls;
+  GNUNET_TESTBED_ControllerStatusCallback cb;
+  void *cb_cls;
+
+  cb = cp->cb;
+  cb_cls = cp->cls;
+  cp->helper = NULL;
+  GNUNET_TESTBED_controller_stop (cp);
+  if (NULL != cb)
+    cb (cb_cls, NULL, GNUNET_SYSERR);
+}
+
+
+/**
+ * Starts a controller process at the given host
+ *
+ * @param trusted_ip the ip address of the controller which will be set as TRUSTED
+ *          HOST(all connections form this ip are permitted by the testbed) when
+ *          starting testbed controller at host. This can either be a single ip
+ *          address or a network address in CIDR notation.
+ * @param host the host where the controller has to be started; NULL for
+ *          localhost
+ * @param cfg template configuration to use for the remote controller; the
+ *          remote controller will be started with a slightly modified
+ *          configuration (port numbers, unix domain sockets and service home
+ *          values are changed as per TESTING library on the remote host)
+ * @param cb function called when the controller is successfully started or
+ *          dies unexpectedly; GNUNET_TESTBED_controller_stop shouldn't be
+ *          called if cb is called with GNUNET_SYSERR as status. Will never be
+ *          called in the same task as 'GNUNET_TESTBED_controller_start'
+ *          (synchronous errors will be signalled by returning NULL). This
+ *          parameter cannot be NULL.
+ * @param cls closure for above callbacks
+ * @return the controller process handle, NULL on errors
+ */
+struct GNUNET_TESTBED_ControllerProc *
+GNUNET_TESTBED_controller_start (const char *trusted_ip,
+                                 struct GNUNET_TESTBED_Host *host,
+                                 const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                 GNUNET_TESTBED_ControllerStatusCallback cb,
+                                 void *cls)
+{
+  struct GNUNET_TESTBED_ControllerProc *cp;
+  struct GNUNET_TESTBED_HelperInit *msg;
+  const char *hostname;
+
+  static char *const binary_argv[] = {
+    HELPER_TESTBED_BINARY, NULL
+  };
+
+  hostname = NULL;  
+  cp = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ControllerProc));
+  if ((NULL == host) || (0 == GNUNET_TESTBED_host_get_id_ (host)))
+  {
+    cp->helper =
+        GNUNET_HELPER_start (GNUNET_YES, HELPER_TESTBED_BINARY, binary_argv,
+                             &helper_mst, &helper_exp_cb, cp);
+  }
+  else
+  {
+    char *helper_binary_path_args[2];
+    char **rsh_args;
+    char **rsh_suffix_args;
+    const char *username;
+    char *port;
+    char *dst;
+
+    username = GNUNET_TESTBED_host_get_username_ (host);
+    hostname = GNUNET_TESTBED_host_get_hostname (host);
+    GNUNET_asprintf (&port, "%u", GNUNET_TESTBED_host_get_ssh_port_ (host));
+    if (NULL == username)
+      GNUNET_asprintf (&dst, "%s", hostname);
+    else
+      GNUNET_asprintf (&dst, "%s@%s", username, hostname);
+    LOG_DEBUG ("Starting SSH to destination %s\n", dst);
+
+    if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
+                                               "HELPER_BINARY_PATH",
+                                               &helper_binary_path_args[0]))
+      helper_binary_path_args[0] =
+          GNUNET_OS_get_libexec_binary_path (HELPER_TESTBED_BINARY);
+    helper_binary_path_args[1] = NULL;
+    rsh_args = gen_rsh_args (port, dst);
+    rsh_suffix_args = gen_rsh_suffix_args ((const char **) helper_binary_path_args);
+    cp->helper_argv =
+        join_argv ((const char **) rsh_args, (const char **) rsh_suffix_args);
+    free_argv (rsh_args);
+    free_argv (rsh_suffix_args);
+    GNUNET_free (port);
+    GNUNET_free (dst);
+    cp->helper =
+        GNUNET_HELPER_start (GNUNET_NO, cp->helper_argv[0], cp->helper_argv, &helper_mst,
+                             &helper_exp_cb, cp);
+    GNUNET_free (helper_binary_path_args[0]);
+  }
+  if (NULL == cp->helper)
+  {
+    if (NULL != cp->helper_argv)
+      free_argv (cp->helper_argv);
+    GNUNET_free (cp);
+    return NULL;
+  }
+  cp->host = host;
+  cp->cb = cb;
+  cp->cls = cls;
+  msg = GNUNET_TESTBED_create_helper_init_msg_ (trusted_ip, hostname, cfg);
+  cp->msg = &msg->header;
+  cp->shandle =
+      GNUNET_HELPER_send (cp->helper, &msg->header, GNUNET_NO, &clear_msg, cp);
+  if (NULL == cp->shandle)
+  {
+    GNUNET_free (msg);
+    GNUNET_TESTBED_controller_stop (cp);
+    return NULL;
+  }
+  return cp;
+}
+
+
+/**
+ * Stop the controller process (also will terminate all peers and controllers
+ * dependent on this controller).  This function blocks until the testbed has
+ * been fully terminated (!). The controller status cb from
+ * GNUNET_TESTBED_controller_start() will not be called.
+ *
+ * @param cproc the controller process handle
+ */
+void
+GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_ControllerProc *cproc)
+{
+  if (NULL != cproc->shandle)
+    GNUNET_HELPER_send_cancel (cproc->shandle);
+  if (NULL != cproc->helper)
+    GNUNET_HELPER_soft_stop (cproc->helper);
+  if (NULL != cproc->cfg)
+    GNUNET_CONFIGURATION_destroy (cproc->cfg);
+  if (NULL != cproc->helper_argv)
+    free_argv (cproc->helper_argv);
+  GNUNET_free (cproc);
+}
+
+
+/**
  * The handle for whether a host is habitable or not
  */
 struct GNUNET_TESTBED_HostHabitableCheckHandle
@@ -551,19 +1052,9 @@ struct GNUNET_TESTBED_HostHabitableCheckHandle
   struct GNUNET_OS_Process *auxp;
 
   /**
-   * The SSH destination address string
+   * The arguments used to start the helper
    */
-  char *ssh_addr;
-
-  /**
-   * The destination port string
-   */
-  char *portstr;
-
-  /**
-   * The path for hte testbed helper binary
-   */
-  char *helper_binary_path;
+  char **helper_argv;
 
   /**
    * Task id for the habitability check task
@@ -616,9 +1107,6 @@ habitability_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ret = (0 != code) ? GNUNET_NO : GNUNET_YES;
 
 call_cb:
-  GNUNET_free (h->ssh_addr);
-  GNUNET_free (h->portstr);
-  GNUNET_free (h->helper_binary_path);
   if (NULL != h->auxp)
     GNUNET_OS_process_destroy (h->auxp);
   cb = h->cb;
@@ -649,9 +1137,12 @@ GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host,
                                   void *cb_cls)
 {
   struct GNUNET_TESTBED_HostHabitableCheckHandle *h;
-  char *remote_args[11];
+  char **rsh_args;
+  char **rsh_suffix_args;
+  char *stat_args[3];
   const char *hostname;
-  unsigned int argp;
+  char *port;
+  char *dst;
 
   h = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_HostHabitableCheckHandle));
   h->cb = cb;
@@ -659,38 +1150,34 @@ GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host,
   h->host = host;
   hostname = (NULL == host->hostname) ? "127.0.0.1" : host->hostname;
   if (NULL == host->username)
-    h->ssh_addr = GNUNET_strdup (hostname);
+    dst = GNUNET_strdup (hostname);
   else
-    GNUNET_asprintf (&h->ssh_addr, "%s@%s", host->username, hostname);
+    GNUNET_asprintf (&dst, "%s@%s", host->username, hostname);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (config, "testbed",
                                              "HELPER_BINARY_PATH",
-                                             &h->helper_binary_path))
-    h->helper_binary_path =
-        GNUNET_OS_get_libexec_binary_path (HELPER_TESTBED_BINARY);
-  argp = 0;
-  remote_args[argp++] = "ssh";
-  GNUNET_asprintf (&h->portstr, "%u", host->port);
-  remote_args[argp++] = "-p";
-  remote_args[argp++] = h->portstr;
-  remote_args[argp++] = "-o";
-  remote_args[argp++] = "BatchMode=yes";
-  remote_args[argp++] = "-o";
-  remote_args[argp++] = "NoHostAuthenticationForLocalhost=yes";
-  remote_args[argp++] = h->ssh_addr;
-  remote_args[argp++] = "stat";
-  remote_args[argp++] = h->helper_binary_path;
-  remote_args[argp++] = NULL;
-  GNUNET_assert (argp == 11);
+                                             &stat_args[1]))
+    stat_args[1] =
+        GNUNET_OS_get_libexec_binary_path (HELPER_TESTBED_BINARY);  
+  GNUNET_asprintf (&port, "%u", host->port);
+  rsh_args = gen_rsh_args (port, dst);
+  GNUNET_free (port);
+  GNUNET_free (dst);
+  port = NULL;
+  dst = NULL;
+  stat_args[0] = "stat";
+  stat_args[2] = NULL;
+  rsh_suffix_args = gen_rsh_suffix_args ((const char **) stat_args);
+  h->helper_argv = join_argv ((const char **) rsh_args,
+                              (const char **) rsh_suffix_args);
+  GNUNET_free (rsh_suffix_args);
+  GNUNET_free (rsh_args);
   h->auxp =
       GNUNET_OS_start_process_vap (GNUNET_NO, GNUNET_OS_INHERIT_STD_ERR, NULL,
-                                   NULL, "ssh", remote_args);
+                                   NULL, h->helper_argv[0], h->helper_argv);
   if (NULL == h->auxp)
   {
     GNUNET_break (0);           /* Cannot exec SSH? */
-    GNUNET_free (h->ssh_addr);
-    GNUNET_free (h->portstr);
-    GNUNET_free (h->helper_binary_path);
     GNUNET_free (h);
     return NULL;
   }
@@ -715,9 +1202,7 @@ GNUNET_TESTBED_is_host_habitable_cancel (struct
   (void) GNUNET_OS_process_kill (handle->auxp, SIGTERM);
   (void) GNUNET_OS_process_wait (handle->auxp);
   GNUNET_OS_process_destroy (handle->auxp);
-  GNUNET_free (handle->ssh_addr);
-  GNUNET_free (handle->portstr);
-  GNUNET_free (handle->helper_binary_path);
+  free_argv (handle->helper_argv);
   GNUNET_free (handle);
 }
 

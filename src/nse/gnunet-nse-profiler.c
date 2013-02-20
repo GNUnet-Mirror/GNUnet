@@ -299,6 +299,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   // FIXME: what about closing other files!?
   if (NULL != data_file)
     GNUNET_DISK_file_close (data_file);
+  if (NULL != testing_cfg)
+    GNUNET_CONFIGURATION_destroy (testing_cfg);
+  testing_cfg = NULL;
 }
 
 
@@ -891,6 +894,7 @@ controller_start_cb (void *cls,
       return;
     }
   num_hosts = GNUNET_TESTBED_hosts_load_from_file (hosts_file,
+                                                   testing_cfg,
 						   &hosts);
   if (0 == num_hosts)
     {

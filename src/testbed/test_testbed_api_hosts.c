@@ -34,6 +34,11 @@
   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, sec)
 
 /**
+ * configuration handle to use as template configuration while creating hosts
+ */
+static struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
  * Host we are creating and using
  */
 static struct GNUNET_TESTBED_Host *host;
@@ -74,6 +79,11 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     num_hosts--;
   }
   GNUNET_free (hosts);
+  if (NULL != cfg)
+  {
+    GNUNET_CONFIGURATION_destroy (cfg);
+    cfg = NULL;
+  }
 }
 
 
@@ -87,18 +97,19 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const struct GNUNET_CONFIGURATION_Handle *config)
 {
-  host = GNUNET_TESTBED_host_create ("localhost", NULL, 0);
+  cfg = GNUNET_CONFIGURATION_dup (config);
+  host = GNUNET_TESTBED_host_create ("localhost", NULL, cfg, 0);
   GNUNET_assert (NULL != host);
   GNUNET_assert (0 != GNUNET_TESTBED_host_get_id_ (host));
   GNUNET_TESTBED_host_destroy (host);
-  host = GNUNET_TESTBED_host_create (NULL, NULL, 0);
+  host = GNUNET_TESTBED_host_create (NULL, NULL, cfg, 0);
   GNUNET_assert (NULL != host);
   GNUNET_assert (0 == GNUNET_TESTBED_host_get_id_ (host));
   GNUNET_assert (host == GNUNET_TESTBED_host_lookup_by_id_ (0));
   hosts = NULL;
-  num_hosts = GNUNET_TESTBED_hosts_load_from_file ("sample_hosts.txt", &hosts);
+  num_hosts = GNUNET_TESTBED_hosts_load_from_file ("sample_hosts.txt", cfg, &hosts);
   GNUNET_assert (15 == num_hosts);
   GNUNET_assert (NULL != hosts);
   status = GNUNET_YES;

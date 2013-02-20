@@ -49,10 +49,15 @@ GNUNET_TESTBED_host_lookup_by_id_ (uint32_t id);
  *
  * @param id global host ID assigned to the host; 0 is
  *        reserved to always mean 'localhost'
+ * @param cfg the configuration to use as a template while starting a controller
+ *          on this host.  Operation queue sizes specific to a host are also
+ *          read from this configuration handle
  * @return handle to the host, NULL on error
  */
 struct GNUNET_TESTBED_Host *
-GNUNET_TESTBED_host_create_by_id_ (uint32_t id);
+GNUNET_TESTBED_host_create_by_id_ (uint32_t id,
+                                   const struct GNUNET_CONFIGURATION_Handle
+                                   *cfg);
 
 
 /**
@@ -84,6 +89,16 @@ GNUNET_TESTBED_host_get_username_ (const struct GNUNET_TESTBED_Host *host);
  */
 uint16_t
 GNUNET_TESTBED_host_get_ssh_port_ (const struct GNUNET_TESTBED_Host *host);
+
+
+/**
+ * Obtain the host's configuration template
+ *
+ * @param host handle to the host
+ * @return the host's configuration template
+ */
+const struct GNUNET_CONFIGURATION_Handle *
+GNUNET_TESTBED_host_get_cfg_ (const struct GNUNET_TESTBED_Host *host);
 
 
 /**

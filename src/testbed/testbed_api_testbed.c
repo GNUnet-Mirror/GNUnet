@@ -1049,10 +1049,12 @@ GNUNET_TESTBED_run (const char *host_filename,
 
   GNUNET_assert (num_peers > 0);
   rc = GNUNET_malloc (sizeof (struct RunContext));
+  rc->cfg = GNUNET_CONFIGURATION_dup (cfg);
   if (NULL != host_filename)
   {
     rc->num_hosts =
-        GNUNET_TESTBED_hosts_load_from_file (host_filename, &rc->hosts);
+        GNUNET_TESTBED_hosts_load_from_file (host_filename, rc->cfg,
+                                             &rc->hosts);
     if (0 == rc->num_hosts)
     {
       LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -1061,8 +1063,7 @@ GNUNET_TESTBED_run (const char *host_filename,
     }
   }
   else
-    rc->h = GNUNET_TESTBED_host_create (NULL, NULL, 0);
-  rc->cfg = GNUNET_CONFIGURATION_dup (cfg);
+    rc->h = GNUNET_TESTBED_host_create (NULL, NULL, rc->cfg, 0);
   rc->num_peers = num_peers;
   rc->event_mask = event_mask;
   rc->cc = cc;

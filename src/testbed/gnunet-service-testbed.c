@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet.
-  (C) 2012 Christian Grothoff (and other contributing authors)
+  (C) 2008--2013 Christian Grothoff (and other contributing authors)
 
   GNUnet is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
@@ -945,7 +945,8 @@ handle_init (void *cls, struct GNUNET_SERVER_Client *client,
                                     hostname);
   host =
       GNUNET_TESTBED_host_create_with_id (GST_context->host_id,
-                                          GST_context->master_ip, NULL, 0);
+                                          GST_context->master_ip, NULL,
+                                          our_config, 0);
   host_list_add (host);
   LOG_DEBUG ("Created master context with host ID: %u\n", GST_context->host_id);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -1004,9 +1005,10 @@ handle_add_host (void *cls, struct GNUNET_SERVER_Client *client,
     username = NULL;
   }
   LOG_DEBUG ("-------ssh port: %u\n", ntohs (msg->ssh_port));
+  /* FIXME: should use configuration from ADDHOST message */
   host =
       GNUNET_TESTBED_host_create_with_id (host_id, hostname, username,
-                                          ntohs (msg->ssh_port));
+                                          our_config, ntohs (msg->ssh_port));
   GNUNET_assert (NULL != host);
   reply_size = sizeof (struct GNUNET_TESTBED_HostConfirmedMessage);
   if (GNUNET_OK != host_list_add (host))

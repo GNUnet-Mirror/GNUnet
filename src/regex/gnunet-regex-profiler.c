@@ -1987,7 +1987,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     fprintf (stderr, _("No policy directory specified on command line. Exiting.\n"));
     return;
   }
-  num_hosts = GNUNET_TESTBED_hosts_load_from_file (args[0], &hosts);
+  num_hosts = GNUNET_TESTBED_hosts_load_from_file (args[0], config, &hosts);
   if (0 == num_hosts)
   {
     fprintf (stderr, _("No hosts loaded. Need at least one host\n"));

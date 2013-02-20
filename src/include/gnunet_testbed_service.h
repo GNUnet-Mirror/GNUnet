@@ -75,12 +75,16 @@ struct GNUNET_TESTBED_Controller;
  *
  * @param hostname name of the host, use "NULL" for localhost
  * @param username username to use for the login; may be NULL
+ * @param cfg the configuration to use as a template while starting a controller
+ *          on this host.  Operation queue sizes specific to a host are also
+ *          read from this configuration handle
  * @param port port number to use for ssh; use 0 to let ssh decide
  * @return handle to the host, NULL on error
  */
 struct GNUNET_TESTBED_Host *
 GNUNET_TESTBED_host_create (const char *hostname,
                             const char *username,
+                            const struct GNUNET_CONFIGURATION_Handle *cfg,
                             uint16_t port);
 
 
@@ -94,6 +98,9 @@ GNUNET_TESTBED_host_create (const char *hostname,
  *        reserved to always mean 'localhost'
  * @param hostname name of the host, use "NULL" for localhost
  * @param username username to use for the login; may be NULL
+ * @param cfg the configuration to use as a template while starting a controller
+ *          on this host.  Operation queue sizes specific to a host are also
+ *          read from this configuration handle
  * @param port port number to use for ssh; use 0 to let ssh decide
  * @return handle to the host, NULL on error
  */
@@ -101,6 +108,8 @@ struct GNUNET_TESTBED_Host *
 GNUNET_TESTBED_host_create_with_id (uint32_t id,
                                     const char *hostname,
                                     const char *username,
+                                    const struct GNUNET_CONFIGURATION_Handle
+                                    *cfg,
                                     uint16_t port);
 
 
@@ -108,12 +117,17 @@ GNUNET_TESTBED_host_create_with_id (uint32_t id,
  * Load a set of hosts from a configuration file.
  *
  * @param filename file with the host specification
+ * @param cfg the configuration to use as a template while starting a controller
+ *          on any of the loaded hosts.  Operation queue sizes specific to a host
+ *          are also read from this configuration handle
  * @param hosts set to the hosts found in the file; caller must free this if
  *          number of hosts returned is greater than 0
  * @return number of hosts returned in 'hosts', 0 on error
  */
 unsigned int
 GNUNET_TESTBED_hosts_load_from_file (const char *filename,
+                                     const struct GNUNET_CONFIGURATION_Handle
+                                     *cfg,
                                      struct GNUNET_TESTBED_Host ***hosts);
 
 
