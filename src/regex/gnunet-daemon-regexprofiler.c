@@ -69,11 +69,6 @@ static GNUNET_SCHEDULER_TaskIdentifier reannounce_task;
 static struct GNUNET_TIME_Relative reannounce_freq;
 
 /**
- * Random delay to spread out load on the DHT.
- */
-static struct GNUNET_TIME_Relative announce_delay;
-
-/**
  * Maximal path compression length for regex announcing.
  */
 static unsigned long long max_path_compression;
@@ -132,6 +127,7 @@ static void
 reannounce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_PeerIdentity id;
+  struct GNUNET_TIME_Relative random_delay;
   char *regex = cls;
 
   reannounce_task = GNUNET_SCHEDULER_NO_TASK;
@@ -155,27 +151,24 @@ reannounce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                             (unsigned int) max_path_compression,
                                             stats_handle);
   }
-  else
-  {
-    GNUNET_assert (NULL != announce_handle);
-    GNUNET_REGEX_reannounce (announce_handle);
-  }
+  /* Will result in a double first announce */
+  GNUNET_assert (NULL != announce_handle);
+  GNUNET_REGEX_reannounce (announce_handle);
 
+  random_delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                                GNUNET_CRYPTO_random_u32 (
+                                                  GNUNET_CRYPTO_QUALITY_WEAK,
+                                                  600));
   reannounce_task = 
     GNUNET_SCHEDULER_add_delayed (
-      GNUNET_TIME_relative_add (reannounce_freq,
-                                GNUNET_TIME_relative_multiply (
-                                  GNUNET_TIME_UNIT_SECONDS,
-                                  GNUNET_CRYPTO_random_u32 (
-                                    GNUNET_CRYPTO_QUALITY_WEAK,
-                                    600))),
+      GNUNET_TIME_relative_add (reannounce_freq, random_delay),
       &reannounce_regex,
       cls);
 }
 
 
 /**
- * Announce the given regular expression using Mesh and the path compression
+ * Announce the given regular expression using regex and the path compression
  * length read from config.
  *
  * @param regex regular expression to announce on this peer's mesh.
@@ -193,9 +186,7 @@ announce_regex (const char * regex)
 
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == reannounce_task);
   copy = GNUNET_strdup (regex);
-  reannounce_task = GNUNET_SCHEDULER_add_delayed (announce_delay,
-                                                  reannounce_regex,
-                                                  (void *) copy);
+  reannounce_task = GNUNET_SCHEDULER_add_now (reannounce_regex, (void *) copy);
 }
 
 
@@ -326,9 +317,6 @@ run (void *cls, char *const *args GNUNET_UNUSED,
       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 10);
 
   }
-    announce_delay =
-    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-                                   GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 600));
 
   stats_handle = GNUNET_STATISTICS_create ("regexprofiler", cfg);
 
