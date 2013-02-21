@@ -1305,12 +1305,15 @@ GNUNET_TESTBED_register_host (struct GNUNET_TESTBED_Controller *controller,
   if (NULL != username)
   {
     msg->username_length = htons (username_length);
-    ptr = mempcpy (ptr, username, username_length);
+    ptr = memcpy (ptr, username, username_length);
+    ptr += username_length;
   }
   msg->hostname_length = htons (hostname_length);
-  ptr = mempcpy (ptr, hostname, hostname_length);
+  ptr = memcpy (ptr, hostname, hostname_length);
+  ptr += hostname_length;
   msg->config_size = htons (config_size);
-  ptr = mempcpy (ptr, cconfig, cc_size);
+  ptr = memcpy (ptr, cconfig, cc_size);
+  ptr += cc_size;
   GNUNET_assert ((ptr - (void *) msg) == msg_size);
   GNUNET_free (cconfig);
   GNUNET_TESTBED_queue_message_ (controller,
