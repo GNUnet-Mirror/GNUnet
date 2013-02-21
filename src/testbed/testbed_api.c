@@ -130,33 +130,6 @@ struct ControllerLink
 
 
 /**
- * handle for host registration
- */
-struct GNUNET_TESTBED_HostRegistrationHandle
-{
-  /**
-   * The host being registered
-   */
-  struct GNUNET_TESTBED_Host *host;
-
-  /**
-   * The controller at which this host is being registered
-   */
-  struct GNUNET_TESTBED_Controller *c;
-
-  /**
-   * The Registartion completion callback
-   */
-  GNUNET_TESTBED_HostRegistrationCompletion cc;
-
-  /**
-   * The closure for above callback
-   */
-  void *cc_cls;
-};
-
-
-/**
  * Context data for forwarded Operation
  */
 struct ForwardedOperationData
@@ -232,61 +205,6 @@ find_opc (const struct GNUNET_TESTBED_Controller *c, const uint64_t id)
       return opc;
   }
   return NULL;
-}
-
-
-/**
- * Handler for GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTCONFIRM message from
- * controller (testbed service)
- *
- * @param c the controller handler
- * @param msg message received
- * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
- *           not
- */
-static int
-handle_addhostconfirm (struct GNUNET_TESTBED_Controller *c,
-                       const struct GNUNET_TESTBED_HostConfirmedMessage *msg)
-{
-  struct GNUNET_TESTBED_HostRegistrationHandle *rh;
-  char *emsg;
-  uint16_t msg_size;
-
-  rh = c->rh;
-  if (NULL == rh)
-  {
-    return GNUNET_OK;
-  }
-  if (GNUNET_TESTBED_host_get_id_ (rh->host) != ntohl (msg->host_id))
-  {
-    LOG_DEBUG ("Mismatch in host id's %u, %u of host confirm msg\n",
-               GNUNET_TESTBED_host_get_id_ (rh->host), ntohl (msg->host_id));
-    return GNUNET_OK;
-  }
-  c->rh = NULL;
-  msg_size = ntohs (msg->header.size);
-  if (sizeof (struct GNUNET_TESTBED_HostConfirmedMessage) == msg_size)
-  {
-    LOG_DEBUG ("Host %u successfully registered\n", ntohl (msg->host_id));
-    GNUNET_TESTBED_mark_host_registered_at_ (rh->host, c);
-    rh->cc (rh->cc_cls, NULL);
-    GNUNET_free (rh);
-    return GNUNET_OK;
-  }
-  /* We have an error message */
-  emsg = (char *) &msg[1];
-  if ('\0' !=
-      emsg[msg_size - sizeof (struct GNUNET_TESTBED_HostConfirmedMessage)])
-  {
-    GNUNET_break (0);
-    GNUNET_free (rh);
-    return GNUNET_NO;
-  }
-  LOG (GNUNET_ERROR_TYPE_ERROR, _("Adding host %u failed with error: %s\n"),
-       ntohl (msg->host_id), emsg);
-  rh->cc (rh->cc_cls, emsg);
-  GNUNET_free (rh);
-  return GNUNET_OK;
 }
 
 
@@ -857,9 +775,8 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     GNUNET_assert (msize >=
                    sizeof (struct GNUNET_TESTBED_HostConfirmedMessage));
     status =
-        handle_addhostconfirm (c,
-                               (const struct GNUNET_TESTBED_HostConfirmedMessage
-                                *) msg);
+        GNUNET_TESTBED_host_handle_addhostconfirm_
+        (c, (const struct GNUNET_TESTBED_HostConfirmedMessage*) msg);
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_GENERIC_OPERATION_SUCCESS:
     GNUNET_assert (msize ==
@@ -1368,98 +1285,6 @@ GNUNET_TESTBED_controller_disconnect (struct GNUNET_TESTBED_Controller
 
 
 /**
- * Register a host with the controller
- *
- * @param controller the controller handle
- * @param host the host to register
- * @param cc the completion callback to call to inform the status of
- *          registration. After calling this callback the registration handle
- *          will be invalid. Cannot be NULL.
- * @param cc_cls the closure for the cc
- * @return handle to the host registration which can be used to cancel the
- *           registration
- */
-struct GNUNET_TESTBED_HostRegistrationHandle *
-GNUNET_TESTBED_register_host (struct GNUNET_TESTBED_Controller *controller,
-                              struct GNUNET_TESTBED_Host *host,
-                              GNUNET_TESTBED_HostRegistrationCompletion cc,
-                              void *cc_cls)
-{
-  struct GNUNET_TESTBED_HostRegistrationHandle *rh;
-  struct GNUNET_TESTBED_AddHostMessage *msg;
-  const char *username;
-  const char *hostname;
-  uint16_t msg_size;
-  uint16_t user_name_length;
-
-  if (NULL != controller->rh)
-    return NULL;
-  hostname = GNUNET_TESTBED_host_get_hostname (host);
-  if (GNUNET_YES == GNUNET_TESTBED_is_host_registered_ (host, controller))
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Host hostname: %s already registered\n",
-         (NULL == hostname) ? "localhost" : hostname);
-    return NULL;
-  }
-  rh = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_HostRegistrationHandle));
-  rh->host = host;
-  rh->c = controller;
-  GNUNET_assert (NULL != cc);
-  rh->cc = cc;
-  rh->cc_cls = cc_cls;
-  controller->rh = rh;
-  username = GNUNET_TESTBED_host_get_username_ (host);
-  msg_size = (sizeof (struct GNUNET_TESTBED_AddHostMessage));
-  user_name_length = 0;
-  if (NULL != username)
-  {
-    user_name_length = strlen (username) + 1;
-    msg_size += user_name_length;
-  }
-  /* FIXME: what happens when hostname is NULL? localhost */
-  GNUNET_assert (NULL != hostname);
-  msg_size += strlen (hostname) + 1;
-  msg = GNUNET_malloc (msg_size);
-  msg->header.size = htons (msg_size);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST);
-  msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (host));
-  msg->ssh_port = htons (GNUNET_TESTBED_host_get_ssh_port_ (host));
-  if (NULL != username)
-  {
-    msg->user_name_length = htons (user_name_length - 1);
-    memcpy (&msg[1], username, user_name_length);
-  }
-  else
-    msg->user_name_length = htons (user_name_length);
-  strcpy (((void *) &msg[1]) + user_name_length, hostname);
-  GNUNET_TESTBED_queue_message_ (controller,
-                                 (struct GNUNET_MessageHeader *) msg);
-  return rh;
-}
-
-
-/**
- * Cancel the pending registration. Note that if the registration message is
- * already sent to the service the cancellation has only the effect that the
- * registration completion callback for the registration is never called.
- *
- * @param handle the registration handle to cancel
- */
-void
-GNUNET_TESTBED_cancel_registration (struct GNUNET_TESTBED_HostRegistrationHandle
-                                    *handle)
-{
-  if (handle != handle->c->rh)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  handle->c->rh = NULL;
-  GNUNET_free (handle);
-}
-
-
-/**
  * Same as the GNUNET_TESTBED_controller_link_2, but with ids for delegated host
  * and slave host
  *
@@ -1870,11 +1695,12 @@ GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
 /**
  * Generates configuration by uncompressing configuration in given message. The
  * given message should be of the following types:
- * GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG,
- * GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG
+ * GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONFIGURATION,
+ * GNUNET_MESSAGE_TYPE_TESTBED_SLAVE_CONFIGURATION,
+ * GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST
  *
  * @param msg the message containing compressed configuration
- * @return handle to the parsed configuration
+ * @return handle to the parsed configuration; NULL upon error while parsing the message
  */
 struct GNUNET_CONFIGURATION_Handle *
 GNUNET_TESTBED_extract_config_ (const struct GNUNET_MessageHeader *msg)
@@ -1912,13 +1738,29 @@ GNUNET_TESTBED_extract_config_ (const struct GNUNET_MessageHeader *msg)
         sizeof (struct GNUNET_TESTBED_SlaveConfiguration);
     xdata = (const Bytef *) &imsg[1];
   }
+  break;
+  case GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST:
+    {
+      const struct GNUNET_TESTBED_AddHostMessage *imsg;
+      uint16_t osize;
+      
+      imsg = (const struct GNUNET_TESTBED_AddHostMessage *) msg;
+      data_len = (uLong) ntohs (imsg->config_size);
+      osize = sizeof (struct GNUNET_TESTBED_AddHostMessage) +
+          ntohs (imsg->username_length) + ntohs (imsg->hostname_length); 
+      xdata_len = ntohs (imsg->header.size) - osize;
+      xdata = (const Bytef *) ((const void *) imsg + osize);
+    }
     break;
   default:
     GNUNET_assert (0);
   }
   data = GNUNET_malloc (data_len);
   if (Z_OK != (ret = uncompress (data, &data_len, xdata, xdata_len)))
-    GNUNET_assert (0);
+  {
+    GNUNET_free (data);
+    return NULL;
+  }
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_deserialize (cfg, (const char *) data,

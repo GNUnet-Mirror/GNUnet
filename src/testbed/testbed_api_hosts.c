@@ -33,6 +33,7 @@
 
 #include "testbed_api.h"
 #include "testbed_api_hosts.h"
+#include "testbed_helper.h"
 #include "testbed_api_operations.h"
 #include "testbed_api_sd.h"
 
@@ -1208,6 +1209,138 @@ GNUNET_TESTBED_is_host_habitable_cancel (struct
 
 
 /**
+ * handle for host registration
+ */
+struct GNUNET_TESTBED_HostRegistrationHandle
+{
+  /**
+   * The host being registered
+   */
+  struct GNUNET_TESTBED_Host *host;
+
+  /**
+   * The controller at which this host is being registered
+   */
+  struct GNUNET_TESTBED_Controller *c;
+
+  /**
+   * The Registartion completion callback
+   */
+  GNUNET_TESTBED_HostRegistrationCompletion cc;
+
+  /**
+   * The closure for above callback
+   */
+  void *cc_cls;
+};
+
+
+/**
+ * Register a host with the controller
+ *
+ * @param controller the controller handle
+ * @param host the host to register
+ * @param cc the completion callback to call to inform the status of
+ *          registration. After calling this callback the registration handle
+ *          will be invalid. Cannot be NULL.
+ * @param cc_cls the closure for the cc
+ * @return handle to the host registration which can be used to cancel the
+ *           registration
+ */
+struct GNUNET_TESTBED_HostRegistrationHandle *
+GNUNET_TESTBED_register_host (struct GNUNET_TESTBED_Controller *controller,
+                              struct GNUNET_TESTBED_Host *host,
+                              GNUNET_TESTBED_HostRegistrationCompletion cc,
+                              void *cc_cls)
+{
+  struct GNUNET_TESTBED_HostRegistrationHandle *rh;
+  struct GNUNET_TESTBED_AddHostMessage *msg;
+  const char *username;
+  const char *hostname;
+  char *config;
+  char *cconfig;
+  void *ptr;
+  size_t cc_size;
+  size_t config_size;
+  uint16_t msg_size;
+  uint16_t username_length;
+  uint16_t hostname_length;
+
+  if (NULL != controller->rh)
+    return NULL;
+  hostname = GNUNET_TESTBED_host_get_hostname (host);
+  if (GNUNET_YES == GNUNET_TESTBED_is_host_registered_ (host, controller))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Host hostname: %s already registered\n",
+         (NULL == hostname) ? "localhost" : hostname);
+    return NULL;
+  }
+  rh = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_HostRegistrationHandle));
+  rh->host = host;
+  rh->c = controller;
+  GNUNET_assert (NULL != cc);
+  rh->cc = cc;
+  rh->cc_cls = cc_cls;
+  controller->rh = rh;
+  username = GNUNET_TESTBED_host_get_username_ (host);
+  username_length = 0;
+  if (NULL != username)
+    username_length = strlen (username);
+  GNUNET_assert (NULL != hostname); /* Hostname must be present */
+  hostname_length = strlen (hostname);
+  GNUNET_assert (NULL != host->cfg);
+  config = GNUNET_CONFIGURATION_serialize (host->cfg, &config_size);
+  cc_size = GNUNET_TESTBED_compress_config_ (config, config_size, &cconfig);
+  GNUNET_free (config);
+  msg_size = (sizeof (struct GNUNET_TESTBED_AddHostMessage));
+  msg_size += username_length;
+  msg_size += hostname_length;
+  msg_size += cc_size;
+  msg = GNUNET_malloc (msg_size);
+  msg->header.size = htons (msg_size);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST);
+  msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (host));
+  msg->ssh_port = htons (GNUNET_TESTBED_host_get_ssh_port_ (host));
+  ptr = &msg[1];
+  if (NULL != username)
+  {
+    msg->username_length = htons (username_length);
+    ptr = mempcpy (ptr, username, username_length);
+  }
+  msg->hostname_length = htons (hostname_length);
+  ptr = mempcpy (ptr, hostname, hostname_length);
+  msg->config_size = htons (config_size);
+  ptr = mempcpy (ptr, cconfig, cc_size);
+  GNUNET_assert ((ptr - (void *) msg) == msg_size);
+  GNUNET_free (cconfig);
+  GNUNET_TESTBED_queue_message_ (controller,
+                                 (struct GNUNET_MessageHeader *) msg);
+  return rh;
+}
+
+
+/**
+ * Cancel the pending registration. Note that if the registration message is
+ * already sent to the service the cancellation has only the effect that the
+ * registration completion callback for the registration is never called.
+ *
+ * @param handle the registration handle to cancel
+ */
+void
+GNUNET_TESTBED_cancel_registration (struct GNUNET_TESTBED_HostRegistrationHandle
+                                    *handle)
+{
+  if (handle != handle->c->rh)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  handle->c->rh = NULL;
+  GNUNET_free (handle);
+}
+
+
+/**
  * Initializes the operation queue for parallel overlay connects
  *
  * @param h the host handle
@@ -1407,6 +1540,63 @@ GNUNET_TESTBED_host_queue_oc_ (struct GNUNET_TESTBED_Host *h,
 {  
   GNUNET_TESTBED_operation_queue_insert_
       (h->opq_parallel_overlay_connect_operations, op);
+}
+
+
+/**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTCONFIRM message from
+ * controller (testbed service)
+ *
+ * @param c the controller handler
+ * @param msg message received
+ * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
+ *           not
+ */
+int
+GNUNET_TESTBED_host_handle_addhostconfirm_ (struct GNUNET_TESTBED_Controller *c,
+                                            const struct
+                                            GNUNET_TESTBED_HostConfirmedMessage
+                                            *msg)
+{
+  struct GNUNET_TESTBED_HostRegistrationHandle *rh;
+  char *emsg;
+  uint16_t msg_size;
+
+  rh = c->rh;
+  if (NULL == rh)
+  {
+    return GNUNET_OK;
+  }
+  if (GNUNET_TESTBED_host_get_id_ (rh->host) != ntohl (msg->host_id))
+  {
+    LOG_DEBUG ("Mismatch in host id's %u, %u of host confirm msg\n",
+               GNUNET_TESTBED_host_get_id_ (rh->host), ntohl (msg->host_id));
+    return GNUNET_OK;
+  }
+  c->rh = NULL;
+  msg_size = ntohs (msg->header.size);
+  if (sizeof (struct GNUNET_TESTBED_HostConfirmedMessage) == msg_size)
+  {
+    LOG_DEBUG ("Host %u successfully registered\n", ntohl (msg->host_id));
+    GNUNET_TESTBED_mark_host_registered_at_ (rh->host, c);
+    rh->cc (rh->cc_cls, NULL);
+    GNUNET_free (rh);
+    return GNUNET_OK;
+  }
+  /* We have an error message */
+  emsg = (char *) &msg[1];
+  if ('\0' !=
+      emsg[msg_size - sizeof (struct GNUNET_TESTBED_HostConfirmedMessage)])
+  {
+    GNUNET_break (0);
+    GNUNET_free (rh);
+    return GNUNET_NO;
+  }
+  LOG (GNUNET_ERROR_TYPE_ERROR, _("Adding host %u failed with error: %s\n"),
+       ntohl (msg->host_id), emsg);
+  rh->cc (rh->cc_cls, emsg);
+  GNUNET_free (rh);
+  return GNUNET_OK;
 }
 
 /* end of testbed_api_hosts.c */

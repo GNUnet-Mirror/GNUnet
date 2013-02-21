@@ -967,9 +967,11 @@ handle_add_host (void *cls, struct GNUNET_SERVER_Client *client,
   struct GNUNET_TESTBED_Host *host;
   const struct GNUNET_TESTBED_AddHostMessage *msg;
   struct GNUNET_TESTBED_HostConfirmedMessage *reply;
+  struct GNUNET_CONFIGURATION_Handle *host_cfg;
   char *username;
   char *hostname;
   char *emsg;
+  const void *ptr;
   uint32_t host_id;
   uint16_t username_length;
   uint16_t hostname_length;
@@ -978,38 +980,72 @@ handle_add_host (void *cls, struct GNUNET_SERVER_Client *client,
 
   msg = (const struct GNUNET_TESTBED_AddHostMessage *) message;
   msize = ntohs (msg->header.size);
-  username = (char *) &msg[1];
-  username_length = ntohs (msg->user_name_length);
-  if (0 != username_length)
-    username_length++;
+  if (msize <= sizeof (struct GNUNET_TESTBED_AddHostMessage))
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  username_length = ntohs (msg->username_length);
+  hostname_length = ntohs (msg->hostname_length);
   /* msg must contain hostname */
-  GNUNET_assert (msize >
-                 (sizeof (struct GNUNET_TESTBED_AddHostMessage) +
-                  username_length + 1));
+  if ((msize <= (sizeof (struct GNUNET_TESTBED_AddHostMessage) + 
+                 username_length))
+      || (0 == hostname_length))
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  /* msg must contain configuration */
+  if (msize <= (sizeof (struct GNUNET_TESTBED_AddHostMessage) +
+                username_length + hostname_length))
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  username = NULL;
+  hostname = NULL;
+  ptr = &msg[1];
   if (0 != username_length)
-    GNUNET_assert ('\0' == username[username_length - 1]);
-  hostname = username + username_length;
-  hostname_length =
-      msize - (sizeof (struct GNUNET_TESTBED_AddHostMessage) + username_length);
-  GNUNET_assert ('\0' == hostname[hostname_length - 1]);
-  GNUNET_assert (strlen (hostname) == hostname_length - 1);
+  {
+    username = GNUNET_malloc (username_length + 1);
+    strncpy (username, ptr, username_length);
+    ptr += username_length;
+  }
+  hostname = GNUNET_malloc (hostname_length + 1);
+  strncpy (hostname, ptr, hostname_length);
+  ptr += hostname_length;
+  if (NULL == (host_cfg = GNUNET_TESTBED_extract_config_ (message)))
+  {
+    GNUNET_free_non_null (username);
+    GNUNET_free_non_null (hostname);
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   host_id = ntohl (msg->host_id);
   LOG_DEBUG ("Received ADDHOST %u message\n", host_id);
   LOG_DEBUG ("-------host id: %u\n", host_id);
   LOG_DEBUG ("-------hostname: %s\n", hostname);
-  if (0 != username_length)
+  if (NULL != username)
     LOG_DEBUG ("-------username: %s\n", username);
   else
-  {
-    LOG_DEBUG ("-------username: NULL\n");
-    username = NULL;
-  }
+    LOG_DEBUG ("-------username: <not given>\n");
   LOG_DEBUG ("-------ssh port: %u\n", ntohs (msg->ssh_port));
-  /* FIXME: should use configuration from ADDHOST message */
   host =
       GNUNET_TESTBED_host_create_with_id (host_id, hostname, username,
-                                          our_config, ntohs (msg->ssh_port));
-  GNUNET_assert (NULL != host);
+                                          host_cfg, ntohs (msg->ssh_port));
+  GNUNET_free_non_null (username);
+  GNUNET_free (hostname);
+  GNUNET_CONFIGURATION_destroy (host_cfg);
+  if (NULL == host)
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   reply_size = sizeof (struct GNUNET_TESTBED_HostConfirmedMessage);
   if (GNUNET_OK != host_list_add (host))
   {

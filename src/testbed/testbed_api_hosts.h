@@ -27,8 +27,9 @@
 #ifndef NEW_TESTING_API_HOSTS_H
 #define NEW_TESTING_API_HOSTS_H
 
-#include "gnunet_testbed_service.h"
-#include "testbed_helper.h"
+//#include "gnunet_testbed_service.h"
+//#include "testbed_helper.h"
+#include "testbed.h"
 
 
 /**
@@ -192,6 +193,22 @@ GNUNET_TESTBED_get_tslot_ (struct GNUNET_TESTBED_Host *h, void *key);
 void
 GNUNET_TESTBED_host_queue_oc_ (struct GNUNET_TESTBED_Host *h, 
                                struct GNUNET_TESTBED_Operation *op);
+
+
+/**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTCONFIRM message from
+ * controller (testbed service)
+ *
+ * @param c the controller handler
+ * @param msg message received
+ * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
+ *           not
+ */
+int
+GNUNET_TESTBED_host_handle_addhostconfirm_ (struct GNUNET_TESTBED_Controller *c,
+                                            const struct
+                                            GNUNET_TESTBED_HostConfirmedMessage
+                                            *msg);
 
 #endif
 /* end of testbed_api_hosts.h */

@@ -85,13 +85,18 @@ struct GNUNET_TESTBED_AddHostMessage
    * 0 to use no user name; otherwise 'strlen (username)',
    * excluding 0-termination!
    */
-  uint16_t user_name_length GNUNET_PACKED;
+  uint16_t username_length GNUNET_PACKED;
 
   /**
    * Number of bytes in the host name (excluding 0-termination) that follows the
    * user name; cannot be 0
    */
   uint16_t hostname_length GNUNET_PACKED;
+
+  /**
+   * The length of the uncompressed configuration
+   */
+  uint16_t config_size GNUNET_PACKED;
 
   /* followed by non 0-terminated user name */
 

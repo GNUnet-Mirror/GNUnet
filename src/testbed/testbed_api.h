@@ -29,7 +29,7 @@
 
 #include "gnunet_testbed_service.h"
 #include "testbed.h"
-
+#include "testbed_helper.h"
 
 /**
  * Testbed Helper binary name
