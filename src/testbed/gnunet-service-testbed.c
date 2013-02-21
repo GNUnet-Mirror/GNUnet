@@ -475,7 +475,61 @@ send_operation_success_msg (struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Callback which will be called to after a host registration succeeded or failed
+ * Function to send a failure reponse for controller link operation
+ *
+ * @param client the client to send the message to
+ * @param operation_id the operation ID of the controller link request
+ * @param cfg the configuration with which the delegated controller is started.
+ *          Can be NULL if the delegated controller is not started but just
+ *          linked to.
+ * @param emsg set to an error message explaining why the controller link
+ *          failed.  Setting this to NULL signifies success.  !This should be
+ *          NULL if cfg is set!
+ */
+static void
+send_controller_link_response (struct GNUNET_SERVER_Client *client,
+                               uint64_t operation_id,
+                               const struct GNUNET_CONFIGURATION_Handle
+                               *cfg,
+                               const char *emsg)
+{
+  struct GNUNET_TESTBED_ControllerLinkResponse *msg;
+  char *xconfig;
+  size_t config_size;
+  size_t xconfig_size;  
+  uint16_t msize;
+
+  GNUNET_assert ((NULL == cfg) || (NULL == emsg));
+  xconfig = NULL;
+  xconfig_size = 0;
+  config_size = 0;
+  msize = sizeof (struct GNUNET_TESTBED_ControllerLinkResponse);
+  if (NULL != cfg)
+  {
+    xconfig = GNUNET_TESTBED_compress_cfg_ (cfg,
+                                            &config_size,
+                                            &xconfig_size);
+    msize += xconfig_size;
+  }
+  if (NULL != emsg)
+    msize += strlen (emsg);
+  msg = GNUNET_malloc (msize);
+  msg->header.type = htons
+      (GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS_RESULT);
+  msg->header.size = htons (msize);
+  if (NULL == emsg)
+    msg->success = htons (GNUNET_YES);
+  msg->operation_id = GNUNET_htonll (operation_id);
+  msg->config_size = htons ((uint16_t) config_size);
+  if (NULL != xconfig)
+    memcpy (&msg[1], xconfig, xconfig_size);
+  if (NULL != emsg)
+    memcpy (&msg[1], emsg, strlen (emsg));
+  GST_queue_message (client, &msg->header);
+}
+
+/**
+ * Callback which will be called after a host registration succeeded or failed
  *
  * @param cls the handle to the slave at which the registration is completed
  * @param emsg the error message; NULL if host registration is successful
@@ -704,10 +758,18 @@ lcf_forwarded_operation_timeout (void *cls,
                                  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct LCFContext *lcf = cls;
+  struct ForwardedOperationContext *fopc = lcf->fopc;
 
   GNUNET_assert (NULL != lcf->fopc);
   lcf->fopc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  GST_forwarded_operation_timeout (lcf->fopc, tc);
+  //  GST_forwarded_operation_timeout (lcf->fopc, tc);
+  GNUNET_TESTBED_forward_operation_msg_cancel_ (fopc->opc);
+  LOG (GNUNET_ERROR_TYPE_WARNING,
+       "A forwarded operation as part of controller linking has timed out\n");
+  send_controller_link_response (fopc->client, fopc->operation_id, NULL, "Timeout");
+  GNUNET_SERVER_client_drop (fopc->client);
+  GNUNET_CONTAINER_DLL_remove (fopcq_head, fopcq_tail, fopc);
+  GNUNET_free (fopc);
   lcf->fopc = NULL;
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
   lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
@@ -867,13 +929,13 @@ slave_status_callback (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
                                          slave);
   if (NULL != slave->controller)
   {
-    send_operation_success_msg (lcc->client, lcc->operation_id);
+    send_controller_link_response (lcc->client, lcc->operation_id, cfg, NULL);
     slave->cfg = GNUNET_CONFIGURATION_dup (cfg);
   }
   else
   {
-    GST_send_operation_fail_msg (lcc->client, lcc->operation_id,
-                                 "Could not connect to delegated controller");
+    send_controller_link_response (lcc->client, lcc->operation_id, NULL,
+                                   "Could not connect to delegated controller");
     GNUNET_TESTBED_controller_stop (slave->controller_proc);
     GST_slave_list[slave->host_id] = NULL;
     GNUNET_free (slave);
@@ -1168,7 +1230,7 @@ static void
 handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
                          const struct GNUNET_MessageHeader *message)
 {
-  const struct GNUNET_TESTBED_ControllerLinkMessage *msg;
+  const struct GNUNET_TESTBED_ControllerLinkRequest *msg;
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct LCFContextQueue *lcfq;
   struct Route *route;
@@ -1187,13 +1249,13 @@ handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   msize = ntohs (message->size);
-  if (sizeof (struct GNUNET_TESTBED_ControllerLinkMessage) >= msize)
+  if (sizeof (struct GNUNET_TESTBED_ControllerLinkRequest) >= msize)
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  msg = (const struct GNUNET_TESTBED_ControllerLinkMessage *) message;
+  msg = (const struct GNUNET_TESTBED_ControllerLinkRequest *) message;
   delegated_host_id = ntohl (msg->delegated_host_id);
   if (delegated_host_id == GST_context->host_id)
   {
@@ -1231,7 +1293,7 @@ handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
     struct Slave *slave;
     struct LinkControllersContext *lcc;
 
-    msize -= sizeof (struct GNUNET_TESTBED_ControllerLinkMessage);
+    msize -= sizeof (struct GNUNET_TESTBED_ControllerLinkRequest);
     config_size = ntohs (msg->config_size);
     if ((delegated_host_id < GST_slave_list_size) && (NULL != GST_slave_list[delegated_host_id]))       /* We have already added */
     {
@@ -1287,10 +1349,15 @@ handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
                                              slave);
       slave->cfg = cfg;
       if (NULL != slave->controller)
-        send_operation_success_msg (client, GNUNET_ntohll (msg->operation_id));
+        send_controller_link_response (client,
+                                       GNUNET_ntohll (msg->operation_id),
+                                       NULL,
+                                       NULL);
       else
-        GST_send_operation_fail_msg (client, GNUNET_ntohll (msg->operation_id),
-                                     "Could not connect to delegated controller");
+        send_controller_link_response (client,
+                                       GNUNET_ntohll (msg->operation_id),
+                                       NULL,
+                                       "Could not connect to delegated controller");
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
     }

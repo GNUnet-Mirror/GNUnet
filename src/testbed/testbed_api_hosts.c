@@ -337,6 +337,21 @@ GNUNET_TESTBED_host_get_cfg_ (const struct GNUNET_TESTBED_Host *host)
 
 
 /**
+ * Function to replace host's configuration
+ *
+ * @param host the host handle
+ * @param new_cfg the new configuration to replace the old one
+ */
+void
+GNUNET_TESTBED_host_replace_cfg_ (struct GNUNET_TESTBED_Host *host,
+                                  const struct GNUNET_CONFIGURATION_Handle *new_cfg)
+{
+  GNUNET_CONFIGURATION_destroy (host->cfg);
+  host->cfg = GNUNET_CONFIGURATION_dup (new_cfg);
+}
+
+
+/**
  * Create a host to run peers and controllers on.
  *
  * @param id global host ID assigned to the host; 0 is

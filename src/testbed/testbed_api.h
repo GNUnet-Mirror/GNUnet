@@ -318,6 +318,20 @@ GNUNET_TESTBED_compress_config_ (const char *config, size_t size,
 
 
 /**
+ * Function to serialize and compress using zlib a configuration through a
+ * configuration handle
+ *
+ * @param cfg the configuration
+ * @param size the size of configuration when serialize.  Will be set on success.
+ * @param xsize the sizeo of the compressed configuration.  Will be set on success.
+ * @return the serialized and compressed configuration
+ */
+char *
+GNUNET_TESTBED_compress_cfg_ (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                              size_t *size, size_t *xsize);
+
+
+/**
  * Adds an operation to the queue of operations
  *
  * @param op the operation to add

@@ -169,7 +169,12 @@ struct ControllerLinkData
   /**
    * The controller link message
    */
-  struct GNUNET_TESTBED_ControllerLinkMessage *msg;
+  struct GNUNET_TESTBED_ControllerLinkRequest *msg;
+
+  /**
+   * The id of the host which is hosting the controller to be linked
+   */
+  uint32_t host_id;
 
 };
 
@@ -278,16 +283,6 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
     GNUNET_free (peer);
     opc->data = NULL;
     //PEERDESTROYDATA
-  }
-    break;
-  case OP_LINK_CONTROLLERS:
-  {
-    struct ControllerLinkData *data;
-
-    data = opc->data;
-    GNUNET_assert (NULL != data);
-    GNUNET_free (data);
-    opc->data = NULL;
   }
     break;
   default:
@@ -748,6 +743,93 @@ handle_slave_config (struct GNUNET_TESTBED_Controller *c,
 
 
 /**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG message from controller
+ * (testbed service)
+ *
+ * @param c the controller handler
+ * @param msg message received
+ * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
+ *           not
+ */
+static int
+handle_link_controllers_result (struct GNUNET_TESTBED_Controller *c,
+                                const struct
+                                GNUNET_TESTBED_ControllerLinkResponse *msg)
+{
+  struct OperationContext *opc;
+  struct ControllerLinkData *data;
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  struct GNUNET_TESTBED_Host *host;
+  char *emsg;
+  uint64_t op_id;
+  struct GNUNET_TESTBED_EventInformation event;
+
+  op_id = GNUNET_ntohll (msg->operation_id);
+  if (NULL == (opc = find_opc (c, op_id)))
+  {
+    LOG_DEBUG ("Operation not found\n");
+    return GNUNET_YES;
+  }
+  if (OP_FORWARDED == opc->type)
+  {
+    handle_forwarded_operation_msg (c, opc,
+                                    (const struct GNUNET_MessageHeader *) msg);
+    return GNUNET_YES;
+  }
+  if (OP_LINK_CONTROLLERS != opc->type)
+  {
+    GNUNET_break (0);
+    return GNUNET_YES;
+  }
+  data = opc->data;
+  GNUNET_assert (NULL != data);
+  host = GNUNET_TESTBED_host_lookup_by_id_ (data->host_id);
+  GNUNET_assert (NULL != host);
+  GNUNET_free (data);
+  opc->data = NULL;
+  event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
+  event.details.operation_finished.operation = opc->op;
+  event.details.operation_finished.op_cls = opc->op_cls;
+  event.details.operation_finished.emsg = NULL;
+  event.details.operation_finished.generic = NULL;
+  emsg = NULL;
+  cfg = NULL;
+  if (GNUNET_NO == ntohs (msg->success))
+  {
+    emsg = GNUNET_malloc (ntohs (msg->header.size)
+                          - sizeof (struct
+                                    GNUNET_TESTBED_ControllerLinkResponse) + 1);
+    memcpy (emsg, &msg[1], ntohs (msg->header.size)
+                          - sizeof (struct
+                                    GNUNET_TESTBED_ControllerLinkResponse));
+    event.details.operation_finished.emsg = emsg;
+  }
+  else
+  {
+    if (0 != ntohs (msg->config_size))
+    {
+      cfg = GNUNET_TESTBED_extract_config_ ((const struct GNUNET_MessageHeader *) msg);
+      GNUNET_assert (NULL != cfg);
+      GNUNET_TESTBED_host_replace_cfg_ (host, cfg);
+    }
+  }
+  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  opc->state = OPC_STATE_FINISHED;
+  if (0 != (c->event_mask & (1L << GNUNET_TESTBED_ET_OPERATION_FINISHED)))
+  {
+    if (NULL != c->cc)
+      c->cc (c->cc_cls, &event);
+  }
+  else
+    LOG_DEBUG ("Not calling callback\n");
+  if (NULL != cfg)
+    GNUNET_CONFIGURATION_destroy (cfg);
+  GNUNET_free_non_null (emsg);
+  return GNUNET_YES;
+}
+
+
+/**
  * Handler for messages from controller (testbed service)
  *
  * @param cls the controller handler
@@ -839,6 +921,13 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
         handle_slave_config (c,
                              (const struct GNUNET_TESTBED_SlaveConfiguration *)
                              msg);
+    break;
+  case GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS_RESULT:
+    status = 
+        handle_link_controllers_result (c,
+                                        (const struct
+                                         GNUNET_TESTBED_ControllerLinkResponse
+                                         *) msg);
     break;
   default:
     GNUNET_assert (0);
@@ -1010,7 +1099,7 @@ opstart_link_controllers (void *cls)
 {
   struct OperationContext *opc = cls;
   struct ControllerLinkData *data;
-  struct GNUNET_TESTBED_ControllerLinkMessage *msg;
+  struct GNUNET_TESTBED_ControllerLinkRequest *msg;
 
   GNUNET_assert (NULL != opc->data);
   data = opc->data;
@@ -1311,11 +1400,11 @@ GNUNET_TESTBED_controller_link_2_ (void *op_cls,
                                    int is_subordinate)
 {
   struct OperationContext *opc;
-  struct GNUNET_TESTBED_ControllerLinkMessage *msg;
+  struct GNUNET_TESTBED_ControllerLinkRequest *msg;
   struct ControllerLinkData *data;
   uint16_t msg_size;
 
-  msg_size = sxcfg_size + sizeof (struct GNUNET_TESTBED_ControllerLinkMessage);
+  msg_size = sxcfg_size + sizeof (struct GNUNET_TESTBED_ControllerLinkRequest);
   msg = GNUNET_malloc (msg_size);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS);
   msg->header.size = htons (msg_size);
@@ -1326,6 +1415,7 @@ GNUNET_TESTBED_controller_link_2_ (void *op_cls,
   memcpy (&msg[1], sxcfg, sxcfg_size);
   data = GNUNET_malloc (sizeof (struct ControllerLinkData));
   data->msg = msg;
+  data->host_id = delegated_host_id;
   opc = GNUNET_malloc (sizeof (struct OperationContext));
   opc->c = master;
   opc->data = data;
@@ -1416,6 +1506,33 @@ GNUNET_TESTBED_compress_config_ (const char *config, size_t size,
 
 
 /**
+ * Function to serialize and compress using zlib a configuration through a
+ * configuration handle
+ *
+ * @param cfg the configuration
+ * @param size the size of configuration when serialize.  Will be set on success.
+ * @param xsize the sizeo of the compressed configuration.  Will be set on success.
+ * @return the serialized and compressed configuration
+ */
+char *
+GNUNET_TESTBED_compress_cfg_ (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                              size_t *size, size_t *xsize)
+{
+  char *config;
+  char *xconfig;
+  size_t size_;
+  size_t xsize_;
+  
+  config = GNUNET_CONFIGURATION_serialize (cfg, &size_);
+  xsize_ = GNUNET_TESTBED_compress_config_ (config, size_, &xconfig);
+  GNUNET_free (config);
+  *size = size_;
+  *xsize = xsize_;
+  return xconfig;
+}                             
+
+
+/**
  * Same as the GNUNET_TESTBED_controller_link, but with ids for delegated host
  * and slave host
  *
@@ -1453,7 +1570,7 @@ GNUNET_TESTBED_controller_link_ (void *op_cls,
   GNUNET_free (config);
   /* Configuration doesn't fit in 1 message */
   GNUNET_assert ((UINT16_MAX -
-                  sizeof (struct GNUNET_TESTBED_ControllerLinkMessage)) >=
+                  sizeof (struct GNUNET_TESTBED_ControllerLinkRequest)) >=
                  cc_size);
   op = GNUNET_TESTBED_controller_link_2_ (op_cls, master, delegated_host_id,
                                           slave_host_id, (const char *) cconfig,
@@ -1697,7 +1814,8 @@ GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
  * given message should be of the following types:
  * GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONFIGURATION,
  * GNUNET_MESSAGE_TYPE_TESTBED_SLAVE_CONFIGURATION,
- * GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST
+ * GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST,
+ * GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS_RESULT
  *
  * @param msg the message containing compressed configuration
  * @return handle to the parsed configuration; NULL upon error while parsing the message
@@ -1750,6 +1868,17 @@ GNUNET_TESTBED_extract_config_ (const struct GNUNET_MessageHeader *msg)
           ntohs (imsg->username_length) + ntohs (imsg->hostname_length); 
       xdata_len = ntohs (imsg->header.size) - osize;
       xdata = (const Bytef *) ((const void *) imsg + osize);
+    }
+    break;
+  case GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS_RESULT:
+    {
+      const struct GNUNET_TESTBED_ControllerLinkResponse *imsg;
+      
+      imsg = (const struct GNUNET_TESTBED_ControllerLinkResponse *) msg;
+      data_len = ntohs (imsg->config_size);
+      xdata_len = ntohs (imsg->header.size) - 
+          sizeof (const struct GNUNET_TESTBED_ControllerLinkResponse);
+      xdata = (const Bytef *) &imsg[1];
     }
     break;
   default:

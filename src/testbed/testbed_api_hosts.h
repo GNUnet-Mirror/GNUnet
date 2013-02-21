@@ -103,6 +103,17 @@ GNUNET_TESTBED_host_get_cfg_ (const struct GNUNET_TESTBED_Host *host);
 
 
 /**
+ * Function to replace host's configuration
+ *
+ * @param host the host handle
+ * @param new_cfg the new configuration to replace the old one
+ */
+void
+GNUNET_TESTBED_host_replace_cfg_ (struct GNUNET_TESTBED_Host *host,
+                                  const struct GNUNET_CONFIGURATION_Handle *new_cfg);
+
+
+/**
  * Marks a host as registered with a controller
  *
  * @param host the host to mark

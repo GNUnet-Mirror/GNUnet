@@ -166,7 +166,7 @@ struct GNUNET_TESTBED_ConfigureSharedServiceMessage
  * requests for a particular client to a particular
  * sub-controller.
  */
-struct GNUNET_TESTBED_ControllerLinkMessage
+struct GNUNET_TESTBED_ControllerLinkRequest
 {
 
   /**
@@ -202,6 +202,42 @@ struct GNUNET_TESTBED_ControllerLinkMessage
 
   /* followed by serialized slave configuration;
    * gzip'ed configuration file in INI format */
+
+};
+
+
+/**
+ * Response message for ControllerLinkRequest message
+ */
+struct GNUNET_TESTBED_ControllerLinkResponse
+{
+  
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS_RESULT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * The size of the compressed configuration. Can be ZERO if the controller is
+   * not started (depends on the ControllerLinkRequest). NBO.
+   */
+  uint16_t config_size GNUNET_PACKED;
+
+  /**
+   * Set to GNUNET_YES to signify SUCCESS; GNUNET_NO to signify failure
+   */
+  uint16_t success GNUNET_PACKED;
+
+  /**
+   * The id of the operation which created this message. NBO
+   */
+  uint64_t operation_id GNUNET_PACKED;
+
+  /* If controller linking is successful and configuration is present, then here
+   * comes the serialized gzip configuration with which the controller is
+   * running at the delegate host */
+
+  /* In case of failure, here comes the error message (without \0 termination)*/
 
 };
 

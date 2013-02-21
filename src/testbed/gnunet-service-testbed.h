@@ -509,7 +509,7 @@ struct LCFContext
   /**
    * The controller link message that has to be forwarded to
    */
-  struct GNUNET_TESTBED_ControllerLinkMessage *msg;
+  struct GNUNET_TESTBED_ControllerLinkRequest *msg;
 
   /**
    * The client which has asked to perform this operation
