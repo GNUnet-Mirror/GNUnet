@@ -189,28 +189,28 @@ check (void *cls, char *const *args, const char *cfgfile,
   // mlpi = addr[0].mlp_information;
 
   GNUNET_assert (mlp != NULL);
-  GNUNET_assert (mlp->addr_in_problem == 1);
+  GNUNET_assert (mlp->addresses_in_problem == 1);
 
   /* Update an peer 1 address 1  */
   set_ats (&a1_ats[1], GNUNET_ATS_QUALITY_NET_DELAY, 20);
   GAS_mlp_address_update (mlp, addresses, &addr[0]);
-  GNUNET_assert (mlp->addr_in_problem == 1);
+  GNUNET_assert (mlp->addresses_in_problem == 1);
 
 
   /* Update an peer 1 address 1  */
   set_ats (&a1_ats[1], GNUNET_ATS_QUALITY_NET_DELAY, 10);
   GAS_mlp_address_update (mlp, addresses, &addr[0]);
-  GNUNET_assert (mlp->addr_in_problem == 1);
+  GNUNET_assert (mlp->addresses_in_problem == 1);
 
   /* Update an peer 1 address 1  */
   set_ats (&a1_ats[1], GNUNET_ATS_QUALITY_NET_DELAY, 10);
   GAS_mlp_address_update (mlp, addresses, &addr[0]);
-  GNUNET_assert (mlp->addr_in_problem == 1);
+  GNUNET_assert (mlp->addresses_in_problem == 1);
 
   /* Update an peer 1 address 1  */
   set_ats (&a1_ats[1], GNUNET_ATS_QUALITY_NET_DELAY, 30);
   GAS_mlp_address_update (mlp, addresses, &addr[0]);
-  GNUNET_assert (mlp->addr_in_problem == 1);
+  GNUNET_assert (mlp->addresses_in_problem == 1);
 
 
   GNUNET_assert (GNUNET_OK == GAS_mlp_solve_problem(mlp, &ctx));
@@ -224,7 +224,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_CONTAINER_multihashmap_remove (addresses, &addr[0].peer.hashPubKey, &addr[0]);
   GAS_mlp_address_delete (mlp, addresses, &addr[0]);
 
-  GNUNET_assert (mlp->addr_in_problem == 0);
+  GNUNET_assert (mlp->addresses_in_problem == 0);
 
   GAS_mlp_done (mlp);
 

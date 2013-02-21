@@ -80,6 +80,109 @@ struct GAS_MLP_SolutionContext
   struct GNUNET_TIME_Relative mlp_duration;
 };
 
+
+
+struct MLP_Problem
+{
+  /**
+   * GLPK (MLP) problem object
+   */
+#if HAVE_LIBGLPK
+  glp_prob *prob;
+#else
+  void *prob;
+#endif
+  unsigned int addresses_in_problem;
+
+  /* Row index constraint 2: */
+  unsigned int r_c2;
+  /* Row index constraint 4: minimum connections */
+  unsigned int r_c4;
+  /* Row index constraint 6: maximize diversity */
+  unsigned int r_c6;
+  /* Row index constraint 8: utilization*/
+  unsigned int r_c8;
+  /* Row index constraint 9: relativity*/
+  unsigned int r_c9;
+  /* Row indices quality metrics  */
+  int r_q[GNUNET_ATS_QualityPropertiesCount];
+  /* Row indices ATS network quotas */
+  int r_quota[GNUNET_ATS_NetworkTypeCount];
+
+  /* Column index Diversity (D) column */
+  int c_d;
+  /* Column index Utilization (U) column */
+  int c_u;
+  /* Column index Proportionality (R) column */
+  int c_r;
+  /* Column index quality metrics  */
+  int c_q[GNUNET_ATS_QualityPropertiesCount];
+  /* column index ressource costs  */
+  int c_rc[GNUNET_ATS_QualityPropertiesCount];
+  /* Column indices ATS network quotas */
+  int c_quota[GNUNET_ATS_NetworkTypeCount];
+
+  /* Problem matrix */
+  /* Current index */
+  unsigned int ci;
+  /* Row index array */
+  int *ia;
+  /* Column index array */
+  int *ja;
+  /* Column index value */
+  double *ar;
+
+
+
+};
+
+struct MLP_Variables
+{
+
+  /* ATS Quality metrics
+   *
+   * Array with GNUNET_ATS_QualityPropertiesCount elements
+   * contains mapping to GNUNET_ATS_Property*/
+  int q[GNUNET_ATS_QualityPropertiesCount];
+
+  /* Number of quality metrics */
+  int m_q;
+
+  /* Number of quality metrics */
+  int m_rc;
+
+  /* Quality metric coefficients*/
+  double co_Q[GNUNET_ATS_QualityPropertiesCount];
+
+  /* Ressource costs coefficients*/
+  double co_RC[GNUNET_ATS_QualityPropertiesCount];
+
+  /* Diversity coefficient */
+  double co_D;
+
+  /* Utility coefficient */
+  double co_U;
+
+  /* Relativity coefficient */
+  double co_R;
+
+  /* Minimum bandwidth assigned to an address */
+  unsigned int b_min;
+
+  /* Minimum number of addresses with bandwidth assigned */
+  unsigned int n_min;
+
+  /* Quotas */
+  /* Array mapping array index to ATS network */
+  int quota_index [GNUNET_ATS_NetworkTypeCount];
+  /* Outbound quotas */
+  unsigned long long quota_out[GNUNET_ATS_NetworkTypeCount];
+  /* Inbound quotas */
+  unsigned long long quota_in[GNUNET_ATS_NetworkTypeCount];
+
+};
+
+
 /**
  * MLP Handle
  */
@@ -100,16 +203,13 @@ struct GAS_MLP_Handle
    */
   void *bw_changed_cb_cls;
 
-  /**
-   * GLPK (MLP) problem object
-   */
-#if HAVE_LIBGLPK
-  glp_prob *prob;
-#else
-  void *prob;
-#endif
+  struct MLP_Problem p;
+
+  struct MLP_Variables pv;
 
   double BIG_M;
+
+
 
   /**
    * GLPK LP control parameter
@@ -218,7 +318,7 @@ struct GAS_MLP_Handle
    */
   uint64_t mlp_total_duration;
 
-  unsigned int addr_in_problem;
+
 
   /* Information about the problem */
 
@@ -228,64 +328,9 @@ struct GAS_MLP_Handle
   /* Number of peers */
   unsigned int c_p;
 
-  /* current problem matrix */
-  /* row index array */
-  int *ia;
-  /* column index array */
-  int *ja;
-  /* column index array */
-  double *ar;
+
   /* current size of the constraint matrix |indices| */
   unsigned int cm_size;
-  unsigned int ci;
-
-  /* Row index constraint 2: */
-  unsigned int r_c2;
-  /* Row index constraint 4: minimum connections */
-  unsigned int r_c4;
-  /* Row index constraint 6: maximize diversity */
-  unsigned int r_c6;
-  /* Row index constraint 8: utilization*/
-  unsigned int r_c8;
-  /* Row index constraint 9: relativity*/
-  unsigned int r_c9;
-
-  /* column index Diversity (D) column */
-  int c_d;
-  double co_D;
-
-  /* column index Utilization (U) column */
-  int c_u;
-  double co_U;
-
-  /* column index Proportionality (R) column */
-  int c_r;
-  double co_R;
-
-  /* ATS Quality metrics
-   *
-   * array with GNUNET_ATS_QualityPropertiesCount elements
-   * contains mapping to GNUNET_ATS_Property*/
-  int q[GNUNET_ATS_QualityPropertiesCount];
-
-  /* column index quality metrics  */
-  int c_q[GNUNET_ATS_QualityPropertiesCount];
-
-  /* column index quality metrics  */
-  int r_q[GNUNET_ATS_QualityPropertiesCount];
-
-  /* quality metric coefficients*/
-  double co_Q[GNUNET_ATS_QualityPropertiesCount];
-
-  /* number of quality metrics */
-  int m_q;
-
-  /* ATS network quotas */
-  int c_quota[GNUNET_ATS_NetworkTypeCount];
-  int r_quota[GNUNET_ATS_NetworkTypeCount];
-  int quota_index [GNUNET_ATS_NetworkTypeCount];
-  unsigned long long quota_out[GNUNET_ATS_NetworkTypeCount];
-  unsigned long long quota_in[GNUNET_ATS_NetworkTypeCount];
 
   /* ATS ressource costs
    *
@@ -293,20 +338,6 @@ struct GAS_MLP_Handle
    * contains mapping to GNUNET_ATS_Property*/
   int rc[GNUNET_ATS_QualityPropertiesCount];
 
-  /* column index ressource costs  */
-  int c_rc[GNUNET_ATS_QualityPropertiesCount];
-
-  /* ressource costs coefficients*/
-  double co_RC[GNUNET_ATS_QualityPropertiesCount];
-
-  /* number of quality metrics */
-  int m_rc;
-
-  /* minimum bandwidth assigned to an address */
-  unsigned int b_min;
-
-  /* minimum number of addresses with bandwidth assigned */
-  unsigned int n_min;
 };
 
 

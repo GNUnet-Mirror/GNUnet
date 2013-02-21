@@ -55,12 +55,12 @@ struct GNUNET_CONTAINER_MultiHashMap * addresses;
 /**
  * Peer
  */
-struct GNUNET_PeerIdentity p;
+struct GNUNET_PeerIdentity p[2];
 
 /**
  * ATS Address
  */
-struct ATS_Address *address[2];
+struct ATS_Address *address[3];
 
 /**
  * Timeout task
@@ -136,6 +136,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	end_now (1);
 }
 
+
 static void
 check (void *cls, char *const *args, const char *cfgfile,
        const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -183,23 +184,47 @@ check (void *cls, char *const *args, const char *cfgfile,
       return;
   }
 
-  /* Create peer */
-  if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID0, &p.hashPubKey))
+  /* Create peer 0 */
+  if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID0, &p[0].hashPubKey))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not setup peer!\n");
       end_now (1);
       return;
   }
 
+  /* Create peer 1 */
+  if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID1, &p[1].hashPubKey))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not setup peer!\n");
+      end_now (1);
+      return;
+  }
+
+  /* Create address 3 */
+  address[2] = create_address (&p[1], "test_plugin", "test_addr2", strlen("test_addr2")+1, 0);
+  if (NULL == address[2])
+  {
+    	GNUNET_break (0);
+      end_now (1);
+      return;
+  }
+  GNUNET_CONTAINER_multihashmap_put (addresses, &p[1].hashPubKey, address[2],
+  		GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+
+
+  /* Adding address 1*/
+  GAS_mlp_address_add (mlp, addresses, address[2]);
+
+
   /* Create address 0 */
-  address[0] = create_address (&p, "test_plugin", "test_addr0", strlen("test_addr0")+1, 0);
+  address[0] = create_address (&p[0], "test_plugin", "test_addr0", strlen("test_addr0")+1, 0);
   if (NULL == address[0])
   {
     	GNUNET_break (0);
       end_now (1);
       return;
   }
-  GNUNET_CONTAINER_multihashmap_put (addresses, &p.hashPubKey, address[0],
+  GNUNET_CONTAINER_multihashmap_put (addresses, &p[0].hashPubKey, address[0],
   		GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 
   /* Adding address 0 */
@@ -212,17 +237,17 @@ check (void *cls, char *const *args, const char *cfgfile,
 
 
   /* Retrieving preferred address for peer and wait for callback */
-  GAS_mlp_get_preferred_address (mlp, addresses, &p);
+  GAS_mlp_get_preferred_address (mlp, addresses, &p[0]);
 
   /* Create address 1 */
-  address[1] = create_address (&p, "test_plugin", "test_addr1", strlen("test_addr1")+1, 0);
+  address[1] = create_address (&p[0], "test_plugin", "test_addr1", strlen("test_addr1")+1, 0);
   if (NULL == address[1])
   {
     	GNUNET_break (0);
       end_now (1);
       return;
   }
-  GNUNET_CONTAINER_multihashmap_put (addresses, &p.hashPubKey, address[1],
+  GNUNET_CONTAINER_multihashmap_put (addresses, &p[0].hashPubKey, address[1],
   		GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 
 

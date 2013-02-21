@@ -356,12 +356,12 @@ check (void *cls, char *const *args, const char *cfgfile,
       ca++;
     }
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Problem contains %u peers and %u adresses\n", mlp->c_p, mlp->addr_in_problem);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Problem contains %u peers and %u adresses\n", mlp->c_p, mlp->addresses_in_problem);
 
     if (((GNUNET_YES == range) && (((start >= 0) && ((c+1) >= start)) && (c <= end))) || ((c+1) == peers))
     {
       GNUNET_assert ((c+1) == mlp->c_p);
-      GNUNET_assert ((c+1) * addresses == mlp->addr_in_problem);
+      GNUNET_assert ((c+1) * addresses == mlp->addresses_in_problem);
 
       /* Solving the problem */
       struct GAS_MLP_SolutionContext ctx;
@@ -375,10 +375,10 @@ check (void *cls, char *const *args, const char *cfgfile,
           GNUNET_assert (GNUNET_OK == ctx.lp_result);
           GNUNET_assert (GNUNET_OK == ctx.mlp_result);
           if (GNUNET_YES == numeric)
-            printf ("%u;%u;%llu;%llu\n",mlp->c_p, mlp->addr_in_problem, (unsigned long long) ctx.lp_duration.rel_value, (unsigned long long) ctx.mlp_duration.rel_value);
+            printf ("%u;%u;%llu;%llu\n",mlp->c_p, mlp->addresses_in_problem, (unsigned long long) ctx.lp_duration.rel_value, (unsigned long long) ctx.mlp_duration.rel_value);
           else
             GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Problem solved for %u peers with %u address successfully (LP: %llu ms / MLP: %llu ms)\n",
-                mlp->c_p, mlp->addr_in_problem, ctx.lp_duration.rel_value, ctx.mlp_duration.rel_value);
+                mlp->c_p, mlp->addresses_in_problem, ctx.lp_duration.rel_value, ctx.mlp_duration.rel_value);
         }
         else
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Solving problem with %u peers and %u addresses failed\n", c, c2);
@@ -397,12 +397,12 @@ check (void *cls, char *const *args, const char *cfgfile,
           GNUNET_assert (GNUNET_OK == uctx.lp_result);
           GNUNET_assert (GNUNET_OK == uctx.mlp_result);
           if (GNUNET_YES == numeric)
-            printf ("%u;%u;%llu;%llu;%llu;%llu\n",mlp->c_p, mlp->addr_in_problem,
+            printf ("%u;%u;%llu;%llu;%llu;%llu\n",mlp->c_p, mlp->addresses_in_problem,
                 (unsigned long long) ctx.lp_duration.rel_value, (unsigned long long) ctx.mlp_duration.rel_value,
                 (unsigned long long) uctx.lp_duration.rel_value, (unsigned long long) uctx.mlp_duration.rel_value);
           else
             GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Updated problem solved for %u peers with %u address successfully (Initial: LP/MLP: %llu/%llu ms, Update: %llu/%llu ms)\n",
-                mlp->c_p, mlp->addr_in_problem,
+                mlp->c_p, mlp->addresses_in_problem,
                 (unsigned long long) ctx.lp_duration.rel_value, (unsigned long long) ctx.mlp_duration.rel_value,
                 (unsigned long long) uctx.lp_duration.rel_value, (unsigned long long) uctx.mlp_duration.rel_value);
         }
