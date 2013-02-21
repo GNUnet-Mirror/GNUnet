@@ -52,10 +52,15 @@
 
 struct ATS_Peer
 {
+	struct GNUNET_PeerIdentity id;
+
+	/* Was this peer already added to the current problem? */
+	int processed;
+#if 0
   struct ATS_Peer *next;
   struct ATS_Peer *prev;
 
-  struct GNUNET_PeerIdentity id;
+
 
   /* Array of quality preferences */
   double f_q[GNUNET_ATS_QualityPropertiesCount];
@@ -70,6 +75,7 @@ struct ATS_Peer
 
   struct ATS_Address *head;
   struct ATS_Address *tail;
+#endif
 };
 
 struct GAS_MLP_SolutionContext
@@ -216,8 +222,6 @@ struct GAS_MLP_Handle
 
   struct MLP_Variables pv;
 
-
-
   /**
    * GLPK LP control parameter
    */
@@ -251,11 +255,8 @@ struct GAS_MLP_Handle
    */
   int mlp_prob_changed;
 
-  /**
-   * Solves the task in an regular interval
-   */
-  GNUNET_SCHEDULER_TaskIdentifier mlp_task;
 
+#if 0
   /**
    * Interval between scheduled problem solving
    */
@@ -329,6 +330,7 @@ struct GAS_MLP_Handle
 
   struct ATS_Peer *peer_head;
   struct ATS_Peer *peer_tail;
+#endif
 };
 
 
