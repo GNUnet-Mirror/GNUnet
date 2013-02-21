@@ -1590,10 +1590,15 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TESTBED_SLAVE_CONFIGURATION 481
 
 /**
+ * Message to signal the result of GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS request
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS_RESULT 482
+
+/**
  * Not really a message, but for careful checks on the testbed messages; Should
  * always be the maximum and never be used to send messages with this type
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_MAX 482
+#define GNUNET_MESSAGE_TYPE_TESTBED_MAX 483
 
 /**
  * The initialization message towards gnunet-testbed-helper
