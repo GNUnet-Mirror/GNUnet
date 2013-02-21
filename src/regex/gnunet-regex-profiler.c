@@ -397,26 +397,6 @@ static char * regex_prefix;
 /******************************  DECLARATIONS  ********************************/
 /******************************************************************************/
 
-
-/**
- * Search callback function.
- *
- * @param cls Closure provided in GNUNET_REGEX_search.
- * @param id Peer providing a regex that matches the string.
- * @param get_path Path of the get request.
- * @param get_path_length Lenght of get_path.
- * @param put_path Path of the put request.
- * @param put_path_length Length of the put_path.
- */
-static void
-regex_found_handler (void *cls,
-                     const struct GNUNET_PeerIdentity *id,
-                     const struct GNUNET_PeerIdentity *get_path,
-                     unsigned int get_path_length,
-                     const struct GNUNET_PeerIdentity *put_path,
-                     unsigned int put_path_length);
-
-
 /**
  * DHT connect callback.
  *
