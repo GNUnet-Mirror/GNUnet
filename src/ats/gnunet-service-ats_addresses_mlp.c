@@ -366,173 +366,6 @@ mlp_lookup_ats (struct ATS_Address *addr, int ats_index)
 }
 #endif
 
-/**
- * Solves the LP problem
- *
- * @param mlp the MLP Handle
- * @param s_ctx context to return results
- * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
- */
-static int
-mlp_solve_lp_problem (struct GAS_MLP_Handle *mlp, struct GAS_MLP_SolutionContext *s_ctx)
-{
-  int res;
-  struct GNUNET_TIME_Relative duration;
-  struct GNUNET_TIME_Absolute end;
-  struct GNUNET_TIME_Absolute start = GNUNET_TIME_absolute_get();
-
-  /* LP presolver?
-   * Presolver is required if the problem was modified and an existing
-   * valid basis is now invalid */
-  if (mlp->presolver_required == GNUNET_YES)
-    mlp->control_param_lp.presolve = GLP_ON;
-  else
-    mlp->control_param_lp.presolve = GLP_OFF;
-
-  /* Solve LP problem to have initial valid solution */
-lp_solv:
-  res = glp_simplex(mlp->prob, &mlp->control_param_lp);
-  if (res == 0)
-  {
-    /* The LP problem instance has been successfully solved. */
-  }
-  else if (res == GLP_EITLIM)
-  {
-    /* simplex iteration limit has been exceeded. */
-    // TODO Increase iteration limit?
-  }
-  else if (res == GLP_ETMLIM)
-  {
-    /* Time limit has been exceeded.  */
-    // TODO Increase time limit?
-  }
-  else
-  {
-    /* Problem was ill-defined, retry with presolver */
-    if (mlp->presolver_required == GNUNET_NO)
-    {
-      mlp->presolver_required = GNUNET_YES;
-      goto lp_solv;
-    }
-    else
-    {
-      /* Problem was ill-defined, no way to handle that */
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-          "ats-mlp",
-          "Solving LP problem failed: %i %s\n", res, mlp_solve_to_string(res));
-      return GNUNET_SYSERR;
-    }
-  }
-
-  end = GNUNET_TIME_absolute_get ();
-  duration = GNUNET_TIME_absolute_get_difference (start, end);
-  mlp->lp_solved++;
-  mlp->lp_total_duration += duration.rel_value;
-  s_ctx->lp_duration = duration;
-
-  GNUNET_STATISTICS_update (mlp->stats,"# LP problem solved", 1, GNUNET_NO);
-  GNUNET_STATISTICS_set (mlp->stats,"# LP execution time (ms)", duration.rel_value, GNUNET_NO);
-  GNUNET_STATISTICS_set (mlp->stats,"# LP execution time average (ms)",
-                         mlp->lp_total_duration / mlp->lp_solved,  GNUNET_NO);
-
-  /* Analyze problem status  */
-  res = glp_get_status (mlp->prob);
-  switch (res) {
-    /* solution is optimal */
-    case GLP_OPT:
-    /* solution is feasible */
-    case GLP_FEAS:
-      break;
-
-    /* Problem was ill-defined, no way to handle that */
-    default:
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-          "ats-mlp",
-          "Solving LP problem failed, no solution: %s\n", mlp_status_to_string(res));
-      return GNUNET_SYSERR;
-      break;
-  }
-
-  /* solved sucessfully, no presolver required next time */
-  mlp->presolver_required = GNUNET_NO;
-
-  return GNUNET_OK;
-}
-
-
-/**
- * Solves the MLP problem
- *
- * @param mlp the MLP Handle
- * @param s_ctx context to return results
- * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
- */
-int
-mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp, struct GAS_MLP_SolutionContext *s_ctx)
-{
-  int res;
-  struct GNUNET_TIME_Relative duration;
-  struct GNUNET_TIME_Absolute end;
-  struct GNUNET_TIME_Absolute start = GNUNET_TIME_absolute_get();
-
-  /* solve MLP problem */
-  res = glp_intopt(mlp->prob, &mlp->control_param_mlp);
-
-  if (res == 0)
-  {
-    /* The MLP problem instance has been successfully solved. */
-  }
-  else if (res == GLP_EITLIM)
-  {
-    /* simplex iteration limit has been exceeded. */
-    // TODO Increase iteration limit?
-  }
-  else if (res == GLP_ETMLIM)
-  {
-    /* Time limit has been exceeded.  */
-    // TODO Increase time limit?
-  }
-  else
-  {
-    /* Problem was ill-defined, no way to handle that */
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-        "ats-mlp",
-        "Solving MLP problem failed:  %s\n", mlp_solve_to_string(res));
-    return GNUNET_SYSERR;
-  }
-
-  end = GNUNET_TIME_absolute_get ();
-  duration = GNUNET_TIME_absolute_get_difference (start, end);
-  mlp->mlp_solved++;
-  mlp->mlp_total_duration += duration.rel_value;
-  s_ctx->mlp_duration = duration;
-
-  GNUNET_STATISTICS_update (mlp->stats,"# MLP problem solved", 1, GNUNET_NO);
-  GNUNET_STATISTICS_set (mlp->stats,"# MLP execution time (ms)", duration.rel_value, GNUNET_NO);
-  GNUNET_STATISTICS_set (mlp->stats,"# MLP execution time average (ms)",
-                         mlp->mlp_total_duration / mlp->mlp_solved,  GNUNET_NO);
-
-  /* Analyze problem status  */
-  res = glp_mip_status(mlp->prob);
-  switch (res) {
-    /* solution is optimal */
-    case GLP_OPT:
-    /* solution is feasible */
-    case GLP_FEAS:
-      break;
-
-    /* Problem was ill-defined, no way to handle that */
-    default:
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-          "ats-mlp",
-          "Solving MLP problem failed, %s\n\n", mlp_status_to_string(res));
-      return GNUNET_SYSERR;
-      break;
-  }
-
-  return GNUNET_OK;
-}
-
 int GAS_mlp_solve_problem (void *solver, struct GAS_MLP_SolutionContext *ctx);
 
 
@@ -1470,6 +1303,64 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp)
 /**
  * Solves the MLP problem
  *
+ * @param mlp the MLP Handle
+ * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
+ */
+int
+mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value)
+{
+	struct GAS_MLP_Handle *mlp = cls;
+	struct ATS_Address *address;
+	struct MLP_information *mlpi;
+	double mlp_bw;
+	double mlp_use;
+
+  /* Check if we have to add this peer due to a pending request */
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(mlp->peers, key))
+  	return GNUNET_OK;
+
+  address = value;
+  GNUNET_assert (address->solver_information != NULL);
+  mlpi = address->solver_information;
+
+  mlp_bw = glp_mip_col_val(mlp->p.prob, mlpi->c_b);
+  mlp_use = glp_mip_col_val(mlp->p.prob, mlpi->c_n);
+
+  if ((GLP_YES == mlp_use) && (GNUNET_NO == address->active))
+  {
+  	/* Address switch: Activate address*/
+		address->active = GNUNET_YES;
+		address->assigned_bw_in.value__ = htonl (0);
+		address->assigned_bw_out.value__ = htonl (0);
+		mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
+  }
+  else if ((GLP_NO == mlp_use) && (GNUNET_YES == address->active))
+  {
+		/* Address switch: Disable address*/
+		address->active = GNUNET_NO;
+		/* Set bandwidth to 0 */
+		address->assigned_bw_in.value__ = htonl (0);
+		address->assigned_bw_out.value__ = htonl (0);
+		mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
+  }
+  else if ((mlp_bw != ntohl(address->assigned_bw_out.value__)) ||
+  				 (mlp_bw != ntohl(address->assigned_bw_in.value__)))
+  {
+  	/* Bandwidth changed */
+		address->assigned_bw_in.value__ = htonl (mlp_bw);
+		address->assigned_bw_out.value__ = htonl (mlp_bw);
+		mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
+  }
+
+  return GNUNET_OK;
+}
+
+
+
+
+/**
+ * Solves the MLP problem
+ *
  * @param solver the MLP Handle
  * @param addresses the address hashmap
  * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
@@ -1502,6 +1393,7 @@ GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addr
 			LOG (GNUNET_ERROR_TYPE_DEBUG, "Problem was updated, resolving\n");
 	}
 
+
 	/* Run LP solver */
 	LOG (GNUNET_ERROR_TYPE_DEBUG, "Running LP solver \n");
 	start_lp = GNUNET_TIME_absolute_get();
@@ -1516,6 +1408,12 @@ GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addr
 	LOG (GNUNET_ERROR_TYPE_DEBUG, "Solver took LP %llu ms,  MLP %llu ms\n",
 			(unsigned long long) duration_lp.rel_value,
 			(unsigned long long) duration_mlp.rel_value);
+
+	/* Propagate result*/
+	if (GNUNET_OK == res)
+	{
+		GNUNET_CONTAINER_multihashmap_iterate (addresses, &mlp_propagate_results, mlp);
+	}
 
 	/* Reset change and update marker */
 	mlp->mlp_prob_updated = GNUNET_NO;

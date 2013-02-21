@@ -49,6 +49,8 @@
 #define DEFAULT_MIN_CONNECTIONS 4
 
 #define NaN -1
+#define GLP_YES 1.0
+#define GLP_NO  0.0
 
 struct ATS_Peer
 {
