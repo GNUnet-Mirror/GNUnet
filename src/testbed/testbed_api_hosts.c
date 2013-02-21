@@ -52,6 +52,17 @@
   LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__);
 
 /**
+ * Prints API violation message
+ */
+#define API_VIOLATION(cond,errstr)              \
+  do {                                          \
+    if (cond)                                   \
+      break;                                    \
+    LOG (GNUNET_ERROR_TYPE_ERROR, "API violation detected: %s\n", errstr); \
+    GNUNET_assert (0);                                                  \
+  } while (0)
+
+/**
  * Number of extra elements we create space for when we grow host list
  */
 #define HOST_LIST_GROW_STEP 10
@@ -132,7 +143,8 @@ struct GNUNET_TESTBED_Host
   /**
    * the configuration to use as a template while starting a controller on this
    * host.  Operation queue size specific to a host are also read from this
-   * configuration handle
+   * configuration handle.  After starting the controller, it points to the actual
+   * configuration with which the controller is running
    */
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
@@ -175,9 +187,14 @@ struct GNUNET_TESTBED_Host
   unsigned int tslots_filled;
 
   /**
-   * Is a controller started on this host?
+   * Is a controller started on this host? FIXME: Is this needed?
    */
   int controller_started;
+
+  /**
+   * Is this host locked by GNUNET_TESTBED_controller_start()?
+   */
+  int locked;
 
   /**
    * Global ID we use to refer to a host on the network
@@ -631,11 +648,6 @@ struct GNUNET_TESTBED_ControllerProc
    */
   struct GNUNET_MessageHeader *msg;
 
-  /**
-   * The configuration of the running testbed service
-   */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-
 };
 
 
@@ -835,18 +847,22 @@ helper_mst (void *cls, void *client, const struct GNUNET_MessageHeader *message)
   GNUNET_assert (Z_OK ==
                  uncompress ((Bytef *) config, &config_size,
                              (const Bytef *) &msg[1], xconfig_size));
-  GNUNET_assert (NULL == cp->cfg);
-  cp->cfg = GNUNET_CONFIGURATION_create ();
+  /* Replace the configuration template present in the host with the
+     controller's running configuration */
+  GNUNET_CONFIGURATION_destroy (cp->host->cfg);
+  cp->host->cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_assert (GNUNET_CONFIGURATION_deserialize
-                 (cp->cfg, config, config_size, GNUNET_NO));
+                 (cp->host->cfg, config, config_size, GNUNET_NO));
   GNUNET_free (config);
   if ((NULL == cp->host) ||
       (NULL == (hostname = GNUNET_TESTBED_host_get_hostname (cp->host))))
     hostname = "localhost";
   /* Change the hostname so that we can connect to it */
-  GNUNET_CONFIGURATION_set_value_string (cp->cfg, "testbed", "hostname",
+  GNUNET_CONFIGURATION_set_value_string (cp->host->cfg, "testbed", "hostname",
                                          hostname);
-  cp->cb (cp->cls, cp->cfg, GNUNET_OK);
+  cp->host->locked = GNUNET_NO;
+  cp->host->controller_started = GNUNET_YES;
+  cp->cb (cp->cls, cp->host->cfg, GNUNET_OK);
   return GNUNET_OK;
 }
 
@@ -929,7 +945,12 @@ GNUNET_TESTBED_controller_start (const char *trusted_ip,
     HELPER_TESTBED_BINARY, NULL
   };
 
-  hostname = NULL;  
+  hostname = NULL;
+  API_VIOLATION (GNUNET_NO == host->locked,
+                 "Host is already locked by a previous call to GNUNET_TESTBED_controller_start()");
+  host->locked = GNUNET_YES;
+  API_VIOLATION (GNUNET_NO == host->controller_started,
+                 "Attempting to start a controller on a host which is already started a controller");
   cp = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ControllerProc));
   if ((NULL == host) || (0 == GNUNET_TESTBED_host_get_id_ (host)))
   {
@@ -1014,10 +1035,10 @@ GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_ControllerProc *cproc)
     GNUNET_HELPER_send_cancel (cproc->shandle);
   if (NULL != cproc->helper)
     GNUNET_HELPER_soft_stop (cproc->helper);
-  if (NULL != cproc->cfg)
-    GNUNET_CONFIGURATION_destroy (cproc->cfg);
   if (NULL != cproc->helper_argv)
     free_argv (cproc->helper_argv);
+  cproc->host->controller_started = GNUNET_NO;
+  cproc->host->locked = GNUNET_NO;
   GNUNET_free (cproc);
 }
 
@@ -1031,11 +1052,6 @@ struct GNUNET_TESTBED_HostHabitableCheckHandle
    * The host to check
    */
   const struct GNUNET_TESTBED_Host *host;
-
-  /* /\** */
-  /*  * the configuration handle to lookup the path of the testbed helper */
-  /*  *\/ */
-  /* const struct GNUNET_CONFIGURATION_Handle *cfg; */
 
   /**
    * The callback to call once we have the status
