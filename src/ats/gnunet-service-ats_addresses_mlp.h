@@ -134,13 +134,12 @@ struct MLP_Problem
   int *ja;
   /* Column index value */
   double *ar;
-
-
-
 };
 
 struct MLP_Variables
 {
+	/* Big M value for bandwidth capping */
+  double BIG_M;
 
   /* ATS Quality metrics
    *
@@ -181,7 +180,14 @@ struct MLP_Variables
   /* Outbound quotas */
   unsigned long long quota_out[GNUNET_ATS_NetworkTypeCount];
   /* Inbound quotas */
+
   unsigned long long quota_in[GNUNET_ATS_NetworkTypeCount];
+
+  /* ATS ressource costs
+   * array with GNUNET_ATS_QualityPropertiesCount elements
+   * contains mapping to GNUNET_ATS_Property
+   * */
+  int rc[GNUNET_ATS_QualityPropertiesCount];
 
 };
 
@@ -209,8 +215,6 @@ struct GAS_MLP_Handle
   struct MLP_Problem p;
 
   struct MLP_Variables pv;
-
-  double BIG_M;
 
 
 
@@ -321,22 +325,10 @@ struct GAS_MLP_Handle
    */
   uint64_t mlp_total_duration;
 
-
-
   /* Information about the problem */
 
   struct ATS_Peer *peer_head;
   struct ATS_Peer *peer_tail;
-
-  /* current size of the constraint matrix |indices| */
-  unsigned int cm_size;
-
-  /* ATS ressource costs
-   *
-   * array with GNUNET_ATS_QualityPropertiesCount elements
-   * contains mapping to GNUNET_ATS_Property*/
-  int rc[GNUNET_ATS_QualityPropertiesCount];
-
 };
 
 
