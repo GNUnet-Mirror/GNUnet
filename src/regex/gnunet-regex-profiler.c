@@ -449,7 +449,7 @@ stats_connect_cb (void *cls,
 
 
 /**
- * Task to collect all statistics from all peers, will shutdown the
+ * Task to collect all statistics from s, will shutdown the
  * profiler, when done.
  *
  * @param cls NULL
@@ -1080,7 +1080,7 @@ arm_start_cb (void *cls, enum GNUNET_ARM_ProcessStatus result)
         next_p = (++peer_cnt % num_peers);
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
                                         GNUNET_TIME_UNIT_MILLISECONDS,
-                                        200),
+                                        400),
                                       &announce_next_regex,
                                       (void *) (long) next_p);
       }
@@ -1386,9 +1386,8 @@ peer_churn_cb (void *cls, const char *emsg)
   if (++started_peers == num_peers)
   {
     prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "All peers started successfully in %s\n",
-                GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
+    printf("All peers started successfully in %s\n",
+           GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
     result = GNUNET_OK;
 
     peer_handles = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Peer *) * num_peers);
@@ -1447,9 +1446,8 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
   if (++created_peers == num_peers)
   {
     prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "All peers created successfully in %s\n",
-                GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
+    printf ("All peers created successfully in %s\n",
+            GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
     /* Now peers are to be started */
     state = STATE_PEERS_STARTING;
     prof_start_time = GNUNET_TIME_absolute_get ();
