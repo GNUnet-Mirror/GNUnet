@@ -258,6 +258,14 @@ struct GAS_MLP_Handle
   int mlp_prob_changed;
 
 
+  /**
+   * Solve the problem automatically when updates occur?
+   * Default: GNUNET_YES
+   * Can be disabled for test and measurements
+   */
+  int mlp_auto_solve;
+
+
 #if 0
   /**
    * Interval between scheduled problem solving
@@ -274,12 +282,6 @@ struct GAS_MLP_Handle
    */
   unsigned int max_iterations;
 
-  /**
-   * Solve the problem automatically when updates occur?
-   * Default: GNUNET_YES
-   * Can be disabled for test and measurements
-   */
-  int auto_solve;
 
   /**
    * Is a solution attemp running?
