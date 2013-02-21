@@ -92,7 +92,10 @@ struct MLP_Problem
 #else
   void *prob;
 #endif
-  unsigned int addresses_in_problem;
+  /* Number of addresses in problem */
+  unsigned int num_addresses;
+  /* Number of peers in problem */
+  unsigned int num_peers;
 
   /* Row index constraint 2: */
   unsigned int r_c2;
@@ -324,10 +327,6 @@ struct GAS_MLP_Handle
 
   struct ATS_Peer *peer_head;
   struct ATS_Peer *peer_tail;
-
-  /* Number of peers */
-  unsigned int c_p;
-
 
   /* current size of the constraint matrix |indices| */
   unsigned int cm_size;

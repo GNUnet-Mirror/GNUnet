@@ -549,7 +549,7 @@ mlp_scheduler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Scheduled problem solving\n");
 
-  if (mlp->addresses_in_problem != 0)
+  if (mlp->num_addresses != 0)
     GAS_mlp_solve_problem(mlp, &ctx);
 }
 
@@ -850,7 +850,7 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
   char *name;
 
   /* Problem matrix*/
-  n_addresses = p->addresses_in_problem;
+  n_addresses = p->num_addresses;
 
   /* Required indices in the constrain matrix
    *
@@ -904,7 +904,7 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
    * */
 
   /* last +1 caused by glpk index starting with one: [1..pi]*/
-  int pi = ((7 * n_addresses) + (5 * n_addresses +  mlp->pv.m_q + mlp->c_p + 2) + 1);
+  int pi = ((7 * n_addresses) + (5 * n_addresses +  mlp->pv.m_q + p->num_peers + 2) + 1);
   mlp->cm_size = pi;
   p->ci = 1;
 
@@ -935,8 +935,8 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
   name = "c4";
   int min = mlp->pv.n_min;
   /* Number of minimum connections is min(|Peers|, n_min) */
-  if (mlp->pv.n_min > mlp->c_p)
-    min = mlp->c_p;
+  if (mlp->pv.n_min > p->num_peers)
+    min = p->num_peers;
   p->r_c4 = glp_add_rows (p->prob, 1);
   glp_set_row_name (p->prob, p->r_c4, name);
   glp_set_row_bnds (p->prob, p->r_c4, GLP_LO, min, min);
@@ -1002,7 +1002,7 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
    * */
 
   /* Adding rows for c 8) */
-  p->r_c8 = glp_add_rows (p->prob, mlp->c_p);
+  p->r_c8 = glp_add_rows (p->prob, p->num_peers);
   name = "c8";
   glp_set_row_name (p->prob, p->r_c8, "c8");
   /* Set row bound == 0 */
@@ -1149,7 +1149,7 @@ mlp_create_address_columns_it (void *cls, const struct GNUNET_HashCode * key, vo
   if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(mlp->peers, key))
   	return GNUNET_OK;
 
-	p->addresses_in_problem ++;
+	p->num_addresses ++;
   mlpi = GNUNET_malloc (sizeof (struct MLP_information));
   address->solver_information = mlpi;
 
@@ -1211,10 +1211,18 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
 			GNUNET_CONTAINER_multihashmap_size(mlp->peers));
 
   GNUNET_assert (p->prob == NULL);
+  GNUNET_assert (p->ia == NULL);
+  GNUNET_assert (p->ja == NULL);
+  GNUNET_assert (p->ar == NULL);
+
+
+  /* Reset MLP problem struct */
+  p->num_addresses = 0;
+  p->num_peers = GNUNET_CONTAINER_multihashmap_size (mlp->peers);
 
   /* create the glpk problem */
   p->prob = glp_create_prob ();
-  p->addresses_in_problem = 0;;
+  p->num_addresses = 0;;
   GNUNET_assert (NULL != p->prob);
 
   /* Set a problem name */
@@ -1284,13 +1292,15 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
 
   /* Add columns for addresses */
   GNUNET_CONTAINER_multihashmap_iterate (addresses, mlp_create_address_columns_it, mlp);
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "Problems contains %u addresses, %u addresses skipped \n",
-			p->addresses_in_problem, GNUNET_CONTAINER_multihashmap_size(addresses)- p->addresses_in_problem);
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "Problems contains %u peers, %u addresses, %u addresses skipped \n",
+			GNUNET_CONTAINER_multihashmap_size(mlp->peers),
+			p->num_addresses, GNUNET_CONTAINER_multihashmap_size(addresses)- p->num_addresses);
 
   /* Add constraints rows */
   mlp_add_constraints_all_addresses (mlp, addresses);
 
   /* Load the matrix */
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "Loading matrix\n");
   //glp_load_matrix(mlp->prob, (mlp->ci-1), mlp->ia, mlp->ja, mlp->ar);
 
   return res;
@@ -1576,7 +1586,7 @@ GAS_mlp_address_update (void *solver,
     }
 
     address->solver_information = mlpi;
-    mlp->addresses_in_problem ++;
+    mlp->num_addresses ++;
     GNUNET_STATISTICS_update (mlp->stats, "# addresses in MLP", 1, GNUNET_NO);
 
     /* Check for and add peer */
@@ -1692,7 +1702,7 @@ GAS_mlp_address_delete (void *solver,
     GNUNET_free (address->solver_information);
     address->solver_information = NULL;
 
-    mlp->addresses_in_problem --;
+    mlp->num_addresses --;
     GNUNET_STATISTICS_update (mlp->stats, "# addresses in MLP", -1, GNUNET_NO);
   }
 
