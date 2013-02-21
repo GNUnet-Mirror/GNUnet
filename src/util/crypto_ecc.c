@@ -1122,7 +1122,7 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *key,
   }
 #else
   /* use broken version, insecure! */
-  //GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("To be implemented: not secure at the moment, please read README\n"));
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("To be implemented: not secure at the moment, please read README\n"));
   slen = sprintf ((char*) sdata_buf, "FIXME-this is not key material");
 #endif
   gcry_sexp_release (data);
