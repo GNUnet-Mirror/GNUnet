@@ -186,11 +186,6 @@ struct Slave
   struct GNUNET_TESTBED_Controller *controller;
 
   /**
-   * The configuration of the slave. Cannot be NULL
-   */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-
-  /**
    * handle to lcc which is associated with this slave startup. Should be set to
    * NULL when the slave has successfully started up
    */
@@ -393,11 +388,33 @@ struct ForwardedOverlayConnectContext
 
 
 /**
+ * The type for data structures which commonly arrive at the slave_event_callback
+ */
+enum ClosureType
+{
+  /**
+   * Type for RegisteredHostContext closures
+   */
+  CLOSURE_TYPE_RHC = 1,
+
+  /**
+   * Type for LinkControllersForwardingContext closures
+   */
+  CLOSURE_TYPE_LCF
+};
+
+
+/**
  * This context information will be created for each host that is registered at
  * slave controllers during overlay connects.
  */
 struct RegisteredHostContext
 {
+  /**
+   * The type of this data structure. Set this to CLOSURE_TYPE_RHC
+   */
+  enum ClosureType type;
+
   /**
    * The host which is being registered
    */
@@ -502,14 +519,14 @@ enum LCFContextState
 struct LCFContext
 {
   /**
+   * The type of this data structure. Set this to CLOSURE_TYPE_LCF
+   */
+  enum ClosureType type;
+  
+  /**
    * The gateway which will pass the link message to delegated host
    */
   struct Slave *gateway;
-
-  /**
-   * The controller link message that has to be forwarded to
-   */
-  struct GNUNET_TESTBED_ControllerLinkRequest *msg;
 
   /**
    * The client which has asked to perform this operation
@@ -519,12 +536,28 @@ struct LCFContext
   /**
    * Handle for operations which are forwarded while linking controllers
    */
-  struct ForwardedOperationContext *fopc;
+  struct GNUNET_TESTBED_Operation *op;
+
+  /**
+   * The configuration which has to be either used as a template while starting
+   * the delegated controller or for connecting to the delegated controller
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * The timeout task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
   /**
    * The id of the operation which created this context
    */
   uint64_t operation_id;
+  
+  /**
+   * should the slave controller start the delegated controller?
+   */
+  int is_subordinate;
 
   /**
    * The state of this context
@@ -564,6 +597,7 @@ struct LCFContextQueue
    */
   struct LCFContextQueue *prev;
 };
+
 
 /**
  * Our configuration

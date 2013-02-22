@@ -989,7 +989,7 @@ overlay_connect_get_config (void *cls, const struct GNUNET_MessageHeader *msg)
 
 
 /**
- * Callback which will be called to after a host registration succeeded or failed
+ * Callback which will be called after a host registration succeeded or failed
  *
  * @param cls the RegisteredHostContext
  * @param emsg the error message; NULL if host registration is successful
@@ -998,7 +998,7 @@ static void
 registeredhost_registration_completion (void *cls, const char *emsg)
 {
   struct RegisteredHostContext *rhc = cls;
-  struct GNUNET_CONFIGURATION_Handle *cfg;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
   uint32_t peer2_host_id;
 
   /* if (NULL != rhc->focc_dll_head) */
@@ -1006,13 +1006,14 @@ registeredhost_registration_completion (void *cls, const char *emsg)
   peer2_host_id = GNUNET_TESTBED_host_get_id_ (rhc->reg_host);
   GNUNET_assert (RHC_INIT == rhc->state);
   GNUNET_assert (NULL == rhc->sub_op);
-  if ((NULL == rhc->gateway2) || ((peer2_host_id < GST_slave_list_size) /* Check if we have the needed config */
-                                  && (NULL != GST_slave_list[peer2_host_id])))
+  if ((NULL == rhc->gateway2) || ((peer2_host_id < GST_host_list_size) /* Check if we have the needed config */
+                                  && (NULL != GST_host_list[peer2_host_id])))
   {
     rhc->state = RHC_LINK;
     cfg =
         (NULL ==
-         rhc->gateway2) ? our_config : GST_slave_list[peer2_host_id]->cfg;
+         rhc->gateway2) ? our_config
+        : GNUNET_TESTBED_host_get_cfg_ (GST_host_list[peer2_host_id]);
     rhc->sub_op =
         GNUNET_TESTBED_controller_link (rhc, rhc->gateway->controller,
                                         rhc->reg_host, rhc->host, cfg,
@@ -1145,6 +1146,7 @@ GST_handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
         int skip_focc;
 
         rhc = GNUNET_malloc (sizeof (struct RegisteredHostContext));
+        rhc->type = CLOSURE_TYPE_RHC;
         if (NULL != route_to_peer2_host)
           rhc->reg_host = GST_host_list[route_to_peer2_host->dest];
         else

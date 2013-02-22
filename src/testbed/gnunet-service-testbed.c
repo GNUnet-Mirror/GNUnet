@@ -727,27 +727,6 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
- * Callback to be called when forwarded link controllers operation is
- * successfull. We have to relay the reply msg back to the client
- *
- * @param cls the LCFContext
- * @param msg the message to relay
- */
-static void
-lcf_forwarded_operation_reply_relay (void *cls,
-                                     const struct GNUNET_MessageHeader *msg)
-{
-  struct LCFContext *lcf = cls;
-
-  GNUNET_assert (NULL != lcf->fopc);
-  GST_forwarded_operation_reply_relay (lcf->fopc, msg);
-  lcf->fopc = NULL;
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
-  lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
-}
-
-
-/**
  * Task to free resources when forwarded link controllers has been timedout
  *
  * @param cls the LCFContext
@@ -758,19 +737,12 @@ lcf_forwarded_operation_timeout (void *cls,
                                  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct LCFContext *lcf = cls;
-  struct ForwardedOperationContext *fopc = lcf->fopc;
 
-  GNUNET_assert (NULL != lcf->fopc);
-  lcf->fopc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  lcf->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   //  GST_forwarded_operation_timeout (lcf->fopc, tc);
-  GNUNET_TESTBED_forward_operation_msg_cancel_ (fopc->opc);
   LOG (GNUNET_ERROR_TYPE_WARNING,
-       "A forwarded operation as part of controller linking has timed out\n");
-  send_controller_link_response (fopc->client, fopc->operation_id, NULL, "Timeout");
-  GNUNET_SERVER_client_drop (fopc->client);
-  GNUNET_CONTAINER_DLL_remove (fopcq_head, fopcq_tail, fopc);
-  GNUNET_free (fopc);
-  lcf->fopc = NULL;
+       "A forwarded controller link operation has timed out\n");
+  send_controller_link_response (lcf->client, lcf->operation_id, NULL, "Timeout");
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
   lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
 }
@@ -821,26 +793,24 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
     break;
   case SLAVE_HOST_REGISTERED:
-    lcf->fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
-    lcf->fopc->client = lcf->client;
-    lcf->fopc->operation_id = lcf->operation_id;
-    lcf->fopc->type = OP_LINK_CONTROLLERS;
-    lcf->fopc->opc =
-        GNUNET_TESTBED_forward_operation_msg_ (lcf->gateway->controller,
-                                               lcf->operation_id,
-                                               &lcf->msg->header,
-                                               &lcf_forwarded_operation_reply_relay,
-                                               lcf);
-    lcf->fopc->timeout_task =
+    lcf->op = GNUNET_TESTBED_controller_link (lcf,
+                                              lcf->gateway->controller,
+                                              GST_host_list[lcf->delegated_host_id],
+                                              GST_host_list[lcf->slave_host_id],
+                                              NULL,
+                                              lcf->is_subordinate);
+    lcf->timeout_task =
         GNUNET_SCHEDULER_add_delayed (GST_timeout, &lcf_forwarded_operation_timeout,
                                       lcf);
-    GNUNET_CONTAINER_DLL_insert_tail (fopcq_head, fopcq_tail, lcf->fopc);
     lcf->state = FINISHED;
     break;
   case FINISHED:
     lcfq = lcfq_head;
     GNUNET_assert (lcfq->lcf == lcf);
-    GNUNET_free (lcf->msg);
+    GNUNET_assert (NULL != lcf->cfg);
+    GNUNET_CONFIGURATION_destroy (lcf->cfg);
+    GNUNET_SERVER_client_drop (lcf->client);
+    GNUNET_TESTBED_operation_done (lcf->op);
     GNUNET_free (lcf);
     GNUNET_CONTAINER_DLL_remove (lcfq_head, lcfq_tail, lcfq);
     GNUNET_free (lcfq);
@@ -862,35 +832,62 @@ slave_event_callback (void *cls,
                       const struct GNUNET_TESTBED_EventInformation *event)
 {
   struct RegisteredHostContext *rhc;
+  struct LCFContext *lcf;
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_TESTBED_Operation *old_op;
 
-  /* We currently only get here when working on RegisteredHostContexts */
+  /* We currently only get here when working on RegisteredHostContexts and
+     LCFContexts */
   GNUNET_assert (GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type);
   rhc = event->details.operation_finished.op_cls;
-  GNUNET_assert (rhc->sub_op == event->details.operation_finished.operation);
-  switch (rhc->state)
+  if (CLOSURE_TYPE_RHC == rhc->type)
   {
-  case RHC_GET_CFG:
-    cfg = event->details.operation_finished.generic;
-    old_op = rhc->sub_op;
-    rhc->state = RHC_LINK;
-    rhc->sub_op =
-        GNUNET_TESTBED_controller_link (rhc, rhc->gateway->controller,
-                                        rhc->reg_host, rhc->host, cfg,
-                                        GNUNET_NO);
-    GNUNET_TESTBED_operation_done (old_op);
-    break;
-  case RHC_LINK:
-    LOG_DEBUG ("OL: Linking controllers successfull\n");
-    GNUNET_TESTBED_operation_done (rhc->sub_op);
-    rhc->sub_op = NULL;
-    rhc->state = RHC_OL_CONNECT;
-    GST_process_next_focc (rhc);
-    break;
-  default:
-    GNUNET_assert (0);
+    GNUNET_assert (rhc->sub_op == event->details.operation_finished.operation);
+    switch (rhc->state)
+    {
+    case RHC_GET_CFG:
+      cfg = event->details.operation_finished.generic;
+      old_op = rhc->sub_op;
+      rhc->state = RHC_LINK;
+      rhc->sub_op =
+          GNUNET_TESTBED_controller_link (rhc, rhc->gateway->controller,
+                                          rhc->reg_host, rhc->host, cfg,
+                                          GNUNET_NO);
+      GNUNET_TESTBED_operation_done (old_op);
+      break;
+    case RHC_LINK:
+      LOG_DEBUG ("OL: Linking controllers successfull\n");
+      GNUNET_TESTBED_operation_done (rhc->sub_op);
+      rhc->sub_op = NULL;
+      rhc->state = RHC_OL_CONNECT;
+      GST_process_next_focc (rhc);
+      break;
+    default:
+      GNUNET_assert (0);
+    }
+    return;
   }
+  lcf = event->details.operation_finished.op_cls;
+  if (CLOSURE_TYPE_LCF == lcf->type)
+  {    
+    GNUNET_assert (lcf->op == event->details.operation_finished.operation);
+    GNUNET_assert (FINISHED == lcf->state);
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != lcf->timeout_task);
+    GNUNET_SCHEDULER_cancel (lcf->timeout_task);
+    if (NULL == event->details.operation_finished.emsg)
+      send_controller_link_response (lcf->client, lcf->operation_id,
+                                     GNUNET_TESTBED_host_get_cfg_ 
+                                     (GST_host_list[lcf->delegated_host_id]),
+                                     NULL);
+    else
+      send_controller_link_response (lcf->client, lcf->operation_id,
+                                     NULL,
+                                     event->details.operation_finished.emsg);
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
+    lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
+    return;
+  }
+  GNUNET_assert (0);
 }
 
 
@@ -915,8 +912,6 @@ slave_status_callback (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   {
     slave->controller_proc = NULL;
     GST_slave_list[slave->host_id] = NULL;
-    if (NULL != slave->cfg)
-      GNUNET_CONFIGURATION_destroy (slave->cfg);
     GNUNET_free (slave);
     slave = NULL;
     LOG (GNUNET_ERROR_TYPE_WARNING, "Unexpected slave shutdown\n");
@@ -930,7 +925,6 @@ slave_status_callback (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (NULL != slave->controller)
   {
     send_controller_link_response (lcc->client, lcc->operation_id, cfg, NULL);
-    slave->cfg = GNUNET_CONFIGURATION_dup (cfg);
   }
   else
   {
@@ -1235,9 +1229,6 @@ handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
   struct LCFContextQueue *lcfq;
   struct Route *route;
   struct Route *new_route;
-  char *config;
-  uLongf dest_size;
-  size_t config_size;
   uint32_t delegated_host_id;
   uint32_t slave_host_id;
   uint16_t msize;
@@ -1287,53 +1278,22 @@ handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-
+  cfg = GNUNET_TESTBED_extract_config_ (message); /* destroy cfg here or in lcfcontext */
+  if (NULL == cfg)
+  {
+    GNUNET_break (0);         /* Configuration parsing error */
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   if (slave_host_id == GST_context->host_id)    /* Link from us */
   {
     struct Slave *slave;
     struct LinkControllersContext *lcc;
 
-    msize -= sizeof (struct GNUNET_TESTBED_ControllerLinkRequest);
-    config_size = ntohs (msg->config_size);
-    if ((delegated_host_id < GST_slave_list_size) && (NULL != GST_slave_list[delegated_host_id]))       /* We have already added */
-    {
-      LOG (GNUNET_ERROR_TYPE_WARNING, "Host %u already connected\n",
-           delegated_host_id);
-      GNUNET_SERVER_receive_done (client, GNUNET_OK);
-      return;
-    }
-    config = GNUNET_malloc (config_size);
-    dest_size = (uLongf) config_size;
-    if (Z_OK !=
-        uncompress ((Bytef *) config, &dest_size, (const Bytef *) &msg[1],
-                    (uLong) msize))
-    {
-      GNUNET_break (0);         /* Compression error */
-      GNUNET_free (config);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
-    if (config_size != dest_size)
-    {
-      LOG (GNUNET_ERROR_TYPE_WARNING, "Uncompressed config size mismatch\n");
-      GNUNET_free (config);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
-    cfg = GNUNET_CONFIGURATION_create ();       /* Free here or in lcfcontext */
-    if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_deserialize (cfg, config, config_size, GNUNET_NO))
-    {
-      GNUNET_break (0);         /* Configuration parsing error */
-      GNUNET_free (config);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
-    GNUNET_free (config);
     if ((delegated_host_id < GST_slave_list_size) &&
         (NULL != GST_slave_list[delegated_host_id]))
     {
-      GNUNET_break (0);         /* Configuration parsing error */
+      GNUNET_break (0);
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
@@ -1347,7 +1307,6 @@ handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
           GNUNET_TESTBED_controller_connect (cfg, GST_host_list[slave->host_id],
                                              event_mask, &slave_event_callback,
                                              slave);
-      slave->cfg = cfg;
       if (NULL != slave->controller)
         send_controller_link_response (client,
                                        GNUNET_ntohll (msg->operation_id),
@@ -1387,17 +1346,18 @@ handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
   }
   lcfq = GNUNET_malloc (sizeof (struct LCFContextQueue));
   lcfq->lcf = GNUNET_malloc (sizeof (struct LCFContext));
+  lcfq->lcf->type = CLOSURE_TYPE_LCF;
   lcfq->lcf->delegated_host_id = delegated_host_id;
   lcfq->lcf->slave_host_id = slave_host_id;
   route = GST_find_dest_route (slave_host_id);
   GNUNET_assert (NULL != route);        /* because we add routes carefully */
   GNUNET_assert (route->dest < GST_slave_list_size);
   GNUNET_assert (NULL != GST_slave_list[route->dest]);
+  lcfq->lcf->cfg = cfg;
+  lcfq->lcf->is_subordinate = msg->is_subordinate;
   lcfq->lcf->state = INIT;
   lcfq->lcf->operation_id = GNUNET_ntohll (msg->operation_id);
   lcfq->lcf->gateway = GST_slave_list[route->dest];
-  lcfq->lcf->msg = GNUNET_malloc (msize);
-  (void) memcpy (lcfq->lcf->msg, msg, msize);
   GNUNET_SERVER_client_keep (client);
   lcfq->lcf->client = client;
   if (NULL == lcfq_head)
@@ -1969,6 +1929,7 @@ handle_slave_get_config (void *cls, struct GNUNET_SERVER_Client *client,
   struct GNUNET_TESTBED_SlaveGetConfigurationMessage *msg;
   struct Slave *slave;
   struct GNUNET_TESTBED_SlaveConfiguration *reply;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
   char *config;
   char *xconfig;
   size_t config_size;
@@ -1988,14 +1949,8 @@ handle_slave_get_config (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   slave = GST_slave_list[slave_id];
-  if (NULL == slave->cfg)
-  {
-    GST_send_operation_fail_msg (client, op_id,
-                                 "Configuration not found (slave not started by me)");
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
-    return;
-  }
-  config = GNUNET_CONFIGURATION_serialize (slave->cfg, &config_size);
+  GNUNET_assert (NULL != (cfg = GNUNET_TESTBED_host_get_cfg_ (GST_host_list[slave->host_id])));
+  config = GNUNET_CONFIGURATION_serialize (cfg, &config_size);
   xconfig_size =
       GNUNET_TESTBED_compress_config_ (config, config_size, &xconfig);
   GNUNET_free (config);
@@ -2128,7 +2083,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
   for (lcfq = lcfq_head; NULL != lcfq; lcfq = lcfq_head)
   {
-    GNUNET_free (lcfq->lcf->msg);
+    GNUNET_SERVER_client_drop (lcfq->lcf->client);
+    GNUNET_assert (NULL != lcfq->lcf->cfg);
+    GNUNET_CONFIGURATION_destroy (lcfq->lcf->cfg);
     GNUNET_free (lcfq->lcf);
     GNUNET_CONTAINER_DLL_remove (lcfq_head, lcfq_tail, lcfq);
     GNUNET_free (lcfq);
@@ -2191,8 +2148,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                  reghost_free_iterator,
                                                  GST_slave_list[id]);
       GNUNET_CONTAINER_multihashmap_destroy (GST_slave_list[id]->reghost_map);
-      if (NULL != GST_slave_list[id]->cfg)
-        GNUNET_CONFIGURATION_destroy (GST_slave_list[id]->cfg);
       if (NULL != GST_slave_list[id]->controller)
         GNUNET_TESTBED_controller_disconnect (GST_slave_list[id]->controller);
       if (NULL != GST_slave_list[id]->controller_proc)

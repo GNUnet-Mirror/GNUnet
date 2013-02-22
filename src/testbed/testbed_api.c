@@ -1581,6 +1581,7 @@ GNUNET_TESTBED_controller_link (void *op_cls,
   uint32_t slave_host_id;
   uint32_t delegated_host_id;
 
+  
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_TESTBED_is_host_registered_ (delegated_host, master));
   slave_host_id =
@@ -1591,7 +1592,8 @@ GNUNET_TESTBED_controller_link (void *op_cls,
     GNUNET_assert (GNUNET_YES ==
                    GNUNET_TESTBED_is_host_registered_ (slave_host, master));
   return GNUNET_TESTBED_controller_link_ (op_cls, master, delegated_host_id,
-                                          slave_host_id, slave_cfg,
+                                          slave_host_id,
+                                          GNUNET_TESTBED_host_get_cfg_ (delegated_host),
                                           is_subordinate);
 
 }
@@ -1776,7 +1778,8 @@ GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
  * GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONFIGURATION,
  * GNUNET_MESSAGE_TYPE_TESTBED_SLAVE_CONFIGURATION,
  * GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST,
- * GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS_RESULT
+ * GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS,
+ * GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS_RESULT,
  *
  * @param msg the message containing compressed configuration
  * @return handle to the parsed configuration; NULL upon error while parsing the message
@@ -1842,6 +1845,16 @@ GNUNET_TESTBED_extract_config_ (const struct GNUNET_MessageHeader *msg)
       xdata = (const Bytef *) &imsg[1];
     }
     break;
+  case GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS:
+    {
+      const struct GNUNET_TESTBED_ControllerLinkRequest *imsg;
+      imsg = (const struct GNUNET_TESTBED_ControllerLinkRequest *) msg;
+      data_len = ntohs (imsg->config_size);
+      xdata_len = ntohs (imsg->header.size) - sizeof (const struct
+      GNUNET_TESTBED_ControllerLinkRequest);
+      xdata = (const Bytef *) &imsg[1];
+    }
+    break;
   default:
     GNUNET_assert (0);
   }
@@ -1849,13 +1862,19 @@ GNUNET_TESTBED_extract_config_ (const struct GNUNET_MessageHeader *msg)
   if (Z_OK != (ret = uncompress (data, &data_len, xdata, xdata_len)))
   {
     GNUNET_free (data);
+    GNUNET_break_op (0);
     return NULL;
   }
   cfg = GNUNET_CONFIGURATION_create ();
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_deserialize (cfg, (const char *) data,
-                                                   (size_t) data_len,
-                                                   GNUNET_NO));
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_deserialize (cfg, (const char *) data,
+                                        (size_t) data_len,
+                                        GNUNET_NO))
+  {
+    GNUNET_free (data);
+    GNUNET_break_op (0);
+    return NULL;
+  }
   GNUNET_free (data);
   return cfg;
 }
