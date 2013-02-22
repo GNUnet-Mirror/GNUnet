@@ -1095,6 +1095,23 @@ mlp_create_problem_add_address_information (struct GAS_MLP_Handle *mlp, struct M
 
 }
 
+static void
+mlp_create_problem_set_value (struct MLP_Problem *p, int row, int col, double val)
+{
+	if ((p->ci + 1) >= p->num_elements)
+	{
+		GNUNET_break (0);
+		return;
+	}
+  p->ia[p->ci] = row ;
+  p->ja[p->ci] = col;
+  p->ar[p->ci] = val;
+#if  DEBUG_MLP_PROBLEM_CREATION
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Set value [%u,%u] ==  %.2f\n",
+			p->ia[p->ci], p->ja[p->ci], p->ar[p->ci]);
+#endif
+  p->ci++;
+}
 
 /**
  * Create the invariant columns c4, c6, c10, c8, c7
@@ -1132,15 +1149,7 @@ mlp_create_problem_add_invariant_rows (struct GAS_MLP_Handle *mlp, struct MLP_Pr
 			"==", 0);
 #endif
   /* c6 )Setting -D */
-  p->ia[p->ci] = p->r_c6 ;
-  p->ja[p->ci] = p->c_d;
-  p->ar[p->ci] = -1;
-#if  DEBUG_MLP_PROBLEM_CREATION
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Set value [%u,%u] ==  %.2f\n",
-			p->ia[p->ci], p->ja[p->ci], p->ar[p->ci]);
-#endif
-  p->ci++;
-
+	mlp_create_problem_set_value (p, p->r_c6, p->c_d, -1);
 
   /* Add rows for c 10) */
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
@@ -1171,15 +1180,7 @@ mlp_create_problem_add_invariant_rows (struct GAS_MLP_Handle *mlp, struct MLP_Pr
 				"==", 0);
 #endif
   /* -u */
-	p->ia[p->ci] = p->r_c8;
-	p->ja[p->ci] = p->c_u;
-	p->ar[p->ci] = -1;
-#if  DEBUG_MLP_PROBLEM_CREATION
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Set value [%u,%u] ==  %.2f\n",
-			p->ia[p->ci], p->ja[p->ci], p->ar[p->ci]);
-#endif
-  p->ci++;
-
+	mlp_create_problem_set_value (p, p->r_c8, p->c_u, -1);
 
 	/* c 7) For all quality metrics */
 	for (c = 0; c < mlp->pv.m_q; c++)
@@ -1195,14 +1196,7 @@ mlp_create_problem_add_invariant_rows (struct GAS_MLP_Handle *mlp, struct MLP_Pr
 				"==", 0);
 #endif
 		GNUNET_free (name);
-		p->ia[p->ci] = p->r_q[c];
-		p->ja[p->ci] = p->c_q[c];
-		p->ar[p->ci] = -1;
-#if  DEBUG_MLP_PROBLEM_CREATION
-		LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Set value [%u,%u] ==  %.2f\n",
-				p->ia[p->ci], p->ja[p->ci], p->ar[p->ci]);
-#endif
-    p->ci++;
+		mlp_create_problem_set_value (p, p->r_q[c], p->c_q[c], -1);
 	}
 }
 
@@ -1289,7 +1283,6 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
 {
   struct MLP_Problem *p = &mlp->p;
 	int res = GNUNET_OK;
-	int elements;
 
   GNUNET_assert (p->prob == NULL);
   GNUNET_assert (p->ia == NULL);
@@ -1302,9 +1295,9 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
   GNUNET_assert (NULL != p->prob);
   p->num_peers = GNUNET_CONTAINER_multihashmap_size (mlp->peers);
   p->num_addresses = mlp_create_problem_count_addresses (addresses, mlp->peers);
-
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "Rebuilding problem for %u peer(s) and %u addresse(s)\n",
-			p->num_peers, p->num_addresses);
+  p->num_elements = ((7 * p->num_addresses) + (5 * p->num_addresses +  mlp->pv.m_q + p->num_peers + 2) + 1);
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "Rebuilding problem for %u peer(s) and %u addresse(s) == %u elements\n",
+			p->num_peers, p->num_addresses, p->num_elements);
 
   /* Set a problem name */
   glp_set_prob_name (p->prob, "GNUnet ats bandwidth distribution");
@@ -1313,16 +1306,15 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
 
   /* Create problem matrix */
   /* last +1 caused by glpk index starting with one: [1..elements]*/
-  elements = ((7 * p->num_addresses) + (5 * p->num_addresses +  mlp->pv.m_q + p->num_peers + 2) + 1);
   p->ci = 1;
   /* row index */
-  int *ia = GNUNET_malloc (elements * sizeof (int));
+  int *ia = GNUNET_malloc (p->num_elements * sizeof (int));
   p->ia = ia;
   /* column index */
-  int *ja = GNUNET_malloc (elements * sizeof (int));
+  int *ja = GNUNET_malloc (p->num_elements * sizeof (int));
   p->ja = ja;
   /* coefficient */
-  double *ar= GNUNET_malloc (elements * sizeof (double));
+  double *ar= GNUNET_malloc (p->num_elements * sizeof (double));
   p->ar = ar;
 
   /* Adding invariant columns */

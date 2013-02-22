@@ -104,6 +104,8 @@ struct MLP_Problem
   unsigned int num_addresses;
   /* Number of peers in problem */
   unsigned int num_peers;
+  /* Number of elements in problem matrix */
+  unsigned int num_elements;
 
   /* Row index constraint 2: */
   unsigned int r_c2;
