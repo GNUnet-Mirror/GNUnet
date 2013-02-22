@@ -103,7 +103,7 @@ static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   die_task = GNUNET_SCHEDULER_NO_TASK;
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Error! Shutting down\n");
   if (sched_ats != NULL)
   {
     GNUNET_ATS_scheduling_done (sched_ats);
@@ -297,6 +297,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   		if ((GNUNET_YES == sug_p0) && (GNUNET_YES == sug_p1))
   		{
   	  		/* Done ! */
+  			GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Done!\n");
   			stage ++;
   			ret = 0;
         GNUNET_SCHEDULER_add_now (&end,NULL);
@@ -308,6 +309,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 error:
 	/* Error ! */
 	ret = 1;
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Error!\n");
 	GNUNET_SCHEDULER_add_now (&end,NULL);
 }
 
