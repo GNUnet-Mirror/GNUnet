@@ -941,6 +941,9 @@ mlp_create_problem_create_constraint (struct MLP_Problem *p, char *name,
 		case GLP_DB:
 			GNUNET_asprintf(&op, "%.2f <= x <= %.2f", lb, ub);
 			break;
+		case GLP_FX:
+			GNUNET_asprintf(&op, "%.2f == x == %.2f", lb, ub);
+			break;
 		case GLP_LO:
 			GNUNET_asprintf(&op, "%.2f <= x <= inf", lb);
 			break;
@@ -1052,78 +1055,34 @@ mlp_create_problem_add_invariant_rows (struct GAS_MLP_Handle *mlp, struct MLP_Pr
   int c;
 
   /* Row for c4) minimum connection */
-  name = "c4";
-  int min = mlp->pv.n_min;
+
   /* Number of minimum connections is min(|Peers|, n_min) */
-  if (mlp->pv.n_min > p->num_peers)
-    min = p->num_peers;
-  p->r_c4 = glp_add_rows (p->prob, 1);
-  glp_set_row_name (p->prob, p->r_c4, name);
-  glp_set_row_bnds (p->prob, p->r_c4, GLP_LO, min, min);
-#if  DEBUG_MLP_PROBLEM_CREATION
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added row [%u] `%s': %s %u\n",
-			p->r_c4, name,
-			">=", min);
-#endif
+  p->r_c4 = mlp_create_problem_create_constraint (p, "c4", GLP_LO, (mlp->pv.n_min > p->num_peers) ? p->num_peers : mlp->pv.n_min, 0.0);
 
   /* Add row for c6) */
-	name = "c6";
-  p->r_c6 = glp_add_rows (p->prob, 1);
-  /* Set type type to fix */
-  glp_set_row_name (p->prob, p->r_c6, name);
-  glp_set_row_bnds (p->prob, p->r_c6, GLP_FX, 0.0, 0.0);
-#if  DEBUG_MLP_PROBLEM_CREATION
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added row [%u] `%s': %s %u\n",
-			p->r_c6, name,
-			"==", 0);
-#endif
+	p->r_c6 = mlp_create_problem_create_constraint (p, "c6", GLP_FX, 0.0, 0.0);
   /* c6 )Setting -D */
 	mlp_create_problem_set_value (p, p->r_c6, p->c_d, -1);
 
   /* Add rows for c 10) */
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
   {
-    p->r_quota[c] = glp_add_rows (p->prob, 1);
-    char * text;
-    GNUNET_asprintf(&text, "quota_ats_%s", GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]));
-    glp_set_row_name (p->prob, p->r_quota[c], text);
-    /* Set bounds to 0 <= x <= quota_out */
-    glp_set_row_bnds (p->prob, p->r_quota[c], GLP_UP, 0.0, mlp->pv.quota_out[c]);
-#if  DEBUG_MLP_PROBLEM_CREATION
-		LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added row [%u] `%s': %s %u\n",
-				p->r_quota[c], text,
-				"<=", mlp->pv.quota_out[c]);
-#endif
-    GNUNET_free (text);
+      char * text;
+      GNUNET_asprintf(&text, "quota_ats_%s", GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]));
+  		p->r_quota[c] = mlp_create_problem_create_constraint (p, text, GLP_DB, 0.0, mlp->pv.quota_out[c]);
+  		GNUNET_free (text);
   }
 
   /* Adding rows for c 8) */
-  p->r_c8 = glp_add_rows (p->prob, p->num_peers);
-  name = "c8";
-  glp_set_row_name (p->prob, p->r_c8, "c8");
-  /* Set row bound == 0 */
-  glp_set_row_bnds (p->prob, p->r_c8, GLP_FX, 0.0, 0.0);
-#if  DEBUG_MLP_PROBLEM_CREATION
-		LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added row [%u] `%s': %s %u\n",
-				p->r_c8, name,
-				"==", 0);
-#endif
+  p->r_c8 = mlp_create_problem_create_constraint (p, "c8", GLP_FX, 0.0, 0.0);
   /* -u */
 	mlp_create_problem_set_value (p, p->r_c8, p->c_u, -1);
 
 	/* c 7) For all quality metrics */
 	for (c = 0; c < mlp->pv.m_q; c++)
 	{
-		p->r_q[c] = glp_add_rows (p->prob, 1);
 		GNUNET_asprintf(&name, "c7_q%i_%s", c, mlp_ats_to_string(mlp->pv.q[c]));
-		glp_set_row_name (p->prob, p->r_q[c], name);
-		/* Set row bound == 0 */
-		glp_set_row_bnds (p->prob, p->r_q[c], GLP_FX, 0.0, 0.0);
-#if  DEBUG_MLP_PROBLEM_CREATION
-		LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added row [%u] `%s': %s %u\n",
-				p->r_q[c], name,
-				"==", 0);
-#endif
+		p->r_q[c] = mlp_create_problem_create_constraint (p, name, GLP_FX, 0.0, 0.0);
 		GNUNET_free (name);
 		mlp_create_problem_set_value (p, p->r_q[c], p->c_q[c], -1);
 	}
