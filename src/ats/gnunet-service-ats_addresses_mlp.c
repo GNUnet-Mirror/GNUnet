@@ -572,116 +572,7 @@ mlp_create_constraint_it (void *cls, const struct GNUNET_HashCode * key, void *v
   unsigned int row_index;
   char *name;
 
-  /* Check if we have to add this peer due to a pending request */
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(mlp->peers, key))
-  	return GNUNET_OK;
 
-  /* Get peer */
-  peer = GNUNET_CONTAINER_multihashmap_get (mlp->peers, key);
-  GNUNET_assert (NULL != peer);
-  if (GNUNET_NO == peer->processed)
-  {
-  		/* Adding constraints for peer */
-  		peer->processed = GNUNET_YES;
-  }
-
-
-  GNUNET_assert (address->solver_information != NULL);
-  mlpi = (struct MLP_information *) address->solver_information;
-
-  /* c 1) bandwidth capping
-   * b_t  + (-M) * n_t <= 0
-   * */
-  row_index = glp_add_rows (p->prob, 1);
-  mlpi->r_c1 = row_index;
-  /* set row name */
-  GNUNET_asprintf(&name, "c1_%s_%s", GNUNET_i2s(&address->peer), address->plugin);
-  glp_set_row_name (p->prob, row_index, name);
-  /* set row bounds: <= 0 */
-  glp_set_row_bnds (p->prob, row_index, GLP_UP, 0.0, 0.0);
-#if  DEBUG_MLP_PROBLEM_CREATION
-		LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added row [%u] `%s': %s %u\n",
-				row_index, name,
-				"<=", 0);
-#endif
-	GNUNET_free (name);
-
-  p->ia[p->ci] = row_index;
-  p->ja[p->ci] = mlpi->c_b;
-  p->ar[p->ci] = 1;
-#if  DEBUG_MLP_PROBLEM_CREATION
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Set value [%u,%u] ==  %.2f\n",
-			p->ia[p->ci], p->ja[p->ci], p->ar[p->ci]);
-#endif
-  p->ci++;
-
-  p->ia[p->ci] = row_index;
-  p->ja[p->ci] = mlpi->c_n;
-  p->ar[p->ci] = -mlp->pv.BIG_M;
-#if  DEBUG_MLP_PROBLEM_CREATION
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Set value [%u,%u] ==  %.2f\n",
-			p->ia[p->ci], p->ja[p->ci], p->ar[p->ci]);
-#endif
-  p->ci++;
-
-  /* c 3) minimum bandwidth
-   * b_t + (-n_t * b_min) >= 0
-   * */
-  row_index = glp_add_rows (p->prob, 1);
-  mlpi->r_c3 = row_index;
-  /* set row name */
-  GNUNET_asprintf(&name, "c3_%s_%s", GNUNET_i2s(&address->peer), address->plugin);
-  glp_set_row_name (p->prob, row_index, name);
-  /* set row bounds: >= 0 */
-  glp_set_row_bnds (p->prob, row_index, GLP_LO, 0.0, 0.0);
-#if  DEBUG_MLP_PROBLEM_CREATION
-		LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added row [%u] `%s': %s %u\n",
-				row_index, name,
-				"<=", 0);
-#endif
-	GNUNET_free (name);
-
-  p->ia[p->ci] = row_index;
-  p->ja[p->ci] = mlpi->c_b;
-  p->ar[p->ci] = 1;
-#if  DEBUG_MLP_PROBLEM_CREATION
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Set value [%u,%u] ==  %.2f\n",
-			p->ia[p->ci], p->ja[p->ci], p->ar[p->ci]);
-#endif
-  p->ci++;
-
-  p->ia[p->ci] = row_index;
-  p->ja[p->ci] = mlpi->c_n;
-  p->ar[p->ci] = - (double) mlp->pv.b_min;
-#if  DEBUG_MLP_PROBLEM_CREATION
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Set value [%u,%u] ==  %.2f\n",
-			p->ia[p->ci], p->ja[p->ci], p->ar[p->ci]);
-#endif
-  p->ci++;
-
-  /* c 4) minimum connections
-   * (1)*n_1 + ... + (1)*n_m >= n_min
-   */
-  p->ia[p->ci] = p->r_c4;
-  p->ja[p->ci] = mlpi->c_n;
-  p->ar[p->ci] = 1;
-#if  DEBUG_MLP_PROBLEM_CREATION
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Set value [%u,%u] ==  %.2f\n",
-			p->ia[p->ci], p->ja[p->ci], p->ar[p->ci]);
-#endif
-  p->ci++;
-
-  /* c 6) maximize diversity
-   * (1)*n_1 + ... + (1)*n_m - d == 0
-   */
-  p->ia[p->ci] = p->r_c6;
-  p->ja[p->ci] = mlpi->c_n;
-  p->ar[p->ci] = 1;
-#if  DEBUG_MLP_PROBLEM_CREATION
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Set value [%u,%u] ==  %.2f\n",
-			p->ia[p->ci], p->ja[p->ci], p->ar[p->ci]);
-#endif
-  p->ci++;
 
   /* c 10) obey network specific quotas
    * (1)*b_1 + ... + (1)*b_m <= quota_n
@@ -967,83 +858,6 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
   }
 }
 
-#if 0
-/**
- * Add columns for all addresses
- *
- * @param cls GAS_MLP_Handle
- * @param key Hashcode
- * @param value ATS_Address
- *
- * @return GNUNET_OK to continue
- */
-static int
-mlp_create_address_columns_it (void *cls, const struct GNUNET_HashCode * key, void *value)
-{
-  struct GAS_MLP_Handle *mlp = cls;
-  struct MLP_Problem *p = &mlp->p;
-  struct ATS_Address *address = value;
-  struct ATS_Peer *peer;
-  struct MLP_information *mlpi;
-  unsigned int col;
-  char *name;
-
-  if (NULL != address->solver_information)
-  {
-  	GNUNET_free (address->solver_information);
-		address->solver_information = NULL;
-  }
-
-  /* Check if we have to add this peer due to a pending request */
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(mlp->peers, key))
-  	return GNUNET_OK;
-
-  /* Get peer */
-  peer = GNUNET_CONTAINER_multihashmap_get (mlp->peers, key);
-  peer->processed = GNUNET_NO;
-
-	p->num_addresses ++;
-  mlpi = GNUNET_malloc (sizeof (struct MLP_information));
-  address->solver_information = mlpi;
-
-  /* Add bandwidth column */
-  col = glp_add_cols (p->prob, 2);
-  mlpi->c_b = col;
-  mlpi->c_n = col + 1;
-
-
-  GNUNET_asprintf (&name, "b_%s_%s", GNUNET_i2s (&address->peer), address->plugin);
-  glp_set_col_name (p->prob, mlpi->c_b , name);
-  /* Lower bound == 0 */
-  glp_set_col_bnds (p->prob, mlpi->c_b , GLP_LO, 0.0, 0.0);
-  /* Continuous value*/
-  glp_set_col_kind (p->prob, mlpi->c_b , GLP_CV);
-  /* Objective function coefficient == 0 */
-  glp_set_obj_coef (p->prob, mlpi->c_b , 0);
-#if  DEBUG_MLP_PROBLEM_CREATION
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added column [%u] `%s': `%s' address %p\n",
-			mlpi->c_b, name, GNUNET_i2s(&address->peer), address);
-#endif
-  GNUNET_free (name);
-
-  /* Add usage column */
-  GNUNET_asprintf (&name, "n_%s_%s", GNUNET_i2s (&address->peer), address->plugin);
-  glp_set_col_name (p->prob, mlpi->c_n, name);
-  /* Limit value : 0 <= value <= 1 */
-  glp_set_col_bnds (p->prob, mlpi->c_n, GLP_DB, 0.0, 1.0);
-  /* Integer value*/
-  glp_set_col_kind (p->prob, mlpi->c_n, GLP_IV);
-  /* Objective function coefficient == 0 */
-  glp_set_obj_coef (p->prob, mlpi->c_n, 0);
-#if  DEBUG_MLP_PROBLEM_CREATION
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added column [%u] `%s': `%s' address %p\n",
-			mlpi->c_n, name, GNUNET_i2s(&address->peer), address);
-#endif
-  GNUNET_free (name);
-
-  return GNUNET_OK;
-}
-#endif
 
 
 struct CountContext
@@ -1093,6 +907,23 @@ mlp_create_problem_set_value (struct MLP_Problem *p, int row, int col, double va
   p->ci++;
 }
 
+static int
+mlp_create_problem_create_column (struct MLP_Problem *p, char *name,
+		unsigned int type, unsigned int bound, double lb, double ub,
+		double coef)
+{
+	int col = glp_add_cols (p->prob, 1);
+  glp_set_col_name (p->prob, col, name);
+  glp_set_col_bnds (p->prob, col, bound, lb, ub);
+  glp_set_col_kind (p->prob, col, type);
+  glp_set_obj_coef (p->prob, col, coef);
+#if  DEBUG_MLP_PROBLEM_CREATION
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added column [%u] `%s': %.2f\n",
+			col, name, coef);
+#endif
+  return col;
+}
+
 /**
  * Create the
  * - address columns b and n
@@ -1125,37 +956,63 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
   address->solver_information = mlpi;
 
   /* Add bandwidth column */
-  col = glp_add_cols (p->prob, 2);
-  mlpi->c_b = col;
-  mlpi->c_n = col + 1;
   GNUNET_asprintf (&name, "b_%s_%s", GNUNET_i2s (&address->peer), address->plugin);
-  glp_set_col_name (p->prob, mlpi->c_b , name);
-  /* Lower bound == 0 */
-  glp_set_col_bnds (p->prob, mlpi->c_b , GLP_LO, 0.0, 0.0);
-  /* Continuous value*/
-  glp_set_col_kind (p->prob, mlpi->c_b , GLP_CV);
-  /* Objective function coefficient == 0 */
-  glp_set_obj_coef (p->prob, mlpi->c_b , 0);
-#if  DEBUG_MLP_PROBLEM_CREATION
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added column [%u] `%s': `%s' address %p\n",
-			mlpi->c_b, name, GNUNET_i2s(&address->peer), address);
-#endif
+  mlpi->c_b = mlp_create_problem_create_column (p, name, GLP_CV, GLP_LO, 0.0, 0.0, 0.0);
   GNUNET_free (name);
 
   /* Add usage column */
   GNUNET_asprintf (&name, "n_%s_%s", GNUNET_i2s (&address->peer), address->plugin);
-  glp_set_col_name (p->prob, mlpi->c_n, name);
-  /* Limit value : 0 <= value <= 1 */
-  glp_set_col_bnds (p->prob, mlpi->c_n, GLP_DB, 0.0, 1.0);
-  /* Integer value*/
-  glp_set_col_kind (p->prob, mlpi->c_n, GLP_IV);
-  /* Objective function coefficient == 0 */
-  glp_set_obj_coef (p->prob, mlpi->c_n, 0);
-#if  DEBUG_MLP_PROBLEM_CREATION
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added column [%u] `%s': `%s' address %p\n",
-			mlpi->c_n, name, GNUNET_i2s(&address->peer), address);
-#endif
+  mlpi->c_n = mlp_create_problem_create_column (p, name, GLP_IV, GLP_DB, 0.0, 1.0, 0.0);
   GNUNET_free (name);
+
+	/* Add address dependent constraints */
+	/* Add constraint c1) bandwidth capping
+   * b_t  + (-M) * n_t <= 0
+   * */
+  mlpi->r_c1 = glp_add_rows (p->prob, 1);
+  /* set row name */
+  GNUNET_asprintf(&name, "c1_%s_%s", GNUNET_i2s(&address->peer), address->plugin);
+  glp_set_row_name (p->prob, mlpi->r_c1, name);
+  /* set row bounds: <= 0 */
+  glp_set_row_bnds (p->prob, mlpi->r_c1, GLP_UP, 0.0, 0.0);
+#if  DEBUG_MLP_PROBLEM_CREATION
+		LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added row [%u] `%s': %s %u\n",
+				mlpi->r_c1, name,
+				"<=", 0);
+#endif
+	GNUNET_free (name);
+	/*  c1) set b = 1 coefficient */
+	mlp_create_problem_set_value (p, mlpi->r_c1, mlpi->c_b, 1);
+	/*  c1) set n = -M coefficient */
+	mlp_create_problem_set_value (p, mlpi->r_c1, mlpi->c_n, -mlp->pv.BIG_M);
+
+  /* Add constraint c 3) minimum bandwidth
+   * b_t + (-n_t * b_min) >= 0
+   * */
+  mlpi->r_c3 = glp_add_rows (p->prob, 1);
+  /* set row name */
+  GNUNET_asprintf(&name, "c3_%s_%s", GNUNET_i2s(&address->peer), address->plugin);
+  glp_set_row_name (p->prob, mlpi->r_c3, name);
+  /* set row bounds: >= 0 */
+  glp_set_row_bnds (p->prob, mlpi->r_c3, GLP_LO, 0.0, 0.0);
+#if  DEBUG_MLP_PROBLEM_CREATION
+		LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added row [%u] `%s': %s %u\n",
+				mlpi->r_c3, name,
+				"<=", 0);
+#endif
+	GNUNET_free (name);
+	/*  c3) set b = 1 coefficient */
+	mlp_create_problem_set_value (p, mlpi->r_c3, mlpi->c_b, 1);
+	/*  c3) set n = -b_min coefficient */
+	mlp_create_problem_set_value (p, mlpi->r_c3, mlpi->c_n, -mlp->pv.b_min);
+
+
+	/* Set coefficient entries in invariant rows */
+  /* c 4) minimum connections */
+	mlp_create_problem_set_value (p, p->r_c4, mlpi->c_n, 1);
+  /* c 6) maximize diversity */
+	mlp_create_problem_set_value (p, p->r_c6, mlpi->c_n, 1);
+
 
   /* Get peer */
   peer = GNUNET_CONTAINER_multihashmap_get (mlp->peers, key);
@@ -1166,9 +1023,6 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
 	/* Add constraint c2 */
 	/* Add constraint c9 */
 
-	/* Add address dependent constraints */
-	/* Add constraint c1 */
-	/* Add constraint c3 */
 
   return GNUNET_OK;
 }
@@ -1269,63 +1123,21 @@ mlp_create_problem_add_invariant_columns (struct GAS_MLP_Handle *mlp, struct MLP
 {
   char *name;
   int c;
-  int cur_col;
 
   /* Diversity d column  */
-  p->c_d = glp_add_cols (p->prob, 1);
-  /* Column name */
-  glp_set_col_name (p->prob, p->c_d, "d");
-  /* Column objective function coefficient */
-  glp_set_obj_coef (p->prob, p->c_d, mlp->pv.co_D);
-  /* Column lower bound = 0.0 */
-  glp_set_col_bnds (p->prob, p->c_d, GLP_LO, 0.0, 0.0);
-#if  DEBUG_MLP_PROBLEM_CREATION
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added column [%i] `%s': %.2f \n",
-			p->c_d, "d", mlp->pv.co_D);
-#endif
-
+  p->c_d = mlp_create_problem_create_column (p, "d", GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_D);
 
   /* Utilization u column  */
-  p->c_u = glp_add_cols (p->prob, 1);
-  /* Column name */
-  glp_set_col_name (p->prob, p->c_u, "u");
-  /* Column objective function coefficient */
-  glp_set_obj_coef (p->prob, p->c_u, mlp->pv.co_U);
-  /* Column lower bound = 0.0 */
-  glp_set_col_bnds (p->prob, p->c_u, GLP_LO, 0.0, 0.0);
-#if  DEBUG_MLP_PROBLEM_CREATION
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added column [%i] `%s': %.2f \n",
-			 p->c_u, "u", mlp->pv.co_U);
-#endif
+  p->c_u = mlp_create_problem_create_column (p, "u", GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_U);
 
   /* Relativity r column  */
-  p->c_r = glp_add_cols (p->prob, 1);
-  /* Column name */
-  glp_set_col_name (p->prob, p->c_r, "r");
-  /* Column objective function coefficient */
-  glp_set_obj_coef (p->prob, p->c_r, mlp->pv.co_R);
-  /* Column lower bound = 0.0 */
-  glp_set_col_bnds (p->prob, p->c_r, GLP_LO, 0.0, 0.0);
-#if  DEBUG_MLP_PROBLEM_CREATION
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added column [%i] `%s': %.2f \n",
-			p->c_r, "r", mlp->pv.co_R);
-#endif
+  p->c_r = mlp_create_problem_create_column (p, "u", GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_R);
 
   /* Quality metric columns */
-  cur_col = glp_add_cols(p->prob, mlp->pv.m_q);
   for (c = 0; c < mlp->pv.m_q; c++)
   {
-    p->c_q[c] = cur_col + c;
     GNUNET_asprintf (&name, "q_%u", mlp->pv.q[c]);
-    glp_set_col_name (p->prob, p->c_q[c], name);
-    /* Column lower bound = 0.0 */
-    glp_set_col_bnds (p->prob, p->c_q[c], GLP_LO, 0.0, 0.0);
-    /* Coefficient == Qm */
-    glp_set_obj_coef (p->prob, p->c_q[c], mlp->pv.co_Q[c]);
-#if  DEBUG_MLP_PROBLEM_CREATION
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added column [%i] `%s': %.2f \n",
-			p->c_q[c], name, mlp->pv.co_Q[c]);
-#endif
+  	p->c_q[c] = mlp_create_problem_create_column (p, name, GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_Q[c]);
   	GNUNET_free (name);
   }
 }
