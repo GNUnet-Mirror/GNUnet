@@ -94,11 +94,6 @@ enum OperationType
  */
 struct MessageQueue;
 
-/**
- * Structure for a controller link
- */
-struct ControllerLink;
-
 
 /**
  * Enumeration of states of OperationContext
@@ -222,16 +217,6 @@ struct GNUNET_TESTBED_Controller
    * The tail of the message queue
    */
   struct MessageQueue *mq_tail;
-
-  /**
-   * The head of the ControllerLink list
-   */
-  struct ControllerLink *cl_head;
-
-  /**
-   * The tail of the ControllerLink list
-   */
-  struct ControllerLink *cl_tail;
 
   /**
    * The client transmit handle

@@ -91,45 +91,6 @@ struct MessageQueue
 
 
 /**
- * Structure for a controller link
- */
-struct ControllerLink
-{
-  /**
-   * The next ptr for DLL
-   */
-  struct ControllerLink *next;
-
-  /**
-   * The prev ptr for DLL
-   */
-  struct ControllerLink *prev;
-
-  /**
-   * The host which will be referred in the peer start request. This is the
-   * host where the peer should be started
-   */
-  struct GNUNET_TESTBED_Host *delegated_host;
-
-  /**
-   * The host which will contacted to delegate the peer start request
-   */
-  struct GNUNET_TESTBED_Host *slave_host;
-
-  /**
-   * The configuration to be used to connect to slave host
-   */
-  const struct GNUNET_CONFIGURATION_Handle *slave_cfg;
-
-  /**
-   * GNUNET_YES if the slave should be started (and stopped) by us; GNUNET_NO
-   * if we are just allowed to use the slave via TCP/IP
-   */
-  int is_subordinate;
-};
-
-
-/**
  * Context data for forwarded Operation
  */
 struct ForwardedOperationData
