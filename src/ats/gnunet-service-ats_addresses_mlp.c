@@ -924,6 +924,38 @@ mlp_create_problem_create_column (struct MLP_Problem *p, char *name,
   return col;
 }
 
+static int
+mlp_create_problem_create_constraint (struct MLP_Problem *p, char *name,
+		unsigned int bound, double lb, double ub)
+{
+	char * op;
+  int row = glp_add_rows (p->prob, 1);
+  /* set row name */
+  glp_set_row_name (p->prob, row, name);
+  /* set row bounds: <= 0 */
+  glp_set_row_bnds (p->prob, row, bound, lb, ub);
+  switch (bound) {
+		case GLP_UP:
+			GNUNET_asprintf(&op, "-inf <= x <= %.2f", ub);
+			break;
+		case GLP_DB:
+			GNUNET_asprintf(&op, "%.2f <= x <= %.2f", lb, ub);
+			break;
+		case GLP_LO:
+			GNUNET_asprintf(&op, "%.2f <= x <= inf", lb);
+			break;
+		default:
+			GNUNET_asprintf(&op, "ERROR");
+			break;
+	}
+#if  DEBUG_MLP_PROBLEM_CREATION
+		LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added row [%u] `%s': %s\n",
+				row, name, op);
+#endif
+	GNUNET_free (op);
+	return row;
+}
+
 /**
  * Create the
  * - address columns b and n
@@ -939,7 +971,6 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
   struct ATS_Address *address = value;
   struct ATS_Peer *peer;
   struct MLP_information *mlpi;
-  unsigned int col;
   char *name;
 
   /* Check if we have to add this peer due to a pending request */
@@ -969,18 +1000,10 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
 	/* Add constraint c1) bandwidth capping
    * b_t  + (-M) * n_t <= 0
    * */
-  mlpi->r_c1 = glp_add_rows (p->prob, 1);
-  /* set row name */
   GNUNET_asprintf(&name, "c1_%s_%s", GNUNET_i2s(&address->peer), address->plugin);
-  glp_set_row_name (p->prob, mlpi->r_c1, name);
-  /* set row bounds: <= 0 */
-  glp_set_row_bnds (p->prob, mlpi->r_c1, GLP_UP, 0.0, 0.0);
-#if  DEBUG_MLP_PROBLEM_CREATION
-		LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added row [%u] `%s': %s %u\n",
-				mlpi->r_c1, name,
-				"<=", 0);
-#endif
+  mlpi->r_c1 = mlp_create_problem_create_constraint (p, name, GLP_LO, 0.0, 0.0);
 	GNUNET_free (name);
+
 	/*  c1) set b = 1 coefficient */
 	mlp_create_problem_set_value (p, mlpi->r_c1, mlpi->c_b, 1);
 	/*  c1) set n = -M coefficient */
@@ -989,18 +1012,10 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
   /* Add constraint c 3) minimum bandwidth
    * b_t + (-n_t * b_min) >= 0
    * */
-  mlpi->r_c3 = glp_add_rows (p->prob, 1);
-  /* set row name */
   GNUNET_asprintf(&name, "c3_%s_%s", GNUNET_i2s(&address->peer), address->plugin);
-  glp_set_row_name (p->prob, mlpi->r_c3, name);
-  /* set row bounds: >= 0 */
-  glp_set_row_bnds (p->prob, mlpi->r_c3, GLP_LO, 0.0, 0.0);
-#if  DEBUG_MLP_PROBLEM_CREATION
-		LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added row [%u] `%s': %s %u\n",
-				mlpi->r_c3, name,
-				"<=", 0);
-#endif
+	mlpi->r_c3 = mlp_create_problem_create_constraint (p, name, GLP_LO, 0.0, 0.0);
 	GNUNET_free (name);
+
 	/*  c3) set b = 1 coefficient */
 	mlp_create_problem_set_value (p, mlpi->r_c3, mlpi->c_b, 1);
 	/*  c3) set n = -b_min coefficient */
