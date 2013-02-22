@@ -58,16 +58,6 @@ struct ATS_Peer
 
 	/* Was this peer already added to the current problem? */
 	int processed;
-#if 0
-  struct ATS_Peer *next;
-  struct ATS_Peer *prev;
-
-
-
-  /* Array of quality preferences */
-  double f_q[GNUNET_ATS_QualityPropertiesCount];
-  /* Legacy preference value */
-  double f;
 
   /* constraint 2: 1 address per peer*/
   unsigned int r_c2;
@@ -75,8 +65,13 @@ struct ATS_Peer
   /* constraint 9: relativity */
   unsigned int r_c9;
 
-  struct ATS_Address *head;
-  struct ATS_Address *tail;
+  /* Legacy preference value */
+  double f;
+
+#if 0
+  /* Array of quality preferences */
+  double f_q[GNUNET_ATS_QualityPropertiesCount];
+
 #endif
 };
 
