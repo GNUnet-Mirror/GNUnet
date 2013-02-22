@@ -815,15 +815,6 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
    */
 
 
-  /* Setting -D */
-  ia[p->ci] = p->r_c6 ;
-  ja[p->ci] = p->c_d;
-  ar[p->ci] = -1;
-#if  DEBUG_MLP_PROBLEM_CREATION
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Set value [%u,%u] ==  %.2f\n",
-			ia[p->ci], ja[p->ci], ar[p->ci]);
-#endif
-  p->ci++;
 
   GNUNET_CONTAINER_multihashmap_iterate (addresses, mlp_create_constraint_it, mlp);
 
@@ -840,16 +831,6 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
    * c 9) relativity
    * V p : sum (bt_1 + ... +bt_n) - f_p * r = 0
    * */
-
-  /* -u */
-  ia[p->ci] = p->r_c8;
-  ja[p->ci] = p->c_u;
-  ar[p->ci] = -1;
-#if  DEBUG_MLP_PROBLEM_CREATION
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Set value [%u,%u] ==  %.2f\n",
-			ia[p->ci], ja[p->ci], ar[p->ci]);
-#endif
-  p->ci++;
 
 #if 0
   struct ATS_Peer * peer = mlp->peer_head;
@@ -1064,12 +1045,53 @@ mlp_create_address_columns_it (void *cls, const struct GNUNET_HashCode * key, vo
 }
 #endif
 
+
+struct CountContext
+{
+	struct GNUNET_CONTAINER_MultiHashMap * peers;
+	int result;
+};
+
+static int
+mlp_create_problem_count_addresses_it (void *cls, const struct GNUNET_HashCode *key, void *value)
+{
+	struct CountContext *cctx = cls;
+  /* Check if we have to add this peer due to a pending request */
+  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(cctx->peers, key))
+  	cctx->result++;
+  return GNUNET_OK;
+}
+
+static int mlp_create_problem_count_addresses (
+		struct GNUNET_CONTAINER_MultiHashMap * peers,
+		struct GNUNET_CONTAINER_MultiHashMap * addresses)
+{
+	struct CountContext cctx;
+	cctx.peers = peers;
+	cctx.result = 0;
+  GNUNET_CONTAINER_multihashmap_iterate (addresses, &mlp_create_problem_count_addresses_it, &cctx);
+  return cctx.result;
+}
+
+
 /**
- * Create the invariant columns c4, c6, c10, c8, c7
+ * Create the
+ * - address columns b and n
+ * - address dependent constraint rows c1, c3
+ * - peer dependent rows c2 and c9
+ * - Set address dependent entries in problem matrix as well
  */
 static void
 mlp_create_problem_add_address_information (struct GAS_MLP_Handle *mlp, struct MLP_Problem *p)
 {
+	/* Add peer dependent constraints */
+	/* Add constraint c2 */
+	/* Add constraint c9 */
+
+	/* Add address dependent constraints */
+	/* Add constraint c1 */
+	/* Add constraint c3 */
+
 
 }
 
@@ -1109,6 +1131,16 @@ mlp_create_problem_add_invariant_rows (struct GAS_MLP_Handle *mlp, struct MLP_Pr
 			p->r_c6, name,
 			"==", 0);
 #endif
+  /* c6 )Setting -D */
+  p->ia[p->ci] = p->r_c6 ;
+  p->ja[p->ci] = p->c_d;
+  p->ar[p->ci] = -1;
+#if  DEBUG_MLP_PROBLEM_CREATION
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Set value [%u,%u] ==  %.2f\n",
+			p->ia[p->ci], p->ja[p->ci], p->ar[p->ci]);
+#endif
+  p->ci++;
+
 
   /* Add rows for c 10) */
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
@@ -1138,6 +1170,16 @@ mlp_create_problem_add_invariant_rows (struct GAS_MLP_Handle *mlp, struct MLP_Pr
 				p->r_c8, name,
 				"==", 0);
 #endif
+  /* -u */
+	p->ia[p->ci] = p->r_c8;
+	p->ja[p->ci] = p->c_u;
+	p->ar[p->ci] = -1;
+#if  DEBUG_MLP_PROBLEM_CREATION
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Set value [%u,%u] ==  %.2f\n",
+			p->ia[p->ci], p->ja[p->ci], p->ar[p->ci]);
+#endif
+  p->ci++;
+
 
 	/* c 7) For all quality metrics */
 	for (c = 0; c < mlp->pv.m_q; c++)
@@ -1150,9 +1192,17 @@ mlp_create_problem_add_invariant_rows (struct GAS_MLP_Handle *mlp, struct MLP_Pr
 #if  DEBUG_MLP_PROBLEM_CREATION
 		LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Added row [%u] `%s': %s %u\n",
 				p->r_q[c], name,
-				"<=", 0);
+				"==", 0);
 #endif
 		GNUNET_free (name);
+		p->ia[p->ci] = p->r_q[c];
+		p->ja[p->ci] = p->c_q[c];
+		p->ar[p->ci] = -1;
+#if  DEBUG_MLP_PROBLEM_CREATION
+		LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Set value [%u,%u] ==  %.2f\n",
+				p->ia[p->ci], p->ja[p->ci], p->ar[p->ci]);
+#endif
+    p->ci++;
 	}
 }
 
@@ -1239,29 +1289,41 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
 {
   struct MLP_Problem *p = &mlp->p;
 	int res = GNUNET_OK;
-
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "Rebuilding problem for %u peer(s) \n",
-			GNUNET_CONTAINER_multihashmap_size(mlp->peers));
+	int elements;
 
   GNUNET_assert (p->prob == NULL);
   GNUNET_assert (p->ia == NULL);
   GNUNET_assert (p->ja == NULL);
   GNUNET_assert (p->ar == NULL);
-
-
   /* Reset MLP problem struct */
-  p->num_addresses = 0;
-  p->num_peers = GNUNET_CONTAINER_multihashmap_size (mlp->peers);
 
   /* create the glpk problem */
   p->prob = glp_create_prob ();
-  p->num_addresses = 0;;
   GNUNET_assert (NULL != p->prob);
+  p->num_peers = GNUNET_CONTAINER_multihashmap_size (mlp->peers);
+  p->num_addresses = mlp_create_problem_count_addresses (addresses, mlp->peers);
+
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "Rebuilding problem for %u peer(s) and %u addresse(s)\n",
+			p->num_peers, p->num_addresses);
 
   /* Set a problem name */
   glp_set_prob_name (p->prob, "GNUnet ats bandwidth distribution");
   /* Set optimization direction to maximize */
   glp_set_obj_dir (p->prob, GLP_MAX);
+
+  /* Create problem matrix */
+  /* last +1 caused by glpk index starting with one: [1..elements]*/
+  elements = ((7 * p->num_addresses) + (5 * p->num_addresses +  mlp->pv.m_q + p->num_peers + 2) + 1);
+  p->ci = 1;
+  /* row index */
+  int *ia = GNUNET_malloc (elements * sizeof (int));
+  p->ia = ia;
+  /* column index */
+  int *ja = GNUNET_malloc (elements * sizeof (int));
+  p->ja = ja;
+  /* coefficient */
+  double *ar= GNUNET_malloc (elements * sizeof (double));
+  p->ar = ar;
 
   /* Adding invariant columns */
   mlp_create_problem_add_invariant_columns (mlp, p);
@@ -1274,13 +1336,13 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
 
 #if 0
   /* Add columns for addresses */
-  GNUNET_CONTAINER_multihashmap_iterate (addresses, mlp_create_address_columns_it, mlp);
+  GNUNET_CONTAINER_multihashmap_iterate (peers, mlp_create_address_columns_it, mlp);
 	LOG (GNUNET_ERROR_TYPE_DEBUG, "Problems contains %u peers, %u addresses, %u addresses skipped \n",
 			GNUNET_CONTAINER_multihashmap_size(mlp->peers),
-			p->num_addresses, GNUNET_CONTAINER_multihashmap_size(addresses)- p->num_addresses);
+			p->num_addresses, GNUNET_CONTAINER_multihashmap_size(peers)- p->num_addresses);
 
   /* Add constraints rows */
-  mlp_add_constraints_all_addresses (mlp, addresses);
+  mlp_add_constraints_all_addresses (mlp, peers);
 # endif
 
   /* Load the matrix */
@@ -1786,7 +1848,7 @@ GAS_mlp_address_update (void *solver,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Recreating problem: new address\n");
 
     mlp_delete_problem (mlp);
-    mlp_create_problem (mlp, addresses);
+    mlp_create_problem (mlp, peers);
     mlp->presolver_required = GNUNET_YES;
   }
   if (mlp->auto_solve == GNUNET_YES)
@@ -1876,9 +1938,9 @@ GAS_mlp_address_delete (void *solver,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Recreating problem: new address\n");
 
   mlp_delete_problem (mlp);
-  if ((GNUNET_CONTAINER_multihashmap_size (addresses) > 0) && (mlp->c_p > 0))
+  if ((GNUNET_CONTAINER_multihashmap_size (peers) > 0) && (mlp->c_p > 0))
   {
-    mlp_create_problem (mlp, addresses);
+    mlp_create_problem (mlp, peers);
 
     /* Recalculate */
     mlp->presolver_required = GNUNET_YES;
