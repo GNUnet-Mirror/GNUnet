@@ -87,6 +87,7 @@ int addr_it (void *cls,
              void *value)
 {
 	struct ATS_Address *address = (struct ATS_Address *) value;
+	GAS_mlp_address_delete (mlp, addresses, address, GNUNET_NO);
 	GNUNET_CONTAINER_multihashmap_remove (addresses, key, value);
   GNUNET_free (address);
 	return GNUNET_OK;
@@ -106,17 +107,18 @@ end_now (int res)
   	  GNUNET_STATISTICS_destroy(stats, GNUNET_NO);
   	  stats = NULL;
   }
-  if (NULL != mlp)
-  {
-  		GAS_mlp_done (mlp);
-  		mlp = NULL;
-  }
   if (NULL != addresses)
   {
   		GNUNET_CONTAINER_multihashmap_iterate (addresses, &addr_it, NULL);
   		GNUNET_CONTAINER_multihashmap_destroy (addresses);
   		addresses = NULL ;
   }
+  if (NULL != mlp)
+  {
+  		GAS_mlp_done (mlp);
+  		mlp = NULL;
+  }
+
 	ret = res;
 }
 
@@ -280,14 +282,6 @@ check (void *cls, char *const *args, const char *cfgfile,
   GAS_mlp_get_preferred_address (mlp, addresses, &p[0]);
   GAS_mlp_get_preferred_address (mlp, addresses, &p[1]);
 
-
-#if 0
-  /* Updating address 1*/
-  ats.type =  htonl (GNUNET_ATS_NETWORK_TYPE);
-  ats.value = htonl (GNUNET_ATS_NET_WAN);
-  GAS_mlp_address_update (mlp, addresses, address[1], 1, GNUNET_NO, &ats, 1);
-  GAS_mlp_address_delete (mlp, addresses, address[0], GNUNET_NO);
-#endif
   GAS_mlp_solve_problem (mlp, addresses);
 }
 
