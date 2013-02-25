@@ -126,6 +126,18 @@ GAS_simplistic_address_delete (void *solver,
 
 
 /**
+ * Stop notifying about address and bandwidth changes for this peer
+ *
+ * @param solver the MLP handle
+ * @param addresses address hashmap
+ * @param peer the peer
+ */
+void
+GAS_simplistic_stop_get_preferred_address (void *solver,
+                                     struct GNUNET_CONTAINER_MultiHashMap *addresses,
+                                     const struct GNUNET_PeerIdentity *peer);
+
+/**
  * Get the prefered address for a specific peer
  *
  * @param solver the solver handle

@@ -1226,6 +1226,22 @@ GAS_simplistic_get_preferred_address (void *solver,
   return cur;
 }
 
+
+/**
+ * Stop notifying about address and bandwidth changes for this peer
+ *
+ * @param solver the MLP handle
+ * @param addresses address hashmap
+ * @param peer the peer
+ */
+void
+GAS_simplistic_stop_get_preferred_address (void *solver,
+                                     struct GNUNET_CONTAINER_MultiHashMap *addresses,
+                                     const struct GNUNET_PeerIdentity *peer)
+{
+	return;
+}
+
 static void
 recalculate_preferences (struct PreferencePeer *p)
 {

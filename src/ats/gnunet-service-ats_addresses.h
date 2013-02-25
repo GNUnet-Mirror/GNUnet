@@ -222,6 +222,11 @@ typedef const struct ATS_Address *
                                      struct GNUNET_CONTAINER_MultiHashMap *addresses,
                                      const struct GNUNET_PeerIdentity *peer);
 
+typedef void
+(*GAS_solver_stop_get_preferred_address) (void *solver,
+                                     struct GNUNET_CONTAINER_MultiHashMap *addresses,
+                                     const struct GNUNET_PeerIdentity *peer);
+
 
 typedef void
  (*GAS_solver_done) (void *solver);

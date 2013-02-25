@@ -346,6 +346,11 @@ struct GAS_Addresses_Handle
   GAS_solver_get_preferred_address s_get;
 
   /**
+   * Get address from solver
+   */
+  GAS_solver_stop_get_preferred_address s_get_stop;
+
+  /**
    * Delete address in solver
    */
   GAS_solver_address_delete s_del;
@@ -988,6 +993,7 @@ GAS_addresses_request_address_cancel (struct GAS_Addresses_Handle *handle,
                   "No address requests pending for peer `%s', cannot remove!\n", GNUNET_i2s (peer));
       return;
   }
+  handle->s_get_stop (handle->solver, handle->addresses, peer);
   GAS_addresses_handle_backoff_reset (handle, peer);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Removed request pending for peer `%s\n", GNUNET_i2s (peer));
@@ -1334,6 +1340,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       ah->s_add = &GAS_mlp_address_add;
       ah->s_update = &GAS_mlp_address_update;
       ah->s_get = &GAS_mlp_get_preferred_address;
+      ah->s_get_stop = &GAS_mlp_stop_get_preferred_address;
       ah->s_pref = &GAS_mlp_address_change_preference;
       ah->s_del =  &GAS_mlp_address_delete;
       ah->s_done = &GAS_mlp_done;
@@ -1349,6 +1356,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       ah->s_add = &GAS_simplistic_address_add;
       ah->s_update = &GAS_simplistic_address_update;
       ah->s_get = &GAS_simplistic_get_preferred_address;
+      ah->s_get_stop = &GAS_simplistic_stop_get_preferred_address;
       ah->s_pref = &GAS_simplistic_address_change_preference;
       ah->s_del  = &GAS_simplistic_address_delete;
       ah->s_done = &GAS_simplistic_done;
@@ -1363,6 +1371,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert (NULL != ah->s_add);
   GNUNET_assert (NULL != ah->s_update);
   GNUNET_assert (NULL != ah->s_get);
+  GNUNET_assert (NULL != ah->s_get_stop);
   GNUNET_assert (NULL != ah->s_pref);
   GNUNET_assert (NULL != ah->s_del);
   GNUNET_assert (NULL != ah->s_done);

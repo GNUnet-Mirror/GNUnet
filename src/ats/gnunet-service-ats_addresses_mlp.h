@@ -47,6 +47,7 @@
 #define DEFAULT_U 1.0
 #define DEFAULT_QUALITY 1.0
 #define DEFAULT_MIN_CONNECTIONS 4
+#define DEFAULT_PEER_PREFERENCE 1.0
 
 #define NaN -1
 #define GLP_YES 1.0
@@ -490,6 +491,21 @@ const struct ATS_Address *
 GAS_mlp_get_preferred_address (void *solver,
                                struct GNUNET_CONTAINER_MultiHashMap * addresses,
                                const struct GNUNET_PeerIdentity *peer);
+
+
+/**
+ * Stop notifying about address and bandwidth changes for this peer
+ *
+ * @param solver the MLP handle
+ * @param addresses address hashmap
+ * @param peer the peer
+ */
+
+void
+GAS_mlp_stop_get_preferred_address (void *solver,
+                                     struct GNUNET_CONTAINER_MultiHashMap *addresses,
+                                     const struct GNUNET_PeerIdentity *peer);
+
 
 /**
  * Shutdown the MLP problem solving component
