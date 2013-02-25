@@ -121,21 +121,48 @@ end_now (int res)
 }
 
 static void
-bandwidth_changed_cb (void *cls, struct ATS_Address *address)
+end_correctly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP suggests for peer `%s' address `%s':`%s' in %llu out %llu \n",
-  		GNUNET_i2s(&address->peer), address->plugin, address->addr,
-  		ntohl(address->assigned_bw_in.value__),
-  		ntohl(address->assigned_bw_out.value__));
-	//end_now (0);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Test ending with success\n"));
+	end_now (0);
 }
 
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 	timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Test failed: timeout\n"));
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Test ending with timeout\n"));
 	end_now (1);
+}
+
+
+static void
+bandwidth_changed_cb (void *cls, struct ATS_Address *address)
+{
+	static int cb_p0 = GNUNET_NO;
+	static int cb_p1 = GNUNET_NO;
+
+	unsigned long long in = ntohl(address->assigned_bw_in.value__);
+	unsigned long long out = ntohl(address->assigned_bw_out.value__);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MLP suggests for peer `%s' address `%s':`%s' in %llu out %llu \n",
+  		GNUNET_i2s(&address->peer),
+  		address->plugin,
+  		address->addr,
+  		in, out);
+
+  if ((in > 0) && (out > 0) &&
+  		(0 == memcmp(&p[0], &address->peer, sizeof (address->peer))))
+  	cb_p0 ++;
+
+  if ((in > 0) && (out > 0) &&
+  		(0 == memcmp(&p[1], &address->peer, sizeof (address->peer))))
+  	cb_p1 ++;
+
+  if ((1 == cb_p0) && (1 == cb_p1))
+  		GNUNET_SCHEDULER_add_now (&end_correctly, NULL);
+  else if ((1 > cb_p0) || (1 > cb_p1))
+  		GNUNET_SCHEDULER_add_now (&end_badly, NULL);
 }
 
 
@@ -185,6 +212,7 @@ check (void *cls, char *const *args, const char *cfgfile,
       end_now (1);
       return;
   }
+  mlp->mlp_auto_solve = GNUNET_NO;
 
   /* Create peer 0 */
   if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID0, &p[0].hashPubKey))
@@ -202,22 +230,6 @@ check (void *cls, char *const *args, const char *cfgfile,
       return;
   }
 
-  /* Create address 3 */
-  address[2] = create_address (&p[1], "test_plugin2", "test_addr2", strlen("test_addr2")+1, 0);
-  if (NULL == address[2])
-  {
-    	GNUNET_break (0);
-      end_now (1);
-      return;
-  }
-  GNUNET_CONTAINER_multihashmap_put (addresses, &p[1].hashPubKey, address[2],
-  		GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-
-
-  /* Adding address 1*/
-  GAS_mlp_address_add (mlp, addresses, address[2]);
-
-
   /* Create address 0 */
   address[0] = create_address (&p[0], "test_plugin0", "test_addr0", strlen("test_addr0")+1, 0);
   if (NULL == address[0])
@@ -228,17 +240,8 @@ check (void *cls, char *const *args, const char *cfgfile,
   }
   GNUNET_CONTAINER_multihashmap_put (addresses, &p[0].hashPubKey, address[0],
   		GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-
   /* Adding address 0 */
   GAS_mlp_address_add (mlp, addresses, address[0]);
-
-  /* Updating address 0*/
-  ats.type =  htonl (GNUNET_ATS_NETWORK_TYPE);
-  ats.value = htonl (GNUNET_ATS_NET_WAN);
-  GAS_mlp_address_update (mlp, addresses, address[0], 1, GNUNET_NO, &ats, 1);
-
-  /* Retrieving preferred address for peer and wait for callback */
-  GAS_mlp_get_preferred_address (mlp, addresses, &p[0]);
 
   /* Create address 1 */
   address[1] = create_address (&p[0], "test_plugin1", "test_addr1", strlen("test_addr1")+1, 0);
@@ -250,21 +253,42 @@ check (void *cls, char *const *args, const char *cfgfile,
   }
   GNUNET_CONTAINER_multihashmap_put (addresses, &p[0].hashPubKey, address[1],
   		GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-
-
   /* Adding address 1*/
   GAS_mlp_address_add (mlp, addresses, address[1]);
 
+
+  /* Create address 3 */
+  address[2] = create_address (&p[1], "test_plugin2", "test_addr2", strlen("test_addr2")+1, 0);
+  if (NULL == address[2])
+  {
+    	GNUNET_break (0);
+      end_now (1);
+      return;
+  }
+  GNUNET_CONTAINER_multihashmap_put (addresses, &p[1].hashPubKey, address[2],
+  		GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  /* Adding address 3*/
+  GAS_mlp_address_add (mlp, addresses, address[2]);
+
+
+  /* Updating address 0*/
+  ats.type =  htonl (GNUNET_ATS_NETWORK_TYPE);
+  ats.value = htonl (GNUNET_ATS_NET_WAN);
+  GAS_mlp_address_update (mlp, addresses, address[0], 1, GNUNET_NO, &ats, 1);
+
+  /* Retrieving preferred address for peer and wait for callback */
+  GAS_mlp_get_preferred_address (mlp, addresses, &p[0]);
+  GAS_mlp_get_preferred_address (mlp, addresses, &p[1]);
+
+
+#if 0
   /* Updating address 1*/
   ats.type =  htonl (GNUNET_ATS_NETWORK_TYPE);
   ats.value = htonl (GNUNET_ATS_NET_WAN);
   GAS_mlp_address_update (mlp, addresses, address[1], 1, GNUNET_NO, &ats, 1);
-
   GAS_mlp_address_delete (mlp, addresses, address[0], GNUNET_NO);
-
-  end_now (0);
-  //struct GAS_MLP_SolutionContext ctx;
-  //GAS_mlp_solve_problem (mlp, &ctx);
+#endif
+  GAS_mlp_solve_problem (mlp, addresses);
 }
 
 

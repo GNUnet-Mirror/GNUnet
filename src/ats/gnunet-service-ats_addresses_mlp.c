@@ -1026,7 +1026,7 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
   if ((GLP_YES == mlp_use) && (GNUNET_NO == address->active))
   {
   	/* Address switch: Activate address*/
-  	LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %f : enabling address\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw);
+  	LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : enabling address\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw);
 		address->active = GNUNET_YES;
 		address->assigned_bw_in.value__ = htonl (mlp_bw);
 		address->assigned_bw_out.value__ = htonl (mlp_bw);
@@ -1035,7 +1035,7 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
   else if ((GLP_NO == mlp_use) && (GNUNET_YES == address->active))
   {
 		/* Address switch: Disable address*/
-  	LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %f : disabling address\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw);
+  	LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : disabling address\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw);
 		address->active = GNUNET_NO;
 		/* Set bandwidth to 0 */
 		address->assigned_bw_in.value__ = htonl (0);
@@ -1046,14 +1046,14 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
   				 (mlp_bw != ntohl(address->assigned_bw_in.value__)))
   {
   	/* Bandwidth changed */
-		LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %f : bandwidth changed\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw);
+		LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : bandwidth changed\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw);
 		address->assigned_bw_in.value__ = htonl (mlp_bw);
 		address->assigned_bw_out.value__ = htonl (mlp_bw);
 		mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
   }
   else
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %f : no change\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : no change\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw);
   }
 
   return GNUNET_OK;
@@ -1430,7 +1430,8 @@ GAS_mlp_get_preferred_address (void *solver,
   	  /* Added new peer, we have to rebuild problem before solving */
   	  mlp->mlp_prob_changed = GNUNET_YES;
   }
-  GAS_mlp_solve_problem (mlp, addresses);
+  if (GNUNET_YES == mlp->mlp_auto_solve)
+  	GAS_mlp_solve_problem (mlp, addresses);
 
   /* Get prefered address */
   GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
