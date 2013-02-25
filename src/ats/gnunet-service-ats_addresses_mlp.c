@@ -931,7 +931,7 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
    * b_t  + (-M) * n_t <= 0
    * */
   GNUNET_asprintf(&name, "c1_%s_%s", GNUNET_i2s(&address->peer), address->plugin);
-  mlpi->r_c1 = mlp_create_problem_create_constraint (p, name, GLP_LO, 0.0, 0.0);
+  mlpi->r_c1 = mlp_create_problem_create_constraint (p, name, GLP_UP, 0.0, 0.0);
 	GNUNET_free (name);
 
 	/*  c1) set b = 1 coefficient */
@@ -949,7 +949,7 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
 	/*  c3) set b = 1 coefficient */
 	mlp_create_problem_set_value (p, mlpi->r_c3, mlpi->c_b, 1, __LINE__);
 	/*  c3) set n = -b_min coefficient */
-	mlp_create_problem_set_value (p, mlpi->r_c3, mlpi->c_n, -mlp->pv.b_min, __LINE__);
+	mlp_create_problem_set_value (p, mlpi->r_c3, mlpi->c_n, - ((double )mlp->pv.b_min), __LINE__);
 
 
 	/* Set coefficient entries in invariant rows */
@@ -979,23 +979,7 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
   /* c 7) Optimize quality */
   /* For all quality metrics, set quality of this address */
   for (c = 0; c < mlp->pv.m_q; c++)
-  {
-#if 0
-      mlpi = ta->solver_information;
-      value = mlpi->q_averaged[c];
-
-      mlpi->r_q[c] = p->r_q[c];
-
-      ia[p->ci] = p->r_q[c];
-      ja[p->ci] = mlpi->c_b;
-      ar[p->ci] = tp->f_q[c] * value;
-#if  DEBUG_MLP_PROBLEM_CREATION
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Set value [%u,%u] ==  %.2f\n",
-      		p->ia[p->ci], p->ja[p->ci], p->ar[p->ci]);
-#endif
-#endif
     	mlp_create_problem_set_value (p, p->r_q[c], mlpi->c_b, mlpi->q_averaged[c], __LINE__);
-  }
 
 
   return GNUNET_OK;
@@ -1024,7 +1008,7 @@ mlp_create_problem_add_invariant_rows (struct GAS_MLP_Handle *mlp, struct MLP_Pr
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
   {
       char * text;
-      GNUNET_asprintf(&text, "quota_ats_%s", GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]));
+      GNUNET_asprintf(&text, "c10_quota_ats_%s", GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]));
   		p->r_quota[c] = mlp_create_problem_create_constraint (p, text, GLP_DB, 0.0, mlp->pv.quota_out[c]);
   		GNUNET_free (text);
   }
@@ -1102,6 +1086,7 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
   p->num_elements = (10 * p->num_addresses + mlp->pv.m_q * p->num_addresses +  mlp->pv.m_q + p->num_peers + 2 + 1);
 	LOG (GNUNET_ERROR_TYPE_DEBUG, "Rebuilding problem for %u peer(s) and %u addresse(s) and %u quality metrics == %u elements\n",
 			p->num_peers, p->num_addresses, mlp->pv.m_q, p->num_elements);
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "Rebuilding %u \n", mlp->pv.b_min);
 
   /* Set a problem name */
   glp_set_prob_name (p->prob, "GNUnet ATS bandwidth distribution");
@@ -1323,6 +1308,14 @@ GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addr
 	LOG (GNUNET_ERROR_TYPE_DEBUG, "Solver took LP %llu ms,  MLP %llu ms\n",
 			(unsigned long long) duration_lp.rel_value,
 			(unsigned long long) duration_mlp.rel_value);
+
+	/* Store LP */
+#if DUMP_PROBLEM
+	char *filename;
+	GNUNET_asprintf (&filename, "problem_%llu.lp", GNUNET_TIME_absolute_get().abs_value);
+	glp_write_lp (mlp->p.prob, 0, filename);
+	GNUNET_free (filename);
+#endif
 
 	/* Propagate result*/
 	if (GNUNET_OK == res)

@@ -201,7 +201,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   }
 
   /* Create address 3 */
-  address[2] = create_address (&p[1], "test_plugin", "test_addr2", strlen("test_addr2")+1, 0);
+  address[2] = create_address (&p[1], "test_plugin2", "test_addr2", strlen("test_addr2")+1, 0);
   if (NULL == address[2])
   {
     	GNUNET_break (0);
@@ -217,7 +217,7 @@ check (void *cls, char *const *args, const char *cfgfile,
 
 
   /* Create address 0 */
-  address[0] = create_address (&p[0], "test_plugin", "test_addr0", strlen("test_addr0")+1, 0);
+  address[0] = create_address (&p[0], "test_plugin0", "test_addr0", strlen("test_addr0")+1, 0);
   if (NULL == address[0])
   {
     	GNUNET_break (0);
@@ -240,7 +240,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   GAS_mlp_get_preferred_address (mlp, addresses, &p[0]);
 
   /* Create address 1 */
-  address[1] = create_address (&p[0], "test_plugin", "test_addr1", strlen("test_addr1")+1, 0);
+  address[1] = create_address (&p[0], "test_plugin1", "test_addr1", strlen("test_addr1")+1, 0);
   if (NULL == address[1])
   {
     	GNUNET_break (0);
