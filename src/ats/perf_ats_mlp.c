@@ -24,253 +24,188 @@
  * @author Matthias Wachs
 
  */
+
+/*
+     This file is part of GNUnet.
+     (C) 2010,2011 Christian Grothoff (and other contributing authors)
+
+     GNUnet is free software; you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published
+     by the Free Software Foundation; either version 3, or (at your
+     option) any later version.
+
+     GNUnet is distributed in the hope that it will be useful, but
+     WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     General Public License for more details.
+
+     You should have received a copy of the GNU General Public License
+     along with GNUnet; see the file COPYING.  If not, write to the
+     Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+     Boston, MA 02111-1307, USA.
+*/
+/**
+ * @file ats/test_ats_mlp.c
+ * @brief basic test for the MLP solver
+ * @author Christian Grothoff
+ * @author Matthias Wachs
+
+ */
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
+#include "gnunet_ats_service.h"
 #include "gnunet-service-ats_addresses_mlp.h"
+#include "test_ats_api_common.h"
+
+#define PEERS_START 1
+#define PEERS_END 	100
+
+/**
+ * Return value
+ */
+static int ret;
+
+/**
+ * MLP solver handle
+ */
+struct GAS_MLP_Handle *mlp;
+
+
+/**
+ * Statistics handle
+ */
+struct GNUNET_STATISTICS_Handle * stats;
+
+/**
+ * Hashmap containing addresses
+ */
+struct GNUNET_CONTAINER_MultiHashMap * addresses;
+
+/**
+ * Peer
+ */
+struct GNUNET_PeerIdentity p[2];
+
+/**
+ * ATS Address
+ */
+struct ATS_Address *address[3];
+
+/**
+ * Timeout task
+ */
+GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+
+#if 0
 
 #define MLP_MAX_EXEC_DURATION   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3)
 #define MLP_MAX_ITERATIONS      INT_MAX
 
-#define DEF_PEERS 10
-#define DEF_ADDRESSES_PER_PEER 5
-#define DEF_ATS_VALUES 2
-#define DEF_ATS_MAX_DELAY 30
-#define DEF_ATS_MAX_DISTANCE 3
-
-static unsigned int peers;
-static unsigned int addresses;
-static unsigned int numeric;
-static unsigned int update_percentage;
-
-static int start;
-static int end;
-
-struct ATS_Peer *p;
-struct ATS_Address *a;
-
-static int ret;
-
-static struct GNUNET_CONTAINER_MultiHashMap * amap;
-
-static struct GAS_MLP_Handle *mlp;
-
-
-
-
-GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
-
-struct PeerContext
+static void
+set_ats (struct GNUNET_ATS_Information *ats, uint32_t type, uint32_t value)
 {
-  struct GNUNET_PeerIdentity id;
+  ats->type = type;
+  ats->value = value;
+}
 
-  struct Address *addr;
-};
+#endif
 
-struct Address
+int addr_it (void *cls,
+             const struct GNUNET_HashCode * key,
+             void *value)
 {
-  char *plugin;
-  size_t plugin_len;
+	struct ATS_Address *address = (struct ATS_Address *) value;
+	GAS_mlp_address_delete (mlp, addresses, address, GNUNET_NO);
+	GNUNET_CONTAINER_multihashmap_remove (addresses, key, value);
+  GNUNET_free (address);
+	return GNUNET_OK;
+}
 
-  void *addr;
-  size_t addr_len;
 
-  struct GNUNET_ATS_Information *ats;
-  int ats_count;
-
-  void *session;
-};
-
-void
-do_shutdown (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
+static void
+end_now (int res)
 {
-  unsigned int ca;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown\n");
-
+	if (GNUNET_SCHEDULER_NO_TASK != timeout_task)
+	{
+			GNUNET_SCHEDULER_cancel (timeout_task);
+			timeout_task = GNUNET_SCHEDULER_NO_TASK;
+	}
+  if (NULL != stats)
+  {
+  	  GNUNET_STATISTICS_destroy(stats, GNUNET_NO);
+  	  stats = NULL;
+  }
+  if (NULL != addresses)
+  {
+  		GNUNET_CONTAINER_multihashmap_iterate (addresses, &addr_it, NULL);
+  		GNUNET_CONTAINER_multihashmap_destroy (addresses);
+  		addresses = NULL ;
+  }
   if (NULL != mlp)
   {
-    GAS_mlp_done (mlp);
-    mlp = NULL;
+  		GAS_mlp_done (mlp);
+  		mlp = NULL;
   }
 
-  if (NULL != a)
-  {
-    for (ca=0; ca < (peers * addresses); ca++)
-    {
-      GNUNET_free (a[ca].plugin);
-      GNUNET_free (a[ca].ats);
-    }
-  }
-
-  if (NULL != amap)
-    GNUNET_CONTAINER_multihashmap_destroy(amap);
-  GNUNET_free_non_null (a);
-  GNUNET_free_non_null (p);
-
+	ret = res;
 }
 
 static void
-update_addresses (struct ATS_Address * a, unsigned int addrs, unsigned int percentage)
+end_correctly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (percentage == 0)
-    return;
-
-  unsigned int ua = (addrs) * ((float) percentage / 100);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Updating %u of %u addresses per peer\n", ua, addrs);
-
-  unsigned int updated[addrs];
-  unsigned int u_types[DEF_ATS_VALUES];
-  unsigned int updates = 0;
-  unsigned int u_type = 0;
-  unsigned int u_val = 0;
-  unsigned int cur = 0;
-
-  u_types[0] = 0;
-  u_types[1] = 0;
-
-  for (cur = 0; cur < addrs; cur ++)
-  {
-    updated[cur] = 0;
-  }
-  cur = 0;
-
-  while (updates < ua)
-  {
-    cur = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, addrs);
-    if (0 == updated[cur])
-    {
-      u_type = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, DEF_ATS_VALUES);
-      switch (u_type) {
-        case 0:
-            do
-            {
-            u_val = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, DEF_ATS_MAX_DELAY);
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating DELAY from %u to %u\n",a[cur].ats[u_type].value, u_val);
-            }
-            while (a[cur].ats[u_type].value == u_val);
-          break;
-        case 1:
-          do
-          {
-            u_val = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, DEF_ATS_MAX_DISTANCE);
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating DISTANCE from %u to %u\n",a[cur].ats[u_type].value, u_val);
-          }
-          while (a[cur].ats[u_type].value == u_val);
-          break;
-        default:
-          GNUNET_break (0);
-          break;
-      }
-      u_types[u_type]++;
-
-      a[cur].ats[u_type].value = u_val;
-      updated[cur] = 1;
-      GAS_mlp_address_update(mlp, amap, &a[cur]);
-      updates++;
-    }
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Updated %u delay and %u distance values\n", u_types[0], u_types[1]);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Test ending with success\n"));
+	end_now (0);
 }
 
-static unsigned int
-load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg, unsigned long long *out_dest, unsigned long long *in_dest, int dest_length)
+static void
+end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  int quotas[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
-  char * entry_in = NULL;
-  char * entry_out = NULL;
-  char * quota_out_str;
-  char * quota_in_str;
-  int c;
+	timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Test ending with timeout\n"));
+	end_now (1);
+}
 
-  for (c = 0; (c < GNUNET_ATS_NetworkTypeCount) && (c < dest_length); c++)
-  {
-    in_dest[c] = 0;
-    out_dest[c] = 0;
-    switch (quotas[c]) {
-      case GNUNET_ATS_NET_UNSPECIFIED:
-        entry_out = "UNSPECIFIED_QUOTA_OUT";
-        entry_in = "UNSPECIFIED_QUOTA_IN";
-        break;
-      case GNUNET_ATS_NET_LOOPBACK:
-        entry_out = "LOOPBACK_QUOTA_OUT";
-        entry_in = "LOOPBACK_QUOTA_IN";
-        break;
-      case GNUNET_ATS_NET_LAN:
-        entry_out = "LAN_QUOTA_OUT";
-        entry_in = "LAN_QUOTA_IN";
-        break;
-      case GNUNET_ATS_NET_WAN:
-        entry_out = "WAN_QUOTA_OUT";
-        entry_in = "WAN_QUOTA_IN";
-        break;
-      case GNUNET_ATS_NET_WLAN:
-        entry_out = "WLAN_QUOTA_OUT";
-        entry_in = "WLAN_QUOTA_IN";
-        break;
-      default:
-        break;
-    }
 
-    if ((entry_in == NULL) || (entry_out == NULL))
-      continue;
+static void
+bandwidth_changed_cb (void *cls, struct ATS_Address *address)
+{
+	static int cb_p0 = GNUNET_NO;
+	static int cb_p1 = GNUNET_NO;
 
-    /* quota out */
-    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_out, &quota_out_str))
-    {
-      if (0 == strcmp(quota_out_str, BIG_M_STRING) ||
-          (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_out_str, &out_dest[c])))
-        out_dest[c] = UINT32_MAX;
+	unsigned long long in = ntohl(address->assigned_bw_in.value__);
+	unsigned long long out = ntohl(address->assigned_bw_out.value__);
 
-      GNUNET_free (quota_out_str);
-      quota_out_str = NULL;
-    }
-    else if (GNUNET_ATS_NET_UNSPECIFIED == quotas[c])
-      out_dest[c] = UINT32_MAX;
-    else
-      out_dest[c] = UINT32_MAX;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MLP suggests for peer `%s' address `%s':`%s' in %llu out %llu \n",
+  		GNUNET_i2s(&address->peer),
+  		address->plugin,
+  		address->addr,
+  		in, out);
 
-    /* quota in */
-    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_in, &quota_in_str))
-    {
-      if (0 == strcmp(quota_in_str, BIG_M_STRING) ||
-          (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_in_str, &in_dest[c])))
-        in_dest[c] = UINT32_MAX;
+  if ((in > 0) && (out > 0) &&
+  		(0 == memcmp(&p[0], &address->peer, sizeof (address->peer))))
+  	cb_p0 ++;
 
-      GNUNET_free (quota_in_str);
-      quota_in_str = NULL;
-    }
-    else if (GNUNET_ATS_NET_UNSPECIFIED == quotas[c])
-    {
-      in_dest[c] = UINT32_MAX;
-    }
-    else
-    {
-        in_dest[c] = UINT32_MAX;
-    }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Loaded quota: %s %u, %s %u\n", entry_in, in_dest[c], entry_out, out_dest[c]);
+  if ((in > 0) && (out > 0) &&
+  		(0 == memcmp(&p[1], &address->peer, sizeof (address->peer))))
+  	cb_p1 ++;
 
-  }
-  return GNUNET_ATS_NetworkTypeCount;
+  if ((1 == cb_p0) && (1 == cb_p1))
+  		GNUNET_SCHEDULER_add_now (&end_correctly, NULL);
+  else if ((1 > cb_p0) || (1 > cb_p1))
+  		GNUNET_SCHEDULER_add_now (&end_badly, NULL);
 }
 
 
 static void
 check (void *cls, char *const *args, const char *cfgfile,
-       const  struct GNUNET_CONFIGURATION_Handle *cfg)
+       const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  unsigned int c = 0;
-  unsigned int c2 = 0;
-  unsigned int ca = 0;
-  int update = GNUNET_NO;
-  int range = GNUNET_NO;
-  int res;
   int quotas[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
   unsigned long long  quotas_in[GNUNET_ATS_NetworkTypeCount];
   unsigned long long  quotas_out[GNUNET_ATS_NetworkTypeCount];
-  int quota_count;
+  //struct GNUNET_ATS_Information ats;
 
 #if !HAVE_LIBGLPK
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "GLPK not installed!");
@@ -278,182 +213,139 @@ check (void *cls, char *const *args, const char *cfgfile,
   return;
 #endif
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up %u peers with %u addresses per peer\n", peers, addresses);
 
-  quota_count = load_quotas(cfg, quotas_in, quotas_out, GNUNET_ATS_NetworkTypeCount);
-  mlp = GAS_mlp_init (cfg, NULL, quotas, quotas_in, quotas_out, quota_count);
-  if (NULL == mlp)
+
+  timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
+
+  stats = GNUNET_STATISTICS_create("ats", cfg);
+  if (NULL == stats)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to init MLP\n");
-    ret = 1;
-    if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
-      GNUNET_SCHEDULER_cancel(shutdown_task);
-    shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
-  }
-
-  if (peers == 0)
-    peers = DEF_PEERS;
-  if (addresses == 0)
-    addresses = DEF_ADDRESSES_PER_PEER;
-
-  p = GNUNET_malloc (peers * sizeof (struct ATS_Peer));
-  a = GNUNET_malloc (peers * addresses * sizeof (struct ATS_Address));
-
-  amap = GNUNET_CONTAINER_multihashmap_create(addresses * peers, GNUNET_NO);
-
-  mlp->auto_solve = GNUNET_NO;
-  if (start == 0)
-      start = 0;
-  if (end == 0)
-      end = -1;
-  if ((start != -1) && (end != -1))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Solving problem starting from %u to %u\n", start , end);
-    range = GNUNET_YES;
-  }
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Solving problem for %u peers\n", peers);
-
-  if ((update_percentage >= 0) && (update_percentage <= 100))
-  {
-    update = GNUNET_YES;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Benchmarking with existing presolution and %u%% updated addresses\n", update_percentage);
-  }
-  else if ((update_percentage > 100) && (update_percentage != UINT_MAX))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Invalid percentage: %u\n", update_percentage);
-    ret = 1;
+  	GNUNET_break (0);
+    end_now (1);
     return;
   }
 
-  for (c=0; c < peers; c++)
+  /* Load quotas */
+  if (GNUNET_ATS_NetworkTypeCount != load_quotas (cfg, quotas_out, quotas_in,
+  			GNUNET_ATS_NetworkTypeCount))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up peer %u\n", c);
-    GNUNET_CRYPTO_hash_create_random(GNUNET_CRYPTO_QUALITY_NONCE, &p[c].id.hashPubKey);
-
-    for (c2=0; c2 < addresses; c2++)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up address %u for peer %u\n", c2, c);
-      /* Setting required information */
-      a[ca].solver_information = NULL;
-      a[ca].prev = NULL;
-      a[ca].next = NULL;
-
-      /* Setting address */
-      a[ca].peer = p[c].id;
-      a[ca].plugin = GNUNET_strdup("test");
-      a[ca].atsp_network_type = GNUNET_ATS_NET_LOOPBACK;
-
-      a[ca].ats = GNUNET_malloc (DEF_ATS_VALUES * sizeof (struct GNUNET_ATS_Information));
-      a[ca].ats[0].type = GNUNET_ATS_QUALITY_NET_DELAY;
-      a[ca].ats[0].value = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, DEF_ATS_MAX_DELAY);
-      a[ca].ats[1].type = GNUNET_ATS_QUALITY_NET_DISTANCE;
-      a[ca].ats[1].value = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, DEF_ATS_MAX_DISTANCE);
-      a[ca].ats_count = 2;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up address %u\n", ca);
-      GNUNET_CONTAINER_multihashmap_put (amap, &a[ca].peer.hashPubKey, &a[ca], GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-      GAS_mlp_address_update(mlp, amap, &a[ca]);
-      ca++;
-    }
-
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Problem contains %u peers and %u adresses\n", mlp->c_p, mlp->addresses_in_problem);
-
-    if (((GNUNET_YES == range) && (((start >= 0) && ((c+1) >= start)) && (c <= end))) || ((c+1) == peers))
-    {
-      GNUNET_assert ((c+1) == mlp->c_p);
-      GNUNET_assert ((c+1) * addresses == mlp->addresses_in_problem);
-
-      /* Solving the problem */
-      struct GAS_MLP_SolutionContext ctx;
-
-      res = GAS_mlp_solve_problem(mlp, &ctx);
-
-      if (GNUNET_NO == update)
-      {
-        if (GNUNET_OK == res)
-        {
-          GNUNET_assert (GNUNET_OK == ctx.lp_result);
-          GNUNET_assert (GNUNET_OK == ctx.mlp_result);
-          if (GNUNET_YES == numeric)
-            printf ("%u;%u;%llu;%llu\n",mlp->c_p, mlp->addresses_in_problem, (unsigned long long) ctx.lp_duration.rel_value, (unsigned long long) ctx.mlp_duration.rel_value);
-          else
-            GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Problem solved for %u peers with %u address successfully (LP: %llu ms / MLP: %llu ms)\n",
-                mlp->c_p, mlp->addresses_in_problem, ctx.lp_duration.rel_value, ctx.mlp_duration.rel_value);
-        }
-        else
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Solving problem with %u peers and %u addresses failed\n", c, c2);
-      }
-      else
-      {
-        struct GAS_MLP_SolutionContext uctx;
-        /* Update addresses */
-        update_addresses (a, (c+1) * c2, update_percentage);
-
-        /* Solve again */
-        res = GAS_mlp_solve_problem(mlp, &uctx);
-
-        if (GNUNET_OK == res)
-        {
-          GNUNET_assert (GNUNET_OK == uctx.lp_result);
-          GNUNET_assert (GNUNET_OK == uctx.mlp_result);
-          if (GNUNET_YES == numeric)
-            printf ("%u;%u;%llu;%llu;%llu;%llu\n",mlp->c_p, mlp->addresses_in_problem,
-                (unsigned long long) ctx.lp_duration.rel_value, (unsigned long long) ctx.mlp_duration.rel_value,
-                (unsigned long long) uctx.lp_duration.rel_value, (unsigned long long) uctx.mlp_duration.rel_value);
-          else
-            GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Updated problem solved for %u peers with %u address successfully (Initial: LP/MLP: %llu/%llu ms, Update: %llu/%llu ms)\n",
-                mlp->c_p, mlp->addresses_in_problem,
-                (unsigned long long) ctx.lp_duration.rel_value, (unsigned long long) ctx.mlp_duration.rel_value,
-                (unsigned long long) uctx.lp_duration.rel_value, (unsigned long long) uctx.mlp_duration.rel_value);
-        }
-        else
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Solving updated problem with %u peers and %u addresses failed\n", c, c2);
-      }
-    }
+    	GNUNET_break (0);
+      end_now (1);
+      return;
   }
 
-  if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
-    GNUNET_SCHEDULER_cancel(shutdown_task);
-  shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  /* Setup address hashmap */
+  addresses = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
 
+  /* Init MLP solver */
+  mlp  = GAS_mlp_init (cfg, stats, quotas, quotas_out, quotas_in,
+  		GNUNET_ATS_NetworkTypeCount, &bandwidth_changed_cb, NULL);
+  if (NULL == mlp)
+  {
+    	GNUNET_break (0);
+      end_now (1);
+      return;
+  }
+  mlp->mlp_auto_solve = GNUNET_NO;
+
+
+#if 0
+
+  /* Create peer 0 */
+  if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID0, &p[0].hashPubKey))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not setup peer!\n");
+      end_now (1);
+      return;
+  }
+
+  /* Create peer 1 */
+  if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID1, &p[1].hashPubKey))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not setup peer!\n");
+      end_now (1);
+      return;
+  }
+
+  /* Create address 0 */
+  address[0] = create_address (&p[0], "test_plugin0", "test_addr0", strlen("test_addr0")+1, 0);
+  if (NULL == address[0])
+  {
+    	GNUNET_break (0);
+      end_now (1);
+      return;
+  }
+  GNUNET_CONTAINER_multihashmap_put (addresses, &p[0].hashPubKey, address[0],
+  		GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  /* Adding address 0 */
+  GAS_mlp_address_add (mlp, addresses, address[0]);
+
+  /* Create address 1 */
+  address[1] = create_address (&p[0], "test_plugin1", "test_addr1", strlen("test_addr1")+1, 0);
+  if (NULL == address[1])
+  {
+    	GNUNET_break (0);
+      end_now (1);
+      return;
+  }
+  GNUNET_CONTAINER_multihashmap_put (addresses, &p[0].hashPubKey, address[1],
+  		GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  /* Adding address 1*/
+  GAS_mlp_address_add (mlp, addresses, address[1]);
+
+
+  /* Create address 3 */
+  address[2] = create_address (&p[1], "test_plugin2", "test_addr2", strlen("test_addr2")+1, 0);
+  if (NULL == address[2])
+  {
+    	GNUNET_break (0);
+      end_now (1);
+      return;
+  }
+  GNUNET_CONTAINER_multihashmap_put (addresses, &p[1].hashPubKey, address[2],
+  		GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  /* Adding address 3*/
+  GAS_mlp_address_add (mlp, addresses, address[2]);
+
+
+  /* Updating address 0*/
+  ats.type =  htonl (GNUNET_ATS_NETWORK_TYPE);
+  ats.value = htonl (GNUNET_ATS_NET_WAN);
+  GAS_mlp_address_update (mlp, addresses, address[0], 1, GNUNET_NO, &ats, 1);
+
+  /* Retrieving preferred address for peer and wait for callback */
+  GAS_mlp_get_preferred_address (mlp, addresses, &p[0]);
+  GAS_mlp_get_preferred_address (mlp, addresses, &p[1]);
+
+  GAS_mlp_solve_problem (mlp, addresses);
+#endif
 }
 
 
 int
-main (int argc, char *const *argv)
+main (int argc, char *argv[])
 {
-  /* Init invalid */
-  update_percentage = UINT_MAX;
+
+  static char *const argv2[] = { "perf_ats_mlp",
+    "-c",
+    "test_ats_mlp.conf",
+    "-L", "WARNING",
+    NULL
+  };
+
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'a', "addresses", NULL,
-     gettext_noop ("addresses per peer"), 1,
-     &GNUNET_GETOPT_set_uint, &addresses},
-    {'p', "peers", NULL,
-     gettext_noop ("peers"), 1,
-     &GNUNET_GETOPT_set_uint, &peers},
-     {'n', "numeric", NULL,
-      gettext_noop ("numeric output only"), 0,
-      &GNUNET_GETOPT_set_one, &numeric},
-    {'e', "end", NULL,
-     gettext_noop ("end solving problem"), 1,
-     &GNUNET_GETOPT_set_uint, &end},
-   {'s', "start", NULL,
-    gettext_noop ("start solving problem"), 1,
-    &GNUNET_GETOPT_set_uint, &start},
-    {'u', "update", NULL,
-     gettext_noop ("benchmark with existing solution (address updates)"), 1,
-     &GNUNET_GETOPT_set_uint, &update_percentage},
     GNUNET_GETOPT_OPTION_END
   };
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
-    return 2;
-
-  GNUNET_PROGRAM_run (argc, argv,
+  GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
                       "perf_ats_mlp", "nohelp", options,
                       &check, NULL);
-  GNUNET_free ((void *) argv);
+
+
   return ret;
 }
+
+/* end of file test_ats_api_bandwidth_consumption.c */
+
 
 /* end of file perf_ats_mlp.c */

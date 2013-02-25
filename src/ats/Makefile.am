@@ -75,8 +75,7 @@ check_PROGRAMS = \
  test_ats_simplistic_pref_aging \
  test_ats_api_performance \
  $(GN_MLP_TEST)
-# $(GN_MLP_TEST_AVG) \
-# $(GN_MLP_PERF)
+# $(GN_MLP_TEST_AVG)  $(GN_MLP_PERF)\
 # test_ats_api_scheduling_get_type
 # test_ats_api_bandwidth_consumption
 
@@ -202,6 +201,15 @@ test_ats_mlp_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/ats/libgnunetats.la  
+  
+perf_ats_mlp_SOURCES = \
+  $(GN_MLP_SRC) perf_ats_mlp.c test_ats_api_common.c
+perf_ats_mlp_LDADD = \
+  $(GN_LIBGLPK) \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/ats/libgnunetats.la  
+endif  
 
 #test_ats_mlp_averaging_SOURCES = \
 # $(GN_MLP_SRC) test_ats_mlp_averaging.c test_ats_api_common.c
@@ -209,14 +217,6 @@ test_ats_mlp_LDADD = \
 #  $(GN_LIBGLPK) \
 #  $(top_builddir)/src/util/libgnunetutil.la \
 #  $(top_builddir)/src/statistics/libgnunetstatistics.la
-
-#perf_ats_mlp_SOURCES = \
-# $(GN_MLP_SRC) perf_ats_mlp.c test_ats_api_common.c
-#perf_ats_mlp_LDADD = \
-#  $(GN_LIBGLPK) \
-#  $(top_builddir)/src/util/libgnunetutil.la \
-#  $(top_builddir)/src/statistics/libgnunetstatistics.la
-endif
 
 #test_ats_api_bandwidth_consumption_SOURCES = \
 # test_ats_api_bandwidth_consumption.c
