@@ -154,8 +154,16 @@ mlp_term_hook (void *info, const char *s)
 }
 
 
- static int
- reset_peers (void *cls, const struct GNUNET_HashCode * key, void *value)
+/**
+ * Reset peers for next problem creation
+ *
+ * @param cls not used
+ * @param key the key
+ * @param value ATS_Peer
+ * @return GNUNET_OK
+ */
+static int
+reset_peers (void *cls, const struct GNUNET_HashCode * key, void *value)
  {
 	 struct ATS_Peer *peer = value;
 	 peer->processed = GNUNET_NO;
@@ -372,29 +380,6 @@ mlp_lookup_ats (struct ATS_Address *addr, int ats_index)
     return GNUNET_SYSERR;
 }
 #endif
-
-int GAS_mlp_solve_problem (void *solver, struct GAS_MLP_SolutionContext *ctx);
-
-
-static void
-mlp_scheduler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct GAS_MLP_Handle *mlp = cls;
-  struct GAS_MLP_SolutionContext ctx;
-
-  mlp->mlp_task = GNUNET_SCHEDULER_NO_TASK;
-
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Scheduled problem solving\n");
-
-  if (mlp->num_addresses != 0)
-    GAS_mlp_solve_problem(mlp, &ctx);
-}
-
-
-
 
 static void
 update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address)
@@ -805,10 +790,14 @@ static int mlp_create_problem_count_addresses (
 
 
 static void
-mlp_create_problem_set_value (struct MLP_Problem *p, int row, int col, double val)
+mlp_create_problem_set_value (struct MLP_Problem *p,
+															int row, int col, double val,
+															int line)
 {
-	if ((p->ci + 1) >= p->num_elements)
+	if ((p->ci) >= p->num_elements)
 	{
+		LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: line %u: Request for index %u bigger than array size of %u\n",
+				line, p->ci + 1, p->num_elements);
 		GNUNET_break (0);
 		return;
 	}
@@ -818,8 +807,8 @@ mlp_create_problem_set_value (struct MLP_Problem *p, int row, int col, double va
   p->ja[p->ci] = col;
   p->ar[p->ci] = val;
 #if  DEBUG_MLP_PROBLEM_CREATION
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Set value [%u,%u] ==  %.2f\n",
-			p->ia[p->ci], p->ja[p->ci], p->ar[p->ci]);
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: line %u: Set value [%u,%u] in index %u ==  %.2f\n",
+			line, p->ia[p->ci], p->ja[p->ci], p->ci, p->ar[p->ci]);
 #endif
   p->ci++;
 }
@@ -892,6 +881,7 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
   struct ATS_Peer *peer;
   struct MLP_information *mlpi;
   char *name;
+  int c;
 
   /* Check if we have to add this peer due to a pending request */
   if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(mlp->peers, key))
@@ -911,7 +901,7 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
   	  peer->r_c9 = mlp_create_problem_create_constraint (p, name, GLP_LO, 0.0, 0.0);
   		GNUNET_free (name);
   	  /* c 9) set coefficient */
-  		mlp_create_problem_set_value (p, peer->r_c9, p->c_r, -peer->f);
+  		mlp_create_problem_set_value (p, peer->r_c9, p->c_r, -peer->f, __LINE__);
 
   		peer->processed = GNUNET_YES;
   }
@@ -945,9 +935,9 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
 	GNUNET_free (name);
 
 	/*  c1) set b = 1 coefficient */
-	mlp_create_problem_set_value (p, mlpi->r_c1, mlpi->c_b, 1);
+	mlp_create_problem_set_value (p, mlpi->r_c1, mlpi->c_b, 1, __LINE__);
 	/*  c1) set n = -M coefficient */
-	mlp_create_problem_set_value (p, mlpi->r_c1, mlpi->c_n, -mlp->pv.BIG_M);
+	mlp_create_problem_set_value (p, mlpi->r_c1, mlpi->c_n, -mlp->pv.BIG_M, __LINE__);
 
   /* Add constraint c 3) minimum bandwidth
    * b_t + (-n_t * b_min) >= 0
@@ -957,35 +947,56 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
 	GNUNET_free (name);
 
 	/*  c3) set b = 1 coefficient */
-	mlp_create_problem_set_value (p, mlpi->r_c3, mlpi->c_b, 1);
+	mlp_create_problem_set_value (p, mlpi->r_c3, mlpi->c_b, 1, __LINE__);
 	/*  c3) set n = -b_min coefficient */
-	mlp_create_problem_set_value (p, mlpi->r_c3, mlpi->c_n, -mlp->pv.b_min);
+	mlp_create_problem_set_value (p, mlpi->r_c3, mlpi->c_n, -mlp->pv.b_min, __LINE__);
 
 
 	/* Set coefficient entries in invariant rows */
   /* c 4) minimum connections */
-	mlp_create_problem_set_value (p, p->r_c4, mlpi->c_n, 1);
+	mlp_create_problem_set_value (p, p->r_c4, mlpi->c_n, 1, __LINE__);
   /* c 6) maximize diversity */
-	mlp_create_problem_set_value (p, p->r_c6, mlpi->c_n, 1);
+	mlp_create_problem_set_value (p, p->r_c6, mlpi->c_n, 1, __LINE__);
   /* c 2) 1 address peer peer */
-	mlp_create_problem_set_value (p, peer->r_c2, mlpi->c_n, 1);
+	mlp_create_problem_set_value (p, peer->r_c2, mlpi->c_n, 1, __LINE__);
   /* c 9) relativity */
-	mlp_create_problem_set_value (p, peer->r_c9, mlpi->c_b, 1);
+	mlp_create_problem_set_value (p, peer->r_c9, mlpi->c_b, 1, __LINE__);
   /* c 8) utility */
-	mlp_create_problem_set_value (p, p->r_c8, mlpi->c_b, 1);
+	mlp_create_problem_set_value (p, p->r_c8, mlpi->c_b, 1, __LINE__);
 
   /* c 10) obey network specific quotas
    * (1)*b_1 + ... + (1)*b_m <= quota_n
    */
-  int c;
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
-    {
+  {
     if (mlp->pv.quota_index[c] == address->atsp_network_type)
     {
-  		mlp_create_problem_set_value (p, p->r_quota[c], mlpi->c_b, 1);
+  		mlp_create_problem_set_value (p, p->r_quota[c], mlpi->c_b, 1, __LINE__);
       break;
     }
   }
+
+  /* c 7) Optimize quality */
+  /* For all quality metrics, set quality of this address */
+  for (c = 0; c < mlp->pv.m_q; c++)
+  {
+#if 0
+      mlpi = ta->solver_information;
+      value = mlpi->q_averaged[c];
+
+      mlpi->r_q[c] = p->r_q[c];
+
+      ia[p->ci] = p->r_q[c];
+      ja[p->ci] = mlpi->c_b;
+      ar[p->ci] = tp->f_q[c] * value;
+#if  DEBUG_MLP_PROBLEM_CREATION
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "[P]: Set value [%u,%u] ==  %.2f\n",
+      		p->ia[p->ci], p->ja[p->ci], p->ar[p->ci]);
+#endif
+#endif
+    	mlp_create_problem_set_value (p, p->r_q[c], mlpi->c_b, mlpi->q_averaged[c], __LINE__);
+  }
+
 
   return GNUNET_OK;
 }
@@ -1007,7 +1018,7 @@ mlp_create_problem_add_invariant_rows (struct GAS_MLP_Handle *mlp, struct MLP_Pr
   /* Add row for c6) */
 	p->r_c6 = mlp_create_problem_create_constraint (p, "c6", GLP_FX, 0.0, 0.0);
   /* c6 )Setting -D */
-	mlp_create_problem_set_value (p, p->r_c6, p->c_d, -1);
+	mlp_create_problem_set_value (p, p->r_c6, p->c_d, -1, __LINE__);
 
   /* Add rows for c 10) */
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
@@ -1021,7 +1032,7 @@ mlp_create_problem_add_invariant_rows (struct GAS_MLP_Handle *mlp, struct MLP_Pr
   /* Adding rows for c 8) */
   p->r_c8 = mlp_create_problem_create_constraint (p, "c8", GLP_FX, 0.0, 0.0);
   /* -u */
-	mlp_create_problem_set_value (p, p->r_c8, p->c_u, -1);
+	mlp_create_problem_set_value (p, p->r_c8, p->c_u, -1, __LINE__);
 
 	/* c 7) For all quality metrics */
 	for (c = 0; c < mlp->pv.m_q; c++)
@@ -1029,7 +1040,7 @@ mlp_create_problem_add_invariant_rows (struct GAS_MLP_Handle *mlp, struct MLP_Pr
 		GNUNET_asprintf(&name, "c7_q%i_%s", c, mlp_ats_to_string(mlp->pv.q[c]));
 		p->r_q[c] = mlp_create_problem_create_constraint (p, name, GLP_FX, 0.0, 0.0);
 		GNUNET_free (name);
-		mlp_create_problem_set_value (p, p->r_q[c], p->c_q[c], -1);
+		mlp_create_problem_set_value (p, p->r_q[c], p->c_q[c], -1, __LINE__);
 	}
 }
 
@@ -1086,12 +1097,14 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
   GNUNET_assert (NULL != p->prob);
   p->num_peers = GNUNET_CONTAINER_multihashmap_size (mlp->peers);
   p->num_addresses = mlp_create_problem_count_addresses (mlp->peers, addresses);
-  p->num_elements = ((7 * p->num_addresses) + (5 * p->num_addresses +  mlp->pv.m_q + p->num_peers + 2) + 1);
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "Rebuilding problem for %u peer(s) and %u addresse(s) == %u elements\n",
-			p->num_peers, p->num_addresses, p->num_elements);
+
+  /* Create problem matrix: 10 * #addresses + #q * #addresses + #q, + #peer + 2 + 1 */
+  p->num_elements = (10 * p->num_addresses + mlp->pv.m_q * p->num_addresses +  mlp->pv.m_q + p->num_peers + 2 + 1);
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "Rebuilding problem for %u peer(s) and %u addresse(s) and %u quality metrics == %u elements\n",
+			p->num_peers, p->num_addresses, mlp->pv.m_q, p->num_elements);
 
   /* Set a problem name */
-  glp_set_prob_name (p->prob, "GNUnet ats bandwidth distribution");
+  glp_set_prob_name (p->prob, "GNUnet ATS bandwidth distribution");
   /* Set optimization direction to maximize */
   glp_set_obj_dir (p->prob, GLP_MAX);
 
