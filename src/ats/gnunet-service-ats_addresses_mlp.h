@@ -76,14 +76,6 @@ struct ATS_Peer
 #endif
 };
 
-struct GAS_MLP_SolutionContext
-{
-  int lp_result;
-  int mlp_result;
-  struct GNUNET_TIME_Relative lp_duration;
-  struct GNUNET_TIME_Relative mlp_duration;
-};
-
 
 
 struct MLP_Problem
@@ -255,84 +247,12 @@ struct GAS_MLP_Handle
    */
   int mlp_prob_changed;
 
-
   /**
    * Solve the problem automatically when updates occur?
    * Default: GNUNET_YES
    * Can be disabled for test and measurements
    */
   int mlp_auto_solve;
-
-
-#if 0
-  /**
-   * Interval between scheduled problem solving
-   */
-  struct GNUNET_TIME_Relative exec_interval;
-
-  /**
-   * Maximum execution time per problem solving
-   */
-  struct GNUNET_TIME_Relative max_exec_duration;
-
-  /**
-   * Maximum number of LP iterations per problem solving
-   */
-  unsigned int max_iterations;
-
-
-  /**
-   * Is a solution attemp running?
-   */
-  int semaphore;
-
-  /* state information */
-
-  /**
-   * Do we need to use the LP presolver?
-   *
-   * If the problem addresses were added or removed and the last basis was we
-   * need to use the presolver.
-   * presolver_required == GNUNET_YES
-   *
-   * If values were modified, we can reuse a valid basis
-   * presolver_required == GNUNET_NO
-   */
-  int presolver_required;
-
-  /* statistics */
-
-  /**
-   * Time of last execution
-   */
-  struct GNUNET_TIME_Absolute last_execution;
-
-
-  /**
-   * How often was the LP problem solved
-   */
-  unsigned int lp_solved;
-
-  /**
-   * total duration of all lp solver executions
-   */
-  uint64_t lp_total_duration;
-
-  /**
-   * How often was the MLP problem solved
-   */
-  unsigned int mlp_solved;
-
-  /**
-   * total duration of all mlp solver executions
-   */
-  uint64_t mlp_total_duration;
-
-  /* Information about the problem */
-
-  struct ATS_Peer *peer_head;
-  struct ATS_Peer *peer_tail;
-#endif
 };
 
 

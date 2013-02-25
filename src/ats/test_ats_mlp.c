@@ -237,7 +237,6 @@ check (void *cls, char *const *args, const char *cfgfile,
   ats.value = htonl (GNUNET_ATS_NET_WAN);
   GAS_mlp_address_update (mlp, addresses, address[0], 1, GNUNET_NO, &ats, 1);
 
-
   /* Retrieving preferred address for peer and wait for callback */
   GAS_mlp_get_preferred_address (mlp, addresses, &p[0]);
 
