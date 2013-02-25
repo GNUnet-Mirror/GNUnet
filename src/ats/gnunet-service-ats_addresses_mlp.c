@@ -136,8 +136,9 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-mlp",__VA_ARGS__)
 
 #define WRITE_MLP GNUNET_NO
-#define DEBUG_MLP_PROBLEM_CREATION GNUNET_YES
+#define DEBUG_MLP_PROBLEM_CREATION GNUNET_NO
 #define VERBOSE_GLPK GNUNET_NO
+#define TEST_MAX_BW_ASSIGNMENT GNUNET_YES
 
 /**
  * Intercept GLPK terminal output
@@ -918,7 +919,12 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
 
   /* Add bandwidth column */
   GNUNET_asprintf (&name, "b_%s_%s", GNUNET_i2s (&address->peer), address->plugin);
+#if TEST_MAX_BW_ASSIGNMENT
+  mlpi->c_b = mlp_create_problem_create_column (p, name, GLP_CV, GLP_LO, 0.0, 0.0, 1.0);
+#else
   mlpi->c_b = mlp_create_problem_create_column (p, name, GLP_CV, GLP_LO, 0.0, 0.0, 0.0);
+#endif
+
   GNUNET_free (name);
 
   /* Add usage column */
@@ -1038,6 +1044,12 @@ mlp_create_problem_add_invariant_columns (struct GAS_MLP_Handle *mlp, struct MLP
   char *name;
   int c;
 
+#if TEST_MAX_BW_ASSIGNMENT
+  mlp->pv.co_D = 0.0;
+  mlp->pv.co_U = 0.0;
+  mlp->pv.co_R = 0.0;
+#endif
+
   /* Diversity d column  */
   p->c_d = mlp_create_problem_create_column (p, "d", GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_D);
 
@@ -1045,13 +1057,17 @@ mlp_create_problem_add_invariant_columns (struct GAS_MLP_Handle *mlp, struct MLP
   p->c_u = mlp_create_problem_create_column (p, "u", GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_U);
 
   /* Relativity r column  */
-  p->c_r = mlp_create_problem_create_column (p, "u", GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_R);
+  p->c_r = mlp_create_problem_create_column (p, "r", GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_R);
 
   /* Quality metric columns */
   for (c = 0; c < mlp->pv.m_q; c++)
   {
     GNUNET_asprintf (&name, "q_%u", mlp->pv.q[c]);
+#if TEST_MAX_BW_ASSIGNMENT
+  	p->c_q[c] = mlp_create_problem_create_column (p, name, GLP_CV, GLP_LO, 0.0, 0.0, 0.0);
+#else
   	p->c_q[c] = mlp_create_problem_create_column (p, name, GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_Q[c]);
+#endif
   	GNUNET_free (name);
   }
 }
@@ -1086,7 +1102,6 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
   p->num_elements = (10 * p->num_addresses + mlp->pv.m_q * p->num_addresses +  mlp->pv.m_q + p->num_peers + 2 + 1);
 	LOG (GNUNET_ERROR_TYPE_DEBUG, "Rebuilding problem for %u peer(s) and %u addresse(s) and %u quality metrics == %u elements\n",
 			p->num_peers, p->num_addresses, mlp->pv.m_q, p->num_elements);
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "Rebuilding %u \n", mlp->pv.b_min);
 
   /* Set a problem name */
   glp_set_prob_name (p->prob, "GNUnet ATS bandwidth distribution");
@@ -1190,7 +1205,7 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp)
     case GLP_OPT:
     /* solution is feasible */
     case GLP_FEAS:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Solving LP problem: %s\n", mlp_status_to_string(res));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Solving MLP problem: %s\n", mlp_status_to_string(res));
       return GNUNET_OK;
     /* Problem was ill-defined, no way to handle that */
     default:
@@ -1212,13 +1227,12 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
 	struct GAS_MLP_Handle *mlp = cls;
 	struct ATS_Address *address;
 	struct MLP_information *mlpi;
-	double mlp_bw;
-	double mlp_use;
+	double mlp_bw = NaN;
+	double mlp_use = NaN;
 
   /* Check if we have to add this peer due to a pending request */
   if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(mlp->peers, key))
   	return GNUNET_OK;
-
   address = value;
   GNUNET_assert (address->solver_information != NULL);
   mlpi = address->solver_information;
@@ -1229,14 +1243,16 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
   if ((GLP_YES == mlp_use) && (GNUNET_NO == address->active))
   {
   	/* Address switch: Activate address*/
+  	LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %f : enabling address\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw);
 		address->active = GNUNET_YES;
-		address->assigned_bw_in.value__ = htonl (0);
-		address->assigned_bw_out.value__ = htonl (0);
+		address->assigned_bw_in.value__ = htonl (mlp_bw);
+		address->assigned_bw_out.value__ = htonl (mlp_bw);
 		mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
   }
   else if ((GLP_NO == mlp_use) && (GNUNET_YES == address->active))
   {
 		/* Address switch: Disable address*/
+  	LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %f : disabling address\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw);
 		address->active = GNUNET_NO;
 		/* Set bandwidth to 0 */
 		address->assigned_bw_in.value__ = htonl (0);
@@ -1247,9 +1263,14 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
   				 (mlp_bw != ntohl(address->assigned_bw_in.value__)))
   {
   	/* Bandwidth changed */
+		LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %f : bandwidth changed\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw);
 		address->assigned_bw_in.value__ = htonl (mlp_bw);
 		address->assigned_bw_out.value__ = htonl (mlp_bw);
 		mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
+  }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %f : no change\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw);
   }
 
   return GNUNET_OK;
@@ -1297,31 +1318,35 @@ GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addr
 	/* Run LP solver */
 	LOG (GNUNET_ERROR_TYPE_DEBUG, "Running LP solver \n");
 	start_lp = GNUNET_TIME_absolute_get();
-	mlp_solve_lp_problem (mlp);
+	res = mlp_solve_lp_problem (mlp);
 	duration_lp = GNUNET_TIME_absolute_get_duration (start_lp);
 
   /* Run LP solver */
 	LOG (GNUNET_ERROR_TYPE_DEBUG, "Running MLP solver \n");
 	start_mlp = GNUNET_TIME_absolute_get();
-	mlp_solve_lp_problem (mlp);
+	res = mlp_solve_mlp_problem (mlp);
 	duration_mlp = GNUNET_TIME_absolute_get_duration (start_mlp);
 	LOG (GNUNET_ERROR_TYPE_DEBUG, "Solver took LP %llu ms,  MLP %llu ms\n",
 			(unsigned long long) duration_lp.rel_value,
 			(unsigned long long) duration_mlp.rel_value);
-
-	/* Store LP */
-#if DUMP_PROBLEM
-	char *filename;
-	GNUNET_asprintf (&filename, "problem_%llu.lp", GNUNET_TIME_absolute_get().abs_value);
-	glp_write_lp (mlp->p.prob, 0, filename);
-	GNUNET_free (filename);
-#endif
 
 	/* Propagate result*/
 	if (GNUNET_OK == res)
 	{
 		GNUNET_CONTAINER_multihashmap_iterate (addresses, &mlp_propagate_results, mlp);
 	}
+
+	/* Store LP */
+#if WRITE_MLP
+	char *filename;
+	struct GNUNET_TIME_Absolute time = GNUNET_TIME_absolute_get();
+	GNUNET_asprintf (&filename, "problem_%llu.lp", time.abs_value);
+	glp_write_prob (mlp->p.prob, 0, filename);
+	GNUNET_free (filename);
+	GNUNET_asprintf (&filename, "problem_%llu.sol", time.abs_value);
+	glp_print_sol(mlp->p.prob, filename);
+	GNUNET_free (filename);
+#endif
 
 	/* Reset change and update marker */
 	mlp->mlp_prob_updated = GNUNET_NO;

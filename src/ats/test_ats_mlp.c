@@ -123,8 +123,10 @@ end_now (int res)
 static void
 bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP tells suggests me for peer `%s' address `%s':`%s'\n",
-  		GNUNET_i2s(&address->peer), address->plugin, address->addr);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP suggests for peer `%s' address `%s':`%s' in %llu out %llu \n",
+  		GNUNET_i2s(&address->peer), address->plugin, address->addr,
+  		ntohl(address->assigned_bw_in.value__),
+  		ntohl(address->assigned_bw_out.value__));
 	//end_now (0);
 }
 
