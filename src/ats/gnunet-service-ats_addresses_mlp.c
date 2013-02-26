@@ -1065,7 +1065,8 @@ int
 GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses)
 {
 	struct GAS_MLP_Handle *mlp = solver;
-	int res = 0;
+	int res_lp = 0;
+	int res_mip = 0;
 	struct GNUNET_TIME_Absolute start_build;
 	struct GNUNET_TIME_Relative duration_build;
 	struct GNUNET_TIME_Absolute start_lp;
@@ -1096,22 +1097,23 @@ GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addr
 			LOG (GNUNET_ERROR_TYPE_DEBUG, "Problem was updated, resolving\n");
 	}
 
-
 	/* Run LP solver */
 	LOG (GNUNET_ERROR_TYPE_DEBUG, "Running LP solver %s\n", (GLP_YES == mlp->control_param_lp.presolve)? "with presolver": "without presolver");
 	start_lp = GNUNET_TIME_absolute_get();
-	res = mlp_solve_lp_problem (mlp);
+	res_lp = mlp_solve_lp_problem (mlp);
 	duration_lp = GNUNET_TIME_absolute_get_duration (start_lp);
-	mlp->ps.lp_res = res;
+
 
   /* Run LP solver */
 	LOG (GNUNET_ERROR_TYPE_DEBUG, "Running MLP solver \n");
 	start_mlp = GNUNET_TIME_absolute_get();
-	res = mlp_solve_mlp_problem (mlp);
+	res_mip = mlp_solve_mlp_problem (mlp);
 
 	duration_mlp = GNUNET_TIME_absolute_get_duration (start_mlp);
-	mlp->ps.mip_res = res;
 
+	/* Save stats */
+	mlp->ps.lp_res = res_lp;
+	mlp->ps.mip_res = res_mip;
 	mlp->ps.build_dur = duration_build;
 	mlp->ps.lp_dur = duration_lp;
 	mlp->ps.mip_dur = duration_mlp;
@@ -1127,7 +1129,7 @@ GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addr
 			(unsigned long long) duration_mlp.rel_value);
 
 	/* Propagate result*/
-	if (GNUNET_OK == res)
+	if ((GNUNET_OK == res_lp) && (GNUNET_OK == res_mip))
 		GNUNET_CONTAINER_multihashmap_iterate (addresses, &mlp_propagate_results, mlp);
 
 	/* Write problem and solution to disk */
@@ -1147,7 +1149,10 @@ GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addr
 	mlp->mlp_prob_updated = GNUNET_NO;
 	mlp->mlp_prob_changed = GNUNET_NO;
 
-	return res;
+	if ((GNUNET_OK == res_lp) && (GNUNET_OK == res_mip))
+		return GNUNET_OK;
+	else
+		return GNUNET_SYSERR;
 }
 
 /**

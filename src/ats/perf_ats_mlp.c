@@ -76,6 +76,7 @@ struct PerfPeer
 };
 
 static int ret;
+static int numeric;
 
 static int N_peers_start;
 static int N_peers_end;
@@ -216,6 +217,9 @@ check (void *cls, char *const *args, const char *cfgfile,
 	for (cp = 0; cp < count_p; cp++)
 			perf_create_peer (cp);
 
+	if (GNUNET_YES == numeric)
+		fprintf (stderr, "#peers;#addresses per peer;LP/MIP state;presolv;exec build in ms;exec LP in ms; exec MIP in ms;#cols;#rows;#nonzero elements\n");
+
 	for (cp = 0; cp < count_p; cp++)
 	{
 			for (ca = 0; ca < count_a; ca++)
@@ -231,15 +235,27 @@ check (void *cls, char *const *args, const char *cfgfile,
 			{
 
 				GAS_mlp_solve_problem (mlp, addresses);
-				fprintf (stderr, "%u peers each %u addresses; state [%s/%s], (build/LP/MIP in ms): %04llu %04llu %04llu; presolv LP/MIP [%s/%s]; size (cols x rows, nonzero elements): [%u x %u] = %u\n",
+				if (GNUNET_NO == numeric)
+					fprintf (stderr, "%u peers each %u addresses;  LP/MIP state [%s/%s] presolv [%s/%s], (build/LP/MIP in ms): %04llu %04llu %04llu; size (cols x rows, nonzero elements): [%u x %u] = %u\n",
 							cp + 1, ca,
 							(GNUNET_OK == mlp->ps.lp_res) ? "OK" : "FAIL",
 							(GNUNET_OK == mlp->ps.mip_res) ? "OK" : "FAIL",
+							(GLP_YES == mlp->ps.lp_presolv) ? "YES" : "NO",
+							(GNUNET_OK == mlp->ps.mip_presolv) ? "YES" : "NO",
 							(unsigned long long) mlp->ps.build_dur.rel_value,
 							(unsigned long long) mlp->ps.lp_dur.rel_value,
 							(unsigned long long) mlp->ps.mip_dur.rel_value,
+							mlp->ps.p_cols, mlp->ps.p_rows, mlp->ps.p_elements);
+				else
+					fprintf (stderr, "%u;%u;%s;%s;%s;%s;%04llu;%04llu;%04llu;%u;%u;%u\n",
+							cp + 1, ca,
+							(GNUNET_OK == mlp->ps.lp_res) ? "OK" : "FAIL",
+							(GNUNET_OK == mlp->ps.mip_res) ? "OK" : "FAIL",
 							(GLP_YES == mlp->ps.lp_presolv) ? "YES" : "NO",
 							(GNUNET_OK == mlp->ps.mip_presolv) ? "YES" : "NO",
+							(unsigned long long) mlp->ps.build_dur.rel_value,
+							(unsigned long long) mlp->ps.lp_dur.rel_value,
+							(unsigned long long) mlp->ps.mip_dur.rel_value,
 							mlp->ps.p_cols, mlp->ps.p_rows, mlp->ps.p_elements);
 			}
 
@@ -301,6 +317,10 @@ main (int argc, char *argv[])
   				{
   						N_address = atoi(argv[c+1]);
   				}
+  		}
+  		if ((0 == strcmp (argv[c], "-n")))
+  		{
+  				numeric = GNUNET_YES;
   		}
   }
 
