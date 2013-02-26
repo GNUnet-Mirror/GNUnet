@@ -895,14 +895,17 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
   /* last +1 caused by glpk index starting with one: [1..elements]*/
   p->ci = 1;
   /* row index */
-  int *ia = GNUNET_malloc (p->num_elements * sizeof (int));
-  p->ia = ia;
+  p->ia = GNUNET_malloc (p->num_elements * sizeof (int));
   /* column index */
-  int *ja = GNUNET_malloc (p->num_elements * sizeof (int));
-  p->ja = ja;
+  p->ja = GNUNET_malloc (p->num_elements * sizeof (int));
   /* coefficient */
-  double *ar= GNUNET_malloc (p->num_elements * sizeof (double));
-  p->ar = ar;
+  p->ar = GNUNET_malloc (p->num_elements * sizeof (double));
+
+  if ((NULL == p->ia) || (NULL == p->ja) || (NULL == p->ar))
+  {
+  		LOG (GNUNET_ERROR_TYPE_ERROR, _("Problem size too large, cannot allocate memory!\n"));
+  		return GNUNET_SYSERR;
+  }
 
   /* Adding invariant columns */
   mlp_create_problem_add_invariant_columns (mlp, p);
@@ -930,22 +933,12 @@ static int
 mlp_solve_lp_problem (struct GAS_MLP_Handle *mlp)
 {
 	int res = 0;
-	if (GNUNET_YES == mlp->mlp_prob_changed)
-	{
-		/* Problem was recreated: use LP presolver */
-    mlp->control_param_lp.presolve = GLP_ON;
-	}
-	else
-	{
-		/* Problem was not recreated: do not use LP presolver */
-		mlp->control_param_lp.presolve = GLP_OFF;
-	}
 
 	res = glp_simplex(mlp->p.prob, &mlp->control_param_lp);
 	if (0 == res)
 		LOG (GNUNET_ERROR_TYPE_DEBUG, "Solving LP problem: 0x%02X %s\n", res, mlp_solve_to_string(res));
 	else
-		LOG (GNUNET_ERROR_TYPE_DEBUG, "Solving LP problem failed: 0x%02X %s\n", res, mlp_solve_to_string(res));
+		LOG (GNUNET_ERROR_TYPE_WARNING, "Solving LP problem failed: 0x%02X %s\n", res, mlp_solve_to_string(res));
 
   /* Analyze problem status  */
   res = glp_get_status (mlp->p.prob);
@@ -959,7 +952,7 @@ mlp_solve_lp_problem (struct GAS_MLP_Handle *mlp)
       return GNUNET_OK;
     /* Problem was ill-defined, no way to handle that */
     default:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Solving LP problem failed, no solution: 0x%02X %s\n",
+      LOG (GNUNET_ERROR_TYPE_WARNING, "Solving LP problem failed, no solution: 0x%02X %s\n",
       		res, mlp_status_to_string(res));
       return GNUNET_SYSERR;
   }
@@ -980,7 +973,7 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp)
 	if (0 == res)
 		LOG (GNUNET_ERROR_TYPE_DEBUG, "Solving MLP problem: 0x%02X %s\n", res, mlp_solve_to_string(res));
 	else
-		LOG (GNUNET_ERROR_TYPE_DEBUG, "Solving MLP problem failed: 0x%02X %s\n", res, mlp_solve_to_string(res));
+		LOG (GNUNET_ERROR_TYPE_WARNING, "Solving MLP problem failed: 0x%02X %s\n", res, mlp_solve_to_string(res));
   /* Analyze problem status  */
   res = glp_mip_status(mlp->p.prob);
   switch (res) {
@@ -992,7 +985,7 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp)
       return GNUNET_OK;
     /* Problem was ill-defined, no way to handle that */
     default:
-      LOG (GNUNET_ERROR_TYPE_DEBUG,"Solving MLP problem failed, 0x%02X %s\n\n", res, mlp_status_to_string(res));
+      LOG (GNUNET_ERROR_TYPE_WARNING,"Solving MLP problem failed, 0x%02X %s\n\n", res, mlp_status_to_string(res));
       return GNUNET_SYSERR;
   }
 }
@@ -1092,9 +1085,11 @@ GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addr
 			LOG (GNUNET_ERROR_TYPE_DEBUG, "Problem size changed, rebuilding\n");
 			mlp_delete_problem (mlp);
 			start_build = GNUNET_TIME_absolute_get();
-			mlp_create_problem (mlp, addresses);
+			if (GNUNET_SYSERR == mlp_create_problem (mlp, addresses))
+				return GNUNET_SYSERR;
 			duration_build = GNUNET_TIME_absolute_get_duration (start_build);
 			mlp->control_param_lp.presolve = GLP_YES;
+			mlp->control_param_mlp.presolve = GNUNET_NO; /* No presolver, we have LP solution */
 	}
 	else
 	{
@@ -1120,6 +1115,11 @@ GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addr
 	mlp->ps.build_dur = duration_build;
 	mlp->ps.lp_dur = duration_lp;
 	mlp->ps.mip_dur = duration_mlp;
+	mlp->ps.lp_presolv = mlp->control_param_lp.presolve;
+	mlp->ps.mip_presolv = mlp->control_param_mlp.presolve;
+	mlp->ps.p_cols = glp_get_num_cols (mlp->p.prob);
+	mlp->ps.p_rows = glp_get_num_rows (mlp->p.prob);
+	mlp->ps.p_elements = mlp->p.num_elements;
 
 	LOG (GNUNET_ERROR_TYPE_DEBUG, "Execution time: Build %llu ms, LP %llu ms,  MLP %llu ms\n",
 			(unsigned long long) duration_build.rel_value,

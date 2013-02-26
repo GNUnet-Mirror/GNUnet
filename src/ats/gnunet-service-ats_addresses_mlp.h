@@ -39,8 +39,8 @@
 
 #define MLP_AVERAGING_QUEUE_LENGTH 3
 
-#define MLP_MAX_EXEC_DURATION   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3)
-#define MLP_MAX_ITERATIONS      1024
+#define MLP_MAX_EXEC_DURATION   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10)
+#define MLP_MAX_ITERATIONS      4096
 
 #define DEFAULT_D 1.0
 #define DEFAULT_R 1.0
@@ -61,7 +61,17 @@ struct MLP_Solution
 	struct GNUNET_TIME_Relative mip_dur;
 
 	int lp_res;
+	int lp_presolv;
 	int mip_res;
+	int mip_presolv;
+
+	int p_elements;
+	int p_cols;
+	int p_rows;
+
+	int n_peers;
+	int n_addresses;
+
 };
 
 struct ATS_Peer

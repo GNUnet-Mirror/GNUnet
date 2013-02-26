@@ -126,12 +126,6 @@ end_now (int res)
 	ret = res;
 }
 
-static void
-end_correctly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-
-}
-
 
 static void
 bandwidth_changed_cb (void *cls, struct ATS_Address *address)
@@ -237,11 +231,16 @@ check (void *cls, char *const *args, const char *cfgfile,
 			{
 
 				GAS_mlp_solve_problem (mlp, addresses);
-				fprintf (stderr, "Solving problem for %u peers with each %u addresses (build/LP/MIP in ms): %llu %llu %llu\n",
+				fprintf (stderr, "%u peers each %u addresses; state [%s/%s], (build/LP/MIP in ms): %04llu %04llu %04llu; presolv LP/MIP [%s/%s]; size (cols x rows, nonzero elements): [%u x %u] = %u\n",
 							cp + 1, ca,
+							(GNUNET_OK == mlp->ps.lp_res) ? "OK" : "FAIL",
+							(GNUNET_OK == mlp->ps.mip_res) ? "OK" : "FAIL",
 							(unsigned long long) mlp->ps.build_dur.rel_value,
 							(unsigned long long) mlp->ps.lp_dur.rel_value,
-							(unsigned long long) mlp->ps.mip_dur.rel_value);
+							(unsigned long long) mlp->ps.mip_dur.rel_value,
+							(GLP_YES == mlp->ps.lp_presolv) ? "YES" : "NO",
+							(GNUNET_OK == mlp->ps.mip_presolv) ? "YES" : "NO",
+							mlp->ps.p_cols, mlp->ps.p_rows, mlp->ps.p_elements);
 			}
 
 	}
@@ -287,7 +286,6 @@ main (int argc, char *argv[])
   				if (0 != atoi(argv[c+1]))
   				{
   						N_peers_start = atoi(argv[c+1]);
-  						fprintf (stderr, "peers_start: %u\n",N_peers_start );
   				}
   		}
   		if ((0 == strcmp (argv[c], "-w")) && (c < argc))
@@ -295,7 +293,6 @@ main (int argc, char *argv[])
   				if (0 != atoi(argv[c+1]))
   				{
   						N_peers_end = atoi(argv[c+1]);
-  						fprintf (stderr, "peers_end: %u\n",N_peers_end );
   				}
   		}
   		if ((0 == strcmp (argv[c], "-a")) && (c < argc))
@@ -303,7 +300,6 @@ main (int argc, char *argv[])
   				if (0 != atoi(argv[c+1]))
   				{
   						N_address = atoi(argv[c+1]);
-  						fprintf (stderr, "address: %u\n",N_address );
   				}
   		}
   }
