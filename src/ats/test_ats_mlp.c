@@ -68,20 +68,6 @@ struct ATS_Address *address[3];
 GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
 
-#if 0
-
-#define MLP_MAX_EXEC_DURATION   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3)
-#define MLP_MAX_ITERATIONS      INT_MAX
-
-static void
-set_ats (struct GNUNET_ATS_Information *ats, uint32_t type, uint32_t value)
-{
-  ats->type = type;
-  ats->value = value;
-}
-
-#endif
-
 int addr_it (void *cls,
              const struct GNUNET_HashCode * key,
              void *value)
@@ -125,13 +111,14 @@ end_now (int res)
 static void
 end_correctly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Test ending with success\n"));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Test ending with success\n"));
 	end_now (0);
 }
 
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+	GNUNET_break (0);
 	timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Test ending with timeout\n"));
 	end_now (1);
@@ -163,8 +150,11 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 
   if ((1 == cb_p0) && (1 == cb_p1))
   		GNUNET_SCHEDULER_add_now (&end_correctly, NULL);
-  else if ((1 > cb_p0) || (1 > cb_p1))
+  else if ((1 < cb_p0) || (1 < cb_p1))
+  {
+  		GNUNET_break (0);
   		GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+  }
 }
 
 
