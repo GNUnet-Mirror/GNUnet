@@ -1061,7 +1061,6 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
 
 
 
-
 /**
  * Solves the MLP problem
  *
@@ -1108,12 +1107,20 @@ GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addr
 	start_lp = GNUNET_TIME_absolute_get();
 	res = mlp_solve_lp_problem (mlp);
 	duration_lp = GNUNET_TIME_absolute_get_duration (start_lp);
+	mlp->ps.lp_res = res;
 
   /* Run LP solver */
 	LOG (GNUNET_ERROR_TYPE_DEBUG, "Running MLP solver \n");
 	start_mlp = GNUNET_TIME_absolute_get();
 	res = mlp_solve_mlp_problem (mlp);
+
 	duration_mlp = GNUNET_TIME_absolute_get_duration (start_mlp);
+	mlp->ps.mip_res = res;
+
+	mlp->ps.build_dur = duration_build;
+	mlp->ps.lp_dur = duration_lp;
+	mlp->ps.mip_dur = duration_mlp;
+
 	LOG (GNUNET_ERROR_TYPE_DEBUG, "Execution time: Build %llu ms, LP %llu ms,  MLP %llu ms\n",
 			(unsigned long long) duration_build.rel_value,
 			(unsigned long long) duration_lp.rel_value,

@@ -74,8 +74,8 @@ check_PROGRAMS = \
  test_ats_simplistic_change_preference \
  test_ats_simplistic_pref_aging \
  test_ats_api_performance \
- $(GN_MLP_TEST)
-# $(GN_MLP_TEST_AVG)  $(GN_MLP_PERF)\
+ $(GN_MLP_TEST) $(GN_MLP_PERF)
+# $(GN_MLP_TEST_AVG)
 # test_ats_api_scheduling_get_type
 # test_ats_api_bandwidth_consumption
 

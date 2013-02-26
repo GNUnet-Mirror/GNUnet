@@ -53,6 +53,17 @@
 #define GLP_YES 1.0
 #define GLP_NO  0.0
 
+
+struct MLP_Solution
+{
+	struct GNUNET_TIME_Relative build_dur;
+	struct GNUNET_TIME_Relative lp_dur;
+	struct GNUNET_TIME_Relative mip_dur;
+
+	int lp_res;
+	int mip_res;
+};
+
 struct ATS_Peer
 {
 	struct GNUNET_PeerIdentity id;
@@ -213,6 +224,8 @@ struct GAS_MLP_Handle
   struct MLP_Problem p;
 
   struct MLP_Variables pv;
+
+  struct MLP_Solution ps;
 
   /**
    * GLPK LP control parameter
