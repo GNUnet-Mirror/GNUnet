@@ -222,6 +222,12 @@ check (void *cls, char *const *args, const char *cfgfile,
   /* Adding address 0 */
   GAS_mlp_address_add (mlp, addresses, address[0]);
 
+  /* Retrieving preferred address for peer and wait for callback */
+  GAS_mlp_get_preferred_address (mlp, addresses, &p[0]);
+
+  /* Solve problem to build matrix */
+  GAS_mlp_solve_problem (mlp, addresses);
+
   /* Updating address 0*/
   ats[0].type =  htonl (GNUNET_ATS_NETWORK_TYPE);
   ats[0].value = htonl (GNUNET_ATS_NET_WAN);
@@ -233,9 +239,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   ats[3].value = htonl (GNUNET_ATS_ARRAY_TERMINATOR);
   GAS_mlp_address_update (mlp, addresses, address[0], 1, GNUNET_NO, ats, 4);
 
-  /* Retrieving preferred address for peer and wait for callback */
-  GAS_mlp_get_preferred_address (mlp, addresses, &p[0]);
-
+  /* Solve problem to build matrix */
   GAS_mlp_solve_problem (mlp, addresses);
 }
 
