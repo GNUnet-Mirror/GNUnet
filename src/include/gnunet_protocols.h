@@ -313,11 +313,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CORE_PEER_CONNECTED 80
 
 /**
- * Session key exchange between peers.
- */
-#define GNUNET_MESSAGE_TYPE_CORE_SET_KEY 81
-
-/**
  * Encapsulation for an encrypted message between peers.
  */
 #define GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE 82
@@ -346,6 +341,12 @@ extern "C"
  * uncompressed type map of the sender
  */
 #define GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP 87
+
+/**
+ * Session key exchange between peers.
+ */
+#define GNUNET_MESSAGE_TYPE_CORE_EPHEMERAL_KEY 88
+
 
 /*******************************************************************************
  * DATASTORE message types
@@ -1666,7 +1667,6 @@ extern "C"
 /* message types 526-539 reserved for consensus client/service messages */
 
 
-
 /**
  * Sent by client to service, telling whether a received element should
  * be accepted and propagated further or not.
@@ -1687,6 +1687,12 @@ extern "C"
  * Elements, and requests for further elements
  */
 #define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS 543
+
+
+/**
+ * Elements, and requests for further elements
+ */
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS_REQUEST 544
 
 /*
  * Initialization message for consensus p2p communication.
