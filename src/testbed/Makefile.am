@@ -14,7 +14,8 @@ if WITH_LL
   ll_binaries = \
     gnunet-mpi-test \
     gnunet-testbed-ll-master \
-    gnunet-testbed-ll-monitor
+    gnunet-testbed-ll-monitor \
+    gnunet-testbed-mpi-spawn
 endif
 
 libexecdir= $(pkglibdir)/libexec/
@@ -81,6 +82,11 @@ gnunet_testbed_ll_monitor_LDADD = $(XLIB) \
 gnunet_mpi_test_SOURCES = gnunet_mpi_test.c
 gnunet_mpi_test_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
+
+gnunet_testbed_mpi_spawn_SOURCES = gnunet_testbed_mpi_spawn.c
+gnunet_testbed_mpi_spawn_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testbed/libgnunettestbed.la
 
 lib_LTLIBRARIES = \
   libgnunettestbed.la
