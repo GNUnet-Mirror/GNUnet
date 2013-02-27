@@ -1626,6 +1626,7 @@ controller_event_cb (void *cls,
        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                    _("An operation has failed while linking\n"));
        printf ("F%u ", retry_links);
+       printf ("\n%s\n ", event->details.operation_finished.emsg);
        fflush (stdout);
        retry_links++;
      }
