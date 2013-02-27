@@ -1,6 +1,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_resolver_service.h"
+#include "gnunet_testbed_service.h"
 #include <mpi.h>
 
 /**
@@ -22,214 +23,19 @@
   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
- * Log an error message at log-level 'level' that indicates
- * a failure of the command 'cmd' with the message given
- * by gcry_strerror(rc).
- */
-#define LOG_GAI(level, cmd, rc) do { LOG(level, _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, gai_strerror(rc)); } while(0)
-
-/**
  * Global result
  */
 static int ret;
 
 /**
- * The array of hostnames
+ * The host list
  */
-static char **hostnames;
+static struct GNUNET_TESTBED_Host **hosts;
 
 /**
- * The array of host's addresses
- */
-static char **hostaddrs;
-
-/**
- * The resolution request handles; one per each hostname resolution
- */
-struct GNUNET_RESOLVER_RequestHandle **rhs;
-
-/**
- * Number of hosts in the hostname array
+ * Number of hosts in the host list
  */
 static unsigned int nhosts;
-
-/**
- * Number of addresses in the hostaddr array
- */
-static unsigned int nhostaddrs;
-
-/**
- * Did we connect to the resolver service
- */
-static unsigned int resolver_connected;
-
-/**
- * Task for resolving ips
- */
-static GNUNET_SCHEDULER_TaskIdentifier resolve_task_id;
-
-
-/**
- * Resolves the hostnames array
- *
- * @param cls NULL
- * @param tc the scheduler task context
- */
-static void
-resolve_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct addrinfo hint;
-  const struct sockaddr_in *in_addr; 
-  struct addrinfo *res;
-  char *hostip;
-  unsigned int host;
-  unsigned int rc;
-
-  resolve_task_id = GNUNET_SCHEDULER_NO_TASK;
-  hint.ai_family = AF_INET;	/* IPv4 */
-  hint.ai_socktype = 0;
-  hint.ai_protocol = 0;
-  hint.ai_addrlen = 0;
-  hint.ai_addr = NULL;
-  hint.ai_canonname = NULL;
-  hint.ai_next = NULL;
-  hint.ai_flags = AI_NUMERICSERV;
-  for (host = 0; host < nhosts; host++)
-  {
-    res = NULL;
-    LOG_DEBUG ("Resolving: %s host\n", hostnames[host]);
-    if (0 != (rc = getaddrinfo (hostnames[host], "22", &hint, &res)))
-    {
-      LOG_GAI (GNUNET_ERROR_TYPE_ERROR, "getaddrinfo", rc);
-      ret = GNUNET_SYSERR;
-      return;
-    }
-    GNUNET_assert (NULL != res);
-    GNUNET_assert (NULL != res->ai_addr);
-    GNUNET_assert (sizeof (struct sockaddr_in) == res->ai_addrlen);
-    in_addr = (const struct sockaddr_in *) res->ai_addr;
-    hostip = inet_ntoa (in_addr->sin_addr);
-    GNUNET_assert (NULL != hostip);
-    GNUNET_array_append (hostaddrs, nhostaddrs, GNUNET_strdup (hostip));
-    LOG_DEBUG ("%s --> %s\n", hostnames[host], hostaddrs[host]);
-    freeaddrinfo (res);
-  }
-  ret = GNUNET_OK;
-}
-
-
-/**
- * Loads the set of host allocated by the LoadLeveler Job Scheduler.  This
- * function is only available when compiled with support for LoadLeveler and is
- * used for running on the SuperMUC
- *
- * @param hostlist set to the hosts found in the file; caller must free this if
- *          number of hosts returned is greater than 0
- * @return number of hosts returned in 'hosts', 0 on error
- */
-unsigned int
-get_loadleveler_hosts ()
-{
-  const char *hostfile;
-  char *buf;
-  char *hostname;
-  struct addrinfo *ret;
-  struct addrinfo hint;
-  ssize_t rsize;
-  uint64_t size;
-  uint64_t offset;
-  enum {
-    SCAN,
-    SKIP,
-    TRIM,
-    READHOST
-  } pstep;
-  unsigned int host;
-
-  if (NULL == (hostfile = getenv ("MP_SAVEHOSTFILE")))
-  {
-    GNUNET_break (0);
-    return 0;
-  }
-  if (GNUNET_SYSERR == GNUNET_DISK_file_size (hostfile, &size, GNUNET_YES,
-                                              GNUNET_YES))
-  {
-    GNUNET_break (0);
-    return 0;
-  }
-  if (0 == size)
-  {
-    GNUNET_break (0);
-    return 0;
-  }
-  buf = GNUNET_malloc (size + 1);
-  rsize = GNUNET_DISK_fn_read (hostfile, buf, (size_t) size);
-  if ( (GNUNET_SYSERR == rsize) || ((ssize_t) size != rsize) )
-  {
-    GNUNET_free (buf);
-    GNUNET_break (0);
-    return 0;
-  }
-  size++;
-  offset = 0;
-  pstep = SCAN;
-  hostname = NULL;
-  while (offset < size)
-  {
-    switch (pstep)
-    {
-    case SCAN:
-      if ('!' == buf[offset])
-        pstep = SKIP;
-      else 
-        pstep = TRIM;
-      break;
-    case SKIP:
-      if ('\n' == buf[offset])
-        pstep = SCAN;
-      break;
-    case TRIM:
-      if ('!' == buf[offset])
-      {
-        pstep = SKIP;
-        break;
-      }
-      if ( (' ' == buf[offset]) 
-           || ('\t' == buf[offset])
-           || ('\r' == buf[offset]) )
-        pstep = TRIM;
-      else
-      {
-        pstep = READHOST;
-        hostname = &buf[offset];        
-      }
-      break;
-    case READHOST:
-      if (isspace (buf[offset]))
-      {
-        buf[offset] = '\0';
-        for (host = 0; host < nhosts; host++)
-          if (0 == strcmp (hostnames[host], hostname))
-            break;
-        if (host == nhosts)
-        {
-          LOG_DEBUG ("Adding host: %s\n", hostname);
-          hostname = GNUNET_strdup (hostname);
-          GNUNET_array_append (hostnames, nhosts, hostname);
-        }
-        else
-          LOG_DEBUG ("Not adding host %s as it is already included\n", hostname);
-        hostname = NULL;
-        pstep = SCAN;
-      }
-      break;
-    }
-    offset++;
-  }
-  GNUNET_free_non_null (buf);
-  return nhosts;
-}
-
 
 /**
  * Main function that will be run by the scheduler.
@@ -247,7 +53,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   unsigned long code;
   enum GNUNET_OS_ProcessStatusType proc_status;
   int rank;
-  int msg_size;
+  unsigned int host;
   
   if (MPI_SUCCESS != MPI_Comm_rank (MPI_COMM_WORLD, &rank))
   {
@@ -291,13 +97,17 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_break (0);
     return;
   }
-  if (0 == get_loadleveler_hosts())
+  if (0 == (nhosts = GNUNET_TESTBED_hosts_load_from_loadleveler (config, &hosts)))
   {
     GNUNET_break (0);
     ret = GNUNET_SYSERR;
     return;
   }
-  resolve_task_id = GNUNET_SCHEDULER_add_now (&resolve_task, NULL);
+  for (host = 0; host < nhosts; host++)
+    GNUNET_TESTBED_host_destroy (hosts[host]);
+  GNUNET_free (hosts);
+  hosts = NULL;
+  ret = GNUNET_OK;
 }
 
 
@@ -330,12 +140,6 @@ main (int argc, char *argv[])
                           _("Spawns cmd after starting my the MPI run-time"),
                           options, &run, NULL);
   (void) MPI_Finalize ();
-  for (host = 0; host < nhosts; host++)
-    GNUNET_free (hostnames[host]);
-  for (host = 0; host < nhostaddrs; host++)
-    GNUNET_free (hostaddrs[host]);
-  GNUNET_free_non_null (hostnames);
-  GNUNET_free_non_null (hostaddrs);
   if ((GNUNET_OK == rres) && (GNUNET_OK == ret))
     return 0;
   printf ("Something went wrong\n");

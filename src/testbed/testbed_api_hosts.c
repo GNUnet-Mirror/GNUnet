@@ -63,6 +63,12 @@
   } while (0)
 
 /**
+ * Log an error message at log-level 'level' that indicates a failure of the
+ * command 'cmd' with the message given by gai_strerror(rc).
+ */
+#define LOG_GAI(level, cmd, rc) do { LOG(level, _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, gai_strerror(rc)); } while(0)
+
+/**
  * Number of extra elements we create space for when we grow host list
  */
 #define HOST_LIST_GROW_STEP 10
@@ -521,6 +527,200 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
   memcpy (*hosts, &host_list[GNUNET_TESTBED_host_get_id_ (starting_host)],
           sizeof (struct GNUNET_TESTBED_Host *) * count);
   return count;
+}
+
+
+/**
+ * Resolves a hostname using getaddrinfo
+ *
+ * @param host the hostname
+ * @return the string representing the IPv4 address of the given host; NULL upon error
+ */
+const char *
+simple_resolve (const char *host)
+{
+  struct addrinfo *res;
+  const struct sockaddr_in *in_addr; 
+  char *hostip;
+  struct addrinfo hint;
+  unsigned int rc;
+
+  hint.ai_family = AF_INET;	/* IPv4 */
+  hint.ai_socktype = 0;
+  hint.ai_protocol = 0;
+  hint.ai_addrlen = 0;
+  hint.ai_addr = NULL;
+  hint.ai_canonname = NULL;
+  hint.ai_next = NULL;
+  hint.ai_flags = AI_NUMERICSERV;
+  res = NULL;
+  LOG_DEBUG ("Resolving [%s]\n", host);
+  if (0 != (rc = getaddrinfo (host, "22", &hint, &res)))
+  {
+    LOG_GAI (GNUNET_ERROR_TYPE_ERROR, "getaddrinfo", rc);
+    return NULL;
+  }
+  GNUNET_assert (NULL != res);
+  GNUNET_assert (NULL != res->ai_addr);
+  GNUNET_assert (sizeof (struct sockaddr_in) == res->ai_addrlen);
+  in_addr = (const struct sockaddr_in *) res->ai_addr;
+  hostip = inet_ntoa (in_addr->sin_addr);
+  GNUNET_assert (NULL != hostip);
+  LOG_DEBUG ("Resolved [%s] to [%s]\n", host, hostip);
+  return hostip;
+}
+
+
+/**
+ * Loads the set of host allocated by the LoadLeveler Job Scheduler.  This
+ * function is only available when compiled with support for LoadLeveler and is
+ * used for running on the SuperMUC
+ *
+ * @param cfg the configuration to use as a template while starting a controller
+ *          on any of the loaded hosts.  Operation queue sizes specific to a host
+ *          are also read from this configuration handle
+ * @param hosts set to the hosts found in the file; caller must free this if
+ *          number of hosts returned is greater than 0
+ * @return number of hosts returned in 'hosts', 0 on error
+ */
+unsigned int
+GNUNET_TESTBED_hosts_load_from_loadleveler (const struct
+                                            GNUNET_CONFIGURATION_Handle *cfg,
+                                            struct GNUNET_TESTBED_Host ***hosts)
+{
+  const char *hostfile;
+  char *buf;
+  char *hostname;
+  char **hostnames;
+  char **hostaddrs;
+  char *hostip;
+  struct GNUNET_TESTBED_Host **host_list;
+  ssize_t rsize;
+  uint64_t size;
+  uint64_t offset;
+  enum {
+    SCAN,
+    SKIP,
+    TRIM,
+    READHOST
+  } pstep;
+  unsigned int host;
+  unsigned int nhosts;
+  unsigned int nhostaddrs;
+  
+  if (NULL == (hostfile = getenv ("MP_SAVEHOSTFILE")))
+  {
+    GNUNET_break (0);
+    return 0;
+  }
+  if (GNUNET_SYSERR == GNUNET_DISK_file_size (hostfile, &size, GNUNET_YES,
+                                              GNUNET_YES))
+  {
+    GNUNET_break (0);
+    return 0;
+  }
+  if (0 == size)
+  {
+    GNUNET_break (0);
+    return 0;
+  }
+  buf = GNUNET_malloc (size + 1);
+  rsize = GNUNET_DISK_fn_read (hostfile, buf, (size_t) size);
+  if ( (GNUNET_SYSERR == rsize) || ((ssize_t) size != rsize) )
+  {
+    GNUNET_free (buf);
+    GNUNET_break (0);
+    return 0;
+  }
+  size++;
+  offset = 0;
+  pstep = SCAN;
+  hostname = NULL;
+  hostnames = NULL;
+  hostaddrs = NULL;
+  nhosts = 0;
+  nhostaddrs = 0;
+  while (offset < size)
+  {
+    switch (pstep)
+    {
+    case SCAN:
+      if ('!' == buf[offset])
+        pstep = SKIP;
+      else 
+        pstep = TRIM;
+      break;
+    case SKIP:
+      if ('\n' == buf[offset])
+        pstep = SCAN;
+      break;
+    case TRIM:
+      if ('!' == buf[offset])
+      {
+        pstep = SKIP;
+        break;
+      }
+      if ( (' ' == buf[offset]) 
+           || ('\t' == buf[offset])
+           || ('\r' == buf[offset]) )
+        pstep = TRIM;
+      else
+      {
+        pstep = READHOST;
+        hostname = &buf[offset];        
+      }
+      break;
+    case READHOST:
+      if (isspace (buf[offset]))
+      {
+        buf[offset] = '\0';
+        for (host = 0; host < nhosts; host++)
+          if (0 == strcmp (hostnames[host], hostname))
+            break;
+        if (host == nhosts)
+        {
+          LOG_DEBUG ("Adding host [%s]\n", hostname);
+          hostname = GNUNET_strdup (hostname);
+          GNUNET_array_append (hostnames, nhosts, hostname);
+        }
+        else
+          LOG_DEBUG ("Not adding host [%s] as it is already included\n", hostname);
+        hostname = NULL;
+        pstep = SCAN;
+      }
+      break;
+    }
+    offset++;
+  }
+  GNUNET_free_non_null (buf);
+  if (NULL == hostnames)
+    return 0;
+  for (host = 0; host < nhosts; host++)
+  {
+    hostip = simple_resolve (hostnames[host]);
+    if (NULL == hostip)
+    {
+      nhosts = 0;
+      goto cleanup;
+    }
+    GNUNET_array_append (hostaddrs, nhostaddrs, GNUNET_strdup (hostip));
+  }
+  GNUNET_assert (nhostaddrs == nhosts);
+  if (NULL == hosts)
+    goto cleanup;
+  host_list = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Host *) * nhostaddrs);
+  for (host = 0; host < nhosts; host++)
+    host_list[host] = GNUNET_TESTBED_host_create (hostaddrs[host], NULL, cfg, 0);
+  *hosts = host_list;
+
+ cleanup:
+  for (host = 0; host < nhosts; host++)
+    GNUNET_free (hostnames[host]);
+  GNUNET_free(hostnames);
+  for (host = 0; (NULL != hostaddrs) && (host < nhostaddrs); host++)
+    GNUNET_free (hostaddrs[host]);
+  GNUNET_free (hostaddrs);
+  return nhosts;
 }
 
 
