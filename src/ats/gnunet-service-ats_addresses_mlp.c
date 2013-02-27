@@ -1002,13 +1002,23 @@ GAS_mlp_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addres
 {
   struct GAS_MLP_Handle *mlp = solver;
   struct ATS_Peer *p;
+  struct MLP_information *mlpi;
+  int c1;
+  int c2;
 
   GNUNET_assert (NULL != solver);
   GNUNET_assert (NULL != addresses);
   GNUNET_assert (NULL != address);
 
+
   if (NULL == address->solver_information)
-  	  address->solver_information = GNUNET_malloc (sizeof (struct MLP_information));
+  {
+  		address->solver_information = GNUNET_malloc (sizeof (struct MLP_information));
+  		mlpi = address->solver_information;
+  	  for (c1 = 0; c1 < mlp->pv.m_q; c1++)
+  	  	for (c2 = 0; c2 < mlp->pv.m_q; c2++)
+  	  		mlpi->q[c1][c2] = NaN;
+  }
   else
       LOG (GNUNET_ERROR_TYPE_ERROR, _("Adding address for peer `%s' multiple times\n"), GNUNET_i2s(&address->peer));
 
@@ -1034,13 +1044,15 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address,
   struct MLP_information *mlpi = address->solver_information;
   unsigned int c;
   unsigned int c2;
-  unsigned int type_index;
-  unsigned int avg_index;
+  int type_index;
+  int avg_index;
   uint32_t type;
   uint32_t value;
+  double avg;
+  double * queue;
 
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating quality metrics for peer `%s'\n",
-      GNUNET_i2s (&address->peer));
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating %u quality metrics for peer `%s'\n",
+      ats_count, GNUNET_i2s (&address->peer));
 
   GNUNET_assert (NULL != address);
   GNUNET_assert (NULL != address->solver_information);
@@ -1050,18 +1062,26 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address,
   {
   		type = ntohl (ats[c].type);
   		value = ntohl (ats[c].value);
+  		type_index = -1;
+  		avg_index = -1;
 
   		/* Find index for this ATS type */
-  	  for (c2 = 0; c < ats_count; c++)
+  	  for (c2 = 0; c2 < mlp->pv.m_q; c2++)
   	  {
+  	  		LOG (GNUNET_ERROR_TYPE_DEBUG, "Comparing c==%u c2==%u %u and %u \n",
+  	  				c, c2,
+  	  	      type, mlp->pv.q[c2] );
   	    if (type == mlp->pv.q[c2])
   	    {
   	    	type_index = c2;
   	      break;
   	    }
   	  }
-  	  if (type_index > ats_count)
+  	  if (-1 == type_index)
+  	  {
+  	  		LOG (GNUNET_ERROR_TYPE_DEBUG, "Index not found \n");
   	  	continue; /* quality index not found */
+  	  }
 
   	  /* Get average queue index */
   	  avg_index = mlpi->q_avg_i[type_index];
@@ -1069,13 +1089,52 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address,
   	  /* Update averaging queue */
   	  mlpi->q[type_index][avg_index] = value;
 
-  	  /* Update averaging index */
-      if (mlpi->q_avg_i[c] + 1 < (MLP_AVERAGING_QUEUE_LENGTH))
-        mlpi->q_avg_i[c] ++;
-      else
-        mlpi->q_avg_i[c] = 0;
+  		LOG (GNUNET_ERROR_TYPE_DEBUG, "Update `%s' with value `%u', in q[%u][%u]\n",
+  				mlp_ats_to_string(type), value,
+  				type_index, avg_index);
 
-  	  /* Update average */
+
+  	  /* Update averaging index */
+      if (mlpi->q_avg_i[type_index] + 1 < (MLP_AVERAGING_QUEUE_LENGTH))
+        mlpi->q_avg_i[type_index] ++;
+      else
+        mlpi->q_avg_i[type_index] = 0;
+
+  	  /* Update average depending on ATS type */
+      switch (type)
+      {
+      	case GNUNET_ATS_QUALITY_NET_DISTANCE:
+      	case GNUNET_ATS_QUALITY_NET_DELAY:
+      		c2 = 0;
+      		avg = 0;
+          for (c = 0; c < MLP_AVERAGING_QUEUE_LENGTH; c++)
+          {
+            if (mlpi->q[type_index][c] != NaN)
+            {
+              queue = mlpi->q[type_index] ;
+              avg += queue[c];
+              c2 ++;
+            }
+          }
+          if ((c2 > 0) && (avg > 0))
+            /* avg = 1 / ((q[0] + ... + q[l]) /c3) => c3 / avg*/
+            mlpi->q_averaged[type_index] = (double) c2 / avg;
+          else
+            mlpi->q_averaged[type_index] = 0.0;
+
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s': `%s' average sum: %f, average: %f, weight: %f\n",
+            GNUNET_i2s (&address->peer),
+            mlp_ats_to_string(mlp->pv.q[type_index]),
+            avg,
+            avg / (double) c2,
+            mlpi->q_averaged[type_index]);
+      		break;
+      	default:
+      		GNUNET_break (0);
+      		LOG (GNUNET_ERROR_TYPE_DEBUG, _("Update for ATS type `%s' not implemented!\n"),
+      				mlp_ats_to_string(type));
+      }
+
 
       /* Update problem matrix */
 

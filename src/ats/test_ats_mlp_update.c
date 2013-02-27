@@ -37,6 +37,12 @@
 static int ret;
 
 /**
+ * ATS Information
+ */
+struct GNUNET_ATS_Information ats[4];
+
+
+/**
  * MLP solver handle
  */
 struct GAS_MLP_Handle *mlp;
@@ -155,7 +161,6 @@ check (void *cls, char *const *args, const char *cfgfile,
   int quotas[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
   unsigned long long  quotas_in[GNUNET_ATS_NetworkTypeCount];
   unsigned long long  quotas_out[GNUNET_ATS_NetworkTypeCount];
-  struct GNUNET_ATS_Information ats;
 
 #if !HAVE_LIBGLPK
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "GLPK not installed!");
@@ -218,9 +223,15 @@ check (void *cls, char *const *args, const char *cfgfile,
   GAS_mlp_address_add (mlp, addresses, address[0]);
 
   /* Updating address 0*/
-  ats.type =  htonl (GNUNET_ATS_NETWORK_TYPE);
-  ats.value = htonl (GNUNET_ATS_NET_WAN);
-  GAS_mlp_address_update (mlp, addresses, address[0], 1, GNUNET_NO, &ats, 1);
+  ats[0].type =  htonl (GNUNET_ATS_NETWORK_TYPE);
+  ats[0].value = htonl (GNUNET_ATS_NET_WAN);
+  ats[1].type =  htonl (GNUNET_ATS_QUALITY_NET_DELAY);
+  ats[1].value = htonl (10);
+  ats[2].type =  htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
+  ats[2].value = htonl (1);
+  ats[3].type =  htonl (GNUNET_ATS_ARRAY_TERMINATOR);
+  ats[3].value = htonl (GNUNET_ATS_ARRAY_TERMINATOR);
+  GAS_mlp_address_update (mlp, addresses, address[0], 1, GNUNET_NO, ats, 4);
 
   /* Retrieving preferred address for peer and wait for callback */
   GAS_mlp_get_preferred_address (mlp, addresses, &p[0]);
