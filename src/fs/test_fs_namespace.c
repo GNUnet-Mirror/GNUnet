@@ -260,6 +260,7 @@ sks_cont (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
   struct GNUNET_FS_Uri *ksk_uri;
   char *msg;
   struct GNUNET_FS_BlockOptions bo;
+  char *suri;
 
   if (NULL == uri)
   {
@@ -271,7 +272,9 @@ sks_cont (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
   FPRINTF (stderr, "%s",  "Published sks\n");
   meta = GNUNET_CONTAINER_meta_data_create ();
   msg = NULL;
-  ksk_uri = GNUNET_FS_uri_parse ("gnunet://fs/ksk/ns-search", &msg);
+  GNUNET_asprintf (&suri, "gnunet://fs/ksk/ns-search%d", phase);
+  ksk_uri = GNUNET_FS_uri_parse (suri, &msg);
+  GNUNET_free (suri);
   GNUNET_assert (NULL == msg);
   ksk_expect_uri = GNUNET_FS_uri_dup (uri);
   bo.content_priority = 1;
@@ -337,6 +340,7 @@ testCreatedNamespace (struct GNUNET_FS_Namespace *ns)
   struct GNUNET_CONTAINER_MetaData *meta;
   struct GNUNET_FS_Uri *ksk_uri;
   int ok;
+  char *uri;
 
   FPRINTF (stderr, "%s",  "Listing namespaces\n");
   ok = GNUNET_NO;
@@ -351,7 +355,9 @@ testCreatedNamespace (struct GNUNET_FS_Namespace *ns)
   }
   FPRINTF (stderr, "%s",  "Creating an advertising\n");
   meta = GNUNET_CONTAINER_meta_data_create ();
-  ksk_uri = GNUNET_FS_uri_parse ("gnunet://fs/ksk/testnsa", NULL);
+  GNUNET_asprintf (&uri, "gnunet://fs/ksk/testnsa%d", phase);
+  ksk_uri = GNUNET_FS_uri_parse (uri, NULL);
+  GNUNET_free (uri);
   bo.content_priority = 1;
   bo.anonymity_level = 1;
   bo.replication_level = 0;
