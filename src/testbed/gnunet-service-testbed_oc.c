@@ -473,8 +473,8 @@ timeout_overlay_connect (void *cls,
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != occ->timeout_task);
   occ->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   LOG (GNUNET_ERROR_TYPE_WARNING,
-       "0x%llx: Timeout while connecting peers %u and %u\n", occ->op_id,
-       occ->peer_id, occ->other_peer_id);
+       "0x%llx: Timeout while connecting peers %u and %u: %s\n", occ->op_id,
+       occ->peer_id, occ->other_peer_id, occ->emsg);
   GST_send_operation_fail_msg (occ->client, occ->op_id, occ->emsg);
   cleanup_occ (occ);
 }
