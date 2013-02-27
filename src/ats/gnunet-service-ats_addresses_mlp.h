@@ -284,8 +284,12 @@ struct GAS_MLP_Handle
  */
 struct MLP_information
 {
-  double b;
 
+	/* Bandwidth assigned */
+  struct GNUNET_BANDWIDTH_Value32NBO b_out;
+  struct GNUNET_BANDWIDTH_Value32NBO b_in;
+
+  /* Address selected */
   int n;
 
   /* bandwidth column index */

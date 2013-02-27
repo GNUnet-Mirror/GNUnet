@@ -671,6 +671,13 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
   if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(mlp->peers, key))
   	return GNUNET_OK;
 
+  mlpi = address->solver_information;
+  if (NULL == mlpi)
+  {
+  		GNUNET_break (0);
+  		return GNUNET_OK;
+  }
+
   /* Get peer */
   peer = GNUNET_CONTAINER_multihashmap_get (mlp->peers, key);
   if (peer->processed == GNUNET_NO)
@@ -690,15 +697,14 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
   		peer->processed = GNUNET_YES;
   }
 
-
-  /* Prepare solver information */
-  if (NULL != address->solver_information)
-  {
-  	GNUNET_free (address->solver_information);
-		address->solver_information = NULL;
-  }
-  mlpi = GNUNET_malloc (sizeof (struct MLP_information));
-  address->solver_information = mlpi;
+  /* Reset addresses' solver information */
+  mlpi->c_b = 0;
+  mlpi->c_n = 0;
+  mlpi->n = 0;
+  mlpi->r_c1 = 0;
+  mlpi->r_c3 = 0;
+  for (c = 0; c < mlp->pv.m_q; c++)
+  	mlpi->r_q[0] = 0;
 
   /* Add bandwidth column */
   GNUNET_asprintf (&name, "b_%s_%s", GNUNET_i2s (&address->peer), address->plugin);
@@ -1003,7 +1009,8 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
 	struct GAS_MLP_Handle *mlp = cls;
 	struct ATS_Address *address;
 	struct MLP_information *mlpi;
-	double mlp_bw = NaN;
+	double mlp_bw_in = NaN;
+	double mlp_bw_out = NaN;
 	double mlp_use = NaN;
 
   /* Check if we have to add this peer due to a pending request */
@@ -1013,40 +1020,62 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
   GNUNET_assert (address->solver_information != NULL);
   mlpi = address->solver_information;
 
-  mlp_bw = glp_mip_col_val(mlp->p.prob, mlpi->c_b);
+  mlp_bw_in = glp_mip_col_val(mlp->p.prob, mlpi->c_b);/* FIXME */
+  if (mlp_bw_in > (double) UINT32_MAX)
+  {
+  		LOG (GNUNET_ERROR_TYPE_DEBUG, "Overflow in assigned bandwidth, reducing ...\n" );
+  		mlp_bw_in = (double) UINT32_MAX;
+  }
+  mlp_bw_out = glp_mip_col_val(mlp->p.prob, mlpi->c_b);
+  if (mlp_bw_out > (double) UINT32_MAX)
+  {
+  		LOG (GNUNET_ERROR_TYPE_DEBUG, "Overflow in assigned bandwidth, reducing ...\n" );
+  		mlp_bw_out = (double) UINT32_MAX;
+  }
   mlp_use = glp_mip_col_val(mlp->p.prob, mlpi->c_n);
+
+
 
   if ((GLP_YES == mlp_use) && (GNUNET_NO == address->active))
   {
   	/* Address switch: Activate address*/
-  	LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : enabling address\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw);
+  	LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : enabling address\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
 		address->active = GNUNET_YES;
-		address->assigned_bw_in.value__ = htonl (mlp_bw);
-		address->assigned_bw_out.value__ = htonl (mlp_bw);
+		address->assigned_bw_in.value__ = htonl (mlp_bw_in);
+		mlpi->b_in.value__ = htonl(mlp_bw_in);
+		address->assigned_bw_out.value__ = htonl (mlp_bw_out);
+		mlpi->b_out.value__ = htonl(mlp_bw_out);
+		mlpi->n = mlp_use;
 		mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
   }
   else if ((GLP_NO == mlp_use) && (GNUNET_YES == address->active))
   {
 		/* Address switch: Disable address*/
-  	LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : disabling address\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw);
+  	LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : disabling address\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
 		address->active = GNUNET_NO;
 		/* Set bandwidth to 0 */
 		address->assigned_bw_in.value__ = htonl (0);
+		mlpi->b_in.value__ = htonl(mlp_bw_in);
 		address->assigned_bw_out.value__ = htonl (0);
+		mlpi->b_out.value__ = htonl(mlp_bw_out);
+		mlpi->n = mlp_use;
 		mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
   }
-  else if ((mlp_bw != ntohl(address->assigned_bw_out.value__)) ||
-  				 (mlp_bw != ntohl(address->assigned_bw_in.value__)))
+  else if ((mlp_bw_out != ntohl(address->assigned_bw_out.value__)) ||
+  				 (mlp_bw_in != ntohl(address->assigned_bw_in.value__)))
   {
   	/* Bandwidth changed */
-		LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : bandwidth changed\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw);
-		address->assigned_bw_in.value__ = htonl (mlp_bw);
-		address->assigned_bw_out.value__ = htonl (mlp_bw);
+		LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : bandwidth changed\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
+		address->assigned_bw_in.value__ = htonl (mlp_bw_in);
+		mlpi->b_in.value__ = htonl(mlp_bw_in);
+		address->assigned_bw_out.value__ = htonl (mlp_bw_out);
+		mlpi->b_out.value__ = htonl(mlp_bw_out);
+		mlpi->n = mlp_use;
 		mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
   }
   else
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : no change\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : no change\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
   }
 
   return GNUNET_OK;
@@ -1172,15 +1201,16 @@ GAS_mlp_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addres
   GNUNET_assert (NULL != addresses);
   GNUNET_assert (NULL != address);
 
+  if (NULL == address->solver_information)
+  	  address->solver_information = GNUNET_malloc (sizeof (struct MLP_information));
+  else
+      LOG (GNUNET_ERROR_TYPE_ERROR, _("Adding address for peer `%s' multiple times\n"), GNUNET_i2s(&address->peer));
+
   /* Is this peer included in the problem? */
   if (NULL == (p = GNUNET_CONTAINER_multihashmap_get (mlp->peers, &address->peer.hashPubKey)))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding address for peer `%s' without address request \n", GNUNET_i2s(&address->peer));
   	return;
-  }
-  if (NULL != address->solver_information)
-  {
-  		GNUNET_break (0);
   }
 
 	LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding address for peer `%s' with address request \n", GNUNET_i2s(&address->peer));
@@ -1347,14 +1377,17 @@ GAS_mlp_address_delete (void *solver,
 {
 	struct ATS_Peer *p;
 	struct GAS_MLP_Handle *mlp = solver;
+	struct MLP_information *mlpi;
 
 	GNUNET_assert (NULL != solver);
 	GNUNET_assert (NULL != addresses);
 	GNUNET_assert (NULL != address);
 
-	if (NULL != address->solver_information)
+	mlpi = address->solver_information;
+
+	if (NULL != mlpi)
 	{
-			GNUNET_free (address->solver_information);
+			GNUNET_free (mlpi);
 			address->solver_information = NULL;
 	}
 
@@ -1393,11 +1426,8 @@ mlp_get_preferred_address_it (void *cls, const struct GNUNET_HashCode * key, voi
   if (mlpi->n == GNUNET_YES)
   {
     aa = addr;
-    if (mlpi->b > (double) UINT32_MAX)
-      aa->assigned_bw_out.value__ = htonl (UINT32_MAX);
-    else
-      aa->assigned_bw_out.value__ = htonl((uint32_t) mlpi->b);
-    aa->assigned_bw_in.value__ = htonl(0);
+      aa->assigned_bw_in = mlpi->b_in;
+      aa->assigned_bw_out = mlpi->b_out;
     return GNUNET_NO;
   }
   return GNUNET_YES;
