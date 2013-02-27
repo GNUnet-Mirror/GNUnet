@@ -994,7 +994,19 @@ AC_ARG_WITH([ll],
     ],
     [AC_MSG_RESULT(--with-ll not specified)])
 AM_CONDITIONAL([WITH_LL], [test "x$llapi" = "xtrue"])
-AC_DEFINE_UNQUOTED(WITH_LL, $llapi, [Do we have to use IBM LoadLeveler])
+if test "x$llapi" = "xtrue"
+then
+  AC_DEFINE_UNQUOTED([WITH_LL], [$llapi], [Do we have to use IBM LoadLeveler])
+  AC_CHECK_HEADERS([pwd.h],
+     AC_CHECK_LIB([c],[getpwuid],,
+        AC_MSG_ERROR(getpwid function not available in libc but is required)),
+     AC_MSG_ERROR(pwd.h not found but is required),
+     [[
+       #ifdef HAVE_SYS_TYPES_H
+       #include <sys/types.h>
+       #endif
+     ]])
+fi
 
 # should 'make check' run tests?
 AC_MSG_CHECKING(whether to run tests)
