@@ -226,11 +226,17 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
+  char *hostfile;
+
+  hostfile = NULL;
+#ifndef WITH_LL
   if (NULL == args[0])
   {
     fprintf (stderr, _("No hosts-file specified on command line\n"));
     return;
   }
+  hostfile = args[0];
+#endif
   if (0 == num_peers)
   {
     result = GNUNET_OK;
@@ -240,7 +246,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   event_mask = 0;
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
-  GNUNET_TESTBED_run (args[0], cfg, num_peers, event_mask, controller_event_cb,
+  GNUNET_TESTBED_run (hostfile, cfg, num_peers, event_mask, controller_event_cb,
                       NULL, &test_run, NULL);
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_abort,
@@ -265,15 +271,20 @@ main (int argc, char *const *argv)
      GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_cont_fails},
     GNUNET_GETOPT_OPTION_END
   };
+#ifdef WITH_LL
+  const char *binaryHelp = "gnunet-testbed-profiler [OPTIONS]";
+#else
+  const char *binaryHelp = "gnunet-testbed-profiler [OPTIONS] hosts-file";
+#endif
+
   int ret;
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
   result = GNUNET_SYSERR;
   ret =
-      GNUNET_PROGRAM_run (argc, argv,
-                          "gnunet-testbed-profiler [OPTIONS] hosts-file",
-                          _("Profiler for testbed"), options, &run, NULL);
+      GNUNET_PROGRAM_run (argc, argv, binaryHelp, _("Profiler for testbed"),
+                          options, &run, NULL);
   GNUNET_free ((void *) argv);
   if (GNUNET_OK != ret)
     return ret;
