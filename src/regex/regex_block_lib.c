@@ -24,6 +24,7 @@
 #include "platform.h"
 #include "regex_block_lib.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind,"regex-bck",__VA_ARGS__)
 
 /**
  * Struct to keep track of the xquery while iterating all the edges in a block.
@@ -138,51 +139,51 @@ GNUNET_REGEX_block_iterate (const struct RegexBlock *block,
   char *aux;
 
   offset = sizeof (struct RegexBlock);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "* Start iterating block of size %u, off %u\n",
-              size, offset);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "* Start iterating block of size %u, off %u\n",
+       size, offset);
   if (offset > size) // Is it safe to access the regex block?
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "*   Block is smaller than struct RegexBlock, END\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "*   Block is smaller than struct RegexBlock, END\n");
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
   n = ntohl (block->n_proof);
   offset += n;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "*  Proof length: %u, off %u\n", n, offset);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "*  Proof length: %u, off %u\n", n, offset);
   if (offset > size) // Is it safe to access the regex proof?
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "*   Block is smaller than Block + proof, END\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "*   Block is smaller than Block + proof, END\n");
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
   aux = (char *) &block[1];  // Skip regex block
   aux = &aux[n];             // Skip regex proof
   n = ntohl (block->n_edges);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*  Edges: %u\n", n);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "*  Edges: %u\n", n);
   for (i = 0; i < n; i++) // aux always points at the end of the previous block
   {
     offset += sizeof (struct RegexEdge);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   Edge %u, off %u\n", i, offset);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "*   Edge %u, off %u\n", i, offset);
     if (offset > size) // Is it safe to access the next edge block?
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "*   Size not enough for RegexEdge, END\n");
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "*   Size not enough for RegexEdge, END\n");
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
     edge = (struct RegexEdge *) aux;
     n_token = ntohl (edge->n_token);
     offset += n_token;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "*    Token lenght %u, off %u\n", n_token, offset);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+         "*    Token lenght %u, off %u\n", n_token, offset);
     if (offset > size) // Is it safe to access the edge token?
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "*   Size not enough for edge token, END\n");
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "*   Size not enough for edge token, END\n");
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
@@ -197,12 +198,11 @@ GNUNET_REGEX_block_iterate (const struct RegexBlock *block,
   // assumed correct.
   if (offset == size || SIZE_MAX == size)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "* Block processed, END OK\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "* Block processed, END OK\n");
     return GNUNET_OK;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "*   Size %u (%d), read %u END KO\n", size, size, offset);
+  LOG (GNUNET_ERROR_TYPE_WARNING,
+       "*   Size %u (%d), read %u END KO\n", size, size, offset);
   GNUNET_break_op (0);
   return GNUNET_SYSERR;
 }
