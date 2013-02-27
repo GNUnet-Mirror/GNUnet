@@ -37,7 +37,7 @@
 #include "gnunet_testbed_service.h"
 
 #define FIND_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 90)
-#define SEARCHES_IN_PARALLEL 10
+#define SEARCHES_IN_PARALLEL 2
 
 /**
  * DLL of operations
@@ -974,7 +974,7 @@ static void
 find_next_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) ||
-      peer_cnt >= (num_search_strings - 1))
+      peer_cnt >= num_search_strings)
     return;
 
   parallel_searches++;
@@ -1647,14 +1647,12 @@ controller_event_cb (void *cls,
      {
        fflush (stdout);
        prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
-       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                   "%u links established in %s\n",
-                   num_links,
-                   GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
+       printf ("\n%u links established in %s\n",
+               num_links,
+               GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
        prof_time = GNUNET_TIME_relative_divide(prof_time, num_links);
-       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                   "Average of %s per connection\n",
-                   GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
+       printf ("Average of %s per connection\n",
+               GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
        result = GNUNET_OK;
        GNUNET_free (peer_handles);
 
