@@ -1042,7 +1042,9 @@ GAS_mlp_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addres
 
 
 static void
-mlp_update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address,
+mlp_update_quality (struct GAS_MLP_Handle *mlp,
+		struct GNUNET_CONTAINER_MultiHashMap *addresses,
+		struct ATS_Address * address,
 										const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
   struct MLP_information *mlpi = address->solver_information;
@@ -1052,6 +1054,7 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address,
   unsigned int c_queue_it;
   unsigned int c_row;
   unsigned int c_qual;
+  unsigned int c_net;
   int qual_changed;
   int type_index;
   int avg_index;
@@ -1076,6 +1079,67 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address,
   		value = ntohl (ats[c_ats_entry].value);
   		type_index = -1;
   		avg_index = -1;
+
+  		/* Check for network update */
+  		if (type == GNUNET_ATS_NETWORK_TYPE)
+  		{
+  				if (address->atsp_network_type != value)
+  				{
+    				LOG (GNUNET_ERROR_TYPE_ERROR, "Updating network for peer `%s' from `%s' to `%s'\n",
+    			      GNUNET_i2s (&address->peer),
+    			      GNUNET_ATS_print_network_type(address->atsp_network_type),
+    			      GNUNET_ATS_print_network_type(value));
+
+  				}
+
+  			  rows = glp_get_num_rows(mlp->p.prob);
+  			  ind = GNUNET_malloc (rows * sizeof (int) + 1);
+  			  val = GNUNET_malloc (rows * sizeof (double) + 1);
+  			  int length = glp_get_mat_col (mlp->p.prob, mlpi->c_b, ind, val);
+
+  			  for (c_net = 0; c_net <= length + 1; c_net ++)
+  			  {
+  			  	if (ind[c_net] == mlp->p.r_quota[value])
+  			  		LOG (GNUNET_ERROR_TYPE_ERROR, "New [%u] == [%f]\n",ind[c_net],val[c_net]);
+  			  	if (ind[c_net] == mlp->p.r_quota[address->atsp_network_type])
+  			  	{
+  			  		LOG (GNUNET_ERROR_TYPE_ERROR, "Old [%u] == [%f]\n",ind[c_net],val[c_net]);
+  			  		break;
+  			  	}
+  			  }
+  			  val[c_net] = 0.0;
+  				glp_set_mat_col (mlp->p.prob, mlpi->c_b, length, ind, val);
+  				/* Set updated column */
+  				ind[c_net] = mlp->p.r_quota[value];
+  				val[c_net] = 1.0;
+  				glp_set_mat_col (mlp->p.prob, mlpi->c_b, length, ind, val);
+  			  GNUNET_free (ind);
+  			  GNUNET_free (val);
+
+  			  rows = glp_get_num_rows(mlp->p.prob);
+  			  ind = GNUNET_malloc (rows * sizeof (int) + 1);
+  			  val = GNUNET_malloc (rows * sizeof (double) + 1);
+  			  length = glp_get_mat_col (mlp->p.prob, mlpi->c_b, ind, val);
+
+  			  for (c_net = 0; c_net <= length + 1; c_net ++)
+  			  {
+  			  	if (ind[c_net] == mlp->p.r_quota[value])
+  			  		LOG (GNUNET_ERROR_TYPE_ERROR, "New [%u] == [%f]\n",ind[c_net],val[c_net]);
+  			  	if (ind[c_net] == mlp->p.r_quota[address->atsp_network_type])
+  			  	{
+  			  		LOG (GNUNET_ERROR_TYPE_ERROR, "Old [%u] == [%f]\n",ind[c_net],val[c_net]);
+  			  		break;
+  			  	}
+  			  }
+
+  			  GNUNET_free (ind);
+  			  GNUNET_free (val);
+  			  address->atsp_network_type = value;
+  			  mlp->mlp_prob_changed = GNUNET_YES;
+
+  				continue;
+  		}
+
 
   		/* Find index for this ATS type */
   	  for (c_cmp = 0; c_cmp < mlp->pv.m_q; c_cmp++)
@@ -1139,12 +1203,16 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address,
       }
   }
 
+  /* Changed, but quality will be automatically set during rebuild */
+  if ((GNUNET_YES == mlp->mlp_prob_changed) &&
+  	  (GNUNET_YES == mlp->mlp_auto_solve))
+  {
+  		GAS_mlp_solve_problem (mlp, addresses);
+  		return;
+  }
+
   /* Update problem matrix if required */
   if (GNUNET_NO == qual_changed)
-  	return;
-
-  /* Changed, but quality will be automatically set during rebuild */
-  if (GNUNET_YES == mlp->mlp_prob_changed)
   	return;
 
   /* Address not yet included in matrix */
@@ -1213,7 +1281,7 @@ GAS_mlp_address_update (void *solver,
       LOG (GNUNET_ERROR_TYPE_ERROR, _("Updating address for peer `%s' not added before\n"), GNUNET_i2s(&address->peer));
       return;
   }
-	mlp_update_quality (mlp, address, atsi, atsi_count);
+	mlp_update_quality (mlp, addresses, address, atsi, atsi_count);
 
   /* Is this peer included in the problem? */
   if (NULL == (p = GNUNET_CONTAINER_multihashmap_get (mlp->peers, &address->peer.hashPubKey)))
