@@ -1016,7 +1016,7 @@ GAS_mlp_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addres
   		address->solver_information = GNUNET_malloc (sizeof (struct MLP_information));
   		mlpi = address->solver_information;
   	  for (c1 = 0; c1 < mlp->pv.m_q; c1++)
-  	  	for (c2 = 0; c2 < mlp->pv.m_q; c2++)
+  	  	for (c2 = 0; c2 < MLP_AVERAGING_QUEUE_LENGTH; c2++)
   	  		mlpi->q[c1][c2] = NaN;
   }
   else
@@ -1042,8 +1042,10 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address,
 										const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
   struct MLP_information *mlpi = address->solver_information;
-  unsigned int c;
-  unsigned int c2;
+  unsigned int c_ats_entry;
+  unsigned int c_queue_entries;
+  unsigned int c_cmp;
+  unsigned int c_queue_it;
   int type_index;
   int avg_index;
   uint32_t type;
@@ -1058,22 +1060,19 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address,
   GNUNET_assert (NULL != address->solver_information);
   GNUNET_assert (NULL != ats);
 
-  for (c = 0; c < ats_count; c++)
+  for (c_ats_entry = 0; c_ats_entry < ats_count; c_ats_entry++)
   {
-  		type = ntohl (ats[c].type);
-  		value = ntohl (ats[c].value);
+  		type = ntohl (ats[c_ats_entry].type);
+  		value = ntohl (ats[c_ats_entry].value);
   		type_index = -1;
   		avg_index = -1;
 
   		/* Find index for this ATS type */
-  	  for (c2 = 0; c2 < mlp->pv.m_q; c2++)
+  	  for (c_cmp = 0; c_cmp < mlp->pv.m_q; c_cmp++)
   	  {
-  	  		LOG (GNUNET_ERROR_TYPE_DEBUG, "Comparing c==%u c2==%u %u and %u \n",
-  	  				c, c2,
-  	  	      type, mlp->pv.q[c2] );
-  	    if (type == mlp->pv.q[c2])
+  	    if (type == mlp->pv.q[c_cmp])
   	    {
-  	    	type_index = c2;
+  	    	type_index = c_cmp;
   	      break;
   	    }
   	  }
@@ -1105,28 +1104,29 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address,
       {
       	case GNUNET_ATS_QUALITY_NET_DISTANCE:
       	case GNUNET_ATS_QUALITY_NET_DELAY:
-      		c2 = 0;
+      		c_queue_entries = 0;
       		avg = 0;
-          for (c = 0; c < MLP_AVERAGING_QUEUE_LENGTH; c++)
+          for (c_queue_it = 0; c_queue_it < MLP_AVERAGING_QUEUE_LENGTH; c_queue_it++)
           {
-            if (mlpi->q[type_index][c] != NaN)
+            if (mlpi->q[type_index][c_queue_it] != NaN)
             {
               queue = mlpi->q[type_index] ;
-              avg += queue[c];
-              c2 ++;
+              avg += queue[c_queue_it];
+              c_queue_entries ++;
             }
           }
-          if ((c2 > 0) && (avg > 0))
+          if ((c_queue_entries > 0) && (avg > 0))
             /* avg = 1 / ((q[0] + ... + q[l]) /c3) => c3 / avg*/
-            mlpi->q_averaged[type_index] = (double) c2 / avg;
+            mlpi->q_averaged[type_index] = (double) c_queue_entries / avg;
           else
             mlpi->q_averaged[type_index] = 0.0;
 
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s': `%s' average sum: %f, average: %f, weight: %f\n",
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s': `%s' average sum of %u elements == %f, average == %f, weight == %f\n",
             GNUNET_i2s (&address->peer),
             mlp_ats_to_string(mlp->pv.q[type_index]),
+            c_queue_entries,
             avg,
-            avg / (double) c2,
+            avg / (double) c_queue_entries,
             mlpi->q_averaged[type_index]);
       		break;
       	default:
@@ -1148,8 +1148,8 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address,
   //struct GNUNET_ATS_Information *ats = address->ats;
   GNUNET_assert (mlpi != NULL);
 
-  int c;
-  for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
+  int c_ats_entry;
+  for (c_ats_entry = 0; c_ats_entry < GNUNET_ATS_QualityPropertiesCount; c_ats_entry++)
   {
 
     /* FIXME int index = mlp_lookup_ats(address, mlp->q[c]); */
@@ -1163,8 +1163,8 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address,
         mlp_ats_to_string(mlp->q[c]),
         (double) ats[index].value);
 
-    int i = mlpi->q_avg_i[c];*/
-    double * qp = mlpi->q[c];
+    int i = mlpi->q_avg_i[c_ats_entry];*/
+    double * qp = mlpi->q[c_ats_entry];
     /* FIXME
     qp[i] = (double) ats[index].value;
     */
@@ -1174,77 +1174,77 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s': `%s' queue[%u]: %f\n",
         GNUNET_i2s (&address->peer),
-        mlp_ats_to_string(mlp->q[c]),
+        mlp_ats_to_string(mlp->q[c_ats_entry]),
         t,
         qp[t]);
     }
 
-    if (mlpi->q_avg_i[c] + 1 < (MLP_AVERAGING_QUEUE_LENGTH))
-      mlpi->q_avg_i[c] ++;
+    if (mlpi->q_avg_i[c_ats_entry] + 1 < (MLP_AVERAGING_QUEUE_LENGTH))
+      mlpi->q_avg_i[c_ats_entry] ++;
     else
-      mlpi->q_avg_i[c] = 0;
+      mlpi->q_avg_i[c_ats_entry] = 0;
 
 
-    int c2;
-    int c3;
+    int c_queue_entries;
+    int c_queue_it;
     double avg = 0.0;
-    switch (mlp->q[c])
+    switch (mlp->q[c_ats_entry])
     {
       case GNUNET_ATS_QUALITY_NET_DELAY:
-        c3 = 0;
-        for (c2 = 0; c2 < MLP_AVERAGING_QUEUE_LENGTH; c2++)
+        c_queue_it = 0;
+        for (c_queue_entries = 0; c_queue_entries < MLP_AVERAGING_QUEUE_LENGTH; c_queue_entries++)
         {
-          if (mlpi->q[c][c2] != -1)
+          if (mlpi->q[c][c_queue_entries] != -1)
           {
-            double * t2 = mlpi->q[c] ;
-            avg += t2[c2];
-            c3 ++;
+            double * t2 = mlpi->q[c_ats_entry] ;
+            avg += t2[c_queue_entries];
+            c_queue_it ++;
           }
         }
-        if ((c3 > 0) && (avg > 0))
+        if ((c_queue_it > 0) && (avg > 0))
           /* avg = 1 / ((q[0] + ... + q[l]) /c3) => c3 / avg*/
-          mlpi->q_averaged[c] = (double) c3 / avg;
+          mlpi->q_averaged[c_ats_entry] = (double) c_queue_it / avg;
         else
-          mlpi->q_averaged[c] = 0.0;
+          mlpi->q_averaged[c_ats_entry] = 0.0;
 
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s': `%s' average sum: %f, average: %f, weight: %f\n",
           GNUNET_i2s (&address->peer),
-          mlp_ats_to_string(mlp->q[c]),
+          mlp_ats_to_string(mlp->q[c_ats_entry]),
           avg,
-          avg / (double) c3,
-          mlpi->q_averaged[c]);
+          avg / (double) c_queue_it,
+          mlpi->q_averaged[c_ats_entry]);
 
         break;
       case GNUNET_ATS_QUALITY_NET_DISTANCE:
-        c3 = 0;
-        for (c2 = 0; c2 < MLP_AVERAGING_QUEUE_LENGTH; c2++)
+        c_queue_it = 0;
+        for (c_queue_entries = 0; c_queue_entries < MLP_AVERAGING_QUEUE_LENGTH; queue_entries++)
         {
-          if (mlpi->q[c][c2] != -1)
+          if (mlpi->q[c_ats_entry][c_queue_entries] != -1)
           {
-            double * t2 = mlpi->q[c] ;
-            avg += t2[c2];
-            c3 ++;
+            double * t2 = mlpi->q[c_ats_entry] ;
+            avg += t2[c_queue_entries];
+            c_queue_it ++;
           }
         }
-        if ((c3 > 0) && (avg > 0))
+        if ((c_queue_it > 0) && (avg > 0))
           /* avg = 1 / ((q[0] + ... + q[l]) /c3) => c3 / avg*/
-          mlpi->q_averaged[c] = (double) c3 / avg;
+          mlpi->q_averaged[c_ats_entry] = (double) c_queue_it / avg;
         else
-          mlpi->q_averaged[c] = 0.0;
+          mlpi->q_averaged[c_ats_entry] = 0.0;
 
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s': `%s' average sum: %f, average: %f, weight: %f\n",
           GNUNET_i2s (&address->peer),
-          mlp_ats_to_string(mlp->q[c]),
+          mlp_ats_to_string(mlp->q[c_ats_entry]),
           avg,
-          avg / (double) c3,
-          mlpi->q_averaged[c]);
+          avg / (double) c_queue_it,
+          mlpi->q_averaged[c_ats_entry]);
 
         break;
       default:
         break;
     }
 
-    if ((mlpi->c_b != 0) && (mlpi->r_q[c] != 0))
+    if ((mlpi->c_b != 0) && (mlpi->r_q[c_ats_entry] != 0))
     {
 
       /* Get current number of columns */
@@ -1254,7 +1254,7 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address,
       double *val = GNUNET_malloc (cols * sizeof (double) + 1);
 
       /* Get the matrix row of quality */
-      int length = glp_get_mat_row(mlp->prob, mlp->r_q[c], ind, val);
+      int length = glp_get_mat_row(mlp->prob, mlp->r_q[c_ats_entry], ind, val);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "cols %i, length %i c_b %i\n", cols, length, mlpi->c_b);
       int c4;
       /* Get the index if matrix row of quality */
@@ -1264,11 +1264,11 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address,
         {
           /* Update the value */
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating quality `%s' column `%s' row `%s' : %f -> %f\n",
-              mlp_ats_to_string(mlp->q[c]),
+              mlp_ats_to_string(mlp->q[c_ats_entry]),
               glp_get_col_name (mlp->prob, ind[c4]),
-              glp_get_row_name (mlp->prob, mlp->r_q[c]),
+              glp_get_row_name (mlp->prob, mlp->r_q[c_ats_entry]),
               val[c4],
-              mlpi->q_averaged[c]);
+              mlpi->q_averaged[c_ats_entry]);
           val[c4] = mlpi->q_averaged[c];
           found = GNUNET_YES;
           break;
@@ -1279,9 +1279,9 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address,
         {
 
           ind[length+1] = mlpi->c_b;
-          val[length+1] = mlpi->q_averaged[c];
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%i ind[%i] val[%i]:  %i %f\n", length+1,  length+1, length+1, mlpi->c_b, mlpi->q_averaged[c]);
-          glp_set_mat_row (mlp->prob, mlpi->r_q[c], length+1, ind, val);
+          val[length+1] = mlpi->q_averaged[c_ats_entry];
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%i ind[%i] val[%i]:  %i %f\n", length+1,  length+1, length+1, mlpi->c_b, mlpi->q_averaged[c_ats_entry]);
+          glp_set_mat_row (mlp->prob, mlpi->r_q[c_ats_entry], length+1, ind, val);
         }
       else
         {
