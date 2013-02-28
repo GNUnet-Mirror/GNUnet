@@ -1,14 +1,12 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_resolver_service.h"
-#include "gnunet_testbed_service.h"
 #include <mpi.h>
 
 /**
  * Generic logging shorthand
  */
-#define LOG(kind,...)                                           \
-  GNUNET_log_from (kind, "gnunet-mpi-test", __VA_ARGS__)
+#define LOG(kind,...)                           \
+  fprintf (stderr, __VA_ARGS__)
 
 /**
  * Debug logging shorthand
@@ -17,98 +15,9 @@
   LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
 /**
- * Timeout for resolving IPs
- */
-#define RESOLVE_TIMEOUT                         \
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
-
-/**
  * Global result
  */
 static int ret;
-
-/**
- * The host list
- */
-static struct GNUNET_TESTBED_Host **hosts;
-
-/**
- * Number of hosts in the host list
- */
-static unsigned int nhosts;
-
-/**
- * Main function that will be run by the scheduler.
- *
- * @param cls closure
- * @param args remaining command-line arguments
- * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param config configuration
- */
-static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *config)
-{
-  struct GNUNET_OS_Process *proc;
-  unsigned long code;
-  enum GNUNET_OS_ProcessStatusType proc_status;
-  int rank;
-  unsigned int host;
-  
-  if (MPI_SUCCESS != MPI_Comm_rank (MPI_COMM_WORLD, &rank))
-  {
-    GNUNET_break (0);
-    return;
-  }
-  if (0 != rank)
-  {
-    ret = GNUNET_OK;
-    return;
-  }
-  PRINTF ("Spawning process\n");
-  proc =
-      GNUNET_OS_start_process_vap (GNUNET_NO, GNUNET_OS_INHERIT_STD_ALL, NULL,
-                                   NULL, args[0], args);
-  if (NULL == proc)
-  {
-    printf ("Cannot exec\n");
-    return;
-  }
-  do
-  {
-    (void) sleep (1);
-    ret = GNUNET_OS_process_status (proc, &proc_status, &code);
-  }
-  while (GNUNET_NO == ret);
-  GNUNET_assert (GNUNET_NO != ret);
-  if (GNUNET_OK == ret)
-  {
-    if (0 != code)
-    {
-      LOG (GNUNET_ERROR_TYPE_WARNING, "Child terminated abnormally\n");
-      ret = GNUNET_SYSERR;
-      GNUNET_break (0);
-      return;
-    }
-  }
-  else
-  {
-    ret = GNUNET_SYSERR;
-    GNUNET_break (0);
-    return;
-  }
-  if (0 == (nhosts = GNUNET_TESTBED_hosts_load_from_loadleveler (config, &hosts)))
-  {
-    GNUNET_break (0);
-    ret = GNUNET_SYSERR;
-    return;
-  }
-  for (host = 0; host < nhosts; host++)
-    GNUNET_TESTBED_host_destroy (hosts[host]);
-  GNUNET_free (hosts);
-  hosts = NULL;
-  ret = GNUNET_OK;
-}
 
 
 /**
@@ -120,10 +29,16 @@ main (int argc, char *argv[])
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+  struct GNUNET_OS_Process *proc;
+  char **argv2;
+  unsigned long code;
+  enum GNUNET_OS_ProcessStatusType proc_status;
+  int rank;
+  int chstat;
   unsigned int host;
-  int rres;
+  unsigned int cnt;
   
-  ret = GNUNET_SYSERR;
+  ret = -1;
   if (argc < 2)
   {
     printf ("Need arguments: gnunet-testbed-mpi-spawn <cmd> <cmd_args>");
@@ -132,16 +47,54 @@ main (int argc, char *argv[])
   if (MPI_SUCCESS != MPI_Init (&argc, &argv))
   {
     GNUNET_break (0);
-    return 1;
+    return 2;
   }
-  rres =
-      GNUNET_PROGRAM_run (argc, argv,
-                          "gnunet-testbed-mpi-spawn <cmd> <cmd_args>",
-                          _("Spawns cmd after starting my the MPI run-time"),
-                          options, &run, NULL);
+  if (MPI_SUCCESS != MPI_Comm_rank (MPI_COMM_WORLD, &rank))
+  {
+    GNUNET_break (0);
+    ret = 3;
+    goto finalize;
+  }
+  if (0 != rank)
+  {
+    ret = 0;
+    goto finalize;
+  }
+  PRINTF ("Spawning process\n");
+  argv2 = GNUNET_malloc (sizeof (char *) * (argc - 1));
+  for (cnt = 1; cnt < argc; cnt++)
+    argv2[cnt - 1] = argv[cnt];
+  proc =
+      GNUNET_OS_start_process_vap (GNUNET_NO, GNUNET_OS_INHERIT_STD_ALL, NULL,
+                                   NULL, argv2[0], argv2);
+  if (NULL == proc)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Cannot exec\n");
+    ret = 5;
+    goto finalize;
+  }
+  do
+  {
+    (void) sleep (1);
+    chstat = GNUNET_OS_process_status (proc, &proc_status, &code);
+  }
+  while (GNUNET_NO == chstat);
+  if (GNUNET_OK != chstat)
+  { 
+    ret = 6;
+    goto finalize;
+  }
+  if (0 != code)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Child terminated abnormally\n");
+    ret = 50 + (int) code;
+    goto finalize;
+  }
+  ret = 0;
+  
+ finalize:
   (void) MPI_Finalize ();
-  if ((GNUNET_OK == rres) && (GNUNET_OK == ret))
-    return 0;
-  printf ("Something went wrong\n");
-  return 1;
+  if (0 != ret)
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Something went wrong. Error: %d\n", ret);
+  return ret;
 }
