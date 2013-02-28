@@ -49,7 +49,8 @@
 #define DEFAULT_MIN_CONNECTIONS 4
 #define DEFAULT_PEER_PREFERENCE 1.0
 
-#define NaN -1
+#define MLP_NaN -1
+#define MLP_UNDEFINED 0
 #define GLP_YES 1.0
 #define GLP_NO  0.0
 
@@ -139,10 +140,6 @@ struct MLP_Problem
   int c_r;
   /* Column index quality metrics  */
   int c_q[GNUNET_ATS_QualityPropertiesCount];
-  /* column index ressource costs  */
-  int c_rc[GNUNET_ATS_QualityPropertiesCount];
-  /* Column indices ATS network quotas */
-  int c_quota[GNUNET_ATS_NetworkTypeCount];
 
   /* Problem matrix */
   /* Current index */

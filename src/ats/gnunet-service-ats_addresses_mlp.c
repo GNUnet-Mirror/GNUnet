@@ -198,34 +198,51 @@ reset_peers (void *cls, const struct GNUNET_HashCode * key, void *value)
 static void
 mlp_delete_problem (struct GAS_MLP_Handle *mlp)
 {
-  if (mlp != NULL)
-  {
-    if (mlp->p.prob != NULL)
-      glp_delete_prob(mlp->p.prob);
+	int c;
+  if (mlp == NULL)
+  	return;
+	if (mlp->p.prob != NULL)
+	{
+		glp_delete_prob(mlp->p.prob);
+		mlp->p.prob = NULL;
+	}
 
-    /* delete row index */
-    if (mlp->p.ia != NULL)
-    {
-      GNUNET_free (mlp->p.ia);
-      mlp->p.ia = NULL;
-    }
+	/* delete row index */
+	if (mlp->p.ia != NULL)
+	{
+		GNUNET_free (mlp->p.ia);
+		mlp->p.ia = NULL;
+	}
 
-    /* delete column index */
-    if (mlp->p.ja != NULL)
-    {
-      GNUNET_free (mlp->p.ja);
-      mlp->p.ja = NULL;
-    }
+	/* delete column index */
+	if (mlp->p.ja != NULL)
+	{
+		GNUNET_free (mlp->p.ja);
+		mlp->p.ja = NULL;
+	}
 
-    /* delete coefficients */
-    if (mlp->p.ar != NULL)
-    {
-      GNUNET_free (mlp->p.ar);
-      mlp->p.ar = NULL;
-    }
-    mlp->p.ci = 0;
-    mlp->p.prob = NULL;
-  }
+	/* delete coefficients */
+	if (mlp->p.ar != NULL)
+	{
+		GNUNET_free (mlp->p.ar);
+		mlp->p.ar = NULL;
+	}
+	mlp->p.ci = 0;
+	mlp->p.prob = NULL;
+
+  mlp->p.c_d = MLP_UNDEFINED;
+  mlp->p.c_r = MLP_UNDEFINED;
+  mlp->p.r_c2 = MLP_UNDEFINED;
+  mlp->p.r_c4 = MLP_UNDEFINED;
+  mlp->p.r_c6 = MLP_UNDEFINED;
+  mlp->p.r_c9 = MLP_UNDEFINED;
+  for (c = 0; c < mlp->pv.m_q ; c ++)
+  	mlp->p.r_q[c] = MLP_UNDEFINED;
+  for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c ++)
+  	mlp->p.r_quota[c] = MLP_UNDEFINED;
+  mlp->p.ci = MLP_UNDEFINED;
+
+
   GNUNET_CONTAINER_multihashmap_iterate (mlp->peers, &reset_peers, NULL);
 }
 
@@ -815,9 +832,9 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
 	struct GAS_MLP_Handle *mlp = cls;
 	struct ATS_Address *address;
 	struct MLP_information *mlpi;
-	double mlp_bw_in = NaN;
-	double mlp_bw_out = NaN;
-	double mlp_use = NaN;
+	double mlp_bw_in = MLP_NaN;
+	double mlp_bw_out = MLP_NaN;
+	double mlp_use = MLP_NaN;
 
   /* Check if we have to add this peer due to a pending request */
   if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(mlp->peers, key))
@@ -1020,7 +1037,7 @@ GAS_mlp_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addres
   	  {
   	  	mlpi->q_averaged[c1] = DEFAULT_QUALITY;
   	  	for (c2 = 0; c2 < MLP_AVERAGING_QUEUE_LENGTH; c2++)
-  	  		mlpi->q[c1][c2] = NaN;
+  	  		mlpi->q[c1][c2] = MLP_NaN;
   	  }
   }
   else
@@ -1060,18 +1077,25 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
   int avg_index;
   uint32_t type;
   uint32_t value;
+  uint32_t old_value;
   double avg;
   double *queue;
   int rows;
   double *val;
   int *ind;
 
+
 	LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating %u quality metrics for peer `%s'\n",
       ats_count, GNUNET_i2s (&address->peer));
 
+	GNUNET_assert (NULL != mlp);
   GNUNET_assert (NULL != address);
   GNUNET_assert (NULL != address->solver_information);
   GNUNET_assert (NULL != ats);
+
+  if (NULL == mlp->p.prob)
+  	return;
+
   qual_changed = GNUNET_NO;
   for (c_ats_entry = 0; c_ats_entry < ats_count; c_ats_entry++)
   {
@@ -1085,12 +1109,16 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
   		{
   				if (address->atsp_network_type != value)
   				{
-    				LOG (GNUNET_ERROR_TYPE_ERROR, "Updating network for peer `%s' from `%s' to `%s'\n",
+    				LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating network for peer `%s' from `%s' to `%s'\n",
     			      GNUNET_i2s (&address->peer),
     			      GNUNET_ATS_print_network_type(address->atsp_network_type),
     			      GNUNET_ATS_print_network_type(value));
-
   				}
+
+  				old_value = address->atsp_network_type;
+  			  address->atsp_network_type = value;
+  				if (mlpi->c_b == MLP_UNDEFINED)
+  					continue; /* This address is not yet in the matrix*/
 
   			  rows = glp_get_num_rows(mlp->p.prob);
   			  ind = GNUNET_malloc (rows * sizeof (int) + 1);
@@ -1101,7 +1129,7 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
   			  {
   			  	if (ind[c_net] == mlp->p.r_quota[value])
   			  		LOG (GNUNET_ERROR_TYPE_ERROR, "New [%u] == [%f]\n",ind[c_net],val[c_net]);
-  			  	if (ind[c_net] == mlp->p.r_quota[address->atsp_network_type])
+  			  	if (ind[c_net] == mlp->p.r_quota[old_value])
   			  	{
   			  		LOG (GNUNET_ERROR_TYPE_ERROR, "Old [%u] == [%f]\n",ind[c_net],val[c_net]);
   			  		break;
@@ -1124,19 +1152,16 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
   			  for (c_net = 0; c_net <= length + 1; c_net ++)
   			  {
   			  	if (ind[c_net] == mlp->p.r_quota[value])
-  			  		LOG (GNUNET_ERROR_TYPE_ERROR, "New [%u] == [%f]\n",ind[c_net],val[c_net]);
-  			  	if (ind[c_net] == mlp->p.r_quota[address->atsp_network_type])
+  			  		LOG (GNUNET_ERROR_TYPE_DEBUG, "Removing old network index [%u] == [%f]\n",ind[c_net],val[c_net]);
+  			  	if (ind[c_net] == mlp->p.r_quota[old_value])
   			  	{
-  			  		LOG (GNUNET_ERROR_TYPE_ERROR, "Old [%u] == [%f]\n",ind[c_net],val[c_net]);
+  			  		LOG (GNUNET_ERROR_TYPE_DEBUG, "Setting new network index [%u] == [%f]\n",ind[c_net],val[c_net]);
   			  		break;
   			  	}
   			  }
-
   			  GNUNET_free (ind);
   			  GNUNET_free (val);
-  			  address->atsp_network_type = value;
   			  mlp->mlp_prob_changed = GNUNET_YES;
-
   				continue;
   		}
 
@@ -1174,7 +1199,7 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
       		avg = 0;
           for (c_queue_it = 0; c_queue_it < MLP_AVERAGING_QUEUE_LENGTH; c_queue_it++)
           {
-            if (mlpi->q[type_index][c_queue_it] != NaN)
+            if (mlpi->q[type_index][c_queue_it] != MLP_NaN)
             {
               queue = mlpi->q[type_index] ;
               avg += queue[c_queue_it];
@@ -1216,7 +1241,7 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
   	return;
 
   /* Address not yet included in matrix */
-  if (0 == mlpi->c_b)
+  if (MLP_UNDEFINED == mlpi->c_b)
   	return;
 
   /* Update c7) [r_q[index]][c_b] = f_q * q_averaged[type_index]
@@ -1626,8 +1651,8 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     U = DEFAULT_U;
 
   /* Get quality metric coefficients from configuration */
-  int i_delay = NaN;
-  int i_distance = NaN;
+  int i_delay = MLP_NaN;
+  int i_distance = MLP_NaN;
   int q[GNUNET_ATS_QualityPropertiesCount] = GNUNET_ATS_QualityProperties;
   for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
   {
@@ -1641,7 +1666,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       i_distance = c;
   }
 
-  if ((i_delay != NaN) && (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
+  if ((i_delay != MLP_NaN) && (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
                                                       "MLP_COEFFICIENT_QUALITY_DELAY",
                                                       &tmp)))
 
@@ -1649,7 +1674,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   else
   	mlp->pv.co_Q[i_delay] = DEFAULT_QUALITY;
 
-  if ((i_distance != NaN) && (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
+  if ((i_distance != MLP_NaN) && (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
                                                       "MLP_COEFFICIENT_QUALITY_DISTANCE",
                                                       &tmp)))
   	mlp->pv.co_Q[i_distance] = (double) tmp / 100;
