@@ -61,7 +61,7 @@ main (int argc, char *argv[])
     goto finalize;
   }
   PRINTF ("Spawning process\n");
-  argv2 = GNUNET_malloc (sizeof (char *) * (argc - 1));
+  argv2 = GNUNET_malloc (sizeof (char *) * argc);
   for (cnt = 1; cnt < argc; cnt++)
     argv2[cnt - 1] = argv[cnt];
   proc =
