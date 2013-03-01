@@ -53,13 +53,16 @@ main (int argc, char *argv[])
   {
     GNUNET_break (0);
     ret = 3;
-    goto finalize;
+    (void) MPI_Finalize ();
+    goto end;
   }
   if (0 != rank)
   {
     ret = 0;
-    goto finalize;
+    (void) MPI_Finalize ();
+    goto end;
   }
+  (void) MPI_Finalize ();
   PRINTF ("Spawning process\n");
   argv2 = GNUNET_malloc (sizeof (char *) * argc);
   for (cnt = 1; cnt < argc; cnt++)
@@ -71,7 +74,7 @@ main (int argc, char *argv[])
   {
     LOG (GNUNET_ERROR_TYPE_ERROR, "Cannot exec\n");
     ret = 5;
-    goto finalize;
+    goto end;
   }
   do
   {
@@ -82,18 +85,17 @@ main (int argc, char *argv[])
   if (GNUNET_OK != chstat)
   { 
     ret = 6;
-    goto finalize;
+    goto end;
   }
   if (0 != code)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "Child terminated abnormally\n");
     ret = 50 + (int) code;
-    goto finalize;
+    goto end;
   }
   ret = 0;
   
- finalize:
-  (void) MPI_Finalize ();
+ end:  
   if (0 != ret)
     LOG (GNUNET_ERROR_TYPE_ERROR, "Something went wrong. Error: %d\n", ret);
   return ret;
