@@ -1983,9 +1983,8 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
         if (NULL != GDS_transport_handle)
         {
           GNUNET_TRANSPORT_offer_hello (GDS_transport_handle, h, NULL, NULL);
-	  if (GNUNET_YES !=
-	      disable_try_connect)
-	    GNUNET_TRANSPORT_try_connect (GDS_transport_handle, &pid, NULL, NULL); /*FIXME TRY_CONNECT change */
+          if (GNUNET_YES != disable_try_connect)
+            GNUNET_TRANSPORT_try_connect (GDS_transport_handle, &pid, NULL, NULL); /*FIXME TRY_CONNECT change */
         }
       }
     }
@@ -2017,23 +2016,20 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
     GDS_CLIENTS_handle_reply (GNUNET_TIME_absolute_ntoh (prm->expiration_time),
                               &prm->key, get_path_length, xget_path,
                               put_path_length, put_path, type, data_size, data);
+    GDS_CLIENTS_process_get_resp (type,
+                                  xget_path, get_path_length,
+                                  put_path, put_path_length,
+                                  GNUNET_TIME_absolute_ntoh (
+                                    prm->expiration_time),
+                                  &prm->key,
+                                  data,
+                                  data_size);
 
     /* forward to other peers */
     GDS_ROUTING_process (type, GNUNET_TIME_absolute_ntoh (prm->expiration_time),
                          &prm->key, put_path_length, put_path, get_path_length,
                          xget_path, data, data_size);
   }
-
-  GDS_CLIENTS_process_get_resp (type,
-                                get_path,
-                                get_path_length,
-                                put_path,
-                                put_path_length,
-                                GNUNET_TIME_absolute_ntoh (
-                                  prm->expiration_time),
-                                &prm->key,
-                                data,
-                                data_size);
 
   return GNUNET_YES;
 }
