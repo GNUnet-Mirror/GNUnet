@@ -37,7 +37,7 @@
 #include "gnunet_testbed_service.h"
 
 #define FIND_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 90)
-#define SEARCHES_IN_PARALLEL 2
+#define SEARCHES_IN_PARALLEL 1
 
 /**
  * DLL of operations
@@ -301,14 +301,9 @@ static unsigned int linking_factor;
 static unsigned int num_links;
 
 /**
- * Number of times we try overlay connect operations
+ * Number of connect operations that have failed, candidates to retry
  */
 static unsigned int retry_links;
-
-/**
- * Continuous failures during overlay connect operations
- */
-static unsigned int cont_fails;
 
 /**
  * Global testing status
@@ -846,7 +841,7 @@ regex_found_handler (void *cls,
   {
     prof_time = GNUNET_TIME_absolute_get_duration (peer->prof_start_time);
 
-    printf ("String %s successfully matched on peer %u after %s (%i/%i) (%u||)\n",
+    printf ("String %s found on peer %u after %s (%i/%i) (%u||)\n",
             peer->search_str, peer->id, GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO),
             peers_found, num_search_strings, parallel_searches);
     fflush (stdout);
@@ -1634,7 +1629,7 @@ controller_event_cb (void *cls,
      /* break; */
    case GNUNET_TESTBED_ET_CONNECT:
    {
-     char output_buffer[512];
+     char output_buffer[1024];
      size_t size;
 
      if (0 == established_links)
@@ -1666,9 +1661,9 @@ controller_event_cb (void *cls,
                             "Time to establish links: %s\nLinking failures: %u\n"
                             "path compression length: %u\n# of search strings: %u\n",
                             num_peers,
-                            (established_links - cont_fails),
+                            (established_links - retry_links),
                             GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO),
-                            cont_fails,
+                            retry_links,
                             max_path_compression,
                             num_search_strings);
 
