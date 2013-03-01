@@ -1644,17 +1644,18 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
                                GNUNET_TIME_absolute_ntoh (put->expiration_time),
                                ntohl (put->hop_count), bf, &put->key, putlen,
                                pp, payload, payload_size);
+    /* notify monitoring clients */
+    GDS_CLIENTS_process_put (options,
+                             ntohl (put->type),
+                             ntohl (put->hop_count),
+                             ntohl (put->desired_replication_level),
+                             putlen, pp,
+                             GNUNET_TIME_absolute_ntoh (put->expiration_time),
+                             &put->key,
+                             payload,
+                             payload_size);
   }
   GNUNET_CONTAINER_bloomfilter_free (bf);
-  GDS_CLIENTS_process_put (options,
-                           ntohl (put->type),
-                           ntohl (put->hop_count),
-                           ntohl (put->desired_replication_level),
-                           putlen, put_path,
-                           GNUNET_TIME_absolute_ntoh (put->expiration_time),
-                           &put->key,
-                           payload,
-                           payload_size);
   return GNUNET_YES;
 }
 
@@ -1869,9 +1870,6 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_free (tmp);
   }
 
-
-
-  /* FIXME Path */
   GDS_CLIENTS_process_get (options,
                            type,
                            ntohl(get->hop_count),

@@ -264,7 +264,7 @@ process (void *cls, const struct GNUNET_HashCode * key, void *value)
  * @param key key for the content
  * @param put_path_length number of entries in put_path
  * @param put_path peers the original PUT traversed (if tracked)
- * @param get_path_length number of entries in put_path
+ * @param get_path_length number of entries in get_path
  * @param get_path peers this reply has traversed so far (if tracked)
  * @param data payload of the reply
  * @param data_size number of bytes in data
