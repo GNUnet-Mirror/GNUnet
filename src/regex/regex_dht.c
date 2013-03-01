@@ -31,8 +31,10 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind,"regex-dht",__VA_ARGS__)
 
+/* FIXME: OPTION (API, CONFIG) */
 #define DHT_REPLICATION 5
 #define DHT_TTL         GNUNET_TIME_UNIT_HOURS
+#define DHT_OPT         GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE /* | GNUNET_DHT_RO_RECORD_ROUTE*/
 
 struct GNUNET_REGEX_announce_handle
 {
@@ -84,7 +86,6 @@ regex_iterator (void *cls,
   struct GNUNET_REGEX_announce_handle *h = cls;
   struct RegexBlock *block;
   struct RegexEdge *block_edge;
-  enum GNUNET_DHT_RouteOption opt;
   size_t size;
   size_t len;
   unsigned int i;
@@ -97,7 +98,6 @@ regex_iterator (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "   proof: %s\n", proof);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "   num edges: %u\n", num_edges);
 
-  opt = GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE;
   if (GNUNET_YES == accepting)
   {
     struct RegexAccept block;
@@ -114,13 +114,13 @@ regex_iterator (void *cls,
                               sizeof (block), GNUNET_NO);
     (void)
     GNUNET_DHT_put (h->dht, key,
-                    2, /* FIXME option */
-                    opt /* | GNUNET_DHT_RO_RECORD_ROUTE*/,
+                    DHT_REPLICATION,
+                    DHT_OPT,
                     GNUNET_BLOCK_TYPE_REGEX_ACCEPT,
                     size,
                     (char *) &block,
-                    GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS), /* FIXME: expiration time should be option */
-                    GNUNET_TIME_UNIT_HOURS, /* FIXME option */
+                    GNUNET_TIME_relative_to_absolute (DHT_TTL),
+                    DHT_TTL,
                     NULL, NULL);
   }
   len = strlen(proof);
@@ -161,11 +161,11 @@ regex_iterator (void *cls,
   }
   (void)
   GNUNET_DHT_put(h->dht, key,
-                 DHT_REPLICATION, /* FIXME OPTION */
-                 opt,
+                 DHT_REPLICATION,
+                 DHT_OPT,
                  GNUNET_BLOCK_TYPE_REGEX, size,
                  (char *) block,
-                 GNUNET_TIME_relative_to_absolute (DHT_TTL), /* FIXME: this should be an option */
+                 GNUNET_TIME_relative_to_absolute (DHT_TTL),
                  DHT_TTL,
                  NULL, NULL);
   GNUNET_STATISTICS_update (h->stats, "# regex blocks stored",
@@ -202,6 +202,7 @@ GNUNET_REGEX_announce (struct GNUNET_DHT_Handle *dht,
 void
 GNUNET_REGEX_reannounce (struct GNUNET_REGEX_announce_handle *h)
 {
+  LOG (GNUNET_ERROR_TYPE_INFO, "GNUNET_REGEX_reannounce: %s\n", h->regex);
   GNUNET_REGEX_iterate_all_edges (h->dfa, &regex_iterator, h);
 }
 
@@ -345,7 +346,8 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   struct GNUNET_REGEX_search_handle *info = ctx->info;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Got regex results from DHT!\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  for %s\n", info->description);
+  LOG (GNUNET_ERROR_TYPE_INFO, "   accept for %s (key %s)\n",
+       info->description, GNUNET_h2s(key));
 
   GNUNET_STATISTICS_update (info->stats, "# regex accepting blocks found",
                             1, GNUNET_NO);
@@ -374,12 +376,12 @@ regex_find_path (const struct GNUNET_HashCode *key,
   struct GNUNET_DHT_GetHandle *get_h;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Found peer by service\n");
+  LOG (GNUNET_ERROR_TYPE_INFO, "   find accept for %s\n", GNUNET_h2s (key));
   get_h = GNUNET_DHT_get_start (ctx->info->dht,    /* handle */
                                 GNUNET_BLOCK_TYPE_REGEX_ACCEPT, /* type */
                                 key,     /* key to search */
                                 DHT_REPLICATION, /* replication level */
-                                GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE |
-                                GNUNET_DHT_RO_RECORD_ROUTE,
+                                DHT_OPT | GNUNET_DHT_RO_RECORD_ROUTE,
                                 NULL,       /* xquery */ // FIXME BLOOMFILTER
                                 0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
                                 &dht_get_string_accept_handler, ctx);
@@ -425,8 +427,8 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   size_t len;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "DHT GET STRING RETURNED RESULTS\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  for: %s\n", ctx->info->description);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  key: %s\n", GNUNET_h2s (key));
+  LOG (GNUNET_ERROR_TYPE_INFO, "   for: %s\n", ctx->info->description);
+  LOG (GNUNET_ERROR_TYPE_INFO, "   key: %s\n", GNUNET_h2s (key));
 
   copy = GNUNET_malloc (size);
   memcpy (copy, data, size);
@@ -456,7 +458,7 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     }
     else
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  block not accepting!\n");
+      LOG (GNUNET_ERROR_TYPE_INFO, "  block not accepting!\n");
       // FIXME REGEX this block not successful, wait for more? start timeout?
     }
     return;
@@ -471,11 +473,10 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 /**
  * Iterator over found existing mesh regex blocks that match an ongoing search.
  *
- * @param cls closure
- * @param key current key code
- * @param value value in the hash map
- * @return GNUNET_YES if we should continue to iterate,
- *         GNUNET_NO if not.
+ * @param cls Closure (current context)-
+ * @param key Current key code (key for cached block).
+ * @param value Value in the hash map (cached RegexBlock).
+ * @return GNUNET_YES: we should always continue to iterate.
  */
 static int
 regex_result_iterator (void *cls,
@@ -488,18 +489,15 @@ regex_result_iterator (void *cls,
   if (GNUNET_YES == ntohl(block->accepting) &&
       ctx->position == strlen (ctx->info->description))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "* Found accepting known block\n");
+    LOG (GNUNET_ERROR_TYPE_INFO, " * Found accepting known block\n");
     regex_find_path (key, ctx);
     return GNUNET_YES; // We found an accept state!
   }
-  else
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "* %u, %u, [%u]\n",
-         ctx->position, strlen(ctx->info->description),
-         ntohl(block->accepting));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "* %u, %u, [%u]\n",
+       ctx->position, strlen(ctx->info->description),
+       ntohl(block->accepting));
 
-  }
-  regex_next_edge(block, SIZE_MAX, ctx);
+  regex_next_edge (block, SIZE_MAX, ctx);
 
   GNUNET_STATISTICS_update (ctx->info->stats, "# regex mesh blocks iterated",
                             1, GNUNET_NO);
@@ -586,6 +584,7 @@ regex_next_edge (const struct RegexBlock *block,
   struct RegexSearchContext *new_ctx;
   struct GNUNET_REGEX_search_handle *info = ctx->info;
   struct GNUNET_DHT_GetHandle *get_h;
+  struct GNUNET_HashCode *hash;
   const char *rest;
   int result;
 
@@ -598,8 +597,12 @@ regex_next_edge (const struct RegexBlock *block,
 
   /* Did anything match? */
   if (0 == ctx->longest_match)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  no match in block\n");
     return;
+  }
 
+  hash = &ctx->hash;
   new_ctx = GNUNET_malloc (sizeof (struct RegexSearchContext));
   new_ctx->info = info;
   new_ctx->position = ctx->position + ctx->longest_match;
@@ -607,28 +610,28 @@ regex_next_edge (const struct RegexBlock *block,
 
   /* Check whether we already have a DHT GET running for it */
   if (GNUNET_YES ==
-      GNUNET_CONTAINER_multihashmap_contains(info->dht_get_handles, &ctx->hash))
+      GNUNET_CONTAINER_multihashmap_contains (info->dht_get_handles, hash))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "*     GET running, END\n");
     GNUNET_CONTAINER_multihashmap_get_multiple (info->dht_get_results,
-                                                &ctx->hash,
+                                                hash,
                                                 &regex_result_iterator,
                                                 new_ctx);
-    // FIXME: "leaks" new_ctx? avoid keeping it around?
-    return; // We are already looking for it
+    return; /* We are already looking for it */
   }
 
   GNUNET_STATISTICS_update (info->stats, "# regex nodes traversed",
                             1, GNUNET_NO);
 
   /* Start search in DHT */
+  LOG (GNUNET_ERROR_TYPE_INFO, "   looking for %s\n", GNUNET_h2s (hash));
   rest = &new_ctx->info->description[new_ctx->position];
   get_h = 
       GNUNET_DHT_get_start (info->dht,    /* handle */
                             GNUNET_BLOCK_TYPE_REGEX, /* type */
-                            &ctx->hash,     /* key to search */
+                            hash,     /* key to search */
                             DHT_REPLICATION, /* replication level */
-                            GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                            DHT_OPT,
                             rest, /* xquery */
                             // FIXME add BLOOMFILTER to exclude filtered peers
                             strlen(rest) + 1,     /* xquery bits */
@@ -636,7 +639,7 @@ regex_next_edge (const struct RegexBlock *block,
                             &dht_get_string_handler, new_ctx);
   if (GNUNET_OK !=
       GNUNET_CONTAINER_multihashmap_put(info->dht_get_handles,
-                                        &ctx->hash,
+                                        hash,
                                         get_h,
                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
   {
@@ -661,7 +664,7 @@ GNUNET_REGEX_search (struct GNUNET_DHT_Handle *dht,
   size_t len;
 
   /* Initialize handle */
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "GNUNET_REGEX_search: %s\n", string);
+  LOG (GNUNET_ERROR_TYPE_INFO, "GNUNET_REGEX_search: %s\n", string);
   GNUNET_assert (NULL != dht);
   GNUNET_assert (NULL != callback);
   h = GNUNET_malloc (sizeof (struct GNUNET_REGEX_search_handle));
@@ -680,17 +683,15 @@ GNUNET_REGEX_search (struct GNUNET_DHT_Handle *dht,
   ctx->position = size;
   ctx->info = h;
   GNUNET_array_append (h->contexts, h->n_contexts, ctx);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "  consumed %u bits out of %u\n", size, len);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "  looking for %s\n", GNUNET_h2s (&key));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  consumed %u bits out of %u\n", size, len);
+  LOG (GNUNET_ERROR_TYPE_INFO, "   looking for %s\n", GNUNET_h2s (&key));
 
   /* Start search in DHT */
   get_h = GNUNET_DHT_get_start (h->dht,    /* handle */
                                 GNUNET_BLOCK_TYPE_REGEX, /* type */
                                 &key,     /* key to search */
                                 DHT_REPLICATION, /* replication level */
-                                GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                                DHT_OPT,
                                 &h->description[size],           /* xquery */
                                 // FIXME add BLOOMFILTER to exclude filtered peers
                                 len + 1 - size,                /* xquery bits */
