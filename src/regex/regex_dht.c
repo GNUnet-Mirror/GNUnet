@@ -34,7 +34,13 @@
 /* FIXME: OPTION (API, CONFIG) */
 #define DHT_REPLICATION 5
 #define DHT_TTL         GNUNET_TIME_UNIT_HOURS
-#define DHT_OPT         GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE /* | GNUNET_DHT_RO_RECORD_ROUTE*/
+#define DEBUG_DHT       GNUNET_YES
+
+#if DEBUG_DHT
+#define DHT_OPT         GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE | GNUNET_DHT_RO_RECORD_ROUTE
+#else
+#define DHT_OPT         GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE
+#endif
 
 struct GNUNET_REGEX_announce_handle
 {
@@ -115,7 +121,7 @@ regex_iterator (void *cls,
     (void)
     GNUNET_DHT_put (h->dht, key,
                     DHT_REPLICATION,
-                    DHT_OPT,
+                    DHT_OPT | GNUNET_DHT_RO_RECORD_ROUTE,
                     GNUNET_BLOCK_TYPE_REGEX_ACCEPT,
                     size,
                     (char *) &block,
@@ -160,14 +166,14 @@ regex_iterator (void *cls,
     aux = &aux[len];
   }
   (void)
-  GNUNET_DHT_put(h->dht, key,
-                 DHT_REPLICATION,
-                 DHT_OPT,
-                 GNUNET_BLOCK_TYPE_REGEX, size,
-                 (char *) block,
-                 GNUNET_TIME_relative_to_absolute (DHT_TTL),
-                 DHT_TTL,
-                 NULL, NULL);
+  GNUNET_DHT_put (h->dht, key,
+                  DHT_REPLICATION,
+                  DHT_OPT,
+                  GNUNET_BLOCK_TYPE_REGEX, size,
+                  (char *) block,
+                  GNUNET_TIME_relative_to_absolute (DHT_TTL),
+                  DHT_TTL,
+                  NULL, NULL);
   GNUNET_STATISTICS_update (h->stats, "# regex blocks stored",
                             1, GNUNET_NO);
   GNUNET_STATISTICS_update (h->stats, "# regex block bytes stored",
@@ -425,10 +431,24 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   struct GNUNET_REGEX_search_handle *info = ctx->info;
   void *copy;
   size_t len;
+  char *datastore;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "DHT GET STRING RETURNED RESULTS\n");
-  LOG (GNUNET_ERROR_TYPE_INFO, "   for: %s\n", ctx->info->description);
-  LOG (GNUNET_ERROR_TYPE_INFO, "   key: %s\n", GNUNET_h2s (key));
+#if DEBUG_DHT
+  if (NULL != put_path && 0 != put_path_length)
+  {
+    datastore = GNUNET_strdup (GNUNET_i2s (&put_path[put_path_length - 1]));
+  }
+  else
+  {
+    GNUNET_asprintf (&datastore, "?? %u/%u", put_path_length, get_path_length);
+  }
+#else
+  datastore = GNUNET_strdup ("N/A");
+#endif
+
+  LOG (GNUNET_ERROR_TYPE_INFO, " DHT GET result for %s (%s) at %s\n", 
+       GNUNET_h2s (key), ctx->info->description, datastore);
+  GNUNET_free (datastore);
 
   copy = GNUNET_malloc (size);
   memcpy (copy, data, size);
