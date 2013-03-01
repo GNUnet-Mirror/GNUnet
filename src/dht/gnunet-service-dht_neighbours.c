@@ -774,7 +774,7 @@ core_transmit_notify (void *cls, size_t size, void *buf)
   if (buf == NULL)
   {
     peer->th =
-        GNUNET_CORE_notify_transmit_ready (coreAPI, GNUNET_YES,
+        GNUNET_CORE_notify_transmit_ready (coreAPI, GNUNET_NO,
                                            pending->importance,
                                            GNUNET_TIME_absolute_get_remaining
                                            (pending->timeout), &peer->id,
@@ -800,7 +800,7 @@ core_transmit_notify (void *cls, size_t size, void *buf)
   if (peer->head != NULL)
   {
     peer->th =
-        GNUNET_CORE_notify_transmit_ready (coreAPI, GNUNET_YES,
+        GNUNET_CORE_notify_transmit_ready (coreAPI, GNUNET_NO,
                                            pending->importance,
                                            GNUNET_TIME_absolute_get_remaining
                                            (pending->timeout), &peer->id, msize,
@@ -830,7 +830,7 @@ process_peer_queue (struct PeerInfo *peer)
                             ("# Bytes of bandwidth requested from core"),
                             ntohs (pending->msg->size), GNUNET_NO);
   peer->th =
-      GNUNET_CORE_notify_transmit_ready (coreAPI, GNUNET_YES,
+      GNUNET_CORE_notify_transmit_ready (coreAPI, GNUNET_NO,
                                          pending->importance,
                                          GNUNET_TIME_absolute_get_remaining
                                          (pending->timeout), &peer->id,
