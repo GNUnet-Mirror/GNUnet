@@ -164,14 +164,14 @@ typedef void (*GNUNET_DHT_PutContinuation)(void *cls,
  */
 struct GNUNET_DHT_PutHandle *
 GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle, 
-		const struct GNUNET_HashCode * key,
+                const struct GNUNET_HashCode * key,
                 uint32_t desired_replication_level,
                 enum GNUNET_DHT_RouteOption options,
                 enum GNUNET_BLOCK_Type type,
-		size_t size, const void *data,
+                size_t size, const void *data,
                 struct GNUNET_TIME_Absolute exp,
                 struct GNUNET_TIME_Relative timeout,
-		GNUNET_DHT_PutContinuation cont,
+                GNUNET_DHT_PutContinuation cont,
                 void *cont_cls);
 
 
@@ -198,8 +198,10 @@ GNUNET_DHT_put_cancel (struct GNUNET_DHT_PutHandle *ph);
  * @param exp when will this value expire
  * @param key key of the result
  * @param get_path peers on reply path (or NULL if not recorded)
+ *                 [0] = datastore's first neighbor, [length - 1] = local peer
  * @param get_path_length number of entries in get_path
  * @param put_path peers on the PUT path (or NULL if not recorded)
+ *                 [0] = origin, [length - 1] = datastore
  * @param put_path_length number of entries in get_path
  * @param type type of the result
  * @param size number of bytes in data
@@ -237,11 +239,11 @@ typedef void (*GNUNET_DHT_GetIterator) (void *cls,
 struct GNUNET_DHT_GetHandle *
 GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
                       enum GNUNET_BLOCK_Type type, 
-		      const struct GNUNET_HashCode *key,
+                      const struct GNUNET_HashCode *key,
                       uint32_t desired_replication_level,
                       enum GNUNET_DHT_RouteOption options, 
-		      const void *xquery, size_t xquery_size, 
-		      GNUNET_DHT_GetIterator iter, void *iter_cls);
+                      const void *xquery, size_t xquery_size, 
+                      GNUNET_DHT_GetIterator iter, void *iter_cls);
 
 
 /**
