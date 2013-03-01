@@ -154,7 +154,7 @@ GNUNET_OS_install_parent_control_handler (void *cls,
 #if !defined (WINDOWS)
   if (pipe_fd >= FD_SETSIZE)
 #else
-  if ((FILE_TYPE_UNKNOWN == GetFileType ((HANDLE) pipe_fd))
+  if ((FILE_TYPE_UNKNOWN == GetFileType ((HANDLE) (uintptr_t) pipe_fd))
       && (0 != GetLastError ()))
 #endif
   {
@@ -163,9 +163,8 @@ GNUNET_OS_install_parent_control_handler (void *cls,
     putenv (GNUNET_OS_CONTROL_PIPE "=");
     return;
   }
-  /* Gcc will issue a warning here. What to do with it? */
 #if WINDOWS
-  control_pipe = GNUNET_DISK_get_handle_from_w32_handle ((HANDLE) pipe_fd);
+  control_pipe = GNUNET_DISK_get_handle_from_w32_handle ((HANDLE) (uintptr_t) pipe_fd);
 #else
   control_pipe = GNUNET_DISK_get_handle_from_int_fd ((int) pipe_fd);
 #endif
