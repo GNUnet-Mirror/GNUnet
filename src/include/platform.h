@@ -48,7 +48,7 @@
 #include <sys/types.h>
 #endif
 
-#define ALLOW_EXTRA_CHECKS GNUNET_YES
+#define ALLOW_EXTRA_CHECKS GNUNET_NO
 
 /**
  * For strptime (glibc2 needs this).
