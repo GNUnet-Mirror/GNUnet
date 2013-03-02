@@ -1510,19 +1510,30 @@ GSC_KX_init (struct GNUNET_CRYPTO_EccPrivateKey *pk)
   GNUNET_CRYPTO_ecc_key_get_public (my_private_key, &my_public_key);
   GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
                       &GSC_my_identity.hashPubKey);
-  my_ephemeral_key = GNUNET_CRYPTO_ecc_key_create ();
-  if (NULL == my_ephemeral_key)
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (GSC_cfg,
+					    "core",
+					    "USE_EPHEMERAL_KEYS"))
   {
-    GNUNET_break (0);
-    GNUNET_CRYPTO_ecc_key_free (my_private_key);
-    my_private_key = NULL;
-    return GNUNET_SYSERR;
+    my_ephemeral_key = GNUNET_CRYPTO_ecc_key_create ();
+    if (NULL == my_ephemeral_key)
+    {
+      GNUNET_break (0);
+      GNUNET_CRYPTO_ecc_key_free (my_private_key);
+      my_private_key = NULL;
+      return GNUNET_SYSERR;
+    }
+    sign_ephemeral_key ();
+    rekey_task = GNUNET_SCHEDULER_add_delayed (REKEY_FREQUENCY,
+					       &do_rekey,
+					       NULL);
   }
-  sign_ephemeral_key ();
+  else
+  {
+    my_ephemeral_key = my_private_key;
+    sign_ephemeral_key ();
+  }
   mst = GNUNET_SERVER_mst_create (&deliver_message, NULL);
-  rekey_task = GNUNET_SCHEDULER_add_delayed (REKEY_FREQUENCY,
-					     &do_rekey,
-					     NULL);
   return GNUNET_OK;
 }
 
@@ -1538,15 +1549,16 @@ GSC_KX_done ()
     GNUNET_SCHEDULER_cancel (rekey_task);
     rekey_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  if ( (NULL != my_ephemeral_key) &&
+       (my_ephemeral_key != my_private_key) )
+  {
+    GNUNET_CRYPTO_ecc_key_free (my_ephemeral_key);
+    my_ephemeral_key = NULL;
+  }
   if (NULL != my_private_key)
   {
     GNUNET_CRYPTO_ecc_key_free (my_private_key);
     my_private_key = NULL;
-  }
-  if (NULL != my_ephemeral_key)
-  {
-    GNUNET_CRYPTO_ecc_key_free (my_ephemeral_key);
-    my_ephemeral_key = NULL;
   }
   if (NULL != mst)
   {

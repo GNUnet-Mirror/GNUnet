@@ -18,3 +18,7 @@ UNIX_MATCH_GID = YES
 # REJECT_FROM =
 # REJECT_FROM6 =
 # PREFIX =
+
+# Note: this MUST be set to YES in production, only set to NO for testing
+# for performance (testbed/cluster-scale use!).
+USE_EPHEMERAL_KEYS = YES
