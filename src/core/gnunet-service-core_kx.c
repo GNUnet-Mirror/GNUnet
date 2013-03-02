@@ -743,6 +743,18 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
     return;
   }
   m = (const struct EphemeralKeyMessage *) msg;
+  end_t = GNUNET_TIME_absolute_ntoh (m->expiration_time);
+  if ( ( (KX_STATE_KEY_RECEIVED == kx->status) ||
+	 (KX_STATE_UP == kx->status) ||
+	 (KX_STATE_REKEY_SENT == kx->status) ) &&       
+       (end_t.abs_value <= kx->foreign_key_expires.abs_value) )
+  {
+    GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# old ephemeral keys ignored"),
+			      1, GNUNET_NO);
+    return;
+  }
+  start_t = GNUNET_TIME_absolute_ntoh (m->creation_time);
+
   GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# ephemeral keys received"),
                             1, GNUNET_NO);
 
@@ -774,8 +786,6 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
     GNUNET_break_op (0);
     return;
   }
-  start_t = GNUNET_TIME_absolute_ntoh (m->creation_time);
-  end_t = GNUNET_TIME_absolute_ntoh (m->expiration_time);
   now = GNUNET_TIME_absolute_get ();
   if ( (end_t.abs_value < GNUNET_TIME_absolute_subtract (now, REKEY_TOLERANCE).abs_value) ||
        (start_t.abs_value > GNUNET_TIME_absolute_add (now, REKEY_TOLERANCE).abs_value) )
