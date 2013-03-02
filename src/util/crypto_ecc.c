@@ -28,7 +28,7 @@
 #include "gnunet_common.h"
 #include "gnunet_util_lib.h"
 
-#define EXTRA_CHECKS ALLOW_EXTRA_CHECKS || 1
+#define EXTRA_CHECKS ALLOW_EXTRA_CHECKS 
 
 #define CURVE "NIST P-521"
 
