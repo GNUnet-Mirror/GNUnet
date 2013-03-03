@@ -706,20 +706,17 @@ short_wait ()
 
 
 /**
- * Create a new private key by reading it from a file.  If the
- * files does not exist, create a new key and write it to the
- * file.  Caller must free return value.  Note that this function
- * can not guarantee that another process might not be trying
- * the same operation on the same file at the same time.
- * If the contents of the file
- * are invalid the old file is deleted and a fresh key is
- * created.
+ * Open existing private key file and read it.  If the
+ * file does not exist, or the contents of the file are
+ * invalid, the function fails
+ * Caller must free returned value.
  *
- * @return new private key, NULL on error (for example,
- *   permission denied)
+ * @return a private key, NULL on error (for example,
+ *         permission denied) or when file does not exist or contains invalid
+ *         data.
  */
 struct GNUNET_CRYPTO_RsaPrivateKey *
-GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
+GNUNET_CRYPTO_rsa_key_create_from_existing_file (const char *filename)
 {
   struct GNUNET_CRYPTO_RsaPrivateKey *ret;
   struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *enc;
@@ -731,70 +728,6 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
   struct GNUNET_PeerIdentity pid;
 
-  if (GNUNET_SYSERR == GNUNET_DISK_directory_create_for_file (filename))
-    return NULL;
-  while (GNUNET_YES != GNUNET_DISK_file_test (filename))
-  {
-    fd = GNUNET_DISK_file_open (filename,
-                                GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE
-                                | GNUNET_DISK_OPEN_FAILIFEXISTS,
-                                GNUNET_DISK_PERM_USER_READ |
-                                GNUNET_DISK_PERM_USER_WRITE);
-    if (NULL == fd)
-    {
-      if (EEXIST == errno)
-      {
-        if (GNUNET_YES != GNUNET_DISK_file_test (filename))
-        {
-          /* must exist but not be accessible, fail for good! */
-          if (0 != ACCESS (filename, R_OK))
-            LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "access", filename);
-          else
-            GNUNET_break (0);   /* what is going on!? */
-          return NULL;
-        }
-        continue;
-      }
-      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "open", filename);
-      return NULL;
-    }
-    cnt = 0;
-
-    while (GNUNET_YES !=
-           GNUNET_DISK_file_lock (fd, 0,
-                                  sizeof (struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded),
-                                  GNUNET_YES))
-    {
-      short_wait ();
-      if (0 == ++cnt % 10)
-      {
-        ec = errno;
-        LOG (GNUNET_ERROR_TYPE_ERROR,
-             _("Could not acquire lock on file `%s': %s...\n"), filename,
-             STRERROR (ec));
-      }
-    }
-    LOG (GNUNET_ERROR_TYPE_INFO,
-         _("Creating a new private key.  This may take a while.\n"));
-    ret = rsa_key_create ();
-    GNUNET_assert (ret != NULL);
-    enc = GNUNET_CRYPTO_rsa_encode_key (ret);
-    GNUNET_assert (enc != NULL);
-    GNUNET_assert (ntohs (enc->len) ==
-                   GNUNET_DISK_file_write (fd, enc, ntohs (enc->len)));
-    GNUNET_free (enc);
-
-    GNUNET_DISK_file_sync (fd);
-    if (GNUNET_YES !=
-        GNUNET_DISK_file_unlock (fd, 0,
-                                 sizeof (struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded)))
-      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "fcntl", filename);
-    GNUNET_assert (GNUNET_YES == GNUNET_DISK_file_close (fd));
-    GNUNET_CRYPTO_rsa_key_get_public (ret, &pub);
-    GNUNET_CRYPTO_hash (&pub, sizeof (pub), &pid.hashPubKey);
-    return ret;
-  }
-  /* hostkey file exists already, read it! */
   fd = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
                               GNUNET_DISK_PERM_NONE);
   if (NULL == fd)
@@ -885,6 +818,100 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
     GNUNET_CRYPTO_hash (&pub, sizeof (pub), &pid.hashPubKey);
   }
   return ret;
+}
+
+/**
+ * Create a new private key by reading it from a file.  If the
+ * files does not exist, create a new key and write it to the
+ * file.  Caller must free return value.  Note that this function
+ * can not guarantee that another process might not be trying
+ * the same operation on the same file at the same time.
+ * If the contents of the file
+ * are invalid the old file is deleted and a fresh key is
+ * created.
+ *
+ * @return new private key, NULL on error (for example,
+ *   permission denied)
+ */
+struct GNUNET_CRYPTO_RsaPrivateKey *
+GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
+{
+  struct GNUNET_CRYPTO_RsaPrivateKey *ret;
+  struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *enc;
+  uint16_t len;
+  struct GNUNET_DISK_FileHandle *fd;
+  unsigned int cnt;
+  int ec;
+  uint64_t fs;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
+  struct GNUNET_PeerIdentity pid;
+
+  if (GNUNET_SYSERR == GNUNET_DISK_directory_create_for_file (filename))
+    return NULL;
+
+  while (GNUNET_YES != GNUNET_DISK_file_test (filename))
+  {
+    fd = GNUNET_DISK_file_open (filename,
+                                GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE
+                                | GNUNET_DISK_OPEN_FAILIFEXISTS,
+                                GNUNET_DISK_PERM_USER_READ |
+                                GNUNET_DISK_PERM_USER_WRITE);
+    if (NULL == fd)
+    {
+      if (EEXIST == errno)
+      {
+        if (GNUNET_YES != GNUNET_DISK_file_test (filename))
+        {
+          /* must exist but not be accessible, fail for good! */
+          if (0 != ACCESS (filename, R_OK))
+            LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "access", filename);
+          else
+            GNUNET_break (0);   /* what is going on!? */
+          return NULL;
+        }
+        continue;
+      }
+      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "open", filename);
+      return NULL;
+    }
+    cnt = 0;
+
+    while (GNUNET_YES !=
+           GNUNET_DISK_file_lock (fd, 0,
+                                  sizeof (struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded),
+                                  GNUNET_YES))
+    {
+      short_wait ();
+      if (0 == ++cnt % 10)
+      {
+        ec = errno;
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("Could not acquire lock on file `%s': %s...\n"), filename,
+             STRERROR (ec));
+      }
+    }
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         _("Creating a new private key.  This may take a while.\n"));
+    ret = rsa_key_create ();
+    GNUNET_assert (ret != NULL);
+    enc = GNUNET_CRYPTO_rsa_encode_key (ret);
+    GNUNET_assert (enc != NULL);
+    GNUNET_assert (ntohs (enc->len) ==
+                   GNUNET_DISK_file_write (fd, enc, ntohs (enc->len)));
+    GNUNET_free (enc);
+
+    GNUNET_DISK_file_sync (fd);
+    if (GNUNET_YES !=
+        GNUNET_DISK_file_unlock (fd, 0,
+                                 sizeof (struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded)))
+      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "fcntl", filename);
+    GNUNET_assert (GNUNET_YES == GNUNET_DISK_file_close (fd));
+    GNUNET_CRYPTO_rsa_key_get_public (ret, &pub);
+    GNUNET_CRYPTO_hash (&pub, sizeof (pub), &pid.hashPubKey);
+    return ret;
+  }
+  /* hostkey file exists already, read it! */
+  return GNUNET_CRYPTO_rsa_key_create_from_existing_file (filename);
 }
 
 

@@ -992,6 +992,20 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename);
 
 
 /**
+ * Open existing private key file and read it.  If the
+ * file does not exist, or the contents of the file are
+ * invalid, the function fails
+ * Caller must free returned value.
+ *
+ * @return a private key, NULL on error (for example,
+ *         permission denied) or when file does not exist or contains invalid
+ *         data.
+ */
+struct GNUNET_CRYPTO_RsaPrivateKey *
+GNUNET_CRYPTO_rsa_key_create_from_existing_file (const char *filename);
+
+
+/**
  * Handle to cancel private key generation.
  */
 struct GNUNET_CRYPTO_RsaKeyGenerationContext;
