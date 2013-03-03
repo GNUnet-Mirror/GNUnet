@@ -34,7 +34,6 @@
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_signatures.h"
 
-#define KEEP_093_COMPATIBILITY GNUNET_NO
 
 /**
  * How long is a PONG signature valid?  We'll recycle a signature until
@@ -580,10 +579,10 @@ revalidate_address (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   blocked_for = GNUNET_TIME_absolute_get_remaining(validation_next);
   if ((blocked_for.rel_value) > 0)
   {
-  		/* Validations are blocked, have to wait for blocked_for ms */
-      ve->revalidation_task =
-          GNUNET_SCHEDULER_add_delayed (blocked_for, &revalidate_address, ve);
-      return;
+    /* Validations are blocked, have to wait for blocked_for time */
+    ve->revalidation_task =
+      GNUNET_SCHEDULER_add_delayed (blocked_for, &revalidate_address, ve);
+    return;
   }
   ve->revalidation_block = GNUNET_TIME_relative_to_absolute (canonical_delay);
 
@@ -891,26 +890,6 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
 
     if (GNUNET_YES != GST_hello_test_address (&address, &sig_cache, &sig_cache_exp))
     {
-#if KEEP_093_COMPATIBILITY
-      int idsize = sizeof (GST_my_identity);
-      if (alen <= idsize)
-      {
-        if (0 == memcmp (address.address, &GST_my_identity, alen))
-          buggy = GNUNET_YES;
-      }
-      else if (alen <= (idsize + strlen (address.transport_name)))
-      {
-        char *achar = (char *) &address.address;
-        if ((0 == memcmp (address.address, &GST_my_identity, idsize)) &&
-            (0 == memcmp (&achar[idsize], address.transport_name, alen - idsize)))
-          buggy = GNUNET_YES;
-      }
-      else
-      {
-        /* Not predicatable */
-        return;
-      }
-#endif
       if (GNUNET_NO == buggy)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -958,62 +937,29 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   memcpy (&pong->challenge, &ping->challenge, sizeof (ping->challenge));
   pong->addrlen = htonl (alen + slen);
   memcpy (&pong[1], addr, slen);   /* Copy transport plugin */
-#if KEEP_093_COMPATIBILITY
-  if (GNUNET_YES == buggy)
+  if (alen > 0)
   {
-    int idsize = sizeof (GST_my_identity);
-    if (alen <= idsize)
-    {
-      memcpy (&((char *) &pong[1])[slen], &GST_my_identity, alen);
-    }
-    else if (alen <= (idsize + strlen (address.transport_name) + 1))
-    {
-      memcpy (&((char *) &pong[1])[slen], &GST_my_identity, idsize);
-      memcpy (&((char *) &pong[1])[slen + idsize], address.transport_name, alen-idsize);
-    }
-    else
-    {
-      /* If this would happen, we would have a inconsistent PING we cannot reproduce */
-      GNUNET_free (pong);
-      return;
-    }
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating buggy PONG signature to indicate ownership.\n");
-    pong->expiration = GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (PONG_SIGNATURE_LIFETIME));
+    GNUNET_assert (NULL != addrend);
+    memcpy (&((char *) &pong[1])[slen], addrend, alen);
+  }
+  if (GNUNET_TIME_absolute_get_remaining (*sig_cache_exp).rel_value <
+      PONG_SIGNATURE_LIFETIME.rel_value / 4)
+  {
+    /* create / update cached sig */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Creating PONG signature to indicate ownership.\n");
+    *sig_cache_exp = GNUNET_TIME_relative_to_absolute (PONG_SIGNATURE_LIFETIME);
+    pong->expiration = GNUNET_TIME_absolute_hton (*sig_cache_exp);
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CRYPTO_ecc_sign (GST_my_private_key, &pong->purpose,
-                                           &pong->signature));
+		   GNUNET_CRYPTO_ecc_sign (GST_my_private_key, &pong->purpose,
+					   sig_cache));
   }
   else
   {
-#endif
-    if (alen > 0)
-    {
-        GNUNET_assert (NULL != addrend);
-        memcpy (&((char *) &pong[1])[slen], addrend, alen);
-    }
-    if (GNUNET_TIME_absolute_get_remaining (*sig_cache_exp).rel_value <
-        PONG_SIGNATURE_LIFETIME.rel_value / 4)
-    {
-      /* create / update cached sig */
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Creating PONG signature to indicate ownership.\n");
-      *sig_cache_exp = GNUNET_TIME_relative_to_absolute (PONG_SIGNATURE_LIFETIME);
-      pong->expiration = GNUNET_TIME_absolute_hton (*sig_cache_exp);
-      GNUNET_assert (GNUNET_OK ==
-                     GNUNET_CRYPTO_ecc_sign (GST_my_private_key, &pong->purpose,
-                                             sig_cache));
-    }
-    else
-    {
-      pong->expiration = GNUNET_TIME_absolute_hton (*sig_cache_exp);
-    }
-    pong->signature = *sig_cache;
-
-#if KEEP_093_COMPATIBILITY
+    pong->expiration = GNUNET_TIME_absolute_hton (*sig_cache_exp);
   }
-#endif
-
+  pong->signature = *sig_cache;
+  
   GNUNET_assert (sender_address != NULL);
 
   /* first see if the session we got this PING from can be used to transmit
@@ -1181,7 +1127,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   address.address_length = addrlen;
   address.transport_name = tname;
   ve = find_validation_entry (NULL, &address);
-  if ((NULL == ve) || (ve->expecting_pong == GNUNET_NO))
+  if ((NULL == ve) || (GNUNET_NO == ve->expecting_pong))
   {
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop
@@ -1195,7 +1141,15 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
     GNUNET_break_op (0);
     return;
   }
-
+  if (GNUNET_TIME_absolute_get_remaining
+      (GNUNET_TIME_absolute_ntoh (pong->expiration)).rel_value == 0)
+  {
+    GNUNET_STATISTICS_update (GST_stats,
+                              gettext_noop
+                              ("# PONGs dropped, signature expired"), 1,
+                              GNUNET_NO);
+    return;
+  }
   if (GNUNET_OK !=
       GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
                                 &pong->purpose, &pong->signature,
@@ -1205,16 +1159,6 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
 		"Invalid signature on address %s:%s from peer `%s'\n",
 		tname, GST_plugins_a2s (ve->address),
 		GNUNET_i2s (sender));
-    return;
-  }
-
-  if (GNUNET_TIME_absolute_get_remaining
-      (GNUNET_TIME_absolute_ntoh (pong->expiration)).rel_value == 0)
-  {
-    GNUNET_STATISTICS_update (GST_stats,
-                              gettext_noop
-                              ("# PONGs dropped, signature expired"), 1,
-                              GNUNET_NO);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
