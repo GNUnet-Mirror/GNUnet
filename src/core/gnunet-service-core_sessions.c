@@ -37,6 +37,11 @@
  */
 #define TYPEMAP_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
+/**
+ * How often do we transmit our typemap on first attempt?
+ */
+#define TYPEMAP_FREQUENCY_FIRST GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
 
 /**
  * Message ready for encryption.  This struct is followed by the
@@ -227,7 +232,7 @@ transmit_typemap_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (0 == session->first_typemap)
   {
-    delay = GNUNET_TIME_UNIT_ZERO;
+    delay = TYPEMAP_FREQUENCY_FIRST;
     session->first_typemap = 1;
   }
   else

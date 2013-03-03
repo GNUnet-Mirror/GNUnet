@@ -671,8 +671,15 @@ GSC_KX_start (const struct GNUNET_PeerIdentity *pid)
   GNUNET_CONTAINER_DLL_insert (kx_head,
 			       kx_tail,
 			       kx);
-  kx->status = KX_STATE_KEY_SENT;
-  send_key (kx);
+  if (0 < GNUNET_CRYPTO_hash_cmp (&pid->hashPubKey,
+				  &GSC_my_identity.hashPubKey))
+  {
+    /* peer with "lower" identity starts KX, otherwise we typically end up
+       with both peers starting the exchange and transmit the 'set key' 
+       message twice */
+    kx->status = KX_STATE_KEY_SENT;
+    send_key (kx);
+  }
   return kx;
 }
 

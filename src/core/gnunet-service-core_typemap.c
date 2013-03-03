@@ -146,6 +146,8 @@ broadcast_my_type_map ()
 {
   struct GNUNET_MessageHeader *hdr;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "broadcasting typemap\n");
   hdr = GSC_TYPEMAP_compute_type_map_message ();
   GNUNET_STATISTICS_update (GSC_stats,
                             gettext_noop ("# updates to my type map"), 1,
