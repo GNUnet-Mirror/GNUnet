@@ -618,6 +618,7 @@ set_key_retry_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   kx->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
   kx->set_key_retry_frequency = GNUNET_TIME_STD_BACKOFF (kx->set_key_retry_frequency);
+  GNUNET_assert (KX_STATE_DOWN != kx->status);
   send_key (kx);
 }
 
@@ -834,10 +835,10 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
   switch (sender_status)
   {
   case KX_STATE_DOWN:
-    /* makes no sense, should be at least KX_STATE_KEY_SENT */
     GNUNET_break_op (0);
     break;
   case KX_STATE_KEY_SENT:
+    kx->status = KX_STATE_KEY_RECEIVED;
     send_key (kx);
     break;
   case KX_STATE_KEY_RECEIVED:
@@ -1162,6 +1163,7 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
 static void
 send_key (struct GSC_KeyExchangeInfo *kx)
 {
+  GNUNET_assert (KX_STATE_DOWN != kx->status);
   if (GNUNET_SCHEDULER_NO_TASK != kx->retry_set_key_task)
   {
      GNUNET_SCHEDULER_cancel (kx->retry_set_key_task);
