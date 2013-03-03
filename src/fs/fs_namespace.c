@@ -305,6 +305,49 @@ GNUNET_FS_namespace_create (struct GNUNET_FS_Handle *h, const char *name)
 
 
 /**
+ * Open the namespace with the given name; if it does not exist,
+ * or the key file is corrupted, the function fails.
+ *
+ * @param h handle to the file sharing subsystem
+ * @param name name of the namespace
+ * @return handle to the namespace,
+ *         NULL on error (i.e. invalid filename, non-existent filename)
+ */
+struct GNUNET_FS_Namespace *
+GNUNET_FS_namespace_open_existing (struct GNUNET_FS_Handle *h, const char *name)
+{
+  char *dn;
+  char *fn;
+  struct GNUNET_FS_Namespace *ret;
+
+  dn = get_namespace_directory (h);
+  if (NULL == dn)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Can't determine where namespace directory is\n"));
+    return NULL;
+  }
+  GNUNET_asprintf (&fn, "%s%s%s", dn, DIR_SEPARATOR_STR, name);
+  GNUNET_free (dn);
+  ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Namespace));
+  ret->h = h;
+  ret->rc = 1;
+  ret->key = GNUNET_CRYPTO_rsa_key_create_from_existing_file (fn);
+  if (NULL == ret->key)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to read private key for namespace `%s'\n"), name);
+    GNUNET_free (ret);
+    GNUNET_free (fn);
+    return NULL;
+  }
+  ret->name = GNUNET_strdup (name);
+  ret->filename = fn;
+  return ret;
+}
+
+
+/**
  * Function called upon completion of 'GNUNET_CRYPTO_rsa_key_create_start'.
  *
  * @param cls closure

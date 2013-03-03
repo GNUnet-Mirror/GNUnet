@@ -2240,6 +2240,19 @@ GNUNET_FS_namespace_create (struct GNUNET_FS_Handle *h, const char *name);
 
 
 /**
+ * Open the namespace with the given name; if it does not exist,
+ * or the key file is corrupted, the function fails.
+ *
+ * @param h handle to the file sharing subsystem
+ * @param name name of the namespace
+ * @return handle to the namespace,
+ *         NULL on error (i.e. invalid filename, non-existent filename)
+ */
+struct GNUNET_FS_Namespace *
+GNUNET_FS_namespace_open_existing (struct GNUNET_FS_Handle *h, const char *name);
+
+
+/**
  * Context for creating a namespace asynchronously.
  */
 struct GNUNET_FS_NamespaceCreationContext;
