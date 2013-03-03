@@ -2289,6 +2289,19 @@ GNUNET_FS_namespace_dup (struct GNUNET_FS_Namespace *ns);
 
 
 /**
+ * Get hash of the public key of a namespace.
+ *
+ * @param ns namespace
+ * @param id buffer to store the key in
+ * @return GNUNET_OK on success
+ *         GNUNET_SYSERR on failure (contents of id remain intact)
+ */
+int
+GNUNET_FS_namespace_get_public_key_hash (struct GNUNET_FS_Namespace *ns,
+    struct GNUNET_HashCode *id);
+
+
+/**
  * Delete a namespace handle.  Can be used for a clean shutdown (free
  * memory) or also to freeze the namespace to prevent further
  * insertions by anyone.

@@ -496,6 +496,25 @@ struct ProcessNamespaceContext
 
 
 /**
+ * Get hash of the public key of a namespace.
+ *
+ * @param ns namespace
+ * @param id buffer to store the key in
+ * @return GNUNET_OK on success
+ *         GNUNET_SYSERR on failure (contents of id remain intact)
+ */
+int
+GNUNET_FS_namespace_get_public_key_hash (struct GNUNET_FS_Namespace *ns,
+    struct GNUNET_HashCode *id)
+{
+  if ((NULL == ns) || (NULL == id))
+    return GNUNET_SYSERR;
+  GNUNET_CRYPTO_rsa_get_public_key_hash (ns->key, id);
+  return GNUNET_OK;
+}
+
+
+/**
  * Function called with a filename of a namespace. Reads the key and
  * calls the callback.
  *

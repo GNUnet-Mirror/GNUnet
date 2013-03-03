@@ -948,8 +948,7 @@ GNUNET_FS_uri_sks_create (struct GNUNET_FS_Namespace *ns, const char *id,
 
   ns_uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
   ns_uri->type = GNUNET_FS_URI_SKS;
-  GNUNET_CRYPTO_rsa_key_get_public (ns->key, &pk);
-  GNUNET_CRYPTO_hash (&pk, sizeof (pk), &ns_uri->data.sks.ns);
+  GNUNET_FS_namespace_get_public_key_hash (ns, &ns_uri->data.sks.ns);
   ns_uri->data.sks.identifier = GNUNET_strdup (id);
   return ns_uri;
 }
