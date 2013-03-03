@@ -2300,7 +2300,8 @@ GNUNET_FS_namespace_create_stop (struct GNUNET_FS_NamespaceCreationContext *ncc)
  * @return GNUNET_OK on success, GNUNET_SYSERR on error (see errno for details)
  */
 int
-GNUNET_FS_namespace_rename (struct GNUNET_FS_Handle *h, char *old_name, char *new_name);
+GNUNET_FS_namespace_rename (struct GNUNET_FS_Handle *h, const char *old_name,
+    const char *new_name);
 
 
 /**
