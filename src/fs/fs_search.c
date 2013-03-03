@@ -1304,12 +1304,7 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
       GNUNET_CRYPTO_hash (keyword, strlen (keyword), &hc);
       pk = GNUNET_CRYPTO_rsa_key_create_from_hash (&hc);
       GNUNET_assert (NULL != pk);
-      GNUNET_CRYPTO_rsa_key_get_public (pk, &pub);
-      GNUNET_CRYPTO_rsa_key_free (pk);
-      GNUNET_CRYPTO_hash (&pub,
-                          sizeof (struct
-                                  GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                          &sc->requests[i].query);
+      GNUNET_CRYPTO_rsa_get_public_key_hash (pk, &sc->requests[i].query);
       sc->requests[i].mandatory = (sc->uri->data.ksk.keywords[i][0] == '+');
       if (sc->requests[i].mandatory)
         sc->mandatory_count++;

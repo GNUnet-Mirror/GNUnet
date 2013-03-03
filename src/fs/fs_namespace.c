@@ -509,7 +509,6 @@ process_namespace (void *cls, const char *filename)
 {
   struct ProcessNamespaceContext *pnc = cls;
   struct GNUNET_CRYPTO_RsaPrivateKey *key;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pk;
   struct GNUNET_HashCode id;
   const char *name;
   const char *t;
@@ -525,9 +524,8 @@ process_namespace (void *cls, const char *filename)
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", filename);
     return GNUNET_OK;
   }
-  GNUNET_CRYPTO_rsa_key_get_public (key, &pk);
+  GNUNET_CRYPTO_rsa_get_public_key_hash (key, &id);
   GNUNET_CRYPTO_rsa_key_free (key);
-  GNUNET_CRYPTO_hash (&pk, sizeof (pk), &id);
   name = filename;
   while (NULL != (t = strstr (name, DIR_SEPARATOR_STR)))
     name = t + 1;

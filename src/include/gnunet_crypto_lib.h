@@ -1081,6 +1081,17 @@ GNUNET_CRYPTO_rsa_key_get_public (const struct GNUNET_CRYPTO_RsaPrivateKey
 
 
 /**
+ * Get hash of the public key that corresponds to a private key.
+ *
+ * @param key RSA private key
+ * @param id buffer for hash of the public key
+ */
+void
+GNUNET_CRYPTO_rsa_get_public_key_hash (struct GNUNET_CRYPTO_RsaPrivateKey *key,
+    struct GNUNET_HashCode *id);
+
+
+/**
  * Encrypt a block with the public key of another host that uses the
  * same cyper.
  *

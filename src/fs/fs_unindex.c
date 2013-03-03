@@ -571,12 +571,7 @@ GNUNET_FS_unindex_do_remove_kblocks_ (struct GNUNET_FS_UnindexContext *uc)
   GNUNET_CRYPTO_hash (keyword, strlen (keyword), &uc->key);
   pk = GNUNET_CRYPTO_rsa_key_create_from_hash (&uc->key);
   GNUNET_assert (pk != NULL);
-  GNUNET_CRYPTO_rsa_key_get_public (pk, &pub);
-  GNUNET_CRYPTO_rsa_key_free (pk);
-  GNUNET_CRYPTO_hash (&pub,
-		      sizeof (struct
-			      GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-		      &uc->query);
+  GNUNET_CRYPTO_rsa_get_public_key_hash (pk, &uc->query);
   uc->first_uid = 0;
   uc->dqe = GNUNET_DATASTORE_get_key (uc->dsh,
 				      uc->roff++,

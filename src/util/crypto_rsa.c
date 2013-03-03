@@ -195,6 +195,22 @@ GNUNET_CRYPTO_rsa_key_get_public (const struct GNUNET_CRYPTO_RsaPrivateKey
 
 
 /**
+ * Get hash of the public key that corresponds to a private key.
+ *
+ * @param key RSA private key
+ * @param id buffer for hash of the public key
+ */
+void
+GNUNET_CRYPTO_rsa_get_public_key_hash (struct GNUNET_CRYPTO_RsaPrivateKey *key,
+    struct GNUNET_HashCode *id)
+{
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pk;
+  GNUNET_CRYPTO_rsa_key_get_public (key, &pk);
+  GNUNET_CRYPTO_hash (&pk, sizeof (pk), id);
+}
+
+
+/**
  * Convert a public key to a string.
  *
  * @param pub key to convert
