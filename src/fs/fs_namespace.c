@@ -460,6 +460,43 @@ GNUNET_FS_namespace_create_stop (struct GNUNET_FS_NamespaceCreationContext *ncc)
 
 
 /**
+ * Rename a local namespace.
+ *
+ * @param h handle to the file sharing subsystem
+ * @param old_name old name of the namespace
+ * @param new_name new name of the namespace
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error (see errno for details)
+ */
+int
+GNUNET_FS_namespace_rename (struct GNUNET_FS_Handle *h, char *old_name, char *new_name)
+{
+  char *dn;
+  char *fn_old;
+  char *fn_new;
+  int result;
+  int save_errno;
+
+  dn = get_namespace_directory (h);
+  if (NULL == dn)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Can't determine where namespace directory is\n"));
+    return GNUNET_SYSERR;
+  }
+  GNUNET_asprintf (&fn_old, "%s%s%s", dn, DIR_SEPARATOR_STR, old_name);
+  GNUNET_asprintf (&fn_new, "%s%s%s", dn, DIR_SEPARATOR_STR, new_name);
+  GNUNET_free (dn);
+  result = RENAME (fn_old, fn_new);
+  save_errno = errno;
+  GNUNET_free (fn_old);
+  GNUNET_free (fn_new);
+  errno = save_errno;
+  if (result == 0)
+    return GNUNET_OK;
+  return GNUNET_SYSERR;
+}
+
+/**
  * Duplicate a namespace handle.
  *
  * @param ns namespace handle
