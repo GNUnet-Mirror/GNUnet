@@ -169,12 +169,12 @@ struct CacheEntry
   /**
    * The transport handle to the peer corresponding to this entry; can be NULL
    */
-  struct GNUNET_TRANSPORT_Handle *transport_handle_;
+  struct GNUNET_TRANSPORT_Handle *transport_handle;
 
   /**
    * The operation handle for transport handle
    */
-  struct GNUNET_TESTBED_Operation *transport_op_;
+  struct GNUNET_TESTBED_Operation *transport_op;
 
   /**
    * The core handle to the peer corresponding to this entry; can be NULL
@@ -346,11 +346,12 @@ close_handles (struct CacheEntry *entry)
     GNUNET_free (ctxt);
   }
   LOG_DEBUG ("Cleaning up handles from an entry in cache\n");
-  if (NULL != entry->transport_handle_)
+  if (NULL != entry->transport_handle)
+    GNUNET_assert (NULL != entry->transport_op);
+  if (NULL != entry->transport_op)
   {
-    GNUNET_assert (NULL != entry->transport_op_);
-    GNUNET_TESTBED_operation_done (entry->transport_op_);
-    entry->transport_op_ = NULL;
+    GNUNET_TESTBED_operation_done (entry->transport_op);
+    entry->transport_op = NULL;    
   }
   if (NULL != entry->core_op)
   {
@@ -431,7 +432,7 @@ search_suitable_cgh (const struct CacheEntry *entry,
     switch (cgh->type)
     {
     case CGT_TRANSPORT_HANDLE:
-      if (NULL == entry->transport_handle_)
+      if (NULL == entry->transport_handle)
         continue;
       break;
     case CGT_CORE_HANDLE:
@@ -477,7 +478,7 @@ call_cgh_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                       cgh->nctxt);
   }
   LOG_DEBUG ("Calling notify for handle type %u\n", cgh->type);
-  cgh->cb (cgh->cb_cls, entry->core_handle, entry->transport_handle_,
+  cgh->cb (cgh->cb_cls, entry->core_handle, entry->transport_handle,
            entry->peer_identity);
 }
 
@@ -562,10 +563,10 @@ opstart_get_handle_transport (void *cls)
 
   GNUNET_assert (NULL != entry);
   LOG_DEBUG ("Opening a transport connection to peer %u\n", entry->peer_id);
-  entry->transport_handle_ =
+  entry->transport_handle =
       GNUNET_TRANSPORT_connect (entry->cfg, NULL, entry, NULL,
                                 &transport_peer_connect_notify_cb, NULL);
-  if (NULL == entry->transport_handle_)
+  if (NULL == entry->transport_handle)
   {
     GNUNET_break (0);
     return;
@@ -590,10 +591,10 @@ oprelease_get_handle_transport (void *cls)
 {
   struct CacheEntry *entry = cls;
 
-  if (NULL == entry->transport_handle_)
+  if (NULL == entry->transport_handle)
     return;
-  GNUNET_TRANSPORT_disconnect (entry->transport_handle_);
-  entry->transport_handle_ = NULL;
+  GNUNET_TRANSPORT_disconnect (entry->transport_handle);
+  entry->transport_handle = NULL;
 }
 
 
@@ -746,7 +747,7 @@ cache_get_handle (unsigned int peer_id, struct GSTCacheGetHandle *cgh,
     switch (cgh->type)
     {
     case CGT_TRANSPORT_HANDLE:
-      handle = entry->transport_handle_;
+      handle = entry->transport_handle;
       if (NULL != handle)
         LOG_DEBUG ("Found TRANSPORT handle in cache for peer %u\n",
                    entry->peer_id);
@@ -784,11 +785,11 @@ cache_get_handle (unsigned int peer_id, struct GSTCacheGetHandle *cgh,
   switch (cgh->type)
   {
   case CGT_TRANSPORT_HANDLE:
-    if (NULL != entry->transport_op_)
+    if (NULL != entry->transport_op)
       return cgh;
     op = GNUNET_TESTBED_operation_create_ (entry, &opstart_get_handle_transport,
                                            &oprelease_get_handle_transport);
-    entry->transport_op_ = op;
+    entry->transport_op = op;
     break;
   case CGT_CORE_HANDLE:
     if (NULL != entry->core_op)
@@ -827,11 +828,11 @@ cache_clear_iterator (void *cls, const struct GNUNET_HashCode *key, void *value)
   close_handles (entry);
   GNUNET_free_non_null (entry->hello);
   GNUNET_break (GNUNET_SCHEDULER_NO_TASK == entry->expire_task);
-  GNUNET_break (NULL == entry->transport_handle_);
-  GNUNET_break (NULL == entry->transport_op_);
-  GNUNET_break (NULL == entry->core_handle);
-  GNUNET_break (NULL == entry->core_op);
-  GNUNET_break (NULL == entry->cfg);
+  GNUNET_assert (NULL == entry->transport_handle);
+  GNUNET_assert (NULL == entry->transport_op);
+  GNUNET_assert (NULL == entry->core_handle);
+  GNUNET_assert (NULL == entry->core_op);
+  GNUNET_assert (NULL == entry->cfg);
   GNUNET_assert (NULL == entry->cgh_qhead);
   GNUNET_assert (NULL == entry->cgh_qtail);
   GNUNET_assert (NULL == entry->nctxt_qhead);
