@@ -192,12 +192,7 @@ struct OverlayConnectContext
   GNUNET_SCHEDULER_TaskIdentifier cleanup_task;
 
   /**
-   * The id of peer A
-   */
-  uint32_t peer_id;
-
-  /**
-   * The id of peer B
+   * The id of the second peer which is has to connect to the first peer
    */
   uint32_t other_peer_id;
 
@@ -395,6 +390,8 @@ GST_process_next_focc (struct RegisteredHostContext *rhc)
 static void
 cleanup_occ (struct OverlayConnectContext *occ)
 {
+  struct Peer *other_peer;
+
   LOG_DEBUG ("0x%llx: Cleaning up occ\n", occ->op_id);
   GNUNET_free_non_null (occ->emsg);
   GNUNET_free_non_null (occ->hello);
@@ -408,10 +405,7 @@ cleanup_occ (struct OverlayConnectContext *occ)
   if (GNUNET_SCHEDULER_NO_TASK != occ->timeout_task)
     GNUNET_SCHEDULER_cancel (occ->timeout_task);
   if (NULL != occ->cgh_ch)
-  {
     GST_cache_get_handle_done (occ->cgh_ch);
-    occ->peer->reference_cnt--;
-  }
   if (NULL != occ->ghh)
     GNUNET_TRANSPORT_get_hello_cancel (occ->ghh);
   if (NULL != occ->ohh)
@@ -421,22 +415,25 @@ cleanup_occ (struct OverlayConnectContext *occ)
   if (NULL != occ->tcc.tch)
     GNUNET_TRANSPORT_try_connect_cancel (occ->tcc.tch);
   if (NULL != occ->cgh_p1th)
-  {
     GST_cache_get_handle_done (occ->cgh_p1th);
-    occ->peer->reference_cnt--;
-  }
   if (NULL != occ->tcc.cgh_th)
-  {
     GST_cache_get_handle_done (occ->tcc.cgh_th);
-    GST_peer_list[occ->other_peer_id]->reference_cnt--;
-  }
-  if ((GNUNET_YES == occ->peer->destroy_flag) &&
-      (0 == occ->peer->reference_cnt))
+  GNUNET_assert (NULL != GST_peer_list);
+  GNUNET_assert (occ->peer->reference_cnt > 0);  
+  occ->peer->reference_cnt--;
+  if ( (GNUNET_YES == occ->peer->destroy_flag) &&
+       (0 == occ->peer->reference_cnt) )
     GST_destroy_peer (occ->peer);
-  if ((NULL == occ->peer2_controller) &&
-      (GNUNET_YES == GST_peer_list[occ->other_peer_id]->destroy_flag) &&
-      (0 == GST_peer_list[occ->other_peer_id]->reference_cnt))
-    GST_destroy_peer (GST_peer_list[occ->other_peer_id]);
+  if (NULL == occ->peer2_controller)
+  {
+    other_peer = GST_peer_list[occ->other_peer_id];
+    GNUNET_assert (NULL != other_peer);
+    GNUNET_assert (other_peer->reference_cnt > 0);
+    other_peer->reference_cnt--;
+    if ( (GNUNET_YES == other_peer->destroy_flag) &&
+         (0 == other_peer->reference_cnt) )
+      GST_destroy_peer (other_peer);
+  }
   GNUNET_CONTAINER_DLL_remove (occq_head, occq_tail, occ);
   GNUNET_free (occ);
 }
@@ -474,7 +471,7 @@ timeout_overlay_connect (void *cls,
   occ->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   LOG (GNUNET_ERROR_TYPE_WARNING,
        "0x%llx: Timeout while connecting peers %u and %u: %s\n", occ->op_id,
-       occ->peer_id, occ->other_peer_id, occ->emsg);
+       occ->peer->id, occ->other_peer_id, occ->emsg);
   GST_send_operation_fail_msg (occ->client, occ->op_id, occ->emsg);
   cleanup_occ (occ);
 }
@@ -492,7 +489,7 @@ send_overlay_connect_success_msg (struct OverlayConnectContext *occ)
       htons (sizeof (struct GNUNET_TESTBED_ConnectionEventMessage));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONNECT_EVENT);
   msg->event_type = htonl (GNUNET_TESTBED_ET_CONNECT);
-  msg->peer1 = htonl (occ->peer_id);
+  msg->peer1 = htonl (occ->peer->id);
   msg->peer2 = htonl (occ->other_peer_id);
   msg->operation_id = GNUNET_htonll (occ->op_id);
   GST_queue_message (occ->client, &msg->header);
@@ -769,11 +766,11 @@ p2_transport_connect (struct OverlayConnectContext *occ)
   GNUNET_assert (NULL == occ->cgh_p1th);
   if (NULL == occ->peer2_controller)
   {
-    GST_peer_list[occ->other_peer_id]->reference_cnt++;
+    GNUNET_assert (NULL != GST_peer_list[occ->other_peer_id]);
     occ->tcc.cgh_th =
         GST_cache_get_handle_transport (occ->other_peer_id,
-                                        GST_peer_list[occ->other_peer_id]->
-                                        details.local.cfg,
+                                        GST_peer_list[occ->other_peer_id]
+                                        ->details.local.cfg,
                                         &p2_transport_connect_cache_callback,
                                         occ, NULL, NULL, NULL);
     return;
@@ -832,12 +829,11 @@ hello_update_cb (void *cls, const struct GNUNET_MessageHeader *hello)
   LOG_DEBUG ("0x%llx: Received HELLO of %s\n", occ->op_id,
              GNUNET_i2s (&occ->peer_identity));
   occ->hello = GNUNET_malloc (msize);
-  GST_cache_add_hello (occ->peer_id, hello);
+  GST_cache_add_hello (occ->peer->id, hello);
   memcpy (occ->hello, hello, msize);
   GNUNET_TRANSPORT_get_hello_cancel (occ->ghh);
   occ->ghh = NULL;
   GST_cache_get_handle_done (occ->cgh_p1th);
-  occ->peer->reference_cnt--;
   occ->cgh_p1th = NULL;
   occ->p1th_ = NULL;
   GNUNET_free_non_null (occ->emsg);
@@ -904,7 +900,7 @@ occ_cache_get_handle_core_cb (void *cls, struct GNUNET_CORE_Handle *ch,
   {
     (void) GNUNET_asprintf (&occ->emsg,
                             "0x%llx: Failed to connect to CORE of peer with"
-                            "id: %u", occ->op_id, occ->peer_id);
+                            "id: %u", occ->op_id, occ->peer->id);
     GNUNET_SCHEDULER_cancel (occ->timeout_task);
     occ->timeout_task =
         GNUNET_SCHEDULER_add_now (&timeout_overlay_connect, occ);
@@ -927,7 +923,7 @@ occ_cache_get_handle_core_cb (void *cls, struct GNUNET_CORE_Handle *ch,
   LOG_DEBUG ("0x%llx: Acquiring HELLO of peer %s\n", occ->op_id,
              GNUNET_i2s (&occ->peer_identity));
   /* Lookup for HELLO in hello cache */
-  if (NULL != (hello = GST_cache_lookup_hello (occ->peer_id)))
+  if (NULL != (hello = GST_cache_lookup_hello (occ->peer->id)))
   {
     LOG_DEBUG ("0x%llx: HELLO of peer %s found in cache\n", occ->op_id,
                GNUNET_i2s (&occ->peer_identity));
@@ -938,9 +934,8 @@ occ_cache_get_handle_core_cb (void *cls, struct GNUNET_CORE_Handle *ch,
   GNUNET_asprintf (&occ->emsg,
                    "0x%llx: Timeout while acquiring TRANSPORT of %s from cache",
                    occ->op_id, GNUNET_i2s (&occ->peer_identity));
-  occ->peer->reference_cnt++;
   occ->cgh_p1th =
-      GST_cache_get_handle_transport (occ->peer_id,
+      GST_cache_get_handle_transport (occ->peer->id,
                                       occ->peer->details.local.cfg,
                                       p1_transport_connect_cache_callback, occ,
                                       NULL, NULL, NULL);
@@ -977,10 +972,9 @@ overlay_connect_get_config (void *cls, const struct GNUNET_MessageHeader *msg)
   GNUNET_free_non_null (occ->emsg);
   GNUNET_asprintf (&occ->emsg,
                    "0x%llx: Timeout while connecting to CORE of peer with "
-                   "id: %u", occ->op_id, occ->peer_id);
-  occ->peer->reference_cnt++;
+                   "id: %u", occ->op_id, occ->peer->id);
   occ->cgh_ch =
-      GST_cache_get_handle_core (occ->peer_id, occ->peer->details.local.cfg,
+      GST_cache_get_handle_core (occ->peer->id, occ->peer->details.local.cfg,
                                  occ_cache_get_handle_core_cb, occ,
                                  &occ->other_peer_identity,
                                  &overlay_connect_notify, occ);
@@ -1259,9 +1253,9 @@ GST_handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_CONTAINER_DLL_insert_tail (occq_head, occq_tail, occ);
   GNUNET_SERVER_client_keep (client);
   occ->client = client;
-  occ->peer_id = p1;
   occ->other_peer_id = p2;
-  occ->peer = GST_peer_list[p1];
+  GST_peer_list[p1]->reference_cnt++;
+  occ->peer = GST_peer_list[p1];  
   occ->op_id = GNUNET_ntohll (msg->operation_id);
   occ->peer2_controller = peer2_controller;
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == occ->timeout_task);
@@ -1289,15 +1283,15 @@ GST_handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
+  GST_peer_list[occ->other_peer_id]->reference_cnt++;
   GNUNET_TESTING_peer_get_identity (GST_peer_list[occ->other_peer_id]->
                                     details.local.peer,
                                     &occ->other_peer_identity);
   GNUNET_asprintf (&occ->emsg,
                    "0x%llx: Timeout while connecting to CORE of peer with "
-                   "id: %u", occ->op_id, occ->peer_id);
-  occ->peer->reference_cnt++;
+                   "id: %u", occ->op_id, occ->peer->id);
   occ->cgh_ch =
-      GST_cache_get_handle_core (occ->peer_id, occ->peer->details.local.cfg,
+      GST_cache_get_handle_core (occ->peer->id, occ->peer->details.local.cfg,
                                  occ_cache_get_handle_core_cb, occ,
                                  &occ->other_peer_identity,
                                  &overlay_connect_notify, occ);
@@ -1327,6 +1321,7 @@ cleanup_rocc (struct RemoteOverlayConnectCtx *rocc)
     GNUNET_SCHEDULER_cancel (rocc->tcc.task);
   //GNUNET_TRANSPORT_disconnect (rocc->tcc.th_);
   GST_cache_get_handle_done (rocc->tcc.cgh_th);
+  GNUNET_assert (rocc->peer->reference_cnt > 0);
   rocc->peer->reference_cnt--;
   if ((GNUNET_YES == rocc->peer->destroy_flag) &&
       (0 == rocc->peer->reference_cnt))
