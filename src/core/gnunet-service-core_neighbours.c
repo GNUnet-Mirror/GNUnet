@@ -272,10 +272,10 @@ process_queue (struct Neighbour *n)
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Asking transport for transmission of %u bytes to `%4s' in next %llu ms\n",
+              "Asking transport for transmission of %u bytes to `%4s' in next %s\n",
               (unsigned int) m->size, GNUNET_i2s (&n->peer),
               (unsigned long long)
-              GNUNET_TIME_absolute_get_remaining (m->deadline).rel_value);
+              GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (m->deadline), GNUNET_NO));
   n->th =
       GNUNET_TRANSPORT_notify_transmit_ready (transport, &n->peer, m->size, 0,
                                               GNUNET_TIME_absolute_get_remaining
