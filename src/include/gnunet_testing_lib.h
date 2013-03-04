@@ -50,7 +50,7 @@ extern "C"
  * curves (rounded up to the next full KB to make IO nicer); it is NOT
  * the number of bits in the key.
  */
-#define GNUNET_TESTING_HOSTKEYFILESIZE 2048
+#define GNUNET_TESTING_HOSTKEYFILESIZE 1024
 
 /**
  * Handle for a system on which GNUnet peers are executed;

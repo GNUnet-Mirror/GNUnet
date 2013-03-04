@@ -30,7 +30,7 @@
 
 #define EXTRA_CHECKS ALLOW_EXTRA_CHECKS 
 
-#define CURVE "NIST P-521"
+#define CURVE "NIST P-256"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 

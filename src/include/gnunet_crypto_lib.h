@@ -97,12 +97,12 @@ enum GNUNET_CRYPTO_Quality
  * Maximum length of an ECC signature.
  * Note: round up to multiple of 8 minus 2 for alignment.
  */
-#define GNUNET_CRYPTO_ECC_SIGNATURE_DATA_ENCODING_LENGTH 190
+#define GNUNET_CRYPTO_ECC_SIGNATURE_DATA_ENCODING_LENGTH 126
 
 /**
  * Maximum length of the public key (q-point, Q = dP) when encoded.
  */
-#define GNUNET_CRYPTO_ECC_MAX_PUBLIC_KEY_LENGTH 140
+#define GNUNET_CRYPTO_ECC_MAX_PUBLIC_KEY_LENGTH 76
 
 
 /**
