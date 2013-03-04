@@ -944,7 +944,6 @@ GNUNET_FS_uri_sks_create (struct GNUNET_FS_Namespace *ns, const char *id,
                           char **emsg)
 {
   struct GNUNET_FS_Uri *ns_uri;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pk;
 
   if (NULL == id)
   {

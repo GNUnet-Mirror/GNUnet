@@ -1288,7 +1288,6 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
   unsigned int i;
   const char *keyword;
   struct GNUNET_HashCode hc;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
   struct GNUNET_CRYPTO_RsaPrivateKey *pk;
 
   GNUNET_assert (NULL == sc->client);
