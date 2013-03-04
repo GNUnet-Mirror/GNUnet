@@ -1330,8 +1330,6 @@ libgnunet_plugin_transport_unix_init (void *cls)
     api->string_to_address = &unix_string_to_address;
     return api;
   }
-  GNUNET_assert( NULL != env->stats);
-
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-unix", "PORT",
                                              &port))
