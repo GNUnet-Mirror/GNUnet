@@ -263,7 +263,6 @@ struct ValidationEntry
    */
   int expecting_pong;
 
-
   /* FIXME: DEBUGGING */
   int last_line_set_to_no;
   int last_line_set_to_yes;
@@ -322,6 +321,16 @@ static struct GNUNET_PEERINFO_NotifyContext *pnc;
  * Minimum delay between to validations
  */
 static struct GNUNET_TIME_Relative validation_delay;
+
+/**
+ * Number of validations running
+ */
+static unsigned int validations_running;
+
+/**
+ * Validition fast start threshold
+ */
+static unsigned int validations_fast_start_threshold;
 
 /**
  * When is next validation allowed
@@ -402,6 +411,14 @@ cleanup_validation_entry (void *cls, const struct GNUNET_HashCode * key, void *v
     GNUNET_SCHEDULER_cancel (ve->revalidation_task);
     ve->revalidation_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  if ((GNUNET_YES == ve->expecting_pong) &&
+  		(validations_running > 0))
+  {
+  		validations_running --;
+  	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  	              "Validation finished, %u validation processes running\n",
+  	              validations_running);
+  }
   GNUNET_free (ve);
   return GNUNET_OK;
 }
@@ -473,7 +490,7 @@ transmit_ping_if_allowed (void *cls, const struct GNUNET_PeerIdentity *pid,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmitting plain PING to `%s' %s %s\n",
               GNUNET_i2s (pid), GST_plugins_a2s (ve->address), ve->address->transport_name);
 
-  next = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), validation_delay);
+  next = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), validation_delay);
   if (next.abs_value > validation_next.abs_value)
   	validation_next = next; /* We're going to send a PING so delay next validation */
 
@@ -547,6 +564,10 @@ transmit_ping_if_allowed (void *cls, const struct GNUNET_PeerIdentity *pid,
                               ("# PING without HELLO messages sent"), 1,
                               GNUNET_NO);
     ve->expecting_pong = GNUNET_YES;
+    validations_running ++;
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	              "Validation started, %u validation processes running\n",
+	              validations_running);
   }
 }
 
@@ -589,7 +610,10 @@ revalidate_address (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   blocked_for = GNUNET_TIME_absolute_get_remaining(validation_next);
-  if ((blocked_for.rel_value) > 0)
+  if (validations_running > validations_fast_start_threshold)
+  	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"Throttle!\n");
+  if ((validations_running > validations_fast_start_threshold) &&
+  		(blocked_for.rel_value > 0))
   {
     /* Validations are blocked, have to wait for blocked_for time */
     ve->revalidation_task =
@@ -758,9 +782,24 @@ process_peerinfo_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
 void
 GST_validation_start (unsigned int max_fds)
 {
+	/**
+	 * Initialization for validation throttling
+	 *
+	 * We have a maximum number max_fds of connections we can use for validation
+	 * We monitor the number of validations in parallel and start to throttle it
+	 * when doing to many validations in parallel:
+	 * if (running validations < (max_fds / 2))
+	 * - "fast start": run validation immediately
+	 * - have delay of (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value) / (max_fds / 2)
+	 *   (300 sec / ~150 == ~2 sec.) between two validations
+	 */
+
 	validation_next = GNUNET_TIME_absolute_get();
-	validation_delay.rel_value = (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value) /  max_fds;
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Delay between validations: %u ms\n ", validation_delay.rel_value);
+	validation_delay.rel_value = (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value) /  (max_fds / 2);
+	validations_fast_start_threshold = (max_fds / 2);
+	validations_running = 0;
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Validation uses a fast start threshold of %u connections and a delay between of %u ms\n ",
+			validations_fast_start_threshold, validation_delay.rel_value);
   validation_map = GNUNET_CONTAINER_multihashmap_create (VALIDATION_MAP_SIZE,
 							 GNUNET_NO);
   pnc = GNUNET_PEERINFO_notify (GST_cfg, &process_peerinfo_hello, NULL);
@@ -1204,6 +1243,16 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
     ats.value = htonl ((uint32_t) ve->latency.rel_value);
     GNUNET_ATS_address_add (GST_ats, ve->address, NULL, &ats, 1);
   }
+  if (validations_running > 0)
+  {
+  	validations_running --;
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	              "Validation finished, %u validation processes running\n",
+	              validations_running);
+  }
+  else
+  	GNUNET_break (0);
+
   /* build HELLO to store in PEERINFO */
   ve->copied = GNUNET_NO;
   hello = GNUNET_HELLO_create (&ve->public_key, &add_valid_peer_address, ve);
