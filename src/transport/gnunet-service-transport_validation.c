@@ -197,6 +197,11 @@ struct ValidationEntry
   struct GNUNET_PeerIdentity pid;
 
   /**
+   * Cached PONG signature
+   */
+  struct GNUNET_CRYPTO_EccSignature pong_sig_cache;
+
+  /**
    * ID of task that will clean up this entry if nothing happens.
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
@@ -216,6 +221,12 @@ struct ValidationEntry
    * ZERO if it is not currently considered valid.
    */
   struct GNUNET_TIME_Absolute valid_until;
+
+  /**
+   * Until when is the cached PONG signature valid?
+   * ZERO if it is not currently considered valid.
+   */
+  struct GNUNET_TIME_Absolute pong_sig_valid_until;
 
   /**
    * How long until we can try to validate this address again?
@@ -251,6 +262,7 @@ struct ValidationEntry
    * Are we expecting a PONG message for this validation entry?
    */
   int expecting_pong;
+
 
   /* FIXME: DEBUGGING */
   int last_line_set_to_no;
@@ -657,6 +669,8 @@ find_validation_entry (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded
   ve->address = GNUNET_HELLO_address_copy (address);
   ve->public_key = *public_key;
   ve->pid = address->peer;
+  ve->pong_sig_valid_until = GNUNET_TIME_absolute_get_zero_();
+  memset (&ve->pong_sig_cache, '\0', sizeof (struct GNUNET_CRYPTO_EccSignature));
   ve->latency = GNUNET_TIME_UNIT_FOREVER_REL;
   ve->challenge =
       GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
@@ -1097,6 +1111,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   size_t size;
   struct GNUNET_HELLO_Message *hello;
   struct GNUNET_HELLO_Address address;
+  int sig_res;
 
   if (ntohs (hdr->size) < sizeof (struct TransportPongMessage))
   {
@@ -1150,10 +1165,23 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
                               GNUNET_NO);
     return;
   }
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
+
+  sig_res = GNUNET_SYSERR;
+  if (0 != GNUNET_TIME_absolute_get_remaining(ve->pong_sig_valid_until).rel_value)
+  {
+  		if (0 == memcmp (&ve->pong_sig_cache, &pong->signature, sizeof (struct GNUNET_CRYPTO_EccSignature)))
+  			sig_res = GNUNET_OK;
+  		else
+  			sig_res = GNUNET_SYSERR;
+  }
+  else
+  {
+  		sig_res = GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
                                 &pong->purpose, &pong->signature,
-                                &ve->public_key))
+                                &ve->public_key);
+  }
+
+  if (sig_res == GNUNET_SYSERR)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		"Invalid signature on address %s:%s from peer `%s'\n",
@@ -1167,6 +1195,8 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   /* validity achieved, remember it! */
   ve->expecting_pong = GNUNET_NO;
   ve->valid_until = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
+  ve->pong_sig_cache = pong->signature;
+ 	ve->pong_sig_valid_until = GNUNET_TIME_absolute_ntoh (pong->expiration);
   ve->latency = GNUNET_TIME_absolute_get_duration (ve->send_time);
   {
     struct GNUNET_ATS_Information ats;
