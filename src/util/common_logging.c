@@ -886,11 +886,14 @@ mylog (enum GNUNET_ErrorType kind, const char *comp, const char *message,
   memset (date, 0, DATE_STR_SIZE);
   {
     char buf[size];
+    long long offset;
 #ifdef WINDOWS
     LARGE_INTEGER pc;
     time_t timetmp;
 
+    offset = GNUNET_TIME_get_offset ();
     time (&timetmp);
+    timetmp += offset / 1000;
     tmptr = localtime (&timetmp);
     pc.QuadPart = 0;
     QueryPerformanceCounter (&pc);
@@ -909,6 +912,30 @@ mylog (enum GNUNET_ErrorType kind, const char *comp, const char *message,
     struct timeval timeofday;
 
     gettimeofday (&timeofday, NULL);
+    offset = GNUNET_TIME_get_offset ();
+    if (offset > 0)
+    {
+      timeofday.tv_sec += offset / 1000LL;
+      timeofday.tv_usec += (offset % 1000LL) * 1000LL;
+      if (timeofday.tv_usec > 1000000LL)
+      {
+	timeofday.tv_usec -= 1000000LL;
+	timeofday.tv_sec++;
+      }
+    }
+    else
+    {
+      timeofday.tv_sec += offset / 1000LL;
+      if (timeofday.tv_usec > - (offset % 1000LL) * 1000LL)
+      {
+	timeofday.tv_usec += (offset % 1000LL) * 1000LL;
+      }
+      else
+      {
+	timeofday.tv_usec += 1000000LL + (offset % 1000LL) * 1000LL;
+	timeofday.tv_sec--;
+      }
+    }
     tmptr = localtime (&timeofday.tv_sec);
     if (NULL == tmptr)
     {

@@ -465,6 +465,15 @@ void
 GNUNET_TIME_set_offset (long long offset);
 
 
+/**
+ * Get the timestamp offset for this instance.
+ *
+ * @return the offset we currently skew the locale time by
+ */
+long long 
+GNUNET_TIME_get_offset (void);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

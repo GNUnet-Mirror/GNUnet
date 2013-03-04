@@ -46,6 +46,18 @@ GNUNET_TIME_set_offset (long long offset)
 
 
 /**
+ * Get the timestamp offset for this instance.
+ *
+ * @return the offset we currently skew the locale time by
+ */
+long long 
+GNUNET_TIME_get_offset ()
+{
+  return timestamp_offset;
+}
+
+
+/**
  * Get the current time (works just as "time", just that we use the
  * unit of time that the cron-jobs use (and is 64 bit)).
  *
