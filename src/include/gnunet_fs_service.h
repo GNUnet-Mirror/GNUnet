@@ -2219,6 +2219,21 @@ GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
 
 
 /**
+ * Create an SKS uri that points to the root entry of the namespace,
+ * then insert that SKS uri into metadata.
+ *
+ * @param ns handle for the namespace that should be advertised
+ * @param meta meta-data into which namespace advertisement should be inserted
+ * @param rootEntry name of the root of the namespace (use NULL to use default)
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_FS_namespace_insert_advertisement_into_metadata (
+    struct GNUNET_FS_Namespace *ns, struct GNUNET_CONTAINER_MetaData *meta,
+    const char *rootEntry);
+
+
+/**
  * Abort the namespace advertisement operation.
  *
  * @param ac context of the operation to abort.

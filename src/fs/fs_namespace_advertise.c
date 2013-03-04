@@ -200,6 +200,46 @@ advertisement_cont (void *cls, int success,
 
 
 /**
+ * Create an SKS uri that points to the root entry of the namespace,
+ * then insert that SKS uri into metadata.
+ *
+ * @param ns handle for the namespace that should be advertised
+ * @param meta meta-data into which namespace advertisement should be inserted
+ * @param rootEntry name of the root of the namespace (use NULL to use default)
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_FS_namespace_insert_advertisement_into_metadata (
+    struct GNUNET_FS_Namespace *ns, struct GNUNET_CONTAINER_MetaData *meta,
+    const char *rootEntry)
+{
+  struct GNUNET_FS_Uri *sks_uri;
+  char *emsg;
+  char *sks_uri_string;
+  int md_insert;
+
+  if (NULL == rootEntry)
+    rootEntry = "/";
+
+  emsg = NULL;
+  sks_uri = GNUNET_FS_uri_sks_create (ns, rootEntry, &emsg);
+  GNUNET_free_non_null (emsg);
+  if (NULL == sks_uri)
+    return GNUNET_SYSERR;
+
+  sks_uri_string = GNUNET_FS_uri_to_string (sks_uri);
+  GNUNET_FS_uri_destroy (sks_uri);
+  if (NULL == sks_uri_string)
+    return GNUNET_SYSERR;
+
+  md_insert = GNUNET_CONTAINER_meta_data_insert (meta, "<gnunet>",
+      EXTRACTOR_METATYPE_URI, EXTRACTOR_METAFORMAT_UTF8,
+      "text/plain", sks_uri_string, strlen (sks_uri_string) + 1);
+  GNUNET_free (sks_uri_string);
+  return md_insert;
+}
+
+/**
  * Publish an advertismement for a namespace.
  *
  * @param h handle to the file sharing subsystem
