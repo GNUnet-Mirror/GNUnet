@@ -1,4 +1,4 @@
-.TH GNUNET\-PEERINFO 1 "Mar 15, 2009" "GNUnet"
+.TH GNUNET\-PEERINFO 1 "Mar 4, 2013" "GNUnet"
 
 .SH NAME
 gnunet\-peerinfo \- Display information about other peers.
@@ -23,6 +23,15 @@ Output HELLO uri(s)
 .IP "\-h, \-\-help"
 Print help page
 .B
+.IP "\-i, \-\-info"
+List all known peers (and their addresses)
+.B
+.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
+Set the loglevel
+.B
+.IP "\-l LOGFILE, \-\-logfile=LOGFILE"
+Log messages to LOGFILE
+.B
 .IP "\-n, \-\-numeric"
 Disable resolution of IPs to hostnames
 .B
@@ -37,9 +46,6 @@ Print only our own identity (together with "\-q", this is the exact line that ot
 .B
 .IP "\-v, \-\-version"
 Print the version number
-.B
-.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
-Set the loglevel
 
 
 .SH BUGS
