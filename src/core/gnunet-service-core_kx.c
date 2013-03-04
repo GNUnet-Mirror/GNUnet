@@ -1495,8 +1495,18 @@ sign_ephemeral_key ()
 				    sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded) +
 				    sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
   current_ekm.creation_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
-  current_ekm.expiration_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_add (REKEY_FREQUENCY,
-														       REKEY_TOLERANCE)));
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (GSC_cfg,
+					    "core",
+					    "USE_EPHEMERAL_KEYS"))
+  {
+    current_ekm.expiration_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_add (REKEY_FREQUENCY,
+															 REKEY_TOLERANCE)));
+  }
+  else
+  {
+    current_ekm.expiration_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_UNIT_FOREVER_ABS);
+  }
   GNUNET_CRYPTO_ecc_key_get_public (my_ephemeral_key,
 				    &current_ekm.ephemeral_key);
   current_ekm.origin_public_key = my_public_key;
