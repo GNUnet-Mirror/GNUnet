@@ -693,6 +693,7 @@ GSC_KX_start (const struct GNUNET_PeerIdentity *pid)
 void
 GSC_KX_stop (struct GSC_KeyExchangeInfo *kx)
 {
+  GSC_SESSIONS_end (&kx->peer);
   GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# key exchanges stopped"),
                             1, GNUNET_NO);
   if (kx->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
@@ -838,8 +839,7 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
     GNUNET_break_op (0);
     break;
   case KX_STATE_KEY_SENT:
-    kx->status = KX_STATE_KEY_RECEIVED;
-    send_key (kx);
+    /* fine, need to send our key after updating our status, see below */
     break;
   case KX_STATE_KEY_RECEIVED:
   case KX_STATE_UP: 
@@ -855,22 +855,31 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
   {
   case KX_STATE_DOWN:
     kx->status = KX_STATE_KEY_RECEIVED;
+    if (KX_STATE_KEY_SENT == sender_status)
+      send_key (kx);
     send_ping (kx);
     break;
   case KX_STATE_KEY_SENT:
     kx->status = KX_STATE_KEY_RECEIVED;
+    if (KX_STATE_KEY_SENT == sender_status)
+      send_key (kx);
     send_ping (kx);
     break;
   case KX_STATE_KEY_RECEIVED:
+    if (KX_STATE_KEY_SENT == sender_status)
+      send_key (kx);
     send_ping (kx);
     break;
   case KX_STATE_UP: 
     kx->status = KX_STATE_REKEY_SENT;
+    if (KX_STATE_KEY_SENT == sender_status)
+      send_key (kx);
     /* we got a new key, need to reconfirm! */
     send_ping (kx);
     break;
   case KX_STATE_REKEY_SENT:
-    kx->status = KX_STATE_REKEY_SENT;
+    if (KX_STATE_KEY_SENT == sender_status)
+      send_key (kx);
     /* we got a new key, need to reconfirm! */
     send_ping (kx);
     break;
