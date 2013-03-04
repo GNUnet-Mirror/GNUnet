@@ -180,6 +180,12 @@ struct GNUNET_TESTING_Peer
   struct GNUNET_OS_Process *main_process;
 
   /**
+   * The cached identity of this peer.  Will be populated on call to
+   * GNUNET_TESTING_peer_get_identity()
+   */
+  struct GNUNET_PeerIdentity *id;
+
+  /**
    * The keynumber of this peer's hostkey
    */
   uint32_t key_number;
@@ -977,12 +983,19 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
  * @param id identifier for the daemon, will be set
  */
 void
-GNUNET_TESTING_peer_get_identity (const struct GNUNET_TESTING_Peer *peer,
+GNUNET_TESTING_peer_get_identity (struct GNUNET_TESTING_Peer *peer,
 				  struct GNUNET_PeerIdentity *id)
 {
+  if (NULL != peer->id)
+  {
+    memcpy (id, peer->id, sizeof (struct GNUNET_PeerIdentity));
+    return;
+  }
+  peer->id = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
   GNUNET_CRYPTO_ecc_key_free (GNUNET_TESTING_hostkey_get (peer->system,
 							  peer->key_number,
-							  id));
+							  peer->id));
+  memcpy (id, peer->id, sizeof (struct GNUNET_PeerIdentity));
 }
 
 
@@ -1101,6 +1114,7 @@ GNUNET_TESTING_peer_destroy (struct GNUNET_TESTING_Peer *peer)
   GNUNET_free (peer->cfgfile);
   GNUNET_free (peer->main_binary);
   GNUNET_free (peer->args);
+  GNUNET_free_non_null (peer->id);
   GNUNET_free (peer);
 }
 

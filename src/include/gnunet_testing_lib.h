@@ -226,7 +226,7 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
  * @param id identifier for the daemon, will be set
  */
 void
-GNUNET_TESTING_peer_get_identity (const struct GNUNET_TESTING_Peer *peer,
+GNUNET_TESTING_peer_get_identity (struct GNUNET_TESTING_Peer *peer,
 				  struct GNUNET_PeerIdentity *id);
 
 
