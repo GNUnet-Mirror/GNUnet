@@ -49,7 +49,7 @@
 /**
  * How often do we rekey?
  */
-#define REKEY_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 12)
+#define REKEY_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)
 
 /**
  * What time difference do we tolerate?
@@ -854,18 +854,21 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
   switch (kx->status)
   {
   case KX_STATE_DOWN:
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == kx->keep_alive_task);
     kx->status = KX_STATE_KEY_RECEIVED;
     if (KX_STATE_KEY_SENT == sender_status)
       send_key (kx);
     send_ping (kx);
     break;
   case KX_STATE_KEY_SENT:
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == kx->keep_alive_task);
     kx->status = KX_STATE_KEY_RECEIVED;
     if (KX_STATE_KEY_SENT == sender_status)
       send_key (kx);
     send_ping (kx);
     break;
   case KX_STATE_KEY_RECEIVED:
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == kx->keep_alive_task);
     if (KX_STATE_KEY_SENT == sender_status)
       send_key (kx);
     send_ping (kx);
@@ -1312,10 +1315,18 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
   }
   if (0 == GNUNET_TIME_absolute_get_remaining (kx->foreign_key_expires).rel_value)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Session to peer `%s' went down due to key expiration (should not happen)\n"),
+		GNUNET_i2s (&kx->peer));
     GNUNET_STATISTICS_update (GSC_stats,
                               gettext_noop ("# sessions terminated by key expiration"),
                               1, GNUNET_NO);
     GSC_SESSIONS_end (&kx->peer);
+    if (GNUNET_SCHEDULER_NO_TASK != kx->keep_alive_task)
+    {
+      GNUNET_SCHEDULER_cancel (kx->keep_alive_task);
+      kx->keep_alive_task = GNUNET_SCHEDULER_NO_TASK;
+    }
     kx->status = KX_STATE_KEY_SENT;
     send_key (kx);
     return;
