@@ -796,7 +796,7 @@ GST_validation_start (unsigned int max_fds)
 	validation_delay.rel_value = (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value) /  (max_fds / 2);
 	validations_fast_start_threshold = (max_fds / 2);
 	validations_running = 0;
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Validation uses a fast start threshold of %u connections and a delay between of %u ms\n ",
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Validation uses a fast start threshold of %u connections and a delay between of %u ms\n ",
 			validations_fast_start_threshold, validation_delay.rel_value);
   validation_map = GNUNET_CONTAINER_multihashmap_create (VALIDATION_MAP_SIZE,
 							 GNUNET_NO);
