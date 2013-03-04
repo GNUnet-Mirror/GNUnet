@@ -49,7 +49,7 @@
 /**
  * How often do we rekey?
  */
-#define REKEY_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)
+#define REKEY_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 12)
 
 /**
  * What time difference do we tolerate?
