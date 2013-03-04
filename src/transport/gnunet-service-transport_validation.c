@@ -610,8 +610,6 @@ revalidate_address (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   blocked_for = GNUNET_TIME_absolute_get_remaining(validation_next);
-  if (validations_running > validations_fast_start_threshold)
-  	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"Throttle!\n");
   if ((validations_running > validations_fast_start_threshold) &&
   		(blocked_for.rel_value > 0))
   {
