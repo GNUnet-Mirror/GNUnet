@@ -946,6 +946,16 @@ GNUNET_FS_uri_sks_create (struct GNUNET_FS_Namespace *ns, const char *id,
   struct GNUNET_FS_Uri *ns_uri;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pk;
 
+  if (NULL == id)
+  {
+    *emsg = GNUNET_strdup (_("identifier is NULL!"));
+    return NULL;
+  }
+  else if ('\0' == id[0])
+  {
+    *emsg = GNUNET_strdup (_("identifier has zero length!"));
+    return NULL;
+  }
   ns_uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
   ns_uri->type = GNUNET_FS_URI_SKS;
   GNUNET_FS_namespace_get_public_key_hash (ns, &ns_uri->data.sks.ns);
