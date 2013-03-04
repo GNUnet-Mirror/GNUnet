@@ -838,11 +838,9 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
 {
   struct GNUNET_CRYPTO_RsaPrivateKey *ret;
   struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *enc;
-  uint16_t len;
   struct GNUNET_DISK_FileHandle *fd;
   unsigned int cnt;
   int ec;
-  uint64_t fs;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
   struct GNUNET_PeerIdentity pid;
 
