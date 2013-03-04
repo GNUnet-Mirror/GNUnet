@@ -22,6 +22,13 @@ HIJACK_DNS = NO
 # Automatically import PKEYs we learn into the shorten zone?
 AUTO_IMPORT_PKEY = YES
 
+# Do we require users that want to access GNS to run this process 
+# (usually not a good idea)
+UNIX_MATCH_UID = NO
+
+# Do we require users that want to access GNS to be in the 'gnunet' group?
+UNIX_MATCH_GID = YES
+
 # When we automatically import PKEYs into shorten zone, require confirmation
 # before they become active? (Not useful right now as the GUI to confirm
 # doesn't exist)

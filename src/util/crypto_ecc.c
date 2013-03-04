@@ -325,11 +325,15 @@ GNUNET_CRYPTO_ecc_encode_key (const struct GNUNET_CRYPTO_EccPrivateKey *key)
  *
  * @param buf the buffer where the private key data is stored
  * @param len the length of the data in 'buffer'
+ * @param validate GNUNET_YES to validate that the key is well-formed,
+ *                 GNUNET_NO if the key comes from a totally trusted source 
+ *                 and validation is considered too expensive
  * @return NULL on error
  */
 struct GNUNET_CRYPTO_EccPrivateKey *
 GNUNET_CRYPTO_ecc_decode_key (const char *buf, 
-			      size_t len)
+			      size_t len,
+			      int validate)
 {
   struct GNUNET_CRYPTO_EccPrivateKey *ret;
   uint16_t be;
@@ -350,8 +354,9 @@ GNUNET_CRYPTO_ecc_decode_key (const char *buf,
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_scan", rc);
     return NULL;
-  }
-  if (0 != (rc = gcry_pk_testkey (sexp)))
+  }  
+  if ( (GNUNET_YES == validate) &&
+       (0 != (rc = gcry_pk_testkey (sexp))) )
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
     return NULL;
@@ -451,7 +456,7 @@ try_read_key (const char *filename)
     char enc[fs];
 
     GNUNET_break (fs == GNUNET_DISK_file_read (fd, enc, fs));
-    if (NULL == (ret = GNUNET_CRYPTO_ecc_decode_key ((char *) enc, fs)))
+    if (NULL == (ret = GNUNET_CRYPTO_ecc_decode_key ((char *) enc, fs, GNUNET_YES)))
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
 	   _("File `%s' does not contain a valid private key (failed decode, %llu bytes).  Deleting it.\n"),
@@ -646,7 +651,7 @@ GNUNET_CRYPTO_ecc_key_create_from_file (const char *filename)
   len = ntohs (enc->size);
   ret = NULL;
   if ((len > fs) ||
-      (NULL == (ret = GNUNET_CRYPTO_ecc_decode_key ((char *) enc, len))))
+      (NULL == (ret = GNUNET_CRYPTO_ecc_decode_key ((char *) enc, len, GNUNET_YES))))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          _("File `%s' does not contain a valid private key.  Deleting it.\n"),

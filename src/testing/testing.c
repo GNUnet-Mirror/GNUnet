@@ -544,7 +544,8 @@ GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
   private_key = GNUNET_CRYPTO_ecc_decode_key (system->hostkeys_data +
                                               (key_number *
                                                GNUNET_TESTING_HOSTKEYFILESIZE),
-                                              GNUNET_TESTING_HOSTKEYFILESIZE);
+                                              GNUNET_TESTING_HOSTKEYFILESIZE,
+					      GNUNET_NO);
   if (NULL == private_key)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,

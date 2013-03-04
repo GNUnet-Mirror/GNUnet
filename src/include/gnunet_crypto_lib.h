@@ -1244,11 +1244,15 @@ GNUNET_CRYPTO_ecc_encode_key (const struct GNUNET_CRYPTO_EccPrivateKey *key);
  *
  * @param buf the buffer where the private key data is stored
  * @param len the length of the data in 'buffer'
+ * @param validate GNUNET_YES to validate that the key is well-formed,
+ *                 GNUNET_NO if the key comes from a totally trusted source 
+ *                 and validation is considered too expensive
  * @return NULL on error
  */
 struct GNUNET_CRYPTO_EccPrivateKey *
 GNUNET_CRYPTO_ecc_decode_key (const char *buf, 
-			      size_t len);
+			      size_t len,
+			      int validate);
 
 
 /**
