@@ -44,6 +44,7 @@ GNUNET_TIME_set_offset (long long offset)
   timestamp_offset = offset;
 }
 
+
 /**
  * Get the current time (works just as "time", just that we use the
  * unit of time that the cron-jobs use (and is 64 bit)).

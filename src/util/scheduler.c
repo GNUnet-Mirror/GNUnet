@@ -1558,7 +1558,7 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
   void *backtrace_array[MAX_TRACE_DEPTH];
 #endif
 
-  GNUNET_assert (active_task != NULL);
+  GNUNET_assert (NULL != active_task);
   GNUNET_assert (NULL != task);
   t = GNUNET_malloc (sizeof (struct Task));
   t->callback = task;

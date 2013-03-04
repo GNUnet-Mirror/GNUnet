@@ -1506,6 +1506,7 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
+  GNUNET_SPEEDUP_start_ (sctx->cfg);
   GNUNET_RESOLVER_connect (sctx->cfg);
   if (NULL != sctx->lsocks)
     sctx->server =
@@ -1813,7 +1814,6 @@ GNUNET_SERVICE_run (int argc, char *const *argv, const char *service_name,
   /* actually run service */
   err = 0;
   GNUNET_SCHEDULER_run (&service_task, &sctx);
-  GNUNET_SPEEDUP_start_ (cfg);
   /* shutdown */
   if ((1 == do_daemonize) && (NULL != sctx.server))
     pid_file_delete (&sctx);
