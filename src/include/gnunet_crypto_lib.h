@@ -102,7 +102,7 @@ enum GNUNET_CRYPTO_Quality
 /**
  * Maximum length of the public key (q-point, Q = dP) when encoded.
  */
-#define GNUNET_CRYPTO_ECC_MAX_PUBLIC_KEY_LENGTH 76
+#define GNUNET_CRYPTO_ECC_MAX_PUBLIC_KEY_LENGTH 133
 
 
 /**
