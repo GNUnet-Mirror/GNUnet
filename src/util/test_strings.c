@@ -39,6 +39,8 @@ main (int argc, char *argv[])
   const char *bc;
   struct GNUNET_TIME_Absolute at;
   struct GNUNET_TIME_Absolute atx;
+  struct GNUNET_TIME_Relative rt;
+  struct GNUNET_TIME_Relative rtx;
   const char *hdir;
 
   GNUNET_log_setup ("test_strings", "ERROR", NULL);
@@ -109,6 +111,13 @@ main (int argc, char *argv[])
   b = GNUNET_STRINGS_to_utf8 ("TEST", 4, "unknown");
   GNUNET_log_skip (0, GNUNET_YES);
   WANT ("TEST", b);
+
+  GNUNET_assert (GNUNET_OK ==
+      GNUNET_STRINGS_fancy_time_to_relative ("15m", &rt));
+  GNUNET_assert (GNUNET_OK ==
+      GNUNET_STRINGS_fancy_time_to_relative ("15 m", &rtx));
+  GNUNET_assert (rt.rel_value == rtx.rel_value);
+
   return 0;
 }
 

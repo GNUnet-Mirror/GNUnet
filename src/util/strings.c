@@ -216,21 +216,33 @@ convert_with_table (const char *input,
   in = GNUNET_strdup (input);
   for (tok = strtok (in, " "); tok != NULL; tok = strtok (NULL, " "))
   {
-    i = 0;
-    while ((table[i].name != NULL) && (0 != strcasecmp (table[i].name, tok)))
-      i++;
-    if (table[i].name != NULL)
-      last *= table[i].value;
-    else
+    do
     {
-      ret += last;
-      last = 0;
-      if (1 != SSCANF (tok, "%llu", &last))
+      i = 0;
+      while ((table[i].name != NULL) && (0 != strcasecmp (table[i].name, tok)))
+        i++;
+      if (table[i].name != NULL)
       {
-        GNUNET_free (in);
-        return GNUNET_SYSERR;   /* expected number */
+        last *= table[i].value;
+        break; /* next tok */
       }
-    }
+      else
+      {
+        char *endptr;
+        ret += last;
+        errno = 0;
+        last = strtoull (tok, &endptr, 10);
+        if ((0 != errno) || (endptr == tok))
+        {
+          GNUNET_free (in);
+          return GNUNET_SYSERR;   /* expected number */
+        }
+        if ('\0' == endptr[0])
+          break; /* next tok */
+        else
+          tok = endptr; /* and re-check (handles times like "10s") */
+      }
+    } while (GNUNET_YES);
   }
   ret += last;
   *output = ret;
