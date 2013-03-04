@@ -618,13 +618,6 @@ key_generation_cb (void *cls,
   GST_my_private_key = pk;
 
   GST_stats = GNUNET_STATISTICS_create ("transport", GST_cfg);
-  if (NULL == GST_stats)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Could not access STATISTICS service.  Exiting.\n"));
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
   GST_peerinfo = GNUNET_PEERINFO_connect (GST_cfg);
   GNUNET_CRYPTO_ecc_key_get_public (GST_my_private_key, &GST_my_public_key);
   GNUNET_CRYPTO_hash (&GST_my_public_key, sizeof (GST_my_public_key),
