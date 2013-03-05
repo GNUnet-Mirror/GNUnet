@@ -686,7 +686,7 @@ setup_flood_message (unsigned int slot,
   fm->purpose.size =
       htonl (sizeof (struct GNUNET_NSE_FloodMessage) -
              sizeof (struct GNUNET_MessageHeader) - sizeof (uint32_t) -
-             sizeof (struct GNUNET_CRYPTO_RsaSignature));
+             sizeof (struct GNUNET_CRYPTO_EccSignature));
   fm->matching_bits = htonl (matching_bits);
   fm->timestamp = GNUNET_TIME_absolute_hton (ts);
   fm->pkey = my_public_key;
@@ -873,14 +873,14 @@ find_proof (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 #define ROUND_SIZE 10
   uint64_t counter;
-  char buf[sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
+  char buf[sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded) +
            sizeof (uint64_t)] GNUNET_ALIGN;
   struct GNUNET_HashCode result;
   unsigned int i;
 
   proof_task = GNUNET_SCHEDULER_NO_TASK;
   memcpy (&buf[sizeof (uint64_t)], &my_public_key,
-          sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+          sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
   i = 0;
   counter = my_proof;
   while ((counter != UINT64_MAX) && (i < ROUND_SIZE))
@@ -1033,7 +1033,7 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
     struct GNUNET_PeerIdentity os;
 
     GNUNET_CRYPTO_hash (&incoming_flood->pkey,
-                        sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                        sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
                         &os.hashPubKey);
     GNUNET_snprintf (origin, sizeof (origin), "%s", GNUNET_i2s (&os));
     GNUNET_snprintf (pred, sizeof (pred), "%s", GNUNET_i2s (peer));
