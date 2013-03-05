@@ -1975,17 +1975,16 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_break_op (0);
       return GNUNET_YES;
     }
-    if (0 != memcmp (&my_identity, &pid, sizeof (struct GNUNET_PeerIdentity)))
+    if ((GNUNET_YES != disable_try_connect) &&
+        0 != memcmp (&my_identity, &pid, sizeof (struct GNUNET_PeerIdentity)))
     {
       bucket = find_bucket (&pid.hashPubKey);
-      if ((bucket >= 0) && (k_buckets[bucket].peers_size < bucket_size))
+      if ((bucket >= 0) &&
+          (k_buckets[bucket].peers_size < bucket_size) &&
+          (NULL != GDS_transport_handle))
       {
-        if (NULL != GDS_transport_handle)
-        {
-          GNUNET_TRANSPORT_offer_hello (GDS_transport_handle, h, NULL, NULL);
-          if (GNUNET_YES != disable_try_connect)
-            GNUNET_TRANSPORT_try_connect (GDS_transport_handle, &pid, NULL, NULL); /*FIXME TRY_CONNECT change */
-        }
+        GNUNET_TRANSPORT_offer_hello (GDS_transport_handle, h, NULL, NULL);
+        GNUNET_TRANSPORT_try_connect (GDS_transport_handle, &pid, NULL, NULL); /*FIXME TRY_CONNECT change */
       }
     }
   }
