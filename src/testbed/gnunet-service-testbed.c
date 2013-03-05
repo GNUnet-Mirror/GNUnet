@@ -708,8 +708,9 @@ GST_forwarded_operation_timeout (void *cls,
   struct ForwardedOperationContext *fopc = cls;
 
   GNUNET_TESTBED_forward_operation_msg_cancel_ (fopc->opc);
-  LOG (GNUNET_ERROR_TYPE_WARNING, "A forwarded operation has timed out\n");
-  GST_send_operation_fail_msg (fopc->client, fopc->operation_id, "Timeout");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "A forwarded operation has timed out\n");
+  GST_send_operation_fail_msg (fopc->client, fopc->operation_id,
+                               "A forwarded operation has timed out");
   GNUNET_SERVER_client_drop (fopc->client);
   GNUNET_CONTAINER_DLL_remove (fopcq_head, fopcq_tail, fopc);
   GNUNET_free (fopc);
@@ -742,7 +743,9 @@ lcf_forwarded_operation_timeout (void *cls,
   //  GST_forwarded_operation_timeout (lcf->fopc, tc);
   LOG (GNUNET_ERROR_TYPE_WARNING,
        "A forwarded controller link operation has timed out\n");
-  send_controller_link_response (lcf->client, lcf->operation_id, NULL, "Timeout");
+  send_controller_link_response (lcf->client, lcf->operation_id, NULL,
+                                 "A forwarded controller link operation has "
+                                 "timed out\n");
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
   lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
 }
