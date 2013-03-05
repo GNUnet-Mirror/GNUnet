@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2004, 2005, 2006, 2007, 2008, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2004--2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -54,8 +54,9 @@ extern "C"
  * 6.1.x: with simplified namespace support
  * 9.0.0: CPS-style integrated API
  * 9.1.1: asynchronous directory scanning
+ * 9.2.0: unified K-Block and S-block format (#2564)
  */
-#define GNUNET_FS_VERSION 0x00090103
+#define GNUNET_FS_VERSION 0x00090200
 
 
 /* ******************** URI API *********************** */
@@ -342,25 +343,26 @@ GNUNET_FS_uri_sks_create (struct GNUNET_FS_Namespace *ns, const char *id,
 /**
  * Create an SKS URI from a namespace ID and an identifier.
  *
- * @param nsid namespace ID
+ * @param pseudonym pseudonym to use
  * @param id identifier
  * @return an FS URI for the given namespace and identifier
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_sks_create_from_nsid (struct GNUNET_HashCode * nsid, const char *id);
+GNUNET_FS_uri_sks_create_from_nsid (struct GNUNET_PseudonymIdentifier *pseudonym, 
+				    const char *id);
 
 
 /**
- * Get the ID of a namespace from the given
+ * Get the public key of a namespace from the given
  * namespace URI.
  *
  * @param uri the uri to get the namespace ID from
- * @param nsid where to store the ID of the namespace
+ * @param pseudonym where to store the public key of the namespace
  * @return GNUNET_OK on success
  */
 int
 GNUNET_FS_uri_sks_get_namespace (const struct GNUNET_FS_Uri *uri,
-                                 struct GNUNET_HashCode * nsid);
+                                 struct GNUNET_PseudonymIdentifier *pseudonym);
 
 
 /**
@@ -1403,9 +1405,9 @@ struct GNUNET_FS_ProgressInfo
           const struct GNUNET_CONTAINER_MetaData *meta;
 
           /**
-	   * Hash-identifier for the namespace.
+	   * Public key of the namespace.
 	   */
-          struct GNUNET_HashCode id;
+          struct GNUNET_PseudonymIdentifier pseudonym;
 
         } ns;
 
@@ -2189,60 +2191,6 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc);
 
 
 /**
- * Context for advertising a namespace.
- */
-struct GNUNET_FS_AdvertisementContext;
-
-
-/**
- * Publish an advertismement for a namespace.
- *
- * @param h handle to the file sharing subsystem
- * @param ksk_uri keywords to use for advertisment
- * @param ns handle for the namespace that should be advertised
- * @param meta meta-data for the namespace advertisement
- * @param bo block options
- * @param rootEntry name of the root of the namespace
- * @param cont continuation
- * @param cont_cls closure for cont
- * @return NULL on error ('cont' will still be called)
- */
-struct GNUNET_FS_AdvertisementContext *
-GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
-                               struct GNUNET_FS_Uri *ksk_uri,
-                               struct GNUNET_FS_Namespace *ns,
-                               const struct GNUNET_CONTAINER_MetaData *meta,
-                               const struct GNUNET_FS_BlockOptions *bo,
-                               const char *rootEntry,
-                               GNUNET_FS_PublishContinuation cont,
-                               void *cont_cls);
-
-
-/**
- * Create an SKS uri that points to the root entry of the namespace,
- * then insert that SKS uri into metadata.
- *
- * @param ns handle for the namespace that should be advertised
- * @param meta meta-data into which namespace advertisement should be inserted
- * @param rootEntry name of the root of the namespace (use NULL to use default)
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
- */
-int
-GNUNET_FS_namespace_insert_advertisement_into_metadata (
-    struct GNUNET_FS_Namespace *ns, struct GNUNET_CONTAINER_MetaData *meta,
-    const char *rootEntry);
-
-
-/**
- * Abort the namespace advertisement operation.
- *
- * @param ac context of the operation to abort.
- */
-void
-GNUNET_FS_namespace_advertise_cancel (struct GNUNET_FS_AdvertisementContext *ac);
-
-
-/**
  * Create a namespace with the given name; if one already
  * exists, return a handle to the existing namespace.
  *
@@ -2265,45 +2213,6 @@ GNUNET_FS_namespace_create (struct GNUNET_FS_Handle *h, const char *name);
  */
 struct GNUNET_FS_Namespace *
 GNUNET_FS_namespace_open_existing (struct GNUNET_FS_Handle *h, const char *name);
-
-
-/**
- * Context for creating a namespace asynchronously.
- */
-struct GNUNET_FS_NamespaceCreationContext;
-
-/**
- * Function called upon completion of 'GNUNET_FS_namespace_create_start'.
- *
- * @param cls closure
- * @param ns NULL on error, otherwise the namespace (which must be free'd by the callee)
- * @param emsg NULL on success, otherwise an error message
- */
-typedef void (*GNUNET_FS_NamespaceCreationCallback)(void *cls,
-    struct GNUNET_FS_Namespace *ns, const char *emsg);
-
-
-/**
- * Create a namespace with the given name; if one already
- * exists, return a handle to the existing namespace immediately.
- * Otherwise create a namespace asynchronously.
- *
- * @param h handle to the file sharing subsystem
- * @param name name to use for the namespace
- * @return namespace creation context, NULL on error (i.e. invalid filename)
- */
-struct GNUNET_FS_NamespaceCreationContext *
-GNUNET_FS_namespace_create_start (struct GNUNET_FS_Handle *h, const char *name,
-    GNUNET_FS_NamespaceCreationCallback cont, void *cont_cls);
-
-
-/**
- * Abort namespace creation.
- *
- * @param ncc namespace creation context to abort
- */
-void
-GNUNET_FS_namespace_create_stop (struct GNUNET_FS_NamespaceCreationContext *ncc);
 
 
 /**
@@ -2338,8 +2247,8 @@ GNUNET_FS_namespace_dup (struct GNUNET_FS_Namespace *ns);
  *         GNUNET_SYSERR on failure (contents of id remain intact)
  */
 int
-GNUNET_FS_namespace_get_public_key_hash (struct GNUNET_FS_Namespace *ns,
-    struct GNUNET_HashCode *id);
+GNUNET_FS_namespace_get_public_identifier (struct GNUNET_FS_Namespace *ns,
+					   struct GNUNET_PseudonymIdentifier *id);
 
 
 /**
@@ -2364,10 +2273,10 @@ GNUNET_FS_namespace_delete (struct GNUNET_FS_Namespace *ns, int freeze);
  *
  * @param cls closure
  * @param name human-readable identifier of the namespace
- * @param id hash identifier for the namespace
+ * @param id identifier for the namespace
  */
 typedef void (*GNUNET_FS_NamespaceInfoProcessor) (void *cls, const char *name,
-                                                  const struct GNUNET_HashCode * id);
+                                                  const struct GNUNET_PseudonymIdentifier *id);
 
 
 /**

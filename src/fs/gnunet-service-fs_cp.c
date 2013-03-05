@@ -1143,7 +1143,6 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
   struct GSF_PendingRequestData *prd;
   struct GSF_ConnectedPeer *cp;
   struct GSF_ConnectedPeer *cps;
-  const struct GNUNET_HashCode *namespace;
   const struct GNUNET_PeerIdentity *target;
   enum GSF_PendingRequestOptions options;
   uint16_t msize;
@@ -1244,17 +1243,6 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
               "Received request for `%s' of type %u from peer `%4s' with flags %u\n",
               GNUNET_h2s (&gm->query), (unsigned int) type, GNUNET_i2s (other),
               (unsigned int) bm);
-  namespace = (0 != (bm & GET_MESSAGE_BIT_SKS_NAMESPACE)) ? &opt[bits++] : NULL;
-  if ((GNUNET_BLOCK_TYPE_FS_SBLOCK == type) && (NULL == namespace))
-  {
-    GNUNET_break_op (0);
-    return NULL;
-  }
-  if ((GNUNET_BLOCK_TYPE_FS_SBLOCK != type) && (NULL != namespace))
-  {
-    GNUNET_break_op (0);
-    return NULL;
-  }
   target =
       (0 !=
        (bm & GET_MESSAGE_BIT_TRANSMIT_TO)) ? ((const struct GNUNET_PeerIdentity
@@ -1298,9 +1286,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
   {
     pr = peerreq->pr;
     prd = GSF_pending_request_get_data_ (pr);
-    if ((prd->type == type) &&
-        ((type != GNUNET_BLOCK_TYPE_FS_SBLOCK) ||
-         (0 == memcmp (&prd->namespace, namespace, sizeof (struct GNUNET_HashCode)))))
+    if (prd->type == type) 
     {
       if (prd->ttl.abs_value >= GNUNET_TIME_absolute_get ().abs_value + ttl)
       {
@@ -1324,7 +1310,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
 
   peerreq = GNUNET_malloc (sizeof (struct PeerRequest));
   peerreq->cp = cp;
-  pr = GSF_pending_request_create_ (options, type, &gm->query, namespace,
+  pr = GSF_pending_request_create_ (options, type, &gm->query, 
                                     target,
                                     (bfsize >
                                      0) ? (const char *) &opt[bits] : NULL,

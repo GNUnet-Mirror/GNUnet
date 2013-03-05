@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001-2006, 2008-2012 Christian Grothoff (and other contributing authors)
+     (C) 2001-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -22,7 +22,6 @@
  * @brief Helper functions for searching.
  * @author Christian Grothoff
  */
-
 #include "platform.h"
 #include "gnunet_constants.h"
 #include "gnunet_fs_service.h"
@@ -575,22 +574,22 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc, const char *id_update,
 
 
 /**
- * Decrypt a block using a 'keyword' as the passphrase.  Given the
+ * Decrypt a ublock using a 'keyword' as the passphrase.  Given the
  * KSK public key derived from the keyword, this function looks up
  * the original keyword in the search context and decrypts the
  * given ciphertext block.
  *
  * @param sc search context with the keywords
- * @param public_key public key to use to lookup the keyword
+ * @param verification_key public key to use to lookup the keyword
  * @param edata encrypted data
  * @param edata_size number of bytes in 'edata' (and 'data')
  * @param data where to store the plaintext
  * @return keyword index on success, GNUNET_SYSERR on error (no such 
- *        keyword, internal error)
+ *         keyword, internal error)
  */
 static int
 decrypt_block_with_keyword (const struct GNUNET_FS_SearchContext *sc,
-			    const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
+			    const struct GNUNET_PseudonymIdentifier *verification_key,
 			    const void *edata,
 			    size_t edata_size,
 			    char *data)
@@ -600,12 +599,12 @@ decrypt_block_with_keyword (const struct GNUNET_FS_SearchContext *sc,
   struct GNUNET_CRYPTO_AesInitializationVector iv;
   int i;
 
-  GNUNET_CRYPTO_hash (public_key,
-                      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+  GNUNET_CRYPTO_hash (verification_key,
+                      sizeof (struct GNUNET_PseudonymIdentifier),
                       &q);
   /* find key */
   for (i = 0; i < sc->uri->data.ksk.keywordCount; i++)
-    if (0 == memcmp (&q, &sc->requests[i].query, sizeof (struct GNUNET_HashCode)))
+    if (0 == memcmp (&q, &sc->requests[i].uquery, sizeof (struct GNUNET_HashCode)))
       break;
   if (i == sc->uri->data.ksk.keywordCount)
   {
@@ -614,7 +613,7 @@ decrypt_block_with_keyword (const struct GNUNET_FS_SearchContext *sc,
     return GNUNET_SYSERR;
   }
   /* decrypt */
-  GNUNET_CRYPTO_hash_to_aes_key (&sc->requests[i].key, &skey, &iv);
+  GNUNET_CRYPTO_hash_to_aes_key (&sc->requests[i].ukey, &skey, &iv);
   if (-1 ==
       GNUNET_CRYPTO_aes_decrypt (edata, edata_size, &skey,
                                  &iv, data))
@@ -627,18 +626,20 @@ decrypt_block_with_keyword (const struct GNUNET_FS_SearchContext *sc,
 
 
 /**
- * Process a keyword-search result.
+ * Process a keyword search result.  The actual type of block is
+ * a UBlock; we know it is a keyword search result because that's
+ * what we were searching for.
  *
  * @param sc our search context
- * @param kb the kblock
- * @param size size of kb
+ * @param ub the ublock with the keyword search result
+ * @param size size of nb
  */
 static void
-process_kblock (struct GNUNET_FS_SearchContext *sc, const struct KBlock *kb,
+process_kblock (struct GNUNET_FS_SearchContext *sc, const struct UBlock *ub,
                 size_t size)
 {
   size_t j;
-  char pt[size - sizeof (struct KBlock)];
+  char pt[size - sizeof (struct UBlock)];
   const char *eos;
   struct GNUNET_CONTAINER_MetaData *meta;
   struct GNUNET_FS_Uri *uri;
@@ -646,16 +647,22 @@ process_kblock (struct GNUNET_FS_SearchContext *sc, const struct KBlock *kb,
   int i;
 
   if (-1 == (i = decrypt_block_with_keyword (sc,
-					     &kb->keyspace,
-					     &kb[1],
-					     size - sizeof (struct KBlock),
+					     &ub->verification_key,
+					     &ub[1],
+					     size - sizeof (struct UBlock),
 					     pt)))
     return;
-  /* parse */
-  eos = memchr (pt, 0, sizeof (pt));
+  /* parse; pt[0] is just '\0', so we skip over that */
+  eos = memchr (&pt[1], '\0', sizeof (pt) - 1);
   if (NULL == eos)
   {
     GNUNET_break_op (0);
+    return;
+  }
+  if (NULL == (uri = GNUNET_FS_uri_parse (&pt[1], &emsg)))
+  {
+    GNUNET_break_op (0);        /* ublock malformed */
+    GNUNET_free_non_null (emsg);   
     return;
   }
   j = eos - pt + 1;
@@ -665,18 +672,10 @@ process_kblock (struct GNUNET_FS_SearchContext *sc, const struct KBlock *kb,
     meta = GNUNET_CONTAINER_meta_data_deserialize (&pt[j], sizeof (pt) - j);
   if (NULL == meta)
   {
-    GNUNET_break_op (0);        /* kblock malformed */
+    GNUNET_break_op (0);        /* ublock malformed */
+    GNUNET_FS_uri_destroy (uri);
     return;
   }
-  uri = GNUNET_FS_uri_parse (pt, &emsg);
-  if (NULL == uri)
-  {
-    GNUNET_break_op (0);        /* kblock malformed */
-    GNUNET_free_non_null (emsg);
-    GNUNET_CONTAINER_meta_data_destroy (meta);
-    return;
-  }
-  /* process */
   process_ksk_result (sc, &sc->requests[i], uri, meta);
 
   /* clean up */
@@ -686,81 +685,20 @@ process_kblock (struct GNUNET_FS_SearchContext *sc, const struct KBlock *kb,
 
 
 /**
- * Process a keyword-search result with a namespace advertisment.
+ * Process a namespace-search result.  The actual type of block is
+ * a UBlock; we know it is a namespace search result because that's
+ * what we were searching for.
  *
  * @param sc our search context
- * @param nb the nblock
- * @param size size of nb
- */
-static void
-process_nblock (struct GNUNET_FS_SearchContext *sc, const struct NBlock *nb,
-                size_t size)
-{
-  size_t j;
-  char pt[size - sizeof (struct NBlock)];
-  const char *eos;
-  struct GNUNET_CONTAINER_MetaData *meta;
-  struct GNUNET_FS_Uri *uri;
-  char *uris;
-  int i;
-
-  if (-1 == (i = decrypt_block_with_keyword (sc,
-					     &nb->keyspace,
-					     &nb[1],
-					     size - sizeof (struct NBlock),
-					     pt)))
-    return;
-  /* parse */
-  eos = memchr (pt, 0, sizeof (pt));
-  if (NULL == eos)
-  {
-    GNUNET_break_op (0);
-    return;
-  }
-  j = eos - pt + 1;
-  if (sizeof (pt) == j)
-    meta = GNUNET_CONTAINER_meta_data_create ();
-  else
-    meta = GNUNET_CONTAINER_meta_data_deserialize (&pt[j], sizeof (pt) - j);
-  if (NULL == meta)
-  {
-    GNUNET_break_op (0);        /* nblock malformed */
-    return;
-  }
-
-  uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
-  uri->type = GNUNET_FS_URI_SKS;
-  uri->data.sks.identifier = GNUNET_strdup (pt);
-  GNUNET_CRYPTO_hash (&nb->subspace,
-                      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                      &uri->data.sks.ns);
-  uris = GNUNET_FS_uri_to_string (uri);
-  GNUNET_CONTAINER_meta_data_insert (meta, "<gnunet>", EXTRACTOR_METATYPE_URI,
-                                     EXTRACTOR_METAFORMAT_UTF8, "text/plain",
-                                     uris, strlen (uris) + 1);
-  GNUNET_free (uris);
-  GNUNET_PSEUDONYM_add (sc->h->cfg, &uri->data.sks.ns, meta);
-  /* process */
-  process_ksk_result (sc, &sc->requests[i], uri, meta);
-
-  /* clean up */
-  GNUNET_CONTAINER_meta_data_destroy (meta);
-  GNUNET_FS_uri_destroy (uri);
-}
-
-
-/**
- * Process a namespace-search result.
- *
- * @param sc our search context
- * @param sb the sblock
+ * @param ub the ublock with a namespace result
  * @param size size of sb
  */
 static void
-process_sblock (struct GNUNET_FS_SearchContext *sc, const struct SBlock *sb,
+process_sblock (struct GNUNET_FS_SearchContext *sc, 
+		const struct UBlock *ub,
                 size_t size)
 {
-  size_t len = size - sizeof (struct SBlock);
+  size_t len = size - sizeof (struct UBlock);
   char pt[len];
   struct GNUNET_CRYPTO_AesSessionKey skey;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
@@ -771,36 +709,39 @@ process_sblock (struct GNUNET_FS_SearchContext *sc, const struct SBlock *sb,
   size_t off;
   char *emsg;
   struct GNUNET_HashCode key;
+  struct GNUNET_HashCode id_hash;
+  struct GNUNET_HashCode ns_hash;
   char *identifier;
 
   /* decrypt */
   identifier = sc->uri->data.sks.identifier;
-  GNUNET_CRYPTO_hash (identifier, strlen (identifier), &key);
+  GNUNET_CRYPTO_hash (identifier, strlen (identifier), &id_hash);
+  GNUNET_CRYPTO_hash (&sc->uri->data.sks.ns, 
+		      sizeof (sc->uri->data.sks.ns), &ns_hash);
+  GNUNET_CRYPTO_hash_xor (&id_hash, &ns_hash, &key);
   GNUNET_CRYPTO_hash_to_aes_key (&key, &skey, &iv);
-  if (-1 == GNUNET_CRYPTO_aes_decrypt (&sb[1], len, &skey, &iv, pt))
+  if (-1 == GNUNET_CRYPTO_aes_decrypt (&ub[1], len, &skey, &iv, pt))
   {
     GNUNET_break (0);
     return;
   }
   /* parse */
-  off = GNUNET_STRINGS_buffer_tokenize (pt, len, 2, &id, &uris);
-  if (0 == off)
+  if (0 == (off = GNUNET_STRINGS_buffer_tokenize (pt, len, 2, &id, &uris)))
   {
-    GNUNET_break_op (0);        /* sblock malformed */
+    GNUNET_break_op (0);        /* ublock malformed */
     return;
   }
-  meta = GNUNET_CONTAINER_meta_data_deserialize (&pt[off], len - off);
-  if (meta == NULL)
+  if (NULL == (meta = GNUNET_CONTAINER_meta_data_deserialize (&pt[off], len - off)))
   {
-    GNUNET_break_op (0);        /* sblock malformed */
+    GNUNET_break_op (0);        /* ublock malformed */
     return;
   }
-  uri = GNUNET_FS_uri_parse (uris, &emsg);
-  if (NULL == uri)
+  if (NULL == (uri = GNUNET_FS_uri_parse (uris, &emsg)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to parse URI `%s': %s\n", uris,
-                emsg);
-    GNUNET_break_op (0);        /* sblock malformed */
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		_("Failed to parse URI `%s': %s\n"), 
+		uris, emsg);
+    GNUNET_break_op (0);        /* ublock malformed */
     GNUNET_free_non_null (emsg);
     GNUNET_CONTAINER_meta_data_destroy (meta);
     return;
@@ -836,44 +777,11 @@ process_result (struct GNUNET_FS_SearchContext *sc, enum GNUNET_BLOCK_Type type,
   }
   switch (type)
   {
-  case GNUNET_BLOCK_TYPE_FS_KBLOCK:
-    if (!GNUNET_FS_uri_test_ksk (sc->uri))
-    {
-      GNUNET_break (0);
-      return;
-    }
-    if (sizeof (struct KBlock) > size)
-    {
-      GNUNET_break_op (0);
-      return;
-    }
-    process_kblock (sc, data, size);
-    break;
-  case GNUNET_BLOCK_TYPE_FS_SBLOCK:
-    if (!GNUNET_FS_uri_test_sks (sc->uri))
-    {
-      GNUNET_break (0);
-      return;
-    }
-    if (sizeof (struct SBlock) > size)
-    {
-      GNUNET_break_op (0);
-      return;
-    }
-    process_sblock (sc, data, size);
-    break;
-  case GNUNET_BLOCK_TYPE_FS_NBLOCK:
-    if (!GNUNET_FS_uri_test_ksk (sc->uri))
-    {
-      GNUNET_break (0);
-      return;
-    }
-    if (sizeof (struct NBlock) > size)
-    {
-      GNUNET_break_op (0);
-      return;
-    }
-    process_nblock (sc, data, size);
+  case GNUNET_BLOCK_TYPE_FS_UBLOCK:
+    if (GNUNET_FS_URI_SKS == sc->uri->type)
+      process_sblock (sc, data, size);
+    else
+      process_kblock (sc, data, size);
     break;
   case GNUNET_BLOCK_TYPE_ANY:
     GNUNET_break (0);
@@ -1054,7 +962,10 @@ transmit_search_request (void *cls, size_t size, void *buf)
   struct SearchMessage *sm;
   const char *identifier;
   struct GNUNET_HashCode key;
-  struct GNUNET_HashCode idh;
+  struct GNUNET_HashCode signing_key;
+  struct GNUNET_HashCode ns_hash;
+  struct GNUNET_HashCode id_hash;
+  struct GNUNET_PseudonymIdentifier verification_key;
   unsigned int sqms;
   uint32_t options;
 
@@ -1090,10 +1001,10 @@ transmit_search_request (void *cls, size_t size, void *buf)
     /* now build message */
     msize += sizeof (struct GNUNET_HashCode) * mbc.put_cnt;
     sm->header.size = htons (msize);
-    sm->type = htonl (GNUNET_BLOCK_TYPE_ANY);
+    sm->type = htonl (GNUNET_BLOCK_TYPE_FS_UBLOCK);
     sm->anonymity_level = htonl (sc->anonymity);
     memset (&sm->target, 0, sizeof (struct GNUNET_HashCode));
-    sm->query = sc->requests[sc->keyword_offset].query;
+    sm->query = sc->requests[sc->keyword_offset].uquery;
     GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
                                            &build_result_set, &mbc);
     GNUNET_assert (sqms >= sc->search_request_map_offset);
@@ -1118,13 +1029,22 @@ transmit_search_request (void *cls, size_t size, void *buf)
     GNUNET_assert (GNUNET_FS_uri_test_sks (sc->uri));
     msize = sizeof (struct SearchMessage);
     GNUNET_assert (size >= msize);
-    sm->type = htonl (GNUNET_BLOCK_TYPE_FS_SBLOCK);
+    sm->type = htonl (GNUNET_BLOCK_TYPE_FS_UBLOCK);
     sm->anonymity_level = htonl (sc->anonymity);
-    sm->target = sc->uri->data.sks.ns;
+    memset (&sm->target, 0, sizeof (struct GNUNET_HashCode));
+
     identifier = sc->uri->data.sks.identifier;
-    GNUNET_CRYPTO_hash (identifier, strlen (identifier), &key);
-    GNUNET_CRYPTO_hash (&key, sizeof (struct GNUNET_HashCode), &idh);
-    GNUNET_CRYPTO_hash_xor (&idh, &sm->target, &sm->query);
+    GNUNET_CRYPTO_hash (identifier, strlen (identifier), &id_hash);
+    GNUNET_CRYPTO_hash (&sc->uri->data.sks.ns,
+			sizeof (sc->uri->data.sks.ns), &ns_hash);
+    GNUNET_CRYPTO_hash_xor (&id_hash, &ns_hash, &key);
+    GNUNET_CRYPTO_hash (&key, sizeof (struct GNUNET_HashCode), &signing_key);
+    GNUNET_PSEUDONYM_derive_verification_key (&sc->uri->data.sks.ns,
+					      &signing_key,
+					      &verification_key);
+    GNUNET_CRYPTO_hash (&verification_key,
+			sizeof (verification_key),
+			&sm->query);
     mbc.put_cnt = (size - msize) / sizeof (struct GNUNET_HashCode);
     sqms = GNUNET_CONTAINER_multihashmap_size (sc->master_result_map);
     mbc.put_cnt = GNUNET_MIN (mbc.put_cnt, sqms - mbc.skip_cnt);
@@ -1287,28 +1207,35 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
 {
   unsigned int i;
   const char *keyword;
-  struct GNUNET_HashCode hc;
-  struct GNUNET_CRYPTO_RsaPrivateKey *pk;
+  struct GNUNET_HashCode signing_key;
+  struct GNUNET_PseudonymHandle *ph;
+  struct GNUNET_PseudonymIdentifier anon;
+  struct GNUNET_PseudonymIdentifier verification_key;
 
   GNUNET_assert (NULL == sc->client);
   if (GNUNET_FS_uri_test_ksk (sc->uri))
   {
     GNUNET_assert (0 != sc->uri->data.ksk.keywordCount);
+    ph = GNUNET_PSEUDONYM_get_anonymous_pseudonym_handle ();
+    GNUNET_PSEUDONYM_get_identifier (ph, &anon);
+    GNUNET_PSEUDONYM_destroy (ph);
     sc->requests =
         GNUNET_malloc (sizeof (struct SearchRequestEntry) *
                        sc->uri->data.ksk.keywordCount);
     for (i = 0; i < sc->uri->data.ksk.keywordCount; i++)
     {
       keyword = &sc->uri->data.ksk.keywords[i][1];
-      GNUNET_CRYPTO_hash (keyword, strlen (keyword), &hc);
-      pk = GNUNET_CRYPTO_rsa_key_create_from_hash (&hc);
-      GNUNET_assert (NULL != pk);
-      GNUNET_CRYPTO_rsa_get_public_key_hash (pk, &sc->requests[i].query);
+      GNUNET_CRYPTO_hash (keyword, strlen (keyword), &sc->requests[i].ukey);
+      GNUNET_CRYPTO_hash (&sc->requests[i].ukey, sizeof (struct GNUNET_HashCode), &signing_key);
+      GNUNET_PSEUDONYM_derive_verification_key (&anon, 
+						&signing_key,
+						&verification_key);
+      GNUNET_CRYPTO_hash (&verification_key, sizeof (struct GNUNET_PseudonymIdentifier),
+			  &sc->requests[i].uquery);
       sc->requests[i].mandatory = (sc->uri->data.ksk.keywords[i][0] == '+');
       if (sc->requests[i].mandatory)
         sc->mandatory_count++;
       sc->requests[i].results = GNUNET_CONTAINER_multihashmap_create (4, GNUNET_NO);
-      GNUNET_CRYPTO_hash (keyword, strlen (keyword), &sc->requests[i].key);
     }
   }
   sc->client = GNUNET_CLIENT_connect ("fs", sc->h->cfg);

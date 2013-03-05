@@ -38,7 +38,6 @@ libgnunetfs_la_SOURCES = \
   fs_publish_ksk.c \
   fs_misc.c \
   fs_namespace.c \
-  fs_namespace_advertise.c \
   fs_search.c \
   fs_sharetree.c \
   fs_tree.c fs_tree.h \

@@ -87,12 +87,6 @@ struct GSF_PendingRequestData
   struct GNUNET_HashCode query;
 
   /**
-   * Namespace to query, only set if the type is SBLOCK.
-   * Allocated after struct only if needed. Do not free!
-   */
-  const struct GNUNET_HashCode *namespace;
-
-  /**
    * Identity of a peer hosting the content, otherwise NULl.
    * Allocated after struct only if needed. Do not free!
    */
@@ -212,7 +206,6 @@ typedef void (*GSF_PendingRequestReplyHandler) (void *cls,
  * @param options request options
  * @param type type of the block that is being requested
  * @param query key for the lookup
- * @param namespace namespace to lookup, NULL for no namespace
  * @param target preferred target for the request, NULL for none
  * @param bf_data raw data for bloom filter for known replies, can be NULL
  * @param bf_size number of bytes in bf_data
@@ -233,7 +226,6 @@ struct GSF_PendingRequest *
 GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
                              enum GNUNET_BLOCK_Type type,
                              const struct GNUNET_HashCode * query,
-                             const struct GNUNET_HashCode * namespace,
                              const struct GNUNET_PeerIdentity *target,
                              const char *bf_data, size_t bf_size,
                              uint32_t mingle, uint32_t anonymity_level,

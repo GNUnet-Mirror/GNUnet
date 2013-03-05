@@ -83,9 +83,7 @@ struct PutOperator
  * of block that we're putting into the DHT).
  */
 static struct PutOperator operators[] = {
-  {NULL, GNUNET_BLOCK_TYPE_FS_KBLOCK, 0, 0, 0},
-  {NULL, GNUNET_BLOCK_TYPE_FS_SBLOCK, 0, 0, 0},
-  {NULL, GNUNET_BLOCK_TYPE_FS_NBLOCK, 0, 0, 0},
+  {NULL, GNUNET_BLOCK_TYPE_FS_UBLOCK, 0, 0, 0},
   {NULL, GNUNET_BLOCK_TYPE_ANY, 0, 0, 0}
 };
 

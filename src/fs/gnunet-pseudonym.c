@@ -95,19 +95,37 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
 
 
 static void
-ns_printer (void *cls, const char *name, const struct GNUNET_HashCode * id)
+ns_printer (void *cls, const char *name, const struct GNUNET_PseudonymIdentifier *pseudonym)
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
+  struct GNUNET_HashCode hc;
 
-  GNUNET_CRYPTO_hash_to_enc (id, &enc);
+  GNUNET_CRYPTO_hash (pseudonym,
+		      sizeof (struct GNUNET_PseudonymIdentifier),
+		      &hc);
+  GNUNET_CRYPTO_hash_to_enc (&hc, &enc);
   FPRINTF (stdout, "%s (%s)\n", name, (const char *) &enc);
 }
 
 
+/**
+ * Output information about a pseudonym.
+ *
+ * @param cls closure
+ * @param pseudonym hash code of public key of pseudonym
+ * @param name name of the pseudonym (might be NULL)
+ * @param unique_name unique name of the pseudonym (might be NULL)
+ * @param md meta data known about the pseudonym
+ * @param rating the local rating of the pseudonym
+ * @return GNUNET_OK to continue iteration, GNUNET_SYSERR to abort
+ */
 static int
-pseudo_printer (void *cls, const struct GNUNET_HashCode * pseudonym,
-                const char *name, const char *unique_name,
-                const struct GNUNET_CONTAINER_MetaData *md, int rating)
+pseudo_printer (void *cls, 
+		const struct GNUNET_PseudonymIdentifier *pseudonym,
+                const char *name, 
+		const char *unique_name,
+                const struct GNUNET_CONTAINER_MetaData *md, 
+		int32_t rating)
 {
   char *id;
   char *unique_id;
@@ -136,7 +154,7 @@ pseudo_printer (void *cls, const struct GNUNET_HashCode * pseudonym,
 static void
 post_advertising (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
 {
-  struct GNUNET_HashCode nsid;
+  struct GNUNET_PseudonymIdentifier nsid;
   char *set;
   int delta;
 
@@ -203,6 +221,7 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  struct GNUNET_FS_Uri *sks_uri;
   char *emsg;
 
   cfg = c;
@@ -239,9 +258,13 @@ run (void *cls, char *const *args, const char *cfgfile,
           ksk_uri = GNUNET_FS_uri_parse ("gnunet://fs/ksk/namespace", &emsg);
           GNUNET_assert (NULL == emsg);
         }
-        GNUNET_FS_namespace_advertise (h, ksk_uri, ns, adv_metadata, &bo,
-                                       root_identifier, &post_advertising,
-                                       NULL);
+	sks_uri = GNUNET_FS_uri_sks_create (ns, root_identifier, &emsg);
+	GNUNET_assert (NULL == emsg);
+        GNUNET_FS_publish_ksk (h, ksk_uri, adv_metadata, sks_uri,
+			       &bo,
+			       GNUNET_FS_PUBLISH_OPTION_NONE,
+			       &post_advertising, NULL);
+	GNUNET_FS_uri_destroy (sks_uri);
         return;
       }
       else

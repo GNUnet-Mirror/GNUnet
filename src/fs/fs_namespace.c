@@ -32,49 +32,6 @@
 
 
 /**
- * Maximum legal size for an sblock.
- */
-#define MAX_SBLOCK_SIZE (60 * 1024)
-
-
-/**
- * Context for creating a namespace asynchronously.
- */
-struct GNUNET_FS_NamespaceCreationContext
-{
-  /**
-   * Context for asynchronous key creation.
-   */
-  struct GNUNET_CRYPTO_RsaKeyGenerationContext *keycreator;
-
-  /**
-   * Name of the file to store key in / read key from.
-   */
-  char *filename;
-
-  /**
-   * Name of the namespace.
-   */
-  char *name;
-
-  /**
-   * Global fs handle
-   */
-  struct GNUNET_FS_Handle *h;
-
-  /**
-   * Function to call when generation ends (successfully or not)
-   */
-  GNUNET_FS_NamespaceCreationCallback cont;
-
-  /**
-   * Client value to pass to continuation function.
-   */
-  void *cont_cls;
-};
-
-
-/**
  * Return the name of the directory in which we store
  * our local namespaces (or rather, their public keys).
  *
@@ -288,7 +245,7 @@ GNUNET_FS_namespace_create (struct GNUNET_FS_Handle *h, const char *name)
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Namespace));
   ret->h = h;
   ret->rc = 1;
-  ret->key = GNUNET_CRYPTO_rsa_key_create_from_file (fn);
+  ret->key = GNUNET_PSEUDONYM_create (fn);
   if (NULL == ret->key)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -332,7 +289,7 @@ GNUNET_FS_namespace_open_existing (struct GNUNET_FS_Handle *h, const char *name)
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Namespace));
   ret->h = h;
   ret->rc = 1;
-  ret->key = GNUNET_CRYPTO_rsa_key_create_from_existing_file (fn);
+  ret->key = GNUNET_PSEUDONYM_create_from_existing_file (fn);
   if (NULL == ret->key)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -348,118 +305,6 @@ GNUNET_FS_namespace_open_existing (struct GNUNET_FS_Handle *h, const char *name)
 
 
 /**
- * Function called upon completion of 'GNUNET_CRYPTO_rsa_key_create_start'.
- *
- * @param cls closure
- * @param pk NULL on error, otherwise the private key (which must be free'd by the callee)
- * @param emsg NULL on success, otherwise an error message
- */
-static void
-ns_key_created (void *cls, struct GNUNET_CRYPTO_RsaPrivateKey *pk,
-    const char *emsg)
-{
-  struct GNUNET_FS_NamespaceCreationContext *ncc = cls;
-
-  ncc->keycreator = NULL;
-
-  if (pk)
-  {
-    struct GNUNET_FS_Namespace *ret;
-    ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Namespace));
-    ret->rc = 1;
-    ret->key = pk;
-    ret->h = ncc->h;
-    ret->name = ncc->name;
-    ret->filename = ncc->filename;
-    ncc->cont (ncc->cont_cls, ret, NULL);
-  }
-  else
-  {
-    GNUNET_free (ncc->filename);
-    GNUNET_free (ncc->name);
-    ncc->cont (ncc->cont_cls, NULL, emsg);
-  }
-  GNUNET_free (ncc);
-}
-
-
-/**
- * Create a namespace with the given name.
- * If one already exists, the continuation will be called with a handle to
- * the existing namespace.
- * Otherwise creates a new namespace.
- *
- * @param h handle to the file sharing subsystem
- * @param name name to use for the namespace
- * @return namespace creation context, NULL on error (i.e. invalid filename)
- */
-struct GNUNET_FS_NamespaceCreationContext *
-GNUNET_FS_namespace_create_start (struct GNUNET_FS_Handle *h, const char *name, 
-    GNUNET_FS_NamespaceCreationCallback cont, void *cont_cls)
-{
-  char *dn;
-  char *fn;
-  struct GNUNET_FS_NamespaceCreationContext *ret;
-
-  dn = get_namespace_directory (h);
-  if (NULL == dn)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Can't determine where namespace directory is\n"));
-    return NULL;
-  }
-  GNUNET_asprintf (&fn, "%s%s%s", dn, DIR_SEPARATOR_STR, name);
-  GNUNET_free (dn);
-
-  ret = GNUNET_malloc (sizeof (struct GNUNET_FS_NamespaceCreationContext));
-  ret->filename = fn;
-  ret->h = h;
-  ret->name = GNUNET_strdup (name);
-  ret->cont = cont;
-  ret->cont_cls = cont_cls;
-
-  ret->keycreator = GNUNET_CRYPTO_rsa_key_create_start (fn,
-      ns_key_created, ret);
-
-  if (NULL == ret->keycreator)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        _("Failed to start creating or reading private key for namespace `%s'\n"),
-        name);
-    GNUNET_free (fn);
-    GNUNET_free (ret->name);
-    GNUNET_free (ret);
-    return NULL;
-  }
-  return ret;
-}
-
-
-/**
- * Abort namespace creation.
- *
- * @param ncc namespace creation context to abort
- */
-void
-GNUNET_FS_namespace_create_stop (struct GNUNET_FS_NamespaceCreationContext *ncc)
-{
-  if (NULL != ncc->keycreator)
-  {
-    GNUNET_CRYPTO_rsa_key_create_stop (ncc->keycreator);
-    ncc->keycreator = NULL;
-  }
-  if (NULL != ncc->filename)
-  {
-    if (0 != UNLINK (ncc->filename))
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", ncc->filename);
-    GNUNET_free (ncc->filename);
-  }
-  GNUNET_free_non_null (ncc->name);
-  GNUNET_free (ncc);
-}
-
-
-/**
  * Rename a local namespace.
  *
  * @param h handle to the file sharing subsystem
@@ -468,7 +313,9 @@ GNUNET_FS_namespace_create_stop (struct GNUNET_FS_NamespaceCreationContext *ncc)
  * @return GNUNET_OK on success, GNUNET_SYSERR on error (see errno for details)
  */
 int
-GNUNET_FS_namespace_rename (struct GNUNET_FS_Handle *h, const char *old_name, const char *new_name)
+GNUNET_FS_namespace_rename (struct GNUNET_FS_Handle *h, 
+			    const char *old_name, 
+			    const char *new_name)
 {
   char *dn;
   char *fn_old;
@@ -495,6 +342,7 @@ GNUNET_FS_namespace_rename (struct GNUNET_FS_Handle *h, const char *old_name, co
     return GNUNET_OK;
   return GNUNET_SYSERR;
 }
+
 
 /**
  * Duplicate a namespace handle.
@@ -536,7 +384,7 @@ GNUNET_FS_namespace_delete (struct GNUNET_FS_Namespace *ns, int freeze)
   }
   if (0 != ns->rc)
     return GNUNET_OK;
-  GNUNET_CRYPTO_rsa_key_free (ns->key);
+  GNUNET_PSEUDONYM_destroy (ns->key);
   GNUNET_free (ns->filename);
   GNUNET_free (ns->name);
   for (i = 0; i < ns->update_node_count; i++)
@@ -584,12 +432,12 @@ struct ProcessNamespaceContext
  *         GNUNET_SYSERR on failure (contents of id remain intact)
  */
 int
-GNUNET_FS_namespace_get_public_key_hash (struct GNUNET_FS_Namespace *ns,
-    struct GNUNET_HashCode *id)
+GNUNET_FS_namespace_get_public_identifier (struct GNUNET_FS_Namespace *ns,
+					   struct GNUNET_PseudonymIdentifier *id)
 {
   if ((NULL == ns) || (NULL == id))
     return GNUNET_SYSERR;
-  GNUNET_CRYPTO_rsa_get_public_key_hash (ns->key, id);
+  GNUNET_PSEUDONYM_get_identifier (ns->key, id);
   return GNUNET_OK;
 }
 
@@ -607,13 +455,12 @@ static int
 process_namespace (void *cls, const char *filename)
 {
   struct ProcessNamespaceContext *pnc = cls;
-  struct GNUNET_CRYPTO_RsaPrivateKey *key;
-  struct GNUNET_HashCode id;
+  struct GNUNET_PseudonymHandle *ph;
+  struct GNUNET_PseudonymIdentifier id;
   const char *name;
   const char *t;
 
-  key = GNUNET_CRYPTO_rsa_key_create_from_file (filename);
-  if (NULL == key)
+  if (NULL == (ph = GNUNET_PSEUDONYM_create (filename)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
@@ -623,8 +470,8 @@ process_namespace (void *cls, const char *filename)
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", filename);
     return GNUNET_OK;
   }
-  GNUNET_CRYPTO_rsa_get_public_key_hash (key, &id);
-  GNUNET_CRYPTO_rsa_key_free (key);
+  GNUNET_PSEUDONYM_get_identifier (ph, &id);
+  GNUNET_PSEUDONYM_destroy (ph);
   name = filename;
   while (NULL != (t = strstr (name, DIR_SEPARATOR_STR)))
     name = t + 1;
@@ -705,7 +552,7 @@ struct GNUNET_FS_PublishSksContext
 
 /**
  * Function called by the datastore API with
- * the result from the PUT (SBlock) request.
+ * the result from the PUT (UBlock) request.
  *
  * @param cls closure of type "struct GNUNET_FS_PublishSksContext*"
  * @param success GNUNET_OK on success
@@ -737,7 +584,7 @@ sb_put_cont (void *cls, int success,
       read_update_information_graph (psc->ns);
     GNUNET_array_append (psc->ns->update_nodes,
 			 psc->ns->update_node_count, psc->nsn);
-    if (psc->ns->update_map != NULL)
+    if (NULL != psc->ns->update_map)
     {
       GNUNET_CRYPTO_hash (psc->nsn->id, strlen (psc->nsn->id), &hc);
       GNUNET_CONTAINER_multihashmap_put (psc->ns->update_map, &hc,
@@ -788,13 +635,15 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   size_t nidlen;
   size_t idlen;
   ssize_t mdsize;
-  struct SBlock *sb;
-  struct SBlock *sb_enc;
+  struct UBlock *ub;
+  struct UBlock *ub_enc;
   char *dest;
   struct GNUNET_CONTAINER_MetaData *mmeta;
-  struct GNUNET_HashCode key;          /* hash of thisId = key */
-  struct GNUNET_HashCode id;           /* hash of hc = identifier */
-  struct GNUNET_HashCode query;        /* id ^ nsid = DB query */
+  struct GNUNET_HashCode id_hash;          /* hash of thisId */
+  struct GNUNET_HashCode ns_hash;          /* hash of namespace public key */
+  struct GNUNET_HashCode key;              /* id_hash ^ ns_hash, for AES key */
+  struct GNUNET_HashCode signing_key;      /* H(key) = input for public key */
+  struct GNUNET_HashCode query;            /* H(verification_key) = query */
 
   idlen = strlen (identifier);
   if (NULL != update)
@@ -803,11 +652,11 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
     nidlen = 1;
   uris = GNUNET_FS_uri_to_string (uri);
   slen = strlen (uris) + 1;
-  if ( (slen >= MAX_SBLOCK_SIZE - sizeof (struct SBlock)) ||
-       (nidlen >= MAX_SBLOCK_SIZE - sizeof (struct SBlock) - slen) )
+  if ( (slen >= MAX_UBLOCK_SIZE - sizeof (struct UBlock)) ||
+       (nidlen >= MAX_UBLOCK_SIZE - sizeof (struct UBlock) - slen) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Identifiers or URI too long to create SBlock"));
+		_("Identifiers or URI too long to create UBlock"));
     GNUNET_free (uris);
     return NULL;
   }
@@ -816,15 +665,15 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   else
     mmeta = GNUNET_CONTAINER_meta_data_duplicate (meta);
   mdsize = GNUNET_CONTAINER_meta_data_get_serialized_size (mmeta);
-  size = sizeof (struct SBlock) + slen + nidlen + mdsize;
-  if ( (size > MAX_SBLOCK_SIZE) ||
-       (size < sizeof (struct SBlock) + slen + nidlen) )
+  size = sizeof (struct UBlock) + slen + nidlen + mdsize;
+  if ( (size > MAX_UBLOCK_SIZE) ||
+       (size < sizeof (struct UBlock) + slen + nidlen) )
   {
-    size = MAX_SBLOCK_SIZE;
-    mdsize = MAX_SBLOCK_SIZE - (sizeof (struct SBlock) + slen + nidlen);
+    size = MAX_UBLOCK_SIZE;
+    mdsize = MAX_UBLOCK_SIZE - (sizeof (struct UBlock) + slen + nidlen);
   }
-  sb = GNUNET_malloc (sizeof (struct SBlock) + size);
-  dest = (char *) &sb[1];
+  ub = GNUNET_malloc (sizeof (struct UBlock) + size);
+  dest = (char *) &ub[1];
   if (NULL != update)
     memcpy (dest, update, nidlen);
   else
@@ -840,34 +689,44 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   if (-1 == mdsize)
   {
     GNUNET_break (0);
-    GNUNET_free (sb);
+    GNUNET_free (ub);
     if (NULL != cont)
       cont (cont_cls, NULL, _("Internal error."));
     return NULL;
   }
-  size = sizeof (struct SBlock) + mdsize + slen + nidlen;
-  sb_enc = GNUNET_malloc (size);
-  GNUNET_CRYPTO_hash (identifier, idlen, &key);
-  GNUNET_CRYPTO_hash (&key, sizeof (struct GNUNET_HashCode), &id);
   sks_uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
   sks_uri->type = GNUNET_FS_URI_SKS;
-  GNUNET_CRYPTO_rsa_key_get_public (ns->key, &sb_enc->subspace);
-  GNUNET_CRYPTO_hash (&sb_enc->subspace,
-                      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                      &sks_uri->data.sks.ns);
   sks_uri->data.sks.identifier = GNUNET_strdup (identifier);
-  GNUNET_CRYPTO_hash_xor (&id, &sks_uri->data.sks.ns,
-                          &sb_enc->identifier);
+  GNUNET_FS_namespace_get_public_identifier (ns,
+					     &sks_uri->data.sks.ns);
+
+  size = sizeof (struct UBlock) + mdsize + slen + nidlen;
+  ub_enc = GNUNET_malloc (size);
+  GNUNET_CRYPTO_hash (identifier, idlen, &id_hash);
+  GNUNET_CRYPTO_hash (&sks_uri->data.sks.ns, 
+		      sizeof (sks_uri->data.sks.ns), &ns_hash);
+  GNUNET_CRYPTO_hash_xor (&id_hash, &ns_hash, &key);
   GNUNET_CRYPTO_hash_to_aes_key (&key, &sk, &iv);
-  GNUNET_CRYPTO_aes_encrypt (&sb[1], size - sizeof (struct SBlock), &sk, &iv,
-                             &sb_enc[1]);
-  sb_enc->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_SBLOCK);
-  sb_enc->purpose.size =
-      htonl (slen + mdsize + nidlen + sizeof (struct SBlock) -
-             sizeof (struct GNUNET_CRYPTO_RsaSignature));
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_rsa_sign (ns->key, &sb_enc->purpose,
-                                         &sb_enc->signature));
+  GNUNET_CRYPTO_hash (&key, sizeof (struct GNUNET_HashCode), &signing_key);
+
+  GNUNET_CRYPTO_aes_encrypt (&ub[1], 
+			     size - sizeof (struct UBlock),
+			     &sk, &iv,
+                             &ub_enc[1]);
+  ub_enc->purpose.size = htonl (nidlen + slen + mdsize + sizeof (struct UBlock)
+				- sizeof (struct GNUNET_PseudonymSignature));
+  ub_enc->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK);
+  GNUNET_PSEUDONYM_sign (ns->key,
+			 &ub_enc->purpose,
+			 NULL,
+			 &signing_key,
+			 &ub_enc->signature);
+  GNUNET_PSEUDONYM_derive_verification_key (&sks_uri->data.sks.ns, 
+					    &signing_key,
+					    &ub_enc->verification_key);
+  GNUNET_CRYPTO_hash (&ub_enc->verification_key,
+		      sizeof (ub_enc->verification_key),
+		      &query);
   psc = GNUNET_malloc (sizeof (struct GNUNET_FS_PublishSksContext));
   psc->uri = sks_uri;
   psc->cont = cont;
@@ -875,20 +734,20 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   psc->cont_cls = cont_cls;
   if (0 != (options & GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY))
   {
-    GNUNET_free (sb_enc);
-    GNUNET_free (sb);
+    GNUNET_free (ub_enc);
+    GNUNET_free (ub);
     sb_put_cont (psc, GNUNET_OK, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
     return NULL;
   }
   psc->dsh = GNUNET_DATASTORE_connect (h->cfg);
   if (NULL == psc->dsh)
   {
-    GNUNET_free (sb_enc);
-    GNUNET_free (sb);
+    GNUNET_free (ub_enc);
+    GNUNET_free (ub);
     sb_put_cont (psc, GNUNET_NO, GNUNET_TIME_UNIT_ZERO_ABS, _("Failed to connect to datastore."));
     return NULL;
   }
-  GNUNET_CRYPTO_hash_xor (&sks_uri->data.sks.ns, &id, &query);
+
   if (NULL != update)
   {
     psc->nsn = GNUNET_malloc (sizeof (struct NamespaceUpdateNode));
@@ -897,13 +756,14 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
     psc->nsn->md = GNUNET_CONTAINER_meta_data_duplicate (meta);
     psc->nsn->uri = GNUNET_FS_uri_dup (uri);
   }
-  psc->dqe = GNUNET_DATASTORE_put (psc->dsh, 0, &sb_enc->identifier, size, sb_enc,
-				   GNUNET_BLOCK_TYPE_FS_SBLOCK, bo->content_priority,
+  
+  psc->dqe = GNUNET_DATASTORE_put (psc->dsh, 0, &query, size, ub_enc,
+				   GNUNET_BLOCK_TYPE_FS_UBLOCK, bo->content_priority,
 				   bo->anonymity_level, bo->replication_level,
 				   bo->expiration_time, -2, 1,
 				   GNUNET_CONSTANTS_SERVICE_TIMEOUT, &sb_put_cont, psc);
-  GNUNET_free (sb);
-  GNUNET_free (sb_enc);
+  GNUNET_free (ub);
+  GNUNET_free (ub_enc);
   return psc;
 }
 

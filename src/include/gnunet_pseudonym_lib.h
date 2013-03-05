@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2001--2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -39,6 +39,166 @@ extern "C"
 #include "gnunet_configuration_lib.h"
 #include "gnunet_container_lib.h"
 
+
+/**
+ * Identifier for a GNUnet pseudonym (the public key).
+ */
+struct GNUNET_PseudonymIdentifier
+{
+  /**
+   * The public key of the pseudonym.
+   */
+  char public_key[42];
+};
+
+
+/**
+ * Handle for a pseudonym (private key).
+ */
+struct GNUNET_PseudonymHandle;
+
+
+/**
+ * Signature made with a pseudonym (includes the full public key)
+ */
+struct GNUNET_PseudonymSignature
+{
+  
+  /**
+   * Who created the signature? (public key of the signer)
+   */
+  struct GNUNET_PseudonymIdentifier signer;
+
+  /**
+   * Binary signature data, padded with zeros if needed.
+   */
+  char signature[42];
+};
+
+
+/**
+ * Purpose for signature made with a pseudonym.
+ */
+struct GNUNET_PseudonymSignaturePurpose
+{
+  /**
+   * How many bytes are being signed (including this header)?
+   */
+  uint32_t size;
+
+  /**
+   * What is the context/purpose of the signature?
+   */
+  uint32_t purpose;
+};
+
+
+/**
+ * Create a pseudonym.
+ *
+ * @param filename name of the file to use for storage, NULL for in-memory only
+ * @return handle to the private key of the pseudonym
+ */
+struct GNUNET_PseudonymHandle *
+GNUNET_PSEUDONYM_create (const char *filename);
+
+
+/**
+ * Create a pseudonym, from a file that must already exist.
+ *
+ * @param filename name of the file to use for storage, NULL for in-memory only
+ * @return handle to the private key of the pseudonym
+ */
+struct GNUNET_PseudonymHandle *
+GNUNET_PSEUDONYM_create_from_existing_file (const char *filename);
+
+
+/**
+ * Get the handle for the 'anonymous' pseudonym shared by all users.
+ * That pseudonym uses a fixed 'secret' for the private key; this
+ * construction is useful to make anonymous and pseudonymous APIs
+ * (and packets) indistinguishable on the network.  See #2564.
+ *
+ * @return handle to the (non-secret) private key of the 'anonymous' pseudonym
+ */
+struct GNUNET_PseudonymHandle *
+GNUNET_PSEUDONYM_get_anonymous_pseudonym_handle (void);
+
+
+/**
+ * Destroy a pseudonym handle.  Does NOT remove the private key from
+ * the disk.
+ *
+ * @param ph pseudonym handle to destroy
+ */
+void
+GNUNET_PSEUDONYM_destroy (struct GNUNET_PseudonymHandle *ph);
+
+
+/**
+ * Cryptographically sign some data with the pseudonym.
+ *
+ * @param ph private key used for signing (corresponds to 'x' in #2564)
+ * @param purpose data to sign
+ * @param seed hash of the plaintext of the data that we are signing, 
+ *             used for deterministic PRNG for anonymous signing;
+ *             corresponds to 'k' in section 2.7 of #2564
+ * @param signing_key modifier to apply to the private key for signing;
+ *                    corresponds to 'h' in section 2.3 of #2564.
+ * @param signature where to store the signature
+ */
+void
+GNUNET_PSEUDONYM_sign (struct GNUNET_PseudonymHandle *ph,
+		       const struct GNUNET_PseudonymSignaturePurpose *purpose,
+		       const struct GNUNET_HashCode *seed,
+		       const struct GNUNET_HashCode *signing_key,
+		       struct GNUNET_PseudonymSignature *signature);
+
+
+/**
+ * Given a pseudonym and a signing key, derive the corresponding public
+ * key that would be used to verify the resulting signature.
+ *
+ * @param pseudonym the public key (g^x)
+ * @param signing_key input to derive 'h' (see section 2.4 of #2564)
+ * @param verification_key resulting public key to verify the signature
+ *        created from the 'ph' of 'pseudonym' and the 'signing_key';
+ *        the value stored here can then be given to GNUNET_PSEUDONYM_verify.
+ */
+void
+GNUNET_PSEUDONYM_derive_verification_key (struct GNUNET_PseudonymIdentifier *pseudonym,
+					  const struct GNUNET_HashCode *signing_key,
+					  struct GNUNET_PseudonymIdentifier *verification_key);
+
+
+/**
+ * Verify a signature made with a pseudonym.
+ *
+ * @param purpose data that was signed
+ * @param signature signature to verify
+ * @param verification_key public key to use for checking the signature;
+ *                    corresponds to 'g^(x+h)' in section 2.4 of #2564.
+ * @return GNUNET_OK on success (signature valid, 'pseudonym' set),
+ *         GNUNET_SYSERR if the signature is invalid
+ */
+int
+GNUNET_PSEUDONYM_verify (const struct GNUNET_PseudonymSignaturePurpose *purpose,
+			 const struct GNUNET_PseudonymSignature *signature,
+			 const struct GNUNET_PseudonymIdentifier *verification_key);
+
+
+/**
+ * Get the identifier (public key) of a pseudonym.
+ *
+ * @param ph pseudonym handle with the private key
+ * @param pseudonym pseudonym identifier (set based on 'ph')
+ */
+void
+GNUNET_PSEUDONYM_get_identifier (struct GNUNET_PseudonymHandle *ph,
+				 struct GNUNET_PseudonymIdentifier *pseudonym);
+
+
+
 /**
  * Iterator over all known pseudonyms.
  *
@@ -51,23 +211,26 @@ extern "C"
  * @return GNUNET_OK to continue iteration, GNUNET_SYSERR to abort
  */
 typedef int (*GNUNET_PSEUDONYM_Iterator) (void *cls,
-                                          const struct GNUNET_HashCode * pseudonym,
+                                          const struct GNUNET_PseudonymIdentifier *pseudonym,
                                           const char *name,
                                           const char *unique_name,
-                                          const struct GNUNET_CONTAINER_MetaData
-                                          * md, int rating);
+                                          const struct GNUNET_CONTAINER_MetaData *md, 
+					  int32_t rating);
+
 
 /**
- * Change the ranking of a pseudonym.
+ * Change the rank of a pseudonym.
  *
  * @param cfg overall configuration
- * @param nsid id of the pseudonym
+ * @param pseudonym identity of the pseudonym
  * @param delta by how much should the rating be changed?
- * @return new rating of the namespace
+ * @return new rating of the pseudonym
  */
 int
 GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                       const struct GNUNET_HashCode * nsid, int delta);
+                       const struct GNUNET_PseudonymIdentifier *pseudonym, 
+		       int32_t delta);
+
 
 /**
  * Add a pseudonym to the set of known pseudonyms.
@@ -77,10 +240,11 @@ GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param cfg overall configuration
  * @param id the pseudonym identifier
  * @param meta metadata for the pseudonym
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-void
+int
 GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                      const struct GNUNET_HashCode * id,
+                      const struct GNUNET_PseudonymIdentifier *pseudonym,
                       const struct GNUNET_CONTAINER_MetaData *meta);
 
 
@@ -89,37 +253,51 @@ GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *
  * @param cfg overall configuration
  * @param iterator function to call for each pseudonym
- * @param closure closure for iterator
+ * @param iterator_cls closure for iterator
  * @return number of pseudonyms found
  */
 int
 GNUNET_PSEUDONYM_list_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           GNUNET_PSEUDONYM_Iterator iterator, void *closure);
+                           GNUNET_PSEUDONYM_Iterator iterator, 
+			   void *iterator_cls);
+
+
+/**
+ * Handle for a discovery callback registration.
+ */
+struct GNUNET_PSEUDONYM_DiscoveryHandle;
+
 
 /**
  * Register callback to be invoked whenever we discover
  * a new pseudonym.
+ *
+ * @param cfg our configuration
+ * @param iterator function to invoke on discovery
+ * @param iterator_cls closure for iterator
+ * @return registration handle
  */
-int
-GNUNET_PSEUDONYM_discovery_callback_register (const struct
-                                              GNUNET_CONFIGURATION_Handle *cfg,
-                                              GNUNET_PSEUDONYM_Iterator
-                                              iterator, void *closure);
+struct GNUNET_PSEUDONYM_DiscoveryHandle *
+GNUNET_PSEUDONYM_discovery_callback_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                              GNUNET_PSEUDONYM_Iterator iterator, 
+					      void *iterator_cls);
+
 
 /**
- * Unregister namespace discovery callback.
+ * Unregister pseudonym discovery callback.
+ *
+ * @param dh registration to unregister
  */
-int
-GNUNET_PSEUDONYM_discovery_callback_unregister (GNUNET_PSEUDONYM_Iterator
-                                                iterator, void *closure);
+void
+GNUNET_PSEUDONYM_discovery_callback_unregister (struct GNUNET_PSEUDONYM_DiscoveryHandle *dh);
+
 
 /**
- * Return unique variant of the namespace name.
- * Use after GNUNET_PSEUDONYM_id_to_name() to make sure
- * that name is unique.
+ * Return unique variant of the pseudonym name.  Use after
+ * GNUNET_PSEUDONYM_id_to_name() to make sure that name is unique.
  *
  * @param cfg configuration
- * @param nsid cryptographic ID of the namespace
+ * @param pseudonym cryptographic ID of the pseudonym
  * @param name name to uniquify
  * @param suffix if not NULL, filled with the suffix value
  * @return NULL on failure (should never happen), name on success.
@@ -127,18 +305,20 @@ GNUNET_PSEUDONYM_discovery_callback_unregister (GNUNET_PSEUDONYM_Iterator
  */
 char *
 GNUNET_PSEUDONYM_name_uniquify (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    const struct GNUNET_HashCode * nsid, const char *name, unsigned int *suffix);
+				const struct GNUNET_PseudonymIdentifier *pseudonym, 
+				const char *name, 
+				unsigned int *suffix);
+
 
 /**
- * Get namespace name, metadata and rank
- * This is a wrapper around internal read_info() call, and ensures that
- * returned data is not invalid (not NULL).
- * Writing back information returned by this function will give
- * a name "no-name" to pseudonyms that have no name. This side-effect is
- * unavoidable, but hardly harmful.
+ * Get pseudonym name, metadata and rank. This is a wrapper around
+ * internal read_info() call, and ensures that returned data is not
+ * invalid (not NULL).  Writing back information returned by this
+ * function will give a name "no-name" to pseudonyms that have no
+ * name. This side-effect is unavoidable, but hardly harmful.
  *
  * @param cfg configuration
- * @param nsid cryptographic ID of the namespace
+ * @param pseudonym cryptographic ID of the pseudonym
  * @param ret_meta a location to store metadata pointer. NULL, if metadata
  *        is not needed. Destroy with GNUNET_CONTAINER_meta_data_destroy().
  * @param ret_rank a location to store rank. NULL, if rank not needed.
@@ -152,27 +332,32 @@ GNUNET_PSEUDONYM_name_uniquify (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 int
 GNUNET_PSEUDONYM_get_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    const struct GNUNET_HashCode * nsid, struct GNUNET_CONTAINER_MetaData **ret_meta,
-    int32_t *ret_rank, char **ret_name, int *name_is_a_dup);
+			   const struct GNUNET_PseudonymIdentifier *pseudonym, 
+			   struct GNUNET_CONTAINER_MetaData **ret_meta,
+			   int32_t *ret_rank, 
+			   char **ret_name, 
+			   int *name_is_a_dup);
 
 
 /**
- * Get the namespace ID belonging to the given namespace name.
+ * Get the pseudonym ID belonging to the given pseudonym name.
  *
  * @param cfg configuration to use
- * @param ns_uname unique (!) human-readable name for the namespace
- * @param nsid set to namespace ID based on 'ns_uname'
+ * @param ps_uname unique (!) human-readable name for the pseudonym
+ * @param pseudonym set to pseudonym ID based on 'ns_uname'
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
 GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    const char *ns_uname, struct GNUNET_HashCode * nsid);
+			     const char *ps_uname, 
+			     struct GNUNET_PseudonymIdentifier *pseudonym);
+
 
 /**
  * Set the pseudonym metadata, rank and name.
  *
  * @param cfg overall configuration
- * @param nsid id of the pseudonym
+ * @param pseudonym id of the pseudonym
  * @param name name to set. Must be the non-unique version of it.
  *        May be NULL, in which case it erases pseudonym's name!
  * @param md metadata to set
@@ -182,8 +367,10 @@ GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 int
 GNUNET_PSEUDONYM_set_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    const struct GNUNET_HashCode * nsid, const char *name,
-    const struct GNUNET_CONTAINER_MetaData *md, int rank);
+			   const struct GNUNET_PseudonymIdentifier *pseudonym, 
+			   const char *name,
+			   const struct GNUNET_CONTAINER_MetaData *md, 
+			   int32_t rank);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

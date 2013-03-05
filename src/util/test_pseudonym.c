@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2005, 2006, 2008, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2005--2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -23,7 +23,6 @@
  * @brief testcase for pseudonym.c
  * @author Christian Grothoff
  */
-
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_container_lib.h"
@@ -35,16 +34,17 @@
 
 static struct GNUNET_CONTAINER_MetaData *meta;
 
-static struct GNUNET_HashCode id1;
+static struct GNUNET_PseudonymIdentifier id1;
+
 
 static int
-iter (void *cls, const struct GNUNET_HashCode * pseudonym,
+iter (void *cls, const struct GNUNET_PseudonymIdentifier * pseudonym,
       const char *name, const char *unique_name,
-      const struct GNUNET_CONTAINER_MetaData *md, int rating)
+      const struct GNUNET_CONTAINER_MetaData *md, int32_t rating)
 {
   int *ok = cls;
 
-  if ((0 == memcmp (pseudonym, &id1, sizeof (struct GNUNET_HashCode))) &&
+  if ((0 == memcmp (pseudonym, &id1, sizeof (struct GNUNET_PseudonymIdentifier))) &&
       (!GNUNET_CONTAINER_meta_data_test_equal (md, meta)))
   {
     *ok = GNUNET_NO;
@@ -53,10 +53,11 @@ iter (void *cls, const struct GNUNET_HashCode * pseudonym,
   return GNUNET_OK;
 }
 
+
 static int
-noti_callback (void *cls, const struct GNUNET_HashCode * pseudonym,
+noti_callback (void *cls, const struct GNUNET_PseudonymIdentifier * pseudonym,
                const char *name, const char *unique_name,
-               const struct GNUNET_CONTAINER_MetaData *md, int rating)
+               const struct GNUNET_CONTAINER_MetaData *md, int32_t rating)
 {
   int *ret = cls;
 
@@ -64,10 +65,11 @@ noti_callback (void *cls, const struct GNUNET_HashCode * pseudonym,
   return GNUNET_OK;
 }
 
+
 static int
-fake_noti_callback (void *cls, const struct GNUNET_HashCode * pseudonym,
+fake_noti_callback (void *cls, const struct GNUNET_PseudonymIdentifier * pseudonym,
                     const char *name, const char *unique_name,
-                    const struct GNUNET_CONTAINER_MetaData *md, int rating)
+                    const struct GNUNET_CONTAINER_MetaData *md, int32_t rating)
 {
   int *ret = cls;
 
@@ -75,24 +77,30 @@ fake_noti_callback (void *cls, const struct GNUNET_HashCode * pseudonym,
   return GNUNET_OK;
 }
 
-static int
-false_callback (void *cls, const struct GNUNET_HashCode * pseudonym,
-                const char *name, const char *unique_name,
-                const struct GNUNET_CONTAINER_MetaData *md, int rating)
+
+static void
+create_pseu (struct GNUNET_PseudonymIdentifier *pseu)
 {
-  return GNUNET_OK;
+  struct GNUNET_PseudonymHandle *ph;
+
+  ph = GNUNET_PSEUDONYM_create (NULL);
+  GNUNET_PSEUDONYM_get_identifier (ph, pseu);
+  GNUNET_PSEUDONYM_destroy (ph);
 }
 
-int
-main (int argc, char *argv[])
+
+/**
+ * Testcase for meta data / ranking IO routines.
+ */
+static int
+test_io ()
 {
   int ok;
-  struct GNUNET_HashCode rid1;
-  struct GNUNET_HashCode id2;
-  struct GNUNET_HashCode rid2;
-  struct GNUNET_HashCode fid;
-  struct GNUNET_HashCode id3;
-
+  struct GNUNET_PseudonymIdentifier rid1;
+  struct GNUNET_PseudonymIdentifier id2;
+  struct GNUNET_PseudonymIdentifier rid2;
+  struct GNUNET_PseudonymIdentifier fid;
+  struct GNUNET_PseudonymIdentifier id3;
   int old;
   int newVal;
   struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -104,8 +112,9 @@ main (int argc, char *argv[])
   char *noname;
   int noname_is_a_dup;
   int notiCount, fakenotiCount;
-  int count;
   static char m[1024 * 1024 * 10];
+  struct GNUNET_PSEUDONYM_DiscoveryHandle *dh1;
+  struct GNUNET_PSEUDONYM_DiscoveryHandle *dh2;
 
   memset (m, 'b', sizeof (m));
   m[sizeof (m) - 1] = '\0';
@@ -122,14 +131,11 @@ main (int argc, char *argv[])
   }
   notiCount = 0;
   fakenotiCount = 0;
-  count = 0;
-  GNUNET_PSEUDONYM_discovery_callback_register (cfg, &fake_noti_callback,
-                                                &fakenotiCount);
-  GNUNET_PSEUDONYM_discovery_callback_register (cfg, &noti_callback,
-                                                &notiCount);
-  GNUNET_PSEUDONYM_discovery_callback_unregister (&false_callback, &count);
-  GNUNET_PSEUDONYM_discovery_callback_unregister (&fake_noti_callback,
-                                                  &fakenotiCount);
+  dh1 = GNUNET_PSEUDONYM_discovery_callback_register (cfg, &fake_noti_callback,
+						      &fakenotiCount);
+  dh2 = GNUNET_PSEUDONYM_discovery_callback_register (cfg, &noti_callback,
+						      &notiCount);
+  GNUNET_PSEUDONYM_discovery_callback_unregister (dh1);
 
   /* ACTUAL TEST CODE */
   old = GNUNET_PSEUDONYM_list_all (cfg, NULL, NULL);
@@ -137,7 +143,7 @@ main (int argc, char *argv[])
   GNUNET_CONTAINER_meta_data_insert (meta, "<test>", EXTRACTOR_METATYPE_TITLE,
                                      EXTRACTOR_METAFORMAT_UTF8, "text/plain",
                                      "test", strlen ("test") + 1);
-  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &id1);
+  create_pseu (&id1);
   GNUNET_PSEUDONYM_add (cfg, &id1, meta);
   CHECK (notiCount == 1);
   GNUNET_PSEUDONYM_add (cfg, &id1, meta);
@@ -145,7 +151,7 @@ main (int argc, char *argv[])
   newVal = GNUNET_PSEUDONYM_list_all (cfg, &iter, &ok);
   CHECK (old < newVal);
   old = newVal;
-  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &id2);
+  create_pseu (&id2);
   GNUNET_PSEUDONYM_add (cfg, &id2, meta);
   CHECK (notiCount == 3);
   newVal = GNUNET_PSEUDONYM_list_all (cfg, &iter, &ok);
@@ -156,7 +162,7 @@ main (int argc, char *argv[])
                                                     EXTRACTOR_METAFORMAT_UTF8,
                                                     "text/plain", m,
                                                     strlen (m) + 1));
-  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &id3);
+  create_pseu (&id3);
   GNUNET_PSEUDONYM_add (cfg, &id3, meta);
   GNUNET_PSEUDONYM_get_info (cfg, &id3, NULL, NULL, &name3, NULL);
   CHECK (name3 != NULL);
@@ -173,10 +179,10 @@ main (int argc, char *argv[])
   CHECK (GNUNET_SYSERR == GNUNET_PSEUDONYM_name_to_id (cfg, name1, &rid1));
   CHECK (GNUNET_OK == GNUNET_PSEUDONYM_name_to_id (cfg, name2_unique, &rid2));
   CHECK (GNUNET_OK == GNUNET_PSEUDONYM_name_to_id (cfg, name1_unique, &rid1));
-  CHECK (0 == memcmp (&id1, &rid1, sizeof (struct GNUNET_HashCode)));
-  CHECK (0 == memcmp (&id2, &rid2, sizeof (struct GNUNET_HashCode)));
+  CHECK (0 == memcmp (&id1, &rid1, sizeof (struct GNUNET_PseudonymIdentifier)));
+  CHECK (0 == memcmp (&id2, &rid2, sizeof (struct GNUNET_PseudonymIdentifier)));
 
-  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &fid);
+  create_pseu (&fid);
   GNUNET_log_skip (1, GNUNET_NO);
   CHECK (0 == GNUNET_PSEUDONYM_rank (cfg, &fid, 0));
   GNUNET_log_skip (0, GNUNET_NO);
@@ -195,12 +201,37 @@ main (int argc, char *argv[])
   GNUNET_free (noname);
   /* END OF TEST CODE */
 FAILURE:
-  GNUNET_PSEUDONYM_discovery_callback_unregister (&noti_callback, &notiCount);
+  GNUNET_PSEUDONYM_discovery_callback_unregister (dh2);
   GNUNET_CONTAINER_meta_data_destroy (meta);
   GNUNET_CONFIGURATION_destroy (cfg);
   GNUNET_break (GNUNET_OK ==
                 GNUNET_DISK_directory_remove ("/tmp/gnunet-pseudonym-test"));
   return (ok == GNUNET_YES) ? 0 : 1;
 }
+
+
+static int
+test_crypto ()
+{
+  struct GNUNET_PseudonymHandle *ph;
+
+  ph = GNUNET_PSEUDONYM_create (NULL);
+  // FIXME: call sign, verify APIs...
+  GNUNET_PSEUDONYM_destroy (ph);  
+  return 0;
+}
+
+
+int
+main (int argc, char *argv[])
+{
+  if (0 != test_io ())
+    return 1;
+  if (0 != test_crypto ())
+    return 1;
+  
+  return 0;
+}
+
 
 /* end of test_pseudoynm.c */

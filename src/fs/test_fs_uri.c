@@ -162,6 +162,11 @@ testNamespace (int i)
   char *uri;
   struct GNUNET_FS_Uri *ret;
   char *emsg;
+  struct GNUNET_PseudonymHandle *ph;
+  struct GNUNET_PseudonymIdentifier id;
+  char buf[1024];
+  char ubuf[1024];
+  char *sret;
 
   if (NULL !=
       (ret =
@@ -187,11 +192,17 @@ testNamespace (int i)
     GNUNET_assert (0);
   }
   GNUNET_free (emsg);
-  ret =
-      GNUNET_FS_uri_parse
-      ("gnunet://fs/sks/C282GG70GKK41O4551011DO413KFBVTVMQG1OG30I0K4045N0G41HAPB82G680A02JRVVFO8URVRU2F159011DO41000000022RG820/test",
-       &emsg);
-  if (ret == NULL)
+  ph = GNUNET_PSEUDONYM_create (NULL);
+  GNUNET_PSEUDONYM_get_identifier (ph, &id);
+  sret = GNUNET_STRINGS_data_to_string (&id, sizeof (id),
+					ubuf, sizeof (ubuf) - 1);
+  GNUNET_assert (NULL != sret);
+  sret[0] = '\0';
+  GNUNET_snprintf (buf, sizeof (buf),
+		   "gnunet://fs/sks/%s/test",
+		   ubuf);
+  ret = GNUNET_FS_uri_parse (buf, &emsg);
+  if (NULL == ret)
   {
     GNUNET_free (emsg);
     GNUNET_assert (0);
@@ -210,7 +221,7 @@ testNamespace (int i)
   uri = GNUNET_FS_uri_to_string (ret);
   if (0 !=
       strcmp (uri,
-              "gnunet://fs/sks/C282GG70GKK41O4551011DO413KFBVTVMQG1OG30I0K4045N0G41HAPB82G680A02JRVVFO8URVRU2F159011DO41000000022RG820/test"))
+              buf))
   {
     GNUNET_FS_uri_destroy (ret);
     GNUNET_free (uri);

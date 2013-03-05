@@ -240,26 +240,21 @@ struct SearchMessage
    * nevertheless, we should probably not use it for a DHT-lookup
    * or similar blunt actions in order to avoid exposing ourselves).
    * <p>
-   * If the request is for an SBLOCK, this is the identity of the
-   * pseudonym to which the SBLOCK belongs.
-   * <p>
-   * If the request is for a KBLOCK, "target" must be all zeros.
+   * Otherwise, "target" must be all zeros.
    */
   struct GNUNET_HashCode target;
 
   /**
-   * Hash of the keyword (aka query) for KBLOCKs; Hash of
-   * the CHK-encoded block for DBLOCKS and IBLOCKS (aka query)
-   * and hash of the identifier XORed with the target for
-   * SBLOCKS (aka query).
+   * Hash of the public key for UBLOCKs; Hash of
+   * the CHK-encoded block for DBLOCKS and IBLOCKS.
    */
   struct GNUNET_HashCode query;
 
   /* this is followed by the hash codes of already-known
    * results (which should hence be excluded from what
    * the service returns); naturally, this only applies
-   * to queries that can have multiple results, such as
-   * those for KBLOCKS (KSK) and SBLOCKS (SKS) */
+   * to queries that can have multiple results (UBLOCKS).
+   */
 };
 
 

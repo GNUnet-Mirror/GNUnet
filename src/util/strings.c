@@ -803,11 +803,6 @@ GNUNET_STRINGS_data_to_string (const void *data, size_t size, char *out, size_t 
     out[wpos++] = encTable__[(bits >> (vbit - 5)) & 31];
     vbit -= 5;
   }
-  if (wpos != out_size)
-  {
-    GNUNET_break (0);
-    return NULL;
-  }
   GNUNET_assert (vbit == 0);
   return &out[wpos];
 }

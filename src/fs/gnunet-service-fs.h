@@ -63,12 +63,6 @@
 #define GET_MESSAGE_BIT_RETURN_TO 1
 
 /**
- * The hash of the public key of the target
- * namespace is included (for SKS queries).
- */
-#define GET_MESSAGE_BIT_SKS_NAMESPACE 2
-
-/**
  * The peer identity of a peer that had claimed to have the content
  * previously is included (can be used if responder-anonymity is not
  * desired; note that the precursor presumably lacked a direct

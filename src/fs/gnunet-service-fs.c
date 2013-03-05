@@ -405,9 +405,7 @@ start_p2p_processing (void *cls, struct GSF_PendingRequest *pr,
 		  "Considering stream-based download for block\n");
       GSF_stream_lookup_ (pr);
       break; 
-    case GNUNET_BLOCK_TYPE_FS_KBLOCK:
-    case GNUNET_BLOCK_TYPE_FS_SBLOCK:
-    case GNUNET_BLOCK_TYPE_FS_NBLOCK:
+    case GNUNET_BLOCK_TYPE_FS_UBLOCK:
       /* the above block types are in the DHT */
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Considering DHT-based search for block\n");

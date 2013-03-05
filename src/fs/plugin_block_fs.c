@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2010 Christian Grothoff (and other contributing authors)
+     (C) 2010, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -56,75 +56,67 @@
  */
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_fs_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
-                          const struct GNUNET_HashCode * query,
+                          const struct GNUNET_HashCode *query,
                           struct GNUNET_CONTAINER_BloomFilter **bf,
                           int32_t bf_mutator, const void *xquery,
                           size_t xquery_size, const void *reply_block,
                           size_t reply_block_size)
 {
-  const struct SBlock *sb;
+  const struct UBlock *ub;
+  struct GNUNET_HashCode hc;
   struct GNUNET_HashCode chash;
   struct GNUNET_HashCode mhash;
-  const struct GNUNET_HashCode *nsid;
-  struct GNUNET_HashCode sh;
 
   switch (type)
   {
   case GNUNET_BLOCK_TYPE_FS_DBLOCK:
   case GNUNET_BLOCK_TYPE_FS_IBLOCK:
-    if (xquery_size != 0)
+    if (0 != xquery_size)
     {
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
     }
-    if (reply_block == NULL)
+    if (NULL == reply_block)
       return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
     return GNUNET_BLOCK_EVALUATION_OK_LAST;
-  case GNUNET_BLOCK_TYPE_FS_KBLOCK:
-  case GNUNET_BLOCK_TYPE_FS_NBLOCK:
-    if (xquery_size != 0)
+  case GNUNET_BLOCK_TYPE_FS_UBLOCK:
+    if (0 != xquery_size)
     {
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
     }
-    if (reply_block == NULL)
+    if (NULL == reply_block)
       return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
-    if (NULL != bf)
-    {
-      GNUNET_CRYPTO_hash (reply_block, reply_block_size, &chash);
-      GNUNET_BLOCK_mingle_hash (&chash, bf_mutator, &mhash);
-      if (NULL != *bf)
-      {
-        if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (*bf, &mhash))
-          return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
-      }
-      else
-      {
-        *bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, BLOOMFILTER_K);
-      }
-      GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
-    }
-    return GNUNET_BLOCK_EVALUATION_OK_MORE;
-  case GNUNET_BLOCK_TYPE_FS_SBLOCK:
-    if (xquery_size != sizeof (struct GNUNET_HashCode))
-    {
-      GNUNET_break_op (0);
-      return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
-    }
-    if (reply_block == NULL)
-      return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
-    nsid = xquery;
-    if (reply_block_size < sizeof (struct SBlock))
+
+    if (reply_block_size < sizeof (struct UBlock))
     {
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
-    sb = reply_block;
-    GNUNET_CRYPTO_hash (&sb->subspace,
-                        sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                        &sh);
-    if (0 != memcmp (nsid, &sh, sizeof (struct GNUNET_HashCode)))
-      return GNUNET_BLOCK_EVALUATION_RESULT_IRRELEVANT;
+    ub = reply_block;
+    GNUNET_CRYPTO_hash (&ub->verification_key,
+			sizeof (ub->verification_key),
+			&hc);
+    if (0 != memcmp (&hc,
+		     query,
+		     sizeof (struct GNUNET_HashCode)))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+    }
+    if (reply_block_size != ntohl (ub->purpose.size) + sizeof (struct GNUNET_PseudonymSignature))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+    }
+    if (GNUNET_OK !=
+	GNUNET_PSEUDONYM_verify (&ub->purpose,
+				 &ub->signature,
+				 &ub->verification_key))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+    }
     if (NULL != bf)
     {
       GNUNET_CRYPTO_hash (reply_block, reply_block_size, &chash);
@@ -161,11 +153,9 @@ block_plugin_fs_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
 static int
 block_plugin_fs_get_key (void *cls, enum GNUNET_BLOCK_Type type,
                          const void *block, size_t block_size,
-                         struct GNUNET_HashCode * key)
+                         struct GNUNET_HashCode *key)
 {
-  const struct KBlock *kb;
-  const struct SBlock *sb;
-  const struct NBlock *nb;
+  const struct UBlock *ub;
 
   switch (type)
   {
@@ -173,104 +163,19 @@ block_plugin_fs_get_key (void *cls, enum GNUNET_BLOCK_Type type,
   case GNUNET_BLOCK_TYPE_FS_IBLOCK:
     GNUNET_CRYPTO_hash (block, block_size, key);
     return GNUNET_OK;
-  case GNUNET_BLOCK_TYPE_FS_KBLOCK:
-    if (block_size < sizeof (struct KBlock))
+  case GNUNET_BLOCK_TYPE_FS_UBLOCK:
+    if (block_size < sizeof (struct UBlock))
     {
-      GNUNET_break_op (0);
-      return GNUNET_NO;
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
     }
-    kb = block;
-    if (block_size - sizeof (struct KBlock) !=
-        ntohl (kb->purpose.size) -
-        sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) -
-        sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded))
-    {
-      GNUNET_break_op (0);
-      return GNUNET_NO;
-    }
-    if (GNUNET_OK !=
-        GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_KBLOCK,
-                                  &kb->purpose, &kb->signature, &kb->keyspace))
-    {
-      GNUNET_break_op (0);
-      return GNUNET_NO;
-    }
-    if (key != NULL)
-      GNUNET_CRYPTO_hash (&kb->keyspace,
-                          sizeof (struct
-                                  GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                          key);
-    return GNUNET_OK;
-  case GNUNET_BLOCK_TYPE_FS_SBLOCK:
-    if (block_size < sizeof (struct SBlock))
-    {
-      GNUNET_break_op (0);
-      return GNUNET_NO;
-    }
-    sb = block;
-    if (block_size !=
-        ntohl (sb->purpose.size) + sizeof (struct GNUNET_CRYPTO_RsaSignature))
-    {
-      GNUNET_break_op (0);
-      return GNUNET_NO;
-    }
-    if (GNUNET_OK !=
-        GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_SBLOCK,
-                                  &sb->purpose, &sb->signature, &sb->subspace))
-    {
-      GNUNET_break_op (0);
-      return GNUNET_NO;
-    }
-    if (key != NULL)
-      *key = sb->identifier;
-    return GNUNET_OK;
-  case GNUNET_BLOCK_TYPE_FS_NBLOCK:
-    if (block_size < sizeof (struct NBlock))
-    {
-      GNUNET_break_op (0);
-      return GNUNET_NO;
-    }
-    nb = block;
-    if (block_size - sizeof (struct NBlock) !=
-        ntohl (nb->ns_purpose.size) -
-        sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) -
-        sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded))
-    {
-      GNUNET_break_op (0);
-      return GNUNET_NO;
-    }
-    if (block_size !=
-        ntohl (nb->ksk_purpose.size) +
-        sizeof (struct GNUNET_CRYPTO_RsaSignature))
-    {
-      GNUNET_break_op (0);
-      return GNUNET_NO;
-    }
-    if (GNUNET_OK !=
-        GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK_KSIG,
-                                  &nb->ksk_purpose, &nb->ksk_signature,
-                                  &nb->keyspace))
-    {
-      GNUNET_break_op (0);
-      return GNUNET_NO;
-    }
-    if (GNUNET_OK !=
-        GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK,
-                                  &nb->ns_purpose, &nb->ns_signature,
-                                  &nb->subspace))
-    {
-      GNUNET_break_op (0);
-      return GNUNET_NO;
-    }
-    /* FIXME: we used to xor ID with NSID,
-     * why not here? */
-    if (key != NULL)
-      GNUNET_CRYPTO_hash (&nb->keyspace,
-                          sizeof (struct
-                                  GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                          key);
+    ub = block;
+    GNUNET_CRYPTO_hash (&ub->verification_key,
+			sizeof (ub->verification_key),
+			key);
     return GNUNET_OK;
   default:
+    GNUNET_break (0);
     return GNUNET_SYSERR;
   }
 }
@@ -286,9 +191,7 @@ libgnunet_plugin_block_fs_init (void *cls)
   {
     GNUNET_BLOCK_TYPE_FS_DBLOCK,
     GNUNET_BLOCK_TYPE_FS_IBLOCK,
-    GNUNET_BLOCK_TYPE_FS_KBLOCK,
-    GNUNET_BLOCK_TYPE_FS_SBLOCK,
-    GNUNET_BLOCK_TYPE_FS_NBLOCK,
+    GNUNET_BLOCK_TYPE_FS_UBLOCK,
     GNUNET_BLOCK_TYPE_ANY       /* end of list */
   };
   struct GNUNET_BLOCK_PluginFunctions *api;

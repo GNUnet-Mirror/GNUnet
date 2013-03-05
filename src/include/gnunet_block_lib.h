@@ -41,15 +41,15 @@ extern "C"
  */
 enum GNUNET_BLOCK_Type
 {
-    /**
-     * Any type of block, used as a wildcard when searching.  Should
-     * never be attached to a specific block.
-     */
+  /**
+   * Any type of block, used as a wildcard when searching.  Should
+   * never be attached to a specific block.
+   */
   GNUNET_BLOCK_TYPE_ANY = 0,
 
-    /**
-     * Data block (leaf) in the CHK tree.
-     */
+  /**
+   * Data block (leaf) in the CHK tree.
+   */
   GNUNET_BLOCK_TYPE_FS_DBLOCK = 1,
 
     /**
@@ -57,67 +57,73 @@ enum GNUNET_BLOCK_Type
      */
   GNUNET_BLOCK_TYPE_FS_IBLOCK = 2,
 
-    /**
-     * Type of a block representing a keyword search result.  Note that
-     * the values for KBLOCK, SBLOCK and NBLOCK must be consecutive.
-     */
+  /**
+   * Legacy type, no longer in use.
+   */
   GNUNET_BLOCK_TYPE_FS_KBLOCK = 3,
 
-    /**
-     * Type of a block that is used to advertise content in a namespace.
-     */
+  /**
+   * Legacy type, no longer in use.
+   */
   GNUNET_BLOCK_TYPE_FS_SBLOCK = 4,
 
-    /**
-     * Type of a block that is used to advertise a namespace.
-     */
+  /**
+   * Legacy type, no longer in use.
+   */
   GNUNET_BLOCK_TYPE_FS_NBLOCK = 5,
 
-    /**
-     * Type of a block representing a block to be encoded on demand from disk.
-     * Should never appear on the network directly.
-     */
+  /**
+   * Type of a block representing a block to be encoded on demand from disk.
+   * Should never appear on the network directly.
+   */
   GNUNET_BLOCK_TYPE_FS_ONDEMAND = 6,
 
-    /**
-     * Type of a block that contains a HELLO for a peer (for
-     * DHT find-peer operations).
-     */
+  /**
+   * Type of a block that contains a HELLO for a peer (for
+   * DHT find-peer operations).
+   */
   GNUNET_BLOCK_TYPE_DHT_HELLO = 7,
 
-    /**
-     * Block for testing.
-     */
+  /**
+   * Block for testing.
+   */
   GNUNET_BLOCK_TYPE_TEST = 8,
+  
+  /**
+   * Type of a block representing any type of search result
+   * (universal).  Implemented in the context of #2564, replaces
+   * SBLOCKS, KBLOCKS and NBLOCKS.
+   */
+  GNUNET_BLOCK_TYPE_FS_UBLOCK = 9,
 
-    /**
-     * Block for storing .gnunet-domains
-     */
+  /**
+   * Block for storing .gnunet-domains
+   */
   GNUNET_BLOCK_TYPE_DNS = 10,
 
-    /**
-     * Block for storing record data
-     */
+  /**
+   * Block for storing record data
+   */
   GNUNET_BLOCK_TYPE_GNS_NAMERECORD = 11,
 
-    /**
-     * Block for storing mesh peers
-     */
+  /**
+   * Block for storing mesh peers
+   */
   GNUNET_BLOCK_TYPE_MESH_PEER = 20,
-
-    /**
-     * Block for finding peers by type
-     */
+  
+  /**
+   * Block for finding peers by type
+   */
   GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE = 21,
 
-    /**
-     * Block to store a mesh regex state
-     */
+  /**
+   * Block to store a mesh regex state
+   */
   GNUNET_BLOCK_TYPE_REGEX = 22,
 
-    /**
-     * Block to store a mesh regex accepting state
-     */
+  /**
+   * Block to store a mesh regex accepting state
+   */
   GNUNET_BLOCK_TYPE_REGEX_ACCEPT = 23
 };
 

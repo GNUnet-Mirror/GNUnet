@@ -204,9 +204,9 @@ struct GNUNET_FS_Uri
     struct
     {
       /**
-       * Hash of the public key for the namespace.
+       * Identifier of the namespace.
        */
-      struct GNUNET_HashCode ns;
+      struct GNUNET_PseudonymIdentifier ns;
 
       /**
        * Human-readable identifier chosen for this
@@ -1390,14 +1390,14 @@ struct GNUNET_FS_UnindexContext
   struct GNUNET_DATASTORE_QueueEntry *dqe;
 
   /**
-   * Current key for decrypting KBLocks from 'get_key' operation.
+   * Current key for decrypting UBLocks from 'get_key' operation.
    */
-  struct GNUNET_HashCode key;
+  struct GNUNET_HashCode ukey;
 
   /**
    * Current query of 'get_key' operation.
    */
-  struct GNUNET_HashCode query;
+  struct GNUNET_HashCode uquery;
 
   /**
    * First content UID, 0 for none.
@@ -1449,15 +1449,15 @@ struct GNUNET_FS_UnindexContext
 struct SearchRequestEntry
 {
   /**
-   * Hash of the original keyword, also known as the
+   * Hash of the original keyword, used to derive the
    * key (for decrypting the KBlock).
    */
-  struct GNUNET_HashCode key;
+  struct GNUNET_HashCode ukey;
 
   /**
    * Hash of the public key, also known as the query.
    */
-  struct GNUNET_HashCode query;
+  struct GNUNET_HashCode uquery;
 
   /**
    * Map that contains a "struct GNUNET_FS_SearchResult" for each result that
@@ -2008,7 +2008,7 @@ struct GNUNET_FS_Namespace
   /**
    * Private key for the namespace.
    */
-  struct GNUNET_CRYPTO_RsaPrivateKey *key;
+  struct GNUNET_PseudonymHandle *key;
 
   /**
    * Hash map mapping identifiers of update nodes

@@ -335,9 +335,9 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
               GNUNET_h2s (&sm->query), (unsigned int) type);
   lc = GSF_local_client_lookup_ (client);
   cr = NULL;
-  /* detect duplicate KBLOCK requests */
-  if ((type == GNUNET_BLOCK_TYPE_FS_KBLOCK) ||
-      (type == GNUNET_BLOCK_TYPE_FS_NBLOCK) || (type == GNUNET_BLOCK_TYPE_ANY))
+  /* detect duplicate UBLOCK requests */
+  if ((type == GNUNET_BLOCK_TYPE_FS_UBLOCK) ||
+      (type == GNUNET_BLOCK_TYPE_ANY))
   {
     cr = lc->cr_head;
     while (cr != NULL)
@@ -353,7 +353,7 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
       cr = cr->next;
     }
   }
-  if (cr != NULL)
+  if (NULL != cr)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Have existing request, merging content-seen lists.\n");
@@ -374,8 +374,8 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
     options = GSF_PRO_LOCAL_REQUEST;
     if (0 != (SEARCH_MESSAGE_OPTION_LOOPBACK_ONLY & ntohl (sm->options)))
       options |= GSF_PRO_LOCAL_ONLY;
-    cr->pr = GSF_pending_request_create_ (options, type, &sm->query, (type == GNUNET_BLOCK_TYPE_FS_SBLOCK) ? &sm->target        /* namespace */
-                                          : NULL,
+    cr->pr = GSF_pending_request_create_ (options, type,
+					  &sm->query, 
                                           (0 !=
                                            memcmp (&sm->target, &all_zeros,
                                                    sizeof (struct GNUNET_HashCode)))

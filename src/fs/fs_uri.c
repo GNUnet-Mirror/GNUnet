@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2003--2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -356,36 +356,30 @@ static struct GNUNET_FS_Uri *
 uri_sks_parse (const char *s, char **emsg)
 {
   struct GNUNET_FS_Uri *ret;
-  struct GNUNET_HashCode ns;
-  char *identifier;
-  unsigned int pos;
-  size_t slen;
-  char enc[sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)];
+  struct GNUNET_PseudonymIdentifier id;
+  size_t pos;
+  char *end;
 
   GNUNET_assert (s != NULL);
-  slen = strlen (s);
   pos = strlen (GNUNET_FS_URI_SKS_PREFIX);
-  if ((slen <= pos) || (0 != strncmp (s, GNUNET_FS_URI_SKS_PREFIX, pos)))
+  if ((strlen (s) <= pos) || (0 != strncmp (s, GNUNET_FS_URI_SKS_PREFIX, pos)))
     return NULL;                /* not an SKS URI */
-  if ((slen < pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)) ||
-      (s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1] != '/'))
+  end = strchr (&s[pos], '/');
+  if ( (NULL == end) ||
+       (GNUNET_OK !=
+	GNUNET_STRINGS_string_to_data (&s[pos], 
+				       end - &s[pos],
+				       &id,
+				       sizeof (id))) )
   {
     *emsg = GNUNET_strdup (_("Malformed SKS URI"));
-    return NULL;
+    return NULL; /* malformed */
   }
-  memcpy (enc, &s[pos], sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded));
-  enc[sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1] = '\0';
-  if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (enc, &ns))
-  {
-    *emsg = GNUNET_strdup (_("Malformed SKS URI"));
-    return NULL;
-  }
-  identifier =
-      GNUNET_strdup (&s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)]);
+  end++; /* skip over '/' */
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
   ret->type = GNUNET_FS_URI_SKS;
-  ret->data.sks.ns = ns;
-  ret->data.sks.identifier = identifier;
+  ret->data.sks.ns = id;
+  ret->data.sks.identifier = GNUNET_strdup (end);
   return ret;
 }
 
@@ -957,7 +951,7 @@ GNUNET_FS_uri_sks_create (struct GNUNET_FS_Namespace *ns, const char *id,
   }
   ns_uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
   ns_uri->type = GNUNET_FS_URI_SKS;
-  GNUNET_FS_namespace_get_public_key_hash (ns, &ns_uri->data.sks.ns);
+  GNUNET_FS_namespace_get_public_identifier (ns, &ns_uri->data.sks.ns);
   ns_uri->data.sks.identifier = GNUNET_strdup (id);
   return ns_uri;
 }
@@ -966,18 +960,19 @@ GNUNET_FS_uri_sks_create (struct GNUNET_FS_Namespace *ns, const char *id,
 /**
  * Create an SKS URI from a namespace ID and an identifier.
  *
- * @param nsid namespace ID
+ * @param pseudonym namespace ID
  * @param id identifier
  * @return an FS URI for the given namespace and identifier
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_sks_create_from_nsid (struct GNUNET_HashCode * nsid, const char *id)
+GNUNET_FS_uri_sks_create_from_nsid (struct GNUNET_PseudonymIdentifier *pseudonym, 
+				    const char *id)
 {
   struct GNUNET_FS_Uri *ns_uri;
 
   ns_uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
   ns_uri->type = GNUNET_FS_URI_SKS;
-  ns_uri->data.sks.ns = *nsid;
+  ns_uri->data.sks.ns = *pseudonym;
   ns_uri->data.sks.identifier = GNUNET_strdup (id);
   return ns_uri;
 }
@@ -1337,19 +1332,19 @@ GNUNET_FS_uri_test_sks (const struct GNUNET_FS_Uri *uri)
  * namespace URI.
  *
  * @param uri the uri to get the namespace ID from
- * @param nsid where to store the ID of the namespace
+ * @param pseudonym where to store the ID of the namespace
  * @return GNUNET_OK on success
  */
 int
 GNUNET_FS_uri_sks_get_namespace (const struct GNUNET_FS_Uri *uri,
-                                 struct GNUNET_HashCode * nsid)
+                                 struct GNUNET_PseudonymIdentifier *pseudonym)
 {
   if (!GNUNET_FS_uri_test_sks (uri))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  *nsid = uri->data.sks.ns;
+  *pseudonym = uri->data.sks.ns;
   return GNUNET_OK;
 }
 
@@ -1939,18 +1934,20 @@ uri_ksk_to_string (const struct GNUNET_FS_Uri *uri)
 static char *
 uri_sks_to_string (const struct GNUNET_FS_Uri *uri)
 {
-  const struct GNUNET_HashCode *ns;
-  const char *identifier;
   char *ret;
-  struct GNUNET_CRYPTO_HashAsciiEncoded nsasc;
+  char buf[1024];
 
-  if (uri->type != GNUNET_FS_URI_SKS)
+  if (GNUNET_FS_URI_SKS != uri->type)
     return NULL;
-  ns = &uri->data.sks.ns;
-  identifier = uri->data.sks.identifier;
-  GNUNET_CRYPTO_hash_to_enc (ns, &nsasc);
+  ret = GNUNET_STRINGS_data_to_string (&uri->data.sks.ns,
+				       sizeof (struct GNUNET_PseudonymIdentifier),
+				       buf,
+				       sizeof (buf));
+  GNUNET_assert (NULL != ret);
+  ret[0] = '\0';
   GNUNET_asprintf (&ret, "%s%s%s/%s", GNUNET_FS_URI_PREFIX,
-                   GNUNET_FS_URI_SKS_INFIX, (const char *) &nsasc, identifier);
+                   GNUNET_FS_URI_SKS_INFIX, buf, 
+		   uri->data.sks.identifier);
   return ret;
 }
 

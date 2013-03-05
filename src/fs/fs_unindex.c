@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2003, 2004, 2006, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2003--2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -260,7 +260,7 @@ process_fs_response (void *cls, const struct GNUNET_MessageHeader *msg)
 
 
 /**
- * Function called when we are done with removing KBlocks.
+ * Function called when we are done with removing UBlocks.
  * Disconnect from datastore and notify FS service about
  * the unindex event.
  *
@@ -314,7 +314,7 @@ unindex_finish (struct GNUNET_FS_UnindexContext *uc)
 
 /**
  * Function called by the directory scanner as we extract keywords
- * that we will need to remove KBlocks.
+ * that we will need to remove UBlocks.
  *
  * @param cls the 'struct GNUNET_FS_UnindexContext *'
  * @param filename which file we are making progress on
@@ -369,7 +369,7 @@ unindex_directory_scan_cb (void *cls,
 
 
 /**
- * If necessary, connect to the datastore and remove the KBlocks.
+ * If necessary, connect to the datastore and remove the UBlocks.
  *
  * @param uc context for the unindex operation.
  */
@@ -391,7 +391,7 @@ GNUNET_FS_unindex_do_extract_keywords_ (struct GNUNET_FS_UnindexContext *uc)
 
 /**
  * Continuation called to notify client about result of the remove
- * operation for the KBlock.
+ * operation for the UBlock.
  *
  * @param cls the 'struct GNUNET_FS_UnindexContext *' 
  * @param success GNUNET_SYSERR on failure (including timeout/queue drop)
@@ -413,7 +413,7 @@ continue_after_remove (void *cls,
   uc->dqe = NULL;
   if (success != GNUNET_YES)  
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Failed to remove KBlock: %s\n"),
+		_("Failed to remove UBlock: %s\n"),
 		msg);  
   uc->ksk_offset++;
   GNUNET_FS_unindex_do_remove_kblocks_ (uc);
@@ -422,11 +422,11 @@ continue_after_remove (void *cls,
 
 /**
  * Function called from datastore with result from us looking for
- * a KBlock.  There are four cases:
+ * a UBlock.  There are four cases:
  * 1) no result, means we move on to the next keyword
  * 2) UID is the same as the first UID, means we move on to next keyword
- * 3) KBlock for a different CHK, means we keep looking for more
- * 4) KBlock is for our CHK, means we remove the block and then move
+ * 3) UBlock for a different CHK, means we keep looking for more
+ * 4) UBlock is for our CHK, means we remove the block and then move
  *           on to the next keyword
  *
  * @param cls the 'struct GNUNET_FS_UnindexContext *'
@@ -442,7 +442,7 @@ continue_after_remove (void *cls,
  */
 static void
 process_kblock_for_unindex (void *cls,
-			    const struct GNUNET_HashCode * key,
+			    const struct GNUNET_HashCode *key,
 			    size_t size, const void *data,
 			    enum GNUNET_BLOCK_Type type,
 			    uint32_t priority,
@@ -451,8 +451,9 @@ process_kblock_for_unindex (void *cls,
 			    expiration, uint64_t uid)
 {
   struct GNUNET_FS_UnindexContext *uc = cls;
-  const struct KBlock *kb;
+  const struct UBlock *ub;
   struct GNUNET_FS_Uri *chk_uri;
+  struct GNUNET_HashCode query;
 
   uc->dqe = NULL;
   if (NULL == data)
@@ -474,38 +475,43 @@ process_kblock_for_unindex (void *cls,
     GNUNET_FS_unindex_do_remove_kblocks_ (uc);
     return;  
   }
-  GNUNET_assert (GNUNET_BLOCK_TYPE_FS_KBLOCK == type);
-  if (size < sizeof (struct KBlock))
+  GNUNET_assert (GNUNET_BLOCK_TYPE_FS_UBLOCK == type);
+  if (size < sizeof (struct UBlock))
   {
     GNUNET_break (0);
     goto get_next;
   }
-  kb = data;
+  ub = data;
+  GNUNET_CRYPTO_hash (&ub->verification_key,
+		      sizeof (ub->verification_key),
+		      &query);
+  if (0 != memcmp (&query, key, sizeof (struct GNUNET_HashCode)))
   {
-    char pt[size - sizeof (struct KBlock)];  
+    /* result does not match our keyword, skip */
+    goto get_next;
+  }
+  {
+    char pt[size - sizeof (struct UBlock)];  
     struct GNUNET_CRYPTO_AesSessionKey skey;
     struct GNUNET_CRYPTO_AesInitializationVector iv;
- 
-    GNUNET_CRYPTO_hash_to_aes_key (&uc->key, &skey, &iv);
+     
+    GNUNET_CRYPTO_hash_to_aes_key (&uc->ukey, &skey, &iv);
     if (-1 ==
-	GNUNET_CRYPTO_aes_decrypt (&kb[1], size - sizeof (struct KBlock), &skey,
+	GNUNET_CRYPTO_aes_decrypt (&ub[1], size - sizeof (struct UBlock), &skey,
 				   &iv, pt))
     {
       GNUNET_break (0);
       goto get_next;
     }       
-    if (NULL == memchr (pt, 0, sizeof (pt)))
+    if (NULL == memchr (&pt[1], 0, sizeof (pt) - 1))
     {
-      GNUNET_break (0);
+      GNUNET_break_op (0); /* malformed UBlock */
       goto get_next;
     }
-    chk_uri = GNUNET_FS_uri_parse (pt, NULL);
+    chk_uri = GNUNET_FS_uri_parse (&pt[1], NULL);
     if (NULL == chk_uri)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Failed to parse URI `%s' from KBlock!\n"),
-		  pt);
-      GNUNET_break (0);
+      GNUNET_break_op (0); /* malformed UBlock */
       goto get_next;
     }
   }
@@ -529,8 +535,8 @@ process_kblock_for_unindex (void *cls,
  get_next:
   uc->dqe = GNUNET_DATASTORE_get_key (uc->dsh,
 				      uc->roff++,
-				      &uc->query,
-				      GNUNET_BLOCK_TYPE_FS_KBLOCK,
+				      &uc->uquery,
+				      GNUNET_BLOCK_TYPE_FS_UBLOCK,
 				      0 /* priority */, 1 /* queue size */,
 				      GNUNET_TIME_UNIT_FOREVER_REL,
 				      &process_kblock_for_unindex,
@@ -547,7 +553,10 @@ void
 GNUNET_FS_unindex_do_remove_kblocks_ (struct GNUNET_FS_UnindexContext *uc)
 {
   const char *keyword;
-  struct GNUNET_CRYPTO_RsaPrivateKey *pk;
+  struct GNUNET_PseudonymHandle *ph;
+  struct GNUNET_PseudonymIdentifier anon;
+  struct GNUNET_PseudonymIdentifier verification_key;
+  struct GNUNET_HashCode signing_key;
 
   if (NULL == uc->dsh)
     uc->dsh = GNUNET_DATASTORE_connect (uc->h->cfg);
@@ -566,16 +575,23 @@ GNUNET_FS_unindex_do_remove_kblocks_ (struct GNUNET_FS_UnindexContext *uc)
     return;
   }
   /* FIXME: code duplication with fs_search.c here... */
+  ph = GNUNET_PSEUDONYM_get_anonymous_pseudonym_handle ();
+  GNUNET_PSEUDONYM_get_identifier (ph, &anon);
+  GNUNET_PSEUDONYM_destroy (ph);
   keyword = &uc->ksk_uri->data.ksk.keywords[uc->ksk_offset][1];
-  GNUNET_CRYPTO_hash (keyword, strlen (keyword), &uc->key);
-  pk = GNUNET_CRYPTO_rsa_key_create_from_hash (&uc->key);
-  GNUNET_assert (pk != NULL);
-  GNUNET_CRYPTO_rsa_get_public_key_hash (pk, &uc->query);
+  GNUNET_CRYPTO_hash (keyword, strlen (keyword), &uc->ukey);
+  GNUNET_CRYPTO_hash (&uc->ukey, sizeof (struct GNUNET_HashCode), &signing_key);
+  GNUNET_PSEUDONYM_derive_verification_key (&anon, 
+					    &signing_key,
+					    &verification_key);
+  GNUNET_CRYPTO_hash (&verification_key,
+		      sizeof (struct GNUNET_PseudonymIdentifier),
+		      &uc->uquery);
   uc->first_uid = 0;
   uc->dqe = GNUNET_DATASTORE_get_key (uc->dsh,
 				      uc->roff++,
-				      &uc->query,
-				      GNUNET_BLOCK_TYPE_FS_KBLOCK,
+				      &uc->uquery,
+				      GNUNET_BLOCK_TYPE_FS_UBLOCK,
 				      0 /* priority */, 1 /* queue size */,
 				      GNUNET_TIME_UNIT_FOREVER_REL,
 				      &process_kblock_for_unindex,

@@ -66,22 +66,22 @@ extern "C"
 #define GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT 5
 
 /**
- * Signature in a KBlock of the FS module.
+ * Obsolete, legacy value.
  */
 #define GNUNET_SIGNATURE_PURPOSE_FS_KBLOCK 6
 
 /**
- * Signature of content URI placed into a namespace.
+ * Obsolete, legacy value.
  */
 #define GNUNET_SIGNATURE_PURPOSE_FS_SBLOCK 7
 
 /**
- * Signature of advertisment for a namespace.
+ * Obsolete, legacy value.
  */
 #define GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK 8
 
 /**
- * Keyword-based signature of advertisment for a namespace.
+ * Obsolete, legacy value.
  */
 #define GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK_KSIG 9
 
@@ -121,6 +121,10 @@ extern "C"
 #define GNUNET_SIGNATURE_PURPOSE_SET_ECC_KEY 16
 
 
+/**
+ * UBlock Signature, done using DSS, not ECC
+ */
+#define GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK 17
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
