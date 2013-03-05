@@ -279,7 +279,7 @@ GNUNET_STRINGS_get_short_name (const char *filename);
  * @return pointer to the next byte in 'out' or NULL on error.
  */
 char *
-GNUNET_STRINGS_data_to_string (const unsigned char *data, 
+GNUNET_STRINGS_data_to_string (const void *data, 
 			       size_t size,
 			       char *out, 
 			       size_t out_size);
@@ -292,13 +292,13 @@ GNUNET_STRINGS_data_to_string (const unsigned char *data,
  * @param enc the encoding
  * @param enclen number of characters in 'enc' (without 0-terminator, which can be missing)
  * @param out location where to store the decoded data
- * @param out_size sizeof the output buffer
+ * @param out_size size of the output buffer
  * @return GNUNET_OK on success, GNUNET_SYSERR if result has the wrong encoding
  */
 int
 GNUNET_STRINGS_string_to_data (const char *enc, 
 			       size_t enclen,
-			       unsigned char *out, 
+			       void *out, 
 			       size_t out_size);
 
 

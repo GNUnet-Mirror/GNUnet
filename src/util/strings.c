@@ -758,7 +758,7 @@ getValue__ (unsigned char a)
  * @return pointer to the next byte in 'out' or NULL on error.
  */
 char *
-GNUNET_STRINGS_data_to_string (const unsigned char *data, size_t size, char *out, size_t out_size)
+GNUNET_STRINGS_data_to_string (const void *data, size_t size, char *out, size_t out_size)
 {
   /**
    * 32 characters for encoding 
@@ -768,9 +768,11 @@ GNUNET_STRINGS_data_to_string (const unsigned char *data, size_t size, char *out
   unsigned int rpos;
   unsigned int bits;
   unsigned int vbit;
+  const unsigned char *udata;
 
   GNUNET_assert (data != NULL);
   GNUNET_assert (out != NULL);
+  udata = data;
   if (out_size < (((size*8) + ((size*8) % 5)) % 5))
   {
     GNUNET_break (0);
@@ -784,7 +786,7 @@ GNUNET_STRINGS_data_to_string (const unsigned char *data, size_t size, char *out
   {
     if ((rpos < size) && (vbit < 5))
     {
-      bits = (bits << 8) | data[rpos++];   /* eat 8 more bits */
+      bits = (bits << 8) | udata[rpos++];   /* eat 8 more bits */
       vbit += 8;
     }
     if (vbit < 5)
@@ -823,7 +825,7 @@ GNUNET_STRINGS_data_to_string (const unsigned char *data, size_t size, char *out
  */
 int
 GNUNET_STRINGS_string_to_data (const char *enc, size_t enclen,
-                              unsigned char *out, size_t out_size)
+			       void *out, size_t out_size)
 {
   unsigned int rpos;
   unsigned int wpos;
@@ -831,7 +833,10 @@ GNUNET_STRINGS_string_to_data (const char *enc, size_t enclen,
   unsigned int vbit;
   int ret;
   int shift;
+  unsigned char *uout;
   int encoded_len = out_size * 8;
+
+  uout = out;
   if (encoded_len % 5 > 0)
   {
     vbit = encoded_len % 5; /* padding! */
@@ -859,13 +864,14 @@ GNUNET_STRINGS_string_to_data (const char *enc, size_t enclen,
     vbit += 5;
     if (vbit >= 8)
     {
-      out[--wpos] = (unsigned char) bits;
+      uout[--wpos] = (unsigned char) bits;
       bits >>= 8;
       vbit -= 8;
     }
   }
   GNUNET_assert (rpos == 0);
   GNUNET_assert (vbit == 0);
+
   return GNUNET_OK;
 }
 
