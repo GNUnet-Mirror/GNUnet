@@ -666,7 +666,8 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                  GNUNET_CONTAINER_multihashmap_put (all_known_peers,
                                                     &peer->hashPubKey, ret,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  if (1 == GNUNET_CONTAINER_multihashmap_size (all_known_peers))
+  if (1 == GNUNET_CONTAINER_multihashmap_size (all_known_peers) &&
+      (GNUNET_YES != disable_try_connect))
   {
     /* got a first connection, good time to start with FIND PEER requests... */
     find_peer_task = GNUNET_SCHEDULER_add_now (&send_find_peer_message, NULL);
