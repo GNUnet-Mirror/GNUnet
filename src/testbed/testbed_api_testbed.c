@@ -1138,7 +1138,7 @@ GNUNET_TESTBED_run (const char *host_filename,
            "Ignoring value of `OVERLAY_RANDOM_LINKS' in given configuration\n");
     break;
   }
-  if (NULL != host_filename)
+  if (0 != rc->num_hosts)
   {
     rc->hc_handles =
         GNUNET_malloc (sizeof (struct GNUNET_TESTBED_HostHabitableCheckHandle *)
