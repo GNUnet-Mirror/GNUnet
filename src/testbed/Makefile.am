@@ -10,11 +10,7 @@ if USE_COVERAGE
 endif
 
 if WITH_LL
-  CC = mpicc
   ll_binaries = \
-    gnunet-mpi-test \
-    gnunet-testbed-ll-master \
-    gnunet-testbed-ll-monitor \
     gnunet-testbed-mpi-spawn
 endif
 
@@ -49,13 +45,15 @@ gnunet_service_testbed_LDADD = $(XLIB) \
  $(top_builddir)/src/testbed/libgnunettestbed.la \
  $(LTLIBINTL) -lz
 gnunet_service_testbed_DEPENDENCIES = \
-  libgnunettestbed.la
+ $(top_builddir)/src/testbed/libgnunettestbed.la
 
 gnunet_testbed_profiler_SOURCES = \
   gnunet-testbed-profiler.c
 gnunet_testbed_profiler_LDADD = $(XLIB) \
  $(top_builddir)/src/util/libgnunetutil.la \
- libgnunettestbed.la
+ $(top_builddir)/src/testbed/libgnunettestbed.la
+gnunet_testbed_profiler_DEPENDENCIES = \
+ $(top_builddir)/src/testbed/libgnunettestbed.la
 
 gnunet_helper_testbed_SOURCES = \
   gnunet-helper-testbed.c
@@ -65,26 +63,14 @@ gnunet_helper_testbed_LDADD = $(XLIB) \
  libgnunettestbed.la \
  $(LTLIBINTL) -lz
 gnunet_helper_testbed_DEPENDENCIES = \
-  gnunet-service-testbed.$(OBJEXT) \
-  libgnunettestbed.la
-
-gnunet_testbed_ll_master_SOURCES = \
-  gnunet_testbed_ll_master.c
-gnunet_testbed_ll_master_LDADD = $(XLIB) \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(LTLIBINTL) -lz -lllapi
-
-gnunet_testbed_ll_monitor_SOURCES = \
-  gnunet_testbed_ll_monitor.c
-gnunet_testbed_ll_monitor_LDADD = $(XLIB) \
- $(LTLIBINTL) -lz -lllapi
-
-gnunet_mpi_test_SOURCES = gnunet_mpi_test.c
-gnunet_mpi_test_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+  $(top_builddir)/src/testbed/gnunet-service-testbed.$(OBJEXT) \
+  $(top_builddir)/src/testbed/libgnunettestbed.la
 
 gnunet_testbed_mpi_spawn_SOURCES = gnunet_testbed_mpi_spawn.c
-gnunet_testbed_mpi_spawn_LDADD = \
+gnunet_testbed_mpi_spawn_LDADD = $(XLIB) \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testbed/libgnunettestbed.la
+gnunet_testbed_mpi_spawn_DEPENDENCIES = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la
 
