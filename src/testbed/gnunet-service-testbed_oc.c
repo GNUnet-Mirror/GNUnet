@@ -899,7 +899,7 @@ occ_cache_get_handle_core_cb (void *cls, struct GNUNET_CORE_Handle *ch,
   if ((NULL == ch) || (NULL == my_identity))
   {
     (void) GNUNET_asprintf (&occ->emsg,
-                            "0x%llx: Failed to connect to CORE of peer with"
+                            "0x%llx: Failed to connect to CORE of peer with "
                             "id: %u", occ->op_id, occ->peer->id);
     GNUNET_SCHEDULER_cancel (occ->timeout_task);
     occ->timeout_task =
