@@ -1149,6 +1149,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   struct GNUNET_HELLO_Message *hello;
   struct GNUNET_HELLO_Address address;
   int sig_res;
+  int do_verify;
 
   if (ntohs (hdr->size) < sizeof (struct TransportPongMessage))
   {
@@ -1204,28 +1205,38 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   }
 
   sig_res = GNUNET_SYSERR;
+  do_verify = GNUNET_YES;
   if (0 != GNUNET_TIME_absolute_get_remaining(ve->pong_sig_valid_until).rel_value)
   {
   		if (0 == memcmp (&ve->pong_sig_cache, &pong->signature, sizeof (struct GNUNET_CRYPTO_EccSignature)))
+  		{
   			sig_res = GNUNET_OK;
+  			do_verify = GNUNET_NO;
+  		}
   		else
+  		{
   			sig_res = GNUNET_SYSERR;
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    		"Failed to check with cached signature: different signature on address %s:%s from peer `%s'\n",
+    		tname, GST_plugins_a2s (ve->address),
+    		GNUNET_i2s (sender));
+  		}
   }
-  else
+
+  if (GNUNET_YES == do_verify)
   {
   		sig_res = GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
                                 &pong->purpose, &pong->signature,
                                 &ve->public_key);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  		"Failed to verify: invalid signature on address %s:%s from peer `%s'\n",
+  		tname, GST_plugins_a2s (ve->address),
+  		GNUNET_i2s (sender));
   }
 
   if (sig_res == GNUNET_SYSERR)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		"Invalid signature on address %s:%s from peer `%s'\n",
-		tname, GST_plugins_a2s (ve->address),
-		GNUNET_i2s (sender));
     return;
-  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Address validated for peer `%s' with plugin `%s': `%s'\n",
               GNUNET_i2s (sender), tname, GST_plugins_a2s (ve->address));
