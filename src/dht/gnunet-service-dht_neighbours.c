@@ -49,6 +49,9 @@
 #include <fenv.h>
 #include "dht.h"
 
+
+#define LOG_TRAFFIC(kind,...) GNUNET_log_from (kind, "dht-traffic",__VA_ARGS__)
+
 /**
  * How many buckets will we allow total.
  */
@@ -93,12 +96,6 @@
  * How long at most to wait for transmission of a GET request to another peer?
  */
 #define GET_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 2)
-
-/**
- * Should routing details be logged to stderr (for debugging)?
- */
-#define LOG_ROUTE_DETAILS_STDERR GNUNET_NO
-
 
 /**
  * Hello address expiration
@@ -382,6 +379,10 @@ struct PeerBucket
   unsigned int peers_size;
 };
 
+/**
+ * Should routing details be logged to stderr (for debugging)?
+ */
+static int log_route_details_stderr;
 
 /**
  * The lowest currently used bucket, initially 0 (for 0-bits matching bucket).
@@ -1600,15 +1601,14 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "PUT for `%s' from %s\n",
               GNUNET_h2s (&put->key), GNUNET_i2s (peer));
 
-  if (LOG_ROUTE_DETAILS_STDERR)
+  if (GNUNET_YES == log_route_details_stderr)
   {
     char *tmp;
-    
+
     tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
-    fprintf (stderr, "XDHT PUT %s: %s(%u)<-%s\n", 
-	     GNUNET_h2s (&put->key), tmp, getpid (),
-	     GNUNET_i2s (peer));
-    GNUNET_free (tmp);										       
+    LOG_TRAFFIC (GNUNET_ERROR_TYPE_ERROR, "XDHT PUT %s: %s(%u)<-%s\n", 
+                 GNUNET_h2s (&put->key), tmp, getpid (), GNUNET_i2s (peer));
+    GNUNET_free (tmp);
   }
 
 
@@ -1860,14 +1860,13 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
                               1, GNUNET_NO);
   }
 
-  if (LOG_ROUTE_DETAILS_STDERR)
+  if (GNUNET_YES == log_route_details_stderr)
   {
     char *tmp;
-    
+
     tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
-    fprintf (stderr, "XDHT GET %s: %s(%u)<-%s\n", 
-	     GNUNET_h2s (&get->key), tmp, getpid(),
-	     GNUNET_i2s (peer));
+    LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT GET %s: %s(%u)<-%s\n", 
+                 GNUNET_h2s (&get->key), tmp, getpid(), GNUNET_i2s (peer));
     GNUNET_free (tmp);
   }
 
@@ -1991,16 +1990,14 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
 
-  if (LOG_ROUTE_DETAILS_STDERR)
+  if (GNUNET_YES == log_route_details_stderr)
   {
     char *tmp;
-    
+
     tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
-    fprintf (stderr, 
-	     "XDHT RESULT %s: %s(%u)<-%s\n", 
-	     GNUNET_h2s (&prm->key), tmp, 
-	     getpid(), GNUNET_i2s (peer));
-    GNUNET_free (tmp);										       
+    LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT RESULT %s: %s(%u)<-%s\n", 
+                 GNUNET_h2s (&prm->key), tmp, getpid(), GNUNET_i2s (peer));
+    GNUNET_free (tmp);
   }
 
   /* append 'peer' to 'get_path' */
@@ -2057,6 +2054,8 @@ GDS_NEIGHBOURS_init ()
       GNUNET_CONFIGURATION_get_value_number (GDS_cfg, "DHT", "bucket_size",
                                              &temp_config_num))
     bucket_size = (unsigned int) temp_config_num;
+  log_route_details_stderr =
+    (NULL != getenv("GNUNET_DHT_ROUTE_DEBUG")) ? GNUNET_YES : GNUNET_NO;
   atsAPI = GNUNET_ATS_performance_init (GDS_cfg, NULL, NULL);
   coreAPI =
       GNUNET_CORE_connect (GDS_cfg, NULL, &core_init, &handle_core_connect,
