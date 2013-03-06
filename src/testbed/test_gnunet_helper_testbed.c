@@ -206,14 +206,14 @@ run (void *cls, char *const *args, const char *cfgfile,
     "gnunet-helper-testbed",
     NULL
   };
-  const char *controller_name = "127.0.0.1";
+  const char *trusted_ip = "127.0.0.1";
 
   helper =
       GNUNET_HELPER_start (GNUNET_YES, "gnunet-helper-testbed", binary_argv,
                            &mst_cb, &exp_cb, NULL);
   GNUNET_assert (NULL != helper);
   cfg = GNUNET_CONFIGURATION_dup (cfg2);
-  msg = GNUNET_TESTBED_create_helper_init_msg_ (controller_name, NULL, cfg);
+  msg = GNUNET_TESTBED_create_helper_init_msg_ (trusted_ip, NULL, cfg);
   shandle =
       GNUNET_HELPER_send (helper, &msg->header, GNUNET_NO, &cont_cb, NULL);
   GNUNET_assert (NULL != shandle);

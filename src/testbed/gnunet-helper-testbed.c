@@ -109,6 +109,11 @@ static struct GNUNET_DISK_FileHandle *stdout_fd;
 static struct GNUNET_OS_Process *testbed;
 
 /**
+ * Pipe used to communicate shutdown via signal.
+ */
+static struct GNUNET_DISK_PipeHandle *sigpipe;
+
+/**
  * Task identifier for the read task
  */
 static GNUNET_SCHEDULER_TaskIdentifier read_task_id;
@@ -117,6 +122,11 @@ static GNUNET_SCHEDULER_TaskIdentifier read_task_id;
  * Task identifier for the write task
  */
 static GNUNET_SCHEDULER_TaskIdentifier write_task_id;
+
+/**
+ * Task to kill the child
+ */
+static GNUNET_SCHEDULER_TaskIdentifier child_death_task_id;
 
 /**
  * Are we done reading messages from stdin?
@@ -166,14 +176,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     LOG_DEBUG ("Killing testbed\n");
     GNUNET_break (0 == GNUNET_OS_process_kill (testbed, SIGTERM));
-    GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (testbed));
-    GNUNET_OS_process_destroy (testbed);
-    testbed = NULL;
-  }
-  if (NULL != test_system)
-  {
-    GNUNET_TESTING_system_destroy (test_system, GNUNET_YES);
-    test_system = NULL;
   }
 }
 
@@ -414,6 +416,42 @@ read_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Task triggered whenever we receive a SIGCHLD (child
+ * process died).
+ *
+ * @param cls closure, NULL if we need to self-restart
+ * @param tc context
+ */
+static void
+child_death_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  const struct GNUNET_DISK_FileHandle *pr;
+  char c[16];
+
+  pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
+  child_death_task_id = GNUNET_SCHEDULER_NO_TASK;
+  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
+  {
+    child_death_task_id =
+	GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+					pr, &child_death_task, NULL);
+    return;
+  }
+  /* consume the signal */
+  GNUNET_break (0 < GNUNET_DISK_file_read (pr, &c, sizeof (c)));
+  LOG_DEBUG ("Child died\n");
+  GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (testbed));
+  GNUNET_OS_process_destroy (testbed);
+  testbed = NULL;
+  if (NULL != test_system)
+  {
+    GNUNET_TESTING_system_destroy (test_system, GNUNET_YES);
+    test_system = NULL;
+  }
+}
+
+
+/**
  * Main function that will be run.
  *
  * @param cls closure
@@ -434,6 +472,11 @@ run (void *cls, char *const *args, const char *cfgfile,
                                       &read_task, NULL);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
+  child_death_task_id =
+    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+				    GNUNET_DISK_pipe_handle (sigpipe,
+							     GNUNET_DISK_PIPE_END_READ),
+				    &child_death_task, NULL);
 }
 
 
@@ -443,14 +486,15 @@ run (void *cls, char *const *args, const char *cfgfile,
 static void
 sighandler_child_death ()
 {
-  if ((NULL != testbed) && (GNUNET_NO == in_shutdown))
-  {
-    LOG_DEBUG ("Child died\n");
-    GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (testbed));
-    GNUNET_OS_process_destroy (testbed);
-    testbed = NULL;
-    GNUNET_SCHEDULER_shutdown ();       /* We are done too! */
-  }
+  static char c;
+  int old_errno;	/* back-up errno */
+
+  old_errno = errno;
+  GNUNET_break (1 ==
+                GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle
+                                        (sigpipe, GNUNET_DISK_PIPE_END_WRITE),
+                                        &c, sizeof (c)));
+  errno = old_errno;
 }
 
 
@@ -473,6 +517,13 @@ main (int argc, char **argv)
 
   status = GNUNET_OK;
   in_shutdown = GNUNET_NO;
+  if (NULL == (sigpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, 
+                                           GNUNET_NO, GNUNET_NO)))
+  {
+    GNUNET_break (0);
+    ret = GNUNET_SYSERR;
+    return 1;
+  }
   shc_chld =
       GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD, &sighandler_child_death);
   ret =
@@ -481,6 +532,7 @@ main (int argc, char **argv)
                           &run, NULL);
   GNUNET_SIGNAL_handler_uninstall (shc_chld);
   shc_chld = NULL;
+  GNUNET_DISK_pipe_close (sigpipe);
   if (GNUNET_OK != ret)
     return 1;
   return (GNUNET_OK == status) ? 0 : 1;
