@@ -45,7 +45,7 @@ gnunet_service_testbed_LDADD = $(XLIB) \
  $(top_builddir)/src/testbed/libgnunettestbed.la \
  $(LTLIBINTL) -lz
 gnunet_service_testbed_DEPENDENCIES = \
- $(top_builddir)/src/testbed/libgnunettestbed.la
+ libgnunettestbed.la
 
 gnunet_testbed_profiler_SOURCES = \
   gnunet-testbed-profiler.c
@@ -53,7 +53,7 @@ gnunet_testbed_profiler_LDADD = $(XLIB) \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la
 gnunet_testbed_profiler_DEPENDENCIES = \
- $(top_builddir)/src/testbed/libgnunettestbed.la
+ libgnunettestbed.la
 
 gnunet_helper_testbed_SOURCES = \
   gnunet-helper-testbed.c
@@ -63,8 +63,8 @@ gnunet_helper_testbed_LDADD = $(XLIB) \
  libgnunettestbed.la \
  $(LTLIBINTL) -lz
 gnunet_helper_testbed_DEPENDENCIES = \
-  $(top_builddir)/src/testbed/gnunet-service-testbed.$(OBJEXT) \
-  $(top_builddir)/src/testbed/libgnunettestbed.la
+  gnunet-service-testbed.$(OBJEXT) \
+  libgnunettestbed.la
 
 gnunet_testbed_mpi_spawn_SOURCES = gnunet_testbed_mpi_spawn.c
 gnunet_testbed_mpi_spawn_LDADD = $(XLIB) \
@@ -72,7 +72,7 @@ gnunet_testbed_mpi_spawn_LDADD = $(XLIB) \
  $(top_builddir)/src/testbed/libgnunettestbed.la
 gnunet_testbed_mpi_spawn_DEPENDENCIES = \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testbed/libgnunettestbed.la
+ libgnunettestbed.la
 
 lib_LTLIBRARIES = \
   libgnunettestbed.la
