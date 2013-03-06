@@ -301,6 +301,7 @@ run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_break (0);
     ret = GNUNET_SYSERR;
+    shutdown_task_id = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
   }
   ret = GNUNET_OK;
