@@ -946,4 +946,28 @@ GNUNET_PSEUDONYM_get_identifier (struct GNUNET_PseudonymHandle *ph,
 }
 
 
+/**
+ * Remove pseudonym from the set of known pseudonyms.
+ *
+ * @param cfg overall configuration
+ * @param id the pseudonym identifier
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int
+GNUNET_PSEUDONYM_remove (const struct GNUNET_CONFIGURATION_Handle *cfg,
+    const struct GNUNET_PseudonymIdentifier *id)
+{
+  char *fn;
+  int result;
+
+  result = GNUNET_SYSERR;
+  fn = get_data_filename (cfg, PS_METADATA_DIR, id);
+  if (NULL != fn)
+  {
+    result = UNLINK (fn);
+    GNUNET_free (fn);
+  }
+  return (GNUNET_OK == result ? GNUNET_OK : GNUNET_SYSERR);
+}
+
 /* end of pseudonym.c */

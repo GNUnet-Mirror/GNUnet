@@ -373,6 +373,19 @@ GNUNET_PSEUDONYM_set_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			   int32_t rank);
 
 
+/**
+ * Remove pseudonym from the set of known pseudonyms.
+ *
+ * @param cfg overall configuration
+ * @param id the pseudonym identifier
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int
+GNUNET_PSEUDONYM_remove (const struct GNUNET_CONFIGURATION_Handle *cfg,
+    const struct GNUNET_PseudonymIdentifier *id);
+
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
