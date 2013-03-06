@@ -1276,7 +1276,7 @@ GNUNET_FS_uri_test_equal (const struct GNUNET_FS_Uri *u1,
   case GNUNET_FS_URI_SKS:
     if ((0 ==
          memcmp (&u1->data.sks.ns, &u2->data.sks.ns,
-                 sizeof (struct GNUNET_HashCode))) &&
+                 sizeof (struct GNUNET_PseudonymIdentifier))) &&
         (0 == strcmp (u1->data.sks.identifier, u2->data.sks.identifier)))
 
       return GNUNET_YES;
