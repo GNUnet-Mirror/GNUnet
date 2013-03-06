@@ -67,10 +67,6 @@ try:
   s.expect ("stdout", re.compile (r'gnunet-download gnunet://fs/sks/.*/myroot\r?\n'))
   s.expect ("stdout", re.compile (r'\s*description: Free Software Licenses\r?\n'))
 
-  pseu = pexpect ()
-  pseu.spawn (None, [pseudonym, '-c', 'test_gnunet_fs_ns_data.conf'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-  pseu.expect ("stdout", re.compile (r'Free Software Licenses.*:\r?\n'))
-
 finally:
   arm = subprocess.Popen ([gnunetarm, '-eq', '-c', 'test_gnunet_fs_ns_data.conf'])
   arm.communicate ()

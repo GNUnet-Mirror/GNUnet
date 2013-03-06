@@ -949,6 +949,7 @@ GNUNET_FS_uri_sks_create (struct GNUNET_FS_Namespace *ns, const char *id,
     *emsg = GNUNET_strdup (_("identifier has zero length!"));
     return NULL;
   }
+  *emsg = NULL;
   ns_uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
   ns_uri->type = GNUNET_FS_URI_SKS;
   GNUNET_FS_namespace_get_public_identifier (ns, &ns_uri->data.sks.ns);
