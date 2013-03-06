@@ -41,6 +41,7 @@
  */
 #define LOG_ROUTE_DETAILS_STDERR GNUNET_NO
 
+#define LOG(kind,...) GNUNET_log_from (kind, "dht-clients",__VA_ARGS__)
 
 /**
  * Linked list of messages to send to clients.
@@ -421,6 +422,9 @@ transmit_request (struct ClientQueryRecord *cqr)
   peer_bf =
       GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE,
                                          GNUNET_CONSTANTS_BLOOMFILTER_K);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Initiating GET for %s, replication %u, already have %u replies\n",
+       GNUNET_h2s(&cqr->key), cqr->replication, cqr->seen_replies_count);
   GDS_NEIGHBOURS_handle_get (cqr->type, cqr->msg_options, cqr->replication,
                              0 /* hop count */ ,
                              &cqr->key, cqr->xquery, cqr->xquery_size, reply_bf,
@@ -428,7 +432,8 @@ transmit_request (struct ClientQueryRecord *cqr)
   GNUNET_CONTAINER_bloomfilter_free (reply_bf);
   GNUNET_CONTAINER_bloomfilter_free (peer_bf);
 
-  /* exponential back-off for retries, max 1h */
+  /* exponential back-off for retries.
+   * max GNUNET_TIME_STD_EXPONENTIAL_BACKOFF_THRESHOLD (15 min) */
   cqr->retry_frequency = GNUNET_TIME_STD_BACKOFF (cqr->retry_frequency);
   cqr->retry_time = GNUNET_TIME_relative_to_absolute (cqr->retry_frequency);
 }
@@ -504,10 +509,10 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
                             GNUNET_NO);
   dht_msg = (const struct GNUNET_DHT_ClientPutMessage *) message;
   /* give to local clients */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Handling local PUT of %u-bytes for query %s\n",
-              size - sizeof (struct GNUNET_DHT_ClientPutMessage),
-              GNUNET_h2s (&dht_msg->key));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Handling local PUT of %u-bytes for query %s\n",
+       size - sizeof (struct GNUNET_DHT_ClientPutMessage),
+       GNUNET_h2s (&dht_msg->key));
   GDS_CLIENTS_handle_reply (GNUNET_TIME_absolute_ntoh (dht_msg->expiration),
                             &dht_msg->key, 0, NULL, 0, NULL,
                             ntohl (dht_msg->type),
@@ -584,9 +589,9 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
                             gettext_noop
                             ("# GET requests received from clients"), 1,
                             GNUNET_NO);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received request for %s from local client %p\n",
-              GNUNET_h2s (&get->key), client);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received GET request for %s from local client %p\n",
+       GNUNET_h2s (&get->key), client);
 
   if (LOG_ROUTE_DETAILS_STDERR)
   {
@@ -790,8 +795,9 @@ handle_dht_local_get_stop (void *cls, struct GNUNET_SERVER_Client *client,
                             gettext_noop
                             ("# GET STOP requests received from clients"), 1,
                             GNUNET_NO);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %p stopped request for key %s\n",
-              client, GNUNET_h2s (&dht_stop_msg->key));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received GET STOP request for %s from local client %p\n",
+       client, GNUNET_h2s (&dht_stop_msg->key));
   ctx.client = find_active_client (client);
   ctx.unique_id = dht_stop_msg->unique_id;
   GNUNET_CONTAINER_multihashmap_get_multiple (forward_map, &dht_stop_msg->key,
