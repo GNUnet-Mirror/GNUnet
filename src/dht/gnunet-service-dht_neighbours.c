@@ -1606,7 +1606,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
     char *tmp;
 
     tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
-    LOG_TRAFFIC (GNUNET_ERROR_TYPE_ERROR, "XDHT PUT %s: %s(%u)<-%s\n", 
+    LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT PUT %s: %s(%u)<-%s\n", 
                  GNUNET_h2s (&put->key), tmp, getpid (), GNUNET_i2s (peer));
     GNUNET_free (tmp);
   }
