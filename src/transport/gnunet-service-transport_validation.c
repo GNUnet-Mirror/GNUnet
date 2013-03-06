@@ -1228,10 +1228,10 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   		sig_res = GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
                                 &pong->purpose, &pong->signature,
                                 &ve->public_key);
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-  		"Failed to verify: invalid signature on address %s:%s from peer `%s'\n",
-  		tname, GST_plugins_a2s (ve->address),
-  		GNUNET_i2s (sender));
+  		if (sig_res == GNUNET_SYSERR)
+  			GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  					"Failed to verify: invalid signature on address %s:%s from peer `%s'\n",
+  					tname, GST_plugins_a2s (ve->address),GNUNET_i2s (sender));
   }
 
   if (sig_res == GNUNET_SYSERR)
