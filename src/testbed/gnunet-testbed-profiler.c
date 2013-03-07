@@ -229,7 +229,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   char *hostfile;
 
   hostfile = NULL;
-#ifndef WITH_LL
+#if !ENABLE_LL
   if (NULL == args[0])
   {
     fprintf (stderr, _("No hosts-file specified on command line\n"));
@@ -271,7 +271,7 @@ main (int argc, char *const *argv)
      GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_cont_fails},
     GNUNET_GETOPT_OPTION_END
   };
-#ifdef WITH_LL
+#if ENABLE_LL
   const char *binaryHelp = "gnunet-testbed-profiler [OPTIONS]";
 #else
   const char *binaryHelp = "gnunet-testbed-profiler [OPTIONS] hosts-file";

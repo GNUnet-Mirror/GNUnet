@@ -9,7 +9,7 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
-if WITH_LL
+if ENABLE_LL
   ll_binaries = \
     gnunet-testbed-mpi-spawn
 endif

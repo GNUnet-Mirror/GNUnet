@@ -588,7 +588,7 @@ GNUNET_TESTBED_hosts_load_from_loadleveler (const struct
                                             GNUNET_CONFIGURATION_Handle *cfg,
                                             struct GNUNET_TESTBED_Host ***hosts)
 {
-#ifndef WITH_LL
+#if !ENABLE_LL
   LOG (GNUNET_ERROR_TYPE_ERROR, 
        _("The function %s is only available when compiled with (--with-ll)\n"),
        __func__);

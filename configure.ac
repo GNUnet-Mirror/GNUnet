@@ -965,48 +965,21 @@ AC_DEFINE_UNQUOTED([HAVE_GNUTLS], $gnutls, [We have gnutls])
 
 
 # Test if we are building for superMUC
-llapi=0
 AC_MSG_CHECKING(if testbed should use IBM LoadLeveler to run on SuperMUC)
-AC_ARG_WITH([ll],
-    [AS_HELP_STRING([--with-ll=PFX],
-       [use IBM LoadLeveler (installed at PFX) for running testbed on SuperMUC]. Default is no)],
-    [AC_MSG_RESULT([$with_ll])
-     case $with_ll in
-       no)
-         ;;
-       yes)
-         AC_CHECK_HEADERS([llapi.h],
-     	    AC_CHECK_LIB([llapi], [llsubmit],
-     	        llapi=true,
-		AC_MSG_ERROR(libllapi not found but --with-llapi given)),
-	    AC_MSG_ERROR(llapi.h not found but --with-llapi given))
-     	;;
-       *)
-         LDFLAGS="-L$with_ll/lib $LDFLAGS"
-         CPPFLAGS="-I$with_ll/include $CPPFLAGS"
-	 AC_CHECK_HEADERS([llapi.h],
-     	    AC_CHECK_LIB([llapi], [llsubmit],
-     	        llapi=true,
-		AC_MSG_ERROR(libllapi not found but --with-llapi given)),
-	    AC_MSG_ERROR(llapi.h not found but --with-llapi given))
-        ;;
-     esac
-    ],
-    [AC_MSG_RESULT(--with-ll not specified)])
-AM_CONDITIONAL([WITH_LL], [test "x$llapi" = "xtrue"])
-if test "x$llapi" = "xtrue"
-then
-  AC_DEFINE_UNQUOTED([WITH_LL], [$llapi], [Do we have to use IBM LoadLeveler])
-  AC_CHECK_HEADERS([pwd.h],
-     AC_CHECK_LIB([c],[getpwuid],,
-        AC_MSG_ERROR(getpwid function not available in libc but is required)),
-     AC_MSG_ERROR(pwd.h not found but is required),
-     [[
-       #ifdef HAVE_SYS_TYPES_H
-       #include <sys/types.h>
-       #endif
-     ]])
-fi
+AC_ARG_ENABLE([ll],
+    [AS_HELP_STRING([--enable-ll],
+       [build GNUnet testbed for use with IBM LoadLeveler for running testbed on
+              SuperMUC (default is NO)])],
+    [if `test "x$enable_ll" = "xno"`
+     then
+       ll=false
+     else
+       ll=true
+     fi],
+    [ll=false])
+AC_MSG_RESULT($enable_ll)
+AM_CONDITIONAL([ENABLE_LL], [test "x$ll" = "xtrue"])
+AC_DEFINE_UNQUOTED([ENABLE_LL], [$ll], [Build with LL support])
 
 # should 'make check' run tests?
 AC_MSG_CHECKING(whether to run tests)

@@ -1050,7 +1050,7 @@ GNUNET_TESTBED_run (const char *host_filename,
   GNUNET_assert (num_peers > 0);
   rc = GNUNET_malloc (sizeof (struct RunContext));
   rc->cfg = GNUNET_CONFIGURATION_dup (cfg);
-#ifdef WITH_LL
+#if ENABLE_LL
   rc->num_hosts = GNUNET_TESTBED_hosts_load_from_loadleveler (rc->cfg,
                                                               &rc->hosts);
   if (0 == rc->num_hosts)
