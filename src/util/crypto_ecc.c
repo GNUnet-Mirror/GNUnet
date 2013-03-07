@@ -977,6 +977,8 @@ GNUNET_CRYPTO_ecc_sign (const struct GNUNET_CRYPTO_EccPrivateKey *key,
     LOG (GNUNET_ERROR_TYPE_WARNING,
          _("ECC signing failed at %s:%d: %s\n"), __FILE__,
          __LINE__, gcry_strerror (rc));
+    gcry_sexp_release (data);
+    return GNUNET_SYSERR;
   }
   gcry_sexp_release (data);
   ssize = gcry_sexp_sprint (result, 
