@@ -36,7 +36,16 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 
+#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
+
 #define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
+
+/**
+ * Log an error message at log-level 'level' that indicates
+ * a failure of the command 'cmd' with the message given
+ * by gcry_strerror(rc).
+ */
+#define LOG_GCRY(level, cmd, rc) do { LOG(level, _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, gcry_strerror(rc)); } while(0);
 
 /**
  * Name of the directory which stores meta data for pseudonym
@@ -762,10 +771,91 @@ GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
 struct GNUNET_PseudonymHandle
 {
   /**
-   * FIXME.
+   * 256-bit 'd' secret value (mod 'n', where n is 256-bit for NIST P-256).
    */
-  char data[42];
+  unsigned char d[256 / 8];
+
+  /**
+   * Public key corresponding to the private key.
+   */
+  struct GNUNET_PseudonymIdentifier public_key;
 };
+
+
+/**
+ * If target != size, move target bytes to the end of the size-sized
+ * buffer and zero out the first target-size bytes.
+ *
+ * @param buf original buffer
+ * @param size number of bytes in the buffer
+ * @param target target size of the buffer
+ */
+static void
+adjust (unsigned char *buf, size_t size, size_t target)
+{
+  if (size < target)
+  {
+    memmove (&buf[target - size], buf, size);
+    memset (buf, 0, target - size);
+  }
+}
+
+
+/**
+ * Extract values from an S-expression.
+ *
+ * @param array where to store the result(s)
+ * @param sexp S-expression to parse
+ * @param topname top-level name in the S-expression that is of interest
+ * @param elems names of the elements to extract
+ * @return 0 on success
+ */
+static int
+key_from_sexp (gcry_mpi_t * array, gcry_sexp_t sexp, const char *topname,
+               const char *elems)
+{
+  gcry_sexp_t list;
+  gcry_sexp_t l2;
+  const char *s;
+  unsigned int i;
+  unsigned int idx;
+
+  if (! (list = gcry_sexp_find_token (sexp, topname, 0)))
+    return 1;  
+  l2 = gcry_sexp_cadr (list);
+  gcry_sexp_release (list);
+  list = l2;
+  if (! list)  
+    return 2;
+  idx = 0;
+  for (s = elems; *s; s++, idx++)
+  {
+    if (! (l2 = gcry_sexp_find_token (list, s, 1)))
+    {
+      for (i = 0; i < idx; i++)
+      {
+        gcry_free (array[i]);
+        array[i] = NULL;
+      }
+      gcry_sexp_release (list);
+      return 3;                 /* required parameter not found */
+    }
+    array[idx] = gcry_sexp_nth_mpi (l2, 1, GCRYMPI_FMT_USG);
+    gcry_sexp_release (l2);
+    if (! array[idx])
+    {
+      for (i = 0; i < idx; i++)
+      {
+        gcry_free (array[i]);
+        array[i] = NULL;
+      }
+      gcry_sexp_release (list);
+      return 4;                 /* required parameter is invalid */
+    }
+  }
+  gcry_sexp_release (list);
+  return 0;
+}
 
 
 /**
@@ -779,6 +869,11 @@ GNUNET_PSEUDONYM_create (const char *filename)
 {
   struct GNUNET_PseudonymHandle *ph;
   ssize_t ret;
+  gcry_sexp_t r_key;
+  gcry_sexp_t params;
+  gcry_error_t rc;
+  gcry_mpi_t skey[2];
+  size_t size;
 
   ph = GNUNET_malloc (sizeof (struct GNUNET_PseudonymHandle));
   if ( (NULL != filename) &&
@@ -786,12 +881,40 @@ GNUNET_PSEUDONYM_create (const char *filename)
   {
     ret = GNUNET_DISK_fn_read (filename, ph, 
 			       sizeof (struct GNUNET_PseudonymHandle));
+    /* Note: we don't do any validation here, maybe we should? */
     if (sizeof (struct GNUNET_PseudonymHandle) == ret)
       return ph;
+  }  
+  if (0 != (rc = gcry_sexp_build (&params, NULL,
+                                  "(genkey(ecdsa(curve \"NIST P-256\")))")))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+    return NULL;
   }
-  GNUNET_break (0); // not implemented...
-  gcry_randomize (ph, sizeof (struct GNUNET_PseudonymHandle),
-		  GCRY_STRONG_RANDOM);
+  if (0 != (rc = gcry_pk_genkey (&r_key, params)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+    return NULL;
+  }
+  /* NOTE: treating a point as a normal MPI value; hopefully that works... */
+  rc = key_from_sexp (skey, r_key, "private-key", "dq");
+  if (0 != rc)
+    rc = key_from_sexp (skey, r_key, "private-key", "dq");
+  if (0 != rc)
+    rc = key_from_sexp (skey, r_key, "ecc", "dq");
+  gcry_sexp_release (r_key);
+  size = sizeof (ph->d);
+  GNUNET_assert (0 ==
+                 gcry_mpi_print (GCRYMPI_FMT_USG, ph->d, size, &size,
+                                 skey[0]));
+  adjust (ph->d, size, sizeof (ph->d));
+  size = sizeof (ph->public_key.q);  
+  GNUNET_assert (0 ==
+                 gcry_mpi_print (GCRYMPI_FMT_USG, ph->public_key.q, size, &size,
+                                 skey[1]));
+  adjust (ph->public_key.q, size, sizeof (ph->public_key.q));
+  gcry_mpi_release (skey[0]);
+  gcry_mpi_release (skey[1]);
   if (NULL != filename)
   {
     ret = GNUNET_DISK_fn_write (filename, ph, sizeof (struct GNUNET_PseudonymHandle),
@@ -821,10 +944,13 @@ GNUNET_PSEUDONYM_create_from_existing_file (const char *filename)
   ph = GNUNET_malloc (sizeof (struct GNUNET_PseudonymHandle));
   ret = GNUNET_DISK_fn_read (filename, ph, 
 			     sizeof (struct GNUNET_PseudonymHandle));
-  if (sizeof (struct GNUNET_PseudonymHandle) == ret)
-    return ph;
-  GNUNET_free (ph);
-  return NULL;
+  if (sizeof (struct GNUNET_PseudonymHandle) != ret)
+  {
+    GNUNET_free (ph);
+    return NULL;
+  }
+  /* Note: we don't do any validation here; maybe we should? */
+  return ph;
 }
 
 
@@ -842,6 +968,13 @@ GNUNET_PSEUDONYM_get_anonymous_pseudonym_handle ()
   struct GNUNET_PseudonymHandle *ph;
 
   ph = GNUNET_malloc (sizeof (struct GNUNET_PseudonymHandle));
+  /* FIXME: if we use 'd=0' for the anonymous handle (as per#2564),
+     then I believe the public key should be also zero, as Q=0P=0.
+     However, libgcrypt's point representation is completely internal,
+     and treats a z-coordinate of zero as infinity, so we likely need
+     to set it to (0,0,1) internally --- or actually calculate Q=qP
+     explicitly.  Either way, we don't have an API to do so yet :-(.
+  */
   GNUNET_break (0);
   return ph;
 }
@@ -861,6 +994,39 @@ GNUNET_PSEUDONYM_destroy (struct GNUNET_PseudonymHandle *ph)
 
 
 /**
+ * Convert the data specified in the given purpose argument to an
+ * S-expression suitable for signature operations.
+ *
+ * @param purpose data to convert
+ * @return converted s-expression
+ */
+static gcry_sexp_t
+data_to_pkcs1 (const struct GNUNET_PseudonymSignaturePurpose *purpose)
+{
+  struct GNUNET_CRYPTO_ShortHashCode hc;
+  size_t bufSize;
+  gcry_sexp_t data;
+
+  GNUNET_CRYPTO_short_hash (purpose, ntohl (purpose->size), &hc);
+#define FORMATSTRING "(4:data(5:flags3:raw)(5:value32:01234567890123456789012345678901))"
+  bufSize = strlen (FORMATSTRING) + 1;
+  {
+    char buff[bufSize];
+
+    memcpy (buff, FORMATSTRING, bufSize);
+    memcpy (&buff
+	    [bufSize -
+	     strlen
+	     ("01234567890123456789012345678901))")
+	     - 1], &hc, sizeof (struct GNUNET_CRYPTO_ShortHashCode));
+    GNUNET_assert (0 == gcry_sexp_new (&data, buff, bufSize, 0));
+  }
+#undef FORMATSTRING
+  return data;
+}
+
+
+/**
  * Cryptographically sign some data with the pseudonym.
  *
  * @param ph private key used for signing (corresponds to 'x' in #2564)
@@ -871,16 +1037,144 @@ GNUNET_PSEUDONYM_destroy (struct GNUNET_PseudonymHandle *ph)
  * @param signing_key modifier to apply to the private key for signing;
  *                    corresponds to 'h' in section 2.3 of #2564.
  * @param signature where to store the signature
+ * @return GNUNET_SYSERR on failure
  */
-void
+int 
 GNUNET_PSEUDONYM_sign (struct GNUNET_PseudonymHandle *ph,
 		       const struct GNUNET_PseudonymSignaturePurpose *purpose,
 		       const struct GNUNET_HashCode *seed,
 		       const struct GNUNET_HashCode *signing_key,
 		       struct GNUNET_PseudonymSignature *signature)
 {
-  memset (signature, 0, sizeof (struct GNUNET_PseudonymSignature));
-  GNUNET_break (0);
+  size_t size;
+  size_t erroff;
+  gcry_mpi_t x;
+  gcry_mpi_t k;
+  gcry_mpi_t h;
+  gcry_mpi_t d;
+  gcry_mpi_t n; /* n from P-256 */
+  gcry_sexp_t spriv;
+  gcry_sexp_t data;
+  gcry_sexp_t result;
+  gcry_mpi_t rs[2];
+  int rc;
+
+  /* get private key 'x' from pseudonym */
+  size = sizeof (ph->d);
+  if (0 != (rc = gcry_mpi_scan (&x, GCRYMPI_FMT_USG,
+				&ph->d,
+				size, &size)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+    return GNUNET_SYSERR;
+  }
+  /* get 'h' value from signing key */
+  size = sizeof (struct GNUNET_HashCode);
+  if (0 != (rc = gcry_mpi_scan (&h, GCRYMPI_FMT_USG,
+				signing_key,
+				size, &size)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+    gcry_mpi_release (x);
+    return GNUNET_SYSERR;
+  } 
+  
+  /* initialize 'n' from P-256; hex copied from libgcrypt code */
+  if (0 != (rc = gcry_mpi_scan (&n, GCRYMPI_FMT_HEX, 
+				"0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551", 0, NULL)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+    gcry_mpi_release (x);
+    gcry_mpi_release (h);
+    return GNUNET_SYSERR;
+  }
+
+  /* calculate d = x + h mod n */
+  d = gcry_mpi_new (256);
+  gcry_mpi_addm (d, x, h, n);
+  gcry_mpi_release (x);
+  gcry_mpi_release (h);
+  gcry_mpi_release (n);
+  
+  /* now build sexpression with the signing key;
+     NOTE: libgcrypt docs say that we should specify 'Q', but
+     with the current API we cannot calculate Q=dP, so hopefully
+     libgcrypt will derive it from 'd' for us... */
+  if (0 != (rc = gcry_sexp_build (&spriv, &erroff,
+				  "(private-key(ecc(curve \"NIST P-256\")(d %m)))",
+				  d)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+    gcry_mpi_release (d);
+    return GNUNET_SYSERR;
+  }
+  gcry_mpi_release (d);
+  /* prepare data for signing */
+  data = data_to_pkcs1 (purpose);
+  
+  /* get 'k' value from seed, if available */
+  if (NULL != seed)
+  {
+    size = sizeof (struct GNUNET_HashCode);
+    if (0 != (rc = gcry_mpi_scan (&k, GCRYMPI_FMT_USG,
+				  seed,
+				  size, &size)))
+    {
+      LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+      gcry_mpi_release (x);
+      return GNUNET_SYSERR;
+    }
+  }
+
+  /* actually create signature */
+  /* FIXME: need API to pass 'k' if 'seed' was non-NULL! */
+  if (0 != (rc = gcry_pk_sign (&result, data, spriv)))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         _("ECC signing failed at %s:%d: %s\n"), __FILE__,
+         __LINE__, gcry_strerror (rc));
+    gcry_sexp_release (data);
+    gcry_sexp_release (spriv);
+    if (NULL != seed)
+      gcry_mpi_release (k);
+    memset (signature, 0, sizeof (struct GNUNET_PseudonymSignature));
+    return GNUNET_SYSERR;
+  }
+  if (NULL != seed)
+    gcry_mpi_release (k);
+  gcry_sexp_release (data);
+  gcry_sexp_release (spriv);
+
+  /* extract 'r' and 's' values from sexpression 'result' and store in 'signature';
+     FIXME: libgcrypt does not document format of s-expression returned for ECC
+     signatures; so "ecc" here is just a guess. */
+  if (0 != (rc = key_from_sexp (rs, result, "ecc", "rs")))
+  {
+    GNUNET_break (0);
+    gcry_sexp_release (result);
+    return GNUNET_SYSERR;
+  }
+  gcry_sexp_release (result);
+  size = sizeof (signature->sig_r);
+  if (0 != (rc = gcry_mpi_print (GCRYMPI_FMT_USG, (unsigned char *) signature->sig_r, size,
+                                 &size, rs[0])))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_print", rc);
+    gcry_mpi_release (rs[0]);
+    gcry_mpi_release (rs[1]);
+    return GNUNET_SYSERR;
+  }
+  gcry_mpi_release (rs[0]);
+  size = sizeof (signature->sig_s);
+  if (0 != (rc = gcry_mpi_print (GCRYMPI_FMT_USG, (unsigned char *) signature->sig_s, size,
+                                 &size, rs[1])))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_print", rc);
+    gcry_mpi_release (rs[1]);
+    return GNUNET_SYSERR;
+  }
+  gcry_mpi_release (rs[1]);
+  return GNUNET_OK;
 }
 
 
@@ -888,25 +1182,43 @@ GNUNET_PSEUDONYM_sign (struct GNUNET_PseudonymHandle *ph,
  * Given a pseudonym and a signing key, derive the corresponding public
  * key that would be used to verify the resulting signature.
  *
- * @param pseudonym the public key (g^x)
+ * @param pseudonym the public key (g^x in DSA, dQ in ECDSA)
  * @param signing_key input to derive 'h' (see section 2.4 of #2564)
  * @param verification_key resulting public key to verify the signature
  *        created from the 'ph' of 'pseudonym' and the 'signing_key';
  *        the value stored here can then be given to GNUNET_PSEUDONYM_verify.
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-void
+int
 GNUNET_PSEUDONYM_derive_verification_key (struct GNUNET_PseudonymIdentifier *pseudonym,
 					  const struct GNUNET_HashCode *signing_key,
 					  struct GNUNET_PseudonymIdentifier *verification_key)
 {
   struct GNUNET_HashCode hc;
   struct GNUNET_HashCode x;
+  gcry_mpi_t h;  
+  size_t size;
+  int rc;
 
+  /* get 'h' value from signing key */
+  size = sizeof (struct GNUNET_HashCode);
+  if (0 != (rc = gcry_mpi_scan (&h, GCRYMPI_FMT_USG,
+				signing_key,
+				size, &size)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+    return GNUNET_SYSERR;
+  }
+  /* FIXME: calculate hQ --- need point multiplication API! */
+  gcry_mpi_release (h);
+  /* FIXME: calculate V = dQ + hQ --- need point addition API! */
+  
   GNUNET_break (0);
   GNUNET_CRYPTO_hash (pseudonym, sizeof (*pseudonym), &hc);
   GNUNET_CRYPTO_hash_xor (&hc, signing_key, &x);  
   memset (verification_key, 0, sizeof (struct GNUNET_PseudonymIdentifier));
   memcpy (verification_key, &x, GNUNET_MIN (sizeof (x), sizeof (*verification_key)));
+  return GNUNET_OK;
 }
 
 
@@ -925,7 +1237,84 @@ GNUNET_PSEUDONYM_verify (const struct GNUNET_PseudonymSignaturePurpose *purpose,
 			 const struct GNUNET_PseudonymSignature *signature,
 			 const struct GNUNET_PseudonymIdentifier *verification_key)
 {
+#if FUTURE
+  gcry_sexp_t data;
+  gcry_sexp_t sig_sexpr;
+  gcry_sexp_t pk_sexpr;
+  size_t size;
+  gcry_mpi_t r;
+  gcry_mpi_t s;
+  gcry_mpi_t q;
+  size_t erroff;
+  int rc;
+
+  /* build s-expression for signature */
+  size = sizeof (signature->sig_r);
+  if (0 != (rc = gcry_mpi_scan (&r, GCRYMPI_FMT_USG,
+                                signature->sig_r, size, &size)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+    return GNUNET_SYSERR;
+  }
+  size = sizeof (signature->sig_s);
+  if (0 != (rc = gcry_mpi_scan (&s, GCRYMPI_FMT_USG,
+                                signature->sig_s, size, &size)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+    gcry_mpi_release (r);
+    return GNUNET_SYSERR;
+  }
+  if (0 != (rc = gcry_sexp_build (&sig_sexpr, &erroff, "(sig-val(ecc(r %m)(s %m)))",
+                                  r, s)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+    gcry_mpi_release (r);
+    gcry_mpi_release (s);
+    return GNUNET_SYSERR;
+  }
+  gcry_mpi_release (r);
+  gcry_mpi_release (s);
+
+  /* build s-expression for data that was signed */
+  data = data_to_pkcs1 (purpose);
+
+  /* build s-expression for public key */
+  /* NOTE: treating a point as a normal MPI value; hopefully that works... */
+  size = sizeof (verification_key->q);
+  if (0 != (rc = gcry_mpi_scan (&q, GCRYMPI_FMT_USG,
+                                verification_key->q, size, &size)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+    gcry_sexp_release (data);
+    gcry_sexp_release (sig_sexpr);
+    return GNUNET_SYSERR;
+  }
+  if (0 != (rc = gcry_sexp_build (&sig_sexpr, &erroff, "(public-key(ecc(curve \"NIST P-256\")(q %m)))",
+                                  q)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+    gcry_mpi_release (q);
+    gcry_sexp_release (data);
+    gcry_sexp_release (sig_sexpr);
+    return GNUNET_SYSERR;
+  }
+  gcry_mpi_release (q);
+
+  /* finally, verify the signature */
+  rc = gcry_pk_verify (sig_sexpr, data, pk_sexpr);
+  gcry_sexp_release (sig_sexpr);
+  gcry_sexp_release (data);
+  gcry_sexp_release (pk_sexpr);
+  if (rc)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         _("RSA signature verification failed at %s:%d: %s\n"), __FILE__,
+         __LINE__, gcry_strerror (rc));
+    return GNUNET_SYSERR;
+  }
+#else
   GNUNET_break (0);
+#endif
   return GNUNET_OK;
 }
 
@@ -940,10 +1329,8 @@ void
 GNUNET_PSEUDONYM_get_identifier (struct GNUNET_PseudonymHandle *ph,
 				 struct GNUNET_PseudonymIdentifier *pseudonym)
 {
-  GNUNET_break (0);
-  memcpy (pseudonym, ph, 
-	  GNUNET_MIN (sizeof (struct GNUNET_PseudonymIdentifier),
-		      sizeof (*ph)));
+  memcpy (pseudonym, &ph->public_key,
+	  sizeof (struct GNUNET_PseudonymIdentifier));
 }
 
 
@@ -956,19 +1343,17 @@ GNUNET_PSEUDONYM_get_identifier (struct GNUNET_PseudonymHandle *ph,
  */
 int
 GNUNET_PSEUDONYM_remove (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    const struct GNUNET_PseudonymIdentifier *id)
+			 const struct GNUNET_PseudonymIdentifier *id)
 {
   char *fn;
   int result;
 
-  result = GNUNET_SYSERR;
   fn = get_data_filename (cfg, PS_METADATA_DIR, id);
-  if (NULL != fn)
-  {
-    result = UNLINK (fn);
-    GNUNET_free (fn);
-  }
-  return (GNUNET_OK == result ? GNUNET_OK : GNUNET_SYSERR);
+  if (NULL == fn)
+    return GNUNET_SYSERR;
+  result = UNLINK (fn);
+  GNUNET_free (fn);  
+  return (0 == result) ? GNUNET_OK : GNUNET_SYSERR;
 }
 
 /* end of pseudonym.c */

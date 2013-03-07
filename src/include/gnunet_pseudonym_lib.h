@@ -42,13 +42,21 @@ extern "C"
 
 /**
  * Identifier for a GNUnet pseudonym (the public key).
+ * Q-point, Q=dp.
  */
 struct GNUNET_PseudonymIdentifier
 {
   /**
-   * The public key of the pseudonym.
+   * Q consists of an x- and a y-value, each mod p (256 bits);
+   * however, (to speed up calculations and/or represent infinity)
+   * libgcrypt uses projective coordinates, which add an extra
+   * dimension.  Thus, the MPI value is typically one additional byte
+   * longer (512 bit + 8 bits).  As we want a size that is a
+   * multiplicative of 8, we add 8 bytes (not 8 bits), which should
+   * always suffice to represent Q.
    */
-  char public_key[42];
+  unsigned char q[(256 + 256 / 8) + 8];
+
 };
 
 
@@ -59,20 +67,29 @@ struct GNUNET_PseudonymHandle;
 
 
 /**
- * Signature made with a pseudonym (includes the full public key)
+ * Signature made with a pseudonym (includes the full public key).
+ * The ECDSA signature is a pair (r,s) with r = x1 mod n where
+ * (x1,y1) = kG for "random" k and s = k^{-1}(z + rd) mod n,
+ * where z is derived from the hash of the message that is being
+ * signed.
  */
 struct GNUNET_PseudonymSignature
 {
   
   /**
-   * Who created the signature? (public key of the signer)
+   * Who created the signature? (public key of the signer), 'd' value in NIST P-256.
    */
   struct GNUNET_PseudonymIdentifier signer;
 
   /**
-   * Binary signature data, padded with zeros if needed.
+   * Binary ECDSA signature data, r-value.  Value is mod n, and n is 256 bits.
    */
-  char signature[42];
+  unsigned char sig_r[256 / 8];
+
+  /**
+   * Binary ECDSA signature data, s-value.  Value is mod n, and n is 256 bits.
+   */
+  unsigned char sig_s[256 / 8];
 };
 
 
@@ -146,8 +163,9 @@ GNUNET_PSEUDONYM_destroy (struct GNUNET_PseudonymHandle *ph);
  * @param signing_key modifier to apply to the private key for signing;
  *                    corresponds to 'h' in section 2.3 of #2564.
  * @param signature where to store the signature
+ * @return GNUNET_SYSERR on failure
  */
-void
+int
 GNUNET_PSEUDONYM_sign (struct GNUNET_PseudonymHandle *ph,
 		       const struct GNUNET_PseudonymSignaturePurpose *purpose,
 		       const struct GNUNET_HashCode *seed,
@@ -159,13 +177,14 @@ GNUNET_PSEUDONYM_sign (struct GNUNET_PseudonymHandle *ph,
  * Given a pseudonym and a signing key, derive the corresponding public
  * key that would be used to verify the resulting signature.
  *
- * @param pseudonym the public key (g^x)
+ * @param pseudonym the public key (g^x in DSA, dQ in ECDSA)
  * @param signing_key input to derive 'h' (see section 2.4 of #2564)
  * @param verification_key resulting public key to verify the signature
  *        created from the 'ph' of 'pseudonym' and the 'signing_key';
  *        the value stored here can then be given to GNUNET_PSEUDONYM_verify.
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-void
+int
 GNUNET_PSEUDONYM_derive_verification_key (struct GNUNET_PseudonymIdentifier *pseudonym,
 					  const struct GNUNET_HashCode *signing_key,
 					  struct GNUNET_PseudonymIdentifier *verification_key);
