@@ -970,15 +970,15 @@ AC_ARG_ENABLE([ll],
     [AS_HELP_STRING([--enable-ll],
        [build GNUnet testbed for use with IBM LoadLeveler for running testbed on
               SuperMUC (default is NO)])],
-    [if `test "x$enable_ll" = "xno"`
+    [if test "x$enable_ll" = "xno"
      then
-       ll=false
+       ll=0
      else
-       ll=true
+       ll=1
      fi],
-    [ll=false])
+    [ll=0])
 AC_MSG_RESULT($enable_ll)
-AM_CONDITIONAL([ENABLE_LL], [test "x$ll" = "xtrue"])
+AM_CONDITIONAL([ENABLE_LL], [test "x$ll" = "x1"])
 AC_DEFINE_UNQUOTED([ENABLE_LL], [$ll], [Build with LL support])
 
 # should 'make check' run tests?
