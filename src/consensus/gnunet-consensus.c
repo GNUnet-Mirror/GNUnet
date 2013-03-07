@@ -65,6 +65,16 @@ controller_cb(void *cls,
 }
 
 
+static void
+destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *ctx)
+{
+  struct GNUNET_CONSENSUS_Handle *consensus;
+  consensus = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "destroying consensus\n");
+  GNUNET_CONSENSUS_destroy (consensus);
+}
+
+
 /**
  * Called when a conclusion was successful.
  *
@@ -72,12 +82,11 @@ controller_cb(void *cls,
  * @param group
  * @return GNUNET_YES if more consensus groups should be offered, GNUNET_NO if not
  */
-static int
+static void
 conclude_cb (void *cls, const struct GNUNET_CONSENSUS_Group *group)
 {
-  return GNUNET_NO;
+  GNUNET_SCHEDULER_add_now (destroy, cls);
 }
-
 
 
 static void

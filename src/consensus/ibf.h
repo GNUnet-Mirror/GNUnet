@@ -39,11 +39,27 @@ extern "C"
 #endif
 #endif
 
+
+struct IBF_Key
+{
+  uint64_t key_val;
+};
+
+struct IBF_KeyHash
+{
+  uint32_t key_hash_val;
+};
+
+struct IBF_Count
+{
+  int8_t count_val;
+};
+
 /**
  * Size of one ibf bucket in bytes
  */
-#define IBF_BUCKET_SIZE (8+4+1)
-
+#define IBF_BUCKET_SIZE (sizeof (struct IBF_Count) + sizeof (struct IBF_Key) + \
+    sizeof (struct IBF_KeyHash))
 
 /**
  * Invertible bloom filter (IBF).
@@ -62,7 +78,7 @@ struct InvertibleBloomFilter
    * In how many cells do we hash one element?
    * Usually 4 or 3.
    */
-  unsigned int hash_num;
+  uint8_t hash_num;
 
   /**
    * Salt for mingling hashes
@@ -70,21 +86,82 @@ struct InvertibleBloomFilter
   uint32_t salt;
 
   /**
-   * xor sums of the elements' hash codes, used to identify the elements.
+   * Xor sums of the elements' keys, used to identify the elements.
+   * Array of 'size' elements.
    */
-  uint64_t *id_sum;
+  struct IBF_Key *key_sum;
 
   /**
-   * xor sums of the "hash of the hash".
+   * Xor sums of the hashes of the keys of inserted elements.
+   * Array of 'size' elements.
    */
-  uint32_t *hash_sum;
+  struct IBF_KeyHash *key_hash_sum;
 
   /**
    * How many times has a bucket been hit?
    * Can be negative, as a result of IBF subtraction.
+   * Array of 'size' elements.
    */
-  int8_t *count;
+  struct IBF_Count *count;
 };
+
+
+/**
+ * Write an ibf.
+ * 
+ * @param ibf the ibf to write
+ * @param start with which bucket to start
+ * @param count how many buckets to write
+ * @param buf buffer to write the data to, will be updated to point to the
+ *            first byte after the written data
+ * @param size pointer to the size of the buffer, will be updated, can be NULL
+ */
+void
+ibf_write_slice (const struct InvertibleBloomFilter *ibf, uint32_t start, uint32_t count, void **buf, size_t *size);
+
+
+/**
+ * Read an ibf.
+ *
+ * @param buf pointer to the buffer to write to, will point to first
+ *            byte after the written data
+ * @param size size of the buffer, will be updated
+ * @param start which bucket to start at
+ * @param count how many buckets to read
+ * @param dst ibf to write buckets to
+ * @return GNUNET_OK on success
+ */
+int
+ibf_read_slice (void **buf, size_t *size, uint32_t start, uint32_t count, struct InvertibleBloomFilter *dst);
+
+
+/**
+ * Write an ibf.
+ * 
+ * @param ibf the ibf to write
+ * @param start with which bucket to start
+ * @param count how many buckets to write
+ * @param buf buffer to write the data to, will be updated to point to the
+ *            first byte after the written data
+ * @param size pointer to the size of the buffer, will be updated, can be NULL
+ */
+void
+ibf_write (const struct InvertibleBloomFilter *ibf, void **buf, size_t *size);
+
+
+/**
+ * Read an ibf.
+ *
+ * @param buf pointer to the buffer to write to, will point to first
+ *            byte after the written data
+ * @param size size of the buffer, will be updated
+ * @param start which bucket to start at
+ * @param count how many buckets to read
+ * @param dst ibf to write buckets to
+ * @return GNUNET_OK on success
+ */
+int
+ibf_read (void **buf, size_t *size, struct InvertibleBloomFilter *dst);
 
 
 /**
@@ -93,7 +170,7 @@ struct InvertibleBloomFilter
  * @param hash the hashcode
  * @return a key
  */
-uint64_t
+struct IBF_Key
 ibf_key_from_hashcode (const struct GNUNET_HashCode *hash);
 
 
@@ -105,7 +182,7 @@ ibf_key_from_hashcode (const struct GNUNET_HashCode *hash);
  * @param dst hashcode to store the result in
  */
 void
-ibf_hashcode_from_key (uint64_t key, struct GNUNET_HashCode *dst);
+ibf_hashcode_from_key (struct IBF_Key key, struct GNUNET_HashCode *dst);
 
 
 /**
@@ -118,17 +195,17 @@ ibf_hashcode_from_key (uint64_t key, struct GNUNET_HashCode *dst);
  * @return the newly created invertible bloom filter
  */
 struct InvertibleBloomFilter *
-ibf_create(uint32_t size, unsigned int hash_num, uint32_t salt);
+ibf_create (uint32_t size, uint8_t hash_num, uint32_t salt);
 
 
 /**
  * Insert an element into an IBF.
  *
  * @param ibf the IBF
- * @param id the element's hash code
+ * @param key the element's hash code
  */
 void
-ibf_insert (struct InvertibleBloomFilter *ibf, uint64_t id);
+ibf_insert (struct InvertibleBloomFilter *ibf, struct IBF_Key key);
 
 
 /**
@@ -154,7 +231,7 @@ ibf_subtract (struct InvertibleBloomFilter *ibf1, const struct InvertibleBloomFi
  *         GNUNET_SYSERR if the decoding has faile
  */
 int
-ibf_decode (struct InvertibleBloomFilter *ibf, int *side, uint64_t *ret_id);
+ibf_decode (struct InvertibleBloomFilter *ibf, int *side, struct IBF_Key *ret_key);
 
 
 /**
@@ -163,7 +240,7 @@ ibf_decode (struct InvertibleBloomFilter *ibf, int *side, uint64_t *ret_id);
  * @param ibf the IBF to copy
  */
 struct InvertibleBloomFilter *
-ibf_dup (struct InvertibleBloomFilter *ibf);
+ibf_dup (const struct InvertibleBloomFilter *ibf);
 
 /**
  * Destroy all resources associated with the invertible bloom filter.

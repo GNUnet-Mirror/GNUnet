@@ -20,7 +20,7 @@
 
 /**
  * @file include/gnunet_consensus_service.h
- * @brief 
+ * @brief multi-peer set reconciliation
  * @author Florian Dold
  */
 
@@ -65,9 +65,7 @@ struct GNUNET_CONSENSUS_Element
 
 /**
  * Called when a new element was received from another peer, or an error occured.
- *
  * May deliver duplicate values.
- *
  * Elements given to a consensus operation by the local peer are NOT given
  * to this callback.
  *
@@ -147,32 +145,17 @@ GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
                          void *idc_cls);
 
 
-/**
- * Begin reconciling elements with other peers.
- * May not be called if an insert operation has not yet finished.
- *
- * @param consensus handle for the consensus session
- */
-void
-GNUNET_CONSENSUS_begin (struct GNUNET_CONSENSUS_Handle *consensus);
-
-
-
 struct GNUNET_CONSENSUS_DeltaRequest;
 
 /**
- * We are finished inserting new elements into the consensus;
- * try to conclude the consensus within a given time window.
+ * FIXME
  *
  * @param consensus consensus session
- * @param timeout timeout after which the conculde callback
- *                must be called
- * @param conclude called when the conclusion was successful
- * @param conclude_cls closure for the conclude callback
+ * @param remove_element_cb callback that receives the removed elements
+ * @return a handle to cancel the request
  */
 struct GNUNET_CONSENSUS_DeltaRequest *
 GNUNET_CONSENSUS_get_delta (struct GNUNET_CONSENSUS_Handle *consensus,
-                            uint32_t group_id,
                             GNUNET_CONSENSUS_ElementCallback remove_element_cb,
                             void *remove_element_cb_cls);
 
@@ -194,9 +177,8 @@ struct GNUNET_CONSENSUS_Group
  *
  * @param cls
  * @param group
- * @return GNUNET_YES if more consensus groups should be offered, GNUNET_NO if not
  */
-typedef int (*GNUNET_CONSENSUS_ConcludeCallback) (void *cls, const struct GNUNET_CONSENSUS_Group *group);
+typedef void (*GNUNET_CONSENSUS_ConcludeCallback) (void *cls, const struct GNUNET_CONSENSUS_Group *group);
 
 
 /**

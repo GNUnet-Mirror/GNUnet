@@ -1684,20 +1684,29 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_DIFFERENCE_DIGEST 542
 
 /**
- * Elements, and requests for further elements
+ * One or more elements that are sent from peer to peer.
  */
 #define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS 543
-
 
 /**
  * Elements, and requests for further elements
  */
 #define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS_REQUEST 544
 
+/**
+ * Elements that a peer misses locally.
+ */
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS_MISSING_LOCAL 545
+
+/**
+ * Elements that a peer reports to be missing at the remote peer.
+ */
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS_MISSING_REMOTE 546
+
 /*
  * Initialization message for consensus p2p communication.
  */
-#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_HELLO 544
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_HELLO 547
 
 
 /**

@@ -56,7 +56,7 @@ static void
 register_hashcode (struct GNUNET_HashCode *hash)
 {
   struct GNUNET_HashCode replicated;
-  uint64_t key;
+  struct IBF_Key key;
   key = ibf_key_from_hashcode (hash);
   ibf_hashcode_from_key (key, &replicated);
   GNUNET_CONTAINER_multihashmap_put (key_to_hashcode, &replicated, GNUNET_memdup (hash, sizeof *hash),
@@ -64,7 +64,7 @@ register_hashcode (struct GNUNET_HashCode *hash)
 }
 
 static void
-iter_hashcodes (uint64_t key, GNUNET_CONTAINER_HashMapIterator iter, void *cls)
+iter_hashcodes (struct IBF_Key key, GNUNET_CONTAINER_HashMapIterator iter, void *cls)
 {
   struct GNUNET_HashCode replicated;
   ibf_hashcode_from_key (key, &replicated);
@@ -100,7 +100,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_HashCode id;
-  uint64_t ibf_key;
+  struct IBF_Key ibf_key;
   int i;
   int side;
   int res;

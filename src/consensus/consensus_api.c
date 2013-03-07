@@ -139,6 +139,12 @@ struct GNUNET_CONSENSUS_Handle
 
   struct QueuedMessage *messages_head;
   struct QueuedMessage *messages_tail;
+
+  /**
+   * GNUNET_YES when currently in a section where destroy may not be
+   * called.
+   */
+  int may_not_destroy;
 };
 
 
@@ -279,7 +285,9 @@ handle_conclude_done (struct GNUNET_CONSENSUS_Handle *consensus,
                      struct GNUNET_CONSENSUS_ConcludeDoneMessage *msg)
 {
   GNUNET_assert (NULL != consensus->conclude_cb);
+  consensus->may_not_destroy = GNUNET_YES;
   consensus->conclude_cb (consensus->conclude_cls, NULL);
+  consensus->may_not_destroy = GNUNET_NO;
   consensus->conclude_cb = NULL;
 }
 
@@ -523,6 +531,11 @@ GNUNET_CONSENSUS_conclude (struct GNUNET_CONSENSUS_Handle *consensus,
 void
 GNUNET_CONSENSUS_destroy (struct GNUNET_CONSENSUS_Handle *consensus)
 {
+  if (GNUNET_YES == consensus->may_not_destroy)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR, "destroy may not be called right now\n");
+    GNUNET_assert (0);
+  }
   if (consensus->client != NULL)
   {
     GNUNET_CLIENT_disconnect (consensus->client);

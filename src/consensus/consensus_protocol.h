@@ -39,6 +39,10 @@ struct StrataMessage
 {
   struct GNUNET_MessageHeader header;
   /**
+   * Number of elements the sender currently has.
+   */
+  uint16_t num_elements;
+  /**
    * Number of strata in this estimator.
    */
   uint16_t num_strata;
