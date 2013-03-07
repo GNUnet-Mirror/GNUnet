@@ -781,7 +781,8 @@ GNUNET_PSEUDONYM_create (const char *filename)
   ssize_t ret;
 
   ph = GNUNET_malloc (sizeof (struct GNUNET_PseudonymHandle));
-  if (NULL != filename)
+  if ( (NULL != filename) &&
+       (GNUNET_YES == GNUNET_DISK_file_test (filename)) )
   {
     ret = GNUNET_DISK_fn_read (filename, ph, 
 			       sizeof (struct GNUNET_PseudonymHandle));
