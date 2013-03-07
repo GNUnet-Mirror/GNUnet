@@ -1606,8 +1606,12 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
     char *tmp;
 
     tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
-    LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT PUT %s: %s(%u)<-%s\n", 
-                 GNUNET_h2s (&put->key), tmp, getpid (), GNUNET_i2s (peer));
+    LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT PUT %s: %s->%s (%u, %u=>%u)\n", 
+                 GNUNET_h2s (&put->key), GNUNET_i2s (peer), tmp,
+                 ntohl(put->hop_count),
+                 GNUNET_CRYPTO_hash_matching_bits (&peer->hashPubKey, &put->key),
+                 GNUNET_CRYPTO_hash_matching_bits (&my_identity.hashPubKey, &put->key)
+                );
     GNUNET_free (tmp);
   }
 
@@ -1865,8 +1869,9 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
     char *tmp;
 
     tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
-    LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT GET %s: %s(%u)<-%s\n", 
-                 GNUNET_h2s (&get->key), tmp, getpid(), GNUNET_i2s (peer));
+    LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT GET %s: %s->%s (%u)\n", 
+                 GNUNET_h2s (&get->key), GNUNET_i2s (peer), tmp,
+                 ntohl(get->hop_count));
     GNUNET_free (tmp);
   }
 
@@ -1995,8 +2000,9 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
     char *tmp;
 
     tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
-    LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT RESULT %s: %s(%u)<-%s\n", 
-                 GNUNET_h2s (&prm->key), tmp, getpid(), GNUNET_i2s (peer));
+    LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT RESULT %s: %s->%s (%u)\n", 
+                 GNUNET_h2s (&prm->key), GNUNET_i2s (peer), tmp,
+                 get_path_length + 1);
     GNUNET_free (tmp);
   }
 
