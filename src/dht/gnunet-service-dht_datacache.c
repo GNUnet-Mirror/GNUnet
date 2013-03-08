@@ -58,6 +58,8 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
                           enum GNUNET_BLOCK_Type type, size_t data_size,
                           const void *data)
 {
+  int r;
+
   if (NULL == datacache)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -73,9 +75,11 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# ITEMS stored in datacache"), 1,
                             GNUNET_NO);
-  (void) GNUNET_DATACACHE_put (datacache, key, 
-			       data_size, data, type,
-                               expiration, put_path_length, put_path);
+  r = GNUNET_DATACACHE_put (datacache, key, data_size, data, type, expiration,
+                            put_path_length, put_path);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "DATACACHE PUT for key %s [%u] completed (%d) after %u hops\n",
+              GNUNET_h2s (key), data_size, r, put_path_length);
 }
 
 
@@ -220,6 +224,7 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
                           uint32_t reply_bf_mutator)
 {
   struct GetRequestContext ctx;
+  unsigned int r;
 
   if (datacache == NULL)
     return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
@@ -232,8 +237,11 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
   ctx.xquery_size = xquery_size;
   ctx.reply_bf = reply_bf;
   ctx.reply_bf_mutator = reply_bf_mutator;
-  (void) GNUNET_DATACACHE_get (datacache, key, type, &datacache_get_iterator,
-                               &ctx);
+  r = GNUNET_DATACACHE_get (datacache, key, type, &datacache_get_iterator, 
+                            &ctx);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "DATACACHE GET for key %s completed (%d). %u resoutlf found.\n",
+              GNUNET_h2s (key), ctx.eval, r);
   return ctx.eval;
 }
 
