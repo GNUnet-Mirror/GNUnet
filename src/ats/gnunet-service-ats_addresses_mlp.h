@@ -273,6 +273,17 @@ struct GAS_MLP_Handle
    * Can be disabled for test and measurements
    */
   int mlp_auto_solve;
+
+  /**
+   * Write MILP problem to a MPS file
+   */
+  int write_mip_mps;
+
+  /**
+   * Write MILP problem to a MPS file
+   */
+  int write_mip_sol;
+
 };
 
 

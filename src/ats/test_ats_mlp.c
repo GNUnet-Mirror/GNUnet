@@ -272,6 +272,9 @@ check (void *cls, char *const *args, const char *cfgfile,
   GAS_mlp_get_preferred_address (mlp, addresses, &p[0]);
   GAS_mlp_get_preferred_address (mlp, addresses, &p[1]);
 
+  mlp->write_mip_mps = GNUNET_YES;
+  mlp->write_mip_sol = GNUNET_YES;
+
   GAS_mlp_solve_problem (mlp, addresses);
 }
 

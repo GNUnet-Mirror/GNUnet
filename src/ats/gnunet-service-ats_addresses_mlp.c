@@ -136,11 +136,6 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-mlp",__VA_ARGS__)
 
 /**
- * Write MLP problem to disk
- */
-#define WRITE_MLP GNUNET_NO
-
-/**
  * Print debug output for mlp problem creation
  */
 #define DEBUG_MLP_PROBLEM_CREATION GNUNET_YES
@@ -917,6 +912,7 @@ int
 GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses)
 {
 	struct GAS_MLP_Handle *mlp = solver;
+	char *filename;
 	int res_lp = 0;
 	int res_mip = 0;
 	struct GNUNET_TIME_Absolute start_build;
@@ -985,17 +981,20 @@ GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addr
 	if ((GNUNET_OK == res_lp) && (GNUNET_OK == res_mip))
 		GNUNET_CONTAINER_multihashmap_iterate (addresses, &mlp_propagate_results, mlp);
 
-	/* Write problem and solution to disk */
-#if WRITE_MLP
-	char *filename;
 	struct GNUNET_TIME_Absolute time = GNUNET_TIME_absolute_get();
-	GNUNET_asprintf (&filename, "problem_%llu.lp", time.abs_value);
-	glp_write_lp(mlp->p.prob, 0, filename);
+	if (GNUNET_YES == mlp->write_mip_mps)
+	{
+	/* Write problem and solution to disk */
+	GNUNET_asprintf (&filename, "problem_p_%u_a%u_%llu.mps", mlp->p.num_peers, mlp->p.num_addresses, time.abs_value);
+	glp_write_mps(mlp->p.prob, GLP_MPS_FILE, NULL, filename);
 	GNUNET_free (filename);
-	GNUNET_asprintf (&filename, "problem_%llu.mip", time.abs_value);
-	glp_print_mip (mlp->p.prob, filename );
-	GNUNET_free (filename);
-#endif
+	}
+	if (GNUNET_YES == mlp->write_mip_sol)
+	{
+		GNUNET_asprintf (&filename, "problem_p_%u_a%u_%llu.sol", mlp->p.num_peers, mlp->p.num_addresses, time.abs_value);
+		glp_print_mip (mlp->p.prob, filename );
+		GNUNET_free (filename);
+	}
 
 	/* Reset change and update marker */
 	mlp->control_param_lp.presolve = GLP_NO;
@@ -1778,6 +1777,8 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   mlp->pv.b_min = b_min;
   mlp->pv.n_min = n_min;
   mlp->pv.m_q = GNUNET_ATS_QualityPropertiesCount;
+  mlp->write_mip_mps = GNUNET_NO;
+  mlp->write_mip_sol = GNUNET_NO;
   mlp->mlp_prob_changed = GNUNET_NO;
   mlp->mlp_prob_updated = GNUNET_NO;
   mlp->mlp_auto_solve = GNUNET_YES;
