@@ -1973,6 +1973,194 @@ handle_slave_get_config (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Context data for GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS handler
+ */
+struct HandlerContext_ShutdownPeers
+{
+  /**
+   * The number of slave we expect to hear from since we forwarded the
+   * GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS message to them
+   */
+  unsigned int nslaves;
+
+  /**
+   * Did we observe a timeout with respect to this operation at any of the
+   * slaves
+   */
+  int timeout;
+};
+
+
+/**
+ * Task run upon timeout of forwarded SHUTDOWN_PEERS operation
+ *
+ * @param cls the ForwardedOperationContext
+ * @param tc the scheduler task context
+ */
+static void
+shutdown_peers_timeout_cb (void *cls,
+                           const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ForwardedOperationContext *fo_ctxt = cls;
+  struct HandlerContext_ShutdownPeers *hc;
+
+  hc = fo_ctxt->cls;
+  hc->timeout = GNUNET_YES;
+  GNUNET_assert (0 < hc->nslaves);
+  hc->nslaves--;
+  if (0 == hc->nslaves)
+    GST_send_operation_fail_msg (fo_ctxt->client, fo_ctxt->operation_id,
+                                 "Timeout at a slave controller");
+  GNUNET_TESTBED_forward_operation_msg_cancel_ (fo_ctxt->opc);  
+  GNUNET_SERVER_client_drop (fo_ctxt->client);
+  GNUNET_CONTAINER_DLL_remove (fopcq_head, fopcq_tail, fo_ctxt);
+  GNUNET_free (fo_ctxt);
+}
+
+
+/**
+ * The reply msg handler forwarded SHUTDOWN_PEERS operation.  Checks if a
+ * success reply is received from all clients and then sends the success message
+ * to the client
+ *
+ * @param cls ForwardedOperationContext
+ * @param msg the message to relay
+ */
+static void
+shutdown_peers_reply_cb (void *cls,
+                         const struct GNUNET_MessageHeader *msg)
+{
+  struct ForwardedOperationContext *fo_ctxt = cls;
+  struct HandlerContext_ShutdownPeers *hc;
+  
+  hc = fo_ctxt->cls;
+  GNUNET_assert (0 < hc->nslaves);
+  hc->nslaves--;
+  if (GNUNET_MESSAGE_TYPE_TESTBED_GENERIC_OPERATION_SUCCESS != 
+      ntohs (msg->type))
+    hc->timeout = GNUNET_YES;
+  if (0 == hc->nslaves)
+  {
+    if (GNUNET_YES == hc->timeout)
+      GST_send_operation_fail_msg (fo_ctxt->client, fo_ctxt->operation_id,
+                                   "Timeout at a slave controller");
+    else
+      send_operation_success_msg (fo_ctxt->client, fo_ctxt->operation_id);
+  }
+  GNUNET_SERVER_client_drop (fo_ctxt->client);
+  GNUNET_CONTAINER_DLL_remove (fopcq_head, fopcq_tail, fo_ctxt);
+  GNUNET_free (fo_ctxt);
+}
+
+
+/**
+ * Stops and destroys all peers
+ */
+static void
+destroy_peers ()
+{
+  struct Peer *peer;
+  unsigned int id;
+
+  if (NULL == GST_peer_list)
+    return;
+  for (id = 0; id < GST_peer_list_size; id++)
+  {
+    peer = GST_peer_list[id];
+    if (NULL == peer)
+      continue;
+    /* If destroy flag is set it means that this peer should have been
+     * destroyed by a context which we destroy before */
+    GNUNET_break (GNUNET_NO == peer->destroy_flag);
+    /* counter should be zero as we free all contexts before */
+    GNUNET_break (0 == peer->reference_cnt);
+    if ((GNUNET_NO == peer->is_remote) &&
+        (GNUNET_YES == peer->details.local.is_running))
+      GNUNET_TESTING_peer_kill (peer->details.local.peer);
+  }
+  for (id = 0; id < GST_peer_list_size; id++)
+  {
+    peer = GST_peer_list[id];
+    if (NULL == peer)
+      continue;    
+    if (GNUNET_NO == peer->is_remote)
+    {
+      if (GNUNET_YES == peer->details.local.is_running)
+        GNUNET_TESTING_peer_wait (peer->details.local.peer);
+      GNUNET_TESTING_peer_destroy (peer->details.local.peer);
+      GNUNET_CONFIGURATION_destroy (peer->details.local.cfg);
+    }
+    GNUNET_free (peer);
+  }
+  GNUNET_free_non_null (GST_peer_list);
+  GST_peer_list = NULL;
+}
+
+
+/**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS messages
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_shutdown_peers (void *cls, struct GNUNET_SERVER_Client *client,
+                       const struct GNUNET_MessageHeader *message)
+{
+  const struct GNUNET_TESTBED_ShutdownPeersMessage *msg;
+  struct HandlerContext_ShutdownPeers *hc;
+  struct Slave *slave;
+  struct ForwardedOperationContext *fo_ctxt;
+  uint64_t op_id;
+  unsigned int cnt;
+
+  msg = (const struct GNUNET_TESTBED_ShutdownPeersMessage *) message;
+  LOG_DEBUG ("Received SHUTDOWN_PEERS\n");
+  /* Forward to all slaves which we have started */
+  op_id = GNUNET_ntohll (msg->operation_id);
+  hc = GNUNET_malloc (sizeof (struct HandlerContext_ShutdownPeers));
+  /* FIXME: have a better implementation where we track which slaves are
+     started by this controller */
+  for (cnt = 0; cnt < GST_slave_list_size; cnt++)
+  {
+    slave = GST_slave_list[cnt];
+    if (NULL == slave)
+      continue;
+    if (NULL == slave->controller_proc) /* We didn't start the slave */
+      continue;
+    LOG_DEBUG ("Forwarding SHUTDOWN_PEERS\n");
+    hc->nslaves++;
+    fo_ctxt = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+    GNUNET_SERVER_client_keep (client);
+    fo_ctxt->client = client;
+    fo_ctxt->operation_id = op_id;
+    fo_ctxt->cls = hc;
+    fo_ctxt->type = OP_SHUTDOWN_PEERS;
+    fo_ctxt->opc =
+        GNUNET_TESTBED_forward_operation_msg_ (slave->controller,
+                                               fo_ctxt->operation_id,
+                                               &msg->header,
+                                               shutdown_peers_reply_cb,
+                                               fo_ctxt);
+    fo_ctxt->timeout_task =
+        GNUNET_SCHEDULER_add_delayed (GST_timeout, &shutdown_peers_timeout_cb,
+                                      fo_ctxt);
+    GNUNET_CONTAINER_DLL_insert_tail (fopcq_head, fopcq_tail, fo_ctxt);
+  }
+  LOG_DEBUG ("Shutting down peers\n");
+  /* Stop and destroy all peers */
+  destroy_peers ();
+  if (0 == hc->nslaves)
+  {
+    send_operation_success_msg (client, op_id);
+    GNUNET_free (hc);
+  }
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);  
+}
+
+
+/**
  * Iterator over hash map entries.
  *
  * @param cls closure
@@ -2062,6 +2250,16 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     case OP_PEER_CREATE:
       GNUNET_free (fopc->cls);
       break;
+    case OP_SHUTDOWN_PEERS:
+      {
+        struct HandlerContext_ShutdownPeers *hc = fopc->cls;
+        
+        GNUNET_assert (0 < hc->nslaves);
+        hc->nslaves--;
+        if (0 == hc->nslaves)
+          GNUNET_free (hc);
+      }
+      break;
     case OP_PEER_START:
     case OP_PEER_STOP:
     case OP_PEER_DESTROY:
@@ -2096,31 +2294,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GST_free_occq ();
   GST_free_roccq ();
   /* Clear peer list */
-  for (id = 0; id < GST_peer_list_size; id++)
-    if (NULL != GST_peer_list[id])
-    {
-      /* If destroy flag is set it means that this peer should have been
-       * destroyed by a context which we destroy before */
-      GNUNET_break (GNUNET_NO == GST_peer_list[id]->destroy_flag);
-      /* counter should be zero as we free all contexts before */
-      GNUNET_break (0 == GST_peer_list[id]->reference_cnt);
-      if ((GNUNET_NO == GST_peer_list[id]->is_remote) &&
-          (GNUNET_YES == GST_peer_list[id]->details.local.is_running))
-        GNUNET_TESTING_peer_kill (GST_peer_list[id]->details.local.peer);
-    }
-  for (id = 0; id < GST_peer_list_size; id++)
-    if (NULL != GST_peer_list[id])
-    {
-      if (GNUNET_NO == GST_peer_list[id]->is_remote)
-      {
-        if (GNUNET_YES == GST_peer_list[id]->details.local.is_running)
-          GNUNET_TESTING_peer_wait (GST_peer_list[id]->details.local.peer);
-        GNUNET_TESTING_peer_destroy (GST_peer_list[id]->details.local.peer);
-        GNUNET_CONFIGURATION_destroy (GST_peer_list[id]->details.local.cfg);
-      }
-      GNUNET_free (GST_peer_list[id]);
-    }
-  GNUNET_free_non_null (GST_peer_list);
+  destroy_peers ();
   /* Clear host list */
   for (id = 0; id < GST_host_list_size; id++)
     if (NULL != GST_host_list[id])
@@ -2242,9 +2416,11 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
      sizeof (struct GNUNET_TESTBED_OverlayConnectMessage)},
     {&GST_handle_remote_overlay_connect, NULL,
      GNUNET_MESSAGE_TYPE_TESTBED_REMOTE_OVERLAY_CONNECT, 0},
-    {handle_slave_get_config, NULL,
+    {&handle_slave_get_config, NULL,
      GNUNET_MESSAGE_TYPE_TESTBED_GET_SLAVE_CONFIGURATION,
      sizeof (struct GNUNET_TESTBED_SlaveGetConfigurationMessage)},
+    {&handle_shutdown_peers, NULL, GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS,
+     sizeof (struct GNUNET_TESTBED_ShutdownPeersMessage)},
     {NULL}
   };
   char *logfile;

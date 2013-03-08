@@ -103,15 +103,20 @@ enum State
    */
   RC_READY,
 
-  /**
-   * Peers are stopped
-   */
-  RC_PEERS_STOPPED,
+  /* /\** */
+  /*  * Peers are stopped */
+  /*  *\/ */
+  /* RC_PEERS_STOPPED, */
+
+  /* /\** */
+  /*  * Peers are destroyed */
+  /*  *\/ */
+  /* RC_PEERS_DESTROYED */
 
   /**
-   * Peers are destroyed
+   * All peers shutdown (stopped and destroyed)
    */
-  RC_PEERS_DESTROYED
+  RC_PEERS_SHUTDOWN
 };
 
 
@@ -377,7 +382,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (NULL == rc->reg_handle);
   GNUNET_assert (NULL == rc->peers);
   GNUNET_assert (NULL == rc->hc_handles);
-  GNUNET_assert (RC_PEERS_DESTROYED == rc->state);
+  GNUNET_assert (RC_PEERS_SHUTDOWN == rc->state);
   if (NULL != rc->dll_op_head)
   {                             /* cancel our pending operations */
     while (NULL != (dll_op = rc->dll_op_head))
@@ -441,8 +446,6 @@ shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RunContext *rc = cls;
   struct DLLOperation *dll_op;
-  int all_peers_destroyed;
-  unsigned int peer;
   unsigned int nhost;
 
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != rc->shutdown_run_task);
@@ -479,61 +482,17 @@ shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       }
       if (RC_INIT == rc->state)
         rc->state = RC_READY;   /* Even though we haven't called the master callback */
-      rc->peer_count = 0;
-      /* Check if some peers are stopped */
-      for (peer = 0; peer < rc->num_peers; peer++)
-      {
-        if (NULL == rc->peers[peer])
-          continue;
-        if (PS_STOPPED != rc->peers[peer]->state)
-          break;
-      }
-      if (peer == rc->num_peers)
-      {
-        /* All peers are stopped */
-        rc->state = RC_PEERS_STOPPED;
-        all_peers_destroyed = GNUNET_YES;
-        for (peer = 0; peer < rc->num_peers; peer++)
-        {
-          if (NULL == rc->peers[peer])
-            continue;
-          all_peers_destroyed = GNUNET_NO;
-          dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-          dll_op->op = GNUNET_TESTBED_peer_destroy (rc->peers[peer]);
-          GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail,
-                                            dll_op);
-        }
-        if (all_peers_destroyed == GNUNET_NO)
-        {
-          DEBUG ("Destroying peers\n");
-          rc->pstart_time = GNUNET_TIME_absolute_get ();
-          return;
-        }
-      }
-      /* Some peers are stopped */
-      DEBUG ("Stopping peers\n");
+      dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
+      dll_op->op = GNUNET_TESTBED_shutdown_peers (rc->c, dll_op, NULL, NULL);
+      DEBUG ("Shutting down peers\n");
       rc->pstart_time = GNUNET_TIME_absolute_get ();
-      for (peer = 0; peer < rc->num_peers; peer++)
-      {
-        if ((NULL == rc->peers[peer]) || (PS_STARTED != rc->peers[peer]->state))
-        {
-          rc->peer_count++;
-          continue;
-        }
-        dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-        dll_op->op = GNUNET_TESTBED_peer_stop (rc->peers[peer], NULL, NULL);
-        dll_op->cls = rc->peers[peer];
-        GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail,
-                                          dll_op);
-      }
-      if (rc->peer_count != rc->num_peers)
-        return;
-      GNUNET_free (rc->peers);
-      rc->peers = NULL;
+      GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail,
+                                        dll_op);
+      return;
     }
   }
-  rc->state = RC_PEERS_DESTROYED;       /* No peers are present so we consider the
-                                         * state where all peers are destroyed  */
+  rc->state = RC_PEERS_SHUTDOWN;       /* No peers are present so we consider the
+                                        * state where all peers are SHUTDOWN  */
   GNUNET_SCHEDULER_add_now (&cleanup_task, rc);
 }
 
@@ -625,7 +584,6 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
 {
   struct RunContext *rc = cls;
   struct DLLOperation *dll_op;
-  unsigned int peer_id;
 
   if (RC_INIT == rc->state)
   {
@@ -661,40 +619,20 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     if ((GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type) &&
         (event->details.operation_finished.operation == dll_op->op))
       break;
-    if ((GNUNET_TESTBED_ET_PEER_STOP == event->type) &&
-        (event->details.peer_stop.peer == dll_op->cls))
-      break;
   }
   if (NULL == dll_op)
     goto call_cc;
   GNUNET_CONTAINER_DLL_remove (rc->dll_op_head, rc->dll_op_tail, dll_op);
   GNUNET_TESTBED_operation_done (dll_op->op);
   GNUNET_free (dll_op);
-  rc->peer_count++;
-  if (rc->peer_count < rc->num_peers)
-    return;
   switch (rc->state)
   {
   case RC_PEERS_CREATED:
   case RC_READY:
-    rc->state = RC_PEERS_STOPPED;
-    DEBUG ("Peers stopped in %s\n", prof_time (rc));
-    DEBUG ("Destroying peers\n");
-    rc->pstart_time = GNUNET_TIME_absolute_get ();
-    rc->peer_count = 0;
-    for (peer_id = 0; peer_id < rc->num_peers; peer_id++)
-    {
-      dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-      dll_op->op = GNUNET_TESTBED_peer_destroy (rc->peers[peer_id]);
-      GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail,
-                                        dll_op);
-    }
-    break;
-  case RC_PEERS_STOPPED:
-    rc->state = RC_PEERS_DESTROYED;
+    rc->state = RC_PEERS_SHUTDOWN;
     GNUNET_free (rc->peers);
     rc->peers = NULL;
-    DEBUG ("Peers destroyed in %s\n", prof_time (rc));
+    DEBUG ("Peers shut down in %s\n", prof_time (rc));
     GNUNET_SCHEDULER_add_now (&cleanup_task, rc);
     break;
   default:
@@ -876,7 +814,6 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_CONFIGURATION_destroy (rc->cfg);
   rc->cfg = GNUNET_CONFIGURATION_dup (cfg);
   event_mask = rc->event_mask;
-  event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
   if (rc->topology < GNUNET_TESTBED_TOPOLOGY_NONE)

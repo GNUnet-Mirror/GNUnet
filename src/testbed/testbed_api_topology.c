@@ -429,6 +429,8 @@ gen_topo_ring (struct TopologyContext *tc)
  * @param rows number of rows in the 2d torus. Can be NULL
  * @param rows_len the length of each row. This array will be allocated
  *          fresh. The caller should free it. Can be NULL
+ * @return the number of links that are required to generate a 2d torus for the
+ *           given number of peers
  */
 unsigned int
 GNUNET_TESTBED_2dtorus_calc_links (unsigned int num_peers, unsigned int *rows,
@@ -451,7 +453,7 @@ GNUNET_TESTBED_2dtorus_calc_links (unsigned int num_peers, unsigned int *rows,
   for (y = 0; y < _rows - 1; y++)
     _rows_len[y] = sq_floor;
   _num_peers = sq_floor * sq_floor;
-  cnt = 2 * _num_peers;
+  cnt = (_num_peers < 2) ? _num_peers : 2 * _num_peers;
   x = 0;
   y = 0;
   while (_num_peers < num_peers)
