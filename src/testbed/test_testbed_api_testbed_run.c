@@ -31,7 +31,7 @@
 /**
  * Number of peers we want to start
  */
-#define NUM_PEERS 2
+#define NUM_PEERS 5
 
 /**
  * The array of peers; we fill this as the peers are given to us by the testbed
