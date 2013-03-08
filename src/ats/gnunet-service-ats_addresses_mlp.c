@@ -525,7 +525,7 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
   	mlpi->r_q[0] = 0;
 
   /* Add bandwidth column */
-  GNUNET_asprintf (&name, "b_%s_%s", GNUNET_i2s (&address->peer), address->plugin);
+  GNUNET_asprintf (&name, "b_%s_%s_%p", GNUNET_i2s (&address->peer), address->plugin, address);
 #if TEST_MAX_BW_ASSIGNMENT
   mlpi->c_b = mlp_create_problem_create_column (p, name, GLP_CV, GLP_LO, 0.0, 0.0, 1.0);
 #else
@@ -535,7 +535,7 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
   GNUNET_free (name);
 
   /* Add usage column */
-  GNUNET_asprintf (&name, "n_%s_%s", GNUNET_i2s (&address->peer), address->plugin);
+  GNUNET_asprintf (&name, "n_%s_%s_%p", GNUNET_i2s (&address->peer), address->plugin, address);
   mlpi->c_n = mlp_create_problem_create_column (p, name, GLP_IV, GLP_DB, 0.0, 1.0, 0.0);
   GNUNET_free (name);
 
@@ -543,7 +543,7 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
 	/* Add constraint c1) bandwidth capping
    * b_t  + (-M) * n_t <= 0
    * */
-  GNUNET_asprintf(&name, "c1_%s_%s", GNUNET_i2s(&address->peer), address->plugin);
+  GNUNET_asprintf(&name, "c1_%s_%s_%p", GNUNET_i2s(&address->peer), address->plugin, address);
   mlpi->r_c1 = mlp_create_problem_create_constraint (p, name, GLP_UP, 0.0, 0.0);
 	GNUNET_free (name);
 
@@ -555,7 +555,7 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
   /* Add constraint c 3) minimum bandwidth
    * b_t + (-n_t * b_min) >= 0
    * */
-  GNUNET_asprintf(&name, "c3_%s_%s", GNUNET_i2s(&address->peer), address->plugin);
+  GNUNET_asprintf(&name, "c3_%s_%s_%p", GNUNET_i2s(&address->peer), address->plugin, address);
 	mlpi->r_c3 = mlp_create_problem_create_constraint (p, name, GLP_LO, 0.0, 0.0);
 	GNUNET_free (name);
 
