@@ -76,7 +76,8 @@ struct PerfPeer
 };
 
 static int ret;
-static int numeric;
+static int opt_numeric;
+static int opt_dump;
 
 static int N_peers_start;
 static int N_peers_end;
@@ -213,11 +214,13 @@ check (void *cls, char *const *args, const char *cfgfile,
       return;
   }
   mlp->mlp_auto_solve = GNUNET_NO;
+  mlp->write_mip_mps = opt_dump;
+  mlp->write_mip_sol = opt_dump;
 
 	for (cp = 0; cp < count_p; cp++)
 			perf_create_peer (cp);
 
-	if (GNUNET_YES == numeric)
+	if (GNUNET_YES == opt_numeric)
 		fprintf (stderr, "#peers;#addresses per peer;LP/MIP state;presolv;exec build in ms;exec LP in ms; exec MIP in ms;#cols;#rows;#nonzero elements\n");
 
 	for (cp = 0; cp < count_p; cp++)
@@ -235,7 +238,7 @@ check (void *cls, char *const *args, const char *cfgfile,
 			{
 
 				GAS_mlp_solve_problem (mlp, addresses);
-				if (GNUNET_NO == numeric)
+				if (GNUNET_NO == opt_numeric)
 					fprintf (stderr, "%u peers each %u addresses;  LP/MIP state [%s/%s] presolv [%s/%s], (build/LP/MIP in ms): %04llu %04llu %04llu; size (cols x rows, nonzero elements): [%u x %u] = %u\n",
 							cp + 1, ca,
 							(GNUNET_OK == mlp->ps.lp_res) ? "OK" : "FAIL",
@@ -291,6 +294,8 @@ main (int argc, char *argv[])
     NULL
   };
 
+  opt_dump = GNUNET_NO;
+
   N_peers_start = 0;
   N_peers_end = 0;
   N_address = 0;
@@ -320,7 +325,11 @@ main (int argc, char *argv[])
   		}
   		if ((0 == strcmp (argv[c], "-n")))
   		{
-  				numeric = GNUNET_YES;
+  				opt_numeric = GNUNET_YES;
+  		}
+  		if ((0 == strcmp (argv[c], "-d")))
+  		{
+  				opt_dump = GNUNET_YES;
   		}
   }
 
