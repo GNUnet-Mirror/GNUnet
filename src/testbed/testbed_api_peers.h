@@ -66,6 +66,16 @@ enum PeerState
 struct GNUNET_TESTBED_Peer
 {
   /**
+   * peer list DLL
+   */
+  struct GNUNET_TESTBED_Peer *next;
+
+  /**
+   * peer list DLL
+   */
+  struct GNUNET_TESTBED_Peer *prev;
+
+  /**
    * Our controller context (not necessarily the controller
    * that is responsible for starting/running the peer!).
    */
@@ -247,6 +257,31 @@ struct OverlayConnectData
 struct GNUNET_TESTBED_PeerGetConfigurationMessage *
 GNUNET_TESTBED_generate_peergetconfig_msg_ (uint32_t peer_id,
                                             uint64_t operation_id);
+
+
+/**
+ * Adds a peer to the peer list
+ *
+ * @param peer the peer to add to the peer list
+ */
+void
+GNUNET_TESTBED_peer_register_ (struct GNUNET_TESTBED_Peer *peer);
+
+
+/**
+ * Removes a peer from the peer list
+ *
+ * @param peer the peer to remove
+ */
+void
+GNUNET_TESTBED_peer_deregister_ (struct GNUNET_TESTBED_Peer *peer);
+
+
+/**
+ * Frees all peers
+ */
+void
+GNUNET_TESTBED_cleanup_peers_ (void);
 
 #endif
 /* end of testbed_api_peers.h */

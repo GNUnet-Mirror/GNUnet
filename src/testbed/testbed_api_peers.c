@@ -33,6 +33,59 @@
 #include "testbed_api_hosts.h"
 #include "testbed_api_operations.h"
 
+
+/**
+ * Peer list DLL head
+ */
+static struct GNUNET_TESTBED_Peer *peer_list_head;
+
+/**
+ * Peer list DLL tail
+ */
+static struct GNUNET_TESTBED_Peer *peer_list_tail;
+
+
+/**
+ * Adds a peer to the peer list
+ *
+ * @param peer the peer to add to the peer list
+ */
+void
+GNUNET_TESTBED_peer_register_ (struct GNUNET_TESTBED_Peer *peer)
+{
+  GNUNET_CONTAINER_DLL_insert_tail (peer_list_head, peer_list_tail, peer);
+}
+
+
+/**
+ * Removes a peer from the peer list
+ *
+ * @param peer the peer to remove
+ */
+void
+GNUNET_TESTBED_peer_deregister_ (struct GNUNET_TESTBED_Peer *peer)
+{
+  GNUNET_CONTAINER_DLL_remove (peer_list_head, peer_list_tail, peer);
+}
+
+
+/**
+ * Frees all peers
+ */
+void
+GNUNET_TESTBED_cleanup_peers_ (void)
+{
+  struct GNUNET_TESTBED_Peer *peer;
+
+  while (NULL != (peer = peer_list_head))
+  {
+    GNUNET_TESTBED_peer_deregister_ (peer);
+    GNUNET_free (peer);
+  }
+}
+
+
+
 /**
  * Function to call to start a peer_create type operation once all
  * queues the operation is part of declare that the

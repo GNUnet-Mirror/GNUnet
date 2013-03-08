@@ -258,6 +258,7 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
     struct GNUNET_TESTBED_Peer *peer;
 
     peer = opc->data;
+    GNUNET_TESTBED_peer_deregister_ (peer);
     GNUNET_free (peer);
     opc->data = NULL;
     //PEERDESTROYDATA
@@ -270,6 +271,7 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
     data = opc->data;
     GNUNET_free (data);         /* FIXME: Decide whether we call data->op_cb */
     opc->data = NULL;
+    GNUNET_TESTBED_cleanup_peers_ ();
   }
     break;
   default:
@@ -330,6 +332,7 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
   peer = data->peer;
   GNUNET_assert (peer->unique_id == ntohl (msg->peer_id));
   peer->state = PS_CREATED;
+  GNUNET_TESTBED_peer_register_ (peer);
   cb = data->cb;
   cls = data->cls;
   GNUNET_free (opc->data);
