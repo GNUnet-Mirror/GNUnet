@@ -602,7 +602,7 @@ try_connect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (NULL != tcc->pid);
   GNUNET_assert (NULL != tcc->th_);
   GNUNET_assert (NULL != tcc->cgh_th);
-  LOG_DEBUG ("0x%llx: Trail %u to connect to peer %s\n", tcc->op_id,
+  LOG_DEBUG ("0x%llx: Trail %u to connect to peer %4s\n", tcc->op_id,
              tcc->retries, GNUNET_i2s (tcc->pid));
   tcc->tch =
       GNUNET_TRANSPORT_try_connect (tcc->th_, tcc->pid, &try_connect_cb, tcc);
@@ -647,7 +647,10 @@ occ_hello_sent_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (GNUNET_SCHEDULER_REASON_READ_READY != tc->reason)
     return;
   GNUNET_free_non_null (occ->emsg);
-  GNUNET_asprintf (&occ->emsg, "0x%llx: Timeout while try connect", occ->op_id);
+  GNUNET_asprintf (&occ->emsg,
+                   "0x%llx: Timeout during TRANSPORT_try_connect() "
+                   "at peer %4s", occ->op_id, 
+                   GNUNET_i2s(&occ->peer_identity));
   occ->tcc.pid = &occ->peer_identity;
   occ->tcc.op_id = occ->op_id;
   occ->tcc.task = GNUNET_SCHEDULER_add_now (&try_connect_task, &occ->tcc);
