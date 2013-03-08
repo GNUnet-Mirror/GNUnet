@@ -81,7 +81,6 @@ src/fs/fs_file_information.c
 src/fs/fs_getopt.c
 src/fs/fs_list_indexed.c
 src/fs/fs_misc.c
-src/fs/fs_namespace_advertise.c
 src/fs/fs_namespace.c
 src/fs/fs_publish.c
 src/fs/fs_publish_ksk.c
@@ -195,14 +194,15 @@ src/testbed/gnunet_mpi_test.c
 src/testbed/gnunet-service-testbed.c
 src/testbed/gnunet-service-testbed_cache.c
 src/testbed/gnunet-service-testbed_oc.c
+src/testbed/gnunet_testbed_ll_master.c
+src/testbed/gnunet_testbed_ll_monitor.c
+src/testbed/gnunet_testbed_mpi_spawn.c
 src/testbed/gnunet-testbed-profiler.c
-src/testbed/ll_master.c
-src/testbed/ll_monitor.c
-src/testbed/standard_deviation.c
 src/testbed/testbed_api.c
 src/testbed/testbed_api_hosts.c
 src/testbed/testbed_api_operations.c
 src/testbed/testbed_api_peers.c
+src/testbed/testbed_api_sd.c
 src/testbed/testbed_api_services.c
 src/testbed/testbed_api_statistics.c
 src/testbed/testbed_api_testbed.c
