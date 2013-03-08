@@ -141,6 +141,23 @@ struct ControllerLinkData
 
 
 /**
+ * Date context for OP_SHUTDOWN_PEERS operations
+ */
+struct ShutdownPeersData
+{
+  /**
+   * The operation completion callback to call
+   */
+  GNUNET_TESTBED_OperationCompletionCallback cb;
+
+  /**
+   * The closure for the above callback
+   */
+  void *cb_cls;
+};
+
+
+/**
  * This variable is set to the operation that has been last marked as done. It
  * is used to verify whether the state associated with an operation is valid
  * after the first notify callback is called. Such checks are necessary for
@@ -244,6 +261,15 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
     GNUNET_free (peer);
     opc->data = NULL;
     //PEERDESTROYDATA
+  }
+    break;
+  case OP_SHUTDOWN_PEERS:
+  {
+    struct ShutdownPeersData *data;
+
+    data = opc->data;
+    GNUNET_free (data);         /* FIXME: Decide whether we call data->op_cb */
+    opc->data = NULL;
   }
     break;
   default:
@@ -624,6 +650,15 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
   case OP_FORWARDED:
     GNUNET_assert (0);
   case OP_LINK_CONTROLLERS:    /* No secondary callback */
+    break;    
+  case OP_SHUTDOWN_PEERS:
+  {
+    struct ShutdownPeersData *data;
+
+    data = opc->data;
+    GNUNET_free (data);         /* FIXME: Decide whether we call data->op_cb */
+    opc->data = NULL;
+  }
     break;
   default:
     GNUNET_break (0);
@@ -831,6 +866,15 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                            GNUNET_TESTBED_GenericOperationSuccessEventMessage *)
                           msg);
     break;
+  case GNUNET_MESSAGE_TYPE_TESTBED_OPERATION_FAIL_EVENT:
+    GNUNET_assert (msize >=
+                   sizeof (struct GNUNET_TESTBED_OperationFailureEventMessage));
+    status =
+        handle_op_fail_event (c,
+                              (const struct
+                               GNUNET_TESTBED_OperationFailureEventMessage *)
+                              msg);
+    break;
   case GNUNET_MESSAGE_TYPE_TESTBED_CREATE_PEER_SUCCESS:
     GNUNET_assert (msize ==
                    sizeof (struct
@@ -866,15 +910,6 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
         handle_peer_conevent (c,
                               (const struct
                                GNUNET_TESTBED_ConnectionEventMessage *) msg);
-    break;
-  case GNUNET_MESSAGE_TYPE_TESTBED_OPERATION_FAIL_EVENT:
-    GNUNET_assert (msize >=
-                   sizeof (struct GNUNET_TESTBED_OperationFailureEventMessage));
-    status =
-        handle_op_fail_event (c,
-                              (const struct
-                               GNUNET_TESTBED_OperationFailureEventMessage *)
-                              msg);
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_SLAVE_CONFIGURATION:
     GNUNET_assert (msize > sizeof (struct GNUNET_TESTBED_SlaveConfiguration));
@@ -1925,6 +1960,92 @@ GNUNET_TESTBED_get_next_op_id (struct GNUNET_TESTBED_Controller * controller)
   op_id = op_id << 32;
   op_id |= (uint64_t) controller->operation_counter++;
   return op_id;
+}
+
+
+/**
+ * Function called when a shutdown peers operation is ready
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void
+opstart_shutdown_peers (void *cls)
+{
+  struct OperationContext *opc = cls;
+  struct GNUNET_TESTBED_ShutdownPeersMessage *msg;
+
+  opc->state = OPC_STATE_STARTED;
+  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ShutdownPeersMessage));
+  msg->header.size = 
+      htons (sizeof (struct GNUNET_TESTBED_ShutdownPeersMessage));
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS);
+  msg->operation_id = GNUNET_htonll (opc->id);
+  GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_TESTBED_queue_message_ (opc->c, &msg->header);
+}
+
+
+/**
+ * Callback which will be called when shutdown peers operation is released
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void
+oprelease_shutdown_peers (void *cls)
+{
+  struct OperationContext *opc = cls;
+
+  if (OPC_STATE_FINISHED != opc->state)
+  {
+    GNUNET_free (opc->data);
+    GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  }
+  GNUNET_free (opc);
+}
+
+
+/**
+ * Stops and destroys all peers.  Is equivalent of calling
+ * GNUNET_TESTBED_peer_stop() and GNUNET_TESTBED_peer_destroy() on all peers,
+ * except that the peer stop event and operation finished event corresponding to
+ * the respective functions are not generated.  This function should be called
+ * when there are no other pending operations.  If there are pending operations,
+ * it will return NULL
+ *
+ * @param controller the controller to send this message to
+ * @param op_cls closure for the operation
+ * @param cb the callback to call when all peers are stopped and destroyed
+ * @param cb_cls the closure for the callback
+ * @return operation handle on success; NULL if any pending operations are
+ *           present
+ */
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_shutdown_peers (struct GNUNET_TESTBED_Controller *controller,
+                               void *op_cls,
+                               GNUNET_TESTBED_OperationCompletionCallback cb,
+                               void *cb_cls)
+{
+  struct OperationContext *opc;
+  struct ShutdownPeersData *data;
+
+  if (NULL != controller->ocq_head)
+    return NULL;
+  data = GNUNET_malloc (sizeof (struct ShutdownPeersData));
+  data->cb = cb;
+  data->cb_cls = cb_cls;
+  opc = GNUNET_malloc (sizeof (struct OperationContext));
+  opc->c = controller;
+  opc->op_cls = op_cls;
+  opc->data = data;
+  opc->id =  GNUNET_TESTBED_get_next_op_id (controller);
+  opc->type = OP_SHUTDOWN_PEERS;
+  opc->state = OPC_STATE_INIT;  
+  opc->op = GNUNET_TESTBED_operation_create_ (opc, &opstart_shutdown_peers,
+                                              &oprelease_shutdown_peers);
+  GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_parallel_operations,
+                                        opc->op);
+  GNUNET_TESTBED_operation_begin_wait_ (opc->op);
+  return opc->op;
 }
 
 

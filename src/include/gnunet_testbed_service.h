@@ -912,6 +912,29 @@ GNUNET_TESTBED_peer_destroy (struct GNUNET_TESTBED_Peer *peer);
 
 
 /**
+ * Stops and destroys all peers.  Is equivalent of calling
+ * GNUNET_TESTBED_peer_stop() and GNUNET_TESTBED_peer_destroy() on all peers,
+ * except that the peer stop event and operation finished event corresponding to
+ * the respective functions are not generated.  This function should be called
+ * when there are no other pending operations.  If there are pending operations,
+ * it will return NULL
+ *
+ * @param controller the controller to send this message to
+ * @param op_cls closure for the operation
+ * @param cb the callback to call when all peers are stopped and destroyed
+ * @param cb_cls the closure for the callback
+ * @return operation handle on success; NULL if any pending operations are
+ *           present
+ */
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_shutdown_peers (struct GNUNET_TESTBED_Controller *controller,
+                               void *op_cls,
+                               GNUNET_TESTBED_OperationCompletionCallback cb,
+                               void *cb_cls);
+
+
+
+/**
  * Options for peer connections.
  */
 enum GNUNET_TESTBED_ConnectOption

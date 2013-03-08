@@ -1595,10 +1595,21 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS_RESULT 482
 
 /**
+ * A controller receiving this message floods it to its directly-connected
+ * sub-controllers and then stops and destroys all peers
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS 483
+
+/**
+ * The result of the shutdown peers operation
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS_RESULT 484
+
+/**
  * Not really a message, but for careful checks on the testbed messages; Should
  * always be the maximum and never be used to send messages with this type
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_MAX 483
+#define GNUNET_MESSAGE_TYPE_TESTBED_MAX 485
 
 /**
  * The initialization message towards gnunet-testbed-helper
@@ -1611,9 +1622,9 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TESTBED_HELPER_REPLY 496
 
 
-/**
+/******************************************************************************
  * GNS. FIXME: document!
- */
+ *****************************************************************************/
 #define GNUNET_MESSAGE_TYPE_GNS_LOOKUP 500
 
 #define GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT 501

@@ -751,6 +751,23 @@ struct GNUNET_TESTBED_SlaveConfiguration
 };
 
 
+/**
+ * Shutdown peers message
+ */
+struct GNUNET_TESTBED_ShutdownPeersMessage
+{
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Operation ID
+   */
+  uint64_t operation_id GNUNET_PACKED;
+};
+
+
 GNUNET_NETWORK_STRUCT_END
 #endif
 /* end of testbed.h */

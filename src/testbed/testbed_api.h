@@ -85,7 +85,12 @@ enum OperationType
   /**
    * Get slave config operation
    */
-  OP_GET_SLAVE_CONFIG
+  OP_GET_SLAVE_CONFIG,
+
+  /**
+   * Stop and destroy all peers  
+   */
+  OP_SHUTDOWN_PEERS
 };
 
 
