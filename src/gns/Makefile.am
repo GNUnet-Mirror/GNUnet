@@ -49,7 +49,9 @@ lib_LTLIBRARIES = \
 if HAVE_MHD
  DO_FCFSD=gnunet-gns-fcfsd
 if HAVE_GNUTLS
+if HAVE_LIBCURL
  DO_PROXY=gnunet-gns-proxy
+endif
 endif
 endif
 
