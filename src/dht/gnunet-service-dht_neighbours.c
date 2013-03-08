@@ -857,12 +857,12 @@ get_forward_count (uint32_t hop_count, uint32_t target_replication)
   uint32_t forward_count;
   float target_value;
 
-  if (hop_count > GDS_NSE_get () * 6.0)
+  if (hop_count > GDS_NSE_get () * 4.0)
   {
     /* forcefully terminate */
     return 0;
   }
-  if (hop_count > GDS_NSE_get () * 4.0)
+  if (hop_count > GDS_NSE_get () * 2.0)
   {
     /* Once we have reached our ideal number of hops, only forward to 1 peer */
     return 1;
@@ -1053,6 +1053,12 @@ select_peer (const struct GNUNET_HashCode * key,
                                     gettext_noop
                                     ("# Peers excluded from routing due to Bloomfilter"),
                                     1, GNUNET_NO);
+          dist = get_distance (key, &pos->id.hashPubKey);
+          if (dist < smallest_distance)
+          {
+            chosen = NULL;
+            smallest_distance = dist;
+          }
         }
         count++;
         pos = pos->next;
@@ -1091,7 +1097,7 @@ select_peer (const struct GNUNET_HashCode * key,
       pos = pos->next;
     }
   }
-  if (count == 0)               /* No peers to select from! */
+  if (0 == count)               /* No peers to select from! */
   {
     GNUNET_STATISTICS_update (GDS_stats,
                               gettext_noop ("# Peer selection failed"), 1,
@@ -1146,7 +1152,7 @@ get_target_peers (const struct GNUNET_HashCode *key,
 
   GNUNET_assert (NULL != bloom);
   ret = get_forward_count (hop_count, target_replication);  
-  if (ret == 0)
+  if (0 == ret)
   {
     *targets = NULL;
     return 0;
@@ -1155,7 +1161,7 @@ get_target_peers (const struct GNUNET_HashCode *key,
   for (off = 0; off < ret; off++)
   {
     nxt = select_peer (key, bloom, hop_count);
-    if (nxt == NULL)
+    if (NULL == nxt)
       break;
     rtargets[off] = nxt;
     GNUNET_break (GNUNET_NO ==
