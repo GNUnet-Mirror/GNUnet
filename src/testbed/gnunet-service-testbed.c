@@ -2150,6 +2150,8 @@ handle_shutdown_peers (void *cls, struct GNUNET_SERVER_Client *client,
   }
   LOG_DEBUG ("Shutting down peers\n");
   /* Stop and destroy all peers */
+  GST_free_occq ();
+  GST_free_roccq ();
   destroy_peers ();
   if (0 == hc->nslaves)
   {

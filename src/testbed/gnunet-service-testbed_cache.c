@@ -851,6 +851,12 @@ GST_cache_clear ()
   GNUNET_CONTAINER_multihashmap_iterate (cache, &cache_clear_iterator, NULL);
   GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (cache));
   GNUNET_CONTAINER_multihashmap_destroy (cache);
+  cache = NULL;
+  lru_cache_size = 0;
+  lru_cache_threshold_size = 0;
+  cache_size = 0;
+  lru_cache_head = NULL;
+  lru_cache_tail = NULL;
 }
 
 
