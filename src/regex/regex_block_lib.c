@@ -40,6 +40,11 @@ struct regex_block_xquery_ctx
    * Has any edge matched the xquery so far? (GNUNET_OK / GNUNET_NO)
    */
   int found;
+
+  /**
+   * Key of the block we are iterating (for debug purposes).
+   */
+  char *key;
 };
 
 
@@ -61,8 +66,10 @@ check_edge (void *cls,
 {
   struct regex_block_xquery_ctx *ctx = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  edge %.*s [%u]\n",
-              (int) len, token, len);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  edge %.*s [%u]: %s->%s\n",
+              (int) len, token, len, ctx->key, GNUNET_h2s(key));
+
   if (NULL == ctx->xquery)
     return GNUNET_YES;
   if (strlen (ctx->xquery) < len)
@@ -101,7 +108,9 @@ GNUNET_REGEX_block_check (const struct RegexBlock *block,
     return GNUNET_OK;
   ctx.xquery = xquery;
   ctx.found = GNUNET_NO;
+  ctx.key = GNUNET_strdup (GNUNET_h2s (&block->key));
   res = GNUNET_REGEX_block_iterate (block, size, &check_edge, &ctx);
+  GNUNET_free (ctx.key);
   if (GNUNET_SYSERR == res)
     return GNUNET_SYSERR;
   if (NULL == xquery)
