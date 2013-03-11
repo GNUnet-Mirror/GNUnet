@@ -1019,7 +1019,6 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 					       sli->listen_socket,
 					       &accept_connection, sli);
 	    }
-	  continue;
 	}
       if (GNUNET_YES != in_shutdown)
 	{
@@ -1033,8 +1032,9 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	      if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
 	        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 			    _
-			    ("Service `%s' terminated with status %s/%d, will restart in %llu ms\n"),
-			    pos->name, statstr, statcode, pos->backoff.rel_value);
+			    ("Service `%s' terminated with status %s/%d, will restart in %s\n"),
+			    pos->name, statstr, statcode, 
+			    GNUNET_STRINGS_relative_time_to_string (pos->backoff, GNUNET_YES));
 	      /* schedule restart */
 	      pos->restart_at = GNUNET_TIME_relative_to_absolute (pos->backoff);
 	      pos->backoff = GNUNET_TIME_STD_BACKOFF (pos->backoff);
