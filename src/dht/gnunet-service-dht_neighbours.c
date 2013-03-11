@@ -49,6 +49,8 @@
 #include <fenv.h>
 #include "dht.h"
 
+#include "../regex/regex_block_lib.h"
+
 
 #define LOG_TRAFFIC(kind,...) GNUNET_log_from (kind, "dht-traffic",__VA_ARGS__)
 
@@ -1586,6 +1588,21 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   payload_size =
       msize - (sizeof (struct PeerPutMessage) +
                putlen * sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "PUT for `%s' from %s\n",
+              GNUNET_h2s (&put->key), GNUNET_i2s (peer));
+  if (GNUNET_YES == log_route_details_stderr)
+  {
+    char *tmp;
+
+    tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
+    LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT PUT %s: %s->%s (%u, %u=>%u)\n", 
+                 GNUNET_h2s (&put->key), GNUNET_i2s (peer), tmp,
+                 ntohl(put->hop_count),
+                 GNUNET_CRYPTO_hash_matching_bits (&peer->hashPubKey, &put->key),
+                 GNUNET_CRYPTO_hash_matching_bits (&my_identity.hashPubKey, &put->key)
+                );
+    GNUNET_free (tmp);
+  }
   switch (GNUNET_BLOCK_get_key
           (GDS_block_context, ntohl (put->type), payload, payload_size,
            &test_key))
@@ -1604,23 +1621,30 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
     /* cannot verify, good luck */
     break;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "PUT for `%s' from %s\n",
-              GNUNET_h2s (&put->key), GNUNET_i2s (peer));
-
-  if (GNUNET_YES == log_route_details_stderr)
+  if (ntohl (put->type) == GNUNET_BLOCK_TYPE_REGEX) /* FIXME: do for all tpyes */
   {
-    char *tmp;
+    switch (GNUNET_BLOCK_evaluate (GDS_block_context,
+                                   ntohl (put->type),
+                                   NULL,    /* query */
+                                   NULL, 0, /* bloom filer */
+                                   NULL, 0, /* xquery */
+                                   payload, payload_size))
+    {
+    case GNUNET_BLOCK_EVALUATION_OK_MORE:
+    case GNUNET_BLOCK_EVALUATION_OK_LAST:
+      break;
 
-    tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
-    LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT PUT %s: %s->%s (%u, %u=>%u)\n", 
-                 GNUNET_h2s (&put->key), GNUNET_i2s (peer), tmp,
-                 ntohl(put->hop_count),
-                 GNUNET_CRYPTO_hash_matching_bits (&peer->hashPubKey, &put->key),
-                 GNUNET_CRYPTO_hash_matching_bits (&my_identity.hashPubKey, &put->key)
-                );
-    GNUNET_free (tmp);
+    case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
+    case GNUNET_BLOCK_EVALUATION_RESULT_INVALID:
+    case GNUNET_BLOCK_EVALUATION_RESULT_IRRELEVANT:
+    case GNUNET_BLOCK_EVALUATION_REQUEST_VALID:
+    case GNUNET_BLOCK_EVALUATION_REQUEST_INVALID:
+    case GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED:
+    default:
+      GNUNET_break_op (0);
+      return GNUNET_OK;
+    }
   }
-
 
   bf = GNUNET_CONTAINER_bloomfilter_init (put->bloomfilter, DHT_BLOOM_SIZE,
                                           GNUNET_CONSTANTS_BLOOMFILTER_K);
@@ -1809,14 +1833,30 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_YES;
   }
-  GNUNET_STATISTICS_update (GDS_stats,
-                            gettext_noop ("# P2P GET requests received"), 1,
-                            GNUNET_NO);
   reply_bf_size = msize - (sizeof (struct PeerGetMessage) + xquery_size);
   type = ntohl (get->type);
   options = ntohl (get->options);
   xquery = (const char *) &get[1];
   reply_bf = NULL;
+  GNUNET_STATISTICS_update (GDS_stats,
+                            gettext_noop ("# P2P GET requests received"), 1,
+                            GNUNET_NO);
+  if (GNUNET_YES == log_route_details_stderr)
+  {
+    char *tmp;
+
+    tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
+    LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG,
+                 "XDHT GET %s: %s->%s (%u, %u=>%u) xq: %.*s\n", 
+                 GNUNET_h2s (&get->key), GNUNET_i2s (peer), tmp,
+                 ntohl(get->hop_count),
+                 GNUNET_CRYPTO_hash_matching_bits (&peer->hashPubKey, &get->key),
+                 GNUNET_CRYPTO_hash_matching_bits (&my_identity.hashPubKey, &get->key),
+                 ntohl(get->xquery_size), xquery
+                );
+    GNUNET_free (tmp);
+  }
+
   if (reply_bf_size > 0)
     reply_bf =
         GNUNET_CONTAINER_bloomfilter_init (&xquery[xquery_size], reply_bf_size,
@@ -1868,22 +1908,6 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_STATISTICS_update (GDS_stats,
                               gettext_noop ("# P2P GET requests ONLY routed"),
                               1, GNUNET_NO);
-  }
-
-  if (GNUNET_YES == log_route_details_stderr)
-  {
-    char *tmp;
-
-    tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
-    LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG,
-                 "XDHT GET %s: %s->%s (%u, %u=>%u) xq: %.*s\n", 
-                 GNUNET_h2s (&get->key), GNUNET_i2s (peer), tmp,
-                 ntohl(get->hop_count),
-                 GNUNET_CRYPTO_hash_matching_bits (&peer->hashPubKey, &get->key),
-                 GNUNET_CRYPTO_hash_matching_bits (&my_identity.hashPubKey, &get->key),
-                 ntohl(get->xquery_size), xquery
-                );
-    GNUNET_free (tmp);
   }
 
   GDS_CLIENTS_process_get (options,
@@ -1955,8 +1979,6 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_YES;
   }
-  GNUNET_STATISTICS_update (GDS_stats, gettext_noop ("# P2P RESULTS received"),
-                            1, GNUNET_NO);
   put_path = (const struct GNUNET_PeerIdentity *) &prm[1];
   get_path = &put_path[put_path_length];
   type = ntohl (prm->type);
@@ -1965,7 +1987,18 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
       msize - (sizeof (struct PeerResultMessage) +
                (get_path_length +
                 put_path_length) * sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_STATISTICS_update (GDS_stats, gettext_noop ("# P2P RESULTS received"),
+                            1, GNUNET_NO);
+  if (GNUNET_YES == log_route_details_stderr)
+  {
+    char *tmp;
 
+    tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
+    LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT RESULT %s: %s->%s (%u)\n", 
+                 GNUNET_h2s (&prm->key), GNUNET_i2s (peer), tmp,
+                 get_path_length + 1);
+    GNUNET_free (tmp);
+  }
   /* if we got a HELLO, consider it for our own routing table */
   if (type == GNUNET_BLOCK_TYPE_DHT_HELLO)
   {
@@ -2003,18 +2036,6 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
         GNUNET_TRANSPORT_try_connect (GDS_transport_handle, &pid, NULL, NULL); /*FIXME TRY_CONNECT change */
       }
     }
-  }
-
-
-  if (GNUNET_YES == log_route_details_stderr)
-  {
-    char *tmp;
-
-    tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
-    LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT RESULT %s: %s->%s (%u)\n", 
-                 GNUNET_h2s (&prm->key), GNUNET_i2s (peer), tmp,
-                 get_path_length + 1);
-    GNUNET_free (tmp);
   }
 
   /* append 'peer' to 'get_path' */
