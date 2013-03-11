@@ -37,7 +37,7 @@
 #include "gnunet_testbed_service.h"
 
 #define FIND_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 90)
-#define SEARCHES_IN_PARALLEL 1
+#define SEARCHES_IN_PARALLEL 2
 
 /**
  * DLL of operations

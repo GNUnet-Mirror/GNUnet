@@ -39,14 +39,15 @@ extern "C"
 #include "block_regex.h"
 
 /**
- * Check if the regex block is well formed, including all edges
+ * Check if the regex block is well formed, including all edges.
  *
  * @param block The start of the block.
  * @param size The size of the block.
  * @param xquery String describing the edge we are looking for.
+ *               Can be NULL in case this is a put block.
  *
  * @return GNUNET_OK in case it's fine.
- *         GNUNET_NO in case the xquery is not found.
+ *         GNUNET_NO in case the xquery exists and is not found (IRRELEVANT).
  *         GNUNET_SYSERR if the block is invalid.
  */
 int
@@ -78,7 +79,13 @@ typedef int (*GNUNET_REGEX_EgdeIterator)(void *cls,
  * @param iterator Function to call on each edge in the block.
  * @param iter_cls Closure for the iterator.
  *
- * @return GNUNET_SYSERR if an error has been encountered, GNUNET_OK otherwise
+ * @return GNUNET_SYSERR if an error has been encountered.
+ *         GNUNET_OK if no error has been encountered.
+ *           Note that if the iterator stops the iteration by returning
+ *         GNUNET_NO, the block will no longer be checked for further errors.
+ *           The return value will be GNUNET_OK meaning that no errors were
+ *         found until the edge last notified to the iterator, but there might
+ *         be errors in further edges.
  */
 int
 GNUNET_REGEX_block_iterate (const struct RegexBlock *block,
