@@ -26,9 +26,7 @@ libexec_PROGRAMS = \
   gnunet-helper-testbed
 
 bin_PROGRAMS = \
-  $(ll_binaries)
-
-noinst_PROGRAMS = \
+  $(ll_binaries) \
   gnunet-testbed-profiler
 
 gnunet_service_testbed_SOURCES = \
