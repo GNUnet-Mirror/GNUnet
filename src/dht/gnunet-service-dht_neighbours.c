@@ -1875,11 +1875,13 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
     char *tmp;
 
     tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
-    LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT GET %s: %s->%s (%u, %u=>%u)\n", 
+    LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG,
+                 "XDHT GET %s: %s->%s (%u, %u=>%u) xq: %.*s\n", 
                  GNUNET_h2s (&get->key), GNUNET_i2s (peer), tmp,
                  ntohl(get->hop_count),
                  GNUNET_CRYPTO_hash_matching_bits (&peer->hashPubKey, &get->key),
-                 GNUNET_CRYPTO_hash_matching_bits (&my_identity.hashPubKey, &get->key)
+                 GNUNET_CRYPTO_hash_matching_bits (&my_identity.hashPubKey, &get->key),
+                 ntohl(get->xquery_size), xquery
                 );
     GNUNET_free (tmp);
   }
