@@ -29,6 +29,25 @@
 #include <zlib.h>
 
 
+/**
+ * Context data for GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS handler
+ */
+struct HandlerContext_ShutdownPeers
+{
+  /**
+   * The number of slave we expect to hear from since we forwarded the
+   * GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS message to them
+   */
+  unsigned int nslaves;
+
+  /**
+   * Did we observe a timeout with respect to this operation at any of the
+   * slaves
+   */
+  int timeout;
+};
+
+
 /***********/
 /* Globals */
 /***********/
@@ -1973,22 +1992,49 @@ handle_slave_get_config (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Context data for GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS handler
+ * Clears the forwarded operations queue
  */
-struct HandlerContext_ShutdownPeers
+static void
+clear_fopcq ()
 {
-  /**
-   * The number of slave we expect to hear from since we forwarded the
-   * GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS message to them
-   */
-  unsigned int nslaves;
-
-  /**
-   * Did we observe a timeout with respect to this operation at any of the
-   * slaves
-   */
-  int timeout;
-};
+  struct ForwardedOperationContext *fopc;
+  
+  while (NULL != (fopc = fopcq_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (fopcq_head, fopcq_tail, fopc);
+    GNUNET_TESTBED_forward_operation_msg_cancel_ (fopc->opc);
+    if (GNUNET_SCHEDULER_NO_TASK != fopc->timeout_task)
+      GNUNET_SCHEDULER_cancel (fopc->timeout_task);
+    GNUNET_SERVER_client_drop (fopc->client);
+    switch (fopc->type)
+    {
+    case OP_PEER_CREATE:
+      GNUNET_free (fopc->cls);
+      break;
+    case OP_SHUTDOWN_PEERS:
+      {
+        struct HandlerContext_ShutdownPeers *hc = fopc->cls;
+        
+        GNUNET_assert (0 < hc->nslaves);
+        hc->nslaves--;
+        if (0 == hc->nslaves)
+          GNUNET_free (hc);
+      }
+      break;
+    case OP_PEER_START:
+    case OP_PEER_STOP:
+    case OP_PEER_DESTROY:
+    case OP_PEER_INFO:
+    case OP_OVERLAY_CONNECT:
+    case OP_LINK_CONTROLLERS:
+    case OP_GET_SLAVE_CONFIG:
+      break;
+    case OP_FORWARDED:
+      GNUNET_assert (0);
+    };
+    GNUNET_free (fopc);
+  }
+}
 
 
 /**
@@ -2098,6 +2144,7 @@ destroy_peers ()
   }
   GNUNET_free_non_null (GST_peer_list);
   GST_peer_list = NULL;
+  GST_peer_list_size = 0;
 }
 
 
@@ -2121,6 +2168,10 @@ handle_shutdown_peers (void *cls, struct GNUNET_SERVER_Client *client,
 
   msg = (const struct GNUNET_TESTBED_ShutdownPeersMessage *) message;
   LOG_DEBUG ("Received SHUTDOWN_PEERS\n");
+    /* Stop and destroy all peers */
+  GST_free_occq ();
+  GST_free_roccq ();
+  clear_fopcq ();
   /* Forward to all slaves which we have started */
   op_id = GNUNET_ntohll (msg->operation_id);
   hc = GNUNET_malloc (sizeof (struct HandlerContext_ShutdownPeers));
@@ -2153,9 +2204,6 @@ handle_shutdown_peers (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_CONTAINER_DLL_insert_tail (fopcq_head, fopcq_tail, fo_ctxt);
   }
   LOG_DEBUG ("Shutting down peers\n");
-  /* Stop and destroy all peers */
-  GST_free_occq ();
-  GST_free_roccq ();
   destroy_peers ();
   if (0 == hc->nslaves)
   {
@@ -2234,7 +2282,6 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct LCFContextQueue *lcfq;
-  struct ForwardedOperationContext *fopc;
   struct MessageQueue *mq_entry;
   uint32_t id;
 
@@ -2244,41 +2291,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                 NULL);
   GNUNET_CONTAINER_multihashmap_destroy (ss_map);
   /* cleanup any remaining forwarded operations */
-  while (NULL != (fopc = fopcq_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (fopcq_head, fopcq_tail, fopc);
-    GNUNET_TESTBED_forward_operation_msg_cancel_ (fopc->opc);
-    if (GNUNET_SCHEDULER_NO_TASK != fopc->timeout_task)
-      GNUNET_SCHEDULER_cancel (fopc->timeout_task);
-    GNUNET_SERVER_client_drop (fopc->client);
-    switch (fopc->type)
-    {
-    case OP_PEER_CREATE:
-      GNUNET_free (fopc->cls);
-      break;
-    case OP_SHUTDOWN_PEERS:
-      {
-        struct HandlerContext_ShutdownPeers *hc = fopc->cls;
-        
-        GNUNET_assert (0 < hc->nslaves);
-        hc->nslaves--;
-        if (0 == hc->nslaves)
-          GNUNET_free (hc);
-      }
-      break;
-    case OP_PEER_START:
-    case OP_PEER_STOP:
-    case OP_PEER_DESTROY:
-    case OP_PEER_INFO:
-    case OP_OVERLAY_CONNECT:
-    case OP_LINK_CONTROLLERS:
-    case OP_GET_SLAVE_CONFIG:
-      break;
-    case OP_FORWARDED:
-      GNUNET_assert (0);
-    };
-    GNUNET_free (fopc);
-  }
+  clear_fopcq ();
   if (NULL != lcfq_head)
   {
     if (GNUNET_SCHEDULER_NO_TASK != lcf_proc_task_id)
