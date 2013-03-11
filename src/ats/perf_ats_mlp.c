@@ -100,7 +100,8 @@ struct GAS_MLP_Handle *mlp;
  */
 struct GNUNET_CONTAINER_MultiHashMap * addresses;
 
-struct GNUNET_ATS_Information ats[3];
+#define ATS_COUNT 2
+struct GNUNET_ATS_Information ats[2];
 
 struct PerfPeer *peers;
 
@@ -156,23 +157,85 @@ perf_create_address (int cp, int ca)
 	return a;
 }
 
-
-static int
-update_address_it (void *cls, const struct GNUNET_HashCode *key, void * value)
+static void
+address_initial_update (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
 {
+	ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
+	ats[0].value = htonl (GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 100));
 
-	return GNUNET_OK;
+	ats[1].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
+	ats[1].value = htonl (GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 10));
+
+	GAS_mlp_address_update (mlp, addresses, address, 0, GNUNET_YES, ats, 2);
+}
+
+
+static void
+update_single_addresses (struct ATS_Address *cur)
+{
+	int r_type;
+	int r_val;
+
+	r_type = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 2);
+	switch (r_type) {
+		case 0:
+			r_val = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 100);
+			ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
+			ats[0].value = htonl (r_val);
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating peer `%s' address %p type %s val %u\n",
+					GNUNET_i2s (&cur->peer), cur,
+					"GNUNET_ATS_QUALITY_NET_DELAY", r_val);
+			break;
+		case 1:
+			r_val = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 10);
+			ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
+			ats[0].value = htonl (r_val);
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating peer `%s' address %p type %s val %u\n",
+					GNUNET_i2s (&cur->peer), cur,
+					"GNUNET_ATS_QUALITY_NET_DISTANCE", r_val);
+			break;
+		default:
+			break;
+	}
+	GAS_mlp_address_update (mlp, addresses, cur, 0, GNUNET_YES, ats, 1);
 }
 
 static void
-update_addresses (void)
+update_addresses (unsigned int cp, unsigned int ca, unsigned int up_q)
 {
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating addresses %u addresses per peer \n", opt_update_quantity);
+	struct ATS_Address *cur;
+	int c_peer;
+	int c_select;
+	int c_addr;
+	int r;
 
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating addresses %u addresses per peer \n", up_q);
+	unsigned int m [ca];
 
-	GNUNET_CONTAINER_multihashmap_iterate (addresses, &update_address_it, NULL);
+	for (c_peer = 0; c_peer < cp; c_peer++)
+	{
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating peer `%s'\n", GNUNET_i2s (&peers[c_peer].id));
+			for (c_select = 0; c_select < ca; c_select++)
+				m[c_select] = 0;
+			c_select = 0;
+			while (c_select < opt_update_quantity)
+			{
+					r = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, ca);
+					if (0 == m[r])
+					{
+						m[r] = 1;
+						c_select++;
+					}
+			}
 
-
+			c_addr = 0;
+			for (cur = peers[c_peer].head; NULL != cur; cur = cur->next)
+			{
+					if (1 == m[c_addr])
+							update_single_addresses (cur);
+					c_addr ++;
+			}
+	}
 }
 
 
@@ -242,13 +305,13 @@ check (void *cls, char *const *args, const char *cfgfile,
 					cur_addr = perf_create_address(cp, ca);
 					/* add address */
 					GAS_mlp_address_add (mlp, addresses, cur_addr);
+					address_initial_update (mlp, addresses, cur_addr);
 					GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding address for peer %u address %u: \n", cp, ca);
 			}
 			GAS_mlp_get_preferred_address( mlp, addresses, &peers[cp].id);
 			/* solve */
 			if (cp + 1 >= N_peers_start)
 			{
-
 				GAS_mlp_solve_problem (mlp, addresses);
 				if (GNUNET_NO == opt_numeric)
 					fprintf (stderr, "%u peers each %u addresses;  LP/MIP state [%s/%s] presolv [%s/%s], (build/LP/MIP in ms): %04llu %04llu %04llu; size (cols x rows, nonzero elements): [%u x %u] = %u\n",
@@ -275,9 +338,32 @@ check (void *cls, char *const *args, const char *cfgfile,
 				if ((0 < opt_update_quantity) || (0 < opt_update_percent))
 				{
 					GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Updating problem with %u peers and %u addresses\n", cp + 1, ca);
-					update_addresses ();
+					update_addresses (cp + 1, ca, opt_update_quantity);
 					GAS_mlp_solve_problem (mlp, addresses);
+					if (GNUNET_NO == opt_numeric)
+						fprintf (stderr, "%u peers each %u addresses;  LP/MIP state [%s/%s] presolv [%s/%s], (build/LP/MIP in ms): %04llu %04llu %04llu; size (cols x rows, nonzero elements): [%u x %u] = %u\n",
+								cp + 1, ca,
+								(GNUNET_OK == mlp->ps.lp_res) ? "OK" : "FAIL",
+								(GNUNET_OK == mlp->ps.mip_res) ? "OK" : "FAIL",
+								(GLP_YES == mlp->ps.lp_presolv) ? "YES" : "NO",
+								(GNUNET_OK == mlp->ps.mip_presolv) ? "YES" : "NO",
+								(unsigned long long) mlp->ps.build_dur.rel_value,
+								(unsigned long long) mlp->ps.lp_dur.rel_value,
+								(unsigned long long) mlp->ps.mip_dur.rel_value,
+								mlp->ps.p_cols, mlp->ps.p_rows, mlp->ps.p_elements);
+					else
+						fprintf (stderr, "%u;%u;%s;%s;%s;%s;%04llu;%04llu;%04llu;%u;%u;%u\n",
+								cp + 1, ca,
+								(GNUNET_OK == mlp->ps.lp_res) ? "OK" : "FAIL",
+								(GNUNET_OK == mlp->ps.mip_res) ? "OK" : "FAIL",
+								(GLP_YES == mlp->ps.lp_presolv) ? "YES" : "NO",
+								(GNUNET_OK == mlp->ps.mip_presolv) ? "YES" : "NO",
+								(unsigned long long) mlp->ps.build_dur.rel_value,
+								(unsigned long long) mlp->ps.lp_dur.rel_value,
+								(unsigned long long) mlp->ps.mip_dur.rel_value,
+								mlp->ps.p_cols, mlp->ps.p_rows, mlp->ps.p_elements);
 				}
+				fprintf (stderr, "\n");
 			}
 	}
 
@@ -386,9 +472,9 @@ main (int argc, char *argv[])
   if (0 == N_address)
   		N_address = ADDRESSES;
 
-  if (opt_update_quantity >= N_address)
+  if (opt_update_quantity > N_address)
   {
-  		fprintf (stderr, _("Trying to Update more addresses than we have per peer!"));
+  		fprintf (stderr, _("Trying to update more addresses than we have per peer! (%u vs %u)"), opt_update_quantity, N_address);
   		exit (1);
   }
 
