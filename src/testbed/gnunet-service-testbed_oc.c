@@ -1414,7 +1414,10 @@ rocc_hello_sent_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   if (GNUNET_SCHEDULER_REASON_READ_READY != tc->reason)
+  {
+    GNUNET_break (0);
     return;
+  }
   rocc->tcc.task = GNUNET_SCHEDULER_add_now (&try_connect_task, &rocc->tcc);
 }
 

@@ -375,7 +375,6 @@ static void
 cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RunContext *rc = cls;
-  struct DLLOperation *dll_op;
   unsigned int hid;
 
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == rc->register_hosts_task);
@@ -383,15 +382,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (NULL == rc->peers);
   GNUNET_assert (NULL == rc->hc_handles);
   GNUNET_assert (RC_PEERS_SHUTDOWN == rc->state);
-  if (NULL != rc->dll_op_head)
-  {                             /* cancel our pending operations */
-    while (NULL != (dll_op = rc->dll_op_head))
-    {
-      GNUNET_TESTBED_operation_done (dll_op->op);
-      GNUNET_CONTAINER_DLL_remove (rc->dll_op_head, rc->dll_op_tail, dll_op);
-      GNUNET_free (dll_op);
-    }
-  }
+  GNUNET_assert (NULL == rc->dll_op_head);
   if (NULL != rc->c)
     GNUNET_TESTBED_controller_disconnect (rc->c);
   if (NULL != rc->cproc)
@@ -470,6 +461,16 @@ shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_TESTBED_cancel_registration (rc->reg_handle);
     rc->reg_handle = NULL;
+  }
+  /* cancel any exiting operations */
+  if (NULL != rc->dll_op_head)
+  {
+    while (NULL != (dll_op = rc->dll_op_head))
+    {
+      GNUNET_TESTBED_operation_done (dll_op->op);
+      GNUNET_CONTAINER_DLL_remove (rc->dll_op_head, rc->dll_op_tail, dll_op);
+      GNUNET_free (dll_op);
+    }
   }
   if (NULL != rc->c)
   {
