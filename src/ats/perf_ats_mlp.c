@@ -78,6 +78,8 @@ struct PerfPeer
 static int ret;
 static int opt_numeric;
 static int opt_dump;
+static int opt_update_percent;
+static int opt_update_quantity;
 
 static int N_peers_start;
 static int N_peers_end;
@@ -97,6 +99,8 @@ struct GAS_MLP_Handle *mlp;
  * Hashmap containing addresses
  */
 struct GNUNET_CONTAINER_MultiHashMap * addresses;
+
+struct GNUNET_ATS_Information ats[3];
 
 struct PerfPeer *peers;
 
@@ -153,7 +157,23 @@ perf_create_address (int cp, int ca)
 }
 
 
+static int
+update_address_it (void *cls, const struct GNUNET_HashCode *key, void * value)
+{
 
+	return GNUNET_OK;
+}
+
+static void
+update_addresses (void)
+{
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating addresses %u addresses per peer \n", opt_update_quantity);
+
+
+	GNUNET_CONTAINER_multihashmap_iterate (addresses, &update_address_it, NULL);
+
+
+}
 
 
 static void
@@ -186,14 +206,6 @@ check (void *cls, char *const *args, const char *cfgfile,
 
   GNUNET_assert (N_peers_end >= N_peers_start);
   GNUNET_assert (N_address >= 0);
-
-  if ((0 == N_peers_start) && (0 == N_peers_end))
-  {
-  		N_peers_start = PEERS_START;
-  		N_peers_end = PEERS_END;
-  }
-  if (0 == N_address)
-  		N_address = ADDRESSES;
 
   fprintf (stderr, "Solving problem for %u..%u peers with %u addresses\n",
   		N_peers_start, N_peers_end, N_address);
@@ -260,8 +272,13 @@ check (void *cls, char *const *args, const char *cfgfile,
 							(unsigned long long) mlp->ps.lp_dur.rel_value,
 							(unsigned long long) mlp->ps.mip_dur.rel_value,
 							mlp->ps.p_cols, mlp->ps.p_rows, mlp->ps.p_elements);
+				if ((0 < opt_update_quantity) || (0 < opt_update_percent))
+				{
+					GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Updating problem with %u peers and %u addresses\n", cp + 1, ca);
+					update_addresses ();
+					GAS_mlp_solve_problem (mlp, addresses);
+				}
 			}
-
 	}
 
 
@@ -295,6 +312,8 @@ main (int argc, char *argv[])
   };
 
   opt_dump = GNUNET_NO;
+  opt_update_quantity = 0;
+  opt_update_percent = 0;
 
   N_peers_start = 0;
   N_peers_end = 0;
@@ -302,28 +321,28 @@ main (int argc, char *argv[])
   int c;
   for (c = 0; c < argc; c++)
   {
-  		if ((0 == strcmp (argv[c], "-q")) && (c < argc))
+  		if ((0 == strcmp (argv[c], "-z")) && (c < (argc - 1)))
   		{
   				if (0 != atoi(argv[c+1]))
   				{
   						N_peers_start = atoi(argv[c+1]);
   				}
   		}
-  		if ((0 == strcmp (argv[c], "-w")) && (c < argc))
+  		if ((0 == strcmp (argv[c], "-x")) && (c < (argc - 1)))
   		{
   				if (0 != atoi(argv[c+1]))
   				{
   						N_peers_end = atoi(argv[c+1]);
   				}
   		}
-  		if ((0 == strcmp (argv[c], "-a")) && (c < argc))
+  		if ((0 == strcmp (argv[c], "-c")) && (c < (argc - 1)))
   		{
   				if (0 != atoi(argv[c+1]))
   				{
   						N_address = atoi(argv[c+1]);
   				}
   		}
-  		if ((0 == strcmp (argv[c], "-n")))
+  		if ((0 == strcmp (argv[c], "-v")))
   		{
   				opt_numeric = GNUNET_YES;
   		}
@@ -331,6 +350,46 @@ main (int argc, char *argv[])
   		{
   				opt_dump = GNUNET_YES;
   		}
+  		if ((0 == strcmp (argv[c], "-p")) && (c < (argc - 1)))
+  		{
+  				if (0 != atoi(argv[c+1]))
+  				{
+  	  				/* Update a fix "p"ercentage of addresses */
+  						opt_update_percent = atoi(argv[c+1]);
+  						if ((0 <= opt_update_percent) && (100 <= opt_update_percent))
+  						{
+  							fprintf (stderr, _("Percentage has to be: 0 <= p <= 100 "));
+  							exit (1);
+  						}
+  				}
+  		}
+  		if ((0 == strcmp (argv[c], "-q")) && (c < (argc - 1)))
+  		{
+  				if (0 != atoi(argv[c+1]))
+  				{
+  	  				/* Update a fix "q"uantity of addresses */
+  						opt_update_quantity = atoi(argv[c+1]);
+  						if (0 >= opt_update_quantity)
+  						{
+  							fprintf (stderr, _("Quantity has to be:  p => 0 "));
+  							exit (1);
+  						}
+  				}
+  		}
+  }
+
+  if ((0 == N_peers_start) && (0 == N_peers_end))
+  {
+  		N_peers_start = PEERS_START;
+  		N_peers_end = PEERS_END;
+  }
+  if (0 == N_address)
+  		N_address = ADDRESSES;
+
+  if (opt_update_quantity >= N_address)
+  {
+  		fprintf (stderr, _("Trying to Update more addresses than we have per peer!"));
+  		exit (1);
   }
 
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
