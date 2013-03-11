@@ -628,6 +628,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   GNUNET_free (dll_op);
   switch (rc->state)
   {
+  case RC_LINKED:
   case RC_PEERS_CREATED:
   case RC_READY:
     rc->state = RC_PEERS_SHUTDOWN;
