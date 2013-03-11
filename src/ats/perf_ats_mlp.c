@@ -250,6 +250,22 @@ check (void *cls, char *const *args, const char *cfgfile,
 	int ca;
 	struct ATS_Address * cur_addr;
 
+	int full_lp_res;
+	int full_mip_res;
+	int full_lp_presolv;
+	int full_mip_presolv;
+	struct GNUNET_TIME_Relative full_build_dur;
+	struct GNUNET_TIME_Relative full_lp_dur;
+	struct GNUNET_TIME_Relative full_mip_dur;
+
+	int update_lp_res;
+	int update_mip_res;
+	int update_lp_presolv;
+	int update_mip_presolv;
+	struct GNUNET_TIME_Relative update_build_dur;
+	struct GNUNET_TIME_Relative update_lp_dur;
+	struct GNUNET_TIME_Relative update_mip_dur;
+
   stats = GNUNET_STATISTICS_create("ats", cfg);
   if (NULL == stats)
   {
@@ -312,58 +328,68 @@ check (void *cls, char *const *args, const char *cfgfile,
 			/* solve */
 			if (cp + 1 >= N_peers_start)
 			{
+				/* Solve the full problem */
 				GAS_mlp_solve_problem (mlp, addresses);
-				if (GNUNET_NO == opt_numeric)
-					fprintf (stderr, "%u peers each %u addresses;  LP/MIP state [%s/%s] presolv [%s/%s], (build/LP/MIP in ms): %04llu %04llu %04llu; size (cols x rows, nonzero elements): [%u x %u] = %u\n",
-							cp + 1, ca,
-							(GNUNET_OK == mlp->ps.lp_res) ? "OK" : "FAIL",
-							(GNUNET_OK == mlp->ps.mip_res) ? "OK" : "FAIL",
-							(GLP_YES == mlp->ps.lp_presolv) ? "YES" : "NO",
-							(GNUNET_OK == mlp->ps.mip_presolv) ? "YES" : "NO",
-							(unsigned long long) mlp->ps.build_dur.rel_value,
-							(unsigned long long) mlp->ps.lp_dur.rel_value,
-							(unsigned long long) mlp->ps.mip_dur.rel_value,
-							mlp->ps.p_cols, mlp->ps.p_rows, mlp->ps.p_elements);
-				else
-					fprintf (stderr, "%u;%u;%s;%s;%s;%s;%04llu;%04llu;%04llu;%u;%u;%u\n",
-							cp + 1, ca,
-							(GNUNET_OK == mlp->ps.lp_res) ? "OK" : "FAIL",
-							(GNUNET_OK == mlp->ps.mip_res) ? "OK" : "FAIL",
-							(GLP_YES == mlp->ps.lp_presolv) ? "YES" : "NO",
-							(GNUNET_OK == mlp->ps.mip_presolv) ? "YES" : "NO",
-							(unsigned long long) mlp->ps.build_dur.rel_value,
-							(unsigned long long) mlp->ps.lp_dur.rel_value,
-							(unsigned long long) mlp->ps.mip_dur.rel_value,
-							mlp->ps.p_cols, mlp->ps.p_rows, mlp->ps.p_elements);
+				full_lp_res = mlp->ps.lp_res;
+				full_mip_res = mlp->ps.mip_res;
+				full_lp_presolv = mlp->ps.lp_presolv;
+				full_mip_presolv = mlp->ps.mip_presolv;
+				full_build_dur = mlp->ps.build_dur;
+				full_lp_dur = mlp->ps.lp_dur;
+				full_mip_dur = mlp->ps.mip_dur;
+
+				/* Update and solve the problem */
 				if ((0 < opt_update_quantity) || (0 < opt_update_percent))
 				{
-					GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Updating problem with %u peers and %u addresses\n", cp + 1, ca);
+					GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating problem with %u peers and %u addresses\n", cp + 1, ca);
 					update_addresses (cp + 1, ca, opt_update_quantity);
 					GAS_mlp_solve_problem (mlp, addresses);
-					if (GNUNET_NO == opt_numeric)
-						fprintf (stderr, "%u peers each %u addresses;  LP/MIP state [%s/%s] presolv [%s/%s], (build/LP/MIP in ms): %04llu %04llu %04llu; size (cols x rows, nonzero elements): [%u x %u] = %u\n",
-								cp + 1, ca,
-								(GNUNET_OK == mlp->ps.lp_res) ? "OK" : "FAIL",
-								(GNUNET_OK == mlp->ps.mip_res) ? "OK" : "FAIL",
-								(GLP_YES == mlp->ps.lp_presolv) ? "YES" : "NO",
-								(GNUNET_OK == mlp->ps.mip_presolv) ? "YES" : "NO",
-								(unsigned long long) mlp->ps.build_dur.rel_value,
-								(unsigned long long) mlp->ps.lp_dur.rel_value,
-								(unsigned long long) mlp->ps.mip_dur.rel_value,
-								mlp->ps.p_cols, mlp->ps.p_rows, mlp->ps.p_elements);
-					else
-						fprintf (stderr, "%u;%u;%s;%s;%s;%s;%04llu;%04llu;%04llu;%u;%u;%u\n",
-								cp + 1, ca,
-								(GNUNET_OK == mlp->ps.lp_res) ? "OK" : "FAIL",
-								(GNUNET_OK == mlp->ps.mip_res) ? "OK" : "FAIL",
-								(GLP_YES == mlp->ps.lp_presolv) ? "YES" : "NO",
-								(GNUNET_OK == mlp->ps.mip_presolv) ? "YES" : "NO",
-								(unsigned long long) mlp->ps.build_dur.rel_value,
-								(unsigned long long) mlp->ps.lp_dur.rel_value,
-								(unsigned long long) mlp->ps.mip_dur.rel_value,
-								mlp->ps.p_cols, mlp->ps.p_rows, mlp->ps.p_elements);
+					GAS_mlp_solve_problem (mlp, addresses);
+					update_lp_res = mlp->ps.lp_res;
+					update_mip_res = mlp->ps.mip_res;
+					update_lp_presolv = mlp->ps.lp_presolv;
+					update_mip_presolv = mlp->ps.mip_presolv;
+					update_build_dur = mlp->ps.build_dur;
+					update_lp_dur = mlp->ps.lp_dur;
+					update_mip_dur = mlp->ps.mip_dur;
+
 				}
-				fprintf (stderr, "\n");
+				if (GNUNET_NO == opt_numeric)
+				{
+				fprintf (stderr, "Rebuild: %03u peers each %02u addresses; rebuild: LP/MIP state [%3s/%3s] presolv [%3s/%3s], (build/LP/MIP in ms) %04llu / %04llu / %04llu\n",
+						cp + 1, ca,
+						(GNUNET_OK == full_lp_res) ? "OK" : "FAIL",
+						(GNUNET_OK == full_mip_res) ? "OK" : "FAIL",
+						(GLP_YES == full_lp_presolv) ? "YES" : "NO",
+						(GNUNET_OK == full_mip_presolv) ? "YES" : "NO",
+						(unsigned long long) full_build_dur.rel_value, (unsigned long long) full_lp_dur.rel_value, (unsigned long long) full_mip_dur.rel_value);
+				if ((0 < opt_update_quantity) || (0 < opt_update_percent))
+					fprintf (stderr, "Update : %03u peers each %02u addresses; rebuild: LP/MIP state [%3s/%3s] presolv [%3s/%3s], (build/LP/MIP in ms) %04llu / %04llu / %04llu\n",
+						cp + 1, ca,
+						(GNUNET_OK == update_lp_res) ? "OK" : "FAIL",
+						(GNUNET_OK == update_mip_res) ? "OK" : "FAIL",
+						(GLP_YES == update_lp_presolv) ? "YES" : "NO",
+						(GNUNET_OK == update_mip_presolv) ? "YES" : "NO",
+						(unsigned long long) update_build_dur.rel_value, (unsigned long long) update_lp_dur.rel_value, (unsigned long long) update_mip_dur.rel_value);
+				}
+				else
+				{
+						fprintf (stderr, "Rebuild;%u;%u;%s;%s;%s;%s;%04llu;%04llu;%04llu\n",
+								cp + 1, ca,
+								(GNUNET_OK == full_lp_res) ? "OK" : "FAIL",
+								(GNUNET_OK == full_mip_res) ? "OK" : "FAIL",
+								(GLP_YES == full_lp_presolv) ? "YES" : "NO",
+								(GNUNET_OK == full_mip_presolv) ? "YES" : "NO",
+								(unsigned long long) full_build_dur.rel_value, (unsigned long long) full_lp_dur.rel_value, (unsigned long long) full_mip_dur.rel_value);
+						if ((0 < opt_update_quantity) || (0 < opt_update_percent))
+							fprintf (stderr, "Update;%u;%u;%s;%s;%s;%s;%04llu;%04llu;%04llu\n",
+									cp + 1, ca,
+									(GNUNET_OK == update_lp_res) ? "OK" : "FAIL",
+									(GNUNET_OK == update_mip_res) ? "OK" : "FAIL",
+									(GLP_YES == update_lp_presolv) ? "YES" : "NO",
+									(GNUNET_OK == update_mip_presolv) ? "YES" : "NO",
+									(unsigned long long) update_build_dur.rel_value, (unsigned long long) update_lp_dur.rel_value, (unsigned long long) update_mip_dur.rel_value);
+				}
 			}
 	}
 
@@ -428,7 +454,7 @@ main (int argc, char *argv[])
   						N_address = atoi(argv[c+1]);
   				}
   		}
-  		if ((0 == strcmp (argv[c], "-v")))
+  		if ((0 == strcmp (argv[c], "-n")))
   		{
   				opt_numeric = GNUNET_YES;
   		}
