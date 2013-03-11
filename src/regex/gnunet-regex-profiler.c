@@ -831,20 +831,17 @@ regex_found_handler (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "String matching timed out for string %s on peer %u (%i/%i)\n",
                 peer->search_str, peer->id, peers_found, num_search_strings);
-
-    printf ("String matching timed out for string %s on peer %u (%i/%i)\n",
-            peer->search_str, peer->id, peers_found, num_search_strings);
-
     peer->search_str_matched = GNUNET_SYSERR;
   }
   else
   {
     prof_time = GNUNET_TIME_absolute_get_duration (peer->prof_start_time);
 
-    printf ("String %s found on peer %u after %s (%i/%i) (%u||)\n",
-            peer->search_str, peer->id, GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO),
-            peers_found, num_search_strings, parallel_searches);
-    fflush (stdout);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "String %s found on peer %u after %s (%i/%i) (%u||)\n",
+                peer->search_str, peer->id,
+                GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO),
+                peers_found, num_search_strings, parallel_searches);
 
     peer->search_str_matched = GNUNET_YES;
 
@@ -878,13 +875,11 @@ regex_found_handler (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "All strings successfully matched in %s\n",
                 GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
-    printf ("All strings successfully matched.\n");
-    fflush (stdout);
 
     if (GNUNET_SCHEDULER_NO_TASK != search_timeout_task)
       GNUNET_SCHEDULER_cancel (search_timeout_task);
 
-    printf ("Collecting stats and shutting down.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Collecting stats and shutting down.\n");
     GNUNET_SCHEDULER_add_now (&do_collect_stats, NULL);
   }
 }
@@ -955,6 +950,10 @@ find_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Searching for string \"%s\" on peer %d timed out. Starting new search.\n",
+              p->search_str,
+              p->id);
   GNUNET_SCHEDULER_add_now (&find_next_string, NULL);
 }
 
@@ -1081,10 +1080,11 @@ arm_start_cb (void *cls, enum GNUNET_ARM_ProcessStatus result)
       }
       else
       {
-        printf ("All daemons started. Waiting %s to start string searches\n",
-                GNUNET_STRINGS_relative_time_to_string (search_delay,
-                                                        GNUNET_NO));
-        fflush (stdout);
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    "All daemons started."
+                    " Waiting %s to start string searches\n",
+                    GNUNET_STRINGS_relative_time_to_string (search_delay,
+                                                            GNUNET_NO));
         GNUNET_SCHEDULER_add_delayed (search_delay,
                                       do_connect_by_string, 
                                       NULL);
@@ -1210,8 +1210,7 @@ announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  printf ("Starting daemon %ld\n", next_p);
-  fflush (stdout);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting daemon %ld\n", next_p);
 
   peers[next_p].op_handle =
     GNUNET_TESTBED_service_connect (NULL,
@@ -1381,8 +1380,9 @@ peer_churn_cb (void *cls, const char *emsg)
   if (++started_peers == num_peers)
   {
     prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
-    printf("All peers started successfully in %s\n",
-           GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+                "All peers started successfully in %s\n",
+                GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
     result = GNUNET_OK;
 
     peer_handles = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Peer *) * num_peers);
@@ -1441,8 +1441,9 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
   if (++created_peers == num_peers)
   {
     prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
-    printf ("All peers created successfully in %s\n",
-            GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "All peers created successfully in %s\n",
+                GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
     /* Now peers are to be started */
     state = STATE_PEERS_STARTING;
     prof_start_time = GNUNET_TIME_absolute_get ();
@@ -1620,9 +1621,9 @@ controller_event_cb (void *cls,
      {
        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                    _("An operation has failed while linking\n"));
-       printf ("F%u/%u ", retry_links + 1, established_links + 1);
-       printf ("\n%s\n ", event->details.operation_finished.emsg);
-       fflush (stdout);
+       printf ("F%u/%u(%s)",
+               retry_links + 1, established_links + 1, 
+               event->details.operation_finished.emsg);
        retry_links++;
      }
      /* We do no retries, consider this link as established */
@@ -1633,22 +1634,24 @@ controller_event_cb (void *cls,
      size_t size;
 
      if (0 == established_links)
-       printf ("Establishing links .");
+       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Establishing links .");
      else
      {
        printf (".");
-       fflush (stdout);
      }
      if (++established_links == num_links)
      {
-       fflush (stdout);
        prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
-       printf ("\n%u links established in %s\n",
-               num_links,
-               GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
+       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                   "\n%u links established in %s\n",
+                   num_links,
+                   GNUNET_STRINGS_relative_time_to_string (prof_time,
+                                                           GNUNET_NO));
        prof_time = GNUNET_TIME_relative_divide(prof_time, num_links);
-       printf ("Average of %s per connection\n",
-               GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
+       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                   "Average of %s per connection\n",
+                   GNUNET_STRINGS_relative_time_to_string (prof_time,
+                                                           GNUNET_NO));
        result = GNUNET_OK;
        GNUNET_free (peer_handles);
 
@@ -1658,11 +1661,14 @@ controller_event_cb (void *cls,
            GNUNET_snprintf (output_buffer,
                             sizeof (output_buffer),
                             "# of peers: %u\n# of links established: %u\n"
-                            "Time to establish links: %s\nLinking failures: %u\n"
-                            "path compression length: %u\n# of search strings: %u\n",
+                            "Time to establish links: %s\n"
+                            "Linking failures: %u\n"
+                            "path compression length: %u\n"
+                            "# of search strings: %u\n",
                             num_peers,
                             (established_links - retry_links),
-                            GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO),
+                            GNUNET_STRINGS_relative_time_to_string (prof_time,
+                                                                    GNUNET_NO),
                             retry_links,
                             max_path_compression,
                             num_search_strings);
@@ -1671,12 +1677,11 @@ controller_event_cb (void *cls,
            GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to write to file!\n");
        }
 
-       printf ("\nWaiting %s before starting to announce.\n",
-               GNUNET_STRINGS_relative_time_to_string (search_delay, GNUNET_NO));
-       fflush (stdout);
-
+       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                   "\nWaiting %s before starting to announce.\n",
+                   GNUNET_STRINGS_relative_time_to_string (search_delay,
+                                                           GNUNET_NO));
        state = STATE_SEARCH_REGEX;
-
        search_task = GNUNET_SCHEDULER_add_delayed (search_delay,
                                                    &do_announce, NULL);
      }
@@ -1795,7 +1800,7 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int stat
   if (GNUNET_OK != status)
   {
     mc_proc = NULL;
-    printf("Oh, dear!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Oh, dear!\n");
     abort_task = GNUNET_SCHEDULER_add_now (&do_abort, (void*) __LINE__);
     return;
   }
@@ -1955,21 +1960,26 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (NULL == args[0])
   {
-    fprintf (stderr, _("No hosts-file specified on command line. Exiting.\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("No hosts-file specified on command line. Exiting.\n"));
     return;
   }
   if (NULL == args[1])
   {
-    fprintf (stderr, _("No policy directory specified on command line. Exiting.\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("No policy directory specified on command line. Exiting.\n"));
     return;
   }
   num_hosts = GNUNET_TESTBED_hosts_load_from_file (args[0], config, &hosts);
   if (0 == num_hosts)
   {
-    fprintf (stderr, _("No hosts loaded. Need at least one host\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("No hosts loaded. Need at least one host\n"));
     return;
   }
-  printf (_("Checking whether given hosts can start testbed. Please wait\n"));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+              _("Checking whether given hosts can start testbed."
+                "Please wait\n"));
   hc_handles = GNUNET_malloc (sizeof (struct
                                       GNUNET_TESTBED_HostHabitableCheckHandle *) 
                               * num_hosts);
@@ -1993,13 +2003,14 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   if (num_hosts != nhost)
   {
-    fprintf (stderr, _("Exiting\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Exiting\n"));
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
   if (NULL == config)
   {
-    fprintf (stderr, _("No configuration file given. Exiting\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("No configuration file given. Exiting\n"));
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
@@ -2008,7 +2019,8 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_CONFIGURATION_get_value_string (config, "REGEXPROFILER", "REGEX_PREFIX",
 					     &regex_prefix))
   {
-    fprintf (stderr, _("Configuration option (regex_prefix) missing. Exiting\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Configuration option \"regex_prefix\" missing. Exiting\n"));
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
@@ -2026,14 +2038,16 @@ run (void *cls, char *const *args, const char *cfgfile,
                               data_filename);
   if (GNUNET_YES != GNUNET_DISK_directory_test (args[1], GNUNET_YES))
   {
-    fprintf (stderr, _("Specified policies directory does not exist. Exiting.\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Specified policies directory does not exist. Exiting.\n"));
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
   policy_dir = args[1];
   if (GNUNET_YES != GNUNET_DISK_file_test (args[2]))
   {
-    fprintf (stderr, _("No search strings file given. Exiting.\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("No search strings file given. Exiting.\n"));
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
@@ -2041,13 +2055,16 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (num_search_strings != nsearchstrs)
   {
     num_search_strings = nsearchstrs;
-    fprintf (stderr, _("Error loading search strings. Given file does not contain enough strings. Exiting.\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Error loading search strings."
+                  "Given file does not contain enough strings. Exiting.\n"));
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
   if (0 >= num_search_strings || NULL == search_strings)
   {
-    fprintf (stderr, _("Error loading search strings. Exiting.\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Error loading search strings. Exiting.\n"));
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
