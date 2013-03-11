@@ -976,7 +976,8 @@ AC_ARG_ENABLE([ll],
      else
        ll=1
      fi],
-    [ll=0])
+    [ll=0
+     enable_ll=no])
 AC_MSG_RESULT($enable_ll)
 AM_CONDITIONAL([ENABLE_LL], [test "x$ll" = "x1"])
 AC_DEFINE_UNQUOTED([ENABLE_LL], [$ll], [Build with LL support])

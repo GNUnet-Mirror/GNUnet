@@ -2004,6 +2004,7 @@ shutdown_peers_timeout_cb (void *cls,
   struct ForwardedOperationContext *fo_ctxt = cls;
   struct HandlerContext_ShutdownPeers *hc;
 
+  fo_ctxt->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   hc = fo_ctxt->cls;
   hc->timeout = GNUNET_YES;
   GNUNET_assert (0 < hc->nslaves);
@@ -2034,6 +2035,9 @@ shutdown_peers_reply_cb (void *cls,
   struct HandlerContext_ShutdownPeers *hc;
   
   hc = fo_ctxt->cls;
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != fo_ctxt->timeout_task);
+  GNUNET_SCHEDULER_cancel (fo_ctxt->timeout_task);
+  fo_ctxt->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (0 < hc->nslaves);
   hc->nslaves--;
   if (GNUNET_MESSAGE_TYPE_TESTBED_GENERIC_OPERATION_SUCCESS != 
