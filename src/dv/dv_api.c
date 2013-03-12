@@ -39,18 +39,39 @@
  */
 struct GNUNET_DV_TransmitHandle
 {
+  /**
+   * Kept in a DLL.
+   */
   struct GNUNET_DV_TransmitHandle *next;
 
+  /**
+   * Kept in a DLL.
+   */
   struct GNUNET_DV_TransmitHandle *prev;
 
+  /**
+   * Handle to the service.
+   */
   struct GNUNET_DV_ServiceHandle *sh;
 
+  /**
+   * Function to call upon completion.
+   */
   GNUNET_DV_MessageSentCallback cb;
 
+  /**
+   * Closure for 'cb'.
+   */
   void *cb_cls;
   
+  /**
+   * The actual message (allocated at the end of this struct).
+   */
   const struct GNUNET_MessageHeader *msg;
 
+  /**
+   * Destination for the message.
+   */
   struct GNUNET_PeerIdentity target;
 
 };
@@ -62,23 +83,262 @@ struct GNUNET_DV_TransmitHandle
 struct GNUNET_DV_ServiceHandle
 {
 
-  struct GNUNET_ClientHandle *client;
+  /**
+   * Connection to DV service.
+   */
+  struct GNUNET_CLIENT_Connection *client;
 
+  /**
+   * Active request for transmission to DV service.
+   */
+  struct GNUNET_CLIENT_TransmitHandle *th;
+
+  /**
+   * Our configuration.
+   */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+  /**
+   * Closure for the callbacks.
+   */
   void *cls;
   
+  /**
+   * Function to call on connect events.
+   */
   GNUNET_DV_ConnectCallback connect_cb;
 
+  /**
+   * Function to call on disconnect events.
+   */
   GNUNET_DV_DisconnectCallback disconnect_cb;
 
+  /**
+   * Function to call on receiving messages events.
+   */
   GNUNET_DV_MessageReceivedCallback message_cb;
 
+  /**
+   * Head of messages to transmit.
+   */
   struct GNUNET_DV_TransmitHandle *th_head;
 
+  /**
+   * Tail of messages to transmit.
+   */
   struct GNUNET_DV_TransmitHandle *th_tail;
 
+  /**
+   * Mapping of peer identities to TransmitHandles to invoke
+   * upon successful transmission.  The respective
+   * transmissions have already been done.
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *send_callbacks;
+
+  /**
+   * Current unique ID
+   */
+  uint32_t uid_gen;
+
 };
+
+
+/**
+ * Disconnect and then reconnect to the DV service.
+ *
+ * @param sh service handle
+ */
+static void
+reconnect (struct GNUNET_DV_ServiceHandle *sh);
+
+
+/**
+ * Gives a message from our queue to the DV service.
+ *
+ * @param cls handle to the dv service (struct GNUNET_DV_ServiceHandle)
+ * @param size how many bytes can we send
+ * @param buf where to copy the message to send
+ * @return how many bytes we copied to buf
+ */
+static size_t
+transmit_pending (void *cls, size_t size, void *buf)
+{
+  struct GNUNET_DV_ServiceHandle *sh = cls;
+  size_t ret;
+  size_t tsize;
+
+  sh->th = NULL;
+  if (NULL == buf)
+  {
+    reconnect (sh);
+    return 0;
+  }
+  ret = 0;
+  // FIXME: yuck! -- copy multiple, remove from DLL, and add to hash map!
+  if (NULL != sh->th_head)
+  {
+    tsize = ntohs (sh->th_head->msg->size);
+    if (size >= tsize)
+    {
+      memcpy (buf, sh->th_head->msg, tsize);
+      return tsize;
+    }
+  }
+  return ret;
+}
+
+
+/**
+ * Start sending messages from our queue to the service.
+ *
+ * @param sh service handle
+ */
+static void
+start_transmit (struct GNUNET_DV_ServiceHandle *sh)
+{
+  if (NULL != sh->th)
+    return;
+  if (NULL == sh->th_head)
+    return; 
+  sh->th =
+    GNUNET_CLIENT_notify_transmit_ready (sh->client,
+					 ntohs (sh->th_head->msg->size),
+					 GNUNET_TIME_UNIT_FOREVER_REL,
+					 GNUNET_NO, 
+					 &transmit_pending, sh);
+}
+
+
+/**
+ * Handles a message sent from the DV service to us.
+ * Parse it out and give it to the plugin.
+ *
+ * @param cls the handle to the DV API
+ * @param msg the message that was received
+ */
+static void
+handle_message_receipt (void *cls, 
+			const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_DV_ServiceHandle *sh = cls;
+  const struct GNUNET_DV_ConnectMessage *cm;
+  const struct GNUNET_DV_DisconnectMessage *dm;
+  const struct GNUNET_DV_ReceivedMessage *rm;
+
+  if (NULL == msg)
+  {
+    /* Connection closed */
+    reconnect (sh);
+    return;
+  }
+  switch (ntohs (msg->type))
+  {
+  case GNUNET_MESSAGE_TYPE_DV_CONNECT:
+    if (ntohs (msg->size) != sizeof (struct GNUNET_DV_ConnectMessage))
+    {
+      GNUNET_break (0);
+      reconnect (sh);
+      return;
+    }
+    cm = (const struct GNUNET_DV_ConnectMessage *) msg;
+    // FIXME
+    break;
+  case GNUNET_MESSAGE_TYPE_DV_DISCONNECT:
+    if (ntohs (msg->size) != sizeof (struct GNUNET_DV_DisconnectMessage))
+    {
+      GNUNET_break (0);
+      reconnect (sh);
+      return;
+    }
+    dm = (const struct GNUNET_DV_DisconnectMessage *) msg;
+    // FIXME
+    break;
+  case GNUNET_MESSAGE_TYPE_DV_RECV:
+    if (ntohs (msg->size) < sizeof (struct GNUNET_DV_ReceivedMessage))
+    {
+      GNUNET_break (0);
+      reconnect (sh);
+      return;
+    }
+    rm = (const struct GNUNET_DV_ReceivedMessage *) msg;
+    // FIXME
+    break;
+  default:
+    reconnect (sh);
+    break;
+  }
+  GNUNET_CLIENT_receive (sh->client, 
+			 &handle_message_receipt, sh,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
+}
+
+
+/**
+ * Transmit the start message to the DV service.
+ *
+ * @param cls the 'struct GNUNET_DV_ServiceHandle'
+ * @param size number of bytes available in buf
+ * @param buf where to copy the message
+ * @return number of bytes written to buf
+ */ 
+static size_t
+transmit_start (void *cls,
+		size_t size,
+		void *buf)
+{
+  struct GNUNET_DV_ServiceHandle *sh = cls;
+  struct GNUNET_MessageHeader start_message;
+
+  sh->th = NULL;
+  if (NULL == buf)
+  {
+    GNUNET_break (0);
+    reconnect (sh);
+    return 0;
+  }
+  GNUNET_assert (size >= sizeof (start_message));
+  start_message.size = htons (sizeof (struct GNUNET_MessageHeader));
+  start_message.type = htons (GNUNET_MESSAGE_TYPE_DV_START);
+  memcpy (buf, &start_message, sizeof (start_message));
+  GNUNET_CLIENT_receive (sh->client,
+			 &handle_message_receipt, sh,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
+  start_transmit (sh);
+  return sizeof (start_message);
+}
+
+
+/**
+ * Disconnect and then reconnect to the DV service.
+ *
+ * @param sh service handle
+ */
+static void
+reconnect (struct GNUNET_DV_ServiceHandle *sh)
+{
+  if (NULL != sh->th)
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel (sh->th);
+    sh->th = NULL;
+  }
+  if (NULL != sh->client)
+  {
+    GNUNET_CLIENT_disconnect (sh->client);
+    sh->client = NULL;
+  }
+  sh->client = GNUNET_CLIENT_connect ("dv", sh->cfg);
+  if (NULL == sh->client)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  sh->th = GNUNET_CLIENT_notify_transmit_ready (sh->client,
+						sizeof (struct GNUNET_MessageHeader),
+						GNUNET_TIME_UNIT_FOREVER_REL,
+						GNUNET_YES,
+						&transmit_start,
+						sh);
+}
 
 
 /**
@@ -98,8 +358,17 @@ GNUNET_DV_service_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			   GNUNET_DV_DisconnectCallback disconnect_cb,
 			   GNUNET_DV_MessageReceivedCallback message_cb)
 {
-  GNUNET_break (0);
-  return NULL;
+  struct GNUNET_DV_ServiceHandle *sh;
+
+  sh = GNUNET_malloc (sizeof (struct GNUNET_DV_ServiceHandle));
+  sh->cfg = cfg;
+  sh->cls = cls;
+  sh->connect_cb = connect_cb;
+  sh->disconnect_cb = disconnect_cb;
+  sh->message_cb = message_cb;
+  sh->send_callbacks = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_YES);
+  reconnect (sh);
+  return sh;
 }
 
 
@@ -111,9 +380,31 @@ GNUNET_DV_service_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_DV_service_disconnect (struct GNUNET_DV_ServiceHandle *sh)
 {
-  GNUNET_break (0);
+  struct GNUNET_DV_TransmitHandle *pos;
+  
+  if (NULL == sh)
+    return;
+  if (NULL != sh->th)
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel (sh->th);
+    sh->th = NULL;
+  }
+  while (NULL != (pos = sh->th_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (sh->th_head,
+				 sh->th_tail,
+				 pos);
+    GNUNET_free (pos);
+  }
+  if (NULL != sh->client) 
+  {
+    GNUNET_CLIENT_disconnect (sh->client);
+    sh->client = NULL;
+  }
+  // FIXME: handle and/or free entries in 'send_callbacks'!
+  GNUNET_CONTAINER_multihashmap_destroy (sh->send_callbacks);
+  GNUNET_free (sh);
 }
-
 
 
 /**
@@ -133,8 +424,22 @@ GNUNET_DV_send (struct GNUNET_DV_ServiceHandle *sh,
 		GNUNET_DV_MessageSentCallback cb,
 		void *cb_cls)
 {
-  GNUNET_break (0);
-  return NULL;
+  struct GNUNET_DV_TransmitHandle *th;
+
+  th = GNUNET_malloc (sizeof (struct GNUNET_DV_TransmitHandle) +
+		      ntohs (msg->size));
+  th->sh = sh;
+  th->target = *target;
+  th->cb = cb;
+  th->cb_cls = cb_cls;
+  // FIXME: wrong, need to box 'msg' AND generate UID!
+  th->msg = (const struct GNUNET_MessageHeader *) &th[1];
+  memcpy (&th[1], msg, ntohs (msg->size));
+  GNUNET_CONTAINER_DLL_insert (sh->th_head,
+			       sh->th_tail,
+			       th);
+  start_transmit (sh);
+  return th;
 }
 
 
@@ -148,623 +453,18 @@ GNUNET_DV_send (struct GNUNET_DV_ServiceHandle *sh,
 void
 GNUNET_DV_send_cancel (struct GNUNET_DV_TransmitHandle *th)
 {
-  GNUNET_break (0);
+  struct GNUNET_DV_ServiceHandle *sh = th->sh;
+  int ret;
+
+  ret = GNUNET_CONTAINER_multihashmap_remove (sh->send_callbacks,
+					      &th->target.hashPubKey,
+					      th);
+  if (GNUNET_YES != ret)
+    GNUNET_CONTAINER_DLL_remove (sh->th_head,
+				 sh->th_tail,
+				 th);
+  GNUNET_free (th);
 }
 
-
-
-#if 0
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * Store ready to send messages
- */
-struct PendingMessages
-{
-  /**
-   * Linked list of pending messages
-   */
-  struct PendingMessages *next;
-
-  /**
-   * Message that is pending
-   */
-  struct GNUNET_DV_SendMessage *msg;
-
-  /**
-   * Timeout for this message
-   */
-  struct GNUNET_TIME_Absolute timeout;
-
-};
-
-/**
- * Handle for the service.
- */
-struct GNUNET_DV_Handle
-{
-
-  /**
-   * Configuration to use.
-   */
-  const struct GNUNET_CONFIGURATION_Handle *cfg;
-
-  /**
-   * Socket (if available).
-   */
-  struct GNUNET_CLIENT_Connection *client;
-
-  /**
-   * Currently pending transmission request.
-   */
-  struct GNUNET_CLIENT_TransmitHandle *th;
-
-  /**
-   * List of the currently pending messages for the DV service.
-   */
-  struct PendingMessages *pending_list;
-
-  /**
-   * Message we are currently sending.
-   */
-  struct PendingMessages *current;
-
-  /**
-   * Handler for messages we receive from the DV service
-   */
-  GNUNET_DV_MessageReceivedHandler receive_handler;
-
-  /**
-   * Closure for the receive handler
-   */
-  void *receive_cls;
-
-  /**
-   * Current unique ID
-   */
-  uint32_t uid_gen;
-
-  /**
-   * Hashmap containing outstanding send requests awaiting confirmation.
-   */
-  struct GNUNET_CONTAINER_MultiHashMap *send_callbacks;
-
-};
-
-
-struct StartContext
-{
-  /**
-   * Start message
-   */
-  struct GNUNET_MessageHeader *message;
-
-  /**
-   * Handle to service, in case of timeout
-   */
-  struct GNUNET_DV_Handle *handle;
-};
-
-struct SendCallbackContext
-{
-  /**
-   * The continuation to call once a message is confirmed sent (or failed)
-   */
-  GNUNET_TRANSPORT_TransmitContinuation cont;
-
-  /**
-   * Closure to call with send continuation.
-   */
-  void *cont_cls;
-
-  /**
-   * Target of the message.
-   */
-  struct GNUNET_PeerIdentity target;
-
-  /**
-   * Payload size in bytes
-   */
-  size_t payload_size;
-
-  /**
-   * DV message size
-   */
-  size_t msg_size;
-};
-
-/**
- * Convert unique ID to hash code.
- *
- * @param uid unique ID to convert
- * @param hash set to uid (extended with zeros)
- */
-static void
-hash_from_uid (uint32_t uid, struct GNUNET_HashCode * hash)
-{
-  memset (hash, 0, sizeof (struct GNUNET_HashCode));
-  *((uint32_t *) hash) = uid;
-}
-
-/**
- * Try to (re)connect to the dv service.
- *
- * @param ret handle to the (disconnected) dv service
- *
- * @return GNUNET_YES on success, GNUNET_NO on failure.
- */
-static int
-try_connect (struct GNUNET_DV_Handle *ret)
-{
-  if (ret->client != NULL)
-    return GNUNET_OK;
-  ret->client = GNUNET_CLIENT_connect ("dv", ret->cfg);
-  if (ret->client != NULL)
-    return GNUNET_YES;
-#if DEBUG_DV_MESSAGES
-  LOG (GNUNET_ERROR_TYPE_DEBUG, _("Failed to connect to the dv service!\n"));
-#endif
-  return GNUNET_NO;
-}
-
-static void
-process_pending_message (struct GNUNET_DV_Handle *handle);
-
-/**
- * Send complete, schedule next
- *
- * @param handle handle to the dv service
- * @param code return code for send (unused)
- */
-static void
-finish (struct GNUNET_DV_Handle *handle, int code)
-{
-  struct PendingMessages *pos = handle->current;
-
-  handle->current = NULL;
-  process_pending_message (handle);
-
-  GNUNET_free (pos->msg);
-  GNUNET_free (pos);
-}
-
-/**
- * Notification that we can send data
- *
- * @param cls handle to the dv service (struct GNUNET_DV_Handle)
- * @param size how many bytes can we send
- * @param buf where to copy the message to send
- *
- * @return how many bytes we copied to buf
- */
-static size_t
-transmit_pending (void *cls, size_t size, void *buf)
-{
-  struct GNUNET_DV_Handle *handle = cls;
-  size_t ret;
-  size_t tsize;
-
-#if DEBUG_DV
-  if (handle->current != NULL)
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "DV API: Transmit pending called with message type %d\n",
-         ntohs (handle->current->msg->header.type));
-#endif
-
-  if (buf == NULL)
-  {
-#if DEBUG_DV
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "DV API: Transmit pending FAILED!\n\n\n");
-#endif
-    finish (handle, GNUNET_SYSERR);
-    return 0;
-  }
-  handle->th = NULL;
-
-  ret = 0;
-
-  if (handle->current != NULL)
-  {
-    tsize = ntohs (handle->current->msg->header.size);
-    if (size >= tsize)
-    {
-      memcpy (buf, handle->current->msg, tsize);
-#if DEBUG_DV
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "DV API: Copied %d bytes into buffer!\n\n\n", tsize);
-#endif
-      finish (handle, GNUNET_OK);
-      return tsize;
-    }
-
-  }
-
-  return ret;
-}
-
-/**
- * Try to send messages from list of messages to send
- *
- * @param handle handle to the distance vector service
- */
-static void
-process_pending_message (struct GNUNET_DV_Handle *handle)
-{
-
-  if (handle->current != NULL)
-    return;                     /* action already pending */
-  if (GNUNET_YES != try_connect (handle))
-  {
-    finish (handle, GNUNET_SYSERR);
-    return;
-  }
-
-  /* schedule next action */
-  handle->current = handle->pending_list;
-  if (NULL == handle->current)
-  {
-    return;
-  }
-  handle->pending_list = handle->pending_list->next;
-  handle->current->next = NULL;
-
-  if (NULL ==
-      (handle->th =
-       GNUNET_CLIENT_notify_transmit_ready (handle->client,
-                                            ntohs (handle->current->msg->
-                                                   header.size),
-                                            handle->current->msg->timeout,
-                                            GNUNET_YES, &transmit_pending,
-                                            handle)))
-  {
-#if DEBUG_DV
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Failed to transmit request to dv service.\n");
-#endif
-    finish (handle, GNUNET_SYSERR);
-  }
-}
-
-/**
- * Add a pending message to the linked list
- *
- * @param handle handle to the specified DV api
- * @param msg the message to add to the list
- */
-static void
-add_pending (struct GNUNET_DV_Handle *handle, struct GNUNET_DV_SendMessage *msg)
-{
-  struct PendingMessages *new_message;
-  struct PendingMessages *pos;
-  struct PendingMessages *last;
-
-  new_message = GNUNET_malloc (sizeof (struct PendingMessages));
-  new_message->msg = msg;
-
-  if (handle->pending_list != NULL)
-  {
-    pos = handle->pending_list;
-    while (pos != NULL)
-    {
-      last = pos;
-      pos = pos->next;
-    }
-    last->next = new_message;
-  }
-  else
-  {
-    handle->pending_list = new_message;
-  }
-
-  process_pending_message (handle);
-}
-
-/**
- * Handles a message sent from the DV service to us.
- * Parse it out and give it to the plugin.
- *
- * @param cls the handle to the DV API
- * @param msg the message that was received
- */
-void
-handle_message_receipt (void *cls, const struct GNUNET_MessageHeader *msg)
-{
-  struct GNUNET_DV_Handle *handle = cls;
-  struct GNUNET_DV_MessageReceived *received_msg;
-  struct GNUNET_DV_SendResultMessage *send_result_msg;
-  size_t packed_msg_len;
-  size_t sender_address_len;
-  char *sender_address;
-  char *packed_msg;
-  char *packed_msg_start;
-  struct GNUNET_HashCode uidhash;
-  struct SendCallbackContext *send_ctx;
-
-  if (msg == NULL)
-  {
-#if DEBUG_DV_MESSAGES
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: connection closed\n");
-#endif
-    return;                     /* Connection closed? */
-  }
-
-  GNUNET_assert ((ntohs (msg->type) == GNUNET_MESSAGE_TYPE_TRANSPORT_DV_RECEIVE)
-                 || (ntohs (msg->type) ==
-                     GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND_RESULT));
-
-  switch (ntohs (msg->type))
-  {
-  case GNUNET_MESSAGE_TYPE_TRANSPORT_DV_RECEIVE:
-    if (ntohs (msg->size) < sizeof (struct GNUNET_DV_MessageReceived))
-      return;
-
-    received_msg = (struct GNUNET_DV_MessageReceived *) msg;
-    packed_msg_len = ntohl (received_msg->msg_len);
-    sender_address_len =
-        ntohs (msg->size) - packed_msg_len -
-        sizeof (struct GNUNET_DV_MessageReceived);
-    GNUNET_assert (sender_address_len > 0);
-    sender_address = GNUNET_malloc (sender_address_len);
-    memcpy (sender_address, &received_msg[1], sender_address_len);
-    packed_msg_start = (char *) &received_msg[1];
-    packed_msg = GNUNET_malloc (packed_msg_len);
-    memcpy (packed_msg, &packed_msg_start[sender_address_len], packed_msg_len);
-
-#if DEBUG_DV_MESSAGES
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "DV_API receive: packed message type: %d or %d\n",
-         ntohs (((struct GNUNET_MessageHeader *) packed_msg)->type),
-         ((struct GNUNET_MessageHeader *) packed_msg)->type);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "DV_API receive: message sender reported as %s\n",
-         GNUNET_i2s (&received_msg->sender));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "DV_API receive: distance is %u\n",
-         ntohl (received_msg->distance));
-#endif
-
-    handle->receive_handler (handle->receive_cls, &received_msg->sender,
-                             packed_msg, packed_msg_len,
-                             ntohl (received_msg->distance), sender_address,
-                             sender_address_len);
-
-    GNUNET_free (sender_address);
-    break;
-  case GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND_RESULT:
-    if (ntohs (msg->size) < sizeof (struct GNUNET_DV_SendResultMessage))
-      return;
-
-    send_result_msg = (struct GNUNET_DV_SendResultMessage *) msg;
-    hash_from_uid (ntohl (send_result_msg->uid), &uidhash);
-    send_ctx =
-        GNUNET_CONTAINER_multihashmap_get (handle->send_callbacks, &uidhash);
-
-    if ((send_ctx != NULL) && (send_ctx->cont != NULL))
-    {
-      if (ntohl (send_result_msg->result) == 0)
-      {
-        send_ctx->cont (send_ctx->cont_cls, &send_ctx->target, GNUNET_OK,
-                        send_ctx->payload_size, send_ctx->msg_size);
-      }
-      else
-      {
-        send_ctx->cont (send_ctx->cont_cls, &send_ctx->target, GNUNET_SYSERR,
-                        send_ctx->payload_size, 0);
-      }
-    }
-    GNUNET_free_non_null (send_ctx);
-    break;
-  default:
-    break;
-  }
-  GNUNET_CLIENT_receive (handle->client, &handle_message_receipt, handle,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
-}
-
-/**
- * Send a message from the plugin to the DV service indicating that
- * a message should be sent via DV to some peer.
- *
- * @param dv_handle the handle to the DV api
- * @param target the final target of the message
- * @param msgbuf the msg(s) to send
- * @param msgbuf_size the size of msgbuf
- * @param priority priority to pass on to core when sending the message
- * @param timeout how long can this message be delayed (pass through to core)
- * @param addr the address of this peer (internally known to DV)
- * @param addrlen the length of the peer address
- * @param cont continuation to call once the message has been sent (or failed)
- * @param cont_cls closure for continuation
- *
- */
-int
-GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
-                const struct GNUNET_PeerIdentity *target, const char *msgbuf,
-                size_t msgbuf_size, unsigned int priority,
-                struct GNUNET_TIME_Relative timeout, const void *addr,
-                size_t addrlen, GNUNET_TRANSPORT_TransmitContinuation cont,
-                void *cont_cls)
-{
-  struct GNUNET_DV_SendMessage *msg;
-  struct SendCallbackContext *send_ctx;
-  char *end_of_message;
-  struct GNUNET_HashCode uidhash;
-  int msize;
-
-#if DEBUG_DV_MESSAGES
-  dv_handle->uid_gen =
-      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, UINT32_MAX);
-#else
-  dv_handle->uid_gen++;
-#endif
-
-  msize = sizeof (struct GNUNET_DV_SendMessage) + addrlen + msgbuf_size;
-  msg = GNUNET_malloc (msize);
-  msg->header.size = htons (msize);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND);
-  memcpy (&msg->target, target, sizeof (struct GNUNET_PeerIdentity));
-  msg->priority = htonl (priority);
-  msg->timeout = timeout;
-  msg->addrlen = htonl (addrlen);
-  msg->uid = htonl (dv_handle->uid_gen);
-  memcpy (&msg[1], addr, addrlen);
-  end_of_message = (char *) &msg[1];
-  end_of_message = &end_of_message[addrlen];
-  memcpy (end_of_message, msgbuf, msgbuf_size);
-  add_pending (dv_handle, msg);
-  send_ctx = GNUNET_malloc (sizeof (struct SendCallbackContext));
-  send_ctx->payload_size = msgbuf_size;
-  send_ctx->msg_size = msize;
-  send_ctx->cont = cont;
-  send_ctx->cont_cls = cont_cls;
-  memcpy (&send_ctx->target, target, sizeof (struct GNUNET_PeerIdentity));
-  hash_from_uid (dv_handle->uid_gen, &uidhash);
-  GNUNET_CONTAINER_multihashmap_put (dv_handle->send_callbacks, &uidhash,
-                                     send_ctx,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
-
-  return GNUNET_OK;
-}
-
-/**
- * Callback to transmit a start message to
- * the DV service, once we can send
- *
- * @param cls struct StartContext
- * @param size how much can we send
- * @param buf where to copy the message
- *
- * @return number of bytes copied to buf
- */
-static size_t
-transmit_start (void *cls, size_t size, void *buf)
-{
-  struct StartContext *start_context = cls;
-  struct GNUNET_DV_Handle *handle = start_context->handle;
-  size_t tsize;
-
-#if DEBUG_DV
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "DV API: sending start request to service\n");
-#endif
-  if (buf == NULL)
-  {
-    GNUNET_free (start_context->message);
-    GNUNET_free (start_context);
-    GNUNET_DV_disconnect (handle);
-    return 0;
-  }
-
-  tsize = ntohs (start_context->message->size);
-  if (size >= tsize)
-  {
-    memcpy (buf, start_context->message, tsize);
-    GNUNET_free (start_context->message);
-    GNUNET_free (start_context);
-    GNUNET_CLIENT_receive (handle->client, &handle_message_receipt, handle,
-                           GNUNET_TIME_UNIT_FOREVER_REL);
-
-
-    return tsize;
-  }
-
-  return 0;
-}
-
-/**
- * Connect to the DV service
- *
- * @param cfg the configuration to use
- * @param receive_handler method call when on receipt from the service
- * @param receive_handler_cls closure for receive_handler
- *
- * @return handle to the DV service
- */
-struct GNUNET_DV_Handle *
-GNUNET_DV_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                   GNUNET_DV_MessageReceivedHandler receive_handler,
-                   void *receive_handler_cls)
-{
-  struct GNUNET_DV_Handle *handle;
-  struct GNUNET_MessageHeader *start_message;
-  struct StartContext *start_context;
-
-  handle = GNUNET_malloc (sizeof (struct GNUNET_DV_Handle));
-
-  handle->cfg = cfg;
-  handle->pending_list = NULL;
-  handle->current = NULL;
-  handle->th = NULL;
-  handle->client = GNUNET_CLIENT_connect ("dv", cfg);
-  handle->receive_handler = receive_handler;
-  handle->receive_cls = receive_handler_cls;
-
-  if (handle->client == NULL)
-  {
-    GNUNET_free (handle);
-    return NULL;
-  }
-
-  start_message = GNUNET_malloc (sizeof (struct GNUNET_MessageHeader));
-  start_message->size = htons (sizeof (struct GNUNET_MessageHeader));
-  start_message->type = htons (GNUNET_MESSAGE_TYPE_DV_START);
-
-  start_context = GNUNET_malloc (sizeof (struct StartContext));
-  start_context->handle = handle;
-  start_context->message = start_message;
-  GNUNET_CLIENT_notify_transmit_ready (handle->client,
-                                       sizeof (struct GNUNET_MessageHeader),
-                                       GNUNET_TIME_relative_multiply
-                                       (GNUNET_TIME_UNIT_SECONDS, 60),
-                                       GNUNET_YES, &transmit_start,
-                                       start_context);
-
-  handle->send_callbacks = GNUNET_CONTAINER_multihashmap_create (100, GNUNET_NO);
-
-  return handle;
-}
-
-/**
- * Disconnect from the DV service
- *
- * @param handle the current handle to the service to disconnect
- */
-void
-GNUNET_DV_disconnect (struct GNUNET_DV_Handle *handle)
-{
-  struct PendingMessages *pos;
-
-  GNUNET_assert (handle != NULL);
-
-  if (handle->th != NULL)       /* We have a live transmit request in the Aether */
-  {
-    GNUNET_CLIENT_notify_transmit_ready_cancel (handle->th);
-    handle->th = NULL;
-  }
-  if (handle->current != NULL)  /* We are trying to send something now, clean it up */
-    GNUNET_free (handle->current);
-  while (NULL != (pos = handle->pending_list))  /* Remove all pending sends from the list */
-  {
-    handle->pending_list = pos->next;
-    GNUNET_free (pos);
-  }
-  if (handle->client != NULL)   /* Finally, disconnect from the service */
-  {
-    GNUNET_CLIENT_disconnect (handle->client);
-    handle->client = NULL;
-  }
-
-  GNUNET_free (handle);
-}
-
-#endif
 
 /* end of dv_api.c */
