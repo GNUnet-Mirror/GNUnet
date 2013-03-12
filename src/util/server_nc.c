@@ -201,7 +201,7 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
  * @param server server for which this function creates the context
  * @param queue_length maximum number of messages to keep in
  *        the notification queue; optional messages are dropped
- *        it the queue gets longer than this number of messages
+ *        if the queue gets longer than this number of messages
  * @return handle to the notification context
  */
 struct GNUNET_SERVER_NotificationContext *

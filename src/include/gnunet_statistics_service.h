@@ -140,7 +140,7 @@ struct GNUNET_STATISTICS_GetHandle;
  * Get statistic from the peer.
  *
  * @param handle identification of the statistics service
- * @param subsystem limit to the specified subsystem, NULL for our subsystem
+ * @param subsystem limit to the specified subsystem, NULL for all subsystems
  * @param name name of the statistic value, NULL for all values
  * @param timeout after how long should we give up (and call
  *        notify with buf NULL and size 0)?
