@@ -162,40 +162,41 @@ extern "C"
  * unwrapped by the DV service and handed to the plugin
  * for processing
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_DV_RECEIVE 44
+#define GNUNET_MESSAGE_TYPE_DV_RECV 44
 
 /**
  * DV Plugin to DV service message, indicating a message
  * should be sent out.
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND 45
+#define GNUNET_MESSAGE_TYPE_DV_SEND 45
 
 /**
  * DV service to DV api message, containing a confirmation
  * or failure of a DV_SEND message.
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_DV_SEND_RESULT 46
+#define GNUNET_MESSAGE_TYPE_DV_SEND_ACK 46
 
 /**
  * P2P DV message encapsulating some real message
  */
-#define GNUNET_MESSAGE_TYPE_DV_DATA 47
-
-/**
- * P2P DV message gossipping peer information
- */
-#define GNUNET_MESSAGE_TYPE_DV_GOSSIP 48
+#define GNUNET_MESSAGE_TYPE_DV_ROUTE 47
 
 /**
  * DV Plugin to DV service message, indicating
  * startup.
  */
-#define GNUNET_MESSAGE_TYPE_DV_START 49
+#define GNUNET_MESSAGE_TYPE_DV_START 48
 
 /**
- * P2P DV message notifying connected peers of a disconnect
+ * P2P DV message telling plugin that a peer connected
+ */
+#define GNUNET_MESSAGE_TYPE_DV_CONNECT 49
+
+/**
+ * P2P DV message telling plugin that a peer disconnected
  */
 #define GNUNET_MESSAGE_TYPE_DV_DISCONNECT 50
+
 
 /*******************************************************************************
  * Transport-UDP message types
