@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2009--2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -25,20 +25,146 @@
  * @author Nathan Evans
  */
 #include "platform.h"
-#include "gnunet_bandwidth_lib.h"
-#include "gnunet_client_lib.h"
-#include "gnunet_constants.h"
-#include "gnunet_container_lib.h"
-#include "gnunet_arm_service.h"
-#include "gnunet_hello_lib.h"
-#include "gnunet_protocols.h"
-#include "gnunet_server_lib.h"
-#include "gnunet_time_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_dv_service.h"
+#include "gnunet_protocols.h"
 #include "dv.h"
 #include "gnunet_transport_plugin.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "dv-api",__VA_ARGS__)
+
+
+/**
+ * Handle for a send operation.
+ */
+struct GNUNET_DV_TransmitHandle
+{
+  struct GNUNET_DV_TransmitHandle *next;
+
+  struct GNUNET_DV_TransmitHandle *prev;
+
+  struct GNUNET_DV_ServiceHandle *sh;
+
+  GNUNET_DV_MessageSentCallback cb;
+
+  void *cb_cls;
+  
+  const struct GNUNET_MessageHeader *msg;
+
+  struct GNUNET_PeerIdentity target;
+
+};
+
+
+/**
+ * Handle to the DV service.
+ */
+struct GNUNET_DV_ServiceHandle
+{
+
+  struct GNUNET_ClientHandle *client;
+
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  void *cls;
+  
+  GNUNET_DV_ConnectCallback connect_cb;
+
+  GNUNET_DV_DisconnectCallback disconnect_cb;
+
+  GNUNET_DV_MessageReceivedCallback message_cb;
+
+  struct GNUNET_DV_TransmitHandle *th_head;
+
+  struct GNUNET_DV_TransmitHandle *th_tail;
+
+};
+
+
+/**
+ * Connect to the DV service.
+ *
+ * @param cfg configuration
+ * @param cls closure for callbacks
+ * @param connect_cb function to call on connects
+ * @param disconnect_cb function to call on disconnects
+ * @param message_cb function to call if we receive messages
+ * @return handle to access the service
+ */
+struct GNUNET_DV_ServiceHandle *
+GNUNET_DV_service_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
+			   void *cls,
+			   GNUNET_DV_ConnectCallback connect_cb,
+			   GNUNET_DV_DisconnectCallback disconnect_cb,
+			   GNUNET_DV_MessageReceivedCallback message_cb)
+{
+  GNUNET_break (0);
+  return NULL;
+}
+
+
+/**
+ * Disconnect from DV service.
+ *
+ * @param sh service handle
+ */
+void
+GNUNET_DV_service_disconnect (struct GNUNET_DV_ServiceHandle *sh)
+{
+  GNUNET_break (0);
+}
+
+
+
+/**
+ * Send a message via DV service.
+ *
+ * @param sh service handle
+ * @param target intended recpient
+ * @param msg message payload
+ * @param cb function to invoke when done
+ * @param cb_cls closure for 'cb'
+ * @return handle to cancel the operation
+ */
+struct GNUNET_DV_TransmitHandle *
+GNUNET_DV_send (struct GNUNET_DV_ServiceHandle *sh,
+		const struct GNUNET_PeerIdentity *target,
+		const struct GNUNET_MessageHeader *msg,
+		GNUNET_DV_MessageSentCallback cb,
+		void *cb_cls)
+{
+  GNUNET_break (0);
+  return NULL;
+}
+
+
+/**
+ * Abort send operation (naturally, the message may have
+ * already been transmitted; this only stops the 'cb'
+ * from being called again).
+ *
+ * @param th send operation to cancel
+ */
+void
+GNUNET_DV_send_cancel (struct GNUNET_DV_TransmitHandle *th)
+{
+  GNUNET_break (0);
+}
+
+
+
+#if 0
+
+
+
+
+
+
+
+
+
+
+
 
 /**
  * Store ready to send messages
@@ -638,5 +764,7 @@ GNUNET_DV_disconnect (struct GNUNET_DV_Handle *handle)
 
   GNUNET_free (handle);
 }
+
+#endif
 
 /* end of dv_api.c */

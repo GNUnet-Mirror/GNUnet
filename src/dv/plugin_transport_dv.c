@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2002--2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -114,19 +114,9 @@ struct Plugin
   struct GNUNET_TRANSPORT_PluginEnvironment *env;
 
   /**
-   * List of open sessions.
+   * List of open sessions.  FIXME: use hash map!
    */
   struct Session *sessions;
-
-  /**
-   * Our server.
-   */
-  //struct GNUNET_SERVER_Handle *server;
-
-  /*
-   * Handle to the running service.
-   */
-  //struct GNUNET_SERVICE_Context *service;
 
   /**
    * Copy of the handler array where the closures are
@@ -137,53 +127,35 @@ struct Plugin
   /**
    * Handle to the DV service
    */
-  struct GNUNET_DV_Handle *dv_handle;
+  struct GNUNET_DV_ServiceHandle *dvh;
 
 };
 
+
 /**
  * Handler for messages received from the DV service.
+ *
+ * @param cls closure with the plugin
+ * @param sender sender of the message
+ * @param distance how far did the message travel
+ * @param msg actual message payload 
  */
-void
-handle_dv_message_received (void *cls, struct GNUNET_PeerIdentity *sender,
-                            char *msg, size_t msg_len, uint32_t distance,
-                            char *sender_address, size_t sender_address_len)
+static void
+handle_dv_message_received (void *cls,
+			    const struct GNUNET_PeerIdentity *sender,
+			    uint32_t distance,
+			    const struct GNUNET_MessageHeader *msg)
 {
   struct Plugin *plugin = cls;
+  struct GNUNET_ATS_Information ats;
 
-#if DEBUG_DV_MESSAGES
-  char *my_id;
-
-  my_id = GNUNET_strdup (GNUNET_i2s (plugin->env->my_identity));
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "plugin_transport_dv",
-                   _("%s Received message from %s of type %d, distance %u!\n"),
-                   my_id, GNUNET_i2s (sender),
-                   ntohs (((struct GNUNET_MessageHeader *) msg)->type),
-                   distance);
-  if (sender_address_len == (2 * sizeof (struct GNUNET_PeerIdentity)))
-  {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "plugin_transport_dv",
-                     "Parsed sender address: %s:%s\n",
-                     GNUNET_i2s ((struct GNUNET_PeerIdentity *) sender_address),
-                     GNUNET_h2s (&
-                                 ((struct GNUNET_PeerIdentity *)
-                                  &sender_address[sizeof
-                                                  (struct
-                                                   GNUNET_PeerIdentity)])->hashPubKey));
-  }
-
-  GNUNET_free_non_null (my_id);
-#endif
-  struct GNUNET_ATS_Information ats[1];
-
-  ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  ats[0].value = htonl (distance);
+  ats.type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
+  ats.value = htonl (distance);
 
   plugin->env->receive (plugin->env->cls, sender,
-                        (struct GNUNET_MessageHeader *) msg,
-                        (const struct GNUNET_ATS_Information *) &ats, 1, NULL,
-                        sender_address, sender_address_len);
-
+                        msg,
+                        &ats, 1,
+			NULL, NULL, 0);
 }
 
 
@@ -219,14 +191,7 @@ dv_plugin_send (void *cls,
                 GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
   int ret = -1;
-#if 0
-  struct Plugin *plugin = cls;
 
-  ret =
-      GNUNET_DV_send (plugin->dv_handle, &session->sender, 
-		      msgbuf, msgbuf_size, priority,
-                      timeout, addr, addrlen, cont, cont_cls);
-#endif
   return ret;
 }
 
@@ -269,32 +234,9 @@ dv_plugin_address_pretty_printer (void *cls, const char *type, const void *addr,
                                   GNUNET_TRANSPORT_AddressStringCallback asc,
                                   void *asc_cls)
 {
-  char *dest_peer;
-  char *via_peer;
-  char *print_string;
-  char *addr_buf = (char *) addr;
-
-  if (addrlen != sizeof (struct GNUNET_PeerIdentity) * 2)
-  {
-    asc (asc_cls, NULL);
-  }
-  else
-  {
-    dest_peer =
-        GNUNET_strdup (GNUNET_i2s ((struct GNUNET_PeerIdentity *) addr));
-    via_peer =
-        GNUNET_strdup (GNUNET_i2s
-                       ((struct GNUNET_PeerIdentity *)
-                        &addr_buf[sizeof (struct GNUNET_PeerIdentity)]));
-    GNUNET_asprintf (&print_string, "DV Peer `%s' via peer`%s'", dest_peer,
-                     via_peer);
-    asc (asc_cls, print_string);
-    asc (asc_cls, NULL);
-    GNUNET_free (via_peer);
-    GNUNET_free (dest_peer);
-    GNUNET_free (print_string);
-  }
+  asc (asc_cls, NULL);
 }
+
 
 /**
  * Convert the DV address to a pretty string.
@@ -308,33 +250,9 @@ dv_plugin_address_pretty_printer (void *cls, const char *type, const void *addr,
 static const char *
 address_to_string (void *cls, const void *addr, size_t addrlen)
 {
-  static char return_buffer[2 * 4 + 2]; // Two four character peer identity prefixes a ':' and '\0'
-
-  struct GNUNET_CRYPTO_HashAsciiEncoded peer_hash;
-  struct GNUNET_CRYPTO_HashAsciiEncoded via_hash;
-  struct GNUNET_PeerIdentity *peer;
-  struct GNUNET_PeerIdentity *via;
-  char *addr_buf = (char *) addr;
-
-  if (addrlen == (2 * sizeof (struct GNUNET_PeerIdentity)))
-  {
-    peer = (struct GNUNET_PeerIdentity *) addr_buf;
-    via =
-        (struct GNUNET_PeerIdentity *)
-        &addr_buf[sizeof (struct GNUNET_PeerIdentity)];
-
-    GNUNET_CRYPTO_hash_to_enc (&peer->hashPubKey, &peer_hash);
-    peer_hash.encoding[4] = '\0';
-    GNUNET_CRYPTO_hash_to_enc (&via->hashPubKey, &via_hash);
-    via_hash.encoding[4] = '\0';
-    GNUNET_snprintf (return_buffer, sizeof (return_buffer), "%s:%s", &peer_hash,
-                     &via_hash);
-  }
-  else
-    return NULL;
-
-  return return_buffer;
+  return "<not implemented>";
 }
+
 
 /**
  * Another peer has suggested an address for this peer and transport
@@ -355,26 +273,7 @@ address_to_string (void *cls, const void *addr, size_t addrlen)
 static int
 dv_plugin_check_address (void *cls, const void *addr, size_t addrlen)
 {
-  struct Plugin *plugin = cls;
-
-  /* Verify that the first peer of this address matches our peer id! */
-  if ((addrlen != (2 * sizeof (struct GNUNET_PeerIdentity))) ||
-      (0 !=
-       memcmp (addr, plugin->env->my_identity,
-               sizeof (struct GNUNET_PeerIdentity))))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%s: Address not correct size or identity doesn't match ours!\n",
-                GNUNET_i2s (plugin->env->my_identity));
-    if (addrlen == (2 * sizeof (struct GNUNET_PeerIdentity)))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer in address is %s\n",
-                  GNUNET_i2s (addr));
-    }
-    return GNUNET_SYSERR;
-  }
-
-  return GNUNET_OK;
+  return GNUNET_SYSERR;
 }
 
 
@@ -408,16 +307,10 @@ libgnunet_plugin_transport_dv_init (void *cls)
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
-
-  plugin->dv_handle =
-      GNUNET_DV_connect (env->cfg, &handle_dv_message_received, plugin);
-
-  if (plugin->dv_handle == NULL)
-  {
-    GNUNET_free (plugin);
-    return NULL;
-  }
-
+  plugin->dvh = GNUNET_DV_service_connect (env->cfg,
+					   plugin,
+					   NULL, NULL, /*FIXME! */
+					   &handle_dv_message_received);
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
   api->send = &dv_plugin_send;
@@ -425,6 +318,7 @@ libgnunet_plugin_transport_dv_init (void *cls)
   api->address_pretty_printer = &dv_plugin_address_pretty_printer;
   api->check_address = &dv_plugin_check_address;
   api->address_to_string = &address_to_string;
+  api->string_to_address = NULL; /* FIXME */
   api->get_session = dv_get_session;
   return api;
 }
@@ -439,9 +333,7 @@ libgnunet_plugin_transport_dv_done (void *cls)
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
-  if (plugin->dv_handle != NULL)
-    GNUNET_DV_disconnect (plugin->dv_handle);
-
+  GNUNET_DV_service_disconnect (plugin->dvh);
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;
