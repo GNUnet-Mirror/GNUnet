@@ -138,7 +138,7 @@
 /**
  * Print debug output for mlp problem creation
  */
-#define DEBUG_MLP_PROBLEM_CREATION GNUNET_YES
+#define DEBUG_MLP_PROBLEM_CREATION GNUNET_NO
 
 /**
  * Enable GLPK verbose output
@@ -1126,13 +1126,8 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
 
   			  for (c_net = 0; c_net <= length + 1; c_net ++)
   			  {
-  			  	if (ind[c_net] == mlp->p.r_quota[value])
-  			  		LOG (GNUNET_ERROR_TYPE_ERROR, "New [%u] == [%f]\n",ind[c_net],val[c_net]);
   			  	if (ind[c_net] == mlp->p.r_quota[old_value])
-  			  	{
-  			  		LOG (GNUNET_ERROR_TYPE_ERROR, "Old [%u] == [%f]\n",ind[c_net],val[c_net]);
-  			  		break;
-  			  	}
+  			  		break; /* Found index for old network */
   			  }
   			  val[c_net] = 0.0;
   				glp_set_mat_col (mlp->p.prob, mlpi->c_b, length, ind, val);
