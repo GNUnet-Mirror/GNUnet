@@ -249,12 +249,11 @@ struct ConsensusSet
 {
 
   /**
-   * Array of targets in the set, may include NULL 
-   * entries if a neighbor has disconnected; the
-   * targets are allocated with the respective
-   * 'struct Route', not here.
+   * Array of targets in the set, may include NULL entries if a
+   * neighbor has disconnected; the targets are allocated with the
+   * respective container (i.e. 'struct RoutingNeighbor'), not here.
    */
-  struct Target **targets;
+  struct Route **targets;
 
   /**
    * Size of the 'targets' array.
@@ -461,6 +460,42 @@ send_data_to_plugin (const struct GNUNET_MessageHeader *message,
 
 
 /**
+ * Forward a control message to the plugin.
+ *
+ * @param message the message to send to the plugin
+ * @param distant_neighbor the original sender of the message
+ * @param distnace distance to the original sender of the message
+ */
+static void
+send_control_to_plugin (const struct GNUNET_MessageHeader *message)
+{
+  struct PendingMessage *pending_message;
+  size_t size;
+
+  if (NULL == client_handle)
+  {
+    GNUNET_STATISTICS_update (stats,
+			      "# control messages discarded (no plugin)",
+			      1, GNUNET_NO);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Refusing to queue messages, DV plugin not active.\n"));
+    return;
+  }
+  size = ntohs (message->size);
+  pending_message = GNUNET_malloc (sizeof (struct PendingMessage) + size);
+  memcpy (&pending_message[1], message, size);
+  GNUNET_CONTAINER_DLL_insert_tail (plugin_pending_head, 
+				    plugin_pending_tail,
+				    pending_message);  
+  if (NULL == plugin_transmit_handle)
+    plugin_transmit_handle =
+      GNUNET_SERVER_notify_transmit_ready (client_handle, size,
+					   GNUNET_TIME_UNIT_FOREVER_REL,
+					   &transmit_to_plugin, NULL);
+}
+
+
+/**
  * Give an ACK message to the plugin, we transmitted a message for it.
  *
  * @param target peer that received the message
@@ -470,37 +505,64 @@ static void
 send_ack_to_plugin (struct GNUNET_PeerIdentity *target, 
 		    uint32_t uid)
 {
-  struct GNUNET_DV_AckMessage *ack_msg;
-  struct PendingMessage *pending_message;
-  size_t size;
+  struct GNUNET_DV_AckMessage ack_msg;
 
-  if (NULL == client_handle)
-  {
-    GNUNET_STATISTICS_update (stats,
-			      "# acks discarded (no plugin)",
-			      1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Refusing to queue messages, DV plugin not active.\n"));
-    return;
-  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Delivering ACK for message to peer `%s'\n",
               GNUNET_i2s (target));
-  size = sizeof (struct GNUNET_DV_AckMessage);
-  pending_message = GNUNET_malloc (sizeof (struct PendingMessage) + size);
-  ack_msg = (struct GNUNET_DV_AckMessage *) &pending_message[1];
-  ack_msg->header.size = htons (size);
-  ack_msg->header.type = htons (GNUNET_MESSAGE_TYPE_DV_SEND_ACK);
-  ack_msg->uid = htonl (uid);
-  ack_msg->target = *target;
-  GNUNET_CONTAINER_DLL_insert_tail (plugin_pending_head, 
-				    plugin_pending_tail,
-				    pending_message);  
-  if (NULL == plugin_transmit_handle)
-    plugin_transmit_handle =
-      GNUNET_SERVER_notify_transmit_ready (client_handle, size,
-					   GNUNET_TIME_UNIT_FOREVER_REL,
-					   &transmit_to_plugin, NULL);
+  ack_msg.header.size = htons (sizeof (ack_msg));
+  ack_msg.header.type = htons (GNUNET_MESSAGE_TYPE_DV_SEND_ACK);
+  ack_msg.uid = htonl (uid);
+  ack_msg.target = *target;
+  send_control_to_plugin (&ack_msg.header);
+}
+
+
+/**
+ * Give a CONNECT message to the plugin.
+ *
+ * @param target peer that connected
+ * @param distance distance to the target
+ */
+static void
+send_connect_to_plugin (const struct GNUNET_PeerIdentity *target, 
+			uint32_t distance)
+{
+  struct GNUNET_DV_ConnectMessage cm;
+
+  if (NULL == client_handle)
+    return;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Delivering CONNECT about peer `%s'\n",
+              GNUNET_i2s (target));
+  cm.header.size = htons (sizeof (cm));
+  cm.header.type = htons (GNUNET_MESSAGE_TYPE_DV_CONNECT);
+  cm.distance = htonl (distance);
+  cm.peer = *target;
+  send_control_to_plugin (&cm.header);
+}
+
+
+/**
+ * Give a DISCONNECT message to the plugin.
+ *
+ * @param target peer that disconnected
+ */
+static void
+send_disconnect_to_plugin (const struct GNUNET_PeerIdentity *target)
+{
+  struct GNUNET_DV_DisconnectMessage dm;
+
+  if (NULL == client_handle)
+    return;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Delivering DISCONNECT about peer `%s'\n",
+              GNUNET_i2s (target));
+  dm.header.size = htons (sizeof (dm));
+  dm.header.type = htons (GNUNET_MESSAGE_TYPE_DV_DISCONNECT);
+  dm.reserved = htonl (0);
+  dm.peer = *target;
+  send_control_to_plugin (&dm.header);
 }
 
 
@@ -557,6 +619,108 @@ core_transmit_notify (void *cls, size_t size, void *buf)
 
 
 /**
+ * Begin exchanging routing information with 'rn', updating
+ * our respective neighbor table in the process.
+ *
+ * @param rn neighbor with whom we should exchange the information
+ */
+static void
+exchange_routing_information (struct RoutingNeighbor *rn)
+{
+  GNUNET_break (0);
+  // FIXME
+}
+
+
+/**
+ * Find a free slot for storing a 'route' in the 'consensi'
+ * set at the given distance.
+ *
+ * @param distance distance to use for the set slot
+ */
+static unsigned int
+get_consensus_slot (uint32_t distance)
+{
+  struct ConsensusSet *cs;
+  unsigned int i;
+
+  cs = &consensi[distance];
+  i = 0;
+  while ( (i < cs->array_length) &&
+	  (NULL != cs->targets[i]) ) i++;
+  if (i == cs->array_length)
+    GNUNET_array_grow (cs->targets,
+		       cs->array_length,
+		       cs->array_length * 2 + 2);
+  return i;
+}
+
+
+/**
+ * Setup an entry in the 'routing neighbor' table and begin the
+ * exchange with the new routing neighbor.  Note that a routing
+ * neighbor can be a direct neighbor at the same time, in which case
+ * the peer identity of 'target' and 'next_hop->peer' will be the same
+ * (and the distance will be 1).
+ *
+ * If a routing neighbor already exists, ignore the update if
+ * the distance is not smaller; otherwise if the distance
+ * is smaller, replace the existing entry with the new route.
+ *
+ * @param next_hop first routing hop towards the routing neighbor
+ * @param target peer identity of the routing neighbor
+ * @param distance number of hops to the routing neighbor
+ */
+static void
+create_routing_neighbor (struct DirectNeighbor *next_hop,
+			 const struct GNUNET_PeerIdentity *target,
+			 uint32_t distance)
+{
+  struct RoutingNeighbor *rn;
+  unsigned int i;
+
+  rn = GNUNET_CONTAINER_multihashmap_get (routing_neighbors, 
+					  &target->hashPubKey);
+  if (NULL != rn)
+  {
+    /* update the entry, instead of creating a new one */
+    if (distance >= rn->route.target.distance)
+      return; /* ignore, distance is not better */
+    rn->route.next_hop = next_hop;
+    if (distance < rn->route.target.distance)
+    { 
+      /* move to alternative consensi slot */
+      consensi[rn->route.target.distance].targets[rn->route.set_offset] = NULL;
+      rn->route.target.distance = distance;
+      i = get_consensus_slot (distance);
+      rn->route.set_offset = i;
+      consensi[distance].targets[i] = &rn->route;      
+    }
+    if (DIRECT_NEIGHBOR_COST == distance)
+    {
+      /* we're now a direct neighbor, remove from set reachable via DV! */
+      send_disconnect_to_plugin (target);
+    }
+    return;
+  }
+  GNUNET_assert (distance < DEFAULT_FISHEYE_DEPTH - 1);
+  i = get_consensus_slot (distance);
+  rn = GNUNET_malloc (sizeof (struct RoutingNeighbor));
+  rn->route.next_hop = next_hop;
+  rn->route.target.peer = *target;
+  rn->route.target.distance = distance;
+  rn->route.set_offset = i;
+  consensi[distance].targets[i] = &rn->route;
+  exchange_routing_information (rn);
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_put (direct_neighbors,
+						    &target->hashPubKey,
+						    rn,
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+}
+
+
+/**
  * Method called whenever a peer connects.
  *
  * @param cls closure
@@ -570,6 +734,7 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                      unsigned int atsi_count)
 {
   struct DirectNeighbor *neighbor;
+  struct RoutingNeighbor *rn;
   uint32_t distance;
 
   /* Check for connect to self message */
@@ -585,14 +750,20 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   if (DIRECT_NEIGHBOR_COST != distance) 
     return; /* is a DV-neighbor */
-
-  GNUNET_break (0); // FIXME...
+  neighbor = GNUNET_malloc (sizeof (struct DirectNeighbor));
+  neighbor->peer = *peer;
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_put (direct_neighbors,
+						    &peer->hashPubKey,
+						    neighbor,
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  create_routing_neighbor (neighbor, peer, DIRECT_NEIGHBOR_COST);
 }
 
 
 
 /**
- * Core handler for dv data messages.  Whatever this message
+ * Core handler for DV data messages.  Whatever this message
  * contains all we really have to do is rip it out of its
  * DV layering and give it to our pal the DV plugin to report
  * in with.
@@ -816,6 +987,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CONTAINER_multihashmap_destroy (all_routes);
   GNUNET_CORE_disconnect (core_api);
   core_api = NULL;
+  GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
+  stats = NULL;
   while (NULL != (pending = plugin_pending_head))
   {
     GNUNET_CONTAINER_DLL_remove (plugin_pending_head,
@@ -911,7 +1084,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   if (NULL == core_api)
     return;
-  // FIXME: stats
+  stats = GNUNET_STATISTICS_create ("dv", cfg);
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&shutdown_task, NULL);
@@ -932,3 +1105,5 @@ main (int argc, char *const *argv)
           GNUNET_SERVICE_run (argc, argv, "dv", GNUNET_SERVICE_OPTION_NONE,
                               &run, NULL)) ? 0 : 1;
 }
+
+/* end of gnunet-service-dv.c */

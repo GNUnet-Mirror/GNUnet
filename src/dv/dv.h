@@ -69,9 +69,9 @@ struct GNUNET_DV_DisconnectMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * The distance to the peer that we used to have
+   * Always zero.
    */
-  uint32_t distance GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * The peer that is no longer available.
