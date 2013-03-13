@@ -417,6 +417,7 @@ list_callback (void *cls, struct GNUNET_ARM_Handle *arm,
   FPRINTF (stdout, "%s", _("Running services:\n"));
   for (i = 0; i < count; i++)
     FPRINTF (stdout, "%s\n", list[i]);
+  GNUNET_SCHEDULER_add_now (action_loop, NULL);
 }
 
 
