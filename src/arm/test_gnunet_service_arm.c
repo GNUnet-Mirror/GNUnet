@@ -115,7 +115,8 @@ run (void *cls, char *const *args, const char *cfgfile,
         GNUNET_CONFIGURATION_get_value_filename (c, "arm", "CONFIG",
 					       &armconfig))
     {
-      GNUNET_CONFIGURATION_set_value_string (c, "arm", "CONFIG",
+      GNUNET_CONFIGURATION_set_value_string ((struct GNUNET_CONFIGURATION_Handle
+                                              *) c, "arm", "CONFIG",
                                              cfgfile);
     }
     else
