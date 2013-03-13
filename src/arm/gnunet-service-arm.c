@@ -1340,9 +1340,10 @@ run (void *cls, struct GNUNET_SERVER_Handle *serv,
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     {&handle_start, NULL, GNUNET_MESSAGE_TYPE_ARM_START, 0},
     {&handle_stop, NULL, GNUNET_MESSAGE_TYPE_ARM_STOP, 0},
-    {&handle_monitor, NULL, GNUNET_MESSAGE_TYPE_ARM_MONITOR, 0},
+    {&handle_monitor, NULL, GNUNET_MESSAGE_TYPE_ARM_MONITOR, 
+     sizeof (struct GNUNET_ARM_Message)},
     {&handle_list, NULL, GNUNET_MESSAGE_TYPE_ARM_LIST, 
-     sizeof (struct GNUNET_MessageHeader)},
+     sizeof (struct GNUNET_ARM_Message)},
     {NULL, NULL, 0, 0}
   };
   char *defaultservices;
