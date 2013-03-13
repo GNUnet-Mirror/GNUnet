@@ -120,7 +120,8 @@ check_PROGRAMS = \
   test_testbed_api_testbed_run_topology2dtorus \
   test_testbed_api_testbed_run_topologysmallworld \
   test_testbed_api_testbed_run_topologyfromfile \
-  test_testbed_api_testbed_run_topologyscalefree
+  test_testbed_api_testbed_run_topologyscalefree \
+  test_testbed_api_statistics
 
 if ENABLE_TEST_RUN
  TESTS = \
@@ -134,6 +135,7 @@ if ENABLE_TEST_RUN
   test_testbed_api_3peers_3controllers \
   test_testbed_api_testbed_run \
   test_testbed_api_test \
+  test_testbed_api_statistics \
   test_testbed_api_topology \
   test_testbed_api_topology_clique \
   test_testbed_api_testbed_run_topologyrandom \
@@ -275,6 +277,12 @@ test_testbed_api_testbed_run_topologyfromfile_LDADD = \
 test_testbed_api_testbed_run_topologyscalefree_SOURCES = \
  test_testbed_api_testbed_run.c
 test_testbed_api_testbed_run_topologyscalefree_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunettestbed.la
+
+test_testbed_api_statistics_SOURCES = \
+ test_testbed_api_statistics.c
+test_testbed_api_statistics_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
 

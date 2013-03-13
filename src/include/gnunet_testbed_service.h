@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      (C) 2008, 2009, 2012 Christian Grothoff (and other contributing authors)
+      (C) 2008--2013 Christian Grothoff (and other contributing authors)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -1370,7 +1370,9 @@ typedef int (*GNUNET_TESTBED_StatisticsIterator) (void *cls,
  * @param num_peers number of peers to iterate over
  * @param peers array of peers to iterate over
  * @param proc processing function for each statistic retrieved
- * @param cont continuation to call once call is completed(?)
+ * @param cont continuation to call once call is completed.  The completion of this
+ *          operation is *ONLY* signalled through this callback -- no
+ *          GNUNET_TESTBED_ET_OPERATION_FINISHED is generated
  * @param cls closure to pass to proc and cont
  * @return operation handle to cancel the operation
  */

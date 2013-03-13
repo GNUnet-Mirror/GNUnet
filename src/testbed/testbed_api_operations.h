@@ -59,6 +59,17 @@ GNUNET_TESTBED_operation_queue_destroy_ (struct OperationQueue *queue);
 
 
 /**
+ * Destroys the operation queue if it is empty.  If not empty return GNUNET_NO.
+ *
+ * @param queue the queue to destroy if empty
+ * @return GNUNET_YES if the queue is destroyed.  GNUNET_NO if not (because it
+ *           is not empty)
+ */
+int
+GNUNET_TESTBED_operation_queue_destroy_empty_ (struct OperationQueue *q);
+
+
+/**
  * Function to reset the maximum number of operations in the given queue. If
  * max_active is lesser than the number of currently active operations, the
  * active operations are not stopped immediately.

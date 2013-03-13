@@ -47,13 +47,13 @@
  * Generic logging shorthand
  */
 #define LOG(kind, ...)                          \
-  GNUNET_log_from (kind, "testbed-api", __VA_ARGS__);
+  GNUNET_log_from (kind, "testbed-api", __VA_ARGS__)
 
 /**
  * Debug logging
  */
 #define LOG_DEBUG(...)                          \
-  LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
 /**
  * Relative time seconds shorthand

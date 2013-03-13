@@ -800,18 +800,21 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   if (status != GNUNET_OK)
   {
-    switch (rc->state)
-    {
-    case RC_INIT:
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Testbed startup failed\n");
-      return;
-    default:
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Controller crash detected. Shutting down.\n");
-      rc->cproc = NULL;
-      shutdown_now (rc);
-      return;
+    rc->cproc = NULL;
+    if (NULL != rc->peers)
+    {
+      GNUNET_free (rc->peers);
+      rc->peers = NULL;
     }
+    if (NULL != rc->c)
+    {
+      GNUNET_TESTBED_controller_disconnect (rc->c);
+      rc->c = NULL;
+    }
+    shutdown_now (rc);
+    return;
   }
   GNUNET_CONFIGURATION_destroy (rc->cfg);
   rc->cfg = GNUNET_CONFIGURATION_dup (cfg);
