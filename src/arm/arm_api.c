@@ -408,7 +408,7 @@ arm_service_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (pos->callback != NULL)
     pos->callback (pos->cls, GNUNET_ARM_PROCESS_STARTING);
-  GNUNET_free (proc);
+  GNUNET_OS_process_destroy (proc);
   GNUNET_free (pos);
 }
 
