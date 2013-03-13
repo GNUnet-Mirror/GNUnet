@@ -1322,6 +1322,7 @@ handle_monitor (void *cls, struct GNUNET_SERVER_Client *client,
   {
     GNUNET_SERVER_notification_context_add (notifier, client);
     broadcast_status ("arm", GNUNET_ARM_SERVICE_MONITORING_STARTED, client);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
   }
 }
 
