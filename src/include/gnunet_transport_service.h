@@ -43,6 +43,7 @@ extern "C"
  */
 #define GNUNET_TRANSPORT_VERSION 0x00000000
 
+// FIXME-mwachs; move this into some src/transport/-internal header!
 enum TRAFFIC_METRIC_DIRECTION
 {
 	TM_SEND = 0,
