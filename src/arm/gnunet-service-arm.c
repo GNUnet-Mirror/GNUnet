@@ -815,7 +815,7 @@ handle_stop (void *cls, struct GNUNET_SERVER_Client *client,
   sl->killing_client = client;
   sl->killing_client_request_id = request_id;
   GNUNET_SERVER_client_keep (client);
-  GNUNET_SERVER_receive_done (client, GNUNET_YES);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 /**
