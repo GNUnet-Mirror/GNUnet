@@ -40,6 +40,10 @@
 
 static int ret = 1;
 
+static int resolved_ok = 0;
+
+static int asked_for_a_list = 0;
+
 static struct GNUNET_ARM_Handle *arm;
 
 static void
@@ -60,22 +64,37 @@ arm_stop_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_RequestStat
 }
 
 static void
+service_list (void *cls, struct GNUNET_ARM_Handle *arm,
+    enum GNUNET_ARM_RequestStatus rs,
+    unsigned int count, const char *const*list)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u services are are currently running\n", count);
+  GNUNET_assert (count == 1);
+  GNUNET_break (0 == strcasecmp (list[0], "resolver (gnunet-service-resolver)"));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got service list, now stopping arm\n");
+  ret = 0;
+  GNUNET_ARM_request_service_stop (arm, "arm", TIMEOUT, arm_stop_cb, NULL);
+}
+
+static void
 hostNameResolveCB (void *cls, const struct sockaddr *addr, socklen_t addrlen)
 {
-  if ((ret == 0) || (ret == 4))
+  if ((ret == 0) || (ret == 4) || (resolved_ok == 1))
     return;
   if (NULL == addr)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Name not resolved!\n");
     ret = 3;
+    GNUNET_ARM_request_service_stop (arm, "arm", TIMEOUT, arm_stop_cb, NULL);
   }
-  else
+  else if (asked_for_a_list == 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-        "Resolved hostname, now stopping ARM\n");
-    ret = 0;
+        "Resolved hostname, now checking the service list\n");
+    GNUNET_ARM_request_service_list (arm, TIMEOUT, service_list, NULL);
+    asked_for_a_list = 1;
+    resolved_ok = 1;
   }
-  GNUNET_ARM_request_service_stop (arm, "arm", TIMEOUT, arm_stop_cb, NULL);
 }
 
 static void
