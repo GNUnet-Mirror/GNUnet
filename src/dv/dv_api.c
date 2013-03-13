@@ -164,6 +164,8 @@ static size_t
 transmit_pending (void *cls, size_t size, void *buf)
 {
   struct GNUNET_DV_ServiceHandle *sh = cls;
+  char *cbuf = buf;
+  struct GNUNET_DV_TransmitHandle *th;
   size_t ret;
   size_t tsize;
 
@@ -174,15 +176,18 @@ transmit_pending (void *cls, size_t size, void *buf)
     return 0;
   }
   ret = 0;
-  // FIXME: yuck! -- copy multiple, remove from DLL, and add to hash map!
-  if (NULL != sh->th_head)
+  while ( (NULL != (th = sh->th_head)) &&
+	  (size - ret >= (tsize = ntohs (th->msg->size)) ))
   {
-    tsize = ntohs (sh->th_head->msg->size);
-    if (size >= tsize)
-    {
-      memcpy (buf, sh->th_head->msg, tsize);
-      return tsize;
-    }
+    GNUNET_CONTAINER_DLL_remove (sh->th_head,
+				 sh->th_tail,
+				 th);
+    memcpy (&cbuf[ret], th->msg, tsize);
+    ret += tsize;
+    (void) GNUNET_CONTAINER_multihashmap_put (sh->send_callbacks,
+					      &th->target.hashPubKey,
+					      th,
+					      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   }
   return ret;
 }
@@ -224,6 +229,7 @@ handle_message_receipt (void *cls,
   const struct GNUNET_DV_ConnectMessage *cm;
   const struct GNUNET_DV_DisconnectMessage *dm;
   const struct GNUNET_DV_ReceivedMessage *rm;
+  const struct GNUNET_MessageHeader *payload;
 
   if (NULL == msg)
   {
@@ -241,7 +247,9 @@ handle_message_receipt (void *cls,
       return;
     }
     cm = (const struct GNUNET_DV_ConnectMessage *) msg;
-    // FIXME
+    sh->connect_cb (sh->cls,
+		    &cm->peer,
+		    ntohl (cm->distance));
     break;
   case GNUNET_MESSAGE_TYPE_DV_DISCONNECT:
     if (ntohs (msg->size) != sizeof (struct GNUNET_DV_DisconnectMessage))
@@ -251,17 +259,28 @@ handle_message_receipt (void *cls,
       return;
     }
     dm = (const struct GNUNET_DV_DisconnectMessage *) msg;
-    // FIXME
+    sh->disconnect_cb (sh->cls,
+		       &dm->peer);
     break;
   case GNUNET_MESSAGE_TYPE_DV_RECV:
-    if (ntohs (msg->size) < sizeof (struct GNUNET_DV_ReceivedMessage))
+    if (ntohs (msg->size) < sizeof (struct GNUNET_DV_ReceivedMessage) + sizeof (struct GNUNET_MessageHeader))
     {
       GNUNET_break (0);
       reconnect (sh);
       return;
     }
     rm = (const struct GNUNET_DV_ReceivedMessage *) msg;
-    // FIXME
+    payload = (const struct GNUNET_MessageHeader *) &rm[1];
+    if (ntohs (msg->size) != sizeof (struct GNUNET_DV_ReceivedMessage) + ntohs (payload->size))
+    {
+      GNUNET_break (0);
+      reconnect (sh);
+      return;
+    }
+    sh->message_cb (sh->cls,
+		    &rm->sender,
+		    ntohl (rm->distance),
+		    payload);
     break;
   default:
     reconnect (sh);
@@ -309,13 +328,40 @@ transmit_start (void *cls,
 
 
 /**
+ * We got disconnected from the service and thus all of the
+ * pending send callbacks will never be confirmed.  Clean up.
+ *
+ * @param cls the 'struct GNUNET_DV_ServiceHandle'
+ * @param key a peer identity
+ * @param value a 'struct GNUNET_DV_TransmitHandle' to clean up
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+cleanup_send_cb (void *cls,
+		 const struct GNUNET_HashCode *key,
+		 void *value)
+{
+  struct GNUNET_DV_ServiceHandle *sh = cls;
+  struct GNUNET_DV_TransmitHandle *th = value;
+
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_remove (sh->send_callbacks,
+						       key,
+						       th));
+  th->cb (th->cb_cls, GNUNET_SYSERR);
+  GNUNET_free (th);
+  return GNUNET_OK;
+}
+
+
+/**
  * Disconnect and then reconnect to the DV service.
  *
  * @param sh service handle
  */
 static void
 reconnect (struct GNUNET_DV_ServiceHandle *sh)
-{
+{ 
   if (NULL != sh->th)
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel (sh->th);
@@ -326,6 +372,9 @@ reconnect (struct GNUNET_DV_ServiceHandle *sh)
     GNUNET_CLIENT_disconnect (sh->client);
     sh->client = NULL;
   }
+  GNUNET_CONTAINER_multihashmap_iterate (sh->send_callbacks,
+					 &cleanup_send_cb,
+					 sh);
   sh->client = GNUNET_CLIENT_connect ("dv", sh->cfg);
   if (NULL == sh->client)
   {
@@ -401,7 +450,9 @@ GNUNET_DV_service_disconnect (struct GNUNET_DV_ServiceHandle *sh)
     GNUNET_CLIENT_disconnect (sh->client);
     sh->client = NULL;
   }
-  // FIXME: handle and/or free entries in 'send_callbacks'!
+  GNUNET_CONTAINER_multihashmap_iterate (sh->send_callbacks,
+					 &cleanup_send_cb,
+					 sh);
   GNUNET_CONTAINER_multihashmap_destroy (sh->send_callbacks);
   GNUNET_free (sh);
 }
@@ -425,16 +476,28 @@ GNUNET_DV_send (struct GNUNET_DV_ServiceHandle *sh,
 		void *cb_cls)
 {
   struct GNUNET_DV_TransmitHandle *th;
+  struct GNUNET_DV_SendMessage *sm;
 
+  if (ntohs (msg->size) + sizeof (struct GNUNET_DV_SendMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
   th = GNUNET_malloc (sizeof (struct GNUNET_DV_TransmitHandle) +
+		      sizeof (struct GNUNET_DV_SendMessage) +
 		      ntohs (msg->size));
   th->sh = sh;
   th->target = *target;
   th->cb = cb;
   th->cb_cls = cb_cls;
-  // FIXME: wrong, need to box 'msg' AND generate UID!
   th->msg = (const struct GNUNET_MessageHeader *) &th[1];
-  memcpy (&th[1], msg, ntohs (msg->size));
+  sm = (struct GNUNET_DV_SendMessage *) &th[1];
+  sm->header.type = htons (GNUNET_MESSAGE_TYPE_DV_SEND);
+  sm->header.size = htons (sizeof (struct GNUNET_DV_SendMessage) + 
+			   ntohs (msg->size));
+  /* use memcpy here as 'target' may not be sufficiently aligned */
+  memcpy (&sm->target, target, sizeof (struct GNUNET_PeerIdentity));
+  memcpy (&sm[1], msg, ntohs (msg->size));
   GNUNET_CONTAINER_DLL_insert (sh->th_head,
 			       sh->th_tail,
 			       th);
