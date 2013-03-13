@@ -42,77 +42,144 @@ static struct GNUNET_ARM_Handle *arm;
 
 static int ok = 1;
 
+static int phase = 0;
+
 static void
-arm_stopped (void *cls,  enum GNUNET_ARM_ProcessStatus success)
+arm_stop_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_RequestStatus status, const char *servicename, enum GNUNET_ARM_Result result)
 {
-  GNUNET_break (success == GNUNET_ARM_PROCESS_DOWN);
-  if (success != GNUNET_ARM_PROCESS_DOWN)
-    ok = 3;
-  else if (ok == 1)
-    ok = 0;
+  /* (6), a stop request should be sent to ARM successfully */
+  /* ARM should report that it is stopping */
+  GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);
+  GNUNET_break (result == GNUNET_ARM_RESULT_STOPPING);
+  GNUNET_break (phase == 6);
+  phase++;
+  FPRINTF (stderr, "Sent 'STOP' request for arm to ARM %s\n", (status == GNUNET_ARM_REQUEST_SENT_OK) ? "successfully" : "unsuccessfully");
 }
 
-
 static void
-arm_notify_stop (void *cls, enum GNUNET_ARM_ProcessStatus success)
+resolver_stop_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_RequestStatus status, const char *servicename, enum GNUNET_ARM_Result result)
 {
-  GNUNET_break (success == GNUNET_ARM_PROCESS_DOWN);
+  /* (5), a stop request should be sent to ARM successfully.
+   * ARM should report that resolver is stopped.
+   */
+  GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);
+  GNUNET_break (result == GNUNET_ARM_RESULT_STOPPED);
+  GNUNET_break (phase == 5);
+  FPRINTF (stderr, "Sent 'STOP' request for resolver to ARM %s\n", (status == GNUNET_ARM_REQUEST_SENT_OK) ? "successfully" : "unsuccessfully");
+  phase++;
 #if START_ARM
-  GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
+  GNUNET_ARM_request_service_stop (arm, "arm", TIMEOUT, arm_stop_cb, NULL);
+#else
+  arm_stop_cb (NULL, GNUNET_ARM_STATUS_SENT_OK, "arm", GNUNET_ARM_SERVICE_STOPPING);
+  arm_conn (NULL, GNUNET_NO, GNUNET_NO);
 #endif
 }
-
 
 static void
 dns_notify (void *cls, const struct sockaddr *addr, socklen_t addrlen)
 {
   if (addr == NULL)
     {
+      /* (4), resolver should finish resolving localhost */
+      GNUNET_break (phase == 4);
+      phase++;
+      FPRINTF (stderr, "%s", "Finished resolving localhost\n");
       if (ok != 0)
-	{
-	  GNUNET_break (0);
-	  ok = 2;
-	}
-      GNUNET_ARM_stop_service (arm, "resolver", TIMEOUT, &arm_notify_stop,
-			       NULL);
+        ok = 2;
+      GNUNET_ARM_request_service_stop (arm, "resolver", TIMEOUT, resolver_stop_cb, NULL);
       return;
     }
+  /* (3), resolver should resolve localhost */
+  GNUNET_break (phase == 3);
+  FPRINTF (stderr, "%s", "Resolved localhost\n");
+  phase++;
   GNUNET_break (addr != NULL);
   ok = 0;
 }
 
-
 static void
-resolver_notify (void *cls, enum GNUNET_ARM_ProcessStatus success)
+resolver_start_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_RequestStatus status, const char *servicename, enum GNUNET_ARM_Result result)
 {
-  if (success != GNUNET_ARM_PROCESS_STARTING)
-    {
-      GNUNET_break (0);
-      ok = 2;
-#if START_ARM
-      GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
-#endif
-      return;
-    }
+  /* (2), the start request for resolver should be sent successfully
+   * ARM should report that resolver service is starting.
+   */
+  GNUNET_assert (status == GNUNET_ARM_REQUEST_SENT_OK);
+  GNUNET_break (phase == 2);
+  GNUNET_break (result == GNUNET_ARM_RESULT_STARTING);
+  FPRINTF (stderr, "Sent 'START' request for resolver to ARM %s\n", (status == GNUNET_ARM_REQUEST_SENT_OK) ? "successfully" : "unsuccessfully");
+  phase++;
   GNUNET_RESOLVER_ip_get ("localhost", AF_INET, TIMEOUT, &dns_notify, NULL);
 }
 
-
 static void
-arm_notify (void *cls, enum GNUNET_ARM_ProcessStatus success)
+trigger_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (success != GNUNET_ARM_PROCESS_STARTING)
-    {
-      GNUNET_break (0);
-      ok = 2;
-#if START_ARM
-      GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
-#endif
-    }
-  GNUNET_ARM_start_service (arm, "resolver", GNUNET_OS_INHERIT_STD_OUT_AND_ERR, START_TIMEOUT, &resolver_notify,
-			    NULL);
+  GNUNET_ARM_disconnect ((struct GNUNET_ARM_Handle *) cls);
 }
 
+
+void
+arm_conn (void *cls, struct GNUNET_ARM_Handle *arm, unsigned char connected, unsigned char error)
+{
+  if (GNUNET_YES == error)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Fatal error initializing ARM API.\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_assert (0);
+    return;
+  }
+  if (connected)
+  {
+    /* (1), arm connection should be established */
+    FPRINTF (stderr, "%s", "Connected to ARM\n");
+    GNUNET_break (phase == 1);
+    phase++;
+    GNUNET_ARM_request_service_start (arm, "resolver", GNUNET_OS_INHERIT_STD_OUT_AND_ERR, START_TIMEOUT, resolver_start_cb, NULL);
+  }
+  else
+  {
+    /* (7), ARM should stop (we disconnect from it) */
+    FPRINTF (stderr, "%s", "Disconnected from ARM\n");
+    GNUNET_break (phase == 7);
+    if (phase != 7)
+      ok = 3;
+    else if (ok == 1)
+      ok = 0;
+    GNUNET_SCHEDULER_add_now (trigger_disconnect, arm);
+  }
+}
+
+void
+srv_status (void *cls, const char *service, enum GNUNET_ARM_ServiceStatus status)
+{
+  FPRINTF (stderr, "Service %s is %u\n", service, status);
+  switch (phase)
+  {
+  default:
+    FPRINTF (stderr, "Unexpectedly got status %u for service %s\n", service);
+    GNUNET_break (0);
+    ok = 2;
+#if START_ARM
+    GNUNET_ARM_request_service_stop (arm, "arm", TIMEOUT, NULL, NULL);
+#endif
+  }
+}
+
+static void
+arm_start_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_RequestStatus status, const char *servicename, enum GNUNET_ARM_Result result)
+{
+  /* (0) The request should be "sent" successfully
+   * ("sent", because it isn't going anywhere, ARM API starts ARM service
+   * by itself).
+   * ARM API should report that ARM service is starting.
+   */
+  GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);
+  GNUNET_break (phase == 0);
+  FPRINTF (stderr, "Sent 'START' request for arm to ARM %s\n", (status == GNUNET_ARM_REQUEST_SENT_OK) ? "successfully" : "unsuccessfully");
+  GNUNET_break (result == GNUNET_ARM_RESULT_STARTING);
+  phase++;
+}
 
 static void
 task (void *cls, char *const *args, const char *cfgfile,
@@ -133,11 +200,13 @@ task (void *cls, char *const *args, const char *cfgfile,
     else
       GNUNET_free (armconfig);
   }
-  arm = GNUNET_ARM_connect (cfg, NULL);
+  arm = GNUNET_ARM_alloc (cfg);
+  GNUNET_ARM_connect (arm, arm_conn, NULL);
 #if START_ARM
-  GNUNET_ARM_start_service (arm, "arm", GNUNET_OS_INHERIT_STD_OUT_AND_ERR, START_TIMEOUT, &arm_notify, NULL);
+  GNUNET_ARM_request_service_start (arm, "arm", GNUNET_OS_INHERIT_STD_OUT_AND_ERR, START_TIMEOUT, arm_start_cb, NULL);
 #else
-  arm_notify (NULL, GNUNET_YES);
+  arm_start_cb (NULL, arm, GNUNET_ARM_REQUEST_SENT_OK, "arm", GNUNET_ARM_RESULT_STARTING);
+  arm_conn (NULL, GNUNET_YES, GNUNET_NO);
 #endif
 }
 

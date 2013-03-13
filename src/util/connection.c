@@ -1153,14 +1153,22 @@ process_notify (struct GNUNET_CONNECTION_Handle *connection)
   size_t size;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "process_notify is running\n");
+
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == connection->write_task);
   if (NULL == (notify = connection->nth.notify_ready))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Noone to notify\n");
     return GNUNET_NO;
+  }
   used = connection->write_buffer_off - connection->write_buffer_pos;
   avail = connection->write_buffer_size - used;
   size = connection->nth.notify_size;
   if (size > avail)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Not enough buffer\n");
     return GNUNET_NO;
+  }
   connection->nth.notify_ready = NULL;
   if (connection->write_buffer_size - connection->write_buffer_off < size)
   {

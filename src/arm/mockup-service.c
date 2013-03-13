@@ -29,21 +29,27 @@
 #include "gnunet_time_lib.h"
 
 
+static int special_ret = 0;
+
 /**
- * Handler for SHUTDOWN message.
+ * Handler for STOP message.
  *
  * @param cls closure (refers to service)
  * @param client identification of the client
  * @param message the actual message
  */
 static void
-handle_shutdown (void *cls, struct GNUNET_SERVER_Client *client,
+handle_stop (void *cls, struct GNUNET_SERVER_Client *client,
                  const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Initiating shutdown as requested by client.\n"));
   GNUNET_SERVER_client_persist_ (client);
   GNUNET_SCHEDULER_shutdown ();
+  /* ARM won't exponentially increase restart delay if we
+   * terminate normally. This changes the return code.
+   */
+  special_ret = 1;
 }
 
 
@@ -52,7 +58,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {&handle_shutdown, NULL, GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN,
+    {&handle_stop, NULL, GNUNET_MESSAGE_TYPE_ARM_STOP,
      sizeof (struct GNUNET_MessageHeader)},
     {NULL, NULL, 0, 0}
   };
@@ -70,5 +76,7 @@ main (int argc, char *const *argv)
       (GNUNET_OK ==
        GNUNET_SERVICE_run (argc, argv, "do-nothing", GNUNET_SERVICE_OPTION_NONE,
                            &run, NULL)) ? 0 : 1;
+  if (0 != special_ret)
+    return special_ret;
   return ret;
 }

@@ -111,6 +111,16 @@ struct GNUNET_SERVER_Handle
   struct NotifyList *disconnect_notify_list_tail;
 
   /**
+   * Head of linked list of functions to call on connects by clients.
+   */
+  struct NotifyList *connect_notify_list_head;
+
+  /**
+   * Tail of linked list of functions to call on connects by clients.
+   */
+  struct NotifyList *connect_notify_list_tail;
+
+  /**
    * Function to call for access control.
    */
   GNUNET_CONNECTION_AccessCheck access;
@@ -756,6 +766,14 @@ GNUNET_SERVER_destroy (struct GNUNET_SERVER_Handle *server)
 				 npos);
     GNUNET_free (npos);
   }
+  while (NULL != (npos = server->connect_notify_list_head))
+  {
+    npos->callback (npos->callback_cls, NULL);
+    GNUNET_CONTAINER_DLL_remove (server->connect_notify_list_head,
+				 server->connect_notify_list_tail,
+				 npos);
+    GNUNET_free (npos);
+  }
   GNUNET_free (server);
 }
 
@@ -1161,6 +1179,7 @@ GNUNET_SERVER_connect_socket (struct GNUNET_SERVER_Handle *server,
                               struct GNUNET_CONNECTION_Handle *connection)
 {
   struct GNUNET_SERVER_Client *client;
+  struct NotifyList *n;
 
   client = GNUNET_malloc (sizeof (struct GNUNET_SERVER_Client));
   client->connection = connection;
@@ -1178,6 +1197,9 @@ GNUNET_SERVER_connect_socket (struct GNUNET_SERVER_Handle *server,
     client->mst =
         GNUNET_SERVER_mst_create (&client_message_tokenizer_callback, server);
   GNUNET_assert (NULL != client->mst);
+  for (n = server->connect_notify_list_head; NULL != n; n = n->next)
+    n->callback (n->callback_cls, client);
+
   client->receive_pending = GNUNET_YES;
   GNUNET_CONNECTION_receive (client->connection,
                              GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
@@ -1277,10 +1299,34 @@ GNUNET_SERVER_disconnect_notify (struct GNUNET_SERVER_Handle *server,
 
 
 /**
- * Ask the server to stop notifying us whenever a client disconnects.
+ * Ask the server to notify us whenever a client connects.
+ * This function is called whenever the actual network connection
+ * is opened.
  *
  * @param server the server manageing the clients
- * @param callback function to call on disconnect
+ * @param callback function to call on sconnect
+ * @param callback_cls closure for callback
+ */
+void
+GNUNET_SERVER_connect_notify (struct GNUNET_SERVER_Handle *server,
+    GNUNET_SERVER_ConnectCallback callback, void *callback_cls)
+{
+  struct NotifyList *n;
+
+  n = GNUNET_malloc (sizeof (struct NotifyList));
+  n->callback = callback;
+  n->callback_cls = callback_cls;
+  GNUNET_CONTAINER_DLL_insert (server->connect_notify_list_head,
+			       server->connect_notify_list_tail,
+			       n);
+}
+
+
+/**
+ * Ask the server to stop notifying us whenever a client connects.
+ *
+ * @param server the server manageing the clients
+ * @param callback function to call on connect
  * @param callback_cls closure for callback
  */
 void
@@ -1300,6 +1346,34 @@ GNUNET_SERVER_disconnect_notify_cancel (struct GNUNET_SERVER_Handle *server,
   }
   GNUNET_CONTAINER_DLL_remove (server->disconnect_notify_list_head,
 			       server->disconnect_notify_list_tail,
+			       pos);
+  GNUNET_free (pos);
+}
+
+
+/**
+ * Ask the server to stop notifying us whenever a client disconnects.
+ *
+ * @param server the server manageing the clients
+ * @param callback function to call on disconnect
+ * @param callback_cls closure for callback
+ */
+void
+GNUNET_SERVER_connect_notify_cancel (struct GNUNET_SERVER_Handle *server,
+    GNUNET_SERVER_ConnectCallback callback, void *callback_cls)
+{
+  struct NotifyList *pos;
+
+  for (pos = server->connect_notify_list_head; NULL != pos; pos = pos->next)
+    if ((pos->callback == callback) && (pos->callback_cls == callback_cls))
+      break;
+  if (NULL == pos)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  GNUNET_CONTAINER_DLL_remove (server->connect_notify_list_head,
+			       server->connect_notify_list_tail,
 			       pos);
   GNUNET_free (pos);
 }

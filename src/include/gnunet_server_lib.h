@@ -395,6 +395,17 @@ typedef void (*GNUNET_SERVER_DisconnectCallback) (void *cls,
                                                   struct GNUNET_SERVER_Client *
                                                   client);
 
+/**
+ * Functions with this signature are called whenever a client
+ * is connected on the network level.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ */
+typedef void (*GNUNET_SERVER_ConnectCallback) (void *cls,
+    struct GNUNET_SERVER_Client *client);
+
+
 
 /**
  * Ask the server to notify us whenever a client disconnects.
@@ -417,6 +428,20 @@ GNUNET_SERVER_disconnect_notify (struct GNUNET_SERVER_Handle *server,
 
 
 /**
+ * Ask the server to notify us whenever a client connects.
+ * This function is called whenever the actual network connection
+ * is opened.
+ *
+ * @param server the server manageing the clients
+ * @param callback function to call on sconnect
+ * @param callback_cls closure for callback
+ */
+void
+GNUNET_SERVER_connect_notify (struct GNUNET_SERVER_Handle *server,
+    GNUNET_SERVER_ConnectCallback callback, void *callback_cls);
+
+
+/**
  * Ask the server to stop notifying us whenever a client disconnects.
  *
  * @param server the server manageing the clients
@@ -427,6 +452,18 @@ void
 GNUNET_SERVER_disconnect_notify_cancel (struct GNUNET_SERVER_Handle *server,
                                         GNUNET_SERVER_DisconnectCallback
                                         callback, void *callback_cls);
+
+
+/**
+ * Ask the server to stop notifying us whenever a client connects.
+ *
+ * @param server the server manageing the clients
+ * @param callback function to call on connect
+ * @param callback_cls closure for callback
+ */
+void
+GNUNET_SERVER_connect_notify_cancel (struct GNUNET_SERVER_Handle *server,
+    GNUNET_SERVER_ConnectCallback callback, void *callback_cls);
 
 
 /**

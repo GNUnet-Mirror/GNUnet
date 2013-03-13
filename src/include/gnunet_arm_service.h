@@ -43,87 +43,130 @@ extern "C"
 /**
  * Version of the arm API.
  */
-#define GNUNET_ARM_VERSION 0x00000001
+#define GNUNET_ARM_VERSION 0x00000002
 
 
 /**
- * Values characterizing GNUnet process states.
+ * Statuses of the requests that client can send to ARM.
  */
-enum GNUNET_ARM_ProcessStatus
+enum GNUNET_ARM_RequestStatus
 {
   /**
-   * Service name is unknown to ARM.
+   * Message was sent successfully.
    */
-  GNUNET_ARM_PROCESS_UNKNOWN = -1,
+  GNUNET_ARM_REQUEST_SENT_OK = 0,
 
   /**
-   * Service is now down (due to client request).
+   * Misconfiguration (can't connect to the ARM service).
    */
-  GNUNET_ARM_PROCESS_DOWN = 0,
+  GNUNET_ARM_REQUEST_CONFIGURATION_ERROR = 1,
 
   /**
-   * Service is already running.
+   * We disconnected from ARM, and request was not sent.
    */
-  GNUNET_ARM_PROCESS_ALREADY_RUNNING = 1,
+  GNUNET_ARM_REQUEST_DISCONNECTED = 2,
 
   /**
-   * Service is currently being started (due to client request).
+   * ARM API is busy (probably trying to connect to ARM),
+   * and request was not sent. Try again later.
    */
-  GNUNET_ARM_PROCESS_STARTING = 2,
-  
-  /**
-   * Service is already being stopped by some other client.
-   */
-  GNUNET_ARM_PROCESS_ALREADY_STOPPING = 3,
+  GNUNET_ARM_REQUEST_BUSY = 3,
 
   /**
-   * Service is already down (no action taken)
+   * It was discovered that the request would be too long to fit in a message,
+   * and thus it was not sent.
    */
-  GNUNET_ARM_PROCESS_ALREADY_DOWN = 4,
+  GNUNET_ARM_REQUEST_TOO_LONG = 4,
 
   /**
-   * ARM is currently being shut down (no more process starts)
+   * Request time ran out before we had a chance to send it.
    */
-  GNUNET_ARM_PROCESS_SHUTDOWN = 5,
+  GNUNET_ARM_REQUEST_TIMEOUT = 5
 
-  /**
-   * Error in communication with ARM
-   */
-  GNUNET_ARM_PROCESS_COMMUNICATION_ERROR = 6,
-
-  /**
-   * Timeout in communication with ARM
-   */
-  GNUNET_ARM_PROCESS_COMMUNICATION_TIMEOUT = 7,
-
-  /**
-   * Failure to perform operation
-   */
-  GNUNET_ARM_PROCESS_FAILURE = 8
 };
 
 
 /**
- * Callback function invoked when operation is complete.
- *
- * @param cls closure
- * @param result outcome of the operation
+ * Statuses of services.
  */
-typedef void (*GNUNET_ARM_Callback) (void *cls, 
-				     enum GNUNET_ARM_ProcessStatus result);
+enum GNUNET_ARM_ServiceStatus
+{
+  /**
+   * Dummy message.
+   */
+  GNUNET_ARM_SERVICE_MONITORING_STARTED = 0,
+
+  /**
+   * Service was stopped.
+   */
+  GNUNET_ARM_SERVICE_STOPPED = 1,
+
+  /**
+   * Service starting was initiated
+   */
+  GNUNET_ARM_SERVICE_STARTING = 2,
+
+  /**
+   * Service stopping was initiated
+   */
+  GNUNET_ARM_SERVICE_STOPPING = 3
+};
 
 /**
- * Callback function invoked when list operation is complete.
- *
- * @param cls closure
- * @param result outcome of the operation (GNUNET_YES if successful)
- * @param count number of strings in the list
- * @param list list of running services
+ * Replies to ARM requests
  */
-typedef void (*GNUNET_ARM_List_Callback) (void *cls, 
-                                          int result,
-                                          unsigned int count,
-                                          const char *const *list);
+enum GNUNET_ARM_Result
+{
+  /**
+   * Service was stopped (never sent for ARM itself).
+   */
+  GNUNET_ARM_RESULT_STOPPED = 0,
+
+  /**
+   * ARM stopping was initiated (there's no "stopped" for ARM itself).
+   */
+  GNUNET_ARM_RESULT_STOPPING = 1,
+
+  /**
+   * Service starting was initiated
+   */
+  GNUNET_ARM_RESULT_STARTING = 2,
+
+  /**
+   * Asked to start it, but it's already starting.
+   */
+  GNUNET_ARM_RESULT_IS_STARTING_ALREADY = 3,
+
+  /**
+   * Asked to stop it, but it's already stopping.
+   */
+  GNUNET_ARM_RESULT_IS_STOPPING_ALREADY = 4,
+
+  /**
+   * Asked to start it, but it's already started.
+   */
+  GNUNET_ARM_RESULT_IS_STARTED_ALREADY = 5,
+
+  /**
+   * Asked to stop it, but it's already stopped.
+   */
+  GNUNET_ARM_RESULT_IS_STOPPED_ALREADY = 6,
+
+  /**
+   * Asked to start or stop a service, but it's not known.
+   */
+  GNUNET_ARM_RESULT_IS_NOT_KNOWN = 7,
+
+  /**
+   * Tried to start a service, but that failed for some reason.
+   */
+  GNUNET_ARM_RESULT_START_FAILED = 8,
+
+  /**
+   * Asked to start something, but ARM is shutting down and can't comply.
+   */
+  GNUNET_ARM_RESULT_IN_SHUTDOWN = 9
+};
 
 
 /**
@@ -133,22 +176,75 @@ struct GNUNET_ARM_Handle;
 
 
 /**
+ * Function called whenever we connect to or disconnect from ARM.
+ *
+ * @param cls closure
+ * @param connected GNUNET_YES if connected, GNUNET_NO if disconnected
+ * @param error GNUNET_YES if we encountered a permanent error, and there
+ *              will be no re-connection.
+ */
+typedef void (*GNUNET_ARM_ConnectionStatusCallback) (void *cls, struct GNUNET_ARM_Handle *arm, unsigned char connected, unsigned char error);
+
+
+/**
+ * Function called in response to a start/stop request.
+ * Will be called when request was not sent successfully,
+ * or when a reply comes. If the request was not sent successfully,
+ * 'rs' will indicate that, and 'service' and 'result' will be undefined.
+ *
+ * @param cls closure
+ * @param arm handle to the arm connection
+ * @param rs status of the request
+ * @param service service name
+ * @param result result of the operation
+ */
+typedef void (*GNUNET_ARM_ResultCallback) (void *cls, struct GNUNET_ARM_Handle *arm, enum GNUNET_ARM_RequestStatus rs, const char *service, enum GNUNET_ARM_Result result);
+
+
+/**
+ * Callback function invoked when list operation is complete.
+ * Will be called when request was not sent successfully,
+ * or when a reply comes. If the request was not sent successfully,
+ * 'rs' will indicate that, and 'count' and 'list' will be undefined.
+ *
+ * @param cls closure
+ * @param arm handle to the arm connection
+ * @param rs status of the request
+ * @param count number of strings in the list
+ * @param list list of running services
+ */
+typedef void (*GNUNET_ARM_ServiceListCallback) (void *cls, struct GNUNET_ARM_Handle *arm, enum GNUNET_ARM_RequestStatus rs, unsigned int count, const char *const*list);
+
+
+/**
  * Setup a context for communicating with ARM.  Note that this
  * can be done even if the ARM service is not yet running.
+ * Never fails.
  *
  * @param cfg configuration to use (needed to contact ARM;
  *        the ARM service may internally use a different
  *        configuration to determine how to start the service).
- * @param service service that *this* process is implementing/providing, can be NULL
- * @return context to use for further ARM operations, NULL on error
+ * @return context to use for further ARM operations
  */
 struct GNUNET_ARM_Handle *
-GNUNET_ARM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                    const char *service);
+GNUNET_ARM_alloc (const struct GNUNET_CONFIGURATION_Handle *cfg);
+
+/**
+ * Start connecting to the ARM service using the context.
+ * @param conn_status called when we (dis)connect from/to ARM.
+ *        It's also called on connection errors.
+ * @param cls closure for conn_status
+ *
+ * @param h ARM handle
+ */
+void
+GNUNET_ARM_connect (struct GNUNET_ARM_Handle *h,
+    GNUNET_ARM_ConnectionStatusCallback conn_status, void *cls);
 
 
 /**
- * Disconnect from the ARM service.
+ * Disconnect from the ARM service and destroy the handle.
+ * Don't call this from inside an ARM callback!
  *
  * @param h the handle that was being used
  */
@@ -157,60 +253,107 @@ GNUNET_ARM_disconnect (struct GNUNET_ARM_Handle *h);
 
 
 /**
- * Start a service.  Note that this function merely asks ARM to start
- * the service and that ARM merely confirms that it forked the
- * respective process.  The specified callback may thus return before
- * the service has started to listen on the server socket and it may
- * also be that the service has crashed in the meantime.  Clients
- * should repeatedly try to connect to the service at the respective
- * port (with some delays in between) before assuming that the service
- * actually failed to start.  Note that if an error is returned to the
- * callback, clients obviously should not bother with trying to
- * contact the service.
+ * Request a list of running services.
  *
  * @param h handle to ARM
- * @param service_name name of the service
- * @param std_inheritance flags controlling std descriptors inheritance
  * @param timeout how long to wait before failing for good
- * @param cb callback to invoke when service is ready
- * @param cb_cls closure for callback
+ * @param cont callback to invoke after request is sent or is not sent
+ * @param cont_cls closure for callback
  */
 void
-GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h, const char *service_name,
-                          enum GNUNET_OS_InheritStdioFlags std_inheritance,
-                          struct GNUNET_TIME_Relative timeout,
-                          GNUNET_ARM_Callback cb, void *cb_cls);
+GNUNET_ARM_request_service_list (struct GNUNET_ARM_Handle *h,
+    struct GNUNET_TIME_Relative timeout,
+    GNUNET_ARM_ServiceListCallback cont, void *cont_cls);
 
 
 /**
- * Stop a service.  Note that the callback is invoked as soon
- * as ARM confirms that it will ask the service to terminate.
- * The actual termination may still take some time.
+ * Request a service to be stopped.
+ * Stopping arm itself will not invalidate its handle, and
+ * ARM API will try to restore connection to the ARM service,
+ * even if ARM connection was lost because you asked for ARM to be stopped.
+ * Call GNUNET_ARM_disconnect () to free the handle and prevent
+ * further connection attempts.
  *
  * @param h handle to ARM
  * @param service_name name of the service
  * @param timeout how long to wait before failing for good
- * @param cb callback to invoke when service is ready
- * @param cb_cls closure for callback
+ * @param cont callback to invoke after request is sent or is not sent
+ * @param cont_cls closure for callback
  */
 void
-GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h, const char *service_name,
-                         struct GNUNET_TIME_Relative timeout,
-                         GNUNET_ARM_Callback cb, void *cb_cls);
+GNUNET_ARM_request_service_stop (struct GNUNET_ARM_Handle *h,
+    const char *service_name, struct GNUNET_TIME_Relative timeout,
+    GNUNET_ARM_ResultCallback cont, void *cont_cls);
 
 
 /**
- * List all running services.
- * 
+ * Request for a service to be started.
+ *
  * @param h handle to ARM
+ * @param service_name name of the service
+ * @param std_inheritance inheritance of std streams
  * @param timeout how long to wait before failing for good
- * @param cb callback to invoke when service is ready
- * @param cb_cls closure for callback
+ * @param cont callback to invoke after request is sent or not sent
+ * @param cont_cls closure for callback
  */
 void
-GNUNET_ARM_list_running_services (struct GNUNET_ARM_Handle *h,
-                                  struct GNUNET_TIME_Relative timeout,
-                                  GNUNET_ARM_List_Callback cb, void *cb_cls);
+GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
+    const char *service_name, enum GNUNET_OS_InheritStdioFlags std_inheritance,
+    struct GNUNET_TIME_Relative timeout, GNUNET_ARM_ResultCallback cont,
+    void *cont_cls);
+
+
+/**
+ * Handle for monitoring ARM.
+ */
+struct GNUNET_ARM_MonitorHandle;
+
+
+/**
+ * Function called in when a status update arrives.
+ *
+ * @param cls closure
+ * @param arm handle to the arm connection
+ * @param service service name
+ * @param status status of the service
+ */
+typedef void (*GNUNET_ARM_ServiceStatusCallback) (void *cls, struct GNUNET_ARM_MonitorHandle *arm, const char *service, enum GNUNET_ARM_ServiceStatus status);
+
+
+/**
+ * Setup a context for monitoring ARM.  Note that this
+ * can be done even if the ARM service is not yet running.
+ * Never fails.
+ *
+ * @param cfg configuration to use (needed to contact ARM;
+ *        the ARM service may internally use a different
+ *        configuration to determine how to start the service).
+ * @return context to use for further ARM monitor operations
+ */
+struct GNUNET_ARM_MonitorHandle *
+GNUNET_ARM_monitor_alloc (const struct GNUNET_CONFIGURATION_Handle *cfg);
+
+/**
+ * Start connecting to the ARM service for monitoring using the context.
+ *
+ * @param h ARM monitor handle
+ * @param cont callback to invoke on status updates
+ * @param cont_cls closure
+ */
+void
+GNUNET_ARM_monitor (struct GNUNET_ARM_MonitorHandle *h,
+    GNUNET_ARM_ServiceStatusCallback cont, void *cont_cls);
+
+
+/**
+ * Disconnect from the ARM service and destroy the handle.
+ * Don't call this from inside an ARM callback!
+ *
+ * @param h the handle that was being used
+ */
+void
+GNUNET_ARM_monitor_disconnect (struct GNUNET_ARM_MonitorHandle *h);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

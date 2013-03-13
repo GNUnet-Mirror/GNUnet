@@ -78,14 +78,14 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_ARM_STOP 9
 
 /**
- * Request ARM service itself to shutdown.
- */
-#define GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN 10
-
-/**
  * Response from ARM.
  */
-#define GNUNET_MESSAGE_TYPE_ARM_RESULT 11
+#define GNUNET_MESSAGE_TYPE_ARM_RESULT 10
+
+/**
+ * Status update from ARM.
+ */
+#define GNUNET_MESSAGE_TYPE_ARM_STATUS 11
 
 /**
  * Request to ARM to list all currently running services
@@ -96,6 +96,11 @@ extern "C"
  * Response from ARM for listing currently running services
  */
 #define GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT 13
+
+/**
+ * Request to ARM to notify client of service status changes
+ */
+#define GNUNET_MESSAGE_TYPE_ARM_MONITOR 14
 
 /*******************************************************************************
  * HELLO message types

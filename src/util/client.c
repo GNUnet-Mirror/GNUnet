@@ -1007,6 +1007,7 @@ client_notify (void *cls, size_t size, void *buf)
   size_t ret;
   struct GNUNET_TIME_Relative delay;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "client_notify is running\n");
   th->th = NULL;
   client->th = NULL;
   if (NULL == buf)

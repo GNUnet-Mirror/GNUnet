@@ -267,7 +267,7 @@ GNUNET_REGEX_read_from_file (const char *filename)
   struct GNUNET_DISK_FileHandle *f;
   unsigned int nr;
   unsigned int offset;
-  off_t size;
+  uint64_t size;
   size_t len;
   char *buffer;
   char *regex;

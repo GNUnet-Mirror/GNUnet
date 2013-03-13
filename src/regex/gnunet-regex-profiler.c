@@ -997,6 +997,17 @@ find_next_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+
+/**
+ * Start announcing the next regex in the DHT.
+ *
+ * @param cls Index of the next peer in the peers array.
+ * @param tc TaskContext.
+ */
+void
+announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
 /**
  * ARM connect adapter. Opens a connection to the ARM service.
  *
@@ -1010,7 +1021,8 @@ arm_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct RegexPeer *peer = cls;
 
-  peer->arm_handle = GNUNET_ARM_connect (cfg, NULL);
+  peer->arm_handle = GNUNET_ARM_alloc (cfg);
+  GNUNET_ARM_connect (peer->arm_handle, NULL, NULL);
 
   return peer->arm_handle;
 }
@@ -1036,103 +1048,51 @@ arm_da (void *cls, void *op_result)
   }
 }
 
-
-/**
- * Start announcing the next regex in the DHT.
- *
- * @param cls Index of the next peer in the peers array.
- * @param tc TaskContext.
- */
-void
-announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-
-/**
- * Callback function invoked when ARM peration is complete: deamon is started.
- *
- * @param cls Closure (RegexPeer).
- * @param result Outcome of the operation.
- */
 static void
-arm_start_cb (void *cls, enum GNUNET_ARM_ProcessStatus result)
+regexprofiler_start_cb (void *cls, struct GNUNET_ARM_Handle *arm,
+    enum GNUNET_ARM_RequestStatus rs, const char *service,
+    enum GNUNET_ARM_Result result)
 {
   struct RegexPeer *peer = (struct RegexPeer *) cls;
-  static unsigned int peer_cnt;
   unsigned int next_p;
 
-  switch (result)
+  if (rs != GNUNET_ARM_REQUEST_SENT_OK)
   {
-      /**
-       * Service is currently being started (due to client request).
-       */
-    case GNUNET_ARM_PROCESS_STARTING:
-      GNUNET_TESTBED_operation_done (peer->op_handle);
-      peer->op_handle = NULL;
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "ARM request was not sent: %u\n", rs);
+    GNUNET_abort ();
+  }
+  else if (result != GNUNET_ARM_RESULT_STARTING)
+  {
+    /* FIXME: maybe check for other acceptable results (already starting,
+     * already started)?
+     */
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "ARM failed to start regexprofiler: %u\n", result);
+    GNUNET_abort ();
+  }
+  GNUNET_TESTBED_operation_done (peer->op_handle);
+  peer->op_handle = NULL;
 
-      if (peer_cnt < (num_peers - 1))
-      {
-        next_p = (++peer_cnt % num_peers);
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
-                                        GNUNET_TIME_UNIT_MILLISECONDS,
-                                        400),
-                                      &announce_next_regex,
-                                      (void *) (long) next_p);
-      }
-      else
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                    "All daemons started."
-                    " Waiting %s to start string searches\n",
-                    GNUNET_STRINGS_relative_time_to_string (search_delay,
-                                                            GNUNET_NO));
-        GNUNET_SCHEDULER_add_delayed (search_delay,
-                                      do_connect_by_string, 
-                                      NULL);
-      }
-      break;
-
-      /**
-       * Service name is unknown to ARM.
-       */
-    case GNUNET_ARM_PROCESS_UNKNOWN:
-      /**
-       * Service is now down (due to client request).
-       */
-    case GNUNET_ARM_PROCESS_DOWN:
-      /**
-       * Service is already running.
-       */
-    case GNUNET_ARM_PROCESS_ALREADY_RUNNING:
-      /**
-       * Service is already being stopped by some other client.
-       */
-    case GNUNET_ARM_PROCESS_ALREADY_STOPPING:
-      /**
-       * Service is already down (no action taken)
-       */
-    case GNUNET_ARM_PROCESS_ALREADY_DOWN: 
-      /**
-       * ARM is currently being shut down (no more process starts)
-       */
-    case GNUNET_ARM_PROCESS_SHUTDOWN:
-      /**
-       * Error in communication with ARM
-       */
-    case GNUNET_ARM_PROCESS_COMMUNICATION_ERROR:
-      /**
-       * Timeout in communication with ARM
-       */
-    case GNUNET_ARM_PROCESS_COMMUNICATION_TIMEOUT:
-      /**
-      * Failure to perform operation
-      */
-    case GNUNET_ARM_PROCESS_FAILURE:
-    default:
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "ARM returned %d\n", result);
-      GNUNET_abort ();
+  if (peer_cnt < (num_peers - 1))
+  {
+    next_p = (++peer_cnt % num_peers);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
+                                    GNUNET_TIME_UNIT_MILLISECONDS,
+                                    400),
+                                  &announce_next_regex,
+                                  (void *) (long) next_p);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "All daemons started."
+                " Waiting %s to start string searches\n",
+                GNUNET_STRINGS_relative_time_to_string (search_delay,
+                                                        GNUNET_NO));
+    GNUNET_SCHEDULER_add_delayed (search_delay,
+                                  do_connect_by_string, 
+                                  NULL);
   }
 }
-
 
 /**
  * ARM connect callback. Called when we are connected to the arm service for
@@ -1160,11 +1120,10 @@ arm_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
   GNUNET_assert (peer->op_handle == op);
   GNUNET_assert (peer->arm_handle == ca_result);
 
-  GNUNET_ARM_start_service (ca_result, "regexprofiler",
-                            GNUNET_OS_INHERIT_STD_NONE,
-                            GNUNET_TIME_UNIT_FOREVER_REL,
-                            &arm_start_cb,
-                            peer);
+  GNUNET_ARM_request_service_start (ca_result, "regexprofiler",
+      GNUNET_OS_INHERIT_STD_NONE,
+      GNUNET_TIME_UNIT_FOREVER_REL,
+      regexprofiler_start_cb, cls);
 }
 
 

@@ -42,23 +42,22 @@ static int ret = 1;
 
 static struct GNUNET_ARM_Handle *arm;
 
-
 static void
-arm_stopped (void *cls, enum GNUNET_ARM_ProcessStatus success)
+trigger_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (success != GNUNET_ARM_PROCESS_DOWN)
-    {
-      GNUNET_break (0);
-      ret = 4;
-    }
-  else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM stopped\n");
-    }
   GNUNET_ARM_disconnect (arm);
   arm = NULL;
 }
 
+static void
+arm_stop_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_RequestStatus status, const char *servicename, enum GNUNET_ARM_Result result)
+{
+  GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);
+  GNUNET_break (result == GNUNET_ARM_RESULT_STOPPING);
+  if (result != GNUNET_ARM_RESULT_STOPPING)
+    ret = 4;
+  GNUNET_SCHEDULER_add_now (trigger_disconnect, NULL);
+}
 
 static void
 hostNameResolveCB (void *cls, const struct sockaddr *addr, socklen_t addrlen)
@@ -66,42 +65,36 @@ hostNameResolveCB (void *cls, const struct sockaddr *addr, socklen_t addrlen)
   if ((ret == 0) || (ret == 4))
     return;
   if (NULL == addr)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Name not resolved!\n");
-      GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
-      ret = 3;
-      return;
-    }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Resolved hostname, now stopping ARM\n");
-  ret = 0;
-  GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Name not resolved!\n");
+    ret = 3;
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        "Resolved hostname, now stopping ARM\n");
+    ret = 0;
+  }
+  GNUNET_ARM_request_service_stop (arm, "arm", TIMEOUT, arm_stop_cb, NULL);
 }
-
 
 static void
-arm_notify (void *cls, enum GNUNET_ARM_ProcessStatus success)
+arm_start_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_RequestStatus status, const char *servicename, enum GNUNET_ARM_Result result)
 {
-  if (success != GNUNET_ARM_PROCESS_STARTING)
-    {
-      GNUNET_break (0);
-      ret = 1;
-      return;
-    }
+  GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);
+  GNUNET_break (result == GNUNET_ARM_RESULT_STARTING);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Trying to resolve our own hostname!\n");
+      "Trying to resolve our own hostname!\n");
   /* connect to the resolver service */
-  if (NULL ==
-      GNUNET_RESOLVER_hostname_resolve (AF_UNSPEC, TIMEOUT,
-					&hostNameResolveCB, NULL))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Unable initiate connection to resolver service\n");
-      ret = 2;
-      GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
-    }
+  if (NULL == GNUNET_RESOLVER_hostname_resolve (
+      AF_UNSPEC, TIMEOUT, &hostNameResolveCB, NULL))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Unable initiate connection to resolver service\n");
+    ret = 2;
+    GNUNET_ARM_request_service_stop (arm, "arm", TIMEOUT, arm_stop_cb, NULL);
+  }
 }
-
 
 static void
 run (void *cls, char *const *args, const char *cfgfile,
@@ -122,10 +115,10 @@ run (void *cls, char *const *args, const char *cfgfile,
     else
       GNUNET_free (armconfig);
   }
-  arm = GNUNET_ARM_connect (c, NULL);
-  GNUNET_ARM_start_service (arm, "arm",
-			    GNUNET_OS_INHERIT_STD_OUT_AND_ERR, START_TIMEOUT, 
-			    &arm_notify, NULL);
+  arm = GNUNET_ARM_alloc (c);
+  GNUNET_ARM_connect (arm, NULL, NULL);
+  GNUNET_ARM_request_service_start (arm, "arm",
+      GNUNET_OS_INHERIT_STD_OUT_AND_ERR, START_TIMEOUT, arm_start_cb, NULL);
 }
 
 

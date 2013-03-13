@@ -19,7 +19,7 @@ endif
 lib_LTLIBRARIES = libgnunetarm.la
 
 libgnunetarm_la_SOURCES = \
-  arm_api.c arm.h
+  arm_api.c arm_monitor_api.c arm.h
 libgnunetarm_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) $(XLIB)
