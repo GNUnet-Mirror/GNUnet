@@ -26,6 +26,15 @@
  *
  * @author Christian Grothoff
  * @author Nathan Evans
+ *
+ * TODO:
+ * - routing tables are not exchanged with direct neighbors 
+ * - distance updates are not properly communicate to US by core,
+ *   and conversely we don't give distance updates properly to the plugin yet
+ * - even local flow control (send ACK only after core took our message) is
+ *   not implemented, but should be (easy fix)
+ * - we send 'ACK' even if a message was dropped due to no route (may
+ *   be harmless, but should at least be documented)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -40,7 +49,7 @@
 /**
  * How often do we establish the consensu?
  */
-#define GNUNET_DV_CONSENSUS_FREQUENCY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5))
+#define GNUNET_DV_CONSENSUS_FREQUENCY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
 
 /**
  * Maximum number of messages we queue per peer.
@@ -744,6 +753,18 @@ move_route (struct Route *route,
 
 
 /**
+ * Start creating a new consensus from scratch.
+ *
+ * @param cls the 'struct DirectNeighbor' of the peer we're building
+ *        a routing consensus with
+ * @param tc scheduler context
+ */    
+static void
+start_consensus (void *cls,
+		 const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
  * Method called whenever a peer connects.
  *
  * @param cls closure
@@ -759,7 +780,7 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct DirectNeighbor *neighbor;
   struct Route *route;
   uint32_t distance;
-
+ 
   /* Check for connect to self message */
   if (0 == memcmp (&my_identity, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
@@ -789,9 +810,86 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_free (route);
   }
   route->next_hop = neighbor;
-  // FIXME: begin exchange_routing_information!
+  neighbor->consensus_task = GNUNET_SCHEDULER_add_now (&start_consensus,
+						       neighbor);
 }
 
+
+/**
+ * We inserted the last element into the consensus, get ready to
+ * insert the next element into the consensus or conclude if
+ * we're done.
+ *
+ * @param cls the 'struct DirectNeighbor' of the peer we're building
+ *        a routing consensus with
+ * @param success GNUNET_OK if the last element was added successfully,
+ *                GNUNET_SYSERR if we failed
+ */
+static void
+insert_next_element (void *cls,
+		     int success)
+{
+  struct DirectNeighbor *neighbor = cls;
+  struct GNUNET_CONSENSUS_Element element;
+
+  // FIXME: initialize element...
+  GNUNET_CONSENSUS_insert (neighbor->consensus,
+			   &element,
+			   &insert_next_element,
+			   neighbor);
+}
+
+
+/**
+ * We have learned a new route from the other peer.  Add it to the
+ * route set we're building.
+ *
+ * @param cls the 'struct DirectNeighbor' we're building the consensus with
+ * @param element the new element we have learned
+ * @return GNUNET_OK if the valid is well-formed and should be added to the consensus,
+ *         GNUNET_SYSERR if the element should be ignored and not be propagated
+ */
+static int
+learn_route_cb (void *cls,
+		const struct GNUNET_CONSENSUS_Element *element)
+{
+  GNUNET_break (0); // FIXME
+  return GNUNET_SYSERR;
+}
+
+
+/**
+ * Start creating a new consensus from scratch.
+ *
+ * @param cls the 'struct DirectNeighbor' of the peer we're building
+ *        a routing consensus with
+ * @param tc scheduler context
+ */    
+static void
+start_consensus (void *cls,
+		 const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct DirectNeighbor *neighbor = cls;
+  struct GNUNET_HashCode session_id;
+
+  neighbor->consensus_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_assert (NULL == neighbor->consensus);
+  GNUNET_CRYPTO_hash_xor (&session_id, &my_identity.hashPubKey, &neighbor->peer.hashPubKey); // ARG order?
+  neighbor->consensus = GNUNET_CONSENSUS_create (cfg,
+						 1,
+						 &neighbor->peer,
+						 &session_id,
+						 &learn_route_cb,
+						 neighbor);
+  if (NULL == neighbor->consensus)
+  {
+    neighbor->consensus_task = GNUNET_SCHEDULER_add_delayed (GNUNET_DV_CONSENSUS_FREQUENCY,
+							     &start_consensus,
+							     neighbor);
+    return;
+  }
+  insert_next_element (neighbor, GNUNET_OK);
+}
 
 
 /**
