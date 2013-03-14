@@ -28,11 +28,11 @@
  * @author Nathan Evans
  *
  * TODO:
- * - routing tables are not exchanged with direct neighbors 
+ * - even _local_ flow control (send ACK only after core took our message) is
+ *   not implemented, but should be (easy fix, but needs adjustments to data
+ *   structures)
  * - distance updates are not properly communicate to US by core,
  *   and conversely we don't give distance updates properly to the plugin yet
- * - even local flow control (send ACK only after core took our message) is
- *   not implemented, but should be (easy fix)
  * - we send 'ACK' even if a message was dropped due to no route (may
  *   be harmless, but should at least be documented)
  */
@@ -45,6 +45,7 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_consensus_service.h"
 #include "dv.h"
+#include <gcrypt.h>
 
 /**
  * How often do we establish the consensu?
@@ -84,7 +85,7 @@ struct Target
   struct GNUNET_PeerIdentity peer;
 
   /**
-   * How many hops (1-3) is this peer away?
+   * How many hops (1-3) is this peer away? in network byte order
    */
   uint32_t distance GNUNET_PACKED;
 
@@ -230,6 +231,11 @@ struct DirectNeighbor
    * Number of messages currently in the 'pm_XXXX'-DLL.
    */
   unsigned int pm_queue_size;
+
+  /**
+   * Flag set within 'check_target_removed' to trigger full global route refresh.
+   */
+  int target_removed;
 
 };
 
@@ -715,7 +721,7 @@ allocate_route (struct Route *route,
   i = get_consensus_slot (distance);
   route->set_offset = i;
   consensi[distance].targets[i] = route;
-  route->target.distance = distance;
+  route->target.distance = htonl (distance);
 }
 
 
@@ -727,7 +733,7 @@ allocate_route (struct Route *route,
 static void
 release_route (struct Route *route)
 {
-  consensi[route->target.distance].targets[route->set_offset] = NULL;
+  consensi[ntohl (route->target.distance)].targets[route->set_offset] = NULL;
   route->set_offset = UINT_MAX; /* indicate invalid slot */
 }
 
@@ -748,7 +754,7 @@ move_route (struct Route *route,
   i = get_consensus_slot (new_distance);
   route->set_offset = i;
   consensi[new_distance].targets[i] = route;     
-  route->target.distance = new_distance;
+  route->target.distance = htonl (new_distance);
 }
 
 
@@ -816,6 +822,245 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
+ * Called for each 'target' in a neighbor table to free the associated memory.
+ *
+ * @param cls NULL
+ * @param key key of the value
+ * @param value value to free
+ * @return GNUNET_OK to continue to iterate
+ */
+static int
+free_targets (void *cls,
+	      const struct GNUNET_HashCode *key,
+	      void *value)
+{
+  GNUNET_free (value);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Multihashmap iterator for checking if a given route is
+ * (now) useful to this peer.
+ *
+ * @param cls the direct neighbor for the given route
+ * @param key key value stored under
+ * @param value a 'struct Target' that may or may not be useful; not that
+ *        the distance in 'target' does not include the first hop yet
+ * @return GNUNET_YES to continue iteration, GNUNET_NO to stop
+ */
+static int
+check_possible_route (void *cls, const struct GNUNET_HashCode * key, void *value)
+{
+  struct DirectNeighbor *neighbor = cls;
+  struct Target *target = value;
+  struct Route *route;
+  
+  route = GNUNET_CONTAINER_multihashmap_get (all_routes,
+					   key);
+  if (NULL != route)
+  {
+    if (ntohl (route->target.distance) > ntohl (target->distance) + 1)
+    {
+      /* this 'target' is cheaper than the existing route; switch to alternative route! */
+      move_route (route, ntohl (target->distance) + 1);
+      route->next_hop = neighbor;
+      // FIXME: notify plugin about distance update?
+    }
+    return GNUNET_YES; /* got a route to this target already */
+  }
+  route = GNUNET_malloc (sizeof (struct Route));
+  route->next_hop = neighbor;
+  route->target.distance = htonl (ntohl (target->distance) + 1);
+  route->target.peer = target->peer;
+  allocate_route (route, ntohl (route->target.distance));
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_put (all_routes,
+						    &route->target.peer.hashPubKey,
+						    route,
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  send_connect_to_plugin (&route->target.peer, ntohl (target->distance));
+  return GNUNET_YES;
+}
+
+
+/**
+ * Multihashmap iterator for finding routes that were previously
+ * "hidden" due to a better route (called after a disconnect event).
+ *
+ * @param cls NULL
+ * @param key peer identity of the given direct neighbor
+ * @param value a 'struct DirectNeighbor' to check for additional routes
+ * @return GNUNET_YES to continue iteration
+ */
+static int
+refresh_routes (void *cls, const struct GNUNET_HashCode * key, void *value)
+{
+  struct DirectNeighbor *neighbor = value;
+
+  if (NULL != neighbor->neighbor_table)
+    GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table,
+					   &check_possible_route,
+					   neighbor);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Check if a target was removed from the set of the other peer; if so,
+ * if we also used it for our route, we need to remove it from our
+ * 'all_routes' set (and later check if an alternative path now exists).
+ *
+ * @param cls the 'struct DirectNeighbor'
+ * @param key peer identity for the target
+ * @param value a 'struct Target' previously reachable via the given neighbor
+ */
+static int
+check_target_removed (void *cls,
+		      const struct GNUNET_HashCode *key,
+		      void *value)
+{
+  struct DirectNeighbor *neighbor = cls;
+  struct Target *new_target;
+  struct Route *current_route;
+
+  new_target = GNUNET_CONTAINER_multihashmap_get (neighbor->neighbor_table_consensus,
+						  key);
+  if (NULL == new_target)
+  {
+    /* target was revoked, check if it was used */
+    current_route = GNUNET_CONTAINER_multihashmap_get (all_routes,
+						       key);
+    if ( (NULL == current_route) ||
+	 (current_route->next_hop != neighbor) )
+    {
+      /* didn't matter, wasn't used */
+      return GNUNET_OK;
+    }
+    /* remove existing route */
+    GNUNET_assert (GNUNET_YES ==
+		   GNUNET_CONTAINER_multihashmap_remove (all_routes, key, current_route));
+    send_disconnect_to_plugin (&current_route->target.peer);
+    GNUNET_free (current_route);
+    neighbor->target_removed = GNUNET_YES;
+    return GNUNET_OK;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Check if a target was added to the set of the other peer; if it
+ * was added or impoves the existing route, do the needed updates.
+ *
+ * @param cls the 'struct DirectNeighbor'
+ * @param key peer identity for the target
+ * @param value a 'struct Target' now reachable via the given neighbor
+ */
+static int
+check_target_added (void *cls,
+		      const struct GNUNET_HashCode *key,
+		      void *value)
+{
+  struct DirectNeighbor *neighbor = cls;
+  struct Target *target = value;
+  struct Route *current_route;
+
+  /* target was revoked, check if it was used */
+  current_route = GNUNET_CONTAINER_multihashmap_get (all_routes,
+						     key);
+  if (NULL != current_route)
+  {
+    /* route exists */
+    if (current_route->next_hop == neighbor)
+    {
+      /* we had the same route before, no change */
+      if (ntohl (target->distance) != ntohl (current_route->target.distance))
+      {
+	current_route->target.distance = target->distance;
+	// FIXME: notify about distance change...
+      }
+      return GNUNET_OK;
+    }
+    if (ntohl (current_route->target.distance) >= ntohl (target->distance))
+    {
+      /* alternative, shorter route exists, ignore */
+      return GNUNET_OK;
+    }
+    /* new route is better than the existing one, take over! */
+    /* NOTE: minor security issue: malicious peers may advertise
+       very short routes to take over longer paths; as we don't
+       check that the shorter routes actually work, a malicious
+       direct neighbor can use this to DoS our long routes */
+    current_route->next_hop = neighbor;
+    current_route->target.distance = target->distance;
+    // FIXME: notify about distance change
+    return GNUNET_OK;
+  }
+  /* new route */
+  current_route = GNUNET_malloc (sizeof (struct Route));
+  current_route->next_hop = neighbor;
+  current_route->target.peer = target->peer;
+  current_route->target.distance = htonl (ntohl (target->distance) + 1);
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_put (all_routes,
+						    &current_route->target.peer.hashPubKey,
+						    current_route,
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  send_connect_to_plugin (&current_route->target.peer,
+			  ntohl (current_route->target.distance));
+  return GNUNET_OK;
+}
+
+
+
+/**
+ * The consensus has concluded, clean up and schedule the next one.
+ *
+ * @param cls the 'struct GNUNET_DirectNeighbor' with which we created the consensus
+ * @param group FIXME
+ */
+static void
+consensus_done_cb (void *cls,
+		   const struct GNUNET_CONSENSUS_Group *group)
+{
+  struct DirectNeighbor *neighbor = cls;
+
+  GNUNET_CONSENSUS_destroy (neighbor->consensus);
+  neighbor->consensus = NULL;
+  /* remove targets that disappeared */
+  neighbor->target_removed = GNUNET_NO;
+  GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table,
+					 &check_target_removed,
+					 neighbor);
+  if (GNUNET_YES == neighbor->target_removed)
+  {
+    /* check if we got an alternative for the removed routes */
+    GNUNET_CONTAINER_multihashmap_iterate (direct_neighbors,
+					   &refresh_routes,
+					   NULL);    
+  }
+  /* add targets that appeared (and check for improved routes) */
+  GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table_consensus,
+					 &check_target_added,
+					 neighbor);
+  if (NULL != neighbor->neighbor_table)
+  {
+    GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table,
+					   &free_targets,
+					   NULL);
+    GNUNET_CONTAINER_multihashmap_destroy (neighbor->neighbor_table);
+    neighbor->neighbor_table = NULL;
+  }
+  neighbor->neighbor_table = neighbor->neighbor_table_consensus;
+  neighbor->neighbor_table_consensus = NULL;
+  neighbor->consensus_task = GNUNET_SCHEDULER_add_delayed (GNUNET_DV_CONSENSUS_FREQUENCY,
+							   &start_consensus,
+							   neighbor);
+}
+
+
+/**
  * We inserted the last element into the consensus, get ready to
  * insert the next element into the consensus or conclude if
  * we're done.
@@ -832,7 +1077,35 @@ insert_next_element (void *cls,
   struct DirectNeighbor *neighbor = cls;
   struct GNUNET_CONSENSUS_Element element;
 
-  // FIXME: initialize element...
+  while ( (DEFAULT_FISHEYE_DEPTH - 1 > neighbor->consensus_insertion_distance) &&
+	  (consensi[neighbor->consensus_insertion_distance].array_length == neighbor->consensus_insertion_offset) )
+  {
+    neighbor->consensus_insertion_offset = 0;
+    neighbor->consensus_insertion_distance++;
+    /* skip over NULL entries */
+    while ( (DEFAULT_FISHEYE_DEPTH - 1 > neighbor->consensus_insertion_distance) &&
+	    (consensi[neighbor->consensus_insertion_distance].array_length < neighbor->consensus_insertion_offset) &&
+	    (NULL == consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset]) )
+      neighbor->consensus_insertion_offset++;
+  }
+  if (DEFAULT_FISHEYE_DEPTH - 1 == neighbor->consensus_insertion_distance)
+  {
+    /* we're done, conclude! */
+    GNUNET_CONSENSUS_conclude (neighbor->consensus,
+			       GNUNET_DV_CONSENSUS_FREQUENCY,
+			       2 /* both peers */,
+			       &consensus_done_cb,
+			       neighbor);
+    return;
+  }
+  element.size = sizeof (struct Target);
+  element.data = &consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset++]->target;
+
+  /* skip over NULL entries */
+  while ( (DEFAULT_FISHEYE_DEPTH - 1 > neighbor->consensus_insertion_distance) &&
+	  (consensi[neighbor->consensus_insertion_distance].array_length < neighbor->consensus_insertion_offset) &&
+	  (NULL == consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset]) )
+    neighbor->consensus_insertion_offset++;  
   GNUNET_CONSENSUS_insert (neighbor->consensus,
 			   &element,
 			   &insert_next_element,
@@ -853,8 +1126,27 @@ static int
 learn_route_cb (void *cls,
 		const struct GNUNET_CONSENSUS_Element *element)
 {
-  GNUNET_break (0); // FIXME
-  return GNUNET_SYSERR;
+  struct DirectNeighbor *neighbor = cls;
+  struct Target *target;
+
+  if (sizeof (struct Target) != element->size)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  target = GNUNET_malloc (sizeof (struct Target));
+  memcpy (target, element->data, sizeof (struct Target));
+  if (GNUNET_YES !=
+      GNUNET_CONTAINER_multihashmap_put (neighbor->neighbor_table_consensus,
+					 &target->peer.hashPubKey,
+					 target,
+					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+  {
+    GNUNET_break_op (0);
+    GNUNET_free (target);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
 }
 
 
@@ -871,14 +1163,28 @@ start_consensus (void *cls,
 {
   struct DirectNeighbor *neighbor = cls;
   struct GNUNET_HashCode session_id;
+  struct GNUNET_HashCode real_session_id;
 
   neighbor->consensus_task = GNUNET_SCHEDULER_NO_TASK;
+  neighbor->consensus_insertion_offset = 0;
+  neighbor->consensus_insertion_distance = 0;
+  GNUNET_assert (NULL == neighbor->neighbor_table_consensus);
   GNUNET_assert (NULL == neighbor->consensus);
-  GNUNET_CRYPTO_hash_xor (&session_id, &my_identity.hashPubKey, &neighbor->peer.hashPubKey); // ARG order?
+  neighbor->neighbor_table_consensus = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_YES);
+  /* construct session ID seed as XOR of both peer's identities */
+  GNUNET_CRYPTO_hash_xor (&my_identity.hashPubKey, 
+			  &neighbor->peer.hashPubKey, 
+			  &session_id);
+  /* make sure session ID is unique across applications by salting it with 'DV' */
+  GNUNET_CRYPTO_hkdf (&real_session_id, sizeof (real_session_id),
+		      GCRY_MD_SHA512, GCRY_MD_SHA256,
+		      "DV-SALT", 2,
+		      &session_id, sizeof (session_id),
+		      NULL, 0);
   neighbor->consensus = GNUNET_CONSENSUS_create (cfg,
 						 1,
 						 &neighbor->peer,
-						 &session_id,
+						 &real_session_id,
 						 &learn_route_cb,
 						 neighbor);
   if (NULL == neighbor->consensus)
@@ -944,7 +1250,7 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
     send_data_to_plugin (payload,
 			 &rm->sender,
-			 route->target.distance);
+			 ntohl (route->target.distance));
     return GNUNET_OK;
   }
   route = GNUNET_CONTAINER_multihashmap_get (all_routes,
@@ -956,7 +1262,7 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
 			      1, GNUNET_NO);
     return GNUNET_OK;
   }
-  if (route->target.distance > ntohl (rm->distance) + 1)
+  if (ntohl (route->target.distance) > ntohl (rm->distance) + 1)
   {
     GNUNET_STATISTICS_update (stats,
 			      "# messages discarded (target too far)",
@@ -964,7 +1270,7 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   forward_payload (route->next_hop,
-		   route->target.distance,
+		   ntohl (route->target.distance),
 		   &rm->sender,
 		   payload);
   return GNUNET_OK;  
@@ -1017,7 +1323,7 @@ handle_dv_send_message (void *cls, struct GNUNET_SERVER_Client *client,
   // FIXME: flow control (send ACK only once message has left the queue...)
   send_ack_to_plugin (&msg->target, htonl (msg->uid));
   forward_payload (route->next_hop,
-		   route->target.distance,
+		   ntohl (route->target.distance),
 		   &my_identity,
 		   payload);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -1052,73 +1358,6 @@ cull_routes (void *cls, const struct GNUNET_HashCode * key, void *value)
 
 
 /**
- * Multihashmap iterator for checking if a given route is
- * (now) useful to this peer.
- *
- * @param cls the direct neighbor for the given route
- * @param key key value stored under
- * @param value a 'struct Target' that may or may not be useful; not that
- *        the distance in 'target' does not include the first hop yet
- * @return GNUNET_YES to continue iteration, GNUNET_NO to stop
- */
-static int
-check_possible_route (void *cls, const struct GNUNET_HashCode * key, void *value)
-{
-  struct DirectNeighbor *neighbor = cls;
-  struct Target *target = value;
-  struct Route *route;
-  
-  route = GNUNET_CONTAINER_multihashmap_get (all_routes,
-					   key);
-  if (NULL != route)
-  {
-    if (route->target.distance > target->distance + 1)
-    {
-      /* this 'target' is cheaper than the existing route; switch to alternative route! */
-      move_route (route, target->distance + 1);
-      route->next_hop = neighbor;
-      // FIXME: notify plugin about distance update?
-    }
-    return GNUNET_YES; /* got a route to this target already */
-  }
-  route = GNUNET_malloc (sizeof (struct Route));
-  route->next_hop = neighbor;
-  route->target.distance = target->distance + 1;
-  route->target.peer = target->peer;
-  allocate_route (route, route->target.distance);
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_put (all_routes,
-						    &route->target.peer.hashPubKey,
-						    route,
-						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  send_connect_to_plugin (&route->target.peer, target->distance);
-  return GNUNET_YES;
-}
-
-
-/**
- * Multihashmap iterator for finding routes that were previously
- * "hidden" due to a better route (called after a disconnect event).
- *
- * @param cls NULL
- * @param key peer identity of the given direct neighbor
- * @param value a 'struct DirectNeighbor' to check for additional routes
- * @return GNUNET_YES to continue iteration
- */
-static int
-refresh_routes (void *cls, const struct GNUNET_HashCode * key, void *value)
-{
-  struct DirectNeighbor *neighbor = value;
-
-  if (NULL != neighbor->neighbor_table)
-    GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table,
-					   &check_possible_route,
-					   neighbor);
-  return GNUNET_YES;
-}
-
-
-/**
  * Cleanup all of the data structures associated with a given neighbor.
  *
  * @param neighbor neighbor to clean up
@@ -1143,6 +1382,22 @@ cleanup_neighbor (struct DirectNeighbor *neighbor)
   {
     GNUNET_CORE_notify_transmit_ready_cancel (neighbor->cth);
     neighbor->cth = NULL;
+  }
+  if (NULL != neighbor->neighbor_table_consensus)
+  {
+    GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table_consensus,
+					   &free_targets,
+					   NULL);
+    GNUNET_CONTAINER_multihashmap_destroy (neighbor->neighbor_table_consensus);
+    neighbor->neighbor_table_consensus = NULL;
+  }
+  if (NULL != neighbor->neighbor_table)
+  {
+    GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table,
+					   &free_targets,
+					   NULL);
+    GNUNET_CONTAINER_multihashmap_destroy (neighbor->neighbor_table);
+    neighbor->neighbor_table = NULL;
   }
   if (GNUNET_SCHEDULER_NO_TASK != neighbor->consensus_task)
   {
