@@ -31,7 +31,7 @@
  * - distance updates are not properly communicate to US by core,
  *   and conversely we don't give distance updates properly to the plugin yet
  * - we send 'ACK' even if a message was dropped due to no route (may
- *   be harmless, but should at least be documented)
+ *   be harmless, but should at least be documented -- or support NACK)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
