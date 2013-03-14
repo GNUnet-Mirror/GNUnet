@@ -822,7 +822,7 @@ regex_found_handler (void *cls,
   {
     GNUNET_SCHEDULER_cancel (peer->timeout);
     peer->timeout = GNUNET_SCHEDULER_NO_TASK;
-    GNUNET_SCHEDULER_add_now (&find_next_string, NULL);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &find_next_string, NULL);
   }
 
   if (NULL == id)
@@ -930,7 +930,7 @@ do_connect_by_string (void *cls,
   search_timeout_task = GNUNET_SCHEDULER_add_delayed (search_timeout,
                                                       &do_connect_by_string_timeout, NULL);
   for (i = 0; i < SEARCHES_IN_PARALLEL; i++)
-    GNUNET_SCHEDULER_add_now (&find_next_string, NULL);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &find_next_string, NULL);
 }
 
 
@@ -1049,7 +1049,7 @@ arm_da (void *cls, void *op_result)
 }
 
 static void
-regexprofiler_start_cb (void *cls, struct GNUNET_ARM_Handle *arm,
+arm_start_cb (void *cls, struct GNUNET_ARM_Handle *arm,
     enum GNUNET_ARM_RequestStatus rs, const char *service,
     enum GNUNET_ARM_Result result)
 {
@@ -1061,36 +1061,47 @@ regexprofiler_start_cb (void *cls, struct GNUNET_ARM_Handle *arm,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "ARM request was not sent: %u\n", rs);
     GNUNET_abort ();
   }
-  else if (result != GNUNET_ARM_RESULT_STARTING)
+  switch (result)
   {
-    /* FIXME: maybe check for other acceptable results (already starting,
-     * already started)?
-     */
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "ARM failed to start regexprofiler: %u\n", result);
-    GNUNET_abort ();
-  }
-  GNUNET_TESTBED_operation_done (peer->op_handle);
-  peer->op_handle = NULL;
+      /**
+       * Asked to start it, but it's already starting.
+       */
+    case GNUNET_ARM_RESULT_IS_STARTING_ALREADY:
+      GNUNET_break (0); /* Shouldn't be starting, however it's not fatal. */
+      /* fallthrough */
 
-  if (peer_cnt < (num_peers - 1))
-  {
-    next_p = (++peer_cnt % num_peers);
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
-                                    GNUNET_TIME_UNIT_MILLISECONDS,
-                                    400),
-                                  &announce_next_regex,
-                                  (void *) (long) next_p);
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "All daemons started."
-                " Waiting %s to start string searches\n",
-                GNUNET_STRINGS_relative_time_to_string (search_delay,
-                                                        GNUNET_NO));
-    GNUNET_SCHEDULER_add_delayed (search_delay,
-                                  do_connect_by_string, 
-                                  NULL);
+      /**
+       * Service is currently being started (due to client request).
+       */
+    case GNUNET_ARM_RESULT_STARTING:
+      GNUNET_TESTBED_operation_done (peer->op_handle);
+      peer->op_handle = NULL;
+
+      if (peer_cnt < (num_peers - 1))
+      {
+        next_p = (++peer_cnt % num_peers);
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
+                                        GNUNET_TIME_UNIT_MILLISECONDS,
+                                        1000),
+                                      &announce_next_regex,
+                                      (void *) (long) next_p);
+      }
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    "All daemons started."
+                    " Waiting %s to start string searches\n",
+                    GNUNET_STRINGS_relative_time_to_string (search_delay,
+                                                            GNUNET_NO));
+        GNUNET_SCHEDULER_add_delayed (search_delay,
+                                      do_connect_by_string, 
+                                      NULL);
+      }
+      break;
+
+    default:
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "ARM returned %d\n", result);
+      GNUNET_abort ();
   }
 }
 
@@ -1121,9 +1132,9 @@ arm_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
   GNUNET_assert (peer->arm_handle == ca_result);
 
   GNUNET_ARM_request_service_start (ca_result, "regexprofiler",
-      GNUNET_OS_INHERIT_STD_NONE,
-      GNUNET_TIME_UNIT_FOREVER_REL,
-      regexprofiler_start_cb, cls);
+                                    GNUNET_OS_INHERIT_STD_NONE,
+                                    GNUNET_TIME_UNIT_FOREVER_REL,
+                                    arm_start_cb, cls);
 }
 
 
@@ -1596,7 +1607,7 @@ controller_event_cb (void *cls,
        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Establishing links .");
      else
      {
-       printf (".");
+       printf (".");fflush (stdout);
      }
      if (++established_links == num_links)
      {
