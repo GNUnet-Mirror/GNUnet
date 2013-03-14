@@ -304,7 +304,7 @@ end_callback (void *cls, struct GNUNET_ARM_Handle *arm,
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
   {
     char *msg;
-    GNUNET_asprintf (&msg, "%s", _("Failed to send a stop request to the ARM service: %%s\n"));
+    GNUNET_asprintf (&msg, "%s", _("Failed to send a stop request to the ARM service: %s\n"));
     FPRINTF (stdout, msg, req_string (rs));
     GNUNET_free (msg);
     GNUNET_SCHEDULER_shutdown ();
@@ -326,7 +326,7 @@ end_callback (void *cls, struct GNUNET_ARM_Handle *arm,
   else
   {
     char *msg;
-    GNUNET_asprintf (&msg, "%s", _("Failed to stop the ARM service: %%s\n"));
+    GNUNET_asprintf (&msg, "%s", _("Failed to stop the ARM service: %s\n"));
     FPRINTF (stdout, msg, ret_string (result));
     GNUNET_free (msg);
     GNUNET_SCHEDULER_shutdown ();
@@ -341,7 +341,7 @@ start_callback (void *cls, struct GNUNET_ARM_Handle *arm,
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
   {
     char *msg;
-    GNUNET_asprintf (&msg, "%s", _("Failed to start the ARM service: %%s\n"));
+    GNUNET_asprintf (&msg, "%s", _("Failed to start the ARM service: %s\n"));
     FPRINTF (stdout, msg, req_string (rs));
     GNUNET_free (msg);
     GNUNET_SCHEDULER_shutdown ();
@@ -356,7 +356,7 @@ start_callback (void *cls, struct GNUNET_ARM_Handle *arm,
   else
   {
     char *msg;
-    GNUNET_asprintf (&msg, "%s", _("Failed to start the ARM service: %%s\n"));
+    GNUNET_asprintf (&msg, "%s", _("Failed to start the ARM service: %s\n"));
     FPRINTF (stdout, msg, ret_string (result));
     GNUNET_free (msg);
     GNUNET_SCHEDULER_shutdown ();
@@ -404,7 +404,7 @@ list_callback (void *cls, struct GNUNET_ARM_Handle *arm,
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
   {
     char *msg;
-    GNUNET_asprintf (&msg, "%s", _("Failed to request a list of services: %%s\n"));
+    GNUNET_asprintf (&msg, "%s", _("Failed to request a list of services: %s\n"));
     FPRINTF (stdout, msg, req_string (rs));
     GNUNET_free (msg);
     GNUNET_SCHEDULER_shutdown ();
