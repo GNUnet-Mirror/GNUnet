@@ -446,7 +446,7 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   datastore = GNUNET_strdup ("N/A");
 #endif
 
-  LOG (GNUNET_ERROR_TYPE_INFO, " DHT GET result for %s (%s) at %s\n", 
+  LOG (GNUNET_ERROR_TYPE_INFO, " DHT GET result for %s (%s) at %s\n",
        GNUNET_h2s (key), ctx->info->description, datastore);
   GNUNET_free (datastore);
 
@@ -632,7 +632,8 @@ regex_next_edge (const struct RegexBlock *block,
   if (GNUNET_YES ==
       GNUNET_CONTAINER_multihashmap_contains (info->dht_get_handles, hash))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "*     GET running, END\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "*     GET for %s running, END\n",
+         GNUNET_h2s (hash));
     GNUNET_CONTAINER_multihashmap_get_multiple (info->dht_get_results,
                                                 hash,
                                                 &regex_result_iterator,
