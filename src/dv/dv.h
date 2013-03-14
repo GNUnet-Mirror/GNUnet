@@ -121,7 +121,7 @@ struct GNUNET_DV_SendMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Unique ID for this message, for confirm callback.
+   * Unique ID for this message, for confirm callback, must never be zero.
    */
   uint32_t uid GNUNET_PACKED;
 

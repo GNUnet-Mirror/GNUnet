@@ -28,9 +28,6 @@
  * @author Nathan Evans
  *
  * TODO:
- * - even _local_ flow control (send ACK only after core took our message) is
- *   not implemented, but should be (easy fix, but needs adjustments to data
- *   structures)
  * - distance updates are not properly communicate to US by core,
  *   and conversely we don't give distance updates properly to the plugin yet
  * - we send 'ACK' even if a message was dropped due to no route (may
@@ -420,12 +417,12 @@ transmit_to_plugin (void *cls, size_t size, void *buf)
  * Forward a message from another peer to the plugin.
  *
  * @param message the message to send to the plugin
- * @param distant_neighbor the original sender of the message
+ * @param origin the original sender of the message
  * @param distnace distance to the original sender of the message
  */
 static void
 send_data_to_plugin (const struct GNUNET_MessageHeader *message, 
-		     const struct GNUNET_PeerIdentity *distant_neighbor, 
+		     const struct GNUNET_PeerIdentity *origin,
 		     uint32_t distance)
 {
   struct GNUNET_DV_ReceivedMessage *received_msg;
@@ -443,7 +440,7 @@ send_data_to_plugin (const struct GNUNET_MessageHeader *message,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Delivering message from peer `%s'\n",
-              GNUNET_i2s (distant_neighbor));
+              GNUNET_i2s (origin));
   size = sizeof (struct GNUNET_DV_ReceivedMessage) + 
     ntohs (message->size);
   if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
@@ -456,7 +453,7 @@ send_data_to_plugin (const struct GNUNET_MessageHeader *message,
   received_msg->header.size = htons (size);
   received_msg->header.type = htons (GNUNET_MESSAGE_TYPE_DV_RECV);
   received_msg->distance = htonl (distance);
-  received_msg->sender = *distant_neighbor;
+  received_msg->sender = *origin;
   memcpy (&received_msg[1], message, ntohs (message->size));
   GNUNET_CONTAINER_DLL_insert_tail (plugin_pending_head, 
 				    plugin_pending_tail,
@@ -611,8 +608,9 @@ core_transmit_notify (void *cls, size_t size, void *buf)
 				 dn->pm_tail,
                                  pending);
     memcpy (&cbuf[off], pending->msg, msize);
-    send_ack_to_plugin (&pending->ultimate_target,
-			pending->uid);
+    if (0 != pending->uid) 
+      send_ack_to_plugin (&pending->ultimate_target,
+			  pending->uid);
     GNUNET_free (pending);
     off += msize;
   }
@@ -633,6 +631,8 @@ core_transmit_notify (void *cls, size_t size, void *buf)
  * Forward the given payload to the given target.
  *
  * @param target where to send the message
+ * @param uid unique ID for the message
+ * @param ultimate_target ultimate recipient for the message
  * @param distance expected (remaining) distance to the target
  * @param sender original sender of the message
  * @param payload payload of the message
@@ -640,7 +640,9 @@ core_transmit_notify (void *cls, size_t size, void *buf)
 static void
 forward_payload (struct DirectNeighbor *target,
 		 uint32_t distance,
+		 uint32_t uid,
 		 const struct GNUNET_PeerIdentity *sender,
+		 const struct GNUNET_PeerIdentity *ultimate_target,
 		 const struct GNUNET_MessageHeader *payload)
 {
   struct PendingMessage *pm;
@@ -651,7 +653,10 @@ forward_payload (struct DirectNeighbor *target,
        (0 != memcmp (sender,
 		     &my_identity,
 		     sizeof (struct GNUNET_PeerIdentity))) )
+  {
+    GNUNET_break (0 == uid);
     return;
+  }
   msize = sizeof (struct RouteMessage) + ntohs (payload->size);
   if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
@@ -659,6 +664,8 @@ forward_payload (struct DirectNeighbor *target,
     return;
   }
   pm = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
+  pm->ultimate_target = *ultimate_target;
+  pm->uid = uid;
   pm->msg = (const struct GNUNET_MessageHeader *) &pm[1];
   rm = (struct RouteMessage *) &pm[1];
   rm->header.size = htons ((uint16_t) msize);
@@ -1271,6 +1278,8 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   forward_payload (route->next_hop,
 		   ntohl (route->target.distance),
+		   0,
+		   &rm->target,
 		   &rm->sender,
 		   payload);
   return GNUNET_OK;  
@@ -1300,6 +1309,7 @@ handle_dv_send_message (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   msg = (const struct GNUNET_DV_SendMessage *) message;
+  GNUNET_break (0 != ntohl (msg->uid));
   payload = (const struct GNUNET_MessageHeader *) &msg[1];
   if (ntohs (message->size) != sizeof (struct GNUNET_DV_SendMessage) + ntohs (payload->size))
   {
@@ -1316,14 +1326,14 @@ handle_dv_send_message (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_STATISTICS_update (stats,
 			      "# local messages discarded (no route)",
 			      1, GNUNET_NO);
-    send_ack_to_plugin (&msg->target, htonl (msg->uid));
+    send_ack_to_plugin (&msg->target, ntohl (msg->uid));
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  // FIXME: flow control (send ACK only once message has left the queue...)
-  send_ack_to_plugin (&msg->target, htonl (msg->uid));
   forward_payload (route->next_hop,
 		   ntohl (route->target.distance),
+		   htonl (msg->uid),
+		   &msg->target,
 		   &my_identity,
 		   payload);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);

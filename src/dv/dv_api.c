@@ -74,6 +74,11 @@ struct GNUNET_DV_TransmitHandle
    */
   struct GNUNET_PeerIdentity target;
 
+  /**
+   * UID of our message, if any.
+   */
+  uint32_t uid;
+  
 };
 
 
@@ -184,10 +189,17 @@ transmit_pending (void *cls, size_t size, void *buf)
 				 th);
     memcpy (&cbuf[ret], th->msg, tsize);
     ret += tsize;
-    (void) GNUNET_CONTAINER_multihashmap_put (sh->send_callbacks,
-					      &th->target.hashPubKey,
-					      th,
-					      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+    if (NULL != th->cb)
+    {
+      (void) GNUNET_CONTAINER_multihashmap_put (sh->send_callbacks,
+						&th->target.hashPubKey,
+						th,
+						GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+    }
+    else
+    {
+      GNUNET_free (th);
+    }
   }
   return ret;
 }
@@ -215,6 +227,54 @@ start_transmit (struct GNUNET_DV_ServiceHandle *sh)
 
 
 /**
+ * Closure for 'process_ack'.
+ */
+struct AckContext
+{
+  /**
+   * The ACK message.
+   */
+  const struct GNUNET_DV_AckMessage *ack;
+
+  /**
+   * Our service handle.
+   */
+  struct GNUNET_DV_ServiceHandle *sh;
+};
+
+
+/**
+ * We got an ACK.  Check if it matches the given transmit handle, and if
+ * so call the continuation.
+ *
+ * @param cls the 'struct AckContext'
+ * @param key peer identity
+ * @param value the 'struct GNUNET_DV_TransmitHandle'
+ * @return GNUNET_OK if the ACK did not match (continue to iterate)
+ */
+static int
+process_ack (void *cls,
+	     const struct GNUNET_HashCode *key,
+	     void *value)
+{
+  struct AckContext *ctx = cls;
+  struct GNUNET_DV_TransmitHandle *th = value;
+
+  if (th->uid != ntohl (ctx->ack->uid))
+    return GNUNET_OK;
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_remove (ctx->sh->send_callbacks,
+						       key,
+						       th));
+  /* FIXME: should distinguish between success and failure here... */
+  th->cb (th->cb_cls,
+	  GNUNET_OK);
+  GNUNET_free (th);
+  return GNUNET_NO;
+}
+
+
+/**
  * Handles a message sent from the DV service to us.
  * Parse it out and give it to the plugin.
  *
@@ -230,7 +290,9 @@ handle_message_receipt (void *cls,
   const struct GNUNET_DV_DisconnectMessage *dm;
   const struct GNUNET_DV_ReceivedMessage *rm;
   const struct GNUNET_MessageHeader *payload;
-
+  const struct GNUNET_DV_AckMessage *ack;
+  struct AckContext ctx;
+  
   if (NULL == msg)
   {
     /* Connection closed */
@@ -282,6 +344,21 @@ handle_message_receipt (void *cls,
 		    ntohl (rm->distance),
 		    payload);
     break;
+  case GNUNET_MESSAGE_TYPE_DV_SEND_ACK:
+    if (ntohs (msg->size) != sizeof (struct GNUNET_DV_AckMessage))
+    {
+      GNUNET_break (0);
+      reconnect (sh);
+      return;
+    }
+    ack = (const struct GNUNET_DV_AckMessage *) msg;
+    ctx.ack = ack;
+    ctx.sh = sh;
+    GNUNET_CONTAINER_multihashmap_get_multiple (sh->send_callbacks,
+						&ack->target.hashPubKey,
+						&process_ack,
+						&ctx);
+    return;
   default:
     reconnect (sh);
     break;
@@ -495,6 +572,10 @@ GNUNET_DV_send (struct GNUNET_DV_ServiceHandle *sh,
   sm->header.type = htons (GNUNET_MESSAGE_TYPE_DV_SEND);
   sm->header.size = htons (sizeof (struct GNUNET_DV_SendMessage) + 
 			   ntohs (msg->size));
+  if (0 == sh->uid_gen)
+    sh->uid_gen = 1;
+  th->uid = sh->uid_gen;
+  sm->uid = htonl (sh->uid_gen++);
   /* use memcpy here as 'target' may not be sufficiently aligned */
   memcpy (&sm->target, target, sizeof (struct GNUNET_PeerIdentity));
   memcpy (&sm[1], msg, ntohs (msg->size));
