@@ -454,7 +454,7 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   memcpy (copy, data, size);
   GNUNET_break (
     GNUNET_OK ==
-    GNUNET_CONTAINER_multihashmap_put (info->dht_get_results, key, copy,
+    GNUNET_CONTAINER_multihashmap_put (info->dht_get_results, &copy->key, copy,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE)
                );
   len = ntohl (block->n_proof);
@@ -693,7 +693,7 @@ GNUNET_REGEX_search (struct GNUNET_DHT_Handle *dht,
   h->callback = callback;
   h->callback_cls = callback_cls;
   h->stats = stats;
-  h->dht_get_handles = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_YES);
+  h->dht_get_handles = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
   h->dht_get_results = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_YES);
 
   /* Initialize context */
