@@ -1048,6 +1048,23 @@ arm_da (void *cls, void *op_result)
   }
 }
 
+/**
+ * Finish and free the operation used to start the regex daemon.
+ * operation_done calls ARM_disconnect, which cannot happen inside an
+ * ARM callback.
+ *
+ * @param cls Closure (Peer info)
+ * @param tc TaskContext
+ */
+static void
+arm_op_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct RegexPeer *peer = (struct RegexPeer *) cls;
+
+  GNUNET_TESTBED_operation_done (peer->op_handle);
+  peer->op_handle = NULL;
+}
+
 static void
 arm_start_cb (void *cls, struct GNUNET_ARM_Handle *arm,
     enum GNUNET_ARM_RequestStatus rs, const char *service,
@@ -1074,8 +1091,7 @@ arm_start_cb (void *cls, struct GNUNET_ARM_Handle *arm,
        * Service is currently being started (due to client request).
        */
     case GNUNET_ARM_RESULT_STARTING:
-      GNUNET_TESTBED_operation_done (peer->op_handle);
-      peer->op_handle = NULL;
+      GNUNET_SCHEDULER_add_now (&arm_op_done, peer);
 
       if (peer_cnt < (num_peers - 1))
       {

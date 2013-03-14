@@ -151,9 +151,11 @@ reannounce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                             (unsigned int) max_path_compression,
                                             stats_handle);
   }
-  /* Will result in a double first announce */
-  GNUNET_assert (NULL != announce_handle);
-  GNUNET_REGEX_reannounce (announce_handle);
+  else
+  {
+    GNUNET_assert (NULL != announce_handle);
+    GNUNET_REGEX_reannounce (announce_handle);
+  }
 
   random_delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
                                                 GNUNET_CRYPTO_random_u32 (
