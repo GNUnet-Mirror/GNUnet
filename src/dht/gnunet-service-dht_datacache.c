@@ -157,8 +157,8 @@ datacache_get_iterator (void *cls,
   ctx->eval = eval;
   switch (eval)
   {
-  case GNUNET_BLOCK_EVALUATION_OK_LAST:
   case GNUNET_BLOCK_EVALUATION_OK_MORE:
+  case GNUNET_BLOCK_EVALUATION_OK_LAST:
     /* forward to local clients */
     GNUNET_STATISTICS_update (GDS_stats,
                               gettext_noop

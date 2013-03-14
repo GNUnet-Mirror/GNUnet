@@ -590,8 +590,8 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
                             ("# GET requests received from clients"), 1,
                             GNUNET_NO);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received GET request for %s from local client %p\n",
-       GNUNET_h2s (&get->key), client);
+       "Received GET request for %s from local client %p, xq: %.*s\n",
+       GNUNET_h2s (&get->key), client, xquery_size, xquery);
 
   if (LOG_ROUTE_DETAILS_STDERR)
   {
@@ -1026,16 +1026,16 @@ forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
 
   if (LOG_ROUTE_DETAILS_STDERR)
   {
-    fprintf (stderr, 
-	     "XDHT CLIENT-RESULT %s @ %u\n", 
-	     GNUNET_h2s (key), 
-	     getpid ());
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+         "XDHT CLIENT-RESULT %s @ %u\n",
+         GNUNET_h2s (key), 
+         getpid ());
   }
   if ((record->type != GNUNET_BLOCK_TYPE_ANY) && (record->type != frc->type))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Record type missmatch, not passing request for key %s to local client\n",
-                GNUNET_h2s (key));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Record type missmatch, not passing request for key %s to local client\n",
+         GNUNET_h2s (key));
     GNUNET_STATISTICS_update (GDS_stats,
                               gettext_noop
                               ("# Key match, type mismatches in REPLY to CLIENT"),
@@ -1046,9 +1046,9 @@ forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
   for (i = 0; i < record->seen_replies_count; i++)
     if (0 == memcmp (&record->seen_replies[i], &ch, sizeof (struct GNUNET_HashCode)))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Duplicate reply, not passing request for key %s to local client\n",
-                  GNUNET_h2s (key));
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Duplicate reply, not passing request for key %s to local client\n",
+           GNUNET_h2s (key));
       GNUNET_STATISTICS_update (GDS_stats,
                                 gettext_noop
                                 ("# Duplicate REPLIES to CLIENT request dropped"),
@@ -1059,9 +1059,9 @@ forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
       GNUNET_BLOCK_evaluate (GDS_block_context, record->type, key, NULL, 0,
                              record->xquery, record->xquery_size, frc->data,
                              frc->data_size);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Evaluation result is %d for key %s for local client's query\n",
-              (int) eval, GNUNET_h2s (key));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Evaluation result is %d for key %s for local client's query\n",
+       (int) eval, GNUNET_h2s (key));
   switch (eval)
   {
   case GNUNET_BLOCK_EVALUATION_OK_LAST:
@@ -1115,9 +1115,9 @@ forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
                             GNUNET_NO);
   reply = (struct GNUNET_DHT_ClientResultMessage *) &pm[1];
   reply->unique_id = record->unique_id;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Queueing reply to query %s for client %p\n", GNUNET_h2s (key),
-              record->client->client_handle);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Queueing reply to query %s for client %p\n", GNUNET_h2s (key),
+       record->client->client_handle);
   add_pending_message (record->client, pm);
   if (GNUNET_YES == do_free)
     remove_client_records (record->client, key, record);
@@ -1155,6 +1155,8 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
   struct GNUNET_DHT_ClientResultMessage *reply;
   struct GNUNET_PeerIdentity *paths;
   size_t msize;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "reply for key %s\n", GNUNET_h2s (key));
 
   if (NULL == GNUNET_CONTAINER_multihashmap_get (forward_map, key))
   {
