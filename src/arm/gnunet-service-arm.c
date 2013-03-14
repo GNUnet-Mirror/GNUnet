@@ -1341,7 +1341,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *serv,
     {&handle_start, NULL, GNUNET_MESSAGE_TYPE_ARM_START, 0},
     {&handle_stop, NULL, GNUNET_MESSAGE_TYPE_ARM_STOP, 0},
     {&handle_monitor, NULL, GNUNET_MESSAGE_TYPE_ARM_MONITOR, 
-     sizeof (struct GNUNET_ARM_Message)},
+     sizeof (struct GNUNET_MessageHeader)},
     {&handle_list, NULL, GNUNET_MESSAGE_TYPE_ARM_LIST, 
      sizeof (struct GNUNET_ARM_Message)},
     {NULL, NULL, 0, 0}
