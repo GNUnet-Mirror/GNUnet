@@ -38,6 +38,7 @@ libexec_PROGRAMS = \
 gnunet_service_dv_SOURCES = \
  gnunet-service-dv.c dv.h
 gnunet_service_dv_LDADD = \
+  $(top_builddir)/src/consensus/libgnunetconsensus.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/util/libgnunetutil.la \
