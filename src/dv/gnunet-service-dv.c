@@ -165,6 +165,38 @@ struct DirectNeighbor
    * Transmit handle to core service.
    */
   struct GNUNET_CORE_TransmitHandle *cth;
+
+  /**
+   * Routing table of the neighbor, NULL if not yet established.
+   * Keys are peer identities, values are 'struct Target' entries.
+   */ 
+  struct GNUNET_CONTAINER_MultiHashMap *neighbor_table;
+
+  /**
+   * Updated routing table of the neighbor, under construction,
+   * NULL if we are not currently building it.
+   * Keys are peer identities, values are 'struct Target' entries.
+   */ 
+  struct GNUNET_CONTAINER_MultiHashMap *neighbor_table_consensus;
+
+  /**
+   * Active consensus, if we are currently synchronizing the
+   * routing tables.
+   */
+  struct GNUNET_CONSENSUS_Handle *consensus;
+
+  /**
+   * At what offset are we, with respect to inserting our own routes
+   * into the consensus?
+   */
+  unsigned int consensus_insertion_offset;
+
+  /**
+   * At what distance are we, with respect to inserting our own routes
+   * into the consensus?
+   */
+  unsigned int consensus_insertion_distance;
+
 };
 
 
@@ -195,52 +227,6 @@ struct Route
 
 
 /**
- * Routing neighbors are neighbors that we exchange
- * routing information with; that is, their distance
- * must be strictly less than the DEFAULT_FISHEYE_DEPTH;
- * they can also be direct neighbors.
- */
-struct RoutingNeighbor
-{
-
-  /**
-   * Which peer is this, and how do we talk to it?
-   */
-  struct Route route;
-
-  /**
-   * Routing table of the neighbor, NULL if not yet established.
-   */ 
-  struct GNUNET_CONTAINER_MultiHashMap *neighbor_table;
-
-  /**
-   * Updated routing table of the neighbor, under construction,
-   * NULL if we are not currently building it.
-   */ 
-  struct GNUNET_CONTAINER_MultiHashMap *neighbor_table_consensus;
-
-  /**
-   * Active consensus, if we are currently synchronizing the
-   * routing tables.
-   */
-  struct GNUNET_CONSENSUS_Handle *consensus;
-
-  /**
-   * At what offset are we, with respect to inserting our own routes
-   * into the consensus?
-   */
-  unsigned int consensus_insertion_offset;
-
-  /**
-   * At what distance are we, with respect to inserting our own routes
-   * into the consensus?
-   */
-  unsigned int consensus_insertion_distance;
-
-};
-
-
-/**
  * Set of targets we bring to a consensus; all targets in a set have a
  * distance equal to the sets distance (which is implied by the array
  * index of the set).
@@ -251,7 +237,7 @@ struct ConsensusSet
   /**
    * Array of targets in the set, may include NULL entries if a
    * neighbor has disconnected; the targets are allocated with the
-   * respective container (i.e. 'struct RoutingNeighbor'), not here.
+   * respective container (all_routes), not here.
    */
   struct Route **targets;
 
@@ -267,12 +253,6 @@ struct ConsensusSet
  * Hashmap of all of our direct neighbors (no DV routing).
  */
 static struct GNUNET_CONTAINER_MultiHashMap *direct_neighbors;
-
-/**
- * Hashmap of all of the neighbors we exchange routing information
- * with (peers up to DEFAULT_FISHEYE_DEPTH - 1 distance from us).
- */
-static struct GNUNET_CONTAINER_MultiHashMap *routing_neighbors;
 
 /**
  * Hashmap with all routes that we currently support; contains 
@@ -619,20 +599,6 @@ core_transmit_notify (void *cls, size_t size, void *buf)
 
 
 /**
- * Begin exchanging routing information with 'rn', updating
- * our respective neighbor table in the process.
- *
- * @param rn neighbor with whom we should exchange the information
- */
-static void
-exchange_routing_information (struct RoutingNeighbor *rn)
-{
-  GNUNET_break (0);
-  // FIXME
-}
-
-
-/**
  * Find a free slot for storing a 'route' in the 'consensi'
  * set at the given distance.
  *
@@ -657,70 +623,6 @@ get_consensus_slot (uint32_t distance)
 
 
 /**
- * Setup an entry in the 'routing neighbor' table and begin the
- * exchange with the new routing neighbor.  Note that a routing
- * neighbor can be a direct neighbor at the same time, in which case
- * the peer identity of 'target' and 'next_hop->peer' will be the same
- * (and the distance will be 1).
- *
- * If a routing neighbor already exists, ignore the update if
- * the distance is not smaller; otherwise if the distance
- * is smaller, replace the existing entry with the new route.
- *
- * @param next_hop first routing hop towards the routing neighbor
- * @param target peer identity of the routing neighbor
- * @param distance number of hops to the routing neighbor
- */
-static void
-create_routing_neighbor (struct DirectNeighbor *next_hop,
-			 const struct GNUNET_PeerIdentity *target,
-			 uint32_t distance)
-{
-  struct RoutingNeighbor *rn;
-  unsigned int i;
-
-  rn = GNUNET_CONTAINER_multihashmap_get (routing_neighbors, 
-					  &target->hashPubKey);
-  if (NULL != rn)
-  {
-    /* update the entry, instead of creating a new one */
-    if (distance >= rn->route.target.distance)
-      return; /* ignore, distance is not better */
-    rn->route.next_hop = next_hop;
-    if (distance < rn->route.target.distance)
-    { 
-      /* move to alternative consensi slot */
-      consensi[rn->route.target.distance].targets[rn->route.set_offset] = NULL;
-      rn->route.target.distance = distance;
-      i = get_consensus_slot (distance);
-      rn->route.set_offset = i;
-      consensi[distance].targets[i] = &rn->route;      
-    }
-    if (DIRECT_NEIGHBOR_COST == distance)
-    {
-      /* we're now a direct neighbor, remove from set reachable via DV! */
-      send_disconnect_to_plugin (target);
-    }
-    return;
-  }
-  GNUNET_assert (distance < DEFAULT_FISHEYE_DEPTH - 1);
-  i = get_consensus_slot (distance);
-  rn = GNUNET_malloc (sizeof (struct RoutingNeighbor));
-  rn->route.next_hop = next_hop;
-  rn->route.target.peer = *target;
-  rn->route.target.distance = distance;
-  rn->route.set_offset = i;
-  consensi[distance].targets[i] = &rn->route;
-  exchange_routing_information (rn);
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_put (direct_neighbors,
-						    &target->hashPubKey,
-						    rn,
-						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-}
-
-
-/**
  * Method called whenever a peer connects.
  *
  * @param cls closure
@@ -734,8 +636,9 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                      unsigned int atsi_count)
 {
   struct DirectNeighbor *neighbor;
-  struct RoutingNeighbor *rn;
+  struct Route *route;
   uint32_t distance;
+  unsigned int i;
 
   /* Check for connect to self message */
   if (0 == memcmp (&my_identity, peer, sizeof (struct GNUNET_PeerIdentity)))
@@ -757,7 +660,33 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
 						    &peer->hashPubKey,
 						    neighbor,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  create_routing_neighbor (neighbor, peer, DIRECT_NEIGHBOR_COST);
+
+  route = GNUNET_CONTAINER_multihashmap_get (all_routes, 
+					     &peer->hashPubKey);
+  if (NULL == route)  
+  {
+    route->target.peer = *peer;
+    i = get_consensus_slot (DIRECT_NEIGHBOR_COST);
+    route->set_offset = i;
+    consensi[DIRECT_NEIGHBOR_COST].targets[i] = route;
+    GNUNET_assert (GNUNET_YES ==
+		   GNUNET_CONTAINER_multihashmap_put (all_routes,
+						      &route->target.peer.hashPubKey,
+						      route,
+						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  }
+  else
+  {
+    /* move to new consensi slot */
+    send_disconnect_to_plugin (peer);
+    consensi[route->target.distance].targets[route->set_offset] = NULL;
+    i = get_consensus_slot (DIRECT_NEIGHBOR_COST);
+    route->set_offset = i;
+    consensi[DIRECT_NEIGHBOR_COST].targets[i] = route;      
+  }
+  route->next_hop = neighbor;
+  route->target.distance = DIRECT_NEIGHBOR_COST;
+  // FIXME: begin exchange_routing_information!
 }
 
 
@@ -829,27 +758,62 @@ cull_routes (void *cls, const struct GNUNET_HashCode * key, void *value)
 
 
 /**
- * Multihashmap iterator for freeing routes that go via a particular
- * neighbor that disconnected and is thus no longer available.
+ * Multihashmap iterator for checking if a given route is
+ * (now) useful to this peer.
  *
- * @param cls the direct neighbor that is now unavailable
+ * @param cls the direct neighbor for the given route
  * @param key key value stored under
- * @param value a 'struct Route' that may or may not go via neighbor
+ * @param value a 'struct Target' that may or may not be useful
  *
  * @return GNUNET_YES to continue iteration, GNUNET_NO to stop
  */
 static int
-cull_routing_neighbors (void *cls, const struct GNUNET_HashCode * key, void *value)
+cull_routes (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct DirectNeighbor *neighbor = cls;
-  struct RoutingNeighbor *rn = value;
+  struct Target *target = value;
+  struct Route *cur;
+  
+  cur = GNUNET_CONTAINER_multihashmap_get (all_routes,
+					   key);
+  if (NULL != cur)
+  {
+    if (cur->target.distance > target->distance)
+    {
+      /* FIXME: this 'target' is cheaper than the existing route;
+	 switch route! */
+    }
+    return GNUNET_YES; /* got a route to this target already */
+  }
+  cur = GNUNET_malloc (sizeof (struct Route));
+  cur->next_hop = neighbor;
+  cur->target = *target;
+  cur->set_offset = get_consensus_slot (target->distance);
+  GNUNET_CONTAINER_multihashmap_put (all_routes,
+				     key,
+				     cur);
+  return GNUNET_YES;
+}
 
-  if (rn->route.next_hop != neighbor)
-    return GNUNET_YES; /* not affected */
 
-  /* FIXME: destroy routing neighbor! */
-  GNUNET_break (0);  
+/**
+ * Multihashmap iterator for finding routes that were previously
+ * "hidden" due to a better route (called after a disconnect event).
+ *
+ * @param cls NULL
+ * @param key peer identity of the given direct neighbor
+ * @param value a 'struct DirectNeighbor' to check for additional routes
+ * @return GNUNET_YES to continue iteration
+ */
+static int
+refresh_routes (void *cls, const struct GNUNET_HashCode * key, void *value)
+{
+  struct DirectNeighbor *neighbor = value;
 
+  if (NULL != neighbor->neighbor_table)
+    GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table,
+					   &check_possible_route,
+					   neighbor);
   return GNUNET_YES;
 }
 
@@ -889,9 +853,6 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   GNUNET_CONTAINER_multihashmap_iterate (all_routes,
 					 &cull_routes,
                                          neighbor);
-  GNUNET_CONTAINER_multihashmap_iterate (routing_neighbors,
-					 &cull_routing_neighbors,
-                                         neighbor);
   if (NULL != neighbor->cth)
   {
     GNUNET_CORE_notify_transmit_ready_cancel (neighbor->cth);
@@ -902,6 +863,9 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 						       &peer->hashPubKey,
 						       neighbor));
   GNUNET_free (neighbor);
+  GNUNET_CONTAINER_multihashmap_iterate (direct_neighbors,
+					 &refresh_routes,
+                                         NULL);
 }
 
 
@@ -920,26 +884,6 @@ free_route (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   GNUNET_break (0);
   // FIXME: notify client about disconnect
-  return GNUNET_YES;
-}
-
-
-/**
- * Multihashmap iterator for freeing routing neighbors. Should never be called.
- *
- * @param cls NULL
- * @param key key value stored under
- * @param value the distant neighbor to be freed
- *
- * @return GNUNET_YES to continue iteration, GNUNET_NO to stop
- */
-static int
-free_routing_neighbors (void *cls, const struct GNUNET_HashCode * key, void *value)
-{
-  struct RoutingNeighbor *router = value;
-
-  GNUNET_break (0); 
-  // FIXME: release resources
   return GNUNET_YES;
 }
 
@@ -979,9 +923,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CONTAINER_multihashmap_iterate (direct_neighbors,
                                          &free_direct_neighbors, NULL);
   GNUNET_CONTAINER_multihashmap_destroy (direct_neighbors);
-  GNUNET_CONTAINER_multihashmap_iterate (routing_neighbors,
-                                         &free_routing_neighbors, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (routing_neighbors);
   GNUNET_CONTAINER_multihashmap_iterate (all_routes,
                                          &free_route, NULL);
   GNUNET_CONTAINER_multihashmap_destroy (all_routes);
@@ -1072,7 +1013,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   cfg = c;
   direct_neighbors = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
-  routing_neighbors = GNUNET_CONTAINER_multihashmap_create (128 * 128, GNUNET_NO);
   all_routes = GNUNET_CONTAINER_multihashmap_create (65536, GNUNET_NO);
   core_api = GNUNET_CORE_connect (cfg, NULL,
 				  &core_init, 
