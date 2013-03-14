@@ -75,7 +75,7 @@ struct GNUNET_CONSENSUS_Element
  *         GNUNET_SYSERR if the element should be ignored and not be propagated
  */
 typedef int (*GNUNET_CONSENSUS_ElementCallback) (void *cls,
-                                                 struct GNUNET_CONSENSUS_Element *element);
+                                                 const struct GNUNET_CONSENSUS_Element *element);
 
 
 
