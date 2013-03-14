@@ -454,7 +454,8 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   memcpy (copy, data, size);
   GNUNET_break (
     GNUNET_OK ==
-    GNUNET_CONTAINER_multihashmap_put (info->dht_get_results, &copy->key, copy,
+    GNUNET_CONTAINER_multihashmap_put (info->dht_get_results,
+                                       &((struct RegexBlock *)copy)->key, copy,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE)
                );
   len = ntohl (block->n_proof);
