@@ -156,9 +156,9 @@ typedef void (*GNUNET_TRANSPORT_PeerIterateCallback) (void *cls,
  * @param self our own identity (API should check that it matches
  *             the identity found by transport), or NULL (no check)
  * @param cls closure for the callbacks
- * @param rec receive function to call
- * @param nc function to call on connect events
- * @param nd function to call on disconnect events
+ * @param rec receive function to call, or NULL
+ * @param nc function to call on connect events, or NULL
+ * @param nd function to call on disconnect events, or NULL
  * @return NULL on error
  */
 struct GNUNET_TRANSPORT_Handle *
