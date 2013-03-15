@@ -480,7 +480,6 @@ call_cgh_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                       cgh->nctxt);
   }
   LOG_DEBUG ("Calling notify for handle type %u\n", cgh->type);
-  GNUNET_break ((NULL == entry->core_handle) || (NULL != entry->peer_identity));
   cgh->cb (cgh->cb_cls, entry->core_handle, entry->transport_handle,
            entry->peer_identity);
 }
