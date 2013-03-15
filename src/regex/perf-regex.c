@@ -19,7 +19,7 @@
 */
 
 /**
- * @file src/regex/prof-regex.c
+ * @file src/regex/perf-regex.c
  * @brief Test how long it takes to create a automaton from a string regex.
  * @author Bartlomiej Polot
  */
