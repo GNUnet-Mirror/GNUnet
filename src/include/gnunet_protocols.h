@@ -202,6 +202,16 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_DV_DISCONNECT 50
 
+/**
+ * P2P DV message telling plugin that a message transmission failed (negative ACK)
+ */
+#define GNUNET_MESSAGE_TYPE_DV_SEND_NACK 51
+
+/**
+ * P2P DV message telling plugin that our distance to a peer changed
+ */
+#define GNUNET_MESSAGE_TYPE_DV_DISTANCE_CHANGED 52
+
 
 /*******************************************************************************
  * Transport-UDP message types

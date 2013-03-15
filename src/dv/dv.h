@@ -135,12 +135,13 @@ struct GNUNET_DV_SendMessage
 
 /**
  * Message from service to DV plugin, saying that a
- * SEND request was handled.  
+ * SEND request was handled.
  */
 struct GNUNET_DV_AckMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DV_SEND_ACK
+   * Type: GNUNET_MESSAGE_TYPE_DV_SEND_ACK or
+   * GNUNET_MESSAGE_TYPE_DV_SEND_NACK.
    */ 
   struct GNUNET_MessageHeader header;
 
@@ -155,6 +156,32 @@ struct GNUNET_DV_AckMessage
   struct GNUNET_PeerIdentity target;
 
 };
+
+
+/**
+ * Message from service to DV plugin, saying that our
+ * distance to another peer changed.
+ */
+struct GNUNET_DV_DistanceUpdateMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_DV_DISTANCE_CHANGED.
+   */ 
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * What is the new distance?
+   */
+  uint32_t distance GNUNET_PACKED;
+
+  /**
+   * The peer for which the distance changed.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+};
+
+
 GNUNET_NETWORK_STRUCT_END
 
 #endif

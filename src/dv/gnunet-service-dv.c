@@ -30,8 +30,6 @@
  * TODO:
  * - distance updates are not properly communicate to US by core,
  *   and conversely we don't give distance updates properly to the plugin yet
- * - we send 'ACK' even if a message was dropped due to no route (may
- *   be harmless, but should at least be documented -- or support NACK)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -503,14 +501,16 @@ send_control_to_plugin (const struct GNUNET_MessageHeader *message)
 
 
 /**
- * Give an ACK message to the plugin, we transmitted a message for it.
+ * Give an (N)ACK message to the plugin, we transmitted a message for it.
  *
  * @param target peer that received the message
  * @param uid plugin-chosen UID for the message
+ * @param nack GNUNET_NO to send ACK, GNUNET_YES to send NACK
  */
 static void
 send_ack_to_plugin (const struct GNUNET_PeerIdentity *target, 
-		    uint32_t uid)
+		    uint32_t uid,
+		    int nack)
 {
   struct GNUNET_DV_AckMessage ack_msg;
 
@@ -518,7 +518,9 @@ send_ack_to_plugin (const struct GNUNET_PeerIdentity *target,
               "Delivering ACK for message to peer `%s'\n",
               GNUNET_i2s (target));
   ack_msg.header.size = htons (sizeof (ack_msg));
-  ack_msg.header.type = htons (GNUNET_MESSAGE_TYPE_DV_SEND_ACK);
+  ack_msg.header.type = htons ((GNUNET_YES == nack) 
+			       ? GNUNET_MESSAGE_TYPE_DV_SEND_NACK
+			       : GNUNET_MESSAGE_TYPE_DV_SEND_ACK);
   ack_msg.uid = htonl (uid);
   ack_msg.target = *target;
   send_control_to_plugin (&ack_msg.header);
@@ -610,7 +612,8 @@ core_transmit_notify (void *cls, size_t size, void *buf)
     memcpy (&cbuf[off], pending->msg, msize);
     if (0 != pending->uid) 
       send_ack_to_plugin (&pending->ultimate_target,
-			  pending->uid);
+			  pending->uid,
+			  GNUNET_NO);
     GNUNET_free (pending);
     off += msize;
   }
@@ -1321,12 +1324,11 @@ handle_dv_send_message (void *cls, struct GNUNET_SERVER_Client *client,
 					     &msg->target.hashPubKey);
   if (NULL == route)
   {
-    /* got disconnected, send ACK anyway? 
-       FIXME: What we really want is an 'NACK' here... */
+    /* got disconnected */
     GNUNET_STATISTICS_update (stats,
 			      "# local messages discarded (no route)",
 			      1, GNUNET_NO);
-    send_ack_to_plugin (&msg->target, ntohl (msg->uid));
+    send_ack_to_plugin (&msg->target, ntohl (msg->uid), GNUNET_YES);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }

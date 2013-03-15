@@ -266,9 +266,10 @@ process_ack (void *cls,
 		 GNUNET_CONTAINER_multihashmap_remove (ctx->sh->send_callbacks,
 						       key,
 						       th));
-  /* FIXME: should distinguish between success and failure here... */
   th->cb (th->cb_cls,
-	  GNUNET_OK);
+	  (ntohs (ctx->ack->header.type) == GNUNET_MESSAGE_TYPE_DV_SEND_ACK)
+	  ? GNUNET_OK
+	  : GNUNET_SYSERR);
   GNUNET_free (th);
   return GNUNET_NO;
 }
@@ -345,6 +346,7 @@ handle_message_receipt (void *cls,
 		    payload);
     break;
   case GNUNET_MESSAGE_TYPE_DV_SEND_ACK:
+  case GNUNET_MESSAGE_TYPE_DV_SEND_NACK:
     if (ntohs (msg->size) != sizeof (struct GNUNET_DV_AckMessage))
     {
       GNUNET_break (0);
@@ -358,7 +360,10 @@ handle_message_receipt (void *cls,
 						&ack->target.hashPubKey,
 						&process_ack,
 						&ctx);
-    return;
+    break;
+  case GNUNET_MESSAGE_TYPE_DV_DISTANCE_CHANGED:
+    GNUNET_break (0);
+    break;
   default:
     reconnect (sh);
     break;
