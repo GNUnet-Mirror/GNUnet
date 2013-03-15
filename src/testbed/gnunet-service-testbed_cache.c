@@ -784,7 +784,7 @@ cache_get_handle (unsigned int peer_id, struct GSTCacheGetHandle *cgh,
   {
     if (GNUNET_SCHEDULER_NO_TASK == entry->notify_task)
     {
-      if (NULL != search_suitable_cgh (entry, entry->cgh->qhead))
+      if (NULL != search_suitable_cgh (entry, entry->cgh_qhead))
         entry->notify_task = GNUNET_SCHEDULER_add_now (&call_cgh_cb, entry);
     }
     return cgh;
