@@ -1071,6 +1071,7 @@ arm_start_cb (void *cls, struct GNUNET_ARM_Handle *arm,
     enum GNUNET_ARM_Result result)
 {
   struct RegexPeer *peer = (struct RegexPeer *) cls;
+  static unsigned int arm_peer_cnt;
   unsigned int next_p;
 
   if (rs != GNUNET_ARM_REQUEST_SENT_OK)
@@ -1093,9 +1094,9 @@ arm_start_cb (void *cls, struct GNUNET_ARM_Handle *arm,
     case GNUNET_ARM_RESULT_STARTING:
       GNUNET_SCHEDULER_add_now (&arm_op_done, peer);
 
-      if (peer_cnt < (num_peers - 1))
+      if (arm_peer_cnt < (num_peers - 1))
       {
-        next_p = (++peer_cnt % num_peers);
+        next_p = (++arm_peer_cnt % num_peers);
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
                                         GNUNET_TIME_UNIT_MILLISECONDS,
                                         1000),
