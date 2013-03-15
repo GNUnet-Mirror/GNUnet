@@ -156,6 +156,11 @@ struct Plugin
    */
   struct GNUNET_DV_ServiceHandle *dvh;
 
+  /**
+   * Tokenizer for boxed messages.
+   */
+  struct GNUNET_SERVER_MessageStreamTokenizer *mst; 
+
 };
 
 
@@ -168,6 +173,35 @@ static void
 notify_distance_change (struct Session *session)
 {
   GNUNET_break (0); // FIXME: need extended plugin API!
+}
+
+
+/**
+ * Function called by MST on each message from the box.
+ *
+ * @param cls closure with the 'struct Plugin'
+ * @param client identification of the client (with the 'struct Session')
+ * @param message the actual message
+ * @return GNUNET_OK on success
+ */
+static int
+unbox_cb (void *cls,
+	  void *client,
+	  const struct GNUNET_MessageHeader *message)
+{
+  struct Plugin *plugin = cls;
+  struct Session *session = client;
+  struct GNUNET_ATS_Information ats;
+  
+  ats.type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
+  ats.value = htonl (session->distance);
+  session->active = GNUNET_YES;
+  plugin->env->receive (plugin->env->cls, 
+			&session->sender,
+                        message,
+                        &ats, 1,
+			session, "", 0);
+  return GNUNET_OK;
 }
 
 
@@ -194,6 +228,17 @@ handle_dv_message_received (void *cls,
   if (NULL == session)    
   {
     GNUNET_break (0);
+    return;
+  }
+  if (GNUNET_MESSAGE_TYPE_DV_BOX == ntohs (msg->type))
+  {
+    /* need to unbox using MST */
+    GNUNET_SERVER_mst_receive (plugin->mst, 
+			       session,
+			       (const char *) &msg[1],
+			       ntohs (msg->size) - sizeof (struct GNUNET_MessageHeader),
+			       GNUNET_YES,
+			       GNUNET_NO);
     return;
   }
   ats.type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
@@ -382,9 +427,19 @@ dv_plugin_send (void *cls,
 {
   struct PendingRequest *pr;
   const struct GNUNET_MessageHeader *msg;
+  struct GNUNET_MessageHeader *box;
 
+  box = NULL;
   msg = (const struct GNUNET_MessageHeader *) msgbuf;
-  GNUNET_assert (ntohs (msg->size) == msgbuf_size); // API will change...
+  if (ntohs (msg->size) != msgbuf_size)
+  {
+    /* need to box */
+    box = GNUNET_malloc (sizeof (struct GNUNET_MessageHeader) + msgbuf_size);
+    box->type = htons (GNUNET_MESSAGE_TYPE_DV_BOX);
+    box->size = htons (sizeof (struct GNUNET_MessageHeader) + msgbuf_size);
+    memcpy (&box[1], msgbuf, msgbuf_size);
+    msg = box;
+  }
   pr = GNUNET_malloc (sizeof (struct PendingRequest));
   pr->transmit_cont = cont;
   pr->transmit_cont_cls = cont_cls;
@@ -397,6 +452,7 @@ dv_plugin_send (void *cls,
 			   msg,
 			   &send_finished,
 			   pr);
+  GNUNET_free_non_null (box);
   return 0; /* DV */
 }
 
@@ -580,6 +636,8 @@ libgnunet_plugin_transport_dv_init (void *cls)
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
   plugin->sessions = GNUNET_CONTAINER_multihashmap_create (1024 * 8, GNUNET_YES);
+  plugin->mst = GNUNET_SERVER_mst_create (&unbox_cb,
+					  plugin);
   plugin->dvh = GNUNET_DV_service_connect (env->cfg,
 					   plugin,
 					   &handle_dv_connect,
@@ -589,6 +647,7 @@ libgnunet_plugin_transport_dv_init (void *cls)
   if (NULL == plugin->dvh)
   {
     GNUNET_CONTAINER_multihashmap_destroy (plugin->sessions);
+    GNUNET_SERVER_mst_destroy (plugin->mst);    
     GNUNET_free (plugin);
     return NULL;
   }
@@ -639,6 +698,7 @@ libgnunet_plugin_transport_dv_done (void *cls)
 					 &free_session_iterator,
 					 NULL);
   GNUNET_CONTAINER_multihashmap_destroy (plugin->sessions);
+  GNUNET_SERVER_mst_destroy (plugin->mst);    
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;

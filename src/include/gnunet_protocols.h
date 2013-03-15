@@ -212,6 +212,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_DV_DISTANCE_CHANGED 52
 
+/**
+ * DV message box for boxing multiple messages.
+ */
+#define GNUNET_MESSAGE_TYPE_DV_BOX 53
+
 
 /*******************************************************************************
  * Transport-UDP message types
