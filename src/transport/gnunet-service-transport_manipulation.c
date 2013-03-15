@@ -34,12 +34,32 @@
 #include "gnunet-service-transport.h"
 #include "transport.h"
 
-static struct GNUNET_CONTAINER_MultiHashMap *peers;
-
 #define DELAY 0
 #define DISTANCE 1
 
+struct GST_ManipulationHandle man_handle;
+
+
+struct GST_ManipulationHandle
+{
+	struct GNUNET_CONTAINER_MultiHashMap *peers;
+
+	/**
+	 * General inbound delay
+	 */
+	struct GNUNET_TIME_Relative delay_in;
+
+	/**
+	 * General outbound delay
+	 */
+	struct GNUNET_TIME_Relative delay_out;
+
+};
+
+
 struct TM_Peer;
+
+
 
 struct DelayQueueEntry
 {
@@ -146,7 +166,7 @@ GST_manipulation_set_metric (void *cls, struct GNUNET_SERVER_Client *client,
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received traffic metrics for peer `%s'\n",
 			GNUNET_i2s(&tm->peer));
 
-	if (NULL == (tmp = GNUNET_CONTAINER_multihashmap_get (peers, &tm->peer.hashPubKey)))
+	if (NULL == (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &tm->peer.hashPubKey)))
 	{
 			tmp = GNUNET_malloc (sizeof (struct TM_Peer));
 			tmp->peer = (tm->peer);
@@ -157,7 +177,7 @@ GST_manipulation_set_metric (void *cls, struct GNUNET_SERVER_Client *client,
 							tmp->metrics[c][c2] = UINT32_MAX;
 					}
 			}
-			GNUNET_CONTAINER_multihashmap_put (peers, &tm->peer.hashPubKey, tmp, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+			GNUNET_CONTAINER_multihashmap_put (man_handle.peers, &tm->peer.hashPubKey, tmp, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 	}
 
 	ats = (struct GNUNET_ATS_Information *) &tm[1];
@@ -211,7 +231,7 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
 	struct DelayQueueEntry *dqe;
 	struct GNUNET_TIME_Relative delay;
 
-	if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (peers, &target->hashPubKey)))
+	if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &target->hashPubKey)))
 	{
 			/* Manipulate here */
 			/* Delay */
@@ -234,6 +254,25 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
 					return;
 			}
 	}
+	else if (man_handle.delay_out.rel_value != 0)
+	{
+			/* We have a delay */
+			delay = man_handle.delay_out;
+			dqe = GNUNET_malloc (sizeof (struct DelayQueueEntry) + msg_size);
+			dqe->tmp = tmp;
+			dqe->sent_at = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), delay);
+			dqe->cont = cont;
+			dqe->cont_cls = cont_cls;
+			dqe->msg = &dqe[1];
+			dqe->msg_size = msg_size;
+			dqe->timeout = timeout;
+			memcpy (dqe->msg, msg, msg_size);
+			GNUNET_CONTAINER_DLL_insert_tail (tmp->send_head, tmp->send_tail, dqe);
+			if (GNUNET_SCHEDULER_NO_TASK == tmp->send_delay_task)
+				tmp->send_delay_task =GNUNET_SCHEDULER_add_delayed (delay, &send_delayed, dqe);
+			return;
+	}
+
 	/* Normal sending */
 	GST_neighbours_send (target, msg, msg_size, timeout, cont, cont_cls);
 }
@@ -254,7 +293,7 @@ GST_manipulation_recv (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 	for (d = 0; d < ats_count; d++)
 
-	if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey)))
+	if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &peer->hashPubKey)))
 	{
 			/* Manipulate distance */
 			for (d = 0; d < ats_count; d++)
@@ -291,9 +330,24 @@ GST_manipulation_recv (void *cls, const struct GNUNET_PeerIdentity *peer,
 }
 
 void
-GST_manipulation_init ()
+GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg)
 {
-	peers = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+
+	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_time (GST_cfg,
+			"transport", "MANIPULATE_DELAY_IN", &man_handle.delay_in))
+		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Delaying inbound traffic for %llu ms\n",
+				(unsigned long long) man_handle.delay_in.rel_value);
+	else
+		man_handle.delay_in.rel_value = 0;
+
+	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_time (GST_cfg,
+			"transport", "MANIPULATE_DELAY_OUT", &man_handle.delay_out))
+		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Delaying outbound traffic for %llu ms\n",
+			(unsigned long long) man_handle.delay_out.rel_value);
+	else
+		man_handle.delay_out.rel_value = 0;
+
+	man_handle.peers = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
 }
 
 int free_tmps (void *cls,
@@ -305,7 +359,7 @@ int free_tmps (void *cls,
 	if (NULL != value)
 	{
 			struct TM_Peer *tmp = (struct TM_Peer *) value;
-			GNUNET_CONTAINER_multihashmap_remove (peers, key, value);
+			GNUNET_CONTAINER_multihashmap_remove (man_handle.peers, key, value);
 			next = tmp->send_head;
 			while (NULL != (dqe = next))
 			{
@@ -326,10 +380,10 @@ int free_tmps (void *cls,
 void
 GST_manipulation_stop ()
 {
-	GNUNET_CONTAINER_multihashmap_iterate (peers, &free_tmps,NULL);
+	GNUNET_CONTAINER_multihashmap_iterate (man_handle.peers, &free_tmps,NULL);
 
-	GNUNET_CONTAINER_multihashmap_destroy (peers);
-	peers = NULL;
+	GNUNET_CONTAINER_multihashmap_destroy (man_handle.peers);
+	man_handle.peers = NULL;
 }
 
 

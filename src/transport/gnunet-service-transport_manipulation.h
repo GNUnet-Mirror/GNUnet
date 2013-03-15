@@ -54,7 +54,7 @@ GST_manipulation_recv (void *cls, const struct GNUNET_PeerIdentity *peer,
     uint16_t sender_address_len);
 
 void
-GST_manipulation_init ();
+GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg);
 
 void
 GST_manipulation_stop ();
