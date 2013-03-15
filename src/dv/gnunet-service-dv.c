@@ -28,8 +28,7 @@
  * @author Nathan Evans
  *
  * TODO:
- * - distance updates are not properly communicate to US by core,
- *   and conversely we don't give distance updates properly to the plugin yet
+ * - distance updates are not properly communicate to US by core/transport/ats
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -528,6 +527,29 @@ send_ack_to_plugin (const struct GNUNET_PeerIdentity *target,
 
 
 /**
+ * Send a DISTANCE_CHANGED message to the plugin.
+ *
+ * @param peer peer with a changed distance
+ * @param distance new distance to the peer
+ */
+static void
+send_distance_change_to_plugin (const struct GNUNET_PeerIdentity *peer, 
+				uint32_t distance)
+{
+  struct GNUNET_DV_DistanceUpdateMessage du_msg;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Delivering DISTANCE_CHANGED for message about peer `%s'\n",
+              GNUNET_i2s (peer));
+  du_msg.header.size = htons (sizeof (du_msg));
+  du_msg.header.type = htons (GNUNET_MESSAGE_TYPE_DV_DISTANCE_CHANGED);
+  du_msg.distance = htonl (distance);
+  du_msg.peer = *peer;
+  send_control_to_plugin (&du_msg.header);
+}
+
+
+/**
  * Give a CONNECT message to the plugin.
  *
  * @param target peer that connected
@@ -875,7 +897,7 @@ check_possible_route (void *cls, const struct GNUNET_HashCode * key, void *value
       /* this 'target' is cheaper than the existing route; switch to alternative route! */
       move_route (route, ntohl (target->distance) + 1);
       route->next_hop = neighbor;
-      // FIXME: notify plugin about distance update?
+      send_distance_change_to_plugin (&target->peer, ntohl (target->distance) + 1);
     }
     return GNUNET_YES; /* got a route to this target already */
   }
@@ -985,14 +1007,14 @@ check_target_added (void *cls,
     if (current_route->next_hop == neighbor)
     {
       /* we had the same route before, no change */
-      if (ntohl (target->distance) != ntohl (current_route->target.distance))
+      if (ntohl (target->distance) + 1 != ntohl (current_route->target.distance))
       {
-	current_route->target.distance = target->distance;
-	// FIXME: notify about distance change...
+	current_route->target.distance = htonl (ntohl (target->distance) + 1);
+	send_distance_change_to_plugin (&target->peer, ntohl (target->distance) + 1);
       }
       return GNUNET_OK;
     }
-    if (ntohl (current_route->target.distance) >= ntohl (target->distance))
+    if (ntohl (current_route->target.distance) >= ntohl (target->distance) + 1)
     {
       /* alternative, shorter route exists, ignore */
       return GNUNET_OK;
@@ -1003,8 +1025,8 @@ check_target_added (void *cls,
        check that the shorter routes actually work, a malicious
        direct neighbor can use this to DoS our long routes */
     current_route->next_hop = neighbor;
-    current_route->target.distance = target->distance;
-    // FIXME: notify about distance change
+    current_route->target.distance = htonl (ntohl (target->distance) + 1);
+    send_distance_change_to_plugin (&target->peer, ntohl (target->distance) + 1);
     return GNUNET_OK;
   }
   /* new route */

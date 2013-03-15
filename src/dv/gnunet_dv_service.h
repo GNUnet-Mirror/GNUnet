@@ -40,6 +40,15 @@ typedef void (*GNUNET_DV_ConnectCallback)(void *cls,
 
 /**
  * Signature of a function to be called if DV
+ * distance to a peer is changed.
+ */
+typedef void (*GNUNET_DV_DistanceChangedCallback)(void *cls,
+						  const struct GNUNET_PeerIdentity *peer,
+						  uint32_t distance);
+
+
+/**
+ * Signature of a function to be called if DV
  * is no longer able to talk to a peer.
  */
 typedef void (*GNUNET_DV_DisconnectCallback)(void *cls,
@@ -84,6 +93,7 @@ struct GNUNET_DV_ServiceHandle;
  * @param cfg configuration
  * @param cls closure for callbacks
  * @param connect_cb function to call on connects
+ * @param distance_cb function to call if distances change
  * @param disconnect_cb function to call on disconnects
  * @param message_cb function to call if we receive messages
  * @return handle to access the service
@@ -92,6 +102,7 @@ struct GNUNET_DV_ServiceHandle *
 GNUNET_DV_service_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			   void *cls,
 			   GNUNET_DV_ConnectCallback connect_cb,
+			   GNUNET_DV_DistanceChangedCallback distance_cb,
 			   GNUNET_DV_DisconnectCallback disconnect_cb,
 			   GNUNET_DV_MessageReceivedCallback message_cb);
 

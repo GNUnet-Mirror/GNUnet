@@ -309,7 +309,7 @@ libgnunet_plugin_transport_dv_init (void *cls)
   plugin->env = env;
   plugin->dvh = GNUNET_DV_service_connect (env->cfg,
 					   plugin,
-					   NULL, NULL, /*FIXME! */
+					   NULL, NULL, NULL, /*FIXME! */
 					   &handle_dv_message_received);
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;

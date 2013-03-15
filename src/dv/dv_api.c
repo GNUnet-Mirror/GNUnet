@@ -114,6 +114,11 @@ struct GNUNET_DV_ServiceHandle
   GNUNET_DV_ConnectCallback connect_cb;
 
   /**
+   * Function to call on distance change events.
+   */
+  GNUNET_DV_DistanceChangedCallback distance_cb;
+
+  /**
    * Function to call on disconnect events.
    */
   GNUNET_DV_DisconnectCallback disconnect_cb;
@@ -288,6 +293,7 @@ handle_message_receipt (void *cls,
 {
   struct GNUNET_DV_ServiceHandle *sh = cls;
   const struct GNUNET_DV_ConnectMessage *cm;
+  const struct GNUNET_DV_DistanceUpdateMessage *dum;
   const struct GNUNET_DV_DisconnectMessage *dm;
   const struct GNUNET_DV_ReceivedMessage *rm;
   const struct GNUNET_MessageHeader *payload;
@@ -313,6 +319,18 @@ handle_message_receipt (void *cls,
     sh->connect_cb (sh->cls,
 		    &cm->peer,
 		    ntohl (cm->distance));
+    break;
+  case GNUNET_MESSAGE_TYPE_DV_DISTANCE_CHANGED:
+    if (ntohs (msg->size) != sizeof (struct GNUNET_DV_DistanceUpdateMessage))
+    {
+      GNUNET_break (0);
+      reconnect (sh);
+      return;
+    }
+    dum = (const struct GNUNET_DV_DistanceUpdateMessage *) msg;
+    sh->distance_cb (sh->cls,
+		     &dum->peer,
+		     ntohl (dum->distance));
     break;
   case GNUNET_MESSAGE_TYPE_DV_DISCONNECT:
     if (ntohs (msg->size) != sizeof (struct GNUNET_DV_DisconnectMessage))
@@ -360,9 +378,6 @@ handle_message_receipt (void *cls,
 						&ack->target.hashPubKey,
 						&process_ack,
 						&ctx);
-    break;
-  case GNUNET_MESSAGE_TYPE_DV_DISTANCE_CHANGED:
-    GNUNET_break (0);
     break;
   default:
     reconnect (sh);
@@ -478,6 +493,7 @@ reconnect (struct GNUNET_DV_ServiceHandle *sh)
  * @param cfg configuration
  * @param cls closure for callbacks
  * @param connect_cb function to call on connects
+ * @param distance_cb function to call if distances change
  * @param disconnect_cb function to call on disconnects
  * @param message_cb function to call if we receive messages
  * @return handle to access the service
@@ -486,6 +502,7 @@ struct GNUNET_DV_ServiceHandle *
 GNUNET_DV_service_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			   void *cls,
 			   GNUNET_DV_ConnectCallback connect_cb,
+			   GNUNET_DV_DistanceChangedCallback distance_cb,
 			   GNUNET_DV_DisconnectCallback disconnect_cb,
 			   GNUNET_DV_MessageReceivedCallback message_cb)
 {
@@ -495,6 +512,7 @@ GNUNET_DV_service_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   sh->cfg = cfg;
   sh->cls = cls;
   sh->connect_cb = connect_cb;
+  sh->distance_cb = distance_cb;
   sh->disconnect_cb = disconnect_cb;
   sh->message_cb = message_cb;
   sh->send_callbacks = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_YES);
