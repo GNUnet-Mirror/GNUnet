@@ -43,7 +43,7 @@ extern "C"
  *
  * @param regexes A NULL-terminated array of regexes.
  *
- * @retrun A string with a single regex that matches any of the original regexes
+ * @return A string with a single regex that matches any of the original regexes
  */
 char *
 GNUNET_REGEX_combine(char * const regexes[]);
