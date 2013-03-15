@@ -332,17 +332,12 @@ GST_manipulation_recv (void *cls, const struct GNUNET_PeerIdentity *peer,
 	struct GNUNET_ATS_Information ats_new[ats_count];
 	struct GNUNET_TIME_Relative quota_delay;
 	struct GNUNET_TIME_Relative m_delay;
-	uint32_t m_distance;
 
 	if (man_handle.delay_in.rel_value > GNUNET_TIME_UNIT_ZERO.rel_value)
 		m_delay = man_handle.delay_in; /* Global delay */
 	else
 		m_delay = GNUNET_TIME_UNIT_ZERO;
 
-	if (man_handle.distance_in > 0)
-		m_distance = man_handle.distance_in; /* Global distance */
-	else
-		m_distance = 0;
 
 	for (d = 0; d < ats_count; d++)
 	{
