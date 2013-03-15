@@ -45,6 +45,11 @@
   LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
 /**
+ * The default setup timeout in seconds
+ */
+#define DEFAULT_SETUP_TIMEOUT 300
+
+/**
  * DLL of operations
  */
 struct DLLOperation
@@ -227,6 +232,11 @@ struct RunContext
    * Task to be run while shutting down
    */
   GNUNET_SCHEDULER_TaskIdentifier shutdown_run_task;
+
+  /**
+   * Task to be run of a timeout
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
   /**
    * The event mask for the controller
@@ -457,6 +467,11 @@ shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel (rc->register_hosts_task);
     rc->register_hosts_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  if (GNUNET_SCHEDULER_NO_TASK != rc->timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (rc->timeout_task);
+    rc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (NULL != rc->reg_handle)
   {
     GNUNET_TESTBED_cancel_registration (rc->reg_handle);
@@ -499,22 +514,16 @@ shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Task to call master task
+ * call test master callback
  *
  * @param cls the run context
  * @param tc the task context
  */
 static void
-call_master (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+call_master (struct RunContext *rc)
 {
-  struct RunContext *rc = cls;
-
-  if (NULL != rc->topology_operation)
-  {
-    DEBUG ("Overlay topology generated in %s\n", prof_time (rc));
-    GNUNET_TESTBED_operation_done (rc->topology_operation);
-    rc->topology_operation = NULL;
-  }
+  GNUNET_SCHEDULER_cancel (rc->timeout_task);
+  rc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != rc->test_master)
     rc->test_master (rc->test_master_cls, rc->num_peers, rc->peers);
 }
@@ -535,9 +544,11 @@ topology_completion_callback (void *cls, unsigned int nsuccess,
 {
   struct RunContext *rc = cls;
 
+  DEBUG ("Overlay topology generated in %s\n", prof_time (rc));
+  GNUNET_TESTBED_operation_done (rc->topology_operation);
+  rc->topology_operation = NULL;
   rc->state = RC_READY;
-  GNUNET_SCHEDULER_add_continuation (&call_master, rc,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  call_master (rc);
 }
 
 
@@ -706,8 +717,7 @@ call_cc:
     }
   }
   rc->state = RC_READY;
-  GNUNET_SCHEDULER_add_continuation (&call_master, rc,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  call_master (rc);
 }
 
 
@@ -800,8 +810,8 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   if (status != GNUNET_OK)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Controller crash detected. Shutting down.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Controller crash detected. Shutting down.\n"));
     rc->cproc = NULL;
     if (NULL != rc->peers)
     {
@@ -949,6 +959,26 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host,
 
 
 /**
+ * Task run upon timeout while setting up the testbed
+ *
+ * @param cls the RunContext
+ * @param tc the task context
+ */
+static void
+timeout_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct RunContext *rc = cls;
+  
+  rc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  LOG (GNUNET_ERROR_TYPE_ERROR, _("Shutting down testbed due to timeout while setup.\n"));
+  shutdown_now (rc);
+   if (NULL != rc->test_master)
+    rc->test_master (rc->test_master_cls, 0, NULL);
+   rc->test_master = NULL;
+}
+
+
+/**
  * Convenience method for running a testbed with
  * a single call.  Underlay and overlay topology
  * are configured using the "UNDERLAY" and "OVERLAY"
@@ -985,6 +1015,7 @@ GNUNET_TESTBED_run (const char *host_filename,
 {
   struct RunContext *rc;
   char *topology;
+  struct GNUNET_TIME_Relative timeout;
   unsigned long long random_links;
   unsigned int hid;
   unsigned int nhost;
@@ -1106,6 +1137,15 @@ GNUNET_TESTBED_run (const char *host_filename,
     rc->cproc =
         GNUNET_TESTBED_controller_start ("127.0.0.1", rc->h, rc->cfg,
                                          &controller_status_cb, rc);
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_time (cfg, "TESTBED",
+                                                        "SETUP_TIMEOUT",
+                                                        &timeout))
+  {
+    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                             DEFAULT_SETUP_TIMEOUT);
+  }
+  rc->timeout_task =
+      GNUNET_SCHEDULER_add_delayed (timeout, &timeout_task, rc);
   rc->shutdown_run_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_run,
                                     rc);

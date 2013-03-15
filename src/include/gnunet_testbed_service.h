@@ -1389,7 +1389,8 @@ GNUNET_TESTBED_get_statistics (unsigned int num_peers,
  *
  * @param cls closure
  * @param num_peers number of peers in 'peers'
- * @param peers handle to peers run in the testbed
+ * @param peers handle to peers run in the testbed.  NULL upon timeout (see
+ *          GNUNET_TESTBED_test_run()).
  */
 typedef void (*GNUNET_TESTBED_TestMaster)(void *cls,
                                           unsigned int num_peers,
@@ -1403,6 +1404,10 @@ typedef void (*GNUNET_TESTBED_TestMaster)(void *cls,
  * options in the "[testbed]" section of the configuration\
  * (with possible options given in "UNDERLAY_XXX" and/or
  * "OVERLAY_XXX").
+ *
+ * The test_master callback will be called once the testbed setup is finished or
+ * upon a timeout.  This timeout is given through the configuration file by
+ * setting the option "SETUP_TIMEOUT" in "[TESTBED]" section.
  *
  * The testbed is to be terminated using a call to
  * "GNUNET_SCHEDULER_shutdown".
@@ -1421,7 +1426,8 @@ typedef void (*GNUNET_TESTBED_TestMaster)(void *cls,
  *        set in the event_mask as this is the only way get access to the
  *        handle of each peer
  * @param cc_cls closure for cc
- * @param test_master this callback will be called once the test is ready
+ * @param test_master this callback will be called once the test is ready or
+ *          upon timeout
  * @param test_master_cls closure for 'test_master'.
  */
 void
@@ -1439,8 +1445,12 @@ GNUNET_TESTBED_run (const char *host_filename,
  * Convenience method for running a "simple" test on the local system
  * with a single call from 'main'.  Underlay and overlay topology are
  * configured using the "UNDERLAY" and "OVERLAY" options in the
- * "[testbed]" section of the configuration (with possible options
+ * "[TESTBED]" section of the configuration (with possible options
  * given in "UNDERLAY_XXX" and/or "OVERLAY_XXX").
+ *
+ * The test_master callback will be called once the testbed setup is finished or
+ * upon a timeout.  This timeout is given through the configuration file by
+ * setting the option "SETUP_TIMEOUT" in "[TESTBED]" section.
  *
  * The test is to be terminated using a call to
  * "GNUNET_SCHEDULER_shutdown".  If starting the test fails,
@@ -1464,7 +1474,8 @@ GNUNET_TESTBED_run (const char *host_filename,
  *        set in the event_mask as this is the only way get access to the
  *        handle of each peer
  * @param cc_cls closure for cc
- * @param test_master this callback will be called once the test is ready
+ * @param test_master this callback will be called once the test is ready or
+ *          upon timeout
  * @param test_master_cls closure for 'test_master'.
  * @return GNUNET_SYSERR on error, GNUNET_OK on success
  */

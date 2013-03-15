@@ -109,6 +109,7 @@ check_PROGRAMS = \
   test_testbed_api_operations \
   test_testbed_api_testbed_run \
   test_testbed_api_test \
+  test_testbed_api_test_timeout \
   test_gnunet_helper_testbed \
   test_testbed_api_topology \
   test_testbed_api_topology_clique \
@@ -135,6 +136,7 @@ if ENABLE_TEST_RUN
   test_testbed_api_3peers_3controllers \
   test_testbed_api_testbed_run \
   test_testbed_api_test \
+  test_testbed_api_test_timeout \
   test_testbed_api_statistics \
   test_testbed_api_topology \
   test_testbed_api_topology_clique \
@@ -204,6 +206,12 @@ test_testbed_api_testbed_run_LDADD = \
 test_testbed_api_test_SOURCES = \
  test_testbed_api_test.c
 test_testbed_api_test_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunettestbed.la
+
+test_testbed_api_test_timeout_SOURCES = \
+ test_testbed_api_test_timeout.c
+test_testbed_api_test_timeout_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
 
@@ -288,6 +296,7 @@ test_testbed_api_statistics_LDADD = \
 
 EXTRA_DIST = \
   test_testbed_api.conf \
+  test_testbed_api_test_timeout.conf \
   test_testbed_api_testbed_run_topologyring.conf \
   test_testbed_api_testbed_run_topologyclique.conf \
   test_testbed_api_testbed_run_topologyline.conf \

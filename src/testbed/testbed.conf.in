@@ -4,16 +4,44 @@ AUTOSTART = NO
 HOSTNAME = localhost
 HOME = $SERVICEHOME
 BINARY = gnunet-service-testbed
+
+# How long should operations wait?
 OPERATION_TIMEOUT = 30 s
-# Set this to the path where the testbed helper is installed
+
+# Set this to the path where the testbed helper is installed.  By default the
+# helper binary is searched in @prefix@/lib/gnunet/libexec/
 # HELPER_BINARY_PATH = @prefix@/lib/gnunet/libexec/gnunet-helper-testbed
+
+# Add your local network address here. For example, if you want to running
+# testbed on a group of hosts connected to network 192.168.1.0/24, then set
+#   ACCEPT_FROM = 127.0.0.1; 192.168.1.0/24;
+# Multiple network addresses can be given.  They should be separated by `;'
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
+
 UNIXPATH = /tmp/gnunet-service-testbed.sock
 UNIX_MATCH_UID = YES
 UNIX_MATCH_GID = YES
+
+# How many maximum number of operations can be run in parallel.  This number
+# should be decreased if the system is getting overloaded and to keep reduce the
+# load of testbed.
 MAX_PARALLEL_OPERATIONS = 1000
-MAX_PARALLEL_SERVICE_CONNECTIONS = 256
 MAX_PARALLEL_TOPOLOGY_CONFIG_OPERATIONS = 1
+
+# How many maximum number of handles to peers' services should be kept open at
+# any time.  This number also keeps a check on the number of open descriptors as
+# opening a service connection results in opening a file descriptor.
+MAX_PARALLEL_SERVICE_CONNECTIONS = 256
+
+# Size of the internal testbed cache.  It is used to cache handles to peers
+# while trying to connect them.
 CACHE_SIZE = 30
+
+# Maximum number of file descriptors a testbed controller is permitted to keep
+# open.
 MAX_OPEN_FDS = 512
+
+# How long should we wait for testbed to setup while using helper functions
+# GNUNET_TESTBED_test_run() and GNUNET_TESTBED_run()
+SETUP_TIMEOUT = 5 m
