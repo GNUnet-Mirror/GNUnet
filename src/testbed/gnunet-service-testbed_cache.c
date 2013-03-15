@@ -438,7 +438,8 @@ search_suitable_cgh (const struct CacheEntry *entry,
     case CGT_CORE_HANDLE:
       if (NULL == entry->core_handle)
         continue;
-      GNUNET_break (NULL != entry->peer_identity);
+      if (NULL == entry->peer_identity) /* Our CORE connection isn't ready yet */
+        continue;
       break;
     }
     break;
