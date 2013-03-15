@@ -816,10 +816,12 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp)
 
 
 /**
- * Solves the MLP problem
+ * Propagates the results when MLP problem was solved
  *
- * @param mlp the MLP Handle
- * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
+ * @param cls the MLP handle
+ * @param key the peer identity
+ * @param value the address
+ * @return GNUNET_OK to continue
  */
 int
 mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value)

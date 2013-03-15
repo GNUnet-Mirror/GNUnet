@@ -514,7 +514,6 @@ GAS_simplistic_done (void *solver)
 /**
  * Test if bandwidth is available in this network
  *
- * @param s the solver handle
  * @param net the network type to update
  * @return GNUNET_YES or GNUNET_NO
  */
@@ -1278,7 +1277,7 @@ recalculate_preferences (struct PreferencePeer *p)
    *     f_k_p_i_ *  / f_t
    *     f_k_p_i_rel = [1..2], default 1.0
    *    }
-   *    f_p_i_rel = sum (f_k_p_i_rel) / #k
+   *    f_p_i_rel = sum (f_k_p_i_rel) / count(k)
    * }
    *
    **/
@@ -1456,7 +1455,7 @@ GAS_simplistic_address_change_preference (void *solver,
                                    void *client,
                                    const struct GNUNET_PeerIdentity *peer,
                                    enum GNUNET_ATS_PreferenceKind kind,
-                                   float score_f)
+                                   float score)
 {
   static struct GNUNET_TIME_Absolute next_update;
   struct GAS_SIMPLISTIC_Handle *s = solver;
@@ -1472,7 +1471,7 @@ GAS_simplistic_address_change_preference (void *solver,
                                 client,
                                 GNUNET_i2s (peer),
                                 GNUNET_ATS_print_preference_type (kind),
-                                score_f);
+                                score);
 
   if (kind >= GNUNET_ATS_PreferenceCount)
   {
@@ -1518,7 +1517,7 @@ GAS_simplistic_address_change_preference (void *solver,
       GNUNET_CONTAINER_DLL_insert (c_cur->p_head, c_cur->p_tail, p_cur);
   }
 
-  update_preference (p_cur, kind, score_f);
+  update_preference (p_cur, kind, score);
 
   /* FIXME: We should update quotas if UPDATE_INTERVAL is reached */
   if (GNUNET_TIME_absolute_get().abs_value > next_update.abs_value)

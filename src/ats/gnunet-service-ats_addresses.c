@@ -81,8 +81,8 @@
  *    is loaded from ats configuration during initialization. This quota defines
  *    to total amount of inbound and outbound traffic allowed for a specific
  *    network. The configuration values used are in section ats:
- *      * <NETWORK>_QUOTA_IN = <value>
- *      * <NETWORK>_QUOTA_IN = <value>
+ *      * "NETWORK"_QUOTA_IN = <value>
+ *      * "NETWORK"_QUOTA_IN = <value>
  *
  *    You can specify quotas by setting the <value> to a:
  *      * unrestricted: unlimited
