@@ -867,6 +867,7 @@ GNUNET_CRYPTO_hmac_derive_key (struct GNUNET_CRYPTO_AuthKey *key,
  * @param xts_len length of xts
  * @param skm source key material
  * @param skm_len length of skm
+ * @param ... pair of void * & size_t for context chunks, terminated by NULL
  * @return GNUNET_YES on success
  */
 int

@@ -56,18 +56,7 @@ struct Session;
  */
 struct SessionHeader
 {
-
-  /**
-   * Cached signature for PONG generation for the session.  Do not use
-   * in the plugin!
-   */
-  struct GNUNET_CRYPTO_RsaSignature pong_signature;
-
-  /**
-   * Expiration time for signature.  Do not use in the plugin!
-   */
-  struct GNUNET_TIME_Absolute pong_sig_expires;
-
+  /* empty, for now */
 };
 
 /**
