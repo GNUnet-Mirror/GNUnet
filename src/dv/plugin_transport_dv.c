@@ -45,6 +45,47 @@ struct Plugin;
 
 
 /**
+ * An active request for transmission via DV.
+ */
+struct PendingRequest
+{
+
+  /**
+   * This is a DLL.
+   */
+  struct PendingRequest *next;
+
+  /**
+   * This is a DLL.
+   */
+  struct PendingRequest *prev;
+
+  /**
+   * Continuation function to call once the transmission buffer
+   * has again space available.  NULL if there is no
+   * continuation to call.
+   */
+  GNUNET_TRANSPORT_TransmitContinuation transmit_cont;
+
+  /**
+   * Closure for transmit_cont.
+   */
+  void *transmit_cont_cls;
+
+  /**
+   * Transmission handle from DV client library.
+   */
+  struct GNUNET_DV_TransmitHandle *th;
+
+  /**
+   * Session of this request.
+   */
+  struct Session *session;
+
+};
+
+
+/**
  * Session handle for connections.
  */
 struct Session
@@ -61,16 +102,14 @@ struct Session
   struct Plugin *plugin;
 
   /**
-   * Continuation function to call once the transmission buffer
-   * has again space available.  NULL if there is no
-   * continuation to call.
+   * Head of pending requests.
    */
-  GNUNET_TRANSPORT_TransmitContinuation transmit_cont;
+  struct PendingRequest *pr_head;
 
   /**
-   * Closure for transmit_cont.
+   * Tail of pending requests.
    */
-  void *transmit_cont_cls;
+  struct PendingRequest *pr_tail;
 
   /**
    * To whom are we talking to.
@@ -118,6 +157,18 @@ struct Plugin
   struct GNUNET_DV_ServiceHandle *dvh;
 
 };
+
+
+/**
+ * Notify transport service about the change in distance.
+ *
+ * @param session session where the distance changed
+ */
+static void
+notify_distance_change (struct Session *session)
+{
+  GNUNET_break (0); // FIXME: need extended plugin API!
+}
 
 
 /**
@@ -177,7 +228,7 @@ handle_dv_connect (void *cls,
     GNUNET_break (0);
     session->distance = distance;
     if (GNUNET_YES == session->active)
-      GNUNET_break (0); // FIXME: notify transport about distance change
+      notify_distance_change (session);
     return; /* nothing to do */  
   }
   session = GNUNET_malloc (sizeof (struct Session));
@@ -216,7 +267,43 @@ handle_dv_distance_changed (void *cls,
   }
   session->distance = distance;
   if (GNUNET_YES == session->active)
-    GNUNET_break (0); // FIXME: notify transport about distance change
+    notify_distance_change (session);
+}
+
+
+/**
+ * Release session object and clean up associated resources.
+ *
+ * @param session session to clean up
+ */
+static void
+free_session (struct Session *session)
+{
+  struct Plugin *plugin = session->plugin;
+  struct PendingRequest *pr;
+
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_remove (plugin->sessions,
+						       &session->sender.hashPubKey,
+						       session));
+  if (GNUNET_YES == session->active)
+    plugin->env->session_end (plugin->env->cls,
+			      &session->sender,
+			      session);
+  while (NULL != (pr = session->pr_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (session->pr_head,
+				 session->pr_tail,
+				 pr);
+    GNUNET_DV_send_cancel (pr->th);
+    pr->th = NULL;
+    if (NULL != pr->transmit_cont)
+      pr->transmit_cont (pr->transmit_cont_cls,
+			 &session->sender,
+			 GNUNET_SYSERR, 0, 0);
+    GNUNET_free (pr);
+  }
+  GNUNET_free (session);
 }
 
 
@@ -236,8 +323,34 @@ handle_dv_disconnect (void *cls,
   session = GNUNET_CONTAINER_multihashmap_get (plugin->sessions,
 					       &peer->hashPubKey);
   if (NULL == session)    
-    return; /* nothing to do */  
-  GNUNET_break (0); // FIXME!
+    return; /* nothing to do */
+  free_session (session);
+}
+
+
+/**
+ * Function called once the delivery of a message has been successful.
+ * Clean up the pending request, and call continuations.
+ *
+ * @param cls closure
+ * @param ok GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+static void
+send_finished (void *cls,
+	       int ok)
+{
+  struct PendingRequest *pr = cls;
+  struct Session *session = pr->session;
+
+  pr->th = NULL;
+  GNUNET_CONTAINER_DLL_remove (session->pr_head,
+			       session->pr_tail,
+			       pr);
+  if (NULL != pr->transmit_cont)
+    pr->transmit_cont (pr->transmit_cont_cls,
+		       &session->sender,
+		       ok, 0, 0);
+  GNUNET_free (pr);
 }
 
 
@@ -267,10 +380,24 @@ dv_plugin_send (void *cls,
                 struct GNUNET_TIME_Relative timeout, 
                 GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
-  int ret = -1;
+  struct PendingRequest *pr;
+  const struct GNUNET_MessageHeader *msg;
 
-  GNUNET_break (0); // FIXME!
-  return ret;
+  msg = (const struct GNUNET_MessageHeader *) msgbuf;
+  GNUNET_assert (ntohs (msg->size) == msgbuf_size); // API will change...
+  pr = GNUNET_malloc (sizeof (struct PendingRequest));
+  pr->transmit_cont = cont;
+  pr->transmit_cont_cls = cont_cls;
+  pr->session = session;
+  GNUNET_CONTAINER_DLL_insert_tail (session->pr_head,
+				    session->pr_tail,
+				    pr);
+  pr->th = GNUNET_DV_send (session->plugin->dvh,
+			   &session->sender,
+			   msg,
+			   &send_finished,
+			   pr);
+  return 0; /* DV */
 }
 
 
@@ -287,13 +414,25 @@ dv_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
   struct Session *session;
+  struct PendingRequest *pr;
 
   session = GNUNET_CONTAINER_multihashmap_get (plugin->sessions,
 					       &target->hashPubKey);
   if (NULL == session)    
     return; /* nothing to do */  
-  session->transmit_cont = NULL;
-  session->transmit_cont_cls = NULL;
+  while (NULL != (pr = session->pr_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (session->pr_head,
+				 session->pr_tail,
+				 pr);
+    GNUNET_DV_send_cancel (pr->th);
+    pr->th = NULL;
+    if (NULL != pr->transmit_cont)
+      pr->transmit_cont (pr->transmit_cont_cls,
+			 &session->sender,
+			 GNUNET_SYSERR, 0, 0);
+    GNUNET_free (pr);
+  }
   session->active = GNUNET_NO;
 }
 
@@ -481,8 +620,7 @@ free_session_iterator (void *cls,
 {
   struct Session *session = value;
 
-  // FIXME: still call transmit_cont's here!?
-  GNUNET_free (session);
+  free_session (session);
   return GNUNET_OK;
 }
 
