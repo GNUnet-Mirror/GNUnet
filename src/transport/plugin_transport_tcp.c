@@ -1960,17 +1960,9 @@ delayed_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_ATS_Information ats;
 
   session->receive_delay_task = GNUNET_SCHEDULER_NO_TASK;
-  delay =
-      session->plugin->env->receive (session->plugin->env->cls,
-                                     &session->target, NULL, &ats, 0, session,
-                                     NULL, 0);
   reschedule_session_timeout (session);
 
-  if (delay.rel_value == 0)
-    GNUNET_SERVER_receive_done (session->client, GNUNET_OK);
-  else
-    session->receive_delay_task =
-        GNUNET_SCHEDULER_add_delayed (delay, &delayed_done, session);
+  GNUNET_SERVER_receive_done (session->client, GNUNET_OK);
 }
 
 

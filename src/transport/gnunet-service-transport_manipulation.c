@@ -288,10 +288,16 @@ GST_manipulation_recv (void *cls, const struct GNUNET_PeerIdentity *peer,
 	struct TM_Peer *tmp;
 	int d;
 	struct GNUNET_ATS_Information ats_new[ats_count];
-	struct GNUNET_TIME_Relative q_delay;
+	struct GNUNET_TIME_Relative quota_delay;
 	struct GNUNET_TIME_Relative m_delay;
 
+	if (man_handle.delay_in.rel_value > GNUNET_TIME_UNIT_ZERO.rel_value)
+		m_delay = man_handle.delay_in; /* Global delay */
+	else
+		m_delay = GNUNET_TIME_UNIT_ZERO;
+
 	for (d = 0; d < ats_count; d++)
+		ats_new[d] = ats[d];
 
 	if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &peer->hashPubKey)))
 	{
@@ -306,27 +312,15 @@ GST_manipulation_recv (void *cls, const struct GNUNET_PeerIdentity *peer,
 			}
 			/* Manipulate receive delay */
 			if (UINT32_MAX != tmp->metrics[TM_RECEIVE][DELAY])
-			{
-					m_delay.rel_value = tmp->metrics[TM_RECEIVE][DELAY];
-					q_delay = GST_receive_callback (cls, peer, message, &ats_new[0], ats_count,
-							session, sender_address, sender_address_len);
-
-					if (q_delay.rel_value >= m_delay.rel_value)
-					{
-							return q_delay;
-					}
-					else
-					{
-							return m_delay;
-					}
-			}
-			else
-				return GST_receive_callback (cls, peer, message, &ats_new[0], ats_count,
-						session, sender_address, sender_address_len);
+					m_delay.rel_value = tmp->metrics[TM_RECEIVE][DELAY]; /* Peer specific delay */
 	}
 
-	return GST_receive_callback (cls, peer, message, ats, ats_count,
+	quota_delay = GST_receive_callback (cls, peer, message, ats_new, ats_count,
 			session, sender_address, sender_address_len);
+	if (quota_delay.rel_value > m_delay.rel_value)
+		return quota_delay;
+	else
+		return m_delay;
 }
 
 void
