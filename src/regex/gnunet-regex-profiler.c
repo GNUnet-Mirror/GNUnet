@@ -38,6 +38,12 @@
 
 #define FIND_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 90)
 #define SEARCHES_IN_PARALLEL 2
+#define ANNOUNCE_DELAY GNUNET_TIME_relative_multiply(\
+                                                GNUNET_TIME_UNIT_MILLISECONDS,\
+                                                300)
+#define SEARCH_DELAY GNUNET_TIME_relative_multiply(\
+                                                GNUNET_TIME_UNIT_MILLISECONDS,\
+                                                200)
 
 /**
  * DLL of operations
@@ -822,7 +828,7 @@ regex_found_handler (void *cls,
   {
     GNUNET_SCHEDULER_cancel (peer->timeout);
     peer->timeout = GNUNET_SCHEDULER_NO_TASK;
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &find_next_string, NULL);
+    GNUNET_SCHEDULER_add_delayed (SEARCH_DELAY, &find_next_string, NULL);
   }
 
   if (NULL == id)
@@ -1097,9 +1103,7 @@ arm_start_cb (void *cls, struct GNUNET_ARM_Handle *arm,
       if (arm_peer_cnt < (num_peers - 1))
       {
         next_p = (++arm_peer_cnt % num_peers);
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
-                                        GNUNET_TIME_UNIT_MILLISECONDS,
-                                        1000),
+        GNUNET_SCHEDULER_add_delayed (ANNOUNCE_DELAY,
                                       &announce_next_regex,
                                       (void *) (long) next_p);
       }
