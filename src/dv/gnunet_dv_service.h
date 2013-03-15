@@ -32,6 +32,10 @@
 /**
  * Signature of a function to be called if DV
  * starts to be able to talk to a peer.
+ *
+ * @param cls closure
+ * @param peer newly connected peer
+ * @param distance distance to the peer
  */
 typedef void (*GNUNET_DV_ConnectCallback)(void *cls,
 					  const struct GNUNET_PeerIdentity *peer,
@@ -41,6 +45,10 @@ typedef void (*GNUNET_DV_ConnectCallback)(void *cls,
 /**
  * Signature of a function to be called if DV
  * distance to a peer is changed.
+ *
+ * @param cls closure
+ * @param peer connected peer
+ * @param distance new distance to the peer
  */
 typedef void (*GNUNET_DV_DistanceChangedCallback)(void *cls,
 						  const struct GNUNET_PeerIdentity *peer,
@@ -50,6 +58,9 @@ typedef void (*GNUNET_DV_DistanceChangedCallback)(void *cls,
 /**
  * Signature of a function to be called if DV
  * is no longer able to talk to a peer.
+ *
+ * @param cls closure
+ * @param peer peer that disconnected
  */
 typedef void (*GNUNET_DV_DisconnectCallback)(void *cls,
 					     const struct GNUNET_PeerIdentity *peer);

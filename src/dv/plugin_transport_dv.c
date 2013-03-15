@@ -37,7 +37,6 @@
 #include "gnunet_transport_plugin.h"
 #include "dv.h"
 
-#define DEBUG_TEMPLATE GNUNET_EXTRA_LOGGING
 
 /**
  * Encapsulation of all of the state of the plugin.
@@ -52,19 +51,14 @@ struct Session
 {
 
   /**
-   * Stored in a linked list.
+   * Mandatory session header.
    */
-  struct Session *next;
+  struct SessionHeader header;
 
   /**
    * Pointer to the global plugin struct.
    */
   struct Plugin *plugin;
-
-  /**
-   * The client (used to identify this connection)
-   */
-  /* void *client; */
 
   /**
    * Continuation function to call once the transmission buffer
@@ -79,29 +73,23 @@ struct Session
   void *transmit_cont_cls;
 
   /**
-   * To whom are we talking to (set to our identity
-   * if we are still waiting for the welcome message)
+   * To whom are we talking to.
    */
   struct GNUNET_PeerIdentity sender;
 
   /**
-   * At what time did we reset last_received last?
+   * Current distance to the given peer.
    */
-  struct GNUNET_TIME_Absolute last_quota_update;
+  uint32_t distance;
 
   /**
-   * How many bytes have we received since the "last_quota_update"
-   * timestamp?
+   * Does the transport service know about this session (and we thus
+   * need to call 'session_end' when it is released?)
    */
-  uint64_t last_received;
-
-  /**
-   * Number of bytes per ms that this peer is allowed
-   * to send to us.
-   */
-  uint32_t quota;
+  int active;
 
 };
+
 
 /**
  * Encapsulation of all of the state of the plugin.
@@ -114,9 +102,9 @@ struct Plugin
   struct GNUNET_TRANSPORT_PluginEnvironment *env;
 
   /**
-   * List of open sessions.  FIXME: use hash map!
+   * Hash map of sessions (active and inactive).
    */
-  struct Session *sessions;
+  struct GNUNET_CONTAINER_MultiHashMap *sessions;
 
   /**
    * Copy of the handler array where the closures are
@@ -148,21 +136,110 @@ handle_dv_message_received (void *cls,
 {
   struct Plugin *plugin = cls;
   struct GNUNET_ATS_Information ats;
+  struct Session *session;
 
+  session = GNUNET_CONTAINER_multihashmap_get (plugin->sessions,
+					       &sender->hashPubKey);
+  if (NULL == session)    
+  {
+    GNUNET_break (0);
+    return;
+  }
   ats.type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   ats.value = htonl (distance);
-
+  session->active = GNUNET_YES;
   plugin->env->receive (plugin->env->cls, sender,
                         msg,
                         &ats, 1,
-			NULL, NULL, 0);
+			session, "", 0);
 }
 
 
-/* Question: how does the transport service learn of a newly connected (gossipped about)
- * DV peer?  Should the plugin (here) create a HELLO for that peer and send it along,
- * or should the DV service create a HELLO and send it to us via the other part?
+/**
+ * Function called if DV starts to be able to talk to a peer.
+ *
+ * @param cls closure with 'struct Plugin'
+ * @param peer newly connected peer
+ * @param distance distance to the peer
  */
+static void 
+handle_dv_connect (void *cls,
+		   const struct GNUNET_PeerIdentity *peer,
+		   uint32_t distance)
+{
+  struct Plugin *plugin = cls;
+  struct Session *session;
+
+  session = GNUNET_CONTAINER_multihashmap_get (plugin->sessions,
+					       &peer->hashPubKey);
+  if (NULL != session)    
+  {
+    GNUNET_break (0);
+    session->distance = distance;
+    if (GNUNET_YES == session->active)
+      GNUNET_break (0); // FIXME: notify transport about distance change
+    return; /* nothing to do */  
+  }
+  session = GNUNET_malloc (sizeof (struct Session));
+  session->sender = *peer;
+  session->distance = distance;
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_put (plugin->sessions,
+						    &session->sender.hashPubKey,
+						    session,
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+}
+
+
+/**
+ * Function called if DV distance to a peer is changed.
+ *
+ * @param cls closure with 'struct Plugin'
+ * @param peer connected peer
+ * @param distance new distance to the peer
+ */
+static void 
+handle_dv_distance_changed (void *cls,
+			    const struct GNUNET_PeerIdentity *peer,
+			    uint32_t distance)
+{
+  struct Plugin *plugin = cls;
+  struct Session *session;
+
+  session = GNUNET_CONTAINER_multihashmap_get (plugin->sessions,
+					       &peer->hashPubKey);
+  if (NULL == session)    
+  {
+    GNUNET_break (0);
+    handle_dv_connect (plugin, peer, distance);
+    return;
+  }
+  session->distance = distance;
+  if (GNUNET_YES == session->active)
+    GNUNET_break (0); // FIXME: notify transport about distance change
+}
+
+
+/**
+ * Function called if DV is no longer able to talk to a peer.
+ *
+ * @param cls closure with 'struct Plugin'
+ * @param peer peer that disconnected
+ */
+static void 
+handle_dv_disconnect (void *cls,
+		      const struct GNUNET_PeerIdentity *peer)
+{
+  struct Plugin *plugin = cls;
+  struct Session *session;
+
+  session = GNUNET_CONTAINER_multihashmap_get (plugin->sessions,
+					       &peer->hashPubKey);
+  if (NULL == session)    
+    return; /* nothing to do */  
+  GNUNET_break (0); // FIXME!
+}
+
 
 /**
  * Function that can be used by the transport service to transmit
@@ -192,9 +269,9 @@ dv_plugin_send (void *cls,
 {
   int ret = -1;
 
+  GNUNET_break (0); // FIXME!
   return ret;
 }
-
 
 
 /**
@@ -208,8 +285,16 @@ dv_plugin_send (void *cls,
 static void
 dv_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 {
-  // struct Plugin *plugin = cls;
-  // TODO: Add message type to send to dv service to "disconnect" a peer
+  struct Plugin *plugin = cls;
+  struct Session *session;
+
+  session = GNUNET_CONTAINER_multihashmap_get (plugin->sessions,
+					       &target->hashPubKey);
+  if (NULL == session)    
+    return; /* nothing to do */  
+  session->transmit_cont = NULL;
+  session->transmit_cont_cls = NULL;
+  session->active = GNUNET_NO;
 }
 
 
@@ -234,6 +319,9 @@ dv_plugin_address_pretty_printer (void *cls, const char *type, const void *addr,
                                   GNUNET_TRANSPORT_AddressStringCallback asc,
                                   void *asc_cls)
 {
+  if ( (0 == addrlen) &&
+       (0 == strcmp (type, "dv")) )
+    asc (asc_cls, "dv");
   asc (asc_cls, NULL);
 }
 
@@ -248,9 +336,14 @@ dv_plugin_address_pretty_printer (void *cls, const char *type, const void *addr,
  * @return string representing the DV address
  */
 static const char *
-address_to_string (void *cls, const void *addr, size_t addrlen)
+dv_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
 {
-  return "<not implemented>";
+  if (0 != addrlen)
+  {
+    GNUNET_break (0); /* malformed */
+    return NULL; 
+  }
+  return "dv";
 }
 
 
@@ -273,9 +366,10 @@ address_to_string (void *cls, const void *addr, size_t addrlen)
 static int
 dv_plugin_check_address (void *cls, const void *addr, size_t addrlen)
 {
-  return GNUNET_SYSERR;
+  if (0 != addrlen)
+    return GNUNET_SYSERR;
+  return GNUNET_OK;
 }
-
 
 
 /**
@@ -291,7 +385,46 @@ static struct Session *
 dv_get_session (void *cls,
 		const struct GNUNET_HELLO_Address *address)
 {
-  return NULL;
+  struct Plugin *plugin = cls;
+  struct Session *session;
+
+  if (0 != address->address_length)
+    return NULL;
+  session = GNUNET_CONTAINER_multihashmap_get (plugin->sessions,
+					       &address->peer.hashPubKey);
+  if (NULL == session)
+    return NULL; /* not valid right now */
+  session->active = GNUNET_YES;
+  return session;
+}
+
+
+/**
+ * Function called to convert a string address to
+ * a binary address.
+ *
+ * @param cls closure ('struct Plugin*')
+ * @param addr string address
+ * @param addrlen length of the address including \0 termination
+ * @param buf location to store the buffer
+ *        If the function returns GNUNET_SYSERR, its contents are undefined.
+ * @param added length of created address
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+static int 
+dv_plugin_string_to_address (void *cls,
+			     const char *addr,
+			     uint16_t addrlen,
+			     void **buf,
+			     size_t *added)
+{
+  if ( (addrlen == 3) &&
+       (0 == strcmp ("dv", addr)) )
+  {
+    *added = 0;
+    return GNUNET_OK;
+  }
+  return GNUNET_SYSERR;
 }
 
 
@@ -307,20 +440,50 @@ libgnunet_plugin_transport_dv_init (void *cls)
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
+  plugin->sessions = GNUNET_CONTAINER_multihashmap_create (1024 * 8, GNUNET_YES);
   plugin->dvh = GNUNET_DV_service_connect (env->cfg,
 					   plugin,
-					   NULL, NULL, NULL, /*FIXME! */
+					   &handle_dv_connect,
+					   &handle_dv_distance_changed,
+					   &handle_dv_disconnect,
 					   &handle_dv_message_received);
+  if (NULL == plugin->dvh)
+  {
+    GNUNET_CONTAINER_multihashmap_destroy (plugin->sessions);
+    GNUNET_free (plugin);
+    return NULL;
+  }
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
   api->send = &dv_plugin_send;
   api->disconnect = &dv_plugin_disconnect;
   api->address_pretty_printer = &dv_plugin_address_pretty_printer;
   api->check_address = &dv_plugin_check_address;
-  api->address_to_string = &address_to_string;
-  api->string_to_address = NULL; /* FIXME */
+  api->address_to_string = &dv_plugin_address_to_string;
+  api->string_to_address = &dv_plugin_string_to_address;
   api->get_session = dv_get_session;
   return api;
+}
+
+
+/**
+ * Function called to free a session.
+ *
+ * @param cls NULL
+ * @param key unused
+ * @param value session to free
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+free_session_iterator (void *cls,
+		       const struct GNUNET_HashCode *key,
+		       void *value)
+{
+  struct Session *session = value;
+
+  // FIXME: still call transmit_cont's here!?
+  GNUNET_free (session);
+  return GNUNET_OK;
 }
 
 
@@ -334,6 +497,10 @@ libgnunet_plugin_transport_dv_done (void *cls)
   struct Plugin *plugin = api->cls;
 
   GNUNET_DV_service_disconnect (plugin->dvh);
+  GNUNET_CONTAINER_multihashmap_iterate (plugin->sessions,
+					 &free_session_iterator,
+					 NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (plugin->sessions);
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;
