@@ -1956,8 +1956,6 @@ static void
 delayed_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Session *session = cls;
-  struct GNUNET_TIME_Relative delay;
-  struct GNUNET_ATS_Information ats;
 
   session->receive_delay_task = GNUNET_SCHEDULER_NO_TASK;
   reschedule_session_timeout (session);
