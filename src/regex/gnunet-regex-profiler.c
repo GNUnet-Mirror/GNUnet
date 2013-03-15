@@ -1004,7 +1004,7 @@ find_next_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls Index of the next peer in the peers array.
  * @param tc TaskContext.
  */
-void
+static void
 announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
@@ -1189,7 +1189,7 @@ do_announce (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls Index of the next peer in the peers array.
  * @param tc TaskContext.
  */
-void
+static void
 announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   long next_p = (long) cls;
