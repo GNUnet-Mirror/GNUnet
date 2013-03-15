@@ -519,7 +519,7 @@ GNUNET_DISK_get_handle_from_w32_handle (HANDLE osfh);
 /**
  * Get a handle from a native integer FD.
  *
- * @param fd native integer file descriptor
+ * @param fno native integer file descriptor
  * @return file handle corresponding to the descriptor
  */
 struct GNUNET_DISK_FileHandle *

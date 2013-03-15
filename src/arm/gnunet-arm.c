@@ -245,11 +245,12 @@ static void action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *t
  * Function called whenever we connect to or disconnect from ARM.
  *
  * @param cls closure
+ * @param arm handle to the ARM connection
  * @param connected GNUNET_YES if connected, GNUNET_NO if disconnected
  * @param error GNUNET_YES if we encountered a permanent error, and there
  *              will be no re-connection.
  */
-void
+static void
 conn_status (void *cls, struct GNUNET_ARM_Handle *arm, unsigned char connected, unsigned char error)
 {
   if (GNUNET_YES == error)
@@ -504,6 +505,7 @@ action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Function called when a service starts or stops.
  *
  * @param cls closure
+ * @param arm handle to the ARM connection
  * @param service service name
  * @param status status of the service
  */

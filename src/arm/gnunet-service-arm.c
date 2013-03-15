@@ -312,6 +312,7 @@ write_list_result (void *cls, size_t size, void *buf)
  *
  * @param client who is being signalled
  * @param name name of the service
+ * @param request_id id of the request that is being responded to.
  * @param result message type to send
  * @return NULL if it was not found
  */
@@ -339,6 +340,8 @@ signal_result (struct GNUNET_SERVER_Client *client, const char *name,
  *
  * @param name name of the service
  * @param status message type to send
+ * @param unicast if not NULL, send to this client only.
+ *                otherwise, send to all clients in the notifier
  */
 static void
 broadcast_status (const char *name, enum GNUNET_ARM_ServiceStatus status,
@@ -374,6 +377,8 @@ broadcast_status (const char *name, enum GNUNET_ARM_ServiceStatus status,
  *
  * @param sl identifies service to start
  * @param client that asked to start the service (may be NULL)
+ * @param request_id id of the request in response to which the process is
+ *                   being started. 0 if starting was not requested.
  */
 static void
 start_process (struct ServiceList *sl, struct GNUNET_SERVER_Client *client, uint64_t request_id)

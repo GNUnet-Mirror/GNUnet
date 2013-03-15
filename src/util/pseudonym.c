@@ -230,7 +230,7 @@ get_data_filename_hash (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * Writes the pseudonym infomation into a file
  *
  * @param cfg overall configuration
- * @param nsid id of the pseudonym
+ * @param pseudonym id of the pseudonym
  * @param name name to set. Must be the non-unique version of it.
  *        May be NULL, in which case it erases pseudonym's name!
  * @param md metadata to set
@@ -284,7 +284,7 @@ GNUNET_PSEUDONYM_set_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * Read pseudonym infomation from a file
  *
  * @param cfg configuration to use
- * @param nsid hash code of a pseudonym
+ * @param pseudonym hash code of a pseudonym
  * @param meta meta data to be read from a file
  * @param rank rank of a pseudonym
  * @param ns_name name of a pseudonym
