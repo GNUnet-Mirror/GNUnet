@@ -43,14 +43,6 @@ extern "C"
  */
 #define GNUNET_TRANSPORT_VERSION 0x00000000
 
-// FIXME-mwachs; move this into some src/transport/-internal header!
-enum TRAFFIC_METRIC_DIRECTION
-{
-	TM_SEND = 0,
-	TM_RECEIVE = 1,
-	TM_BOTH = 2
-};
-
 
 /**
  * Function called by the transport for each received message.
@@ -295,7 +287,8 @@ GNUNET_TRANSPORT_check_neighbour_connected (struct GNUNET_TRANSPORT_Handle *hand
  *
  * @param handle transport handle
  * @param peer the peer to set the metric for
- * @param direction can be: TM_SEND, TM_RECV, TM_BOTH
+ * @param inbound set inbound direction (GNUNET_YES or GNUNET_NO)
+ * @param outbound set outbound direction (GNUNET_YES or GNUNET_NO)
  * @param ats the metric as ATS information
  * @param ats_count the number of metrics
  *
@@ -318,7 +311,8 @@ GNUNET_TRANSPORT_check_neighbour_connected (struct GNUNET_TRANSPORT_Handle *hand
 void
 GNUNET_TRANSPORT_set_traffic_metric (struct GNUNET_TRANSPORT_Handle *handle,
 																		const struct GNUNET_PeerIdentity *peer,
-																		int direction,
+																		int inbound,
+																		int outbound,
 																		const struct GNUNET_ATS_Information *ats,
 																		size_t ats_count);
 
