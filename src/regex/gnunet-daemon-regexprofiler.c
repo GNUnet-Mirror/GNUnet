@@ -64,9 +64,9 @@ static struct GNUNET_REGEX_announce_handle *announce_handle;
 static GNUNET_SCHEDULER_TaskIdentifier reannounce_task;
 
 /**
- * How often reannounce regex.
+ * What's the maximum reannounce period.
  */
-static struct GNUNET_TIME_Relative reannounce_freq;
+static struct GNUNET_TIME_Relative reannounce_period_max;
 
 /**
  * Maximal path compression length for regex announcing.
@@ -157,15 +157,13 @@ reannounce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_REGEX_reannounce (announce_handle);
   }
 
-  random_delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-                                                GNUNET_CRYPTO_random_u32 (
-                                                  GNUNET_CRYPTO_QUALITY_WEAK,
-                                                  600));
-  reannounce_task = 
-    GNUNET_SCHEDULER_add_delayed (
-      GNUNET_TIME_relative_add (reannounce_freq, random_delay),
-      &reannounce_regex,
-      cls);
+  random_delay =
+    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+                                   GNUNET_CRYPTO_random_u32 (
+                                     GNUNET_CRYPTO_QUALITY_WEAK,
+                                     reannounce_period_max.rel_value));
+  reannounce_task = GNUNET_SCHEDULER_add_delayed (random_delay,
+                                                  &reannounce_regex, cls);
 }
 
 
@@ -311,13 +309,13 @@ run (void *cls, char *const *args GNUNET_UNUSED,
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (cfg, "REGEXPROFILER",
-                                           "REANNOUNCE_FREQ", &reannounce_freq))
+                                           "REANNOUNCE_PERIOD_MAX",
+                                           &reannounce_period_max))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-                "reannounce_freq not given. Using 10 minutes.\n");
-    reannounce_freq =
+                "reannounce_period_max not given. Using 10 minutes.\n");
+    reannounce_period_max =
       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 10);
-
   }
 
   stats_handle = GNUNET_STATISTICS_create ("regexprofiler", cfg);

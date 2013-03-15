@@ -37,7 +37,7 @@
 #include "gnunet_testbed_service.h"
 
 #define FIND_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 90)
-#define SEARCHES_IN_PARALLEL 2
+#define SEARCHES_IN_PARALLEL 10
 #define ANNOUNCE_DELAY GNUNET_TIME_relative_multiply(\
                                                 GNUNET_TIME_UNIT_MILLISECONDS,\
                                                 300)
@@ -1474,9 +1474,9 @@ policy_filename_cb (void *cls, const char *filename)
 
   peer->policy_file = GNUNET_strdup (filename);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Creating peer %i on host %s for policy file %s\n",
-              peer->id,
-              GNUNET_TESTBED_host_get_hostname (peer->host_handle),
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Creating peer %i on host %s for policy file %s\n",
+              peer->id, GNUNET_TESTBED_host_get_hostname (peer->host_handle),
               filename);
 
   /* Set configuration options specific for this peer
@@ -1484,7 +1484,8 @@ policy_filename_cb (void *cls, const char *filename)
   peer->cfg = GNUNET_CONFIGURATION_dup (cfg);
   GNUNET_CONFIGURATION_set_value_number (peer->cfg, "REGEXPROFILER",
                                          "MAX_PATH_COMPRESSION",
-                                         (unsigned long long)max_path_compression);
+                                         (unsigned long long)
+                                         max_path_compression);
   GNUNET_CONFIGURATION_set_value_string (peer->cfg, "REGEXPROFILER",
                                          "POLICY_FILE", filename);
 
