@@ -623,6 +623,7 @@ core_startup_cb (void *cls, struct GNUNET_CORE_Handle *server,
     return;
   }
   GNUNET_assert (NULL == entry->peer_identity);
+  GNUNET_break (NULL != server);
   entry->core_handle = server;
   entry->peer_identity = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
   memcpy (entry->peer_identity, my_identity,
