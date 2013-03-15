@@ -37,6 +37,14 @@
 #define DELAY 0
 #define DISTANCE 1
 
+
+enum TRAFFIC_METRIC_DIRECTION
+{
+	TM_SEND = 0,
+	TM_RECEIVE = 1,
+	TM_BOTH = 2
+};
+
 struct GST_ManipulationHandle man_handle;
 
 
@@ -175,6 +183,20 @@ GST_manipulation_set_metric (void *cls, struct GNUNET_SERVER_Client *client,
 	if (0 == ntohs (tm->ats_count))
 	  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
 
+	switch (ntohs(tm->direction)) {
+		case 1:
+			direction = TM_SEND;
+			break;
+		case 2:
+			direction = TM_RECEIVE;
+			break;
+		case 3:
+			direction = TM_BOTH;
+			break;
+		default:
+			break;
+	}
+
 	memset (&dummy, '\0', sizeof (struct GNUNET_PeerIdentity));
 	if (0 == memcmp (&tm->peer, &dummy, sizeof (struct GNUNET_PeerIdentity)))
 	{
@@ -185,7 +207,7 @@ GST_manipulation_set_metric (void *cls, struct GNUNET_SERVER_Client *client,
 			{
 					type = htonl (ats[c].type);
 					value = htonl (ats[c].value);
-					direction = ntohs (tm->direction);
+
 					switch (type) {
 						case GNUNET_ATS_QUALITY_NET_DELAY:
 
@@ -229,10 +251,10 @@ GST_manipulation_set_metric (void *cls, struct GNUNET_SERVER_Client *client,
 			value = htonl (ats[c].value);
 			switch (type) {
 				case GNUNET_ATS_QUALITY_NET_DELAY:
-					set_delay (tmp, &tm->peer, ntohs (tm->direction), value);
+					set_delay (tmp, &tm->peer, direction, value);
 					break;
 				case GNUNET_ATS_QUALITY_NET_DISTANCE:
-					set_distance (tmp, &tm->peer, ntohs (tm->direction), value);
+					set_distance (tmp, &tm->peer, direction, value);
 					break;
 				default:
 					break;

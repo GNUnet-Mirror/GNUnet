@@ -1213,7 +1213,8 @@ send_metric (void *cls, size_t size, void *buf)
  *
  * @param handle transport handle
  * @param peer the peer to set the metric for
- * @param direction can be: TM_SEND, TM_RECV, TM_BOTH
+ * @param inbound set inbound direction (GNUNET_YES or GNUNET_NO)
+ * @param outbound set outbound direction (GNUNET_YES or GNUNET_NO)
  * @param ats the metric as ATS information
  * @param ats_count the number of metrics
  *
@@ -1236,7 +1237,8 @@ send_metric (void *cls, size_t size, void *buf)
 void
 GNUNET_TRANSPORT_set_traffic_metric (struct GNUNET_TRANSPORT_Handle *handle,
 																		const struct GNUNET_PeerIdentity *peer,
-																		int direction,
+																		int inbound,
+																		int outbound,
 																		const struct GNUNET_ATS_Information *ats,
 																		size_t ats_count)
 {
@@ -1244,9 +1246,11 @@ GNUNET_TRANSPORT_set_traffic_metric (struct GNUNET_TRANSPORT_Handle *handle,
 
   GNUNET_assert (NULL != handle);
   GNUNET_assert (NULL != peer);
-  GNUNET_assert (direction >= TM_SEND);
-  GNUNET_assert (direction <= TM_BOTH);
+  GNUNET_assert ((outbound == GNUNET_YES) || (outbound == GNUNET_NO));
+  GNUNET_assert ((inbound == GNUNET_YES) || (inbound == GNUNET_NO));
 
+  if ((GNUNET_NO == inbound) && (GNUNET_NO == outbound))
+  	return;
   if (0 == ats_count)
   	return;
 
@@ -1256,7 +1260,7 @@ GNUNET_TRANSPORT_set_traffic_metric (struct GNUNET_TRANSPORT_Handle *handle,
   msg = GNUNET_malloc (len);
   msg->header.size = htons (len);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_TRAFFIC_METRIC);
-  msg->direction = htons (direction);
+  msg->direction = htons (0 + outbound + 2 * inbound);
   msg->ats_count = htons (ats_count);
   msg->peer = (*peer);
   memcpy (&msg[1], ats, ats_count * sizeof (struct GNUNET_ATS_Information));

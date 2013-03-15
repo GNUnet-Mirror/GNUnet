@@ -36,6 +36,7 @@
 #include "gnunet-service-transport.h"
 #include "transport.h"
 
+
 void
 GST_manipulation_set_metric (void *cls, struct GNUNET_SERVER_Client *client,
     const struct GNUNET_MessageHeader *message);

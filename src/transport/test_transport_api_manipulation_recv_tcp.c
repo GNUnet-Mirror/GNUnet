@@ -212,7 +212,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   	ats[1].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   	ats[1].value = htonl (10);
 
-    GNUNET_TRANSPORT_set_traffic_metric (p1->th, &p2->id, TM_RECEIVE, ats, 2);
+    GNUNET_TRANSPORT_set_traffic_metric (p1->th, &p2->id, GNUNET_YES, GNUNET_NO, ats, 2);
     send_task = GNUNET_SCHEDULER_add_now (&sendtask, NULL);
   }
   if (2 == messages_recv)

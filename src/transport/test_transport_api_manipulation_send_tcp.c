@@ -306,10 +306,10 @@ sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
 		ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
 		ats[0].value = htonl (1000);
-		GNUNET_TRANSPORT_set_traffic_metric (p2->th, &p1->id, TM_SEND, ats, 1);
+		GNUNET_TRANSPORT_set_traffic_metric (p2->th, &p1->id, GNUNET_NO, GNUNET_YES, ats, 1);
 		ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
 		ats[0].value = htonl (10);
-		GNUNET_TRANSPORT_set_traffic_metric (p1->th, &p2->id, TM_BOTH, ats, 1);
+		GNUNET_TRANSPORT_set_traffic_metric (p1->th, &p2->id, GNUNET_YES, GNUNET_YES, ats, 1);
 
 		start_delayed = GNUNET_TIME_absolute_get();
   }
