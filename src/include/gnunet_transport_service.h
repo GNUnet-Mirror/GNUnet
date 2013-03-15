@@ -281,7 +281,7 @@ struct GNUNET_TRANSPORT_GetHelloHandle;
   * Checks if a neighbour is connected
   *
   * @param handle connection to transport service
-  * @peer the peer to check
+  * @param peer the peer to check
   * @return GNUNET_YES or GNUNET_NO
   *
   */
@@ -301,7 +301,7 @@ GNUNET_TRANSPORT_check_neighbour_connected (struct GNUNET_TRANSPORT_Handle *hand
  *
  * Supported ATS values:
  * GNUNET_ATS_QUALITY_NET_DELAY  (value in ms)
- * GNUNET_ATS_QUALITY_NET_DISTANCE (value in #hops)
+ * GNUNET_ATS_QUALITY_NET_DISTANCE (value in count(hops))
  *
  * Example
  * To enforce a delay of 10 ms for peer p1 in sending direction use:

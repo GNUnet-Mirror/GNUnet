@@ -967,7 +967,7 @@ testservice_task (void *cls,
  * @param cls closure
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param cfg configuration
+ * @param mycfg configuration
  */
 static void
 run (void *cls, char *const *args, const char *cfgfile,

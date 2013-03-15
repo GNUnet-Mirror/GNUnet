@@ -1219,7 +1219,7 @@ send_metric (void *cls, size_t size, void *buf)
  *
  * Supported ATS values:
  * GNUNET_ATS_QUALITY_NET_DELAY  (value in ms)
- * GNUNET_ATS_QUALITY_NET_DISTANCE (value in #hops)
+ * GNUNET_ATS_QUALITY_NET_DISTANCE (value in count(hops))
  *
  * Example
  * To enforce a delay of 10 ms for peer p1 in sending direction use:
