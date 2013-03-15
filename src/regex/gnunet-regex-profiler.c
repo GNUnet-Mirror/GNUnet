@@ -908,9 +908,11 @@ do_connect_by_string_timeout (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Found %i of %i strings\n", peers_found, num_search_strings);
 
-  printf ("Search timed out after %s. Collecting stats and shutting down.\n", 
-	  GNUNET_STRINGS_relative_time_to_string (search_timeout, GNUNET_NO));
-  fflush (stdout);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Search timed out after %s."
+              "Collecting stats and shutting down.\n", 
+              GNUNET_STRINGS_relative_time_to_string (search_timeout,
+                                                      GNUNET_NO));
 
   GNUNET_SCHEDULER_add_now (&do_collect_stats, NULL);
 }
@@ -930,8 +932,7 @@ do_connect_by_string (void *cls,
 {
   unsigned int i;
 
-  printf ("Starting string search.\n");
-  fflush (stdout);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting string search.\n");
 
   search_timeout_task = GNUNET_SCHEDULER_add_delayed (search_timeout,
                                                       &do_connect_by_string_timeout, NULL);
@@ -1169,8 +1170,7 @@ arm_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
 static void
 do_announce (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  printf ("Starting announce.\n");
-  fflush (stdout);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting announce.\n");
 
     /* First connect to arm service, then announce. Next
        announce will be in arm_connect_cb */
@@ -1615,6 +1615,7 @@ controller_event_cb (void *cls,
        printf ("F%u/%u(%s)",
                retry_links + 1, established_links + 1, 
                event->details.operation_finished.emsg);
+       fflush (stdout);
        retry_links++;
      }
      /* We do no retries, consider this link as established */
