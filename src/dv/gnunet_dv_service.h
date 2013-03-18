@@ -20,7 +20,7 @@
 
 /**
  * @author Christian Grothoff
- * @file dv/gnunet-service-dv.h
+ * @file dv/gnunet_dv_service.h
  * @brief DV service API (should only be used by the DV plugin)
  */
 #ifndef GNUNET_SERVICE_DV_H
