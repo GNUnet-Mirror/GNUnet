@@ -252,11 +252,6 @@ enum GNUNET_TESTBED_EventType
    */
   GNUNET_TESTBED_ET_OPERATION_FINISHED = 4,
 
-  /**
-   * The 'GNUNET_TESTBED_run' operation has been completed
-   */
-  GNUNET_TESTBED_ET_TESTBED_ONLINE = 5
-
 };
 
 
@@ -304,6 +299,16 @@ struct GNUNET_TESTBED_EventInformation
    * Type of the event.
    */
   enum GNUNET_TESTBED_EventType type;
+
+  /**
+   * Handle for the corresponding operation that generated this event
+   */
+  struct GNUNET_TESTBED_Operation *op;
+
+  /**
+   * Closure given while creating the above operation
+   */
+  void *op_cls;
 
   /**
    * Details about the event.
@@ -381,18 +386,6 @@ struct GNUNET_TESTBED_EventInformation
      */
     struct
     {
-
-      /**
-       * Handle for the operation that was finished.
-       */
-      struct GNUNET_TESTBED_Operation *operation;
-
-      /**
-       * Closure that was passed in when the event was
-       * requested.
-       */
-      void *op_cls;
-
       /**
        * Error message for the operation, NULL on success.
        */
@@ -405,32 +398,6 @@ struct GNUNET_TESTBED_EventInformation
       void *generic;
 
     } operation_finished;
-
-    /**
-     * Details about an testbed run completed event.
-     */
-    struct
-    {
-
-      /**
-       * Error message for the operation, NULL on success.
-       */
-      const char *emsg;
-
-      /**
-       * Array of peers now running (valid until
-       * 'GNUNET_TESTBED_testbed_stop' is called).  Note that it is
-       * not allowed to call 'GNUNET_TESTBED_peer_destroy' on peers
-       * from this array.
-       */
-      struct GNUNET_TESTBED_Peer **peers;
-
-      /**
-       * Size of the 'peers' array.
-       */
-      unsigned int num_peers;
-
-    } testbed_run_finished;
 
   } details;
 
@@ -787,8 +754,8 @@ typedef void (*GNUNET_TESTBED_PeerChurnCallback) (void *cls,
 /**
  * Start the given peer.
  *
- * @param op_cls the closure for this operation; will be set in
- *          event->details.operation_finished.op_cls when this operation fails.
+ * @param op_cls the closure for this operation; will be set in the event
+ *          information
  * @param peer peer to start
  * @param pcc function to call upon completion
  * @param pcc_cls closure for 'pcc'
@@ -806,13 +773,16 @@ GNUNET_TESTBED_peer_start (void *op_cls,
  * "GNUNET_TESTBED_peer_destroy" to fully clean up the
  * state of the peer).
  *
+ * @param op_cls the closure for this operation; will be set in the event
+ *          information
  * @param peer peer to stop
  * @param pcc function to call upon completion
  * @param pcc_cls closure for 'pcc'
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_peer_stop (struct GNUNET_TESTBED_Peer *peer,
+GNUNET_TESTBED_peer_stop (void *op_cls,
+                          struct GNUNET_TESTBED_Peer *peer,
                           GNUNET_TESTBED_PeerChurnCallback pcc,
                           void *pcc_cls);
 

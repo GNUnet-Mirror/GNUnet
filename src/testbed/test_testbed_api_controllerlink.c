@@ -363,11 +363,11 @@ delay_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   switch (result)
   {
   case SLAVE2_PEER_CREATE_SUCCESS:
-    op = GNUNET_TESTBED_peer_stop (slave1_peer, NULL, NULL);
+    op = GNUNET_TESTBED_peer_stop (NULL, slave1_peer, NULL, NULL);
     FAIL_TEST (NULL != op);
     break;
   case MASTER_SLAVE2_PEERS_CONNECTED:
-    op = GNUNET_TESTBED_peer_stop (slave2_peer, NULL, NULL);
+    op = GNUNET_TESTBED_peer_stop (NULL, slave2_peer, NULL, NULL);
     FAIL_TEST (NULL != op);
     break;
   default:
@@ -432,8 +432,8 @@ check_operation_success (const struct GNUNET_TESTBED_EventInformation *event)
 {
   FAIL_TEST (NULL != event);
   FAIL_TEST (GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type);
-  FAIL_TEST (event->details.operation_finished.operation == op);
-  FAIL_TEST (NULL == event->details.operation_finished.op_cls);
+  FAIL_TEST (event->op == op);
+  FAIL_TEST (NULL == event->op_cls);
   FAIL_TEST (NULL == event->details.operation_finished.emsg);
   FAIL_TEST (NULL == event->details.operation_finished.generic);
 }
@@ -562,8 +562,8 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   case SLAVE3_STARTED:
     FAIL_TEST (NULL != event);
     FAIL_TEST (GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type);
-    FAIL_TEST (event->details.operation_finished.operation == op);
-    FAIL_TEST (NULL == event->details.operation_finished.op_cls);
+    FAIL_TEST (event->op == op);
+    FAIL_TEST (NULL == event->op_cls);
     FAIL_TEST (NULL == event->details.operation_finished.emsg);
     cfg3 = GNUNET_CONFIGURATION_dup (event->details.operation_finished.generic);
     GNUNET_TESTBED_operation_done (op);

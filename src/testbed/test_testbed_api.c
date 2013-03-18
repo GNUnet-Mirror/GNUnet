@@ -223,7 +223,7 @@ dht_disconnect_adapter (void *cls, void *op_result)
   dht_handle = NULL;
   FAIL_TEST (PEER_SERVICE_CONNECT == sub_test, return);
   FAIL_TEST (NULL != operation, return);
-  operation = GNUNET_TESTBED_peer_stop (peer, NULL, NULL);
+  operation = GNUNET_TESTBED_peer_stop (NULL, peer, NULL, NULL);
   FAIL_TEST (NULL != operation, return);
 }
 
@@ -307,16 +307,16 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     switch (sub_test)
     {
     case PEER_DESTROY:
-      FAIL_TEST (event->details.operation_finished.operation == operation, return);
-      FAIL_TEST (NULL == event->details.operation_finished.op_cls, return);
+      FAIL_TEST (event->op == operation, return);
+      FAIL_TEST (NULL == event->op_cls, return);
       FAIL_TEST (NULL == event->details.operation_finished.emsg, return);
       FAIL_TEST (NULL == event->details.operation_finished.generic, return);
       GNUNET_TESTBED_operation_done (operation);
       GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
       break;
     case PEER_SERVICE_CONNECT:
-      FAIL_TEST (event->details.operation_finished.operation == operation, return);
-      FAIL_TEST (NULL == event->details.operation_finished.op_cls, return);
+      FAIL_TEST (event->op == operation, return);
+      FAIL_TEST (NULL == event->op_cls, return);
       FAIL_TEST (NULL == event->details.operation_finished.emsg, return);
       FAIL_TEST (NULL != dht_handle, return);
       FAIL_TEST (event->details.operation_finished.generic == dht_handle, return);

@@ -602,7 +602,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     switch (event->type)
     {
     case GNUNET_TESTBED_ET_OPERATION_FINISHED:
-      dll_op = event->details.operation_finished.op_cls;
+      dll_op = event->op_cls;
       if (NULL != event->details.operation_finished.emsg)
       {
         LOG (GNUNET_ERROR_TYPE_ERROR, _("Linking controllers failed. Exiting"));
@@ -610,7 +610,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       }
       else
         rc->reg_hosts++;
-      GNUNET_assert (event->details.operation_finished.operation == dll_op->op);
+      GNUNET_assert (event->op == dll_op->op);
       GNUNET_CONTAINER_DLL_remove (rc->dll_op_head, rc->dll_op_tail, dll_op);
       GNUNET_TESTBED_operation_done (dll_op->op);
       GNUNET_free (dll_op);
@@ -629,7 +629,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   for (dll_op = rc->dll_op_head; NULL != dll_op; dll_op = dll_op->next)
   {
     if ((GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type) &&
-        (event->details.operation_finished.operation == dll_op->op))
+        (event->op == dll_op->op))
       break;
   }
   if (NULL == dll_op)

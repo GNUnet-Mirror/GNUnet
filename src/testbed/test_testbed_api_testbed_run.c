@@ -102,7 +102,7 @@ test_master (void *cls, unsigned int num_peers,
 {
   result = GNUNET_OK;
   GNUNET_assert (NULL != peers[0]);
-  op = GNUNET_TESTBED_peer_stop (peers[0], NULL, NULL);
+  op = GNUNET_TESTBED_peer_stop (NULL, peers[0], NULL, NULL);
   GNUNET_assert (NULL != op);
 }
 

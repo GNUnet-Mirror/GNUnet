@@ -563,13 +563,16 @@ GNUNET_TESTBED_peer_start (void *op_cls, struct GNUNET_TESTBED_Peer *peer,
  * "GNUNET_TESTBED_peer_destroy" to fully clean up the
  * state of the peer).
  *
+ * @param op_cls the closure for this operation; will be set in the event
+ *          information
  * @param peer peer to stop
  * @param pcc function to call upon completion
  * @param pcc_cls closure for 'pcc'
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_peer_stop (struct GNUNET_TESTBED_Peer *peer,
+GNUNET_TESTBED_peer_stop (void *op_cls,
+                          struct GNUNET_TESTBED_Peer *peer,
                           GNUNET_TESTBED_PeerChurnCallback pcc, void *pcc_cls)
 {
   struct OperationContext *opc;
@@ -582,6 +585,7 @@ GNUNET_TESTBED_peer_stop (struct GNUNET_TESTBED_Peer *peer,
   opc = GNUNET_malloc (sizeof (struct OperationContext));
   opc->c = peer->controller;
   opc->data = data;
+  opc->op_cls = op_cls;
   opc->id = GNUNET_TESTBED_get_next_op_id (opc->c);
   opc->type = OP_PEER_STOP;
   opc->op =

@@ -861,10 +861,10 @@ slave_event_callback (void *cls,
   /* We currently only get here when working on RegisteredHostContexts and
      LCFContexts */
   GNUNET_assert (GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type);
-  rhc = event->details.operation_finished.op_cls;
+  rhc = event->op_cls;
   if (CLOSURE_TYPE_RHC == rhc->type)
   {
-    GNUNET_assert (rhc->sub_op == event->details.operation_finished.operation);
+    GNUNET_assert (rhc->sub_op == event->op);
     switch (rhc->state)
     {
     case RHC_GET_CFG:
@@ -889,10 +889,10 @@ slave_event_callback (void *cls,
     }
     return;
   }
-  lcf = event->details.operation_finished.op_cls;
+  lcf = event->op_cls;
   if (CLOSURE_TYPE_LCF == lcf->type)
   {    
-    GNUNET_assert (lcf->op == event->details.operation_finished.operation);
+    GNUNET_assert (lcf->op == event->op);
     GNUNET_assert (FINISHED == lcf->state);
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != lcf->timeout_task);
     GNUNET_SCHEDULER_cancel (lcf->timeout_task);

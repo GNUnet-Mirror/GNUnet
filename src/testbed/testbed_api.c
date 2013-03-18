@@ -240,8 +240,8 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
     return GNUNET_YES;
   }
   event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
-  event.details.operation_finished.operation = opc->op;
-  event.details.operation_finished.op_cls = opc->op_cls;
+  event.op = opc->op;
+  event.op_cls = opc->op_cls;
   event.details.operation_finished.emsg = NULL;
   event.details.operation_finished.generic = NULL;
   switch (opc->type)
@@ -385,6 +385,8 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
   peer = data->peer;
   GNUNET_assert (NULL != peer);
   event.type = (enum GNUNET_TESTBED_EventType) ntohl (msg->event_type);
+  event.op = opc->op;
+  event.op_cls = opc->op_cls;
   switch (event.type)
   {
   case GNUNET_TESTBED_ET_PEER_START:
@@ -455,6 +457,8 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
   GNUNET_assert ((ntohl (msg->peer1) == data->p1->unique_id) &&
                  (ntohl (msg->peer2) == data->p2->unique_id));
   event.type = (enum GNUNET_TESTBED_EventType) ntohl (msg->event_type);
+  event.op = opc->op;
+  event.op_cls = opc->op_cls;
   switch (event.type)
   {
   case GNUNET_TESTBED_ET_CONNECT:
@@ -604,12 +608,12 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
       (NULL != c->cc))
   {
     event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
-    event.details.operation_finished.operation = opc->op;
-    event.details.operation_finished.op_cls = opc->op_cls;
+    event.op = opc->op;
+    event.op_cls = opc->op_cls;
     event.details.operation_finished.emsg = emsg;
     event.details.operation_finished.generic = NULL;
     c->cc (c->cc_cls, &event);
-    if (event.details.operation_finished.operation == last_finished_operation)
+    if (event.op == last_finished_operation)
       return GNUNET_YES;
   }
   switch (opc->type)
@@ -731,9 +735,9 @@ handle_slave_config (struct GNUNET_TESTBED_Controller *c,
   {
     opc->data = GNUNET_TESTBED_extract_config_ (&msg->header);
     event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
+    event.op = opc->op;
+    event.op_cls = opc->op_cls;
     event.details.operation_finished.generic = opc->data;
-    event.details.operation_finished.operation = opc->op;
-    event.details.operation_finished.op_cls = opc->op_cls;
     event.details.operation_finished.emsg = NULL;
     c->cc (c->cc_cls, &event);
   }
@@ -787,8 +791,8 @@ handle_link_controllers_result (struct GNUNET_TESTBED_Controller *c,
   GNUNET_free (data);
   opc->data = NULL;
   event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
-  event.details.operation_finished.operation = opc->op;
-  event.details.operation_finished.op_cls = opc->op_cls;
+  event.op = opc->op;
+  event.op_cls = opc->op_cls;
   event.details.operation_finished.emsg = NULL;
   event.details.operation_finished.generic = NULL;
   emsg = NULL;

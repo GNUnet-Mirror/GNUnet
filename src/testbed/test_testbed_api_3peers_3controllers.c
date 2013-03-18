@@ -456,7 +456,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   switch (event->type)
   {
   case GNUNET_TESTBED_ET_OPERATION_FINISHED:
-    if ((NULL != event->details.operation_finished.op_cls) ||
+    if ((NULL != event->op_cls) ||
         (NULL != event->details.operation_finished.emsg))
     {
       GNUNET_break (0);
@@ -472,19 +472,19 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
         abort_test ();
         return;
       }
-      if (event->details.operation_finished.operation == peer1.operation)
+      if (event->op == peer1.operation)
       {
         GNUNET_TESTBED_operation_done (peer1.operation);
         peer1.operation = NULL;
         peer1.peer = NULL;
       }
-      else if (event->details.operation_finished.operation == peer2.operation)
+      else if (event->op == peer2.operation)
       {
         GNUNET_TESTBED_operation_done (peer2.operation);
         peer2.operation = NULL;
         peer2.peer = NULL;
       }
-      else if (event->details.operation_finished.operation == peer3.operation)
+      else if (event->op == peer3.operation)
       {
         GNUNET_TESTBED_operation_done (peer3.operation);
         peer3.operation = NULL;
@@ -706,9 +706,9 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       common_operation = NULL;
       result = PEERS_CONNECTED_2;
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Peers connected again\n");
-      peer1.operation = GNUNET_TESTBED_peer_stop (peer1.peer, NULL, NULL);
-      peer2.operation = GNUNET_TESTBED_peer_stop (peer2.peer, NULL, NULL);
-      peer3.operation = GNUNET_TESTBED_peer_stop (peer3.peer, NULL, NULL);
+      peer1.operation = GNUNET_TESTBED_peer_stop (NULL, peer1.peer, NULL, NULL);
+      peer2.operation = GNUNET_TESTBED_peer_stop (NULL, peer2.peer, NULL, NULL);
+      peer3.operation = GNUNET_TESTBED_peer_stop (NULL, peer3.peer, NULL, NULL);
       break;
     default:
       GNUNET_break (0);
