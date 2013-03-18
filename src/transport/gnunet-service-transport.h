@@ -93,8 +93,7 @@ extern struct GNUNET_ATS_SchedulingHandle *GST_ats;
 struct GNUNET_TIME_Relative
 GST_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
                              const struct GNUNET_MessageHeader *message,
-                             const struct GNUNET_ATS_Information *ats,
-                             uint32_t ats_count, struct Session *session,
+                             struct Session *session,
                              const char *sender_address,
                              uint16_t sender_address_len);
 

@@ -100,24 +100,11 @@ typedef void (*GNUNET_TRANSPORT_SessionEnd) (void *cls,
  */
 typedef struct
     GNUNET_TIME_Relative (*GNUNET_TRANSPORT_PluginReceiveCallback) (void *cls,
-                                                                    const struct
-                                                                    GNUNET_PeerIdentity
-                                                                    * peer,
-                                                                    const struct
-                                                                    GNUNET_MessageHeader
-                                                                    * message,
-                                                                    const struct
-                                                                    GNUNET_ATS_Information
-                                                                    * ats,
-                                                                    uint32_t
-                                                                    ats_count,
-                                                                    struct
-                                                                    Session *
-                                                                    session,
-                                                                    const char
-                                                                    *sender_address,
-                                                                    uint16_t
-                                                                    sender_address_len);
+																		const struct GNUNET_PeerIdentity *peer,
+																		const struct GNUNET_MessageHeader *message,
+																		struct Session *session,
+																		const char *sender_address,
+																		uint16_t sender_address_len);
 
 
 /**
@@ -133,6 +120,27 @@ typedef struct GNUNET_ATS_Information
 (*GNUNET_TRANSPORT_AddressToType) (void *cls,
                                    const struct sockaddr *addr,
                                    size_t addrlen);
+
+
+/**
+ * Function called when quality properties of an address change.
+ *
+ * @param cls closure
+ * @param peer peer
+ * @param address address
+ * @param address_len length of the address
+ * @param session session
+ * @param ats ATS information
+ * @param ats_count number of ATS information contained
+ */
+typedef void
+(*GNUNET_TRANSPORT_UpdateAddressMetrics) (void *cls,
+																					const struct GNUNET_PeerIdentity *peer,
+    																			const char *address,
+    																			uint16_t address_len,
+    																			struct Session *session,
+    																			struct GNUNET_ATS_Information *ats,
+    																			uint32_t ats_count);
 
 /**
  * Function that will be called for each address the transport
@@ -245,6 +253,12 @@ struct GNUNET_TRANSPORT_PluginEnvironment
    * LAN, WAN etc. address
    */
   GNUNET_TRANSPORT_AddressToType get_address_type;
+
+  /**
+   * Function that will be called to figure if an address is an loopback,
+   * LAN, WAN etc. address
+   */
+  GNUNET_TRANSPORT_UpdateAddressMetrics update_address_metrics;
 
 
   /**

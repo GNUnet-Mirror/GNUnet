@@ -1907,10 +1907,17 @@ process_inbound_tokenized_messages (void *cls, void *client,
   delay = plugin->env->receive (plugin->env->cls,
 				&si->sender,
 				hdr,
-				(const struct GNUNET_ATS_Information *) &ats, 2,
 				si->session,
 				si->arg,
 				si->args);
+
+  plugin->env->update_address_metrics (plugin->env->cls,
+  		&si->sender,
+  		si->arg,
+  		si->args,
+      si->session,
+			(struct GNUNET_ATS_Information *) &ats, 2);
+
   si->session->flow_delay_for_other_peer = delay;
   reschedule_session_timeout(si->session);
   return GNUNET_OK;

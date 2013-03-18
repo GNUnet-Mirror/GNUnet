@@ -89,12 +89,14 @@ static struct TransportPlugin *plugins_tail;
  * @param address_cb function to call when our public addresses changed
  * @param session_end_cb function to call when a session was terminated
  * @param address_type_cb function to call when a address type is requested
+ * @param metric_update_cb function to call when address metrics change
  */
 void
 GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
                   GNUNET_TRANSPORT_AddressNotification address_cb,
                   GNUNET_TRANSPORT_SessionEnd session_end_cb,
-                  GNUNET_TRANSPORT_AddressToType address_type_cb)
+                  GNUNET_TRANSPORT_AddressToType address_type_cb,
+                  GNUNET_TRANSPORT_UpdateAddressMetrics metric_update_cb)
 {
   struct TransportPlugin *plug;
   struct TransportPlugin *next;
@@ -133,6 +135,7 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
     plug->env.notify_address = address_cb;
     plug->env.session_end = session_end_cb;
     plug->env.get_address_type = address_type_cb;
+    plug->env.update_address_metrics = metric_update_cb;
     plug->env.max_connections = tneigh;
     plug->env.stats = GST_stats;
     GNUNET_CONTAINER_DLL_insert (plugins_head, plugins_tail, plug);

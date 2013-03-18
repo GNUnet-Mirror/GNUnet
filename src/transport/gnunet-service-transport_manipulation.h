@@ -47,12 +47,12 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
     GST_NeighbourSendContinuation cont, void *cont_cls);
 
 struct GNUNET_TIME_Relative
-GST_manipulation_recv (void *cls, const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_MessageHeader *message,
-    const struct GNUNET_ATS_Information *ats,
-    uint32_t ats_count, struct Session *session,
-    const char *sender_address,
-    uint16_t sender_address_len);
+GST_manipulation_recv (void *cls,
+											 const struct GNUNET_PeerIdentity *peer,
+											 const struct GNUNET_MessageHeader *message,
+											 struct Session *session,
+											 const char *sender_address,
+											 uint16_t sender_address_len);
 
 void
 GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg);

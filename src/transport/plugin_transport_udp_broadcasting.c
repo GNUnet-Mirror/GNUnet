@@ -119,9 +119,18 @@ broadcast_ipv6_mst_cb (void *cls, void *client,
   GNUNET_break (ntohl(mc->ats_address_network_type) != GNUNET_ATS_NET_UNSPECIFIED);
 
   hello = (struct GNUNET_MessageHeader *) &msg[1];
-  plugin->env->receive (plugin->env->cls, &msg->sender, hello,
-                        (const struct GNUNET_ATS_Information *) &atsi, 2, NULL,
-                        (const char *) &mc->addr, sizeof (mc->addr));
+  plugin->env->receive (plugin->env->cls,
+  											&msg->sender,
+  											hello,
+                        NULL,
+                        (const char *) &mc->addr,
+                        sizeof (mc->addr));
+  plugin->env->update_address_metrics (plugin->env->cls,
+  		&msg->sender,
+  		(const char *) &mc->addr,
+  		sizeof (mc->addr),
+      NULL,
+      (struct GNUNET_ATS_Information *) &atsi, 2);
 
   GNUNET_STATISTICS_update (plugin->env->stats,
                             _
@@ -160,9 +169,19 @@ broadcast_ipv4_mst_cb (void *cls, void *client,
   GNUNET_break (ntohl(mc->ats_address_network_type) != GNUNET_ATS_NET_UNSPECIFIED);
 
   hello = (struct GNUNET_MessageHeader *) &msg[1];
-  plugin->env->receive (plugin->env->cls, &msg->sender, hello,
-                        (const struct GNUNET_ATS_Information *) &atsi, 2, NULL,
-                        (const char *) &mc->addr, sizeof (mc->addr));
+  plugin->env->receive (plugin->env->cls,
+  											&msg->sender,
+  											hello,
+                        NULL,
+                        (const char *) &mc->addr,
+                        sizeof (mc->addr));
+
+  plugin->env->update_address_metrics (plugin->env->cls,
+  		&msg->sender,
+  		(const char *) &mc->addr,
+  		sizeof (mc->addr),
+      NULL,
+      (struct GNUNET_ATS_Information *) &atsi, 2);
 
   GNUNET_STATISTICS_update (plugin->env->stats,
                             _

@@ -1289,8 +1289,14 @@ server_receive_mst_cb (void *cls, void *client,
   delay = plugin->env->receive (plugin->env->cls,
                                 &s->target,
                                 message,
-                                (const struct GNUNET_ATS_Information *) &atsi, 2,
                                 s, s->addr, s->addrlen);
+
+  plugin->env->update_address_metrics (plugin->env->cls,
+  		&s->target,
+  		s->addr,
+  		s->addrlen,
+      s,
+      (struct GNUNET_ATS_Information *) &atsi, 2);
 
   GNUNET_asprintf (&stat_txt, "# bytes received via %s_server", plugin->protocol);
   GNUNET_STATISTICS_update (plugin->env->stats,

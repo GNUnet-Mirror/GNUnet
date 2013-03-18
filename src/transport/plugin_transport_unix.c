@@ -823,8 +823,15 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
   reschedule_session_timeout (s);
 
   plugin->env->receive (plugin->env->cls, sender, currhdr,
-                        (const struct GNUNET_ATS_Information *) &ats, 2,
                         s, un->sun_path, strlen (un->sun_path) + 1);
+
+  plugin->env->update_address_metrics (plugin->env->cls,
+  		sender,
+  		un->sun_path,
+  		strlen (un->sun_path) + 1,
+      s,
+      (struct GNUNET_ATS_Information *) &ats, 2);
+
   GNUNET_free (addr);
 }
 

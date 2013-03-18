@@ -292,8 +292,6 @@ static struct GNUNET_TIME_Relative
 env_receive (void *cls,
             const struct GNUNET_PeerIdentity *peer,
             const struct GNUNET_MessageHeader *message,
-            const struct GNUNET_ATS_Information *ats,
-            uint32_t ats_count,
             struct Session * session,
             const char *sender_address,
             uint16_t sender_address_len)
@@ -485,6 +483,18 @@ env_session_end (void *cls,
 
 
 static void
+env_update_metrics (void *cls,
+										const struct GNUNET_PeerIdentity *peer,
+										const char *address,
+										uint16_t address_len,
+										struct Session *session,
+										struct GNUNET_ATS_Information *ats,
+										uint32_t ats_count)
+{
+}
+
+
+static void
 setup_plugin_environment ()
 {
   env.cfg = cfg;
@@ -496,6 +506,7 @@ setup_plugin_environment ()
   env.receive = &env_receive;
   env.notify_address = &env_notify_address;
   env.get_address_type = &env_get_address_type;
+  env.update_address_metrics = &env_update_metrics;
   env.get_our_hello = &env_get_our_hello;
   env.session_end = &env_session_end;
 }

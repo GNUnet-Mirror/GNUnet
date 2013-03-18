@@ -2050,10 +2050,16 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
   delay = plugin->env->receive (plugin->env->cls,
                                 &session->target,
                                 message,
-                                (const struct GNUNET_ATS_Information *) &distance,
-                                2, session,
+                                session,
                                 (GNUNET_YES == session->inbound) ? NULL : session->addr,
                                 (GNUNET_YES == session->inbound) ? 0 : session->addrlen);
+  plugin->env->update_address_metrics (plugin->env->cls,
+  		&session->target,
+  		(GNUNET_YES == session->inbound) ? NULL : session->addr,
+      (GNUNET_YES == session->inbound) ? 0 : session->addrlen,
+      session,
+      (struct GNUNET_ATS_Information *) &distance,
+      2);
 
   reschedule_session_timeout (session);
 

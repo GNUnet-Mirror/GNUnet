@@ -1171,10 +1171,15 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
     plugin->env->receive (plugin->env->cls, 
 			  &tmpsource,
 			  hdr, 
-			  ats, NUM_ATS,
 			  mas->session,
 			  (mas->endpoint == NULL) ? NULL : (const char *) &mas->endpoint->addr,
 			  (mas->endpoint == NULL) ? 0 : sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
+    plugin->env->update_address_metrics (plugin->env->cls,
+    		&tmpsource,
+			  (mas->endpoint == NULL) ? NULL : (const char *) &mas->endpoint->addr,
+			  (mas->endpoint == NULL) ? 0 : sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress),
+    		mas->session,
+        (struct GNUNET_ATS_Information *) &ats, NUM_ATS);
     break;
   case GNUNET_MESSAGE_TYPE_FRAGMENT:
     if (NULL == mas->endpoint)
@@ -1289,10 +1294,15 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
     plugin->env->receive (plugin->env->cls, 
 			  &mas->session->target,
 			  hdr, 
-			  ats, NUM_ATS,
 			  mas->session,
 			  (mas->endpoint == NULL) ? NULL : (const char *) &mas->endpoint->addr,
 			  (mas->endpoint == NULL) ? 0 : sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
+    plugin->env->update_address_metrics (plugin->env->cls,
+    		&mas->session->target,
+			  (mas->endpoint == NULL) ? NULL : (const char *) &mas->endpoint->addr,
+			  (mas->endpoint == NULL) ? 0 : sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress),
+    		mas->session,
+        (struct GNUNET_ATS_Information *) &ats, NUM_ATS);
     break;
   }
   return GNUNET_OK;

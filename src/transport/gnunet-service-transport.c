@@ -233,8 +233,7 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
 struct GNUNET_TIME_Relative
 GST_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
                              const struct GNUNET_MessageHeader *message,
-                             const struct GNUNET_ATS_Information *ats,
-                             uint32_t ats_count, struct Session *session,
+                             struct Session *session,
                              const char *sender_address,
                              uint16_t sender_address_len)
 {
@@ -278,16 +277,13 @@ GST_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
     GST_validation_handle_pong (peer, message);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT:
-    GST_neighbours_handle_connect (message, peer, &address, session, ats,
-                                   ats_count);
+    GST_neighbours_handle_connect (message, peer, &address, session, NULL, 0);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT_ACK:
-    GST_neighbours_handle_connect_ack (message, peer, &address, session, ats,
-                                       ats_count);
+    GST_neighbours_handle_connect_ack (message, peer, &address, session, NULL, 0);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_ACK:
-    GST_neighbours_handle_session_ack (message, peer, &address, session, ats,
-				       ats_count);
+    GST_neighbours_handle_session_ack (message, peer, &address, session, NULL, 0);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT:
     GST_neighbours_handle_disconnect_message (peer, message);
@@ -296,7 +292,7 @@ GST_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
     GST_neighbours_keepalive (peer);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE_RESPONSE:
-    GST_neighbours_keepalive_response (peer, ats, ats_count);
+    GST_neighbours_keepalive_response (peer, NULL, 0);
     break;
   default:
     /* should be payload */
@@ -304,7 +300,7 @@ GST_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
                               gettext_noop
                               ("# bytes payload received"),
                               ntohs (message->size), GNUNET_NO);
-    ret = process_payload (peer, &address, session, message, ats, ats_count);
+    ret = process_payload (peer, &address, session, message, NULL, 0);
     break;
   }
 end:
@@ -414,6 +410,39 @@ plugin_env_address_to_type (void *cls,
     return ats;
   }
   return GNUNET_ATS_address_get_type(GST_ats, addr, addrlen);
+}
+
+/**
+ * Function that will be called to figure if an address is an loopback,
+ * LAN, WAN etc. address
+ *
+ * @param cls closure
+ * @param addr binary address
+ * @param addrlen length of the address
+ * @return ATS Information containing the network type
+ */
+static void
+plugin_env_update_metrics (void *cls,
+													 const struct GNUNET_PeerIdentity *peer,
+													 const char *address,
+													 uint16_t address_len,
+													 struct Session *session,
+													 struct GNUNET_ATS_Information *ats,
+													 uint32_t ats_count)
+{
+  struct GNUNET_HELLO_Address haddress;
+  const char *plugin_name = cls;
+
+	if ((NULL == ats) || (0 == ats_count))
+		return;
+	GNUNET_assert (NULL != GST_ats);
+
+	haddress.peer = *peer;
+	haddress.address = address;
+  haddress.address_length = address_len;
+  haddress.transport_name = plugin_name;
+
+  GNUNET_ATS_address_update (GST_ats, &haddress, session, ats, ats_count);
 }
 
 
@@ -671,7 +700,8 @@ key_generation_cb (void *cls,
   GST_plugins_load (&GST_manipulation_recv,
                     &plugin_env_address_change_notification,
                     &plugin_env_session_end,
-                    &plugin_env_address_to_type);
+                    &plugin_env_address_to_type,
+                    &plugin_env_update_metrics);
   GST_neighbours_start (NULL,
                         &neighbours_connect_notification,
                         &neighbours_disconnect_notification,

@@ -342,18 +342,25 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
 }
 
 struct GNUNET_TIME_Relative
-GST_manipulation_recv (void *cls, const struct GNUNET_PeerIdentity *peer,
+GST_manipulation_recv (void *cls,
+		const struct GNUNET_PeerIdentity *peer,
     const struct GNUNET_MessageHeader *message,
-    const struct GNUNET_ATS_Information *ats,
-    uint32_t ats_count, struct Session *session,
+    struct Session *session,
     const char *sender_address,
     uint16_t sender_address_len)
 {
+	return GST_receive_callback (cls, peer, message,
+			session, sender_address, sender_address_len);
+
+/* FIXME */
+#if 0
 	struct TM_Peer *tmp;
 	int d;
 	struct GNUNET_ATS_Information ats_new[ats_count];
 	struct GNUNET_TIME_Relative quota_delay;
 	struct GNUNET_TIME_Relative m_delay;
+
+
 
 	if (man_handle.delay_in.rel_value > GNUNET_TIME_UNIT_ZERO.rel_value)
 		m_delay = man_handle.delay_in; /* Global delay */
@@ -385,12 +392,13 @@ GST_manipulation_recv (void *cls, const struct GNUNET_PeerIdentity *peer,
 					m_delay.rel_value = tmp->metrics[TM_RECEIVE][DELAY]; /* Peer specific delay */
 	}
 
-	quota_delay = GST_receive_callback (cls, peer, message, ats_new, ats_count,
+	quota_delay = GST_receive_callback (cls, peer, message,
 			session, sender_address, sender_address_len);
 	if (quota_delay.rel_value > m_delay.rel_value)
 		return quota_delay;
 	else
 		return m_delay;
+#endif
 }
 
 void
