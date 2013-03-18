@@ -37,7 +37,7 @@
 #include "gnunet_testbed_service.h"
 
 #define FIND_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 90)
-#define SEARCHES_IN_PARALLEL 10
+#define SEARCHES_IN_PARALLEL 100
 #define ANNOUNCE_DELAY GNUNET_TIME_relative_multiply(\
                                                 GNUNET_TIME_UNIT_MILLISECONDS,\
                                                 300)
@@ -352,6 +352,11 @@ static unsigned int peer_cnt;
 static unsigned int peers_found;
 
 /**
+ * Index of peer to start next announce/search..
+ */
+static unsigned int search_index;
+
+/**
  * Search task identifier
  */
 static GNUNET_SCHEDULER_TaskIdentifier search_task;
@@ -364,7 +369,7 @@ static GNUNET_SCHEDULER_TaskIdentifier search_timeout_task;
 /**
  * Search timeout in seconds.
  */
-static struct GNUNET_TIME_Relative search_timeout = { 60000 };
+static struct GNUNET_TIME_Relative search_timeout_time = { 60000 };
 
 /**
  * How long do we wait before starting the search?
@@ -458,6 +463,16 @@ stats_connect_cb (void *cls,
  */
 static void
 do_collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Start announcing the next regex in the DHT.
+ *
+ * @param cls Index of the next peer in the peers array.
+ * @param tc TaskContext.
+ */
+static void
+announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /******************************************************************************/
@@ -787,7 +802,7 @@ do_collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param tc TaskContext.
  */
 static void
-find_next_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+find_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -828,7 +843,7 @@ regex_found_handler (void *cls,
   {
     GNUNET_SCHEDULER_cancel (peer->timeout);
     peer->timeout = GNUNET_SCHEDULER_NO_TASK;
-    GNUNET_SCHEDULER_add_delayed (SEARCH_DELAY, &find_next_string, NULL);
+    GNUNET_SCHEDULER_add_delayed (SEARCH_DELAY, &announce_next_regex, NULL);
   }
 
   if (NULL == id)
@@ -899,45 +914,23 @@ regex_found_handler (void *cls,
  * @param tc the task context
  */
 static void
-do_connect_by_string_timeout (void *cls,
+search_timeout (void *cls,
                               const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Finding matches to all strings did not succeed after %s.\n",
-              GNUNET_STRINGS_relative_time_to_string (search_timeout, GNUNET_NO));
+              GNUNET_STRINGS_relative_time_to_string (search_timeout_time,
+                                                      GNUNET_NO));
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Found %i of %i strings\n", peers_found, num_search_strings);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Search timed out after %s."
               "Collecting stats and shutting down.\n", 
-              GNUNET_STRINGS_relative_time_to_string (search_timeout,
+              GNUNET_STRINGS_relative_time_to_string (search_timeout_time,
                                                       GNUNET_NO));
 
   GNUNET_SCHEDULER_add_now (&do_collect_stats, NULL);
-}
-
-
-/**
- * Connect by string task that is run to search for a string in the
- * NFA. It first connects to the mesh service and when a connection is
- * established it starts to search for the string.
- *
- * @param cls NULL
- * @param tc the task context
- */
-static void
-do_connect_by_string (void *cls,
-                      const struct GNUNET_SCHEDULER_TaskContext * tc)
-{
-  unsigned int i;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting string search.\n");
-
-  search_timeout_task = GNUNET_SCHEDULER_add_delayed (search_timeout,
-                                                      &do_connect_by_string_timeout, NULL);
-  for (i = 0; i < SEARCHES_IN_PARALLEL; i++)
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &find_next_string, NULL);
 }
 
 
@@ -961,18 +954,18 @@ find_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               "Searching for string \"%s\" on peer %d timed out. Starting new search.\n",
               p->search_str,
               p->id);
-  GNUNET_SCHEDULER_add_now (&find_next_string, NULL);
+  GNUNET_SCHEDULER_add_now (&announce_next_regex, NULL);
 }
 
 
 /**
- * Start searching for the next string in the DHT.
+ * Start searching for a string in the DHT.
  *
  * @param cls Index of the next peer in the peers array.
  * @param tc TaskContext.
  */
 static void
-find_next_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+find_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) ||
       peer_cnt >= num_search_strings)
@@ -1002,17 +995,6 @@ find_next_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                           &peers[peer_cnt]);
   peer_cnt++;
 }
-
-
-
-/**
- * Start announcing the next regex in the DHT.
- *
- * @param cls Index of the next peer in the peers array.
- * @param tc TaskContext.
- */
-static void
-announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -1072,14 +1054,22 @@ arm_op_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   peer->op_handle = NULL;
 }
 
+
+/**
+ * Callback called when arm has started the daemon we asked for.
+ * 
+ * @param cls           Closure ().
+ * @param arm           Arm handle.
+ * @param rs            Status of the request.
+ * @param service       Service we asked to start (deamon).
+ * @param result        Result of the request.
+ */
 static void
 arm_start_cb (void *cls, struct GNUNET_ARM_Handle *arm,
     enum GNUNET_ARM_RequestStatus rs, const char *service,
     enum GNUNET_ARM_Result result)
 {
   struct RegexPeer *peer = (struct RegexPeer *) cls;
-  static unsigned int arm_peer_cnt;
-  unsigned int next_p;
 
   if (rs != GNUNET_ARM_REQUEST_SENT_OK)
   {
@@ -1101,12 +1091,24 @@ arm_start_cb (void *cls, struct GNUNET_ARM_Handle *arm,
     case GNUNET_ARM_RESULT_STARTING:
       GNUNET_SCHEDULER_add_now (&arm_op_done, peer);
 
-      if (arm_peer_cnt < (num_peers - 1))
+      if (search_index < (num_peers - 1))
       {
-        next_p = (++arm_peer_cnt % num_peers);
-        GNUNET_SCHEDULER_add_delayed (ANNOUNCE_DELAY,
-                                      &announce_next_regex,
-                                      (void *) (long) next_p);
+        long search_peer;
+        unsigned int i = 0;
+
+        /* Find a peer to look for a string matching the regex announced */
+        search_peer = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                                num_peers);
+        for (i = 0; peers[search_peer].search_str != NULL; i++)
+        {
+          search_peer = (search_peer + 1) % num_peers;
+          if (i > num_peers)
+            GNUNET_abort (); /* we run out of peers, must be a bug */
+        }
+                peers[search_peer].search_str = search_strings[search_index];
+        GNUNET_SCHEDULER_add_delayed (SEARCH_DELAY,
+                                      &find_string,
+                                      (void *) search_peer);
       }
       else
       {
@@ -1115,9 +1117,10 @@ arm_start_cb (void *cls, struct GNUNET_ARM_Handle *arm,
                     " Waiting %s to start string searches\n",
                     GNUNET_STRINGS_relative_time_to_string (search_delay,
                                                             GNUNET_NO));
-        GNUNET_SCHEDULER_add_delayed (search_delay,
-                                      do_connect_by_string, 
-                                      NULL);
+        /* FIXME start GLOBAL timeout to abort experiment */
+        search_timeout_task = GNUNET_SCHEDULER_add_delayed (search_timeout_time,
+                                                            &search_timeout,
+                                                            NULL);
       }
       break;
 
@@ -1172,46 +1175,47 @@ do_announce (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting announce.\n");
 
+  for (search_index = 0; search_index < SEARCHES_IN_PARALLEL; search_index++)
+  {
     /* First connect to arm service, then announce. Next
        announce will be in arm_connect_cb */
-    peers[0].op_handle =
+    peers[search_index].op_handle =
       GNUNET_TESTBED_service_connect (NULL,
-                                      peers[0].peer_handle,
+                                      peers[search_index].peer_handle,
                                       "arm",
                                       &arm_connect_cb,
-                                      &peers[0],
+                                      &peers[search_index],
                                       &arm_ca,
                                       &arm_da,
-                                      &peers[0]);
-
+                                      &peers[search_index]);
+      parallel_searches++;
+  }
 }
 
 
 /**
  * Start announcing the next regex in the DHT.
  *
- * @param cls Index of the next peer in the peers array.
+ * @param cls Closure (unused).
  * @param tc TaskContext.
  */
 static void
 announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  long next_p = (long) cls;
-
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting daemon %ld\n", next_p);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting daemon %u\n", search_index);
 
-  peers[next_p].op_handle =
+  peers[search_index].op_handle =
     GNUNET_TESTBED_service_connect (NULL,
-                                    peers[next_p].peer_handle,
+                                    peers[search_index].peer_handle,
                                     "arm",
                                     &arm_connect_cb,
-                                    &peers[next_p],
+                                    &peers[search_index],
                                     &arm_ca,
                                     &arm_da,
-                                    &peers[next_p]);
+                                    &peers[search_index]);
 }
 
 /**
@@ -2091,7 +2095,8 @@ main (int argc, char *const *argv)
       GNUNET_YES, &GNUNET_GETOPT_set_uint, &linking_factor },
     {'t', "matching-timeout", "TIMEOUT",
       gettext_noop ("wait TIMEOUT before considering a string match as failed"),
-      GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &search_timeout },
+      GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &search_timeout_time
+        },
     {'s', "search-delay", "DELAY",
       gettext_noop ("wait DELAY before starting string search"),
       GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &search_delay },
