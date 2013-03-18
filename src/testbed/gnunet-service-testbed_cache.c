@@ -19,7 +19,7 @@
 */
 
 /**
- * @file testbed/gnunet-service-testbed_cache.h
+ * @file testbed/gnunet-service-testbed_cache.c
  * @brief testbed cache implementation
  * @author Sree Harsha Totakura
  */
@@ -299,7 +299,8 @@ static unsigned int cache_size;
 /**
  * Looks up in the cache and returns the entry
  *
- * @param id the peer identity of the peer whose corresponding entry has to be looked up
+ * @param key the peer identity of the peer whose corresponding entry has to be
+ *          looked up
  * @return the HELLO message; NULL if not found
  */
 static struct CacheEntry *
@@ -713,7 +714,19 @@ oprelease_get_handle_core (void *cls)
  * lookup in the cache; if not, a new operation is started to open the transport
  * handle and will be given in the callback when it is available.
  *
- * @param cls the cache entry
+ * @param peer_id the index of the peer
+ * @param cgh the CacheGetHandle
+ * @param cfg the configuration with which the transport handle has to be
+ *          created if it was not present in the cache
+ * @param target the peer identify of the peer whose connection to
+ *          TRANSPORT/CORE (depending on the type of 'cgh') subsystem will be
+ *          notified through the connect_notify_cb. Can be NULL
+ * @param connect_notify_cb the callback to call when the given target peer is
+ *          connected. This callback will only be called once or never again (in
+ *          case the target peer cannot be connected). Can be NULL
+ * @param connect_notify_cb_cls the closure for the above callback
+ * @return the handle which can be used to cancel or mark that the handle is no
+ *           longer being used
  */
 static struct GSTCacheGetHandle *
 cache_get_handle (unsigned int peer_id, struct GSTCacheGetHandle *cgh,
@@ -950,7 +963,7 @@ GST_cache_get_handle_done (struct GSTCacheGetHandle *cgh)
  *          connected. This callback will only be called once or never again (in
  *          case the target peer cannot be connected). Can be NULL
  * @param connect_notify_cb_cls the closure for the above callback
- * @return the handle which can be used cancel or mark that the handle is no
+ * @return the handle which can be used to cancel or mark that the handle is no
  *           longer being used
  */
 struct GSTCacheGetHandle *
@@ -990,7 +1003,7 @@ GST_cache_get_handle_transport (unsigned int peer_id,
  *          connected. This callback will only be called once or never again (in
  *          case the target peer cannot be connected). Can be NULL
  * @param connect_notify_cb_cls the closure for the above callback
- * @return the handle which can be used cancel or mark that the handle is no
+ * @return the handle which can be used to cancel or mark that the handle is no
  *           longer being used
  */
 struct GSTCacheGetHandle *
@@ -1039,7 +1052,7 @@ GST_cache_lookup_hello (const unsigned int peer_id)
  * Caches the HELLO of the given peer. Updates the HELLO if it was already
  * cached before
  *
- * @param id the peer identity of the peer whose HELLO has to be cached
+ * @param peer_id the peer identity of the peer whose HELLO has to be cached
  * @param hello the HELLO message
  */
 void

@@ -19,7 +19,7 @@
  */
 
 /**
- * @file testbed/ll_master.c
+ * @file testbed/gnunet_testbed_ll_master.c
  * @brief The load level master. Creates child processes through LoadLeveler
  * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */

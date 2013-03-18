@@ -66,7 +66,7 @@ GNUNET_TESTBED_operation_queue_destroy_ (struct OperationQueue *queue);
  *           is not empty)
  */
 int
-GNUNET_TESTBED_operation_queue_destroy_empty_ (struct OperationQueue *q);
+GNUNET_TESTBED_operation_queue_destroy_empty_ (struct OperationQueue *queue);
 
 
 /**

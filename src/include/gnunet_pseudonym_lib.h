@@ -257,7 +257,7 @@ GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * FS should automatically call this function.
  *
  * @param cfg overall configuration
- * @param id the pseudonym identifier
+ * @param pseudonym the pseudonym identifier
  * @param meta metadata for the pseudonym
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
@@ -362,13 +362,13 @@ GNUNET_PSEUDONYM_get_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * Get the pseudonym ID belonging to the given pseudonym name.
  *
  * @param cfg configuration to use
- * @param ps_uname unique (!) human-readable name for the pseudonym
+ * @param ns_uname unique (!) human-readable name for the pseudonym
  * @param pseudonym set to pseudonym ID based on 'ns_uname'
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
 GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			     const char *ps_uname, 
+			     const char *ns_uname,
 			     struct GNUNET_PseudonymIdentifier *pseudonym);
 
 

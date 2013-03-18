@@ -287,11 +287,11 @@ GNUNET_TESTBED_operation_queue_destroy_ (struct OperationQueue *queue)
  *           is not empty)
  */
 int
-GNUNET_TESTBED_operation_queue_destroy_empty_ (struct OperationQueue *q)
+GNUNET_TESTBED_operation_queue_destroy_empty_ (struct OperationQueue *queue)
 {
-  if (NULL != q->head)
+  if (NULL != queue->head)
     return GNUNET_NO;
-  GNUNET_TESTBED_operation_queue_destroy_ (q);
+  GNUNET_TESTBED_operation_queue_destroy_ (queue);
   return GNUNET_YES;
 }
 

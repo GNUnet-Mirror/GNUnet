@@ -828,7 +828,7 @@ GST_cache_lookup_hello (const unsigned int peer_id);
  * Caches the HELLO of the given peer. Updates the HELLO if it was already
  * cached before
  *
- * @param id the peer identity of the peer whose HELLO has to be cached
+ * @param peer_id the peer identity of the peer whose HELLO has to be cached
  * @param hello the HELLO message
  */
 void

@@ -1357,10 +1357,8 @@ timeout_rocc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Function called to notify transport users that another
  * peer connected to us.
  *
- * @param cls closure
+ * @param cls the RemoteOverlayConnectContext
  * @param new_peer the peer that connected
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
  */
 static void
 cache_transport_peer_connect_notify (void *cls,

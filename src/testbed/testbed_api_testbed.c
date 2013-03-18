@@ -516,8 +516,7 @@ shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * call test master callback
  *
- * @param cls the run context
- * @param tc the task context
+ * @param rc the RunContext
  */
 static void
 call_master (struct RunContext *rc)

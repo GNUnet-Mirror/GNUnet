@@ -19,7 +19,7 @@
  */
 
 /**
- * @file testbed/ll_monitor.c
+ * @file testbed/gnunet_testbed_ll_monitor.c
  * @brief The load level monitor process. This is called whenever a job event
  *          happens. This file is called with the following syntax:
  *          "monitor_program job_id user_arg state exit_status"
