@@ -313,7 +313,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     LOG (GNUNET_ERROR_TYPE_ERROR, "error receiving\n");
     GNUNET_CLIENT_disconnect (consensus->client);
     consensus->client = NULL;
-    consensus->new_element_cb (NULL, NULL);
+    consensus->new_element_cb (consensus->new_element_cls, NULL);
     return;
   }
 
