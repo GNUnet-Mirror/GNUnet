@@ -52,6 +52,11 @@
 #define MAX_QUEUE_SIZE 16
 
 /**
+ * Maximum number of messages we queue towards the clients/plugin.
+ */
+#define MAX_QUEUE_SIZE_PLUGIN 1024
+
+/**
  * The default fisheye depth, from how many hops away will
  * we keep peers?
  */
@@ -317,26 +322,11 @@ static struct GNUNET_PeerIdentity my_identity;
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
- * The client, the DV plugin connected to us.  Hopefully
- * this client will never change, although if the plugin dies
- * and returns for some reason it may happen.
+ * The client, the DV plugin connected to us (or an event monitor).
+ * Hopefully this client will never change, although if the plugin
+ * dies and returns for some reason it may happen.
  */
-static struct GNUNET_SERVER_Client *client_handle;
-
-/**
- * Transmit handle to the plugin.
- */
-static struct GNUNET_SERVER_TransmitHandle *plugin_transmit_handle;
-
-/**
- * Head of DLL for client messages
- */
-static struct PendingMessage *plugin_pending_head;
-
-/**
- * Tail of DLL for client messages
- */
-static struct PendingMessage *plugin_pending_tail;
+static struct GNUNET_SERVER_NotificationContext *nc;
 
 /**
  * Handle for the statistics service.
@@ -366,51 +356,6 @@ get_atsi_distance (const struct GNUNET_ATS_Information *atsi,
 
 
 /**
- * Function called to notify a client about the socket
- * begin ready to queue more data.  "buf" will be
- * NULL and "size" zero if the socket was closed for
- * writing in the meantime.
- *
- * @param cls closure
- * @param size number of bytes available in buf
- * @param buf where the callee should write the message
- * @return number of bytes written to buf
- */
-static size_t
-transmit_to_plugin (void *cls, size_t size, void *buf)
-{
-  char *cbuf = buf;
-  struct PendingMessage *reply;
-  size_t off;
-  size_t msize;
-
-  plugin_transmit_handle = NULL;
-  if (NULL == buf)
-  {
-    /* client disconnected */    
-    return 0;
-  }
-  off = 0;
-  while ( (NULL != (reply = plugin_pending_head)) &&
-	  (size >= off + (msize = ntohs (reply->msg->size))))
-  {
-    GNUNET_CONTAINER_DLL_remove (plugin_pending_head, plugin_pending_tail,
-                                 reply);
-    memcpy (&cbuf[off], reply->msg, msize);
-    GNUNET_free (reply);
-    off += msize;
-  }
-  if (NULL != plugin_pending_head)
-    plugin_transmit_handle =
-      GNUNET_SERVER_notify_transmit_ready (client_handle,
-					   msize,
-					   GNUNET_TIME_UNIT_FOREVER_REL,
-					   &transmit_to_plugin, NULL);
-  return off;
-}
-
-
-/**
  * Forward a message from another peer to the plugin.
  *
  * @param message the message to send to the plugin
@@ -423,18 +368,8 @@ send_data_to_plugin (const struct GNUNET_MessageHeader *message,
 		     uint32_t distance)
 {
   struct GNUNET_DV_ReceivedMessage *received_msg;
-  struct PendingMessage *pending_message;
   size_t size;
 
-  if (NULL == client_handle)
-  {
-    GNUNET_STATISTICS_update (stats,
-			      "# messages discarded (no plugin)",
-			      1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Refusing to queue messages, DV plugin not active.\n"));
-    return;
-  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Delivering message from peer `%s'\n",
               GNUNET_i2s (origin));
@@ -445,21 +380,16 @@ send_data_to_plugin (const struct GNUNET_MessageHeader *message,
     GNUNET_break (0); /* too big */
     return;
   }
-  pending_message = GNUNET_malloc (sizeof (struct PendingMessage) + size);
-  received_msg = (struct GNUNET_DV_ReceivedMessage *) &pending_message[1];
+  received_msg = GNUNET_malloc (size);
   received_msg->header.size = htons (size);
   received_msg->header.type = htons (GNUNET_MESSAGE_TYPE_DV_RECV);
   received_msg->distance = htonl (distance);
   received_msg->sender = *origin;
   memcpy (&received_msg[1], message, ntohs (message->size));
-  GNUNET_CONTAINER_DLL_insert_tail (plugin_pending_head, 
-				    plugin_pending_tail,
-				    pending_message);  
-  if (NULL == plugin_transmit_handle)
-    plugin_transmit_handle =
-      GNUNET_SERVER_notify_transmit_ready (client_handle, size,
-					   GNUNET_TIME_UNIT_FOREVER_REL,
-					   &transmit_to_plugin, NULL);
+  GNUNET_SERVER_notification_context_broadcast (nc, 
+						&received_msg->header,
+						GNUNET_YES);
+  GNUNET_free (received_msg);
 }
 
 
@@ -473,29 +403,9 @@ send_data_to_plugin (const struct GNUNET_MessageHeader *message,
 static void
 send_control_to_plugin (const struct GNUNET_MessageHeader *message)
 {
-  struct PendingMessage *pending_message;
-  size_t size;
-
-  if (NULL == client_handle)
-  {
-    GNUNET_STATISTICS_update (stats,
-			      "# control messages discarded (no plugin)",
-			      1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Refusing to queue messages, DV plugin not active.\n"));
-    return;
-  }
-  size = ntohs (message->size);
-  pending_message = GNUNET_malloc (sizeof (struct PendingMessage) + size);
-  memcpy (&pending_message[1], message, size);
-  GNUNET_CONTAINER_DLL_insert_tail (plugin_pending_head, 
-				    plugin_pending_tail,
-				    pending_message);  
-  if (NULL == plugin_transmit_handle)
-    plugin_transmit_handle =
-      GNUNET_SERVER_notify_transmit_ready (client_handle, size,
-					   GNUNET_TIME_UNIT_FOREVER_REL,
-					   &transmit_to_plugin, NULL);
+  GNUNET_SERVER_notification_context_broadcast (nc, 
+						message,
+						GNUNET_NO);
 }
 
 
@@ -561,8 +471,6 @@ send_connect_to_plugin (const struct GNUNET_PeerIdentity *target,
 {
   struct GNUNET_DV_ConnectMessage cm;
 
-  if (NULL == client_handle)
-    return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Delivering CONNECT about peer `%s'\n",
               GNUNET_i2s (target));
@@ -584,8 +492,6 @@ send_disconnect_to_plugin (const struct GNUNET_PeerIdentity *target)
 {
   struct GNUNET_DV_DisconnectMessage dm;
 
-  if (NULL == client_handle)
-    return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Delivering DISCONNECT about peer `%s'\n",
               GNUNET_i2s (target));
@@ -1535,7 +1441,6 @@ free_direct_neighbors (void *cls, const struct GNUNET_HashCode * key, void *valu
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct PendingMessage *pending;
   unsigned int i;
 
   GNUNET_CONTAINER_multihashmap_iterate (direct_neighbors,
@@ -1548,17 +1453,42 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   core_api = NULL;
   GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
   stats = NULL;
-  while (NULL != (pending = plugin_pending_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (plugin_pending_head,
-				 plugin_pending_tail,
-				 pending);
-    GNUNET_free (pending);
-  }
+  GNUNET_SERVER_notification_context_destroy (nc);
+  nc = NULL;
   for (i=0;i<DEFAULT_FISHEYE_DEPTH - 1;i++)
     GNUNET_array_grow (consensi[i].targets,
 		       consensi[i].array_length,
 		       0);
+}
+
+
+/**
+ * Notify newly connected client about an existing route.
+ *
+ * @param cls the 'struct GNUNET_SERVER_Client'
+ * @param key peer identity
+ * @param value the XXX.
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+add_route (void *cls,
+	   const struct GNUNET_HashCode *key,
+	   void *value)
+{
+  struct GNUNET_SERVER_Client *client = cls;
+  struct Route *route = value;
+  struct GNUNET_DV_ConnectMessage cm;
+  
+  cm.header.size = htons (sizeof (cm));
+  cm.header.type = htons (GNUNET_MESSAGE_TYPE_DV_CONNECT);
+  cm.distance = htonl (route->target.distance);
+  cm.peer = route->target.peer;
+
+  GNUNET_SERVER_notification_context_unicast (nc, 
+					      client,
+					      &cm.header,
+					      GNUNET_NO);
+  return GNUNET_OK;
 }
 
 
@@ -1574,15 +1504,10 @@ static void
 handle_start (void *cls, struct GNUNET_SERVER_Client *client,
               const struct GNUNET_MessageHeader *message)
 {
-  if (NULL != client_handle)
-  {
-    /* forcefully drop old client */
-    GNUNET_SERVER_client_disconnect (client_handle);
-    GNUNET_SERVER_client_drop (client_handle);
-  }
-  client_handle = client;
-  GNUNET_SERVER_client_keep (client_handle);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVER_notification_context_add (nc, client);  
+  GNUNET_CONTAINER_multihashmap_iterate (all_routes,
+					 &add_route,
+					 client);
 }
 
 
@@ -1642,6 +1567,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   if (NULL == core_api)
     return;
+  nc = GNUNET_SERVER_notification_context_create (server,
+						  MAX_QUEUE_SIZE_PLUGIN);
   stats = GNUNET_STATISTICS_create ("dv", cfg);
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,

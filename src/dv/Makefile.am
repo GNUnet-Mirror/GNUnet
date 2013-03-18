@@ -32,6 +32,9 @@ libgnunetdv_la_LDFLAGS = \
   -version-info 0:0:0
 
 
+noinst_PROGRAMS = \
+ gnunet-dv
+
 libexec_PROGRAMS = \
  gnunet-service-dv
 
@@ -41,6 +44,13 @@ gnunet_service_dv_LDADD = \
   $(top_builddir)/src/consensus/libgnunetconsensus.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+
+gnunet_dv_SOURCES = \
+ gnunet-dv.c dv.h
+gnunet_dv_LDADD = \
+  libgnunetdv.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 
