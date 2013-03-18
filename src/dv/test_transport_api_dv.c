@@ -484,6 +484,7 @@ static struct GNUNET_CORE_MessageHandler handlers[] = {
   {NULL, 0, 0}
 };
 
+
 /**
  * Notify of all peer1's peers, once peer 2 is found, schedule connect
  * to peer two for message send.
@@ -525,6 +526,7 @@ connect_notify_peer2 (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 }
 
+
 static void
 init_notify_peer2 (void *cls, struct GNUNET_CORE_Handle *server,
                    const struct GNUNET_PeerIdentity *my_identity)
@@ -534,6 +536,7 @@ init_notify_peer2 (void *cls, struct GNUNET_CORE_Handle *server,
               GNUNET_i2s (my_identity));
   total_server_connections++;
 }
+
 
 /**
  * Notify of all peer1's peers, once peer 2 is found, schedule connect
@@ -565,6 +568,7 @@ connect_notify_peer1 (void *cls, const struct GNUNET_PeerIdentity *peer,
                              NULL, GNUNET_YES, handlers);
   }
 }
+
 
 static void
 init_notify_peer1 (void *cls, struct GNUNET_CORE_Handle *server,
@@ -623,6 +627,7 @@ send_test_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                   &send_test_messages, pos->next);
   }
 }
+
 
 static void
 send_other_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -705,6 +710,7 @@ send_other_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                     (GNUNET_TIME_UNIT_SECONDS, 250), &end_badly,
                                     "from send_other_messages");
 }
+
 
 static void
 topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
@@ -860,6 +866,7 @@ all_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 }
 
+
 static void
 peers_started_callback (void *cls, const struct GNUNET_PeerIdentity *id,
                         const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -926,6 +933,7 @@ peers_started_callback (void *cls, const struct GNUNET_PeerIdentity *id,
   }
 }
 
+
 /**
  * Callback indicating that the hostkey was created for a peer.
  *
@@ -980,6 +988,7 @@ hostkey_callback (void *cls, const struct GNUNET_PeerIdentity *id,
     ok = 0;
   }
 }
+
 
 static void
 run (void *cls, char *const *args, const char *cfgfile,
@@ -1116,8 +1125,9 @@ run (void *cls, char *const *args, const char *cfgfile,
 
 }
 
-static int
-check ()
+
+int
+main (int argc, char *argv[])
 {
   int ret;
 
@@ -1129,6 +1139,9 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+  GNUNET_log_setup ("test-transport-dv",
+                    "WARNING",
+                    NULL);
   ret =
       GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
                           "test-transport-dv", "nohelp", options, &run, &ok);
@@ -1137,18 +1150,6 @@ check ()
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "`test-transport-dv': Failed with error code %d\n", ret);
   }
-  return ok;
-}
-
-int
-main (int argc, char *argv[])
-{
-  int ret;
-
-  GNUNET_log_setup ("test-transport-dv",
-                    "WARNING",
-                    NULL);
-  ret = check ();
   /**
    * Need to remove base directory, subdirectories taken care
    * of by the testing framework.
@@ -1158,7 +1159,7 @@ main (int argc, char *argv[])
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Failed to remove testing directory %s\n", test_directory);
   }
-  return ret;
+  return (GNUNET_OK == ret) ? 0 : 1;
 }
 
 /* end of test_transport_api_dv.c */
