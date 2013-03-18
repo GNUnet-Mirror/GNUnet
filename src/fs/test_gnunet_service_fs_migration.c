@@ -131,7 +131,7 @@ stop_source_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct DownloadContext *dc = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping source peer\n");
-  op = GNUNET_TESTBED_peer_stop (daemons[1], &do_download, dc);
+  op = GNUNET_TESTBED_peer_stop (NULL, daemons[1], &do_download, dc);
   GNUNET_assert (NULL != op);
 }
 

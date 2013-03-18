@@ -157,7 +157,8 @@ srv_status (void *cls, const char *service, enum GNUNET_ARM_ServiceStatus status
   switch (phase)
   {
   default:
-    FPRINTF (stderr, "Unexpectedly got status %u for service %s\n", service);
+    FPRINTF (stderr, "Unexpectedly got status %u for service %s\n", status,
+             service);
     GNUNET_break (0);
     ok = 2;
 #if START_ARM
