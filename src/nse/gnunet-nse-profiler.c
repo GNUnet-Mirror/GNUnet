@@ -843,7 +843,7 @@ next_round (void *cls,
 
   /* stop peers if we have too many */
   for (i=num_peers_in_round[current_round];i<peers_running;i++)
-    GNUNET_TESTBED_peer_stop (daemons[i], NULL, NULL);
+    GNUNET_TESTBED_peer_stop (NULL, daemons[i], NULL, NULL);
 }
 
 
