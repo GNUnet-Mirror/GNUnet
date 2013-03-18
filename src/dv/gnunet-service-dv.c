@@ -41,6 +41,7 @@
 #include "dv.h"
 #include <gcrypt.h>
 
+
 /**
  * How often do we establish the consensu?
  */
@@ -756,7 +757,6 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
     release_route (route);
     GNUNET_free (route);
   }
-  route->next_hop = neighbor;
   neighbor->consensus_task = GNUNET_SCHEDULER_add_now (&start_consensus,
 						       neighbor);
 }
@@ -1070,6 +1070,25 @@ learn_route_cb (void *cls,
   struct DirectNeighbor *neighbor = cls;
   struct Target *target;
 
+  if (NULL == element)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Failed to establish DV consensus, will try again later\n");
+    GNUNET_CONSENSUS_destroy (neighbor->consensus);
+    if (NULL != neighbor->neighbor_table_consensus)
+    {
+      GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table_consensus,
+					     &free_targets,
+					     NULL);
+      GNUNET_CONTAINER_multihashmap_destroy (neighbor->neighbor_table_consensus);
+      neighbor->neighbor_table_consensus = NULL;
+    }
+    neighbor->consensus = NULL;
+    neighbor->consensus_task = GNUNET_SCHEDULER_add_delayed (GNUNET_DV_CONSENSUS_FREQUENCY,
+							     &start_consensus,
+							     neighbor);
+    return GNUNET_SYSERR;
+  }
   if (sizeof (struct Target) != element->size)
   {
     GNUNET_break_op (0);
@@ -1449,14 +1468,14 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned int i;
 
-  GNUNET_CONTAINER_multihashmap_iterate (direct_neighbors,
-                                         &free_direct_neighbors, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (direct_neighbors);
-  GNUNET_CONTAINER_multihashmap_iterate (all_routes,
-                                         &free_route, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (all_routes);
   GNUNET_CORE_disconnect (core_api);
   core_api = NULL;
+  GNUNET_CONTAINER_multihashmap_iterate (direct_neighbors,
+                                         &free_direct_neighbors, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (all_routes,
+                                         &free_route, NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (direct_neighbors);
+  GNUNET_CONTAINER_multihashmap_destroy (all_routes);
   GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
   stats = NULL;
   GNUNET_SERVER_notification_context_destroy (nc);
@@ -1511,6 +1530,7 @@ handle_start (void *cls, struct GNUNET_SERVER_Client *client,
               const struct GNUNET_MessageHeader *message)
 {
   GNUNET_SERVER_notification_context_add (nc, client);  
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
   GNUNET_CONTAINER_multihashmap_iterate (all_routes,
 					 &add_route,
 					 client);

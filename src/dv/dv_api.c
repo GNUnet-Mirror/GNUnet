@@ -267,6 +267,9 @@ process_ack (void *cls,
 
   if (th->uid != ntohl (ctx->ack->uid))
     return GNUNET_OK;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Matchedk ACK for message to peer %s\n",
+       GNUNET_h2s (key));
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (ctx->sh->send_callbacks,
 						       key,
@@ -306,6 +309,9 @@ handle_message_receipt (void *cls,
     reconnect (sh);
     return;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received message of type %u from DV service\n",
+       (unsigned int) msg->type);
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_DV_CONNECT:
@@ -472,6 +478,8 @@ reconnect (struct GNUNET_DV_ServiceHandle *sh)
   GNUNET_CONTAINER_multihashmap_iterate (sh->send_callbacks,
 					 &cleanup_send_cb,
 					 sh);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Connecting to DV service\n");
   sh->client = GNUNET_CLIENT_connect ("dv", sh->cfg);
   if (NULL == sh->client)
   {
@@ -583,6 +591,12 @@ GNUNET_DV_send (struct GNUNET_DV_ServiceHandle *sh,
     GNUNET_break (0);
     return NULL;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Asked to send %u bytes of type %u to %s\n",
+       (unsigned int) msg->size,
+       (unsigned int) msg->type,
+       GNUNET_i2s (target));
+
   th = GNUNET_malloc (sizeof (struct GNUNET_DV_TransmitHandle) +
 		      sizeof (struct GNUNET_DV_SendMessage) +
 		      ntohs (msg->size));
