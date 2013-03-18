@@ -738,6 +738,9 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   if (DIRECT_NEIGHBOR_COST != distance) 
     return; /* is a DV-neighbor */
+  GNUNET_STATISTICS_update (stats,
+			    "# peers connected (1-hop)",
+			    -1 1, GNUNET_NO);
   neighbor = GNUNET_malloc (sizeof (struct DirectNeighbor));
   neighbor->peer = *peer;
   GNUNET_assert (GNUNET_YES ==
@@ -1381,6 +1384,9 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     /* must have been a DV-neighbor, ignore */
     return;
   }
+  GNUNET_STATISTICS_update (stats,
+			    "# peers connected (1-hop)",
+			    -1 1, GNUNET_NO);  
   cleanup_neighbor (neighbor);
   GNUNET_CONTAINER_multihashmap_iterate (direct_neighbors,
 					 &refresh_routes,
