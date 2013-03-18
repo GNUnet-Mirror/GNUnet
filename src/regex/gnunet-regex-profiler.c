@@ -1528,10 +1528,10 @@ controller_event_cb (void *cls,
         static unsigned int slaves_started;
         unsigned int peer_cnt;
 
-        dll_op = event->details.operation_finished.op_cls;
+        dll_op = event->op_cls;
         GNUNET_CONTAINER_DLL_remove (dll_op_head, dll_op_tail, dll_op);
         GNUNET_free (dll_op);
-        op = event->details.operation_finished.operation;
+        op = event->op;
         if (NULL != event->details.operation_finished.emsg)
         {
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
