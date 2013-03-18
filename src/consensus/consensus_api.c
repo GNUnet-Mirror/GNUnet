@@ -366,14 +366,11 @@ transmit_join (void *cls, size_t size, void *buf)
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_JOIN);
   msg->header.size = htons (msize);
   msg->session_id = consensus->session_id;
-  msg->num_peers = htons (consensus->num_peers);
-  if (0 != msg->num_peers)
-    memcpy(&msg[1],
-           consensus->peers,
-           consensus->num_peers * sizeof (struct GNUNET_PeerIdentity));
-
+  msg->num_peers = htonl (consensus->num_peers);
+  memcpy(&msg[1],
+	 consensus->peers,
+	 consensus->num_peers * sizeof (struct GNUNET_PeerIdentity));
   send_next (consensus);
-
   GNUNET_CLIENT_receive (consensus->client, &message_handler, consensus,
                          GNUNET_TIME_UNIT_FOREVER_REL);
   

@@ -37,9 +37,9 @@ struct GNUNET_CONSENSUS_JoinMessage
    */
   struct GNUNET_MessageHeader header;
 
-  struct GNUNET_HashCode session_id;
+  uint32_t num_peers GNUNET_PACKED;
 
-  uint16_t num_peers;
+  struct GNUNET_HashCode session_id;
 
   /* GNUNET_PeerIdentity[num_peers] */
 };
@@ -52,15 +52,16 @@ struct GNUNET_CONSENSUS_ConcludeMessage
    */
   struct GNUNET_MessageHeader header;
 
-  /**
-   * Timeout for conclude
-   */
-  struct GNUNET_TIME_RelativeNBO timeout;
 
   /**
    * Minimum group size required for a consensus group.
    */
-  uint32_t min_group_size;
+  uint32_t min_group_size GNUNET_PACKED;
+
+  /**
+   * Timeout for conclude
+   */
+  struct GNUNET_TIME_RelativeNBO timeout;
 };
 
 
@@ -71,11 +72,11 @@ struct GNUNET_CONSENSUS_ConcludeDoneMessage
    */
   struct GNUNET_MessageHeader header;
 
-  uint32_t group_id;
+  uint32_t group_id GNUNET_PACKED;
 
-  uint32_t num_elements;
+  uint32_t num_elements GNUNET_PACKED;
 
-  uint16_t num_peers;
+  uint32_t num_peers GNUNET_PACKED;
 
   /** PeerIdentity[num_peers] */
 };
@@ -97,7 +98,7 @@ struct GNUNET_CONSENSUS_ElementMessage
   /**
    * Type: GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_NEW_ELEMENT
    */
-  uint16_t element_type;
+  uint16_t element_type GNUNET_PACKED; /* FIXME: alignment? */
 
   /* rest: element data */
 };
@@ -112,7 +113,7 @@ struct GNUNET_CONSENSUS_AckMessage
   /**
    * Do we want to keep and propagate the element?
    */
-  uint8_t keep;
+  uint8_t keep; /* FIXME: alignment!? */
 
   /* FIXME: add message hash? */
 };

@@ -1405,15 +1405,15 @@ initialize_session_info (struct ConsensusSession *session)
 static void
 initialize_session_peer_list (struct ConsensusSession *session)
 {
-  int local_peer_in_list;
-  int listed_peers;
+  unsigned int local_peer_in_list;
+  uint32_t listed_peers;
   const struct GNUNET_PeerIdentity *msg_peers;
   unsigned int i;
 
   GNUNET_assert (NULL != session->join_msg);
 
   /* peers in the join message, may or may not include the local peer */
-  listed_peers = ntohs (session->join_msg->num_peers);
+  listed_peers = ntohl (session->join_msg->num_peers);
   
   session->num_peers = listed_peers;
 
