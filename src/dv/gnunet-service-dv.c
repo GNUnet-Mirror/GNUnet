@@ -361,7 +361,7 @@ get_atsi_distance (const struct GNUNET_ATS_Information *atsi,
  *
  * @param message the message to send to the plugin
  * @param origin the original sender of the message
- * @param distnace distance to the original sender of the message
+ * @param distance distance to the original sender of the message
  */
 static void
 send_data_to_plugin (const struct GNUNET_MessageHeader *message, 
@@ -398,8 +398,6 @@ send_data_to_plugin (const struct GNUNET_MessageHeader *message,
  * Forward a control message to the plugin.
  *
  * @param message the message to send to the plugin
- * @param distant_neighbor the original sender of the message
- * @param distnace distance to the original sender of the message
  */
 static void
 send_control_to_plugin (const struct GNUNET_MessageHeader *message)
