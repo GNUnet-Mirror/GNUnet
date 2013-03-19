@@ -199,8 +199,9 @@ unbox_cb (void *cls,
   plugin->env->receive (plugin->env->cls, 
 			&session->sender,
                         message,
-                        &ats, 1,
 			session, "", 0);
+  plugin->env->update_address_metrics (plugin->env->cls,
+  		&session->sender, "", 0, session, &ats, 1);
   return GNUNET_OK;
 }
 
@@ -246,8 +247,9 @@ handle_dv_message_received (void *cls,
   session->active = GNUNET_YES;
   plugin->env->receive (plugin->env->cls, sender,
                         msg,
-                        &ats, 1,
-			session, "", 0);
+                        session, "", 0);
+  plugin->env->update_address_metrics (plugin->env->cls,
+  		sender, "", 0, session, &ats, 1);
 }
 
 
