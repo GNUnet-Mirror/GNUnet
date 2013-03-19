@@ -129,7 +129,7 @@ struct GNUNET_ATS_AddressListHandle
   /**
    * Callback
    */
-  GNUNET_ATS_PeerInformationCallback cb;
+  GNUNET_ATS_AddressInformationCallback cb;
 
   /**
    * Callback closure
@@ -171,7 +171,7 @@ struct GNUNET_ATS_PerformanceHandle
   /**
    * Callback to invoke on performance changes.
    */
-  GNUNET_ATS_PeerInformationCallback infocb;
+  GNUNET_ATS_AddressInformationCallback infocb;
 
   /**
    * Closure for 'infocb'.
@@ -212,6 +212,16 @@ struct GNUNET_ATS_PerformanceHandle
    * Tail of linked list of pending address list requests.
    */
   struct GNUNET_ATS_AddressListHandle *addresslist_tail;
+
+  /**
+   * Head of linked list of pending performance monitors.
+   */
+  struct GNUNET_ATS_PerformanceMonitorHandle *monitor_head;
+
+  /**
+   * Tail of linked list of pending performance monitors.
+   */
+  struct GNUNET_ATS_PerformanceMonitorHandle *monitor_tail;
 
   /**
    * Current request for transmission to ATS.
@@ -629,7 +639,7 @@ reconnect (struct GNUNET_ATS_PerformanceHandle *ph)
  */
 struct GNUNET_ATS_PerformanceHandle *
 GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                             GNUNET_ATS_PeerInformationCallback infocb,
+                             GNUNET_ATS_AddressInformationCallback infocb,
                              void *infocb_cls)
 {
   struct GNUNET_ATS_PerformanceHandle *ph;
@@ -643,6 +653,58 @@ GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   return ph;
 }
 
+struct GNUNET_ATS_PerformanceMonitorHandle
+{
+	struct GNUNET_ATS_PerformanceMonitorHandle *next;
+	struct GNUNET_ATS_PerformanceMonitorHandle *prev;
+
+	struct GNUNET_ATS_PerformanceHandle * ph;
+
+	GNUNET_ATS_PerformanceMonitorCb moncb;
+	void *moncb_cls;
+};
+
+/**
+ * Start monitoring performance information
+ *
+ * @param ph performance handle to use
+ * @param monitor_cb function to call on performance changes
+ * @param monitor_cb_cls closure for infocb
+ * @return a performance monitor handle
+ */
+struct GNUNET_ATS_PerformanceMonitorHandle *
+GNUNET_ATS_performance_monitor_start (struct GNUNET_ATS_PerformanceHandle * ph,
+																			GNUNET_ATS_PerformanceMonitorCb monitor_cb,
+																			void * monitor_cb_cls)
+{
+	GNUNET_assert (NULL != ph);
+
+	struct GNUNET_ATS_PerformanceMonitorHandle *phm =
+			GNUNET_malloc (sizeof (struct GNUNET_ATS_PerformanceMonitorHandle));
+
+	phm->ph = ph;
+	phm->moncb = monitor_cb;
+	phm->moncb_cls = monitor_cb_cls;
+	GNUNET_CONTAINER_DLL_insert (ph->monitor_head, ph->monitor_tail, phm);
+
+	return phm;
+}
+
+
+/**
+ * Stop monitoring performance information
+ *
+ * @param ph performance handle to use
+ * @param monitor_cb function to call on performance changes
+ * @param monitor_cb_cls closure for infocb
+ * @return a performance monitor handle
+ */
+void
+GNUNET_ATS_performance_monitor_stop (struct GNUNET_ATS_PerformanceMonitorHandle * phm)
+{
+	GNUNET_CONTAINER_DLL_remove (phm->ph->monitor_head, phm->ph->monitor_tail, phm);
+	GNUNET_free (phm);
+}
 
 /**
  * Client is done using the ATS performance subsystem, release resources.
@@ -764,7 +826,7 @@ struct GNUNET_ATS_AddressListHandle*
 GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *handle,
                                        const struct GNUNET_PeerIdentity *peer,
                                        int all,
-                                       GNUNET_ATS_PeerInformationCallback infocb,
+                                       GNUNET_ATS_AddressInformationCallback infocb,
                                        void *infocb_cls)
 {
   struct GNUNET_ATS_AddressListHandle *alh;
