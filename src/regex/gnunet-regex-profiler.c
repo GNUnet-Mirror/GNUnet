@@ -36,14 +36,11 @@
 #include "gnunet_dht_service.h"
 #include "gnunet_testbed_service.h"
 
-#define FIND_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 90)
+#define FIND_TIMEOUT \
+        GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 90)
+#define ANNOUNCE_TIME \
+        GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 200)
 #define SEARCHES_IN_PARALLEL 100
-#define ANNOUNCE_DELAY GNUNET_TIME_relative_multiply(\
-                                                GNUNET_TIME_UNIT_MILLISECONDS,\
-                                                300)
-#define SEARCH_DELAY GNUNET_TIME_relative_multiply(\
-                                                GNUNET_TIME_UNIT_MILLISECONDS,\
-                                                200)
 
 /**
  * DLL of operations
@@ -571,7 +568,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != cfg)
     GNUNET_CONFIGURATION_destroy (cfg);
 
-  GNUNET_SCHEDULER_shutdown ();	/* Stop scheduler to shutdown testbed run */
+  GNUNET_SCHEDULER_shutdown (); /* Stop scheduler to shutdown testbed run */
 }
 
 
@@ -713,13 +710,13 @@ stats_cb (void *cls,
   {
     peer->stats_op_handle =
       GNUNET_TESTBED_service_connect (NULL,
-				      peer->peer_handle,
-				      "statistics",
-				      &stats_connect_cb,
-				      peer,
-				      &stats_ca,
-				      &stats_da,
-				      peer);
+                                      peer->peer_handle,
+                                      "statistics",
+                                      &stats_connect_cb,
+                                      peer,
+                                      &stats_ca,
+                                      &stats_da,
+                                      peer);
   }
 }
 
@@ -754,12 +751,12 @@ stats_connect_cb (void *cls,
   peer->stats_handle = ca_result;
 
   if (NULL == GNUNET_STATISTICS_get (peer->stats_handle, NULL, NULL,
-				     GNUNET_TIME_UNIT_FOREVER_REL,
-				     &stats_cb,
-				     &stats_iterator, peer))
+                                     GNUNET_TIME_UNIT_FOREVER_REL,
+                                     &stats_cb,
+                                     &stats_iterator, peer))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Could not get statistics of peer %u!\n", peer->id);
+                "Could not get statistics of peer %u!\n", peer->id);
   }
 }
 
@@ -780,13 +777,13 @@ do_collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   peer->stats_op_handle =
     GNUNET_TESTBED_service_connect (NULL,
-				    peer->peer_handle,
-				    "statistics",
-				    &stats_connect_cb,
-				    peer,
-				    &stats_ca,
-				    &stats_da,
-				    peer);
+                                    peer->peer_handle,
+                                    "statistics",
+                                    &stats_connect_cb,
+                                    peer,
+                                    &stats_ca,
+                                    &stats_da,
+                                    peer);
 }
 
 
@@ -843,7 +840,7 @@ regex_found_handler (void *cls,
   {
     GNUNET_SCHEDULER_cancel (peer->timeout);
     peer->timeout = GNUNET_SCHEDULER_NO_TASK;
-    GNUNET_SCHEDULER_add_delayed (SEARCH_DELAY, &announce_next_regex, NULL);
+    GNUNET_SCHEDULER_add_now (&announce_next_regex, NULL);
   }
 
   if (NULL == id)
@@ -1105,8 +1102,8 @@ arm_start_cb (void *cls, struct GNUNET_ARM_Handle *arm,
           if (i > num_peers)
             GNUNET_abort (); /* we run out of peers, must be a bug */
         }
-                peers[search_peer].search_str = search_strings[search_index];
-        GNUNET_SCHEDULER_add_delayed (SEARCH_DELAY,
+        peers[search_peer].search_str = search_strings[search_index];
+        GNUNET_SCHEDULER_add_delayed (ANNOUNCE_TIME,
                                       &find_string,
                                       (void *) search_peer);
       }
@@ -1176,20 +1173,7 @@ do_announce (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting announce.\n");
 
   for (search_index = 0; search_index < SEARCHES_IN_PARALLEL; search_index++)
-  {
-    /* First connect to arm service, then announce. Next
-       announce will be in arm_connect_cb */
-    peers[search_index].op_handle =
-      GNUNET_TESTBED_service_connect (NULL,
-                                      peers[search_index].peer_handle,
-                                      "arm",
-                                      &arm_connect_cb,
-                                      &peers[search_index],
-                                      &arm_ca,
-                                      &arm_da,
-                                      &peers[search_index]);
-      parallel_searches++;
-  }
+    (void) GNUNET_SCHEDULER_add_now (&announce_next_regex, NULL);
 }
 
 
@@ -1205,8 +1189,9 @@ announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
+  /* First connect to arm service, then announce. Next
+   * a nnounce will be in arm_connect_cb */
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting daemon %u\n", search_index);
-
   peers[search_index].op_handle =
     GNUNET_TESTBED_service_connect (NULL,
                                     peers[search_index].peer_handle,
@@ -1216,6 +1201,7 @@ announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                     &arm_ca,
                                     &arm_da,
                                     &peers[search_index]);
+  parallel_searches++;
 }
 
 /**
@@ -2014,7 +2000,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (config, "REGEXPROFILER", "REGEX_PREFIX",
-					     &regex_prefix))
+                                             &regex_prefix))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Configuration option \"regex_prefix\" missing. Exiting\n"));
