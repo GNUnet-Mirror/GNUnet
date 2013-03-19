@@ -241,6 +241,11 @@ struct ConsensusPeerInformation
    */
   struct StrataMessage *premature_strata_message;
 
+  /**
+   * We have finishes the exp-subround with the peer.
+   */
+  int exp_subround_finished;
+
 };
 
 typedef void (*QueuedMessageCallback) (void *msg);
@@ -787,11 +792,21 @@ handle_p2p_element_report (struct ConsensusPeerInformation *cpi, const struct GN
 }
 
 static void
-queue_cont_subround_over (void *cls)
+fin_sent_cb (void *cls)
 {
-  struct ConsensusSession *session;
-  session = cls;
-  subround_over (session, NULL);
+  struct ConsensusPeerInformation *cpi;
+  int not_finished;
+  cpi = cls;
+  cpi->exp_subround_finished = GNUNET_YES;
+  /* the subround is only really over if *both* partners are done */
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d: sent FIN\n", cpi->session->local_peer_idx);
+  not_finished = 0;
+  if ((cpi->session->partner_outgoing != NULL) && (cpi->session->partner_outgoing->exp_subround_finished == GNUNET_NO))
+      not_finished++;
+  if ((cpi->session->partner_incoming != NULL) && (cpi->session->partner_incoming->exp_subround_finished == GNUNET_NO))
+      not_finished++;
+  if (0 == not_finished)
+    subround_over (cpi->session, NULL);
 }
 
 
@@ -806,12 +821,13 @@ handle_p2p_synced (struct ConsensusPeerInformation *cpi, const struct GNUNET_Mes
   switch (cpi->session->current_round)
   {
     case CONSENSUS_ROUND_EXCHANGE:
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d: got SYNC from P%d\n", cpi->session->local_peer_idx, (int) (cpi - cpi->session->info));
       fin_msg = GNUNET_malloc (sizeof *fin_msg);
       fin_msg->type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_FIN);
       fin_msg->size = htons (sizeof *fin_msg);
       /* the subround os over once we kicked off sending the fin msg */
       /* FIXME: assert we are talking to the right peer! */
-      queue_peer_message_with_cls (cpi, fin_msg, queue_cont_subround_over, cpi->session);
+      queue_peer_message_with_cls (cpi, fin_msg, fin_sent_cb, cpi);
       break;
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "unexpected SYNCED message the current round\n");
@@ -830,8 +846,20 @@ handle_p2p_fin (struct ConsensusPeerInformation *cpi, const struct GNUNET_Messag
   switch (cpi->session->current_round)
   {
     case CONSENSUS_ROUND_EXCHANGE:
-      subround_over (cpi->session, NULL);
-      break;
+    {
+      int not_finished;
+      cpi->exp_subround_finished = GNUNET_YES;
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d: got FIN from P%d\n", cpi->session->local_peer_idx, (int) (cpi - cpi->session->info));
+      /* the subround is only really over if *both* partners are done */
+      not_finished = 0;
+      if ((cpi->session->partner_outgoing != NULL) && (cpi->session->partner_outgoing->exp_subround_finished == GNUNET_NO))
+          not_finished++;
+      if ((cpi->session->partner_incoming != NULL) && (cpi->session->partner_incoming->exp_subround_finished == GNUNET_NO))
+          not_finished++;
+      if (0 == not_finished)
+        subround_over (cpi->session, NULL);
+    }
+    break;
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "unexpected FIN message the current round\n");
       break;
@@ -872,6 +900,8 @@ handle_p2p_strata (struct ConsensusPeerInformation *cpi, const struct StrataMess
   void *buf;
   size_t size;
 
+
+
   switch (cpi->session->current_round)
   {
     case CONSENSUS_ROUND_EXCHANGE:
@@ -881,7 +911,8 @@ handle_p2p_strata (struct ConsensusPeerInformation *cpi, const struct StrataMess
       {
         if (GNUNET_NO == cpi->replaying_strata_message)
         {
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO, "got probably premature message\n");
+          GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d: got probably premature SE from P%d, (%d,%d)\n",
+                      cpi->session->local_peer_idx, (int) (cpi - cpi->session->info), strata_msg->exp_round, strata_msg->exp_subround);
           cpi->premature_strata_message = (struct StrataMessage *) GNUNET_copy_message ((struct GNUNET_MessageHeader *) strata_msg);
         }
         return GNUNET_YES;
@@ -905,7 +936,9 @@ handle_p2p_strata (struct ConsensusPeerInformation *cpi, const struct StrataMess
   }
 
   diff = estimate_difference (cpi->session->se, cpi->se);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "received strata, diff=%d\n", diff);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d: got SE from P%d\n",
+              cpi->session->local_peer_idx, (int) (cpi - cpi->session->info));
 
   if ( (CONSENSUS_ROUND_EXCHANGE == cpi->session->current_round) ||
        (CONSENSUS_ROUND_INVENTORY == cpi->session->current_round))
@@ -988,9 +1021,9 @@ handle_p2p_ibf (struct ConsensusPeerInformation *cpi, const struct DifferenceDig
   if (cpi->ibf_bucket_counter == (1 << cpi->ibf_order))
   {
     cpi->ibf_state = IBF_STATE_DECODING;
+    cpi->ibf_bucket_counter = 0;
     prepare_ibf (cpi);
     ibf_subtract (cpi->ibf, cpi->session->ibfs[cpi->ibf_order]);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "about to decode\n");
     decode (cpi);
   }
   return GNUNET_YES;
@@ -1075,7 +1108,8 @@ embrace_peer (struct ConsensusPeerInformation *cpi)
     case CONSENSUS_ROUND_INVENTORY:
       /* fallthrough */
     case CONSENSUS_ROUND_STOCK:
-      send_strata_estimator (cpi);
+      if (cpi == cpi->session->partner_outgoing)
+        send_strata_estimator (cpi);
     default:
       break;
   }
@@ -1128,6 +1162,11 @@ send_strata_estimator (struct ConsensusPeerInformation *cpi)
   size_t msize;
   int i;
 
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d: sending SE to P%d\n",
+              cpi->session->local_peer_idx, (int) (cpi - cpi->session->info));
+
+
   msize = (sizeof *strata_msg) + (STRATA_COUNT * IBF_BUCKET_SIZE * STRATA_IBF_BUCKETS);
 
   strata_msg = GNUNET_malloc (msize);
@@ -1155,6 +1194,10 @@ static void
 send_ibf (struct ConsensusPeerInformation *cpi)
 {
   int sent_buckets;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d: sending IBF to P%d\n",
+              cpi->session->local_peer_idx, (int) (cpi - cpi->session->info));
+
   sent_buckets = 0;
   while (sent_buckets < (1 << cpi->ibf_order))
   {
@@ -1214,7 +1257,7 @@ decode (struct ConsensusPeerInformation *cpi)
     if (GNUNET_NO == res)
     {
       struct GNUNET_MessageHeader *msg;
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "transmitted all values\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d: transmitted all values, sending SYNC\n", cpi->session->local_peer_idx);
       msg = GNUNET_malloc (sizeof *msg);
       msg->size = htons (sizeof *msg);
       msg->type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_SYNCED);
@@ -1903,7 +1946,6 @@ find_partners (struct ConsensusSession *session)
       continue;
     arc = (i + (1 << session->exp_subround)) % session->num_peers;
     mark[i] = mark[arc] = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "peer %d talks to %d\n", i, arc);
     GNUNET_assert (i != arc);
     if (i == session->local_peer_idx)
     {
@@ -1914,10 +1956,6 @@ find_partners (struct ConsensusSession *session)
     {
       GNUNET_assert (NULL == session->partner_incoming);
       session->partner_incoming = &session->info[session->shuffle[i]];
-    }
-    if (0 != mark[session->local_peer_idx])
-    {
-      return;
     }
   }
 }
@@ -1942,7 +1980,6 @@ subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   session = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "subround over, exp_round=%d, exp_subround=%d\n", session->exp_round, session->exp_subround);
 
   for (i = 0; i < session->num_peers; i++)
     clear_peer_messages (&session->info[i]);
@@ -1955,12 +1992,14 @@ subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if ((session->num_peers == 2) &&  (session->exp_round == 1))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "exp-round over (2-peer)\n");
     round_over (session, NULL);
     return;
   }
 
   if (session->exp_round == NUM_EXP_ROUNDS)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "exp-round over (2-peer)\n");
     round_over (session, NULL);
     return;
   }
@@ -1987,24 +2026,49 @@ subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   find_partners (session);
 
+  {
+    int in;
+    int out;
+    if (session->partner_outgoing == NULL)
+      out = -1;
+    else
+      out = (int) (session->partner_outgoing - session->info);
+    if (session->partner_incoming == NULL)
+      in = -1;
+    else
+      in = (int) (session->partner_incoming - session->info);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%u: doing exp-round, r=%d, sub=%d, in: %d, out: %d\n", session->local_peer_idx,
+                session->exp_round, session->exp_subround, in, out);
+  }
+
+
   if (NULL != session->partner_outgoing)
   {
     session->partner_outgoing->ibf_state = IBF_STATE_NONE;
     session->partner_outgoing->ibf_bucket_counter = 0;
+    session->partner_outgoing->exp_subround_finished = GNUNET_NO;
   }
 
   if (NULL != session->partner_incoming)
   {
     session->partner_incoming->ibf_state = IBF_STATE_NONE;
+    session->partner_incoming->exp_subround_finished = GNUNET_NO;
     session->partner_incoming->ibf_bucket_counter = 0;
 
     /* maybe there's an early strata estimator? */
     if (NULL != session->partner_incoming->premature_strata_message)
     {
+      struct StrataMessage *sm;
+
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "replaying premature SE\n");
+      sm = session->partner_incoming->premature_strata_message;
+      session->partner_incoming->premature_strata_message = NULL;
+
       session->partner_incoming->replaying_strata_message = GNUNET_YES;
-      handle_p2p_strata (session->partner_incoming, session->partner_incoming->premature_strata_message);
-      GNUNET_free (session->partner_incoming->premature_strata_message);
+      handle_p2p_strata (session->partner_incoming, sm);
       session->partner_incoming->replaying_strata_message = GNUNET_NO;
+
+      GNUNET_free (sm);
     }
   }
 
@@ -2108,7 +2172,7 @@ round_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       subround_over (session, NULL);
       break;
     case CONSENSUS_ROUND_EXCHANGE:
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "done for now\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d: done\n", session->local_peer_idx);
 
       if (0)
       {
