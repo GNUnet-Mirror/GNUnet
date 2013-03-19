@@ -968,7 +968,6 @@ find_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       peer_cnt >= num_search_strings)
     return;
 
-  parallel_searches++;
   peers[peer_cnt].search_str = search_strings[peer_cnt];
   peers[peer_cnt].search_str_matched = GNUNET_NO;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
