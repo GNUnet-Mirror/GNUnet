@@ -960,8 +960,7 @@ check_target_added (void *cls,
  * @param group FIXME
  */
 static void
-consensus_done_cb (void *cls,
-		   const struct GNUNET_CONSENSUS_Group *group)
+consensus_done_cb (void *cls)
 {
   struct DirectNeighbor *neighbor = cls;
 
@@ -1032,7 +1031,6 @@ insert_next_element (void *cls,
     /* we're done, conclude! */
     GNUNET_CONSENSUS_conclude (neighbor->consensus,
 			       GNUNET_DV_CONSENSUS_FREQUENCY,
-			       2 /* both peers */,
 			       &consensus_done_cb,
 			       neighbor);
     return;

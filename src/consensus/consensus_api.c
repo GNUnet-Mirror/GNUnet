@@ -282,11 +282,11 @@ handle_new_element (struct GNUNET_CONSENSUS_Handle *consensus,
  */
 static void
 handle_conclude_done (struct GNUNET_CONSENSUS_Handle *consensus,
-                     struct GNUNET_CONSENSUS_ConcludeDoneMessage *msg)
+                     const struct GNUNET_MessageHeader *msg)
 {
   GNUNET_assert (NULL != consensus->conclude_cb);
   consensus->may_not_destroy = GNUNET_YES;
-  consensus->conclude_cb (consensus->conclude_cls, NULL);
+  consensus->conclude_cb (consensus->conclude_cls);
   consensus->may_not_destroy = GNUNET_NO;
   consensus->conclude_cb = NULL;
 }
@@ -323,7 +323,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       handle_new_element (consensus, (struct GNUNET_CONSENSUS_ElementMessage *) msg);
       break;
     case GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE_DONE:
-      handle_conclude_done (consensus, (struct GNUNET_CONSENSUS_ConcludeDoneMessage *) msg);
+      handle_conclude_done (consensus, msg);
       break;
     default:
       GNUNET_break (0);
@@ -491,7 +491,6 @@ GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
 void
 GNUNET_CONSENSUS_conclude (struct GNUNET_CONSENSUS_Handle *consensus,
 			   struct GNUNET_TIME_Relative timeout,
-			   unsigned int min_group_size_in_consensus,
 			   GNUNET_CONSENSUS_ConcludeCallback conclude,
 			   void *conclude_cls)
 {
@@ -508,7 +507,6 @@ GNUNET_CONSENSUS_conclude (struct GNUNET_CONSENSUS_Handle *consensus,
   conclude_msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE);
   conclude_msg->header.size = htons (sizeof (struct GNUNET_CONSENSUS_ConcludeMessage));
   conclude_msg->timeout = GNUNET_TIME_relative_hton (timeout);
-  conclude_msg->min_group_size = min_group_size_in_consensus;
 
   qmsg = GNUNET_malloc (sizeof (struct QueuedMessage));
   qmsg->msg = (struct GNUNET_MessageHeader *) conclude_msg;

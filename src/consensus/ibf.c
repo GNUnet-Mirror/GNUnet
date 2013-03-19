@@ -92,19 +92,20 @@ ibf_get_indices (const struct InvertibleBloomFilter *ibf,
                  struct IBF_Key key, int *dst)
 {
   struct GNUNET_HashCode bucket_indices;
-  unsigned int filled = 0;
+  unsigned int filled;
   int i;
   GNUNET_CRYPTO_hash (&key, sizeof key, &bucket_indices);
+  filled = 0;
   for (i = 0; filled < ibf->hash_num; i++)
   {
     unsigned int bucket;
     unsigned int j;
     if ( (0 != i) && (0 == (i % 16)) )
       GNUNET_CRYPTO_hash (&bucket_indices, sizeof (struct GNUNET_HashCode), &bucket_indices);
-    bucket = bucket_indices.bits[i] % ibf->size;
+    bucket = bucket_indices.bits[i % 16] % ibf->size;
     for (j = 0; j < filled; j++)
       if (dst[j] == bucket)
-        goto try_next;;
+        goto try_next;
     dst[filled++] = bucket;
     try_next: ;
   }
@@ -141,6 +142,7 @@ void
 ibf_insert (struct InvertibleBloomFilter *ibf, struct IBF_Key key)
 {
   int buckets[ibf->hash_num];
+  GNUNET_assert (ibf->hash_num <= ibf->size);
   ibf_get_indices (ibf, key, buckets);
   ibf_insert_into (ibf, key, buckets, 1);
 }

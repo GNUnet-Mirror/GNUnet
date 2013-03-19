@@ -83,7 +83,7 @@ destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *ctx)
  * @return GNUNET_YES if more consensus groups should be offered, GNUNET_NO if not
  */
 static void
-conclude_cb (void *cls, const struct GNUNET_CONSENSUS_Group *group)
+conclude_cb (void *cls)
 {
   GNUNET_SCHEDULER_add_now (destroy, cls);
 }
@@ -142,7 +142,7 @@ do_consensus ()
   }
 
   for (i = 0; i < num_peers; i++)
-    GNUNET_CONSENSUS_conclude (consensus_handles[i], conclude_timeout, 0, conclude_cb, consensus_handles[i]);
+    GNUNET_CONSENSUS_conclude (consensus_handles[i], conclude_timeout, conclude_cb, consensus_handles[i]);
 }
 
 
@@ -184,7 +184,7 @@ connect_complete (void *cls,
 
 static int
 new_element_cb (void *cls,
-                struct GNUNET_CONSENSUS_Element *element)
+                const struct GNUNET_CONSENSUS_Element *element)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "received new element\n");
   return GNUNET_YES;

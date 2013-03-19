@@ -52,33 +52,10 @@ struct GNUNET_CONSENSUS_ConcludeMessage
    */
   struct GNUNET_MessageHeader header;
 
-
-  /**
-   * Minimum group size required for a consensus group.
-   */
-  uint32_t min_group_size GNUNET_PACKED;
-
   /**
    * Timeout for conclude
    */
   struct GNUNET_TIME_RelativeNBO timeout;
-};
-
-
-struct GNUNET_CONSENSUS_ConcludeDoneMessage
-{
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE_DONE
-   */
-  struct GNUNET_MessageHeader header;
-
-  uint32_t group_id GNUNET_PACKED;
-
-  uint32_t num_elements GNUNET_PACKED;
-
-  uint32_t num_peers GNUNET_PACKED;
-
-  /** PeerIdentity[num_peers] */
 };
 
 

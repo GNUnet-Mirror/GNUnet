@@ -164,21 +164,12 @@ void
 GNUNET_CONSENSUS_get_delta_cancel (struct GNUNET_CONSENSUS_DeltaRequest *dr);
 
 
-struct GNUNET_CONSENSUS_Group
-{
-  unsigned int num_members;
-  uint64_t total_elements_in_group;
-  const struct GNUNET_PeerIdentity **members;
-};
-                                       
-
 /**
  * Called when a conclusion was successful.
  *
  * @param cls
- * @param group
  */
-typedef void (*GNUNET_CONSENSUS_ConcludeCallback) (void *cls, const struct GNUNET_CONSENSUS_Group *group);
+typedef void (*GNUNET_CONSENSUS_ConcludeCallback) (void *cls);
 
 
 /**
@@ -194,7 +185,6 @@ typedef void (*GNUNET_CONSENSUS_ConcludeCallback) (void *cls, const struct GNUNE
 void
 GNUNET_CONSENSUS_conclude (struct GNUNET_CONSENSUS_Handle *consensus,
                            struct GNUNET_TIME_Relative timeout,
-                           unsigned int min_group_size_in_consensus,
                            GNUNET_CONSENSUS_ConcludeCallback conclude,
                            void *conclude_cls);
 

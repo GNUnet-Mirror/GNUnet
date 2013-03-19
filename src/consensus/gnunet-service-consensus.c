@@ -62,6 +62,11 @@
  */
 #define MAX_IBF_ORDER (16)
 
+/**
+ * Number exp-rounds.
+ */
+#define NUM_EXP_ROUNDS (4)
+
 
 /* forward declarations */
 
@@ -70,23 +75,32 @@ struct IncomingSocket;
 struct ConsensusPeerInformation;
 
 static void
-send_next (struct ConsensusSession *session);
-
-static void 
-write_strata (void *cls, enum GNUNET_STREAM_Status status, size_t size);
-
-static void 
-write_ibf (void *cls, enum GNUNET_STREAM_Status status, size_t size);
-
-static void 
-write_requests_and_elements (void *cls, enum GNUNET_STREAM_Status status, size_t size);
+client_send_next (struct ConsensusSession *session);
 
 static int
 get_peer_idx (const struct GNUNET_PeerIdentity *peer, const struct ConsensusSession *session);
 
+static void 
+round_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+static void
+send_ibf (struct ConsensusPeerInformation *cpi);
+
+static void
+send_strata_estimator (struct ConsensusPeerInformation *cpi);
+
+static void
+decode (struct ConsensusPeerInformation *cpi);
+
+static void 
+write_queued (void *cls, enum GNUNET_STREAM_Status status, size_t size);
+
+static void
+subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 /**
- * An element that is waiting to be transmitted.
+ * An element that is waiting to be transmitted to the client.
  */
 struct PendingElement
 {
@@ -109,11 +123,14 @@ struct PendingElement
   struct ConsensusPeerInformation *cpi;
 };
 
+
 /**
  * Information about a peer that is in a consensus session.
  */
 struct ConsensusPeerInformation
 {
+  struct GNUNET_PeerIdentity peer_id;
+
   /**
    * Socket for communicating with the peer, either created by the local peer,
    * or the remote peer.
@@ -126,22 +143,12 @@ struct ConsensusPeerInformation
   struct GNUNET_SERVER_MessageStreamTokenizer *mst;
 
   /**
-   * Is socket's connection established, i.e. can we write to it?
-   * Only relevent to outgoing cpi.
-   */
-  int is_connected;
-
-  /**
-   * Type of the peer in the all-to-all rounds,
-   * GNUNET_YES if we initiate reconciliation.
+   * Do we connect to the peer, or does the peer connect to us?
+   * Only valid for all-to-all phases
    */
   int is_outgoing;
 
-  /**
-   * if the peer did something wrong, and was disconnected,
-   * never interact with this peer again.
-   */
-  int is_bad;
+  int connected;
 
   /**
    * Did we receive/send a consensus hello?
@@ -194,28 +201,17 @@ struct ConsensusPeerInformation
    * Strata estimator of the peer, NULL if our peer
    * initiated the reconciliation.
    */
-  struct InvertibleBloomFilter **strata;
+  struct StrataEstimator *se;
 
   /**
-   * Elements that the peer is missing from us.
+   * Element keys that this peer misses, but we have them.
    */
-  uint64_t *missing_local;
+  struct GNUNET_CONTAINER_MultiHashMap *requested_keys;
 
   /**
-   * Number of elements in missing_local
+   * Element keys that this peer has, but we miss.
    */
-  unsigned int num_missing_local;
-
-  /**
-   * Elements that this peer told us *we* don't have,
-   * i.e. we are the remote peer that has some values missing.
-   */
-  uint64_t *missing_remote;
-
-  /**
-   * Number of elements in missing_local
-   */
-  unsigned int num_missing_remote;
+  struct GNUNET_CONTAINER_MultiHashMap *reported_keys;
 
   /**
    * Back-reference to the consensus session,
@@ -224,12 +220,30 @@ struct ConsensusPeerInformation
   struct ConsensusSession *session;
 
   /**
-   * When decoding the IBF, requests for elements and outgoing elements
-   * have to be queued, to ensure that messages actually fit in the stream buffer.
+   * Messages queued for the current round.
    */
-  struct QueuedMessage *requests_and_elements_head;
-  struct QueuedMessage *requests_and_elements_tail;
+  struct QueuedMessage *messages_head;
+
+  /**
+   * Messages queued for the current round.
+   */
+  struct QueuedMessage *messages_tail;
+
+  /**
+   * True if we are actually replaying the strata message,
+   * e.g. currently handling the premature_strata_message.
+   */
+  int replaying_strata_message;
+
+  /**
+   * A strata message that is not actually for the current round,
+   * used in the exp-scheme.
+   */
+  struct StrataMessage *premature_strata_message;
+
 };
+
+typedef void (*QueuedMessageCallback) (void *msg);
 
 /**
  * A doubly linked list of messages.
@@ -247,6 +261,10 @@ struct QueuedMessage
    * Queued messages are stored in a doubly linked list.
    */
   struct QueuedMessage *prev;
+
+  QueuedMessageCallback cb;
+  
+  void *cls;
 };
 
 /**
@@ -255,29 +273,30 @@ struct QueuedMessage
 enum ConsensusRound
 {
   /**
-   * Not started the protocl yet
+   * Not started the protocol yet.
    */
   CONSENSUS_ROUND_BEGIN=0,
   /**
-   * distribution of information with the exponential scheme.
+   * Distribution of elements with the exponential scheme.
    */
-  CONSENSUS_ROUND_EXP_EXCHANGE,
+  CONSENSUS_ROUND_EXCHANGE,
   /**
-   * All-to-all, exchange missing values.
+   * Exchange which elements each peer has, but not the elements.
    */
-  CONSENSUS_ROUND_A2A_EXCHANGE,
+  CONSENSUS_ROUND_INVENTORY,
   /**
-   * All-to-all, check what values are missing, don't exchange anything.
+   * Collect and distribute missing values.
    */
-  CONSENSUS_ROUND_A2A_INVENTORY,
+  CONSENSUS_ROUND_STOCK,
   /**
-   * All-to-all round to exchange information for byzantine fault detection.
-   */
-  CONSENSUS_ROUND_A2A_INVENTORY_AGREEMENT,
-  /**
-   * Rounds are over
+   * Consensus concluded.
    */
   CONSENSUS_ROUND_FINISH
+};
+
+struct StrataEstimator
+{
+  struct InvertibleBloomFilter **strata;
 };
 
 
@@ -305,7 +324,7 @@ struct ConsensusSession
 
   /**
   * Global consensus identification, computed
-  * from the local id and participating authorities.
+  * from the session id and participating authorities.
   */
   struct GNUNET_HashCode global_id;
 
@@ -316,7 +335,7 @@ struct ConsensusSession
   struct GNUNET_SERVER_Client *client;
 
   /**
-   * Values in the consensus set of this session,
+   * Elements in the consensus set of this session,
    * all of them either have been sent by or approved by the client.
    * Contains GNUNET_CONSENSUS_Element.
    */
@@ -325,12 +344,12 @@ struct ConsensusSession
   /**
    * Elements that have not been approved (or rejected) by the client yet.
    */
-  struct PendingElement *approval_pending_head;
+  struct PendingElement *client_approval_head;
 
   /**
    * Elements that have not been approved (or rejected) by the client yet.
    */
-  struct PendingElement *approval_pending_tail;
+  struct PendingElement *client_approval_tail;
 
   /**
    * Messages to be sent to the local client that owns this session
@@ -345,7 +364,7 @@ struct ConsensusSession
   /**
    * Currently active transmit handle for sending to the client
    */
-  struct GNUNET_SERVER_TransmitHandle *th;
+  struct GNUNET_SERVER_TransmitHandle *client_th;
 
   /**
    * Timeout for all rounds together, single rounds will schedule a timeout task
@@ -370,12 +389,6 @@ struct ConsensusSession
   struct ConsensusPeerInformation *info;
 
   /**
-   * Sorted array of peer identities in this consensus session,
-   * includes the local peer.
-   */
-  struct GNUNET_PeerIdentity *peers;
-
-  /**
    * Index of the local peer in the peers array
    */
   int local_peer_idx;
@@ -383,7 +396,7 @@ struct ConsensusSession
   /**
    * Strata estimator, computed online
    */
-  struct InvertibleBloomFilter **strata;
+  struct StrataEstimator *se;
 
   /**
    * Pre-computed IBFs
@@ -394,6 +407,26 @@ struct ConsensusSession
    * Current round
    */
   enum ConsensusRound current_round;
+
+  int exp_round;
+
+  int exp_subround;
+
+  /**
+   * Permutation of peers for the current round,
+   * maps logical index (for current round) to physical index (location in info array)
+   */
+  int *shuffle;
+
+  /**
+   * The partner for the current exp-round
+   */
+  struct ConsensusPeerInformation* partner_outgoing;
+
+  /**
+   * The partner for the current exp-round
+   */
+  struct ConsensusPeerInformation* partner_incoming;
 };
 
 
@@ -427,7 +460,7 @@ struct IncomingSocket
   /**
    * Peer that connected to us with the socket.
    */
-  struct GNUNET_PeerIdentity *peer;
+  struct GNUNET_PeerIdentity peer_id;
 
   /**
    * Message stream tokenizer for this socket.
@@ -442,8 +475,6 @@ struct IncomingSocket
   /**
    * Set to the global session id, if the peer sent us a hello-message,
    * but the session does not exist yet.
-   *
-   * FIXME: not implemented yet
    */
   struct GNUNET_HashCode *requested_gid;
 };
@@ -504,26 +535,45 @@ queue_client_message (struct ConsensusSession *session, struct GNUNET_MessageHea
 }
 
 /**
- * Get peer index associated with the peer information,
- * unique for every session among all peers.
- */
-static int
-get_cpi_index (struct ConsensusPeerInformation *cpi)
-{
-  return cpi - cpi->session->info;
-}
-
-/**
- * Mark the peer as bad, free state we don't need anymore.
+ * Queue a message to be sent to another peer
  *
- * @param cpi consensus peer information of the bad peer
+ * @param cpi peer
+ * @param msg message we want to queue
  */
 static void
-mark_peer_bad (struct ConsensusPeerInformation *cpi)
+queue_peer_message_with_cls (struct ConsensusPeerInformation *cpi, struct GNUNET_MessageHeader *msg, QueuedMessageCallback cb, void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "peer #%u marked as bad\n", get_cpi_index (cpi));
-  cpi->is_bad = GNUNET_YES;
-  /* FIXME: free ibfs etc. */
+  struct QueuedMessage *qm;
+  qm = GNUNET_malloc (sizeof *qm);
+  qm->msg = msg;
+  qm->cls = cls;
+  qm->cb = cb;
+  GNUNET_CONTAINER_DLL_insert_tail (cpi->messages_head, cpi->messages_tail, qm);
+  if (cpi->wh == NULL)
+    write_queued (cpi, GNUNET_STREAM_OK, 0);
+}
+
+
+/**
+ * Queue a message to be sent to another peer
+ *
+ * @param cpi peer
+ * @param msg message we want to queue
+ */
+static void
+queue_peer_message (struct ConsensusPeerInformation *cpi, struct GNUNET_MessageHeader *msg)
+{
+  queue_peer_message_with_cls (cpi, msg, NULL, NULL);
+}
+
+
+
+static void
+clear_peer_messages (struct ConsensusPeerInformation *cpi)
+{
+  /* FIXME: deallocate */
+  cpi->messages_head = NULL;
+  cpi->messages_tail = NULL;
 }
 
 
@@ -532,13 +582,13 @@ mark_peer_bad (struct ConsensusPeerInformation *cpi)
  * i.e. arrays of IBFs.
  * Does not not modify its arguments.
  *
- * @param strata1 first strata estimator
- * @param strata2 second strata estimator
+ * @param se1 first strata estimator
+ * @param se2 second strata estimator
  * @return the estimated difference
  */
 static int
-estimate_difference (struct InvertibleBloomFilter** strata1,
-                     struct InvertibleBloomFilter** strata2)
+estimate_difference (struct StrataEstimator *se1,
+                     struct StrataEstimator *se2)
 {
   int i;
   int count;
@@ -551,8 +601,8 @@ estimate_difference (struct InvertibleBloomFilter** strata1,
     int more;
     ibf_count = 0;
     /* FIXME: implement this without always allocating new IBFs */
-    diff = ibf_dup (strata1[i]);
-    ibf_subtract (diff, strata2[i]);
+    diff = ibf_dup (se1->strata[i]);
+    ibf_subtract (diff, se2->strata[i]);
     for (;;)
     {
       more = ibf_decode (diff, NULL, NULL);
@@ -664,25 +714,23 @@ send_element_iter (void *cls,
 {
   struct ConsensusPeerInformation *cpi;
   struct GNUNET_CONSENSUS_Element *element;
-  struct QueuedMessage *qm;
   struct GNUNET_MessageHeader *element_msg;
   size_t msize;
+
   cpi = cls;
   element = value;
   msize = sizeof (struct GNUNET_MessageHeader) + element->size;
   element_msg = GNUNET_malloc (msize);
   element_msg->size = htons (msize);
-  if (CONSENSUS_ROUND_A2A_EXCHANGE == cpi->session->current_round)
+  if (CONSENSUS_ROUND_EXCHANGE == cpi->session->current_round)
     element_msg->type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS);
-  else if (CONSENSUS_ROUND_A2A_INVENTORY == cpi->session->current_round)
-    element_msg->type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS_MISSING_REMOTE);
+  else if (CONSENSUS_ROUND_INVENTORY == cpi->session->current_round)
+    element_msg->type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS_REPORT);
   else
     GNUNET_assert (0);
   GNUNET_assert (NULL != element->data);
   memcpy (&element_msg[1], element->data, element->size);
-  qm = GNUNET_malloc (sizeof *qm);
-  qm->msg = element_msg;
-  GNUNET_CONTAINER_DLL_insert (cpi->requests_and_elements_head, cpi->requests_and_elements_tail, qm);
+  queue_peer_message (cpi, element_msg);
   return GNUNET_YES;
 }
 
@@ -733,30 +781,79 @@ prepare_ibf (struct ConsensusPeerInformation *cpi)
  * @param msg message
  */
 static int
-handle_p2p_missing_local (struct ConsensusPeerInformation *cpi, const struct GNUNET_MessageHeader *msg)
+handle_p2p_element_report (struct ConsensusPeerInformation *cpi, const struct GNUNET_MessageHeader *msg)
 {
-  uint64_t key;
-  key = *(uint64_t *) &msg[1];
-  GNUNET_array_append (cpi->missing_remote, cpi->num_missing_remote, key);
-  return GNUNET_OK;
+  GNUNET_assert (0);
+}
+
+static void
+queue_cont_subround_over (void *cls)
+{
+  struct ConsensusSession *session;
+  session = cls;
+  subround_over (session, NULL);
 }
 
 
 /**
- * Called when a remote peer wants to inform the local peer
- * that the local peer misses elements.
- * Elements are not reconciled.
- *
- * @param cpi session
- * @param msg message
+ * Gets called when the other peer wants us to inform that
+ * it has decoded our ibf and sent us all elements / requests
  */
 static int
-handle_p2p_missing_remote (struct ConsensusPeerInformation *cpi, const struct GNUNET_MessageHeader *msg)
+handle_p2p_synced (struct ConsensusPeerInformation *cpi, const struct GNUNET_MessageHeader *msg)
 {
-  uint64_t key;
-  key = *(uint64_t *) &msg[1];
-  GNUNET_array_append (cpi->missing_local, cpi->num_missing_local, key);
-  return GNUNET_OK;
+  struct GNUNET_MessageHeader *fin_msg;
+  switch (cpi->session->current_round)
+  {
+    case CONSENSUS_ROUND_EXCHANGE:
+      fin_msg = GNUNET_malloc (sizeof *fin_msg);
+      fin_msg->type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_FIN);
+      fin_msg->size = htons (sizeof *fin_msg);
+      /* the subround os over once we kicked off sending the fin msg */
+      /* FIXME: assert we are talking to the right peer! */
+      queue_peer_message_with_cls (cpi, fin_msg, queue_cont_subround_over, cpi->session);
+      break;
+    default:
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "unexpected SYNCED message the current round\n");
+      break;
+  }
+  return GNUNET_YES;
+}
+
+/**
+ * The other peer wants us to inform that he sent us all the elements we requested.
+ */
+static int
+handle_p2p_fin (struct ConsensusPeerInformation *cpi, const struct GNUNET_MessageHeader *msg)
+{
+  /* FIXME: only call subround_over if round is the current one! */
+  switch (cpi->session->current_round)
+  {
+    case CONSENSUS_ROUND_EXCHANGE:
+      subround_over (cpi->session, NULL);
+      break;
+    default:
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "unexpected FIN message the current round\n");
+      break;
+  }
+  return GNUNET_YES;
+}
+
+
+static struct StrataEstimator *
+strata_estimator_create ()
+{
+  struct StrataEstimator *se;
+  int i;
+
+  /* fixme: allocate everything in one chunk */
+
+  se = GNUNET_malloc (sizeof (struct StrataEstimator));
+  se->strata = GNUNET_malloc (sizeof (struct InvertibleBloomFilter) * STRATA_COUNT);
+  for (i = 0; i < STRATA_COUNT; i++)
+    se->strata[i] = ibf_create (STRATA_IBF_BUCKETS, STRATA_HASH_NUM, 0);
+
+  return se;
 }
 
 
@@ -775,33 +872,47 @@ handle_p2p_strata (struct ConsensusPeerInformation *cpi, const struct StrataMess
   void *buf;
   size_t size;
 
-  GNUNET_assert (GNUNET_NO == cpi->is_outgoing);
-
-  if (NULL == cpi->strata)
+  switch (cpi->session->current_round)
   {
-    cpi->strata = GNUNET_malloc (STRATA_COUNT * sizeof (struct InvertibleBloomFilter *));
-    for (i = 0; i < STRATA_COUNT; i++)
-      cpi->strata[i] = ibf_create (STRATA_IBF_BUCKETS, STRATA_HASH_NUM, 0);
+    case CONSENSUS_ROUND_EXCHANGE:
+      if ( (strata_msg->round != CONSENSUS_ROUND_EXCHANGE) ||
+           (strata_msg->exp_round != cpi->session->exp_round) ||
+           (strata_msg->exp_subround != cpi->session->exp_subround))
+      {
+        if (GNUNET_NO == cpi->replaying_strata_message)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_INFO, "got probably premature message\n");
+          cpi->premature_strata_message = (struct StrataMessage *) GNUNET_copy_message ((struct GNUNET_MessageHeader *) strata_msg);
+        }
+        return GNUNET_YES;
+      }
+      break;
+    default:
+      GNUNET_assert (0);
+      break;
   }
+
+  if (NULL == cpi->se)
+    cpi->se = strata_estimator_create ();
 
   size = ntohs (strata_msg->header.size);
   buf = (void *) &strata_msg[1];
   for (i = 0; i < STRATA_COUNT; i++)
   {
     int res;
-    res = ibf_read (&buf, &size, cpi->strata[i]);
+    res = ibf_read (&buf, &size, cpi->se->strata[i]);
     GNUNET_assert (GNUNET_OK == res);
   }
 
-  diff = estimate_difference (cpi->session->strata, cpi->strata);
+  diff = estimate_difference (cpi->session->se, cpi->se);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "received strata, diff=%d\n", diff);
 
-  if ( (CONSENSUS_ROUND_A2A_EXCHANGE == cpi->session->current_round) ||
-       (CONSENSUS_ROUND_A2A_INVENTORY == cpi->session->current_round))
+  if ( (CONSENSUS_ROUND_EXCHANGE == cpi->session->current_round) ||
+       (CONSENSUS_ROUND_INVENTORY == cpi->session->current_round))
   {
     /* send IBF of the right size */
     cpi->ibf_order = 0;
-    while ((1 << cpi->ibf_order) < diff)
+    while (((1 << cpi->ibf_order) < diff) || STRATA_HASH_NUM > (1 << cpi->ibf_order) )
       cpi->ibf_order++;
     if (cpi->ibf_order > MAX_IBF_ORDER)
       cpi->ibf_order = MAX_IBF_ORDER;
@@ -811,9 +922,8 @@ handle_p2p_strata (struct ConsensusPeerInformation *cpi, const struct StrataMess
     cpi->ibf = ibf_dup (cpi->session->ibfs[cpi->ibf_order]);
     cpi->ibf_state = IBF_STATE_TRANSMITTING;
     cpi->ibf_bucket_counter = 0;
-    write_ibf (cpi, GNUNET_STREAM_OK, 0);
+    send_ibf (cpi);
   }
-
   return GNUNET_YES;
 }
 
@@ -823,6 +933,8 @@ handle_p2p_ibf (struct ConsensusPeerInformation *cpi, const struct DifferenceDig
 {
   int num_buckets;
   void *buf;
+
+  /* FIXME: find out if we're still expecting the same ibf! */
 
   num_buckets = (ntohs (digest->header.size) - (sizeof *digest)) / IBF_BUCKET_SIZE;
   switch (cpi->ibf_state)
@@ -852,16 +964,14 @@ handle_p2p_ibf (struct ConsensusPeerInformation *cpi, const struct DifferenceDig
     case IBF_STATE_RECEIVING:
       break;
     default:
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "received ibf unexpectedly in state %d\n", cpi->ibf_state);
-      mark_peer_bad (cpi);
-      return GNUNET_NO;
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "received ibf unexpectedly in state %d\n", cpi->ibf_state);
+      return GNUNET_YES;
   }
 
   if (cpi->ibf_bucket_counter + num_buckets > (1 << cpi->ibf_order))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "received malformed ibf\n");
-    mark_peer_bad (cpi);
-    return GNUNET_NO;
+    return GNUNET_YES;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "receiving %d buckets at %d of %d\n", num_buckets,
@@ -877,16 +987,19 @@ handle_p2p_ibf (struct ConsensusPeerInformation *cpi, const struct DifferenceDig
 
   if (cpi->ibf_bucket_counter == (1 << cpi->ibf_order))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "received full ibf\n");
     cpi->ibf_state = IBF_STATE_DECODING;
     prepare_ibf (cpi);
     ibf_subtract (cpi->ibf, cpi->session->ibfs[cpi->ibf_order]);
-    write_requests_and_elements (cpi, GNUNET_STREAM_OK, 0);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "about to decode\n");
+    decode (cpi);
   }
   return GNUNET_YES;
 }
 
 
+/**
+ * Handle an element that another peer sent us
+ */
 static int
 handle_p2p_element (struct ConsensusPeerInformation *cpi, const struct GNUNET_MessageHeader *element_msg)
 {
@@ -897,8 +1010,6 @@ handle_p2p_element (struct ConsensusPeerInformation *cpi, const struct GNUNET_Me
 
   size = ntohs (element_msg->size) - sizeof *element_msg;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "receiving element, size=%d\n", size);
-
   element = GNUNET_malloc (size + sizeof *element);
   element->size = size;
   memcpy (&element[1], &element_msg[1], size);
@@ -906,7 +1017,7 @@ handle_p2p_element (struct ConsensusPeerInformation *cpi, const struct GNUNET_Me
 
   pending_element = GNUNET_malloc (sizeof *pending_element);
   pending_element->element = element;
-  GNUNET_CONTAINER_DLL_insert_tail (cpi->session->approval_pending_head, cpi->session->approval_pending_tail, pending_element);
+  GNUNET_CONTAINER_DLL_insert_tail (cpi->session->client_approval_head, cpi->session->client_approval_tail, pending_element);
 
   client_element_msg = GNUNET_malloc (size + sizeof *client_element_msg);
   client_element_msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT);
@@ -915,47 +1026,11 @@ handle_p2p_element (struct ConsensusPeerInformation *cpi, const struct GNUNET_Me
 
   queue_client_message (cpi->session, (struct GNUNET_MessageHeader *) client_element_msg);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "received element\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "received element, size=%d\n", size);
 
-  send_next (cpi->session);
+  client_send_next (cpi->session);
   
   return GNUNET_YES;
-}
-
-
-/**
- * Functions of this signature are called whenever writing operations
- * on a stream are executed
- *
- * @param cls the closure from GNUNET_STREAM_write
- * @param status the status of the stream at the time this function is called;
- *          GNUNET_STREAM_OK if writing to stream was completed successfully;
- *          GNUNET_STREAM_TIMEOUT if the given data is not sent successfully
- *          (this doesn't mean that the data is never sent, the receiver may
- *          have read the data but its ACKs may have been lost);
- *          GNUNET_STREAM_SHUTDOWN if the stream is shutdown for writing in the
- *          mean time; GNUNET_STREAM_SYSERR if the stream is broken and cannot
- *          be processed.
- * @param size the number of bytes written
- */
-static void 
-write_requested_elements (void *cls, enum GNUNET_STREAM_Status status, size_t size)
-{
-  struct ConsensusPeerInformation *cpi;
-  cpi = cls;
-  GNUNET_assert (NULL == cpi->wh);
-  cpi->wh = NULL;
-  if (NULL != cpi->requests_and_elements_head)
-  {
-    struct QueuedMessage *qm;
-    qm = cpi->requests_and_elements_head;
-    GNUNET_CONTAINER_DLL_remove (cpi->requests_and_elements_head, cpi->requests_and_elements_tail, qm);
-
-    cpi->wh = GNUNET_STREAM_write (cpi->socket, qm->msg, ntohs (qm->msg->size),
-                                   GNUNET_TIME_UNIT_FOREVER_REL,
-                                   write_requested_elements, cpi);
-    GNUNET_assert (NULL != cpi->wh);
-  }
 }
 
 
@@ -966,21 +1041,44 @@ write_requested_elements (void *cls, enum GNUNET_STREAM_Status status, size_t si
 static int
 handle_p2p_element_request (struct ConsensusPeerInformation *cpi, const struct ElementRequest *msg)
 {
-  struct GNUNET_HashCode *hashcode;
+  struct GNUNET_HashCode hashcode;
+  struct IBF_Key *ibf_key;
   unsigned int num;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "handling element request\n");
-  num = ntohs (msg->header.size) / sizeof (struct GNUNET_HashCode);
-  hashcode = (struct GNUNET_HashCode *) &msg[1];
+  num = ntohs (msg->header.size) / sizeof (struct IBF_Key);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "handling element request for %u elements\n", num);
+  
+  ibf_key = (struct IBF_Key *) &msg[1];
   while (num--)
   {
-    GNUNET_assert (IBF_STATE_ANTICIPATE_DIFF == cpi->ibf_state);
-    GNUNET_CONTAINER_multihashmap_get_multiple (cpi->session->values, hashcode, send_element_iter, cpi);
-    if (NULL == cpi->wh)
-      write_requested_elements (cpi, GNUNET_STREAM_OK, 0);
-    hashcode++;
+    ibf_hashcode_from_key (*ibf_key, &hashcode);
+    GNUNET_CONTAINER_multihashmap_get_multiple (cpi->session->values, &hashcode, send_element_iter, cpi);
+    ibf_key++;
   }
   return GNUNET_YES;
+}
+
+/**
+ * If necessary, send a message to the peer, depending on the current
+ * round.
+ */
+static void
+embrace_peer (struct ConsensusPeerInformation *cpi)
+{
+  GNUNET_assert (GNUNET_YES == cpi->hello);
+  switch (cpi->session->current_round)
+  {
+    case CONSENSUS_ROUND_EXCHANGE:
+      if (cpi->session->partner_outgoing != cpi)
+        break;
+      /* fallthrough */
+    case CONSENSUS_ROUND_INVENTORY:
+      /* fallthrough */
+    case CONSENSUS_ROUND_STOCK:
+      send_strata_estimator (cpi);
+    default:
+      break;
+  }
 }
 
 
@@ -993,34 +1091,168 @@ handle_p2p_hello (struct IncomingSocket *inc, const struct ConsensusHello *hello
 {
   /* FIXME: session might not exist yet. create an uninhabited session and wait for a client */
   struct ConsensusSession *session;
+
   session = sessions_head;
   while (NULL != session)
   {
     if (0 == GNUNET_CRYPTO_hash_cmp (&session->global_id, &hello->global_id))
     {
       int idx;
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "peer helloed session\n");
-      idx = get_peer_idx (inc->peer, session);
+      idx = get_peer_idx (&inc->peer_id, session);
       GNUNET_assert (-1 != idx);
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "idx is %d\n", idx);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "peer %d hello'ed session %d\n", idx);
       inc->cpi = &session->info[idx];
-      GNUNET_assert (GNUNET_NO == inc->cpi->is_outgoing);
       inc->cpi->mst = inc->mst;
       inc->cpi->hello = GNUNET_YES;
       inc->cpi->socket = inc->socket;
-
-      if ( (CONSENSUS_ROUND_A2A_EXCHANGE == session->current_round) &&
-           (GNUNET_YES == inc->cpi->is_outgoing))
-      {
-        write_strata (&session->info[idx], GNUNET_STREAM_OK, 0);
-      }
+      embrace_peer (inc->cpi);
       return GNUNET_YES;
     }
     session = session->next;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "peer tried to HELLO uninhabited session\n");
-  GNUNET_break (0);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "peer tried to HELLO uninhabited session\n");
   return GNUNET_NO;
+}
+
+
+/**
+ * Send a strata estimator.
+ *
+ * @param cpi the peer
+ */
+static void
+send_strata_estimator (struct ConsensusPeerInformation *cpi)
+{
+  struct StrataMessage *strata_msg;
+  void *buf;
+  size_t msize;
+  int i;
+
+  msize = (sizeof *strata_msg) + (STRATA_COUNT * IBF_BUCKET_SIZE * STRATA_IBF_BUCKETS);
+
+  strata_msg = GNUNET_malloc (msize);
+  strata_msg->header.size = htons (msize);
+  strata_msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_DELTA_ESTIMATE);
+  strata_msg->round = cpi->session->current_round;
+  strata_msg->exp_round = cpi->session->exp_round;
+  strata_msg->exp_subround = cpi->session->exp_subround;
+  
+  buf = &strata_msg[1];
+  for (i = 0; i < STRATA_COUNT; i++)
+  {
+    ibf_write (cpi->session->se->strata[i], &buf, NULL);
+  }
+
+  queue_peer_message (cpi, (struct GNUNET_MessageHeader *) strata_msg);
+}
+
+/**
+ * Send an IBF of the order specified in cpi
+ *
+ * @param cpi the peer
+ */
+static void
+send_ibf (struct ConsensusPeerInformation *cpi)
+{
+  int sent_buckets;
+  sent_buckets = 0;
+  while (sent_buckets < (1 << cpi->ibf_order))
+  {
+    int num_buckets;
+    void *buf;
+    struct DifferenceDigest *digest;
+    int msize;
+
+    num_buckets = (1 << cpi->ibf_order) - cpi->ibf_bucket_counter;
+    /* limit to maximum */
+    if (num_buckets > BUCKETS_PER_MESSAGE)
+      num_buckets = BUCKETS_PER_MESSAGE;
+
+    msize = (sizeof *digest) + (num_buckets * IBF_BUCKET_SIZE);
+
+    digest = GNUNET_malloc (msize);
+    digest->header.size = htons (msize);
+    digest->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_DIFFERENCE_DIGEST);
+    digest->order = cpi->ibf_order;
+
+    buf = &digest[1];
+    ibf_write_slice (cpi->ibf, cpi->ibf_bucket_counter, num_buckets, &buf, NULL);
+
+    queue_peer_message (cpi, (struct GNUNET_MessageHeader *) digest);
+
+    sent_buckets += num_buckets;
+  }
+  cpi->ibf_state = IBF_STATE_ANTICIPATE_DIFF;
+}
+
+
+static void
+decode (struct ConsensusPeerInformation *cpi)
+{
+  struct IBF_Key key;
+  struct GNUNET_HashCode hashcode;
+  int side;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "decoding\n");
+
+  for (;;)
+  {
+    int res;
+    res = ibf_decode (cpi->ibf, &side, &key);
+    if (GNUNET_SYSERR == res)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "decoding failed, transmitting larger IBF\n");
+      /* decoding failed, we tell the other peer by sending our ibf with a larger order */
+      cpi->ibf_order++;
+      prepare_ibf (cpi);
+      cpi->ibf = ibf_dup (cpi->session->ibfs[cpi->ibf_order]);
+      cpi->ibf_state = IBF_STATE_TRANSMITTING;
+      cpi->ibf_bucket_counter = 0;
+      send_ibf (cpi);
+      return;
+    }
+    if (GNUNET_NO == res)
+    {
+      struct GNUNET_MessageHeader *msg;
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "transmitted all values\n");
+      msg = GNUNET_malloc (sizeof *msg);
+      msg->size = htons (sizeof *msg);
+      msg->type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_SYNCED);
+      queue_peer_message (cpi, msg);
+      return;
+    }
+    if (-1 == side)
+    {
+      /* we have the element(s), send it to the other peer */
+      ibf_hashcode_from_key (key, &hashcode);
+      GNUNET_CONTAINER_multihashmap_get_multiple (cpi->session->values, &hashcode, send_element_iter, cpi);
+    }
+    else
+    {
+      struct ElementRequest *msg;
+      size_t msize;
+      struct IBF_Key *p;
+
+      msize = (sizeof *msg) + sizeof (struct IBF_Key);
+      msg = GNUNET_malloc (msize);
+      if (CONSENSUS_ROUND_EXCHANGE == cpi->session->current_round)
+      {
+        msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS_REQUEST);
+      }
+      else if (CONSENSUS_ROUND_INVENTORY == cpi->session->current_round)
+      {
+        msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS_REQUEST);
+      }
+      else
+      {
+        GNUNET_assert (0);
+      }
+      msg->header.size = htons (msize);
+      p = (struct IBF_Key *) &msg[1];
+      *p = key;
+      queue_peer_message (cpi, (struct GNUNET_MessageHeader *) msg);
+    }
+  }
 }
 
 
@@ -1049,16 +1281,17 @@ mst_session_callback (void *cls, void *client, const struct GNUNET_MessageHeader
       return handle_p2p_ibf (cpi, (struct DifferenceDigest *) message);
     case GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS:
       return handle_p2p_element (cpi, message);
-    case GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS_MISSING_LOCAL:
-      return handle_p2p_missing_local (cpi, message);
-    case GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS_MISSING_REMOTE:
-      return handle_p2p_missing_remote (cpi, message);
+    case GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS_REPORT:
+      return handle_p2p_element_report (cpi, message);
     case GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS_REQUEST:
       return handle_p2p_element_request (cpi, (struct ElementRequest *) message);
+    case GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_SYNCED:
+      return handle_p2p_synced (cpi, message);
+    case GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_FIN:
+      return handle_p2p_fin (cpi, message);
     default:
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "unexpected message type from peer: %u\n", ntohs (message->type));
-      /* FIXME: handle correctly */
-      GNUNET_assert (0);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "ignoring unexpected message type (%u) from peer: %s\n",
+                  ntohs (message->type), GNUNET_h2s (&cpi->peer_id.hashPubKey));
   }
   return GNUNET_OK;
 }
@@ -1089,8 +1322,8 @@ mst_incoming_callback (void *cls, void *client, const struct GNUNET_MessageHeade
     default:
       if (NULL != inc->cpi)
         return mst_session_callback (inc->cpi, client, message);
-      /* FIXME: disconnect peer properly */
-      GNUNET_assert (0);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "ignoring unexpected message type (%u) from peer: %s (not in session)\n",
+                  ntohs (message->type), GNUNET_h2s (&inc->peer_id.hashPubKey));
   }
   return GNUNET_OK;
 }
@@ -1114,21 +1347,14 @@ listen_cb (void *cls,
            const struct GNUNET_PeerIdentity *initiator)
 {
   struct IncomingSocket *incoming;
-
   GNUNET_assert (NULL != socket);
-
   incoming = GNUNET_malloc (sizeof *incoming);
-
   incoming->socket = socket;
-  incoming->peer = GNUNET_memdup (initiator, sizeof *initiator);
-
+  incoming->peer_id = *initiator;
   incoming->rh = GNUNET_STREAM_read (socket, GNUNET_TIME_UNIT_FOREVER_REL,
                                      &incoming_stream_data_processor, incoming);
-
   incoming->mst = GNUNET_SERVER_mst_create (mst_incoming_callback, incoming);
-
   GNUNET_CONTAINER_DLL_insert_tail (incoming_sockets_head, incoming_sockets_tail, incoming);
-
   return GNUNET_OK;
 }
 
@@ -1179,26 +1405,21 @@ disconnect_client (struct GNUNET_SERVER_Client *client)
  * Thus, if the local id of two consensus sessions coincide, but are not comprised of
  * exactly the same peers, the global id will be different.
  *
- * @param local_id local id of the consensus session
- * @param peers array of all peers participating in the consensus session
- * @param num_peers number of elements in the peers array
- * @param dst where the result is stored, may not be NULL
+ * @param session_id local id of the consensus session
  */
 static void
-compute_global_id (const struct GNUNET_HashCode *local_id,
-                   const struct GNUNET_PeerIdentity *peers, int num_peers, 
-                   struct GNUNET_HashCode *dst)
+compute_global_id (struct ConsensusSession *session, const struct GNUNET_HashCode *session_id)
 {
   int i;
   struct GNUNET_HashCode tmp;
 
-  *dst = *local_id;
-  for (i = 0; i < num_peers; ++i)
+  session->global_id = *session_id;
+  for (i = 0; i < session->num_peers; ++i)
   {
-    GNUNET_CRYPTO_hash_xor (dst, &peers[0].hashPubKey, &tmp);
-    *dst = tmp;
-    GNUNET_CRYPTO_hash (dst, sizeof (struct GNUNET_PeerIdentity), &tmp);
-    *dst = tmp;
+    GNUNET_CRYPTO_hash_xor (&session->global_id, &session->info[i].peer_id.hashPubKey, &tmp);
+    session->global_id = tmp;
+    GNUNET_CRYPTO_hash (&session->global_id, sizeof (struct GNUNET_PeerIdentity), &tmp);
+    session->global_id = tmp;
   }
 }
 
@@ -1220,7 +1441,7 @@ transmit_queued (void *cls, size_t size,
   size_t msg_size;
 
   session = cls;
-  session->th = NULL;
+  session->client_th = NULL;
 
   qmsg = session->client_messages_head;
   GNUNET_CONTAINER_DLL_remove (session->client_messages_head, session->client_messages_tail, qmsg);
@@ -1240,7 +1461,7 @@ transmit_queued (void *cls, size_t size,
   GNUNET_free (qmsg->msg);
   GNUNET_free (qmsg);
 
-  send_next (session);
+  client_send_next (session);
 
   return msg_size;
 }
@@ -1252,21 +1473,21 @@ transmit_queued (void *cls, size_t size,
  * @param cli the client to send the next message to
  */
 static void
-send_next (struct ConsensusSession *session)
+client_send_next (struct ConsensusSession *session)
 {
 
   GNUNET_assert (NULL != session);
 
-  if (NULL != session->th)
+  if (NULL != session->client_th)
     return;
 
   if (NULL != session->client_messages_head)
   {
     int msize;
     msize = ntohs (session->client_messages_head->msg->size);
-    session->th = GNUNET_SERVER_notify_transmit_ready (session->client, msize, 
-                                                       GNUNET_TIME_UNIT_FOREVER_REL,
-                                                       &transmit_queued, session);
+    session->client_th = GNUNET_SERVER_notify_transmit_ready (session->client, msize, 
+                                                              GNUNET_TIME_UNIT_FOREVER_REL,
+                                                              &transmit_queued, session);
   }
 }
 
@@ -1297,11 +1518,11 @@ hash_cmp (const void *a, const void *b)
 static int
 get_peer_idx (const struct GNUNET_PeerIdentity *peer, const struct ConsensusSession *session)
 {
-  const struct GNUNET_PeerIdentity *needle;
-  needle = bsearch (peer, session->peers, session->num_peers, sizeof (struct GNUNET_PeerIdentity), &hash_cmp);
-  if (NULL == needle)
-    return -1;
-  return needle - session->peers;
+  int i;
+  for (i = 0; i < session->num_peers; i++)
+    if (0 == memcmp (peer, &session->info[i].peer_id, sizeof *peer))
+      return i;
+  return -1;
 }
 
 
@@ -1316,16 +1537,8 @@ hello_cont (void *cls, enum GNUNET_STREAM_Status status, size_t size)
   cpi = cls;
   cpi->wh = NULL;
   cpi->hello = GNUNET_YES;
-  
   GNUNET_assert (GNUNET_STREAM_OK == status);
-
-  /* FIXME: other rounds */
-
-  if ( (CONSENSUS_ROUND_A2A_EXCHANGE == cpi->session->current_round) &&
-       (GNUNET_YES == cpi->is_outgoing))
-  {
-    write_strata (cpi, GNUNET_STREAM_OK, 0);
-  }
+  embrace_peer (cpi);
 }
 
 
@@ -1342,59 +1555,17 @@ open_cb (void *cls, struct GNUNET_STREAM_Socket *socket)
   struct ConsensusHello *hello;
 
   cpi = cls;
-  cpi->is_connected = GNUNET_YES;
   cpi->wh = NULL;
-
   hello = GNUNET_malloc (sizeof *hello);
   hello->header.size = htons (sizeof *hello);
   hello->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_HELLO);
   memcpy (&hello->global_id, &cpi->session->global_id, sizeof (struct GNUNET_HashCode));
-
+  GNUNET_assert (NULL == cpi->mst);
+  cpi->mst = GNUNET_SERVER_mst_create (mst_session_callback, cpi);
   cpi->wh =
       GNUNET_STREAM_write (socket, hello, sizeof *hello, GNUNET_TIME_UNIT_FOREVER_REL, hello_cont, cpi);
-
   cpi->rh = GNUNET_STREAM_read (socket, GNUNET_TIME_UNIT_FOREVER_REL,
                                 &session_stream_data_processor, cpi);
-}
-
-
-static void
-initialize_session_info (struct ConsensusSession *session)
-{
-  int i;
-  int last;
-
-  for (i = 0; i < session->num_peers; ++i)
-  {
-    /* initialize back-references, so consensus peer information can
-     * be used as closure */
-    session->info[i].session = session;
-  }
-
-  session->current_round = CONSENSUS_ROUND_BEGIN;
-
-  last = (session->local_peer_idx + ((session->num_peers - 1) / 2) + 1) % session->num_peers;
-  i = (session->local_peer_idx + 1) % session->num_peers;
-  while (i != last)
-  {
-    session->info[i].is_outgoing = GNUNET_YES;
-    session->info[i].socket = GNUNET_STREAM_open (cfg, &session->peers[i], GNUNET_APPLICATION_TYPE_CONSENSUS,
-                                                  open_cb, &session->info[i], GNUNET_STREAM_OPTION_END);
-    session->info[i].mst = GNUNET_SERVER_mst_create (mst_session_callback, &session->info[i]);
-    i = (i + 1) % session->num_peers;
-
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "peer %d contacts peer %d\n", session->local_peer_idx, i);
-  }
-  // tie-breaker for even number of peers
-  if (((session->num_peers % 2) == 0) && (session->local_peer_idx < last))
-  {
-    session->info[last].is_outgoing = GNUNET_YES;
-    session->info[last].socket = GNUNET_STREAM_open (cfg, &session->peers[last], GNUNET_APPLICATION_TYPE_CONSENSUS,
-                                                     open_cb, &session->info[last], GNUNET_STREAM_OPTION_END);
-    session->info[last].mst = GNUNET_SERVER_mst_create (mst_session_callback, &session->info[last]);
-
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "peer %d contacts peer %d (tiebreaker)\n", session->local_peer_idx, last);
-  }
 }
 
 
@@ -1408,6 +1579,7 @@ initialize_session_peer_list (struct ConsensusSession *session)
   unsigned int local_peer_in_list;
   uint32_t listed_peers;
   const struct GNUNET_PeerIdentity *msg_peers;
+  struct GNUNET_PeerIdentity *peers;
   unsigned int i;
 
   GNUNET_assert (NULL != session->join_msg);
@@ -1432,18 +1604,30 @@ initialize_session_peer_list (struct ConsensusSession *session)
   if (GNUNET_NO == local_peer_in_list)
     session->num_peers++;
 
-  session->peers = GNUNET_malloc (session->num_peers * sizeof (struct GNUNET_PeerIdentity));
+  peers = GNUNET_malloc (session->num_peers * sizeof (struct GNUNET_PeerIdentity));
 
   if (GNUNET_NO == local_peer_in_list)
-    session->peers[session->num_peers - 1] = *my_peer;
+    peers[session->num_peers - 1] = *my_peer;
 
-  memcpy (session->peers, msg_peers, listed_peers * sizeof (struct GNUNET_PeerIdentity));
-  qsort (session->peers, session->num_peers, sizeof (struct GNUNET_PeerIdentity), &hash_cmp);
+  memcpy (peers, msg_peers, listed_peers * sizeof (struct GNUNET_PeerIdentity));
+  qsort (peers, session->num_peers, sizeof (struct GNUNET_PeerIdentity), &hash_cmp);
+
+  session->info = GNUNET_malloc (session->num_peers * sizeof (struct ConsensusPeerInformation));
+
+  for (i = 0; i < session->num_peers; ++i)
+  {
+    /* initialize back-references, so consensus peer information can
+     * be used as closure */
+    session->info[i].session = session;
+    session->info[i].peer_id = peers[i];
+  }
+
+  free (peers);
 }
 
 
 static void
-strata_insert (struct InvertibleBloomFilter **strata, struct GNUNET_HashCode *key)
+strata_estimator_insert (struct StrataEstimator *se, struct GNUNET_HashCode *key)
 {
   uint32_t v;
   int i;
@@ -1451,7 +1635,7 @@ strata_insert (struct InvertibleBloomFilter **strata, struct GNUNET_HashCode *ke
   /* count trailing '1'-bits of v */
   for (i = 0; v & 1; v>>=1, i++)
     /* empty */;
-  ibf_insert (strata[i], ibf_key_from_hashcode (key));
+  ibf_insert (se->strata[i], ibf_key_from_hashcode (key));
 }
 
 
@@ -1476,13 +1660,8 @@ add_incoming_peers (struct ConsensusSession *session)
       {
         struct ConsensusPeerInformation *cpi;
         cpi = &session->info[i];
-        if (0 == memcmp (inc->peer, &cpi->session->peers[i], sizeof (struct GNUNET_PeerIdentity)))
+        if (0 == memcmp (&inc->peer_id, &cpi->peer_id, sizeof (struct GNUNET_PeerIdentity)))
         {
-          if (GNUNET_YES == cpi->is_outgoing)
-          {
-            /* FIXME: disconnect */
-            continue;
-          }
           cpi->socket = inc->socket;
           inc->cpi = cpi;
           inc->cpi->mst = inc->mst;
@@ -1505,15 +1684,12 @@ static void
 initialize_session (struct ConsensusSession *session)
 {
   const struct ConsensusSession *other_session;
-  int i;
 
   GNUNET_assert (NULL != session->join_msg);
-
   initialize_session_peer_list (session);
-
+  session->current_round = CONSENSUS_ROUND_BEGIN;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "session with %u peers\n", session->num_peers);
-
-  compute_global_id (&session->join_msg->session_id, session->peers, session->num_peers, &session->global_id);
+  compute_global_id (session, &session->join_msg->session_id);
 
   /* Check if some local client already owns the session. */
   other_session = sessions_head;
@@ -1531,26 +1707,14 @@ initialize_session (struct ConsensusSession *session)
   }
 
   session->values = GNUNET_CONTAINER_multihashmap_create (256, GNUNET_NO);
-
   session->local_peer_idx = get_peer_idx (my_peer, session);
   GNUNET_assert (-1 != session->local_peer_idx);
-
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%d is the local peer\n", session->local_peer_idx);
-
-  session->strata = GNUNET_malloc (STRATA_COUNT * sizeof (struct InvertibleBloomFilter *));
-  for (i = 0; i < STRATA_COUNT; i++)
-    session->strata[i] = ibf_create (STRATA_IBF_BUCKETS, STRATA_HASH_NUM, 0);
-
+  session->se = strata_estimator_create ();
   session->ibfs = GNUNET_malloc ((MAX_IBF_ORDER+1) * sizeof (struct InvertibleBloomFilter *));
-
-  session->info = GNUNET_malloc (session->num_peers * sizeof (struct ConsensusPeerInformation));
-  initialize_session_info (session);
-
   GNUNET_free (session->join_msg);
   session->join_msg = NULL;
-
   add_incoming_peers (session);
-
   GNUNET_SERVER_receive_done (session->client, GNUNET_OK);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "session %s initialized\n", GNUNET_h2s (&session->global_id));
 }
@@ -1658,19 +1822,18 @@ client_insert (void *cls,
 
   GNUNET_assert (NULL != element->data);
 
-  hash_for_ibf (element, element_size, &hash);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "inserting with hash_for_ibf %s\n", GNUNET_h2s (&hash));
+  hash_for_ibf (element->data, element_size, &hash);
 
   GNUNET_CONTAINER_multihashmap_put (session->values, &hash, element,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 
-  strata_insert (session->strata, &hash);
+  strata_estimator_insert (session->se, &hash);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 
-  send_next (session);
+  client_send_next (session);
 }
+
 
 
 /**
@@ -1689,345 +1852,226 @@ client_insert (void *cls,
  * @param size the number of bytes written
  */
 static void 
-write_strata_done (void *cls, enum GNUNET_STREAM_Status status, size_t size)
+write_queued (void *cls, enum GNUNET_STREAM_Status status, size_t size)
 {
   struct ConsensusPeerInformation *cpi;
+
+  GNUNET_assert (GNUNET_STREAM_OK == status);
   cpi = cls;
   cpi->wh = NULL;
-  GNUNET_assert (GNUNET_STREAM_OK == status);
-  /* just wait for the ibf */
-}
-
-
-/**
- * Functions of this signature are called whenever writing operations
- * on a stream are executed
- *
- * @param cls the closure from GNUNET_STREAM_write
- * @param status the status of the stream at the time this function is called;
- *          GNUNET_STREAM_OK if writing to stream was completed successfully;
- *          GNUNET_STREAM_TIMEOUT if the given data is not sent successfully
- *          (this doesn't mean that the data is never sent, the receiver may
- *          have read the data but its ACKs may have been lost);
- *          GNUNET_STREAM_SHUTDOWN if the stream is shutdown for writing in the
- *          mean time; GNUNET_STREAM_SYSERR if the stream is broken and cannot
- *          be processed.
- * @param size the number of bytes written
- */
-static void 
-write_strata (void *cls, enum GNUNET_STREAM_Status status, size_t size)
-{
-  struct ConsensusPeerInformation *cpi;
-  struct StrataMessage *strata_msg;
-  void *buf;
-  size_t msize;
-  int i;
-
-  cpi = cls;
-  cpi->wh = NULL;
-
-  GNUNET_assert (GNUNET_STREAM_OK == status);
-
-  GNUNET_assert (GNUNET_YES == cpi->is_outgoing);
-
-  /* FIXME: handle this */
-  GNUNET_assert (GNUNET_STREAM_OK == status);
-
-  msize = (sizeof *strata_msg) + (STRATA_COUNT * IBF_BUCKET_SIZE * STRATA_IBF_BUCKETS);
-
-  strata_msg = GNUNET_malloc (msize);
-  strata_msg->header.size = htons (msize);
-  strata_msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_DELTA_ESTIMATE);
-  
-  buf = &strata_msg[1];
-  for (i = 0; i < STRATA_COUNT; i++)
-  {
-    ibf_write (cpi->session->strata[i], &buf, NULL);
-  }
-
-  cpi->wh = GNUNET_STREAM_write (cpi->socket, strata_msg, msize, GNUNET_TIME_UNIT_FOREVER_REL,
-                                 write_strata_done, cpi);
-
-  GNUNET_assert (NULL != cpi->wh);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "strata written\n");
-}
-
-
-static void 
-write_ibf_done (void *cls, enum GNUNET_STREAM_Status status, size_t size)
-{
-  struct ConsensusPeerInformation *cpi;
-  cpi = cls;
-  cpi->wh = NULL;
-  GNUNET_assert (GNUNET_STREAM_OK == status);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "write ibf done callback\n");
-}
-
-
-/**
- * Functions of this signature are called whenever writing operations
- * on a stream are executed
- *
- * @param cls the closure from GNUNET_STREAM_write
- * @param status the status of the stream at the time this function is called;
- *          GNUNET_STREAM_OK if writing to stream was completed successfully;
- *          GNUNET_STREAM_TIMEOUT if the given data is not sent successfully
- *          (this doesn't mean that the data is never sent, the receiver may
- *          have read the data but its ACKs may have been lost);
- *          GNUNET_STREAM_SHUTDOWN if the stream is shutdown for writing in the
- *          mean time; GNUNET_STREAM_SYSERR if the stream is broken and cannot
- *          be processed.
- * @param size the number of bytes written
- */
-static void 
-write_ibf (void *cls, enum GNUNET_STREAM_Status status, size_t size)
-{
-  struct ConsensusPeerInformation *cpi;
-  struct DifferenceDigest *digest;
-  int msize;
-  int num_buckets;
-  void *buf;
-
-  cpi = cls;
-  cpi->wh = NULL;
-
-  GNUNET_assert (GNUNET_STREAM_OK == status);
-  GNUNET_assert (IBF_STATE_TRANSMITTING == cpi->ibf_state);
-
-  /* we should not be done here! */
-  GNUNET_assert (cpi->ibf_bucket_counter != (1 << cpi->ibf_order));
-
-  /* remaining buckets */
-  num_buckets = (1 << cpi->ibf_order) - cpi->ibf_bucket_counter;
-
-  /* limit to maximum */
-  if (num_buckets > BUCKETS_PER_MESSAGE)
-    num_buckets = BUCKETS_PER_MESSAGE;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "writing ibf buckets at %d/%d\n", cpi->ibf_bucket_counter, (1<<cpi->ibf_order));
-
-  msize = (sizeof *digest) + (num_buckets * IBF_BUCKET_SIZE);
-
-  digest = GNUNET_malloc (msize);
-  digest->header.size = htons (msize);
-  digest->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_DIFFERENCE_DIGEST);
-  digest->order = cpi->ibf_order;
-
-  buf = &digest[1];
-  ibf_write_slice (cpi->ibf, cpi->ibf_bucket_counter, num_buckets, &buf, NULL);
-
-  cpi->ibf_bucket_counter += num_buckets;
-
-  /* we have to set the new state here, because of non-deterministic schedulung */
-  if (cpi->ibf_bucket_counter == (1 << cpi->ibf_order))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ibf completely written\n");
-    /* we now wait for values / requests / another IBF because peer could not decode with our IBF */
-    cpi->ibf_state = IBF_STATE_ANTICIPATE_DIFF;
-    cpi->wh = GNUNET_STREAM_write (cpi->socket, digest, msize, GNUNET_TIME_UNIT_FOREVER_REL, write_ibf_done, cpi);
-  }
-  else
-  {
-    cpi->wh = GNUNET_STREAM_write (cpi->socket, digest, msize, GNUNET_TIME_UNIT_FOREVER_REL, write_ibf, cpi);
-  }
-
-  GNUNET_assert (NULL != cpi->wh);
-}
-
-
-/**
- * Functions of this signature are called whenever writing operations
- * on a stream are executed
- *
- * @param cls the closure from GNUNET_STREAM_write
- * @param status the status of the stream at the time this function is called;
- *          GNUNET_STREAM_OK if writing to stream was completed successfully;
- *          GNUNET_STREAM_TIMEOUT if the given data is not sent successfully
- *          (this doesn't mean that the data is never sent, the receiver may
- *          have read the data but its ACKs may have been lost);
- *          GNUNET_STREAM_SHUTDOWN if the stream is shutdown for writing in the
- *          mean time; GNUNET_STREAM_SYSERR if the stream is broken and cannot
- *          be processed.
- * @param size the number of bytes written
- */
-static void 
-write_requests_and_elements (void *cls, enum GNUNET_STREAM_Status status, size_t size)
-{
-  struct ConsensusPeerInformation *cpi;
-  struct IBF_Key key;
-  struct GNUNET_HashCode hashcode;
-  int side;
-
-  GNUNET_assert (GNUNET_STREAM_OK == status);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "decoding\n");
-
-  cpi = cls;
-  GNUNET_assert (IBF_STATE_DECODING == cpi->ibf_state);
-  cpi->wh = NULL;
-
-  if (NULL != cpi->requests_and_elements_head)
+  if (NULL != cpi->messages_head)
   {
     struct QueuedMessage *qm;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "sending queued element\n");
-    qm = cpi->requests_and_elements_head;
-    GNUNET_CONTAINER_DLL_remove (cpi->requests_and_elements_head, cpi->requests_and_elements_tail, qm);
-
+    qm = cpi->messages_head;
+    GNUNET_CONTAINER_DLL_remove (cpi->messages_head, cpi->messages_tail, qm);
     cpi->wh = GNUNET_STREAM_write (cpi->socket, qm->msg, ntohs (qm->msg->size),
                                    GNUNET_TIME_UNIT_FOREVER_REL,
-                                   write_requests_and_elements, cpi);
+                                   write_queued, cpi);
+    if (NULL != qm->cb)
+      qm->cb (qm->cls);
+    GNUNET_free (qm->msg);
+    GNUNET_free (qm);
     GNUNET_assert (NULL != cpi->wh);
-    /* some elements / requests have queued up, we have to transmit them first */
-    return;
   }
-
-  for (;;)
-  {
-    int res;
-    res = ibf_decode (cpi->ibf, &side, &key);
-    if (GNUNET_SYSERR == res)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "decoding failed, transmitting larger IBF\n");
-      /* decoding failed, we tell the other peer by sending our ibf with a larger order */
-      cpi->ibf_order++;
-      prepare_ibf (cpi);
-      cpi->ibf = ibf_dup (cpi->session->ibfs[cpi->ibf_order]);
-      cpi->ibf_state = IBF_STATE_TRANSMITTING;
-      cpi->ibf_bucket_counter = 0;
-      write_ibf (cls, status, size);
-      return;
-    }
-    if (GNUNET_NO == res)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "transmitted all values\n");
-      return;
-    }
-    if (-1 == side)
-    {
-      /* we have the element, send it to the other peer */
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "sending element\n");
-      ibf_hashcode_from_key (key, &hashcode);
-      GNUNET_CONTAINER_multihashmap_get_multiple (cpi->session->values, &hashcode, send_element_iter, cpi);
-      /* send the first message, because we can! */
-      if (NULL != cpi->requests_and_elements_head)
-      {
-        struct QueuedMessage *qm;
-        qm = cpi->requests_and_elements_head;
-        GNUNET_CONTAINER_DLL_remove (cpi->requests_and_elements_head, cpi->requests_and_elements_tail, qm);
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "writing element\n");
-        cpi->wh = GNUNET_STREAM_write (cpi->socket, qm->msg, ntohs (qm->msg->size),
-                                       GNUNET_TIME_UNIT_FOREVER_REL,
-                                       write_requests_and_elements, cpi);
-        GNUNET_assert (NULL != cpi->wh);
-      }
-      else
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "no element found for decoded hash %s\n", GNUNET_h2s (&hashcode));
-      }
-      return;
-    }
-    else
-    {
-      struct ElementRequest *msg;
-      size_t msize;
-      struct IBF_Key *p;
-
-      msize = (sizeof *msg) + sizeof (uint64_t);
-      msg = GNUNET_malloc (msize);
-      if (CONSENSUS_ROUND_A2A_EXCHANGE == cpi->session->current_round)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "sending request for element\n");
-        msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS_REQUEST);
-      }
-      else if (CONSENSUS_ROUND_A2A_INVENTORY == cpi->session->current_round)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "sending locally missing element\n");
-        msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS_MISSING_LOCAL);
-      }
-      else
-      {
-        GNUNET_assert (0);
-      }
-      msg->header.size = htons (msize);
-      p = (struct IBF_Key *) &msg[1];
-      *p = key;
-
-      cpi->wh = GNUNET_STREAM_write (cpi->socket, msg, msize, GNUNET_TIME_UNIT_FOREVER_REL,
-                                     write_requests_and_elements, cpi);
-      GNUNET_assert (NULL != cpi->wh);
-      GNUNET_free (msg);
-      return;
-    }
-  }
-}
-
-
-static double
-compute_similarity (struct ConsensusSession *session, int p1, int p2)
-{
-  /* FIXME: simplistic dummy implementation, use real set union/intersecion */
-  return (session->info[p1].num_missing_local + session->info[p2].num_missing_local) /
-      ((double) (session->info[p1].num_missing_remote + session->info[p2].num_missing_remote + 1));
 }
 
 
 static void
-select_fittest_group (struct ConsensusSession *session)
+shuffle (struct ConsensusSession *session)
 {
-  /* simplistic implementation: compute the similarity with the latest strata estimator,
-   * rank the results once */
-  struct GNUNET_PeerIdentity *group;
-  double rating[session->num_peers];
-  struct GNUNET_CONSENSUS_ConcludeDoneMessage *done_msg;
-  size_t msize;
+  /* FIXME: implement */
+}
+
+
+/**
+ * Find and set the partner_incoming and partner_outgoing of our peer,
+ * one of them may not exist in most cases.
+ *
+ * @param session the consensus session
+ */
+static void
+find_partners (struct ConsensusSession *session)
+{
+  int mark[session->num_peers];
   int i;
-  int j;
-  /* number of peers in the consensus group */
-  int k;
-
-  k = ceil(session->num_peers / 3.0) * 2;
-  group = GNUNET_malloc (k * sizeof *group);
-
-  /* do strata subtraction */
-  /* FIXME: we know the real sets, subtract them! */
+  memset (mark, 0, session->num_peers * sizeof (int));
+  session->partner_incoming = session->partner_outgoing = NULL;
   for (i = 0; i < session->num_peers; i++)
   {
-    rating[i] = 0;
-    for (j = 0; j < i; j++)
+    int arc;
+    if (0 != mark[i])
+      continue;
+    arc = (i + (1 << session->exp_subround)) % session->num_peers;
+    mark[i] = mark[arc] = 1;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "peer %d talks to %d\n", i, arc);
+    GNUNET_assert (i != arc);
+    if (i == session->local_peer_idx)
     {
-      double sim;
-      sim = compute_similarity (session, i, j);
-      rating[i] += sim;
-      rating[j] += sim;
+      GNUNET_assert (NULL == session->partner_outgoing);
+      session->partner_outgoing = &session->info[session->shuffle[arc]];
+    }
+    if (arc == session->local_peer_idx)
+    {
+      GNUNET_assert (NULL == session->partner_incoming);
+      session->partner_incoming = &session->info[session->shuffle[i]];
+    }
+    if (0 != mark[session->local_peer_idx])
+    {
+      return;
     }
   }
-  for (i = 0; i < k; i++)
+}
+
+
+/**
+ * Do the next subround in the exp-scheme.
+ *
+ * @param cls the session
+ * @param tc task context, for when this task is invoked by the scheduler,
+ *           NULL if invoked for another reason
+ */
+static void
+subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ConsensusSession *session;
+  int i;
+
+  /* don't kick off next subround if we're shutting down */
+  if ((NULL != tc) && (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+  session = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "subround over, exp_round=%d, exp_subround=%d\n", session->exp_round, session->exp_subround);
+
+  for (i = 0; i < session->num_peers; i++)
+    clear_peer_messages (&session->info[i]);
+
+  if ((NULL == tc) && (session->round_timeout_tid != GNUNET_SCHEDULER_NO_TASK))
   {
-    int best_idx = 0;
-    for (j = 1; j < session->num_peers; j++)
-      if (rating[j] > rating[best_idx])
-        best_idx = j;
-    rating[best_idx] = -1;
-    group[i] = session->peers[best_idx];
+    GNUNET_SCHEDULER_cancel (session->round_timeout_tid);
+  }
+  session->round_timeout_tid = GNUNET_SCHEDULER_NO_TASK;
+
+  if ((session->num_peers == 2) &&  (session->exp_round == 1))
+  {
+    round_over (session, NULL);
+    return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "got group!\n");
+  if (session->exp_round == NUM_EXP_ROUNDS)
+  {
+    round_over (session, NULL);
+    return;
+  }
 
-  msize = sizeof *done_msg + k * sizeof *group;
+  if (session->exp_round == 0)
+  {
+    session->exp_round = 1;
+    session->exp_subround = 0;
+    if (NULL == session->shuffle)
+      session->shuffle = GNUNET_malloc ((sizeof (int)) * session->num_peers);
+    for (i = 0; i < session->num_peers; i++)
+      session->shuffle[i] = i;
+  }
+  else if (session->exp_subround + 1 >= (int) ceil (log2 (session->num_peers)))
+  {
+    session->exp_round++;
+    session->exp_subround = 0;
+    shuffle (session);
+  }
+  else 
+  {
+    session->exp_subround++;
+  }
 
-  done_msg = GNUNET_malloc (msize);
-  done_msg->header.size = htons (msize);
-  done_msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE_DONE);
-  memcpy (&done_msg[1], group, k * sizeof *group);
+  find_partners (session);
 
-  queue_client_message (session, (struct GNUNET_MessageHeader *) done_msg);
-  send_next (session);
+  if (NULL != session->partner_outgoing)
+  {
+    session->partner_outgoing->ibf_state = IBF_STATE_NONE;
+    session->partner_outgoing->ibf_bucket_counter = 0;
+  }
+
+  if (NULL != session->partner_incoming)
+  {
+    session->partner_incoming->ibf_state = IBF_STATE_NONE;
+    session->partner_incoming->ibf_bucket_counter = 0;
+
+    /* maybe there's an early strata estimator? */
+    if (NULL != session->partner_incoming->premature_strata_message)
+    {
+      session->partner_incoming->replaying_strata_message = GNUNET_YES;
+      handle_p2p_strata (session->partner_incoming, session->partner_incoming->premature_strata_message);
+      GNUNET_free (session->partner_incoming->premature_strata_message);
+      session->partner_incoming->replaying_strata_message = GNUNET_NO;
+    }
+  }
+
+  if (NULL != session->partner_outgoing)
+  {
+    if (NULL == session->partner_outgoing->socket)
+    {
+      session->partner_outgoing->socket =
+          GNUNET_STREAM_open (cfg, &session->partner_outgoing->peer_id, GNUNET_APPLICATION_TYPE_CONSENSUS,
+                              open_cb, session->partner_outgoing,
+                              GNUNET_STREAM_OPTION_END);
+    }
+    else if (GNUNET_YES == session->partner_outgoing->hello)
+    {
+      send_strata_estimator (session->partner_outgoing);
+    }
+    /* else: do nothing, the send hello cb will handle this */
+  }
+
+  /*
+  session->round_timeout_tid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide (session->conclude_timeout, 3 * NUM_EXP_ROUNDS),
+                                                                   subround_over, session);
+  */
+
+}
+
+static void
+contact_peer_a2a (struct ConsensusPeerInformation *cpi)
+{
+  cpi->is_outgoing = GNUNET_YES;
+  if (NULL == cpi->socket)
+  {
+    cpi->socket = GNUNET_STREAM_open (cfg, &cpi->peer_id, GNUNET_APPLICATION_TYPE_CONSENSUS,
+                                      open_cb, cpi, GNUNET_STREAM_OPTION_END);
+  }
+  else if (GNUNET_YES == cpi->hello)
+  {
+    send_strata_estimator (cpi);
+  }
+}
+
+static void
+start_inventory (struct ConsensusSession *session)
+{
+  int i;
+  int last;
+
+  last = (session->local_peer_idx + ((session->num_peers - 1) / 2) + 1) % session->num_peers;
+  i = (session->local_peer_idx + 1) % session->num_peers;
+  while (i != last)
+  {
+    contact_peer_a2a (&session->info[i]);
+    i = (i + 1) % session->num_peers;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "peer %d contacts peer %d\n", session->local_peer_idx, i);
+  }
+  // tie-breaker for even number of peers
+  if (((session->num_peers % 2) == 0) && (session->local_peer_idx < last))
+  {
+    contact_peer_a2a (&session->info[last]);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "peer %d contacts peer %d (tiebreaker)\n", session->local_peer_idx, last);
+  }
 }
 
 
 /**
  * Select and kick off the next round, based on the current round.
+ *
  * @param cls the session
  * @param tc task context, for when this task is invoked by the scheduler,
  *           NULL if invoked for another reason
@@ -2045,61 +2089,50 @@ round_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "round over\n");
   session = cls;
 
+  for (i = 0; i < session->num_peers; i++)
+    clear_peer_messages (&session->info[i]);
+
   if ((NULL == tc) && (session->round_timeout_tid != GNUNET_SCHEDULER_NO_TASK))
   {
     GNUNET_SCHEDULER_cancel (session->round_timeout_tid);
     session->round_timeout_tid = GNUNET_SCHEDULER_NO_TASK;
   }
 
-  for (i = 0; i < session->num_peers; i++)
-  {
-    if ((NULL != session->info) && (NULL != session->info[i].wh))
-      GNUNET_STREAM_write_cancel (session->info[i].wh);
-  }
+  /* FIXME: cancel current round */
 
   switch (session->current_round)
   {
     case CONSENSUS_ROUND_BEGIN:
-    {
-      session->current_round = CONSENSUS_ROUND_A2A_EXCHANGE;
-      session->round_timeout_tid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide (session->conclude_timeout, 4),
-                                                                 round_over, session);
-      for (i = 0; i < session->num_peers; i++)
-      {
-        /* we can only talk to hello'ed peers */
-        if ( (GNUNET_YES == session->info[i].is_outgoing) &&
-             (GNUNET_YES == session->info[i].hello) )
-        {
-          /* kick off transmitting strata by calling the write continuation */
-          write_strata (&session->info[i], GNUNET_STREAM_OK, 0);
-        }
-      }
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "conclude started, timeout=%llu\n", session->conclude_timeout.rel_value);
+      session->current_round = CONSENSUS_ROUND_EXCHANGE;
+      session->exp_round = 0;
+      subround_over (session, NULL);
       break;
-    }
-    case CONSENSUS_ROUND_A2A_EXCHANGE:
-    {
-      session->current_round = CONSENSUS_ROUND_A2A_INVENTORY;
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "starting inventory round\n");
-      session->round_timeout_tid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide (session->conclude_timeout, 4),
-                                                                 round_over, session);
-      for (i = 0; i < session->num_peers; i++)
+    case CONSENSUS_ROUND_EXCHANGE:
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "done for now\n");
+
+      if (0)
       {
-        session->info[i].ibf_state = IBF_STATE_NONE;
-        if ( (GNUNET_YES == session->info[i].is_outgoing) &&
-             (GNUNET_YES == session->info[i].hello) )
-        {
-          /* kick off transmitting strata by calling the write continuation */
-          write_strata (&session->info[i], GNUNET_STREAM_OK, 0);
-        }
+        struct GNUNET_MessageHeader *msg;
+        msg = GNUNET_malloc (sizeof *msg);
+        msg->type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE_DONE);
+        msg->size = htons (sizeof *msg);
+        queue_client_message (session, msg);
+        client_send_next (session);
+      }
+
+      if (0)
+      {
+        session->current_round = CONSENSUS_ROUND_INVENTORY;
+        start_inventory (session);
       }
       break;
-    }
-    case CONSENSUS_ROUND_A2A_INVENTORY:
-      /* finally, we are done and select the most fitting group */
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "protocol rounds done\n");
+    case CONSENSUS_ROUND_INVENTORY:
+      session->current_round = CONSENSUS_ROUND_STOCK;
+      /* FIXME: exchange stock */
+      break;
+    case CONSENSUS_ROUND_STOCK:
       session->current_round = CONSENSUS_ROUND_FINISH;
-      select_fittest_group (session);
+      /* FIXME: send elements to client */
       break;
     default:
       GNUNET_assert (0);
@@ -2138,8 +2171,8 @@ client_conclude (void *cls,
   if (CONSENSUS_ROUND_BEGIN != session->current_round)
   {
     /* client requested conclude twice */
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "unexpected round at conclude: %d\n", session->current_round);
     GNUNET_break (0);
+    /* client may still own a session, destroy it */
     disconnect_client (client);
     return;
   }
@@ -2150,7 +2183,7 @@ client_conclude (void *cls,
   round_over (session, NULL);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  send_next (session);
+  client_send_next (session);
 }
 
 
@@ -2186,9 +2219,9 @@ client_ack (void *cls,
     return;
   }
 
-  pending = session->approval_pending_head;
+  pending = session->client_approval_head;
 
-  GNUNET_CONTAINER_DLL_remove (session->approval_pending_head, session->approval_pending_tail, pending);
+  GNUNET_CONTAINER_DLL_remove (session->client_approval_head, session->client_approval_tail, pending);
 
   msg = (struct GNUNET_CONSENSUS_AckMessage *) message;
 
@@ -2196,11 +2229,12 @@ client_ack (void *cls,
   {
     int i;
     element = pending->element;
-    hash_for_ibf (element, element->size, &key);
+    hash_for_ibf (element->data, element->size, &key);
 
     GNUNET_CONTAINER_multihashmap_put (session->values, &key, element,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-    strata_insert (session->strata, &key);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "got client ack\n");
+    strata_estimator_insert (session->se, &key);
     
     for (i = 0; i <= MAX_IBF_ORDER; i++)
     {

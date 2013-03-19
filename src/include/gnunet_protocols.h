@@ -1726,19 +1726,24 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS_REQUEST 544
 
 /**
- * Elements that a peer misses locally.
- */
-#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS_MISSING_LOCAL 545
-
-/**
  * Elements that a peer reports to be missing at the remote peer.
  */
-#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS_MISSING_REMOTE 546
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS_REPORT 545
 
 /*
  * Initialization message for consensus p2p communication.
  */
-#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_HELLO 547
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_HELLO 546
+
+/**
+ * Report that the peer is synced with the partner after successfuly decoding the invertible bloom filter.
+ */
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_SYNCED 547
+
+/**
+ * Interaction os over, got synched and reported all elements
+ */
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_FIN 548
 
 
 /**
