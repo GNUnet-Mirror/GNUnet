@@ -1088,7 +1088,6 @@ arm_start_cb (void *cls, struct GNUNET_ARM_Handle *arm,
     case GNUNET_ARM_RESULT_STARTING:
       GNUNET_SCHEDULER_add_now (&arm_op_done, peer);
 
-      if (search_index < (num_peers - 1))
       {
         long search_peer;
         unsigned int i = 0;
@@ -1107,13 +1106,10 @@ arm_start_cb (void *cls, struct GNUNET_ARM_Handle *arm,
                                       &find_string,
                                       (void *) search_peer);
       }
-      else
+      if (search_index == (num_peers - 1) &&
+          GNUNET_SCHEDULER_NO_TASK == search_timeout_task)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                    "All daemons started."
-                    " Waiting %s to start string searches\n",
-                    GNUNET_STRINGS_relative_time_to_string (search_delay,
-                                                            GNUNET_NO));
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "All daemons started.\n");
         /* FIXME start GLOBAL timeout to abort experiment */
         search_timeout_task = GNUNET_SCHEDULER_add_delayed (search_timeout_time,
                                                             &search_timeout,
@@ -1170,10 +1166,17 @@ arm_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
 static void
 do_announce (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  unsigned int i;
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting announce.\n");
 
-  for (search_index = 0; search_index < SEARCHES_IN_PARALLEL; search_index++)
+  for (i = 0; i < SEARCHES_IN_PARALLEL; i++)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "  scheduling announce %u\n",
+                i);
     (void) GNUNET_SCHEDULER_add_now (&announce_next_regex, NULL);
+  }
 }
 
 
@@ -1186,7 +1189,8 @@ do_announce (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) ||
+      search_index >= num_peers)
     return;
 
   /* First connect to arm service, then announce. Next
@@ -1201,6 +1205,7 @@ announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                     &arm_ca,
                                     &arm_da,
                                     &peers[search_index]);
+  search_index++;
   parallel_searches++;
 }
 
@@ -1626,7 +1631,7 @@ controller_event_cb (void *cls,
      {
        prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                   "\n%u links established in %s\n",
+                   "%u links established in %s\n",
                    num_links,
                    GNUNET_STRINGS_relative_time_to_string (prof_time,
                                                            GNUNET_NO));
