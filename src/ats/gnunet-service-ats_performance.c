@@ -31,6 +31,15 @@
 #include "gnunet-service-ats_reservations.h"
 #include "ats.h"
 
+struct PerformanceMonitorClient
+{
+	struct PerformanceMonitorClient *next;
+	struct PerformanceMonitorClient *prev;
+
+	struct GNUNET_SERVER_Client *client;
+
+	uint32_t id;
+};
 
 /**
  * We keep clients that are interested in performance in a linked list.
@@ -46,6 +55,10 @@ struct PerformanceClient
    * Previous in doubly-linked list.
    */
   struct PerformanceClient *prev;
+
+  struct PerformanceMonitorClient *pm_head;
+
+  struct PerformanceMonitorClient *pm_tail;
 
   /**
    * Actual handle to the client.
@@ -125,9 +138,18 @@ void
 GAS_performance_remove_client (struct GNUNET_SERVER_Client *client)
 {
   struct PerformanceClient *pc;
+  struct PerformanceMonitorClient *cur;
+  struct PerformanceMonitorClient *next;
   pc = find_client (client);
   if (NULL == pc)
     return;
+  next = pc->pm_head;
+  while (NULL != (cur = next))
+	{
+  		next = cur->next;
+  		GNUNET_CONTAINER_DLL_remove (pc->pm_head, pc->pm_tail, cur);
+  		GNUNET_free (cur);
+	}
   GNUNET_CONTAINER_DLL_remove (pc_head, pc_tail, pc);
   GNUNET_SERVER_client_drop (client);
   GNUNET_free (pc);
@@ -502,32 +524,73 @@ GAS_handle_request_address_list (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 
+
+
 void
 GAS_handle_monitor (void *cls,
-													struct GNUNET_SERVER_Client *client,
-                          const struct GNUNET_MessageHeader *message)
+										struct GNUNET_SERVER_Client *client,
+										const struct GNUNET_MessageHeader *message)
 {
+  struct PerformanceClient *pc;
+	struct PerformanceMonitorClient *res;
 	struct MonitorMessage *mm = (struct MonitorMessage *) message;
 	size_t msg_size;
 	uint32_t id;
+	uint32_t op;
+
+	pc = find_client (client);
+	if (NULL == pc)
+	{
+			GNUNET_break (0);
+			return;
+	}
 
 	msg_size = ntohs (message->size);
 	if (msg_size < sizeof (struct MonitorMessage))
 		return;
 
 	id = ntohl (mm->id);
+	op = ntohl (mm->op);
 
-	switch (ntohl (mm->op)) {
-		case GNUNET_YES:
-		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received `START' message\n");
+	for (res = pc->pm_head; NULL != res; res = res->next)
+		if ((res->id == id) && (client == res->client))
 			break;
-		case GNUNET_NO:
-			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received `STOP' message\n");
-			break;
-		default:
-			break;
+
+	if (GNUNET_YES == op)
+	{
+			/* Start monitoring */
+			if (NULL != res)
+			{
+				GNUNET_break (0);
+				return; /* Duplicate*/
+			}
+			res = GNUNET_malloc (sizeof (struct PerformanceMonitorClient));
+			res->client = client;
+			res->id = id;
+			GNUNET_CONTAINER_DLL_insert (pc->pm_head, pc->pm_tail, res);
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+					"Added performance monitoring client %p id %u\n",
+					client, id);
 	}
-
+	else if (GNUNET_NO == op)
+	{
+			/* Stop monitoring */
+			if (NULL == res)
+			{
+				GNUNET_break (0);
+				return; /* Not existing */
+			}
+			GNUNET_CONTAINER_DLL_remove (pc->pm_head, pc->pm_tail, res);
+			GNUNET_free (res);
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+					"Removed performance monitoring client %p id %u\n",
+					client, id);
+	}
+	else
+	{
+		GNUNET_break (0);
+		return;
+	}
 
 }
 
