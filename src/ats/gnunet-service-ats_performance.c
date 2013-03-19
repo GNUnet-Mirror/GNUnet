@@ -531,6 +531,7 @@ GAS_handle_performance_update (struct GNUNET_PeerIdentity *peer,
 {
 	struct PerformanceClient *cur;
 	struct PerformanceMonitorClient *curm;
+	struct MonitorResponseMessage *mrm;
 	for (cur = pc_head; NULL != cur; cur = cur->next)
 		for (curm = cur->pm_head; NULL != curm; curm = curm->next)
 		{
@@ -561,7 +562,10 @@ GAS_handle_monitor (void *cls,
 
 	msg_size = ntohs (message->size);
 	if (msg_size < sizeof (struct MonitorMessage))
-		return;
+	{
+		  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+			return;
+	}
 
 	id = ntohl (mm->id);
 	op = ntohl (mm->op);
@@ -576,6 +580,7 @@ GAS_handle_monitor (void *cls,
 			if (NULL != res)
 			{
 				GNUNET_break (0);
+				GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
 				return; /* Duplicate*/
 			}
 			res = GNUNET_malloc (sizeof (struct PerformanceMonitorClient));
@@ -592,6 +597,7 @@ GAS_handle_monitor (void *cls,
 			if (NULL == res)
 			{
 				GNUNET_break (0);
+				GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
 				return; /* Not existing */
 			}
 			GNUNET_CONTAINER_DLL_remove (pc->pm_head, pc->pm_tail, res);
@@ -603,9 +609,10 @@ GAS_handle_monitor (void *cls,
 	else
 	{
 		GNUNET_break (0);
+		GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
 		return;
 	}
-
+	GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 

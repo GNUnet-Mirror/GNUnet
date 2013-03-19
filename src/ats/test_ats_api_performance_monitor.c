@@ -28,10 +28,11 @@
 #include "gnunet_testing_lib.h"
 #include "ats.h"
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
-
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
+#define SHUTDOWN_CORRECT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
+static GNUNET_SCHEDULER_TaskIdentifier stage_task;
 
 struct GNUNET_CONFIGURATION_Handle *cfg;
 
@@ -45,6 +46,11 @@ static int ret;
 static void
 end_now (int res)
 {
+	if (GNUNET_SCHEDULER_NO_TASK != stage_task)
+	{
+			GNUNET_SCHEDULER_cancel (stage_task);
+			stage_task = GNUNET_SCHEDULER_NO_TASK;
+	}
 	if (GNUNET_SCHEDULER_NO_TASK != die_task)
 	{
 			GNUNET_SCHEDULER_cancel (die_task);
@@ -73,6 +79,31 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   end_now (1);
 }
 
+static void
+next_stage (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+	static int stage_counter = 0;
+
+	stage_task = GNUNET_SCHEDULER_NO_TASK;
+	if (0 == stage_counter)
+	{
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stop performance monitoring\n");
+
+		GNUNET_ATS_performance_monitor_stop (phm);
+		phm = NULL;
+
+		stage_task = GNUNET_SCHEDULER_add_delayed (SHUTDOWN_CORRECT, &next_stage, NULL);
+		stage_counter++;
+		return;
+	}
+	else
+	{
+			end_now (0);
+	}
+}
+
+
+
 
 static void
 perf_mon_cb (void *cls,
@@ -99,11 +130,7 @@ run (void *cls,
   phm = GNUNET_ATS_performance_monitor_start (ph, &perf_mon_cb, &ret);
   GNUNET_assert (NULL != phm);
 
-//  GNUNET_ATS_performance_monitor_stop (phm);
-
-	//GNUNET_ATS_performance_done (ph);
-//	ph = NULL;
-  //end_now (0);
+  stage_task = GNUNET_SCHEDULER_add_delayed (SHUTDOWN_CORRECT, &next_stage, NULL);
 }
 
 
