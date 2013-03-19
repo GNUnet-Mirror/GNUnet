@@ -26,7 +26,6 @@
  *        churns again, and repeats.
  *
  * TODO:
- * - need to enable user to specify topology options
  * - need to check for leaks (especially FD leaks)
  * - need to TEST
  */
@@ -884,10 +883,10 @@ main (int argc, char *const *argv)
      1, &GNUNET_GETOPT_set_string, &data_filename},
     {'H', "hosts", "FILENAME",
      gettext_noop ("name of the file with the login information for the testbed"),
-     0, &GNUNET_GETOPT_set_string, &hosts_file},
+     1, &GNUNET_GETOPT_set_string, &hosts_file},
     {'o', "output", "FILENAME",
      gettext_noop ("name of the file for writing the main results"),
-     0, &GNUNET_GETOPT_set_string, &output_filename},
+     1, &GNUNET_GETOPT_set_string, &output_filename},
     {'p', "peers", "NETWORKSIZESPEC",
      gettext_noop ("Number of peers to run in each round, separated by commas"),
      1, &GNUNET_GETOPT_set_string, &num_peer_spec},
