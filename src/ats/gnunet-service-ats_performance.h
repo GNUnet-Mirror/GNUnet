@@ -52,6 +52,11 @@ void
 GAS_performance_remove_client (struct GNUNET_SERVER_Client *client);
 
 
+void
+GAS_handle_performance_update (struct GNUNET_PeerIdentity *peer,
+															 struct GNUNET_ATS_Information *ats,
+															 uint32_t ats_count);
+
 /**
  * Transmit the given performance information to all performance
  * clients.

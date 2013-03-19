@@ -524,6 +524,20 @@ GAS_handle_request_address_list (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 
+void
+GAS_handle_performance_update (struct GNUNET_PeerIdentity *peer,
+															 struct GNUNET_ATS_Information *ats,
+															 uint32_t ats_count)
+{
+	struct PerformanceClient *cur;
+	struct PerformanceMonitorClient *curm;
+	for (cur = pc_head; NULL != cur; cur = cur->next)
+		for (curm = cur->pm_head; NULL != curm; curm = curm->next)
+		{
+				/* Notify client about update */
+		}
+}
+
 
 
 void
