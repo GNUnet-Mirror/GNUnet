@@ -382,13 +382,16 @@ connect_nse_service ()
 {
   struct NSEPeer *current_peer;
   unsigned int i;
+  unsigned int connections;
 
+  if (0 == connection_limit)
+    return;  
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to nse service of peers\n");
-  for (i = 0; i < num_peers; i++)
+  connections = 0;
+  for (i = 0; i < num_peers_in_round[current_round]; i++)
   {
-    if ((connection_limit > 0) &&
-	(num_peers > connection_limit) && 
-	(0 != (i % (num_peers / connection_limit))))
+    if ((num_peers_in_round[current_round] > connection_limit) && 
+	(0 != (i % (num_peers_in_round[current_round] / connection_limit))))
       continue;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "nse-profiler: connecting to nse service of peer %d\n", i);
@@ -401,8 +404,10 @@ connect_nse_service ()
                                           NULL, NULL,
                                           &nse_connect_adapter,
                                           &nse_disconnect_adapter,
-                                          current_peer);	
+                                          current_peer);
     GNUNET_CONTAINER_DLL_insert (peer_head, peer_tail, current_peer);
+    if (++connections == connection_limit)
+      break;
   }
 }
 
@@ -448,6 +453,7 @@ stats_finished_callback (void *cls,
       GNUNET_free (stats_context);
       return;
     }
+  LOG_DEBUG ("Finished collecting statistics\n");
   if (NULL != data_file)
     {
       /* Stats lookup successful, write out data */
@@ -589,9 +595,7 @@ finish_round (void *cls,
   char buf[1024];
   size_t buf_len;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-	      "Have %u connections\n",
-              total_connections);
+  LOG (GNUNET_ERROR_TYPE_INFO, "Have %u connections\n", total_connections);
   if (NULL != data_file)
     {
       buf_len = GNUNET_snprintf (buf, sizeof (buf),
@@ -655,6 +659,8 @@ peer_churn_cb (void *cls, const char *emsg)
   GNUNET_TESTBED_operation_done (entry->op);
   GNUNET_CONTAINER_DLL_remove (oplist_head, oplist_tail, entry);
   GNUNET_free (entry);
+  if (num_peers_in_round[current_round] == peers_running)
+    run_round ();
 }
 
 
@@ -707,6 +713,7 @@ next_round (void *cls,
   if (current_round == num_rounds)
     {
       /* this was the last round, terminate */
+      ok = 0;
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
@@ -735,13 +742,9 @@ master_controller_cb (void *cls,
     {
     case GNUNET_TESTBED_ET_PEER_START:
       peers_running++;
-      if (num_peers_in_round[current_round] == peers_running)
-	run_round ();
       break;
     case GNUNET_TESTBED_ET_PEER_STOP:
       peers_running--;
-      if (num_peers_in_round[current_round] == peers_running)
-	run_round ();
       break;
     case GNUNET_TESTBED_ET_CONNECT:
       total_connections++;
@@ -817,7 +820,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 	  fprintf (stderr, "Refusing to run a round with 0 peers\n");
 	  return;
 	}
-      GNUNET_array_grow (num_peers_in_round, num_rounds, num);
+      GNUNET_array_append (num_peers_in_round, num_rounds, num);
       num_peers = GNUNET_MAX (num_peers, num);
     }
   if (0 == num_peers)
@@ -875,7 +878,7 @@ main (int argc, char *const *argv)
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'C', "connections", "COUNT",
      gettext_noop ("limit to the number of connections to NSE services, 0 for none"),
-     1, &GNUNET_GETOPT_set_string, &num_peer_spec},
+     1, &GNUNET_GETOPT_set_uint, &connection_limit},
     {'d', "details", "FILENAME",
      gettext_noop ("name of the file for writing connection information and statistics"),
      1, &GNUNET_GETOPT_set_string, &data_filename},
