@@ -1,0 +1,183 @@
+diff -urN buildbot-slave-0.8.5.orig/buildslave/runprocess.py buildbot-slave-0.8.5/buildslave/runprocess.py
+--- buildbot-slave-0.8.5.orig/buildslave/runprocess.py	2011-09-03 23:59:10 +0400
++++ buildbot-slave-0.8.5/buildslave/runprocess.py	2012-11-02 03:08:05 +0400
+@@ -24,6 +24,7 @@
+ import re
+ import subprocess
+ import traceback
++import tempfile
+ import stat
+ from collections import deque
+ 
+@@ -36,6 +37,54 @@
+ if runtime.platformType == 'posix':
+     from twisted.internet.process import Process
+ 
++if os.name == 'nt':
++  import win32api
++  import win32process
++
++def safe_terminate_process (proc, code):
++  if os.name == 'nt':
++    cp = win32api.GetCurrentProcess ()
++    result = False
++    dupproc = win32api.DuplicateHandle (cp, proc._handle, cp, 2 | 1024 | 8 | 32 | 16, 0, 0)
++    try:
++      exitcode = win32process.GetExitCodeProcess (dupproc)
++      if exitcode == 0x103:
++        kernel32 = win32api.GetModuleHandle ("kernel32")
++        exitprocess = win32api.GetProcAddress (kernel32, "ExitProcess")
++        try:
++          th, tid = win32process.CreateRemoteThread (dupproc, None, 0, exitprocess, code, 0)
++          win32api.CloseHandle (th)
++        except:
++          pass
++        result = True
++      else:
++        result = True
++    # except failed to get exit code? failed to get module handle?
++    finally:
++      win32api.CloseHandle (dupproc)
++    return result
++  else:
++    return proc.kill ()
++
++class Dummy(object):
++  def SetHandle (self, h):
++    self._handle = h
++
++def safe_terminate_process_by_pid (proc, code):
++  if os.name == 'nt':
++    try:
++      openproc = win32process.OpenProcess (2 | 1024 | 8 | 32 | 16, 0, proc)
++      try:
++        d = Dummy ()
++        d.SetHandle (openproc)
++        safe_termiate_process (d, code)
++      finally:
++        win32api.CloseHandle (openproc)
++    except:
++      pass
++  else:
++    return os.kill (proc, code)
++
+ def shell_quote(cmd_list):
+     # attempt to quote cmd_list such that a shell will properly re-interpret
+     # it.  The pipes module is only available on UNIX, and Windows "shell"
+@@ -148,6 +197,7 @@
+         self.pending_stdin = ""
+         self.stdin_finished = False
+         self.killed = False
++        self.scriptfile = ""
+ 
+     def setStdin(self, data):
+         assert not self.connected
+@@ -198,6 +248,11 @@
+                 rc = 1
+             else:
+                 rc = -1
++	if self.scriptfile:
++            try:
++                os.remove (self.scriptfile)
++            except:
++                pass
+         self.command.finished(sig, rc)
+ 
+ 
+@@ -400,30 +455,52 @@
+ 
+         self.pp = RunProcessPP(self)
+ 
+-        if type(self.command) in types.StringTypes:
+-            if runtime.platformType  == 'win32':
+-                argv = os.environ['COMSPEC'].split() # allow %COMSPEC% to have args
+-                if '/c' not in argv: argv += ['/c']
+-                argv += [self.command]
+-            else:
+-                # for posix, use /bin/sh. for other non-posix, well, doesn't
+-                # hurt to try
+-                argv = ['/bin/sh', '-c', self.command]
+-            display = self.fake_command
+-        else:
+-            # On windows, CreateProcess requires an absolute path to the executable.
+-            # When we call spawnProcess below, we pass argv[0] as the executable.
+-            # So, for .exe's that we have absolute paths to, we can call directly
+-            # Otherwise, we should run under COMSPEC (usually cmd.exe) to
+-            # handle path searching, etc.
+-            if runtime.platformType == 'win32' and not \
+-                    (self.command[0].lower().endswith(".exe") and os.path.isabs(self.command[0])):
+-                argv = os.environ['COMSPEC'].split() # allow %COMSPEC% to have args
+-                if '/c' not in argv: argv += ['/c']
+-                argv += list(self.command)
+-            else:
+-                argv = self.command
+-            # Attempt to format this for use by a shell, although the process isn't perfect
++        if type(self.command) in types.StringTypes:
++            if runtime.platformType  == 'win32':
++                if os.environ['BUILDSLAVE_SHELL']:
++                    argv = os.environ['BUILDSLAVE_SHELL'].split() # allow %COMSPEC% to have args
++                    argv += [self.command]
++                else:
++                    argv = os.environ['COMSPEC'].split() # allow %COMSPEC% to have args
++                    if '/c' not in argv:
++                        argv += ['/c']
++                    argv += [self.command]
++            else:
++                # for posix, use /bin/sh. for other non-posix, well, doesn't
++                # hurt to try
++                argv = ['/bin/sh', '-c', self.command]
++            display = self.fake_command
++        else:
++            # On windows, CreateProcess requires an absolute path to the executable.
++            # When we call spawnProcess below, we pass argv[0] as the executable.
++            # So, for .exe's that we have absolute paths to, we can call directly
++            # Otherwise, we should run under COMSPEC (usually cmd.exe) to
++            # handle path searching, etc.
++            if runtime.platformType == 'win32' and not \
++                    (self.command[0].lower().endswith(".exe") and os.path.isabs(self.command[0])):
++                if os.environ['BUILDSLAVE_SHELL']:
++                    argv = os.environ['BUILDSLAVE_SHELL'].split()
++                    # Create a temporary script file that changes current directory
++                    # and runs the command we want
++                    # It will be deleted after command is finished running (see RunProcessPP)
++                    tf, tf_name = tempfile.mkstemp ()
++                    f = os.fdopen (tf, 'wb')
++                    fcontents = '#!/bin/sh\ncd {}\n{}'.format (
++                        re.sub(r'(?<!\\) ','\\ ', self.workdir.replace('\\','/')),
++                        ' '.join (self.command))
++                    f.write (fcontents)
++                    log.msg("Script: {}".format (fcontents))
++                    f.close ()
++                    self.pp.scriptfile = tf_name
++                    argv += [tf_name.replace('\\','/')]
++                else:
++                    argv = os.environ['COMSPEC'].split() # allow %COMSPEC% to have args
++                    if '/c' not in argv:
++                      argv += ['/c']
++                    argv += list(self.command)
++            else:
++                argv = self.command
++            # Attempt to format this for use by a shell, although the process isn't perfect
+             display = shell_quote(self.fake_command)
+ 
+         # $PWD usually indicates the current directory; spawnProcess may not
+@@ -433,7 +510,7 @@
+             self.environ['PWD'] = os.path.abspath(self.workdir)
+ 
+         # self.stdin is handled in RunProcessPP.connectionMade
+-
++	log.msg("Running {}".format (argv))
+         log.msg(" " + display)
+         self._addToBuffers('header', display+"\n")
+ 
+@@ -764,9 +841,7 @@
+             if self.KILL == None:
+                 log.msg("self.KILL==None, only pretending to kill child")
+             else:
+-                log.msg("using TASKKILL /F PID /T to kill pid %s" % self.process.pid)
+-                subprocess.check_call("TASKKILL /F /PID %s /T" % self.process.pid)
+-                log.msg("taskkill'd pid %s" % self.process.pid)
++                safe_terminate_process_by_pid (self.process.pid, 1)
+                 hit = 1
+ 
+         # try signalling the process itself (works on Windows too, sorta)
