@@ -162,6 +162,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {&GAS_handle_reset_backoff, NULL,
      GNUNET_MESSAGE_TYPE_ATS_RESET_BACKOFF,
      sizeof (struct ResetBackoffMessage)},
+    {&GAS_handle_monitor, NULL,
+     GNUNET_MESSAGE_TYPE_ATS_MONITOR,
+     sizeof (struct MonitorMessage)},
     {NULL, NULL, 0, 0}
   };
   GSA_server = server;

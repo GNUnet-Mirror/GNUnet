@@ -502,6 +502,35 @@ GAS_handle_request_address_list (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 
+void
+GAS_handle_monitor (void *cls,
+													struct GNUNET_SERVER_Client *client,
+                          const struct GNUNET_MessageHeader *message)
+{
+	struct MonitorMessage *mm = (struct MonitorMessage *) message;
+	size_t msg_size;
+	uint32_t id;
+
+	msg_size = ntohs (message->size);
+	if (msg_size < sizeof (struct MonitorMessage))
+		return;
+
+	id = ntohl (mm->id);
+
+	switch (ntohl (mm->op)) {
+		case GNUNET_YES:
+		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received `START' message\n");
+			break;
+		case GNUNET_NO:
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received `STOP' message\n");
+			break;
+		default:
+			break;
+	}
+
+
+}
+
 
 /**
  * Handle 'reservation request' messages from clients.

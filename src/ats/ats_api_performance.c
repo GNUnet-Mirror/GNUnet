@@ -157,6 +157,22 @@ struct GNUNET_ATS_AddressListHandle
   uint32_t id;
 };
 
+
+
+struct GNUNET_ATS_PerformanceMonitorHandle
+{
+	struct GNUNET_ATS_PerformanceMonitorHandle *next;
+	struct GNUNET_ATS_PerformanceMonitorHandle *prev;
+
+	struct GNUNET_ATS_PerformanceHandle * ph;
+
+	GNUNET_ATS_PerformanceMonitorCb moncb;
+	void *moncb_cls;
+
+	uint32_t id;
+};
+
+
 /**
  * ATS Handle to obtain and/or modify performance information.
  */
@@ -232,6 +248,11 @@ struct GNUNET_ATS_PerformanceHandle
    * Task to trigger reconnect.
    */
   GNUNET_SCHEDULER_TaskIdentifier task;
+
+  /**
+   * Monitor request multiplexing
+   */
+  uint32_t monitor_id;
 
   /**
    * Request multiplexing
@@ -543,6 +564,50 @@ process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
   return GNUNET_OK;
 }
 
+/**
+ * We received a monitor response message.  Validate and process it.
+ *
+ * @param ph our context with the callback
+ * @param msg the message
+ * @return GNUNET_OK if the message was well-formed
+ */
+static int
+process_mr_message (struct GNUNET_ATS_PerformanceHandle *ph,
+                    const struct GNUNET_MessageHeader *msg)
+{
+	struct MonitorResponseMessage *mrm = (struct MonitorResponseMessage *) msg;
+	struct GNUNET_ATS_PerformanceMonitorHandle *cur;
+	struct GNUNET_ATS_Information *ats;
+	size_t msg_size;
+	uint32_t ats_count;
+	uint32_t id;
+
+	msg_size = ntohs (msg->size);
+	if (msg_size < sizeof (struct MonitorResponseMessage))
+		return GNUNET_SYSERR;
+
+	ats_count = ntohl (mrm->ats_count);
+	if (msg_size != (sizeof (struct MonitorResponseMessage) +
+			ats_count * sizeof (struct GNUNET_ATS_Information)))
+		return GNUNET_SYSERR;
+
+	id = ntohl (mrm->id);
+	/* Do work here */
+	for (cur = ph->monitor_head; NULL != cur; cur = cur->next)
+	{
+			if (id == cur->id)
+				break;
+	}
+
+	if (NULL == cur)
+		return GNUNET_SYSERR;
+
+	ats = (struct GNUNET_ATS_Information *) &mrm[1];
+	cur->moncb (cur->moncb_cls, &mrm->peer, ats, ats_count);
+
+	return GNUNET_OK;
+}
+
 
 /**
  * Type of a function to call when we receive a message
@@ -570,6 +635,10 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
     break;
   case GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_RESPONSE:
     if (GNUNET_OK != process_ar_message (ph, msg))
+      goto reconnect;
+    break;
+  case GNUNET_MESSAGE_TYPE_ATS_MONITOR_RESPONSE:
+    if (GNUNET_OK != process_mr_message (ph, msg))
       goto reconnect;
     break;
   default:
@@ -653,16 +722,6 @@ GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   return ph;
 }
 
-struct GNUNET_ATS_PerformanceMonitorHandle
-{
-	struct GNUNET_ATS_PerformanceMonitorHandle *next;
-	struct GNUNET_ATS_PerformanceMonitorHandle *prev;
-
-	struct GNUNET_ATS_PerformanceHandle * ph;
-
-	GNUNET_ATS_PerformanceMonitorCb moncb;
-	void *moncb_cls;
-};
 
 /**
  * Start monitoring performance information
@@ -677,15 +736,30 @@ GNUNET_ATS_performance_monitor_start (struct GNUNET_ATS_PerformanceHandle * ph,
 																			GNUNET_ATS_PerformanceMonitorCb monitor_cb,
 																			void * monitor_cb_cls)
 {
+	struct MonitorMessage *m;
+	struct PendingMessage *p;
 	GNUNET_assert (NULL != ph);
 
 	struct GNUNET_ATS_PerformanceMonitorHandle *phm =
 			GNUNET_malloc (sizeof (struct GNUNET_ATS_PerformanceMonitorHandle));
 
+	ph->monitor_id ++;
+	phm->id = ph->monitor_id;
 	phm->ph = ph;
 	phm->moncb = monitor_cb;
 	phm->moncb_cls = monitor_cb_cls;
 	GNUNET_CONTAINER_DLL_insert (ph->monitor_head, ph->monitor_tail, phm);
+
+  p = GNUNET_malloc (sizeof (struct PendingMessage) +
+                     sizeof (struct MonitorMessage));
+  p->size = sizeof (struct MonitorMessage);
+  m = (struct MonitorMessage *) &p[1];
+  m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_MONITOR);
+  m->header.size = htons (sizeof (struct MonitorMessage));
+  m->id = htonl (phm->id);
+  m->op = htonl (GNUNET_YES);
+  GNUNET_CONTAINER_DLL_insert_tail (ph->pending_head, ph->pending_tail, p);
+  do_transmit (ph);
 
 	return phm;
 }
@@ -702,6 +776,22 @@ GNUNET_ATS_performance_monitor_start (struct GNUNET_ATS_PerformanceHandle * ph,
 void
 GNUNET_ATS_performance_monitor_stop (struct GNUNET_ATS_PerformanceMonitorHandle * phm)
 {
+	struct MonitorMessage *m;
+	struct PendingMessage *p;
+
+	GNUNET_assert (NULL != phm);
+
+  p = GNUNET_malloc (sizeof (struct PendingMessage) +
+                     sizeof (struct MonitorMessage));
+  p->size = sizeof (struct MonitorMessage);
+  m = (struct MonitorMessage *) &p[1];
+  m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_MONITOR);
+  m->header.size = htons (sizeof (struct MonitorMessage));
+  m->id = htonl (phm->id);
+  m->op = htonl (GNUNET_NO);
+  GNUNET_CONTAINER_DLL_insert_tail (phm->ph->pending_head, phm->ph->pending_tail, p);
+  do_transmit (phm->ph);
+
 	GNUNET_CONTAINER_DLL_remove (phm->ph->monitor_head, phm->ph->monitor_tail, phm);
 	GNUNET_free (phm);
 }
@@ -717,6 +807,7 @@ GNUNET_ATS_performance_done (struct GNUNET_ATS_PerformanceHandle *ph)
   struct PendingMessage *p;
   struct GNUNET_ATS_ReservationContext *rc;
   struct GNUNET_ATS_AddressListHandle *alh;
+  struct GNUNET_ATS_PerformanceMonitorHandle *phm;
 
   while (NULL != (p = ph->pending_head))
   {
@@ -735,6 +826,11 @@ GNUNET_ATS_performance_done (struct GNUNET_ATS_PerformanceHandle *ph)
                                  rc);
     GNUNET_break (NULL == rc->rcb);
     GNUNET_free (rc);
+  }
+  while (NULL != (phm = ph->monitor_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (ph->monitor_head, ph->monitor_tail, phm);
+    GNUNET_free (phm);
   }
   if (GNUNET_SCHEDULER_NO_TASK != ph->task)
   {

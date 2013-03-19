@@ -51,6 +51,12 @@ end_now (int res)
 			die_task = GNUNET_SCHEDULER_NO_TASK;
 	}
 
+	if (NULL != phm)
+	{
+		GNUNET_ATS_performance_monitor_stop (phm);
+		phm = NULL;
+	}
+
 	if (NULL != ph)
 	{
 		GNUNET_ATS_performance_done (ph);
@@ -93,11 +99,11 @@ run (void *cls,
   phm = GNUNET_ATS_performance_monitor_start (ph, &perf_mon_cb, &ret);
   GNUNET_assert (NULL != phm);
 
-  GNUNET_ATS_performance_monitor_stop (phm);
+//  GNUNET_ATS_performance_monitor_stop (phm);
 
-	GNUNET_ATS_performance_done (ph);
-	ph = NULL;
-  end_now (0);
+	//GNUNET_ATS_performance_done (ph);
+//	ph = NULL;
+  //end_now (0);
 }
 
 
