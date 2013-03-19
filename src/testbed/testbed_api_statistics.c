@@ -116,6 +116,11 @@ struct PeerGetStatsContext
   struct GNUNET_STATISTICS_GetHandle *get_handle;
 
   /**
+   * Task to mark the statistics service connect operation as done
+   */
+  GNUNET_SCHEDULER_TaskIdentifier op_done_task_id;
+
+  /**
    * The index of this peer in the peers array of GetStatsContext
    */
   unsigned int peer_index;
@@ -150,6 +155,29 @@ call_completion_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Task to mark statistics service connect operation as done.  We call it here
+ * as we cannot destroy the statistics handle in iteration_completion_cb()
+ *
+ * @param cls the PeerGetStatsContext
+ * @param tc the scheduler task context
+ */
+static void
+op_done_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PeerGetStatsContext *peer_sc = cls;
+  struct GetStatsContext *sc;
+  struct GNUNET_TESTBED_Operation **op;
+
+  sc = peer_sc->sc;
+  peer_sc->op_done_task_id = GNUNET_SCHEDULER_NO_TASK;
+  op = &sc->ops[peer_sc->peer_index];  
+  GNUNET_assert (NULL != *op);
+  GNUNET_TESTBED_operation_done (*op);
+  *op = NULL;
+}
+
+
+/**
  * Continuation called by the "get_all" and "get" functions.
  *
  * @param cls the PeerGetStatsContext
@@ -164,7 +192,8 @@ iteration_completion_cb (void *cls, int success)
 
   if (NULL == peer_sc->get_handle)
   {
-    /* We are being called after we cancelled the GetHandle */
+    /* We are being called synchronously in call to GNUNET_STATISTICS_destroy()
+       in statistics_da() after we cancelled the GetHandle */
     GNUNET_assert (GNUNET_SYSERR == success);
     return;
   }
@@ -172,6 +201,7 @@ iteration_completion_cb (void *cls, int success)
   sc = peer_sc->sc;
   peer_sc->get_handle = NULL; 
   sc->num_completed++;
+  peer_sc->op_done_task_id = GNUNET_SCHEDULER_add_now (&op_done_task, peer_sc);
   if (sc->num_completed == sc->num_peers)
   {
     LOG_DEBUG ("Scheduling to call iteration completion callback\n");
@@ -279,6 +309,8 @@ statistics_da (void *cls, void *op_result)
   }
   GNUNET_STATISTICS_destroy ((struct GNUNET_STATISTICS_Handle *) op_result,
                              GNUNET_NO);
+  if (GNUNET_SCHEDULER_NO_TASK != peer_sc->op_done_task_id)
+    GNUNET_SCHEDULER_cancel (peer_sc->op_done_task_id);
   GNUNET_free (peer_sc);
 }
 
@@ -333,7 +365,10 @@ oprelease_get_stats (void *cls)
     for (peer = 0; peer < sc->num_peers; peer++)
     {
       if (NULL != sc->ops[peer])
+      {
         GNUNET_TESTBED_operation_done (sc->ops[peer]);
+        sc->ops[peer] = NULL;
+      }
     }
     GNUNET_free (sc->ops);
   }
