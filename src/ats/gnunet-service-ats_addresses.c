@@ -399,39 +399,56 @@ disassemble_ats_information (const struct GNUNET_ATS_Information *src,
                              struct ATS_Address *dest)
 {
   int i;
+  int change = GNUNET_NO;
   int res = 0;
   for (i = 0; i < ats_count; i++)
     switch (ntohl (src[i].type))
     {
     case GNUNET_ATS_UTILIZATION_UP:
+    	if (dest->atsp_utilization_out.value__ != src[i].value)
+    		change = GNUNET_YES;
       dest->atsp_utilization_out.value__ = src[i].value;
       res ++;
       break;
     case GNUNET_ATS_UTILIZATION_DOWN:
+    	if (dest->atsp_utilization_in.value__ != src[i].value)
+    		change = GNUNET_YES;
       dest->atsp_utilization_in.value__ = src[i].value;
       res ++;
       break;
     case GNUNET_ATS_QUALITY_NET_DELAY:
+    	if (dest->atsp_latency.rel_value  != src[i].value)
+    		change = GNUNET_YES;
       dest->atsp_latency.rel_value = ntohl (src[i].value);
       res ++;
       break;
     case GNUNET_ATS_QUALITY_NET_DISTANCE:
+    	if (dest->atsp_distance!= src[i].value)
+    		change = GNUNET_YES;
       dest->atsp_distance = ntohl (src[i].value);
       res ++;
       break;
     case GNUNET_ATS_COST_WAN:
+    	if (dest->atsp_cost_wan != src[i].value)
+    		change = GNUNET_YES;
       dest->atsp_cost_wan = ntohl (src[i].value);
       res ++;
       break;
     case GNUNET_ATS_COST_LAN:
+    	if (dest->atsp_cost_lan != src[i].value)
+    		change = GNUNET_YES;
       dest->atsp_cost_lan = ntohl (src[i].value);
       res ++;
       break;
     case GNUNET_ATS_COST_WLAN:
+    	if (dest->atsp_cost_wlan != src[i].value)
+    		change = GNUNET_YES;
       dest->atsp_cost_wlan = ntohl (src[i].value);
       res ++;
       break;
     case GNUNET_ATS_NETWORK_TYPE:
+    	if (dest->atsp_network_type != src[i].value)
+    		change = GNUNET_YES;
       dest->atsp_network_type = ntohl (src[i].value);
       res ++;
       break;
@@ -443,6 +460,14 @@ disassemble_ats_information (const struct GNUNET_ATS_Information *src,
       GNUNET_break (0);
       break;
     }
+  if (GNUNET_YES == change)
+  {
+  		struct GNUNET_ATS_Information *destats;
+  		int ats_count;
+  		ats_count = assemble_ats_information (dest, &destats);
+  		GAS_handle_performance_update (&dest->peer, destats, ats_count);
+  		GNUNET_free (destats);
+  }
   return res;
 }
 

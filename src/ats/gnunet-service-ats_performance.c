@@ -532,11 +532,29 @@ GAS_handle_performance_update (struct GNUNET_PeerIdentity *peer,
 	struct PerformanceClient *cur;
 	struct PerformanceMonitorClient *curm;
 	struct MonitorResponseMessage *mrm;
+	size_t msglen;
+
+
+	msglen = sizeof (struct MonitorResponseMessage) +
+					 ats_count * sizeof (struct GNUNET_ATS_Information);
+	mrm = GNUNET_malloc (msglen);
+
+	mrm->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_MONITOR_RESPONSE);
+	mrm->header.size = htons (msglen);
+	mrm->ats_count = htonl (ats_count);
+	mrm->peer = *peer;
+
 	for (cur = pc_head; NULL != cur; cur = cur->next)
 		for (curm = cur->pm_head; NULL != curm; curm = curm->next)
 		{
 				/* Notify client about update */
+				mrm->id = curm->id;
+			  GNUNET_SERVER_notification_context_unicast (nc,
+			  		cur->client,
+			  		(struct GNUNET_MessageHeader *) &mrm,
+			  		GNUNET_YES);
 		}
+	GNUNET_free (mrm);
 }
 
 
