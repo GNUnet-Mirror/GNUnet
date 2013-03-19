@@ -294,88 +294,6 @@ struct RunContext
 
 
 /**
- * Function to return the string representation of the duration between current
- * time and `pstart_time' in `RunContext'
- *
- * @param rc the RunContext
- * @return the representation string; this is NOT reentrant
- */
-static const char *
-prof_time (struct RunContext *rc)
-{
-  struct GNUNET_TIME_Relative ptime;
-
-  ptime = GNUNET_TIME_absolute_get_duration (rc->pstart_time);
-  return GNUNET_STRINGS_relative_time_to_string (ptime, GNUNET_YES);
-}
-
-
-/**
- * Task for starting peers
- *
- * @param cls the RunHandle
- * @param tc the task context from scheduler
- */
-static void
-start_peers_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct RunContext *rc = cls;
-  struct DLLOperation *dll_op;
-  unsigned int peer;
-
-  DEBUG ("Starting Peers\n");
-  rc->pstart_time = GNUNET_TIME_absolute_get ();
-  for (peer = 0; peer < rc->num_peers; peer++)
-  {
-    dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-    dll_op->op = GNUNET_TESTBED_peer_start (NULL, rc->peers[peer], NULL, NULL);
-    dll_op->cls = rc->peers[peer];
-    GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail, dll_op);
-  }
-  rc->peer_count = 0;
-}
-
-
-/**
- * Functions of this signature are called when a peer has been successfully
- * created
- *
- * @param cls the closure from GNUNET_TESTBED_peer_create()
- * @param peer the handle for the created peer; NULL on any error during
- *          creation
- * @param emsg NULL if peer is not NULL; else MAY contain the error description
- */
-static void
-peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
-{
-  struct DLLOperation *dll_op = cls;
-  struct RunContext *rc;
-
-  GNUNET_assert (NULL != dll_op);
-  rc = dll_op->rc;
-  GNUNET_assert (NULL != rc);
-  GNUNET_CONTAINER_DLL_remove (rc->dll_op_head, rc->dll_op_tail, dll_op);
-  GNUNET_TESTBED_operation_done (dll_op->op);
-  GNUNET_free (dll_op);
-  if (NULL == peer)
-  {
-    if (NULL != emsg)
-      LOG (GNUNET_ERROR_TYPE_WARNING, "Error while creating a peer: %s\n",
-           emsg);
-    /* FIXME: GNUNET_TESTBED_shutdown_run()? */
-    return;
-  }
-  rc->peers[rc->peer_count] = peer;
-  rc->peer_count++;
-  if (rc->peer_count < rc->num_peers)
-    return;
-  DEBUG ("%u peers created in %s\n", rc->num_peers, prof_time (rc));
-  rc->state = RC_PEERS_CREATED;
-  GNUNET_SCHEDULER_add_now (&start_peers_task, rc);
-}
-
-
-/**
  * Assuming all peers have been destroyed cleanup run handle
  *
  * @param cls the run handle
@@ -407,32 +325,6 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_free_non_null (rc->topo_file);
   GNUNET_free_non_null (rc->trusted_ip);
   GNUNET_free (rc);
-}
-
-
-/**
- * Stops the testbed run and releases any used resources
- *
- * @param cls the tesbed run handle
- * @param tc the task context from scheduler
- */
-static void
-shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-
-/**
- * Function to shutdown now
- *
- * @param rc the RunContext
- */
-static void
-shutdown_now (struct RunContext *rc)
-{
-  if (GNUNET_YES == rc->shutdown)
-    return;
-  if (GNUNET_SCHEDULER_NO_TASK != rc->shutdown_run_task)
-    GNUNET_SCHEDULER_cancel (rc->shutdown_run_task);
-  rc->shutdown_run_task = GNUNET_SCHEDULER_add_now (&shutdown_run, rc);
 }
 
 
@@ -510,6 +402,105 @@ shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   rc->state = RC_PEERS_SHUTDOWN;       /* No peers are present so we consider the
                                         * state where all peers are SHUTDOWN  */
   GNUNET_SCHEDULER_add_now (&cleanup_task, rc);
+}
+
+
+/**
+ * Function to shutdown now
+ *
+ * @param rc the RunContext
+ */
+static void
+shutdown_now (struct RunContext *rc)
+{
+  if (GNUNET_YES == rc->shutdown)
+    return;
+  if (GNUNET_SCHEDULER_NO_TASK != rc->shutdown_run_task)
+    GNUNET_SCHEDULER_cancel (rc->shutdown_run_task);
+  GNUNET_SCHEDULER_shutdown (); /* Trigger shutdown in programs using this API */
+  rc->shutdown_run_task = GNUNET_SCHEDULER_add_now (&shutdown_run, rc);
+}
+
+
+/**
+ * Function to return the string representation of the duration between current
+ * time and `pstart_time' in `RunContext'
+ *
+ * @param rc the RunContext
+ * @return the representation string; this is NOT reentrant
+ */
+static const char *
+prof_time (struct RunContext *rc)
+{
+  struct GNUNET_TIME_Relative ptime;
+
+  ptime = GNUNET_TIME_absolute_get_duration (rc->pstart_time);
+  return GNUNET_STRINGS_relative_time_to_string (ptime, GNUNET_YES);
+}
+
+
+/**
+ * Task for starting peers
+ *
+ * @param cls the RunHandle
+ * @param tc the task context from scheduler
+ */
+static void
+start_peers_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct RunContext *rc = cls;
+  struct DLLOperation *dll_op;
+  unsigned int peer;
+
+  DEBUG ("Starting Peers\n");
+  rc->pstart_time = GNUNET_TIME_absolute_get ();
+  for (peer = 0; peer < rc->num_peers; peer++)
+  {
+    dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
+    dll_op->op = GNUNET_TESTBED_peer_start (NULL, rc->peers[peer], NULL, NULL);
+    dll_op->cls = rc->peers[peer];
+    GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail, dll_op);
+  }
+  rc->peer_count = 0;
+}
+
+
+/**
+ * Functions of this signature are called when a peer has been successfully
+ * created
+ *
+ * @param cls the closure from GNUNET_TESTBED_peer_create()
+ * @param peer the handle for the created peer; NULL on any error during
+ *          creation
+ * @param emsg NULL if peer is not NULL; else MAY contain the error description
+ */
+static void
+peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
+{
+  struct DLLOperation *dll_op = cls;
+  struct RunContext *rc;
+
+  GNUNET_assert (NULL != dll_op);
+  rc = dll_op->rc;
+  GNUNET_assert (NULL != rc);
+  GNUNET_CONTAINER_DLL_remove (rc->dll_op_head, rc->dll_op_tail, dll_op);
+  GNUNET_TESTBED_operation_done (dll_op->op);
+  GNUNET_free (dll_op);
+  if (NULL == peer)
+  {
+    if (NULL != emsg)
+      LOG (GNUNET_ERROR_TYPE_ERROR, "Error while creating a peer: %s\n",
+           emsg);
+    shutdown_now (rc);
+    return;
+  }
+  rc->peers[rc->peer_count] = peer;
+  rc->peer_count++;
+  if (rc->peer_count < rc->num_peers)
+    return;
+  DEBUG ("%u peers created in %s\n", rc->num_peers, prof_time (rc));
+  rc->state = RC_PEERS_CREATED;
+  GNUNET_SCHEDULER_add_now (&start_peers_task, rc);
 }
 
 
@@ -642,7 +633,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   case RC_PEERS_CREATED:
   case RC_READY:
     rc->state = RC_PEERS_SHUTDOWN;
-    GNUNET_free (rc->peers);
+    GNUNET_free_non_null (rc->peers);
     rc->peers = NULL;
     DEBUG ("Peers shut down in %s\n", prof_time (rc));
     GNUNET_SCHEDULER_add_now (&cleanup_task, rc);
@@ -816,11 +807,6 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
     {
       GNUNET_free (rc->peers);
       rc->peers = NULL;
-    }
-    if (NULL != rc->c)
-    {
-      GNUNET_TESTBED_controller_disconnect (rc->c);
-      rc->c = NULL;
     }
     shutdown_now (rc);
     return;
