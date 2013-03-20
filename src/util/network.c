@@ -215,7 +215,7 @@ socket_set_inheritable (const struct GNUNET_NETWORK_Handle *h)
 #else
   BOOL b;
   SetLastError (0);
-  b = SetHandleInformation (h->fd, HANDLE_FLAG_INHERIT, 0);
+  b = SetHandleInformation ((HANDLE) h->fd, HANDLE_FLAG_INHERIT, 0);
   if (!b)
   {
     SetErrnoFromWinsockError (WSAGetLastError ());
@@ -1196,7 +1196,7 @@ static DWORD WINAPI
 _selector (LPVOID p)
 {
   struct _select_params *sp = p;
-  int i;
+
   while (1)
   {
     WaitForSingleObject (sp->standby, INFINITE);
@@ -1380,6 +1380,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
     p = 1;
     res = ioctlsocket (select_wakeup_socket, FIONBIO, &p);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Select thread initialization: ioctlsocket() returns %d\n", res);
 
     alen = sizeof (s_in);
     s_in.sin_family = AF_INET;
@@ -1389,12 +1390,16 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
     s_in.sin_addr.S_un.S_un_b.s_b3 = 0;
     s_in.sin_addr.S_un.S_un_b.s_b4 = 1;
     res = bind (select_listening_socket, (const struct sockaddr *) &s_in, sizeof (s_in));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Select thread initialization: bind() returns %d\n", res);
 
     res = getsockname (select_listening_socket, (struct sockaddr *) &s_in, &alen);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Select thread initialization: getsockname() returns %d\n", res);
 
     res = listen (select_listening_socket, SOMAXCONN);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Select thread initialization: listen() returns %d\n", res);
 
     res = connect (select_wakeup_socket, (const struct sockaddr *) &s_in, sizeof (s_in));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Select thread initialization: connect() returns %d\n", res);
 
     select_send_socket = accept (select_listening_socket, (struct sockaddr *) &s_in, &alen);
 
@@ -1480,10 +1485,11 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
     if (rfds && read_handles)
     {
       struct GNUNET_CONTAINER_SList_Iterator i;
+      int c;
 
-      for (i = GNUNET_CONTAINER_slist_begin (rfds->handles);
+      for (c = 0, i = GNUNET_CONTAINER_slist_begin (rfds->handles);
           GNUNET_CONTAINER_slist_end (&i) != GNUNET_YES;
-          GNUNET_CONTAINER_slist_next (&i))
+          GNUNET_CONTAINER_slist_next (&i), c++)
       {
         struct GNUNET_DISK_FileHandle *fh;
 
@@ -1498,7 +1504,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
           bret = PeekNamedPipe (fh->h, NULL, 0, NULL, &waitstatus, NULL);
           error = GetLastError ();
           LOG (GNUNET_ERROR_TYPE_DEBUG, "Peek at read pipe %d (0x%x) returned %d (%d bytes available) GLE %u\n",
-              i, fh->h, bret, waitstatus, error);
+              c, fh->h, bret, waitstatus, error);
           if (bret == 0)
           {
             /* TODO: either add more errors to this condition, or eliminate it
