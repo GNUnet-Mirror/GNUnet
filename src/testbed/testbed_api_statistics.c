@@ -332,6 +332,8 @@ opstart_get_stats (void *cls)
                            sizeof (struct GNUNET_TESTBED_Operation *));
   for (peer = 0; peer < sc->num_peers; peer++)
   {
+    if (NULL == sc->peers[peer])
+      continue;
     peer_sc = GNUNET_malloc (sizeof (struct PeerGetStatsContext));
     peer_sc->sc = sc;
     peer_sc->peer_index = peer;
