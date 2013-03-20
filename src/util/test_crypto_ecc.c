@@ -195,11 +195,12 @@ test_ecdh ()
   GNUNET_CRYPTO_ecc_key_get_public (priv2, &pub2);
   GNUNET_CRYPTO_ecc_ecdh (priv1, &pub2, &ecdh1);
   GNUNET_CRYPTO_ecc_ecdh (priv2, &pub1, &ecdh2);
-  GNUNET_CRYPTO_ecc_key_free (priv1);
-  GNUNET_CRYPTO_ecc_key_free (priv2);
   GNUNET_assert (0 == memcmp (&ecdh1, &ecdh2,
 			      sizeof (struct GNUNET_HashCode)));
+  GNUNET_CRYPTO_ecc_key_free (priv1);
+  GNUNET_CRYPTO_ecc_key_free (priv2);
 }
+
 
 static void
 perf_keygen ()
@@ -216,11 +217,9 @@ perf_keygen ()
     GNUNET_CRYPTO_ecc_key_free (pk);
   }
   fprintf (stderr, "\n");
-  printf ("Creating 10 ECC keys took %llu ms\n",
-          (unsigned long long)
-          GNUNET_TIME_absolute_get_duration (start).rel_value);
+  printf ("Creating 10 ECC keys took %s\n",
+          GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start), GNUNET_YES));
 }
-
 
 
 int

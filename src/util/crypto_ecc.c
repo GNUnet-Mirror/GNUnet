@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2009, 2012 Christian Grothoff (and other contributing authors)
+     (C) 2012, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -263,16 +263,13 @@ decode_public_key (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *publicK
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);  /* erroff gives more info */
     return NULL;
   }
-  // FIXME: is this key expected to pass pk_testkey?
-#if 0
-#if EXTRA_CHECKS 
+#if EXTRA_CHECKS
   if (0 != (rc = gcry_pk_testkey (result)))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
     gcry_sexp_release (result);
     return NULL;
   }
-#endif
 #endif
   return result;
 }
@@ -1066,74 +1063,85 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *key,
                         const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pub,
                         struct GNUNET_HashCode *key_material)
 { 
-  size_t size;
   size_t slen;
+  size_t erroff;
   int rc;
-  gcry_sexp_t data;  
-  unsigned char sdata_buf[2048]; /* big enough to print 'sdata' and 'r_sig' */
+  unsigned char sdata_buf[2048]; /* big enough to print dh-shared-secret as S-expression */
+  gcry_mpi_point_t result;
+  gcry_mpi_point_t q;
+  gcry_mpi_t d;
+  gcry_ctx_t ctx;
+  gcry_sexp_t psexp;
+  gcry_mpi_t result_x;
+  gcry_mpi_t result_y;
 
-  /* first, extract the q value from the public key */
+  /* first, extract the q = dP value from the public key */
+  if (! (psexp = decode_public_key (pub)))
+    return GNUNET_SYSERR;
+  if (0 != (rc = gcry_mpi_ec_new (&ctx, psexp, NULL)))
   {
-    gcry_sexp_t psexp;
-    gcry_mpi_t sdata;
-    
-    if (! (psexp = decode_public_key (pub)))
-      return GNUNET_SYSERR;
-    rc = key_from_sexp (&sdata, psexp, "public-key", "q");
-    if (rc)
-      rc = key_from_sexp (&sdata, psexp, "ecc", "q");
-    GNUNET_assert (0 == rc);  
-    gcry_sexp_release (psexp);
-    size = sizeof (sdata_buf);
-    GNUNET_assert (0 ==
-		   gcry_mpi_print (GCRYMPI_FMT_USG, sdata_buf, size, &size,
-				   sdata));
-    gcry_mpi_release (sdata);
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_ec_new", rc);  /* erroff gives more info */
+    return GNUNET_SYSERR;
   }
-  /* convert q value into an S-expression -- whatever format libgcrypt wants,
-     re-using format from sign operation for now... */
-  {
-    char *sexp_string;
+  gcry_sexp_release (psexp);
+  q = gcry_mpi_ec_get_point ("q", ctx, 0);
+  gcry_ctx_release (ctx);
 
-#define FORMATPREFIX "(4:data(5:flags3:raw)(5:value%u:"
-#define FORMATPOSTFIX "))"
-    sexp_string = GNUNET_malloc (strlen (FORMATPREFIX) + size + 12 +
-				  strlen (FORMATPOSTFIX) + 1);
-    GNUNET_snprintf (sexp_string,
-		     strlen (FORMATPREFIX) + 12,
-		     FORMATPREFIX,
-		     size);
-    slen = strlen (sexp_string);
-    memcpy (&sexp_string[slen],
-	    sdata_buf, 
-	    size);
-    memcpy (&sexp_string[slen + size],
-	    FORMATPOSTFIX,
-	    strlen (FORMATPOSTFIX) + 1);  
-    GNUNET_assert (0 == gcry_sexp_new (&data, 
-				       sexp_string, 
-				       slen + size + strlen (FORMATPOSTFIX), 
-				       0));
-    GNUNET_free (sexp_string);
-  }
-  /* then call the 'multiply' function, hoping it simply multiplies the points;
-     here we need essentially a WRAPPER around _gcry_mpi_ex_mul_point! - FIXME-WK!*/
-#if WK
+  /* second, extract the d value from our private key */
+  rc = key_from_sexp (&d, key->sexp, "private-key", "d");
+  if (rc)
+    rc = key_from_sexp (&d, key->sexp, "ecc", "d");
+  if (0 != rc)
   {
-    gcry_sexp_t result;
-    
-    rc = gcry_ecc_mul_point (&result, data /* scalar */, key->sexp /* point and ctx */);
-    GNUNET_assert (0 == rc);
-    slen = gcry_sexp_sprint (result, GCRYSEXP_FMT_DEFAULT, sdata_buf, sizeof (sdata_buf));
-    GNUNET_assert (0 != slen);
+    GNUNET_break (0);
+    gcry_mpi_point_release (q);
+    return GNUNET_SYSERR;
   }
-#else
-  /* use broken version, insecure! */
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("To be implemented: not secure at the moment, please read README\n"));
-  slen = sprintf ((char*) sdata_buf, "FIXME-this is not key material");
-#endif
-  gcry_sexp_release (data);
 
+  /* create a new context for definitively the correct curve;
+     theoretically the 'public_key' might not use the right curve */
+  if (0 != (rc = gcry_mpi_ec_new (&ctx, NULL, "NIST P-256")))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_ec_new", rc);  /* erroff gives more info */
+    gcry_mpi_release (d);
+    gcry_mpi_point_release (q);
+    return GNUNET_SYSERR;
+  }
+
+  /* then call the 'multiply' function, to compute the product */
+  GNUNET_assert (NULL != ctx);
+  result = gcry_mpi_point_new (0);
+  gcry_mpi_ec_mul (result, d, q, ctx);
+  gcry_mpi_point_release (q);
+  gcry_mpi_release (d);
+
+  /* finally, convert point to string for hashing */
+  result_x = gcry_mpi_new (256);
+  result_y = gcry_mpi_new (256);
+  if (gcry_mpi_ec_get_affine (result_x, result_y, result, ctx))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "get_affine failed", 0);
+    gcry_mpi_point_release (result);
+    gcry_ctx_release (ctx);
+    return GNUNET_SYSERR;
+  }
+  gcry_mpi_point_release (result);
+  gcry_ctx_release (ctx);
+  if (0 != (rc = gcry_sexp_build (&psexp, &erroff, 
+				  "(dh-shared-secret (x %m)(y %m))",
+				  result_x,
+				  result_y)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);  /* erroff gives more info */
+    gcry_mpi_release (result_x);
+    gcry_mpi_release (result_y);
+    return GNUNET_SYSERR;
+  }
+  gcry_mpi_release (result_x);
+  gcry_mpi_release (result_y);
+  slen = gcry_sexp_sprint (psexp, GCRYSEXP_FMT_DEFAULT, sdata_buf, sizeof (sdata_buf));
+  GNUNET_assert (0 != slen);
+  gcry_sexp_release (psexp);
   /* finally, get a string of the resulting S-expression and hash it to generate the key material */
   GNUNET_CRYPTO_hash (sdata_buf, slen, key_material);
   return GNUNET_OK;

@@ -342,7 +342,8 @@ test_crypto_crc_LDADD = \
 test_crypto_ecc_SOURCES = \
  test_crypto_ecc.c
 test_crypto_ecc_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(LIBGCRYPT_LIBS)
 
 test_crypto_hash_SOURCES = \
  test_crypto_hash.c
