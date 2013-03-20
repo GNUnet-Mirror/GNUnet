@@ -190,13 +190,6 @@ iteration_completion_cb (void *cls, int success)
   struct PeerGetStatsContext *peer_sc = cls;
   struct GetStatsContext *sc;
 
-  if (NULL == peer_sc->get_handle)
-  {
-    /* We are being called synchronously in call to GNUNET_STATISTICS_destroy()
-       in statistics_da() after we cancelled the GetHandle */
-    GNUNET_assert (GNUNET_SYSERR == success);
-    return;
-  }
   GNUNET_break (GNUNET_OK == success);
   sc = peer_sc->sc;
   peer_sc->get_handle = NULL; 
@@ -301,14 +294,14 @@ static void
 statistics_da (void *cls, void *op_result)
 {
   struct PeerGetStatsContext *peer_sc = cls;
+  struct GNUNET_STATISTICS_Handle *sh = op_result;
 
   if (NULL != peer_sc->get_handle)
   {
     GNUNET_STATISTICS_get_cancel (peer_sc->get_handle);
     peer_sc->get_handle = NULL;
   }
-  GNUNET_STATISTICS_destroy ((struct GNUNET_STATISTICS_Handle *) op_result,
-                             GNUNET_NO);
+  GNUNET_STATISTICS_destroy (sh, GNUNET_NO);
   if (GNUNET_SCHEDULER_NO_TASK != peer_sc->op_done_task_id)
     GNUNET_SCHEDULER_cancel (peer_sc->op_done_task_id);
   GNUNET_free (peer_sc);
