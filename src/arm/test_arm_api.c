@@ -114,7 +114,7 @@ resolver_start_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_Reque
 static void
 trigger_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_ARM_disconnect ((struct GNUNET_ARM_Handle *) cls);
+  GNUNET_ARM_disconnect_and_free ((struct GNUNET_ARM_Handle *) cls);
 }
 
 

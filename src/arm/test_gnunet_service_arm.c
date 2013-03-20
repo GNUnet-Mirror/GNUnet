@@ -49,7 +49,7 @@ static struct GNUNET_ARM_Handle *arm;
 static void
 trigger_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_ARM_disconnect (arm);
+  GNUNET_ARM_disconnect_and_free (arm);
   arm = NULL;
 }
 

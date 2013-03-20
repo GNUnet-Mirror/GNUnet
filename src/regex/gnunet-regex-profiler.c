@@ -1028,7 +1028,7 @@ arm_da (void *cls, void *op_result)
 
   if (NULL != peer->arm_handle)
   {
-    GNUNET_ARM_disconnect (peer->arm_handle);
+    GNUNET_ARM_disconnect_and_free (peer->arm_handle);
     peer->arm_handle = NULL;
   }
 }

@@ -451,7 +451,7 @@ GNUNET_ARM_connect (struct GNUNET_ARM_Handle *h,
  * @param h the handle that was being used
  */
 void
-GNUNET_ARM_disconnect (struct GNUNET_ARM_Handle *handle)
+GNUNET_ARM_disconnect_and_free (struct GNUNET_ARM_Handle *handle)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from ARM service\n");
   if (NULL != handle->cth)
@@ -783,7 +783,7 @@ GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
  * Stopping arm itself will not invalidate its handle, and
  * ARM API will try to restore connection to the ARM service,
  * even if ARM connection was lost because you asked for ARM to be stopped.
- * Call GNUNET_ARM_disconnect () to free the handle and prevent
+ * Call GNUNET_ARM_disconnect_and_free () to free the handle and prevent
  * further connection attempts.
  *
  * @param h handle to ARM

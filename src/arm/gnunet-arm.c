@@ -178,7 +178,7 @@ delete_files ()
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_ARM_disconnect (h);
+  GNUNET_ARM_disconnect_and_free (h);
   GNUNET_ARM_monitor_disconnect (m);
   h = NULL;
   m = NULL;
