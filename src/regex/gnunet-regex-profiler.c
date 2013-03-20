@@ -1006,8 +1006,7 @@ arm_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct RegexPeer *peer = cls;
 
-  peer->arm_handle = GNUNET_ARM_alloc (cfg);
-  GNUNET_ARM_connect (peer->arm_handle, NULL, NULL);
+  peer->arm_handle = GNUNET_ARM_connect (cfg, NULL, NULL);
 
   return peer->arm_handle;
 }

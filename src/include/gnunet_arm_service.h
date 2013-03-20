@@ -179,11 +179,12 @@ struct GNUNET_ARM_Handle;
  * Function called whenever we connect to or disconnect from ARM.
  *
  * @param cls closure
- * @param connected GNUNET_YES if connected, GNUNET_NO if disconnected
+ * @param connected GNUNET_YES if connected, GNUNET_NO if disconnected,
+ *                  GNUNET_SYSERR if there was an error.
  * @param error GNUNET_YES if we encountered a permanent error, and there
  *              will be no re-connection.
  */
-typedef void (*GNUNET_ARM_ConnectionStatusCallback) (void *cls, struct GNUNET_ARM_Handle *arm, unsigned char connected, unsigned char error);
+typedef void (*GNUNET_ARM_ConnectionStatusCallback) (void *cls, struct GNUNET_ARM_Handle *arm, char connected);
 
 
 /**
@@ -217,28 +218,18 @@ typedef void (*GNUNET_ARM_ServiceListCallback) (void *cls, struct GNUNET_ARM_Han
 
 
 /**
- * Setup a context for communicating with ARM.  Note that this
- * can be done even if the ARM service is not yet running.
- * Never fails.
+ * Set up a context for communicating with ARM, then
+ * start connecting to the ARM service using that context.
  *
  * @param cfg configuration to use (needed to contact ARM;
  *        the ARM service may internally use a different
  *        configuration to determine how to start the service).
- * @return context to use for further ARM operations
+ * @param conn_status will be called when connecting/disconnecting
+ * @param cls closure for conn_status
+ * @return context to use for further ARM operations, NULL on error.
  */
 struct GNUNET_ARM_Handle *
-GNUNET_ARM_alloc (const struct GNUNET_CONFIGURATION_Handle *cfg);
-
-/**
- * Start connecting to the ARM service using the context.
- * @param conn_status called when we (dis)connect from/to ARM.
- *        It's also called on connection errors.
- * @param cls closure for conn_status
- *
- * @param h ARM handle
- */
-void
-GNUNET_ARM_connect (struct GNUNET_ARM_Handle *h,
+GNUNET_ARM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_ARM_ConnectionStatusCallback conn_status, void *cls);
 
 
@@ -321,27 +312,18 @@ typedef void (*GNUNET_ARM_ServiceStatusCallback) (void *cls, struct GNUNET_ARM_M
 
 
 /**
- * Setup a context for monitoring ARM.  Note that this
- * can be done even if the ARM service is not yet running.
- * Never fails.
+ * Setup a context for monitoring ARM, then
+ * start connecting to the ARM service for monitoring using that context.
  *
  * @param cfg configuration to use (needed to contact ARM;
  *        the ARM service may internally use a different
  *        configuration to determine how to start the service).
- * @return context to use for further ARM monitor operations
- */
-struct GNUNET_ARM_MonitorHandle *
-GNUNET_ARM_monitor_alloc (const struct GNUNET_CONFIGURATION_Handle *cfg);
-
-/**
- * Start connecting to the ARM service for monitoring using the context.
- *
- * @param h ARM monitor handle
  * @param cont callback to invoke on status updates
  * @param cont_cls closure
+ * @return context to use for further ARM monitor operations, NULL on error.
  */
-void
-GNUNET_ARM_monitor (struct GNUNET_ARM_MonitorHandle *h,
+struct GNUNET_ARM_MonitorHandle *
+GNUNET_ARM_monitor (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_ARM_ServiceStatusCallback cont, void *cont_cls);
 
 
@@ -352,7 +334,7 @@ GNUNET_ARM_monitor (struct GNUNET_ARM_MonitorHandle *h,
  * @param h the handle that was being used
  */
 void
-GNUNET_ARM_monitor_disconnect (struct GNUNET_ARM_MonitorHandle *h);
+GNUNET_ARM_monitor_disconnect_and_free (struct GNUNET_ARM_MonitorHandle *h);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

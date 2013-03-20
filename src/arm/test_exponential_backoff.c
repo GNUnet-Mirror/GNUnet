@@ -280,7 +280,7 @@ static void
 trigger_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_ARM_disconnect_and_free (arm);
-  GNUNET_ARM_monitor_disconnect (mon);
+  GNUNET_ARM_monitor_disconnect_and_free (mon);
 }
 
 
@@ -360,16 +360,25 @@ task (void *cls, char *const *args, const char *cfgfile,
       GNUNET_free (armconfig);
   }
 
-  arm = GNUNET_ARM_alloc (cfg);
-  GNUNET_ARM_connect (arm, NULL, NULL);
-  mon = GNUNET_ARM_monitor_alloc (cfg);
-  GNUNET_ARM_monitor (mon, srv_status, NULL);
+  arm = GNUNET_ARM_connect (cfg, NULL, NULL);
+  if (NULL != arm)
+  {
+    mon = GNUNET_ARM_monitor (cfg, srv_status, NULL);
+    if (NULL != mon)
+    {
 #if START_ARM
-  GNUNET_ARM_request_service_start (arm, "arm",
-      GNUNET_OS_INHERIT_STD_OUT_AND_ERR, GNUNET_TIME_UNIT_ZERO, arm_start_cb, NULL);
+      GNUNET_ARM_request_service_start (arm, "arm",
+          GNUNET_OS_INHERIT_STD_OUT_AND_ERR, GNUNET_TIME_UNIT_ZERO, arm_start_cb, NULL);
 #else
-  arm_start_cb (NULL, arm, GNUNET_ARM_REQUEST_SENT_OK, "arm", GNUNET_ARM_SERVICE_STARTING);
+      arm_start_cb (NULL, arm, GNUNET_ARM_REQUEST_SENT_OK, "arm", GNUNET_ARM_SERVICE_STARTING);
 #endif
+    }
+    else
+    {
+      GNUNET_ARM_disconnect_and_free (arm);
+      arm = NULL;
+    }
+  }
 }
 
 static int

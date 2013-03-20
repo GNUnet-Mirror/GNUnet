@@ -88,7 +88,7 @@ struct GNUNET_ARM_MonitorHandle
 static void
 monitor_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg);
 
-static void
+static int
 reconnect_arm_monitor (struct GNUNET_ARM_MonitorHandle *h);
 
 /**
@@ -211,7 +211,7 @@ transmit_monitoring_init_message (void *cls, size_t size, void *buf)
 }
 
 
-static void
+static int
 reconnect_arm_monitor (struct GNUNET_ARM_MonitorHandle *h)
 {
   GNUNET_assert (NULL == h->monitor);
@@ -220,56 +220,49 @@ reconnect_arm_monitor (struct GNUNET_ARM_MonitorHandle *h)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	   "arm_api, GNUNET_CLIENT_connect returned NULL\n");
-    GNUNET_CLIENT_disconnect (h->monitor);
-    h->monitor = NULL;
-    return;
+    if (NULL != h->service_status)
+      h->service_status (h->cls, h, NULL, GNUNET_ARM_SERVICE_STOPPED);
+    return GNUNET_SYSERR;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "arm_api, GNUNET_CLIENT_connect returned non-NULL\n");
   h->cth = GNUNET_CLIENT_notify_transmit_ready (h->monitor,
       sizeof (struct GNUNET_MessageHeader), GNUNET_TIME_UNIT_FOREVER_REL,
       GNUNET_NO, &transmit_monitoring_init_message, h);
+  return GNUNET_OK;
 }
 
 
 /**
- * Setup a context for monitoring ARM.  Note that this
- * can be done even if the ARM service is not yet running.
- * Never fails.
+ * Setup a context for monitoring ARM, then
+ * start connecting to the ARM service for monitoring using that context.
  *
  * @param cfg configuration to use (needed to contact ARM;
  *        the ARM service may internally use a different
  *        configuration to determine how to start the service).
- * @return context to use for further ARM monitoring operations
- */
-struct GNUNET_ARM_MonitorHandle *
-GNUNET_ARM_monitor_alloc (const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  struct GNUNET_ARM_MonitorHandle *ret;
-
-  ret = GNUNET_malloc (sizeof (struct GNUNET_ARM_MonitorHandle));
-  ret->cfg = GNUNET_CONFIGURATION_dup (cfg);
-  ret->currently_down = GNUNET_YES;
-  ret->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  ret->init_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
-  return ret;
-}
-
-
-/**
- * Start connecting to the ARM service for monitoring using the context.
- *
- * @param h ARM monitor handle
  * @param cont callback to invoke on status updates
  * @param cont_cls closure
+ * @return context to use for further ARM monitor operations, NULL on error.
  */
-void
-GNUNET_ARM_monitor (struct GNUNET_ARM_MonitorHandle *h,
+struct GNUNET_ARM_MonitorHandle *
+GNUNET_ARM_monitor (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_ARM_ServiceStatusCallback cont, void *cont_cls)
 {
+  struct GNUNET_ARM_MonitorHandle *h;
+
+  h = GNUNET_malloc (sizeof (struct GNUNET_ARM_MonitorHandle));
+  h->cfg = GNUNET_CONFIGURATION_dup (cfg);
+  h->currently_down = GNUNET_YES;
+  h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  h->init_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
   h->service_status = cont;
   h->cls = cont_cls;
-  reconnect_arm_monitor (h);
+  if (GNUNET_OK != reconnect_arm_monitor (h))
+  {
+    GNUNET_free (h);
+    return NULL;
+  }
+  return h;
 }
 
 
@@ -280,7 +273,7 @@ GNUNET_ARM_monitor (struct GNUNET_ARM_MonitorHandle *h,
  * @param h the handle that was being used
  */
 void
-GNUNET_ARM_monitor_disconnect (struct GNUNET_ARM_MonitorHandle *handle)
+GNUNET_ARM_monitor_disconnect_and_free (struct GNUNET_ARM_MonitorHandle *handle)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from ARM service\n");
   if (NULL != handle->cth)

@@ -134,8 +134,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     else
       GNUNET_free (armconfig);
   }
-  arm = GNUNET_ARM_alloc (c);
-  GNUNET_ARM_connect (arm, NULL, NULL);
+  arm = GNUNET_ARM_connect (c, NULL, NULL);
   GNUNET_ARM_request_service_start (arm, "arm",
       GNUNET_OS_INHERIT_STD_OUT_AND_ERR, START_TIMEOUT, arm_start_cb, NULL);
 }

@@ -179,7 +179,7 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_ARM_disconnect_and_free (h);
-  GNUNET_ARM_monitor_disconnect (m);
+  GNUNET_ARM_monitor_disconnect_and_free (m);
   h = NULL;
   m = NULL;
   if ((end == GNUNET_YES) && (delete == GNUNET_YES))
@@ -246,14 +246,15 @@ static void action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *t
  *
  * @param cls closure
  * @param arm handle to the ARM connection
- * @param connected GNUNET_YES if connected, GNUNET_NO if disconnected
+ * @param connected GNUNET_YES if connected, GNUNET_NO if disconnected,
+ *                  GNUNET_SYSERR on error.
  * @param error GNUNET_YES if we encountered a permanent error, and there
  *              will be no re-connection.
  */
 static void
-conn_status (void *cls, struct GNUNET_ARM_Handle *arm, unsigned char connected, unsigned char error)
+conn_status (void *cls, struct GNUNET_ARM_Handle *arm, char connected)
 {
-  if (GNUNET_YES == error)
+  if (GNUNET_SYSERR == connected)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Fatal error initializing ARM API.\n"));
@@ -575,13 +576,22 @@ run (void *cls, char *const *args, const char *cfgfile,
     else
       GNUNET_free (armconfig);
   }
-  h = GNUNET_ARM_alloc (cfg);
-  m = GNUNET_ARM_monitor_alloc (cfg);
-  GNUNET_ARM_connect (h, conn_status, NULL);
-  GNUNET_ARM_monitor (m, srv_status, NULL);
-  GNUNET_SCHEDULER_add_now (action_loop, NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				shutdown_task, NULL);
+  h = GNUNET_ARM_connect (cfg, conn_status, NULL);
+  if (NULL != h)
+  {
+    m = GNUNET_ARM_monitor (cfg, srv_status, NULL);
+    if (NULL != m)
+    {
+      GNUNET_SCHEDULER_add_now (action_loop, NULL);
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+          shutdown_task, NULL);
+    }
+    else
+    {
+      GNUNET_ARM_disconnect_and_free (h);
+      h = NULL;
+    }
+  }
 }
 
 

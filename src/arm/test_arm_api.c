@@ -71,7 +71,7 @@ resolver_stop_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_Reques
   GNUNET_ARM_request_service_stop (arm, "arm", TIMEOUT, arm_stop_cb, NULL);
 #else
   arm_stop_cb (NULL, GNUNET_ARM_STATUS_SENT_OK, "arm", GNUNET_ARM_SERVICE_STOPPING);
-  arm_conn (NULL, GNUNET_NO, GNUNET_NO);
+  arm_conn (NULL, GNUNET_NO);
 #endif
 }
 
@@ -119,9 +119,9 @@ trigger_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 void
-arm_conn (void *cls, struct GNUNET_ARM_Handle *arm, unsigned char connected, unsigned char error)
+arm_conn (void *cls, struct GNUNET_ARM_Handle *arm, char connected)
 {
-  if (GNUNET_YES == error)
+  if (GNUNET_SYSERR == connected)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Fatal error initializing ARM API.\n"));
@@ -129,7 +129,7 @@ arm_conn (void *cls, struct GNUNET_ARM_Handle *arm, unsigned char connected, uns
     GNUNET_assert (0);
     return;
   }
-  if (connected)
+  if (GNUNET_YES == connected)
   {
     /* (1), arm connection should be established */
     FPRINTF (stderr, "%s", "Connected to ARM\n");
@@ -201,13 +201,14 @@ task (void *cls, char *const *args, const char *cfgfile,
     else
       GNUNET_free (armconfig);
   }
-  arm = GNUNET_ARM_alloc (cfg);
-  GNUNET_ARM_connect (arm, arm_conn, NULL);
+  arm = GNUNET_ARM_connect (cfg, arm_conn, NULL);
+  if (NULL == arm)
+    return;
 #if START_ARM
   GNUNET_ARM_request_service_start (arm, "arm", GNUNET_OS_INHERIT_STD_OUT_AND_ERR, START_TIMEOUT, arm_start_cb, NULL);
 #else
   arm_start_cb (NULL, arm, GNUNET_ARM_REQUEST_SENT_OK, "arm", GNUNET_ARM_RESULT_STARTING);
-  arm_conn (NULL, GNUNET_YES, GNUNET_NO);
+  arm_conn (NULL, arm, GNUNET_YES);
 #endif
 }
 

@@ -176,7 +176,7 @@ struct ARMControlMessage
 static void
 client_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg);
 
-static void
+static int
 reconnect_arm (struct GNUNET_ARM_Handle *h);
 
 static void
@@ -246,7 +246,7 @@ reconnect_arm_later (struct GNUNET_ARM_Handle *h)
   }
 
   if (NULL != h->conn_status)
-    h->conn_status (h->conn_status_cls, h, GNUNET_NO, GNUNET_NO);
+    h->conn_status (h->conn_status_cls, h, GNUNET_NO);
 
   h->currently_down = GNUNET_YES;
 
@@ -286,7 +286,7 @@ transmit_arm_message (void *cls, size_t size, void *buf)
   {
     h->currently_down = GNUNET_NO;
     if (NULL != h->conn_status)
-      h->conn_status (h->conn_status_cls, h, GNUNET_YES, GNUNET_NO);
+      h->conn_status (h->conn_status_cls, h, GNUNET_YES);
     h->retry_backoff = GNUNET_TIME_UNIT_MILLISECONDS;
     GNUNET_CLIENT_receive (h->client, &client_notify_handler, h,
                            GNUNET_TIME_UNIT_FOREVER_REL);
@@ -384,7 +384,7 @@ trigger_next_request (struct GNUNET_ARM_Handle *h, int ignore_currently_down)
  *
  * @param h arm handle
  */
-static void
+static int
 reconnect_arm (struct GNUNET_ARM_Handle *h)
 {
   GNUNET_assert (NULL == h->client);
@@ -395,52 +395,45 @@ reconnect_arm (struct GNUNET_ARM_Handle *h)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	   "arm_api, GNUNET_CLIENT_connect returned NULL\n");
     if (NULL != h->conn_status)
-      h->conn_status (h->conn_status_cls, h, GNUNET_NO, GNUNET_YES);
-    return;
+      h->conn_status (h->conn_status_cls, h, GNUNET_SYSERR);
+    return GNUNET_SYSERR;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "arm_api, GNUNET_CLIENT_connect returned non-NULL\n");
   trigger_next_request (h, GNUNET_YES);
+  return GNUNET_OK;
 }
 
 
 /**
- * Set up a context for communicating with ARM.  Note that this
- * can be done even if the ARM service is not yet running.
- * Never fails.
+ * Set up a context for communicating with ARM, then
+ * start connecting to the ARM service using that context.
  *
  * @param cfg configuration to use (needed to contact ARM;
  *        the ARM service may internally use a different
  *        configuration to determine how to start the service).
- * @return context to use for further ARM operations
- */
-struct GNUNET_ARM_Handle *
-GNUNET_ARM_alloc (const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  struct GNUNET_ARM_Handle *ret;
-
-  ret = GNUNET_malloc (sizeof (struct GNUNET_ARM_Handle));
-  ret->cfg = GNUNET_CONFIGURATION_dup (cfg);
-  ret->currently_down = GNUNET_YES;
-  ret->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  return ret;
-}
-
-
-/**
- * Start connecting to the ARM service using the context.
- *
- * @param h ARM handle
  * @param conn_status will be called when connecting/disconnecting
  * @param cls closure for conn_status
+ * @return context to use for further ARM operations, NULL on error.
  */
-void
-GNUNET_ARM_connect (struct GNUNET_ARM_Handle *h,
+struct GNUNET_ARM_Handle *
+GNUNET_ARM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     GNUNET_ARM_ConnectionStatusCallback conn_status, void *cls)
 {
+  struct GNUNET_ARM_Handle *h;
+
+  h = GNUNET_malloc (sizeof (struct GNUNET_ARM_Handle));
+  h->cfg = GNUNET_CONFIGURATION_dup (cfg);
+  h->currently_down = GNUNET_YES;
+  h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   h->conn_status = conn_status;
   h->conn_status_cls = cls;
-  reconnect_arm (h);
+  if (GNUNET_OK != reconnect_arm (h))
+  {
+    GNUNET_free (h);
+    return NULL;
+  }
+  return h;
 }
 
 
