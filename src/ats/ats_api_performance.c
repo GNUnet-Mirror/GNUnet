@@ -740,6 +740,9 @@ GNUNET_ATS_performance_monitor_start (struct GNUNET_ATS_PerformanceHandle * ph,
 	struct PendingMessage *p;
 	GNUNET_assert (NULL != ph);
 
+	if (NULL == monitor_cb)
+		return NULL;
+
 	struct GNUNET_ATS_PerformanceMonitorHandle *phm =
 			GNUNET_malloc (sizeof (struct GNUNET_ATS_PerformanceMonitorHandle));
 
