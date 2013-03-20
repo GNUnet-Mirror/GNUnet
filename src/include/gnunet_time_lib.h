@@ -158,8 +158,8 @@ GNUNET_NETWORK_STRUCT_END
 
 
 /**
- * Perform our standard exponential back-off calculation, starting at 1mst
- * and then going by a factor of 2 up unto a maximum of 1s.
+ * Perform our standard exponential back-off calculation, starting at 1 ms
+ * and then going by a factor of 2 up unto a maximum of 15 m.
  *
  * @param r current backoff time, initially zero
  */
