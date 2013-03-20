@@ -542,13 +542,13 @@ GAS_handle_performance_update (struct GNUNET_PeerIdentity *peer,
 	mrm->header.size = htons (msglen);
 	mrm->ats_count = htonl (ats_count);
 	mrm->peer = *peer;
-	memcpy (&mrm[1], ats, sizeof (struct GNUNET_ATS_Information));
+	memcpy (&mrm[1], ats, ats_count * sizeof (struct GNUNET_ATS_Information));
 
 	for (cur = pc_head; NULL != cur; cur = cur->next)
 		for (curm = cur->pm_head; NULL != curm; curm = curm->next)
 		{
 				/* Notify client about update */
-				mrm->id = curm->id;
+				mrm->id = htonl (curm->id);
 			  GNUNET_SERVER_notification_context_unicast (nc,
 			  		cur->client,
 			  		(struct GNUNET_MessageHeader *) mrm,
@@ -586,7 +586,7 @@ mon_peerinfo_it (void *cls,
 	mrm->id = htonl(pmc->id);
 	mrm->ats_count = htonl (atsi_count);
 	mrm->peer = *id;
-	memcpy (&mrm[1], atsi, sizeof (struct GNUNET_ATS_Information));
+	memcpy (&mrm[1], atsi, atsi_count * sizeof (struct GNUNET_ATS_Information));
 
 	/* Send initial information about peers to client */
 

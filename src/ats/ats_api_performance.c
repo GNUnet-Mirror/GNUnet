@@ -607,12 +607,13 @@ process_mr_message (struct GNUNET_ATS_PerformanceHandle *ph,
 			if (id == cur->id)
 				break;
 	}
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      _("Received %s message for id %u\n"), "ATS_MONITOR_RESPONSE", id);
 	if (NULL == cur)
-		{
-			GNUNET_break (0);
-			return GNUNET_SYSERR;
-		}
+	{
+		GNUNET_break (0);
+		return GNUNET_SYSERR;
+	}
 
 	ats = (struct GNUNET_ATS_Information *) &mrm[1];
 	cur->moncb (cur->moncb_cls, &mrm->peer, ats, ats_count);
