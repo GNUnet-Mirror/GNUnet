@@ -351,7 +351,7 @@ static unsigned int peers_found;
 /**
  * Index of peer to start next announce/search..
  */
-static unsigned int search_index;
+static unsigned int next_search;
 
 /**
  * Search task identifier
@@ -1089,7 +1089,10 @@ arm_start_cb (void *cls, struct GNUNET_ARM_Handle *arm,
 
       {
         long search_peer;
-        unsigned int i = 0;
+        unsigned int i;
+        unsigned int me;
+
+        me = peer - peers;
 
         /* Find a peer to look for a string matching the regex announced */
         search_peer = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
@@ -1098,14 +1101,14 @@ arm_start_cb (void *cls, struct GNUNET_ARM_Handle *arm,
         {
           search_peer = (search_peer + 1) % num_peers;
           if (i > num_peers)
-            GNUNET_abort (); /* we run out of peers, must be a bug */
+            GNUNET_abort (); /* we ran out of peers, must be a bug */
         }
-        peers[search_peer].search_str = search_strings[search_index];
+        peers[search_peer].search_str = search_strings[me];
         GNUNET_SCHEDULER_add_delayed (ANNOUNCE_TIME,
                                       &find_string,
                                       (void *) search_peer);
       }
-      if (search_index == (num_peers - 1) &&
+      if (next_search >= num_peers &&
           GNUNET_SCHEDULER_NO_TASK == search_timeout_task)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_INFO, "All daemons started.\n");
@@ -1145,6 +1148,7 @@ arm_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
   }
 
   GNUNET_assert (NULL != peer->arm_handle);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[]%p - ()%p\n", peer->op_handle, op);
   GNUNET_assert (peer->op_handle == op);
   GNUNET_assert (peer->arm_handle == ca_result);
 
@@ -1189,22 +1193,22 @@ static void
 announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) ||
-      search_index >= num_peers)
+            next_search >= num_peers)
     return;
 
   /* First connect to arm service, then announce. Next
    * a nnounce will be in arm_connect_cb */
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting daemon %u\n", search_index);
-  peers[search_index].op_handle =
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting daemon %u\n", next_search);
+  peers[next_search].op_handle =
     GNUNET_TESTBED_service_connect (NULL,
-                                    peers[search_index].peer_handle,
+                                    peers[next_search].peer_handle,
                                     "arm",
                                     &arm_connect_cb,
-                                    &peers[search_index],
+                                    &peers[next_search],
                                     &arm_ca,
                                     &arm_da,
-                                    &peers[search_index]);
-  search_index++;
+                                    &peers[next_search]);
+  next_search++;
   parallel_searches++;
 }
 
