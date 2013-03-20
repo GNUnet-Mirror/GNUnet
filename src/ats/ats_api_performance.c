@@ -582,14 +582,23 @@ process_mr_message (struct GNUNET_ATS_PerformanceHandle *ph,
 	uint32_t ats_count;
 	uint32_t id;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      _("Received %s message\n"), "ATS_MONITOR_RESPONSE");
+
 	msg_size = ntohs (msg->size);
 	if (msg_size < sizeof (struct MonitorResponseMessage))
+	{
+		GNUNET_break (0);
 		return GNUNET_SYSERR;
+	}
 
 	ats_count = ntohl (mrm->ats_count);
 	if (msg_size != (sizeof (struct MonitorResponseMessage) +
 			ats_count * sizeof (struct GNUNET_ATS_Information)))
-		return GNUNET_SYSERR;
+		{
+			GNUNET_break (0);
+			return GNUNET_SYSERR;
+		}
 
 	id = ntohl (mrm->id);
 	/* Do work here */
@@ -600,7 +609,10 @@ process_mr_message (struct GNUNET_ATS_PerformanceHandle *ph,
 	}
 
 	if (NULL == cur)
-		return GNUNET_SYSERR;
+		{
+			GNUNET_break (0);
+			return GNUNET_SYSERR;
+		}
 
 	ats = (struct GNUNET_ATS_Information *) &mrm[1];
 	cur->moncb (cur->moncb_cls, &mrm->peer, ats, ats_count);

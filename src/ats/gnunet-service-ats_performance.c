@@ -542,6 +542,7 @@ GAS_handle_performance_update (struct GNUNET_PeerIdentity *peer,
 	mrm->header.size = htons (msglen);
 	mrm->ats_count = htonl (ats_count);
 	mrm->peer = *peer;
+	memcpy (&mrm[1], ats, sizeof (struct GNUNET_ATS_Information));
 
 	for (cur = pc_head; NULL != cur; cur = cur->next)
 		for (curm = cur->pm_head; NULL != curm; curm = curm->next)
@@ -582,17 +583,17 @@ mon_peerinfo_it (void *cls,
 
 	mrm->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_MONITOR_RESPONSE);
 	mrm->header.size = htons (msglen);
+	mrm->id = htonl(pmc->id);
 	mrm->ats_count = htonl (atsi_count);
 	mrm->peer = *id;
-	mrm->id = pmc->id;
+	memcpy (&mrm[1], atsi, sizeof (struct GNUNET_ATS_Information));
 
 	/* Send initial information about peers to client */
-/*
+
   GNUNET_SERVER_notification_context_unicast (nc,
   		pmc->client,
   		(struct GNUNET_MessageHeader *) mrm,
   		GNUNET_YES);
-*/
   GNUNET_free (mrm);
 }
 
@@ -661,9 +662,8 @@ GAS_handle_monitor (void *cls,
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 					"Added performance monitoring client %p id %u\n",
 					client, id);
-
 			/* Return all values here */
-		  GAS_addresses_iterate_peers (GSA_addresses, &mon_peer_it, pc);
+		  GAS_addresses_iterate_peers (GSA_addresses, &mon_peer_it, pmc);
 
 	}
 	else if (GNUNET_NO == op)

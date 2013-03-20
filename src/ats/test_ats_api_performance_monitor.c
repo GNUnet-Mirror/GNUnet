@@ -149,6 +149,14 @@ perf_mon_cb (void *cls,
 						struct GNUNET_ATS_Information *ats,
 						uint32_t ats_count)
 {
+	static int stage_counter = 0;
+	if (0 == stage_counter)
+	{
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received initial callback\n");
+		stage_counter ++;
+	}
+
+
 
 }
 
