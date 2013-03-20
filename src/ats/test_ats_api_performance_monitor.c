@@ -145,7 +145,7 @@ next_stage (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Success\n");
-  end_now (1);
+  end_now (0);
 }
 
 
