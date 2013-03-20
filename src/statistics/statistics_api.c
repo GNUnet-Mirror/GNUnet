@@ -1189,6 +1189,7 @@ GNUNET_STATISTICS_get_cancel (struct GNUNET_STATISTICS_GetHandle *gh)
 {
   if (NULL == gh)
     return;
+  gh->cont = NULL;
   if (gh->sh->current == gh)
   {
     gh->aborted = GNUNET_YES;
