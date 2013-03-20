@@ -196,6 +196,11 @@ static struct GNUNET_TESTBED_Peer **daemons;
 static struct GNUNET_CONFIGURATION_Handle *testing_cfg;
 
 /**
+ * The shutdown task
+ */
+static GNUNET_SCHEDULER_TaskIdentifier shutdown_task_id;
+
+/**
  * Maximum number of connections to NSE services.
  */
 static unsigned int connection_limit;
@@ -246,6 +251,11 @@ static struct OpListEntry *oplist_tail;
  */
 static struct GNUNET_TESTBED_Operation *get_stats_op;
 
+/**
+ * Are we shutting down
+ */
+static int shutting_down;
+
 
 /**
  * Clean up all of the monitoring connections to NSE and
@@ -282,6 +292,10 @@ close_monitor_connections ()
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  shutdown_task_id = GNUNET_SCHEDULER_NO_TASK;
+  if (GNUNET_YES == shutting_down)
+    return;
+  shutting_down = GNUNET_YES;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending test.\n");    
   close_monitor_connections ();
   if (NULL != get_stats_op)
@@ -295,6 +309,18 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != testing_cfg)
     GNUNET_CONFIGURATION_destroy (testing_cfg);
   testing_cfg = NULL;
+}
+
+
+/**
+ * Schedules shutdown task to be run now
+ */
+static void
+shutdown_now ()
+{
+  if (GNUNET_SCHEDULER_NO_TASK != shutdown_task_id)
+    GNUNET_SCHEDULER_cancel (shutdown_task_id);
+  shutdown_task_id = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
 
@@ -594,6 +620,8 @@ finish_round (void *cls,
   char buf[1024];
   size_t buf_len;
 
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN && tc->reason))
+    return;
   LOG (GNUNET_ERROR_TYPE_INFO, "Have %u connections\n", total_connections);
   if (NULL != data_file)
     {
@@ -683,7 +711,6 @@ adjust_running_peers ()
     entry->op = GNUNET_TESTBED_peer_start (NULL, daemons[i], 
                                            &peer_churn_cb, entry);
   }
-
   /* stop peers if we have too many */
   for (i=num_peers_in_round[current_round];i<peers_running;i++)
   {
@@ -705,10 +732,10 @@ static void
 next_round (void *cls, 
 	    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN && tc->reason))
+    return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "disconnecting nse service of peers\n");
-  current_round++;
-  
+  current_round++;  
   if (current_round == num_rounds)
     {
       /* this was the last round, terminate */
@@ -770,12 +797,17 @@ test_master (void *cls,
              unsigned int num_peers_,
              struct GNUNET_TESTBED_Peer **peers)
 {
+  if (NULL == peers)
+  {
+    shutdown_now ();
+    return;
+  }
   daemons = peers;
   GNUNET_break (num_peers_ == num_peers);
   peers_running = num_peers;
   if (num_peers_in_round[current_round] == peers_running)
   {
-    /* no need to churn, just run next round */
+    /* no need to churn, just run the starting round */
     run_round ();
     return;
   }
@@ -861,8 +893,9 @@ run (void *cls, char *const *args, const char *cfgfile,
                       NULL,     /* master_controller_cb cls */
                       &test_master,
                       NULL);    /* test_master cls */
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&shutdown_task, NULL);
+  shutdown_task_id = 
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                    &shutdown_task, NULL);
 }
 
 
