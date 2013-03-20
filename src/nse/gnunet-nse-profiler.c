@@ -620,7 +620,7 @@ finish_round (void *cls,
   char buf[1024];
   size_t buf_len;
 
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN && tc->reason))
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   LOG (GNUNET_ERROR_TYPE_INFO, "Have %u connections\n", total_connections);
   if (NULL != data_file)
@@ -732,7 +732,7 @@ static void
 next_round (void *cls, 
 	    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN && tc->reason))
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "disconnecting nse service of peers\n");
   current_round++;  
