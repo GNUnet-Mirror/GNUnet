@@ -48,6 +48,12 @@ struct GNUNET_CONFIGURATION_Handle *cfg;
 struct GNUNET_TESTBED_Operation *topology_op;
 
 /**
+ * Name of the file with the hosts to run the test over (configuration option).
+ * It will be NULL if ENABLE_LL is set
+ */ 
+static char *hosts_file;
+
+/**
  * Abort task identifier
  */
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
@@ -226,27 +232,17 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
-  char *hostfile;
-
-  hostfile = NULL;
-#if !ENABLE_LL
-  if (NULL == args[0])
-  {
-    fprintf (stderr, _("No hosts-file specified on command line\n"));
-    return;
-  }
-  hostfile = args[0];
-#endif
   if (0 == num_peers)
   {
-    result = GNUNET_OK;
+    LOG (GNUNET_ERROR_TYPE_ERROR, _("Exiting as the number of peers is %u\n"),
+         num_peers);
     return;
   }
   cfg = GNUNET_CONFIGURATION_dup (config);
   event_mask = 0;
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
-  GNUNET_TESTBED_run (hostfile, cfg, num_peers, event_mask, controller_event_cb,
+  GNUNET_TESTBED_run (hosts_file, cfg, num_peers, event_mask, controller_event_cb,
                       NULL, &test_run, NULL);
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_abort,
@@ -269,21 +265,21 @@ main (int argc, char *const *argv)
     {'e', "num-errors", "COUNT",
      gettext_noop ("tolerate COUNT number of continious timeout failures"),
      GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_cont_fails},
+#if !ENABLE_LL
+    {'H', "hosts", "FILENAME",
+     gettext_noop ("name of the file with the login information for the testbed"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &hosts_file},
+#endif
     GNUNET_GETOPT_OPTION_END
   };
-#if ENABLE_LL
   const char *binaryHelp = "gnunet-testbed-profiler [OPTIONS]";
-#else
-  const char *binaryHelp = "gnunet-testbed-profiler [OPTIONS] hosts-file";
-#endif
-
   int ret;
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
   result = GNUNET_SYSERR;
   ret =
-      GNUNET_PROGRAM_run (argc, argv, binaryHelp, _("Profiler for testbed"),
+      GNUNET_PROGRAM_run (argc, argv, "gnunet-testbed-profiler", binaryHelp,
                           options, &run, NULL);
   GNUNET_free ((void *) argv);
   if (GNUNET_OK != ret)
