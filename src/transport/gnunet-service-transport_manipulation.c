@@ -55,22 +55,22 @@ struct GST_ManipulationHandle
 	/**
 	 * General inbound delay
 	 */
-	struct GNUNET_TIME_Relative delay_in;
+	struct GNUNET_TIME_Relative delay_recv;
 
 	/**
 	 * General outbound delay
 	 */
-	struct GNUNET_TIME_Relative delay_out;
+	struct GNUNET_TIME_Relative delay_send;
 
 	/**
 	 * General inbound distance
 	 */
-	 unsigned long long  distance_in;
+	 unsigned long long  distance_recv;
 
 	/**
 	 * General outbound distance
 	 */
-	 unsigned long long distance_out;
+	 unsigned long long distance_send;
 
 };
 
@@ -210,14 +210,16 @@ GST_manipulation_set_metric (void *cls, struct GNUNET_SERVER_Client *client,
 
 					switch (type) {
 						case GNUNET_ATS_QUALITY_NET_DELAY:
-
 							if ((TM_RECEIVE == direction) || (TM_BOTH == direction))
-									man_handle.delay_in.rel_value = value;
+									man_handle.delay_recv.rel_value = value;
 							if ((TM_SEND == direction) || (TM_BOTH == direction))
-									man_handle.delay_out.rel_value = value;
+									man_handle.delay_send.rel_value = value;
 							break;
 						case GNUNET_ATS_QUALITY_NET_DISTANCE:
-
+							if ((TM_RECEIVE == direction) || (TM_BOTH == direction))
+									man_handle.distance_recv = value;
+							if ((TM_SEND == direction) || (TM_BOTH == direction))
+									man_handle.distance_send = value;
 							break;
 						default:
 							break;
@@ -318,10 +320,10 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
 					return;
 			}
 	}
-	else if (man_handle.delay_out.rel_value != 0)
+	else if (man_handle.delay_send.rel_value != 0)
 	{
 			/* We have a delay */
-			delay = man_handle.delay_out;
+			delay = man_handle.delay_send;
 			dqe = GNUNET_malloc (sizeof (struct DelayQueueEntry) + msg_size);
 			dqe->tmp = tmp;
 			dqe->sent_at = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), delay);
@@ -349,35 +351,30 @@ GST_manipulation_recv (void *cls,
     const char *sender_address,
     uint16_t sender_address_len)
 {
-	return GST_receive_callback (cls, peer, message,
-			session, sender_address, sender_address_len);
-
-/* FIXME */
-#if 0
 	struct TM_Peer *tmp;
-	int d;
-	struct GNUNET_ATS_Information ats_new[ats_count];
+	//int d;
+	//struct GNUNET_ATS_Information ats_new[ats_count];
 	struct GNUNET_TIME_Relative quota_delay;
 	struct GNUNET_TIME_Relative m_delay;
 
-
-
-	if (man_handle.delay_in.rel_value > GNUNET_TIME_UNIT_ZERO.rel_value)
-		m_delay = man_handle.delay_in; /* Global delay */
+	if (man_handle.delay_recv.rel_value > GNUNET_TIME_UNIT_ZERO.rel_value)
+		m_delay = man_handle.delay_recv; /* Global delay */
 	else
 		m_delay = GNUNET_TIME_UNIT_ZERO;
 
-
+#if 0
 	for (d = 0; d < ats_count; d++)
 	{
 		ats_new[d] = ats[d];
 		if ((ntohl(ats[d].type) == GNUNET_ATS_QUALITY_NET_DISTANCE) &&
-				(man_handle.distance_in > 0))
-			ats_new[d].value = htonl(man_handle.distance_in); /* Global inbound distance */
+				(man_handle.distance_recv > 0))
+			ats_new[d].value = htonl(man_handle.distance_recv); /* Global inbound distance */
 	}
+#endif
 
 	if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &peer->hashPubKey)))
 	{
+#if 0
 			/* Manipulate distance */
 			for (d = 0; d < ats_count; d++)
 			{
@@ -387,6 +384,7 @@ GST_manipulation_recv (void *cls,
 						 (UINT32_MAX != tmp->metrics[TM_RECEIVE][DISTANCE]))
 							ats_new[d].value = htonl(tmp->metrics[TM_RECEIVE][DISTANCE]);
 			}
+#endif
 			/* Manipulate receive delay */
 			if (UINT32_MAX != tmp->metrics[TM_RECEIVE][DELAY])
 					m_delay.rel_value = tmp->metrics[TM_RECEIVE][DELAY]; /* Peer specific delay */
@@ -398,7 +396,7 @@ GST_manipulation_recv (void *cls,
 		return quota_delay;
 	else
 		return m_delay;
-#endif
+
 }
 
 void
@@ -406,32 +404,32 @@ GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg)
 {
 
 	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (GST_cfg,
-			"transport", "MANIPULATE_DISTANCE_IN", &man_handle.distance_in))
+			"transport", "MANIPULATE_DISTANCE_IN", &man_handle.distance_recv))
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Setting inbound distance_in to %u\n",
-				(unsigned long long) man_handle.distance_in);
+				(unsigned long long) man_handle.distance_recv);
 	else
-		man_handle.distance_in = 0;
+		man_handle.distance_recv = 0;
 
 	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (GST_cfg,
-			"transport", "MANIPULATE_DISTANCE_OUT", &man_handle.distance_out))
+			"transport", "MANIPULATE_DISTANCE_OUT", &man_handle.distance_send))
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Setting outbound distance_in to %u\n",
-				(unsigned long long) man_handle.distance_out);
+				(unsigned long long) man_handle.distance_send);
 	else
-		man_handle.distance_out = 0;
+		man_handle.distance_send = 0;
 
 	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_time (GST_cfg,
-			"transport", "MANIPULATE_DELAY_IN", &man_handle.delay_in))
+			"transport", "MANIPULATE_DELAY_IN", &man_handle.delay_recv))
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Delaying inbound traffic for %llu ms\n",
-				(unsigned long long) man_handle.delay_in.rel_value);
+				(unsigned long long) man_handle.delay_recv.rel_value);
 	else
-		man_handle.delay_in.rel_value = 0;
+		man_handle.delay_recv.rel_value = 0;
 
 	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_time (GST_cfg,
-			"transport", "MANIPULATE_DELAY_OUT", &man_handle.delay_out))
+			"transport", "MANIPULATE_DELAY_OUT", &man_handle.delay_send))
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Delaying outbound traffic for %llu ms\n",
-			(unsigned long long) man_handle.delay_out.rel_value);
+			(unsigned long long) man_handle.delay_send.rel_value);
 	else
-		man_handle.delay_out.rel_value = 0;
+		man_handle.delay_send.rel_value = 0;
 
 	man_handle.peers = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
 }
