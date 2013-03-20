@@ -399,7 +399,8 @@ do_disconnect (struct GNUNET_STATISTICS_Handle *h)
   if (NULL != (c = h->current))
   {
     h->current = NULL;
-    if (NULL != c->cont)
+    if ( (NULL != c->cont) &&
+	 (GNUNET_YES != c->aborted) )
       c->cont (c->cls, GNUNET_SYSERR);
     free_action_item (c);
   }
