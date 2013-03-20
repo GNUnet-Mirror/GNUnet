@@ -534,7 +534,6 @@ GAS_handle_performance_update (struct GNUNET_PeerIdentity *peer,
 	struct MonitorResponseMessage *mrm;
 	size_t msglen;
 
-
 	msglen = sizeof (struct MonitorResponseMessage) +
 					 ats_count * sizeof (struct GNUNET_ATS_Information);
 	mrm = GNUNET_malloc (msglen);
@@ -551,12 +550,66 @@ GAS_handle_performance_update (struct GNUNET_PeerIdentity *peer,
 				mrm->id = curm->id;
 			  GNUNET_SERVER_notification_context_unicast (nc,
 			  		cur->client,
-			  		(struct GNUNET_MessageHeader *) &mrm,
+			  		(struct GNUNET_MessageHeader *) mrm,
 			  		GNUNET_YES);
 		}
 	GNUNET_free (mrm);
 }
 
+
+static void
+mon_peerinfo_it (void *cls,
+             const struct GNUNET_PeerIdentity *id,
+             const char *plugin_name,
+             const void *plugin_addr, size_t plugin_addr_len,
+             const int active,
+             const struct GNUNET_ATS_Information *atsi,
+             uint32_t atsi_count,
+             struct GNUNET_BANDWIDTH_Value32NBO
+             bandwidth_out,
+             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
+{
+	struct PerformanceMonitorClient *pmc = cls;
+	struct MonitorResponseMessage *mrm;
+	size_t msglen;
+
+	if (NULL == id)
+		return; /* last callback */
+
+	msglen = sizeof (struct MonitorResponseMessage) +
+			atsi_count * sizeof (struct GNUNET_ATS_Information);
+	mrm = GNUNET_malloc (msglen);
+
+	mrm->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_MONITOR_RESPONSE);
+	mrm->header.size = htons (msglen);
+	mrm->ats_count = htonl (atsi_count);
+	mrm->peer = *id;
+	mrm->id = pmc->id;
+
+	/* Send initial information about peers to client */
+/*
+  GNUNET_SERVER_notification_context_unicast (nc,
+  		pmc->client,
+  		(struct GNUNET_MessageHeader *) mrm,
+  		GNUNET_YES);
+*/
+  GNUNET_free (mrm);
+}
+
+/**
+ * Iterator for GAS_handle_monitor
+ *
+ * @param cls the performance monitoring client requesting information
+ * @param id result
+ */
+static void
+mon_peer_it (void *cls,
+         const struct GNUNET_PeerIdentity *id)
+{
+  struct PerformanceMonitorClient *pmc = cls;
+  if (NULL != id)
+    GAS_addresses_get_peer_info (GSA_addresses, id, &mon_peerinfo_it, pmc);
+}
 
 
 void
@@ -565,7 +618,7 @@ GAS_handle_monitor (void *cls,
 										const struct GNUNET_MessageHeader *message)
 {
   struct PerformanceClient *pc;
-	struct PerformanceMonitorClient *res;
+	struct PerformanceMonitorClient *pmc;
 	struct MonitorMessage *mm = (struct MonitorMessage *) message;
 	size_t msg_size;
 	uint32_t id;
@@ -588,38 +641,42 @@ GAS_handle_monitor (void *cls,
 	id = ntohl (mm->id);
 	op = ntohl (mm->op);
 
-	for (res = pc->pm_head; NULL != res; res = res->next)
-		if ((res->id == id) && (client == res->client))
+	for (pmc = pc->pm_head; NULL != pmc; pmc = pmc->next)
+		if ((pmc->id == id) && (client == pmc->client))
 			break;
 
 	if (GNUNET_YES == op)
 	{
 			/* Start monitoring */
-			if (NULL != res)
+			if (NULL != pmc)
 			{
 				GNUNET_break (0);
 				GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
 				return; /* Duplicate*/
 			}
-			res = GNUNET_malloc (sizeof (struct PerformanceMonitorClient));
-			res->client = client;
-			res->id = id;
-			GNUNET_CONTAINER_DLL_insert (pc->pm_head, pc->pm_tail, res);
+			pmc = GNUNET_malloc (sizeof (struct PerformanceMonitorClient));
+			pmc->client = client;
+			pmc->id = id;
+			GNUNET_CONTAINER_DLL_insert (pc->pm_head, pc->pm_tail, pmc);
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 					"Added performance monitoring client %p id %u\n",
 					client, id);
+
+			/* Return all values here */
+		  GAS_addresses_iterate_peers (GSA_addresses, &mon_peer_it, pc);
+
 	}
 	else if (GNUNET_NO == op)
 	{
 			/* Stop monitoring */
-			if (NULL == res)
+			if (NULL == pmc)
 			{
 				GNUNET_break (0);
 				GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
 				return; /* Not existing */
 			}
-			GNUNET_CONTAINER_DLL_remove (pc->pm_head, pc->pm_tail, res);
-			GNUNET_free (res);
+			GNUNET_CONTAINER_DLL_remove (pc->pm_head, pc->pm_tail, pmc);
+			GNUNET_free (pmc);
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 					"Removed performance monitoring client %p id %u\n",
 					client, id);

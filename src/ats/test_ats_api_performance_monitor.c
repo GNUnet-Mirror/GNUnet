@@ -36,11 +36,40 @@ static GNUNET_SCHEDULER_TaskIdentifier stage_task;
 
 struct GNUNET_CONFIGURATION_Handle *cfg;
 
+static struct GNUNET_ATS_SchedulingHandle *sh;
+
 static struct GNUNET_ATS_PerformanceHandle *ph;
 
 static struct GNUNET_ATS_PerformanceMonitorHandle *phm;
 
+static struct GNUNET_HELLO_Address addr;
+
+static struct GNUNET_ATS_Information atsi[3];
+
 static int ret;
+
+static void cleanup_addresses ()
+{
+	GNUNET_ATS_address_destroyed (sh, &addr, NULL);
+}
+
+static void setup_addresses ()
+{
+	memset (&addr.peer,'\0', sizeof (addr.peer));
+	addr.transport_name = "test";
+	addr.address = NULL;
+	addr.address_length = 0;
+	atsi[0].type = htonl(GNUNET_ATS_NETWORK_TYPE);
+	atsi[0].value = htonl(GNUNET_ATS_NET_LAN);
+
+	atsi[1].type = htonl(GNUNET_ATS_QUALITY_NET_DELAY);
+	atsi[1].value = htonl(100);
+
+	atsi[2].type = htonl(GNUNET_ATS_QUALITY_NET_DISTANCE);
+	atsi[2].value = htonl(5);
+
+	GNUNET_ATS_address_add (sh, &addr, NULL, atsi, 3);
+}
 
 
 static void
@@ -56,6 +85,9 @@ end_now (int res)
 			GNUNET_SCHEDULER_cancel (die_task);
 			die_task = GNUNET_SCHEDULER_NO_TASK;
 	}
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown\n");
+
+	cleanup_addresses ();
 
 	if (NULL != phm)
 	{
@@ -67,6 +99,12 @@ end_now (int res)
 	{
 		GNUNET_ATS_performance_done (ph);
 		ph = NULL;
+	}
+
+	if (NULL != sh)
+	{
+		GNUNET_ATS_scheduling_done (sh);
+		sh = NULL;
 	}
 	ret = res;
 }
@@ -123,6 +161,11 @@ run (void *cls,
   ret = 1;
   cfg = (struct GNUNET_CONFIGURATION_Handle *) mycfg;
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
+
+  sh = GNUNET_ATS_scheduling_init (cfg, NULL, NULL);
+  GNUNET_assert (NULL != sh);
+
+  setup_addresses ();
 
   ph = GNUNET_ATS_performance_init (cfg, NULL, NULL);
   GNUNET_assert (NULL != ph);
