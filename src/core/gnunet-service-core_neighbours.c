@@ -302,9 +302,7 @@ process_queue (struct Neighbour *n)
  */
 static void
 handle_transport_notify_connect (void *cls,
-                                 const struct GNUNET_PeerIdentity *peer,
-                                 const struct GNUNET_ATS_Information *atsi,
-                                 uint32_t atsi_count)
+                                 const struct GNUNET_PeerIdentity *peer)
 {
   struct Neighbour *n;
 
