@@ -1095,7 +1095,7 @@ handle_p2p_ibf (struct ConsensusPeerInformation *cpi, const struct DifferenceDig
       cpi->ibf_bucket_counter = 0;
       if (NULL != cpi->ibf)
       {
-        GNUNET_free (cpi->ibf);
+        ibf_destroy (cpi->ibf);
         cpi->ibf = NULL;
       }
       break;
@@ -1843,7 +1843,6 @@ open_cb (void *cls, struct GNUNET_STREAM_Socket *socket)
   struct ConsensusHello *hello;
 
   cpi = cls;
-  cpi->wh = NULL;
   hello = GNUNET_malloc (sizeof *hello);
   hello->header.size = htons (sizeof *hello);
   hello->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_HELLO);
@@ -2623,8 +2622,11 @@ static void
 disconnect_core (void *cls,
                  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_CORE_disconnect (core);
-  core = NULL;
+  if (core != NULL)
+  {
+    GNUNET_CORE_disconnect (core);
+    core = NULL;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "disconnected from core\n");
 }
 
@@ -2667,13 +2669,13 @@ shutdown_task (void *cls,
   {
     struct IncomingSocket *socket;
     socket = incoming_sockets_head;
+    if (NULL != socket->rh)
+    {
+      GNUNET_STREAM_read_cancel (socket->rh);
+      socket->rh = NULL;
+    } 
     if (NULL == socket->cpi)
     {
-      if (NULL != socket->rh)
-      {
-        GNUNET_STREAM_read_cancel (socket->rh);
-        socket->rh = NULL;
-      } 
       GNUNET_STREAM_close (socket->socket);
       socket->socket = NULL;
       if (NULL != socket->mst)
