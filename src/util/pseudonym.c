@@ -871,8 +871,12 @@ GNUNET_PSEUDONYM_create (const char *filename)
   ssize_t ret;
   gcry_sexp_t r_key;
   gcry_sexp_t params;
+  gcry_ctx_t ctx;
+  gcry_mpi_point_t q;
+  gcry_mpi_t q_x;
+  gcry_mpi_t q_y;
   gcry_error_t rc;
-  gcry_mpi_t skey[2];
+  gcry_mpi_t d;
   size_t size;
 
   ph = GNUNET_malloc (sizeof (struct GNUNET_PseudonymHandle));
@@ -893,28 +897,71 @@ GNUNET_PSEUDONYM_create (const char *filename)
   }
   if (0 != (rc = gcry_pk_genkey (&r_key, params)))
   {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_genkey", rc);
+    gcry_sexp_release (r_key);
     return NULL;
   }
-  /* NOTE: treating a point as a normal MPI value; hopefully that works... */
-  rc = key_from_sexp (skey, r_key, "private-key", "dq");
+  /* extract "d" (secret key) from r_key */
+  rc = key_from_sexp (&d, r_key, "private-key", "d");
   if (0 != rc)
-    rc = key_from_sexp (skey, r_key, "private-key", "dq");
+    rc = key_from_sexp (&d, r_key, "private-key", "d");
   if (0 != rc)
-    rc = key_from_sexp (skey, r_key, "ecc", "dq");
-  gcry_sexp_release (r_key);
+    rc = key_from_sexp (&d, r_key, "ecc", "d");
+  if (0 != rc)
+  {
+    gcry_sexp_release (r_key);
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "key_from_sexp", rc);
+    return NULL;
+  }
   size = sizeof (ph->d);
   GNUNET_assert (0 ==
                  gcry_mpi_print (GCRYMPI_FMT_USG, ph->d, size, &size,
-                                 skey[0]));
+                                 d));
+  gcry_mpi_release (d);
   adjust (ph->d, size, sizeof (ph->d));
-  size = sizeof (ph->public_key.q);  
-  GNUNET_assert (0 ==
-                 gcry_mpi_print (GCRYMPI_FMT_USG, ph->public_key.q, size, &size,
-                                 skey[1]));
-  adjust (ph->public_key.q, size, sizeof (ph->public_key.q));
-  gcry_mpi_release (skey[0]);
-  gcry_mpi_release (skey[1]);
+
+  /* extract 'q' (public key) from r_key */
+  if (0 != (rc = gcry_mpi_ec_new (&ctx, r_key, NULL)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_ec_new", rc);  /* erroff gives more info */
+    gcry_sexp_release (r_key);
+    return NULL;
+  }  
+  gcry_sexp_release (r_key);
+  q = gcry_mpi_ec_get_point ("q", ctx, 0);
+  q_x = gcry_mpi_new (256);
+  q_y = gcry_mpi_new (256);
+  gcry_mpi_ec_get_affine (q_x, q_y, q, ctx);
+  gcry_mpi_point_release (q);
+
+  /* store q_x/q_y in public key */
+  size = sizeof (ph->public_key.q_x);  
+  if (0 !=
+      gcry_mpi_print (GCRYMPI_FMT_USG, ph->public_key.q_x, size, &size,
+		      q_x))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_print", rc);
+    gcry_mpi_release (q_x);
+    gcry_mpi_release (q_y);
+    return NULL;
+
+  }
+  adjust (ph->public_key.q_x, size, sizeof (ph->public_key.q_x));
+  gcry_mpi_release (q_x);
+
+  size = sizeof (ph->public_key.q_y);  
+  if (0 !=
+      gcry_mpi_print (GCRYMPI_FMT_USG, ph->public_key.q_y, size, &size,
+		      q_y))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_print", rc);
+    gcry_mpi_release (q_y);
+    return NULL;
+  }
+  adjust (ph->public_key.q_y, size, sizeof (ph->public_key.q_y));
+  gcry_mpi_release (q_y);
+
+  /* write to disk */
   if (NULL != filename)
   {
     ret = GNUNET_DISK_fn_write (filename, ph, sizeof (struct GNUNET_PseudonymHandle),
@@ -968,14 +1015,11 @@ GNUNET_PSEUDONYM_get_anonymous_pseudonym_handle ()
   struct GNUNET_PseudonymHandle *ph;
 
   ph = GNUNET_malloc (sizeof (struct GNUNET_PseudonymHandle));
-  /* FIXME: if we use 'd=0' for the anonymous handle (as per#2564),
-     then I believe the public key should be also zero, as Q=0P=0.
-     However, libgcrypt's point representation is completely internal,
-     and treats a z-coordinate of zero as infinity, so we likely need
-     to set it to (0,0,1) internally --- or actually calculate Q=qP
-     explicitly.  Either way, we don't have an API to do so yet :-(.
+  /* Note if we use 'd=0' for the anonymous handle (as per#2564),
+     then I believe the public key should be also zero, as Q=0P=0;
+     so setting everything to all-zeros (as per GNUNET_malloc)
+     should be all that is needed here).
   */
-  GNUNET_break (0);
   return ph;
 }
 
@@ -1097,8 +1141,7 @@ GNUNET_PSEUDONYM_sign (struct GNUNET_PseudonymHandle *ph,
   gcry_mpi_release (n);
   
   /* now build sexpression with the signing key;
-     NOTE: libgcrypt docs say that we should specify 'Q', but
-     with the current API we cannot calculate Q=dP, so hopefully
+     NOTE: libgcrypt docs say that we should specify 'Q', but hopefully soon
      libgcrypt will derive it from 'd' for us... */
   if (0 != (rc = gcry_sexp_build (&spriv, &erroff,
 				  "(private-key(ecc(curve \"NIST P-256\")(d %m)))",
@@ -1145,10 +1188,8 @@ GNUNET_PSEUDONYM_sign (struct GNUNET_PseudonymHandle *ph,
   gcry_sexp_release (data);
   gcry_sexp_release (spriv);
 
-  /* extract 'r' and 's' values from sexpression 'result' and store in 'signature';
-     FIXME: libgcrypt does not document format of s-expression returned for ECC
-     signatures; so "ecc" here is just a guess. */
-  if (0 != (rc = key_from_sexp (rs, result, "ecc", "rs")))
+  /* extract 'r' and 's' values from sexpression 'result' and store in 'signature' */
+  if (0 != (rc = key_from_sexp (rs, result, "ecdsa", "rs")))
   {
     GNUNET_break (0);
     gcry_sexp_release (result);
@@ -1156,7 +1197,7 @@ GNUNET_PSEUDONYM_sign (struct GNUNET_PseudonymHandle *ph,
   }
   gcry_sexp_release (result);
   size = sizeof (signature->sig_r);
-  if (0 != (rc = gcry_mpi_print (GCRYMPI_FMT_USG, (unsigned char *) signature->sig_r, size,
+  if (0 != (rc = gcry_mpi_print (GCRYMPI_FMT_USG, signature->sig_r, size,
                                  &size, rs[0])))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_print", rc);
@@ -1166,7 +1207,7 @@ GNUNET_PSEUDONYM_sign (struct GNUNET_PseudonymHandle *ph,
   }
   gcry_mpi_release (rs[0]);
   size = sizeof (signature->sig_s);
-  if (0 != (rc = gcry_mpi_print (GCRYMPI_FMT_USG, (unsigned char *) signature->sig_s, size,
+  if (0 != (rc = gcry_mpi_print (GCRYMPI_FMT_USG, signature->sig_s, size,
                                  &size, rs[1])))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_print", rc);
@@ -1175,6 +1216,60 @@ GNUNET_PSEUDONYM_sign (struct GNUNET_PseudonymHandle *ph,
   }
   gcry_mpi_release (rs[1]);
   return GNUNET_OK;
+}
+
+
+/**
+ * Get an ECC context (with Q set to the respective public key) from
+ * a pseudonym.
+ *
+ * @param pseudonym with information on 'q'
+ * @return curve context
+ */
+static gcry_ctx_t 
+get_context_from_pseudonym (struct GNUNET_PseudonymIdentifier *pseudonym)
+{
+  gcry_ctx_t ctx;
+  gcry_mpi_t ONE;
+  gcry_mpi_t q_x;
+  gcry_mpi_t q_y;
+  gcry_mpi_point_t q;
+  size_t size;
+  int rc;
+
+  /* extract 'q' from pseudonym */
+  size = sizeof (pseudonym->q_x);
+  if (0 != (rc = gcry_mpi_scan (&q_x, GCRYMPI_FMT_USG, pseudonym->q_x, size, &size)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+    return NULL;
+  }
+  size = sizeof (pseudonym->q_y);
+  if (0 != (rc = gcry_mpi_scan (&q_y, GCRYMPI_FMT_USG, pseudonym->q_y, size, &size)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+    gcry_mpi_release (q_x);
+    return NULL;
+  }
+  q = gcry_mpi_point_new (256);
+  ONE = gcry_mpi_new (1);
+  gcry_mpi_set_ui (ONE, 1);
+  gcry_mpi_point_set (q, q_x, q_y, ONE); /* FIXME: convenience function 'set_affine'? */
+  gcry_mpi_release (ONE);
+  gcry_mpi_release (q_x);
+  gcry_mpi_release (q_y);
+
+  /* create basic ECC context */
+  if (0 != (rc = gcry_mpi_ec_new (&ctx, NULL, "NIST P-256")))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_ec_new", rc);  /* erroff gives more info */
+    gcry_mpi_point_release (q);
+    return NULL;
+  }  
+  /* initialize 'ctx' with 'q' */
+  gcry_mpi_ec_set_point ("q", q, ctx);
+  gcry_mpi_point_release (q);
+  return ctx;
 }
 
 
@@ -1194,11 +1289,16 @@ GNUNET_PSEUDONYM_derive_verification_key (struct GNUNET_PseudonymIdentifier *pse
 					  const struct GNUNET_HashCode *signing_key,
 					  struct GNUNET_PseudonymIdentifier *verification_key)
 {
-  struct GNUNET_HashCode hc;
-  struct GNUNET_HashCode x;
   gcry_mpi_t h;  
   size_t size;
   int rc;
+  gcry_ctx_t ctx;
+  gcry_mpi_point_t g;
+  gcry_mpi_point_t q;
+  gcry_mpi_point_t hg;
+  gcry_mpi_point_t v;
+  gcry_mpi_t v_x;
+  gcry_mpi_t v_y;
 
   /* get 'h' value from signing key */
   size = sizeof (struct GNUNET_HashCode);
@@ -1209,15 +1309,53 @@ GNUNET_PSEUDONYM_derive_verification_key (struct GNUNET_PseudonymIdentifier *pse
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
     return GNUNET_SYSERR;
   }
-  /* FIXME: calculate hQ --- need point multiplication API! */
+  /* create ECC context based on Q from pseudonym */
+  if (NULL == (ctx = get_context_from_pseudonym (pseudonym)))
+  {
+    gcry_mpi_release (h);
+    return GNUNET_SYSERR;
+  }
+  /* get G */  
+  g = gcry_mpi_ec_get_point ("g", ctx, 0);
+
+  /* then call the 'multiply' function, to compute the product hG */
+  hg = gcry_mpi_point_new (0);
+  gcry_mpi_ec_mul (hg, h, g, ctx);
   gcry_mpi_release (h);
-  /* FIXME: calculate V = dQ + hQ --- need point addition API! */
+
+  /* get Q = dG from 'pseudonym' */
+  q = gcry_mpi_ec_get_point ("q", ctx, 0);
+
+  /* calculate V = q + hG = dG + hG */
+  v = gcry_mpi_point_new (0);
+  gcry_mpi_ec_add (v, q, hg, ctx);
   
-  GNUNET_break (0);
-  GNUNET_CRYPTO_hash (pseudonym, sizeof (*pseudonym), &hc);
-  GNUNET_CRYPTO_hash_xor (&hc, signing_key, &x);  
-  memset (verification_key, 0, sizeof (struct GNUNET_PseudonymIdentifier));
-  memcpy (verification_key, &x, GNUNET_MIN (sizeof (x), sizeof (*verification_key)));
+  /* store 'v' point in "verification_key" */
+  v_x = gcry_mpi_new (256);
+  v_y = gcry_mpi_new (256);
+  gcry_mpi_ec_get_affine (v_x, v_y, v, ctx);
+  gcry_mpi_point_release (v);
+  gcry_ctx_release (ctx);
+
+  size = sizeof (verification_key->q_x);
+  if (0 != (rc = gcry_mpi_print (GCRYMPI_FMT_USG, verification_key->q_x, size,
+                                 &size, v_x)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_print", rc);
+    gcry_mpi_release (v_x);
+    gcry_mpi_release (v_y);
+    return GNUNET_SYSERR;
+  }
+  gcry_mpi_release (v_x);
+  size = sizeof (verification_key->q_y);
+  if (0 != (rc = gcry_mpi_print (GCRYMPI_FMT_USG, verification_key->q_y, size,
+                                 &size, v_y)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_print", rc);
+    gcry_mpi_release (v_y);
+    return GNUNET_SYSERR;
+  }
+  gcry_mpi_release (v_y);
   return GNUNET_OK;
 }
 
@@ -1237,14 +1375,18 @@ GNUNET_PSEUDONYM_verify (const struct GNUNET_PseudonymSignaturePurpose *purpose,
 			 const struct GNUNET_PseudonymSignature *signature,
 			 const struct GNUNET_PseudonymIdentifier *verification_key)
 {
-#if FUTURE
+#if FUTURE 
   gcry_sexp_t data;
   gcry_sexp_t sig_sexpr;
   gcry_sexp_t pk_sexpr;
   size_t size;
+  gcry_ctx_t ctx;
+  gcry_mpi_t ONE;
   gcry_mpi_t r;
   gcry_mpi_t s;
-  gcry_mpi_t q;
+  gcry_mpi_point_t q;
+  gcry_mpi_t q_x;
+  gcry_mpi_t q_y;
   size_t erroff;
   int rc;
 
@@ -1264,7 +1406,7 @@ GNUNET_PSEUDONYM_verify (const struct GNUNET_PseudonymSignaturePurpose *purpose,
     gcry_mpi_release (r);
     return GNUNET_SYSERR;
   }
-  if (0 != (rc = gcry_sexp_build (&sig_sexpr, &erroff, "(sig-val(ecc(r %m)(s %m)))",
+  if (0 != (rc = gcry_sexp_build (&sig_sexpr, &erroff, "(sig-val(ecdsa(r %m)(s %m)))",
                                   r, s)))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
@@ -1278,27 +1420,57 @@ GNUNET_PSEUDONYM_verify (const struct GNUNET_PseudonymSignaturePurpose *purpose,
   /* build s-expression for data that was signed */
   data = data_to_pkcs1 (purpose);
 
-  /* build s-expression for public key */
-  /* NOTE: treating a point as a normal MPI value; hopefully that works... */
-  size = sizeof (verification_key->q);
-  if (0 != (rc = gcry_mpi_scan (&q, GCRYMPI_FMT_USG,
-                                verification_key->q, size, &size)))
+  /* create context of public key and initialize Q */
+  size = sizeof (verification_key->q_x);
+  if (0 != (rc = gcry_mpi_scan (&q_x, GCRYMPI_FMT_USG,
+                                verification_key->q_x, size, &size)))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
     gcry_sexp_release (data);
     gcry_sexp_release (sig_sexpr);
     return GNUNET_SYSERR;
   }
-  if (0 != (rc = gcry_sexp_build (&sig_sexpr, &erroff, "(public-key(ecc(curve \"NIST P-256\")(q %m)))",
-                                  q)))
+  size = sizeof (verification_key->q_y);
+  if (0 != (rc = gcry_mpi_scan (&q_y, GCRYMPI_FMT_USG,
+                                verification_key->q_y, size, &size)))
   {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
-    gcry_mpi_release (q);
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+    gcry_sexp_release (data);
+    gcry_sexp_release (sig_sexpr);
+    gcry_mpi_release (q_x);
+    return GNUNET_SYSERR;
+  }
+  q = gcry_mpi_point_new (256);
+  ONE = gcry_mpi_new (1);
+  gcry_mpi_set_ui (ONE, 1);
+  gcry_mpi_point_set (q, q_x, q_y, ONE); /* FIXME: convenience function 'set_affine'? */
+  gcry_mpi_release (ONE);
+  gcry_mpi_release (q_x);
+  gcry_mpi_release (q_y);
+
+  /* create basic ECC context */
+  if (0 != (rc = gcry_mpi_ec_new (&ctx, NULL, "NIST P-256")))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_ec_new", rc);  /* erroff gives more info */
+    gcry_sexp_release (data);
+    gcry_sexp_release (sig_sexpr);
+    gcry_mpi_point_release (q);
+    return GNUNET_SYSERR;
+  }  
+  /* initialize 'ctx' with 'q' */
+  gcry_mpi_ec_set_point ("q", q, ctx);
+  gcry_mpi_point_release (q);
+
+  /* convert 'ctx' to 'sexp' (this hurts) */
+  if (0 != (rc = gcry_sexp_from_context (&pk_sexpr, ctx)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_from_context", rc);
+    gcry_ctx_release (ctx);
     gcry_sexp_release (data);
     gcry_sexp_release (sig_sexpr);
     return GNUNET_SYSERR;
   }
-  gcry_mpi_release (q);
+  gcry_ctx_release (ctx);
 
   /* finally, verify the signature */
   rc = gcry_pk_verify (sig_sexpr, data, pk_sexpr);
@@ -1308,7 +1480,7 @@ GNUNET_PSEUDONYM_verify (const struct GNUNET_PseudonymSignaturePurpose *purpose,
   if (rc)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         _("RSA signature verification failed at %s:%d: %s\n"), __FILE__,
+         _("ECDSA signature verification failed at %s:%d: %s\n"), __FILE__,
          __LINE__, gcry_strerror (rc));
     return GNUNET_SYSERR;
   }
