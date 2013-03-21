@@ -55,7 +55,7 @@ GST_manipulation_recv (void *cls,
 											 uint16_t sender_address_len);
 
 void
-GST_manipulation_update_metrics (void *cls,
+GST_manipulation_metrics_recv (void *cls,
 																 const struct GNUNET_PeerIdentity *peer,
 																 const char *address,
 																 uint16_t address_len,

@@ -356,7 +356,7 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
  * @return ATS Information containing the network type
  */
 void
-GST_manipulation_update_metrics (void *cls,
+GST_manipulation_metrics_recv (void *cls,
 																 const struct GNUNET_PeerIdentity *peer,
 																 const char *address,
 																 uint16_t address_len,
@@ -364,24 +364,32 @@ GST_manipulation_update_metrics (void *cls,
 																 struct GNUNET_ATS_Information *ats,
 																 uint32_t ats_count)
 {
-#if 0
+
 	struct GNUNET_ATS_Information ats_new[ats_count];
 	struct TM_Peer *tmp;
+	uint32_t m_distance;
+	int d;
+
+	m_distance = 0;
+	if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &peer->hashPubKey)))
+	{
+			if (UINT32_MAX != tmp->metrics[TM_RECEIVE][DISTANCE])
+				m_distance = tmp->metrics[TM_RECEIVE][DISTANCE];
+	}
 
 	for (d = 0; d < ats_count; d++)
 	{
 		ats_new[d] = ats[d];
-		if ((ntohl(ats[d].type) == GNUNET_ATS_QUALITY_NET_DISTANCE) &&
-				(man_handle.distance_recv > 0))
-			ats_new[d].value = htonl(man_handle.distance_recv); /* Global inbound distance */
+		if (ntohl(ats[d].type) == GNUNET_ATS_QUALITY_NET_DISTANCE)
+		{
+			if (m_distance > 0)
+				ats_new[d].value = htonl(m_distance);
+			else if  (man_handle.distance_recv > 0)
+				ats_new[d].value = htonl(man_handle.distance_recv);
+		}
 	}
 
-	if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &peer->hashPubKey)))
-	{
-
-	}
-#endif
-	man_handle.metric_update_cb (cls, peer, address, address_len, session, ats, ats_count);
+	man_handle.metric_update_cb (cls, peer, address, address_len, session, ats_new, ats_count);
 }
 
 struct GNUNET_TIME_Relative
@@ -402,29 +410,8 @@ GST_manipulation_recv (void *cls,
 	else
 		m_delay = GNUNET_TIME_UNIT_ZERO;
 
-#if 0
-	for (d = 0; d < ats_count; d++)
-	{
-		ats_new[d] = ats[d];
-		if ((ntohl(ats[d].type) == GNUNET_ATS_QUALITY_NET_DISTANCE) &&
-				(man_handle.distance_recv > 0))
-			ats_new[d].value = htonl(man_handle.distance_recv); /* Global inbound distance */
-	}
-#endif
-
 	if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &peer->hashPubKey)))
 	{
-#if 0
-			/* Manipulate distance */
-			for (d = 0; d < ats_count; d++)
-			{
-					ats_new[d] = ats[d];
-					/* Set distance */
-					if ((ntohl(ats[d].type) == GNUNET_ATS_QUALITY_NET_DISTANCE) &&
-						 (UINT32_MAX != tmp->metrics[TM_RECEIVE][DISTANCE]))
-							ats_new[d].value = htonl(tmp->metrics[TM_RECEIVE][DISTANCE]);
-			}
-#endif
 			/* Manipulate receive delay */
 			if (UINT32_MAX != tmp->metrics[TM_RECEIVE][DELAY])
 					m_delay.rel_value = tmp->metrics[TM_RECEIVE][DELAY]; /* Peer specific delay */
