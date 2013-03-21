@@ -692,9 +692,7 @@ GSF_peer_get_ (const struct GNUNET_PeerIdentity *peer)
 int
 GSF_handle_p2p_migration_stop_ (void *cls,
                                 const struct GNUNET_PeerIdentity *other,
-                                const struct GNUNET_MessageHeader *message,
-                                const struct GNUNET_ATS_Information *atsi,
-                                unsigned int atsi_count)
+                                const struct GNUNET_MessageHeader *message)
 {
   struct GSF_ConnectedPeer *cp;
   const struct MigrationStopMessage *msm;
@@ -722,7 +720,8 @@ GSF_handle_p2p_migration_stop_ (void *cls,
     cp->mig_revive_task =
         GNUNET_SCHEDULER_add_delayed (bt, &revive_migration, cp);
   }
-  update_atsi (cp, atsi, atsi_count);
+  fprintf (stderr, "FIX ATS DATA!\n");
+  update_atsi (cp, NULL, 0);
   return GNUNET_OK;
 }
 

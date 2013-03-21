@@ -302,9 +302,7 @@ GSF_peer_update_responder_peer_ (struct GSF_ConnectedPeer *cp,
 int
 GSF_handle_p2p_migration_stop_ (void *cls,
                                 const struct GNUNET_PeerIdentity *other,
-                                const struct GNUNET_MessageHeader *message,
-                                const struct GNUNET_ATS_Information *atsi,
-                                unsigned int atsi_count);
+                                const struct GNUNET_MessageHeader *message);
 
 
 /**

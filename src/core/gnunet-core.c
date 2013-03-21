@@ -74,9 +74,7 @@ shutdown_task (void *cls,
  * @param atsi_count number of records in 'atsi'
  */
 static void
-connected_peer_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
-                         const struct GNUNET_ATS_Information *atsi,
-                         unsigned int atsi_count)
+connected_peer_callback (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
 
@@ -102,12 +100,9 @@ monitor_notify_startup (void *cls,
  *
  * @param cls closure
  * @param peer the peer that connected
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
  */
 static void
-monitor_notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
+monitor_notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
   const char *now_str;

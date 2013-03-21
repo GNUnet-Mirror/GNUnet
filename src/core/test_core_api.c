@@ -153,9 +153,7 @@ transmit_ready (void *cls, size_t size, void *buf)
 
 
 static void
-connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_ATS_Information *atsi,
-                unsigned int atsi_count)
+connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *pc = cls;
 
@@ -207,9 +205,7 @@ disconnect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 static int
 inbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
-                const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_ATS_Information *atsi,
-                unsigned int atsi_count)
+                const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core provides inbound data from `%4s'.\n", GNUNET_i2s (other));
@@ -219,9 +215,7 @@ inbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
 
 static int
 outbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
-                 const struct GNUNET_MessageHeader *message,
-                 const struct GNUNET_ATS_Information *atsi,
-                 unsigned int atsi_count)
+                 const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core notifies about outbound data for `%4s'.\n",
@@ -233,9 +227,7 @@ outbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
 
 static int
 process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
-               const struct GNUNET_MessageHeader *message,
-               const struct GNUNET_ATS_Information *atsi,
-               unsigned int atsi_count)
+               const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving message from `%4s'.\n",
               GNUNET_i2s (peer));

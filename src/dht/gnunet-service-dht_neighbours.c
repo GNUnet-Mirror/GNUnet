@@ -626,9 +626,7 @@ send_find_peer_message (void *cls,
  * @param atsi_count number of records in 'atsi'
  */
 static void
-handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                     const struct GNUNET_ATS_Information *atsi,
-                     unsigned int atsi_count)
+handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerInfo *ret;
   int peer_bucket;
@@ -1548,9 +1546,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
  */
 static int
 handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
-                    const struct GNUNET_MessageHeader *message,
-                    const struct GNUNET_ATS_Information *atsi,
-                    unsigned int atsi_count)
+                    const struct GNUNET_MessageHeader *message)
 {
   const struct PeerPutMessage *put;
   const struct GNUNET_PeerIdentity *put_path;
@@ -1801,9 +1797,7 @@ handle_find_peer (const struct GNUNET_PeerIdentity *sender,
  */
 static int
 handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
-                    const struct GNUNET_MessageHeader *message,
-                    const struct GNUNET_ATS_Information *atsi,
-                    unsigned int atsi_count)
+                    const struct GNUNET_MessageHeader *message)
 {
   struct PeerGetMessage *get;
   uint32_t xquery_size;
@@ -1943,9 +1937,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 static int
 handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
-                       const struct GNUNET_MessageHeader *message,
-                       const struct GNUNET_ATS_Information *atsi,
-                       unsigned int atsi_count)
+                       const struct GNUNET_MessageHeader *message)
 {
   const struct PeerResultMessage *prm;
   const struct GNUNET_PeerIdentity *put_path;

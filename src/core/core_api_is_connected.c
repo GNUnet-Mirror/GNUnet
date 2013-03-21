@@ -83,7 +83,7 @@ receive_connect_info (void *cls, const struct GNUNET_MessageHeader *msg)
   if (NULL == msg)
   {
     /* core died, failure */
-    cth->peer_cb (cth->cb_cls, NULL, NULL, 0);
+    cth->peer_cb (cth->cb_cls, NULL);
     GNUNET_CORE_is_peer_connected_cancel (cth);
     return;
   }
@@ -91,7 +91,7 @@ receive_connect_info (void *cls, const struct GNUNET_MessageHeader *msg)
       (ntohs (msg->size) == sizeof (struct GNUNET_MessageHeader)))
   {
     /* end of transmissions */
-    cth->peer_cb (cth->cb_cls, NULL, NULL, 0);
+    cth->peer_cb (cth->cb_cls, NULL);
     GNUNET_CORE_is_peer_connected_cancel (cth);
     return;
   }
@@ -101,7 +101,7 @@ receive_connect_info (void *cls, const struct GNUNET_MessageHeader *msg)
       (msize < sizeof (struct ConnectNotifyMessage)))
   {
     GNUNET_break (0);
-    cth->peer_cb (cth->cb_cls, NULL, NULL, 0);
+    cth->peer_cb (cth->cb_cls, NULL);
     GNUNET_CORE_is_peer_connected_cancel (cth);
     return;
   }
@@ -109,12 +109,12 @@ receive_connect_info (void *cls, const struct GNUNET_MessageHeader *msg)
   if (msize != sizeof (struct ConnectNotifyMessage))
   {
     GNUNET_break (0);
-    cth->peer_cb (cth->cb_cls, NULL, NULL, 0);
+    cth->peer_cb (cth->cb_cls, NULL);
     GNUNET_CORE_is_peer_connected_cancel (cth);
     return;
   }
   /* Normal case */
-  cth->peer_cb (cth->cb_cls, &connect_message->peer, NULL, 0);
+  cth->peer_cb (cth->cb_cls, &connect_message->peer);
   GNUNET_CLIENT_receive (cth->client, &receive_connect_info,
                          cth, GNUNET_TIME_UNIT_FOREVER_REL);
 }
@@ -144,9 +144,7 @@ transmit_is_connected_request (void *cls, size_t size, void *buf)
     sizeof (struct GNUNET_PeerIdentity);
   if ( (NULL == buf) || (0 == size) )
   {
-    cth->peer_cb (cth->cb_cls,
-		  NULL,
-		  NULL, 0);
+    cth->peer_cb (cth->cb_cls, NULL);
     GNUNET_CLIENT_disconnect (cth->client);
     GNUNET_free (cth);
     return 0;

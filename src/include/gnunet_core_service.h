@@ -56,15 +56,10 @@ struct GNUNET_CORE_Handle;
  *
  * @param cls closure
  * @param peer peer identity this notification is about
- * @param atsi performance data for the connection
- * @param atsi_count number of records in 'atsi'
  */
 typedef void (*GNUNET_CORE_ConnectEventHandler) (void *cls,
                                                  const struct
-                                                 GNUNET_PeerIdentity * peer,
-                                                 const struct
-                                                 GNUNET_ATS_Information * atsi,
-                                                 unsigned int atsi_count);
+                                                 GNUNET_PeerIdentity * peer);
 
 
 /**
@@ -86,8 +81,6 @@ typedef void (*GNUNET_CORE_DisconnectEventHandler) (void *cls,
  * @param peer the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
- * @param atsi performance data for the connection
- * @param atsi_count number of records in 'atsi'
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -95,9 +88,7 @@ typedef int (*GNUNET_CORE_MessageCallback) (void *cls,
                                             const struct GNUNET_PeerIdentity *
                                             other,
                                             const struct GNUNET_MessageHeader *
-                                            message,
-                                            const struct GNUNET_ATS_Information
-                                            * atsi, unsigned int atsi_count);
+                                            message);
 
 
 /**

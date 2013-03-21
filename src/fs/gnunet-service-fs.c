@@ -267,9 +267,7 @@ update_latencies (const struct GNUNET_ATS_Information *atsi,
  */
 static int
 handle_p2p_put (void *cls, const struct GNUNET_PeerIdentity *other,
-                const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_ATS_Information *atsi,
-                unsigned int atsi_count)
+                const struct GNUNET_MessageHeader *message)
 {
   struct GSF_ConnectedPeer *cp;
 
@@ -280,7 +278,8 @@ handle_p2p_put (void *cls, const struct GNUNET_PeerIdentity *other,
     return GNUNET_OK;
   }
   GSF_cover_content_count++;
-  update_latencies (atsi, atsi_count);
+  fprintf (stderr, "FIX ATS DATA!\n");
+  update_latencies (NULL, 0);
   return GSF_handle_p2p_content_ (cp, message);
 }
 
@@ -349,9 +348,7 @@ consider_forwarding (void *cls, struct GSF_PendingRequest *pr,
  */
 static int
 handle_p2p_get (void *cls, const struct GNUNET_PeerIdentity *other,
-                const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_ATS_Information *atsi,
-                unsigned int atsi_count)
+                const struct GNUNET_MessageHeader *message)
 {
   struct GSF_PendingRequest *pr;
 
@@ -360,7 +357,8 @@ handle_p2p_get (void *cls, const struct GNUNET_PeerIdentity *other,
     return GNUNET_SYSERR;
   GSF_pending_request_get_data_ (pr)->has_started = GNUNET_YES;
   GSF_local_lookup_ (pr, &consider_forwarding, NULL);
-  update_latencies (atsi, atsi_count);
+  fprintf (stderr, "FIX ATS DATA!\n");
+  update_latencies (NULL, 0);
   return GNUNET_OK;
 }
 
@@ -536,15 +534,14 @@ consider_peer_for_forwarding (void *cls, const struct GNUNET_HashCode * key,
  * @param atsi_count number of records in 'atsi'
  */
 static void
-peer_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
-                      const struct GNUNET_ATS_Information *atsi,
-                      unsigned int atsi_count)
+peer_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct GSF_ConnectedPeer *cp;
 
   if (0 == memcmp (&my_id, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
-  cp = GSF_peer_connect_handler_ (peer, atsi, atsi_count);
+  fprintf (stderr, "FIX ATS DATA!\n");
+  cp = GSF_peer_connect_handler_ (peer, NULL, 0);
   if (NULL == cp)
     return;
   GSF_iterate_pending_requests_ (&consider_peer_for_forwarding, cp);

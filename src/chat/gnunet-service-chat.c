@@ -979,17 +979,14 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
  * @param cls closure, always NULL
  * @param other the other peer involved
  * @param message the actual message
- * @param atsi performance information
- * @param atsi_count number of entries in atsi
+
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_p2p_join_notification (void *cls,
                               const struct GNUNET_PeerIdentity *other,
-                              const struct GNUNET_MessageHeader *message,
-                              const struct GNUNET_ATS_Information *atsi,
-                              unsigned int atsi_count)
+                              const struct GNUNET_MessageHeader *message)
 {
   const struct P2PJoinNotificationMessage *p2p_jnmsg;
   char *room_name;
@@ -1096,17 +1093,13 @@ handle_p2p_join_notification (void *cls,
  * @param cls closure, always NULL
  * @param other the other peer involved
  * @param message the actual message
- * @param atsi performance information
- * @param atsi_count number of entries in atsi
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_p2p_leave_notification (void *cls,
                                const struct GNUNET_PeerIdentity *other,
-                               const struct GNUNET_MessageHeader *message,
-                               const struct GNUNET_ATS_Information *atsi,
-                               unsigned int atsi_count)
+                               const struct GNUNET_MessageHeader *message)
 {
   const struct P2PLeaveNotificationMessage *p2p_lnmsg;
   struct GNUNET_HashCode id;
@@ -1178,17 +1171,13 @@ handle_p2p_leave_notification (void *cls,
  * @param cls closure, always NULL
  * @param other the other peer involved
  * @param message the actual message
- * @param atsi performance information
- * @param atsi_count number of entries in atsi
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_p2p_message_notification (void *cls,
                                  const struct GNUNET_PeerIdentity *other,
-                                 const struct GNUNET_MessageHeader *message,
-                                 const struct GNUNET_ATS_Information *atsi,
-                                 unsigned int atsi_count)
+                                 const struct GNUNET_MessageHeader *message)
 {
   const struct P2PReceiveNotificationMessage *p2p_rnmsg;
   struct P2PReceiveNotificationMessage *my_p2p_rnmsg;
@@ -1330,16 +1319,12 @@ handle_p2p_message_notification (void *cls,
  * @param cls closure, always NULL
  * @param other the other peer involved
  * @param message the actual message
- * @param atsi performance information
- * @param atsi_count number of entries in atsi
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_p2p_sync_request (void *cls, const struct GNUNET_PeerIdentity *other,
-                         const struct GNUNET_MessageHeader *message,
-                         const struct GNUNET_ATS_Information *atsi,
-                         unsigned int atsi_count)
+                         const struct GNUNET_MessageHeader *message)
 {
   struct ChatClient *entry;
   struct GNUNET_CORE_TransmitHandle *th;
@@ -1381,9 +1366,7 @@ handle_p2p_sync_request (void *cls, const struct GNUNET_PeerIdentity *other,
 static int
 handle_p2p_confirmation_receipt (void *cls,
                                  const struct GNUNET_PeerIdentity *other,
-                                 const struct GNUNET_MessageHeader *message,
-                                 const struct GNUNET_ATS_Information *atsi,
-                                 unsigned int atsi_count)
+                                 const struct GNUNET_MessageHeader *message)
 {
   const struct P2PConfirmationReceiptMessage *p2p_crmsg;
   struct P2PConfirmationReceiptMessage *my_p2p_crmsg;
@@ -1519,13 +1502,9 @@ transmit_sync_request_to_peer (void *cls, size_t size, void *buf)
  *
  * @param cls closure
  * @param peer peer identity this notification is about
- * @param atsi performance data
- * @param atsi_count number of entries in atsi
  */
 static void
-peer_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
-                      const struct GNUNET_ATS_Information *atsi,
-                      unsigned int atsi_count)
+peer_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct ConnectedPeer *cp;
   struct GNUNET_CORE_TransmitHandle *th;
