@@ -85,7 +85,7 @@ address_generator (void *cls, size_t max, void *buf)
 static void
 add_peer ()
 {
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
   struct GNUNET_PeerIdentity pid;
   struct GNUNET_HELLO_Message *h2;
   size_t agc;
