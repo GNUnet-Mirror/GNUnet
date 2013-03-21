@@ -5070,9 +5070,7 @@ queue_add (void *cls, uint16_t type, size_t size,
  */
 static int
 handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
-                         const struct GNUNET_MessageHeader *message,
-                         const struct GNUNET_ATS_Information *atsi,
-                         unsigned int atsi_count)
+                         const struct GNUNET_MessageHeader *message)
 {
   unsigned int own_pos;
   uint16_t size;
@@ -5256,9 +5254,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 static int
 handle_mesh_path_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
-                          const struct GNUNET_MessageHeader *message,
-                          const struct GNUNET_ATS_Information *atsi,
-                          unsigned int atsi_count)
+                          const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_ManipulatePath *msg;
   struct GNUNET_PeerIdentity *pi;
@@ -5340,9 +5336,7 @@ handle_mesh_path_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 static int
 handle_mesh_path_broken (void *cls, const struct GNUNET_PeerIdentity *peer,
-                         const struct GNUNET_MessageHeader *message,
-                         const struct GNUNET_ATS_Information *atsi,
-                         unsigned int atsi_count)
+                         const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_PathBroken *msg;
   struct MeshTunnel *t;
@@ -5381,9 +5375,7 @@ handle_mesh_path_broken (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 static int
 handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
-                            const struct GNUNET_MessageHeader *message,
-                            const struct GNUNET_ATS_Information *atsi,
-                            unsigned int atsi_count)
+                            const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_TunnelDestroy *msg;
   struct MeshTunnel *t;
@@ -5452,9 +5444,7 @@ handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 static int
 handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
-                          const struct GNUNET_MessageHeader *message,
-                          const struct GNUNET_ATS_Information *atsi,
-                          unsigned int atsi_count)
+                          const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_Unicast *msg;
   struct GNUNET_PeerIdentity *neighbor;
@@ -5573,9 +5563,7 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 static int
 handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
-                            const struct GNUNET_MessageHeader *message,
-                            const struct GNUNET_ATS_Information *atsi,
-                            unsigned int atsi_count)
+                            const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_Multicast *msg;
   struct MeshTunnel *t;
@@ -5656,9 +5644,7 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 static int
 handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
-                          const struct GNUNET_MessageHeader *message,
-                          const struct GNUNET_ATS_Information *atsi,
-                          unsigned int atsi_count)
+                          const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_ToOrigin *msg;
   struct GNUNET_PeerIdentity id;
@@ -5790,9 +5776,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 static int
 handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
-                 const struct GNUNET_MessageHeader *message,
-                 const struct GNUNET_ATS_Information *atsi,
-                 unsigned int atsi_count)
+                 const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_ACK *msg;
   struct MeshTunnel *t;
@@ -5856,9 +5840,7 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 static int
 handle_mesh_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
-                  const struct GNUNET_MessageHeader *message,
-                  const struct GNUNET_ATS_Information *atsi,
-                  unsigned int atsi_count)
+                  const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_Poll *msg;
   struct MeshTunnel *t;
@@ -5911,9 +5893,7 @@ handle_mesh_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 static int
 handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
-                      const struct GNUNET_MessageHeader *message,
-                      const struct GNUNET_ATS_Information *atsi,
-                      unsigned int atsi_count)
+                      const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_PathACK *msg;
   struct GNUNET_PeerIdentity id;
@@ -6014,9 +5994,7 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 static int
 handle_mesh_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
-                       const struct GNUNET_MessageHeader *message,
-                       const struct GNUNET_ATS_Information *atsi,
-                       unsigned int atsi_count)
+                       const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_TunnelKeepAlive *msg;
   struct MeshTunnel *t;
@@ -7373,7 +7351,7 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
     copy->ttl = htonl (default_ttl);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  calling generic handler...\n");
-    handle_mesh_data_unicast (NULL, &my_full_id, &copy->header, NULL, 0);
+    handle_mesh_data_unicast (NULL, &my_full_id, &copy->header);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "receive done OK\n");
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -7482,7 +7460,8 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
     copy->sender = my_full_id;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  calling generic handler...\n");
-    handle_mesh_data_to_orig (NULL, &my_full_id, &copy->header, NULL, 0);
+    handle_mesh_data_to_orig (NULL, &my_full_id, &copy->header);
+
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 
@@ -7573,7 +7552,7 @@ handle_local_multicast (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_assert (ntohl (copy->pid) == (t->fwd_pid + 1));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  calling generic handler...\n");
-    handle_mesh_data_multicast (client, &my_full_id, &copy->header, NULL, 0);
+    handle_mesh_data_multicast (client, &my_full_id, &copy->header);
   }
 
   GNUNET_SERVER_receive_done (t->owner->handle, GNUNET_OK);
@@ -8036,9 +8015,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
  * @param atsi_count number of records in 'atsi'
  */
 static void
-core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-              const struct GNUNET_ATS_Information *atsi,
-              unsigned int atsi_count)
+core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct MeshPeerInfo *peer_info;
   struct MeshPeerPath *path;
