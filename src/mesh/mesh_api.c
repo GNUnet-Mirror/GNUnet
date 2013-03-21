@@ -129,7 +129,7 @@ struct GNUNET_MESH_Handle
      * registered independently and the mapping is up to the developer of the
      * client application.
      */
-  const GNUNET_MESH_ApplicationType *applications;
+  GNUNET_MESH_ApplicationType *applications;
 
     /**
      * Double linked list of the tunnels this client is connected to, head.
@@ -1696,6 +1696,7 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
                      const GNUNET_MESH_ApplicationType *stypes)
 {
   struct GNUNET_MESH_Handle *h;
+  size_t size;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GNUNET_MESH_connect()\n");
   h = GNUNET_malloc (sizeof (struct GNUNET_MESH_Handle));
@@ -1711,17 +1712,22 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
     return NULL;
   }
   h->cls = cls;
-  /* FIXME memdup? */
-  h->applications = stypes;
   h->message_handlers = handlers;
   h->next_tid = GNUNET_MESH_LOCAL_TUNNEL_ID_CLI;
   h->reconnect_time = GNUNET_TIME_UNIT_MILLISECONDS;
   h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
 
-  /* count handlers and apps, calculate size */
+  /* count apps */
   for (h->n_applications = 0;
        stypes && stypes[h->n_applications];
        h->n_applications++) ;
+  if (0 < h->n_applications)
+  {
+    size = h->n_applications * sizeof (GNUNET_MESH_ApplicationType *);
+    h->applications = GNUNET_malloc (size);
+    memcpy (h->applications, stypes, size);
+  }
+  /* count handlers */
   for (h->n_handlers = 0;
        handlers && handlers[h->n_handlers].type;
        h->n_handlers++) ;
@@ -1806,6 +1812,7 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
     GNUNET_SCHEDULER_cancel(handle->reconnect_task);
     handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  GNUNET_free_non_null (handle->applications);
   GNUNET_free (handle);
 }
 
