@@ -1063,6 +1063,8 @@ handle_p2p_strata (struct ConsensusPeerInformation *cpi, const struct StrataMess
       cpi->ibf_order += 1;
       /* create ibf if not already pre-computed */
       prepare_ibf (cpi);
+      if (NULL != cpi->ibf)
+        ibf_destroy (cpi->ibf);
       cpi->ibf = ibf_dup (cpi->session->ibfs[cpi->ibf_order]);
       cpi->ibf_state = IBF_STATE_TRANSMITTING;
       cpi->ibf_bucket_counter = 0;
