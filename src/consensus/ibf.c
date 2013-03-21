@@ -280,12 +280,12 @@ ibf_write_slice (const struct InvertibleBloomFilter *ibf, uint32_t start, uint32
  * Read an ibf.
  *
  * @param buf pointer to the buffer to write to, will point to first
- *            byte after the written data
+ *            byte after the written data // FIXME: take 'const void *buf' for input, return number of bytes READ
  * @param size size of the buffer, will be updated
  * @param start which bucket to start at
  * @param count how many buckets to read
  * @param ibf the ibf to read from
- * @return GNUNET_OK on success
+ * @return GNUNET_OK on success // FIXME: return 0 on error (or -1/ssize_t), number of bytes read otherwise
  */
 int
 ibf_read_slice (void **buf, size_t *size, uint32_t start, uint32_t count, struct InvertibleBloomFilter *ibf)

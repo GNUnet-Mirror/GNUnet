@@ -1008,7 +1008,7 @@ is_premature_strata_message (const struct ConsensusSession *session, const struc
 static int
 handle_p2p_strata (struct ConsensusPeerInformation *cpi, const struct StrataMessage *strata_msg)
 {
-  int i;
+  int i; // unsigned?
   unsigned int diff;
   void *buf;
   size_t size;
@@ -1036,7 +1036,7 @@ handle_p2p_strata (struct ConsensusPeerInformation *cpi, const struct StrataMess
   cpi->apparent_round = strata_msg->round;
 
   size = ntohs (strata_msg->header.size);
-  buf = (void *) &strata_msg[1];
+  buf = (void *) &strata_msg[1]; // FIXME: do NOT cast away 'const'!
   for (i = 0; i < STRATA_COUNT; i++)
   {
     int res;
@@ -1088,7 +1088,7 @@ handle_p2p_ibf (struct ConsensusPeerInformation *cpi, const struct DifferenceDig
   /* FIXME: find out if we're still expecting the same ibf! */
 
   cpi->apparent_round = cpi->session->current_round;
-
+  // FIXME: check header.size >= sizeof (DD)
   num_buckets = (ntohs (digest->header.size) - (sizeof *digest)) / IBF_BUCKET_SIZE;
   switch (cpi->ibf_state)
   {
@@ -1132,7 +1132,7 @@ handle_p2p_ibf (struct ConsensusPeerInformation *cpi, const struct DifferenceDig
   if (NULL == cpi->ibf)
     cpi->ibf = ibf_create (1 << cpi->ibf_order, STRATA_HASH_NUM, 0);
 
-  buf = (void *) &digest[1];
+  buf = (void *) &digest[1]; // FIXME: digest is supposed to be READ ONLY!
   ibf_read_slice (&buf, NULL, cpi->ibf_bucket_counter, num_buckets, cpi->ibf);
 
   cpi->ibf_bucket_counter += num_buckets;
@@ -1261,24 +1261,21 @@ handle_p2p_hello (struct IncomingSocket *inc, const struct ConsensusHello *hello
 {
   /* FIXME: session might not exist yet. create an uninhabited session and wait for a client */
   struct ConsensusSession *session;
+  int idx;
 
-  session = sessions_head;
-  while (NULL != session)
+  for (session = sessions_head; NULL != session; session = session->next)
   {
-    if (0 == GNUNET_CRYPTO_hash_cmp (&session->global_id, &hello->global_id))
-    {
-      int idx;
-      idx = get_peer_idx (&inc->peer_id, session);
-      GNUNET_assert (-1 != idx);
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "peer %d hello'ed session %d\n", idx);
-      inc->cpi = &session->info[idx];
-      inc->cpi->mst = inc->mst;
-      inc->cpi->hello = GNUNET_YES;
-      inc->cpi->socket = inc->socket;
-      embrace_peer (inc->cpi);
-      return GNUNET_YES;
-    }
-    session = session->next;
+    if (0 != GNUNET_CRYPTO_hash_cmp (&session->global_id, &hello->global_id))
+      continue;
+    idx = get_peer_idx (&inc->peer_id, session);
+    GNUNET_assert (-1 != idx);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "peer %d hello'ed session %d\n", idx);
+    inc->cpi = &session->info[idx];
+    inc->cpi->mst = inc->mst;
+    inc->cpi->hello = GNUNET_YES;
+    inc->cpi->socket = inc->socket;
+    embrace_peer (inc->cpi);
+    return GNUNET_YES;        
   }
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "peer tried to HELLO uninhabited session\n");
   return GNUNET_NO;
@@ -1382,7 +1379,7 @@ decode (struct ConsensusPeerInformation *cpi)
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d: decoding ibf from P%d\n", cpi->session->local_peer_idx, (int) (cpi - cpi->session->info));
 
-  for (;;)
+  while (1)
   {
     int res;
 
@@ -2574,7 +2571,7 @@ client_conclude (void *cls,
  * @param client client handle
  * @param message message sent by the client
  */
-void
+static void
 client_ack (void *cls,
              struct GNUNET_SERVER_Client *client,
              const struct GNUNET_MessageHeader *message)
