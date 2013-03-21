@@ -851,13 +851,13 @@ fin_sent_cb (void *cls)
   {
     case CONSENSUS_ROUND_EXCHANGE:
     case CONSENSUS_ROUND_STOCK:
-      /* the subround is only really over if *both* partners are done */
       if (cpi->session->current_round != cpi->apparent_round)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d: FIN to SYNC from the past\n", cpi->session->local_peer_idx);
         break;
       }
       cpi->exp_subround_finished = GNUNET_YES;
+      /* the subround is only really over if *both* partners are done */
       if (GNUNET_YES == exp_subround_finished (cpi->session))
         subround_over (cpi->session, NULL);
       else
@@ -1086,6 +1086,8 @@ handle_p2p_ibf (struct ConsensusPeerInformation *cpi, const struct DifferenceDig
   void *buf;
 
   /* FIXME: find out if we're still expecting the same ibf! */
+
+  cpi->apparent_round = cpi->session->current_round;
 
   num_buckets = (ntohs (digest->header.size) - (sizeof *digest)) / IBF_BUCKET_SIZE;
   switch (cpi->ibf_state)
@@ -1352,6 +1354,7 @@ send_ibf (struct ConsensusPeerInformation *cpi)
     digest->header.size = htons (msize);
     digest->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_DIFFERENCE_DIGEST);
     digest->order = cpi->ibf_order;
+    digest->round = cpi->apparent_round;
 
     buf = &digest[1];
     ibf_write_slice (cpi->ibf, cpi->ibf_bucket_counter, num_buckets, &buf, NULL);
