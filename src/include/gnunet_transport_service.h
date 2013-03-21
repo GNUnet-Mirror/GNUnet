@@ -58,10 +58,7 @@ typedef void (*GNUNET_TRANSPORT_ReceiveCallback) (void *cls,
                                                   GNUNET_PeerIdentity * peer,
                                                   const struct
                                                   GNUNET_MessageHeader *
-                                                  message,
-                                                  const struct
-                                                  GNUNET_ATS_Information * ats,
-                                                  uint32_t ats_count);
+                                                  message);
 
 
 /**
