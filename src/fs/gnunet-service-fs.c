@@ -278,7 +278,7 @@ handle_p2p_put (void *cls, const struct GNUNET_PeerIdentity *other,
     return GNUNET_OK;
   }
   GSF_cover_content_count++;
-  fprintf (stderr, "FIX ATS DATA!\n");
+  fprintf (stderr, "FIX ATS DATA: %s:%u!\n", __FILE__, __LINE__);
   update_latencies (NULL, 0);
   return GSF_handle_p2p_content_ (cp, message);
 }
@@ -357,7 +357,7 @@ handle_p2p_get (void *cls, const struct GNUNET_PeerIdentity *other,
     return GNUNET_SYSERR;
   GSF_pending_request_get_data_ (pr)->has_started = GNUNET_YES;
   GSF_local_lookup_ (pr, &consider_forwarding, NULL);
-  fprintf (stderr, "FIX ATS DATA!\n");
+  fprintf (stderr, "FIX ATS DATA: %s:%u!\n", __FILE__, __LINE__);
   update_latencies (NULL, 0);
   return GNUNET_OK;
 }
@@ -540,7 +540,7 @@ peer_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
 
   if (0 == memcmp (&my_id, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
-  fprintf (stderr, "FIX ATS DATA!\n");
+  fprintf (stderr, "FIX ATS DATA: %s:%u!\n", __FILE__, __LINE__);
   cp = GSF_peer_connect_handler_ (peer, NULL, 0);
   if (NULL == cp)
     return;

@@ -720,7 +720,7 @@ GSF_handle_p2p_migration_stop_ (void *cls,
     cp->mig_revive_task =
         GNUNET_SCHEDULER_add_delayed (bt, &revive_migration, cp);
   }
-  fprintf (stderr, "FIX ATS DATA!\n");
+  fprintf (stderr, "FIX ATS DATA: %s:%u!\n", __FILE__, __LINE__);
   update_atsi (cp, NULL, 0);
   return GNUNET_OK;
 }
