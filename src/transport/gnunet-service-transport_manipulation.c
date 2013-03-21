@@ -370,6 +370,7 @@ GST_manipulation_metrics_recv (void *cls,
 	uint32_t m_distance;
 	int d;
 
+
 	m_distance = 0;
 	if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &peer->hashPubKey)))
 	{

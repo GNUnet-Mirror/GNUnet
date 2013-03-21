@@ -145,15 +145,14 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 static void
 notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
+                const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *p = cls;
 
   if (p == NULL)
     return;
   if (p->rec != NULL)
-    p->rec (p->cb_cls, peer, message, ats, ats_count);
+    p->rec (p->cb_cls, peer, message);
 }
 
 

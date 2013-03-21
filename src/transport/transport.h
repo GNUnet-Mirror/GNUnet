@@ -235,12 +235,6 @@ struct InboundMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Number of ATS key-value pairs that follow this struct
-   * (excluding the 0-terminator).
-   */
-  uint32_t ats_count GNUNET_PACKED;
-
-  /**
    * Which peer sent the message?
    */
   struct GNUNET_PeerIdentity peer;

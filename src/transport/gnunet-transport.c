@@ -648,13 +648,10 @@ monitor_notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
  * @param cls closure
  * @param peer (claimed) identity of the other peer
  * @param message the message
- * @param ats performance data
- * @param ats_count number of entries in ats
  */
 static void
 notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
+                const struct GNUNET_MessageHeader *message)
 {
   if (benchmark_receive)
   {

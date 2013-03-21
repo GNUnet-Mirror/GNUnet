@@ -138,13 +138,9 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour);
  * to this peer
  *
  * @param neighbour neighbour to keep alive
- * @param ats performance data
- * @param ats_count number of entries in ats
  */
 void
-GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
-                                   const struct GNUNET_ATS_Information *ats,
-                                   uint32_t ats_count);
+GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour);
 
 
 /**
@@ -244,9 +240,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
  * @param address address of the other peer, NULL if other peer
  *                       connected to us
  * @param session session to use (or NULL)
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
-  */
+ */
 void
 GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
                                const struct GNUNET_PeerIdentity *peer,
@@ -263,16 +257,12 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
  * @param address address of the other peer, NULL if other peer
  *                       connected to us
  * @param session session to use (or NULL)
- * @param ats performance data
- * @param ats_count number of entries in ats
  */
 void
 GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                                    const struct GNUNET_PeerIdentity *peer,
                                    const struct GNUNET_HELLO_Address *address,
-                                   struct Session *session,
-                                   const struct GNUNET_ATS_Information *ats,
-                                   uint32_t ats_count);
+                                   struct Session *session);
 
 
 /**
@@ -284,16 +274,12 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
  * @param address address of the other peer, NULL if other peer
  *                       connected to us
  * @param session session to use (or NULL)
- * @param ats performance data
- * @param ats_count number of entries in ats
  */
 void
 GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
 				   const struct GNUNET_PeerIdentity *peer,
 				   const struct GNUNET_HELLO_Address *address,
-				   struct Session *session,
-				   const struct GNUNET_ATS_Information *ats,
-				   uint32_t ats_count);
+				   struct Session *session);
 
 
 /**

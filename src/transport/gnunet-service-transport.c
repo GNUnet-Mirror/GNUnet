@@ -154,18 +154,15 @@ static struct GNUNET_TIME_Relative
 process_payload (const struct GNUNET_PeerIdentity *peer,
                  const struct GNUNET_HELLO_Address *address,
                  struct Session *session,
-                 const struct GNUNET_MessageHeader *message,
-                 const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
+                 const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_TIME_Relative ret;
   int do_forward;
   struct InboundMessage *im;
   size_t msg_size = ntohs (message->size);
   size_t size =
-      sizeof (struct InboundMessage) + msg_size +
-      sizeof (struct GNUNET_ATS_Information) * (ats_count + 1);
+      sizeof (struct InboundMessage) + msg_size;
   char buf[size] GNUNET_ALIGN;
-  struct GNUNET_ATS_Information *ap;
 
   ret = GNUNET_TIME_UNIT_ZERO;
   do_forward = GNUNET_SYSERR;
@@ -190,17 +187,17 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
   im = (struct InboundMessage *) buf;
   im->header.size = htons (size);
   im->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
-  im->ats_count = htonl (ats_count + 1);
   im->peer = *peer;
-  ap = (struct GNUNET_ATS_Information *) &im[1];
-  memcpy (ap, ats, ats_count * sizeof (struct GNUNET_ATS_Information));
+
+  fprintf (stderr, "FIX THIS: %s:%u \n", __FILE__, __LINE__);
+  /*
   ap[ats_count].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
   ap[ats_count].value =
-      htonl ((uint32_t) GST_neighbour_get_latency (peer).rel_value);
-  memcpy (&ap[ats_count + 1], message, ntohs (message->size));
+      htonl ((uint32_t) GST_neighbour_get_latency (peer).rel_value);*/
+  memcpy (&im[1], message, ntohs (message->size));
 
-  GNUNET_ATS_address_add (GST_ats, address, session, ap, ats_count + 1);
-  GNUNET_ATS_address_update (GST_ats, address, session, ap, ats_count + 1);
+  GNUNET_ATS_address_add (GST_ats, address, session, NULL, 0);
+  GNUNET_ATS_address_update (GST_ats, address, session, NULL, 0);
   GST_clients_broadcast (&im->header, GNUNET_YES);
 
   return ret;
@@ -280,10 +277,10 @@ GST_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
     GST_neighbours_handle_connect (message, peer, &address, session);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT_ACK:
-    GST_neighbours_handle_connect_ack (message, peer, &address, session, NULL, 0);
+    GST_neighbours_handle_connect_ack (message, peer, &address, session);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_ACK:
-    GST_neighbours_handle_session_ack (message, peer, &address, session, NULL, 0);
+    GST_neighbours_handle_session_ack (message, peer, &address, session);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT:
     GST_neighbours_handle_disconnect_message (peer, message);
@@ -292,7 +289,7 @@ GST_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
     GST_neighbours_keepalive (peer);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE_RESPONSE:
-    GST_neighbours_keepalive_response (peer, NULL, 0);
+    GST_neighbours_keepalive_response (peer);
     break;
   default:
     /* should be payload */
@@ -300,7 +297,7 @@ GST_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
                               gettext_noop
                               ("# bytes payload received"),
                               ntohs (message->size), GNUNET_NO);
-    ret = process_payload (peer, &address, session, message, NULL, 0);
+    ret = process_payload (peer, &address, session, message);
     break;
   }
 end:

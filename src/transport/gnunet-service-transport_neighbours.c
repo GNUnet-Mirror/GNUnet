@@ -1505,17 +1505,13 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour)
  * plus calculated latency) to ATS.
  *
  * @param neighbour neighbour to keep alive
- * @param ats performance data
- * @param ats_count number of entries in ats
  */
 void
-GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
-                                   const struct GNUNET_ATS_Information *ats,
-                                   uint32_t ats_count)
+GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour)
 {
   struct NeighbourMapEntry *n;
   uint32_t latency;
-  struct GNUNET_ATS_Information ats_new[ats_count + 1];
+  struct GNUNET_ATS_Information ats;
 
   if (NULL == (n = lookup_neighbour (neighbour)))
   {
@@ -1540,18 +1536,17 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Latency for peer `%s' is %llu ms\n",
               GNUNET_i2s (&n->id), n->latency.rel_value);
-  memcpy (ats_new, ats, sizeof (struct GNUNET_ATS_Information) * ats_count);
   /* append latency */
-  ats_new[ats_count].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
+  ats.type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
   if (n->latency.rel_value > UINT32_MAX)
     latency = UINT32_MAX;
   else
     latency = n->latency.rel_value;
-  ats_new[ats_count].value = htonl (latency);
+  ats.value = htonl (latency);
+  fprintf (stderr, "FIX THIS: %s %u \n", __FILE__, __LINE__);
   GNUNET_ATS_address_update (GST_ats, 
 			     n->primary_address.address, 
-			     n->primary_address.session, ats_new,
-			     ats_count + 1);
+			     n->primary_address.session, &ats, 1);
 }
 
 
@@ -2757,9 +2752,7 @@ void
 GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                                    const struct GNUNET_PeerIdentity *peer,
                                    const struct GNUNET_HELLO_Address *address,
-                                   struct Session *session,
-                                   const struct GNUNET_ATS_Information *ats,
-                                   uint32_t ats_count)
+                                   struct Session *session)
 {
   const struct SessionConnectMessage *scm;
   struct GNUNET_TIME_Absolute ts;
@@ -2807,14 +2800,14 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
 			   gettext_noop ("# peers connected"), 
 			   ++neighbours_connected,
 			   GNUNET_NO);
-    connect_notify_cb (callback_cls, &n->id, ats, ats_count,
+    connect_notify_cb (callback_cls, &n->id, NULL, 0,
                        n->primary_address.bandwidth_in,
                        n->primary_address.bandwidth_out);
     /* Tell ATS that the outbound session we created to send CONNECT was successfull */
     GNUNET_ATS_address_add (GST_ats,
                             n->primary_address.address,
                             n->primary_address.session,
-                            ats, ats_count);
+                            NULL, 0);
     set_address (&n->primary_address,
 		 n->primary_address.address,
 		 n->primary_address.session,
@@ -2862,7 +2855,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     GNUNET_ATS_address_add(GST_ats,
                            n->alternative_address.address,
                            n->alternative_address.session,
-                           ats, ats_count);
+                           NULL, 0);
     set_address (&n->primary_address,
 		 n->alternative_address.address,
 		 n->alternative_address.session,
@@ -3030,16 +3023,12 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
  * @param address address of the other peer, NULL if other peer
  *                       connected to us
  * @param session session to use (or NULL)
- * @param ats performance data
- * @param ats_count number of entries in ats
  */
 void
 GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
 				   const struct GNUNET_PeerIdentity *peer,
 				   const struct GNUNET_HELLO_Address *address,
-				   struct Session *session,
-				   const struct GNUNET_ATS_Information *ats,
-				   uint32_t ats_count)
+				   struct Session *session)
 {
   struct NeighbourMapEntry *n;
 
@@ -3070,13 +3059,13 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
 			 gettext_noop ("# peers connected"), 
 			 ++neighbours_connected,
 			 GNUNET_NO);
-  connect_notify_cb (callback_cls, &n->id, ats, ats_count,
+  connect_notify_cb (callback_cls, &n->id, NULL, 0,
                      n->primary_address.bandwidth_in,
                      n->primary_address.bandwidth_out);
   GNUNET_ATS_address_add(GST_ats,
                          n->primary_address.address,
                          n->primary_address.session,
-                         ats, ats_count);
+                         NULL, 0);
   set_address (&n->primary_address,
 	       n->primary_address.address,
 	       n->primary_address.session,

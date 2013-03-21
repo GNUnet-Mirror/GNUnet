@@ -619,11 +619,8 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
       break;
     }
     im = (const struct InboundMessage *) msg;
-    ats_count = ntohl (im->ats_count);
-    ats = (const struct GNUNET_ATS_Information *) &im[1];
-    imm = (const struct GNUNET_MessageHeader *) &ats[ats_count];
-    if (ntohs (imm->size) + sizeof (struct InboundMessage) +
-        ats_count * sizeof (struct GNUNET_ATS_Information) != size)
+    imm = (const struct GNUNET_MessageHeader *) &im[1];
+    if (ntohs (imm->size) + sizeof (struct InboundMessage) != size)
     {
       GNUNET_break (0);
       break;
@@ -637,7 +634,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
       break;
     }
     if (h->rec != NULL)
-      h->rec (h->cls, &im->peer, imm, ats, ats_count);
+      h->rec (h->cls, &im->peer, imm);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA:
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Receiving `%s' message.\n", "SET_QUOTA");
