@@ -550,7 +550,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
          "CONNECT", GNUNET_i2s (&cim->id), ntohl (cim->quota_out.value__));
     GNUNET_BANDWIDTH_tracker_update_quota (&n->out_tracker, cim->quota_out);
     if (h->nc_cb != NULL)
-      h->nc_cb (h->cls, &n->id, NULL, 0);
+      h->nc_cb (h->cls, &n->id);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT:
     if (size != sizeof (struct DisconnectInfoMessage))

@@ -162,12 +162,10 @@ sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 static void
 notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
+                const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *p = cls;
   struct PeerContext *t = NULL;
-  int c;
 
   if (0 == memcmp (peer, &p1->id, sizeof (struct GNUNET_PeerIdentity)))
     t = p1;
@@ -223,19 +221,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                     "Delayed message was not delayed correctly: took only %llu\n",
                     (long long unsigned int) dur_delayed.rel_value);
       }
-      for (c = 0; c < ats_count; c++)
-      {
-      	if (ntohl (ats[c].type) == GNUNET_ATS_QUALITY_NET_DISTANCE)
-        {
-      			if (ntohl (ats[c].value) == 10)
-      				ok += 0;
-      			else
-      			{
-    					GNUNET_break (0);
-    					ok += 1;
-      			}
-        }
-      }
+
       /* shutdown */
       end ();
   }
@@ -322,8 +308,7 @@ sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
+notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   static int c;
 

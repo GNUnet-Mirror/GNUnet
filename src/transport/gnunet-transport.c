@@ -519,8 +519,7 @@ transmit_data (void *cls, size_t size, void *buf)
  * @param ats_count number of entries in ats (excluding 0-termination)
  */
 static void
-notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
+notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   if (0 != memcmp (&pid, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
@@ -598,12 +597,9 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
  *
  * @param cls closure
  * @param peer the peer that connected
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
  */
 static void
-monitor_notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
+monitor_notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   monitor_connect_counter ++;
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();

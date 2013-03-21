@@ -78,10 +78,7 @@ struct GNUNET_TRANSPORT_Handle;
  */
 typedef void (*GNUNET_TRANSPORT_NotifyConnect) (void *cls,
                                                 const struct GNUNET_PeerIdentity
-                                                * peer,
-                                                const struct
-                                                GNUNET_ATS_Information * ats,
-                                                uint32_t ats_count);
+                                                * peer);
 
 /**
  * Function called to notify transport users that another
