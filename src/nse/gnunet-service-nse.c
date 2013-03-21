@@ -1193,9 +1193,7 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param atsi_count number of records in 'atsi'
  */
 static void
-handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                     const struct GNUNET_ATS_Information *atsi,
-                     unsigned int atsi_count)
+handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct NSEPeerEntry *peer_entry;
 

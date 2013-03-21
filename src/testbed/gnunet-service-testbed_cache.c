@@ -647,9 +647,7 @@ core_startup_cb (void *cls, struct GNUNET_CORE_Handle *server,
  * @param atsi_count number of records in 'atsi'
  */
 static void
-core_peer_connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
-                      const struct GNUNET_ATS_Information *atsi,
-                      unsigned int atsi_count)
+core_peer_connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   peer_connect_notify_cb (cls, peer, CGT_CORE_HANDLE);
 }

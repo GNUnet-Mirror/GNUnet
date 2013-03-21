@@ -688,9 +688,7 @@ reschedule_hellos (void *cls, const struct GNUNET_HashCode * pid, void *value)
  * @param atsi_count number of records in 'atsi'
  */
 static void
-connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_ATS_Information *atsi,
-                unsigned int atsi_count)
+connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct Peer *pos;
 
