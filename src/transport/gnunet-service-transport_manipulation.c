@@ -52,6 +52,8 @@ struct GST_ManipulationHandle
 {
 	struct GNUNET_CONTAINER_MultiHashMap *peers;
 
+	GNUNET_TRANSPORT_UpdateAddressMetrics metric_update_cb;
+
 	/**
 	 * General inbound delay
 	 */
@@ -343,6 +345,45 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
 	GST_neighbours_send (target, msg, msg_size, timeout, cont, cont_cls);
 }
 
+
+/**
+ * Function that will be called to figure if an address is an loopback,
+ * LAN, WAN etc. address
+ *
+ * @param cls closure
+ * @param addr binary address
+ * @param addrlen length of the address
+ * @return ATS Information containing the network type
+ */
+void
+GST_manipulation_update_metrics (void *cls,
+																 const struct GNUNET_PeerIdentity *peer,
+																 const char *address,
+																 uint16_t address_len,
+																 struct Session *session,
+																 struct GNUNET_ATS_Information *ats,
+																 uint32_t ats_count)
+{
+#if 0
+	struct GNUNET_ATS_Information ats_new[ats_count];
+	struct TM_Peer *tmp;
+
+	for (d = 0; d < ats_count; d++)
+	{
+		ats_new[d] = ats[d];
+		if ((ntohl(ats[d].type) == GNUNET_ATS_QUALITY_NET_DISTANCE) &&
+				(man_handle.distance_recv > 0))
+			ats_new[d].value = htonl(man_handle.distance_recv); /* Global inbound distance */
+	}
+
+	if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &peer->hashPubKey)))
+	{
+
+	}
+#endif
+	man_handle.metric_update_cb (cls, peer, address, address_len, session, ats, ats_count);
+}
+
 struct GNUNET_TIME_Relative
 GST_manipulation_recv (void *cls,
 		const struct GNUNET_PeerIdentity *peer,
@@ -352,8 +393,7 @@ GST_manipulation_recv (void *cls,
     uint16_t sender_address_len)
 {
 	struct TM_Peer *tmp;
-	//int d;
-	//struct GNUNET_ATS_Information ats_new[ats_count];
+
 	struct GNUNET_TIME_Relative quota_delay;
 	struct GNUNET_TIME_Relative m_delay;
 
@@ -400,8 +440,10 @@ GST_manipulation_recv (void *cls,
 }
 
 void
-GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg)
+GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg,
+		GNUNET_TRANSPORT_UpdateAddressMetrics metric_update_cb)
 {
+	man_handle.metric_update_cb = metric_update_cb;
 
 	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (GST_cfg,
 			"transport", "MANIPULATE_DISTANCE_IN", &man_handle.distance_recv))
