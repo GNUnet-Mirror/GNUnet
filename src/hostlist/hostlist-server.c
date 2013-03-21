@@ -353,9 +353,7 @@ adv_transmit_ready (void *cls, size_t size, void *buf)
  * @param atsi_count number of records in 'atsi'
  */
 static void
-connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
-                 const struct GNUNET_ATS_Information *atsi,
-                 unsigned int atsi_count)
+connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   size_t size;
 

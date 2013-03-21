@@ -148,12 +148,10 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
  */
 static int
 advertisement_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
-                       const struct GNUNET_MessageHeader *message,
-                       const struct GNUNET_ATS_Information *atsi,
-                       unsigned int atsi_count)
+                       const struct GNUNET_MessageHeader *message)
 {
   GNUNET_assert (NULL != client_adv_handler);
-  return (*client_adv_handler) (cls, peer, message, atsi, atsi_count);
+  return (*client_adv_handler) (cls, peer, message);
 }
 
 
@@ -166,19 +164,19 @@ advertisement_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param atsi_count number of records in 'atsi'
  */
 static void
-connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
-                 const struct GNUNET_ATS_Information *atsi,
-                 unsigned int atsi_count)
+connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   if (0 == memcmp (&me, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "A new peer connected, notifying client and server\n");
   if (NULL != client_ch)
-    (*client_ch) (cls, peer, atsi, atsi_count);
+  {
+    (*client_ch) (cls, peer);
+  }
 #if HAVE_MHD
   if (NULL != server_ch)
-    (*server_ch) (cls, peer, atsi, atsi_count);
+    (*server_ch) (cls, peer);
 #endif
 }
 

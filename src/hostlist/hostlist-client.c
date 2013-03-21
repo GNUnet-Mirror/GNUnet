@@ -1100,9 +1100,7 @@ task_hostlist_saving (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param atsi_count number of records in 'atsi'
  */
 static void
-handler_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                 const struct GNUNET_ATS_Information *atsi,
-                 unsigned int atsi_count)
+handler_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   GNUNET_assert (stat_connection_count < UINT_MAX);
   stat_connection_count++;
@@ -1140,9 +1138,7 @@ handler_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
  */
 static int
 handler_advertisement (void *cls, const struct GNUNET_PeerIdentity *peer,
-                       const struct GNUNET_MessageHeader *message,
-                       const struct GNUNET_ATS_Information *atsi,
-                       unsigned int atsi_count)
+                       const struct GNUNET_MessageHeader *message)
 {
   size_t size;
   size_t uri_size;
