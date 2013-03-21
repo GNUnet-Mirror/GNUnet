@@ -638,7 +638,7 @@ PROCESS_BUFFER:
  * @param argc must be 6
  * @param argv 0: binary name ("gnunet-helper-exit")
  *             1: tunnel interface name ("gnunet-exit")
- *             2: IPv4 "physical" interface name ("eth0"), or "%" to not do IPv4 NAT
+ *             2: IPv4 "physical" interface name ("eth0"), or "-" to not do IPv4 NAT
  *             3: IPv6 address ("::1"), or "-" to skip IPv6
  *             4: IPv6 netmask length in bits ("64") [ignored if #4 is "-"]
  *             5: IPv4 address ("1.2.3.4"), or "-" to skip IPv4
@@ -747,7 +747,7 @@ main (int argc, char **argv)
 		 "Failed to enable IPv4 forwarding.  Will continue anyway.\n");
       }    
     }
-    if (0 != strcmp (argv[2], "%"))
+    if (0 != strcmp (argv[2], "-"))
     {
       char *const iptables_args[] =
 	{

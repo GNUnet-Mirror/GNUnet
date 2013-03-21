@@ -1454,7 +1454,7 @@ teardown_final:
  * @param argc must be 6
  * @param argv 0: binary name ("gnunet-helper-exit")
  *             1: tunnel interface name ("gnunet-exit")
- *             2: IPv4 "physical" interface name ("eth0"), or "%" to not do IPv4 NAT
+ *             2: IPv4 "physical" interface name ("eth0"), or "-" to not do IPv4 NAT
  *             3: IPv6 address ("::1"), or "-" to skip IPv6
  *             4: IPv6 netmask length in bits ("64") [ignored if #4 is "-"]
  *             5: IPv4 address ("1.2.3.4"), or "-" to skip IPv4
@@ -1465,10 +1465,12 @@ main (int argc, char **argv)
 {
   char hwid[LINE_LEN];
   HANDLE handle;
-  int global_ret = 0;
+  int global_ret = 1;
+  int local_ret = EINVAL;
   BOOL have_ip4 = FALSE;
   BOOL have_ip6 = FALSE;
-
+  BOOL have_nat44 = FALSE;
+  
   if (6 != argc)
     {
       fprintf (stderr, "FATAL: must supply 5 arguments\nUsage:\ngnunet-helper-vpn <if name prefix> <address6 or \"-\"> <netbits6> <address4 or \"-\"> <netmask4>\n", argv[0]);
@@ -1528,31 +1530,74 @@ main (int argc, char **argv)
       if (0 != (global_ret = set_address4 (address, mask)))
         goto cleanup;
 
-      // setup NAT, if possible
-      if (0 != strcmp (argv[2], "%"))
-        {
-          /* TODO: " Windows Firewall with Advanced Security" (lol)
-           * 
-           * MS has REMOVED the routing/nat capabilities since Vista, thus
-           * we can not setup NAT like in XP. Our best bet is 
-           * to determine if we are running on XP, if we do, use netsh routing
-           * else we need to use WFAS and do things ourselfs
-           */
+        // setup NAPT, if possible
+        /* MS has REMOVED the routing/nat capabilities from Vista+, thus
+         * we can not setup NAT like in XP or on the server. Actually the
+         * the only feasible solution seems to be to use 
+         * Internet Connection Sharing, which introduces a horde of problems
+         * such as sending out rogue-RAs on the external interface in an ipv6
+         * network.
+         * Thus, below stuff ONLY works on 
+         *   WinXP SP3
+         *   Win Server 2003 SP1+
+         *   Win Server 2008
+         *   ...
+         * else we need to use WFAS and do things ourselfs
+         */
+        have_ip4 = TRUE;
+        if (0 != strcmp(argv[2], "-")) {
+            char command[LINE_LEN];
+
+            /* install our the windows NAT module*/
+            fprintf (stderr, "DEBUG: Adding NAPT/Masquerading between external IF %s and mine.\n",argv[2]);
+            local_ret = execute_shellcommand("netsh routing ip nat install");
+            if (0 != local_ret){
+                fprintf(stderr, "FATAL: Could not install NAPT support via Netsh: %s\n", strerror(local_ret));
+                goto cleanup;
+            }
+            /* external IF */
+            snprintf(command, LINE_LEN,
+                    "netsh routing ip nat add interface \"%s\" full",  /*full = NAPT (addr+port)*/
+                    argv[2]);
+            local_ret = execute_shellcommand (command);
+            if (0 != local_ret){
+                fprintf(stderr, "FATAL: IPv4-NAPT on external interface failed: %s\n", strerror(local_ret));
+                goto cleanup;
+            }
+            /* private/internal/virtual IF */
+            snprintf(command, LINE_LEN,
+                    "netsh routing ip nat add interface \"%s\" private",
+                    device_visible_name);
+            local_ret = execute_shellcommand(command);
+            if (0 != local_ret){
+                fprintf(stderr, "FATAL: IPv4-NAPT on internal interface failed: %s\n", strerror(local_ret));
+                goto cleanup;
+                
+            have_nat44 = TRUE;
+            }
         }
-      
-      have_ip4 = TRUE;
     }
 
   run (handle);
   global_ret = 0;
 cleanup:
 
-  if (have_ip4)
-    {
+  if (have_ip4) {
       const char *address = argv[5];
-      fprintf (stderr, "DEBUG: Removing IP4 address\n");
+      if (have_nat44) {
+          char command[LINE_LEN];
+          fprintf(stderr, "DEBUG: removing IP4 NAPT from virtual interface \n");
+          snprintf(command, LINE_LEN,
+                   "netsh routing ip nat del interface \"%s\"",
+                   device_visible_name);
+          local_ret = execute_shellcommand(command);
+          if (0 != local_ret)
+              fprintf(stderr, "WARNING: Could not remove IPv4-NAPT from internal interface, hopefully this will have no effect in future runs: %s\n", strerror(local_ret));
+      }
+      
+      fprintf(stderr, "DEBUG: Removing IP4 address\n");
       remove_address4 (address);
-    }
+  }
   if (have_ip6)
     {
       const char *address = argv[3];

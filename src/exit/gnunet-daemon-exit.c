@@ -3459,7 +3459,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   }
   else
   {
-    exit_argv[2] = GNUNET_strdup ("%");
+    exit_argv[2] = GNUNET_strdup ("-");
   }
   
 
