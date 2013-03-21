@@ -5066,8 +5066,6 @@ queue_add (void *cls, uint16_t type, size_t size,
  * @param cls closure
  * @param message message
  * @param peer peer identity this notification is about
- * @param atsi performance data
- * @param atsi_count number of records in 'atsi'
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
@@ -5250,8 +5248,6 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param cls closure
  * @param message message
  * @param peer peer identity this notification is about
- * @param atsi performance data
- * @param atsi_count number of records in 'atsi'
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
@@ -5332,8 +5328,6 @@ handle_mesh_path_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param cls closure
  * @param message message
  * @param peer peer identity this notification is about
- * @param atsi performance data
- * @param atsi_count number of records in 'atsi'
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
@@ -5371,8 +5365,6 @@ handle_mesh_path_broken (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param cls closure
  * @param message message
  * @param peer peer identity this notification is about
- * @param atsi performance data
- * @param atsi_count number of records in 'atsi'
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
@@ -5441,8 +5433,6 @@ handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param cls closure
  * @param peer peer identity this notification is about
  * @param message message
- * @param atsi performance data
- * @param atsi_count number of records in 'atsi'
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -5558,8 +5548,6 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param cls closure
  * @param message message
  * @param peer peer identity this notification is about
- * @param atsi performance data
- * @param atsi_count number of records in 'atsi'
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  *
@@ -5640,8 +5628,6 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param cls closure
  * @param message message
  * @param peer peer identity this notification is about
- * @param atsi performance data
- * @param atsi_count number of records in 'atsi'
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
@@ -5772,8 +5758,6 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param cls closure
  * @param message message
  * @param peer peer identity this notification is about
- * @param atsi performance data
- * @param atsi_count number of records in 'atsi'
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
@@ -5836,8 +5820,6 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param cls closure
  * @param message message
  * @param peer peer identity this notification is about
- * @param atsi performance data
- * @param atsi_count number of records in 'atsi'
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
@@ -5889,8 +5871,6 @@ handle_mesh_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param cls closure
  * @param message message
  * @param peer peer identity this notification is about
- * @param atsi performance data
- * @param atsi_count number of records in 'atsi'
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
@@ -5988,8 +5968,6 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param cls closure
  * @param message message
  * @param peer peer identity this notification is about
- * @param atsi performance data
- * @param atsi_count number of records in 'atsi'
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  *
@@ -8005,8 +7983,6 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
  *
  * @param cls closure
  * @param peer peer identity this notification is about
- * @param atsi performance data for the connection
- * @param atsi_count number of records in 'atsi'
  */
 static void
 core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
