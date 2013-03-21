@@ -68,8 +68,6 @@
  *
  * @param cls closure
  * @param peer the peer that connected
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
  * @param bandwidth_in inbound bandwidth in NBO
  * @param bandwidth_out outbound bandwidth in NBO
  *
@@ -77,8 +75,6 @@
 
 typedef void (*NotifyConnect) (void *cls,
                               const struct GNUNET_PeerIdentity *peer,
-                              const struct GNUNET_ATS_Information *ats,
-                              uint32_t ats_count,
                               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
                               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out);
 
@@ -124,12 +120,6 @@ struct ConnectInfoMessage
    * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT
    */
   struct GNUNET_MessageHeader header;
-
-  /**
-   * Number of ATS key-value pairs that follow this struct
-   * (excluding the 0-terminator).
-   */
-  uint32_t ats_count GNUNET_PACKED;
 
   /**
    * Identity of the new neighbour.

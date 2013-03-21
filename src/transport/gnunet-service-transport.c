@@ -111,8 +111,6 @@ struct GNUNET_TIME_Relative hello_expiration;
  */
 static void
 transmit_our_hello (void *cls, const struct GNUNET_PeerIdentity *target,
-                    const struct GNUNET_ATS_Information *ats,
-                    uint32_t ats_count,
                     const struct GNUNET_HELLO_Address *address,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
@@ -499,17 +497,12 @@ ats_request_address_change (void *cls,
 static void
 neighbours_connect_notification (void *cls,
                                  const struct GNUNET_PeerIdentity *peer,
-                                 const struct GNUNET_ATS_Information *ats,
-                                 uint32_t ats_count,
                                  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
                                  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
-  size_t len =
-      sizeof (struct ConnectInfoMessage) +
-      ats_count * sizeof (struct GNUNET_ATS_Information);
+  size_t len = sizeof (struct ConnectInfoMessage);
   char buf[len] GNUNET_ALIGN;
   struct ConnectInfoMessage *connect_msg = (struct ConnectInfoMessage *) buf;
-  struct GNUNET_ATS_Information *ap;
 
   connections++;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -518,12 +511,9 @@ neighbours_connect_notification (void *cls,
 
   connect_msg->header.size = htons (sizeof (buf));
   connect_msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
-  connect_msg->ats_count = htonl (ats_count);
   connect_msg->id = *peer;
   connect_msg->quota_in = bandwidth_in;
   connect_msg->quota_out = bandwidth_out;
-  ap = (struct GNUNET_ATS_Information *) &connect_msg[1];
-  memcpy (ap, ats, ats_count * sizeof (struct GNUNET_ATS_Information));
   GST_clients_broadcast (&connect_msg->header, GNUNET_NO);
 }
 

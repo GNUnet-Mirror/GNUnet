@@ -548,8 +548,6 @@ struct TestConnectionContext
  */
 static void
 test_connection_ok (void *cls, const struct GNUNET_PeerIdentity *neighbour,
-                    const struct GNUNET_ATS_Information *ats,
-                    uint32_t ats_count,
                     const struct GNUNET_HELLO_Address *address,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)

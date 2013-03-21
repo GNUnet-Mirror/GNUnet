@@ -2800,7 +2800,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
 			   gettext_noop ("# peers connected"), 
 			   ++neighbours_connected,
 			   GNUNET_NO);
-    connect_notify_cb (callback_cls, &n->id, NULL, 0,
+    connect_notify_cb (callback_cls, &n->id,
                        n->primary_address.bandwidth_in,
                        n->primary_address.bandwidth_out);
     /* Tell ATS that the outbound session we created to send CONNECT was successfull */
@@ -3059,7 +3059,7 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
 			 gettext_noop ("# peers connected"), 
 			 ++neighbours_connected,
 			 GNUNET_NO);
-  connect_notify_cb (callback_cls, &n->id, NULL, 0,
+  connect_notify_cb (callback_cls, &n->id,
                      n->primary_address.bandwidth_in,
                      n->primary_address.bandwidth_out);
   GNUNET_ATS_address_add(GST_ats,
@@ -3244,7 +3244,7 @@ neighbours_iterate (void *cls, const struct GNUNET_HashCode * key, void *value)
       bandwidth_out = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
     }
 
-    ic->cb (ic->cb_cls, &n->id, NULL, 0,
+    ic->cb (ic->cb_cls, &n->id,
             n->primary_address.address,
             bandwidth_in, bandwidth_out);
   }

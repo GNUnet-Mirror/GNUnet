@@ -177,8 +177,6 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target);
 typedef void (*GST_NeighbourIterator) (void *cls,
                                        const struct GNUNET_PeerIdentity *
                                        neighbour,
-                                       const struct GNUNET_ATS_Information *
-                                       ats, uint32_t ats_count,
                                        const struct GNUNET_HELLO_Address *
                                        address,
                                        struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,

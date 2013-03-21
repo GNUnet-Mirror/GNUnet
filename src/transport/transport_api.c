@@ -475,13 +475,11 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
   const struct GNUNET_MessageHeader *imm;
   const struct SendOkMessage *okm;
   const struct QuotaSetMessage *qm;
-  const struct GNUNET_ATS_Information *ats;
   struct GNUNET_TRANSPORT_GetHelloHandle *hwl;
   struct GNUNET_TRANSPORT_GetHelloHandle *next_hwl;
   struct Neighbour *n;
   struct GNUNET_PeerIdentity me;
   uint16_t size;
-  uint32_t ats_count;
   uint32_t bytes_msg;
   uint32_t bytes_physical;
 
@@ -533,15 +531,12 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
       break;
     }
     cim = (const struct ConnectInfoMessage *) msg;
-    ats_count = ntohl (cim->ats_count);
     if (size !=
-        sizeof (struct ConnectInfoMessage) +
-        ats_count * sizeof (struct GNUNET_ATS_Information))
+        sizeof (struct ConnectInfoMessage))
     {
       GNUNET_break (0);
       break;
     }
-    ats = (const struct GNUNET_ATS_Information *) &cim[1];
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Receiving `%s' message for `%4s'.\n",
          "CONNECT", GNUNET_i2s (&cim->id));
     n = neighbour_find (h, &cim->id);
@@ -555,7 +550,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
          "CONNECT", GNUNET_i2s (&cim->id), ntohl (cim->quota_out.value__));
     GNUNET_BANDWIDTH_tracker_update_quota (&n->out_tracker, cim->quota_out);
     if (h->nc_cb != NULL)
-      h->nc_cb (h->cls, &n->id, ats, ats_count);
+      h->nc_cb (h->cls, &n->id, NULL, 0);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT:
     if (size != sizeof (struct DisconnectInfoMessage))
