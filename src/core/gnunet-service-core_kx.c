@@ -1251,11 +1251,6 @@ struct DeliverMessageContext
 {
 
   /**
-   * Performance information for the connection.
-   */
-  const struct GNUNET_ATS_Information *atsi;
-
-  /**
    * Key exchange context.
    */
   struct GSC_KeyExchangeInfo *kx;
@@ -1264,11 +1259,6 @@ struct DeliverMessageContext
    * Sender of the message.
    */
   const struct GNUNET_PeerIdentity *peer;
-
-  /**
-   * Number of entries in 'atsi' array.
-   */
-  uint32_t atsi_count;
 };
 
 
@@ -1283,9 +1273,7 @@ struct DeliverMessageContext
  */
 void
 GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
-                                 const struct GNUNET_MessageHeader *msg,
-                                 const struct GNUNET_ATS_Information *atsi,
-                                 uint32_t atsi_count)
+                                 const struct GNUNET_MessageHeader *msg)
 {
   const struct EncryptedMessage *m;
   struct EncryptedMessage *pt;  /* plaintext */
@@ -1425,9 +1413,7 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
   GNUNET_STATISTICS_update (GSC_stats,
                             gettext_noop ("# bytes of payload decrypted"),
                             size - sizeof (struct EncryptedMessage), GNUNET_NO);
-  dmc.atsi = atsi;
   dmc.kx = kx;
-  dmc.atsi_count = atsi_count;
   dmc.peer = &kx->peer;
   if (GNUNET_OK !=
       GNUNET_SERVER_mst_receive (mst, &dmc,
@@ -1467,10 +1453,10 @@ deliver_message (void *cls, void *client, const struct GNUNET_MessageHeader *m)
     GSC_SESSIONS_set_typemap (dmc->peer, m);
     return GNUNET_OK;
   default:
-    GSC_CLIENTS_deliver_message (dmc->peer, dmc->atsi, dmc->atsi_count, m,
+    GSC_CLIENTS_deliver_message (dmc->peer, m,
                                  ntohs (m->size),
                                  GNUNET_CORE_OPTION_SEND_FULL_INBOUND);
-    GSC_CLIENTS_deliver_message (dmc->peer, dmc->atsi, dmc->atsi_count, m,
+    GSC_CLIENTS_deliver_message (dmc->peer, m,
                                  sizeof (struct GNUNET_MessageHeader),
                                  GNUNET_CORE_OPTION_SEND_HDR_INBOUND);
   }

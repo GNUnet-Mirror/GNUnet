@@ -373,9 +373,7 @@ handle_transport_notify_disconnect (void *cls,
  */
 static void
 handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
-                          const struct GNUNET_MessageHeader *message,
-                          const struct GNUNET_ATS_Information *atsi,
-                          uint32_t atsi_count)
+                          const struct GNUNET_MessageHeader *message)
 {
   struct Neighbour *n;
   uint16_t type;
@@ -408,7 +406,7 @@ handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     GSC_KX_handle_pong (n->kxinfo, message);
     break;
   case GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE:
-    GSC_KX_handle_encrypted_message (n->kxinfo, message, atsi, atsi_count);
+    GSC_KX_handle_encrypted_message (n->kxinfo, message);
     break;
   case GNUNET_MESSAGE_TYPE_DUMMY:
     /*  Dummy messages for testing / benchmarking, just discard */

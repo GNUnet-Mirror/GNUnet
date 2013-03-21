@@ -111,11 +111,6 @@ struct ConnectNotifyMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Number of ATS key-value pairs that follow this struct
-   */
-  uint32_t ats_count GNUNET_PACKED;
-
-  /**
    * Identity of the connecting peer.
    */
   struct GNUNET_PeerIdentity peer;
@@ -211,19 +206,9 @@ struct NotifyTrafficMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Number of ATS key-value pairs that follow this struct
-   * (excluding the 0-terminator).
-   */
-  uint32_t ats_count GNUNET_PACKED;
-
-  /**
    * Identity of the receiver or sender.
    */
   struct GNUNET_PeerIdentity peer;
-
-  /* Followed by ATS information blocks:
-   * struct GNUNET_ATS_Information ats[ats_count]
-   */
 
   /* Followed by payload (message or just header), variable size */
 };

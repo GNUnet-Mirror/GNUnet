@@ -78,7 +78,6 @@ receive_connect_info (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_CORE_ConnectTestHandle *cth = cls;
   const struct ConnectNotifyMessage *connect_message;
-  uint32_t ats_count;
   uint16_t msize;
 
   if (NULL == msg)
@@ -107,10 +106,7 @@ receive_connect_info (void *cls, const struct GNUNET_MessageHeader *msg)
     return;
   }
   connect_message = (const struct ConnectNotifyMessage *) msg;
-  ats_count = ntohl (connect_message->ats_count);
-  if (msize !=
-      sizeof (struct ConnectNotifyMessage) +
-      ats_count * sizeof (struct GNUNET_ATS_Information))
+  if (msize != sizeof (struct ConnectNotifyMessage))
   {
     GNUNET_break (0);
     cth->peer_cb (cth->cb_cls, NULL, NULL, 0);
@@ -118,9 +114,7 @@ receive_connect_info (void *cls, const struct GNUNET_MessageHeader *msg)
     return;
   }
   /* Normal case */
-  cth->peer_cb (cth->cb_cls, &connect_message->peer,
-		(const struct GNUNET_ATS_Information *)
-		&connect_message[1], ats_count);
+  cth->peer_cb (cth->cb_cls, &connect_message->peer, NULL, 0);
   GNUNET_CLIENT_receive (cth->client, &receive_connect_info,
                          cth, GNUNET_TIME_UNIT_FOREVER_REL);
 }

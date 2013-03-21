@@ -525,16 +525,16 @@ client_tokenizer_callback (void *cls, void *client,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Delivering message of type %u to myself\n",
                 ntohs (message->type));
-    GSC_CLIENTS_deliver_message (&GSC_my_identity, NULL, 0, message,
+    GSC_CLIENTS_deliver_message (&GSC_my_identity, message,
 				 ntohs (message->size),
 				 GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND);
-    GSC_CLIENTS_deliver_message (&GSC_my_identity, NULL, 0, message,
+    GSC_CLIENTS_deliver_message (&GSC_my_identity, message,
 				 sizeof (struct GNUNET_MessageHeader),
 				 GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND);
-    GSC_CLIENTS_deliver_message (&GSC_my_identity, NULL, 0, message,
+    GSC_CLIENTS_deliver_message (&GSC_my_identity, message,
 				 ntohs (message->size),
 				 GNUNET_CORE_OPTION_SEND_FULL_INBOUND);
-    GSC_CLIENTS_deliver_message (&GSC_my_identity, NULL, 0, message,
+    GSC_CLIENTS_deliver_message (&GSC_my_identity, message,
 				 sizeof (struct GNUNET_MessageHeader),
 				 GNUNET_CORE_OPTION_SEND_HDR_INBOUND);    
   }
@@ -543,10 +543,10 @@ client_tokenizer_callback (void *cls, void *client,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Delivering message of type %u to %s\n", ntohs (message->type),
                 GNUNET_i2s (&car->target));
-    GSC_CLIENTS_deliver_message (&car->target, NULL, 0, message,
+    GSC_CLIENTS_deliver_message (&car->target, message,
 				 ntohs (message->size),
 				 GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND);
-    GSC_CLIENTS_deliver_message (&car->target, NULL, 0, message,
+    GSC_CLIENTS_deliver_message (&car->target, message,
 				 sizeof (struct GNUNET_MessageHeader),
 				 GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND);  
     GSC_SESSIONS_transmit (car, message, tc->cork);
@@ -697,7 +697,6 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
   struct ConnectNotifyMessage *cnm;
   size_t size;
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1] GNUNET_ALIGN;
-  struct GNUNET_ATS_Information *a;
   struct DisconnectNotifyMessage dcm;
   int old_match;
   int new_match;
@@ -722,9 +721,7 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
                                                       &neighbour->hashPubKey,
                                                       NULL,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-    size =
-        sizeof (struct ConnectNotifyMessage) +
-        (atsi_count) * sizeof (struct GNUNET_ATS_Information);
+    size = sizeof (struct ConnectNotifyMessage);
     if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
     {
       GNUNET_break (0);
@@ -735,9 +732,6 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
     cnm = (struct ConnectNotifyMessage *) buf;
     cnm->header.size = htons (size);
     cnm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
-    cnm->ats_count = htonl (atsi_count);
-    a = (struct GNUNET_ATS_Information *) &cnm[1];
-    memcpy (a, atsi, sizeof (struct GNUNET_ATS_Information) * atsi_count);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message to client.\n",
                 "NOTIFY_CONNECT");
     cnm->peer = *neighbour;
@@ -804,24 +798,18 @@ GSC_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity
  */
 void
 GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
-                             const struct GNUNET_ATS_Information *atsi,
-                             unsigned int atsi_count,
                              const struct GNUNET_MessageHeader *msg,
                              uint16_t msize, 
-			     uint32_t options)
+                             uint32_t options)
 {
-  size_t size =
-      msize + sizeof (struct NotifyTrafficMessage) +
-      atsi_count * sizeof (struct GNUNET_ATS_Information);
+  size_t size = msize + sizeof (struct NotifyTrafficMessage);
   char buf[size] GNUNET_ALIGN;
   struct NotifyTrafficMessage *ntm;
-  struct GNUNET_ATS_Information *a;
 
   if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     /* recovery strategy: throw performance data away... */
-    atsi_count = 0;
     size = msize + sizeof (struct NotifyTrafficMessage);
   }
   if (! ( (0 != (all_client_options & options)) ||
@@ -837,11 +825,8 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
     ntm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_INBOUND);
   else
     ntm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND);
-  ntm->ats_count = htonl (atsi_count);
   ntm->peer = *sender;
-  a = (struct GNUNET_ATS_Information*) &ntm[1];
-  memcpy (a, atsi, sizeof (struct GNUNET_ATS_Information) * atsi_count);
-  memcpy (&a[atsi_count], msg, msize);
+  memcpy (&ntm[1], msg, msize);
   send_to_all_clients (sender, &ntm->header, GNUNET_YES, options,
                        ntohs (msg->type));
 }
