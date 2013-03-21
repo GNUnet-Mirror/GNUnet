@@ -1446,8 +1446,6 @@ teardown_final:
       
   CloseHandle (tap_handle);
 }
-
-
 /**
  * Open VPN tunnel interface.
  *
@@ -1470,7 +1468,7 @@ main (int argc, char **argv)
   BOOL have_ip4 = FALSE;
   BOOL have_ip6 = FALSE;
   BOOL have_nat44 = FALSE;
-  
+
   if (6 != argc)
     {
       fprintf (stderr, "FATAL: must supply 5 arguments\nUsage:\ngnunet-helper-vpn <if name prefix> <address6 or \"-\"> <netbits6> <address4 or \"-\"> <netmask4>\n", argv[0]);
@@ -1504,6 +1502,7 @@ main (int argc, char **argv)
   fprintf (stderr, "DEBUG: Setting IPs, if needed\n");
   if (0 != strcmp (argv[3], "-"))
     {
+      char command[LINE_LEN];
       const char *address = argv[3];
       long prefix_len = atol (argv[4]);
 
@@ -1514,11 +1513,36 @@ main (int argc, char **argv)
           goto cleanup;
         }
 
-      fprintf (stderr, "DEBUG: Setting IP6 address: %s/%d\n",address,prefix_len);
+      fprintf (stderr, "DEBUG: Setting IP6 address: %s/%d\n", address, prefix_len);
       if (0 != (global_ret = set_address6 (address, prefix_len)))
         goto cleanup;
 
       have_ip6 = TRUE;
+
+      /* install our the windows NAT module*/
+      fprintf (stderr, "DEBUG: Setting IPv6 Forwarding for internal and external interface.\n");
+      /* outside interface (maybe that's already set) */
+      snprintf (command, LINE_LEN,
+                "netsh interface ipv6 set interface interface=\"%s\" metric=1 forwarding=enabled store=active",
+                argv[2]);
+      local_ret = execute_shellcommand (command);
+      if (0 != local_ret)
+        {
+          fprintf (stderr, "FATAL: Could not enable forwarding via netsh: %s\n", strerror (local_ret));
+          goto cleanup;
+        }
+      /* internal interface */
+      snprintf (command, LINE_LEN,
+                "netsh interface ipv6 set interface interface=\"%s\" metric=1 forwarding=enabled advertise=enabled store=active",
+                device_visible_name);
+      local_ret = execute_shellcommand (command);
+      if (0 != local_ret)
+        {
+          fprintf (stderr, "FATAL: Could not enable forwarding via netsh: %s\n", strerror (local_ret));
+          goto cleanup;
+        }
+      /* we can keep IPv6 forwarding around, as all interfaces have 
+       * their forwarding mode reset to false at bootup. */
     }
 
   if (0 != strcmp (argv[5], "-"))
@@ -1526,54 +1550,57 @@ main (int argc, char **argv)
       const char *address = argv[5];
       const char *mask = argv[6];
 
-      fprintf (stderr, "DEBUG: Setting IP4 address: %s/%s\n",address,mask);
+      fprintf (stderr, "DEBUG: Setting IP4 address: %s/%s\n", address, mask);
       if (0 != (global_ret = set_address4 (address, mask)))
         goto cleanup;
 
-        // setup NAPT, if possible
-        /* MS has REMOVED the routing/nat capabilities from Vista+, thus
-         * we can not setup NAT like in XP or on the server. Actually the
-         * the only feasible solution seems to be to use 
-         * Internet Connection Sharing, which introduces a horde of problems
-         * such as sending out rogue-RAs on the external interface in an ipv6
-         * network.
-         * Thus, below stuff ONLY works on 
-         *   WinXP SP3
-         *   Win Server 2003 SP1+
-         *   Win Server 2008
-         *   ...
-         * else we need to use WFAS and do things ourselfs
-         */
-        have_ip4 = TRUE;
-        if (0 != strcmp(argv[2], "-")) {
-            char command[LINE_LEN];
+      // setup NAPT, if possible
+      /* MS has REMOVED the routing/nat capabilities from Vista+, thus
+       * we can not setup NAT like in XP or on the server. Actually the
+       * the only feasible solution seems to be to use 
+       * Internet Connection Sharing, which introduces a horde of problems
+       * such as sending out rogue-RAs on the external interface in an ipv6
+       * network.
+       * Thus, below stuff ONLY works on 
+       *   WinXP SP3
+       *   Win Server 2003 SP1+
+       *   Win Server 2008
+       *   ...
+       */
+      have_ip4 = TRUE;
+      if (0 != strcmp (argv[2], "-"))
+        {
+          char command[LINE_LEN];
 
-            /* install our the windows NAT module*/
-            fprintf (stderr, "DEBUG: Adding NAPT/Masquerading between external IF %s and mine.\n",argv[2]);
-            local_ret = execute_shellcommand("netsh routing ip nat install");
-            if (0 != local_ret){
-                fprintf(stderr, "FATAL: Could not install NAPT support via Netsh: %s\n", strerror(local_ret));
-                goto cleanup;
+          /* install our the windows NAT module*/
+          fprintf (stderr, "DEBUG: Adding NAPT/Masquerading between external IF %s and mine.\n", argv[2]);
+          local_ret = execute_shellcommand ("netsh routing ip nat install");
+          if (0 != local_ret)
+            {
+              fprintf (stderr, "FATAL: Could not install NAPT support via Netsh: %s\n", strerror (local_ret));
+              goto cleanup;
             }
-            /* external IF */
-            snprintf(command, LINE_LEN,
-                    "netsh routing ip nat add interface \"%s\" full",  /*full = NAPT (addr+port)*/
+          /* external IF */
+          snprintf (command, LINE_LEN,
+                    "netsh routing ip nat add interface \"%s\" full", /*full = NAPT (addr+port)*/
                     argv[2]);
-            local_ret = execute_shellcommand (command);
-            if (0 != local_ret){
-                fprintf(stderr, "FATAL: IPv4-NAPT on external interface failed: %s\n", strerror(local_ret));
-                goto cleanup;
+          local_ret = execute_shellcommand (command);
+          if (0 != local_ret)
+            {
+              fprintf (stderr, "FATAL: IPv4-NAPT on external interface failed: %s\n", strerror (local_ret));
+              goto cleanup;
             }
-            /* private/internal/virtual IF */
-            snprintf(command, LINE_LEN,
+          /* private/internal/virtual IF */
+          snprintf (command, LINE_LEN,
                     "netsh routing ip nat add interface \"%s\" private",
                     device_visible_name);
-            local_ret = execute_shellcommand(command);
-            if (0 != local_ret){
-                fprintf(stderr, "FATAL: IPv4-NAPT on internal interface failed: %s\n", strerror(local_ret));
-                goto cleanup;
-                
-            have_nat44 = TRUE;
+          local_ret = execute_shellcommand (command);
+          if (0 != local_ret)
+            {
+              fprintf (stderr, "FATAL: IPv4-NAPT on internal interface failed: %s\n", strerror (local_ret));
+              goto cleanup;
+
+              have_nat44 = TRUE;
             }
         }
     }
