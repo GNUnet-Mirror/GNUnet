@@ -545,9 +545,7 @@ peer_connect_notify_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 static void
 transport_peer_connect_notify_cb (void *cls,
-                                  const struct GNUNET_PeerIdentity *peer,
-                                  const struct GNUNET_ATS_Information *ats,
-                                  uint32_t ats_count)
+                                  const struct GNUNET_PeerIdentity *peer)
 {
   peer_connect_notify_cb (cls, peer, CGT_TRANSPORT_HANDLE);
 }
