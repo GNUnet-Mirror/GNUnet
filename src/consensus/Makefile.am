@@ -23,6 +23,12 @@ bin_PROGRAMS = \
 libexec_PROGRAMS = \
  gnunet-service-consensus
 
+# FIXME: add option "configure --with-evil"?
+if HAVE_EXPERIMENTAL
+libexec_PROGRAMS += \
+ gnunet-service-evil-consensus
+endif
+
 lib_LTLIBRARIES = \
   libgnunetconsensus.la
 
@@ -62,6 +68,17 @@ gnunet_service_consensus_LDADD = \
   $(top_builddir)/src/stream/libgnunetstream.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(GN_LIBINTL)
+
+gnunet_service_evil_consensus_SOURCES = \
+ gnunet-service-consensus.c \
+ ibf.c
+gnunet_service_evil_consensus_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/stream/libgnunetstream.la \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(GN_LIBINTL)
+gnunet_service_evil_consensus_CFLAGS = -DEVIL
 
 libgnunetconsensus_la_SOURCES = \
   consensus_api.c
