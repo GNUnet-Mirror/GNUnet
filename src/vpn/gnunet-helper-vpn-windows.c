@@ -335,9 +335,7 @@ set_address6 (const char *address, unsigned long prefix_len)
 /**
  * @brief Removes the IPv6-Address given in address from the interface dev
  *
- * @param dev the interface to remove
  * @param address the IPv4-Address
- * @param mask the netmask
  */
 static void
 remove_address6 (const char *address)
@@ -366,7 +364,6 @@ remove_address6 (const char *address)
 /**
  * @brief Sets the IPv4-Address given in address on the interface dev
  *
- * @param dev the interface to configure
  * @param address the IPv4-Address
  * @param mask the netmask
  */
@@ -388,8 +385,7 @@ set_address4 (const char *address, const char *mask)
                strerror (errno));
       return -1;
     }
-  // Set Device to Subnet-Mode? 
-  // do we really need tun.c:2925 ?
+  // Set Device to Subnet-Mode? do we really need openvpn/tun.c:2925 ?
 
   /*
    * prepare the command
@@ -412,9 +408,7 @@ set_address4 (const char *address, const char *mask)
 /**
  * @brief Removes the IPv4-Address given in address from the interface dev
  *
- * @param dev the interface to remove
  * @param address the IPv4-Address
- * @param mask the netmask
  */
 static void
 remove_address4 (const char *address)
@@ -1335,7 +1329,7 @@ initialize_io_facility (struct io_facility * elem,
 /**
  * Start forwarding to and from the tunnel.
  *
- * @param fd_tun tunnel FD
+ * @param tap_handle device handle for interacting with the Virtual interface
  */
 static void
 run (HANDLE tap_handle)
