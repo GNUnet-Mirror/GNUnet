@@ -780,11 +780,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 transport_notify_connect_cb (void *cls,
-                const struct GNUNET_PeerIdentity
-                * peer,
-                const struct
-                GNUNET_ATS_Information * ats,
-                uint32_t ats_count)
+                const struct GNUNET_PeerIdentity* peer)
 {
   transport_connections ++;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "TRANSPORT connect for peer `%s' (%u total)\n",
@@ -818,10 +814,7 @@ transport_notify_receive_cb (void *cls,
                             GNUNET_PeerIdentity * peer,
                             const struct
                             GNUNET_MessageHeader *
-                            message,
-                            const struct
-                            GNUNET_ATS_Information * ats,
-                            uint32_t ats_count)
+                            message)
 {
 
 
@@ -865,9 +858,7 @@ transport_notify_receive_cb (void *cls,
 static int 
 core_notify_receive_cb (void *cls,
 			const struct GNUNET_PeerIdentity * peer,
-			const struct GNUNET_MessageHeader * message,
-			const struct GNUNET_ATS_Information* atsi,
-			unsigned int atsi_count)
+			const struct GNUNET_MessageHeader * message)
 {
   struct PeerContainer *pc = NULL;
 
@@ -919,9 +910,7 @@ core_notify_receive_cb (void *cls,
 }
 
 static void
-core_connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
-                      const struct GNUNET_ATS_Information *atsi,
-                      unsigned int atsi_count)
+core_connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   if (0 != memcmp (peer, &my_peer_id, sizeof (struct GNUNET_PeerIdentity)))
   {
