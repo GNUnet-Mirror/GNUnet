@@ -669,6 +669,15 @@ GNUNET_ntoh_double (double d);
 #define GNUNET_MAX_MALLOC_CHECKED (1024 * 1024 * 40)
 
 /**
+ * Allocate a struct or union of the given 'type'.
+ * Wrapper around GNUNET_malloc that returns a pointer
+ * to the newly created object of the correct type.
+ *
+ * @param type name of the struct or union, i.e. pass 'struct Foo'.
+ */
+#define GNUNET_new(type) (type *) GNUNET_malloc (sizeof (type))
+
+/**
  * Wrapper around malloc. Allocates size bytes of memory.
  * The memory will be zero'ed out.
  *

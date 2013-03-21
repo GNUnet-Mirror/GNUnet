@@ -47,15 +47,16 @@ extern "C"
 struct GNUNET_PseudonymIdentifier
 {
   /**
-   * Q consists of an x- and a y-value, each mod p (256 bits);
-   * however, (to speed up calculations and/or represent infinity)
-   * libgcrypt uses projective coordinates, which add an extra
-   * dimension.  Thus, the MPI value is typically one additional byte
-   * longer (512 bit + 8 bits).  As we want a size that is a
-   * multiplicative of 8, we add 8 bytes (not 8 bits), which should
-   * always suffice to represent Q.
+   * Q consists of an x- and a y-value, each mod p (256 bits),
+   * given here in affine coordinates.
    */
-  unsigned char q[(256 + 256 / 8) + 8];
+  unsigned char q_x[256 / 8];
+
+  /**
+   * Q consists of an x- and a y-value, each mod p (256 bits),
+   * given here in affine coordinates.
+   */
+  unsigned char q_y[256 / 8];
 
 };
 

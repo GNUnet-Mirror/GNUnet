@@ -201,7 +201,8 @@ transmit_queued (void *cls, size_t size,
   {
     qmsg->idc (qmsg->idc_cls, GNUNET_YES);
   }
-
+  GNUNET_free (qmsg->msg);
+  GNUNET_free (qmsg);
   /* FIXME: free the messages */
 
   send_next (consensus);
@@ -262,12 +263,12 @@ handle_new_element (struct GNUNET_CONSENSUS_Handle *consensus,
 
   ret = consensus->new_element_cb (consensus->new_element_cls, &element);
 
-  ack_msg = GNUNET_malloc (sizeof *ack_msg);
+  ack_msg = GNUNET_new (struct GNUNET_CONSENSUS_AckMessage);
   ack_msg->header.size = htons (sizeof *ack_msg);
   ack_msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_ACK);
   ack_msg->keep = ret;
 
-  queue_message (consensus, (struct GNUNET_MessageHeader *) ack_msg);
+  queue_message (consensus, &ack_msg->header);
 
   send_next (consensus);
 }
