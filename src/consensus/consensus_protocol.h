@@ -76,12 +76,10 @@ struct ConsensusHello
   struct GNUNET_HashCode global_id;
 };
 
-struct ConsensusRoundHeader
+struct ConsensusRoundMessage
 {
   struct GNUNET_MessageHeader header;
   uint8_t round;
-  uint8_t exp_round;
-  uint8_t exp_subround;
 };
 
 

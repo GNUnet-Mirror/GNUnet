@@ -19,7 +19,7 @@
 */
 
 /**
- * @file consensus/gnunet-consensus-ibf
+ * @file consensus/gnunet-consensus-ibf.c
  * @brief tool for reconciling data with invertible bloom filters
  * @author Florian Dold
  */

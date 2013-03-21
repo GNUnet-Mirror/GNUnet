@@ -128,7 +128,7 @@ ibf_write_slice (const struct InvertibleBloomFilter *ibf, uint32_t start, uint32
  * @param size size of the buffer, will be updated
  * @param start which bucket to start at
  * @param count how many buckets to read
- * @param dst ibf to write buckets to
+ * @param ibf the ibf to read from
  * @return GNUNET_OK on success
  */
 int
@@ -139,8 +139,6 @@ ibf_read_slice (void **buf, size_t *size, uint32_t start, uint32_t count, struct
  * Write an ibf.
  * 
  * @param ibf the ibf to write
- * @param start with which bucket to start
- * @param count how many buckets to write
  * @param buf buffer to write the data to, will be updated to point to the
  *            first byte after the written data
  * @param size pointer to the size of the buffer, will be updated, can be NULL
@@ -149,14 +147,13 @@ void
 ibf_write (const struct InvertibleBloomFilter *ibf, void **buf, size_t *size);
 
 
+
 /**
  * Read an ibf.
  *
  * @param buf pointer to the buffer to write to, will point to first
  *            byte after the written data
  * @param size size of the buffer, will be updated
- * @param start which bucket to start at
- * @param count how many buckets to read
  * @param dst ibf to write buckets to
  * @return GNUNET_OK on success
  */
@@ -223,15 +220,16 @@ ibf_subtract (struct InvertibleBloomFilter *ibf1, const struct InvertibleBloomFi
  * Decode and remove an element from the IBF, if possible.
  *
  * @param ibf the invertible bloom filter to decode
- * @param side sign of the cell's count where the decoded element came from.
- *             A negative sign indicates that the element was recovered resides in an IBF
- *             that was previously subtracted from.
- * @param ret_id the hash code of the decoded element, if successful
- * @return GNUNET_YES if decoding an element was successful, GNUNET_NO if the IBF is empty,
- *         GNUNET_SYSERR if the decoding has faile
+ * @param ret_side sign of the cell's count where the decoded element came from.
+ *                 A negative sign indicates that the element was recovered
+ *                 resides in an IBF that was previously subtracted from.
+ * @param ret_key receives the hash code of the decoded element, if successful
+ * @return GNUNET_YES if decoding an element was successful,
+ *         GNUNET_NO if the IBF is empty,
+ *         GNUNET_SYSERR if the decoding has failed
  */
 int
-ibf_decode (struct InvertibleBloomFilter *ibf, int *side, struct IBF_Key *ret_key);
+ibf_decode (struct InvertibleBloomFilter *ibf, int *ret_side, struct IBF_Key *ret_key);
 
 
 /**

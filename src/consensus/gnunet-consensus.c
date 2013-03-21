@@ -39,6 +39,8 @@ static struct GNUNET_TIME_Relative conclude_timeout;
 
 static struct GNUNET_CONSENSUS_Handle **consensus_handles;
 
+static struct GNUNET_TESTBED_Operation **testbed_operations;
+
 static unsigned int num_connected_handles;
 
 static struct GNUNET_TESTBED_Peer **peers;
@@ -48,6 +50,8 @@ static struct GNUNET_PeerIdentity *peer_ids;
 static unsigned int num_retrieved_peer_ids;
 
 static struct GNUNET_HashCode session_id;
+
+static unsigned int peers_done = 0;
 
 
 /**
@@ -64,7 +68,6 @@ controller_cb(void *cls,
   GNUNET_assert (0);
 }
 
-
 static void
 destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *ctx)
 {
@@ -72,14 +75,21 @@ destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *ctx)
   consensus = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "destroying consensus\n");
   GNUNET_CONSENSUS_destroy (consensus);
+  peers_done++;
+  if (peers_done == num_peers)
+  {
+    int i;
+    for (i = 0; i < num_peers; i++)
+      GNUNET_TESTBED_operation_done (testbed_operations[i]);
+    GNUNET_SCHEDULER_shutdown ();
+  }
 }
 
 
 /**
  * Called when a conclusion was successful.
  *
- * @param cls
- * @param group
+ * @param cls closure, the consensus handle
  * @return GNUNET_YES if more consensus groups should be offered, GNUNET_NO if not
  */
 static void
@@ -255,8 +265,9 @@ peer_info_cb (void *cb_cls,
     num_retrieved_peer_ids++;
     if (num_retrieved_peer_ids == num_peers)
       for (i = 0; i < num_peers; i++)
-        GNUNET_TESTBED_service_connect (NULL, peers[i], "consensus", connect_complete, &consensus_handles[i],
-                                        connect_adapter, disconnect_adapter, NULL);
+        testbed_operations[i] =
+            GNUNET_TESTBED_service_connect (NULL, peers[i], "consensus", connect_complete, &consensus_handles[i],
+                                            connect_adapter, disconnect_adapter, NULL);
   }
   else
   {
@@ -272,7 +283,6 @@ test_master (void *cls,
 {
   int i;
 
-
   GNUNET_log_setup ("gnunet-consensus", "INFO", NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "test master\n");
@@ -283,6 +293,7 @@ test_master (void *cls,
   peer_ids = GNUNET_malloc (num_peers * sizeof (struct GNUNET_PeerIdentity));
 
   consensus_handles = GNUNET_malloc (num_peers * sizeof (struct ConsensusHandle *));
+  testbed_operations = GNUNET_malloc (num_peers * sizeof (struct ConsensusHandle *));
 
   for (i = 0; i < num_peers; i++)
     GNUNET_TESTBED_peer_get_information (peers[i],

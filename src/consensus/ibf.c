@@ -136,7 +136,7 @@ ibf_insert_into  (struct InvertibleBloomFilter *ibf,
  * Insert an element into an IBF.
  *
  * @param ibf the IBF
- * @param id the element's hash code
+ * @param key the element's hash code
  */
 void
 ibf_insert (struct InvertibleBloomFilter *ibf, struct IBF_Key key)
@@ -171,10 +171,10 @@ ibf_is_empty (struct InvertibleBloomFilter *ibf)
  * Decode and remove an element from the IBF, if possible.
  *
  * @param ibf the invertible bloom filter to decode
- * @param side sign of the cell's count where the decoded element came from.
- *             A negative sign indicates that the element was recovered
- *             resides in an IBF that was previously subtracted from.
- * @param ret_id the hash code of the decoded element, if successful
+ * @param ret_side sign of the cell's count where the decoded element came from.
+ *                 A negative sign indicates that the element was recovered
+ *                 resides in an IBF that was previously subtracted from.
+ * @param ret_key receives the hash code of the decoded element, if successful
  * @return GNUNET_YES if decoding an element was successful,
  *         GNUNET_NO if the IBF is empty,
  *         GNUNET_SYSERR if the decoding has failed
@@ -284,7 +284,7 @@ ibf_write_slice (const struct InvertibleBloomFilter *ibf, uint32_t start, uint32
  * @param size size of the buffer, will be updated
  * @param start which bucket to start at
  * @param count how many buckets to read
- * @param dst ibf to write buckets to
+ * @param ibf the ibf to read from
  * @return GNUNET_OK on success
  */
 int
@@ -325,8 +325,6 @@ ibf_read_slice (void **buf, size_t *size, uint32_t start, uint32_t count, struct
  * Write an ibf.
  * 
  * @param ibf the ibf to write
- * @param start with which bucket to start
- * @param count how many buckets to write
  * @param buf buffer to write the data to, will be updated to point to the
  *            first byte after the written data
  * @param size pointer to the size of the buffer, will be updated, can be NULL
@@ -344,8 +342,6 @@ ibf_write (const struct InvertibleBloomFilter *ibf, void **buf, size_t *size)
  * @param buf pointer to the buffer to write to, will point to first
  *            byte after the written data
  * @param size size of the buffer, will be updated
- * @param start which bucket to start at
- * @param count how many buckets to read
  * @param dst ibf to write buckets to
  * @return GNUNET_OK on success
  */

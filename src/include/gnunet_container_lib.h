@@ -1355,7 +1355,7 @@ GNUNET_CONTAINER_slist_end (struct GNUNET_CONTAINER_SList_Iterator *i);
  */
 void *
 GNUNET_CONTAINER_slist_get (const struct GNUNET_CONTAINER_SList_Iterator *i,
-                            size_t * len);
+                            size_t *len);
 
 
 /**
