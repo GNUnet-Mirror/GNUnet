@@ -52,6 +52,8 @@ struct GNUNET_CONSENSUS_ConcludeMessage
    */
   struct GNUNET_MessageHeader header;
 
+  // uint32_t reserved GNUNET_PACKED; // FIXME...
+
   /**
    * Timeout for conclude
    */
@@ -75,7 +77,7 @@ struct GNUNET_CONSENSUS_ElementMessage
   /**
    * Type: GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_NEW_ELEMENT
    */
-  uint16_t element_type GNUNET_PACKED; /* FIXME: alignment? */
+  uint16_t element_type GNUNET_PACKED; /* FIXME: alignment? => uint32_t */
 
   /* rest: element data */
 };
@@ -90,7 +92,7 @@ struct GNUNET_CONSENSUS_AckMessage
   /**
    * Do we want to keep and propagate the element?
    */
-  uint8_t keep; /* FIXME: alignment!? */
+  uint8_t keep; /* FIXME: alignment!? => (u)int32_t */
 
   /* FIXME: add message hash? */
 };
