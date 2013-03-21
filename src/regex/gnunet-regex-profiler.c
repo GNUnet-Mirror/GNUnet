@@ -38,8 +38,6 @@
 
 #define FIND_TIMEOUT \
         GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 90)
-#define ANNOUNCE_TIME \
-        GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 200)
 #define SEARCHES_IN_PARALLEL 100
 
 /**
@@ -143,7 +141,7 @@ struct RegexPeer
   char *policy_file;
 
   /**
-   * Peers search string.
+   * Peer's search string.
    */
   const char *search_str;
 
@@ -394,6 +392,11 @@ static unsigned int max_path_compression;
  * strings with it, in order to find something.
  */
 static char * regex_prefix;
+
+/**
+ * What's the maximum regex reannounce period.
+ */
+static struct GNUNET_TIME_Relative reannounce_period_max;
 
 
 /******************************************************************************/
@@ -1103,7 +1106,9 @@ arm_start_cb (void *cls, struct GNUNET_ARM_Handle *arm,
             GNUNET_abort (); /* we ran out of peers, must be a bug */
         }
         peers[search_peer].search_str = search_strings[me];
-        GNUNET_SCHEDULER_add_delayed (ANNOUNCE_TIME,
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
+                                        reannounce_period_max,
+                                        2),
                                       &find_string,
                                       (void *) search_peer);
       }
@@ -2058,10 +2063,20 @@ run (void *cls, char *const *args, const char *cfgfile,
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
+  cfg = GNUNET_CONFIGURATION_dup (config);
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg, "REGEXPROFILER",
+                                           "REANNOUNCE_PERIOD_MAX",
+                                           &reannounce_period_max))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+                "reannounce_period_max not given. Using 10 minutes.\n");
+    reannounce_period_max =
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 10);
+  }
   unsigned int i;
   for (i = 0; i < num_search_strings; i++)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "search string: %s\n", search_strings[i]);
-  cfg = GNUNET_CONFIGURATION_dup (config);
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_SECONDS, 5), &do_abort,
