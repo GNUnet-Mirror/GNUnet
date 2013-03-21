@@ -114,8 +114,7 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 static void
 notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
+                const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving\n");
 }
