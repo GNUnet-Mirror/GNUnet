@@ -251,9 +251,7 @@ void
 GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
                                const struct GNUNET_PeerIdentity *peer,
                                const struct GNUNET_HELLO_Address *address,
-                               struct Session *session,
-                               const struct GNUNET_ATS_Information *ats,
-                               uint32_t ats_count);
+                               struct Session *session);
 
 
 /**

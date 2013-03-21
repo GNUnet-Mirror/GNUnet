@@ -728,22 +728,11 @@ struct BlackListCheckContext
    * Address that is being checked.
    */
   struct NeighbourAddress na;
-  
-  /**
-   * ATS information about the address.
-   */
-  struct GNUNET_ATS_Information *ats;
 
   /**
    * Handle to the ongoing blacklist check.
    */
   struct GST_BlacklistCheck *bc;
-
-  /**
-   * Size of the 'ats' array.
-   */
-  uint32_t ats_count;
-
 };
 
 
@@ -2005,7 +1994,7 @@ handle_test_blacklist_cont (void *cls,
       GNUNET_ATS_address_add (GST_ats,
                               bcc->na.address,
                               bcc->na.session,
-                              bcc->ats, bcc->ats_count);
+                              NULL, 0);
     }
     n->state = S_CONNECT_RECV_ATS;
     n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
@@ -2165,23 +2154,17 @@ static void
 check_blacklist (const struct GNUNET_PeerIdentity *peer,
 		 struct GNUNET_TIME_Absolute ts,
 		 const struct GNUNET_HELLO_Address *address,
-		 struct Session *session,
-		 const struct GNUNET_ATS_Information *ats,
-		 uint32_t ats_count)
+		 struct Session *session)
 {
   struct BlackListCheckContext *bcc;
   struct GST_BlacklistCheck *bc;
 
   bcc =
-      MEMDEBUG_malloc (sizeof (struct BlackListCheckContext) +
-                     sizeof (struct GNUNET_ATS_Information) * ats_count, __LINE__);
-  bcc->ats_count = ats_count;
+      MEMDEBUG_malloc (sizeof (struct BlackListCheckContext), __LINE__);
   bcc->na.address = GNUNET_HELLO_address_copy (address);
   MEMDEBUG_add_alloc (bcc->na.address, GNUNET_HELLO_address_get_size (address), __LINE__);
   bcc->na.session = session;
   bcc->na.connect_timestamp = ts;
-  bcc->ats = (struct GNUNET_ATS_Information *) &bcc[1];
-  memcpy (bcc->ats, ats, sizeof (struct GNUNET_ATS_Information) * ats_count);
   GNUNET_CONTAINER_DLL_insert (bc_head,
 			       bc_tail,
 			       bcc);
@@ -2210,9 +2193,7 @@ void
 GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
                                const struct GNUNET_PeerIdentity *peer,
                                const struct GNUNET_HELLO_Address *address,
-                               struct Session *session,
-                               const struct GNUNET_ATS_Information *ats,
-                               uint32_t ats_count)
+                               struct Session *session)
 {
   const struct SessionConnectMessage *scm;
   struct NeighbourMapEntry *n;
@@ -2243,7 +2224,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   case S_NOT_CONNECTED:
     n->state = S_CONNECT_RECV_BLACKLIST_INBOUND;
     /* Do a blacklist check for the new address */
-    check_blacklist (peer, ts, address, session, ats, ats_count);
+    check_blacklist (peer, ts, address, session);
     break;
   case S_INIT_ATS:
     /* CONNECT message takes priority over us asking ATS for address */
@@ -2257,7 +2238,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   case S_CONNECT_RECV_ACK:
     /* It can never hurt to have an alternative address in the above cases, 
        see if it is allowed */
-    check_blacklist (peer, ts, address, session, ats, ats_count);
+    check_blacklist (peer, ts, address, session);
     break;
   case S_CONNECTED:
     /* we are already connected and can thus send the ACK immediately;
@@ -2268,14 +2249,14 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
     n->send_connect_ack = 0;
     send_session_connect_ack_message (n->primary_address.address,
 				      n->primary_address.session, ts);
-    check_blacklist (peer, ts, address, session, ats, ats_count);
+    check_blacklist (peer, ts, address, session);
     break;
   case S_RECONNECT_ATS:
   case S_RECONNECT_BLACKLIST:
   case S_RECONNECT_SENT:
     /* It can never hurt to have an alternative address in the above cases, 
        see if it is allowed */
-    check_blacklist (peer, ts, address, session, ats, ats_count);
+    check_blacklist (peer, ts, address, session);
     break;
   case S_CONNECTED_SWITCHING_BLACKLIST:
   case S_CONNECTED_SWITCHING_CONNECT_SENT:
@@ -2287,7 +2268,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
     n->send_connect_ack = 0;
     send_session_connect_ack_message (n->primary_address.address,
 				      n->primary_address.session, ts);
-    check_blacklist (peer, ts, address, session, ats, ats_count);
+    check_blacklist (peer, ts, address, session);
     break;
   case S_DISCONNECT:
     /* get rid of remains without terminating sessions, ready to re-try */
@@ -2396,7 +2377,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     n->timeout = GNUNET_TIME_relative_to_absolute (BLACKLIST_RESPONSE_TIMEOUT);
     check_blacklist (&n->id,
 		     n->connect_ack_timestamp,
-		     address, session, ats, ats_count);    
+		     address, session);
     break;
   case S_INIT_BLACKLIST:
     /* ATS suggests a different address, switch again */
@@ -2405,7 +2386,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     n->timeout = GNUNET_TIME_relative_to_absolute (BLACKLIST_RESPONSE_TIMEOUT);
     check_blacklist (&n->id,
 		     n->connect_ack_timestamp,
-		     address, session, ats, ats_count);    
+		     address, session);
     break;
   case S_CONNECT_SENT:
     /* ATS suggests a different address, switch again */
@@ -2415,7 +2396,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     n->timeout = GNUNET_TIME_relative_to_absolute (BLACKLIST_RESPONSE_TIMEOUT);
     check_blacklist (&n->id,
 		     n->connect_ack_timestamp,
-		     address, session, ats, ats_count);    
+		     address, session);
     break;
   case S_CONNECT_RECV_ATS:
     set_address (&n->primary_address,
@@ -2424,13 +2405,13 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     n->timeout = GNUNET_TIME_relative_to_absolute (BLACKLIST_RESPONSE_TIMEOUT);
     check_blacklist (&n->id,
 		     n->connect_ack_timestamp,
-		     address, session, ats, ats_count);    
+		     address, session);
     break;
   case S_CONNECT_RECV_BLACKLIST_INBOUND:
     n->timeout = GNUNET_TIME_relative_to_absolute (BLACKLIST_RESPONSE_TIMEOUT);
     check_blacklist (&n->id,
                      n->connect_ack_timestamp,
-                     address, session, ats, ats_count);
+                     address, session);
     break;
   case S_CONNECT_RECV_BLACKLIST:
   case S_CONNECT_RECV_ACK:
@@ -2441,7 +2422,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     n->timeout = GNUNET_TIME_relative_to_absolute (BLACKLIST_RESPONSE_TIMEOUT);
     check_blacklist (&n->id,
 		     n->connect_ack_timestamp,
-		     address, session, ats, ats_count);    
+		     address, session);
     break;
   case S_CONNECTED:
     GNUNET_assert (NULL != n->primary_address.address);
@@ -2460,7 +2441,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     n->state = S_CONNECTED_SWITCHING_BLACKLIST;
     check_blacklist (&n->id,
 		     GNUNET_TIME_absolute_get (),
-		     address, session, ats, ats_count);
+		     address, session);
     break;
   case S_RECONNECT_ATS:
     set_address (&n->primary_address,
@@ -2469,7 +2450,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     n->timeout = GNUNET_TIME_relative_to_absolute (BLACKLIST_RESPONSE_TIMEOUT);
     check_blacklist (&n->id,
 		     n->connect_ack_timestamp,
-		     address, session, ats, ats_count);    
+		     address, session);
     break;
   case S_RECONNECT_BLACKLIST:
     /* ATS asks us to switch while we were trying to reconnect; switch to new
@@ -2479,7 +2460,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     n->timeout = GNUNET_TIME_relative_to_absolute (BLACKLIST_RESPONSE_TIMEOUT);
     check_blacklist (&n->id,
 		     n->connect_ack_timestamp,
-		     address, session, ats, ats_count);    
+		     address, session);
     break;
   case S_RECONNECT_SENT:
     /* ATS asks us to switch while we were trying to reconnect; switch to new
@@ -2490,7 +2471,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     n->timeout = GNUNET_TIME_relative_to_absolute (BLACKLIST_RESPONSE_TIMEOUT);
     check_blacklist (&n->id,
 		     n->connect_ack_timestamp,
-		     address, session, ats, ats_count); 
+		     address, session);
     break;
   case S_CONNECTED_SWITCHING_BLACKLIST:
     if (n->primary_address.session == session)
@@ -2505,7 +2486,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
 		 address, session, bandwidth_in, bandwidth_out, GNUNET_NO);
     check_blacklist (&n->id,
 		     GNUNET_TIME_absolute_get (),
-		     address, session, ats, ats_count);
+		     address, session);
     break;
   case S_CONNECTED_SWITCHING_CONNECT_SENT:
     if (n->primary_address.session == session)
@@ -2521,7 +2502,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     n->state = S_CONNECTED_SWITCHING_BLACKLIST;
     check_blacklist (&n->id,
 		     GNUNET_TIME_absolute_get (),
-		     address, session, ats, ats_count);
+		     address, session);
     break;
   case S_DISCONNECT:
     /* not going to switch addresses while disconnecting */

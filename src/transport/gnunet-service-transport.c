@@ -277,7 +277,7 @@ GST_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
     GST_validation_handle_pong (peer, message);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT:
-    GST_neighbours_handle_connect (message, peer, &address, session, NULL, 0);
+    GST_neighbours_handle_connect (message, peer, &address, session);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT_ACK:
     GST_neighbours_handle_connect_ack (message, peer, &address, session, NULL, 0);
