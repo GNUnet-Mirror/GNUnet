@@ -67,7 +67,7 @@ test_gnunet_prefix_LDADD = \
 pkghellodir= $(pkgdatadir)/hellos
 
 install-data-local:
-	$(mkinstalldirs) $(DESTDIR)$(pkghellodir)
+	$(mkinstalldirs) $(DESTDIR)$(pkghellodir) 
 	@$(NORMAL_INSTALL)
 	for hello in $(srcdir)/hellos/*; do \
 	  if test -f $$hello; then \
