@@ -186,16 +186,9 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
   im->header.size = htons (size);
   im->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
   im->peer = *peer;
-
-  fprintf (stderr, "FIX THIS: %s:%u \n", __FILE__, __LINE__);
-  /*
-  ap[ats_count].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
-  ap[ats_count].value =
-      htonl ((uint32_t) GST_neighbour_get_latency (peer).rel_value);*/
   memcpy (&im[1], message, ntohs (message->size));
 
   GNUNET_ATS_address_add (GST_ats, address, session, NULL, 0);
-  GNUNET_ATS_address_update (GST_ats, address, session, NULL, 0);
   GST_clients_broadcast (&im->header, GNUNET_YES);
 
   return ret;
@@ -407,6 +400,16 @@ plugin_env_address_to_type (void *cls,
   return GNUNET_ATS_address_get_type(GST_ats, addr, addrlen);
 }
 
+void
+GST_update_ats_metrics (struct GNUNET_PeerIdentity *peer,
+		 	 	 	 	 	 	 	 	 	  struct GNUNET_HELLO_Address *address,
+		 	 	 	 	 	 	 	 	 	  struct Session *session,
+		 	 	 	 	 	 	 	 	 	  struct GNUNET_ATS_Information *ats,
+		 	 	 	 	 	 	 	 	 	  uint32_t ats_count)
+{
+  GNUNET_ATS_address_update (GST_ats, address, session, ats, ats_count);
+}
+
 /**
  * Function that will be called to figure if an address is an loopback,
  * LAN, WAN etc. address
@@ -418,8 +421,8 @@ plugin_env_address_to_type (void *cls,
  */
 static void
 plugin_env_update_metrics (void *cls,
-													 const struct GNUNET_PeerIdentity *peer,
-													 const char *address,
+													 struct GNUNET_PeerIdentity *peer,
+													 const void *address,
 													 uint16_t address_len,
 													 struct Session *session,
 													 struct GNUNET_ATS_Information *ats,
@@ -437,7 +440,7 @@ plugin_env_update_metrics (void *cls,
   haddress.address_length = address_len;
   haddress.transport_name = plugin_name;
 
-  GNUNET_ATS_address_update (GST_ats, &haddress, session, ats, ats_count);
+  GST_update_ats_metrics (peer, &haddress, session, ats, ats_count);
 }
 
 
@@ -688,7 +691,7 @@ key_generation_cb (void *cls,
                     &plugin_env_address_change_notification,
                     &plugin_env_session_end,
                     &plugin_env_address_to_type,
-                    &GST_manipulation_metrics_recv);
+                    &plugin_env_update_metrics);
   GST_neighbours_start (NULL,
                         &neighbours_connect_notification,
                         &neighbours_disconnect_notification,

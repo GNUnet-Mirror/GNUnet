@@ -97,6 +97,12 @@ GST_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
                              const char *sender_address,
                              uint16_t sender_address_len);
 
+void
+GST_update_ats_metrics (struct GNUNET_PeerIdentity *peer,
+		 	 	 	 	 	 	 	 	 	  struct GNUNET_HELLO_Address *address,
+		 	 	 	 	 	 	 	 	 	  struct Session *session,
+		 	 	 	 	 	 	 	 	 	  struct GNUNET_ATS_Information *ats,
+		 	 	 	 	 	 	 	 	 	  uint32_t ats_count);
 
 #endif
 /* end of file gnunet-service-transport_plugins.h */

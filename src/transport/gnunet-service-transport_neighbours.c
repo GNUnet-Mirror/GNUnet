@@ -1543,10 +1543,10 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour)
   else
     latency = n->latency.rel_value;
   ats.value = htonl (latency);
-  fprintf (stderr, "FIX THIS: %s %u \n", __FILE__, __LINE__);
-  GNUNET_ATS_address_update (GST_ats, 
-			     n->primary_address.address, 
-			     n->primary_address.session, &ats, 1);
+  GST_update_ats_metrics (&n->id,
+  		 	 	 	 	 	 	 	 	 	  n->primary_address.address,
+			     	 	 	 	 	 	 	 	n->primary_address.session,
+			     	 	 	 	 	 	 	 	&ats, 1);
 }
 
 

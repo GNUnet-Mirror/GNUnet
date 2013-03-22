@@ -357,7 +357,7 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
  */
 void
 GST_manipulation_metrics_recv (void *cls,
-																 const struct GNUNET_PeerIdentity *peer,
+																 struct GNUNET_PeerIdentity *peer,
 																 const char *address,
 																 uint16_t address_len,
 																 struct Session *session,
