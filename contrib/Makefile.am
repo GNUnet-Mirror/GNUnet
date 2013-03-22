@@ -1,5 +1,8 @@
 INCLUDES = -I$(top_srcdir)/src/include -I$(top_builddir)/src/include
 
+tap32dir = $(pkgdatadir)/openvpn-tap32/tapw32/
+
+tap64dir = $(pkgdatadir)/openvpn-tap32/tapw64/
 
 noinst_PROGRAMS = \
  timeout_watchdog
@@ -26,6 +29,18 @@ dist_pkgdata_DATA = \
  testing_hostkeys.dat \
  testing_hostkeys.ecc
 
+if MINGW
+tap32_DATA = \
+ openvpn-tap32/tapw32/tap0901.sys \
+ openvpn-tap32/tapw32/tap0901.cat \
+ openvpn-tap32/tapw32/OemWin2k.inf
+
+tap64_DATA = \
+ openvpn-tap32/tapw64/tap0901.sys \
+ openvpn-tap32/tapw64/tap0901.cat \
+ openvpn-tap32/tapw64/OemWin2k.inf
+endif
+
 EXTRA_DIST = \
  coverage.sh \
  report.sh \
@@ -33,7 +48,13 @@ EXTRA_DIST = \
  gnunet_pyexpect.py.in \
  gnunet_janitor.py.in \
  pydiffer.py.in \
- gnunet-gns-import.sh
+ gnunet-gns-import.sh \
+ openvpn-tap32/tapw32/tap0901.sys \
+ openvpn-tap32/tapw32/tap0901.cat \
+ openvpn-tap32/tapw32/OemWin2k.inf \
+ openvpn-tap32/tapw64/tap0901.sys \
+ openvpn-tap32/tapw64/tap0901.cat \
+ openvpn-tap32/tapw64/OemWin2k.inf
 
 do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 
