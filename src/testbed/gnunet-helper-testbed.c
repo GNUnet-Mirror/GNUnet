@@ -267,6 +267,9 @@ child_death_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   const struct GNUNET_DISK_FileHandle *pr;
   char c[16];
+  enum GNUNET_OS_ProcessStatusType type;
+  unsigned long code;
+  int ret;
 
   pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
   child_death_task_id = GNUNET_SCHEDULER_NO_TASK;
@@ -279,14 +282,25 @@ child_death_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   /* consume the signal */
   GNUNET_break (0 < GNUNET_DISK_file_read (pr, &c, sizeof (c)));
-  LOG_DEBUG ("Child died\n");
-  if (NULL != testbed)
+  LOG_DEBUG ("Got SIGCHLD\n");
+  if (NULL == testbed)
   {
-    GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (testbed));
+    GNUNET_break (0);
+    return;
+  }
+  GNUNET_break (GNUNET_SYSERR != 
+                (ret = GNUNET_OS_process_status (testbed, &type, &code)));
+  if (GNUNET_NO != ret)
+  {
     GNUNET_OS_process_destroy (testbed);
     testbed = NULL;
+    shutdown_now ();
+    return;
   }
-  shutdown_now ();
+  LOG_DEBUG ("Child hasn't died.  Resuming to monitor its status\n");
+  child_death_task_id =
+      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                      pr, &child_death_task, NULL);
 }
 
 
