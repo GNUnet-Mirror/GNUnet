@@ -716,9 +716,7 @@ start_consensus (void *cls,
  * @param atsi_count number of entries in atsi
  */
 static void
-handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
-                     const struct GNUNET_ATS_Information *atsi,
-                     unsigned int atsi_count)
+handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct DirectNeighbor *neighbor;
   struct Route *route;
@@ -727,7 +725,8 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* Check for connect to self message */
   if (0 == memcmp (&my_identity, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
-  distance = get_atsi_distance (atsi, atsi_count);
+  fprintf (stderr, "FIX ATS DATA: %s:%u!\n", __FILE__, __LINE__);
+  distance =  get_atsi_distance (NULL, 0);
   neighbor = GNUNET_CONTAINER_multihashmap_get (direct_neighbors, 
 						&peer->hashPubKey);
   if (NULL != neighbor)
@@ -1169,9 +1168,7 @@ start_consensus (void *cls,
  */
 static int
 handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
-			 const struct GNUNET_MessageHeader *message,
-			 const struct GNUNET_ATS_Information *atsi,
-			 unsigned int atsi_count)
+			 const struct GNUNET_MessageHeader *message)
 {
   const struct RouteMessage *rm;
   const struct GNUNET_MessageHeader *payload;
