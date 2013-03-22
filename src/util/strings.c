@@ -852,7 +852,8 @@ GNUNET_STRINGS_string_to_data (const char *enc, size_t enclen,
     return GNUNET_SYSERR;
   while (wpos > 0)
   {
-    GNUNET_assert (rpos > 0);
+    if (0 == rpos)
+      return GNUNET_SYSERR;
     bits = ((ret = getValue__ (enc[--rpos])) << vbit) | bits;
     if (-1 == ret)
       return GNUNET_SYSERR;
@@ -864,9 +865,9 @@ GNUNET_STRINGS_string_to_data (const char *enc, size_t enclen,
       vbit -= 8;
     }
   }
-  GNUNET_assert (rpos == 0);
-  GNUNET_assert (vbit == 0);
-
+  if ( (0 != rpos) ||
+       (0 != vbit) )
+    return GNUNET_SYSERR;
   return GNUNET_OK;
 }
 
