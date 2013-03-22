@@ -158,18 +158,6 @@ struct ShutdownPeersData
 
 
 /**
- * This variable is set to the operation that has been last marked as done. It
- * is used to verify whether the state associated with an operation is valid
- * after the first notify callback is called. Such checks are necessary for
- * certain operations where we have 2 notify callbacks. Examples are
- * OP_PEER_CREATE, OP_PEER_START/STOP, OP_OVERLAY_CONNECT.
- *
- * This variable should ONLY be used to compare; it is a dangling pointer!!
- */
-static const struct GNUNET_TESTBED_Operation *const last_finished_operation_;
-
-
-/**
  * An entry in the stack for keeping operations which are about to expire
  */
 struct ExpireOperationEntry
@@ -359,7 +347,7 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
   {
     if (NULL != c->cc)
       c->cc (c->cc_cls, &event);
-    if (GNUNET_NO == exop_check (event.op)) //(last_finished_operation == event.op)
+    if (GNUNET_NO == exop_check (event.op))
       return GNUNET_YES;
   }
   else
@@ -367,7 +355,7 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
   if (NULL != op_comp_cb)
     op_comp_cb (op_comp_cb_cls, event.op, NULL);
    /* You could have marked the operation as done by now */
-  GNUNET_break (GNUNET_NO == exop_check (event.op)); //(last_finished_operation == event.op);
+  GNUNET_break (GNUNET_NO == exop_check (event.op));
   return GNUNET_YES;
 }
 
@@ -426,7 +414,7 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
   if (NULL != cb)
     cb (cls, peer, NULL);
    /* You could have marked the operation as done by now */
-  GNUNET_break (GNUNET_NO == exop_check (op)); //(last_finished_operation == op);
+  GNUNET_break (GNUNET_NO == exop_check (op));
   return GNUNET_YES;
 }
 
@@ -506,7 +494,7 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
   if (NULL != pcc)
     pcc (pcc_cls, NULL);
    /* You could have marked the operation as done by now */
-  GNUNET_break (GNUNET_NO == exop_check (event.op)); // (event.op == last_finished_operation);
+  GNUNET_break (GNUNET_NO == exop_check (event.op));
   return GNUNET_YES;
 }
 
@@ -575,13 +563,13 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
   {
     if (NULL != c->cc)
       c->cc (c->cc_cls, &event);
-    if (GNUNET_NO == exop_check (event.op)) //(event.op == last_finished_operation)
+    if (GNUNET_NO == exop_check (event.op))
       return GNUNET_YES;
   }  
   if (NULL != cb)
     cb (cb_cls, opc->op, NULL);
    /* You could have marked the operation as done by now */
-  GNUNET_break (GNUNET_NO == exop_check (event.op)); //(event.op == last_finished_operation);
+  GNUNET_break (GNUNET_NO == exop_check (event.op));
   return GNUNET_YES;
 }
 
@@ -714,7 +702,7 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
     event.details.operation_finished.generic = NULL;
     exop_insert (event.op);
     c->cc (c->cc_cls, &event);
-    if (GNUNET_NO == exop_check (event.op)) //(event.op == last_finished_operation)
+    if (GNUNET_NO == exop_check (event.op))
       return GNUNET_YES;
   }
   switch (opc->type)
@@ -1894,8 +1882,6 @@ GNUNET_TESTBED_create_helper_init_msg_ (const char *trusted_ip,
 void
 GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
 {
-  *((const struct GNUNET_TESTBED_Operation **) &last_finished_operation_) = 
-      operation;
   (void) exop_check (operation);
   GNUNET_TESTBED_operation_release_ (operation);
 }
