@@ -49,11 +49,11 @@ diff -urN buildbot-slave-0.8.5.orig/buildslave/runprocess.py buildbot-slave-0.8.
 +def safe_terminate_process_by_pid (proc, code):
 +  if os.name == 'nt':
 +    try:
-+      openproc = win32process.OpenProcess (2 | 1024 | 8 | 32 | 16, 0, proc)
++      openproc = win32api.OpenProcess (2 | 1024 | 8 | 32 | 16, 0, proc)
 +      try:
 +        d = Dummy ()
 +        d.SetHandle (openproc)
-+        safe_termiate_process (d, code)
++        safe_terminate_process (d, code)
 +      finally:
 +        win32api.CloseHandle (openproc)
 +    except:
