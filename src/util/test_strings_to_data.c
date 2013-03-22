@@ -40,7 +40,7 @@ main (int argc, char *argv[])
 	memset (&src, '\1', sizeof (src));
 	memset (&dest, '\2', sizeof (dest));
 
-	end = GNUNET_STRINGS_data_to_string (&src, sizeof (src), buf, 255);
+	end = GNUNET_STRINGS_data_to_string (&src, sizeof (src), buf, sizeof (buf));
 	end[0] = '\0';
 	fprintf (stderr, "Key `%s'\n",buf);
 	GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_ecc_public_key_from_string (buf, strlen (buf), &dest));

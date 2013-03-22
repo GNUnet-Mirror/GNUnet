@@ -804,6 +804,8 @@ GNUNET_STRINGS_data_to_string (const void *data, size_t size, char *out, size_t 
     vbit -= 5;
   }
   GNUNET_assert (vbit == 0);
+  if (wpos < out_size)
+    out[wpos] = '\0';
   return &out[wpos];
 }
 

@@ -216,8 +216,8 @@ GNUNET_CRYPTO_ecc_public_key_from_string (const char *enc,
     return GNUNET_SYSERR;
 
   if (GNUNET_OK != GNUNET_STRINGS_string_to_data (enc, enclen,
-						 (unsigned char*) pub,
-						 sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded)))
+						  pub,
+						  sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded)))
     return GNUNET_SYSERR;
   if ( (ntohs (pub->size) != sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded)) ||
        (ntohs (pub->len) > GNUNET_CRYPTO_ECC_SIGNATURE_DATA_ENCODING_LENGTH) )
