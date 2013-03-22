@@ -1144,9 +1144,7 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
  */
 static int
 handle_encrypted_hello (void *cls, const struct GNUNET_PeerIdentity *other,
-                        const struct GNUNET_MessageHeader *message,
-                        const struct GNUNET_ATS_Information *atsi,
-                        unsigned int atsi_count)
+                        const struct GNUNET_MessageHeader *message)
 {
   struct Peer *peer;
   struct GNUNET_PeerIdentity pid;
