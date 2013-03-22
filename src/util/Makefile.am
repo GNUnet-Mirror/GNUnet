@@ -245,6 +245,7 @@ check_PROGRAMS = \
  $(SERVER_CLIENT_UNIX) \
  test_service \
  test_strings \
+ test_strings_to_data \
  test_time \
  test_speedup \
  $(BENCHMARKS) \
@@ -490,6 +491,13 @@ test_strings_SOURCES = \
  test_strings.c
 test_strings_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
+
+
+test_strings_to_data_SOURCES = \
+ test_strings_to_data.c
+test_strings_to_data_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la
+
 
 test_time_SOURCES = \
  test_time.c
