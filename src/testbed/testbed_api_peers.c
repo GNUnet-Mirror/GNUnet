@@ -621,6 +621,7 @@ GNUNET_TESTBED_peer_get_information (struct GNUNET_TESTBED_Peer *peer,
   struct PeerInfoData *data;
 
   GNUNET_assert (GNUNET_TESTBED_PIT_GENERIC != pit);
+  GNUNET_assert (NULL != cb);
   data = GNUNET_malloc (sizeof (struct PeerInfoData));
   data->peer = peer;
   data->pit = pit;

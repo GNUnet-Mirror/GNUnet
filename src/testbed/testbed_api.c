@@ -166,7 +166,76 @@ struct ShutdownPeersData
  *
  * This variable should ONLY be used to compare; it is a dangling pointer!!
  */
-static const struct GNUNET_TESTBED_Operation *last_finished_operation;
+static const struct GNUNET_TESTBED_Operation *const last_finished_operation_;
+
+
+/**
+ * An entry in the stack for keeping operations which are about to expire
+ */
+struct ExpireOperationEntry
+{
+  /**
+   * DLL head; new entries are to be inserted here
+   */
+  struct ExpireOperationEntry *next;
+
+  /**
+   * DLL tail; entries are deleted from here
+   */
+  struct ExpireOperationEntry *prev;
+
+  /**
+   * The operation.  This will be a dangling pointer when the operation is freed
+   */
+  const struct GNUNET_TESTBED_Operation *op;
+};
+
+static struct ExpireOperationEntry *exop_head;
+
+static struct ExpireOperationEntry *exop_tail;
+
+
+static void
+exop_insert (struct GNUNET_TESTBED_Operation *op)
+{
+  struct ExpireOperationEntry *entry;
+
+  entry = GNUNET_malloc (sizeof (struct ExpireOperationEntry));
+  entry->op = op;
+  GNUNET_CONTAINER_DLL_insert_tail (exop_head, exop_tail, entry);  
+}
+
+
+static int
+exop_check (const struct GNUNET_TESTBED_Operation *const op)
+{
+  struct ExpireOperationEntry *entry;
+  struct ExpireOperationEntry *entry2;
+  int found;
+
+  found = GNUNET_NO;
+  entry = exop_head;
+  while (NULL != entry)
+  {
+    if (op == entry->op)
+    {
+      found = GNUNET_YES;
+      break;
+    }
+    entry = entry->next;
+  }
+  if (GNUNET_NO == found)
+    return GNUNET_NO;
+  /* Truncate the tail */
+  while (NULL != entry)
+  {
+    entry2 = entry->next;
+    GNUNET_CONTAINER_DLL_remove (exop_head, exop_tail, entry);
+    GNUNET_free (entry);
+    entry = entry2;
+  }
+  return GNUNET_YES;
+}
 
 
 /**
@@ -229,6 +298,8 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
                   GNUNET_TESTBED_GenericOperationSuccessEventMessage *msg)
 {
   struct OperationContext *opc;
+  GNUNET_TESTBED_OperationCompletionCallback op_comp_cb;
+  void *op_comp_cb_cls;
   struct GNUNET_TESTBED_EventInformation event;
   uint64_t op_id;
 
@@ -244,6 +315,8 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
   event.op_cls = opc->op_cls;
   event.details.operation_finished.emsg = NULL;
   event.details.operation_finished.generic = NULL;
+  op_comp_cb = NULL;
+  op_comp_cb_cls = NULL;
   switch (opc->type)
   {
   case OP_FORWARDED:
@@ -269,7 +342,9 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
     struct ShutdownPeersData *data;
 
     data = opc->data;
-    GNUNET_free (data);         /* FIXME: Decide whether we call data->op_cb */
+    op_comp_cb = data->cb;
+    op_comp_cb_cls = data->cb_cls;
+    GNUNET_free (data);
     opc->data = NULL;
     GNUNET_TESTBED_cleanup_peers_ ();
   }
@@ -279,13 +354,20 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
   }
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
+  exop_insert (event.op);  
   if (0 != (c->event_mask & (1L << GNUNET_TESTBED_ET_OPERATION_FINISHED)))
   {
     if (NULL != c->cc)
       c->cc (c->cc_cls, &event);
+    if (GNUNET_NO == exop_check (event.op)) //(last_finished_operation == event.op)
+      return GNUNET_YES;
   }
   else
     LOG_DEBUG ("Not calling callback\n");
+  if (NULL != op_comp_cb)
+    op_comp_cb (op_comp_cb_cls, event.op, NULL);
+   /* You could have marked the operation as done by now */
+  GNUNET_break (GNUNET_NO == exop_check (event.op)); //(last_finished_operation == event.op);
   return GNUNET_YES;
 }
 
@@ -307,6 +389,7 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
   struct OperationContext *opc;
   struct PeerCreateData *data;
   struct GNUNET_TESTBED_Peer *peer;
+  struct GNUNET_TESTBED_Operation *op;
   GNUNET_TESTBED_PeerCreateCallback cb;
   void *cls;
   uint64_t op_id;
@@ -335,11 +418,15 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
   GNUNET_TESTBED_peer_register_ (peer);
   cb = data->cb;
   cls = data->cls;
+  op = opc->op;
   GNUNET_free (opc->data);
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
+  exop_insert (op);
   if (NULL != cb)
     cb (cls, peer, NULL);
+   /* You could have marked the operation as done by now */
+  GNUNET_break (GNUNET_NO == exop_check (op)); //(last_finished_operation == op);
   return GNUNET_YES;
 }
 
@@ -406,15 +493,20 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
   GNUNET_free (data);
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
+  exop_insert (event.op);
   if (0 !=
       ((GNUNET_TESTBED_ET_PEER_START | GNUNET_TESTBED_ET_PEER_STOP) &
        c->event_mask))
   {
     if (NULL != c->cc)
-      c->cc (c->cc_cls, &event);
+      c->cc (c->cc_cls, &event);    
+    if (GNUNET_NO == exop_check (event.op))
+      return GNUNET_YES;
   }
   if (NULL != pcc)
     pcc (pcc_cls, NULL);
+   /* You could have marked the operation as done by now */
+  GNUNET_break (GNUNET_NO == exop_check (event.op)); // (event.op == last_finished_operation);
   return GNUNET_YES;
 }
 
@@ -476,15 +568,20 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
   cb_cls = data->cb_cls;
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
-  if (NULL != cb)
-    cb (cb_cls, opc->op, NULL);
+  exop_insert (event.op);
   if (0 !=
       ((GNUNET_TESTBED_ET_CONNECT | GNUNET_TESTBED_ET_DISCONNECT) &
        c->event_mask))
   {
     if (NULL != c->cc)
       c->cc (c->cc_cls, &event);
-  }
+    if (GNUNET_NO == exop_check (event.op)) //(event.op == last_finished_operation)
+      return GNUNET_YES;
+  }  
+  if (NULL != cb)
+    cb (cb_cls, opc->op, NULL);
+   /* You could have marked the operation as done by now */
+  GNUNET_break (GNUNET_NO == exop_check (event.op)); //(event.op == last_finished_operation);
   return GNUNET_YES;
 }
 
@@ -529,11 +626,12 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
   GNUNET_assert (NULL != peer);
   GNUNET_assert (ntohl (msg->peer_id) == peer->unique_id);
   pinfo = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerInformation));
-  pinfo->pit = data->pit;
+  pinfo->pit = data->pit;  
   cb = data->cb;
   cb_cls = data->cb_cls;
+  GNUNET_assert (NULL != cb);
   GNUNET_free (data);
-  opc->data = NULL;
+  opc->data = NULL;  
   switch (pinfo->pit)
   {
   case GNUNET_TESTBED_PIT_IDENTITY:
@@ -552,8 +650,10 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
   opc->data = pinfo;
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
-  if (NULL != cb)
-    cb (cb_cls, opc->op, pinfo, NULL);
+  cb (cb_cls, opc->op, pinfo, NULL);
+  /* We dont check whether the operation is marked as done here as the
+     operation contains data (cfg/identify) which will be freed at a later point
+  */
   return GNUNET_YES;
 }
 
@@ -612,8 +712,9 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
     event.op_cls = opc->op_cls;
     event.details.operation_finished.emsg = emsg;
     event.details.operation_finished.generic = NULL;
+    exop_insert (event.op);
     c->cc (c->cc_cls, &event);
-    if (event.op == last_finished_operation)
+    if (GNUNET_NO == exop_check (event.op)) //(event.op == last_finished_operation)
       return GNUNET_YES;
   }
   switch (opc->type)
@@ -1782,22 +1883,6 @@ GNUNET_TESTBED_create_helper_init_msg_ (const char *trusted_ip,
 
 
 /**
- * Cancel a pending operation.  Releases all resources
- * of the operation and will ensure that no event
- * is generated for the operation.  Does NOT guarantee
- * that the operation will be fully undone (or that
- * nothing ever happened).
- *
- * @param operation operation to cancel
- */
-void
-GNUNET_TESTBED_operation_cancel (struct GNUNET_TESTBED_Operation *operation)
-{
-  GNUNET_TESTBED_operation_done (operation);
-}
-
-
-/**
  * Signal that the information from an operation has been fully
  * processed.  This function MUST be called for each event
  * of type 'operation_finished' to fully remove the operation
@@ -1809,7 +1894,9 @@ GNUNET_TESTBED_operation_cancel (struct GNUNET_TESTBED_Operation *operation)
 void
 GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
 {
-  last_finished_operation = operation;
+  *((const struct GNUNET_TESTBED_Operation **) &last_finished_operation_) = 
+      operation;
+  (void) exop_check (operation);
   GNUNET_TESTBED_operation_release_ (operation);
 }
 
