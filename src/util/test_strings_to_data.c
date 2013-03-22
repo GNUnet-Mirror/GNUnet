@@ -32,17 +32,24 @@ main (int argc, char *argv[])
 {
 	GNUNET_log_setup ("util", "DEBUG", NULL);
 	char *conv;
+	char buf[255];
+	char *end;
 	struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded src;
 	struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded dest;
 
 	memset (&src, '\1', sizeof (src));
 	memset (&dest, '\2', sizeof (dest));
 
+	end = GNUNET_STRINGS_data_to_string (&src, sizeof (src), buf, 255);
+	end[0] = '\0';
+	fprintf (stderr, "Key `%s'\n",buf);
+	GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_ecc_public_key_from_string (buf, strlen (buf), &dest));
 
 	conv = GNUNET_CRYPTO_ecc_public_key_to_string (&src);
 	GNUNET_assert (NULL != conv);
 	fprintf (stderr, "Key `%s'\n",conv);
-	//GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_ecc_public_key_from_string (conv, strlen (conv), &dest));
+
+
   GNUNET_assert (GNUNET_OK == GNUNET_STRINGS_string_to_data (conv, strlen (conv), (unsigned char *) &dest, sizeof (dest)));
   GNUNET_assert (0 == memcmp (&src, &dest, sizeof (dest)));
 
