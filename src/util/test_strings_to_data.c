@@ -30,30 +30,33 @@
 int
 main (int argc, char *argv[])
 {
-	GNUNET_log_setup ("util", "DEBUG", NULL);
-	char *conv;
-	char buf[255];
-	char *end;
-	struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded src;
-	struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded dest;
+  char buf[1024];
+  char *end;
+  char src[128];
+  char dst[128];
+  unsigned int i;
+  int ret = 0;
+  
+  GNUNET_log_setup ("util", "DEBUG", NULL);
+  for (i=0;i<sizeof(src);i++)
+  {
+    memset (src, i, sizeof (src));
+    memset (dst, i+1, sizeof (dst));
 
-	memset (&src, '\1', sizeof (src));
-	memset (&dest, '\2', sizeof (dest));
-
-	end = GNUNET_STRINGS_data_to_string (&src, sizeof (src), buf, sizeof (buf));
-	end[0] = '\0';
-	fprintf (stderr, "Key `%s'\n",buf);
-	GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_ecc_public_key_from_string (buf, strlen (buf), &dest));
-
-	conv = GNUNET_CRYPTO_ecc_public_key_to_string (&src);
-	GNUNET_assert (NULL != conv);
-	fprintf (stderr, "Key `%s'\n",conv);
-
-
-  GNUNET_assert (GNUNET_OK == GNUNET_STRINGS_string_to_data (conv, strlen (conv), (unsigned char *) &dest, sizeof (dest)));
-  GNUNET_assert (0 == memcmp (&src, &dest, sizeof (dest)));
-
-	return 0;
+    end = GNUNET_STRINGS_data_to_string (&src, i, buf, sizeof (buf));
+    end[0] = '\0';
+    if (GNUNET_OK != 
+	GNUNET_STRINGS_string_to_data (buf, strlen (buf), dst, i))
+    {
+      fprintf (stderr, "%u failed decode (%u bytes)\n", i, (unsigned int) strlen (buf));
+      ret = 1;
+    } else if (0 != memcmp (src, dst, i))
+    {
+      fprintf (stderr, "%u wrong decode (%u bytes)\n", i, (unsigned int) strlen (buf));
+      ret = 1;
+    }
+  }
+  return ret;
 }
 
 

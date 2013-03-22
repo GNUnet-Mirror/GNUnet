@@ -817,7 +817,7 @@ GNUNET_STRINGS_data_to_string (const void *data, size_t size, char *out, size_t 
  * @param enc the encoding
  * @param enclen number of characters in 'enc' (without 0-terminator, which can be missing)
  * @param out location where to store the decoded data
- * @param out_size sizeof the output buffer
+ * @param out_size size of the output buffer
  * @return GNUNET_OK on success, GNUNET_SYSERR if result has the wrong encoding
  */
 int
@@ -831,31 +831,40 @@ GNUNET_STRINGS_string_to_data (const char *enc, size_t enclen,
   int ret;
   int shift;
   unsigned char *uout;
-  int encoded_len = out_size * 8;
+  unsigned int encoded_len = out_size * 8;
 
+  if (0 == enclen)
+  {
+    if (0 == out_size)
+      return GNUNET_OK;
+    return GNUNET_SYSERR;
+  }
   uout = out;
-  if (encoded_len % 5 > 0)
+  wpos = out_size;
+  rpos = enclen;
+  if ((encoded_len % 5) > 0)
   {
     vbit = encoded_len % 5; /* padding! */
     shift = 5 - vbit;
+    bits = (ret = getValue__ (enc[--rpos])) >> (5 - (encoded_len % 5));
   }
   else
   {
-    vbit = 0;
+    vbit = 5;
     shift = 0;
+    bits = (ret = getValue__ (enc[--rpos]));
   }
   if ((encoded_len + shift) / 5 != enclen)
     return GNUNET_SYSERR;
-
-  wpos = out_size;
-  rpos = enclen;
-  bits = (ret = getValue__ (enc[--rpos])) >> (5 - encoded_len % 5);
   if (-1 == ret)
     return GNUNET_SYSERR;
   while (wpos > 0)
   {
     if (0 == rpos)
+    {
+      GNUNET_break (0);
       return GNUNET_SYSERR;
+    }
     bits = ((ret = getValue__ (enc[--rpos])) << vbit) | bits;
     if (-1 == ret)
       return GNUNET_SYSERR;
