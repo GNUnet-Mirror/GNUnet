@@ -73,13 +73,13 @@
  * Name or Path+Name of our win32 driver.
  * The .sys and .cat files HAVE to be in the same location as this file!
  */
-#define INF_FILE "share/gnunet/tapw32/OemWin2k.inf"
+#define INF_FILE "share/gnunet/openvpn-tap32/tapw32/OemWin2k.inf"
 
 /**
  * Name or Path+Name of our win64 driver.
  * The .sys and .cat files HAVE to be in the same location as this file!
  */
-#define INF_FILE64 "share/gnunet/tapw64/OemWin2k.inf"
+#define INF_FILE64 "share/gnunet/openvpn-tap32/tapw64/OemWin2k.inf"
 
 /**
  * Hardware ID used in the inf-file. 

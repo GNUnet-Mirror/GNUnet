@@ -11,7 +11,7 @@ if LINUX
  LINUX_DIR = dns exit vpn gns pt
 endif
 if MINGW
- MINGW_DIR = dns gns
+ MINGW_DIR = dns gns vpn exit
 endif
 
 if HAVE_MYSQL

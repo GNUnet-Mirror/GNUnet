@@ -71,13 +71,13 @@
  * Name or Path+Name of our win32 driver.
  * The .sys and .cat files HAVE to be in the same location as this file!
  */
-#define INF_FILE "share/gnunet/tapw32/OemWin2k.inf"
+#define INF_FILE "share/gnunet/openvpn-tap32/tapw32/OemWin2k.inf"
 
 /**
  * Name or Path+Name of our win64 driver.
  * The .sys and .cat files HAVE to be in the same location as this file!
  */
-#define INF_FILE64 "share/gnunet/tapw64/OemWin2k.inf"
+#define INF_FILE64 "share/gnunet/openvpn-tap32/tapw64/OemWin2k.inf"
 
 /**
  * Hardware ID used in the inf-file. 
@@ -1466,7 +1466,7 @@ main (int argc, char **argv)
 
   if (6 != argc)
     {
-      fprintf (stderr, "FATAL: must supply 5 arguments\nUsage:\ngnunet-helper-vpn <if name prefix> <address6 or \"-\"> <netbits6> <address4 or \"-\"> <netmask4>\n", argv[0]);
+      fprintf (stderr, "FATAL: must supply 6 arguments\nUsage:\ngnunet-helper-exit <if name prefix> <uplink-interface name> <address6 or \"-\"> <netbits6> <address4 or \"-\"> <netmask4>\n", argv[0]);
       return 1;
     }
 

@@ -1,7 +1,7 @@
 INCLUDES = -I$(top_srcdir)/src/include
 
 if MINGW
-  WINFLAGS = -Wl,--no-undefined, --export-all-symbols
+  WINFLAGS = -Wl,--no-undefined,--export-all-symbols
   EXITBIN = gnunet-helper-exit
 endif
 
