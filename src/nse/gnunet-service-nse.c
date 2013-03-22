@@ -1009,9 +1009,7 @@ update_flood_times (void *cls, const struct GNUNET_HashCode * key, void *value)
  */
 static int
 handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
-                          const struct GNUNET_MessageHeader *message,
-                          const struct GNUNET_ATS_Information *atsi,
-                          unsigned int atsi_count)
+                          const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_NSE_FloodMessage *incoming_flood;
   struct GNUNET_TIME_Absolute ts;
