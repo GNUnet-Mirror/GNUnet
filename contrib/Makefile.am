@@ -54,7 +54,10 @@ EXTRA_DIST = \
  openvpn-tap32/tapw32/OemWin2k.inf \
  openvpn-tap32/tapw64/tap0901.sys \
  openvpn-tap32/tapw64/tap0901.cat \
- openvpn-tap32/tapw64/OemWin2k.inf
+ openvpn-tap32/tapw64/OemWin2k.inf \
+ openvpn-tap32/INSTALL \
+ openvpn-tap32/tap32-signed-i386-2.1.zip \
+ openvpn-tap32/tap32-source-2.1.zip 
 
 do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 
