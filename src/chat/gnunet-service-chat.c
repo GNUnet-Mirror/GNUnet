@@ -1358,8 +1358,6 @@ handle_p2p_sync_request (void *cls, const struct GNUNET_PeerIdentity *other,
  * @param cls closure, always NULL
  * @param other the other peer involved
  * @param message the actual message
- * @param atsi performance information
- * @param atsi_count number of entries in atsi
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */

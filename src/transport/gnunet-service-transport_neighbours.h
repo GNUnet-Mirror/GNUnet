@@ -168,8 +168,6 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target);
  *
  * @param cls closure
  * @param neighbour identity of the neighbour
- * @param ats performance data
- * @param ats_count number of entries in ats (including 0-termination)
  * @param address the address (or NULL)
  * @param bandwidth_in inbound quota in NBO
  * @param bandwidth_out outbound quota in NBO

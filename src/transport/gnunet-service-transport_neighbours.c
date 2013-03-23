@@ -2142,8 +2142,6 @@ handle_test_blacklist_cont (void *cls,
  * @param address address of the other peer, NULL if other peer
  *                       connected to us
  * @param session session to use (or NULL)
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
  */
 static void
 check_blacklist (const struct GNUNET_PeerIdentity *peer,
@@ -2181,8 +2179,6 @@ check_blacklist (const struct GNUNET_PeerIdentity *peer,
  * @param address address of the other peer, NULL if other peer
  *                       connected to us
  * @param session session to use (or NULL)
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
  */
 void
 GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
@@ -2745,8 +2741,6 @@ send_session_ack_message (struct NeighbourMapEntry *n)
  * @param address address of the other peer, NULL if other peer
  *                       connected to us
  * @param session session to use (or NULL)
- * @param ats performance data
- * @param ats_count number of entries in ats
  */
 void
 GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,

@@ -174,7 +174,7 @@ ibf_is_empty (struct InvertibleBloomFilter *ibf)
  * @param ret_side sign of the cell's count where the decoded element came from.
  *                 A negative sign indicates that the element was recovered
  *                 resides in an IBF that was previously subtracted from.
- * @param ret_key receives the hash code of the decoded element, if successful
+ * @param ret_id receives the hash code of the decoded element, if successful
  * @return GNUNET_YES if decoding an element was successful,
  *         GNUNET_NO if the IBF is empty,
  *         GNUNET_SYSERR if the decoding has failed

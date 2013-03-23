@@ -184,7 +184,9 @@ struct GNUNET_ARM_Handle;
  * @param error GNUNET_YES if we encountered a permanent error, and there
  *              will be no re-connection.
  */
-typedef void (*GNUNET_ARM_ConnectionStatusCallback) (void *cls, struct GNUNET_ARM_Handle *arm, char connected);
+typedef void (*GNUNET_ARM_ConnectionStatusCallback) (void *cls, 
+						     struct GNUNET_ARM_Handle *arm, 
+						     int connected);
 
 
 /**

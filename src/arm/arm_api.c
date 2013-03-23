@@ -444,29 +444,29 @@ GNUNET_ARM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param h the handle that was being used
  */
 void
-GNUNET_ARM_disconnect_and_free (struct GNUNET_ARM_Handle *handle)
+GNUNET_ARM_disconnect_and_free (struct GNUNET_ARM_Handle *h)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from ARM service\n");
-  if (NULL != handle->cth)
+  if (NULL != h->cth)
   {
-    GNUNET_CLIENT_notify_transmit_ready_cancel (handle->cth);
-    handle->cth = NULL;
+    GNUNET_CLIENT_notify_transmit_ready_cancel (h->cth);
+    h->cth = NULL;
   }
-  clear_pending_messages (handle, GNUNET_ARM_REQUEST_DISCONNECTED);
-  if (NULL != handle->client)
+  clear_pending_messages (h, GNUNET_ARM_REQUEST_DISCONNECTED);
+  if (NULL != h->client)
   {
-    GNUNET_CLIENT_disconnect (handle->client);
-    handle->client = NULL;
+    GNUNET_CLIENT_disconnect (h->client);
+    h->client = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != handle->reconnect_task)
+  if (GNUNET_SCHEDULER_NO_TASK != h->reconnect_task)
   {
-    GNUNET_SCHEDULER_cancel (handle->reconnect_task);
-    handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel (h->reconnect_task);
+    h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (GNUNET_NO == handle->service_test_is_active)
+  if (GNUNET_NO == h->service_test_is_active)
   {
-    GNUNET_CONFIGURATION_destroy (handle->cfg);
-    GNUNET_free (handle);
+    GNUNET_CONFIGURATION_destroy (h->cfg);
+    GNUNET_free (h);
   }
 }
 

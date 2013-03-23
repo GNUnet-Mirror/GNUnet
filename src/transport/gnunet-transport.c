@@ -515,8 +515,6 @@ transmit_data (void *cls, size_t size, void *buf)
  *
  * @param cls closure
  * @param peer the peer that connected
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
  */
 static void
 notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
