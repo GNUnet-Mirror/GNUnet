@@ -789,8 +789,6 @@ GSC_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity
  * of its types.
  *
  * @param sender peer who sent us the message
- * @param atsi performance information about neighbour
- * @param atsi_count number of entries in 'ats' array
  * @param msg the message
  * @param msize number of bytes to transmit
  * @param options options for checking which clients should

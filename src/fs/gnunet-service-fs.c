@@ -260,8 +260,6 @@ update_latencies (const struct GNUNET_ATS_Information *atsi,
  * @param other the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
- * @param atsi performance information
- * @param atsi_count number of records in 'atsi'
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -341,8 +339,6 @@ consider_forwarding (void *cls, struct GSF_PendingRequest *pr,
  * @param other the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
- * @param atsi performance information
- * @param atsi_count number of records in 'atsi'
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -530,8 +526,6 @@ consider_peer_for_forwarding (void *cls, const struct GNUNET_HashCode * key,
  *
  * @param cls closure, not used
  * @param peer peer identity this notification is about
- * @param atsi performance information
- * @param atsi_count number of records in 'atsi'
  */
 static void
 peer_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)

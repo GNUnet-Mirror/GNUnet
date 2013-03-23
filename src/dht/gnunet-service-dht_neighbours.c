@@ -622,8 +622,6 @@ send_find_peer_message (void *cls,
  *
  * @param cls closure
  * @param peer peer identity this notification is about
- * @param atsi performance data
- * @param atsi_count number of records in 'atsi'
  */
 static void
 handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
@@ -1539,8 +1537,6 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
  * @param peer sender of the request
  * @param message message
  * @param peer peer identity this notification is about
- * @param atsi performance data
- * @param atsi_count number of records in 'atsi'
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -1789,9 +1785,6 @@ handle_find_peer (const struct GNUNET_PeerIdentity *sender,
  * @param cls closure
  * @param peer sender of the request
  * @param message message
- * @param peer peer identity this notification is about
- * @param atsi performance data
- * @param atsi_count number of records in 'atsi'
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -1931,8 +1924,6 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param cls closure
  * @param message message
  * @param peer peer identity this notification is about
- * @param atsi performance data
- * @param atsi_count number of records in 'atsi'
  * @return GNUNET_YES (do not cut p2p connection)
  */
 static int

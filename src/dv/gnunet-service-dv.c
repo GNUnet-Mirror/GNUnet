@@ -712,8 +712,6 @@ start_consensus (void *cls,
  *
  * @param cls closure
  * @param peer peer identity this notification is about
- * @param atsi performance data
- * @param atsi_count number of entries in atsi
  */
 static void
 handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
@@ -1162,8 +1160,6 @@ start_consensus (void *cls,
  * @param cls closure
  * @param peer peer which sent the message (immediate sender)
  * @param message the message
- * @param atsi transport ATS information (latency, distance, etc.)
- * @param atsi_count number of entries in atsi
  * @return GNUNET_OK on success, GNUNET_SYSERR if the other peer violated the protocol
  */
 static int

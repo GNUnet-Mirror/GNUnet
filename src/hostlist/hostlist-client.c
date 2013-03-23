@@ -1096,8 +1096,6 @@ task_hostlist_saving (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param cls closure
  * @param peer peer identity this notification is about
- * @param atsi performance data
- * @param atsi_count number of records in 'atsi'
  */
 static void
 handler_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
@@ -1131,8 +1129,6 @@ handler_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
  * @param cls closure (always NULL)
  * @param peer the peer sending the message
  * @param message the actual message
- * @param atsi performance data
- * @param atsi_count number of records in 'atsi'
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */

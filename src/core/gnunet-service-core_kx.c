@@ -1268,8 +1268,6 @@ struct DeliverMessageContext
  *
  * @param kx key exchange context for encrypting the message
  * @param msg encrypted message
- * @param atsi performance data
- * @param atsi_count number of entries in ats (excluding 0-termination)
  */
 void
 GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,

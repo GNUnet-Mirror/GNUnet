@@ -684,8 +684,6 @@ reschedule_hellos (void *cls, const struct GNUNET_HashCode * pid, void *value)
  *
  * @param cls closure
  * @param peer peer identity this notification is about
- * @param atsi performance data
- * @param atsi_count number of records in 'atsi'
  */
 static void
 connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
@@ -1137,8 +1135,6 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param other the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual HELLO message
- * @param atsi performance data
- * @param atsi_count number of records in 'atsi'
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */

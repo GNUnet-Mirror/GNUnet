@@ -69,6 +69,9 @@ splines = true;
   dv [style=dashed,shape=egg,layer=core];
   dv -> transport [style=dashed,color=blue];
   dv -> core [style=dashed];
+  dv -> consensus;
+  consensus -> dv [style=invis]; // force dv below consensus
+  consensus -> mesh;
   core -> dv [style=invis]; // force dv below core
   peerinfo -> hello;
   fragmentation [shape=diamond];

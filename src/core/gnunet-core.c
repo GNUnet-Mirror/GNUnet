@@ -70,8 +70,6 @@ shutdown_task (void *cls,
  *
  * @param cls closure (unused)
  * @param peer peer identity this notification is about
- * @param atsi performance data for the connection
- * @param atsi_count number of records in 'atsi'
  */
 static void
 connected_peer_callback (void *cls, const struct GNUNET_PeerIdentity *peer)

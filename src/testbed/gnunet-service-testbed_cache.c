@@ -643,8 +643,6 @@ core_startup_cb (void *cls, struct GNUNET_CORE_Handle *server,
  *
  * @param cls closure
  * @param peer peer identity this notification is about
- * @param atsi performance data for the connection
- * @param atsi_count number of records in 'atsi'
  */
 static void
 core_peer_connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
