@@ -461,8 +461,9 @@ stop_arm (struct PeerContext *p)
   GNUNET_CONFIGURATION_destroy (p->cfg);
 }
 
-static int
-check ()
+
+int
+main (int argc, char *argv[])
 {
   char *const argv[] = { "test-core-api-reliability",
     "-c",
@@ -473,28 +474,18 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
   ok = 1;
+  GNUNET_log_setup ("test-core-api",
+                    "WARNING",
+                    NULL);
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
                       "test-core-api-reliability", "nohelp", options, &run,
                       &ok);
   stop_arm (&p1);
   stop_arm (&p2);
-  return ok;
-}
-
-
-int
-main (int argc, char *argv[])
-{
-  int ret;
-
-  GNUNET_log_setup ("test-core-api",
-                    "WARNING",
-                    NULL);
-  ret = check ();
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-1");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-2");
 
-  return ret;
+  return ok;
 }
 
 /* end of test_core_api_reliability.c */
