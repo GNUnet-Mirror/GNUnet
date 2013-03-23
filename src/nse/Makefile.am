@@ -53,7 +53,7 @@ gnunet_service_nse_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  -lm \
+  -lm -lgcrypt \
   $(GN_LIBINTL)
 gnunet_service_nse_DEPENDENCIES = \
   libgnunetnse.la				 
@@ -64,6 +64,7 @@ endif
 
 check_PROGRAMS = \
  test_nse_api \
+ perf_kdf \
  $(MULTIPEER_TEST)
 
 
@@ -85,6 +86,12 @@ test_nse_multipeer_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   -lm
+
+perf_kdf_SOURCES = \
+ perf_kdf.c
+perf_kdf_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  -lgcrypt 
 
 EXTRA_DIST = \
   test_nse.conf \

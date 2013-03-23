@@ -19,6 +19,7 @@ WORKDELAY = 5 ms
 # Note: changing any of the values below will make this peer
 # completely incompatible with other peers! 
 INTERVAL = 1 h
-# 26 is about 10 minutes on a modern i7 (single-core)
+# 26 is about 100 minutes on a modern i7 (single-core) for PBKDF2;
+# need to re-calibrate once we have SCRYPT!
 WORKBITS = 26
 

@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet.
-  (C) 2009, 2010, 2011, 2012 Christian Grothoff (and other contributing authors)
+  (C) 2009, 2010, 2011, 2012, 2013 Christian Grothoff (and other contributing authors)
 
   GNUnet is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
@@ -45,6 +45,8 @@
 #include "gnunet_core_service.h"
 #include "gnunet_nse_service.h"
 #include "nse.h"
+#include <gcrypt.h>
+
 
 /**
  * Should messages be delayed randomly?  This option should be set to
@@ -477,6 +479,28 @@ get_delay_randomization (uint32_t matching_bits)
 
 
 /**
+ * Calculate the 'proof-of-work' hash (an expensive hash).
+ *
+ * @param buf data to hash
+ * @param buf_len number of bytes in 'buf'
+ * @param result where to write the resulting hash
+ */
+static void
+pow_hash (const void *buf,
+	  size_t buf_len,
+	  struct GNUNET_HashCode *result)
+{
+  GNUNET_break (0 == 
+		gcry_kdf_derive (buf, buf_len,
+				 GCRY_KDF_PBKDF2 /* FIX: use SCRYPT! */,
+				 1 /* subalgo */,
+				 "gnunet-proof-of-work", strlen ("gnunet-proof-of-work"),
+				 2 /* iterations; keep cost of individual op small */,
+				 sizeof (struct GNUNET_HashCode), result));
+}
+
+
+/**
  * Get the number of matching bits that the given timestamp has to the given peer ID.
  *
  * @param timestamp time to generate key
@@ -835,7 +859,7 @@ check_proof_of_work (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pkey,
   memcpy (buf, &val, sizeof (val));
   memcpy (&buf[sizeof (val)], pkey,
           sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
-  GNUNET_CRYPTO_hash (buf, sizeof (buf), &result);
+  pow_hash (buf, sizeof (buf), &result);
   return (count_leading_zeroes (&result) >=
           nse_work_required) ? GNUNET_YES : GNUNET_NO;
 }
@@ -886,7 +910,7 @@ find_proof (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   while ((counter != UINT64_MAX) && (i < ROUND_SIZE))
   {
     memcpy (buf, &counter, sizeof (uint64_t));
-    GNUNET_CRYPTO_hash (buf, sizeof (buf), &result);
+    pow_hash (buf, sizeof (buf), &result);
     if (nse_work_required <= count_leading_zeroes (&result))
     {
       my_proof = counter;
