@@ -25,9 +25,9 @@
  */
 #include "platform.h"
 #include "gnunet_common.h"
-#include "gnunet_crypto_lib.h"
-#include "gnunet_time_lib.h"
+#include "gnunet_util_lib.h"
 #include <gauger.h>
+
 
 static void
 perfHash ()
@@ -50,6 +50,7 @@ perfHash ()
   GNUNET_free (buf);
 }
 
+
 int
 main (int argc, char *argv[])
 {
@@ -57,9 +58,9 @@ main (int argc, char *argv[])
 
   start = GNUNET_TIME_absolute_get ();
   perfHash ();
-  printf ("Hash perf took %llu ms\n",
-          (unsigned long long)
-          GNUNET_TIME_absolute_get_duration (start).rel_value);
+  printf ("Hash perf took %s\n",
+          GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start),
+						  GNUNET_YES));
   GAUGER ("UTIL", "Cryptographic hashing",
           1024 * 64 * 1024 / (1 +
                               GNUNET_TIME_absolute_get_duration
@@ -67,4 +68,4 @@ main (int argc, char *argv[])
   return 0;
 }
 
-/* end of hashperf.c */
+/* end of perf_crypto_hash.c */
