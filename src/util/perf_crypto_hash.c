@@ -32,22 +32,13 @@
 static void
 perfHash ()
 {
-  struct GNUNET_HashCode hc1;
-  struct GNUNET_HashCode hc2;
-  struct GNUNET_HashCode hc3;
-  int i;
-  char *buf;
+  struct GNUNET_HashCode hc;
+  unsigned int i;
+  char buf[64 * 1024];
 
-  buf = GNUNET_malloc (1024 * 64);
-  memset (buf, 1, 1024 * 64);
-  GNUNET_CRYPTO_hash ("foo", 3, &hc1);
+  memset (buf, 1, sizeof (buf));
   for (i = 0; i < 1024; i++)
-  {
-    GNUNET_CRYPTO_hash (&hc1, sizeof (struct GNUNET_HashCode), &hc2);
-    GNUNET_CRYPTO_hash (&hc2, sizeof (struct GNUNET_HashCode), &hc1);
-    GNUNET_CRYPTO_hash (buf, 1024 * 64, &hc3);
-  }
-  GNUNET_free (buf);
+    GNUNET_CRYPTO_hash (buf, sizeof (buf), &hc);
 }
 
 
