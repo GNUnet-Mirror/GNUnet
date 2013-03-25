@@ -350,7 +350,7 @@ stop_arm (struct PeerContext *p)
 
 
 int
-main (int argc, char *argv[])
+main (int argc, char *argv1[])
 {
   char *const argv[] = { "test-core-api",
     "-c",
