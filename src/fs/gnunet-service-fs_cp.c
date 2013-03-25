@@ -25,7 +25,6 @@
  */
 #include "platform.h"
 #include "gnunet_load_lib.h"
-#include "gnunet_ats_service.h"
 #include "gnunet-service-fs.h"
 #include "gnunet-service-fs_cp.h"
 #include "gnunet-service-fs_pe.h"
@@ -315,11 +314,6 @@ static struct GNUNET_CONTAINER_MultiHashMap *cp_map;
  */
 static char *respectDirectory;
 
-/**
- * Handle to ATS service.
- */
-static struct GNUNET_ATS_PerformanceHandle *ats;
-
 
 /**
  * Get the filename under which we would store respect
@@ -341,39 +335,18 @@ get_respect_filename (const struct GNUNET_PeerIdentity *id)
 
 
 /**
- * Find latency information in 'atsi'.
+ * Update the latency information kept for the given peer.
  *
- * @param atsi performance data
- * @param atsi_count number of records in 'atsi'
- * @return connection latency
+ * @param id peer record to update
+ * @param latency current latency value
  */
-static struct GNUNET_TIME_Relative
-get_latency (const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
+void
+GSF_update_peer_latency_ (const struct GNUNET_PeerIdentity *id,
+			  struct GNUNET_TIME_Relative latency)
 {
-  unsigned int i;
+  struct GSF_ConnectedPeer *cp;
 
-  for (i = 0; i < atsi_count; i++)
-    if (ntohl (atsi->type) == GNUNET_ATS_QUALITY_NET_DELAY)
-      return GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-                                            ntohl (atsi->value));
-  return GNUNET_TIME_UNIT_SECONDS;
-}
-
-
-/**
- * Update the performance information kept for the given peer.
- *
- * @param cp peer record to update
- * @param atsi transport performance data
- * @param atsi_count number of records in 'atsi'
- */
-static void
-update_atsi (struct GSF_ConnectedPeer *cp,
-             const struct GNUNET_ATS_Information *atsi, unsigned int atsi_count)
-{
-  struct GNUNET_TIME_Relative latency;
-
-  latency = get_latency (atsi, atsi_count);
+  cp = GSF_peer_get_ (id);
   GNUNET_LOAD_value_set_decline (cp->ppd.transmission_delay, latency);
   /* LATER: merge atsi into cp's performance data (if we ever care...) */
 }
@@ -439,7 +412,7 @@ schedule_transmission (struct GSF_PeerTransmitHandle *pth)
 
   if (0 != cp->inc_preference)
   {
-    GNUNET_ATS_change_preference (ats, &target, GNUNET_ATS_PREFERENCE_BANDWIDTH,
+    GNUNET_ATS_change_preference (GSF_ats, &target, GNUNET_ATS_PREFERENCE_BANDWIDTH,
                                   (double) cp->inc_preference,
                                   GNUNET_ATS_PREFERENCE_END);
     cp->inc_preference = 0;
@@ -454,7 +427,7 @@ schedule_transmission (struct GSF_PeerTransmitHandle *pth)
     /* reservation already done! */
     pth->was_reserved = GNUNET_YES;
     cp->rc =
-        GNUNET_ATS_reserve_bandwidth (ats, &target, DBLOCK_SIZE,
+        GNUNET_ATS_reserve_bandwidth (GSF_ats, &target, DBLOCK_SIZE,
                                       &ats_reserve_callback, cp);
     return;
   }
@@ -540,8 +513,8 @@ retry_reservation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_PEER_resolve (cp->ppd.pid, &target);
   cp->rc_delay_task = GNUNET_SCHEDULER_NO_TASK;
   cp->rc =
-      GNUNET_ATS_reserve_bandwidth (ats, &target, DBLOCK_SIZE,
-                                    &ats_reserve_callback, cp);
+    GNUNET_ATS_reserve_bandwidth (GSF_ats, &target, DBLOCK_SIZE,
+				  &ats_reserve_callback, cp);
 }
 
 
@@ -595,14 +568,10 @@ ats_reserve_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
  * records.
  *
  * @param peer identity of peer that connected
- * @param atsi performance data for the connection
- * @param atsi_count number of records in 'atsi'
  * @return handle to connected peer entry
  */
 struct GSF_ConnectedPeer *
-GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
-                           const struct GNUNET_ATS_Information *atsi,
-                           unsigned int atsi_count)
+GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer)
 {
   struct GSF_ConnectedPeer *cp;
   char *fn;
@@ -614,7 +583,7 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
   cp->ppd.pid = GNUNET_PEER_intern (peer);
   cp->ppd.transmission_delay = GNUNET_LOAD_value_init (GNUNET_TIME_UNIT_ZERO);
   cp->rc =
-      GNUNET_ATS_reserve_bandwidth (ats, peer, DBLOCK_SIZE,
+      GNUNET_ATS_reserve_bandwidth (GSF_ats, peer, DBLOCK_SIZE,
                                     &ats_reserve_callback, cp);
   fn = get_respect_filename (peer);
   if ((GNUNET_YES == GNUNET_DISK_file_test (fn)) &&
@@ -630,7 +599,6 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
   GNUNET_STATISTICS_set (GSF_stats, gettext_noop ("# peers connected"),
                          GNUNET_CONTAINER_multihashmap_size (cp_map),
                          GNUNET_NO);
-  update_atsi (cp, atsi, atsi_count);
   GSF_push_start_ (cp);
   return cp;
 }
@@ -718,8 +686,6 @@ GSF_handle_p2p_migration_stop_ (void *cls,
     cp->mig_revive_task =
         GNUNET_SCHEDULER_add_delayed (bt, &revive_migration, cp);
   }
-  fprintf (stderr, "FIX ATS DATA: %s:%u!\n", __FILE__, __LINE__);
-  update_atsi (cp, NULL, 0);
   return GNUNET_OK;
 }
 
@@ -1821,7 +1787,6 @@ void
 GSF_connected_peer_init_ ()
 {
   cp_map = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_YES);
-  ats = GNUNET_ATS_performance_init (GSF_cfg, NULL, NULL);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_filename (GSF_cfg, "fs",
                                                           "RESPECT",
@@ -1860,8 +1825,6 @@ GSF_connected_peer_done_ ()
   cp_map = NULL;
   GNUNET_free (respectDirectory);
   respectDirectory = NULL;
-  GNUNET_ATS_performance_done (ats);
-  ats = NULL;
 }
 
 

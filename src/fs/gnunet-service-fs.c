@@ -101,6 +101,12 @@ struct GNUNET_LOAD_Value *GSF_rt_entry_lifetime;
 struct GNUNET_TIME_Relative GSF_avg_latency = { 500 };
 
 /**
+ * Handle to ATS service.
+ */
+struct GNUNET_ATS_PerformanceHandle *GSF_ats;
+
+
+/**
  * Typical priorities we're seeing from other peers right now.  Since
  * most priorities will be zero, this value is the weighted average of
  * non-zero priorities seen "recently".  In order to ensure that new
@@ -226,29 +232,41 @@ GSF_test_get_load_too_high_ (uint32_t priority)
 /**
  * We've received peer performance information. Update
  * our running average for the P2P latency.
- *
- * @param atsi performance information
- * @param atsi_count number of 'atsi' records
+*
+ * @param cls closure
+ * @param address the address
+ * @param bandwidth_out assigned outbound bandwidth for the connection
+ * @param bandwidth_in assigned inbound bandwidth for the connection
+ * @param ats performance data for the address (as far as known)
+ * @param ats_count number of performance records in 'ats'
  */
 static void
-update_latencies (const struct GNUNET_ATS_Information *atsi,
-                  unsigned int atsi_count)
+update_latencies (void *cls,
+		  const struct GNUNET_HELLO_Address *address,
+		  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+		  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+		  const struct GNUNET_ATS_Information *ats, 
+		  uint32_t ats_count)
 {
   unsigned int i;
+  struct GNUNET_TIME_Relative latency;
 
-  for (i = 0; i < atsi_count; i++)
+  // FIXME: if (GNUNET_YES != current_address) return;
+  for (i = 0; i < ats_count; i++)
   {
-    if (ntohl (atsi[i].type) == GNUNET_ATS_QUALITY_NET_DELAY)
-    {
-      GSF_avg_latency.rel_value =
-          (GSF_avg_latency.rel_value * 31 +
-           GNUNET_MIN (5000, ntohl (atsi[i].value))) / 32;
-      GNUNET_STATISTICS_set (GSF_stats,
-                             gettext_noop
-                             ("# running average P2P latency (ms)"),
-                             GSF_avg_latency.rel_value, GNUNET_NO);
-      break;
-    }
+    if (GNUNET_ATS_QUALITY_NET_DELAY != ntohl (ats[i].type))
+      continue;
+    latency.rel_value = ntohl (ats[i].value);
+    GSF_update_peer_latency_ (&address->peer,
+			      latency);
+    GSF_avg_latency.rel_value =
+      (GSF_avg_latency.rel_value * 31 +
+       GNUNET_MIN (5000, ntohl (ats[i].value))) / 32;
+    GNUNET_STATISTICS_set (GSF_stats,
+			   gettext_noop
+			   ("# running average P2P latency (ms)"),
+			   GSF_avg_latency.rel_value, GNUNET_NO);
+    break;    
   }
 }
 
@@ -276,8 +294,6 @@ handle_p2p_put (void *cls, const struct GNUNET_PeerIdentity *other,
     return GNUNET_OK;
   }
   GSF_cover_content_count++;
-  fprintf (stderr, "FIX ATS DATA: %s:%u!\n", __FILE__, __LINE__);
-  update_latencies (NULL, 0);
   return GSF_handle_p2p_content_ (cp, message);
 }
 
@@ -353,8 +369,6 @@ handle_p2p_get (void *cls, const struct GNUNET_PeerIdentity *other,
     return GNUNET_SYSERR;
   GSF_pending_request_get_data_ (pr)->has_started = GNUNET_YES;
   GSF_local_lookup_ (pr, &consider_forwarding, NULL);
-  fprintf (stderr, "FIX ATS DATA: %s:%u!\n", __FILE__, __LINE__);
-  update_latencies (NULL, 0);
   return GNUNET_OK;
 }
 
@@ -463,6 +477,11 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CORE_disconnect (GSF_core);
     GSF_core = NULL;
   }
+  if (NULL != GSF_ats)
+  {
+    GNUNET_ATS_performance_done (GSF_ats);
+    GSF_ats = NULL;
+  }
   GSF_put_done_ ();
   GSF_push_done_ ();
   GSF_pending_request_done_ ();
@@ -534,8 +553,7 @@ peer_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
 
   if (0 == memcmp (&my_id, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
-  fprintf (stderr, "FIX ATS DATA: %s:%u!\n", __FILE__, __LINE__);
-  cp = GSF_peer_connect_handler_ (peer, NULL, 0);
+  cp = GSF_peer_connect_handler_ (peer);
   if (NULL == cp)
     return;
   GSF_iterate_pending_requests_ (&consider_peer_for_forwarding, cp);
@@ -672,6 +690,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GSF_plan_init ();
   GSF_pending_request_init_ ();
   GSF_connected_peer_init_ ();
+  GSF_ats = GNUNET_ATS_performance_init (GSF_cfg, &update_latencies, NULL);
   GSF_push_init_ ();
   GSF_put_init_ ();
   if ((GNUNET_OK != GNUNET_FS_indexing_init (cfg, GSF_dsh)) ||

@@ -31,6 +31,7 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_core_service.h"
 #include "gnunet_block_lib.h"
+#include "gnunet_ats_service.h"
 #include "fs.h"
 
 
@@ -216,6 +217,12 @@ extern struct GNUNET_LOAD_Value *GSF_rt_entry_lifetime;
  * Running average of the observed latency to other peers (round trip).
  */
 extern struct GNUNET_TIME_Relative GSF_avg_latency;
+
+/**
+ * Handle to ATS service.
+ */
+extern struct GNUNET_ATS_PerformanceHandle *GSF_ats;
+
 
 /**
  * Typical priorities we're seeing from other peers right now.  Since

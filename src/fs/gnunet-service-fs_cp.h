@@ -200,14 +200,10 @@ struct GSF_PeerTransmitHandle;
  * records.
  *
  * @param peer identity of peer that connected
- * @param atsi performance data for the connection
- * @param atsi_count number of records in 'atsi'
  * @return handle to connected peer entry
  */
 struct GSF_ConnectedPeer *
-GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
-                           const struct GNUNET_ATS_Information *atsi,
-                           unsigned int atsi_count);
+GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -218,6 +214,17 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
  */
 struct GSF_ConnectedPeer *
 GSF_peer_get_ (const struct GNUNET_PeerIdentity *peer);
+
+
+/**
+ * Update the latency information kept for the given peer.
+ *
+ * @param id peer record to update
+ * @param latency current latency value
+ */
+void
+GSF_update_peer_latency_ (const struct GNUNET_PeerIdentity *id,
+			  struct GNUNET_TIME_Relative latency);
 
 
 /**
