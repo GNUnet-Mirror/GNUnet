@@ -347,8 +347,8 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
 
 
 /**
- * Function that will be called to figure if an address is an loopback,
- * LAN, WAN etc. address
+ * Function that will be called to manipulate ATS information according to
+ * current manipulation settings
  *
  * @param cls closure
  * @param peer the peer
@@ -358,27 +358,22 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
  * @param ats the ats information
  * @param ats_count the number of ats information
  */
-void
-GST_manipulation_metrics_recv (void *cls,
-																 struct GNUNET_PeerIdentity *peer,
-																 const char *address,
-																 uint16_t address_len,
-																 struct Session *session,
-																 struct GNUNET_ATS_Information *ats,
-																 uint32_t ats_count)
+struct GNUNET_ATS_Information *
+GST_manipulation_manipulate_metrics (const struct GNUNET_PeerIdentity *peer,
+		const struct GNUNET_HELLO_Address *address,
+		struct Session *session,
+		const struct GNUNET_ATS_Information *ats,
+		uint32_t ats_count)
 {
-
-	struct GNUNET_ATS_Information ats_new[ats_count];
+	struct GNUNET_ATS_Information *ats_new = GNUNET_malloc (sizeof (struct GNUNET_ATS_Information) *ats_count);
 	struct TM_Peer *tmp;
 	uint32_t m_distance;
 	int d;
-
-
 	m_distance = 0;
 	if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &peer->hashPubKey)))
 	{
 			if (UINT32_MAX != tmp->metrics[TM_RECEIVE][DISTANCE])
-				m_distance = tmp->metrics[TM_RECEIVE][DISTANCE];
+					m_distance = tmp->metrics[TM_RECEIVE][DISTANCE];
 	}
 
 	for (d = 0; d < ats_count; d++)
@@ -387,13 +382,17 @@ GST_manipulation_metrics_recv (void *cls,
 		if (ntohl(ats[d].type) == GNUNET_ATS_QUALITY_NET_DISTANCE)
 		{
 			if (m_distance > 0)
+			{
 				ats_new[d].value = htonl(m_distance);
+			}
 			else if  (man_handle.distance_recv > 0)
+			{
 				ats_new[d].value = htonl(man_handle.distance_recv);
+			}
 		}
 	}
 
-	man_handle.metric_update_cb (cls, peer, address, address_len, session, ats_new, ats_count);
+	return ats_new;
 }
 
 struct GNUNET_TIME_Relative
@@ -427,7 +426,6 @@ GST_manipulation_recv (void *cls,
 		return quota_delay;
 	else
 		return m_delay;
-
 }
 
 void

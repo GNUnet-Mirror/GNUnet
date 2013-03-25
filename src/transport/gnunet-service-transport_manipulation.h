@@ -66,14 +66,12 @@ GST_manipulation_recv (void *cls,
  * @param ats the ats information
  * @param ats_count the number of ats information
  */
-void
-GST_manipulation_metrics_recv (void *cls,
-																 struct GNUNET_PeerIdentity *peer,
-																 const char *address,
-																 uint16_t address_len,
-																 struct Session *session,
-																 struct GNUNET_ATS_Information *ats,
-																 uint32_t ats_count);
+struct GNUNET_ATS_Information *
+GST_manipulation_manipulate_metrics (const struct GNUNET_PeerIdentity *peer,
+		const struct GNUNET_HELLO_Address *address,
+		struct Session *session,
+		const struct GNUNET_ATS_Information *ats,
+		uint32_t ats_count);
 
 void
 GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg,

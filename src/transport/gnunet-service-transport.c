@@ -402,7 +402,16 @@ GST_update_ats_metrics (const struct GNUNET_PeerIdentity *peer,
 			const struct GNUNET_ATS_Information *ats,
 			uint32_t ats_count)
 {
-  GNUNET_ATS_address_update (GST_ats, address, session, ats, ats_count);
+	struct GNUNET_ATS_Information *ats_new;
+	/* Call to manipulation to manipulate ATS information */
+	ats_new = GST_manipulation_manipulate_metrics (peer, address, session, ats, ats_count);
+	if (NULL == ats_new)
+	{
+			GNUNET_break (0);
+			return;
+	}
+  GNUNET_ATS_address_update (GST_ats, address, session, ats_new, ats_count);
+  GNUNET_free (ats_new);
 }
 
 
