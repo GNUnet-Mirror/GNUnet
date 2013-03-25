@@ -26,9 +26,6 @@
  *
  * @author Christian Grothoff
  * @author Nathan Evans
- *
- * TODO:
- * - distance updates are not properly communicate to US by core/transport/ats
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -38,6 +35,7 @@
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_consensus_service.h"
+#include "gnunet_ats_service.h"
 #include "dv.h"
 #include <gcrypt.h>
 
@@ -237,6 +235,16 @@ struct DirectNeighbor
    */
   int target_removed;
 
+  /**
+   * Our distance to this peer, 0 for unknown.
+   */
+  uint32_t distance;
+
+  /**
+   * Is this neighbor connected at the core level?
+   */
+  int connected;
+
 };
 
 
@@ -290,7 +298,9 @@ struct ConsensusSet
 
 
 /**
- * Hashmap of all of our direct neighbors (no DV routing).
+ * Hashmap of all of our neighbors; processing these usually requires
+ * first checking to see if the peer is core-connected and if the 
+ * distance is 1, in which case they are direct neighbors.
  */
 static struct GNUNET_CONTAINER_MultiHashMap *direct_neighbors;
 
@@ -332,28 +342,24 @@ static struct GNUNET_SERVER_NotificationContext *nc;
 /**
  * Handle for the statistics service.
  */
-struct GNUNET_STATISTICS_Handle *stats;
-
+static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
- * Get distance information from 'atsi'.
- *
- * @param atsi performance data
- * @param atsi_count number of entries in atsi
- * @return connected transport distance
+ * Handle to ATS service.
  */
-static uint32_t
-get_atsi_distance (const struct GNUNET_ATS_Information *atsi,
-                   unsigned int atsi_count)
-{
-  unsigned int i;
+static struct GNUNET_ATS_PerformanceHandle *ats;
+ 
 
-  for (i = 0; i < atsi_count; i++)
-    if (ntohl (atsi[i].type) == GNUNET_ATS_QUALITY_NET_DISTANCE)
-      return ntohl (atsi->value);
-  /* FIXME: we do not have distance data? Assume direct neighbor. */
-  return DIRECT_NEIGHBOR_COST;
-}
+/**
+ * Start creating a new consensus from scratch.
+ *
+ * @param cls the 'struct DirectNeighbor' of the peer we're building
+ *        a routing consensus with
+ * @param tc scheduler context
+ */    
+static void
+start_consensus (void *cls,
+		 const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -696,15 +702,29 @@ move_route (struct Route *route,
 
 
 /**
- * Start creating a new consensus from scratch.
+ * A peer is now connected to us at distance 1.  Initiate DV exchange.
  *
- * @param cls the 'struct DirectNeighbor' of the peer we're building
- *        a routing consensus with
- * @param tc scheduler context
- */    
+ * @param neighbor entry for the neighbor at distance 1
+ */
 static void
-start_consensus (void *cls,
-		 const struct GNUNET_SCHEDULER_TaskContext *tc);
+handle_direct_connect (struct DirectNeighbor *neighbor)
+{
+  struct Route *route;
+
+  GNUNET_STATISTICS_update (stats,
+			    "# peers connected (1-hop)",
+			    1, GNUNET_NO);
+  route = GNUNET_CONTAINER_multihashmap_get (all_routes, 
+					     &neighbor->peer.hashPubKey);
+  if (NULL != route)  
+  {
+    send_disconnect_to_plugin (&neighbor->peer);
+    release_route (route);
+    GNUNET_free (route);
+  }
+  neighbor->consensus_task = GNUNET_SCHEDULER_add_now (&start_consensus,
+						       neighbor);
+}
 
 
 /**
@@ -717,26 +737,22 @@ static void
 handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct DirectNeighbor *neighbor;
-  struct Route *route;
-  uint32_t distance;
  
   /* Check for connect to self message */
   if (0 == memcmp (&my_identity, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
-  fprintf (stderr, "FIX ATS DATA: %s:%u!\n", __FILE__, __LINE__);
-  distance =  get_atsi_distance (NULL, 0);
+  /* check if entry exists */
   neighbor = GNUNET_CONTAINER_multihashmap_get (direct_neighbors, 
 						&peer->hashPubKey);
   if (NULL != neighbor)
   {
-    GNUNET_break (0);
+    GNUNET_break (GNUNET_YES != neighbor->connected);
+    neighbor->connected = GNUNET_YES;
+    if (DIRECT_NEIGHBOR_COST != neighbor->distance)
+      return;
+    handle_direct_connect (neighbor);
     return;
   }
-  if (DIRECT_NEIGHBOR_COST != distance) 
-    return; /* is a DV-neighbor */
-  GNUNET_STATISTICS_update (stats,
-			    "# peers connected (1-hop)",
-			    1, GNUNET_NO);
   neighbor = GNUNET_malloc (sizeof (struct DirectNeighbor));
   neighbor->peer = *peer;
   GNUNET_assert (GNUNET_YES ==
@@ -744,16 +760,8 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 						    &peer->hashPubKey,
 						    neighbor,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  route = GNUNET_CONTAINER_multihashmap_get (all_routes, 
-					     &peer->hashPubKey);
-  if (NULL != route)  
-  {
-    send_disconnect_to_plugin (peer);
-    release_route (route);
-    GNUNET_free (route);
-  }
-  neighbor->consensus_task = GNUNET_SCHEDULER_add_now (&start_consensus,
-						       neighbor);
+  neighbor->connected = GNUNET_YES;
+  neighbor->distance = 0; /* unknown */
 }
 
 
@@ -834,11 +842,174 @@ refresh_routes (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct DirectNeighbor *neighbor = value;
 
+  if ( (GNUNET_YES != neighbor->connected) ||
+       (DIRECT_NEIGHBOR_COST != neighbor->distance) )
+    return GNUNET_YES;    
   if (NULL != neighbor->neighbor_table)
     GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table,
 					   &check_possible_route,
 					   neighbor);
   return GNUNET_YES;
+}
+
+
+/**
+ * Get distance information from 'atsi'.
+ *
+ * @param atsi performance data
+ * @param atsi_count number of entries in atsi
+ * @return connected transport distance
+ */
+static uint32_t
+get_atsi_distance (const struct GNUNET_ATS_Information *atsi,
+                   uint32_t atsi_count)
+{
+  uint32_t i;
+
+  for (i = 0; i < atsi_count; i++)
+    if (ntohl (atsi[i].type) == GNUNET_ATS_QUALITY_NET_DISTANCE)
+      return ntohl (atsi->value);
+  /* If we do not have explicit distance data, assume direct neighbor. */
+  return DIRECT_NEIGHBOR_COST;
+}
+
+
+/**
+ * Multihashmap iterator for freeing routes that go via a particular
+ * neighbor that disconnected and is thus no longer available.
+ *
+ * @param cls the direct neighbor that is now unavailable
+ * @param key key value stored under
+ * @param value a 'struct Route' that may or may not go via neighbor
+ *
+ * @return GNUNET_YES to continue iteration, GNUNET_NO to stop
+ */
+static int
+cull_routes (void *cls, const struct GNUNET_HashCode * key, void *value)
+{
+  struct DirectNeighbor *neighbor = cls;
+  struct Route *route = value;
+
+  if (route->next_hop != neighbor)
+    return GNUNET_YES; /* not affected */
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_remove (all_routes, key, value));
+  release_route (route);
+  send_disconnect_to_plugin (&route->target.peer);
+  GNUNET_free (route);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Handle the case that a direct connection to a peer is
+ * disrupted.  Remove all routes via that peer and
+ * stop the consensus with it.
+ *
+ * @param neighbor peer that was disconnected (or at least is no 
+ *    longer at distance 1)
+ */
+static void
+handle_direct_disconnect (struct DirectNeighbor *neighbor)
+{
+  GNUNET_CONTAINER_multihashmap_iterate (all_routes,
+					 &cull_routes,
+                                         neighbor);
+  if (NULL != neighbor->cth)
+  {
+    GNUNET_CORE_notify_transmit_ready_cancel (neighbor->cth);
+    neighbor->cth = NULL;
+  }
+  if (NULL != neighbor->neighbor_table_consensus)
+  {
+    GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table_consensus,
+					   &free_targets,
+					   NULL);
+    GNUNET_CONTAINER_multihashmap_destroy (neighbor->neighbor_table_consensus);
+    neighbor->neighbor_table_consensus = NULL;
+  }
+  if (NULL != neighbor->neighbor_table)
+  {
+    GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table,
+					   &free_targets,
+					   NULL);
+    GNUNET_CONTAINER_multihashmap_destroy (neighbor->neighbor_table);
+    neighbor->neighbor_table = NULL;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != neighbor->consensus_task)
+  {
+    GNUNET_SCHEDULER_cancel (neighbor->consensus_task);
+    neighbor->consensus_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (NULL != neighbor->consensus)
+  {
+    GNUNET_CONSENSUS_destroy (neighbor->consensus);
+    neighbor->consensus = NULL;
+  }
+}
+
+
+/**
+ * Function that is called with QoS information about an address; used
+ * to update our current distance to another peer.
+ *
+ * @param cls closure
+ * @param address the address
+ * @param bandwidth_out assigned outbound bandwidth for the connection
+ * @param bandwidth_in assigned inbound bandwidth for the connection
+ * @param ats performance data for the address (as far as known)
+ * @param ats_count number of performance records in 'ats'
+ */
+static void
+handle_ats_update (void *cls,
+		   const struct GNUNET_HELLO_Address *address,
+		   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+		   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+		   const struct GNUNET_ATS_Information *ats, 
+		   uint32_t ats_count)
+{
+  struct DirectNeighbor *neighbor;
+  uint32_t distance;
+
+  /* FIXME: ignore CB if this address is not the one that is in use! */
+  distance = get_atsi_distance (ats, ats_count); 
+  /* check if entry exists */
+  neighbor = GNUNET_CONTAINER_multihashmap_get (direct_neighbors, 
+						&address->peer.hashPubKey);
+  if (NULL != neighbor)
+  {    
+    if ( (DIRECT_NEIGHBOR_COST == neighbor->distance) &&
+	 (DIRECT_NEIGHBOR_COST == distance) )
+      return; /* no change */
+    if (DIRECT_NEIGHBOR_COST == neighbor->distance) 
+    {
+      neighbor->distance = distance;
+      GNUNET_STATISTICS_update (stats,
+				"# peers connected (1-hop)",
+				-1, GNUNET_NO);  
+      handle_direct_disconnect (neighbor);
+      GNUNET_CONTAINER_multihashmap_iterate (direct_neighbors,
+					     &refresh_routes,
+					     NULL);
+      return;
+    }
+    neighbor->distance = distance;
+    if (DIRECT_NEIGHBOR_COST != neighbor->distance)
+      return;    
+    if (GNUNET_YES != neighbor->connected)
+      return;
+    handle_direct_connect (neighbor);
+    return;
+  }
+  neighbor = GNUNET_malloc (sizeof (struct DirectNeighbor));
+  neighbor->peer = address->peer;
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_put (direct_neighbors,
+						    &address->peer.hashPubKey,
+						    neighbor,
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  neighbor->connected = GNUNET_NO; /* not yet */
+  neighbor->distance = distance; 
 }
 
 
@@ -954,7 +1125,6 @@ check_target_added (void *cls,
  * The consensus has concluded, clean up and schedule the next one.
  *
  * @param cls the 'struct GNUNET_DirectNeighbor' with which we created the consensus
- * @param group FIXME
  */
 static void
 consensus_done_cb (void *cls)
@@ -1282,33 +1452,6 @@ handle_dv_send_message (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Multihashmap iterator for freeing routes that go via a particular
- * neighbor that disconnected and is thus no longer available.
- *
- * @param cls the direct neighbor that is now unavailable
- * @param key key value stored under
- * @param value a 'struct Route' that may or may not go via neighbor
- *
- * @return GNUNET_YES to continue iteration, GNUNET_NO to stop
- */
-static int
-cull_routes (void *cls, const struct GNUNET_HashCode * key, void *value)
-{
-  struct DirectNeighbor *neighbor = cls;
-  struct Route *route = value;
-
-  if (route->next_hop != neighbor)
-    return GNUNET_YES; /* not affected */
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_remove (all_routes, key, value));
-  release_route (route);
-  send_disconnect_to_plugin (&route->target.peer);
-  GNUNET_free (route);
-  return GNUNET_YES;
-}
-
-
-/**
  * Cleanup all of the data structures associated with a given neighbor.
  *
  * @param neighbor neighbor to clean up
@@ -1326,40 +1469,7 @@ cleanup_neighbor (struct DirectNeighbor *neighbor)
 				 pending);    
     GNUNET_free (pending);
   }
-  GNUNET_CONTAINER_multihashmap_iterate (all_routes,
-					 &cull_routes,
-                                         neighbor);
-  if (NULL != neighbor->cth)
-  {
-    GNUNET_CORE_notify_transmit_ready_cancel (neighbor->cth);
-    neighbor->cth = NULL;
-  }
-  if (NULL != neighbor->neighbor_table_consensus)
-  {
-    GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table_consensus,
-					   &free_targets,
-					   NULL);
-    GNUNET_CONTAINER_multihashmap_destroy (neighbor->neighbor_table_consensus);
-    neighbor->neighbor_table_consensus = NULL;
-  }
-  if (NULL != neighbor->neighbor_table)
-  {
-    GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table,
-					   &free_targets,
-					   NULL);
-    GNUNET_CONTAINER_multihashmap_destroy (neighbor->neighbor_table);
-    neighbor->neighbor_table = NULL;
-  }
-  if (GNUNET_SCHEDULER_NO_TASK != neighbor->consensus_task)
-  {
-    GNUNET_SCHEDULER_cancel (neighbor->consensus_task);
-    neighbor->consensus_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  if (NULL != neighbor->consensus)
-  {
-    GNUNET_CONSENSUS_destroy (neighbor->consensus);
-    neighbor->consensus = NULL;
-  }
+  handle_direct_disconnect (neighbor);
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (direct_neighbors, 
 						       &neighbor->peer.hashPubKey,
@@ -1389,12 +1499,17 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
       GNUNET_CONTAINER_multihashmap_get (direct_neighbors, &peer->hashPubKey);
   if (NULL == neighbor)
   {
-    /* must have been a DV-neighbor, ignore */
+    GNUNET_break (0);
     return;
   }
-  GNUNET_STATISTICS_update (stats,
-			    "# peers connected (1-hop)",
-			    -1, GNUNET_NO);  
+  GNUNET_break (GNUNET_YES == neighbor->connected);
+  neighbor->connected = GNUNET_NO;
+  if (DIRECT_NEIGHBOR_COST == neighbor->distance)
+  {
+    GNUNET_STATISTICS_update (stats,
+			      "# peers connected (1-hop)",
+			      -1, GNUNET_NO);  
+  }
   cleanup_neighbor (neighbor);
   GNUNET_CONTAINER_multihashmap_iterate (direct_neighbors,
 					 &refresh_routes,
@@ -1459,6 +1574,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_CORE_disconnect (core_api);
   core_api = NULL;
+  GNUNET_ATS_performance_done (ats);
+  ats = NULL;
   GNUNET_CONTAINER_multihashmap_iterate (direct_neighbors,
                                          &free_direct_neighbors, NULL);
   GNUNET_CONTAINER_multihashmap_iterate (all_routes,
@@ -1582,6 +1699,12 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   if (NULL == core_api)
     return;
+  ats = GNUNET_ATS_performance_init (cfg, &handle_ats_update, NULL);
+  if (NULL == ats)
+  {
+    GNUNET_CORE_disconnect (core_api);
+    return;
+  }
   nc = GNUNET_SERVER_notification_context_create (server,
 						  MAX_QUEUE_SIZE_PLUGIN);
   stats = GNUNET_STATISTICS_create ("dv", cfg);
