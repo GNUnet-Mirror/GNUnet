@@ -394,15 +394,17 @@ plugin_env_address_to_type (void *cls,
   return GNUNET_ATS_address_get_type(GST_ats, addr, addrlen);
 }
 
+
 void
-GST_update_ats_metrics (struct GNUNET_PeerIdentity *peer,
-		 	 	 	 	 	 	 	 	 	  struct GNUNET_HELLO_Address *address,
-		 	 	 	 	 	 	 	 	 	  struct Session *session,
-		 	 	 	 	 	 	 	 	 	  struct GNUNET_ATS_Information *ats,
-		 	 	 	 	 	 	 	 	 	  uint32_t ats_count)
+GST_update_ats_metrics (const struct GNUNET_PeerIdentity *peer,
+			const struct GNUNET_HELLO_Address *address,
+			struct Session *session,
+			const struct GNUNET_ATS_Information *ats,
+			uint32_t ats_count)
 {
   GNUNET_ATS_address_update (GST_ats, address, session, ats, ats_count);
 }
+
 
 /**
  * Function that will be called to figure if an address is an loopback,
@@ -418,12 +420,12 @@ GST_update_ats_metrics (struct GNUNET_PeerIdentity *peer,
  */
 static void
 plugin_env_update_metrics (void *cls,
-													 struct GNUNET_PeerIdentity *peer,
-													 const void *address,
-													 uint16_t address_len,
-													 struct Session *session,
-													 struct GNUNET_ATS_Information *ats,
-													 uint32_t ats_count)
+			   const struct GNUNET_PeerIdentity *peer,
+			   const void *address,
+			   uint16_t address_len,
+			   struct Session *session,
+			   const struct GNUNET_ATS_Information *ats,
+			   uint32_t ats_count)
 {
   struct GNUNET_HELLO_Address haddress;
   const char *plugin_name = cls;

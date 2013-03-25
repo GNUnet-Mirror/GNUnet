@@ -89,18 +89,20 @@ extern struct GNUNET_ATS_SchedulingHandle *GST_ats;
  *         (plugins that do not support this, can ignore the return value)
  */
 struct GNUNET_TIME_Relative
-GST_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
-                             const struct GNUNET_MessageHeader *message,
-                             struct Session *session,
-                             const char *sender_address,
-                             uint16_t sender_address_len);
+GST_receive_callback (void *cls,
+		      const struct GNUNET_PeerIdentity *peer,
+		      const struct GNUNET_MessageHeader *message,
+		      struct Session *session,
+		      const char *sender_address,
+		      uint16_t sender_address_len);
+
 
 void
-GST_update_ats_metrics (struct GNUNET_PeerIdentity *peer,
-		 	 	 	 	 	 	 	 	 	  struct GNUNET_HELLO_Address *address,
-		 	 	 	 	 	 	 	 	 	  struct Session *session,
-		 	 	 	 	 	 	 	 	 	  struct GNUNET_ATS_Information *ats,
-		 	 	 	 	 	 	 	 	 	  uint32_t ats_count);
+GST_update_ats_metrics (const struct GNUNET_PeerIdentity *peer,
+			const struct GNUNET_HELLO_Address *address,
+			struct Session *session,
+			const struct GNUNET_ATS_Information *ats,
+			uint32_t ats_count);
 
 #endif
 /* end of file gnunet-service-transport_plugins.h */

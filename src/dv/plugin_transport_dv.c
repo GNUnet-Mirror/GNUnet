@@ -249,7 +249,7 @@ handle_dv_message_received (void *cls,
                         msg,
                         session, "", 0);
   plugin->env->update_address_metrics (plugin->env->cls,
-  		sender, "", 0, session, &ats, 1);
+				       sender, "", 0, session, &ats, 1);
 }
 
 
