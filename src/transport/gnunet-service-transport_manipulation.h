@@ -54,9 +54,21 @@ GST_manipulation_recv (void *cls,
 											 const char *sender_address,
 											 uint16_t sender_address_len);
 
+/**
+ * Function that will be called to figure if an address is an loopback,
+ * LAN, WAN etc. address
+ *
+ * @param cls closure
+ * @param peer the peer
+ * @param address binary address
+ * @param address_len length of the address
+ * @param session the session
+ * @param ats the ats information
+ * @param ats_count the number of ats information
+ */
 void
 GST_manipulation_metrics_recv (void *cls,
-																 const struct GNUNET_PeerIdentity *peer,
+																 struct GNUNET_PeerIdentity *peer,
 																 const char *address,
 																 uint16_t address_len,
 																 struct Session *session,

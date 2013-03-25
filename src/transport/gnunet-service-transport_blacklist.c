@@ -540,8 +540,6 @@ struct TestConnectionContext
  *
  * @param cls the 'struct TestConnectionContest'
  * @param neighbour neighbour's identity
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
  * @param address the address
  * @param bandwidth_in inbound quota in NBO
  * @param bandwidth_out outbound quota in NBO
