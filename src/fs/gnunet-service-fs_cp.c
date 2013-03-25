@@ -684,8 +684,6 @@ GSF_peer_get_ (const struct GNUNET_PeerIdentity *peer)
  * @param other the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
- * @param atsi performance information
- * @param atsi_count number of records in 'atsi'
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
