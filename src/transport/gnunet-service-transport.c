@@ -103,8 +103,6 @@ struct GNUNET_TIME_Relative hello_expiration;
  *
  * @param cls the 'HELLO' message
  * @param target a connected neighbour
- * @param ats performance information (unused)
- * @param ats_count number of records in ats (unused)
  * @param address the address
  * @param bandwidth_in inbound quota in NBO
  * @param bandwidth_out outbound quota in NBO
@@ -144,8 +142,6 @@ process_hello_update (void *cls, const struct GNUNET_MessageHeader *hello)
  * @param address the address
  * @param session session used
  * @param message the message to process
- * @param ats performance information
- * @param ats_count number of records in ats
  * @return how long the plugin should wait until receiving more data
  */
 static struct GNUNET_TIME_Relative
@@ -204,8 +200,6 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
  * @param peer (claimed) identity of the other peer
  * @param message the message, NULL if we only care about
  *                learning about the delay until we should receive again -- FIXME!
- * @param ats performance information
- * @param ats_count number of records in ats
  * @param session identifier used for this session (NULL for plugins
  *                that do not offer bi-directional communication to the sender
  *                using the same "connection")
@@ -415,9 +409,12 @@ GST_update_ats_metrics (struct GNUNET_PeerIdentity *peer,
  * LAN, WAN etc. address
  *
  * @param cls closure
- * @param addr binary address
- * @param addrlen length of the address
- * @return ATS Information containing the network type
+ * @param peer the peer
+ * @param address binary address
+ * @param address_len length of the address
+ * @param session the session
+ * @param ats the ats information to update
+ * @param ats_count the number of ats elements
  */
 static void
 plugin_env_update_metrics (void *cls,
@@ -492,8 +489,6 @@ ats_request_address_change (void *cls,
  *
  * @param cls closure
  * @param peer the peer that connected
- * @param ats performance data
- * @param ats_count number of entries in ats
  * @param bandwidth_in inbound bandwidth in NBO
  * @param bandwidth_out outbound bandwidth in NBO
  */

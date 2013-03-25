@@ -135,12 +135,12 @@ typedef struct GNUNET_ATS_Information
  */
 typedef void
 (*GNUNET_TRANSPORT_UpdateAddressMetrics) (void *cls,
-																					const struct GNUNET_PeerIdentity *peer,
-    																			const char *address,
-    																			uint16_t address_len,
-    																			struct Session *session,
-    																			struct GNUNET_ATS_Information *ats,
-    																			uint32_t ats_count);
+																				 struct GNUNET_PeerIdentity *peer,
+																				 const void *address,
+																				 uint16_t address_len,
+																				 struct Session *session,
+																				 struct GNUNET_ATS_Information *ats,
+																				 uint32_t ats_count);
 
 /**
  * Function that will be called for each address the transport

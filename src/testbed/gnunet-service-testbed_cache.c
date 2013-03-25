@@ -540,8 +540,6 @@ peer_connect_notify_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
  *
  * @param cls closure
  * @param peer the peer that connected
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
  */
 static void
 transport_peer_connect_notify_cb (void *cls,

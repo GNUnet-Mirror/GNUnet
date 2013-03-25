@@ -351,9 +351,12 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
  * LAN, WAN etc. address
  *
  * @param cls closure
- * @param addr binary address
- * @param addrlen length of the address
- * @return ATS Information containing the network type
+ * @param peer the peer
+ * @param address binary address
+ * @param address_len length of the address
+ * @param session the session
+ * @param ats the ats information
+ * @param ats_count the number of ats information
  */
 void
 GST_manipulation_metrics_recv (void *cls,

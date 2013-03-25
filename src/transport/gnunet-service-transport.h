@@ -76,8 +76,6 @@ extern struct GNUNET_ATS_SchedulingHandle *GST_ats;
  * @param peer (claimed) identity of the other peer
  * @param message the message, NULL if we only care about
  *                learning about the delay until we should receive again -- FIXME!
- * @param ats performance information
- * @param ats_count number of records in ats
  * @param session identifier used for this session (NULL for plugins
  *                that do not offer bi-directional communication to the sender
  *                using the same "connection")

@@ -784,10 +784,7 @@ GNUNET_ATS_performance_monitor_start (struct GNUNET_ATS_PerformanceHandle * ph,
 /**
  * Stop monitoring performance information
  *
- * @param ph performance handle to use
- * @param monitor_cb function to call on performance changes
- * @param monitor_cb_cls closure for infocb
- * @return a performance monitor handle
+ * @param phm performance monitor handle to use
  */
 void
 GNUNET_ATS_performance_monitor_stop (struct GNUNET_ATS_PerformanceMonitorHandle * phm)

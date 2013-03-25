@@ -297,8 +297,6 @@ process_queue (struct Neighbour *n)
  *
  * @param cls closure
  * @param peer the peer that connected
- * @param atsi performance data
- * @param atsi_count number of entries in ats (excluding 0-termination)
  */
 static void
 handle_transport_notify_connect (void *cls,
@@ -366,8 +364,6 @@ handle_transport_notify_disconnect (void *cls,
  * @param cls closure
  * @param peer (claimed) identity of the other peer
  * @param message the message
- * @param atsi performance data
- * @param atsi_count number of entries in ats (excluding 0-termination)
  */
 static void
 handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
