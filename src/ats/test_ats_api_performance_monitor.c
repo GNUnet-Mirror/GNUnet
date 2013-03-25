@@ -42,8 +42,6 @@ static struct GNUNET_ATS_SchedulingHandle *sh;
 
 static struct GNUNET_ATS_PerformanceHandle *ph;
 
-static struct GNUNET_ATS_PerformanceMonitorHandle *phm;
-
 static struct GNUNET_HELLO_Address addr;
 
 static struct GNUNET_ATS_Information atsi[ATS_COUNT];
@@ -91,12 +89,6 @@ end_now (int res)
 
 	cleanup_addresses ();
 
-	if (NULL != phm)
-	{
-		GNUNET_ATS_performance_monitor_stop (phm);
-		phm = NULL;
-	}
-
 	if (NULL != ph)
 	{
 		GNUNET_ATS_performance_done (ph);
@@ -129,9 +121,6 @@ next_stage (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	{
 		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stop performance monitoring\n");
 
-		GNUNET_ATS_performance_monitor_stop (phm);
-		phm = NULL;
-
 		stage_task = GNUNET_SCHEDULER_add_delayed (SHUTDOWN_CORRECT, &next_stage, NULL);
 		stage_counter++;
 		return;
@@ -151,8 +140,10 @@ static void end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 perf_mon_cb (void *cls,
-						struct GNUNET_PeerIdentity *peer,
-						struct GNUNET_ATS_Information *ats,
+						const struct GNUNET_PeerIdentity *peer,
+						const struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+						const struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+						const struct GNUNET_ATS_Information *ats,
 						uint32_t ats_count)
 {
 	static int stage_counter = 0;
@@ -273,11 +264,9 @@ run (void *cls,
 
   setup_addresses ();
 
-  ph = GNUNET_ATS_performance_init (cfg, NULL, NULL);
+  ph = GNUNET_ATS_performance_init (cfg, &perf_mon_cb, &ret, NULL, NULL);
   GNUNET_assert (NULL != ph);
 
-  phm = GNUNET_ATS_performance_monitor_start (ph, &perf_mon_cb, &ret);
-  GNUNET_assert (NULL != phm);
 
   stage_task = GNUNET_SCHEDULER_add_delayed (SHUTDOWN_CORRECT, &next_stage, NULL);
 }

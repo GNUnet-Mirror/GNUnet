@@ -31,16 +31,6 @@
 #include "gnunet-service-ats_reservations.h"
 #include "ats.h"
 
-struct PerformanceMonitorClient
-{
-	struct PerformanceMonitorClient *next;
-	struct PerformanceMonitorClient *prev;
-
-	struct GNUNET_SERVER_Client *client;
-
-	uint32_t id;
-};
-
 /**
  * We keep clients that are interested in performance in a linked list.
  */
@@ -138,18 +128,9 @@ void
 GAS_performance_remove_client (struct GNUNET_SERVER_Client *client)
 {
   struct PerformanceClient *pc;
-  struct PerformanceMonitorClient *cur;
-  struct PerformanceMonitorClient *next;
   pc = find_client (client);
   if (NULL == pc)
     return;
-  next = pc->pm_head;
-  while (NULL != (cur = next))
-	{
-  		next = cur->next;
-  		GNUNET_CONTAINER_DLL_remove (pc->pm_head, pc->pm_tail, cur);
-  		GNUNET_free (cur);
-	}
   GNUNET_CONTAINER_DLL_remove (pc_head, pc_tail, pc);
   GNUNET_SERVER_client_drop (client);
   GNUNET_free (pc);
@@ -293,7 +274,9 @@ peerinfo_it (void *cls,
               ntohl (bandwidth_in.value__));
   GAS_performance_notify_client(pc,
                                 id,
-                                plugin_name, plugin_addr, plugin_addr_len,
+                                plugin_name,
+                                plugin_addr,
+                                plugin_addr_len,
                                 active,
                                 atsi, atsi_count,
                                 bandwidth_out, bandwidth_in);
@@ -529,6 +512,9 @@ GAS_handle_performance_update (struct GNUNET_PeerIdentity *peer,
 															 struct GNUNET_ATS_Information *ats,
 															 uint32_t ats_count)
 {
+/* Notify here */
+
+#if 0
 	struct PerformanceClient *cur;
 	struct PerformanceMonitorClient *curm;
 	struct MonitorResponseMessage *mrm;
@@ -555,139 +541,7 @@ GAS_handle_performance_update (struct GNUNET_PeerIdentity *peer,
 			  		GNUNET_YES);
 		}
 	GNUNET_free (mrm);
-}
-
-
-static void
-mon_peerinfo_it (void *cls,
-             const struct GNUNET_PeerIdentity *id,
-             const char *plugin_name,
-             const void *plugin_addr, size_t plugin_addr_len,
-             const int active,
-             const struct GNUNET_ATS_Information *atsi,
-             uint32_t atsi_count,
-             struct GNUNET_BANDWIDTH_Value32NBO
-             bandwidth_out,
-             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
-{
-	struct PerformanceMonitorClient *pmc = cls;
-	struct MonitorResponseMessage *mrm;
-	size_t msglen;
-
-	if (NULL == id)
-		return; /* last callback */
-
-	msglen = sizeof (struct MonitorResponseMessage) +
-			atsi_count * sizeof (struct GNUNET_ATS_Information);
-	mrm = GNUNET_malloc (msglen);
-
-	mrm->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_MONITOR_RESPONSE);
-	mrm->header.size = htons (msglen);
-	mrm->id = htonl(pmc->id);
-	mrm->ats_count = htonl (atsi_count);
-	mrm->peer = *id;
-	memcpy (&mrm[1], atsi, atsi_count * sizeof (struct GNUNET_ATS_Information));
-
-	/* Send initial information about peers to client */
-
-  GNUNET_SERVER_notification_context_unicast (nc,
-  		pmc->client,
-  		(struct GNUNET_MessageHeader *) mrm,
-  		GNUNET_YES);
-  GNUNET_free (mrm);
-}
-
-/**
- * Iterator for GAS_handle_monitor
- *
- * @param cls the performance monitoring client requesting information
- * @param id result
- */
-static void
-mon_peer_it (void *cls,
-         const struct GNUNET_PeerIdentity *id)
-{
-  struct PerformanceMonitorClient *pmc = cls;
-  if (NULL != id)
-    GAS_addresses_get_peer_info (GSA_addresses, id, &mon_peerinfo_it, pmc);
-}
-
-
-void
-GAS_handle_monitor (void *cls,
-										struct GNUNET_SERVER_Client *client,
-										const struct GNUNET_MessageHeader *message)
-{
-  struct PerformanceClient *pc;
-	struct PerformanceMonitorClient *pmc;
-	struct MonitorMessage *mm = (struct MonitorMessage *) message;
-	size_t msg_size;
-	uint32_t id;
-	uint32_t op;
-
-	pc = find_client (client);
-	if (NULL == pc)
-	{
-			GNUNET_break (0);
-			return;
-	}
-
-	msg_size = ntohs (message->size);
-	if (msg_size < sizeof (struct MonitorMessage))
-	{
-		  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-			return;
-	}
-
-	id = ntohl (mm->id);
-	op = ntohl (mm->op);
-
-	for (pmc = pc->pm_head; NULL != pmc; pmc = pmc->next)
-		if ((pmc->id == id) && (client == pmc->client))
-			break;
-
-	if (GNUNET_YES == op)
-	{
-			/* Start monitoring */
-			if (NULL != pmc)
-			{
-				GNUNET_break (0);
-				GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-				return; /* Duplicate*/
-			}
-			pmc = GNUNET_malloc (sizeof (struct PerformanceMonitorClient));
-			pmc->client = client;
-			pmc->id = id;
-			GNUNET_CONTAINER_DLL_insert (pc->pm_head, pc->pm_tail, pmc);
-			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-					"Added performance monitoring client %p id %u\n",
-					client, id);
-			/* Return all values here */
-		  GAS_addresses_iterate_peers (GSA_addresses, &mon_peer_it, pmc);
-
-	}
-	else if (GNUNET_NO == op)
-	{
-			/* Stop monitoring */
-			if (NULL == pmc)
-			{
-				GNUNET_break (0);
-				GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-				return; /* Not existing */
-			}
-			GNUNET_CONTAINER_DLL_remove (pc->pm_head, pc->pm_tail, pmc);
-			GNUNET_free (pmc);
-			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-					"Removed performance monitoring client %p id %u\n",
-					client, id);
-	}
-	else
-	{
-		GNUNET_break (0);
-		GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-		return;
-	}
-	GNUNET_SERVER_receive_done (client, GNUNET_OK);
+#endif
 }
 
 

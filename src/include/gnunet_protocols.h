@@ -1149,13 +1149,6 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_RESPONSE 355
 
-/**
- * Type of the 'struct AddressListRequestMessage' sent by client to ATS
- * to request information about addresses
- */
-#define GNUNET_MESSAGE_TYPE_ATS_MONITOR 356
-
-#define GNUNET_MESSAGE_TYPE_ATS_MONITOR_RESPONSE 357
 
 
 /*******************************************************************************

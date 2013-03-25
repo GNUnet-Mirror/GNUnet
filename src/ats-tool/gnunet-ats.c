@@ -221,18 +221,12 @@ void transport_addr_to_str_cb (void *cls, const char *address)
 }
 
 void ats_perf_cb (void *cls,
-                  const struct
-                  GNUNET_HELLO_Address *
-                  address,
-                  struct
-                  GNUNET_BANDWIDTH_Value32NBO
-                  bandwidth_out,
-                  struct
-                  GNUNET_BANDWIDTH_Value32NBO
-                  bandwidth_in,
-                  const struct
-                  GNUNET_ATS_Information *
-                  ats, uint32_t ats_count)
+									const struct GNUNET_HELLO_Address *address,
+									unsigned int active,
+									struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+									struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+									const struct GNUNET_ATS_Information *ats,
+									uint32_t ats_count)
 {
   struct PendingResolutions * pr;
 
@@ -373,7 +367,7 @@ void testservice_ats (void *cls,
     }
     if (op_list_all)
     {
-        ph = GNUNET_ATS_performance_init (cfg, NULL, NULL);
+        ph = GNUNET_ATS_performance_init (cfg, NULL, NULL, NULL, NULL);
         if (NULL == ph)
         {
           fprintf (stderr, _("Cannot connect to ATS service, exiting...\n"));
@@ -393,7 +387,7 @@ void testservice_ats (void *cls,
     }
     else if (op_list_used)
     {
-        ph = GNUNET_ATS_performance_init (cfg, NULL, NULL);
+        ph = GNUNET_ATS_performance_init (cfg, NULL, NULL, NULL, NULL);
         if (NULL == ph)
           fprintf (stderr, _("Cannot connect to ATS service, exiting...\n"));
 
@@ -410,7 +404,7 @@ void testservice_ats (void *cls,
     }
     else if (op_monitor)
     {
-        ph = GNUNET_ATS_performance_init (cfg, ats_perf_cb, NULL);
+        ph = GNUNET_ATS_performance_init (cfg, NULL, NULL, ats_perf_cb, NULL);
         if (NULL == ph)
           fprintf (stderr, _("Cannot connect to ATS service, exiting...\n"));
         end_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &end, NULL);
@@ -435,7 +429,7 @@ void testservice_ats (void *cls,
         }
 
             /* set */
-            ph = GNUNET_ATS_performance_init (cfg, NULL, NULL);
+            ph = GNUNET_ATS_performance_init (cfg, NULL, NULL, NULL, NULL);
             if (NULL == ph)
               fprintf (stderr, _("Cannot connect to ATS service, exiting...\n"));
 

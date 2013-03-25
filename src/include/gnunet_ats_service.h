@@ -707,9 +707,11 @@ struct GNUNET_ATS_PerformanceHandle;
  */
 typedef void
 (*GNUNET_ATS_PerformanceMonitorCb) (void *cls,
-																		struct GNUNET_PeerIdentity *peer,
-																		struct GNUNET_ATS_Information *ats,
-																		uint32_t ats_count);
+															const struct GNUNET_PeerIdentity *peer,
+															const struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+															const struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+															const struct GNUNET_ATS_Information *ats,
+															uint32_t ats_count);
 
 
 /**
@@ -717,24 +719,20 @@ typedef void
  *
  * @param cls closure
  * @param address the address
+ * @param address_active is this address actively used to maintain a connection
+ * 				to a peer
  * @param bandwidth_out assigned outbound bandwidth for the connection
  * @param bandwidth_in assigned inbound bandwidth for the connection
  * @param ats performance data for the address (as far as known)
  * @param ats_count number of performance records in 'ats'
  */
 typedef void (*GNUNET_ATS_AddressInformationCallback) (void *cls,
-                                                    const struct
-                                                    GNUNET_HELLO_Address *
-                                                    address,
-                                                    struct
-                                                    GNUNET_BANDWIDTH_Value32NBO
-                                                    bandwidth_out,
-                                                    struct
-                                                    GNUNET_BANDWIDTH_Value32NBO
-                                                    bandwidth_in,
-                                                    const struct
-                                                    GNUNET_ATS_Information *
-                                                    ats, uint32_t ats_count);
+														const struct GNUNET_HELLO_Address *address,
+														unsigned int address_active,
+														struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+														struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+														const struct GNUNET_ATS_Information *ats,
+														uint32_t ats_count);
 
 /**
  * Handle for an address listing operation
@@ -746,14 +744,20 @@ struct GNUNET_ATS_AddressListHandle;
  * Get handle to access performance API of the ATS subsystem.
  *
  * @param cfg configuration to use
- * @param infocb function to call on performance changes, can be NULL
- * @param infocb_cls closure for infocb
+ * @param perf_monitor_cb callback called when performance characteristics for
+ * 	a peer change
+ * @param perf_monitor_cb closure for the perf_monitor_cb
+ * @param addr_info_cb callback called when performance characteristics for
+ * 	an address change
+ * @param addr_info_cb_cls closure for infocb
  * @return ats performance context
  */
 struct GNUNET_ATS_PerformanceHandle *
 GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                             GNUNET_ATS_AddressInformationCallback infocb,
-                             void *infocb_cls);
+														 GNUNET_ATS_PerformanceMonitorCb perf_monitor_cb,
+														 void *perf_monitor_cb_cls,
+                             GNUNET_ATS_AddressInformationCallback addr_info_cb,
+                             void *addr_info_cb_cls);
 
 
 /**

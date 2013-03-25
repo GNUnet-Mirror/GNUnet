@@ -129,18 +129,12 @@ static void
 test_performance_api (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 void all_active_addresses_peer_cb (void *cls,
-                      const struct
-                      GNUNET_HELLO_Address *
-                      address,
-                      struct
-                      GNUNET_BANDWIDTH_Value32NBO
-                      bandwidth_out,
-                      struct
-                      GNUNET_BANDWIDTH_Value32NBO
-                      bandwidth_in,
-                      const struct
-                      GNUNET_ATS_Information *
-                      ats, uint32_t ats_count)
+		const struct GNUNET_HELLO_Address *address,
+		unsigned int active,
+		struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+		struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+		const struct GNUNET_ATS_Information *ats,
+		uint32_t ats_count)
 {
   static int cb = 0;
   int fail = GNUNET_NO;
@@ -198,18 +192,12 @@ void all_active_addresses_peer_cb (void *cls,
 }
 
 void all_active_addresses_cb (void *cls,
-                      const struct
-                      GNUNET_HELLO_Address *
-                      address,
-                      struct
-                      GNUNET_BANDWIDTH_Value32NBO
-                      bandwidth_out,
-                      struct
-                      GNUNET_BANDWIDTH_Value32NBO
-                      bandwidth_in,
-                      const struct
-                      GNUNET_ATS_Information *
-                      ats, uint32_t ats_count)
+															const struct GNUNET_HELLO_Address *address,
+															unsigned int active,
+															struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+															struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+															const struct GNUNET_ATS_Information *ats,
+															uint32_t ats_count)
 {
   static int cb = 0;
   int fail = GNUNET_NO;
@@ -279,18 +267,12 @@ void all_active_addresses_cb (void *cls,
 
 
 void all_addresses_peer_cb (void *cls,
-                      const struct
-                      GNUNET_HELLO_Address *
-                      address,
-                      struct
-                      GNUNET_BANDWIDTH_Value32NBO
-                      bandwidth_out,
-                      struct
-                      GNUNET_BANDWIDTH_Value32NBO
-                      bandwidth_in,
-                      const struct
-                      GNUNET_ATS_Information *
-                      ats, uint32_t ats_count)
+														const struct GNUNET_HELLO_Address *address,
+														unsigned int active,
+														struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+														struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+														const struct GNUNET_ATS_Information *ats,
+														uint32_t ats_count)
 {
   static int cb = 0;
   int fail = GNUNET_NO;
@@ -334,18 +316,12 @@ void all_addresses_peer_cb (void *cls,
 }
 
 void all_addresses_cb (void *cls,
-                              const struct
-                              GNUNET_HELLO_Address *
-                              address,
-                              struct
-                              GNUNET_BANDWIDTH_Value32NBO
-                              bandwidth_out,
-                              struct
-                              GNUNET_BANDWIDTH_Value32NBO
-                              bandwidth_in,
-                              const struct
-                              GNUNET_ATS_Information *
-                              ats, uint32_t ats_count)
+											const struct GNUNET_HELLO_Address *address,
+											unsigned int active,
+											struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+											struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+											const struct GNUNET_ATS_Information *ats,
+											uint32_t ats_count)
 {
   static int cb = 0;
 
@@ -404,7 +380,7 @@ static void
 test_performance_api (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (NULL == ph)
-    ph = GNUNET_ATS_performance_init (cfg, NULL, NULL);
+    ph = GNUNET_ATS_performance_init (cfg, NULL, NULL, NULL, NULL);
   if (NULL == ph)
   {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to initialize performance handle\n");
