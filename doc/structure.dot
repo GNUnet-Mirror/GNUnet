@@ -8,7 +8,9 @@
 
 digraph dependencies {
 splines = true;
-
+  voting [shape=house];
+  voting -> consensus;
+  voting -> stream;
   fs [shape=house];
   fs -> dht;
   fs -> core;
@@ -24,13 +26,13 @@ splines = true;
   pt -> mesh;
   pt -> vpn;
   pt -> dns;
+  dv -> ats;
   dns -> mesh;
   dns -> tun;
   gns [shape=house];
   gns -> namestore;
   gns -> dns;
   gns -> dht;
-  gns -> stream [style=dashed];
   gns -> block [style=dotted,color=blue];
 //  psycd [style=dashed,shape=house];
 //  psycd -> mesh [style=dashed];
@@ -41,16 +43,18 @@ splines = true;
   dht -> nse;
   dht -> block;
   dht -> datacache;
-  dht -> ats [style=dashed];
+//  dht -> ats [style=dashed];
   nse -> core;
+  regex -> block [style=dotted,color=blue];
   block [shape=diamond];
   datacache [shape=diamond];
   mesh -> core [weight=2];
   mesh -> dht;
   mesh -> regex;
-  mesh -> block [color=blue];
-  mesh -> ats [style=dashed];
+  mesh -> block [style=dotted,color=blue];
+//  mesh -> ats [style=dashed];
   regex [shape=diamond];
+  regex -> dht;
   core -> transport;
   core -> peerinfo;
   topology [shape=box];
@@ -66,43 +70,16 @@ splines = true;
   transport -> peerinfo;
   transport -> nat;
   transport -> fragmentation;
-  dv [style=dashed,shape=egg,layer=core];
-  dv -> transport [color=blue];
+  dv [shape=egg];
+  dv -> transport [color=blue,style=dotted];
   dv -> core;
-  fs -> ats;
   dv -> consensus;
-  consensus -> dv [style=invis]; // force dv below consensus
   consensus -> mesh;
-  core -> dv [style=invis]; // force dv below core
   peerinfo -> hello;
   fragmentation [shape=diamond];
   hello [shape=diamond];
   nat [shape=diamond];
   tun [shape=diamond];
 
-  subgraph STREAM {
-    stream; lockmanager;
-  }
-  subgraph DHT {
-    dht; nse; datacache; block;
-  }
-  subgraph MESH {
-    mesh; regex;
-  }
-  subgraph TRANSPORT {
-    transport; dv; peerinfo; hello; nat; ats;
-  }
-  subgraph CORE {
-    core; hostlist; topology;
-  }
-  subgraph FS {
-    fs; datastore;
-  }
-  subgraph GNS {
-    gns; namestore;
-  }
-  subgraph VPN {
-    vpn; pt; exit;
-  }
 
 }
