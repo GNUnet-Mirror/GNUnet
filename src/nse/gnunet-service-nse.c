@@ -1461,7 +1461,7 @@ key_generation_cb (void *cls,
     if (0 == gethostname (hostname, HOST_NAME_MAX))
     {
       (void) GNUNET_asprintf (&hgram_file, "%s/%s_%jd.hist", 
-                              proof, hostname, (intmax_t) getpid);
+                              proof, hostname, (intmax_t) getpid());
       wh = GNUNET_BIO_write_open (hgram_file);
       GNUNET_free (hgram_file);
     }
