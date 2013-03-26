@@ -537,37 +537,10 @@ statistics_iterator (void *cls,
 {
   struct StatsContext *stats_context = cls;
   char buf[512];
-  const char *const sections[] = {"core", "transport", "nse"};
   size_t buf_len;
-  unsigned int cnt;
-  unsigned int nsections;
 
-  nsections = sizeof (sections) / sizeof (char *);
-  for (cnt = 0; cnt < nsections; cnt++)
-    if (0 == strcmp (subsystem, sections[cnt]))
-      break;
-  if (cnt == nsections)
-    return GNUNET_OK;
-
-  if (NULL == data_file)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "%p -> %s [%s]: %llu\n",
-                peer, subsystem, name, value);
-  }
-  else
-  {
-    buf_len =
-        GNUNET_snprintf (buf,
-                         sizeof (buf),
-                         "%p [%s] %s %llu\n",
-                         peer,
-                         subsystem, name, value);
-    if (buf_len != GNUNET_DISK_file_write (data_file, buf, buf_len))
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to write to file!\n");
-  }
-  if (0 != strcmp (subsystem, "nse"))
-    return GNUNET_OK;
+  if (0 != strcasecmp (subsystem, "nse"))
+    return GNUNET_SYSERR;
   if (0 == strcmp (name, "# flood messages received"))
   {
     stats_context->total_nse_received_messages += value;
@@ -635,7 +608,7 @@ finish_round (void *cls,
   get_stats_op =
       GNUNET_TESTBED_get_statistics (num_peers_in_round[current_round],
                                      daemons,
-                                     NULL, NULL,
+                                     "nse", NULL,
                                      &statistics_iterator,
                                      &stats_finished_callback,
                                      stats_context);
