@@ -192,25 +192,6 @@ struct PeerInformationMessage
 
 };
 
-struct MonitorMessage
-{
-  struct GNUNET_MessageHeader header;
-
-  uint32_t id GNUNET_PACKED;
-
-  uint32_t op GNUNET_PACKED; /* GNUNET_YES to start, GNUNET_NO to stop */
-};
-
-struct MonitorResponseMessage
-{
-  struct GNUNET_MessageHeader header;
-
-  uint32_t id GNUNET_PACKED;
-
-  uint32_t ats_count GNUNET_PACKED;
-
-  struct GNUNET_PeerIdentity peer;
-};
 
 struct AddressListRequestMessage
 {

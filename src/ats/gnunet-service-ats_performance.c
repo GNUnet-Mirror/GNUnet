@@ -46,10 +46,6 @@ struct PerformanceClient
    */
   struct PerformanceClient *prev;
 
-  struct PerformanceMonitorClient *pm_head;
-
-  struct PerformanceMonitorClient *pm_tail;
-
   /**
    * Actual handle to the client.
    */
