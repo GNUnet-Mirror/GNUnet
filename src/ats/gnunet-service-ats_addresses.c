@@ -1264,13 +1264,23 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 {
   struct GAS_Addresses_Handle *handle = cls;
   struct GAS_Addresses_Suggestion_Requests *cur;
+  struct GNUNET_ATS_Information *ats;
+  unsigned int ats_count;
 
   GNUNET_assert (handle != NULL);
   GNUNET_assert (address != NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Bandwidth assignment changed for peer %s \n", GNUNET_i2s(&address->peer));
-  struct GNUNET_ATS_Information *ats;
-  unsigned int ats_count;
+
+
+  ats_count = assemble_ats_information (address, &ats);
+  GAS_performance_notify_all_clients (&address->peer,
+      address->plugin,
+      address->addr, address->addr_len,
+      address->session_id,
+      ats, ats_count,
+      address->assigned_bw_out,
+      address->assigned_bw_in);
 
   cur = handle->r_head;
   while (NULL != cur)
@@ -1283,13 +1293,14 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
   {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Nobody is interested in peer `%s' :(\n",GNUNET_i2s (&address->peer));
+      GNUNET_free (ats);
       return;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending bandwidth update for peer `%s'\n",GNUNET_i2s (&address->peer));
 
-  ats_count = assemble_ats_information (address, &ats);
+
   GAS_scheduling_transmit_address_suggestion (&address->peer,
                                               address->plugin,
                                               address->addr, address->addr_len,

@@ -142,30 +142,6 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   end_now (1);
 }
 
-static void
-next_stage (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-	static int stage_counter = 0;
-
-	stage_task = GNUNET_SCHEDULER_NO_TASK;
-	if (0 == stage_counter)
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stop performance monitoring\n");
-
-		stage_task = GNUNET_SCHEDULER_add_delayed (SHUTDOWN_CORRECT, &next_stage, NULL);
-		stage_counter++;
-		return;
-	}
-	if (1 == stage_counter)
-	{
-
-	}
-	else
-	{
-			end_now (1);
-	}
-}
-
 static void end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Success\n");

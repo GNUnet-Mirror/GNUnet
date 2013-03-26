@@ -76,6 +76,7 @@ check_PROGRAMS = \
  test_ats_simplistic_pref_aging \
  test_ats_api_performance_list_addresses \
  test_ats_api_performance_monitor \
+ test_ats_api_performance_address_info \
  $(GN_MLP_TEST) $(GN_MLP_PERF) $(GN_MLP_TEST_UPDATE)
 # $(GN_MLP_TEST_AVG)
 # test_ats_api_scheduling_get_type
@@ -173,6 +174,15 @@ test_ats_api_performance_monitor_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la     
+
+
+test_ats_api_performance_address_info_SOURCES = \
+ test_ats_api_performance_address_info.c
+test_ats_api_performance_address_info_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/ats/libgnunetats.la
 
 
 test_ats_simplistic_SOURCES = \
