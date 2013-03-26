@@ -18,8 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file ats/test_ats_api_performance.c
- * @brief test adding addresses in automatic transport selection performance API
+ * @file ats/test_ats_api_performance_list_addresses.c
+ * @brief test performance API's address listing feature
  * @author Christian Grothoff
  * @author Matthias Wachs
  */
@@ -569,4 +569,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of file test_ats_api_performance.c */
+/* end of file test_ats_api_performance_list_addresses.c */

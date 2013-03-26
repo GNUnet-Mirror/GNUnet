@@ -74,7 +74,7 @@ check_PROGRAMS = \
  test_ats_simplistic_switch_networks \
  test_ats_simplistic_change_preference \
  test_ats_simplistic_pref_aging \
- test_ats_api_performance \
+ test_ats_api_performance_list_addresses \
  test_ats_api_performance_monitor \
  $(GN_MLP_TEST) $(GN_MLP_PERF) $(GN_MLP_TEST_UPDATE)
 # $(GN_MLP_TEST_AVG)
@@ -158,9 +158,9 @@ test_ats_api_scheduling_block_and_reset_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la
   
-test_ats_api_performance_SOURCES = \
- test_ats_api_performance.c
-test_ats_api_performance_LDADD = \
+test_ats_api_performance_list_addresses_SOURCES = \
+ test_ats_api_performance_list_addresses.c
+test_ats_api_performance_list_addresses_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/hello/libgnunethello.la \
