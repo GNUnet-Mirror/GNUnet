@@ -638,6 +638,10 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
       return;
     }
   }
+
+  if (NULL == sh->suggest_cb)
+  	return;
+
   address.peer = m->peer;
   address.address = plugin_address;
   address.address_length = plugin_address_length;
