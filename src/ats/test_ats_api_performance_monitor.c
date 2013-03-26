@@ -77,14 +77,12 @@ static void setup_addresses ()
 	addr[0].transport_name = "test0";
 	addr[0].address = "test_addr0";
 	addr[0].address_length = strlen ("test_addr0") + 1;
-	atsi[0].type = htonl(GNUNET_ATS_NETWORK_TYPE);
-	atsi[0].value = htonl(GNUNET_ATS_NET_LAN);
 
-	atsi[1].type = htonl(GNUNET_ATS_QUALITY_NET_DELAY);
-	atsi[1].value = htonl(100);
+	atsi[0].type = htonl(GNUNET_ATS_QUALITY_NET_DELAY);
+	atsi[0].value = htonl(100);
 
-	atsi[2].type = htonl(GNUNET_ATS_QUALITY_NET_DISTANCE);
-	atsi[2].value = htonl(5);
+	atsi[1].type = htonl(GNUNET_ATS_QUALITY_NET_DISTANCE);
+	atsi[1].value = htonl(5);
 
 	GNUNET_ATS_address_add (sh, &addr[0], NULL, atsi, ATS_COUNT);
 
@@ -132,7 +130,15 @@ static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   die_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Timeout\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error!\n");
+  if (GNUNET_NO == res_perf_cb_p0)
+  	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Did not get performance information for requested peer!\n");
+  if (GNUNET_YES == res_perf_cb_p1)
+  	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Got suggestion for not requested peer!\n");
+  if (GNUNET_NO == res_suggest_cb_p0)
+  	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Did not get suggestion for not peer!\n");
+  if (GNUNET_YES == res_suggest_cb_p1)
+  	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Got suggestion for not requested peer!\n");
   end_now (1);
 }
 
@@ -179,10 +185,10 @@ perf_mon_cb (void *cls,
 	int c2;
 	int c3;
 
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 			"ATS notifies about perfomance change for peer `%s'\n", GNUNET_i2s (peer));
 
-	if ((1 != stage) || (2 == stage))
+	if ((1 != stage) && (2 != stage))
 	{
 		GNUNET_break (0);
 		end_now(1);
@@ -193,8 +199,17 @@ perf_mon_cb (void *cls,
 	{
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received 1st callback for peer `%s' with %u information\n",
 					GNUNET_i2s (&addr[0].peer), ats_count);
-			if ((0 != memcmp (peer, &addr[0].peer, sizeof (addr[0].peer))) ||
-					(ats_count < ATS_COUNT))
+			if (0 != memcmp (peer, &addr[0].peer, sizeof (addr[0].peer)))
+			{
+					res_perf_cb_p1 = GNUNET_YES;
+					GNUNET_break (0);
+					if (GNUNET_SCHEDULER_NO_TASK != die_task)
+						GNUNET_SCHEDULER_cancel (die_task);
+					die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+					return;
+			}
+
+			if (ats_count < ATS_COUNT)
 			{
 					GNUNET_break (0);
 					if (GNUNET_SCHEDULER_NO_TASK != die_task)
@@ -232,80 +247,74 @@ perf_mon_cb (void *cls,
 			stage ++;
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %u correct ATS information \n", c3);
 
-			atsi[1].type = htonl(GNUNET_ATS_QUALITY_NET_DELAY);
-			atsi[1].value = htonl(1000);
+			atsi[0].type = htonl(GNUNET_ATS_QUALITY_NET_DELAY);
+			atsi[0].value = htonl(1000);
 
-			atsi[2].type = htonl(GNUNET_ATS_QUALITY_NET_DISTANCE);
-			atsi[2].value = htonl(50);
+			atsi[1].type = htonl(GNUNET_ATS_QUALITY_NET_DISTANCE);
+			atsi[1].value = htonl(50);
 
 			GNUNET_ATS_address_update (sh, &addr[0], NULL, atsi, ATS_COUNT);
+			return;
 	}
-	if (1 == stage)
+	if (2 == stage)
 	{
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received 2nd callback for peer `%s' with %u information\n",
 					GNUNET_i2s (&addr[0].peer), ats_count);
-	}
-
-
-#if 0
-	static int stage_counter = 0;
-
-
-
-	if (0 == stage_counter)
-	{
-
-		c3 = 0;
-
-
-		stage_counter ++;
-
-	}
-	else if (1 == stage_counter)
-	{
-			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received updated callback for peer `%s' with %u information\n",
-					GNUNET_i2s (&addr.peer), ats_count);
-
-			if ((0 != memcmp (peer, &addr.peer, sizeof (addr.peer))) ||
-					(ats_count < ATS_COUNT))
+			if (0 != memcmp (peer, &addr[0].peer, sizeof (addr[0].peer)))
 			{
+					res_perf_cb_p1 = GNUNET_YES;
 					GNUNET_break (0);
-					GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+					if (GNUNET_SCHEDULER_NO_TASK != die_task)
+						GNUNET_SCHEDULER_cancel (die_task);
+					die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
 					return;
 			}
+
+			if (ats_count < ATS_COUNT)
+			{
+					GNUNET_break (0);
+					if (GNUNET_SCHEDULER_NO_TASK != die_task)
+						GNUNET_SCHEDULER_cancel (die_task);
+					die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+					return;
+			}
+
+
 			c3 = 0;
 			for (c1 = 0; c1 < ats_count; c1++)
 			{
-					GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS information [%u] %u : %u \n", c1, ntohl (ats[c1].type), ntohl (ats[c1].value));
-					for (c2 = 0; c2 < ATS_COUNT; c2++)
+				GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS information [%u] %u : %u \n",
+						c1, ntohl (ats[c1].type), ntohl (ats[c1].value));
+				for (c2 = 0; c2 < ATS_COUNT; c2++)
+				{
+					if (ats[c1].type == atsi[c2].type)
 					{
-						if (ats[c1].type == atsi[c2].type)
+						if (ats[c1].value == atsi[c2].value)
+								c3++;
+						else
 						{
-							if (ats[c1].value == atsi[c2].value)
-							{
-									c3++;
-							}
-							else
-							{
-									GNUNET_break (0);
-							}
+							GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS information [%u] should be %u, but is %u \n",
+									ntohl (ats[c1].type), ntohl(atsi[c2].value),  ntohl (ats[c1].value));
+								GNUNET_break (0);
 						}
 					}
+				}
 			}
-
 			if (ATS_COUNT != c3)
 			{
-			  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received only %u correct ATS information \n", c3);
-				GNUNET_break (0);
-				GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+				GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received only %u correct ATS information \n", c3);
+				if (GNUNET_SCHEDULER_NO_TASK != die_task)
+					GNUNET_SCHEDULER_cancel (die_task);
+				die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
 				return;
 			}
-			stage_counter ++;
-			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %u correct ATS information, shutdown... \n", c3);
+
+			/* Everything OK */
+			stage ++;
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %u correct ATS information \n", c3);
 			GNUNET_SCHEDULER_add_now (&end, NULL);
 			return;
 	}
-#endif
 }
 
 void ats_suggest_cb (void *cls,
@@ -316,7 +325,7 @@ void ats_suggest_cb (void *cls,
 										const struct GNUNET_ATS_Information *ats,
 										uint32_t ats_count)
 {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 			"ATS is suggesting address for peer `%s'\n", GNUNET_i2s (&address->peer));
 
 	if (0 != stage)

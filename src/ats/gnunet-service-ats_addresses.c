@@ -465,7 +465,9 @@ disassemble_ats_information (const struct GNUNET_ATS_Information *src,
   		struct GNUNET_ATS_Information *destats;
   		int ats_count;
   		ats_count = assemble_ats_information (dest, &destats);
-  		GAS_handle_performance_update (&dest->peer, destats, ats_count);
+  		GAS_handle_performance_update (&dest->peer, dest->plugin,
+  				dest->addr, dest->addr_len, dest->active,
+  				destats, ats_count, dest->assigned_bw_out, dest->assigned_bw_in);
   		GNUNET_free (destats);
   }
   return res;
