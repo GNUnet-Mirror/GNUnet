@@ -181,16 +181,6 @@ struct GNUNET_ATS_PerformanceHandle
   void *addr_info_cb_cls;
 
   /**
-   * Callback to invoke when a peer has performance changes.
-   */
-	GNUNET_ATS_PerformanceMonitorCb perf_monitor_cb;
-
-  /**
-   * Closure for 'perf_monitor_cb'.
-   */
-	void *perf_monitor_cb_cls;
-
-  /**
    * Connection to ATS service.
    */
   struct GNUNET_CLIENT_Connection *client;
@@ -395,15 +385,6 @@ process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
 
   		ph->addr_info_cb (ph->addr_info_cb_cls, &address, addr_active, pi->bandwidth_out, pi->bandwidth_in,
               atsi, ats_count);
-  }
-  if ((NULL != ph->perf_monitor_cb) &&
-  		(GNUNET_YES == addr_active))
-  {
-  		ph->perf_monitor_cb (ph->perf_monitor_cb_cls,
-  												&pi->peer,
-  												pi->bandwidth_out,
-  												pi->bandwidth_in,
-  												atsi, ats_count);
   }
   return GNUNET_OK;
 }
@@ -640,7 +621,7 @@ reconnect (struct GNUNET_ATS_PerformanceHandle *ph)
     init->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_START);
     init->header.size = htons (sizeof (struct ClientStartMessage));
     init->start_flag =
-        htonl (((NULL ==ph->addr_info_cb) && (NULL == ph->perf_monitor_cb)) ?
+        htonl ((NULL ==ph->addr_info_cb) ?
         		START_FLAG_PERFORMANCE_NO_PIC : START_FLAG_PERFORMANCE_WITH_PIC);
     GNUNET_CONTAINER_DLL_insert (ph->pending_head, ph->pending_tail, p);
   }
@@ -653,9 +634,6 @@ reconnect (struct GNUNET_ATS_PerformanceHandle *ph)
  * Get handle to access performance API of the ATS subsystem.
  *
  * @param cfg configuration to use
- * @param perf_monitor_cb callback called when performance characteristics for
- * 	a peer change
- * @param perf_monitor_cb closure for the perf_monitor_cb
  * @param addr_info_cb callback called when performance characteristics for
  * 	an address change
  * @param addr_info_cb_cls closure for infocb
@@ -663,8 +641,6 @@ reconnect (struct GNUNET_ATS_PerformanceHandle *ph)
  */
 struct GNUNET_ATS_PerformanceHandle *
 GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-														 GNUNET_ATS_PerformanceMonitorCb perf_monitor_cb,
-														 void *perf_monitor_cb_cls,
                              GNUNET_ATS_AddressInformationCallback addr_info_cb,
                              void *addr_info_cb_cls)
 {
@@ -674,8 +650,6 @@ GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ph->cfg = cfg;
   ph->addr_info_cb = addr_info_cb;
   ph->addr_info_cb_cls = addr_info_cb_cls;
-  ph->perf_monitor_cb = perf_monitor_cb;
-  ph->perf_monitor_cb_cls = perf_monitor_cb_cls;
   ph->id  = 0;
   reconnect (ph);
   return ph;

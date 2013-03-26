@@ -698,23 +698,6 @@ GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
 struct GNUNET_ATS_PerformanceHandle;
 
 /**
- * Signature of a function that is called with QoS information about an peer.
- *
- * @param cls closure
- * @param peer the peer
- * @param ats data for the peer
- * @param ats_count number of performance records in 'ats'
- */
-typedef void
-(*GNUNET_ATS_PerformanceMonitorCb) (void *cls,
-															const struct GNUNET_PeerIdentity *peer,
-															const struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-															const struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-															const struct GNUNET_ATS_Information *ats,
-															uint32_t ats_count);
-
-
-/**
  * Signature of a function that is called with QoS information about an address.
  *
  * @param cls closure
@@ -728,7 +711,7 @@ typedef void
  */
 typedef void (*GNUNET_ATS_AddressInformationCallback) (void *cls,
 														const struct GNUNET_HELLO_Address *address,
-														unsigned int address_active,
+														int address_active,
 														struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
 														struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
 														const struct GNUNET_ATS_Information *ats,
@@ -744,9 +727,6 @@ struct GNUNET_ATS_AddressListHandle;
  * Get handle to access performance API of the ATS subsystem.
  *
  * @param cfg configuration to use
- * @param perf_monitor_cb callback called when performance characteristics for
- * 	a peer change
- * @param perf_monitor_cb closure for the perf_monitor_cb
  * @param addr_info_cb callback called when performance characteristics for
  * 	an address change
  * @param addr_info_cb_cls closure for infocb
@@ -754,34 +734,8 @@ struct GNUNET_ATS_AddressListHandle;
  */
 struct GNUNET_ATS_PerformanceHandle *
 GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-														 GNUNET_ATS_PerformanceMonitorCb perf_monitor_cb,
-														 void *perf_monitor_cb_cls,
                              GNUNET_ATS_AddressInformationCallback addr_info_cb,
                              void *addr_info_cb_cls);
-
-
-/**
- * Start monitoring performance information
- *
- * @param ph performance handle to use
- * @param monitor_cb function to call on performance changes
- * @param monitor_cb_cls closure for infocb
- * @return a performance monitor handle
- */
-struct GNUNET_ATS_PerformanceMonitorHandle *
-GNUNET_ATS_performance_monitor_start (struct GNUNET_ATS_PerformanceHandle * ph,
-																			GNUNET_ATS_PerformanceMonitorCb monitor_cb,
-																			void * monitor_cb_cls);
-
-
-/**
- * Stop monitoring performance information
- *
- * @param phm performance monitoring handle to use
- */
-void
-GNUNET_ATS_performance_monitor_stop (struct GNUNET_ATS_PerformanceMonitorHandle * phm);
-
 
 
 /**

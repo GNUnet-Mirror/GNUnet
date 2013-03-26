@@ -225,7 +225,6 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   struct PerformanceClient *pc;
-
   for (pc = pc_head; pc != NULL; pc = pc->next)
     if (pc->flag == START_FLAG_PERFORMANCE_WITH_PIC)
     {

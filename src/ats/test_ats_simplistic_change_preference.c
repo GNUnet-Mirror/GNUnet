@@ -318,7 +318,7 @@ run (void *cls,
     return;
   }
 
-  perf_ats = GNUNET_ATS_performance_init (cfg, NULL, NULL, NULL, NULL);
+  perf_ats = GNUNET_ATS_performance_init (cfg, NULL, NULL);
   if (perf_ats == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not connect to ATS performance!\n");

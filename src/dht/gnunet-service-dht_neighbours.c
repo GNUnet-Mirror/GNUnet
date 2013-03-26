@@ -2077,7 +2077,7 @@ GDS_NEIGHBOURS_init ()
     bucket_size = (unsigned int) temp_config_num;
   log_route_details_stderr =
     (NULL != getenv("GNUNET_DHT_ROUTE_DEBUG")) ? GNUNET_YES : GNUNET_NO;
-  atsAPI = GNUNET_ATS_performance_init (GDS_cfg, NULL, NULL, NULL, NULL);
+  atsAPI = GNUNET_ATS_performance_init (GDS_cfg, NULL, NULL);
   coreAPI =
       GNUNET_CORE_connect (GDS_cfg, NULL, &core_init, &handle_core_connect,
                            &handle_core_disconnect, NULL, GNUNET_NO, NULL,

@@ -367,6 +367,13 @@ struct GAS_Addresses_Handle
 };
 
 
+/**
+ * Assemble ATS information from address
+ *
+ * @param src source address
+ * @param dest destination
+ * @return number of elements
+ */
 static unsigned int
 assemble_ats_information (const struct ATS_Address *aa,  struct GNUNET_ATS_Information **dest)
 {
@@ -393,6 +400,14 @@ assemble_ats_information (const struct ATS_Address *aa,  struct GNUNET_ATS_Infor
   return ats_count;
 }
 
+/**
+ * Disassemble ATS information and update address
+ *
+ * @param src source ATS information
+ * @param ats_count number of ATS information
+ * @param dest destination address
+ * @return GNUNET_YES if address was address updated, GNUNET_NO otherwise
+ */
 static unsigned int
 disassemble_ats_information (const struct GNUNET_ATS_Information *src,
                              uint32_t ats_count,
@@ -460,17 +475,7 @@ disassemble_ats_information (const struct GNUNET_ATS_Information *src,
       GNUNET_break (0);
       break;
     }
-  if (GNUNET_YES == change)
-  {
-  		struct GNUNET_ATS_Information *destats;
-  		int ats_count;
-  		ats_count = assemble_ats_information (dest, &destats);
-  		GAS_handle_performance_update (&dest->peer, dest->plugin,
-  				dest->addr, dest->addr_len, dest->active,
-  				destats, ats_count, dest->assigned_bw_out, dest->assigned_bw_in);
-  		GNUNET_free (destats);
-  }
-  return res;
+  return change;
 }
 
 /**
@@ -688,6 +693,8 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
 {
   struct ATS_Address *aa;
   struct ATS_Address *ea;
+  struct GNUNET_ATS_Information *ats_new;
+  uint32_t ats_count_new;
   unsigned int ats_res;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -702,6 +709,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
 
   aa = create_address (peer, plugin_name, plugin_addr, plugin_addr_len,
                        session_id);
+
   if (atsi_count != (ats_res = disassemble_ats_information(atsi, atsi_count, aa)))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -722,6 +730,16 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
                 GNUNET_i2s (peer), session_id, aa);
     /* Tell solver about new address */
     handle->s_add (handle->solver, handle->addresses, aa);
+    /* Notify performance clients about new address */
+    ats_count_new = assemble_ats_information (aa, &ats_new);
+    GAS_performance_notify_all_clients (&aa->peer,
+        aa->plugin,
+        aa->addr, aa->addr_len,
+        aa->session_id,
+        ats_new, ats_count_new,
+        aa->assigned_bw_out,
+        aa->assigned_bw_in);
+    GNUNET_free (ats_new);
     return;
   }
   GNUNET_free (aa->plugin);
@@ -745,11 +763,17 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
 
   /* Do the update */
   ea->session_id = session_id;
-  if (atsi_count != (ats_res = disassemble_ats_information(atsi, atsi_count, ea)))
+  if (GNUNET_YES == disassemble_ats_information(atsi, atsi_count, ea))
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "While updating address: had %u ATS elements to add, could only add %u\n",
-                  atsi_count, ats_res);
+		ats_count_new = assemble_ats_information (aa, &ats_new);
+		GAS_performance_notify_all_clients (&aa->peer,
+				aa->plugin,
+				aa->addr, aa->addr_len,
+				aa->session_id,
+				ats_new, ats_count_new,
+				aa->assigned_bw_out,
+				aa->assigned_bw_in);
+		GNUNET_free (ats_new);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
            "Updated existing address for peer `%s' %p with new session %u\n",
@@ -766,7 +790,8 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
                       uint32_t atsi_count)
 {
   struct ATS_Address *aa;
-  uint32_t ats_res;
+  struct GNUNET_ATS_Information *ats_new;
+  uint32_t ats_count_new;
 
   if (GNUNET_NO == handle->running)
     return;
@@ -793,15 +818,19 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
   handle->s_update (handle->solver, handle->addresses, aa, session_id, aa->used, atsi, atsi_count);
 
   /* Update address */
-  if (atsi_count != (ats_res = disassemble_ats_information (atsi, atsi_count, aa)))
+  if (GNUNET_YES == disassemble_ats_information (atsi, atsi_count, aa))
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "While adding address: had %u ATS elements to add, could only add %u\n",
-                atsi_count, ats_res);
+  		ats_count_new = assemble_ats_information (aa, &ats_new);
+  		/* Notify performance clients about updated address */
+  		GAS_performance_notify_all_clients (&aa->peer,
+  				aa->plugin,
+  				aa->addr, aa->addr_len,
+  				aa->session_id,
+  				ats_new, ats_count_new,
+  				aa->assigned_bw_out,
+  				aa->assigned_bw_in);
+  		GNUNET_free (ats_new);
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-            "Updated %u ATS elements for address %p\n",
-            ats_res, aa);
 }
 
 
@@ -1274,6 +1303,8 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 
 
   ats_count = assemble_ats_information (address, &ats);
+
+  /* Notify performance clients about changes to address */
   GAS_performance_notify_all_clients (&address->peer,
       address->plugin,
       address->addr, address->addr_len,
@@ -1281,7 +1312,6 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
       ats, ats_count,
       address->assigned_bw_out,
       address->assigned_bw_in);
-
   cur = handle->r_head;
   while (NULL != cur)
   {
@@ -1300,7 +1330,7 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending bandwidth update for peer `%s'\n",GNUNET_i2s (&address->peer));
 
-
+  /* *Notify scheduling clients about suggestion */
   GAS_scheduling_transmit_address_suggestion (&address->peer,
                                               address->plugin,
                                               address->addr, address->addr_len,

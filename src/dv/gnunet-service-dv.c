@@ -962,7 +962,8 @@ handle_direct_disconnect (struct DirectNeighbor *neighbor)
  */
 static void
 handle_ats_update (void *cls,
-		   const struct GNUNET_PeerIdentity *peer,
+		   const struct GNUNET_HELLO_Address *address,
+		   int active,
 		   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
 		   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
 		   const struct GNUNET_ATS_Information *ats, 
@@ -971,11 +972,12 @@ handle_ats_update (void *cls,
   struct DirectNeighbor *neighbor;
   uint32_t distance;
 
-  /* FIXME: ignore CB if this address is not the one that is in use! */
+  if (GNUNET_NO == active)
+  	return;
   distance = get_atsi_distance (ats, ats_count); 
   /* check if entry exists */
   neighbor = GNUNET_CONTAINER_multihashmap_get (direct_neighbors, 
-							&peer->hashPubKey);
+							&address->peer.hashPubKey);
   if (NULL != neighbor)
   {    
     if ( (DIRECT_NEIGHBOR_COST == neighbor->distance) &&
@@ -1002,10 +1004,10 @@ handle_ats_update (void *cls,
     return;
   }
   neighbor = GNUNET_malloc (sizeof (struct DirectNeighbor));
-  neighbor->peer = (*peer);
+  neighbor->peer = address->peer;
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_put (direct_neighbors,
-						    &peer->hashPubKey,
+						    &address->peer.hashPubKey,
 						    neighbor,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   neighbor->connected = GNUNET_NO; /* not yet */
@@ -1699,7 +1701,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   if (NULL == core_api)
     return;
-  ats = GNUNET_ATS_performance_init (cfg, &handle_ats_update, NULL, NULL, NULL);
+  ats = GNUNET_ATS_performance_init (cfg, &handle_ats_update, NULL);
   if (NULL == ats)
   {
     GNUNET_CORE_disconnect (core_api);

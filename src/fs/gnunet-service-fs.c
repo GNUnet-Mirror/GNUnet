@@ -243,7 +243,7 @@ GSF_test_get_load_too_high_ (uint32_t priority)
 static void
 update_latencies (void *cls,
 		  const struct GNUNET_HELLO_Address *address,
-		  unsigned int active,
+		  int active,
 		  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
 		  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
 		  const struct GNUNET_ATS_Information *ats, 
@@ -692,7 +692,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GSF_plan_init ();
   GSF_pending_request_init_ ();
   GSF_connected_peer_init_ ();
-  GSF_ats = GNUNET_ATS_performance_init (GSF_cfg, NULL, NULL, &update_latencies, NULL);
+  GSF_ats = GNUNET_ATS_performance_init (GSF_cfg, &update_latencies, NULL);
   GSF_push_init_ ();
   GSF_put_init_ ();
   if ((GNUNET_OK != GNUNET_FS_indexing_init (cfg, GSF_dsh)) ||
