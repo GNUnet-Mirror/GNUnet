@@ -117,6 +117,7 @@ terminate_task (void *cls,
 {
   terminate_taskid = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_TESTBED_get_statistics (0, NULL,
+                                 NULL, NULL,
 				 &process_stats,
 				 &shutdown_task,
 				 NULL);

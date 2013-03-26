@@ -1339,6 +1339,8 @@ typedef int (*GNUNET_TESTBED_StatisticsIterator) (void *cls,
  *
  * @param num_peers number of peers to iterate over
  * @param peers array of peers to iterate over
+ * @param subsystem limit to the specified subsystem, NULL for all subsystems
+ * @param name name of the statistic value, NULL for all values
  * @param proc processing function for each statistic retrieved
  * @param cont continuation to call once call is completed.  The completion of this
  *          operation is *ONLY* signalled through this callback -- no
@@ -1349,6 +1351,7 @@ typedef int (*GNUNET_TESTBED_StatisticsIterator) (void *cls,
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_get_statistics (unsigned int num_peers,
                                struct GNUNET_TESTBED_Peer **peers,
+                               const char *subsystem, const char *name,
                                GNUNET_TESTBED_StatisticsIterator proc,
                                GNUNET_TESTBED_OperationCompletionCallback cont,
                                void *cls);

@@ -239,6 +239,7 @@ shutdown_task (void *cls,
   }
   (void) GNUNET_TESTBED_get_statistics (NUM_PEERS,
 					my_peers,
+                                        NULL, NULL,
 					&handle_stats,
 					&stats_finished,
 					ctx);

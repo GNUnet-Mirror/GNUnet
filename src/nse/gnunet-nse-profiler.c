@@ -633,8 +633,9 @@ finish_round (void *cls,
   close_monitor_connections ();    
   stats_context = GNUNET_malloc (sizeof (struct StatsContext));
   get_stats_op =
-      GNUNET_TESTBED_get_statistics (num_peers_in_round[current_round], 
-                                     daemons,				 
+      GNUNET_TESTBED_get_statistics (num_peers_in_round[current_round],
+                                     daemons,
+                                     NULL, NULL,
                                      &statistics_iterator,
                                      &stats_finished_callback,
                                      stats_context);

@@ -160,6 +160,7 @@ test_master (void *cls, unsigned int num_peers,
   FAIL_TEST (NUM_PEERS == num_peers, return);
   peers = peers_;
   op = GNUNET_TESTBED_get_statistics (num_peers, peers,
+                                      NULL, NULL,
                                       &stats_iterator,
                                       &op_comp_cb,
                                       dummy_cls);

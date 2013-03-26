@@ -66,6 +66,16 @@ struct GetStatsContext
   struct GNUNET_TESTBED_Peer **peers;
 
   /**
+   * The subsystem of peers for which statistics are requested
+   */
+  char *subsystem;
+
+  /**
+   * The particular statistics value of interest
+   */
+  char *name;
+
+  /**
    * The iterator to call with statistics information
    */
   GNUNET_TESTBED_StatisticsIterator proc;
@@ -253,10 +263,10 @@ service_connect_comp (void *cls,
 {
   struct PeerGetStatsContext *peer_sc = cls;
   struct GNUNET_STATISTICS_Handle *h = ca_result;
-  
+
   LOG_DEBUG ("Retrieving statistics of peer %u\n", peer_sc->peer_index);
   peer_sc->get_handle =
-      GNUNET_STATISTICS_get (h, NULL, NULL,
+      GNUNET_STATISTICS_get (h, peer_sc->sc->subsystem, peer_sc->sc->name,
                              GNUNET_TIME_UNIT_FOREVER_REL,
                              &iteration_completion_cb,
                              iterator_cb, peer_sc);
@@ -370,6 +380,8 @@ oprelease_get_stats (void *cls)
     }
     GNUNET_free (sc->ops);
   }
+  GNUNET_free_non_null (sc->subsystem);
+  GNUNET_free_non_null (sc->name);
   GNUNET_free (sc);
   if (GNUNET_YES == 
       GNUNET_TESTBED_operation_queue_destroy_empty_ (no_wait_queue))
@@ -383,6 +395,8 @@ oprelease_get_stats (void *cls)
  *
  * @param num_peers number of peers to iterate over
  * @param peers array of peers to iterate over
+ * @param subsystem limit to the specified subsystem, NULL for all subsystems
+ * @param name name of the statistic value, NULL for all values
  * @param proc processing function for each statistic retrieved
  * @param cont continuation to call once call is completed(?)
  * @param cls closure to pass to proc and cont
@@ -391,6 +405,7 @@ oprelease_get_stats (void *cls)
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_get_statistics (unsigned int num_peers,
                                struct GNUNET_TESTBED_Peer **peers,
+                               const char *subsystem, const char *name,
                                GNUNET_TESTBED_StatisticsIterator proc,
                                GNUNET_TESTBED_OperationCompletionCallback cont,
                                void *cls)
@@ -404,6 +419,8 @@ GNUNET_TESTBED_get_statistics (unsigned int num_peers,
         GNUNET_TESTBED_operation_queue_create_ (UINT_MAX);
   sc = GNUNET_malloc (sizeof (struct GetStatsContext));
   sc->peers = peers;
+  sc->subsystem = (NULL == subsystem) ? NULL : GNUNET_strdup (subsystem);
+  sc->name = (NULL == name) ? NULL : GNUNET_strdup (name);
   sc->proc = proc;
   sc->cont = cont;
   sc->cb_cls = cls;
