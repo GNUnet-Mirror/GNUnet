@@ -689,7 +689,7 @@ key_generation_cb (void *cls,
   /* start subsystems */
   GST_hello_start (&process_hello_update, NULL);
   GNUNET_assert (NULL != GST_hello_get());
-  GST_blacklist_start (GST_server);
+  GST_blacklist_start (GST_server, GST_cfg, &GST_my_identity);
   GST_ats =
       GNUNET_ATS_scheduling_init (GST_cfg, &ats_request_address_change, NULL);
   GST_manipulation_init (GST_cfg, &plugin_env_update_metrics);

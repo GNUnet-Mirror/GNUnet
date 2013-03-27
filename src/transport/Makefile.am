@@ -323,6 +323,7 @@ check_PROGRAMS = \
  $(HTTP_SERVER_PLUGIN_TEST) \
  $(HTTPS_SERVER_PLUGIN_TEST) \
  test_transport_api_blacklisting \
+ test_transport_blacklisting_cfg \
  test_transport_api_disconnect_tcp \
  test_transport_api_bidirectional_connect \
  test_transport_api_tcp \
@@ -373,6 +374,7 @@ TESTS = \
  $(UNIX_TEST) \
  $(WLAN_PLUGIN_TEST) \
  test_transport_api_blacklisting \
+ test_transport_blacklisting_cfg \
  test_transport_api_disconnect_tcp \
  test_transport_api_bidirectional_connect \
  test_transport_api_tcp \
@@ -443,6 +445,16 @@ test_transport_api_blacklisting_LDADD = \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
+ 
+test_transport_blacklisting_cfg_SOURCES = \
+ test_transport_blacklisting_cfg.c
+test_transport_blacklisting_cfg_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
+ 
 
 test_transport_api_disconnect_tcp_SOURCES = \
  test_transport_api_disconnect.c
@@ -970,5 +982,9 @@ test_transport_api_timeout_https_peer1.conf\
 test_transport_api_timeout_https_peer2.conf\
 test_transport_api_unreliability_constant_udp_peer1.conf\
 test_transport_api_unreliability_constant_udp_peer2.conf\
+test_transport_blacklisting_cfg_peer1.conf \
+test_transport_blacklisting_cfg_peer2.conf 
+test_transport_blacklisting_cfg_blp_peer1.conf \
+test_transport_blacklisting_cfg_blp_peer2.conf\
 test_transport_api_http_reverse_peer1.conf \
-test_transport_api_http_reverse_peer2.conf
+test_transport_api_http_reverse_peer2.conf 

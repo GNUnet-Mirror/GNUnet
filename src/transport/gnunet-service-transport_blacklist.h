@@ -33,9 +33,13 @@
  * Start blacklist subsystem.
  *
  * @param server server used to accept clients from
+ * @param cfg configuration handle
+ * @param my_id my peer id
  */
 void
-GST_blacklist_start (struct GNUNET_SERVER_Handle *server);
+GST_blacklist_start (struct GNUNET_SERVER_Handle *server,
+										 const struct GNUNET_CONFIGURATION_Handle *cfg,
+										 const struct GNUNET_PeerIdentity *my_id);
 
 
 /**
