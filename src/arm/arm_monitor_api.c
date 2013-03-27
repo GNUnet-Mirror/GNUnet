@@ -273,31 +273,31 @@ GNUNET_ARM_monitor (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param h the handle that was being used
  */
 void
-GNUNET_ARM_monitor_disconnect_and_free (struct GNUNET_ARM_MonitorHandle *handle)
+GNUNET_ARM_monitor_disconnect_and_free (struct GNUNET_ARM_MonitorHandle *h)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from ARM service\n");
-  if (NULL != handle->cth)
+  if (NULL != h->cth)
   {
-    GNUNET_CLIENT_notify_transmit_ready_cancel (handle->cth);
-    handle->cth = NULL;
+    GNUNET_CLIENT_notify_transmit_ready_cancel (h->cth);
+    h->cth = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != handle->init_timeout_task_id)
+  if (GNUNET_SCHEDULER_NO_TASK != h->init_timeout_task_id)
   {
-    GNUNET_SCHEDULER_cancel (handle->init_timeout_task_id);
-    handle->init_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel (h->init_timeout_task_id);
+    h->init_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (NULL != handle->monitor)
+  if (NULL != h->monitor)
   {
-    GNUNET_CLIENT_disconnect (handle->monitor);
-    handle->monitor = NULL;
+    GNUNET_CLIENT_disconnect (h->monitor);
+    h->monitor = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != handle->reconnect_task)
+  if (GNUNET_SCHEDULER_NO_TASK != h->reconnect_task)
   {
-    GNUNET_SCHEDULER_cancel (handle->reconnect_task);
-    handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel (h->reconnect_task);
+    h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_CONFIGURATION_destroy (handle->cfg);
-  GNUNET_free (handle);
+  GNUNET_CONFIGURATION_destroy (h->cfg);
+  GNUNET_free (h);
 }
 
 

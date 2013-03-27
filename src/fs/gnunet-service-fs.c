@@ -211,6 +211,7 @@ GSF_update_datastore_delay_ (struct GNUNET_TIME_Absolute start)
  * to even consider processing the query at
  * all.
  *
+ * @param priority priority of the request (used as a reference point to compare with the load)
  * @return GNUNET_YES if the load is too high to do anything (load high)
  *         GNUNET_NO to process normally (load normal)
  *         GNUNET_SYSERR to process for free (load low)

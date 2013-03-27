@@ -332,7 +332,6 @@ shutdown_now ()
  * @param estimate the value of the current network size estimate
  * @param std_dev standard deviation (rounded down to nearest integer)
  *                of the size estimation values seen
- *
  */
 static void
 handle_estimate (void *cls, 
@@ -668,9 +667,6 @@ peer_churn_cb (void *cls, const char *emsg)
 /**
  * Adjust the number of running peers to match the required number of running
  * peers for the round
- *
- * @param 
- * @return 
  */
 static void
 adjust_running_peers ()
