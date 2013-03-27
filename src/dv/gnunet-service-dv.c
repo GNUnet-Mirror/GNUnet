@@ -955,6 +955,7 @@ handle_direct_disconnect (struct DirectNeighbor *neighbor)
  *
  * @param cls closure
  * @param address the address
+ * @param active is this address in active use
  * @param bandwidth_out assigned outbound bandwidth for the connection
  * @param bandwidth_in assigned inbound bandwidth for the connection
  * @param ats performance data for the address (as far as known)

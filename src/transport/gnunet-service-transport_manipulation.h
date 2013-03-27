@@ -55,13 +55,11 @@ GST_manipulation_recv (void *cls,
 											 uint16_t sender_address_len);
 
 /**
- * Function that will be called to figure if an address is an loopback,
- * LAN, WAN etc. address
+ * Function that will be called to manipulate ATS information according to
+ * current manipulation settings
  *
- * @param cls closure
  * @param peer the peer
  * @param address binary address
- * @param address_len length of the address
  * @param session the session
  * @param ats the ats information
  * @param ats_count the number of ats information

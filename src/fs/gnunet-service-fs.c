@@ -235,6 +235,7 @@ GSF_test_get_load_too_high_ (uint32_t priority)
 *
  * @param cls closure
  * @param address the address
+ * @param active is this address in active use
  * @param bandwidth_out assigned outbound bandwidth for the connection
  * @param bandwidth_in assigned inbound bandwidth for the connection
  * @param ats performance data for the address (as far as known)

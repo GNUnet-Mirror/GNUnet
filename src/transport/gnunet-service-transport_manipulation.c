@@ -350,10 +350,8 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
  * Function that will be called to manipulate ATS information according to
  * current manipulation settings
  *
- * @param cls closure
  * @param peer the peer
  * @param address binary address
- * @param address_len length of the address
  * @param session the session
  * @param ats the ats information
  * @param ats_count the number of ats information

@@ -370,7 +370,7 @@ struct GAS_Addresses_Handle
 /**
  * Assemble ATS information from address
  *
- * @param src source address
+ * @param aa source address
  * @param dest destination
  * @return number of elements
  */
