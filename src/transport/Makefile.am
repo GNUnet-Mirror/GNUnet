@@ -983,7 +983,7 @@ test_transport_api_timeout_https_peer2.conf\
 test_transport_api_unreliability_constant_udp_peer1.conf\
 test_transport_api_unreliability_constant_udp_peer2.conf\
 test_transport_blacklisting_cfg_peer1.conf \
-test_transport_blacklisting_cfg_peer2.conf 
+test_transport_blacklisting_cfg_peer2.conf \
 test_transport_blacklisting_cfg_blp_peer1.conf \
 test_transport_blacklisting_cfg_blp_peer2.conf\
 test_transport_api_http_reverse_peer1.conf \
