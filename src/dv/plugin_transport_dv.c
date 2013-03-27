@@ -172,7 +172,16 @@ struct Plugin
 static void
 notify_distance_change (struct Session *session)
 {
-  GNUNET_break (0); // FIXME: need extended plugin API!
+  struct Plugin *plugin = session->plugin;
+  struct GNUNET_ATS_Information ats;
+
+  ats.type = htonl ((uint32_t) GNUNET_ATS_QUALITY_NET_DISTANCE);
+  ats.value = htonl (session->distance);
+  plugin->env->update_address_metrics (plugin->env->cls,
+				       &session->sender,
+				       "", 0,
+				       session,
+				       &ats, 1);
 }
 
 
