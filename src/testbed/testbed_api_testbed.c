@@ -627,6 +627,15 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   GNUNET_CONTAINER_DLL_remove (rc->dll_op_head, rc->dll_op_tail, dll_op);
   GNUNET_TESTBED_operation_done (dll_op->op);
   GNUNET_free (dll_op);
+  if ( (GNUNET_NO == rc->shutdown)
+       && (NULL != event->details.operation_finished.emsg) )
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR, "A operation has failed with error: %s\n",
+         event->details.operation_finished.emsg);
+    shutdown_now (rc);
+    return;
+  }
+  GNUNET_assert (GNUNET_YES == rc->shutdown);
   switch (rc->state)
   {
   case RC_LINKED:
