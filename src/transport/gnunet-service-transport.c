@@ -242,6 +242,7 @@ GST_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
   switch (type)
   {
   case GNUNET_MESSAGE_TYPE_HELLO:
+  case GNUNET_MESSAGE_TYPE_FRIEND_HELLO:
     GST_validation_handle_hello (message);
     return ret;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_PING:
@@ -630,6 +631,7 @@ key_generation_cb (void *cls,
   long long unsigned int max_fd_cfg;
   int max_fd_rlimit;
   int max_fd;
+  int friend_only;
 
   GST_keygen = NULL;
   if (NULL == pk)
@@ -686,8 +688,11 @@ key_generation_cb (void *cls,
               "Limiting number of sockets to %u: validation %u, neighbors: %u\n",
               max_fd, (max_fd / 3) , (max_fd / 3) * 2);
 
+  friend_only = GNUNET_CONFIGURATION_get_value_yesno(GST_cfg, "topology","FRIENDS-ONLY");
+  if (GNUNET_SYSERR == friend_only)
+  	friend_only = GNUNET_NO; /* According to topology defaults */
   /* start subsystems */
-  GST_hello_start (&process_hello_update, NULL);
+  GST_hello_start (friend_only, &process_hello_update, NULL);
   GNUNET_assert (NULL != GST_hello_get());
   GST_blacklist_start (GST_server, GST_cfg, &GST_my_identity);
   GST_ats =

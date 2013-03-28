@@ -200,15 +200,16 @@ refresh_hello ()
 /**
  * Initialize the HELLO module.
  *
+ * @param friend_only use a friend only hello
  * @param cb function to call whenever our HELLO changes
  * @param cb_cls closure for cb
  */
 void
-GST_hello_start (GST_HelloCallback cb, void *cb_cls)
+GST_hello_start (int friend_only, GST_HelloCallback cb, void *cb_cls)
 {
   hello_cb = cb;
   hello_cb_cls = cb_cls;
-  our_hello = GNUNET_HELLO_create (&GST_my_public_key, NULL, NULL, GNUNET_NO);
+  our_hello = GNUNET_HELLO_create (&GST_my_public_key, NULL, NULL, friend_only);
   GNUNET_assert (NULL != our_hello);
   refresh_hello ();
 }

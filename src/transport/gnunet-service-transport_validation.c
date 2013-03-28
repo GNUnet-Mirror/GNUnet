@@ -1283,6 +1283,9 @@ GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello)
       (const struct GNUNET_HELLO_Message *) hello;
   struct ValidateAddressContext vac;
   struct GNUNET_HELLO_Message *h;
+  int type;
+  int friend;
+
 
   if ((GNUNET_OK != GNUNET_HELLO_get_id (hm, &vac.pid)) ||
       (GNUNET_OK != GNUNET_HELLO_get_key (hm, &vac.public_key)))
@@ -1295,7 +1298,20 @@ GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello)
       memcmp (&GST_my_identity, &vac.pid, sizeof (struct GNUNET_PeerIdentity)))
     return;
   /* Add peer identity without addresses to peerinfo service */
-  h = GNUNET_HELLO_create (&vac.public_key, NULL, NULL, GNUNET_NO);
+  type = ntohs(hello->type);
+  switch (type) {
+		case GNUNET_MESSAGE_TYPE_HELLO:
+			friend = GNUNET_NO;
+			break;
+		case GNUNET_MESSAGE_TYPE_FRIEND_HELLO:
+			friend = GNUNET_YES;
+			break;
+		default:
+			GNUNET_break (0);
+			friend = GNUNET_NO;
+			break;
+	}
+  h = GNUNET_HELLO_create (&vac.public_key, NULL, NULL, friend);
   GNUNET_PEERINFO_add_peer (GST_peerinfo, h, NULL, NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
