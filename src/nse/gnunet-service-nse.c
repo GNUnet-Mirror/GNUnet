@@ -1456,18 +1456,27 @@ key_generation_cb (void *cls,
   {
     char *hostname;
     char *hgram_file;
-
-    hostname = GNUNET_malloc (GNUNET_OS_get_hostname_max_length ());
-    if (0 == gethostname (hostname, HOST_NAME_MAX))
+    unsigned long long peer_id;
+    
+    hgram_file = NULL;
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (cfg, "TESTBED",
+                                                            "PEERID", &peer_id))
+      (void) GNUNET_asprintf (&hgram_file, "%s/%llu.hist", proof, peer_id);
+    else  
     {
-      (void) GNUNET_asprintf (&hgram_file, "%s/%s_%jd.hist", 
-                              proof, hostname, (intmax_t) getpid());
+      hostname = GNUNET_malloc (GNUNET_OS_get_hostname_max_length ());
+      if (0 == gethostname (hostname, HOST_NAME_MAX))
+        (void) GNUNET_asprintf (&hgram_file, "%s/%s_%jd.hist", 
+                                proof, hostname, (intmax_t) getpid());
+      else
+        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "gethostname");    
+      GNUNET_free (hostname);
+    }
+    if (NULL != hgram_file)
+    {
       wh = GNUNET_BIO_write_open (hgram_file);
       GNUNET_free (hgram_file);
     }
-    else
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "gethostname");    
-    GNUNET_free (hostname);
     GNUNET_free (proof);
   }
 #endif

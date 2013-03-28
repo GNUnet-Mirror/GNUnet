@@ -24,11 +24,11 @@
  *        Generally, the profiler starts a given number of peers,
  *        then churns some off, waits a certain amount of time, then
  *        churns again, and repeats.
- *
- * TODO:
- * - need to check for leaks (especially FD leaks)
- * - need to TEST
+ * @author Christian Grothoff
+ * @author Nathan Evans
+ * @author Sree Harsha Totakura
  */
+
 #include "platform.h"
 #include "gnunet_testbed_service.h"
 #include "gnunet_nse_service.h"
@@ -303,9 +303,16 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TESTBED_operation_done (get_stats_op);
     get_stats_op = NULL;
   }
-  // FIXME: what about closing other files!?  
   if (NULL != data_file)
+  {
     GNUNET_DISK_file_close (data_file);
+    data_file = NULL;
+  }
+  if (NULL != output_file)
+  {
+    GNUNET_DISK_file_close (output_file);
+    output_file = NULL;
+  }
   if (NULL != testing_cfg)
     GNUNET_CONFIGURATION_destroy (testing_cfg);
   testing_cfg = NULL;
