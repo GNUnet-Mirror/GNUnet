@@ -36,13 +36,10 @@ test_connection (void *cls,
 		 unsigned int num_peers,
 		 struct GNUNET_TESTBED_Peer **peers)
 {
-  if (4 != num_peers)
-  {
-    ok = 0;
-  }
-  else
+  if (4 == num_peers)
   {
     fprintf (stderr, "Testbed connect peers despite blacklist!\n");
+    ok = 1;
   }
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -51,7 +48,6 @@ test_connection (void *cls,
 int
 main (int argc, char *argv[])
 {
-  ok = 1;
   (void) GNUNET_TESTBED_test_run ("test-transport-blacklist",
 				  "test_transport_blacklist_data.conf",
 				  4,
