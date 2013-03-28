@@ -239,6 +239,11 @@ struct RunContext
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
   /**
+   * Task run upon shutdown interrupts
+   */
+  GNUNET_SCHEDULER_TaskIdentifier interrupt_task;
+
+  /**
    * The event mask for the controller
    */
   uint64_t event_mask;
@@ -327,24 +332,12 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_free (rc);
 }
 
-
-/**
- * Stops the testbed run and releases any used resources
- *
- * @param cls the tesbed run handle
- * @param tc the task context from scheduler
- */
 static void
-shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup (struct RunContext *rc)
 {
-  struct RunContext *rc = cls;
   struct DLLOperation *dll_op;
   unsigned int nhost;
 
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != rc->shutdown_run_task);
-  rc->shutdown_run_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_assert (GNUNET_NO == rc->shutdown);
-  rc->shutdown = GNUNET_YES;
   if (NULL != rc->hc_handles)
   {
     for (nhost = 0; nhost < rc->num_hosts; nhost++)
@@ -364,34 +357,55 @@ shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel (rc->timeout_task);
     rc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  if (GNUNET_SCHEDULER_NO_TASK != rc->interrupt_task)
+  {
+    GNUNET_SCHEDULER_cancel (rc->interrupt_task);
+    rc->interrupt_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (NULL != rc->reg_handle)
   {
     GNUNET_TESTBED_cancel_registration (rc->reg_handle);
     rc->reg_handle = NULL;
   }
-  /* cancel any exiting operations */
-  if (NULL != rc->dll_op_head)
+  if (NULL != rc->topology_operation)
   {
-    while (NULL != (dll_op = rc->dll_op_head))
-    {
-      GNUNET_TESTBED_operation_done (dll_op->op);
-      GNUNET_CONTAINER_DLL_remove (rc->dll_op_head, rc->dll_op_tail, dll_op);
-      GNUNET_free (dll_op);
-    }
+    GNUNET_TESTBED_operation_done (rc->topology_operation);
+    rc->topology_operation = NULL;
   }
+  /* cancel any exiting operations */
+  while (NULL != (dll_op = rc->dll_op_head))
+  {
+    GNUNET_TESTBED_operation_done (dll_op->op);
+    GNUNET_CONTAINER_DLL_remove (rc->dll_op_head, rc->dll_op_tail, dll_op);
+    GNUNET_free (dll_op);
+  }
+}
+
+
+/**
+ * Stops the testbed run and releases any used resources
+ *
+ * @param cls the tesbed run handle
+ * @param tc the task context from scheduler
+ */
+static void
+shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct RunContext *rc = cls;
+  struct DLLOperation *dll_op;
+
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != rc->shutdown_run_task);
+  rc->shutdown_run_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_assert (GNUNET_NO == rc->shutdown);
+  rc->shutdown = GNUNET_YES;
+  cleanup (rc);
   if (NULL != rc->c)
   {
     if (NULL != rc->peers)
     {
-      if (NULL != rc->topology_operation)
-      {
-        GNUNET_TESTBED_operation_done (rc->topology_operation);
-        rc->topology_operation = NULL;
-      }
-      if (RC_INIT == rc->state)
-        rc->state = RC_READY;   /* Even though we haven't called the master callback */
       dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
       dll_op->op = GNUNET_TESTBED_shutdown_peers (rc->c, dll_op, NULL, NULL);
+      GNUNET_assert (NULL != dll_op->op);
       DEBUG ("Shutting down peers\n");
       rc->pstart_time = GNUNET_TIME_absolute_get ();
       GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail,
@@ -419,6 +433,16 @@ shutdown_now (struct RunContext *rc)
     GNUNET_SCHEDULER_cancel (rc->shutdown_run_task);
   GNUNET_SCHEDULER_shutdown (); /* Trigger shutdown in programs using this API */
   rc->shutdown_run_task = GNUNET_SCHEDULER_add_now (&shutdown_run, rc);
+}
+
+
+static void
+interrupt (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct RunContext *rc = cls;
+
+  rc->interrupt_task = GNUNET_SCHEDULER_NO_TASK;
+  shutdown_now (rc);
 }
 
 
@@ -458,6 +482,7 @@ start_peers_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
     dll_op->op = GNUNET_TESTBED_peer_start (NULL, rc->peers[peer], NULL, NULL);
+    GNUNET_assert (NULL != dll_op->op);
     dll_op->cls = rc->peers[peer];
     GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail, dll_op);
   }
@@ -568,7 +593,8 @@ create_peers (struct RunContext *rc)
                                     (0 ==
                                      rc->num_hosts) ? rc->h : rc->hosts[peer %
                                                                         rc->num_hosts],
-                                    rc->cfg, peer_create_cb, dll_op);
+                                    rc->cfg, peer_create_cb, dll_op);    
+    GNUNET_assert (NULL != dll_op->op);
     GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail, dll_op);
   }
 }
@@ -778,6 +804,7 @@ register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       dll_op->op =
           GNUNET_TESTBED_controller_link (dll_op, rc->c, rc->hosts[slave],
                                           rc->h, rc->cfg, GNUNET_YES);
+      GNUNET_assert (NULL != dll_op->op);
       GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail,
                                         dll_op);
     }
@@ -812,12 +839,19 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Controller crash detected. Shutting down.\n"));
     rc->cproc = NULL;
+    cleanup (rc);
     if (NULL != rc->peers)
     {
       GNUNET_free (rc->peers);
       rc->peers = NULL;
     }
-    shutdown_now (rc);
+    if (GNUNET_YES == rc->shutdown)
+    {
+      rc->state = RC_PEERS_SHUTDOWN;
+      GNUNET_SCHEDULER_add_now (&cleanup_task, rc);
+    }
+    else
+      shutdown_now (rc);
     return;
   }
   GNUNET_CONFIGURATION_destroy (rc->cfg);
@@ -1140,8 +1174,8 @@ GNUNET_TESTBED_run (const char *host_filename,
   }
   rc->timeout_task =
       GNUNET_SCHEDULER_add_delayed (timeout, &timeout_task, rc);
-  rc->shutdown_run_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_run,
+  rc->interrupt_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &interrupt,
                                     rc);
   return;
 

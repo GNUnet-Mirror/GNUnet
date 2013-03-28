@@ -2073,10 +2073,16 @@ oprelease_shutdown_peers (void *cls)
 {
   struct OperationContext *opc = cls;
 
-  if (OPC_STATE_FINISHED != opc->state)
+  switch (opc->state)
   {
-    GNUNET_free (opc->data);
+  case OPC_STATE_STARTED:
     GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+    /* no break; continue */
+  case OPC_STATE_INIT:
+    GNUNET_free (opc->data);
+    break;
+  case OPC_STATE_FINISHED:
+    break;
   }
   GNUNET_free (opc);
 }

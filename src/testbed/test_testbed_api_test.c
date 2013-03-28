@@ -112,7 +112,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   abort_task = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
     GNUNET_SCHEDULER_cancel (shutdown_task);
-  shutdown_task = GNUNET_SCHEDULER_add_now (do_shutdown, NULL);
+  do_shutdown (cls, tc);
 }
 
 
