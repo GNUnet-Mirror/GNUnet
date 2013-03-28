@@ -54,6 +54,28 @@ static struct GNUNET_FS_PublishContext *publish;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+static int err;
+
+
+static void
+abort_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  fprintf (stderr,
+	   "Timeout\n");
+  if (NULL != publish)
+  {
+    GNUNET_FS_publish_stop (publish);
+    publish = NULL;
+  }
+  if (NULL != search)
+  {
+    GNUNET_FS_search_stop (search);
+    search = NULL;
+  }
+  err = 1;
+}
 
 static void
 abort_publish_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -252,6 +274,8 @@ run (void *cls,
       GNUNET_FS_publish_start (fs, fi, NULL, NULL, NULL,
                                GNUNET_FS_PUBLISH_OPTION_NONE);
   GNUNET_assert (publish != NULL);
+  timeout_task = GNUNET_SCHEDULER_add_delayed (LIFETIME,
+					       &abort_error, NULL);
 }
 
 
@@ -262,7 +286,7 @@ main (int argc, char *argv[])
 				    "test_fs_search_data.conf",
 				    &run, NULL))
     return 1;
-  return 0;
+  return err;
 }
 
 /* end of test_fs_search_persistence.c */
