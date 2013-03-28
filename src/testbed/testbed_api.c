@@ -532,8 +532,7 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
     return GNUNET_YES;
   }
   GNUNET_assert (OP_OVERLAY_CONNECT == opc->type);
-  data = opc->data;
-  GNUNET_assert (NULL != data);
+  GNUNET_assert (NULL != (data = opc->data));
   GNUNET_assert ((ntohl (msg->peer1) == data->p1->unique_id) &&
                  (ntohl (msg->peer2) == data->p2->unique_id));
   event.type = (enum GNUNET_TESTBED_EventType) ntohl (msg->event_type);
@@ -815,8 +814,6 @@ handle_slave_config (struct GNUNET_TESTBED_Controller *c,
     GNUNET_break (0);
     return GNUNET_YES;
   }
-  GNUNET_free (opc->data);
-  opc->data = NULL;
   opc->state = OPC_STATE_FINISHED;
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   if ((0 != (GNUNET_TESTBED_ET_OPERATION_FINISHED & c->event_mask)) &&
@@ -873,12 +870,13 @@ handle_link_controllers_result (struct GNUNET_TESTBED_Controller *c,
     GNUNET_break (0);
     return GNUNET_YES;
   }
-  data = opc->data;
-  GNUNET_assert (NULL != data);
+  GNUNET_assert (NULL != (data = opc->data));
   host = GNUNET_TESTBED_host_lookup_by_id_ (data->host_id);
   GNUNET_assert (NULL != host);
   GNUNET_free (data);
   opc->data = NULL;
+  opc->state = OPC_STATE_FINISHED;
+  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
   event.op = opc->op;
   event.op_cls = opc->op_cls;
@@ -905,8 +903,6 @@ handle_link_controllers_result (struct GNUNET_TESTBED_Controller *c,
       GNUNET_TESTBED_host_replace_cfg_ (host, cfg);
     }
   }
-  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
-  opc->state = OPC_STATE_FINISHED;
   if (0 != (c->event_mask & (1L << GNUNET_TESTBED_ET_OPERATION_FINISHED)))
   {
     if (NULL != c->cc)
@@ -1218,7 +1214,7 @@ oprelease_link_controllers (void *cls)
   switch (opc->state)
   {
   case OPC_STATE_INIT:
-    GNUNET_free (data->msg);
+    GNUNET_free (data->msg);    
     break;
   case OPC_STATE_STARTED:
     GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
@@ -1240,11 +1236,14 @@ static void
 opstart_get_slave_config (void *cls)
 {
   struct OperationContext *opc = cls;
-  struct GetSlaveConfigData *data;
+  struct GetSlaveConfigData *data = opc->data;
   struct GNUNET_TESTBED_SlaveGetConfigurationMessage *msg;
 
-  data = opc->data;
+  GNUNET_assert (NULL != data);
   msg = GNUNET_TESTBED_generate_slavegetconfig_msg_ (opc->id, data->slave_id);
+  GNUNET_free (opc->data);
+  data = NULL;
+  opc->data = NULL;
   GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
   GNUNET_TESTBED_queue_message_ (opc->c, &msg->header);
   opc->state = OPC_STATE_STARTED;
@@ -1267,7 +1266,6 @@ oprelease_get_slave_config (void *cls)
     GNUNET_free (opc->data);
     break;
   case OPC_STATE_STARTED:
-    GNUNET_free (opc->data);
     GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
     break;
   case OPC_STATE_FINISHED:

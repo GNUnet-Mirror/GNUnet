@@ -105,9 +105,8 @@ opstart_peer_create (void *cls)
   size_t xc_size;
   uint16_t msize;
 
-  GNUNET_assert (OP_PEER_CREATE == opc->type);
-  data = opc->data;
-  GNUNET_assert (NULL != data);
+  GNUNET_assert (OP_PEER_CREATE == opc->type);  
+  GNUNET_assert (NULL != (data = opc->data));
   GNUNET_assert (NULL != data->peer);
   opc->state = OPC_STATE_STARTED;
   config = GNUNET_CONFIGURATION_serialize (data->cfg, &c_size);
@@ -166,8 +165,7 @@ opstart_peer_destroy (void *cls)
   struct GNUNET_TESTBED_PeerDestroyMessage *msg;
 
   GNUNET_assert (OP_PEER_DESTROY == opc->type);
-  peer = opc->data;
-  GNUNET_assert (NULL != peer);
+  GNUNET_assert (NULL != (peer = opc->data));
   opc->state = OPC_STATE_STARTED;
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerDestroyMessage));
   msg->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerDestroyMessage));
@@ -189,8 +187,16 @@ oprelease_peer_destroy (void *cls)
 {
   struct OperationContext *opc = cls;
 
-  if (OPC_STATE_FINISHED != opc->state)
+  switch (opc->state)
+  {
+  case OPC_STATE_STARTED:
     GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+    /* no break; continue */
+  case OPC_STATE_INIT:
+    break;
+  case OPC_STATE_FINISHED:
+    break;
+  }
   GNUNET_free (opc);
 }
 
@@ -209,10 +215,8 @@ opstart_peer_start (void *cls)
   struct GNUNET_TESTBED_Peer *peer;
 
   GNUNET_assert (OP_PEER_START == opc->type);
-  GNUNET_assert (NULL != opc->data);
-  data = opc->data;
-  GNUNET_assert (NULL != data->peer);
-  peer = data->peer;
+  GNUNET_assert (NULL != (data = opc->data));
+  GNUNET_assert (NULL != (peer = data->peer));
   GNUNET_assert ((PS_CREATED == peer->state) || (PS_STOPPED == peer->state));
   opc->state = OPC_STATE_STARTED;
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerStartMessage));
@@ -235,10 +239,16 @@ oprelease_peer_start (void *cls)
 {
   struct OperationContext *opc = cls;
 
-  if (OPC_STATE_FINISHED != opc->state)
+  switch (opc->state)
   {
-    GNUNET_free (opc->data);
+  case OPC_STATE_STARTED:
     GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+    /* no break; continue */
+  case OPC_STATE_INIT:
+    GNUNET_free (opc->data);
+    break;
+  case OPC_STATE_FINISHED:
+    break;
   }
   GNUNET_free (opc);
 }
@@ -257,10 +267,8 @@ opstart_peer_stop (void *cls)
   struct PeerEventData *data;
   struct GNUNET_TESTBED_Peer *peer;
 
-  GNUNET_assert (NULL != opc->data);
-  data = opc->data;
-  GNUNET_assert (NULL != data->peer);
-  peer = data->peer;
+  GNUNET_assert (NULL != (data = opc->data));
+  GNUNET_assert (NULL != (peer = data->peer));
   GNUNET_assert (PS_STARTED == peer->state);
   opc->state = OPC_STATE_STARTED;
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerStopMessage));
@@ -283,10 +291,16 @@ oprelease_peer_stop (void *cls)
 {
   struct OperationContext *opc = cls;
 
-  if (OPC_STATE_FINISHED != opc->state)
+  switch (opc->state)
   {
-    GNUNET_free (opc->data);
+  case OPC_STATE_STARTED:
     GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+    /* no break; continue */
+  case OPC_STATE_INIT:
+    GNUNET_free (opc->data);
+    break;
+  case OPC_STATE_FINISHED:
+    break;
   }
   GNUNET_free (opc);
 }
@@ -330,8 +344,7 @@ opstart_peer_getinfo (void *cls)
   struct PeerInfoData *data;
   struct GNUNET_TESTBED_PeerGetConfigurationMessage *msg;
 
-  data = opc->data;
-  GNUNET_assert (NULL != data);
+  GNUNET_assert (NULL != (data = opc->data));
   opc->state = OPC_STATE_STARTED;
   msg =
       GNUNET_TESTBED_generate_peergetconfig_msg_ (data->peer->unique_id,
@@ -352,19 +365,21 @@ oprelease_peer_getinfo (void *cls)
   struct OperationContext *opc = cls;
   struct GNUNET_TESTBED_PeerInformation *data;
 
-  if (OPC_STATE_FINISHED != opc->state)
+  switch (opc->state)
   {
-    GNUNET_free_non_null (opc->data);
+  case OPC_STATE_STARTED:
     GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
-  }
-  else
-  {
-    data = opc->data;
-    GNUNET_assert (NULL != data);
+    /* no break; continue */
+  case OPC_STATE_INIT:
+    GNUNET_free (opc->data);
+    break;
+  case OPC_STATE_FINISHED:
+    GNUNET_assert (NULL != (data = opc->data));
     switch (data->pit)
     {
     case GNUNET_TESTBED_PIT_CONFIGURATION:
-      GNUNET_CONFIGURATION_destroy (data->result.cfg);
+      if (NULL != data->result.cfg)
+        GNUNET_CONFIGURATION_destroy (data->result.cfg);
       break;
     case GNUNET_TESTBED_PIT_IDENTITY:
       GNUNET_free (data->result.id);
@@ -373,6 +388,7 @@ oprelease_peer_getinfo (void *cls)
       GNUNET_assert (0);        /* We should never reach here */
     }
     GNUNET_free (data);
+    break;
   }
   GNUNET_free (opc);
 }
