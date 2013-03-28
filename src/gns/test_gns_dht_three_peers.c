@@ -585,7 +585,9 @@ peerinfo_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op,
 
 void testbed_master (void *cls,
                      unsigned int num_peers,
-                     struct GNUNET_TESTBED_Peer **peers)
+                     struct GNUNET_TESTBED_Peer **peers,
+                     unsigned int links_succeeded,
+                     unsigned int links_failed)
 {
   GNUNET_assert (NULL != peers);
   cpeers = peers;

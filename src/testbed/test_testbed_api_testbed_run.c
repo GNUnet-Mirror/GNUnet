@@ -94,11 +94,17 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param cls closure
  * @param num_peers number of peers in 'peers'
- * @param peers handle to peers run in the testbed
+ * @param peers_ handle to peers run in the testbed
+ * @param links_succeeded the number of overlay link connection attempts that
+ *          succeeded
+ * @param links_failed the number of overlay link connection attempts that
+ *          failed
  */
 static void
 test_master (void *cls, unsigned int num_peers,
-             struct GNUNET_TESTBED_Peer **peers_)
+             struct GNUNET_TESTBED_Peer **peers_,
+             unsigned int links_succeeded,
+             unsigned int links_failed)
 {
   result = GNUNET_OK;
   GNUNET_assert (NULL != peers[0]);

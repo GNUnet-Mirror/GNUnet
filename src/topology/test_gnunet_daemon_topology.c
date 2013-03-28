@@ -64,7 +64,9 @@ notify_connect_complete (void *cls,
 static void
 do_connect (void *cls, 
 	    unsigned int num_peers,
-	    struct GNUNET_TESTBED_Peer **peers)
+	    struct GNUNET_TESTBED_Peer **peers,
+            unsigned int links_succeeded,
+            unsigned int links_failed)
 {
   unsigned int i;
 

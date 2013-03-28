@@ -768,11 +768,17 @@ master_controller_cb (void *cls,
  * @param num_peers_ number of peers in 'peers'
  * @param peers handle to peers run in the testbed.  NULL upon timeout (see
  *          GNUNET_TESTBED_test_run()).
+ * @param links_succeeded the number of overlay link connection attempts that
+ *          succeeded
+ * @param links_failed the number of overlay link connection attempts that
+ *          failed
  */
 static void 
 test_master (void *cls,
              unsigned int num_peers_,
-             struct GNUNET_TESTBED_Peer **peers)
+             struct GNUNET_TESTBED_Peer **peers,
+             unsigned int links_succeeded,
+             unsigned int links_failed)
 {
   if (NULL == peers)
   {

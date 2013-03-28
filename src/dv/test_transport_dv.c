@@ -34,7 +34,9 @@ static int ok;
 static void
 test_connection (void *cls,
 		 unsigned int num_peers,
-		 struct GNUNET_TESTBED_Peer **peers)
+		 struct GNUNET_TESTBED_Peer **peers,
+                 unsigned int links_succeeded,
+                 unsigned int links_failed)
 {
   if (4 != num_peers)
   {

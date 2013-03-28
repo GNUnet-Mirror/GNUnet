@@ -295,6 +295,16 @@ struct RunContext
    */
   unsigned int random_links;
 
+  /**
+   * the number of overlay link connection attempts that succeeded
+   */
+  unsigned int links_succeeded;
+
+  /**
+   * the number of overlay link connection attempts that failed
+   */
+  unsigned int links_failed;
+
 };
 
 
@@ -540,7 +550,8 @@ call_master (struct RunContext *rc)
   GNUNET_SCHEDULER_cancel (rc->timeout_task);
   rc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != rc->test_master)
-    rc->test_master (rc->test_master_cls, rc->num_peers, rc->peers);
+    rc->test_master (rc->test_master_cls, rc->num_peers, rc->peers,
+                     rc->links_succeeded, rc->links_failed);
 }
 
 
@@ -562,6 +573,8 @@ topology_completion_callback (void *cls, unsigned int nsuccess,
   DEBUG ("Overlay topology generated in %s\n", prof_time (rc));
   GNUNET_TESTBED_operation_done (rc->topology_operation);
   rc->topology_operation = NULL;
+  rc->links_succeeded = nsuccess;
+  rc->links_failed = nfailures;
   rc->state = RC_READY;
   call_master (rc);
 }
@@ -1001,7 +1014,7 @@ timeout_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   LOG (GNUNET_ERROR_TYPE_ERROR, _("Shutting down testbed due to timeout while setup.\n"));
   shutdown_now (rc);
    if (NULL != rc->test_master)
-    rc->test_master (rc->test_master_cls, 0, NULL);
+     rc->test_master (rc->test_master_cls, 0, NULL, 0, 0);
    rc->test_master = NULL;
 }
 

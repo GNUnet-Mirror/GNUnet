@@ -803,9 +803,9 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
                        session_id, atsi, atsi_count);
   if (aa == NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Tried to update unknown address for peer `%s' `%s' session id %u\n",
-                GNUNET_i2s (peer), plugin_name, session_id);
-    GNUNET_break (0);
+    /* GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Tried to update unknown address for peer `%s' `%s' session id %u\n", */
+    /*             GNUNET_i2s (peer), plugin_name, session_id); */
+    /* GNUNET_break (0); */
     return;
   }
 

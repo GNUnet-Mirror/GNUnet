@@ -1364,10 +1364,16 @@ GNUNET_TESTBED_get_statistics (unsigned int num_peers,
  * @param num_peers number of peers in 'peers'
  * @param peers handle to peers run in the testbed.  NULL upon timeout (see
  *          GNUNET_TESTBED_test_run()).
+ * @param links_succeeded the number of overlay link connection attempts that
+ *          succeeded
+ * @param links_failed the number of overlay link connection attempts that
+ *          failed
  */
 typedef void (*GNUNET_TESTBED_TestMaster)(void *cls,
                                           unsigned int num_peers,
-                                          struct GNUNET_TESTBED_Peer **peers);
+                                          struct GNUNET_TESTBED_Peer **peers,
+                                          unsigned int links_succeeded,
+                                          unsigned int links_failed);
 
 
 /**

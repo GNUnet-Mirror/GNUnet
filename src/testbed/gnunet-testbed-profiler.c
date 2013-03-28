@@ -204,9 +204,14 @@ controller_event_cb (void *cls,
  * @param cls closure
  * @param num_peers number of peers in 'peers'
  * @param peers handle to peers run in the testbed
+ * @param links_succeeded the number of overlay link connection attempts that
+ *          succeeded
+ * @param links_failed the number of overlay link
  */
 static void
-test_run (void *cls, unsigned int num_peers, struct GNUNET_TESTBED_Peer **peers)
+test_run (void *cls, unsigned int num_peers, struct GNUNET_TESTBED_Peer **peers,
+          unsigned int links_succeeded,
+          unsigned int links_failed)
 {
   result = GNUNET_OK;
   fprintf (stdout, "\n");

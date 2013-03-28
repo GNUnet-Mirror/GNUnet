@@ -160,7 +160,9 @@ GNUNET_DHT_TEST_cleanup (struct GNUNET_DHT_TEST_Context *ctx)
 static void
 dht_test_run (void *cls,
 	      unsigned int num_peers,
-	      struct GNUNET_TESTBED_Peer **peers)
+	      struct GNUNET_TESTBED_Peer **peers,
+              unsigned int links_succeeded,
+              unsigned int links_failed)
 {
   struct GNUNET_DHT_TEST_Context *ctx = cls;
   unsigned int i;

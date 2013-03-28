@@ -276,10 +276,24 @@ peer_info_cb (void *cb_cls,
 }
 
 
+/**
+ * Signature of a main function for a testcase.
+ *
+ * @param cls closure
+ * @param num_peers number of peers in 'peers'
+ * @param peers handle to peers run in the testbed.  NULL upon timeout (see
+ *          GNUNET_TESTBED_test_run()).
+ * @param links_succeeded the number of overlay link connection attempts that
+ *          succeeded
+ * @param links_failed the number of overlay link connection attempts that
+ *          failed
+ */
 static void
 test_master (void *cls,
              unsigned int num_peers,
-             struct GNUNET_TESTBED_Peer **started_peers)
+             struct GNUNET_TESTBED_Peer **started_peers,
+             unsigned int links_succeeded,
+             unsigned int links_failed)
 {
   int i;
 

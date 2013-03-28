@@ -181,11 +181,17 @@ nse_disconnect_adapter (void *cls,
  * @param cls closure
  * @param num_peers number of peers in 'peers'
  * @param peers handle to peers run in the testbed
+ * @param links_succeeded the number of overlay link connection attempts that
+ *          succeeded
+ * @param links_failed the number of overlay link connection attempts that
+ *          failed
  */
 static void
 run (void *cls,
      unsigned int num_peers,
-     struct GNUNET_TESTBED_Peer **peers)
+     struct GNUNET_TESTBED_Peer **peers,
+     unsigned int links_succeeded,
+     unsigned int links_failed)
 {
   unsigned int i;
 
