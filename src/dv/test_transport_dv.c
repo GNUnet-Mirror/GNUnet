@@ -43,7 +43,7 @@ test_connection (void *cls,
     return;
   }
   ok = 0;
-  if (0)
+  if (1)
     GNUNET_SCHEDULER_shutdown ();
   else
     fprintf (stderr, "Test passed, press CTRL-C to shut down\n");
@@ -54,7 +54,7 @@ int
 main (int argc, char *argv[])
 {
   ok = 1;
-  (void) GNUNET_TESTBED_test_run ("test-transport-api-dv",
+  (void) GNUNET_TESTBED_test_run ("test-transport-dv",
 				  "test_transport_dv_data.conf",
 				  4,
 				  0, NULL, NULL,
@@ -62,4 +62,4 @@ main (int argc, char *argv[])
   return ok;
 }
 
-/* end of test_transport_api_dv.c */
+/* end of test_transport_dv.c */
