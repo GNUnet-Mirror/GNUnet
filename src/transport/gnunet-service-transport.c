@@ -692,7 +692,7 @@ key_generation_cb (void *cls,
   GST_blacklist_start (GST_server, GST_cfg, &GST_my_identity);
   GST_ats =
       GNUNET_ATS_scheduling_init (GST_cfg, &ats_request_address_change, NULL);
-  GST_manipulation_init (GST_cfg, &plugin_env_update_metrics);
+  GST_manipulation_init (GST_cfg);
   GST_plugins_load (&GST_manipulation_recv,
                     &plugin_env_address_change_notification,
                     &plugin_env_session_end,

@@ -52,8 +52,6 @@ struct GST_ManipulationHandle
 {
 	struct GNUNET_CONTAINER_MultiHashMap *peers;
 
-	GNUNET_TRANSPORT_UpdateAddressMetrics metric_update_cb;
-
 	/**
 	 * General inbound delay
 	 */
@@ -290,6 +288,17 @@ send_delayed (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	GNUNET_free (dqe);
 }
 
+
+/**
+ * Adapter function between transport's send function and transport plugins
+ *
+ * @param target the peer the message to send to
+ * @param msg the message received
+ * @param msg_size message size
+ * @param timeout timeout
+ * @param cont the continuation to call after sending
+ * @param cont_cls cls for continuation
+ */
 void
 GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg,
     size_t msg_size, struct GNUNET_TIME_Relative timeout,
@@ -393,6 +402,19 @@ GST_manipulation_manipulate_metrics (const struct GNUNET_PeerIdentity *peer,
 	return ats_new;
 }
 
+
+/**
+ * Adapter function between transport plugins and transport receive function
+ * manipulation delays for next send.
+ *
+ * @param cls the closure for transport
+ * @param peer the peer the message was received from
+ * @param message the message received
+ * @param session the session the message was received on
+ * @param sender_address the sender address
+ * @param sender_address_len the length of the sender address
+ * @return manipulated delay for next receive
+ */
 struct GNUNET_TIME_Relative
 GST_manipulation_recv (void *cls,
 		const struct GNUNET_PeerIdentity *peer,
@@ -426,12 +448,15 @@ GST_manipulation_recv (void *cls,
 		return m_delay;
 }
 
-void
-GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg,
-		GNUNET_TRANSPORT_UpdateAddressMetrics metric_update_cb)
-{
-	man_handle.metric_update_cb = metric_update_cb;
 
+/**
+ * Initialize traffic manipulation
+ *
+ * @param GST_cfg configuration handle
+ */
+void
+GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg)
+{
 	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (GST_cfg,
 			"transport", "MANIPULATE_DISTANCE_IN", &man_handle.distance_recv))
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Setting inbound distance_in to %u\n",

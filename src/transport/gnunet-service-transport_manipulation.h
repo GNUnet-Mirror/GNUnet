@@ -41,11 +41,34 @@ void
 GST_manipulation_set_metric (void *cls, struct GNUNET_SERVER_Client *client,
     const struct GNUNET_MessageHeader *message);
 
+/**
+ * Adapter function between transport's send function and transport plugins
+ *
+ * @param target the peer the message to send to
+ * @param msg the message received
+ * @param msg_size message size
+ * @param timeout timeout
+ * @param cont the continuation to call after sending
+ * @param cont_cls cls for continuation
+ */
 void
-GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg,
-    size_t msg_size, struct GNUNET_TIME_Relative timeout,
-    GST_NeighbourSendContinuation cont, void *cont_cls);
+GST_manipulation_send (const struct GNUNET_PeerIdentity *target,
+											 const void *msg, size_t msg_size,
+											 struct GNUNET_TIME_Relative timeout,
+											 GST_NeighbourSendContinuation cont, void *cont_cls);
 
+/**
+ * Adapter function between transport plugins and transport receive function
+ * manipulation delays for next send.
+ *
+ * @param cls the closure for transport
+ * @param peer the peer the message was received from
+ * @param message the message received
+ * @param session the session the message was received on
+ * @param sender_address the sender address
+ * @param sender_address_len the length of the sender address
+ * @return manipulated delay for next receive
+ */
 struct GNUNET_TIME_Relative
 GST_manipulation_recv (void *cls,
 											 const struct GNUNET_PeerIdentity *peer,
@@ -71,10 +94,17 @@ GST_manipulation_manipulate_metrics (const struct GNUNET_PeerIdentity *peer,
 		const struct GNUNET_ATS_Information *ats,
 		uint32_t ats_count);
 
+/**
+ * Initialize traffic manipulation
+ *
+ * @param GST_cfg configuration handle
+ */
 void
-GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg,
-		GNUNET_TRANSPORT_UpdateAddressMetrics metric_update_cb);
+GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg);
 
+/**
+ * Stop traffic manipulation
+ */
 void
 GST_manipulation_stop ();
 
