@@ -21,14 +21,44 @@
 /**
  * @file transport/gnunet-service-transport_blacklist.c
  * @brief blacklisting implementation
- * @author Christian Grothoff
+ * @author Christian Grothoff, Matthias Wachs
+ * @details This is the blacklisting component of transport service. With
+ * blacklisting it is possible to deny connections to specific peers of
+ * to use a specific plugin to a specific peer. Peers can be blacklisted using
+ * the configuration or a blacklist client can be asked.
+ *
+ * To blacklist peers using the configuration you have to add a section to your
+ * configuration containing the peer id of the peer to blacklist and the plugin
+ * if required.
+ *
+ * Example:
+ * To blacklist connections to P565... on peer AG2P... using tcp add:
+ * [transport-blacklist-AG2PHES1BARB9IJCPAMJTFPVJ5V3A72S3F2A8SBUB8DAQ2V0O3V8G6G2JU56FHGFOHMQVKBSQFV98TCGTC3RJ1NINP82G0RC00N1520]
+ * P565723JO1C2HSN6J29TAQ22MN6CI8HTMUU55T0FUQG4CMDGGEQ8UCNBKUMB94GC8R9G4FB2SF9LDOBAJ6AMINBP4JHHDD6L7VD801G = tcp
+ *
+ * To blacklist connections to P565... on peer AG2P... using all plugins add:
+ * [transport-blacklist-AG2PHES1BARB9IJCPAMJTFPVJ5V3A72S3F2A8SBUB8DAQ2V0O3V8G6G2JU56FHGFOHMQVKBSQFV98TCGTC3RJ1NINP82G0RC00N1520]
+ * P565723JO1C2HSN6J29TAQ22MN6CI8HTMUU55T0FUQG4CMDGGEQ8UCNBKUMB94GC8R9G4FB2SF9LDOBAJ6AMINBP4JHHDD6L7VD801G =
+ *
+ * You can also add a blacklist client usign the blacklist api. On a blacklist
+ * check, blacklisting first checks internally if the peer is blacklisted and
+ * if not, it asks the blacklisting clients. Clients are asked if it is OK to
+ * connect to a peer ID, the plugin is omitted.
+ *
+ * On blacklist check for (peer, plugin)
+ * - Do we have a local blacklist entry for this peer and this plugin?
+ *   - YES: disallow connection
+ * - Do we have a local blacklist entry for this peer and all plugins?
+ *   - YES: disallow connection
+ * - Does one of the clients disallow?
+ *   - YES: disallow connection
+ *
  */
 #include "platform.h"
 #include "gnunet-service-transport.h"
 #include "gnunet-service-transport_blacklist.h"
 #include "gnunet-service-transport_neighbours.h"
 #include "transport.h"
-
 
 /**
  * Size of the blacklist hash map.

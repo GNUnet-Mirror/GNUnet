@@ -158,7 +158,7 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 static void
 connect_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers not connected, next stage\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Peers not connected, next stage\n");
 	timeout_task = GNUNET_SCHEDULER_NO_TASK;
   stage_task = GNUNET_SCHEDULER_add_now (&run_stage, NULL);
 }
@@ -178,7 +178,7 @@ start_cb (struct PeerContext *p, void *cls)
 
   char *sender_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Test tries to connect peer %u (`%s') -> peer %u (`%s')\n",
               p1->no, sender_c, p2->no, GNUNET_i2s (&p2->id));
   GNUNET_free (sender_c);
@@ -195,7 +195,7 @@ run_stage (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	if (GNUNET_SCHEDULER_NO_TASK != die_task)
 		GNUNET_SCHEDULER_cancel (die_task);
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Running stage %u\n", stage);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Running stage %u\n", stage);
 
 	if (0 == stage)
 	{
@@ -282,7 +282,7 @@ run_stage (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     p2 = NULL;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Done in stage %u: Peers %s and %s!\n", stage,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Done in stage %u: Peers %s and %s!\n", stage,
   		(GNUNET_NO == started) ? "NOT STARTED" : "STARTED",
   		(GNUNET_YES == connected) ? "CONNECTED" : "NOT CONNECTED");
 
@@ -315,7 +315,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   connected = GNUNET_NO;
   stage = 0;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Running test `%s'!\n", test_name);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Running test `%s'!\n", test_name);
   stage_task = GNUNET_SCHEDULER_add_now (&run_stage, NULL);
 }
 
