@@ -323,11 +323,6 @@ check_PROGRAMS = \
  $(HTTP_SERVER_PLUGIN_TEST) \
  $(HTTPS_SERVER_PLUGIN_TEST) \
  test_transport_api_blacklisting \
- test_transport_blacklisting_no_bl \
- test_transport_blacklisting_outbound_bl_full \
- test_transport_blacklisting_outbound_bl_plugin \
- test_transport_blacklisting_inbound_bl_plugin \
- test_transport_blacklisting_inbound_bl_full \
  test_transport_api_disconnect_tcp \
  test_transport_api_bidirectional_connect \
  test_transport_api_tcp \
@@ -348,6 +343,12 @@ check_PROGRAMS = \
  $(HTTPS_API_TIMEOUT_TEST) \
  $(WLAN_API_TEST) \
  test_transport_api_multi \
+ test_transport_blacklisting_no_bl \
+ test_transport_blacklisting_outbound_bl_full \
+ test_transport_blacklisting_outbound_bl_plugin \
+ test_transport_blacklisting_inbound_bl_plugin \
+ test_transport_blacklisting_inbound_bl_full \
+ test_transport_blacklisting_multiple_plugins \
  test_transport_api_manipulation_send_tcp \
  test_transport_api_manipulation_recv_tcp \
  test_transport_api_reliability_tcp \
@@ -378,11 +379,6 @@ TESTS = \
  $(UNIX_TEST) \
  $(WLAN_PLUGIN_TEST) \
  test_transport_api_blacklisting \
- test_transport_blacklisting_no_bl \
- test_transport_blacklisting_outbound_bl_full \
- test_transport_blacklisting_outbound_bl_plugin \
- test_transport_blacklisting_inbound_bl_plugin \
- test_transport_blacklisting_inbound_bl_full \
  test_transport_api_disconnect_tcp \
  test_transport_api_bidirectional_connect \
  test_transport_api_tcp \
@@ -402,6 +398,12 @@ TESTS = \
  $(HTTPS_API_TIMEOUT_TEST) \
  $(WLAN_API_TEST) \
  test_transport_api_multi \
+ test_transport_blacklisting_no_bl \
+ test_transport_blacklisting_outbound_bl_full \
+ test_transport_blacklisting_outbound_bl_plugin \
+ test_transport_blacklisting_inbound_bl_plugin \
+ test_transport_blacklisting_inbound_bl_full \
+ test_transport_blacklisting_multiple_plugins \
  test_transport_api_manipulation_send_tcp \
  test_transport_api_manipulation_recv_tcp \
  test_transport_api_reliability_tcp \
@@ -498,6 +500,16 @@ test_transport_blacklisting_inbound_bl_plugin_LDADD = \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la  
+
+test_transport_blacklisting_multiple_plugins_SOURCES = \
+ test_transport_blacklisting.c
+test_transport_blacklisting_multiple_plugins_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la  
+
 
 test_transport_api_disconnect_tcp_SOURCES = \
  test_transport_api_disconnect.c
@@ -1031,5 +1043,7 @@ test_transport_blacklisting_cfg_blp_peer1_full.conf\
 test_transport_blacklisting_cfg_blp_peer1_plugin.conf \
 test_transport_blacklisting_cfg_blp_peer2_full.conf\
 test_transport_blacklisting_cfg_blp_peer2_plugin.conf \
+test_transport_blacklisting_cfg_blp_peer1_multiple_plugins.conf \
+test_transport_blacklisting_cfg_blp_peer2_multiple_plugins.conf \
 test_transport_api_http_reverse_peer1.conf \
 test_transport_api_http_reverse_peer2.conf 

@@ -242,6 +242,22 @@ run_stage (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 					p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth, "test_transport_blacklisting_cfg_blp_peer2_plugin.conf", 2,
 		  																					NULL, NULL, NULL, &start_cb, NULL);
 			}
+			else if (0 == strcmp(test_name, "test_transport_blacklisting_multiple_plugins"))
+			{
+					p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth, "test_transport_blacklisting_cfg_blp_peer1_multiple_plugins.conf", 1,
+		                                            NULL, NULL, NULL, &start_cb, NULL);
+
+					p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth, "test_transport_blacklisting_cfg_blp_peer2_multiple_plugins.conf", 2,
+		  																					NULL, NULL, NULL, &start_cb, NULL);
+			}
+
+
+			if ((NULL == p1) || (NULL == p2))
+			{
+				GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to start peers\n");
+				ok = 1;
+			  GNUNET_SCHEDULER_add_now (&end, NULL);
+			}
 
 			timeout_task = GNUNET_SCHEDULER_add_delayed (CONNECT_TIMEOUT, &connect_timeout, NULL);
 		  stage ++;
@@ -270,7 +286,8 @@ run_stage (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   		(GNUNET_NO == started) ? "NOT STARTED" : "STARTED",
   		(GNUNET_YES == connected) ? "CONNECTED" : "NOT CONNECTED");
 
-	if (0 == strcmp(test_name, "test_transport_blacklisting_no_bl"))
+	if ((0 == strcmp(test_name, "test_transport_blacklisting_no_bl")) ||
+			(0 == strcmp(test_name, "test_transport_blacklisting_multiple_plugins")))
 	{
 		if ((GNUNET_NO != started) && (GNUNET_YES == connected))
 			ok = 0;
