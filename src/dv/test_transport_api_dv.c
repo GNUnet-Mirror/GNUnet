@@ -26,11 +26,6 @@
 #include "gnunet_testbed_service.h"
 
 /**
- * How long until we fail the whole testcase?
- */
-#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 600)
-
-/**
  * Return value from main, set to 0 on success.
  */
 static int ok;
@@ -48,7 +43,7 @@ test_connection (void *cls,
     return;
   }
   ok = 0;
-  if (1)
+  if (0)
     GNUNET_SCHEDULER_shutdown ();
   else
     fprintf (stderr, "Test passed, press CTRL-C to shut down\n");
