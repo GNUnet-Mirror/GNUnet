@@ -166,6 +166,14 @@ set_distance (struct TM_Peer *tmp, struct GNUNET_PeerIdentity *peer, int directi
 	}
 }
 
+
+/**
+ * Set traffic metric to manipulate
+ *
+ * @param cls closure
+ * @param client client sending message
+ * @param message containing information
+ */
 void
 GST_manipulation_set_metric (void *cls, struct GNUNET_SERVER_Client *client,
     const struct GNUNET_MessageHeader *message)
