@@ -357,7 +357,7 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct in6_addr v6;
   void *addr;
   enum MHD_FLAG flags;
-
+  
   vpn = GNUNET_VPN_connect (cfg);
   GNUNET_assert (NULL != vpn);
   flags = MHD_USE_DEBUG;
@@ -366,6 +366,8 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   mhd =
       MHD_start_daemon (flags, PORT, NULL, NULL, &mhd_ahc, NULL,
                         MHD_OPTION_END);
+  
+  
   GNUNET_assert (NULL != mhd);
   mhd_main ();
   addr = NULL;
@@ -398,6 +400,7 @@ main (int argc, char *const *argv)
   char *vpn_binary;
   char *exit_binary;
 
+#ifndef MINGW
   if (0 != ACCESS ("/dev/net/tun", R_OK))
   {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "access",
@@ -405,6 +408,7 @@ main (int argc, char *const *argv)
     fprintf (stderr, "WARNING: System unable to run test, skipping.\n");
     return 0;
   }
+#endif
   vpn_binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-vpn");
   exit_binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-exit");
   if ((GNUNET_YES != GNUNET_OS_check_helper_binary (vpn_binary)) ||
@@ -416,6 +420,7 @@ main (int argc, char *const *argv)
              "WARNING: gnunet-helper-{exit,vpn} binaries are not SUID, refusing to run test (as it would have to fail).\n");
     return 0;
   }
+
   GNUNET_free (vpn_binary);
   GNUNET_free (exit_binary);
   GNUNET_CRYPTO_rsa_setup_hostkey ("test_gnunet_vpn.conf");
@@ -429,25 +434,28 @@ main (int argc, char *const *argv)
     return 1;
   }
   type++;
-  if (0 == strcmp (type, "4_to_6"))
+  /* on Windows, .exe is suffixed to these binaries, 
+   * thus cease comparison after the 6th char.
+   */
+  if (0 == strncmp (type, "4_to_6",6))
   {
     dest_ip = "FC5A:04E1:C2BA::1";
     dest_af = AF_INET6;
     src_af = AF_INET;
   }
-  else if (0 == strcmp (type, "6_to_4"))
+  else if (0 == strncmp (type, "6_to_4",6))
   {
     dest_ip = "169.254.86.1";
     dest_af = AF_INET;
     src_af = AF_INET6;
   }
-  else if (0 == strcmp (type, "4_over"))
+  else if (0 == strncmp (type, "4_over",6))
   {
     dest_ip = "169.254.86.1";
     dest_af = AF_INET;
     src_af = AF_INET;
   }
-  else if (0 == strcmp (type, "6_over"))
+  else if (0 == strncmp (type, "6_over",6))
   {
     dest_ip = "FC5A:04E1:C2BA::1";
     dest_af = AF_INET6;
@@ -473,8 +481,8 @@ main (int argc, char *const *argv)
   if (0 !=
       GNUNET_TESTING_peer_run ("test-gnunet-vpn", "test_gnunet_vpn.conf", &run,
                                NULL))
-    return 1;
-  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-vpn");
+    return 1;  
+  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-vpn");  
   return global_ret;
 }
 
