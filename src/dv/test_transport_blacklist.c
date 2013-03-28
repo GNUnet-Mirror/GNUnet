@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -18,8 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file dv/test_transport_api_dv.c
- * @brief base testcase for testing distance vector transport
+ * @file dv/test_transport_blacklist.c
+ * @brief base testcase for testing blacklist
  */
 #include "platform.h"
 #include "gnunet_core_service.h"
@@ -38,15 +38,13 @@ test_connection (void *cls,
 {
   if (4 != num_peers)
   {
-    fprintf (stderr, "Testbed failed to connect peers\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
+    ok = 0;
   }
-  ok = 0;
-  if (0)
-    GNUNET_SCHEDULER_shutdown ();
   else
-    fprintf (stderr, "Test passed, press CTRL-C to shut down\n");
+  {
+    fprintf (stderr, "Testbed connect peers despite blacklist!\n");
+  }
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -54,12 +52,12 @@ int
 main (int argc, char *argv[])
 {
   ok = 1;
-  (void) GNUNET_TESTBED_test_run ("test-transport-api-dv",
-				  "test_transport_dv_data.conf",
+  (void) GNUNET_TESTBED_test_run ("test-transport-blacklist",
+				  "test_transport_blacklist_data.conf",
 				  4,
 				  0, NULL, NULL,
 				  &test_connection, NULL);
   return ok;
 }
 
-/* end of test_transport_api_dv.c */
+/* end of test_transport_blacklist.c */
