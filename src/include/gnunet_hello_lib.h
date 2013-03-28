@@ -83,15 +83,6 @@ struct GNUNET_HELLO_Address
 
 
 /**
- * Return HELLO type
- *
- * @param h HELLO Message to test
- * @param GNUNET_MESSAGE_TYPE_HELLO or GNUNET_MESSAGE_TYPE_FRIEND_HELLO or 0 on error
- */
-uint16_t
-GNUNET_HELLO_get_type (const struct GNUNET_MessageHeader *h);
-
-/**
  * Allocate an address struct.
  *
  * @param peer the peer
@@ -154,6 +145,14 @@ GNUNET_HELLO_address_get_size (const struct GNUNET_HELLO_Address *address);
  */
 struct GNUNET_HELLO_Message;
 
+/**
+ * Return HELLO type
+ *
+ * @param h HELLO Message to test
+ * @param GNUNET_MESSAGE_TYPE_HELLO or GNUNET_MESSAGE_TYPE_FRIEND_HELLO or 0 on error
+ */
+uint16_t
+GNUNET_HELLO_get_type (const struct GNUNET_HELLO_Message *h);
 
 /**
  * Copy the given address information into

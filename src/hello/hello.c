@@ -111,11 +111,11 @@ struct GNUNET_HELLO_ParseUriContext
  */
 
 uint16_t
-GNUNET_HELLO_get_type (const struct GNUNET_MessageHeader *h)
+GNUNET_HELLO_get_type (const struct GNUNET_HELLO_Message *h)
 {
-  if (GNUNET_MESSAGE_TYPE_HELLO == ntohs(h->type))
+  if (GNUNET_MESSAGE_TYPE_HELLO == ntohs(h->header.type))
   	return GNUNET_MESSAGE_TYPE_HELLO;
-  if (GNUNET_MESSAGE_TYPE_FRIEND_HELLO == ntohs(h->type))
+  if (GNUNET_MESSAGE_TYPE_FRIEND_HELLO == ntohs(h->header.type))
   	return GNUNET_MESSAGE_TYPE_FRIEND_HELLO;
   return 0;
 }
