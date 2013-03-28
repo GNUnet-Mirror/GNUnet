@@ -112,6 +112,12 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_HELLO 16
 
+/**
+ * HELLO message used for communicating peer addresses with friends only.
+ */
+
+#define GNUNET_MESSAGE_TYPE_FRIEND_HELLO 17
+
 /*******************************************************************************
  * FRAGMENTATION message types
  ******************************************************************************/

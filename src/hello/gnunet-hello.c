@@ -23,6 +23,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include "gnunet_protocols.h"
 #include "gnunet_hello_lib.h"
 
 /**
@@ -109,6 +110,7 @@ main (int argc, char *argv[])
   struct GNUNET_HELLO_Message *result;
   struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pk;
   uint64_t fsize;
+  int friend_only;
 
   GNUNET_log_setup ("gnunet-hello", "INFO", NULL);
   if (argc != 2)
@@ -166,7 +168,12 @@ main (int argc, char *argv[])
 	       argv[1]);
       return 1;
     }
-    result = GNUNET_HELLO_create (&pk, &add_from_hello, &orig);
+    friend_only = GNUNET_NO;
+    if (GNUNET_MESSAGE_TYPE_HELLO == GNUNET_HELLO_get_type ((struct GNUNET_MessageHeader *) orig))
+    	friend_only = GNUNET_NO;
+    if (GNUNET_MESSAGE_TYPE_FRIEND_HELLO == GNUNET_HELLO_get_type ((struct GNUNET_MessageHeader *) orig))
+    	friend_only = GNUNET_YES;
+    result = GNUNET_HELLO_create (&pk, &add_from_hello, &orig, friend_only);
     GNUNET_assert (NULL != result);
      fh = GNUNET_DISK_file_open (argv[1], 
 				 GNUNET_DISK_OPEN_WRITE,

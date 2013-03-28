@@ -44,6 +44,10 @@ extern "C"
  */
 #define GNUNET_HELLO_URI_PREFIX "gnunet://hello/"
 
+/**
+ * Prefix that every FRIEND HELLO URI must start with.
+ */
+#define GNUNET_FRIEND_HELLO_URI_PREFIX "gnunet://friend-hello/"
 
 /**
  * An address for communicating with a peer.  We frequently
@@ -77,6 +81,15 @@ struct GNUNET_HELLO_Address
 
 };
 
+
+/**
+ * Return HELLO type
+ *
+ * @param h HELLO Message to test
+ * @param GNUNET_MESSAGE_TYPE_HELLO or GNUNET_MESSAGE_TYPE_FRIEND_HELLO or 0 on error
+ */
+uint16_t
+GNUNET_HELLO_get_type (const struct GNUNET_MessageHeader *h);
 
 /**
  * Allocate an address struct.
@@ -180,13 +193,17 @@ typedef size_t (*GNUNET_HELLO_GenerateAddressListCallback) (void *cls,
  * expiration time and an iterator that spews the
  * transport addresses.
  *
+ * If friend only is set to GNUNET_YES we create a FRIEND_HELLO which will
+ * not be gossiped to other peers
+ *
  * @return the hello message
  */
 struct GNUNET_HELLO_Message *
 GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded
                      *publicKey,
                      GNUNET_HELLO_GenerateAddressListCallback addrgen,
-                     void *addrgen_cls);
+                     void *addrgen_cls,
+                     int friend_only);
 
 
 /**

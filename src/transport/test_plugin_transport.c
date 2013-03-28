@@ -601,7 +601,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                       &my_identity.hashPubKey);
 
 
-  hello = GNUNET_HELLO_create(&my_public_key, NULL, NULL);
+  hello = GNUNET_HELLO_create(&my_public_key, NULL, NULL, GNUNET_NO);
 
   /* load plugins... */
   setup_plugin_environment ();

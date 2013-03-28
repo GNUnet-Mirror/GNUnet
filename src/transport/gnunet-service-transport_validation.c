@@ -1264,7 +1264,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
 
   /* build HELLO to store in PEERINFO */
   ve->copied = GNUNET_NO;
-  hello = GNUNET_HELLO_create (&ve->public_key, &add_valid_peer_address, ve);
+  hello = GNUNET_HELLO_create (&ve->public_key, &add_valid_peer_address, ve, GNUNET_NO);
   GNUNET_PEERINFO_add_peer (GST_peerinfo, hello, NULL, NULL);
   GNUNET_free (hello);
 }
@@ -1295,7 +1295,7 @@ GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello)
       memcmp (&GST_my_identity, &vac.pid, sizeof (struct GNUNET_PeerIdentity)))
     return;
   /* Add peer identity without addresses to peerinfo service */
-  h = GNUNET_HELLO_create (&vac.public_key, NULL, NULL);
+  h = GNUNET_HELLO_create (&vac.public_key, NULL, NULL, GNUNET_NO);
   GNUNET_PEERINFO_add_peer (GST_peerinfo, h, NULL, NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

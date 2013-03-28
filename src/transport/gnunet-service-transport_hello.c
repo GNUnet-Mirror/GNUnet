@@ -167,7 +167,7 @@ refresh_hello_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   gc.expiration = GNUNET_TIME_relative_to_absolute (hello_expiration);
 
   GNUNET_free (our_hello);
-  our_hello = GNUNET_HELLO_create (&GST_my_public_key, &address_generator, &gc);
+  our_hello = GNUNET_HELLO_create (&GST_my_public_key, &address_generator, &gc, GNUNET_NO);
   GNUNET_assert (NULL != our_hello);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
               "Refreshed my `%s', new size is %d\n", "HELLO",
@@ -208,7 +208,7 @@ GST_hello_start (GST_HelloCallback cb, void *cb_cls)
 {
   hello_cb = cb;
   hello_cb_cls = cb_cls;
-  our_hello = GNUNET_HELLO_create (&GST_my_public_key, NULL, NULL);
+  our_hello = GNUNET_HELLO_create (&GST_my_public_key, NULL, NULL, GNUNET_NO);
   GNUNET_assert (NULL != our_hello);
   refresh_hello ();
 }

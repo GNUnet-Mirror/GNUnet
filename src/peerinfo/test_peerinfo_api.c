@@ -93,7 +93,7 @@ add_peer ()
   agc = 2;
   memset (&pkey, 32, sizeof (pkey));
   GNUNET_CRYPTO_hash (&pkey, sizeof (pkey), &pid.hashPubKey);
-  h2 = GNUNET_HELLO_create (&pkey, &address_generator, &agc);
+  h2 = GNUNET_HELLO_create (&pkey, &address_generator, &agc, GNUNET_NO);
   GNUNET_PEERINFO_add_peer (h, h2, NULL, NULL);
   GNUNET_free (h2);
 

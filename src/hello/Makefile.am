@@ -24,7 +24,8 @@ noinst_PROGRAMS = \
  gnunet-hello
 
 check_PROGRAMS = \
- test_hello
+ test_hello \
+ test_friend_hello
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
@@ -36,6 +37,11 @@ test_hello_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
+test_friend_hello_SOURCES = \
+ test_friend_hello.c
+test_friend_hello_LDADD = \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
 
 gnunet_hello_SOURCES = \
  gnunet-hello.c

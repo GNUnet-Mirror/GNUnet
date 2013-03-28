@@ -103,6 +103,23 @@ struct GNUNET_HELLO_ParseUriContext
   GNUNET_HELLO_TransportPluginsFind plugins_find;
 };
 
+/**
+ * Return HELLO type
+ *
+ * @param h HELLO Message to test
+ * @param GNUNET_MESSAGE_TYPE_HELLO or GNUNET_MESSAGE_TYPE_FRIEND_HELLO or 0 on error
+ */
+
+uint16_t
+GNUNET_HELLO_get_type (const struct GNUNET_MessageHeader *h)
+{
+  if (GNUNET_MESSAGE_TYPE_HELLO == ntohs(h->type))
+  	return GNUNET_MESSAGE_TYPE_HELLO;
+  if (GNUNET_MESSAGE_TYPE_FRIEND_HELLO == ntohs(h->type))
+  	return GNUNET_MESSAGE_TYPE_FRIEND_HELLO;
+  return 0;
+}
+
 
 /**
  * Copy the given address information into
@@ -204,7 +221,8 @@ struct GNUNET_HELLO_Message *
 GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded
                      *publicKey,
                      GNUNET_HELLO_GenerateAddressListCallback addrgen,
-                     void *addrgen_cls)
+                     void *addrgen_cls,
+                     int friend_only)
 {
   char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - 256 -
               sizeof (struct GNUNET_HELLO_Message)];
@@ -224,7 +242,10 @@ GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded
     }
   }
   hello = GNUNET_malloc (sizeof (struct GNUNET_HELLO_Message) + used);
-  hello->header.type = htons (GNUNET_MESSAGE_TYPE_HELLO);
+  if (GNUNET_NO == friend_only)
+  	hello->header.type = htons (GNUNET_MESSAGE_TYPE_HELLO);
+  else
+  	hello->header.type = htons (GNUNET_MESSAGE_TYPE_FRIEND_HELLO);
   hello->header.size = htons (sizeof (struct GNUNET_HELLO_Message) + used);
   memcpy (&hello->publicKey, publicKey,
           sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
@@ -261,7 +282,8 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
 
   msize = GNUNET_HELLO_size (msg);
   if ((msize < sizeof (struct GNUNET_HELLO_Message)) ||
-      (ntohs (msg->header.type) != GNUNET_MESSAGE_TYPE_HELLO))
+      ((ntohs (msg->header.type) != GNUNET_MESSAGE_TYPE_HELLO) &&
+			 (ntohs (msg->header.type) != GNUNET_MESSAGE_TYPE_FRIEND_HELLO)))
     return NULL;
   ret = NULL;
   if (return_modified)
@@ -408,8 +430,24 @@ GNUNET_HELLO_merge (const struct GNUNET_HELLO_Message *h1,
                     const struct GNUNET_HELLO_Message *h2)
 {
   struct MergeContext mc = { h1, h2, NULL, NULL, 0, 0, 0 };
+  int friend_only;
+  if (h1->header.type != h2->header.type)
+  {
+  		/* Trying to merge different HELLO types */
+  		GNUNET_break (0);
+  		return NULL;
+  }
+  if (GNUNET_MESSAGE_TYPE_HELLO == (ntohs(h1->header.type)))
+  	friend_only = GNUNET_NO;
+  else if (GNUNET_MESSAGE_TYPE_FRIEND_HELLO == (ntohs(h1->header.type)))
+		friend_only = GNUNET_YES;
+  else
+  {
+  		GNUNET_break (0);
+  		return NULL;
+  }
 
-  return GNUNET_HELLO_create (&h1->publicKey, &merge_addr, &mc);
+	return GNUNET_HELLO_create (&h1->publicKey, &merge_addr, &mc, friend_only);
 }
 
 
@@ -488,7 +526,8 @@ GNUNET_HELLO_size (const struct GNUNET_HELLO_Message *hello)
   uint16_t ret = ntohs (hello->header.size);
 
   if ((ret < sizeof (struct GNUNET_HELLO_Message)) ||
-      (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO))
+      ((ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO) &&
+			 (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_FRIEND_HELLO)))
     return 0;
   return ret;
 }
@@ -508,7 +547,8 @@ GNUNET_HELLO_get_key (const struct GNUNET_HELLO_Message *hello,
   uint16_t ret = ntohs (hello->header.size);
 
   if ((ret < sizeof (struct GNUNET_HELLO_Message)) ||
-      (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO))
+      ((ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO) &&
+			 (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_FRIEND_HELLO)))
     return GNUNET_SYSERR;
   *publicKey = hello->publicKey;
   return GNUNET_OK;
@@ -529,7 +569,8 @@ GNUNET_HELLO_get_id (const struct GNUNET_HELLO_Message *hello,
   uint16_t ret = ntohs (hello->header.size);
 
   if ((ret < sizeof (struct GNUNET_HELLO_Message)) ||
-      (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO))
+      ((ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO) &&
+			 (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_FRIEND_HELLO)))
     return GNUNET_SYSERR;
   GNUNET_CRYPTO_hash (&hello->publicKey,
                       sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
@@ -552,7 +593,8 @@ GNUNET_HELLO_get_header (struct GNUNET_HELLO_Message *hello)
   uint16_t ret = ntohs (hello->header.size);
 
   if ((ret < sizeof (struct GNUNET_HELLO_Message)) ||
-      (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO))
+      ((ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO) &&
+			 (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_FRIEND_HELLO)))
     return NULL;
 
   return &hello->header;
@@ -638,6 +680,9 @@ GNUNET_HELLO_equals (const struct GNUNET_HELLO_Message *h1,
                      struct GNUNET_TIME_Absolute now)
 {
   struct EqualsContext ec;
+
+  if (h1->header.type != h2->header.type)
+  	return GNUNET_TIME_UNIT_ZERO_ABS;
 
   if (0 !=
       memcmp (&h1->publicKey, &h2->publicKey,
@@ -1011,13 +1056,25 @@ GNUNET_HELLO_parse_uri (const char *uri,
 {
   const char *pks;
   const char *exc;
+  int friend_only;
   struct GNUNET_HELLO_ParseUriContext ctx;
 
-  if (0 != strncmp (uri,
+  if (0 == strncmp (uri,
 		    GNUNET_HELLO_URI_PREFIX,
 		    strlen (GNUNET_HELLO_URI_PREFIX)))
-    return GNUNET_SYSERR;
-  pks = &uri[strlen (GNUNET_HELLO_URI_PREFIX)];
+  {
+  		pks = &uri[strlen (GNUNET_HELLO_URI_PREFIX)];
+  		friend_only = GNUNET_NO;
+  }
+  else if (0 == strncmp (uri,
+	    GNUNET_FRIEND_HELLO_URI_PREFIX,
+	    strlen (GNUNET_FRIEND_HELLO_URI_PREFIX)))
+  {
+  	pks = &uri[strlen (GNUNET_FRIEND_HELLO_URI_PREFIX)];
+  	friend_only = GNUNET_YES;
+  }
+  else
+  	return GNUNET_SYSERR;
   exc = strstr (pks, "!");
 
   if (GNUNET_OK !=
@@ -1030,7 +1087,7 @@ GNUNET_HELLO_parse_uri (const char *uri,
   ctx.pos = exc;
   ctx.ret = GNUNET_OK;
   ctx.plugins_find = plugins_find;
-  *hello = GNUNET_HELLO_create (pubkey, &add_address_to_hello, &ctx);
+  *hello = GNUNET_HELLO_create (pubkey, &add_address_to_hello, &ctx, friend_only);
 
   return ctx.ret;
 }
