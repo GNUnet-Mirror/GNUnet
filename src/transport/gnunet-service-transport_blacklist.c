@@ -589,16 +589,21 @@ GST_blacklist_add_peer (const struct GNUNET_PeerIdentity *peer,
                         const char *transport_name)
 {
 	char * transport = NULL;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	if (NULL != transport_name)
+	{
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Adding peer `%s' with plugin `%s' to blacklist\n",
               GNUNET_i2s (peer), transport_name);
+			transport = GNUNET_strdup (transport_name);
+	}
+	else
+		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+            "Adding peer `%s' with all plugins to blacklist\n",
+            GNUNET_i2s (peer));
   if (blacklist == NULL)
     blacklist =
       GNUNET_CONTAINER_multihashmap_create (TRANSPORT_BLACKLIST_HT_SIZE,
 					    GNUNET_NO);
-  if (NULL != transport_name)
-  	transport = GNUNET_strdup ("");
 
   GNUNET_CONTAINER_multihashmap_put (blacklist, &peer->hashPubKey,
                                      transport,
@@ -621,16 +626,30 @@ test_blacklisted (void *cls, const struct GNUNET_HashCode * key, void *value)
   const char *transport_name = cls;
   char *be = value;
 
-  /* blacklist check for specific no specific transport*/
-  if (transport_name == NULL)
-    return GNUNET_NO;
-  /* all plugins for this peer were blacklisted */
+  /* Blacklist entry be:
+   *  (NULL == be): peer is blacklisted with all plugins
+   *  (NULL != be): peer is blacklisted for a specific plugin
+   *
+   * If (NULL != transport_name) we look for a transport specific entry:
+   *  if (transport_name == be) forbidden
+   *
+   */
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  						"Comparing BL request for peer `%4s':`%s' with BL entry: `%s'\n",
+		GNUNET_h2s (key),
+		(NULL == transport_name) ? "unspecified" : transport_name,
+		(NULL == be) ? "all plugins" : be);
+  /* all plugins for this peer were blacklisted: disallow */
   if (NULL == value)
-  	return GNUNET_NO;
+  		return GNUNET_NO;
 
   /* blacklist check for specific transport */
-  if (0 == strcmp (transport_name, be))
-    return GNUNET_NO;           /* abort iteration! */
+  if ((NULL != transport_name) && (NULL != value))
+  {
+  	if (0 == strcmp (transport_name, be))
+  			return GNUNET_NO;           /* plugin is blacklisted! */
+  }
   return GNUNET_OK;
 }
 
@@ -653,17 +672,23 @@ GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
   struct GST_BlacklistCheck *bc;
 
   GNUNET_assert (peer != NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Blacklist check for peer `%s':%s\n",
+  		GNUNET_i2s (peer), (NULL != transport_name) ? transport_name : "unspecified");
 
+  /* Check local blacklist by iterating over hashmap
+   * If iteration is aborted, we found a matching blacklist entry */
   if ((blacklist != NULL) &&
       (GNUNET_SYSERR ==
        GNUNET_CONTAINER_multihashmap_get_multiple (blacklist, &peer->hashPubKey,
                                                    &test_blacklisted,
                                                    (void *) transport_name)))
   {
-    /* disallowed by config, disapprove instantly */
+    /* Disallowed by config, disapprove instantly */
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop ("# disconnects due to blacklist"),
                               1, GNUNET_NO);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Disallowing connection to peer `%s' on transport %s\n",
+    		GNUNET_i2s (peer), (NULL != transport_name) ? transport_name : "unspecified");
     if (cont != NULL)
       cont (cont_cls, peer, GNUNET_NO);
     return NULL;
@@ -674,6 +699,8 @@ GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
     /* no blacklist clients, approve instantly */
     if (cont != NULL)
       cont (cont_cls, peer, GNUNET_OK);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Allowing connection to peer `%s' %s\n",
+    		GNUNET_i2s (peer), (NULL != transport_name) ? transport_name : "");
     return NULL;
   }
 
