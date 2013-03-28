@@ -347,7 +347,7 @@ static unsigned int peer_cnt;
 static unsigned int peers_found;
 
 /**
- * Index of peer to start next announce/search..
+ * Index of peer to start next announce/search.
  */
 static unsigned int next_search;
 
