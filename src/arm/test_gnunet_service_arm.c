@@ -53,8 +53,13 @@ trigger_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   arm = NULL;
 }
 
+
 static void
-arm_stop_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_RequestStatus status, const char *servicename, enum GNUNET_ARM_Result result)
+arm_stop_cb (void *cls, 
+	     struct GNUNET_ARM_Handle *h, 
+	     enum GNUNET_ARM_RequestStatus status, 
+	     const char *servicename, 
+	     enum GNUNET_ARM_Result result)
 {
   GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);
   GNUNET_break (result == GNUNET_ARM_RESULT_STOPPING);
@@ -63,18 +68,22 @@ arm_stop_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_RequestStat
   GNUNET_SCHEDULER_add_now (trigger_disconnect, NULL);
 }
 
+
 static void
 service_list (void *cls, struct GNUNET_ARM_Handle *arm,
-    enum GNUNET_ARM_RequestStatus rs,
-    unsigned int count, const char *const*list)
+	      enum GNUNET_ARM_RequestStatus rs,
+	      unsigned int count, const char *const*list)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u services are are currently running\n", count);
-  GNUNET_assert (count == 1);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "%u services are are currently running\n", 
+	      count);
+  GNUNET_break (count == 1);
   GNUNET_break (0 == strcasecmp (list[0], "resolver (gnunet-service-resolver)"));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got service list, now stopping arm\n");
   ret = 0;
   GNUNET_ARM_request_service_stop (arm, "arm", TIMEOUT, arm_stop_cb, NULL);
 }
+
 
 static void
 hostNameResolveCB (void *cls, const struct sockaddr *addr, socklen_t addrlen)
@@ -97,8 +106,13 @@ hostNameResolveCB (void *cls, const struct sockaddr *addr, socklen_t addrlen)
   }
 }
 
+
 static void
-arm_start_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_RequestStatus status, const char *servicename, enum GNUNET_ARM_Result result)
+arm_start_cb (void *cls, 
+	      struct GNUNET_ARM_Handle *h, 
+	      enum GNUNET_ARM_RequestStatus status, 
+	      const char *servicename, 
+	      enum GNUNET_ARM_Result result)
 {
   GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);
   GNUNET_break (result == GNUNET_ARM_RESULT_STARTING);
@@ -114,6 +128,7 @@ arm_start_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_RequestSta
     GNUNET_ARM_request_service_stop (arm, "arm", TIMEOUT, arm_stop_cb, NULL);
   }
 }
+
 
 static void
 run (void *cls, char *const *args, const char *cfgfile,
@@ -171,10 +186,10 @@ main (int argc, char *av[])
   GNUNET_log_setup ("test-gnunet-service-arm",
 		    "WARNING",
 		    NULL);
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-				     argv, "test-gnunet-service-arm",
-				     "nohelp", options, &run, NULL));
+  GNUNET_break (GNUNET_OK ==
+		GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
+				    argv, "test-gnunet-service-arm",
+				    "nohelp", options, &run, NULL));
   return ret;
 }
 

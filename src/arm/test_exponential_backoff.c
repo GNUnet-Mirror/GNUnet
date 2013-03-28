@@ -23,10 +23,10 @@
  */
 #include "platform.h"
 #include "gnunet_arm_service.h"
-#include "gnunet_client_lib.h"
-#include "gnunet_configuration_lib.h"
-#include "gnunet_program_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
+
+#define LOG(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
 #define START_ARM GNUNET_YES
 
@@ -165,9 +165,7 @@ write_shutdown (void *cls, size_t size, void *buf)
 
   if (size < sizeof (struct GNUNET_MessageHeader))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-        _("Failed to transmit shutdown request to client.\n"));
-    FPRINTF (stderr, "%s", "Failed to send a shutdown request\n");
+    LOG ("Failed to send a shutdown request\n");
     shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_SYSERR);
     GNUNET_CLIENT_disconnect (shutdown_ctx->sock);
     GNUNET_free (shutdown_ctx);
@@ -183,7 +181,7 @@ write_shutdown (void *cls, size_t size, void *buf)
   msg->type = htons (GNUNET_MESSAGE_TYPE_ARM_STOP);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
   strcpy ((char *) &msg[1], "do-nothing");
-  FPRINTF (stderr, "%s", "Sent a shutdown request\n");
+  LOG ("Sent a shutdown request\n");
   return sizeof (struct GNUNET_MessageHeader) + strlen ("do-nothing") + 1;
 }
 
@@ -219,8 +217,10 @@ do_nothing_service_shutdown (struct GNUNET_CLIENT_Connection *sock,
 				       shutdown_ctx);
 }
 
+
 static void
 kill_task (void *cbData, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 static void
 shutdown_cont (void *cls, int reason)
@@ -228,13 +228,14 @@ shutdown_cont (void *cls, int reason)
   if (GNUNET_NO != reason)
   {
     /* Re-try shutdown */
-    FPRINTF (stderr, "%s", "do-nothing didn't die, trying again\n");
+    LOG ("do-nothing didn't die, trying again\n");
     GNUNET_SCHEDULER_add_now (kill_task, NULL);
     return;
   }
   startedWaitingAt = GNUNET_TIME_absolute_get ();
-  FPRINTF (stderr, "%s", "do-nothing is dead, starting the countdown\n");
+  LOG ("do-nothing is dead, starting the countdown\n");
 }
+
 
 static void
 kill_task (void *cbData, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -244,11 +245,8 @@ kill_task (void *cbData, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != cbData)
   {
     waitedFor = GNUNET_TIME_absolute_get_duration (startedWaitingAt);
-    FPRINTF (stderr, "Waited for: %llu ms\n", waitedFor.rel_value);
-#if LOG_BACKOFF
-    FPRINTF (killLogFilePtr, "Waited for: %llu ms\n",
-      (unsigned long long) waitedFor.rel_value);
-#endif
+    LOG ("Waited for: %s\n", 
+	 GNUNET_STRINGS_relative_time_to_string (waitedFor, GNUNET_YES));
   }
   else
   {
@@ -276,6 +274,7 @@ kill_task (void *cbData, const struct GNUNET_SCHEDULER_TaskContext *tc)
       TIMEOUT, &shutdown_cont, NULL);
 }
 
+
 static void
 trigger_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -289,14 +288,15 @@ arm_stop_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_RequestStat
 {
   GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);
   GNUNET_break (result == GNUNET_ARM_RESULT_STOPPING);
-  FPRINTF (stderr, "%s", "ARM service stopped\n");
+  LOG ("ARM service stopped\n");
   GNUNET_SCHEDULER_add_now (trigger_disconnect, NULL);
 }
 
-void
+
+static void
 srv_status (void *cls, struct GNUNET_ARM_MonitorHandle *mon, const char *service, enum GNUNET_ARM_ServiceStatus status)
 {
-  FPRINTF (stderr, "Service %s is %u, phase %u\n", service, status, phase);
+  LOG ("Service %s is %u, phase %u\n", service, status, phase);
   if (status == GNUNET_ARM_SERVICE_MONITORING_STARTED)
   {
     phase++;
@@ -309,7 +309,7 @@ srv_status (void *cls, struct GNUNET_ARM_MonitorHandle *mon, const char *service
     GNUNET_break (status == GNUNET_ARM_SERVICE_STARTING);
     GNUNET_break (0 == strcasecmp (service, "do-nothing"));
     GNUNET_break (phase == 1);
-    FPRINTF (stderr, "%s", "do-nothing is starting\n");
+    LOG ("do-nothing is starting\n");
     phase++;
     ok = 1;
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &kill_task, NULL);
@@ -321,7 +321,7 @@ srv_status (void *cls, struct GNUNET_ARM_MonitorHandle *mon, const char *service
      */
     if (status == GNUNET_ARM_SERVICE_STARTING)
     {
-      FPRINTF (stderr, "%s", "do-nothing is starting\n");
+      LOG ("do-nothing is starting\n");
       GNUNET_SCHEDULER_add_now (kill_task, &ok);
     }
     else if ((status == GNUNET_ARM_SERVICE_STOPPED) && (trialCount == 14))
@@ -332,14 +332,17 @@ srv_status (void *cls, struct GNUNET_ARM_MonitorHandle *mon, const char *service
   }
 }
 
+
 static void
 arm_start_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_RequestStatus status, const char *servicename, enum GNUNET_ARM_Result result)
 {
   GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);
   GNUNET_break (result == GNUNET_ARM_RESULT_STARTING);
   GNUNET_break (phase == 0);
-  FPRINTF (stderr, "Sent 'START' request for arm to ARM %s\n", (status == GNUNET_ARM_REQUEST_SENT_OK) ? "successfully" : "unsuccessfully");
+  LOG ("Sent 'START' request for arm to ARM %s\n", 
+       (status == GNUNET_ARM_REQUEST_SENT_OK) ? "successfully" : "unsuccessfully");
 }
+
 
 static void
 task (void *cls, char *const *args, const char *cfgfile,
@@ -381,6 +384,7 @@ task (void *cls, char *const *args, const char *cfgfile,
   }
 }
 
+
 static int
 check ()
 {
@@ -402,6 +406,7 @@ check ()
 
   return ok;
 }
+
 
 static int
 init ()
