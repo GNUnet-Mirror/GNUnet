@@ -64,15 +64,15 @@ abort_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   fprintf (stderr,
 	   "Timeout\n");
-  if (NULL != publish)
-  {
-    GNUNET_FS_publish_stop (publish);
-    publish = NULL;
-  }
   if (NULL != search)
   {
     GNUNET_FS_search_stop (search);
     search = NULL;
+  }
+  if (NULL != publish)
+  {
+    GNUNET_FS_publish_stop (publish);
+    publish = NULL;
   }
   err = 1;
 }
