@@ -61,6 +61,7 @@ static int err;
 static void
 abort_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  timeout_task = GNUNET_SCHEDULER_NO_TASK;
   fprintf (stderr,
 	   "Timeout\n");
   if (NULL != search)
@@ -80,8 +81,16 @@ abort_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 abort_publish_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_FS_publish_stop (publish);
-  publish = NULL;
+  if (NULL != publish)
+  {
+    GNUNET_FS_publish_stop (publish);
+    publish = NULL;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (timeout_task);
+    timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 }
 
 
