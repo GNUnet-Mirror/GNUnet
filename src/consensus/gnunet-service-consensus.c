@@ -1535,7 +1535,12 @@ listen_cb (void *cls,
            const struct GNUNET_PeerIdentity *initiator)
 {
   struct IncomingSocket *incoming;
-  GNUNET_assert (NULL != socket);
+
+  if (NULL == socket)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   incoming = GNUNET_malloc (sizeof *incoming);
   incoming->socket = socket;
   incoming->peer_id = *initiator;
@@ -2746,14 +2751,16 @@ run (void *cls, struct GNUNET_SERVER_Handle *server, const struct GNUNET_CONFIGU
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, NULL);
 
   listener = GNUNET_STREAM_listen (cfg, GNUNET_APPLICATION_TYPE_CONSENSUS,
-                                   listen_cb, NULL,
+                                   &listen_cb, NULL,
                                    GNUNET_STREAM_OPTION_END);
 
   /* we have to wait for the core_startup callback before proceeding with the consensus service startup */
-  core = GNUNET_CORE_connect (c, NULL, &core_startup, NULL, NULL, NULL, GNUNET_NO, NULL, GNUNET_NO, core_handlers);
+  core = GNUNET_CORE_connect (c, NULL, 
+			      &core_startup, NULL, 
+			      NULL, NULL, GNUNET_NO, NULL, 
+			      GNUNET_NO, core_handlers);
   GNUNET_assert (NULL != core);
-
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "consensus running\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "consensus running\n");
 }
 
 
