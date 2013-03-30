@@ -38,7 +38,7 @@ test_connection (void *cls,
                  unsigned int links_succeeded,
                  unsigned int links_failed)
 {
-  if (4 != num_peers)
+  if ( (4 != num_peers) || (0 != links_failed) )
   {
     fprintf (stderr, "Testbed failed to connect peers\n");
     GNUNET_SCHEDULER_shutdown ();
