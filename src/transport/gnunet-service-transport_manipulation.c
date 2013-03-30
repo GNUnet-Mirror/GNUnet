@@ -65,7 +65,7 @@ struct GST_ManipulationHandle
 	/**
 	 * General inbound distance
 	 */
-	 unsigned long long  distance_recv;
+	 unsigned long long distance_recv;
 
 	/**
 	 * General outbound distance
