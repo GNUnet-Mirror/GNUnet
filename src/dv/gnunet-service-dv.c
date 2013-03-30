@@ -748,11 +748,18 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   {
     GNUNET_break (GNUNET_YES != neighbor->connected);
     neighbor->connected = GNUNET_YES;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Core connected to %s (distance %u)\n",
+		GNUNET_i2s (peer),
+		(unsigned int) neighbor->distance);
     if (DIRECT_NEIGHBOR_COST != neighbor->distance)
       return;
     handle_direct_connect (neighbor);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Core connected to %s (distance unknown)\n",
+	      GNUNET_i2s (peer));
   neighbor = GNUNET_malloc (sizeof (struct DirectNeighbor));
   neighbor->peer = *peer;
   GNUNET_assert (GNUNET_YES ==
@@ -976,9 +983,13 @@ handle_ats_update (void *cls,
   if (GNUNET_NO == active)
   	return;
   distance = get_atsi_distance (ats, ats_count); 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "ATS says distance to %s is %u\n",
+	      GNUNET_i2s (&address->peer),
+	      (unsigned int) distance);
   /* check if entry exists */
   neighbor = GNUNET_CONTAINER_multihashmap_get (direct_neighbors, 
-							&address->peer.hashPubKey);
+						&address->peer.hashPubKey);
   if (NULL != neighbor)
   {    
     if ( (DIRECT_NEIGHBOR_COST == neighbor->distance) &&
@@ -1048,6 +1059,9 @@ check_target_removed (void *cls,
       return GNUNET_OK;
     }
     /* remove existing route */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Lost route to %s\n",
+		GNUNET_i2s (&current_route->target.peer));
     GNUNET_assert (GNUNET_YES ==
 		   GNUNET_CONTAINER_multihashmap_remove (all_routes, key, current_route));
     send_disconnect_to_plugin (&current_route->target.peer);
@@ -1108,6 +1122,10 @@ check_target_added (void *cls,
     return GNUNET_OK;
   }
   /* new route */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Discovered new route to %s using %u hops\n",
+	      GNUNET_i2s (&target->peer),
+	      (unsigned int) (ntohl (target->distance) + 1));
   current_route = GNUNET_malloc (sizeof (struct Route));
   current_route->next_hop = neighbor;
   current_route->target.peer = target->peer;
@@ -1136,6 +1154,9 @@ consensus_done_cb (void *cls)
 
   GNUNET_CONSENSUS_destroy (neighbor->consensus);
   neighbor->consensus = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Finished consensus with %s!\n",
+	      GNUNET_i2s (&neighbor->peer));
   /* remove targets that disappeared */
   neighbor->target_removed = GNUNET_NO;
   GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table,
@@ -1291,6 +1312,9 @@ start_consensus (void *cls,
   struct GNUNET_HashCode session_id;
   struct GNUNET_HashCode real_session_id;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting to create consensus with %s!\n",
+	      GNUNET_i2s (&neighbor->peer));
   neighbor->consensus_task = GNUNET_SCHEDULER_NO_TASK;
   neighbor->consensus_insertion_offset = 0;
   neighbor->consensus_insertion_distance = 0;
@@ -1370,6 +1394,9 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
 				1, GNUNET_NO);
       return GNUNET_OK;
     }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Delivering %u bytes to myself!\n",
+		ntohs (payload->size));
     send_data_to_plugin (payload,
 			 &rm->sender,
 			 ntohl (route->target.distance));
@@ -1444,6 +1471,11 @@ handle_dv_send_message (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Forwarding %u bytes to %s\n",
+	      ntohs (payload->size),
+	      GNUNET_i2s (&msg->target));
+
   forward_payload (route->next_hop,
 		   ntohl (route->target.distance),
 		   htonl (msg->uid),
