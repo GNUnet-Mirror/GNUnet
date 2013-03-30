@@ -2035,12 +2035,10 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_STATISTICS_update (plugin->env->stats,
                             gettext_noop ("# bytes received via TCP"),
                             ntohs (message->size), GNUNET_NO);
-  struct GNUNET_ATS_Information distance[2];
+  struct GNUNET_ATS_Information distance;
 
-  distance[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  distance[0].value = htonl (1);
-  distance[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  distance[1].value = session->ats_address_network_type;
+  distance.type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  distance.value = session->ats_address_network_type;
   GNUNET_break (ntohl(session->ats_address_network_type) != GNUNET_ATS_NET_UNSPECIFIED);
 
   GNUNET_assert (GNUNET_CONTAINER_multihashmap_contains_value (plugin->sessionmap,
@@ -2056,10 +2054,10 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
   plugin->env->update_address_metrics (plugin->env->cls,
   		&session->target,
   		(GNUNET_YES == session->inbound) ? NULL : session->addr,
-      (GNUNET_YES == session->inbound) ? 0 : session->addrlen,
-      session,
-      (struct GNUNET_ATS_Information *) &distance,
-      2);
+				       (GNUNET_YES == session->inbound) ? 0 : session->addrlen,
+				       session,
+				       &distance,
+				       1);
 
   reschedule_session_timeout (session);
 

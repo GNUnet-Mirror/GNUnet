@@ -903,7 +903,7 @@ client_receive_mst_cb (void *cls, void *client,
   struct Session *s = cls;
   struct HTTP_Client_Plugin *plugin;
   struct GNUNET_TIME_Relative delay;
-  struct GNUNET_ATS_Information atsi[2];
+  struct GNUNET_ATS_Information atsi;
   char *stat_txt;
   if (GNUNET_YES != client_exist_session(p, s))
   {
@@ -912,21 +912,19 @@ client_receive_mst_cb (void *cls, void *client,
   }
   plugin = s->plugin;
 
-  atsi[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  atsi[0].value = htonl (1);
-  atsi[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  atsi[1].value = s->ats_address_network_type;
+  atsi.type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  atsi.value = s->ats_address_network_type;
   GNUNET_break (s->ats_address_network_type != ntohl (GNUNET_ATS_NET_UNSPECIFIED));
 
   delay = s->plugin->env->receive (plugin->env->cls, &s->target, message,
                                    s, s->addr, s->addrlen);
 
   plugin->env->update_address_metrics (plugin->env->cls,
-  		&s->target,
-  		s->addr,
-  		s->addrlen,
-      s,
-      (struct GNUNET_ATS_Information *) &atsi, 2);
+				       &s->target,
+				       s->addr,
+				       s->addrlen,
+				       s,
+				       &atsi, 1);
 
   GNUNET_asprintf (&stat_txt, "# bytes received via %s_client", plugin->protocol);
   GNUNET_STATISTICS_update (plugin->env->stats,

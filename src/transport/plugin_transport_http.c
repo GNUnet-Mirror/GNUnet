@@ -188,20 +188,18 @@ http_plugin_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct Session *s = cls;
   struct Plugin *plugin = s->plugin;
   struct GNUNET_TIME_Relative delay;
-  struct GNUNET_ATS_Information atsi[2];
+  struct GNUNET_ATS_Information atsi;
 
-  atsi[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  atsi[0].value = htonl (1);
-  atsi[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  atsi[1].value = session->ats_address_network_type;
+  atsi.type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  atsi.value = session->ats_address_network_type;
   GNUNET_break (session->ats_address_network_type != ntohl (GNUNET_ATS_NET_UNSPECIFIED));
 
   reschedule_session_timeout (session);
 
   delay =
       plugin->env->receive (plugin->env->cls, &s->target, message,
-                            (const struct GNUNET_ATS_Information *) &atsi,
-                            2, s, s->addr, s->addrlen);
+                            &atsi,
+                            1, s, s->addr, s->addrlen);
   return delay;
 }
 

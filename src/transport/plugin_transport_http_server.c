@@ -1269,7 +1269,8 @@ server_receive_mst_cb (void *cls, void *client,
                        const struct GNUNET_MessageHeader *message)
 {
   struct Session *s = cls;
-  struct GNUNET_ATS_Information atsi[2];
+  struct HTTP_Server_Plugin *plugin = s->plugin;
+  struct GNUNET_ATS_Information atsi;
   struct GNUNET_TIME_Relative delay;
   char *stat_txt;
 
@@ -1277,12 +1278,9 @@ server_receive_mst_cb (void *cls, void *client,
   if (GNUNET_NO == server_exist_session(p, s))
     return GNUNET_OK;
 
-  struct HTTP_Server_Plugin *plugin = s->plugin;
 
-  atsi[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  atsi[0].value = htonl (1);
-  atsi[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  atsi[1].value = s->ats_address_network_type;
+  atsi.type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  atsi.value = s->ats_address_network_type;
   GNUNET_break (s->ats_address_network_type != ntohl (GNUNET_ATS_NET_UNSPECIFIED));
 
 
@@ -1292,11 +1290,11 @@ server_receive_mst_cb (void *cls, void *client,
                                 s, s->addr, s->addrlen);
 
   plugin->env->update_address_metrics (plugin->env->cls,
-  		&s->target,
-  		s->addr,
-  		s->addrlen,
-      s,
-      (struct GNUNET_ATS_Information *) &atsi, 2);
+				       &s->target,
+				       s->addr,
+				       s->addrlen,
+				       s,
+				       &atsi, 1);
 
   GNUNET_asprintf (&stat_txt, "# bytes received via %s_server", plugin->protocol);
   GNUNET_STATISTICS_update (plugin->env->stats,

@@ -796,13 +796,9 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
                     const struct GNUNET_MessageHeader *currhdr,
                     const struct sockaddr_un *un, size_t fromlen)
 {
-  struct GNUNET_ATS_Information ats[2];
   struct Session *s = NULL;
   struct GNUNET_HELLO_Address * addr;
 
-  ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  ats[0].value = htonl (UNIX_DIRECT_DISTANCE);
-  ats[1] = plugin->ats_network;
   GNUNET_break (ntohl(plugin->ats_network.value) != GNUNET_ATS_NET_UNSPECIFIED);
 
   GNUNET_assert (fromlen >= sizeof (struct sockaddr_un));
@@ -826,11 +822,11 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
                         s, un->sun_path, strlen (un->sun_path) + 1);
 
   plugin->env->update_address_metrics (plugin->env->cls,
-  		sender,
-  		un->sun_path,
-  		strlen (un->sun_path) + 1,
-      s,
-      (struct GNUNET_ATS_Information *) &ats, 2);
+				       sender,
+				       un->sun_path,
+				       strlen (un->sun_path) + 1,
+				       s,
+				       &plugin->ats_network, 1);
 
   GNUNET_free (addr);
 }

@@ -1132,18 +1132,15 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   struct Plugin *plugin = cls;
   struct MacAndSession *mas = client;
   struct MacAndSession xmas;
-#define NUM_ATS 2
-  struct GNUNET_ATS_Information ats[NUM_ATS]; /* FIXME: do better here */
+  struct GNUNET_ATS_Information ats;
   struct FragmentMessage *fm;
   struct GNUNET_PeerIdentity tmpsource;
   const struct WlanHeader *wlanheader;
   int ret;
   uint16_t msize;
 
-  ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  ats[0].value = htonl (1);
-  ats[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  ats[1].value = htonl (GNUNET_ATS_NET_WLAN);
+  ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  ats.value = htonl (GNUNET_ATS_NET_WLAN);
   msize = ntohs (hdr->size);
 
   GNUNET_STATISTICS_update (plugin->env->stats,
@@ -1176,11 +1173,11 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 			  (mas->endpoint == NULL) ? NULL : (const char *) &mas->endpoint->addr,
 			  (mas->endpoint == NULL) ? 0 : sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
     plugin->env->update_address_metrics (plugin->env->cls,
-    		&tmpsource,
-			  (mas->endpoint == NULL) ? NULL : (const char *) &mas->endpoint->addr,
-			  (mas->endpoint == NULL) ? 0 : sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress),
-    		mas->session,
-        (struct GNUNET_ATS_Information *) &ats, NUM_ATS);
+					 &tmpsource,
+					 (mas->endpoint == NULL) ? NULL : (const char *) &mas->endpoint->addr,
+					 (mas->endpoint == NULL) ? 0 : sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress),
+					 mas->session,
+					 &ats, 1);
     break;
   case GNUNET_MESSAGE_TYPE_FRAGMENT:
     if (NULL == mas->endpoint)
@@ -1299,16 +1296,15 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 			  (mas->endpoint == NULL) ? NULL : (const char *) &mas->endpoint->addr,
 			  (mas->endpoint == NULL) ? 0 : sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
     plugin->env->update_address_metrics (plugin->env->cls,
-    		&mas->session->target,
-			  (mas->endpoint == NULL) ? NULL : (const char *) &mas->endpoint->addr,
-			  (mas->endpoint == NULL) ? 0 : sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress),
-    		mas->session,
-        (struct GNUNET_ATS_Information *) &ats, NUM_ATS);
+					 &mas->session->target,
+					 (mas->endpoint == NULL) ? NULL : (const char *) &mas->endpoint->addr,
+					 (mas->endpoint == NULL) ? 0 : sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress),
+					 mas->session,
+					 &ats, 1);
     break;
   }
   return GNUNET_OK;
 }
-#undef NUM_ATS
 
 
 /**

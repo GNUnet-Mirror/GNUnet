@@ -1893,17 +1893,13 @@ process_inbound_tokenized_messages (void *cls, void *client,
 {
   struct Plugin *plugin = cls;
   struct SourceInformation *si = client;
-  struct GNUNET_ATS_Information ats[2];
   struct GNUNET_TIME_Relative delay;
 
   GNUNET_assert (si->session != NULL);
   if (GNUNET_YES == si->session->in_destroy)
     return GNUNET_OK;
   /* setup ATS */
-  ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  ats[0].value = htonl (1);
-  ats[1] = si->session->ats;
-  GNUNET_break (ntohl(ats[1].value) != GNUNET_ATS_NET_UNSPECIFIED);
+  GNUNET_break (ntohl(si->session->ats.value) != GNUNET_ATS_NET_UNSPECIFIED);
   delay = plugin->env->receive (plugin->env->cls,
 				&si->sender,
 				hdr,
@@ -1912,11 +1908,11 @@ process_inbound_tokenized_messages (void *cls, void *client,
 				si->args);
 
   plugin->env->update_address_metrics (plugin->env->cls,
-  		&si->sender,
-  		si->arg,
-  		si->args,
-      si->session,
-			(struct GNUNET_ATS_Information *) &ats, 2);
+				       &si->sender,
+				       si->arg,
+				       si->args,
+				       si->session,
+				       &si->session->ats, 1);
 
   si->session->flow_delay_for_other_peer = delay;
   reschedule_session_timeout(si->session);
