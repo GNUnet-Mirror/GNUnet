@@ -198,6 +198,7 @@ GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
 void
 GNUNET_TRANSPORT_try_connect_cancel (struct GNUNET_TRANSPORT_TryConnectHandle *tch);
 
+
 /**
  * Opaque handle for a transmission-ready request.
  */
@@ -304,11 +305,11 @@ GNUNET_TRANSPORT_check_neighbour_connected (struct GNUNET_TRANSPORT_Handle *hand
  */
 void
 GNUNET_TRANSPORT_set_traffic_metric (struct GNUNET_TRANSPORT_Handle *handle,
-																		const struct GNUNET_PeerIdentity *peer,
-																		int inbound,
-																		int outbound,
-																		const struct GNUNET_ATS_Information *ats,
-																		size_t ats_count);
+				     const struct GNUNET_PeerIdentity *peer,
+				     int inbound,
+				     int outbound,
+				     const struct GNUNET_ATS_Information *ats,
+				     size_t ats_count);
 
 
 /**
@@ -363,6 +364,7 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
  */
 void
 GNUNET_TRANSPORT_offer_hello_cancel (struct GNUNET_TRANSPORT_OfferHelloHandle *ohh);
+
 
 /**
  * Handle to cancel a pending address lookup.
