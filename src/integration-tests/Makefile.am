@@ -33,10 +33,19 @@ check_SCRIPTS = \
 endif
 # test_integration_disconnect.py 
 
-
+# This temporary test does one thing: hangs up for 1300 seconds
+# to test buildslave hangup process killing functionality
+# It's in integration tests because integration-tests is one of the few
+# tests that are configured to run under more-than-1200-seconds watchdog
+if MINGW
+  hangup_SCRIPTS = test_buildslave_hangup.py
+else
+  hangup_SCRIPTS = 
+endif
 if HAVE_MHD
 if ENABLE_TEST_RUN
 TESTS = \
+ $(hangup_SCRIPTS) \
  $(check_SCRIPTS)  
 endif
 endif
