@@ -145,9 +145,10 @@ broadcast_ipv4_mst_cb (void *cls, void *client,
   struct Plugin *plugin = cls;
   struct Mstv4Context *mc = client;
   const struct GNUNET_MessageHeader *hello;
-  struct UDP_Beacon_Message *msg;
+  const struct UDP_Beacon_Message *msg;
+  struct GNUNET_ATS_Information atsi;
 
-  msg = (struct UDP_Beacon_Message *) message;
+  msg = (const struct UDP_Beacon_Message *) message;
 
   if (GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON !=
       ntohs (msg->header.type))
@@ -157,29 +158,26 @@ broadcast_ipv4_mst_cb (void *cls, void *client,
        ntohs (msg->header.size), GNUNET_i2s (&msg->sender),
        udp_address_to_string (NULL, &mc->addr, sizeof (mc->addr)));
 
-  struct GNUNET_ATS_Information atsi[2];
 
   /* setup ATS */
-  atsi[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  atsi[0].value = htonl (1);
-  atsi[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  atsi[1].value = mc->ats_address_network_type;
+  atsi.type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  atsi.value = mc->ats_address_network_type;
   GNUNET_break (ntohl(mc->ats_address_network_type) != GNUNET_ATS_NET_UNSPECIFIED);
 
   hello = (struct GNUNET_MessageHeader *) &msg[1];
   plugin->env->receive (plugin->env->cls,
-  											&msg->sender,
-  											hello,
+			&msg->sender,
+			hello,
                         NULL,
                         (const char *) &mc->addr,
                         sizeof (mc->addr));
 
   plugin->env->update_address_metrics (plugin->env->cls,
-  		&msg->sender,
-  		(const char *) &mc->addr,
-  		sizeof (mc->addr),
-      NULL,
-      (struct GNUNET_ATS_Information *) &atsi, 2);
+				       &msg->sender,
+				       (const char *) &mc->addr,
+				       sizeof (mc->addr),
+				       NULL,
+				       &atsi, 1);
 
   GNUNET_STATISTICS_update (plugin->env->stats,
                             _

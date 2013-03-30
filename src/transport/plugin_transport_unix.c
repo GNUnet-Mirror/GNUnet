@@ -48,11 +48,6 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "transport-unix",__VA_ARGS__)
 
-/*
- * Transport cost to peer, always 1 for UNIX (direct connection)
- */
-#define UNIX_DIRECT_DISTANCE 1
-
 #define DEFAULT_NAT_PORT 0
 
 /**
