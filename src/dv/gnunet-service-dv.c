@@ -875,7 +875,7 @@ get_atsi_distance (const struct GNUNET_ATS_Information *atsi,
 
   for (i = 0; i < atsi_count; i++)
     if (ntohl (atsi[i].type) == GNUNET_ATS_QUALITY_NET_DISTANCE)
-      return ntohl (atsi->value);
+      return (0 == ntohl (atsi->value)) ? DIRECT_NEIGHBOR_COST : ntohl (atsi->value); // FIXME: 0 check should not be required once ATS is fixed!
   /* If we do not have explicit distance data, assume direct neighbor. */
   return DIRECT_NEIGHBOR_COST;
 }
@@ -1339,6 +1339,8 @@ start_consensus (void *cls,
 						 neighbor);
   if (NULL == neighbor->consensus)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Failed to setup consensus, will try again later!\n");
     neighbor->consensus_task = GNUNET_SCHEDULER_add_delayed (GNUNET_DV_CONSENSUS_FREQUENCY,
 							     &start_consensus,
 							     neighbor);
