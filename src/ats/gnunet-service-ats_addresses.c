@@ -252,6 +252,7 @@ enum ATS_Mode
   MODE_MLP
 };
 
+
 /**
  * Pending Address suggestion requests
  */
@@ -272,6 +273,7 @@ struct GAS_Addresses_Suggestion_Requests
    */
   struct GNUNET_PeerIdentity id;
 };
+
 
 /**
  * Handle for ATS address component
@@ -378,7 +380,9 @@ static unsigned int
 assemble_ats_information (const struct ATS_Address *aa,  struct GNUNET_ATS_Information **dest)
 {
   unsigned int ats_count = GNUNET_ATS_PropertyCount - 1;
-  struct GNUNET_ATS_Information *ats = GNUNET_malloc (ats_count * sizeof (struct GNUNET_ATS_Information));
+  struct GNUNET_ATS_Information *ats;
+
+  ats = GNUNET_malloc (ats_count * sizeof (struct GNUNET_ATS_Information));
   (*dest) = ats;
 
   ats[0].type = ntohl(GNUNET_ATS_UTILIZATION_UP);
@@ -399,6 +403,7 @@ assemble_ats_information (const struct ATS_Address *aa,  struct GNUNET_ATS_Infor
   ats[7].value = ntohl (aa->atsp_cost_wlan);
   return ats_count;
 }
+
 
 /**
  * Disassemble ATS information and update address

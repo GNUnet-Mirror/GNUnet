@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2010,2011 Christian Grothoff (and other contributing authors)
+     (C) 2010-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -496,9 +496,11 @@ GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg)
 	man_handle.peers = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
 }
 
-int free_tmps (void *cls,
-							 const struct GNUNET_HashCode * key,
-							 void *value)
+
+static int 
+free_tmps (void *cls,
+	   const struct GNUNET_HashCode * key,
+	   void *value)
 {
 	struct DelayQueueEntry *dqe;
 	struct DelayQueueEntry *next;
