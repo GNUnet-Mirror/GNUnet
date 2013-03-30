@@ -38,14 +38,14 @@ endif
 # It's in integration tests because integration-tests is one of the few
 # tests that are configured to run under more-than-1200-seconds watchdog
 if MINGW
-  hangup_SCRIPTS = test_buildslave_hangup.py
+  hangup = test_buildslave_hangup.py
 else
-  hangup_SCRIPTS = 
+  hangup = 
 endif
 if HAVE_MHD
 if ENABLE_TEST_RUN
 TESTS = \
- $(hangup_SCRIPTS) \
+ $(hangup) \
  $(check_SCRIPTS)  
 endif
 endif
