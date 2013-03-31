@@ -190,12 +190,17 @@ struct GNUNET_TESTING_Peer
    */
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
+  /**
+   * The callback to call if asynchronous functions are used for peer/service
+   * start/stop requests
+   */  
   GNUNET_TESTING_PeerStatusCallback cb;
-    
+  
+  /**
+   * The closure for the above callback
+   */
   void *cb_cls;
   
-  struct GNUNET_ARM_MonitorHandle *mh;
-
   /**
    * The cached identity of this peer.  Will be populated on call to
    * GNUNET_TESTING_peer_get_identity()
@@ -979,7 +984,6 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
   }
   peer = GNUNET_malloc (sizeof (struct GNUNET_TESTING_Peer));
   peer->cfgfile = config_filename; /* Free in peer_destroy */
-  peer->cfg = GNUNET_CONFIGURATION_dup (cfg);
   libexec_binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-arm");
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "arm", "PREFIX", &peer->main_binary))
   {
@@ -1029,6 +1033,7 @@ GNUNET_TESTING_peer_configure2 (struct GNUNET_TESTING_System *system,
                                         emsg);
   if (NULL == peer)
     return NULL;
+  peer->cfg = GNUNET_CONFIGURATION_dup (cfg);
   peer->cb = status_cb;
   peer->cb_cls = cls;
   return peer;
@@ -1193,10 +1198,10 @@ GNUNET_TESTING_peer_start2 (struct GNUNET_TESTING_Peer *peer,
     return GNUNET_SYSERR;
   }
   GNUNET_assert (NULL != peer->cb);
+  GNUNET_assert (NULL != peer->cfg);
   peer->ah = GNUNET_ARM_connect (peer->cfg, &conn_status, peer);
   if (NULL == peer->ah)
     return GNUNET_SYSERR;
-  //GNUNET_TESTING_peer_service_start (peer, "arm", &arm_start_result_cb, peer);
   GNUNET_TESTING_peer_service_start (peer, "arm", timeout, NULL, NULL);
   return GNUNET_OK;
 }
@@ -1303,7 +1308,8 @@ GNUNET_TESTING_peer_destroy (struct GNUNET_TESTING_Peer *peer)
   if (NULL != peer->ah)
     GNUNET_ARM_disconnect_and_free (peer->ah);
   GNUNET_free (peer->cfgfile);
-  GNUNET_CONFIGURATION_destroy (peer->cfg);
+  if (NULL != peer->cfg)
+    GNUNET_CONFIGURATION_destroy (peer->cfg);
   GNUNET_free (peer->main_binary);
   GNUNET_free (peer->args);
   GNUNET_free_non_null (peer->id);
