@@ -35,6 +35,7 @@
 
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
+#include "gnunet_arm_service.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -281,6 +282,122 @@ GNUNET_TESTING_peer_kill (struct GNUNET_TESTING_Peer *peer);
  */
 int
 GNUNET_TESTING_peer_wait (struct GNUNET_TESTING_Peer *peer);
+
+
+/**
+ * Callback to inform whether the peer is running or stopped.
+ *
+ * @param cls the closure from GNUNET_TESTING_peer_configure2()
+ * @param peer the respective peer whose status is being reported
+ * @param success GNUNET_YES if the peer is running; GNUNET_NO if the peer is
+ *          not running; GNUNET_SYSERR upon error communicating with the peer's
+ *          ARM service
+ */
+typedef void (*GNUNET_TESTING_PeerStatusCallback) (void *cls, 
+                                                   struct GNUNET_TESTING_Peer *
+                                                   peer,
+                                                   int success);
+
+
+/**
+ * Wrapper over GNUNET_TESTING_peer_configure() to set the
+ * GNUNET_TESTING_PeerStatusCallback() for using functions
+ * GNUNET_TESTING_peer_start2() and GNUNET_TESTING_peer_stop2()
+ *
+ * @param system system to use to coordinate resource usage
+ * @param cfg configuration to use; will be UPDATED (to reflect needed
+ *            changes in port numbers and paths)
+ * @param key_number number of the hostkey to use for the peer
+ * @param id identifier for the daemon, will be set, can be NULL
+ * @param emsg set to freshly allocated error message (set to NULL on success), 
+ *          can be NULL
+ * @param status_cb the status callback to call upon peer start and stop
+ * @return handle to the peer, NULL on error
+ */
+struct GNUNET_TESTING_Peer *
+GNUNET_TESTING_peer_configure2 (struct GNUNET_TESTING_System *system,
+                                struct GNUNET_CONFIGURATION_Handle *cfg,
+                                uint32_t key_number,
+                                struct GNUNET_PeerIdentity *id,
+                                char **emsg,
+                                GNUNET_TESTING_PeerStatusCallback status_cb,
+                                void *cls);
+
+
+/**
+ * Start a peer asynchronously using ARM API.  Peer's startup is signaled
+ * through the GNUNET_TESTING_PeerStatusCallback() given to
+ * GNUNET_TESTING_peer_configure2().  To use this function the peer must be
+ * configured earlier using GNUNET_TESTING_peer_configure2();
+ *
+ * @param peer the peer to start
+ * @param timeout how long to wait before giving up to start the peer
+ * @return GNUNET_OK upon successfully giving the request to the ARM API (this
+ *           does not mean that the peer is successfully started); GNUNET_SYSERR
+ *           upon any error.
+ */
+int
+GNUNET_TESTING_peer_start2 (struct GNUNET_TESTING_Peer *peer,
+                            struct GNUNET_TIME_Relative timeout);
+
+
+/**
+ * Stop a peer asynchronously using ARM API.  Peer's shutdown is signaled
+ * through the GNUNET_TESTING_PeerStatusCallback() given to
+ * GNUNET_TESTING_peer_configure2().  To use this function the peer must be
+ * configured earlier using GNUNET_TESTING_peer_configure2();
+ *
+ * @param peer the peer to stop
+ * @param timeout how long to wait before giving up to stop the peer
+ * @return GNUNET_OK upon successfully giving the request to the ARM API (this
+ *           does not mean that the peer is successfully stopped); GNUNET_SYSERR
+ *           upon any error.
+ */
+int
+GNUNET_TESTING_peer_stop2 (struct GNUNET_TESTING_Peer *peer,
+                           struct GNUNET_TIME_Relative timeout);
+
+
+/**
+ * Start a service at a peer using its ARM service.  To use this function the
+ * peer must be configured earlier using GNUNET_TESTING_peer_configure2();
+ *
+ * @param peer the peer whose service has to be started
+ * @param service_name name of the service to start
+ * @param timeout how long should the ARM API try to send the request to start
+ *          the service
+ * @param cont the callback to call with result and status from ARM API
+ * @param cont_cls the closure for the above callback
+ * @return GNUNET_OK upon successfully queuing the service start request;
+ *           GNUNET_SYSERR upon error
+ */
+int
+GNUNET_TESTING_peer_service_start (struct GNUNET_TESTING_Peer *peer,
+                                   const char *service_name,
+                                   struct GNUNET_TIME_Relative timeout,
+                                   GNUNET_ARM_ResultCallback cont,
+                                   void *cont_cls);
+
+
+/**
+ * Stop a service at a peer using its ARM service.  To use this function the
+ * peer must be configured earlier using GNUNET_TESTING_peer_configure2();
+ *
+ * @param peer the peer whose service has to be stopped
+ * @param service_name name of the service to stop
+ * @param timeout how long should the ARM API try to send the request to stop
+ *          the service
+ * @param cont the callback to call with result and status from ARM API
+ * @param cont_cls the closure for the above callback
+ * @return GNUNET_OK upon successfully queuing the service stop request;
+ *           GNUNET_SYSERR upon error
+ */
+int 
+GNUNET_TESTING_peer_service_stop (struct GNUNET_TESTING_Peer *peer,
+                                  const char *service_name,
+                                  struct GNUNET_TIME_Relative timeout,
+                                  GNUNET_ARM_ResultCallback cont,
+                                  void *cont_cls);
 
 
 /**

@@ -33,6 +33,15 @@
 #define LOG(kind,...)                           \
   GNUNET_log (kind, __VA_ARGS__)
 
+
+#define FAIL_TEST(cond)                         \
+  do {                                          \
+    if ((!(cond)) && (GNUNET_OK == status)) {   \
+      status = GNUNET_SYSERR;                   \
+    }                                           \
+  } while (0)                                   \
+
+
 /**
  * The status of the test
  */
@@ -57,6 +66,17 @@ struct TestingContext
    * The running configuration of the peer
    */
   struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * State
+   */
+  enum {
+    PEER_INIT,
+
+    PEER_STARTED,
+
+    PEER_STOPPED
+  } state;
 };
 
 
@@ -75,14 +95,6 @@ do_shutdown2 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   
 }
 
-static void
-peer_stop_cb (void *cls, struct GNUNET_TESTING_Peer *peer, int success)
-{
-  GNUNET_break (GNUNET_NO == success);
-  status = GNUNET_OK;
-  GNUNET_SCHEDULER_add_now (&do_shutdown2, cls);
-}
-
 
 /**
  * Task for shutdown
@@ -98,22 +110,35 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (NULL != test_ctx);
   if (NULL != test_ctx->peer)
   {
-    GNUNET_break (GNUNET_OK == GNUNET_TESTING_peer_stop2 (test_ctx->peer,
-                                                          &peer_stop_cb,
-                                                          test_ctx));
+    FAIL_TEST (GNUNET_OK == GNUNET_TESTING_peer_stop2 (test_ctx->peer,
+                                                       GNUNET_TIME_UNIT_MINUTES));
+
   }
   else
     do_shutdown (test_ctx, tc);
 }
 
+
 static void
-ps_cb (void *cls, struct GNUNET_TESTING_Peer *peer, int success)
+peer_status_cb (void *cls, struct GNUNET_TESTING_Peer *peer, int success)
 {
   struct TestingContext *test_ctx = cls;
 
-  GNUNET_break (GNUNET_YES == success);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                &do_shutdown, test_ctx);  
+  switch (test_ctx->state)
+  {
+  case PEER_INIT:
+    FAIL_TEST (GNUNET_YES == success);
+    test_ctx->state = PEER_STARTED;
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                  &do_shutdown, test_ctx);
+    break;
+  case PEER_STARTED:
+    FAIL_TEST (GNUNET_NO == success);
+    GNUNET_SCHEDULER_add_now (&do_shutdown2, cls);
+    break;
+  case PEER_STOPPED:
+    FAIL_TEST (0);
+  }
 }
 
 
@@ -137,9 +162,11 @@ run (void *cls, char *const *args, const char *cfgfile,
     goto end;
   test_ctx->cfg = GNUNET_CONFIGURATION_dup (cfg);
   test_ctx->peer = 
-      GNUNET_TESTING_peer_configure (test_ctx->system,
-                                     test_ctx->cfg,
-                                     0, &id, &emsg);
+      GNUNET_TESTING_peer_configure2 (test_ctx->system,
+                                      test_ctx->cfg,
+                                      0, &id, &emsg,
+                                      &peer_status_cb,
+                                      test_ctx);
   if (NULL == test_ctx->peer)
   {
     if (NULL != emsg)
@@ -147,11 +174,12 @@ run (void *cls, char *const *args, const char *cfgfile,
     goto end;
   }
   if (GNUNET_OK != GNUNET_TESTING_peer_start2 (test_ctx->peer,
-                                               &ps_cb, test_ctx))
+                                               GNUNET_TIME_UNIT_MINUTES))
     goto end;
   return;
   
  end:
+  FAIL_TEST (0);
   GNUNET_SCHEDULER_add_now (&do_shutdown, test_ctx);
   GNUNET_free_non_null (emsg);
 }
@@ -163,7 +191,7 @@ int main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
-  status = GNUNET_SYSERR;
+  status = GNUNET_OK;
   if (GNUNET_OK !=
       GNUNET_PROGRAM_run (argc, argv,
                           "test_testing_new_peerstartup",
