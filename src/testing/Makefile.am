@@ -21,6 +21,7 @@ libgnunettesting_la_SOURCES = \
   testing.c  
 libgnunettesting_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/arm/libgnunetarm.la \
  $(LTLIBINTL)
 libgnunettesting_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS) \
@@ -53,14 +54,17 @@ gnunet_testing_DEPENDENCIES = \
 
 check_PROGRAMS = \
  test_testing_portreservation \
+ test_testing_servicestartup \
  test_testing_peerstartup \
- test_testing_servicestartup
+ test_testing_peerstartup2
 
 if ENABLE_TEST_RUN 
 TESTS = \
  test_testing_portreservation \
  test_testing_peerstartup \
+ test_testing_peerstartup2 \
  test_testing_servicestartup
+
 endif
 
 test_testing_portreservation_SOURCES = \
@@ -72,6 +76,12 @@ test_testing_portreservation_LDADD = \
 test_testing_peerstartup_SOURCES = \
  test_testing_peerstartup.c
 test_testing_peerstartup_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
+test_testing_peerstartup2_SOURCES = \
+ test_testing_peerstartup2.c
+test_testing_peerstartup2_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
