@@ -1,0 +1,202 @@
+diff -urN /src/buildbot-slave-0.8.6p1.orig/buildslave/runprocess.py /src/buildbot-slave-0.8.6p1/buildslave/runprocess.py
+--- buildbot-slave-0.8.6p1.orig/buildslave/runprocess.py	2012-03-26 04:09:10 +0400
++++ buildbot-slave-0.8.6p1/buildslave/runprocess.py	2013-03-31 05:18:55 +0400
+@@ -24,6 +24,7 @@
+ import re
+ import subprocess
+ import traceback
++import tempfile
+ import stat
+ from collections import deque
+ 
+@@ -36,6 +37,89 @@
+ if runtime.platformType == 'posix':
+     from twisted.internet.process import Process
+ 
++if os.name == 'nt':
++    import win32api
++    import win32process
++    import win32event
++    import pywintypes
++
++def safe_terminate_process (proc, code):
++    if os.name == 'nt':
++        log.msg ("Obtaining current process handle")
++        cp = win32api.GetCurrentProcess ()
++        result = False
++        log.msg ("Expanding target process handle permissions")
++        dupproc = win32api.DuplicateHandle (cp, proc._handle, cp, 2 | 1024 | 8 | 32 | 16 | 0x100000, 0, 0)
++        log.msg ("Expanded.")
++        try:
++            log.msg ("Checking exit code of target process")
++            exitcode = win32process.GetExitCodeProcess (dupproc)
++            log.msg ("Exit code is %d" % exitcode)
++            if exitcode == 0x103:
++                log.msg ("Opening kernel32.dll")
++                kernel32 = win32api.GetModuleHandle ("kernel32")
++                log.msg ("Getting ExitProcess() address")
++                exitprocess = win32api.GetProcAddress (kernel32, "ExitProcess")
++                try:
++                    log.msg ("Creating remote thread")
++                    th = 0
++                    tid = 0
++                    failed = False
++                    th, tid = win32process.CreateRemoteThread (dupproc, None, 0, exitprocess, code, 0)
++                    log.msg ("Created remote thread %d" % tid)
++                except pywintypes.error as e:
++                    if e[0] == 5:
++                      log.msg ("Access denied. It still might die, so don't fail yet")
++                      pass
++                    else:
++                      log.msg("exception %s - %s" % (sys.exc_info()[0], sys.exc_info()[1]))
++                      failed = True
++                except Exception as e:
++                    log.msg("exception %s - %s" % (sys.exc_info()[0], sys.exc_info()[1]))
++                    failed = True
++                if not failed:
++                    log.msg ("Wait for 5 seconds or until it dies (usually takes around 1 microsecond)")
++                    waitresult = win32event.WaitForSingleObject (dupproc, 5)
++                    log.msg ("Result of waiting: %d" % waitresult)
++                    win32api.CloseHandle (th)
++                    if waitresult == 0:
++                        result = True
++            else:
++                result = True
++        except:
++            log.msg("exception %s - %s" % (sys.exc_info()[0], sys.exc_info()[1]))
++        finally:
++            win32api.CloseHandle (dupproc)
++        return result
++    else:
++        return proc.kill ()
++
++class Dummy(object):
++    def SetHandle (self, h):
++        self._handle = h
++
++def safe_terminate_process_by_pid (proc, code):
++    if os.name == 'nt':
++        try:
++            log.msg("Opening process %d" % proc)
++            openproc = win32api.OpenProcess (2 | 1024 | 8 | 32 | 16 | 0x100000, 0, proc)
++            log.msg("Opened process %d" % proc)
++            try:
++                d = Dummy ()
++                d.SetHandle (openproc)
++                log.msg("Terminating it safely")
++                safe_terminate_process (d, code)
++                log.msg("Finished terminating")
++            finally:
++                log.msg("Closing process handle")
++                win32api.CloseHandle (openproc)
++        except:
++            log.msg("exception %s - %s" % (sys.exc_info()[0], sys.exc_info()[1]))
++            pass
++    else:
++        return os.kill (proc, code)
++
++	
+ def shell_quote(cmd_list):
+     # attempt to quote cmd_list such that a shell will properly re-interpret
+     # it.  The pipes module is only available on UNIX, and Windows "shell"
+@@ -148,6 +232,7 @@
+         self.pending_stdin = ""
+         self.stdin_finished = False
+         self.killed = False
++        self.scriptfile = ""
+ 
+     def setStdin(self, data):
+         assert not self.connected
+@@ -198,6 +283,11 @@
+                 rc = 1
+             else:
+                 rc = -1
++        if self.scriptfile:
++            try:
++                os.remove (self.scriptfile) 
++            except:
++                pass
+         self.command.finished(sig, rc)
+ 
+ 
+@@ -408,9 +498,14 @@
+ 
+         if type(self.command) in types.StringTypes:
+             if runtime.platformType  == 'win32':
+-                argv = os.environ['COMSPEC'].split() # allow %COMSPEC% to have args
+-                if '/c' not in argv: argv += ['/c']
+-                argv += [self.command]
++                if os.environ['BUILDSLAVE_SHELL']:
++                    argv = os.environ['BUILDSLAVE_SHELL'].split() # allow %COMSPEC% to have args
++                    argv += [self.command]
++                else:
++                    argv = os.environ['COMSPEC'].split() # allow %COMSPEC% to have args
++                    if '/c' not in argv:
++                        argv += ['/c']
++                    argv += [self.command]
+             else:
+                 # for posix, use /bin/sh. for other non-posix, well, doesn't
+                 # hurt to try
+@@ -424,9 +519,26 @@
+             # handle path searching, etc.
+             if runtime.platformType == 'win32' and not \
+                     (self.command[0].lower().endswith(".exe") and os.path.isabs(self.command[0])):
+-                argv = os.environ['COMSPEC'].split() # allow %COMSPEC% to have args
+-                if '/c' not in argv: argv += ['/c']
+-                argv += list(self.command)
++                if os.environ['BUILDSLAVE_SHELL']:
++                    argv = os.environ['BUILDSLAVE_SHELL'].split()
++                    # Create a temporary script file that changes current directory
++                    # and runs the command we want
++                    # It will be deleted after command is finished running (see RunProcessPP)
++                    tf, tf_name = tempfile.mkstemp ()
++                    f = os.fdopen (tf, 'wb')
++                    fcontents = '#!/bin/sh\ncd {}\n{}'.format (
++                        re.sub(r'(?<!\\) ','\\ ', self.workdir.replace('\\','/')),
++                        ' '.join (self.command))
++                    f.write (fcontents)
++                    log.msg("Script: {}".format (fcontents))
++                    f.close ()
++                    self.pp.scriptfile = tf_name
++                    argv += [tf_name.replace('\\','/')]
++                else:
++                    argv = os.environ['COMSPEC'].split() # allow %COMSPEC% to have args
++                    if '/c' not in argv:
++                      argv += ['/c']
++                    argv += list(self.command)
+             else:
+                 argv = self.command
+             # Attempt to format this for use by a shell, although the process isn't perfect
+@@ -439,7 +551,7 @@
+             self.environ['PWD'] = os.path.abspath(self.workdir)
+ 
+         # self.stdin is handled in RunProcessPP.connectionMade
+-
++        log.msg("Running {}".format (argv))
+         log.msg(" " + display)
+         self._addToBuffers('header', display+"\n")
+ 
+@@ -770,9 +882,7 @@
+             if self.interruptSignal == None:
+                 log.msg("self.interruptSignal==None, only pretending to kill child")
+             else:
+-                log.msg("using TASKKILL /F PID /T to kill pid %s" % self.process.pid)
+-                subprocess.check_call("TASKKILL /F /PID %s /T" % self.process.pid)
+-                log.msg("taskkill'd pid %s" % self.process.pid)
++                safe_terminate_process_by_pid (self.process.pid, 1)
+                 hit = 1
+ 
+         # try signalling the process itself (works on Windows too, sorta)
+@@ -795,10 +905,11 @@
+         if not hit:
+             log.msg("signalProcess/os.kill failed both times")
+ 
+-        if runtime.platformType == "posix":
++        if runtime.platformType == "posix" or runtime.platformType == "win32":
+             # we only do this under posix because the win32eventreactor
+             # blocks here until the process has terminated, while closing
+             # stderr. This is weird.
++            # LRN: Turns out, things don't work without this on W32. At all.
+             self.pp.transport.loseConnection()
+ 
+         if self.deferred:
