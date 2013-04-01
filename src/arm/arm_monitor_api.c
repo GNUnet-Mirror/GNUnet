@@ -268,7 +268,6 @@ GNUNET_ARM_monitor (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 /**
  * Disconnect from the ARM service (if connected) and destroy the context.
- * Don't call inside a callback!
  *
  * @param h the handle that was being used
  */
@@ -345,15 +344,15 @@ monitor_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
          "Received response from ARM for service `%s': %u\n",
          (const char *) &res[1], ntohs (msg->type));
     status = (enum GNUNET_ARM_ServiceStatus) ntohl (res->status);
-    if ((NULL != h->service_status))
+    GNUNET_CLIENT_receive (h->monitor, &monitor_notify_handler, h,
+                           GNUNET_TIME_UNIT_FOREVER_REL);
+    if (NULL != h->service_status)
       h->service_status (h->cls, h, (const char *) &res[1], status);
     break;
   default:
     reconnect_arm_monitor_later (h);
     return;
   }
-  GNUNET_CLIENT_receive (h->monitor, &monitor_notify_handler, h,
-      GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 

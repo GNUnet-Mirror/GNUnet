@@ -237,7 +237,6 @@ GNUNET_ARM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 /**
  * Disconnect from the ARM service and destroy the handle.
- * Don't call this from inside an ARM callback!
  *
  * @param h the handle that was being used
  */
@@ -331,7 +330,6 @@ GNUNET_ARM_monitor (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 /**
  * Disconnect from the ARM service and destroy the handle.
- * Don't call this from inside an ARM callback!
  *
  * @param h the handle that was being used
  */
