@@ -212,6 +212,18 @@ struct GNUNET_TESTING_Peer
   struct GNUNET_PeerIdentity *id;
 
   /**
+   * Array of ports currently allocated to this peer.  These ports will be
+   * released upon peer destroy and can be used by other peers which are
+   * configured after.
+   */
+  uint16_t *ports;
+
+  /**
+   * The number of ports in the above array
+   */
+  unsigned int nports;
+
+  /**
    * The keynumber of this peer's hostkey
    */
   uint32_t key_number;
@@ -595,6 +607,18 @@ struct UpdateContext
   char *service_home;
 
   /**
+   * Array of ports currently allocated to this peer.  These ports will be
+   * released upon peer destroy and can be used by other peers which are
+   * configured after.
+   */
+  uint16_t *ports;
+
+  /**
+   * The number of ports in the above array
+   */
+  unsigned int nports;
+
+  /**
    * build status - to signal error while building a configuration
    */
   int status;
@@ -650,6 +674,7 @@ update_config (void *cls, const char *section, const char *option,
       }
       GNUNET_snprintf (cval, sizeof (cval), "%u", new_port);
       value = cval;
+      GNUNET_array_append (uc->ports, uc->nports, new_port);
     }
     else if ((ival != 0) &&
              (GNUNET_YES ==
@@ -811,9 +836,11 @@ update_config_sections (void *cls,
  * @return GNUNET_OK on success, GNUNET_SYSERR on error - the configuration will
  *           be incomplete and should not be used there upon
  */
-int
-GNUNET_TESTING_configuration_create (struct GNUNET_TESTING_System *system,
-				     struct GNUNET_CONFIGURATION_Handle *cfg)
+static int
+GNUNET_TESTING_configuration_create_ (struct GNUNET_TESTING_System *system,
+                                      struct GNUNET_CONFIGURATION_Handle *cfg,
+                                      uint16_t **ports,
+                                      unsigned int *nports)
 {
   struct UpdateContext uc;
   char *default_config;
@@ -821,6 +848,8 @@ GNUNET_TESTING_configuration_create (struct GNUNET_TESTING_System *system,
   uc.system = system;
   uc.cfg = cfg;
   uc.status = GNUNET_OK;
+  uc.ports = NULL;
+  uc.nports = 0;
   GNUNET_asprintf (&uc.service_home, "%s/%u", system->tmppath,
                    system->path_counter++);
   GNUNET_asprintf (&default_config, "%s/config", uc.service_home);
@@ -840,7 +869,38 @@ GNUNET_TESTING_configuration_create (struct GNUNET_TESTING_System *system,
 					 "nat",
 					 "USE_LOCALADDR", "YES");
   GNUNET_free (uc.service_home);
+  if ((NULL != ports) && (NULL != nports))
+  {
+    *ports = uc.ports;
+    *nports = uc.nports;
+  }
+  else
+    GNUNET_free_non_null (uc.ports);
   return uc.status;
+}
+
+
+/**
+ * Create a new configuration using the given configuration as a template;
+ * ports and paths will be modified to select available ports on the local
+ * system. The default configuration will be available in PATHS section under
+ * the option DEFAULTCONFIG after the call. SERVICE_HOME is also set in PATHS
+ * section to the temporary directory specific to this configuration. If we run
+ * out of "*port" numbers, return SYSERR.
+ *
+ * This is primarily a helper function used internally
+ * by 'GNUNET_TESTING_peer_configure'.
+ *
+ * @param system system to use to coordinate resource usage
+ * @param cfg template configuration to update
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error - the configuration will
+ *           be incomplete and should not be used there upon
+ */
+int
+GNUNET_TESTING_configuration_create (struct GNUNET_TESTING_System *system,
+				     struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  return GNUNET_TESTING_configuration_create_ (system, cfg, NULL, NULL);
 }
 
 
@@ -872,31 +932,27 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
   char *libexec_binary;
   char *emsg_;
   struct GNUNET_CRYPTO_EccPrivateKey *pk;
+  uint16_t *ports;
+  unsigned int nports;      
 
+  ports = NULL;
+  nports = 0;
   if (NULL != emsg)
     *emsg = NULL;
-  if (GNUNET_OK != GNUNET_TESTING_configuration_create (system, cfg))
+  if (GNUNET_OK != GNUNET_TESTING_configuration_create_ (system, cfg,
+                                                         &ports, &nports))
   {
     GNUNET_asprintf (&emsg_,
-		       _("Failed to create configuration for peer (not enough free ports?)\n"));
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", emsg_);
-    if (NULL != emsg)
-      *emsg = emsg_;
-    else
-      GNUNET_free (emsg_);
-    return NULL;
-  }  
+                     _("Failed to create configuration for peer "
+                       "(not enough free ports?)\n"));
+    goto err_ret;
+  }
   if (key_number >= system->total_hostkeys)
   {
     GNUNET_asprintf (&emsg_,
 		     _("You attempted to create a testbed with more than %u hosts.  Please precompute more hostkeys first.\n"),
 		     (unsigned int) system->total_hostkeys);    
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", emsg_);
-    if (NULL != emsg)
-      *emsg = emsg_;
-    else
-      GNUNET_free (emsg_);
-    return NULL;
+    goto err_ret;
   }
   pk = NULL;
   if ((NULL != id) &&
@@ -905,12 +961,7 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
     GNUNET_asprintf (&emsg_,
 		     _("Failed to initialize hostkey for peer %u\n"),
 		     (unsigned int) key_number);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", emsg_);
-    if (NULL != emsg)
-      *emsg = emsg_;
-    else
-      GNUNET_free (emsg_);
-    return NULL;
+    goto err_ret;
   }
   if (NULL != pk)
     GNUNET_CRYPTO_ecc_key_free (pk);
@@ -928,8 +979,9 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
                               | GNUNET_DISK_PERM_USER_WRITE);
   if (NULL == fd)
   {
-    GNUNET_break (0); 
-    return NULL;
+    GNUNET_asprintf (&emsg_, _("Cannot open hostkey file: %s\n"),
+                     STRERROR (errno));
+    goto err_ret;
   }
   if (GNUNET_TESTING_HOSTKEYFILESIZE !=
       GNUNET_DISK_file_write (fd, system->hostkeys_data 
@@ -940,13 +992,8 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
 		     _("Failed to write hostkey file for peer %u: %s\n"),
 		     (unsigned int) key_number,
 		     STRERROR (errno));
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", emsg_);
-    if (NULL != emsg)
-      *emsg = emsg_;
-    else
-      GNUNET_free (emsg_);
     GNUNET_DISK_file_close (fd);
-    return NULL;
+    goto err_ret;
   }
   GNUNET_DISK_file_close (fd);
   GNUNET_assert (GNUNET_OK ==
@@ -958,14 +1005,9 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
 		     _("Failed to write configuration file `%s' for peer %u: %s\n"),
 		     config_filename,
 		     (unsigned int) key_number,
-		     STRERROR (errno));
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", emsg_);
-    if (NULL != emsg)
-      *emsg = emsg_;
-    else
-      GNUNET_free (emsg_);
+		     STRERROR (errno));    
     GNUNET_free (config_filename);
-    return NULL;
+    goto err_ret;
   }
   peer = GNUNET_malloc (sizeof (struct GNUNET_TESTING_Peer));
   peer->cfgfile = config_filename; /* Free in peer_destroy */
@@ -982,7 +1024,18 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
   peer->system = system;
   peer->key_number = key_number;
   GNUNET_free (libexec_binary);
+  peer->ports = ports;          /* Free in peer_destroy */
+  peer->nports = nports;
   return peer;
+
+ err_ret:
+  GNUNET_free_non_null (ports);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", emsg_);
+  if (NULL != emsg)
+    *emsg = emsg_;
+  else
+    GNUNET_free (emsg_);
+  return NULL;
 }
 
 
@@ -1233,6 +1286,8 @@ GNUNET_TESTING_peer_stop_async (struct GNUNET_TESTING_Peer *peer,
 void
 GNUNET_TESTING_peer_destroy (struct GNUNET_TESTING_Peer *peer)
 {
+  unsigned int cnt;
+
   if (NULL != peer->main_process)
     GNUNET_TESTING_peer_stop (peer);
   if (NULL != peer->ah)
@@ -1245,6 +1300,14 @@ GNUNET_TESTING_peer_destroy (struct GNUNET_TESTING_Peer *peer)
   GNUNET_free (peer->main_binary);
   GNUNET_free (peer->args);
   GNUNET_free_non_null (peer->id);
+  if (NULL != peer->ports)
+  {
+    for (cnt = 0; cnt < peer->nports; cnt++)
+      GNUNET_TESTING_release_port (peer->system, 
+                                   GNUNET_YES,
+                                   peer->ports[cnt]);
+    GNUNET_free (peer->ports);
+  }
   GNUNET_free (peer);
 }
 
