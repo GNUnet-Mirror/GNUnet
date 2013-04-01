@@ -156,24 +156,6 @@ arm_conn (void *cls,
 
 
 static void
-srv_status (void *cls, const char *service, enum GNUNET_ARM_ServiceStatus status)
-{
-  LOG ("Service %s is %u\n", service, status);
-  switch (phase)
-  {
-  default:
-    LOG ("Unexpectedly got status %u for service %s\n", status,
-	 service);
-    GNUNET_break (0);
-    ok = 2;
-#if START_ARM
-    GNUNET_ARM_request_service_stop (arm, "arm", TIMEOUT, NULL, NULL);
-#endif
-  }
-}
-
-
-static void
 arm_start_cb (void *cls, 
 	      struct GNUNET_ARM_Handle *h, 
 	      enum GNUNET_ARM_RequestStatus status, 
