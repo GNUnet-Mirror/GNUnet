@@ -186,15 +186,19 @@ struct GNUNET_TESTING_Peer
   struct GNUNET_ARM_Handle *ah;
 
   /**
+   * Handle to ARM monitoring
+   */
+  struct GNUNET_ARM_MonitorHandle *mh;
+
+  /**
    * The config of the peer
    */
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
-   * The callback to call if asynchronous functions are used for peer/service
-   * start/stop requests
+   * The callback to call asynchronously when a peer is stopped
    */  
-  GNUNET_TESTING_PeerStatusCallback cb;
+  GNUNET_TESTING_PeerStopCallback cb;
   
   /**
    * The closure for the above callback
@@ -515,25 +519,6 @@ GNUNET_TESTING_release_port (struct GNUNET_TESTING_System *system,
   }
   port_buckets[bucket] &= ~(1U << pos);
 }
-
-
-/**
- * Reserve a SERVICEHOME path for a peer.
- *
- * @param system system to use for reservation tracking
- * @return NULL on error, otherwise fresh unique path to use
- *         as the servicehome for the peer; must be freed by the caller
- */
-// static 
-char *
-reserve_path (struct GNUNET_TESTING_System *system)
-{
-  char *reserved_path;
-
-  GNUNET_asprintf (&reserved_path,
-                   "%s/%u", system->tmppath, system->path_counter++);
-  return reserved_path;
-}	      
 
 
 /**
@@ -984,6 +969,7 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
   }
   peer = GNUNET_malloc (sizeof (struct GNUNET_TESTING_Peer));
   peer->cfgfile = config_filename; /* Free in peer_destroy */
+  peer->cfg = GNUNET_CONFIGURATION_dup (cfg);
   libexec_binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-arm");
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "arm", "PREFIX", &peer->main_binary))
   {
@@ -996,46 +982,6 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
   peer->system = system;
   peer->key_number = key_number;
   GNUNET_free (libexec_binary);
-  return peer;
-}
-
-
-/**
- * Wrapper over GNUNET_TESTING_peer_configure() to set the
- * GNUNET_TESTING_PeerStatusCallback() for using functions
- * GNUNET_TESTING_peer_start2() and GNUNET_TESTING_peer_stop2()
- *
- * @param system system to use to coordinate resource usage
- * @param cfg configuration to use; will be UPDATED (to reflect needed
- *            changes in port numbers and paths)
- * @param key_number number of the hostkey to use for the peer
- * @param id identifier for the daemon, will be set, can be NULL
- * @param emsg set to freshly allocated error message (set to NULL on success), 
- *          can be NULL
- * @param status_cb the status callback to call upon peer start and stop
- * @return handle to the peer, NULL on error
- */
-struct GNUNET_TESTING_Peer *
-GNUNET_TESTING_peer_configure2 (struct GNUNET_TESTING_System *system,
-                                struct GNUNET_CONFIGURATION_Handle *cfg,
-                                uint32_t key_number,
-                                struct GNUNET_PeerIdentity *id,
-                                char **emsg,
-                                GNUNET_TESTING_PeerStatusCallback status_cb,
-                                void *cls)
-{
-  struct GNUNET_TESTING_Peer *peer;
-  
-  peer = GNUNET_TESTING_peer_configure (system,
-                                        cfg,
-                                        key_number,
-                                        id,
-                                        emsg);
-  if (NULL == peer)
-    return NULL;
-  peer->cfg = GNUNET_CONFIGURATION_dup (cfg);
-  peer->cb = status_cb;
-  peer->cb_cls = cls;
   return peer;
 }
 
@@ -1159,56 +1105,6 @@ GNUNET_TESTING_peer_service_stop (struct GNUNET_TESTING_Peer *peer,
                                        
 
 /**
- * Function called whenever we connect to or disconnect from ARM.
- *
- * @param cls closure
- * @param arm handle to the ARM connection
- * @param connected GNUNET_YES if connected, GNUNET_NO if disconnected,
- *                  GNUNET_SYSERR on error.
- */
-static void
-conn_status (void *cls, struct GNUNET_ARM_Handle *arm, 
-	     int connected)
-{
-  struct GNUNET_TESTING_Peer *peer = cls;
-
-  peer->cb (peer->cb_cls, peer, connected);  
-}
-
-
-/**
- * Start a peer asynchronously using ARM API.  Peer's startup is signaled
- * through the GNUNET_TESTING_PeerStatusCallback() given to
- * GNUNET_TESTING_peer_configure2().  To use this function the peer must be
- * configured earlier using GNUNET_TESTING_peer_configure2();
- *
- * @param peer the peer to start
- * @param timeout how long to wait before giving up to start the peer
- * @return GNUNET_OK upon successfully giving the request to the ARM API (this
- *           does not mean that the peer is successfully started); GNUNET_SYSERR
- *           upon any error.
- */
-int
-GNUNET_TESTING_peer_start2 (struct GNUNET_TESTING_Peer *peer,
-                            struct GNUNET_TIME_Relative timeout)
-{
-  if (NULL != peer->ah)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  GNUNET_assert (NULL != peer->cb);
-  GNUNET_assert (NULL != peer->cfg);
-  peer->ah = GNUNET_ARM_connect (peer->cfg, &conn_status, peer);
-  if (NULL == peer->ah)
-    return GNUNET_SYSERR;
-  GNUNET_TESTING_peer_service_start (peer, "arm", timeout, NULL, NULL);
-  return GNUNET_OK;
-}
-
-
-
-/**
  * Sends SIGTERM to the peer's main process
  *
  * @param peer the handle to the peer
@@ -1270,25 +1166,59 @@ GNUNET_TESTING_peer_stop (struct GNUNET_TESTING_Peer *peer)
 
 
 /**
+ * Function called whenever we connect to or disconnect from ARM.
+ *
+ * @param cls closure
+ * @param arm handle to the ARM connection
+ * @param connected GNUNET_YES if connected, GNUNET_NO if disconnected,
+ *                  GNUNET_SYSERR on error.
+ */
+static void
+disconn_status (void *cls, struct GNUNET_ARM_Handle *arm, 
+                int connected)
+{
+  struct GNUNET_TESTING_Peer *peer = cls;
+
+  if (GNUNET_SYSERR == connected)
+  {
+    peer->cb (peer->cb_cls, peer, connected);
+    return;
+  }
+  if (GNUNET_YES == connected)
+  {
+    GNUNET_break (GNUNET_OK == GNUNET_TESTING_peer_kill (peer));
+    return;
+  }
+  GNUNET_break (GNUNET_OK == GNUNET_TESTING_peer_wait (peer));
+  GNUNET_ARM_disconnect_and_free (peer->ah);
+  peer->ah = NULL;
+  peer->cb (peer->cb_cls, peer, GNUNET_YES);
+}
+
+
+/**
  * Stop a peer asynchronously using ARM API.  Peer's shutdown is signaled
- * through the GNUNET_TESTING_PeerStatusCallback() given to
- * GNUNET_TESTING_peer_configure2().  To use this function the peer must be
- * configured earlier using GNUNET_TESTING_peer_configure2();
+ * through the GNUNET_TESTING_PeerStopCallback().
  *
  * @param peer the peer to stop
- * @param timeout how long to wait before giving up to stop the peer
+ * @param cb the callback to signal peer shutdown
+ * @param cb_cls closure for the above callback
  * @return GNUNET_OK upon successfully giving the request to the ARM API (this
  *           does not mean that the peer is successfully stopped); GNUNET_SYSERR
  *           upon any error.
  */
 int
-GNUNET_TESTING_peer_stop2 (struct GNUNET_TESTING_Peer *peer,
-                           struct GNUNET_TIME_Relative timeout)
+GNUNET_TESTING_peer_stop_async (struct GNUNET_TESTING_Peer *peer,
+                                GNUNET_TESTING_PeerStopCallback cb,
+                                void *cb_cls)
 {
+  if (NULL == peer->main_process)
+    return GNUNET_SYSERR;  
+  peer->ah = GNUNET_ARM_connect (peer->cfg, &disconn_status, peer);
   if (NULL == peer->ah)
     return GNUNET_SYSERR;
-  GNUNET_assert (NULL != peer->cb);
-  GNUNET_TESTING_peer_service_stop (peer, "arm", timeout, NULL, NULL);
+  peer->cb = cb;
+  peer->cb_cls = cb_cls;
   return GNUNET_OK;
 }
 
@@ -1307,6 +1237,8 @@ GNUNET_TESTING_peer_destroy (struct GNUNET_TESTING_Peer *peer)
     GNUNET_TESTING_peer_stop (peer);
   if (NULL != peer->ah)
     GNUNET_ARM_disconnect_and_free (peer->ah);
+  if (NULL != peer->mh)
+    GNUNET_ARM_monitor_disconnect_and_free (peer->mh);
   GNUNET_free (peer->cfgfile);
   if (NULL != peer->cfg)
     GNUNET_CONFIGURATION_destroy (peer->cfg);
