@@ -39,4 +39,11 @@
    fun:make_request
    fun:__check_pf
 }
-
+{
+   <crypto-reachable>
+   Memcheck:Leak
+   ...
+   fun:GNUNET_CRYPTO_random_init
+   fun:call_init
+   ...
+}
