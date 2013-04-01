@@ -360,16 +360,15 @@ trigger_next_request (struct GNUNET_ARM_Handle *h, int ignore_currently_down)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Request pending, not processing queue\n");
     return;
   }
-  if (NULL != h->control_pending_head)
-    msize =
-        ntohs (((struct GNUNET_MessageHeader *) &h->
-                control_pending_head[1])->size);
-  else if (GNUNET_NO == ignore_currently_down)
+  if (NULL == h->control_pending_head)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Request queue empty, not processing queue\n");
     return;                     /* no pending message */
   }
+  msize =
+      ntohs (((struct GNUNET_MessageHeader *) &h->
+              control_pending_head[1])->size);
   h->cth =
       GNUNET_CLIENT_notify_transmit_ready (h->client, msize,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
