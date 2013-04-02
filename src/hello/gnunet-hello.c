@@ -169,9 +169,9 @@ main (int argc, char *argv[])
       return 1;
     }
     friend_only = GNUNET_NO;
-    if (GNUNET_MESSAGE_TYPE_HELLO == GNUNET_HELLO_get_type ((struct GNUNET_MessageHeader *) orig))
+    if (GNUNET_MESSAGE_TYPE_HELLO == GNUNET_HELLO_get_type (orig))
     	friend_only = GNUNET_NO;
-    if (GNUNET_MESSAGE_TYPE_FRIEND_HELLO == GNUNET_HELLO_get_type ((struct GNUNET_MessageHeader *) orig))
+    if (GNUNET_MESSAGE_TYPE_FRIEND_HELLO == GNUNET_HELLO_get_type (orig))
     	friend_only = GNUNET_YES;
     result = GNUNET_HELLO_create (&pk, &add_from_hello, &orig, friend_only);
     GNUNET_assert (NULL != result);

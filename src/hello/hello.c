@@ -103,13 +103,13 @@ struct GNUNET_HELLO_ParseUriContext
   GNUNET_HELLO_TransportPluginsFind plugins_find;
 };
 
+
 /**
  * Return HELLO type
  *
  * @param h HELLO Message to test
- * @param GNUNET_MESSAGE_TYPE_HELLO or GNUNET_MESSAGE_TYPE_FRIEND_HELLO or 0 on error
+ * @return GNUNET_MESSAGE_TYPE_HELLO or GNUNET_MESSAGE_TYPE_FRIEND_HELLO or 0 on error
  */
-
 uint16_t
 GNUNET_HELLO_get_type (const struct GNUNET_HELLO_Message *h)
 {
