@@ -1990,6 +1990,280 @@ handle_slave_get_config (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
+struct ManageServiceContext
+{
+
+  struct ManageServiceContext *next;
+
+  struct ManageServiceContext *prev;
+
+  struct GNUNET_ARM_Handle *ah;
+
+  struct Peer *peer;
+
+  struct GNUNET_SERVER_Client *client;
+  
+  uint64_t op_id;
+  
+  uint8_t start;
+
+  uint8_t expired;
+  
+};
+
+static struct ManageServiceContext *mctx_head;
+
+static struct ManageServiceContext *mctx_tail;
+
+static void
+cleanup_mctx (struct ManageServiceContext *mctx)
+{
+  mctx->expired = GNUNET_YES;
+  GNUNET_CONTAINER_DLL_remove (mctx_head, mctx_tail, mctx);
+  GNUNET_SERVER_client_drop (mctx->client);
+  GNUNET_ARM_disconnect_and_free (mctx->ah);
+  GNUNET_assert (0 < mctx->peer->reference_cnt);
+  mctx->peer->reference_cnt--;
+  if ( (GNUNET_YES == mctx->peer->destroy_flag)
+       && (0 == mctx->peer->reference_cnt) )
+    GST_destroy_peer (mctx->peer);
+  GNUNET_free (mctx);
+}
+
+static void
+free_mctxq ()
+{
+  while (NULL != mctx_head)
+    cleanup_mctx (mctx_head);
+}
+
+static const char *
+arm_req_string (enum GNUNET_ARM_RequestStatus rs)
+{
+  switch (rs)
+  {
+  case GNUNET_ARM_REQUEST_SENT_OK:
+    return _("Message was sent successfully");
+  case GNUNET_ARM_REQUEST_CONFIGURATION_ERROR:
+    return _("Misconfiguration (can't connect to the ARM service)");
+  case GNUNET_ARM_REQUEST_DISCONNECTED:
+    return _("We disconnected from ARM before we could send a request");
+  case GNUNET_ARM_REQUEST_BUSY:
+    return _("ARM API is busy");
+  case GNUNET_ARM_REQUEST_TOO_LONG:
+    return _("Request doesn't fit into a message");
+  case GNUNET_ARM_REQUEST_TIMEOUT:
+    return _("Request timed out");
+  }
+  return _("Unknown request status");
+}
+
+static const char *
+arm_ret_string (enum GNUNET_ARM_Result result)
+{
+  switch (result)
+  {
+  case GNUNET_ARM_RESULT_STOPPED:
+    return _("%s is stopped");
+  case GNUNET_ARM_RESULT_STARTING:
+    return _("%s is starting");
+  case GNUNET_ARM_RESULT_STOPPING:
+    return _("%s is stopping");
+  case GNUNET_ARM_RESULT_IS_STARTING_ALREADY:
+    return _("%s is starting already");
+  case GNUNET_ARM_RESULT_IS_STOPPING_ALREADY:
+    return _("%s is stopping already");
+  case GNUNET_ARM_RESULT_IS_STARTED_ALREADY:
+    return _("%s is started already");
+  case GNUNET_ARM_RESULT_IS_STOPPED_ALREADY:
+    return _("%s is stopped already");
+  case GNUNET_ARM_RESULT_IS_NOT_KNOWN:
+    return _("%s service is not known to ARM");
+  case GNUNET_ARM_RESULT_START_FAILED:
+    return _("%s service failed to start");
+  case GNUNET_ARM_RESULT_IN_SHUTDOWN:
+    return _("%s service can't be started because ARM is shutting down");
+  }
+  return _("Unknown result code.");
+}
+
+static void
+service_manage_result_cb (void *cls, struct GNUNET_ARM_Handle *arm,
+                          enum GNUNET_ARM_RequestStatus rs, 
+                          const char *service, enum GNUNET_ARM_Result result)
+{
+  struct ManageServiceContext *mctx = cls;
+  char *emsg;
+
+  emsg = NULL;
+  if (GNUNET_YES == mctx->expired)
+    return;
+  if (GNUNET_ARM_REQUEST_SENT_OK != rs)
+  {
+    GNUNET_asprintf (&emsg, "Error communicating with Peer %u's ARM: %s",
+                     mctx->peer->id, arm_req_string (rs));
+    goto ret;
+  }
+  if (1 == mctx->start)
+    goto service_start_check;
+  if (! ((GNUNET_ARM_RESULT_STOPPED == result)
+            || (GNUNET_ARM_RESULT_STOPPING == result)
+            || (GNUNET_ARM_RESULT_IS_STOPPING_ALREADY == result)
+            || (GNUNET_ARM_RESULT_IS_STOPPED_ALREADY == result)) )
+  {
+    /* stopping a service failed */
+    GNUNET_asprintf (&emsg, arm_ret_string (result), service);
+    goto ret;
+  }
+  /* service stopped successfully */
+  goto ret;
+
+ service_start_check:
+  if (! ((GNUNET_ARM_RESULT_STARTING == result)
+            || (GNUNET_ARM_RESULT_IS_STARTING_ALREADY == result)
+            || (GNUNET_ARM_RESULT_IS_STARTED_ALREADY == result)) )
+  {
+    /* starting a service failed */
+    GNUNET_asprintf (&emsg, arm_ret_string (result), service);
+    goto ret;
+  }
+  /* service started successfully */
+  
+ ret:
+  if (NULL != emsg)
+  {
+    LOG_DEBUG ("%s\n", emsg);
+    GST_send_operation_fail_msg (mctx->client, mctx->op_id, emsg);
+  }
+  else
+    send_operation_success_msg (mctx->client, mctx->op_id);
+  GNUNET_free (emsg);
+  cleanup_mctx (mctx);
+}
+
+static void
+handle_manage_peer_service (void *cls, struct GNUNET_SERVER_Client *client,
+                            const struct GNUNET_MessageHeader *message)
+{
+  const struct GNUNET_TESTBED_ManagePeerServiceMessage *msg;
+  const char* service;
+  struct Peer *peer;
+  char *emsg;
+  struct GNUNET_ARM_Handle *ah;
+  struct ManageServiceContext *mctx;
+  struct ForwardedOperationContext *fopc;
+  uint64_t op_id;
+  uint32_t peer_id;
+  uint16_t msize;
+  
+
+  msize = ntohs (message->size);
+  if (msize <= sizeof (struct GNUNET_TESTBED_ManagePeerServiceMessage))
+  {
+    GNUNET_break_op (0);  
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  msg = (const struct GNUNET_TESTBED_ManagePeerServiceMessage *) message;
+  service = (const char *) &msg[1];  
+  if ('\0' != service[msize - sizeof
+                      (struct GNUNET_TESTBED_ManagePeerServiceMessage) - 1])
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  if (1 < msg->start)
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;    
+  }
+  peer_id = ntohl (msg->peer_id);
+  op_id = GNUNET_ntohll (msg->operation_id);
+  LOG_DEBUG ("Received request to manage service %s on peer %u\n",
+             service, (unsigned int) peer_id);
+  if ((GST_peer_list_size <= peer_id)
+      || (NULL == (peer = GST_peer_list[peer_id])))
+  {
+    GNUNET_asprintf (&emsg, "Asked to manage service of a non existent peer "
+                     "with id: %u", peer_id);
+    goto err_ret;
+  }
+  if (0 == strcasecmp ("arm", service))
+  {
+    emsg = GNUNET_strdup ("Cannot start/stop peer's ARM service.  "
+                          "Use peer start/stop for that");
+    goto err_ret;
+  }
+  if (GNUNET_YES == peer->is_remote)
+  {
+    /* Forward the destory message to sub controller */
+    fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+    GNUNET_SERVER_client_keep (client);
+    fopc->client = client;
+    fopc->cls = peer;
+    fopc->type = OP_MANAGE_SERVICE;
+    fopc->operation_id = op_id;
+    fopc->opc =
+        GNUNET_TESTBED_forward_operation_msg_ (peer->details.remote.
+                                               slave->controller,
+                                               fopc->operation_id, &msg->header,
+                                               &GST_forwarded_operation_reply_relay,
+                                               fopc);
+    fopc->timeout_task =
+        GNUNET_SCHEDULER_add_delayed (GST_timeout, &GST_forwarded_operation_timeout,
+                                      fopc);
+    GNUNET_CONTAINER_DLL_insert_tail (fopcq_head, fopcq_tail, fopc);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  if ((0 != peer->reference_cnt)
+      && ( (0 == strcasecmp ("core", service))
+           || (0 == strcasecmp ("transport", service)) )  )
+  {
+    GNUNET_asprintf (&emsg, "Cannot stop %s service of peer with id: %u "
+                     "since it is required by existing operations",
+                     service, peer_id);
+    goto err_ret;
+  }
+  ah = GNUNET_ARM_connect (peer->details.local.cfg, NULL, NULL);
+  if (NULL == ah)
+  {
+    GNUNET_asprintf (&emsg,
+                     "Cannot connect to ARM service of peer with id: %u",
+                     peer_id);
+    goto err_ret;
+  }
+  mctx = GNUNET_malloc (sizeof (struct ManageServiceContext));
+  mctx->peer = peer;
+  peer->reference_cnt++;
+  mctx->op_id = op_id;
+  mctx->ah = ah;
+  GNUNET_SERVER_client_keep (client);
+  mctx->client = client;
+  mctx->start = msg->start;
+  GNUNET_CONTAINER_DLL_insert_tail (mctx_head, mctx_tail, mctx);
+  if (1 == mctx->start)
+    GNUNET_ARM_request_service_start (mctx->ah, service,
+                                      GNUNET_OS_INHERIT_STD_ERR,
+                                      GST_timeout,
+                                      service_manage_result_cb,
+                                      mctx);
+  else
+    GNUNET_ARM_request_service_stop (mctx->ah, service,
+                                     GST_timeout,
+                                     service_manage_result_cb,
+                                     mctx);  
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  return;
+
+ err_ret:
+  LOG (GNUNET_ERROR_TYPE_ERROR, "%s\n", emsg);
+  GST_send_operation_fail_msg (client, op_id, emsg);
+  GNUNET_free (emsg);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
 
 /**
  * Clears the forwarded operations queue
@@ -2028,6 +2302,7 @@ clear_fopcq ()
     case OP_OVERLAY_CONNECT:
     case OP_LINK_CONTROLLERS:
     case OP_GET_SLAVE_CONFIG:
+    case OP_MANAGE_SERVICE:
       break;
     case OP_FORWARDED:
       GNUNET_assert (0);
@@ -2169,6 +2444,7 @@ handle_shutdown_peers (void *cls, struct GNUNET_SERVER_Client *client,
   msg = (const struct GNUNET_TESTBED_ShutdownPeersMessage *) message;
   LOG_DEBUG ("Received SHUTDOWN_PEERS\n");
     /* Stop and destroy all peers */
+  free_mctxq ();
   GST_free_occq ();
   GST_free_roccq ();
   clear_fopcq ();
@@ -2310,6 +2586,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CONTAINER_DLL_remove (lcfq_head, lcfq_tail, lcfq);
     GNUNET_free (lcfq);
   }
+  free_mctxq ();
   GST_free_occq ();
   GST_free_roccq ();
   /* Clear peer list */
@@ -2435,6 +2712,8 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
      sizeof (struct GNUNET_TESTBED_OverlayConnectMessage)},
     {&GST_handle_remote_overlay_connect, NULL,
      GNUNET_MESSAGE_TYPE_TESTBED_REMOTE_OVERLAY_CONNECT, 0},
+    {&handle_manage_peer_service, NULL,
+     GNUNET_MESSAGE_TYPE_TESTBED_MANAGE_PEER_SERVICE, 0},
     {&handle_slave_get_config, NULL,
      GNUNET_MESSAGE_TYPE_TESTBED_GET_SLAVE_CONFIGURATION,
      sizeof (struct GNUNET_TESTBED_SlaveGetConfigurationMessage)},

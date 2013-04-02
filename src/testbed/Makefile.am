@@ -41,6 +41,7 @@ gnunet_service_testbed_LDADD = $(XLIB) \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la \
+ $(top_builddir)/src/arm/libgnunetarm.la \
  $(LTLIBINTL) -lz
 gnunet_service_testbed_DEPENDENCIES = \
  libgnunettestbed.la
