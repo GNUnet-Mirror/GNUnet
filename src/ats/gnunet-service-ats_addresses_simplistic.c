@@ -785,8 +785,10 @@ GAS_simplistic_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap *
   for (c = 0; c < s->networks; c++)
   {
       net = &s->network_entries[c];
+#if 0
       if (address->atsp_network_type == net->type)
           break;
+#endif
   }
   if (NULL == net)
   {
@@ -954,6 +956,7 @@ GAS_simplistic_address_update (void *solver,
 
       break;
     case GNUNET_ATS_NETWORK_TYPE:
+#if 0
       if (address->atsp_network_type != value)
       {
 
@@ -1009,6 +1012,7 @@ GAS_simplistic_address_update (void *solver,
           }
         }
       }
+#endif
       break;
     case GNUNET_ATS_ARRAY_TERMINATOR:
       break;
@@ -1104,6 +1108,7 @@ find_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
     *previous_p = current;
     return GNUNET_OK;
   }
+#if 0
   if (previous->atsp_distance > current->atsp_distance)
   {
     /* user shorter distance */
@@ -1116,6 +1121,7 @@ find_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
     *previous_p = current;
     return GNUNET_OK;
   }
+#endif
   /* don't care */
   return GNUNET_OK;
 }

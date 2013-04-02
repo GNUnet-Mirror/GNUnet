@@ -277,6 +277,17 @@ struct ATS_Address
    */
   void *solver_information;
 
+  /**
+   * ATS performance information for this address
+   */
+  struct GNUNET_ATS_Information *atsi;
+
+  /**
+   * ATS performance information for this address
+   */
+  uint32_t atsi_count;
+
+#if 0
   /* CHECK USAGE */
   struct GNUNET_TIME_Relative atsp_latency;
 
@@ -301,7 +312,7 @@ struct ATS_Address
 
   /* CHECK USAGE */
   uint32_t atsp_network_type;
-
+#endif
   /**
    * Inbound bandwidth assigned by solver in NBO
    */

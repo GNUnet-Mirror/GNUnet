@@ -582,11 +582,13 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
    */
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
   {
+#if 0
     if (mlp->pv.quota_index[c] == address->atsp_network_type)
     {
   		mlp_create_problem_set_value (p, p->r_quota[c], mlpi->c_b, 1, __LINE__);
       break;
     }
+#endif
   }
 
   /* c 7) Optimize quality */
@@ -1108,6 +1110,7 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
   		/* Check for network update */
   		if (type == GNUNET_ATS_NETWORK_TYPE)
   		{
+#if 0
   				if (address->atsp_network_type != value)
   				{
     				LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating network for peer `%s' from `%s' to `%s'\n",
@@ -1118,6 +1121,7 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
 
   				old_value = address->atsp_network_type;
   			  address->atsp_network_type = value;
+#endif
   				if (mlpi->c_b == MLP_UNDEFINED)
   					continue; /* This address is not yet in the matrix*/
 

@@ -370,43 +370,9 @@ struct GAS_Addresses_Handle
 
 
 /**
- * Assemble ATS information from address
+ * Disassemble ATS information and update performance information in address
  *
- * @param aa source address
- * @param dest destination
- * @return number of elements
- */
-static unsigned int
-assemble_ats_information (const struct ATS_Address *aa,  struct GNUNET_ATS_Information **dest)
-{
-  unsigned int ats_count = GNUNET_ATS_PropertyCount - 1;
-  struct GNUNET_ATS_Information *ats;
-
-  ats = GNUNET_malloc (ats_count * sizeof (struct GNUNET_ATS_Information));
-  (*dest) = ats;
-
-  ats[0].type = ntohl(GNUNET_ATS_UTILIZATION_UP);
-  ats[0].value = aa->atsp_utilization_out.value__;
-  ats[1].type = ntohl(GNUNET_ATS_UTILIZATION_DOWN);
-  ats[1].value = aa->atsp_utilization_in.value__;
-  ats[2].type = ntohl(GNUNET_ATS_NETWORK_TYPE);
-  ats[2].value = ntohl(aa->atsp_network_type);
-  ats[3].type = ntohl(GNUNET_ATS_QUALITY_NET_DELAY);
-  ats[3].value = ntohl(aa->atsp_latency.rel_value);
-  ats[4].type = ntohl(GNUNET_ATS_QUALITY_NET_DISTANCE);
-  ats[4].value = ntohl(aa->atsp_distance);
-  ats[5].type = ntohl(GNUNET_ATS_COST_WAN);
-  ats[5].value = ntohl (aa->atsp_cost_wan);
-  ats[6].type = ntohl(GNUNET_ATS_COST_LAN);
-  ats[6].value = ntohl (aa->atsp_cost_lan);
-  ats[7].type = ntohl(GNUNET_ATS_COST_WLAN);
-  ats[7].value = ntohl (aa->atsp_cost_wlan);
-  return ats_count;
-}
-
-
-/**
- * Disassemble ATS information and update address
+ * Updates existing information and adds new information
  *
  * @param src source ATS information
  * @param ats_count number of ATS information
@@ -418,68 +384,60 @@ disassemble_ats_information (const struct GNUNET_ATS_Information *src,
                              uint32_t ats_count,
                              struct ATS_Address *dest)
 {
-  int i;
-  int change = GNUNET_NO;
-  int res = 0;
-  for (i = 0; i < ats_count; i++)
-    switch (ntohl (src[i].type))
-    {
-    case GNUNET_ATS_UTILIZATION_UP:
-    	if (dest->atsp_utilization_out.value__ != src[i].value)
-    		change = GNUNET_YES;
-      dest->atsp_utilization_out.value__ = src[i].value;
-      res ++;
-      break;
-    case GNUNET_ATS_UTILIZATION_DOWN:
-    	if (dest->atsp_utilization_in.value__ != src[i].value)
-    		change = GNUNET_YES;
-      dest->atsp_utilization_in.value__ = src[i].value;
-      res ++;
-      break;
-    case GNUNET_ATS_QUALITY_NET_DELAY:
-    	if (dest->atsp_latency.rel_value  != src[i].value)
-    		change = GNUNET_YES;
-      dest->atsp_latency.rel_value = ntohl (src[i].value);
-      res ++;
-      break;
-    case GNUNET_ATS_QUALITY_NET_DISTANCE:
-    	if (dest->atsp_distance!= src[i].value)
-    		change = GNUNET_YES;
-      dest->atsp_distance = ntohl (src[i].value);
-      res ++;
-      break;
-    case GNUNET_ATS_COST_WAN:
-    	if (dest->atsp_cost_wan != src[i].value)
-    		change = GNUNET_YES;
-      dest->atsp_cost_wan = ntohl (src[i].value);
-      res ++;
-      break;
-    case GNUNET_ATS_COST_LAN:
-    	if (dest->atsp_cost_lan != src[i].value)
-    		change = GNUNET_YES;
-      dest->atsp_cost_lan = ntohl (src[i].value);
-      res ++;
-      break;
-    case GNUNET_ATS_COST_WLAN:
-    	if (dest->atsp_cost_wlan != src[i].value)
-    		change = GNUNET_YES;
-      dest->atsp_cost_wlan = ntohl (src[i].value);
-      res ++;
-      break;
-    case GNUNET_ATS_NETWORK_TYPE:
-    	if (dest->atsp_network_type != src[i].value)
-    		change = GNUNET_YES;
-      dest->atsp_network_type = ntohl (src[i].value);
-      res ++;
-      break;
-    case GNUNET_ATS_ARRAY_TERMINATOR:
-      break;
-    default:
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Received unsupported ATS type %u\n", ntohl (src[i].type));
-      GNUNET_break (0);
-      break;
-    }
+
+  int c1;
+  int c2;
+  int found;
+  int change;
+
+  struct GNUNET_ATS_Information add_atsi[ats_count];
+  struct GNUNET_ATS_Information *tmp_atsi;
+  uint32_t add_atsi_count;
+
+  change = GNUNET_NO;
+  add_atsi_count = 0;
+
+  if (NULL == dest->atsi)
+  {
+  		dest->atsi = GNUNET_malloc (ats_count * sizeof (struct GNUNET_ATS_Information));
+  		dest->atsi_count = ats_count;
+  		memcpy (dest->atsi, src, ats_count * sizeof (struct GNUNET_ATS_Information));
+  		return GNUNET_YES;
+  }
+
+  /* Update existing performance information */
+  for (c1 = 0; c1 < ats_count; c1++)
+  {
+  	found = GNUNET_NO;
+  	for (c2 = 0; c2 < dest->atsi_count; c2++)
+  	{
+			if (src[c1].type == dest->atsi[c2].type)
+			{
+				if (src[c1].value != dest->atsi[c2].value)
+				{
+						dest->atsi[c2].value = src[c1].value;
+						change = GNUNET_YES;
+				}
+				found = GNUNET_YES;
+				break;
+			}
+  	}
+		if (GNUNET_NO == found)
+		{
+				add_atsi[add_atsi_count] = src[c1];
+				add_atsi_count ++;
+		}
+  }
+
+  if (add_atsi_count > 0)
+  {
+  		tmp_atsi = GNUNET_malloc ((dest->atsi_count + add_atsi_count) *
+  				sizeof (sizeof (struct GNUNET_ATS_Information)));
+  		memcpy (tmp_atsi, dest->atsi, dest->atsi_count * sizeof (struct GNUNET_ATS_Information));
+  		memcpy (&tmp_atsi[dest->atsi_count], add_atsi, add_atsi_count * sizeof (struct GNUNET_ATS_Information));
+			change = GNUNET_YES;
+  }
+
   return change;
 }
 
@@ -492,6 +450,7 @@ static void
 free_address (struct ATS_Address *addr)
 {
   GNUNET_free (addr->plugin);
+  GNUNET_free_non_null (addr->atsi);
   GNUNET_free (addr);
 }
 
@@ -523,6 +482,8 @@ create_address (const struct GNUNET_PeerIdentity *peer,
   aa->active = GNUNET_NO;
   aa->used = GNUNET_NO;
   aa->solver_information = NULL;
+  aa->atsi = NULL;
+  aa->atsi_count = 0;
   aa->assigned_bw_in = GNUNET_BANDWIDTH_value_init(0);
   aa->assigned_bw_out = GNUNET_BANDWIDTH_value_init(0);
   return aa;
@@ -736,8 +697,6 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
 {
   struct ATS_Address *aa;
   struct ATS_Address *ea;
-  struct GNUNET_ATS_Information *ats_new;
-  uint32_t ats_count_new;
   unsigned int ats_res;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -774,15 +733,13 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
     /* Tell solver about new address */
     handle->s_add (handle->solver, handle->addresses, aa);
     /* Notify performance clients about new address */
-    ats_count_new = assemble_ats_information (aa, &ats_new);
     GAS_performance_notify_all_clients (&aa->peer,
         aa->plugin,
         aa->addr, aa->addr_len,
         aa->session_id,
-        ats_new, ats_count_new,
+        aa->atsi, aa->atsi_count,
         aa->assigned_bw_out,
         aa->assigned_bw_in);
-    GNUNET_free (ats_new);
     return;
   }
   GNUNET_free (aa->plugin);
@@ -808,15 +765,13 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   ea->session_id = session_id;
   if (GNUNET_YES == disassemble_ats_information(atsi, atsi_count, ea))
   {
-		ats_count_new = assemble_ats_information (aa, &ats_new);
 		GAS_performance_notify_all_clients (&aa->peer,
 				aa->plugin,
 				aa->addr, aa->addr_len,
 				aa->session_id,
-				ats_new, ats_count_new,
+				aa->atsi, aa->atsi_count,
 				aa->assigned_bw_out,
 				aa->assigned_bw_in);
-		GNUNET_free (ats_new);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
            "Updated existing address for peer `%s' %p with new session %u\n",
@@ -848,8 +803,6 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
                       uint32_t atsi_count)
 {
   struct ATS_Address *aa;
-  struct GNUNET_ATS_Information *ats_new;
-  uint32_t ats_count_new;
 
   if (GNUNET_NO == handle->running)
     return;
@@ -878,16 +831,14 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
   /* Update address */
   if (GNUNET_YES == disassemble_ats_information (atsi, atsi_count, aa))
   {
-  		ats_count_new = assemble_ats_information (aa, &ats_new);
   		/* Notify performance clients about updated address */
   		GAS_performance_notify_all_clients (&aa->peer,
   				aa->plugin,
   				aa->addr, aa->addr_len,
   				aa->session_id,
-  				ats_new, ats_count_new,
+  				aa->atsi, aa->atsi_count,
   				aa->assigned_bw_out,
   				aa->assigned_bw_in);
-  		GNUNET_free (ats_new);
   }
 }
 
@@ -1163,8 +1114,6 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
 {
   struct GAS_Addresses_Suggestion_Requests *cur = handle->r_head;
   struct ATS_Address *aa;
-  struct GNUNET_ATS_Information *ats;
-  unsigned int ats_count;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' for peer `%s'\n",
@@ -1198,12 +1147,11 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Suggesting address %p for peer `%s'\n", aa, GNUNET_i2s (peer));
 
-  ats_count = assemble_ats_information (aa, &ats);
   GAS_scheduling_transmit_address_suggestion (peer,
                                               aa->plugin,
                                               aa->addr, aa->addr_len,
                                               aa->session_id,
-                                              ats, ats_count,
+                                              aa->atsi, aa->atsi_count,
                                               aa->assigned_bw_out,
                                               aa->assigned_bw_in);
 
@@ -1213,8 +1161,6 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
        "Address %p ready for suggestion, block interval now %llu \n",
        aa, aa->block_interval);
-
-  GNUNET_free (ats);
 }
 
 
@@ -1418,23 +1364,18 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 {
   struct GAS_Addresses_Handle *handle = cls;
   struct GAS_Addresses_Suggestion_Requests *cur;
-  struct GNUNET_ATS_Information *ats;
-  unsigned int ats_count;
 
   GNUNET_assert (handle != NULL);
   GNUNET_assert (address != NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Bandwidth assignment changed for peer %s \n", GNUNET_i2s(&address->peer));
 
-
-  ats_count = assemble_ats_information (address, &ats);
-
   /* Notify performance clients about changes to address */
   GAS_performance_notify_all_clients (&address->peer,
       address->plugin,
       address->addr, address->addr_len,
       address->session_id,
-      ats, ats_count,
+      address->atsi, address->atsi_count,
       address->assigned_bw_out,
       address->assigned_bw_in);
   cur = handle->r_head;
@@ -1448,7 +1389,6 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
   {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Nobody is interested in peer `%s' :(\n",GNUNET_i2s (&address->peer));
-      GNUNET_free (ats);
       return;
   }
 
@@ -1460,10 +1400,9 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
                                               address->plugin,
                                               address->addr, address->addr_len,
                                               address->session_id,
-                                              ats, ats_count,
+                                              address->atsi, address->atsi_count,
                                               address->assigned_bw_out,
                                               address->assigned_bw_in);
-  GNUNET_free (ats);
 }
 
 
@@ -1746,22 +1685,17 @@ peerinfo_it (void *cls,
 {
   struct PeerInfoIteratorContext *pi_ctx = cls;
   struct ATS_Address *addr = (struct ATS_Address *)  value;
-  struct GNUNET_ATS_Information *ats;
-  uint32_t ats_count;
 
   if (NULL != pi_ctx->it)
   {
-    ats_count = assemble_ats_information (addr, &ats);
-
     pi_ctx->it (pi_ctx->it_cls,
                 &addr->peer,
                 addr->plugin,
                 addr->addr, addr->addr_len,
                 addr->active,
-                ats, ats_count,
+                addr->atsi, addr->atsi_count,
                 addr->assigned_bw_out,
                 addr->assigned_bw_in);
-    GNUNET_free (ats);
   }
   return GNUNET_YES;
 }
