@@ -485,6 +485,7 @@ disassemble_ats_information (const struct GNUNET_ATS_Information *src,
 
 /**
  * Free the given address
+ *
  * @param addr address to destroy
  */
 static void
@@ -496,6 +497,7 @@ free_address (struct ATS_Address *addr)
 
 /**
  * Create a ATS_address with the given information
+ *
  * @param peer peer
  * @param plugin_name plugin
  * @param plugin_addr address
@@ -559,6 +561,14 @@ struct CompareAddressContext
   struct ATS_Address *base_address;
 };
 
+/**
+ * Comapre addresses
+ *
+ * @param cls a CompareAddressContext containin the source address
+ * @param key peer id
+ * @param value the address to compare with
+ * @return GNUNET_YES to continue, GNUNET_NO if address is founce
+ */
 
 static int
 compare_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
@@ -654,6 +664,21 @@ find_equivalent_address (struct GAS_Addresses_Handle *handle,
   return cac.exact_address;
 }
 
+
+/**
+ * Lookup an ATS address by the address properties and session or return an
+ * equivalent address with a session == 0
+ *
+ * @param handle the address handle to use
+ * @param peer peer
+ * @param plugin_name transport plugin name
+ * @param plugin_addr plugin address
+ * @param plugin_addr_len length of the plugin address
+ * @param session_id session id, can be 0
+ * @param atsi performance information for this address
+ * @param atsi_count number of performance information contained
+ * @return an ATS_address or NULL
+ */
 
 static struct ATS_Address *
 lookup_address (struct GAS_Addresses_Handle *handle,
@@ -1193,8 +1218,16 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
 }
 
 
+/**
+ * Iterator to reset address blocking
+ *
+ * @param cls not used
+ * @param key the peer
+ * @param value the address to reset
+ * @return GNUNET_OK to continue
+ */
 static int
-reset_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
+reset_address_it (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct ATS_Address *aa = value;
 
@@ -1374,6 +1407,12 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg, unsigned long long *
 }
 
 
+/**
+ * Callback for solver to notify about assignment changes
+ *
+ * @param cls the GAS_Addresses_Handle
+ * @param address the address with changes
+ */
 static void
 bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 {
@@ -1617,6 +1656,7 @@ GAS_addresses_done (struct GAS_Addresses_Handle *handle)
 
 }
 
+
 struct PeerIteratorContext
 {
   GNUNET_ATS_Peer_Iterator it;
@@ -1624,6 +1664,15 @@ struct PeerIteratorContext
   struct GNUNET_CONTAINER_MultiHashMap *peers_returned;
 };
 
+
+/**
+ * Iterator to iterate over all peers
+ *
+ * @param cls a PeerIteratorContext
+ * @param key the peer id
+ * @param value the ATS_address
+ * @return GNUNET_OK to continue
+ */
 static int
 peer_it (void *cls,
          const struct GNUNET_HashCode * key,
@@ -1682,6 +1731,14 @@ struct PeerInfoIteratorContext
 };
 
 
+/**
+ * Iterator to iterate over a peer's addresses
+ *
+ * @param cls a PeerInfoIteratorContext
+ * @param key the peer id
+ * @param value the ATS_address
+ * @return GNUNET_OK to continue
+ */
 static int 
 peerinfo_it (void *cls,
 	     const struct GNUNET_HashCode * key,
