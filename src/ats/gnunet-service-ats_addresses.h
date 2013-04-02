@@ -438,10 +438,11 @@ struct GAS_Addresses_Handle *
 GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     const struct GNUNET_STATISTICS_Handle *stats);
 
+
 /**
  * Shutdown address subsystem.
  *
- * @param the address handle to shutdown
+ * @param handle the address handle to shutdown
  */
 void
 GAS_addresses_done (struct GAS_Addresses_Handle *handle);
@@ -498,26 +499,67 @@ GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
                       uint32_t session_id,
                       int in_use);
 
+
+/**
+ * Update an address with a session or performance information for a peer.
+ *
+ * If an address was added without a session it will be updated with the
+ * session
+ *
+ * @param handle the address handle to use
+ * @param peer peer
+ * @param plugin_name transport plugin name
+ * @param plugin_addr plugin address
+ * @param plugin_addr_len length of the plugin address
+ * @param session_id session id, can be 0
+ * @param atsi performance information for this address
+ * @param atsi_count number of performance information contained
+ */
 void
 GAS_addresses_update (struct GAS_Addresses_Handle *handle,
                       const struct GNUNET_PeerIdentity *peer,
-                      const char *plugin_name, const void *plugin_addr,
-                      size_t plugin_addr_len, uint32_t session_id,
+                      const char *plugin_name,
+                      const void *plugin_addr,
+                      size_t plugin_addr_len,
+                      uint32_t session_id,
                       const struct GNUNET_ATS_Information *atsi,
                       uint32_t atsi_count);
 
 
+/**
+ * Remove an address or just a session for a peer.
+ *
+ * @param handle the address handle to use
+ * @param peer peer
+ * @param plugin_name transport plugin name
+ * @param plugin_addr plugin address
+ * @param plugin_addr_len length of the plugin address
+ * @param session_id session id, can be 0
+ */
 void
 GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
                        const struct GNUNET_PeerIdentity *peer,
-                       const char *plugin_name, const void *plugin_addr,
-                       size_t plugin_addr_len, uint32_t session_id);
+                       const char *plugin_name,
+                       const void *plugin_addr,
+                       size_t plugin_addr_len,
+                       uint32_t session_id);
 
 
+/**
+ * Remove all addresses
+ *
+ * @param handle the address handle to use
+ */
 void
 GAS_addresses_destroy_all (struct GAS_Addresses_Handle *handle);
 
 
+/**
+ * Request address suggestions for a peer
+ *
+ * @param handle the address handle
+ * @param peer the peer id
+ */
 void
 GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
                                const struct GNUNET_PeerIdentity *peer);
@@ -525,23 +567,37 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
 /**
  * Cancel address suggestions for a peer
  *
- * @param peer the respective peer
+ * @param handle the address handle
+ * @param peer the peer id
  */
 void
 GAS_addresses_request_address_cancel (struct GAS_Addresses_Handle *handle,
                                       const struct GNUNET_PeerIdentity *peer);
 
 
-
-
 /**
+ * Reset suggestion backoff for a peer
  *
+ * Suggesting addresses is blocked for ATS_BLOCKING_DELTA. Blocking can be
+ * reset using this function
+ *
+ * @param handle the address handle
+ * @param peer the peer id
  */
 void
 GAS_addresses_handle_backoff_reset (struct GAS_Addresses_Handle *handle,
                                     const struct GNUNET_PeerIdentity *peer);
 
 
+/**
+ * Change the preference for a peer
+ *
+ * @param handle the address handle
+ * @param client the client sending this request
+ * @param peer the peer id
+ * @param kind the preference kind to change
+ * @param score the new preference score
+ */
 void
 GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
                                  void *client,
@@ -550,13 +606,20 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
                                  float score);
 
 
-
+/**
+ * Iterator for GAS_addresses_iterate_peers
+ *
+ * @param p_it_cls closure
+ * @param id the peer id
+ */
 typedef void (*GNUNET_ATS_Peer_Iterator) (void *p_it_cls,
                                           const struct GNUNET_PeerIdentity *id);
+
 
 /**
  * Return all peers currently known to ATS
  *
+ * @param handle the address handle to use
  * @param p_it the iterator to call for every peer
  * @param p_it_cls the closure for the iterator
  */
@@ -565,20 +628,37 @@ GAS_addresses_iterate_peers (struct GAS_Addresses_Handle *handle,
                              GNUNET_ATS_Peer_Iterator p_it,
                              void *p_it_cls);
 
+
+/**
+ * Iterator for GAS_addresses_get_peer_info
+ *
+ * @param p_it_cls closure closure
+ * @param id the peer id
+ * @param plugin_name plugin name
+ * @param plugin_addr address
+ * @param plugin_addr_len address length
+ * @param address_active is address actively used
+ * @param atsi ats performance information
+ * @param atsi_count number of ats performance elements
+ * @param bandwidth_out current outbound bandwidth assigned to address
+ * @param bandwidth_in current inbound bandwidth assigned to address
+ */
 typedef void (*GNUNET_ATS_PeerInfo_Iterator) (void *p_it_cls,
     const struct GNUNET_PeerIdentity *id,
     const char *plugin_name,
-    const void *plugin_addr, size_t plugin_addr_len,
+    const void *plugin_addr,
+    size_t plugin_addr_len,
     const int address_active,
     const struct GNUNET_ATS_Information *atsi,
     uint32_t atsi_count,
-    struct GNUNET_BANDWIDTH_Value32NBO
-    bandwidth_out,
+    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
+
 
 /**
  * Return information all peers currently known to ATS
  *
+ * @param handle the address handle to use
  * @param peer the respective peer
  * @param pi_it the iterator to call for every peer
  * @param pi_it_cls the closure for the iterator
