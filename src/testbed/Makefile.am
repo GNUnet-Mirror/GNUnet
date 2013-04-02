@@ -102,6 +102,7 @@ libgnunettestbed_la_LDFLAGS = \
 
 check_PROGRAMS = \
   test_testbed_api_hosts \
+  test_gnunet_helper_testbed \
   test_testbed_api_controllerlink \
   test_testbed_api_2peers_1controller \
   test_testbed_api_3peers_3controllers \
@@ -111,7 +112,7 @@ check_PROGRAMS = \
   test_testbed_api_testbed_run \
   test_testbed_api_test \
   test_testbed_api_test_timeout \
-  test_gnunet_helper_testbed \
+  test_testbed_api_peers_manage_services \
   test_testbed_api_topology \
   test_testbed_api_topology_clique \
   test_testbed_api_testbed_run_topologyrandom \
@@ -139,6 +140,7 @@ if ENABLE_TEST_RUN
   test_testbed_api_test \
   test_testbed_api_test_timeout \
   test_testbed_api_statistics \
+  test_testbed_api_peers_manage_services \
   test_testbed_api_topology \
   test_testbed_api_topology_clique \
   test_testbed_api_testbed_run_topologyrandom \
@@ -292,6 +294,12 @@ test_testbed_api_testbed_run_topologyscalefree_LDADD = \
 test_testbed_api_statistics_SOURCES = \
  test_testbed_api_statistics.c
 test_testbed_api_statistics_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunettestbed.la
+
+test_testbed_api_peers_manage_services_SOURCES = \
+ test_testbed_api_peers_manage_services.c
+test_testbed_api_peers_manage_services_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
 

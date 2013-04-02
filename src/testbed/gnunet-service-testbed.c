@@ -25,6 +25,7 @@
  */
 
 #include "gnunet-service-testbed.h"
+#include "gnunet_arm_service.h"
 
 #include <zlib.h>
 
@@ -2137,7 +2138,7 @@ service_manage_result_cb (void *cls, struct GNUNET_ARM_Handle *arm,
   }
   else
     send_operation_success_msg (mctx->client, mctx->op_id);
-  GNUNET_free (emsg);
+  GNUNET_free_non_null (emsg);
   cleanup_mctx (mctx);
 }
 
