@@ -1630,11 +1630,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS 483
 
 /**
- * The result of the shutdown peers operation
- */
-#define GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS_RESULT 484
-
-/**
  * Not really a message, but for careful checks on the testbed messages; Should
  * always be the maximum and never be used to send messages with this type
  */

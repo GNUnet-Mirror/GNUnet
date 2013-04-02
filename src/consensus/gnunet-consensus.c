@@ -281,7 +281,7 @@ peer_info_cb (void *cb_cls,
  *
  * @param cls closure
  * @param num_peers number of peers in 'peers'
- * @param peers handle to peers run in the testbed.  NULL upon timeout (see
+ * @param started_peers handle to peers run in the testbed.  NULL upon timeout (see
  *          GNUNET_TESTBED_test_run()).
  * @param links_succeeded the number of overlay link connection attempts that
  *          succeeded
