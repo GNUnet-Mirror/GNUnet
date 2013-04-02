@@ -774,5 +774,93 @@ GNUNET_TESTBED_overlay_connect (void *op_cls,
 }
 
 
+static void
+opstart_manage_service (void *cls)
+{
+  struct OperationContext *opc = cls;
+  struct GNUNET_TESTBED_ManagePeerServiceMessage *msg;
+  struct ManageServiceData *data;
+  
+  GNUNET_assert (NULL != (data = opc->data));  
+  msg = GNUNET_malloc (data->msize);
+  msg->header.size = htons (data->msize);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_MANAGE_PEER_SERVICE);
+  msg->peer_id = htonl (data->peer->unique_id);
+  msg->operation_id = GNUNET_htonll (opc->id);
+  msg->start = (uint8_t) data->start;
+  (void) memcpy (&msg[1], data->service_name, data->msize 
+                 - sizeof (struct GNUNET_TESTBED_ManagePeerServiceMessage));
+  GNUNET_free (data->service_name);
+  data->service_name = NULL;
+  opc->state = OPC_STATE_STARTED;
+  GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_TESTBED_queue_message_ (opc->c, &msg->header);
+}
+
+
+static void
+oprelease_manage_service (void *cls)
+{
+  struct OperationContext *opc = cls;
+  struct ManageServiceData *data;
+
+  data = opc->data;
+  switch (opc->state)
+  {
+  case OPC_STATE_STARTED:
+    GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+    break;
+  case OPC_STATE_INIT:
+    GNUNET_assert (NULL != data);
+    GNUNET_free (data->service_name);
+    break;
+  case OPC_STATE_FINISHED:
+    break;
+  }
+  GNUNET_free_non_null (data);
+  GNUNET_free (opc);
+}
+
+
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_peer_manage_service (void *op_cls,
+                                    struct GNUNET_TESTBED_Peer *peer,
+                                    const char *service_name,
+                                    GNUNET_TESTBED_OperationCompletionCallback cb,
+                                    void *cb_cls,
+                                    unsigned int start)
+{
+  struct ManageServiceData *data;
+  struct OperationContext *opc;
+  size_t msize;
+
+  GNUNET_assert (PS_STARTED == peer->state); /* peer is not running? */
+  msize = strlen (service_name) + 1;
+  msize += sizeof (struct GNUNET_TESTBED_ManagePeerServiceMessage);
+  if (GNUNET_SERVER_MAX_MESSAGE_SIZE < msize)
+    return NULL;
+  data = GNUNET_malloc (sizeof (struct ManageServiceData));
+  data->cb = cb;
+  data->cb_cls = cb_cls;
+  data->peer = peer;
+  data->service_name = GNUNET_strdup (service_name);
+  data->start = start;
+  data->msize = (uint16_t) msize;
+  opc = GNUNET_malloc (sizeof (struct OperationContext));
+  opc->data = data;
+  opc->c = peer->controller;
+  opc->id = GNUNET_TESTBED_get_next_op_id (opc->c);
+  opc->type = OP_MANAGE_SERVICE;
+  opc->op_cls = op_cls;
+  opc->op =
+      GNUNET_TESTBED_operation_create_ (opc, &opstart_manage_service,
+                                        &oprelease_manage_service);
+  GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_parallel_operations,
+                                          opc->op);
+  GNUNET_TESTBED_operation_begin_wait_ (opc->op);
+  return opc->op;
+}
+
+
 
 /* end of testbed_api_peers.c */

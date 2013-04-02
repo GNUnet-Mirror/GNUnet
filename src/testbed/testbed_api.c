@@ -178,11 +178,23 @@ struct ExpireOperationEntry
   const struct GNUNET_TESTBED_Operation *op;
 };
 
+
+/**
+ * DLL head for list of operations marked for expiry
+ */
 static struct ExpireOperationEntry *exop_head;
 
+/**
+ * DLL tail for list of operation marked for expiry
+ */
 static struct ExpireOperationEntry *exop_tail;
 
 
+/**
+ * Inserts an operation into the list of operations marked for expiry
+ *
+ * @param op the operation to insert
+ */
 static void
 exop_insert (struct GNUNET_TESTBED_Operation *op)
 {
@@ -194,6 +206,17 @@ exop_insert (struct GNUNET_TESTBED_Operation *op)
 }
 
 
+/**
+ * Checks if an operation is present in the list of operations marked for
+ * expiry.  If the operation is found, it and the tail of operations after it
+ * are removed from the list.
+ *
+ * @param op the operation to check
+ * @return GNUNET_NO if the operation is not present in the list; GNUNET_YES if
+ *           the operation is found in the list (the operation is then removed
+ *           from the list -- calling this function again with the same
+ *           paramenter will return GNUNET_NO)
+ */
 static int
 exop_check (const struct GNUNET_TESTBED_Operation *const op)
 {
@@ -335,6 +358,17 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
     GNUNET_free (data);
     opc->data = NULL;
     GNUNET_TESTBED_cleanup_peers_ ();
+  }
+    break;
+  case OP_MANAGE_SERVICE:
+  {
+    struct ManageServiceData *data;
+
+    GNUNET_assert (NULL != (data = opc->data));
+    op_comp_cb = data->cb;
+    op_comp_cb_cls = data->cb_cls;
+    GNUNET_free (data);
+    opc->data = NULL;
   }
     break;
   default:
@@ -691,14 +725,14 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
     GNUNET_free (data);
     return GNUNET_YES;          /* We do not call controller callback for peer info */
   }
+  event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
+  event.op = opc->op;
+  event.op_cls = opc->op_cls;
+  event.details.operation_finished.emsg = emsg;
+  event.details.operation_finished.generic = NULL;
   if ((0 != (GNUNET_TESTBED_ET_OPERATION_FINISHED & c->event_mask)) &&
       (NULL != c->cc))
   {
-    event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
-    event.op = opc->op;
-    event.op_cls = opc->op_cls;
-    event.details.operation_finished.emsg = emsg;
-    event.details.operation_finished.generic = NULL;
     exop_insert (event.op);
     c->cc (c->cc_cls, &event);
     if (GNUNET_NO == exop_check (event.op))
@@ -753,6 +787,24 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
     data = opc->data;
     GNUNET_free (data);         /* FIXME: Decide whether we call data->op_cb */
     opc->data = NULL;
+  }
+    break;
+  case OP_MANAGE_SERVICE:
+  {
+    struct ManageServiceData *data = opc->data;
+      GNUNET_TESTBED_OperationCompletionCallback cb;
+    void *cb_cls;
+
+    GNUNET_assert (NULL != data);
+    cb = data->cb;
+    cb_cls = data->cb_cls;
+    GNUNET_free (data);
+    opc->data = NULL;
+    exop_insert (event.op);
+    if (NULL != cb)
+      cb (cb_cls, opc->op, emsg);
+    /* You could have marked the operation as done by now */
+    GNUNET_break (GNUNET_NO == exop_check (event.op));
   }
     break;
   default:

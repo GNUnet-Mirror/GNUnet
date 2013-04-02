@@ -768,6 +768,37 @@ struct GNUNET_TESTBED_ShutdownPeersMessage
 };
 
 
+/**
+ * Message to start/stop services of a peer
+ */
+struct GNUNET_TESTBED_ManagePeerServiceMessage
+{
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique ID of the peer whose service has to be managed.
+   */
+  uint32_t peer_id GNUNET_PACKED;
+
+  /**
+   * Operation ID
+   */
+  uint64_t operation_id GNUNET_PACKED;
+
+  /**
+   * set this to 1 to start the service; 0 to stop the service
+   */
+  uint8_t start;
+  
+  /**
+   * The NULL-terminated name of the service to start/stop follows here
+   */
+};
+
+
 GNUNET_NETWORK_STRUCT_END
 #endif
 /* end of testbed.h */

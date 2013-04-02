@@ -246,6 +246,22 @@ struct OverlayConnectData
 };
 
 
+struct ManageServiceData {
+  GNUNET_TESTBED_OperationCompletionCallback cb;
+  
+  void *cb_cls;
+  
+  struct GNUNET_TESTBED_Peer *peer;
+
+  char *service_name;
+  
+  unsigned int start;
+
+  uint16_t msize;
+
+};
+
+
 /**
  * Generate PeerGetConfigurationMessage
  *

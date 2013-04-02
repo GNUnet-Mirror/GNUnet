@@ -90,7 +90,12 @@ enum OperationType
   /**
    * Stop and destroy all peers  
    */
-  OP_SHUTDOWN_PEERS
+  OP_SHUTDOWN_PEERS,
+
+  /**
+   * Start/stop service at a peer
+   */
+  OP_MANAGE_SERVICE
 };
 
 
