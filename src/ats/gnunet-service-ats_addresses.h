@@ -224,6 +224,10 @@
 
  */
 
+
+/*
+ * How long will address suggestions blocked after a suggestion
+ */
 #define ATS_BLOCKING_DELTA GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100)
 
 struct GAS_Addresses_Handle;
@@ -339,6 +343,11 @@ struct ATS_Address
 typedef void
  (*GAS_bandwidth_changed_cb) (void *cls, struct ATS_Address *address);
 
+/*
+ * Solver API
+ * ----------
+ */
+
 /**
  * Init the simplistic problem solving component
  *
@@ -372,6 +381,15 @@ typedef void *
                      void *bw_changed_cb_cls);
 
 
+/**
+ * Change the preference for a peer
+ *
+ * @param handle the solver handle
+ * @param client the client sending this request
+ * @param peer the peer id
+ * @param kind the preference kind to change
+ * @param score the new preference score
+ */
 typedef void
 (*GAS_solver_address_change_preference) (void *solver,
                                          void *client,
@@ -392,13 +410,32 @@ typedef void
                            struct ATS_Address *address);
 
 
-
+/**
+ * Delete an address or just the session from the solver
+ *
+ * @param solver the solver Handle
+ * @param addresses the address hashmap containing all addresses
+ * @param address the address to delete
+ * @param session_only remove address or just session
+ */
 typedef void
  (*GAS_solver_address_delete) (void *solver,
                                struct GNUNET_CONTAINER_MultiHashMap *addresses,
                                struct ATS_Address *address,
                                int session_only);
 
+/**
+ * Notify the solver about an update for an address
+ *
+ * @param solver the solver to use
+ * @param addresses the address hashmap containing all addresses
+ * @param address the address
+ * @param session the session
+ * @param in_use address used: yes or no
+ * @param atsi ats performance information
+ * @param atsi_count number of ats performance information
+ *
+ */
 typedef void
 (*GAS_solver_address_update) (void *solver,
                               struct GNUNET_CONTAINER_MultiHashMap *addresses,
@@ -409,16 +446,36 @@ typedef void
                               uint32_t atsi_count);
 
 
+/**
+ * Get the prefered address for a peer from solver
+ *
+ * @param solver the solver to use
+ * @param addresses the address hashmap containing all addresses
+ * @param peer the peer
+ */
 typedef const struct ATS_Address *
 (*GAS_solver_get_preferred_address) (void *solver,
                                      struct GNUNET_CONTAINER_MultiHashMap *addresses,
                                      const struct GNUNET_PeerIdentity *peer);
 
+
+/**
+ * Stop getting the prefered address for a peer from solver
+ *
+ * @param solver the solver to use
+ * @param addresses the address hashmap containing all addresses
+ * @param peer the peer
+ */
 typedef void
 (*GAS_solver_stop_get_preferred_address) (void *solver,
                                      struct GNUNET_CONTAINER_MultiHashMap *addresses,
                                      const struct GNUNET_PeerIdentity *peer);
 
+/**
+ * Shutdown solver
+ *
+ * @param solver the solver to shutdown
+ */
 
 typedef void
  (*GAS_solver_done) (void *solver);
