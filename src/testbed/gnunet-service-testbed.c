@@ -2084,7 +2084,7 @@ arm_ret_string (enum GNUNET_ARM_Result result)
   case GNUNET_ARM_RESULT_IN_SHUTDOWN:
     return _("%s service can't be started because ARM is shutting down");
   }
-  return _("Unknown result code.");
+  return _("%.s Unknown result code.");
 }
 
 static void

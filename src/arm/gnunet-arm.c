@@ -206,9 +206,8 @@ req_string (enum GNUNET_ARM_RequestStatus rs)
     return _("Request doesn't fit into a message");
   case GNUNET_ARM_REQUEST_TIMEOUT:
     return _("Request timed out");
-  default:
-    return _("Unknown request status");
   }
+  return _("Unknown request status");
 }
 
 static const char *
@@ -220,6 +219,8 @@ ret_string (enum GNUNET_ARM_Result result)
     return _("%s is stopped");
   case GNUNET_ARM_RESULT_STARTING:
     return _("%s is starting");
+  case GNUNET_ARM_RESULT_STOPPING:
+    return _("%s is stopping");
   case GNUNET_ARM_RESULT_IS_STARTING_ALREADY:
     return _("%s is starting already");
   case GNUNET_ARM_RESULT_IS_STOPPING_ALREADY:
@@ -234,9 +235,8 @@ ret_string (enum GNUNET_ARM_Result result)
     return _("%s service failed to start");
   case GNUNET_ARM_RESULT_IN_SHUTDOWN:
     return _("%s service can't be started because ARM is shutting down");
-  default:
-    return _("Unknown result code.");
   }
+  return _("%.s Unknown result code.");
 }
 
 static void action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
