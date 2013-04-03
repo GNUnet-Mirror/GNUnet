@@ -87,14 +87,49 @@ struct TM_Peer;
  */
 struct DelayQueueEntry
 {
+	/**
+	 * Next in DLL
+	 */
 	struct DelayQueueEntry *prev;
+
+	/**
+	 * Previous in DLL
+	 */
 	struct DelayQueueEntry *next;
+
+	/**
+	 * Peer this entry is belonging to
+	 */
 	struct TM_Peer *tmp;
+
+	/**
+	 * Absolute time when to send
+	 */
 	struct GNUNET_TIME_Absolute sent_at;
+
+	/**
+	 * The message
+	 */
 	void *msg;
+
+	/**
+	 * The message size
+	 */
 	size_t msg_size;
+
+	/**
+	 * Message timeout
+	 */
 	struct GNUNET_TIME_Relative timeout;
+
+	/**
+	 * Transports send continuation
+	 */
 	GST_NeighbourSendContinuation cont;
+
+	/**
+	 * Transports send continuation cls
+	 */
 	void *cont_cls;
 };
 
@@ -103,13 +138,31 @@ struct DelayQueueEntry
  */
 struct TM_Peer
 {
+	/**
+	 * Peer ID
+	 */
 	struct GNUNET_PeerIdentity peer;
+
+	/**
+	 * Peer specific manipulation metrics
+	 */
 	uint32_t metrics [TM_BOTH][GNUNET_ATS_QualityPropertiesCount];
+
+	/**
+	 * Task to schedule delayed sendding
+	 */
 	GNUNET_SCHEDULER_TaskIdentifier send_delay_task;
+
+	/**
+	 * Send queue DLL head
+	 */
 	struct DelayQueueEntry *send_head;
+
+	/**
+	 * Send queue DLL tail
+	 */
 	struct DelayQueueEntry *send_tail;
 };
-
 
 
 static void
