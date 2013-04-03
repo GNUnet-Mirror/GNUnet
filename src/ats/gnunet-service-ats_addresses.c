@@ -895,9 +895,6 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
                 "ADDRESS UPDATE",
                 GNUNET_i2s (peer), aa);
 
-  /* Tell solver about update */
-  handle->s_update (handle->solver, handle->addresses, aa, session_id, aa->used, atsi, atsi_count);
-
   /* Update address */
   atsi_delta = NULL;
   if (GNUNET_YES == disassemble_ats_information (aa, atsi, atsi_count, &atsi_delta, &atsi_delta_count))
@@ -911,6 +908,8 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
   				aa->assigned_bw_out,
   				aa->assigned_bw_in);
   }
+  /* Tell solver about update */
+  handle->s_update (handle->solver, handle->addresses, aa, session_id, aa->used, atsi_delta, atsi_delta_count);
   GNUNET_free_non_null (atsi_delta);
 }
 

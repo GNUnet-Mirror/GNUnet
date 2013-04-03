@@ -937,22 +937,22 @@ GAS_simplistic_address_update (void *solver,
                               struct ATS_Address *address,
                               uint32_t session,
                               int in_use,
-                              const struct GNUNET_ATS_Information *atsi,
-                              uint32_t atsi_count)
+                              const struct GNUNET_ATS_Information *prev_ats,
+                              uint32_t prev_atsi_count)
 {
   struct ATS_Address *new;
   struct GAS_SIMPLISTIC_Handle *s = (struct GAS_SIMPLISTIC_Handle *) solver;
   int i;
-  uint32_t value;
-  uint32_t type;
+  uint32_t prev_value;
+  uint32_t prev_type;
   uint32_t addr_net;
   int save_active = GNUNET_NO;
   struct Network *new_net = NULL;
-  for (i = 0; i < atsi_count; i++)
+  for (i = 0; i < prev_atsi_count; i++)
   {
-    type = ntohl (atsi[i].type);
-    value = ntohl (atsi[i].value);
-    switch (type)
+    prev_type = ntohl (prev_ats[i].type);
+    prev_value = ntohl (prev_ats[i].value);
+    switch (prev_type)
     {
     case GNUNET_ATS_UTILIZATION_UP:
       //if (address->atsp_utilization_out.value__ != atsi[i].value)
@@ -989,24 +989,24 @@ GAS_simplistic_address_update (void *solver,
       	GNUNET_break (0);
       	addr_net = GNUNET_ATS_NET_UNSPECIFIED;
       }
-      if (addr_net != value)
+      if (addr_net != prev_value)
       {
 
         LOG (GNUNET_ERROR_TYPE_DEBUG, "Network type changed, moving %s address from `%s' to `%s'\n",
             (GNUNET_YES == address->active) ? "active" : "inactive",
-            GNUNET_ATS_print_network_type(addr_net),
-            GNUNET_ATS_print_network_type(value));
+             GNUNET_ATS_print_network_type(prev_value),
+             GNUNET_ATS_print_network_type(addr_net));
 
         save_active = address->active;
         /* remove from old network */
         GAS_simplistic_address_delete (solver, addresses, address, GNUNET_NO);
 
         /* set new network type */
-        new_net = find_network (solver, value);
+        new_net = find_network (solver, addr_net);
         address->solver_information = new_net;
 
         /* Add to new network and update*/
-        GAS_simplistic_address_add (solver, addresses, address, value);
+        GAS_simplistic_address_add (solver, addresses, address, addr_net);
         if (GNUNET_YES == save_active)
         {
           /* check if bandwidth available in new network */
@@ -1043,7 +1043,7 @@ GAS_simplistic_address_update (void *solver,
       break;
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Received unsupported ATS type %u\n", type);
+                  "Received unsupported ATS type %u\n", prev_type);
       GNUNET_break (0);
       break;
 
