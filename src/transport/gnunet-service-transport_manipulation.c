@@ -53,13 +53,29 @@ struct GST_ManipulationHandle man_handle;
  */
 struct TM_Peer;
 
+/**
+ * Manipulation entry
+ */
 struct PropManipulationEntry
 {
+	/**
+	 * Next in DLL
+	 */
 	struct PropManipulationEntry *next;
+
+	/**
+	 * Previous in DLL
+	 */
 	struct PropManipulationEntry *prev;
 
+	/**
+	 * ATS type in HBO
+	 */
 	uint32_t type;
 
+	/**
+	 * Value in HBO
+	 */
 	uint32_t metrics[TM_BOTH];
 
 };
@@ -106,30 +122,10 @@ struct GST_ManipulationHandle
 	 */
 	struct GNUNET_CONTAINER_MultiHashMap *peers;
 
+	/**
+	 * Peer containing information for general manipulation
+	 */
 	struct TM_Peer general;
-
-	/**
-	 * General inbound delay
-	 */
-	struct GNUNET_TIME_Relative delay_recv;
-
-	/**
-	 * General outbound delay
-	 */
-	struct GNUNET_TIME_Relative delay_send;
-
-	/**
-	 * General inbound distance
-	 */
-	 unsigned long long distance_recv;
-
-	/**
-	 * General outbound distance
-	 */
-	 unsigned long long distance_send;
-
-	 struct PropManipulationEntry *head;
-	 struct PropManipulationEntry *tail;
 };
 
 
@@ -236,6 +232,10 @@ find_metric (struct TM_Peer *dest, uint32_t type, int direction)
 	return UINT32_MAX;
 }
 
+/**
+ * Clean up metrics for a peer
+ */
+
 static void
 free_metric (struct TM_Peer *dest)
 {
@@ -247,69 +247,6 @@ free_metric (struct TM_Peer *dest)
 		next = cur->next;
 		GNUNET_CONTAINER_DLL_remove (dest->head, dest->tail, cur);
 		GNUNET_free (cur);
-	}
-}
-
-static void
-set_delay(struct TM_Peer *tmp, struct GNUNET_PeerIdentity *peer, int direction, uint32_t value)
-{
-	uint32_t val;
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Set traffic metrics %s for peer `%s' in direction %s to %u\n",
-			"DELAY", GNUNET_i2s(peer),
-			(TM_BOTH == direction) ? "BOTH" : (TM_SEND == direction) ? "SEND": "RECEIVE", value);
-
-	if (UINT32_MAX == value)
-		val = UINT32_MAX - 1; /* prevent overflow */
-	else if (0 == value)
-		val = UINT32_MAX; /* disable */
-	else
-		val = value;
-
-	switch (direction) {
-		case TM_BOTH:
-			tmp->metrics[TM_SEND][DELAY] = val;
-			tmp->metrics[TM_RECEIVE][DELAY] = val;
-			break;
-		case TM_SEND:
-			tmp->metrics[TM_SEND][DELAY] = val;
-			break;
-		case TM_RECEIVE:
-			tmp->metrics[TM_RECEIVE][DELAY] = val;
-			break;
-		default:
-			break;
-	}
-
-}
-
-static void
-set_distance (struct TM_Peer *tmp, struct GNUNET_PeerIdentity *peer, int direction, uint32_t value)
-{
-	uint32_t val;
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Set traffic metrics %s for peer `%s' in direction %s to %u\n",
-			"DISTANCE", GNUNET_i2s(peer),
-			(TM_BOTH == direction) ? "BOTH" : (TM_SEND == direction) ? "SEND": "RECEIVE", value);
-
-	if (UINT32_MAX == value)
-		val = UINT32_MAX - 1; /* prevent overflow */
-	else if (0 == value)
-		val = UINT32_MAX; /* disable */
-	else
-		val = value;
-
-	switch (direction) {
-	case TM_BOTH:
-		tmp->metrics[TM_SEND][DISTANCE] = val;
-		tmp->metrics[TM_RECEIVE][DISTANCE] = val;
-		break;
-	case TM_SEND:
-		tmp->metrics[TM_SEND][DISTANCE] = val;
-		break;
-	case TM_RECEIVE:
-		tmp->metrics[TM_RECEIVE][DISTANCE] = val;
-		break;
-	default:
-		break;
 	}
 }
 
@@ -360,28 +297,9 @@ GST_manipulation_set_metric (void *cls, struct GNUNET_SERVER_Client *client,
 			ats = (struct GNUNET_ATS_Information *) &tm[1];
 			for (c = 0; c < ntohs (tm->ats_count); c++)
 			{
-					set_metric (&man_handle.general, direction, ats[c].type, ats[c].value);
-
 					type = htonl (ats[c].type);
 					value = htonl (ats[c].value);
-
-					switch (type) {
-						case GNUNET_ATS_QUALITY_NET_DELAY:
-							if ((TM_RECEIVE == direction) || (TM_BOTH == direction))
-									man_handle.delay_recv.rel_value = value;
-							if ((TM_SEND == direction) || (TM_BOTH == direction))
-									man_handle.delay_send.rel_value = value;
-							break;
-						case GNUNET_ATS_QUALITY_NET_DISTANCE:
-							if ((TM_RECEIVE == direction) || (TM_BOTH == direction))
-									man_handle.distance_recv = value;
-							if ((TM_SEND == direction) || (TM_BOTH == direction))
-									man_handle.distance_send = value;
-							break;
-						default:
-							break;
-					}
-
+					set_metric (&man_handle.general, direction, type, value);
 			}
 			return;
 	}
@@ -408,20 +326,7 @@ GST_manipulation_set_metric (void *cls, struct GNUNET_SERVER_Client *client,
 	{
 			type = htonl (ats[c].type);
 			value = htonl (ats[c].value);
-
-			set_metric (tmp, direction, ats[c].type, ats[c].value);
-
-
-			switch (type) {
-				case GNUNET_ATS_QUALITY_NET_DELAY:
-					set_delay (tmp, &tm->peer, direction, value);
-					break;
-				case GNUNET_ATS_QUALITY_NET_DISTANCE:
-					set_distance (tmp, &tm->peer, direction, value);
-					break;
-				default:
-					break;
-			}
+			set_metric (tmp, direction, type, value);
 	}
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -473,10 +378,10 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
 	{
 			/* Manipulate here */
 			/* Delay */
-			if (UINT32_MAX != ntohl (find_metric(tmp, htonl (GNUNET_ATS_QUALITY_NET_DELAY), TM_SEND)))
+			if (UINT32_MAX != find_metric(tmp, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND))
 			{
 					/* We have a delay */
-					delay.rel_value = ntohl (find_metric(tmp, htonl (GNUNET_ATS_QUALITY_NET_DELAY), TM_SEND));
+					delay.rel_value = find_metric(tmp, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND);
 					dqe = GNUNET_malloc (sizeof (struct DelayQueueEntry) + msg_size);
 					dqe->tmp = tmp;
 					dqe->sent_at = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), delay);
@@ -492,10 +397,10 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
 					return;
 			}
 	}
-	else if (UINT32_MAX != ntohl (find_metric (&man_handle.general, htonl (GNUNET_ATS_QUALITY_NET_DELAY), TM_SEND)))
+	else if (UINT32_MAX != find_metric (&man_handle.general, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND))
 	{
 			/* We have a delay */
-			delay.rel_value = ntohl (find_metric (&man_handle.general, htonl (GNUNET_ATS_QUALITY_NET_DELAY), TM_SEND));
+			delay.rel_value = find_metric (&man_handle.general, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND);
 			dqe = GNUNET_malloc (sizeof (struct DelayQueueEntry) + msg_size);
 			dqe->tmp = tmp;
 			dqe->sent_at = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), delay);
@@ -535,29 +440,24 @@ GST_manipulation_manipulate_metrics (const struct GNUNET_PeerIdentity *peer,
 {
 	struct GNUNET_ATS_Information *ats_new = GNUNET_malloc (sizeof (struct GNUNET_ATS_Information) *ats_count);
 	struct TM_Peer *tmp;
-	uint32_t m_distance;
+	uint32_t m_tmp;
+	uint32_t g_tmp;
 	int d;
-	m_distance = 0;
-	if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &peer->hashPubKey)))
-	{
-			if (UINT32_MAX != tmp->metrics[TM_RECEIVE][DISTANCE])
-					m_distance = tmp->metrics[TM_RECEIVE][DISTANCE];
-	}
+	tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &peer->hashPubKey);
 
 	for (d = 0; d < ats_count; d++)
 	{
 		ats_new[d] = ats[d];
-		if (ntohl(ats[d].type) == GNUNET_ATS_QUALITY_NET_DISTANCE)
-		{
-			if (m_distance > 0)
-			{
-				ats_new[d].value = htonl(m_distance);
-			}
-			else if  (man_handle.distance_recv > 0)
-			{
-				ats_new[d].value = htonl(man_handle.distance_recv);
-			}
-		}
+		m_tmp = UINT32_MAX;
+		g_tmp = UINT32_MAX;
+		if (NULL != tmp)
+			m_tmp = find_metric (tmp, ntohl(ats[d].type), TM_RECEIVE);
+		g_tmp = find_metric (&man_handle.general, ntohl(ats[d].type), TM_RECEIVE);
+
+		if (UINT32_MAX != g_tmp)
+				ats_new[d].value = htonl(g_tmp);
+		if (UINT32_MAX != m_tmp)
+				ats_new[d].value = htonl(m_tmp);
 	}
 
 	return ats_new;
@@ -585,20 +485,23 @@ GST_manipulation_recv (void *cls,
     uint16_t sender_address_len)
 {
 	struct TM_Peer *tmp;
-
+	uint32_t p_recv_delay;
+	uint32_t g_recv_delay;
 	struct GNUNET_TIME_Relative quota_delay;
 	struct GNUNET_TIME_Relative m_delay;
 
-	if (man_handle.delay_recv.rel_value > GNUNET_TIME_UNIT_ZERO.rel_value)
-		m_delay = man_handle.delay_recv; /* Global delay */
+	g_recv_delay = find_metric (&man_handle.general, GNUNET_ATS_QUALITY_NET_DELAY, TM_RECEIVE);
+	if ((g_recv_delay >= GNUNET_TIME_UNIT_ZERO.rel_value) && (UINT32_MAX != g_recv_delay))
+		m_delay.rel_value = g_recv_delay; /* Global delay */
 	else
 		m_delay = GNUNET_TIME_UNIT_ZERO;
 
 	if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &peer->hashPubKey)))
 	{
 			/* Manipulate receive delay */
-			if (UINT32_MAX != tmp->metrics[TM_RECEIVE][DELAY])
-					m_delay.rel_value = tmp->metrics[TM_RECEIVE][DELAY]; /* Peer specific delay */
+			p_recv_delay = find_metric (tmp, GNUNET_ATS_QUALITY_NET_DELAY, TM_RECEIVE);
+			if (UINT32_MAX != p_recv_delay)
+					m_delay.rel_value = p_recv_delay; /* Peer specific delay */
 	}
 
 	quota_delay = GST_receive_callback (cls, peer, message,
@@ -625,7 +528,7 @@ GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg)
 	{
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Setting inbound distance_in to %u\n",
 				(unsigned long long) tmp);
-		set_metric (&man_handle.general, TM_RECEIVE, htonl (GNUNET_ATS_QUALITY_NET_DISTANCE), htonl(tmp));
+		set_metric (&man_handle.general, TM_RECEIVE, GNUNET_ATS_QUALITY_NET_DISTANCE, tmp);
 	}
 
 	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (GST_cfg,
@@ -633,7 +536,7 @@ GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg)
 	{
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Setting outbound distance_in to %u\n",
 				(unsigned long long) tmp);
-		set_metric (&man_handle.general, TM_SEND, htonl (GNUNET_ATS_QUALITY_NET_DISTANCE), htonl(tmp));
+		set_metric (&man_handle.general, TM_SEND, GNUNET_ATS_QUALITY_NET_DISTANCE, tmp);
 	}
 
 	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (GST_cfg,
@@ -641,7 +544,7 @@ GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg)
 	{
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Delaying inbound traffic for %llu ms\n",
 				(unsigned long long) tmp);
-		set_metric (&man_handle.general, TM_RECEIVE, htonl (GNUNET_ATS_QUALITY_NET_DELAY), htonl(tmp));
+		set_metric (&man_handle.general, TM_RECEIVE, GNUNET_ATS_QUALITY_NET_DELAY, tmp);
 	}
 
 
@@ -650,7 +553,7 @@ GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg)
 	{
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Delaying outbound traffic for %llu ms\n",
 				(unsigned long long) tmp);
-		set_metric (&man_handle.general, TM_SEND, htonl (GNUNET_ATS_QUALITY_NET_DELAY), htonl(tmp));
+		set_metric (&man_handle.general, TM_SEND, GNUNET_ATS_QUALITY_NET_DELAY, tmp);
 	}
 
 	man_handle.peers = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
