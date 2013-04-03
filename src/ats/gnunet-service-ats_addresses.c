@@ -763,7 +763,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
 
   /* Do the update */
   ea->session_id = session_id;
-  if (GNUNET_YES == disassemble_ats_information(atsi, atsi_count, ea))
+  if (GNUNET_YES == disassemble_ats_information (atsi, atsi_count, ea))
   {
 		GAS_performance_notify_all_clients (&aa->peer,
 				aa->plugin,

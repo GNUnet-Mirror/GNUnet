@@ -765,6 +765,31 @@ addresse_decrement (struct GAS_SIMPLISTIC_Handle *s,
   return res;
 }
 
+/**
+ * Extract an ATS performance info from an address
+ *
+ * @param address the address
+ * @param type the type to extract in HBO
+ * @return the value in HBO or UINT32_MAX in HBO if value does not exist
+ */
+
+static int
+get_performance_info (struct ATS_Address *address, uint32_t type)
+{
+	int c1;
+	GNUNET_assert (NULL != address);
+
+	if ((NULL == address->atsi) || (0 == address->atsi_count))
+			return UINT32_MAX;
+
+	for (c1 = 0; c1 < address->atsi_count; c1++)
+	{
+			if (ntohl(address->atsi[c1].type) == type)
+				return ntohl(address->atsi[c1].value);
+	}
+	return UINT32_MAX;
+}
+
 
 /**
  * Add a single address to the solve
@@ -779,16 +804,20 @@ GAS_simplistic_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap *
   struct GAS_SIMPLISTIC_Handle *s = solver;
   struct Network *net = NULL;
   struct AddressWrapper *aw = NULL;
+  uint32_t addr_net;
 
   GNUNET_assert (NULL != s);
   int c;
+
+  addr_net = get_performance_info (address, GNUNET_ATS_NETWORK_TYPE);
+  if (UINT32_MAX == addr_net)
+  	addr_net = GNUNET_ATS_NET_UNSPECIFIED;
+
   for (c = 0; c < s->networks; c++)
   {
       net = &s->network_entries[c];
-#if 0
-      if (address->atsp_network_type == net->type)
+      if (addr_net == net->type)
           break;
-#endif
   }
   if (NULL == net)
   {
@@ -919,6 +948,7 @@ GAS_simplistic_address_update (void *solver,
   int i;
   uint32_t value;
   uint32_t type;
+  uint32_t addr_net;
   int save_active = GNUNET_NO;
   struct Network *new_net = NULL;
   for (i = 0; i < atsi_count; i++)
@@ -956,13 +986,18 @@ GAS_simplistic_address_update (void *solver,
 
       break;
     case GNUNET_ATS_NETWORK_TYPE:
-#if 0
-      if (address->atsp_network_type != value)
+      addr_net = get_performance_info (address, GNUNET_ATS_NETWORK_TYPE);
+      if (UINT32_MAX == addr_net)
+      {
+      	GNUNET_break (0);
+      	addr_net = GNUNET_ATS_NET_UNSPECIFIED;
+      }
+      if (addr_net != value)
       {
 
         LOG (GNUNET_ERROR_TYPE_DEBUG, "Network type changed, moving %s address from `%s' to `%s'\n",
             (GNUNET_YES == address->active) ? "active" : "inactive",
-            GNUNET_ATS_print_network_type(address->atsp_network_type),
+            GNUNET_ATS_print_network_type(addr_net),
             GNUNET_ATS_print_network_type(value));
 
         save_active = address->active;
@@ -970,15 +1005,8 @@ GAS_simplistic_address_update (void *solver,
         GAS_simplistic_address_delete (solver, addresses, address, GNUNET_NO);
 
         /* set new network type */
-        address->atsp_network_type = value;
         new_net = find_network (solver, value);
         address->solver_information = new_net;
-        if (address->solver_information == NULL)
-        {
-            GNUNET_break (0);
-            address->atsp_network_type = GNUNET_ATS_NET_UNSPECIFIED;
-            return;
-        }
 
         /* Add to new network and update*/
         GAS_simplistic_address_add (solver, addresses, address);
@@ -1012,7 +1040,7 @@ GAS_simplistic_address_update (void *solver,
           }
         }
       }
-#endif
+
       break;
     case GNUNET_ATS_ARRAY_TERMINATOR:
       break;
@@ -1060,6 +1088,10 @@ find_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
   struct ATS_Address *previous = *previous_p;
   struct GNUNET_TIME_Absolute now;
   struct Network *net = (struct Network *) current->solver_information;
+  uint32_t p_distance_cur;
+  uint32_t p_distance_prev;
+  uint32_t p_delay_cur;
+  uint32_t p_delay_prev;
 
   now = GNUNET_TIME_absolute_get();
 
@@ -1108,20 +1140,27 @@ find_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
     *previous_p = current;
     return GNUNET_OK;
   }
-#if 0
-  if (previous->atsp_distance > current->atsp_distance)
+
+  p_distance_prev = get_performance_info (previous, GNUNET_ATS_QUALITY_NET_DISTANCE);
+  p_distance_cur = get_performance_info (current, GNUNET_ATS_QUALITY_NET_DISTANCE);
+  if ((p_distance_prev != UINT32_MAX) && (p_distance_cur != UINT32_MAX) &&
+  		(p_distance_prev > p_distance_cur))
   {
     /* user shorter distance */
     *previous_p = current;
     return GNUNET_OK;
   }
-  if (previous->atsp_latency.rel_value > current->atsp_latency.rel_value)
+
+  p_delay_prev = get_performance_info (previous, GNUNET_ATS_QUALITY_NET_DELAY);
+  p_delay_cur = get_performance_info (current, GNUNET_ATS_QUALITY_NET_DELAY);
+  if ((p_delay_prev != UINT32_MAX) && (p_delay_cur != UINT32_MAX) &&
+  		(p_delay_prev > p_delay_cur))
   {
     /* user lower latency */
     *previous_p = current;
     return GNUNET_OK;
   }
-#endif
+
   /* don't care */
   return GNUNET_OK;
 }
