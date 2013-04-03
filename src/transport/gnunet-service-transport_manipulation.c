@@ -50,6 +50,9 @@ struct GST_ManipulationHandle man_handle;
 
 struct GST_ManipulationHandle
 {
+	/**
+	 * Hashmap contain all peers currently manipulated
+	 */
 	struct GNUNET_CONTAINER_MultiHashMap *peers;
 
 	/**
@@ -74,11 +77,14 @@ struct GST_ManipulationHandle
 
 };
 
-
+/**
+ * Struct containing information about manipulations to a specific peer
+ */
 struct TM_Peer;
 
-
-
+/**
+ * Entry in the delay queue for an outbound delayed message
+ */
 struct DelayQueueEntry
 {
 	struct DelayQueueEntry *prev;
@@ -92,6 +98,9 @@ struct DelayQueueEntry
 	void *cont_cls;
 };
 
+/**
+ * Struct containing information about manipulations to a specific peer
+ */
 struct TM_Peer
 {
 	struct GNUNET_PeerIdentity peer;
@@ -525,6 +534,10 @@ free_tmps (void *cls,
 	return GNUNET_OK;
 }
 
+
+/**
+ * Stop traffic manipulation
+ */
 void
 GST_manipulation_stop ()
 {
