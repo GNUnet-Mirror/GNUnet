@@ -97,8 +97,11 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   die_task = GNUNET_SCHEDULER_NO_TASK;
 
-  if (sched_ats != NULL)
-    GNUNET_ATS_scheduling_done (sched_ats);
+  if (NULL != sched_ats)
+  {
+  	GNUNET_ATS_scheduling_done (sched_ats);
+  	sched_ats = NULL;
+  }
   free_test_address (&test_addr[0]);
   free_test_address (&test_addr[1]);
   ret = GNUNET_SYSERR;
@@ -114,8 +117,11 @@ end ()
     GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_ATS_scheduling_done (sched_ats);
-  sched_ats = NULL;
+  if (NULL != sched_ats)
+  {
+  	GNUNET_ATS_scheduling_done (sched_ats);
+  	sched_ats = NULL;
+  }
   free_test_address (&test_addr[0]);
   free_test_address (&test_addr[1]);
 }

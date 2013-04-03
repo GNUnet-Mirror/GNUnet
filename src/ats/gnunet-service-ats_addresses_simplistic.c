@@ -772,7 +772,6 @@ addresse_decrement (struct GAS_SIMPLISTIC_Handle *s,
  * @param type the type to extract in HBO
  * @return the value in HBO or UINT32_MAX in HBO if value does not exist
  */
-
 static int
 get_performance_info (struct ATS_Address *address, uint32_t type)
 {
