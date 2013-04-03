@@ -199,27 +199,6 @@ reconnect_arm_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-static void
-clear_pending_messages (struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_RequestStatus result)
-{
-  struct ARMControlMessage *cm;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Clearing pending messages\n");
-
-  while (NULL != (cm = h->control_pending_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
-                                 h->control_pending_tail, cm);
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != cm->timeout_task_id);
-    GNUNET_SCHEDULER_cancel (cm->timeout_task_id);
-    if (NULL != cm->result_cont)
-      cm->result_cont (cm->cont_cls, cm->h, result, NULL, 0);
-    GNUNET_free_non_null (cm->msg);
-    GNUNET_free (cm);
-  }
-}
-
 /**
  * Close down any existing connection to the ARM service and
  * try re-establishing it later.
@@ -444,13 +423,32 @@ GNUNET_ARM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_ARM_disconnect_and_free (struct GNUNET_ARM_Handle *h)
 {
+  struct ARMControlMessage *cm;
+  
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from ARM service\n");
   if (NULL != h->cth)
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel (h->cth);
     h->cth = NULL;
   }
-  clear_pending_messages (h, GNUNET_ARM_REQUEST_DISCONNECTED);
+  while ((NULL != (cm = h->control_pending_head)) 
+         || (NULL != (cm = h->control_sent_head)) )
+  {
+    if (NULL != h->control_pending_head)
+      GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
+                                   h->control_pending_tail, cm);
+    else
+      GNUNET_CONTAINER_DLL_remove (h->control_sent_head,
+                                   h->control_sent_tail, cm);
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != cm->timeout_task_id);
+    GNUNET_SCHEDULER_cancel (cm->timeout_task_id);
+    if (NULL != cm->result_cont)
+      cm->result_cont (cm->cont_cls, cm->h, GNUNET_ARM_REQUEST_DISCONNECTED,
+                       NULL, 0);
+    /* FIXME: What about list callback? */
+    GNUNET_free_non_null (cm->msg);
+    GNUNET_free (cm);
+  }
   if (NULL != h->client)
   {
     GNUNET_CLIENT_disconnect (h->client);
