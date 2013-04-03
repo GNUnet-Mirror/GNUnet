@@ -2255,7 +2255,7 @@ handle_manage_peer_service (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_ARM_request_service_stop (mctx->ah, service,
                                      GST_timeout,
                                      service_manage_result_cb,
-                                     mctx);  
+                                     mctx);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
 

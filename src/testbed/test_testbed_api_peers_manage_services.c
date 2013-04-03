@@ -108,7 +108,7 @@ enum {
 static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Test timed out -- Aborting\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Aborting\n");
   abort_task = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != op)
   {  
@@ -142,10 +142,10 @@ op_comp_cb (void *cls,
     state = STATE_SERVICE_DOWN;
     op = GNUNET_TESTBED_peer_manage_service (dummy_cls,
                                              peers[1],
-                                             "statistics",
+                                             "topology",
                                              op_comp_cb,
                                              dummy_cls,
-                                             1);
+                                             0);
     break;
   case STATE_SERVICE_DOWN:
     state = STATE_SERVICE_UP;
@@ -182,10 +182,10 @@ test_master (void *cls, unsigned int num_peers,
   peers = peers_;
   op = GNUNET_TESTBED_peer_manage_service (dummy_cls,
                                            peers[1],
-                                           "statistics",
+                                           "topology",
                                            op_comp_cb,
                                            dummy_cls,
-                                           0);
+                                           1);
   FAIL_TEST (NULL != op, return);
   abort_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                              (GNUNET_TIME_UNIT_MINUTES, 1),
@@ -200,8 +200,8 @@ int
 main (int argc, char **argv)
 {
   state = STATE_INIT;
-  (void) GNUNET_TESTBED_test_run ("test_testbed_api_statistics",
-                                  "test_testbed_api_statistics.conf",
+  (void) GNUNET_TESTBED_test_run ("test_testbed_api_peers_manage_services",
+                                  "test_testbed_api.conf",
                                   NUM_PEERS,
                                   1LL, NULL, NULL,
                                   &test_master, NULL);
