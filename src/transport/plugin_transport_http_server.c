@@ -214,6 +214,12 @@ struct HTTP_Server_Plugin
   char *external_hostname;
 
   /**
+   * Verify external address
+   */
+  int verify_external_hostname;
+
+
+  /**
    * Maximum number of sockets the plugin can use
    * Each http inbound /outbound connections are two connections
    */
@@ -2574,10 +2580,9 @@ server_check_ipv6_support (struct HTTP_Server_Plugin *plugin)
 
 
 /**
- * Function called when the service shuts down.  Unloads our plugins
- * and cancels pending validations.
+ * Notify server about our external hostname
  *
- * @param cls closure, unused
+ * @param cls plugin
  * @param tc task context (unused)
  */
 static void
@@ -2590,12 +2595,24 @@ server_notify_external_hostname (void *cls, const struct GNUNET_SCHEDULER_TaskCo
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  GNUNET_asprintf(&plugin->ext_addr, "%s://%s", plugin->protocol, plugin->external_hostname);
+
+#if BUILD_HTTPS
+  GNUNET_asprintf(&plugin->ext_addr, "%s%s://%s", plugin->protocol,
+  		(GNUNET_YES == plugin->verify_external_hostname) ? "+" : "",
+  		plugin->external_hostname);
+#else
+  GNUNET_asprintf(&plugin->ext_addr, "%s://%s", plugin->protocol,
+  		plugin->external_hostname);
+#endif
+
   plugin->ext_addr_len = strlen (plugin->ext_addr) + 1;
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Notifying transport about external hostname address `%s'\n", plugin->ext_addr);
 
 #if BUILD_HTTPS
+  if (GNUNET_YES == plugin->verify_external_hostname)
+    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, plugin->name,
+                     "Enabling SSL verification for external hostname address `%s'\n", plugin->ext_addr);
   plugin->env->notify_address (plugin->env->cls, GNUNET_YES,
                                plugin->ext_addr, plugin->ext_addr_len,
                                "https_client");
@@ -2733,6 +2750,14 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
     }
     GNUNET_free (bind6_address);
   }
+
+  plugin->verify_external_hostname = GNUNET_NO;
+#if BUILD_HTTPS
+  plugin->verify_external_hostname = GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg, plugin->name,
+																				"VERIFY_EXTERNAL_HOSTNAME");
+  if (GNUNET_SYSERR == plugin->verify_external_hostname)
+  	plugin->verify_external_hostname = GNUNET_NO;
+#endif
 
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg, plugin->name,
                                               "EXTERNAL_HOSTNAME", &plugin->external_hostname))
