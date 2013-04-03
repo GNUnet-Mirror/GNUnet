@@ -47,9 +47,10 @@ create_test_address (struct Test_Address *dest, char * plugin, void *session, vo
 void
 free_test_address (struct Test_Address *dest)
 {
-  GNUNET_free (dest->plugin);
-  if (NULL != dest->addr)
-    GNUNET_free (dest->addr);
+  GNUNET_free_non_null (dest->plugin);
+  dest->plugin = NULL;
+  GNUNET_free_non_null (dest->addr);
+  dest->addr = NULL;
 }
 
 int
