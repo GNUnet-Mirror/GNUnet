@@ -48,12 +48,65 @@ enum TRAFFIC_METRIC_DIRECTION
 struct GST_ManipulationHandle man_handle;
 
 
+/**
+ * Struct containing information about manipulations to a specific peer
+ */
+struct TM_Peer;
+
+struct PropManipulationEntry
+{
+	struct PropManipulationEntry *next;
+	struct PropManipulationEntry *prev;
+
+	uint32_t type;
+
+	uint32_t metrics[TM_BOTH];
+
+};
+
+/**
+ * Struct containing information about manipulations to a specific peer
+ */
+struct TM_Peer
+{
+	/**
+	 * Peer ID
+	 */
+	struct GNUNET_PeerIdentity peer;
+
+	struct PropManipulationEntry *head;
+	struct PropManipulationEntry *tail;
+
+	/**
+	 * Peer specific manipulation metrics
+	 */
+	uint32_t metrics [TM_BOTH][GNUNET_ATS_QualityPropertiesCount];
+
+	/**
+	 * Task to schedule delayed sendding
+	 */
+	GNUNET_SCHEDULER_TaskIdentifier send_delay_task;
+
+	/**
+	 * Send queue DLL head
+	 */
+	struct DelayQueueEntry *send_head;
+
+	/**
+	 * Send queue DLL tail
+	 */
+	struct DelayQueueEntry *send_tail;
+};
+
+
 struct GST_ManipulationHandle
 {
 	/**
 	 * Hashmap contain all peers currently manipulated
 	 */
 	struct GNUNET_CONTAINER_MultiHashMap *peers;
+
+	struct TM_Peer general;
 
 	/**
 	 * General inbound delay
@@ -75,12 +128,11 @@ struct GST_ManipulationHandle
 	 */
 	 unsigned long long distance_send;
 
+	 struct PropManipulationEntry *head;
+	 struct PropManipulationEntry *tail;
 };
 
-/**
- * Struct containing information about manipulations to a specific peer
- */
-struct TM_Peer;
+
 
 /**
  * Entry in the delay queue for an outbound delayed message
@@ -133,37 +185,70 @@ struct DelayQueueEntry
 	void *cont_cls;
 };
 
-/**
- * Struct containing information about manipulations to a specific peer
- */
-struct TM_Peer
+
+static void
+set_metric (struct TM_Peer *dest, int direction, uint32_t type, uint32_t value)
 {
-	/**
-	 * Peer ID
-	 */
-	struct GNUNET_PeerIdentity peer;
+	struct PropManipulationEntry *cur;
+	for (cur = dest->head; NULL != cur; cur = cur->next)
+	{
+		if (cur->type == type)
+			break;
+	}
+	if (NULL == cur)
+	{
+		cur = GNUNET_malloc (sizeof (struct PropManipulationEntry));
+		GNUNET_CONTAINER_DLL_insert (dest->head, dest->tail, cur);
+		cur->type = type;
+		cur->metrics[TM_SEND] = UINT32_MAX;
+		cur->metrics[TM_RECEIVE] = UINT32_MAX;
+	}
 
-	/**
-	 * Peer specific manipulation metrics
-	 */
-	uint32_t metrics [TM_BOTH][GNUNET_ATS_QualityPropertiesCount];
 
-	/**
-	 * Task to schedule delayed sendding
-	 */
-	GNUNET_SCHEDULER_TaskIdentifier send_delay_task;
+	switch (direction) {
+		case TM_BOTH:
+			cur->metrics[TM_SEND] = value;
+			cur->metrics[TM_RECEIVE] = value;
+			break;
+		case TM_SEND:
+			cur->metrics[TM_SEND] = value;
+			break;
+		case TM_RECEIVE:
+			cur->metrics[TM_RECEIVE] = value;
+			break;
+		default:
+			break;
+	}
 
-	/**
-	 * Send queue DLL head
-	 */
-	struct DelayQueueEntry *send_head;
+}
 
-	/**
-	 * Send queue DLL tail
-	 */
-	struct DelayQueueEntry *send_tail;
-};
+static uint32_t
+find_metric (struct TM_Peer *dest, uint32_t type, int direction)
+{
+	struct PropManipulationEntry *cur;
 
+	for (cur = dest->head; NULL != cur; cur = cur->next)
+	{
+		if (cur->type == type)
+			return cur->metrics[direction];
+
+	}
+	return UINT32_MAX;
+}
+
+static void
+free_metric (struct TM_Peer *dest)
+{
+	struct PropManipulationEntry *cur;
+	struct PropManipulationEntry *next;
+
+	for (cur = dest->head; NULL != cur; cur = next)
+	{
+		next = cur->next;
+		GNUNET_CONTAINER_DLL_remove (dest->head, dest->tail, cur);
+		GNUNET_free (cur);
+	}
+}
 
 static void
 set_delay(struct TM_Peer *tmp, struct GNUNET_PeerIdentity *peer, int direction, uint32_t value)
@@ -278,6 +363,8 @@ GST_manipulation_set_metric (void *cls, struct GNUNET_SERVER_Client *client,
 					type = htonl (ats[c].type);
 					value = htonl (ats[c].value);
 
+					set_metric (&man_handle.general, direction, type, value);
+
 					switch (type) {
 						case GNUNET_ATS_QUALITY_NET_DELAY:
 							if ((TM_RECEIVE == direction) || (TM_BOTH == direction))
@@ -321,6 +408,10 @@ GST_manipulation_set_metric (void *cls, struct GNUNET_SERVER_Client *client,
 	{
 			type = htonl (ats[c].type);
 			value = htonl (ats[c].value);
+
+			set_metric (tmp, direction, type, value);
+
+
 			switch (type) {
 				case GNUNET_ATS_QUALITY_NET_DELAY:
 					set_delay (tmp, &tm->peer, direction, value);
@@ -570,6 +661,7 @@ free_tmps (void *cls,
 	{
 			struct TM_Peer *tmp = (struct TM_Peer *) value;
 			GNUNET_CONTAINER_multihashmap_remove (man_handle.peers, key, value);
+			free_metric (tmp);
 			next = tmp->send_head;
 			while (NULL != (dqe = next))
 			{
@@ -597,6 +689,7 @@ GST_manipulation_stop ()
 	GNUNET_CONTAINER_multihashmap_iterate (man_handle.peers, &free_tmps,NULL);
 
 	GNUNET_CONTAINER_multihashmap_destroy (man_handle.peers);
+	free_metric (&man_handle.general);
 	man_handle.peers = NULL;
 }
 
