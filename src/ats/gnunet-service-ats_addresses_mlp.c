@@ -359,7 +359,29 @@ mlp_solve_to_string (int retcode)
   }
 }
 
+/**
+ * Extract an ATS performance info from an address
+ *
+ * @param address the address
+ * @param type the type to extract in HBO
+ * @return the value in HBO or UINT32_MAX in HBO if value does not exist
+ */
+static int
+get_performance_info (struct ATS_Address *address, uint32_t type)
+{
+	int c1;
+	GNUNET_assert (NULL != address);
 
+	if ((NULL == address->atsi) || (0 == address->atsi_count))
+			return UINT32_MAX;
+
+	for (c1 = 0; c1 < address->atsi_count; c1++)
+	{
+			if (ntohl(address->atsi[c1].type) == type)
+				return ntohl(address->atsi[c1].value);
+	}
+	return UINT32_MAX;
+}
 
 
 struct CountContext
@@ -483,6 +505,7 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
   struct ATS_Peer *peer;
   struct MLP_information *mlpi;
   char *name;
+  uint32_t addr_net;
   int c;
 
   /* Check if we have to add this peer due to a pending request */
@@ -582,20 +605,21 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
    */
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
   {
-#if 0
-    if (mlp->pv.quota_index[c] == address->atsp_network_type)
+  	addr_net = get_performance_info (address, GNUNET_ATS_NETWORK_TYPE);
+  	if (UINT32_MAX == addr_net)
+  		addr_net = GNUNET_ATS_NET_UNSPECIFIED;
+
+    if (mlp->pv.quota_index[c] == addr_net)
     {
   		mlp_create_problem_set_value (p, p->r_quota[c], mlpi->c_b, 1, __LINE__);
       break;
     }
-#endif
   }
 
   /* c 7) Optimize quality */
   /* For all quality metrics, set quality of this address */
   for (c = 0; c < mlp->pv.m_q; c++)
     	mlp_create_problem_set_value (p, p->r_q[c], mlpi->c_b, mlpi->q_averaged[c], __LINE__);
-
 
   return GNUNET_OK;
 }
@@ -1078,9 +1102,9 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
   int qual_changed;
   int type_index;
   int avg_index;
+  uint32_t addr_net;
   uint32_t type;
   uint32_t value;
-  uint32_t old_value;
   double avg;
   double *queue;
   int rows;
@@ -1110,18 +1134,17 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
   		/* Check for network update */
   		if (type == GNUNET_ATS_NETWORK_TYPE)
   		{
-#if 0
-  				if (address->atsp_network_type != value)
+  		  	addr_net = get_performance_info (address, GNUNET_ATS_NETWORK_TYPE);
+  		  	if (UINT32_MAX == addr_net)
+  		  		addr_net = GNUNET_ATS_NET_UNSPECIFIED;
+  				if (addr_net != value)
   				{
     				LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating network for peer `%s' from `%s' to `%s'\n",
     			      GNUNET_i2s (&address->peer),
-    			      GNUNET_ATS_print_network_type(address->atsp_network_type),
+    			      GNUNET_ATS_print_network_type(addr_net),
     			      GNUNET_ATS_print_network_type(value));
   				}
 
-  				old_value = address->atsp_network_type;
-  			  address->atsp_network_type = value;
-#endif
   				if (mlpi->c_b == MLP_UNDEFINED)
   					continue; /* This address is not yet in the matrix*/
 
@@ -1132,7 +1155,7 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
 
   			  for (c_net = 0; c_net <= length + 1; c_net ++)
   			  {
-  			  	if (ind[c_net] == mlp->p.r_quota[old_value])
+  			  	if (ind[c_net] == mlp->p.r_quota[addr_net])
   			  		break; /* Found index for old network */
   			  }
   			  val[c_net] = 0.0;
@@ -1153,7 +1176,7 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
   			  {
   			  	if (ind[c_net] == mlp->p.r_quota[value])
   			  		LOG (GNUNET_ERROR_TYPE_DEBUG, "Removing old network index [%u] == [%f]\n",ind[c_net],val[c_net]);
-  			  	if (ind[c_net] == mlp->p.r_quota[old_value])
+  			  	if (ind[c_net] == mlp->p.r_quota[addr_net])
   			  	{
   			  		LOG (GNUNET_ERROR_TYPE_DEBUG, "Setting new network index [%u] == [%f]\n",ind[c_net],val[c_net]);
   			  		break;
