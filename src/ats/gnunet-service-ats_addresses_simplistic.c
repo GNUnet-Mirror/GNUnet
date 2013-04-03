@@ -791,31 +791,29 @@ get_performance_info (struct ATS_Address *address, uint32_t type)
 
 
 /**
- * Add a single address to the solve
+ * Add a single address within a network to the solver
  *
  * @param solver the solver Handle
  * @param addresses the address hashmap containing all addresses
  * @param address the address to add
+ * @param network network type of this address
  */
 void
-GAS_simplistic_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
+GAS_simplistic_address_add (void *solver,
+														struct GNUNET_CONTAINER_MultiHashMap *addresses,
+														struct ATS_Address *address,
+														uint32_t network)
 {
   struct GAS_SIMPLISTIC_Handle *s = solver;
   struct Network *net = NULL;
   struct AddressWrapper *aw = NULL;
-  uint32_t addr_net;
-
-  GNUNET_assert (NULL != s);
   int c;
 
-  addr_net = get_performance_info (address, GNUNET_ATS_NETWORK_TYPE);
-  if (UINT32_MAX == addr_net)
-  	addr_net = GNUNET_ATS_NET_UNSPECIFIED;
-
+  GNUNET_assert (NULL != s);
   for (c = 0; c < s->networks; c++)
   {
       net = &s->network_entries[c];
-      if (addr_net == net->type)
+      if (network == net->type)
           break;
   }
   if (NULL == net)
@@ -1008,7 +1006,7 @@ GAS_simplistic_address_update (void *solver,
         address->solver_information = new_net;
 
         /* Add to new network and update*/
-        GAS_simplistic_address_add (solver, addresses, address);
+        GAS_simplistic_address_add (solver, addresses, address, value);
         if (GNUNET_YES == save_active)
         {
           /* check if bandwidth available in new network */

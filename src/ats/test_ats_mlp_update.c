@@ -220,7 +220,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_CONTAINER_multihashmap_put (addresses, &p[0].hashPubKey, address[0],
   		GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   /* Adding address 0 */
-  GAS_mlp_address_add (mlp, addresses, address[0]);
+  GAS_mlp_address_add (mlp, addresses, address[0], GNUNET_ATS_NET_UNSPECIFIED);
 
   /* Retrieving preferred address for peer and wait for callback */
   GAS_mlp_get_preferred_address (mlp, addresses, &p[0]);

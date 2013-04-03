@@ -408,17 +408,20 @@ typedef void
                                          enum GNUNET_ATS_PreferenceKind kind,
                                          float score);
 
+
 /**
- * Add a single address to the solver
+ * Add a single address within a network to the solver
  *
  * @param solver the solver Handle
  * @param addresses the address hashmap containing all addresses
  * @param address the address to add
+ * @param network network type of this address
  */
 typedef void
 (*GAS_solver_address_add) (void *solver,
-                           struct GNUNET_CONTAINER_MultiHashMap * addresses,
-                           struct ATS_Address *address);
+														struct GNUNET_CONTAINER_MultiHashMap *addresses,
+														struct ATS_Address *address,
+														uint32_t network);
 
 
 /**

@@ -80,14 +80,18 @@ void
 GAS_simplistic_done (void * solver);
 
 /**
- * Add a single address to the solve
+ * Add a single address within a network to the solver
  *
  * @param solver the solver Handle
  * @param addresses the address hashmap containing all addresses
  * @param address the address to add
+ * @param network network type of this address
  */
 void
-GAS_simplistic_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
+GAS_simplistic_address_add (void *solver,
+														struct GNUNET_CONTAINER_MultiHashMap *addresses,
+														struct ATS_Address *address,
+														uint32_t network);
 
 
 /**

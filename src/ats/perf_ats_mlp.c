@@ -320,7 +320,7 @@ check (void *cls, char *const *args, const char *cfgfile,
 			{
 					cur_addr = perf_create_address(cp, ca);
 					/* add address */
-					GAS_mlp_address_add (mlp, addresses, cur_addr);
+					GAS_mlp_address_add (mlp, addresses, cur_addr, GNUNET_ATS_NET_UNSPECIFIED);
 					address_initial_update (mlp, addresses, cur_addr);
 					GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding address for peer %u address %u: \n", cp, ca);
 			}

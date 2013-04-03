@@ -233,7 +233,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_CONTAINER_multihashmap_put (addresses, &p[0].hashPubKey, address[0],
   		GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   /* Adding address 0 */
-  GAS_mlp_address_add (mlp, addresses, address[0]);
+  GAS_mlp_address_add (mlp, addresses, address[0], GNUNET_ATS_NET_UNSPECIFIED);
 
   /* Create address 1 */
   address[1] = create_address (&p[0], "test_plugin1", "test_addr1", strlen("test_addr1")+1, 0);
@@ -246,7 +246,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_CONTAINER_multihashmap_put (addresses, &p[0].hashPubKey, address[1],
   		GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   /* Adding address 1*/
-  GAS_mlp_address_add (mlp, addresses, address[1]);
+  GAS_mlp_address_add (mlp, addresses, address[1], GNUNET_ATS_NET_UNSPECIFIED);
 
 
   /* Create address 3 */
@@ -260,7 +260,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_CONTAINER_multihashmap_put (addresses, &p[1].hashPubKey, address[2],
   		GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   /* Adding address 3*/
-  GAS_mlp_address_add (mlp, addresses, address[2]);
+  GAS_mlp_address_add (mlp, addresses, address[2], GNUNET_ATS_NET_UNSPECIFIED);
 
 
   /* Updating address 0*/

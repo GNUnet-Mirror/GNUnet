@@ -363,14 +363,18 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Add a single address to the solve
+ * Add a single address within a network to the solver
  *
  * @param solver the solver Handle
  * @param addresses the address hashmap containing all addresses
  * @param address the address to add
+ * @param network network type of this address
  */
 void
-GAS_mlp_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address);
+GAS_mlp_address_add (void *solver,
+										struct GNUNET_CONTAINER_MultiHashMap *addresses,
+										struct ATS_Address *address,
+										uint32_t network);
 
 /**
  * Updates a single address in the MLP problem

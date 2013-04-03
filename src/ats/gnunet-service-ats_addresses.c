@@ -397,17 +397,21 @@ disassemble_ats_information (const struct GNUNET_ATS_Information *src,
   change = GNUNET_NO;
   add_atsi_count = 0;
 
+  if (0 == ats_count)
+  	return GNUNET_NO;
+
   if (NULL == dest->atsi)
   {
+  		/* Create performance information */
   		dest->atsi = GNUNET_malloc (ats_count * sizeof (struct GNUNET_ATS_Information));
   		dest->atsi_count = ats_count;
   		memcpy (dest->atsi, src, ats_count * sizeof (struct GNUNET_ATS_Information));
   		return GNUNET_YES;
   }
 
-  /* Update existing performance information */
   for (c1 = 0; c1 < ats_count; c1++)
   {
+  	/* Update existing performance information */
   	found = GNUNET_NO;
   	for (c2 = 0; c2 < dest->atsi_count; c2++)
   	{
@@ -431,10 +435,14 @@ disassemble_ats_information (const struct GNUNET_ATS_Information *src,
 
   if (add_atsi_count > 0)
   {
+  		/* Extend ats performance information */
   		tmp_atsi = GNUNET_malloc ((dest->atsi_count + add_atsi_count) *
   				sizeof (sizeof (struct GNUNET_ATS_Information)));
   		memcpy (tmp_atsi, dest->atsi, dest->atsi_count * sizeof (struct GNUNET_ATS_Information));
   		memcpy (&tmp_atsi[dest->atsi_count], add_atsi, add_atsi_count * sizeof (struct GNUNET_ATS_Information));
+  		GNUNET_free (dest->atsi);
+  		dest->atsi = tmp_atsi;
+  		dest->atsi_count = dest->atsi_count + add_atsi_count;
 			change = GNUNET_YES;
   }
 
@@ -673,6 +681,29 @@ lookup_address (struct GAS_Addresses_Handle *handle,
   return ea;
 }
 
+/**
+ * Extract an ATS performance info from an address
+ *
+ * @param address the address
+ * @param type the type to extract in HBO
+ * @return the value in HBO or UINT32_MAX in HBO if value does not exist
+ */
+static int
+get_performance_info (struct ATS_Address *address, uint32_t type)
+{
+	int c1;
+	GNUNET_assert (NULL != address);
+
+	if ((NULL == address->atsi) || (0 == address->atsi_count))
+			return UINT32_MAX;
+
+	for (c1 = 0; c1 < address->atsi_count; c1++)
+	{
+			if (ntohl(address->atsi[c1].type) == type)
+				return ntohl(address->atsi[c1].value);
+	}
+	return UINT32_MAX;
+}
 
 
 /**
@@ -697,7 +728,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
 {
   struct ATS_Address *aa;
   struct ATS_Address *ea;
-  unsigned int ats_res;
+  uint32_t addr_net;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' for peer `%s'\n",
@@ -711,13 +742,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
 
   aa = create_address (peer, plugin_name, plugin_addr, plugin_addr_len,
                        session_id);
-
-  if (atsi_count != (ats_res = disassemble_ats_information(atsi, atsi_count, aa)))
-  {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "While adding address: had %u ATS elements to add, could only add %u\n",
-                atsi_count, ats_res);
-  }
+  disassemble_ats_information (atsi, atsi_count, aa);
 
   /* Get existing address or address with session == 0 */
   ea = find_equivalent_address (handle, peer, aa);
@@ -730,8 +755,11 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Added new address for peer `%s' session id %u, %p\n",
                 GNUNET_i2s (peer), session_id, aa);
+    addr_net = get_performance_info (aa, GNUNET_ATS_NETWORK_TYPE);
+    if (UINT32_MAX == addr_net)
+    	addr_net = GNUNET_ATS_NET_UNSPECIFIED;
     /* Tell solver about new address */
-    handle->s_add (handle->solver, handle->addresses, aa);
+    handle->s_add (handle->solver, handle->addresses, aa, addr_net);
     /* Notify performance clients about new address */
     GAS_performance_notify_all_clients (&aa->peer,
         aa->plugin,
@@ -742,7 +770,9 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
         aa->assigned_bw_in);
     return;
   }
+
   GNUNET_free (aa->plugin);
+  GNUNET_free_non_null (aa->atsi);
   GNUNET_free (aa);
 
   if (ea->session_id != 0)

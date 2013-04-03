@@ -1040,10 +1040,13 @@ GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addr
  *
  * @param solver the solver Handle
  * @param addresses the address hashmap containing all addresses
- * @param address the address to add
+ * @param network network type of this address
  */
 void
-GAS_mlp_address_add (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
+GAS_mlp_address_add (void *solver,
+										struct GNUNET_CONTAINER_MultiHashMap *addresses,
+										struct ATS_Address *address,
+										uint32_t network)
 {
   struct GAS_MLP_Handle *mlp = solver;
   struct ATS_Peer *p;
