@@ -419,7 +419,7 @@ disassemble_ats_information (struct ATS_Address *dest,
   		for (c1 = 0; c1 < update_count; c1 ++)
   		{
   			(*delta_dest)[c1].type = update[c1].type;
-  			(*delta_dest)[c1].value = htonl(UINT32_MAX);
+  			(*delta_dest)[c1].value = htonl(GNUNET_ATS_VALUE_UNDEFINED);
   		}
   		(*delta_count) = update_count;
   		return GNUNET_YES;
@@ -451,7 +451,7 @@ disassemble_ats_information (struct ATS_Address *dest,
 				add_atsi[add_atsi_count] = update[c1];
 				add_atsi_count ++;
 				delta_atsi[delta_atsi_count].type = update[c1].type;
-				delta_atsi[delta_atsi_count].type = htonl (UINT32_MAX);
+				delta_atsi[delta_atsi_count].value = htonl (GNUNET_ATS_VALUE_UNDEFINED);
 				delta_atsi_count ++;
 		}
   }
@@ -717,7 +717,7 @@ lookup_address (struct GAS_Addresses_Handle *handle,
  *
  * @param address the address
  * @param type the type to extract in HBO
- * @return the value in HBO or UINT32_MAX in HBO if value does not exist
+ * @return the value in HBO or GNUNET_ATS_VALUE_UNDEFINED in HBO if value does not exist
  */
 static int
 get_performance_info (struct ATS_Address *address, uint32_t type)
@@ -726,14 +726,14 @@ get_performance_info (struct ATS_Address *address, uint32_t type)
 	GNUNET_assert (NULL != address);
 
 	if ((NULL == address->atsi) || (0 == address->atsi_count))
-			return UINT32_MAX;
+			return GNUNET_ATS_VALUE_UNDEFINED;
 
 	for (c1 = 0; c1 < address->atsi_count; c1++)
 	{
 			if (ntohl(address->atsi[c1].type) == type)
 				return ntohl(address->atsi[c1].value);
 	}
-	return UINT32_MAX;
+	return GNUNET_ATS_VALUE_UNDEFINED;
 }
 
 
@@ -779,6 +779,10 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   atsi_delta = NULL;
   disassemble_ats_information (aa, atsi, atsi_count, &atsi_delta, &atsi_delta_count);
   GNUNET_free_non_null (atsi_delta);
+  addr_net = get_performance_info (aa, GNUNET_ATS_NETWORK_TYPE);
+  if (GNUNET_ATS_VALUE_UNDEFINED == addr_net)
+  		addr_net = GNUNET_ATS_NET_UNSPECIFIED;
+
   /* Get existing address or address with session == 0 */
   ea = find_equivalent_address (handle, peer, aa);
   if (ea == NULL)
@@ -790,9 +794,6 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Added new address for peer `%s' session id %u, %p\n",
                 GNUNET_i2s (peer), session_id, aa);
-    addr_net = get_performance_info (aa, GNUNET_ATS_NETWORK_TYPE);
-    if (UINT32_MAX == addr_net)
-    	addr_net = GNUNET_ATS_NET_UNSPECIFIED;
     /* Tell solver about new address */
     handle->s_add (handle->solver, handle->addresses, aa, addr_net);
     /* Notify performance clients about new address */

@@ -41,6 +41,7 @@ static int ret;
  */
 struct GNUNET_ATS_Information ats[4];
 
+struct GNUNET_ATS_Information ats_prev[4];
 
 /**
  * MLP solver handle
@@ -228,6 +229,8 @@ check (void *cls, char *const *args, const char *cfgfile,
   /* Solve problem to build matrix */
   GAS_mlp_solve_problem (mlp, addresses);
 
+  address[0]->atsi = ats;
+  address[0]->atsi_count = 4;
   /* Updating address 0*/
   ats[0].type =  htonl (GNUNET_ATS_NETWORK_TYPE);
   ats[0].value = htonl (GNUNET_ATS_NET_WAN);
@@ -237,7 +240,17 @@ check (void *cls, char *const *args, const char *cfgfile,
   ats[2].value = htonl (1);
   ats[3].type =  htonl (GNUNET_ATS_ARRAY_TERMINATOR);
   ats[3].value = htonl (GNUNET_ATS_ARRAY_TERMINATOR);
-  GAS_mlp_address_update (mlp, addresses, address[0], 1, GNUNET_NO, ats, 4);
+
+  ats_prev[0].type =  htonl (GNUNET_ATS_NETWORK_TYPE);
+  ats_prev[0].value = htonl (GNUNET_ATS_NET_UNSPECIFIED);
+  ats_prev[1].type =  htonl (GNUNET_ATS_QUALITY_NET_DELAY);
+  ats_prev[1].value = htonl (GNUNET_ATS_VALUE_UNDEFINED);
+  ats_prev[2].type =  htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
+  ats_prev[2].value = htonl (GNUNET_ATS_VALUE_UNDEFINED);
+  ats_prev[3].type =  htonl (GNUNET_ATS_ARRAY_TERMINATOR);
+  ats_prev[3].value = htonl (GNUNET_ATS_VALUE_UNDEFINED);
+
+  GAS_mlp_address_update (mlp, addresses, address[0], 1, GNUNET_NO, ats_prev, 4);
 
   /* Solve problem to build matrix */
   GAS_mlp_solve_problem (mlp, addresses);

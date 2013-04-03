@@ -364,7 +364,7 @@ mlp_solve_to_string (int retcode)
  *
  * @param address the address
  * @param type the type to extract in HBO
- * @return the value in HBO or UINT32_MAX in HBO if value does not exist
+ * @return the value in HBO or GNUNET_ATS_VALUE_UNDEFINED in HBO if value does not exist
  */
 static int
 get_performance_info (struct ATS_Address *address, uint32_t type)
@@ -373,14 +373,14 @@ get_performance_info (struct ATS_Address *address, uint32_t type)
 	GNUNET_assert (NULL != address);
 
 	if ((NULL == address->atsi) || (0 == address->atsi_count))
-			return UINT32_MAX;
+			return GNUNET_ATS_VALUE_UNDEFINED;
 
 	for (c1 = 0; c1 < address->atsi_count; c1++)
 	{
 			if (ntohl(address->atsi[c1].type) == type)
 				return ntohl(address->atsi[c1].value);
 	}
-	return UINT32_MAX;
+	return GNUNET_ATS_VALUE_UNDEFINED;
 }
 
 
@@ -606,7 +606,7 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
   {
   	addr_net = get_performance_info (address, GNUNET_ATS_NETWORK_TYPE);
-  	if (UINT32_MAX == addr_net)
+  	if (GNUNET_ATS_VALUE_UNDEFINED == addr_net)
   		addr_net = GNUNET_ATS_NET_UNSPECIFIED;
 
     if (mlp->pv.quota_index[c] == addr_net)
@@ -1092,7 +1092,7 @@ static void
 mlp_update_quality (struct GAS_MLP_Handle *mlp,
 		struct GNUNET_CONTAINER_MultiHashMap *addresses,
 		struct ATS_Address * address,
-										const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
+		const struct GNUNET_ATS_Information *ats_prev, uint32_t ats_prev_count)
 {
   struct MLP_information *mlpi = address->solver_information;
   unsigned int c_ats_entry;
@@ -1105,9 +1105,9 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
   int qual_changed;
   int type_index;
   int avg_index;
-  uint32_t addr_net;
   uint32_t type;
-  uint32_t value;
+  uint32_t prev_value;
+  uint32_t new_value;
   double avg;
   double *queue;
   int rows;
@@ -1116,36 +1116,36 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
 
 
 	LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating %u quality metrics for peer `%s'\n",
-      ats_count, GNUNET_i2s (&address->peer));
+      ats_prev_count, GNUNET_i2s (&address->peer));
 
 	GNUNET_assert (NULL != mlp);
   GNUNET_assert (NULL != address);
   GNUNET_assert (NULL != address->solver_information);
-  GNUNET_assert (NULL != ats);
+  GNUNET_assert (NULL != ats_prev);
 
   if (NULL == mlp->p.prob)
   	return;
 
   qual_changed = GNUNET_NO;
-  for (c_ats_entry = 0; c_ats_entry < ats_count; c_ats_entry++)
+  for (c_ats_entry = 0; c_ats_entry < ats_prev_count; c_ats_entry++)
   {
-  		type = ntohl (ats[c_ats_entry].type);
-  		value = ntohl (ats[c_ats_entry].value);
+  		type = ntohl (ats_prev[c_ats_entry].type);
+  		prev_value = ntohl (ats_prev[c_ats_entry].value);
   		type_index = -1;
   		avg_index = -1;
 
   		/* Check for network update */
   		if (type == GNUNET_ATS_NETWORK_TYPE)
   		{
-  		  	addr_net = get_performance_info (address, GNUNET_ATS_NETWORK_TYPE);
-  		  	if (UINT32_MAX == addr_net)
-  		  		addr_net = GNUNET_ATS_NET_UNSPECIFIED;
-  				if (addr_net != value)
+  				new_value = get_performance_info (address, GNUNET_ATS_NETWORK_TYPE);
+  		  	if (GNUNET_ATS_VALUE_UNDEFINED == new_value)
+  		  		new_value = GNUNET_ATS_NET_UNSPECIFIED;
+  				if (new_value != prev_value)
   				{
     				LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating network for peer `%s' from `%s' to `%s'\n",
     			      GNUNET_i2s (&address->peer),
-    			      GNUNET_ATS_print_network_type(addr_net),
-    			      GNUNET_ATS_print_network_type(value));
+    			      GNUNET_ATS_print_network_type(prev_value),
+    			      GNUNET_ATS_print_network_type(new_value));
   				}
 
   				if (mlpi->c_b == MLP_UNDEFINED)
@@ -1158,13 +1158,13 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
 
   			  for (c_net = 0; c_net <= length + 1; c_net ++)
   			  {
-  			  	if (ind[c_net] == mlp->p.r_quota[addr_net])
+  			  	if (ind[c_net] == mlp->p.r_quota[prev_value])
   			  		break; /* Found index for old network */
   			  }
   			  val[c_net] = 0.0;
   				glp_set_mat_col (mlp->p.prob, mlpi->c_b, length, ind, val);
   				/* Set updated column */
-  				ind[c_net] = mlp->p.r_quota[value];
+  				ind[c_net] = mlp->p.r_quota[new_value];
   				val[c_net] = 1.0;
   				glp_set_mat_col (mlp->p.prob, mlpi->c_b, length, ind, val);
   			  GNUNET_free (ind);
@@ -1177,9 +1177,9 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
 
   			  for (c_net = 0; c_net <= length + 1; c_net ++)
   			  {
-  			  	if (ind[c_net] == mlp->p.r_quota[value])
+  			  	if (ind[c_net] == mlp->p.r_quota[prev_value])
   			  		LOG (GNUNET_ERROR_TYPE_DEBUG, "Removing old network index [%u] == [%f]\n",ind[c_net],val[c_net]);
-  			  	if (ind[c_net] == mlp->p.r_quota[addr_net])
+  			  	if (ind[c_net] == mlp->p.r_quota[new_value])
   			  	{
   			  		LOG (GNUNET_ERROR_TYPE_DEBUG, "Setting new network index [%u] == [%f]\n",ind[c_net],val[c_net]);
   			  		break;
@@ -1208,7 +1208,12 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
   	  avg_index = mlpi->q_avg_i[type_index];
 
   	  /* Update averaging queue */
-  	  mlpi->q[type_index][avg_index] = value;
+  	  new_value = get_performance_info (address, type);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating peer `%s': `%s' from %u to %u\n",
+        GNUNET_i2s (&address->peer),
+        mlp_ats_to_string(mlp->pv.q[type_index]), prev_value, new_value);
+  	  GNUNET_assert (GNUNET_ATS_VALUE_UNDEFINED != new_value);
+  	  mlpi->q[type_index][avg_index] = new_value;
 
   	  /* Update averaging index */
       if (mlpi->q_avg_i[type_index] + 1 < (MLP_AVERAGING_QUEUE_LENGTH))
@@ -1298,6 +1303,9 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
  * If the address did not exist before in the problem:
  * The MLP problem has to be recreated and the problem has to be resolved
  *
+ * ATS performance information in address are already updated, delta + previous
+ * values are included in atsi_prev (value GNUNET_ATS_VALUE_UNDEFINED if not existing before)
+ *
  * Otherwise the addresses' values can be updated and the existing base can
  * be reused
  *
@@ -1306,8 +1314,8 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
  * @param address the update address
  * @param session the new session (if changed otherwise current)
  * @param in_use the new address in use state (if changed otherwise current)
- * @param atsi the latest ATS information
- * @param atsi_count the atsi count
+ * @param atsi_prev ATS information updated + previous values, GNUNET_ATS_VALUE_UNDEFINED if not existing before
+ * @param atsi_count_prev number of atsi values updated
  */
 void
 GAS_mlp_address_update (void *solver,
@@ -1315,8 +1323,8 @@ GAS_mlp_address_update (void *solver,
                         struct ATS_Address *address,
                         uint32_t session,
                         int in_use,
-                        const struct GNUNET_ATS_Information *atsi,
-                        uint32_t atsi_count)
+                        const struct GNUNET_ATS_Information *atsi_prev,
+                        uint32_t atsi_count_prev)
 {
 	struct ATS_Peer *p;
 	struct GAS_MLP_Handle *mlp = solver;
@@ -1325,14 +1333,14 @@ GAS_mlp_address_update (void *solver,
 	GNUNET_assert (NULL != solver);
 	GNUNET_assert (NULL != addresses);
 	GNUNET_assert (NULL != address);
-	GNUNET_assert ((NULL != atsi) || (0 == atsi_count));
+	GNUNET_assert ((NULL != atsi_prev) || (0 == atsi_count_prev));
 
   if (NULL == mlpi)
   {
       LOG (GNUNET_ERROR_TYPE_ERROR, _("Updating address for peer `%s' not added before\n"), GNUNET_i2s(&address->peer));
       return;
   }
-	mlp_update_quality (mlp, addresses, address, atsi, atsi_count);
+	mlp_update_quality (mlp, addresses, address, atsi_prev, atsi_count_prev);
 
   /* Is this peer included in the problem? */
   if (NULL == (p = GNUNET_CONTAINER_multihashmap_get (mlp->peers, &address->peer.hashPubKey)))

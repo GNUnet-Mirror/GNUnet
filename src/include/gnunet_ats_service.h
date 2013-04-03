@@ -59,16 +59,25 @@ enum GNUNET_ATS_Network_Type
  */
 #define GNUNET_ATS_DefaultBandwidth 65536
 
+/**
+ * Undefined value for a GNUNET_ATS_Property
+ */
+#define GNUNET_ATS_VALUE_UNDEFINED UINT32_MAX
 
 /**
- * Textual equivalent for GNUNET_ATS_MaxBandwidth
+ * String representation for GNUNET_ATS_VALUE_UNDEFINED
  */
-#define GNUNET_ATS_MaxBandwidthString "unlimited"
+#define GNUNET_ATS_VALUE_UNDEFINED_STR "undefined"
 
 /**
  * Maximum bandwidth assigned to a network : 4095 MB/s
  */
 #define GNUNET_ATS_MaxBandwidth UINT32_MAX
+
+/**
+ * Textual equivalent for GNUNET_ATS_MaxBandwidth
+ */
+#define GNUNET_ATS_MaxBandwidthString "unlimited"
 
 /**
  * Number of property types supported by ATS

@@ -770,7 +770,7 @@ addresse_decrement (struct GAS_SIMPLISTIC_Handle *s,
  *
  * @param address the address
  * @param type the type to extract in HBO
- * @return the value in HBO or UINT32_MAX in HBO if value does not exist
+ * @return the value in HBO or GNUNET_ATS_VALUE_UNDEFINED in HBO if value does not exist
  */
 static int
 get_performance_info (struct ATS_Address *address, uint32_t type)
@@ -779,14 +779,14 @@ get_performance_info (struct ATS_Address *address, uint32_t type)
 	GNUNET_assert (NULL != address);
 
 	if ((NULL == address->atsi) || (0 == address->atsi_count))
-			return UINT32_MAX;
+			return GNUNET_ATS_VALUE_UNDEFINED;
 
 	for (c1 = 0; c1 < address->atsi_count; c1++)
 	{
 			if (ntohl(address->atsi[c1].type) == type)
 				return ntohl(address->atsi[c1].value);
 	}
-	return UINT32_MAX;
+	return GNUNET_ATS_VALUE_UNDEFINED;
 }
 
 
@@ -984,7 +984,7 @@ GAS_simplistic_address_update (void *solver,
       break;
     case GNUNET_ATS_NETWORK_TYPE:
       addr_net = get_performance_info (address, GNUNET_ATS_NETWORK_TYPE);
-      if (UINT32_MAX == addr_net)
+      if (GNUNET_ATS_VALUE_UNDEFINED == addr_net)
       {
       	GNUNET_break (0);
       	addr_net = GNUNET_ATS_NET_UNSPECIFIED;
@@ -1140,7 +1140,7 @@ find_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 
   p_distance_prev = get_performance_info (previous, GNUNET_ATS_QUALITY_NET_DISTANCE);
   p_distance_cur = get_performance_info (current, GNUNET_ATS_QUALITY_NET_DISTANCE);
-  if ((p_distance_prev != UINT32_MAX) && (p_distance_cur != UINT32_MAX) &&
+  if ((p_distance_prev != GNUNET_ATS_VALUE_UNDEFINED) && (p_distance_cur != GNUNET_ATS_VALUE_UNDEFINED) &&
   		(p_distance_prev > p_distance_cur))
   {
     /* user shorter distance */
@@ -1150,7 +1150,7 @@ find_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 
   p_delay_prev = get_performance_info (previous, GNUNET_ATS_QUALITY_NET_DELAY);
   p_delay_cur = get_performance_info (current, GNUNET_ATS_QUALITY_NET_DELAY);
-  if ((p_delay_prev != UINT32_MAX) && (p_delay_cur != UINT32_MAX) &&
+  if ((p_delay_prev != GNUNET_ATS_VALUE_UNDEFINED) && (p_delay_cur != GNUNET_ATS_VALUE_UNDEFINED) &&
   		(p_delay_prev > p_delay_cur))
   {
     /* user lower latency */
