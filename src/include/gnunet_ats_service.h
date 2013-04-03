@@ -95,7 +95,9 @@ enum GNUNET_ATS_Network_Type
  * (key,value)-pairs.
  *
  * Cost are always stored in uint32_t, so all units used to define costs
- * have to be normalized to fit in uint32_t [0 .. 4.294.967.295]
+ * have to be normalized to fit in uint32_t [0 .. UINT32_MAX-1]
+ *
+ * UINT32_MAX is reserved for uninitialized values GNUNET_ATS_VALUE_UNDEFINED
  */
 enum GNUNET_ATS_Property
 {
