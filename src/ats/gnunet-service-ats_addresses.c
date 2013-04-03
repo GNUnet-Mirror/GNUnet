@@ -376,13 +376,18 @@ struct GAS_Addresses_Handle
  *
  * @param src source ATS information
  * @param ats_count number of ATS information
+ * @param delta ats performance information which were updated
+ * 				including previous value
+ * @param delta_count number of ATS information in the delta
  * @param dest destination address
  * @return GNUNET_YES if address was address updated, GNUNET_NO otherwise
  */
 static unsigned int
-disassemble_ats_information (const struct GNUNET_ATS_Information *src,
-                             uint32_t ats_count,
-                             struct ATS_Address *dest)
+disassemble_ats_information (struct ATS_Address *dest,
+														 const struct GNUNET_ATS_Information *update,
+                             uint32_t update_count,
+                             struct GNUNET_ATS_Information **delta_dest,
+                             uint32_t *delta_count)
 {
 
   int c1;
@@ -390,36 +395,51 @@ disassemble_ats_information (const struct GNUNET_ATS_Information *src,
   int found;
   int change;
 
-  struct GNUNET_ATS_Information add_atsi[ats_count];
+  struct GNUNET_ATS_Information add_atsi[update_count];
+  struct GNUNET_ATS_Information delta_atsi[update_count];
   struct GNUNET_ATS_Information *tmp_atsi;
   uint32_t add_atsi_count;
+  uint32_t delta_atsi_count;
 
   change = GNUNET_NO;
   add_atsi_count = 0;
+  delta_atsi_count = 0;
 
-  if (0 == ats_count)
+  if (0 == update_count)
   	return GNUNET_NO;
 
   if (NULL == dest->atsi)
   {
   		/* Create performance information */
-  		dest->atsi = GNUNET_malloc (ats_count * sizeof (struct GNUNET_ATS_Information));
-  		dest->atsi_count = ats_count;
-  		memcpy (dest->atsi, src, ats_count * sizeof (struct GNUNET_ATS_Information));
+  		dest->atsi = GNUNET_malloc (update_count * sizeof (struct GNUNET_ATS_Information));
+  		dest->atsi_count = update_count;
+  		memcpy (dest->atsi, update, update_count * sizeof (struct GNUNET_ATS_Information));
+  		delta_atsi_count = update_count;
+  		(*delta_dest) = GNUNET_malloc (update_count * sizeof (struct GNUNET_ATS_Information));
+  		for (c1 = 0; c1 < update_count; c1 ++)
+  		{
+  			(*delta_dest)[c1].type = update[c1].type;
+  			(*delta_dest)[c1].value = htonl(UINT32_MAX);
+  		}
+  		(*delta_count) = update_count;
   		return GNUNET_YES;
   }
 
-  for (c1 = 0; c1 < ats_count; c1++)
+  for (c1 = 0; c1 < update_count; c1++)
   {
   	/* Update existing performance information */
   	found = GNUNET_NO;
   	for (c2 = 0; c2 < dest->atsi_count; c2++)
   	{
-			if (src[c1].type == dest->atsi[c2].type)
+			if (update[c1].type == dest->atsi[c2].type)
 			{
-				if (src[c1].value != dest->atsi[c2].value)
+				if (update[c1].value != dest->atsi[c2].value)
 				{
-						dest->atsi[c2].value = src[c1].value;
+						/* Save previous value in delta */
+						delta_atsi[delta_atsi_count] = dest->atsi[c2];
+						delta_atsi_count ++;
+						/* Set new value */
+						dest->atsi[c2].value = update[c1].value;
 						change = GNUNET_YES;
 				}
 				found = GNUNET_YES;
@@ -428,8 +448,11 @@ disassemble_ats_information (const struct GNUNET_ATS_Information *src,
   	}
 		if (GNUNET_NO == found)
 		{
-				add_atsi[add_atsi_count] = src[c1];
+				add_atsi[add_atsi_count] = update[c1];
 				add_atsi_count ++;
+				delta_atsi[delta_atsi_count].type = update[c1].type;
+				delta_atsi[delta_atsi_count].type = htonl (UINT32_MAX);
+				delta_atsi_count ++;
 		}
   }
 
@@ -444,6 +467,14 @@ disassemble_ats_information (const struct GNUNET_ATS_Information *src,
   		dest->atsi = tmp_atsi;
   		dest->atsi_count = dest->atsi_count + add_atsi_count;
 			change = GNUNET_YES;
+  }
+
+  if (delta_atsi_count > 0)
+  {
+  		/* Copy delta */
+  		(*delta_dest) = GNUNET_malloc (delta_atsi_count * sizeof (struct GNUNET_ATS_Information));
+  		memcpy ((*delta_dest), delta_atsi, delta_atsi_count * sizeof (struct GNUNET_ATS_Information));
+  		(*delta_count) = delta_atsi_count;
   }
 
   return change;
@@ -728,7 +759,10 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
 {
   struct ATS_Address *aa;
   struct ATS_Address *ea;
+  struct GNUNET_ATS_Information *atsi_delta;
+  uint32_t atsi_delta_count;
   uint32_t addr_net;
+
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' for peer `%s'\n",
@@ -742,8 +776,9 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
 
   aa = create_address (peer, plugin_name, plugin_addr, plugin_addr_len,
                        session_id);
-  disassemble_ats_information (atsi, atsi_count, aa);
-
+  atsi_delta = NULL;
+  disassemble_ats_information (aa, atsi, atsi_count, &atsi_delta, &atsi_delta_count);
+  GNUNET_free_non_null (atsi_delta);
   /* Get existing address or address with session == 0 */
   ea = find_equivalent_address (handle, peer, aa);
   if (ea == NULL)
@@ -787,13 +822,9 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   }
 
   /* We have an address without an session, update this address */
-
-  /* Notify solver about update with atsi information and session */
-  handle->s_update (handle->solver, handle->addresses, ea, session_id, ea->used, atsi, atsi_count);
-
-  /* Do the update */
-  ea->session_id = session_id;
-  if (GNUNET_YES == disassemble_ats_information (atsi, atsi_count, ea))
+  atsi_delta = NULL;
+  atsi_delta_count = 0;
+  if (GNUNET_YES == disassemble_ats_information (ea, atsi, atsi_count, &atsi_delta, &atsi_delta_count))
   {
 		GAS_performance_notify_all_clients (&aa->peer,
 				aa->plugin,
@@ -803,6 +834,13 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
 				aa->assigned_bw_out,
 				aa->assigned_bw_in);
   }
+
+  /* Notify solver about update with atsi information and session */
+  handle->s_update (handle->solver, handle->addresses, ea, session_id, ea->used, atsi_delta, atsi_delta_count);
+  GNUNET_free_non_null (atsi_delta);
+
+  /* Do the update */
+  ea->session_id = session_id;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
            "Updated existing address for peer `%s' %p with new session %u\n",
            GNUNET_i2s (peer), ea, session_id);
@@ -833,6 +871,8 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
                       uint32_t atsi_count)
 {
   struct ATS_Address *aa;
+  struct GNUNET_ATS_Information *atsi_delta;
+  uint32_t atsi_delta_count;
 
   if (GNUNET_NO == handle->running)
     return;
@@ -859,7 +899,8 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
   handle->s_update (handle->solver, handle->addresses, aa, session_id, aa->used, atsi, atsi_count);
 
   /* Update address */
-  if (GNUNET_YES == disassemble_ats_information (atsi, atsi_count, aa))
+  atsi_delta = NULL;
+  if (GNUNET_YES == disassemble_ats_information (aa, atsi, atsi_count, &atsi_delta, &atsi_delta_count))
   {
   		/* Notify performance clients about updated address */
   		GAS_performance_notify_all_clients (&aa->peer,
@@ -870,6 +911,7 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
   				aa->assigned_bw_out,
   				aa->assigned_bw_in);
   }
+  GNUNET_free_non_null (atsi_delta);
 }
 
 
