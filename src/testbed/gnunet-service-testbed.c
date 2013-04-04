@@ -2653,6 +2653,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GST_cache_clear ();
   GNUNET_TESTBED_operation_queue_destroy_ (GST_opq_openfds);
   GST_opq_openfds = NULL;
+  GST_stats_destroy ();
 }
 
 
@@ -2749,9 +2750,6 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
                                                         "HOSTNAME", &hostname));
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
-                                             "STATS_DIR", &GST_stats_dir));
   our_config = GNUNET_CONFIGURATION_dup (cfg);
   GNUNET_SERVER_add_handlers (server, message_handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect_cb, NULL);
@@ -2762,6 +2760,7 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
                                                   &shutdown_task, NULL);
   LOG_DEBUG ("Testbed startup complete\n");
   event_mask = 1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED;
+  GST_stats_init (our_config);
 }
 
 

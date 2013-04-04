@@ -75,6 +75,15 @@ static int currentIOLoad;
 
 static double agedIOLoad = -1;
 
+
+/**
+ * hanlde to the file to write the load statistics to
+ */
+struct GNUNET_BIO_WriteHandle *bw;
+
+GNUNET_SCHEDULER_TaskIdentifier sample_load_task_id;
+
+
 #ifdef OSX
 static int
 initMachCpuStats ()
@@ -92,9 +101,7 @@ initMachCpuStats ()
                               &cpu_msg_count);
   if (kret != KERN_SUCCESS)
     {
-      GNUNET_GE_LOG (NULL,
-                     GNUNET_GE_ERROR | GNUNET_GE_USER | GNUNET_GE_ADMIN |
-                     GNUNET_GE_BULK, "host_processor_info failed.");
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "host_processor_info failed.");
       return GNUNET_SYSERR;
     }
   prev_cpu_load = GNUNET_malloc (cpu_count * sizeof (*prev_cpu_load));
@@ -286,9 +293,7 @@ updateUsage ()
       }
     else
       {
-        GNUNET_GE_LOG (NULL,
-                       GNUNET_GE_ERROR | GNUNET_GE_USER | GNUNET_GE_ADMIN |
-                       GNUNET_GE_BULK, "host_processor_info failed.");
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "host_processor_info failed.");
         return GNUNET_SYSERR;
       }
   }
@@ -312,10 +317,7 @@ updateUsage ()
     kc = kstat_open ();
     if (kc == NULL)
       {
-        GNUNET_GE_LOG_STRERROR (NULL,
-                                GNUNET_GE_ERROR | GNUNET_GE_USER |
-                                GNUNET_GE_ADMIN | GNUNET_GE_BULK,
-                                "kstat_open");
+        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kstat_close");        
         goto ABORT_KSTAT;
       }
 
@@ -340,9 +342,7 @@ updateUsage ()
           }
       }
     if (0 != kstat_close (kc))
-      GNUNET_GE_LOG_STRERROR (NULL,
-                              GNUNET_GE_ERROR | GNUNET_GE_ADMIN |
-                              GNUNET_GE_USER | GNUNET_GE_BULK, "kstat_close");
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kstat_close");
     if ((idlecount == 0) && (totalcount == 0))
       goto ABORT_KSTAT;         /* no stats found => abort */
     deltaidle = idlecount - last_idlecount;
@@ -446,10 +446,8 @@ updateUsage ()
           if (once == 0)
             {
               once = 1;
-              GNUNET_GE_LOG (NULL,
-                             GNUNET_GE_ERROR | GNUNET_GE_USER |
-                             GNUNET_GE_ADMIN | GNUNET_GE_BULK,
-                             _("Cannot query the CPU usage (Windows NT).\n"));
+              GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                          "Cannot query the CPU usage (Windows NT).\n");
             }
           return GNUNET_SYSERR;
         }
@@ -469,10 +467,8 @@ updateUsage ()
           if (once == 0)
             {
               once = 1;
-              GNUNET_GE_LOG (NULL,
-                             GNUNET_GE_USER | GNUNET_GE_ADMIN |
-                             GNUNET_GE_ERROR | GNUNET_GE_BULK,
-                             _("Cannot query the CPU usage (Win 9x)\n"));
+              GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                          "Cannot query the CPU usage (Win 9x)\n");
             }
         }
 
@@ -580,8 +576,8 @@ updateAgedLoad ()
  * @return the CPU load as a percentage of allowed
  *        (100 is equivalent to full load)
  */
-int
-GST_cpu_get_load ()
+static int
+cpu_get_load ()
 {
   updateAgedLoad ();
   return (int) agedCPULoad;
@@ -593,21 +589,85 @@ GST_cpu_get_load ()
  * @return the CPU load as a percentage of allowed
  *        (100 is equivalent to full load)
  */
-int
-GST_disk_get_load ()
+static int
+disk_get_load ()
 {
   updateAgedLoad ();
   return (int) agedIOLoad;
 }
 
+
+static void
+sample_load_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_TIME_Absolute now;
+  char *str;
+  int nbs;
+  int ld_cpu;
+  int ld_disk;
+
+  sample_load_task_id = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+    return;
+  ld_cpu = cpu_get_load ();
+  ld_disk = disk_get_load ();
+  if ( (-1 == ld_cpu) || (-1 == ld_disk) )
+    goto reschedule;
+  now = GNUNET_TIME_absolute_get ();
+  nbs = GNUNET_asprintf (&str, "%llu %d %d\n", now.abs_value / 1000,
+                         cpu_get_load (), disk_get_load ());
+  if (0 < nbs) 
+  {
+    GNUNET_BIO_write (bw, str, nbs);
+    GNUNET_free (str);
+  }
+  else
+    GNUNET_break (0);
+
+ reschedule:
+  sample_load_task_id =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                    &sample_load_task, NULL);
+}
+
+
 /**
- * The following method is called in order to initialize the status calls
- * routines.  After that it is safe to call each of the status calls separately
- * @return GNUNET_OK on success and GNUNET_SYSERR on error (or calls errexit).
+ * Initialize logging CPU and IO statisticfs.  Checks the configuration for
+ * "STATS_DIR" and logs to a file in that directory.  The file is name is
+ * generated from the hostname and the process's PID.
  */
 void
-GST_stats_init ()
+GST_stats_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  char *hostname;
+  char *stats_dir;
+  char *fn;
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
+                                             "STATS_DIR", &stats_dir))
+    return;
+  hostname = GNUNET_malloc (GNUNET_OS_get_hostname_max_length ());
+  if (0 != gethostname  (hostname, GNUNET_OS_get_hostname_max_length ()))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "gethostname");
+    GNUNET_free (stats_dir);
+    return;
+  }
+  fn = NULL;  
+  (void) GNUNET_asprintf (&fn, "%s/%s-%jd.dat", stats_dir, 
+                          hostname, (intmax_t) getpid());
+  GNUNET_free (stats_dir);
+  if (NULL == (bw = GNUNET_BIO_write_open (fn)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Cannot open %s for writing load statistics.  "
+                  "Not logging load statistics\n"), fn);
+    GNUNET_free (fn);
+    return;
+  }
+  GNUNET_free (fn);
+  sample_load_task_id = GNUNET_SCHEDULER_add_now (&sample_load_task, NULL);
 #ifdef LINUX
   proc_stat = fopen ("/proc/stat", "r");
   if (NULL == proc_stat)
@@ -619,7 +679,9 @@ GST_stats_init ()
   InitWinEnv (NULL);
 #endif
   updateUsage ();               /* initialize */
+  
 }
+
 
 /**
  * Shutdown the status calls module.
@@ -627,6 +689,8 @@ GST_stats_init ()
 void
 GST_stats_destroy ()
 {
+  if (NULL == bw)
+    return;
 #ifdef LINUX
   if (proc_stat != NULL)
     {
@@ -638,8 +702,8 @@ GST_stats_destroy ()
 #elif MINGW
   ShutdownWinEnv ();
 #endif
+  GNUNET_break (GNUNET_OK == GNUNET_BIO_write_close (bw));
+  bw = NULL;
 }
-
-char *GST_stats_dir;
 
 /* end of cpustatus.c */

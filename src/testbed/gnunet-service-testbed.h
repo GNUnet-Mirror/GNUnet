@@ -947,4 +947,20 @@ GST_cache_get_handle_core (unsigned int peer_id,
 void
 GST_cache_get_handle_done (struct GSTCacheGetHandle *cgh);
 
+
+/**
+ * Initialize logging CPU and IO statisticfs.  Checks the configuration for
+ * "STATS_DIR" and logs to a file in that directory.  The file is name is
+ * generated from the hostname and the process's PID.
+ */
+void
+GST_stats_init (const struct GNUNET_CONFIGURATION_Handle *cfg);
+
+
+/**
+ * Shutdown the status calls module.
+ */
+void
+GST_stats_destroy ();
+
 /* End of gnunet-service-testbed.h */

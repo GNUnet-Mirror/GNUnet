@@ -45,3 +45,6 @@ MAX_OPEN_FDS = 512
 # How long should we wait for testbed to setup while using helper functions
 # GNUNET_TESTBED_test_run() and GNUNET_TESTBED_run()
 SETUP_TIMEOUT = 5 m
+
+# Where should testbed write load statistics data
+# STATS_DIR = /tmp/load
