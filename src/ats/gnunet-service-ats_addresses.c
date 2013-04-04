@@ -898,6 +898,7 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
 
   /* Update address */
   atsi_delta = NULL;
+  atsi_delta_count = 0;
   if (GNUNET_YES == disassemble_ats_information (aa, atsi, atsi_count, &atsi_delta, &atsi_delta_count))
   {
   		/* Notify performance clients about updated address */
