@@ -64,7 +64,6 @@ struct GNUNET_MESH_Tunnel;
  * @param tunnel_ctx place to store local state associated with the tunnel
  * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -74,9 +73,7 @@ typedef int (*GNUNET_MESH_MessageCallback) (void *cls,
                                             const struct GNUNET_PeerIdentity *
                                             sender,
                                             const struct GNUNET_MessageHeader *
-                                            message,
-                                            const struct GNUNET_ATS_Information
-                                            * atsi);
+                                            message);
 
 
 /**
@@ -126,10 +123,7 @@ typedef void *(GNUNET_MESH_InboundTunnelNotificationHandler) (void *cls,
                                                               * tunnel,
                                                               const struct
                                                               GNUNET_PeerIdentity
-                                                              * initiator,
-                                                              const struct
-                                                              GNUNET_ATS_Information
-                                                              * atsi);
+                                                              * initiator);
 
 
 /**
