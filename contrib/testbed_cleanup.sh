@@ -10,5 +10,5 @@
 for host in `cut -d : -f 1 < infiniband_cluster.hosts | cut -d @ -f 2`
 do
     echo "ssh --> $host"
-    ssh $host 'pkill gnunet; rm -rf /tmp/gnunet-pipe*; rm -rf /tmp/testbed*'
+    ssh $host 'pkill -SIGKILL gnunet; rm -rf /tmp/gnunet-pipe*; rm -rf /tmp/testbed*'
 done
