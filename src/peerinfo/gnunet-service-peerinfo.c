@@ -511,6 +511,15 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
 }
 
 
+struct TransmitContext
+{
+	struct GNUNET_SERVER_TransmitContext *tc;
+
+	int friend_only;
+};
+
+
+
 /**
  * Do transmit info about peer to given host.
  *
@@ -522,7 +531,7 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
 static int
 add_to_tc (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
-  struct GNUNET_SERVER_TransmitContext *tc = cls;
+  struct TransmitContext *tc = cls;
   struct HostEntry *pos = value;
   struct InfoMessage *im;
   uint16_t hs;
@@ -530,7 +539,9 @@ add_to_tc (void *cls, const struct GNUNET_HashCode * key, void *value)
 
   hs = 0;
   im = (struct InfoMessage *) buf;
-  if (pos->hello != NULL)
+  if ((pos->hello != NULL) &&
+  		((GNUNET_NO == GNUNET_HELLO_is_friend_only (pos->hello)) ||
+  		((GNUNET_YES == GNUNET_HELLO_is_friend_only (pos->hello)) && (GNUNET_YES == tc->friend_only))))
   {
     hs = GNUNET_HELLO_size (pos->hello);
     GNUNET_assert (hs <
@@ -542,7 +553,7 @@ add_to_tc (void *cls, const struct GNUNET_HashCode * key, void *value)
   im->header.size = htons (sizeof (struct InfoMessage) + hs);
   im->reserved = htonl (0);
   im->peer = pos->identity;
-  GNUNET_SERVER_transmit_context_append_message (tc, &im->header);
+  GNUNET_SERVER_transmit_context_append_message (tc->tc, &im->header);
   return GNUNET_YES;
 }
 
@@ -658,19 +669,18 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
             const struct GNUNET_MessageHeader *message)
 {
   const struct ListPeerMessage *lpm;
-  struct GNUNET_SERVER_TransmitContext *tc;
-  int friend_only;
+  struct TransmitContext tcx;
 
   lpm = (const struct ListPeerMessage *) message;
-  friend_only = ntohl (lpm->include_friend_only);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' message received for peer `%4s'\n",
               "GET", GNUNET_i2s (&lpm->peer));
-  tc = GNUNET_SERVER_transmit_context_create (client);
+  tcx.friend_only = ntohl (lpm->include_friend_only);
+  tcx.tc = GNUNET_SERVER_transmit_context_create (client);
   GNUNET_CONTAINER_multihashmap_get_multiple (hostmap, &lpm->peer.hashPubKey,
-                                              &add_to_tc, tc);
-  GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
+                                              &add_to_tc, &tcx);
+  GNUNET_SERVER_transmit_context_append_data (tcx.tc, NULL, 0,
                                               GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END);
-  GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
+  GNUNET_SERVER_transmit_context_run (tcx.tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 
@@ -686,17 +696,16 @@ handle_get_all (void *cls, struct GNUNET_SERVER_Client *client,
                 const struct GNUNET_MessageHeader *message)
 {
   const struct ListAllPeersMessage *lapm;
-  struct GNUNET_SERVER_TransmitContext *tc;
-  int friend_only;
+  struct TransmitContext tcx;
 
   lapm = (const struct ListAllPeersMessage *) message;
-  friend_only = ntohl (lapm->include_friend_only);
+  tcx.friend_only = ntohl (lapm->include_friend_only);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' message received\n", "GET_ALL");
-  tc = GNUNET_SERVER_transmit_context_create (client);
-  GNUNET_CONTAINER_multihashmap_iterate (hostmap, &add_to_tc, tc);
-  GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
+  tcx.tc = GNUNET_SERVER_transmit_context_create (client);
+  GNUNET_CONTAINER_multihashmap_iterate (hostmap, &add_to_tc, &tcx);
+  GNUNET_SERVER_transmit_context_append_data (tcx.tc, NULL, 0,
                                               GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END);
-  GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
+  GNUNET_SERVER_transmit_context_run (tcx.tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 struct NotificationContext
