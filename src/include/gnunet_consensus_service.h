@@ -145,24 +145,6 @@ GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
                          void *idc_cls);
 
 
-struct GNUNET_CONSENSUS_DeltaRequest;
-
-/**
- * FIXME
- *
- * @param consensus consensus session
- * @param remove_element_cb callback that receives the removed elements
- * @return a handle to cancel the request
- */
-struct GNUNET_CONSENSUS_DeltaRequest *
-GNUNET_CONSENSUS_get_delta (struct GNUNET_CONSENSUS_Handle *consensus,
-                            GNUNET_CONSENSUS_ElementCallback remove_element_cb,
-                            void *remove_element_cb_cls);
-
-
-void
-GNUNET_CONSENSUS_get_delta_cancel (struct GNUNET_CONSENSUS_DeltaRequest *dr);
-
 
 /**
  * Called when a conclusion was successful.
