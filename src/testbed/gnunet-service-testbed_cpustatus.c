@@ -615,7 +615,7 @@ sample_load_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     goto reschedule;
   now = GNUNET_TIME_absolute_get ();
   nbs = GNUNET_asprintf (&str, "%llu %d %d\n", now.abs_value / 1000,
-                         cpu_get_load (), disk_get_load ());
+                         ld_cpu, ld_disk);
   if (0 < nbs) 
   {
     GNUNET_BIO_write (bw, str, nbs);
@@ -707,6 +707,11 @@ GST_stats_destroy ()
 #elif OSX
   GNUNET_free_non_null (prev_cpu_load);
 #endif
+  if (GNUNET_SCHEDULER_NO_TASK != sample_load_task_id)
+  {
+    GNUNET_SCHEDULER_cancel (sample_load_task_id);
+    sample_load_task_id = GNUNET_SCHEDULER_NO_TASK;
+  }
   GNUNET_break (GNUNET_OK == GNUNET_BIO_write_close (bw));
   bw = NULL;
 }
