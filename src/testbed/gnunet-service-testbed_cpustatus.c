@@ -516,8 +516,6 @@ updateUsage ()
   return GNUNET_SYSERR;
 }
 
-struct GNUNET_GE_Context;
-struct GNUNET_GC_Configuration;
 
 /**
  * Update load values (if enough time has expired),
@@ -525,8 +523,7 @@ struct GNUNET_GC_Configuration;
  * that lock has already been obtained.
  */
 static void
-updateAgedLoad (struct GNUNET_GE_Context *ectx,
-                struct GNUNET_GC_Configuration *cfg)
+updateAgedLoad ()
 {
   static struct GNUNET_TIME_Absolute lastCall;
   struct GNUNET_TIME_Relative age;
@@ -584,10 +581,9 @@ updateAgedLoad (struct GNUNET_GE_Context *ectx,
  *        (100 is equivalent to full load)
  */
 int
-GNUNET_cpu_get_load (struct GNUNET_GE_Context *ectx,
-                     struct GNUNET_GC_Configuration *cfg)
+GST_cpu_get_load ()
 {
-  updateAgedLoad (ectx, cfg);
+  updateAgedLoad ();
   return (int) agedCPULoad;
 }
 
@@ -598,10 +594,9 @@ GNUNET_cpu_get_load (struct GNUNET_GE_Context *ectx,
  *        (100 is equivalent to full load)
  */
 int
-GNUNET_disk_get_load (struct GNUNET_GE_Context *ectx,
-                      struct GNUNET_GC_Configuration *cfg)
+GST_disk_get_load ()
 {
-  updateAgedLoad (ectx, cfg);
+  updateAgedLoad ();
   return (int) agedIOLoad;
 }
 
@@ -610,7 +605,8 @@ GNUNET_disk_get_load (struct GNUNET_GE_Context *ectx,
  * routines.  After that it is safe to call each of the status calls separately
  * @return GNUNET_OK on success and GNUNET_SYSERR on error (or calls errexit).
  */
-void __attribute__ ((constructor)) GNUNET_cpustats_ltdl_init ()
+void
+GST_stats_init ()
 {
 #ifdef LINUX
   proc_stat = fopen ("/proc/stat", "r");
@@ -628,7 +624,8 @@ void __attribute__ ((constructor)) GNUNET_cpustats_ltdl_init ()
 /**
  * Shutdown the status calls module.
  */
-void __attribute__ ((destructor)) GNUNET_cpustats_ltdl_fini ()
+void
+GST_stats_destroy ()
 {
 #ifdef LINUX
   if (proc_stat != NULL)
