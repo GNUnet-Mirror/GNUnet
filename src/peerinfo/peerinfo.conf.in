@@ -18,7 +18,7 @@ UNIX_MATCH_GID = YES
 # REJECT_FROM =
 # REJECT_FROM6 =
 # PREFIX =
-HOSTS = $SERVICEHOME/data/hosts/
+HOSTS = $SERVICEHOME/peerinfo/
 
 # Option to disable all disk IO; only useful for testbed runs
 # (large-scale experiments); disables persistence of HELLOs!

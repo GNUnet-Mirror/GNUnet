@@ -107,16 +107,17 @@ extern "C"
  ******************************************************************************/
 
 /**
- * HELLO message used for communicating peer addresses.
+ * Previously used for HELLO messages used for communicating peer addresses.
  * Managed by libgnunethello.
  */
-#define GNUNET_MESSAGE_TYPE_HELLO 16
+#define GNUNET_MESSAGE_TYPE_HELLO_LEGACY 16
 
 /**
- * HELLO message used for communicating peer addresses with friends only.
+ * HELLO message with friend only flag used for communicating peer addresses.
+ * Managed by libgnunethello.
  */
 
-#define GNUNET_MESSAGE_TYPE_FRIEND_HELLO 17
+#define GNUNET_MESSAGE_TYPE_HELLO 17
 
 /*******************************************************************************
  * FRAGMENTATION message types

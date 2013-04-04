@@ -145,14 +145,15 @@ GNUNET_HELLO_address_get_size (const struct GNUNET_HELLO_Address *address);
  */
 struct GNUNET_HELLO_Message;
 
-/**
- * Return HELLO type
+
+/** Return HELLO type
  *
  * @param h HELLO Message to test
- * @param GNUNET_MESSAGE_TYPE_HELLO or GNUNET_MESSAGE_TYPE_FRIEND_HELLO or 0 on error
+ * @return GNUNET_YES or GNUNET_NO
  */
-uint16_t
-GNUNET_HELLO_get_type (const struct GNUNET_HELLO_Message *h);
+int
+GNUNET_HELLO_is_friend_only (const struct GNUNET_HELLO_Message *h);
+
 
 /**
  * Copy the given address information into

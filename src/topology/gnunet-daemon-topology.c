@@ -1274,7 +1274,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   static struct GNUNET_CORE_MessageHandler handlers[] = {
     {&handle_encrypted_hello, GNUNET_MESSAGE_TYPE_HELLO, 0},
-    {&handle_encrypted_hello, GNUNET_MESSAGE_TYPE_FRIEND_HELLO, 0},
     {NULL, 0, 0}
   };
   unsigned long long opt;

@@ -497,7 +497,6 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_HELLO:
-  case GNUNET_MESSAGE_TYPE_FRIEND_HELLO:
     if (GNUNET_OK !=
         GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *) msg, &me))
     {
@@ -1293,8 +1292,7 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
   if (NULL == handle->client)
     return NULL;
 
-  GNUNET_break ((ntohs (hello->type) == GNUNET_MESSAGE_TYPE_HELLO) ||
-  							(ntohs (hello->type) == GNUNET_MESSAGE_TYPE_FRIEND_HELLO));
+  GNUNET_break (ntohs (hello->type) == GNUNET_MESSAGE_TYPE_HELLO);
   size = ntohs (hello->size);
   GNUNET_break (size >= sizeof (struct GNUNET_MessageHeader));
   if (GNUNET_OK !=

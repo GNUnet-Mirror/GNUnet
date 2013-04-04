@@ -394,6 +394,17 @@ iface_proc (void *cls, const char *name, int isDefault,
 void
 setup_broadcast (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struct sockaddr_in *serverAddrv4)
 {
+  const struct GNUNET_MessageHeader *hello;
+  hello = plugin->env->get_our_hello ();
+
+  if (GNUNET_YES == GNUNET_HELLO_is_friend_only((const struct GNUNET_HELLO_Message *) hello))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         _("Disabling HELLO broadcasting due to friend-to-friend only configuration!\n"));
+    return;
+  }
+
+
   /* create IPv4 broadcast socket */
   plugin->broadcast_ipv4 = GNUNET_NO;
   if (plugin->sockv4 != NULL)

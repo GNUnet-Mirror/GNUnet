@@ -769,7 +769,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-  	{&handle_hello, NULL, GNUNET_MESSAGE_TYPE_FRIEND_HELLO, 0},
     {&handle_hello, NULL, GNUNET_MESSAGE_TYPE_HELLO, 0},
     {&handle_get, NULL, GNUNET_MESSAGE_TYPE_PEERINFO_GET,
      sizeof (struct ListPeerMessage)},

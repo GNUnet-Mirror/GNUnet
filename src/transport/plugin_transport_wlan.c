@@ -1149,7 +1149,6 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 
   switch (ntohs (hdr->type))
   {
-  case GNUNET_MESSAGE_TYPE_FRIEND_HELLO:
   case GNUNET_MESSAGE_TYPE_HELLO:
     if (GNUNET_OK != 
 	GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *) hdr, &tmpsource))

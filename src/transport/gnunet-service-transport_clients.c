@@ -978,8 +978,6 @@ GST_clients_start (struct GNUNET_SERVER_Handle *server)
      GNUNET_MESSAGE_TYPE_TRANSPORT_START, sizeof (struct StartMessage)},
     {&clients_handle_hello, NULL,
      GNUNET_MESSAGE_TYPE_HELLO, 0},
-	  {&clients_handle_hello, NULL,
-		 GNUNET_MESSAGE_TYPE_FRIEND_HELLO, 0},
     {&clients_handle_send, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_SEND, 0},
     {&clients_handle_request_connect, NULL,

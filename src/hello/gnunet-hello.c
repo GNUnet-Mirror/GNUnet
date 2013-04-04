@@ -110,7 +110,6 @@ main (int argc, char *argv[])
   struct GNUNET_HELLO_Message *result;
   struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pk;
   uint64_t fsize;
-  int friend_only;
 
   GNUNET_log_setup ("gnunet-hello", "INFO", NULL);
   if (argc != 2)
@@ -168,12 +167,8 @@ main (int argc, char *argv[])
 	       argv[1]);
       return 1;
     }
-    friend_only = GNUNET_NO;
-    if (GNUNET_MESSAGE_TYPE_HELLO == GNUNET_HELLO_get_type (orig))
-    	friend_only = GNUNET_NO;
-    if (GNUNET_MESSAGE_TYPE_FRIEND_HELLO == GNUNET_HELLO_get_type (orig))
-    	friend_only = GNUNET_YES;
-    result = GNUNET_HELLO_create (&pk, &add_from_hello, &orig, friend_only);
+    result = GNUNET_HELLO_create (&pk, &add_from_hello, &orig,
+    		GNUNET_HELLO_is_friend_only (orig));
     GNUNET_assert (NULL != result);
      fh = GNUNET_DISK_file_open (argv[1], 
 				 GNUNET_DISK_OPEN_WRITE,

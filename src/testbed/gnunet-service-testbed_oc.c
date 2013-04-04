@@ -1514,8 +1514,7 @@ GST_handle_remote_overlay_connect (void *cls,
   }
   msg = (const struct GNUNET_TESTBED_RemoteOverlayConnectMessage *) message;
   if ((NULL == msg->hello) ||
-      ((GNUNET_MESSAGE_TYPE_HELLO != ntohs (msg->hello->type)) &&
-       (GNUNET_MESSAGE_TYPE_FRIEND_HELLO != ntohs (msg->hello->type))))
+      ((GNUNET_MESSAGE_TYPE_HELLO != ntohs (msg->hello->type))))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);

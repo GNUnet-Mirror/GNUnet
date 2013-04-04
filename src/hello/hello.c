@@ -52,9 +52,9 @@ struct GNUNET_HELLO_Message
   struct GNUNET_MessageHeader header;
 
   /**
-   * Always zero (for alignment).
+   * Use in F2F mode: Do not gossip this HELLO message
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint32_t friend_only GNUNET_PACKED;
 
   /**
    * The public key of the peer.
@@ -104,21 +104,19 @@ struct GNUNET_HELLO_ParseUriContext
 };
 
 
-/**
- * Return HELLO type
+/** Return HELLO type
  *
  * @param h HELLO Message to test
- * @return GNUNET_MESSAGE_TYPE_HELLO or GNUNET_MESSAGE_TYPE_FRIEND_HELLO or 0 on error
+ * @return GNUNET_YES or GNUNET_NO
  */
-uint16_t
-GNUNET_HELLO_get_type (const struct GNUNET_HELLO_Message *h)
+int
+GNUNET_HELLO_is_friend_only (const struct GNUNET_HELLO_Message *h)
 {
-  if (GNUNET_MESSAGE_TYPE_HELLO == ntohs(h->header.type))
-  	return GNUNET_MESSAGE_TYPE_HELLO;
-  if (GNUNET_MESSAGE_TYPE_FRIEND_HELLO == ntohs(h->header.type))
-  	return GNUNET_MESSAGE_TYPE_FRIEND_HELLO;
-  return 0;
+  if (GNUNET_YES == ntohl(h->friend_only))
+  	return GNUNET_YES;
+  return GNUNET_NO;
 }
+
 
 
 /**
@@ -231,6 +229,9 @@ GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded
   size_t ret;
   struct GNUNET_HELLO_Message *hello;
 
+  GNUNET_assert (NULL != publicKey);
+  GNUNET_assert ((GNUNET_YES == friend_only) || (GNUNET_NO == friend_only));
+
   max = sizeof (buffer);
   used = 0;
   if (addrgen != NULL)
@@ -242,11 +243,10 @@ GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded
     }
   }
   hello = GNUNET_malloc (sizeof (struct GNUNET_HELLO_Message) + used);
-  if (GNUNET_NO == friend_only)
-  	hello->header.type = htons (GNUNET_MESSAGE_TYPE_HELLO);
-  else
-  	hello->header.type = htons (GNUNET_MESSAGE_TYPE_FRIEND_HELLO);
+  hello->header.type = htons (GNUNET_MESSAGE_TYPE_HELLO);
   hello->header.size = htons (sizeof (struct GNUNET_HELLO_Message) + used);
+  hello->friend_only = htonl (friend_only);
+
   memcpy (&hello->publicKey, publicKey,
           sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
   memcpy (&hello[1], buffer, used);
@@ -282,8 +282,7 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
 
   msize = GNUNET_HELLO_size (msg);
   if ((msize < sizeof (struct GNUNET_HELLO_Message)) ||
-      ((ntohs (msg->header.type) != GNUNET_MESSAGE_TYPE_HELLO) &&
-			 (ntohs (msg->header.type) != GNUNET_MESSAGE_TYPE_FRIEND_HELLO)))
+      (ntohs (msg->header.type) != GNUNET_MESSAGE_TYPE_HELLO))
     return NULL;
   ret = NULL;
   if (return_modified)
@@ -431,21 +430,11 @@ GNUNET_HELLO_merge (const struct GNUNET_HELLO_Message *h1,
 {
   struct MergeContext mc = { h1, h2, NULL, NULL, 0, 0, 0 };
   int friend_only;
-  if (h1->header.type != h2->header.type)
-  {
-  		/* Trying to merge different HELLO types */
-  		GNUNET_break (0);
-  		return NULL;
-  }
-  if (GNUNET_MESSAGE_TYPE_HELLO == (ntohs(h1->header.type)))
-  	friend_only = GNUNET_NO;
-  else if (GNUNET_MESSAGE_TYPE_FRIEND_HELLO == (ntohs(h1->header.type)))
-		friend_only = GNUNET_YES;
+
+  if (h1->friend_only != h2->friend_only)
+  	friend_only = GNUNET_YES; /* One of the HELLOs is friend only */
   else
-  {
-  		GNUNET_break (0);
-  		return NULL;
-  }
+  	friend_only = ntohl (h1->friend_only); /* Both HELLO's have the same type */
 
 	return GNUNET_HELLO_create (&h1->publicKey, &merge_addr, &mc, friend_only);
 }
@@ -526,8 +515,7 @@ GNUNET_HELLO_size (const struct GNUNET_HELLO_Message *hello)
   uint16_t ret = ntohs (hello->header.size);
 
   if ((ret < sizeof (struct GNUNET_HELLO_Message)) ||
-      ((ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO) &&
-			 (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_FRIEND_HELLO)))
+      (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO))
     return 0;
   return ret;
 }
@@ -547,8 +535,7 @@ GNUNET_HELLO_get_key (const struct GNUNET_HELLO_Message *hello,
   uint16_t ret = ntohs (hello->header.size);
 
   if ((ret < sizeof (struct GNUNET_HELLO_Message)) ||
-      ((ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO) &&
-			 (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_FRIEND_HELLO)))
+      (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO))
     return GNUNET_SYSERR;
   *publicKey = hello->publicKey;
   return GNUNET_OK;
@@ -569,8 +556,7 @@ GNUNET_HELLO_get_id (const struct GNUNET_HELLO_Message *hello,
   uint16_t ret = ntohs (hello->header.size);
 
   if ((ret < sizeof (struct GNUNET_HELLO_Message)) ||
-      ((ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO) &&
-			 (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_FRIEND_HELLO)))
+      (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO))
     return GNUNET_SYSERR;
   GNUNET_CRYPTO_hash (&hello->publicKey,
                       sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
@@ -593,8 +579,7 @@ GNUNET_HELLO_get_header (struct GNUNET_HELLO_Message *hello)
   uint16_t ret = ntohs (hello->header.size);
 
   if ((ret < sizeof (struct GNUNET_HELLO_Message)) ||
-      ((ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO) &&
-			 (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_FRIEND_HELLO)))
+      (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO))
     return NULL;
 
   return &hello->header;
