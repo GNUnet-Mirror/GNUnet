@@ -643,6 +643,12 @@ GST_stats_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
   char *stats_dir;
   char *fn;
 
+#if MINGW
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Load statistics logging now available for windows\n");
+  return;                       /* No logging on windows for now :( */
+#endif
+
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
                                              "STATS_DIR", &stats_dir))
@@ -675,8 +681,6 @@ GST_stats_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
                               "fopen", "/proc/stat");
 #elif OSX
   initMachCpuStats ();
-#elif MINGW
-  InitWinEnv (NULL);
 #endif
   updateUsage ();               /* initialize */
   
@@ -689,6 +693,9 @@ GST_stats_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
 void
 GST_stats_destroy ()
 {
+#if MINGW
+  return;
+#endif
   if (NULL == bw)
     return;
 #ifdef LINUX
@@ -699,8 +706,6 @@ GST_stats_destroy ()
     }
 #elif OSX
   GNUNET_free_non_null (prev_cpu_load);
-#elif MINGW
-  ShutdownWinEnv ();
 #endif
   GNUNET_break (GNUNET_OK == GNUNET_BIO_write_close (bw));
   bw = NULL;
