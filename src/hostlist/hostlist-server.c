@@ -425,7 +425,7 @@ process_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
   results = GNUNET_malloc (sizeof (struct HostSet));
   GNUNET_assert (NULL != peerinfo); 
   pitr =
-      GNUNET_PEERINFO_iterate (peerinfo, NULL, GNUNET_TIME_UNIT_MINUTES,
+      GNUNET_PEERINFO_iterate (peerinfo, GNUNET_NO, NULL, GNUNET_TIME_UNIT_MINUTES,
                                &host_processor, results);
 }
 

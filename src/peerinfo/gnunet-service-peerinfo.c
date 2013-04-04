@@ -68,6 +68,8 @@ struct HostEntry
 };
 
 
+
+
 /**
  * The in-memory list of known hosts, mapping of
  * host IDs to 'struct HostEntry*' values.
@@ -78,6 +80,11 @@ static struct GNUNET_CONTAINER_MultiHashMap *hostmap;
  * Clients to immediately notify about all changes.
  */
 static struct GNUNET_SERVER_NotificationContext *notify_list;
+
+/**
+ * Clients to immediately notify about all changes.
+ */
+static struct GNUNET_SERVER_NotificationContext *notify_friend_only_list;
 
 /**
  * Directory where the hellos are stored in (data/hosts)
@@ -192,8 +199,21 @@ notify_all (struct HostEntry *entry)
   struct InfoMessage *msg;
 
   msg = make_info_message (entry);
-  GNUNET_SERVER_notification_context_broadcast (notify_list, &msg->header,
+  if ((NULL != entry->hello) &&
+  		(GNUNET_YES == GNUNET_HELLO_is_friend_only(entry->hello)))
+  {
+  		GNUNET_SERVER_notification_context_broadcast (notify_friend_only_list,
+  																							&msg->header,
                                                 GNUNET_NO);
+  }
+  else
+  {
+  		GNUNET_SERVER_notification_context_broadcast (notify_friend_only_list,
+  																							&msg->header,
+                                                GNUNET_NO);
+  		GNUNET_SERVER_notification_context_broadcast (notify_list, &msg->header,
+                                                GNUNET_NO);
+  }
   GNUNET_free (msg);
 }
 
@@ -679,6 +699,13 @@ handle_get_all (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
+struct NotificationContext
+{
+	struct GNUNET_SERVER_Client *client;
+
+	int friend_only;
+};
+
 
 /**
  * Pass the given client the information we have in the respective
@@ -692,17 +719,21 @@ handle_get_all (void *cls, struct GNUNET_SERVER_Client *client,
 static int
 do_notify_entry (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
-  struct GNUNET_SERVER_Client *client = cls;
+	struct NotificationContext *nc = cls;
   struct HostEntry *he = value;
   struct InfoMessage *msg;
 
+  if ((NULL != he->hello) &&
+  		(GNUNET_YES == GNUNET_HELLO_is_friend_only(he->hello)) &&
+  		(GNUNET_NO == nc->friend_only))
+  	return GNUNET_YES;
+
   msg = make_info_message (he);
-  GNUNET_SERVER_notification_context_unicast (notify_list, client, &msg->header,
+  GNUNET_SERVER_notification_context_unicast (notify_list, nc->client, &msg->header,
                                               GNUNET_NO);
   GNUNET_free (msg);
   return GNUNET_YES;
 }
-
 
 /**
  * Handle NOTIFY-message.
@@ -716,13 +747,20 @@ handle_notify (void *cls, struct GNUNET_SERVER_Client *client,
                const struct GNUNET_MessageHeader *message)
 {
   struct NotifyMessage *nm = (struct NotifyMessage *) message;
+  struct NotificationContext nc;
   int friend_only;
 
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' message received\n", "NOTIFY");
-	friend_only = ntohl (nm->include_friend_only);
+
+	nc.client = client;
+	nc.friend_only = ntohl (nm->include_friend_only);
+
   GNUNET_SERVER_client_mark_monitor (client);
-  GNUNET_SERVER_notification_context_add (notify_list, client);
-  GNUNET_CONTAINER_multihashmap_iterate (hostmap, &do_notify_entry, client);
+  if (GNUNET_YES == ntohl (nm->include_friend_only))
+  	GNUNET_SERVER_notification_context_add (notify_friend_only_list, client);
+  else
+  	GNUNET_SERVER_notification_context_add (notify_list, client);
+  GNUNET_CONTAINER_multihashmap_iterate (hostmap, &do_notify_entry, &nc);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -757,6 +795,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_SERVER_notification_context_destroy (notify_list);
   notify_list = NULL;
+  GNUNET_SERVER_notification_context_destroy (notify_friend_only_list);
+  notify_friend_only_list = NULL;
   GNUNET_CONTAINER_multihashmap_iterate (hostmap, &free_host_entry, NULL);
   GNUNET_CONTAINER_multihashmap_destroy (hostmap);
   if (NULL != stats)
@@ -796,6 +836,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   hostmap = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_YES);
   stats = GNUNET_STATISTICS_create ("peerinfo", cfg);
   notify_list = GNUNET_SERVER_notification_context_create (server, 0);
+  notify_friend_only_list = GNUNET_SERVER_notification_context_create (server, 0);
   noio = GNUNET_CONFIGURATION_get_value_yesno (cfg, "peerinfo", "NO_IO");
   if (GNUNET_YES != noio)
   {
