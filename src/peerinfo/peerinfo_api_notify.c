@@ -69,6 +69,11 @@ struct GNUNET_PEERINFO_NotifyContext
    */
   GNUNET_SCHEDULER_TaskIdentifier task;
 
+  /**
+   * Include friend only HELLOs in callbacks
+   */
+
+  int include_friend_only;
 };
 
 
@@ -195,7 +200,7 @@ static size_t
 transmit_notify_request (void *cls, size_t size, void *buf)
 {
   struct GNUNET_PEERINFO_NotifyContext *nc = cls;
-  struct GNUNET_MessageHeader hdr;
+  struct NotifyMessage nm;
 
   nc->init = NULL;
   if (buf == NULL)
@@ -205,10 +210,11 @@ transmit_notify_request (void *cls, size_t size, void *buf)
     request_notifications (nc);
     return 0;
   }
-  GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
-  hdr.size = htons (sizeof (struct GNUNET_MessageHeader));
-  hdr.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_NOTIFY);
-  memcpy (buf, &hdr, sizeof (struct GNUNET_MessageHeader));
+  GNUNET_assert (size >= sizeof (struct NotifyMessage));
+  nm.header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_NOTIFY);
+  nm.header.size = htons (sizeof (struct NotifyMessage));
+  nm.include_friend_only = htonl (nc->include_friend_only);
+  memcpy (buf, &nm, sizeof (struct NotifyMessage));
   receive_notifications (nc);
   return sizeof (struct GNUNET_MessageHeader);
 }
@@ -226,7 +232,7 @@ request_notifications (struct GNUNET_PEERINFO_NotifyContext *nc)
   GNUNET_assert (NULL == nc->init);
   nc->init =
       GNUNET_CLIENT_notify_transmit_ready (nc->client,
-                                           sizeof (struct GNUNET_MessageHeader),
+                                           sizeof (struct NotifyMessage),
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            GNUNET_YES, &transmit_notify_request,
                                            nc);
@@ -238,13 +244,19 @@ request_notifications (struct GNUNET_PEERINFO_NotifyContext *nc)
  * changes.  Initially calls the given function for all known
  * peers and then only signals changes.
  *
+ * If include_friend_only is set to GNUNET_YES peerinfo will include HELLO
+ * messages which are intended for friend to friend mode and which do not
+ * have to be gossiped. Otherwise these messages are skipped.
+ *
  * @param cfg configuration to use
+ * @param include_friend_only include HELLO messages for friends only
  * @param callback the method to call for each peer
  * @param callback_cls closure for callback
  * @return NULL on error
  */
 struct GNUNET_PEERINFO_NotifyContext *
 GNUNET_PEERINFO_notify (const struct GNUNET_CONFIGURATION_Handle *cfg,
+												int include_friend_only,
                         GNUNET_PEERINFO_Processor callback, void *callback_cls)
 {
   struct GNUNET_PEERINFO_NotifyContext *nc;
@@ -262,6 +274,7 @@ GNUNET_PEERINFO_notify (const struct GNUNET_CONFIGURATION_Handle *cfg,
   nc->client = client;
   nc->callback = callback;
   nc->callback_cls = callback_cls;
+  nc->include_friend_only = include_friend_only;
   request_notifications (nc);
   return nc;
 }

@@ -800,7 +800,7 @@ GST_validation_start (unsigned int max_fds)
 			validations_fast_start_threshold, validation_delay.rel_value);
   validation_map = GNUNET_CONTAINER_multihashmap_create (VALIDATION_MAP_SIZE,
 							 GNUNET_NO);
-  pnc = GNUNET_PEERINFO_notify (GST_cfg, &process_peerinfo_hello, NULL);
+  pnc = GNUNET_PEERINFO_notify (GST_cfg, GNUNET_YES, &process_peerinfo_hello, NULL);
 }
 
 

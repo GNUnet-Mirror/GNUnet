@@ -692,6 +692,7 @@ signal_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * better to use 'GNUNET_PEERINFO_notify'.
  *
  * @param h handle to the peerinfo service
+ * @param include_friend_only include HELLO messages for friends only
  * @param peer restrict iteration to this peer only (can be NULL)
  * @param timeout how long to wait until timing out
  * @param callback the method to call for each peer
@@ -700,11 +701,12 @@ signal_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 struct GNUNET_PEERINFO_IteratorContext *
 GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
+												 int include_friend_only,
                          const struct GNUNET_PeerIdentity *peer,
                          struct GNUNET_TIME_Relative timeout,
                          GNUNET_PEERINFO_Processor callback, void *callback_cls)
 {
-  struct GNUNET_MessageHeader *lapm;
+  struct ListAllPeersMessage *lapm;
   struct ListPeerMessage *lpm;
   struct GNUNET_PEERINFO_IteratorContext *ic;
   struct GNUNET_PEERINFO_AddContext *ac;
@@ -716,11 +718,12 @@ GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
          "Requesting list of peers from PEERINFO service\n");
     ac =
         GNUNET_malloc (sizeof (struct GNUNET_PEERINFO_AddContext) +
-                       sizeof (struct GNUNET_MessageHeader));
-    ac->size = sizeof (struct GNUNET_MessageHeader);
-    lapm = (struct GNUNET_MessageHeader *) &ac[1];
-    lapm->size = htons (sizeof (struct GNUNET_MessageHeader));
-    lapm->type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_GET_ALL);
+                       sizeof (struct ListAllPeersMessage));
+    ac->size = sizeof (struct ListAllPeersMessage);
+    lapm = (struct ListAllPeersMessage *) &ac[1];
+    lapm->header.size = htons (sizeof (struct ListAllPeersMessage));
+    lapm->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_GET_ALL);
+    lapm->include_friend_only = htonl (include_friend_only);
   }
   else
   {
@@ -734,6 +737,7 @@ GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
     lpm = (struct ListPeerMessage *) &ac[1];
     lpm->header.size = htons (sizeof (struct ListPeerMessage));
     lpm->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_GET);
+    lpm->include_friend_only = htonl (include_friend_only);
     memcpy (&lpm->peer, peer, sizeof (struct GNUNET_PeerIdentity));
     ic->have_peer = GNUNET_YES;
     ic->peer = *peer;

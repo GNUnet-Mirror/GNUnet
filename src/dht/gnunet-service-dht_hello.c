@@ -98,7 +98,7 @@ process_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
 void
 GDS_HELLO_init ()
 {
-  pnc = GNUNET_PEERINFO_notify (GDS_cfg, &process_hello, NULL);
+  pnc = GNUNET_PEERINFO_notify (GDS_cfg, GNUNET_NO, &process_hello, NULL);
   peer_to_hello = GNUNET_CONTAINER_multihashmap_create (256, GNUNET_NO);
 }
 

@@ -918,7 +918,7 @@ process_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
                 _("Error in communication with PEERINFO service: %s\n"),
                 err_msg);
     GNUNET_PEERINFO_notify_cancel (peerinfo_notify);
-    peerinfo_notify = GNUNET_PEERINFO_notify (cfg, &process_peer, NULL);
+    peerinfo_notify = GNUNET_PEERINFO_notify (cfg, GNUNET_NO, &process_peer, NULL);
     return;
   }
   GNUNET_assert (peer != NULL);
@@ -991,7 +991,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
   handle = server;
   my_identity = *my_id;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "I am peer `%s'\n", GNUNET_i2s (my_id));
-  peerinfo_notify = GNUNET_PEERINFO_notify (cfg, &process_peer, NULL);
+  peerinfo_notify = GNUNET_PEERINFO_notify (cfg, GNUNET_NO, &process_peer, NULL);
 }
 
 

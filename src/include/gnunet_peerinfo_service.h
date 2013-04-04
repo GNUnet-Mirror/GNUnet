@@ -145,28 +145,28 @@ struct GNUNET_PEERINFO_IteratorContext;
 
 
 /**
- * Call a method for each known matching host to get its HELLO.
- * The callback method will be invoked once for each matching
- * host and then finally once with a NULL pointer.  After that final
- * invocation, the iterator context must no longer be used.
+ * Call a method for each known matching host.  The callback method
+ * will be invoked once for each matching host and then finally once
+ * with a NULL pointer.  After that final invocation, the iterator
+ * context must no longer be used.
  *
- * Instead of calling this function with 'peer == NULL'
- * it is often better to use 'GNUNET_PEERINFO_notify'.
+ * Instead of calling this function with 'peer == NULL' it is often
+ * better to use 'GNUNET_PEERINFO_notify'.
  *
  * @param h handle to the peerinfo service
+ * @param include_friend_only include HELLO messages for friends only
  * @param peer restrict iteration to this peer only (can be NULL)
  * @param timeout how long to wait until timing out
  * @param callback the method to call for each peer
  * @param callback_cls closure for callback
- * @return NULL on error (in this case, 'callback' is never called!),
- *         otherwise an iterator context
+ * @return iterator context
  */
 struct GNUNET_PEERINFO_IteratorContext *
 GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
+												 int include_friend_only,
                          const struct GNUNET_PeerIdentity *peer,
                          struct GNUNET_TIME_Relative timeout,
-                         GNUNET_PEERINFO_Processor callback,
-                         void *callback_cls);
+                         GNUNET_PEERINFO_Processor callback, void *callback_cls);
 
 
 
@@ -189,17 +189,21 @@ struct GNUNET_PEERINFO_NotifyContext;
 /**
  * Call a method whenever our known information about peers
  * changes.  Initially calls the given function for all known
- * peers and then only signals changes.  Note that it is
- * possible (i.e. on disconnects) that the callback is called
- * twice with the same peer information.
+ * peers and then only signals changes.
+ *
+ * If include_friend_only is set to GNUNET_YES peerinfo will include HELLO
+ * messages which are intended for friend to friend mode and which do not
+ * have to be gossiped. Otherwise these messages are skipped.
  *
  * @param cfg configuration to use
+ * @param include_friend_only include HELLO messages for friends only
  * @param callback the method to call for each peer
  * @param callback_cls closure for callback
  * @return NULL on error
  */
 struct GNUNET_PEERINFO_NotifyContext *
 GNUNET_PEERINFO_notify (const struct GNUNET_CONFIGURATION_Handle *cfg,
+												int include_friend_only,
                         GNUNET_PEERINFO_Processor callback, void *callback_cls);
 
 

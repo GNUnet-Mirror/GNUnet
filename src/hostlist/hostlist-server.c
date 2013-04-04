@@ -673,7 +673,7 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
   if (daemon_handle_v6 != NULL)
     hostlist_task_v6 = prepare_daemon (daemon_handle_v6);
 
-  notify = GNUNET_PEERINFO_notify (cfg, &process_notify, NULL);
+  notify = GNUNET_PEERINFO_notify (cfg, GNUNET_NO, &process_notify, NULL);
 
   return GNUNET_OK;
 }

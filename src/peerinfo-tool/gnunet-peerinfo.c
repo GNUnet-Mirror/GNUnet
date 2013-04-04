@@ -106,6 +106,11 @@ struct PrintContext
    */
   unsigned int off;
 
+  /**
+   * Hello was friend only, GNUNET_YES or GNUNET_NO
+   */
+  int friend_only;
+
 };
 
 
@@ -118,6 +123,11 @@ static int no_resolve;
  * Option '-q'
  */
 static int be_quiet;
+
+/**
+ * Option '-f'
+ */
+static int include_friend_only;
 
 /**
  * Option '-s'
@@ -211,7 +221,8 @@ dump_pc (struct PrintContext *pc)
   unsigned int i;
 
   GNUNET_CRYPTO_hash_to_enc (&pc->peer.hashPubKey, &enc);
-  printf (_("Peer `%s'\n"), 
+  printf (_("%sPeer `%s'\n"),
+  	(GNUNET_YES == pc->friend_only) ? "F2F: " : "",
 	  (const char *) &enc);
   for (i = 0; i < pc->num_addresses; i++)
   {
@@ -321,6 +332,7 @@ print_peer_info (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
   struct PrintContext *pc;
+  int friend_only;
 
   if (NULL == peer)
   {
@@ -335,10 +347,13 @@ print_peer_info (void *cls, const struct GNUNET_PeerIdentity *peer,
       tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
     return;
   }
+  friend_only = GNUNET_HELLO_is_friend_only (hello);
   if ((GNUNET_YES == be_quiet) || (NULL == hello))
   {
     GNUNET_CRYPTO_hash_to_enc (&peer->hashPubKey, &enc);
-    printf ("%s\n", (const char *) &enc);
+    printf ("%s%s\n",
+    		(GNUNET_YES == friend_only) ? "F2F: " : "",
+    		(const char *) &enc);
     return;
   }
   pc = GNUNET_malloc (sizeof (struct PrintContext));
@@ -346,6 +361,7 @@ print_peer_info (void *cls, const struct GNUNET_PeerIdentity *peer,
 			       pc_tail, 
 			       pc);
   pc->peer = *peer;
+  pc->friend_only = friend_only;
   GNUNET_HELLO_iterate_addresses (hello, 
 				  GNUNET_NO, 
 				  &count_address, 
@@ -608,7 +624,7 @@ state_machine (void *cls,
   {
     get_info = GNUNET_NO;
     GPI_plugins_load (cfg);
-    pic = GNUNET_PEERINFO_iterate (peerinfo, NULL,
+    pic = GNUNET_PEERINFO_iterate (peerinfo, include_friend_only, NULL,
 				   TIMEOUT,
 				   &print_peer_info, NULL);
     return;
@@ -627,7 +643,7 @@ state_machine (void *cls,
   if (GNUNET_YES == get_uri)
   {
     GPI_plugins_load (cfg);
-    pic = GNUNET_PEERINFO_iterate (peerinfo, &my_peer_identity,
+    pic = GNUNET_PEERINFO_iterate (peerinfo,include_friend_only, &my_peer_identity,
 				   TIMEOUT, &print_my_uri, NULL);
     get_uri = GNUNET_NO;
     return;
@@ -653,6 +669,9 @@ main (int argc, char *const *argv)
     {'q', "quiet", NULL,
      gettext_noop ("output only the identity strings"),
      0, &GNUNET_GETOPT_set_one, &be_quiet},
+    {'f', "friends", NULL,
+     gettext_noop ("include friend-only information"),
+     0, &GNUNET_GETOPT_set_one, &include_friend_only},
     {'s', "self", NULL,
      gettext_noop ("output our own identity only"),
      0, &GNUNET_GETOPT_set_one, &get_self},

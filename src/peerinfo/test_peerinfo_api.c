@@ -120,7 +120,7 @@ process (void *cls, const struct GNUNET_PeerIdentity *peer,
       /* try again */
       retries++;
       add_peer ();
-      ic = GNUNET_PEERINFO_iterate (h, NULL,
+      ic = GNUNET_PEERINFO_iterate (h, GNUNET_NO, NULL,
                                     GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_SECONDS, 15), &process,
                                     cls);
@@ -152,7 +152,7 @@ run (void *cls,
   h = GNUNET_PEERINFO_connect (cfg);
   GNUNET_assert (NULL != h);
   add_peer ();
-  ic = GNUNET_PEERINFO_iterate (h, NULL,
+  ic = GNUNET_PEERINFO_iterate (h, GNUNET_NO, NULL,
                                 GNUNET_TIME_relative_multiply
                                 (GNUNET_TIME_UNIT_SECONDS, 15), &process, cls);
 }

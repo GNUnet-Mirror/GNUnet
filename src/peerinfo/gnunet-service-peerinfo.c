@@ -90,6 +90,7 @@ static char *networkIdDirectory;
 static struct GNUNET_STATISTICS_Handle *stats;
 
 
+
 /**
  * Notify all clients in the notify list about the
  * given host entry changing.
@@ -638,9 +639,10 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
 {
   const struct ListPeerMessage *lpm;
   struct GNUNET_SERVER_TransmitContext *tc;
+  int friend_only;
 
   lpm = (const struct ListPeerMessage *) message;
-  GNUNET_break (0 == ntohl (lpm->reserved));
+  friend_only = ntohl (lpm->include_friend_only);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' message received for peer `%4s'\n",
               "GET", GNUNET_i2s (&lpm->peer));
   tc = GNUNET_SERVER_transmit_context_create (client);
@@ -663,8 +665,12 @@ static void
 handle_get_all (void *cls, struct GNUNET_SERVER_Client *client,
                 const struct GNUNET_MessageHeader *message)
 {
+  const struct ListAllPeersMessage *lapm;
   struct GNUNET_SERVER_TransmitContext *tc;
+  int friend_only;
 
+  lapm = (const struct ListAllPeersMessage *) message;
+  friend_only = ntohl (lapm->include_friend_only);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' message received\n", "GET_ALL");
   tc = GNUNET_SERVER_transmit_context_create (client);
   GNUNET_CONTAINER_multihashmap_iterate (hostmap, &add_to_tc, tc);
@@ -709,7 +715,11 @@ static void
 handle_notify (void *cls, struct GNUNET_SERVER_Client *client,
                const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' message received\n", "NOTIFY");
+  struct NotifyMessage *nm = (struct NotifyMessage *) message;
+  int friend_only;
+
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' message received\n", "NOTIFY");
+	friend_only = ntohl (nm->include_friend_only);
   GNUNET_SERVER_client_mark_monitor (client);
   GNUNET_SERVER_notification_context_add (notify_list, client);
   GNUNET_CONTAINER_multihashmap_iterate (hostmap, &do_notify_entry, client);
@@ -773,9 +783,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {&handle_get, NULL, GNUNET_MESSAGE_TYPE_PEERINFO_GET,
      sizeof (struct ListPeerMessage)},
     {&handle_get_all, NULL, GNUNET_MESSAGE_TYPE_PEERINFO_GET_ALL,
-     sizeof (struct GNUNET_MessageHeader)},
+     sizeof (struct ListAllPeersMessage)},
     {&handle_notify, NULL, GNUNET_MESSAGE_TYPE_PEERINFO_NOTIFY,
-     sizeof (struct GNUNET_MessageHeader)},
+     sizeof (struct NotifyMessage)},
     {NULL, NULL, 0, 0}
   };
   char *peerdir;

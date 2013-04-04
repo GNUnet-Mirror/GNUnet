@@ -31,28 +31,64 @@
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
- * Message requesting a listing of all known peers,
- * possibly restricted to the specified peer identity.
+ * Message requesting a listing of peers,
+ * restricted to the specified peer identity.
  */
 struct ListPeerMessage
 {
 
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_PEERINFO_GET or
-   * GNUNET_MESSAGE_TYPE_PEERINFO_GET_ALL.
+   * Type will be GNUNET_MESSAGE_TYPE_PEERINFO_GET
+   * .
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * Always zero.
+   * Include friend only HELLOs and peers in callbacks
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint32_t include_friend_only GNUNET_PACKED;
 
   /**
    * Restrict to peers with this identity (optional
    * field, check header.size!).
    */
   struct GNUNET_PeerIdentity peer;
+
+};
+
+/**
+ * Message requesting a listing of all peers,
+ * restricted to the specified peer identity.
+ */
+struct ListAllPeersMessage
+{
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_PEERINFO_GET_ALL
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Include friend only HELLOs and peers in callbacks
+   */
+  uint32_t include_friend_only GNUNET_PACKED;
+
+};
+
+
+/**
+ * Header for all communications.
+ */
+struct NotifyMessage
+{
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_PEERINFO_NOTIFY
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Include friend only HELLOs and peers in callbacks
+   */
+  uint32_t include_friend_only GNUNET_PACKED;
 
 };
 
