@@ -2748,7 +2748,10 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
                                                       &GST_timeout));
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
-                                                        "HOSTNAME", &hostname));  
+                                                        "HOSTNAME", &hostname));
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
+                                             "STATS_DIR", &GST_stats_dir));
   our_config = GNUNET_CONFIGURATION_dup (cfg);
   GNUNET_SERVER_add_handlers (server, message_handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect_cb, NULL);

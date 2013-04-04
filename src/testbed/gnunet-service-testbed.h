@@ -659,6 +659,11 @@ extern unsigned int GST_host_list_size;
  */
 extern unsigned int GST_slave_list_size;
 
+/**
+ * The directory where to store load statistics data
+ */
+extern char *GST_stats_dir;
+
 
 /**
  * Queues a message in send queue for sending to the service
