@@ -810,6 +810,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   GNUNET_free (aa->plugin);
   GNUNET_free_non_null (aa->atsi);
   GNUNET_free (aa);
+  aa = NULL;
 
   if (ea->session_id != 0)
   {
@@ -827,13 +828,13 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   atsi_delta_count = 0;
   if (GNUNET_YES == disassemble_ats_information (ea, atsi, atsi_count, &atsi_delta, &atsi_delta_count))
   {
-		GAS_performance_notify_all_clients (&aa->peer,
-				aa->plugin,
-				aa->addr, aa->addr_len,
-				aa->session_id,
-				aa->atsi, aa->atsi_count,
-				aa->assigned_bw_out,
-				aa->assigned_bw_in);
+		GAS_performance_notify_all_clients (&ea->peer,
+				ea->plugin,
+				ea->addr, ea->addr_len,
+				ea->session_id,
+				ea->atsi, ea->atsi_count,
+				ea->assigned_bw_out,
+				ea->assigned_bw_in);
   }
 
   /* Notify solver about update with atsi information and session */
