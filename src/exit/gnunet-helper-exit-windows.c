@@ -29,6 +29,7 @@
  * have your name added to the list):
  *
  */
+
 #include <stdio.h>
 #include <windows.h>
 #include <setupapi.h>
@@ -61,6 +62,10 @@
 #define LOG_DEBUG(msg) do {} while (0)
 #endif
 
+/**
+ * Will this binary be run in dryrun-mode? 
+ */
+static BOOL dryrun = FALSE;
 
 /**
  * Maximum size of a GNUnet message (GNUNET_SERVER_MAX_MESSAGE_SIZE)
@@ -1407,6 +1412,8 @@ run (HANDLE tap_handle)
       goto teardown;
     }
 #endif
+  if (dryrun)
+    goto teardown;
   
   fprintf (stderr, "DEBUG: mainloop has begun\n");
   
@@ -1428,10 +1435,9 @@ run (HANDLE tap_handle)
       if (std_out.path_open && (! attempt_write (&std_out, &tap_read)))
         break;
     }
-
-teardown:
-
   fprintf (stderr, "DEBUG: teardown initiated\n");
+  
+teardown:
       
   CancelIo (tap_handle);
   CancelIo (std_in.handle);
@@ -1463,10 +1469,16 @@ main (int argc, char **argv)
   BOOL have_ip4 = FALSE;
   BOOL have_ip6 = FALSE;
   BOOL have_nat44 = FALSE;
-
+  
+  if ( (1 < argc) && (0 != strcmp (argv[1], "-d"))){
+      dryrun = TRUE;
+      fprintf (stderr, "DEBUG: Running binary in dryrun mode.", argv[0]);
+      argv++;
+      argc--;
+    }
   if (6 != argc)
     {
-      fprintf (stderr, "FATAL: must supply 6 arguments\nUsage:\ngnunet-helper-exit <if name prefix> <uplink-interface name> <address6 or \"-\"> <netbits6> <address4 or \"-\"> <netmask4>\n", argv[0]);
+      fprintf (stderr, "FATAL: must supply 6 arguments\nUsage:\ngnunet-helper-exit [-d] <if name prefix> <uplink-interface name> <address6 or \"-\"> <netbits6> <address4 or \"-\"> <netmask4>\n", argv[0]);
       return 1;
     }
 
@@ -1601,7 +1613,6 @@ main (int argc, char **argv)
     }
 
   run (handle);
-  global_ret = 0;
 cleanup:
 
   if (have_ip4) {
