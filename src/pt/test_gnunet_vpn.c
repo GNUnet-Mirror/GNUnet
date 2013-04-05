@@ -399,6 +399,7 @@ main (int argc, char *const *argv)
   const char *bin;
   char *vpn_binary;
   char *exit_binary;
+  int ret=0;
 
 #ifndef MINGW
   if (0 != ACCESS ("/dev/net/tun", R_OK))
@@ -409,15 +410,17 @@ main (int argc, char *const *argv)
     return 0;
   }
 #endif
-  vpn_binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-vpn");
-  exit_binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-exit");
-  if ((GNUNET_YES != GNUNET_OS_check_helper_binary (vpn_binary)) ||
-      (GNUNET_YES != GNUNET_OS_check_helper_binary (exit_binary)))
+  vpn_binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-vpn.exe");
+  exit_binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-exit.exe");
+  fprintf (stderr,"%s\n", vpn_binary);
+  fprintf (stderr,"%s\n", exit_binary);
+  if ((GNUNET_YES != (ret = GNUNET_OS_check_helper_binary (vpn_binary))) ||
+      (GNUNET_YES != (ret = GNUNET_OS_check_helper_binary (exit_binary))))
   {
     GNUNET_free (vpn_binary);
     GNUNET_free (exit_binary);
     fprintf (stderr,
-             "WARNING: gnunet-helper-{exit,vpn} binaries are not SUID, refusing to run test (as it would have to fail).\n");
+             "WARNING: gnunet-helper-{exit,vpn} binaries are not SUID, refusing to run test (as it would have to fail). %d\n", ret);
     return 0;
   }
 
