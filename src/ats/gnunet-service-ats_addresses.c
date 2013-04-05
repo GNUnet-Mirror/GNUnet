@@ -459,8 +459,9 @@ disassemble_ats_information (struct ATS_Address *dest,
   if (add_atsi_count > 0)
   {
   		/* Extend ats performance information */
+
   		tmp_atsi = GNUNET_malloc ((dest->atsi_count + add_atsi_count) *
-  				sizeof (sizeof (struct GNUNET_ATS_Information)));
+  															(sizeof (struct GNUNET_ATS_Information)));
   		memcpy (tmp_atsi, dest->atsi, dest->atsi_count * sizeof (struct GNUNET_ATS_Information));
   		memcpy (&tmp_atsi[dest->atsi_count], add_atsi, add_atsi_count * sizeof (struct GNUNET_ATS_Information));
   		GNUNET_free (dest->atsi);
