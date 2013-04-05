@@ -166,6 +166,7 @@ process_notification (void *cls, const struct GNUNET_MessageHeader *msg)
       return;
     }
   }
+
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received information about peer `%s' from peerinfo database\n",
        GNUNET_i2s (&im->peer));
@@ -216,7 +217,7 @@ transmit_notify_request (void *cls, size_t size, void *buf)
   nm.include_friend_only = htonl (nc->include_friend_only);
   memcpy (buf, &nm, sizeof (struct NotifyMessage));
   receive_notifications (nc);
-  return sizeof (struct GNUNET_MessageHeader);
+  return sizeof (struct NotifyMessage);
 }
 
 
