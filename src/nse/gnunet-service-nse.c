@@ -61,7 +61,7 @@
  * production).  The associated code should also probably be removed
  * once we're done with experiments.
  */
-#define ENABLE_HISTOGRAM GNUNET_NO
+#define ENABLE_HISTOGRAM GNUNET_YES
 
 /**
  * Over how many values do we calculate the weighted average?
