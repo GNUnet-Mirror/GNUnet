@@ -136,6 +136,11 @@ struct OpListEntry
    */
   struct GNUNET_TESTBED_Operation *op;
 
+  /**
+   * Depending on whether we start or stop NSE service at the peer set this to 1
+   * or -1
+   */
+  int delta;
 };
 
 
@@ -625,18 +630,27 @@ make_oplist_entry ()
 
 
 /**
- * Functions of this signature are called when a peer has been successfully
- * started or stopped.
+ * Callback to be called when NSE service is started or stopped at peers
  *
  * @param cls NULL
+ * @param op the operation handle
  * @param emsg NULL on success; otherwise an error description
  */
 static void 
-peer_churn_cb (void *cls, const char *emsg)
+manage_service_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
+                   const char *emsg)
 {
   struct OpListEntry *entry = cls;
   
   GNUNET_TESTBED_operation_done (entry->op);
+  if (NULL != emsg)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Failed to start/stop NSE at a peer\n");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  GNUNET_assert (0 != entry->delta);
+  peers_running += entry->delta;
   GNUNET_CONTAINER_DLL_remove (oplist_head, oplist_tail, entry);
   GNUNET_free (entry);
   if (num_peers_in_round[current_round] == peers_running)
@@ -658,15 +672,25 @@ adjust_running_peers ()
   for (i=peers_running;i<num_peers_in_round[current_round];i++)
   {
     entry = make_oplist_entry ();
-    entry->op = GNUNET_TESTBED_peer_start (NULL, daemons[i], 
-                                           &peer_churn_cb, entry);
+    entry->delta = 1;
+    entry->op = GNUNET_TESTBED_peer_manage_service (NULL,
+                                                    daemons[i],
+                                                    "nse",
+                                                    &manage_service_cb,
+                                                    entry,
+                                                    1);
   }
   /* stop peers if we have too many */
   for (i=num_peers_in_round[current_round];i<peers_running;i++)
   {
     entry = make_oplist_entry ();
-    entry->op = GNUNET_TESTBED_peer_stop (NULL, daemons[i], 
-                                          &peer_churn_cb, entry);
+    entry->delta = -1;
+    entry->op =  GNUNET_TESTBED_peer_manage_service (NULL,
+                                                     daemons[i],
+                                                     "nse",
+                                                     &manage_service_cb,
+                                                     entry,
+                                                     0);
   }
 }
 
@@ -716,12 +740,6 @@ master_controller_cb (void *cls,
 {
   switch (event->type)
     {
-    case GNUNET_TESTBED_ET_PEER_START:
-      peers_running++;
-      break;
-    case GNUNET_TESTBED_ET_PEER_STOP:
-      peers_running--;
-      break;
     case GNUNET_TESTBED_ET_CONNECT:
       total_connections++;
       break;
