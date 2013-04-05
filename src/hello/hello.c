@@ -864,9 +864,10 @@ GNUNET_HELLO_compose_uri (const struct GNUNET_HELLO_Message *hello,
   ctx.plugins_find = plugins_find;
 
   char *pkey = GNUNET_CRYPTO_ecc_public_key_to_string (&(hello->publicKey));
+
   GNUNET_asprintf (&(ctx.uri),
                    "%s%s",
-                   GNUNET_HELLO_URI_PREFIX,
+                   (GNUNET_YES == GNUNET_HELLO_is_friend_only (hello)) ? GNUNET_FRIEND_HELLO_URI_PREFIX : GNUNET_HELLO_URI_PREFIX,
                    pkey);
   GNUNET_free (pkey);
 
