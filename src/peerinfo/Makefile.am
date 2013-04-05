@@ -49,6 +49,7 @@ endif
 check_PROGRAMS = \
  test_peerinfo_api \
  test_peerinfo_api_friend_only \
+ test_peerinfo_api_notify_friend_only \
  $(PEERINFO_BENCHMARKS) 
 
 if ENABLE_TEST_RUN
@@ -70,6 +71,14 @@ test_peerinfo_api_friend_only_LDADD = \
  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la  
+
+test_peerinfo_api_notify_friend_only_SOURCES = \
+ test_peerinfo_api_notify_friend_only.c
+test_peerinfo_api_notify_friend_only_LDADD = \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la
 
 perf_peerinfo_api_SOURCES = \
  perf_peerinfo_api.c
