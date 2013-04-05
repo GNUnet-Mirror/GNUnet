@@ -510,7 +510,6 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
   GNUNET_assert (NULL != host);
   if (NULL == host->hello)
   {
-  		GNUNET_break (0);
     host->hello = GNUNET_malloc (GNUNET_HELLO_size (hello));
     memcpy (host->hello, hello, GNUNET_HELLO_size (hello));
   }

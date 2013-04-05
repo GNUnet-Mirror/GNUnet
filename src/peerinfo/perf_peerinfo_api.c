@@ -82,7 +82,7 @@ address_generator (void *cls, size_t max, void *buf)
 static void
 add_peer (size_t i)
 {
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
   struct GNUNET_HELLO_Message *h2;
 
   memset (&pkey, i, sizeof (pkey));
@@ -120,7 +120,7 @@ run (void *cls,
   {
     add_peer (i);
     ic[i] =
-        GNUNET_PEERINFO_iterate (h, NULL,
+        GNUNET_PEERINFO_iterate (h, GNUNET_YES, NULL,
                                  GNUNET_TIME_relative_multiply
                                  (GNUNET_TIME_UNIT_SECONDS, 30), &process, cls);
   }
