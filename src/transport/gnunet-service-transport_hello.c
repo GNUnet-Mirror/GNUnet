@@ -161,17 +161,21 @@ static void
 refresh_hello_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GeneratorContext gc;
+  int friend_only;
 
   hello_task = GNUNET_SCHEDULER_NO_TASK;
   gc.addr_pos = oal_head;
   gc.expiration = GNUNET_TIME_relative_to_absolute (hello_expiration);
 
+
+  friend_only = GNUNET_HELLO_is_friend_only (our_hello);
   GNUNET_free (our_hello);
-  our_hello = GNUNET_HELLO_create (&GST_my_public_key, &address_generator, &gc, GNUNET_NO);
+  our_hello = GNUNET_HELLO_create (&GST_my_public_key, &address_generator, &gc, friend_only);
   GNUNET_assert (NULL != our_hello);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "Refreshed my `%s', new size is %d\n", "HELLO",
-              GNUNET_HELLO_size (our_hello));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Refreshed my %s `%s', new size is %d\n",
+              (GNUNET_YES == GNUNET_HELLO_is_friend_only (our_hello)) ? "friend-only" : "public",
+              "HELLO", GNUNET_HELLO_size (our_hello));
   GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# refreshed my HELLO"), 1,
                             GNUNET_NO);
   if (NULL != hello_cb)
