@@ -67,7 +67,48 @@ struct HostEntry
 
 };
 
+/**
+ * Transmit context for GET requests
+ */
+struct TransmitContext
+{
+	/**
+	 * Server transmit context
+	 */
+	struct GNUNET_SERVER_TransmitContext *tc;
 
+	/**
+		* Include friend only HELLOs GNUNET_YES or _NO
+		*/
+	int friend_only;
+};
+
+
+/**
+ * Client notification context
+ */
+struct NotificationContext
+{
+	/**
+	 * Next in DLL
+	 */
+	struct NotificationContext *prev;
+
+	/**
+	 * Previous in DLL
+	 */
+	struct NotificationContext *next;
+
+	/**
+	 * Server client
+	 */
+	struct GNUNET_SERVER_Client *client;
+
+	/**
+	 * Interested in friend only HELLO?
+	 */
+	int include_friend_only;
+};
 
 
 /**
@@ -82,11 +123,6 @@ static struct GNUNET_CONTAINER_MultiHashMap *hostmap;
 static struct GNUNET_SERVER_NotificationContext *notify_list;
 
 /**
- * Clients to immediately notify about all changes.
- */
-static struct GNUNET_SERVER_NotificationContext *notify_friend_only_list;
-
-/**
  * Directory where the hellos are stored in (data/hosts)
  */
 static char *networkIdDirectory;
@@ -96,6 +132,15 @@ static char *networkIdDirectory;
  */
 static struct GNUNET_STATISTICS_Handle *stats;
 
+/**
+ * DLL of notification contexts: head
+ */
+static struct NotificationContext *nc_head;
+
+/**
+ * DLL of notification contexts: tail
+ */
+static struct NotificationContext *nc_tail;
 
 
 /**
@@ -197,23 +242,22 @@ static void
 notify_all (struct HostEntry *entry)
 {
   struct InfoMessage *msg;
+  struct NotificationContext *cur;
 
   msg = make_info_message (entry);
-  if ((NULL != entry->hello) &&
-  		(GNUNET_YES == GNUNET_HELLO_is_friend_only(entry->hello)))
-  {
-  		GNUNET_SERVER_notification_context_broadcast (notify_friend_only_list,
-  																							&msg->header,
-                                                GNUNET_NO);
-  }
-  else
-  {
-  		GNUNET_SERVER_notification_context_broadcast (notify_friend_only_list,
-  																							&msg->header,
-                                                GNUNET_NO);
-  		GNUNET_SERVER_notification_context_broadcast (notify_list, &msg->header,
-                                                GNUNET_NO);
-  }
+
+	for (cur = nc_head; NULL != cur; cur = cur->next)
+	{
+		if ((NULL != entry->hello) &&
+				(GNUNET_YES == GNUNET_HELLO_is_friend_only (entry->hello)) &&
+				(GNUNET_NO == cur->include_friend_only))
+			continue; /* Friend only HELLO this client should not get */
+
+		GNUNET_SERVER_notification_context_unicast (notify_list,
+																								cur->client,
+																								&msg->header,
+																								GNUNET_NO);
+	}
   GNUNET_free (msg);
 }
 
@@ -511,15 +555,6 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
 }
 
 
-struct TransmitContext
-{
-	struct GNUNET_SERVER_TransmitContext *tc;
-
-	int friend_only;
-};
-
-
-
 /**
  * Do transmit info about peer to given host.
  *
@@ -650,7 +685,7 @@ handle_hello (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' message received for peer `%4s'\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "`%s' message received for peer `%4s'\n",
               "HELLO", GNUNET_i2s (&pid));
   bind_address (&pid, hello);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -708,13 +743,6 @@ handle_get_all (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_SERVER_transmit_context_run (tcx.tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
-struct NotificationContext
-{
-	struct GNUNET_SERVER_Client *client;
-
-	int friend_only;
-};
-
 
 /**
  * Pass the given client the information we have in the respective
@@ -732,17 +760,23 @@ do_notify_entry (void *cls, const struct GNUNET_HashCode * key, void *value)
   struct HostEntry *he = value;
   struct InfoMessage *msg;
 
-  if ((NULL != he->hello) &&
-  		(GNUNET_YES == GNUNET_HELLO_is_friend_only(he->hello)) &&
-  		(GNUNET_NO == nc->friend_only))
-  	return GNUNET_YES;
+	if ((NULL != he->hello) &&
+			(GNUNET_YES == GNUNET_HELLO_is_friend_only(he->hello)) &&
+			(GNUNET_NO == nc->include_friend_only))
+	{
+		/* We have a friend only hello and a client not interested, continue */
+	  return GNUNET_YES;
+	}
 
-  msg = make_info_message (he);
-  GNUNET_SERVER_notification_context_unicast (notify_list, nc->client, &msg->header,
-                                              GNUNET_NO);
+	msg = make_info_message (he);
+	GNUNET_SERVER_notification_context_unicast (notify_list,
+			nc->client,
+			&msg->header,
+			GNUNET_NO);
   GNUNET_free (msg);
   return GNUNET_YES;
 }
+
 
 /**
  * Handle NOTIFY-message.
@@ -756,21 +790,41 @@ handle_notify (void *cls, struct GNUNET_SERVER_Client *client,
                const struct GNUNET_MessageHeader *message)
 {
   struct NotifyMessage *nm = (struct NotifyMessage *) message;
-  struct NotificationContext nc;
-  int friend_only;
+  struct NotificationContext *nc;
 
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' message received\n", "NOTIFY");
 
-	nc.client = client;
-	nc.friend_only = ntohl (nm->include_friend_only);
+	nc = GNUNET_malloc (sizeof (struct NotificationContext));
+	nc->client = client;
+	nc->include_friend_only = ntohl (nm->include_friend_only);
 
+	GNUNET_CONTAINER_DLL_insert (nc_head, nc_tail, nc);
   GNUNET_SERVER_client_mark_monitor (client);
-  if (GNUNET_YES == ntohl (nm->include_friend_only))
-  	GNUNET_SERVER_notification_context_add (notify_friend_only_list, client);
-  else
-  	GNUNET_SERVER_notification_context_add (notify_list, client);
-  GNUNET_CONTAINER_multihashmap_iterate (hostmap, &do_notify_entry, &nc);
+	GNUNET_SERVER_notification_context_add (notify_list, client);
+  GNUNET_CONTAINER_multihashmap_iterate (hostmap, &do_notify_entry, nc);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * Client disconnect callback
+ *
+ * @param cls unused
+ * @param client server client
+ */
+static void disconnect_cb (void *cls,struct GNUNET_SERVER_Client *client)
+{
+	struct NotificationContext *cur;
+
+	for (cur = nc_head; NULL != cur; cur = cur->next)
+		if (cur->client == client)
+			break;
+
+	if (NULL == cur)
+		return;
+
+	GNUNET_CONTAINER_DLL_remove (nc_head, nc_tail, cur);
+	GNUNET_free (cur);
 }
 
 
@@ -802,10 +856,18 @@ free_host_entry (void *cls, const struct GNUNET_HashCode * key, void *value)
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_SERVER_notification_context_destroy (notify_list);
+	struct NotificationContext *cur;
+	struct NotificationContext *next;
+	GNUNET_SERVER_notification_context_destroy (notify_list);
   notify_list = NULL;
-  GNUNET_SERVER_notification_context_destroy (notify_friend_only_list);
-  notify_friend_only_list = NULL;
+
+	for (cur = nc_head; NULL != cur; cur = next)
+	{
+			next = cur->next;
+			GNUNET_CONTAINER_DLL_remove (nc_head, nc_tail, cur);
+			GNUNET_free (cur);
+	}
+
   GNUNET_CONTAINER_multihashmap_iterate (hostmap, &free_host_entry, NULL);
   GNUNET_CONTAINER_multihashmap_destroy (hostmap);
   if (NULL != stats)
@@ -845,7 +907,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   hostmap = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_YES);
   stats = GNUNET_STATISTICS_create ("peerinfo", cfg);
   notify_list = GNUNET_SERVER_notification_context_create (server, 0);
-  notify_friend_only_list = GNUNET_SERVER_notification_context_create (server, 0);
   noio = GNUNET_CONFIGURATION_get_value_yesno (cfg, "peerinfo", "NO_IO");
   if (GNUNET_YES != noio)
   {
@@ -873,6 +934,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_free (peerdir);
   }
   GNUNET_SERVER_add_handlers (server, handlers);
+  GNUNET_SERVER_disconnect_notify (server, &disconnect_cb, NULL) ;
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
 
