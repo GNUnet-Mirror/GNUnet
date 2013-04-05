@@ -71,6 +71,15 @@ struct NSEPeer
    */
   struct GNUNET_TESTBED_Operation *nse_op;
 
+  /**
+   * Testbed operation to connect to statistics service
+   */
+  struct GNUNET_TESTBED_Operation *stat_op;
+
+  /**
+   * Handle to the statistics service
+   */
+  struct GNUNET_STATISTICS_Handle *sh;
 };
 
 
@@ -247,11 +256,6 @@ static struct OpListEntry *oplist_head;
 static struct OpListEntry *oplist_tail;
 
 /**
- * The get stats operation
- */
-static struct GNUNET_TESTBED_Operation *get_stats_op;
-
-/**
  * Are we shutting down
  */
 static int shutting_down;
@@ -271,6 +275,8 @@ close_monitor_connections ()
   {
     if (NULL != pos->nse_op)
       GNUNET_TESTBED_operation_done (pos->nse_op);
+    if (NULL != pos->stat_op)
+      GNUNET_TESTBED_operation_done (pos->stat_op);
     GNUNET_CONTAINER_DLL_remove (peer_head, peer_tail, pos);
     GNUNET_free (pos);
   }
@@ -298,11 +304,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   shutting_down = GNUNET_YES;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending test.\n");    
   close_monitor_connections ();
-  if (NULL != get_stats_op)
-  {
-    GNUNET_TESTBED_operation_done (get_stats_op);
-    get_stats_op = NULL;
-  }
   if (NULL != data_file)
   {
     GNUNET_DISK_file_close (data_file);
@@ -405,6 +406,115 @@ nse_disconnect_adapter (void *cls,
 
 
 /**
+ * Callback function to process statistic values.
+ *
+ * @param cls struct StatsContext
+ * @param peer the peer the statistics belong to
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
+ * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ */
+static int
+stat_iterator (void *cls, const char *subsystem, const char *name,
+                     uint64_t value, int is_persistent)
+{
+  char *output_buffer;
+  struct GNUNET_TIME_Absolute now;
+  size_t size;
+  unsigned int flag;
+
+  GNUNET_assert (NULL != data_file);
+  now = GNUNET_TIME_absolute_get ();
+  flag = strcasecmp (subsystem, "core");
+  if (0 != flag)
+    flag = 1;
+  size = GNUNET_asprintf (&output_buffer, "%llu %llu %u\n",
+                          now.abs_value/1000, value, flag);
+  if (size != GNUNET_DISK_file_write (data_file, output_buffer, size))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to write to file!\n");
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Called to open a connection to the peer's statistics
+ *
+ * @param cls peer context
+ * @param cfg configuration of the peer to connect to; will be available until
+ *          GNUNET_TESTBED_operation_done() is called on the operation returned
+ *          from GNUNET_TESTBED_service_connect()
+ * @return service handle to return in 'op_result', NULL on error
+ */
+static void *
+stat_connect_adapter (void *cls,
+                      const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  struct NSEPeer *peer = cls;
+  
+  peer->sh = GNUNET_STATISTICS_create ("nse-profiler", cfg);
+  return peer->sh;
+}
+
+
+/**
+ * Called to disconnect from peer's statistics service
+ *
+ * @param cls peer context
+ * @param op_result service handle returned from the connect adapter
+ */
+static void
+stat_disconnect_adapter (void *cls, void *op_result)
+{
+  struct NSEPeer *peer = cls;
+
+  GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch_cancel
+                (peer->sh, "core", "# peers connected",
+                 stat_iterator, peer));
+  GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch_cancel
+                (peer->sh, "nse", "# peers connected",
+                 stat_iterator, peer));
+  GNUNET_STATISTICS_destroy (op_result, GNUNET_NO);
+  peer->sh = NULL;
+}
+
+
+/**
+ * Called after successfully opening a connection to a peer's statistics
+ * service; we register statistics monitoring for CORE and NSE here.
+ *
+ * @param cls the callback closure from functions generating an operation
+ * @param op the operation that has been finished
+ * @param ca_result the service handle returned from GNUNET_TESTBED_ConnectAdapter()
+ * @param emsg error message in case the operation has failed; will be NULL if
+ *          operation has executed successfully.
+ */
+static void
+stat_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
+              void *ca_result, const char *emsg )
+{
+  struct GNUNET_STATISTICS_Handle *sh = ca_result;
+  struct NSEPeer *peer = cls;
+
+  if (NULL != emsg)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch
+                (sh, "core", "# peers connected",
+                 stat_iterator, peer));
+  GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch
+                (sh, "nse", "# peers connected",
+                 stat_iterator, peer));
+}
+
+
+/**
  * Task run to connect to the NSE and statistics services to a subset of
  * all of the running peers.
  */
@@ -436,6 +546,16 @@ connect_nse_service ()
                                           &nse_connect_adapter,
                                           &nse_disconnect_adapter,
                                           current_peer);
+    if (NULL != data_file)
+      current_peer->stat_op
+          = GNUNET_TESTBED_service_connect (NULL,
+                                            current_peer->daemon,
+                                            "statistics",
+                                            stat_comp_cb,
+                                            current_peer,
+                                            &stat_connect_adapter,
+                                            &stat_disconnect_adapter,
+                                            current_peer);
     GNUNET_CONTAINER_DLL_insert (peer_head, peer_tail, current_peer);
     if (++connections == connection_limit)
       break;
@@ -455,135 +575,6 @@ next_round (void *cls,
 
 
 /**
- * Continuation called by the "get_all" and "get" functions at the
- * end of a round.  Obtains the final statistics and writes them to
- * the file, then either starts the next round, or, if this was the
- * last round, terminates the run.
- *
- * @param cls struct StatsContext
- * @param op operation handle
- * @param emsg error message, NULL on success
- */
-static void
-stats_finished_callback (void *cls,
-			 struct GNUNET_TESTBED_Operation *op,
-			 const char *emsg)
-{
-  struct StatsContext *stats_context = cls;
-  char buf[512];
-  size_t buf_len;
-
-  GNUNET_TESTBED_operation_done (get_stats_op);
-  get_stats_op = NULL;
-  if (NULL != emsg)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Failed to get statistics: %s\n",
-		  emsg);
-      GNUNET_SCHEDULER_shutdown ();
-      GNUNET_free (stats_context);
-      return;
-    }
-  LOG_DEBUG ("Finished collecting statistics\n");
-  if (NULL != data_file)
-    {
-      /* Stats lookup successful, write out data */
-      buf_len =
-	GNUNET_snprintf (buf, sizeof (buf),
-			 "TOTAL_NSE_RECEIVED_MESSAGES_%u: %u \n",
-			 current_round,
-                         stats_context->total_nse_received_messages);
-      GNUNET_DISK_file_write (data_file, buf, buf_len);
-      buf_len =
-	GNUNET_snprintf (buf, sizeof (buf),
-			 "TOTAL_NSE_TRANSMITTED_MESSAGES_%u: %u\n",
-			 current_round,
-			 stats_context->total_nse_transmitted_messages);
-      GNUNET_DISK_file_write (data_file, buf, buf_len);    
-      buf_len =
-	GNUNET_snprintf (buf, sizeof (buf),
-			 "TOTAL_NSE_CROSS_%u: %u \n",
-			 current_round,
-			 stats_context->total_nse_cross);
-      GNUNET_DISK_file_write (data_file, buf, buf_len);
-      buf_len =
-	GNUNET_snprintf (buf, sizeof (buf),
-			 "TOTAL_NSE_EXTRA_%u: %u \n",
-			 current_round,
-			 stats_context->total_nse_extra);
-      GNUNET_DISK_file_write (data_file, buf, buf_len);
-      buf_len =
-	GNUNET_snprintf (buf, sizeof (buf),
-			 "TOTAL_NSE_DISCARDED_%u: %u \n",
-			 current_round,
-			 stats_context->total_discarded);
-      GNUNET_DISK_file_write (data_file, buf, buf_len);    
-    }  
-  GNUNET_SCHEDULER_add_now (&next_round, NULL);
-  GNUNET_free (stats_context);
-}
-
-
-/**
- * Callback function to process statistic values.
- *
- * @param cls struct StatsContext
- * @param peer the peer the statistics belong to
- * @param subsystem name of subsystem that created the statistic
- * @param name the name of the datum
- * @param value the current value
- * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
- * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
- */
-static int
-statistics_iterator (void *cls, 
-		     const struct GNUNET_TESTBED_Peer *peer,
-                     const char *subsystem, const char *name, uint64_t value,
-                     int is_persistent)
-{
-  struct StatsContext *stats_context = cls;
-  char buf[512];
-  size_t buf_len;
-
-  if (0 != strcasecmp (subsystem, "nse"))
-    return GNUNET_SYSERR;
-  if (0 == strcmp (name, "# flood messages received"))
-  {
-    stats_context->total_nse_received_messages += value;
-    if ( (verbose > 1) && 
-         (NULL != data_file) )
-    {
-      buf_len =
-          GNUNET_snprintf (buf, sizeof (buf),
-                           "%p %u RECEIVED\n", 
-                           peer, value);
-      GNUNET_DISK_file_write (data_file, buf, buf_len);
-    }
-  }
-  if (0 == strcmp (name, "# flood messages transmitted"))
-  {
-    stats_context->total_nse_transmitted_messages += value;
-    if ( (verbose > 1) &&
-         (NULL != data_file) )
-    {
-      buf_len =
-          GNUNET_snprintf (buf, sizeof (buf),
-                           "%p %u TRANSMITTED\n", 
-                           peer, value);
-      GNUNET_DISK_file_write (data_file, buf, buf_len);
-    }
-  }
-  if (0 == strcmp (name, "# cross messages"))
-    stats_context->total_nse_cross += value;    
-  if (0 == strcmp (name, "# extra messages"))    
-    stats_context->total_nse_extra += value;
-  if (0 == strcmp (name, "# flood messages discarded (clock skew too large)"))
-    stats_context->total_discarded += value;    
-  return GNUNET_OK;
-}
-
-
-/**
  * We're at the end of a round.  Stop monitoring, write total
  * number of connections to log and get full stats.  Then trigger
  * the next round.
@@ -595,29 +586,11 @@ static void
 finish_round (void *cls, 
 	      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct StatsContext *stats_context;
-  char buf[1024];
-  size_t buf_len;
-
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   LOG (GNUNET_ERROR_TYPE_INFO, "Have %u connections\n", total_connections);
-  if (NULL != data_file)
-    {
-      buf_len = GNUNET_snprintf (buf, sizeof (buf),
-				 "CONNECTIONS_0: %u\n", 
-				 total_connections);
-      GNUNET_DISK_file_write (data_file, buf, buf_len);
-    }
-  close_monitor_connections ();    
-  stats_context = GNUNET_malloc (sizeof (struct StatsContext));
-  get_stats_op =
-      GNUNET_TESTBED_get_statistics (num_peers_in_round[current_round],
-                                     daemons,
-                                     "nse", NULL,
-                                     &statistics_iterator,
-                                     &stats_finished_callback,
-                                     stats_context);
+  close_monitor_connections ();
+  GNUNET_SCHEDULER_add_now (&next_round, NULL);
 }
 
 
