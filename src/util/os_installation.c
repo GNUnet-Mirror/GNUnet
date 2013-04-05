@@ -38,7 +38,10 @@
 #if DARWIN
 #include <mach-o/ldsyms.h>
 #include <mach-o/dyld.h>
+#elif WINDOWS
+#include <windows.h>
 #endif
+
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 
@@ -662,7 +665,6 @@ GNUNET_OS_check_helper_binary (const char *binary)
   char *p;
   char *pf;
 #ifdef MINGW
-  SOCKET rawsock;
   char *binaryexe;
 
   GNUNET_asprintf (&binaryexe, "%s.exe", binary);
@@ -730,33 +732,19 @@ GNUNET_OS_check_helper_binary (const char *binary)
     return GNUNET_YES;
   }
   /* binary exists, but not SUID */
+#else
+  return GNUNET_YES;
+  /* FIXME: 
+   * no suid for windows possible!
+   * permissions-checking is too specific(as in non-portable)
+   * user/group checking is pointless (users/applications can drop privileges)
+   * using token checking for elevated permissions would limit gnunet
+   * to run only on winserver 2008 and 2012!
+   * 
+   * thus, ad add "dryrun" checking */
+#endif
   GNUNET_free (p);
   return GNUNET_NO;
-#else
-  GNUNET_free (p);
-  {
-    static int once; /* remember result from previous runs... */
-
-    if (0 == once)
-    {
-      rawsock = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
-      if (INVALID_SOCKET == rawsock)
-	{
-	  DWORD err = GetLastError ();
-	  
-	  LOG (GNUNET_ERROR_TYPE_DEBUG,
-	       "socket (AF_INET, SOCK_RAW, IPPROTO_ICMP) failed! GLE = %d\n", err);
-	  once = -1;
-	  return GNUNET_NO;           /* not running as administrator */
-	}
-      once = 1;
-      closesocket (rawsock);
-    }
-    if (-1 == once)
-      return GNUNET_NO;
-    return GNUNET_YES;
-  }
-#endif
 }
 
 
