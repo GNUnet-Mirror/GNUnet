@@ -510,16 +510,22 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
   GNUNET_assert (NULL != host);
   if (NULL == host->hello)
   {
+  		GNUNET_break (0);
     host->hello = GNUNET_malloc (GNUNET_HELLO_size (hello));
     memcpy (host->hello, hello, GNUNET_HELLO_size (hello));
   }
   else
   {
+
+  	if (GNUNET_HELLO_is_friend_only (host->hello) != GNUNET_HELLO_is_friend_only (hello))
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      		"Merging public with friend only HELLO, result will be friend-only!\n");
     mrg = GNUNET_HELLO_merge (host->hello, hello);
     delta = GNUNET_HELLO_equals (mrg, host->hello, GNUNET_TIME_absolute_get ());
     if (delta.abs_value == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
     {
       /* no differences, just ignore the update */
+    	GNUNET_break (0);
       GNUNET_free (mrg);
       return;
     }

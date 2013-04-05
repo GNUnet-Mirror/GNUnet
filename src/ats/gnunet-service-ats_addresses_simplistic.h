@@ -102,8 +102,8 @@ GAS_simplistic_address_add (void *solver,
  * @param address the update address
  * @param session the new session (if changed otherwise current)
  * @param in_use the new address in use state (if changed otherwise current)
- * @param atsi the latest ATS information
- * @param atsi_count the atsi count
+ * @param prev_ats the latest ATS information
+ * @param prev_atsi_count the atsi count
  */
 void
 GAS_simplistic_address_update (void *solver,

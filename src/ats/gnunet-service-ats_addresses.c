@@ -374,12 +374,12 @@ struct GAS_Addresses_Handle
  *
  * Updates existing information and adds new information
  *
- * @param src source ATS information
- * @param ats_count number of ATS information
- * @param delta ats performance information which were updated
+ * @param dest destination address
+ * @param update source ATS information
+ * @param update_count number of ATS information
+ * @param delta_dest ats performance information which were updated
  * 				including previous value
  * @param delta_count number of ATS information in the delta
- * @param dest destination address
  * @return GNUNET_YES if address was address updated, GNUNET_NO otherwise
  */
 static unsigned int

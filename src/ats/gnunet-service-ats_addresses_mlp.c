@@ -1040,6 +1040,7 @@ GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addr
  *
  * @param solver the solver Handle
  * @param addresses the address hashmap containing all addresses
+ * @param address the address to add
  * @param network network type of this address
  */
 void
