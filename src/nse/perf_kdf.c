@@ -45,7 +45,7 @@ pow_hash (const void *buf,
 {
   GNUNET_break (0 == 
 		gcry_kdf_derive (buf, buf_len,
-				 GCRY_KDF_PBKDF2 /* FIX: use SCRYPT! */,
+				 GCRY_KDF_SCRYPT,
 				 1 /* subalgo */,
 				 "gnunet-proof-of-work", strlen ("gnunet-proof-of-work"),
 				 2 /* iterations; keep cost of individual op small */,
