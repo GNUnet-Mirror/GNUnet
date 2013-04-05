@@ -84,7 +84,7 @@ main (int argc, char **argv)
   for (i = 1; i < argcw || argcw == 1; i++)
   {
     DWORD r, w;
-    int is_dash = wcscmp (argvw[i], L"-") == 0;
+    int is_dash = wcscmp (NULL == argvw[i] ? L"-" : argvw[i], L"-") == 0;
     if (argcw == 1 || is_dash)
     {
       stdi = GetStdHandle (STD_INPUT_HANDLE);
