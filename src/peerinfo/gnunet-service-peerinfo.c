@@ -685,7 +685,7 @@ handle_hello (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "`%s' message received for peer `%4s'\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' message received for peer `%4s'\n",
               "HELLO", GNUNET_i2s (&pid));
   bind_address (&pid, hello);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
