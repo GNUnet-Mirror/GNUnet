@@ -347,7 +347,9 @@ print_peer_info (void *cls, const struct GNUNET_PeerIdentity *peer,
       tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
     return;
   }
-  friend_only = GNUNET_HELLO_is_friend_only (hello);
+  friend_only = GNUNET_NO;
+  if (NULL != hello)
+  	friend_only = GNUNET_HELLO_is_friend_only (hello);
   if ((GNUNET_YES == be_quiet) || (NULL == hello))
   {
     GNUNET_CRYPTO_hash_to_enc (&peer->hashPubKey, &enc);
@@ -407,7 +409,6 @@ print_my_uri (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   if (NULL == hello)
     return;
-
   char *uri = GNUNET_HELLO_compose_uri(hello, &GPI_plugins_find);
   if (NULL != uri) {
     printf ("%s\n", (const char *) uri);
@@ -643,7 +644,7 @@ state_machine (void *cls,
   if (GNUNET_YES == get_uri)
   {
     GPI_plugins_load (cfg);
-    pic = GNUNET_PEERINFO_iterate (peerinfo,include_friend_only, &my_peer_identity,
+    pic = GNUNET_PEERINFO_iterate (peerinfo, GNUNET_YES, &my_peer_identity,
 				   TIMEOUT, &print_my_uri, NULL);
     get_uri = GNUNET_NO;
     return;
