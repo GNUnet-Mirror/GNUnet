@@ -17,7 +17,6 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
  */
-
 /**
  * @file vpn/gnunet-helper-vpn-windows.c
  * @brief the helper for the VPN service in win32 builds. 
@@ -63,6 +62,10 @@
 #define LOG_DEBUG(msg) do {} while (0)
 #endif
 
+/**
+ * Will this binary be run in dryrun-mode? 
+ */
+static BOOL dryrun = FALSE;
 
 /**
  * Maximum size of a GNUnet message (GNUNET_SERVER_MAX_MESSAGE_SIZE)
@@ -1408,9 +1411,12 @@ run (HANDLE tap_handle)
       goto teardown;
     }
 #endif
+
+  if (dryrun)
+    goto teardown;
   
   fprintf (stderr, "DEBUG: mainloop has begun\n");
-  
+
   while (std_out.path_open || tap_write.path_open)
     {
       /* perform READ from stdin if possible */
@@ -1430,10 +1436,8 @@ run (HANDLE tap_handle)
         break;
     }
 
-teardown:
-
   fprintf (stderr, "DEBUG: teardown initiated\n");
-      
+teardown:
   CancelIo (tap_handle);
   CancelIo (std_in.handle);
   CancelIo (std_out.handle);
@@ -1449,11 +1453,12 @@ teardown_final:
  *
  * @param argc must be 6
  * @param argv 0: binary name (gnunet-helper-vpn)
- *             1: tunnel interface prefix (gnunet-vpn)
- *             2: IPv6 address (::1), "-" to disable
- *             3: IPv6 netmask length in bits (64), ignored if #2 is "-"
- *             4: IPv4 address (1.2.3.4), "-" to disable
- *             5: IPv4 netmask (255.255.0.0), ignored if #4 is "-"
+ *             [1: dryrun/testrun (does not execute mainloop)]
+ *             2: tunnel interface prefix (gnunet-vpn)
+ *             3: IPv6 address (::1), "-" to disable
+ *             4: IPv6 netmask length in bits (64), ignored if #2 is "-"
+ *             5: IPv4 address (1.2.3.4), "-" to disable
+ *             6: IPv4 netmask (255.255.0.0), ignored if #4 is "-"
  */
 int
 main (int argc, char **argv)
@@ -1463,10 +1468,17 @@ main (int argc, char **argv)
   int global_ret = 0;
   BOOL have_ip4 = FALSE;
   BOOL have_ip6 = FALSE;
-
+  
+  if (argc > 1 && 0 != strcmp (argv[1], "-d")){
+      dryrun = TRUE;
+      fprintf (stderr, "DEBUG: Running binary in dryrun mode.", argv[0]);
+      argv++;
+      argc--;
+    }
+  
   if (6 != argc)
     {
-      fprintf (stderr, "FATAL: must supply 5 arguments\nUsage:\ngnunet-helper-vpn <if name prefix> <address6 or \"-\"> <netbits6> <address4 or \"-\"> <netmask4>\n", argv[0]);
+      fprintf (stderr, "FATAL: must supply 5 arguments\nUsage:\ngnunet-helper-vpn [-d] <if name prefix> <address6 or \"-\"> <netbits6> <address4 or \"-\"> <netmask4>\n", argv[0]);
       return 1;
     }
 
@@ -1527,7 +1539,6 @@ main (int argc, char **argv)
     }
 
   run (handle);
-  global_ret = 0;
 cleanup:
 
   if (have_ip4)
