@@ -311,7 +311,7 @@ typedef void (*GNUNET_MULTICAST_MessageCallback) (void *cls,
 struct GNUNET_MULTICAST_Origin *
 GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg, 
 			       void *cls,
-			       struct GNUNET_CRYPTO_EccPrivateKey *priv_key,
+			       const struct GNUNET_CRYPTO_EccPrivateKey *priv_key,
 			       enum GNUNET_MULTICAST_JoinPolicy join_policy,
 			       GNUNET_MULITCAST_ReplayCallback replay_cb,
 			       GNUNET_MULITCAST_MembershipTestCallback test_cb,
@@ -324,6 +324,7 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *
  * @param origin handle to the multicast group
  * @param msg_body body of the message to transmit
+ * FIXME: change to notify_transmit_ready-style to wait for ACKs?
  */
 void
 GNUNET_MULTICAST_origin_send_to_all (struct GNUNET_MULTICAST_Origin *origin,
@@ -370,7 +371,7 @@ GNUNET_MULTICAST_origin_end (struct GNUNET_MULTICAST_Origin *origin);
 struct GNUNET_MULTICAST_Member *
 GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg, 
 			      void *cls,
-			      struct GNUNET_CRYPTO_EccPublicKey *pub_key,
+			      const struct GNUNET_CRYPTO_EccPublicKey *pub_key,
 			      uint64_t max_known_message_id,
 			      uint64_t max_known_state_message_id,
 			      GNUNET_MULTICAST_ReplayCallback replay_cb,
