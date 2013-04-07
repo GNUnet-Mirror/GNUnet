@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2012, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -352,6 +352,7 @@ GNUNET_MULTICAST_origin_end (struct GNUNET_MULTICAST_Origin *origin);
  * @param replay_cb function that can be called to replay messages
  *        this peer already knows from this group; NULL if this
  *        client is unable to support replay
+ * @param test_cb function multicast can use to test group membership
  * @param message_cb function to be called for all messages we 
  *        receive from the group, excluding those our replay_cb
  *        already has
@@ -367,6 +368,7 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			      uint64_t max_known_message_id,
 			      uint64_t max_known_state_message_id,
 			      GNUNET_MULTICAST_ReplayCallback replay_cb,
+			      GNUNET_MULITCAST_MembershipTestCallback test_cb,
 			      GNUNET_MULTICAST_MessageCallback message_cb);
 
 
