@@ -235,12 +235,17 @@ GNUNET_MULTICAST_replay (struct GNUNET_MULTICAST_ReplayHandle *rh,
  *
  * @param cls closure
  * @param peer identity of the peer that wants to join or leave
+ * @param join_req application-dependent join message from the new user
+ *        (might, for example, contain a user 
+ *        bind user identity/pseudonym to peer identity, application-level
+ *        message to origin, etc.)
  * @param is_joining GNUNET_YES if the peer wants to join, GNUNET_NO if the peer left
  * @return GNUNET_OK if joining is approved, GNUNET_SYSERR if it is disapproved;
  *         GNUNET_NO should be returned for peers leaving 
  */
 typedef int (*GNUNET_MULTICAST_MembershipChangeCallback)(void *cls,
 							 const struct GNUNET_PeerIdentity *peer,
+							 const struct GNUNET_MessageHeader *join_req,
 							 int is_joining);
 
 
@@ -335,7 +340,7 @@ GNUNET_MULTICAST_origin_end (struct GNUNET_MULTICAST_Origin *origin);
 
 
 /**
- * Join a multicast group.
+ * Join a multicast group.  The entity joining is always the local peer.
  *
  * @param cfg configuration to use
  * @param cls closure for callbacks
@@ -356,7 +361,8 @@ GNUNET_MULTICAST_origin_end (struct GNUNET_MULTICAST_Origin *origin);
  * @param message_cb function to be called for all messages we 
  *        receive from the group, excluding those our replay_cb
  *        already has
- * FIXME: need some argument(s) to identify the joining member (key pair to 
+ * @param join_req application-dependent join message to be passed to origin
+ *        (might, for example, contain a user 
  *        bind user identity/pseudonym to peer identity, application-level
  *        message to origin, etc.)
  * @return handle for the member, NULL on error 
@@ -369,7 +375,14 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			      uint64_t max_known_state_message_id,
 			      GNUNET_MULTICAST_ReplayCallback replay_cb,
 			      GNUNET_MULITCAST_MembershipTestCallback test_cb,
-			      GNUNET_MULTICAST_MessageCallback message_cb);
+			      GNUNET_MULTICAST_MessageCallback message_cb,
+			      const struct GNUNET_MessageHeader *join_req);
+
+
+/**
+ * Handle for a replay request.
+ */
+struct GNUNET_MULTICAST_ReplayRequest;
 
 
 /**
@@ -377,12 +390,25 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * the 'max_known_*_id's given when joining are needed and not
  * known to the client.
  *
+ * FIXME: we currently use the 'replay_cb' from the member_join call;
+ * we might alternatively add a different cb here.
+ *
  * @param member membership handle
  * @param message_id ID of a message that this client would like to see replayed
+ * @return replay request handle, NULL on error
  */
-void
+struct GNUNET_MULTICAST_ReplayRequest *
 GNUNET_MULTICAST_member_request_replay (struct GNUNET_MULTICAST_Member *member,
 					uint64_t message_id);
+
+
+/**
+ * Cancel a replay request.
+ *
+ * @param rr request to cancel
+ */
+void
+GNUNET_MULTICAST_member_request_replay_cancel (struct GNUNET_MULTICAST_ReplayRequest *rr);
 
 
 /**
@@ -392,6 +418,12 @@ GNUNET_MULTICAST_member_request_replay (struct GNUNET_MULTICAST_Member *member,
  */
 void
 GNUNET_MULTICAST_member_leave (struct GNUNET_MULTICAST_Member *member);
+
+
+/**
+ * Handle for a message to be delivered to the origin.
+ */
+struct GNUNET_MULTICAST_ResponseRequest;
 
 
 /**
