@@ -414,7 +414,6 @@ nse_disconnect_adapter (void *cls,
  * Callback function to process statistic values.
  *
  * @param cls struct StatsContext
- * @param peer the peer the statistics belong to
  * @param subsystem name of subsystem that created the statistic
  * @param name the name of the datum
  * @param value the current value

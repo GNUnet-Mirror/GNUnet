@@ -815,6 +815,9 @@ update_config_sections (void *cls,
  *
  * @param system system to use to coordinate resource usage
  * @param cfg template configuration to update
+ * @param ports array with port numbers used in the created configuration.
+ *          Will be updated upon successful return.  Can be NULL
+ * @param nports the size of the `ports' array.  Will be updated.
  * @return GNUNET_OK on success, GNUNET_SYSERR on error - the configuration will
  *           be incomplete and should not be used there upon
  */
