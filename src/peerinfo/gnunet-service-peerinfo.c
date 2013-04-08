@@ -524,7 +524,6 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
     if (delta.abs_value == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
     {
       /* no differences, just ignore the update */
-    	GNUNET_break (0);
       GNUNET_free (mrg);
       return;
     }
