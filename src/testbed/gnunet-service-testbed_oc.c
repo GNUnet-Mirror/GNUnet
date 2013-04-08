@@ -942,7 +942,6 @@ occ_cache_get_handle_core_cb (void *cls, struct GNUNET_CORE_Handle *ch,
                                       occ->peer->details.local.cfg,
                                       p1_transport_connect_cache_callback, occ,
                                       NULL, NULL, NULL);
-  return;
 }
 
 
@@ -998,13 +997,12 @@ registeredhost_registration_completion (void *cls, const char *emsg)
   const struct GNUNET_CONFIGURATION_Handle *cfg;
   uint32_t peer2_host_id;
 
-  /* if (NULL != rhc->focc_dll_head) */
-  /*   TESTBED_process_next_focc (rhc); */
   peer2_host_id = GNUNET_TESTBED_host_get_id_ (rhc->reg_host);
   GNUNET_assert (RHC_INIT == rhc->state);
   GNUNET_assert (NULL == rhc->sub_op);
-  if ((NULL == rhc->gateway2) || ((peer2_host_id < GST_host_list_size) /* Check if we have the needed config */
-                                  && (NULL != GST_host_list[peer2_host_id])))
+  if ((NULL == rhc->gateway2) || 
+      ( (peer2_host_id < GST_host_list_size) /* Check if we have the needed config */
+        && (NULL != GST_host_list[peer2_host_id]) )  )
   {
     rhc->state = RHC_LINK;
     cfg =
@@ -1233,6 +1231,7 @@ GST_handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
     if ((peer2_host_id >= GST_slave_list_size) ||
         (NULL == GST_slave_list[peer2_host_id]))
     {
+      GNUNET_break (0);
       LOG (GNUNET_ERROR_TYPE_WARNING,
            "0x%llx: Configuration of peer2's controller missing for connecting peers"
            "%u and %u\n", operation_id, p1, p2);

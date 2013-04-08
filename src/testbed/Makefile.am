@@ -30,8 +30,9 @@ bin_PROGRAMS = \
   gnunet-testbed-profiler
 
 gnunet_service_testbed_SOURCES = \
-  gnunet-service-testbed.c \
   gnunet-service-testbed.h \
+  gnunet-service-testbed.c \
+  gnunet-service-testbed_peers.c \
   gnunet-service-testbed_cache.c \
   gnunet-service-testbed_oc.c \
   gnunet-service-testbed_cpustatus.c

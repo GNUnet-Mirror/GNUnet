@@ -600,6 +600,25 @@ struct LCFContextQueue
 
 
 /**
+ * Context data for GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS handler
+ */
+struct HandlerContext_ShutdownPeers
+{
+  /**
+   * The number of slave we expect to hear from since we forwarded the
+   * GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS message to them
+   */
+  unsigned int nslaves;
+
+  /**
+   * Did we observe a timeout with respect to this operation at any of the
+   * slaves
+   */
+  int timeout;
+};
+
+
+/**
  * Our configuration
  */
 struct GNUNET_CONFIGURATION_Handle *our_config;
@@ -666,6 +685,30 @@ extern char *GST_stats_dir;
 
 
 /**
+ * Similar to GNUNET_array_grow(); however instead of calling GNUNET_array_grow()
+ * several times we call it only once. The array is also made to grow in steps
+ * of LIST_GROW_STEP.
+ *
+ * @param ptr the array pointer to grow
+ * @param size the size of array
+ * @param accommodate_size the size which the array has to accommdate; after
+ *          this call the array will be big enough to accommdate sizes upto
+ *          accommodate_size
+ */
+#define GST_array_grow_large_enough(ptr, size, accommodate_size) \
+  do                                                                    \
+  {                                                                     \
+    unsigned int growth_size;                                           \
+    GNUNET_assert (size <= accommodate_size);                            \
+    growth_size = size;                                                 \
+    while (growth_size <= accommodate_size)                             \
+      growth_size += LIST_GROW_STEP;                                    \
+    GNUNET_array_grow (ptr, size, growth_size);                         \
+    GNUNET_assert (size > accommodate_size);                            \
+  } while (0)
+
+
+/**
  * Queues a message in send queue for sending to the service
  *
  * @param client the client to whom the queued message has to be sent
@@ -683,6 +726,13 @@ GST_queue_message (struct GNUNET_SERVER_Client *client,
  */
 void
 GST_destroy_peer (struct Peer *peer);
+
+
+/**
+ * Stops and destroys all peers
+ */
+void
+GST_destroy_peers ();
 
 
 /**
@@ -747,6 +797,13 @@ GST_forwarded_operation_timeout (void *cls,
 
 
 /**
+ * Clears the forwarded operations queue
+ */
+void
+GST_clear_fopcq ();
+
+
+/**
  * Send operation failure message to client
  *
  * @param client the client to which the failure message has to be sent to
@@ -756,6 +813,17 @@ GST_forwarded_operation_timeout (void *cls,
 void
 GST_send_operation_fail_msg (struct GNUNET_SERVER_Client *client,
                              uint64_t operation_id, const char *emsg);
+
+
+/**
+ * Function to send generic operation success message to given client
+ *
+ * @param client the client to send the message to
+ * @param operation_id the id of the operation which was successful
+ */
+void
+GST_send_operation_success_msg (struct GNUNET_SERVER_Client *client,
+                                uint64_t operation_id);
 
 
 /**
@@ -769,6 +837,97 @@ void
 GST_handle_remote_overlay_connect (void *cls,
                                    struct GNUNET_SERVER_Client *client,
                                    const struct GNUNET_MessageHeader *message);
+
+
+/**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_CREATEPEER messages
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+void
+GST_handle_peer_create (void *cls, struct GNUNET_SERVER_Client *client,
+                        const struct GNUNET_MessageHeader *message);
+
+
+/**
+ * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER messages
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+void
+GST_handle_peer_destroy (void *cls, struct GNUNET_SERVER_Client *client,
+                         const struct GNUNET_MessageHeader *message);
+
+
+/**
+ * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER messages
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+void
+GST_handle_peer_start (void *cls, struct GNUNET_SERVER_Client *client,
+                       const struct GNUNET_MessageHeader *message);
+
+
+/**
+ * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER messages
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+void
+GST_handle_peer_stop (void *cls, struct GNUNET_SERVER_Client *client,
+                      const struct GNUNET_MessageHeader *message);
+
+
+/**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_GETPEERCONFIG messages
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+void
+GST_handle_peer_get_config (void *cls, struct GNUNET_SERVER_Client *client,
+                            const struct GNUNET_MessageHeader *message);
+
+
+/**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS messages
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+void
+GST_handle_shutdown_peers (void *cls, struct GNUNET_SERVER_Client *client,
+                           const struct GNUNET_MessageHeader *message);
+
+
+/**
+ * Handler for GNUNET_TESTBED_ManagePeerServiceMessage message
+ *
+ * @param cls NULL
+ * @param client identification of client
+ * @param message the actual message
+ */
+void
+GST_handle_manage_peer_service (void *cls, struct GNUNET_SERVER_Client *client,
+                                const struct GNUNET_MessageHeader *message);
+
+
+/**
+ * Frees the ManageServiceContext queue
+ */
+void
+GST_free_mctxq ();
 
 
 /**
