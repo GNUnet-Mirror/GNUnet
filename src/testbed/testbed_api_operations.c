@@ -111,6 +111,28 @@ enum OperationState
 
 
 /**
+ * An entry in the ready queue (implemented as DLL)
+ */
+struct ReadyQueueEntry
+{
+  /**
+   * next ptr for DLL
+   */
+  struct ReadyQueueEntry *next;
+  
+  /**
+   * prev ptr for DLL
+   */
+  struct ReadyQueueEntry *prev;
+
+  /**
+   * The operation associated with this entry
+   */
+  struct GNUNET_TESTBED_Operation *op;
+};
+
+
+/**
  * Opaque handle to an abstract operation to be executed by the testing framework.
  */
 struct GNUNET_TESTBED_Operation
@@ -137,15 +159,16 @@ struct GNUNET_TESTBED_Operation
   struct OperationQueue **queues;
 
   /**
-   * Array of number resources an operation need from each queue. This numbers
+   * Array of number of resources an operation need from each queue. The numbers
    * in this array should correspond to the queues array
    */
   unsigned int *nres;
 
   /**
-   * The id of the task which calls OperationStart for this operation
+   * Entry corresponding to this operation in ready queue.  Will be NULL if the
+   * operation is not marked as READY
    */
-  GNUNET_SCHEDULER_TaskIdentifier start_task_id;
+  struct ReadyQueueEntry *rq_entry;
 
   /**
    * Number of queues in the operation queues array
@@ -159,22 +182,86 @@ struct GNUNET_TESTBED_Operation
 
 };
 
+/**
+ * DLL head for the ready queue
+ */
+struct ReadyQueueEntry *rq_head;
 
 /**
- * Task for calling OperationStart on operation
+ * DLL tail for the ready queue
+ */
+struct ReadyQueueEntry *rq_tail;
+
+/**
+ * The id of the task to process the ready queue
+ */
+GNUNET_SCHEDULER_TaskIdentifier process_rq_task_id;
+
+
+/**
+ * Removes an operation from the ready queue.  Also stops the 'process_rq_task'
+ * if the given operation is the last one in the queue.
  *
- * @param cls the Operation
- * @param tc the TaskContext from scheduler
+ * @param op the operation to be removed
  */
 static void
-call_start (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct GNUNET_TESTBED_Operation *op = cls;
+rq_remove (struct GNUNET_TESTBED_Operation *op)
+{  
+  GNUNET_assert (NULL != op->rq_entry);
+  GNUNET_CONTAINER_DLL_remove (rq_head, rq_tail, op->rq_entry);
+  GNUNET_free (op->rq_entry);
+  op->rq_entry = NULL;
+  if ( (NULL == rq_head) && (GNUNET_SCHEDULER_NO_TASK != process_rq_task_id) )
+  {
+    GNUNET_SCHEDULER_cancel (process_rq_task_id);
+    process_rq_task_id = GNUNET_SCHEDULER_NO_TASK;
+  }
+}
 
-  op->start_task_id = GNUNET_SCHEDULER_NO_TASK;
+
+/**
+ * Processes the ready queue by calling the operation start callback of the
+ * operation at the head.  The operation is then removed from the queue.  The
+ * task is scheduled to run again immediately until no more operations are in
+ * the ready queue.
+ *
+ * @param cls NULL
+ * @param tc scheduler task context.  Not used.
+ */
+static void
+process_rq_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_TESTBED_Operation *op;
+
+  process_rq_task_id = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_assert (NULL != rq_head);
+  GNUNET_assert (NULL != (op = rq_head->op));
+  rq_remove (op);
+  if (NULL != rq_head)
+    process_rq_task_id = GNUNET_SCHEDULER_add_now (&process_rq_task, NULL);
   op->state = OP_STATE_STARTED;
   if (NULL != op->start)
-    op->start (op->cb_cls);
+    op->start (op->cb_cls);  
+}
+
+
+/**
+ * Adds the operation to the ready queue and starts the 'process_rq_task'
+ *
+ * @param op the operation to be queued
+ */
+static void
+rq_add (struct GNUNET_TESTBED_Operation *op)
+{
+  struct ReadyQueueEntry *rq_entry;
+
+  GNUNET_assert (NULL == op->rq_entry);
+  rq_entry = GNUNET_malloc (sizeof (struct ReadyQueueEntry));
+  rq_entry->op = op;
+  GNUNET_CONTAINER_DLL_insert_tail (rq_head, rq_tail, rq_entry);
+  op->rq_entry = rq_entry;
+  if (GNUNET_SCHEDULER_NO_TASK == process_rq_task_id)
+    process_rq_task_id = GNUNET_SCHEDULER_add_now (&process_rq_task, NULL);
 }
 
 
@@ -188,7 +275,7 @@ check_readiness (struct GNUNET_TESTBED_Operation *op)
 {
   unsigned int i;
 
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == op->start_task_id);
+  GNUNET_assert (NULL == op->rq_entry);
   for (i = 0; i < op->nqueues; i++)
   {
     GNUNET_assert (0 < op->nres[i]);
@@ -198,7 +285,7 @@ check_readiness (struct GNUNET_TESTBED_Operation *op)
   for (i = 0; i < op->nqueues; i++)
     op->queues[i]->active += op->nres[i];
   op->state = OP_STATE_READY;
-  op->start_task_id = GNUNET_SCHEDULER_add_now (&call_start, op);
+  rq_add (op);
 }
 
 
@@ -213,9 +300,7 @@ defer (struct GNUNET_TESTBED_Operation *op)
   unsigned int i;
 
   GNUNET_assert (OP_STATE_READY == op->state);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != op->start_task_id);
-  GNUNET_SCHEDULER_cancel (op->start_task_id);
-  op->start_task_id = GNUNET_SCHEDULER_NO_TASK;
+  rq_remove (op);
   for (i = 0; i < op->nqueues; i++)
     op->queues[i]->active--;
   op->state = OP_STATE_WAITING;
@@ -241,7 +326,6 @@ GNUNET_TESTBED_operation_create_ (void *cls, OperationStart start,
   op->state = OP_STATE_INIT;
   op->release = release;
   op->cb_cls = cls;
-  op->start_task_id = GNUNET_SCHEDULER_NO_TASK;
   return op;
 }
 
@@ -311,9 +395,6 @@ GNUNET_TESTBED_operation_queue_reset_max_active_ (struct OperationQueue *queue,
   struct QueueEntry *entry;
 
   queue->max_active = max_active;
-  /* if (queue->active >= queue->max_active) */
-  /*   return; */
-
   entry = queue->head;
   while ((queue->active > queue->max_active) && (NULL != entry))
   {
@@ -396,7 +477,7 @@ void
 GNUNET_TESTBED_operation_begin_wait_ (struct GNUNET_TESTBED_Operation
                                       *operation)
 {
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == operation->start_task_id);
+  GNUNET_assert (NULL == operation->rq_entry);
   operation->state = OP_STATE_WAITING;
   check_readiness (operation);
 }
@@ -459,11 +540,8 @@ GNUNET_TESTBED_operation_release_ (struct GNUNET_TESTBED_Operation *operation)
 {
   unsigned int i;
 
-  if (GNUNET_SCHEDULER_NO_TASK != operation->start_task_id)
-  {
-    GNUNET_SCHEDULER_cancel (operation->start_task_id);
-    operation->start_task_id = GNUNET_SCHEDULER_NO_TASK;
-  }
+  if (OP_STATE_READY == operation->state)
+    rq_remove (operation);
   for (i = 0; i < operation->nqueues; i++)
     GNUNET_TESTBED_operation_queue_remove_ (operation->queues[i], operation);
   GNUNET_free (operation->queues);
