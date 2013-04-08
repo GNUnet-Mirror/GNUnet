@@ -65,6 +65,11 @@ struct HostEntry
    */
   struct GNUNET_HELLO_Message *hello;
 
+  /**
+   * Friend only hello for the peer (can be NULL)
+   */
+  struct GNUNET_HELLO_Message *friend_only_hello;
+
 };
 
 /**
