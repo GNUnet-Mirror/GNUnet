@@ -382,6 +382,9 @@ GAS_mlp_address_add (void *solver,
  * If the address did not exist before in the problem:
  * The MLP problem has to be recreated and the problem has to be resolved
  *
+ * ATS performance information in address are already updated, delta + previous
+ * values are included in atsi_prev (value GNUNET_ATS_VALUE_UNDEFINED if not existing before)
+ *
  * Otherwise the addresses' values can be updated and the existing base can
  * be reused
  *
@@ -390,8 +393,8 @@ GAS_mlp_address_add (void *solver,
  * @param address the update address
  * @param session the new session (if changed otherwise current)
  * @param in_use the new address in use state (if changed otherwise current)
- * @param atsi the latest ATS information
- * @param atsi_count the atsi count
+ * @param atsi_prev ATS information updated + previous values, GNUNET_ATS_VALUE_UNDEFINED if not existing before
+ * @param atsi_count_prev number of atsi values updated
  */
 void
 GAS_mlp_address_update (void *solver,
@@ -399,8 +402,8 @@ GAS_mlp_address_update (void *solver,
                         struct ATS_Address *address,
                         uint32_t session,
                         int in_use,
-                        const struct GNUNET_ATS_Information *atsi,
-                        uint32_t atsi_count);
+                        const struct GNUNET_ATS_Information *atsi_prev,
+                        uint32_t atsi_count_prev);
 
 
 /**
