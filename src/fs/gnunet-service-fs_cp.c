@@ -347,6 +347,13 @@ GSF_update_peer_latency_ (const struct GNUNET_PeerIdentity *id,
   struct GSF_ConnectedPeer *cp;
 
   cp = GSF_peer_get_ (id);
+
+  if (NULL == cp)
+  {
+  		GNUNET_break (0);
+  		return;
+  }
+
   GNUNET_LOAD_value_set_decline (cp->ppd.transmission_delay, latency);
   /* LATER: merge atsi into cp's performance data (if we ever care...) */
 }
