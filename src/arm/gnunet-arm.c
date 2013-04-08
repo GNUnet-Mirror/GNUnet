@@ -189,6 +189,12 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+/**
+ * Returns a string interpretation of 'rs'
+ *
+ * @param rs the request status from ARM
+ * @return a string interpretation of the request status
+ */
 static const char *
 req_string (enum GNUNET_ARM_RequestStatus rs)
 {
@@ -210,6 +216,13 @@ req_string (enum GNUNET_ARM_RequestStatus rs)
   return _("Unknown request status");
 }
 
+
+/**
+ * Returns a string interpretation of the 'result'
+ *
+ * @param result the arm result
+ * @return a string interpretation
+ */
 static const char *
 ret_string (enum GNUNET_ARM_Result result)
 {
