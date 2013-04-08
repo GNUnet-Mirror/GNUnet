@@ -3,7 +3,7 @@
 #endif
 
 if HAVE_EXPERIMENTAL
- EXP_DIR = chat consensus dv sysmon
+ EXP_DIR = chat consensus dv 
 endif
 
 if LINUX

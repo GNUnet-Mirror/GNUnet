@@ -427,22 +427,6 @@ else
 	CFLAGS="$CFLAGS $GLIB_CFLAGS"
 fi
 
-#libgtop
-PKG_CHECK_MODULES(LIBGTOP,libgtop-2.0,  [gtop=true] , [gtop=false] )
-if test x$gtop = xfalse
-then
-	AM_CONDITIONAL(HAVE_LIBGTOP, false)
-	AC_MSG_WARN([GNUnet requires libgtop])
-else
-	AM_CONDITIONAL(HAVE_LIBGTOP, true)
-	AC_DEFINE([HAVE_LIBGTOP],[1],[Have libgtop])
-	LIBS="$LIBS $LIBGTOP_LIBS"
-	CFLAGS="$CFLAGS $LIBGTOP_CFLAGS"
-fi
-
-
-
-
 AC_CHECK_HEADERS([nss.h],[nss=true],[nss=false])
 if test x$nss = xfalse
 then
@@ -1262,8 +1246,6 @@ src/regex/Makefile
 src/statistics/Makefile
 src/statistics/statistics.conf
 src/stream/Makefile
-src/sysmon/Makefile
-src/sysmon/sysmon.conf
 src/template/Makefile
 src/testbed/Makefile
 src/testbed/testbed.conf
