@@ -44,7 +44,7 @@ else:
 
 #definitions
 testname = "test_integration_clique_nat"
-verbose = True
+verbose = False
 check_timeout = 180
 
 
