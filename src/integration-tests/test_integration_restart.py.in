@@ -61,17 +61,17 @@ def cleanup ():
         retries -= 1
     if (os.path.exists(path)):
         test.p ("Failed to remove " + path) 
-    
+        
     
     retries = 10
-    path = os.path.join (tmp, "c_no_nat_client")    
-    test.p ("Removing " + path)    
+    path = os.path.join (tmp, "c_no_nat_client")  
+    test.p ("Removing " + path)      
     while ((os.path.exists(path)) and (retries > 0)):
         shutil.rmtree ((path), False)
         time.sleep (1)
         retries -= 1
     if (os.path.exists(path)):
-        test.p ("Failed to remove " + path)   
+        test.p ("Failed to remove " + path) 
 
 def success_restart_cont (check):
 	global success 
