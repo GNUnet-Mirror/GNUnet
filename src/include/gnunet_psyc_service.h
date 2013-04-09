@@ -283,7 +283,7 @@ typedef int (*GNUNET_PSYC_Method)(void *cls,
  * we would provide the following method descriptor:
  * <pre>
  * .method_name = "log";
- * .method = &wrap_logger;
+ * .method = wrap_logger;
  * .method_cls = stderr;
  * .argc = 2;
  * .argv = { GNUNET_PSYC_AD_UINT32, GNUNET_PSYC_AD_UTF8 };
