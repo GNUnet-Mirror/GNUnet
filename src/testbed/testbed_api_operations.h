@@ -127,21 +127,6 @@ GNUNET_TESTBED_operation_begin_wait_ (struct GNUNET_TESTBED_Operation *op);
 
 
 /**
- * Remove an operation from a queue.  This can be because the
- * oeration was active and has completed (and the resources have
- * been released), or because the operation was cancelled and
- * thus scheduling the operation is no longer required.
- *
- * @param queue queue to add the operation to
- * @param op operation to add to the queue
- */
-void
-GNUNET_TESTBED_operation_queue_remove_ (struct OperationQueue *queue,
-                                        struct GNUNET_TESTBED_Operation *op);
-
-
-
-/**
  * Function to call to start an operation once all
  * queues the operation is part of declare that the
  * operation can be activated.

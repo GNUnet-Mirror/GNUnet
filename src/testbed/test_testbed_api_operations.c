@@ -60,7 +60,7 @@ struct GNUNET_TESTBED_Operation *op2;
  * This operation should go into both queues and should consume 2 units of
  * resources on both queues. Since op2 needs a resource from both queues and is
  * queues before this operation, it will be blocked until op2 is released even
- * though q1 has
+ * though q1 has enough free resources
  */
 struct GNUNET_TESTBED_Operation *op3;
 
