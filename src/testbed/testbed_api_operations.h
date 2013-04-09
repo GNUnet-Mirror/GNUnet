@@ -89,14 +89,14 @@ GNUNET_TESTBED_operation_queue_reset_max_active_ (struct OperationQueue *queue,
  * waiting for the operation to become active.
  *
  * @param queue queue to add the operation to
- * @param operation operation to add to the queue
+ * @param op operation to add to the queue
  * @param nres the number of units of the resources of queue needed by the
  *          operation. Should be greater than 0.
  */
 void
 GNUNET_TESTBED_operation_queue_insert2_ (struct OperationQueue *queue,
-                                         struct GNUNET_TESTBED_Operation
-                                         *operation, unsigned int nres);
+                                         struct GNUNET_TESTBED_Operation *op,
+                                         unsigned int nres);
 
 
 /**
@@ -106,12 +106,11 @@ GNUNET_TESTBED_operation_queue_insert2_ (struct OperationQueue *queue,
  * waiting for the operation to become active.
  *
  * @param queue queue to add the operation to
- * @param operation operation to add to the queue
+ * @param op operation to add to the queue
  */
 void
 GNUNET_TESTBED_operation_queue_insert_ (struct OperationQueue *queue,
-                                        struct GNUNET_TESTBED_Operation
-                                        *operation);
+                                        struct GNUNET_TESTBED_Operation *op);
 
 
 /**
@@ -121,11 +120,10 @@ GNUNET_TESTBED_operation_queue_insert_ (struct OperationQueue *queue,
  * insertions to be made without having the first one instantly trigger the
  * operation if the first queue has sufficient resources).
  *
- * @param operation the operation to marks as waiting
+ * @param op the operation to marks as waiting
  */
 void
-GNUNET_TESTBED_operation_begin_wait_ (struct GNUNET_TESTBED_Operation
-                                      *operation);
+GNUNET_TESTBED_operation_begin_wait_ (struct GNUNET_TESTBED_Operation *op);
 
 
 /**
@@ -135,12 +133,11 @@ GNUNET_TESTBED_operation_begin_wait_ (struct GNUNET_TESTBED_Operation
  * thus scheduling the operation is no longer required.
  *
  * @param queue queue to add the operation to
- * @param operation operation to add to the queue
+ * @param op operation to add to the queue
  */
 void
 GNUNET_TESTBED_operation_queue_remove_ (struct OperationQueue *queue,
-                                        struct GNUNET_TESTBED_Operation
-                                        *operation);
+                                        struct GNUNET_TESTBED_Operation *op);
 
 
 
@@ -187,10 +184,10 @@ GNUNET_TESTBED_operation_create_ (void *cls, OperationStart start,
  * An operation is 'done' (was cancelled or finished); remove
  * it from the queues and release associated resources.
  *
- * @param operation operation that finished
+ * @param op operation that finished
  */
 void
-GNUNET_TESTBED_operation_release_ (struct GNUNET_TESTBED_Operation *operation);
+GNUNET_TESTBED_operation_release_ (struct GNUNET_TESTBED_Operation *op);
 
 
 #endif
