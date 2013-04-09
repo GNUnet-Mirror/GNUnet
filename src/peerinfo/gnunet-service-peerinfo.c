@@ -144,7 +144,7 @@ static struct GNUNET_CONTAINER_MultiHashMap *hostmap;
 static struct GNUNET_SERVER_NotificationContext *notify_list;
 
 /**
- * Directory where the hellos are stored in (data/hosts)
+ * Directory where the hellos are stored in (peerinfo/)
  */
 static char *networkIdDirectory;
 
@@ -330,6 +330,7 @@ read_host_file (const char *fn, int unlink_garbage, struct ReadHostFileContext *
     return;
 
   size_total = GNUNET_DISK_fn_read (fn, buffer, sizeof (buffer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Read %u bytes from `%s'\n", size_total, fn);
   if (size_total < sizeof (struct GNUNET_MessageHeader))
   {
 	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -341,17 +342,25 @@ read_host_file (const char *fn, int unlink_garbage, struct ReadHostFileContext *
   }
 
   hello_1st = (const struct GNUNET_HELLO_Message *) buffer;
-  size_1st = ntohs (((const struct GNUNET_MessageHeader *) hello_1st)->size);
-  if ((size_1st < sizeof (struct GNUNET_MessageHeader)) ||
-  		(size_1st != GNUNET_HELLO_size (hello_1st)))
+  size_1st = ntohs (((struct GNUNET_MessageHeader *) &buffer)->size);
+  if (size_1st < sizeof (struct GNUNET_MessageHeader))
   {
 	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-									_("Failed to parse HELLO in file `%s': %s\n"),
-									fn, "1nd HELLO has wrong size");
+									_("Failed to parse HELLO in file `%s': %s %u \n"),
+									fn, "1st HELLO has invalid size of ", size_1st);
     if ((GNUNET_YES == unlink_garbage) && (0 != UNLINK (fn)))
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
     return;
   }
+	if (size_1st != GNUNET_HELLO_size (hello_1st))
+	{
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+								_("Failed to parse HELLO in file `%s': %s \n"),
+								fn, "1st HELLO is invalid");
+    if ((GNUNET_YES == unlink_garbage) && (0 != UNLINK (fn)))
+    	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
+    return;
+	}
 
   if (size_total > size_1st)
   {
@@ -412,7 +421,7 @@ read_host_file (const char *fn, int unlink_garbage, struct ReadHostFileContext *
   	      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
   	  }
 
-  	  if (GNUNET_NO == GNUNET_HELLO_is_friend_only(hello_clean_2nd))
+  	  if (GNUNET_NO == GNUNET_HELLO_is_friend_only (hello_clean_2nd))
   	  	r->hello = hello_clean_2nd;
   	  else
   	  	r->friend_only_hello = hello_clean_2nd;
@@ -441,12 +450,13 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
   entry->identity = *identity;
   GNUNET_CONTAINER_multihashmap_put (hostmap, &entry->identity.hashPubKey, entry,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+
   fn = get_host_filename (identity);
   if (NULL != fn)
   {
     read_host_file (fn, GNUNET_YES, &r);
     entry->hello = r.hello;
-    entry->hello = r.friend_only_hello;
+    entry->friend_only_hello = r.friend_only_hello;
     GNUNET_free (fn);
   }
   notify_all (entry);
@@ -515,31 +525,35 @@ hosts_directory_scan_callback (void *cls, const char *fullname)
 
   if (GNUNET_YES != GNUNET_DISK_file_test (fullname))
     return GNUNET_OK;           /* ignore non-files */
-  if (strlen (fullname) < sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded))
-  {
-    if (GNUNET_YES == dsc->remove_files)
-      remove_garbage (fullname);
-    return GNUNET_OK;
-  }
-  filename =
-      &fullname[strlen (fullname) -
-                sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 1];
-  if (DIR_SEPARATOR != filename[-1])
-  {
-    if (GNUNET_YES == dsc->remove_files)
-      remove_garbage (fullname);
-    return GNUNET_OK;
-  }
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_hash_from_string (filename, &identity.hashPubKey))
+
+  filename = fullname;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Reading `%s'\n", filename);
+
+  if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (filename, &identity.hashPubKey))
   {
     /* odd filename, but might still be valid, try getting identity from HELLO */
   	read_host_file (filename, dsc->remove_files, &r);
-  	if ( ((NULL != r.hello) &&
-  				(GNUNET_OK == GNUNET_HELLO_get_id (r.hello, &id_public))) ||
-  			 ((NULL != r.friend_only_hello) &&
-  				(GNUNET_OK == GNUNET_HELLO_get_id (r.friend_only_hello, &id_friend))) )
+  	if ( (NULL != r.hello)|| (NULL != r.friend_only_hello) )
   	{
+			if (NULL != r.friend_only_hello)
+			{
+				if (GNUNET_OK != GNUNET_HELLO_get_id (r.friend_only_hello, &id_friend))
+					if (GNUNET_YES == dsc->remove_files)
+					{
+						remove_garbage (fullname);
+						return GNUNET_OK;
+					}
+			}
+			if (NULL != r.hello)
+			{
+				if (GNUNET_OK != GNUNET_HELLO_get_id (r.hello, &id_public))
+					if (GNUNET_YES == dsc->remove_files)
+					{
+						remove_garbage (fullname);
+						return GNUNET_OK;
+					}
+			}
+
 			if ( (NULL != r.hello) && (NULL != r.friend_only_hello) &&
 					(0 != memcmp (&id_friend, &id_public, sizeof (id_friend))) )
 			{
@@ -556,10 +570,13 @@ hosts_directory_scan_callback (void *cls, const char *fullname)
       GNUNET_CONTAINER_multihashmap_put (hostmap, &entry->identity.hashPubKey, entry,
 					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
       entry->hello = r.hello;
-			entry->hello = r.friend_only_hello;
+			entry->friend_only_hello = r.friend_only_hello;
 			notify_all (entry);
 			dsc->matched++;
-
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found %s %s HELLO for peer `%s'\n",
+					(NULL != r.hello) ? "public" : "",
+					(NULL != r.friend_only_hello) ? "friend-only" : "",
+					GNUNET_i2s (&entry->identity));
       return GNUNET_OK;   
     }
     if (GNUNET_YES == dsc->remove_files)
@@ -657,7 +674,11 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
   add_host_to_known_hosts (peer);
   host = GNUNET_CONTAINER_multihashmap_get (hostmap, &peer->hashPubKey);
   GNUNET_assert (NULL != host);
+
   friend_hello_type = GNUNET_HELLO_is_friend_only (hello);
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %s HELLO for `%s'\n",
+			(GNUNET_YES == friend_hello_type) ? "friend-only" : "public",
+			GNUNET_i2s (peer));
 
   dest = NULL;
   if (GNUNET_YES == friend_hello_type)
@@ -691,6 +712,11 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
   if ((NULL != (host->hello)) && (GNUNET_NO == friend_hello_type))
   		host->friend_only_hello = update_friend_hello (host->hello,  host->friend_only_hello);
 
+  if (NULL != host->hello)
+  	GNUNET_assert ((GNUNET_NO == GNUNET_HELLO_is_friend_only (host->hello)));
+  if (NULL != host->friend_only_hello)
+    	GNUNET_assert ((GNUNET_YES == GNUNET_HELLO_is_friend_only(host->friend_only_hello)));
+
 	fn = get_host_filename (peer);
 	if ( (NULL != fn) &&
 			 (GNUNET_OK == GNUNET_DISK_directory_create_for_file (fn)) )
@@ -704,7 +730,6 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
 									GNUNET_NO, &count_addresses, &cnt);
 			if (cnt > 0)
 			{
-				GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Store HELLO in `%s'\n", fn);
 				store_hello = GNUNET_YES;
 				size += GNUNET_HELLO_size (host->hello);
 			}
@@ -712,9 +737,8 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
 			if (NULL != host->friend_only_hello)
 				(void) GNUNET_HELLO_iterate_addresses (host->friend_only_hello, GNUNET_NO,
 										&count_addresses, &cnt);
-			if (0 <= cnt)
+			if (0 < cnt)
 			{
-				GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Store Friend HELLO in %s\n", fn);
 				store_friend_hello = GNUNET_YES;
 				size += GNUNET_HELLO_size (host->friend_only_hello);
 			}
@@ -748,7 +772,11 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
 					GNUNET_DISK_PERM_GROUP_READ |
 					GNUNET_DISK_PERM_OTHER_READ))
 					GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "write", fn);
-
+				else
+					GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stored %s %s HELLO in %s  with total size %u\n",
+							(GNUNET_YES == store_friend_hello) ? "friend-only": "",
+							(GNUNET_YES == store_hello) ? "public": "",
+							fn, size);
 				GNUNET_free (buffer);
 			}
   }
@@ -1135,22 +1163,28 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 							    "HOSTS",
 							    &networkIdDirectory));
     GNUNET_DISK_directory_create (networkIdDirectory);
+
     GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
 					&cron_scan_directory_data_hosts, NULL); /* CHECK */
-    GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
-					&cron_clean_data_hosts, NULL); /* CHECK */
+
+//    GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
+//					&cron_clean_data_hosts, NULL); /* CHECK */
+
     ip = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
     GNUNET_asprintf (&peerdir,
 		     "%shellos",
 		     ip);
     GNUNET_free (ip);
+
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		_("Importing HELLOs from `%s'\n"),
 		peerdir);
     dsc.matched = 0;
     dsc.remove_files = GNUNET_NO;
+
     GNUNET_DISK_directory_scan (peerdir,
 				&hosts_directory_scan_callback, &dsc);
+
     GNUNET_free (peerdir);
   }
   GNUNET_SERVER_add_handlers (server, handlers);
