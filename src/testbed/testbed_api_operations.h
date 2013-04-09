@@ -175,5 +175,29 @@ void
 GNUNET_TESTBED_operation_release_ (struct GNUNET_TESTBED_Operation *op);
 
 
+/**
+ * Marks an active operation as inactive - the operation will be kept in a
+ * ready-to-be-released state and continues to hold resources until another
+ * operation contents for them.
+ *
+ * @param op the operation to be marked as inactive.  The operation start
+ *          callback should have been called before for this operation to mark
+ *          it as inactive.
+ */
+void
+GNUNET_TESTBED_operation_inactivate_ (struct GNUNET_TESTBED_Operation *op);
+
+
+/**
+ * Marks and inactive operation as active.  This fuction should be called to
+ * ensure that the oprelease callback will not be called until it is either
+ * marked as inactive or released.
+ *
+ * @param op the operation to be marked as active
+ */
+void
+GNUNET_TESTBED_operation_activate_ (struct GNUNET_TESTBED_Operation *op);
+
+
 #endif
 /* end of testbed_api_operations.h */
