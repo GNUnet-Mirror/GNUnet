@@ -647,7 +647,12 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_HELLO_Message **dest;
   struct GNUNET_TIME_Absolute delta;
   unsigned int cnt;
+  unsigned int size;
   int friend_hello_type;
+  int store_hello;
+  int store_friend_hello;
+  int pos;
+  char *buffer;
 
   add_host_to_known_hosts (peer);
   host = GNUNET_CONTAINER_multihashmap_get (hostmap, &peer->hashPubKey);
@@ -690,31 +695,64 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
 	if ( (NULL != fn) &&
 			 (GNUNET_OK == GNUNET_DISK_directory_create_for_file (fn)) )
 		{
-#if 0
+
+			store_hello = GNUNET_NO;
+			size = 0;
 			cnt = 0;
-			(void) GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &count_addresses,
-							 &cnt);
-			if (0 == cnt)
+			if (NULL != host->hello)
+				(void) GNUNET_HELLO_iterate_addresses (host->hello,
+									GNUNET_NO, &count_addresses, &cnt);
+			if (cnt > 0)
+			{
+				GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Store HELLO in `%s'\n", fn);
+				store_hello = GNUNET_YES;
+				size += GNUNET_HELLO_size (host->hello);
+			}
+			cnt = 0;
+			if (NULL != host->friend_only_hello)
+				(void) GNUNET_HELLO_iterate_addresses (host->friend_only_hello, GNUNET_NO,
+										&count_addresses, &cnt);
+			if (0 <= cnt)
+			{
+				GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Store Friend HELLO in %s\n", fn);
+				store_friend_hello = GNUNET_YES;
+				size += GNUNET_HELLO_size (host->friend_only_hello);
+			}
+
+			if ((GNUNET_NO == store_hello) && (GNUNET_NO == store_friend_hello))
 			{
 				/* no valid addresses, don't put HELLO on disk; in fact,
-		 if one exists on disk, remove it */
+		 	 	 	 if one exists on disk, remove it */
 				(void) UNLINK (fn);
 			}
 			else
 			{
-				if (GNUNET_SYSERR ==
-			GNUNET_DISK_fn_write (fn, host->hello, GNUNET_HELLO_size (host->hello),
+				buffer = GNUNET_malloc (size);
+				pos = 0;
+
+				if (GNUNET_YES == store_hello)
+				{
+					memcpy (buffer, host->hello, GNUNET_HELLO_size (host->hello));
+					pos += GNUNET_HELLO_size (host->hello);
+				}
+				if (GNUNET_YES == store_friend_hello)
+				{
+					memcpy (&buffer[pos], host->friend_only_hello, GNUNET_HELLO_size (host->friend_only_hello));
+					pos += GNUNET_HELLO_size (host->friend_only_hello);
+				}
+				GNUNET_assert (pos == size);
+
+				if (GNUNET_SYSERR == GNUNET_DISK_fn_write (fn, buffer, size,
 					GNUNET_DISK_PERM_USER_READ |
 					GNUNET_DISK_PERM_USER_WRITE |
 					GNUNET_DISK_PERM_GROUP_READ |
 					GNUNET_DISK_PERM_OTHER_READ))
-		GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "write", fn);
-			}
-		}
-#endif
-		GNUNET_free_non_null (fn);
-  }
+					GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "write", fn);
 
+				GNUNET_free (buffer);
+			}
+  }
+	GNUNET_free_non_null (fn);
   notify_all (host);
 }
 
@@ -1098,9 +1136,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 							    &networkIdDirectory));
     GNUNET_DISK_directory_create (networkIdDirectory);
     GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
-					&cron_scan_directory_data_hosts, NULL);
+					&cron_scan_directory_data_hosts, NULL); /* CHECK */
     GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
-					&cron_clean_data_hosts, NULL);
+					&cron_clean_data_hosts, NULL); /* CHECK */
     ip = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
     GNUNET_asprintf (&peerdir,
 		     "%shellos",
