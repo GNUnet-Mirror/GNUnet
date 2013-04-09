@@ -88,6 +88,22 @@ struct TransmitContext
 	int friend_only;
 };
 
+/**
+ * Result of reading a file
+ */
+struct ReadHostFileContext
+{
+  /**
+   * Hello for the peer (can be NULL)
+   */
+  struct GNUNET_HELLO_Message *hello;
+
+  /**
+   * Friend only hello for the peer (can be NULL)
+   */
+  struct GNUNET_HELLO_Message *friend_only_hello;
+};
+
 
 /**
  * Client notification context
@@ -156,18 +172,24 @@ static struct NotificationContext *nc_tail;
  * @return generated notification message
  */
 static struct InfoMessage *
-make_info_message (const struct HostEntry *he)
+make_info_message (const struct HostEntry *he, int include_friend_only)
 {
   struct InfoMessage *im;
+  struct GNUNET_HELLO_Message *src;
   size_t hs;
 
-  hs = (NULL == he->hello) ? 0 : GNUNET_HELLO_size (he->hello);
+  if (GNUNET_YES == include_friend_only)
+  	src = he->friend_only_hello;
+  else
+  	src = he->hello;
+
+  hs = (NULL == src) ? 0 : GNUNET_HELLO_size (src);
   im = GNUNET_malloc (sizeof (struct InfoMessage) + hs);
   im->header.size = htons (hs + sizeof (struct InfoMessage));
   im->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_INFO);
   im->peer = he->identity;
-  if (he->hello != NULL)
-    memcpy (&im[1], he->hello, hs);
+  if (NULL != src)
+    memcpy (&im[1], src, hs);
   return im;
 }
 
@@ -246,79 +268,155 @@ get_host_filename (const struct GNUNET_PeerIdentity *id)
 static void
 notify_all (struct HostEntry *entry)
 {
-  struct InfoMessage *msg;
+  struct InfoMessage *msg_pub;
+  struct InfoMessage *msg_friend;
   struct NotificationContext *cur;
 
-  msg = make_info_message (entry);
+  msg_pub = make_info_message (entry, GNUNET_NO);
+  msg_friend = make_info_message (entry, GNUNET_YES);
 
 	for (cur = nc_head; NULL != cur; cur = cur->next)
 	{
-		if ((NULL != entry->hello) &&
-				(GNUNET_YES == GNUNET_HELLO_is_friend_only (entry->hello)) &&
-				(GNUNET_NO == cur->include_friend_only))
-			continue; /* Friend only HELLO this client should not get */
-
-		GNUNET_SERVER_notification_context_unicast (notify_list,
-																								cur->client,
-																								&msg->header,
-																								GNUNET_NO);
+		if (GNUNET_NO == cur->include_friend_only)
+			GNUNET_SERVER_notification_context_unicast (notify_list,
+																									cur->client,
+																									&msg_pub->header,
+																									GNUNET_NO);
+		if (GNUNET_YES == cur->include_friend_only)
+			GNUNET_SERVER_notification_context_unicast (notify_list,
+																									cur->client,
+																									&msg_friend->header,
+																									GNUNET_NO);
 	}
-  GNUNET_free (msg);
+  GNUNET_free (msg_pub);
+  GNUNET_free (msg_friend);
 }
 
 
 /**
- * Try to read the HELLO in the given filename and discard expired
- * addresses.  Removes the file if the HELLO is mal-formed.  If all
+ * Try to read the HELLOs in the given filename and discard expired
+ * addresses.  Removes the file if one the HELLO is mal-formed.  If all
  * addresses are expired, the HELLO is also removed (but the HELLO
  * with the public key is still returned if it was found and valid).
  * 
  * @param fn name of the file
  * @param unlink_garbage if GNUNET_YES, try to remove useless files
- * @return HELLO of the file, NULL on error
  */
-static struct GNUNET_HELLO_Message *
-read_host_file (const char *fn,
-		int unlink_garbage)
+static void
+read_host_file (const char *fn, int unlink_garbage, struct ReadHostFileContext *r)
 {
   char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1] GNUNET_ALIGN;
-  const struct GNUNET_HELLO_Message *hello;
-  struct GNUNET_HELLO_Message *hello_clean;
-  int size;
+  const struct GNUNET_HELLO_Message *hello_1st;
+  const struct GNUNET_HELLO_Message *hello_2nd;
+  struct GNUNET_HELLO_Message *hello_clean_1st;
+  struct GNUNET_HELLO_Message *hello_clean_2nd;
+  int size_1st;
+  int size_2nd;
+  int size_total;
   struct GNUNET_TIME_Absolute now;
   unsigned int left;
 
+  hello_1st = NULL;
+  hello_2nd = NULL;
+  hello_clean_1st = NULL;
+  hello_clean_2nd = NULL;
+  size_1st = 0;
+  size_2nd = 0;
+  size_total = 0;
+  r->friend_only_hello = NULL;
+  r->hello = NULL;
+
   if (GNUNET_YES != GNUNET_DISK_file_test (fn))
-    return NULL;
-  size = GNUNET_DISK_fn_read (fn, buffer, sizeof (buffer));
-  hello = (const struct GNUNET_HELLO_Message *) buffer;
-  if ((size < sizeof (struct GNUNET_MessageHeader)) ||
-      (size != ntohs ((((const struct GNUNET_MessageHeader *) hello)->size)))
-      || (size != GNUNET_HELLO_size (hello)))
+    return;
+
+  size_total = GNUNET_DISK_fn_read (fn, buffer, sizeof (buffer));
+  if (size_total < sizeof (struct GNUNET_MessageHeader))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Failed to parse HELLO in file `%s'\n"),
-		fn);
-    if ( (GNUNET_YES == unlink_garbage) &&
-	 (0 != UNLINK (fn)) )
+	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+									_("Failed to parse HELLO in file `%s': %s\n"),
+									fn, "Fail has invalid size");
+    if ( (GNUNET_YES == unlink_garbage) && (0 != UNLINK (fn)) )
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
-    return NULL;
+    return;
   }
+
+  hello_1st = (const struct GNUNET_HELLO_Message *) buffer;
+  size_1st = ntohs (((const struct GNUNET_MessageHeader *) hello_1st)->size);
+  if ((size_1st < sizeof (struct GNUNET_MessageHeader)) ||
+  		(size_1st != GNUNET_HELLO_size (hello_1st)))
+  {
+	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+									_("Failed to parse HELLO in file `%s': %s\n"),
+									fn, "1nd HELLO has wrong size");
+    if ((GNUNET_YES == unlink_garbage) && (0 != UNLINK (fn)))
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
+    return;
+  }
+
+  if (size_total > size_1st)
+  {
+  		hello_2nd = (const struct GNUNET_HELLO_Message *) &buffer[size_1st];
+  		size_2nd = ntohs (((const struct GNUNET_MessageHeader *) hello_2nd)->size);
+  	  if ((size_2nd < sizeof (struct GNUNET_MessageHeader)) ||
+  	  		(size_2nd != GNUNET_HELLO_size (hello_2nd)))
+  	  {
+  	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+										_("Failed to parse HELLO in file `%s': %s\n"),
+										fn, "2nd HELLO has wrong size");
+  	    if ((GNUNET_YES == unlink_garbage) && (0 != UNLINK (fn)))
+  	      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
+  	    return;
+  	  }
+  }
+
+  if (size_total != (size_1st + size_2nd))
+  {
+	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	    						_("Failed to parse HELLO in file `%s': %s\n"),
+	    						fn, "Multiple HELLOs but total size is wrong");
+	    if ((GNUNET_YES == unlink_garbage) && (0 != UNLINK (fn)))
+	      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
+	    return;
+  }
+
   now = GNUNET_TIME_absolute_get ();
-  hello_clean =
-    GNUNET_HELLO_iterate_addresses (hello, GNUNET_YES, &discard_expired,
-				    &now);
+
+  hello_clean_1st = GNUNET_HELLO_iterate_addresses (hello_1st, GNUNET_YES,
+  								 																  &discard_expired, &now);
   left = 0;
-  (void) GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &count_addresses,
-					 &left);
+  (void) GNUNET_HELLO_iterate_addresses (hello_1st, GNUNET_NO,
+  																			 &count_addresses, &left);
   if (0 == left)
   {
     /* no addresses left, remove from disk */
-    if ( (GNUNET_YES == unlink_garbage) &&
-	 (0 != UNLINK (fn)) )
+    if ((GNUNET_YES == unlink_garbage) && (0 != UNLINK (fn)))
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
   }
-  return hello_clean; 
+
+  if (GNUNET_NO == GNUNET_HELLO_is_friend_only(hello_clean_1st))
+  	r->hello = hello_clean_1st;
+  else
+  	r->friend_only_hello = hello_clean_1st;
+
+  if (NULL != hello_2nd)
+  {
+  	  hello_clean_2nd = GNUNET_HELLO_iterate_addresses (hello_2nd, GNUNET_YES,
+  	  								 																  &discard_expired, &now);
+  	  left = 0;
+  	  (void) GNUNET_HELLO_iterate_addresses (hello_2nd, GNUNET_NO,
+  	  																			 &count_addresses, &left);
+  	  if (0 == left)
+  	  {
+  	    /* no addresses left, remove from disk */
+  	    if ((GNUNET_YES == unlink_garbage) && (0 != UNLINK (fn)))
+  	      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
+  	  }
+
+  	  if (GNUNET_NO == GNUNET_HELLO_is_friend_only(hello_clean_2nd))
+  	  	r->hello = hello_clean_2nd;
+  	  else
+  	  	r->friend_only_hello = hello_clean_2nd;
+  }
 }
 
 
@@ -331,6 +429,7 @@ static void
 add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
 {
   struct HostEntry *entry;
+  struct ReadHostFileContext r;
   char *fn;
 
   entry = GNUNET_CONTAINER_multihashmap_get (hostmap, &identity->hashPubKey);
@@ -345,7 +444,9 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
   fn = get_host_filename (identity);
   if (NULL != fn)
   {
-    entry->hello = read_host_file (fn, GNUNET_YES);
+    read_host_file (fn, GNUNET_YES, &r);
+    entry->hello = r.hello;
+    entry->hello = r.friend_only_hello;
     GNUNET_free (fn);
   }
   notify_all (entry);
@@ -406,10 +507,11 @@ hosts_directory_scan_callback (void *cls, const char *fullname)
 {
   struct DirScanContext *dsc = cls;
   struct GNUNET_PeerIdentity identity;
+  struct ReadHostFileContext r;
   const char *filename;
   struct HostEntry *entry;
-  struct GNUNET_HELLO_Message *hello;
-  struct GNUNET_PeerIdentity id;
+  struct GNUNET_PeerIdentity id_public;
+  struct GNUNET_PeerIdentity id_friend;
 
   if (GNUNET_YES != GNUNET_DISK_file_test (fullname))
     return GNUNET_OK;           /* ignore non-files */
@@ -432,20 +534,32 @@ hosts_directory_scan_callback (void *cls, const char *fullname)
       GNUNET_CRYPTO_hash_from_string (filename, &identity.hashPubKey))
   {
     /* odd filename, but might still be valid, try getting identity from HELLO */
-    if ( (NULL != (hello = read_host_file (filename, 
-					   dsc->remove_files))) &&
-	 (GNUNET_OK ==
-	  GNUNET_HELLO_get_id (hello,
-			       &id)) )
-    {
-      /* ok, found something valid, remember HELLO */
+  	read_host_file (filename, dsc->remove_files, &r);
+  	if ( ((NULL != r.hello) &&
+  				(GNUNET_OK == GNUNET_HELLO_get_id (r.hello, &id_public))) ||
+  			 ((NULL != r.friend_only_hello) &&
+  				(GNUNET_OK == GNUNET_HELLO_get_id (r.friend_only_hello, &id_friend))) )
+  	{
+			if ( (NULL != r.hello) && (NULL != r.friend_only_hello) &&
+					(0 != memcmp (&id_friend, &id_public, sizeof (id_friend))) )
+			{
+				/* HELLOs are not for the same peer */
+				GNUNET_break (0);
+				if (GNUNET_YES == dsc->remove_files)
+					remove_garbage (fullname);
+				return GNUNET_OK;
+			}
+
+			/* ok, found something valid, remember HELLO */
       entry = GNUNET_malloc (sizeof (struct HostEntry));
-      entry->identity = id;
+      entry->identity = id_friend;
       GNUNET_CONTAINER_multihashmap_put (hostmap, &entry->identity.hashPubKey, entry,
 					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-      entry->hello = hello;
-      notify_all (entry);
-      dsc->matched++;
+      entry->hello = r.hello;
+			entry->hello = r.friend_only_hello;
+			notify_all (entry);
+			dsc->matched++;
+
       return GNUNET_OK;   
     }
     if (GNUNET_YES == dsc->remove_files)
@@ -494,6 +608,29 @@ cron_scan_directory_data_hosts (void *cls,
 }
 
 
+static struct GNUNET_HELLO_Message *
+update_friend_hello (const struct GNUNET_HELLO_Message *hello,
+										 const struct GNUNET_HELLO_Message *friend_hello)
+{
+	struct GNUNET_HELLO_Message * res;
+	struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pk;
+
+	if (NULL != friend_hello)
+	{
+		res = GNUNET_HELLO_merge (hello, friend_hello);
+		GNUNET_assert (GNUNET_YES == GNUNET_HELLO_is_friend_only (res));
+		return res;
+	}
+
+	GNUNET_HELLO_get_key (hello, &pk);
+	res = GNUNET_HELLO_create (&pk, NULL, NULL, GNUNET_YES);
+	res = GNUNET_HELLO_merge (hello, res);
+	GNUNET_assert (GNUNET_YES == GNUNET_HELLO_is_friend_only (res));
+	return res;
+}
+
+
+
 /**
  * Bind a host address (hello) to a hostId.
  *
@@ -507,59 +644,77 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
   char *fn;
   struct HostEntry *host;
   struct GNUNET_HELLO_Message *mrg;
+  struct GNUNET_HELLO_Message **dest;
   struct GNUNET_TIME_Absolute delta;
   unsigned int cnt;
+  int friend_hello_type;
 
   add_host_to_known_hosts (peer);
   host = GNUNET_CONTAINER_multihashmap_get (hostmap, &peer->hashPubKey);
   GNUNET_assert (NULL != host);
-  if (NULL == host->hello)
+  friend_hello_type = GNUNET_HELLO_is_friend_only (hello);
+
+  dest = NULL;
+  if (GNUNET_YES == friend_hello_type)
   {
-    host->hello = GNUNET_malloc (GNUNET_HELLO_size (hello));
-    memcpy (host->hello, hello, GNUNET_HELLO_size (hello));
+  	dest = &host->friend_only_hello;
   }
   else
   {
+  	dest = &host->hello;
+  }
 
-  	if (GNUNET_HELLO_is_friend_only (host->hello) != GNUNET_HELLO_is_friend_only (hello))
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-      		"Merging public with friend only HELLO, result will be friend-only!\n");
-    mrg = GNUNET_HELLO_merge (host->hello, hello);
-    delta = GNUNET_HELLO_equals (mrg, host->hello, GNUNET_TIME_absolute_get ());
+  if (NULL == (*dest))
+  {
+  	(*dest) = GNUNET_malloc (GNUNET_HELLO_size (hello));
+    memcpy ((*dest), hello, GNUNET_HELLO_size (hello));
+  }
+  else
+  {
+    mrg = GNUNET_HELLO_merge ((*dest), hello);
+    delta = GNUNET_HELLO_equals (mrg, (*dest), GNUNET_TIME_absolute_get ());
     if (delta.abs_value == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
     {
       /* no differences, just ignore the update */
       GNUNET_free (mrg);
       return;
     }
-    GNUNET_free (host->hello);
-    host->hello = mrg;
+    GNUNET_free ((*dest));
+    (*dest) = mrg;
   }
-  fn = get_host_filename (peer);
-  if ( (NULL != fn) &&
-       (GNUNET_OK == GNUNET_DISK_directory_create_for_file (fn)) )
-  {
-    cnt = 0;
-    (void) GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &count_addresses,
-					   &cnt);
-    if (0 == cnt)
-    {      
-      /* no valid addresses, don't put HELLO on disk; in fact,
-	 if one exists on disk, remove it */
-      (void) UNLINK (fn); 
-    }
-    else
-    {
-      if (GNUNET_SYSERR ==
-	  GNUNET_DISK_fn_write (fn, host->hello, GNUNET_HELLO_size (host->hello),
-				GNUNET_DISK_PERM_USER_READ |
-				GNUNET_DISK_PERM_USER_WRITE |
-				GNUNET_DISK_PERM_GROUP_READ |
-				GNUNET_DISK_PERM_OTHER_READ))
-	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "write", fn);
-    }
+
+  if ((NULL != (host->hello)) && (GNUNET_NO == friend_hello_type))
+  		host->friend_only_hello = update_friend_hello (host->hello,  host->friend_only_hello);
+
+	fn = get_host_filename (peer);
+	if ( (NULL != fn) &&
+			 (GNUNET_OK == GNUNET_DISK_directory_create_for_file (fn)) )
+		{
+#if 0
+			cnt = 0;
+			(void) GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &count_addresses,
+							 &cnt);
+			if (0 == cnt)
+			{
+				/* no valid addresses, don't put HELLO on disk; in fact,
+		 if one exists on disk, remove it */
+				(void) UNLINK (fn);
+			}
+			else
+			{
+				if (GNUNET_SYSERR ==
+			GNUNET_DISK_fn_write (fn, host->hello, GNUNET_HELLO_size (host->hello),
+					GNUNET_DISK_PERM_USER_READ |
+					GNUNET_DISK_PERM_USER_WRITE |
+					GNUNET_DISK_PERM_GROUP_READ |
+					GNUNET_DISK_PERM_OTHER_READ))
+		GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "write", fn);
+			}
+		}
+#endif
+		GNUNET_free_non_null (fn);
   }
-  GNUNET_free_non_null (fn);
+
   notify_all (host);
 }
 
@@ -583,15 +738,25 @@ add_to_tc (void *cls, const struct GNUNET_HashCode * key, void *value)
 
   hs = 0;
   im = (struct InfoMessage *) buf;
-  if ((pos->hello != NULL) &&
-  		((GNUNET_NO == GNUNET_HELLO_is_friend_only (pos->hello)) ||
-  		((GNUNET_YES == GNUNET_HELLO_is_friend_only (pos->hello)) && (GNUNET_YES == tc->friend_only))))
+
+  if ((pos->hello != NULL) && (GNUNET_NO == tc->friend_only))
   {
+  	/* Copy public HELLO */
     hs = GNUNET_HELLO_size (pos->hello);
-    GNUNET_assert (hs <
-                   GNUNET_SERVER_MAX_MESSAGE_SIZE -
+    GNUNET_assert (hs < GNUNET_SERVER_MAX_MESSAGE_SIZE -
                    sizeof (struct InfoMessage));
     memcpy (&im[1], pos->hello, hs);
+
+  }
+
+  if ((pos->friend_only_hello != NULL) && (GNUNET_YES == tc->friend_only))
+  {
+  	/* Copy friend only HELLO */
+    hs = GNUNET_HELLO_size (pos->friend_only_hello);
+    GNUNET_assert (hs < GNUNET_SERVER_MAX_MESSAGE_SIZE -
+                   sizeof (struct InfoMessage));
+    memcpy (&im[1], pos->friend_only_hello, hs);
+
   }
   im->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_INFO);
   im->header.size = htons (sizeof (struct InfoMessage) + hs);
@@ -603,7 +768,7 @@ add_to_tc (void *cls, const struct GNUNET_HashCode * key, void *value)
 
 
 /**
- * @brief delete expired HELLO entries in data/hosts/
+ * @brief delete expired HELLO entries in directory
  *
  * @param cls pointer to current time (struct GNUNET_TIME_Absolute)
  * @param fn filename to test to see if the HELLO expired
@@ -753,6 +918,7 @@ handle_get_all (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 
+
 /**
  * Pass the given client the information we have in the respective
  * host entry; the client is already in the notification context.
@@ -769,15 +935,21 @@ do_notify_entry (void *cls, const struct GNUNET_HashCode * key, void *value)
   struct HostEntry *he = value;
   struct InfoMessage *msg;
 
-	if ((NULL != he->hello) &&
-			(GNUNET_YES == GNUNET_HELLO_is_friend_only(he->hello)) &&
-			(GNUNET_NO == nc->include_friend_only))
+
+	if ((NULL == he->hello) && (GNUNET_NO == nc->include_friend_only))
 	{
-		/* We have a friend only hello and a client not interested, continue */
+		/* We have no public hello  */
 	  return GNUNET_YES;
 	}
 
-	msg = make_info_message (he);
+
+	if ((NULL == he->friend_only_hello) && GNUNET_YES == nc->include_friend_only)
+	{
+		/* We have no friend hello */
+	  return GNUNET_YES;
+	}
+
+	msg = make_info_message (he, nc->include_friend_only);
 	GNUNET_SERVER_notification_context_unicast (notify_list,
 			nc->client,
 			&msg->header,
@@ -851,6 +1023,7 @@ free_host_entry (void *cls, const struct GNUNET_HashCode * key, void *value)
   struct HostEntry *he = value;
 
   GNUNET_free_non_null (he->hello);
+  GNUNET_free_non_null (he->friend_only_hello);
   GNUNET_free (he);
   return GNUNET_YES;
 }
