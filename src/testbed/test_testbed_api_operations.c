@@ -35,6 +35,12 @@
   GNUNET_log (kind, __VA_ARGS__)
 
 /**
+ * Delay to start step task
+ */
+#define STEP_DELAY                                                      \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
+
+/**
  * Queue A. Initially the max active is set to 2 and then reduced to 0 - this
  * should block op2 even after op1 has finished. Later the max active is set to
  * 2 and this should start op2
@@ -93,9 +99,18 @@ struct GNUNET_TESTBED_Operation *op7;
 
 /**
  * This operation is started after op6 is finished in step task.  It consumes 2
- * resources on both queues q1 and q1.
+ * resources on both queues q1 and q2.  This operation should evict op7.  After
+ * starting, it should be made inactive, active and inactive again in the step task.
  */
 struct GNUNET_TESTBED_Operation *op8;
+
+/**
+ * This opration is started after activating op8.  It should consume a resource
+ * on queues q1 and q2.  It should not be started until op8 is again made
+ * inactive at which point it should be released.  It can be released as soon as
+ * it begins.
+ */
+struct GNUNET_TESTBED_Operation *op9;
 
 /**
  * The delay task identifier
@@ -190,9 +205,29 @@ enum Test
   TEST_OP8_STARTED,
 
   /**
+   * op8 is inactive
+   */
+  TEST_OP8_INACTIVE_1,
+
+  /**
+   * op8 is active
+   */
+  TEST_OP8_ACTIVE,
+
+  /**
    * op8 has been released
    */
-  TEST_OP8_RELEASED
+  TEST_OP8_RELEASED,
+
+  /**
+   * op9 has started
+   */
+  TEST_OP9_STARTED,
+
+  /**
+   * op9 has been released
+   */
+  TEST_OP9_RELEASED
 };
 
 /**
@@ -269,7 +304,26 @@ step (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TESTBED_operation_begin_wait_ (op8);
     break;
   case TEST_OP8_STARTED:
-    GNUNET_TESTBED_operation_release_ (op8);
+    GNUNET_TESTBED_operation_inactivate_ (op8);
+    result = TEST_OP8_INACTIVE_1;
+    step_task = GNUNET_SCHEDULER_add_delayed (STEP_DELAY, &step, NULL);
+    break;
+  case TEST_OP8_INACTIVE_1:
+    GNUNET_TESTBED_operation_activate_ (op8);
+    result = TEST_OP8_ACTIVE;
+    op9 = GNUNET_TESTBED_operation_create_ (&op9, &start_cb, &release_cb);    
+    GNUNET_TESTBED_operation_queue_insert2_ (q1, op9, 1);
+    GNUNET_TESTBED_operation_queue_insert2_ (q2, op9, 1);
+    GNUNET_TESTBED_operation_begin_wait_ (op9);
+    step_task = GNUNET_SCHEDULER_add_delayed (STEP_DELAY, &step, NULL);
+    break;
+  case TEST_OP8_ACTIVE:    
+    GNUNET_TESTBED_operation_inactivate_ (op8);
+    /* op8 should be released by now due to above call */
+    GNUNET_assert (TEST_OP8_RELEASED == result);
+    break;
+  case TEST_OP9_STARTED:
+    GNUNET_TESTBED_operation_release_ (op9);
     break;
   default:
     GNUNET_assert (0);
@@ -292,28 +346,28 @@ start_cb (void *cls)
     result = TEST_OP1_STARTED;
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == step_task);
     step_task =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step, NULL);
+        GNUNET_SCHEDULER_add_delayed (STEP_DELAY, &step, NULL);
     break;
   case TEST_PAUSE:
     GNUNET_assert (&op2 == cls);
     result = TEST_OP2_STARTED;
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == step_task);
     step_task =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step, NULL);
+        GNUNET_SCHEDULER_add_delayed (STEP_DELAY, &step, NULL);
     break;
   case TEST_OP2_RELEASED:
     GNUNET_assert (&op3 == cls);
     result = TEST_OP3_STARTED;
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == step_task);
     step_task =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step, NULL);
+        GNUNET_SCHEDULER_add_delayed (STEP_DELAY, &step, NULL);
     break;
   case TEST_OP3_RELEASED:
     GNUNET_assert (&op4 == cls);
     result = TEST_OP4_STARTED;
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == step_task);
     step_task =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step, NULL);
+        GNUNET_SCHEDULER_add_delayed (STEP_DELAY, &step, NULL);
     break;
   case TEST_OP4_RELEASED:
   {
@@ -331,7 +385,12 @@ start_cb (void *cls)
   case TEST_OP7_RELEASED:
     GNUNET_assert (&op8 == cls);
     result = TEST_OP8_STARTED;
-    step_task = GNUNET_SCHEDULER_add_now (&step, NULL);
+    step_task = GNUNET_SCHEDULER_add_delayed (STEP_DELAY, &step, NULL);
+    break;
+  case TEST_OP8_RELEASED:
+    GNUNET_assert (&op9 == cls);
+    result = TEST_OP9_STARTED;
+    step_task = GNUNET_SCHEDULER_add_delayed (STEP_DELAY, &step, NULL);
     break;
   default:
     GNUNET_assert (0);
@@ -358,13 +417,12 @@ release_cb (void *cls)
     result = TEST_OP1_RELEASED;
     op1 = NULL;
     step_task =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step, NULL);
+        GNUNET_SCHEDULER_add_delayed (STEP_DELAY, &step, NULL);
     break;
   case TEST_OP2_STARTED:
     GNUNET_assert (&op2 == cls);
     result = TEST_OP2_RELEASED;
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == step_task);
-    //step_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &step, NULL);
     break;
   case TEST_OP3_STARTED:
     GNUNET_assert (&op3 == cls);
@@ -402,9 +460,13 @@ release_cb (void *cls)
     op7 = NULL;
     result = TEST_OP7_RELEASED;
     break;
-  case TEST_OP8_STARTED:
+  case TEST_OP8_ACTIVE:
     result = TEST_OP8_RELEASED;
     op8 = NULL;
+    break;
+  case TEST_OP9_STARTED:
+    GNUNET_assert (&op9 == cls);
+    result = TEST_OP9_RELEASED;
     GNUNET_TESTBED_operation_queue_destroy_ (q1);
     GNUNET_TESTBED_operation_queue_destroy_ (q2);
     q1 = NULL;
@@ -461,7 +523,7 @@ main (int argc, char **argv)
       GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
                           "test_testbed_api_operations", "nohelp", options,
                           &run, NULL);
-  if ((GNUNET_OK != ret) || (TEST_OP8_RELEASED != result))
+  if ((GNUNET_OK != ret) || (TEST_OP9_RELEASED != result))
     return 1;
   op1 = NULL;
   op2 = NULL;
@@ -471,6 +533,7 @@ main (int argc, char **argv)
   op6 = NULL;
   op7 = NULL;
   op8 = NULL;
+  op9 = NULL;
   q1 = NULL;
   q2 = NULL;
   return 0;

@@ -635,7 +635,7 @@ recheck_waiting (struct OperationQueue *opq)
   struct QueueEntry *entry2;
 
   entry = opq->wq_head;
-  while ( (NULL != entry) && (opq->active < opq->max_active) )
+  while (NULL != entry)
   {
     entry2 = entry->next;
     check_readiness (entry->op);
@@ -741,8 +741,20 @@ GNUNET_TESTBED_operation_begin_wait_ (struct GNUNET_TESTBED_Operation *op)
 void
 GNUNET_TESTBED_operation_inactivate_ (struct GNUNET_TESTBED_Operation *op)
 {
+  struct OperationQueue **queues;
+  size_t ms;
+  unsigned int nqueues;
+  unsigned int i;
+
   GNUNET_assert (OP_STATE_STARTED == op->state);
   change_state (op, OP_STATE_INACTIVE);
+  nqueues = op->nqueues;
+  ms = sizeof (struct OperationQueue *) * nqueues;
+  queues = GNUNET_malloc (ms);
+  GNUNET_assert (NULL != (queues = memcpy (queues, op->queues, ms)));
+  for (i = 0; i < nqueues; i++)
+    recheck_waiting (queues[i]);
+  GNUNET_free (queues);
 }
 
 
@@ -756,6 +768,7 @@ GNUNET_TESTBED_operation_inactivate_ (struct GNUNET_TESTBED_Operation *op)
 void
 GNUNET_TESTBED_operation_activate_ (struct GNUNET_TESTBED_Operation *op)
 {
+
   GNUNET_assert (OP_STATE_INACTIVE == op->state);
   change_state (op, OP_STATE_STARTED);
 }
