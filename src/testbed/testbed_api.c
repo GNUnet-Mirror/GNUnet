@@ -1762,7 +1762,6 @@ GNUNET_TESTBED_controller_link (void *op_cls,
 {
   uint32_t slave_host_id;
   uint32_t delegated_host_id;
-
   
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_TESTBED_is_host_registered_ (delegated_host, master));

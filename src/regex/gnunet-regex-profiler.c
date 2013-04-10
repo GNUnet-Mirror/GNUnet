@@ -1932,7 +1932,6 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host, int status
       GNUNET_TESTBED_controller_start (GNUNET_TESTBED_host_get_hostname
                                        (hosts[0]),
                                        hosts[0],
-                                       cfg,
                                        status_cb,
                                        NULL);
 }

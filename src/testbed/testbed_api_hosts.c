@@ -1131,18 +1131,19 @@ helper_exp_cb (void *cls)
 
 
 /**
- * Starts a controller process at the given host
+ * Starts a controller process at the given host.  The given host's configration
+ * is used as a Template configuration to use for the remote controller; the
+ * remote controller will be started with a slightly modified configuration
+ * (port numbers, unix domain sockets and service home values are changed as per
+ * TESTING library on the remote host).  The modified configuration replaces the
+ * host's existing configuration before signalling success through the
+ * GNUNET_TESTBED_ControllerStatusCallback()
  *
  * @param trusted_ip the ip address of the controller which will be set as TRUSTED
  *          HOST(all connections form this ip are permitted by the testbed) when
  *          starting testbed controller at host. This can either be a single ip
  *          address or a network address in CIDR notation.
- * @param host the host where the controller has to be started; NULL for
- *          localhost
- * @param cfg template configuration to use for the remote controller; the
- *          remote controller will be started with a slightly modified
- *          configuration (port numbers, unix domain sockets and service home
- *          values are changed as per TESTING library on the remote host)
+ * @param host the host where the controller has to be started.  CANNOT be NULL.
  * @param cb function called when the controller is successfully started or
  *          dies unexpectedly; GNUNET_TESTBED_controller_stop shouldn't be
  *          called if cb is called with GNUNET_SYSERR as status. Will never be
@@ -1155,18 +1156,19 @@ helper_exp_cb (void *cls)
 struct GNUNET_TESTBED_ControllerProc *
 GNUNET_TESTBED_controller_start (const char *trusted_ip,
                                  struct GNUNET_TESTBED_Host *host,
-                                 const struct GNUNET_CONFIGURATION_Handle *cfg,
                                  GNUNET_TESTBED_ControllerStatusCallback cb,
                                  void *cls)
 {
   struct GNUNET_TESTBED_ControllerProc *cp;
   struct GNUNET_TESTBED_HelperInit *msg;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
   const char *hostname;
-
   static char *const binary_argv[] = {
     HELPER_TESTBED_BINARY, NULL
   };
-
+  
+  GNUNET_assert (NULL != host);
+  GNUNET_assert (NULL != (cfg = GNUNET_TESTBED_host_get_cfg_ (host)));
   hostname = NULL;
   API_VIOLATION (GNUNET_NO == host->locked,
                  "Host is already locked by a previous call to GNUNET_TESTBED_controller_start()");
@@ -1174,7 +1176,7 @@ GNUNET_TESTBED_controller_start (const char *trusted_ip,
   API_VIOLATION (GNUNET_NO == host->controller_started,
                  "Attempting to start a controller on a host which is already started a controller");
   cp = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ControllerProc));
-  if ((NULL == host) || (0 == GNUNET_TESTBED_host_get_id_ (host)))
+  if (0 == GNUNET_TESTBED_host_get_id_ (host))
   {
     cp->helper =
         GNUNET_HELPER_start (GNUNET_YES, HELPER_TESTBED_BINARY, binary_argv,

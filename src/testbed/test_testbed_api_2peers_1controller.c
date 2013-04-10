@@ -497,7 +497,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   cfg = GNUNET_CONFIGURATION_dup (config);
   host = GNUNET_TESTBED_host_create (NULL, NULL, cfg, 0);
   FAIL_TEST (NULL != host);
-  cp = GNUNET_TESTBED_controller_start ("127.0.0.1", host, cfg, status_cb,
+  cp = GNUNET_TESTBED_controller_start ("127.0.0.1", host, status_cb,
                                         NULL);
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply

@@ -986,7 +986,7 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host,
   if (NULL == rc->trusted_ip)
     rc->trusted_ip = GNUNET_strdup ("127.0.0.1");
   rc->cproc =
-      GNUNET_TESTBED_controller_start (rc->trusted_ip, rc->h, rc->cfg,
+      GNUNET_TESTBED_controller_start (rc->trusted_ip, rc->h,
                                        &controller_status_cb, rc);
   GNUNET_free (rc->trusted_ip);
   rc->trusted_ip = NULL;
@@ -1175,7 +1175,7 @@ GNUNET_TESTBED_run (const char *host_filename,
   }
   else
     rc->cproc =
-        GNUNET_TESTBED_controller_start ("127.0.0.1", rc->h, rc->cfg,
+        GNUNET_TESTBED_controller_start ("127.0.0.1", rc->h,
                                          &controller_status_cb, rc);
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_time (cfg, "TESTBED",
                                                         "SETUP_TIMEOUT",

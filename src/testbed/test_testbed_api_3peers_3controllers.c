@@ -865,7 +865,7 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *_host,
     return;
   }
   cp1 =
-      GNUNET_TESTBED_controller_start ("127.0.0.1", host, cfg, status_cb, NULL);
+      GNUNET_TESTBED_controller_start ("127.0.0.1", host, status_cb, NULL);
 }
 
 
