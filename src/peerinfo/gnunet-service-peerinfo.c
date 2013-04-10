@@ -325,22 +325,16 @@ static void
 read_host_file (const char *fn, int unlink_garbage, struct ReadHostFileContext *r)
 {
   char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1] GNUNET_ALIGN;
-  const struct GNUNET_HELLO_Message *hello_1st;
-  const struct GNUNET_HELLO_Message *hello_2nd;
-  struct GNUNET_HELLO_Message *hello_clean_1st;
-  struct GNUNET_HELLO_Message *hello_clean_2nd;
-  int size_1st;
-  int size_2nd;
+
   int size_total;
   struct GNUNET_TIME_Absolute now;
   unsigned int left;
 
-  hello_1st = NULL;
-  hello_2nd = NULL;
-  hello_clean_1st = NULL;
-  hello_clean_2nd = NULL;
-  size_1st = 0;
-  size_2nd = 0;
+  const struct GNUNET_HELLO_Message *hello;
+  struct GNUNET_HELLO_Message *hello_clean;
+  unsigned read_pos;
+  int size_hello;
+
   size_total = 0;
   r->friend_only_hello = NULL;
   r->hello = NULL;
@@ -362,59 +356,59 @@ read_host_file (const char *fn, int unlink_garbage, struct ReadHostFileContext *
     return;
   }
 
-  hello_1st = (const struct GNUNET_HELLO_Message *) buffer;
-  size_1st = ntohs (((struct GNUNET_MessageHeader *) &buffer)->size);
-  if (size_1st < sizeof (struct GNUNET_MessageHeader))
+  read_pos = 0;
+  while (read_pos < size_total)
   {
-	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-									_("Failed to parse HELLO in file `%s': %s %u \n"),
-									fn, "1st HELLO has invalid size of ", size_1st);
-    if ((GNUNET_YES == unlink_garbage) && (0 != UNLINK (fn)))
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
-    return;
-  }
-	if (size_1st != GNUNET_HELLO_size (hello_1st))
-	{
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-								_("Failed to parse HELLO in file `%s': %s \n"),
-								fn, "1st HELLO is invalid");
-    if ((GNUNET_YES == unlink_garbage) && (0 != UNLINK (fn)))
-    	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
-    return;
-	}
-
-  if (size_total > size_1st)
-  {
-  		hello_2nd = (const struct GNUNET_HELLO_Message *) &buffer[size_1st];
-  		size_2nd = ntohs (((const struct GNUNET_MessageHeader *) hello_2nd)->size);
-  	  if ((size_2nd < sizeof (struct GNUNET_MessageHeader)) ||
-  	  		(size_2nd != GNUNET_HELLO_size (hello_2nd)))
-  	  {
-  	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-										_("Failed to parse HELLO in file `%s': %s\n"),
-										fn, "2nd HELLO has wrong size");
-  	    if ((GNUNET_YES == unlink_garbage) && (0 != UNLINK (fn)))
-  	      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
+  		hello = (const struct GNUNET_HELLO_Message *) &buffer[read_pos];
+  		size_hello = GNUNET_HELLO_size (hello);
+  		if (0 == size_hello)
+  		{
+  		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  										_("Failed to parse HELLO in file `%s': %s %u \n"),
+  										fn, "HELLO is invalid and has size of ", size_hello);
+  		  if ((GNUNET_YES == unlink_garbage) && (0 != UNLINK (fn)))
+  		    	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
   	    return;
+  		}
+
+  	  now = GNUNET_TIME_absolute_get ();
+  	  hello_clean = GNUNET_HELLO_iterate_addresses (hello, GNUNET_YES,
+  	  								 															&discard_expired, &now);
+  	  left = 0;
+  	  (void) GNUNET_HELLO_iterate_addresses (hello_clean, GNUNET_NO,
+  	  																			 &count_addresses, &left);
+
+  	  if (0 == left)
+  	  {
+  	  		GNUNET_free (hello_clean);
+  	  		break;
   	  }
+
+  	  if (GNUNET_NO == GNUNET_HELLO_is_friend_only (hello_clean))
+  	  {
+  	  	if (NULL == r->hello)
+  	  		r->hello = hello_clean;
+  	  	else
+  	  	{
+  	  			GNUNET_break (0);
+  	  			GNUNET_free (r->hello);
+  	  			r->hello = hello_clean;
+  	  	}
+  	  }
+  	  else
+  	  {
+  	  	if (NULL == r->friend_only_hello)
+  	  		r->friend_only_hello = hello_clean;
+  	  	else
+  	  	{
+  	  			GNUNET_break (0);
+  	  			GNUNET_free (r->friend_only_hello);
+  	  			r->friend_only_hello = hello_clean;
+  	  	}
+  	  }
+  	  read_pos += size_hello;
   }
 
-  if (size_total != (size_1st + size_2nd))
-  {
-	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-	    						_("Failed to parse HELLO in file `%s': %s\n"),
-	    						fn, "Multiple HELLOs but total size is wrong");
-	    if ((GNUNET_YES == unlink_garbage) && (0 != UNLINK (fn)))
-	      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
-	    return;
-  }
-
-  now = GNUNET_TIME_absolute_get ();
-  hello_clean_1st = GNUNET_HELLO_iterate_addresses (hello_1st, GNUNET_YES,
-  								 																  &discard_expired, &now);
-  left = 0;
-  (void) GNUNET_HELLO_iterate_addresses (hello_1st, GNUNET_NO,
-  																			 &count_addresses, &left);
   if (0 == left)
   {
     /* no addresses left, remove from disk */
@@ -422,72 +416,9 @@ read_host_file (const char *fn, int unlink_garbage, struct ReadHostFileContext *
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
   }
 
-  if (GNUNET_NO == GNUNET_HELLO_is_friend_only(hello_clean_1st))
-  {
-  	if (NULL == r->hello)
-  		r->hello = hello_clean_1st;
-  	else
-  	{
-  			GNUNET_break (0);
-  			GNUNET_free (r->hello);
-  			r->hello = hello_clean_1st;
-  	}
-  }
-  else
-  {
-  	if (NULL == r->friend_only_hello)
-  		r->friend_only_hello = hello_clean_1st;
-  	else
-  	{
-  			GNUNET_break (0);
-  			GNUNET_free (r->friend_only_hello);
-  			r->friend_only_hello = hello_clean_1st;
-  	}
-  }
-
-  if (NULL != hello_2nd)
-  {
-  	  hello_clean_2nd = GNUNET_HELLO_iterate_addresses (hello_2nd, GNUNET_YES,
-  	  								 																  &discard_expired, &now);
-  	  left = 0;
-  	  (void) GNUNET_HELLO_iterate_addresses (hello_clean_2nd, GNUNET_NO,
-  	  																			 &count_addresses, &left);
-  	  if (0 == left)
-  	  {
-  	    /* no addresses left, remove from disk */
-  	    if ((GNUNET_YES == unlink_garbage) && (0 != UNLINK (fn)))
-  	      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
-  	  }
-
-  	  if (GNUNET_NO == GNUNET_HELLO_is_friend_only(hello_clean_2nd))
-  	  {
-  	  	if (NULL == r->hello)
-  	  		r->hello = hello_clean_2nd;
-  	  	else
-  	  	{
-  	  			GNUNET_break (0);
-  	  			GNUNET_free (r->hello);
-  	  			r->hello = hello_clean_2nd;
-  	  	}
-  	  }
-  	  else
-  	  {
-  	  	if (NULL == r->friend_only_hello)
-  	  		r->friend_only_hello = hello_clean_2nd;
-  	  	else
-  	  	{
-  	  			GNUNET_break (0);
-  	  			GNUNET_free (r->friend_only_hello);
-  	  			r->friend_only_hello = hello_clean_2nd;
-  	  	}
-  	  }
-  }
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found `%s' and `%s' HELLO message in file\n",
   		(NULL != r->hello) ? "public" : "NO public",
 			(NULL != r->friend_only_hello) ? "friend only" : "NO friend only");
-
-
 }
 
 
