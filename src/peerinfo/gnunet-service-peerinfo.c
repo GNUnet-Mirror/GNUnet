@@ -601,9 +601,7 @@ hosts_directory_scan_callback (void *cls, const char *fullname)
   else
     filename ++;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Reading %s `%s'\n", fullname, filename);
   read_host_file (fullname, dsc->remove_files, &r);
-
 	if ( (NULL == r.hello) && (NULL == r.friend_only_hello))
 	{
     if (GNUNET_YES == dsc->remove_files)
@@ -952,44 +950,75 @@ discard_hosts_helper (void *cls, const char *fn)
   char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1] GNUNET_ALIGN;
   const struct GNUNET_HELLO_Message *hello;
   struct GNUNET_HELLO_Message *new_hello;
-  int size;
+  int read_size;
+  int cur_hello_size;
+  int new_hello_size;
+  int read_pos;
+  int write_pos;
   unsigned int cnt;
+  char *writebuffer;
 
-  size = GNUNET_DISK_fn_read (fn, buffer, sizeof (buffer));
-  if (size < sizeof (struct GNUNET_MessageHeader))
+
+  read_size = GNUNET_DISK_fn_read (fn, buffer, sizeof (buffer));
+  if (read_size < sizeof (struct GNUNET_MessageHeader))
   {
     if (0 != UNLINK (fn))
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING |
                                 GNUNET_ERROR_TYPE_BULK, "unlink", fn);
     return GNUNET_OK;
   }
-  hello = (const struct GNUNET_HELLO_Message *) buffer;
-  new_hello =
-    GNUNET_HELLO_iterate_addresses (hello, GNUNET_YES, &discard_expired, now);
-  cnt = 0;
-  if (NULL != new_hello)
-    (void) GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &count_addresses, &cnt);
-  if ( (NULL != new_hello) && (0 < cnt) )
+
+  writebuffer = GNUNET_malloc (read_size);
+  read_pos = 0;
+  write_pos = 0;
+  while (read_pos < read_size)
   {
-    GNUNET_DISK_fn_write (fn, new_hello, GNUNET_HELLO_size (new_hello),
-                          GNUNET_DISK_PERM_USER_READ |
-                          GNUNET_DISK_PERM_USER_WRITE |
-                          GNUNET_DISK_PERM_GROUP_READ |
-                          GNUNET_DISK_PERM_OTHER_READ);
+  		/* Check each HELLO */
+  		hello = (const struct GNUNET_HELLO_Message *) &buffer[read_pos];
+  		cur_hello_size = GNUNET_HELLO_size (hello);
+  		new_hello_size = 0;
+  		if (0 == cur_hello_size)
+  		{
+  				/* Invalid data, discard */
+  		    if (0 != UNLINK (fn))
+  		      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING |
+  		                                GNUNET_ERROR_TYPE_BULK, "unlink", fn);
+  		    return GNUNET_OK;
+  		}
+  	  new_hello = GNUNET_HELLO_iterate_addresses (hello, GNUNET_YES, &discard_expired, now);
+  	  cnt = 0;
+  	  if (NULL != new_hello)
+  	    (void) GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &count_addresses, &cnt);
+  	  if ( (NULL != new_hello) && (0 < cnt) )
+  	  {
+  	  		/* Store new HELLO to write it when done */
+  	  		new_hello_size = GNUNET_HELLO_size(new_hello);
+  	  		memcpy (&writebuffer[write_pos], new_hello, new_hello_size);
+  	   		write_pos += new_hello_size;
+  	  }
+   		read_pos += cur_hello_size;
+  	  GNUNET_free_non_null (new_hello);
   }
-  else
+
+  if (0 < write_pos)
   {
-    if (0 != UNLINK (fn))
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING |
-                                GNUNET_ERROR_TYPE_BULK, "unlink", fn);
+      GNUNET_DISK_fn_write (fn, writebuffer,write_pos,
+                            GNUNET_DISK_PERM_USER_READ |
+                            GNUNET_DISK_PERM_USER_WRITE |
+                            GNUNET_DISK_PERM_GROUP_READ |
+                            GNUNET_DISK_PERM_OTHER_READ);
   }
-  GNUNET_free_non_null (new_hello);
+  else if (0 != UNLINK (fn))
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING |
+                              GNUNET_ERROR_TYPE_BULK, "unlink", fn);
+
+  GNUNET_free (writebuffer);
   return GNUNET_OK;
 }
 
 
 /**
- * Call this method periodically to scan data/hosts for ancient
+ * Call this method periodically to scan peerinfo/ for ancient
  * HELLOs to expire.
  *
  * @param cls unused
@@ -1003,6 +1032,8 @@ cron_clean_data_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   now = GNUNET_TIME_absolute_get ();
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
+              _("Cleaning up directory `%s'\n"), networkIdDirectory);
   GNUNET_DISK_directory_scan (networkIdDirectory, &discard_hosts_helper, &now);
   GNUNET_SCHEDULER_add_delayed (DATA_HOST_CLEAN_FREQ, &cron_clean_data_hosts,
                                 NULL);
@@ -1270,10 +1301,10 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_DISK_directory_create (networkIdDirectory);
 
     GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
-					&cron_scan_directory_data_hosts, NULL); /* CHECK */
+					&cron_scan_directory_data_hosts, NULL);
 
     GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
-					&cron_clean_data_hosts, NULL); /* CHECK */
+					&cron_clean_data_hosts, NULL);
 
     ip = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
     GNUNET_asprintf (&peerdir,
