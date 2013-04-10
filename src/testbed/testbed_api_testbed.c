@@ -875,8 +875,7 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (rc->topology < GNUNET_TESTBED_TOPOLOGY_NONE)
     event_mask |= GNUNET_TESTBED_ET_CONNECT;
   rc->c =
-      GNUNET_TESTBED_controller_connect (rc->cfg, rc->h, event_mask, &event_cb,
-                                         rc);
+      GNUNET_TESTBED_controller_connect (rc->h, event_mask, &event_cb, rc);
   if (0 < rc->num_hosts)
   {
     rc->reg_hosts = 0;

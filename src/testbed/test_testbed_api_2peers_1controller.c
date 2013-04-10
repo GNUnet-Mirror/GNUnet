@@ -469,7 +469,7 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg_, int status
   event_mask |= (1L << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1L << GNUNET_TESTBED_ET_OPERATION_FINISHED);
   controller =
-      GNUNET_TESTBED_controller_connect (cfg_, host, event_mask, &controller_cb,
+      GNUNET_TESTBED_controller_connect (host, event_mask, &controller_cb,
                                          NULL);
   FAIL_TEST (NULL != controller);
   neighbour = GNUNET_TESTBED_host_create ("localhost", NULL, cfg, 0);

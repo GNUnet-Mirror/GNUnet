@@ -1805,7 +1805,7 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int stat
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_DISCONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
-  mc = GNUNET_TESTBED_controller_connect (config, hosts[0], event_mask,
+  mc = GNUNET_TESTBED_controller_connect (hosts[0], event_mask,
                                           &controller_event_cb, NULL);
   if (NULL == mc)
   {

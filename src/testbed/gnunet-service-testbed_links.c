@@ -520,7 +520,7 @@ slave_status_callback (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
     goto clean_lcc;
   }
   slave->controller =
-      GNUNET_TESTBED_controller_connect (cfg, GST_host_list[slave->host_id],
+      GNUNET_TESTBED_controller_connect (GST_host_list[slave->host_id],
                                          EVENT_MASK, &slave_event_callback,
                                          slave);
   if (NULL != slave->controller)
@@ -644,7 +644,7 @@ GST_handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
     if (1 != msg->is_subordinate)
     {
       slave->controller =
-          GNUNET_TESTBED_controller_connect (cfg, GST_host_list[slave->host_id],
+          GNUNET_TESTBED_controller_connect (GST_host_list[slave->host_id],
                                              EVENT_MASK, &slave_event_callback,
                                              slave);
       if (NULL != slave->controller)

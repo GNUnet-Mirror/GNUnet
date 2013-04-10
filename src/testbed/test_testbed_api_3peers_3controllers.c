@@ -803,7 +803,7 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config,
   {
   case INIT:
     controller1 =
-        GNUNET_TESTBED_controller_connect (config, host, event_mask,
+        GNUNET_TESTBED_controller_connect (host, event_mask,
                                            &controller_cb, NULL);
     if (NULL == controller1)
     {

@@ -1346,19 +1346,20 @@ oprelease_get_slave_config (void *cls)
  * @return handle to the controller
  */
 struct GNUNET_TESTBED_Controller *
-GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle
-                                   *cfg, struct GNUNET_TESTBED_Host *host,
+GNUNET_TESTBED_controller_connect (struct GNUNET_TESTBED_Host *host,
                                    uint64_t event_mask,
                                    GNUNET_TESTBED_ControllerCallback cc,
                                    void *cc_cls)
 {
   struct GNUNET_TESTBED_Controller *controller;
   struct GNUNET_TESTBED_InitMessage *msg;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
   const char *controller_hostname;
   unsigned long long max_parallel_operations;
   unsigned long long max_parallel_service_connections;
   unsigned long long max_parallel_topology_config_operations;
 
+  GNUNET_assert (NULL != (cfg = GNUNET_TESTBED_host_get_cfg_ (host)));
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg, "testbed",
                                              "MAX_PARALLEL_OPERATIONS",

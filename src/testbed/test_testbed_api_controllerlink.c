@@ -658,7 +658,7 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config,
     event_mask |= (1L << GNUNET_TESTBED_ET_PEER_STOP);
     event_mask |= (1L << GNUNET_TESTBED_ET_CONNECT);
     event_mask |= (1L << GNUNET_TESTBED_ET_OPERATION_FINISHED);
-    mc = GNUNET_TESTBED_controller_connect (config, host, event_mask,
+    mc = GNUNET_TESTBED_controller_connect (host, event_mask,
                                             &controller_cb, NULL);
     FAIL_TEST (NULL != mc);
     result = MASTER_STARTED;

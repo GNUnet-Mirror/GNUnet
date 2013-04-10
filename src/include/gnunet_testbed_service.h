@@ -447,7 +447,10 @@ typedef void (*GNUNET_TESTBED_ControllerStatusCallback) (void *cls,
  * @param cfg template configuration to use for the remote controller; the
  *          remote controller will be started with a slightly modified
  *          configuration (port numbers, unix domain sockets and service home
- *          values are changed as per TESTING library on the remote host)
+ *          values are changed as per TESTING library on the remote host).  The
+ *          modified configuration replaces the host's existing configuration
+ *          before signalling success through the
+ *          GNUNET_TESTBED_ControllerStatusCallback()
  * @param cb function called when the controller is successfully started or
  *          dies unexpectedly; GNUNET_TESTBED_controller_stop shouldn't be
  *          called if cb is called with GNUNET_SYSERR as status. Will never be
@@ -478,10 +481,10 @@ GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_ControllerProc *cproc);
 
 
 /**
- * Connect to a controller process using the given configuration at the
- * given host.
+ * Connect to a controller process.  The configuration to use for the connection
+ * is retreived from the given host where a controller is started using
+ * GNUNET_TESTBED_controller_start().
  *
- * @param cfg configuration to use
  * @param host host to run the controller on; This should be the same host if
  *          the controller was previously started with
  *          GNUNET_TESTBED_controller_start; NULL for localhost
@@ -495,8 +498,7 @@ GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_ControllerProc *cproc);
  * @return handle to the controller
  */
 struct GNUNET_TESTBED_Controller *
-GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                   struct GNUNET_TESTBED_Host *host,
+GNUNET_TESTBED_controller_connect (struct GNUNET_TESTBED_Host *host,
                                    uint64_t event_mask,
                                    GNUNET_TESTBED_ControllerCallback cc,
                                    void *cc_cls);
