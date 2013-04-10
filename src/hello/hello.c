@@ -262,6 +262,7 @@ GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded
  *         otherwise NULL will be returned
  * @param it iterator to call on each address
  * @param it_cls closure for it
+ * @return modified HELLO message
  */
 struct GNUNET_HELLO_Message *
 GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
