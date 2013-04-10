@@ -748,6 +748,18 @@ GST_find_dest_route (uint32_t host_id);
 
 
 /**
+ * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_LCONTROLLERS message
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+void
+GST_handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
+                             const struct GNUNET_MessageHeader *message);
+
+
+/**
  * Handler for GNUNET_MESSAGE_TYPE_TESTBED_OLCONNECT messages
  *
  * @param cls NULL
@@ -928,6 +940,27 @@ GST_handle_manage_peer_service (void *cls, struct GNUNET_SERVER_Client *client,
  */
 void
 GST_free_mctxq ();
+
+
+/**
+ * Cleans up the queue used for forwarding link controllers requests
+ */
+void
+GST_free_lcfq ();
+
+
+/**
+ * Cleans up the route list
+ */
+void
+GST_route_list_clear ();
+
+
+/**
+ * Cleans up the slave list
+ */
+void
+GST_slave_list_clear ();
 
 
 /**

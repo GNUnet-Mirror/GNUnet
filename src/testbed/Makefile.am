@@ -32,10 +32,11 @@ bin_PROGRAMS = \
 gnunet_service_testbed_SOURCES = \
   gnunet-service-testbed.h \
   gnunet-service-testbed.c \
+  gnunet-service-testbed_links.c \
   gnunet-service-testbed_peers.c \
   gnunet-service-testbed_cache.c \
   gnunet-service-testbed_oc.c \
-  gnunet-service-testbed_cpustatus.c
+  gnunet-service-testbed_cpustatus.c 
 gnunet_service_testbed_LDADD = $(XLIB) \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/core/libgnunetcore.la \
