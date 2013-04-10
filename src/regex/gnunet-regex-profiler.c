@@ -984,6 +984,7 @@ find_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                     &dht_ca,
                                     &dht_da,
                                     &peers[search_peer]);
+  GNUNET_assert (NULL != peers[search_peer].op_handle);
   peers[search_peer].timeout = GNUNET_SCHEDULER_add_delayed (FIND_TIMEOUT,
                                                           &find_timeout,
                                                           &peers[search_peer]);
