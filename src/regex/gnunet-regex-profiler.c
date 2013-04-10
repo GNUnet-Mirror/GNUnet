@@ -38,7 +38,7 @@
 
 #define FIND_TIMEOUT \
         GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 90)
-#define SEARCHES_IN_PARALLEL 100
+#define SEARCHES_IN_PARALLEL 5
 
 /**
  * DLL of operations
@@ -335,11 +335,6 @@ static int num_search_strings;
  * How many searches are running in parallel
  */
 static unsigned int parallel_searches;
-
-/**
- * Index of peer/string search.
- */
-static unsigned int peer_cnt;
 
 /**
  * Number of peers found with search strings.
@@ -967,32 +962,31 @@ find_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 find_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  unsigned int search_peer = (unsigned int) (long) cls;
+
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) ||
-      peer_cnt >= num_search_strings)
+      search_peer >= num_search_strings)
     return;
 
-  peers[peer_cnt].search_str = search_strings[peer_cnt];
-  peers[peer_cnt].search_str_matched = GNUNET_NO;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Searching for string \"%s\" on peer %d with file %s (%u||)\n",
-              peers[peer_cnt].search_str,
-              peer_cnt,
-              peers[peer_cnt].policy_file,
+              peers[search_peer].search_str,
+              search_peer,
+              peers[search_peer].policy_file,
               parallel_searches);
 
-  peers[peer_cnt].op_handle =
+  peers[search_peer].op_handle =
     GNUNET_TESTBED_service_connect (NULL,
-                                    peers[peer_cnt].peer_handle,
+                                    peers[search_peer].peer_handle,
                                     "dht",
                                     &dht_connect_cb,
-                                    &peers[peer_cnt],
+                                    &peers[search_peer],
                                     &dht_ca,
                                     &dht_da,
-                                    &peers[peer_cnt]);
-  peers[peer_cnt].timeout = GNUNET_SCHEDULER_add_delayed (FIND_TIMEOUT,
+                                    &peers[search_peer]);
+  peers[search_peer].timeout = GNUNET_SCHEDULER_add_delayed (FIND_TIMEOUT,
                                                           &find_timeout,
-                                                          &peers[peer_cnt]);
-  peer_cnt++;
+                                                          &peers[search_peer]);
 }
 
 
@@ -1090,7 +1084,7 @@ arm_start_cb (void *cls, struct GNUNET_ARM_Handle *arm,
       GNUNET_SCHEDULER_add_now (&arm_op_done, peer);
 
       {
-        long search_peer;
+        unsigned long search_peer;
         unsigned int i;
         unsigned int me;
 
@@ -1106,6 +1100,7 @@ arm_start_cb (void *cls, struct GNUNET_ARM_Handle *arm,
             GNUNET_abort (); /* we ran out of peers, must be a bug */
         }
         peers[search_peer].search_str = search_strings[me];
+        peers[search_peer].search_str_matched = GNUNET_NO;
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
                                         reannounce_period_max,
                                         2),
