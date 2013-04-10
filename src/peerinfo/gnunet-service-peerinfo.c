@@ -422,16 +422,34 @@ read_host_file (const char *fn, int unlink_garbage, struct ReadHostFileContext *
   }
 
   if (GNUNET_NO == GNUNET_HELLO_is_friend_only(hello_clean_1st))
-  	r->hello = hello_clean_1st;
+  {
+  	if (NULL == r->hello)
+  		r->hello = hello_clean_1st;
+  	else
+  	{
+  			GNUNET_break (0);
+  			GNUNET_free (r->hello);
+  			r->hello = hello_clean_1st;
+  	}
+  }
   else
-  	r->friend_only_hello = hello_clean_1st;
+  {
+  	if (NULL == r->friend_only_hello)
+  		r->friend_only_hello = hello_clean_1st;
+  	else
+  	{
+  			GNUNET_break (0);
+  			GNUNET_free (r->friend_only_hello);
+  			r->friend_only_hello = hello_clean_1st;
+  	}
+  }
 
   if (NULL != hello_2nd)
   {
   	  hello_clean_2nd = GNUNET_HELLO_iterate_addresses (hello_2nd, GNUNET_YES,
   	  								 																  &discard_expired, &now);
   	  left = 0;
-  	  (void) GNUNET_HELLO_iterate_addresses (hello_2nd, GNUNET_NO,
+  	  (void) GNUNET_HELLO_iterate_addresses (hello_clean_2nd, GNUNET_NO,
   	  																			 &count_addresses, &left);
   	  if (0 == left)
   	  {
@@ -440,10 +458,28 @@ read_host_file (const char *fn, int unlink_garbage, struct ReadHostFileContext *
   	      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
   	  }
 
-  	  if (GNUNET_NO == GNUNET_HELLO_is_friend_only (hello_clean_2nd))
-  	  	r->hello = hello_clean_2nd;
+  	  if (GNUNET_NO == GNUNET_HELLO_is_friend_only(hello_clean_2nd))
+  	  {
+  	  	if (NULL == r->hello)
+  	  		r->hello = hello_clean_2nd;
+  	  	else
+  	  	{
+  	  			GNUNET_break (0);
+  	  			GNUNET_free (r->hello);
+  	  			r->hello = hello_clean_2nd;
+  	  	}
+  	  }
   	  else
-  	  	r->friend_only_hello = hello_clean_2nd;
+  	  {
+  	  	if (NULL == r->friend_only_hello)
+  	  		r->friend_only_hello = hello_clean_2nd;
+  	  	else
+  	  	{
+  	  			GNUNET_break (0);
+  	  			GNUNET_free (r->friend_only_hello);
+  	  			r->friend_only_hello = hello_clean_2nd;
+  	  	}
+  	  }
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found `%s' and `%s' HELLO message in file\n",
@@ -482,8 +518,12 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
     if (NULL != fn)
     {
       read_host_file (fn, GNUNET_YES, &r);
-      entry->hello = r.hello;
-      entry->friend_only_hello = r.friend_only_hello;
+      if (NULL != r.hello)
+      	update_hello (identity, r.hello);
+      if (NULL != r.friend_only_hello)
+      	update_hello (identity, r.friend_only_hello);
+      GNUNET_free_non_null (r.hello);
+      GNUNET_free_non_null (r.friend_only_hello);
       GNUNET_free (fn);
     }
     notify_all (entry);
@@ -548,7 +588,6 @@ hosts_directory_scan_callback (void *cls, const char *fullname)
   struct GNUNET_PeerIdentity identity;
   struct ReadHostFileContext r;
   const char *filename;
-  struct HostEntry *entry;
   struct GNUNET_PeerIdentity id_public;
   struct GNUNET_PeerIdentity id_friend;
   struct GNUNET_PeerIdentity id;
@@ -614,18 +653,20 @@ hosts_directory_scan_callback (void *cls, const char *fullname)
   		}
   }
 	/* ok, found something valid, remember HELLO */
-  entry = add_host_to_known_hosts (&id);
+  add_host_to_known_hosts (&id);
   if (NULL != r.hello)
   {
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating peer `%s' public HELLO \n",
 					GNUNET_i2s (&id));
   	update_hello (&id, r.hello);
+  	GNUNET_free (r.hello);
   }
   if (NULL != r.friend_only_hello)
   {
 		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating peer `%s' friend only HELLO \n",
 					GNUNET_i2s (&id));
   	update_hello (&id, r.friend_only_hello);
+  	GNUNET_free (r.friend_only_hello);
   }
 	dsc->matched++;
 	return GNUNET_OK;
@@ -673,6 +714,7 @@ update_friend_hello (const struct GNUNET_HELLO_Message *hello,
 										 const struct GNUNET_HELLO_Message *friend_hello)
 {
 	struct GNUNET_HELLO_Message * res;
+	struct GNUNET_HELLO_Message * tmp;
 	struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pk;
 
 	if (NULL != friend_hello)
@@ -683,8 +725,9 @@ update_friend_hello (const struct GNUNET_HELLO_Message *hello,
 	}
 
 	GNUNET_HELLO_get_key (hello, &pk);
-	res = GNUNET_HELLO_create (&pk, NULL, NULL, GNUNET_YES);
-	res = GNUNET_HELLO_merge (hello, res);
+	tmp = GNUNET_HELLO_create (&pk, NULL, NULL, GNUNET_YES);
+	res = GNUNET_HELLO_merge (hello, tmp);
+	GNUNET_free (tmp);
 	GNUNET_assert (GNUNET_YES == GNUNET_HELLO_is_friend_only (res));
 	return res;
 }
@@ -718,7 +761,7 @@ update_hello (const struct GNUNET_PeerIdentity *peer,
   GNUNET_assert (NULL != host);
 
   friend_hello_type = GNUNET_HELLO_is_friend_only (hello);
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %s HELLO for `%s'\n",
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating %s HELLO for `%s'\n",
 			(GNUNET_YES == friend_hello_type) ? "friend-only" : "public",
 			GNUNET_i2s (peer));
 
