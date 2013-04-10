@@ -455,9 +455,10 @@ read_host_file (const char *fn, int unlink_garbage, struct ReadHostFileContext *
 
 
 /**
- * Add a host to the list.
+ * Add a host to the list and notify clients about this event
  *
  * @param identity the identity of the host
+ * @return the HostEntry
  */
 static struct HostEntry *
 add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
@@ -469,6 +470,7 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
   entry = GNUNET_CONTAINER_multihashmap_get (hostmap, &identity->hashPubKey);
   if (NULL == entry)
   {
+		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding new peer `%s'\n", GNUNET_i2s (identity));
   	GNUNET_STATISTICS_update (stats, gettext_noop ("# peers known"), 1,
                             GNUNET_NO);
   	entry = GNUNET_malloc (sizeof (struct HostEntry));
@@ -484,6 +486,7 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
       entry->friend_only_hello = r.friend_only_hello;
       GNUNET_free (fn);
     }
+    notify_all (entry);
   }
   return entry;
 }
@@ -624,8 +627,6 @@ hosts_directory_scan_callback (void *cls, const char *fullname)
 					GNUNET_i2s (&id));
   	update_hello (&id, r.friend_only_hello);
   }
-
-	notify_all (entry);
 	dsc->matched++;
 	return GNUNET_OK;
 }

@@ -57,6 +57,8 @@ static int res_cb_w_fo;
  */
 static int res_cb_wo_fo;
 
+struct GNUNET_PeerIdentity pid;
+
 GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
 
@@ -142,6 +144,10 @@ process_w_fo (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   if (NULL != peer)
   {
+  		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Received callback for peer `%s' %s HELLO\n",
+  				GNUNET_i2s (peer),
+  				(NULL != hello) ? "with" : "without");
+
   		if (NULL == hello)
   				return;
 
@@ -151,10 +157,14 @@ process_w_fo (void *cls, const struct GNUNET_PeerIdentity *peer,
   				return;
   		}
 
-  		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Received %s HELLO\n",
-  				(GNUNET_YES == GNUNET_HELLO_is_friend_only (hello)) ? "friend only" : "public");
-			res_cb_w_fo = GNUNET_YES;
-			GNUNET_SCHEDULER_add_now(&done, NULL);
+  		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Received %s HELLO for peer `%s'\n",
+  				(GNUNET_YES == GNUNET_HELLO_is_friend_only (hello)) ? "friend only" : "public",
+  				GNUNET_i2s (peer));
+  		if (0 == memcmp (&pid, peer, sizeof (pid)))
+  		{
+  				res_cb_w_fo = GNUNET_YES;
+  				GNUNET_SCHEDULER_add_now(&done, NULL);
+  		}
 			return;
   }
 }
@@ -173,10 +183,12 @@ process_wo_fo (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   if (NULL != peer)
   {
+  		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Received callback for peer `%s' %s HELLO\n",
+  				GNUNET_i2s (peer),
+  				(NULL != hello) ? "with" : "without");
+
   		if (NULL == hello)
   				return;
-
-  		GNUNET_break (0);
 
   		if (GNUNET_YES == GNUNET_HELLO_is_friend_only(hello))
   		{
@@ -184,9 +196,14 @@ process_wo_fo (void *cls, const struct GNUNET_PeerIdentity *peer,
   				return;
   		}
 
-  		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Received %s HELLO\n",
-  				(GNUNET_YES == GNUNET_HELLO_is_friend_only (hello)) ? "friend only" : "public");
-  		res_cb_wo_fo = GNUNET_YES;
+  		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Received %s HELLO for peer `%s'\n",
+  				(GNUNET_YES == GNUNET_HELLO_is_friend_only (hello)) ? "friend only" : "public",
+  				GNUNET_i2s (peer));
+  		if (0 == memcmp (&pid, peer, sizeof (pid)))
+  		{
+  				GNUNET_break (0);
+  				res_cb_wo_fo = GNUNET_YES;
+  		}
   }
 }
 
@@ -195,8 +212,6 @@ add_peer_done (void *cls, const char *emsg)
 {
 	if (NULL == emsg)
 	{
-			pnc_w_fo = GNUNET_PEERINFO_notify (mycfg, GNUNET_YES, &process_w_fo, NULL);
-			pnc_wo_fo = GNUNET_PEERINFO_notify (mycfg, GNUNET_NO, &process_wo_fo, NULL);
 			return;
 	}
 	else
@@ -213,7 +228,6 @@ static void
 add_peer ()
 {
   struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
-  struct GNUNET_PeerIdentity pid;
   struct GNUNET_HELLO_Message *h2;
   size_t agc;
 
@@ -235,6 +249,8 @@ run (void *cls,
 {
 	timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
 	mycfg = cfg;
+	pnc_w_fo = GNUNET_PEERINFO_notify (mycfg, GNUNET_YES, &process_w_fo, NULL);
+	pnc_wo_fo = GNUNET_PEERINFO_notify (mycfg, GNUNET_NO, &process_wo_fo, NULL);
   h = GNUNET_PEERINFO_connect (cfg);
   GNUNET_assert (NULL != h);
   add_peer ();
