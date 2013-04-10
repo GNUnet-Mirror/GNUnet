@@ -22,7 +22,9 @@
  * @file testbed/testbed_api_operations.c
  * @brief functions to manage operation queues
  * @author Christian Grothoff
+ * @author Sree Harsha Totakura
  */
+
 #include "platform.h"
 #include "testbed_api_operations.h"
 
@@ -139,9 +141,9 @@ enum OperationState
   OP_STATE_READY,
 
   /**
-   * The operation has started
+   * The operation has started and is active
    */
-  OP_STATE_STARTED,
+  OP_STATE_ACTIVE,
 
   /**
    * The operation is inactive.  It still holds resources on the operation
@@ -246,7 +248,15 @@ struct ReadyQueueEntry *rq_tail;
  */
 GNUNET_SCHEDULER_TaskIdentifier process_rq_task_id;
 
-void
+
+/**
+ * Removes a queue entry of an operation from one of the operation queues' lists
+ * depending on the state of the operation
+ *
+ * @param op the operation whose entry has to be removed
+ * @param index the index of the entry in the operation's array of queue entries
+ */
+static void
 remove_queue_entry (struct GNUNET_TESTBED_Operation *op, unsigned int index)
 {
   struct OperationQueue *opq;
@@ -265,7 +275,7 @@ remove_queue_entry (struct GNUNET_TESTBED_Operation *op, unsigned int index)
   case OP_STATE_READY:
     GNUNET_CONTAINER_DLL_remove (opq->rq_head, opq->rq_tail, entry);
     break;
-  case OP_STATE_STARTED:
+  case OP_STATE_ACTIVE:
     GNUNET_CONTAINER_DLL_remove (opq->aq_head, opq->aq_tail, entry);
     break;
   case OP_STATE_INACTIVE:
@@ -274,7 +284,15 @@ remove_queue_entry (struct GNUNET_TESTBED_Operation *op, unsigned int index)
   }
 }
 
-void
+
+/**
+ * Changes the state of the operation while moving its associated queue entries
+ * in the operation's operation queues
+ *
+ * @param op the operation whose state has to be changed
+ * @param state the state the operation should have.  It cannot be OP_STATE_INIT
+ */
+static void
 change_state (struct GNUNET_TESTBED_Operation *op, enum OperationState state)
 {
   struct QueueEntry *entry;
@@ -314,7 +332,7 @@ change_state (struct GNUNET_TESTBED_Operation *op, enum OperationState state)
     case OP_STATE_READY:
       GNUNET_CONTAINER_DLL_insert_tail (opq->rq_head, opq->rq_tail, entry);
       break;
-    case OP_STATE_STARTED:
+    case OP_STATE_ACTIVE:
       GNUNET_CONTAINER_DLL_insert_tail (opq->aq_head, opq->aq_tail, entry);
       break;
     case OP_STATE_INACTIVE:
@@ -367,7 +385,7 @@ process_rq_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   rq_remove (op);
   if (NULL != rq_head)
     process_rq_task_id = GNUNET_SCHEDULER_add_now (&process_rq_task, NULL);
-  change_state (op, OP_STATE_STARTED);
+  change_state (op, OP_STATE_ACTIVE);
   if (NULL != op->start)
     op->start (op->cb_cls);  
 }
@@ -393,6 +411,13 @@ rq_add (struct GNUNET_TESTBED_Operation *op)
 }
 
 
+/**
+ * Checks if the given operation queue is empty or not
+ *
+ * @param opq the operation queue
+ * @return GNUNET_YES if the given operation queue has no operations; GNUNET_NO
+ *           otherwise
+ */
 static int
 is_queue_empty (struct OperationQueue *opq)
 {
@@ -405,7 +430,23 @@ is_queue_empty (struct OperationQueue *opq)
 }
 
 
-int
+/**
+ * Checks if the given operation queue has enough resources to provide for the
+ * operation of the given queue entry.  It also checks if any inactive
+ * operations are to be released in order to accommodate the needed resources
+ * and returns them as an array.
+ *
+ * @param opq the operation queue to check for resource accommodation
+ * @param entry the operation queue entry whose operation's resources are to be
+ *          accommodated
+ * @param ops_ pointer to return the array of operations which are to be released
+ *          in order to accommodate the new operation.  Can be NULL
+ * @param n_ops_ the number of operations in ops_
+ * @return GNUNET_YES if the given entry's operation can be accommodated in this
+ *           queue. GNUNET_NO if it cannot be accommodated; ops_ and n_ops_ will
+ *           be set to NULL and 0 respectively.
+ */
+static int
 decide_capacity (struct OperationQueue *opq,
                  struct QueueEntry *entry,
                  struct GNUNET_TESTBED_Operation ***ops_,
@@ -456,8 +497,17 @@ decide_capacity (struct OperationQueue *opq,
   return rval;
 }
 
-/* FIXME: improve.. */
-void
+
+/**
+ * Merges an array of operations into another, eliminating duplicates.  No
+ * ordering is guaranteed.
+ *
+ * @param old the array into which the merging is done.
+ * @param n_old the number of operations in old array
+ * @param new the array from which operations are to be merged
+ * @param n_new the number of operations in new array
+ */
+static void
 merge_ops (struct GNUNET_TESTBED_Operation ***old,
            unsigned int *n_old,
            struct GNUNET_TESTBED_Operation **new,
@@ -628,7 +678,13 @@ GNUNET_TESTBED_operation_queue_destroy_empty_ (struct OperationQueue *queue)
 }
 
 
-void
+/**
+ * Rechecks if any of the operations in the given operation queue's waiting list
+ * can be made active
+ *
+ * @param opq the operation queue
+ */
+static void
 recheck_waiting (struct OperationQueue *opq)
 {
   struct QueueEntry *entry;
@@ -746,7 +802,7 @@ GNUNET_TESTBED_operation_inactivate_ (struct GNUNET_TESTBED_Operation *op)
   unsigned int nqueues;
   unsigned int i;
 
-  GNUNET_assert (OP_STATE_STARTED == op->state);
+  GNUNET_assert (OP_STATE_ACTIVE == op->state);
   change_state (op, OP_STATE_INACTIVE);
   nqueues = op->nqueues;
   ms = sizeof (struct OperationQueue *) * nqueues;
@@ -770,7 +826,7 @@ GNUNET_TESTBED_operation_activate_ (struct GNUNET_TESTBED_Operation *op)
 {
 
   GNUNET_assert (OP_STATE_INACTIVE == op->state);
-  change_state (op, OP_STATE_STARTED);
+  change_state (op, OP_STATE_ACTIVE);
 }
 
 
@@ -812,7 +868,7 @@ GNUNET_TESTBED_operation_release_ (struct GNUNET_TESTBED_Operation *op)
     case OP_STATE_WAITING:      
       break;
     case OP_STATE_READY:
-    case OP_STATE_STARTED:
+    case OP_STATE_ACTIVE:
       GNUNET_assert (0 != opq->active);
       GNUNET_assert (opq->active >= entry->nres);
       opq->active -= entry->nres;
