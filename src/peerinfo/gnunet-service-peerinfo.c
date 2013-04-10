@@ -169,6 +169,7 @@ static struct NotificationContext *nc_tail;
  * given host entry changing.
  *
  * @param he entry of the host for which we generate a notification
+ * @param include_friend_only create public of friend-only message
  * @return generated notification message
  */
 static struct InfoMessage *
@@ -315,11 +316,12 @@ update_hello (const struct GNUNET_PeerIdentity *peer,
  * addresses are expired, the HELLO is also removed (but the HELLO
  * with the public key is still returned if it was found and valid).
  * 
- * The file can contain up to two HELLO messages, a public and a friend only
- * HELLO
+ * The file can contain multiple HELLO messages, but onlu a public and a friend only
+ * HELLO should be included
  *
  * @param fn name of the file
  * @param unlink_garbage if GNUNET_YES, try to remove useless files
+ * @param r ReadHostFileContext to store the resutl
  */
 static void
 read_host_file (const char *fn, int unlink_garbage, struct ReadHostFileContext *r)
