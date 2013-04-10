@@ -274,7 +274,8 @@ notify_all (struct HostEntry *entry)
 
   msg_pub = make_info_message (entry, GNUNET_NO);
   msg_friend = make_info_message (entry, GNUNET_YES);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Notifying all clients about peer `%s'\n",
+  		GNUNET_i2s(&entry->identity));
 	for (cur = nc_head; NULL != cur; cur = cur->next)
 	{
 		if (GNUNET_NO == cur->include_friend_only)
@@ -905,7 +906,7 @@ add_to_tc (void *cls, const struct GNUNET_HashCode * key, void *value)
     GNUNET_assert (hs < GNUNET_SERVER_MAX_MESSAGE_SIZE -
                    sizeof (struct InfoMessage));
     memcpy (&im[1], pos->hello, hs);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding public HELLO with size %u for peer `%s'\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending public HELLO with size %u for peer `%4s'\n",
     		hs, GNUNET_h2s (key));
   }
   else if ((pos->friend_only_hello != NULL) && (GNUNET_YES == tc->friend_only))
@@ -915,7 +916,7 @@ add_to_tc (void *cls, const struct GNUNET_HashCode * key, void *value)
     GNUNET_assert (hs < GNUNET_SERVER_MAX_MESSAGE_SIZE -
                    sizeof (struct InfoMessage));
     memcpy (&im[1], pos->friend_only_hello, hs);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding public HELLO with size %u for peer `%s'\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending friend-only HELLO with size %u for peer `%4s'\n",
     		hs, GNUNET_h2s (key));
   }
   else
@@ -1101,7 +1102,6 @@ do_notify_entry (void *cls, const struct GNUNET_HashCode * key, void *value)
 	struct NotificationContext *nc = cls;
   struct HostEntry *he = value;
   struct InfoMessage *msg;
-
 
 	if ((NULL == he->hello) && (GNUNET_NO == nc->include_friend_only))
 	{
