@@ -341,7 +341,7 @@ read_host_file (const char *fn, int unlink_garbage, struct ReadHostFileContext *
     return;
 
   size_total = GNUNET_DISK_fn_read (fn, buffer, sizeof (buffer));
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Read %u bytes from `%s'\n", size_total, fn);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Read %u bytes from `%s'\n", size_total, fn);
   if (size_total < sizeof (struct GNUNET_MessageHeader))
   {
 	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -546,7 +546,7 @@ hosts_directory_scan_callback (void *cls, const char *fullname)
   	filename = fullname;
   else
   	filename ++;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Reading `%s'\n", filename);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Reading `%s'\n", filename);
 
   if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (filename, &identity.hashPubKey))
   {
