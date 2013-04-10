@@ -63,12 +63,12 @@ address_generator (void *cls, size_t max, void *buf)
   return ret;
 }
 
+struct GNUNET_PeerIdentity pid;
 
 static void
 add_peer ()
 {
   struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
-  struct GNUNET_PeerIdentity pid;
   struct GNUNET_HELLO_Message *h2;
   size_t agc;
 
@@ -138,7 +138,7 @@ run (void *cls,
   h = GNUNET_PEERINFO_connect (cfg);
   GNUNET_assert (NULL != h);
   add_peer ();
-  ic = GNUNET_PEERINFO_iterate (h, GNUNET_NO, NULL,
+  ic = GNUNET_PEERINFO_iterate (h, GNUNET_NO, &pid,
                                 GNUNET_TIME_relative_multiply
                                 (GNUNET_TIME_UNIT_SECONDS, 15), &process, cls);
 }

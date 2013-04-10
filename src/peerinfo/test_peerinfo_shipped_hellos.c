@@ -83,7 +83,7 @@ process (void *cls, const struct GNUNET_PeerIdentity *peer,
   	}
   	else
   	{
-			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed: %u callbacks\n", calls);
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got %u callbacks\n", calls);
   		global_ret = 0;
   	}
   }
