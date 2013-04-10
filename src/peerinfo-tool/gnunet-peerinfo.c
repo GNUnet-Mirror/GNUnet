@@ -150,6 +150,11 @@ static int get_info;
 static char *put_uri;
 
 /**
+ * Option -d
+ */
+static char *dump_hello;
+
+/**
  * Handle to peerinfo service.
  */
 static struct GNUNET_PEERINFO_Handle *peerinfo;
@@ -379,6 +384,86 @@ print_peer_info (void *cls, const struct GNUNET_PeerIdentity *peer,
 				  &print_address, pc);
 }
 
+/* ************************* DUMP Hello  ************************** */
+
+static int count_addr(void *cls,
+										 const struct GNUNET_HELLO_Address *address,
+										 struct GNUNET_TIME_Absolute expiration)
+{
+	int *c = cls;
+  (*c) ++;
+  return GNUNET_OK;
+}
+
+/**
+ * Write Hello of my peer to a file.
+ *
+ * @param cls the 'struct GetUriContext'
+ * @param peer identity of the peer (unused)
+ * @param hello addresses of the peer
+ * @param err_msg error message
+ */
+static void
+dump_my_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
+              const struct GNUNET_HELLO_Message *hello,
+	      const char *err_msg)
+{
+	unsigned int size;
+	unsigned int c_addr;
+  if (peer == NULL)
+  {
+    pic = NULL;
+    if (err_msg != NULL)
+      FPRINTF (stderr,
+	       _("Error in communication with PEERINFO service: %s\n"),
+	       err_msg);
+    tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
+    return;
+  }
+
+  if (NULL == hello)
+  {
+		FPRINTF (stderr,
+			 _("Failure: Did not receive HELLO\n"));
+    return;
+  }
+
+  size = GNUNET_HELLO_size (hello);
+  if (0 == size)
+  {
+  		FPRINTF (stderr,
+  			 _("Failure: Received invalid HELLO\n"));
+      return;
+  }
+  if (GNUNET_SYSERR == GNUNET_DISK_fn_write (dump_hello, hello, size,
+                            GNUNET_DISK_PERM_USER_READ |
+                            GNUNET_DISK_PERM_USER_WRITE |
+                            GNUNET_DISK_PERM_GROUP_READ |
+                            GNUNET_DISK_PERM_OTHER_READ))
+  {
+  		FPRINTF (stderr, _("Failed to write HELLO with %u bytes to file `%s'\n"),
+  			 size, dump_hello);
+  		if (0 != UNLINK (dump_hello))
+  		GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING |
+                              GNUNET_ERROR_TYPE_BULK, "unlink", dump_hello);
+
+  }
+  c_addr = 0;
+  GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, count_addr, &c_addr);
+
+  if (!be_quiet)
+  {
+  		FPRINTF (stderr,
+  			 _("Wrote %s HELLO containing %u addresses with %u bytes to file `%s'\n"),
+  			 (GNUNET_YES == GNUNET_HELLO_is_friend_only(hello)) ? "friend-only": "public",
+  					c_addr, size, dump_hello);
+  }
+
+  GNUNET_free (dump_hello);
+  dump_hello = NULL;
+
+}
+
 
 /* ************************* GET URI ************************** */
 
@@ -564,7 +649,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     FPRINTF (stderr, "%s",  _("Could not access PEERINFO service.  Exiting.\n"));
     return;
   }
-  if ( (GNUNET_YES == get_self) || (GNUNET_YES == get_uri) )
+  if ( (GNUNET_YES == get_self) || (GNUNET_YES == get_uri) || (NULL != dump_hello) )
   {
     /* load private key */
     if (GNUNET_OK !=
@@ -649,6 +734,12 @@ state_machine (void *cls,
     get_uri = GNUNET_NO;
     return;
   }
+  if (NULL != dump_hello)
+  {
+    pic = GNUNET_PEERINFO_iterate (peerinfo, include_friend_only, &my_peer_identity,
+				   TIMEOUT, &dump_my_hello, NULL);
+    return;
+  }
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -679,6 +770,9 @@ main (int argc, char *const *argv)
     {'i', "info", NULL,
      gettext_noop ("list all known peers"),
      0, &GNUNET_GETOPT_set_one, &get_info},
+	  {'d', "dump-hello", NULL,
+		 gettext_noop ("dump hello to file"),
+		 1, &GNUNET_GETOPT_set_string, &dump_hello},
     {'g', "get-hello", NULL,
      gettext_noop ("also output HELLO uri(s)"),
      0, &GNUNET_GETOPT_set_one, &get_uri},
