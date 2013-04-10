@@ -644,7 +644,7 @@ state_machine (void *cls,
   if (GNUNET_YES == get_uri)
   {
     GPI_plugins_load (cfg);
-    pic = GNUNET_PEERINFO_iterate (peerinfo, GNUNET_YES, &my_peer_identity,
+    pic = GNUNET_PEERINFO_iterate (peerinfo, include_friend_only, &my_peer_identity,
 				   TIMEOUT, &print_my_uri, NULL);
     get_uri = GNUNET_NO;
     return;
