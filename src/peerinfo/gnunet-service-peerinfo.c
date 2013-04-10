@@ -514,7 +514,7 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
   	entry->identity = *identity;
   	GNUNET_CONTAINER_multihashmap_put (hostmap, &entry->identity.hashPubKey, entry,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-
+    notify_all (entry);
     fn = get_host_filename (identity);
     if (NULL != fn)
     {
@@ -527,7 +527,6 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
       GNUNET_free_non_null (r.friend_only_hello);
       GNUNET_free (fn);
     }
-    notify_all (entry);
   }
   return entry;
 }
@@ -698,6 +697,8 @@ cron_scan_directory_data_hosts (void *cls,
   }
   dsc.matched = 0;
   dsc.remove_files = GNUNET_YES;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
+              _("Scanning directory `%s'\n"), networkIdDirectory);
   GNUNET_DISK_directory_scan (networkIdDirectory,
                               &hosts_directory_scan_callback, &dsc);
   if ((0 == dsc.matched) && (0 == (++retries & 31)))
@@ -788,6 +789,9 @@ update_hello (const struct GNUNET_PeerIdentity *peer,
     if (delta.abs_value == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
     {
       /* no differences, just ignore the update */
+    	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No change in %s HELLO for `%s'\n",
+    			(GNUNET_YES == friend_hello_type) ? "friend-only" : "public",
+    			GNUNET_i2s (peer));
       GNUNET_free (mrg);
       return;
     }
@@ -1264,13 +1268,13 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 							    "HOSTS",
 							    &networkIdDirectory));
     GNUNET_DISK_directory_create (networkIdDirectory);
-#if 0
+
     GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
 					&cron_scan_directory_data_hosts, NULL); /* CHECK */
 
     GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
 					&cron_clean_data_hosts, NULL); /* CHECK */
-#endif
+
     ip = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
     GNUNET_asprintf (&peerdir,
 		     "%shellos",
