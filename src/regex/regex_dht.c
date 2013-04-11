@@ -178,7 +178,6 @@ regex_iterator (void *cls,
                             1, GNUNET_NO);
   GNUNET_STATISTICS_update (h->stats, "# regex block bytes stored",
                             size, GNUNET_NO);
-  
   GNUNET_free (block);
 }
 
@@ -208,7 +207,8 @@ GNUNET_REGEX_announce (struct GNUNET_DHT_Handle *dht,
 void
 GNUNET_REGEX_reannounce (struct GNUNET_REGEX_announce_handle *h)
 {
-  LOG (GNUNET_ERROR_TYPE_INFO, "GNUNET_REGEX_reannounce: %s\n", h->regex);
+  GNUNET_assert (NULL != h->dfa); /* make sure to call announce first */
+  LOG (GNUNET_ERROR_TYPE_INFO, "GNUNET_REGEX_reannounce: %.40s\n", h->regex);
   GNUNET_REGEX_iterate_all_edges (h->dfa, &regex_iterator, h);
 }
 
