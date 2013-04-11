@@ -138,13 +138,9 @@ struct GNUNET_CONSENSUS_Handle
   unsigned int conclude_min_size;
 
   struct QueuedMessage *messages_head;
+
   struct QueuedMessage *messages_tail;
 
-  /**
-   * GNUNET_YES when currently in a section where destroy may not be
-   * called.
-   */
-  int may_not_destroy;
 };
 
 
@@ -265,15 +261,14 @@ handle_new_element (struct GNUNET_CONSENSUS_Handle *consensus,
  */
 static void
 handle_conclude_done (struct GNUNET_CONSENSUS_Handle *consensus,
-                     const struct GNUNET_MessageHeader *msg)
+		      const struct GNUNET_MessageHeader *msg)
 {
-  GNUNET_assert (NULL != consensus->conclude_cb);
-  consensus->may_not_destroy = GNUNET_YES;
-  consensus->conclude_cb (consensus->conclude_cls);
-  consensus->may_not_destroy = GNUNET_NO;
-  consensus->conclude_cb = NULL;
-}
+  GNUNET_CONSENSUS_ConcludeCallback cc;
 
+  GNUNET_assert (NULL != (cc = consensus->conclude_cb));
+  consensus->conclude_cb = NULL;
+  cc (consensus->conclude_cls);
+}
 
 
 /**
@@ -290,7 +285,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "received message from consensus service\n");
 
-  if (msg == NULL)
+  if (NULL == msg)
   {
     /* Error, timeout, death */
     LOG (GNUNET_ERROR_TYPE_ERROR, "error receiving\n");
@@ -299,7 +294,8 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     consensus->new_element_cb (consensus->new_element_cls, NULL);
     return;
   }
-
+  GNUNET_CLIENT_receive (consensus->client, &message_handler, consensus,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
   switch (ntohs (msg->type))
   {
     case GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT:
@@ -311,8 +307,6 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     default:
       GNUNET_break (0);
   }
-  GNUNET_CLIENT_receive (consensus->client, &message_handler, consensus,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 /**
@@ -509,11 +503,6 @@ GNUNET_CONSENSUS_conclude (struct GNUNET_CONSENSUS_Handle *consensus,
 void
 GNUNET_CONSENSUS_destroy (struct GNUNET_CONSENSUS_Handle *consensus)
 {
-  if (GNUNET_YES == consensus->may_not_destroy)
-  {
-    LOG (GNUNET_ERROR_TYPE_ERROR, "destroy may not be called right now\n");
-    GNUNET_assert (0);
-  }
   if (consensus->client != NULL)
   {
     GNUNET_CLIENT_disconnect (consensus->client);
