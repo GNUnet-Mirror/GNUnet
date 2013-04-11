@@ -463,12 +463,17 @@ decide_capacity (struct OperationQueue *opq,
 
   GNUNET_assert (NULL != (op = entry->op));
   GNUNET_assert (0 < (need = entry->nres));
-  GNUNET_assert (opq->active <= opq->max_active);
   ops = NULL;
   n_ops = 0;
   evict_entries = NULL;
   n_evict_entries = 0;
-  rval = GNUNET_OK;
+  rval = GNUNET_YES;
+  if (opq->active > opq->max_active)
+  {
+    need += opq->active - opq->max_active;
+    rval = GNUNET_NO;
+    goto ret;
+  }
   if ((opq->active + need) <= opq->max_active)
     goto ret;
   deficit = need - (opq->max_active - opq->active);
