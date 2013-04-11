@@ -154,11 +154,6 @@ struct RegexPeer
   int search_str_matched;
 
   /**
-   * Peer's ARM handle.
-   */
-  struct GNUNET_ARM_Handle *arm_handle;
-
-  /**
    * Peer's DHT handle.
    */
   struct GNUNET_DHT_Handle *dht_handle;
@@ -169,7 +164,7 @@ struct RegexPeer
    struct GNUNET_REGEX_search_handle *search_handle;
 
   /**
-   * Testbed operation handle for the ARM and DHT services.
+   * Testbed operation handle for DHT.
    */
   struct GNUNET_TESTBED_Operation *op_handle;
 
@@ -192,6 +187,11 @@ struct RegexPeer
    * Operation timeout
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout;
+
+  /**
+   * Deamon start
+   */
+  struct GNUNET_TESTBED_Operation *daemon_op;
 };
 
 
@@ -991,171 +991,58 @@ find_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-/**
- * ARM connect adapter. Opens a connection to the ARM service.
- *
- * @param cls Closure (peer).
- * @param cfg Configuration handle.
- *
- * @return
- */
-static void *
-arm_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  struct RegexPeer *peer = cls;
-
-  peer->arm_handle = GNUNET_ARM_connect (cfg, NULL, NULL);
-
-  return peer->arm_handle;
-}
 
 
 /**
- * Adapter function called to destroy a connection to the ARM service.
+ * Callback called when testbed has started the daemon we asked for.
  *
- * @param cls Closure (peer).
- * @param op_result Service handle returned from the connect adapter.
+ * @param cls NULL
+ * @param op the operation handle
+ * @param emsg NULL on success; otherwise an error description
  */
 static void
-arm_da (void *cls, void *op_result)
+daemon_started (void *cls, struct GNUNET_TESTBED_Operation *op,
+                const char *emsg)
 {
   struct RegexPeer *peer = (struct RegexPeer *) cls;
+  unsigned long search_peer;
+  unsigned int i;
+  unsigned int me;
 
-  GNUNET_assert (peer->arm_handle == op_result);
-
-  if (NULL != peer->arm_handle)
+  GNUNET_TESTBED_operation_done (peer->daemon_op);
+  me = peer - peers;
+  if (NULL != emsg)
   {
-    GNUNET_ARM_disconnect_and_free (peer->arm_handle);
-    peer->arm_handle = NULL;
-  }
-}
-
-/**
- * Finish and free the operation used to start the regex daemon.
- * operation_done calls ARM_disconnect, which cannot happen inside an
- * ARM callback.
- *
- * @param cls Closure (Peer info)
- * @param tc TaskContext
- */
-static void
-arm_op_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct RegexPeer *peer = (struct RegexPeer *) cls;
-
-  GNUNET_TESTBED_operation_done (peer->op_handle);
-  peer->op_handle = NULL;
-}
-
-
-/**
- * Callback called when arm has started the daemon we asked for.
- * 
- * @param cls           Closure ().
- * @param arm           Arm handle.
- * @param rs            Status of the request.
- * @param service       Service we asked to start (deamon).
- * @param result        Result of the request.
- */
-static void
-arm_start_cb (void *cls, struct GNUNET_ARM_Handle *arm,
-    enum GNUNET_ARM_RequestStatus rs, const char *service,
-    enum GNUNET_ARM_Result result)
-{
-  struct RegexPeer *peer = (struct RegexPeer *) cls;
-
-  if (rs != GNUNET_ARM_REQUEST_SENT_OK)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "ARM request was not sent: %u\n", rs);
-    GNUNET_abort ();
-  }
-  switch (result)
-  {
-      /**
-       * Asked to start it, but it's already starting.
-       */
-    case GNUNET_ARM_RESULT_IS_STARTING_ALREADY:
-      GNUNET_break (0); /* Shouldn't be starting, however it's not fatal. */
-      /* fallthrough */
-
-      /**
-       * Service is currently being started (due to client request).
-       */
-    case GNUNET_ARM_RESULT_STARTING:
-      GNUNET_SCHEDULER_add_now (&arm_op_done, peer);
-
-      {
-        unsigned long search_peer;
-        unsigned int i;
-        unsigned int me;
-
-        me = peer - peers;
-
-        /* Find a peer to look for a string matching the regex announced */
-        search_peer = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                                num_peers);
-        for (i = 0; peers[search_peer].search_str != NULL; i++)
-        {
-          search_peer = (search_peer + 1) % num_peers;
-          if (i > num_peers)
-            GNUNET_abort (); /* we ran out of peers, must be a bug */
-        }
-        peers[search_peer].search_str = search_strings[me];
-        peers[search_peer].search_str_matched = GNUNET_NO;
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
-                                        reannounce_period_max,
-                                        2),
-                                      &find_string,
-                                      (void *) search_peer);
-      }
-      if (next_search >= num_peers &&
-          GNUNET_SCHEDULER_NO_TASK == search_timeout_task)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "All daemons started.\n");
-        /* FIXME start GLOBAL timeout to abort experiment */
-        search_timeout_task = GNUNET_SCHEDULER_add_delayed (search_timeout_time,
-                                                            &search_timeout,
-                                                            NULL);
-      }
-      break;
-
-    default:
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "ARM returned %d\n", result);
-      GNUNET_abort ();
-  }
-}
-
-/**
- * ARM connect callback. Called when we are connected to the arm service for
- * the peer in 'cls'. If successfull we start the regex deamon to start
- * announcing the regex of this peer.
- *
- * @param cls internal peer id.
- * @param op operation handle.
- * @param ca_result connect adapter result.
- * @param emsg error message.
- */
-static void
-arm_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
-                void *ca_result, const char *emsg)
-{
-  struct RegexPeer *peer = (struct RegexPeer *) cls;
-
-  if (NULL != emsg || NULL == op || NULL == ca_result)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ARM connect failed: %s\n", emsg);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Failed to start/stop daemon at peer %u: %s\n", me, emsg);
     GNUNET_abort ();
   }
 
-  GNUNET_assert (NULL != peer->arm_handle);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[]%p - ()%p\n", peer->op_handle, op);
-  GNUNET_assert (peer->op_handle == op);
-  GNUNET_assert (peer->arm_handle == ca_result);
-
-  GNUNET_ARM_request_service_start (ca_result, "regexprofiler",
-                                    GNUNET_OS_INHERIT_STD_NONE,
-                                    GNUNET_TIME_UNIT_FOREVER_REL,
-                                    arm_start_cb, cls);
+  /* Find a peer to look for a string matching the regex announced */
+  search_peer = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                          num_peers);
+  for (i = 0; peers[search_peer].search_str != NULL; i++)
+  {
+    search_peer = (search_peer + 1) % num_peers;
+    if (i > num_peers)
+      GNUNET_abort (); /* we ran out of peers, must be a bug */
+  }
+  peers[search_peer].search_str = search_strings[me];
+  peers[search_peer].search_str_matched = GNUNET_NO;
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
+                                  reannounce_period_max,
+                                  2),
+                                &find_string,
+                                (void *) search_peer);
+  if (next_search >= num_peers &&
+      GNUNET_SCHEDULER_NO_TASK == search_timeout_task)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "All daemons started.\n");
+    /* FIXME start GLOBAL timeout to abort experiment */
+    search_timeout_task = GNUNET_SCHEDULER_add_delayed (search_timeout_time,
+                                                        &search_timeout,
+                                                        NULL);
+  }
 }
 
 
@@ -1192,22 +1079,21 @@ do_announce (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct RegexPeer *peer;
+
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) ||
             next_search >= num_peers)
     return;
 
-  /* First connect to arm service, then announce. Next
-   * a nnounce will be in arm_connect_cb */
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting daemon %u\n", next_search);
-  peers[next_search].op_handle =
-    GNUNET_TESTBED_service_connect (NULL,
-                                    peers[next_search].peer_handle,
-                                    "arm",
-                                    &arm_connect_cb,
-                                    &peers[next_search],
-                                    &arm_ca,
-                                    &arm_da,
-                                    &peers[next_search]);
+  peer = &peers[next_search];
+  peer->daemon_op = 
+  GNUNET_TESTBED_peer_manage_service (NULL,
+                                      peer->peer_handle,
+                                      "regexprofiler",
+                                      &daemon_started,
+                                      peer,
+                                      1);
   next_search++;
   parallel_searches++;
 }
