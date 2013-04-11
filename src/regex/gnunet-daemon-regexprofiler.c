@@ -89,6 +89,11 @@ static char * regex_prefix;
  */
 static char *rx_with_pfx;
 
+/**
+ * How many put rounds should we do.
+ */
+static unsigned int rounds = 5;
+
 
 /**
  * Task run during shutdown.
@@ -113,7 +118,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     dht_handle = NULL;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shut down\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Daemon for %s shutting down\n",
+              policy_filename);
 }
 
 
@@ -137,6 +144,13 @@ reannounce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
 
+  if (0 == rounds--)
+  {
+    global_ret = 0;
+    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_free (regex);
+    return;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Announcing regex: %s\n", regex);
   GNUNET_STATISTICS_update (stats_handle, "# regexes announced", 1, GNUNET_NO);
   if (NULL == announce_handle && NULL != regex)
@@ -184,6 +198,9 @@ announce_regex (const char * regex)
     return;
   }
 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Daemon for %s starting\n",
+              policy_filename);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == reannounce_task);
   copy = GNUNET_strdup (regex);
   reannounce_task = GNUNET_SCHEDULER_add_now (reannounce_regex, (void *) copy);
