@@ -241,6 +241,9 @@ GST_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   switch (type)
   {
+  case GNUNET_MESSAGE_TYPE_HELLO_LEGACY:
+    /* Legacy HELLO message, discard  */
+    return ret;
   case GNUNET_MESSAGE_TYPE_HELLO:
     GST_validation_handle_hello (message);
     return ret;
