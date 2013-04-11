@@ -192,12 +192,11 @@ connect_complete (void *cls,
 }
 
 
-static int
+static void
 new_element_cb (void *cls,
                 const struct GNUNET_CONSENSUS_Element *element)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "received new element\n");
-  return GNUNET_YES;
 }
 
 

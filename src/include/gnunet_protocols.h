@@ -1754,6 +1754,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_FIN 548
 
+/**
+ * Abort a round, don't send requested elements anymore
+ */
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ABORT 548
+
 
 /**
  *  Next available: 570

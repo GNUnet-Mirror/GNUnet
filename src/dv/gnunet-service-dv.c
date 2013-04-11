@@ -1247,10 +1247,8 @@ insert_next_element (void *cls,
  *
  * @param cls the 'struct DirectNeighbor' we're building the consensus with
  * @param element the new element we have learned
- * @return GNUNET_OK if the valid is well-formed and should be added to the consensus,
- *         GNUNET_SYSERR if the element should be ignored and not be propagated
  */
-static int
+static void
 learn_route_cb (void *cls,
 		const struct GNUNET_CONSENSUS_Element *element)
 {
@@ -1274,12 +1272,12 @@ learn_route_cb (void *cls,
     neighbor->consensus_task = GNUNET_SCHEDULER_add_delayed (GNUNET_DV_CONSENSUS_FREQUENCY,
 							     &start_consensus,
 							     neighbor);
-    return GNUNET_SYSERR;
+    return;
   }
   if (sizeof (struct Target) != element->size)
   {
     GNUNET_break_op (0);
-    return GNUNET_SYSERR;
+    return;
   }
   target = GNUNET_malloc (sizeof (struct Target));
   memcpy (target, element->data, sizeof (struct Target));
@@ -1291,9 +1289,8 @@ learn_route_cb (void *cls,
   {
     GNUNET_break_op (0);
     GNUNET_free (target);
-    return GNUNET_SYSERR;
+    return;
   }
-  return GNUNET_OK;
 }
 
 

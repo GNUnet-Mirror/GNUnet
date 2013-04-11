@@ -16,16 +16,20 @@
       along with GNUnet; see the file COPYING.  If not, write to the
       Free Software Foundation, Inc., 59 Temple Place - Suite 330,
       Boston, MA 02111-1307, USA.
- */
+*/
 
 /**
- * @file consensus/consensus_flout.h
- * @brief intentionally misbehave in certain ways for testing
+ * @file consensus/strata_estimator.h
+ * @brief estimator of set difference
  * @author Florian Dold
  */
 
-#ifndef GNUNET_CONSENSUS_FLOUT_H
-#define GNUNET_CONSENSUS_FLOUT_H
+#ifndef GNUNET_CONSENSUS_STRATA_ESTIMATOR_H
+#define GNUNET_CONSENSUS_STRATA_ESTIMATOR_H
+
+#include "platform.h"
+#include "gnunet_common.h"
+#include "gnunet_util_lib.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -35,19 +39,38 @@ extern "C"
 #endif
 #endif
 
-#include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_consensus_service.h"
+
+struct StrataEstimator
+{
+  struct InvertibleBloomFilter **strata;
+  unsigned int strata_count;
+  unsigned int ibf_size;
+};
+
 
 void
-GNUNET_CONSENSUS_flout_disable_peer (struct GNUNET_CONSENSUS_Handle *consensus);
+strata_estimator_write (const struct StrataEstimator *se, void *buf);
+
 
 void
-GNUNET_CONSENSUS_flout_ignore_element_hash (struct GNUNET_CONSENSUS_Handle *consensus, struct GNUNET_HashCode *element_hash);
+strata_estimator_read (const void *buf, struct StrataEstimator *se);
+
+
+struct StrataEstimator *
+strata_estimator_create (unsigned int strata_count, uint32_t ibf_size, uint8_t ibf_hashnum);
+
+
+unsigned int
+strata_estimator_difference (const struct StrataEstimator *se1,
+                             const struct StrataEstimator *se2);
+
 
 void
-GNUNET_CONSENSUS_flout_send_bogos_ibf (struct GNUNET_CONSENSUS_Handle *consensus, ...);
+strata_estimator_insert (struct StrataEstimator *se, struct GNUNET_HashCode *key);
 
+
+void
+strata_estimator_destroy (struct StrataEstimator *se);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
@@ -58,3 +81,4 @@ GNUNET_CONSENSUS_flout_send_bogos_ibf (struct GNUNET_CONSENSUS_Handle *consensus
 #endif
 
 #endif
+

@@ -61,7 +61,8 @@ gnunet_consensus_ibf_LDADD = \
 
 gnunet_service_consensus_SOURCES = \
  gnunet-service-consensus.c \
- ibf.c
+ ibf.c \
+ strata_estimator.c
 gnunet_service_consensus_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \
@@ -71,7 +72,8 @@ gnunet_service_consensus_LDADD = \
 
 gnunet_service_evil_consensus_SOURCES = \
  gnunet-service-consensus.c \
- ibf.c
+ ibf.c \
+ strata_estimator.c
 gnunet_service_evil_consensus_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \

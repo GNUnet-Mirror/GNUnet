@@ -81,11 +81,6 @@ struct InvertibleBloomFilter
   uint8_t hash_num;
 
   /**
-   * Salt for mingling hashes
-   */
-  uint32_t salt;
-
-  /**
    * Xor sums of the elements' keys, used to identify the elements.
    * Array of 'size' elements.
    */
@@ -107,58 +102,28 @@ struct InvertibleBloomFilter
 
 
 /**
- * Write an ibf.
+ * Write buckets from an ibf to a buffer.
+ * Exactly (IBF_BUCKET_SIZE*ibf->size) bytes are written to buf.
  * 
  * @param ibf the ibf to write
  * @param start with which bucket to start
  * @param count how many buckets to write
- * @param buf buffer to write the data to, will be updated to point to the
- *            first byte after the written data
- * @param size pointer to the size of the buffer, will be updated, can be NULL
+ * @param buf buffer to write the data to
  */
 void
-ibf_write_slice (const struct InvertibleBloomFilter *ibf, uint32_t start, uint32_t count, void **buf, size_t *size);
+ibf_write_slice (const struct InvertibleBloomFilter *ibf, uint32_t start, uint32_t count, void *buf);
 
 
 /**
- * Read an ibf.
+ * Read buckets from a buffer into an ibf.
  *
- * @param buf pointer to the buffer to write to, will point to first
- *            byte after the written data
- * @param size size of the buffer, will be updated
+ * @param buf pointer to the buffer to read from
  * @param start which bucket to start at
  * @param count how many buckets to read
  * @param ibf the ibf to read from
- * @return GNUNET_OK on success
- */
-int
-ibf_read_slice (void **buf, size_t *size, uint32_t start, uint32_t count, struct InvertibleBloomFilter *dst);
-
-
-/**
- * Write an ibf.
- * 
- * @param ibf the ibf to write
- * @param buf buffer to write the data to, will be updated to point to the
- *            first byte after the written data
- * @param size pointer to the size of the buffer, will be updated, can be NULL
  */
 void
-ibf_write (const struct InvertibleBloomFilter *ibf, void **buf, size_t *size);
-
-
-
-/**
- * Read an ibf.
- *
- * @param buf pointer to the buffer to write to, will point to first
- *            byte after the written data
- * @param size size of the buffer, will be updated
- * @param dst ibf to write buckets to
- * @return GNUNET_OK on success
- */
-int
-ibf_read (void **buf, size_t *size, struct InvertibleBloomFilter *dst);
+ibf_read_slice (const void *buf, uint32_t start, uint32_t count, struct InvertibleBloomFilter *ibf);
 
 
 /**
@@ -187,12 +152,10 @@ ibf_hashcode_from_key (struct IBF_Key key, struct GNUNET_HashCode *dst);
  *
  * @param size number of IBF buckets
  * @param hash_num number of buckets one element is hashed in, usually 3 or 4
- * @param salt salt for mingling hashes, different salt may
- *        result in less (or more) collisions
  * @return the newly created invertible bloom filter
  */
 struct InvertibleBloomFilter *
-ibf_create (uint32_t size, uint8_t hash_num, uint32_t salt);
+ibf_create (uint32_t size, uint8_t hash_num);
 
 
 /**

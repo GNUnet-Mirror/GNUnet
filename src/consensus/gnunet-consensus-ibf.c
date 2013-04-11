@@ -160,8 +160,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     i++;
   }
 
-  ibf_a = ibf_create (ibf_size, hash_num, 0);
-  ibf_b = ibf_create (ibf_size, hash_num, 0);
+  ibf_a = ibf_create (ibf_size, hash_num);
+  ibf_b = ibf_create (ibf_size, hash_num);
 
   printf ("generated sets\n");
 

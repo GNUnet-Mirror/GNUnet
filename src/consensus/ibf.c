@@ -63,12 +63,10 @@ ibf_hashcode_from_key (struct IBF_Key key, struct GNUNET_HashCode *dst)
  *
  * @param size number of IBF buckets
  * @param hash_num number of buckets one element is hashed in
- * @param salt salt for mingling hashes, different salt may
- *        result in less (or more) collisions
  * @return the newly created invertible bloom filter
  */
 struct InvertibleBloomFilter *
-ibf_create (uint32_t size, uint8_t hash_num, uint32_t salt)
+ibf_create (uint32_t size, uint8_t hash_num)
 {
   struct InvertibleBloomFilter *ibf;
 
@@ -235,32 +233,25 @@ ibf_decode (struct InvertibleBloomFilter *ibf,
 
 
 /**
- * Write an ibf.
+ * Write buckets from an ibf to a buffer.
+ * Exactly (IBF_BUCKET_SIZE*ibf->size) bytes are written to buf.
  * 
  * @param ibf the ibf to write
  * @param start with which bucket to start
  * @param count how many buckets to write
- * @param buf buffer to write the data to, will be updated to point to the
- *            first byte after the written data
- * @param size pointer to the size of the buffer, will be updated, can be NULL
+ * @param buf buffer to write the data to
  */
 void
-ibf_write_slice (const struct InvertibleBloomFilter *ibf, uint32_t start, uint32_t count, void **buf, size_t *size)
+ibf_write_slice (const struct InvertibleBloomFilter *ibf, uint32_t start, uint32_t count, void *buf)
 {
   struct IBF_Key *key_dst;
   struct IBF_KeyHash *key_hash_dst;
   struct IBF_Count *count_dst;
 
-  /* update size and check for overflow */
-  if (NULL != size)
-  {
-    size_t old_size;
-    old_size = *size;
-    *size = *size - count * IBF_BUCKET_SIZE;
-    GNUNET_assert (*size < old_size);
-  }
+  GNUNET_assert (start + count <= ibf->size);
+
   /* copy keys */
-  key_dst = (struct IBF_Key *) *buf;
+  key_dst = (struct IBF_Key *) buf;
   memcpy (key_dst, ibf->key_sum + start, count * sizeof *key_dst);
   key_dst += count;
   /* copy key hashes */
@@ -271,40 +262,28 @@ ibf_write_slice (const struct InvertibleBloomFilter *ibf, uint32_t start, uint32
   count_dst = (struct IBF_Count *) key_hash_dst;
   memcpy (count_dst, ibf->count + start, count * sizeof *count_dst);
   count_dst += count;
-  /* returned buffer is at the end of written data*/
-  *buf = (void *) count_dst;
 }
 
 
 /**
- * Read an ibf.
+ * Read buckets from a buffer into an ibf.
  *
- * @param buf pointer to the buffer to write to, will point to first
- *            byte after the written data // FIXME: take 'const void *buf' for input, return number of bytes READ
- * @param size size of the buffer, will be updated
+ * @param buf pointer to the buffer to read from
  * @param start which bucket to start at
  * @param count how many buckets to read
  * @param ibf the ibf to read from
- * @return GNUNET_OK on success // FIXME: return 0 on error (or -1/ssize_t), number of bytes read otherwise
  */
-int
-ibf_read_slice (void **buf, size_t *size, uint32_t start, uint32_t count, struct InvertibleBloomFilter *ibf)
+void
+ibf_read_slice (const void *buf, uint32_t start, uint32_t count, struct InvertibleBloomFilter *ibf)
 {
   struct IBF_Key *key_src;
   struct IBF_KeyHash *key_hash_src;
   struct IBF_Count *count_src;
 
-  /* update size and check for overflow */
-  if (NULL != size)
-  {
-    size_t old_size;
-    old_size = *size;
-    *size = *size - count * IBF_BUCKET_SIZE;
-    if (*size > old_size)
-      return GNUNET_SYSERR;
-  }
+  GNUNET_assert (start + count <= ibf->size);
+
   /* copy keys */
-  key_src = (struct IBF_Key *) *buf;
+  key_src = (struct IBF_Key *) buf;
   memcpy (ibf->key_sum + start, key_src, count * sizeof *key_src);
   key_src += count;
   /* copy key hashes */
@@ -315,40 +294,6 @@ ibf_read_slice (void **buf, size_t *size, uint32_t start, uint32_t count, struct
   count_src = (struct IBF_Count *) key_hash_src;
   memcpy (ibf->count + start, count_src, count * sizeof *count_src);
   count_src += count;
-  /* returned buffer is at the end of written data*/
-  *buf = (void *) count_src;
-  return GNUNET_OK;
-}
-
-
-/**
- * Write an ibf.
- * 
- * @param ibf the ibf to write
- * @param buf buffer to write the data to, will be updated to point to the
- *            first byte after the written data
- * @param size pointer to the size of the buffer, will be updated, can be NULL
- */
-void
-ibf_write (const struct InvertibleBloomFilter *ibf, void **buf, size_t *size)
-{
-  ibf_write_slice (ibf, 0, ibf->size, buf, size);
-}
-
-
-/**
- * Read an ibf.
- *
- * @param buf pointer to the buffer to write to, will point to first
- *            byte after the written data
- * @param size size of the buffer, will be updated
- * @param dst ibf to write buckets to
- * @return GNUNET_OK on success
- */
-int
-ibf_read (void **buf, size_t *size, struct InvertibleBloomFilter *dst)
-{
-  return ibf_read_slice (buf, size, 0, dst->size, dst);
 }
 
 
@@ -366,7 +311,6 @@ ibf_subtract (struct InvertibleBloomFilter *ibf1, const struct InvertibleBloomFi
 
   GNUNET_assert (ibf1->size == ibf2->size);
   GNUNET_assert (ibf1->hash_num == ibf2->hash_num);
-  GNUNET_assert (ibf1->salt == ibf2->salt);
 
   for (i = 0; i < ibf1->size; i++)
   {
@@ -388,7 +332,6 @@ ibf_dup (const struct InvertibleBloomFilter *ibf)
   struct InvertibleBloomFilter *copy;
   copy = GNUNET_malloc (sizeof *copy);
   copy->hash_num = ibf->hash_num;
-  copy->salt = ibf->salt;
   copy->size = ibf->size;
   copy->key_hash_sum = GNUNET_memdup (ibf->key_hash_sum, ibf->size * sizeof (struct IBF_KeyHash));
   copy->key_sum = GNUNET_memdup (ibf->key_sum, ibf->size * sizeof (struct IBF_Key));

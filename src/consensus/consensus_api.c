@@ -231,15 +231,6 @@ send_next (struct GNUNET_CONSENSUS_Handle *consensus)
   }
 }
 
-static void
-queue_message (struct GNUNET_CONSENSUS_Handle *consensus, struct GNUNET_MessageHeader *msg)
-{
-  struct QueuedMessage *qm;
-  qm = GNUNET_malloc (sizeof *qm);
-  qm->msg = msg;
-  GNUNET_CONTAINER_DLL_insert_tail (consensus->messages_head, consensus->messages_tail, qm);
-}
-
 
 /**
  * Called when the server has sent is a new element
@@ -252,8 +243,6 @@ handle_new_element (struct GNUNET_CONSENSUS_Handle *consensus,
                    struct GNUNET_CONSENSUS_ElementMessage *msg)
 {
   struct GNUNET_CONSENSUS_Element element;
-  struct GNUNET_CONSENSUS_AckMessage *ack_msg;
-  int ret;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "received new element\n");
 
@@ -261,14 +250,7 @@ handle_new_element (struct GNUNET_CONSENSUS_Handle *consensus,
   element.size = ntohs (msg->header.size) - sizeof (struct GNUNET_CONSENSUS_ElementMessage);
   element.data = &msg[1];
 
-  ret = consensus->new_element_cb (consensus->new_element_cls, &element);
-
-  ack_msg = GNUNET_new (struct GNUNET_CONSENSUS_AckMessage);
-  ack_msg->header.size = htons (sizeof *ack_msg);
-  ack_msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_ACK);
-  ack_msg->keep = ret;
-
-  queue_message (consensus, &ack_msg->header);
+  consensus->new_element_cb (consensus->new_element_cls, &element);
 
   send_next (consensus);
 }
