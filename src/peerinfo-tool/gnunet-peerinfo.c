@@ -424,7 +424,7 @@ dump_my_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (NULL == hello)
   {
 		FPRINTF (stderr,
-			 _("Failure: Did not receive HELLO\n"));
+			 _("Failure: Did not receive %s\n"), "HELLO");
     return;
   }
 
@@ -432,7 +432,7 @@ dump_my_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (0 == size)
   {
   		FPRINTF (stderr,
-  			 _("Failure: Received invalid HELLO\n"));
+  			 _("Failure: Received invalid %s\n"), "HELLO");
       return;
   }
   if (GNUNET_SYSERR == GNUNET_DISK_fn_write (dump_hello, hello, size,
