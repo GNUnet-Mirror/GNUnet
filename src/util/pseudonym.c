@@ -1140,11 +1140,9 @@ GNUNET_PSEUDONYM_sign (struct GNUNET_PseudonymHandle *ph,
   gcry_mpi_release (h);
   gcry_mpi_release (n);
   
-  /* now build sexpression with the signing key;
-     NOTE: libgcrypt docs say that we should specify 'Q', but hopefully soon
-     libgcrypt will derive it from 'd' for us... */
+  /* now build sexpression with the signing key */
   if (0 != (rc = gcry_sexp_build (&spriv, &erroff,
-				  "(private-key(ecc(curve \"NIST P-256\")(d %m)))",
+				  "(private-key(ecdsa(curve \"NIST P-256\")(d %m)))",
 				  d)))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
@@ -1188,8 +1186,9 @@ GNUNET_PSEUDONYM_sign (struct GNUNET_PseudonymHandle *ph,
   gcry_sexp_release (data);
   gcry_sexp_release (spriv);
 
+
   /* extract 'r' and 's' values from sexpression 'result' and store in 'signature' */
-  if (0 != (rc = key_from_sexp (rs, result, "ecdsa", "rs")))
+  if (0 != (rc = key_from_sexp (rs, result, "sig-val", "rs")))
   {
     GNUNET_break (0);
     gcry_sexp_release (result);
@@ -1375,7 +1374,6 @@ GNUNET_PSEUDONYM_verify (const struct GNUNET_PseudonymSignaturePurpose *purpose,
 			 const struct GNUNET_PseudonymSignature *signature,
 			 const struct GNUNET_PseudonymIdentifier *verification_key)
 {
-#if FUTURE 
   gcry_sexp_t data;
   gcry_sexp_t sig_sexpr;
   gcry_sexp_t pk_sexpr;
@@ -1461,8 +1459,8 @@ GNUNET_PSEUDONYM_verify (const struct GNUNET_PseudonymSignaturePurpose *purpose,
   gcry_mpi_ec_set_point ("q", q, ctx);
   gcry_mpi_point_release (q);
 
-  /* convert 'ctx' to 'sexp' (this hurts) */
-  if (0 != (rc = gcry_sexp_from_context (&pk_sexpr, ctx)))
+  /* convert 'ctx' to 'sexp' */
+  if (0 != (rc = gcry_pubkey_get_sexp (&pk_sexpr, GCRY_PK_GET_PUBKEY, ctx)))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_from_context", rc);
     gcry_ctx_release (ctx);
@@ -1484,9 +1482,6 @@ GNUNET_PSEUDONYM_verify (const struct GNUNET_PseudonymSignaturePurpose *purpose,
          __LINE__, gcry_strerror (rc));
     return GNUNET_SYSERR;
   }
-#else
-  GNUNET_break (0);
-#endif
   return GNUNET_OK;
 }
 

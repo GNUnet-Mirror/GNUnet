@@ -225,14 +225,14 @@ test_signature (struct GNUNET_PseudonymHandle *ph,
   GNUNET_PSEUDONYM_sign (ph, purpose, seed, signing_key, &signature2);
   /* with seed, two sigs must be identical, without, they must be different! */
   if (NULL != seed)
-    GNUNET_assert (0 == memcmp (&signature, &signature2, sizeof (signature)));
+    GNUNET_break (0 == memcmp (&signature, &signature2, sizeof (signature)));
   else /* crypto not implemented, thus for now 'break' */
     GNUNET_break (0 != memcmp (&signature, &signature2, sizeof (signature)));
   GNUNET_PSEUDONYM_get_identifier (ph, &pseudonym);
   GNUNET_PSEUDONYM_derive_verification_key (&pseudonym,
 					    signing_key,
 					    &verification_key);
-  GNUNET_assert (GNUNET_OK ==
+  GNUNET_break (GNUNET_OK ==
 		 GNUNET_PSEUDONYM_verify (purpose, &signature, &verification_key));
   /* also check that if the data is changed, the signature no longer matches */
   (*bit)++;
