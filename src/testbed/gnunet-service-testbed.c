@@ -847,6 +847,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GST_free_mctxq ();
   GST_free_occq ();
   GST_free_roccq ();
+  GST_free_nccq ();
+  GST_neighbour_list_clean();
   /* Clear peer list */
   GST_destroy_peers ();
   /* Clear host list */

@@ -35,6 +35,7 @@
 #include "testbed_api_operations.h"
 #include "testbed_api_hosts.h"
 #include "gnunet_testing_lib.h"
+#include "gnunet-service-testbed_links.h"
 
 
 /**
@@ -166,55 +167,6 @@ struct LinkControllersContext
    * The ID of the operation
    */
   uint64_t operation_id;
-
-};
-
-
-/**
- * Structure representing a connected(directly-linked) controller
- */
-struct Slave
-{
-  /**
-   * The controller process handle if we had started the controller
-   */
-  struct GNUNET_TESTBED_ControllerProc *controller_proc;
-
-  /**
-   * The controller handle
-   */
-  struct GNUNET_TESTBED_Controller *controller;
-
-  /**
-   * handle to lcc which is associated with this slave startup. Should be set to
-   * NULL when the slave has successfully started up
-   */
-  struct LinkControllersContext *lcc;
-
-  /**
-   * Head of the host registration DLL
-   */
-  struct HostRegistration *hr_dll_head;
-
-  /**
-   * Tail of the host registration DLL
-   */
-  struct HostRegistration *hr_dll_tail;
-
-  /**
-   * The current host registration handle
-   */
-  struct GNUNET_TESTBED_HostRegistrationHandle *rhandle;
-
-  /**
-   * Hashmap to hold Registered host contexts
-   */
-  struct GNUNET_CONTAINER_MultiHashMap *reghost_map;
-
-  /**
-   * The id of the host this controller is running on
-   */
-  uint32_t host_id;
 
 };
 
@@ -487,119 +439,6 @@ struct RegisteredHostContext
 
 
 /**
- * States of LCFContext
- */
-enum LCFContextState
-{
-  /**
-   * The Context has been initialized; Nothing has been done on it
-   */
-  INIT,
-
-  /**
-   * Delegated host has been registered at the forwarding controller
-   */
-  DELEGATED_HOST_REGISTERED,
-
-  /**
-   * The slave host has been registred at the forwarding controller
-   */
-  SLAVE_HOST_REGISTERED,
-
-  /**
-   * The context has been finished (may have error)
-   */
-  FINISHED
-};
-
-
-/**
- * Link controllers request forwarding context
- */
-struct LCFContext
-{
-  /**
-   * The type of this data structure. Set this to CLOSURE_TYPE_LCF
-   */
-  enum ClosureType type;
-  
-  /**
-   * The gateway which will pass the link message to delegated host
-   */
-  struct Slave *gateway;
-
-  /**
-   * The client which has asked to perform this operation
-   */
-  struct GNUNET_SERVER_Client *client;
-
-  /**
-   * Handle for operations which are forwarded while linking controllers
-   */
-  struct GNUNET_TESTBED_Operation *op;
-
-  /**
-   * The configuration which has to be either used as a template while starting
-   * the delegated controller or for connecting to the delegated controller
-   */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-
-  /**
-   * The timeout task
-   */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
-
-  /**
-   * The id of the operation which created this context
-   */
-  uint64_t operation_id;
-  
-  /**
-   * should the slave controller start the delegated controller?
-   */
-  int is_subordinate;
-
-  /**
-   * The state of this context
-   */
-  enum LCFContextState state;
-
-  /**
-   * The delegated host
-   */
-  uint32_t delegated_host_id;
-
-  /**
-   * The slave host
-   */
-  uint32_t slave_host_id;
-
-};
-
-
-/**
- * Structure of a queue entry in LCFContext request queue
- */
-struct LCFContextQueue
-{
-  /**
-   * The LCFContext
-   */
-  struct LCFContext *lcf;
-
-  /**
-   * Head prt for DLL
-   */
-  struct LCFContextQueue *next;
-
-  /**
-   * Tail ptr for DLL
-   */
-  struct LCFContextQueue *prev;
-};
-
-
-/**
  * Context data for GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS handler
  */
 struct HandlerContext_ShutdownPeers
@@ -649,11 +488,6 @@ extern struct Peer **GST_peer_list;
 extern struct GNUNET_TESTBED_Host **GST_host_list;
 
 /**
- * A list of directly linked neighbours
- */
-extern struct Slave **GST_slave_list;
-
-/**
  * Operation queue for open file descriptors
  */
 extern struct OperationQueue *GST_opq_openfds;
@@ -672,11 +506,6 @@ extern unsigned int GST_peer_list_size;
  * The size of the host list
  */
 extern unsigned int GST_host_list_size;
-
-/**
- * The size of directly linked neighbours list
- */
-extern unsigned int GST_slave_list_size;
 
 /**
  * The directory where to store load statistics data
@@ -745,18 +574,6 @@ GST_destroy_peers ();
  */
 struct Route *
 GST_find_dest_route (uint32_t host_id);
-
-
-/**
- * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_LCONTROLLERS message
- *
- * @param cls NULL
- * @param client identification of the client
- * @param message the actual message
- */
-void
-GST_handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
-                             const struct GNUNET_MessageHeader *message);
 
 
 /**
@@ -954,13 +771,6 @@ GST_free_lcfq ();
  */
 void
 GST_route_list_clear ();
-
-
-/**
- * Cleans up the slave list
- */
-void
-GST_slave_list_clear ();
 
 
 /**

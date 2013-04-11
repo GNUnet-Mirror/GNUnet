@@ -19,17 +19,198 @@
 */
 
 /**
- * @file testbed/gnunet-service-testbed.c
- * @brief implementation of the TESTBED service
+ * @file testbed/gnunet-service-testbed_links.c
+ * @brief TESTBED service components that deals with starting slave controllers
+ *          and establishing lateral links between controllers
  * @author Sree Harsha Totakura
  */
 
 #include "gnunet-service-testbed.h"
 
 /**
+ * Redefine LOG with a changed log component string
+ */
+#ifdef LOG
+#undef LOG
+#endif
+#define LOG(kind,...)                                   \
+  GNUNET_log_from (kind, "testbed-links", __VA_ARGS__)
+
+/**
  * The event mask for the events we listen from sub-controllers
  */
 #define EVENT_MASK (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED)
+
+
+/**
+ * States of LCFContext
+ */
+enum LCFContextState
+{
+  /**
+   * The Context has been initialized; Nothing has been done on it
+   */
+  INIT,
+
+  /**
+   * Delegated host has been registered at the forwarding controller
+   */
+  DELEGATED_HOST_REGISTERED,
+
+  /**
+   * The slave host has been registred at the forwarding controller
+   */
+  SLAVE_HOST_REGISTERED,
+
+  /**
+   * The context has been finished (may have error)
+   */
+  FINISHED
+};
+
+
+/**
+ * Link controllers request forwarding context
+ */
+struct LCFContext
+{
+  /**
+   * The type of this data structure. Set this to CLOSURE_TYPE_LCF
+   */
+  enum ClosureType type;
+  
+  /**
+   * The gateway which will pass the link message to delegated host
+   */
+  struct Slave *gateway;
+
+  /**
+   * The client which has asked to perform this operation
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
+   * Handle for operations which are forwarded while linking controllers
+   */
+  struct GNUNET_TESTBED_Operation *op;
+
+  /**
+   * The configuration which has to be either used as a template while starting
+   * the delegated controller or for connecting to the delegated controller
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * The timeout task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+  /**
+   * The id of the operation which created this context
+   */
+  uint64_t operation_id;
+  
+  /**
+   * should the slave controller start the delegated controller?
+   */
+  int is_subordinate;
+
+  /**
+   * The state of this context
+   */
+  enum LCFContextState state;
+
+  /**
+   * The delegated host
+   */
+  uint32_t delegated_host_id;
+
+  /**
+   * The slave host
+   */
+  uint32_t slave_host_id;
+
+};
+
+
+/**
+ * Structure of a queue entry in LCFContext request queue
+ */
+struct LCFContextQueue
+{
+  /**
+   * The LCFContext
+   */
+  struct LCFContext *lcf;
+
+  /**
+   * Head prt for DLL
+   */
+  struct LCFContextQueue *next;
+
+  /**
+   * Tail ptr for DLL
+   */
+  struct LCFContextQueue *prev;
+};
+
+struct NeighbourConnectNotification
+{
+  struct NeighbourConnectNotification *next;
+  struct NeighbourConnectNotification *prev;
+  struct Neighbour *n;
+  GST_NeigbourConnectNotifyCallback cb;
+  void *cb_cls;
+};
+  
+/**
+ * A connected controller which is not our child
+ */
+struct Neighbour
+{
+  /**
+   * The controller handle
+   */
+  struct GNUNET_TESTBED_Controller *controller;
+  
+  /**
+   * Operation handle for opening a lateral connection to another controller.
+   * Will be NULL if the slave controller is started by this controller
+   */
+  struct GNUNET_TESTBED_Operation *conn_op;
+
+  struct NeighbourConnectNotification *nl_head;
+
+  struct NeighbourConnectNotification *nl_tail;
+
+  GNUNET_SCHEDULER_TaskIdentifier notify_task;
+
+  unsigned int reference_cnt;
+  
+  /**
+   * The id of the host this controller is running on
+   */
+  uint32_t host_id;
+  
+  int8_t inactive;
+};
+
+static struct Neighbour **neighbour_list;
+static unsigned int neighbour_list_size;
+
+struct NeighbourConnectCtxt
+{
+  struct NeighbourConnectCtxt *next;
+  struct NeighbourConnectCtxt *prev;
+  struct Neighbour *n;
+  struct GNUNET_SERVER_Client *client;
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct NeighbourConnectNotification *nh;
+  uint64_t op_id;
+};
+
+struct NeighbourConnectCtxt *ncc_head;
+struct NeighbourConnectCtxt *ncc_tail;
 
 /**
  * A list of directly linked neighbours
@@ -95,6 +276,15 @@ route_list_add (struct Route *route)
     GST_array_grow_large_enough (route_list, route_list_size, route->dest);
   GNUNET_assert (NULL == route_list[route->dest]);
   route_list[route->dest] = route;
+}
+
+static void
+neighbour_list_add (struct Neighbour *n)
+{
+  if (n->host_id >= neighbour_list_size)
+    GST_array_grow_large_enough (neighbour_list, neighbour_list_size, n->host_id);
+  GNUNET_assert (NULL == neighbour_list[n->host_id]);
+  neighbour_list[n->host_id] = n;
 }
 
 
@@ -425,7 +615,7 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Callback for event from slave controllers
  *
- * @param cls struct Slave *
+ * @param cls NULL
  * @param event information about the event
  */
 static void
@@ -491,6 +681,9 @@ slave_event_callback (void *cls,
   GNUNET_assert (0);
 }
 
+static void
+slave_status_callback (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
+                       int status);
 
 /**
  * Callback to signal successfull startup of the controller process
@@ -552,6 +745,201 @@ clean_lcc:
     slave->lcc = NULL;
 }
 
+static void
+neighbour_connect_notify_task (void *cls, 
+                               const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+static void
+trigger_notifications (struct Neighbour *n)
+{
+  GNUNET_assert (NULL != n->conn_op);
+  if (NULL == n->nl_head)
+    return;
+  if (NULL == n->controller)
+    return;
+  if (GNUNET_SCHEDULER_NO_TASK != n->notify_task)
+    return;
+  n->notify_task = 
+      GNUNET_SCHEDULER_add_now (&neighbour_connect_notify_task, n->nl_head);
+}
+
+static void
+neighbour_connect_notify_task (void *cls, 
+                               const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct NeighbourConnectNotification *h = cls;
+  struct Neighbour *n;
+
+  n = h->n;  
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != n->notify_task);  
+  n->notify_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_assert (NULL != n->controller);
+  GNUNET_CONTAINER_DLL_remove (n->nl_head, n->nl_tail, h);  
+  trigger_notifications (n);
+  if ((0 == n->reference_cnt) && (1 == n->inactive))
+  {
+    GNUNET_TESTBED_operation_activate_ (n->conn_op);
+    n->inactive = 0;
+  }
+  n->reference_cnt++;
+  h->cb (h->cb_cls, n->controller);
+}
+
+static void
+opstart_neighbour_conn (void *cls)
+{
+  struct Neighbour *n = cls;
+  
+  GNUNET_assert (NULL != n->conn_op);
+  GNUNET_assert (NULL == n->controller);
+  LOG_DEBUG ("Opening connection to controller on host %u\n", n->host_id);
+  n->controller = GNUNET_TESTBED_controller_connect (GST_host_list[n->host_id],
+                                                     EVENT_MASK,
+                                                     &slave_event_callback,
+                                                     NULL);
+  trigger_notifications (n);
+}
+
+static void
+oprelease_neighbour_conn (void *cls)
+{
+   struct Neighbour *n = cls;
+
+   GNUNET_assert (0 == n->reference_cnt);
+   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == n->notify_task);
+   GNUNET_assert (NULL == n->nl_head);
+   LOG_DEBUG ("Closing connection to controller on host %u\n", n->host_id);
+   GNUNET_TESTBED_controller_disconnect (n->controller);
+   n->controller = NULL;
+   n->conn_op = NULL;
+}
+
+struct NeighbourConnectNotification *
+GST_neighbour_get_connection (struct Neighbour *n,
+                              GST_NeigbourConnectNotifyCallback cb,
+                              void *cb_cls)
+{
+  struct NeighbourConnectNotification *h;
+
+  GNUNET_assert (NULL != cb);
+  LOG_DEBUG ("Attempting to get connection to controller on host %u\n",
+             n->host_id);
+  h = GNUNET_malloc (sizeof (struct NeighbourConnectNotification));
+  h->n = n;
+  h->cb  = cb;
+  h->cb_cls = cb_cls;
+  GNUNET_CONTAINER_DLL_insert_tail (n->nl_head, n->nl_tail, h);
+  if (NULL == n->conn_op)
+  {
+    GNUNET_assert (NULL == n->controller);
+    n->conn_op = GNUNET_TESTBED_operation_create_ (n, &opstart_neighbour_conn,
+                                                   &oprelease_neighbour_conn);
+    GNUNET_TESTBED_operation_queue_insert_ (GST_opq_openfds, n->conn_op);
+    GNUNET_TESTBED_operation_begin_wait_ (n->conn_op);
+    return h;
+  }
+  trigger_notifications (n);
+  return h;
+}
+
+void
+GST_neighbour_get_connection_cancel (struct NeighbourConnectNotification *h)
+{
+  struct Neighbour *n;
+  
+  n = h->n;
+  if ((h == n->nl_head) && (GNUNET_SCHEDULER_NO_TASK != n->notify_task))
+  {
+    GNUNET_SCHEDULER_cancel (n->notify_task);
+    n->notify_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  GNUNET_CONTAINER_DLL_remove (n->nl_head, n->nl_tail, h);
+  GNUNET_free (h);
+}
+
+void
+GST_neighbour_release_connection (struct Neighbour *n)
+{
+  GNUNET_assert (0 == n->inactive);
+  GNUNET_assert (0 < n->reference_cnt);
+  n->reference_cnt--;
+  if (0 == n->reference_cnt)
+  {
+    GNUNET_TESTBED_operation_inactivate_ (n->conn_op);
+    n->inactive = 1;
+  }
+}
+
+static void
+cleanup_ncc (struct NeighbourConnectCtxt *ncc)
+{
+  if (NULL != ncc->nh)
+    GST_neighbour_get_connection_cancel (ncc->nh);
+  if (GNUNET_SCHEDULER_NO_TASK != ncc->timeout_task)
+    GNUNET_SCHEDULER_cancel (ncc->timeout_task);
+  GNUNET_SERVER_client_drop (ncc->client);
+  GNUNET_CONTAINER_DLL_remove (ncc_head, ncc_tail, ncc);
+  GNUNET_free (ncc);
+}
+
+void
+GST_neighbour_list_clean()
+{
+  struct Neighbour *n;
+  unsigned int id;
+
+  for (id = 0; id < neighbour_list_size; id++)
+  {
+    if (NULL == (n = neighbour_list[id]))
+      continue;
+    if (NULL != n->conn_op)
+      GNUNET_TESTBED_operation_release_ (n->conn_op);
+    GNUNET_free (n);
+    neighbour_list[id] = NULL;
+  }
+  GNUNET_free_non_null (neighbour_list);
+}
+
+struct Neighbour *
+GST_get_neighbour (uint32_t id)
+{
+  if (neighbour_list_size <= id)
+    return NULL;
+  else
+    return neighbour_list[id];
+}
+
+void
+GST_free_nccq ()
+{
+  while (NULL != ncc_head)
+    cleanup_ncc (ncc_head);
+}
+
+static void
+timeout_neighbour_connect (void *cls, 
+                           const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+ struct NeighbourConnectCtxt *ncc = cls;
+
+ ncc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+ send_controller_link_response (ncc->client, ncc->op_id, NULL,
+                                "Could not connect to delegated controller");
+ cleanup_ncc (ncc);
+}
+
+static void
+neighbour_connect_cb (void *cls, struct GNUNET_TESTBED_Controller *c)
+{
+  struct NeighbourConnectCtxt *ncc = cls;
+
+  GNUNET_SCHEDULER_cancel (ncc->timeout_task);
+  ncc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  ncc->nh = NULL;
+  GST_neighbour_release_connection (ncc->n);
+  send_controller_link_response (ncc->client, ncc->op_id, NULL, NULL);
+  cleanup_ncc (ncc);
+}
 
 /**
  * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_LCONTROLLERS message
@@ -569,6 +957,7 @@ GST_handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
   struct LCFContextQueue *lcfq;
   struct Route *route;
   struct Route *new_route;
+  uint64_t op_id;
   uint32_t delegated_host_id;
   uint32_t slave_host_id;
   uint16_t msize;
@@ -625,11 +1014,43 @@ GST_handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  op_id = GNUNET_ntohll (msg->operation_id);
   if (slave_host_id == GST_context->host_id)    /* Link from us */
   {
     struct Slave *slave;
     struct LinkControllersContext *lcc;
 
+    
+    if (1 != msg->is_subordinate)
+    {
+      struct Neighbour *n;
+      struct NeighbourConnectCtxt *ncc;
+
+      if ((delegated_host_id < neighbour_list_size) &&
+        (NULL != neighbour_list[delegated_host_id]))
+      {
+        GNUNET_break (0);
+        GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+        return;
+      }
+      LOG_DEBUG ("Received request to establish a link to host %u\n",
+                 delegated_host_id);
+      n = GNUNET_malloc (sizeof (struct Neighbour));
+      n->host_id = delegated_host_id;
+      neighbour_list_add (n);   /* just add; connect on-demand */
+      ncc = GNUNET_malloc (sizeof (struct NeighbourConnectCtxt));
+      ncc->n = n;
+      ncc->op_id = op_id;
+      ncc->client = client;
+      GNUNET_SERVER_client_keep (client);      
+      ncc->nh = GST_neighbour_get_connection (n, neighbour_connect_cb, ncc);
+      ncc->timeout_task = GNUNET_SCHEDULER_add_delayed (GST_timeout,
+                                                        &timeout_neighbour_connect,
+                                                        ncc);
+      GNUNET_CONTAINER_DLL_insert_tail (ncc_head, ncc_tail, ncc);      
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      return;
+    }
     if ((delegated_host_id < GST_slave_list_size) &&
         (NULL != GST_slave_list[delegated_host_id]))
     {
@@ -637,31 +1058,14 @@ GST_handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
+    LOG_DEBUG ("Received request to start and establish a link to host %u\n",
+               delegated_host_id);
     slave = GNUNET_malloc (sizeof (struct Slave));
     slave->host_id = delegated_host_id;
     slave->reghost_map = GNUNET_CONTAINER_multihashmap_create (100, GNUNET_NO);
     slave_list_add (slave);
-    if (1 != msg->is_subordinate)
-    {
-      slave->controller =
-          GNUNET_TESTBED_controller_connect (GST_host_list[slave->host_id],
-                                             EVENT_MASK, &slave_event_callback,
-                                             slave);
-      if (NULL != slave->controller)
-        send_controller_link_response (client,
-                                       GNUNET_ntohll (msg->operation_id),
-                                       NULL,
-                                       NULL);
-      else
-        send_controller_link_response (client,
-                                       GNUNET_ntohll (msg->operation_id),
-                                       NULL,
-                                       "Could not connect to delegated controller");
-      GNUNET_SERVER_receive_done (client, GNUNET_OK);
-      return;
-    }
     lcc = GNUNET_malloc (sizeof (struct LinkControllersContext));
-    lcc->operation_id = GNUNET_ntohll (msg->operation_id);
+    lcc->operation_id = op_id;
     GNUNET_SERVER_client_keep (client);
     lcc->client = client;
     slave->lcc = lcc;
@@ -696,7 +1100,7 @@ GST_handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
   lcfq->lcf->cfg = cfg;
   lcfq->lcf->is_subordinate = msg->is_subordinate;
   lcfq->lcf->state = INIT;
-  lcfq->lcf->operation_id = GNUNET_ntohll (msg->operation_id);
+  lcfq->lcf->operation_id = op_id;
   lcfq->lcf->gateway = GST_slave_list[route->dest];
   GNUNET_SERVER_client_keep (client);
   lcfq->lcf->client = client;
