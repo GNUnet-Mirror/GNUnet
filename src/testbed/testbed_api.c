@@ -1333,7 +1333,6 @@ oprelease_get_slave_config (void *cls)
  * Start a controller process using the given configuration at the
  * given host.
  *
- * @param cfg configuration to use
  * @param host host to run the controller on; This should be the same host if
  *          the controller was previously started with
  *          GNUNET_TESTBED_controller_start; NULL for localhost
