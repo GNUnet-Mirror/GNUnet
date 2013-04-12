@@ -262,13 +262,13 @@ your own peer's DHT with respect to the specified KEY:
 $ gnunet-arm -c ~/peer1.conf -s # start gnunet with all default services
 $ gnunet-arm -c ~/peer1.conf -i dht # start DHT service
 $ cd ~/gnunet/src/dht;
-$ ./gnunet-dht-monitor -c ~/gnunet1/peer1.conf -k KEY
+$ ./gnunet-dht-monitor -c ~/peer1.conf -k KEY
 \end{lstlisting}
 Now open a separate terminal and change again to the \lstinline|gnunet/src/dht| directory:
 \begin{lstlisting}
 $ cd ~/gnunet/src/dht
 $ ./gnunet-dht-put -c ~/peer1.conf -k KEY -d VALUE # put VALUE under KEY in the DHT 
-$ ./gnunet/src/dht/gnunet-dht-get -k KEY # get key KEY from the DHT
+$ ./gnunet/src/dht/gnunet-dht-get ~/peer1.conf -k KEY # get key KEY from the DHT
 $ gnunet-statistics -c ~/peer1.conf # print statistics about current GNUnet state
 $ gnunet-statistics -c ~/peer1.conf -s dht # print statistics about DHT service
 \end{lstlisting}
@@ -279,7 +279,7 @@ We will now start a second peer on your machine.
 For the second peer, you will need to manually create a modified
 configuration file to avoid conflicts with ports and directories.  
 A peers configuration file is by default located in {\tt ~/.gnunet/gnunet.conf}.
-This file is typically very short or event empty as only the differences to the
+This file is typically very short or even empty as only the differences to the
 defaults need to be specified.  The defaults are located in 
 many files in the {\tt \$GNUNET\_PREFIX/share/gnunet/config.d} directory.
 
