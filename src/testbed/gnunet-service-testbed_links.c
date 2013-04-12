@@ -95,12 +95,6 @@ struct LCFContext
   struct GNUNET_TESTBED_Operation *op;
 
   /**
-   * The configuration which has to be either used as a template while starting
-   * the delegated controller or for connecting to the delegated controller
-   */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-
-  /**
    * The timeout task
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
@@ -449,7 +443,10 @@ send_controller_link_response (struct GNUNET_SERVER_Client *client,
   msg->operation_id = GNUNET_htonll (operation_id);
   msg->config_size = htons ((uint16_t) config_size);
   if (NULL != xconfig)
+  {
     memcpy (&msg[1], xconfig, xconfig_size);
+    GNUNET_free (xconfig);
+  }
   if (NULL != emsg)
     memcpy (&msg[1], emsg, strlen (emsg));
   GST_queue_message (client, &msg->header);
@@ -598,8 +595,6 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   case FINISHED:
     lcfq = lcfq_head;
     GNUNET_assert (lcfq->lcf == lcf);
-    GNUNET_assert (NULL != lcf->cfg);
-    GNUNET_CONFIGURATION_destroy (lcf->cfg);
     GNUNET_SERVER_client_drop (lcf->client);
     GNUNET_TESTBED_operation_done (lcf->op);
     GNUNET_free (lcf);
@@ -783,6 +778,7 @@ neighbour_connect_notify_task (void *cls,
   }
   n->reference_cnt++;
   h->cb (h->cb_cls, n->controller);
+  GNUNET_free (h);
 }
 
 static void
@@ -1014,6 +1010,8 @@ GST_handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_CONFIGURATION_destroy (cfg);
+  cfg = NULL;
   op_id = GNUNET_ntohll (msg->operation_id);
   if (slave_host_id == GST_context->host_id)    /* Link from us */
   {
@@ -1073,7 +1071,6 @@ GST_handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
         GNUNET_TESTBED_controller_start (GST_context->master_ip,
                                          GST_host_list[slave->host_id],
                                          &slave_status_callback, slave);
-    GNUNET_CONFIGURATION_destroy (cfg);
     new_route = GNUNET_malloc (sizeof (struct Route));
     new_route->dest = delegated_host_id;
     new_route->thru = GST_context->host_id;
@@ -1097,7 +1094,6 @@ GST_handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_assert (NULL != route);        /* because we add routes carefully */
   GNUNET_assert (route->dest < GST_slave_list_size);
   GNUNET_assert (NULL != GST_slave_list[route->dest]);
-  lcfq->lcf->cfg = cfg;
   lcfq->lcf->is_subordinate = msg->is_subordinate;
   lcfq->lcf->state = INIT;
   lcfq->lcf->operation_id = op_id;
@@ -1155,8 +1151,6 @@ GST_free_lcfq ()
   for (lcfq = lcfq_head; NULL != lcfq; lcfq = lcfq_head)
   {
     GNUNET_SERVER_client_drop (lcfq->lcf->client);
-    GNUNET_assert (NULL != lcfq->lcf->cfg);
-    GNUNET_CONFIGURATION_destroy (lcfq->lcf->cfg);
     GNUNET_free (lcfq->lcf);
     GNUNET_CONTAINER_DLL_remove (lcfq_head, lcfq_tail, lcfq);
     GNUNET_free (lcfq);

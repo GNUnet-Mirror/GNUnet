@@ -851,15 +851,15 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GST_neighbour_list_clean();
   /* Clear peer list */
   GST_destroy_peers ();
+  /* Clear route list */
+  GST_route_list_clear ();
+  /* Clear GST_slave_list */
+  GST_slave_list_clear ();
   /* Clear host list */
   for (id = 0; id < GST_host_list_size; id++)
     if (NULL != GST_host_list[id])
       GNUNET_TESTBED_host_destroy (GST_host_list[id]);
   GNUNET_free_non_null (GST_host_list);
-  /* Clear route list */
-  GST_route_list_clear ();
-  /* Clear GST_slave_list */
-  GST_slave_list_clear ();
   if (NULL != GST_context)
   {
     GNUNET_free_non_null (GST_context->master_ip);
