@@ -275,6 +275,7 @@ GST_manipulation_set_metric (void *cls, struct GNUNET_SERVER_Client *client,
 	if (0 == ntohs (tm->ats_count))
 	  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
 
+	direction = TM_BOTH;
 	switch (ntohs(tm->direction)) {
 		case 1:
 			direction = TM_SEND;
