@@ -946,26 +946,17 @@ neighbour_connect_cb (void *cls, struct GNUNET_TESTBED_Controller *c)
  */
 void
 GST_handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
-                         const struct GNUNET_MessageHeader *message)
+                             const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TESTBED_ControllerLinkRequest *msg;
-  struct GNUNET_CONFIGURATION_Handle *cfg;
   struct LCFContextQueue *lcfq;
   struct Route *route;
   struct Route *new_route;
   uint64_t op_id;
   uint32_t delegated_host_id;
   uint32_t slave_host_id;
-  uint16_t msize;
 
   if (NULL == GST_context)
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  msize = ntohs (message->size);
-  if (sizeof (struct GNUNET_TESTBED_ControllerLinkRequest) >= msize)
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -1003,15 +994,6 @@ GST_handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  cfg = GNUNET_TESTBED_extract_config_ (message); /* destroy cfg here or in lcfcontext */
-  if (NULL == cfg)
-  {
-    GNUNET_break (0);         /* Configuration parsing error */
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  GNUNET_CONFIGURATION_destroy (cfg);
-  cfg = NULL;
   op_id = GNUNET_ntohll (msg->operation_id);
   if (slave_host_id == GST_context->host_id)    /* Link from us */
   {
