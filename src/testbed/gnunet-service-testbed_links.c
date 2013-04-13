@@ -180,13 +180,15 @@ struct Neighbour
   GNUNET_SCHEDULER_TaskIdentifier notify_task;
 
   unsigned int reference_cnt;
+
+  unsigned int inactive;
+
   
   /**
    * The id of the host this controller is running on
    */
   uint32_t host_id;
   
-  int8_t inactive;
 };
 
 static struct Neighbour **neighbour_list;
@@ -753,7 +755,13 @@ trigger_notifications (struct Neighbour *n)
   if (NULL == n->controller)
     return;
   if (GNUNET_SCHEDULER_NO_TASK != n->notify_task)
-    return;
+    return;  
+  if (1 == n->inactive)
+  {
+    GNUNET_assert (0 == n->reference_cnt);
+    GNUNET_TESTBED_operation_activate_ (n->conn_op);
+    n->inactive = 0;
+  }
   n->notify_task = 
       GNUNET_SCHEDULER_add_now (&neighbour_connect_notify_task, n->nl_head);
 }
@@ -771,11 +779,6 @@ neighbour_connect_notify_task (void *cls,
   GNUNET_assert (NULL != n->controller);
   GNUNET_CONTAINER_DLL_remove (n->nl_head, n->nl_tail, h);  
   trigger_notifications (n);
-  if ((0 == n->reference_cnt) && (1 == n->inactive))
-  {
-    GNUNET_TESTBED_operation_activate_ (n->conn_op);
-    n->inactive = 0;
-  }
   n->reference_cnt++;
   h->cb (h->cb_cls, n->controller);
   GNUNET_free (h);
@@ -804,10 +807,14 @@ oprelease_neighbour_conn (void *cls)
    GNUNET_assert (0 == n->reference_cnt);
    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == n->notify_task);
    GNUNET_assert (NULL == n->nl_head);
-   LOG_DEBUG ("Closing connection to controller on host %u\n", n->host_id);
-   GNUNET_TESTBED_controller_disconnect (n->controller);
-   n->controller = NULL;
+   if (NULL != n->controller)
+   {
+     LOG_DEBUG ("Closing connection to controller on host %u\n", n->host_id);
+     GNUNET_TESTBED_controller_disconnect (n->controller);
+     n->controller = NULL;
+   }
    n->conn_op = NULL;
+   n->inactive = 0;
 }
 
 struct NeighbourConnectNotification *
@@ -842,15 +849,28 @@ void
 GST_neighbour_get_connection_cancel (struct NeighbourConnectNotification *h)
 {
   struct Neighbour *n;
+  int cleanup_task;
   
+  cleanup_task = (h == n->nl_head) ? GNUNET_YES : GNUNET_NO;
   n = h->n;
-  if ((h == n->nl_head) && (GNUNET_SCHEDULER_NO_TASK != n->notify_task))
-  {
-    GNUNET_SCHEDULER_cancel (n->notify_task);
-    n->notify_task = GNUNET_SCHEDULER_NO_TASK;
-  }
   GNUNET_CONTAINER_DLL_remove (n->nl_head, n->nl_tail, h);
   GNUNET_free (h);
+  if (GNUNET_NO == cleanup_task)
+    return;
+  if (GNUNET_SCHEDULER_NO_TASK == n->notify_task)
+    return;
+  GNUNET_SCHEDULER_cancel (n->notify_task);
+  n->notify_task = GNUNET_SCHEDULER_NO_TASK;
+  if (NULL == n->nl_head)
+  {
+    if ( (0 == n->reference_cnt) && (0 == n->inactive) )
+    {
+      n->inactive = 1;
+      GNUNET_TESTBED_operation_inactivate_ (n->conn_op);
+    }
+    return;
+  }
+  trigger_notifications (n);
 }
 
 void
@@ -861,8 +881,8 @@ GST_neighbour_release_connection (struct Neighbour *n)
   n->reference_cnt--;
   if (0 == n->reference_cnt)
   {
-    GNUNET_TESTBED_operation_inactivate_ (n->conn_op);
     n->inactive = 1;
+    GNUNET_TESTBED_operation_inactivate_ (n->conn_op);
   }
 }
 
