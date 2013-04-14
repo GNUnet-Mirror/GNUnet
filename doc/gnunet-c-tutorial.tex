@@ -375,12 +375,12 @@ Peer `9TVUCS8P5A7ILLBGO6JSTSSN2B44H3D2MUIFJMLKAITC0I22UVFBFP1H8NRK2IA35VKAK16LLO
 GNUnet's testbed service is used for testing scenarios where a number of peers
 are to be started.  The testbed can manage peers on a single host or on multiple
 hosts in a distributed fashion.  On a single affordable computer, it should be
-possible to run around 100 peers without drastically increasing the load on the
+possible to run around tens of peers without drastically increasing the load on the
 system.
 
 The testbed service can be access through its API
 \texttt{include/gnunet\_testbed\_service.h}.  The API provides many routines for
-managing a testbed.  It also provides a helper function
+managing a group of peers.  It also provides a helper function
 \texttt{GNUNET\_TESTBED\_test\_run()} to quickly setup a minimalistic testing
 environment on a single host.
 
@@ -392,116 +392,22 @@ and assigns the ports in configurations only if they are free.
 
 Additionally, the testbed service also reads its options from the same
 configuration file.  Various available options and details about them can be
-found in the testbed default configuration file \texttt{testbed/testbed.conf}.
+found in the testbed default configuration file \texttt{src/testbed/testbed.conf}.
 
 With the testbed API, a sample test case can be structured as follows:
-\lstset{language=c}
+\lstinputlisting[language=C]{testbed_test.c}
+The source code for the above listing can be found at
+\url{https://gnunet.org/svn/gnunet/doc/testbed_test.c}.  After installing GNUnet, the above source code can be compiled as:
+\lstset{language=bash}
 \begin{lstlisting}
-/* Number of peers we want to start */
-#define NUM_PEERS 30
-
-struct GNUNET_TESTBED_Operation *dht_op;
-
-struct GNUNET_DHT_Handle *dht_handle;
-
-struct MyContext
-{
-  int ht_len;
-} ctxt;
-
-static void finish ()                       /* Finish test case */
-{
-  if (NULL != dht_op)
-  {  
-    GNUNET_TESTBED_operation_done (dht_op); /* calls the dht_da() for closing
-                                               down the connection */
-    dht_op = NULL;
-  }
-  result = GNUNET_OK;
-  GNUNET_SCHEDULER_shutdown (); /* Also kills the testbed */
-}
-
-
-static void
-service_connect_comp (void *cls,
-                      struct GNUNET_TESTBED_Operation *op,
-                      void *ca_result,
-                      const char *emsg)
-{
-  /* Service to DHT successful; do something */
-}
-
-
-static void *
-dht_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  struct MyContext *ctxt = cls;
-
-  /* Use the provided configuration to connect to service */
-  dht_handle = GNUNET_DHT_connect (cfg, ctxt->ht_len);
-  return dht_handle;
-}
-
-
-static void 
-dht_da (void *cls, void *op_result)
-{
-  struct MyContext *ctxt = cls;
-  
-  /* Disconnect from DHT service */  
-  GNUNET_DHT_disconnect ((struct GNUNET_DHT_Handle *) op_result);
-  ctxt->ht_len = 0;
-  dht_handle = NULL;
-}
-
-static void
-test_master (void *cls, unsigned int num_peers,
-             struct GNUNET_TESTBED_Peer **peers)
-{
-  /* Testbed is ready with peers running and connected in a pre-defined overlay
-     topology  */
-
-  /* do something */
-  ctxt.ht_len = 10;
-
-  /* connect to a peers service */
-  dht_op = GNUNET_TESTBED_service_connect 
-      (NULL,                    /* Closure for operation */
-       peers[0],                /* The peer whose service to connect to */
-       "dht"                    /* The name of the service */
-       service_connect_comp,    /* callback to call after a handle to service
-                                   is opened */
-       NULL,                    /* closure for the above callback */
-       dht_ca,                  /* callback to call with peer's configuration;
-                                   this should open the needed service connection */
-       dht_da,                  /* callback to be called when closing the
-                                   opened service connection */
-       &ctxt);                  /* closure for the above two callbacks */
-}
-
-
-int
-main (int argc, char **argv)
-{
-  int ret;
-
-  ret = GNUNET_TESTBED_test_run 
-      ("awesome-test",  /* test case name */
-       "template.conf", /* template configuration */
-       NUM_PEERS,       /* number of peers to start */
-       0LL, /* Event mask - set to 0 for no event notifications */
-       NULL, /* Controller event callback */
-       NULL, /* Closure for controller event callback */
-       &test_master, /* continuation callback to be called when testbed setup is
-                        complete */
-       NULL); /* Closure for the test_master callback */
-  if ( (GNUNET_OK != ret) || (GNUNET_OK != result) )
-    return 1;
-  return 0;
-}
+$ export CPPFLAGS="-I/path/to/gnunet/headers"
+$ export LDFLAGS="-L/path/to/gnunet/libraries"
+$ gcc -o testbed-test -lgnunettestbed -lgnunetdht -lgnunetutil testbed_test.c
 \end{lstlisting}
+The \texttt{CPPFLAGS} and \texttt{LDFLAGS} are necessary if GNUnet is installed
+into a different directory other than \texttt{/usr/local}.
 
-All of testbed API peer management functions treat management actions as
+All of testbed API's peer management functions treat management actions as
 operations and return operation handles.  It is expected that the operations
 begin immediately, but they may get delayed (to balance out load on the system).
 The program using the API then has to take care of marking the operation as
@@ -518,7 +424,7 @@ called.  If the operation is not marked as done in that callback or if the
 callback is given as NULL when creating the operation, the operation completion
 callback will be called.  The API documentation shows which event are to be
 expected in the controller event notifications.  It also documents any
-exceptional behaviours.
+exceptional behaviour.
 
 Once the peers are started, test cases often need to connect some of the peers'
 services.  Normally, opening a connect to a peer's service requires the peer's
