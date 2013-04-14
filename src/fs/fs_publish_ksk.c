@@ -172,8 +172,8 @@ publish_ksk_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_HashCode query;
   struct GNUNET_CRYPTO_AesSessionKey skey;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
-  struct GNUNET_PseudonymHandle *ph;
-  struct GNUNET_PseudonymIdentifier pseudonym;
+  struct GNUNET_FS_PseudonymHandle *ph;
+  struct GNUNET_FS_PseudonymIdentifier pseudonym;
 
   pkc->ksk_task = GNUNET_SCHEDULER_NO_TASK;
   if ((pkc->i == pkc->ksk_uri->data.ksk.keywordCount) || (NULL == pkc->dsh))
@@ -198,24 +198,24 @@ publish_ksk_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 			     1 + pkc->slen + pkc->mdsize,
 			     &skey, &iv,
                              &pkc->cpy[1]);
-  ph = GNUNET_PSEUDONYM_get_anonymous_pseudonym_handle ();
+  ph = GNUNET_FS_pseudonym_get_anonymous_pseudonym_handle ();
   GNUNET_CRYPTO_hash (&key, sizeof (key), &signing_key);
   pkc->cpy->purpose.size = htonl (1 + pkc->slen + pkc->mdsize + sizeof (struct UBlock)
-				  - sizeof (struct GNUNET_PseudonymSignature));
+				  - sizeof (struct GNUNET_FS_PseudonymSignature));
   pkc->cpy->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK);
-  GNUNET_PSEUDONYM_sign (ph,
+  GNUNET_FS_pseudonym_sign (ph,
 			 &pkc->cpy->purpose,
 			 &seed,
 			 &signing_key,
 			 &pkc->cpy->signature);
-  GNUNET_PSEUDONYM_get_identifier (ph, &pseudonym);
-  GNUNET_PSEUDONYM_derive_verification_key (&pseudonym, 
+  GNUNET_FS_pseudonym_get_identifier (ph, &pseudonym);
+  GNUNET_FS_pseudonym_derive_verification_key (&pseudonym, 
 					    &signing_key,
 					    &pkc->cpy->verification_key);
   GNUNET_CRYPTO_hash (&pkc->cpy->verification_key,
 		      sizeof (pkc->cpy->verification_key),
 		      &query);
-  GNUNET_PSEUDONYM_destroy (ph);
+  GNUNET_FS_pseudonym_destroy (ph);
   pkc->qre =
       GNUNET_DATASTORE_put (pkc->dsh, 0, &query,
                             1 + pkc->slen + pkc->mdsize + sizeof (struct UBlock),
@@ -311,7 +311,7 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
 
   pkc->cpy = GNUNET_malloc (size);
   pkc->cpy->purpose.size =
-      htonl (sizeof (struct GNUNET_PseudonymSignaturePurpose) +
+      htonl (sizeof (struct GNUNET_FS_PseudonymSignaturePurpose) +
              pkc->mdsize + pkc->slen + 1);
   pkc->cpy->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK);
   pkc->ksk_uri = GNUNET_FS_uri_dup (ksk_uri);

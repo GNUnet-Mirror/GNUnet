@@ -356,7 +356,7 @@ static struct GNUNET_FS_Uri *
 uri_sks_parse (const char *s, char **emsg)
 {
   struct GNUNET_FS_Uri *ret;
-  struct GNUNET_PseudonymIdentifier id;
+  struct GNUNET_FS_PseudonymIdentifier id;
   size_t pos;
   char *end;
 
@@ -969,7 +969,7 @@ GNUNET_FS_uri_sks_create (struct GNUNET_FS_Namespace *ns, const char *id,
  * @return an FS URI for the given namespace and identifier
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_sks_create_from_nsid (struct GNUNET_PseudonymIdentifier *pseudonym, 
+GNUNET_FS_uri_sks_create_from_nsid (struct GNUNET_FS_PseudonymIdentifier *pseudonym, 
 				    const char *id)
 {
   struct GNUNET_FS_Uri *ns_uri;
@@ -1280,7 +1280,7 @@ GNUNET_FS_uri_test_equal (const struct GNUNET_FS_Uri *u1,
   case GNUNET_FS_URI_SKS:
     if ((0 ==
          memcmp (&u1->data.sks.ns, &u2->data.sks.ns,
-                 sizeof (struct GNUNET_PseudonymIdentifier))) &&
+                 sizeof (struct GNUNET_FS_PseudonymIdentifier))) &&
         (0 == strcmp (u1->data.sks.identifier, u2->data.sks.identifier)))
 
       return GNUNET_YES;
@@ -1341,7 +1341,7 @@ GNUNET_FS_uri_test_sks (const struct GNUNET_FS_Uri *uri)
  */
 int
 GNUNET_FS_uri_sks_get_namespace (const struct GNUNET_FS_Uri *uri,
-                                 struct GNUNET_PseudonymIdentifier *pseudonym)
+                                 struct GNUNET_FS_PseudonymIdentifier *pseudonym)
 {
   if (!GNUNET_FS_uri_test_sks (uri))
   {
@@ -1389,9 +1389,9 @@ GNUNET_FS_uri_sks_to_string_fancy (struct GNUNET_CONFIGURATION_Handle *cfg,
 
   if (uri->type != GNUNET_FS_URI_SKS)
     return NULL;
-  (void) GNUNET_PSEUDONYM_get_info (cfg, &uri->data.sks.ns,
+  (void) GNUNET_FS_pseudonym_get_info (cfg, &uri->data.sks.ns,
 				    NULL, NULL, &name, NULL);
-  unique_name = GNUNET_PSEUDONYM_name_uniquify (cfg, &uri->data.sks.ns, name, NULL);
+  unique_name = GNUNET_FS_pseudonym_name_uniquify (cfg, &uri->data.sks.ns, name, NULL);
   GNUNET_free (name);
   GNUNET_asprintf (&ret, "%s: %s", unique_name, uri->data.sks.identifier);
   GNUNET_free (unique_name);
@@ -1944,7 +1944,7 @@ uri_sks_to_string (const struct GNUNET_FS_Uri *uri)
   if (GNUNET_FS_URI_SKS != uri->type)
     return NULL;
   ret = GNUNET_STRINGS_data_to_string (&uri->data.sks.ns,
-				       sizeof (struct GNUNET_PseudonymIdentifier),
+				       sizeof (struct GNUNET_FS_PseudonymIdentifier),
 				       buf,
 				       sizeof (buf));
   GNUNET_assert (NULL != ret);

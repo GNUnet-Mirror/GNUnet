@@ -264,7 +264,7 @@ process_result (struct GNUNET_CHAT_Room *room,
     GNUNET_CRYPTO_hash (&join_msg->public_key,
                         sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                         &pos->id);
-    GNUNET_PSEUDONYM_add (room->cfg, &pos->id, meta);
+    GNUNET_FS_pseudonym_add (room->cfg, &pos->id, meta);
     pos->next = room->members;
     room->members = pos;
     if (GNUNET_NO == room->is_joined)
@@ -665,7 +665,7 @@ GNUNET_CHAT_join_room (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_CRYPTO_hash (&pub_key,
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                       me);
-  GNUNET_PSEUDONYM_add (cfg, me, member_info);
+  GNUNET_FS_pseudonym_add (cfg, me, member_info);
   client = GNUNET_CLIENT_connect ("chat", cfg);
   if (NULL == client)
   {

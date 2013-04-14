@@ -95,13 +95,13 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
 
 
 static void
-ns_printer (void *cls, const char *name, const struct GNUNET_PseudonymIdentifier *pseudonym)
+ns_printer (void *cls, const char *name, const struct GNUNET_FS_PseudonymIdentifier *pseudonym)
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
   struct GNUNET_HashCode hc;
 
   GNUNET_CRYPTO_hash (pseudonym,
-		      sizeof (struct GNUNET_PseudonymIdentifier),
+		      sizeof (struct GNUNET_FS_PseudonymIdentifier),
 		      &hc);
   GNUNET_CRYPTO_hash_to_enc (&hc, &enc);
   FPRINTF (stdout, "%s (%s)\n", name, (const char *) &enc);
@@ -121,7 +121,7 @@ ns_printer (void *cls, const char *name, const struct GNUNET_PseudonymIdentifier
  */
 static int
 pseudo_printer (void *cls, 
-		const struct GNUNET_PseudonymIdentifier *pseudonym,
+		const struct GNUNET_FS_PseudonymIdentifier *pseudonym,
                 const char *name, 
 		const char *unique_name,
                 const struct GNUNET_CONTAINER_MetaData *md, 
@@ -132,16 +132,16 @@ pseudo_printer (void *cls,
   int getinfo_result;
 
   /* While we get a name from the caller, it might be NULL.
-   * GNUNET_PSEUDONYM_get_info () never returns NULL.
+   * GNUNET_FS_pseudonym_get_info () never returns NULL.
    */
-  getinfo_result = GNUNET_PSEUDONYM_get_info (cfg, pseudonym,
+  getinfo_result = GNUNET_FS_pseudonym_get_info (cfg, pseudonym,
       NULL, NULL, &id, NULL);
   if (getinfo_result != GNUNET_OK)
   {
     GNUNET_break (0);
     return GNUNET_OK;
   }
-  unique_id = GNUNET_PSEUDONYM_name_uniquify (cfg, pseudonym, id, NULL);
+  unique_id = GNUNET_FS_pseudonym_name_uniquify (cfg, pseudonym, id, NULL);
   GNUNET_free (id);
   FPRINTF (stdout, "%s (%d):\n", unique_id, rating);
   GNUNET_CONTAINER_meta_data_iterate (md, &EXTRACTOR_meta_data_print, stdout);
@@ -154,7 +154,7 @@ pseudo_printer (void *cls,
 static void
 post_advertising (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
 {
-  struct GNUNET_PseudonymIdentifier nsid;
+  struct GNUNET_FS_PseudonymIdentifier nsid;
   char *set;
   int delta;
 
@@ -183,9 +183,9 @@ post_advertising (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
       *set = '\0';
       delta = strtol (&set[1], NULL,    /* no error handling yet */
                       10);
-      if (GNUNET_OK == GNUNET_PSEUDONYM_name_to_id (cfg, rating_change, &nsid))
+      if (GNUNET_OK == GNUNET_FS_pseudonym_name_to_id (cfg, rating_change, &nsid))
       {
-        (void) GNUNET_PSEUDONYM_rank (cfg, &nsid, delta);
+        (void) GNUNET_FS_pseudonym_rank (cfg, &nsid, delta);
       }
       else
       {
@@ -203,7 +203,7 @@ post_advertising (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
   }
   else if (0 == no_remote_printing)
   {
-    GNUNET_PSEUDONYM_list_all (cfg, &pseudo_printer, NULL);
+    GNUNET_FS_pseudonym_list_all (cfg, &pseudo_printer, NULL);
   }
   GNUNET_FS_stop (h);
 }

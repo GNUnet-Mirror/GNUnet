@@ -245,7 +245,7 @@ GNUNET_FS_namespace_create (struct GNUNET_FS_Handle *h, const char *name)
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Namespace));
   ret->h = h;
   ret->rc = 1;
-  ret->key = GNUNET_PSEUDONYM_create (fn);
+  ret->key = GNUNET_FS_pseudonym_create (fn);
   if (NULL == ret->key)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -289,7 +289,7 @@ GNUNET_FS_namespace_open_existing (struct GNUNET_FS_Handle *h, const char *name)
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Namespace));
   ret->h = h;
   ret->rc = 1;
-  ret->key = GNUNET_PSEUDONYM_create_from_existing_file (fn);
+  ret->key = GNUNET_FS_pseudonym_create_from_existing_file (fn);
   if (NULL == ret->key)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -384,7 +384,7 @@ GNUNET_FS_namespace_delete (struct GNUNET_FS_Namespace *ns, int freeze)
   }
   if (0 != ns->rc)
     return GNUNET_OK;
-  GNUNET_PSEUDONYM_destroy (ns->key);
+  GNUNET_FS_pseudonym_destroy (ns->key);
   GNUNET_free (ns->filename);
   GNUNET_free (ns->name);
   for (i = 0; i < ns->update_node_count; i++)
@@ -433,11 +433,11 @@ struct ProcessNamespaceContext
  */
 int
 GNUNET_FS_namespace_get_public_identifier (struct GNUNET_FS_Namespace *ns,
-					   struct GNUNET_PseudonymIdentifier *id)
+					   struct GNUNET_FS_PseudonymIdentifier *id)
 {
   if ((NULL == ns) || (NULL == id))
     return GNUNET_SYSERR;
-  GNUNET_PSEUDONYM_get_identifier (ns->key, id);
+  GNUNET_FS_pseudonym_get_identifier (ns->key, id);
   return GNUNET_OK;
 }
 
@@ -455,12 +455,12 @@ static int
 process_namespace (void *cls, const char *filename)
 {
   struct ProcessNamespaceContext *pnc = cls;
-  struct GNUNET_PseudonymHandle *ph;
-  struct GNUNET_PseudonymIdentifier id;
+  struct GNUNET_FS_PseudonymHandle *ph;
+  struct GNUNET_FS_PseudonymIdentifier id;
   const char *name;
   const char *t;
 
-  if (NULL == (ph = GNUNET_PSEUDONYM_create (filename)))
+  if (NULL == (ph = GNUNET_FS_pseudonym_create (filename)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
@@ -470,8 +470,8 @@ process_namespace (void *cls, const char *filename)
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", filename);
     return GNUNET_OK;
   }
-  GNUNET_PSEUDONYM_get_identifier (ph, &id);
-  GNUNET_PSEUDONYM_destroy (ph);
+  GNUNET_FS_pseudonym_get_identifier (ph, &id);
+  GNUNET_FS_pseudonym_destroy (ph);
   name = filename;
   while (NULL != (t = strstr (name, DIR_SEPARATOR_STR)))
     name = t + 1;
@@ -714,14 +714,14 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 			     &sk, &iv,
                              &ub_enc[1]);
   ub_enc->purpose.size = htonl (nidlen + slen + mdsize + sizeof (struct UBlock)
-				- sizeof (struct GNUNET_PseudonymSignature));
+				- sizeof (struct GNUNET_FS_PseudonymSignature));
   ub_enc->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK);
-  GNUNET_PSEUDONYM_sign (ns->key,
+  GNUNET_FS_pseudonym_sign (ns->key,
 			 &ub_enc->purpose,
 			 NULL,
 			 &signing_key,
 			 &ub_enc->signature);
-  GNUNET_PSEUDONYM_derive_verification_key (&sks_uri->data.sks.ns, 
+  GNUNET_FS_pseudonym_derive_verification_key (&sks_uri->data.sks.ns, 
 					    &signing_key,
 					    &ub_enc->verification_key);
   GNUNET_CRYPTO_hash (&ub_enc->verification_key,

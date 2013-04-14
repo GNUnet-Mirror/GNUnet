@@ -48,18 +48,18 @@ struct UBlock
   /**
    * Signature using pseudonym and search keyword / identifier.
    */
-  struct GNUNET_PseudonymSignature signature;
+  struct GNUNET_FS_PseudonymSignature signature;
 
   /**
    * What is being signed and why?
    */
-  struct GNUNET_PseudonymSignaturePurpose purpose;
+  struct GNUNET_FS_PseudonymSignaturePurpose purpose;
 
   /**
    * Public key used to sign this block.  Hash of this value
    * is the query.
    */
-  struct GNUNET_PseudonymIdentifier verification_key;
+  struct GNUNET_FS_PseudonymIdentifier verification_key;
 
   /* rest of the data is encrypted */
 

@@ -67,22 +67,22 @@
 /**
  * Registered callbacks for discovery of pseudonyms.
  */
-struct GNUNET_PSEUDONYM_DiscoveryHandle
+struct GNUNET_FS_pseudonym_DiscoveryHandle
 {
   /**
    * This is a doubly linked list.
    */
-  struct GNUNET_PSEUDONYM_DiscoveryHandle *next;
+  struct GNUNET_FS_pseudonym_DiscoveryHandle *next;
 
   /**
    * This is a doubly linked list.
    */
-  struct GNUNET_PSEUDONYM_DiscoveryHandle *prev;
+  struct GNUNET_FS_pseudonym_DiscoveryHandle *prev;
 
   /**
    * Function to call each time a pseudonym is discovered.
    */
-  GNUNET_PSEUDONYM_Iterator callback;
+  GNUNET_FS_PseudonymIterator callback;
 
   /**
    * Closure for callback.
@@ -95,13 +95,13 @@ struct GNUNET_PSEUDONYM_DiscoveryHandle
  * Head of the linked list of functions to call when
  * new pseudonyms are added.
  */
-static struct GNUNET_PSEUDONYM_DiscoveryHandle *disco_head;
+static struct GNUNET_FS_pseudonym_DiscoveryHandle *disco_head;
 
 /**
  * Tail of the linked list of functions to call when
  * new pseudonyms are added.
  */
-static struct GNUNET_PSEUDONYM_DiscoveryHandle *disco_tail;
+static struct GNUNET_FS_pseudonym_DiscoveryHandle *disco_tail;
 
 
 /**
@@ -112,10 +112,10 @@ static struct GNUNET_PSEUDONYM_DiscoveryHandle *disco_tail;
  * @param rating rating of pseudonym
  */
 static void
-internal_notify (const struct GNUNET_PseudonymIdentifier *pseudonym,
+internal_notify (const struct GNUNET_FS_PseudonymIdentifier *pseudonym,
                  const struct GNUNET_CONTAINER_MetaData *md, int rating)
 {
-  struct GNUNET_PSEUDONYM_DiscoveryHandle *pos;
+  struct GNUNET_FS_pseudonym_DiscoveryHandle *pos;
 
   for (pos = disco_head; NULL != pos; pos = pos->next)
     pos->callback (pos->callback_cls, pseudonym, NULL, NULL, md, rating);
@@ -133,19 +133,19 @@ internal_notify (const struct GNUNET_PseudonymIdentifier *pseudonym,
  * @param iterator_cls point to a closure
  * @return registration handle
  */
-struct GNUNET_PSEUDONYM_DiscoveryHandle *
-GNUNET_PSEUDONYM_discovery_callback_register (const struct
+struct GNUNET_FS_pseudonym_DiscoveryHandle *
+GNUNET_FS_pseudonym_discovery_callback_register (const struct
 					      GNUNET_CONFIGURATION_Handle *cfg,
-                                              GNUNET_PSEUDONYM_Iterator iterator, 
+                                              GNUNET_FS_PseudonymIterator iterator, 
 					      void *iterator_cls)
 {
-  struct GNUNET_PSEUDONYM_DiscoveryHandle *dh;
+  struct GNUNET_FS_pseudonym_DiscoveryHandle *dh;
 
-  dh = GNUNET_malloc (sizeof (struct GNUNET_PSEUDONYM_DiscoveryHandle));
+  dh = GNUNET_malloc (sizeof (struct GNUNET_FS_pseudonym_DiscoveryHandle));
   dh->callback = iterator;
   dh->callback_cls = iterator_cls;
   GNUNET_CONTAINER_DLL_insert (disco_head, disco_tail, dh);
-  GNUNET_PSEUDONYM_list_all (cfg, iterator, iterator_cls);
+  GNUNET_FS_pseudonym_list_all (cfg, iterator, iterator_cls);
   return dh;
 }
 
@@ -156,7 +156,7 @@ GNUNET_PSEUDONYM_discovery_callback_register (const struct
  * @param dh registration to unregister
  */
 void
-GNUNET_PSEUDONYM_discovery_callback_unregister (struct GNUNET_PSEUDONYM_DiscoveryHandle *dh)
+GNUNET_FS_pseudonym_discovery_callback_unregister (struct GNUNET_FS_pseudonym_DiscoveryHandle *dh)
 {
   GNUNET_CONTAINER_DLL_remove (disco_head, disco_tail, dh);
   GNUNET_free (dh);
@@ -175,7 +175,7 @@ GNUNET_PSEUDONYM_discovery_callback_unregister (struct GNUNET_PSEUDONYM_Discover
 static char *
 get_data_filename (const struct GNUNET_CONFIGURATION_Handle *cfg,
                    const char *prefix, 
-		   const struct GNUNET_PseudonymIdentifier *pseudonym)
+		   const struct GNUNET_FS_PseudonymIdentifier *pseudonym)
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
   struct GNUNET_HashCode psid;
@@ -183,7 +183,7 @@ get_data_filename (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (NULL != pseudonym)
   {
     GNUNET_CRYPTO_hash (pseudonym,
-			sizeof (struct GNUNET_PseudonymIdentifier),
+			sizeof (struct GNUNET_FS_PseudonymIdentifier),
 			&psid);
     GNUNET_CRYPTO_hash_to_enc (&psid, &enc);
   }
@@ -237,8 +237,8 @@ get_data_filename_hash (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
-GNUNET_PSEUDONYM_set_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			   const struct GNUNET_PseudonymIdentifier *pseudonym,
+GNUNET_FS_pseudonym_set_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
+			   const struct GNUNET_FS_PseudonymIdentifier *pseudonym,
 			   const char *name,
 			   const struct GNUNET_CONTAINER_MetaData *md, 
 			   int32_t rank)
@@ -253,7 +253,7 @@ GNUNET_PSEUDONYM_set_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
     return GNUNET_SYSERR;
   }
   if ((GNUNET_OK != GNUNET_BIO_write (fileW, pseudonym, 
-				      sizeof (struct GNUNET_PseudonymIdentifier))) ||
+				      sizeof (struct GNUNET_FS_PseudonymIdentifier))) ||
       (GNUNET_OK != GNUNET_BIO_write_int32 (fileW, rank)) ||
       (GNUNET_OK != GNUNET_BIO_write_string (fileW, name)) ||
       (GNUNET_OK != GNUNET_BIO_write_meta_data (fileW, md)))
@@ -272,7 +272,7 @@ GNUNET_PSEUDONYM_set_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_free (fn);
   /* create entry for pseudonym name in names */
   if (NULL != name)
-    GNUNET_free_non_null (GNUNET_PSEUDONYM_name_uniquify (cfg, pseudonym, 
+    GNUNET_free_non_null (GNUNET_FS_pseudonym_name_uniquify (cfg, pseudonym, 
 							  name, NULL));
   return GNUNET_OK;
 }
@@ -290,12 +290,12 @@ GNUNET_PSEUDONYM_set_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 static int
 read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
-           const struct GNUNET_PseudonymIdentifier *pseudonym,
+           const struct GNUNET_FS_PseudonymIdentifier *pseudonym,
            struct GNUNET_CONTAINER_MetaData **meta,
 	   int32_t *rank,
            char **ns_name)
 {
-  struct GNUNET_PseudonymIdentifier pd;
+  struct GNUNET_FS_PseudonymIdentifier pd;
   char *fn;
   char *emsg;
   struct GNUNET_BIO_ReadHandle *fileR;
@@ -351,7 +351,7 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 /**
  * Return unique variant of the namespace name.  Use it after
- * GNUNET_PSEUDONYM_get_info() to make sure that name is unique.
+ * GNUNET_FS_pseudonym_get_info() to make sure that name is unique.
  *
  * @param cfg configuration
  * @param pseudonym public key of the pseudonym
@@ -361,13 +361,13 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *         Free the name with GNUNET_free().
  */
 char *
-GNUNET_PSEUDONYM_name_uniquify (const struct GNUNET_CONFIGURATION_Handle *cfg,
-				const struct GNUNET_PseudonymIdentifier *pseudonym,
+GNUNET_FS_pseudonym_name_uniquify (const struct GNUNET_CONFIGURATION_Handle *cfg,
+				const struct GNUNET_FS_PseudonymIdentifier *pseudonym,
 				const char *name,
 				unsigned int *suffix)
 {
   struct GNUNET_HashCode nh;
-  struct GNUNET_PseudonymIdentifier pi;
+  struct GNUNET_FS_PseudonymIdentifier pi;
   uint64_t len;
   char *fn;
   struct GNUNET_DISK_FileHandle *fh;
@@ -388,11 +388,11 @@ GNUNET_PSEUDONYM_name_uniquify (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               GNUNET_DISK_PERM_USER_WRITE);
   i = 0;
   idx = -1;
-  while ((len >= sizeof (struct GNUNET_PseudonymIdentifier)) &&
-         (sizeof (struct GNUNET_PseudonymIdentifier) ==
-          GNUNET_DISK_file_read (fh, &pi, sizeof (struct GNUNET_PseudonymIdentifier))))
+  while ((len >= sizeof (struct GNUNET_FS_PseudonymIdentifier)) &&
+         (sizeof (struct GNUNET_FS_PseudonymIdentifier) ==
+          GNUNET_DISK_file_read (fh, &pi, sizeof (struct GNUNET_FS_PseudonymIdentifier))))
   {
-    if (0 == memcmp (&pi, pseudonym, sizeof (struct GNUNET_PseudonymIdentifier)))
+    if (0 == memcmp (&pi, pseudonym, sizeof (struct GNUNET_FS_PseudonymIdentifier)))
     {
       idx = i;
       break;
@@ -403,8 +403,8 @@ GNUNET_PSEUDONYM_name_uniquify (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (-1 == idx)
   {
     idx = i;
-    if (sizeof (struct GNUNET_PseudonymIdentifier) !=
-        GNUNET_DISK_file_write (fh, pseudonym, sizeof (struct GNUNET_PseudonymIdentifier)))
+    if (sizeof (struct GNUNET_FS_PseudonymIdentifier) !=
+        GNUNET_DISK_file_write (fh, pseudonym, sizeof (struct GNUNET_FS_PseudonymIdentifier)))
       LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "write", fn);
   }
   GNUNET_DISK_file_close (fh);
@@ -436,8 +436,8 @@ GNUNET_PSEUDONYM_name_uniquify (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *         empty metadata container, rank -1 and a "no-name" name).
  */
 int
-GNUNET_PSEUDONYM_get_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			   const struct GNUNET_PseudonymIdentifier *pseudonym, 
+GNUNET_FS_pseudonym_get_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
+			   const struct GNUNET_FS_PseudonymIdentifier *pseudonym, 
 			   struct GNUNET_CONTAINER_MetaData **ret_meta,
 			   int32_t *ret_rank, 
 			   char **ret_name, 
@@ -514,9 +514,9 @@ GNUNET_PSEUDONYM_get_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
-GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_FS_pseudonym_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			     const char *ns_uname, 
-			     struct GNUNET_PseudonymIdentifier *pseudonym)
+			     struct GNUNET_FS_PseudonymIdentifier *pseudonym)
 {
   size_t slen;
   uint64_t len;
@@ -541,7 +541,7 @@ GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   if ((GNUNET_OK != GNUNET_DISK_file_test (fn) ||
        (GNUNET_OK != GNUNET_DISK_file_size (fn, &len, GNUNET_YES, GNUNET_YES))) ||
-      ((idx + 1) * sizeof (struct GNUNET_PseudonymIdentifier) > len))
+      ((idx + 1) * sizeof (struct GNUNET_FS_PseudonymIdentifier) > len))
   {
     GNUNET_free (fn);
     return GNUNET_SYSERR;
@@ -553,14 +553,14 @@ GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               GNUNET_DISK_PERM_USER_WRITE);
   GNUNET_free (fn);
   if (GNUNET_SYSERR ==
-      GNUNET_DISK_file_seek (fh, idx * sizeof (struct GNUNET_PseudonymIdentifier),
+      GNUNET_DISK_file_seek (fh, idx * sizeof (struct GNUNET_FS_PseudonymIdentifier),
 			     GNUNET_DISK_SEEK_SET))
   {
     GNUNET_DISK_file_close (fh);
     return GNUNET_SYSERR;
   }
-  if (sizeof (struct GNUNET_PseudonymIdentifier) !=
-      GNUNET_DISK_file_read (fh, pseudonym, sizeof (struct GNUNET_PseudonymIdentifier)))
+  if (sizeof (struct GNUNET_FS_PseudonymIdentifier) !=
+      GNUNET_DISK_file_read (fh, pseudonym, sizeof (struct GNUNET_FS_PseudonymIdentifier)))
   {
     GNUNET_DISK_file_close (fh);
     return GNUNET_SYSERR;
@@ -580,7 +580,7 @@ struct ListPseudonymClosure
   /**
    * iterator over pseudonym
    */
-  GNUNET_PSEUDONYM_Iterator iterator;
+  GNUNET_FS_PseudonymIterator iterator;
 
   /**
    * Closure for iterator.
@@ -605,7 +605,7 @@ static int
 list_pseudonym_helper (void *cls, const char *fullname)
 {
   struct ListPseudonymClosure *lpc = cls;
-  struct GNUNET_PseudonymIdentifier pd;
+  struct GNUNET_FS_PseudonymIdentifier pd;
   char *emsg;
   struct GNUNET_BIO_ReadHandle *fileR;
   int32_t rank;
@@ -645,7 +645,7 @@ list_pseudonym_helper (void *cls, const char *fullname)
     return GNUNET_SYSERR;
   }
   ret = GNUNET_OK;
-  name_unique = GNUNET_PSEUDONYM_name_uniquify (lpc->cfg, &pd, ns_name, NULL);
+  name_unique = GNUNET_FS_pseudonym_name_uniquify (lpc->cfg, &pd, ns_name, NULL);
   if (NULL != lpc->iterator)
     ret = lpc->iterator (lpc->iterator_cls, &pd, ns_name, name_unique, meta, rank);
   GNUNET_free (ns_name);
@@ -664,8 +664,8 @@ list_pseudonym_helper (void *cls, const char *fullname)
  * @return number of pseudonyms found
  */
 int
-GNUNET_PSEUDONYM_list_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           GNUNET_PSEUDONYM_Iterator iterator, 
+GNUNET_FS_pseudonym_list_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                           GNUNET_FS_PseudonymIterator iterator, 
 			   void *iterator_cls)
 {
   struct ListPseudonymClosure cls;
@@ -693,8 +693,8 @@ GNUNET_PSEUDONYM_list_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return new rating of the pseudonym
  */
 int
-GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                       const struct GNUNET_PseudonymIdentifier *pseudonym, 
+GNUNET_FS_pseudonym_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                       const struct GNUNET_FS_PseudonymIdentifier *pseudonym, 
 		       int32_t delta)
 {
   struct GNUNET_CONTAINER_MetaData *meta;
@@ -710,7 +710,7 @@ GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
     meta = GNUNET_CONTAINER_meta_data_create ();
   }
   rank += delta;
-  GNUNET_PSEUDONYM_set_info (cfg, pseudonym, name, meta, rank);
+  GNUNET_FS_pseudonym_set_info (cfg, pseudonym, name, meta, rank);
   GNUNET_CONTAINER_meta_data_destroy (meta);
   GNUNET_free_non_null (name);
   return rank;
@@ -728,8 +728,8 @@ GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
-GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                      const struct GNUNET_PseudonymIdentifier *pseudonym,
+GNUNET_FS_pseudonym_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                      const struct GNUNET_FS_PseudonymIdentifier *pseudonym,
                       const struct GNUNET_CONTAINER_MetaData *meta)
 {
   char *name;
@@ -747,13 +747,13 @@ GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
       (GNUNET_OK == read_info (cfg, pseudonym, &old, &rank, &name)))
   {
     GNUNET_CONTAINER_meta_data_merge (old, meta);
-    ret = GNUNET_PSEUDONYM_set_info (cfg, pseudonym, name, old, rank);
+    ret = GNUNET_FS_pseudonym_set_info (cfg, pseudonym, name, old, rank);
     GNUNET_CONTAINER_meta_data_destroy (old);
     GNUNET_free_non_null (name);
   }
   else
   {
-    ret = GNUNET_PSEUDONYM_set_info (cfg, pseudonym, NULL, meta, rank);
+    ret = GNUNET_FS_pseudonym_set_info (cfg, pseudonym, NULL, meta, rank);
   }
   GNUNET_free (fn);
   internal_notify (pseudonym, meta, rank);
@@ -766,7 +766,7 @@ GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Handle for a pseudonym (private key).
  */
-struct GNUNET_PseudonymHandle
+struct GNUNET_FS_PseudonymHandle
 {
   /**
    * 256-bit 'd' secret value (mod 'n', where n is 256-bit for NIST P-256).
@@ -776,7 +776,7 @@ struct GNUNET_PseudonymHandle
   /**
    * Public key corresponding to the private key.
    */
-  struct GNUNET_PseudonymIdentifier public_key;
+  struct GNUNET_FS_PseudonymIdentifier public_key;
 };
 
 
@@ -862,10 +862,10 @@ key_from_sexp (gcry_mpi_t * array, gcry_sexp_t sexp, const char *topname,
  * @param filename name of the file to use for storage, NULL for in-memory only
  * @return handle to the private key of the pseudonym
  */
-struct GNUNET_PseudonymHandle *
-GNUNET_PSEUDONYM_create (const char *filename)
+struct GNUNET_FS_PseudonymHandle *
+GNUNET_FS_pseudonym_create (const char *filename)
 {
-  struct GNUNET_PseudonymHandle *ph;
+  struct GNUNET_FS_PseudonymHandle *ph;
   ssize_t ret;
   gcry_sexp_t r_key;
   gcry_sexp_t params;
@@ -877,14 +877,14 @@ GNUNET_PSEUDONYM_create (const char *filename)
   gcry_mpi_t d;
   size_t size;
 
-  ph = GNUNET_malloc (sizeof (struct GNUNET_PseudonymHandle));
+  ph = GNUNET_malloc (sizeof (struct GNUNET_FS_PseudonymHandle));
   if ( (NULL != filename) &&
        (GNUNET_YES == GNUNET_DISK_file_test (filename)) )
   {
     ret = GNUNET_DISK_fn_read (filename, ph, 
-			       sizeof (struct GNUNET_PseudonymHandle));
+			       sizeof (struct GNUNET_FS_PseudonymHandle));
     /* Note: we don't do any validation here, maybe we should? */
-    if (sizeof (struct GNUNET_PseudonymHandle) == ret)
+    if (sizeof (struct GNUNET_FS_PseudonymHandle) == ret)
       return ph;
   }  
   if (0 != (rc = gcry_sexp_build (&params, NULL,
@@ -962,9 +962,9 @@ GNUNET_PSEUDONYM_create (const char *filename)
   /* write to disk */
   if (NULL != filename)
   {
-    ret = GNUNET_DISK_fn_write (filename, ph, sizeof (struct GNUNET_PseudonymHandle),
+    ret = GNUNET_DISK_fn_write (filename, ph, sizeof (struct GNUNET_FS_PseudonymHandle),
 				GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
-    if (sizeof (struct GNUNET_PseudonymHandle) != ret)
+    if (sizeof (struct GNUNET_FS_PseudonymHandle) != ret)
     {
       GNUNET_free (ph);
       return NULL;
@@ -980,16 +980,16 @@ GNUNET_PSEUDONYM_create (const char *filename)
  * @param filename name of the file to use for storage, NULL for in-memory only
  * @return handle to the private key of the pseudonym
  */
-struct GNUNET_PseudonymHandle *
-GNUNET_PSEUDONYM_create_from_existing_file (const char *filename)
+struct GNUNET_FS_PseudonymHandle *
+GNUNET_FS_pseudonym_create_from_existing_file (const char *filename)
 {
-  struct GNUNET_PseudonymHandle *ph;
+  struct GNUNET_FS_PseudonymHandle *ph;
   ssize_t ret;
 
-  ph = GNUNET_malloc (sizeof (struct GNUNET_PseudonymHandle));
+  ph = GNUNET_malloc (sizeof (struct GNUNET_FS_PseudonymHandle));
   ret = GNUNET_DISK_fn_read (filename, ph, 
-			     sizeof (struct GNUNET_PseudonymHandle));
-  if (sizeof (struct GNUNET_PseudonymHandle) != ret)
+			     sizeof (struct GNUNET_FS_PseudonymHandle));
+  if (sizeof (struct GNUNET_FS_PseudonymHandle) != ret)
   {
     GNUNET_free (ph);
     return NULL;
@@ -1007,12 +1007,12 @@ GNUNET_PSEUDONYM_create_from_existing_file (const char *filename)
  *
  * @return handle to the (non-secret) private key of the 'anonymous' pseudonym
  */
-struct GNUNET_PseudonymHandle *
-GNUNET_PSEUDONYM_get_anonymous_pseudonym_handle ()
+struct GNUNET_FS_PseudonymHandle *
+GNUNET_FS_pseudonym_get_anonymous_pseudonym_handle ()
 {
-  struct GNUNET_PseudonymHandle *ph;
+  struct GNUNET_FS_PseudonymHandle *ph;
 
-  ph = GNUNET_malloc (sizeof (struct GNUNET_PseudonymHandle));
+  ph = GNUNET_malloc (sizeof (struct GNUNET_FS_PseudonymHandle));
   /* Note if we use 'd=0' for the anonymous handle (as per#2564),
      then I believe the public key should be also zero, as Q=0P=0;
      so setting everything to all-zeros (as per GNUNET_malloc)
@@ -1029,7 +1029,7 @@ GNUNET_PSEUDONYM_get_anonymous_pseudonym_handle ()
  * @param ph pseudonym handle to destroy
  */
 void
-GNUNET_PSEUDONYM_destroy (struct GNUNET_PseudonymHandle *ph)
+GNUNET_FS_pseudonym_destroy (struct GNUNET_FS_PseudonymHandle *ph)
 {
   GNUNET_free (ph);
 }
@@ -1043,7 +1043,7 @@ GNUNET_PSEUDONYM_destroy (struct GNUNET_PseudonymHandle *ph)
  * @return converted s-expression
  */
 static gcry_sexp_t
-data_to_pkcs1 (const struct GNUNET_PseudonymSignaturePurpose *purpose)
+data_to_pkcs1 (const struct GNUNET_FS_PseudonymSignaturePurpose *purpose)
 {
   struct GNUNET_CRYPTO_ShortHashCode hc;
   size_t bufSize;
@@ -1084,11 +1084,11 @@ gcry_ctx_t xctx;
  * @return GNUNET_SYSERR on failure
  */
 int 
-GNUNET_PSEUDONYM_sign (struct GNUNET_PseudonymHandle *ph,
-		       const struct GNUNET_PseudonymSignaturePurpose *purpose,
+GNUNET_FS_pseudonym_sign (struct GNUNET_FS_PseudonymHandle *ph,
+		       const struct GNUNET_FS_PseudonymSignaturePurpose *purpose,
 		       const struct GNUNET_HashCode *seed,
 		       const struct GNUNET_HashCode *signing_key,
-		       struct GNUNET_PseudonymSignature *signature)
+		       struct GNUNET_FS_PseudonymSignature *signature)
 {
   size_t size;
   size_t erroff;
@@ -1215,7 +1215,7 @@ GNUNET_PSEUDONYM_sign (struct GNUNET_PseudonymHandle *ph,
     gcry_sexp_release (spriv);
     if (NULL != seed)
       gcry_mpi_release (k);
-    memset (signature, 0, sizeof (struct GNUNET_PseudonymSignature));
+    memset (signature, 0, sizeof (struct GNUNET_FS_PseudonymSignature));
     return GNUNET_SYSERR;
   }
   if (NULL != seed)
@@ -1263,7 +1263,7 @@ GNUNET_PSEUDONYM_sign (struct GNUNET_PseudonymHandle *ph,
  * @return curve context
  */
 static gcry_ctx_t 
-get_context_from_pseudonym (struct GNUNET_PseudonymIdentifier *pseudonym)
+get_context_from_pseudonym (struct GNUNET_FS_PseudonymIdentifier *pseudonym)
 {
   gcry_ctx_t ctx;
   gcry_mpi_t ONE;
@@ -1317,13 +1317,13 @@ get_context_from_pseudonym (struct GNUNET_PseudonymIdentifier *pseudonym)
  * @param signing_key input to derive 'h' (see section 2.4 of #2564)
  * @param verification_key resulting public key to verify the signature
  *        created from the '(d+h)' of 'pseudonym' and the 'signing_key';
- *        the value stored here can then be given to GNUNET_PSEUDONYM_verify.
+ *        the value stored here can then be given to GNUNET_FS_pseudonym_verify.
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_PSEUDONYM_derive_verification_key (struct GNUNET_PseudonymIdentifier *pseudonym,
+GNUNET_FS_pseudonym_derive_verification_key (struct GNUNET_FS_PseudonymIdentifier *pseudonym,
 					  const struct GNUNET_HashCode *signing_key,
-					  struct GNUNET_PseudonymIdentifier *verification_key)
+					  struct GNUNET_FS_PseudonymIdentifier *verification_key)
 {
   gcry_mpi_t h;  
   size_t size;
@@ -1433,9 +1433,9 @@ GNUNET_PSEUDONYM_derive_verification_key (struct GNUNET_PseudonymIdentifier *pse
  *         GNUNET_SYSERR if the signature is invalid
  */
 int
-GNUNET_PSEUDONYM_verify (const struct GNUNET_PseudonymSignaturePurpose *purpose,
-			 const struct GNUNET_PseudonymSignature *signature,
-			 const struct GNUNET_PseudonymIdentifier *verification_key)
+GNUNET_FS_pseudonym_verify (const struct GNUNET_FS_PseudonymSignaturePurpose *purpose,
+			 const struct GNUNET_FS_PseudonymSignature *signature,
+			 const struct GNUNET_FS_PseudonymIdentifier *verification_key)
 {
   gcry_sexp_t data;
   gcry_sexp_t sig_sexpr;
@@ -1557,11 +1557,11 @@ exit (1);
  * @param pseudonym pseudonym identifier (set based on 'ph')
  */
 void
-GNUNET_PSEUDONYM_get_identifier (struct GNUNET_PseudonymHandle *ph,
-				 struct GNUNET_PseudonymIdentifier *pseudonym)
+GNUNET_FS_pseudonym_get_identifier (struct GNUNET_FS_PseudonymHandle *ph,
+				 struct GNUNET_FS_PseudonymIdentifier *pseudonym)
 {
   memcpy (pseudonym, &ph->public_key,
-	  sizeof (struct GNUNET_PseudonymIdentifier));
+	  sizeof (struct GNUNET_FS_PseudonymIdentifier));
 }
 
 
@@ -1573,8 +1573,8 @@ GNUNET_PSEUDONYM_get_identifier (struct GNUNET_PseudonymHandle *ph,
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
-GNUNET_PSEUDONYM_remove (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			 const struct GNUNET_PseudonymIdentifier *id)
+GNUNET_FS_pseudonym_remove (const struct GNUNET_CONFIGURATION_Handle *cfg,
+			 const struct GNUNET_FS_PseudonymIdentifier *id)
 {
   char *fn;
   int result;

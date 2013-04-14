@@ -553,9 +553,9 @@ void
 GNUNET_FS_unindex_do_remove_kblocks_ (struct GNUNET_FS_UnindexContext *uc)
 {
   const char *keyword;
-  struct GNUNET_PseudonymHandle *ph;
-  struct GNUNET_PseudonymIdentifier anon;
-  struct GNUNET_PseudonymIdentifier verification_key;
+  struct GNUNET_FS_PseudonymHandle *ph;
+  struct GNUNET_FS_PseudonymIdentifier anon;
+  struct GNUNET_FS_PseudonymIdentifier verification_key;
   struct GNUNET_HashCode signing_key;
 
   if (NULL == uc->dsh)
@@ -575,17 +575,17 @@ GNUNET_FS_unindex_do_remove_kblocks_ (struct GNUNET_FS_UnindexContext *uc)
     return;
   }
   /* FIXME: code duplication with fs_search.c here... */
-  ph = GNUNET_PSEUDONYM_get_anonymous_pseudonym_handle ();
-  GNUNET_PSEUDONYM_get_identifier (ph, &anon);
-  GNUNET_PSEUDONYM_destroy (ph);
+  ph = GNUNET_FS_pseudonym_get_anonymous_pseudonym_handle ();
+  GNUNET_FS_pseudonym_get_identifier (ph, &anon);
+  GNUNET_FS_pseudonym_destroy (ph);
   keyword = &uc->ksk_uri->data.ksk.keywords[uc->ksk_offset][1];
   GNUNET_CRYPTO_hash (keyword, strlen (keyword), &uc->ukey);
   GNUNET_CRYPTO_hash (&uc->ukey, sizeof (struct GNUNET_HashCode), &signing_key);
-  GNUNET_PSEUDONYM_derive_verification_key (&anon, 
+  GNUNET_FS_pseudonym_derive_verification_key (&anon, 
 					    &signing_key,
 					    &verification_key);
   GNUNET_CRYPTO_hash (&verification_key,
-		      sizeof (struct GNUNET_PseudonymIdentifier),
+		      sizeof (struct GNUNET_FS_PseudonymIdentifier),
 		      &uc->uquery);
   uc->first_uid = 0;
   uc->dqe = GNUNET_DATASTORE_get_key (uc->dsh,

@@ -206,7 +206,7 @@ struct GNUNET_FS_Uri
       /**
        * Identifier of the namespace.
        */
-      struct GNUNET_PseudonymIdentifier ns;
+      struct GNUNET_FS_PseudonymIdentifier ns;
 
       /**
        * Human-readable identifier chosen for this
@@ -2008,7 +2008,7 @@ struct GNUNET_FS_Namespace
   /**
    * Private key for the namespace.
    */
-  struct GNUNET_PseudonymHandle *key;
+  struct GNUNET_FS_PseudonymHandle *key;
 
   /**
    * Hash map mapping identifiers of update nodes

@@ -589,7 +589,7 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc, const char *id_update,
  */
 static int
 decrypt_block_with_keyword (const struct GNUNET_FS_SearchContext *sc,
-			    const struct GNUNET_PseudonymIdentifier *verification_key,
+			    const struct GNUNET_FS_PseudonymIdentifier *verification_key,
 			    const void *edata,
 			    size_t edata_size,
 			    char *data)
@@ -600,7 +600,7 @@ decrypt_block_with_keyword (const struct GNUNET_FS_SearchContext *sc,
   int i;
 
   GNUNET_CRYPTO_hash (verification_key,
-                      sizeof (struct GNUNET_PseudonymIdentifier),
+                      sizeof (struct GNUNET_FS_PseudonymIdentifier),
                       &q);
   /* find key */
   for (i = 0; i < sc->uri->data.ksk.keywordCount; i++)
@@ -965,7 +965,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
   struct GNUNET_HashCode signing_key;
   struct GNUNET_HashCode ns_hash;
   struct GNUNET_HashCode id_hash;
-  struct GNUNET_PseudonymIdentifier verification_key;
+  struct GNUNET_FS_PseudonymIdentifier verification_key;
   unsigned int sqms;
   uint32_t options;
 
@@ -1039,7 +1039,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
 			sizeof (sc->uri->data.sks.ns), &ns_hash);
     GNUNET_CRYPTO_hash_xor (&id_hash, &ns_hash, &key);
     GNUNET_CRYPTO_hash (&key, sizeof (struct GNUNET_HashCode), &signing_key);
-    GNUNET_PSEUDONYM_derive_verification_key (&sc->uri->data.sks.ns,
+    GNUNET_FS_pseudonym_derive_verification_key (&sc->uri->data.sks.ns,
 					      &signing_key,
 					      &verification_key);
     GNUNET_CRYPTO_hash (&verification_key,
@@ -1208,17 +1208,17 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
   unsigned int i;
   const char *keyword;
   struct GNUNET_HashCode signing_key;
-  struct GNUNET_PseudonymHandle *ph;
-  struct GNUNET_PseudonymIdentifier anon;
-  struct GNUNET_PseudonymIdentifier verification_key;
+  struct GNUNET_FS_PseudonymHandle *ph;
+  struct GNUNET_FS_PseudonymIdentifier anon;
+  struct GNUNET_FS_PseudonymIdentifier verification_key;
 
   GNUNET_assert (NULL == sc->client);
   if (GNUNET_FS_uri_test_ksk (sc->uri))
   {
     GNUNET_assert (0 != sc->uri->data.ksk.keywordCount);
-    ph = GNUNET_PSEUDONYM_get_anonymous_pseudonym_handle ();
-    GNUNET_PSEUDONYM_get_identifier (ph, &anon);
-    GNUNET_PSEUDONYM_destroy (ph);
+    ph = GNUNET_FS_pseudonym_get_anonymous_pseudonym_handle ();
+    GNUNET_FS_pseudonym_get_identifier (ph, &anon);
+    GNUNET_FS_pseudonym_destroy (ph);
     sc->requests =
         GNUNET_malloc (sizeof (struct SearchRequestEntry) *
                        sc->uri->data.ksk.keywordCount);
@@ -1227,10 +1227,10 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
       keyword = &sc->uri->data.ksk.keywords[i][1];
       GNUNET_CRYPTO_hash (keyword, strlen (keyword), &sc->requests[i].ukey);
       GNUNET_CRYPTO_hash (&sc->requests[i].ukey, sizeof (struct GNUNET_HashCode), &signing_key);
-      GNUNET_PSEUDONYM_derive_verification_key (&anon, 
+      GNUNET_FS_pseudonym_derive_verification_key (&anon, 
 						&signing_key,
 						&verification_key);
-      GNUNET_CRYPTO_hash (&verification_key, sizeof (struct GNUNET_PseudonymIdentifier),
+      GNUNET_CRYPTO_hash (&verification_key, sizeof (struct GNUNET_FS_PseudonymIdentifier),
 			  &sc->requests[i].uquery);
       sc->requests[i].mandatory = (sc->uri->data.ksk.keywords[i][0] == '+');
       if (sc->requests[i].mandatory)

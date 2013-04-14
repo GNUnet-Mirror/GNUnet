@@ -3,15 +3,15 @@
 #endif
 
 if HAVE_EXPERIMENTAL
- EXP_DIR = fs chat consensus dv 
+ EXP_DIR = fs gns chat consensus dv 
 endif
 
 if LINUX
 # All of these currently only work on GNU/Linux
- LINUX_DIR = dns exit vpn gns pt
+ LINUX_DIR = dns exit vpn pt
 endif
 if MINGW
- MINGW_DIR = dns gns vpn exit
+ MINGW_DIR = dns vpn exit
 endif
 
 if HAVE_MYSQL
