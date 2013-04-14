@@ -1207,12 +1207,11 @@ GNUNET_TESTING_peer_stop (struct GNUNET_TESTING_Peer *peer)
  * Function called whenever we connect to or disconnect from ARM.
  *
  * @param cls closure
- * @param arm handle to the ARM connection
  * @param connected GNUNET_YES if connected, GNUNET_NO if disconnected,
  *                  GNUNET_SYSERR on error.
  */
 static void
-disconn_status (void *cls, struct GNUNET_ARM_Handle *arm, 
+disconn_status (void *cls, 
                 int connected)
 {
   struct GNUNET_TESTING_Peer *peer = cls;

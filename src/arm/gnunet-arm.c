@@ -258,12 +258,11 @@ static void action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *t
  * Function called whenever we connect to or disconnect from ARM.
  *
  * @param cls closure
- * @param arm handle to the ARM connection
  * @param connected GNUNET_YES if connected, GNUNET_NO if disconnected,
  *                  GNUNET_SYSERR on error.
  */
 static void
-conn_status (void *cls, struct GNUNET_ARM_Handle *arm, 
+conn_status (void *cls, 
 	     int connected)
 {
   if (GNUNET_SYSERR == connected)
@@ -281,7 +280,7 @@ conn_status (void *cls, struct GNUNET_ARM_Handle *arm,
 
 
 static void
-term_callback (void *cls, struct GNUNET_ARM_Handle *arm,
+term_callback (void *cls, 
     enum GNUNET_ARM_RequestStatus rs, const char *service,
     enum GNUNET_ARM_Result result)
 {
@@ -311,7 +310,7 @@ term_callback (void *cls, struct GNUNET_ARM_Handle *arm,
 }
 
 static void
-end_callback (void *cls, struct GNUNET_ARM_Handle *arm,
+end_callback (void *cls, 
     enum GNUNET_ARM_RequestStatus rs, const char *service,
     enum GNUNET_ARM_Result result)
 {
@@ -348,7 +347,7 @@ end_callback (void *cls, struct GNUNET_ARM_Handle *arm,
 }
 
 static void
-start_callback (void *cls, struct GNUNET_ARM_Handle *arm,
+start_callback (void *cls,
     enum GNUNET_ARM_RequestStatus rs, const char *service,
     enum GNUNET_ARM_Result result)
 {
@@ -378,7 +377,7 @@ start_callback (void *cls, struct GNUNET_ARM_Handle *arm,
 
 
 static void
-init_callback (void *cls, struct GNUNET_ARM_Handle *arm,
+init_callback (void *cls, 
     enum GNUNET_ARM_RequestStatus rs, const char *service,
     enum GNUNET_ARM_Result result)
 {
@@ -409,9 +408,9 @@ init_callback (void *cls, struct GNUNET_ARM_Handle *arm,
 
 
 static void
-list_callback (void *cls, struct GNUNET_ARM_Handle *arm,
-    enum GNUNET_ARM_RequestStatus rs, unsigned int count,
-    const char *const*list)
+list_callback (void *cls, 
+	       enum GNUNET_ARM_RequestStatus rs, unsigned int count,
+	       const char *const*list)
 {
   unsigned int i;
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
@@ -517,13 +516,12 @@ action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Function called when a service starts or stops.
  *
  * @param cls closure
- * @param arm handle to the ARM connection
  * @param service service name
  * @param status status of the service
  */
 static void
-srv_status (void *cls, struct GNUNET_ARM_MonitorHandle *arm,
-    const char *service, enum GNUNET_ARM_ServiceStatus status)
+srv_status (void *cls, 
+	    const char *service, enum GNUNET_ARM_ServiceStatus status)
 {
   const char *msg;
   switch (status)

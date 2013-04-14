@@ -47,7 +47,10 @@ static int ok = 1;
 static int phase = 0;
 
 static void
-arm_stop_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_RequestStatus status, const char *servicename, enum GNUNET_ARM_Result result)
+arm_stop_cb (void *cls, 
+	     enum GNUNET_ARM_RequestStatus status, 
+	     const char *servicename, 
+	     enum GNUNET_ARM_Result result)
 {
   /* (6), a stop request should be sent to ARM successfully */
   /* ARM should report that it is stopping */
@@ -58,8 +61,11 @@ arm_stop_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_RequestStat
   LOG ("Sent 'STOP' request for arm to ARM %s\n", (status == GNUNET_ARM_REQUEST_SENT_OK) ? "successfully" : "unsuccessfully");
 }
 
+
 static void
-resolver_stop_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_RequestStatus status, const char *servicename, enum GNUNET_ARM_Result result)
+resolver_stop_cb (void *cls, 
+		  enum GNUNET_ARM_RequestStatus status, 
+		  const char *servicename, enum GNUNET_ARM_Result result)
 {
   /* (5), a stop request should be sent to ARM successfully.
    * ARM should report that resolver is stopped.
@@ -76,6 +82,7 @@ resolver_stop_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_Reques
   arm_conn (NULL, GNUNET_NO);
 #endif
 }
+
 
 static void
 dns_notify (void *cls, const struct sockaddr *addr, socklen_t addrlen)
@@ -99,8 +106,12 @@ dns_notify (void *cls, const struct sockaddr *addr, socklen_t addrlen)
   ok = 0;
 }
 
+
 static void
-resolver_start_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_RequestStatus status, const char *servicename, enum GNUNET_ARM_Result result)
+resolver_start_cb (void *cls, 
+		   enum GNUNET_ARM_RequestStatus status, 
+		   const char *servicename, 
+		   enum GNUNET_ARM_Result result)
 {
   /* (2), the start request for resolver should be sent successfully
    * ARM should report that resolver service is starting.
@@ -113,6 +124,7 @@ resolver_start_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_Reque
   GNUNET_RESOLVER_ip_get ("localhost", AF_INET, TIMEOUT, &dns_notify, NULL);
 }
 
+
 static void
 trigger_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -122,7 +134,6 @@ trigger_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 arm_conn (void *cls, 
-	  struct GNUNET_ARM_Handle *arm, 
 	  int connected)
 {
   if (GNUNET_SYSERR == connected)
@@ -157,7 +168,6 @@ arm_conn (void *cls,
 
 static void
 arm_start_cb (void *cls, 
-	      struct GNUNET_ARM_Handle *h, 
 	      enum GNUNET_ARM_RequestStatus status, 
 	      const char *servicename, 
 	      enum GNUNET_ARM_Result result)

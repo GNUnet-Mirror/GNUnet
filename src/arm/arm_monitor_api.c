@@ -221,7 +221,7 @@ reconnect_arm_monitor (struct GNUNET_ARM_MonitorHandle *h)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	   "arm_api, GNUNET_CLIENT_connect returned NULL\n");
     if (NULL != h->service_status)
-      h->service_status (h->cls, h, NULL, GNUNET_ARM_SERVICE_STOPPED);
+      h->service_status (h->cls, NULL, GNUNET_ARM_SERVICE_STOPPED);
     return GNUNET_SYSERR;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -347,7 +347,7 @@ monitor_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     GNUNET_CLIENT_receive (h->monitor, &monitor_notify_handler, h,
                            GNUNET_TIME_UNIT_FOREVER_REL);
     if (NULL != h->service_status)
-      h->service_status (h->cls, h, (const char *) &res[1], status);
+      h->service_status (h->cls, (const char *) &res[1], status);
     break;
   default:
     reconnect_arm_monitor_later (h);

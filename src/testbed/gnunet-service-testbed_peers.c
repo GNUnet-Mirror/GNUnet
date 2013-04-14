@@ -774,7 +774,7 @@ arm_ret_string (enum GNUNET_ARM_Result result)
  * @param result result of the operation
  */
 static void
-service_manage_result_cb (void *cls, struct GNUNET_ARM_Handle *arm,
+service_manage_result_cb (void *cls, 
                           enum GNUNET_ARM_RequestStatus rs, 
                           const char *service, enum GNUNET_ARM_Result result)
 {

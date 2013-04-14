@@ -56,7 +56,6 @@ trigger_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 arm_stop_cb (void *cls, 
-	     struct GNUNET_ARM_Handle *h, 
 	     enum GNUNET_ARM_RequestStatus status, 
 	     const char *servicename, 
 	     enum GNUNET_ARM_Result result)
@@ -70,7 +69,7 @@ arm_stop_cb (void *cls,
 
 
 static void
-service_list (void *cls, struct GNUNET_ARM_Handle *arm,
+service_list (void *cls, 
 	      enum GNUNET_ARM_RequestStatus rs,
 	      unsigned int count, const char *const*list)
 {
@@ -109,7 +108,6 @@ hostNameResolveCB (void *cls, const struct sockaddr *addr, socklen_t addrlen)
 
 static void
 arm_start_cb (void *cls, 
-	      struct GNUNET_ARM_Handle *h, 
 	      enum GNUNET_ARM_RequestStatus status, 
 	      const char *servicename, 
 	      enum GNUNET_ARM_Result result)

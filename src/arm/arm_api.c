@@ -230,7 +230,7 @@ reconnect_arm_later (struct GNUNET_ARM_Handle *h)
   */
   h->retry_backoff = GNUNET_TIME_STD_BACKOFF (h->retry_backoff);
   if (NULL != h->conn_status)
-    h->conn_status (h->conn_status_cls, h, GNUNET_NO);
+    h->conn_status (h->conn_status_cls, GNUNET_NO);
 }
 
 /**
@@ -311,7 +311,7 @@ transmit_arm_message (void *cls, size_t size, void *buf)
 
  end:
   if ((GNUNET_YES == notify_connection) && (NULL != h->conn_status))
-    h->conn_status (h->conn_status_cls, h, GNUNET_YES);
+    h->conn_status (h->conn_status_cls, GNUNET_YES);
   return msize;
 }
 
@@ -373,7 +373,7 @@ reconnect_arm (struct GNUNET_ARM_Handle *h)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	   "arm_api, GNUNET_CLIENT_connect returned NULL\n");
     if (NULL != h->conn_status)
-      h->conn_status (h->conn_status_cls, h, GNUNET_SYSERR);
+      h->conn_status (h->conn_status_cls, GNUNET_SYSERR);
     return GNUNET_SYSERR;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -443,7 +443,7 @@ GNUNET_ARM_disconnect_and_free (struct GNUNET_ARM_Handle *h)
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != cm->timeout_task_id);
     GNUNET_SCHEDULER_cancel (cm->timeout_task_id);
     if (NULL != cm->result_cont)
-      cm->result_cont (cm->cont_cls, cm->h, GNUNET_ARM_REQUEST_DISCONNECTED,
+      cm->result_cont (cm->cont_cls, GNUNET_ARM_REQUEST_DISCONNECTED,
                        NULL, 0);
     /* FIXME: What about list callback? */
     GNUNET_free_non_null (cm->msg);
@@ -492,9 +492,9 @@ control_message_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *t
                                  cm->h->control_sent_tail, cm);
   }
   if (NULL != cm->result_cont)
-    cm->result_cont (cm->cont_cls, cm->h, GNUNET_ARM_REQUEST_TIMEOUT, NULL, 0);
+    cm->result_cont (cm->cont_cls, GNUNET_ARM_REQUEST_TIMEOUT, NULL, 0);
   else if (NULL != cm->list_cont)
-    cm->list_cont (cm->cont_cls, cm->h, GNUNET_ARM_REQUEST_TIMEOUT, 0, NULL);
+    cm->list_cont (cm->cont_cls, GNUNET_ARM_REQUEST_TIMEOUT, 0, NULL);
   GNUNET_free_non_null (cm->msg);
   GNUNET_free (cm);
 }
@@ -535,7 +535,9 @@ arm_service_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	 "gnunet-service-arm");
     /* arm is running! */
     if (cm->result_cont)
-      cm->result_cont (cm->cont_cls, cm->h, GNUNET_ARM_REQUEST_SENT_OK, "arm", GNUNET_ARM_RESULT_IS_STARTED_ALREADY);
+      cm->result_cont (cm->cont_cls, 
+		       GNUNET_ARM_REQUEST_SENT_OK, "arm", 
+		       GNUNET_ARM_RESULT_IS_STARTED_ALREADY);
   }
   if (GNUNET_NO == test_is_active)
   {
@@ -566,7 +568,9 @@ arm_service_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING, "arm", "BINARY");
     if (cm->result_cont)
-      cm->result_cont (cm->cont_cls, cm->h, GNUNET_ARM_REQUEST_SENT_OK, "arm", GNUNET_ARM_RESULT_IS_NOT_KNOWN);
+      cm->result_cont (cm->cont_cls, 
+		       GNUNET_ARM_REQUEST_SENT_OK, "arm", 
+		       GNUNET_ARM_RESULT_IS_NOT_KNOWN);
     GNUNET_free (cm);
     GNUNET_free (loprefix);
     GNUNET_free (lopostfix);
@@ -615,13 +619,13 @@ arm_service_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL == proc)
   {
     if (cm->result_cont)
-      cm->result_cont (cm->cont_cls, cm->h, GNUNET_ARM_REQUEST_SENT_OK, "arm",
+      cm->result_cont (cm->cont_cls, GNUNET_ARM_REQUEST_SENT_OK, "arm",
           GNUNET_ARM_RESULT_START_FAILED);
     GNUNET_free (cm);
     return;
   }
   if (cm->result_cont)
-    cm->result_cont (cm->cont_cls, cm->h, GNUNET_ARM_REQUEST_SENT_OK, "arm",
+    cm->result_cont (cm->cont_cls, GNUNET_ARM_REQUEST_SENT_OK, "arm",
         GNUNET_ARM_RESULT_STARTING);
   GNUNET_OS_process_destroy (proc);
   h = cm->h;
@@ -655,7 +659,7 @@ change_service (struct GNUNET_ARM_Handle *h, const char *service_name,
   {
     GNUNET_break (0);
     if (cb != NULL)
-      cb (cb_cls, h, GNUNET_ARM_REQUEST_TOO_LONG, NULL, 0);
+      cb (cb_cls, GNUNET_ARM_REQUEST_TOO_LONG, NULL, 0);
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Requesting %s of service `%s'.\n",
@@ -718,7 +722,7 @@ GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "ARM is already running\n");
       if (NULL != cont)
-        cont (cont_cls, h, GNUNET_ARM_REQUEST_SENT_OK, "arm", GNUNET_ARM_RESULT_IS_STARTED_ALREADY);
+        cont (cont_cls, GNUNET_ARM_REQUEST_SENT_OK, "arm", GNUNET_ARM_RESULT_IS_STARTED_ALREADY);
     }
     else if (GNUNET_NO == h->service_test_is_active)
     {
@@ -760,7 +764,7 @@ GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
        */
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Service test is already in progress, we're busy\n");
       if (NULL != cont)
-        cont (cont_cls, h, GNUNET_ARM_REQUEST_BUSY, NULL, 0);
+        cont (cont_cls, GNUNET_ARM_REQUEST_BUSY, NULL, 0);
     }
     return;
   }
@@ -966,12 +970,12 @@ client_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
          (const char *) &cm->msg[1], ntohs (msg->type));
     result = (enum GNUNET_ARM_Result) ntohl (res->result);
     if (NULL != cm->result_cont)
-      cm->result_cont (cm->cont_cls, h, GNUNET_ARM_REQUEST_SENT_OK,
+      cm->result_cont (cm->cont_cls, GNUNET_ARM_REQUEST_SENT_OK,
                        (const char *) &cm->msg[1], result);
     break;
   case GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT:
     if (NULL != cm->list_cont)
-        cm->list_cont (cm->cont_cls, h, GNUNET_ARM_REQUEST_SENT_OK, rcount,
+        cm->list_cont (cm->cont_cls, GNUNET_ARM_REQUEST_SENT_OK, rcount,
                        list);
     GNUNET_free (list);
     break;

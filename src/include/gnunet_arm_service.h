@@ -181,11 +181,8 @@ struct GNUNET_ARM_Handle;
  * @param cls closure
  * @param connected GNUNET_YES if connected, GNUNET_NO if disconnected,
  *                  GNUNET_SYSERR if there was an error.
- * @param error GNUNET_YES if we encountered a permanent error, and there
- *              will be no re-connection.
  */
 typedef void (*GNUNET_ARM_ConnectionStatusCallback) (void *cls, 
-						     struct GNUNET_ARM_Handle *arm, 
 						     int connected);
 
 
@@ -196,12 +193,14 @@ typedef void (*GNUNET_ARM_ConnectionStatusCallback) (void *cls,
  * 'rs' will indicate that, and 'service' and 'result' will be undefined.
  *
  * @param cls closure
- * @param arm handle to the arm connection
  * @param rs status of the request
  * @param service service name
  * @param result result of the operation
  */
-typedef void (*GNUNET_ARM_ResultCallback) (void *cls, struct GNUNET_ARM_Handle *arm, enum GNUNET_ARM_RequestStatus rs, const char *service, enum GNUNET_ARM_Result result);
+typedef void (*GNUNET_ARM_ResultCallback) (void *cls, 
+					   enum GNUNET_ARM_RequestStatus rs, 
+					   const char *service, 
+					   enum GNUNET_ARM_Result result);
 
 
 /**
@@ -211,12 +210,14 @@ typedef void (*GNUNET_ARM_ResultCallback) (void *cls, struct GNUNET_ARM_Handle *
  * 'rs' will indicate that, and 'count' and 'list' will be undefined.
  *
  * @param cls closure
- * @param arm handle to the arm connection
  * @param rs status of the request
  * @param count number of strings in the list
  * @param list list of running services
  */
-typedef void (*GNUNET_ARM_ServiceListCallback) (void *cls, struct GNUNET_ARM_Handle *arm, enum GNUNET_ARM_RequestStatus rs, unsigned int count, const char *const*list);
+typedef void (*GNUNET_ARM_ServiceListCallback) (void *cls, 
+						enum GNUNET_ARM_RequestStatus rs, 
+						unsigned int count, 
+						const char *const*list);
 
 
 /**
@@ -232,7 +233,8 @@ typedef void (*GNUNET_ARM_ServiceListCallback) (void *cls, struct GNUNET_ARM_Han
  */
 struct GNUNET_ARM_Handle *
 GNUNET_ARM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    GNUNET_ARM_ConnectionStatusCallback conn_status, void *cls);
+		    GNUNET_ARM_ConnectionStatusCallback conn_status, 
+		    void *cls);
 
 
 /**
@@ -254,8 +256,8 @@ GNUNET_ARM_disconnect_and_free (struct GNUNET_ARM_Handle *h);
  */
 void
 GNUNET_ARM_request_service_list (struct GNUNET_ARM_Handle *h,
-    struct GNUNET_TIME_Relative timeout,
-    GNUNET_ARM_ServiceListCallback cont, void *cont_cls);
+				 struct GNUNET_TIME_Relative timeout,
+				 GNUNET_ARM_ServiceListCallback cont, void *cont_cls);
 
 
 /**
@@ -274,8 +276,9 @@ GNUNET_ARM_request_service_list (struct GNUNET_ARM_Handle *h,
  */
 void
 GNUNET_ARM_request_service_stop (struct GNUNET_ARM_Handle *h,
-    const char *service_name, struct GNUNET_TIME_Relative timeout,
-    GNUNET_ARM_ResultCallback cont, void *cont_cls);
+				 const char *service_name, 
+				 struct GNUNET_TIME_Relative timeout,
+				 GNUNET_ARM_ResultCallback cont, void *cont_cls);
 
 
 /**
@@ -309,7 +312,9 @@ struct GNUNET_ARM_MonitorHandle;
  * @param service service name
  * @param status status of the service
  */
-typedef void (*GNUNET_ARM_ServiceStatusCallback) (void *cls, struct GNUNET_ARM_MonitorHandle *arm, const char *service, enum GNUNET_ARM_ServiceStatus status);
+typedef void (*GNUNET_ARM_ServiceStatusCallback) (void *cls, 
+						  const char *service, 
+						  enum GNUNET_ARM_ServiceStatus status);
 
 
 /**
@@ -325,7 +330,8 @@ typedef void (*GNUNET_ARM_ServiceStatusCallback) (void *cls, struct GNUNET_ARM_M
  */
 struct GNUNET_ARM_MonitorHandle *
 GNUNET_ARM_monitor (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    GNUNET_ARM_ServiceStatusCallback cont, void *cont_cls);
+		    GNUNET_ARM_ServiceStatusCallback cont, 
+		    void *cont_cls);
 
 
 /**

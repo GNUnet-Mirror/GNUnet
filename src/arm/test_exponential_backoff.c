@@ -284,7 +284,7 @@ trigger_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-arm_stop_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_RequestStatus status, const char *servicename, enum GNUNET_ARM_Result result)
+arm_stop_cb (void *cls, enum GNUNET_ARM_RequestStatus status, const char *servicename, enum GNUNET_ARM_Result result)
 {
   GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);
   GNUNET_break (result == GNUNET_ARM_RESULT_STOPPING);
@@ -294,7 +294,7 @@ arm_stop_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_RequestStat
 
 
 static void
-srv_status (void *cls, struct GNUNET_ARM_MonitorHandle *mon, const char *service, enum GNUNET_ARM_ServiceStatus status)
+srv_status (void *cls, const char *service, enum GNUNET_ARM_ServiceStatus status)
 {
   LOG ("Service %s is %u, phase %u\n", service, status, phase);
   if (status == GNUNET_ARM_SERVICE_MONITORING_STARTED)
@@ -334,7 +334,7 @@ srv_status (void *cls, struct GNUNET_ARM_MonitorHandle *mon, const char *service
 
 
 static void
-arm_start_cb (void *cls, struct GNUNET_ARM_Handle *h, enum GNUNET_ARM_RequestStatus status, const char *servicename, enum GNUNET_ARM_Result result)
+arm_start_cb (void *cls, enum GNUNET_ARM_RequestStatus status, const char *servicename, enum GNUNET_ARM_Result result)
 {
   GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);
   GNUNET_break (result == GNUNET_ARM_RESULT_STARTING);
@@ -366,7 +366,7 @@ task (void *cls, char *const *args, const char *cfgfile,
   arm = GNUNET_ARM_connect (cfg, NULL, NULL);
   if (NULL != arm)
   {
-    mon = GNUNET_ARM_monitor (cfg, srv_status, NULL);
+    mon = GNUNET_ARM_monitor (cfg, &srv_status, NULL);
     if (NULL != mon)
     {
 #if START_ARM

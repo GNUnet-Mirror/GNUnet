@@ -163,7 +163,7 @@ struct GNUNET_PEERINFO_IteratorContext;
  */
 struct GNUNET_PEERINFO_IteratorContext *
 GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
-												 int include_friend_only,
+			 int include_friend_only,
                          const struct GNUNET_PeerIdentity *peer,
                          struct GNUNET_TIME_Relative timeout,
                          GNUNET_PEERINFO_Processor callback, void *callback_cls);
@@ -203,7 +203,7 @@ struct GNUNET_PEERINFO_NotifyContext;
  */
 struct GNUNET_PEERINFO_NotifyContext *
 GNUNET_PEERINFO_notify (const struct GNUNET_CONFIGURATION_Handle *cfg,
-												int include_friend_only,
+			int include_friend_only,
                         GNUNET_PEERINFO_Processor callback, void *callback_cls);
 
 
