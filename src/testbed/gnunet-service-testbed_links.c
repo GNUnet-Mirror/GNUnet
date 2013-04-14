@@ -851,8 +851,8 @@ GST_neighbour_get_connection_cancel (struct NeighbourConnectNotification *h)
   struct Neighbour *n;
   int cleanup_task;
   
-  cleanup_task = (h == n->nl_head) ? GNUNET_YES : GNUNET_NO;
   n = h->n;
+  cleanup_task = (h == n->nl_head) ? GNUNET_YES : GNUNET_NO;
   GNUNET_CONTAINER_DLL_remove (n->nl_head, n->nl_tail, h);
   GNUNET_free (h);
   if (GNUNET_NO == cleanup_task)
