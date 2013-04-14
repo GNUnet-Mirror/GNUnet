@@ -768,7 +768,6 @@ arm_ret_string (enum GNUNET_ARM_Result result)
  * 'rs' will indicate that, and 'service' and 'result' will be undefined.
  *
  * @param cls ManageServiceContext
- * @param arm handle to the arm connection
  * @param rs status of the request
  * @param service service name
  * @param result result of the operation
