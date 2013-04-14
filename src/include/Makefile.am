@@ -67,7 +67,6 @@ gnunetinclude_HEADERS = \
   gnunet_postgres_lib.h \
   gnunet_program_lib.h \
   gnunet_protocols.h \
-  gnunet_pseudonym_lib.h \
   gnunet_resolver_service.h \
   gnunet_regex_lib.h \
   gnunet_scheduler_lib.h \

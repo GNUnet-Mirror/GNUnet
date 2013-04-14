@@ -34,6 +34,7 @@ libgnunetfs_la_SOURCES = \
   fs_file_information.c \
   fs_getopt.c \
   fs_list_indexed.c \
+  fs_pseudonym.c \
   fs_publish.c \
   fs_publish_ksk.c \
   fs_misc.c \
@@ -47,7 +48,7 @@ libgnunetfs_la_SOURCES = \
 libgnunetfs_la_LIBADD = \
   $(top_builddir)/src/datastore/libgnunetdatastore.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL) $(XLIB) -lunistring -lextractor
+  $(GN_LIBINTL) $(XLIB) -lunistring -lextractor -lgcrypt
 
 libgnunetfs_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
@@ -214,6 +215,7 @@ libgnunet_plugin_block_fs_la_SOURCES = \
   plugin_block_fs.c
 libgnunet_plugin_block_fs_la_LIBADD = \
   $(top_builddir)/src/block/libgnunetblock.la \
+  $(top_builddir)/src/fs/libgnunetfs.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
 libgnunet_plugin_block_fs_la_LDFLAGS = \
@@ -243,6 +245,7 @@ check_PROGRAMS = \
  test_fs_list_indexed \
  test_fs_namespace \
  test_fs_namespace_list_updateable \
+ test_pseudonym \
  test_fs_publish \
  test_fs_publish_persistence \
  test_fs_search \
@@ -288,6 +291,7 @@ TESTS = \
  test_fs_list_indexed \
  test_fs_namespace \
  test_fs_namespace_list_updateable \
+ test_pseudonym \
  test_fs_publish \
  test_fs_publish_persistence \
  test_fs_search \
@@ -306,6 +310,14 @@ TESTS = \
  perf_gnunet_service_fs_p2p_respect \
  $(check_SCRIPTS)  
 endif
+
+
+test_pseudonym_SOURCES = \
+ test_pseudonym.c
+test_pseudonym_LDADD = \
+ -lgcrypt \
+ $(top_builddir)/src/fs/libgnunetfs.la  \
+ $(top_builddir)/src/util/libgnunetutil.la  
 
 
 test_fs_directory_SOURCES = \

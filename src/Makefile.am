@@ -3,7 +3,7 @@
 #endif
 
 if HAVE_EXPERIMENTAL
- EXP_DIR = chat consensus dv 
+ EXP_DIR = fs chat consensus dv 
 endif
 
 if LINUX
@@ -55,7 +55,6 @@ SUBDIRS = \
   mesh \
   lockmanager \
   stream \
-  fs \
   $(LINUX_DIR) \
   $(MINGW_DIR) \
   integration-tests \

@@ -26,6 +26,7 @@
 
 #include "platform.h"
 #include "gnunet_block_plugin.h"
+#include "gnunet_fs_service.h"
 #include "block_fs.h"
 #include "gnunet_signatures.h"
 

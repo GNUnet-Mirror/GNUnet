@@ -96,7 +96,6 @@ libgnunetutil_la_SOURCES = \
   peer.c \
   plugin.c \
   program.c \
-  pseudonym.c \
   resolver_api.c resolver.h \
   scheduler.c \
   server.c \
@@ -234,7 +233,6 @@ check_PROGRAMS = \
  test_peer \
  test_plugin \
  test_program \
- test_pseudonym \
  test_resolver_api \
  test_scheduler \
  test_scheduler_delay \
@@ -434,11 +432,6 @@ test_plugin_LDADD = \
 test_program_SOURCES = \
  test_program.c
 test_program_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la  
-
-test_pseudonym_SOURCES = \
- test_pseudonym.c
-test_pseudonym_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_resolver_api_SOURCES = \

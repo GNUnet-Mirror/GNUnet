@@ -27,6 +27,7 @@
 #define BLOCK_FS_H
 
 #include "gnunet_util_lib.h"
+#include "gnunet_fs_service.h"
 
 
 /**
