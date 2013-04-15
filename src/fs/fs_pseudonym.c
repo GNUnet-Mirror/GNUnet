@@ -1266,7 +1266,6 @@ static gcry_ctx_t
 get_context_from_pseudonym (struct GNUNET_FS_PseudonymIdentifier *pseudonym)
 {
   gcry_ctx_t ctx;
-  gcry_mpi_t ONE;
   gcry_mpi_t q_x;
   gcry_mpi_t q_y;
   gcry_mpi_point_t q;
@@ -1288,10 +1287,7 @@ get_context_from_pseudonym (struct GNUNET_FS_PseudonymIdentifier *pseudonym)
     return NULL;
   }
   q = gcry_mpi_point_new (256);
-  ONE = gcry_mpi_new (1);
-  gcry_mpi_set_ui (ONE, 1);
-  gcry_mpi_point_set (q, q_x, q_y, ONE); /* FIXME: convenience function 'set_affine'? */
-  gcry_mpi_release (ONE);
+  gcry_mpi_point_set (q, q_x, q_y, GCRYMPI_CONST_ONE);
   gcry_mpi_release (q_x);
   gcry_mpi_release (q_y);
 
@@ -1392,9 +1388,7 @@ GNUNET_FS_pseudonym_derive_verification_key (struct GNUNET_FS_PseudonymIdentifie
     fprintf (stderr, "\nVerification key public point value V := q + hG:\n");
     gcry_mpi_dump (v_x);
     gcry_mpi_dump (v_y);
-    fprintf (stderr, " <=== WTF!?\n");
   }
-
 
   gcry_mpi_point_release (v);
   gcry_ctx_release (ctx);
@@ -1442,7 +1436,6 @@ GNUNET_FS_pseudonym_verify (const struct GNUNET_FS_PseudonymSignaturePurpose *pu
   gcry_sexp_t pk_sexpr;
   size_t size;
   gcry_ctx_t ctx;
-  gcry_mpi_t ONE;
   gcry_mpi_t r;
   gcry_mpi_t s;
   gcry_mpi_point_t q;
@@ -1502,10 +1495,7 @@ GNUNET_FS_pseudonym_verify (const struct GNUNET_FS_PseudonymSignaturePurpose *pu
     return GNUNET_SYSERR;
   }
   q = gcry_mpi_point_new (256);
-  ONE = gcry_mpi_new (1);
-  gcry_mpi_set_ui (ONE, 1);
-  gcry_mpi_point_set (q, q_x, q_y, ONE); /* FIXME: convenience function 'set_affine'? */
-  gcry_mpi_release (ONE);
+  gcry_mpi_point_set (q, q_x, q_y, GCRYMPI_CONST_ONE); 
   gcry_mpi_release (q_x);
   gcry_mpi_release (q_y);
 
