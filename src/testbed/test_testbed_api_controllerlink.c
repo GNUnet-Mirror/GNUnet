@@ -299,6 +299,10 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (NULL != hc_handle)
     GNUNET_TESTBED_is_host_habitable_cancel (hc_handle);
+  if (NULL != mc)
+    GNUNET_TESTBED_controller_disconnect (mc);
+  if (NULL != cp)
+    GNUNET_TESTBED_controller_stop (cp);
   if (NULL != slave3)
     GNUNET_TESTBED_host_destroy (slave3);
   if (NULL != slave2)
@@ -307,14 +311,10 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TESTBED_host_destroy (slave);
   if (NULL != host)
     GNUNET_TESTBED_host_destroy (host);
-  if (NULL != mc)
-    GNUNET_TESTBED_controller_disconnect (mc);
   if (NULL != cfg)
     GNUNET_CONFIGURATION_destroy (cfg);
   if (NULL != cfg3)
     GNUNET_CONFIGURATION_destroy (cfg3);
-  if (NULL != cp)
-    GNUNET_TESTBED_controller_stop (cp);
   if (NULL != rh)
     GNUNET_TESTBED_cancel_registration (rh);
 }

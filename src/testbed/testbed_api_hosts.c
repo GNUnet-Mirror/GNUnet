@@ -806,6 +806,32 @@ GNUNET_TESTBED_mark_host_registered_at_ (struct GNUNET_TESTBED_Host *host,
 
 
 /**
+ * Unmarks a host registered at a controller
+ *
+ * @param host the host to unmark
+ * @param controller the controller at which this host has to be unmarked
+ */
+void
+GNUNET_TESTBED_deregister_host_at_ (struct GNUNET_TESTBED_Host *host,
+                                    const struct GNUNET_TESTBED_Controller
+                                    *const controller)
+{
+  struct RegisteredController *rc;
+
+  for (rc = host->rc_head; NULL != rc; rc=rc->next)
+    if (controller == rc->controller)
+      break;
+  if (NULL == rc)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  GNUNET_CONTAINER_DLL_remove (host->rc_head, host->rc_tail, rc);
+  GNUNET_free (rc);
+}
+
+
+/**
  * Checks whether a host has been registered
  *
  * @param host the host to check
@@ -1353,6 +1379,7 @@ call_cb:
   cb = h->cb;
   cb_cls = h->cb_cls;
   host = h->host;
+  free_argv (h->helper_argv);
   GNUNET_free (h);
   if (NULL != cb)
     cb (cb_cls, host, ret);
@@ -1409,10 +1436,11 @@ GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host,
   stat_args[0] = "stat";
   stat_args[2] = NULL;
   rsh_suffix_args = gen_rsh_suffix_args ((const char **) stat_args);
+  GNUNET_free (stat_args[1]);
   h->helper_argv = join_argv ((const char **) rsh_args,
                               (const char **) rsh_suffix_args);
-  GNUNET_free (rsh_suffix_args);
-  GNUNET_free (rsh_args);
+  free_argv (rsh_suffix_args);
+  free_argv (rsh_args);
   h->auxp =
       GNUNET_OS_start_process_vap (GNUNET_NO, GNUNET_OS_INHERIT_STD_ERR, NULL,
                                    NULL, h->helper_argv[0], h->helper_argv);

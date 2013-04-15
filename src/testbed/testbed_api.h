@@ -275,11 +275,6 @@ struct GNUNET_TESTBED_Controller
   int in_receive;
 
   /**
-   * Did we create the host for this?
-   */
-  int aux_host;
-
-  /**
    * The operation id counter. use current value and increment
    */
   uint32_t operation_counter;

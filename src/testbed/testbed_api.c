@@ -1335,7 +1335,7 @@ oprelease_get_slave_config (void *cls)
  *
  * @param host host to run the controller on; This should be the same host if
  *          the controller was previously started with
- *          GNUNET_TESTBED_controller_start; NULL for localhost
+ *          GNUNET_TESTBED_controller_start()
  * @param event_mask bit mask with set of events to call 'cc' for;
  *                   or-ed values of "1LL" shifted by the
  *                   respective 'enum GNUNET_TESTBED_EventType'
@@ -1394,22 +1394,6 @@ GNUNET_TESTBED_controller_connect (struct GNUNET_TESTBED_Host *host,
     GNUNET_TESTBED_controller_disconnect (controller);
     return NULL;
   }
-  if (NULL == host)
-  {
-    host = GNUNET_TESTBED_host_create_by_id_ (0, controller->cfg);
-    if (NULL == host)           /* If the above host create fails */
-    {
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-           "Treating NULL host as localhost. Multiple references to localhost "
-           "may break when localhost freed before calling disconnect \n");
-      host = GNUNET_TESTBED_host_lookup_by_id_ (0);
-    }
-    else
-    {
-      controller->aux_host = GNUNET_YES;
-    }
-  }
-  GNUNET_assert (NULL != host);
   GNUNET_TESTBED_mark_host_registered_at_ (host, controller);
   controller->host = host;
   controller->opq_parallel_operations =
@@ -1503,9 +1487,9 @@ GNUNET_TESTBED_controller_disconnect (struct GNUNET_TESTBED_Controller
   }
   if (NULL != controller->client)
     GNUNET_CLIENT_disconnect (controller->client);
+  if (NULL != controller->host)
+    GNUNET_TESTBED_deregister_host_at_ (controller->host, controller);
   GNUNET_CONFIGURATION_destroy (controller->cfg);
-  if (GNUNET_YES == controller->aux_host)
-    GNUNET_TESTBED_host_destroy (controller->host);
   GNUNET_TESTBED_operation_queue_destroy_ (controller->opq_parallel_operations);
   GNUNET_TESTBED_operation_queue_destroy_
       (controller->opq_parallel_service_connections);

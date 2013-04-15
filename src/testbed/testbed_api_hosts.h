@@ -126,6 +126,18 @@ GNUNET_TESTBED_mark_host_registered_at_ (struct GNUNET_TESTBED_Host *host,
 
 
 /**
+ * Unmarks a host registered at a controller
+ *
+ * @param host the host to unmark
+ * @param controller the controller at which this host has to be unmarked
+ */
+void
+GNUNET_TESTBED_deregister_host_at_ (struct GNUNET_TESTBED_Host *host,
+                                    const struct GNUNET_TESTBED_Controller
+                                    *const controller);
+
+
+/**
  * Checks whether a host has been registered with the given controller
  *
  * @param host the host to check

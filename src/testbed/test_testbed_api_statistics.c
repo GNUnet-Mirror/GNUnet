@@ -142,7 +142,7 @@ op_comp_cb (void *cls,
   GNUNET_TESTBED_operation_done (op);
   op = NULL;
   GNUNET_SCHEDULER_cancel (abort_task);
-  GNUNET_SCHEDULER_shutdown ();
+  GNUNET_SCHEDULER_shutdown ();  
 }
 
 
