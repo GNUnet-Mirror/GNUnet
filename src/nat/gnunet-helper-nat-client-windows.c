@@ -167,6 +167,10 @@ struct udp_header
   uint16_t crc;
 };
 
+/**
+ * Will this binary be run in permissions testing mode? 
+ */
+static boolean privilege_testing = FALSE;
 
 /**
  * Socket we use to send our ICMP packets.
@@ -463,8 +467,14 @@ main (int argc, char *const *argv)
   struct in_addr external;
   struct in_addr target;
   WSADATA wsaData;
-
   unsigned int p;
+  
+  if (argc > 1 && 0 != strcmp (argv[1], "-d")){
+      privilege_testing = TRUE;
+      fprintf (stderr, "DEBUG: Running binary in privilege testing mode.", argv[0]);
+      argv++;
+      argc--;
+    }
 
   if (argc != 4)
   {
@@ -497,9 +507,11 @@ main (int argc, char *const *argv)
   }
   if (-1 == (rawsock = make_raw_socket ()))
     return 3;
-  send_icmp (&external, &target);
-  send_icmp_udp (&external, &target);
-  closesocket (rawsock);
+  if (!privilege_testing){
+    send_icmp (&external, &target);
+    send_icmp_udp (&external, &target);
+  }
+  closesocket (rawsock); 
   WSACleanup ();
   return 0;
 }

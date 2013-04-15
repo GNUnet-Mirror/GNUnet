@@ -634,7 +634,7 @@ start_process (int pipe_control,
   int fd_stdin_read;
   int fd_stdin_write;
 
-  if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary (filename))
+  if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary (filename, FALSE, NULL))
     return NULL; /* not executable */
   if (GNUNET_YES == pipe_control)
   {
@@ -865,7 +865,7 @@ start_process (int pipe_control,
   BOOL bresult;
   DWORD error_code;
 
-  if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary (filename))
+  if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary (filename, FALSE, NULL))
     return NULL; /* not executable */
  
   /* Search in prefix dir (hopefully - the directory from which

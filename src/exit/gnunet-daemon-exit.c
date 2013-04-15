@@ -3344,7 +3344,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   {
     binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-exit");
     if (GNUNET_YES !=
-	GNUNET_OS_check_helper_binary (binary))
+	GNUNET_OS_check_helper_binary (binary, TRUE, NULL)) // FIXME: CF: add test-parameters
     {
       GNUNET_free (binary);
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

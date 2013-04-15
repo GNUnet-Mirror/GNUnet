@@ -15,9 +15,9 @@ dist_pkgcfg_DATA = \
   nat.conf
 
 if LINUX
-NATBIN = gnunet-helper-nat-server gnunet-helper-nat-client
-NATSERVER = gnunet-helper-nat-server.c
-NATCLIENT = gnunet-helper-nat-client.c
+  NATBIN = gnunet-helper-nat-server gnunet-helper-nat-client
+  NATSERVER = gnunet-helper-nat-server.c
+  NATCLIENT = gnunet-helper-nat-client.c
 install-exec-hook:
 	$(top_srcdir)/src/nat/install-nat-helper.sh $(libexecdir) $(SUDO_BINARY) || true
 else

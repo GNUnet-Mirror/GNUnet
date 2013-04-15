@@ -1739,7 +1739,7 @@ libgnunet_plugin_transport_wlan_init (void *cls)
   }
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-transport-wlan");
   if ( (0 == testmode) &&
-       (GNUNET_YES != GNUNET_OS_check_helper_binary (binary)) )
+       (GNUNET_YES != GNUNET_OS_check_helper_binary (binary, TRUE, NULL)) )
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
 	 _("Helper binary `%s' not SUID, cannot run WLAN transport\n"),

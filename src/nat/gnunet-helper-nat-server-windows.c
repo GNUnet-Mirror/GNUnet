@@ -188,6 +188,11 @@ struct udp_header
 };
 
 /**
+ * Will this binary be run in permissions testing mode? 
+ */
+static boolean privilege_testing = FALSE;
+
+/**
  * Socket we use to receive "fake" ICMP replies.
  */
 static SOCKET icmpsock;
@@ -526,9 +531,15 @@ main (int argc, char *const *argv)
   fd_set rs;
   struct timeval tv;
   WSADATA wsaData;
-  unsigned int alt;
+  unsigned int alt = 0;
 
-  alt = 0;
+  if (argc > 1 && 0 != strcmp (argv[1], "-d")){
+      privilege_testing = TRUE;
+      fprintf (stderr, "DEBUG: Running binary in privilege testing mode.", argv[0]);
+      argv++;
+      argc--;
+    }
+  
   if (2 != argc)
   {
     fprintf (stderr,
@@ -566,7 +577,8 @@ main (int argc, char *const *argv)
     closesocket (rawsock);
     return 3;
   }
-  while (1)
+
+  while ( ! privilege_testing)
   {
     FD_ZERO (&rs);
     FD_SET (icmpsock, &rs);
@@ -591,6 +603,8 @@ main (int argc, char *const *argv)
   closesocket (rawsock);
   closesocket (udpsock);
   WSACleanup ();
+  if (privilege_testing)
+    return 0;
   return 4;
 }
 

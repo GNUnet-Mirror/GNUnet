@@ -483,13 +483,19 @@ GNUNET_OS_install_parent_control_handler (void *cls,
  * Attempts to find the file using the current
  * PATH environment variable as a search path.
  *
- * @param binary the name of the file to check
- * @return GNUNET_YES if the file is SUID,
- *         GNUNET_NO if not SUID (but binary exists)
+ * @param binary the name of the file to check.
+ *        W32: must not have an .exe suffix.
+ * @param check_suid input true if the binary should be checked for SUID (*nix)
+ *        W32: checks if the program has sufficient privileges by executing this
+ *             binary with the -d flag. -d omits a programs main loop and only
+ *             executes all privileged operations in an binary.
+ * @param params parameters used for w32 privilege checking (can be NULL for != w32, or when not checking for suid/permissions )
+ * @return GNUNET_YES if the file is SUID (*nix) or can be executed with current privileges (W32),
+ *         GNUNET_NO if not SUID (but binary exists),
  *         GNUNET_SYSERR on error (no such binary or not executable)
  */
-int
-GNUNET_OS_check_helper_binary (const char *binary);
+int 
+GNUNET_OS_check_helper_binary (const char *binary, const boolean check_suid, const char * params);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

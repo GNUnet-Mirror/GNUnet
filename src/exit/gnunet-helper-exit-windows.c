@@ -63,9 +63,9 @@
 #endif
 
 /**
- * Will this binary be run in dryrun-mode? 
+ * Will this binary be run in permissions testing mode? 
  */
-static BOOL dryrun = FALSE;
+static boolean privilege_testing = FALSE;
 
 /**
  * Maximum size of a GNUnet message (GNUNET_SERVER_MAX_MESSAGE_SIZE)
@@ -1357,9 +1357,9 @@ run (HANDLE tap_handle)
    * DHCP and such are all features we will never use in gnunet afaik.
    * But for openvpn those are essential.
    */
-  if (! tun_up (tap_handle))
-    return;
-
+  if ((privilege_testing) || (! tun_up (tap_handle) ))
+    goto teardown_final;
+    
   /* Initialize our overlapped IO structures*/
   if (! (initialize_io_facility (&tap_read, IOSTATE_READY, FALSE)
         && initialize_io_facility (&tap_write, IOSTATE_WAITING, TRUE)
@@ -1412,8 +1412,6 @@ run (HANDLE tap_handle)
       goto teardown;
     }
 #endif
-  if (dryrun)
-    goto teardown;
   
   fprintf (stderr, "DEBUG: mainloop has begun\n");
   
@@ -1471,11 +1469,12 @@ main (int argc, char **argv)
   BOOL have_nat44 = FALSE;
   
   if ( (1 < argc) && (0 != strcmp (argv[1], "-d"))){
-      dryrun = TRUE;
-      fprintf (stderr, "DEBUG: Running binary in dryrun mode.", argv[0]);
+      privilege_testing = TRUE;
+      fprintf (stderr, "DEBUG: Running binary in privilege testing mode.", argv[0]);
       argv++;
       argc--;
     }
+  
   if (6 != argc)
     {
       fprintf (stderr, "FATAL: must supply 6 arguments\nUsage:\ngnunet-helper-exit [-d] <if name prefix> <uplink-interface name> <address6 or \"-\"> <netbits6> <address4 or \"-\"> <netmask4>\n", argv[0]);

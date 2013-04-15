@@ -392,7 +392,7 @@ test_upnpc (struct GNUNET_NAT_AutoHandle *ah)
 
   /* test if upnpc is available */
   have_upnpc = (GNUNET_SYSERR !=
-		GNUNET_OS_check_helper_binary ("upnpc"));
+		GNUNET_OS_check_helper_binary ("upnpc", FALSE, NULL));
   /* FIXME: test if upnpc is actually working, that is, if transports
      start to work once we use UPnP */
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -426,7 +426,7 @@ test_icmp_server (struct GNUNET_NAT_AutoHandle *ah)
        (GNUNET_YES ==
         GNUNET_CONFIGURATION_get_value_yesno (ah->cfg, "nat", "BEHIND_NAT")) &&
        (GNUNET_YES ==
-        GNUNET_OS_check_helper_binary (binary)));
+        GNUNET_OS_check_helper_binary (binary, TRUE, NULL))); // FIXME: CF: add test-parameters
   GNUNET_free_non_null (tmp);
   GNUNET_free (binary);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -461,7 +461,7 @@ test_icmp_client (struct GNUNET_NAT_AutoHandle *ah)
        (GNUNET_YES !=
         GNUNET_CONFIGURATION_get_value_yesno (ah->cfg, "nat", "BEHIND_NAT")) &&
        (GNUNET_YES ==
-        GNUNET_OS_check_helper_binary (binary)));
+        GNUNET_OS_check_helper_binary (binary, TRUE, NULL))); // FIXME: CF: add test-parameters
   GNUNET_free_non_null (tmp);
   GNUNET_free (binary);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
