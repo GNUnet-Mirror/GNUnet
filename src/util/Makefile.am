@@ -516,7 +516,6 @@ perf_malloc_LDADD = \
 EXTRA_DIST = \
   test_configuration_data.conf \
   test_program_data.conf \
-  test_pseudonym_data.conf \
   test_resolver_api_data.conf \
   test_service_data.conf \
   test_speedup_data.conf
