@@ -181,7 +181,8 @@ controller_event_cb (void *cls,
       {
         printf ("\nAborting due to very high failure rate\n");
         print_overlay_links_summary ();
-        GNUNET_SCHEDULER_cancel (abort_task);
+        if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+	  GNUNET_SCHEDULER_cancel (abort_task);
         abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
         return;
       }
