@@ -223,26 +223,24 @@ test_signature (struct GNUNET_FS_PseudonymHandle *ph,
   struct GNUNET_FS_PseudonymIdentifier verification_key;
 
   GNUNET_FS_pseudonym_sign (ph, purpose, seed, signing_key, &signature);
-  if (0)
-    {
   GNUNET_FS_pseudonym_sign (ph, purpose, seed, signing_key, &signature2);
   /* with seed, two sigs must be identical, without, they must be different! */
   if (NULL != seed)
     GNUNET_break (0 == memcmp (&signature, &signature2, sizeof (signature)));
   else /* crypto not implemented, thus for now 'break' */
     GNUNET_break (0 != memcmp (&signature, &signature2, sizeof (signature)));
-    }
   GNUNET_FS_pseudonym_get_identifier (ph, &pseudonym);
   GNUNET_FS_pseudonym_derive_verification_key (&pseudonym,
 					    signing_key,
 					    &verification_key);
   GNUNET_break (GNUNET_OK ==
-		 GNUNET_FS_pseudonym_verify (purpose, &signature, &verification_key));
+		GNUNET_FS_pseudonym_verify (purpose, &signature, &verification_key));
   /* also check that if the data is changed, the signature no longer matches */
   (*bit)++;
+  GNUNET_log_skip (1, GNUNET_NO);
   /* crypto not implemented, thus for now 'break' */
   GNUNET_break (GNUNET_OK !=
-		 GNUNET_FS_pseudonym_verify (purpose, &signature, &verification_key));
+		GNUNET_FS_pseudonym_verify (purpose, &signature, &verification_key));
   (*bit)--;
 }
 
@@ -266,8 +264,10 @@ test_crypto_ops (struct GNUNET_FS_PseudonymHandle *ph)
   purpose->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
   memset (&seed, 41, sizeof (seed));
   memset (&signing_key, 40, sizeof (signing_key));
-  test_signature (ph, purpose, &seed, &signing_key, &data[sizeof (struct GNUNET_FS_PseudonymSignaturePurpose)]);
-  test_signature (ph, purpose, NULL, &signing_key, &data[sizeof (struct GNUNET_FS_PseudonymSignaturePurpose)]);
+  test_signature (ph, purpose, &seed,
+		  &signing_key, &data[sizeof (struct GNUNET_FS_PseudonymSignaturePurpose)]);
+  test_signature (ph, purpose, NULL, 
+		  &signing_key, &data[sizeof (struct GNUNET_FS_PseudonymSignaturePurpose)]);
 }
 
 
@@ -301,6 +301,7 @@ test_crypto ()
   GNUNET_FS_pseudonym_destroy (ph);  
 
   /* check anonymous pseudonym operations generation */
+  fprintf (stderr, "Checking anonymous ops\n");
   ph = GNUNET_FS_pseudonym_get_anonymous_pseudonym_handle ();
   GNUNET_FS_pseudonym_get_identifier (ph, &pseudonym2);
   if (0 == memcmp (&pseudonym, &pseudonym2, sizeof (pseudonym)))
@@ -314,6 +315,7 @@ test_crypto ()
 int
 main (int argc, char *argv[])
 {
+  GNUNET_log_setup ("test-pseudonym", "WARNING", NULL);
   if (0 != test_io ())
     return 1;
   if (0 != test_crypto ())

@@ -1067,8 +1067,6 @@ data_to_pkcs1 (const struct GNUNET_FS_PseudonymSignaturePurpose *purpose)
   return data;
 }
 
-gcry_ctx_t xctx;
-
 
 /**
  * Cryptographically sign some data with the pseudonym.
@@ -1085,10 +1083,10 @@ gcry_ctx_t xctx;
  */
 int 
 GNUNET_FS_pseudonym_sign (struct GNUNET_FS_PseudonymHandle *ph,
-		       const struct GNUNET_FS_PseudonymSignaturePurpose *purpose,
-		       const struct GNUNET_HashCode *seed,
-		       const struct GNUNET_HashCode *signing_key,
-		       struct GNUNET_FS_PseudonymSignature *signature)
+			  const struct GNUNET_FS_PseudonymSignaturePurpose *purpose,
+			  const struct GNUNET_HashCode *seed,
+			  const struct GNUNET_HashCode *signing_key,
+			  struct GNUNET_FS_PseudonymSignature *signature)
 {
   size_t size;
   size_t erroff;
@@ -1136,47 +1134,9 @@ GNUNET_FS_pseudonym_sign (struct GNUNET_FS_PseudonymHandle *ph,
   /* calculate dx = d + h mod n */
   dh = gcry_mpi_new (256);
   gcry_mpi_addm (dh, d, h, n);  
-  // gcry_mpi_release (d);
-  // gcry_mpi_release (h);
+  gcry_mpi_release (d);
+  gcry_mpi_release (h);
   gcry_mpi_release (n);
-
-  if (1) {
-    gcry_mpi_point_t g;
-    gcry_mpi_point_t v;
-    gcry_mpi_point_t hg;
-    gcry_mpi_point_t q;
-    gcry_mpi_t v_x;
-    gcry_mpi_t v_y;
-
-    gcry_mpi_ec_new (&xctx, NULL, "NIST P-256");
-    g = gcry_mpi_ec_get_point ("g", xctx, 0);
-
-    hg = gcry_mpi_point_new (0);
-    gcry_mpi_ec_mul (hg, h, g, xctx);
-    fprintf (stderr, "\nExpected verification hG value:\n");
-    v_x = gcry_mpi_new (256);
-    v_y = gcry_mpi_new (256);
-    gcry_mpi_ec_get_affine (v_x, v_y, hg, xctx);
-    gcry_mpi_dump (v_x);
-    gcry_mpi_dump (v_y);
-
-    q = gcry_mpi_point_new (0);    
-    gcry_mpi_ec_mul (q, d, g, xctx);
-    fprintf (stderr, "\nExpected verification q value:\n");
-    gcry_mpi_ec_get_affine (v_x, v_y, q, xctx);
-    gcry_mpi_dump (v_x);
-    gcry_mpi_dump (v_y);
-
-    v = gcry_mpi_point_new (0);
-    gcry_mpi_ec_add (v, q, hg, xctx);
-    gcry_mpi_ec_get_affine (v_x, v_y, v, xctx);
-    fprintf (stderr, "\nExpected verification key public point value V := q + hG:\n");
-    gcry_mpi_dump (v_x);
-    gcry_mpi_dump (v_y);
-    fprintf (stderr, "\n");
-    
-  }
-
   
   /* now build sexpression with the signing key */
   if (0 != (rc = gcry_sexp_build (&spriv, &erroff,
@@ -1241,6 +1201,7 @@ GNUNET_FS_pseudonym_sign (struct GNUNET_FS_PseudonymHandle *ph,
     gcry_mpi_release (rs[1]);
     return GNUNET_SYSERR;
   }
+
   gcry_mpi_release (rs[0]);
   size = sizeof (signature->sig_s);
   if (0 != (rc = gcry_mpi_print (GCRYMPI_FMT_USG, signature->sig_s, size,
@@ -1353,42 +1314,19 @@ GNUNET_FS_pseudonym_derive_verification_key (struct GNUNET_FS_PseudonymIdentifie
   /* then call the 'multiply' function, to compute the product hG */
   hg = gcry_mpi_point_new (0);
   gcry_mpi_ec_mul (hg, h, g, ctx);
-
-  {
-    fprintf (stderr, "\nVerification hG value:\n");
-    v_x = gcry_mpi_new (256);
-    v_y = gcry_mpi_new (256);
-    gcry_mpi_ec_get_affine (v_x, v_y, hg, ctx);
-    gcry_mpi_dump (v_x);
-    gcry_mpi_dump (v_y);
-  }
   gcry_mpi_release (h);
 
   /* get Q = dG from 'pseudonym' */
   q = gcry_mpi_ec_get_point ("q", ctx, 0);
-  {
-    fprintf (stderr, "\nVerification q value:\n");
-    v_x = gcry_mpi_new (256);
-    v_y = gcry_mpi_new (256);
-    gcry_mpi_ec_get_affine (v_x, v_y, q, ctx);
-    gcry_mpi_dump (v_x);
-    gcry_mpi_dump (v_y);
-  }
   /* calculate V = Q + hG = dG + hG = (d + h)G*/
   v = gcry_mpi_point_new (0);
-  gcry_mpi_ec_add (v, q, hg, xctx);
+  gcry_mpi_ec_add (v, q, hg, ctx);
   /* FIXME: free 'hg'? */
   
   /* store 'v' point in "verification_key" */
   v_x = gcry_mpi_new (256);
   v_y = gcry_mpi_new (256);
-  gcry_mpi_ec_get_affine (v_x, v_y, v, xctx);
-
-  {
-    fprintf (stderr, "\nVerification key public point value V := q + hG:\n");
-    gcry_mpi_dump (v_x);
-    gcry_mpi_dump (v_y);
-  }
+  gcry_mpi_ec_get_affine (v_x, v_y, v, ctx);
 
   gcry_mpi_point_release (v);
   gcry_ctx_release (ctx);
@@ -1428,8 +1366,8 @@ GNUNET_FS_pseudonym_derive_verification_key (struct GNUNET_FS_PseudonymIdentifie
  */
 int
 GNUNET_FS_pseudonym_verify (const struct GNUNET_FS_PseudonymSignaturePurpose *purpose,
-			 const struct GNUNET_FS_PseudonymSignature *signature,
-			 const struct GNUNET_FS_PseudonymIdentifier *verification_key)
+			    const struct GNUNET_FS_PseudonymSignature *signature,
+			    const struct GNUNET_FS_PseudonymIdentifier *verification_key)
 {
   gcry_sexp_t data;
   gcry_sexp_t sig_sexpr;
@@ -1470,6 +1408,7 @@ GNUNET_FS_pseudonym_verify (const struct GNUNET_FS_PseudonymSignaturePurpose *pu
   }
   gcry_mpi_release (r);
   gcry_mpi_release (s);
+
 
   /* build s-expression for data that was signed */
   data = data_to_pkcs1 (purpose);
@@ -1533,7 +1472,6 @@ GNUNET_FS_pseudonym_verify (const struct GNUNET_FS_PseudonymSignaturePurpose *pu
     LOG (GNUNET_ERROR_TYPE_WARNING,
          _("ECDSA signature verification failed at %s:%d: %s\n"), __FILE__,
          __LINE__, gcry_strerror (rc));
-exit (1);
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;
