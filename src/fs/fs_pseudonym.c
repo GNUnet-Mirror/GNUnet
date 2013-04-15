@@ -103,6 +103,12 @@ static struct GNUNET_FS_pseudonym_DiscoveryHandle *disco_head;
  */
 static struct GNUNET_FS_pseudonym_DiscoveryHandle *disco_tail;
 
+/**
+ * Pointer to indiate 'anonymous' pseudonym (global static, all
+ * zeros).  We actually use pointer comparisson to detect the
+ * "anonymous" pseudonym handle.
+ */
+static struct GNUNET_FS_PseudonymHandle anonymous;
 
 /**
  * Internal notification about new tracked URI.
@@ -896,9 +902,11 @@ GNUNET_FS_pseudonym_create (const char *filename)
   if (0 != (rc = gcry_pk_genkey (&r_key, params)))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_genkey", rc);
+    gcry_sexp_release (params);
     gcry_sexp_release (r_key);
     return NULL;
   }
+  gcry_sexp_release (params);
   /* extract "d" (secret key) from r_key */
   rc = key_from_sexp (&d, r_key, "private-key", "d");
   if (0 != rc)
@@ -931,6 +939,7 @@ GNUNET_FS_pseudonym_create (const char *filename)
   q_y = gcry_mpi_new (256);
   gcry_mpi_ec_get_affine (q_x, q_y, q, ctx);
   gcry_mpi_point_release (q);
+  gcry_ctx_release (ctx);
 
   /* store q_x/q_y in public key */
   size = sizeof (ph->public_key.q_x);  
@@ -1010,15 +1019,7 @@ GNUNET_FS_pseudonym_create_from_existing_file (const char *filename)
 struct GNUNET_FS_PseudonymHandle *
 GNUNET_FS_pseudonym_get_anonymous_pseudonym_handle ()
 {
-  struct GNUNET_FS_PseudonymHandle *ph;
-
-  ph = GNUNET_malloc (sizeof (struct GNUNET_FS_PseudonymHandle));
-  /* Note if we use 'd=0' for the anonymous handle (as per#2564),
-     then I believe the public key should be also zero, as Q=0P=0;
-     so setting everything to all-zeros (as per GNUNET_malloc)
-     should be all that is needed here).
-  */
-  return ph;
+  return &anonymous;
 }
 
 
@@ -1031,7 +1032,8 @@ GNUNET_FS_pseudonym_get_anonymous_pseudonym_handle ()
 void
 GNUNET_FS_pseudonym_destroy (struct GNUNET_FS_PseudonymHandle *ph)
 {
-  GNUNET_free (ph);
+  if (&anonymous != ph)
+    GNUNET_free (ph);
 }
 
 
@@ -1102,13 +1104,21 @@ GNUNET_FS_pseudonym_sign (struct GNUNET_FS_PseudonymHandle *ph,
   int rc;
 
   /* get private key 'd' from pseudonym */
-  size = sizeof (ph->d);
-  if (0 != (rc = gcry_mpi_scan (&d, GCRYMPI_FMT_USG,
-				&ph->d,
-				size, &size)))
+  if (&anonymous == ph)
   {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
-    return GNUNET_SYSERR;
+    d = gcry_mpi_new (0);
+    gcry_mpi_set_ui (d, 0);
+  }
+  else
+  {
+    size = sizeof (ph->d);
+    if (0 != (rc = gcry_mpi_scan (&d, GCRYMPI_FMT_USG,
+				  &ph->d,
+				  size, &size)))
+    {
+      LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+      return GNUNET_SYSERR;
+    }
   }
   /* get 'x' value from signing key */
   size = sizeof (struct GNUNET_HashCode);
@@ -1212,6 +1222,7 @@ GNUNET_FS_pseudonym_sign (struct GNUNET_FS_PseudonymHandle *ph,
     return GNUNET_SYSERR;
   }
   gcry_mpi_release (rs[1]);
+  GNUNET_FS_pseudonym_get_identifier (ph, &signature->signer);
   return GNUNET_OK;
 }
 
@@ -1226,14 +1237,34 @@ GNUNET_FS_pseudonym_sign (struct GNUNET_FS_PseudonymHandle *ph,
 static gcry_ctx_t 
 get_context_from_pseudonym (struct GNUNET_FS_PseudonymIdentifier *pseudonym)
 {
+  static struct GNUNET_FS_PseudonymIdentifier zerop;
   gcry_ctx_t ctx;
   gcry_mpi_t q_x;
   gcry_mpi_t q_y;
+  gcry_mpi_t zero;
   gcry_mpi_point_t q;
   size_t size;
   int rc;
 
   /* extract 'q' from pseudonym */
+  if (0 == memcmp (pseudonym, &zerop, sizeof (zerop)))
+  {
+    /* create basic ECC context */
+    if (0 != (rc = gcry_mpi_ec_new (&ctx, NULL, "NIST P-256")))
+    {
+      LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_ec_new", rc);  /* erroff gives more info */
+      return NULL;
+    }  
+    /* initialize 'ctx' with 'q' = 0 */
+    zero = gcry_mpi_new (0);
+    gcry_mpi_set_ui (zero, 0);
+    q = gcry_mpi_point_new (0);
+    gcry_mpi_point_set (q, zero, zero, zero);
+    gcry_mpi_ec_set_point ("q", q, ctx);
+    gcry_mpi_release (zero);
+    gcry_mpi_point_release (q);
+    return ctx;
+  }
   size = sizeof (pseudonym->q_x);
   if (0 != (rc = gcry_mpi_scan (&q_x, GCRYMPI_FMT_USG, pseudonym->q_x, size, &size)))
   {
@@ -1279,8 +1310,8 @@ get_context_from_pseudonym (struct GNUNET_FS_PseudonymIdentifier *pseudonym)
  */
 int
 GNUNET_FS_pseudonym_derive_verification_key (struct GNUNET_FS_PseudonymIdentifier *pseudonym,
-					  const struct GNUNET_HashCode *signing_key,
-					  struct GNUNET_FS_PseudonymIdentifier *verification_key)
+					     const struct GNUNET_HashCode *signing_key,
+					     struct GNUNET_FS_PseudonymIdentifier *verification_key)
 {
   gcry_mpi_t h;  
   size_t size;
@@ -1314,6 +1345,7 @@ GNUNET_FS_pseudonym_derive_verification_key (struct GNUNET_FS_PseudonymIdentifie
   /* then call the 'multiply' function, to compute the product hG */
   hg = gcry_mpi_point_new (0);
   gcry_mpi_ec_mul (hg, h, g, ctx);
+  gcry_mpi_point_release (g);
   gcry_mpi_release (h);
 
   /* get Q = dG from 'pseudonym' */
@@ -1321,7 +1353,7 @@ GNUNET_FS_pseudonym_derive_verification_key (struct GNUNET_FS_PseudonymIdentifie
   /* calculate V = Q + hG = dG + hG = (d + h)G*/
   v = gcry_mpi_point_new (0);
   gcry_mpi_ec_add (v, q, hg, ctx);
-  /* FIXME: free 'hg'? */
+  gcry_mpi_point_release (hg);
   
   /* store 'v' point in "verification_key" */
   v_x = gcry_mpi_new (256);
@@ -1486,10 +1518,13 @@ GNUNET_FS_pseudonym_verify (const struct GNUNET_FS_PseudonymSignaturePurpose *pu
  */
 void
 GNUNET_FS_pseudonym_get_identifier (struct GNUNET_FS_PseudonymHandle *ph,
-				 struct GNUNET_FS_PseudonymIdentifier *pseudonym)
+				    struct GNUNET_FS_PseudonymIdentifier *pseudonym)
 {
-  memcpy (pseudonym, &ph->public_key,
-	  sizeof (struct GNUNET_FS_PseudonymIdentifier));
+  if (&anonymous == ph)
+    memset (pseudonym, 0, sizeof (struct GNUNET_FS_PseudonymIdentifier));
+  else
+    memcpy (pseudonym, &ph->public_key,
+	    sizeof (struct GNUNET_FS_PseudonymIdentifier));
 }
 
 
@@ -1502,7 +1537,7 @@ GNUNET_FS_pseudonym_get_identifier (struct GNUNET_FS_PseudonymHandle *ph,
  */
 int
 GNUNET_FS_pseudonym_remove (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			 const struct GNUNET_FS_PseudonymIdentifier *id)
+			    const struct GNUNET_FS_PseudonymIdentifier *id)
 {
   char *fn;
   int result;
