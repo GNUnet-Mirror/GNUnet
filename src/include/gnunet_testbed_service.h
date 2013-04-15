@@ -484,8 +484,7 @@ GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_ControllerProc *cproc);
  *
  * @param host host to run the controller on; This should be the same host if
  *          the controller was previously started with
- *          GNUNET_TESTBED_controller_start; NULL for localhost
- * @param host host where this controller is being run;
+ *          GNUNET_TESTBED_controller_start()
  * @param event_mask bit mask with set of events to call 'cc' for;
  *                   or-ed values of "1LL" shifted by the
  *                   respective 'enum GNUNET_TESTBED_EventType'
