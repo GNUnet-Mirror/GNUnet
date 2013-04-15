@@ -110,9 +110,15 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   shutdown_task = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+  {
     GNUNET_SCHEDULER_cancel (abort_task);
+    abort_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (NULL != cfg)
+  {
     GNUNET_CONFIGURATION_destroy (cfg);
+    cfg = NULL;
+  }
   GNUNET_SCHEDULER_shutdown (); /* Stop scheduler to shutdown testbed run */
 }
 

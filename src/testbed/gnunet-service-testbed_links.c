@@ -762,24 +762,24 @@ trigger_notifications (struct Neighbour *n)
     GNUNET_TESTBED_operation_activate_ (n->conn_op);
     n->inactive = 0;
   }
+  n->reference_cnt++;
   n->notify_task = 
-      GNUNET_SCHEDULER_add_now (&neighbour_connect_notify_task, n->nl_head);
+      GNUNET_SCHEDULER_add_now (&neighbour_connect_notify_task, n);
 }
 
 static void
 neighbour_connect_notify_task (void *cls, 
                                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct NeighbourConnectNotification *h = cls;
-  struct Neighbour *n;
+  struct Neighbour *n = cls;
+  struct NeighbourConnectNotification *h;
 
-  n = h->n;  
+  GNUNET_assert (NULL != (h = n->nl_head));
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != n->notify_task);  
   n->notify_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (NULL != n->controller);
   GNUNET_CONTAINER_DLL_remove (n->nl_head, n->nl_tail, h);  
   trigger_notifications (n);
-  n->reference_cnt++;
   h->cb (h->cb_cls, n->controller);
   GNUNET_free (h);
 }
@@ -859,6 +859,8 @@ GST_neighbour_get_connection_cancel (struct NeighbourConnectNotification *h)
     return;
   if (GNUNET_SCHEDULER_NO_TASK == n->notify_task)
     return;
+  GNUNET_assert (0 < n->reference_cnt);
+  n->reference_cnt--;
   GNUNET_SCHEDULER_cancel (n->notify_task);
   n->notify_task = GNUNET_SCHEDULER_NO_TASK;
   if (NULL == n->nl_head)
