@@ -103,8 +103,23 @@ $ cd gnunet
 $ ./bootstrap
 \end{lstlisting}
 
+The remainder of this tutorial assumes that you have SVN HEAD checked out.
 
 \subsection{Compiling and Installing GNUnet}
+
+First, you need to install the latest {\tt
+  libgnupgerror}\footnote{\url{ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.11.tar.bz2}}
+and {\tt libgcrypt} version from Git.  The current GNUnet code uses
+ECC functions not available in any released version of libgcrypt.
+
+\lstset{language=bash}
+\begin{lstlisting}
+$ git clone git://git.gnupg.org/libgcrypt.git
+$ cd libgcrypt
+$ ./autogen.sh
+$ ./configure ; $ make install 
+\end{lstlisting}
+
 \label{sub:install}
 Assuming all dependencies are installed, the following commands will compile and install GNUnet in your 
 home directory. You can specify the directory where GNUnet will be installed by changing the \lstinline|--prefix| value when calling \lstinline|./configure|.  If you do not specifiy a prefix, GNUnet is installed in the directory \lstinline|/usr/local|. When developing new applications you may want to enable 
