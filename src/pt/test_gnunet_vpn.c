@@ -414,8 +414,8 @@ main (int argc, char *const *argv)
   exit_binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-exit.exe");
   fprintf (stderr,"%s\n", vpn_binary);
   fprintf (stderr,"%s\n", exit_binary);
-  if ((GNUNET_YES != (ret = GNUNET_OS_check_helper_binary (vpn_binary, TRUE, NULL))) || // FIXME: CF: add test-parameters
-      (GNUNET_YES != (ret = GNUNET_OS_check_helper_binary (exit_binary, TRUE, NULL)))) // FIXME: CF: add test-parameters
+  if ((GNUNET_YES != (ret = GNUNET_OS_check_helper_binary (vpn_binary, GNUNET_YES, NULL))) || // FIXME: CF: add test-parameters
+      (GNUNET_YES != (ret = GNUNET_OS_check_helper_binary (exit_binary, GNUNET_YES, NULL)))) // FIXME: CF: add test-parameters
   {
     GNUNET_free (vpn_binary);
     GNUNET_free (exit_binary);

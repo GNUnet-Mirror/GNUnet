@@ -543,11 +543,11 @@ main (int argc, char *const *argv)
   bin_dns = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-dns");
   if ( (0 != geteuid ()) &&
        ( (GNUNET_YES !=
-	  GNUNET_OS_check_helper_binary (bin_vpn, TRUE, NULL)) ||
+	  GNUNET_OS_check_helper_binary (bin_vpn, GNUNET_YES, NULL)) ||
 	 (GNUNET_YES !=
-	  GNUNET_OS_check_helper_binary (bin_exit, TRUE, NULL)) ||
+	  GNUNET_OS_check_helper_binary (bin_exit, GNUNET_YES, NULL)) ||
 	 (GNUNET_YES !=
-	  GNUNET_OS_check_helper_binary (bin_dns, TRUE, NULL))) )
+	  GNUNET_OS_check_helper_binary (bin_dns, GNUNET_YES, NULL))) )
   {    
     fprintf (stderr,
 	     "WARNING: gnunet-helper-{exit,vpn,dns} binaries in $PATH are not SUID, refusing to run test (as it would have to fail).\n");

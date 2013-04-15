@@ -1043,7 +1043,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   cfg = cfg_;
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-dns");
   if (GNUNET_YES !=
-      GNUNET_OS_check_helper_binary (binary, TRUE, NULL))
+      GNUNET_OS_check_helper_binary (binary, GNUNET_YES, NULL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("`%s' must be installed SUID, refusing to run\n"),

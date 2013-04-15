@@ -92,7 +92,7 @@ main (int argc, char *const argv[])
                     "WARNING",
                     NULL);
 
-  nat_res = GNUNET_OS_check_helper_binary ("gnunet-nat-server", FALSE, NULL);
+  nat_res = GNUNET_OS_check_helper_binary ("gnunet-nat-server", GNUNET_NO, NULL);
   if (GNUNET_SYSERR == nat_res)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,

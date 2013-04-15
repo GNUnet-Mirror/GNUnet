@@ -164,7 +164,7 @@ GNUNET_NAT_mini_get_external_ipv4 (struct GNUNET_TIME_Relative timeout,
 {
   struct GNUNET_NAT_ExternalHandle *eh;
 
-  if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary ("external-ip", FALSE, NULL))
+  if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary ("external-ip", GNUNET_NO, NULL))
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
 	 _("`external-ip' command not found\n"));
@@ -499,7 +499,7 @@ GNUNET_NAT_mini_map_start (uint16_t port, int is_tcp,
   struct GNUNET_NAT_MiniHandle *ret;
   char pstr[6];
 
-  if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary ("upnpc", FALSE, NULL))
+  if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary ("upnpc", GNUNET_NO, NULL))
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
 	 _("`upnpc' command not found\n"));

@@ -634,7 +634,7 @@ start_process (int pipe_control,
   int fd_stdin_read;
   int fd_stdin_write;
 
-  if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary (filename, FALSE, NULL))
+  if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary (filename, GNUNET_NO, NULL))
     return NULL; /* not executable */
   if (GNUNET_YES == pipe_control)
   {
@@ -865,7 +865,7 @@ start_process (int pipe_control,
   BOOL bresult;
   DWORD error_code;
 
-  if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary (filename, FALSE, NULL))
+  if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary (filename, GNUNET_NO, NULL))
     return NULL; /* not executable */
  
   /* Search in prefix dir (hopefully - the directory from which
@@ -1162,7 +1162,7 @@ start_process (int pipe_control,
     return NULL;
   }
 
-  bresult = CreateProcessW (wpath, wcmd, NULL, NULL, TRUE,
+  bresult = CreateProcessW (wpath, wcmd, NULL, NULL, GNUNET_YES,
        DETACHED_PROCESS | CREATE_SUSPENDED, env_block, NULL, &start, &proc);
   error_code = GetLastError ();
 

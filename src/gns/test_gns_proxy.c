@@ -446,13 +446,13 @@ main (int argc, char *const *argv)
 {
   char *binary;
 
-  if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary ("gnunet-gns-proxy", FALSE, NULL))
+  if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary ("gnunet-gns-proxy", GNUNET_NO, NULL))
   {
     fprintf (stderr, "Proxy binary not in PATH... skipping!\n");
     return 0;
   }
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-dns");
-  if (GNUNET_YES != GNUNET_OS_check_helper_binary (binary, TRUE, NULL))
+  if (GNUNET_YES != GNUNET_OS_check_helper_binary (binary, GNUNET_YES, NULL))
   {
     fprintf (stderr, "DNS helper binary has wrong permissions... skipping!\n");
     GNUNET_free (binary);
