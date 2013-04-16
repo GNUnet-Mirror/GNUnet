@@ -1,4 +1,5 @@
 src/arm/arm_api.c
+src/arm/arm_monitor_api.c
 src/arm/do_start_process.c
 src/arm/gnunet-arm.c
 src/arm/gnunet-service-arm.c
@@ -22,6 +23,7 @@ src/consensus/gnunet-consensus-ibf.c
 src/consensus/gnunet-consensus-start-peers.c
 src/consensus/gnunet-service-consensus.c
 src/consensus/ibf.c
+src/consensus/strata_estimator.c
 src/core/core_api.c
 src/core/core_api_is_connected.c
 src/core/core_api_iterate_peers.c
@@ -66,6 +68,7 @@ src/dns/gnunet-helper-dns.c
 src/dns/gnunet-service-dns.c
 src/dns/plugin_block_dns.c
 src/dv/dv_api.c
+src/dv/gnunet-dv.c
 src/dv/gnunet-service-dv.c
 src/dv/plugin_transport_dv.c
 src/exit/gnunet-daemon-exit.c
@@ -82,6 +85,7 @@ src/fs/fs_getopt.c
 src/fs/fs_list_indexed.c
 src/fs/fs_misc.c
 src/fs/fs_namespace.c
+src/fs/fs_pseudonym.c
 src/fs/fs_publish.c
 src/fs/fs_publish_ksk.c
 src/fs/fs_search.c
@@ -182,6 +186,11 @@ src/regex/regex_dht.c
 src/regex/regex_graph.c
 src/regex/regex_random.c
 src/regex/regex_test_lib.c
+src/set/gnunet-service-set.c
+src/set/gnunet-set.c
+src/set/ibf.c
+src/set/set_api.c
+src/set/strata_estimator.c
 src/statistics/gnunet-service-statistics.c
 src/statistics/gnunet-statistics.c
 src/statistics/statistics_api.c
@@ -193,7 +202,10 @@ src/testbed/gnunet-helper-testbed.c
 src/testbed/gnunet_mpi_test.c
 src/testbed/gnunet-service-testbed.c
 src/testbed/gnunet-service-testbed_cache.c
+src/testbed/gnunet-service-testbed_cpustatus.c
+src/testbed/gnunet-service-testbed_links.c
 src/testbed/gnunet-service-testbed_oc.c
+src/testbed/gnunet-service-testbed_peers.c
 src/testbed/gnunet_testbed_ll_master.c
 src/testbed/gnunet_testbed_ll_monitor.c
 src/testbed/gnunet_testbed_mpi_spawn.c
@@ -284,7 +296,6 @@ src/util/os_priority.c
 src/util/peer.c
 src/util/plugin.c
 src/util/program.c
-src/util/pseudonym.c
 src/util/resolver_api.c
 src/util/scheduler.c
 src/util/server.c

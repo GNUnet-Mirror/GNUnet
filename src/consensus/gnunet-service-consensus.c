@@ -2279,7 +2279,7 @@ add_incoming_peers (struct ConsensusSession *session)
 static void
 initialize_session (struct ConsensusSession *session)
 {
-  const struct ConsensusSession *other_session;
+  struct ConsensusSession *other_session;
 
   GNUNET_assert (NULL != session->join_msg);
   initialize_session_peer_list (session);
@@ -2295,17 +2295,13 @@ initialize_session (struct ConsensusSession *session)
     {
       if (GNUNET_NO == other_session->conclude)
       {
-        /* session already owned by another client */
         GNUNET_break (0);
-        disconnect_client (session->scss.client);
+        destroy_session (session);
         return;
       }
-      else
-      {
-        GNUNET_SERVER_client_drop (session->scss.client);
-        session->scss.client = NULL;
-        break;
-      }
+      GNUNET_SERVER_client_drop (other_session->scss.client);
+      other_session->scss.client = NULL;
+      break;
     }
     other_session = other_session->next;
   }

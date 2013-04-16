@@ -1243,6 +1243,8 @@ src/peerinfo-tool/Makefile
 src/postgres/Makefile
 src/pt/Makefile
 src/regex/Makefile
+src/set/Makefile
+src/set/set.conf
 src/statistics/Makefile
 src/statistics/statistics.conf
 src/stream/Makefile
