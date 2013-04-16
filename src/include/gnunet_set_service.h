@@ -1,3 +1,4 @@
+// FIXME: copyright, etc.
 
 /**
  * The operation that a set set supports.
@@ -33,6 +34,7 @@ enum GNUNET_SET_Status
   GNUNET_SET_STATUS_REFUSED
 };
 
+// FIXME: comment
 struct GNUNET_SET_Element
 {
   /**
@@ -49,9 +51,51 @@ struct GNUNET_SET_Element
   void *data;
 };
 
+
+/**
+ * Create an empty set, supporting the specified operation.
+ *
+ * @param op operation supported by the set
+ *        Note that the operation has to be specified
+ *        beforehand, as certain set operations need to maintain
+ *        data structures spefific to the operation
+ * @return a handle to the set
+ */
+struct GNUNET_SET_Handle *
+GNUNET_SET_create (enum GNUNET_SET_Operation op);
+
+
+// FIXME: comment
+void
+GNUNET_SET_add_element (struct GNUNET_SET_Handle *set,
+                        const struct GNUNET_SET_Element *element,
+                        GNUNET_SET_Continuation cont,
+                        void *cont_cls);
+
+
+// FIXME: comment
+void
+GNUNET_SET_remove_element (struct GNUNET_SET_Handle *set,
+                           const struct GNUNET_SET_Element *element,
+                           GNUNET_SET_Continuation cont,
+                           void *cont_cls);
+
+
+// FIXME: comment
+struct GNUNET_SET_Handle *
+GNUNET_SET_clone (struct GNUNET_SET_Handle *set);
+
+
+// FIXME: comment
+void
+GNUNET_SET_destroy (struct GNUNET_SET_Handle *set);
+
+
+
 /**
  * Callback for set operation results. Called for each element
  * in the result set.
+// FIXME: might want a way to just get the 'additional/removd' elements
  *
  * @param cls closure
  * @param element element, or NULL to indicate that all elements
@@ -63,6 +107,26 @@ typedef void
 (*GNUNET_SET_ResultIterator) (void *cls,
                               struct GNUNET_SET_Element *element,
                               enum GNUNET_SET_ResultStatus status);
+
+
+/**
+ * Evaluate a set operation with our set and the set of another peer.
+ *
+ * @param other_peer peer with the other set
+ * @param app_id hash for the application using the set
+ * @param context_msg additional information for the request
+ * @param result_cb called on error or success
+ * @param result_cls closure for result_cb
+ * @return a handle to cancel the operation
+ */
+struct GNUNET_SET_OperationHandle *
+GNUNET_SET_evaluate (const struct GNUNET_PeerIdentity *other_peer,
+                     const struct GNUNET_HashCode *app_id,
+                     const struct GNUNET_MessageHeader *context_msg,
+                     struct GNUNET_TIME_Relative timeout,
+                     GNUNET_SET_ResultIterator result_cb,
+                     void *result_cls);
+
 
 /**
  * Called when another peer wants to do a set operation with the
@@ -80,40 +144,9 @@ typedef void
  */
 typedef void
 (*GNUNET_SET_ListenCallback) (void *cls,
-                              struct GNUNET_PeerIdentity *other_peer,
-                              struct GNUNET_MessageHeader *context_msg,
+                              const struct GNUNET_PeerIdentity *other_peer,
+                              const struct GNUNET_MessageHeader *context_msg,
                               struct GNUNET_SET_Request *request);
-
-/**
- * Create an empty set, supporting the specified operation.
- *
- * @param op operation supported by the set
- *        Note that the operation has to be specified
- *        beforehand, as certain set operations need to maintain
- *        data structures spefific to the operation
- * @return a handle to the set
- */
-struct GNUNET_SET_Handle *
-GNUNET_SET_create (enum GNUNET_SET_Operation op);
-
-
-/**
- * Evaluate a set operation with our set and the set of another peer.
- *
- * @param other_peer peer with the other set
- * @param app_id hash for the application using the set
- * @param context_msg additional information for the request
- * @param result_cb called on error or success
- * @param result_cls closure for result_cb
- * @return a handle to cancel the operation
- */
-struct GNUNET_SET_OperationHandle *
-GNUNET_SET_evaluate (struct GNUNET_PeerIdentity other_peer,
-                     struct GNUNET_HashCode *app_id,
-                     struct GNUNET_MessageHeader *context_msg,
-                     struct GNUNET_TIME_Relative timeout,
-                     GNUNET_SET_ResultIterator result_cb,
-                     void *result_cls);
 
 
 /**
@@ -128,9 +161,15 @@ GNUNET_SET_evaluate (struct GNUNET_PeerIdentity other_peer,
  */
 struct GNUNET_SET_ListenHandle *
 GNUNET_SET_listen (enum GNUNET_SET_Operation operation,
-                   struct GNUNET_HashCode *app_id,
+                   const struct GNUNET_HashCode *app_id,
                    GNUNET_SET_ListenCallback listen_cb,
                    void *listen_cls);
+
+
+
+// FIXME: comment
+void
+GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh);
 
 
 /**
@@ -145,33 +184,13 @@ GNUNET_SET_listen (enum GNUNET_SET_Operation operation,
 struct GNUNET_SET_OperationHandle *
 GNUNET_SET_accept (struct GNUNET_SET_Request *request,
                    struct GNUNET_SET_Handle *set,
-                   struct GNUNET_TIME_Relative timeout
-                   struct GNUNET_SET_ResultIterator *result_cb,
+                   struct GNUNET_TIME_Relative timeout,
+                   GNUNET_SET_ResultIterator result_cb,
                    void *cls)
-                          
-
-void
-GNUNET_SET_add_element (struct GNUNET_SET_Handle *set,
-                        struct GNUNET_SET_Element *element,
-                        GNUNET_SET_Continuation cont,
-                        void *cont_cls);
 
 
-void
-GNUNET_SET_remove_element (struct GNUNET_SET_Handle *set,
-                           struct GNUNET_SET_Element *element,
-                           GNUNET_SET_Continuation cont,
-                           void *cont_cls);
-
-void
-GNUNET_SET_destroy (struct GNUNET_SET_Handle *set);
-
-void
-GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh);
-
+// FIXME: comment
 void
 GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *op);
-
-struct GNUNET_SET_Handle *
-GNUNET_SET_clone (struct GNUNET_SET_Handle *set);
+                          
 
