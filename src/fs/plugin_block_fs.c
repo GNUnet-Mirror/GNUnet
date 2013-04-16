@@ -112,8 +112,8 @@ block_plugin_fs_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     }
     if (GNUNET_OK !=
 	GNUNET_FS_pseudonym_verify (&ub->purpose,
-				 &ub->signature,
-				 &ub->verification_key))
+				    &ub->signature,
+				    &ub->verification_key))
     {
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;

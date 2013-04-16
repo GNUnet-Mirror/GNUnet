@@ -174,6 +174,7 @@ publish_ksk_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_CRYPTO_AesInitializationVector iv;
   struct GNUNET_FS_PseudonymHandle *ph;
   struct GNUNET_FS_PseudonymIdentifier pseudonym;
+  struct UBlock *ub_dst;
 
   pkc->ksk_task = GNUNET_SCHEDULER_NO_TASK;
   if ((pkc->i == pkc->ksk_uri->data.ksk.keywordCount) || (NULL == pkc->dsh))
@@ -194,32 +195,35 @@ publish_ksk_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    * mandatory or not -- ignore for hashing */
   GNUNET_CRYPTO_hash (&keyword[1], strlen (&keyword[1]), &key);
   GNUNET_CRYPTO_hash_to_aes_key (&key, &skey, &iv);
+  ub_dst = pkc->cpy;
   GNUNET_CRYPTO_aes_encrypt (&pkc->ub[1], 
 			     1 + pkc->slen + pkc->mdsize,
 			     &skey, &iv,
-                             &pkc->cpy[1]);
+                             &ub_dst[1]);
   ph = GNUNET_FS_pseudonym_get_anonymous_pseudonym_handle ();
   GNUNET_CRYPTO_hash (&key, sizeof (key), &signing_key);
-  pkc->cpy->purpose.size = htonl (1 + pkc->slen + pkc->mdsize + sizeof (struct UBlock)
+  ub_dst->purpose.size = htonl (1 + pkc->slen + pkc->mdsize + sizeof (struct UBlock)
 				  - sizeof (struct GNUNET_FS_PseudonymSignature));
-  pkc->cpy->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK);
-  GNUNET_FS_pseudonym_sign (ph,
-			 &pkc->cpy->purpose,
-			 &seed,
-			 &signing_key,
-			 &pkc->cpy->signature);
+  ub_dst->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK);
+  
   GNUNET_FS_pseudonym_get_identifier (ph, &pseudonym);
   GNUNET_FS_pseudonym_derive_verification_key (&pseudonym, 
-					    &signing_key,
-					    &pkc->cpy->verification_key);
-  GNUNET_CRYPTO_hash (&pkc->cpy->verification_key,
-		      sizeof (pkc->cpy->verification_key),
+					       &signing_key,
+					       &ub_dst->verification_key);
+  GNUNET_FS_pseudonym_sign (ph,
+			    &ub_dst->purpose,
+			    &seed,
+			    &signing_key,
+			    &ub_dst->signature);
+
+  GNUNET_CRYPTO_hash (&ub_dst->verification_key,
+		      sizeof (ub_dst->verification_key),
 		      &query);
   GNUNET_FS_pseudonym_destroy (ph);
   pkc->qre =
       GNUNET_DATASTORE_put (pkc->dsh, 0, &query,
                             1 + pkc->slen + pkc->mdsize + sizeof (struct UBlock),
-                            pkc->cpy, GNUNET_BLOCK_TYPE_FS_UBLOCK,
+                            ub_dst, GNUNET_BLOCK_TYPE_FS_UBLOCK,
                             pkc->bo.content_priority, pkc->bo.anonymity_level,
                             pkc->bo.replication_level, pkc->bo.expiration_time,
                             -2, 1, GNUNET_CONSTANTS_SERVICE_TIMEOUT,
@@ -308,12 +312,7 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
     return NULL;
   }
   size = sizeof (struct UBlock) + pkc->slen + pkc->mdsize + 1;
-
   pkc->cpy = GNUNET_malloc (size);
-  pkc->cpy->purpose.size =
-      htonl (sizeof (struct GNUNET_FS_PseudonymSignaturePurpose) +
-             pkc->mdsize + pkc->slen + 1);
-  pkc->cpy->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK);
   pkc->ksk_uri = GNUNET_FS_uri_dup (ksk_uri);
   pkc->ksk_task = GNUNET_SCHEDULER_add_now (&publish_ksk_cont, pkc);
   return pkc;

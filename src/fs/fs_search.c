@@ -916,6 +916,7 @@ build_result_set (void *cls, const struct GNUNET_HashCode * key, void *value)
     return GNUNET_SYSERR;
   mbc->sc->search_request_map_offset++;
   mbc->xoff[--mbc->put_cnt] = *key;
+
   return GNUNET_OK;
 }
 
@@ -1040,8 +1041,8 @@ transmit_search_request (void *cls, size_t size, void *buf)
     GNUNET_CRYPTO_hash_xor (&id_hash, &ns_hash, &key);
     GNUNET_CRYPTO_hash (&key, sizeof (struct GNUNET_HashCode), &signing_key);
     GNUNET_FS_pseudonym_derive_verification_key (&sc->uri->data.sks.ns,
-					      &signing_key,
-					      &verification_key);
+						 &signing_key,
+						 &verification_key);
     GNUNET_CRYPTO_hash (&verification_key,
 			sizeof (verification_key),
 			&sm->query);
@@ -1228,8 +1229,8 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
       GNUNET_CRYPTO_hash (keyword, strlen (keyword), &sc->requests[i].ukey);
       GNUNET_CRYPTO_hash (&sc->requests[i].ukey, sizeof (struct GNUNET_HashCode), &signing_key);
       GNUNET_FS_pseudonym_derive_verification_key (&anon, 
-						&signing_key,
-						&verification_key);
+						   &signing_key,
+						   &verification_key);
       GNUNET_CRYPTO_hash (&verification_key, sizeof (struct GNUNET_FS_PseudonymIdentifier),
 			  &sc->requests[i].uquery);
       sc->requests[i].mandatory = (sc->uri->data.ksk.keywords[i][0] == '+');
