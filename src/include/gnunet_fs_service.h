@@ -81,8 +81,13 @@ struct GNUNET_FS_Uri;
 
 
 /**
- * Identifier for a GNUnet pseudonym (the public key).
- * Q-point, Q=dp.
+ * Identifier for a GNUnet pseudonym (the public key).  Q-point, Q=dp.
+ * Note that we (ab)use an identifier of 'all zeros' to mean the
+ * 'anonymous' pseudonym, where the value is actually the point at
+ * infinity; however, that value cannot be represented here.  We do
+ * not handle the case where the actual q-Value of some pseudonym
+ * happens to be all zeros as well (as the chance of that is
+ * negligible).
  */
 struct GNUNET_FS_PseudonymIdentifier
 {
