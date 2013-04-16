@@ -97,11 +97,6 @@ struct GNUNET_TESTING_System
   struct GNUNET_DISK_MapHandle *map;
 
   /**
-   * File descriptor for the map.
-   */
-  struct GNUNET_DISK_FileHandle *map_fd;
-
-  /**
    * Bitmap where each TCP port that has already been reserved for
    * some GNUnet peer is recorded.  Note that we additionally need to
    * test if a port is already in use by non-GNUnet components before
@@ -243,7 +238,8 @@ hostkeys_load (struct GNUNET_TESTING_System *system)
   uint64_t fs; 
   char *data_dir;
   char *filename;
-  
+  struct GNUNET_DISK_FileHandle *fd;
+
   GNUNET_assert (NULL == system->hostkeys_data);
   data_dir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
   GNUNET_asprintf (&filename, "%s/testing_hostkeys.ecc", data_dir);
@@ -272,20 +268,23 @@ hostkeys_load (struct GNUNET_TESTING_System *system)
     GNUNET_free (filename);
     return GNUNET_SYSERR;
   }
-  system->map_fd = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
+  fd = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
 					 GNUNET_DISK_PERM_NONE);
-  if (NULL == system->map_fd)
+  if (NULL == fd)
   {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", filename);
     GNUNET_free (filename);
     return GNUNET_SYSERR;
   }
-  system->total_hostkeys = fs / GNUNET_TESTING_HOSTKEYFILESIZE;
-  system->hostkeys_data = GNUNET_DISK_file_map (system->map_fd,
+  GNUNET_free (filename);
+  system->hostkeys_data = GNUNET_DISK_file_map (fd,
 						&system->map,
 						GNUNET_DISK_MAP_TYPE_READ,
 						fs);
-  GNUNET_free (filename);
+  GNUNET_DISK_file_close (fd);
+  if (NULL == system->hostkeys_data)
+    return GNUNET_SYSERR;
+  system->total_hostkeys = fs / GNUNET_TESTING_HOSTKEYFILESIZE;
   return GNUNET_OK;
 }
 
@@ -302,8 +301,6 @@ hostkeys_unload (struct GNUNET_TESTING_System *system)
   system->hostkeys_data = NULL;
   GNUNET_DISK_file_unmap (system->map);
   system->map = NULL;
-  GNUNET_DISK_file_close (system->map_fd);
-  system->map_fd = NULL;
   system->hostkeys_data = NULL;
   system->total_hostkeys = 0;
 }
