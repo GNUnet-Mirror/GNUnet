@@ -547,8 +547,11 @@ merge_ops (struct GNUNET_TESTBED_Operation ***old,
  * Checks for the readiness of an operation and schedules a operation start task
  *
  * @param op the operation
+ * @param GNUNET_NO if the given operation cannot be made active; GNUNET_YES if
+ *          it can be activated (has enough resources) and is kept in ready
+ *          queue
  */
-static void
+static int
 check_readiness (struct GNUNET_TESTBED_Operation *op)
 {
   struct GNUNET_TESTBED_Operation **evict_ops;
@@ -569,7 +572,7 @@ check_readiness (struct GNUNET_TESTBED_Operation *op)
                                       &ops, &n_ops))
     {
       GNUNET_free_non_null (evict_ops);
-      return;
+      return GNUNET_NO;
     }
     if (NULL == ops)
       continue;
@@ -584,12 +587,13 @@ check_readiness (struct GNUNET_TESTBED_Operation *op)
     evict_ops = NULL;
     /* Evicting the operations should schedule this operation */
     GNUNET_assert (OP_STATE_READY == op->state);
-    return;
+    return GNUNET_YES;
   }
   for (i = 0; i < op->nqueues; i++)
     op->queues[i]->active += op->nres[i];
   change_state (op, OP_STATE_READY);
   rq_add (op);
+  return GNUNET_YES;
 }
 
 
@@ -699,7 +703,8 @@ recheck_waiting (struct OperationQueue *opq)
   while (NULL != entry)
   {
     entry2 = entry->next;
-    check_readiness (entry->op);
+    if (GNUNET_NO == check_readiness (entry->op))
+      break;
     entry = entry2;
   }
 }
@@ -786,7 +791,7 @@ GNUNET_TESTBED_operation_begin_wait_ (struct GNUNET_TESTBED_Operation *op)
 {
   GNUNET_assert (NULL == op->rq_entry);
   change_state (op, OP_STATE_WAITING);
-  check_readiness (op);
+  (void) check_readiness (op);
 }
 
 
@@ -812,6 +817,8 @@ GNUNET_TESTBED_operation_inactivate_ (struct GNUNET_TESTBED_Operation *op)
   nqueues = op->nqueues;
   ms = sizeof (struct OperationQueue *) * nqueues;
   queues = GNUNET_malloc (ms);
+  /* Cloning is needed as the operation be released by waiting operations and
+     hence its nqueues memory ptr will be freed */
   GNUNET_assert (NULL != (queues = memcpy (queues, op->queues, ms)));
   for (i = 0; i < nqueues; i++)
     recheck_waiting (queues[i]);
