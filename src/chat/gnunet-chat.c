@@ -30,6 +30,7 @@
 #include "gnunet_getopt_lib.h"
 #include "gnunet_program_lib.h"
 #include "gnunet_chat_service.h"
+#include "gnunet_fs_service.h"
 #include <fcntl.h>
 
 static int ret;

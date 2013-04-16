@@ -44,6 +44,7 @@ gnunet_chat_SOURCES = \
  gnunet-chat.c         
 gnunet_chat_LDADD = \
   $(top_builddir)/src/chat/libgnunetchat.la \
+  $(top_builddir)/src/fs/libgnunetfs.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 gnunet_chat_DEPENDENCIES = \
