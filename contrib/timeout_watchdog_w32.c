@@ -150,7 +150,7 @@ main (int argc, char *argv[])
   memset (&start, 0, sizeof (start));
   start.cb = sizeof (start);
 
-  if (!CreateProcessW (wpath, wcmd, NULL, NULL, GNUNET_YES, CREATE_SUSPENDED,
+  if (!CreateProcessW (wpath, wcmd, NULL, NULL, TRUE, CREATE_SUSPENDED,
        NULL, NULL, &start, &proc))
   {
     wprintf (L"Failed to get spawn process `%s' with arguments `%s': %lu\n", wpath, wcmd, GetLastError ());
