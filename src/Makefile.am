@@ -3,7 +3,7 @@
 #endif
 
 if HAVE_EXPERIMENTAL
- EXP_DIR = fs gns chat consensus dv 
+ EXP_DIR = gns chat consensus dv 
 endif
 
 if LINUX
@@ -54,7 +54,8 @@ SUBDIRS = \
   regex \
   mesh \
   lockmanager \
-  stream \
+  stream \ 
+  fs \
   $(LINUX_DIR) \
   $(MINGW_DIR) \
   integration-tests \
