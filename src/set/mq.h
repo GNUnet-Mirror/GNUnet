@@ -100,20 +100,15 @@ GNUNET_MQ_queue_for_connection_client (struct GNUNET_CLIENT_Connection *connecti
 
 void
 GNUNET_MQ_notify_sent (struct GNUNET_MQ_Message *mqm,
-                       void (*)(void*),
+                       GNUNET_MQ_NotifyCallback cb,
                        void *cls);
 
 
 void
 GNUNET_MQ_notify_timeout (struct GNUNET_MQ_Message *mqm,
-                          void (*)(void*),
+                          GNUNET_MQ_NotifyCallback cb,
                           void *cls);
 
-
-void
-GNUNET_MQ_notify_destroy (struct GNUNET_MQ_Message *mqm,
-                          void (*)(void*),
-                          void *cls);
 
 void
 GNUNET_MQ_destroy (struct GNUNET_MQ_MessageQueue *mq);

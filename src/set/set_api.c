@@ -244,24 +244,6 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set)
 
 
 /**
- * Destroy an operation handle
- *
- * @cls closure, the operation handle
- */
-static void
-operation_destroy (void *cls)
-{
-  struct GNUNET_SET_OperationHandle *oh = cls;
-  struct GNUNET_SET_OperationHandle *oh_assoc;
-
-  oh_assoc = GNUNET_MQ_assoc_remove (oh->set->mq, oh->request_id);
-  GNUNET_assert (oh_assoc == oh);
-  oh->set = NULL;
-  GNUNET_free (oh);
-}
-
-
-/**
  * Signature of the main function of a task.
  *
  * @param cls closure
@@ -317,8 +299,6 @@ GNUNET_SET_evaluate (struct GNUNET_SET_Handle *set,
   msg->app_id = *app_id;
   memcpy (&msg[1], context_msg, htons (context_msg->size));
   oh->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout, operation_timeout_task, oh);
-  /* destroy the operation if the queue gets destroyed */
-  GNUNET_MQ_notify_destroy (mqm, operation_destroy, oh);
   GNUNET_MQ_send (set->mq, mqm);
 
   return oh;
@@ -417,8 +397,6 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
   mqm = GNUNET_MQ_msg (msg , GNUNET_MESSAGE_TYPE_SET_ACCEPT);
   msg->request_id = htonl (request->request_id);
   oh->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout, operation_timeout_task, oh);
-  /* destroy the operation if the queue gets destroyed */
-  GNUNET_MQ_notify_destroy (mqm, operation_destroy, oh);
   GNUNET_MQ_send (set->mq, mqm);
 
   return oh;
