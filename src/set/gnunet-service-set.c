@@ -32,6 +32,40 @@
 #include "gnunet_core_service.h"
 #include "gnunet_stream_lib.h"
 
+struct Set
+{
+
+};
+
+struct Listener
+{
+
+};
+
+/*
+static struct Listener *sets_head;
+static struct Listener *sets_tail;
+
+static struct Listener *listeners_head;
+static struct Listener *listeners_tail;
+*/
+
+
+/**
+ * Called when a client wants to create a new set.
+ *
+ * @param cls unused
+ * @param client client that sent the message
+ * @param m message sent by the client
+ */
+static void
+handle_client_create (void *cls,
+                      struct GNUNET_SERVER_Client *client,
+                      const struct GNUNET_MessageHeader *m)
+{
+  
+}
+
 
 /**
  * Function called by the service's run
@@ -42,13 +76,16 @@
  * @param cfg configuration to use
  */
 static void
-run (void *cls,
-     struct GNUNET_SERVER_Handle * server,
-     const struct GNUNET_CONFIGURATION_Handle *
-     cfg)
+run (void *cls, struct GNUNET_SERVER_Handle *server, const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 {
-  /* FIXME */
+  static const struct GNUNET_SERVER_MessageHandler server_handlers[] = {
+    {handle_client_create, NULL, GNUNET_MESSAGE_TYPE_SET_CREATE, 0},
+    {NULL, NULL, 0, 0}
+  };
+
+
+  GNUNET_SERVER_add_handlers (server, server_handlers);
 }
 
 

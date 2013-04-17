@@ -82,8 +82,8 @@ struct GNUNET_SET_ListenHandle
  * @param cls the set
  * @param mh the message
  */
-void
-handle_result (void *cls, struct GNUNET_MessageHeader *mh)
+static void
+handle_result (void *cls, const struct GNUNET_MessageHeader *mh)
 {
   struct ResultMessage *msg = (struct ResultMessage *) mh;
   struct GNUNET_SET_Handle *set = cls;
@@ -125,8 +125,8 @@ handle_result (void *cls, struct GNUNET_MessageHeader *mh)
  * @param cls the listen handle
  * @param mh the message
  */
-void
-handle_request (void *cls, struct GNUNET_MessageHeader *mh)
+static void
+handle_request (void *cls, const struct GNUNET_MessageHeader *mh)
 {
   struct RequestMessage *msg = (struct RequestMessage *) mh;
   struct GNUNET_SET_ListenHandle *lh = cls;
