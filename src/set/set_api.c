@@ -60,6 +60,7 @@ struct GNUNET_SET_OperationHandle
   void *result_cls;
   struct GNUNET_SET_Handle *set;
   uint32_t request_id;
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 };
 
 
@@ -75,6 +76,12 @@ struct GNUNET_SET_ListenHandle
 };
 
 
+/**
+ * Handle result message for a set operation.
+ *
+ * @param cls the set
+ * @param mh the message
+ */
 void
 handle_result (void *cls, struct GNUNET_MessageHeader *mh)
 {
@@ -90,20 +97,34 @@ handle_result (void *cls, struct GNUNET_MessageHeader *mh)
     GNUNET_MQ_send (set->mq, mqm);
   }
 
-  oh = GNUNET_MQ_assoc_remove (set->mq, ntohl (msg->request_id));
+  oh = GNUNET_MQ_assoc_get (set->mq, ntohl (msg->request_id));
   GNUNET_break (NULL != oh);
+  if (GNUNET_SCHEDULER_NO_TASK != oh->timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (oh->timeout_task);
+    oh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (htons (msg->result_status) != GNUNET_SET_STATUS_OK)
   {
-    oh->result_cb (oh->result_cls, NULL, htons (msg->result_status));
+    if (NULL != oh->result_cb)
+      oh->result_cb (oh->result_cls, NULL, htons (msg->result_status));
+    GNUNET_MQ_assoc_remove (set->mq, ntohl (msg->request_id));
     GNUNET_free (oh);
     return;
   }
   e.data = &msg[1];
   e.size = ntohs (mh->size) - sizeof (struct ResultMessage);
   e.type = msg->element_type;
-  oh->result_cb (oh->result_cls, &e, htons (msg->result_status));
+  if (NULL != oh->result_cb)
+    oh->result_cb (oh->result_cls, &e, htons (msg->result_status));
 }
 
+/**
+ * Handle request message for a listen operation
+ *
+ * @param cls the listen handle
+ * @param mh the message
+ */
 void
 handle_request (void *cls, struct GNUNET_MessageHeader *mh)
 {
@@ -221,6 +242,12 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set)
   set->mq = NULL;
 }
 
+
+/**
+ * Destroy an operation handle
+ *
+ * @cls closure, the operation handle
+ */
 static void
 operation_destroy (void *cls)
 {
@@ -229,6 +256,28 @@ operation_destroy (void *cls)
 
   oh_assoc = GNUNET_MQ_assoc_remove (oh->set->mq, oh->request_id);
   GNUNET_assert (oh_assoc == oh);
+  oh->set = NULL;
+  GNUNET_free (oh);
+}
+
+
+/**
+ * Signature of the main function of a task.
+ *
+ * @param cls closure
+ * @param tc context information (why was this task triggered now)
+ */
+static void
+operation_timeout_task (void *cls,
+                        const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct GNUNET_SET_OperationHandle *oh = cls;
+  oh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  if (NULL != oh->result_cb)
+    oh->result_cb (oh->result_cls, NULL, GNUNET_SET_STATUS_TIMEOUT);
+  oh->result_cb = NULL;
+  oh->result_cls = NULL;
+  GNUNET_SET_operation_cancel (oh);
 }
 
 
@@ -266,9 +315,9 @@ GNUNET_SET_evaluate (struct GNUNET_SET_Handle *set,
   msg->request_id = htonl (GNUNET_MQ_assoc_add (set->mq, mqm, oh));
   msg->other_peer = *other_peer;
   msg->app_id = *app_id;
-  msg->timeout = GNUNET_TIME_relative_hton (timeout);
   memcpy (&msg[1], context_msg, htons (context_msg->size));
-  GNUNET_MQ_notify_timeout (mqm, operation_destroy, oh);
+  oh->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout, operation_timeout_task, oh);
+  /* destroy the operation if the queue gets destroyed */
   GNUNET_MQ_notify_destroy (mqm, operation_destroy, oh);
   GNUNET_MQ_send (set->mq, mqm);
 
@@ -366,9 +415,9 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
   oh->set = set;
 
   mqm = GNUNET_MQ_msg (msg , GNUNET_MESSAGE_TYPE_SET_ACCEPT);
-  msg->timeout = GNUNET_TIME_relative_hton (timeout);
   msg->request_id = htonl (request->request_id);
-  GNUNET_MQ_notify_timeout (mqm, operation_destroy, oh);
+  oh->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout, operation_timeout_task, oh);
+  /* destroy the operation if the queue gets destroyed */
   GNUNET_MQ_notify_destroy (mqm, operation_destroy, oh);
   GNUNET_MQ_send (set->mq, mqm);
 
@@ -391,5 +440,6 @@ GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *h)
   GNUNET_assert (h_assoc == h);
   mqm = GNUNET_MQ_msg_raw (GNUNET_MESSAGE_TYPE_SET_CANCEL);
   GNUNET_MQ_send (h->set->mq, mqm);
+  GNUNET_free (h);
 }
 

@@ -88,9 +88,6 @@ struct AcceptMessage
    * request id of the request we want to accept
    */
   uint32_t request_id GNUNET_PACKED;
-
-
-  struct GNUNET_TIME_RelativeNBO timeout;
 };
 
 
@@ -125,8 +122,6 @@ struct EvaluateMessage
   struct GNUNET_PeerIdentity other_peer;
 
   struct GNUNET_HashCode app_id;
-
-  struct GNUNET_TIME_RelativeNBO timeout;
 
   /**
    * id of our evaluate
