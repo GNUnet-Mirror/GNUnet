@@ -136,16 +136,6 @@ enum OperationContextState
 struct OperationContext
 {
   /**
-   * next ptr for DLL
-   */
-  struct OperationContext *next;
-
-  /**
-   * prev ptr for DLL
-   */
-  struct OperationContext *prev;
-
-  /**
    * The controller to which this operation context belongs to
    */
   struct GNUNET_TESTBED_Controller *c;
@@ -240,14 +230,9 @@ struct GNUNET_TESTBED_Controller
   struct GNUNET_TESTBED_HostRegistrationHandle *rh;
 
   /**
-   * The head of the opeartion context queue
+   * The map of active operation contexts
    */
-  struct OperationContext *ocq_head;
-
-  /**
-   * The tail of the operation context queue
-   */
-  struct OperationContext *ocq_tail;
+  struct GNUNET_CONTAINER_MultiHashMap32 *opc_map;
 
   /**
    * Operation queue for simultaneous operations
@@ -294,6 +279,31 @@ GNUNET_TESTBED_queue_message_ (struct GNUNET_TESTBED_Controller *controller,
 
 
 /**
+ * Inserts the given operation context into the operation context map of the
+ * given controller.  Creates the operation context map if one does not exist
+ * for the controller
+ *
+ * @param c the controller
+ * @param opc the operation context to be inserted
+ */
+void
+GNUNET_TESTBED_insert_opc_ (struct GNUNET_TESTBED_Controller *c,
+                            struct OperationContext *opc);
+
+
+/**
+ * Removes the given operation context from the operation context map of the
+ * given controller
+ *
+ * @param c the controller
+ * @param opc the operation context to remove 
+ */
+void
+GNUNET_TESTBED_remove_opc_ (const struct GNUNET_TESTBED_Controller *c,
+                            struct OperationContext *opc);
+
+
+/**
  * Compresses given configuration using zlib compress
  *
  * @param config the serialized configuration
@@ -319,15 +329,6 @@ GNUNET_TESTBED_compress_config_ (const char *config, size_t size,
 char *
 GNUNET_TESTBED_compress_cfg_ (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               size_t *size, size_t *xsize);
-
-
-/**
- * Adds an operation to the queue of operations
- *
- * @param op the operation to add
- */
-void
-GNUNET_TESTBED_operation_add_ (struct GNUNET_TESTBED_Operation *op);
 
 
 /**

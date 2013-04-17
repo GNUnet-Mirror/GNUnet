@@ -127,16 +127,6 @@ struct GNUNET_TESTBED_Host
 {
 
   /**
-   * The next pointer for DLL
-   */
-  struct GNUNET_TESTBED_Host *next;
-
-  /**
-   * The prev pointer for DLL
-   */
-  struct GNUNET_TESTBED_Host *prev;
-
-  /**
    * The hostname of the host; NULL for localhost
    */
   const char *hostname;

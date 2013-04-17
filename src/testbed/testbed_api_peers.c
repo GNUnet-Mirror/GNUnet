@@ -121,7 +121,7 @@ opstart_peer_create (void *cls)
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (data->peer->host));
   msg->peer_id = htonl (data->peer->unique_id);
   msg->config_size = htonl (c_size);
-  GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_TESTBED_insert_opc_ (opc->c, opc);
   GNUNET_TESTBED_queue_message_ (opc->c, &msg->header);
 }
 
@@ -139,7 +139,7 @@ oprelease_peer_create (void *cls)
   switch (opc->state)
   {
   case OPC_STATE_STARTED:
-    GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+    GNUNET_TESTBED_remove_opc_ (opc->c, opc);
     /* No break we continue flow */
   case OPC_STATE_INIT:
     GNUNET_free (((struct PeerCreateData *) opc->data)->peer);
@@ -172,7 +172,7 @@ opstart_peer_destroy (void *cls)
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_DESTROY_PEER);
   msg->peer_id = htonl (peer->unique_id);
   msg->operation_id = GNUNET_htonll (opc->id);
-  GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_TESTBED_insert_opc_ (opc->c, opc);
   GNUNET_TESTBED_queue_message_ (peer->controller, &msg->header);
 }
 
@@ -190,7 +190,7 @@ oprelease_peer_destroy (void *cls)
   switch (opc->state)
   {
   case OPC_STATE_STARTED:
-    GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+    GNUNET_TESTBED_remove_opc_ (opc->c, opc);
     /* no break; continue */
   case OPC_STATE_INIT:
     break;
@@ -224,7 +224,7 @@ opstart_peer_start (void *cls)
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_START_PEER);
   msg->peer_id = htonl (peer->unique_id);
   msg->operation_id = GNUNET_htonll (opc->id);
-  GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_TESTBED_insert_opc_ (opc->c, opc);
   GNUNET_TESTBED_queue_message_ (peer->controller, &msg->header);
 }
 
@@ -242,7 +242,7 @@ oprelease_peer_start (void *cls)
   switch (opc->state)
   {
   case OPC_STATE_STARTED:
-    GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+    GNUNET_TESTBED_remove_opc_ (opc->c, opc);
     /* no break; continue */
   case OPC_STATE_INIT:
     GNUNET_free (opc->data);
@@ -276,7 +276,7 @@ opstart_peer_stop (void *cls)
   msg->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerStopMessage));
   msg->peer_id = htonl (peer->unique_id);
   msg->operation_id = GNUNET_htonll (opc->id);
-  GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_TESTBED_insert_opc_ (opc->c, opc);
   GNUNET_TESTBED_queue_message_ (peer->controller, &msg->header);
 }
 
@@ -294,7 +294,7 @@ oprelease_peer_stop (void *cls)
   switch (opc->state)
   {
   case OPC_STATE_STARTED:
-    GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+    GNUNET_TESTBED_remove_opc_ (opc->c, opc);
     /* no break; continue */
   case OPC_STATE_INIT:
     GNUNET_free (opc->data);
@@ -349,7 +349,7 @@ opstart_peer_getinfo (void *cls)
   msg =
       GNUNET_TESTBED_generate_peergetconfig_msg_ (data->peer->unique_id,
                                                   opc->id);
-  GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_TESTBED_insert_opc_ (opc->c, opc);
   GNUNET_TESTBED_queue_message_ (opc->c, &msg->header);
 }
 
@@ -368,7 +368,7 @@ oprelease_peer_getinfo (void *cls)
   switch (opc->state)
   {
   case OPC_STATE_STARTED:
-    GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+    GNUNET_TESTBED_remove_opc_ (opc->c, opc);
     /* no break; continue */
   case OPC_STATE_INIT:
     GNUNET_free (opc->data);
@@ -419,7 +419,7 @@ opstart_overlay_connect (void *cls)
   msg->peer2 = htonl (data->p2->unique_id);
   msg->operation_id = GNUNET_htonll (opc->id);
   msg->peer2_host_id = htonl (GNUNET_TESTBED_host_get_id_ (data->p2->host));
-  GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_TESTBED_insert_opc_ (opc->c, opc);
   GNUNET_TESTBED_queue_message_ (opc->c, &msg->header);
 }
 
@@ -444,7 +444,7 @@ oprelease_overlay_connect (void *cls)
   case OPC_STATE_STARTED:
     (void) GNUNET_TESTBED_release_time_slot_ (data->p1->host, data->tslot_index,
                                               data);
-    GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+    GNUNET_TESTBED_remove_opc_ (opc->c, opc);
     break;
   case OPC_STATE_FINISHED:
     duration = GNUNET_TIME_absolute_get_duration (data->tstart);
@@ -774,6 +774,11 @@ GNUNET_TESTBED_overlay_connect (void *op_cls,
 }
 
 
+/**
+ * Function called when a peer manage service operation is ready
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
 static void
 opstart_manage_service (void *cls)
 {
@@ -793,11 +798,16 @@ opstart_manage_service (void *cls)
   GNUNET_free (data->service_name);
   data->service_name = NULL;
   opc->state = OPC_STATE_STARTED;
-  GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_TESTBED_insert_opc_ (opc->c, opc);
   GNUNET_TESTBED_queue_message_ (opc->c, &msg->header);
 }
 
 
+/**
+ * Callback which will be called when peer manage server operation is released
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
 static void
 oprelease_manage_service (void *cls)
 {
@@ -808,7 +818,7 @@ oprelease_manage_service (void *cls)
   switch (opc->state)
   {
   case OPC_STATE_STARTED:
-    GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+    GNUNET_TESTBED_remove_opc_ (opc->c, opc);
     break;
   case OPC_STATE_INIT:
     GNUNET_assert (NULL != data);
@@ -822,6 +832,21 @@ oprelease_manage_service (void *cls)
 }
 
 
+/**
+ * Start or stop given service at a peer.  This should not be called to
+ * start/stop the peer's ARM service.  Use GNUNET_TESTBED_peer_start(),
+ * GNUNET_TESTBED_peer_stop() for starting/stopping peer's ARM service.  Success
+ * or failure of the generated operation is signalled through the controller
+ * event callback and/or operation completion callback.
+ *
+ * @param op_cls the closure for the operation
+ * @param peer the peer whose service is to be started/stopped
+ * @param service_name the name of the service
+ * @param cb the operation completion callback
+ * @param cb_cls the closure for the operation completion callback
+ * @param start 1 to start the service; 0 to stop the service
+ * @return an operation handle; NULL upon error (peer not running)
+ */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_peer_manage_service (void *op_cls,
                                     struct GNUNET_TESTBED_Peer *peer,
