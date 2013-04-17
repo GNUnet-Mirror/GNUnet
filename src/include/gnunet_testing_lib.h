@@ -325,9 +325,9 @@ GNUNET_TESTING_peer_stop_async (struct GNUNET_TESTING_Peer *peer,
  * @param cfg configuration of the peer that was started
  * @param peer identity of the peer that was created
  */
-typedef void (*GNUNET_TESTING_TestMain)(void *cls,
-					const struct GNUNET_CONFIGURATION_Handle *cfg,
-					struct GNUNET_TESTING_Peer *peer);
+typedef void (*GNUNET_TESTING_TestMain) (void *cls,
+                                         const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                         struct GNUNET_TESTING_Peer *peer);
 
 
 /**

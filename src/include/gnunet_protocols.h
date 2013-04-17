@@ -1760,8 +1760,66 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ABORT 548
 
 
+/*******************************************************************************
+ * SET message types
+ ******************************************************************************/
+
 /**
- *  Next available: 570
+ * Cancel a set operation
+ */
+#define GNUNET_MESSAGE_TYPE_SET_CANCEL 570
+
+/**
+ * Acknowledge results
+ */
+#define GNUNET_MESSAGE_TYPE_SET_ACK 571
+
+/**
+ * Create an empty set
+ */
+#define GNUNET_MESSAGE_TYPE_SET_RESULT 572
+
+/**
+ * Add element to set
+ */
+#define GNUNET_MESSAGE_TYPE_SET_ADD 573
+
+
+/**
+ * Remove element from set
+ */
+#define GNUNET_MESSAGE_TYPE_SET_REMOVE 574
+
+
+/**
+ * Listen for operation requests
+ */
+#define GNUNET_MESSAGE_TYPE_SET_LISTEN 575
+
+/**
+ * Accept a set request
+ */
+#define GNUNET_MESSAGE_TYPE_SET_ACCEPT 576
+
+/**
+ * Evaluate a set operation
+ */
+#define GNUNET_MESSAGE_TYPE_SET_EVALUATE 577
+
+/**
+ * Evaluate a set operation
+ */
+#define GNUNET_MESSAGE_TYPE_SET_REQUEST 578
+
+
+/**
+ * Evaluate a set operation
+ */
+#define GNUNET_MESSAGE_TYPE_SET_CREATE 579
+
+
+/**
+ *  Next available: 600
  */
 
 

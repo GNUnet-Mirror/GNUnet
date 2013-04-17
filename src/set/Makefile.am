@@ -46,7 +46,8 @@ gnunet_service_set_LDADD = \
   $(GN_LIBINTL)
 
 libgnunetset_la_SOURCES = \
-  set_api.c
+  set_api.c \
+  mq.c
 libgnunetset_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)

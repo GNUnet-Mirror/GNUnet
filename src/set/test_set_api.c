@@ -25,6 +25,28 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testing_lib.h"
+#include "gnunet_set_service.h"
+
+
+/**
+ * Signature of the 'main' function for a (single-peer) testcase that
+ * is run using 'GNUNET_TESTING_peer_run'.
+ * 
+ * @param cls closure
+ * @param cfg configuration of the peer that was started
+ * @param peer identity of the peer that was created
+ */
+static void
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
+{
+  struct GNUNET_SET_Handle *set1;
+  struct GNUNET_SET_Handle *set2;
+
+  set1 = GNUNET_SET_create (GNUNET_SET_OPERATION_UNION);
+  set2 = GNUNET_SET_create (GNUNET_SET_OPERATION_UNION);
+}
 
 int
 main (int argc, char **argv)
