@@ -1729,7 +1729,11 @@ GNUNET_DISK_file_open (const char *fn, enum GNUNET_DISK_OpenFlags flags,
     mode = translate_unix_perms (perm);
   }
 
-  fd = open (expfn, oflags | O_LARGEFILE, mode);
+  fd = open (expfn, oflags 
+#if O_CLOEXEC
+	     | O_CLOEXEC
+#endif
+	     | O_LARGEFILE, mode);
   if (fd == -1)
   {
     if (0 == (flags & GNUNET_DISK_OPEN_FAILIFEXISTS))
