@@ -287,7 +287,9 @@ term_callback (void *cls,
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
   {
     char *msg;
-    GNUNET_asprintf (&msg, _("Failed to send a request to kill the `%s' service: %%s\n"), term);
+    GNUNET_asprintf (&msg,
+                     _("Failed to send a request to kill the `%s' service: %%s\n"),
+                     term);
     FPRINTF (stdout, msg, req_string (rs));
     GNUNET_free (msg);
     GNUNET_SCHEDULER_shutdown ();
@@ -302,8 +304,9 @@ term_callback (void *cls,
   else
   {
     char *msg;
-    GNUNET_asprintf (&msg, _("Failed to kill the `%s' service: %%s\n"), term);
-    FPRINTF (stdout, msg, ret_string (result));
+    GNUNET_asprintf (&msg, _("Failed to kill the `%s' service: %s\n"),
+                     term, ret_string (result));
+    FPRINTF (stdout, msg, service);
     GNUNET_free (msg);
     GNUNET_SCHEDULER_shutdown ();
   }
@@ -399,8 +402,9 @@ init_callback (void *cls,
   else
   {
     char *msg;
-    GNUNET_asprintf (&msg, _("Failed to start the `%s' service: %%s\n"), init);
-    FPRINTF (stdout, msg, ret_string (result));
+    GNUNET_asprintf (&msg, _("Failed to start the `%s' service: %s\n"),
+                     init, ret_string (result));
+    FPRINTF (stdout, msg, service);
     GNUNET_free (msg);
     GNUNET_SCHEDULER_shutdown ();
   }
