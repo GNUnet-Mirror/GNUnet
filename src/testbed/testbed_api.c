@@ -329,10 +329,10 @@ GNUNET_TESTBED_insert_opc_ (struct GNUNET_TESTBED_Controller *c,
 {
   if (NULL == c->opc_map)
     c->opc_map = GNUNET_CONTAINER_multihashmap32_create (256);
-  GNUNET_assert (GNUNET_NO == GNUNET_CONTAINER_multihashmap32_contains_value
-                 (c->opc_map, (uint32_t) opc->id, opc));
-  GNUNET_CONTAINER_multihashmap32_put (c->opc_map, (uint32_t) opc->id, opc,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multihashmap32_put (c->opc_map, 
+                                                      (uint32_t) opc->id, opc,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
 }
 
 

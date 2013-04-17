@@ -50,9 +50,9 @@
 #define DEFAULT_SETUP_TIMEOUT 300
 
 /**
- * DLL of operations
+ * Context information for the operation we start
  */
-struct DLLOperation
+struct RunContextOperation
 {
   /**
    * The testbed operation handle
@@ -69,15 +69,6 @@ struct DLLOperation
    */
   void *cls;
 
-  /**
-   * The next pointer for DLL
-   */
-  struct DLLOperation *next;
-
-  /**
-   * The prev pointer for DLL
-   */
-  struct DLLOperation *prev;
 };
 
 
@@ -178,14 +169,9 @@ struct RunContext
   void *test_master_cls;
 
   /**
-   * The head element of DLL operations
+   * A hashmap for operations started by us
    */
-  struct DLLOperation *dll_op_head;
-
-  /**
-   * The tail element of DLL operations
-   */
-  struct DLLOperation *dll_op_tail;
+  struct GNUNET_CONTAINER_MultiHashMap32 *rcop_map;
 
   /**
    * An array of hosts loaded from the hostkeys file
@@ -307,6 +293,72 @@ struct RunContext
 
 };
 
+static uint32_t
+rcop_key (void *rcop)
+{  
+  return * ((uint32_t *) &rcop);
+}
+
+
+struct SearchContext
+{
+  struct GNUNET_TESTBED_Operation *query;
+
+  struct RunContextOperation *result;
+};
+
+static int
+search_iterator (void *cls, uint32_t key, void *value)
+{
+  struct RunContextOperation *rcop = value;
+  struct SearchContext *sc = cls;
+
+  GNUNET_assert (NULL != rcop);
+  if (sc->query == rcop->op)
+  {
+    GNUNET_assert (NULL == sc->result);
+    sc->result = rcop;
+    return GNUNET_NO;
+  }
+  return GNUNET_YES;
+}
+
+static struct RunContextOperation *
+search_rcop (struct RunContext *rc, struct GNUNET_TESTBED_Operation *op)
+{
+  struct SearchContext sc;
+  
+  sc.query = op;
+  sc.result = NULL;
+  if (GNUNET_SYSERR == 
+      GNUNET_CONTAINER_multihashmap32_get_multiple (rc->rcop_map,
+                                                    rcop_key (op),
+                                                    &search_iterator,
+                                                    &sc))
+  {
+    GNUNET_assert (NULL != sc.result);
+    return sc.result;
+  }
+  return NULL;
+}
+
+static void
+insert_rcop (struct RunContext *rc, struct RunContextOperation *rcop)
+{
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multihashmap32_put (rc->rcop_map,
+                                                      rcop_key (rcop->op), rcop,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+}
+
+static void
+remove_rcop (struct RunContext *rc, struct RunContextOperation *rcop)
+{
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multihashmap32_remove (rc->rcop_map,
+                                                         rcop_key (rcop->op),
+                                                         rcop));
+}
 
 /**
  * Assuming all peers have been destroyed cleanup run handle
@@ -325,7 +377,8 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (NULL == rc->peers);
   GNUNET_assert (NULL == rc->hc_handles);
   GNUNET_assert (RC_PEERS_SHUTDOWN == rc->state);
-  GNUNET_assert (NULL == rc->dll_op_head);
+  GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap32_size (rc->rcop_map));
+  GNUNET_CONTAINER_multihashmap32_destroy (rc->rcop_map);
   if (NULL != rc->c)
     GNUNET_TESTBED_controller_disconnect (rc->c);
   if (NULL != rc->cproc)
@@ -342,10 +395,22 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_free (rc);
 }
 
+static int
+rcop_cleanup_iterator (void *cls, uint32_t key, void *value)
+{
+  struct RunContext *rc = cls;
+  struct RunContextOperation *rcop = value;
+
+  GNUNET_assert (rc == rcop->rc);
+  remove_rcop (rc, rcop);
+  GNUNET_TESTBED_operation_done (rcop->op);
+  GNUNET_free (rcop);
+  return GNUNET_YES;
+}
+
 static void
 cleanup (struct RunContext *rc)
 {
-  struct DLLOperation *dll_op;
   unsigned int nhost;
 
   if (NULL != rc->hc_handles)
@@ -383,12 +448,10 @@ cleanup (struct RunContext *rc)
     rc->topology_operation = NULL;
   }
   /* cancel any exiting operations */
-  while (NULL != (dll_op = rc->dll_op_head))
-  {
-    GNUNET_TESTBED_operation_done (dll_op->op);
-    GNUNET_CONTAINER_DLL_remove (rc->dll_op_head, rc->dll_op_tail, dll_op);
-    GNUNET_free (dll_op);
-  }
+  GNUNET_assert (GNUNET_SYSERR != 
+                 GNUNET_CONTAINER_multihashmap32_iterate (rc->rcop_map,
+                                                          &rcop_cleanup_iterator,
+                                                          rc));
 }
 
 
@@ -402,7 +465,7 @@ static void
 shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RunContext *rc = cls;
-  struct DLLOperation *dll_op;
+  struct RunContextOperation *rcop;
 
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != rc->shutdown_run_task);
   rc->shutdown_run_task = GNUNET_SCHEDULER_NO_TASK;
@@ -413,13 +476,13 @@ shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     if (NULL != rc->peers)
     {
-      dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-      dll_op->op = GNUNET_TESTBED_shutdown_peers (rc->c, dll_op, NULL, NULL);
-      GNUNET_assert (NULL != dll_op->op);
+      rcop = GNUNET_malloc (sizeof (struct RunContextOperation));
+      rcop->rc = rc;
+      rcop->op = GNUNET_TESTBED_shutdown_peers (rc->c, rcop, NULL, NULL);
+      GNUNET_assert (NULL != rcop->op);
       DEBUG ("Shutting down peers\n");
       rc->pstart_time = GNUNET_TIME_absolute_get ();
-      GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail,
-                                        dll_op);
+      insert_rcop (rc, rcop);
       return;
     }
   }
@@ -483,18 +546,19 @@ static void
 start_peers_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RunContext *rc = cls;
-  struct DLLOperation *dll_op;
+  struct RunContextOperation *rcop;
   unsigned int peer;
 
   DEBUG ("Starting Peers\n");
   rc->pstart_time = GNUNET_TIME_absolute_get ();
   for (peer = 0; peer < rc->num_peers; peer++)
   {
-    dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-    dll_op->op = GNUNET_TESTBED_peer_start (NULL, rc->peers[peer], NULL, NULL);
-    GNUNET_assert (NULL != dll_op->op);
-    dll_op->cls = rc->peers[peer];
-    GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail, dll_op);
+    rcop = GNUNET_malloc (sizeof (struct RunContextOperation));
+    rcop->rc = rc;
+    rcop->op  = GNUNET_TESTBED_peer_start (NULL, rc->peers[peer], NULL, NULL);
+    GNUNET_assert (NULL != rcop->op);
+    rcop->cls = rc->peers[peer];
+    insert_rcop (rc, rcop);
   }
   rc->peer_count = 0;
 }
@@ -512,15 +576,14 @@ start_peers_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
 {
-  struct DLLOperation *dll_op = cls;
+  struct RunContextOperation *rcop = cls;
   struct RunContext *rc;
 
-  GNUNET_assert (NULL != dll_op);
-  rc = dll_op->rc;
-  GNUNET_assert (NULL != rc);
-  GNUNET_CONTAINER_DLL_remove (rc->dll_op_head, rc->dll_op_tail, dll_op);
-  GNUNET_TESTBED_operation_done (dll_op->op);
-  GNUNET_free (dll_op);
+  GNUNET_assert (NULL != rcop);
+  GNUNET_assert (NULL != (rc = rcop->rc));
+  remove_rcop (rc, rcop);
+  GNUNET_TESTBED_operation_done (rcop->op);
+  GNUNET_free (rcop);
   if (NULL == peer)
   {
     if (NULL != emsg)
@@ -588,7 +651,7 @@ topology_completion_callback (void *cls, unsigned int nsuccess,
 static void
 create_peers (struct RunContext *rc)
 {
-  struct DLLOperation *dll_op;
+  struct RunContextOperation *rcop;
   unsigned int peer;
 
   DEBUG ("Creating peers\n");
@@ -599,16 +662,16 @@ create_peers (struct RunContext *rc)
   rc->peer_count = 0;
   for (peer = 0; peer < rc->num_peers; peer++)
   {
-    dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-    dll_op->rc = rc;
-    dll_op->op =
+    rcop = GNUNET_malloc (sizeof (struct RunContextOperation));
+    rcop->rc = rc;
+    rcop->op =
         GNUNET_TESTBED_peer_create (rc->c,
                                     (0 ==
                                      rc->num_hosts) ? rc->h : rc->hosts[peer %
                                                                         rc->num_hosts],
-                                    rc->cfg, peer_create_cb, dll_op);    
-    GNUNET_assert (NULL != dll_op->op);
-    GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail, dll_op);
+                                    rc->cfg, &peer_create_cb, rcop);
+    GNUNET_assert (NULL != rcop->op);
+    insert_rcop (rc, rcop);
   }
 }
 
@@ -624,14 +687,14 @@ static void
 event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
 {
   struct RunContext *rc = cls;
-  struct DLLOperation *dll_op;
+  struct RunContextOperation *rcop;
 
   if (RC_INIT == rc->state)
   {
     switch (event->type)
     {
     case GNUNET_TESTBED_ET_OPERATION_FINISHED:
-      dll_op = event->op_cls;
+      rcop = event->op_cls;
       if (NULL != event->details.operation_finished.emsg)
       {
         LOG (GNUNET_ERROR_TYPE_ERROR, _("Linking controllers failed. Exiting"));
@@ -639,10 +702,10 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       }
       else
         rc->reg_hosts++;
-      GNUNET_assert (event->op == dll_op->op);
-      GNUNET_CONTAINER_DLL_remove (rc->dll_op_head, rc->dll_op_tail, dll_op);
-      GNUNET_TESTBED_operation_done (dll_op->op);
-      GNUNET_free (dll_op);
+      GNUNET_assert (event->op == rcop->op);
+      remove_rcop (rc, rcop);
+      GNUNET_TESTBED_operation_done (rcop->op);
+      GNUNET_free (rcop);
       if (rc->reg_hosts == rc->num_hosts)
       {
         rc->state = RC_LINKED;
@@ -655,17 +718,13 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       return;
     }
   }
-  for (dll_op = rc->dll_op_head; NULL != dll_op; dll_op = dll_op->next)
-  {
-    if ((GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type) &&
-        (event->op == dll_op->op))
-      break;
-  }
-  if (NULL == dll_op)
+  if (GNUNET_TESTBED_ET_OPERATION_FINISHED != event->type)
     goto call_cc;
-  GNUNET_CONTAINER_DLL_remove (rc->dll_op_head, rc->dll_op_tail, dll_op);
-  GNUNET_TESTBED_operation_done (dll_op->op);
-  GNUNET_free (dll_op);
+  if (NULL == (rcop = search_rcop (rc, event->op)))
+    goto call_cc;
+  remove_rcop (rc, rcop);
+  GNUNET_TESTBED_operation_done (rcop->op);
+  GNUNET_free (rcop);
   if ( (GNUNET_NO == rc->shutdown)
        && (NULL != event->details.operation_finished.emsg) )
   {
@@ -696,15 +755,11 @@ call_cc:
     rc->cc (rc->cc_cls, event);
   if (GNUNET_TESTBED_ET_PEER_START != event->type)
     return;
-  for (dll_op = rc->dll_op_head; NULL != dll_op; dll_op = dll_op->next)
-    if ((NULL != dll_op->cls) &&
-        (event->details.peer_start.peer == dll_op->cls))
-      break;
-  if (NULL == dll_op)           /* Not our operation */
+  if (NULL == (rcop = search_rcop (rc, event->op))) /* Not our operation */
     return;
-  GNUNET_CONTAINER_DLL_remove (rc->dll_op_head, rc->dll_op_tail, dll_op);
-  GNUNET_TESTBED_operation_done (dll_op->op);
-  GNUNET_free (dll_op);
+  remove_rcop (rc, rcop);
+  GNUNET_TESTBED_operation_done (rcop->op);
+  GNUNET_free (rcop);
   rc->peer_count++;
   if (rc->peer_count < rc->num_peers)
     return;
@@ -802,7 +857,7 @@ static void
 register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RunContext *rc = cls;
-  struct DLLOperation *dll_op;
+  struct RunContextOperation *rcop;
   unsigned int slave;
 
   rc->register_hosts_task = GNUNET_SCHEDULER_NO_TASK;
@@ -812,14 +867,13 @@ register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     /* Start slaves */
     for (slave = 0; slave < rc->num_hosts; slave++)
     {
-      dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-      dll_op->rc = rc;
-      dll_op->op =
-          GNUNET_TESTBED_controller_link (dll_op, rc->c, rc->hosts[slave],
+      rcop = GNUNET_malloc (sizeof (struct RunContextOperation));
+      rcop->rc = rc;
+      rcop->op =
+          GNUNET_TESTBED_controller_link (rcop, rc->c, rc->hosts[slave],
                                           rc->h, rc->cfg, GNUNET_YES);
-      GNUNET_assert (NULL != dll_op->op);
-      GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail,
-                                        dll_op);
+      GNUNET_assert (NULL != rcop->op);
+      insert_rcop (rc, rcop);
     }
     rc->reg_hosts = 0;
     return;
@@ -1184,6 +1238,7 @@ GNUNET_TESTBED_run (const char *host_filename,
     timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
                                              DEFAULT_SETUP_TIMEOUT);
   }
+  rc->rcop_map = GNUNET_CONTAINER_multihashmap32_create (256);
   rc->timeout_task =
       GNUNET_SCHEDULER_add_delayed (timeout, &timeout_task, rc);
   rc->interrupt_task =
