@@ -1161,6 +1161,14 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Service `%s' terminated normally, will restart at any time\n"),
               pos->name);
+          /* process can still be re-started on-demand, ensure it is re-started if there is demand */
+          for (sli = pos->listen_head; NULL != sli; sli = sli->next)
+          {
+            GNUNET_break (GNUNET_SCHEDULER_NO_TASK == sli->accept_task);
+            sli->accept_task =
+                GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                    sli->listen_socket, &accept_connection, sli);
+          }
 	}
         else
         {
@@ -1172,11 +1180,11 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  /* schedule restart */
 	  pos->restart_at = GNUNET_TIME_relative_to_absolute (pos->backoff);
 	  pos->backoff = GNUNET_TIME_STD_BACKOFF (pos->backoff);
-        }
-	if (GNUNET_SCHEDULER_NO_TASK != child_restart_task)
-	  GNUNET_SCHEDULER_cancel (child_restart_task);
-	child_restart_task = GNUNET_SCHEDULER_add_with_priority (
+          if (GNUNET_SCHEDULER_NO_TASK != child_restart_task)
+            GNUNET_SCHEDULER_cancel (child_restart_task);
+          child_restart_task = GNUNET_SCHEDULER_add_with_priority (
             GNUNET_SCHEDULER_PRIORITY_IDLE, &delayed_restart_task, NULL);
+        }
       }
       else
       {

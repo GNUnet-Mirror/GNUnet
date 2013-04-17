@@ -18,6 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 
+#include "gnunet_os_lib.h"
+
 /**
  * Actually start a process.  All of the arguments given to this
  * function are strings that are used for the "argv" array.  However,
