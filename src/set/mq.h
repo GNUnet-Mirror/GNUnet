@@ -50,6 +50,21 @@ struct GNUNET_MQ_Handler
   uint16_t type;
 };
 
+/**
+ * Callback used for notifications
+ *
+ * @param cls closure
+ */
+typedef void (*GNUNET_MQ_NotifyCallback) (void *cls);
+
+/**
+ * Create a new message for MQ.
+ * 
+ * @param mhp message header to store the allocated message header in, can be NULL
+ * @param size size of the message to allocate
+ * @param type type of the message, will be set in the allocated message
+ * @param return the allocated MQ message
+ */
 struct GNUNET_MQ_Message *
 GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp, uint16_t size, uint16_t type);
 
@@ -57,16 +72,24 @@ void
 GNUNET_MQ_send (struct GNUNET_MQ_MessageQueue *mq, struct GNUNET_MQ_Message *mqm);
 
 
+/**
+ * Associate the assoc_data in mq with a unique request id.
+ *
+ * @param mq message queue, id will be unique for the queue
+ * @param mqm message to associate
+ * @param data to associate
+ */
+uint32_t
+GNUNET_MQ_assoc_add (struct GNUNET_MQ_MessageQueue *mq,
+                     struct GNUNET_MQ_Message *mqm,
+                     void *assoc_data);
+
 void *
 GNUNET_MQ_assoc_get (struct GNUNET_MQ_MessageQueue *mq, uint32_t request_id);
 
 void *
 GNUNET_MQ_assoc_remove (struct GNUNET_MQ_MessageQueue *mq, uint32_t request_id);
 
-uint32_t
-GNUNET_MQ_assoc_add (struct GNUNET_MQ_MessageQueue *mq,
-                     struct GNUNET_MQ_Message *mqm,
-                     void *assoc_data);
 
 
 struct GNUNET_MQ_MessageQueue *
