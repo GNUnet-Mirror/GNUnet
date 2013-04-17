@@ -68,8 +68,24 @@ typedef void (*GNUNET_MQ_NotifyCallback) (void *cls);
 struct GNUNET_MQ_Message *
 GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp, uint16_t size, uint16_t type);
 
+/**
+ * Send a message with the give message queue.
+ * May only be called once per message.
+ * 
+ * @param mq message queue
+ * @param mqm the message to send.
+ */
 void
 GNUNET_MQ_send (struct GNUNET_MQ_MessageQueue *mq, struct GNUNET_MQ_Message *mqm);
+
+/**
+ * Cancel sending the message. Message must have been sent with GNUNET_MQ_send before.
+ * May not be called after the notify sent callback has been called
+ *
+ * @param mqm queued message to cancel
+ */
+void
+GNUNET_MQ_send_cancel (struct GNUNET_MQ_Message *mqm);
 
 
 /**
