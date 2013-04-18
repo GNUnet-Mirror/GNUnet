@@ -196,17 +196,6 @@ struct RegexPeer
 
 
 /**
- * An array of hosts loaded from the hostkeys file
- */
-static struct GNUNET_TESTBED_Host **hosts;
-
-/**
- * Array of peer handles used to pass to
- * GNUNET_TESTBED_overlay_configure_topology
- */
-static struct GNUNET_TESTBED_Peer **peer_handles;
-
-/**
  * The array of peers; we fill this as the peers are given to us by the testbed
  */
 static struct RegexPeer *peers;
@@ -230,26 +219,6 @@ static struct GNUNET_TESTBED_Controller *mc;
  * Handle to global configuration
  */
 static struct GNUNET_CONFIGURATION_Handle *cfg;
-
-/**
- * Head of the operations list
- */
-static struct DLLOperation *dll_op_head;
-
-/**
- * Tail of the operations list
- */
-static struct DLLOperation *dll_op_tail;
-
-/**
- * Peer linking - topology operation
- */
-static struct GNUNET_TESTBED_Operation *topology_op;
-
-/**
- * The handle for whether a host is habitable or not
- */
-struct GNUNET_TESTBED_HostHabitableCheckHandle **hc_handles;
 
 /**
  * Abort task identifier
@@ -287,24 +256,9 @@ static struct GNUNET_TIME_Relative prof_time;
 static unsigned int num_peers;
 
 /**
- * Number of hosts in the hosts array
- */
-static unsigned int num_hosts;
-
-/**
  * Factor of number of links. num_links = num_peers * linking_factor.
  */
 static unsigned int linking_factor;
-
-/**
- * Number of random links to be established between peers
- */
-static unsigned int num_links;
-
-/**
- * Number of connect operations that have failed, candidates to retry
- */
-static unsigned int retry_links;
 
 /**
  * Global testing status
@@ -345,11 +299,6 @@ static unsigned int peers_found;
  * Index of peer to start next announce/search.
  */
 static unsigned int next_search;
-
-/**
- * Search task identifier
- */
-static GNUNET_SCHEDULER_TaskIdentifier search_task;
 
 /**
  * Search timeout task identifier.
@@ -484,9 +433,7 @@ announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct DLLOperation *dll_op;
   struct RegexPeer *peer;
-  unsigned int nhost;
   unsigned int peer_cnt;
   unsigned int search_str_cnt;
   char output_buffer[512];
@@ -495,14 +442,6 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   shutdown_task = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
-  if (NULL != hc_handles)
-  {
-    for (nhost = 0; nhost < num_hosts; nhost++)
-      if (NULL != hc_handles[nhost])
-        GNUNET_TESTBED_is_host_habitable_cancel (hc_handles[nhost]);
-    GNUNET_free (hc_handles);
-    hc_handles = NULL;
-  }
   if (GNUNET_SCHEDULER_NO_TASK != register_hosts_task)
     GNUNET_SCHEDULER_cancel (register_hosts_task);
 
@@ -546,19 +485,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (NULL != reg_handle)
     GNUNET_TESTBED_cancel_registration (reg_handle);
-  if (NULL != topology_op)
-    GNUNET_TESTBED_operation_done (topology_op);
-  for (nhost = 0; nhost < num_hosts; nhost++)
-    if (NULL != hosts[nhost])
-      GNUNET_TESTBED_host_destroy (hosts[nhost]);
-  GNUNET_free_non_null (hosts);
 
-  while (NULL != (dll_op = dll_op_head))
-  {
-    GNUNET_TESTBED_operation_done (dll_op->op);
-    GNUNET_CONTAINER_DLL_remove (dll_op_head, dll_op_tail, dll_op);
-    GNUNET_free (dll_op);
-  }
   if (NULL != mc)
     GNUNET_TESTBED_controller_disconnect (mc);
   if (NULL != mc_proc)
@@ -1179,527 +1106,35 @@ dht_da (void *cls, void *op_result)
 }
 
 
+/**
+ * Signature of a main function for a testcase.
+ *
+ * @param cls NULL
+ * @param num_peers_ number of peers in 'peers'
+ * @param peers handle to peers run in the testbed.  NULL upon timeout (see
+ *          GNUNET_TESTBED_test_run()).
+ * @param links_succeeded the number of overlay link connection attempts that
+ *          succeeded
+ * @param links_failed the number of overlay link connection attempts that
+ *          failed
+ */
+static void 
+test_master (void *cls,
+             unsigned int num_peers_,
+             struct GNUNET_TESTBED_Peer **testbed_peers,
+             unsigned int links_succeeded,
+             unsigned int links_failed)
+{
+  unsigned int i;
+
+  for (i = 0; i < num_peers; i++) 
+  GNUNET_SCHEDULER_add_now (&do_announce, NULL);
+}
+
+
 /******************************************************************************/
 /***************************  TESTBED PEER SETUP  *****************************/
 /******************************************************************************/
-
-
-/**
- * Configure the peer overlay topology.
- *
- * @param cls NULL
- * @param tc the task context
- */
-static void
-do_configure_topology (void *cls,
-                       const struct GNUNET_SCHEDULER_TaskContext * tc)
-{
-  /*
-    if (0 == linking_factor)
-    linking_factor = 1;
-    num_links = linking_factor * num_peers;
-  */
-  /* num_links = num_peers - 1; */
-  num_links = linking_factor;
-
-  /* Do overlay connect */
-  prof_start_time = GNUNET_TIME_absolute_get ();
-  topology_op =
-    GNUNET_TESTBED_overlay_configure_topology (NULL, num_peers, peer_handles,
-                                               NULL,
-                                               NULL,
-                                               NULL,
-                                               GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI,
-                                               num_links,
-                                               GNUNET_TESTBED_TOPOLOGY_RETRY_CNT,
-                                               (unsigned int) 0,
-                                               GNUNET_TESTBED_TOPOLOGY_OPTION_END);
-  if (NULL == topology_op)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Cannot create topology, op handle was NULL\n");
-    GNUNET_assert (0);
-  }
-}
-
-
-/**
- * Functions of this signature are called when a peer has been successfully
- * started or stopped.
- *
- * @param cls the closure from GNUNET_TESTBED_peer_start/stop()
- * @param emsg NULL on success; otherwise an error description
- */
-static void
-peer_churn_cb (void *cls, const char *emsg)
-{
-  struct DLLOperation *dll_op = cls;
-  struct GNUNET_TESTBED_Operation *op;
-  static unsigned int started_peers;
-  unsigned int peer_cnt;
-
-  op = dll_op->op;
-  GNUNET_CONTAINER_DLL_remove (dll_op_head, dll_op_tail, dll_op);
-  GNUNET_free (dll_op);
-  if (NULL != emsg)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-         _("An operation has failed while starting peers: %s\n"), emsg);
-    GNUNET_TESTBED_operation_done (op);
-    if (GNUNET_SCHEDULER_NO_TASK != abort_task)
-      GNUNET_SCHEDULER_cancel (abort_task);
-    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, (void*) __LINE__);
-    return;
-  }
-  GNUNET_TESTBED_operation_done (op);
-  if (++started_peers == num_peers)
-  {
-    prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-                "All peers started successfully in %s\n",
-                GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
-    result = GNUNET_OK;
-
-    peer_handles = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Peer *) * num_peers);
-    for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
-      peer_handles[peer_cnt] = peers[peer_cnt].peer_handle;
-
-    state = STATE_PEERS_LINKING;
-    GNUNET_SCHEDULER_add_now (&do_configure_topology, NULL);
-  }
-}
-
-
-/**
- * Functions of this signature are called when a peer has been successfully
- * created
- *
- * @param cls the closure from GNUNET_TESTBED_peer_create()
- * @param peer the handle for the created peer; NULL on any error during
- *          creation
- * @param emsg NULL if peer is not NULL; else MAY contain the error description
- */
-static void
-peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
-{
-  struct DLLOperation *dll_op = cls;
-  struct RegexPeer *peer_ptr;
-  static unsigned int created_peers;
-  unsigned int peer_cnt;
-
-  if (NULL != emsg)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-         _("Creating a peer failed. Error: %s\n"), emsg);
-    GNUNET_TESTBED_operation_done (dll_op->op);
-    GNUNET_CONTAINER_DLL_remove (dll_op_head, dll_op_tail, dll_op);
-    GNUNET_free (dll_op);
-    if (GNUNET_SCHEDULER_NO_TASK != abort_task)
-      GNUNET_SCHEDULER_cancel (abort_task);
-    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, (void*) __LINE__);
-    return;
-  }
-
-  peer_ptr = dll_op->cls;
-  GNUNET_assert (NULL == peer_ptr->peer_handle);
-  GNUNET_CONFIGURATION_destroy (peer_ptr->cfg);
-  peer_ptr->cfg = NULL;
-  peer_ptr->peer_handle = peer;
-  GNUNET_TESTBED_operation_done (dll_op->op);
-  GNUNET_CONTAINER_DLL_remove (dll_op_head, dll_op_tail, dll_op);
-  GNUNET_free (dll_op);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %i created on host %s\n",
-              peer_ptr->id,
-              GNUNET_TESTBED_host_get_hostname (peer_ptr->host_handle));
-
-  if (++created_peers == num_peers)
-  {
-    prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "All peers created successfully in %s\n",
-                GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
-    /* Now peers are to be started */
-    state = STATE_PEERS_STARTING;
-    prof_start_time = GNUNET_TIME_absolute_get ();
-    for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
-    {
-      dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-      dll_op->op = GNUNET_TESTBED_peer_start (dll_op,
-                                              peers[peer_cnt].peer_handle,
-                                              &peer_churn_cb, dll_op);
-      GNUNET_CONTAINER_DLL_insert_tail (dll_op_head, dll_op_tail, dll_op);
-    }
-  }
-}
-
-
-/**
- * Function called with a filename for each file in the policy directory. Create
- * a peer for each filename and update the peer's configuration to include the
- * max_path_compression specified as a command line argument as well as the
- * policy_file for this peer. The gnunet-service-regexprofiler service is
- * automatically started on this peer. The service reads the configurration and
- * announces the regexes stored in the policy file 'filename'.
- *
- * @param cls closure
- * @param filename complete filename (absolute path)
- * @return GNUNET_OK to continue to iterate,
- *  GNUNET_SYSERR to abort iteration with error!
- */
-static int
-policy_filename_cb (void *cls, const char *filename)
-{
-  static unsigned int peer_cnt;
-  struct DLLOperation *dll_op;
-  struct RegexPeer *peer = &peers[peer_cnt];
-
-  GNUNET_assert (NULL != peer);
-
-  peer->policy_file = GNUNET_strdup (filename);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Creating peer %i on host %s for policy file %s\n",
-              peer->id, GNUNET_TESTBED_host_get_hostname (peer->host_handle),
-              filename);
-
-  /* Set configuration options specific for this peer
-     (max_path_compression and policy_file */
-  peer->cfg = GNUNET_CONFIGURATION_dup (cfg);
-  GNUNET_CONFIGURATION_set_value_number (peer->cfg, "REGEXPROFILER",
-                                         "MAX_PATH_COMPRESSION",
-                                         (unsigned long long)
-                                         max_path_compression);
-  GNUNET_CONFIGURATION_set_value_string (peer->cfg, "REGEXPROFILER",
-                                         "POLICY_FILE", filename);
-
-  dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-  dll_op->cls = &peers[peer_cnt];
-  dll_op->op = GNUNET_TESTBED_peer_create (mc,
-                                           peer->host_handle,
-                                           peer->cfg,
-                                           &peer_create_cb,
-                                           dll_op);
-  GNUNET_CONTAINER_DLL_insert_tail (dll_op_head, dll_op_tail, dll_op);
-
-  peer_cnt++;
-
-  return GNUNET_OK;
-}
-
-
-/**
- * Controller event callback.
- *
- * @param cls NULL
- * @param event the controller event
- */
-static void
-controller_event_cb (void *cls,
-                     const struct GNUNET_TESTBED_EventInformation *event)
-{
-  struct DLLOperation *dll_op;
-  struct GNUNET_TESTBED_Operation *op;
-  int ret;
-
-  switch (state)
-  {
-  case STATE_SLAVES_STARTING:
-    switch (event->type)
-    {
-    case GNUNET_TESTBED_ET_OPERATION_FINISHED:
-      {
-        static unsigned int slaves_started;
-        unsigned int peer_cnt;
-
-        dll_op = event->op_cls;
-        GNUNET_CONTAINER_DLL_remove (dll_op_head, dll_op_tail, dll_op);
-        GNUNET_free (dll_op);
-        op = event->op;
-        if (NULL != event->details.operation_finished.emsg)
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-               _("An operation has failed while starting slaves\n"));
-          GNUNET_TESTBED_operation_done (op);
-          if (GNUNET_SCHEDULER_NO_TASK != abort_task)
-            GNUNET_SCHEDULER_cancel (abort_task);
-          abort_task = GNUNET_SCHEDULER_add_now (&do_abort, (void*) __LINE__);
-          return;
-        }
-        GNUNET_TESTBED_operation_done (op);
-        /* Proceed to start peers */
-        if (++slaves_started == num_hosts - 1)
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                      "All slaves started successfully\n");
-
-          state = STATE_PEERS_CREATING;
-          prof_start_time = GNUNET_TIME_absolute_get ();
-
-          if (-1 == (ret = GNUNET_DISK_directory_scan (policy_dir,
-                                                       NULL,
-                                                       NULL)))
-          {
-            GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                        _("No files found in `%s'\n"),
-                        policy_dir);
-            GNUNET_SCHEDULER_shutdown ();
-            return;
-          }
-          num_peers = (unsigned int) ret;
-          peers = GNUNET_malloc (sizeof (struct RegexPeer) * num_peers);
-
-          /* Initialize peers */
-          for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
-          {
-            struct RegexPeer *peer = &peers[peer_cnt];
-            peer->id = peer_cnt;
-            peer->policy_file = NULL;
-            /* Do not start peers on hosts[0] (master controller) */
-            peer->host_handle = hosts[1 + (peer_cnt % (num_hosts -1))];
-            peer->dht_handle = NULL;
-            peer->search_handle = NULL;
-            peer->stats_handle = NULL;
-            peer->stats_op_handle = NULL;
-            peer->search_str = NULL;
-            peer->search_str_matched = GNUNET_NO;
-          }
-
-          GNUNET_DISK_directory_scan (policy_dir,
-                                      &policy_filename_cb,
-                                      NULL);
-        }
-      }
-      break;
-    default:
-      GNUNET_assert (0);
-    }
-    break;
-  case STATE_PEERS_STARTING:
-    switch (event->type)
-    {
-    case GNUNET_TESTBED_ET_OPERATION_FINISHED:
-      /* Control reaches here when peer start fails */
-    case GNUNET_TESTBED_ET_PEER_START:
-      /* we handle peer starts in peer_churn_cb */
-      break;
-    default:
-      GNUNET_assert (0);
-    }
-    break;
-  case STATE_PEERS_LINKING:
-   switch (event->type)
-   {
-     static unsigned int established_links;
-   case GNUNET_TESTBED_ET_OPERATION_FINISHED:
-     /* Control reaches here when a peer linking operation fails */
-     if (NULL != event->details.operation_finished.emsg)
-     {
-       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                   _("An operation has failed while linking\n"));
-       printf ("F%u/%u(%s)",
-               retry_links + 1, established_links + 1, 
-               event->details.operation_finished.emsg);
-       fflush (stdout);
-       retry_links++;
-     }
-     /* We do no retries, consider this link as established */
-     /* break; */
-   case GNUNET_TESTBED_ET_CONNECT:
-   {
-     char output_buffer[1024];
-     size_t size;
-
-     if (0 == established_links)
-       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Establishing links .");
-     else
-     {
-       printf (".");fflush (stdout);
-     }
-     if (++established_links == num_links)
-     {
-       prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
-       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                   "%u links established in %s\n",
-                   num_links,
-                   GNUNET_STRINGS_relative_time_to_string (prof_time,
-                                                           GNUNET_NO));
-       prof_time = GNUNET_TIME_relative_divide(prof_time, num_links);
-       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                   "Average of %s per connection\n",
-                   GNUNET_STRINGS_relative_time_to_string (prof_time,
-                                                           GNUNET_NO));
-       result = GNUNET_OK;
-       GNUNET_free (peer_handles);
-
-       if (NULL != data_file)
-       {
-         size =
-           GNUNET_snprintf (output_buffer,
-                            sizeof (output_buffer),
-                            "# of peers: %u\n# of links established: %u\n"
-                            "Time to establish links: %s\n"
-                            "Linking failures: %u\n"
-                            "path compression length: %u\n"
-                            "# of search strings: %u\n",
-                            num_peers,
-                            (established_links - retry_links),
-                            GNUNET_STRINGS_relative_time_to_string (prof_time,
-                                                                    GNUNET_NO),
-                            retry_links,
-                            max_path_compression,
-                            num_search_strings);
-
-         if (size != GNUNET_DISK_file_write (data_file, output_buffer, size))
-           GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to write to file!\n");
-       }
-
-       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                   "\nWaiting %s before starting to announce.\n",
-                   GNUNET_STRINGS_relative_time_to_string (search_delay,
-                                                           GNUNET_NO));
-       state = STATE_SEARCH_REGEX;
-       search_task = GNUNET_SCHEDULER_add_delayed (search_delay,
-                                                   &do_announce, NULL);
-     }
-   }
-   break;
-   default:
-     GNUNET_assert (0);
-   }
-   break;
-  case STATE_SEARCH_REGEX:
-  {
-    /* Handled in service connect callback */
-    break;
-  }
-  default:
-    switch (state)
-    {
-    case STATE_PEERS_CREATING:
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to create peer\n");
-      break;
-    default:
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Unexpected controller_cb with state %i!\n", state);
-    }
-    GNUNET_assert (0);
-  }
-}
-
-
-/**
- * Task to register all hosts available in the global host list.
- *
- * @param cls NULL
- * @param tc the scheduler task context
- */
-static void
-register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-
-/**
- * Callback which will be called to after a host registration succeeded or failed
- *
- * @param cls the closure
- * @param emsg the error message; NULL if host registration is successful
- */
-static void
-host_registration_completion (void *cls, const char *emsg)
-{
-  reg_handle = NULL;
-  if (NULL != emsg)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Host registration failed for a host. Error: %s\n"), emsg);
-    if (GNUNET_SCHEDULER_NO_TASK != abort_task)
-      GNUNET_SCHEDULER_cancel (abort_task);
-    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, (void*) __LINE__);
-    return;
-  }
-  register_hosts_task = GNUNET_SCHEDULER_add_now (&register_hosts, NULL);
-}
-
-
-/**
- * Task to register all hosts available in the global host list.
- *
- * @param cls NULL
- * @param tc the scheduler task context
- */
-static void
-register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct DLLOperation *dll_op;
-  static unsigned int reg_host;
-  unsigned int slave;
-
-  register_hosts_task = GNUNET_SCHEDULER_NO_TASK;
-  if (reg_host == num_hosts - 1)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "All hosts successfully registered\n");
-    /* Start slaves */
-    state = STATE_SLAVES_STARTING;
-    for (slave = 1; slave < num_hosts; slave++)
-    {
-      dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-      dll_op->op = GNUNET_TESTBED_controller_link (dll_op,
-                                                   mc,
-                                                   hosts[slave],
-                                                   hosts[0],
-                                                   cfg,
-                                                   GNUNET_YES);
-      GNUNET_CONTAINER_DLL_insert_tail (dll_op_head, dll_op_tail, dll_op);
-    }
-    return;
-  }
-  reg_handle = GNUNET_TESTBED_register_host (mc, hosts[++reg_host],
-                                             host_registration_completion,
-                                             NULL);
-}
-
-
-/**
- * Callback to signal successfull startup of the controller process.
- *
- * @param cls the closure from GNUNET_TESTBED_controller_start()
- * @param config the configuration with which the controller has been started;
- *          NULL if status is not GNUNET_OK
- * @param status GNUNET_OK if the startup is successfull; GNUNET_SYSERR if not,
- *          GNUNET_TESTBED_controller_stop() shouldn't be called in this case
- */
-static void
-status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config, int status)
-{
-  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
-    GNUNET_SCHEDULER_cancel (abort_task);
-  if (GNUNET_OK != status)
-  {
-    mc_proc = NULL;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Oh, dear!\n");
-    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, (void*) __LINE__);
-    return;
-  }
-  event_mask = 0;
-  event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
-  event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
-  event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
-  event_mask |= (1LL << GNUNET_TESTBED_ET_DISCONNECT);
-  event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
-  mc = GNUNET_TESTBED_controller_connect (hosts[0], event_mask,
-                                          &controller_event_cb, NULL);
-  if (NULL == mc)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Unable to connect to master controller -- Check config\n"));
-    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, (void*) __LINE__);
-    return;
-  }
-  register_hosts_task = GNUNET_SCHEDULER_add_now (&register_hosts, NULL);
-  abort_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                             &do_abort, (void*) __LINE__);
-}
 
 
 /**
@@ -1775,51 +1210,6 @@ load_search_strings (const char *filename, char ***strings, unsigned int limit)
 
 
 /**
- * Callbacks of this type are called by GNUNET_TESTBED_is_host_habitable to
- * inform whether the given host is habitable or not. The Handle returned by
- * GNUNET_TESTBED_is_host_habitable() is invalid after this callback is called
- *
- * @param cls NULL
- * @param host the host whose status is being reported; will be NULL if the host
- *          given to GNUNET_TESTBED_is_host_habitable() is NULL
- * @param status GNUNET_YES if it is habitable; GNUNET_NO if not
- */
-static void 
-host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host, int status)
-{
-  struct GNUNET_TESTBED_HostHabitableCheckHandle **hc_handle = cls;
-  static unsigned int hosts_checked;
-
-  *hc_handle = NULL;
-  if (GNUNET_NO == status)
-  {
-    if ((NULL != host) && (NULL != GNUNET_TESTBED_host_get_hostname (host)))
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Host %s cannot start testbed\n"),
-                  GNUNET_TESTBED_host_get_hostname (host));
-    else
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Testbed cannot be started on localhost\n"));
-    GNUNET_SCHEDULER_cancel (abort_task);
-    abort_task = GNUNET_SCHEDULER_add_now (&do_abort, (void*) __LINE__);
-    return;
-  }
-  hosts_checked++;
-  /* printf (_("\rChecked %u hosts"), hosts_checked); */
-  /* fflush (stdout); */
-  if (hosts_checked < num_hosts)
-    return;
-  /* printf (_("\nAll hosts can start testbed. Creating peers\n")); */
-  GNUNET_free (hc_handles);
-  hc_handles = NULL;
-  mc_proc = 
-      GNUNET_TESTBED_controller_start (GNUNET_TESTBED_host_get_hostname
-                                       (hosts[0]),
-                                       hosts[0],
-                                       status_cb,
-                                       NULL);
-}
-
-
-/**
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
@@ -1831,7 +1221,6 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
-  unsigned int nhost;
   unsigned int nsearchstrs;
 
   if (NULL == args[0])
@@ -1844,43 +1233,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("No policy directory specified on command line. Exiting.\n"));
-    return;
-  }
-  num_hosts = GNUNET_TESTBED_hosts_load_from_file (args[0], config, &hosts);
-  if (0 == num_hosts)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("No hosts loaded. Need at least one host\n"));
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-              _("Checking whether given hosts can start testbed."
-                "Please wait\n"));
-  hc_handles = GNUNET_malloc (sizeof (struct
-                                      GNUNET_TESTBED_HostHabitableCheckHandle *) 
-                              * num_hosts);
-  for (nhost = 0; nhost < num_hosts; nhost++)
-  {
-    hc_handles[nhost] = GNUNET_TESTBED_is_host_habitable (hosts[nhost], config,
-                                                          &host_habitable_cb,
-                                                          &hc_handles[nhost]);
-    if (NULL == hc_handles[nhost])
-    {
-      int i;
-
-      GNUNET_break (0);
-      for (i = 0; i <= nhost; i++)
-        if (NULL != hc_handles[i])
-          GNUNET_TESTBED_is_host_habitable_cancel (hc_handles[i]);
-      GNUNET_free (hc_handles);
-      hc_handles = NULL;
-      break;
-    }
-  }
-  if (num_hosts != nhost)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Exiting\n"));
-    shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
   if (NULL == config)
