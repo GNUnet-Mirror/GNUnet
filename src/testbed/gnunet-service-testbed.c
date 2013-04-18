@@ -953,7 +953,7 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
      sizeof (struct GNUNET_TESTBED_SlaveGetConfigurationMessage)},
     {&GST_handle_shutdown_peers, NULL, GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS,
      sizeof (struct GNUNET_TESTBED_ShutdownPeersMessage)},
-    {NULL}
+    {NULL, NULL, 0, 0}
   };
   char *logfile;
   unsigned long long num;

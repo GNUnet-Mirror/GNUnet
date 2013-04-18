@@ -1811,17 +1811,24 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_SET_REQUEST 578
 
-
 /**
  * Evaluate a set operation
  */
 #define GNUNET_MESSAGE_TYPE_SET_CREATE 579
 
 
-/**
- *  Next available: 600
- */
+/*******************************************************************************
+ * TESTBED LOGGER message types
+ ******************************************************************************/
 
+/**
+ * Message for TESTBED LOGGER
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_LOGGER_MSG 600
+
+/**
+ *  Next available: 605
+ */
 
 /*******************************************************************************
  * TODO: we need a way to register message types centrally (via some webpage).

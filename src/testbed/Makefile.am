@@ -23,7 +23,8 @@ pkgcfg_DATA = \
 
 libexec_PROGRAMS = \
   gnunet-service-testbed \
-  gnunet-helper-testbed
+  gnunet-helper-testbed \
+  gnunet-service-testbed-logger
 
 bin_PROGRAMS = \
   $(ll_binaries) \
@@ -48,6 +49,11 @@ gnunet_service_testbed_LDADD = $(XLIB) \
  $(LTLIBINTL) -lz
 gnunet_service_testbed_DEPENDENCIES = \
  libgnunettestbed.la
+
+gnunet_service_testbed_logger_SOURCES = \
+  gnunet-service-testbed-logger.c
+gnunet_service_testbed_logger_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la
 
 gnunet_testbed_profiler_SOURCES = \
   gnunet-testbed-profiler.c
