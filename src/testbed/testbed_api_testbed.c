@@ -293,6 +293,13 @@ struct RunContext
 
 };
 
+
+/**
+ * Return a 32-bit key from a pointer
+ *
+ * @param rcop the pointer
+ * @return 32-bit key
+ */
 static uint32_t
 rcop_key (void *rcop)
 {  
@@ -300,13 +307,31 @@ rcop_key (void *rcop)
 }
 
 
+/**
+ * Context information used for finding a pointer in the rcop_map
+ */
 struct SearchContext
 {
+  /**
+   * The operation pointer to look for
+   */
   struct GNUNET_TESTBED_Operation *query;
 
+  /**
+   * The Run context operation which has the operation being queried
+   */
   struct RunContextOperation *result;
 };
 
+
+/**
+ * Iterator for searching over the elements matching a given query
+ *
+ * @param cls the SearchContext
+ * @param key the 32-bit key
+ * @param value the RunContextOperation element
+ * @return GNUNET_YES to continue iteration; GNUNET_NO to cancel it
+ */
 static int
 search_iterator (void *cls, uint32_t key, void *value)
 {
@@ -323,6 +348,15 @@ search_iterator (void *cls, uint32_t key, void *value)
   return GNUNET_YES;
 }
 
+
+/**
+ * Initiate a search for the given operation in the rcop_map
+ *
+ * @param rc the RunContext whose rcop_map will be searched for the given
+ *          operation
+ * @param op the given operation to search for
+ * @return the matching RunContextOperation if found; NULL if not
+ */
 static struct RunContextOperation *
 search_rcop (struct RunContext *rc, struct GNUNET_TESTBED_Operation *op)
 {
@@ -342,6 +376,13 @@ search_rcop (struct RunContext *rc, struct GNUNET_TESTBED_Operation *op)
   return NULL;
 }
 
+
+/**
+ * Insert an RunContextOperation into the rcop_map of the given RunContext
+ *
+ * @param rc the RunContext into whose map is to be used for insertion
+ * @param rcop the RunContextOperation to insert
+ */
 static void
 insert_rcop (struct RunContext *rc, struct RunContextOperation *rcop)
 {
@@ -351,6 +392,14 @@ insert_rcop (struct RunContext *rc, struct RunContextOperation *rcop)
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
 }
 
+
+/**
+ * Remove a RunContextOperation from the rcop_map of the given RunContext
+ *
+ * @param rc the RunContext from whose map the given RunContextOperaton has to
+ *          be removed
+ * @param rcop the RunContextOperation
+ */
 static void
 remove_rcop (struct RunContext *rc, struct RunContextOperation *rcop)
 {
@@ -395,6 +444,15 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_free (rc);
 }
 
+
+/**
+ * Iterator for cleaning up elements from rcop_map 
+ *
+ * @param cls the RunContext
+ * @param key the 32-bit key
+ * @param value the RunContextOperation element
+ * @return always GNUNET_YES
+ */
 static int
 rcop_cleanup_iterator (void *cls, uint32_t key, void *value)
 {
@@ -408,6 +466,13 @@ rcop_cleanup_iterator (void *cls, uint32_t key, void *value)
   return GNUNET_YES;
 }
 
+
+/**
+ * Frees memory, closes pending operations, cancels actives tasks of the given
+ * RunContext 
+ *
+ * @param rc the RunContext
+ */
 static void
 cleanup (struct RunContext *rc)
 {
@@ -509,6 +574,12 @@ shutdown_now (struct RunContext *rc)
 }
 
 
+/**
+ * Task run upon any interrupt.  Common ones are SIGINT & SIGTERM.
+ *
+ * @param cls the RunContext which has to be acted upon
+ * @param tc the scheduler task context
+ */
 static void
 interrupt (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
