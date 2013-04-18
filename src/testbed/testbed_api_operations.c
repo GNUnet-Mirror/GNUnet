@@ -547,9 +547,6 @@ merge_ops (struct GNUNET_TESTBED_Operation ***old,
  * Checks for the readiness of an operation and schedules a operation start task
  *
  * @param op the operation
- * @param GNUNET_NO if the given operation cannot be made active; GNUNET_YES if
- *          it can be activated (has enough resources) and is kept in ready
- *          queue
  */
 static int
 check_readiness (struct GNUNET_TESTBED_Operation *op)

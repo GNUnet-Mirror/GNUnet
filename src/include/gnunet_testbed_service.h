@@ -524,10 +524,10 @@ GNUNET_TESTBED_controller_configure_sharing (struct GNUNET_TESTBED_Controller *c
  * controllers dependent on this controller).  This function
  * blocks until the testbed has been fully terminated (!).
  *
- * @param controller handle to controller to stop
+ * @param c handle to controller to stop
  */
 void
-GNUNET_TESTBED_controller_disconnect (struct GNUNET_TESTBED_Controller *controller);
+GNUNET_TESTBED_controller_disconnect (struct GNUNET_TESTBED_Controller *c);
 
 
 /**
@@ -911,7 +911,7 @@ GNUNET_TESTBED_peer_manage_service (void *op_cls,
  * when there are no other pending operations.  If there are pending operations,
  * it will return NULL
  *
- * @param controller the controller to send this message to
+ * @param c the controller to send this message to
  * @param op_cls closure for the operation
  * @param cb the callback to call when all peers are stopped and destroyed
  * @param cb_cls the closure for the callback
@@ -919,7 +919,7 @@ GNUNET_TESTBED_peer_manage_service (void *op_cls,
  *           present
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_shutdown_peers (struct GNUNET_TESTBED_Controller *controller,
+GNUNET_TESTBED_shutdown_peers (struct GNUNET_TESTBED_Controller *c,
                                void *op_cls,
                                GNUNET_TESTBED_OperationCompletionCallback cb,
                                void *cb_cls);

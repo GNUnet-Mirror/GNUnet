@@ -1573,7 +1573,9 @@ opc_free_iterator (void *cls, uint32_t key, void *value)
 
 
 /**
- * disconnects from the controller.
+ * Stop the given controller (also will terminate all peers and
+ * controllers dependent on this controller).  This function
+ * blocks until the testbed has been fully terminated (!).
  *
  * @param c handle to controller to stop
  */
