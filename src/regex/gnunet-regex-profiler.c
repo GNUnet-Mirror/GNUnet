@@ -131,11 +131,6 @@ struct RegexPeer
   struct GNUNET_TESTBED_Peer *peer_handle;
 
   /**
-   * Host on which the peer is running.
-   */
-  struct GNUNET_TESTBED_Host *host_handle;
-
-  /**
    * Filename of the peer's policy file.
    */
   char *policy_file;
@@ -793,11 +788,9 @@ regex_found_handler (void *cls,
       size =
         GNUNET_snprintf (output_buffer,
                          sizeof (output_buffer),
-                         "%p Peer: %u\n%p Host: %s\n%p Policy file: %s\n"
+                         "%p Peer: %u\n%p Policy file: %s\n"
                          "%p Search string: %s\n%p Search duration: %s\n\n",
                          peer, peer->id,
-                         peer,
-                         GNUNET_TESTBED_host_get_hostname (peer->host_handle),
                          peer, peer->policy_file,
                          peer, peer->search_str,
                          peer,
@@ -1239,23 +1232,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   char *hosts_file;
   char *strings_file;
 
-  /* Initialize peers */
-  peers = GNUNET_malloc (sizeof (struct RegexPeer) * num_peers);
-  for (i = 0; i < num_peers; i++)
-  {
-    struct RegexPeer *peer = &peers[i];
-    peer->id = i;
-    peer->policy_file = NULL;
-    /* Do not start peers on hosts[0] (master controller) */
-    /* peer->host_handle = hosts[1 + (peer_cnt % (num_hosts -1))]; */
-    peer->dht_handle = NULL;
-    peer->search_handle = NULL;
-    peer->stats_handle = NULL;
-    peer->stats_op_handle = NULL;
-    peer->search_str = NULL;
-    peer->search_str_matched = GNUNET_NO;
-  }
-
   /* Check config */
   if (NULL == config)
   {
@@ -1362,8 +1338,24 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
 
+  /* Initialize peers */
+  peers = GNUNET_malloc (sizeof (struct RegexPeer) * num_peers);
+  for (i = 0; i < num_peers; i++)
+  {
+    struct RegexPeer *peer = &peers[i];
+    peer->id = i;
+    peer->policy_file = NULL;
+    peer->dht_handle = NULL;
+    peer->search_handle = NULL;
+    peer->stats_handle = NULL;
+    peer->stats_op_handle = NULL;
+    peer->search_str = NULL;
+    peer->search_str_matched = GNUNET_NO;
+  }
+
   event_mask = 0LL;
-/*  event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
+/* For feedback about the start process activate these and pass master_cb
+  event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_DISCONNECT);*/
