@@ -1356,7 +1356,7 @@ run (HANDLE tap_handle)
    * DHCP and such are all features we will never use in gnunet afaik.
    * But for openvpn those are essential.
    */
-  if ((privilege_testing) || (! tun_up (tap_handle))
+  if ((privilege_testing) || (! tun_up (tap_handle)))
     goto teardown_final;
 
   /* Initialize our overlapped IO structures*/
