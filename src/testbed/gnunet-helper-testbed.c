@@ -393,7 +393,7 @@ tokenizer_cb (void *cls, void *client,
     hostname[hostname_size] = '\0';
   }
   test_system =
-      GNUNET_TESTING_system_create ("testbed-helper", trusted_ip, hostname);
+      GNUNET_TESTING_system_create ("testbed-helper", trusted_ip, hostname, NULL);
   GNUNET_free_non_null (hostname);
   hostname = NULL;
   GNUNET_assert (NULL != test_system);

@@ -485,7 +485,7 @@ handle_init (void *cls, struct GNUNET_SERVER_Client *client,
   LOG_DEBUG ("Our IP: %s\n", GST_context->master_ip);
   GST_context->system =
       GNUNET_TESTING_system_create ("testbed", GST_context->master_ip,
-                                    hostname);
+                                    hostname, NULL);
   host =
       GNUNET_TESTBED_host_create_with_id (GST_context->host_id,
                                           GST_context->master_ip, NULL,

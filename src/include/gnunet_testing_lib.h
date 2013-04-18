@@ -67,6 +67,29 @@ struct GNUNET_TESTING_Peer;
 
 
 /**
+ * Specification of a service that is to be shared among peers
+ */
+struct GNUNET_TESTING_SharedService
+{
+  /**
+   * The name of the service.
+   */
+  const char *service;
+
+  /**
+   * The configuration template for the service.  Cannot be NULL
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * The number of peers which share an instance of the service.  0 for sharing
+   * among all peers
+   */
+  unsigned int share;
+};
+
+
+/**
  * Create a system handle.  There must only be one system handle per operating
  * system.  Uses a default range for allowed ports.  Ports are still tested for
  * availability.
@@ -80,12 +103,16 @@ struct GNUNET_TESTING_Peer;
  *          in CIDR notation.
  * @param hostname the hostname of the system we are using for testing; NULL for
  *          localhost
+ * @param shared_services NULL terminated array describing services that are to
+ *          be shared among peers
  * @return handle to this system, NULL on error
  */
 struct GNUNET_TESTING_System *
 GNUNET_TESTING_system_create (const char *testdir,
 			      const char *trusted_ip,
-			      const char *hostname);
+			      const char *hostname,
+                              const struct GNUNET_TESTING_SharedService **
+                              shared_services);
 
 
 /**
@@ -104,6 +131,8 @@ GNUNET_TESTING_system_create (const char *testdir,
  *          in CIDR notation.
  * @param hostname the hostname of the system we are using for testing; NULL for
  *          localhost
+ * @param shared_services NULL terminated array describing services that are to
+ *          be shared among peers
  * @param lowport lowest port number this system is allowed to allocate (inclusive)
  * @param highport highest port number this system is allowed to allocate (exclusive)
  * @return handle to this system, NULL on error
@@ -112,6 +141,9 @@ struct GNUNET_TESTING_System *
 GNUNET_TESTING_system_create_with_portrange (const char *testdir,
 					     const char *trusted_ip,
 					     const char *hostname,
+                                             const struct
+                                             GNUNET_TESTING_SharedService **
+                                             shared_services,
 					     uint16_t lowport,
 					     uint16_t highport);
 

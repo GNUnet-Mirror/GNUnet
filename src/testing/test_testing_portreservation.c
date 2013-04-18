@@ -50,7 +50,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   uint16_t old_port1;
 
   system = GNUNET_TESTING_system_create ("/tmp/gnunet-testing-new",
-                                         "localhost", NULL);
+                                         "localhost", NULL, NULL);
   GNUNET_assert (NULL != system);
   new_port1 = GNUNET_TESTING_reserve_port (system, GNUNET_YES);
   LOG (GNUNET_ERROR_TYPE_DEBUG,

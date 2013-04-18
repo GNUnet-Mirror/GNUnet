@@ -76,7 +76,8 @@ create_unique_cfgs (const char * template, const unsigned int no)
   }
 
   fail = GNUNET_NO;
-  system = GNUNET_TESTING_system_create ("testing", NULL /* controller */, NULL);
+  system = GNUNET_TESTING_system_create ("testing", NULL /* controller */,
+                                         NULL, NULL);
   for (cur = 0; cur < no; cur++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating configuration no. %u \n", cur);
@@ -125,7 +126,7 @@ create_hostkeys (const unsigned int no)
   struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *pkb;
   ssize_t ret;
 
-  system = GNUNET_TESTING_system_create ("testing", NULL, NULL);
+  system = GNUNET_TESTING_system_create ("testing", NULL, NULL, NULL);
   pk = GNUNET_TESTING_hostkey_get (system, create_no, &id);
   if (NULL == pk)
   {

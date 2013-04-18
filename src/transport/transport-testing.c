@@ -578,7 +578,8 @@ GNUNET_TRANSPORT_TESTING_init ()
   tth = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_TESTING_handle));
 
   /* Init testing the testing lib */
-  tth->tl_system = GNUNET_TESTING_system_create ("transport-testing", NULL, NULL);
+  tth->tl_system = GNUNET_TESTING_system_create ("transport-testing", NULL,
+                                                 NULL, NULL);
   if (NULL == tth->tl_system)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to initialize testing library!\n"));
