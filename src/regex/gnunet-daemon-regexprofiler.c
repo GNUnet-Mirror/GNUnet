@@ -282,11 +282,14 @@ run (void *cls, char *const *args GNUNET_UNUSED,
      const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
   char *regex = NULL;
+  char *policy_dir;
+  long long unsigned int peer_id;
 
   cfg = cfg_;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, "REGEXPROFILER", "MAX_PATH_COMPRESSION",
+      GNUNET_CONFIGURATION_get_value_number (cfg, "REGEXPROFILER",
+                                             "MAX_PATH_COMPRESSION",
                                              &max_path_compression))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -297,10 +300,21 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "REGEXPROFILER",
-                                               "POLICY_FILE", &policy_filename))
+      GNUNET_CONFIGURATION_get_value_string (cfg, "REGEXPROFILER",
+                                             "POLICY_DIR", &policy_dir))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _
+                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
+                "regexprofiler", "policy_dir");
+    global_ret = GNUNET_SYSERR;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg, "TESTBED",
+                                             "PEERID", &peer_id))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
