@@ -1127,7 +1127,20 @@ test_master (void *cls,
 {
   unsigned int i;
 
-  for (i = 0; i < num_peers; i++) 
+  prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Testbed started in %s\n",
+              GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
+
+  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+  {
+    GNUNET_SCHEDULER_cancel (abort_task);
+    abort_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  for (i = 0; i < num_peers; i++)
+  {
+  }
   GNUNET_SCHEDULER_add_now (&do_announce, NULL);
 }
 
@@ -1226,6 +1239,24 @@ run (void *cls, char *const *args, const char *cfgfile,
   char *hosts_file;
   char *strings_file;
 
+  /* Initialize peers */
+  peers = GNUNET_malloc (sizeof (struct RegexPeer) * num_peers);
+  for (i = 0; i < num_peers; i++)
+  {
+    struct RegexPeer *peer = &peers[i];
+    peer->id = i;
+    peer->policy_file = NULL;
+    /* Do not start peers on hosts[0] (master controller) */
+    /* peer->host_handle = hosts[1 + (peer_cnt % (num_hosts -1))]; */
+    peer->dht_handle = NULL;
+    peer->search_handle = NULL;
+    peer->stats_handle = NULL;
+    peer->stats_op_handle = NULL;
+    peer->search_str = NULL;
+    peer->search_str_matched = GNUNET_NO;
+  }
+
+  /* Check config */
   if (NULL == config)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1233,8 +1264,9 @@ run (void *cls, char *const *args, const char *cfgfile,
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
+  cfg = GNUNET_CONFIGURATION_dup (config);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (config, "REGEXPROFILER",
+      GNUNET_CONFIGURATION_get_value_string (cfg, "REGEXPROFILER",
                                              "REGEX_PREFIX",
                                              &regex_prefix))
   {
@@ -1243,7 +1275,18 @@ run (void *cls, char *const *args, const char *cfgfile,
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg, "REGEXPROFILER",
+                                           "REANNOUNCE_PERIOD_MAX",
+                                           &reannounce_period_max))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
+                "reannounce_period_max not given. Using 10 minutes.\n");
+    reannounce_period_max =
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 10);
+  }
 
+  /* Check arguments */
   hosts_file = args[0];
   if (NULL == hosts_file)
   {
@@ -1258,26 +1301,18 @@ run (void *cls, char *const *args, const char *cfgfile,
                 _("No policy directory specified on command line. Exiting.\n"));
     return;
   }
-
-
-  if ( (NULL != data_filename) &&
-       (NULL == (data_file =
-                 GNUNET_DISK_file_open (data_filename,
-                                        GNUNET_DISK_OPEN_READWRITE |
-                                        GNUNET_DISK_OPEN_TRUNCATE |
-                                        GNUNET_DISK_OPEN_CREATE,
-                                        GNUNET_DISK_PERM_USER_READ |
-                                        GNUNET_DISK_PERM_USER_WRITE))) )
-  {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-                              "open",
-                              data_filename);
-  }
   if (GNUNET_YES != GNUNET_DISK_directory_test (policy_dir, GNUNET_YES))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Specified policies directory does not exist. Exiting.\n"));
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    return;
+  }
+  if (-1 == (num_peers = GNUNET_DISK_directory_scan (policy_dir, NULL, NULL)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("No files found in `%s'\n"),
+                policy_dir);
     return;
   }
   strings_file = args[2];
@@ -1306,26 +1341,33 @@ run (void *cls, char *const *args, const char *cfgfile,
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
-  cfg = GNUNET_CONFIGURATION_dup (config);
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (cfg, "REGEXPROFILER",
-                                           "REANNOUNCE_PERIOD_MAX",
-                                           &reannounce_period_max))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-                "reannounce_period_max not given. Using 10 minutes.\n");
-    reannounce_period_max =
-      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 10);
-  }
   for (i = 0; i < num_search_strings; i++)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "search string: %s\n",
                 search_strings[i]);
+
+  /* Check logfile */
+  if ( (NULL != data_filename) &&
+       (NULL == (data_file =
+                 GNUNET_DISK_file_open (data_filename,
+                                        GNUNET_DISK_OPEN_READWRITE |
+                                        GNUNET_DISK_OPEN_TRUNCATE |
+                                        GNUNET_DISK_OPEN_CREATE,
+                                        GNUNET_DISK_PERM_USER_READ |
+                                        GNUNET_DISK_PERM_USER_WRITE))) )
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+                              "open",
+                              data_filename);
+    return;
+  }
+
   event_mask = 0LL;
 /*  event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_DISCONNECT);*/
+  prof_start_time = GNUNET_TIME_absolute_get ();
   GNUNET_TESTBED_run (args[0],
                       cfg,
                       num_peers,
@@ -1336,7 +1378,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                       NULL);    /* test_master cls */
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 5),
+                                    (GNUNET_TIME_UNIT_MINUTES, 5),
                                     &do_abort,
                                     (void*) __LINE__);
 }
