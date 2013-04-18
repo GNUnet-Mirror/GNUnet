@@ -251,11 +251,6 @@ static struct GNUNET_TIME_Relative prof_time;
 static unsigned int num_peers;
 
 /**
- * Factor of number of links. num_links = num_peers * linking_factor.
- */
-static unsigned int linking_factor;
-
-/**
  * Global testing status
  */
 static int result;
@@ -269,6 +264,16 @@ enum State state;
  * Folder where policy files are stored.
  */
 static char * policy_dir;
+
+/**
+ * File with hostnames where to execute the test.
+ */
+static char *hosts_file;
+
+/**
+ * File with the strings to look for.
+ */
+static char *strings_file;
 
 /**
  * Search strings.
@@ -306,12 +311,6 @@ static GNUNET_SCHEDULER_TaskIdentifier search_timeout_task;
 static struct GNUNET_TIME_Relative search_timeout_time = { 60000 };
 
 /**
- * How long do we wait before starting the search?
- * Default: 1 m.
- */
-static struct GNUNET_TIME_Relative search_delay = { 60000 };
-
-/**
  * File to log statistics to.
  */
 static struct GNUNET_DISK_FileHandle *data_file;
@@ -320,11 +319,6 @@ static struct GNUNET_DISK_FileHandle *data_file;
  * Filename to log statistics to.
  */
 static char *data_filename;
-
-/**
- * Maximal path compression length.
- */
-static unsigned int max_path_compression;
 
 /**
  * Prefix used for regex announcing. We need to prefix the search
@@ -1120,6 +1114,8 @@ test_master (void *cls,
 {
   unsigned int i;
 
+  GNUNET_assert (num_peers_ == num_peers);
+
   prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Testbed started in %s\n",
@@ -1133,6 +1129,7 @@ test_master (void *cls,
 
   for (i = 0; i < num_peers; i++)
   {
+    peers[i].peer_handle = testbed_peers[i];
   }
   GNUNET_SCHEDULER_add_now (&do_announce, NULL);
 }
@@ -1229,8 +1226,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   unsigned int nsearchstrs;
   unsigned int i;
-  char *hosts_file;
-  char *strings_file;
 
   /* Check config */
   if (NULL == config)
@@ -1263,14 +1258,12 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
 
   /* Check arguments */
-  hosts_file = args[0];
   if (NULL == hosts_file)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("No hosts-file specified on command line. Exiting.\n"));
     return;
   }
-  policy_dir = args[1];
   if (NULL == policy_dir)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1291,7 +1284,8 @@ run (void *cls, char *const *args, const char *cfgfile,
                 policy_dir);
     return;
   }
-  strings_file = args[2];
+  GNUNET_CONFIGURATION_set_value_string (cfg, "REGEXPROFILER",
+                                         "POLICY_DIR", policy_dir);
   if (GNUNET_YES != GNUNET_DISK_file_test (strings_file))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1360,6 +1354,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_DISCONNECT);*/
   prof_start_time = GNUNET_TIME_absolute_get ();
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "1.\n");
   GNUNET_TESTBED_run (args[0],
                       cfg,
                       num_peers,
@@ -1368,11 +1363,13 @@ run (void *cls, char *const *args, const char *cfgfile,
                       NULL,     /* master_controller_cb cls */
                       &test_master,
                       NULL);    /* test_master cls */
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "2.\n");
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_MINUTES, 5),
                                     &do_abort,
                                     (void*) __LINE__);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "3.\n");
 }
 
 
@@ -1387,39 +1384,36 @@ int
 main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'d', "details", "FILENAME",
+    {'l', "log-file", "FILENAME",
      gettext_noop ("name of the file for writing statistics"),
      1, &GNUNET_GETOPT_set_string, &data_filename},
-    {'n', "num-links", "COUNT",
-      gettext_noop ("create COUNT number of random links between peers"),
-      GNUNET_YES, &GNUNET_GETOPT_set_uint, &linking_factor },
     {'t', "matching-timeout", "TIMEOUT",
       gettext_noop ("wait TIMEOUT before considering a string match as failed"),
-      GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &search_timeout_time
-        },
-    {'s', "search-delay", "DELAY",
-      gettext_noop ("wait DELAY before starting string search"),
-      GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &search_delay },
-    {'a', "num-search-strings", "COUNT",
+      GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &search_timeout_time },
+    {'n', "num-search-strings", "COUNT",
       gettext_noop ("number of search strings to read from search strings file"),
       GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_search_strings },
-    {'p', "max-path-compression", "MAX_PATH_COMPRESSION",
-     gettext_noop ("maximum path compression length"),
-     1, &GNUNET_GETOPT_set_uint, &max_path_compression},
+    {'p', "policy-dir", "DIRECTORY",
+      gettext_noop ("directory with policy files"),
+      GNUNET_YES, &GNUNET_GETOPT_set_filename, &policy_dir },
+    {'s', "strings-file", "FILENAME",
+      gettext_noop ("name of file with input strings"),
+      GNUNET_YES, &GNUNET_GETOPT_set_filename, &strings_file },
+    {'H', "hosts-file", "FILENAME",
+      gettext_noop ("name of file with hosts' names"),
+      GNUNET_YES, &GNUNET_GETOPT_set_filename, &hosts_file },
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
-
   result = GNUNET_SYSERR;
   ret =
       GNUNET_PROGRAM_run (argc, argv,
                           "gnunet-regex-profiler [OPTIONS] hosts-file policy-dir search-strings-file",
                           _("Profiler for regex"),
                           options, &run, NULL);
-
   if (GNUNET_OK != ret)
     return ret;
   if (GNUNET_OK != result)
