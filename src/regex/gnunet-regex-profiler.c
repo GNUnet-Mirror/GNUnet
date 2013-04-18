@@ -1222,19 +1222,10 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
   unsigned int nsearchstrs;
+  unsigned int i;
+  char *hosts_file;
+  char *strings_file;
 
-  if (NULL == args[0])
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("No hosts-file specified on command line. Exiting.\n"));
-    return;
-  }
-  if (NULL == args[1])
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("No policy directory specified on command line. Exiting.\n"));
-    return;
-  }
   if (NULL == config)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1242,9 +1233,9 @@ run (void *cls, char *const *args, const char *cfgfile,
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
-
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (config, "REGEXPROFILER", "REGEX_PREFIX",
+      GNUNET_CONFIGURATION_get_value_string (config, "REGEXPROFILER",
+                                             "REGEX_PREFIX",
                                              &regex_prefix))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1252,6 +1243,22 @@ run (void *cls, char *const *args, const char *cfgfile,
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
+
+  hosts_file = args[0];
+  if (NULL == hosts_file)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("No hosts-file specified on command line. Exiting.\n"));
+    return;
+  }
+  policy_dir = args[1];
+  if (NULL == policy_dir)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("No policy directory specified on command line. Exiting.\n"));
+    return;
+  }
+
 
   if ( (NULL != data_filename) &&
        (NULL == (data_file =
@@ -1261,28 +1268,31 @@ run (void *cls, char *const *args, const char *cfgfile,
                                         GNUNET_DISK_OPEN_CREATE,
                                         GNUNET_DISK_PERM_USER_READ |
                                         GNUNET_DISK_PERM_USER_WRITE))) )
+  {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
                               "open",
                               data_filename);
-  if (GNUNET_YES != GNUNET_DISK_directory_test (args[1], GNUNET_YES))
+  }
+  if (GNUNET_YES != GNUNET_DISK_directory_test (policy_dir, GNUNET_YES))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Specified policies directory does not exist. Exiting.\n"));
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
-  policy_dir = args[1];
-  if (GNUNET_YES != GNUNET_DISK_file_test (args[2]))
+  strings_file = args[2];
+  if (GNUNET_YES != GNUNET_DISK_file_test (strings_file))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("No search strings file given. Exiting.\n"));
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
-  nsearchstrs = load_search_strings (args[2], &search_strings, num_search_strings);
+  nsearchstrs = load_search_strings (strings_file,
+                                     &search_strings,
+                                     num_search_strings);
   if (num_search_strings != nsearchstrs)
   {
-    num_search_strings = nsearchstrs;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Error loading search strings."
                   "Given file does not contain enough strings. Exiting.\n"));
@@ -1307,12 +1317,27 @@ run (void *cls, char *const *args, const char *cfgfile,
     reannounce_period_max =
       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 10);
   }
-  unsigned int i;
   for (i = 0; i < num_search_strings; i++)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "search string: %s\n", search_strings[i]);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "search string: %s\n",
+                search_strings[i]);
+  event_mask = 0LL;
+/*  event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
+  event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
+  event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
+  event_mask |= (1LL << GNUNET_TESTBED_ET_DISCONNECT);*/
+  GNUNET_TESTBED_run (args[0],
+                      cfg,
+                      num_peers,
+                      event_mask,
+                      NULL,     /* master_controller_cb, */
+                      NULL,     /* master_controller_cb cls */
+                      &test_master,
+                      NULL);    /* test_master cls */
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 5), &do_abort,
+                                    (GNUNET_TIME_UNIT_SECONDS, 5),
+                                    &do_abort,
                                     (void*) __LINE__);
 }
 
