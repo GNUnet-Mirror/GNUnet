@@ -304,6 +304,25 @@ int
 GNUNET_GETOPT_set_string (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
                           void *scls, const char *option, const char *value);
 
+
+/**
+ * Set an option of type 'char *' from the command line doing fs expansion.
+ * A pointer to this function should be passed as part of the
+ * 'struct GNUNET_GETOPT_CommandLineOption' array to initialize options
+ * of this type.  It should be followed by a pointer to a value of
+ * type 'char *', which will be allocated with the requested string.
+ *
+ * @param ctx command line processing context
+ * @param scls additional closure (will point to the 'char *',
+ *             which will be allocated)
+ * @param option name of the option
+ * @param value actual value of the option (a string)
+ * @return GNUNET_OK
+ */
+int
+GNUNET_GETOPT_set_filename (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+                            void *scls, const char *option, const char *value);
+
 /**
  * Set an option of type 'unsigned int' from the command line. Each
  * time the option flag is given, the value is incremented by one.

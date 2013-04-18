@@ -234,6 +234,18 @@ GNUNET_GETOPT_set_string (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
 }
 
 
+int
+GNUNET_GETOPT_set_filename (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+                            void *scls, const char *option, const char *value)
+{
+  char **val = scls;
+
+  GNUNET_assert (value != NULL);
+  GNUNET_free_non_null (*val);
+  *val = GNUNET_STRINGS_filename_expand (value);
+  return GNUNET_OK;
+}
+
 /**
  * Set an option of type 'unsigned long long' from the command line.
  * A pointer to this function should be passed as part of the
