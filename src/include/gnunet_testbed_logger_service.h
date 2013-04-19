@@ -87,10 +87,6 @@ typedef void (*GNUNET_TESTBED_LOGGER_FlushCompletion) (void *cls, size_t size);
  * @param h the logger handle
  * @param data the data to send;
  * @param size how many bytes of data to send
- * @param cb the callback to be called upon completion of the send request
- * @param cb_cls the closure for the above callback
- * @return the send handle which can used for cancelling the send operation.
- *           Will be invalid if upon call to completion callback
  */
 void
 GNUNET_TESTBED_LOGGER_write (struct GNUNET_TESTBED_LOGGER_Handle *h,

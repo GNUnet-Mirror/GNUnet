@@ -165,7 +165,7 @@ queue_message (struct GNUNET_SERVER_Client *client,
  *
  * @param cls NULL
  * @param client identification of the client
- * @param message the actual message
+ * @param msg the actual message
  */
 static void
 handle_log_msg (void *cls, struct GNUNET_SERVER_Client *client,

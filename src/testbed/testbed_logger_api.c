@@ -149,8 +149,7 @@ call_flush_completion (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Schedule the flush completion notification task
  *
- * @param 
- * @return 
+ * @param h logger handle
  */
 static void
 trigger_flush_notification (struct GNUNET_TESTBED_LOGGER_Handle *h)
@@ -327,10 +326,6 @@ GNUNET_TESTBED_LOGGER_disconnect (struct GNUNET_TESTBED_LOGGER_Handle *h)
  * @param h the logger handle
  * @param data the data to send;
  * @param size how many bytes of data to send
- * @param cb the callback to be called upon completion of the send request
- * @param cb_cls the closure for the above callback
- * @return the send handle which can used for cancelling the send operation.
- *           Will be invalid if upon call to completion callback
  */
 void
 GNUNET_TESTBED_LOGGER_write (struct GNUNET_TESTBED_LOGGER_Handle *h,
