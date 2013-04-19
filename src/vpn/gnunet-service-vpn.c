@@ -3062,7 +3062,7 @@ run (void *cls,
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-vpn");
 
   if (GNUNET_YES !=
-      GNUNET_OS_check_helper_binary (binary, GNUNET_YES, NULL)) // FIXME: CF: add test-parameters
+      GNUNET_OS_check_helper_binary (binary, GNUNET_YES, "-d gnunet-vpn - - 169.1.3.3.7 255.255.255.0")) //ipv4 only please!
   {
     fprintf (stderr,
 	     "`%s' is not SUID, refusing to run.\n",

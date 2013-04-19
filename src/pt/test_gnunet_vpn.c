@@ -410,12 +410,12 @@ main (int argc, char *const *argv)
     return 0;
   }
 #endif
-  vpn_binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-vpn.exe");
-  exit_binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-exit.exe");
+  vpn_binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-vpn");
+  exit_binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-exit");
   fprintf (stderr,"%s\n", vpn_binary);
   fprintf (stderr,"%s\n", exit_binary);
-  if ((GNUNET_YES != (ret = GNUNET_OS_check_helper_binary (vpn_binary, GNUNET_YES, NULL))) || // FIXME: CF: add test-parameters
-      (GNUNET_YES != (ret = GNUNET_OS_check_helper_binary (exit_binary, GNUNET_YES, NULL)))) // FIXME: CF: add test-parameters
+  if ((GNUNET_YES != (ret = GNUNET_OS_check_helper_binary (vpn_binary, GNUNET_YES, "-d gnunet-vpn - - 169.1.3.3.7 255.255.255.0"))) || //ipv4 only please!
+      (GNUNET_YES != (ret = GNUNET_OS_check_helper_binary (exit_binary, GNUNET_YES, "-d gnunet-vpn - - - 169.1.3.3.7 255.255.255.0")))) //no nat, ipv4 only
   {
     GNUNET_free (vpn_binary);
     GNUNET_free (exit_binary);
