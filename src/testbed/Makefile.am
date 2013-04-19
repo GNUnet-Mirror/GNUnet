@@ -83,7 +83,8 @@ gnunet_testbed_mpi_spawn_DEPENDENCIES = \
  libgnunettestbed.la
 
 lib_LTLIBRARIES = \
-  libgnunettestbed.la
+  libgnunettestbed.la \
+  libgnunettestbedlogger.la
 
 libgnunettestbed_la_SOURCES = \
   testbed_api.c testbed_api.h testbed.h \
@@ -106,6 +107,15 @@ libgnunettestbed_la_LIBADD = $(XLIB) \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(LTLIBINTL)
 libgnunettestbed_la_LDFLAGS = \
+ $(GN_LIB_LDFLAGS) \
+ -version-info 0:0:0
+
+libgnunettestbedlogger_la_SOURCES = \
+  testbed_logger_api.c
+libgnunettestbedlogger_la_LIBADD = $(XLIB) \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(LTLIBINTL)
+libgnunettestbedlogger_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS) \
  -version-info 0:0:0
 

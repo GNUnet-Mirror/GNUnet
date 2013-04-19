@@ -48,3 +48,13 @@ SETUP_TIMEOUT = 5 m
 
 # Where should testbed write load statistics data
 # STATS_DIR = /tmp/load
+
+[testbed-logger]
+AUTOSTART = NO
+@UNIXONLY@ PORT = 2102
+HOSTNAME = localhost
+BINARY = gnunet-service-testbed-logger
+UNIXPaTH = /tmp/gnunet-gnunet-testbed-logger.sock
+DIR = /tmp
+UNIX_MATCH_UID = YES
+UNIX_MATCH_GID = YES

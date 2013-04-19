@@ -1827,6 +1827,11 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TESTBED_LOGGER_MSG 600
 
 /**
+ * Message for TESTBED LOGGER acknowledgement
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_LOGGER_ACK 601
+
+/**
  *  Next available: 605
  */
 
