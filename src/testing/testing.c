@@ -385,13 +385,13 @@ GNUNET_TESTING_system_create_with_portrange (const char *testdir,
 					     const char *trusted_ip,
 					     const char *hostname,
                                              const struct
-                                             GNUNET_TESTING_SharedService **
+                                             GNUNET_TESTING_SharedService *
                                              shared_services,
 					     uint16_t lowport,
 					     uint16_t highport)
 {
   struct GNUNET_TESTING_System *system;
-  const struct GNUNET_TESTING_SharedService *tss;
+  struct GNUNET_TESTING_SharedService tss;
   struct SharedService *ss;
   unsigned int cnt;
 
@@ -416,17 +416,17 @@ GNUNET_TESTING_system_create_with_portrange (const char *testdir,
   }
   if (NULL == shared_services)
     return system;
-  for (cnt = 0; NULL != (tss = shared_services[cnt]); cnt++)
+  for (cnt = 0; NULL != shared_services[cnt].service; cnt++)
   {
+    tss = shared_services[cnt];
     ss = GNUNET_malloc (sizeof (struct SharedService));
-    ss->sname = GNUNET_strdup (tss->service);
-    ss->cfg = GNUNET_CONFIGURATION_dup (tss->cfg);
+    ss->sname = GNUNET_strdup (tss.service);
     ss->cfg = GNUNET_CONFIGURATION_create ();
-    GNUNET_CONFIGURATION_iterate_section_values (tss->cfg, ss->sname,
+    GNUNET_CONFIGURATION_iterate_section_values (tss.cfg, ss->sname,
                                                  &cfg_copy_iterator, ss->cfg);
-    GNUNET_CONFIGURATION_iterate_section_values (tss->cfg, "TESTING",
+    GNUNET_CONFIGURATION_iterate_section_values (tss.cfg, "TESTING",
                                                  &cfg_copy_iterator, ss->cfg);
-    ss->share = tss->share;
+    ss->share = tss.share;
     GNUNET_array_append (system->shared_services, system->n_shared_services,
                          ss);
   }
@@ -456,7 +456,7 @@ struct GNUNET_TESTING_System *
 GNUNET_TESTING_system_create (const char *testdir,
 			      const char *trusted_ip,
 			      const char *hostname,
-                              const struct GNUNET_TESTING_SharedService **
+                              const struct GNUNET_TESTING_SharedService *
                               shared_services)
 {
   return GNUNET_TESTING_system_create_with_portrange (testdir,
@@ -486,18 +486,22 @@ static int
 start_shared_service_instance (struct SharedServiceInstance *i)
 {
   char *binary;
+  char *libexec_binary;
 
   GNUNET_assert (NULL == i->proc);
   GNUNET_assert (NULL != i->cfg_fn);
   (void) GNUNET_asprintf (&binary, "gnunet-service-%s", i->ss->sname);
+  libexec_binary = GNUNET_OS_get_libexec_binary_path (binary);
+  GNUNET_free (binary);
   i->proc = GNUNET_OS_start_process (PIPE_CONTROL,
                                      GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
                                      NULL, NULL,
-                                     binary,
-                                     binary,
+                                     libexec_binary,
+                                     libexec_binary,
                                      "-c",
                                      i->cfg_fn,
                                      NULL);
+  GNUNET_free (libexec_binary);
   if (NULL == i->proc)
     return GNUNET_SYSERR;
   return GNUNET_OK;
@@ -1004,6 +1008,7 @@ associate_shared_service (struct GNUNET_TESTING_System *system,
     (void) GNUNET_asprintf (&i->cfg_fn, "%s/config", service_home);
     GNUNET_CONFIGURATION_set_value_string (temp, "PATHS", "SERVICEHOME",
                                            service_home);
+    GNUNET_free (service_home);
     GNUNET_CONFIGURATION_set_value_string (temp, ss->sname, "UNIXPATH",
                                            i->unix_sock);
     GNUNET_CONFIGURATION_set_value_string (temp, ss->sname, "PORT",

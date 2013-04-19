@@ -56,7 +56,8 @@ check_PROGRAMS = \
  test_testing_portreservation \
  test_testing_servicestartup \
  test_testing_peerstartup \
- test_testing_peerstartup2
+ test_testing_peerstartup2 \
+ test_testing_sharedservices
 
 if ENABLE_TEST_RUN 
 TESTS = \
@@ -64,7 +65,6 @@ TESTS = \
  test_testing_peerstartup \
  test_testing_peerstartup2 \
  test_testing_servicestartup
-
 endif
 
 test_testing_portreservation_SOURCES = \
@@ -90,6 +90,13 @@ test_testing_servicestartup_SOURCES = \
 test_testing_servicestartup_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
+
+test_testing_sharedservices_SOURCES = \
+ test_testing_sharedservices.c
+test_testing_sharedservices_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
 
 
 EXTRA_DIST = \

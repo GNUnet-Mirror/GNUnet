@@ -19,19 +19,19 @@
  */
 
 /**
- * @file testing/test_testing_new_peerstartup.c
- * @brief test case for testing peer startup and shutdown using new testing
- *          library 
- * @author Sree Harsha Totakura
+ * @file testing/test_testing_sharedservices.c
+ * @brief test case for testing service sharing among peers started by testing
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
  */
 
 #include "platform.h"
-#include "gnunet_configuration_lib.h"
-#include "gnunet_os_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_testing_lib.h"
 
 #define LOG(kind,...)                           \
   GNUNET_log (kind, __VA_ARGS__)
+
+#define NUM_PEERS 4
 
 /**
  * The status of the test
@@ -51,7 +51,7 @@ struct TestingContext
   /**
    * The peer which has been started by the testing system
    */
-  struct GNUNET_TESTING_Peer *peer;
+  struct GNUNET_TESTING_Peer *peers[NUM_PEERS];
 
   /**
    * The running configuration of the peer
@@ -70,13 +70,18 @@ static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TestingContext *test_ctx = cls;
-  
+  struct GNUNET_TESTING_Peer *peer;
+  unsigned int cnt;
+
   GNUNET_assert (NULL != test_ctx);
-  if (NULL != test_ctx->peer)
+  for (cnt = 0; cnt < NUM_PEERS; cnt++)
   {
-    (void) GNUNET_TESTING_peer_stop (test_ctx->peer);
-    GNUNET_TESTING_peer_destroy (test_ctx->peer);
-  }
+    peer = test_ctx->peers[cnt];
+    if (NULL == peer)
+      continue;
+    (void) GNUNET_TESTING_peer_stop (peer);
+    GNUNET_TESTING_peer_destroy (peer);
+  }  
   if (NULL != test_ctx->cfg)
     GNUNET_CONFIGURATION_destroy (test_ctx->cfg);
   if (NULL != test_ctx->system)
@@ -95,28 +100,43 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct TestingContext *test_ctx;
   char *emsg;
   struct GNUNET_PeerIdentity id;
+  struct GNUNET_TESTING_SharedService ss[] = {
+    {"peerinfo", cfg, 2},
+    {NULL, NULL, 0}
+  };
+  struct GNUNET_TESTING_Peer *peer;
+  unsigned int cnt;
 
   test_ctx = GNUNET_malloc (sizeof (struct TestingContext));
   test_ctx->system = 
       GNUNET_TESTING_system_create ("test-gnunet-testing",
-                                    "127.0.0.1", NULL, NULL);
+                                    "127.0.0.1", NULL, ss);
   emsg = NULL;
   if (NULL == test_ctx->system)
     goto end;
   test_ctx->cfg = GNUNET_CONFIGURATION_dup (cfg);
-  test_ctx->peer = 
-      GNUNET_TESTING_peer_configure (test_ctx->system,
-                                     test_ctx->cfg,
-                                     0, &id, &emsg);
-  if (NULL == test_ctx->peer)
+  for (cnt = 0; cnt < NUM_PEERS; cnt++)
   {
-    if (NULL != emsg)
-      printf ("Test failed upon error: %s", emsg);
-    goto end;
+    peer = GNUNET_TESTING_peer_configure (test_ctx->system,
+                                          test_ctx->cfg,
+                                          0, &id, &emsg);
+    if (NULL == peer)
+    {
+      if (NULL != emsg)
+        printf ("Test failed upon error: %s", emsg);
+      goto end;
+    }
+    if (GNUNET_OK != GNUNET_TESTING_peer_start (peer))
+    {
+      GNUNET_TESTING_peer_destroy (peer);
+      goto end;
+    }
+    test_ctx->peers[cnt] = peer;
   }
-  if (GNUNET_OK != GNUNET_TESTING_peer_start (test_ctx->peer))
-    goto end;
   status = GNUNET_OK;
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                &do_shutdown, test_ctx);
+  return;
 
  end:
   GNUNET_SCHEDULER_add_now (&do_shutdown, test_ctx);
@@ -129,15 +149,19 @@ int main (int argc, char *argv[])
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+  char *const argv2[] = { "test_testing_sharedservices",
+    "-c", "test_testing_sharedservices.conf",
+    NULL
+  };
 
   status = GNUNET_SYSERR;
   if (GNUNET_OK !=
-      GNUNET_PROGRAM_run (argc, argv,
-                          "test_testing_peerstartup",
-                          "test case for peerstartup using new testing library",
+      GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
+                          "test_testing_sharedservices",
+                          "test case for testing service sharing among peers started by testing",
                           options, &run, NULL))
     return 1;
-  return (GNUNET_OK == status) ? 0 : 1;
+  return (GNUNET_OK == status) ? 0 : 3;
 }
 
-/* end of test_testing_peerstartup.c */
+/* end of test_testing_sharedservices.c */

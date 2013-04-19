@@ -111,7 +111,7 @@ struct GNUNET_TESTING_System *
 GNUNET_TESTING_system_create (const char *testdir,
 			      const char *trusted_ip,
 			      const char *hostname,
-                              const struct GNUNET_TESTING_SharedService **
+                              const struct GNUNET_TESTING_SharedService *
                               shared_services);
 
 
@@ -141,8 +141,8 @@ struct GNUNET_TESTING_System *
 GNUNET_TESTING_system_create_with_portrange (const char *testdir,
 					     const char *trusted_ip,
 					     const char *hostname,
-                                             const struct
-                                             GNUNET_TESTING_SharedService **
+                                             const struct 
+                                             GNUNET_TESTING_SharedService *
                                              shared_services,
 					     uint16_t lowport,
 					     uint16_t highport);
