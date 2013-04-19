@@ -426,7 +426,7 @@ test_icmp_server (struct GNUNET_NAT_AutoHandle *ah)
        (GNUNET_YES ==
         GNUNET_CONFIGURATION_get_value_yesno (ah->cfg, "nat", "BEHIND_NAT")) &&
        (GNUNET_YES ==
-        GNUNET_OS_check_helper_binary (binary, GNUNET_YES, NULL))); // FIXME: CF: add test-parameters
+        GNUNET_OS_check_helper_binary (binary, GNUNET_YES, "-d 127.0.0.1" ))); // use localhost as source for that one udp-port, ok for testing
   GNUNET_free_non_null (tmp);
   GNUNET_free (binary);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,

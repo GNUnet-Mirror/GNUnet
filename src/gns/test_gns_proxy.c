@@ -452,7 +452,7 @@ main (int argc, char *const *argv)
     return 0;
   }
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-dns");
-  if (GNUNET_YES != GNUNET_OS_check_helper_binary (binary, GNUNET_YES, NULL))
+  if (GNUNET_YES != GNUNET_OS_check_helper_binary (binary, GNUNET_YES, NULL)) // TODO: once we have a windows-testcase, add test parameters here
   {
     fprintf (stderr, "DNS helper binary has wrong permissions... skipping!\n");
     GNUNET_free (binary);

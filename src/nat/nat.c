@@ -1171,7 +1171,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg, int is_tcp,
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-server");
   if ((h->behind_nat == GNUNET_YES) && (GNUNET_YES == h->enable_nat_server) &&
       (GNUNET_YES !=
-       GNUNET_OS_check_helper_binary (binary, GNUNET_YES, NULL))) // FIXME: CF: add test-parameters
+       GNUNET_OS_check_helper_binary (binary, GNUNET_YES, "-d 127.0.0.1" ))) // use localhost as source for that one udp-port, ok for testing
   {
     h->enable_nat_server = GNUNET_NO;
     LOG (GNUNET_ERROR_TYPE_WARNING,
