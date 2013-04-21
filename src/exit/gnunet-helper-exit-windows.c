@@ -31,11 +31,16 @@
  */
 
 #include <stdio.h>
+#include <Winsock2.h>
 #include <windows.h>
 #include <setupapi.h>
+#ifndef __MINGW64_VERSION_MAJOR
 #include <ddk/cfgmgr32.h>
 #include <ddk/newdev.h>
-#include <Winsock2.h>
+#else
+#include <cfgmgr32.h>
+#include <newdev.h>
+#endif
 #include <time.h>
 #include "platform.h"
 #include "tap-windows.h"
