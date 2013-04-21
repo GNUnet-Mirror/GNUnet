@@ -27,11 +27,11 @@
  */
 
 #define INITGUID
-#include <windows.h>
-#include <nspapi.h>
 #include <stdint.h>
 #include <ws2tcpip.h>
 #include <ws2spi.h>
+#include <windows.h>
+#include <nspapi.h>
 
 #if 1
 #  define DEBUGLOG(s, ...)
@@ -403,7 +403,7 @@ UnmarshallWSAQUERYSETW (LPWSAQUERYSETW req)
 
 int WSAAPI
 GNUNET_W32NSP_LookupServiceNext (HANDLE hLookup, DWORD dwControlFlags,
-    LPDWORD lpdwBufferLength, LPWSAQUERYSET lpqsResults)
+    LPDWORD lpdwBufferLength, LPWSAQUERYSETW lpqsResults)
 {
   DWORD effective_flags;
   int i;

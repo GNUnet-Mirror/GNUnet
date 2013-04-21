@@ -162,7 +162,7 @@ main (int argc, char **argv)
   int r = 1;
   WSADATA wsd;
   GUID *prov = NULL;
-  GUID *sc = NULL;
+  const GUID *sc = NULL;
   wchar_t *cmdl;
   int wargc;
   wchar_t **wargv;
