@@ -20,21 +20,57 @@
 
 /**
  * @file include/gnunet_psyc_service.h
- * @brief psyc service; high-level access to the PSYC protocol
+ * @brief PSYC service; high-level access to the PSYC protocol
  *        note that clients of this API are NOT expected to
  *        understand the PSYC message format, only the semantics!
+ *        Parsing (and serializing) the PSYC stream format is done
+ *        within the implementation of the libgnunetpsyc library,
+ *        and this API deliberately exposes as little as possible
+ *        of the actual data stream format to the application!
  * @author Christian Grothoff
  *
- * TODO:
- * - how to deal with very large channel state (i.e. channel
- *   containing a movie); this might relate to the question
- *   of how (when/etc.) we replay method calls; is only the
- *   channel state persistent? What about a 'bounded' 
- *   channel history, how would we enable that?
- * - how to deal with seeking in large channel state (i.e. 
- *   skip to minute 45 in movie)
- * - need to change send operations to 'notify_transmit_ready'-style;
- *   deal better with 'streaming' arguments while we're at it
+ * NOTE:
+ * - this API does not know about psyc's "root" and "places";
+ *   there is no 'root' in GNUnet-Psyc as we're decentralized;
+ *   'places' and 'persons' are combined within the same 
+ *   abstraction, that of a "channel".  Channels are identified
+ *   and accessed in this API using a public/private key.  
+ *   Higher-level applications should use NAMES within GADS
+ *   to obtain public keys, and the distinction between 
+ *   'places' and 'persons' can then be made with the help
+ *   of the naming system (and/or conventions).
+ *   Channels are (as in PSYC) organized into a hierarchy; each
+ *   channel owner (the one with the private key) is then
+ *   the operator of the multicast group (its Origin in 
+ *   the terminology of the multicast API).
+ * - The API supports passing large amounts of data using
+ *   'streaming' for the argument passed to a method.  State
+ *   and variables must fit into memory and cannot be streamed
+ *   (thus, no passing of 4 GB of data in a variable; 
+ *   once we implement this, we might want to create a
+ *   #define for the maximum size of a variable).
+ * - PSYC defines standard variables, methods, etc.  This
+ *   library deliberately abstracts over all of these; a
+ *   higher-level API should combine the naming system (GADS)
+ *   and standard methods (message, join, leave, warn,
+ *   fail, error) and variables (action, color, time,
+ *   tag, etc.).  However, this API does take over the
+ *   routing variables, specifically 'context' (channel),
+ *   and 'source'.  We only kind-of support 'target', as
+ *   the target is either everyone in the group or the
+ *   origin, and never just a single member of the group;
+ *   for such individual messages, an application needs to
+ *   construct an 'inbox' channel where the owner (only)
+ *   receives messages (but never forwards; private responses
+ *   would be transmitted by joining the senders 'inbox'
+ *   channel -- or a inbox#bob subchannel).  The
+ *   goal for all of this is to keep the abstractions in this 
+ *   API minimal: interaction with multicast, try \& slice,
+ *   state/variable/channel management.  Higher-level
+ *   operations belong elsewhere (so maybe this API should
+ *   be called 'PSYC-low', whereas a higher-level API
+ *   implementing defaults for standard methods and
+ *   variables might be called 'PSYC-std' or 'PSYC-high'.
  */
 
 #ifndef GNUNET_PSYC_SERVICE_H
@@ -59,408 +95,207 @@ extern "C"
 
 
 /**
- * Bits describing special properties of arguments.
- */
-enum GNUNET_PSYC_ArgumentFlags
-{
-  /**
-   * Argument is fixed size.
-   */
-  GNUNET_PSYC_AF_FIXED_SIZE = 0,
-
-  /**
-   * Argument is variable-length
-   */
-  GNUNET_PSYC_AF_VARIABLE_SIZE = 1,
-
-  /**
-   * Argument may be supplied incrementally to the callback 
-   */
-  GNUNET_PSYC_AF_STREAMABLE = 2,
-
-  /**
-   * Argument is variable-length, incrementally supplied
-   * data stream.
-   */
-  GNUNET_PSYC_AF_STREAM = 3,
-
-  /**
-   * Argument is zero-terminated character array.
-   */
-  GNUNET_PSYC_AF_ZERO_TERMINATED_CHARARRAY = 4,
-
-  /**
-   * Argument is variable-length UTF-8 encoded, zero-terminated string.
-   */
-  GNUNET_PSYC_AF_UTF8 = 5,
-
-  /**
-   * Payload is an unsigned integer and might thus be encoded as an
-   * integer when generating PSYC stream (useful if we want to
-   * generate human-readable PSYC streams, instead of just always
-   * using length-prefixed binary encodings).  Note that it
-   * is not sufficient to just test for this bit, as it is
-   * also set for 'REAL' numbers!
-   */
-  GNUNET_PSYC_AF_UNSIGNED_INTEGER = 8,
-
-  /**
-   * Payload is an unsigned integer and might thus be encoded as an
-   * integer when generating PSYC stream (useful if we want to
-   * generate human-readable PSYC streams, instead of just always
-   * using length-prefixed binary encodings).  Note that it
-   * is not sufficient to just test for this bit, as it is
-   * also set for 'REAL' numbers!
-   */
-  GNUNET_PSYC_AF_SIGNED_INTEGER = 16,
-
-  /**
-   * Payload is a 'real' number (float or double).  We save a bit here
-   * as a number cannot be both SIGNED and UNSIGNED, so setting both
-   * bits is fine to use for REALs.
-   */
-  GNUNET_PSYC_AF_REAL_NUMBER = 24
-
-};
-
-
-/**
- * Argument descriptors are used to describe types that can be
- * embedded in a PSYC stream.  For example, a "uint32_t" is 
- * described as 4-byte, fixed-length data, whereas a movie 
- * would be a variable-size, streaming argument.
- */
-struct GNUNET_PSYC_ArgumentDescriptor
-{
-
-  /**
-   * Required length of the argument in bytes, zero for
-   * variable-size arguments.
-   */
-  size_t arg_len;
-
-  /**
-   * Flags describing additional properties of the argument,
-   * such as variable-size, streaming or 0-termination.  This
-   * argument is a bitfield.
-   */
-  enum GNUNET_PSYC_ArgumentFlags flags;
-
-};
-
-
-/**
- * Convenience macro to define an argument descriptor for
- * some fixed-size C data type.
- *
- * @param pt C data type (i.e. 'uint32_t')
- */
-#define GNUNET_PSYC_AD_C_TYPE(pt) { sizeof (pt), GNUNET_PSYC_AF_FIXED_SIZE }
-
-/**
- * Convenience macro to define an argument descriptor for
- * some fixed-size unsigned integer type.
- *
- * @param it C integer data type (i.e. 'uint32_t')
- */
-#define GNUNET_PSYC_AD_C_UINT_TYPE(it) { sizeof (it), GNUNET_PSYC_AF_FIXED_SIZE | GNUNET_PSYC_AF_UNSIGNED_INTEGER }
-
-/**
- * Argument descriptor for a 'uint8_t' argument.
- */
-#define GNUNET_PSYC_AD_UINT8 GNUNET_PSYC_AD_C_UINT_TYPE(uint8_t)
-
-/**
- * Argument descriptor for a 'uint16_t' argument.
- */
-#define GNUNET_PSYC_AD_UINT16 GNUNET_PSYC_AD_C_UINT_TYPE(uint16_t)
-
-/**
- * Argument descriptor for a 'uint32_t' argument.
- */
-#define GNUNET_PSYC_AD_UINT32 GNUNET_PSYC_AD_C_UINT_TYPE(uint32_t)
-
-/**
- * Argument descriptor for a 'uint64_t' argument.
- */
-#define GNUNET_PSYC_AD_UINT64 GNUNET_PSYC_AD_C_UINT_TYPE(uint64_t)
-
-/**
- * Convenience macro to define an argument descriptor for
- * a 0-terminated, variable-length UTF-8 string.
- */
-#define GNUNET_PSYC_AD_UTF8 { 0, GNUNET_PSYC_AF_UTF8 }
-
-
-/* TODO: add more convenience macros for argument types later as needed */
-
-
-/**
- * Abstract argument passed to a GNUNET_PSYC_Method.  
- */
-struct GNUNET_PSYC_Argument
-{
-
-  /**
-   * Data of the argument.
-   */
-  const void *data;
-
-  /**
-   * Number of bytes in 'data', guaranteed to be the argument
-   * descriptor 'arg_len' MINUS 'data_off' unless
-   * GNUNET_PSYC_AF_VARIABLE_SIZE was set.
-   */
-  size_t data_size;
-
-  /**
-   * Offset of 'data' in the overall argument,
-   * always zero unless GNUNET_PSYC_AF_STREAMABLE was
-   * set for the argument.
-   */
-  uint64_t data_off;
-
-  /**
-   * Total number of bytes to be expected in 'data',
-   * UINT64_MAX for 'unknown' (i.e. for "infinite" 
-   * streams).
-   */
-  uint64_t value_size;
-};
-
-
-/**
  * Method called from PSYC upon receiving a message indicating a call
- * to a 'method'.  The arguments given will match those of the
- * respective argument descriptor.  If some arguments were marked
- * as 'streaming', the function can return a value other than -1
- * to request "more" of the data for that argument.  Note that all
- * non-streaming arguments will be replayed in full for each additional
- * invocation of the method.  Using more than one streaming argument 
- * is possible, in which case PSYC will ONLY advance the stream of the
- * argument for which the index was returned; the values of other
- * streaming arguments will be replayed at the current offset.
- *
- * Returning a value other than -1 or that of a streaming argument is
- * not allowed.  Returning -1 does not indicate an error; it simply
- * indicates that the client wants to proceed with the next method
- * (and not see the rest of the data from any of the streaming
- * arguments).
- *
- * TODO: note that this API currently doesn't allow for seeking
- *       in streaming data (very advanced feature)
+ * to a 'method'.  
  *
  * @param cls closure
  * @param full_method_name original method name from PSYC (may be more
- *        specific than the registered method name due to try&slice matching)
+ *        specific than the registered method name due to try-and-slice matching)
  * @param sender who transmitted the message (origin, except for messages
  *        from one of the members to the origin)
- * @param message_id unique message counter for this message
+ * @param message_id unique message counter for this message;
+ *                   (unique only in combination with the given sender for
+ *                    this channel)
  * @param group_generation group generation counter for this message
- * @param argc number of arguments in argv
- * @param argv array of argc arguments to the method
- * @return -1 if we're finished with this method, index
- *            of a streaming argument for which more data is
- *            requested otherwise
+ *                   (always zero for messages from members to channel owner)
+ * @param data_size number of bytes in 'data'
+ * @param data data stream given to the method (might not be zero-terminated 
+ *             if data is binary)
  */
 typedef int (*GNUNET_PSYC_Method)(void *cls,
 				  const char *full_method_name,
 				  const struct GNUNET_PeerIdentity *sender,
-				  unsigned int argc,
-				  const struct GNUNET_PSYC_Argument *argv);
+				  uint64_t message_id,
+				  uint64_t group_generation,
+				  size_t data_size,
+				  const char *data);
 
 
 /**
- * Descriptor for a PSYC method and its arguments.  Here is how this
- * is expected to be used.  Imagine we have a method with the
- * following signature:
- * <pre>
- * static void 
- * logger (void *cls, uint32_t log_level, const char *log_message);
- * </pre>
- * where 'cls' is supposed to be a 'FILE *'.
- * Then for PSYC to call this method with 'stderr' for 'cls',
- * we would provide the following method descriptor:
- * <pre>
- * .method_name = "log";
- * .method = wrap_logger;
- * .method_cls = stderr;
- * .argc = 2;
- * .argv = { GNUNET_PSYC_AD_UINT32, GNUNET_PSYC_AD_UTF8 };
- * </pre>
- * and define <tt>wrap_logger</tt> as follows:
- * <pre>
- * static void
- * wrap_logger (void *cls, const char full_method_name, 
- *              const struct GNUNET_PeerIdentity *sender,
- *    	        unsigned int argc, const struct GNUNET_PSYC_Argument *argv)
- * {
- *    uint32_t *log_level = argv[0].data;
- *    const char *log_message = argv[1].data;
- *    logger (cls, *log_level, log_message);
- * }
- * </pre> 
- * Note that the PSYC library will take care of making sure
- * that 'argv[0].data_size == 4' and that the log message
- * is 0-terminated, as those requirements were specified
- * in the method descriptor for those arguments.  Finally,
- * it is conceivable to generate the wrappers and method
- * descriptors automatically, as they are trivial.
- * <p>
- * Note that due to try & slice, the given full method name
- * might be more specific; for example, the given method
- * might be called for a request to "log_warning" instead
- * of just a request to "log".
+ * Handle for the channel of a PSYC group.
  */
-struct GNUNET_PSYC_MethodDescriptor
-{
-
-  /**
-   * Name of the method to be used in try-and-slice matching.
-   */
-  const char *method_name;
-
-  /**
-   * Function to call.  Note that if a more specific handler exists
-   * as well, the more generic handler will not be invoked.
-   */
-  GNUNET_PSYC_Method method;
-
-  /**
-   * Closure for the method (this argument and the 'sender' argument
-   * are both not included in 'argc').
-   */
-  void *method_cls;
-
-  /**
-   * Number of arguments to pass to the method (length of the 'ads'
-   * array).
-   */
-  unsigned int argc;
-
-  /**
-   * Array of 'argc' argument descriptors describing the arguments to
-   * be passed to the method.  Non-matching method calls will be
-   * ignored (but logged).  Note that the 'ads' of all methods with
-   * the same method name prefix should be identical.
-   */
-  const struct GNUNET_PSYC_ArgumentDescriptor *ads;
-
-};
+struct GNUNET_PSYC_Channel;
 
 
 /**
- * Handle for the origin of a psyc group.
- */
-struct GNUNET_PSYC_Origin;
-
-
-/**
- * Start a psyc group.  Will create a multicast group identified by
+ * Start a PSYC channel.  Will create a multicast group identified by
  * the given public key.  Messages recevied from group members will be
  * given to the respective handler methods.  If a new member wants to
  * join a group, the "join" method handler will be invoked; the join
  * handler must then generate a "join" message to approve the joining
- * of the new member.  The origin can also change group membership
+ * of the new member.  The channel can also change group membership
  * without explicit requests.  Note that PSYC doesn't itself "understand"
  * join or leave messages, the respective methods must call other
  * PSYC functions to inform PSYC about the meaning of the respective
  * events.
  *
  * @param cfg configuration to use (to connect to PSYC service)
+ * @param parent parent channel, NULL for top-level channels
+ * @param name name of the channel, only important if this is a subchannel
  * @param method_count number of methods in 'methods' array
  * @param methods functions to invoke on messages received from members,
  *                typcially at least contains functions for 'join' and 'leave'.
  * @param priv_key ECC key that will be used to sign messages for this
- *                 psyc session; public key is used to identify the
- *                 psyc group; FIXME: we'll likely want to use
+ *                 PSYC session; public key is used to identify the
+ *                 PSYC group; FIXME: we'll likely want to use
  *                 NOT the p521 curve here, but a cheaper one in the future
+ *                 Note that end-users will usually not use the private key
+ *                 directly, but rather look it up in GADS for groups 
+ *                 managed by other users, or select a file with the private
+ *                 key(s) when setting up their own channels
  * @param join_policy what is the membership policy of the group?
- * @return handle for the origin, NULL on error 
+ *                 Used to automate group management decisions.
+ * @return handle for the channel, NULL on error 
  */
-struct GNUNET_PSYC_Origin *
-GNUNET_PSYC_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg, 
-			  unsigned int method_count,
-			  const struct GNUNET_PSYC_MethodDescriptor *methods,
-			  const struct GNUNET_CRYPTO_EccPrivateKey *priv_key,
-			  enum GNUNET_MULTICAST_JoinPolicy join_policy);
+struct GNUNET_PSYC_Channel *
+GNUNET_PSYC_channel_start (const struct GNUNET_CONFIGURATION_Handle *cfg, 
+			   struct GNUNET_PSYC_Channel *parent,
+			   const char *name,
+			   unsigned int method_count,
+			   const struct GNUNET_PSYC_Method *methods,
+			   const struct GNUNET_CRYPTO_EccPrivateKey *priv_key,
+			   enum GNUNET_MULTICAST_JoinPolicy join_policy);
 
 
 /**
- * Update channel state.  The state of a channel must fit into the
- * memory of each member (and the origin); large values that require
- * streaming must only be passed as streaming arguments to methods.
- * State updates might not be transmitted to group members until
- * the next call to 'GNUNET_PSYC_origin_broadcast_call_method'.
+ * Possible operations on PSYC state (persistent) and variables (per message).
+ */
+enum GNUNET_PSYC_Operator
+  {
+    /**
+     * Replace the full state with the new value ("=").
+     */
+    GNUNET_PSYC_SOT_SET_STATE = 0,
+
+    /**
+     * Delete the complete entry from the state (given data must be
+     * empty).  Equivalent to 'SET' with emtpy data, but more
+     * explicit ("=");
+     */
+    GNUNET_PSYC_SOT_DELETE = 0,
+
+    /**
+     * Set the value of a variable to a new value (":").
+     */
+    GNUNET_PSYC_SOT_SET_VARIABLE,
+
+    /**
+     * Add the given value to the set of values in the state ("+").
+     */
+    GNUNET_PSYC_SOT_ADD_STATE,
+
+    /**
+     * Remove the given value from the set of values in the state ("-").
+     */
+    GNUNET_PSYC_SOT_REMOVE_STATE
+
+  };
+
+
+/**
+ * Update channel state or variables.  The state of a channel must fit
+ * into the memory of each member (and the channel); large values that
+ * require streaming must only be passed as the stream arguments to
+ * methods.  State updates might not be transmitted to group members
+ * until the next call to 'GNUNET_PSYC_channel_broadcast_call_method'.
+ * Variable updates must be given just before the call to the
+ * respective method that needs the variables.
  *
- * @param origin handle to the psyc group / channel
+ * @param channel handle to the PSYC group / channel
  * @param full_state_name name of the field in the channel state to change
+ * @param type kind of update operation (add, remove, replace, delete)
  * @param data_size number of bytes in data
  * @param data new state value
+ * @return GNUNET_OK on success, GNUNET_SYSERR on internal error
+ *        (i.e. state too large)
  */
-void
-GNUNET_PSYC_origin_update_state (struct GNUNET_PSYC_Origin *origin,
-				 const char *full_state_name,
-				 size_t data_size,
-				 const void *data);
+int
+GNUNET_PSYC_channel_update (struct GNUNET_PSYC_Channel *channel,
+			    const char *full_state_name,
+			    enum GNUNET_PSYC_Operator type,
+			    size_t data_size,
+			    const void *data);
 
 
 /**
- * Data needed to construct a PSYC message to call a method.
- */
-struct GNUNET_PSYC_CallData
-{
-
-  /**
-   * Name of the function to call.  This name may be more specific
-   * than the registered method name due to try&slice matching.
-   */
-  const char *full_method_name;
-
-  /**
-   * Number of arguments to pass (other than closure and sender),
-   * length of the 'argv' array.
-   */
-  unsigned int argc;
-
-  /**
-   * Arguments to pass to the function.
-   */
-  const struct GNUNET_PSYC_Argument *argv;
-
-};
-
-
-/**
- * Send a message to call a method to all members in the psyc group.
+ * Function called to provide data for a transmission via PSYC.  Note
+ * that returning GNUNET_OK or GNUNET_SYSERR (but not GNUNET_NO)
+ * invalidates the respective transmission handle.
  *
- * @param origin handle to the psyc group
- * @param increment_group_generation GNUNET_YES if we need to increment
- *        the group generation counter after transmitting this message
- * @param call_data data needed to determine how to call which method 
+ * @param cls closure
  * @param message_id set to the unique message ID that was generated for
  *        this message
  * @param group_generation set to the group generation used for this
  *        message
- * FIXME: change to notify_transmit_ready-style to wait for ACKs?
- *        that'd also help with streaming arguments!
- *        => need to change multicast API first as well!
+ * @param data_size initially set to the number of bytes available in 'data',
+ *        should be set to the number of bytes written to data (IN/OUT)
+ * @param data where to write the body of the message to give to the method;
+ *        function must copy at most '*data_size' bytes to 'data'.
+ * @return GNUNET_SYSERR on error (fatal, aborts transmission)
+ *         GNUNET_NO on success, if more data is to be transmitted later 
+ *         (should be used if 'data_size' was not big enough to take all the data)
+ *         GNUNET_OK if this completes the transmission (all data supplied)
  */
-void
-GNUNET_PSYC_origin_broadcast_call_method (struct GNUNET_PSYC_Origin *origin,
-					  int increment_group_generation,
-					  const struct GNUNET_PSYC_CallData *call_data,
-					  uint64_t *message_id,
-					  uint64_t *group_generation);
+typedef int (*GNUNET_PSYC_ChannelReadyNotify)(void *cls,
+					      uint64_t message_id,
+					      uint64_t group_generation,
+					      size_t *data_size,
+					      char *data);
 
 
 /**
- * End a psyc group.
+ * Handle for a pending PSYC transmission operation.
+ */
+struct GNUNET_PSYC_ChannelTransmitHandle;
+
+
+/**
+ * Send a message to call a method to all members in the PSYC channel
+ * (and all parent channels if this is a subchannel).
  *
- * @param origin psyc group to terminate
+ * @param channel handle to the PSYC multicast group
+ * @param increment_group_generation GNUNET_YES if we need to increment
+ *        the group generation counter after transmitting this message
+ * @param full_method_name which method should be invoked
+ * @param notify function to call to obtain the arguments
+ * @param notify_cls closure for 'notify'
+ * @return transmission handle, NULL on error (i.e. more than one request queued)
+ */
+struct GNUNET_PSYC_ChannelTransmitHandle *
+GNUNET_PSYC_channel_notify_transmit_ready (struct GNUNET_PSYC_Channel *channel,
+					   int increment_group_generation,
+					   const char *full_method_name,
+					   GNUNET_PSYC_ChannelReadyNotify notify,
+					   void *notify_cls);
+
+
+/**
+ * Abort transmission request to channel.
+ *
+ * @param th handle of the request that is being aborted
  */
 void
-GNUNET_PSYC_origin_end (struct GNUNET_PSYC_Origin *origin);
+GNUNET_PSYC_channel_notify_transmit_ready_cancel (struct GNUNET_PSYC_ChannelTransmitHandle *th);
+
+
+/**
+ * End a PSYC channel.  Note that subchannels MUST be ended before
+ * their parents.
+ *
+ * @param channel PSYC channel to terminate
+ */
+void
+GNUNET_PSYC_channel_end (struct GNUNET_PSYC_Channel *channel);
 
 
 /**
@@ -470,27 +305,27 @@ struct GNUNET_PSYC_Group;
 
 
 /**
- * Convert 'origin' to a 'group' handle to access the 'group' APIs.
+ * Convert 'channel' to a 'group' handle to access the 'group' APIs.
  * 
- * @param origin origin handle
- * @return group handle, valid for as long as 'origin' is valid
+ * @param channel channel handle
+ * @return group handle, valid for as long as 'channel' is valid
  */ 
 struct GNUNET_PSYC_Group *
-GNUNET_PSYC_origin_get_group (struct GNUNET_PSYC_Origin *origin);
+GNUNET_PSYC_channel_get_group (struct GNUNET_PSYC_Channel *channel);
 
 
 /**
  * Add a member to the group.    Note that this will NOT generate any
  * PSYC traffic, it will merely update the local data base to modify
- * how we react to 'membership test' queries.  The origin still needs to
- * explicitly transmit a 'leave' message to notify other group members
+ * how we react to 'membership test' queries.  The channel still needs to
+ * explicitly transmit a 'join' message to notify other group members
  * and they then also must still call this function in their respective
- * methods handling the 'leave' message.  This way, how 'join' and 'leave'
+ * methods handling the 'join' message.  This way, how 'join' and 'leave'
  * operations are exactly implemented is still up to the application;
- * for example, there might be a 'leave_all' message to kick out everyone.
+ * for example, there might be a 'leave_all' method to kick out everyone.
  *
- * Note that group members are explicitly trusted to perform these
- * operations correctly; not doing so correctly will result in either
+ * Note that group members are explicitly trusted to execute such 
+ * methods correctly; not doing so correctly will result in either
  * denying members access or offering access to group data to
  * non-members.
  *
@@ -509,7 +344,7 @@ GNUNET_PSYC_group_member_admit (struct GNUNET_PSYC_Group *group,
 /**
  * Remove a member from the group.  Note that this will NOT generate any
  * PSYC traffic, it will merely update the local data base to modify
- * how we react to 'membership test' queries.  The origin still needs to
+ * how we react to 'membership test' queries.  The channel still needs to
  * explicitly transmit a 'leave' message to notify other group members
  * and they then also must still call this function in their respective
  * methods handling the 'leave' message.  This way, how 'join' and 'leave'
@@ -534,17 +369,19 @@ GNUNET_PSYC_group_member_kick (struct GNUNET_PSYC_Group *group,
 
 
 /**
- * Function called to inform a member about state values for a channel.
+ * Function called to inform a member about state changes for a
+ * channel.  Note that (for sets) only the delta is communicated, not
+ * the full state.
  *
  * @param cls closure
  * @param full_state_name full name of the state
- * @param data_size number of bytes in 'data'
- * @param data raw data of the state
+ * @param type how to interpret the change
+ * @param state_value information about the new state
  */
 typedef void (*GNUNET_PSYC_StateCallback)(void *cls,
 					  const char *full_state_name,
-					  size_t data_size,
-					  const void *data);
+					  enum GNUNET_PSYC_Operator type,
+					  const struct GNUNET_PSYC_Argument *state_value);
 
 
 /**
@@ -571,8 +408,11 @@ struct GNUNET_PSYC_StateHandler
   /**
    * Description of the kind of state that the handler expects to see.
    * Non-matching state updates will be ignored (but logged).  Note
-   * that the state_types of all states with the same state name prefix
-   * should be identical.
+   * that the state_types of all states with the same state name
+   * prefix should be identical.  For state types, the
+   * 'GNUNET_PSYC_AF_STREAMABLE' and 'GNUNET_PSYC_AF_SET_STREAMABLE'
+   * flags must never be set (as the channel state should be small
+   * enough to (easily) fit into the memory of all PSYC members).
    */
   struct GNUNET_PSYC_ArgumentDescriptor state_type;
 
@@ -580,56 +420,137 @@ struct GNUNET_PSYC_StateHandler
 
 
 /**
- * Join a psyc group.  The entity joining is always the local peer.
- * This will send a 'join_msg' to the origin; if it succeeds, the
- * channel state will be replayed to the joining member and the 'join'
- * method will be invoked to show that we joined successfully.  There
- * is no explicit notification on failure (as the origin may simply
- * take days to approve, and disapproval is simply being ignored).
+ * Join a PSYC group.  The entity joining is always the local peer.
+ * This will send a 'join_msg' to the channel; if it succeeds, the
+ * channel state (and 'recent' method calls) will be replayed to the
+ * joining member and the 'join' method will be invoked to show that
+ * we joined successfully.  There is no explicit notification on
+ * failure (as the channel may simply take days to approve, and
+ * disapproval is simply being ignored).
  *
- * Note that we also specify the message to transmit to origin on
- * 'leave' here, as a sudden crash might otherwise not permit sending
- * a 'nice' leave message.   TODO: we might want an API to change
- * the 'leave' message later during the session.
- * 
  * @param cfg configuration to use
- * @param pub_key ECC key that identifies the group
+ * @param pub_key ECC key that identifies the channel we wish to join
  * @param method_count number of methods in 'methods' array
- * @param methods functions to invoke on messages received from the origin,
+ * @param methods functions to invoke on messages received from the channel,
  *                typcially at least contains functions for 'join' and 'leave'.
  * @param state_count number of state handlers
  * @param state_handlers array of state event handlers
- * @param join_data method to invoke on origin to trigger joining;
+ * @param join_msg which method should we invoke on the channel controller
+ *                 to try to join the channel (i.e. "join")
+ * @param join_cb method to invoke on channel to obtain arguments
+ *        for a join method invocation;
  *        use NULL to send nothing (useful for anonymous groups that permit anyone);
-          arguments to give to join method, must not include streaming args
- * @param leave_data method to invoke on origin on leaving;
- *        use NULL to send nothing (useful for anonymous groups that permit anyone);
-          arguments to give to leave method, must not include streaming args
+ *        arguments to give to join method, must not include streaming args
+ * @param join_cb_cls closure for 'join_cb'
  * @return handle for the member, NULL on error 
  */
 struct GNUNET_PSYC_Member *
 GNUNET_PSYC_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg, 
 			 const struct GNUNET_CRYPTO_EccPublicKey *pub_key,
 			 unsigned int method_count,
-			 const struct GNUNET_PSYC_MethodDescriptor *methods,
+			 const struct GNUNET_PSYC_Method *methods,
 			 unsigned int state_count,
 			 struct GNUNET_PSYC_StateHandler *state_handlers,
-			 const struct GNUNET_PSYC_CallData *join_data,
-			 const struct GNUNET_PSYC_CallData *leave_data);
+			 const char *join_method,
+			 const struct GNUNET_PSYC_ChannelReadyNotify join_cb,
+			 void *join_cb_cls);
 
 
 /**
- * Request a message to be send to the origin.
+ * Function called to provide data for a transmission to the channel
+ * owner (aka the 'host' of the channel).  Note that returning
+ * GNUNET_OK or GNUNET_SYSERR (but not GNUNET_NO) invalidates the
+ * respective transmission handle.
+ *
+ * @param cls closure
+ * @param data_size initially set to the number of bytes available in 'data',
+ *        should be set to the number of bytes written to data (IN/OUT)
+ * @param data where to write the body of the message to give to the method;
+ *        function must copy at most '*data_size' bytes to 'data'.
+ * @return GNUNET_SYSERR on error (fatal, aborts transmission)
+ *         GNUNET_NO on success, if more data is to be transmitted later
+ *         GNUNET_OK if this completes the transmission (all data supplied)
+ */
+typedef int (*GNUNET_PSYC_HostReadyNotify)(void *cls,
+					   size_t *data_size,
+					   char *data);
+
+
+/**
+ * Handle for a pending PSYC transmission operation.
+ */
+struct GNUNET_PSYC_HostTransmitHandle;
+
+
+/**
+ * Request a message to be send to the channel.
  *
  * @param member membership handle
- * @param request_data which method should be invoked on origin (and how)
+ * @param request_data which method should be invoked on channel (and how)
+ * @param method_name which method should be invoked
+ * @param argc number of arguments the method takes (size of 'ads' array)
+ * @param ads description of the arguments the method takes
+ * @param notify function to call to obtain the arguments
+ * @param notify_cls closure for 'notify'
+ * @return transmission handle, NULL on error (i.e. more than one request queued)
+ */
+struct GNUNET_PSYC_HostTransmitHandle *
+GNUNET_PSYC_member_send_to_host (struct GNUNET_PSYC_Member *member,
+				 const char *method_name,
+				 GNUNET_PSYC_HostReadyNotify notify,
+				 void *notify_cls);
+
+
+/**
+ * Abort transmission request to host.
  *
- * FIXME: change to notify_transmit_ready-style to wait for ACKs
- * and to enable streaming arguments!
+ * @param th handle of the request that is being aborted
  */
 void
-GNUNET_PSYC_member_send_to_origin (struct GNUNET_PSYC_Member *member,
-				   const struct GNUNET_PSYC_CallData *request_data);
+GNUNET_PSYC_member_send_to_host_cancel (struct GNUNET_PSYC_HostTransmitHandle *th);
+
+
+/**
+ * Handle to a story telling operation.
+ */
+struct GNUNET_PSYC_Story;
+
+
+/**
+ * Request to be told the message history of the channel.  Historic
+ * messages (but NOT the state at the time) will be replayed (given to
+ * the normal method handlers) if available and if access is
+ * permitted.
+ *
+ * @param member which channel should be replayed?
+ * @param start earliest interesting point in history
+ * @param end last (exclusive) interesting point in history
+ * @param finish_cb function to call when the requested story has been fully 
+ *        told (counting message IDs might not suffice, as some messages
+ *        might be secret and thus the listener would not know the story is 
+ *        finished without being told explicitly); once this function
+ *        has been called, the client must not call
+ *        'GNUNET_PSYC_member_story_tell_cancel' anymore
+ * @param finish_cb_cls closure to finish_cb
+ * @return handle to cancel story telling operation
+ */
+struct GNUNET_PSYC_Story *
+GNUNET_PSYC_member_story_tell (struct GNUNET_PSYC_Member *member,
+			       uint64_t start,
+			       uint64_t end,
+			       void (*finish_cb)(void *),
+			       void *finish_cb_cls);
+
+
+/**
+ * Abort story telling.  This function must not be called from within
+ * method handlers (as given to 'GNUNET_PSYC_member_join') of the
+ * member.
+ *
+ * @param story story telling operation to stop
+ */
+void
+GNUNET_PSYC_member_story_tell_cancel (struct GNUNET_PSYC_Story *story);
 
 
 /**
@@ -644,8 +565,10 @@ GNUNET_PSYC_member_send_to_origin (struct GNUNET_PSYC_Member *member,
  *        might be longer, this is only the prefix that must match)
  * @param cb function to call on the matching state values
  * @param cb_cls closure for 'cb'
+ * @return message ID for which the state was returned (last seen
+ *         message ID)
  */
-int
+uint64_t
 GNUNET_PSYC_member_state_get (struct GNUNET_PSYC_Member *member,
 			      const char *state_name,
 			      GNUNET_PSYC_StateCallback cb,
@@ -653,10 +576,35 @@ GNUNET_PSYC_member_state_get (struct GNUNET_PSYC_Member *member,
 
 
 /**
- * Leave a mutlicast group.  Will terminate the connection to the PSYC
- * service, which will send the 'leave' method that was prepared
- * earlier to the origin.  This function must not be called on a
- * 'member' that was obtained from GNUNET_PSYC_origin_get_group.
+ * Obtain the current value of a variable.  This function should only
+ * be called during a GNUNET_PSYC_Method invocation (and even then
+ * only if the origin is the state owner), as variables are only valid
+ * for the duration of a method invocation.  If this function is
+ * called outside of the scope of such a method invocation, it will
+ * return NULL.
+ *
+ * FIXME: do variables have a hierarchy as well?  If so,
+ * we should document the lookup semantics.
+ *
+ * @param member membership handle
+ * @param variable_name name of the variable to query 
+ * @param return_value_size set to number of bytes in variable, 
+ *        needed as variables might contain binary data and
+ *        might also not be 0-terminated; set to 0 on errors
+ * @return NULL on error, pointer to variable state otherwise
+ */
+const char *
+GNUNET_PSYC_member_variable_get (struct GNUNET_PSYC_Member *member,
+				 const char *variable_name,
+				 size_t *return_value_size);
+
+
+/**
+ * Leave a multicast group.  Will terminate the connection to the PSYC
+ * service.  Polite clients should first explicitly send a 'leave'
+ * request (via 'GNUNET_PSYC_member_send_to_host').  This function
+ * must not be called on a 'member' that was obtained from
+ * GNUNET_PSYC_channel_get_group.
  *
  * @param member membership handle
  */

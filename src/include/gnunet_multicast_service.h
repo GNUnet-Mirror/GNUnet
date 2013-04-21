@@ -22,6 +22,11 @@
  * @file include/gnunet_multicast_service.h
  * @brief multicast service; establish tunnels to distant peers
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - need to support async message transmission, etc.
+ * - need to do sanity check that this is consistent
+ *   with current ideas for the PSYC layer's needs
  */
 
 #ifndef GNUNET_MULTICAST_SERVICE_H

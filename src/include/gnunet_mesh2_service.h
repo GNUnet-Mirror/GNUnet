@@ -19,9 +19,13 @@
 */
 
 /**
- * @file include/gnunet_mesh_service.h
+ * @file include/gnunet_mesh2_service.h
  * @brief mesh service; establish tunnels to distant peers
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - need to do sanity check that this is consistent
+ *   with current ideas for the multicast layer's needs
  */
 
 #ifndef GNUNET_MESH_SERVICE_H

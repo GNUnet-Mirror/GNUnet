@@ -53,7 +53,7 @@ struct UBlock
   /**
    * What is being signed and why?
    */
-  struct GNUNET_FS_PseudonymSignaturePurpose purpose;
+  struct GNUNET_FS_PseudonymSignaturePurpose purpose GNUNET_PACKED;
 
   /**
    * Public key used to sign this block.  Hash of this value
