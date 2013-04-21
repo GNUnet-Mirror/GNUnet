@@ -23,11 +23,11 @@
  * @author LRN
  */
 #define INITGUID
+#include <ws2tcpip.h>
 #include <windows.h>
 #include <nspapi.h>
 #include <ws2spi.h>
 #include <nspapi.h>
-#include <ws2tcpip.h>
 #include "gnunet_w32nsp_lib.h"
 #include <stdio.h>
 
