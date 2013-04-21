@@ -37,7 +37,6 @@ main (int argc, char *argv[])
   wchar_t **wargv;
   wchar_t *arg;
   unsigned int cmdlen;
-  wchar_t *idx;
   STARTUPINFOW start;
   PROCESS_INFORMATION proc;
 
@@ -50,6 +49,7 @@ main (int argc, char *argv[])
   wchar_t *wcmd;
   int wargc;
   int timeout = 0;
+  ssize_t wrote;
 
   HANDLE job;
 
@@ -125,22 +125,25 @@ main (int argc, char *argv[])
   while (NULL != (arg = wargv[i++]))
     cmdlen += wcslen (arg) + 4;
 
-  wcmd = idx = malloc (sizeof (wchar_t) * (cmdlen + 1));
+  wcmd = malloc (sizeof (wchar_t) * (cmdlen + 1));
+  wrote = 0;
   i = 2;
   while (NULL != (arg = wargv[i++]))
   {
     /* This is to escape trailing slash */
     wchar_t arg_lastchar = arg[wcslen (arg) - 1];
-    if (idx == wcmd)
-      idx += swprintf (idx, L"\"%s%s\" ", wpath,
+    if (wrote == 0)
+    {
+      wrote += _snwprintf (&wcmd[wrote], cmdlen + 1 - wrote, L"\"%s%s\" ", wpath,
           arg_lastchar == L'\\' ? L"\\" : L"");
+    }
     else
     {
       if (wcschr (arg, L' ') != NULL)
-        idx += swprintf (idx, L"\"%s%s\"%s", arg,
+        wrote += swprintf (&wcmd[wrote], cmdlen + 1 - wrote, L"\"%s%s\"%s", arg,
             arg_lastchar == L'\\' ? L"\\" : L"", i == wargc ? L"" : L" ");
       else
-        idx += swprintf (idx, L"%s%s%s", arg,
+        wrote += swprintf (&wcmd[wrote], cmdlen + 1 - wrote, L"%s%s%s", arg,
             arg_lastchar == L'\\' ? L"\\" : L"", i == wargc ? L"" : L" ");
     }
   }
