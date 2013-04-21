@@ -134,34 +134,6 @@ struct GNUNET_TESTBED_HostConfirmedMessage
 
 
 /**
- * Message to testing service: configure service sharing
- * at a host.
- */
-struct GNUNET_TESTBED_ConfigureSharedServiceMessage
-{
-
-  /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_SHARE_SERVICE
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Host that is being configured.
-   */
-  uint32_t host_id GNUNET_PACKED;
-
-  /**
-   * Number of peers that should share a service instance;
-   * 1 for no sharing, 0 to forcefully disable the service.
-   */
-  uint32_t num_peers GNUNET_PACKED;
-
-  /* followed by 0-terminated name of the service */
-
-};
-
-
-/**
  * Client notifies controller that it should delegate
  * requests for a particular client to a particular
  * sub-controller.

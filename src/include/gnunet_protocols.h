@@ -1524,122 +1524,117 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST_SUCCESS 462
 
 /**
- * Message to configure a service to be shared among peers
- */
-#define GNUNET_MESSAGE_TYPE_TESTBED_SHARE_SERVICE 463
-
-/**
  * Message to link delegated controller to slave controller
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS 464
+#define GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS 463
 
 /**
  * Message to create a peer at a host
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_CREATE_PEER 465
+#define GNUNET_MESSAGE_TYPE_TESTBED_CREATE_PEER 464
 
 /**
  * Message to reconfigure a peer
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_RECONFIGURE_PEER 466
+#define GNUNET_MESSAGE_TYPE_TESTBED_RECONFIGURE_PEER 465
 
 /**
  * Message to start a peer at a host
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_START_PEER 467
+#define GNUNET_MESSAGE_TYPE_TESTBED_START_PEER 466
 
 /**
  * Message to stop a peer at a host
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_STOP_PEER 468
+#define GNUNET_MESSAGE_TYPE_TESTBED_STOP_PEER 467
 
 /**
  * Message to destroy a peer
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_DESTROY_PEER 469
+#define GNUNET_MESSAGE_TYPE_TESTBED_DESTROY_PEER 468
 
 /**
  * Configure underlay link message
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_CONFIGURE_UNDERLAY_LINK 470
+#define GNUNET_MESSAGE_TYPE_TESTBED_CONFIGURE_UNDERLAY_LINK 469
 
 /**
  * Message to connect peers in a overlay
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_OVERLAY_CONNECT 471
+#define GNUNET_MESSAGE_TYPE_TESTBED_OVERLAY_CONNECT 470
 
 /**
  * Message for peer events
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_PEER_EVENT 472
+#define GNUNET_MESSAGE_TYPE_TESTBED_PEER_EVENT 471
 
 /**
  * Message for peer connect events
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONNECT_EVENT 473
+#define GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONNECT_EVENT 472
 
 /**
  * Message for operation events
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_OPERATION_FAIL_EVENT 474
+#define GNUNET_MESSAGE_TYPE_TESTBED_OPERATION_FAIL_EVENT 473
 
 /**
  * Message to signal successful peer creation
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_CREATE_PEER_SUCCESS 475
+#define GNUNET_MESSAGE_TYPE_TESTBED_CREATE_PEER_SUCCESS 474
 
 /**
  * Message to signal a generic operation has been successful
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_GENERIC_OPERATION_SUCCESS 476
+#define GNUNET_MESSAGE_TYPE_TESTBED_GENERIC_OPERATION_SUCCESS 475
 
 /**
  * Message to get the configuration of a peer
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_GET_PEER_CONFIGURATION 477
+#define GNUNET_MESSAGE_TYPE_TESTBED_GET_PEER_CONFIGURATION 476
 
 /**
  * Message containing the peer configuration
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONFIGURATION 478
+#define GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONFIGURATION 477
 
 /**
  * Message to request a controller to make one of its peer to connect to another
  * peer using the contained HELLO
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_REMOTE_OVERLAY_CONNECT 479
+#define GNUNET_MESSAGE_TYPE_TESTBED_REMOTE_OVERLAY_CONNECT 478
 
 /**
  * Message to request configuration of a slave controller
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_GET_SLAVE_CONFIGURATION 480
+#define GNUNET_MESSAGE_TYPE_TESTBED_GET_SLAVE_CONFIGURATION 479
 
 /**
  * Message which contains the configuration of slave controller
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_SLAVE_CONFIGURATION 481
+#define GNUNET_MESSAGE_TYPE_TESTBED_SLAVE_CONFIGURATION 480
 
 /**
  * Message to signal the result of GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS request
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS_RESULT 482
+#define GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS_RESULT 481
 
 /**
  * A controller receiving this message floods it to its directly-connected
  * sub-controllers and then stops and destroys all peers
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS 483
+#define GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS 482
 
 /**
  * Message to start/stop a service of a peer
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_MANAGE_PEER_SERVICE 484
+#define GNUNET_MESSAGE_TYPE_TESTBED_MANAGE_PEER_SERVICE 483
 
 /**
  * Not really a message, but for careful checks on the testbed messages; Should
  * always be the maximum and never be used to send messages with this type
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_MAX 485
+#define GNUNET_MESSAGE_TYPE_TESTBED_MAX 484
 
 /**
  * The initialization message towards gnunet-testbed-helper

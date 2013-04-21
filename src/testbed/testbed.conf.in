@@ -49,6 +49,23 @@ SETUP_TIMEOUT = 5 m
 # Where should testbed write load statistics data
 # STATS_DIR = /tmp/load
 
+# What services should be shared among peers.  
+# Format is "[<service:share>] [<service:share>] ...".  The shared services are
+# started standalone without any other peer services or a hostkey.  For this
+# reason, only services which doesn't depend on other services can only be
+# shared.  Example: To share peerinfo among every 10 peers.  The following spec
+# will start 5 peerinfo services when 50 peers are started:
+#
+#   SHARED_SERVICES = peerinfo:10
+#
+# To share multiple services
+#
+#   SHARED_SERVICES = service1:n_share1 service2:n_share2 ...
+#
+# Default is to share no services
+SHARED_SERVICES =
+
+
 [testbed-logger]
 AUTOSTART = NO
 @UNIXONLY@ PORT = 2102

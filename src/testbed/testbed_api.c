@@ -1508,46 +1508,6 @@ GNUNET_TESTBED_controller_connect (struct GNUNET_TESTBED_Host *host,
 
 
 /**
- * Configure shared services at a controller.  Using this function,
- * you can specify that certain services (such as "resolver")
- * should not be run for each peer but instead be shared
- * across N peers on the specified host.  This function
- * must be called before any peers are created at the host.
- *
- * @param controller controller to configure
- * @param service_name name of the service to share
- * @param num_peers number of peers that should share one instance
- *        of the specified service (1 for no sharing is the default),
- *        use 0 to disable the service
- */
-void
-GNUNET_TESTBED_controller_configure_sharing (struct GNUNET_TESTBED_Controller
-                                             *controller,
-                                             const char *service_name,
-                                             uint32_t num_peers)
-{
-  struct GNUNET_TESTBED_ConfigureSharedServiceMessage *msg;
-  uint16_t service_name_size;
-  uint16_t msg_size;
-
-  service_name_size = strlen (service_name) + 1;
-  msg_size =
-      sizeof (struct GNUNET_TESTBED_ConfigureSharedServiceMessage) +
-      service_name_size;
-  msg = GNUNET_malloc (msg_size);
-  msg->header.size = htons (msg_size);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_SHARE_SERVICE);
-  msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (controller->host));
-  msg->num_peers = htonl (num_peers);
-  memcpy (&msg[1], service_name, service_name_size);
-  GNUNET_TESTBED_queue_message_ (controller,
-                                 (struct GNUNET_MessageHeader *) msg);
-  GNUNET_break (0);             /* This function is not yet implemented on the
-                                 * testbed service */
-}
-
-
-/**
  * Iterator to free opc map entries
  *
  * @param cls closure

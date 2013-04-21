@@ -501,25 +501,6 @@ GNUNET_TESTBED_controller_connect (struct GNUNET_TESTBED_Host *host,
 
 
 /**
- * Configure shared services at a controller.  Using this function,
- * you can specify that certain services (such as "resolver")
- * should not be run for each peer but instead be shared
- * across N peers on the specified host.  This function
- * must be called before any peers are created at the host.
- *
- * @param controller controller to configure
- * @param service_name name of the service to share
- * @param num_peers number of peers that should share one instance
- *        of the specified service (1 for no sharing is the default),
- *        use 0 to disable the service
- */
-void
-GNUNET_TESTBED_controller_configure_sharing (struct GNUNET_TESTBED_Controller *controller,
-                                             const char *service_name,
-                                             uint32_t num_peers);
-
-
-/**
  * Stop the given controller (also will terminate all peers and
  * controllers dependent on this controller).  This function
  * blocks until the testbed has been fully terminated (!).
