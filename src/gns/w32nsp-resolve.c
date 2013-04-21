@@ -161,8 +161,8 @@ main (int argc, char **argv)
   int ret;
   int r = 1;
   WSADATA wsd;
-  GUID *prov = NULL;
-  const GUID *sc = NULL;
+  GUID prov;
+  GUID sc;
   wchar_t *cmdl;
   int wargc;
   wchar_t **wargv;
@@ -190,19 +190,19 @@ main (int argc, char **argv)
   if (wargc == 5)
   {
     if (wcscmp (wargv[1], L"A") == 0)
-      sc = &SVCID_DNS_TYPE_A;
+      sc = SVCID_DNS_TYPE_A;
     else if (wcscmp (wargv[1], L"AAAA") == 0)
-      sc = &SVCID_DNS_TYPE_AAAA;
+      sc = SVCID_DNS_TYPE_AAAA;
     else if (wcscmp (wargv[1], L"name") == 0)
-      sc = &SVCID_HOSTNAME;
+      sc = SVCID_HOSTNAME;
     else if (wcscmp (wargv[1], L"addr") == 0)
-      sc = &SVCID_INET_HOSTADDRBYNAME;
+      sc = SVCID_INET_HOSTADDRBYNAME;
     else
       wargc -= 1;
     if (wcscmp (wargv[4], L"mswdns") == 0)
-      prov = &W32_DNS;
+      prov = W32_DNS;
     else if (wcscmp (wargv[4], L"gnunetdns") == 0)
-      prov = &GNUNET_NAMESPACE_PROVIDER_DNS;
+      prov = GNUNET_NAMESPACE_PROVIDER_DNS;
     else
       wargc -= 1;
   }
@@ -222,7 +222,7 @@ main (int argc, char **argv)
       if (startup != NULL)
       {
         NSP_ROUTINE api;
-        ret = startup (prov, &api);
+        ret = startup (&prov, &api);
         if (NO_ERROR != ret)
           fprintf (stderr, "startup failed\n");
         else
@@ -236,10 +236,10 @@ main (int argc, char **argv)
           memset (&search, 0, sizeof (search));
           search.dwSize = sizeof (search);
           search.lpszServiceInstanceName = (wcscmp (wargv[2], L" ") == 0) ? NULL : wargv[2];
-          search.lpServiceClassId = sc;
-          search.lpNSProviderId = prov;
+          search.lpServiceClassId = &sc;
+          search.lpNSProviderId = &prov;
           search.dwNameSpace = NS_ALL;
-          ret = api.NSPLookupServiceBegin (prov, &search, NULL, LUP_RETURN_ALL, &lookup);
+          ret = api.NSPLookupServiceBegin (&prov, &search, NULL, LUP_RETURN_ALL, &lookup);
           if (ret != NO_ERROR)
           {
             fprintf (stderr, "lookup start failed\n");
@@ -358,7 +358,7 @@ main (int argc, char **argv)
             if (ret != NO_ERROR)
               printf ("NSPLookupServiceEnd() failed: %lu\n", GetLastError ());
           }
-          api.NSPCleanup (prov);
+          api.NSPCleanup (&prov);
         }
       }
       FreeLibrary (nsp);
