@@ -30,6 +30,7 @@
 #include "gnunet_constants.h"
 #include "gnunet_protocols.h"
 #include "gnunet_signatures.h"
+#include "gnunet_fs_service.h"
 #include "chat.h"
 
 #define DEBUG_CHAT GNUNET_EXTRA_LOGGING
