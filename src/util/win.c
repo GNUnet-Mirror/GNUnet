@@ -33,7 +33,6 @@
 #include "gnunet_connection_lib.h"
 
 #include <ntdef.h>
-
 #ifndef INHERITED_ACE
 #define INHERITED_ACE 0x10
 #endif
@@ -73,6 +72,7 @@ typedef struct _IP_ADAPTER_UNICAST_ADDRESS##suffix { \
 _IP_ADAPTER_UNICAST_ADDRESS_DEFINE(_VISTA,_IP_ADAPTER_UNICAST_ADDRESS_ADD_VISTA)
 
 
+#ifndef __MINGW64_VERSION_MAJOR
 typedef struct _IP_ADAPTER_WINS_SERVER_ADDRESS {
   union {
     ULONGLONG Alignment;
@@ -96,10 +96,12 @@ typedef struct _IP_ADAPTER_GATEWAY_ADDRESS {
   struct _IP_ADAPTER_GATEWAY_ADDRESS  *Next;
   SOCKET_ADDRESS                     Address;
 } IP_ADAPTER_GATEWAY_ADDRESS, *PIP_ADAPTER_GATEWAY_ADDRESS, *PIP_ADAPTER_GATEWAY_ADDRESS_LH;
+#endif
 
 typedef UINT32 NET_IF_COMPARTMENT_ID;
 typedef GUID NET_IF_NETWORK_GUID;
 
+#ifndef __MINGW64_VERSION_MAJOR
 typedef enum _NET_IF_CONNECTION_TYPE {
   NET_IF_CONNECTION_DEDICATED   = 1,
   NET_IF_CONNECTION_PASSIVE,
@@ -116,6 +118,7 @@ typedef enum  {
   TUNNEL_TYPE_TEREDO,
   TUNNEL_TYPE_IPHTTPS 
 } TUNNEL_TYPE, *PTUNNEL_TYPE;
+#endif
 
 /*
 A DUID consists of a two-octet type code represented in network byte
@@ -125,6 +128,7 @@ A DUID consists of a two-octet type code represented in network byte
 */
 #define MAX_DHCPV6_DUID_LENGTH 130
 
+#ifndef __MINGW64_VERSION_MAJOR
 typedef union _NET_LUID {
   ULONG64 Value;
   struct {
@@ -140,6 +144,7 @@ typedef struct _IP_ADAPTER_DNS_SUFFIX {
   struct _IP_ADAPTER_DNS_SUFFIX  *Next;
   WCHAR                         String[MAX_DNS_SUFFIX_STRING_LENGTH];
 } IP_ADAPTER_DNS_SUFFIX, *PIP_ADAPTER_DNS_SUFFIX;
+#endif
 
 
 
@@ -712,10 +717,12 @@ int UninstallService(char *servicename)
     return 2;
 
   if (! (hService = GNOpenService(hManager, (LPCTSTR) servicename, DELETE)))
+  {
     if (GetLastError() != ERROR_SERVICE_DOES_NOT_EXIST)
       return 3;
-     else
-     	goto closeSCM;
+    else
+      goto closeSCM;
+  }
 
   if (! GNDeleteService(hService))
     if (GetLastError() != ERROR_SERVICE_MARKED_FOR_DELETE)
@@ -877,6 +884,7 @@ NTSTATUS _SetPrivilegeOnAccount(LSA_HANDLE PolicyHandle,/* open policy handle */
                                &PrivilegeString,        /* privileges */
                                1  											/* privilege count */
       );
+    return i;
   }
   else
   {
@@ -925,13 +933,12 @@ int CreateServiceAccount(const char *pszName, const char *pszDesc)
   ui2.usri1008_flags = UF_PASSWD_CANT_CHANGE | UF_DONT_EXPIRE_PASSWD;
   GNNetUserSetInfo(NULL, wszName, 1008, (LPBYTE)&ui2, NULL);
 
-  if (_OpenPolicy(NULL, POLICY_ALL_ACCESS, &hPolicy) !=
-  										STATUS_SUCCESS)
+  if (!NT_SUCCESS(_OpenPolicy(NULL, POLICY_ALL_ACCESS, &hPolicy)))
   	return 3;
 
   _GetAccountSid(NULL, (LPCTSTR) pszName, &pSID);
 
-  if (_SetPrivilegeOnAccount(hPolicy, pSID, (LPWSTR) L"SeServiceLogonRight", TRUE) != STATUS_SUCCESS)
+  if (!NT_SUCCESS(_SetPrivilegeOnAccount(hPolicy, pSID, (LPWSTR) L"SeServiceLogonRight", TRUE)))
   	return 4;
 
   _SetPrivilegeOnAccount(hPolicy, pSID, (LPWSTR) L"SeDenyInteractiveLogonRight", TRUE);
