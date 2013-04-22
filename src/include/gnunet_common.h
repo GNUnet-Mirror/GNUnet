@@ -271,6 +271,7 @@ GNUNET_NETWORK_STRUCT_END
  * @param cls closure
  * @param filename complete filename (absolute path)
  * @return GNUNET_OK to continue to iterate,
+ *  GNUNET_NO to stop iteration with no error,
  *  GNUNET_SYSERR to abort iteration with error!
  */
 typedef int (*GNUNET_FileNameCallback) (void *cls, const char *filename);
