@@ -428,6 +428,8 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char output_buffer[512];
   size_t size;
 
+  printf("%s\n", __FUNCTION__);
+
   shutdown_task = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
@@ -497,6 +499,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned long i = (unsigned long) cls;
 
+  printf("%s\n", __FUNCTION__);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Aborting %lu...\n", i);
   abort_task = GNUNET_SCHEDULER_NO_TASK;
   result = GNUNET_SYSERR;
@@ -599,6 +602,7 @@ stats_cb (void *cls,
   static unsigned int peer_cnt;
   struct RegexPeer *peer = cls;
 
+  printf("%s\n", __FUNCTION__);
   if (GNUNET_OK != success)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -739,9 +743,10 @@ regex_found_handler (void *cls,
   char output_buffer[512];
   size_t size;
 
+  printf("%s\n", __FUNCTION__);
   if (GNUNET_YES == peer->search_str_matched)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
                 "String %s on peer %u already matched!\n",
                 peer->search_str, peer->id);
     return;
@@ -823,9 +828,9 @@ regex_found_handler (void *cls,
  * @param tc the task context
  */
 static void
-search_timeout (void *cls,
-                              const struct GNUNET_SCHEDULER_TaskContext * tc)
+search_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
+  printf("%s\n", __FUNCTION__);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Finding matches to all strings did not succeed after %s.\n",
               GNUNET_STRINGS_relative_time_to_string (search_timeout_time,
@@ -855,6 +860,7 @@ find_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RegexPeer *p = cls;
 
+  printf("%s\n", __FUNCTION__);
   p->timeout = GNUNET_SCHEDULER_NO_TASK;
 
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
@@ -878,6 +884,7 @@ find_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned int search_peer = (unsigned int) (long) cls;
 
+  printf("%s\n", __FUNCTION__);
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) ||
       search_peer >= num_search_strings)
     return;
@@ -923,7 +930,9 @@ daemon_started (void *cls, struct GNUNET_TESTBED_Operation *op,
   unsigned int i;
   unsigned int me;
 
+  printf("%s\n", __FUNCTION__);
   GNUNET_TESTBED_operation_done (peer->daemon_op);
+  peer->daemon_op = NULL;
   me = peer - peers;
   if (NULL != emsg)
   {
@@ -948,15 +957,6 @@ daemon_started (void *cls, struct GNUNET_TESTBED_Operation *op,
                                   2),
                                 &find_string,
                                 (void *) search_peer);
-  if (next_search >= num_peers &&
-      GNUNET_SCHEDULER_NO_TASK == search_timeout_task)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "All daemons started.\n");
-    /* FIXME start GLOBAL timeout to abort experiment */
-    search_timeout_task = GNUNET_SCHEDULER_add_delayed (search_timeout_time,
-                                                        &search_timeout,
-                                                        NULL);
-  }
 }
 
 
@@ -972,6 +972,7 @@ do_announce (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned int i;
 
+  printf("%s\n", __FUNCTION__);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting announce.\n");
 
   for (i = 0; i < SEARCHES_IN_PARALLEL; i++)
@@ -995,6 +996,7 @@ announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RegexPeer *peer;
 
+  printf("%s\n", __FUNCTION__);
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) ||
             next_search >= num_peers)
     return;
@@ -1028,6 +1030,7 @@ dht_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
 {
   struct RegexPeer *peer = (struct RegexPeer *) cls;
 
+  printf("%s\n", __FUNCTION__);
   if (NULL != emsg || NULL == op || NULL == ca_result)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "DHT connect failed: %s\n", emsg);
@@ -1114,6 +1117,7 @@ test_master (void *cls,
 {
   unsigned int i;
 
+  printf("%s\n", __FUNCTION__);
   GNUNET_assert (num_peers_ == num_peers);
 
   prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
@@ -1132,6 +1136,10 @@ test_master (void *cls,
     peers[i].peer_handle = testbed_peers[i];
   }
   GNUNET_SCHEDULER_add_now (&do_announce, NULL);
+  abort_task =
+      GNUNET_SCHEDULER_add_delayed (search_timeout_time,
+                                    &do_abort,
+                                    (void*) __LINE__);
 }
 
 
@@ -1159,6 +1167,7 @@ load_search_strings (const char *filename, char ***strings, unsigned int limit)
   int str_cnt;
   unsigned int i;
 
+  printf("%s\n", __FUNCTION__);
   if (NULL == filename)
   {
     return GNUNET_SYSERR;
@@ -1226,6 +1235,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   unsigned int nsearchstrs;
   unsigned int i;
+  
+  printf("%s\n", __FUNCTION__);
 
   /* Check config */
   if (NULL == config)
@@ -1336,15 +1347,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   peers = GNUNET_malloc (sizeof (struct RegexPeer) * num_peers);
   for (i = 0; i < num_peers; i++)
   {
-    struct RegexPeer *peer = &peers[i];
-    peer->id = i;
-    peer->policy_file = NULL;
-    peer->dht_handle = NULL;
-    peer->search_handle = NULL;
-    peer->stats_handle = NULL;
-    peer->stats_op_handle = NULL;
-    peer->search_str = NULL;
-    peer->search_str_matched = GNUNET_NO;
+    peers[i]->id = i;
   }
 
   event_mask = 0LL;
@@ -1384,7 +1387,7 @@ int
 main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'l', "log-file", "FILENAME",
+    {'o', "log-file", "FILENAME",
      gettext_noop ("name of the file for writing statistics"),
      1, &GNUNET_GETOPT_set_string, &data_filename},
     {'t', "matching-timeout", "TIMEOUT",
@@ -1405,6 +1408,8 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
+  
+  printf("%s\n", __FUNCTION__);
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
