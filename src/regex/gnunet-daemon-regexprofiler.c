@@ -267,6 +267,29 @@ load_regexes (const char *filename, char **rx)
   return rx_cnt;
 }
 
+/**
+ * Scan through the policy_dir looking for the n-th filename.
+ *
+ * @param cls Closure (target number n).
+ * @param filename complete filename (absolute path).
+ * @return GNUNET_OK to continue to iterate,
+ *  GNUNET_NO to stop when found
+ */
+static int
+scan (void *cls, const char *filename)
+{
+  long n = (long) cls;
+  static long c = 0;
+
+  if (c == n)
+  {
+    policy_filename = GNUNET_strdup (filename);
+    return GNUNET_NO;
+  }
+  c++;
+  return GNUNET_OK;
+}
+
 
 /**
  * @brief Main function that will be run by the scheduler.
@@ -363,6 +386,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   }
 
   /* Read regexes from policy files */
+  GNUNET_assert (-1 != GNUNET_DISK_directory_scan (policy_dir, &scan, peer_id));
   if (0 == load_regexes (policy_filename, &regex))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
