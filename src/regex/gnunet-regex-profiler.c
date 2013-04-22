@@ -1331,7 +1331,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   peers = GNUNET_malloc (sizeof (struct RegexPeer) * num_peers);
   for (i = 0; i < num_peers; i++)
   {
-    peers[i]->id = i;
+    peers[i].id = i;
   }
 
   event_mask = 0LL;
