@@ -401,7 +401,8 @@ LIBS=$SAVE_LIBS
 
 
 AC_CHECK_HEADERS([glpk.h],[glpk=true],[gplk=false])
-AC_CHECK_LIB([glpk],[glp_create_prob],,[gplk=false])
+# GLPK must support glpk_init_env, version >= 4.43
+AC_CHECK_LIB([glpk],[glp_init_env],,[gplk=false]) 
 # GLPK must support atm MLP presolving, version >= 4.32
 AC_CHECK_MEMBERS(glp_iocp.presolve,,[gplk=false],[[#include <glpk.h>]])
 if test x$gplk = xfalse
