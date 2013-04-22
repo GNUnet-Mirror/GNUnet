@@ -1184,6 +1184,7 @@ GNUNET_DISK_directory_scan (const char *dirName,
   struct dirent *finfo;
   struct stat istat;
   int count = 0;
+  int ret;
   char *name;
   char *dname;
   unsigned int name_len;
@@ -1241,11 +1242,14 @@ GNUNET_DISK_directory_scan (const char *dirName,
       GNUNET_snprintf (name, n_size, "%s%s%s", dname,
                        (strcmp (dname, DIR_SEPARATOR_STR) ==
                         0) ? "" : DIR_SEPARATOR_STR, finfo->d_name);
-      if (GNUNET_OK != callback (callback_cls, name))
+      ret = callback (callback_cls, name);
+      if (GNUNET_OK != ret)
       {
         CLOSEDIR (dinfo);
         GNUNET_free (name);
         GNUNET_free (dname);
+        if (GNUNET_NO == ret)
+          return count;
         return GNUNET_SYSERR;
       }
     }
