@@ -1143,14 +1143,6 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_SERVER_client_drop (pos->killing_client);
         pos->killing_client = NULL;
         pos->killing_client_request_id = 0;
-        /* process can still be re-started on-demand, ensure it is re-started if there is demand */
-        for (sli = pos->listen_head; NULL != sli; sli = sli->next)
-        {
-          GNUNET_break (GNUNET_SCHEDULER_NO_TASK == sli->accept_task);
-          sli->accept_task =
-              GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                  sli->listen_socket, &accept_connection, sli);
-        }
       }
       if (GNUNET_YES != in_shutdown)
       {
