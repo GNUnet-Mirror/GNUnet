@@ -156,6 +156,7 @@ init_timeout_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Init message timed out\n");
 
+  h->init_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
   reconnect_arm_monitor_later (h);
 }
 
