@@ -131,11 +131,6 @@ struct RegexPeer
   struct GNUNET_TESTBED_Peer *peer_handle;
 
   /**
-   * Filename of the peer's policy file.
-   */
-  char *policy_file;
-
-  /**
    * Peer's search string.
    */
   const char *search_str;
@@ -444,10 +439,11 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       size =
         GNUNET_snprintf (output_buffer,
                          sizeof (output_buffer),
-                         "%p Search string not found: %s (%d)\n%p On peer: %u (%p)\n%p With policy file: %s\n%p After: %s\n",
+                         "%p Search string not found: %s (%d)\n"
+                         "%p On peer: %u (%p)\n"
+                         "%p After: %s\n",
                          peer, peer->search_str, peer->search_str_matched,
                          peer, peer->id, peer,
-                         peer, peer->policy_file,
                          peer,
                          GNUNET_STRINGS_relative_time_to_string (prof_time,
                                                                  GNUNET_NO));
@@ -782,10 +778,10 @@ regex_found_handler (void *cls,
       size =
         GNUNET_snprintf (output_buffer,
                          sizeof (output_buffer),
-                         "%p Peer: %u\n%p Policy file: %s\n"
-                         "%p Search string: %s\n%p Search duration: %s\n\n",
+                         "%p Peer: %u\n"
+                         "%p Search string: %s\n"
+                         "%p Search duration: %s\n\n",
                          peer, peer->id,
-                         peer, peer->policy_file,
                          peer, peer->search_str,
                          peer,
                          GNUNET_STRINGS_relative_time_to_string (prof_time,
@@ -882,10 +878,9 @@ find_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Searching for string \"%s\" on peer %d with file %s (%u||)\n",
+              "Searching for string \"%s\" on peer %d (%u||)\n",
               peers[search_peer].search_str,
               search_peer,
-              peers[search_peer].policy_file,
               parallel_searches);
 
   peers[search_peer].op_handle =
@@ -1368,7 +1363,7 @@ int
 main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'o', "log-file", "FILENAME",
+    {'o', "output-file", "FILENAME",
      gettext_noop ("name of the file for writing statistics"),
      1, &GNUNET_GETOPT_set_string, &data_filename},
     {'t', "matching-timeout", "TIMEOUT",
