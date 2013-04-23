@@ -349,7 +349,6 @@ GNUNET_BIO_write_open (const char *fn)
   h->buffer = (char *) &h[1];
   h->size = BIO_BUFFER_SIZE;
   h->fd = fd;
-
   return h;
 }
 
@@ -363,24 +362,37 @@ GNUNET_BIO_write_open (const char *fn)
 int
 GNUNET_BIO_write_close (struct GNUNET_BIO_WriteHandle *h)
 {
-  ssize_t wrt;
   int ret;
 
-  if (NULL == h->fd)
-  {
-    ret = GNUNET_SYSERR;
-  }
-  else
-  {
-    wrt = GNUNET_DISK_file_write (h->fd, h->buffer, h->have);
-    if (wrt == h->have)
-      ret = GNUNET_OK;
-    else
-      ret = GNUNET_SYSERR;
+  ret = GNUNET_SYSERR;
+  if ( (NULL != h->fd) && (GNUNET_OK == (ret = GNUNET_BIO_flush (h))) )
     GNUNET_DISK_file_close (h->fd);
-  }
   GNUNET_free (h);
   return ret;
+}
+
+
+/**
+ * Force a buffered writer to flush its buffer
+ *
+ * @param h the writer handle
+ * @return GNUNET_OK upon success.  Upon failure GNUNET_SYSERR is returned and
+ *           the file is closed
+ */
+int
+GNUNET_BIO_flush (struct GNUNET_BIO_WriteHandle *h)
+{
+  ssize_t ret;
+
+  ret = GNUNET_DISK_file_write (h->fd, h->buffer, h->have);
+  if (ret != h->have)
+  {
+    GNUNET_DISK_file_close (h->fd);
+    h->fd = NULL;
+    return GNUNET_SYSERR;     /* error */
+  }
+  h->have = 0;
+  return GNUNET_OK;
 }
 
 
@@ -399,7 +411,6 @@ GNUNET_BIO_write (struct GNUNET_BIO_WriteHandle *h, const void *buffer,
   const char *src = buffer;
   size_t min;
   size_t pos;
-  ssize_t ret;
 
   if (NULL == h->fd)
     return GNUNET_SYSERR;
@@ -416,14 +427,8 @@ GNUNET_BIO_write (struct GNUNET_BIO_WriteHandle *h, const void *buffer,
     if (pos == n)
       return GNUNET_OK;         /* done */
     GNUNET_assert (h->have == h->size);
-    ret = GNUNET_DISK_file_write (h->fd, h->buffer, h->size);
-    if (ret != h->size)
-    {
-      GNUNET_DISK_file_close (h->fd);
-      h->fd = NULL;
+    if (GNUNET_OK != GNUNET_BIO_flush (h))
       return GNUNET_SYSERR;     /* error */
-    }
-    h->have = 0;
   }
   while (pos < n);              /* should always be true */
   GNUNET_break (0);

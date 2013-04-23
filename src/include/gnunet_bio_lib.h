@@ -225,6 +225,17 @@ GNUNET_BIO_write (struct GNUNET_BIO_WriteHandle *h, const void *buffer,
 
 
 /**
+ * Force a buffered writer to flush its buffer
+ *
+ * @param h the writer handle
+ * @return GNUNET_OK upon success.  Upon failure GNUNET_SYSERR is returned and
+ *           the file is closed
+ */
+int
+GNUNET_BIO_flush (struct GNUNET_BIO_WriteHandle *h);
+
+
+/**
  * Write a string to a file.
  *
  * @param h handle to open file
