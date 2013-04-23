@@ -199,7 +199,7 @@ transmit_ready_notify (void *cls, size_t size, void *buf)
   GNUNET_free (mq->msg);
   GNUNET_CONTAINER_DLL_remove (h->mq_head, h->mq_tail, mq);
   GNUNET_free (mq);
-  h->bwrote += size;
+  h->bwrote += (size - sizeof (struct GNUNET_MessageHeader));
   mq = h->mq_head;
   if (NULL != mq)
   {

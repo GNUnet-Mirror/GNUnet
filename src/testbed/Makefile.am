@@ -121,6 +121,7 @@ libgnunettestbedlogger_la_LDFLAGS = \
 
 check_PROGRAMS = \
   test_testbed_api_hosts \
+  test_testbed_logger_api \
   test_gnunet_helper_testbed \
   test_testbed_api_controllerlink \
   test_testbed_api_2peers_1controller \
@@ -148,6 +149,7 @@ check_PROGRAMS = \
 if ENABLE_TEST_RUN
  TESTS = \
   test_testbed_api \
+  test_testbed_logger_api \
   test_testbed_api_sd \
   test_testbed_api_operations \
   test_testbed_api_hosts \
@@ -186,6 +188,13 @@ test_testbed_api_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/dht/libgnunetdht.la \
  libgnunettestbed.la
+
+test_testbed_logger_api_SOURCES = \
+ test_testbed_logger_api.c
+test_testbed_logger_api_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ libgnunettestbedlogger.la
 
 test_testbed_api_sd_SOURCES = \
  test_testbed_api_sd.c
