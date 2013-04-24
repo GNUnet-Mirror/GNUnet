@@ -1206,7 +1206,8 @@ GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
     off = 0;
     if (un->sun_path[0] == '\0')
       off++;
-    snprintf (buf, sizeof (buf), "%s%.*s", (off == 1) ? "@" : "",
+    memset (buf, 0, sizeof (buf));
+    snprintf (buf, sizeof (buf) - 1, "%s%.*s", (off == 1) ? "@" : "",
               (int) (addrlen - sizeof (sa_family_t) - 1 - off),
               &un->sun_path[off]);
     return buf;
