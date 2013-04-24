@@ -146,7 +146,7 @@ iterator_cb (void *cls, struct GNUNET_DISK_DirectoryIterator *di,
     
  iteration_cont:
   if ( (NULL != di) && 
-       (GNUNET_YES != GNUNET_DISK_directory_iterator_next (di, cancel)) )
+       (GNUNET_YES == GNUNET_DISK_directory_iterator_next (di, cancel)) )
     return;
   shutdown_now ();
 }
@@ -167,8 +167,6 @@ flush_comp (void *cls, size_t size)
   FAIL_TEST (GNUNET_YES == GNUNET_DISK_directory_iterator_start
              (GNUNET_SCHEDULER_PRIORITY_DEFAULT, search_dir,
               &iterator_cb, NULL), return);
-  result = GNUNET_OK;
-  shutdown_now ();
 }
 
 
