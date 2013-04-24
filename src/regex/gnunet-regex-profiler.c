@@ -493,7 +493,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned long i = (unsigned long) cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Aborting %lu...\n", i);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Aborting from line %lu...\n", i);
   abort_task = GNUNET_SCHEDULER_NO_TASK;
   result = GNUNET_SYSERR;
   if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
@@ -1118,10 +1118,8 @@ test_master (void *cls,
     peers[i].peer_handle = testbed_peers[i];
   }
   GNUNET_SCHEDULER_add_now (&do_announce, NULL);
-  abort_task =
-      GNUNET_SCHEDULER_add_delayed (search_timeout_time,
-                                    &do_abort,
-                                    (void*) __LINE__);
+  search_timeout_task =
+      GNUNET_SCHEDULER_add_delayed (search_timeout_time, &search_timeout, NULL);
 }
 
 
@@ -1390,7 +1388,7 @@ main (int argc, char *const *argv)
   result = GNUNET_SYSERR;
   ret =
       GNUNET_PROGRAM_run (argc, argv,
-                          "gnunet-regex-profiler [OPTIONS] hosts-file policy-dir search-strings-file",
+                          "gnunet-regex-profiler",
                           _("Profiler for regex"),
                           options, &run, NULL);
   if (GNUNET_OK != ret)
