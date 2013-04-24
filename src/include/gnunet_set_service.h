@@ -90,11 +90,11 @@ enum GNUNET_SET_Status
    * There was a timeout.
    */
   GNUNET_SET_STATUS_TIMEOUT,
-  /*
+  /**
    * The other peer refused to to the operation with us
    */
   GNUNET_SET_STATUS_REFUSED,
-  /*
+  /**
    * Success, all elements have been sent.
    */
   GNUNET_SET_STATUS_DONE
@@ -249,6 +249,7 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set);
  * Evaluate a set operation with our set and the set of another peer.
  *
  * @param set set to use
+ * @param salt salt for HKDF (explain more here)
  * @param other_peer peer with the other set
  * @param app_id hash for the application using the set
  * @param context_msg additional information for the request

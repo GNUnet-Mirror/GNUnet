@@ -67,7 +67,7 @@ struct Set
   /**
    * Type of operation supported for this set
    */
-  uint32_t operation;
+  uint32_t operation; // use enum from API
 
   /**
    * Sets are held in a doubly linked list.
@@ -275,7 +275,7 @@ client_disconnect (struct GNUNET_SERVER_Client *client);
 
 
 struct Set *
-union_set_create ();
+union_set_create (void);
 
 
 void

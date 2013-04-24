@@ -126,6 +126,7 @@ get_listener (struct GNUNET_SERVER_Client *client)
   return NULL;
 }
 
+
 /**
  * Get the incoming socket associated with the given id
  *
@@ -142,6 +143,7 @@ get_incoming (uint32_t id)
       return incoming;
   return NULL;
 }
+
 
 static void
 destroy_incoming (struct Incoming *incoming)

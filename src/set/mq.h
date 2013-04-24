@@ -61,6 +61,7 @@
 /**
  * Allocate a GNUNET_MQ_Message, and concatenate another message
  * after the space needed by the message struct.
+ * // nest?
  *
  * @param mvar variable to store the allocated message in;
  *             must have a header field
@@ -108,7 +109,7 @@ struct GNUNET_MQ_MessageQueue;
 /**
  * Opaque handle to an allocated message
  */
-struct GNUNET_MQ_Message;
+struct GNUNET_MQ_Message; // Entry (/ Request)
 
 /**
  * Called when a message has been received.
@@ -129,6 +130,7 @@ struct GNUNET_MQ_Handler
    * the specified type has been receied.
    */
   GNUNET_MQ_MessageCallback cb;
+
 
   /**
    * Type of the message we are interested in
