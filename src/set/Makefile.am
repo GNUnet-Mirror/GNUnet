@@ -29,6 +29,7 @@ gnunet_set_SOURCES = \
 gnunet_set_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/set/libgnunetset.la \
+  $(top_builddir)/src/stream/libgnunetstream.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(GN_LIBINTL)
 gnunet_set_DEPENDENCIES = \
@@ -36,6 +37,8 @@ gnunet_set_DEPENDENCIES = \
 
 gnunet_service_set_SOURCES = \
  gnunet-service-set.c \
+ gnunet-service-set_union.c \
+ mq.c \
  ibf.c \
  strata_estimator.c
 gnunet_service_set_LDADD = \
@@ -44,12 +47,16 @@ gnunet_service_set_LDADD = \
   $(top_builddir)/src/stream/libgnunetstream.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(GN_LIBINTL)
+# hack for mq.c, see automake Objects ‘created with both libtool and without’
+# remove once GNUNET_MQ is in util/
+gnunet_service_set_CFLAGS = $(AM_CFLAGS)
 
 libgnunetset_la_SOURCES = \
   set_api.c \
   mq.c
 libgnunetset_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/stream/libgnunetstream.la \
   $(LTLIBINTL)
 libgnunetset_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
@@ -67,6 +74,8 @@ test_set_api_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/set/libgnunetset.la
+test_set_api_DEPENDENCIES = \
+  libgnunetset.la
 
 EXTRA_DIST = \
   test_set.conf

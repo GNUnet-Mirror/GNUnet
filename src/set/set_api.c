@@ -93,7 +93,7 @@ handle_result (void *cls, const struct GNUNET_MessageHeader *mh)
   if (set->messages_since_ack >= GNUNET_SET_ACK_WINDOW/2)
   {
     struct GNUNET_MQ_Message *mqm;
-    mqm = GNUNET_MQ_msg_raw (GNUNET_MESSAGE_TYPE_SET_ACK);
+    mqm = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_ACK);
     GNUNET_MQ_send (set->mq, mqm);
   }
 
@@ -136,7 +136,15 @@ handle_request (void *cls, const struct GNUNET_MessageHeader *mh)
   req->request_id = ntohl (msg->request_id);
   lh->listen_cb (lh->listen_cls, &msg->peer_id, &mh[1], req);
   if (GNUNET_NO == req->accepted)
+  {
+    struct GNUNET_MQ_Message *mqm;
+    struct AcceptMessage *amsg;
+    
+    mqm = GNUNET_MQ_msg (amsg, GNUNET_MESSAGE_TYPE_SET_ACCEPT);
+    amsg->request_id = msg->request_id;
+    GNUNET_MQ_send (lh->mq, mqm);
     GNUNET_free (req);
+  }
 }
 
 
@@ -152,7 +160,7 @@ handle_request (void *cls, const struct GNUNET_MessageHeader *mh)
  * @return a handle to the set
  */
 struct GNUNET_SET_Handle *
-GNUNET_SET_create (struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_SET_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
                    enum GNUNET_SET_OperationType op)
 {
   struct GNUNET_SET_Handle *set;
@@ -165,6 +173,7 @@ GNUNET_SET_create (struct GNUNET_CONFIGURATION_Handle *cfg,
 
   set = GNUNET_new (struct GNUNET_SET_Handle);
   set->client = GNUNET_CLIENT_connect ("set", cfg);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "set client created\n");
   GNUNET_assert (NULL != set->client);
   set->mq = GNUNET_MQ_queue_for_connection_client (set->client, mq_handlers, set);
   mqm = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_CREATE);
@@ -295,7 +304,7 @@ GNUNET_SET_evaluate (struct GNUNET_SET_Handle *set,
 
   mqm = GNUNET_MQ_msg_extra (msg, htons(context_msg->size), GNUNET_MESSAGE_TYPE_SET_EVALUATE);
   msg->request_id = htonl (GNUNET_MQ_assoc_add (set->mq, mqm, oh));
-  msg->other_peer = *other_peer;
+  msg->peer = *other_peer;
   msg->app_id = *app_id;
   memcpy (&msg[1], context_msg, htons (context_msg->size));
   oh->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout, operation_timeout_task, oh);
@@ -318,7 +327,7 @@ GNUNET_SET_evaluate (struct GNUNET_SET_Handle *set,
  * @return a handle that can be used to cancel the listen operation
  */
 struct GNUNET_SET_ListenHandle *
-GNUNET_SET_listen (struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_SET_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
                    enum GNUNET_SET_OperationType operation,
                    const struct GNUNET_HashCode *app_id,
                    GNUNET_SET_ListenCallback listen_cb,
@@ -396,8 +405,10 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
 
   mqm = GNUNET_MQ_msg (msg , GNUNET_MESSAGE_TYPE_SET_ACCEPT);
   msg->request_id = htonl (request->request_id);
-  oh->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout, operation_timeout_task, oh);
+  msg->accepted = 1;
   GNUNET_MQ_send (set->mq, mqm);
+
+  oh->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout, operation_timeout_task, oh);
 
   return oh;
 }
@@ -416,7 +427,7 @@ GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *h)
 
   h_assoc = GNUNET_MQ_assoc_remove (h->set->mq, h->request_id);
   GNUNET_assert (h_assoc == h);
-  mqm = GNUNET_MQ_msg_raw (GNUNET_MESSAGE_TYPE_SET_CANCEL);
+  mqm = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_CANCEL);
   GNUNET_MQ_send (h->set->mq, mqm);
   GNUNET_free (h);
 }

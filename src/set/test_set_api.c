@@ -44,8 +44,8 @@ run (void *cls,
   struct GNUNET_SET_Handle *set1;
   struct GNUNET_SET_Handle *set2;
 
-  set1 = GNUNET_SET_create (GNUNET_SET_OPERATION_UNION);
-  set2 = GNUNET_SET_create (GNUNET_SET_OPERATION_UNION);
+  set1 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
+  set2 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
 }
 
 int

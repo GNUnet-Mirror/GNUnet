@@ -1807,9 +1807,40 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_SET_REQUEST 578
 
 /**
- * Evaluate a set operation
+ * Evaluate a set operation.
  */
 #define GNUNET_MESSAGE_TYPE_SET_CREATE 579
+
+/**
+ * Evaluate a set operation.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST 580
+
+/**
+ * Strata estimator.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_P2P_SE 581
+
+/**
+ * Invertible bloom filter.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_P2P_IBF 582
+
+/**
+ * Actual set elements.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS 583
+
+/**
+ * Requests for the elements with the given hashes.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS 584
+
+/**
+ * Operation is done.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_P2P_DONE 585
+
 
 
 /*******************************************************************************

@@ -53,15 +53,15 @@ strata_estimator_read (const void *buf, struct StrataEstimator *se)
 
 
 void
-strata_estimator_insert (struct StrataEstimator *se, struct GNUNET_HashCode *key)
+strata_estimator_insert (struct StrataEstimator *se, struct IBF_Key key)
 {
-  uint32_t v;
+  uint64_t v;
   int i;
-  v = key->bits[0];
+  v = key.key_val;
   /* count trailing '1'-bits of v */
   for (i = 0; v & 1; v>>=1, i++)
     /* empty */;
-  ibf_insert (se->strata[i], ibf_key_from_hashcode (key));
+  ibf_insert (se->strata[i], key);
 }
 
 

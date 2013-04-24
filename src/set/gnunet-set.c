@@ -27,6 +27,23 @@
 #include "gnunet_common.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testbed_service.h"
+#include "gnunet_set_service.h"
+
+
+static struct GNUNET_HashCode app_id;
+static struct GNUNET_SET_Handle *set1;
+static struct GNUNET_SET_Handle *set2;
+static struct GNUNET_SET_ListenHandle *listen_handle;
+
+
+static void
+listen_cb (void *cls,
+           const struct GNUNET_PeerIdentity *other_peer,
+           const struct GNUNET_MessageHeader *context_msg,
+           struct GNUNET_SET_Request *request)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "listen cb called\n");
+}
 
 
 /**
@@ -40,10 +57,15 @@
 static void
 run (void *cls, char *const *args,
      const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *
-     cfg)
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  /* FIXME */
+  static const char* app_str = "gnunet-set";
+  GNUNET_CRYPTO_hash (app_str, strlen (app_str), &app_id);
+
+  set1 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
+  set2 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
+  listen_handle = GNUNET_SET_listen (cfg, GNUNET_SET_OPERATION_UNION, &app_id,
+                                     listen_cb, NULL);
 }
 
 
@@ -56,7 +78,7 @@ main (int argc, char **argv)
   };
   GNUNET_PROGRAM_run2 (argc, argv, "gnunet-set",
 		      "help",
-		      options, &run, NULL, GNUNET_YES);
+		      options, &run, NULL, GNUNET_NO);
   return 0;
 }
 

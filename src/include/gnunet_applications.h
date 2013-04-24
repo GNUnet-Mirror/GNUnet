@@ -77,6 +77,12 @@ extern "C"
 #define GNUNET_APPLICATION_TYPE_CONSENSUS 18
 
 
+/**
+ * Set. Used for two-peer set operations implemented using stream.
+ */
+#define GNUNET_APPLICATION_TYPE_SET 19
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

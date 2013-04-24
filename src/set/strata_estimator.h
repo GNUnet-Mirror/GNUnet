@@ -66,7 +66,7 @@ strata_estimator_difference (const struct StrataEstimator *se1,
 
 
 void
-strata_estimator_insert (struct StrataEstimator *se, struct GNUNET_HashCode *key);
+strata_estimator_insert (struct StrataEstimator *se, struct IBF_Key key);
 
 
 void

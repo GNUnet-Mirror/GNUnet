@@ -63,11 +63,6 @@ struct GNUNET_SET_OperationHandle;
 
 
 /**
- * Opaque handle to a listen operation.
- */
-struct GNUNET_SET_ListenHandle;
-
-/**
  * The operation that a set set supports.
  */
 enum GNUNET_SET_OperationType
@@ -135,10 +130,12 @@ struct GNUNET_SET_Element
    * Number of bytes in the buffer pointed to by data.
    */
   uint16_t size;
+
   /**
    * Application-specific element type.
    */
   uint16_t type;
+
   /**
    * Actual data of the element
    */
@@ -153,6 +150,7 @@ struct GNUNET_SET_Element
  */
 typedef void (*GNUNET_SET_Continuation) (void *cls);
 
+
 /**
  * Callback for set operation results. Called for each element
  * in the result set.
@@ -161,10 +159,9 @@ typedef void (*GNUNET_SET_Continuation) (void *cls);
  * @param element a result element, only valid if status is GNUNET_SET_STATUS_OK
  * @param status see enum GNUNET_SET_Status
  */
-typedef void
-(*GNUNET_SET_ResultIterator) (void *cls,
-                              struct GNUNET_SET_Element *element,
-                              enum GNUNET_SET_Status status);
+typedef void (*GNUNET_SET_ResultIterator) (void *cls,
+                                           struct GNUNET_SET_Element *element,
+                                           enum GNUNET_SET_Status status);
 
 
 /**
@@ -201,7 +198,7 @@ typedef void
  * @return a handle to the set
  */
 struct GNUNET_SET_Handle *
-GNUNET_SET_create (struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_SET_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
                    enum GNUNET_SET_OperationType op);
 
 
@@ -270,8 +267,6 @@ GNUNET_SET_evaluate (struct GNUNET_SET_Handle *set,
                      void *result_cls);
 
 
-
-
 /**
  * Wait for set operation requests for the given application id
  * 
@@ -285,7 +280,7 @@ GNUNET_SET_evaluate (struct GNUNET_SET_Handle *set,
  * @return a handle that can be used to cancel the listen operation
  */
 struct GNUNET_SET_ListenHandle *
-GNUNET_SET_listen (struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_SET_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
                    enum GNUNET_SET_OperationType op_type,
                    const struct GNUNET_HashCode *app_id,
                    GNUNET_SET_ListenCallback listen_cb,

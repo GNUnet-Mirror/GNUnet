@@ -20,12 +20,13 @@
 
 /**
  * @author Florian Dold
- * @file consensus/consensus.h
- * @brief
+ * @file set/set.h
+ * @brief messages used for the set api
  */
 #ifndef SET_H
 #define SET_H
 
+#include "platform.h"
 #include "gnunet_common.h"
 
 
@@ -68,12 +69,6 @@ struct ListenMessage
    * Operation type, values of enum GNUNET_SET_OperationType
    */
   uint16_t operation GNUNET_PACKED;
-
-  /**
-   * Operation type, values of enum GNUNET_SET_OperationType
-   */
-  uint16_t op GNUNET_PACKED;
-  
 };
 
 
@@ -88,6 +83,12 @@ struct AcceptMessage
    * request id of the request we want to accept
    */
   uint32_t request_id GNUNET_PACKED;
+
+  /**
+   * Zero if the client has rejected the request,
+   * non-zero if it has accepted it
+   */
+  uint32_t accepted GNUNET_PACKED;
 };
 
 
@@ -119,8 +120,14 @@ struct EvaluateMessage
    */
   struct GNUNET_MessageHeader header;
 
-  struct GNUNET_PeerIdentity other_peer;
+  /**
+   * Peer to evaluate the operation with
+   */
+  struct GNUNET_PeerIdentity peer;
 
+  /**
+   * Application id
+   */
   struct GNUNET_HashCode app_id;
 
   /**
@@ -144,8 +151,15 @@ struct ResultMessage
    */
   uint32_t request_id GNUNET_PACKED;
 
+  /**
+   * Was the evaluation successful?
+   */
   uint16_t result_status GNUNET_PACKED;
 
+  /**
+   * Type of the element attachted to the message,
+   * if any.
+   */
   uint16_t element_type GNUNET_PACKED;
 
   /* rest: the actual element */
@@ -178,6 +192,7 @@ struct CancelMessage
    */
   uint32_t request_id GNUNET_PACKED;
 };
+
 
 GNUNET_NETWORK_STRUCT_END
 
