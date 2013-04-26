@@ -144,7 +144,7 @@ check_PROGRAMS = \
   test_testbed_api_testbed_run_topologysmallworld \
   test_testbed_api_testbed_run_topologyfromfile \
   test_testbed_api_testbed_run_topologyscalefree \
-  test_testbed_api_testbed_run_waitforever \ #Can be used for manual debugging
+  test_testbed_api_testbed_run_waitforever \
   test_testbed_api_statistics
 
 if ENABLE_TEST_RUN
