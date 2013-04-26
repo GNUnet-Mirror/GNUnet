@@ -386,7 +386,8 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   }
 
   /* Read regexes from policy files */
-  GNUNET_assert (-1 != GNUNET_DISK_directory_scan (policy_dir, &scan, peer_id));
+  GNUNET_assert (-1 != GNUNET_DISK_directory_scan (policy_dir, &scan,
+                                                   (void *) (long) peer_id));
   if (0 == load_regexes (policy_filename, &regex))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
