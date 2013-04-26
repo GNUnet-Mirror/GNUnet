@@ -29,7 +29,10 @@
  *          This helper monitors for three termination events.  They are: (1)The
  *          stdin of the helper is closed for reading; (2)the helper received
  *          SIGTERM/SIGINT; (3)the testbed crashed.  In case of events 1 and 2
- *          the helper kills the testbed service.
+ *          the helper kills the testbed service.  When testbed crashed (event
+ *          3), the helper should send a SIGTERM to its own process group; this
+ *          behaviour will help terminate any child processes (peers) testbed
+ *          has started and prevents them from leaking and running forever.
  *
  * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
@@ -294,7 +297,12 @@ child_death_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_OS_process_destroy (testbed);
     testbed = NULL;
-    shutdown_now ();
+    /* Send SIGTERM to our process group */
+    if (0 != PLIBC_KILL (0, SIGTERM))
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "signal");
+      shutdown_now ();          /* Couldn't send the signal, we shutdown frowning */
+    }
     return;
   }
   LOG_DEBUG ("Child hasn't died.  Resuming to monitor its status\n");

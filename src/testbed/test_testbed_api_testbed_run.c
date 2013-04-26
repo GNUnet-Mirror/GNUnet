@@ -51,12 +51,17 @@ static GNUNET_SCHEDULER_TaskIdentifier abort_task;
 /**
  * Current peer id
  */
-unsigned int peer_id;
+static unsigned int peer_id;
 
 /**
  * Testing result
  */
 static int result;
+
+/**
+ * Should we wait forever after testbed is initialized?
+ */
+static int wait_forever;
 
 
 /**
@@ -85,7 +90,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
   abort_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  (void) GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
 
 
@@ -107,6 +112,14 @@ test_master (void *cls, unsigned int num_peers,
              unsigned int links_failed)
 {
   result = GNUNET_OK;
+  if (GNUNET_YES == wait_forever)
+  {
+    GNUNET_SCHEDULER_cancel (abort_task);
+    abort_task = GNUNET_SCHEDULER_NO_TASK;
+    (void) GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                         &do_shutdown, NULL);
+    return;
+  }
   GNUNET_assert (NULL != peers[0]);
   op = GNUNET_TESTBED_peer_stop (NULL, peers[0], NULL, NULL);
   GNUNET_assert (NULL != op);
@@ -206,7 +219,9 @@ main (int argc, char **argv)
       GNUNET_break (0);         /* Windows with no .exe? */
   }
 #endif
-  if (0 != strcmp ("run", testname))
+  if (0 == strcmp ("waitforever", testname))
+    wait_forever = GNUNET_YES;
+  if ( (GNUNET_YES != wait_forever) && (0 != strcmp ("run", testname)) )
   {
     GNUNET_asprintf (&config_filename, "test_testbed_api_testbed_run_%s.conf",
                      testname);

@@ -144,6 +144,7 @@ check_PROGRAMS = \
   test_testbed_api_testbed_run_topologysmallworld \
   test_testbed_api_testbed_run_topologyfromfile \
   test_testbed_api_testbed_run_topologyscalefree \
+  test_testbed_api_testbed_run_waitforever \ #Can be used for manual debugging
   test_testbed_api_statistics
 
 if ENABLE_TEST_RUN
@@ -316,6 +317,12 @@ test_testbed_api_testbed_run_topologyfromfile_LDADD = \
 test_testbed_api_testbed_run_topologyscalefree_SOURCES = \
  test_testbed_api_testbed_run.c
 test_testbed_api_testbed_run_topologyscalefree_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunettestbed.la
+
+test_testbed_api_testbed_run_waitforever_SOURCES = \
+ test_testbed_api_testbed_run.c
+test_testbed_api_testbed_run_waitforever_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
 
