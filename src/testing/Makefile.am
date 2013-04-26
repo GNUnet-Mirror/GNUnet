@@ -38,7 +38,6 @@ gnunet_testing_run_service_SOURCES = \
 gnunet_testing_run_service_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
- $(top_builddir)/src/arm/libgnunetarm.la \
  $(GN_LIBINTL)
 gnunet_testing_run_service_DEPENDENCIES = \
   libgnunettesting.la
@@ -47,7 +46,6 @@ gnunet_testing_SOURCES = \
  gnunet-testing.c         
 gnunet_testing_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
- $(top_builddir)/src/arm/libgnunetarm.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(GN_LIBINTL)
 gnunet_testing_DEPENDENCIES = \
