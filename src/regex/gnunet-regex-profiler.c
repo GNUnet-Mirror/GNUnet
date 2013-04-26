@@ -1122,6 +1122,30 @@ test_master (void *cls,
       GNUNET_SCHEDULER_add_delayed (search_timeout_time, &search_timeout, NULL);
 }
 
+/**
+ * Function that will be called whenever something in the testbed changes.
+ *
+ * @param cls closure, NULL
+ * @param event information on what is happening
+ */
+static void
+master_controller_cb (void *cls, 
+                      const struct GNUNET_TESTBED_EventInformation *event)
+{
+  switch (event->type)
+  {
+  case GNUNET_TESTBED_ET_CONNECT:
+    printf(".");
+    break;
+  case GNUNET_TESTBED_ET_PEER_START:
+    printf("#");
+    break;
+  default:
+    break;
+  }
+  fflush(stdout);
+}
+
 
 /******************************************************************************/
 /***************************  TESTBED PEER SETUP  *****************************/
@@ -1328,17 +1352,17 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
 
   event_mask = 0LL;
-/* For feedback about the start process activate these and pass master_cb
+/* For feedback about the start process activate these and pass master_cb */
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
-  event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
+//   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
-  event_mask |= (1LL << GNUNET_TESTBED_ET_DISCONNECT);*/
+//   event_mask |= (1LL << GNUNET_TESTBED_ET_DISCONNECT);
   prof_start_time = GNUNET_TIME_absolute_get ();
   GNUNET_TESTBED_run (args[0],
                       cfg,
                       num_peers,
                       event_mask,
-                      NULL,     /* master_controller_cb, */
+                      &master_controller_cb,
                       NULL,     /* master_controller_cb cls */
                       &test_master,
                       NULL);    /* test_master cls */
