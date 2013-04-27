@@ -36,15 +36,11 @@ gnunet_set_DEPENDENCIES = \
   libgnunetset.la
 
 gnunet_set_bug_SOURCES = \
- gnunet-set-bug.c \
- mq.c
+ gnunet-set-bug.c
 gnunet_set_bug_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/stream/libgnunetstream.la \
   $(GN_LIBINTL)
-# hack for mq.c, see automake Objects ‘created with both libtool and without’
-# remove once GNUNET_MQ is in util/
-gnunet_set_bug_CFLAGS = $(AM_CFLAGS)
 
 gnunet_service_set_SOURCES = \
  gnunet-service-set.c \
