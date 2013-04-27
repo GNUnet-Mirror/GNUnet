@@ -84,7 +84,7 @@ static uint32_t request_id = 1;
  * @param client the client to disconnect
  */
 void
-client_disconnect (struct GNUNET_SERVER_Client *client)
+_GSS_client_disconnect (struct GNUNET_SERVER_Client *client)
 {
   /* FIXME: clean up any data structures belonging to the client */
   GNUNET_SERVER_client_disconnect (client);
@@ -170,6 +170,7 @@ destroy_incoming (struct Incoming *incoming)
  * @param cls the incoming socket
  * @param mh the message
  */
+
 static void
 handle_p2p_operation_request (void *cls, const struct GNUNET_MessageHeader *mh)
 {
@@ -179,6 +180,8 @@ handle_p2p_operation_request (void *cls, const struct GNUNET_MessageHeader *mh)
   struct RequestMessage *cmsg;
   struct Listener *listener;
   const struct GNUNET_MessageHeader *context_msg;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "got operation request\n");
 
   if (ntohs (mh->size) < sizeof *msg)
   {
@@ -201,18 +204,28 @@ handle_p2p_operation_request (void *cls, const struct GNUNET_MessageHeader *mh)
       return;
     }
   }
-
-  for (listener = listeners_head; listener != NULL; listener = listener->next)
+  /* find the appropriate listener */
+  for (listener = listeners_head;
+       listener != NULL;
+       listener = listener->next)
   {
     if ( (0 != GNUNET_CRYPTO_hash_cmp (&msg->app_id, &listener->app_id)) ||
          (htons (msg->operation) != listener->operation) )
       continue;
-    mqm = GNUNET_MQ_msg_concat (cmsg, context_msg, GNUNET_MESSAGE_TYPE_SET_REQUEST);
+    mqm = GNUNET_MQ_msg (cmsg, GNUNET_MESSAGE_TYPE_SET_REQUEST);
+    if (GNUNET_OK !=
+        GNUNET_MQ_nest (mqm, context_msg))
+    {
+      /* FIXME: disconnect the peer */
+      GNUNET_MQ_discard (mqm);
+      GNUNET_break (0);
+    }
     incoming->request_id = request_id++;
     cmsg->request_id = htonl (incoming->request_id);
     GNUNET_MQ_send (listener->client_mq, mqm);
     return;
   }
+  /* FIXME: send a reject message */
 }
 
 
@@ -249,7 +262,7 @@ handle_client_create (void *cls,
       GNUNET_assert (0);
       break;
     case GNUNET_SET_OPERATION_UNION:
-      set = union_set_create ();
+      set = _GSS_union_set_create ();
       break;
     default:
       GNUNET_free (set);
@@ -261,7 +274,7 @@ handle_client_create (void *cls,
   set->client = client;
   set->client_mq = GNUNET_MQ_queue_for_server_client (client);
   GNUNET_CONTAINER_DLL_insert (sets_head, sets_tail, set);
-
+  
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -292,6 +305,8 @@ handle_client_listen (void *cls,
   listener->app_id = msg->app_id;
   listener->operation = msg->operation;
   GNUNET_CONTAINER_DLL_insert_tail (listeners_head, listeners_tail, listener);
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -313,14 +328,13 @@ handle_client_add (void *cls,
   if (NULL == set)
   {
     GNUNET_break (0);
-    client_disconnect (client);
+    _GSS_client_disconnect (client);
     return;
   }
   switch (set->operation)
   {
     case GNUNET_SET_OPERATION_UNION:
-      union_add (set, (struct ElementMessage *) m);
-      break;
+      _GSS_union_add ((struct ElementMessage *) m, set);
     case GNUNET_SET_OPERATION_INTERSECTION:
       /* FIXME: cfuchs */
       break;
@@ -328,6 +342,8 @@ handle_client_add (void *cls,
       GNUNET_assert (0);
       break;
   }
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -344,24 +360,15 @@ handle_client_evaluate (void *cls,
                         const struct GNUNET_MessageHeader *m)
 {
   struct Set *set;
-  struct EvaluateMessage *msg = (struct EvaluateMessage *) m;
-  struct EvaluateOperation *eo;
 
   set = get_set (client);
-
   if (NULL == set)
   {
     GNUNET_break (0);
-    client_disconnect (client);
+    _GSS_client_disconnect (client);
     return;
   }
 
-  eo = GNUNET_new (struct EvaluateOperation);
-  eo->peer = msg->peer;
-  eo->app_id = msg->app_id;
-  eo->request_id = msg->request_id;
-  eo->context_msg = GNUNET_copy_message (&msg[1].header);
-  eo->set = set;
 
   switch (set->operation)
   {
@@ -369,12 +376,14 @@ handle_client_evaluate (void *cls,
       /* FIXME: cfuchs */
       break;
     case GNUNET_SET_OPERATION_UNION:
-      union_evaluate (eo);
+      _GSS_union_evaluate ((struct EvaluateMessage *) m, set);
       break;
     default:
       GNUNET_assert (0);
       break;
   }
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -391,6 +400,7 @@ handle_client_cancel (void *cls,
                       const struct GNUNET_MessageHeader *m)
 {
   /* FIXME: implement */
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -407,6 +417,7 @@ handle_client_ack (void *cls,
                    const struct GNUNET_MessageHeader *m)
 {
   /* FIXME: implement */
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -421,19 +432,18 @@ handle_client_ack (void *cls,
 static void
 handle_client_accept (void *cls,
                       struct GNUNET_SERVER_Client *client,
-                      const struct GNUNET_MessageHeader *m)
+                      const struct GNUNET_MessageHeader *mh)
 {
-  struct AcceptMessage *msg = (struct AcceptMessage *) m;
   struct Set *set;
   struct Incoming *incoming;
-  struct EvaluateOperation *eo;
+  struct AcceptMessage *msg = (struct AcceptMessage *) mh;
 
   set = get_set (client);
 
   if (NULL == set)
   {
     GNUNET_break (0);
-    client_disconnect (client);
+    _GSS_client_disconnect (client);
     return;
   }
 
@@ -443,15 +453,9 @@ handle_client_accept (void *cls,
        (incoming->operation != set->operation) )
   {
     GNUNET_break (0);
-    client_disconnect (client);
+    _GSS_client_disconnect (client);
     return;
   }
-
-  eo = GNUNET_new (struct EvaluateOperation);
-  eo->peer = incoming->peer;
-  eo->app_id = incoming->app_id;
-  eo->request_id = msg->request_id;
-  eo->set = set;
 
   switch (set->operation)
   {
@@ -460,12 +464,15 @@ handle_client_accept (void *cls,
       GNUNET_assert (0);
       break;
     case GNUNET_SET_OPERATION_UNION:
-      union_accept (eo, incoming);
+      _GSS_union_accept (msg, set, incoming);
       break;
     default:
       GNUNET_assert (0);
       break;
   }
+  /* FIXME: destroy incoming */
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -522,7 +529,7 @@ shutdown_task (void *cls,
   {
     GNUNET_STREAM_listen_close (stream_listen_socket);
     stream_listen_socket = NULL;
-  } 
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "handled shutdown request\n");
 }
@@ -574,5 +581,4 @@ main (int argc, char *const *argv)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "exit\n");
   return (GNUNET_OK == ret) ? 0 : 1;
 }
-
 

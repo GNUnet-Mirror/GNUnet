@@ -215,21 +215,25 @@ GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp, uint16_t size, uint16_t type)
 }
 
 
-struct GNUNET_MQ_Message *
-GNUNET_MQ_msg_concat_ (struct GNUNET_MessageHeader **mhp, uint16_t base_size, struct GNUNET_MessageHeader *m, uint16_t type)
+int
+GNUNET_MQ_nest_ (struct GNUNET_MQ_Message **mqmp,
+                 const struct GNUNET_MessageHeader *m)
 {
-  struct GNUNET_MQ_Message *mq;
+  size_t new_size;
+  size_t old_size;
 
-  GNUNET_assert (NULL != mhp);
   if (NULL == m)
-    return GNUNET_MQ_msg_ (mhp, base_size, type);
-  GNUNET_assert (ntohs (m->size >= sizeof (struct GNUNET_MessageHeader)));
-  /* check for overflow */
-  if (base_size + ntohs (m->size) <= base_size)
-    return NULL; 
-  mq = GNUNET_MQ_msg_ (mhp, base_size + ntohs (m->size), type);
-  memcpy (((void *) *mhp) + base_size, m, ntohs (m->size));
-  return mq;
+    return GNUNET_OK;
+  GNUNET_assert (NULL != mqmp);
+  old_size = ntohs ((*mqmp)->mh->size);
+  /* message too large to concatenate? */
+  if (ntohs ((*mqmp)->mh->size) + ntohs (m->size) < ntohs (m->size))
+    return GNUNET_SYSERR;
+  new_size = old_size + ntohs (m->size);
+  *mqmp = GNUNET_realloc (mqmp, sizeof (struct GNUNET_MQ_Message) + new_size);
+  memcpy ((*mqmp)->mh + old_size, m, new_size - old_size);
+  (*mqmp)->mh->size = htons (new_size);
+  return GNUNET_OK;
 }
 
 
@@ -274,20 +278,26 @@ stream_write_queued (void *cls, enum GNUNET_STREAM_Status status, size_t size)
     return;
   GNUNET_CONTAINER_DLL_remove (mq->msg_head, mq->msg_tail, mqm);
   mss->wh = GNUNET_STREAM_write (mss->socket, mqm->mh, ntohs (mqm->mh->size),
-                                 GNUNET_TIME_UNIT_FOREVER_REL, stream_write_queued, cls);
+                                 GNUNET_TIME_UNIT_FOREVER_REL,
+                                 stream_write_queued, mq);
   GNUNET_assert (NULL != mss->wh);
 }
 
 
 static void
-stream_socket_send_impl (struct GNUNET_MQ_MessageQueue *mq, struct GNUNET_MQ_Message *mqm)
+stream_socket_send_impl (struct GNUNET_MQ_MessageQueue *mq,
+                         struct GNUNET_MQ_Message *mqm)
 {
+  struct MessageStreamState *mss = (struct MessageStreamState *) mq->impl_state;
   if (NULL != mq->current_msg)
   {
     GNUNET_CONTAINER_DLL_insert_tail (mq->msg_head, mq->msg_tail, mqm);
     return;
   }
-  stream_write_queued (mq, GNUNET_STREAM_OK, 0);
+  mq->current_msg = mqm;
+  mss->wh = GNUNET_STREAM_write (mss->socket, mqm->mh, ntohs (mqm->mh->size),
+                                 GNUNET_TIME_UNIT_FOREVER_REL,
+                                 stream_write_queued, mq);
 }
 
 
@@ -304,7 +314,8 @@ stream_socket_send_impl (struct GNUNET_MQ_MessageQueue *mq, struct GNUNET_MQ_Mes
  * @return GNUNET_OK on success, GNUNET_SYSERR to stop further processing
  */
 static int
-stream_mst_callback (void *cls, void *client, const struct GNUNET_MessageHeader *message)
+stream_mst_callback (void *cls, void *client,
+                     const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MQ_MessageQueue *mq = cls;
 
@@ -334,12 +345,14 @@ stream_data_processor (void *cls,
   struct GNUNET_MQ_MessageQueue *mq = cls;
   struct MessageStreamState *mss;
   int ret;
+  
   mss = (struct MessageStreamState *) mq->impl_state;
-
   GNUNET_assert (GNUNET_STREAM_OK == status);
   ret = GNUNET_SERVER_mst_receive (mss->mst, NULL, data, size, GNUNET_NO, GNUNET_NO);
   GNUNET_assert (GNUNET_OK == ret);
   /* we always read all data */
+    mss->rh = GNUNET_STREAM_read (mss->socket, GNUNET_TIME_UNIT_FOREVER_REL, 
+                                  stream_data_processor, mq);
   return size;
 }
 
@@ -369,8 +382,7 @@ GNUNET_MQ_queue_for_stream_socket (struct GNUNET_STREAM_Socket *socket,
 }
 
 
-/**
- * Transmit a queued message to the session's client.
+/*** Transmit a queued message to the session's client.
  *
  * @param cls consensus session
  * @param size number of bytes available in buf
@@ -474,7 +486,7 @@ connection_client_transmit_queued (void *cls, size_t size,
     mq->current_msg = mq->msg_head;
     GNUNET_CONTAINER_DLL_remove (mq->msg_head, mq->msg_tail, mq->current_msg);
     state->th = 
-        GNUNET_CLIENT_notify_transmit_ready (state->connection, msg_size, 
+      GNUNET_CLIENT_notify_transmit_ready (state->connection, htons (mq->current_msg->mh->size), 
                                              GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_NO,
                                              &connection_client_transmit_queued, mq);
   }
@@ -483,7 +495,8 @@ connection_client_transmit_queued (void *cls, size_t size,
 
 
 static void
-connection_client_send_impl (struct GNUNET_MQ_MessageQueue *mq, struct GNUNET_MQ_Message *mqm)
+connection_client_send_impl (struct GNUNET_MQ_MessageQueue *mq,
+                             struct GNUNET_MQ_Message *mqm)
 {
   struct ClientConnectionState *state = mq->impl_state;
   int msize;
@@ -519,7 +532,6 @@ handle_client_message (void *cls,
   struct GNUNET_MQ_MessageQueue *mq = cls;
 
   GNUNET_assert (NULL != msg);
-
   dispatch_message (mq, msg);
 }
 

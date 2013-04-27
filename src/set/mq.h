@@ -58,20 +58,7 @@
  */
 #define GNUNET_MQ_msg(mvar, type) GNUNET_MQ_msg_extra(mvar, 0, type)
 
-/**
- * Allocate a GNUNET_MQ_Message, and concatenate another message
- * after the space needed by the message struct.
- * // nest?
- *
- * @param mvar variable to store the allocated message in;
- *             must have a header field
- * @param mc message to concatenate, can be NULL
- * @param type type of the message
- * @return the MQ message, NULL if mc is to large to be concatenated
- */
-#define GNUNET_MQ_msg_concat(mvar, mc, t) GNUNET_MQ_msg_concat_(((void) mvar->header, (struct GNUNET_MessageHeader **) &(mvar)), \
-      sizeof *mvar, (struct GNUNET_MessageHeader *) mc, t)
-
+#define GNUNET_MQ_nest(mqm, mh) GNUNET_MQ_nest_ (&mqm, mh)
 
 /**
  * Allocate a GNUNET_MQ_Message, where the message only consists of a header.
@@ -157,14 +144,9 @@ struct GNUNET_MQ_Message *
 GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp, uint16_t size, uint16_t type);
 
 
-/**
- * Create a new message for MQ, by concatenating another message
- * after a message of the specified type.
- *
- * @retrn the allocated MQ message
- */
-struct GNUNET_MQ_Message *
-GNUNET_MQ_msg_concat_ (struct GNUNET_MessageHeader **mhp, uint16_t base_size, struct GNUNET_MessageHeader *m, uint16_t type);
+int
+GNUNET_MQ_nest_ (struct GNUNET_MQ_Message **mqmp,
+                 const struct GNUNET_MessageHeader *m);
 
 
 /**

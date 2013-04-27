@@ -26,9 +26,12 @@
 
 
 #include "gnunet-service-set.h"
-#include "set_protocol.h"
+#include "gnunet_container_lib.h"
+#include "gnunet_crypto_lib.h"
 #include "ibf.h"
 #include "strata_estimator.h"
+#include "set_protocol.h"
+#include <gcrypt.h>
 
 
 /**
@@ -48,7 +51,6 @@
  * Number of buckets that can be transmitted in one message.
  */
 #define MAX_BUCKETS_PER_MESSAGE ((1<<15) / IBF_BUCKET_SIZE)
-
 
 /**
  * The maximum size of an ibf we use is 2^(MAX_IBF_ORDER).
@@ -76,6 +78,55 @@ enum UnionOperationState
  */
 struct UnionEvaluateOperation
 {
+  /**
+   * Local set the operation is evaluated on
+   */
+  struct Set *set;
+
+  /**
+   * Peer with the remote set
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Application-specific identifier
+   */
+  struct GNUNET_HashCode app_id;
+
+  /**
+   * Context message, given to us
+   * by the client, may be NULL.
+   */
+  struct GNUNET_MessageHeader *context_msg;
+
+  /**
+   * Stream socket connected to the other peer
+   */
+  struct GNUNET_STREAM_Socket *socket;
+
+  /**
+   * Message queue for the peer on the other
+   * end
+   */
+  struct GNUNET_MQ_MessageQueue *mq;
+
+  /**
+   * Type of this operation
+   */
+  enum GNUNET_SET_OperationType operation;
+
+  /**
+   * GNUNET_YES if we started the operation,
+   * GNUNET_NO if the other peer started it.
+   */
+  int is_outgoing;
+
+  /**
+   * Request id, so we can use one client handle
+   * for multiple operations
+   */
+  uint32_t request_id;
+
   /* last difference estimate */
   unsigned int diff;
 
@@ -95,49 +146,107 @@ struct UnionEvaluateOperation
    */
   unsigned int ibf_order;
 
+  struct StrataEstimator *se;
+
   /**
    * The ibf we currently receive
    */
-  struct InvertibleBloomFilter *ibf_received;
+  struct InvertibleBloomFilter *remote_ibf;
 
-  struct StrataEstimator *se;
+  /**
+   * Array of IBFs, some of them pre-allocated
+   */
+  struct InvertibleBloomFilter *local_ibf;
+
+  /**
+   * Elements we received from the other peer.
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *received_elements;
+
+  /**
+   * Maps IBF-Keys (specific to the current salt) to elements.
+   */
+  struct GNUNET_CONTAINER_MultiHashMap32 *key_to_element;
 
   /**
    * Current state of the operation
    */
   enum UnionOperationState state;
+  
+  /**
+   * Evaluate operations are held in
+   * a linked list.
+   */
+  struct UnionEvaluateOperation *next;
+  
+   /**
+   * Evaluate operations are held in
+   * a linked list.
+   */
+  struct UnionEvaluateOperation *prev;
 };
 
-
 /**
- * Element entry, stored in the hash maps from
- * partial IBF keys to elements.
+ * Information about the element in a set.
+ * All elements are stored in a hash-table
+ * from their hash-code to their 'struct Element',
+ * so that the remove and add operations are reasonably
+ * fast.
  */
 struct ElementEntry
 {
   /**
-   * The actual element
+   * The actual element. The data for the element
+   * should be allocated at the end of this struct.
    */
-  struct GNUNET_SET_Element *element;
+  struct GNUNET_SET_Element element;
 
   /**
-   * Actual ibf key of the element entry
+   * Hash of the element.
+   * Will be used to derive the different IBF keys
+   * for different salts.
    */
+  struct GNUNET_HashCode element_hash;
+
+  /**
+   * Generation the element was added.
+   * Operations of earlier generations will not consider the element.
+   */
+  int generation_add;
+
+  /**
+   * Generation this element was removed.
+   * Operations of later generations will not consider the element.
+   */
+  int generation_remove;
+
+  /**
+   * GNUNET_YES if we received the element from a remote peer, and not
+   * from the local peer.  Note that if the local client inserts an
+   * element *after* we got it from a remote peer, the element is
+   * considered local.
+   */
+  int remote;
+};
+
+/**
+ * Information about the element used for 
+ * a specific union operation.
+ */
+struct KeyEntry
+{
   struct IBF_Key ibf_key;
 
   /**
-   * Linked list, note that the next element
-   * has to have an ibf_key that is lexicographically
-   * equal or larger.
+   * The actual element associated with the key
    */
-  struct ElementEntry *next;
+  struct ElementEntry *element;
 
   /**
-   * GNUNET_YES if the element was received from
-   * the remote peer, and the local peer did not previously
-   * have it
+   * Element that collides with this element
+   * on the ibf key
    */
-  int remote;
+  struct KeyEntry *next_colliding;
 };
 
 
@@ -147,47 +256,72 @@ struct ElementEntry
 struct UnionState
 {
   /**
-   * Strate estimator of the set we currently have,
-   * used for estimation of the symmetric difference
+   * The strata estimator is only generated once for
+   * each set.
    */
   struct StrataEstimator *se;
 
   /**
-   * Array of IBFs, some of them pre-allocated
+   * Maps 'struct GNUNET_HashCode' to 'struct ElementEntry'.
    */
-  struct InvertibleBloomFilter **ibfs;
+  struct GNUNET_CONTAINER_MultiHashMap *elements;
 
   /**
-   * Maps the first 32 bits of the ibf-key to
-   * elements.
+   * Evaluate operations are held in
+   * a linked list.
    */
-  struct GNUNET_CONTAINER_MultiHashMap32 *elements;
+  struct UnionEvaluateOperation *ops_head;
+
+  /**
+   * Evaluate operations are held in
+   * a linked list.
+   */
+  struct UnionEvaluateOperation *ops_tail;
 };
 
 
+static struct IBF_Key
+get_ibf_key (struct GNUNET_HashCode *src, uint16_t salt)
+{
+   
+  struct IBF_Key key;
+  GNUNET_CRYPTO_hkdf (&key, sizeof (key),
+		      GCRY_MD_SHA512, GCRY_MD_SHA256,
+                      src, sizeof *src,
+		      &salt, sizeof (salt),
+		      NULL, 0);
+  return key;
+}
+
+
 static void
-send_operation_request (struct EvaluateOperation *eo)
+send_operation_request (struct UnionEvaluateOperation *eo)
 {
   struct GNUNET_MQ_Message *mqm;
   struct OperationRequestMessage *msg;
+  int ret;
 
-  mqm = GNUNET_MQ_msg_concat (msg, eo->context_msg,
-                              GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST);
-  if (NULL == mqm)
+  mqm = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST);
+  ret = GNUNET_MQ_nest (mqm, eo->context_msg);
+  if (GNUNET_OK != ret)
   {
     /* the context message is too large */
-    client_disconnect (eo->set->client);
+    _GSS_client_disconnect (eo->set->client);
+    GNUNET_MQ_discard (mqm);
     GNUNET_break (0);
     return;
   }
   msg->operation = eo->operation;
   msg->app_id = eo->app_id;
   GNUNET_MQ_send (eo->mq, mqm);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "sent op request\n");
 }
 
 
 /**
- * Iterator to insert values into an ibf.
+ * Iterator to create the mapping between ibf keys
+ * and element entries.
  *
  * @param cls closure
  * @param key current key code
@@ -197,54 +331,93 @@ send_operation_request (struct EvaluateOperation *eo)
  *         GNUNET_NO if not.
  */
 static int
-ibf_insert_iterator (void *cls,
-                     uint32_t key,
-                     void *value)
+insert_element_iterator (void *cls,
+                         uint32_t key,
+                         void *value)
 {
-  struct InvertibleBloomFilter *ibf = cls;
-  struct ElementEntry *e = value;
-  struct IBF_Key ibf_key;
+  struct KeyEntry *const new_k = cls;
+  struct KeyEntry *old_k = value;
 
-  GNUNET_assert (NULL != e);
-  ibf_key = e->ibf_key;
-  ibf_insert (ibf, ibf_key);
-  e = e->next;
-
-  while (NULL != e)
+  GNUNET_assert (NULL != old_k);
+  do
   {
-    /* only insert keys we haven't seen yet */
-    if (0 != memcmp (&e->ibf_key, &ibf_key, sizeof ibf_key))
+    if (old_k->ibf_key.key_val == new_k->ibf_key.key_val)
     {
-      ibf_key = e->ibf_key;
-      ibf_insert (ibf, ibf_key);
+      new_k->next_colliding = old_k;
+      old_k->next_colliding = new_k;
+      return GNUNET_NO;
     }
-    e = e->next; 
-  }
-
+    old_k = old_k->next_colliding;
+  } while (NULL != old_k);
   return GNUNET_YES;
 }
 
 
-/**
- * Create and populate an IBF for the specified peer,
- * if it does not already exist.
- *
- * @param cpi peer to create the ibf for
- */
-static struct InvertibleBloomFilter *
-prepare_ibf (struct EvaluateOperation *eo, uint16_t order)
+static void
+insert_element (struct UnionEvaluateOperation *eo, struct ElementEntry *ee)
 {
-  struct UnionState *us = eo->set->extra.u;
+  int ret;
+  struct IBF_Key ibf_key;
+  struct KeyEntry *k;
 
-  GNUNET_assert (order <= MAX_IBF_ORDER);
-  if (NULL == us->ibfs)
-    us->ibfs = GNUNET_malloc (MAX_IBF_ORDER * sizeof (struct InvertibleBloomFilter *));
-  if (NULL == us->ibfs[order])
+  ibf_key = get_ibf_key (&ee->element_hash, eo->salt);
+  k = GNUNET_new (struct KeyEntry);
+  k->element = ee;
+  k->ibf_key = ibf_key;
+  ret = GNUNET_CONTAINER_multihashmap32_get_multiple (eo->key_to_element, (uint32_t) ibf_key.key_val,
+                                                    insert_element_iterator, k);
+  /* was the element inserted into a colliding bucket? */
+  if (GNUNET_SYSERR == ret)
   {
-    us->ibfs[order] = ibf_create (1 << order, SE_IBF_HASH_NUM);
-    GNUNET_CONTAINER_multihashmap32_iterate (us->elements, ibf_insert_iterator, us->ibfs[order]);
+    GNUNET_assert (NULL != k->next_colliding);
+    return;
   }
-  return us->ibfs[order];
+  GNUNET_CONTAINER_multihashmap32_put (eo->key_to_element, (uint32_t) ibf_key.key_val, k,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  if (NULL != eo->local_ibf)
+    ibf_insert (eo->local_ibf, ibf_key);
+}
+
+
+static int
+prepare_ibf_iterator (void *cls,
+                     uint32_t key,
+                     void *value)
+{
+  struct InvertibleBloomFilter *ibf = cls;
+  struct KeyEntry *ke = value;
+
+  ibf_insert (ibf, ke->ibf_key);
+  return GNUNET_YES;
+}
+
+static int
+init_key_to_element_iterator (void *cls,
+                              const struct GNUNET_HashCode *key,
+                              void *value)
+{
+  struct UnionEvaluateOperation *eo = cls;
+  struct ElementEntry *e = value;
+
+  insert_element (eo, e);
+  return GNUNET_YES;
+}
+
+static void
+prepare_ibf (struct UnionEvaluateOperation *eo, uint16_t size)
+{
+  if (NULL == eo->key_to_element)
+  {
+    unsigned int len;
+    len = GNUNET_CONTAINER_multihashmap_size (eo->set->state.u->elements);
+    eo->key_to_element = GNUNET_CONTAINER_multihashmap32_create (len);
+    GNUNET_CONTAINER_multihashmap_iterate (eo->set->state.u->elements,
+                                             init_key_to_element_iterator, eo);
+  }
+  if (NULL != eo->local_ibf)
+    ibf_destroy (eo->local_ibf);
+  eo->local_ibf = ibf_create (size, SE_IBF_HASH_NUM);
+  GNUNET_CONTAINER_multihashmap32_iterate (eo->key_to_element, prepare_ibf_iterator, eo->local_ibf);
 }
 
 
@@ -254,12 +427,14 @@ prepare_ibf (struct EvaluateOperation *eo, uint16_t order)
  * @param cpi the peer
  */
 static void
-send_ibf (struct EvaluateOperation *eo, uint16_t ibf_order)
+send_ibf (struct UnionEvaluateOperation *eo, uint16_t ibf_order)
 {
   unsigned int buckets_sent = 0;
   struct InvertibleBloomFilter *ibf;
 
-  ibf = prepare_ibf (eo, ibf_order);
+  prepare_ibf (eo, ibf_order);
+
+  ibf = eo->local_ibf;
 
   while (buckets_sent < (1 << ibf_order))
   {
@@ -282,7 +457,7 @@ send_ibf (struct EvaluateOperation *eo, uint16_t ibf_order)
     GNUNET_MQ_send (eo->mq, mqm);
   }
 
-  eo->extra.u->state = STATE_EXPECT_ELEMENTS_AND_REQUESTS;
+  eo->state = STATE_EXPECT_ELEMENTS_AND_REQUESTS;
 }
 
 
@@ -292,7 +467,7 @@ send_ibf (struct EvaluateOperation *eo, uint16_t ibf_order)
  * @param cpi the peer
  */
 static void
-send_strata_estimator (struct EvaluateOperation *eo)
+send_strata_estimator (struct UnionEvaluateOperation *eo)
 {
   struct GNUNET_MQ_Message *mqm;
   struct GNUNET_MessageHeader *strata_msg;
@@ -300,31 +475,36 @@ send_strata_estimator (struct EvaluateOperation *eo)
   mqm = GNUNET_MQ_msg_header_extra (strata_msg,
                                     SE_STRATA_COUNT * IBF_BUCKET_SIZE * SE_IBF_SIZE,
                                     GNUNET_MESSAGE_TYPE_SET_P2P_SE);
-  strata_estimator_write (eo->set->extra.u->se, &strata_msg[1]);
+  strata_estimator_write (eo->set->state.u->se, &strata_msg[1]);
   GNUNET_MQ_send (eo->mq, mqm);
-
-  eo->extra.u->state = STATE_EXPECT_IBF;
+  eo->state = STATE_EXPECT_IBF;
 }
 
 
 static void
 handle_p2p_strata_estimator (void *cls, const struct GNUNET_MessageHeader *mh)
 {
-  struct EvaluateOperation *eo = cls;
+  struct UnionEvaluateOperation *eo = cls;
+  struct StrataEstimator *remote_se;
   int ibf_order;
   int diff;
 
-  if (eo->extra.u->state != STATE_EXPECT_SE)
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "got se\n");
+
+  if (eo->state != STATE_EXPECT_SE)
   {
     /* FIXME: handle */
     GNUNET_break (0);
     return;
   }
-  GNUNET_assert (NULL == eo->extra.u->se);
-  eo->extra.u->se = strata_estimator_create (SE_STRATA_COUNT, SE_IBF_SIZE, SE_IBF_HASH_NUM);
-  strata_estimator_read (&mh[1], eo->extra.u->se);
-  GNUNET_assert (NULL != eo->set->extra.u->se);
-  diff = strata_estimator_difference (eo->set->extra.u->se, eo->extra.u->se);
+  remote_se = strata_estimator_create (SE_STRATA_COUNT, SE_IBF_SIZE,
+                                       SE_IBF_HASH_NUM);
+  strata_estimator_read (&mh[1], remote_se);
+  GNUNET_assert (NULL != eo->se);
+  diff = strata_estimator_difference (remote_se, eo->se);
+  strata_estimator_destroy (remote_se);
+  strata_estimator_destroy (eo->se);
+  eo->se = NULL;
   /* minimum order */
   ibf_order = 2;
   while ((1<<ibf_order) < (2 * diff))
@@ -341,16 +521,17 @@ handle_p2p_strata_estimator (void *cls, const struct GNUNET_MessageHeader *mh)
  * @param
  */
 static void
-decode (struct EvaluateOperation *eo)
+decode (struct UnionEvaluateOperation *eo)
 {
   struct IBF_Key key;
   int side;
   struct InvertibleBloomFilter *diff_ibf;
 
-  GNUNET_assert (STATE_EXPECT_ELEMENTS == eo->extra.u->state);
+  GNUNET_assert (STATE_EXPECT_ELEMENTS == eo->state);
 
-  diff_ibf = ibf_dup (prepare_ibf (eo, eo->extra.u->ibf_order));
-  ibf_subtract (diff_ibf, eo->extra.u->ibf_received);
+  prepare_ibf (eo, eo->ibf_order);
+  diff_ibf = ibf_dup (eo->local_ibf);
+  ibf_subtract (diff_ibf, eo->remote_ibf);
 
   while (1)
   {
@@ -359,7 +540,8 @@ decode (struct EvaluateOperation *eo)
     res = ibf_decode (diff_ibf, &side, &key);
     if (GNUNET_SYSERR == res)
     {
-      /* decoding failed, we tell the other peer by sending our ibf with a larger order */
+      /* decoding failed, we tell the other peer by sending our ibf
+       * with a larger order */
       GNUNET_assert (0);
       return;
     }
@@ -373,20 +555,11 @@ decode (struct EvaluateOperation *eo)
     }
     if (1 == side)
     {
-      struct ElementEntry *e;
+      //struct ElementEntry *e;
       /* we have the element(s), send it to the other peer */
-      e = GNUNET_CONTAINER_multihashmap32_get (eo->set->extra.u->elements, (uint32_t) key.key_val);
-      if (NULL == e)
-      {
-        /* FIXME */
-        GNUNET_assert (0);
-        return;
-      }
-      while (NULL != e)
-      {
-        /* FIXME: send element */
-        e = e->next;
-      }
+      //GNUNET_CONTAINER_multihashmap32_get_multiple (eo->set->state.u->elements,
+      //                                              (uint32_t) key.key_val);
+      /* FIXME */
     }
     else
     {
@@ -403,37 +576,35 @@ decode (struct EvaluateOperation *eo)
 }
 
 
-
 static void
 handle_p2p_ibf (void *cls, const struct GNUNET_MessageHeader *mh)
 {
-  struct EvaluateOperation *eo = cls;
-  struct UnionEvaluateOperation *ueo = eo->extra.u;
+  struct UnionEvaluateOperation *eo = cls;
   struct IBFMessage *msg = (struct IBFMessage *) mh;
   unsigned int buckets_in_message;
 
-  if (ueo->state == STATE_EXPECT_ELEMENTS_AND_REQUESTS)
+  if (eo->state == STATE_EXPECT_ELEMENTS_AND_REQUESTS)
   {
     /* check that the ibf is a new one / first part */
     /* clear outgoing messages */
     GNUNET_assert (0);
   }
-  else if (ueo->state == STATE_EXPECT_IBF)
+  else if (eo->state == STATE_EXPECT_IBF)
   {
-    ueo->state = STATE_EXPECT_IBF_CONT;
-    ueo->ibf_order = msg->order;
-    GNUNET_assert (NULL == ueo->ibf_received);
-    ueo->ibf_received = ibf_create (1<<msg->order, SE_IBF_HASH_NUM);
+    eo->state = STATE_EXPECT_IBF_CONT;
+    eo->ibf_order = msg->order;
+    GNUNET_assert (NULL == eo->remote_ibf);
+    eo->remote_ibf = ibf_create (1<<msg->order, SE_IBF_HASH_NUM);
     if (ntohs (msg->offset) != 0)
     {
       /* FIXME: handle */
       GNUNET_assert (0);
     }
   }
-  else if (ueo->state == STATE_EXPECT_IBF_CONT)
+  else if (eo->state == STATE_EXPECT_IBF_CONT)
   {
-    if ( (ntohs (msg->offset) != ueo->ibf_buckets_received) ||
-         (msg->order != ueo->ibf_order) )
+    if ( (ntohs (msg->offset) != eo->ibf_buckets_received) ||
+         (msg->order != eo->ibf_order) )
     {
       /* FIXME: handle */
       GNUNET_assert (0);
@@ -448,12 +619,12 @@ handle_p2p_ibf (void *cls, const struct GNUNET_MessageHeader *mh)
     GNUNET_assert (0);
   }
 
-  ibf_read_slice (&msg[1], ueo->ibf_buckets_received, buckets_in_message, ueo->ibf_received);
-  ueo->ibf_buckets_received += buckets_in_message;
+  ibf_read_slice (&msg[1], eo->ibf_buckets_received, buckets_in_message, eo->remote_ibf);
+  eo->ibf_buckets_received += buckets_in_message;
 
-  if (ueo->ibf_buckets_received == (1<<ueo->ibf_order))
+  if (eo->ibf_buckets_received == (1<<eo->ibf_order))
   {
-    ueo->state = STATE_EXPECT_ELEMENTS;
+    eo->state = STATE_EXPECT_ELEMENTS;
     decode (eo);
   }
 }
@@ -462,10 +633,10 @@ handle_p2p_ibf (void *cls, const struct GNUNET_MessageHeader *mh)
 static void
 handle_p2p_elements (void *cls, const struct GNUNET_MessageHeader *mh)
 {
-  struct EvaluateOperation *eo = cls;
+  struct UnionEvaluateOperation *eo = cls;
 
-  if ( (eo->extra.u->state != STATE_EXPECT_ELEMENTS) &&
-       (eo->extra.u->state != STATE_EXPECT_ELEMENTS_AND_REQUESTS) )
+  if ( (eo->state != STATE_EXPECT_ELEMENTS) &&
+       (eo->state != STATE_EXPECT_ELEMENTS_AND_REQUESTS) )
   {
     /* FIXME: handle */
     GNUNET_break (0);
@@ -477,10 +648,10 @@ handle_p2p_elements (void *cls, const struct GNUNET_MessageHeader *mh)
 static void
 handle_p2p_element_requests (void *cls, const struct GNUNET_MessageHeader *mh)
 {
-  struct EvaluateOperation *eo = cls;
+  struct UnionEvaluateOperation *eo = cls;
 
   /* look up elements and send them */
-  if (eo->extra.u->state != STATE_EXPECT_ELEMENTS_AND_REQUESTS)
+  if (eo->state != STATE_EXPECT_ELEMENTS_AND_REQUESTS)
   {
     /* FIXME: handle */
     GNUNET_break (0);
@@ -508,141 +679,107 @@ static const struct GNUNET_MQ_Handler union_handlers[] = {
 
 /**
  * Functions of this type will be called when a stream is established
- *
+ * 
  * @param cls the closure from GNUNET_STREAM_open
- * @param socket socket to use to communicate with the other side (read/write)
+ * @param socket socket to use to communicate with the
+ *        other side (read/write)
  */
 static void
 stream_open_cb (void *cls,
                 struct GNUNET_STREAM_Socket *socket)
 {
-  struct EvaluateOperation *eo = cls;
+  struct UnionEvaluateOperation *eo = cls;
 
   GNUNET_assert (NULL == eo->mq);
   GNUNET_assert (socket == eo->socket);
 
-  eo->mq = GNUNET_MQ_queue_for_stream_socket (eo->socket, union_handlers, eo);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "open cb successful\n");
+
+  eo->mq = GNUNET_MQ_queue_for_stream_socket (eo->socket,
+                                              union_handlers, eo);
+  /* we started the operation, thus we have to send the operation request */
   send_operation_request (eo);
+  eo->state = STATE_EXPECT_SE;
 }
 	
 
 void
-union_evaluate (struct EvaluateOperation *eo)
+_GSS_union_evaluate (struct EvaluateMessage *m, struct Set *set)
 {
-  GNUNET_assert (GNUNET_SET_OPERATION_UNION == eo->set->operation);
+  struct UnionEvaluateOperation *eo;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "evaluating union operation\n");
+
+  eo = GNUNET_new (struct UnionEvaluateOperation);
+  eo->peer = m->peer;
+  eo->set = set;
   eo->socket = 
       GNUNET_STREAM_open (configuration, &eo->peer, GNUNET_APPLICATION_TYPE_SET,
-                          stream_open_cb, GNUNET_STREAM_OPTION_END);
-}
-
-
-static void
-insert_ibf_key_unchecked (struct UnionState *us, struct IBF_Key ibf_key)
-{
-  int i;
-
-  strata_estimator_insert (us->se, ibf_key);
-  for (i = 0; i <= MAX_IBF_ORDER; i++)
-  {
-    if (NULL == us->ibfs)
-      break;
-    if (NULL == us->ibfs[i])
-      continue;
-    ibf_insert (us->ibfs[i], ibf_key);
-  }
-}
-
-
-/**
- * Insert an element into the consensus set of the specified session.
- * The element will not be copied, and freed when destroying the session.
- *
- * @param session session for new element
- * @param element element to insert
- */
-static void
-insert_element (struct Set *set, struct GNUNET_SET_Element *element)
-{
-  struct UnionState *us = set->extra.u;
-  struct GNUNET_HashCode hash;
-  struct ElementEntry *e;
-  struct ElementEntry *e_old;
-
-  e = GNUNET_new (struct ElementEntry);
-  e->element = element;
-  GNUNET_CRYPTO_hash (e->element->data, e->element->size, &hash);
-  e->ibf_key = ibf_key_from_hashcode (&hash);
-
-  e_old = GNUNET_CONTAINER_multihashmap32_get (us->elements, (uint32_t) e->ibf_key.key_val);
-  if (NULL == e_old)
-  {
-    GNUNET_CONTAINER_multihashmap32_put (us->elements, (uint32_t) e->ibf_key.key_val, e,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-    return;
-  }
-
-  while (NULL != e_old)
-  {
-    int cmp = memcmp (&e->ibf_key, &e_old->ibf_key, sizeof (struct IBF_Key));
-    if (cmp < 0)
-    {
-      if (NULL == e_old->next)
-      {
-        e_old->next = e;
-        insert_ibf_key_unchecked (us, e->ibf_key);
-        return;
-      }
-      e_old = e_old->next;
-    }
-    else if (cmp == 0)
-    {
-      e->next = e_old->next;
-      e_old->next = e;
-      return;
-    }
-    else
-    {
-      e->next = e_old;
-      insert_ibf_key_unchecked (us, e->ibf_key);
-      return;
-    }
-  } 
+                          stream_open_cb, eo,
+                          GNUNET_STREAM_OPTION_END);
 }
 
 
 void
-union_accept (struct EvaluateOperation *eo, struct Incoming *incoming)
+_GSS_union_accept (struct AcceptMessage *m, struct Set *set,
+                   struct Incoming *incoming)
 {
-  GNUNET_assert (NULL != incoming->mq); 
-  eo->mq = incoming->mq;
-  GNUNET_MQ_replace_handlers (eo->mq, union_handlers, eo);
+  struct UnionEvaluateOperation *eo;
 
+  eo = GNUNET_new (struct UnionEvaluateOperation);
+  eo->set = set;
+  eo->peer = incoming->peer;
+  eo->app_id = incoming->app_id;
+  eo->salt = ntohs (incoming->salt);
+  eo->request_id = m->request_id;
+  eo->set = set;
+  eo->mq = incoming->mq;
+  /* the peer's socket is now ours, we'll receive all messages */
+  GNUNET_MQ_replace_handlers (eo->mq, union_handlers, eo);
+  /* kick of the operation */
   send_strata_estimator (eo);
 }
 
 
 struct Set *
-union_set_create ()
+_GSS_union_set_create (void)
 {
   struct Set *set;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "set created\n");
+  
   set = GNUNET_malloc (sizeof (struct Set) + sizeof (struct UnionState));
-  set->extra.u = (struct UnionState *) &set[1];
+  set->state.u = (struct UnionState *) &set[1];
   set->operation = GNUNET_SET_OPERATION_UNION;
-  set->extra.u->se = strata_estimator_create (SE_STRATA_COUNT, SE_IBF_SIZE, SE_IBF_HASH_NUM);
+  set->state.u->se = strata_estimator_create (SE_STRATA_COUNT,
+                                              SE_IBF_SIZE, SE_IBF_HASH_NUM);  
   return set;
 }
 
 
+
 void
-union_add (struct Set *set, struct ElementMessage *m)
+_GSS_union_add (struct ElementMessage *m, struct Set *set)
 {
-  struct GNUNET_SET_Element *element;
+  struct ElementEntry *ee;
+  struct ElementEntry *ee_dup;
   uint16_t element_size;
+  
   element_size = ntohs (m->header.size) - sizeof *m;
-  element = GNUNET_malloc (sizeof *element + element_size);
-  element->size = element_size;
-  element->data = &element[1];
-  memcpy (element->data, &m[1], element_size);
-  insert_element (set, element);
+  ee = GNUNET_malloc (element_size + sizeof *ee);
+  ee->element.size = element_size;
+  ee->element.data = &ee[1];
+  memcpy (ee->element.data, &m[1], element_size);
+  GNUNET_CRYPTO_hash (ee->element.data, element_size, &ee->element_hash);
+  ee_dup = GNUNET_CONTAINER_multihashmap_get (set->state.u->elements, &ee->element_hash);
+  if (NULL != ee_dup)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "element inserted twice, ignoring\n");
+    GNUNET_free (ee);
+    return;
+  }
+  GNUNET_CONTAINER_multihashmap_put (set->state.u->elements, &ee->element_hash, ee,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  strata_estimator_insert (set->state.u->se, get_ibf_key (&ee->element_hash, 0));
 }
 

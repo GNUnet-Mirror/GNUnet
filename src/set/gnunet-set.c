@@ -30,6 +30,8 @@
 #include "gnunet_set_service.h"
 
 
+static struct GNUNET_PeerIdentity local_id;
+
 static struct GNUNET_HashCode app_id;
 static struct GNUNET_SET_Handle *set1;
 static struct GNUNET_SET_Handle *set2;
@@ -43,6 +45,13 @@ listen_cb (void *cls,
            struct GNUNET_SET_Request *request)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "listen cb called\n");
+}
+
+static void
+result_cb (void *cls, struct GNUNET_SET_Element *element,
+           enum GNUNET_SET_Status status)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "got result\n");
 }
 
 
@@ -60,12 +69,19 @@ run (void *cls, char *const *args,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static const char* app_str = "gnunet-set";
+  
   GNUNET_CRYPTO_hash (app_str, strlen (app_str), &app_id);
+
+  GNUNET_CRYPTO_get_host_identity (cfg, &local_id);
 
   set1 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
   set2 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
-  listen_handle = GNUNET_SET_listen (cfg, GNUNET_SET_OPERATION_UNION, &app_id,
-                                     listen_cb, NULL);
+  listen_handle = GNUNET_SET_listen (cfg, GNUNET_SET_OPERATION_UNION,
+                                     &app_id, listen_cb, NULL);
+
+  GNUNET_SET_evaluate (set1, &local_id, &app_id, NULL, 42,
+                       GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_SET_RESULT_ADDED,
+                       result_cb, NULL);
 }
 
 

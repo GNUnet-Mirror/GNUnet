@@ -86,83 +86,7 @@ struct Set
   union {
     struct IntersectionState *i;
     struct UnionState *u;
-  } extra;
-};
-
-
-/**
- * State for an evaluate operation for a set that
- * supports set union.
- */
-struct UnionEvaluateOperation;
-
-
-/* FIXME: cfuchs */
-struct IntersectionEvaluateOperation
-{
-  /* FIXME: cfuchs */
-};
-
-
-/**
- * State of evaluation a set operation with
- * another peer
- */
-struct EvaluateOperation
-{
-  /**
-   * Local set the operation is evaluated on
-   */
-  struct Set *set;
-
-  /**
-   * Peer with the remote set
-   */
-  struct GNUNET_PeerIdentity peer;
-
-  /**
-   * Application-specific identifier
-   */
-  struct GNUNET_HashCode app_id;
-
-  /**
-   * Context message, given to us
-   * by the client, may be NULL.
-   */
-  struct GNUNET_MessageHeader *context_msg;
-
-  /**
-   * Stream socket connected to the other peer
-   */
-  struct GNUNET_STREAM_Socket *socket;
-
-  /**
-   * Message queue for the peer on the other
-   * end
-   */
-  struct GNUNET_MQ_MessageQueue *mq;
-
-  /**
-   * Type of this operation
-   */
-  enum GNUNET_SET_OperationType operation;
-
-  /**
-   * GNUNET_YES if we started the operation,
-   * GNUNET_NO if the other peer started it.
-   */
-  int is_outgoing;
-
-  /**
-   * Request id, so we can use one client handle
-   * for multiple operations
-   */
-  uint32_t request_id;
-
-  union {
-    struct UnionEvaluateOperation *u;
-    struct IntersectionEvaluateOperation *i;
-  } extra;
+  } state;
 };
 
 
@@ -246,6 +170,12 @@ struct Incoming
   struct GNUNET_MessageHeader *context_msg;
 
   /**
+   * Salt the peer has requested to use for the
+   * operation
+   */
+  uint16_t salt;
+
+  /**
    * Operation the other peer wants to do
    */
   enum GNUNET_SET_OperationType operation;
@@ -271,23 +201,24 @@ extern const struct GNUNET_CONFIGURATION_Handle *configuration;
  * @param client the client to disconnect
  */
 void
-client_disconnect (struct GNUNET_SERVER_Client *client);
+_GSS_client_disconnect (struct GNUNET_SERVER_Client *client);
 
 
 struct Set *
-union_set_create (void);
+_GSS_union_set_create (void);
 
 
 void
-union_evaluate (struct EvaluateOperation *eo);
+_GSS_union_evaluate (struct EvaluateMessage *m, struct Set *set);
 
 
 void
-union_add (struct Set *set, struct ElementMessage *m);
+_GSS_union_add (struct ElementMessage *m, struct Set *set);
 
 
 void
-union_accept (struct EvaluateOperation *eo, struct Incoming *incoming);
+_GSS_union_accept (struct AcceptMessage *m, struct Set *set,
+                   struct Incoming *incoming);
 
 
 #endif

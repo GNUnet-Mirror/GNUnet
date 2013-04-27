@@ -932,7 +932,7 @@ GNUNET_CRYPTO_get_host_identity (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
   struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded my_public_key;
   char *keyfile;
-  
+
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg, "PEER", "PRIVATE_KEY",
                                                &keyfile))

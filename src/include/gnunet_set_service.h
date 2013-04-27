@@ -253,6 +253,11 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set);
  * @param other_peer peer with the other set
  * @param app_id hash for the application using the set
  * @param context_msg additional information for the request
+ * @param salt salt used for the set operation; sometimes set operations
+ *        fail due to hash collisions, using a different salt for each operation
+ *        makes it harder for an attacker to exploit this
+ * @param timeout result_cb will be called with GNUNET_SET_STATUS_TIMEOUT
+ *        if the operation is not done after the specified time
  * @param result_cb called on error or success
  * @param result_cls closure for result_cb
  * @return a handle to cancel the operation
@@ -262,6 +267,7 @@ GNUNET_SET_evaluate (struct GNUNET_SET_Handle *set,
                      const struct GNUNET_PeerIdentity *other_peer,
                      const struct GNUNET_HashCode *app_id,
                      const struct GNUNET_MessageHeader *context_msg,
+                     uint16_t salt,
                      struct GNUNET_TIME_Relative timeout,
                      enum GNUNET_SET_ResultMode result_mode,
                      GNUNET_SET_ResultIterator result_cb,

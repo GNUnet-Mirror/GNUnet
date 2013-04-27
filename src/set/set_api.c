@@ -288,6 +288,7 @@ GNUNET_SET_evaluate (struct GNUNET_SET_Handle *set,
                      const struct GNUNET_PeerIdentity *other_peer,
                      const struct GNUNET_HashCode *app_id,
                      const struct GNUNET_MessageHeader *context_msg,
+                     uint16_t salt,
                      struct GNUNET_TIME_Relative timeout,
                      enum GNUNET_SET_ResultMode result_mode,
                      GNUNET_SET_ResultIterator result_cb,
@@ -302,11 +303,14 @@ GNUNET_SET_evaluate (struct GNUNET_SET_Handle *set,
   oh->result_cls = result_cls;
   oh->set = set;
 
-  mqm = GNUNET_MQ_msg_extra (msg, htons(context_msg->size), GNUNET_MESSAGE_TYPE_SET_EVALUATE);
+  mqm = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_EVALUATE);
   msg->request_id = htonl (GNUNET_MQ_assoc_add (set->mq, mqm, oh));
   msg->peer = *other_peer;
   msg->app_id = *app_id;
-  memcpy (&msg[1], context_msg, htons (context_msg->size));
+
+  if (GNUNET_OK != GNUNET_MQ_nest (mqm, context_msg))
+    GNUNET_assert (0);
+  
   oh->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout, operation_timeout_task, oh);
   GNUNET_MQ_send (set->mq, mqm);
 
