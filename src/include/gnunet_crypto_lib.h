@@ -1327,6 +1327,19 @@ GNUNET_CRYPTO_ecc_setup_hostkey (const char *cfg_name);
 
 
 /**
+ * Retrieve the identity of the host's peer.
+ *
+ * @param cfg configuration to use
+ * @param dst pointer to where to write the peer identity
+ * @return GNUNET_OK on success, GNUNET_SYSERR if the identity
+ *         could not be retrieved
+ */
+int
+GNUNET_CRYPTO_get_host_identity (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                 struct GNUNET_PeerIdentity *dst);
+
+
+/**
  * Derive key material from a public and a private ECC key.
  *
  * @param key private key to use for the ECDH (x)

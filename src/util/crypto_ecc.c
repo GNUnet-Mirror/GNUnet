@@ -918,6 +918,45 @@ GNUNET_CRYPTO_ecc_setup_key (const char *cfg_name)
 
 
 /**
+ * Retrieve the identity of the host's peer.
+ *
+ * @param cfg configuration to use
+ * @param dst pointer to where to write the peer identity
+ * @return GNUNET_OK on success, GNUNET_SYSERR if the identity
+ *         could not be retrieved
+ */
+int
+GNUNET_CRYPTO_get_host_identity (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                 struct GNUNET_PeerIdentity *dst)
+{
+  struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded my_public_key;
+  char *keyfile;
+  
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "PEER", "PRIVATE_KEY",
+                                               &keyfile))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Lacking key configuration settings.\n"));
+    return GNUNET_SYSERR;
+  }
+  if (NULL == (my_private_key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Could not access hostkey file `%s'.\n"), keyfile);
+    GNUNET_free (keyfile);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (keyfile);
+  GNUNET_CRYPTO_ecc_key_get_public (my_private_key, &my_public_key);
+  GNUNET_CRYPTO_ecc_key_free (my_private_key);
+  GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key), &dst->hashPubKey);
+  return GNUNET_OK;
+}
+
+
+/**
  * Convert the data specified in the given purpose argument to an
  * S-expression suitable for signature operations.
  *
