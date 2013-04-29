@@ -439,6 +439,7 @@ handle_client_accept (void *cls,
   struct AcceptMessage *msg = (struct AcceptMessage *) mh;
 
   set = get_set (client);
+  
 
   if (NULL == set)
   {

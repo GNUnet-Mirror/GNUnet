@@ -136,12 +136,6 @@ struct UnionEvaluateOperation
   unsigned int ibf_buckets_received;
 
   /**
-   * Current salt in use, zero unless
-   * we detected a collision
-   */
-  uint8_t salt;
-
-  /**
    * order of the ibf we receive
    */
   unsigned int ibf_order;
@@ -172,6 +166,11 @@ struct UnionEvaluateOperation
    * Current state of the operation
    */
   enum UnionOperationState state;
+
+  /**
+   * Salt to use for this operation.
+   */
+  uint16_t salt;
   
   /**
    * Evaluate operations are held in
@@ -213,6 +212,12 @@ struct ElementEntry
    * Operations of earlier generations will not consider the element.
    */
   int generation_add;
+
+  unsigned int generation_added;
+
+  unsigned int generation_removed;
+
+  unsigned int generation_received;
 
   /**
    * Generation this element was removed.

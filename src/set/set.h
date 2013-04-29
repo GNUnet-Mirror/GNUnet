@@ -135,6 +135,10 @@ struct EvaluateMessage
    */
   uint32_t request_id GNUNET_PACKED;
 
+  uint16_t salt;
+
+  uint16_t reserved;
+
   /* rest: inner message */
 };
 
