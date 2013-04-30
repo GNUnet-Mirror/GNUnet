@@ -33,6 +33,7 @@ check_PROGRAMS = \
  test_stream_local \
  test_stream_big \
  test_stream_sequence_wraparound \
+ mesh-test \
  $(STREAM_BENCHMARKS)
 
 EXTRA_DIST = test_stream_local.conf
@@ -90,3 +91,8 @@ perf_stream_api_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la
+
+mesh_test_SOURCES = mesh-test.c
+mesh_test_LDADD = \
+ $(top_builddir)/src/mesh/libgnunetmesh.la \
+ $(top_builddir)/src/util/libgnunetutil.la
