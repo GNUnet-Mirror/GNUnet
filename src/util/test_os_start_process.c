@@ -52,6 +52,14 @@ static struct GNUNET_DISK_PipeHandle *hello_pipe_stdout;
 
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
+struct read_context
+{
+  char buf[16];
+  int buf_offset;
+  const struct GNUNET_DISK_FileHandle *stdout_read_handle;
+};
+
+struct read_context rc;
 
 static void
 end_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -71,13 +79,10 @@ end_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_DISK_FileHandle *stdout_read_handle = cls;
-  char buf[16];
-
-  memset (&buf, 0, sizeof (buf));
   int bytes;
 
-  bytes = GNUNET_DISK_file_read (stdout_read_handle, &buf, sizeof (buf));
+  bytes = GNUNET_DISK_file_read (rc.stdout_read_handle, &rc.buf[rc.buf_offset], \
+      sizeof (rc.buf) - rc.buf_offset);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "bytes is %d\n", bytes);
 
@@ -90,8 +95,10 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
 
-  ok = strncmp (&buf[0], test_phrase, strlen (test_phrase));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "read %s\n", &buf[0]);
+  ok = strncmp (rc.buf, test_phrase, strlen (test_phrase));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "read %s\n", &rc.buf[rc.buf_offset]);
+  rc.buf_offset += bytes;
+
   if (0 == ok)
   {
     GNUNET_SCHEDULER_cancel (die_task);
@@ -100,8 +107,8 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-                                  stdout_read_handle, &read_call,
-                                  stdout_read_handle);
+                                  rc.stdout_read_handle, &read_call,
+                                  NULL);
 
 }
 
@@ -163,9 +170,11 @@ run_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                     (GNUNET_TIME_UNIT_MINUTES, 1), &end_task,
                                     NULL);
 
+  memset (&rc, 0, sizeof (rc));
+  rc.stdout_read_handle = stdout_read_handle;
   GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                   stdout_read_handle, &read_call,
-                                  (void *) stdout_read_handle);
+                                  NULL);
 }
 
 
