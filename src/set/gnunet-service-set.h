@@ -19,7 +19,9 @@
 */
 
 /**
- * @brief common stuff for the set service
+ * @file set/gnunet-service-set.h
+ * @brief common components for the implementation the different set operations
+ * @author Florian Dold
  */
 
 #ifndef GNUNET_SERVICE_SET_H_PRIVATE
@@ -90,6 +92,10 @@ struct Set
 };
 
 
+/**
+ * A listener is inhabited by a client, and
+ * waits for evaluation requests from remote peers.
+ */
 struct Listener
 {
   /**
@@ -181,8 +187,8 @@ struct Incoming
   enum GNUNET_SET_OperationType operation;
 
   /**
-   * Request id associated with the
-   * request coming from this client
+   * Unique request id for the request from
+   * a remote peer.
    */
   uint32_t request_id;
 };
@@ -214,6 +220,10 @@ _GSS_union_evaluate (struct EvaluateMessage *m, struct Set *set);
 
 void
 _GSS_union_add (struct ElementMessage *m, struct Set *set);
+
+
+void
+_GSS_union_remove (struct ElementMessage *m, struct Set *set);
 
 
 void

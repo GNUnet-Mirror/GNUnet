@@ -47,11 +47,21 @@ stream_data_processor (void *cls,
   return size;
 }
 
-static int listen_cb (void *cls,
-                      struct GNUNET_STREAM_Socket *socket,
-                      const struct 
-                      GNUNET_PeerIdentity *initiator)
+static int
+listen_cb (void *cls,
+           struct GNUNET_STREAM_Socket *socket,
+           const struct 
+           GNUNET_PeerIdentity *initiator)
 {
+  if (NULL == socket)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "socket listen failed\n");
+    return GNUNET_NO;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "socket listen succesful\n");
+  GNUNET_assert (NULL != socket);
+  GNUNET_assert (0 == memcmp (initiator, &local_id, sizeof (*initiator)));
   GNUNET_STREAM_read (socket, GNUNET_TIME_UNIT_FOREVER_REL, 
                       stream_data_processor, NULL);
   return GNUNET_YES;
@@ -100,9 +110,9 @@ main (int argc, char **argv)
    static const struct GNUNET_GETOPT_CommandLineOption options[] = {
       GNUNET_GETOPT_OPTION_END
   };
-  GNUNET_PROGRAM_run2 (argc, argv, "gnunet-set",
+  GNUNET_PROGRAM_run (argc, argv, "gnunet-set",
 		      "help",
-		      options, &run, NULL, GNUNET_NO);
+		      options, &run, NULL);
   return 0;
 }
 

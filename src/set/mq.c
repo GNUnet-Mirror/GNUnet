@@ -20,11 +20,14 @@
 
 /**
  * @author Florian Dold
- * @file mq/mq.c
+ * @file set/mq.c
  * @brief general purpose request queue
  */
 
 #include "mq.h"
+
+
+#define LOG(kind,...) GNUNET_log_from (kind, "mq",__VA_ARGS__)
 
 /**
  * Signature of functions implementing the
@@ -94,6 +97,26 @@ struct GNUNET_MQ_MessageQueue
    * Implementation-specific state
    */
   void *impl_state;
+
+  /**
+   * Callback will be called when the message queue is empty
+   */
+  GNUNET_MQ_NotifyCallback empty_cb;
+
+  /**
+   * Closure for empty_cb
+   */
+  void *empty_cls;
+
+  /**
+   * Callback will be called when a read error occurs.
+   */
+  GNUNET_MQ_NotifyCallback read_error_cb;
+
+  /**
+   * Closure for read_error_cb
+   */
+  void *read_error_cls;
 
   /**
    * Linked list of messages pending to be sent
@@ -217,21 +240,21 @@ GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp, uint16_t size, uint16_t type)
 
 int
 GNUNET_MQ_nest_ (struct GNUNET_MQ_Message **mqmp,
-                 const struct GNUNET_MessageHeader *m)
+                 const void *data, uint16_t len)
 {
   size_t new_size;
   size_t old_size;
 
-  if (NULL == m)
+  if (NULL == data)
     return GNUNET_OK;
   GNUNET_assert (NULL != mqmp);
   old_size = ntohs ((*mqmp)->mh->size);
   /* message too large to concatenate? */
-  if (ntohs ((*mqmp)->mh->size) + ntohs (m->size) < ntohs (m->size))
+  if (ntohs ((*mqmp)->mh->size) + len < len)
     return GNUNET_SYSERR;
-  new_size = old_size + ntohs (m->size);
+  new_size = old_size + len;
   *mqmp = GNUNET_realloc (mqmp, sizeof (struct GNUNET_MQ_Message) + new_size);
-  memcpy ((*mqmp)->mh + old_size, m, new_size - old_size);
+  memcpy ((*mqmp)->mh + old_size, data, new_size - old_size);
   (*mqmp)->mh->size = htons (new_size);
   return GNUNET_OK;
 }
@@ -275,7 +298,11 @@ stream_write_queued (void *cls, enum GNUNET_STREAM_Status status, size_t size)
   mqm = mq->msg_head;
   mq->current_msg = mqm;
   if (NULL == mqm)
+  {
+    if (NULL != mq->empty_cb)
+      mq->empty_cb (mq->empty_cls);
     return;
+  }
   GNUNET_CONTAINER_DLL_remove (mq->msg_head, mq->msg_tail, mqm);
   mss->wh = GNUNET_STREAM_write (mss->socket, mqm->mh, ntohs (mqm->mh->size),
                                  GNUNET_TIME_UNIT_FOREVER_REL,
@@ -415,6 +442,8 @@ transmit_queued (void *cls, size_t size,
                                              GNUNET_TIME_UNIT_FOREVER_REL,
                                              &transmit_queued, mq);
   }
+  else if (NULL != mq->empty_cb)
+    mq->empty_cb (mq->empty_cls);
   return msg_size;
 }
 
@@ -490,6 +519,8 @@ connection_client_transmit_queued (void *cls, size_t size,
                                              GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_NO,
                                              &connection_client_transmit_queued, mq);
   }
+  else if (NULL != mq->empty_cb)
+    mq->empty_cb (mq->empty_cls);
   return msg_size;
 }
 
@@ -530,8 +561,14 @@ handle_client_message (void *cls,
                        const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_MQ_MessageQueue *mq = cls;
-
-  GNUNET_assert (NULL != msg);
+  
+  if (NULL == msg)
+  {
+    if (NULL == mq->read_error_cb)
+      LOG (GNUNET_ERROR_TYPE_WARNING, "ignoring read error (no handler installed)\n");
+    mq->read_error_cb (mq->read_error_cls);
+    return;
+  }
   dispatch_message (mq, msg);
 }
 
@@ -564,7 +601,6 @@ GNUNET_MQ_queue_for_connection_client (struct GNUNET_CLIENT_Connection *connecti
 }
 
 
-
 void
 GNUNET_MQ_replace_handlers (struct GNUNET_MQ_MessageQueue *mq,
                             const struct GNUNET_MQ_Handler *new_handlers,
@@ -575,13 +611,12 @@ GNUNET_MQ_replace_handlers (struct GNUNET_MQ_MessageQueue *mq,
 }
 
 
-
 /**
  * Associate the assoc_data in mq with a unique request id.
  *
  * @param mq message queue, id will be unique for the queue
  * @param mqm message to associate
- * @param data to associate
+ * @param assoc_data to associate
  */
 uint32_t
 GNUNET_MQ_assoc_add (struct GNUNET_MQ_MessageQueue *mq,
@@ -639,3 +674,20 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_MessageQueue *mq)
   GNUNET_free (mq);
 }
 
+
+/**
+ * Call a callback once all messages queued have been sent,
+ * i.e. the message queue is empty.
+ *
+ * @param mqm the message queue to send the notification for
+ * @param cb the callback to call on an empty queue
+ * @param cls closure for cb
+ */
+void
+GNUNET_MQ_notify_empty (struct GNUNET_MQ_MessageQueue *mqm,
+                        GNUNET_MQ_NotifyCallback cb,
+                        void *cls)
+{
+  mqm->empty_cb = cb;
+  mqm->empty_cls = cls;
+}

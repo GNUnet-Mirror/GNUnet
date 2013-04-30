@@ -91,9 +91,10 @@ enum GNUNET_SET_Status
    */
   GNUNET_SET_STATUS_TIMEOUT,
   /**
-   * The other peer refused to to the operation with us
+   * The other peer refused to to the operation with us,
+   * or something went wrong.
    */
-  GNUNET_SET_STATUS_REFUSED,
+  GNUNET_SET_STATUS_FAILURE,
   /**
    * Success, all elements have been sent.
    */
@@ -258,6 +259,8 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set);
  *        makes it harder for an attacker to exploit this
  * @param timeout result_cb will be called with GNUNET_SET_STATUS_TIMEOUT
  *        if the operation is not done after the specified time
+ * @param result_mode specified how results will be returned,
+ *        see 'GNUNET_SET_ResultMode'.
  * @param result_cb called on error or success
  * @param result_cls closure for result_cb
  * @return a handle to cancel the operation
@@ -304,14 +307,18 @@ void
 GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh);
 
 
+
 /**
- * Accept a request we got via GNUNET_SET_listen
+ * Accept a request we got via GNUNET_SET_listen.
  *
  * @param request request to accept
  * @param set set used for the requested operation 
  * @param timeout timeout for the set operation
+ * @param result_mode specified how results will be returned,
+ *        see 'GNUNET_SET_ResultMode'.
  * @param result_cb callback for the results
- * @param cls closure for result_cb
+ * @param result_cls closure for result_cb
+ * @return a handle to cancel the operation
  */
 struct GNUNET_SET_OperationHandle *
 GNUNET_SET_accept (struct GNUNET_SET_Request *request,
@@ -325,7 +332,7 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
 /**
  * Cancel the given set operation.
  *
- * @param op set operation to cancel
+ * @param oh set operation to cancel
  */
 void
 GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh);

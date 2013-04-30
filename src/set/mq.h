@@ -20,7 +20,7 @@
 
 /**
  * @author Florian Dold
- * @file mq/mq.h
+ * @file set/mq.h
  * @brief general purpose request queue
  */
 #ifndef MQ_H
@@ -58,14 +58,40 @@
  */
 #define GNUNET_MQ_msg(mvar, type) GNUNET_MQ_msg_extra(mvar, 0, type)
 
-#define GNUNET_MQ_nest(mqm, mh) GNUNET_MQ_nest_ (&mqm, mh)
+/**
+ * Append data to the end of an existing MQ message.
+ * If the operation is successful, mqm is changed to point to the new MQ message,
+ * and GNUNET_OK is returned.
+ * On failure, GNUNET_SYSERR is returned, and the pointer mqm is not changed,
+ * the user of this API must take care of disposing the already allocated message
+ * (either by sending it, or by using GNUNET_MQ_discard)
+ *
+ * @param mqm MQ message to augment with additional data
+ * @param src source buffer for the additional data
+ * @param len length of the additional data
+ */
+#define GNUNET_MQ_nest(mqm, src, len) GNUNET_MQ_nest_ (&mqm, src, len)
+
+
+
+/**
+ * Append a message to the end of an existing MQ message.
+ * If the operation is successful, mqm is changed to point to the new MQ message,
+ * and GNUNET_OK is returned.
+ * On failure, GNUNET_SYSERR is returned, and the pointer mqm is not changed,
+ * the user of this API must take care of disposing the already allocated message
+ * (either by sending it, or by using GNUNET_MQ_discard)
+ *
+ * @param mqm MQ message to augment with additional data
+ * @param mh the message to append, must be of type 'struct GNUNET_MessageHeader *'
+ */
+#define GNUNET_MQ_nest_mh(mqm, mh) ((NULL == mh) ? (GNUNET_OK) : GNUNET_MQ_nest((mqm), (mh), ntohs ((mh)->size)))
+
 
 /**
  * Allocate a GNUNET_MQ_Message, where the message only consists of a header.
  * The allocated message will already have the type and size field set.
  *
- * @param mvar variable to store the allocated message in;
- *             must have a header field
  * @param type type of the message
  */
 #define GNUNET_MQ_msg_header(type) GNUNET_MQ_msg_ (NULL, sizeof (struct GNUNET_MessageHeader), type)
@@ -75,8 +101,7 @@
  * Allocate a GNUNET_MQ_Message, where the message only consists of a header and extra space.
  * The allocated message will already have the type and size field set.
  *
- * @param mvar variable to store the allocated message in;
- *             must have a header field
+ * @param mh pointer that will changed to point at to the allocated message header
  * @param esize extra space to allocate after the message header
  * @param type type of the message
  */
@@ -86,7 +111,7 @@
 /**
  * End-marker for the handlers array
  */
-#define GNUNET_MQ_HANDLERS_END {NULL, 0}
+#define GNUNET_MQ_HANDLERS_END {NULL, 0, 0}
 
 /**
  * Opaque handle to a message queue
@@ -120,9 +145,17 @@ struct GNUNET_MQ_Handler
 
 
   /**
-   * Type of the message we are interested in
+   * Type of the message this handler covers.
    */
   uint16_t type;
+
+  /**
+   * Expected size of messages of this type.  Use 0 for
+   * variable-size.  If non-zero, messages of the given
+   * type will be discarded (and the connection closed)
+   * if they do not have the right size.
+   */
+  uint16_t expected_size;
 };
 
 /**
@@ -146,7 +179,7 @@ GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp, uint16_t size, uint16_t type)
 
 int
 GNUNET_MQ_nest_ (struct GNUNET_MQ_Message **mqmp,
-                 const struct GNUNET_MessageHeader *m);
+                 const void *src, uint16_t len);
 
 
 /**
@@ -186,7 +219,7 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Message *mqm);
  *
  * @param mq message queue, id will be unique for the queue
  * @param mqm message to associate
- * @param data to associate
+ * @param assoc_data to associate
  */
 uint32_t
 GNUNET_MQ_assoc_add (struct GNUNET_MQ_MessageQueue *mq,
@@ -234,7 +267,7 @@ GNUNET_MQ_queue_for_connection_client (struct GNUNET_CLIENT_Connection *connecti
 /**
  * Create a message queue for a GNUNET_STREAM_Socket.
  *
- * @param param client the client
+ * @param client the client
  * @return the message queue
  */
 struct GNUNET_MQ_MessageQueue *
@@ -285,6 +318,32 @@ void
 GNUNET_MQ_notify_sent (struct GNUNET_MQ_Message *mqm,
                        GNUNET_MQ_NotifyCallback cb,
                        void *cls);
+
+/**
+ * Call a callback once all messages queued have been sent,
+ * i.e. the message queue is empty.
+ *
+ * @param mqm the message queue to send the notification for
+ * @param cb the callback to call on an empty queue
+ * @param cls closure for cb
+ */
+void
+GNUNET_MQ_notify_empty (struct GNUNET_MQ_MessageQueue *mqm,
+                        GNUNET_MQ_NotifyCallback cb,
+                        void *cls);
+
+
+/**
+ * Call a callback if reading encountered an error.
+ *
+ * @param mqm the message queue to send the notification for
+ * @param cb the callback to call on a read error
+ * @param cls closure for cb
+ */
+void
+GNUNET_MQ_notify_read_error (struct GNUNET_MQ_MessageQueue *mqm,
+                             GNUNET_MQ_NotifyCallback cb,
+                             void *cls);
 
 
 /**

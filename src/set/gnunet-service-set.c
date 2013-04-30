@@ -73,6 +73,7 @@ static struct Incoming *incoming_tail;
 
 /**
  * Counter for allocating unique request IDs for clients.
+ * Used to identify incoming requests from remote peers.
  */
 static uint32_t request_id = 1;
 
@@ -128,7 +129,7 @@ get_listener (struct GNUNET_SERVER_Client *client)
 
 
 /**
- * Get the incoming socket associated with the given id
+ * Get the incoming socket associated with the given id.
  *
  * @param id id to look for
  * @return the incoming socket associated with the id,
@@ -164,13 +165,12 @@ destroy_incoming (struct Incoming *incoming)
 
 
 /**
- * Handle a request for a set operation for
+ * Handle a request for a set operation from
  * another peer.
  *
  * @param cls the incoming socket
  * @param mh the message
  */
-
 static void
 handle_p2p_operation_request (void *cls, const struct GNUNET_MessageHeader *mh)
 {
@@ -213,12 +213,12 @@ handle_p2p_operation_request (void *cls, const struct GNUNET_MessageHeader *mh)
          (htons (msg->operation) != listener->operation) )
       continue;
     mqm = GNUNET_MQ_msg (cmsg, GNUNET_MESSAGE_TYPE_SET_REQUEST);
-    if (GNUNET_OK !=
-        GNUNET_MQ_nest (mqm, context_msg))
+    if (GNUNET_OK != GNUNET_MQ_nest_mh (mqm, context_msg))
     {
       /* FIXME: disconnect the peer */
       GNUNET_MQ_discard (mqm);
       GNUNET_break (0);
+      return;
     }
     incoming->request_id = request_id++;
     cmsg->request_id = htonl (incoming->request_id);
@@ -280,7 +280,7 @@ handle_client_create (void *cls,
 
 
 /**
- * Called when a client wants to create a new set.
+ * Called when a client wants to create a new listener.
  *
  * @param cls unused
  * @param client client that sent the message
@@ -311,7 +311,46 @@ handle_client_listen (void *cls,
 
 
 /**
- * Called when a client wants to create a new set.
+ * Called when a client wants to remove an element
+ * from the set it inhabits.
+ *
+ * @param cls unused
+ * @param client client that sent the message
+ * @param m message sent by the client
+ */
+static void
+handle_client_remove (void *cls,
+                      struct GNUNET_SERVER_Client *client,
+                      const struct GNUNET_MessageHeader *m)
+{
+  struct Set *set;
+
+  set = get_set (client);
+  if (NULL == set)
+  {
+    GNUNET_break (0);
+    _GSS_client_disconnect (client);
+    return;
+  }
+  switch (set->operation)
+  {
+    case GNUNET_SET_OPERATION_UNION:
+      _GSS_union_add ((struct ElementMessage *) m, set);
+    case GNUNET_SET_OPERATION_INTERSECTION:
+      /* FIXME: cfuchs */
+      break;
+    default:
+      GNUNET_assert (0);
+      break;
+  }
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * Called when a client wants to add an element to a
+ * set it inhabits.
  *
  * @param cls unused
  * @param client client that sent the message
@@ -334,7 +373,7 @@ handle_client_add (void *cls,
   switch (set->operation)
   {
     case GNUNET_SET_OPERATION_UNION:
-      _GSS_union_add ((struct ElementMessage *) m, set);
+      _GSS_union_remove ((struct ElementMessage *) m, set);
     case GNUNET_SET_OPERATION_INTERSECTION:
       /* FIXME: cfuchs */
       break;
@@ -423,11 +462,11 @@ handle_client_ack (void *cls,
 
 /**
  * Handle a request from the client to accept
- * a set operation.
+ * a set operation that came from a remote peer.
  *
  * @param cls unused
  * @param client the client
- * @param m the message
+ * @param mh the message
  */
 static void
 handle_client_accept (void *cls,
@@ -439,7 +478,6 @@ handle_client_accept (void *cls,
   struct AcceptMessage *msg = (struct AcceptMessage *) mh;
 
   set = get_set (client);
-  
 
   if (NULL == set)
   {
@@ -545,12 +583,14 @@ shutdown_task (void *cls,
  * @param cfg configuration to use
  */
 static void
-run (void *cls, struct GNUNET_SERVER_Handle *server, const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, struct GNUNET_SERVER_Handle *server,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static const struct GNUNET_SERVER_MessageHandler server_handlers[] = {
     {handle_client_create, NULL, GNUNET_MESSAGE_TYPE_SET_CREATE, 0},
     {handle_client_listen, NULL, GNUNET_MESSAGE_TYPE_SET_LISTEN, 0},
     {handle_client_add, NULL, GNUNET_MESSAGE_TYPE_SET_ADD, 0},
+    {handle_client_remove, NULL, GNUNET_MESSAGE_TYPE_SET_ADD, 0},
     {handle_client_cancel, NULL, GNUNET_MESSAGE_TYPE_SET_CANCEL, 0},
     {handle_client_evaluate, NULL, GNUNET_MESSAGE_TYPE_SET_EVALUATE, 0},
     {handle_client_ack, NULL, GNUNET_MESSAGE_TYPE_SET_ACK, 0},

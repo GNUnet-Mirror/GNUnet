@@ -276,9 +276,17 @@ operation_timeout_task (void *cls,
  * Evaluate a set operation with our set and the set of another peer.
  *
  * @param set set to use
+ * @param salt salt for HKDF (explain more here)
  * @param other_peer peer with the other set
  * @param app_id hash for the application using the set
  * @param context_msg additional information for the request
+ * @param salt salt used for the set operation; sometimes set operations
+ *        fail due to hash collisions, using a different salt for each operation
+ *        makes it harder for an attacker to exploit this
+ * @param timeout result_cb will be called with GNUNET_SET_STATUS_TIMEOUT
+ *        if the operation is not done after the specified time
+ * @param result_mode specified how results will be returned,
+ *        see 'GNUNET_SET_ResultMode'.
  * @param result_cb called on error or success
  * @param result_cls closure for result_cb
  * @return a handle to cancel the operation
@@ -307,9 +315,10 @@ GNUNET_SET_evaluate (struct GNUNET_SET_Handle *set,
   msg->request_id = htonl (GNUNET_MQ_assoc_add (set->mq, mqm, oh));
   msg->peer = *other_peer;
   msg->app_id = *app_id;
-
-  if (GNUNET_OK != GNUNET_MQ_nest (mqm, context_msg))
-    GNUNET_assert (0);
+  
+  if (NULL != context_msg)
+    if (GNUNET_OK != GNUNET_MQ_nest (mqm, context_msg, ntohs (context_msg->size)))
+      GNUNET_assert (0);
   
   oh->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout, operation_timeout_task, oh);
   GNUNET_MQ_send (set->mq, mqm);
@@ -378,13 +387,16 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh)
 
 
 /**
- * Accept a request we got via GNUNET_SET_listen
+ * Accept a request we got via GNUNET_SET_listen.
  *
  * @param request request to accept
  * @param set set used for the requested operation 
  * @param timeout timeout for the set operation
+ * @param result_mode specified how results will be returned,
+ *        see 'GNUNET_SET_ResultMode'.
  * @param result_cb callback for the results
- * @param cls closure for result_cb
+ * @param result_cls closure for result_cb
+ * @return a handle to cancel the operation
  */
 struct GNUNET_SET_OperationHandle *
 GNUNET_SET_accept (struct GNUNET_SET_Request *request,
@@ -421,18 +433,18 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
 /**
  * Cancel the given set operation.
  *
- * @param op set operation to cancel
+ * @param oh set operation to cancel
  */
 void
-GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *h)
+GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh)
 {
   struct GNUNET_MQ_Message *mqm;
   struct GNUNET_SET_OperationHandle *h_assoc;
 
-  h_assoc = GNUNET_MQ_assoc_remove (h->set->mq, h->request_id);
-  GNUNET_assert (h_assoc == h);
+  h_assoc = GNUNET_MQ_assoc_remove (oh->set->mq, oh->request_id);
+  GNUNET_assert (h_assoc == oh);
   mqm = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_CANCEL);
-  GNUNET_MQ_send (h->set->mq, mqm);
-  GNUNET_free (h);
+  GNUNET_MQ_send (oh->set->mq, mqm);
+  GNUNET_free (oh);
 }
 
