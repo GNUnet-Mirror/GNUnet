@@ -69,6 +69,7 @@
  * @param mqm MQ message to augment with additional data
  * @param src source buffer for the additional data
  * @param len length of the additional data
+ * @return FIXME
  */
 #define GNUNET_MQ_nest(mqm, src, len) GNUNET_MQ_nest_ (&mqm, src, len)
 

@@ -193,28 +193,13 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-/**
- * Main method, starts scheduler with task1,
- * checks that "ok" is correct at the end.
- */
-static int
-check ()
-{
-  ok = 1;
-  GNUNET_SCHEDULER_run (&task, &ok);
-  return ok;
-}
-
-
 int
 main (int argc, char *argv[])
 {
-  int ret = 0;
-
   GNUNET_log_setup ("test_server", "WARNING", NULL);
-  ret += check ();
-
-  return ret;
+  ok = 1;
+  GNUNET_SCHEDULER_run (&task, &ok);
+  return ok;
 }
 
 /* end of test_server.c */
