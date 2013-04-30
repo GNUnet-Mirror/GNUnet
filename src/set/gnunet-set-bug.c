@@ -36,7 +36,16 @@ static struct GNUNET_STREAM_ListenSocket *listen_socket;
 
 static struct GNUNET_STREAM_Socket *s1;
 
+static struct GNUNET_STREAM_Socket *s2;
 
+static void
+do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (NULL != s2)
+    GNUNET_STREAM_close (s2);
+  GNUNET_STREAM_close (s1);
+  GNUNET_STREAM_listen_close (listen_socket);
+}
 
 static size_t
 stream_data_processor (void *cls,
@@ -53,7 +62,7 @@ listen_cb (void *cls,
            const struct 
            GNUNET_PeerIdentity *initiator)
 {
-  if (NULL == socket)
+  if (NULL == (s2 = socket))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "socket listen failed\n");
     return GNUNET_NO;
@@ -63,7 +72,7 @@ listen_cb (void *cls,
   GNUNET_assert (NULL != socket);
   GNUNET_assert (0 == memcmp (initiator, &local_id, sizeof (*initiator)));
   GNUNET_STREAM_read (socket, GNUNET_TIME_UNIT_FOREVER_REL, 
-                      stream_data_processor, NULL);
+                      &stream_data_processor, NULL);
   return GNUNET_YES;
 }
 
@@ -90,16 +99,18 @@ run (void *cls, char *const *args,
 
   listen_socket = GNUNET_STREAM_listen (cfg,
                                         GNUNET_APPLICATION_TYPE_SET,
-                                        listen_cb,
+                                        &listen_cb,
                                         NULL,
                                         NULL);
 
   s1 = GNUNET_STREAM_open (cfg,
                            &local_id,
                            GNUNET_APPLICATION_TYPE_SET,
-                           open_cb,
+                           &open_cb,
                            NULL,
                            NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                &do_shutdown, NULL);
 }
 
 
