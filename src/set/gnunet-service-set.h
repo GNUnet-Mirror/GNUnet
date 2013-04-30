@@ -210,22 +210,54 @@ void
 _GSS_client_disconnect (struct GNUNET_SERVER_Client *client);
 
 
+/**
+ * Create a new set supporting the union operation
+ *
+ * @return the newly created set
+ */
 struct Set *
 _GSS_union_set_create (void);
 
 
+/**
+ * Evaluate a union operation with
+ * a remote peer.
+ *
+ * @param m the evaluate request message from the client
+ * @parem set the set to evaluate the operation with
+ */
 void
 _GSS_union_evaluate (struct EvaluateMessage *m, struct Set *set);
 
 
+/**
+ * Add the element from the given element message to the set.
+ *
+ * @param m message with the element
+ * @param set set to add the element to
+ */
 void
 _GSS_union_add (struct ElementMessage *m, struct Set *set);
 
 
+/**
+ * Remove the element given in the element message from the set.
+ * Only marks the element as removed, so that older set operations can still exchange it.
+ *
+ * @param m message with the element
+ * @param set set to remove the element from
+ */
 void
 _GSS_union_remove (struct ElementMessage *m, struct Set *set);
 
 
+/**
+ * Accept an union operation request from a remote peer
+ *
+ * @param m the accept message from the client
+ * @param set the set of the client
+ * @param incoming information about the requesting remote peer
+ */
 void
 _GSS_union_accept (struct AcceptMessage *m, struct Set *set,
                    struct Incoming *incoming);

@@ -146,6 +146,11 @@ get_incoming (uint32_t id)
 }
 
 
+/**
+ * Destroy an incoming request from a remote peer
+ *
+ * @param incoming remote request to destroy
+ */
 static void
 destroy_incoming (struct Incoming *incoming)
 {
@@ -225,7 +230,6 @@ handle_p2p_operation_request (void *cls, const struct GNUNET_MessageHeader *mh)
     GNUNET_MQ_send (listener->client_mq, mqm);
     return;
   }
-  /* FIXME: send a reject message */
 }
 
 
@@ -590,7 +594,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {handle_client_create, NULL, GNUNET_MESSAGE_TYPE_SET_CREATE, 0},
     {handle_client_listen, NULL, GNUNET_MESSAGE_TYPE_SET_LISTEN, 0},
     {handle_client_add, NULL, GNUNET_MESSAGE_TYPE_SET_ADD, 0},
-    {handle_client_remove, NULL, GNUNET_MESSAGE_TYPE_SET_ADD, 0},
+    {handle_client_remove, NULL, GNUNET_MESSAGE_TYPE_SET_REMOVE, 0},
     {handle_client_cancel, NULL, GNUNET_MESSAGE_TYPE_SET_CANCEL, 0},
     {handle_client_evaluate, NULL, GNUNET_MESSAGE_TYPE_SET_EVALUATE, 0},
     {handle_client_ack, NULL, GNUNET_MESSAGE_TYPE_SET_ACK, 0},

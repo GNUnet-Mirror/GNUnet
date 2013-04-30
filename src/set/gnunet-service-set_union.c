@@ -330,8 +330,6 @@ struct UnionState
 };
 
 
-
-
 /**
  * Destroy a union operation, and free all resources
  * associated with it.
@@ -945,6 +943,12 @@ handle_p2p_element_requests (void *cls, const struct GNUNET_MessageHeader *mh)
 }
 
 
+/**
+ * Handle a done message from a remote peer
+ * 
+ * @param cls the union operation
+ * @param mh the message
+ */
 static void
 handle_p2p_done (void *cls, const struct GNUNET_MessageHeader *mh)
 {
@@ -1009,8 +1013,14 @@ stream_open_cb (void *cls,
   eo->phase = PHASE_EXPECT_SE;
 }
 
-	
 
+/**
+ * Evaluate a union operation with
+ * a remote peer.
+ *
+ * @param m the evaluate request message from the client
+ * @parem set the set to evaluate the operation with
+ */
 void
 _GSS_union_evaluate (struct EvaluateMessage *m, struct Set *set)
 {
@@ -1029,9 +1039,17 @@ _GSS_union_evaluate (struct EvaluateMessage *m, struct Set *set)
       GNUNET_STREAM_open (configuration, &eo->peer, GNUNET_APPLICATION_TYPE_SET,
                           stream_open_cb, eo,
                           GNUNET_STREAM_OPTION_END);
+  /* the stream open callback will kick off the operation */
 }
 
 
+/**
+ * Accept an union operation request from a remote peer
+ *
+ * @param m the accept message from the client
+ * @param set the set of the client
+ * @param incoming information about the requesting remote peer
+ */
 void
 _GSS_union_accept (struct AcceptMessage *m, struct Set *set,
                    struct Incoming *incoming)
@@ -1054,6 +1072,11 @@ _GSS_union_accept (struct AcceptMessage *m, struct Set *set,
 }
 
 
+/**
+ * Create a new set supporting the union operation
+ *
+ * @return the newly created set
+ */
 struct Set *
 _GSS_union_set_create (void)
 {
@@ -1064,23 +1087,34 @@ _GSS_union_set_create (void)
   set = GNUNET_malloc (sizeof (struct Set) + sizeof (struct UnionState));
   set->state.u = (struct UnionState *) &set[1];
   set->operation = GNUNET_SET_OPERATION_UNION;
+  /* keys of the hash map are stored in the element entrys, thus we do not
+   * want the hash map to copy them */
+  set->state.u->elements = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
   set->state.u->se = strata_estimator_create (SE_STRATA_COUNT,
                                               SE_IBF_SIZE, SE_IBF_HASH_NUM);  
   return set;
 }
 
 
+/**
+ * Add the element from the given element message to the set.
+ *
+ * @param m message with the element
+ * @param set set to add the element to
+ */
 void
 _GSS_union_add (struct ElementMessage *m, struct Set *set)
 {
   struct ElementEntry *ee;
   struct ElementEntry *ee_dup;
   uint16_t element_size;
-  
+
+  GNUNET_assert (GNUNET_SET_OPERATION_UNION == set->operation);
   element_size = ntohs (m->header.size) - sizeof *m;
   ee = GNUNET_malloc (element_size + sizeof *ee);
   ee->element.size = element_size;
   ee->element.data = &ee[1];
+  ee->generation_added = set->state.u->current_generation;
   memcpy (ee->element.data, &m[1], element_size);
   GNUNET_CRYPTO_hash (ee->element.data, element_size, &ee->element_hash);
   ee_dup = GNUNET_CONTAINER_multihashmap_get (set->state.u->elements, &ee->element_hash);
@@ -1109,8 +1143,8 @@ _GSS_union_remove (struct ElementMessage *m, struct Set *set)
   struct GNUNET_HashCode hash;
   struct ElementEntry *ee;
 
+  GNUNET_assert (GNUNET_SET_OPERATION_UNION == set->operation);
   GNUNET_CRYPTO_hash (&m[1], ntohs (m->header.size), &hash);
-  
   ee = GNUNET_CONTAINER_multihashmap_get (set->state.u->elements, &hash);
   if (NULL == ee)
   {
