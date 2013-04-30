@@ -132,6 +132,27 @@ strata_estimator_difference (const struct StrataEstimator *se1,
   return count;
 }
 
+/**
+ * Make a copy of a strata estimator.
+ *
+ * @param se the strata estimator to copy
+ * @return the copy
+ */
+struct StrataEstimator *
+strata_estimator_dup (struct StrataEstimator *se)
+{
+  struct StrataEstimator *c;
+  int i;
+
+  c = GNUNET_malloc (sizeof (struct StrataEstimator));
+  c->strata_count = se->strata_count;
+  c->ibf_size = se->ibf_size;
+  c->strata = GNUNET_malloc (sizeof (struct InvertibleBloomFilter *) * se->strata_count);
+  for (i = 0; i < se->strata_count; i++)
+    c->strata[i] = ibf_dup (se->strata[i]);
+  return c;
+}
+
 
 void
 strata_estimator_destroy (struct StrataEstimator *se)

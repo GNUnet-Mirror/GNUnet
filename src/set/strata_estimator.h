@@ -73,6 +73,16 @@ void
 strata_estimator_destroy (struct StrataEstimator *se);
 
 
+/**
+ * Make a copy of a strata estimator.
+ *
+ * @param se the strata estimator to copy
+ * @return the copy
+ */
+struct StrataEstimator *
+strata_estimator_dup (struct StrataEstimator *se);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

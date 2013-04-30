@@ -454,6 +454,13 @@ insert_element_iterator (void *cls,
 }
 
 
+/**
+ * Insert an element into the union operation's
+ * key-to-element mapping
+ *
+ * @param the union operation
+ * @param ee the element entry
+ */
 static void
 insert_element (struct UnionEvaluateOperation *eo, struct ElementEntry *ee)
 {
@@ -476,11 +483,16 @@ insert_element (struct UnionEvaluateOperation *eo, struct ElementEntry *ee)
   }
   GNUNET_CONTAINER_multihashmap32_put (eo->key_to_element, (uint32_t) ibf_key.key_val, k,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-  if (NULL != eo->local_ibf)
-    ibf_insert (eo->local_ibf, ibf_key);
 }
 
 
+/**
+ * Insert a key into an ibf.
+ *
+ * @param cls the ibf
+ * @param key unused
+ * @param value the key entry to get the key from
+ */
 static int
 prepare_ibf_iterator (void *cls,
                       uint32_t key,
@@ -494,6 +506,15 @@ prepare_ibf_iterator (void *cls,
 }
 
 
+/**
+ * Iterator for initializing the
+ * key-to-element mapping of a union operation
+ *
+ * @param cls the union operation
+ * @param key unised
+ * @param value the element entry to insert
+ *        into the key-to-element mapping
+ */
 static int
 init_key_to_element_iterator (void *cls,
                               const struct GNUNET_HashCode *key,
@@ -514,6 +535,13 @@ init_key_to_element_iterator (void *cls,
 }
 
 
+/**
+ * Create an ibf with the operation's elements
+ * of the specified size
+ *
+ * @param eo the union operation
+ * @param size size of the ibf to create
+ */
 static void
 prepare_ibf (struct UnionEvaluateOperation *eo, uint16_t size)
 {
@@ -593,6 +621,14 @@ send_strata_estimator (struct UnionEvaluateOperation *eo)
   eo->phase = PHASE_EXPECT_IBF;
 }
 
+
+/**
+ * Compute the necessary order of an ibf
+ * from the size of the symmetric set difference.
+ *
+ * @param diff the difference
+ * @return the required size of the ibf
+ */
 static unsigned int
 get_order_from_difference (unsigned int diff)
 {
@@ -607,6 +643,12 @@ get_order_from_difference (unsigned int diff)
 }
 
 
+/**
+ * Handle a strata estimator from a remote peer
+ *
+ * @param the union operation
+ * @param mh the message
+ */
 static void
 handle_p2p_strata_estimator (void *cls, const struct GNUNET_MessageHeader *mh)
 {
@@ -635,6 +677,13 @@ handle_p2p_strata_estimator (void *cls, const struct GNUNET_MessageHeader *mh)
 
 
 
+/**
+ * Iterator to send elements to a remote peer
+ *
+ * @param cls closure with the element key and the union operation
+ * @param key ignored
+ * @param value the key entry
+ */
 static int
 send_element_iterator (void *cls,
                       uint32_t key,
@@ -746,6 +795,12 @@ decode_and_send (struct UnionEvaluateOperation *eo)
 }
 
 
+/**
+ * Handle an IBF message from a remote peer.
+ *
+ * @param cls the union operation
+ * @param mh the header of the message
+ */
 static void
 handle_p2p_ibf (void *cls, const struct GNUNET_MessageHeader *mh)
 {
@@ -820,6 +875,12 @@ send_client_element (struct UnionEvaluateOperation *eo,
 }
 
 
+/**
+ * Handle an element message from a remote peer.
+ *
+ * @param cls the union operation
+ * @param mh the message
+ */
 static void
 handle_p2p_elements (void *cls, const struct GNUNET_MessageHeader *mh)
 {
@@ -845,6 +906,12 @@ handle_p2p_elements (void *cls, const struct GNUNET_MessageHeader *mh)
 }
 
 
+/**
+ * Handle an element request from a remote peer.
+ *
+ * @param cls the union operation
+ * @param mh the message
+ */
 static void
 handle_p2p_element_requests (void *cls, const struct GNUNET_MessageHeader *mh)
 {
@@ -954,6 +1021,10 @@ _GSS_union_evaluate (struct EvaluateMessage *m, struct Set *set)
   eo = GNUNET_new (struct UnionEvaluateOperation);
   eo->peer = m->peer;
   eo->set = set;
+  eo->request_id = htons(m->request_id);
+  eo->se = strata_estimator_dup (set->state.u->se);
+  eo->salt = ntohs (m->salt);
+  eo->app_id = m->app_id;
   eo->socket = 
       GNUNET_STREAM_open (configuration, &eo->peer, GNUNET_APPLICATION_TYPE_SET,
                           stream_open_cb, eo,
@@ -971,9 +1042,9 @@ _GSS_union_accept (struct AcceptMessage *m, struct Set *set,
   eo->generation_created = set->state.u->current_generation++;
   eo->set = set;
   eo->peer = incoming->peer;
-  eo->app_id = incoming->app_id;
   eo->salt = ntohs (incoming->salt);
   eo->request_id = m->request_id;
+  eo->se = strata_estimator_dup (set->state.u->se);
   eo->set = set;
   eo->mq = incoming->mq;
   /* the peer's socket is now ours, we'll receive all messages */
