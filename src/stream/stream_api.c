@@ -1601,10 +1601,8 @@ client_handle_hello_ack (void *cls,
   {
   case STATE_HELLO_WAIT:
     socket->read_sequence_number = ntohl (ack_msg->sequence_number);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "%s: Read sequence number %u\n",
-         GNUNET_i2s (&socket->other_peer),
-         (unsigned int) socket->read_sequence_number);
+    LOG_DEBUG ("%s: Read sequence number %u\n", 
+               GNUNET_i2s (&socket->other_peer), socket->read_sequence_number);
     socket->receiver_window_available = ntohl (ack_msg->receiver_window_size);
     reply = generate_hello_ack (socket, GNUNET_YES);
     queue_message (socket, &reply->header, &set_state_established,
@@ -1618,8 +1616,7 @@ client_handle_hello_ack (void *cls,
       GNUNET_SCHEDULER_add_now (&control_retransmission_task, socket);
     return GNUNET_OK;
   default:
-    LOG_DEBUG ("%s: Server %s sent HELLO_ACK when in state %d\n", 
-               GNUNET_i2s (&socket->other_peer),
+    LOG_DEBUG ("%1$s: Server %1$s sent HELLO_ACK when in state %2$d\n", 
 	       GNUNET_i2s (&socket->other_peer), socket->state);
     socket->state = STATE_CLOSED; // introduce STATE_ERROR?
     return GNUNET_SYSERR;
