@@ -32,6 +32,8 @@
 
 static struct GNUNET_PeerIdentity local_id;
 
+static struct GNUNET_CONFIGURATION_Handle *cfg;
+
 static struct GNUNET_STREAM_ListenSocket *listen_socket;
 
 static struct GNUNET_STREAM_Socket *s1;
@@ -45,6 +47,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_STREAM_close (s2);
   GNUNET_STREAM_close (s1);
   GNUNET_STREAM_listen_close (listen_socket);
+  GNUNET_CONFIGURATION_destroy (cfg);
 }
 
 static size_t
@@ -79,6 +82,18 @@ listen_cb (void *cls,
 static void
 open_cb (void *cls, struct GNUNET_STREAM_Socket *socket)
 {
+ 
+}
+
+static void
+stream_connect (void)
+{
+   s1 = GNUNET_STREAM_open (cfg,
+                           &local_id,
+                           GNUNET_APPLICATION_TYPE_SET,
+                           &open_cb,
+                           NULL,
+                            GNUNET_STREAM_OPTION_END);
 }
 
 /**
@@ -92,23 +107,19 @@ open_cb (void *cls, struct GNUNET_STREAM_Socket *socket)
 static void
 run (void *cls, char *const *args,
      const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const struct GNUNET_CONFIGURATION_Handle *cfg2)
 {
 
+  cfg = GNUNET_CONFIGURATION_dup (cfg2);
   GNUNET_CRYPTO_get_host_identity (cfg, &local_id);
 
   listen_socket = GNUNET_STREAM_listen (cfg,
                                         GNUNET_APPLICATION_TYPE_SET,
                                         &listen_cb,
                                         NULL,
-                                        NULL);
-
-  s1 = GNUNET_STREAM_open (cfg,
-                           &local_id,
-                           GNUNET_APPLICATION_TYPE_SET,
-                           &open_cb,
-                           NULL,
-                           NULL);
+                                        GNUNET_STREAM_OPTION_SIGNAL_LISTEN_SUCCESS,
+                                        &stream_connect,
+                                        GNUNET_STREAM_OPTION_END);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &do_shutdown, NULL);
 }
