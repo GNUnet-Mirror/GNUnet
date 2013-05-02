@@ -41,17 +41,20 @@ GNUNET_NETWORK_STRUCT_BEGIN
 
 
 /**
- * The stream message header
- * All messages of STREAM should commonly have this as header
+ * The HELLO message to begin the handshake
  */
-struct GNUNET_STREAM_MessageHeader
+struct GNUNET_STREAM_HelloMessage
 {
   /**
-   * The GNUNET message header, types are from GNUNET_MESSAGE_TYPE_STREAM_*-range.
+   * Type is GNUNET_MESSAGE_TYPE_STREAM_HELLO
    */
   struct GNUNET_MessageHeader header;
-};
 
+  /**
+   * The application port number
+   */
+  uint64_t port GNUNET_PACKED;;
+};
 
 /**
  * The Data message, should be prefixed with stream header with its type set to
@@ -63,7 +66,7 @@ struct GNUNET_STREAM_DataMessage
   /**
    * Type is  GNUNET_MESSAGE_TYPE_STREAM_DATA 
    */
-  struct GNUNET_STREAM_MessageHeader header;
+  struct GNUNET_MessageHeader header;
 
   /**
    * Sequence number; starts with a random value.  (Just in case
@@ -112,7 +115,7 @@ struct GNUNET_STREAM_AckMessage
   /**
    * Type is  GNUNET_MESSAGE_TYPE_STREAM_ACK
    */
-  struct GNUNET_STREAM_MessageHeader header;
+  struct GNUNET_MessageHeader header;
 
   /**
    * The sequence number of the next Data Message receiver is
@@ -142,7 +145,7 @@ struct GNUNET_STREAM_HelloAckMessage
   /**
    * The stream message header
    */
-  struct GNUNET_STREAM_MessageHeader header;
+  struct GNUNET_MessageHeader header;
 
   /**
    * The selected sequence number. Following data tranmissions from the sender
@@ -158,25 +161,6 @@ struct GNUNET_STREAM_HelloAckMessage
   uint32_t receiver_window_size GNUNET_PACKED;
 };
 
-
-/**
- * The Transmit close message(used to signal transmission is closed)
- * FIXME: dead struct?
- */
-struct GNUNET_STREAM_TransmitCloseMessage
-{
-  /**
-   * The stream message header
-   */
-  struct GNUNET_STREAM_MessageHeader header;
-
-  /**
-   * The last sequence number of the packet after which the transmission has
-   * ended 
-   */
-  uint32_t final_sequence_number GNUNET_PACKED;
-};
-
 GNUNET_NETWORK_STRUCT_END
 
 
@@ -188,3 +172,5 @@ GNUNET_NETWORK_STRUCT_END
 #endif
 
 #endif  /* STREAM.H */
+
+/* End of stream.h  */
