@@ -131,6 +131,31 @@ enum Stage
   MASTER_SLAVE2_PEERS_CONNECTED,
 
   /**
+   * Slave 3 has successfully registered
+   */
+  SLAVE3_REGISTERED,
+
+  /**
+   * Slave 3 has successfully started
+   */
+  SLAVE3_STARTED,
+
+  /**
+   * Peer created on slave 3
+   */
+  SLAVE3_PEER_CREATE_SUCCESS,
+
+  /**
+   * Peer started at slave 3
+   */
+  SLAVE3_PEER_START_SUCCESS,
+
+  /**
+   * Try to connect peers on slave2 and slave3
+   */
+  SLAVE2_SLAVE3_PEERS_CONNECTED,
+
+  /**
    * Peer on slave 2 successfully stopped
    */
   SLAVE2_PEER_STOP_SUCCESS,
@@ -144,16 +169,6 @@ enum Stage
    * Peer destory on slave 2 successful
    */
   SLAVE2_PEER_DESTROY_SUCCESS,
-
-  /**
-   * Slave 3 has successfully registered
-   */
-  SLAVE3_REGISTERED,
-
-  /**
-   * Slave 3 has successfully started
-   */
-  SLAVE3_STARTED,
 
   /**
    * The configuration of slave 3 is acquired
@@ -240,6 +255,11 @@ static struct GNUNET_TESTBED_Peer *slave1_peer;
  * Handle to peer started at slave 2
  */
 static struct GNUNET_TESTBED_Peer *slave2_peer;
+
+/**
+ * Handle to peer started at slave 2
+ */
+static struct GNUNET_TESTBED_Peer *slave3_peer;
 
 /**
  * Handle to a peer started at master controller
@@ -351,6 +371,16 @@ do_abort_now (void *cls)
 
 
 /**
+ * Callback which will be called to after a host registration succeeded or failed
+ *
+ * @param cls the host which has been registered
+ * @param emsg the error message; NULL if host registration is successful
+ */
+static void
+registration_cont (void *cls, const char *emsg);
+
+
+/**
  * Task for inserting delay between tests
  *
  * @param
@@ -367,6 +397,10 @@ delay_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     FAIL_TEST (NULL != op);
     break;
   case MASTER_SLAVE2_PEERS_CONNECTED:
+    slave3 = GNUNET_TESTBED_host_create_with_id (3, "127.0.0.1", NULL, cfg, 0);
+    rh = GNUNET_TESTBED_register_host (mc, slave3, &registration_cont, NULL);
+    break;
+  case SLAVE2_SLAVE3_PEERS_CONNECTED:
     op = GNUNET_TESTBED_peer_stop (NULL, slave2_peer, NULL, NULL);
     FAIL_TEST (NULL != op);
     break;
@@ -414,6 +448,12 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
                                       &delay_task,
                                       NULL);
     break;
+  case SLAVE3_STARTED:
+    result = SLAVE3_PEER_CREATE_SUCCESS;
+    slave3_peer = peer;
+    GNUNET_TESTBED_operation_done (op);
+    op = GNUNET_TESTBED_peer_start (NULL, slave3_peer, NULL, NULL);
+    break;
   default:
     FAIL_TEST (0);
   }
@@ -437,16 +477,6 @@ check_operation_success (const struct GNUNET_TESTBED_EventInformation *event)
   FAIL_TEST (NULL == event->details.operation_finished.emsg);
   FAIL_TEST (NULL == event->details.operation_finished.generic);
 }
-
-
-/**
- * Callback which will be called to after a host registration succeeded or failed
- *
- * @param cls the host which has been registered
- * @param emsg the error message; NULL if host registration is successful
- */
-static void
-registration_cont (void *cls, const char *emsg);
 
 
 /**
@@ -506,6 +536,29 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     op = GNUNET_TESTBED_peer_start (NULL, slave2_peer, NULL, NULL);
     FAIL_TEST (NULL != op);
     break;
+  case SLAVE3_PEER_CREATE_SUCCESS:
+    FAIL_TEST (GNUNET_TESTBED_ET_PEER_START == event->type);
+    FAIL_TEST (event->details.peer_start.host == slave3);
+    FAIL_TEST (event->details.peer_start.peer == slave3_peer);
+    GNUNET_TESTBED_operation_done (op);
+    result = SLAVE3_PEER_START_SUCCESS;
+    op = GNUNET_TESTBED_overlay_connect (mc, NULL, NULL, slave2_peer,
+                                         slave3_peer);
+    FAIL_TEST (NULL != op);
+    break;
+  case SLAVE3_PEER_START_SUCCESS:
+    FAIL_TEST (NULL != event);
+    FAIL_TEST (GNUNET_TESTBED_ET_CONNECT == event->type);
+    FAIL_TEST (event->details.peer_connect.peer1 == slave2_peer);
+    FAIL_TEST (event->details.peer_connect.peer2 == slave3_peer);
+    result = SLAVE2_SLAVE3_PEERS_CONNECTED;
+    GNUNET_TESTBED_operation_done (op);
+    op = NULL;
+    delay_task_id =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                      (GNUNET_TIME_UNIT_SECONDS, 1), &delay_task,
+                                      NULL);
+    break;
   case SLAVE1_PEER_STOP_SUCCESS:
     FAIL_TEST (GNUNET_TESTBED_ET_PEER_START == event->type);
     FAIL_TEST (event->details.peer_start.host == slave2);
@@ -528,7 +581,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
                                       (GNUNET_TIME_UNIT_SECONDS, 1), &delay_task,
                                       NULL);
     break;
-  case MASTER_SLAVE2_PEERS_CONNECTED:
+  case SLAVE2_SLAVE3_PEERS_CONNECTED:
     FAIL_TEST (GNUNET_TESTBED_ET_PEER_STOP == event->type);
     FAIL_TEST (event->details.peer_stop.peer == slave2_peer);
     GNUNET_TESTBED_operation_done (op);
@@ -548,18 +601,10 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     GNUNET_TESTBED_operation_done (op);
     op = NULL;
     result = SLAVE2_PEER_DESTROY_SUCCESS;
-    slave3 = GNUNET_TESTBED_host_create_with_id (3, "127.0.0.1", NULL, cfg, 0);
-    rh = GNUNET_TESTBED_register_host (mc, slave3, &registration_cont, NULL);
-    break;
-  case SLAVE3_REGISTERED:
-    check_operation_success (event);
-    GNUNET_TESTBED_operation_done (op);
-    op = NULL;
-    result = SLAVE3_STARTED;
     op = GNUNET_TESTBED_get_slave_config (NULL, mc, slave3);
     FAIL_TEST (NULL != op);
     break;
-  case SLAVE3_STARTED:
+  case SLAVE2_PEER_DESTROY_SUCCESS:
     FAIL_TEST (NULL != event);
     FAIL_TEST (GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type);
     FAIL_TEST (event->op == op);
@@ -570,6 +615,14 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     result = SLAVE3_GET_CONFIG_SUCCESS;
     op = GNUNET_TESTBED_controller_link (NULL, mc, slave3, slave, cfg3,
                                          GNUNET_NO);
+    break;
+  case SLAVE3_REGISTERED:
+    check_operation_success (event);
+    GNUNET_TESTBED_operation_done (op);
+    op = NULL;
+    result = SLAVE3_STARTED;
+    op = GNUNET_TESTBED_peer_create (mc, slave3, cfg, peer_create_cb, NULL);
+    FAIL_TEST (NULL != op);
     break;
   case SLAVE3_GET_CONFIG_SUCCESS:
     result = SLAVE3_LINK_SUCCESS;
@@ -582,7 +635,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     GNUNET_TESTBED_operation_done (op);
     op = NULL;
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_SECONDS, 3), &do_shutdown,
+                                  (GNUNET_TIME_UNIT_SECONDS, 1), &do_shutdown,
                                   NULL);
     break;
   default:
@@ -621,7 +674,7 @@ registration_cont (void *cls, const char *emsg)
                                          GNUNET_YES);
     FAIL_TEST (NULL != op);
     break;
-  case SLAVE2_PEER_DESTROY_SUCCESS:
+  case MASTER_SLAVE2_PEERS_CONNECTED:
     FAIL_TEST (NULL == emsg);
     FAIL_TEST (NULL != mc);
     FAIL_TEST (NULL == op);
