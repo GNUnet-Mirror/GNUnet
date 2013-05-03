@@ -1284,12 +1284,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
 
   /* Check arguments */
-  if (NULL == hosts_file)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("No hosts-file specified on command line. Exiting.\n"));
-    return;
-  }
   if (NULL == policy_dir)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1401,7 +1395,7 @@ main (int argc, char *const *argv)
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'o', "output-file", "FILENAME",
      gettext_noop ("name of the file for writing statistics"),
-     1, &GNUNET_GETOPT_set_string, &data_filename},
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &data_filename},
     {'t', "matching-timeout", "TIMEOUT",
       gettext_noop ("wait TIMEOUT before considering a string match as failed"),
       GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &search_timeout_time },
