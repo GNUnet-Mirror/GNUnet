@@ -1416,7 +1416,7 @@ main (int argc, char *const *argv)
       GNUNET_YES, &GNUNET_GETOPT_set_filename, &strings_file },
     {'H', "hosts-file", "FILENAME",
       gettext_noop ("name of file with hosts' names"),
-      GNUNET_YES, &GNUNET_GETOPT_set_filename, &hosts_file },
+      GNUNET_NO, &GNUNET_GETOPT_set_filename, &hosts_file },
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
