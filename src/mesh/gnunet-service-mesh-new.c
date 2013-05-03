@@ -56,6 +56,7 @@
 
 #define MESH_BLOOM_SIZE         128
 
+#define MESH_DEBUG_REGEX        GNUNET_YES
 #define MESH_DEBUG_DHT          GNUNET_NO
 #define MESH_DEBUG_CONNECTION   GNUNET_NO
 #define MESH_DEBUG_TIMING       __LINUX__ && GNUNET_NO
@@ -74,6 +75,12 @@
 #define DEBUG_DHT(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 #else
 #define DEBUG_DHT(...)
+#endif
+
+#if MESH_DEBUG_REGEX
+#define DEBUG_REGEX(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
+#else
+#define DEBUG_REGEX(...)
 #endif
 
 #if MESH_DEBUG_TIMING
@@ -433,10 +440,10 @@ struct MeshTunnel
      */
   uint32_t last_fwd_ack;
 
-  /**
-   * BCK ACK value received from the hop towards the owner of the tunnel,
-   * (previous node / owner): up to what message PID can we sent back to him.
-   */
+    /**
+     * BCK ACK value received from the hop towards the owner of the tunnel,
+     * (previous node / owner): up to what message PID can we sent back to him.
+     */
   uint32_t bck_ack;
 
     /**
@@ -479,11 +486,6 @@ struct MeshTunnel
      * Number of peers that are connected and potentially ready to receive data
      */
   unsigned int peers_ready;
-
-    /**
-     * Number of peers that have been added to the tunnel
-     */
-  unsigned int peers_total;
 
     /**
      * Client owner of the tunnel, if any
@@ -764,7 +766,7 @@ struct MeshClient
   struct GNUNET_SERVER_Client *handle;
 
     /**
-     * Applications that this client has claimed to provide
+     * Applications that this client has claimed to provide: H(app) = app.
      */
   struct GNUNET_CONTAINER_MultiHashMap *apps;
 
@@ -896,7 +898,7 @@ static unsigned long long max_peers;
 /**
  * Hostkey generation context
  */
-static struct GNUNET_CRYPTO_RsaKeyGenerationContext *keygen;
+static struct GNUNET_CRYPTO_EccKeyGenerationContext *keygen;
 
 /**
  * DLL with all the clients, head.
@@ -972,12 +974,12 @@ static struct GNUNET_PeerIdentity my_full_id;
 /**
  * Own private key.
  */
-static struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
+static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
 
 /**
  * Own public key.
  */
-static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key;
+static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded my_public_key;
 
 /**
  * Tunnel ID for the next created tunnel (global tunnel number).
@@ -990,7 +992,7 @@ static MESH_TunnelNumber next_tid;
 static MESH_TunnelNumber next_local_tid;
 
 /**
- * All application types provided by this peer.
+ * All application types provided by this peer: H(app) = *Client.
  */
 static struct GNUNET_CONTAINER_MultiHashMap *applications;
 
@@ -1255,6 +1257,7 @@ queue_send (void *cls, size_t size, void *buf);
 static void
 regex_cancel_search (struct MeshRegexSearchInfo *regex_search)
 {
+  DEBUG_REGEX ("Search for %s canelled.\n", regex_search->description);
   GNUNET_REGEX_search_cancel (regex_search->search_handle);
   if (0 < regex_search->n_peers)
     GNUNET_free (regex_search->peers);
@@ -1282,16 +1285,16 @@ regex_connect_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_PEER_Id id;
   GNUNET_PEER_Id old;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Regex connect timeout\n");
+  DEBUG_REGEX ("Regex connect timeout\n");
   info->timeout = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " due to shutdown\n");
+    DEBUG_REGEX (" due to shutdown\n");
     return;
   }
 
   old = info->peer;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  timed out: %u\n", old);
+  DEBUG_REGEX ("  timed out: %u\n", old);
 
   if (0 < info->n_peers)
   {
@@ -1305,7 +1308,7 @@ regex_connect_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     // Try to connect to same peer again.
     id = info->peer;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  trying: %u\n", id);
+  DEBUG_REGEX ("  trying: %u\n", id);
 
   peer_info = peer_info_get_short(id);
   tunnel_add_peer (info->t, peer_info);
@@ -1315,7 +1318,7 @@ regex_connect_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   info->timeout = GNUNET_SCHEDULER_add_delayed (connect_timeout,
                                                 &regex_connect_timeout,
                                                 info);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Regex connect timeout END\n");
+  DEBUG_REGEX ("Regex connect timeout END\n");
 }
 
 
@@ -1342,8 +1345,8 @@ regex_found_handler (void *cls,
   struct MeshPeerPath *p;
   struct MeshPeerInfo *peer_info;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got regex results from DHT!\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  for %s\n", info->description);
+  DEBUG_REGEX ("Got regex results from DHT!\n");
+  DEBUG_REGEX ("  for %s\n", info->description);
 
   peer_info = peer_info_get (id);
   p = path_build_from_dht (get_path, get_path_length,
@@ -1381,10 +1384,10 @@ regex_found_handler (void *cls,
 static void
 regex_put (struct MeshRegexDescriptor *regex)
 {
-  DEBUG_DHT ("  regex_put (%s) start\n", regex->regex);
+  DEBUG_REGEX ("  regex_put (%s) start\n", regex->regex);
   if (NULL == regex->h)
   {
-    DEBUG_DHT ("  first put, creating DFA\n");
+    DEBUG_REGEX ("  first put, creating DFA\n");
     regex->h = GNUNET_REGEX_announce (dht_handle,
                                       &my_full_id,
                                       regex->regex,
@@ -1393,10 +1396,10 @@ regex_put (struct MeshRegexDescriptor *regex)
   }
   else
   {
-    DEBUG_DHT ("  not first put, using cached data\n");
+    DEBUG_REGEX ("  not first put, using cached data\n");
     GNUNET_REGEX_reannounce (regex->h);
   }
-  DEBUG_DHT ("  regex_put (%s) end\n", regex->regex);
+  DEBUG_REGEX ("  regex_put (%s) end\n", regex->regex);
 }
 
 
@@ -1416,13 +1419,13 @@ regex_announce (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   c->regex_announce_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-  DEBUG_DHT ("Starting PUT for regex\n");
+  DEBUG_REGEX ("Starting announce for regex\n");
   for (i = 0; i < c->n_regex; i++)
     regex_put (&c->regexes[i]);
   c->regex_announce_task = GNUNET_SCHEDULER_add_delayed (app_announce_time,
                                                          &regex_announce,
                                                          cls);
-  DEBUG_DHT ("Finished PUT for regex\n");
+  DEBUG_REGEX ("Finished announce for regex\n");
 }
 
 
@@ -1456,17 +1459,17 @@ announce_application (void *cls, const struct GNUNET_HashCode * key, void *value
     return GNUNET_YES;
   }
   block.type = htonl (block.type);
-
+  DEBUG_DHT ("Putting APP key: %s\n", GNUNET_h2s (key));
   GNUNET_break (NULL != 
                 GNUNET_DHT_put (dht_handle, key,
-                                dht_replication_level,
-                                GNUNET_DHT_RO_RECORD_ROUTE |
-                                GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-                                GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE,
-                                sizeof (block),
-                                (const char *) &block,
-                                GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS), /* FIXME: this should be an option */
-                                app_announce_time, NULL, NULL));
+				dht_replication_level,
+				GNUNET_DHT_RO_RECORD_ROUTE |
+				GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+				GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE,
+				sizeof (block),
+				(const char *) &block,
+				GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS), /* FIXME: this should be an option */
+				app_announce_time, NULL, NULL));
   return GNUNET_OK;
 }
 
@@ -2023,7 +2026,9 @@ peer_info_delete_tunnel (void *cls, const struct GNUNET_HashCode * key, void *va
     {
       peer->ntunnels--;
       peer->tunnels[i] = peer->tunnels[peer->ntunnels];
-      peer->tunnels = GNUNET_realloc (peer->tunnels, peer->ntunnels);
+      peer->tunnels = 
+        GNUNET_realloc (peer->tunnels, 
+                        peer->ntunnels * sizeof(struct MeshTunnel *));
       return GNUNET_YES;
     }
   }
@@ -3027,7 +3032,6 @@ tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
   if (GNUNET_NO ==
       GNUNET_CONTAINER_multihashmap_contains (t->peers, &id.hashPubKey))
   {
-    t->peers_total++;
     GNUNET_array_append (peer->tunnels, peer->ntunnels, t);
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONTAINER_multihashmap_put (t->peers, &id.hashPubKey,
@@ -5941,6 +5945,11 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
       tree_set_status (t->tree, peer_info->id, MESH_PEER_READY);
       send_client_peer_connected (t, peer_info->id);
     }
+    if (NULL != peer_info->dhtget)
+    {
+      GNUNET_DHT_get_stop (peer_info->dhtget);
+      peer_info->dhtget = NULL;
+    }
     return GNUNET_OK;
   }
 
@@ -5948,12 +5957,6 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
               "  not for us, retransmitting...\n");
   GNUNET_PEER_resolve (tree_get_predecessor (t->tree), &id);
   peer_info = peer_info_get (&msg->oid);
-  if (NULL == peer_info)
-  {
-    /* If we know the tunnel, we should DEFINITELY know the peer */
-    GNUNET_break (0);
-    return GNUNET_OK;
-  }
   send_prebuilt_message (message, &id, t);
   return GNUNET_OK;
 }
@@ -6042,9 +6045,10 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
 static int
 deregister_app (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
-  struct GNUNET_CONTAINER_MultiHashMap *h = cls;
+  struct MeshClient *c = cls;
+
   GNUNET_break (GNUNET_YES ==
-                GNUNET_CONTAINER_multihashmap_remove (h, key, value));
+                GNUNET_CONTAINER_multihashmap_remove (applications, key, c));
   return GNUNET_OK;
 }
 
@@ -6160,10 +6164,10 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   GNUNET_PEER_resolve (path_info->peer->id, &pi);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  for %s\n", GNUNET_i2s (&pi));
 
-  p = path_build_from_dht (get_path, get_path_length, put_path,
-                           put_path_length);
+  p = path_build_from_dht (get_path, get_path_length,
+                           put_path, put_path_length);
   path_add_to_peers (p, GNUNET_NO);
-  path_destroy(p);
+  path_destroy (p);
   for (i = 0; i < path_info->peer->ntunnels; i++)
   {
     tunnel_add_peer (path_info->peer->tunnels[i], path_info->peer);
@@ -6285,7 +6289,7 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     /* deregister clients applications */
     if (NULL != c->apps)
     {
-      GNUNET_CONTAINER_multihashmap_iterate (c->apps, &deregister_app, c->apps);
+      GNUNET_CONTAINER_multihashmap_iterate (c->apps, &deregister_app, c);
       GNUNET_CONTAINER_multihashmap_destroy (c->apps);
     }
     if (0 == GNUNET_CONTAINER_multihashmap_size (applications) &&
@@ -6300,7 +6304,7 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     {
       GNUNET_free (c->regexes[i].regex);
       if (NULL != c->regexes[i].h)
-        GNUNET_REGEX_announce_cancel (c->regexes[i].h);
+	GNUNET_REGEX_announce_cancel (c->regexes[i].h);
     }
     GNUNET_free_non_null (c->regexes);
     if (GNUNET_SCHEDULER_NO_TASK != c->regex_announce_task)
@@ -6480,16 +6484,16 @@ handle_local_announce_regex (void *cls, struct GNUNET_SERVER_Client *client,
   rd.h = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  length %u\n", len);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  regex %s\n", regex);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  cm %u\n", ntohs(rd.compression));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  compr %u\n", ntohs (rd.compression));
   GNUNET_array_append (c->regexes, c->n_regex, rd);
   c->partial_regex = NULL;
   if (GNUNET_SCHEDULER_NO_TASK == c->regex_announce_task)
   {
-    c->regex_announce_task = GNUNET_SCHEDULER_add_now(&regex_announce, c);
+    c->regex_announce_task = GNUNET_SCHEDULER_add_now (&regex_announce, c);
   }
   else
   {
-    regex_put(&rd);
+    regex_put (&rd);
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "announce regex processed\n");
@@ -7143,7 +7147,6 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
 {
   struct GNUNET_MESH_ConnectPeerByString *msg;
   struct MeshRegexSearchInfo *info;
-  struct GNUNET_HashCode key;
   struct MeshTunnel *t;
   struct MeshClient *c;
   MESH_TunnelNumber tid;
@@ -7208,13 +7211,6 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
   /* Find string itself */
   len = size - sizeof(struct GNUNET_MESH_ConnectPeerByString);
   string = (const char *) &msg[1];
-
-  /* Initialize context */
-  size = GNUNET_REGEX_get_first_key (string, len, &key);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "  consumed %u bits out of %u\n", size, len);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "  looking for %s\n", GNUNET_h2s (&key));
 
   info = GNUNET_malloc (sizeof (struct MeshRegexSearchInfo));
   info->t = t;
@@ -7439,7 +7435,6 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  calling generic handler...\n");
     handle_mesh_data_to_orig (NULL, &my_full_id, &copy->header);
-
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 
@@ -7871,8 +7866,7 @@ handle_local_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   *resp = *msg;
   resp->npeers = 0;
   ctx.msg = resp;
-  ctx.lookup = GNUNET_CONTAINER_multihashmap_create (4 * t->peers_total,
-                                                     GNUNET_YES);
+  ctx.lookup = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_YES);
   ctx.c = c;
 
   /* Collect and send information */
@@ -8133,7 +8127,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (NULL != keygen)
   {
-    GNUNET_CRYPTO_rsa_key_create_stop (keygen);
+    GNUNET_CRYPTO_ecc_key_create_stop (keygen);
     keygen = NULL;
   }
   GNUNET_CONTAINER_multihashmap_iterate (tunnels, &shutdown_tunnel, NULL);
@@ -8163,15 +8157,15 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Callback for hostkey read/generation
+ * Callback for hostkey read/generation.
  *
  * @param cls Closure (Configuration handle).
- * @param pk the private key
- * @param emsg error message
+ * @param pk The ECC private key.
+ * @param emsg Error message, if any.
  */
 static void
 key_generation_cb (void *cls,
-                   struct GNUNET_CRYPTO_RsaPrivateKey *pk,
+                   struct GNUNET_CRYPTO_EccPrivateKey *pk,
                    const char *emsg)
 {
   const struct GNUNET_CONFIGURATION_Handle *c = cls;
@@ -8188,20 +8182,13 @@ key_generation_cb (void *cls,
     return;
   }
   my_private_key = pk;
-  GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
+  GNUNET_CRYPTO_ecc_key_get_public (my_private_key, &my_public_key);
   GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
                       &my_full_id.hashPubKey);
   myid = GNUNET_PEER_intern (&my_full_id);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Mesh for peer [%s] starting\n",
               GNUNET_i2s(&my_full_id));
-
-//   transport_handle = GNUNET_TRANSPORT_connect(c,
-//                                               &my_full_id,
-//                                               NULL,
-//                                               NULL,
-//                                               NULL,
-//                                               NULL);
 
   core_handle = GNUNET_CORE_connect (c, /* Main configuration */
                                      NULL,      /* Closure passed to MESH functions */
@@ -8266,13 +8253,13 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   server_handle = server;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (c, "GNUNETD", "HOSTKEY",
+      GNUNET_CONFIGURATION_get_value_filename (c, "PEER", "PRIVATE_KEY",
                                                &keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
                 ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
-                "mesh", "hostkey");
+                "mesh", "peer/privatekey");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -8301,8 +8288,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "APP_ANNOUNCE_TIME %llu ms\n", 
-              app_announce_time.rel_value);
+	      "APP_ANNOUNCE_TIME %llu ms\n", 
+	      app_announce_time.rel_value);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (c, "MESH", "ID_ANNOUNCE_TIME",
                                            &id_announce_time))
@@ -8400,7 +8387,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   /* Scheduled the task to clean up when shutdown is called */
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
-  keygen = GNUNET_CRYPTO_rsa_key_create_start (keyfile,
+  keygen = GNUNET_CRYPTO_ecc_key_create_start (keyfile,
                                                &key_generation_cb,
                                                (void *) c);
   GNUNET_free (keyfile);
