@@ -38,7 +38,6 @@
 
 #define FIND_TIMEOUT \
         GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 90)
-#define SEARCHES_IN_PARALLEL 5
 
 /**
  * DLL of operations
@@ -279,6 +278,11 @@ static char **search_strings;
  * Number of search strings.
  */
 static int num_search_strings;
+
+/**
+ * How many searches are we going to start in parallel
+ */
+static long long unsigned int init_parallel_searches;
 
 /**
  * How many searches are running in parallel
@@ -960,7 +964,7 @@ do_announce (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting announce.\n");
 
-  for (i = 0; i < SEARCHES_IN_PARALLEL; i++)
+  for (i = 0; i < init_parallel_searches; i++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "  scheduling announce %u\n",
@@ -1259,6 +1263,16 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
   if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg, "REGEXPROFILER",
+                                             "PARALLEL_SEARCHES",
+                                             &init_parallel_searches))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Configuration option \"PARALLEL_SEARCHES\" missing."
+                " Using default (%d)\n", 10);
+    init_parallel_searches = 10;
+  }
+  if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (cfg, "REGEXPROFILER",
                                            "REANNOUNCE_PERIOD_MAX",
                                            &reannounce_period_max))
@@ -1358,7 +1372,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
 //   event_mask |= (1LL << GNUNET_TESTBED_ET_DISCONNECT);
   prof_start_time = GNUNET_TIME_absolute_get ();
-  GNUNET_TESTBED_run (args[0],
+  GNUNET_TESTBED_run (hosts_file,
                       cfg,
                       num_peers,
                       event_mask,
