@@ -566,7 +566,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       result = PEER1_STARTED;
       common_operation =
           GNUNET_TESTBED_controller_link (NULL, controller1, neighbour1, NULL,
-                                          cfg, GNUNET_YES);
+                                          GNUNET_YES);
       break;
     case PEER2_CREATED:
       if (event->details.peer_start.host != neighbour1)
@@ -587,7 +587,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       }
       common_operation =
           GNUNET_TESTBED_controller_link (NULL, controller1, neighbour2, NULL,
-                                          cfg, GNUNET_YES);
+                                          GNUNET_YES);
       if (NULL == common_operation)
       {
         GNUNET_break (0);

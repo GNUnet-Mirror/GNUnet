@@ -1652,7 +1652,6 @@ GNUNET_TESTBED_compress_cfg_ (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param delegated_host requests to which host should be delegated; cannot be NULL
  * @param slave_host which host is used to run the slave controller; use NULL to
  *          make the master controller connect to the delegated host
- * @param slave_cfg configuration to use for the slave controller
  * @param is_subordinate GNUNET_YES if the controller at delegated_host should
  *          be started by the slave controller; GNUNET_NO if the slave
  *          controller has to connect to the already started delegated
@@ -1664,8 +1663,7 @@ GNUNET_TESTBED_controller_link (void *op_cls,
                                 struct GNUNET_TESTBED_Controller *master,
                                 struct GNUNET_TESTBED_Host *delegated_host,
                                 struct GNUNET_TESTBED_Host *slave_host,
-                                const struct GNUNET_CONFIGURATION_Handle
-                                *slave_cfg, int is_subordinate)
+                                int is_subordinate)
 {
   struct OperationContext *opc;
   struct GNUNET_TESTBED_ControllerLinkRequest *msg;
@@ -1689,7 +1687,8 @@ GNUNET_TESTBED_controller_link (void *op_cls,
   msg->header.size = htons (msg_size);
   msg->delegated_host_id = htonl (delegated_host_id);
   msg->slave_host_id = htonl (slave_host_id);
-  msg->is_subordinate = (GNUNET_YES == is_subordinate) ? 1 : 0;data = GNUNET_malloc (sizeof (struct ControllerLinkData));
+  msg->is_subordinate = (GNUNET_YES == is_subordinate) ? 1 : 0;
+  data = GNUNET_malloc (sizeof (struct ControllerLinkData));
   data->msg = msg;
   data->host_id = delegated_host_id;
   opc = GNUNET_malloc (sizeof (struct OperationContext));

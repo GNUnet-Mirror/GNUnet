@@ -587,7 +587,6 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                               lcf->gateway->controller,
                                               GST_host_list[lcf->delegated_host_id],
                                               GST_host_list[lcf->slave_host_id],
-                                              NULL,
                                               lcf->is_subordinate);
     lcf->timeout_task =
         GNUNET_SCHEDULER_add_delayed (GST_timeout, &lcf_forwarded_operation_timeout,
@@ -621,7 +620,6 @@ slave_event_callback (void *cls,
 {
   struct RegisteredHostContext *rhc;
   struct LCFContext *lcf;
-  struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_TESTBED_Operation *old_op;
 
   /* We currently only get here when working on RegisteredHostContexts and
@@ -634,13 +632,11 @@ slave_event_callback (void *cls,
     switch (rhc->state)
     {
     case RHC_GET_CFG:
-      cfg = event->details.operation_finished.generic;
       old_op = rhc->sub_op;
       rhc->state = RHC_LINK;
       rhc->sub_op =
           GNUNET_TESTBED_controller_link (rhc, rhc->gateway->controller,
-                                          rhc->reg_host, rhc->host, cfg,
-                                          GNUNET_NO);
+                                          rhc->reg_host, rhc->host, GNUNET_NO);
       GNUNET_TESTBED_operation_done (old_op);
       break;
     case RHC_LINK:

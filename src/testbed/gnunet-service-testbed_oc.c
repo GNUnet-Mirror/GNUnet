@@ -1138,7 +1138,6 @@ static void
 registeredhost_registration_completion (void *cls, const char *emsg)
 {
   struct RegisteredHostContext *rhc = cls;
-  const struct GNUNET_CONFIGURATION_Handle *cfg;
   uint32_t peer2_host_id;
 
   peer2_host_id = GNUNET_TESTBED_host_get_id_ (rhc->reg_host);
@@ -1149,14 +1148,9 @@ registeredhost_registration_completion (void *cls, const char *emsg)
         && (NULL != GST_host_list[peer2_host_id]) )  )
   {
     rhc->state = RHC_LINK;
-    cfg =
-        (NULL ==
-         rhc->gateway2) ? our_config
-        : GNUNET_TESTBED_host_get_cfg_ (GST_host_list[peer2_host_id]);
     rhc->sub_op =
         GNUNET_TESTBED_controller_link (rhc, rhc->gateway->controller,
-                                        rhc->reg_host, rhc->host, cfg,
-                                        GNUNET_NO);
+                                        rhc->reg_host, rhc->host, GNUNET_NO);
     return;
   }
   rhc->state = RHC_GET_CFG;

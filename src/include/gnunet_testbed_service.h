@@ -600,7 +600,6 @@ typedef void (*GNUNET_TESTBED_OperationCompletionCallback) (void *cls,
  * @param delegated_host requests to which host should be delegated; cannot be NULL
  * @param slave_host which host is used to run the slave controller; use NULL to
  *          make the master controller connect to the delegated host
- * @param slave_cfg configuration to use for the slave controller
  * @param is_subordinate GNUNET_YES if the controller at delegated_host should
  *          be started by the slave controller; GNUNET_NO if the slave
  *          controller has to connect to the already started delegated
@@ -612,8 +611,6 @@ GNUNET_TESTBED_controller_link (void *op_cls,
                                 struct GNUNET_TESTBED_Controller *master,
                                 struct GNUNET_TESTBED_Host *delegated_host,
                                 struct GNUNET_TESTBED_Host *slave_host,
-                                const struct GNUNET_CONFIGURATION_Handle
-                                *slave_cfg,
                                 int is_subordinate);
 
 

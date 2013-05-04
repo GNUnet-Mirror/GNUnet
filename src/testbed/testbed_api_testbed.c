@@ -942,7 +942,7 @@ register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       rcop->rc = rc;
       rcop->op =
           GNUNET_TESTBED_controller_link (rcop, rc->c, rc->hosts[slave],
-                                          rc->h, rc->cfg, GNUNET_YES);
+                                          rc->h, GNUNET_YES);
       GNUNET_assert (NULL != rcop->op);
       insert_rcop (rc, rcop);
     }

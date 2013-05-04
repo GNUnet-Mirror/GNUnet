@@ -525,8 +525,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     FAIL_TEST (event->details.peer_start.peer == slave1_peer);
     GNUNET_TESTBED_operation_done (op);
     result = SLAVE1_PEER_START_SUCCESS;
-    op = GNUNET_TESTBED_controller_link (NULL, mc, slave2, slave, cfg,
-                                         GNUNET_YES);
+    op = GNUNET_TESTBED_controller_link (NULL, mc, slave2, slave, GNUNET_YES);
     break;
   case SLAVE2_PEER_CREATE_SUCCESS:
     FAIL_TEST (GNUNET_TESTBED_ET_PEER_STOP == event->type);
@@ -613,8 +612,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     cfg3 = GNUNET_CONFIGURATION_dup (event->details.operation_finished.generic);
     GNUNET_TESTBED_operation_done (op);
     result = SLAVE3_GET_CONFIG_SUCCESS;
-    op = GNUNET_TESTBED_controller_link (NULL, mc, slave3, slave, cfg3,
-                                         GNUNET_NO);
+    op = GNUNET_TESTBED_controller_link (NULL, mc, slave3, slave, GNUNET_NO);
     break;
   case SLAVE3_REGISTERED:
     check_operation_success (event);
@@ -670,8 +668,7 @@ registration_cont (void *cls, const char *emsg)
     FAIL_TEST (NULL != mc);
     result = SLAVE2_REGISTERED;
     FAIL_TEST (NULL != cfg);
-    op = GNUNET_TESTBED_controller_link (NULL, mc, slave, NULL, cfg,
-                                         GNUNET_YES);
+    op = GNUNET_TESTBED_controller_link (NULL, mc, slave, NULL, GNUNET_YES);
     FAIL_TEST (NULL != op);
     break;
   case MASTER_SLAVE2_PEERS_CONNECTED:
@@ -679,8 +676,7 @@ registration_cont (void *cls, const char *emsg)
     FAIL_TEST (NULL != mc);
     FAIL_TEST (NULL == op);
     result = SLAVE3_REGISTERED;
-    op = GNUNET_TESTBED_controller_link (NULL, mc, slave3, NULL, cfg,
-                                         GNUNET_YES);
+    op = GNUNET_TESTBED_controller_link (NULL, mc, slave3, NULL, GNUNET_YES);
     FAIL_TEST (NULL != op);
     break;
   default:
