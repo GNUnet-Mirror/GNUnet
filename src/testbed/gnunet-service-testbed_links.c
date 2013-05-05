@@ -326,10 +326,6 @@ reghost_free_iterator (void *cls, const struct GNUNET_HashCode *key,
     GNUNET_CONTAINER_DLL_remove (rhc->focc_dll_head, rhc->focc_dll_tail, focc);
     GST_cleanup_focc (focc);
   }
-  if (NULL != rhc->sub_op)
-    GNUNET_TESTBED_operation_done (rhc->sub_op);
-  if (NULL != rhc->client)
-    GNUNET_SERVER_client_drop (rhc->client);
   GNUNET_free (value);
   return GNUNET_YES;
 }
@@ -618,39 +614,11 @@ static void
 slave_event_callback (void *cls,
                       const struct GNUNET_TESTBED_EventInformation *event)
 {
-  struct RegisteredHostContext *rhc;
   struct LCFContext *lcf;
-  struct GNUNET_TESTBED_Operation *old_op;
 
   /* We currently only get here when working on RegisteredHostContexts and
      LCFContexts */
   GNUNET_assert (GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type);
-  rhc = event->op_cls;
-  if (CLOSURE_TYPE_RHC == rhc->type)
-  {
-    GNUNET_assert (rhc->sub_op == event->op);
-    switch (rhc->state)
-    {
-    case RHC_GET_CFG:
-      old_op = rhc->sub_op;
-      rhc->state = RHC_LINK;
-      rhc->sub_op =
-          GNUNET_TESTBED_controller_link (rhc, rhc->gateway->controller,
-                                          rhc->reg_host, rhc->host, GNUNET_NO);
-      GNUNET_TESTBED_operation_done (old_op);
-      break;
-    case RHC_LINK:
-      LOG_DEBUG ("OL: Linking controllers successfull\n");
-      GNUNET_TESTBED_operation_done (rhc->sub_op);
-      rhc->sub_op = NULL;
-      rhc->state = RHC_OL_CONNECT;
-      GST_process_next_focc (rhc);
-      break;
-    default:
-      GNUNET_assert (0);
-    }
-    return;
-  }
   lcf = event->op_cls;
   if (CLOSURE_TYPE_LCF == lcf->type)
   {    
@@ -955,6 +923,18 @@ neighbour_connect_cb (void *cls, struct GNUNET_TESTBED_Controller *c)
   cleanup_ncc (ncc);
 }
 
+struct Neighbour *
+GST_create_neighbour (struct GNUNET_TESTBED_Host *host)
+{
+  struct Neighbour *n;
+
+  n = GNUNET_malloc (sizeof (struct Neighbour));
+  n->host_id = GNUNET_TESTBED_host_get_id_ (host);
+  neighbour_list_add (n);   /* just add; connect on-demand */
+  return n;
+}
+
+
 /**
  * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_LCONTROLLERS message
  *
@@ -1033,9 +1013,7 @@ GST_handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
       }
       LOG_DEBUG ("Received request to establish a link to host %u\n",
                  delegated_host_id);
-      n = GNUNET_malloc (sizeof (struct Neighbour));
-      n->host_id = delegated_host_id;
-      neighbour_list_add (n);   /* just add; connect on-demand */
+      n = GST_create_neighbour (GST_host_list[delegated_host_id]);
       ncc = GNUNET_malloc (sizeof (struct NeighbourConnectCtxt));
       ncc->n = n;
       ncc->op_id = op_id;

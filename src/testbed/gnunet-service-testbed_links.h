@@ -119,6 +119,9 @@ GST_neighbour_get_connection_cancel (struct NeighbourConnectNotification *h);
 void
 GST_neighbour_release_connection (struct Neighbour *n);
 
+struct Neighbour *
+GST_create_neighbour (struct GNUNET_TESTBED_Host *host);
+
 /**
  * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_LCONTROLLERS message
  *

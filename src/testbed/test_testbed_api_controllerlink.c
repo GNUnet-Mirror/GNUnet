@@ -541,6 +541,8 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     FAIL_TEST (event->details.peer_start.peer == slave3_peer);
     GNUNET_TESTBED_operation_done (op);
     result = SLAVE3_PEER_START_SUCCESS;
+    sleep (1);
+    LOG_DEBUG ("**************************************\n");
     op = GNUNET_TESTBED_overlay_connect (mc, NULL, NULL, slave2_peer,
                                          slave3_peer);
     FAIL_TEST (NULL != op);

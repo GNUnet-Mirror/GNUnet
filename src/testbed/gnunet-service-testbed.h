@@ -318,6 +318,11 @@ struct ForwardedOverlayConnectContext
   struct GNUNET_MessageHeader *orig_msg;
 
   /**
+   * The client handle
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
    * The id of the operation which created this context information
    */
   uint64_t operation_id;
@@ -363,11 +368,6 @@ enum ClosureType
 struct RegisteredHostContext
 {
   /**
-   * The type of this data structure. Set this to CLOSURE_TYPE_RHC
-   */
-  enum ClosureType type;
-
-  /**
    * The host which is being registered
    */
   struct GNUNET_TESTBED_Host *reg_host;
@@ -376,26 +376,6 @@ struct RegisteredHostContext
    * The host of the controller which has to connect to the above rhost
    */
   struct GNUNET_TESTBED_Host *host;
-
-  /**
-   * The gateway to which this operation is forwarded to
-   */
-  struct Slave *gateway;
-
-  /**
-   * The gateway through which peer2's controller can be reached
-   */
-  struct Slave *gateway2;
-
-  /**
-   * Handle for sub-operations
-   */
-  struct GNUNET_TESTBED_Operation *sub_op;
-
-  /**
-   * The client which initiated the link controller operation
-   */
-  struct GNUNET_SERVER_Client *client;
 
   /**
    * Head of the ForwardedOverlayConnectContext DLL
@@ -419,20 +399,9 @@ struct RegisteredHostContext
     RHC_INIT = 0,
 
     /**
-     * State where we attempt to get peer2's controller configuration
-     */
-    RHC_GET_CFG,
-
-    /**
-     * State where we attempt to link the controller of peer 1 to the controller
-     * of peer2
-     */
-    RHC_LINK,
-
-    /**
      * State where we attempt to do the overlay connection again
      */
-    RHC_OL_CONNECT
+    RHC_DONE
   } state;
 
 };
@@ -511,6 +480,18 @@ extern unsigned int GST_host_list_size;
  * The directory where to store load statistics data
  */
 extern char *GST_stats_dir;
+
+/**
+ * Condition to check if host id is invalid
+ */
+#define INVALID_HOST_ID(id) \
+  ( ((id) >= GST_host_list_size) || (NULL == GST_host_list[id]) )
+
+/**
+ * Condition to check if peer id is invalid
+ */
+#define INVALID_PEER_ID(id) \
+  ( ((id) >= GST_peer_list_size) || (NULL == GST_peer_list[id]) )
 
 
 /**
