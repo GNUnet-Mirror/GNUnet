@@ -274,14 +274,9 @@ static char *hosts_file;
 static char *strings_file;
 
 /**
- * Search strings.
+ * Search strings (num_peers of them).
  */
 static char **search_strings;
-
-/**
- * Number of search strings.
- */
-static int num_search_strings;
 
 /**
  * How many searches are we going to start in parallel
@@ -469,7 +464,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_DISK_file_close (data_file);
 
   for (search_str_cnt = 0;
-       search_str_cnt < num_search_strings && NULL != search_strings;
+       search_str_cnt < num_peers && NULL != search_strings;
        search_str_cnt++)
   {
     GNUNET_free_non_null (search_strings[search_str_cnt]);
@@ -767,7 +762,7 @@ regex_found_handler (void *cls,
     // FIXME not possible right now
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "String matching timed out for string %s on peer %u (%i/%i)\n",
-                peer->search_str, peer->id, strings_found, num_search_strings);
+                peer->search_str, peer->id, strings_found, num_peers);
     peer->search_str_matched = GNUNET_SYSERR;
   }
   else
@@ -778,7 +773,7 @@ regex_found_handler (void *cls,
                 "String %s found on peer %u after %s (%i/%i) (%u||)\n",
                 peer->search_str, peer->id,
                 GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO),
-                strings_found, num_search_strings, parallel_searches);
+                strings_found, num_peers, parallel_searches);
 
     peer->search_str_matched = GNUNET_YES;
 
@@ -804,7 +799,7 @@ regex_found_handler (void *cls,
   GNUNET_TESTBED_operation_done (peer->op_handle);
   peer->op_handle = NULL;
 
-  if (strings_found == num_search_strings)
+  if (strings_found == num_peers)
   {
     prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -837,7 +832,7 @@ search_timed_out (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
               GNUNET_STRINGS_relative_time_to_string (search_timeout_time,
                                                       GNUNET_NO));
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Found %i of %i strings\n", strings_found, num_search_strings);
+              "Found %i of %i strings\n", strings_found, num_peers);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Search timed out after %s."
@@ -897,7 +892,7 @@ find_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned int search_peer = (unsigned int) (long) cls;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) ||
-      search_peer >= num_search_strings)
+      search_peer >= num_peers)
     return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -1336,8 +1331,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   nsearchstrs = load_search_strings (strings_file,
                                      &search_strings,
-                                     num_search_strings);
-  if (num_search_strings != nsearchstrs)
+                                     num_peers);
+  if (num_peers != nsearchstrs)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Error loading search strings."
@@ -1345,14 +1340,14 @@ run (void *cls, char *const *args, const char *cfgfile,
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
-  if (0 >= num_search_strings || NULL == search_strings)
+  if (0 >= num_peers || NULL == search_strings)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Error loading search strings. Exiting.\n"));
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
-  for (i = 0; i < num_search_strings; i++)
+  for (i = 0; i < num_peers; i++)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "search string: %s\n",
                 search_strings[i]);
@@ -1419,19 +1414,16 @@ main (int argc, char *const *argv)
      GNUNET_YES, &GNUNET_GETOPT_set_string, &data_filename},
     {'t', "matching-timeout", "TIMEOUT",
       gettext_noop ("wait TIMEOUT before ending the experiment"),
-      GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &search_timeout_time },
-    {'n', "num-search-strings", "COUNT",
-      gettext_noop ("number of search strings to read from search strings file"),
-      GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_search_strings },
+      GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &search_timeout_time},
     {'p', "policy-dir", "DIRECTORY",
       gettext_noop ("directory with policy files"),
-      GNUNET_YES, &GNUNET_GETOPT_set_filename, &policy_dir },
+      GNUNET_YES, &GNUNET_GETOPT_set_filename, &policy_dir},
     {'s', "strings-file", "FILENAME",
       gettext_noop ("name of file with input strings"),
-      GNUNET_YES, &GNUNET_GETOPT_set_filename, &strings_file },
+      GNUNET_YES, &GNUNET_GETOPT_set_filename, &strings_file},
     {'H', "hosts-file", "FILENAME",
       gettext_noop ("name of file with hosts' names"),
-      GNUNET_NO, &GNUNET_GETOPT_set_filename, &hosts_file },
+      GNUNET_NO, &GNUNET_GETOPT_set_filename, &hosts_file},
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
