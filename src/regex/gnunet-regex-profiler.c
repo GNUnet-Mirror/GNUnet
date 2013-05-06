@@ -163,11 +163,6 @@ struct RegexPeer
   struct GNUNET_STATISTICS_Handle *stats_handle;
 
   /**
-   * Testbed operation handle for the statistics service.
-   */
-  struct GNUNET_TESTBED_Operation *stats_op_handle;
-
-  /**
    * The starting time of a profiling step.
    */
   struct GNUNET_TIME_Absolute prof_start_time;
@@ -386,17 +381,6 @@ stats_connect_cb (void *cls,
 
 
 /**
- * Task to collect all statistics from s, will shutdown the
- * profiler, when done.
- *
- * @param cls NULL
- * @param tc the task context
- */
-static void
-do_collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-
-/**
  * Start announcing the next regex in the DHT.
  *
  * @param cls Index of the next peer in the peers array.
@@ -456,8 +440,6 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     if (NULL != peers[peer_cnt].op_handle)
       GNUNET_TESTBED_operation_done (peers[peer_cnt].op_handle);
-    if (NULL != peers[peer_cnt].stats_op_handle)
-      GNUNET_TESTBED_operation_done (peers[peer_cnt].stats_op_handle);
   }
 
   if (NULL != data_file)
@@ -606,10 +588,10 @@ stats_cb (void *cls,
     return;
   }
 
-  GNUNET_assert (NULL != peer->stats_op_handle);
+  GNUNET_assert (NULL != peer->op_handle);
 
-  GNUNET_TESTBED_operation_done (peer->stats_op_handle);
-  peer->stats_op_handle = NULL;
+  GNUNET_TESTBED_operation_done (peer->op_handle);
+  peer->op_handle = NULL;
 
   peer_cnt++;
   peer = &peers[peer_cnt];
@@ -621,7 +603,7 @@ stats_cb (void *cls,
   }
   else
   {
-    peer->stats_op_handle =
+    peer->op_handle =
       GNUNET_TESTBED_service_connect (NULL,
                                       peer->peer_handle,
                                       "statistics",
@@ -688,7 +670,7 @@ do_collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_assert (NULL != peer->peer_handle);
 
-  peer->stats_op_handle =
+  peer->op_handle =
     GNUNET_TESTBED_service_connect (NULL,
                                     peer->peer_handle,
                                     "statistics",
@@ -892,7 +874,8 @@ find_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned int search_peer = (unsigned int) (long) cls;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) ||
-      search_peer >= num_peers)
+      search_peer >= num_peers ||
+      GNUNET_YES == in_shutdown)
     return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -933,15 +916,13 @@ daemon_started (void *cls, struct GNUNET_TESTBED_Operation *op,
   struct RegexPeer *peer = (struct RegexPeer *) cls;
   unsigned long search_peer;
   unsigned int i;
-  unsigned int me;
 
   GNUNET_TESTBED_operation_done (peer->daemon_op);
   peer->daemon_op = NULL;
-  me = peer - peers;
   if (NULL != emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Failed to start/stop daemon at peer %u: %s\n", me, emsg);
+                "Failed to start/stop daemon at peer %u: %s\n", peer->id, emsg);
     GNUNET_abort ();
   }
 
@@ -954,7 +935,7 @@ daemon_started (void *cls, struct GNUNET_TESTBED_Operation *op,
     if (i > num_peers)
       GNUNET_abort (); /* we ran out of peers, must be a bug */
   }
-  peers[search_peer].search_str = search_strings[me];
+  peers[search_peer].search_str = search_strings[peer->id];
   peers[search_peer].search_str_matched = GNUNET_NO;
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
                                   reannounce_period_max,
