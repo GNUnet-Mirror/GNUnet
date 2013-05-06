@@ -23,6 +23,15 @@ UNIX_MATCH_GID = YES
 # REJECT_FROM6 =
 # PREFIX = valgrind --leak-check=full
 
+# Configuration settings related to traffic manipulation for testing purposes
+# Distance
+# MANIPULATE_DISTANCE_IN = 1
+# MANIPULATE_DISTANCE_OUT = 1
+# Delay in ms
+# MANIPULATE_DELAY_IN = 1
+# MANIPULATE_DELAY_OUT = 1
+  
+
 [transport-unix]
 PORT = 22086
 TESTING_IGNORE_KEYS = ACCEPT_FROM;
