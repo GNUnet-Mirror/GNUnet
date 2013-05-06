@@ -345,23 +345,6 @@ struct ForwardedOverlayConnectContext
 
 
 /**
- * The type for data structures which commonly arrive at the slave_event_callback
- */
-enum ClosureType
-{
-  /**
-   * Type for RegisteredHostContext closures
-   */
-  CLOSURE_TYPE_RHC = 1,
-
-  /**
-   * Type for LinkControllersForwardingContext closures
-   */
-  CLOSURE_TYPE_LCF
-};
-
-
-/**
  * This context information will be created for each host that is registered at
  * slave controllers during overlay connects.
  */
@@ -482,16 +465,16 @@ extern unsigned int GST_host_list_size;
 extern char *GST_stats_dir;
 
 /**
- * Condition to check if host id is invalid
+ * Condition to check if host id is valid
  */
-#define INVALID_HOST_ID(id) \
-  ( ((id) >= GST_host_list_size) || (NULL == GST_host_list[id]) )
+#define VALID_HOST_ID(id) \
+  ( ((id) < GST_host_list_size) && (NULL != GST_host_list[id]) )
 
 /**
- * Condition to check if peer id is invalid
+ * Condition to check if peer id is valid
  */
-#define INVALID_PEER_ID(id) \
-  ( ((id) >= GST_peer_list_size) || (NULL == GST_peer_list[id]) )
+#define VALID_PEER_ID(id) \
+  ( ((id) < GST_peer_list_size) && (NULL != GST_peer_list[id]) )
 
 
 /**
