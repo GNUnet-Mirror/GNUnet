@@ -183,6 +183,10 @@ struct RegexPeer
   struct GNUNET_TESTBED_Operation *daemon_op;
 };
 
+/**
+ * Set when shutting down to avoid making more queries.
+ */
+static int in_shutdown;
 
 /**
  * The array of peers; we fill this as the peers are given to us by the testbed
@@ -290,9 +294,9 @@ static long long unsigned int init_parallel_searches;
 static unsigned int parallel_searches;
 
 /**
- * Number of peers found with search strings.
+ * Number of strings found in the published regexes.
  */
-static unsigned int peers_found;
+static unsigned int strings_found;
 
 /**
  * Index of peer to start next announce/search.
@@ -747,14 +751,15 @@ regex_found_handler (void *cls,
     return;
   }
 
-  peers_found++;
+  strings_found++;
   parallel_searches--;
 
   if (GNUNET_SCHEDULER_NO_TASK != peer->timeout)
   {
     GNUNET_SCHEDULER_cancel (peer->timeout);
     peer->timeout = GNUNET_SCHEDULER_NO_TASK;
-    GNUNET_SCHEDULER_add_now (&announce_next_regex, NULL);
+    if (GNUNET_NO == in_shutdown)
+      GNUNET_SCHEDULER_add_now (&announce_next_regex, NULL);
   }
 
   if (NULL == id)
@@ -762,7 +767,7 @@ regex_found_handler (void *cls,
     // FIXME not possible right now
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "String matching timed out for string %s on peer %u (%i/%i)\n",
-                peer->search_str, peer->id, peers_found, num_search_strings);
+                peer->search_str, peer->id, strings_found, num_search_strings);
     peer->search_str_matched = GNUNET_SYSERR;
   }
   else
@@ -773,7 +778,7 @@ regex_found_handler (void *cls,
                 "String %s found on peer %u after %s (%i/%i) (%u||)\n",
                 peer->search_str, peer->id,
                 GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO),
-                peers_found, num_search_strings, parallel_searches);
+                strings_found, num_search_strings, parallel_searches);
 
     peer->search_str_matched = GNUNET_YES;
 
@@ -799,7 +804,7 @@ regex_found_handler (void *cls,
   GNUNET_TESTBED_operation_done (peer->op_handle);
   peer->op_handle = NULL;
 
-  if (peers_found == num_search_strings)
+  if (strings_found == num_search_strings)
   {
     prof_time = GNUNET_TIME_absolute_get_duration (prof_start_time);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -823,14 +828,16 @@ regex_found_handler (void *cls,
  * @param tc the task context
  */
 static void
-search_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+search_timed_out (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
+  unsigned int i;
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Finding matches to all strings did not succeed after %s.\n",
               GNUNET_STRINGS_relative_time_to_string (search_timeout_time,
                                                       GNUNET_NO));
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Found %i of %i strings\n", peers_found, num_search_strings);
+              "Found %i of %i strings\n", strings_found, num_search_strings);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Search timed out after %s."
@@ -838,6 +845,15 @@ search_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
               GNUNET_STRINGS_relative_time_to_string (search_timeout_time,
                                                       GNUNET_NO));
 
+  in_shutdown = GNUNET_YES;
+  for (i = 0; i < num_peers; i++)
+  {
+    if (NULL != peers[i].op_handle)
+    {
+      GNUNET_TESTBED_operation_done (peers[i].op_handle);
+      peers[i].op_handle = NULL;
+    }
+  }
   GNUNET_SCHEDULER_add_now (&do_collect_stats, NULL);
 }
 
@@ -850,7 +866,7 @@ search_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
  * @param tc TaskContext.
  */
 static void
-find_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+find_timed_out (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RegexPeer *p = cls;
 
@@ -859,10 +875,13 @@ find_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Searching for string \"%s\" on peer %d timed out. Starting new search.\n",
+              "Searching for string \"%s\" on peer %d timed out."
+              "Starting new search: %d.\n",
               p->search_str,
-              p->id);
-  GNUNET_SCHEDULER_add_now (&announce_next_regex, NULL);
+              p->id,
+              !in_shutdown);
+  if (GNUNET_NO == in_shutdown)
+    GNUNET_SCHEDULER_add_now (&announce_next_regex, NULL);
 }
 
 
@@ -898,7 +917,7 @@ find_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                     &peers[search_peer]);
   GNUNET_assert (NULL != peers[search_peer].op_handle);
   peers[search_peer].timeout = GNUNET_SCHEDULER_add_delayed (FIND_TIMEOUT,
-                                                          &find_timeout,
+                                                          &find_timed_out,
                                                           &peers[search_peer]);
 }
 
@@ -1123,7 +1142,7 @@ test_master (void *cls,
   }
   GNUNET_SCHEDULER_add_now (&do_announce, NULL);
   search_timeout_task =
-      GNUNET_SCHEDULER_add_delayed (search_timeout_time, &search_timeout, NULL);
+      GNUNET_SCHEDULER_add_delayed (search_timeout_time, &search_timed_out, NULL);
 }
 
 /**
@@ -1242,7 +1261,9 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   unsigned int nsearchstrs;
   unsigned int i;
-  
+
+  in_shutdown = GNUNET_NO;
+
   /* Check config */
   if (NULL == config)
   {
@@ -1397,7 +1418,7 @@ main (int argc, char *const *argv)
      gettext_noop ("name of the file for writing statistics"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &data_filename},
     {'t', "matching-timeout", "TIMEOUT",
-      gettext_noop ("wait TIMEOUT before considering a string match as failed"),
+      gettext_noop ("wait TIMEOUT before ending the experiment"),
       GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &search_timeout_time },
     {'n', "num-search-strings", "COUNT",
       gettext_noop ("number of search strings to read from search strings file"),
