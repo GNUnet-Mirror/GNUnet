@@ -132,6 +132,7 @@ check_PROGRAMS = \
   test_testbed_api_testbed_run \
   test_testbed_api_test \
   test_testbed_api_test_timeout \
+  test_testbed_api_peer_reconfiguration \
   test_testbed_api_peers_manage_services \
   test_testbed_api_topology \
   test_testbed_api_topology_clique \
@@ -162,6 +163,7 @@ if ENABLE_TEST_RUN
   test_testbed_api_test \
   test_testbed_api_test_timeout \
   test_testbed_api_statistics \
+  test_testbed_api_peer_reconfiguration \
   test_testbed_api_peers_manage_services \
   test_testbed_api_topology \
   test_testbed_api_topology_clique \
@@ -335,6 +337,12 @@ test_testbed_api_statistics_LDADD = \
 test_testbed_api_peers_manage_services_SOURCES = \
  test_testbed_api_peers_manage_services.c
 test_testbed_api_peers_manage_services_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunettestbed.la
+
+test_testbed_api_peer_reconfiguration_SOURCES = \
+ test_testbed_api_peer_reconfiguration.c
+test_testbed_api_peer_reconfiguration_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
 

@@ -196,6 +196,28 @@ struct PeerInfoData
 
 
 /**
+ * Data for the operations of type OP_PEER_RECONFIGURE
+ */
+struct PeerReconfigureData
+{
+  /**
+   * The peer whose information has been requested
+   */
+  struct GNUNET_TESTBED_Peer *peer;
+
+  /**
+   * The serialized new configuration template
+   */
+  char *config;
+
+  /**
+   * the size of the serialized configuration
+   */
+  uint16_t cfg_size;
+};
+
+
+/**
  * Data structure for OperationType OP_OVERLAY_CONNECT
  */
 struct OverlayConnectData

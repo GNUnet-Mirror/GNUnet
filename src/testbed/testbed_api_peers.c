@@ -120,7 +120,7 @@ opstart_peer_create (void *cls)
   msg->operation_id = GNUNET_htonll (opc->id);
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (data->peer->host));
   msg->peer_id = htonl (data->peer->unique_id);
-  msg->config_size = htonl (c_size);
+  msg->config_size = htons ((uint16_t) c_size);
   GNUNET_TESTBED_insert_opc_ (opc->c, opc);
   GNUNET_TESTBED_queue_message_ (opc->c, &msg->header);
 }
@@ -457,6 +457,71 @@ oprelease_overlay_connect (void *cls)
 
 
 /**
+ * Function called when a peer reconfigure operation is ready
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void
+opstart_peer_reconfigure (void *cls)
+{
+  struct OperationContext *opc = cls;
+  struct PeerReconfigureData *data = opc->data;
+  struct GNUNET_TESTBED_PeerReconfigureMessage *msg;
+  char *xconfig;
+  size_t xc_size;
+  uint16_t msize;
+  
+  opc->state = OPC_STATE_STARTED;
+  GNUNET_assert (NULL != data);
+  xc_size = GNUNET_TESTBED_compress_config_ (data->config, data->cfg_size,
+                                             &xconfig);
+  GNUNET_free (data->config);
+  data->config = NULL;
+  GNUNET_assert (xc_size <= UINT16_MAX);
+  msize = (uint16_t) xc_size + 
+      sizeof (struct GNUNET_TESTBED_PeerReconfigureMessage);
+  msg = GNUNET_realloc (xconfig, msize);
+  (void) memmove (&msg[1], msg, xc_size);
+  msg->header.size = htons (msize);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_RECONFIGURE_PEER);
+  msg->peer_id = htonl (data->peer->unique_id);
+  msg->operation_id = GNUNET_htonll (opc->id);
+  msg->config_size = htons (data->cfg_size);
+  GNUNET_free (data);
+  opc->data = NULL;
+  GNUNET_TESTBED_insert_opc_ (opc->c, opc);
+  GNUNET_TESTBED_queue_message_ (opc->c, &msg->header);
+}
+
+
+/**
+ * Callback which will be called when a peer reconfigure operation is released
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void
+oprelease_peer_reconfigure (void *cls)
+{
+  struct OperationContext *opc = cls;
+  struct PeerReconfigureData *data = opc->data;
+ 
+  switch (opc->state)
+  {
+  case OPC_STATE_INIT:
+    GNUNET_free (data->config);
+    GNUNET_free (data);
+    break;
+  case OPC_STATE_STARTED:
+    GNUNET_TESTBED_remove_opc_ (opc->c, opc);
+    break;
+  case OPC_STATE_FINISHED:    
+    break;
+  }
+  GNUNET_free (opc);
+}
+
+
+/**
  * Lookup a peer by ID.
  *
  * @param id global peer ID assigned to the peer
@@ -673,9 +738,38 @@ GNUNET_TESTBED_peer_update_configuration (struct GNUNET_TESTBED_Peer *peer,
                                           const struct
                                           GNUNET_CONFIGURATION_Handle *cfg)
 {
-  // FIXME: handle locally or delegate...
-  GNUNET_break (0);
-  return NULL;
+  struct OperationContext *opc;
+  struct PeerReconfigureData *data;
+  size_t csize;
+
+  data = GNUNET_malloc (sizeof (struct PeerReconfigureData));
+  data->peer = peer;
+  data->config = GNUNET_CONFIGURATION_serialize (cfg, &csize);
+  if (NULL == data->config)
+  {
+    GNUNET_free (data);
+    return NULL;
+  }
+  if (csize > UINT16_MAX)
+  {
+    GNUNET_break (0);
+    GNUNET_free (data->config);
+    GNUNET_free (data);
+    return NULL;
+  }
+  data->cfg_size = (uint16_t) csize;
+  opc = GNUNET_malloc (sizeof (struct OperationContext));
+  opc->c = peer->controller;
+  opc->data = data;
+  opc->type = OP_PEER_RECONFIGURE;
+  opc->id = GNUNET_TESTBED_get_next_op_id (opc->c);
+  opc->op =
+      GNUNET_TESTBED_operation_create_ (opc, &opstart_peer_reconfigure,
+                                        &oprelease_peer_reconfigure);
+  GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_parallel_operations,
+                                          opc->op);
+  GNUNET_TESTBED_operation_begin_wait_ (opc->op);
+  return opc->op;
 }
 
 

@@ -762,6 +762,7 @@ GST_clear_fopcq ()
     case OP_LINK_CONTROLLERS:
     case OP_GET_SLAVE_CONFIG:
     case OP_MANAGE_SERVICE:
+    case OP_PEER_RECONFIGURE:
       break;
     case OP_FORWARDED:
       GNUNET_assert (0);
@@ -793,6 +794,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GST_free_roccq ();
   GST_free_nccq ();
   GST_neighbour_list_clean();
+  GST_free_prcq ();
   /* Clear peer list */
   GST_destroy_peers ();
   /* Clear route list */
@@ -895,6 +897,8 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
      sizeof (struct GNUNET_TESTBED_SlaveGetConfigurationMessage)},
     {&GST_handle_shutdown_peers, NULL, GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS,
      sizeof (struct GNUNET_TESTBED_ShutdownPeersMessage)},
+    {&GST_handle_peer_reconfigure, NULL, 
+     GNUNET_MESSAGE_TYPE_TESTBED_RECONFIGURE_PEER, 0},
     {NULL, NULL, 0, 0}
   };
   char *logfile;

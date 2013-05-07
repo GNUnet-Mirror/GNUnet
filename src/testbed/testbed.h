@@ -219,14 +219,14 @@ struct GNUNET_TESTBED_PeerCreateMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Unique operation id
-   */
-  uint64_t operation_id GNUNET_PACKED;
-
-  /**
    * On which host should the peer be started?
    */
   uint32_t host_id GNUNET_PACKED;
+
+  /**
+   * Unique operation id
+   */
+  uint64_t operation_id GNUNET_PACKED;
 
   /**
    * Unique ID for the peer.
@@ -236,7 +236,7 @@ struct GNUNET_TESTBED_PeerCreateMessage
   /**
    * Size of the uncompressed configuration
    */
-  uint32_t config_size GNUNET_PACKED;
+  uint16_t config_size GNUNET_PACKED;
 
   /* followed by serialized peer configuration;
    * gzip'ed configuration file in INI format */
@@ -252,7 +252,7 @@ struct GNUNET_TESTBED_PeerReconfigureMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPDE_TESTBED_RECONFIGURE_PEER
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_RECONFIGURE_PEER
    */
   struct GNUNET_MessageHeader header;
 
@@ -265,6 +265,11 @@ struct GNUNET_TESTBED_PeerReconfigureMessage
    * Operation ID that is used to identify this operation.
    */
   uint64_t operation_id GNUNET_PACKED;
+
+  /**
+   * The length of the serialized configuration when uncompressed
+   */
+  uint16_t config_size GNUNET_PACKED;
 
   /* followed by serialized peer configuration;
    * gzip'ed configuration file in INI format */

@@ -455,6 +455,8 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
     opc->data = NULL;
   }
     break;
+  case OP_PEER_RECONFIGURE:
+    break;
   default:
     GNUNET_assert (0);
   }
@@ -780,6 +782,7 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
   struct OperationContext *opc;
   const char *emsg;
   uint64_t op_id;
+  uint64_t mask;
   struct GNUNET_TESTBED_EventInformation event;
 
   op_id = GNUNET_ntohll (msg->operation_id);
@@ -814,8 +817,8 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
   event.op_cls = opc->op_cls;
   event.details.operation_finished.emsg = emsg;
   event.details.operation_finished.generic = NULL;
-  if ((0 != (GNUNET_TESTBED_ET_OPERATION_FINISHED & c->event_mask)) &&
-      (NULL != c->cc))
+  mask = (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
+  if ((0 != (mask & c->event_mask)) && (NULL != c->cc))
   {
     exop_insert (event.op);
     c->cc (c->cc_cls, &event);
@@ -1939,6 +1942,28 @@ GNUNET_TESTBED_extract_config_ (const struct GNUNET_MessageHeader *msg)
       xdata = (const Bytef *) &imsg[1];
     }
     break;
+  case GNUNET_MESSAGE_TYPE_TESTBED_CREATE_PEER:
+    {
+      const struct GNUNET_TESTBED_PeerCreateMessage *imsg;
+
+      imsg = (const struct GNUNET_TESTBED_PeerCreateMessage *) msg;
+      data_len = ntohs (imsg->config_size);
+      xdata_len = ntohs (imsg->header.size) -
+          sizeof (struct GNUNET_TESTBED_PeerCreateMessage);
+      xdata = (const Bytef *) &imsg[1];
+    }
+    break;
+  case GNUNET_MESSAGE_TYPE_TESTBED_RECONFIGURE_PEER:
+    {
+      const struct GNUNET_TESTBED_PeerReconfigureMessage *imsg;
+
+      imsg = (const struct GNUNET_TESTBED_PeerReconfigureMessage *) msg;
+      data_len =  ntohs (imsg->config_size);
+      xdata_len = ntohs (imsg->header.size) -
+          sizeof (struct GNUNET_TESTBED_PeerReconfigureMessage);
+      xdata = (const Bytef *) &imsg[1];
+    }
+    break;
   default:
     GNUNET_assert (0);
   }
@@ -1946,7 +1971,7 @@ GNUNET_TESTBED_extract_config_ (const struct GNUNET_MessageHeader *msg)
   if (Z_OK != (ret = uncompress (data, &data_len, xdata, xdata_len)))
   {
     GNUNET_free (data);
-    GNUNET_break_op (0);
+    GNUNET_break_op (0);        /* Un-compression failure */
     return NULL;
   }
   cfg = GNUNET_CONFIGURATION_create ();
@@ -1956,7 +1981,7 @@ GNUNET_TESTBED_extract_config_ (const struct GNUNET_MessageHeader *msg)
                                         GNUNET_NO))
   {
     GNUNET_free (data);
-    GNUNET_break_op (0);
+    GNUNET_break_op (0);        /* De-serialization failure */
     return NULL;
   }
   GNUNET_free (data);

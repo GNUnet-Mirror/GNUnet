@@ -67,6 +67,11 @@ enum OperationType
      */
   OP_PEER_INFO,
 
+  /**
+   * Reconfigure a peer
+   */
+  OP_PEER_RECONFIGURE,
+
     /**
      * Overlay connection operation
      */

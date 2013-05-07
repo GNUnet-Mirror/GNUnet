@@ -717,6 +717,20 @@ GST_handle_manage_peer_service (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Handler for GNUNET_MESSAGE_TYPDE_TESTBED_RECONFIGURE_PEER type messages.
+ * Should stop the peer asyncronously, destroy it and create it again with the
+ * new configuration.
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+void
+GST_handle_peer_reconfigure (void *cls, struct GNUNET_SERVER_Client *client,
+                             const struct GNUNET_MessageHeader *message);
+
+
+/**
  * Frees the ManageServiceContext queue
  */
 void
@@ -767,6 +781,13 @@ GST_free_occq ();
  */
 void
 GST_free_roccq ();
+
+
+/**
+ * Cleans up the Peer reconfigure context list
+ */
+void
+GST_free_prcq ();
 
 
 /**
