@@ -1539,6 +1539,24 @@ GNUNET_TESTING_peer_stop_async (struct GNUNET_TESTING_Peer *peer,
 
 
 /**
+ * Cancel a previous asynchronous peer stop request.
+ * GNUNET_TESTING_peer_stop_async() should have been called before on the given
+ * peer.  It is an error to call this function if the peer stop callback was
+ * already called
+ *
+ * @param peer the peer on which GNUNET_TESTING_peer_stop_async() was called
+ *          before.
+ */
+void
+GNUNET_TESTING_peer_stop_async_cancel (struct GNUNET_TESTING_Peer *peer)
+{  
+  GNUNET_assert (NULL != peer->ah);
+  GNUNET_ARM_disconnect_and_free (peer->ah);
+  peer->ah = NULL;
+}
+
+
+/**
  * Destroy the peer.  Releases resources locked during peer configuration.
  * If the peer is still running, it will be stopped AND a warning will be
  * printed (users of the API should stop the peer explicitly first).

@@ -148,10 +148,9 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                GNUNET_TESTING_peer_stop_async (test_ctx->peer,
                                                &peer_status_cb,
                                                test_ctx));
-
   }
   else
-    do_shutdown (test_ctx, tc);
+    do_shutdown2 (test_ctx, tc);
 }
 
 
@@ -187,6 +186,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (GNUNET_OK != GNUNET_TESTING_peer_start (test_ctx->peer))
     goto end;
   test_ctx->state = PEER_STARTED;
+  FAIL_TEST (GNUNET_OK == 
+             GNUNET_TESTING_peer_stop_async (test_ctx->peer,
+                                             &peer_status_cb,
+                                             test_ctx));
+  GNUNET_TESTING_peer_stop_async_cancel (test_ctx->peer);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                 &do_shutdown, test_ctx);
   return;
