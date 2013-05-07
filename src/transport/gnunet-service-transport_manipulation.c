@@ -48,6 +48,7 @@ enum TRAFFIC_METRIC_DIRECTION
 struct GST_ManipulationHandle man_handle;
 
 
+
 /**
  * Struct containing information about manipulations to a specific peer
  */
@@ -151,6 +152,11 @@ struct DelayQueueEntry
 	struct TM_Peer *tmp;
 
 	/**
+	 * Peer ID
+	 */
+	struct GNUNET_PeerIdentity id;
+
+	/**
 	 * Absolute time when to send
 	 */
 	struct GNUNET_TIME_Absolute sent_at;
@@ -181,6 +187,14 @@ struct DelayQueueEntry
 	void *cont_cls;
 };
 
+
+struct DelayQueueEntry *generic_dqe_head;
+struct DelayQueueEntry *generic_dqe_tail;
+
+/**
+ * Task to schedule delayed sendding
+ */
+GNUNET_SCHEDULER_TaskIdentifier generic_send_delay_task;
 
 static void
 set_metric (struct TM_Peer *dest, int direction, uint32_t type, uint32_t value)
@@ -340,16 +354,34 @@ send_delayed (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	struct DelayQueueEntry *next;
 	struct TM_Peer *tmp = dqe->tmp;
 	struct GNUNET_TIME_Relative delay;
-	tmp->send_delay_task = GNUNET_SCHEDULER_NO_TASK;
-	GNUNET_CONTAINER_DLL_remove (tmp->send_head, tmp->send_tail, dqe);
-	GST_neighbours_send (&tmp->peer, dqe->msg, dqe->msg_size, dqe->timeout, dqe->cont, dqe->cont_cls);
 
-	next = tmp->send_head;
-	if (NULL != next)
+	if (NULL != tmp)
 	{
-			/* More delayed messages */
-			delay = GNUNET_TIME_absolute_get_remaining (next->sent_at);
-			tmp->send_delay_task = GNUNET_SCHEDULER_add_delayed (delay, &send_delayed, dqe);
+			tmp->send_delay_task = GNUNET_SCHEDULER_NO_TASK;
+			GNUNET_CONTAINER_DLL_remove (tmp->send_head, tmp->send_tail, dqe);
+			GST_neighbours_send (&dqe->id, dqe->msg, dqe->msg_size, dqe->timeout, dqe->cont, dqe->cont_cls);
+
+			next = tmp->send_head;
+			if (NULL != next)
+			{
+				/* More delayed messages */
+				delay = GNUNET_TIME_absolute_get_remaining (next->sent_at);
+				tmp->send_delay_task = GNUNET_SCHEDULER_add_delayed (delay, &send_delayed, dqe);
+			}
+	}
+	else
+	{
+		/* Remove from generic queue */
+			generic_send_delay_task = GNUNET_SCHEDULER_NO_TASK;
+			GNUNET_CONTAINER_DLL_remove (generic_dqe_head, generic_dqe_tail, dqe);
+			GST_neighbours_send (&dqe->id, dqe->msg, dqe->msg_size, dqe->timeout, dqe->cont, dqe->cont_cls);
+			next = generic_dqe_head;
+			if (NULL != next)
+			{
+				/* More delayed messages */
+				delay = GNUNET_TIME_absolute_get_remaining (next->sent_at);
+				generic_send_delay_task = GNUNET_SCHEDULER_add_delayed (delay, &send_delayed, dqe);
+			}
 	}
 
 	GNUNET_free (dqe);
@@ -384,6 +416,7 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
 					/* We have a delay */
 					delay.rel_value = find_metric(tmp, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND);
 					dqe = GNUNET_malloc (sizeof (struct DelayQueueEntry) + msg_size);
+					dqe->id = *target;
 					dqe->tmp = tmp;
 					dqe->sent_at = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), delay);
 					dqe->cont = cont;
@@ -403,7 +436,8 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
 			/* We have a delay */
 			delay.rel_value = find_metric (&man_handle.general, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND);
 			dqe = GNUNET_malloc (sizeof (struct DelayQueueEntry) + msg_size);
-			dqe->tmp = tmp;
+			dqe->id = *target;
+			dqe->tmp = NULL;
 			dqe->sent_at = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), delay);
 			dqe->cont = cont;
 			dqe->cont_cls = cont_cls;
@@ -411,9 +445,9 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
 			dqe->msg_size = msg_size;
 			dqe->timeout = timeout;
 			memcpy (dqe->msg, msg, msg_size);
-			GNUNET_CONTAINER_DLL_insert_tail (tmp->send_head, tmp->send_tail, dqe);
-			if (GNUNET_SCHEDULER_NO_TASK == tmp->send_delay_task)
-				tmp->send_delay_task =GNUNET_SCHEDULER_add_delayed (delay, &send_delayed, dqe);
+			GNUNET_CONTAINER_DLL_insert_tail (generic_dqe_head, generic_dqe_tail, dqe);
+			if (GNUNET_SCHEDULER_NO_TASK == generic_send_delay_task)
+				generic_send_delay_task = GNUNET_SCHEDULER_add_delayed (delay, &send_delayed, dqe);
 			return;
 	}
 
@@ -597,9 +631,24 @@ free_tmps (void *cls,
 void
 GST_manipulation_stop ()
 {
+	struct DelayQueueEntry *cur;
+	struct DelayQueueEntry *next;
 	GNUNET_CONTAINER_multihashmap_iterate (man_handle.peers, &free_tmps,NULL);
-
 	GNUNET_CONTAINER_multihashmap_destroy (man_handle.peers);
+
+	next = generic_dqe_head;
+	while (NULL != (cur = next))
+	{
+			next = cur->next;
+			GNUNET_CONTAINER_DLL_remove (generic_dqe_head, generic_dqe_tail, cur);
+			GNUNET_free (cur);
+	}
+	if (GNUNET_SCHEDULER_NO_TASK != generic_send_delay_task)
+	{
+			GNUNET_SCHEDULER_cancel (generic_send_delay_task);
+			generic_send_delay_task = GNUNET_SCHEDULER_NO_TASK;
+	}
+
 	free_metric (&man_handle.general);
 	man_handle.peers = NULL;
 }

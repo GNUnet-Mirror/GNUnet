@@ -351,6 +351,7 @@ check_PROGRAMS = \
  test_transport_blacklisting_multiple_plugins \
  test_transport_api_manipulation_send_tcp \
  test_transport_api_manipulation_recv_tcp \
+ test_transport_api_manipulation_cfg \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
  test_transport_api_unreliability_udp \
@@ -406,6 +407,7 @@ TESTS = \
  test_transport_blacklisting_multiple_plugins \
  test_transport_api_manipulation_send_tcp \
  test_transport_api_manipulation_recv_tcp \
+ test_transport_api_manipulation_cfg \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
  test_transport_api_unreliability_udp \
@@ -676,6 +678,15 @@ test_transport_api_manipulation_recv_tcp_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
+
+test_transport_api_manipulation_cfg_SOURCES = \
+ test_transport_api_manipulation_cfg.c
+test_transport_api_manipulation_cfg_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
+
 
 
 test_transport_api_reliability_tcp_SOURCES = \
@@ -1005,6 +1016,8 @@ test_transport_api_manipulation_send_tcp_peer1.conf\
 test_transport_api_manipulation_send_tcp_peer2.conf\
 test_transport_api_manipulation_recv_tcp_peer1.conf\
 test_transport_api_manipulation_recv_tcp_peer2.conf\
+test_transport_api_manipulation_cfg_peer1.conf\
+test_transport_api_manipulation_cfg_peer2.conf\
 test_transport_api_tcp_nat_peer1.conf\
 test_transport_api_tcp_nat_peer2.conf\
 test_transport_api_tcp_peer1.conf\
