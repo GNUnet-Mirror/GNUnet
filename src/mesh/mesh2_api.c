@@ -1744,7 +1744,6 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
     GNUNET_SCHEDULER_cancel(handle->reconnect_task);
     handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_free_non_null (handle->applications);
   GNUNET_free (handle);
 }
 
@@ -1798,21 +1797,11 @@ GNUNET_MESH_announce_regex (struct GNUNET_MESH_Handle *h,
   } while (len > offset);
 }
 
-/**
- * Create a new tunnel (we're initiator and will be allowed to add/remove peers
- * and to broadcast).
- *
- * @param h mesh handle
- * @param tunnel_ctx client's tunnel context to associate with the tunnel
- * @param connect_handler function to call when peers are actually connected
- * @param disconnect_handler function to call when peers are disconnected
- * @param handler_cls closure for connect/disconnect handlers
- */
+
 struct GNUNET_MESH_Tunnel *
-GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h, void *tunnel_ctx,
-                           GNUNET_MESH_PeerConnectHandler connect_handler,
-                           GNUNET_MESH_PeerDisconnectHandler disconnect_handler,
-                           void *handler_cls)
+GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h, 
+                           void *tunnel_ctx,
+                           const struct GNUNET_PeerIdentity *peer)
 {
   struct GNUNET_MESH_Tunnel *t;
   struct GNUNET_MESH_TunnelMessage msg;
@@ -1821,9 +1810,6 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h, void *tunnel_ctx,
   t = create_tunnel (h, 0);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  at %p\n", t);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  number %X\n", t->tid);
-  t->connect_handler = connect_handler;
-  t->disconnect_handler = disconnect_handler;
-  t->cls = handler_cls;
   t->ctx = tunnel_ctx;
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
   msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
@@ -1874,50 +1860,6 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel)
   send_packet (h, &msg.header, NULL);
 }
 
-/**
- * Request that the tunnel data rate is limited to the speed of the slowest
- * receiver.
- *
- * @param tunnel Tunnel affected.
- */
-void
-GNUNET_MESH_tunnel_speed_min (struct GNUNET_MESH_Tunnel *tunnel)
-{
-  struct GNUNET_MESH_TunnelMessage msg;
-  struct GNUNET_MESH_Handle *h;
-
-  h = tunnel->mesh;
-  tunnel->speed_min = GNUNET_YES;
-
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MIN);
-  msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
-  msg.tunnel_id = htonl (tunnel->tid);
-
-  send_packet (h, &msg.header, NULL);
-}
-
-
-/**
- * Request that the tunnel data rate is limited to the speed of the fastest
- * receiver. This is the default behavior.
- *
- * @param tunnel Tunnel affected.
- */
-void
-GNUNET_MESH_tunnel_speed_max (struct GNUNET_MESH_Tunnel *tunnel)
-{
-  struct GNUNET_MESH_TunnelMessage msg;
-  struct GNUNET_MESH_Handle *h;
-
-  h = tunnel->mesh;
-  tunnel->speed_min = GNUNET_NO;
-
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MAX);
-  msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
-  msg.tunnel_id = htonl (tunnel->tid);
-
-  send_packet (h, &msg.header, NULL);
-}
 
 /**
  * Turn on/off the buffering status of the tunnel.
