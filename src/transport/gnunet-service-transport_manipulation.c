@@ -148,6 +148,8 @@ struct DelayQueueEntry
 
 	/**
 	 * Peer this entry is belonging to
+	 * if (NULL == tmp): enqueued in generic DLL and scheduled by generic_send_delay_task
+	 * else: enqueued in tmp->send_head and tmp->send_tail and scheduled by tmp->send_delay_task
 	 */
 	struct TM_Peer *tmp;
 
@@ -187,12 +189,18 @@ struct DelayQueueEntry
 	void *cont_cls;
 };
 
-
+/**
+ * DLL head for delayed messages based on general delay
+ */
 struct DelayQueueEntry *generic_dqe_head;
+
+/**
+ * DLL tail for delayed messages based on general delay
+ */
 struct DelayQueueEntry *generic_dqe_tail;
 
 /**
- * Task to schedule delayed sendding
+ * Task to schedule delayed sending based on general delay
  */
 GNUNET_SCHEDULER_TaskIdentifier generic_send_delay_task;
 
