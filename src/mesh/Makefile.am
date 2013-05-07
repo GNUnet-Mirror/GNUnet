@@ -20,14 +20,19 @@ plugindir = $(libdir)/gnunet
 
 AM_CLFAGS = -g
 
+if HAVE_EXPERIMENTAL
+  EXP_LIB = libgnunetmesh2.la
+  EXP_LIBEXEC = gnunet-service-mesh-new
+endif
+
 libexec_PROGRAMS = \
- gnunet-service-mesh gnunet-service-mesh-new
+ gnunet-service-mesh $(EXP_LIBEXEC)
 
 bin_PROGRAMS = \
  gnunet-mesh
 
 lib_LTLIBRARIES = \
-  libgnunetmesh.la
+  libgnunetmesh.la $(EXP_LIB)
 
 plugin_LTLIBRARIES = \
  libgnunet_plugin_block_mesh.la
@@ -52,6 +57,17 @@ libgnunetmesh_la_LIBADD = \
 libgnunetmesh_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 2:1:1
+
+libgnunetmesh2_la_SOURCES = \
+  mesh2_api.c mesh_common.c
+libgnunetmesh2_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(XLIB) \
+  $(LTLIBINTL)
+libgnunetmesh2_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  -version-info 2:2:1
+
 
 gnunet_service_mesh_SOURCES = \
  gnunet-service-mesh.c \
