@@ -147,14 +147,11 @@ check_PROGRAMS = \
  test_mesh_2dtorus \
  test_mesh_regex \
  test_mesh_small_unicast \
- test_mesh_small_multicast \
  test_mesh_small_signal \
  test_mesh_small_speed \
  test_mesh_small_speed_nobuf \
- test_mesh_small_speed_min \
  test_mesh_small_speed_backwards \
  test_mesh_small_speed_nobuf_backwards \
- test_mesh_small_speed_min_backwards \
  test_mesh_small_speed_ack
 
 test_mesh_api_SOURCES = \
@@ -247,11 +244,6 @@ test_mesh_small_unicast_SOURCES = \
 test_mesh_small_unicast_LDADD = $(ld_mesh_test_lib)
 test_mesh_small_unicast_DEPENDENCIES = $(dep_mesh_test_lib)
 
-test_mesh_small_multicast_SOURCES = \
- test_mesh_small.c
-test_mesh_small_multicast_LDADD = $(ld_mesh_test_lib)
-test_mesh_small_multicast_DEPENDENCIES = $(dep_mesh_test_lib)
-
 test_mesh_small_signal_SOURCES = \
  test_mesh_small.c
 test_mesh_small_signal_LDADD = $(ld_mesh_test_lib)
@@ -267,11 +259,6 @@ test_mesh_small_speed_SOURCES = \
 test_mesh_small_speed_LDADD = $(ld_mesh_test_lib)
 test_mesh_small_speed_DEPENDENCIES = $(dep_mesh_test_lib)
 
-test_mesh_small_speed_min_SOURCES = \
- test_mesh_small.c
-test_mesh_small_speed_min_LDADD = $(ld_mesh_test_lib)
-test_mesh_small_speed_min_DEPENDENCIES = $(dep_mesh_test_lib)
-
 test_mesh_small_speed_nobuf_SOURCES = \
  test_mesh_small.c
 test_mesh_small_speed_nobuf_LDADD = $(ld_mesh_test_lib)
@@ -281,11 +268,6 @@ test_mesh_small_speed_backwards_SOURCES = \
  test_mesh_small.c
 test_mesh_small_speed_backwards_LDADD = $(ld_mesh_test_lib)
 test_mesh_small_speed_backwards_DEPENDENCIES = $(dep_mesh_test_lib)
-
-test_mesh_small_speed_min_backwards_SOURCES = \
- test_mesh_small.c
-test_mesh_small_speed_min_backwards_LDADD = $(ld_mesh_test_lib)
-test_mesh_small_speed_min_backwards_DEPENDENCIES = $(dep_mesh_test_lib)
 
 test_mesh_small_speed_nobuf_backwards_SOURCES = \
  test_mesh_small.c
@@ -301,13 +283,11 @@ TESTS = test_mesh_api \
  test_mesh_local_traffic_bck \
  test_mesh_local_traffic_both \
  test_mesh_2dtorus test_mesh_regex \
- test_mesh_small_unicast test_mesh_small_multicast \
+ test_mesh_small_unicast \
  test_mesh_small_signal \
  test_mesh_small_speed \
- test_mesh_small_speed_min \
  test_mesh_small_speed_nobuf \
- test_mesh_small_speed_backwards \
- test_mesh_small_speed_min_backwards
+ test_mesh_small_speed_backwards
 endif
 
 EXTRA_DIST = \
