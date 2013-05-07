@@ -35,7 +35,6 @@ extern "C"
 #endif
 #endif
 
-#define MESH_TUNNEL_OPT_SPEED_MIN       0x1
 #define MESH_TUNNEL_OPT_NOBUFFER        0x2
 
 

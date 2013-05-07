@@ -419,13 +419,6 @@ struct MeshTunnel
   int force_ack;
 
     /**
-     * MeshTunnelChildInfo of all children, indexed by GNUNET_PEER_Id.
-     * Contains the Flow Control info: FWD ACK value received,
-     * last BCK ACK sent, PID and SKIP values.
-     */
-  struct GNUNET_CONTAINER_MultiHashMap *children_fc;
-
-    /**
      * Last ACK sent towards the origin (for traffic towards leaf node).
      */
   uint32_t last_fwd_ack;
@@ -2718,22 +2711,17 @@ tunnel_notify_client_peer_disconnected (void *cls, GNUNET_PEER_Id peer_id)
 static void
 tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
 {
-  struct GNUNET_PeerIdentity id;
   struct MeshPeerPath *best_p;
   struct MeshPeerPath *p;
   unsigned int best_cost;
   unsigned int cost;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tunnel_add_peer\n");
-  GNUNET_PEER_resolve (peer->id, &id);
-  if (GNUNET_NO ==
-      GNUNET_CONTAINER_multihashmap_contains (t->peers, &id.hashPubKey))
+  /* FIXME */
+  if (t->peer != peer->id)
   {
     GNUNET_array_append (peer->tunnels, peer->ntunnels, t);
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONTAINER_multihashmap_put (t->peers, &id.hashPubKey,
-                                                      peer,
-                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+    t->peer = peer->id;
   }
 
   if (NULL != (p = peer->path_head))
@@ -2860,192 +2848,6 @@ tunnel_notify_connection_broken (struct MeshTunnel *t, GNUNET_PEER_Id p1,
 
 
 /**
- * Send a multicast packet to a neighbor.
- *
- * @param cls Closure (Info about the multicast packet)
- * @param neighbor_id Short ID of the neighbor to send the packet to.
- */
-static void
-tunnel_send_multicast_iterator (void *cls, GNUNET_PEER_Id neighbor_id)
-{
-  struct MeshData *mdata = cls;
-  struct MeshTransmissionDescriptor *info;
-  struct GNUNET_PeerIdentity neighbor;
-  struct GNUNET_MessageHeader *msg;
-
-  info = GNUNET_malloc (sizeof (struct MeshTransmissionDescriptor));
-
-  info->mesh_data = mdata;
-  (mdata->reference_counter) ++;
-  info->destination = neighbor_id;
-  GNUNET_PEER_resolve (neighbor_id, &neighbor);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   sending to %s...\n",
-              GNUNET_i2s (&neighbor));
-  info->peer = peer_info_get (&neighbor);
-  GNUNET_assert (NULL != info->peer);
-  msg = (struct GNUNET_MessageHeader *) mdata->data;
-  queue_add(info,
-            ntohs (msg->type),
-            info->mesh_data->data_len,
-            info->peer,
-            mdata->t);
-}
-
-
-/**
- * Queue a message in a tunnel in multicast, sending a copy to each child node
- * down the local one in the tunnel tree.
- *
- * @param t Tunnel in which to send the data.
- * @param msg Message to be sent.
- */
-static void
-tunnel_send_multicast (struct MeshTunnel *t,
-                       const struct GNUNET_MessageHeader *msg)
-{
-  struct MeshData *mdata;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              " sending a multicast packet...\n");
-
-  mdata = GNUNET_malloc (sizeof (struct MeshData));
-  mdata->data_len = ntohs (msg->size);
-  mdata->t = t;
-  mdata->data = GNUNET_malloc (mdata->data_len);
-  memcpy (mdata->data, msg, mdata->data_len);
-  if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_MESH_MULTICAST)
-  {
-    struct GNUNET_MESH_Multicast *mcast;
-
-    mcast = (struct GNUNET_MESH_Multicast *) mdata->data;
-    if (t->fwd_queue_n >= t->fwd_queue_max)
-    {
-      GNUNET_break (0);
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  queue full!\n");
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "  message from %s!\n",
-                  GNUNET_i2s(&mcast->oid));
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "  message at %s!\n",
-                  GNUNET_i2s(&my_full_id));
-      GNUNET_free (mdata->data);
-      GNUNET_free (mdata);
-      return;
-    }
-    t->fwd_queue_n++;
-    mcast->ttl = htonl (ntohl (mcast->ttl) - 1);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  data packet, ttl: %u\n",
-                ntohl (mcast->ttl));
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  not a data packet, no ttl\n");
-  }
-
-  tree_iterate_children (t->tree, &tunnel_send_multicast_iterator, mdata);
-  if (mdata->reference_counter == 0)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "  no one to send data to\n");
-    GNUNET_free (mdata->data);
-    GNUNET_free (mdata);
-    if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_MESH_MULTICAST)
-      t->fwd_queue_n--;
-  }
-  else
-  {
-    mdata->total_out = mdata->reference_counter;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              " sending a multicast packet done\n");
-  return;
-}
-
-
-/**
- * Increase the SKIP value of all peers that
- * have not received a unicast message.
- *
- * @param cls Closure (ID of the peer that HAS received the message).
- * @param key ID of the neighbor.
- * @param value Information about the neighbor.
- *
- * @return GNUNET_YES to keep iterating.
- */
-static int
-tunnel_add_skip (void *cls,
-                 const struct GNUNET_HashCode * key,
-                 void *value)
-{
-  struct GNUNET_PeerIdentity *neighbor = cls;
-  struct MeshTunnelChildInfo *cinfo = value;
-
-  /* TODO compare only pointers? key == neighbor? */
-  if (0 == memcmp (&neighbor->hashPubKey, key, sizeof (struct GNUNET_HashCode)))
-  {
-    return GNUNET_YES;
-  }
-  cinfo->skip++;
-  return GNUNET_YES;
-}
-
-
-/**
- * @brief Get neighbor's Flow Control information.
- *
- * Retrieves the MeshTunnelChildInfo containing Flow Control data about a direct
- * descendant of the local node in a certain tunnel.
- * If the info is not yet there (recently created path), creates the data struct
- * and inserts it into the tunnel info, initialized to the current tunnel ACK
- * values.
- *
- * @param t Tunnel related.
- * @param peer Neighbor whose Flow Control info is needed.
- *
- * @return Neighbor's Flow Control info.
- */
-static struct MeshTunnelChildInfo *
-tunnel_get_neighbor_fc (struct MeshTunnel *t,
-                        const struct GNUNET_PeerIdentity *peer)
-{
-  struct MeshTunnelChildInfo *cinfo;
-
-  if (NULL == t->children_fc)
-    return NULL;
-
-  cinfo = GNUNET_CONTAINER_multihashmap_get (t->children_fc,
-                                             &peer->hashPubKey);
-  if (NULL == cinfo)
-  {
-    uint32_t delta;
-
-    cinfo = GNUNET_malloc (sizeof (struct MeshTunnelChildInfo));
-    cinfo->id = GNUNET_PEER_intern (peer);
-    cinfo->skip = t->fwd_pid;
-    cinfo->t = t;
-
-    delta = t->nobuffer ? 1 : INITIAL_WINDOW_SIZE;
-    cinfo->fwd_ack = t->fwd_pid + delta;
-    cinfo->bck_ack = delta;
-    cinfo->bck_pid = -1;
-
-    cinfo->fc_poll = GNUNET_SCHEDULER_NO_TASK;
-    cinfo->fc_poll_time = GNUNET_TIME_UNIT_SECONDS;
-
-    cinfo->send_buffer =
-        GNUNET_malloc (sizeof(struct MeshPeerQueue *) * t->fwd_queue_max);
-
-    GNUNET_assert (GNUNET_OK ==
-      GNUNET_CONTAINER_multihashmap_put (t->children_fc,
-                                         &peer->hashPubKey,
-                                         cinfo,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
-  }
-  return cinfo;
-}
-
-
-/**
  * Get the Flow Control info of a client.
  * 
  * @param t Tunnel on which to look.
@@ -3097,14 +2899,8 @@ tunnel_get_child_fwd_ack (void *cls,
     ctx->init = GNUNET_YES;
   }
 
-  if (GNUNET_YES == t->speed_min)
-  {
-    ctx->max_child_ack = ctx->max_child_ack > ack ? ack : ctx->max_child_ack;
-  }
-  else
-  {
-    ctx->max_child_ack = ctx->max_child_ack > ack ? ctx->max_child_ack : ack;
-  }
+  /* FIXME check */
+  ctx->max_child_ack = ctx->max_child_ack > ack ? ctx->max_child_ack : ack;
 
 }
 
@@ -3192,10 +2988,7 @@ tunnel_get_clients_fwd_ack (struct MeshTunnel *t)
   for (ack = -1LL, i = 0; i < t->nclients; i++)
   {
     if (-1LL == ack ||
-        (GNUNET_YES == t->speed_min &&
-         GNUNET_YES == GMC_is_pid_bigger (ack, t->clients_fc[i].fwd_ack)) ||
-        (GNUNET_NO == t->speed_min &&
-         GNUNET_YES == GMC_is_pid_bigger (t->clients_fc[i].fwd_ack, ack)))
+        GNUNET_YES == GMC_is_pid_bigger (ack, t->clients_fc[i].fwd_ack))
     {
       ack = t->clients_fc[i].fwd_ack;
     }
@@ -3225,7 +3018,7 @@ tunnel_get_fwd_ack (struct MeshTunnel *t)
   int64_t child_ack;
   int64_t client_ack;
 
-  count = t->fwd_pid - t->skip;
+  count = t->fwd_pid;
   buffer_free = t->fwd_queue_max - t->fwd_queue_n;
   child_ack = tunnel_get_children_fwd_ack (t);
   client_ack = tunnel_get_clients_fwd_ack (t);
@@ -3259,16 +3052,10 @@ tunnel_get_fwd_ack (struct MeshTunnel *t)
   {
     client_ack = ack;
   }
-  if (GNUNET_YES == t->speed_min)
-  {
-    ack = GMC_min_pid ((uint32_t) child_ack, ack);
-    ack = GMC_min_pid ((uint32_t) client_ack, ack);
-  }
-  else
-  {
-    ack = GMC_max_pid ((uint32_t) child_ack, ack);
-    ack = GMC_max_pid ((uint32_t) client_ack, ack);
-  }
+  /* FIXME check */
+  ack = GMC_max_pid ((uint32_t) child_ack, ack);
+  ack = GMC_max_pid ((uint32_t) client_ack, ack);
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "c %u, bf %u, ch %lld, cl %lld, ACK: %u\n",
               count, buffer_free, child_ack, client_ack, ack);
@@ -3670,11 +3457,10 @@ tunnel_send_destroy (struct MeshTunnel *t, GNUNET_PEER_Id parent)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "  sending tunnel destroy for tunnel: %s [%X]\n",
               GNUNET_i2s (&msg.oid), t->id.tid);
-  if (tree_count_children(t->tree) > 0)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  sending multicast to children\n");
-    tunnel_send_multicast (t, &msg.header);
-  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  sending multicast to child\n");
+  /* FIXME tunnel_send_multicast (t, &msg.header); */
+
   if (0 == parent)
     parent = tree_get_predecessor (t->tree);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  parent: %u\n", parent);
@@ -3803,13 +3589,6 @@ tunnel_destroy (struct MeshTunnel *t)
   GNUNET_free_non_null (t->ignore);
   GNUNET_free_non_null (t->clients_fc);
 
-  if (NULL != t->peers)
-  {
-    GNUNET_CONTAINER_multihashmap_iterate (t->peers, &peer_info_delete_tunnel,
-                                           t);
-    GNUNET_CONTAINER_multihashmap_destroy (t->peers);
-  }
-
   GNUNET_CONTAINER_multihashmap_iterate (t->children_fc,
                                          &tunnel_destroy_child,
                                          t);
@@ -3819,10 +3598,6 @@ tunnel_destroy (struct MeshTunnel *t)
   tree_iterate_children (t->tree, &tunnel_cancel_queues, t);
   tree_destroy (t->tree);
 
-  if (NULL != t->regex_search)
-    GNUNET_REGEX_search_cancel (t->regex_search->search_handle);
-  if (NULL != t->dht_get_type)
-    GNUNET_DHT_get_stop (t->dht_get_type);
   if (GNUNET_SCHEDULER_NO_TASK != t->timeout_task)
     GNUNET_SCHEDULER_cancel (t->timeout_task);
   if (GNUNET_SCHEDULER_NO_TASK != t->path_refresh_task)
@@ -4136,8 +3911,6 @@ send_core_path_create (void *cls, size_t size, void *buf)
   msg->tid = ntohl (t->id.tid);
 
   opt = 0;
-  if (GNUNET_YES == t->speed_min)
-    opt |= MESH_TUNNEL_OPT_SPEED_MIN;
   if (GNUNET_YES == t->nobuffer)
     opt |= MESH_TUNNEL_OPT_NOBUFFER;
   msg->opt = htonl(opt);
@@ -4188,25 +3961,11 @@ send_core_data_multicast (void *cls, size_t size, void *buf)
   memcpy (buf, info->mesh_data->data, total_size);
 #if MESH_DEBUG
   {
-    struct GNUNET_MESH_Multicast *mc;
     struct GNUNET_MessageHeader *mh;
 
     mh = buf;
-    if (ntohs (mh->type) == GNUNET_MESSAGE_TYPE_MESH_MULTICAST)
-    {
-      mc = (struct GNUNET_MESH_Multicast *) mh;
-      mh = (struct GNUNET_MessageHeader *) &mc[1];
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  " multicast, payload type %s\n",
-                  GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  " multicast, payload size %u\n", ntohs (mh->size));
-    }
-    else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " type %s\n",
-                  GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
-    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " type %s\n",
+                GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
   }
 #endif
   data_descriptor_decrement_rc (info->mesh_data);
@@ -4516,31 +4275,6 @@ queue_send (void *cls, size_t size, void *buf)
               break;
         }
         break;
-      case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   multicast\n");
-        {
-          struct MeshTransmissionDescriptor *info = queue->cls;
-
-          if ((1 == info->mesh_data->reference_counter
-              && GNUNET_YES == t->speed_min)
-              ||
-              (info->mesh_data->total_out == info->mesh_data->reference_counter
-              && GNUNET_NO == t->speed_min))
-          {
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                        "*********   considered sent\n");
-            t->fwd_queue_n--;
-          }
-          else
-          {
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                        "*********   NOT considered sent yet\n");
-            t->pending_messages++;
-          }
-        }
-        data_size = send_core_data_multicast(queue->cls, size, buf);
-        tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
-        break;
       case GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   path create\n");
         data_size = send_core_path_create (queue->cls, size, buf);
@@ -4812,16 +4546,12 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       return GNUNET_OK;
     }
     opt = ntohl (msg->opt);
-    t->speed_min = (0 != (opt & MESH_TUNNEL_OPT_SPEED_MIN)) ?
-                   GNUNET_YES : GNUNET_NO;
     if (0 != (opt & MESH_TUNNEL_OPT_NOBUFFER))
     {
       t->nobuffer = GNUNET_YES;
       t->last_fwd_ack = t->fwd_pid + 1;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "  speed_min: %d, nobuffer:%d\n",
-                t->speed_min, t->nobuffer);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  nobuffer:%d\n", t->nobuffer);
 
     if (GNUNET_YES == t->nobuffer)
     {
@@ -4897,12 +4627,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     /* It is for us! Send ack. */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  It's for us!\n");
     peer_info_add_path_to_origin (orig_peer_info, path, GNUNET_NO);
-    GNUNET_break (GNUNET_SYSERR !=
-                  GNUNET_CONTAINER_multihashmap_put (t->peers,
-                                                     &my_full_id.hashPubKey,
-                                                     peer_info_get
-                                                     (&my_full_id),
-                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE));
+    t->peer = myid;
     send_path_ack (t);
   }
   else
@@ -5582,7 +5307,7 @@ handle_mesh_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
   tunnel_reset_timeout (t);
 
   GNUNET_STATISTICS_update (stats, "# keepalives forwarded", 1, GNUNET_NO);
-  tunnel_send_multicast (t, message);
+  /* FIXME tunnel_send_multicast (t, message); */
   return GNUNET_OK;
   }
 
@@ -5686,7 +5411,7 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE);
   msg->oid = my_full_id;
   msg->tid = htonl (t->id.tid);
-  tunnel_send_multicast (t, &msg->header);
+  /* FIXME tunnel_send_multicast (t, &msg->header); */
 
   t->path_refresh_task =
       GNUNET_SCHEDULER_add_delayed (refresh_path_time, &path_refresh, t);
