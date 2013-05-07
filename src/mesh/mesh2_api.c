@@ -95,12 +95,6 @@ struct GNUNET_MESH_TransmitHandle
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
     /**
-     * Target of the message, 0 for multicast.  This field
-     * is only valid if 'notify' is non-NULL.
-     */
-  GNUNET_PEER_Id target;
-
-    /**
      * Size of 'data' -- or the desired size of 'notify' if 'data' is NULL.
      */
   size_t size;
@@ -1491,30 +1485,6 @@ send_callback (void *cls, size_t size, void *buf)
           memcpy (cbuf, &to, sizeof (to));
         }
       }
-      else if (th->target == 0)
-      {
-        /* multicast */
-        struct GNUNET_MESH_Multicast mc;
-        struct GNUNET_MessageHeader *mh;
-
-        GNUNET_assert (size >= th->size);
-        mh = (struct GNUNET_MessageHeader *) &cbuf[sizeof (mc)];
-        psize = th->notify (th->notify_cls, size - sizeof (mc), mh);
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "  multicast, type %s\n",
-             GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
-        if (psize > 0)
-        {
-          psize += sizeof (mc);
-          GNUNET_assert (size >= psize);
-          mc.header.size = htons (psize);
-          mc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
-          mc.tid = htonl (t->tid);
-          mc.pid = htonl (t->next_send_pid);
-          mc.ttl = 0;
-          memset (&mc.oid, 0, sizeof (struct GNUNET_PeerIdentity));
-          memcpy (cbuf, &mc, sizeof (mc));
-        }
-      }
       else
       {
         /* unicast */
@@ -1977,177 +1947,6 @@ GNUNET_MESH_tunnel_buffer (struct GNUNET_MESH_Tunnel *tunnel, int buffer)
 }
 
 
-/**
- * Request that a peer should be added to the tunnel.  The existing
- * connect handler will be called ONCE with either success or failure.
- * This function should NOT be called again with the same peer before the
- * connect handler is called.
- * FIXME: I think the above documentation is false. I think it should
- * read: "The connect handler will be called once the peer was actually
- * successfully added to the multicast group. This function should
- * not be called twice for the same peer (unless, of course,
- * the peer was removed using GNUNET_MESH_peer_Request_connect_del in
- * the meantime).
- *
- * @param tunnel handle to existing tunnel
- * @param peer peer to add
- */
-void
-GNUNET_MESH_peer_request_connect_add (struct GNUNET_MESH_Tunnel *tunnel,
-                                      const struct GNUNET_PeerIdentity *peer)
-{
-  struct GNUNET_MESH_PeerControl msg;
-  GNUNET_PEER_Id peer_id;
-  unsigned int i;
-
-  peer_id = GNUNET_PEER_intern (peer);
-  for (i = 0; i < tunnel->npeers; i++)
-  {
-    if (tunnel->peers[i]->id == peer_id)
-    {
-      /* Peer already exists in tunnel */
-      GNUNET_PEER_change_rc (peer_id, -1);
-      GNUNET_break (0);
-      return;
-    }
-  }
-  if (NULL == add_peer_to_tunnel (tunnel, peer))
-    return;
-
-  msg.header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD);
-  msg.tunnel_id = htonl (tunnel->tid);
-  msg.peer = *peer;
-  send_packet (tunnel->mesh, &msg.header, tunnel);
-}
-
-
-/**
- * Request that a peer should be removed from the tunnel.  The existing
- * disconnect handler will be called ONCE if we were connected.
- *
- * @param tunnel handle to existing tunnel
- * @param peer peer to remove
- */
-void
-GNUNET_MESH_peer_request_connect_del (struct GNUNET_MESH_Tunnel *tunnel,
-                                      const struct GNUNET_PeerIdentity *peer)
-{
-  struct GNUNET_MESH_PeerControl msg;
-  GNUNET_PEER_Id peer_id;
-  unsigned int i;
-
-  peer_id = GNUNET_PEER_search (peer);
-  if (0 == peer_id)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  for (i = 0; i < tunnel->npeers; i++)
-    if (tunnel->peers[i]->id == peer_id)
-      break;
-  if (i == tunnel->npeers)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  if (NULL != tunnel->disconnect_handler && tunnel->peers[i]->connected == 1)
-    tunnel->disconnect_handler (tunnel->cls, peer);
-  GNUNET_PEER_change_rc (peer_id, -1);
-  GNUNET_free (tunnel->peers[i]);
-  tunnel->peers[i] = tunnel->peers[tunnel->npeers - 1];
-  GNUNET_array_grow (tunnel->peers, tunnel->npeers, tunnel->npeers - 1);
-
-  msg.header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DEL);
-  msg.tunnel_id = htonl (tunnel->tid);
-  memcpy (&msg.peer, peer, sizeof (struct GNUNET_PeerIdentity));
-  send_packet (tunnel->mesh, &msg.header, tunnel);
-}
-
-/**
- * Request that the mesh should try to connect to a peer matching the
- * description given in the service string.
- * 
- * FIXME: allow multiple? how to deal with reconnect?
- *
- * @param tunnel handle to existing tunnel
- * @param description string describing the destination node requirements
- */
-void
-GNUNET_MESH_peer_request_connect_by_string (struct GNUNET_MESH_Tunnel *tunnel,
-                                            const char *description)
-{
-  struct GNUNET_MESH_ConnectPeerByString *m;
-  size_t len;
-  size_t msgsize;
-
-  len = strlen (description);
-  msgsize = sizeof(struct GNUNET_MESH_ConnectPeerByString) + len;
-  GNUNET_assert (UINT16_MAX > msgsize);
-  {
-    char buffer[msgsize];
-
-    m = (struct GNUNET_MESH_ConnectPeerByString *) buffer;
-    m->header.size = htons (msgsize);
-    m->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_STRING);
-    m->tunnel_id = htonl (tunnel->tid);
-    memcpy(&m[1], description, len);
-
-    send_packet (tunnel->mesh, &m->header, tunnel);
-  }
-}
-
-
-/**
- * Request that the given peer isn't added to this tunnel in calls to
- * connect_by_* calls, (due to misbehaviour, bad performance, ...).
- *
- * @param tunnel handle to existing tunnel.
- * @param peer peer identity of the peer which should be blacklisted
- *                  for the tunnel.
- */
-void
-GNUNET_MESH_peer_blacklist (struct GNUNET_MESH_Tunnel *tunnel,
-                            const struct GNUNET_PeerIdentity *peer)
-{
-  struct GNUNET_MESH_PeerControl msg;
-
-  msg.header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_BLACKLIST);
-  msg.tunnel_id = htonl (tunnel->tid);
-  msg.peer = *peer;
-  send_packet (tunnel->mesh, &msg.header, tunnel);
-
-  return;
-}
-
-
-/**
- * Request that the given peer isn't blacklisted anymore from this tunnel,
- * and therefore can be added in future calls to connect_by_*.
- * The peer must have been previously blacklisted for this tunnel.
- *
- * @param tunnel handle to existing tunnel.
- * @param peer peer identity of the peer which shouldn't be blacklisted
- *                  for the tunnel anymore.
- */
-void
-GNUNET_MESH_peer_unblacklist (struct GNUNET_MESH_Tunnel *tunnel,
-                              const struct GNUNET_PeerIdentity *peer)
-{
-  struct GNUNET_MESH_PeerControl msg;
-
-  msg.header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_UNBLACKLIST);
-  msg.tunnel_id = htonl (tunnel->tid);
-  msg.peer = *peer;
-  send_packet (tunnel->mesh, &msg.header, tunnel);
-
-  return;
-}
-
-
 struct GNUNET_MESH_TransmitHandle *
 GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
                                    struct GNUNET_TIME_Relative maxdelay,
@@ -2171,11 +1970,8 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
   th = GNUNET_malloc (sizeof (struct GNUNET_MESH_TransmitHandle));
   th->tunnel = tunnel;
   th->timeout = GNUNET_TIME_relative_to_absolute (maxdelay);
-  th->target = GNUNET_PEER_intern (target);
   if (tunnel->tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
     overhead = sizeof (struct GNUNET_MESH_ToOrigin);
-  else if (NULL == target)
-    overhead = sizeof (struct GNUNET_MESH_Multicast);
   else
     overhead = sizeof (struct GNUNET_MESH_Unicast);
   tunnel->packet_size = th->size = notify_size + overhead;
