@@ -7890,8 +7890,6 @@ handle_local_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
 static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
   {&handle_local_new_client, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT, 0},
-  {&handle_local_announce_regex, NULL,
-   GNUNET_MESSAGE_TYPE_MESH_LOCAL_ANNOUNCE_REGEX, 0},
   {&handle_local_tunnel_create, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE,
    sizeof (struct GNUNET_MESH_TunnelMessage)},

@@ -208,16 +208,6 @@ struct GNUNET_MESH_Handle
    */
   void *tunnel_cls;
 
-  /**
-   * All the peer in the tunnel so far.
-   */
-  struct GNUNET_PeerIdentity *peers;
-
-  /**
-   * How many peers we have in this tunnel so far.
-   */
-  unsigned int tunnel_npeers;
-
 #if DEBUG_ACK
   unsigned int acks_sent;
   unsigned int acks_recv;
@@ -901,20 +891,11 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  ucast on tunnel %s [%X]\n",
          GNUNET_i2s (peer), ntohl (ucast->tid));
     break;
-  case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
-    mcast = (struct GNUNET_MESH_Multicast *) message;
-    t = retrieve_tunnel (h, ntohl (mcast->tid));
-    payload = (struct GNUNET_MessageHeader *) &mcast[1];
-    peer = &mcast->oid;
-    pid = ntohl (mcast->pid);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  mcast on tunnel %s [%X]\n",
-         GNUNET_i2s (peer), ntohl (mcast->tid));
-    break;
   case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
     to_orig = (struct GNUNET_MESH_ToOrigin *) message;
     t = retrieve_tunnel (h, ntohl (to_orig->tid));
     payload = (struct GNUNET_MessageHeader *) &to_orig[1];
-    peer = &to_orig->sender;
+    GNUNET_PEER_resolve (t->peer, &peer);
     pid = ntohl (to_orig->pid);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  torig on tunnel %s [%X]\n",
          GNUNET_i2s (peer), ntohl (to_orig->tid));
@@ -1022,7 +1003,6 @@ process_get_tunnels (struct GNUNET_MESH_Handle *h,
                      const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_LocalMonitor *msg;
-  uint32_t npeers;
 
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Get Tunnels messasge received\n");
 
@@ -1033,24 +1013,21 @@ process_get_tunnels (struct GNUNET_MESH_Handle *h,
   }
 
   msg = (struct GNUNET_MESH_LocalMonitor *) message;
-  npeers = ntohl (msg->npeers);
   if (ntohs (message->size) !=
       (sizeof (struct GNUNET_MESH_LocalMonitor) +
-       npeers * sizeof (struct GNUNET_PeerIdentity)))
+       sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break_op (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Get tunnels message: size %hu - expected %u (%u peers)\n",
+                "Get tunnels message: size %hu - expected %u\n",
                 ntohs (message->size),
-                sizeof (struct GNUNET_MESH_LocalMonitor) +
-                npeers * sizeof (struct GNUNET_PeerIdentity),
-                npeers);
+                sizeof (struct GNUNET_MESH_LocalMonitor));
     return;
   }
   h->tunnels_cb (h->tunnels_cls,
                  ntohl (msg->tunnel_id),
                  &msg->owner,
-                 (struct GNUNET_PeerIdentity *) &msg[1]);
+                 &msg->destination);
 }
 
 
@@ -1066,11 +1043,7 @@ process_show_tunnel (struct GNUNET_MESH_Handle *h,
                      const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_LocalMonitor *msg;
-  struct GNUNET_PeerIdentity *new_peers;
-  uint32_t *new_parents;
   size_t esize;
-  uint32_t npeers;
-  unsigned int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Show Tunnel messasge received\n");
 
@@ -1082,40 +1055,25 @@ process_show_tunnel (struct GNUNET_MESH_Handle *h,
 
   /* Verify message sanity */
   msg = (struct GNUNET_MESH_LocalMonitor *) message;
-  npeers = ntohl (msg->npeers);
   esize = sizeof (struct GNUNET_MESH_LocalMonitor);
-  esize += npeers * (sizeof (struct GNUNET_PeerIdentity) + sizeof (uint32_t));
   if (ntohs (message->size) != esize)
   {
     GNUNET_break_op (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Show tunnel message: size %hu - expected %u (%u peers)\n",
+                "Show tunnel message: size %hu - expected %u\n",
                 ntohs (message->size),
-                esize,
-                npeers);
+                esize);
 
     h->tunnel_cb (h->tunnel_cls, NULL, NULL);
     h->tunnel_cb = NULL;
     h->tunnel_cls = NULL;
-    h->tunnel_npeers = 0;
-    GNUNET_free_non_null (h->peers);
-    h->peers = NULL;
 
     return;
   }
 
-  new_peers = (struct GNUNET_PeerIdentity *) &msg[1];
-  new_parents = (uint32_t *) &new_peers[npeers];
-
-  h->peers = GNUNET_realloc (h->peers, h->tunnel_npeers + npeers);
-  memcpy (&h->peers[h->tunnel_npeers],
-          new_peers,
-          npeers * sizeof (struct GNUNET_PeerIdentity));
-  h->tunnel_npeers += npeers;
-  for (i = 0; i < npeers; i++)
-    h->tunnel_cb (h->tunnel_cls,
-                  &new_peers[i],
-                  &h->peers[new_parents[i]]);
+  h->tunnel_cb (h->tunnel_cls,
+                &msg->destination,
+                &msg->owner);
 }
 
 
@@ -1259,7 +1217,6 @@ send_callback (void *cls, size_t size, void *buf)
           to.pid = htonl (t->next_send_pid);
           to.ttl = 0;
           memset (&to.oid, 0, sizeof (struct GNUNET_PeerIdentity));
-          memset (&to.sender, 0, sizeof (struct GNUNET_PeerIdentity));
           memcpy (cbuf, &to, sizeof (to));
         }
       }
@@ -1712,6 +1669,7 @@ GNUNET_MESH_get_tunnels_cancel (struct GNUNET_MESH_Handle *h)
  * Request information about a specific tunnel of the running mesh peer.
  *
  * WARNING: unstable API, likely to change in the future!
+ * FIXME Add destination option.
  *
  * @param h Handle to the mesh peer.
  * @param initiator ID of the owner of the tunnel.
@@ -1730,7 +1688,6 @@ GNUNET_MESH_show_tunnel (struct GNUNET_MESH_Handle *h,
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL);
-  msg.npeers = htonl (0);
   msg.owner = *initiator;
   msg.tunnel_id = htonl (tunnel_number);
   msg.reserved = 0;

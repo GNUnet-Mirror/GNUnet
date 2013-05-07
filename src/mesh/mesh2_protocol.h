@@ -81,41 +81,6 @@ struct GNUNET_MESH_ManipulatePath
   /* struct GNUNET_PeerIdentity peers[path_length]; */
 };
 
-/**
- * Message for mesh data traffic to all tunnel targets.
- */
-struct GNUNET_MESH_Multicast
-{
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_MULTICAST
-     */
-  struct GNUNET_MessageHeader header;
-
-    /**
-     * TID of the tunnel
-     */
-  uint32_t tid GNUNET_PACKED;
-
-    /**
-     * Number of hops to live
-     */
-  uint32_t ttl GNUNET_PACKED;
-
-    /**
-     * Unique ID of the packet
-     */
-  uint32_t pid GNUNET_PACKED;
-
-    /**
-     * OID of the tunnel
-     */
-  struct GNUNET_PeerIdentity oid;
-
-    /**
-     * Payload follows
-     */
-};
-
 
 /**
  * Message for mesh data traffic to a particular destination from origin.
@@ -146,11 +111,6 @@ struct GNUNET_MESH_Unicast
      * OID of the tunnel
      */
   struct GNUNET_PeerIdentity oid;
-
-    /**
-     * Destination.
-     */
-  struct GNUNET_PeerIdentity destination;
 
     /**
      * Payload follows
@@ -187,11 +147,6 @@ struct GNUNET_MESH_ToOrigin
      * OID of the tunnel
      */
   struct GNUNET_PeerIdentity oid;
-
-    /**
-     * Sender of the message.
-     */
-  struct GNUNET_PeerIdentity sender;
 
     /**
      * Payload follows

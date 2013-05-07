@@ -218,11 +218,6 @@ struct GNUNET_MESH_LocalMonitor
   MESH_TunnelNumber tunnel_id GNUNET_PACKED;
 
   /**
-   * Number of peers in the tunnel.
-   */
-  uint32_t npeers GNUNET_PACKED;
-
-  /**
    * Alignment.
    */
   uint32_t reserved GNUNET_PACKED;
@@ -232,7 +227,10 @@ struct GNUNET_MESH_LocalMonitor
    */
   struct GNUNET_PeerIdentity owner;
 
-  /* struct GNUNET_PeerIdentity peers[npeers] */
+  /**
+   * ID of the destination of the tunnel (can be local peer).
+   */
+  struct GNUNET_PeerIdentity destination;
 };
 
 
