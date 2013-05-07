@@ -46,8 +46,8 @@
  */
 
 #include "platform.h"
-#include "mesh.h"
-#include "mesh_protocol.h"
+#include "mesh2.h"
+#include "mesh2_protocol.h"
 #include "mesh_tunnel_tree.h"
 #include "block_mesh.h"
 #include "gnunet_dht_service.h"
