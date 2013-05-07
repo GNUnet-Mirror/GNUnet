@@ -110,15 +110,13 @@ gnunet_service_mesh_new_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/block/libgnunetblock.la \
-  $(top_builddir)/src/regex/libgnunetregex.la
+  $(top_builddir)/src/block/libgnunetblock.la
 gnunet_service_mesh_new_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/block/libgnunetblock.la \
-  $(top_builddir)/src/regex/libgnunetregex.la
+  $(top_builddir)/src/block/libgnunetblock.la
 if LINUX
 gnunet_service_mesh_new_LDFLAGS = -lrt
 endif
@@ -145,7 +143,6 @@ check_PROGRAMS = \
  test_mesh_local_traffic_bck \
  test_mesh_local_traffic_both \
  test_mesh_2dtorus \
- test_mesh_regex \
  test_mesh_small_unicast \
  test_mesh_small_signal \
  test_mesh_small_speed \
@@ -234,11 +231,6 @@ test_mesh_2dtorus_SOURCES = \
 test_mesh_2dtorus_LDADD = $(ld_mesh_test_lib)
 test_mesh_2dtorus_DEPENDENCIES = $(dep_mesh_test_lib)
 
-test_mesh_regex_SOURCES = \
- test_mesh_regex.c
-test_mesh_regex_LDADD = $(ld_mesh_test_lib)
-test_mesh_regex_DEPENDENCIES = $(dep_mesh_test_lib)
-
 test_mesh_small_unicast_SOURCES = \
  test_mesh_small.c
 test_mesh_small_unicast_LDADD = $(ld_mesh_test_lib)
@@ -282,7 +274,7 @@ TESTS = test_mesh_api \
  test_mesh_local_traffic_fwd \
  test_mesh_local_traffic_bck \
  test_mesh_local_traffic_both \
- test_mesh_2dtorus test_mesh_regex \
+ test_mesh_2dtorus \
  test_mesh_small_unicast \
  test_mesh_small_signal \
  test_mesh_small_speed \
