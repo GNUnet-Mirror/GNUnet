@@ -222,6 +222,8 @@ logger_run (void *cls, struct GNUNET_SERVER_Handle *server,
   };
   char *dir;
   char *fn;
+  char *hname;
+  size_t hname_len;
   pid_t pid;
 
   if (GNUNET_OK !=
@@ -229,14 +231,27 @@ logger_run (void *cls, struct GNUNET_SERVER_Handle *server,
                                                &dir))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR, "Not logging directory definied.  Exiting\n");    
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   pid = getpid ();
-  (void) GNUNET_asprintf (&fn, "%s/%jd.dat", dir, (intmax_t) pid);
+  hname_len = GNUNET_OS_get_hostname_max_length ();
+  hname = GNUNET_malloc (hname_len);
+  if (0 != gethostname (hname, hname_len))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Cannot get hostname.  Exiting\n");
+    GNUNET_free (hname);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  (void) GNUNET_asprintf (&fn, "%s/%.*s_%jd.dat", dir, hname_len, hname,
+                          (intmax_t) pid);
+  GNUNET_free (hname);
   GNUNET_free (dir);
   if (NULL == (bio = GNUNET_BIO_write_open (fn)))
   {
     GNUNET_free (fn);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   GNUNET_free (fn);
