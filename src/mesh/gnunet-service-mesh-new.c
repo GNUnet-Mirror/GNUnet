@@ -52,11 +52,9 @@
 #include "block_mesh.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_statistics_service.h"
-#include "gnunet_regex_lib.h"
 
 #define MESH_BLOOM_SIZE         128
 
-#define MESH_DEBUG_REGEX        GNUNET_YES
 #define MESH_DEBUG_DHT          GNUNET_NO
 #define MESH_DEBUG_CONNECTION   GNUNET_NO
 #define MESH_DEBUG_TIMING       __LINUX__ && GNUNET_NO
@@ -75,12 +73,6 @@
 #define DEBUG_DHT(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 #else
 #define DEBUG_DHT(...)
-#endif
-
-#if MESH_DEBUG_REGEX
-#define DEBUG_REGEX(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
-#else
-#define DEBUG_REGEX(...)
 #endif
 
 #if MESH_DEBUG_TIMING
@@ -177,79 +169,6 @@ struct MeshPeerQueue
      * Size of the message
      */
   size_t size;
-};
-
-
-/**
- * Struct to store regex information announced by clients.
- */
-struct MeshRegexDescriptor
-{
-    /**
-     * Regular expression itself.
-     */
-  char *regex;
-
-    /**
-     * How many characters per edge can we squeeze?
-     */
-  uint16_t compression;
-
-    /**
-     * Handle to announce the regex.
-     */
-  struct GNUNET_REGEX_announce_handle *h;
-};
-
-
-/**
- * Struct to keep information of searches of services described by a regex
- * using a user-provided string service description.
- */
-struct MeshRegexSearchInfo
-{
-    /**
-     * Which tunnel is this for
-     */
-  struct MeshTunnel *t;
-
-    /**
-     * User provided description of the searched service.
-     */
-  char *description;
-
-    /**
-     * Regex search handle.
-     */
-  struct GNUNET_REGEX_search_handle *search_handle;
-
-    /**
-     * Peer that is connecting via connect_by_string. When connected, free ctx.
-     */
-  GNUNET_PEER_Id peer;
-
-    /**
-     * Other peers that are found but not yet being connected to.
-     */
-  GNUNET_PEER_Id *peers;
-
-    /**
-     * Number of elements in peers.
-     */
-  unsigned int n_peers;
-
-    /**
-     * Next peer to try to connect to.
-     */
-  unsigned int i_peer;
-
-    /**
-     * Timeout for a connect attempt.
-     * When reached, try to connect to a different peer, if any. If not,
-     * try the same peer again.
-     */
-  GNUNET_SCHEDULER_TaskIdentifier timeout;
-
 };
 
 
