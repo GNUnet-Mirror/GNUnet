@@ -453,7 +453,7 @@ parse_shared_services (char *ss_str, struct GNUNET_CONFIGURATION_Handle *cfg)
   {
     ss.service = NULL;
     ss.share = 0;
-    if (2 != sscanf (arg, "%255s:%u", service, &ss.share))
+    if (2 != sscanf (arg, "%255[^:]:%u", service, &ss.share))
     {
       LOG (GNUNET_ERROR_TYPE_WARNING, "Ignoring shared service spec: %s", arg);
       continue;
