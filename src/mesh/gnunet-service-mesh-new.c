@@ -600,11 +600,6 @@ unsigned int debug_bck_ack;
 static struct GNUNET_TIME_Relative refresh_path_time;
 
 /**
- * How often to PUT local application numbers in the DHT.
- */
-static struct GNUNET_TIME_Relative app_announce_time;
-
-/**
  * How often to PUT own ID in the DHT.
  */
 static struct GNUNET_TIME_Relative id_announce_time;
@@ -6023,20 +6018,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     return;
   }
 
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (c, "MESH", "APP_ANNOUNCE_TIME",
-                                           &app_announce_time))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
-                "mesh", "app announce time");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "APP_ANNOUNCE_TIME %llu ms\n", 
-	      app_announce_time.rel_value);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (c, "MESH", "ID_ANNOUNCE_TIME",
                                            &id_announce_time))
