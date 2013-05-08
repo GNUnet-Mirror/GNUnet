@@ -967,6 +967,27 @@ AC_MSG_RESULT($enable_ll)
 AM_CONDITIONAL([ENABLE_LL], [test "x$ll" = "x1"])
 AC_DEFINE_UNQUOTED([ENABLE_LL], [$ll], [Build with LL support])
 
+# Check if NSE has to send timestamp information to testbed logger for
+# generating histogram of messages received
+AC_MSG_CHECKING(if NSE has to send timestamp information to testbed logger)
+AC_ARG_ENABLE([nse-histogram],
+    [AS_HELP_STRING([--enable-nse-histogram],
+       [have NSE send timestamp information to testbed logger for generating
+       histogram of received messages.  NOT useful for production (default is
+       NO)])],
+    [if test "x$enableval" = "xno"
+     then
+       nse_histogram=0
+     else
+       nse_histogram=1
+     fi],
+    [nse_histogram=0
+     enable_nse_histogram=no])
+AC_MSG_RESULT($enable_nse_histogram)
+AM_CONDITIONAL([ENABLE_NSE_HISTOGRAM], [test "x$nse_histogram" = "x1"])
+AC_DEFINE_UNQUOTED([ENABLE_NSE_HISTOGRAM], [$nse_histogram],
+                   [have NSE send timestamp information to testbed logger])
+
 # should 'make check' run tests?
 AC_MSG_CHECKING(whether to run tests)
 AC_ARG_ENABLE([testruns],

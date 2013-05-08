@@ -57,6 +57,13 @@ gnunet_service_nse_LDADD = \
   $(GN_LIBINTL)
 gnunet_service_nse_DEPENDENCIES = \
   libgnunetnse.la				 
+if ENABLE_NSE_HISTOGRAM
+  gnunet_service_nse_LDADD += \
+    $(top_builddir)/src/testbed/libgnunettestbedlogger.la
+  gnunet_service_nse_DEPENDENCIES += \
+    $(top_builddir)/src/testbed/libgnunettestbedlogger.la
+endif
+
 
 if HAVE_BENCHMARKS
   MULTIPEER_TEST = test_nse_multipeer

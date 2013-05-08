@@ -44,6 +44,9 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_core_service.h"
 #include "gnunet_nse_service.h"
+#if ENABLE_NSE_HISTOGRAM
+#include "gnunet_testbed_logger_service.h"
+#endif
 #include "nse.h"
 #include <gcrypt.h>
 
@@ -54,14 +57,6 @@
  * be removed once the initial experiments have been completed.
  */
 #define USE_RANDOM_DELAYS GNUNET_YES
-
-/**
- * Should we generate a histogram with the time stamps of when we received
- * NSE messages to disk? (for performance evaluation only, not useful in
- * production).  The associated code should also probably be removed
- * once we're done with experiments.
- */
-#define ENABLE_HISTOGRAM GNUNET_NO
 
 /**
  * Over how many values do we calculate the weighted average?
@@ -92,11 +87,11 @@ static struct GNUNET_TIME_Relative gnunet_nse_interval;
  */
 static struct GNUNET_TIME_Relative proof_find_delay;
 
-#if ENABLE_HISTOGRAM
+#if ENABLE_NSE_HISTOGRAM
 /**
  * Handle for writing when we received messages to disk.
  */
-static struct GNUNET_BIO_WriteHandle *wh;
+static struct GNUNET_TESTBED_LOGGER_Handle *lh;
 #endif
 
 
@@ -128,7 +123,7 @@ struct NSEPeerEntry
    */
   int previous_round;
 
-#if ENABLE_HISTOGRAM
+#if ENABLE_NSE_HISTOGRAM
 
   /**
    * Amount of messages received from this peer on this round.
@@ -636,7 +631,7 @@ transmit_ready (void *cls, size_t size, void *buf)
     GNUNET_STATISTICS_update (stats, "# flood messages started", 1, GNUNET_NO);
   GNUNET_STATISTICS_update (stats, "# flood messages transmitted", 1,
                             GNUNET_NO);
-#if ENABLE_HISTOGRAM
+#if ENABLE_NSE_HISTOGRAM
   peer_entry->transmitted_messages++;
   peer_entry->last_transmitted_size = 
       ntohl(size_estimate_messages[idx].matching_bits);
@@ -751,7 +746,7 @@ schedule_current_round (void *cls,
     GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
     peer_entry->previous_round = GNUNET_NO;
   }
-#if ENABLE_HISTOGRAM
+#if ENABLE_NSE_HISTOGRAM
   if (peer_entry->received_messages > 1)
     GNUNET_STATISTICS_update(stats, "# extra messages",
                              peer_entry->received_messages - 1, GNUNET_NO);
@@ -1039,9 +1034,13 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
   uint32_t matching_bits;
   unsigned int idx;
 
-#if ENABLE_HISTOGRAM
-  if (NULL != wh)
-    GNUNET_break (GNUNET_OK == GNUNET_BIO_write_int64 (wh, GNUNET_TIME_absolute_get ().abs_value));
+#if ENABLE_NSE_HISTOGRAM
+  {
+    uint64_t t;
+
+    t = GNUNET_TIME_absolute_get().abs_value;
+    GNUNET_TESTBED_LOGGER_write (lh, &t, sizeof (uint64_t));
+  }
 #endif
   incoming_flood = (const struct GNUNET_NSE_FloodMessage *) message;
   GNUNET_STATISTICS_update (stats, "# flood messages received", 1, GNUNET_NO);
@@ -1072,7 +1071,7 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return GNUNET_OK;
   }
-#if ENABLE_HISTOGRAM
+#if ENABLE_NSE_HISTOGRAM
   peer_entry->received_messages++;
   if (peer_entry->transmitted_messages > 0 && 
       peer_entry->last_transmitted_size >= matching_bits)
@@ -1317,12 +1316,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CRYPTO_ecc_key_free (my_private_key);
     my_private_key = NULL;
   }
-#if ENABLE_HISTOGRAM
-  if (NULL != wh)
-  {
-    GNUNET_break (GNUNET_OK == GNUNET_BIO_write_close (wh));
-    wh = NULL;
-  }
+#if ENABLE_NSE_HISTOGRAM
+  GNUNET_TESTBED_LOGGER_disconnect (lh);
+  lh = NULL;
 #endif
 }
 
@@ -1450,36 +1446,6 @@ key_generation_cb (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-#if ENABLE_HISTOGRAM
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "NSE", "HISTOGRAM_DIR", &proof))
-  {
-    char *hostname;
-    char *hgram_file;
-    unsigned long long peer_id;
-    
-    hgram_file = NULL;
-    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (cfg, "TESTBED",
-                                                            "PEERID", &peer_id))
-      (void) GNUNET_asprintf (&hgram_file, "%s/%llu.hist", proof, peer_id);
-    else  
-    {
-      hostname = GNUNET_malloc (GNUNET_OS_get_hostname_max_length ());
-      if (0 == gethostname (hostname, HOST_NAME_MAX))
-        (void) GNUNET_asprintf (&hgram_file, "%s/%s_%jd.hist", 
-                                proof, hostname, (intmax_t) getpid());
-      else
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "gethostname");    
-      GNUNET_free (hostname);
-    }
-    if (NULL != hgram_file)
-    {
-      wh = GNUNET_BIO_write_open (hgram_file);
-      GNUNET_free (hgram_file);
-    }
-    GNUNET_free (proof);
-  }
-#endif
   stats = GNUNET_STATISTICS_create ("nse", cfg);
   GNUNET_SERVER_resume (srv);
 }
@@ -1536,6 +1502,16 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+#if ENABLE_NSE_HISTOGRAM
+  if (NULL == (lh = GNUNET_TESTBED_LOGGER_connect (cfg)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Cannot connect to the testbed logger.  Exiting.\n");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+#endif
+
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
   GNUNET_SERVER_suspend (srv);
