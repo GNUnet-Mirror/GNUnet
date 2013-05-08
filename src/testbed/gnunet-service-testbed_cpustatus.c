@@ -642,7 +642,8 @@ GST_stats_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
   char *hostname;
   char *stats_dir;
   char *fn;
-
+  size_t len;
+  
 #if MINGW
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Load statistics logging now available for windows\n");
@@ -653,17 +654,20 @@ GST_stats_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
       GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
                                              "STATS_DIR", &stats_dir))
     return;
-  hostname = GNUNET_malloc (GNUNET_OS_get_hostname_max_length ());
-  if (0 != gethostname  (hostname, GNUNET_OS_get_hostname_max_length ()))
+  len = GNUNET_OS_get_hostname_max_length ();
+  hostname = GNUNET_malloc (len);
+  if (0 != gethostname  (hostname, len))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "gethostname");
     GNUNET_free (stats_dir);
+    GNUNET_free (hostname);
     return;
   }
   fn = NULL;  
-  (void) GNUNET_asprintf (&fn, "%s/%s-%jd.dat", stats_dir, 
+  (void) GNUNET_asprintf (&fn, "%s/%.*s-%jd.dat", stats_dir, len,
                           hostname, (intmax_t) getpid());
   GNUNET_free (stats_dir);
+  GNUNET_free (hostname);
   if (NULL == (bw = GNUNET_BIO_write_open (fn)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
