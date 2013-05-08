@@ -412,7 +412,7 @@ struct HandlerContext_ShutdownPeers
 /**
  * Our configuration
  */
-struct GNUNET_CONFIGURATION_Handle *our_config;
+extern struct GNUNET_CONFIGURATION_Handle *our_config;
 
 /**
  * The master context; generated with the first INIT message
