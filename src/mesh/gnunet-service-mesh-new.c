@@ -635,26 +635,6 @@ struct MeshClient
      * ID of the client, mainly for debug messages
      */
   unsigned int id;
-  
-    /**
-     * Regular expressions describing the services offered by this client.
-     */
-  struct MeshRegexDescriptor *regexes; // FIXME regex add timeout? API to remove a regex?
-
-    /**
-     * Number of regular expressions in regexes.
-     */
-  unsigned int n_regex;
-
-    /**
-     * Task to refresh all regular expresions in the DHT.
-     */
-  GNUNET_SCHEDULER_TaskIdentifier regex_announce_task;
-
-    /**
-     * Tmp store for partially retrieved regex.
-     */
-  char *partial_regex;
 
 };
 
@@ -5089,15 +5069,6 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 
     if (NULL != c->types)
       GNUNET_CONTAINER_multihashmap_destroy (c->types);
-    for (i = 0; i < c->n_regex; i++)
-    {
-      GNUNET_free (c->regexes[i].regex);
-      if (NULL != c->regexes[i].h)
-	GNUNET_REGEX_announce_cancel (c->regexes[i].h);
-    }
-    GNUNET_free_non_null (c->regexes);
-    if (GNUNET_SCHEDULER_NO_TASK != c->regex_announce_task)
-      GNUNET_SCHEDULER_cancel (c->regex_announce_task);
     next = c->next;
     GNUNET_CONTAINER_DLL_remove (clients, clients_tail, c);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  CLIENT FREE at %p\n", c);
