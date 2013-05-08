@@ -64,12 +64,6 @@ GNUNET_TESTBED_LOGGER_disconnect (struct GNUNET_TESTBED_LOGGER_Handle *h);
 
 
 /**
- * Opaque handle representing a send request
- */
-struct GNUNET_TESTBED_LOGGER_SendHandle;
-
-
-/**
  * Functions of this type are called to notify a successful transmission of the
  * message to the logger service
  *
