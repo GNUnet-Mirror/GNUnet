@@ -1266,6 +1266,23 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 }
 
 
+#if ENABLE_NSE_HISTOGRAM
+/**
+ * Functions of this type are called to notify a successful transmission of the
+ * message to the logger service
+ *
+ * @param cls NULL
+ * @param size the amount of data sent
+ */
+static void 
+flush_comp_cb (void *cls, size_t size)
+{
+  GNUNET_TESTBED_LOGGER_disconnect (lh);
+  lh = NULL;
+}
+#endif
+
+
 /**
  * Task run during shutdown.
  *
@@ -1317,8 +1334,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     my_private_key = NULL;
   }
 #if ENABLE_NSE_HISTOGRAM
-  GNUNET_TESTBED_LOGGER_disconnect (lh);
-  lh = NULL;
+  GNUNET_TESTBED_LOGGER_flush (lh, &flush_comp_cb, NULL); /* actual shutdown delayed */
 #endif
 }
 
