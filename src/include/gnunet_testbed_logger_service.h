@@ -91,17 +91,21 @@ GNUNET_TESTBED_LOGGER_write (struct GNUNET_TESTBED_LOGGER_Handle *h,
  * Flush the buffered data to the logger service
  *
  * @param h the logger handle
+ * @param timeout how long to wait before calling the flust completion callback
  * @param cb the callback to call after the data is flushed
  * @param cb_cls the closure for the above callback
  */
 void
 GNUNET_TESTBED_LOGGER_flush (struct GNUNET_TESTBED_LOGGER_Handle *h,
+                             struct GNUNET_TIME_Relative timeout,
                              GNUNET_TESTBED_LOGGER_FlushCompletion cb,
                              void *cb_cls);
 
 
 /**
- * Cancel notification upon flush.
+ * Cancel notification upon flush.  Should only be used when the flush
+ * completion callback given to GNUNET_TESTBED_LOGGER_flush() is not already
+ * called.
  *
  * @param h the logger handle
  */

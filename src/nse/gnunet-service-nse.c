@@ -1334,7 +1334,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     my_private_key = NULL;
   }
 #if ENABLE_NSE_HISTOGRAM
-  GNUNET_TESTBED_LOGGER_flush (lh, &flush_comp_cb, NULL); /* actual shutdown delayed */
+  struct GNUNET_TIME_Relative timeout;
+  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30);
+  GNUNET_TESTBED_LOGGER_flush (lh, timeout, &flush_comp_cb, NULL);
 #endif
 }
 

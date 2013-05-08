@@ -92,6 +92,9 @@ struct GNUNET_TESTBED_LOGGER_Handle
    */
   struct GNUNET_CLIENT_Connection *client;
 
+  /**
+   * The transport handle
+   */
   struct GNUNET_CLIENT_TransmitHandle *th;
 
   /**
@@ -104,20 +107,60 @@ struct GNUNET_TESTBED_LOGGER_Handle
    */
   struct MessageQueue *mq_tail;
 
-  GNUNET_SCHEDULER_TaskIdentifier flush_completion_task;
-
+  /**
+   * Flush completion callback
+   */
   GNUNET_TESTBED_LOGGER_FlushCompletion cb;
 
+  /**
+   * Closure for the above callback
+   */
   void *cb_cls;
 
+  /**
+   * Local buffer for data to be transmitted
+   */
   void *buf;
 
+  /**
+   * The size of the local buffer
+   */
   size_t bs;
 
+  /**
+   * Number of bytes wrote since last flush
+   */
   size_t bwrote;
 
+  /**
+   * How long after should we retry sending a message to the service?
+   */
   struct GNUNET_TIME_Relative retry_backoff;
+
+  /**
+   * Task to call the flush completion callback
+   */
+  GNUNET_SCHEDULER_TaskIdentifier flush_completion_task;
+
+  /**
+   * Task to be executed when flushing takes too long
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_flush_task;
 };
+
+
+/**
+ * Cancels the flush timeout task
+ *
+ * @param 
+ * @return 
+ */
+static void
+cancel_timeout_flush (struct GNUNET_TESTBED_LOGGER_Handle *h)
+{
+  GNUNET_SCHEDULER_cancel (h->timeout_flush_task);
+  h->timeout_flush_task = GNUNET_SCHEDULER_NO_TASK;  
+}
 
 
 /**
@@ -129,7 +172,7 @@ struct GNUNET_TESTBED_LOGGER_Handle
 static void
 call_flush_completion (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_TESTBED_LOGGER_Handle *h = cls; 
+  struct GNUNET_TESTBED_LOGGER_Handle *h = cls;
   GNUNET_TESTBED_LOGGER_FlushCompletion cb;
   void *cb_cls;
   size_t bw;
@@ -141,6 +184,8 @@ call_flush_completion (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   h->cb = NULL;
   cb_cls = h->cb_cls;
   h->cb_cls = NULL;
+  if (GNUNET_SCHEDULER_NO_TASK != h->timeout_flush_task)
+    cancel_timeout_flush (h);
   if (NULL != cb)
     cb (cb_cls, bw);
 }
@@ -355,19 +400,54 @@ GNUNET_TESTBED_LOGGER_write (struct GNUNET_TESTBED_LOGGER_Handle *h,
 
 
 /**
+ * Task to be executed when flushing our local buffer takes longer than timeout
+ * given to GNUNET_TESTBED_LOGGER_flush().  The flush completion callback will
+ * be called with 0 as the amount of data sent.
+ *
+ * @param cls the logger handle
+ * @param tc scheduler task context
+ */
+static void
+timeout_flush (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_TESTBED_LOGGER_Handle *h = cls;
+  GNUNET_TESTBED_LOGGER_FlushCompletion cb;
+  void *cb_cls;
+
+  h->timeout_flush_task = GNUNET_SCHEDULER_NO_TASK;
+  cb = h->cb;
+  h->cb = NULL;
+  cb_cls = h->cb_cls;
+  h->cb_cls = NULL;
+  if (GNUNET_SCHEDULER_NO_TASK != h->flush_completion_task)
+  {
+    GNUNET_SCHEDULER_cancel (h->flush_completion_task);
+    h->flush_completion_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (NULL != cb)
+    cb (cb_cls, 0);
+}
+
+
+/**
  * Flush the buffered data to the logger service
  *
  * @param h the logger handle
+ * @param timeout how long to wait before calling the flust completion callback
  * @param cb the callback to call after the data is flushed
  * @param cb_cls the closure for the above callback
  */
 void
 GNUNET_TESTBED_LOGGER_flush (struct GNUNET_TESTBED_LOGGER_Handle *h,
+                             struct GNUNET_TIME_Relative timeout,
                              GNUNET_TESTBED_LOGGER_FlushCompletion cb,
                              void *cb_cls)
 {
   h->cb = cb;
   h->cb_cls = cb_cls;
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->timeout_flush_task);
+  h->timeout_flush_task = 
+      GNUNET_SCHEDULER_add_delayed (timeout, &timeout_flush, h);
   if (NULL == h->buf)
   {
     trigger_flush_notification (h);
@@ -378,7 +458,9 @@ GNUNET_TESTBED_LOGGER_flush (struct GNUNET_TESTBED_LOGGER_Handle *h,
 
 
 /**
- * Cancel notification upon flush.
+ * Cancel notification upon flush.  Should only be used when the flush
+ * completion callback given to GNUNET_TESTBED_LOGGER_flush() is not already
+ * called.
  *
  * @param h the logger handle
  */
@@ -390,6 +472,8 @@ GNUNET_TESTBED_LOGGER_flush_cancel (struct GNUNET_TESTBED_LOGGER_Handle *h)
     GNUNET_SCHEDULER_cancel (h->flush_completion_task);
     h->flush_completion_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  if (GNUNET_SCHEDULER_NO_TASK != h->timeout_flush_task)
+    cancel_timeout_flush (h);
   h->cb = NULL;
   h->cb_cls = NULL;
 }

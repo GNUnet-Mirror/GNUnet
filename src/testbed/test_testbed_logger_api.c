@@ -183,7 +183,8 @@ do_write (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_TESTBED_LOGGER_write (h, buf, BSIZE);
   if (0 == i++)
     return;
-  GNUNET_TESTBED_LOGGER_flush (h, &flush_comp, &write_task);
+  GNUNET_TESTBED_LOGGER_flush (h, GNUNET_TIME_UNIT_FOREVER_REL,
+                               &flush_comp, &write_task);
 }
 
 
