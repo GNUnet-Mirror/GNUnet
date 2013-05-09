@@ -425,32 +425,47 @@ reghost_free_iterator (void *cls, const struct GNUNET_HashCode *key,
 void
 GST_slave_list_clear ()
 {
-  unsigned int id;
   struct HostRegistration *hr_entry;
+  struct GNUNET_TESTBED_ControllerProc *cproc;
+  unsigned int id;
 
   for (id = 0; id < GST_slave_list_size; id++)
-    if (NULL != GST_slave_list[id])
+  {
+    if (NULL == GST_slave_list[id])
+      continue;
+    while (NULL != (hr_entry = GST_slave_list[id]->hr_dll_head))
     {
-      while (NULL != (hr_entry = GST_slave_list[id]->hr_dll_head))
-      {
-        GNUNET_CONTAINER_DLL_remove (GST_slave_list[id]->hr_dll_head,
-                                     GST_slave_list[id]->hr_dll_tail, hr_entry);
-        GNUNET_free (hr_entry);
-      }
-      if (NULL != GST_slave_list[id]->rhandle)
-        GNUNET_TESTBED_cancel_registration (GST_slave_list[id]->rhandle);
-      (void)
-          GNUNET_CONTAINER_multihashmap_iterate (GST_slave_list
-                                                 [id]->reghost_map,
-                                                 reghost_free_iterator,
-                                                 GST_slave_list[id]);
-      GNUNET_CONTAINER_multihashmap_destroy (GST_slave_list[id]->reghost_map);
-      if (NULL != GST_slave_list[id]->controller)
-        GNUNET_TESTBED_controller_disconnect (GST_slave_list[id]->controller);
-      if (NULL != GST_slave_list[id]->controller_proc)
-        GNUNET_TESTBED_controller_stop (GST_slave_list[id]->controller_proc);
-      GNUNET_free (GST_slave_list[id]);
+      GNUNET_CONTAINER_DLL_remove (GST_slave_list[id]->hr_dll_head,
+                                   GST_slave_list[id]->hr_dll_tail, hr_entry);
+      GNUNET_free (hr_entry);
     }
+    if (NULL != GST_slave_list[id]->rhandle)
+      GNUNET_TESTBED_cancel_registration (GST_slave_list[id]->rhandle);
+    (void)
+        GNUNET_CONTAINER_multihashmap_iterate (GST_slave_list
+                                               [id]->reghost_map,
+                                               reghost_free_iterator,
+                                               GST_slave_list[id]);
+    GNUNET_CONTAINER_multihashmap_destroy (GST_slave_list[id]->reghost_map);
+    if (NULL != GST_slave_list[id]->controller)
+      GNUNET_TESTBED_controller_disconnect (GST_slave_list[id]->controller);
+    if (NULL != (cproc = GST_slave_list[id]->controller_proc))
+    {
+      LOG_DEBUG ("Stopping a slave\n");
+      GNUNET_TESTBED_controller_kill_ (cproc);
+    }
+  }
+  for (id = 0; id < GST_slave_list_size; id++)
+  {
+    if (NULL == GST_slave_list[id])
+      continue;
+    if (NULL != (cproc = GST_slave_list[id]->controller_proc))
+    {
+      GNUNET_TESTBED_controller_destroy_ (cproc);
+      LOG_DEBUG ("Slave stopped\n");
+    }
+    GNUNET_free (GST_slave_list[id]);
+  }
   GNUNET_free_non_null (GST_slave_list);
   GST_slave_list = NULL;
 }

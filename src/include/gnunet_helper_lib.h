@@ -20,7 +20,8 @@
 
 /**
  * @file include/gnunet_helper_lib.h
- * @brief API for dealing with (SUID) helper processes that communicate via GNUNET_MessageHeaders on stdin/stdout
+ * @brief API for dealing with (SUID) helper processes that communicate via
+ *          GNUNET_MessageHeaders on stdin/stdout
  * @author Philipp Toelke
  * @author Christian Grothoff
  */
@@ -72,22 +73,49 @@ GNUNET_HELPER_start (int with_control_pipe,
 
 
 /**
- * Kills the helper, closes the pipe and frees the handle
+ * Sends termination signal to the helper process.  The helper process is not
+ * reaped; call GNUNET_HELPER_wait() for reaping the dead helper process.
  *
- * @param h handle to helper to stop
+ * @param h the helper handle
+ * @param soft_kill if GNUNET_YES, signals termination by closing the helper's
+ *          stdin; GNUNET_NO to signal termination by sending SIGTERM to helper
+ * @return GNUNET_OK on success; GNUNET_SYSERR on error
  */
-void
-GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h);
+int
+GNUNET_HELPER_kill (struct GNUNET_HELPER_Handle *h, int soft_kill);
 
 
 /**
- * Kills the helper by closing its stdin (the helper is expected to catch the
- * resulting SIGPIPE and shutdown), closes the pipe and frees the handle
+ * Reap the helper process.  This call is blocking(!).  The helper process
+ * should either be sent a termination signal before or should be dead before
+ * calling this function
  *
- * @param h handle to helper to stop
+ * @param h the helper handle
+ * @return GNUNET_OK on success; GNUNET_SYSERR on error
+ */
+int
+GNUNET_HELPER_wait (struct GNUNET_HELPER_Handle *h);
+
+
+/**
+ * Free's the resources occupied by the helper handle
+ *
+ * @param h the helper handle to free
  */
 void
-GNUNET_HELPER_soft_stop (struct GNUNET_HELPER_Handle *h);
+GNUNET_HELPER_destroy (struct GNUNET_HELPER_Handle *h);
+
+
+/**
+ * Kills the helper, closes the pipe, frees the handle and calls wait() on the
+ * helper process
+ *
+ * @param h handle to helper to stop
+ * @param soft_kill if GNUNET_YES, signals termination by closing the helper's
+ *          stdin; GNUNET_NO to signal termination by sending SIGTERM to helper
+ */
+void
+GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h, int soft_kill);
 
 
 /**

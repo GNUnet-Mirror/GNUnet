@@ -2928,8 +2928,8 @@ cleanup (void *cls GNUNET_UNUSED,
     mesh_handle = NULL;
   }
   if (NULL != helper_handle)
-    {
-    GNUNET_HELPER_stop (helper_handle);
+  {
+    GNUNET_HELPER_stop (helper_handle, GNUNET_NO);
     helper_handle = NULL;
   }
   if (NULL != nc)

@@ -3074,7 +3074,7 @@ cleanup (void *cls GNUNET_UNUSED,
 
   if (helper_handle != NULL)
   {
-    GNUNET_HELPER_stop (helper_handle);
+    GNUNET_HELPER_stop (helper_handle, GNUNET_NO);
     helper_handle = NULL;
   }
   if (mesh_handle != NULL)

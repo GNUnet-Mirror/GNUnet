@@ -102,7 +102,7 @@ GNUNET_FS_directory_scan_abort (struct GNUNET_FS_DirScanner *ds)
 {
   /* terminate helper */
   if (NULL != ds->helper)
-    GNUNET_HELPER_stop (ds->helper);
+    GNUNET_HELPER_stop (ds->helper, GNUNET_NO);
   
   /* free resources */
   if (NULL != ds->toplevel)
@@ -234,7 +234,7 @@ finish_scan (void *cls,
   ds->stop_task = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != ds->helper)
   {
-    GNUNET_HELPER_stop (ds->helper);
+    GNUNET_HELPER_stop (ds->helper, GNUNET_NO);
     ds->helper = NULL;
   }
   ds->progress_callback (ds->progress_callback_cls, 

@@ -233,5 +233,25 @@ GNUNET_TESTBED_host_handle_addhostconfirm_ (struct GNUNET_TESTBED_Controller *c,
                                             GNUNET_TESTBED_HostConfirmedMessage
                                             *msg);
 
+
+/**
+ * Sends termination signal to the controller's helper process
+ *
+ * @param cproc the handle to the controller's helper process
+ */
+void
+GNUNET_TESTBED_controller_kill_ (struct GNUNET_TESTBED_ControllerProc *cproc);
+
+
+/**
+ * Cleans-up the controller's helper process handle
+ *
+ * @param cproc the handle to the controller's helper process
+ */
+void
+GNUNET_TESTBED_controller_destroy_ (struct GNUNET_TESTBED_ControllerProc
+                                    *cproc);
+
+
 #endif
 /* end of testbed_api_hosts.h */

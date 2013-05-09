@@ -1613,7 +1613,7 @@ libgnunet_plugin_transport_wlan_done (void *cls)
   }
   if (NULL != plugin->suid_helper)
   {
-    GNUNET_HELPER_stop (plugin->suid_helper);
+    GNUNET_HELPER_stop (plugin->suid_helper, GNUNET_NO);
     plugin->suid_helper = NULL;
   }
   endpoint_next = plugin->mac_head;

@@ -281,7 +281,7 @@ cleanup_task (void *cls GNUNET_UNUSED,
 {
   unsigned int i;
 
-  GNUNET_HELPER_stop (hijacker);
+  GNUNET_HELPER_stop (hijacker, GNUNET_NO);
   hijacker = NULL;
   for (i=0;i<7;i++)
     GNUNET_free_non_null (helper_argv[i]);

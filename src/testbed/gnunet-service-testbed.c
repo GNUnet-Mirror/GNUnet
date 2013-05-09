@@ -785,7 +785,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   uint32_t id;
 
   shutdown_task_id = GNUNET_SCHEDULER_NO_TASK;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down testbed service\n");
+  LOG_DEBUG ("Shutting down testbed service\n");
   /* cleanup any remaining forwarded operations */
   GST_clear_fopcq ();
   GST_free_lcfq ();
@@ -904,6 +904,7 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
   char *logfile;
   unsigned long long num;
 
+  LOG_DEBUG ("Starting testbed\n");
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_filename (cfg, "TESTBED", "LOG_FILE",
                                                &logfile))

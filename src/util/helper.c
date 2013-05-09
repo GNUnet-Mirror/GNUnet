@@ -20,7 +20,8 @@
 
 /**
  * @file util/helper.c
- * @brief API for dealing with (SUID) helper processes that communicate via GNUNET_MessageHeaders on stdin/stdout
+ * @brief API for dealing with (SUID) helper processes that communicate via
+ *          GNUNET_MessageHeaders on stdin/stdout
  * @author Philipp Toelke
  * @author Christian Grothoff
  */
@@ -162,37 +163,70 @@ struct GNUNET_HELPER_Handle
 
 
 /**
- * Stop the helper process, we're closing down or had an error.
+ * Sends termination signal to the helper process.  The helper process is not
+ * reaped; call GNUNET_HELPER_wait() for reaping the dead helper process.
  *
- * @param h handle to the helper process
+ * @param h the helper handle
  * @param soft_kill if GNUNET_YES, signals termination by closing the helper's
  *          stdin; GNUNET_NO to signal termination by sending SIGTERM to helper
+ * @return GNUNET_OK on success; GNUNET_SYSERR on error
  */
-static void
-stop_helper (struct GNUNET_HELPER_Handle *h, int soft_kill)
+int
+GNUNET_HELPER_kill (struct GNUNET_HELPER_Handle *h, int soft_kill)
 {
   struct GNUNET_HELPER_SendHandle *sh;
+  int ret;
 
-  if (NULL != h->helper_proc)
+  while (NULL != (sh = h->sh_head))
   {
-    if (GNUNET_YES == soft_kill)
-    { 
-      /* soft-kill only possible with pipes */
-      GNUNET_assert (NULL != h->helper_in);
-      GNUNET_DISK_pipe_close (h->helper_in);
-      h->helper_in = NULL;
-      h->fh_to_helper = NULL;
-    }
-    else
-      GNUNET_break (0 == GNUNET_OS_process_kill (h->helper_proc, SIGTERM));
-    GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (h->helper_proc));
-    GNUNET_OS_process_destroy (h->helper_proc);
-    h->helper_proc = NULL;
+    GNUNET_CONTAINER_DLL_remove (h->sh_head,
+				 h->sh_tail,
+				 sh);
+    if (NULL != sh->cont)
+      sh->cont (sh->cont_cls, GNUNET_NO);
+    GNUNET_free (sh);
   }
   if (GNUNET_SCHEDULER_NO_TASK != h->restart_task)
   {
     GNUNET_SCHEDULER_cancel (h->restart_task);
     h->restart_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (NULL == h->helper_proc)
+    return GNUNET_SYSERR;
+  if (GNUNET_YES == soft_kill)
+  { 
+    /* soft-kill only possible with pipes */
+    GNUNET_assert (NULL != h->helper_in);
+    ret = GNUNET_DISK_pipe_close (h->helper_in);
+    h->helper_in = NULL;
+    h->fh_to_helper = NULL;
+    return ret;
+  }
+  if (0 != GNUNET_OS_process_kill (h->helper_proc, SIGTERM))
+    return GNUNET_SYSERR;
+  return GNUNET_OK;
+}
+
+
+/**
+ * Reap the helper process.  This call is blocking(!).  The helper process
+ * should either be sent a termination signal before or should be dead before
+ * calling this function
+ *
+ * @param h the helper handle
+ * @return GNUNET_OK on success; GNUNET_SYSERR on error
+ */
+int
+GNUNET_HELPER_wait (struct GNUNET_HELPER_Handle *h)
+{
+  struct GNUNET_HELPER_SendHandle *sh;
+  int ret;
+
+  if (NULL != h->helper_proc)
+  {
+    ret = GNUNET_OS_process_wait (h->helper_proc);
+    GNUNET_OS_process_destroy (h->helper_proc);
+    h->helper_proc = NULL;
   }
   if (GNUNET_SCHEDULER_NO_TASK != h->read_task)
   {
@@ -227,6 +261,22 @@ stop_helper (struct GNUNET_HELPER_Handle *h, int soft_kill)
   }
   /* purge MST buffer */
   (void) GNUNET_SERVER_mst_receive (h->mst, NULL, NULL, 0, GNUNET_YES, GNUNET_NO);
+  return ret;
+}
+
+
+/**
+ * Stop the helper process, we're closing down or had an error.
+ *
+ * @param h handle to the helper process
+ * @param soft_kill if GNUNET_YES, signals termination by closing the helper's
+ *          stdin; GNUNET_NO to signal termination by sending SIGTERM to helper
+ */
+static void
+stop_helper (struct GNUNET_HELPER_Handle *h, int soft_kill)
+{
+  GNUNET_break (GNUNET_OK == GNUNET_HELPER_kill (h, soft_kill));
+  GNUNET_break (GNUNET_OK == GNUNET_HELPER_wait (h));
 }
 
 
@@ -274,7 +324,7 @@ helper_read (void *cls,
     if (NULL != h->exp_cb)
     {
       h->exp_cb (h->cb_cls);
-      GNUNET_HELPER_stop (h);
+      GNUNET_HELPER_stop (h, GNUNET_NO);
       return;
     }
     stop_helper (h, GNUNET_NO);
@@ -293,7 +343,7 @@ helper_read (void *cls,
     if (NULL != h->exp_cb)
     {
       h->exp_cb (h->cb_cls);
-      GNUNET_HELPER_stop (h);
+      GNUNET_HELPER_stop (h, GNUNET_NO);
       return;
     }
     stop_helper (h, GNUNET_NO);
@@ -318,7 +368,7 @@ helper_read (void *cls,
     if (NULL != h->exp_cb)
     {
       h->exp_cb (h->cb_cls);
-      GNUNET_HELPER_stop (h);
+      GNUNET_HELPER_stop (h, GNUNET_NO);
       return;
     }     
     stop_helper (h, GNUNET_NO);
@@ -445,30 +495,15 @@ GNUNET_HELPER_start (int with_control_pipe,
 
 
 /**
- * @brief Kills the helper, closes the pipe and frees the h
+ * Free's the resources occupied by the helper handle
  *
- * @param h h to helper to stop
- * @param soft_kill if GNUNET_YES, signals termination by closing the helper's
- *          stdin; GNUNET_NO to signal termination by sending SIGTERM to helper
+ * @param h the helper handle to free
  */
-static void
-kill_helper (struct GNUNET_HELPER_Handle *h, int soft_kill)
+void
+GNUNET_HELPER_destroy (struct GNUNET_HELPER_Handle *h)
 {
-  struct GNUNET_HELPER_SendHandle *sh;
   unsigned int c;
 
-  h->exp_cb = NULL;
-  /* signal pending writes that we were stopped */
-  while (NULL != (sh = h->sh_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (h->sh_head,
-				 h->sh_tail,
-				 sh);
-    if (NULL != sh->cont)
-      sh->cont (sh->cont_cls, GNUNET_SYSERR);
-    GNUNET_free (sh);
-  }
-  stop_helper (h, soft_kill);
   GNUNET_SERVER_mst_destroy (h->mst);
   GNUNET_free (h->binary_name);
   for (c = 0; h->binary_argv[c] != NULL; c++)
@@ -482,24 +517,15 @@ kill_helper (struct GNUNET_HELPER_Handle *h, int soft_kill)
  * Kills the helper, closes the pipe and frees the handle
  *
  * @param h handle to helper to stop
+ * @param soft_kill if GNUNET_YES, signals termination by closing the helper's
+ *          stdin; GNUNET_NO to signal termination by sending SIGTERM to helper
  */
 void
-GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h)
+GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h, int soft_kill)
 {
-  kill_helper (h, GNUNET_NO);
-}
-
-
-/**
- * Kills the helper by closing its stdin (the helper is expected to catch the
- * resulting SIGPIPE and shutdown), closes the pipe and frees the handle
- *
- * @param h handle to helper to stop
- */
-void
-GNUNET_HELPER_soft_stop (struct GNUNET_HELPER_Handle *h)
-{
-  kill_helper (h, GNUNET_YES);
+  h->exp_cb = NULL;
+  stop_helper (h, soft_kill);
+  GNUNET_HELPER_destroy (h);
 }
 
 
@@ -540,7 +566,7 @@ helper_write (void *cls,
     if (NULL != h->exp_cb)
     {
       h->exp_cb (h->cb_cls);
-      GNUNET_HELPER_stop (h);
+      GNUNET_HELPER_stop (h, GNUNET_NO);
       return;
     }
     stop_helper (h, GNUNET_NO);

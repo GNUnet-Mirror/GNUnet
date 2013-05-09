@@ -1261,6 +1261,42 @@ GNUNET_TESTBED_controller_start (const char *trusted_ip,
 
 
 /**
+ * Sends termination signal to the controller's helper process
+ *
+ * @param cproc the handle to the controller's helper process
+ */
+void
+GNUNET_TESTBED_controller_kill_ (struct GNUNET_TESTBED_ControllerProc *cproc)
+{
+  if (NULL != cproc->shandle)
+    GNUNET_HELPER_send_cancel (cproc->shandle);
+  if (NULL != cproc->helper)
+    GNUNET_HELPER_kill (cproc->helper, GNUNET_YES);
+}
+
+
+/**
+ * Cleans-up the controller's helper process handle
+ *
+ * @param cproc the handle to the controller's helper process
+ */
+void
+GNUNET_TESTBED_controller_destroy_ (struct GNUNET_TESTBED_ControllerProc *cproc)
+{
+  if (NULL != cproc->helper)
+  {
+    GNUNET_break (GNUNET_OK == GNUNET_HELPER_wait (cproc->helper));
+    GNUNET_HELPER_destroy (cproc->helper);
+  }
+  if (NULL != cproc->helper_argv)
+    free_argv (cproc->helper_argv);
+  cproc->host->controller_started = GNUNET_NO;
+  cproc->host->locked = GNUNET_NO;
+  GNUNET_free (cproc);
+}
+
+
+/**
  * Stop the controller process (also will terminate all peers and controllers
  * dependent on this controller).  This function blocks until the testbed has
  * been fully terminated (!). The controller status cb from
@@ -1271,15 +1307,8 @@ GNUNET_TESTBED_controller_start (const char *trusted_ip,
 void
 GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_ControllerProc *cproc)
 {
-  if (NULL != cproc->shandle)
-    GNUNET_HELPER_send_cancel (cproc->shandle);
-  if (NULL != cproc->helper)
-    GNUNET_HELPER_soft_stop (cproc->helper);
-  if (NULL != cproc->helper_argv)
-    free_argv (cproc->helper_argv);
-  cproc->host->controller_started = GNUNET_NO;
-  cproc->host->locked = GNUNET_NO;
-  GNUNET_free (cproc);
+  GNUNET_TESTBED_controller_kill_ (cproc);
+  GNUNET_TESTBED_controller_destroy_ (cproc);
 }
 
 

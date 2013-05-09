@@ -88,7 +88,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
   if (NULL != helper)
-    GNUNET_HELPER_stop (helper);
+    GNUNET_HELPER_stop (helper, GNUNET_NO);
   GNUNET_free_non_null (msg);
   if (NULL != cfg)
     GNUNET_CONFIGURATION_destroy (cfg);

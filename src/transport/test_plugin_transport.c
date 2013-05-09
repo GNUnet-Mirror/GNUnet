@@ -186,7 +186,7 @@ end ()
 
   if (NULL != suid_helper)
   {
-    GNUNET_HELPER_stop (suid_helper);
+    GNUNET_HELPER_stop (suid_helper, GNUNET_NO);
     suid_helper = NULL;
   }
 }
@@ -252,7 +252,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (NULL != suid_helper)
   {
-    GNUNET_HELPER_stop (suid_helper);
+    GNUNET_HELPER_stop (suid_helper, GNUNET_NO);
     suid_helper = NULL;
   }
 
