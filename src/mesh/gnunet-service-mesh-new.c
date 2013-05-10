@@ -4192,22 +4192,30 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     debug_bck_ack++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  FWD ACK\n");
+    if (GNUNET_SCHEDULER_NO_TASK != t->next_fc.poll_task &&
+        GMC_is_pid_bigger (ack, t->next_fc.last_ack_recv))
+    {
+      GNUNET_SCHEDULER_cancel (t->next_fc.poll_task);
+      t->next_fc.poll_task = GNUNET_SCHEDULER_NO_TASK;
+      t->next_fc.poll_time = GNUNET_TIME_UNIT_SECONDS;
+    }
     t->next_fc.last_ack_recv = ack;
-    tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
     peer_unlock_queue (t->next_hop);
-//     if (GNUNET_SCHEDULER_NO_TASK != cinfo->fc_poll) FIXME
-//     {
-//       GNUNET_SCHEDULER_cancel (cinfo->fc_poll);
-//       cinfo->fc_poll = GNUNET_SCHEDULER_NO_TASK;
-//       cinfo->fc_poll_time = GNUNET_TIME_UNIT_SECONDS;
-//     }
+    tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
   }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  BCK ACK\n");
+    if (GNUNET_SCHEDULER_NO_TASK != t->prev_fc.poll_task &&
+        GMC_is_pid_bigger (ack, t->prev_fc.last_ack_recv))
+    {
+      GNUNET_SCHEDULER_cancel (t->prev_fc.poll_task);
+      t->prev_fc.poll_task = GNUNET_SCHEDULER_NO_TASK;
+      t->prev_fc.poll_time = GNUNET_TIME_UNIT_SECONDS;
+    }
     t->prev_fc.last_ack_recv = ack;
-    tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
     peer_unlock_queue (t->prev_hop);
+    tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
   }
   return GNUNET_OK;
 }
