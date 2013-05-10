@@ -1430,16 +1430,20 @@ send_core_data_raw (void *cls, size_t size, void *buf)
  */
 static void
 send_prebuilt_message (const struct GNUNET_MessageHeader *message,
-                       const struct GNUNET_PeerIdentity *peer,
+                       GNUNET_PEER_Id peer,
                        struct MeshTunnel *t)
 {
   struct MeshTransmissionDescriptor *info;
+  struct GNUNET_PeerIdentity id;
   struct MeshPeerInfo *neighbor;
   struct MeshPeerPath *p;
   size_t size;
   uint16_t type;
 
 //   GNUNET_TRANSPORT_try_connect(); FIXME use?
+
+  if (0 == peer)
+    return;
 
   size = ntohs (message->size);
   info = GNUNET_malloc (sizeof (struct MeshTransmissionDescriptor));
@@ -1461,7 +1465,8 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       to->pid = htonl(t->bck_pid);
   }
   info->data_len = size;
-  neighbor = peer_get (peer);
+  GNUNET_PEER_resolve (peer, &id);
+  neighbor = peer_get (&id);
   for (p = neighbor->path_head; NULL != p; p = p->next)
   {
     if (2 >= p->length)
@@ -1474,10 +1479,10 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 #if MESH_DEBUG
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  %s IS NOT DIRECTLY CONNECTED\n",
-                GNUNET_i2s(peer));
+                GNUNET_i2s(&id));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  PATHS TO %s:\n",
-                GNUNET_i2s(peer));
+                GNUNET_i2s(&id));
     for (p = neighbor->path_head; NULL != p; p = p->next)
     {
       struct GNUNET_PeerIdentity debug_id;
@@ -1498,7 +1503,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     GNUNET_break (0); // FIXME sometimes fails (testing disconnect?)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                     " no direct connection to %s\n",
-                    GNUNET_i2s (peer));
+                    GNUNET_i2s (&id));
     GNUNET_free (info->data);
     GNUNET_free (info);
     return;
@@ -2371,7 +2376,7 @@ send_local_ack (struct MeshTunnel *t, struct MeshClient *c, uint32_t ack)
  * @param ack Value of the ACK.
  */
 static void
-send_ack (struct MeshTunnel *t, struct GNUNET_PeerIdentity *peer,  uint32_t ack)
+send_ack (struct MeshTunnel *t, GNUNET_PEER_Id peer,  uint32_t ack)
 {
   struct GNUNET_MESH_ACK msg;
 
@@ -2429,7 +2434,6 @@ tunnel_send_client_fwd_ack (struct MeshTunnel *t)
 static void
 tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
 {
-  struct GNUNET_PeerIdentity id;
   uint32_t ack;
 
   if (NULL != t->owner)
@@ -2485,8 +2489,7 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
   }
 
   t->last_fwd_ack = ack;
-  GNUNET_PEER_resolve (t->prev_hop, &id);
-  send_ack (t, &id, ack);
+  send_ack (t, t->prev_hop, ack);
   debug_fwd_ack++;
   t->force_ack = GNUNET_NO;
 }
@@ -2500,12 +2503,10 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
  */
 static void
 tunnel_send_child_bck_ack (struct MeshTunnel *t,
-                           GNUNET_PEER_Id id)
+                           GNUNET_PEER_Id peer)
 {
-  struct GNUNET_PeerIdentity peer;
   uint32_t ack = 0; // FIXME
 
-  GNUNET_PEER_resolve (id, &peer);
 //   ack = cinfo->bck_pid + t->bck_queue_max - t->bck_queue_n;
 // 
 //   if (cinfo->bck_ack == ack && GNUNET_NO == t->force_ack)
@@ -2519,7 +2520,7 @@ tunnel_send_child_bck_ack (struct MeshTunnel *t,
 //   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 //               "    Sending BCK ACK %u (last sent: %u)\n",
 //               ack, cinfo->bck_ack);
-  send_ack (t, &peer, ack);
+  send_ack (t, peer, ack);
 }
 
 
@@ -2698,9 +2699,9 @@ tunnel_send_destroy (struct MeshTunnel *t)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  child: %u\n", t->next_hop);
     GNUNET_PEER_resolve (t->next_hop, &id);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "  sending back to %s\n",
+                "  sending forward to %s\n",
                 GNUNET_i2s (&id));
-    send_prebuilt_message (&msg.header, &id, t);
+    send_prebuilt_message (&msg.header, t->next_hop, t);
   }
   if (0 != t->prev_hop)
   {
@@ -2709,7 +2710,7 @@ tunnel_send_destroy (struct MeshTunnel *t)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  sending back to %s\n",
                 GNUNET_i2s (&id));
-    send_prebuilt_message (&msg.header, &id, t);
+    send_prebuilt_message (&msg.header, t->prev_hop, t);
   }
 }
 
@@ -3809,7 +3810,7 @@ handle_mesh_path_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
   if (own_pos < path->length - 1)
-    send_prebuilt_message (message, &pi[own_pos + 1], t);
+    send_prebuilt_message (message, path->peers[own_pos + 1], t);
   else
     send_client_tunnel_disconnect(t, NULL);
 
@@ -3929,7 +3930,6 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_Unicast *msg;
-  struct GNUNET_PeerIdentity neighbor;
   struct MeshTunnel *t;
   GNUNET_PEER_Id dest_id;
   uint32_t pid;
@@ -4008,8 +4008,6 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "  not for us, retransmitting...\n");
 
-  GNUNET_PEER_resolve (t->next_hop, &neighbor);
-
 /*   cinfo->fwd_pid = pid; FIXME
 
   if (GNUNET_YES == t->nobuffer &&
@@ -4020,7 +4018,7 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }*/
-  send_prebuilt_message (message, &neighbor, t);
+  send_prebuilt_message (message, t->next_hop, t);
   GNUNET_STATISTICS_update (stats, "# unicast forwarded", 1, GNUNET_NO);
   return GNUNET_OK;
 }
@@ -4041,7 +4039,6 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_ToOrigin *msg;
-  struct GNUNET_PeerIdentity id;
   struct MeshPeerInfo *peer_info;
   struct MeshTunnel *t;
   size_t size;
@@ -4136,8 +4133,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
                 GNUNET_i2s (&msg->oid), ntohl(msg->tid));
     return GNUNET_OK;
   }
-  GNUNET_PEER_resolve (t->prev_hop, &id);
-  send_prebuilt_message (message, &id, t);
+  send_prebuilt_message (message, t->prev_hop, t);
   GNUNET_STATISTICS_update (stats, "# to origin forwarded", 1, GNUNET_NO);
 
   return GNUNET_OK;
@@ -4267,7 +4263,6 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
                       const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_PathACK *msg;
-  struct GNUNET_PeerIdentity id;
   struct MeshPeerInfo *peer_info;
   struct MeshPeerPath *p;
   struct MeshTunnel *t;
@@ -4323,9 +4318,8 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "  not for us, retransmitting...\n");
-  GNUNET_PEER_resolve (t->prev_hop, &id);
   peer_info = peer_get (&msg->oid);
-  send_prebuilt_message (message, &id, t);
+  send_prebuilt_message (message, t->prev_hop, t);
   return GNUNET_OK;
 }
 
@@ -4346,7 +4340,6 @@ handle_mesh_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
                        const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_TunnelKeepAlive *msg;
-  struct GNUNET_PeerIdentity id;
   struct MeshTunnel *t;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a keepalive packet from %s\n",
@@ -4366,7 +4359,7 @@ handle_mesh_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
   tunnel_reset_timeout (t);
 
   GNUNET_STATISTICS_update (stats, "# keepalives forwarded", 1, GNUNET_NO);
-  send_prebuilt_message (message, NULL, t);
+  send_prebuilt_message (message, t->next_hop, t);
   return GNUNET_OK;
   }
 
@@ -4452,7 +4445,6 @@ static void
 path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshTunnel *t = cls;
-  struct GNUNET_PeerIdentity id;
   struct GNUNET_MESH_TunnelKeepAlive *msg;
   size_t size = sizeof (struct GNUNET_MESH_TunnelKeepAlive);
   char cbuf[size];
@@ -4472,8 +4464,7 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE);
   msg->oid = my_full_id;
   msg->tid = htonl (t->id.tid);
-  GNUNET_PEER_resolve (t->next_hop, &id);
-  send_prebuilt_message (&msg->header, &id, t);
+  send_prebuilt_message (&msg->header, t->next_hop, t);
 
   t->path_refresh_task =
       GNUNET_SCHEDULER_add_delayed (refresh_path_time, &path_refresh, t);
