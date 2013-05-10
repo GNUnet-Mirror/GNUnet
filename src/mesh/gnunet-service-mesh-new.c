@@ -2633,7 +2633,6 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
-    case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "ACK due to FWD DATA retransmission\n");
       if (GNUNET_YES == t->nobuffer)
@@ -2963,8 +2962,7 @@ tunnel_cancel_queues (void *cls, GNUNET_PEER_Id neighbor_id)
     next = pq->next;
     if (pq->tunnel == t)
     {
-      if (GNUNET_MESSAGE_TYPE_MESH_MULTICAST == pq->type ||
-          GNUNET_MESSAGE_TYPE_MESH_UNICAST == pq->type ||
+      if (GNUNET_MESSAGE_TYPE_MESH_UNICAST == pq->type ||
           GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN == pq->type)
       {
         // Should have been removed on destroy children
@@ -3814,8 +3812,7 @@ queue_add (void *cls, uint16_t type, size_t size,
   unsigned int *n;
 
   n = NULL;
-  if (GNUNET_MESSAGE_TYPE_MESH_UNICAST == type ||
-      GNUNET_MESSAGE_TYPE_MESH_MULTICAST == type)
+  if (GNUNET_MESSAGE_TYPE_MESH_UNICAST == type)
   {
     n = &t->fwd_queue_n;
     max = &t->fwd_queue_max;
@@ -5004,9 +5001,9 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
 /**
  * Handler for requests of new tunnels
  *
- * @param cls closure
- * @param client identification of the client
- * @param message the actual message
+ * @param cls Closure.
+ * @param client Identification of the client.
+ * @param message The actual message.
  */
 static void
 handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
@@ -5058,17 +5055,16 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
 
   while (NULL != tunnel_get_by_pi (myid, next_tid))
     next_tid = (next_tid + 1) & ~GNUNET_MESH_LOCAL_TUNNEL_ID_CLI;
-  t = tunnel_new (myid, next_tid++, c, tid);
+  t = tunnel_new (myid, next_tid, c, tid);
+  next_tid = (next_tid + 1) & ~GNUNET_MESH_LOCAL_TUNNEL_ID_CLI;
   if (NULL == t)
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  next_tid = next_tid & ~GNUNET_MESH_LOCAL_TUNNEL_ID_CLI;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CREATED TUNNEL %s [%x] (%x)\n",
               GNUNET_i2s (&my_full_id), t->id.tid, t->local_tid);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "new tunnel created\n");
 
   peer_info = peer_get (&t_msg->peer);
   GNUNET_array_append (peer_info->tunnels, peer_info->ntunnels, t);
