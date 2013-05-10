@@ -27,14 +27,6 @@
 #include "mesh.h"
 
 
-/**
- * Check if one pid is bigger than other, accounting for overflow.
- *
- * @param bigger Argument that should be bigger.
- * @param smaller Argument that should be smaller.
- *
- * @return True if bigger (arg1) has a higher value than smaller (arg 2).
- */
 int
 GMC_is_pid_bigger (uint32_t bigger, uint32_t smaller)
 {
@@ -42,14 +34,7 @@ GMC_is_pid_bigger (uint32_t bigger, uint32_t smaller)
             (bigger > smaller && GNUNET_NO == PID_OVERFLOW(bigger, smaller)));
 }
 
-/**
- * Get the higher ACK value out of two values, taking in account overflow.
- *
- * @param a First ACK value.
- * @param b Second ACK value.
- *
- * @return Highest ACK value from the two.
- */
+
 uint32_t
 GMC_max_pid (uint32_t a, uint32_t b)
 {
@@ -59,20 +44,18 @@ GMC_max_pid (uint32_t a, uint32_t b)
 }
 
 
-/**
- * Get the lower ACK value out of two values, taking in account overflow.
- *
- * @param a First ACK value.
- * @param b Second ACK value.
- *
- * @return Lowest ACK value from the two.
- */
 uint32_t
 GMC_min_pid (uint32_t a, uint32_t b)
 {
   if (GMC_is_pid_bigger(a, b))
     return b;
   return a;
+}
+
+void
+GMC_hash32 (uint32_t i, struct GNUNET_HashCode *h)
+{
+  *(unsigned int *) h = i;
 }
 
 

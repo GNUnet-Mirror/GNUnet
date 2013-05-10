@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001-2012 Christian Grothoff (and other contributing authors)
+     (C) 2001-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -511,7 +511,8 @@ struct MeshClient
   struct GNUNET_SERVER_Client *handle;
 
     /**
-     * Messages that this client has declared interest in
+     * Messages that this client has declared interest in.
+     * Indexed by a GMC_hash32 (type), contains *Client.
      */
   struct GNUNET_CONTAINER_MultiHashMap *types;
 
@@ -1005,10 +1006,9 @@ client_get (struct GNUNET_SERVER_Client *client)
  *
  * @return GNUNET_YES or GNUNET_NO, depending on subscription status
  * 
- * FIXME: use of crypto_hash slows it down
- *  The hash function alone takes 8-10us out of the ~55us for the whole
+ *  A real hash function alone takes 8-10us out of the ~55us for the whole
  * process of retransmitting the message from one local client to another.
- * Find faster implementation!
+ * GMC_hash32 aim to imporve this speed.
  */
 static int
 client_is_subscribed (uint16_t message_type, struct MeshClient *c)
@@ -1018,7 +1018,7 @@ client_is_subscribed (uint16_t message_type, struct MeshClient *c)
   if (NULL == c->types)
     return GNUNET_NO;
 
-  GNUNET_CRYPTO_hash (&message_type, sizeof (uint16_t), &hc);
+  GMC_hash32 ((uint32_t) message_type, &hc);
   return GNUNET_CONTAINER_multihashmap_contains (c->types, &hc);
 }
 
@@ -4654,7 +4654,7 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
     {
       u16 = ntohs (t[i]);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    msg type: %u\n", u16);
-      GNUNET_CRYPTO_hash (&u16, sizeof (u16), &hc); // FIXME pseudo hash
+      GMC_hash32 ((uint32_t) u16, &hc);
 
       /* store in clients hashmap */
       GNUNET_CONTAINER_multihashmap_put (c->types, &hc, c,
