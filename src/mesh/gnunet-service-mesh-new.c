@@ -2154,6 +2154,7 @@ tunnel_use_path (struct MeshTunnel *t, struct MeshPeerPath *p)
     GNUNET_break (0);
     return;
   }
+
   if (i < p->length - 1)
     t->next_hop = p->peers[i + 1];
   else
@@ -2162,9 +2163,13 @@ tunnel_use_path (struct MeshTunnel *t, struct MeshPeerPath *p)
     t->prev_hop = p->peers[i - 1];
   else
     t->prev_hop = 0;
+
   if (NULL != t->path)
     path_destroy (t->path);
   t->path = path_duplicate (p);
+  if (GNUNET_SCHEDULER_NO_TASK == t->path_refresh_task)
+    t->path_refresh_task =
+        GNUNET_SCHEDULER_add_delayed (refresh_path_time, &path_refresh, t);
 }
 
 
@@ -3117,51 +3122,6 @@ send_core_path_create (void *cls, size_t size, void *buf)
 
 
 /**
- * Fill the core buffer 
- *
- * @param cls closure (data itself)
- * @param size number of bytes available in buf
- * @param buf where the callee should write the message
- *
- * @return number of bytes written to buf
- */
-static size_t
-send_core_data_multicast (void *cls, size_t size, void *buf)
-{
-  struct MeshTransmissionDescriptor *info = cls;
-  size_t total_size;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Multicast callback.\n");
-  GNUNET_assert (NULL != info);
-  GNUNET_assert (NULL != info->peer);
-  total_size = info->data_len;
-  GNUNET_assert (total_size < GNUNET_SERVER_MAX_MESSAGE_SIZE);
-
-  if (total_size > size)
-  {
-    GNUNET_break (0);
-    return 0;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " copying data...\n");
-  memcpy (buf, info->data, total_size);
-#if MESH_DEBUG
-  {
-    struct GNUNET_MessageHeader *mh;
-
-    mh = buf;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " type %s\n",
-                GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
-  }
-#endif
-  GNUNET_free (info->data);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "freeing info...\n");
-  GNUNET_free (info);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "return %u\n", total_size);
-  return total_size;
-}
-
-
-/**
  * Creates a path ack message in buf and frees all unused resources.
  *
  * @param cls closure (MeshTransmissionDescriptor)
@@ -3417,6 +3377,7 @@ queue_send (void *cls, size_t size, void *buf)
       case GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN:
       case GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY:
       case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
+      case GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "*********   raw: %s\n",
                     GNUNET_MESH_DEBUG_M2S (queue->type));
@@ -3444,10 +3405,6 @@ queue_send (void *cls, size_t size, void *buf)
       case GNUNET_MESSAGE_TYPE_MESH_PATH_ACK:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   path ack\n");
         data_size = send_core_path_ack (queue->cls, size, buf);
-        break;
-      case GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE:
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   path keepalive\n");
-        data_size = send_core_data_multicast (queue->cls, size, buf);
         break;
       default:
         GNUNET_break (0);
@@ -4496,6 +4453,7 @@ static void
 path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshTunnel *t = cls;
+  struct GNUNET_PeerIdentity id;
   struct GNUNET_MESH_TunnelKeepAlive *msg;
   size_t size = sizeof (struct GNUNET_MESH_TunnelKeepAlive);
   char cbuf[size];
@@ -4511,14 +4469,16 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   msg = (struct GNUNET_MESH_TunnelKeepAlive *) cbuf;
   msg->header.size = htons (size);
+  // FIXME change to tunnel keepalive
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE);
   msg->oid = my_full_id;
   msg->tid = htonl (t->id.tid);
-  /* FIXME tunnel_send_multicast (t, &msg->header); */
+  GNUNET_PEER_resolve (t->next_hop, &id);
+  send_prebuilt_message (&msg->header, &id, t);
 
   t->path_refresh_task =
       GNUNET_SCHEDULER_add_delayed (refresh_path_time, &path_refresh, t);
-  tunnel_reset_timeout(t);
+  tunnel_reset_timeout (t);
 }
 
 
