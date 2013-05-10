@@ -3074,6 +3074,8 @@ tunnel_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 tunnel_reset_timeout (struct MeshTunnel *t)
 {
+  if (NULL != t->owner || 0 != t->local_tid || 0 == t->prev_hop)
+    return;
   if (GNUNET_SCHEDULER_NO_TASK != t->maintenance_task)
     GNUNET_SCHEDULER_cancel (t->maintenance_task);
   t->maintenance_task =
@@ -4471,7 +4473,8 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char cbuf[size];
 
   t->maintenance_task = GNUNET_SCHEDULER_NO_TASK;
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) ||
+      NULL == t->owner || 0 == t->local_tid || 0 != t->prev_hop)
   {
     return;
   }
