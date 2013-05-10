@@ -869,8 +869,8 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
   const struct GNUNET_MessageHeader *payload;
   const struct GNUNET_MESH_MessageHandler *handler;
   const struct GNUNET_PeerIdentity *peer;
+  struct GNUNET_PeerIdentity id;
   struct GNUNET_MESH_Unicast *ucast;
-  struct GNUNET_MESH_Multicast *mcast;
   struct GNUNET_MESH_ToOrigin *to_orig;
   struct GNUNET_MESH_Tunnel *t;
   unsigned int i;
@@ -895,7 +895,8 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     to_orig = (struct GNUNET_MESH_ToOrigin *) message;
     t = retrieve_tunnel (h, ntohl (to_orig->tid));
     payload = (struct GNUNET_MessageHeader *) &to_orig[1];
-    GNUNET_PEER_resolve (t->peer, &peer);
+    GNUNET_PEER_resolve (t->peer, &id);
+    peer = &id;
     pid = ntohl (to_orig->pid);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  torig on tunnel %s [%X]\n",
          GNUNET_i2s (peer), ntohl (to_orig->tid));
@@ -1467,6 +1468,7 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
   msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
   msg.tunnel_id = htonl (t->tid);
+  msg.peer = *peer;
   send_packet (h, &msg.header, t);
   return t;
 }
