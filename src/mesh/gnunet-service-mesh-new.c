@@ -4481,7 +4481,6 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   msg = (struct GNUNET_MESH_TunnelKeepAlive *) cbuf;
   msg->header.size = htons (size);
-  // FIXME change to tunnel keepalive
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE);
   msg->oid = my_full_id;
   msg->tid = htonl (t->id.tid);
@@ -4489,7 +4488,6 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   t->maintenance_task =
       GNUNET_SCHEDULER_add_delayed (refresh_path_time, &path_refresh, t);
-  tunnel_reset_timeout (t);
 }
 
 
