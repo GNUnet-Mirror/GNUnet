@@ -109,28 +109,6 @@ struct MeshClient;
 
 
 /**
- * Struct representing a piece of data being sent to other peers
- */
-struct MeshData
-{
-  /** Tunnel it belongs to. */
-  struct MeshTunnel *t;
-
-  /** How many remaining neighbors still hav't got it. */
-  unsigned int reference_counter;
-
-  /** How many remaining neighbors we need to send this to. */
-  unsigned int total_out;
-
-  /** Size of the data. */
-  size_t data_len;
-
-  /** Data itself */
-  void *data;
-};
-
-
-/**
  * Struct containing info about a queued transmission to this peer
  */
 struct MeshPeerQueue
@@ -187,8 +165,14 @@ struct MeshTransmissionDescriptor
     /** Ultimate destination of the packet */
   GNUNET_PEER_Id destination;
 
-    /** Data descriptor */
-  struct MeshData* mesh_data;
+  /** Tunnel it belongs to. */
+  struct MeshTunnel *t;
+  
+  /** Size of the data. */
+  size_t data_len;
+  
+  /** Data itself */
+  void *data;
 };
 
 
@@ -1006,23 +990,6 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /******************      GENERAL HELPER FUNCTIONS      ************************/
 /******************************************************************************/
 
-/**
- * Decrements the reference counter and frees all resources if needed
- *
- * @param mesh_data Data Descriptor used in a multicast message.
- *                  Freed no longer needed (last message).
- */
-static void
-data_descriptor_decrement_rc (struct MeshData *mesh_data)
-{
-  if (0 == --(mesh_data->reference_counter))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Last copy!\n");
-    GNUNET_free (mesh_data->data);
-    GNUNET_free (mesh_data);
-  }
-}
-
 
 /**
  * Check if client has registered with the service and has not disconnected
@@ -1477,8 +1444,7 @@ send_core_data_raw (void *cls, size_t size, void *buf)
   size_t total_size;
 
   GNUNET_assert (NULL != info);
-  GNUNET_assert (NULL != info->mesh_data);
-  msg = (struct GNUNET_MessageHeader *) info->mesh_data->data;
+  msg = (struct GNUNET_MessageHeader *) info->data;
   total_size = ntohs (msg->size);
 
   if (total_size > size)
@@ -1487,7 +1453,7 @@ send_core_data_raw (void *cls, size_t size, void *buf)
     return 0;
   }
   memcpy (buf, msg, total_size);
-  data_descriptor_decrement_rc (info->mesh_data);
+  GNUNET_free (info->data);
   GNUNET_free (info);
   return total_size;
 }
@@ -1516,9 +1482,8 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
   size = ntohs (message->size);
   info = GNUNET_malloc (sizeof (struct MeshTransmissionDescriptor));
-  info->mesh_data = GNUNET_malloc (sizeof (struct MeshData));
-  info->mesh_data->data = GNUNET_malloc (size);
-  memcpy (info->mesh_data->data, message, size);
+  info->data = GNUNET_malloc (size);
+  memcpy (info->data, message, size);
   type = ntohs(message->type);
   switch (type)
   {
@@ -1526,17 +1491,15 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     struct GNUNET_MESH_ToOrigin *to;
 
     case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
-      m = (struct GNUNET_MESH_Unicast *) info->mesh_data->data;
+      m = (struct GNUNET_MESH_Unicast *) info->data;
       m->ttl = htonl (ntohl (m->ttl) - 1);
       break;
     case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
-      to = (struct GNUNET_MESH_ToOrigin *) info->mesh_data->data;
+      to = (struct GNUNET_MESH_ToOrigin *) info->data;
       t->bck_pid++;
       to->pid = htonl(t->bck_pid);
   }
-  info->mesh_data->data_len = size;
-  info->mesh_data->reference_counter = 1;
-  info->mesh_data->total_out = 1;
+  info->data_len = size;
   neighbor = peer_get (peer);
   for (p = neighbor->path_head; NULL != p; p = p->next)
   {
@@ -1575,8 +1538,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                     " no direct connection to %s\n",
                     GNUNET_i2s (peer));
-    GNUNET_free (info->mesh_data->data);
-    GNUNET_free (info->mesh_data);
+    GNUNET_free (info->data);
     GNUNET_free (info);
     return;
   }
@@ -3298,7 +3260,7 @@ send_core_data_multicast (void *cls, size_t size, void *buf)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Multicast callback.\n");
   GNUNET_assert (NULL != info);
   GNUNET_assert (NULL != info->peer);
-  total_size = info->mesh_data->data_len;
+  total_size = info->data_len;
   GNUNET_assert (total_size < GNUNET_SERVER_MAX_MESSAGE_SIZE);
 
   if (total_size > size)
@@ -3307,7 +3269,7 @@ send_core_data_multicast (void *cls, size_t size, void *buf)
     return 0;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " copying data...\n");
-  memcpy (buf, info->mesh_data->data, total_size);
+  memcpy (buf, info->data, total_size);
 #if MESH_DEBUG
   {
     struct GNUNET_MessageHeader *mh;
@@ -3317,7 +3279,7 @@ send_core_data_multicast (void *cls, size_t size, void *buf)
                 GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
   }
 #endif
-  data_descriptor_decrement_rc (info->mesh_data);
+  GNUNET_free (info->data);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "freeing info...\n");
   GNUNET_free (info);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "return %u\n", total_size);
@@ -3392,7 +3354,7 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
                     "   type %s\n",
                     GNUNET_MESH_DEBUG_M2S(queue->type));
         dd = queue->cls;
-        data_descriptor_decrement_rc (dd->mesh_data);
+        GNUNET_free (dd->data);
         break;
       case GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   type create path\n");
