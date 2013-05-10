@@ -1421,8 +1421,8 @@ send_core_data_raw (void *cls, size_t size, void *buf)
 
 
 /**
- * Sends an already built non-multicast message to a peer,
- * properly registrating all used resources.
+ * Sends an already built message to a peer, properly registrating
+ * all used resources.
  *
  * @param message Message to send. Function makes a copy of it.
  * @param peer Short ID of the neighbor whom to send the message.
@@ -1973,8 +1973,6 @@ path_add_to_peers (struct MeshPeerPath *p, int confirmed)
  *
  * @param cls Closure (tunnel for which to send the keepalive).
  * @param tc Notification context.
- *
- * TODO: implement explicit multicast keepalive?
  */
 static void
 path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
@@ -2439,7 +2437,7 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
     tunnel_send_client_fwd_ack (t);
     return;
   }
-  /* Is it after unicast / multicast retransmission? */
+  /* Is it after unicast retransmission? */
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
@@ -2650,7 +2648,7 @@ peer_unlock_queue(GNUNET_PEER_Id peer_id)
   if (NULL != peer->core_transmit)
     return;
 
-  q = queue_get_next(peer);
+  q = queue_get_next (peer);
   if (NULL == q)
   {
     /* Might br multicast traffic already sent to this particular peer but
@@ -4348,6 +4346,7 @@ handle_mesh_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
                        const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_TunnelKeepAlive *msg;
+  struct GNUNET_PeerIdentity id;
   struct MeshTunnel *t;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a keepalive packet from %s\n",
@@ -4367,7 +4366,7 @@ handle_mesh_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
   tunnel_reset_timeout (t);
 
   GNUNET_STATISTICS_update (stats, "# keepalives forwarded", 1, GNUNET_NO);
-  /* FIXME tunnel_send_multicast (t, message); */
+  send_prebuilt_message (message, NULL, t);
   return GNUNET_OK;
   }
 
