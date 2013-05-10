@@ -192,11 +192,6 @@ struct MeshPeerInfo
   struct GNUNET_TIME_Absolute last_contact;
 
     /**
-     * Task handler for delayed connect task;
-     */
-  GNUNET_SCHEDULER_TaskIdentifier connect_task;
-
-    /**
      * Number of attempts to reconnect so far
      */
   int n_reconnect_attempts;
@@ -217,13 +212,8 @@ struct MeshPeerInfo
   struct GNUNET_DHT_GetHandle *dhtget;
 
     /**
-     * Closure given to the DHT GET
-     */
-  struct MeshPathInfo *dhtgetcls;
-
-    /**
-     * Array of tunnels this peer participates in
-     * (most probably a small amount, therefore not a hashmap)
+     * Array of tunnels this peer is the target of.
+     * Most probably a small amount, therefore not a hashmap.
      * When the path to the peer changes, notify these tunnels to let them
      * re-adjust their path trees.
      */
@@ -468,28 +458,6 @@ struct MeshTunnelClientInfo
    * Last ACK sent to that child (BCK ACK).
    */
   uint32_t bck_ack;
-};
-
-
-/**
- * Info needed to work with tunnel paths and peers
- */
-struct MeshPathInfo
-{
-  /**
-   * Tunnel
-   */
-  struct MeshTunnel *t;
-
-  /**
-   * Neighbouring peer to whom we send the packet to
-   */
-  struct MeshPeerInfo *peer;
-
-  /**
-   * Path itself
-   */
-  struct MeshPeerPath *path;
 };
 
 
@@ -1394,20 +1362,14 @@ peer_get_best_path (const struct MeshPeerInfo *peer, const struct MeshTunnel *t)
 
 
 /**
- * Iterator to remove the tunnel from the list of tunnels a peer participates
- * in.
+ * Remove the tunnel from the list of tunnels to which a peer is target.
  *
- * @param cls Closure (tunnel info)
- * @param key GNUNET_PeerIdentity of the peer (unused)
- * @param value PeerInfo of the peer
- *
- * @return always GNUNET_YES, to keep iterating
+ * @param peer PeerInfo of the peer.
+ * @param t Tunnel to remove.
  */
-static int
-peer_info_delete_tunnel (void *cls, const struct GNUNET_HashCode * key, void *value)
+static void
+peer_remove_tunnel (struct MeshPeerInfo *peer, struct MeshTunnel *t)
 {
-  struct MeshTunnel *t = cls;
-  struct MeshPeerInfo *peer = value;
   unsigned int i;
 
   for (i = 0; i < peer->ntunnels; i++)
@@ -1420,10 +1382,9 @@ peer_info_delete_tunnel (void *cls, const struct GNUNET_HashCode * key, void *va
       peer->tunnels = 
         GNUNET_realloc (peer->tunnels, 
                         peer->ntunnels * sizeof(struct MeshTunnel *));
-      return GNUNET_YES;
+      return;
     }
   }
-  return GNUNET_YES;
 }
 
 
@@ -1565,7 +1526,6 @@ static void
 send_create_path (struct MeshPeerInfo *peer, struct MeshPeerPath *p,
                   struct MeshTunnel *t)
 {
-  struct MeshPathInfo *path_info;
   struct MeshPeerInfo *neighbor;
 
   if (NULL == p)
@@ -1574,60 +1534,13 @@ send_create_path (struct MeshPeerInfo *peer, struct MeshPeerPath *p,
     return;
   }
 
-  path_info = GNUNET_malloc (sizeof (struct MeshPathInfo));
-  path_info->path = p;
-  path_info->t = t;
   neighbor = peer_get_short (t->next_hop);
-  path_info->peer = neighbor;
-  queue_add (path_info,
+  queue_add (t,
              GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE,
              sizeof (struct GNUNET_MESH_ManipulatePath) +
                 (p->length * sizeof (struct GNUNET_PeerIdentity)),
              neighbor,
              t);
-}
-
-
-/**
- * Sends a DESTROY PATH message to free resources for a path in a tunnel.
- * Does not free the path itself.
- *
- * @param t Tunnel whose path to destroy.
- * @param destination Short ID of the peer to whom the path to destroy.
- */
-static void
-send_destroy_path (struct MeshTunnel *t)
-{
-  struct MeshPeerPath *p;
-  size_t size;
-
-  p = t->path;
-  if (NULL == p)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  size = sizeof (struct GNUNET_MESH_ManipulatePath);
-  size += p->length * sizeof (struct GNUNET_PeerIdentity);
-  {
-    struct GNUNET_MESH_ManipulatePath *msg;
-    struct GNUNET_PeerIdentity *pi;
-    struct GNUNET_PeerIdentity id;
-    char cbuf[size];
-    unsigned int i;
-
-    msg = (struct GNUNET_MESH_ManipulatePath *) cbuf;
-    msg->header.size = htons (size);
-    msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY);
-    msg->tid = htonl (t->id.tid);
-    pi = (struct GNUNET_PeerIdentity *) &msg[1];
-    for (i = 0; i < p->length; i++)
-    {
-      GNUNET_PEER_resolve (p->peers[i], &pi[i]);
-    }
-    GNUNET_PEER_resolve (t->next_hop, &id);
-    send_prebuilt_message (&msg->header, &id, t);
-  }
 }
 
 
@@ -1667,7 +1580,6 @@ send_path_ack (struct MeshTunnel *t)
 static void
 peer_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t)
 {
-  struct MeshPathInfo *path_info;
   struct MeshPeerPath *p;
 
   if (NULL != peer->path_head)
@@ -1681,48 +1593,19 @@ peer_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t)
     struct GNUNET_PeerIdentity id;
 
     GNUNET_PEER_resolve (peer->id, &id);
-    path_info = GNUNET_malloc (sizeof (struct MeshPathInfo));
-    path_info->peer = peer;
-    path_info->t = t;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  Starting DHT GET for peer %s\n", GNUNET_i2s (&id));
-    peer->dhtgetcls = path_info;
     peer->dhtget = GNUNET_DHT_get_start (dht_handle,    /* handle */
                                          GNUNET_BLOCK_TYPE_MESH_PEER, /* type */
                                          &id.hashPubKey,     /* key to search */
                                          dht_replication_level, /* replication level */
                                          GNUNET_DHT_RO_RECORD_ROUTE |
                                          GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-                                         NULL,       /* xquery */ // FIXME BLOOMFILTER
-                                         0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
-                                         &dht_get_id_handler, path_info);
+                                         NULL,       /* xquery */
+                                         0,     /* xquery bits */
+                                         &dht_get_id_handler, peer);
   }
   /* Otherwise, there is no path but the DHT get is already started. */
-}
-
-
-/**
- * Task to delay the connection of a peer
- *
- * @param cls Closure (path info with tunnel and peer to connect).
- *            Will be free'd on exection.
- * @param tc TaskContext
- */
-static void
-peer_info_connect_task (void *cls,
-                        const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct MeshPathInfo *path_info = cls;
-
-  path_info->peer->connect_task = GNUNET_SCHEDULER_NO_TASK;
-
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-  {
-    GNUNET_free (cls);
-    return;
-  }
-    peer_connect (path_info->peer, path_info->t);
-  GNUNET_free (cls);
 }
 
 
@@ -1753,7 +1636,6 @@ peer_info_destroy (struct MeshPeerInfo *pi)
   if (NULL != pi->dhtget)
   {
     GNUNET_DHT_get_stop (pi->dhtget);
-    GNUNET_free (pi->dhtgetcls);
   }
   p = pi->path_head;
   while (NULL != p)
@@ -1762,10 +1644,6 @@ peer_info_destroy (struct MeshPeerInfo *pi)
     GNUNET_CONTAINER_DLL_remove (pi->path_head, pi->path_tail, p);
     path_destroy (p);
     p = nextp;
-  }
-  if (GNUNET_SCHEDULER_NO_TASK != pi->connect_task)
-  {
-    GNUNET_free (GNUNET_SCHEDULER_cancel (pi->connect_task));
   }
   GNUNET_free (pi);
   return GNUNET_OK;
@@ -1784,7 +1662,7 @@ peer_info_destroy (struct MeshPeerInfo *pi)
  * TODO: optimize (see below)
  */
 static void
-peer_info_remove_path (struct MeshPeerInfo *peer, GNUNET_PEER_Id p1,
+peer_remove_path (struct MeshPeerInfo *peer, GNUNET_PEER_Id p1,
                        GNUNET_PEER_Id p2)
 {
   struct MeshPeerPath *p;
@@ -3197,11 +3075,10 @@ tunnel_reset_timeout (struct MeshTunnel *t)
 static size_t
 send_core_path_create (void *cls, size_t size, void *buf)
 {
-  struct MeshPathInfo *info = cls;
+  struct MeshTunnel *t = cls;
   struct GNUNET_MESH_ManipulatePath *msg;
   struct GNUNET_PeerIdentity *peer_ptr;
-  struct MeshTunnel *t = info->t;
-  struct MeshPeerPath *p = info->path;
+  struct MeshPeerPath *p = t->path;
   size_t size_needed;
   uint32_t opt;
   int i;
@@ -3232,9 +3109,6 @@ send_core_path_create (void *cls, size_t size, void *buf)
   {
     GNUNET_PEER_resolve (p->peers[i], peer_ptr++);
   }
-
-  path_destroy (p);
-  GNUNET_free (info);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "CREATE PATH (%u bytes long) sent!\n", size_needed);
@@ -3332,7 +3206,6 @@ static void
 queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
 {
   struct MeshTransmissionDescriptor *dd;
-  struct MeshPathInfo *path_info;
 //   unsigned int max;
 
   if (GNUNET_YES == clear_cls)
@@ -3358,8 +3231,6 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
         break;
       case GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   type create path\n");
-        path_info = queue->cls;
-        path_destroy (path_info->path);
         break;
       default:
         GNUNET_break (0);
@@ -4678,22 +4549,22 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                     unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
                     size_t size, const void *data)
 {
-  struct MeshPathInfo *path_info = cls;
+  struct MeshPeerInfo *peer = cls;
   struct MeshPeerPath *p;
   struct GNUNET_PeerIdentity pi;
   int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got results from DHT!\n");
-  GNUNET_PEER_resolve (path_info->peer->id, &pi);
+  GNUNET_PEER_resolve (peer->id, &pi);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  for %s\n", GNUNET_i2s (&pi));
 
   p = path_build_from_dht (get_path, get_path_length,
                            put_path, put_path_length);
   path_add_to_peers (p, GNUNET_NO);
   path_destroy (p);
-  for (i = 0; i < path_info->peer->ntunnels; i++)
+  for (i = 0; i < peer->ntunnels; i++)
   {
-        peer_connect (path_info->peer, path_info->t);
+    peer_connect (peer, peer->tunnels[i]); // FIXME add if
   }
 
   return;
@@ -4971,6 +4842,7 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   /* Don't try to ACK the client about the tunnel_destroy multicast packet */
   t->owner = NULL;
   tunnel_send_destroy (t);
+  peer_remove_tunnel (peer_get_short(t->peer), t);
   t->destroy = GNUNET_YES;
   /* The tunnel will be destroyed when the last message is transmitted. */
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -5566,7 +5438,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     GNUNET_CORE_notify_transmit_ready_cancel(pi->core_transmit);
     pi->core_transmit = NULL;
   }
-  peer_info_remove_path (pi, pi->id, myid);
+    peer_remove_path (pi, pi->id, myid);
   if (myid == pi->id)
   {
     DEBUG_CONN ("     (self)\n");
