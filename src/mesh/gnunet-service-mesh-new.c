@@ -247,6 +247,46 @@ struct MeshPeerInfo
 
 
 /**
+ * Struct to encapsulate all the Flow Control information to a peer in the
+ * context of a tunnel: Same peer in different tunnels will have independent
+ * flow control structures, allowing to choke/free tunnels according to its
+ * own criteria.
+ */
+struct MeshFlowControl
+{
+  /**
+   * ID of the last packet sent towards the peer.
+   */
+  uint32_t last_pid_sent;
+
+  /**
+   * ID of the last packet received from the peer.
+   */
+  uint32_t last_pid_recv;
+
+  /**
+   * Last ACK sent to the peer (peer can't send more than this PID).
+   */
+  uint32_t last_ack_sent;
+
+  /**
+   * Last ACK sent towards the origin (for traffic towards leaf node).
+   */
+  uint32_t last_ack_recv;
+
+  /**
+   * How many messages are in the queue towards this peer.
+   */
+  uint32_t queue_n;
+
+  /**
+   * Task to poll the peer in case of a lost ACK causes stall.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier poll_task;
+};
+
+
+/**
  * Globally unique tunnel identification (owner + number)
  * DO NOT USE OVER THE NETWORK
  */
@@ -297,55 +337,14 @@ struct MeshTunnel
   int nobuffer;
 
     /**
-     * Packet ID of the last fwd packet seen (sent/retransmitted/received).
-     */
-  uint32_t fwd_pid;
-
-    /**
-     * Packet ID of the last bck packet sent (unique counter per hop).
-     */
-  uint32_t bck_pid;
-
-    /**
      * Force sending ACK? Flag to allow duplicate ACK on POLL.
      */
   int force_ack;
 
     /**
-     * Last ACK sent towards the origin (for traffic towards leaf node).
-     */
-  uint32_t last_fwd_ack;
-
-    /**
-     * BCK ACK value received from the hop towards the owner of the tunnel,
-     * (previous node / owner): up to what message PID can we sent back to him.
-     */
-  uint32_t bck_ack;
-
-    /**
-     * How many messages are in the forward queue (towards leaves).
-     */
-  unsigned int fwd_queue_n;
-
-    /**
      * How many messages do we accept in the forward queue.
      */
-  unsigned int fwd_queue_max;
-
-    /**
-     * How many messages are in the backward queue (towards origin).
-     */
-  unsigned int bck_queue_n;
-
-    /**
-     * How many messages do we accept in the backward queue.
-    */
-   unsigned int bck_queue_max;
-
-    /**
-     * Task to poll peer in case of a stall.
-     */
-   GNUNET_SCHEDULER_TaskIdentifier fc_poll_bck;
+  unsigned int queue_max;
 
     /**
      * Last time the tunnel was used
@@ -353,24 +352,40 @@ struct MeshTunnel
   struct GNUNET_TIME_Absolute timestamp;
 
     /**
-     * Peer of the tunnel.
+     * Destination of the tunnel.
      */
-  GNUNET_PEER_Id peer;
+  GNUNET_PEER_Id dest;
 
-  /**
-   * Next hop in the tunnel.
-   */
+    /**
+     * Next hop in the tunnel.
+     */
   GNUNET_PEER_Id next_hop;
 
-  /**
-   * Previous hop in the tunnel.
-   */
+    /**
+     * Previous hop in the tunnel.
+     */
   GNUNET_PEER_Id prev_hop;
+
+    /**
+     * Flow control information about @c next_hop.
+     */
+  struct MeshFlowControl next_fc;
+
+  /**
+   * Flow control information about @c prev_hop.
+   */
+  struct MeshFlowControl prev_fc;
 
     /**
      * Client owner of the tunnel, if any
      */
   struct MeshClient *owner;
+
+    /**
+     * Task to keep the used paths alive at the owner,
+     * time tunnel out on all the other peers.
+     */
+  GNUNET_SCHEDULER_TaskIdentifier maintenance_task;
 
     /**
      * Clients that have been informed about and want to stay in the tunnel.
@@ -382,7 +397,7 @@ struct MeshTunnel
      */
   struct MeshTunnelClientInfo *clients_fc;
 
-  /**
+    /**
      * Number of elements in clients/clients_fc
      */
   unsigned int nclients;
@@ -397,23 +412,10 @@ struct MeshTunnel
      */
   unsigned int nignore;
 
-  /**
-   * Path being used for the tunnel.
-   */
+    /**
+     * Path being used for the tunnel.
+     */
   struct MeshPeerPath *path;
-
-    /**
-     * Task to keep the used paths alive
-     */
-  GNUNET_SCHEDULER_TaskIdentifier path_refresh_task;
-
-    /**
-     * Task to destroy the tunnel after timeout
-     *
-     * FIXME: merge the two? a tunnel will have either
-     * a path refresh OR a timeout, never both!
-     */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
     /**
      * Flag to signal the destruction of the tunnel.
@@ -427,9 +429,9 @@ struct MeshTunnel
      */
   unsigned int pending_messages;
 
-  /**
-   * If the tunnel is empty, destoy it.
-   */
+    /**
+     * If the tunnel is empty, destoy it.
+     */
   GNUNET_SCHEDULER_TaskIdentifier delayed_destroy;
 };
 
@@ -841,7 +843,7 @@ tunnel_add_client (struct MeshTunnel *t, struct MeshClient *c);
 
 
 /**
- * .Use the given path for the tunnel.
+ * Use the given path for the tunnel.
  * 
  * @param t Tunnel to update.
  * @param p Path to use.
@@ -1461,8 +1463,8 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       break;
     case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
       to = (struct GNUNET_MESH_ToOrigin *) info->data;
-      t->bck_pid++;
-      to->pid = htonl(t->bck_pid);
+      t->prev_fc.last_pid_sent++; /* FIXME per hop? */
+      to->pid = htonl (t->prev_fc.last_pid_sent);
   }
   info->data_len = size;
   GNUNET_PEER_resolve (peer, &id);
@@ -2126,18 +2128,18 @@ tunnel_delete_client (struct MeshTunnel *t, const struct MeshClient *c)
   tunnel_delete_active_client (t, c);
 }
 
-
+/* FIXME check initial values */
 static void
 tunnel_add_client (struct MeshTunnel *t, struct MeshClient *c)
 {
   struct MeshTunnelClientInfo clinfo;
 
   GNUNET_array_append (t->clients, t->nclients, c);
-  clinfo.fwd_ack = t->fwd_pid + 1;
+  clinfo.fwd_ack = t->prev_fc.last_pid_recv + 1;
+  clinfo.fwd_pid = t->prev_fc.last_pid_recv;
   clinfo.bck_ack = t->nobuffer ? 1 : INITIAL_WINDOW_SIZE - 1;
-  clinfo.fwd_pid = t->fwd_pid;
-  clinfo.bck_pid = (uint32_t) -1; // Expected next: 0
-  t->nclients--;
+  clinfo.bck_pid = (uint32_t) -1; /* Expected next: 0 */
+  t->nclients--; /* Double append */
   GNUNET_array_append (t->clients_fc, t->nclients, clinfo);
 }
 
@@ -2170,8 +2172,8 @@ tunnel_use_path (struct MeshTunnel *t, struct MeshPeerPath *p)
   if (NULL != t->path)
     path_destroy (t->path);
   t->path = path_duplicate (p);
-  if (GNUNET_SCHEDULER_NO_TASK == t->path_refresh_task)
-    t->path_refresh_task =
+  if (GNUNET_SCHEDULER_NO_TASK == t->maintenance_task)
+    t->maintenance_task =
         GNUNET_SCHEDULER_add_delayed (refresh_path_time, &path_refresh, t);
 }
 
@@ -2298,8 +2300,9 @@ tunnel_get_clients_fwd_ack (struct MeshTunnel *t)
     }
   }
 
-  if (GNUNET_YES == t->nobuffer && GMC_is_pid_bigger(ack, t->fwd_pid))
-    ack = (uint32_t) t->fwd_pid + 1; // Might overflow, it's ok.
+  if (GNUNET_YES == t->nobuffer &&
+      GMC_is_pid_bigger(ack, t->prev_fc.last_pid_recv))
+    ack = (uint32_t) t->prev_fc.last_pid_recv + 1; // Might overflow, it's ok.
 
   return (uint32_t) ack;
 }
@@ -2317,20 +2320,18 @@ static uint32_t
 tunnel_get_fwd_ack (struct MeshTunnel *t)
 {
   uint32_t ack;
-  uint32_t count;
   uint32_t buffer_free;
   int64_t client_ack;
 
-  count = t->fwd_pid;
-  buffer_free = t->fwd_queue_max - t->fwd_queue_n;
+  buffer_free = t->queue_max - t->next_fc.queue_n;
   client_ack = tunnel_get_clients_fwd_ack (t);
   if (GNUNET_YES == t->nobuffer)
   {
-    ack = count;
+    ack = t->prev_fc.last_ack_sent;
   }
   else
   {
-    ack = count + buffer_free; // Overflow? OK!
+    ack = t->prev_fc.last_ack_sent + buffer_free; // Overflow? OK!
   }
   if (-1LL == client_ack)
   {
@@ -2341,7 +2342,7 @@ tunnel_get_fwd_ack (struct MeshTunnel *t)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "c %u, bf %u, cl %lld, ACK: %u\n",
-              count, buffer_free, client_ack, ack);
+              t->prev_fc.last_ack_sent, buffer_free, client_ack, ack);
   return ack;
 }
 
@@ -2408,14 +2409,14 @@ tunnel_send_client_fwd_ack (struct MeshTunnel *t)
   ack = tunnel_get_fwd_ack (t);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ack %u\n", ack);
-  if (t->last_fwd_ack == ack)
+  if (t->prev_fc.last_ack_sent == ack)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " same as last, not sending!\n");
     return;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " sending!\n");
-  t->last_fwd_ack = ack;
+  t->prev_fc.last_ack_sent = ack;
   send_local_ack (t, t->owner, ack);
 }
 
@@ -2464,31 +2465,29 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
   }
 
   /* Check if we need to transmit the ACK */
-  if (t->fwd_queue_max > t->fwd_queue_n * 4 &&
-      GMC_is_pid_bigger(t->last_fwd_ack, t->fwd_pid) &&
+  if (t->queue_max > t->next_fc.queue_n * 4 &&
+      GMC_is_pid_bigger(t->prev_fc.last_ack_sent, t->prev_fc.last_pid_recv) &&
       GNUNET_NO == t->force_ack)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, buffer free\n");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  t->qmax: %u, t->qn: %u\n",
-                t->fwd_queue_max, t->fwd_queue_n);
+                t->queue_max, t->next_fc.queue_n);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  t->pid: %u, t->ack: %u\n",
-                t->fwd_pid, t->last_fwd_ack);
+                t->prev_fc.last_pid_recv, t->prev_fc.last_ack_sent);
     return;
   }
 
   /* Ok, ACK might be necessary, what PID to ACK? */
   ack = tunnel_get_fwd_ack (t);
-
-  /* If speed_min and not all children have ack'd, dont send yet */
-  if (ack == t->last_fwd_ack && GNUNET_NO == t->force_ack)
+  if (ack == t->prev_fc.last_ack_sent && GNUNET_NO == t->force_ack)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending FWD ACK, not ready\n");
     return;
   }
 
-  t->last_fwd_ack = ack;
+  t->prev_fc.last_ack_sent = ack;
   send_ack (t, t->prev_hop, ack);
   debug_fwd_ack++;
   t->force_ack = GNUNET_NO;
@@ -2502,24 +2501,24 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
  * @param id Id of the child node.
  */
 static void
-tunnel_send_child_bck_ack (struct MeshTunnel *t,
+tunnel_send_mesh_bck_ack (struct MeshTunnel *t,
                            GNUNET_PEER_Id peer)
 {
   uint32_t ack = 0; // FIXME
 
-//   ack = cinfo->bck_pid + t->bck_queue_max - t->bck_queue_n;
-// 
-//   if (cinfo->bck_ack == ack && GNUNET_NO == t->force_ack)
-//   {
-//     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-//                 "    Not sending ACK, not needed\n");
-//     return;
-//   }
-//   cinfo->bck_ack = ack;
-// 
-//   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-//               "    Sending BCK ACK %u (last sent: %u)\n",
-//               ack, cinfo->bck_ack);
+  ack = t->next_fc.last_pid_recv + t->queue_max - t->prev_fc.queue_n;
+
+  if (t->next_fc.last_ack_sent == ack && GNUNET_NO == t->force_ack)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "    Not sending ACK, not needed\n");
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "    Sending BCK ACK %u (last sent: %u)\n",
+              ack, t->next_fc.last_ack_sent);
+  t->next_fc.last_ack_sent = ack;
+
   send_ack (t, peer, ack);
 }
 
@@ -2547,7 +2546,7 @@ tunnel_send_clients_bck_ack (struct MeshTunnel *t)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Sending BCK ACK to clients\n");
 
-  tunnel_delta = t->bck_queue_max - t->bck_queue_n;
+  tunnel_delta = t->queue_max - t->next_fc.queue_n;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   tunnel delta: %u\n", tunnel_delta);
 
   /* Find client whom to allow to send to origin (with lowest buffer space) */
@@ -2623,7 +2622,7 @@ tunnel_send_bck_ack (struct MeshTunnel *t, uint16_t type)
   }
 
   tunnel_send_clients_bck_ack (t);
-  tunnel_send_child_bck_ack (t, t->next_hop);
+    tunnel_send_mesh_bck_ack (t, t->next_hop);
   t->force_ack = GNUNET_NO;
 }
 
@@ -2831,10 +2830,8 @@ tunnel_destroy (struct MeshTunnel *t)
   peer_cancel_queues (t->next_hop, t);
   peer_cancel_queues (t->prev_hop, t);
 
-  if (GNUNET_SCHEDULER_NO_TASK != t->timeout_task)
-    GNUNET_SCHEDULER_cancel (t->timeout_task);
-  if (GNUNET_SCHEDULER_NO_TASK != t->path_refresh_task)
-    GNUNET_SCHEDULER_cancel (t->path_refresh_task);
+  if (GNUNET_SCHEDULER_NO_TASK != t->maintenance_task)
+    GNUNET_SCHEDULER_cancel (t->maintenance_task);
 
   n_tunnels--;
   GNUNET_STATISTICS_update (stats, "# tunnels", -1, GNUNET_NO);
@@ -2941,13 +2938,16 @@ tunnel_new (GNUNET_PEER_Id owner,
   t = GNUNET_malloc (sizeof (struct MeshTunnel));
   t->id.oid = owner;
   t->id.tid = tid;
-  t->fwd_queue_max = (max_msgs_queue / max_tunnels) + 1;
-  t->bck_queue_max = t->fwd_queue_max;
+  t->queue_max = (max_msgs_queue / max_tunnels) + 1;
   t->owner = client;
-  t->fwd_pid = (uint32_t) -1; // Next (expected) = 0
-  t->bck_pid = (uint32_t) -1; // Next (expected) = 0
-  t->bck_ack = INITIAL_WINDOW_SIZE - 1;
-  t->last_fwd_ack = INITIAL_WINDOW_SIZE - 1;
+  t->next_fc.last_pid_sent = (uint32_t) -1; /* Next (expected) = 0 */
+  t->next_fc.last_pid_recv = (uint32_t) -1;
+  t->prev_fc.last_pid_sent = (uint32_t) -1;
+  t->prev_fc.last_pid_recv = (uint32_t) -1;
+  t->next_fc.last_ack_sent = INITIAL_WINDOW_SIZE - 1;
+  t->next_fc.last_ack_recv = INITIAL_WINDOW_SIZE - 1;
+  t->prev_fc.last_ack_sent = INITIAL_WINDOW_SIZE - 1;
+  t->prev_fc.last_ack_recv = INITIAL_WINDOW_SIZE - 1;
   t->local_tid = local;
   n_tunnels++;
   GNUNET_STATISTICS_update (stats, "# tunnels", 1, GNUNET_NO);
@@ -3035,7 +3035,7 @@ tunnel_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct MeshTunnel *t = cls;
   struct GNUNET_PeerIdentity id;
 
-  t->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  t->maintenance_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_PEER_resolve(t->id.oid, &id);
@@ -3056,9 +3056,9 @@ tunnel_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 tunnel_reset_timeout (struct MeshTunnel *t)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != t->timeout_task)
-    GNUNET_SCHEDULER_cancel (t->timeout_task);
-  t->timeout_task =
+  if (GNUNET_SCHEDULER_NO_TASK != t->maintenance_task)
+    GNUNET_SCHEDULER_cancel (t->maintenance_task);
+  t->maintenance_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (refresh_path_time, 4), &tunnel_timeout, t);
 }
@@ -3356,15 +3356,17 @@ queue_send (void *cls, size_t size, void *buf)
     t->pending_messages--;
     if (GNUNET_MESSAGE_TYPE_MESH_UNICAST == queue->type)
     {
-      t->fwd_queue_n--;
+      t->next_fc.queue_n--;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "*********   unicast: t->q (%u/%u)\n",
-                  t->fwd_queue_n, t->fwd_queue_max);
+                  t->next_fc.queue_n, t->queue_max);
     }
     else if (GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN == queue->type)
     {
-      t->bck_queue_n--;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   to origin\n");
+      t->prev_fc.queue_n--;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "*********   to orig: t->q (%u/%u)\n",
+                  t->prev_fc.queue_n, t->queue_max);
     }
 
     /* Fill buf */
@@ -3451,7 +3453,7 @@ queue_send (void *cls, size_t size, void *buf)
     }
 
     /* If more data in queue, send next */
-    queue = queue_get_next(peer);
+    queue = queue_get_next (peer);
     if (NULL != queue)
     {
         struct GNUNET_PeerIdentity id;
@@ -3513,23 +3515,20 @@ queue_add (void *cls, uint16_t type, size_t size,
 {
   struct MeshPeerQueue *queue;
   struct GNUNET_PeerIdentity id;
-  unsigned int *max;
   unsigned int *n;
 
   n = NULL;
   if (GNUNET_MESSAGE_TYPE_MESH_UNICAST == type)
   {
-    n = &t->fwd_queue_n;
-    max = &t->fwd_queue_max;
+    n = &t->next_fc.queue_n;
   }
   else if (GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN == type)
   {
-    n = &t->bck_queue_n;
-    max = &t->bck_queue_max;
+    n = &t->prev_fc.queue_n;
   }
   if (NULL != n)
   {
-    if (*n >= *max)
+    if (*n >= t->queue_max)
     {
       GNUNET_break(0);
       GNUNET_STATISTICS_update(stats,
@@ -3639,14 +3638,13 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     if (0 != (opt & MESH_TUNNEL_OPT_NOBUFFER))
     {
       t->nobuffer = GNUNET_YES;
-      t->last_fwd_ack = t->fwd_pid + 1;
+      t->prev_fc.last_ack_sent = t->prev_fc.last_pid_recv + 1;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  nobuffer:%d\n", t->nobuffer);
 
     if (GNUNET_YES == t->nobuffer)
     {
-      t->bck_queue_max = 1;
-      t->fwd_queue_max = 1;
+      t->queue_max = 1;
     }
 
     // FIXME only assign a local tid if a local client is interested (on demand)
@@ -3718,7 +3716,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     /* It is for us! Send ack. */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  It's for us!\n");
     peer_info_add_path_to_origin (orig_peer_info, path, GNUNET_NO);
-    t->peer = path->peers[0];
+    t->dest = myid;
     send_path_ack (t);
   }
   else
@@ -3931,7 +3929,6 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct GNUNET_MESH_Unicast *msg;
   struct MeshTunnel *t;
-  GNUNET_PEER_Id dest_id;
   uint32_t pid;
   uint32_t ttl;
   size_t size;
@@ -3960,7 +3957,7 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   pid = ntohl (msg->pid);
-  if (t->fwd_pid == pid)
+  if (t->prev_fc.last_pid_recv == pid)
   {
     GNUNET_STATISTICS_update (stats, "# duplicate PID drops", 1, GNUNET_NO);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -3973,21 +3970,20 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
                 " pid %u not seen yet, forwarding\n", pid);
   }
 
-  t->fwd_pid = pid;
+  t->prev_fc.last_pid_recv = pid;
 
-  if (GMC_is_pid_bigger (pid, t->last_fwd_ack))
+  if (GMC_is_pid_bigger (pid, t->prev_fc.last_ack_sent))
   {
     GNUNET_STATISTICS_update (stats, "# unsolicited unicast", 1, GNUNET_NO);
     GNUNET_break_op (0);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received PID %u, ACK %u\n",
-                pid, t->last_fwd_ack);
+                pid, t->prev_fc.last_ack_sent);
     return GNUNET_OK;
   }
 
   tunnel_reset_timeout (t);
-  dest_id = t->peer;
-  if (dest_id == myid)
+  if (t->dest == myid)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  it's for us! sending to clients...\n");
@@ -4008,16 +4004,15 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "  not for us, retransmitting...\n");
 
-/*   cinfo->fwd_pid = pid; FIXME
-
   if (GNUNET_YES == t->nobuffer &&
-      GNUNET_YES == GMC_is_pid_bigger (pid, cinfo->fwd_ack))
+      GNUNET_YES == GMC_is_pid_bigger (pid, t->next_fc.last_ack_recv))
   {
     GNUNET_STATISTICS_update (stats, "# unsolicited unicast", 1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "  %u > %u\n", pid, cinfo->fwd_ack);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "  %u > %u\n",
+                pid, t->next_fc.last_ack_recv);
     GNUNET_break_op (0);
     return GNUNET_OK;
-  }*/
+  }
   send_prebuilt_message (message, t->next_hop, t);
   GNUNET_STATISTICS_update (stats, "# unicast forwarded", 1, GNUNET_NO);
   return GNUNET_OK;
@@ -4070,19 +4065,19 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
 
-//   if (cinfo->bck_pid == pid) FIXME
-//   {
-//     /* already seen this packet, drop */
-//     GNUNET_STATISTICS_update (stats, "# duplicate PID drops BCK", 1, GNUNET_NO);
-//     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-//                 " Already seen pid %u, DROPPING!\n", pid);
-//     tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
-//     return GNUNET_OK;
-//   }
+  if (t->next_fc.last_pid_recv == pid)
+  {
+    /* already seen this packet, drop */
+    GNUNET_STATISTICS_update (stats, "# duplicate PID drops BCK", 1, GNUNET_NO);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                " Already seen pid %u, DROPPING!\n", pid);
+    tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
+    return GNUNET_OK;
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               " pid %u not seen yet, forwarding\n", pid);
-//   cinfo->bck_pid = pid; FIXME
+  t->next_fc.last_pid_recv = pid;
 
   if (NULL != t->owner)
   {
@@ -4095,8 +4090,6 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     memcpy (cbuf, message, size);
     copy = (struct GNUNET_MESH_ToOrigin *) cbuf;
     copy->tid = htonl (t->local_tid);
-    t->bck_pid++;
-    copy->pid = htonl (t->bck_pid);
     GNUNET_STATISTICS_update (stats, "# to origin received", 1, GNUNET_NO);
     GNUNET_SERVER_notification_context_unicast (nc, t->owner->handle,
                                                 &copy->header, GNUNET_NO);
@@ -4113,7 +4106,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return GNUNET_OK;
   }
-  if (0 == t->prev_hop)
+  if (0 == t->prev_hop) /* No owner AND no prev hop */
   {
     if (GNUNET_YES == t->destroy)
     {
@@ -4174,12 +4167,11 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ACK %u\n", ack);
 
   /* Is this a forward or backward ACK? */
-  if (t->prev_hop != GNUNET_PEER_search(peer))
+  if (t->prev_hop != GNUNET_PEER_search (peer))
   {
-
     debug_bck_ack++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  FWD ACK\n");
-//     cinfo->fwd_ack = ack; FIXME
+    t->next_fc.last_ack_recv = ack;
     tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
     peer_unlock_queue (t->next_hop);
 //     if (GNUNET_SCHEDULER_NO_TASK != cinfo->fc_poll) FIXME
@@ -4192,7 +4184,7 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  BCK ACK\n");
-    t->bck_ack = ack;
+    t->prev_fc.last_ack_recv = ack;
     tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
     peer_unlock_queue (t->prev_hop);
   }
@@ -4449,7 +4441,7 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   size_t size = sizeof (struct GNUNET_MESH_TunnelKeepAlive);
   char cbuf[size];
 
-  t->path_refresh_task = GNUNET_SCHEDULER_NO_TASK;
+  t->maintenance_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     return;
@@ -4466,7 +4458,7 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   msg->tid = htonl (t->id.tid);
   send_prebuilt_message (&msg->header, t->next_hop, t);
 
-  t->path_refresh_task =
+  t->maintenance_task =
       GNUNET_SCHEDULER_add_delayed (refresh_path_time, &path_refresh, t);
   tunnel_reset_timeout (t);
 }
@@ -4792,7 +4784,7 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   /* Don't try to ACK the client about the tunnel_destroy multicast packet */
   t->owner = NULL;
   tunnel_send_destroy (t);
-  peer_remove_tunnel (peer_get_short(t->peer), t);
+  peer_remove_tunnel (peer_get_short(t->dest), t);
   t->destroy = GNUNET_YES;
   /* The tunnel will be destroyed when the last message is transmitted. */
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -4916,13 +4908,13 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  /* PID should be as expected */
-  if (ntohl (data_msg->pid) != t->fwd_pid + 1)
+  /* PID should be as expected: client<->service communication */
+  if (ntohl (data_msg->pid) != t->prev_fc.last_pid_recv + 1)
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Unicast PID, expected %u, got %u\n",
-              t->fwd_pid + 1, ntohl (data_msg->pid));
+              t->prev_fc.last_pid_recv + 1, ntohl (data_msg->pid));
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
@@ -5040,13 +5032,13 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
     char buf[ntohs (message->size)] GNUNET_ALIGN;
     struct GNUNET_MESH_ToOrigin *copy;
 
-    /* Work around const limitation */
+    /* Work around 'const' limitation */
     copy = (struct GNUNET_MESH_ToOrigin *) buf;
     memcpy (buf, data_msg, size);
     GNUNET_PEER_resolve (t->id.oid, &copy->oid);
     copy->tid = htonl (t->id.tid);
     copy->ttl = htonl (default_ttl);
-    copy->pid = htonl (t->bck_pid + 1);
+    copy->pid = htonl (t->prev_fc.last_pid_sent + 1);
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  calling generic handler...\n");
@@ -5107,7 +5099,7 @@ handle_local_ack (void *cls, struct GNUNET_SERVER_Client *client,
   if (NULL != t->owner && t->owner->handle == client)
   {
     /* The client owns the tunnel, ACK is for data to_origin, send BCK ACK. */
-    t->bck_ack = ack;
+    t->next_fc.last_ack_sent = ack;
     tunnel_send_bck_ack(t, GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
   }
   else
@@ -5147,7 +5139,7 @@ monitor_all_tunnels_iterator (void *cls,
   msg->tunnel_id = htonl (t->id.tid);
   msg->header.size = htons (sizeof (struct GNUNET_MESH_LocalMonitor));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS);
-  GNUNET_PEER_resolve (t->peer, &msg->destination);
+  GNUNET_PEER_resolve (t->dest, &msg->destination);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "*  sending info about tunnel %s [%u]\n",
@@ -5240,7 +5232,7 @@ handle_local_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   /* Initialize context */
   resp = GNUNET_malloc (sizeof (struct GNUNET_MESH_LocalMonitor));
   *resp = *msg;
-  GNUNET_PEER_resolve (t->peer, &resp->destination);
+  GNUNET_PEER_resolve (t->dest, &resp->destination);
   resp->header.size = htons (sizeof (struct GNUNET_MESH_LocalMonitor));
   GNUNET_SERVER_notification_context_unicast (nc, c->handle,
                                               &resp->header, GNUNET_NO);
