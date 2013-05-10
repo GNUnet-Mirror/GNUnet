@@ -283,6 +283,19 @@ struct MeshFlowControl
    * Task to poll the peer in case of a lost ACK causes stall.
    */
   GNUNET_SCHEDULER_TaskIdentifier poll_task;
+
+  /**
+   * How frequently to poll for ACKs.
+   */
+  struct GNUNET_TIME_Relative poll_time;
+
+  /**
+   * On which tunnel to poll.
+   * Using an explicit poll_ctx would not help memory wise,
+   * since the allocated context would have to be stored in the
+   * fc struct in order to free it upon cancelling poll_task.
+   */
+  struct MeshTunnel *t;
 };
 
 
@@ -1825,40 +1838,45 @@ peer_info_add_path_to_origin (struct MeshPeerInfo *peer_info,
 }
 
 
-/** FIXME
+/**
  * Function called if the connection to the peer has been stalled for a while,
  * possibly due to a missed ACK. Poll the peer about its ACK status.
  *
- * @param cls Closure (cinfo).
+ * @param cls Closure (poll ctx).
  * @param tc TaskContext.
  */
 static void
 tunnel_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-//   struct GNUNET_MESH_Poll msg;
-//   struct GNUNET_PeerIdentity id;
-//   struct MeshTunnel *t;
+  struct MeshFlowControl *fc = cls;
+  struct GNUNET_MESH_Poll msg;
+  struct MeshTunnel *t = fc->t;
+  GNUNET_PEER_Id peer;
 
-//   cinfo->fc_poll = GNUNET_SCHEDULER_NO_TASK;
+  fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     return;
   }
 
-//   t = cinfo->t;
-//   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_POLL);
-//   msg.header.size = htons (sizeof (msg));
-//   msg.tid = htonl (t->id.tid);
-//   GNUNET_PEER_resolve (t->id.oid, &msg.oid);
-//   msg.last_ack = htonl (cinfo->fwd_ack);
-// 
-//   GNUNET_PEER_resolve (cinfo->id, &id);
-//   send_prebuilt_message (&msg.header, &id, cinfo->t);
-//   cinfo->fc_poll_time = GNUNET_TIME_relative_min (
-//     MESH_MAX_POLL_TIME,
-//     GNUNET_TIME_relative_multiply (cinfo->fc_poll_time, 2));
-//   cinfo->fc_poll = GNUNET_SCHEDULER_add_delayed (cinfo->fc_poll_time,
-//                                                  &tunnel_poll, cinfo);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_POLL);
+  msg.header.size = htons (sizeof (msg));
+  msg.tid = htonl (t->id.tid);
+  GNUNET_PEER_resolve (t->id.oid, &msg.oid);
+  msg.last_ack = htonl (fc->last_ack_recv);
+
+  if (fc == &t->prev_fc)
+  {
+    peer = t->prev_hop;
+  }
+  else
+  {
+    peer = t->next_hop;
+  }
+  send_prebuilt_message (&msg.header, peer, t);
+  fc->poll_time = GNUNET_TIME_STD_BACKOFF (fc->poll_time);
+  fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
+                                                &tunnel_poll, fc);
 }
 
 
@@ -3312,6 +3330,7 @@ queue_send (void *cls, size_t size, void *buf)
     struct MeshPeerQueue *queue;
     struct MeshTunnel *t;
     struct GNUNET_PeerIdentity dst_id;
+    struct MeshFlowControl *fc;
     size_t data_size;
 
     peer->core_transmit = NULL;
@@ -3324,7 +3343,7 @@ queue_send (void *cls, size_t size, void *buf)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   not ready, return\n");
       if (NULL == peer->queue_head)
-        GNUNET_break (0); // Should've been canceled
+        GNUNET_break (0); /* Core tmt_rdy should've been canceled */
       return 0;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   not empty\n");
@@ -3477,14 +3496,16 @@ queue_send (void *cls, size_t size, void *buf)
         GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                     "*********   %s stalled\n",
                     GNUNET_i2s(&my_full_id));
-//         if (NULL == cinfo) FIXME
-//           cinfo = tunnel_get_neighbor_fc (t, &dst_id);
-//         // FIXME unify bck/fwd structures, bck does not have cinfo right now
-//         if (NULL != cinfo && GNUNET_SCHEDULER_NO_TASK == cinfo->fc_poll)
-//         {
-//           cinfo->fc_poll = GNUNET_SCHEDULER_add_delayed (cinfo->fc_poll_time,
-//                                                          &tunnel_poll, cinfo);
-//         }
+        if (peer->id == t->next_hop)
+          fc = &t->next_fc;
+        else
+          fc = &t->prev_fc;
+        if (GNUNET_SCHEDULER_NO_TASK == fc->poll_task)
+        {
+          fc->t = t;
+          fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
+                                                        &tunnel_poll, fc);
+        }
       }
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   return %d\n", data_size);
