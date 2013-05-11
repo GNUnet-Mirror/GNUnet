@@ -222,6 +222,7 @@ GNUNET_HELPER_wait (struct GNUNET_HELPER_Handle *h)
   struct GNUNET_HELPER_SendHandle *sh;
   int ret;
 
+  ret = GNUNET_SYSERR;
   if (NULL != h->helper_proc)
   {
     ret = GNUNET_OS_process_wait (h->helper_proc);
