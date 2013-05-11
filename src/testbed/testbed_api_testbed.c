@@ -50,6 +50,11 @@
 #define DEFAULT_SETUP_TIMEOUT 300
 
 /**
+ * Testbed Run Handle
+ */
+struct RunContext;
+
+/**
  * Context information for the operation we start
  */
 struct RunContextOperation
@@ -117,6 +122,28 @@ enum State
 
 
 /**
+ * Context for host compability checks
+ */
+struct CompatibilityCheckContext
+{
+  /**
+   * The run context
+   */
+  struct RunContext *rc;
+
+  /**
+   * Handle for the compability check
+   */
+  struct GNUNET_TESTBED_HostHabitableCheckHandle *h;
+
+  /**
+   * Index of the host in the run context's hosts array
+   */
+  unsigned int index;
+};
+
+
+/**
  * Testbed Run Handle
  */
 struct RunContext
@@ -179,9 +206,9 @@ struct RunContext
   struct GNUNET_TESTBED_Host **hosts;
 
   /**
-   * The handle for whether a host is habitable or not
+   * Array of compatibility check contexts
    */
-  struct GNUNET_TESTBED_HostHabitableCheckHandle **hc_handles;
+  struct CompatibilityCheckContext *hclist;
 
   /**
    * Array of peers which we create
@@ -424,7 +451,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == rc->register_hosts_task);
   GNUNET_assert (NULL == rc->reg_handle);
   GNUNET_assert (NULL == rc->peers);
-  GNUNET_assert (NULL == rc->hc_handles);
+  GNUNET_assert (NULL == rc->hclist);
   GNUNET_assert (RC_PEERS_SHUTDOWN == rc->state);
   GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap32_size (rc->rcop_map));
   GNUNET_CONTAINER_multihashmap32_destroy (rc->rcop_map);
@@ -476,15 +503,19 @@ rcop_cleanup_iterator (void *cls, uint32_t key, void *value)
 static void
 cleanup (struct RunContext *rc)
 {
+  struct CompatibilityCheckContext *hc;
   unsigned int nhost;
 
-  if (NULL != rc->hc_handles)
+  if (NULL != rc->hclist)
   {
     for (nhost = 0; nhost < rc->num_hosts; nhost++)
-      if (NULL != rc->hc_handles[nhost])
-        GNUNET_TESTBED_is_host_habitable_cancel (rc->hc_handles[nhost]);
-    GNUNET_free (rc->hc_handles);
-    rc->hc_handles = NULL;
+    {
+      hc = &rc->hclist[nhost];
+      if (NULL != hc->h)
+        GNUNET_TESTBED_is_host_habitable_cancel (hc->h);
+    }
+    GNUNET_free (rc->hclist);
+    rc->hclist = NULL;
   }
   /* Stop register hosts task if it is running */
   if (GNUNET_SCHEDULER_NO_TASK != rc->register_hosts_task)
@@ -1064,17 +1095,16 @@ static void
 host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host,
                    int status)
 {
-  struct RunContext *rc = cls;
+  struct CompatibilityCheckContext *hc = cls;
+  struct RunContext *rc;
   struct GNUNET_TESTBED_Host **old_hosts;
   unsigned int nhost;
 
-  for (nhost = 0; nhost < rc->num_hosts; nhost++)
-  {
-    if (host == rc->hosts[nhost])
-      break;
-  }
-  GNUNET_assert (nhost != rc->num_hosts);
-  rc->hc_handles[nhost] = NULL;
+  GNUNET_assert (NULL != (rc = hc->rc));
+  nhost = hc->index;
+  GNUNET_assert (nhost <= rc->num_hosts);
+  GNUNET_assert (host == rc->hosts[nhost]);
+  hc->h = NULL;
   if (GNUNET_NO == status)
   {
     if ((NULL != host) && (NULL != GNUNET_TESTBED_host_get_hostname (host)))
@@ -1089,8 +1119,8 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host,
   rc->reg_hosts++;
   if (rc->reg_hosts < rc->num_hosts)
     return;
-  GNUNET_free (rc->hc_handles);
-  rc->hc_handles = NULL;
+  GNUNET_free (rc->hclist);
+  rc->hclist = NULL;
   rc->h = rc->hosts[0];
   rc->num_hosts--;
   if (0 < rc->num_hosts)
@@ -1180,6 +1210,7 @@ GNUNET_TESTBED_run (const char *host_filename,
 {
   struct RunContext *rc;
   char *topology;
+  struct CompatibilityCheckContext *hc;      
   struct GNUNET_TIME_Relative timeout;
   unsigned long long random_links;
   unsigned int hid;
@@ -1278,22 +1309,26 @@ GNUNET_TESTBED_run (const char *host_filename,
   }
   if (0 != rc->num_hosts)
   {
-    rc->hc_handles =
-        GNUNET_malloc (sizeof (struct GNUNET_TESTBED_HostHabitableCheckHandle *)
-                       * rc->num_hosts);
+    rc->hclist = GNUNET_malloc (sizeof (struct CompatibilityCheckContext)
+                                * rc->num_hosts);
     for (nhost = 0; nhost < rc->num_hosts; nhost++)
     {
-      if (NULL ==
-          (rc->hc_handles[nhost] =
-           GNUNET_TESTBED_is_host_habitable (rc->hosts[nhost], rc->cfg,
-                                             &host_habitable_cb, rc)))
+      hc = &rc->hclist[nhost];
+      hc->index = nhost;
+      hc->rc = rc;
+      hc->h = GNUNET_TESTBED_is_host_habitable (rc->hosts[nhost], rc->cfg,
+                                                &host_habitable_cb, hc);
+      if (NULL == hc->h)
       {
         GNUNET_break (0);
         for (nhost = 0; nhost < rc->num_hosts; nhost++)
-          if (NULL != rc->hc_handles[nhost])
-            GNUNET_TESTBED_is_host_habitable_cancel (rc->hc_handles[nhost]);
-        GNUNET_free (rc->hc_handles);
-        rc->hc_handles = NULL;
+        {
+          hc = &rc->hclist[nhost];
+          if (NULL != hc->h)
+            GNUNET_TESTBED_is_host_habitable_cancel (hc->h);
+        }
+        GNUNET_free (rc->hclist);
+        rc->hclist = NULL;
         goto error_cleanup;
       }
     }
