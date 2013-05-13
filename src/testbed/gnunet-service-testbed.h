@@ -260,7 +260,7 @@ struct Context
   /**
    * The network address of the master controller
    */
-  char *master_ip;
+  char *master_ips;
 
   /**
    * The TESTING system handle for starting peers locally

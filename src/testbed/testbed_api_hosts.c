@@ -556,6 +556,7 @@ simple_resolve (const char *host)
   in_addr = (const struct sockaddr_in *) res->ai_addr;
   hostip = inet_ntoa (in_addr->sin_addr);
   GNUNET_assert (NULL != hostip);
+  freeaddrinfo (res);
   LOG_DEBUG ("Resolved [%s] to [%s]\n", host, hostip);
   return hostip;
 }

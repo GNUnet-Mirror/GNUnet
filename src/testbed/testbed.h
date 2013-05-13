@@ -54,8 +54,6 @@ GNUNET_NETWORK_STRUCT_BEGIN
    * is interested in.  In NBO.
    */
   uint64_t event_mask GNUNET_PACKED;
-
-  /* Followed by 0-terminated hostname of the controller */
 };
 
 
