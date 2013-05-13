@@ -110,11 +110,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (host == GNUNET_TESTBED_host_lookup_by_id_ (0));
   hosts = NULL;
   num_hosts = GNUNET_TESTBED_hosts_load_from_file ("sample_hosts.txt", cfg, &hosts);
-  GNUNET_assert (15 == num_hosts);
+  GNUNET_assert (17 == num_hosts);
   GNUNET_assert (NULL != hosts);
   status = GNUNET_YES;
   shutdown_id =
-      GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (2), &do_shutdown, NULL);
+      GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (0), &do_shutdown, NULL);
 }
 
 
