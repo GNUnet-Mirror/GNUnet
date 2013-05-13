@@ -2691,7 +2691,7 @@ setup_sockets (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struct 
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Binding to IPv6 port %d\n",
            ntohs (serverAddrv6->sin6_port));
       tries = 0;
-      while (GNUNET_NETWORK_socket_bind (plugin->sockv6, serverAddr, addrlen) !=
+      while (GNUNET_NETWORK_socket_bind (plugin->sockv6, serverAddrv6, addrlen) !=
              GNUNET_OK)
       {
         serverAddrv6->sin6_port = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537) + 32000);        /* Find a good, non-root port */
