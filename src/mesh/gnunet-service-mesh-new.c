@@ -370,22 +370,22 @@ struct MeshTunnel
   GNUNET_PEER_Id dest;
 
     /**
-     * Next hop in the tunnel.
+     * Next hop in the tunnel. If 0, @c client must be set.
      */
   GNUNET_PEER_Id next_hop;
 
     /**
-     * Previous hop in the tunnel.
+     * Previous hop in the tunnel. If 0, @c owner must be set.
      */
   GNUNET_PEER_Id prev_hop;
 
     /**
-     * Flow control information about @c next_hop.
+     * Flow control information about @c next_hop or @c client.
      */
   struct MeshFlowControl next_fc;
 
   /**
-   * Flow control information about @c prev_hop.
+   * Flow control information about @c prev_hop or @c owner.
    */
   struct MeshFlowControl prev_fc;
 
@@ -395,35 +395,15 @@ struct MeshTunnel
   struct MeshClient *owner;
 
     /**
+     * Client destination of the tunnel, if any.
+     */
+  struct MeshClient *client;
+
+    /**
      * Task to keep the used paths alive at the owner,
      * time tunnel out on all the other peers.
      */
   GNUNET_SCHEDULER_TaskIdentifier maintenance_task;
-
-    /**
-     * Clients that have been informed about and want to stay in the tunnel.
-     */
-  struct MeshClient **clients;
-
-    /**
-     * Flow control info for each client.
-     */
-  struct MeshTunnelClientInfo *clients_fc;
-
-    /**
-     * Number of elements in clients/clients_fc
-     */
-  unsigned int nclients;
-
-    /**
-     * Clients that have been informed but requested to leave the tunnel.
-     */
-  struct MeshClient **ignore;
-
-    /**
-     * Number of elements in clients
-     */
-  unsigned int nignore;
 
     /**
      * Path being used for the tunnel.
@@ -441,43 +421,13 @@ struct MeshTunnel
      * Total messages pending for this tunnels, payload or not.
      */
   unsigned int pending_messages;
-
-    /**
-     * If the tunnel is empty, destoy it.
-     */
-  GNUNET_SCHEDULER_TaskIdentifier delayed_destroy;
-};
-
-
-/**
- * Info about a leaf client of a tunnel, needed to perform flow control.
- */
-struct MeshTunnelClientInfo
-{
-  /**
-   * PID of the last packet sent to the client (FWD).
-   */
-  uint32_t fwd_pid;
-
-  /**
-   * PID of the last packet received from the client (BCK).
-   */
-  uint32_t bck_pid;
-
-  /**
-   * Maximum PID allowed (FWD ACK received).
-   */
-  uint32_t fwd_ack;
-  
-  /**
-   * Last ACK sent to that child (BCK ACK).
-   */
-  uint32_t bck_ack;
 };
 
 
 /**
  * Struct containing information about a client of the service
+ * 
+ * TODO: add a list of 'waiting' types
  */
 struct MeshClient
 {
@@ -501,10 +451,6 @@ struct MeshClient
      */
   struct GNUNET_CONTAINER_MultiHashMap *incoming_tunnels;
 
-   /**
-     * Tunnels this client has rejected, indexed by incoming local id
-     */
-  struct GNUNET_CONTAINER_MultiHashMap *ignore_tunnels;
     /**
      * Handle to communicate with the client
      */
@@ -810,15 +756,6 @@ tunnel_get (const struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid);
 
 
 /**
- * Delete an active client from the tunnel.
- *
- * @param t Tunnel.
- * @param c Client.
- */
-static void
-tunnel_delete_active_client (struct MeshTunnel *t, const struct MeshClient *c);
-
-/**
  * Notify a tunnel that a connection has broken that affects at least
  * some of its peers.
  *
@@ -832,28 +769,6 @@ tunnel_delete_active_client (struct MeshTunnel *t, const struct MeshClient *c);
 static GNUNET_PEER_Id
 tunnel_notify_connection_broken (struct MeshTunnel *t, GNUNET_PEER_Id p1,
                                  GNUNET_PEER_Id p2);
-
-
-/**
- * Get the current ack value for a tunnel, for data going from root to leaves,
- * taking in account the tunnel mode and the status of all children and clients.
- *
- * @param t Tunnel.
- *
- * @return Maximum PID allowed.
- */
-static uint32_t
-tunnel_get_fwd_ack (struct MeshTunnel *t);
-
-
-/**
- * Add a client to a tunnel, initializing all needed data structures.
- * 
- * @param t Tunnel to which add the client.
- * @param c Client which to add to the tunnel.
- */
-static void
-tunnel_add_client (struct MeshTunnel *t, struct MeshClient *c);
 
 
 /**
@@ -999,103 +914,10 @@ client_get (struct GNUNET_SERVER_Client *client)
 
 
 /**
- * Checks if a given client has subscribed to certain message type
- *
- * @param message_type Type of message to check
- * @param c Client to check
- *
- * @return GNUNET_YES or GNUNET_NO, depending on subscription status
- * 
- *  A real hash function alone takes 8-10us out of the ~55us for the whole
- * process of retransmitting the message from one local client to another.
- * GMC_hash32 aim to imporve this speed.
- */
-static int
-client_is_subscribed (uint16_t message_type, struct MeshClient *c)
-{
-  struct GNUNET_HashCode hc;
-
-  if (NULL == c->types)
-    return GNUNET_NO;
-
-  GMC_hash32 ((uint32_t) message_type, &hc);
-  return GNUNET_CONTAINER_multihashmap_contains (c->types, &hc);
-}
-
-
-/**
- * Check whether client wants traffic from a tunnel.
- *
- * @param c Client to check.
- * @param t Tunnel to be found.
- *
- * @return GNUNET_YES if client knows tunnel.
- * 
- * TODO look in client hashmap
- */
-static int
-client_wants_tunnel (struct MeshClient *c, struct MeshTunnel *t)
-{
-  unsigned int i;
-
-  for (i = 0; i < t->nclients; i++)
-    if (t->clients[i] == c)
-      return GNUNET_YES;
-  return GNUNET_NO;
-}
-
-
-/**
- * Check whether client has been informed about a tunnel.
- *
- * @param c Client to check.
- * @param t Tunnel to be found.
- *
- * @return GNUNET_YES if client knows tunnel.
- * 
- * TODO look in client hashmap
- */
-static int
-client_knows_tunnel (struct MeshClient *c, struct MeshTunnel *t)
-{
-  unsigned int i;
-
-  for (i = 0; i < t->nignore; i++)
-    if (t->ignore[i] == c)
-      return GNUNET_YES;
-  return client_wants_tunnel(c, t);
-}
-
-
-/**
- * Marks a client as uninterested in traffic from the tunnel, updating both
- * client and tunnel to reflect this.
- *
- * @param c Client that doesn't want traffic anymore.
- * @param t Tunnel which should be ignored.
- *
- * FIXME when to delete an incoming tunnel?
- */
-static void
-client_ignore_tunnel (struct MeshClient *c, struct MeshTunnel *t)
-{
-  struct GNUNET_HashCode hash;
-
-  GNUNET_CRYPTO_hash (&t->local_tid_dest, sizeof (MESH_TunnelNumber), &hash);
-  GNUNET_break (GNUNET_YES ==
-                GNUNET_CONTAINER_multihashmap_remove (c->incoming_tunnels,
-                                                      &hash, t));
-  GNUNET_break (GNUNET_YES ==
-                GNUNET_CONTAINER_multihashmap_put (c->ignore_tunnels, &hash, t,
-                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
-  tunnel_delete_active_client (t, c);
-  GNUNET_array_append (t->ignore, t->nignore, c);
-}
-
-
-/**
  * Deletes a tunnel from a client (either owner or destination). To be used on
- * tunnel destroy, otherwise, use client_ignore_tunnel.
+ * tunnel destroy.
+ * 
+ * FIXME use fast hash
  *
  * @param c Client whose tunnel to delete.
  * @param t Tunnel which should be deleted.
@@ -1113,117 +935,18 @@ client_delete_tunnel (struct MeshClient *c, struct MeshTunnel *t)
                                                          &hash,
                                                          t));
   }
-  else
+  else if (c == t->client)
   {
     GNUNET_CRYPTO_hash(&t->local_tid_dest, sizeof (MESH_TunnelNumber), &hash);
-    // FIXME XOR?
     GNUNET_assert (GNUNET_YES ==
                    GNUNET_CONTAINER_multihashmap_remove (c->incoming_tunnels,
                                                          &hash,
-                                                         t) ||
-                   GNUNET_YES ==
-                   GNUNET_CONTAINER_multihashmap_remove (c->ignore_tunnels,
-                                                         &hash,
                                                          t));
   }
-}
-
-
-/**
- * Send the message to all clients that have subscribed to its type
- *
- * @param msg Pointer to the message itself
- * @param payload Pointer to the payload of the message.
- * @param t The tunnel to whose clients this message goes.
- * 
- * @return number of clients this message was sent to
- */
-static unsigned int
-send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
-                         const struct GNUNET_MessageHeader *payload,
-                         struct MeshTunnel *t)
-{
-  struct MeshClient *c;
-  MESH_TunnelNumber *tid;
-  unsigned int count;
-  uint16_t type;
-  char cbuf[htons (msg->size)];
-
-  type = ntohs (payload->type);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending to clients...\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "message of type %s\n",
-              GNUNET_MESH_DEBUG_M2S (type));
-
-  memcpy (cbuf, msg, sizeof (cbuf));
-  switch (htons (msg->type))
+  else
   {
-    struct GNUNET_MESH_Unicast *uc;
-    struct GNUNET_MESH_ToOrigin *to;
-
-    case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
-      uc = (struct GNUNET_MESH_Unicast *) cbuf;
-      tid = &uc->tid;
-      break;
-    case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
-      to = (struct GNUNET_MESH_ToOrigin *) cbuf;
-      tid = &to->tid;
-      break;
-    default:
-      GNUNET_break (0);
-      return 0;
+    GNUNET_break (0);
   }
-
-  for (count = 0, c = clients_head; c != NULL; c = c->next)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   client %u\n", c->id);
-    if (client_is_subscribed (type, c))
-    {
-      if (htons (msg->type) == GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN)
-      {
-        if (c != t->owner)
-          continue;
-        *tid = htonl (t->local_tid);
-      }
-      else
-      {
-        if (GNUNET_NO == client_knows_tunnel (c, t))
-        {
-          /* This client doesn't know the tunnel */
-          struct GNUNET_MESH_TunnelNotification tmsg;
-          struct GNUNET_HashCode hash;
-
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "     sending tunnel create\n");
-          tmsg.header.size = htons (sizeof (tmsg));
-          tmsg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
-          GNUNET_PEER_resolve (t->id.oid, &tmsg.peer);
-          tmsg.tunnel_id = htonl (t->local_tid_dest);
-          tmsg.opt = 0;
-          if (GNUNET_YES == t->nobuffer)
-            tmsg.opt |= MESH_TUNNEL_OPT_NOBUFFER;
-          GNUNET_SERVER_notification_context_unicast (nc, c->handle,
-                                                      &tmsg.header, GNUNET_NO);
-          tunnel_add_client (t, c);
-          GNUNET_CRYPTO_hash (&t->local_tid_dest, sizeof (MESH_TunnelNumber),
-                              &hash);
-          GNUNET_break (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (
-                                       c->incoming_tunnels, &hash, t,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
-        }
-        *tid = htonl (t->local_tid_dest);
-      }
-
-      /* Check if the client wants to get traffic from the tunnel */
-      if (GNUNET_NO == client_wants_tunnel(c, t))
-        continue;
-      count++;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "     sending\n");
-      GNUNET_SERVER_notification_context_unicast (nc, c->handle,
-                                                  (struct GNUNET_MessageHeader
-                                                   *) cbuf, GNUNET_NO);
-    }
-  }
-
-  return count;
 }
 
 
@@ -1234,45 +957,17 @@ send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
  * @param t Tunnel that was destroyed.
  */
 static void
-send_clients_tunnel_destroy (struct MeshTunnel *t)
+send_client_tunnel_destroy (struct MeshTunnel *t)
 {
   struct GNUNET_MESH_TunnelMessage msg;
 
+  if (NULL == t->client)
+    return;
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
   msg.tunnel_id = htonl (t->local_tid_dest);
-  GNUNET_SERVER_notification_context_broadcast (nc, &msg.header, GNUNET_NO);
-}
-
-
-/**
- * Notify clients of tunnel disconnections, if needed.
- * In case the origin disconnects, the destination clients get a tunnel destroy
- * notification. If the last destination disconnects (only one remaining client
- * in tunnel), the origin gets a (local ID) peer disconnected.
- * Note that the function must be called BEFORE removing the client from
- * the tunnel.
- *
- * @param t Tunnel that was destroyed.
- * @param c Client that disconnected.
- */
-static void
-send_client_tunnel_disconnect (struct MeshTunnel *t, struct MeshClient *c)
-{
-  unsigned int i;
-
-  if (c == t->owner)
-  {
-    struct GNUNET_MESH_TunnelMessage msg;
-
-    msg.header.size = htons (sizeof (msg));
-    msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
-    msg.tunnel_id = htonl (t->local_tid_dest);
-    for (i = 0; i < t->nclients; i++)
-      GNUNET_SERVER_notification_context_unicast (nc, t->clients[i]->handle,
-                                                  &msg.header, GNUNET_NO);
-  }
-  // FIXME when to disconnect an incoming tunnel?
+  GNUNET_SERVER_notification_context_unicast (nc, t->client->handle,
+                                              &msg.header, GNUNET_NO);
 }
 
 
@@ -2084,81 +1779,34 @@ tunnel_get (const struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid)
 
 
 /**
- * Delete an active client from the tunnel.
+ * Add a client to a tunnel, initializing all needed data structures.
  * 
- * @param t Tunnel.
- * @param c Client.
- */
-static void
-tunnel_delete_active_client (struct MeshTunnel *t, const struct MeshClient *c)
-{
-  unsigned int i;
-
-  for (i = 0; i < t->nclients; i++)
-  {
-    if (t->clients[i] == c)
-    {
-      t->clients[i] = t->clients[t->nclients - 1];
-      t->clients_fc[i] = t->clients_fc[t->nclients - 1];
-      GNUNET_array_grow (t->clients, t->nclients, t->nclients - 1);
-      t->nclients++;
-      GNUNET_array_grow (t->clients_fc, t->nclients, t->nclients - 1);
-      break;
-    }
-  }
-}
-
-
-/**
- * Delete an ignored client from the tunnel.
+ * FIXME: make static after implementing port numbers
  * 
- * @param t Tunnel.
- * @param c Client.
+ * @param t Tunnel to which add the client.
+ * @param c Client which to add to the tunnel.
  */
-static void
-tunnel_delete_ignored_client (struct MeshTunnel *t, const struct MeshClient *c)
-{
-  unsigned int i;
-
-  for (i = 0; i < t->nignore; i++)
-  {
-    if (t->ignore[i] == c)
-    {
-      t->ignore[i] = t->ignore[t->nignore - 1];
-      GNUNET_array_grow (t->ignore, t->nignore, t->nignore - 1);
-      break;
-    }
-  }
-}
-
-
-/**
- * Delete a client from the tunnel. It should be only done on
- * client disconnection, otherwise use client_ignore_tunnel.
- * 
- * @param t Tunnel.
- * @param c Client.
- */
-static void
-tunnel_delete_client (struct MeshTunnel *t, const struct MeshClient *c)
-{
-  tunnel_delete_ignored_client (t, c);
-  tunnel_delete_active_client (t, c);
-}
-
-/* FIXME check initial values */
-static void
+void
 tunnel_add_client (struct MeshTunnel *t, struct MeshClient *c)
 {
-  struct MeshTunnelClientInfo clinfo;
-
-  GNUNET_array_append (t->clients, t->nclients, c);
-  clinfo.fwd_ack = t->prev_fc.last_pid_recv + 1;
-  clinfo.fwd_pid = t->prev_fc.last_pid_recv;
-  clinfo.bck_ack = t->nobuffer ? 1 : INITIAL_WINDOW_SIZE - 1;
-  clinfo.bck_pid = (uint32_t) -1; /* Expected next: 0 */
-  t->nclients--; /* Double append */
-  GNUNET_array_append (t->clients_fc, t->nclients, clinfo);
+  if (NULL != t->client)
+  {
+    GNUNET_break(0);
+    return;
+  }
+  if (0 != t->next_hop)
+  {
+    GNUNET_break(0);
+    return;
+  }
+  t->client = c;
+  t->next_fc.last_ack_sent = t->prev_fc.last_pid_recv + 1;
+  t->next_fc.last_pid_sent = t->prev_fc.last_pid_recv;
+  t->next_fc.last_ack_recv = t->nobuffer ? 1 : INITIAL_WINDOW_SIZE - 1;
+  t->next_fc.last_pid_recv = (uint32_t) -1; /* Expected next: 0 */
+  t->next_fc.poll_task = GNUNET_SCHEDULER_NO_TASK;
+  t->next_fc.poll_time = GNUNET_TIME_UNIT_SECONDS;
+  t->next_fc.queue_n = 0;
 }
 
 
@@ -2238,134 +1886,6 @@ tunnel_notify_connection_broken (struct MeshTunnel *t, GNUNET_PEER_Id p1,
 
 
 /**
- * Get the Flow Control info of a client.
- * 
- * @param t Tunnel on which to look.
- * @param c Client whose ACK to get.
- * 
- * @return ACK value.
- */
-static struct MeshTunnelClientInfo *
-tunnel_get_client_fc (struct MeshTunnel *t,
-                      struct MeshClient *c)
-{
-  unsigned int i;
-
-  for (i = 0; i < t->nclients; i++)
-  {
-    if (t->clients[i] != c)
-      continue;
-    return &t->clients_fc[i];
-  }
-  GNUNET_assert (0);
-  return NULL; // avoid compiler / coverity complaints
-}
-
-
-/**
- * Set the FWD ACK value of a client in a particular tunnel.
- * 
- * @param t Tunnel affected.
- * @param c Client whose ACK to set.
- * @param ack ACK value.
- */
-static void
-tunnel_set_client_fwd_ack (struct MeshTunnel *t,
-                           struct MeshClient *c, 
-                           uint32_t ack)
-{
-  unsigned int i;
-
-  for (i = 0; i < t->nclients; i++)
-  {
-    if (t->clients[i] != c)
-      continue;
-    t->clients_fc[i].fwd_ack = ack;
-    return;
-  }
-  GNUNET_break (0);
-}
-
-
-/**
- * Get the highest ACK value of all clients in a particular tunnel,
- * according to the buffering/speed settings.
- * 
- * @param t Tunnel on which to look.
- * 
- * @return Corresponding ACK value (max uint32_t).
- *         If no clients are suscribed, -1LL.
- */
-static int64_t
-tunnel_get_clients_fwd_ack (struct MeshTunnel *t)
-{
-  unsigned int i;
-  int64_t ack;
-
-  if (0 == t->nclients)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "  tunnel has no clients, no FWD ACK\n");
-    return -1LL;
-  }
-
-  for (ack = -1LL, i = 0; i < t->nclients; i++)
-  {
-    if (-1LL == ack ||
-        GNUNET_YES == GMC_is_pid_bigger (ack, t->clients_fc[i].fwd_ack))
-    {
-      ack = t->clients_fc[i].fwd_ack;
-    }
-  }
-
-  if (GNUNET_YES == t->nobuffer &&
-      GMC_is_pid_bigger(ack, t->prev_fc.last_pid_recv))
-    ack = (uint32_t) t->prev_fc.last_pid_recv + 1; // Might overflow, it's ok.
-
-  return (uint32_t) ack;
-}
-
-
-/** FIXME
- * Get the current fwd ack value for a tunnel, taking in account the tunnel
- * mode and the status of all children nodes.
- *
- * @param t Tunnel.
- *
- * @return Maximum PID allowed.
- */
-static uint32_t
-tunnel_get_fwd_ack (struct MeshTunnel *t)
-{
-  uint32_t ack;
-  uint32_t buffer_free;
-  int64_t client_ack;
-
-  buffer_free = t->queue_max - t->next_fc.queue_n;
-  client_ack = tunnel_get_clients_fwd_ack (t);
-  if (GNUNET_YES == t->nobuffer)
-  {
-    ack = t->prev_fc.last_ack_sent;
-  }
-  else
-  {
-    ack = t->prev_fc.last_ack_sent + buffer_free; // Overflow? OK!
-  }
-  if (-1LL == client_ack)
-  {
-    client_ack = ack;
-  }
-  /* FIXME check */
-  ack = GMC_max_pid ((uint32_t) client_ack, ack);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "c %u, bf %u, cl %lld, ACK: %u\n",
-              t->prev_fc.last_ack_sent, buffer_free, client_ack, ack);
-  return ack;
-}
-
-
-/**
  * Build a local ACK message and send it to a local client.
  * 
  * @param t Tunnel on which to send the ACK.
@@ -2410,36 +1930,6 @@ send_ack (struct MeshTunnel *t, GNUNET_PEER_Id peer,  uint32_t ack)
 
 
 /**
- * Notify a the owner of a tunnel about how many more
- * payload packages will we accept on a given tunnel.
- *
- * @param t Tunnel on which to send the ACK.
- */
-static void
-tunnel_send_client_fwd_ack (struct MeshTunnel *t)
-{
-  uint32_t ack;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending client FWD ACK on tunnel %X\n",
-              t->local_tid);
-
-  ack = tunnel_get_fwd_ack (t);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ack %u\n", ack);
-  if (t->prev_fc.last_ack_sent == ack)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " same as last, not sending!\n");
-    return;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " sending!\n");
-  t->prev_fc.last_ack_sent = ack;
-  send_local_ack (t, t->owner, ack);
-}
-
-
-/**
  * Send an ACK informing the predecessor about the available buffer space.
  * In case there is no predecessor, inform the owning client.
  * If buffering is off, send only on behalf of children or self if endpoint.
@@ -2455,11 +1945,6 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
 {
   uint32_t ack;
 
-  if (NULL != t->owner)
-  {
-    tunnel_send_client_fwd_ack (t);
-    return;
-  }
   /* Is it after unicast retransmission? */
   switch (type)
   {
@@ -2498,31 +1983,63 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
   }
 
   /* Ok, ACK might be necessary, what PID to ACK? */
-  ack = tunnel_get_fwd_ack (t);
+  ack = t->prev_fc.last_pid_recv + t->queue_max - t->next_fc.queue_n;
   if (ack == t->prev_fc.last_ack_sent && GNUNET_NO == t->force_ack)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending FWD ACK, not ready\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending FWD ACK, not needed\n");
     return;
   }
 
   t->prev_fc.last_ack_sent = ack;
-  send_ack (t, t->prev_hop, ack);
+  if (0 != t->prev_hop)
+    send_ack (t, t->prev_hop, ack);
+  else if (NULL != t->owner)
+    send_local_ack (t, t->owner, ack);
+  else
+    GNUNET_break (0);
   debug_fwd_ack++;
   t->force_ack = GNUNET_NO;
 }
 
 
 /**
- * Send a child node a BCK ACK to allow him to send more to_origin data.
- *
- * @param t Tunnel.
- * @param id Id of the child node.
+ * Send an ACK informing the children node/client about the available
+ * buffer space.
+ * If buffering is off, send only on behalf of root (can be self).
+ * If buffering is on, send when sent to predecessor and buffer space is free.
+ * Note that although the name is bck_ack, the BCK mean backwards *traffic*,
+ * the ACK itself goes "forward" (towards children/clients).
+ * 
+ * @param t Tunnel on which to send the ACK.
+ * @param type Type of message that triggered the ACK transmission.
  */
 static void
-tunnel_send_mesh_bck_ack (struct MeshTunnel *t,
-                           GNUNET_PEER_Id peer)
+tunnel_send_bck_ack (struct MeshTunnel *t, uint16_t type)
 {
-  uint32_t ack = 0; // FIXME
+  uint32_t ack;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending BCK ACK on tunnel %u [%u] due to %s\n",
+              t->id.oid, t->id.tid, GNUNET_MESH_DEBUG_M2S(type));
+  /* Is it after data to_origin retransmission? */
+  switch (type)
+  {
+    case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
+      if (GNUNET_YES == t->nobuffer)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "    Not sending ACK, nobuffer + traffic\n");
+        return;
+      }
+      break;
+    case GNUNET_MESSAGE_TYPE_MESH_ACK:
+    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
+      break;
+    case GNUNET_MESSAGE_TYPE_MESH_POLL:
+      t->force_ack = GNUNET_YES;
+      break;
+    default:
+      GNUNET_break (0);
+  }
 
   ack = t->next_fc.last_pid_recv + t->queue_max - t->prev_fc.queue_n;
 
@@ -2537,110 +2054,12 @@ tunnel_send_mesh_bck_ack (struct MeshTunnel *t,
               ack, t->next_fc.last_ack_sent);
   t->next_fc.last_ack_sent = ack;
 
-  send_ack (t, peer, ack);
-}
-
-
-/**
- * @brief Send BCK ACKs to clients to allow them more to_origin traffic
- * 
- * Iterates over all clients and sends BCK ACKs to the ones that need it.
- *
- * FIXME fc: what happens if we have 2 clients but q_size is 1?
- *           - implement a size 1 buffer in each client_fc AND children_fc
- *           to hold at least 1 message per "child".
- *             problem: violates no buffer policy
- *           - ack 0 and make "children" poll for transmission slots
- *             problem: big overhead, extra latency even in low traffic
- *                      settings
- * 
- * @param t Tunnel on which to send the BCK ACKs.
- */
-static void
-tunnel_send_clients_bck_ack (struct MeshTunnel *t)
-{
-  unsigned int i;
-  unsigned int tunnel_delta;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Sending BCK ACK to clients\n");
-
-  tunnel_delta = t->queue_max - t->next_fc.queue_n;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   tunnel delta: %u\n", tunnel_delta);
-
-  /* Find client whom to allow to send to origin (with lowest buffer space) */
-  for (i = 0; i < t->nclients; i++)
-  {
-    struct MeshTunnelClientInfo *clinfo;
-    unsigned int delta;
-
-    clinfo = &t->clients_fc[i];
-    delta = clinfo->bck_ack - clinfo->bck_pid;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    client %u delta: %u\n",
-         t->clients[i]->id, delta);
-
-    if ((GNUNET_NO == t->nobuffer && tunnel_delta > delta) ||
-        (GNUNET_YES == t->nobuffer && 0 == delta))
-    {
-      uint32_t ack;
-
-      ack = clinfo->bck_pid;
-      ack += t->nobuffer ? 1 : tunnel_delta;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "    sending ack to client %u: %u\n",
-                  t->clients[i]->id, ack);
-      send_local_ack (t, t->clients[i], ack);
-      clinfo->bck_ack = ack;
-    }
-    else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "    not sending ack to client %u (td %u, d %u)\n",
-                  t->clients[i]->id, tunnel_delta, delta);
-    }
-  }
-}
-
-
-/**
- * Send an ACK informing the children nodes and destination clients about
- * the available buffer space.
- * If buffering is off, send only on behalf of root (can be self).
- * If buffering is on, send when sent to predecessor and buffer space is free.
- * Note that although the name is bck_ack, the BCK mean backwards *traffic*,
- * the ACK itself goes "forward" (towards children/clients).
- * 
- * @param t Tunnel on which to send the ACK.
- * @param type Type of message that triggered the ACK transmission.
- */
-static void
-tunnel_send_bck_ack (struct MeshTunnel *t, uint16_t type)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending BCK ACK on tunnel %u [%u] due to %s\n",
-              t->id.oid, t->id.tid, GNUNET_MESH_DEBUG_M2S(type));
-  /* Is it after data to_origin retransmission? */
-  switch (type)
-  {
-    case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
-      if (GNUNET_YES == t->nobuffer)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "    Not sending ACK, nobuffer\n");
-        return;
-      }
-      break;
-    case GNUNET_MESSAGE_TYPE_MESH_ACK:
-    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
-      break;
-    case GNUNET_MESSAGE_TYPE_MESH_POLL:
-      t->force_ack = GNUNET_YES;
-      break;
-    default:
-      GNUNET_break (0);
-  }
-
-  tunnel_send_clients_bck_ack (t);
-    tunnel_send_mesh_bck_ack (t, t->next_hop);
+  if (0 != t->next_hop)
+    send_ack (t, t->next_hop, ack);
+  else if (NULL != t->client)
+    send_local_ack (t, t->client, ack);
+  else
+    GNUNET_break (0);
   t->force_ack = GNUNET_NO;
 }
 
@@ -2780,7 +2199,6 @@ tunnel_destroy (struct MeshTunnel *t)
 {
   struct MeshClient *c;
   struct GNUNET_HashCode hash;
-  unsigned int i;
   int r;
 
   if (NULL == t)
@@ -2807,6 +2225,7 @@ tunnel_destroy (struct MeshTunnel *t)
     r = GNUNET_SYSERR;
   }
 
+  // FIXME use fast hash
   if (NULL != c)
   {
     GNUNET_CRYPTO_hash (&t->local_tid, sizeof (MESH_TunnelNumber), &hash);
@@ -2818,10 +2237,10 @@ tunnel_destroy (struct MeshTunnel *t)
     }
   }
 
-  GNUNET_CRYPTO_hash (&t->local_tid_dest, sizeof (MESH_TunnelNumber), &hash);
-  for (i = 0; i < t->nclients; i++)
+  // FIXME use fast hash
+  if (NULL != t->client)
   {
-    c = t->clients[i];
+    GNUNET_CRYPTO_hash (&t->local_tid_dest, sizeof (MESH_TunnelNumber), &hash);
     if (GNUNET_YES !=
           GNUNET_CONTAINER_multihashmap_remove (c->incoming_tunnels, &hash, t))
     {
@@ -2829,22 +2248,13 @@ tunnel_destroy (struct MeshTunnel *t)
       r = GNUNET_SYSERR;
     }
   }
-  for (i = 0; i < t->nignore; i++)
+
+  if (GNUNET_YES != 
+      GNUNET_CONTAINER_multihashmap_remove (incoming_tunnels, &hash, t))
   {
-    c = t->ignore[i];
-    if (GNUNET_YES !=
-          GNUNET_CONTAINER_multihashmap_remove (c->ignore_tunnels, &hash, t))
-    {
-      GNUNET_break (0);
-      r = GNUNET_SYSERR;
-    }
+    GNUNET_break (0);
+    r = GNUNET_SYSERR;
   }
-
-  (void) GNUNET_CONTAINER_multihashmap_remove (incoming_tunnels, &hash, t);
-  GNUNET_free_non_null (t->clients);
-  GNUNET_free_non_null (t->ignore);
-  GNUNET_free_non_null (t->clients_fc);
-
   peer_cancel_queues (t->next_hop, t);
   peer_cancel_queues (t->prev_hop, t);
 
@@ -2862,22 +2272,11 @@ tunnel_destroy (struct MeshTunnel *t)
 /**
  * Tunnel is empty: destroy it.
  * 
- * @param cls Closure (Tunnel).
- * @param tc TaskContext. 
+ * @param t Tunnel to destroy. 
  */
 static void
-tunnel_destroy_empty_delayed (void *cls,
-                              const struct GNUNET_SCHEDULER_TaskContext *tc)
+tunnel_destroy_empty (struct MeshTunnel *t)
 {
-  struct MeshTunnel *t = cls;
-
-  t->delayed_destroy = GNUNET_SCHEDULER_NO_TASK;
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-
-  if (0 != t->nclients)
-    return;
-
   #if MESH_DEBUG
   {
     struct GNUNET_PeerIdentity id;
@@ -2894,40 +2293,6 @@ tunnel_destroy_empty_delayed (void *cls,
     tunnel_destroy (t);
   else
     t->destroy = GNUNET_YES;
-}
-
-
-/**
- * Schedule tunnel destruction if is empty and no new traffic comes in a time.
- * 
- * @param t Tunnel to destroy if empty.
- */
-static void
-tunnel_destroy_empty (struct MeshTunnel *t)
-{
-  if (GNUNET_SCHEDULER_NO_TASK != t->delayed_destroy || 
-      0 != t->nclients)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u %u\n",
-                t->delayed_destroy, t->nclients);
-    return;
-  }
-
-  #if MESH_DEBUG
-  {
-    struct GNUNET_PeerIdentity id;
-
-    GNUNET_PEER_resolve (t->id.oid, &id);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "scheduling destruction of empty tunnel %s [%X]\n",
-                GNUNET_i2s (&id), t->id.tid);
-  }
-  #endif
-
-  t->delayed_destroy =
-      GNUNET_SCHEDULER_add_delayed (TUNNEL_DESTROY_EMPTY_TIME,
-                                    &tunnel_destroy_empty_delayed,
-                                    t);
 }
 
 
@@ -3024,11 +2389,10 @@ tunnel_destroy_iterator (void *cls,
   struct MeshTunnel *t = value;
   struct MeshClient *c = cls;
 
-  send_client_tunnel_disconnect (t, c);
+  send_client_tunnel_destroy (t);
   if (c != t->owner)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %u is destination.\n", c->id);
-    tunnel_delete_client (t, c);
     client_delete_tunnel (c, t);
     tunnel_destroy_empty (t);
     return GNUNET_OK;
@@ -3060,9 +2424,10 @@ tunnel_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Tunnel %s [%X] timed out. Destroying.\n",
               GNUNET_i2s(&id), t->id.tid);
-  send_clients_tunnel_destroy (t);
+  send_client_tunnel_destroy (t);
   tunnel_destroy (t);
 }
+
 
 /**
  * Resets the tunnel timeout. Starts it if no timeout was running.
@@ -3833,7 +3198,7 @@ handle_mesh_path_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (own_pos < path->length - 1)
     send_prebuilt_message (message, path->peers[own_pos + 1], t);
   else
-    send_client_tunnel_disconnect(t, NULL);
+    send_client_tunnel_destroy (t);
 
 //   tunnel_delete_peer (t, path->peers[path->length - 1]); FIXME
   path_destroy (path);
@@ -3894,7 +3259,6 @@ handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct GNUNET_MESH_TunnelDestroy *msg;
   struct MeshTunnel *t;
-  GNUNET_PEER_Id pid;
 
   msg = (struct GNUNET_MESH_TunnelDestroy *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3915,20 +3279,13 @@ handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
                               1, GNUNET_NO);
     return GNUNET_OK;
   }
-  pid = GNUNET_PEER_search (peer);
-  if (pid != t->prev_hop && 0 < t->nclients)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "still in use by %u clients\n",
-                t->nclients);
-    return GNUNET_OK;
-  }
+  // TODO check owner's signature
   if (t->local_tid_dest >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
   {
     /* Tunnel was incoming, notify clients */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "INCOMING TUNNEL %X %X\n",
                 t->local_tid, t->local_tid_dest);
-    send_clients_tunnel_destroy (t);
+    send_client_tunnel_destroy (t);
   }
   tunnel_send_destroy (t);
   t->destroy = GNUNET_YES;
@@ -4008,11 +3365,22 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   tunnel_reset_timeout (t);
   if (t->dest == myid)
   {
+    if (NULL == t->client)
+    {
+      GNUNET_break (0);
+      return GNUNET_OK;
+    }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  it's for us! sending to clients...\n");
     GNUNET_STATISTICS_update (stats, "# unicast received", 1, GNUNET_NO);
-    send_subscribed_clients (message, &msg[1].header, t);
+    GNUNET_SERVER_notification_context_unicast (nc, t->client->handle,
+                                                message, GNUNET_NO);
     tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST);
+    return GNUNET_OK;
+  }
+  if (0 == t->next_hop)
+  {
+    GNUNET_break (0);
     return GNUNET_OK;
   }
   ttl = ntohl (msg->ttl);
@@ -4585,11 +3953,8 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
                                            &tunnel_destroy_iterator, c);
     GNUNET_CONTAINER_multihashmap_iterate (c->incoming_tunnels,
                                            &tunnel_destroy_iterator, c);
-    GNUNET_CONTAINER_multihashmap_iterate (c->ignore_tunnels,
-                                           &tunnel_destroy_iterator, c);
     GNUNET_CONTAINER_multihashmap_destroy (c->own_tunnels);
     GNUNET_CONTAINER_multihashmap_destroy (c->incoming_tunnels);
-    GNUNET_CONTAINER_multihashmap_destroy (c->ignore_tunnels);
 
     if (NULL != c->types)
       GNUNET_CONTAINER_multihashmap_destroy (c->types);
@@ -4668,7 +4033,6 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, c);
   c->own_tunnels = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
   c->incoming_tunnels = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
-  c->ignore_tunnels = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
   GNUNET_SERVER_notification_context_add (nc, client);
   GNUNET_STATISTICS_update (stats, "# clients", 1, GNUNET_NO);
 
@@ -4801,14 +4165,13 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  if (c != t->owner || tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
+  if (c == t->client)
   {
-    client_ignore_tunnel (c, t);
     tunnel_destroy_empty (t);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  send_client_tunnel_disconnect (t, c);
+  send_client_tunnel_destroy (t);
   client_delete_tunnel (c, t);
 
   /* Don't try to ACK the client about the tunnel_destroy multicast packet */
@@ -4985,7 +4348,7 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
                         const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_ToOrigin *data_msg;
-  struct MeshTunnelClientInfo *clinfo;
+  struct MeshFlowControl *fc;
   struct MeshClient *c;
   struct MeshTunnel *t;
   MESH_TunnelNumber tid;
@@ -5034,7 +4397,7 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   /*  It should be sent by someone who has this as incoming tunnel. */
-  if (GNUNET_NO == client_knows_tunnel (c, t))
+  if (t->client != c)
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -5042,18 +4405,18 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   /* PID should be as expected */
-  clinfo = tunnel_get_client_fc (t, c);
-  if (ntohl (data_msg->pid) != clinfo->bck_pid + 1)
+  fc = &t->next_fc;
+  if (ntohl (data_msg->pid) != fc->last_pid_recv + 1)
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "To Origin PID, expected %u, got %u\n",
-                clinfo->bck_pid + 1,
+                fc->last_pid_recv + 1,
                 ntohl (data_msg->pid));
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  clinfo->bck_pid++;
+  fc->last_pid_recv++;
 
   /* Ok, everything is correct, send the message
    * (pretend we got it from a mesh peer)
@@ -5063,8 +4426,8 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
     struct GNUNET_MESH_ToOrigin *copy;
 
     /* Work around 'const' limitation */
-    copy = (struct GNUNET_MESH_ToOrigin *) buf;
     memcpy (buf, data_msg, size);
+    copy = (struct GNUNET_MESH_ToOrigin *) buf;
     GNUNET_PEER_resolve (t->id.oid, &copy->oid);
     copy->tid = htonl (t->id.tid);
     copy->ttl = htonl (default_ttl);
@@ -5126,16 +4489,16 @@ handle_local_ack (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ack %u\n", ack);
 
   /* Does client own tunnel? I.E: Is this an ACK for BCK traffic? */
-  if (NULL != t->owner && t->owner->handle == client)
+  if (t->owner == c)
   {
     /* The client owns the tunnel, ACK is for data to_origin, send BCK ACK. */
-    t->next_fc.last_ack_sent = ack;
-    tunnel_send_bck_ack(t, GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
+    t->prev_fc.last_ack_recv = ack;
+    tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
   }
   else
   {
     /* The client doesn't own the tunnel, this ACK is for FWD traffic. */
-    tunnel_set_client_fwd_ack (t, c, ack);
+    t->next_fc.last_ack_recv = ack;
     tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
   }
 
