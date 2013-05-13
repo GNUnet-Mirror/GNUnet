@@ -777,7 +777,7 @@ occ_hello_sent_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_asprintf (&occ->emsg,
                    "0x%llx: Timeout during TRANSPORT_try_connect() "
                    "at peer %4s", occ->op_id, 
-                   GNUNET_i2s(&occ->peer_identity));
+                   GNUNET_i2s(&occ->other_peer_identity));
   lp2c->tcc.pid = &occ->peer_identity;
   lp2c->tcc.op_id = occ->op_id;
   lp2c->tcc.task = GNUNET_SCHEDULER_add_now (&try_connect_task, &lp2c->tcc);

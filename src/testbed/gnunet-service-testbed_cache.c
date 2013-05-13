@@ -793,6 +793,7 @@ cache_get_handle (unsigned int peer_id, struct GSTCacheGetHandle *cgh,
     }
     return cgh;
   }
+  op = NULL;
   switch (cgh->type)
   {
   case CGT_TRANSPORT_HANDLE:
@@ -809,6 +810,8 @@ cache_get_handle (unsigned int peer_id, struct GSTCacheGetHandle *cgh,
                                            &oprelease_get_handle_core);
     entry->core_op = op;
     break;
+  default:
+    GNUNET_assert (0);
   }
   GNUNET_TESTBED_operation_queue_insert_ (GST_opq_openfds, op);
   GNUNET_TESTBED_operation_begin_wait_ (op);
