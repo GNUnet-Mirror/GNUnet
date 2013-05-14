@@ -1069,6 +1069,7 @@ helper_mst (void *cls, void *client, const struct GNUNET_MessageHeader *message)
   struct GNUNET_TESTBED_ControllerProc *cp = cls;
   const struct GNUNET_TESTBED_HelperReply *msg;
   const char *hostname;
+  const char *hostip;
   char *config;
   uLongf config_size;
   uLongf xconfig_size;
@@ -1096,9 +1097,12 @@ helper_mst (void *cls, void *client, const struct GNUNET_MessageHeader *message)
   if ((NULL == cp->host) ||
       (NULL == (hostname = GNUNET_TESTBED_host_get_hostname (cp->host))))
     hostname = "localhost";
+  hostip = simple_resolve (hostname);
+  if (NULL == hostip)
+    hostip = "127.0.0.1";  
   /* Change the hostname so that we can connect to it */
   GNUNET_CONFIGURATION_set_value_string (cp->host->cfg, "testbed", "hostname",
-                                         hostname);
+                                         hostip);
   cp->host->locked = GNUNET_NO;
   cp->host->controller_started = GNUNET_YES;
   cp->cb (cp->cls, cp->host->cfg, GNUNET_OK);
