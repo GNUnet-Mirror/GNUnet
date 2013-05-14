@@ -2285,7 +2285,9 @@ tunnel_destroy_empty (struct MeshTunnel *t)
 }
 
 /**
- * Initialize a Flow Control structure
+ * Initialize a Flow Control structure to the initial state.
+ * 
+ * @param fc Flow Control structure to initialize.
  */
 static void
 fc_init (struct MeshFlowControl *fc)
