@@ -1851,6 +1851,11 @@ udp_nat_port_map_callback (void *cls, int add_remove,
   void *arg;
   size_t args;
 
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "NAT notification to %s address `%s'\n",
+       (GNUNET_YES == add_remove) ? "add" : "remove",
+       GNUNET_a2s (addr, addrlen));
+
   /* convert 'addr' to our internal format */
   switch (addr->sa_family)
   {

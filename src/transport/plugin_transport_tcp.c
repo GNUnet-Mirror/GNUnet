@@ -520,8 +520,9 @@ tcp_nat_port_map_callback (void *cls, int add_remove,
   void *arg;
   size_t args;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
-       "NPMC called with %d for address `%s'\n", add_remove,
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "NAT notification to %s address `%s'\n",
+       (GNUNET_YES == add_remove) ? "add" : "remove",
        GNUNET_a2s (addr, addrlen));
   /* convert 'addr' to our internal format */
   switch (addr->sa_family)
@@ -2307,6 +2308,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   unsigned int i;
   struct GNUNET_TIME_Relative idle_timeout;
   int ret;
+  int ret_s;
   struct sockaddr **addrs;
   socklen_t *addrlens;
 
@@ -2376,11 +2378,19 @@ libgnunet_plugin_transport_tcp_init (void *cls)
         GNUNET_SERVICE_get_server_addresses ("transport-tcp", env->cfg, &addrs,
                                              &addrlens))))
   {
+		ret_s = ret;
+		while (ret > 0)
+		{
+			ret--;
+			LOG (GNUNET_ERROR_TYPE_INFO, "Binding to address `%s'\n", GNUNET_a2s (addrs[ret], addrlens[ret]));
+		}
+
     plugin->nat =
         GNUNET_NAT_register (env->cfg, GNUNET_YES, aport, (unsigned int) ret,
                              (const struct sockaddr **) addrs, addrlens,
                              &tcp_nat_port_map_callback,
                              &try_connection_reversal, plugin);
+		ret = ret_s;
     while (ret > 0)
     {
       ret--;
