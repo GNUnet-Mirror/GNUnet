@@ -589,9 +589,7 @@ GNUNET_TESTBED_hosts_load_from_loadleveler (const struct
   char *buf;
   char *hostname;
   char **hostnames;
-  char **hostaddrs;
-  const char *hostip;
-  struct GNUNET_TESTBED_Host **host_list;
+    struct GNUNET_TESTBED_Host **host_list;
   ssize_t rsize;
   uint64_t size;
   uint64_t offset;
@@ -603,7 +601,6 @@ GNUNET_TESTBED_hosts_load_from_loadleveler (const struct
   } pstep;
   unsigned int host;
   unsigned int nhosts;
-  unsigned int nhostaddrs;
   
   if (NULL == (hostfile = getenv ("MP_SAVEHOSTFILE")))
   {
@@ -634,9 +631,7 @@ GNUNET_TESTBED_hosts_load_from_loadleveler (const struct
   pstep = SCAN;
   hostname = NULL;
   hostnames = NULL;
-  hostaddrs = NULL;
   nhosts = 0;
-  nhostaddrs = 0;
   while (offset < size)
   {
     switch (pstep)
@@ -692,31 +687,17 @@ GNUNET_TESTBED_hosts_load_from_loadleveler (const struct
   GNUNET_free_non_null (buf);
   if (NULL == hostnames)
     return 0;
-  for (host = 0; host < nhosts; host++)
-  {
-    hostip = simple_resolve (hostnames[host]);
-    if (NULL == hostip)
-    {
-      nhosts = 0;
-      goto cleanup;
-    }
-    GNUNET_array_append (hostaddrs, nhostaddrs, GNUNET_strdup (hostip));
-  }
-  GNUNET_assert (nhostaddrs == nhosts);
   if (NULL == hosts)
     goto cleanup;
-  host_list = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Host *) * nhostaddrs);
+  host_list = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Host *) * nhosts);
   for (host = 0; host < nhosts; host++)
-    host_list[host] = GNUNET_TESTBED_host_create (hostaddrs[host], NULL, cfg, 0);
+    host_list[host] = GNUNET_TESTBED_host_create (hostnames[host], NULL, cfg, 0);
   *hosts = host_list;
 
  cleanup:
   for (host = 0; host < nhosts; host++)
     GNUNET_free (hostnames[host]);
   GNUNET_free(hostnames);
-  for (host = 0; (NULL != hostaddrs) && (host < nhostaddrs); host++)
-    GNUNET_free (hostaddrs[host]);
-  GNUNET_free (hostaddrs);
   return nhosts;
 #endif
 }
