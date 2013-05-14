@@ -374,7 +374,7 @@ send_delayed (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 			{
 				/* More delayed messages */
 				delay = GNUNET_TIME_absolute_get_remaining (next->sent_at);
-				tmp->send_delay_task = GNUNET_SCHEDULER_add_delayed (delay, &send_delayed, dqe);
+				tmp->send_delay_task = GNUNET_SCHEDULER_add_delayed (delay, &send_delayed, next);
 			}
 	}
 	else
@@ -388,7 +388,7 @@ send_delayed (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 			{
 				/* More delayed messages */
 				delay = GNUNET_TIME_absolute_get_remaining (next->sent_at);
-				generic_send_delay_task = GNUNET_SCHEDULER_add_delayed (delay, &send_delayed, dqe);
+				generic_send_delay_task = GNUNET_SCHEDULER_add_delayed (delay, &send_delayed, next);
 			}
 	}
 
