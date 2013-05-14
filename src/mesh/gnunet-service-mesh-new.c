@@ -1123,16 +1123,11 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   switch (type)
   {
     struct GNUNET_MESH_Unicast *u;
-    struct GNUNET_MESH_ToOrigin *to;
 
     case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
       u = (struct GNUNET_MESH_Unicast *) data;
       u->ttl = htonl (ntohl (u->ttl) - 1);
       break;
-    case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
-      to = (struct GNUNET_MESH_ToOrigin *) data;
-      t->prev_fc.last_pid_sent++; /* FIXME per hop? */
-      to->pid = htonl (t->prev_fc.last_pid_sent);
   }
   GNUNET_PEER_resolve (peer, &id);
   neighbor = peer_get (&id);
