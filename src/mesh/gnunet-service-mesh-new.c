@@ -19,29 +19,16 @@
 */
 
 /**
- * @file mesh/gnunet-service-mesh.c
+ * @file mesh/gnunet-service-mesh-new.c
  * @brief GNUnet MESH service
  * @author Bartlomiej Polot
  *
- * STRUCTURE:
- * - DATA STRUCTURES
- * - GLOBAL VARIABLES
- * - GENERAL HELPERS
- * - PERIODIC FUNCTIONS
- * - MESH NETWORK HANDLER HELPERS
- * - MESH NETWORK HANDLES
- * - MESH LOCAL HANDLER HELPERS
- * - MESH LOCAL HANDLES
- * - MAIN FUNCTIONS (main & run)
- *
  * TODO:
- * - error reporting (CREATE/CHANGE/ADD/DEL?) -- new message!
- * - partial disconnect reporting -- same as error reporting?
- * - add ping message
  * - relay corking down to core
- * - set ttl relative to tree depth
- * - Add data ACK count in path ACK
- * - Make common GNUNET_MESH_Data header for unicast, to_orig, multicast
+ * - set ttl relative to path length
+ * - add signatures
+ * - add encryption
+ * - add port numbers
  * TODO END
  */
 
@@ -4577,38 +4564,6 @@ static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
 
 
 /**
- * To be called on core init/fail.
- *
- * @param cls service closure
- * @param server handle to the server for this service
- * @param identity the public identity of this peer
- */
-static void
-core_init (void *cls, struct GNUNET_CORE_Handle *server,
-           const struct GNUNET_PeerIdentity *identity)
-{
-  static int i = 0;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Core init\n");
-  core_handle = server;
-  if (0 != memcmp (identity, &my_full_id, sizeof (my_full_id)) ||
-      NULL == server)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Wrong CORE service\n"));
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                " core id %s\n",
-                GNUNET_i2s (identity));
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                " my id %s\n",
-                GNUNET_i2s (&my_full_id));
-    GNUNET_SCHEDULER_shutdown (); // Try gracefully
-    if (10 < i++)
-      GNUNET_abort(); // Try harder
-  }
-  return;
-}
-
-
-/**
  * Method called whenever a given peer connects.
  *
  * @param cls closure
@@ -4683,6 +4638,50 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   }
   GNUNET_STATISTICS_update (stats, "# peers", -1, GNUNET_NO);
   return;
+}
+
+
+/**
+ * To be called on core init/fail.
+ *
+ * @param cls Closure (config)
+ * @param server handle to the server for this service
+ * @param identity the public identity of this peer
+ */
+static void
+core_init (void *cls, struct GNUNET_CORE_Handle *server,
+           const struct GNUNET_PeerIdentity *identity)
+{
+  const struct GNUNET_CONFIGURATION_Handle *c = cls;
+  static int i = 0;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Core init\n");
+  core_handle = server;
+  if (0 != memcmp (identity, &my_full_id, sizeof (my_full_id)) ||
+    NULL == server)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Wrong CORE service\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                " core id %s\n",
+                GNUNET_i2s (identity));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                " my id %s\n",
+                GNUNET_i2s (&my_full_id));
+    GNUNET_CORE_disconnect (core_handle);
+    core_handle = GNUNET_CORE_connect (c, /* Main configuration */
+                                       NULL,      /* Closure passed to MESH functions */
+                                       &core_init,        /* Call core_init once connected */
+                                       &core_connect,     /* Handle connects */
+                                       &core_disconnect,  /* remove peers on disconnects */
+                                       NULL,      /* Don't notify about all incoming messages */
+                                       GNUNET_NO, /* For header only in notification */
+                                       NULL,      /* Don't notify about all outbound messages */
+                                       GNUNET_NO, /* For header-only out notification */
+                                       core_handlers);    /* Register these handlers */
+    if (10 < i++)
+      GNUNET_abort();
+  }
+    return;
 }
 
 
@@ -4825,7 +4824,6 @@ key_generation_cb (void *cls,
                                      NULL,      /* Don't notify about all outbound messages */
                                      GNUNET_NO, /* For header-only out notification */
                                      core_handlers);    /* Register these handlers */
-  
   if (core_handle == NULL)
   {
     GNUNET_break (0);
