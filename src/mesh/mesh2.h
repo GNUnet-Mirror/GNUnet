@@ -241,44 +241,34 @@ GNUNET_NETWORK_STRUCT_END
 /******************************************************************************/
 
 /**
- * All the states a peer participating in a tunnel can be in.
+ * All the states a tunnel can be in.
  */
-enum MeshPeerState
+enum MeshTunnelState
 {
     /**
      * Uninitialized status, should never appear in operation.
      */
-  MESH_PEER_INVALID,
-
-    /**
-     * Peer is the root and owner of the tree
-     */
-  MESH_PEER_ROOT,
-
-    /**
-     * Peer only retransmits traffic, is not a final destination
-     */
-  MESH_PEER_RELAY,
+  MESH_TUNNEL_NEW,
 
     /**
      * Path to the peer not known yet
      */
-  MESH_PEER_SEARCHING,
+  MESH_TUNNEL_SEARCHING,
 
     /**
      * Request sent, not yet answered.
      */
-  MESH_PEER_WAITING,
+  MESH_TUNNEL_WAITING,
 
     /**
      * Peer connected and ready to accept data
      */
-  MESH_PEER_READY,
+  MESH_TUNNEL_READY,
 
     /**
      * Peer connected previosly but not responding
      */
-  MESH_PEER_RECONNECTING
+  MESH_TUNNEL_RECONNECTING
 };
 
 

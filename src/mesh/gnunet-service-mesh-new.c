@@ -307,6 +307,11 @@ struct MeshTunnel
   struct MESH_TunnelID id;
 
     /**
+     * State of the tunnel.
+     */
+  MeshTunnelState state;
+
+    /**
      * Local tunnel number ( >= GNUNET_MESH_LOCAL_TUNNEL_ID_CLI or 0 )
      */
   MESH_TunnelNumber local_tid;
@@ -1198,29 +1203,21 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
  * Sends a CREATE PATH message for a path to a peer, properly registrating
  * all used resources.
  *
- * @param peer PeerInfo of the final peer for whom this path is being created.
- * @param p Path itself.
  * @param t Tunnel for which the path is created.
  */
 static void
-send_create_path (struct MeshPeerInfo *peer, struct MeshPeerPath *p,
-                  struct MeshTunnel *t)
+send_create_path (struct MeshTunnel *t)
 {
   struct MeshPeerInfo *neighbor;
-
-  if (NULL == p)
-  {
-    GNUNET_break (0);
-    return;
-  }
 
   neighbor = peer_get_short (t->next_hop);
   queue_add (t,
              GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE,
              sizeof (struct GNUNET_MESH_ManipulatePath) +
-                (p->length * sizeof (struct GNUNET_PeerIdentity)),
+                (t->path->length * sizeof (struct GNUNET_PeerIdentity)),
              neighbor,
              t);
+  t->state = MESH_TUNNEL_WAITING;
 }
 
 
@@ -1251,7 +1248,7 @@ send_path_ack (struct MeshTunnel *t)
 
 
 /**
- * Try to establish a new connection to this peer in the fiven tunnel.
+ * Try to establish a new connection to this peer in the given tunnel.
  * If the peer doesn't have any path to it yet, try to get one.
  * If the peer already has some path, send a CREATE PATH towards it.
  *
@@ -1267,7 +1264,7 @@ peer_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t)
   {
     p = peer_get_best_path (peer, t);
     tunnel_use_path (t, p);
-    send_create_path (peer, p, t);
+    send_create_path (t);
   }
   else if (NULL == peer->dhtget)
   {
@@ -1285,6 +1282,7 @@ peer_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t)
                                          NULL,       /* xquery */
                                          0,     /* xquery bits */
                                          &dht_get_id_handler, peer);
+    t->state = MESH_TUNNEL_SEARCHING;
   }
   /* Otherwise, there is no path but the DHT get is already started. */
 }
@@ -2955,6 +2953,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       return GNUNET_OK;
     }
   }
+  t->state = MESH_TUNNEL_WAITING;
   dest_peer_info =
       GNUNET_CONTAINER_multihashmap_get (peers, &pi[size - 1].hashPubKey);
   if (NULL == dest_peer_info)
@@ -3029,7 +3028,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     peer_info_add_path (dest_peer_info, path2, GNUNET_NO);
     path2 = path_duplicate (path);
     peer_info_add_path_to_origin (orig_peer_info, path2, GNUNET_NO);
-    send_create_path (dest_peer_info, path, t);
+    send_create_path (t);
   }
   return GNUNET_OK;
 }
@@ -3593,6 +3592,7 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_break (0);
   }
+  t->state = MESH_TUNNEL_READY;
 
   /* Message for us? */
   if (0 == memcmp (&msg->oid, &my_full_id, sizeof (struct GNUNET_PeerIdentity)))
@@ -3781,8 +3781,6 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param type type of the result
  * @param size number of bytes in data
  * @param data pointer to the result data
- *
- * TODO: re-issue the request after certain time? cancel after X results?
  */
 static void
 dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
@@ -3808,7 +3806,8 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   path_destroy (p);
   for (i = 0; i < peer->ntunnels; i++)
   {
-    peer_connect (peer, peer->tunnels[i]); // FIXME add if
+    if (peer->tunnels[i]->state == MESH_TUNNEL_SEARCHING)
+      peer_connect (peer, peer->tunnels[i]);
   }
 
   return;
@@ -3907,7 +3906,7 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* Create new client structure */
   c = GNUNET_malloc (sizeof (struct MeshClient));
-  c->id = next_client_id++; // overflow not important: just for debug
+  c->id = next_client_id++; /* overflow not important: just for debug */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  CLIENT NEW %u\n", c->id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  client has %u types\n", ntypes);
   c->handle = client;
