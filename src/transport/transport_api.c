@@ -1055,6 +1055,9 @@ send_try_connect (void *cls, size_t size, void *buf)
       tch->cb (tch->cb_cls, GNUNET_SYSERR);
     GNUNET_CONTAINER_DLL_remove (tch->th->tc_head, tch->th->tc_tail, tch);
     GNUNET_free (tch);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Discarding  `%s' request to `%4s' due to error in transport service connection.\n", "REQUEST_CONNECT",
+         GNUNET_i2s (&tch->pid));
     return 0;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,

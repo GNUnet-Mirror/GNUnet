@@ -704,7 +704,12 @@ try_connect_if_allowed (void *cls, const struct GNUNET_PeerIdentity *peer,
                         int result)
 {
   if (GNUNET_OK != result)
+  {
+  	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  		      "Blacklist refuses connection attempt to peer `%s'\n",
+  	              GNUNET_i2s (peer));
     return;                     /* not allowed */
+  }
   GST_neighbours_try_connect (peer);
 }
 

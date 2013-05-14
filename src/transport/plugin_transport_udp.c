@@ -2681,7 +2681,7 @@ setup_sockets (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struct 
     else
     {
 #if HAVE_SOCKADDR_IN_SIN_LEN
-      serverAddrv6->sin6_len = sizeof (serverAddrv6);
+      serverAddrv6->sin6_len = sizeof (struct sockaddr_in6);
 #endif
       serverAddrv6->sin6_family = AF_INET6;
       serverAddrv6->sin6_addr = in6addr_any;
@@ -2691,8 +2691,9 @@ setup_sockets (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struct 
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Binding to IPv6 port %d\n",
            ntohs (serverAddrv6->sin6_port));
       tries = 0;
-      while (GNUNET_NETWORK_socket_bind (plugin->sockv6, serverAddrv6, addrlen) !=
-             GNUNET_OK)
+      while (GNUNET_OK != GNUNET_NETWORK_socket_bind (plugin->sockv6,
+																(struct sockaddr *) serverAddrv6,
+																addrlen))
       {
         serverAddrv6->sin6_port = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537) + 32000);        /* Find a good, non-root port */
         LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -2727,7 +2728,7 @@ setup_sockets (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struct 
   else
   {
 #if HAVE_SOCKADDR_IN_SIN_LEN
-    serverAddrv4->sin_len = sizeof (serverAddrv4);
+    serverAddrv4->sin_len = sizeof (struct sockaddr_in);
 #endif
     serverAddrv4->sin_family = AF_INET;
     serverAddrv4->sin_addr.s_addr = INADDR_ANY;
