@@ -2643,6 +2643,7 @@ queue_send (void *cls, size_t size, void *buf)
   struct GNUNET_PeerIdentity dst_id;
   struct MeshFlowControl *fc;
   size_t data_size;
+  uint16_t type;
 
   peer->core_transmit = NULL;
 
@@ -2684,6 +2685,7 @@ queue_send (void *cls, size_t size, void *buf)
   t = queue->tunnel;
   GNUNET_assert (0 < t->pending_messages);
   t->pending_messages--;
+  type = 0;
 
   /* Fill buf */
   switch (queue->type)
@@ -2703,17 +2705,7 @@ queue_send (void *cls, size_t size, void *buf)
     case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
       data_size = send_core_data_raw (queue->cls, size, buf);
       msg = (struct GNUNET_MessageHeader *) buf;
-      switch (ntohs (msg->type)) // Type of preconstructed message
-      {
-        case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
-          tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST);
-          break;
-        case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
-          tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
-          break;
-        default:
-            break;
-      }
+      type = ntohs (msg->type);
       break;
     case GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE:
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   path create\n");
@@ -2730,37 +2722,22 @@ queue_send (void *cls, size_t size, void *buf)
                   queue->type);
       data_size = 0;
   }
-  switch (queue->type)
+
+  /* Free queue, but cls was freed by send_core_* */
+  queue_destroy (queue, GNUNET_NO);
+
+  /* Send ACK if needed, after accounting for sent ID in fc->queue_n */
+  switch (type)
   {
     case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
+      tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST);
+      break;
     case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
-//         if (cinfo->send_buffer[cinfo->send_buffer_start] != queue)
-//         { FIXME
-//           GNUNET_break (0);
-//           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-//                       "at pos %u (%p) != %p\n",
-//                       cinfo->send_buffer_start,
-//                       cinfo->send_buffer[cinfo->send_buffer_start],
-//                       queue);
-//         }
-//         if (cinfo->send_buffer_n > 0)
-//         {
-//           cinfo->send_buffer[cinfo->send_buffer_start] = NULL;
-//           cinfo->send_buffer_n--;
-//           cinfo->send_buffer_start++;
-//           cinfo->send_buffer_start %= t->fwd_queue_max;
-//         }
-//         else
-//         {
-//           GNUNET_break (0);
-//         }
+      tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
       break;
     default:
       break;
   }
-
-  /* Free queue, but cls was freed by send_core_* */
-  queue_destroy (queue, GNUNET_NO);
 
   if (GNUNET_YES == t->destroy && 0 == t->pending_messages)
   {
@@ -2786,23 +2763,25 @@ queue_send (void *cls, size_t size, void *buf)
                                             &queue_send,
                                             peer);
   }
-  else
+  else if (NULL != peer->queue_head)
   {
-    if (NULL != peer->queue_head)
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "*********   %s stalled\n",
+                GNUNET_i2s(&my_full_id));
+    if (peer->id == t->next_hop)
+      fc = &t->next_fc;
+    else if (peer->id == t->prev_hop)
+      fc = &t->prev_fc;
+    else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "*********   %s stalled\n",
-                  GNUNET_i2s(&my_full_id));
-      if (peer->id == t->next_hop)
-        fc = &t->next_fc;
-      else
-        fc = &t->prev_fc;
-      if (GNUNET_SCHEDULER_NO_TASK == fc->poll_task)
-      {
-        fc->t = t;
-        fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
-                                                      &tunnel_poll, fc);
-      }
+      GNUNET_break (0);
+      fc = NULL;
+    }
+    if (NULL != fc && GNUNET_SCHEDULER_NO_TASK == fc->poll_task)
+    {
+      fc->t = t;
+      fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
+                                                    &tunnel_poll, fc);
     }
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   return %d\n", data_size);
