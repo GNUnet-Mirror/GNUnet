@@ -199,11 +199,6 @@ struct GNUNET_MESH_Poll
    * OID of the tunnel
    */
   struct GNUNET_PeerIdentity oid;
-
-  /**
-   * Last ACK received.
-   */
-  uint32_t last_ack;
 };
 
 /**
