@@ -689,7 +689,8 @@ GNUNET_TESTBED_hosts_load_from_loadleveler (const struct
     return 0;
   if (NULL == hosts)
     goto cleanup;
-  qsort (hostnames, nhosts, sizeof (hostnames[0]), &strcmp);
+  qsort (hostnames, nhosts, sizeof (hostnames[0]), 
+         (int (*)(const void *, const void *))&strcmp);
   host_list = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Host *) * nhosts);
   for (host = 0; host < nhosts; host++)
     host_list[host] = GNUNET_TESTBED_host_create (hostnames[host], NULL, cfg, 0);

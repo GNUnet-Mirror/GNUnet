@@ -31,11 +31,6 @@ static struct GNUNET_OS_Process *child;
 static char **argv2;
 
 /**
- * All our IP addresses
- */
-static char **our_addrs;
-
-/**
  * Pipe used to communicate shutdown via signal.
  */
 static struct GNUNET_DISK_PipeHandle *sigpipe;
@@ -196,7 +191,6 @@ run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TESTBED_Host **hosts;
   const struct GNUNET_CONFIGURATION_Handle *null_cfg;
-  const char *host_ip;
   char *tmpdir;
   char *hostname;
   size_t hostname_len;
