@@ -2635,16 +2635,16 @@ queue_get_next (const struct MeshPeerInfo *peer)
   struct MeshPeerQueue *q;
  
   struct MeshTransmissionDescriptor *info;
-//   struct GNUNET_MESH_Unicast *ucast;
-//   struct GNUNET_MESH_ToOrigin *to_orig;
-  struct GNUNET_PeerIdentity id;
-//   uint32_t pid;
-//   uint32_t ack; FIXME
+  struct GNUNET_MESH_Unicast *ucast;
+  struct GNUNET_MESH_ToOrigin *to_orig;
+  struct MeshTunnel* t;
+  uint32_t pid;
+  uint32_t ack;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   selecting message\n");
   for (q = peer->queue_head; NULL != q; q = q->next)
   {
-//     t = q->tunnel;
+    t = q->tunnel;
     info = q->cls;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "*********     %s\n",
@@ -2652,35 +2652,34 @@ queue_get_next (const struct MeshPeerInfo *peer)
     switch (q->type)
     {
       case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
-//         ucast = (struct GNUNET_MESH_Unicast *) info->mesh_data->data;
-//         pid = ntohl (ucast->pid);
-        GNUNET_PEER_resolve (info->peer->id, &id);
-//         ack = cinfo->fwd_ack;
+        ucast = (struct GNUNET_MESH_Unicast *) info->data;
+        pid = ntohl (ucast->pid);
+        ack = t->next_fc.last_ack_recv;
         break;
       case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
-//         to_orig = (struct GNUNET_MESH_ToOrigin *) info->mesh_data->data;
-//         pid = ntohl (to_orig->pid);
-//         ack = t->bck_ack;
+        to_orig = (struct GNUNET_MESH_ToOrigin *) info->data;
+        pid = ntohl (to_orig->pid);
+        ack = t->prev_fc.last_ack_recv;
         break;
       default:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "*********   OK!\n");
         return q;
     }
-//     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-//                 "*********     ACK: %u, PID: %u\n",
-//                 ack, pid);
-//     if (GNUNET_NO == GMC_is_pid_bigger(pid, ack))
-//     {
-//       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-//                   "*********   OK!\n");
-//       return q;
-//     }
-//     else
-//     {
-//       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-//                   "*********     NEXT!\n");
-//     }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "*********     ACK: %u, PID: %u\n",
+                ack, pid);
+    if (GNUNET_NO == GMC_is_pid_bigger (pid, ack))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "*********   OK!\n");
+      return q;
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "*********     NEXT!\n");
+    }
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "*********   nothing found\n");
