@@ -2132,7 +2132,7 @@ peer_cancel_queues (GNUNET_PEER_Id neighbor, struct MeshTunnel *t)
       if (GNUNET_MESSAGE_TYPE_MESH_UNICAST == pq->type ||
           GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN == pq->type)
       {
-        // Should have been removed on destroy children
+        /* Should have been removed on destroy children */
         GNUNET_break (0);
       }
       queue_destroy (pq, GNUNET_YES);
@@ -2831,7 +2831,7 @@ queue_add (void *cls, uint16_t type, size_t size,
       GNUNET_STATISTICS_update(stats,
                                "# messages dropped (buffer full)",
                                1, GNUNET_NO);
-      return; // Drop message
+      return; /* Drop message */
     }
     (*n)++;
   }
@@ -2920,7 +2920,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "    path is for tunnel %s [%X].\n", GNUNET_i2s (pi), tid);
   t = tunnel_get (pi, tid);
-  if (NULL == t) // FIXME only for INCOMING tunnels?
+  if (NULL == t)
   {
     uint32_t opt;
 
@@ -2928,7 +2928,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     t = tunnel_new (GNUNET_PEER_intern (pi), tid, NULL, 0);
     if (NULL == t)
     {
-      // FIXME notify failure
+      GNUNET_break (0);
       return GNUNET_OK;
     }
     opt = ntohl (msg->opt);
@@ -2943,13 +2943,6 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     {
       t->queue_max = 1;
     }
-
-    // FIXME only assign a local tid if a local client is interested (on demand)
-    while (NULL != tunnel_get_incoming (next_local_tid))
-      next_local_tid = (next_local_tid + 1) | GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
-    t->local_tid_dest = next_local_tid++;
-    next_local_tid = next_local_tid | GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
-    // FIXME end
 
     tunnel_reset_timeout (t);
     GMC_hash32 (t->local_tid_dest, &hash);
@@ -3011,9 +3004,16 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (own_pos == size - 1)
   {
     /* It is for us! Send ack. */
+    // TODO: check port number / client registration
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  It's for us!\n");
     peer_info_add_path_to_origin (orig_peer_info, path, GNUNET_NO);
     t->dest = myid;
+
+    while (NULL != tunnel_get_incoming (next_local_tid))
+      next_local_tid = (next_local_tid + 1) | GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
+    t->local_tid_dest = next_local_tid++;
+    next_local_tid = next_local_tid | GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
+
     send_path_ack (t);
   }
   else
@@ -3051,7 +3051,6 @@ handle_mesh_path_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct GNUNET_MESH_ManipulatePath *msg;
   struct GNUNET_PeerIdentity *pi;
-  struct MeshPeerPath *path;
   struct MeshTunnel *t;
   unsigned int own_pos;
   unsigned int i;
@@ -3092,25 +3091,19 @@ handle_mesh_path_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Creating path...\n");
-  path = path_new (size);
   own_pos = 0;
   for (i = 0; i < size; i++)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ... adding %s\n",
-                GNUNET_i2s (&pi[i]));
-    path->peers[i] = GNUNET_PEER_intern (&pi[i]);
-    if (path->peers[i] == myid)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %u: %s\n", i, GNUNET_i2s (&pi[i]));
+    if (GNUNET_PEER_search (&pi[i]) == myid)
       own_pos = i;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
-  if (own_pos < path->length - 1)
-    send_prebuilt_message (message, path->peers[own_pos + 1], t);
+  if (own_pos < size - 1)
+    send_prebuilt_message (message, t->next_hop, t);
   else
     send_client_tunnel_destroy (t);
 
-//   tunnel_delete_peer (t, path->peers[path->length - 1]); FIXME
-  path_destroy (path);
   return GNUNET_OK;
 }
 
@@ -3515,6 +3508,7 @@ handle_mesh_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct GNUNET_MESH_Poll *msg;
   struct MeshTunnel *t;
+  GNUNET_PEER_Id id;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got an POLL packet from %s!\n",
               GNUNET_i2s (peer));
@@ -3532,17 +3526,19 @@ handle_mesh_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
   /* Is this a forward or backward ACK? */
-  if (t->prev_hop != GNUNET_PEER_search(peer))
+  id = GNUNET_PEER_search(peer);
+  if (t->next_hop == id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  from FWD\n");
-    /* FIXME cinfo->bck_ack = cinfo->fwd_pid; // mark as ready to send */
     tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_POLL);
   }
-  else
+  else if (t->prev_hop == id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  from BCK\n");
     tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_POLL);
   }
+  else
+    GNUNET_break (0);
 
   return GNUNET_OK;
 }
