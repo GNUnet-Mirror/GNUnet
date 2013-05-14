@@ -1798,13 +1798,6 @@ tunnel_add_client (struct MeshTunnel *t, struct MeshClient *c)
     return;
   }
   t->client = c;
-  t->next_fc.last_ack_sent = t->prev_fc.last_pid_recv + 1;
-  t->next_fc.last_pid_sent = t->prev_fc.last_pid_recv;
-  t->next_fc.last_ack_recv = t->nobuffer ? 1 : INITIAL_WINDOW_SIZE - 1;
-  t->next_fc.last_pid_recv = (uint32_t) -1; /* Expected next: 0 */
-  t->next_fc.poll_task = GNUNET_SCHEDULER_NO_TASK;
-  t->next_fc.poll_time = GNUNET_TIME_UNIT_SECONDS;
-  t->next_fc.queue_n = 0;
 }
 
 
@@ -2291,6 +2284,20 @@ tunnel_destroy_empty (struct MeshTunnel *t)
     t->destroy = GNUNET_YES;
 }
 
+/**
+ * Initialize a Flow Control structure
+ */
+static void
+fc_init (struct MeshFlowControl *fc)
+{
+  fc->last_pid_sent = (uint32_t) -1; /* Next (expected) = 0 */
+  fc->last_pid_recv = (uint32_t) -1;
+  fc->last_ack_sent = INITIAL_WINDOW_SIZE - 1;
+  fc->last_ack_recv = INITIAL_WINDOW_SIZE - 1;
+  fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
+  fc->poll_time = GNUNET_TIME_UNIT_SECONDS;
+  fc->queue_n = 0;
+}
 
 /**
  * Create a new tunnel
@@ -2319,14 +2326,8 @@ tunnel_new (GNUNET_PEER_Id owner,
   t->id.tid = tid;
   t->queue_max = (max_msgs_queue / max_tunnels) + 1;
   t->owner = client;
-  t->next_fc.last_pid_sent = (uint32_t) -1; /* Next (expected) = 0 */
-  t->next_fc.last_pid_recv = (uint32_t) -1;
-  t->prev_fc.last_pid_sent = (uint32_t) -1;
-  t->prev_fc.last_pid_recv = (uint32_t) -1;
-  t->next_fc.last_ack_sent = INITIAL_WINDOW_SIZE - 1;
-  t->next_fc.last_ack_recv = INITIAL_WINDOW_SIZE - 1;
-  t->prev_fc.last_ack_sent = INITIAL_WINDOW_SIZE - 1;
-  t->prev_fc.last_ack_recv = INITIAL_WINDOW_SIZE - 1;
+  fc_init (&t->next_fc);
+  fc_init (&t->prev_fc);
   t->local_tid = local;
   n_tunnels++;
   GNUNET_STATISTICS_update (stats, "# tunnels", 1, GNUNET_NO);
