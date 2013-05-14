@@ -294,6 +294,11 @@ struct MeshTunnel
   struct MESH_TunnelID id;
 
     /**
+     * Port of the tunnel.
+     */
+  uint32_t port;
+
+    /**
      * State of the tunnel.
      */
   enum MeshTunnelState state;
@@ -1196,7 +1201,7 @@ send_create_path (struct MeshTunnel *t)
   neighbor = peer_get_short (t->next_hop);
   queue_add (t,
              GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE,
-             sizeof (struct GNUNET_MESH_ManipulatePath) +
+             sizeof (struct GNUNET_MESH_CreateTunnel) +
                 (t->path->length * sizeof (struct GNUNET_PeerIdentity)),
              neighbor,
              t);
@@ -2419,7 +2424,7 @@ static size_t
 send_core_path_create (void *cls, size_t size, void *buf)
 {
   struct MeshTunnel *t = cls;
-  struct GNUNET_MESH_ManipulatePath *msg;
+  struct GNUNET_MESH_CreateTunnel *msg;
   struct GNUNET_PeerIdentity *peer_ptr;
   struct MeshPeerPath *p = t->path;
   size_t size_needed;
@@ -2428,7 +2433,7 @@ send_core_path_create (void *cls, size_t size, void *buf)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CREATE PATH sending...\n");
   size_needed =
-      sizeof (struct GNUNET_MESH_ManipulatePath) +
+      sizeof (struct GNUNET_MESH_CreateTunnel) +
       p->length * sizeof (struct GNUNET_PeerIdentity);
 
   if (size < size_needed || NULL == buf)
@@ -2436,7 +2441,7 @@ send_core_path_create (void *cls, size_t size, void *buf)
     GNUNET_break (0);
     return 0;
   }
-  msg = (struct GNUNET_MESH_ManipulatePath *) buf;
+  msg = (struct GNUNET_MESH_CreateTunnel *) buf;
   msg->header.size = htons (size_needed);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE);
   msg->tid = ntohl (t->id.tid);
@@ -2444,8 +2449,8 @@ send_core_path_create (void *cls, size_t size, void *buf)
   opt = 0;
   if (GNUNET_YES == t->nobuffer)
     opt |= MESH_TUNNEL_OPT_NOBUFFER;
-  msg->opt = htonl(opt);
-  msg->reserved = 0;
+  msg->opt = htonl (opt);
+  msg->port = htonl (t->port);
 
   peer_ptr = (struct GNUNET_PeerIdentity *) &msg[1];
   for (i = 0; i < p->length; i++)
@@ -2871,7 +2876,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   uint16_t size;
   uint16_t i;
   MESH_TunnelNumber tid;
-  struct GNUNET_MESH_ManipulatePath *msg;
+  struct GNUNET_MESH_CreateTunnel *msg;
   struct GNUNET_PeerIdentity *pi;
   struct GNUNET_HashCode hash;
   struct MeshPeerPath *path;
@@ -2883,13 +2888,13 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
               "Received a path create msg [%s]\n",
               GNUNET_i2s (&my_full_id));
   size = ntohs (message->size);
-  if (size < sizeof (struct GNUNET_MESH_ManipulatePath))
+  if (size < sizeof (struct GNUNET_MESH_CreateTunnel))
   {
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
 
-  size -= sizeof (struct GNUNET_MESH_ManipulatePath);
+  size -= sizeof (struct GNUNET_MESH_CreateTunnel);
   if (size % sizeof (struct GNUNET_PeerIdentity))
   {
     GNUNET_break_op (0);
@@ -2902,7 +2907,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    path has %u hops.\n", size);
-  msg = (struct GNUNET_MESH_ManipulatePath *) message;
+  msg = (struct GNUNET_MESH_CreateTunnel *) message;
 
   tid = ntohl (msg->tid);
   pi = (struct GNUNET_PeerIdentity *) &msg[1];
@@ -3018,79 +3023,6 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     peer_info_add_path_to_origin (orig_peer_info, path2, GNUNET_NO);
     send_create_path (t);
   }
-  return GNUNET_OK;
-}
-
-
-/**
- * Core handler for path destruction
- *
- * @param cls closure
- * @param message message
- * @param peer peer identity this notification is about
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-static int
-handle_mesh_path_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
-                          const struct GNUNET_MessageHeader *message)
-{
-  struct GNUNET_MESH_ManipulatePath *msg;
-  struct GNUNET_PeerIdentity *pi;
-  struct MeshTunnel *t;
-  unsigned int own_pos;
-  unsigned int i;
-  size_t size;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received a PATH DESTROY msg from %s\n", GNUNET_i2s (peer));
-  size = ntohs (message->size);
-  if (size < sizeof (struct GNUNET_MESH_ManipulatePath))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-
-  size -= sizeof (struct GNUNET_MESH_ManipulatePath);
-  if (size % sizeof (struct GNUNET_PeerIdentity))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-  size /= sizeof (struct GNUNET_PeerIdentity);
-  if (size < 2)
-  {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    path has %u hops.\n", size);
-
-  msg = (struct GNUNET_MESH_ManipulatePath *) message;
-  pi = (struct GNUNET_PeerIdentity *) &msg[1];
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "    path is for tunnel %s [%X].\n", GNUNET_i2s (pi),
-              msg->tid);
-  t = tunnel_get (pi, ntohl (msg->tid));
-  if (NULL == t)
-  {
-    /* TODO notify back: we don't know this tunnel */
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-  own_pos = 0;
-  for (i = 0; i < size; i++)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %u: %s\n", i, GNUNET_i2s (&pi[i]));
-    if (GNUNET_PEER_search (&pi[i]) == myid)
-      own_pos = i;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
-  if (own_pos < size - 1)
-    send_prebuilt_message (message, t->next_hop, t);
-  else
-    send_client_tunnel_destroy (t);
-
   return GNUNET_OK;
 }
 
@@ -3650,7 +3582,6 @@ handle_mesh_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 static struct GNUNET_CORE_MessageHandler core_handlers[] = {
   {&handle_mesh_path_create, GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE, 0},
-  {&handle_mesh_path_destroy, GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY, 0},
   {&handle_mesh_path_broken, GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN,
    sizeof (struct GNUNET_MESH_PathBroken)},
   {&handle_mesh_tunnel_destroy, GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY,
@@ -3994,6 +3925,7 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  t->port = ntohl (t->port);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CREATED TUNNEL %s [%x] (%x)\n",
               GNUNET_i2s (&my_full_id), t->id.tid, t->local_tid);
 

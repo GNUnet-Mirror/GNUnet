@@ -113,7 +113,9 @@ struct GNUNET_MESH_ClientConnect
      */
   struct GNUNET_MessageHeader header;
   uint16_t types GNUNET_PACKED;
+  uint16_t ports GNUNET_PACKED;
   /* uint16_t                 list_types[types]           */
+  /* uint32_t                 list_ports[ports]           */
 };
 
 
@@ -125,6 +127,7 @@ struct GNUNET_MESH_ClientConnect
  */
 typedef uint32_t MESH_TunnelNumber;
 
+
 /**
  * Message for a client to create and destroy tunnels.
  */
@@ -132,7 +135,6 @@ struct GNUNET_MESH_TunnelMessage
 {
     /**
      * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_[CREATE|DESTROY]
-     *       GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_[MAX|MIN]
      *
      * Size: sizeof(struct GNUNET_MESH_TunnelMessage)
      */
@@ -147,6 +149,11 @@ struct GNUNET_MESH_TunnelMessage
      * Tunnel's peer
      */
   struct GNUNET_PeerIdentity peer;
+
+    /**
+     * Port of the tunnel.
+     */
+  uint32_t port GNUNET_PACKED;
 };
 
 
@@ -173,9 +180,14 @@ struct GNUNET_MESH_TunnelNotification
   struct GNUNET_PeerIdentity peer;
 
     /**
+     * Port for this tunnel
+     */
+  uint32_t port GNUNET_PACKED;
+
+    /**
      * Tunnel options (speed, buffering)
      */
-  uint32_t opt;
+  uint32_t opt GNUNET_PACKED;
 };
 
 

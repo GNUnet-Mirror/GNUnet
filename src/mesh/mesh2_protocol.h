@@ -45,12 +45,12 @@ extern "C"
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
- * Message for mesh path management
+ * Message for mesh path creation.
  */
-struct GNUNET_MESH_ManipulatePath
+struct GNUNET_MESH_CreateTunnel
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_PATH_[CREATE|CHANGE|ADD|DESTROY]
+     * Type: GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE
      *
      * Size: sizeof(struct GNUNET_MESH_ManipulatePath) +
      *       path_length * sizeof (struct GNUNET_PeerIdentity)
@@ -69,15 +69,36 @@ struct GNUNET_MESH_ManipulatePath
   uint32_t opt GNUNET_PACKED;
 
     /**
-     * 64 bit alignment padding.
+     * Destination port.
      */
-  uint32_t reserved GNUNET_PACKED;
+  uint32_t port GNUNET_PACKED;
 
     /**
+     * FIXME do not add the first hop
      * path_length structs defining the *whole* path from the origin [0] to the
      * final destination [path_length-1].
      */
   /* struct GNUNET_PeerIdentity peers[path_length]; */
+};
+
+/**
+ * Message for mesh path destruction.
+ */
+struct GNUNET_MESH_DestroyTunnel
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY
+   *
+   * Size: sizeof(struct GNUNET_MESH_ManipulatePath) +
+   *       path_length * sizeof (struct GNUNET_PeerIdentity)
+   */
+  struct GNUNET_MessageHeader header;
+  
+  /**
+   * Global id of the tunnel this path belongs to,
+   * unique in conjunction with the origin.
+   */
+  uint32_t tid GNUNET_PACKED;
 };
 
 

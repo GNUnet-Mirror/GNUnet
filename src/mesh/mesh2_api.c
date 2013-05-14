@@ -117,6 +117,21 @@ struct GNUNET_MESH_Handle
      */
   const struct GNUNET_MESH_MessageHandler *message_handlers;
 
+  /**
+   * Number of handlers in the handlers array.
+   */
+  unsigned int n_handlers;
+
+  /**
+   * Ports open.
+   */
+  uint32_t *ports;
+
+  /**
+   * Number of ports.
+   */
+  unsigned int n_ports;
+
     /**
      * Double linked list of the tunnels this client is connected to, head.
      */
@@ -161,11 +176,6 @@ struct GNUNET_MESH_Handle
      * tid of the next tunnel to create (to avoid reusing IDs often)
      */
   MESH_TunnelNumber next_tid;
-
-    /**
-     * Number of handlers in the handlers array.
-     */
-  unsigned int n_handlers;
 
     /**
      * Have we started the task to receive messages from the service
@@ -263,6 +273,11 @@ struct GNUNET_MESH_Tunnel
      * Local ID of the tunnel
      */
   MESH_TunnelNumber tid;
+
+    /**
+     * Port number.
+     */
+  uint32_t port;
 
     /**
      * Other end of the tunnel.
@@ -633,23 +648,32 @@ send_connect (struct GNUNET_MESH_Handle *h)
     char buf[size] GNUNET_ALIGN;
     struct GNUNET_MESH_ClientConnect *msg;
     uint16_t *types;
-    uint16_t ntypes;
+    uint32_t *ports;
+    uint16_t i;
 
     /* build connection packet */
     msg = (struct GNUNET_MESH_ClientConnect *) buf;
     msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT);
     msg->header.size = htons (size);
-    types = (uint16_t *) & msg[1];
-    for (ntypes = 0; ntypes < h->n_handlers; ntypes++)
+    msg->types = htons (h->n_handlers);
+    msg->ports = htons (h->n_ports);
+    types = (uint16_t *) &msg[1];
+    for (i = 0; i < h->n_handlers; i++)
     {
-      types[ntypes] = htons (h->message_handlers[ntypes].type);
+      types[i] = htons (h->message_handlers[i].type);
       LOG (GNUNET_ERROR_TYPE_DEBUG, " type %u\n",
-           h->message_handlers[ntypes].type);
+           h->message_handlers[i].type);
     }
-    msg->types = htons (ntypes);
+    ports = (uint32_t *) &types[h->n_handlers];
+    for (i = 0; i < h->n_ports; i++)
+    {
+      ports[i] = htonl (h->ports[i]);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " port %u\n",
+           h->ports[i]);
+    }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Sending %lu bytes long message %d types\n",
-         ntohs (msg->header.size), ntypes);
+         "Sending %lu bytes long message %u types and %u ports\n",
+         ntohs (msg->header.size), h->n_handlers, h->n_ports);
     send_packet (h, &msg->header, NULL);
   }
 }
@@ -803,12 +827,13 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
     GNUNET_PEER_change_rc (t->peer, 1);
     t->mesh = h;
     t->tid = tid;
+    t->port = ntohl (msg->port);
     if ((msg->opt & MESH_TUNNEL_OPT_NOBUFFER) != 0)
       t->buffering = GNUNET_NO;
     else
       t->buffering = GNUNET_YES;
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  created tunnel %p\n", t);
-    t->ctx = h->new_tunnel (h->cls, t, &msg->peer);
+    t->ctx = h->new_tunnel (h->cls, t, &msg->peer, t->port);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "User notified\n");
   }
   else
@@ -1340,7 +1365,8 @@ struct GNUNET_MESH_Handle *
 GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
                      GNUNET_MESH_InboundTunnelNotificationHandler new_tunnel,
                      GNUNET_MESH_TunnelEndHandler cleaner,
-                     const struct GNUNET_MESH_MessageHandler *handlers)
+                     const struct GNUNET_MESH_MessageHandler *handlers,
+                     uint32_t *ports)
 {
   struct GNUNET_MESH_Handle *h;
 
@@ -1359,6 +1385,7 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
   }
   h->cls = cls;
   h->message_handlers = handlers;
+  h->ports = ports;
   h->next_tid = GNUNET_MESH_LOCAL_TUNNEL_ID_CLI;
   h->reconnect_time = GNUNET_TIME_UNIT_MILLISECONDS;
   h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
@@ -1367,6 +1394,9 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
   for (h->n_handlers = 0;
        handlers && handlers[h->n_handlers].type;
        h->n_handlers++) ;
+  for (h->n_ports = 0;
+       ports && ports[h->n_ports];
+       h->n_ports++) ;
   send_connect (h);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GNUNET_MESH_connect() END\n");
   return h;
@@ -1455,7 +1485,8 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
 struct GNUNET_MESH_Tunnel *
 GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h, 
                            void *tunnel_ctx,
-                           const struct GNUNET_PeerIdentity *peer)
+                           const struct GNUNET_PeerIdentity *peer,
+                           uint32_t port)
 {
   struct GNUNET_MESH_Tunnel *t;
   struct GNUNET_MESH_TunnelMessage msg;
@@ -1468,6 +1499,7 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
   msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
   msg.tunnel_id = htonl (t->tid);
+  msg.port = htonl (port);
   msg.peer = *peer;
   send_packet (h, &msg.header, t);
   return t;
