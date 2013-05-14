@@ -171,37 +171,6 @@ child_death_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-/**
- * Callback function invoked for each interface found.
- *
- * @param cls NULL
- * @param name name of the interface (can be NULL for unknown)
- * @param isDefault is this presumably the default interface
- * @param addr address of this interface (can be NULL for unknown or unassigned)
- * @param broadcast_addr the broadcast address (can be NULL for unknown or unassigned)
- * @param netmask the network mask (can be NULL for unknown or unassigned))
- * @param addrlen length of the address
- * @return GNUNET_OK to continue iteration, GNUNET_SYSERR to abort
- */
-static int 
-addr_proc (void *cls, const char *name, int isDefault,
-           const struct sockaddr *addr,
-           const struct sockaddr *broadcast_addr,
-           const struct sockaddr *netmask, socklen_t addrlen)
-{
-  const struct sockaddr_in *in_addr;
-  char *ipaddr;
-
-  if (sizeof (struct sockaddr_in) != addrlen)
-    return GNUNET_OK;
-  in_addr = (const struct sockaddr_in *) addr;
-  if (NULL == (ipaddr = inet_ntoa (in_addr->sin_addr)))
-    return GNUNET_OK;
-  GNUNET_array_append (our_addrs, num_addrs, GNUNET_strdup (ipaddr));
-  return GNUNET_OK;
-}
-
-
 static void
 destroy_hosts(struct GNUNET_TESTBED_Host **hosts, unsigned int nhosts)
 {
@@ -229,11 +198,10 @@ run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   const struct GNUNET_CONFIGURATION_Handle *null_cfg;
   const char *host_ip;
   char *tmpdir;
+  char *hostname;
+  size_t hostname_len;
   unsigned int nhosts;
-  unsigned int host_cnt;
-  unsigned int addr_cnt;
-
-  GNUNET_OS_network_interfaces_list (&addr_proc, NULL);
+  
   if (0 == num_addrs)
   {
     GNUNET_break (0);
@@ -248,26 +216,25 @@ run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     ret = GNUNET_SYSERR;
     return;
   }
-  for (host_cnt = 0; host_cnt < nhosts; host_cnt++)
+  hostname_len = GNUNET_OS_get_hostname_max_length ();
+  hostname = GNUNET_malloc (hostname_len);
+  if (0 != gethostname (hostname, hostname_len))
   {
-    host_ip = GNUNET_TESTBED_host_get_hostname (hosts[host_cnt]);
-    for (addr_cnt = 0; addr_cnt < num_addrs; addr_cnt++)
-      if (0 == strcmp (host_ip, our_addrs[addr_cnt]))
-        goto proceed;
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Cannot get hostname.  Exiting\n");
+    GNUNET_free (hostname);
+    destroy_hosts (hosts, nhosts);
+    ret = GNUNET_SYSERR;
+    return;
   }
-  GNUNET_break (0);
-  ret = GNUNET_SYSERR;
-  destroy_hosts (hosts, nhosts);
-  return;
-
- proceed:
-  destroy_hosts (hosts, nhosts);
-  if (0 != host_cnt)
+  if (NULL == strstr (GNUNET_TESTBED_host_get_hostname (hosts[0]), hostname))
   {
     LOG_DEBUG ("Exiting as we are not the lowest host\n");
+    GNUNET_free (hostname);
     ret = GNUNET_OK;
     return;
   }
+  GNUNET_free (hostname);
+  destroy_hosts (hosts, nhosts);
   tmpdir = getenv ("TMPDIR");
   if (NULL == tmpdir)
     tmpdir = getenv ("TMP");
