@@ -916,8 +916,6 @@ client_get (struct GNUNET_SERVER_Client *client)
 /**
  * Deletes a tunnel from a client (either owner or destination). To be used on
  * tunnel destroy.
- * 
- * FIXME use fast hash
  *
  * @param c Client whose tunnel to delete.
  * @param t Tunnel which should be deleted.
@@ -929,7 +927,7 @@ client_delete_tunnel (struct MeshClient *c, struct MeshTunnel *t)
 
   if (c == t->owner)
   {
-    GNUNET_CRYPTO_hash(&t->local_tid, sizeof (MESH_TunnelNumber), &hash);
+    GMC_hash32 (t->local_tid, &hash);
     GNUNET_assert (GNUNET_YES ==
                    GNUNET_CONTAINER_multihashmap_remove (c->own_tunnels,
                                                          &hash,
@@ -937,7 +935,7 @@ client_delete_tunnel (struct MeshClient *c, struct MeshTunnel *t)
   }
   else if (c == t->client)
   {
-    GNUNET_CRYPTO_hash(&t->local_tid_dest, sizeof (MESH_TunnelNumber), &hash);
+    GMC_hash32 (t->local_tid_dest, &hash);
     GNUNET_assert (GNUNET_YES ==
                    GNUNET_CONTAINER_multihashmap_remove (c->incoming_tunnels,
                                                          &hash,
@@ -1711,7 +1709,7 @@ tunnel_get_incoming (MESH_TunnelNumber tid)
   struct GNUNET_HashCode hash;
 
   GNUNET_assert (tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV);
-  GNUNET_CRYPTO_hash (&tid, sizeof (MESH_TunnelNumber), &hash);
+  GMC_hash32 (tid, &hash);
   return GNUNET_CONTAINER_multihashmap_get (incoming_tunnels, &hash);
 }
 
@@ -1735,7 +1733,7 @@ tunnel_get_by_local_id (struct MeshClient *c, MESH_TunnelNumber tid)
   {
     struct GNUNET_HashCode hash;
 
-    GNUNET_CRYPTO_hash (&tid, sizeof (MESH_TunnelNumber), &hash);
+    GMC_hash32 (tid, &hash);
     return GNUNET_CONTAINER_multihashmap_get (c->own_tunnels, &hash);
   }
 }
@@ -2225,10 +2223,9 @@ tunnel_destroy (struct MeshTunnel *t)
     r = GNUNET_SYSERR;
   }
 
-  // FIXME use fast hash
   if (NULL != c)
   {
-    GNUNET_CRYPTO_hash (&t->local_tid, sizeof (MESH_TunnelNumber), &hash);
+    GMC_hash32 (t->local_tid, &hash);
     if (GNUNET_YES !=
         GNUNET_CONTAINER_multihashmap_remove (c->own_tunnels, &hash, t))
     {
@@ -2237,10 +2234,9 @@ tunnel_destroy (struct MeshTunnel *t)
     }
   }
 
-  // FIXME use fast hash
   if (NULL != t->client)
   {
-    GNUNET_CRYPTO_hash (&t->local_tid_dest, sizeof (MESH_TunnelNumber), &hash);
+    GMC_hash32 (t->local_tid_dest, &hash);
     if (GNUNET_YES !=
           GNUNET_CONTAINER_multihashmap_remove (c->incoming_tunnels, &hash, t))
     {
@@ -2248,13 +2244,13 @@ tunnel_destroy (struct MeshTunnel *t)
       r = GNUNET_SYSERR;
     }
   }
-
   if (GNUNET_YES != 
       GNUNET_CONTAINER_multihashmap_remove (incoming_tunnels, &hash, t))
   {
     GNUNET_break (0);
     r = GNUNET_SYSERR;
   }
+
   peer_cancel_queues (t->next_hop, t);
   peer_cancel_queues (t->prev_hop, t);
 
@@ -2352,7 +2348,7 @@ tunnel_new (GNUNET_PEER_Id owner,
 
   if (NULL != client)
   {
-    GNUNET_CRYPTO_hash (&t->local_tid, sizeof (MESH_TunnelNumber), &hash);
+    GMC_hash32 (t->local_tid, &hash);
     if (GNUNET_OK !=
         GNUNET_CONTAINER_multihashmap_put (client->own_tunnels, &hash, t,
                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
@@ -3043,7 +3039,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     // FIXME end
 
     tunnel_reset_timeout (t);
-    GNUNET_CRYPTO_hash (&t->local_tid_dest, sizeof (MESH_TunnelNumber), &hash);
+    GMC_hash32 (t->local_tid_dest, &hash);
     if (GNUNET_OK !=
         GNUNET_CONTAINER_multihashmap_put (incoming_tunnels, &hash, t,
                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
