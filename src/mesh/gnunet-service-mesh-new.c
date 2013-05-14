@@ -48,7 +48,7 @@
 #include "platform.h"
 #include "mesh2.h"
 #include "mesh2_protocol.h"
-#include "mesh_tunnel_tree.h"
+#include "mesh_path.h"
 #include "block_mesh.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_statistics_service.h"
@@ -309,7 +309,7 @@ struct MeshTunnel
     /**
      * State of the tunnel.
      */
-  MeshTunnelState state;
+  enum MeshTunnelState state;
 
     /**
      * Local tunnel number ( >= GNUNET_MESH_LOCAL_TUNNEL_ID_CLI or 0 )

@@ -1,4 +1,4 @@
-INCLUDES = -I$(top_srcdir)/src/include
+NCLUDES = -I$(top_srcdir)/src/include
 
 if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
@@ -102,7 +102,7 @@ gnunet_mesh_DEPENDENCIES = \
 
 gnunet_service_mesh_new_SOURCES = \
  gnunet-service-mesh-new.c \
- mesh_tunnel_tree.c \
+ mesh_path.c \
  mesh_common.c
 gnunet_service_mesh_new_CFLAGS = $(AM_CFLAGS)
 gnunet_service_mesh_new_LDADD = \
@@ -156,7 +156,7 @@ test_mesh_api_SOURCES = \
 test_mesh_api_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
- $(top_builddir)/src/mesh/libgnunetmesh.la
+ $(top_builddir)/src/mesh/libgnunetmesh2.la
 test_mesh_api_DEPENDENCIES = \
   libgnunetmesh.la \
    $(top_builddir)/src/util/libgnunetutil.la
