@@ -2767,7 +2767,7 @@ queue_send (void *cls, size_t size, void *buf)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "*********   %s stalled\n",
-                GNUNET_i2s(&my_full_id));
+                GNUNET_i2s (&my_full_id));
     if (peer->id == t->next_hop)
       fc = &t->next_fc;
     else if (peer->id == t->prev_hop)
@@ -2784,7 +2784,7 @@ queue_send (void *cls, size_t size, void *buf)
                                                     &tunnel_poll, fc);
     }
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   return %d\n", data_size);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********  Return %d\n", data_size);
   return data_size;
 }
 
