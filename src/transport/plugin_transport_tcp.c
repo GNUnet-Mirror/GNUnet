@@ -2374,26 +2374,21 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   plugin->lsock = NULL;
   if ((service != NULL) &&
       (GNUNET_SYSERR !=
-       (ret =
+       (ret_s =
         GNUNET_SERVICE_get_server_addresses ("transport-tcp", env->cfg, &addrs,
                                              &addrlens))))
   {
-		ret_s = ret;
-		while (ret > 0)
-		{
-			ret--;
-			LOG (GNUNET_ERROR_TYPE_INFO, "Binding to address `%s'\n", GNUNET_a2s (addrs[ret], addrlens[ret]));
-		}
-
+    for (ret = ret_s-1; ret >= 0; ret--)
+      LOG (GNUNET_ERROR_TYPE_INFO,
+	   "Binding to address `%s'\n", 
+	   GNUNET_a2s (addrs[ret], addrlens[ret]));
     plugin->nat =
-        GNUNET_NAT_register (env->cfg, GNUNET_YES, aport, (unsigned int) ret,
+        GNUNET_NAT_register (env->cfg, GNUNET_YES, aport, (unsigned int) ret_s,
                              (const struct sockaddr **) addrs, addrlens,
                              &tcp_nat_port_map_callback,
                              &try_connection_reversal, plugin);
-		ret = ret_s;
-    while (ret > 0)
+    for (ret = ret_s -1; ret >= 0; ret--)
     {
-      ret--;
       GNUNET_assert (addrs[ret] != NULL);
       GNUNET_free (addrs[ret]);
     }
@@ -2403,8 +2398,8 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   else
   {
     plugin->nat = GNUNET_NAT_register (plugin->env->cfg,
-    												 GNUNET_YES, 0, 0, NULL, NULL, NULL,
-                             &try_connection_reversal, plugin);
+				       GNUNET_YES, 0, 0, NULL, NULL, NULL,
+				       &try_connection_reversal, plugin);
   }
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
