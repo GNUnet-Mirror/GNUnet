@@ -7,49 +7,95 @@
 /* Number of peers we want to start */
 #define NUM_PEERS 20
 
-struct GNUNET_TESTBED_Operation *dht_op;
+static struct GNUNET_TESTBED_Operation *dht_op;
 
-struct GNUNET_DHT_Handle *dht_handle;
+static struct GNUNET_DHT_Handle *dht_handle;
 
-GNUNET_SCHEDULER_TaskIdentifier shutdown_tid;
+static GNUNET_SCHEDULER_TaskIdentifier shutdown_tid;
 
+
+/**
+ * Closure to 'dht_ca' and 'dht_da' DHT adapters.
+ */
 struct MyContext
 {
+  /**
+   * Argument we pass to GNUNET_DHT_connect.
+   */
   int ht_len;
 } ctxt;
 
+
+/**
+ * Global result for testcase.
+ */
 static int result;
 
+
+/**
+ * Function run on CTRL-C or shutdown (i.e. success/timeout/etc.).
+ * Cleans up.
+ */
 static void 
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   shutdown_tid = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != dht_op)
   {  
-    GNUNET_TESTBED_operation_done (dht_op); /* calls the dht_da() for closing
-                                               down the connection */
+    GNUNET_TESTBED_operation_done (dht_op); /* indirectly calls the dht_da() for closing
+                                               down the connection to the DHT */
     dht_op = NULL;
+    dht_handle = NULL;
   }
   result = GNUNET_OK;
   GNUNET_SCHEDULER_shutdown (); /* Also kills the testbed */
 }
 
 
+/**
+ * This is where the test logic should be, at least that
+ * part of it that uses the DHT of peer "0".
+ *
+ * @param cls closure, for the example: NULL
+ * @param op should be equal to "dht_op"
+ * @param ca_result result of the connect operation, the
+ *        connection to the DHT service
+ * @param emsg error message, if testbed somehow failed to
+ *        connect to the DHT.
+ */
 static void
 service_connect_comp (void *cls,
                       struct GNUNET_TESTBED_Operation *op,
                       void *ca_result,
                       const char *emsg)
-{  
-  /* Service to DHT successful; do something */
+{    
+  GNUNET_assert (op == dht_op);
+  dht_handle = ca_result;
+  /* Service to DHT successful; here we'd usually do something 
+     with the DHT (ok, if successful) */
 
+  /* for now, just indiscriminately terminate after 10s */
   GNUNET_SCHEDULER_cancel (shutdown_tid);
-  GNUNET_SCHEDULER_add_delayed 
+  shutdown_tid = GNUNET_SCHEDULER_add_delayed 
       (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
        &shutdown_task, NULL);
 }
 
 
+/**
+ * Testbed has provided us with the configuration to access one
+ * of the peers and it is time to do "some" connect operation to
+ * "some" subsystem of the peer.  For this example, we connect
+ * to the DHT subsystem.  Testbed doesn't know which subsystem,
+ * so we need these adapters to do the actual connecting (and
+ * possibly pass additional options to the subsystem connect
+ * function, such as the "ht_len" argument for the DHT).
+ *
+ * @param cls closure
+ * @param cfg peer configuration (here: peer[0]
+ * @return NULL on error, otherwise some handle to access the
+ *         subsystem
+ */
 static void *
 dht_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
@@ -61,6 +107,12 @@ dht_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 }
 
 
+/**
+ * Dual of 'dht_ca' to perform the 'disconnect'/cleanup operation
+ * once we no longer need to access this subsystem.
+ *
+ * @param op_result whatever we returned from 'dht_ca'
+ */
 static void 
 dht_da (void *cls, void *op_result)
 {
@@ -68,10 +120,20 @@ dht_da (void *cls, void *op_result)
   
   /* Disconnect from DHT service */  
   GNUNET_DHT_disconnect ((struct GNUNET_DHT_Handle *) op_result);
-  ctxt->ht_len = 0;
   dht_handle = NULL;
 }
 
+
+/**
+ * Main function inovked from TESTBED once all of the
+ * peers are up and running.  This one then connects
+ * just to the DHT service of peer 0.
+ *
+ * @param cls closure
+ * @param num_peers size of the 'peers' array
+ * @param links_succeeded number of links between peers that were created
+ * @param links_failed number of links testbed was unable to establish
+ */
 static void
 test_master (void *cls, unsigned int num_peers,
              struct GNUNET_TESTBED_Peer **peers,
