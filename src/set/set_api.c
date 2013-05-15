@@ -30,6 +30,7 @@
 #include "gnunet_set_service.h"
 #include "set.h"
 #include "mq.h"
+#include <inttypes.h>
 
 
 #define LOG(kind,...) GNUNET_log_from (kind, "set-api",__VA_ARGS__)
@@ -49,7 +50,7 @@ struct GNUNET_SET_Handle
  */
 struct GNUNET_SET_Request
 {
-  uint32_t request_id;
+  uint32_t accept_id;
   int accepted;
 };
 
@@ -98,20 +99,23 @@ handle_result (void *cls, const struct GNUNET_MessageHeader *mh)
   }
 
   oh = GNUNET_MQ_assoc_get (set->mq, ntohl (msg->request_id));
-  GNUNET_break (NULL != oh);
-  if (GNUNET_SCHEDULER_NO_TASK != oh->timeout_task)
-  {
-    GNUNET_SCHEDULER_cancel (oh->timeout_task);
-    oh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  }
+  GNUNET_assert (NULL != oh);
+  /* status is not STATUS_OK => there's no attached element,
+   * and this is the last result message we get */
   if (htons (msg->result_status) != GNUNET_SET_STATUS_OK)
   {
+    if (GNUNET_SCHEDULER_NO_TASK != oh->timeout_task)
+    {
+      GNUNET_SCHEDULER_cancel (oh->timeout_task);
+      oh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+    GNUNET_MQ_assoc_remove (set->mq, ntohl (msg->request_id));
     if (NULL != oh->result_cb)
       oh->result_cb (oh->result_cls, NULL, htons (msg->result_status));
-    GNUNET_MQ_assoc_remove (set->mq, ntohl (msg->request_id));
     GNUNET_free (oh);
     return;
   }
+
   e.data = &msg[1];
   e.size = ntohs (mh->size) - sizeof (struct ResultMessage);
   e.type = msg->element_type;
@@ -133,18 +137,25 @@ handle_request (void *cls, const struct GNUNET_MessageHeader *mh)
   struct GNUNET_SET_Request *req;
 
   req = GNUNET_new (struct GNUNET_SET_Request);
-  req->request_id = ntohl (msg->request_id);
+  req->accept_id = ntohl (msg->accept_id);
+  /* calling GNUNET_SET_accept in the listen cb will set req->accepted */
   lh->listen_cb (lh->listen_cls, &msg->peer_id, &mh[1], req);
+
   if (GNUNET_NO == req->accepted)
   {
     struct GNUNET_MQ_Message *mqm;
     struct AcceptMessage *amsg;
     
     mqm = GNUNET_MQ_msg (amsg, GNUNET_MESSAGE_TYPE_SET_ACCEPT);
-    amsg->request_id = msg->request_id;
+    /* no request id, as we refused */
+    amsg->request_id = htonl (0);
+    amsg->accept_id = msg->accept_id;
     GNUNET_MQ_send (lh->mq, mqm);
     GNUNET_free (req);
   }
+
+  /* the accept-case is handled in GNUNET_SET_accept,
+   * as we have the accept message available there */
 }
 
 
@@ -173,7 +184,7 @@ GNUNET_SET_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   set = GNUNET_new (struct GNUNET_SET_Handle);
   set->client = GNUNET_CLIENT_connect ("set", cfg);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "set client created\n");
+  LOG (GNUNET_ERROR_TYPE_INFO, "set client created\n");
   GNUNET_assert (NULL != set->client);
   set->mq = GNUNET_MQ_queue_for_connection_client (set->client, mq_handlers, set);
   mqm = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_CREATE);
@@ -377,12 +388,9 @@ GNUNET_SET_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh)
 {
-  GNUNET_MQ_destroy (lh->mq);
-  lh->mq = NULL;
   GNUNET_CLIENT_disconnect (lh->client);
-  lh->client = NULL;
-  lh->listen_cb = NULL;
-  lh->listen_cls = NULL;
+  GNUNET_MQ_destroy (lh->mq);
+  GNUNET_free (lh);
 }
 
 
@@ -420,8 +428,8 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
   oh->set = set;
 
   mqm = GNUNET_MQ_msg (msg , GNUNET_MESSAGE_TYPE_SET_ACCEPT);
-  msg->request_id = htonl (request->request_id);
-  msg->accepted = 1;
+  msg->request_id = htonl (GNUNET_MQ_assoc_add (set->mq, NULL, oh));
+  msg->accept_id = htonl (request->accept_id);
   GNUNET_MQ_send (set->mq, mqm);
 
   oh->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout, operation_timeout_task, oh);

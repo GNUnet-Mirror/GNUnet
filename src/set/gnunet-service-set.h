@@ -109,8 +109,8 @@ struct Listener
   struct Listener *prev;
 
   /**
-   * Client that owns the set.
-   * Only one client may own a set.
+   * Client that owns the listener.
+   * Only one client may own a listener.
    */
   struct GNUNET_SERVER_Client *client;
 
@@ -188,9 +188,10 @@ struct Incoming
 
   /**
    * Unique request id for the request from
-   * a remote peer.
+   * a remote peer, sent to the client with will
+   * accept or reject the request.
    */
-  uint32_t request_id;
+  uint32_t accept_id;
 };
 
 
@@ -198,16 +199,6 @@ struct Incoming
  * Configuration of the local peer
  */
 extern const struct GNUNET_CONFIGURATION_Handle *configuration;
-
-
-/**
- * Disconnect a client and free all resources
- * that the client allocated (e.g. Sets or Listeners)
- *
- * @param client the client to disconnect
- */
-void
-_GSS_client_disconnect (struct GNUNET_SERVER_Client *client);
 
 
 /**
@@ -249,6 +240,15 @@ _GSS_union_add (struct ElementMessage *m, struct Set *set);
  */
 void
 _GSS_union_remove (struct ElementMessage *m, struct Set *set);
+
+
+/**
+ * Destroy a set that supports the union operation
+ *
+ * @param the set to destroy, must be of type GNUNET_SET_OPERATION_UNION
+ */
+void
+_GSS_union_set_destroy (struct Set *set);
 
 
 /**

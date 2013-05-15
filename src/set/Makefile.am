@@ -69,7 +69,7 @@ libgnunetset_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
 check_PROGRAMS = \
- test_set_api
+ test_set_api test_mq test_mq_client
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
@@ -83,6 +83,24 @@ test_set_api_LDADD = \
   $(top_builddir)/src/set/libgnunetset.la
 test_set_api_DEPENDENCIES = \
   libgnunetset.la
+
+
+test_mq_SOURCES = \
+ test_mq.c \
+ mq.c
+test_mq_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/stream/libgnunetstream.la
+test_mq_CFLAGS = $(AM_CFLAGS)
+
+
+test_mq_client_SOURCES = \
+ test_mq_client.c \
+ mq.c
+test_mq_client_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/stream/libgnunetstream.la
+test_mq_client_CFLAGS = $(AM_CFLAGS)
 
 EXTRA_DIST = \
   test_set.conf

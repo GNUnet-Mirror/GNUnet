@@ -36,6 +36,53 @@ static struct GNUNET_HashCode app_id;
 static struct GNUNET_SET_Handle *set1;
 static struct GNUNET_SET_Handle *set2;
 static struct GNUNET_SET_ListenHandle *listen_handle;
+const static struct GNUNET_CONFIGURATION_Handle *config;
+
+int num_done;
+
+
+static void
+result_cb_set1 (void *cls, struct GNUNET_SET_Element *element,
+           enum GNUNET_SET_Status status)
+{
+  switch (status)
+  {
+    case GNUNET_SET_STATUS_OK:
+      printf ("set 1: got element\n");
+      break;
+    case GNUNET_SET_STATUS_FAILURE:
+      printf ("set 1: failure\n");
+      break;
+    case GNUNET_SET_STATUS_DONE:
+      printf ("set 1: done\n");
+      GNUNET_SET_destroy (set1);
+      break;
+    default:
+      GNUNET_assert (0);
+  }
+}
+
+
+static void
+result_cb_set2 (void *cls, struct GNUNET_SET_Element *element,
+           enum GNUNET_SET_Status status)
+{
+  switch (status)
+  {
+    case GNUNET_SET_STATUS_OK:
+      printf ("set 2: got element\n");
+      break;
+    case GNUNET_SET_STATUS_FAILURE:
+      printf ("set 2: failure\n");
+      break;
+    case GNUNET_SET_STATUS_DONE:
+      printf ("set 2: done\n");
+      GNUNET_SET_destroy (set2);
+      break;
+    default:
+      GNUNET_assert (0);
+  }
+}
 
 
 static void
@@ -45,13 +92,67 @@ listen_cb (void *cls,
            struct GNUNET_SET_Request *request)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "listen cb called\n");
+  GNUNET_SET_listen_cancel (listen_handle);
+
+  GNUNET_SET_accept (request, set2, GNUNET_TIME_UNIT_FOREVER_REL, 
+                     GNUNET_SET_RESULT_ADDED, result_cb_set2, NULL);
 }
 
+
+/**
+ * Start the set operation.
+ *
+ * @param cls closure, unused
+ */
 static void
-result_cb (void *cls, struct GNUNET_SET_Element *element,
-           enum GNUNET_SET_Status status)
+start (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "got result\n");
+  listen_handle = GNUNET_SET_listen (config, GNUNET_SET_OPERATION_UNION,
+                                     &app_id, listen_cb, NULL);
+  GNUNET_SET_evaluate (set1, &local_id, &app_id, NULL, 42,
+                       GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_SET_RESULT_ADDED,
+                       result_cb_set1, NULL);
+}
+
+
+/**
+ * Initialize the second set, continue
+ *
+ * @param cls closure, unused
+ */
+static void
+init_set2 (void *cls)
+{
+  struct GNUNET_SET_Element element;
+
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "initializing set 2\n");
+
+  element.data = "hello";
+  element.size = strlen(element.data);
+  GNUNET_SET_add_element (set2, &element, NULL, NULL);
+  element.data = "quux";
+  element.size = strlen(element.data);
+  GNUNET_SET_add_element (set2, &element, start, NULL);
+}
+
+
+/**
+ * Initialize the first set, continue.
+ */
+static void
+init_set1 (void)
+{
+  struct GNUNET_SET_Element element;
+
+  element.data = "hello";
+  element.size = strlen(element.data);
+  GNUNET_SET_add_element (set1, &element, NULL, NULL);
+  element.data = "bar";
+  element.size = strlen(element.data);
+  GNUNET_SET_add_element (set1, &element, init_set2, NULL);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "initialized set 1\n");
 }
 
 
@@ -69,6 +170,8 @@ run (void *cls, char *const *args,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static const char* app_str = "gnunet-set";
+
+  config = cfg;
   
   GNUNET_CRYPTO_hash (app_str, strlen (app_str), &app_id);
 
@@ -76,12 +179,8 @@ run (void *cls, char *const *args,
 
   set1 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
   set2 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
-  listen_handle = GNUNET_SET_listen (cfg, GNUNET_SET_OPERATION_UNION,
-                                     &app_id, listen_cb, NULL);
 
-  GNUNET_SET_evaluate (set1, &local_id, &app_id, NULL, 42,
-                       GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_SET_RESULT_ADDED,
-                       result_cb, NULL);
+  init_set1 ();
 }
 
 

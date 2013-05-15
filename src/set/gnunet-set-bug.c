@@ -113,6 +113,8 @@ run (void *cls, char *const *args,
   cfg = GNUNET_CONFIGURATION_dup (cfg2);
   GNUNET_CRYPTO_get_host_identity (cfg, &local_id);
 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "I am Peer %s\n", GNUNET_h2s (&local_id.hashPubKey));
+
   listen_socket = GNUNET_STREAM_listen (cfg,
                                         GNUNET_APPLICATION_TYPE_SET,
                                         &listen_cb,

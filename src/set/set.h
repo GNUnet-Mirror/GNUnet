@@ -80,36 +80,42 @@ struct AcceptMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * request id of the request we want to accept
+   * Request id that will be sent along with
+   * results for the accepted operation.
+   * Chosen by the client.
+   * Must be 0 if the request has been rejected.
    */
   uint32_t request_id GNUNET_PACKED;
 
   /**
-   * Zero if the client has rejected the request,
-   * non-zero if it has accepted it
+   * ID of the incoming request we want to accept / reject.
    */
-  uint32_t accepted GNUNET_PACKED;
+  uint32_t accept_id GNUNET_PACKED;
 };
 
 
+/**
+ * A request for an operation with another client.
+ */
 struct RequestMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SET_Request
+   * Type: GNUNET_MESSAGE_TYPE_SET_Request.
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * requesting peer
+   * Identity of the requesting peer.
    */
   struct GNUNET_PeerIdentity peer_id;
 
   /**
-   * request id of the request we want to accept
+   * ID of the request we want to accept,
+   * chosen by the service.
    */
-  uint32_t request_id GNUNET_PACKED;
+  uint32_t accept_id GNUNET_PACKED;
 
-  /* rest: inner message */
+  /* rest: nested context message */
 };
 
 
@@ -131,7 +137,7 @@ struct EvaluateMessage
   struct GNUNET_HashCode app_id;
 
   /**
-   * id of our evaluate
+   * id of our evaluate, chosen by the client
    */
   uint32_t request_id GNUNET_PACKED;
 
@@ -185,6 +191,8 @@ struct ElementMessage
   struct GNUNET_MessageHeader header;
 
   uint16_t element_type GNUNET_PACKED;
+
+  uint16_t reserved GNUNET_PACKED;
 
   /* rest: the actual element */
 };

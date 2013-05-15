@@ -106,7 +106,7 @@
  * @param esize extra space to allocate after the message header
  * @param type type of the message
  */
-#define GNUNET_MQ_msg_header_extra(mh, esize, type) GNUNET_MQ_msg_ (&mh, sizeof (struct GNUNET_MessageHeader), type)
+#define GNUNET_MQ_msg_header_extra(mh, esize, type) GNUNET_MQ_msg_ (&mh, (esize) + sizeof (struct GNUNET_MessageHeader), type)
 
 
 /**
@@ -165,6 +165,7 @@ struct GNUNET_MQ_Handler
  * @param cls closure
  */
 typedef void (*GNUNET_MQ_NotifyCallback) (void *cls);
+
 
 /**
  * Create a new message for MQ.

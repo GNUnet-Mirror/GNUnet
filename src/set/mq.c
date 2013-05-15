@@ -192,13 +192,22 @@ static void
 dispatch_message (struct GNUNET_MQ_MessageQueue *mq, const struct GNUNET_MessageHeader *mh)
 {
   const struct GNUNET_MQ_Handler *handler;
+  int handled = GNUNET_NO;
 
   handler = mq->handlers;
   if (NULL == handler)
     return;
   for (; NULL != handler->cb; handler++)
+  {
     if (handler->type == ntohs (mh->type))
+    {
       handler->cb (mq->handlers_cls, mh);
+      handled = GNUNET_YES;
+    }
+  }
+  
+  if (GNUNET_NO == handled)
+    LOG (GNUNET_ERROR_TYPE_WARNING, "no handler for message of type %d\n", ntohs (mh->type));
 }
 
 
@@ -220,6 +229,7 @@ GNUNET_MQ_discard (struct GNUNET_MQ_Message *mqm)
 void
 GNUNET_MQ_send (struct GNUNET_MQ_MessageQueue *mq, struct GNUNET_MQ_Message *mqm)
 {
+  GNUNET_assert (NULL != mq);
   mq->send_impl (mq, mqm);
 }
 
@@ -228,6 +238,7 @@ struct GNUNET_MQ_Message *
 GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp, uint16_t size, uint16_t type)
 {
   struct GNUNET_MQ_Message *mqm;
+
   mqm = GNUNET_malloc (sizeof *mqm + size);
   mqm->mh = (struct GNUNET_MessageHeader *) &mqm[1];
   mqm->mh->size = htons (size);
@@ -245,16 +256,18 @@ GNUNET_MQ_nest_ (struct GNUNET_MQ_Message **mqmp,
   size_t new_size;
   size_t old_size;
 
+  GNUNET_assert (NULL != mqmp);
+  /* there's no data to append => do nothing */
   if (NULL == data)
     return GNUNET_OK;
-  GNUNET_assert (NULL != mqmp);
   old_size = ntohs ((*mqmp)->mh->size);
   /* message too large to concatenate? */
-  if (ntohs ((*mqmp)->mh->size) + len < len)
+  if (((uint16_t) (old_size + len)) < len)
     return GNUNET_SYSERR;
   new_size = old_size + len;
-  *mqmp = GNUNET_realloc (mqmp, sizeof (struct GNUNET_MQ_Message) + new_size);
-  memcpy ((*mqmp)->mh + old_size, data, new_size - old_size);
+  *mqmp = GNUNET_realloc (*mqmp, sizeof (struct GNUNET_MQ_Message) + new_size);
+  (*mqmp)->mh = (struct GNUNET_MessageHeader *) &(*mqmp)[1];
+  memcpy (((void *) (*mqmp)->mh) + old_size, data, new_size - old_size);
   (*mqmp)->mh->size = htons (new_size);
   return GNUNET_OK;
 }
@@ -286,12 +299,10 @@ stream_write_queued (void *cls, enum GNUNET_STREAM_Status status, size_t size)
   
   /* call cb for message we finished sending */
   mqm = mq->current_msg;
-  if (NULL != mqm)
-  {
-    if (NULL != mqm->sent_cb)
-      mqm->sent_cb (mqm->sent_cls);
-    GNUNET_free (mqm);
-  }
+  GNUNET_assert (NULL != mq->current_msg);
+  if (NULL != mqm->sent_cb)
+    mqm->sent_cb (mqm->sent_cls);
+  GNUNET_free (mqm);
 
   mss->wh = NULL;
 
@@ -384,6 +395,35 @@ stream_data_processor (void *cls,
 }
 
 
+static void
+stream_socket_destroy_impl (struct GNUNET_MQ_MessageQueue *mq)
+{
+  struct MessageStreamState *mss = (struct MessageStreamState *) mq->impl_state;
+
+  if (NULL != mss->rh)
+  {
+    GNUNET_STREAM_read_cancel (mss->rh);
+    mss->rh = NULL;
+  }
+
+  if (NULL != mss->wh)
+  {
+    GNUNET_STREAM_write_cancel (mss->wh);
+    mss->wh = NULL;
+  }
+
+  if (NULL != mss->mst)
+  {
+    GNUNET_SERVER_mst_destroy (mss->mst);
+    mss->mst = NULL;
+  }
+
+  GNUNET_free (mss);
+}
+
+
+
+
 struct GNUNET_MQ_MessageQueue *
 GNUNET_MQ_queue_for_stream_socket (struct GNUNET_STREAM_Socket *socket,
                                    const struct GNUNET_MQ_Handler *handlers,
@@ -397,6 +437,7 @@ GNUNET_MQ_queue_for_stream_socket (struct GNUNET_STREAM_Socket *socket,
   mss->socket = socket;
   mq->impl_state = mss;
   mq->send_impl = stream_socket_send_impl;
+  mq->destroy_impl = &stream_socket_destroy_impl;
   mq->handlers = handlers;
   mq->handlers_cls = cls;
   if (NULL != handlers)
@@ -425,14 +466,21 @@ transmit_queued (void *cls, size_t size,
   struct ServerClientSocketState *state = mq->impl_state;
   size_t msg_size;
 
+  GNUNET_assert (NULL != buf);
+
+  if (NULL != mqm->sent_cb)
+  {
+    mqm->sent_cb (mqm->sent_cls);
+  }
+
   mq->current_msg = NULL;
   GNUNET_assert (NULL != mqm);
-  GNUNET_assert (NULL != buf);
   msg_size = ntohs (mqm->mh->size);
   GNUNET_assert (size >= msg_size);
   memcpy (buf, mqm->mh, msg_size);
   GNUNET_free (mqm);
   state->th = NULL;
+
   if (NULL != mq->msg_head)
   {
     mq->current_msg = mq->msg_head;
@@ -448,12 +496,27 @@ transmit_queued (void *cls, size_t size,
 }
 
 
+
+static void
+server_client_destroy_impl (struct GNUNET_MQ_MessageQueue *mq)
+{
+  struct ServerClientSocketState *state;
+  
+  GNUNET_assert (NULL != mq);
+  state = mq->impl_state;
+  GNUNET_assert (NULL != state);
+  GNUNET_SERVER_client_drop (state->client);
+  GNUNET_free (state);
+}
+
 static void
 server_client_send_impl (struct GNUNET_MQ_MessageQueue *mq, struct GNUNET_MQ_Message *mqm)
 {
-  struct ServerClientSocketState *state = mq->impl_state;
+  struct ServerClientSocketState *state;
   int msize;
 
+  GNUNET_assert (NULL != mq);
+  state = mq->impl_state;
   GNUNET_assert (NULL != state);
 
   if (NULL != state->th)
@@ -461,8 +524,9 @@ server_client_send_impl (struct GNUNET_MQ_MessageQueue *mq, struct GNUNET_MQ_Mes
     GNUNET_CONTAINER_DLL_insert_tail (mq->msg_head, mq->msg_tail, mqm);
     return;
   }
+  GNUNET_assert (NULL == mq->msg_head);
   GNUNET_assert (NULL == mq->current_msg);
-  msize = ntohs (mq->msg_head->mh->size);
+  msize = ntohs (mqm->mh->size);
   mq->current_msg = mqm;
   state->th = 
       GNUNET_SERVER_notify_transmit_ready (state->client, msize, 
@@ -480,7 +544,10 @@ GNUNET_MQ_queue_for_server_client (struct GNUNET_SERVER_Client *client)
   mq = GNUNET_new (struct GNUNET_MQ_MessageQueue);
   scss = GNUNET_new (struct ServerClientSocketState);
   mq->impl_state = scss;
+  scss->client = client;
+  GNUNET_SERVER_client_keep (client);
   mq->send_impl = server_client_send_impl;
+  mq->destroy_impl = server_client_destroy_impl;
   return mq;
 }
 
@@ -502,8 +569,15 @@ connection_client_transmit_queued (void *cls, size_t size,
   struct ClientConnectionState *state = mq->impl_state;
   size_t msg_size;
 
-  mq->current_msg = NULL;
+
   GNUNET_assert (NULL != mqm);
+
+  if (NULL != mqm->sent_cb)
+  {
+    mqm->sent_cb (mqm->sent_cls);
+  }
+
+  mq->current_msg = NULL;
   GNUNET_assert (NULL != buf);
   msg_size = ntohs (mqm->mh->size);
   GNUNET_assert (size >= msg_size);
@@ -515,7 +589,7 @@ connection_client_transmit_queued (void *cls, size_t size,
     mq->current_msg = mq->msg_head;
     GNUNET_CONTAINER_DLL_remove (mq->msg_head, mq->msg_tail, mq->current_msg);
     state->th = 
-      GNUNET_CLIENT_notify_transmit_ready (state->connection, htons (mq->current_msg->mh->size), 
+      GNUNET_CLIENT_notify_transmit_ready (state->connection, ntohs (mq->current_msg->mh->size), 
                                              GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_NO,
                                              &connection_client_transmit_queued, mq);
   }
@@ -524,6 +598,13 @@ connection_client_transmit_queued (void *cls, size_t size,
   return msg_size;
 }
 
+
+
+static void
+connection_client_destroy_impl (struct GNUNET_MQ_MessageQueue *mq)
+{
+  GNUNET_free (mq->impl_state);
+}
 
 static void
 connection_client_send_impl (struct GNUNET_MQ_MessageQueue *mq,
@@ -549,6 +630,7 @@ connection_client_send_impl (struct GNUNET_MQ_MessageQueue *mq,
 }
 
 
+
 /**
  * Type of a function to call when we receive a message
  * from the service.
@@ -561,6 +643,9 @@ handle_client_message (void *cls,
                        const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_MQ_MessageQueue *mq = cls;
+  struct ClientConnectionState *state;
+
+  state = mq->impl_state;
   
   if (NULL == msg)
   {
@@ -569,6 +654,10 @@ handle_client_message (void *cls,
     mq->read_error_cb (mq->read_error_cls);
     return;
   }
+
+  GNUNET_CLIENT_receive (state->connection, handle_client_message, mq,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
+
   dispatch_message (mq, msg);
 }
 
@@ -590,6 +679,7 @@ GNUNET_MQ_queue_for_connection_client (struct GNUNET_CLIENT_Connection *connecti
   state->connection = connection;
   mq->impl_state = state;
   mq->send_impl = connection_client_send_impl;
+  mq->destroy_impl = connection_client_destroy_impl;
 
   if (NULL != handlers)
   {
@@ -626,7 +716,10 @@ GNUNET_MQ_assoc_add (struct GNUNET_MQ_MessageQueue *mq,
   uint32_t id;
 
   if (NULL == mq->assoc_map)
+  {
     mq->assoc_map = GNUNET_CONTAINER_multihashmap32_create (8);
+    mq->assoc_id = 1;
+  }
   id = mq->assoc_id++;
   GNUNET_CONTAINER_multihashmap32_put (mq->assoc_map, id, assoc_data,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
@@ -652,6 +745,7 @@ GNUNET_MQ_assoc_remove (struct GNUNET_MQ_MessageQueue *mq, uint32_t request_id)
   if (NULL == mq->assoc_map)
     return NULL;
   val = GNUNET_CONTAINER_multihashmap32_get (mq->assoc_map, request_id);
+  GNUNET_assert (NULL != val);
   GNUNET_CONTAINER_multihashmap32_remove (mq->assoc_map, request_id, val);
   return val;
 }
@@ -671,6 +765,12 @@ void
 GNUNET_MQ_destroy (struct GNUNET_MQ_MessageQueue *mq)
 {
   /* FIXME: destroy all pending messages in the queue */
+
+  if (NULL != mq->destroy_impl)
+  {
+    mq->destroy_impl (mq);
+  }
+
   GNUNET_free (mq);
 }
 

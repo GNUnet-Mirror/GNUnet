@@ -280,6 +280,7 @@ ibf_read_slice (const void *buf, uint32_t start, uint32_t count, struct Invertib
   struct IBF_KeyHash *key_hash_src;
   struct IBF_Count *count_src;
 
+  GNUNET_assert (count > 0);
   GNUNET_assert (start + count <= ibf->size);
 
   /* copy keys */

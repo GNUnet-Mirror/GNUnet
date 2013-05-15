@@ -28,6 +28,99 @@
 #include "gnunet_set_service.h"
 
 
+static struct GNUNET_PeerIdentity local_id;
+static struct GNUNET_HashCode app_id;
+static struct GNUNET_SET_Handle *set1;
+static struct GNUNET_SET_Handle *set2;
+static struct GNUNET_SET_ListenHandle *listen_handle;
+const static struct GNUNET_CONFIGURATION_Handle *config;
+
+
+static void
+result_cb_set1 (void *cls, struct GNUNET_SET_Element *element,
+           enum GNUNET_SET_Status status)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "got result (set 1)\n");
+}
+
+
+static void
+result_cb_set2 (void *cls, struct GNUNET_SET_Element *element,
+           enum GNUNET_SET_Status status)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "got result (set 2)\n");
+}
+
+
+static void
+listen_cb (void *cls,
+           const struct GNUNET_PeerIdentity *other_peer,
+           const struct GNUNET_MessageHeader *context_msg,
+           struct GNUNET_SET_Request *request)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "listen cb called\n");
+  GNUNET_SET_accept (request, set2, GNUNET_TIME_UNIT_FOREVER_REL, 
+                     GNUNET_SET_RESULT_ADDED, result_cb_set2, NULL);
+}
+
+
+/**
+ * Start the set operation.
+ *
+ * @param cls closure, unused
+ */
+static void
+start (void *cls)
+{
+  listen_handle = GNUNET_SET_listen (config, GNUNET_SET_OPERATION_UNION,
+                                     &app_id, listen_cb, NULL);
+  GNUNET_SET_evaluate (set1, &local_id, &app_id, NULL, 42,
+                       GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_SET_RESULT_ADDED,
+                       result_cb_set1, NULL);
+}
+
+
+/**
+ * Initialize the second set, continue
+ *
+ * @param cls closure, unused
+ */
+static void
+init_set2 (void *cls)
+{
+  struct GNUNET_SET_Element element;
+
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "initializing set 2\n");
+
+  element.data = "hello";
+  element.size = strlen(element.data);
+  GNUNET_SET_add_element (set2, &element, NULL, NULL);
+  element.data = "quux";
+  element.size = strlen(element.data);
+  GNUNET_SET_add_element (set2, &element, start, NULL);
+}
+
+
+/**
+ * Initialize the first set, continue.
+ */
+static void
+init_set1 (void)
+{
+  struct GNUNET_SET_Element element;
+
+  element.data = "hello";
+  element.size = strlen(element.data);
+  GNUNET_SET_add_element (set1, &element, NULL, NULL);
+  element.data = "bar";
+  element.size = strlen(element.data);
+  GNUNET_SET_add_element (set1, &element, init_set2, NULL);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "initialized set 1\n");
+}
+
+
 /**
  * Signature of the 'main' function for a (single-peer) testcase that
  * is run using 'GNUNET_TESTING_peer_run'.
@@ -41,11 +134,15 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  struct GNUNET_SET_Handle *set1;
-  struct GNUNET_SET_Handle *set2;
 
+  static const char* app_str = "gnunet-set";
+
+  config = cfg;
+  GNUNET_CRYPTO_hash (app_str, strlen (app_str), &app_id);
+  GNUNET_CRYPTO_get_host_identity (cfg, &local_id);
   set1 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
   set2 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
+  init_set1 ();
 }
 
 int

@@ -33,6 +33,8 @@ void
 strata_estimator_write (const struct StrataEstimator *se, void *buf)
 {
   int i;
+
+  GNUNET_assert (NULL != se);
   for (i = 0; i < se->strata_count; i++)
   {
     ibf_write_slice (se->strata[i], 0, se->ibf_size, buf);

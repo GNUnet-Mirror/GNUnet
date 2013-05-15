@@ -1779,12 +1779,10 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_SET_ADD 573
 
-
 /**
  * Remove element from set
  */
 #define GNUNET_MESSAGE_TYPE_SET_REMOVE 574
-
 
 /**
  * Listen for operation requests
