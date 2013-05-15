@@ -276,7 +276,6 @@ struct GNUNET_MQ_MessageQueue *
 GNUNET_MQ_queue_for_server_client (struct GNUNET_SERVER_Client *client);
 
 
-
 /**
  * Create a message queue for a GNUNET_STREAM_Socket.
  * If handlers are specfied, receive messages from the stream socket.
@@ -285,11 +284,13 @@ GNUNET_MQ_queue_for_server_client (struct GNUNET_SERVER_Client *client);
  * @param handlers handlers for receiving messages
  * @param cls closure for the handlers
  * @return the message queue
+ * @deprecated - GNUNET_MQ_queue_create_with_callbacks
  */
 struct GNUNET_MQ_MessageQueue *
 GNUNET_MQ_queue_for_stream_socket (struct GNUNET_STREAM_Socket *socket,
                                    const struct GNUNET_MQ_Handler *handlers,
                                    void *cls);
+
 
 /**
  * Replace the handlers of a message queue with new handlers.
@@ -306,7 +307,6 @@ GNUNET_MQ_replace_handlers (struct GNUNET_MQ_MessageQueue *mq,
                             void *cls);
 
 
-
 /**
  * Call a callback once the message has been sent, that is, the message
  * can not be canceled anymore.
@@ -321,6 +321,7 @@ GNUNET_MQ_notify_sent (struct GNUNET_MQ_Message *mqm,
                        GNUNET_MQ_NotifyCallback cb,
                        void *cls);
 
+
 /**
  * Call a callback once all messages queued have been sent,
  * i.e. the message queue is empty.
@@ -328,6 +329,7 @@ GNUNET_MQ_notify_sent (struct GNUNET_MQ_Message *mqm,
  * @param mqm the message queue to send the notification for
  * @param cb the callback to call on an empty queue
  * @param cls closure for cb
+ * @deprecated
  */
 void
 GNUNET_MQ_notify_empty (struct GNUNET_MQ_MessageQueue *mqm,
@@ -341,6 +343,7 @@ GNUNET_MQ_notify_empty (struct GNUNET_MQ_MessageQueue *mqm,
  * @param mqm the message queue to send the notification for
  * @param cb the callback to call on a read error
  * @param cls closure for cb
+ * @deprecated, integrate with queue creation
  */
 void
 GNUNET_MQ_notify_read_error (struct GNUNET_MQ_MessageQueue *mqm,

@@ -86,17 +86,26 @@ enum GNUNET_SET_Status
    * Everything went ok.
    */
   GNUNET_SET_STATUS_OK,
+
   /**
    * There was a timeout.
    */
   GNUNET_SET_STATUS_TIMEOUT,
+
   /**
    * The other peer refused to to the operation with us,
    * or something went wrong.
    */
   GNUNET_SET_STATUS_FAILURE,
+
   /**
-   * Success, all elements have been sent.
+   * Success, all elements have been returned (but the other
+   * peer might still be receiving some from us, so we are not done).
+   */
+  GNUNET_SET_STATUS_HALF_DONE,
+
+  /**
+   * Success, all elements have been sent (and received).
    */
   GNUNET_SET_STATUS_DONE
 };
@@ -140,7 +149,7 @@ struct GNUNET_SET_Element
   /**
    * Actual data of the element
    */
-  void *data;
+  const void *data;
 };
 
 
@@ -161,7 +170,7 @@ typedef void (*GNUNET_SET_Continuation) (void *cls);
  * @param status see enum GNUNET_SET_Status
  */
 typedef void (*GNUNET_SET_ResultIterator) (void *cls,
-                                           struct GNUNET_SET_Element *element,
+                                           const struct GNUNET_SET_Element *element,
                                            enum GNUNET_SET_Status status);
 
 
@@ -258,7 +267,7 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set);
  *        fail due to hash collisions, using a different salt for each operation
  *        makes it harder for an attacker to exploit this
  * @param timeout result_cb will be called with GNUNET_SET_STATUS_TIMEOUT
- *        if the operation is not done after the specified time
+ *        if the operation is not done after the specified time; @deprecated
  * @param result_mode specified how results will be returned,
  *        see 'GNUNET_SET_ResultMode'.
  * @param result_cb called on error or success
@@ -313,7 +322,7 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh);
  *
  * @param request request to accept
  * @param set set used for the requested operation 
- * @param timeout timeout for the set operation
+ * @param timeout timeout for the set operation, @deprecated
  * @param result_mode specified how results will be returned,
  *        see 'GNUNET_SET_ResultMode'.
  * @param result_cb callback for the results

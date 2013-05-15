@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2012 Christian Grothoff (and other contributing authors)
+     (C) 2012, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -49,6 +49,7 @@ struct SetCreateMessage
   /**
    * Operation type, values of enum GNUNET_SET_OperationType
    */
+  // FIXME: use 32_t for 'enum'.
   uint16_t operation GNUNET_PACKED;
 };
 
@@ -61,14 +62,15 @@ struct ListenMessage
   struct GNUNET_MessageHeader header;
 
   /**
+   * Operation type, values of enum GNUNET_SET_OperationType
+   */
+  uint16_t operation GNUNET_PACKED;
+
+  /**
    * application id
    */
   struct GNUNET_HashCode app_id;
 
-  /**
-   * Operation type, values of enum GNUNET_SET_OperationType
-   */
-  uint16_t operation GNUNET_PACKED;
 };
 
 
@@ -105,15 +107,15 @@ struct RequestMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Identity of the requesting peer.
-   */
-  struct GNUNET_PeerIdentity peer_id;
-
-  /**
    * ID of the request we want to accept,
    * chosen by the service.
    */
   uint32_t accept_id GNUNET_PACKED;
+
+  /**
+   * Identity of the requesting peer.
+   */
+  struct GNUNET_PeerIdentity peer_id;
 
   /* rest: nested context message */
 };
@@ -127,6 +129,11 @@ struct EvaluateMessage
   struct GNUNET_MessageHeader header;
 
   /**
+   * id of our evaluate, chosen by the client
+   */
+  uint32_t request_id GNUNET_PACKED;
+
+  /**
    * Peer to evaluate the operation with
    */
   struct GNUNET_PeerIdentity peer;
@@ -135,11 +142,6 @@ struct EvaluateMessage
    * Application id
    */
   struct GNUNET_HashCode app_id;
-
-  /**
-   * id of our evaluate, chosen by the client
-   */
-  uint32_t request_id GNUNET_PACKED;
 
   /**
    * Salt to use for the operation
