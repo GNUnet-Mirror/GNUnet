@@ -54,6 +54,7 @@ TIMEOUT = 5 s
 MAX_CONNECTIONS = 128
 
 [transport-udp]
+# Use PORT = 0 to autodetect a port available
 PORT = 2086
 BROADCAST = YES
 BROADCAST_INTERVAL = 30 s
