@@ -398,7 +398,7 @@ struct MeshTunnel
 /**
  * Struct containing information about a client of the service
  * 
- * TODO: add a list of 'waiting' types
+ * TODO: add a list of 'waiting' ports
  */
 struct MeshClient
 {
@@ -426,12 +426,6 @@ struct MeshClient
      * Handle to communicate with the client
      */
   struct GNUNET_SERVER_Client *handle;
-
-    /**
-     * Messages that this client has declared interest in.
-     * Indexed by a GMC_hash32 (type), contains *Client.
-     */
-  struct GNUNET_CONTAINER_MultiHashMap *types;
 
     /**
      * Ports that this client has declared interest in.
@@ -630,11 +624,6 @@ static MESH_TunnelNumber next_tid;
  * Tunnel ID for the next incoming tunnel (local tunnel number).
  */
 static MESH_TunnelNumber next_local_tid;
-
-/**
- * All message types clients of this peer are interested in.
- */
-static struct GNUNET_CONTAINER_MultiHashMap *types;
 
 /**
  * All ports clients of this peer have opened.
@@ -3823,8 +3812,8 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     GNUNET_CONTAINER_multihashmap_destroy (c->own_tunnels);
     GNUNET_CONTAINER_multihashmap_destroy (c->incoming_tunnels);
 
-    if (NULL != c->types)
-      GNUNET_CONTAINER_multihashmap_destroy (c->types);
+    if (NULL != c->ports)
+      GNUNET_CONTAINER_multihashmap_destroy (c->ports);
     next = c->next;
     GNUNET_CONTAINER_DLL_remove (clients_head, clients_tail, c);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  CLIENT FREE at %p\n", c);
@@ -3851,9 +3840,6 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   struct GNUNET_MESH_ClientConnect *cc_msg;
   struct MeshClient *c;
   unsigned int size;
-  uint16_t ntypes;
-  uint16_t nports;
-  uint16_t *t;
   uint32_t *p;
   unsigned int i;
 
@@ -3862,51 +3848,29 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   /* Check data sanity */
   size = ntohs (message->size) - sizeof (struct GNUNET_MESH_ClientConnect);
   cc_msg = (struct GNUNET_MESH_ClientConnect *) message;
-  ntypes = ntohs (cc_msg->types);
-  nports = ntohs (cc_msg->ports);
-  if (size != ntypes * sizeof (uint16_t))
+  if (0 != (size % sizeof (uint32_t)))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  size /= sizeof (uint32_t);
 
   /* Create new client structure */
   c = GNUNET_malloc (sizeof (struct MeshClient));
   c->id = next_client_id++; /* overflow not important: just for debug */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  CLIENT NEW %u\n", c->id);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  client has %u types\n", ntypes);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  client id %u\n", c->id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  client has %u ports\n", size);
   c->handle = client;
   GNUNET_SERVER_client_keep (client);
-  t = (uint16_t *) &cc_msg[1];
-  if (ntypes > 0)
-  {
-    uint16_t u16;
-    struct GNUNET_HashCode hc;
-
-    c->types = GNUNET_CONTAINER_multihashmap_create (ntypes, GNUNET_NO);
-    for (i = 0; i < ntypes; i++)
-    {
-      u16 = ntohs (t[i]);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    msg type: %u\n", u16);
-      GMC_hash32 ((uint32_t) u16, &hc);
-
-      /* store in client's hashmap */
-      GNUNET_CONTAINER_multihashmap_put (c->types, &hc, c,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-      /* store in global hashmap */
-      GNUNET_CONTAINER_multihashmap_put (types, &hc, c,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-    }
-  }
-  if (nports > 0)
+  if (size > 0)
   {
     uint32_t u32;
     struct GNUNET_HashCode hc;
 
-    p = (uint32_t *) &t[ntypes];
-    c->ports = GNUNET_CONTAINER_multihashmap_create (nports, GNUNET_NO);
-    for (i = 0; i < nports; i++)
+    p = (uint32_t *) &cc_msg[1];
+    c->ports = GNUNET_CONTAINER_multihashmap_create (size, GNUNET_NO);
+    for (i = 0; i < size; i++)
     {
       u32 = ntohl (p[i]);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    port: %u\n", u32);
@@ -4983,7 +4947,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   tunnels = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
   incoming_tunnels = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
   peers = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
-  types = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
   ports = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
 
   dht_handle = GNUNET_DHT_connect (c, 64);

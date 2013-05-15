@@ -112,10 +112,7 @@ struct GNUNET_MESH_ClientConnect
      *       sizeof(uint16_t) * types
      */
   struct GNUNET_MessageHeader header;
-  uint16_t types GNUNET_PACKED;
-  uint16_t ports GNUNET_PACKED;
-  /* uint16_t                 list_types[types]           */
-  /* uint32_t                 list_ports[ports]           */
+  /* uint32_t                 list_ports[]           */
 };
 
 

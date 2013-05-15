@@ -643,11 +643,10 @@ send_connect (struct GNUNET_MESH_Handle *h)
   size_t size;
 
   size = sizeof (struct GNUNET_MESH_ClientConnect);
-  size += h->n_handlers * sizeof (uint16_t);
+  size += h->n_ports * sizeof (uint32_t);
   {
     char buf[size] GNUNET_ALIGN;
     struct GNUNET_MESH_ClientConnect *msg;
-    uint16_t *types;
     uint32_t *ports;
     uint16_t i;
 
@@ -655,16 +654,7 @@ send_connect (struct GNUNET_MESH_Handle *h)
     msg = (struct GNUNET_MESH_ClientConnect *) buf;
     msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT);
     msg->header.size = htons (size);
-    msg->types = htons (h->n_handlers);
-    msg->ports = htons (h->n_ports);
-    types = (uint16_t *) &msg[1];
-    for (i = 0; i < h->n_handlers; i++)
-    {
-      types[i] = htons (h->message_handlers[i].type);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, " type %u\n",
-           h->message_handlers[i].type);
-    }
-    ports = (uint32_t *) &types[h->n_handlers];
+    ports = (uint32_t *) &msg[1];
     for (i = 0; i < h->n_ports; i++)
     {
       ports[i] = htonl (h->ports[i]);
@@ -672,8 +662,8 @@ send_connect (struct GNUNET_MESH_Handle *h)
            h->ports[i]);
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Sending %lu bytes long message %u types and %u ports\n",
-         ntohs (msg->header.size), h->n_handlers, h->n_ports);
+         "Sending %lu bytes long message with %u ports\n",
+         ntohs (msg->header.size), h->n_ports);
     send_packet (h, &msg->header, NULL);
   }
 }
