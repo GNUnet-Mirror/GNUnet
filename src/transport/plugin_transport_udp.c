@@ -2687,6 +2687,7 @@ setup_sockets (struct Plugin *plugin, struct sockaddr_in6 *bind_v6, struct socka
     }
     else
     {
+    	memset (&serverAddrv6, '\0', sizeof (struct sockaddr_in6));
 #if HAVE_SOCKADDR_IN_SIN_LEN
       serverAddrv6.sin6_len = sizeof (struct sockaddr_in6);
 #endif
@@ -2695,84 +2696,134 @@ setup_sockets (struct Plugin *plugin, struct sockaddr_in6 *bind_v6, struct socka
       	serverAddrv6.sin6_addr = bind_v6->sin6_addr;
       else
       	serverAddrv6.sin6_addr = in6addr_any;
-      serverAddrv6.sin6_port = htons (plugin->port);
+
+      if (0 == plugin->port)
+      		/* autodetect */
+      		serverAddrv6.sin6_port = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537) + 32000);
+      else
+      		serverAddrv6.sin6_port = htons (plugin->port);
+
+
       addrlen = sizeof (struct sockaddr_in6);
       serverAddr = (struct sockaddr *) &serverAddrv6;
-      LOG (GNUNET_ERROR_TYPE_INFO, "Binding to IPv6 `%s'\n",
-           GNUNET_a2s (serverAddr, addrlen));
+
       tries = 0;
-      while (GNUNET_OK != GNUNET_NETWORK_socket_bind (plugin->sockv6,
-																(struct sockaddr *) &serverAddrv6,
-																addrlen))
+      while (tries < 10)
       {
-        serverAddrv6.sin6_port = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537) + 32000);        /* Find a good, non-root port */
-        LOG (GNUNET_ERROR_TYPE_DEBUG,
-             "IPv6 Binding failed, trying new port %d\n",
-             ntohs (serverAddrv6.sin6_port));
-        tries++;
-        if (tries > 10)
-        {
-          GNUNET_NETWORK_socket_close (plugin->sockv6);
-          plugin->sockv6 = NULL;
-          break;
-        }
+          LOG (GNUNET_ERROR_TYPE_DEBUG, "Binding to IPv6 `%s'\n",
+               GNUNET_a2s (serverAddr, addrlen));
+
+          /* binding */
+          if (GNUNET_OK == GNUNET_NETWORK_socket_bind (plugin->sockv6, serverAddr, addrlen))
+          		break;
+
+      		if (0 != plugin->port)
+      		{
+      			tries = 10; /* fail */
+      			break; /* bind failed on specific port */
+      		}
+
+      		/* autodetect */
+      		serverAddrv6.sin6_port = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537) + 32000);
+      		tries ++;
       }
+
+      if (tries >= 10)
+      {
+        GNUNET_NETWORK_socket_close (plugin->sockv6);
+        plugin->sockv6 = NULL;
+      }
+
       if (plugin->sockv6 != NULL)
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
-             "IPv6 socket created on port %d\n",
-             ntohs (serverAddrv6.sin6_port));
+             "IPv6 socket created on port %s\n",
+             GNUNET_a2s (serverAddr, addrlen));
         addrs[sockets_created] = (struct sockaddr *) &serverAddrv6;
         addrlens[sockets_created] = sizeof (struct sockaddr_in6);
         sockets_created++;
+      }
+      else
+      {
+          LOG (GNUNET_ERROR_TYPE_ERROR,
+               "Failed to create IPv6 socket created on %s\n",
+               GNUNET_a2s (serverAddr, addrlen));
       }
     }
   }
 
   /* Create IPv4 socket */
-  plugin->sockv4 = GNUNET_NETWORK_socket_create (PF_INET, SOCK_DGRAM, 0);
-  if (NULL == plugin->sockv4)
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "socket");
-  }
-  else
-  {
+	plugin->sockv4 = GNUNET_NETWORK_socket_create (PF_INET, SOCK_DGRAM, 0);
+	if (NULL == plugin->sockv4)
+	{
+		LOG (GNUNET_ERROR_TYPE_WARNING, "Failed to create IPv4 socket!\n");
+		return sockets_created;
+	}
+	else
+	{
+		memset (&serverAddrv4, '\0', sizeof (struct sockaddr_in));
 #if HAVE_SOCKADDR_IN_SIN_LEN
-    serverAddrv4.sin_len = sizeof (struct sockaddr_in);
+		serverAddrv4.sin_len = sizeof (struct sockaddr_in);
 #endif
-    serverAddrv4.sin_family = AF_INET;
-    if (NULL != bind_v4)
-    	serverAddrv4.sin_addr = bind_v4->sin_addr;
-    else
-    	serverAddrv4.sin_addr.s_addr = INADDR_ANY;
-    serverAddrv4.sin_port = htons (plugin->port);
-    addrlen = sizeof (struct sockaddr_in);
-    serverAddr = (struct sockaddr *) &serverAddrv4;
+		serverAddrv4.sin_family = AF_INET;
+		if (NULL != bind_v4)
+			serverAddrv4.sin_addr = bind_v4->sin_addr;
+		else
+			serverAddrv4.sin_addr.s_addr = INADDR_ANY;
 
-    LOG (GNUNET_ERROR_TYPE_INFO, "Binding to IPv4 %s\n",
-         GNUNET_a2s (serverAddr, addrlen));
-    tries = 0;
-    while (GNUNET_NETWORK_socket_bind (plugin->sockv4, serverAddr, addrlen) !=
-           GNUNET_OK)
-    {
-      serverAddrv4.sin_port = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537) + 32000);   /* Find a good, non-root port */
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "IPv4 Binding failed, trying new port %d\n",
-           ntohs (serverAddrv4.sin_port));
-      tries++;
-      if (tries > 10)
-      {
-        GNUNET_NETWORK_socket_close (plugin->sockv4);
-        plugin->sockv4 = NULL;
-        break;
-      }
-    }
-    if (plugin->sockv4 != NULL)
-    {
-      addrs[sockets_created] = (struct sockaddr *) &serverAddrv4;
-      addrlens[sockets_created] = sizeof (struct sockaddr_in);
-      sockets_created++;
-    }
-  }
+		if (0 == plugin->port)
+				/* autodetect */
+				serverAddrv4.sin_port = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537) + 32000);
+		else
+				serverAddrv4.sin_port = htons (plugin->port);
+
+
+		addrlen = sizeof (struct sockaddr_in);
+		serverAddr = (struct sockaddr *) &serverAddrv4;
+
+		tries = 0;
+		while (tries < 10)
+		{
+				LOG (GNUNET_ERROR_TYPE_DEBUG, "Binding to IPv4 `%s'\n",
+						 GNUNET_a2s (serverAddr, addrlen));
+
+				/* binding */
+				if (GNUNET_OK == GNUNET_NETWORK_socket_bind (plugin->sockv4, serverAddr, addrlen))
+						break;
+
+				if (0 != plugin->port)
+				{
+					tries = 10; /* fail */
+					break; /* bind failed on specific port */
+				}
+
+				/* autodetect */
+				serverAddrv4.sin_port = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537) + 32000);
+				tries ++;
+		}
+
+		if (tries >= 10)
+		{
+			GNUNET_NETWORK_socket_close (plugin->sockv4);
+			plugin->sockv4 = NULL;
+		}
+
+		if (plugin->sockv4 != NULL)
+		{
+			LOG (GNUNET_ERROR_TYPE_DEBUG,
+					 "IPv4 socket created on port %s\n",
+					 GNUNET_a2s (serverAddr, addrlen));
+			addrs[sockets_created] = (struct sockaddr *) &serverAddrv4;
+			addrlens[sockets_created] = sizeof (struct sockaddr_in);
+			sockets_created++;
+		}
+		else
+		{
+				LOG (GNUNET_ERROR_TYPE_ERROR,
+						 "Failed to create IPv4 socket created on %s\n",
+						 GNUNET_a2s (serverAddr, addrlen));
+		}
+	}
 
   /* Create file descriptors */
   plugin->rs_v4 = GNUNET_NETWORK_fdset_create ();
@@ -2852,7 +2903,9 @@ libgnunet_plugin_transport_udp_init (void *cls)
 
   GNUNET_assert( NULL != env->stats);
 
-  /* Get port number */
+  /* Get port number: port == 0 : autodetect a port,
+   * 												> 0 : use this port,
+   * 								  not given : 2086 default */
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-udp", "PORT",
                                              &port))
