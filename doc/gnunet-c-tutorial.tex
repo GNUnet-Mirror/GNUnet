@@ -420,7 +420,7 @@ The source code for the above listing can be found at
 \begin{lstlisting}
 $ export CPPFLAGS="-I/path/to/gnunet/headers"
 $ export LDFLAGS="-L/path/to/gnunet/libraries"
-$ gcc -o testbed-test -lgnunettestbed -lgnunetdht -lgnunetutil testbed_test.c
+$ gcc -o testbed-test testbed_test.c  -lgnunettestbed -lgnunetdht -lgnunetutil
 \end{lstlisting}
 The \texttt{CPPFLAGS} and \texttt{LDFLAGS} are necessary if GNUnet is installed
 into a different directory other than \texttt{/usr/local}.
