@@ -638,15 +638,36 @@ process_interfaces (void *cls, const char *name, int isDefault,
                     const struct sockaddr *broadcast_addr,
                     const struct sockaddr *netmask, socklen_t addrlen)
 {
+  const static struct in6_addr any6 = IN6ADDR_ANY_INIT;
   struct GNUNET_NAT_Handle *h = cls;
   const struct sockaddr_in *s4;
   const struct sockaddr_in6 *s6;
   const void *ip;
   char buf[INET6_ADDRSTRLEN];
+  unsigned int i;
+  int have_any;
 
   switch (addr->sa_family)
   {
   case AF_INET:
+    /* check if we're bound to the "ANY" IP address */
+    have_any = GNUNET_NO;
+    for (i=0;i<h->num_local_addrs;i++)
+      {
+	if (h->local_addrs[i]->sa_family != AF_INET)
+	  continue;
+#ifndef INADDR_ANY
+#define INADDR_ANY 0
+#endif
+	if (INADDR_ANY == ((struct sockaddr_in*) h->local_addrs[i])->sin_addr.s_addr)
+	  {
+	    have_any = GNUNET_YES;
+	    break;
+	  }
+      }
+    if (GNUNET_NO == have_any)
+      return GNUNET_OK; /* not bound to IP 0.0.0.0 but to specific IP addresses,
+			   do not use those from interfaces */
     s4 = (struct sockaddr_in *) addr;
     ip = &s4->sin_addr;
 
@@ -665,6 +686,24 @@ process_interfaces (void *cls, const char *name, int isDefault,
     }
     break;
   case AF_INET6:
+    /* check if we're bound to the "ANY" IP address */
+    have_any = GNUNET_NO;
+    for (i=0;i<h->num_local_addrs;i++)
+      {
+	if (h->local_addrs[i]->sa_family != AF_INET6)
+	  continue;
+	if (0 == memcmp (&any6,
+			 &((struct sockaddr_in6*) h->local_addrs[i])->sin6_addr,
+			 sizeof (struct in6_addr)))
+	  {
+	    have_any = GNUNET_YES;
+	    break;
+	  }
+      }
+    if (GNUNET_NO == have_any)
+      return GNUNET_OK; /* not bound to "ANY" IP (::0) but to specific IP addresses,
+			   do not use those from interfaces */
+
     s6 = (struct sockaddr_in6 *) addr;
     if (IN6_IS_ADDR_LINKLOCAL (&((struct sockaddr_in6 *) addr)->sin6_addr))
     {
