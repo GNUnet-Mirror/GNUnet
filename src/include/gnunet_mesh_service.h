@@ -150,6 +150,7 @@ typedef void (GNUNET_MESH_TunnelEndHandler) (void *cls,
 
 /**
  * Type for an application.  Values defined in gnunet_applications.h
+ * DEPRECATED - not present in mesh2
  */
 typedef uint32_t GNUNET_MESH_ApplicationType;
 
