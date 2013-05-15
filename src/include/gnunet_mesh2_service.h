@@ -102,7 +102,6 @@ struct GNUNET_MESH_MessageHandler
    * do not have the right size.
    */
   uint16_t expected_size;
-
 };
 
 
@@ -117,7 +116,7 @@ struct GNUNET_MESH_MessageHandler
  * @param cls closure
  * @param tunnel new handle to the tunnel
  * @param initiator peer that started the tunnel
- * @param atsi performance information for the tunnel
+ * @param port Port this tunnel is for.
  * @return initial tunnel context for the tunnel
  *         (can be NULL -- that's not an error)
  */
@@ -127,7 +126,8 @@ typedef void *(GNUNET_MESH_InboundTunnelNotificationHandler) (void *cls,
                                                               * tunnel,
                                                               const struct
                                                               GNUNET_PeerIdentity
-                                                              * initiator);
+                                                              * initiator,
+                                                              uint32_t port);
 
 
 /**
@@ -161,6 +161,7 @@ typedef void (GNUNET_MESH_TunnelEndHandler) (void *cls,
  *                note that the mesh is allowed to drop notifications about
  *                inbound messages if the client does not process them fast
  *                enough (for this notification type, a bounded queue is used)
+ * @param ports NULL or 0-terminated array of port numbers for incoming tunnels.
  * @return handle to the mesh service NULL on error
  *         (in this case, init is never called)
  */
@@ -168,7 +169,8 @@ struct GNUNET_MESH_Handle *
 GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
                      GNUNET_MESH_InboundTunnelNotificationHandler new_tunnel,
                      GNUNET_MESH_TunnelEndHandler cleaner,
-                     const struct GNUNET_MESH_MessageHandler *handlers);
+                     const struct GNUNET_MESH_MessageHandler *handlers,
+                     uint32_t *ports);
 
 
 /**
@@ -190,12 +192,14 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle);
  * @param h mesh handle
  * @param tunnel_ctx client's tunnel context to associate with the tunnel
  * @param peer peer identity the tunnel should go to
+ * @param port Port number.
  * @return handle to the tunnel
  */
 struct GNUNET_MESH_Tunnel *
 GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h, 
-			   void *tunnel_ctx,
-			   const struct GNUNET_PeerIdentity *peer);
+                           void *tunnel_ctx,
+                           const struct GNUNET_PeerIdentity *peer,
+                           uint32_t port);
 
 
 /**
