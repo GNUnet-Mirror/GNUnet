@@ -310,7 +310,10 @@ Now you have to edit {\tt peer2.conf} and change:
 \begin{itemize}
   \itemsep0em
   \item{\texttt{SERVICEHOME} under \texttt{PATHS}}
-  \item{Every value for ``\texttt{PORT}'' (add 10000) in any section (if \texttt{PORT} is enabled, may be disabled using "\#") }
+  \item{Every (uncommented) value for ``\texttt{PORT}'' (add 10000) in any
+        section (the option may be commented out if \texttt{PORT} is 
+        prefixed by "\#", in this case, UNIX domain sockets are used
+        and the PORT option does not need to be touched) }
   \item{Every value for ``\texttt{UNIXPATH}'' in any section (e.g. by adding a "-p2" suffix)}
 \end{itemize}
 to a fresh, unique value.  Make sure that the \texttt{PORT} numbers stay
@@ -462,8 +465,10 @@ disconnect from the service with the provided service handle (\texttt{op\_result
 
 \exercise{Find out how many peers you can run on your system.}
 
-\exercise{Find out how to create connections from within {\tt run} and create a
-  2D torus topology.  Then use the DHT API to store and retrieve values in the
+\exercise{Find out how to create a 2D torus topology by changing the
+  options in the configuration file.\footnote{FIXME: Sree Harsha: need to 
+  document configuration file options on gnunet.org and add link here!}
+  Then use the DHT API to store and retrieve values in the
   network.}
 
 \section{Developing Applications}
