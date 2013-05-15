@@ -364,6 +364,34 @@ destroy_elements (struct UnionState *us)
 }
 
 
+
+/**
+ * Iterator over hash map entries.
+ *
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not.
+ */
+static int
+destroy_key_to_element_iter (void *cls,
+                             uint32_t key,
+                             void *value)
+{
+  struct KeyEntry *k = value;
+  
+  while (NULL != k)
+  {
+    struct KeyEntry *k_tmp = k;
+    k = k->next_colliding;
+    GNUNET_free (k_tmp);
+  }
+  return GNUNET_YES;
+}
+
+
 /**
  * Destroy a union operation, and free all resources
  * associated with it.
@@ -400,6 +428,7 @@ destroy_union_operation (struct UnionEvaluateOperation *eo)
   }
   if (NULL != eo->key_to_element)
   {
+    GNUNET_CONTAINER_multihashmap32_iterate (eo->key_to_element, destroy_key_to_element_iter, NULL);
     GNUNET_CONTAINER_multihashmap32_destroy (eo->key_to_element);
     eo->key_to_element = NULL;
   }
@@ -1030,6 +1059,8 @@ handle_p2p_elements (void *cls, const struct GNUNET_MessageHeader *mh)
 
   insert_element (eo, ee);
   send_client_element (eo, &ee->element);
+
+  GNUNET_free (ee);
 }
 
 
