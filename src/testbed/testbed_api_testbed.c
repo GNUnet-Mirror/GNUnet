@@ -815,8 +815,17 @@ static void
 create_peers (struct RunContext *rc)
 {
   struct RunContextOperation *rcop;
+  struct GNUNET_TESTBED_Host *host;
   unsigned int peer;
+#if ENABLE_LL
+  struct Island *island;
+  unsigned int icnt;
+  unsigned int hcnt;
 
+  island = NULL;
+  icnt = 0;
+  hcnt = 0;
+#endif
   DEBUG ("Creating peers\n");
   rc->pstart_time = GNUNET_TIME_absolute_get ();
   rc->peers =
@@ -827,12 +836,31 @@ create_peers (struct RunContext *rc)
   {
     rcop = GNUNET_malloc (sizeof (struct RunContextOperation));
     rcop->rc = rc;
-    rcop->op =
-        GNUNET_TESTBED_peer_create (rc->c,
-                                    (0 ==
-                                     rc->num_hosts) ? rc->h : rc->hosts[peer %
-                                                                        rc->num_hosts],
-                                    rc->cfg, &peer_create_cb, rcop);
+#if ENABLE_LL
+    if (0 != rc->nislands)
+    {
+      island = rc->islands[icnt];
+      if (hcnt == island->nhosts)
+      {
+        icnt++;
+        if (icnt == rc->nislands)
+          icnt = 0;
+        island = rc->islands[icnt];
+        hcnt = 0;
+      }
+      GNUNET_assert (icnt < rc->nislands);
+      GNUNET_assert (hcnt < island->nhosts);
+      GNUNET_assert (NULL != island->hosts[hcnt]);
+      host = island->hosts[hcnt];
+      hcnt++;
+    }
+    else
+      host = rc->h;
+#else
+    host = (0 == rc->num_hosts) ? rc->h : rc->hosts[peer % rc->num_hosts];
+#endif
+    rcop->op = GNUNET_TESTBED_peer_create (rc->c, host, rc->cfg,
+                                           &peer_create_cb, rcop);
     GNUNET_assert (NULL != rcop->op);
     insert_rcop (rc, rcop);
   }
@@ -900,7 +928,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
         }
       }
       if (0 != rc->reg_hosts)
-        return;
+        return;      
       rc->state = RC_LINKED;
       create_peers (rc);
 #endif
@@ -934,6 +962,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
         return;
       rc->state = RC_LINKED;
       create_peers (rc);
+      return;
     default:
       GNUNET_break (0);
       shutdown_now (rc);
@@ -1180,6 +1209,49 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
 }
 
 
+#if ENABLE_LL
+#define ISLANDNAME_SIZE 4
+static void
+parse_islands (struct RunContext *rc)
+{
+  char island_id[ISLANDNAME_SIZE];
+  struct GNUNET_TESTBED_Host *host;
+  struct Island *island;
+  const char *hostname;
+  unsigned int nhost;
+
+  DEBUG ("Parsing for islands\n");
+  memset (island_id, 0, ISLANDNAME_SIZE);
+  island = NULL;
+  for (nhost = 0; nhost < rc->num_hosts; nhost++)
+  {
+    host = rc->hosts[nhost];
+    hostname = GNUNET_TESTBED_host_get_hostname (host);
+    GNUNET_assert (NULL != hostname);
+    if (NULL == island)
+    {
+      strncpy (island_id, hostname, ISLANDNAME_SIZE - 1);
+      island = GNUNET_malloc (sizeof (struct Island));
+    }
+    if (0 == strncmp (island_id, hostname, ISLANDNAME_SIZE - 1))
+    {      
+      GNUNET_array_append (island->hosts, island->nhosts, host);
+      continue;
+    }
+    DEBUG ("Adding island `%s' with %u hosts\n", island_id, island->nhosts);
+    GNUNET_array_append (rc->islands, rc->nislands, island);
+    island = NULL;
+  }
+  if (NULL != island)
+  {
+    DEBUG ("Adding island `%s' with %u hosts\n", island_id, island->nhosts);
+    GNUNET_array_append (rc->islands, rc->nislands, island);
+  }
+  DEBUG ("Total islands parsed: %u\n", rc->nislands);
+}
+#endif
+
+
 /**
  * Callback function invoked for each interface found.
  *
@@ -1274,6 +1346,7 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host,
     GNUNET_free (rc->hosts);
     rc->hosts = NULL;
   }
+  parse_islands (rc);
   GNUNET_OS_network_interfaces_list (netint_proc, rc);
   if (NULL == rc->trusted_ip)
     rc->trusted_ip = GNUNET_strdup ("127.0.0.1");
@@ -1309,43 +1382,6 @@ timeout_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    rc->test_master = NULL;
 }
 
-
-#if ENABLE_LL
-static void
-parse_islands (struct RunContext *rc)
-{
-#define ISLANDNAME_SIZE 4
-  char island_id[ISLANDNAME_SIZE];
-  struct GNUNET_TESTBED_Host *host;
-  struct Island *island;
-  const char *hostname;
-  unsigned int nhost;
-  
-  memset (island_id, 0, ISLANDNAME_SIZE);
-  island = NULL;
-  for (nhost = 0; nhost < rc->num_hosts; nhost++)
-  {
-    host = rc->hosts[nhost];
-    hostname = GNUNET_TESTBED_host_get_hostname (host);
-    GNUNET_assert (NULL != hostname);
-    if (NULL == island)
-    {
-      strncpy (island_id, hostname, ISLANDNAME_SIZE - 1);
-      island = GNUNET_malloc (sizeof (struct Island));
-    }
-    if (0 == strncmp (island_id, hostname, ISLANDNAME_SIZE - 1))
-    {      
-      GNUNET_array_append (island->hosts, island->nhosts, host);
-      continue;
-    }
-    DEBUG ("Adding island `%s' with %u hosts\n", island_id, island->nhosts);
-    GNUNET_array_append (rc->islands, rc->nislands, island);
-    island = NULL;
-  }
-  if (NULL != island)
-    GNUNET_array_append (rc->islands, rc->nislands, island);
-}
-#endif
 
 /**
  * Convenience method for running a testbed with
@@ -1402,7 +1438,6 @@ GNUNET_TESTBED_run (const char *host_filename,
            _("No hosts loaded from LoadLeveler. Need at least one host\n"));
     goto error_cleanup;
   }
-  parse_islands (rc);
 #else
   if (NULL != host_filename)
   {

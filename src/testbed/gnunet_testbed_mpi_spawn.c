@@ -56,11 +56,6 @@ static unsigned long child_exit_code;
 static enum GNUNET_OS_ProcessStatusType child_status;
 
 /**
- * how many IP addresses are currently assigned to us
- */
-static unsigned int num_addrs;
-
-/**
  * The shutdown task
  */
 static GNUNET_SCHEDULER_TaskIdentifier shutdown_task_id;
@@ -196,12 +191,6 @@ run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   size_t hostname_len;
   unsigned int nhosts;
   
-  if (0 == num_addrs)
-  {
-    GNUNET_break (0);
-    ret = GNUNET_SYSERR;
-    return;
-  }
   null_cfg = GNUNET_CONFIGURATION_create ();
   nhosts = GNUNET_TESTBED_hosts_load_from_loadleveler (null_cfg, &hosts);
   if (0 == nhosts)
@@ -222,11 +211,12 @@ run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (NULL == strstr (GNUNET_TESTBED_host_get_hostname (hosts[0]), hostname))
   {
-    LOG_DEBUG ("Exiting as we are not the lowest host\n");
+    LOG_DEBUG ("Exiting as `%s' is not the lowest host\n", hostname);
     GNUNET_free (hostname);
     ret = GNUNET_OK;
     return;
   }
+  LOG_DEBUG ("Will be executing `%s' on host `%s'\n", argv2[0], hostname);
   GNUNET_free (hostname);
   destroy_hosts (hosts, nhosts);
   tmpdir = getenv ("TMPDIR");

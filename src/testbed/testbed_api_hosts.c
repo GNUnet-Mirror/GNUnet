@@ -561,6 +561,17 @@ simple_resolve (const char *host)
   return hostip;
 }
 
+#if ENABLE_LL
+static int
+cmpstringp(const void *p1, const void *p2)
+{
+  /* The actual arguments to this function are "pointers to
+     pointers to char", but strcmp(3) arguments are "pointers
+     to char", hence the following cast plus dereference */
+  
+  return strcmp(* (char * const *) p1, * (char * const *) p2);
+}
+#endif
 
 /**
  * Loads the set of host allocated by the LoadLeveler Job Scheduler.  This
@@ -689,8 +700,7 @@ GNUNET_TESTBED_hosts_load_from_loadleveler (const struct
     return 0;
   if (NULL == hosts)
     goto cleanup;
-  qsort (hostnames, nhosts, sizeof (hostnames[0]), 
-         (int (*)(const void *, const void *))&strcmp);
+  qsort (hostnames, nhosts, sizeof (hostnames[0]), cmpstringp);
   host_list = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Host *) * nhosts);
   for (host = 0; host < nhosts; host++)
     host_list[host] = GNUNET_TESTBED_host_create (hostnames[host], NULL, cfg, 0);
