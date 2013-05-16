@@ -559,6 +559,7 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
   void *pcc_cls;
   struct GNUNET_TESTBED_EventInformation event;
   uint64_t op_id;
+  uint64_t mask;
 
   GNUNET_assert (sizeof (struct GNUNET_TESTBED_PeerEventMessage) ==
                  ntohs (msg->header.size));
@@ -602,9 +603,9 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
   GNUNET_TESTBED_remove_opc_ (opc->c, opc);
   opc->state = OPC_STATE_FINISHED;
   exop_insert (event.op);
-  if (0 !=
-      ((GNUNET_TESTBED_ET_PEER_START | GNUNET_TESTBED_ET_PEER_STOP) &
-       c->event_mask))
+  mask = 1LL << GNUNET_TESTBED_ET_PEER_START;
+  mask |= 1LL << GNUNET_TESTBED_ET_PEER_STOP;
+  if (0 != (mask & c->event_mask))
   {
     if (NULL != c->cc)
       c->cc (c->cc_cls, &event);    
@@ -638,6 +639,7 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
   void *cb_cls;
   struct GNUNET_TESTBED_EventInformation event;
   uint64_t op_id;
+  uint64_t mask;
 
   op_id = GNUNET_ntohll (msg->operation_id);
   if (NULL == (opc = find_opc (c, op_id)))
@@ -676,9 +678,9 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
   GNUNET_TESTBED_remove_opc_ (opc->c, opc);
   opc->state = OPC_STATE_FINISHED;
   exop_insert (event.op);
-  if (0 !=
-      ((GNUNET_TESTBED_ET_CONNECT | GNUNET_TESTBED_ET_DISCONNECT) &
-       c->event_mask))
+  mask = 1LL << GNUNET_TESTBED_ET_CONNECT;
+  mask |= 1LL << GNUNET_TESTBED_ET_DISCONNECT;
+  if (0 != (mask & c->event_mask))
   {
     if (NULL != c->cc)
       c->cc (c->cc_cls, &event);
@@ -940,6 +942,7 @@ handle_slave_config (struct GNUNET_TESTBED_Controller *c,
 {
   struct OperationContext *opc;
   uint64_t op_id;
+  uint64_t mask;
   struct GNUNET_TESTBED_EventInformation event;
 
   op_id = GNUNET_ntohll (msg->operation_id);
@@ -955,7 +958,8 @@ handle_slave_config (struct GNUNET_TESTBED_Controller *c,
   }
   opc->state = OPC_STATE_FINISHED;
   GNUNET_TESTBED_remove_opc_ (opc->c, opc);
-  if ((0 != (GNUNET_TESTBED_ET_OPERATION_FINISHED & c->event_mask)) &&
+  mask = 1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED;
+  if ((0 != (mask & c->event_mask)) &&
       (NULL != c->cc))
   {
     opc->data = GNUNET_TESTBED_extract_config_ (&msg->header);
