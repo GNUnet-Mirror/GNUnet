@@ -223,9 +223,11 @@ test_run (void *cls, unsigned int num_peers, struct GNUNET_TESTBED_Peer **peers,
   result = GNUNET_OK;
   fprintf (stdout, "\n");
   print_overlay_links_summary ();
+#if !ENABLE_LL
   fprintf (stdout, "Testbed running, waiting for keystroke to shut down\n");
   fflush (stdout);
   (void) getc (stdin);
+#endif
   fprintf (stdout, "Shutting down. Please wait\n");
   fflush (stdout);
   shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
