@@ -1238,12 +1238,6 @@ send_path_ack (struct MeshTunnel *t)
 {
   struct MeshPeerInfo *peer;
 
-  if (0 == t->prev_hop)
-  {
-    GNUNET_break (0);
-    return;
-  }
-
   peer = peer_get_short (t->prev_hop);
 
   queue_add (t,
@@ -1797,11 +1791,11 @@ tunnel_use_path (struct MeshTunnel *t, struct MeshPeerPath *p)
   if (i < p->length - 1)
     t->next_hop = p->peers[i + 1];
   else
-    t->next_hop = 0;
+    t->next_hop = p->peers[i];
   if (0 < i)
     t->prev_hop = p->peers[i - 1];
   else
-    t->prev_hop = 0;
+    t->prev_hop = p->peers[0];
 
   if (NULL != t->path)
     path_destroy (t->path);
@@ -1959,10 +1953,10 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
   }
 
   t->prev_fc.last_ack_sent = ack;
-  if (0 != t->prev_hop)
-    send_ack (t, t->prev_hop, ack);
-  else if (NULL != t->owner)
+  if (NULL != t->owner)
     send_local_ack (t, t->owner, ack);
+  else if (0 != t->prev_hop)
+    send_ack (t, t->prev_hop, ack);
   else
     GNUNET_break (0);
   debug_fwd_ack++;
@@ -2025,10 +2019,10 @@ tunnel_send_bck_ack (struct MeshTunnel *t, uint16_t type)
               ack, t->next_fc.last_ack_sent);
   t->next_fc.last_ack_sent = ack;
 
-  if (0 != t->next_hop)
-    send_ack (t, t->next_hop, ack);
-  else if (NULL != t->client)
+  if (NULL != t->client)
     send_local_ack (t, t->client, ack);
+  else if (0 != t->next_hop)
+    send_ack (t, t->next_hop, ack);
   else
     GNUNET_break (0);
   t->force_ack = GNUNET_NO;
@@ -2101,7 +2095,7 @@ tunnel_send_destroy (struct MeshTunnel *t)
               "  sending tunnel destroy for tunnel: %s [%X]\n",
               GNUNET_i2s (&msg.oid), t->id.tid);
 
-  if (0 != t->next_hop)
+  if (NULL == t->client)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  child: %u\n", t->next_hop);
     GNUNET_PEER_resolve (t->next_hop, &id);
@@ -2110,7 +2104,7 @@ tunnel_send_destroy (struct MeshTunnel *t)
                 GNUNET_i2s (&id));
     send_prebuilt_message (&msg.header, t->next_hop, t);
   }
-  if (0 != t->prev_hop)
+  if (NULL == t->owner)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  parent: %u\n", t->prev_hop);
     GNUNET_PEER_resolve (t->prev_hop, &id);
