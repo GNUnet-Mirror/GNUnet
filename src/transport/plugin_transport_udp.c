@@ -62,9 +62,6 @@
  */
 #define UDP_MAX_SENDER_ADDRESSES_WITH_DEFRAG 128
 
-
-#define DEBUG_MALLOC GNUNET_NO
-
 /**
  * Closure for 'append_port'.
  */
@@ -434,176 +431,6 @@ reschedule_session_timeout (struct Session *s);
 static void
 stop_session_timeout (struct Session *s);
 
-#if DEBUG_MALLOC
-
-struct Allocator
-{
-  struct Allocator *prev;
-  struct Allocator *next;
-
-  unsigned int bytes_alloced;
-  unsigned int max_alloced;
-  unsigned int diff;
-  unsigned int line;
-
-  struct GNUNET_TIME_Absolute max_alloced_when;
-  struct GNUNET_TIME_Absolute last_alloced_when;
-
-};
-
-struct Allocator *aehead;
-struct Allocator *aetail;
-
-struct Allocation
-{
-  struct Allocation *prev;
-  struct Allocation *next;
-
-  struct Allocator *alloc;
-  unsigned int bytes_alloced;
-  void *p;
-  unsigned int line;
-};
-
-struct Allocation *ahead;
-struct Allocation *atail;
-
-static int bytes_alloced;
-
-static struct Allocator *
-find_allocator (int line)
-{
-  struct Allocator *cur = aehead;
-  while (NULL != cur)
-  {
-      if (line == cur->line)
-        return cur;
-      cur = cur->next;
-  }
-  return cur;
-}
-
-static void
-print_allocators ()
-{
-  static int start = GNUNET_YES;
-  static struct GNUNET_TIME_Absolute next;
-  static struct GNUNET_TIME_Relative rem;
-  struct Allocator *cur = aehead;
-  if (start)
-  {
-      next = GNUNET_TIME_UNIT_ZERO_ABS;
-      start = GNUNET_NO;
-  }
-  if (0 == (rem = GNUNET_TIME_absolute_get_remaining(next)).rel_value)
-  {
-      fprintf (stderr, "Allocated in `%s' total: %5u bytes\n", __FILE__, bytes_alloced);
-      while (NULL != cur)
-      {
-          char *last_alloc = GNUNET_strdup (GNUNET_STRINGS_absolute_time_to_string(cur->max_alloced_when));
-          fprintf (stderr, "Allocated from line %4u :%5u bytes (diff %5i bytes, max alloc: %5u @ %s, last alloc %s)\n",
-              cur->line, cur->bytes_alloced, cur->diff, cur->max_alloced,
-              last_alloc,
-              GNUNET_STRINGS_absolute_time_to_string(cur->last_alloced_when));
-          GNUNET_free (last_alloc);
-          cur->diff = 0;
-          cur = cur->next;
-      }
-      fprintf (stderr, "\n");
-    next = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), GNUNET_TIME_UNIT_SECONDS);
-  }
-}
-
-#endif
-
-static void
-MEMDEBUG_add_alloc (void *p, size_t size, int line)
-{
-#if DEBUG_MALLOC
-  struct Allocation *alloc = GNUNET_malloc (sizeof (struct Allocation));
-  struct Allocator *allocator = find_allocator(line);
-  if (NULL == allocator)
-  {
-      allocator = GNUNET_malloc (sizeof (struct Allocator));
-      allocator->line = line;
-      GNUNET_CONTAINER_DLL_insert (aehead, aetail, allocator);
-  }
-  alloc->alloc = allocator;
-  alloc->p = p;
-  alloc->line = line;
-  alloc->bytes_alloced = size;
-  allocator->bytes_alloced += size;
-  allocator->last_alloced_when = GNUNET_TIME_absolute_get();
-  if (allocator->bytes_alloced >= allocator->max_alloced)
-  {
-      allocator->max_alloced = allocator->bytes_alloced;
-      allocator->max_alloced_when = allocator->last_alloced_when;
-  }
-  allocator->diff += size;
-  GNUNET_CONTAINER_DLL_insert (ahead, atail, alloc);
-  print_allocators ();
-  bytes_alloced += size;
-#endif
-}
-
-
-static void *
-MEMDEBUG_malloc (size_t size, int line)
-{
-  void * ret;
-
-  ret = GNUNET_malloc (size);
-#if DEBUG_MALLOC
-  if (NULL != ret)
-      MEMDEBUG_add_alloc (ret, size, line);
-#endif
-  return ret;
-
-}
-
-static void
-MEMDEBUG_free (void * alloc, int line)
-{
-#if DEBUG_MALLOC
-  struct Allocation *cur;
-  struct Allocator *allocator;
-  cur = ahead;
-  while (NULL != cur)
-  {
-      if (alloc == cur->p)
-        break;
-      cur = cur->next;
-  }
-  if (NULL == cur)
-  {
-    fprintf (stderr, "Unmonitored free from line %4u\n", line);
-    GNUNET_break (0);
-    return;
-  }
-  allocator = cur->alloc;
-  if (NULL == allocator)
-  {
-      GNUNET_break (0);
-  }
-  GNUNET_CONTAINER_DLL_remove (ahead, atail, cur);
-  allocator->bytes_alloced -= cur->bytes_alloced;
-  allocator->diff -= cur->bytes_alloced;
-  GNUNET_assert (allocator->bytes_alloced >= 0);
-  bytes_alloced -= cur->bytes_alloced;
-  GNUNET_assert (bytes_alloced >= 0);
-  GNUNET_free (cur);
-#endif
-  GNUNET_free (alloc);
-}
-
-static void
-MEMDEBUG_free_non_null (void * alloc, int line)
-{
-  if (alloc != NULL)
-    MEMDEBUG_free (alloc, line);
-}
-
-
 /**
  * (re)schedule select tasks for this plugin.
  *
@@ -754,7 +581,7 @@ udp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     {
       struct IPv4UdpAddress *u4;
       struct sockaddr_in *in4 = (struct sockaddr_in *) &socket_address;
-      u4 = MEMDEBUG_malloc (sizeof (struct IPv4UdpAddress), __LINE__ );
+      u4 = GNUNET_malloc (sizeof (struct IPv4UdpAddress));
       u4->ipv4_addr = in4->sin_addr.s_addr;
       u4->u4_port = in4->sin_port;
       *buf = u4;
@@ -765,7 +592,7 @@ udp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     {
       struct IPv6UdpAddress *u6;
       struct sockaddr_in6 *in6 = (struct sockaddr_in6 *) &socket_address;
-      u6 = MEMDEBUG_malloc (sizeof (struct IPv6UdpAddress),  __LINE__ );
+      u6 = GNUNET_malloc (sizeof (struct IPv6UdpAddress));
       u6->ipv6_addr = in6->sin6_addr;
       u6->u6_port = in6->sin6_port;
       *buf = u6;
@@ -794,13 +621,12 @@ append_port (void *cls, const char *hostname)
   if (hostname == NULL)
   {
     ppc->asc (ppc->asc_cls, NULL);
-    MEMDEBUG_free (ppc, __LINE__);
+    GNUNET_free (ppc);
     return;
   }
   GNUNET_asprintf (&ret, "%s:%d", hostname, ppc->port);
-  MEMDEBUG_add_alloc (ret, strlen (ret)+ 1, __LINE__);
   ppc->asc (ppc->asc_cls, ret);
-  MEMDEBUG_free (ret, __LINE__);
+  GNUNET_free (ret);
 }
 
 
@@ -876,7 +702,7 @@ udp_plugin_address_pretty_printer (void *cls, const char *type,
     asc (asc_cls, NULL);
     return;
   }
-  ppc = MEMDEBUG_malloc (sizeof (struct PrettyPrinterContext),  __LINE__ );
+  ppc = GNUNET_malloc (sizeof (struct PrettyPrinterContext));
   ppc->asc = asc;
   ppc->asc_cls = asc_cls;
   ppc->port = port;
@@ -1140,10 +966,10 @@ free_session (struct Session *s)
   if (NULL != s->frag_ctx)
   {
     GNUNET_FRAGMENT_context_destroy(s->frag_ctx->frag, NULL, NULL);
-    MEMDEBUG_free (s->frag_ctx, __LINE__);
+    GNUNET_free (s->frag_ctx);
     s->frag_ctx = NULL;
   }
-  MEMDEBUG_free (s, __LINE__);
+  GNUNET_free (s);
 }
 
 
@@ -1203,7 +1029,7 @@ fragmented_message_done (struct UDP_FragmentationContext *fc, int result)
       {
         dequeue (plugin, udpw);
         call_continuation (udpw, GNUNET_SYSERR);
-        MEMDEBUG_free (udpw, __LINE__);
+        GNUNET_free (udpw);
       }
       udpw = tmp;
     }
@@ -1218,7 +1044,7 @@ fragmented_message_done (struct UDP_FragmentationContext *fc, int result)
       {
         dequeue (plugin, udpw);
         call_continuation (udpw, GNUNET_SYSERR);
-        MEMDEBUG_free (udpw, __LINE__);
+        GNUNET_free (udpw);
       }
       udpw = tmp;
     }
@@ -1229,7 +1055,7 @@ fragmented_message_done (struct UDP_FragmentationContext *fc, int result)
                                      &s->last_expected_msg_delay,
                                      &s->last_expected_ack_delay);
   s->frag_ctx = NULL;
-  MEMDEBUG_free (fc , __LINE__);
+  GNUNET_free (fc );
 }
 
 /**
@@ -1267,7 +1093,7 @@ disconnect_session (struct Session *s)
     {
       dequeue (plugin, udpw);
       call_continuation(udpw, GNUNET_SYSERR);
-      MEMDEBUG_free (udpw, __LINE__);
+      GNUNET_free (udpw);
     }
   }
   next = plugin->ipv6_queue_head;
@@ -1278,7 +1104,7 @@ disconnect_session (struct Session *s)
     {
       dequeue (plugin, udpw);
       call_continuation(udpw, GNUNET_SYSERR);
-      MEMDEBUG_free (udpw, __LINE__);
+      GNUNET_free (udpw);
     }
     udpw = next;
   }
@@ -1440,7 +1266,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
       return NULL;
     }
     t4 = addr;
-    s = MEMDEBUG_malloc (sizeof (struct Session) + sizeof (struct sockaddr_in),  __LINE__ );
+    s = GNUNET_malloc (sizeof (struct Session) + sizeof (struct sockaddr_in));
     len = sizeof (struct sockaddr_in);
     v4 = (struct sockaddr_in *) &s[1];
     v4->sin_family = AF_INET;
@@ -1458,7 +1284,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
     }
     t6 = addr;
     s =
-        MEMDEBUG_malloc (sizeof (struct Session) + sizeof (struct sockaddr_in6),  __LINE__ );
+        GNUNET_malloc (sizeof (struct Session) + sizeof (struct sockaddr_in6));
     len = sizeof (struct sockaddr_in6);
     v6 = (struct sockaddr_in6 *) &s[1];
     v6->sin6_family = AF_INET6;
@@ -1681,7 +1507,7 @@ enqueue_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
        "Enqueuing fragment with %u bytes\n", msg_len);
   frag_ctx->fragments_used ++;
-  udpw = MEMDEBUG_malloc (sizeof (struct UDP_MessageWrapper) + msg_len,  __LINE__ );
+  udpw = GNUNET_malloc (sizeof (struct UDP_MessageWrapper) + msg_len);
   udpw->session = frag_ctx->session;
   udpw->msg_buf = (char *) &udpw[1];
   udpw->msg_size = msg_len;
@@ -1773,7 +1599,7 @@ udp_plugin_send (void *cls,
   if (udpmlen <= UDP_MTU)
   {
     /* unfragmented message */
-    udpw = MEMDEBUG_malloc (sizeof (struct UDP_MessageWrapper) + udpmlen,  __LINE__ );
+    udpw = GNUNET_malloc (sizeof (struct UDP_MessageWrapper) + udpmlen);
     udpw->session = s;
     udpw->msg_buf = (char *) &udpw[1];
     udpw->msg_size = udpmlen; /* message size with UDP overhead */
@@ -1800,7 +1626,7 @@ udp_plugin_send (void *cls,
     if  (s->frag_ctx != NULL)
       return GNUNET_SYSERR;
     memcpy (&udp[1], msgbuf, msgbuf_size);
-    frag_ctx = MEMDEBUG_malloc (sizeof (struct UDP_FragmentationContext), __LINE__ );
+    frag_ctx = GNUNET_malloc (sizeof (struct UDP_FragmentationContext));
     frag_ctx->plugin = plugin;
     frag_ctx->session = s;
     frag_ctx->cont = cont;
@@ -1984,9 +1810,8 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
        GNUNET_a2s (sender_addr, sender_addr_len));
 
   struct GNUNET_HELLO_Address * address = GNUNET_HELLO_address_allocate(&msg->sender, "udp", arg, args);
-  MEMDEBUG_add_alloc (address, GNUNET_HELLO_address_get_size(address), __LINE__);
   s = udp_plugin_get_session(plugin, address);
-  MEMDEBUG_free (address, __LINE__);
+  GNUNET_free (address);
 
   /* iterate over all embedded messages */
   si.session = s;
@@ -2121,7 +1946,7 @@ ack_proc (void *cls, uint32_t id, const struct GNUNET_MessageHeader *msg)
                     AF_INET) ? sizeof (struct sockaddr_in) : sizeof (struct
                                                                      sockaddr_in6)),
        delay);
-  udpw = MEMDEBUG_malloc (sizeof (struct UDP_MessageWrapper) + msize,  __LINE__ );
+  udpw = GNUNET_malloc (sizeof (struct UDP_MessageWrapper) + msize);
   udpw->msg_size = msize;
   udpw->payload_size = 0;
   udpw->session = s;
@@ -2250,7 +2075,7 @@ read_process_fragment (struct Plugin *plugin,
   if (d_ctx == NULL)
   {
     /* Create a new defragmentation context */
-    d_ctx = MEMDEBUG_malloc (sizeof (struct DefragContext) + fromlen,  __LINE__ );
+    d_ctx = GNUNET_malloc (sizeof (struct DefragContext) + fromlen);
     memcpy (&d_ctx[1], addr, fromlen);
     d_ctx->src_addr = (const struct sockaddr *) &d_ctx[1];
     d_ctx->addr_len = fromlen;
@@ -2290,7 +2115,7 @@ read_process_fragment (struct Plugin *plugin,
     d_ctx = GNUNET_CONTAINER_heap_remove_root (plugin->defrag_ctxs);
     GNUNET_assert (NULL != d_ctx);
     GNUNET_DEFRAGMENT_context_destroy (d_ctx->defrag);
-    MEMDEBUG_free (d_ctx, __LINE__);
+    GNUNET_free (d_ctx);
   }
 }
 
@@ -2421,7 +2246,7 @@ remove_timeout_messages_and_select (struct UDP_MessageWrapper *head,
           call_continuation (udpw, GNUNET_SYSERR);
           /* Remove message */
           dequeue (plugin, udpw);
-          MEMDEBUG_free (udpw, __LINE__);
+          GNUNET_free (udpw);
           break;
         case MSG_FRAGMENTED:
           /* Fragmented message */
@@ -2458,7 +2283,7 @@ remove_timeout_messages_and_select (struct UDP_MessageWrapper *head,
                GNUNET_i2s(&udpw->session->target), udpw->payload_size);
           call_continuation (udpw, GNUNET_SYSERR);
           dequeue (plugin, udpw);
-          MEMDEBUG_free (udpw, __LINE__);
+          GNUNET_free (udpw);
           break;
         default:
           break;
@@ -2600,7 +2425,7 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
     call_continuation (udpw, GNUNET_OK);
   }
   dequeue (plugin, udpw);
-  MEMDEBUG_free (udpw, __LINE__);
+  GNUNET_free (udpw);
   udpw = NULL;
 
   return sent;
@@ -2904,7 +2729,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   {
     /* run in 'stub' mode (i.e. as part of gnunet-peerinfo), don't fully
        initialze the plugin or the API */
-    api = MEMDEBUG_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions),  __LINE__ );
+    api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
     api->cls = NULL;
     api->address_pretty_printer = &udp_plugin_address_pretty_printer;
     api->address_to_string = &udp_address_to_string;
@@ -2955,7 +2780,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
          bind4_address);
     if (1 != inet_pton (AF_INET, bind4_address, &serverAddrv4.sin_addr))
     {
-      MEMDEBUG_free (bind4_address, __LINE__);
+      GNUNET_free (bind4_address);
       return NULL;
     }
     have_bind4 = GNUNET_YES;
@@ -2974,8 +2799,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid IPv6 address: `%s'\n"),
            bind6_address);
-      MEMDEBUG_free_non_null (bind4_address, __LINE__);
-      MEMDEBUG_free (bind6_address, __LINE__);
+      GNUNET_free_non_null (bind4_address);
+      GNUNET_free (bind6_address);
       return NULL;
     }
     have_bind6 = GNUNET_YES;
@@ -2994,12 +2819,11 @@ libgnunet_plugin_transport_udp_init (void *cls)
   }
   else
   {
-     MEMDEBUG_add_alloc (fancy_interval, strlen (fancy_interval)+ 1, __LINE__);
      if (GNUNET_SYSERR == GNUNET_STRINGS_fancy_time_to_relative(fancy_interval, &interval))
      {
        interval = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30);
      }
-     MEMDEBUG_free (fancy_interval, __LINE__);
+     GNUNET_free (fancy_interval);
   }
 
   /* Maximum datarate */
@@ -3009,8 +2833,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
     udp_max_bps = 1024 * 1024 * 50;     /* 50 MB/s == infinity for practical purposes */
   }
 
-  p = MEMDEBUG_malloc (sizeof (struct Plugin),  __LINE__ );
-  api = MEMDEBUG_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions), __LINE__ );
+  p = GNUNET_malloc (sizeof (struct Plugin));
 
   GNUNET_BANDWIDTH_tracker_init (&p->tracker,
                                  GNUNET_BANDWIDTH_value_init ((uint32_t)udp_max_bps), 30);
@@ -3024,7 +2847,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   p->env = env;
 
   plugin = p;
-
+  api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = p;
   api->send = NULL;
   api->disconnect = &udp_disconnect;
@@ -3043,8 +2866,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
     /* FIXME: memory leaks here! (i.e. p->mst, sessions, defrag_ctxs, etc.) */
     LOG (GNUNET_ERROR_TYPE_ERROR,
 	 _("Failed to create network sockets, plugin failed\n"));
-    MEMDEBUG_free (p, __LINE__);
-    MEMDEBUG_free (api, __LINE__);
+    GNUNET_free (p);
+    GNUNET_free (api);
     return NULL;
   }
 
@@ -3054,8 +2877,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
     setup_broadcast (p, &serverAddrv6, &serverAddrv4);
   }
 
-  MEMDEBUG_free_non_null (bind4_address, __LINE__);
-  MEMDEBUG_free_non_null (bind6_address, __LINE__);
+  GNUNET_free_non_null (bind4_address);
+  GNUNET_free_non_null (bind6_address);
   return api;
 }
 
@@ -3071,7 +2894,7 @@ heap_cleanup_iterator (void *cls,
 
   GNUNET_CONTAINER_heap_remove_node (node);
   GNUNET_DEFRAGMENT_context_destroy(d_ctx->defrag);
-  MEMDEBUG_free (d_ctx, __LINE__);
+  GNUNET_free (d_ctx);
 
   return GNUNET_YES;
 }
@@ -3092,7 +2915,7 @@ libgnunet_plugin_transport_udp_done (void *cls)
 
   if (NULL == plugin)
   {
-    MEMDEBUG_free (api, __LINE__);
+    GNUNET_free (api);
     return NULL;
   }
 
@@ -3149,7 +2972,7 @@ libgnunet_plugin_transport_udp_done (void *cls)
     struct UDP_MessageWrapper *tmp = udpw->next;
     dequeue (plugin, udpw);
     call_continuation(udpw, GNUNET_SYSERR);
-    MEMDEBUG_free (udpw, __LINE__);
+    GNUNET_free (udpw);
 
     udpw = tmp;
   }
@@ -3159,7 +2982,7 @@ libgnunet_plugin_transport_udp_done (void *cls)
     struct UDP_MessageWrapper *tmp = udpw->next;
     dequeue (plugin, udpw);
     call_continuation(udpw, GNUNET_SYSERR);
-    MEMDEBUG_free (udpw, __LINE__);
+    GNUNET_free (udpw);
 
     udpw = tmp;
   }
@@ -3171,8 +2994,8 @@ libgnunet_plugin_transport_udp_done (void *cls)
   GNUNET_CONTAINER_multihashmap_destroy (plugin->sessions);
 
   plugin->nat = NULL;
-  MEMDEBUG_free (plugin, __LINE__);
-  MEMDEBUG_free (api, __LINE__);
+  GNUNET_free (plugin);
+  GNUNET_free (api);
 #if DEBUG_MALLOC
   struct Allocation *allocation;
   while (NULL != ahead)
