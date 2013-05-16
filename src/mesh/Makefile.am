@@ -23,6 +23,8 @@ AM_CLFAGS = -g
 if HAVE_EXPERIMENTAL
   EXP_LIB = libgnunetmesh2.la
   EXP_LIBEXEC = gnunet-service-mesh-new
+  EXP_TESTS = \
+  test_mesh2_local
 endif
 
 libexec_PROGRAMS = \
@@ -93,7 +95,7 @@ gnunet_service_mesh_LDFLAGS = -lrt
 endif
 
 gnunet_mesh_SOURCES = \
- gnunet-mesh.c         
+  gnunet-mesh.c
 gnunet_mesh_LDADD = \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/util/libgnunetutil.la
@@ -149,7 +151,8 @@ check_PROGRAMS = \
  test_mesh_small_speed_nobuf \
  test_mesh_small_speed_backwards \
  test_mesh_small_speed_nobuf_backwards \
- test_mesh_small_speed_ack
+ test_mesh_small_speed_ack \
+ $(EXP_TESTS)
 
 test_mesh_api_SOURCES = \
  test_mesh_api.c
@@ -267,8 +270,19 @@ test_mesh_small_speed_nobuf_backwards_LDADD = $(ld_mesh_test_lib)
 test_mesh_small_speed_nobuf_backwards_DEPENDENCIES = $(dep_mesh_test_lib)
 
 
+test_mesh2_local_SOURCES = \
+ test_mesh2_local.c
+test_mesh2_local_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/mesh/libgnunetmesh2.la
+test_mesh2_local_DEPENDENCIES = \
+  libgnunetmesh2.la
+
 if ENABLE_TEST_RUN
-TESTS = test_mesh_api \
+TESTS = \
+ $(EXP_TESTS) \
+ test_mesh_api \
  test_mesh_tree_api \
  test_mesh_local_1 test_mesh_local_2 \
  test_mesh_local_traffic_fwd \

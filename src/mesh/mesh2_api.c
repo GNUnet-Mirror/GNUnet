@@ -1602,7 +1602,7 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
     return th;
   if (GMC_is_pid_bigger(tunnel->next_send_pid, tunnel->max_send_pid))
     return th;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "    call notify tmt rdy\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "    call client notify tmt rdy\n");
   tunnel->mesh->th =
       GNUNET_CLIENT_notify_transmit_ready (tunnel->mesh->client, th->size,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
