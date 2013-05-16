@@ -442,7 +442,7 @@ schedule_select (struct Plugin *plugin)
   struct GNUNET_TIME_Relative min_delay;
   struct UDP_MessageWrapper *udpw;
 
-  if (NULL != plugin->sockv4)
+  if ((GNUNET_YES == plugin->enable_ipv4) && (NULL != plugin->sockv4))
   {
     /* Find a message ready to send:
      * Flow delay from other peer is expired or not set (0) */
@@ -464,7 +464,7 @@ schedule_select (struct Plugin *plugin)
 				   (0 == min_delay.rel_value) ? plugin->ws_v4 : NULL,
 				   &udp_plugin_select, plugin);  
   }
-  if (NULL != plugin->sockv6)
+  if ((GNUNET_YES == plugin->enable_ipv6) && (NULL != plugin->sockv6))
   {
     min_delay = GNUNET_TIME_UNIT_FOREVER_REL;
     for (udpw = plugin->ipv6_queue_head; NULL != udpw; udpw = udpw->next)
@@ -2495,7 +2495,7 @@ udp_plugin_select_v6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static int
 setup_sockets (struct Plugin *plugin, 
-	       const struct sockaddr_in6 *bind_v6, 
+	       const struct sockaddr_in6 *bind_v6,
 	       const struct sockaddr_in *bind_v4)
 {
   int tries;
@@ -2530,38 +2530,36 @@ setup_sockets (struct Plugin *plugin,
       else
       	serverAddrv6.sin6_addr = in6addr_any;
 
-      if (0 == plugin->port)
-	/* autodetect */
-	serverAddrv6.sin6_port = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537) + 32000);
+      if (0 == plugin->port) /* autodetect */
+      		serverAddrv6.sin6_port = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537) + 32000);
       else
-	serverAddrv6.sin6_port = htons (plugin->port);
+      		serverAddrv6.sin6_port = htons (plugin->port);
       addrlen = sizeof (struct sockaddr_in6);
       serverAddr = (struct sockaddr *) &serverAddrv6;
 
       tries = 0;
       while (tries < 10)
       {
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "Binding to IPv6 `%s'\n",
-	     GNUNET_a2s (serverAddr, addrlen));
-	
-	/* binding */
-	if (GNUNET_OK == GNUNET_NETWORK_socket_bind (plugin->sockv6, serverAddr, addrlen))
-	  break;
-	eno = errno;
-	if (0 != plugin->port)
-	  {
-	    tries = 10; /* fail */
-	    break; /* bind failed on specific port */
-	  }
-	
-	/* autodetect */
-	serverAddrv6.sin6_port = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537) + 32000);
-	tries ++;
+      		LOG (GNUNET_ERROR_TYPE_DEBUG, "Binding to IPv6 `%s'\n",
+      				 GNUNET_a2s (serverAddr, addrlen));
+      		/* binding */
+      		if (GNUNET_OK == GNUNET_NETWORK_socket_bind (plugin->sockv6,
+      												serverAddr, addrlen))
+      			break;
+      		eno = errno;
+      		if (0 != plugin->port)
+      		{
+      				tries = 10; /* fail */
+      				break; /* bind failed on specific port */
+      		}
+      		/* autodetect */
+      		serverAddrv6.sin6_port = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537) + 32000);
+      		tries ++;
       }
-      
       if (tries >= 10)
       {
         GNUNET_NETWORK_socket_close (plugin->sockv6);
+        plugin->enable_ipv6 = GNUNET_NO;
         plugin->sockv6 = NULL;
       }
 
@@ -2618,16 +2616,17 @@ setup_sockets (struct Plugin *plugin,
     while (tries < 10)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Binding to IPv4 `%s'\n",
-	   GNUNET_a2s (serverAddr, addrlen));
+      			GNUNET_a2s (serverAddr, addrlen));
       
       /* binding */
-      if (GNUNET_OK == GNUNET_NETWORK_socket_bind (plugin->sockv4, serverAddr, addrlen))
-	break;
+      if (GNUNET_OK == GNUNET_NETWORK_socket_bind (plugin->sockv4,
+													 serverAddr, addrlen))
+      		break;
       eno = errno;
       if (0 != plugin->port)
       {
-	tries = 10; /* fail */
-	break; /* bind failed on specific port */
+      		tries = 10; /* fail */
+      		break; /* bind failed on specific port */
       }
       
       /* autodetect */
@@ -2638,14 +2637,14 @@ setup_sockets (struct Plugin *plugin,
     if (tries >= 10)
     {
       GNUNET_NETWORK_socket_close (plugin->sockv4);
+      plugin->enable_ipv4 = GNUNET_NO;
       plugin->sockv4 = NULL;
     }
     
     if (plugin->sockv4 != NULL)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-	   "IPv4 socket created on port %s\n",
-	   GNUNET_a2s (serverAddr, addrlen));
+      		"IPv4 socket created on port %s\n", GNUNET_a2s (serverAddr, addrlen));
       addrs[sockets_created] = (struct sockaddr *) &serverAddrv4;
       addrlens[sockets_created] = sizeof (struct sockaddr_in);
       sockets_created++;
@@ -2653,25 +2652,31 @@ setup_sockets (struct Plugin *plugin,
     else
     {		  
       LOG (GNUNET_ERROR_TYPE_ERROR,
-	   "Failed to bind UDP socket to %s: %s\n",
-	   GNUNET_a2s (serverAddr, addrlen),
-	   STRERROR (eno));
+      		"Failed to bind UDP socket to %s: %s\n",
+      		GNUNET_a2s (serverAddr, addrlen), STRERROR (eno));
     }
   }
   
-  /* Create file descriptors */
-  plugin->rs_v4 = GNUNET_NETWORK_fdset_create ();
-  plugin->ws_v4 = GNUNET_NETWORK_fdset_create ();
-  GNUNET_NETWORK_fdset_zero (plugin->rs_v4);
-  GNUNET_NETWORK_fdset_zero (plugin->ws_v4);
-  if (NULL != plugin->sockv4)
+  if (0 == sockets_created)
   {
-    GNUNET_NETWORK_fdset_set (plugin->rs_v4, plugin->sockv4);
-    GNUNET_NETWORK_fdset_set (plugin->ws_v4, plugin->sockv4);
+  		LOG (GNUNET_ERROR_TYPE_WARNING, _("Failed to open UDP sockets\n"));
+  		return 0; /* No sockets created, return */
   }
 
-  if (0 == sockets_created)
-    LOG (GNUNET_ERROR_TYPE_WARNING, _("Failed to open UDP sockets\n"));
+  /* Create file descriptors */
+  if (plugin->enable_ipv4 == GNUNET_YES)
+  {
+			plugin->rs_v4 = GNUNET_NETWORK_fdset_create ();
+			plugin->ws_v4 = GNUNET_NETWORK_fdset_create ();
+			GNUNET_NETWORK_fdset_zero (plugin->rs_v4);
+			GNUNET_NETWORK_fdset_zero (plugin->ws_v4);
+			if (NULL != plugin->sockv4)
+			{
+				GNUNET_NETWORK_fdset_set (plugin->rs_v4, plugin->sockv4);
+				GNUNET_NETWORK_fdset_set (plugin->ws_v4, plugin->sockv4);
+			}
+  }
+
   if (plugin->enable_ipv6 == GNUNET_YES)
   {
     plugin->rs_v6 = GNUNET_NETWORK_fdset_create ();
@@ -2684,8 +2689,7 @@ setup_sockets (struct Plugin *plugin,
       GNUNET_NETWORK_fdset_set (plugin->ws_v6, plugin->sockv6);
     }
   }
-  if (0 == sockets_created)
-    return 0;
+
   schedule_select (plugin);
   plugin->nat = GNUNET_NAT_register (plugin->env->cfg,
                            GNUNET_NO, plugin->port,
@@ -2737,7 +2741,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
     return api;
   }
 
-  GNUNET_assert( NULL != env->stats);
+  GNUNET_assert (NULL != env->stats);
 
   /* Get port number: port == 0 : autodetect a port,
    * 												> 0 : use this port,
@@ -2762,9 +2766,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   if ((GNUNET_YES ==
        GNUNET_CONFIGURATION_get_value_yesno (env->cfg, "nat",
                                              "DISABLEV6")))
-  {
     enable_v6 = GNUNET_NO;
-  }
   else
     enable_v6 = GNUNET_YES;
 
@@ -2785,6 +2787,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
     }
     have_bind4 = GNUNET_YES;
   }
+  GNUNET_free_non_null (bind4_address);
   have_bind6 = GNUNET_NO;
   memset (&serverAddrv6, 0, sizeof (serverAddrv6));
   if (GNUNET_YES ==
@@ -2805,6 +2808,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
     }
     have_bind6 = GNUNET_YES;
   }
+  GNUNET_free_non_null (bind6_address);
 
   /* Enable neighbour discovery */
   broadcast = GNUNET_CONFIGURATION_get_value_yesno (env->cfg, "transport-udp",
@@ -2834,19 +2838,38 @@ libgnunet_plugin_transport_udp_init (void *cls)
   }
 
   p = GNUNET_malloc (sizeof (struct Plugin));
-
-  GNUNET_BANDWIDTH_tracker_init (&p->tracker,
-                                 GNUNET_BANDWIDTH_value_init ((uint32_t)udp_max_bps), 30);
-  p->sessions = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
-  p->defrag_ctxs = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  p->mst = GNUNET_SERVER_mst_create (&process_inbound_tokenized_messages, p);
   p->port = port;
   p->aport = aport;
   p->broadcast_interval = interval;
   p->enable_ipv6 = enable_v6;
+  p->enable_ipv4 = GNUNET_YES; /* default */
   p->env = env;
-
+  p->sessions = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+  p->defrag_ctxs = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+  p->mst = GNUNET_SERVER_mst_create (&process_inbound_tokenized_messages, p);
+  GNUNET_BANDWIDTH_tracker_init (&p->tracker,
+                                 GNUNET_BANDWIDTH_value_init ((uint32_t)udp_max_bps), 30);
   plugin = p;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Setting up sockets\n");
+  res = setup_sockets (p, (GNUNET_YES == have_bind6) ? &serverAddrv6 : NULL,
+		       	 	 	 	 	 	 	 	(GNUNET_YES == have_bind4) ? &serverAddrv4 : NULL);
+  if ((res == 0) || ((p->sockv4 == NULL) && (p->sockv6 == NULL)))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+	 _("Failed to create network sockets, plugin failed\n"));
+    GNUNET_CONTAINER_multihashmap_destroy (p->sessions);
+    GNUNET_CONTAINER_heap_destroy (p->defrag_ctxs);
+    GNUNET_SERVER_mst_destroy (p->mst);
+    GNUNET_free (p);
+    return NULL;
+  }
+  else if (broadcast == GNUNET_YES)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting broadcasting\n");
+    setup_broadcast (p, &serverAddrv6, &serverAddrv4);
+  }
+
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = p;
   api->send = NULL;
@@ -2858,27 +2881,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
   api->get_session = &udp_plugin_get_session;
   api->send = &udp_plugin_send;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Setting up sockets\n");
-  res = setup_sockets (p, (GNUNET_YES == have_bind6) ? &serverAddrv6 : NULL,
-		       (GNUNET_YES == have_bind4) ? &serverAddrv4 : NULL);
-  if ((res == 0) || ((p->sockv4 == NULL) && (p->sockv6 == NULL)))
-  {
-    /* FIXME: memory leaks here! (i.e. p->mst, sessions, defrag_ctxs, etc.) */
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-	 _("Failed to create network sockets, plugin failed\n"));
-    GNUNET_free (p);
-    GNUNET_free (api);
-    return NULL;
-  }
-
-  if (broadcast == GNUNET_YES)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting broadcasting\n");
-    setup_broadcast (p, &serverAddrv6, &serverAddrv4);
-  }
-
-  GNUNET_free_non_null (bind4_address);
-  GNUNET_free_non_null (bind6_address);
   return api;
 }
 
@@ -2932,24 +2934,29 @@ libgnunet_plugin_transport_udp_done (void *cls)
   }
 
   /* Closing sockets */
-  if (plugin->sockv4 != NULL)
+  if (GNUNET_YES ==plugin->enable_ipv4)
   {
-    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (plugin->sockv4));
-    plugin->sockv4 = NULL;
+		if (plugin->sockv4 != NULL)
+		{
+			GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (plugin->sockv4));
+			plugin->sockv4 = NULL;
+		}
+		GNUNET_NETWORK_fdset_destroy (plugin->rs_v4);
+		GNUNET_NETWORK_fdset_destroy (plugin->ws_v4);
   }
-  GNUNET_NETWORK_fdset_destroy (plugin->rs_v4);
-  GNUNET_NETWORK_fdset_destroy (plugin->ws_v4);
-
-  if (plugin->sockv6 != NULL)
+  if (GNUNET_YES ==plugin->enable_ipv6)
   {
-    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (plugin->sockv6));
-    plugin->sockv6 = NULL;
+		if (plugin->sockv6 != NULL)
+		{
+			GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (plugin->sockv6));
+			plugin->sockv6 = NULL;
 
-    GNUNET_NETWORK_fdset_destroy (plugin->rs_v6);
-    GNUNET_NETWORK_fdset_destroy (plugin->ws_v6);
+			GNUNET_NETWORK_fdset_destroy (plugin->rs_v6);
+			GNUNET_NETWORK_fdset_destroy (plugin->ws_v6);
+		}
   }
-
-  GNUNET_NAT_unregister (plugin->nat);
+  if (NULL != plugin->nat)
+  	GNUNET_NAT_unregister (plugin->nat);
 
   if (plugin->defrag_ctxs != NULL)
   {

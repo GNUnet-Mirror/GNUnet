@@ -251,9 +251,14 @@ struct Plugin
   struct BroadcastAddress *ipv4_broadcast_head;
 
   /**
-   * Enable IPv6
+   * Is IPv6 enabled: GNUNET_YES or GNUNET_NO
    */
   int enable_ipv6;
+
+  /**
+   * Is IPv4 enabled: GNUNET_YES or GNUNET_NO
+   */
+  int enable_ipv4;
 
   /**
    * Port we broadcasting on.

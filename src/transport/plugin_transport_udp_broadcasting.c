@@ -407,7 +407,7 @@ setup_broadcast (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struc
 
   /* create IPv4 broadcast socket */
   plugin->broadcast_ipv4 = GNUNET_NO;
-  if (plugin->sockv4 != NULL)
+  if ((GNUNET_YES == plugin->enable_ipv4) && (plugin->sockv4 != NULL))
   {
     int yes = 1;
 
@@ -435,7 +435,7 @@ setup_broadcast (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struc
   }
 
   plugin->broadcast_ipv6 = GNUNET_NO;
-  if (plugin->sockv6 != NULL)
+  if ((GNUNET_YES == plugin->enable_ipv4) && (plugin->sockv6 != NULL))
   {
     memset (&plugin->ipv6_multicast_address, 0, sizeof (struct sockaddr_in6));
     GNUNET_assert (1 ==
