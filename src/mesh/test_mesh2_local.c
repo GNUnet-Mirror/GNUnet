@@ -251,7 +251,7 @@ int
 main (int argc, char *argv[])
 {
   if (0 != GNUNET_TESTING_peer_run ("test-mesh-local-1",
-                                    "test_mesh.conf",
+                                    "test_mesh2.conf",
                                 &run, NULL))
     return 1;
   return (result == GNUNET_OK) ? 0 : 1;
