@@ -651,8 +651,8 @@ GST_stats_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
 #endif
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
-                                             "STATS_DIR", &stats_dir))
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "testbed",
+                                               "STATS_DIR", &stats_dir))
     return;
   len = GNUNET_OS_get_hostname_max_length ();
   hostname = GNUNET_malloc (len);
