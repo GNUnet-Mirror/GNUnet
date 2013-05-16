@@ -4611,6 +4611,24 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 
 /**
+ * Install server (service) handlers and start listening to clients.
+ */
+static void
+server_init (void)
+{
+  GNUNET_SERVER_add_handlers (server_handle, client_handlers);
+  GNUNET_SERVER_disconnect_notify (server_handle,
+                                   &handle_local_client_disconnect, NULL);
+  nc = GNUNET_SERVER_notification_context_create (server_handle, 1);
+
+  clients_head = NULL;
+  clients_tail = NULL;
+  next_client_id = 0;
+  GNUNET_SERVER_resume (server_handle);
+}
+
+
+/**
  * To be called on core init/fail.
  *
  * @param cls Closure (config)
@@ -4625,7 +4643,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
   static int i = 0;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Core init\n");
-  core_handle = server;
+  GNUNET_break (core_handle == server);
   if (0 != memcmp (identity, &my_full_id, sizeof (my_full_id)) ||
     NULL == server)
   {
@@ -4650,7 +4668,8 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
     if (10 < i++)
       GNUNET_abort();
   }
-    return;
+  server_init ();
+  return;
 }
 
 
@@ -4765,7 +4784,7 @@ key_generation_cb (void *cls,
   struct MeshPeerInfo *peer;
   struct MeshPeerPath *p;
 
-  keygen = NULL;  
+  keygen = NULL;
   if (NULL == pk)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -4803,17 +4822,6 @@ key_generation_cb (void *cls,
   next_tid = 0;
   next_local_tid = GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
 
-
-  GNUNET_SERVER_add_handlers (server_handle, client_handlers);
-  nc = GNUNET_SERVER_notification_context_create (server_handle, 1);
-  GNUNET_SERVER_disconnect_notify (server_handle,
-                                   &handle_local_client_disconnect, NULL);
-
-
-  clients_head = NULL;
-  clients_tail = NULL;
-  next_client_id = 0;
-
   announce_id_task = GNUNET_SCHEDULER_add_now (&announce_id, cls);
 
   /* Create a peer_info for the local peer */
@@ -4822,7 +4830,7 @@ key_generation_cb (void *cls,
   p->peers[0] = myid;
   GNUNET_PEER_change_rc (myid, 1);
   peer_info_add_path (peer, p, GNUNET_YES);
-  GNUNET_SERVER_resume (server_handle);
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Mesh service running\n");
 }
 
@@ -4842,6 +4850,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "starting to run\n");
   server_handle = server;
+  GNUNET_SERVER_suspend (server_handle);
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (c, "PEER", "PRIVATE_KEY",
@@ -4959,7 +4968,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
   stats = GNUNET_STATISTICS_create ("mesh", c);
 
-  GNUNET_SERVER_suspend (server_handle);
   /* Scheduled the task to clean up when shutdown is called */
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
