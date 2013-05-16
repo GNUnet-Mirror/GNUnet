@@ -2507,8 +2507,8 @@ send_core_path_ack (void *cls, size_t size, void *buf)
   t->prev_fc.last_ack_sent = t->nobuffer ? 0 : INITIAL_WINDOW_SIZE - 1;
   msg->header.size = htons (sizeof (struct GNUNET_MESH_PathACK));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_ACK);
-  GNUNET_PEER_resolve (id->oid, &msg->oid);
-  msg->tid = htonl (id->tid);
+  GNUNET_PEER_resolve (t->id.oid, &msg->oid);
+  msg->tid = htonl (t->id.tid);
   msg->peer_id = my_full_id;
   msg->ack = htonl (t->prev_fc.last_ack_sent);
 
