@@ -2764,7 +2764,7 @@ setup_sockets (struct Plugin *plugin,
   plugin->sockv4 = GNUNET_NETWORK_socket_create (PF_INET, SOCK_DGRAM, 0);
   if (NULL == plugin->sockv4)
   {
-    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "socket");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "socket");
     return sockets_created;
   }
   else
