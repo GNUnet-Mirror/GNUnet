@@ -3966,9 +3966,9 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  t->port = ntohl (t->port);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CREATED TUNNEL %s[%x] (%x)\n",
-              GNUNET_i2s (&my_full_id), t->id.tid, t->local_tid);
+  t->port = ntohl (t_msg->port);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CREATED TUNNEL %s[%x]:%u (%x)\n",
+              GNUNET_i2s (&my_full_id), t->id.tid, t->port, t->local_tid);
 
   peer_info = peer_get (&t_msg->peer);
   GNUNET_array_append (peer_info->tunnels, peer_info->ntunnels, t);
