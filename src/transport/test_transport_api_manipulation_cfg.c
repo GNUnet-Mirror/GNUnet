@@ -257,6 +257,15 @@ notify_ready (void *cls, size_t size, void *buf)
     hdr->type = htons (TEST_MESSAGE_TYPE);
   }
 
+  if (0 == messages_recv)
+  {
+  	start_normal = GNUNET_TIME_absolute_get();
+  }
+  if (1 == messages_recv)
+  {
+		start_delayed = GNUNET_TIME_absolute_get();
+  }
+
   char *ps = GNUNET_strdup (GNUNET_i2s (&p2->id));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer %u (`%4s') sending message with type %u and size %u bytes to peer %u (`%4s')\n",
@@ -283,14 +292,6 @@ sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_free (receiver_s);
 
 
-  if (0 == messages_recv)
-  {
-  	start_normal = GNUNET_TIME_absolute_get();
-  }
-  if (1 == messages_recv)
-  {
-		start_delayed = GNUNET_TIME_absolute_get();
-  }
 
   s_sending = GNUNET_YES;
   th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, TEST_MESSAGE_SIZE, 0,
