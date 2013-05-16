@@ -1488,6 +1488,7 @@ peer_info_add_path (struct MeshPeerInfo *peer_info, struct MeshPeerPath *path,
  *
  * @param peer_info Peer to add the path to, being the origin of the path.
  * @param path New path to add after being inversed.
+ *             Path will be either used or freed.
  * @param trusted Do we trust that this path is real?
  */
 static void
@@ -3052,14 +3053,12 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_PEER_change_rc(t->next_hop, 1);
 
     /* It's for somebody else! Retransmit. */
-    path2 = path_duplicate (path);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Retransmitting.\n");
-    peer_info_add_path (dest_peer_info, path2, GNUNET_NO);
     path2 = path_duplicate (path);
-    peer_info_add_path_to_origin (orig_peer_info, path2, GNUNET_NO);
+    peer_info_add_path (dest_peer_info, path2, GNUNET_NO);
+    peer_info_add_path_to_origin (orig_peer_info, path, GNUNET_NO);
     send_create_path (t);
   }
-  path_destroy (path);
   return GNUNET_OK;
 }
 
