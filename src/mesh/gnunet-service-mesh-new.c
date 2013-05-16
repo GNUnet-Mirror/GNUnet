@@ -744,7 +744,9 @@ tunnel_notify_connection_broken (struct MeshTunnel *t, GNUNET_PEER_Id p1,
 
 
 /**
- * Use the given path for the tunnel.
+ * @brief Use the given path for the tunnel.
+ * Update the next and prev hops (and RCs).
+ * (Re)start the path refresh in case the tunnel is locally owned.
  * 
  * @param t Tunnel to update.
  * @param p Path to use.
@@ -1422,7 +1424,6 @@ peer_info_add_path (struct MeshPeerInfo *peer_info, struct MeshPeerPath *path,
     path_destroy (path);
     return;
   }
-  GNUNET_assert (peer_info->id == path->peers[path->length - 1]);
   for (l = 1; l < path->length; l++)
   {
     if (path->peers[l] == myid)
@@ -1652,7 +1653,7 @@ path_add_to_peers (struct MeshPeerPath *p, int confirmed)
     aux = peer_get_short (p->peers[i]);
     copy = path_duplicate (p);
     copy->length = i + 1;
-    peer_info_add_path (aux, copy, GNUNET_NO);
+    peer_info_add_path (aux, copy, p->length < 3 ? GNUNET_NO : confirmed);
   }
 }
 
@@ -1775,34 +1776,40 @@ tunnel_add_client (struct MeshTunnel *t, struct MeshClient *c)
 static void
 tunnel_use_path (struct MeshTunnel *t, struct MeshPeerPath *p)
 {
-  unsigned int i;
+  unsigned int own_pos;
 
-  for (i = 0; i < p->length; i++)
+  for (own_pos = 0; own_pos < p->length; own_pos++)
   {
-    if (p->peers[i] == myid)
+    if (p->peers[own_pos] == myid)
       break;
   }
-  if (i > p->length - 1)
+  if (own_pos > p->length - 1)
   {
     GNUNET_break (0);
     return;
   }
 
-  if (i < p->length - 1)
-    t->next_hop = p->peers[i + 1];
+  if (own_pos < p->length - 1)
+    t->next_hop = p->peers[own_pos + 1];
   else
-    t->next_hop = p->peers[i];
-  if (0 < i)
-    t->prev_hop = p->peers[i - 1];
+    t->next_hop = p->peers[own_pos];
+  GNUNET_PEER_change_rc (t->next_hop, 1);
+  if (0 < own_pos)
+    t->prev_hop = p->peers[own_pos - 1];
   else
     t->prev_hop = p->peers[0];
+  GNUNET_PEER_change_rc (t->prev_hop, 1);
 
   if (NULL != t->path)
     path_destroy (t->path);
   t->path = path_duplicate (p);
-  if (GNUNET_SCHEDULER_NO_TASK == t->maintenance_task)
-    t->maintenance_task =
-        GNUNET_SCHEDULER_add_delayed (refresh_path_time, &path_refresh, t);
+  if (0 == own_pos)
+  {
+    if (GNUNET_SCHEDULER_NO_TASK != t->maintenance_task)
+      GNUNET_SCHEDULER_cancel (t->maintenance_task);
+    t->maintenance_task = GNUNET_SCHEDULER_add_delayed (refresh_path_time,
+                                                        &path_refresh, t);
+  }
 }
 
 
@@ -2220,6 +2227,8 @@ tunnel_destroy (struct MeshTunnel *t)
 
   peer_cancel_queues (t->next_hop, t);
   peer_cancel_queues (t->prev_hop, t);
+  GNUNET_PEER_change_rc(t->next_hop, -1);
+  GNUNET_PEER_change_rc(t->prev_hop, -1);
 
   if (GNUNET_SCHEDULER_NO_TASK != t->maintenance_task)
     GNUNET_SCHEDULER_cancel (t->maintenance_task);
@@ -2229,8 +2238,6 @@ tunnel_destroy (struct MeshTunnel *t)
   GNUNET_free (t);
   return r;
 }
-
-#define TUNNEL_DESTROY_EMPTY_TIME GNUNET_TIME_UNIT_MILLISECONDS
 
 /**
  * Tunnel is empty: destroy it.
@@ -2917,7 +2924,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   size /= sizeof (struct GNUNET_PeerIdentity);
-  if (size < 2)
+  if (size < 1)
   {
     GNUNET_break_op (0);
     return GNUNET_OK;
@@ -2928,9 +2935,9 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   tid = ntohl (msg->tid);
   pi = (struct GNUNET_PeerIdentity *) &msg[1];
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "    path is for tunnel %s [%X].\n", GNUNET_i2s (pi), tid);
+              "    path is for tunnel %s[%X].\n", GNUNET_i2s (pi), tid);
   t = tunnel_get (pi, tid);
-  if (NULL == t)
+  if (NULL == t) /* might be a local tunnel */
   {
     uint32_t opt;
 
@@ -2962,10 +2969,6 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_break (0);
       return GNUNET_OK;
     }
-  }
-  else
-  {
-    GNUNET_break_op (0);
   }
   t->state = MESH_TUNNEL_WAITING;
   dest_peer_info =
@@ -3002,9 +3005,8 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       own_pos = i;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
-  if (own_pos == 0)
+  if (own_pos == 0 && path->peers[own_pos] != myid)
   {
-    /* cannot be self, must be 'not found' */
     /* create path: self not found in path through self */
     GNUNET_break_op (0);
     path_destroy (path);
@@ -3012,8 +3014,8 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   path_add_to_peers (path, GNUNET_NO);
-  t->prev_hop = path->peers[own_pos - 1];
-  GNUNET_PEER_change_rc (t->prev_hop, 1);
+  tunnel_use_path (t, path);
+
   if (own_pos == size - 1)
   {
     struct MeshClient *c;
@@ -3057,6 +3059,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     peer_info_add_path_to_origin (orig_peer_info, path2, GNUNET_NO);
     send_create_path (t);
   }
+  path_destroy (path);
   return GNUNET_OK;
 }
 
