@@ -247,6 +247,11 @@ struct GNUNET_MESH_PathACK
      */
   struct GNUNET_PeerIdentity peer_id;
 
+    /**
+     * Initial ACK value for payload.
+     */
+  uint32_t ack GNUNET_PACKED;
+
   /* TODO: signature */
 };
 

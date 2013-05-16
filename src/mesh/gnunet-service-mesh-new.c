@@ -28,7 +28,7 @@
  * - set ttl relative to path length
  * - add signatures
  * - add encryption
- * - add port numbers
+ * - keep queues until receiving ACK
  * TODO END
  */
 
@@ -1246,7 +1246,7 @@ send_path_ack (struct MeshTunnel *t)
 
   peer = peer_get_short (t->prev_hop);
 
-  queue_add (&t->id,
+  queue_add (t,
              GNUNET_MESSAGE_TYPE_MESH_PATH_ACK,
              sizeof (struct GNUNET_MESH_PathACK),
              peer,
@@ -2002,6 +2002,7 @@ tunnel_send_bck_ack (struct MeshTunnel *t, uint16_t type)
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
       break;
+    case GNUNET_MESSAGE_TYPE_MESH_PATH_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
       t->force_ack = GNUNET_YES;
       break;
@@ -2273,8 +2274,8 @@ fc_init (struct MeshFlowControl *fc)
 {
   fc->last_pid_sent = (uint32_t) -1; /* Next (expected) = 0 */
   fc->last_pid_recv = (uint32_t) -1;
-  fc->last_ack_sent = INITIAL_WINDOW_SIZE - 1;
-  fc->last_ack_recv = INITIAL_WINDOW_SIZE - 1;
+  fc->last_ack_sent = (uint32_t) -1; /* No traffic allowed yet */
+  fc->last_ack_recv = (uint32_t) -1;
   fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
   fc->poll_time = GNUNET_TIME_UNIT_SECONDS;
   fc->queue_n = 0;
@@ -2494,20 +2495,22 @@ send_core_path_create (void *cls, size_t size, void *buf)
 static size_t
 send_core_path_ack (void *cls, size_t size, void *buf)
 {
-  struct MESH_TunnelID *id = cls;
+  struct MeshTunnel *t = cls;
   struct GNUNET_MESH_PathACK *msg = buf;
 
-  GNUNET_assert (NULL != id);
+  GNUNET_assert (NULL != t);
   if (sizeof (struct GNUNET_MESH_PathACK) > size)
   {
     GNUNET_break (0);
     return 0;
   }
+  t->prev_fc.last_ack_sent = t->nobuffer ? 0 : INITIAL_WINDOW_SIZE - 1;
   msg->header.size = htons (sizeof (struct GNUNET_MESH_PathACK));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_ACK);
   GNUNET_PEER_resolve (id->oid, &msg->oid);
   msg->tid = htonl (id->tid);
   msg->peer_id = my_full_id;
+  msg->ack = htonl (t->prev_fc.last_ack_sent);
 
   /* TODO add signature */
 
@@ -3547,6 +3550,8 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
   }
   t->state = MESH_TUNNEL_READY;
+  t->next_fc.last_ack_recv = ntohl (msg->ack);
+  t->prev_fc.last_ack_sent = ntohl (msg->ack);
 
   /* Message for us? */
   if (0 == memcmp (&msg->oid, &my_full_id, sizeof (struct GNUNET_PeerIdentity)))
@@ -3562,6 +3567,7 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_DHT_get_stop (peer_info->dhtget);
       peer_info->dhtget = NULL;
     }
+    tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_PATH_ACK);
     return GNUNET_OK;
   }
 
