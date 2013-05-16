@@ -2325,7 +2325,6 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   }
 
   GNUNET_assert (NULL != env->cfg);
-  GNUNET_assert (NULL != env->stats);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-tcp",
                                              "MAX_CONNECTIONS",
