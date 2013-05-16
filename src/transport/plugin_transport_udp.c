@@ -2859,6 +2859,8 @@ setup_sockets (struct Plugin *plugin,
       GNUNET_NETWORK_fdset_set (plugin->ws_v6, plugin->sockv6);
     }
   }
+  if (0 == sockets_created)
+    return 0;
   schedule_select (plugin);
   plugin->nat = GNUNET_NAT_register (plugin->env->cfg,
                            GNUNET_NO, plugin->port,
@@ -3035,10 +3037,12 @@ libgnunet_plugin_transport_udp_init (void *cls)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Setting up sockets\n");
   res = setup_sockets (p, (GNUNET_YES == have_bind6) ? &serverAddrv6 : NULL,
-  												(GNUNET_YES == have_bind4) ? &serverAddrv4 : NULL);
+		       (GNUNET_YES == have_bind4) ? &serverAddrv4 : NULL);
   if ((res == 0) || ((p->sockv4 == NULL) && (p->sockv6 == NULL)))
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Failed to create network sockets, plugin failed\n");
+    /* FIXME: memory leaks here! (i.e. p->mst, sessions, defrag_ctxs, etc.) */
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+	 _("Failed to create network sockets, plugin failed\n"));
     MEMDEBUG_free (p, __LINE__);
     MEMDEBUG_free (api, __LINE__);
     return NULL;
