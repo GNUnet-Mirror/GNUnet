@@ -197,7 +197,7 @@ do_find (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_PeerIdentity id;
 
   GNUNET_TESTING_peer_get_identity (me, &id);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: CONNECT BY TYPE\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: CONNECT BY PORT\n");
   t = GNUNET_MESH_tunnel_create (mesh_peer_1, NULL, &id, 1);
 }
 
@@ -215,7 +215,7 @@ run (void *cls,
   me = peer;
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 20), &do_abort,
+                                    (GNUNET_TIME_UNIT_SECONDS, 120), &do_abort,
                                     NULL);
   mesh_peer_1 = GNUNET_MESH_connect (cfg,       /* configuration */
                                      (void *) 1L,     /* cls */
