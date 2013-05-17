@@ -436,6 +436,9 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
 					GNUNET_CONTAINER_DLL_insert_tail (tmp->send_head, tmp->send_tail, dqe);
 					if (GNUNET_SCHEDULER_NO_TASK == tmp->send_delay_task)
 						tmp->send_delay_task =GNUNET_SCHEDULER_add_delayed (delay, &send_delayed, dqe);
+					GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+							"Delaying %u byte message to peer `%s' with generic delay for %llu ms\n",
+							msg_size, GNUNET_i2s (target), (long long unsigned int) delay.rel_value);
 					return;
 			}
 	}
@@ -456,6 +459,9 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
 			GNUNET_CONTAINER_DLL_insert_tail (generic_dqe_head, generic_dqe_tail, dqe);
 			if (GNUNET_SCHEDULER_NO_TASK == generic_send_delay_task)
 				generic_send_delay_task = GNUNET_SCHEDULER_add_delayed (delay, &send_delayed, dqe);
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+					"Delaying %u byte message to peer `%s' with peer specific delay for %llu ms\n",
+					msg_size, GNUNET_i2s (target), (long long unsigned int) delay.rel_value);
 			return;
 	}
 
