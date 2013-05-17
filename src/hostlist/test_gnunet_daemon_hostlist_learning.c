@@ -358,7 +358,7 @@ ad_arrive_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   else
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Expected URI `%s' and recieved URI `%s' differ\n",
+                "Expected URI `%s' and received URI `%s' differ\n",
                 expected_uri, current_adv_uri);
   GNUNET_free (expected_uri);
   GNUNET_free_non_null (hostname);
@@ -421,8 +421,8 @@ setup_adv_peer (struct PeerContext *p, const char *cfgname)
   p->cfg = GNUNET_CONFIGURATION_create ();
   p->arm_proc =
     GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, binary,
-                               "gnunet-service-arm",
-                               "-c", cfgname, NULL);
+			     "gnunet-service-arm",
+			     "-c", cfgname, NULL);
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   p->stats = GNUNET_STATISTICS_create ("hostlist", p->cfg);
   GNUNET_assert (NULL != p->stats);
@@ -534,4 +534,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of test_gnunet_daemon_hostlist.c */
+/* end of test_gnunet_daemon_hostlist_learning.c */
