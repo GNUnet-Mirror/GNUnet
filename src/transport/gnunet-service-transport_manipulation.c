@@ -34,10 +34,6 @@
 #include "gnunet-service-transport.h"
 #include "transport.h"
 
-#define DELAY 0
-#define DISTANCE 1
-
-
 enum TRAFFIC_METRIC_DIRECTION
 {
 	TM_SEND = 0,
