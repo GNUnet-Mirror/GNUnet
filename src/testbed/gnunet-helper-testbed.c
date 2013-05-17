@@ -58,12 +58,6 @@
 #define LOG_DEBUG(...)                          \
   LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
-/**
- * Log an error message at log-level 'level' that indicates a failure of the
- * command 'cmd' with the message given by gai_strerror(rc).
- */
-#define LOG_GAI(level, cmd, rc) do { LOG(level, _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, gai_strerror(rc)); } while(0)
-
 
 /**
  * We need pipe control only on WINDOWS
@@ -319,48 +313,6 @@ child_death_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Resolves a hostname using getaddrinfo
- *
- * @param host the hostname
- * @return the string representing the IPv4 address of the given host; NULL upon error
- */
-const char *
-simple_resolve (const char *host)
-{
-  struct addrinfo *res;
-  const struct sockaddr_in *in_addr; 
-  char *hostip;
-  struct addrinfo hint;
-  unsigned int rc;
-
-  hint.ai_family = AF_INET;	/* IPv4 */
-  hint.ai_socktype = 0;
-  hint.ai_protocol = 0;
-  hint.ai_addrlen = 0;
-  hint.ai_addr = NULL;
-  hint.ai_canonname = NULL;
-  hint.ai_next = NULL;
-  hint.ai_flags = AI_NUMERICSERV;
-  res = NULL;
-  LOG_DEBUG ("Resolving [%s]\n", host);
-  if (0 != (rc = getaddrinfo (host, "22", &hint, &res)))
-  {
-    LOG_GAI (GNUNET_ERROR_TYPE_ERROR, "getaddrinfo", rc);
-    return NULL;
-  }
-  GNUNET_assert (NULL != res);
-  GNUNET_assert (NULL != res->ai_addr);
-  GNUNET_assert (sizeof (struct sockaddr_in) == res->ai_addrlen);
-  in_addr = (const struct sockaddr_in *) res->ai_addr;
-  hostip = inet_ntoa (in_addr->sin_addr);
-  GNUNET_assert (NULL != hostip);
-  freeaddrinfo (res);
-  LOG_DEBUG ("Resolved [%s] to [%s]\n", host, hostip);
-  return hostip;
-}
-
-
-/**
  * Functions with this signature are called whenever a
  * complete message is received by the tokenizer.
  *
@@ -383,7 +335,6 @@ tokenizer_cb (void *cls, void *client,
   char *binary;
   char *trusted_ip;
   char *hostname;
-  const char *hostip;
   char *config;
   char *xconfig;
   size_t config_size;
@@ -449,17 +400,10 @@ tokenizer_cb (void *cls, void *client,
                     hostname_size);
     hostname[hostname_size] = '\0';
   }
-  hostip = NULL;
-  if ( (NULL != hostname) && (NULL == (hostip = simple_resolve (hostname))) )
-  {
-    GNUNET_free (hostname);
-    hostname = NULL;
-  }  
   test_system =
-      GNUNET_TESTING_system_create ("testbed-helper", trusted_ip, hostip, NULL);
+      GNUNET_TESTING_system_create ("testbed-helper", trusted_ip, hostname, NULL);
   GNUNET_free_non_null (hostname);
   hostname = NULL;
-  hostip = NULL;
   GNUNET_assert (NULL != test_system);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_TESTING_configuration_create (test_system, cfg));
