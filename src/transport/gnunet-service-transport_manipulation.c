@@ -387,7 +387,6 @@ send_delayed (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 				generic_send_delay_task = GNUNET_SCHEDULER_add_delayed (delay, &send_delayed, next);
 			}
 	}
-
 	GNUNET_free (dqe);
 }
 
@@ -454,7 +453,9 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
 			memcpy (dqe->msg, msg, msg_size);
 			GNUNET_CONTAINER_DLL_insert_tail (generic_dqe_head, generic_dqe_tail, dqe);
 			if (GNUNET_SCHEDULER_NO_TASK == generic_send_delay_task)
+			{
 				generic_send_delay_task = GNUNET_SCHEDULER_add_delayed (delay, &send_delayed, dqe);
+			}
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 					"Delaying %u byte message to peer `%s' with peer specific delay for %llu ms\n",
 					msg_size, GNUNET_i2s (target), (long long unsigned int) delay.rel_value);
@@ -574,7 +575,7 @@ GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg)
 	unsigned long long tmp;
 
 	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (GST_cfg,
-			"transport", "MANIPULATE_DISTANCE_IN", &tmp))
+			"transport", "MANIPULATE_DISTANCE_IN", &tmp) && (tmp > 0))
 	{
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Setting inbound distance_in to %u\n",
 				(unsigned long long) tmp);
@@ -582,7 +583,7 @@ GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg)
 	}
 
 	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (GST_cfg,
-			"transport", "MANIPULATE_DISTANCE_OUT", &tmp))
+			"transport", "MANIPULATE_DISTANCE_OUT", &tmp) && (tmp > 0))
 	{
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Setting outbound distance_in to %u\n",
 				(unsigned long long) tmp);
@@ -590,7 +591,7 @@ GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg)
 	}
 
 	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (GST_cfg,
-			"transport", "MANIPULATE_DELAY_IN", &tmp))
+			"transport", "MANIPULATE_DELAY_IN", &tmp) && (tmp > 0))
 	{
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Delaying inbound traffic for %llu ms\n",
 				(unsigned long long) tmp);
@@ -599,7 +600,7 @@ GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg)
 
 
 	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (GST_cfg,
-			"transport", "MANIPULATE_DELAY_OUT", &tmp))
+			"transport", "MANIPULATE_DELAY_OUT", &tmp) && (tmp > 0))
 	{
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Delaying outbound traffic for %llu ms\n",
 				(unsigned long long) tmp);
