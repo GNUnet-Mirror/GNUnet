@@ -77,15 +77,15 @@ struct HostEntry
  */
 struct TransmitContext
 {
-	/**
-	 * Server transmit context
-	 */
-	struct GNUNET_SERVER_TransmitContext *tc;
-
-	/**
-		* Include friend only HELLOs GNUNET_YES or _NO
-		*/
-	int friend_only;
+  /**
+   * Server transmit context
+   */
+  struct GNUNET_SERVER_TransmitContext *tc;
+  
+  /**
+   * Include friend only HELLOs GNUNET_YES or _NO
+   */
+  int friend_only;
 };
 
 /**
@@ -275,25 +275,26 @@ notify_all (struct HostEntry *entry)
 
   msg_pub = make_info_message (entry, GNUNET_NO);
   msg_friend = make_info_message (entry, GNUNET_YES);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Notifying all clients about peer `%s'\n",
-  		GNUNET_i2s(&entry->identity));
-	for (cur = nc_head; NULL != cur; cur = cur->next)
-	{
-		if (GNUNET_NO == cur->include_friend_only)
-		{
-			GNUNET_SERVER_notification_context_unicast (notify_list,
-																									cur->client,
-																									&msg_pub->header,
-																									GNUNET_NO);
-		}
-		if (GNUNET_YES == cur->include_friend_only)
-		{
-			GNUNET_SERVER_notification_context_unicast (notify_list,
-																									cur->client,
-																									&msg_friend->header,
-																									GNUNET_NO);
-		}
-	}
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Notifying all clients about peer `%s'\n",
+	      GNUNET_i2s(&entry->identity));
+  for (cur = nc_head; NULL != cur; cur = cur->next)
+  {
+    if (GNUNET_NO == cur->include_friend_only)
+      {
+	GNUNET_SERVER_notification_context_unicast (notify_list,
+						    cur->client,
+						    &msg_pub->header,
+						    GNUNET_NO);
+      }
+    if (GNUNET_YES == cur->include_friend_only)
+    {
+      GNUNET_SERVER_notification_context_unicast (notify_list,
+						  cur->client,
+						  &msg_friend->header,
+						  GNUNET_NO);
+    }
+  }
   GNUNET_free (msg_pub);
   GNUNET_free (msg_friend);
 }
@@ -350,9 +351,9 @@ read_host_file (const char *fn, int unlink_garbage, struct ReadHostFileContext *
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Read %u bytes from `%s'\n", size_total, fn);
   if (size_total < sizeof (struct GNUNET_MessageHeader))
   {
-	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-									_("Failed to parse HELLO in file `%s': %s\n"),
-									fn, "Fail has invalid size");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Failed to parse HELLO in file `%s': %s\n"),
+		fn, "Fail has invalid size");
     if ( (GNUNET_YES == unlink_garbage) && (0 != UNLINK (fn)) )
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
     return;
@@ -366,8 +367,8 @@ read_host_file (const char *fn, int unlink_garbage, struct ReadHostFileContext *
   		if (0 == size_hello)
   		{
   		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-  										_("Failed to parse HELLO in file `%s': %s %u \n"),
-  										fn, "HELLO is invalid and has size of ", size_hello);
+			      _("Failed to parse HELLO in file `%s': %s %u \n"),
+			      fn, "HELLO is invalid and has size of ", size_hello);
   		  if ((GNUNET_YES == unlink_garbage) && (0 != UNLINK (fn)))
   		    	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
   	    return;
@@ -644,7 +645,7 @@ cron_scan_directory_data_hosts (void *cls,
 
 static struct GNUNET_HELLO_Message *
 update_friend_hello (const struct GNUNET_HELLO_Message *hello,
-										 const struct GNUNET_HELLO_Message *friend_hello)
+		     const struct GNUNET_HELLO_Message *friend_hello)
 {
 	struct GNUNET_HELLO_Message * res;
 	struct GNUNET_HELLO_Message * tmp;
