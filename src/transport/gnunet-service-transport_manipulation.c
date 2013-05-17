@@ -551,10 +551,15 @@ GST_manipulation_recv (void *cls,
 
 	quota_delay = GST_receive_callback (cls, peer, message,
 			session, sender_address, sender_address_len);
+
 	if (quota_delay.rel_value > m_delay.rel_value)
-		return quota_delay;
-	else
-		return m_delay;
+		m_delay = quota_delay;
+
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+			"Delaying next receive for peer `%s' for %llu ms\n",
+			GNUNET_i2s (peer), (long long unsigned int) m_delay.rel_value);
+	return m_delay;
+
 }
 
 
