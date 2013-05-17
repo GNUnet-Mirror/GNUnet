@@ -30,6 +30,7 @@
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet-service-testbed_meminfo.h"
 
 #if SOLARIS
 #if HAVE_KSTAT_H
@@ -120,7 +121,7 @@ initMachCpuStats ()
 #endif
 
 /**
- * Update the currentCPU and currentIO load values.
+ * Update the currentCPU and currentIO load (and on Linux, memory) values.
  *
  * Before its first invocation the method initStatusCalls() must be called.
  * If there is an error the method returns -1.
@@ -596,6 +597,21 @@ disk_get_load ()
   return (int) agedIOLoad;
 }
 
+/**
+ * Get the percentage of memory used
+ *
+ * @return the percentage of memory used
+ */
+static unsigned int
+mem_get_usage ()
+{
+  unsigned long currentMemUsage;
+
+  meminfo ();
+  currentMemUsage = kb_main_total - kb_main_free;
+  return (unsigned int) ((currentMemUsage / kb_main_total) * 100);
+}
+
 
 static void
 sample_load_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -605,6 +621,7 @@ sample_load_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int nbs;
   int ld_cpu;
   int ld_disk;
+  unsigned int mem_usage;
 
   sample_load_task_id = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
@@ -613,9 +630,10 @@ sample_load_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ld_disk = disk_get_load ();
   if ( (-1 == ld_cpu) || (-1 == ld_disk) )
     goto reschedule;
+  mem_usage = mem_get_usage ();
   now = GNUNET_TIME_absolute_get ();
-  nbs = GNUNET_asprintf (&str, "%llu %d %d\n", now.abs_value / 1000,
-                         ld_cpu, ld_disk);
+  nbs = GNUNET_asprintf (&str, "%llu %d %d %u\n", now.abs_value / 1000,
+                         ld_cpu, ld_disk, mem_usage);
   if (0 < nbs) 
   {
     GNUNET_BIO_write (bw, str, nbs);
