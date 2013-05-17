@@ -307,7 +307,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (GNUNET_YES == shutting_down)
     return;
   shutting_down = GNUNET_YES;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending test.\n");    
+  LOG_DEBUG ("Ending test.\n");    
   close_monitor_connections ();
   if (NULL != data_file)
   {
@@ -531,15 +531,14 @@ connect_nse_service ()
 
   if (0 == connection_limit)
     return;  
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to nse service of peers\n");
+  LOG_DEBUG ("Connecting to nse service of peers\n");
   connections = 0;
   for (i = 0; i < num_peers_in_round[current_round]; i++)
   {
     if ((num_peers_in_round[current_round] > connection_limit) && 
 	(0 != (i % (num_peers_in_round[current_round] / connection_limit))))
       continue;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "nse-profiler: connecting to nse service of peer %d\n", i);
+    LOG_DEBUG ("Connecting to nse service of peer %d\n", i);
     current_peer = GNUNET_malloc (sizeof (struct NSEPeer));
     current_peer->daemon = daemons[i];
     current_peer->nse_op 
@@ -707,7 +706,7 @@ next_round (void *cls,
 {
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "disconnecting nse service of peers\n");
+  LOG_DEBUG ("Disconnecting nse service of peers\n");
   current_round++;  
   if (current_round == num_rounds)
     {
@@ -806,7 +805,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   ok = 1;
   testing_cfg = GNUNET_CONFIGURATION_dup (cfg);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemons.\n");
+  LOG_DEBUG ("Starting daemons.\n");
   if (NULL == num_peer_spec)
   {
     fprintf (stderr, "You need to specify the number of peers to run\n");
