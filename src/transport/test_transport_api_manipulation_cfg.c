@@ -334,7 +334,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 				ok = 1;
 			}
 		  /* Done */
-			ok = 1;
+			ok = 0;
 		  end();
 			break;
 		default:
