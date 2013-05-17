@@ -1248,7 +1248,7 @@ GST_handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
     lcc->client = client;
     slave->lcc = lcc;
     slave->controller_proc =
-        GNUNET_TESTBED_controller_start (GST_context->master_ips,
+        GNUNET_TESTBED_controller_start (GST_context->master_ip,
                                          GST_host_list[slave->host_id],
                                          &slave_status_cb, slave);
     new_route = GNUNET_malloc (sizeof (struct Route));

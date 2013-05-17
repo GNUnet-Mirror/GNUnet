@@ -474,48 +474,6 @@ parse_shared_services (char *ss_str, struct GNUNET_CONFIGURATION_Handle *cfg)
 
 
 /**
- * Callback function invoked for each interface found.
- *
- * @param cls NULL
- * @param name name of the interface (can be NULL for unknown)
- * @param isDefault is this presumably the default interface
- * @param addr address of this interface (can be NULL for unknown or unassigned)
- * @param broadcast_addr the broadcast address (can be NULL for unknown or unassigned)
- * @param netmask the network mask (can be NULL for unknown or unassigned))
- * @param addrlen length of the address
- * @return GNUNET_OK to continue iteration, GNUNET_SYSERR to abort
- */
-static int 
-addr_proc (void *cls, const char *name, int isDefault,
-           const struct sockaddr *addr,
-           const struct sockaddr *broadcast_addr,
-           const struct sockaddr *netmask, socklen_t addrlen)
-{
-  struct Context *ctx = cls;
-  const struct sockaddr_in *in_addr;
-  char *ipaddr;
-  char *tmp;  
-
-  if (sizeof (struct sockaddr_in) != addrlen)
-    return GNUNET_OK;
-  in_addr = (const struct sockaddr_in *) addr;
-  if (NULL == (ipaddr = inet_ntoa (in_addr->sin_addr)))
-    return GNUNET_OK;
-  if (NULL == ctx->master_ips)
-  {
-    ctx->master_ips = GNUNET_strdup (ipaddr);
-    return GNUNET_OK;
-  }
-  tmp = NULL;
-  (void) GNUNET_asprintf (&tmp, "%s; %s", ctx->master_ips, ipaddr);
-  GNUNET_free (ctx->master_ips);
-  ctx->master_ips = tmp;
-  return GNUNET_OK;
-}
-
-
-
-/**
  * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_INIT messages
  *
  * @param cls NULL
@@ -528,11 +486,11 @@ handle_init (void *cls, struct GNUNET_SERVER_Client *client,
 {
   const struct GNUNET_TESTBED_InitMessage *msg;
   struct GNUNET_TESTBED_Host *host;
+  const char *controller_hostname;
   char *ss_str;
   struct GNUNET_TESTING_SharedService *ss;
-  char *hostname;
   unsigned int cnt;
-  unsigned int len;
+  uint16_t msize;
 
   if (NULL != GST_context)
   {
@@ -541,11 +499,18 @@ handle_init (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   msg = (const struct GNUNET_TESTBED_InitMessage *) message;
-  len = GNUNET_OS_get_hostname_max_length ();
-  hostname = GNUNET_malloc (len);
-  if (0 != gethostname (hostname, len))
+  msize = ntohs (message->size);
+  if (msize <= sizeof (struct GNUNET_TESTBED_InitMessage))
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "gethostname");
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  msize -= sizeof (struct GNUNET_TESTBED_InitMessage);
+  controller_hostname = (const char *) &msg[1];
+  if ('\0' != controller_hostname[msize - 1])
+  {
+    GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
@@ -563,18 +528,10 @@ handle_init (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_SERVER_client_keep (client);
   GST_context->client = client;
   GST_context->host_id = ntohl (msg->host_id);
-  GNUNET_OS_network_interfaces_list (&addr_proc, GST_context);
-  if (NULL == GST_context->master_ips)
-  {
-    LOG (GNUNET_ERROR_TYPE_ERROR, 
-         "Testbed needs networking, but no network interfaces are found on this host.  Exiting\n");
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  LOG_DEBUG ("Our IP addresses: %s\n", GST_context->master_ips);
+  GST_context->master_ip = GNUNET_strdup (controller_hostname);
+  LOG_DEBUG ("Our IP: %s\n", GST_context->master_ip);
   GST_context->system =
-      GNUNET_TESTING_system_create ("testbed", GST_context->master_ips,
+      GNUNET_TESTING_system_create ("testbed", GST_context->master_ip,
                                     hostname, ss);
   if (NULL != ss)
   {
@@ -586,9 +543,10 @@ handle_init (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_free (ss);
     ss = NULL;
   }
-
-  host = GNUNET_TESTBED_host_create_with_id (GST_context->host_id, hostname,
-                                             NULL, our_config, 0);
+  host =
+      GNUNET_TESTBED_host_create_with_id (GST_context->host_id,
+                                          GST_context->master_ip, NULL,
+                                          our_config, 0);
   host_list_add (host);
   LOG_DEBUG ("Created master context with host ID: %u\n", GST_context->host_id);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -850,7 +808,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_free_non_null (GST_host_list);
   if (NULL != GST_context)
   {
-    GNUNET_free_non_null (GST_context->master_ips);
+    GNUNET_free_non_null (GST_context->master_ip);
     if (NULL != GST_context->system)
       GNUNET_TESTING_system_destroy (GST_context->system, GNUNET_YES);
     GNUNET_SERVER_client_drop (GST_context->client);
@@ -912,8 +870,7 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
              const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static const struct GNUNET_SERVER_MessageHandler message_handlers[] = {
-    {&handle_init, NULL, GNUNET_MESSAGE_TYPE_TESTBED_INIT,
-     sizeof (struct GNUNET_TESTBED_InitMessage)},
+    {&handle_init, NULL, GNUNET_MESSAGE_TYPE_TESTBED_INIT, 0},
     {&handle_add_host, NULL, GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST, 0},
     {&GST_handle_link_controllers, NULL,
      GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS,

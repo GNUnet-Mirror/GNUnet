@@ -1440,9 +1440,10 @@ GNUNET_TESTBED_controller_connect (struct GNUNET_TESTBED_Host *host,
                                    GNUNET_TESTBED_ControllerCallback cc,
                                    void *cc_cls)
 {
-  struct GNUNET_TESTBED_Controller *c;
+  struct GNUNET_TESTBED_Controller *controller;
   struct GNUNET_TESTBED_InitMessage *msg;
   const struct GNUNET_CONFIGURATION_Handle *cfg;
+  const char *controller_hostname;
   unsigned long long max_parallel_operations;
   unsigned long long max_parallel_service_connections;
   unsigned long long max_parallel_topology_config_operations;
@@ -1472,35 +1473,44 @@ GNUNET_TESTBED_controller_connect (struct GNUNET_TESTBED_Host *host,
     GNUNET_break (0);
     return NULL;
   }
-  c = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Controller));
-  c->cc = cc;
-  c->cc_cls = cc_cls;
-  c->event_mask = event_mask;
-  c->cfg = GNUNET_CONFIGURATION_dup (cfg);
-  c->client = GNUNET_CLIENT_connect ("testbed", c->cfg);
-  if (NULL == c->client)
+  controller = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Controller));
+  controller->cc = cc;
+  controller->cc_cls = cc_cls;
+  controller->event_mask = event_mask;
+  controller->cfg = GNUNET_CONFIGURATION_dup (cfg);
+  controller->client = GNUNET_CLIENT_connect ("testbed", controller->cfg);
+  if (NULL == controller->client)
   {
-    GNUNET_TESTBED_controller_disconnect (c);
+    GNUNET_TESTBED_controller_disconnect (controller);
     return NULL;
   }
-  GNUNET_TESTBED_mark_host_registered_at_ (host, c);
-  c->host = host;
-  c->opq_parallel_operations =
+  GNUNET_TESTBED_mark_host_registered_at_ (host, controller);
+  controller->host = host;
+  controller->opq_parallel_operations =
       GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
                                               max_parallel_operations);
-  c->opq_parallel_service_connections =
+  controller->opq_parallel_service_connections =
       GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
                                               max_parallel_service_connections);
-  c->opq_parallel_topology_config_operations =
+  controller->opq_parallel_topology_config_operations =
       GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
                                               max_parallel_topology_config_operations);
-  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_InitMessage));
+  controller_hostname = GNUNET_TESTBED_host_get_hostname (host);
+  if (NULL == controller_hostname)
+    controller_hostname = "127.0.0.1";
+  msg =
+      GNUNET_malloc (sizeof (struct GNUNET_TESTBED_InitMessage) +
+                     strlen (controller_hostname) + 1);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_INIT);
-  msg->header.size = htons (sizeof (struct GNUNET_TESTBED_InitMessage));
+  msg->header.size =
+      htons (sizeof (struct GNUNET_TESTBED_InitMessage) +
+             strlen (controller_hostname) + 1);
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (host));
-  msg->event_mask = GNUNET_htonll (c->event_mask);
-  GNUNET_TESTBED_queue_message_ (c, &msg->header);
-  return c;
+  msg->event_mask = GNUNET_htonll (controller->event_mask);
+  strcpy ((char *) &msg[1], controller_hostname);
+  GNUNET_TESTBED_queue_message_ (controller,
+                                 (struct GNUNET_MessageHeader *) msg);
+  return controller;
 }
 
 
