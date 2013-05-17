@@ -79,11 +79,6 @@ static GNUNET_SCHEDULER_TaskIdentifier hostlist_task_v6;
 static struct MHD_Response *response;
 
 /**
- * NULL if we are not currenlty iterating over peer information.
- */
-static struct GNUNET_PEERINFO_IteratorContext *pitr;
-
-/**
  * Handle for accessing peerinfo service.
  */
 static struct GNUNET_PEERINFO_Handle *peerinfo;
@@ -99,7 +94,6 @@ static int advertising;
 static char *hostlist_uri;
 
 
-
 /**
  * Context for host processor.
  */
@@ -108,7 +102,16 @@ struct HostSet
   unsigned int size;
 
   char *data;
+
+  struct GNUNET_PEERINFO_IteratorContext *pitr;
 };
+
+
+/**
+ * NULL if we are not currenlty iterating over peer information.
+ */
+static struct HostSet *builder;
+
 
 
 
@@ -116,15 +119,15 @@ struct HostSet
  * Function that assembles our response.
  */
 static void
-finish_response (struct HostSet *results)
+finish_response ()
 {
   if (NULL != response)
     MHD_destroy_response (response);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Creating hostlist response with %u bytes\n",
-              (unsigned int) results->size);
+              (unsigned int) builder->size);
   response =
-      MHD_create_response_from_data (results->size, results->data, MHD_YES,
+      MHD_create_response_from_data (builder->size, builder->data, MHD_YES,
                                      MHD_NO);
   if ((NULL == daemon_handle_v4) && (NULL == daemon_handle_v6))
   {
@@ -132,8 +135,9 @@ finish_response (struct HostSet *results)
     response = NULL;
   }
   GNUNET_STATISTICS_set (stats, gettext_noop ("bytes in hostlist"),
-                         results->size, GNUNET_YES);
-  GNUNET_free (results);
+                         builder->size, GNUNET_YES);
+  GNUNET_free (builder);
+  builder = NULL;
 }
 
 
@@ -171,7 +175,6 @@ static void
 host_processor (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_HELLO_Message *hello, const char *err_msg)
 {
-  struct HostSet *results = cls;
   size_t old;
   size_t s;
   int has_addr;
@@ -179,7 +182,9 @@ host_processor (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (NULL != err_msg)
   {
     GNUNET_assert (NULL == peer);
-    pitr = NULL;
+    builder->pitr = NULL;
+    GNUNET_free_non_null (builder->data);
+    GNUNET_free (builder);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _("Error in communication with PEERINFO service: %s\n"),
                 err_msg);
@@ -187,8 +192,8 @@ host_processor (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   if (NULL == peer)
   {
-    pitr = NULL;
-    finish_response (results);
+    builder->pitr = NULL;
+    finish_response ();
     return;
   }
   if (NULL == hello)
@@ -206,7 +211,7 @@ host_processor (void *cls, const struct GNUNET_PeerIdentity *peer,
                               1, GNUNET_NO);
     return;
   }
-  old = results->size;
+  old = builder->size;
   s = GNUNET_HELLO_size (hello);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received %u bytes of `%s' from peer `%s' for hostlist.\n",
@@ -223,8 +228,8 @@ host_processor (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Adding peer `%s' to hostlist (%u bytes)\n", GNUNET_i2s (peer),
               (unsigned int) s);
-  GNUNET_array_grow (results->data, results->size, old + s);
-  memcpy (&results->data[old], hello, s);
+  GNUNET_array_grow (builder->data, builder->size, old + s);
+  memcpy (&builder->data[old], hello, s);
 }
 
 
@@ -412,21 +417,28 @@ static void
 process_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_HELLO_Message *hello, const char *err_msg)
 {
-  struct HostSet *results;
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peerinfo is notifying us to rebuild our hostlist\n");
   if (NULL != err_msg)
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _("Error in communication with PEERINFO service: %s\n"),
 		err_msg);
-  if (NULL != pitr)
-    return; /* re-build already in progress ... */
-  results = GNUNET_malloc (sizeof (struct HostSet));
+  if (NULL != builder)
+  {
+    /* restart re-build already in progress ... */
+    GNUNET_PEERINFO_iterate_cancel (builder->pitr);
+    GNUNET_free_non_null (builder->data);
+    builder->size = 0;
+    builder->data = NULL;
+  }
+  else
+  {
+    builder = GNUNET_malloc (sizeof (struct HostSet));
+  }  
   GNUNET_assert (NULL != peerinfo); 
-  pitr =
+  builder->pitr =
       GNUNET_PEERINFO_iterate (peerinfo, GNUNET_NO, NULL, GNUNET_TIME_UNIT_MINUTES,
-                               &host_processor, results);
+                               &host_processor, NULL);
 }
 
 
@@ -716,10 +728,12 @@ GNUNET_HOSTLIST_server_stop ()
     GNUNET_PEERINFO_notify_cancel (notify);
     notify = NULL;
   }
-  if (NULL != pitr)
+  if (NULL != builder)
   {
-    GNUNET_PEERINFO_iterate_cancel (pitr);
-    pitr = NULL;
+    GNUNET_PEERINFO_iterate_cancel (builder->pitr);
+    builder->pitr = NULL;
+    GNUNET_free_non_null (builder->data);
+    GNUNET_free (builder);
   }
   if (NULL != peerinfo)
   {
