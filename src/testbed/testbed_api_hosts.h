@@ -253,5 +253,14 @@ GNUNET_TESTBED_controller_destroy_ (struct GNUNET_TESTBED_ControllerProc
                                     *cproc);
 
 
+/**
+ * Resolves the hostname of the host to an ip address
+ *
+ * @param host the host whose hostname is to be resolved
+ */
+void
+GNUNET_TESTBED_host_resolve_ (struct GNUNET_TESTBED_Host *host);
+
+
 #endif
 /* end of testbed_api_hosts.h */

@@ -1349,6 +1349,9 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host,
 #if ENABLE_LL
   parse_islands (rc);
 #endif
+  GNUNET_TESTBED_host_resolve_ (rc->h);
+  for (nhost = 0; nhost < rc->num_hosts; nhost++)
+    GNUNET_TESTBED_host_resolve_ (rc->hosts[nhost]);
   GNUNET_OS_network_interfaces_list (netint_proc, rc);
   if (NULL == rc->trusted_ip)
     rc->trusted_ip = GNUNET_strdup ("127.0.0.1");

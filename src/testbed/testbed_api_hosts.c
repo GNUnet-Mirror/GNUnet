@@ -1887,4 +1887,27 @@ GNUNET_TESTBED_host_handle_addhostconfirm_ (struct GNUNET_TESTBED_Controller *c,
   return GNUNET_OK;
 }
 
+
+/**
+ * Resolves the hostname of the host to an ip address
+ *
+ * @param host the host whose hostname is to be resolved
+ */
+void
+GNUNET_TESTBED_host_resolve_ (struct GNUNET_TESTBED_Host *host)
+{
+  char *hostname;
+
+  hostname = (char *) host->hostname;
+  host->hostname = simple_resolve (hostname);
+  if (NULL == host->hostname)
+  {
+    GNUNET_break (0);
+    host->hostname = hostname;
+    return;
+  }
+  GNUNET_free (hostname);
+  host->hostname = GNUNET_strdup (hostname);
+}
+
 /* end of testbed_api_hosts.c */
