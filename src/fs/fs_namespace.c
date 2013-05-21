@@ -716,17 +716,17 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   ub_enc->purpose.size = htonl (nidlen + slen + mdsize + sizeof (struct UBlock)
 				- sizeof (struct GNUNET_FS_PseudonymSignature));
   ub_enc->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK);
+  GNUNET_FS_pseudonym_derive_verification_key (&sks_uri->data.sks.ns, 
+					       &signing_key,
+					       &ub_enc->verification_key);
+  GNUNET_CRYPTO_hash (&ub_enc->verification_key,
+		      sizeof (ub_enc->verification_key),
+		      &query);
   GNUNET_FS_pseudonym_sign (ns->key,
 			 &ub_enc->purpose,
 			 NULL,
 			 &signing_key,
 			 &ub_enc->signature);
-  GNUNET_FS_pseudonym_derive_verification_key (&sks_uri->data.sks.ns, 
-					    &signing_key,
-					    &ub_enc->verification_key);
-  GNUNET_CRYPTO_hash (&ub_enc->verification_key,
-		      sizeof (ub_enc->verification_key),
-		      &query);
   psc = GNUNET_malloc (sizeof (struct GNUNET_FS_PublishSksContext));
   psc->uri = sks_uri;
   psc->cont = cont;

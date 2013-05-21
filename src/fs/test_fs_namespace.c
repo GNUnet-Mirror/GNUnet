@@ -89,6 +89,7 @@ abort_sks_search_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 do_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  err = 1;
   FPRINTF (stderr, "%s",  "Operation timed out\n");
   kill_task = GNUNET_SCHEDULER_NO_TASK;
   abort_sks_search_task (NULL, tc);

@@ -1211,8 +1211,9 @@ GNUNET_FS_pseudonym_sign (struct GNUNET_FS_PseudonymHandle *ph,
     gcry_mpi_release (rs[1]);
     return GNUNET_SYSERR;
   }
-
+  adjust (signature->sig_r, size, sizeof (signature->sig_r));
   gcry_mpi_release (rs[0]);
+
   size = sizeof (signature->sig_s);
   if (0 != (rc = gcry_mpi_print (GCRYMPI_FMT_USG, signature->sig_s, size,
                                  &size, rs[1])))
@@ -1221,7 +1222,24 @@ GNUNET_FS_pseudonym_sign (struct GNUNET_FS_PseudonymHandle *ph,
     gcry_mpi_release (rs[1]);
     return GNUNET_SYSERR;
   }
+  adjust (signature->sig_s, size, sizeof (signature->sig_s));
   gcry_mpi_release (rs[1]);
+
+#if EXTRA_CHECKS
+  {
+    struct GNUNET_FS_PseudonymIdentifier vk;
+    struct GNUNET_FS_PseudonymIdentifier pi;
+
+    GNUNET_FS_pseudonym_get_identifier (ph, &pi);
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_FS_pseudonym_derive_verification_key (&pi, signing_key, &vk));
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_FS_pseudonym_verify (purpose,
+					       signature,
+					       &vk));
+  }
+#endif
+
   GNUNET_FS_pseudonym_get_identifier (ph, &signature->signer);
   return GNUNET_OK;
 }
