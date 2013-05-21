@@ -252,7 +252,16 @@ ret_string (enum GNUNET_ARM_Result result)
   return _("%.s Unknown result code.");
 }
 
-static void action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+/**
+ * Main task that runs our various operations in order.
+ *
+ * @param cls closure
+ * @param tc scheudler context
+ */
+static void 
+action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 /**
  * Function called whenever we connect to or disconnect from ARM.
@@ -272,17 +281,13 @@ conn_status (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-/*
-  if (connected)
-    GNUNET_SCHEDULER_add_now (action_loop, NULL);
-*/
 }
 
 
 static void
 term_callback (void *cls, 
-    enum GNUNET_ARM_RequestStatus rs, const char *service,
-    enum GNUNET_ARM_Result result)
+	       enum GNUNET_ARM_RequestStatus rs, const char *service,
+	       enum GNUNET_ARM_Result result)
 {
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
   {
@@ -536,8 +541,7 @@ srv_status (void *cls,
   switch (status)
   {
   case GNUNET_ARM_SERVICE_MONITORING_STARTED:
-    msg = _("Began monitoring ARM for service status changes\n");
-    break;
+    return; /* this should be done silently */
   case GNUNET_ARM_SERVICE_STOPPED:
     msg = _("Stopped %s.\n");
     break;
