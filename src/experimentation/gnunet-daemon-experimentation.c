@@ -26,11 +26,63 @@
  */
 #include "platform.h"
 #include "gnunet_getopt_lib.h"
+#include "gnunet_container_lib.h"
 #include "gnunet_program_lib.h"
 #include "gnunet_core_service.h"
 
+#define EXP_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+
 static struct GNUNET_CORE_Handle *ch;
 
+static struct GNUNET_PeerIdentity me;
+
+/**
+ * A experimentation node
+ */
+struct Node
+{
+	struct GNUNET_PeerIdentity id;
+
+	GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+};
+
+/**
+ * Nodes with a pending request
+ */
+
+struct GNUNET_CONTAINER_MultiHashMap *nodes_requested;
+
+/**
+ * Active experimentation nodes
+ */
+struct GNUNET_CONTAINER_MultiHashMap *nodes_active;
+
+/**
+ * Inactive experimentation nodes
+ * To be excluded from future requests
+ */
+struct GNUNET_CONTAINER_MultiHashMap *nodes_inactive;
+
+
+static int
+cleanup_nodes (void *cls,
+							 const struct GNUNET_HashCode * key,
+							 void *value)
+{
+	struct Node *n;
+	struct GNUNET_CONTAINER_MultiHashMap *cur = cls;
+
+	n = value;
+	if (GNUNET_SCHEDULER_NO_TASK != n->timeout_task)
+	{
+		GNUNET_SCHEDULER_cancel (n->timeout_task);
+		n->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+	}
+
+	GNUNET_CONTAINER_multihashmap_remove (cur, key, value);
+	GNUNET_free (value);
+	return GNUNET_OK;
+}
 
 /**
  * Task run during shutdown.
@@ -48,7 +100,66 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   		ch = NULL;
   }
 
+  if (NULL != nodes_requested)
+  {
+  		GNUNET_CONTAINER_multihashmap_iterate (nodes_requested,
+  																					 &cleanup_nodes,
+  																					 nodes_requested);
+  		GNUNET_CONTAINER_multihashmap_destroy (nodes_requested);
+  		nodes_requested = NULL;
+  }
+
+  if (NULL != nodes_active)
+  {
+  		GNUNET_CONTAINER_multihashmap_iterate (nodes_active,
+  																					 &cleanup_nodes,
+  																					 nodes_active);
+  		GNUNET_CONTAINER_multihashmap_destroy (nodes_active);
+  		nodes_active = NULL;
+  }
+
+  if (NULL != nodes_inactive)
+  {
+  		GNUNET_CONTAINER_multihashmap_iterate (nodes_inactive,
+  																					 &cleanup_nodes,
+  																					 nodes_inactive);
+  		GNUNET_CONTAINER_multihashmap_destroy (nodes_inactive);
+  		nodes_inactive = NULL;
+  }
 }
+
+static int is_me (const struct GNUNET_PeerIdentity *id)
+{
+	if (0 == memcmp (&me, id, sizeof (me)))
+		return GNUNET_YES;
+	else
+		return GNUNET_NO;
+}
+
+static void
+core_startup_handler (void *cls,
+											struct GNUNET_CORE_Handle * server,
+                      const struct GNUNET_PeerIdentity *my_identity)
+{
+	me = *my_identity;
+}
+
+static void
+remove_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+	struct Node *n = cls;
+
+	if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (nodes_requested, &n->id.hashPubKey))
+			GNUNET_break (0);
+	else
+	{
+			GNUNET_CONTAINER_multihashmap_remove (nodes_requested, &n->id.hashPubKey, n);
+			GNUNET_CONTAINER_multihashmap_put (nodes_inactive, &n->id.hashPubKey, n,
+					GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+			n->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+	}
+}
+
 
 /**
  * Method called whenever a given peer connects.
@@ -59,11 +170,36 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 void core_connect_handler (void *cls,
                            const struct GNUNET_PeerIdentity * peer)
 {
+	struct Node *n;
+
+	if (GNUNET_YES == is_me(peer))
+		return;
+
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connected to peer %s\n"),
 			GNUNET_i2s (peer));
-	/* Send request */
 
-	/* TBD */
+	if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (nodes_requested, &peer->hashPubKey))
+		return; /* We already sent a request */
+
+	if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (nodes_active, &peer->hashPubKey))
+		return; /*This peer is known as active  */
+
+	if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (nodes_inactive, &peer->hashPubKey))
+		return; /*This peer is known as inactive  */
+
+	/* Send request */
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Sending request to peer %s\n"),
+			GNUNET_i2s (peer));
+
+	n = GNUNET_malloc (sizeof (struct Node));
+	n->id = *peer;
+	n->timeout_task = GNUNET_SCHEDULER_add_delayed (EXP_RESPONSE_TIMEOUT, &remove_request, n);
+
+	GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (nodes_requested,
+			&peer->hashPubKey, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+
+
+
 }
 
 
@@ -76,6 +212,9 @@ void core_connect_handler (void *cls,
 void core_disconnect_handler (void *cls,
                            const struct GNUNET_PeerIdentity * peer)
 {
+	if (GNUNET_YES == is_me(peer))
+		return;
+
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Disconnected from peer %s\n"),
 			GNUNET_i2s (peer));
 
@@ -93,8 +232,13 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Experimentation daemon starting ...\n"));
 
+	nodes_requested = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+	nodes_active = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+	nodes_inactive = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+
 	/* Connecting to core service to find partners */
-	ch = GNUNET_CORE_connect (cfg, NULL, NULL,
+	ch = GNUNET_CORE_connect (cfg, NULL,
+														&core_startup_handler,
 														&core_connect_handler,
 													 	&core_disconnect_handler,
 														NULL, GNUNET_NO, NULL, GNUNET_NO, NULL);
