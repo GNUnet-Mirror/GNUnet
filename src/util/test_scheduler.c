@@ -177,6 +177,7 @@ checkShutdown ()
 }
 
 
+#ifndef MINGW
 static void
 taskSig (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -202,6 +203,7 @@ checkSignal ()
   GNUNET_SCHEDULER_run (&taskSig, &ok);
   return ok;
 }
+#endif
 
 
 static void
