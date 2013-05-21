@@ -229,11 +229,6 @@ endif
 endif
 
 
-#  test_gns_simple_lookup
-#  test_gns_simple_delegated_lookup
-#  test_gns_dht_delegated_lookup
-
-
 #test_gns_proxy_SOURCES = \
 #  test_gns_proxy.c
 #test_gns_proxy_LDADD = -lmicrohttpd @LIBCURL@ \
