@@ -312,15 +312,18 @@ term_callback (void *cls,
   }
 }
 
+
 static void
 end_callback (void *cls, 
-    enum GNUNET_ARM_RequestStatus rs, const char *service,
-    enum GNUNET_ARM_Result result)
+	      enum GNUNET_ARM_RequestStatus rs, const char *service,
+	      enum GNUNET_ARM_Result result)
 {
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
   {
     char *msg;
-    GNUNET_asprintf (&msg, "%s", _("Failed to send a stop request to the ARM service: %s\n"));
+
+    GNUNET_asprintf (&msg, "%s", 
+		     _("Failed to send a stop request to the ARM service: %s\n"));
     FPRINTF (stdout, msg, req_string (rs));
     GNUNET_free (msg);
     GNUNET_SCHEDULER_shutdown ();
@@ -342,6 +345,7 @@ end_callback (void *cls,
   else
   {
     char *msg;
+
     GNUNET_asprintf (&msg, "%s", _("Failed to stop the ARM service: %s\n"));
     FPRINTF (stdout, msg, ret_string (result));
     GNUNET_free (msg);
@@ -349,10 +353,11 @@ end_callback (void *cls,
   }
 }
 
+
 static void
 start_callback (void *cls,
-    enum GNUNET_ARM_RequestStatus rs, const char *service,
-    enum GNUNET_ARM_Result result)
+		enum GNUNET_ARM_RequestStatus rs, const char *service,
+		enum GNUNET_ARM_Result result)
 {
   char *msg;
 
@@ -375,18 +380,18 @@ start_callback (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM service [re]start successful\n");
   start = 0;
   GNUNET_SCHEDULER_add_now (action_loop, NULL);
-  return;
 }
 
 
 static void
 init_callback (void *cls, 
-    enum GNUNET_ARM_RequestStatus rs, const char *service,
-    enum GNUNET_ARM_Result result)
+	       enum GNUNET_ARM_RequestStatus rs, const char *service,
+	       enum GNUNET_ARM_Result result)
 {
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
   {
     char *msg;
+
     GNUNET_asprintf (&msg, _("Failed to send a request to start the `%s' service: %%s\n"), init);
     FPRINTF (stdout, msg, req_string (rs));
     GNUNET_free (msg);
