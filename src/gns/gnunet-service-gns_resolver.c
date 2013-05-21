@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010, 2011, 2012, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -22,6 +22,7 @@
  * @file gns/gnunet-service-gns_resolver.c
  * @brief GNUnet GNS resolver logic
  * @author Martin Schanzenbach
+ * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
