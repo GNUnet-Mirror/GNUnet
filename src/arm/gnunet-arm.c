@@ -582,13 +582,13 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   cfg = GNUNET_CONFIGURATION_dup (c);
   config_file = cfgfile;
-  if (GNUNET_CONFIGURATION_get_value_string
-      (cfg, "PATHS", "SERVICEHOME", &dir) != GNUNET_OK)
+  if (GNUNET_OK != 
+      GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS", "SERVICEHOME", &dir))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
 			       "PATHS", "SERVICEHOME");
     return;
-    }
+  }
   if (NULL != cfgfile)
   {
     if (GNUNET_OK !=
@@ -609,7 +609,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     {
       GNUNET_SCHEDULER_add_now (&action_loop, NULL);
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-          shutdown_task, NULL);
+				    shutdown_task, NULL);
     }
     else
     {
