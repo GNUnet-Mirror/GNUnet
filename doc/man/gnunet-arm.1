@@ -31,6 +31,9 @@ Starts the specified SERVICE if it is not already running.  More specifically, t
 .IP "\-k SERVICE,  \-\-kill=SERVICE"
 Stop the specified SERVICE if it is running.  While this will kill the service right now, the service may be restarted immediately if other services depend on it (service is then started 'on-demand').  If the service used to be a 'default' service, its default-service status will be revoked.  If the service was not a default service, it will just be (temporarily) stopped, but could be re-started on-demand at any time.
 .B
+.IP "\-m, \-\-monitor"
+Monitor service activity of ARM.  In this mode, the command will not terminate until the user presses CTRL-C.
+.B
 .IP "\-s, \-\-start"
 Start all GNUnet default services on this system (and also ARM).  Naturally, if a service is demanded by a default service, it will then also be started.  Running "gnunet-arm \-s" is the usual way to start a GNUnet peer.
 .B

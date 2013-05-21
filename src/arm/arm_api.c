@@ -83,6 +83,12 @@ struct GNUNET_ARM_Handle
   void *conn_status_cls;
 
   /**
+   * ARM control message for the 'arm_termination_handler'
+   * with the continuation to call once the ARM shutdown is done.
+   */
+  struct ARMControlMessage *thm;
+
+  /**
    * ID of the reconnect task (if any).
    */
   GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
@@ -266,6 +272,40 @@ find_cm_by_id (struct GNUNET_ARM_Handle *h, uint64_t id)
 
 
 /**
+ * Handler for ARM 'termination' reply (failure to receive).
+ *
+ * @param cls our "struct GNUNET_ARM_Handle"
+ * @param msg expected to be NULL
+ */
+static void
+arm_termination_handler (void *cls, const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_ARM_Handle *h = cls;
+  struct ARMControlMessage *cm;
+
+  if (NULL != msg)
+  {
+    GNUNET_break (0);   
+    GNUNET_CLIENT_receive (h->client, &arm_termination_handler, h,
+			   GNUNET_TIME_UNIT_FOREVER_REL);
+    return;
+  }
+  cm = h->thm;
+  h->thm = NULL;
+  h->currently_down = GNUNET_YES;
+  GNUNET_CLIENT_disconnect (h->client);
+  h->client = NULL;
+  if (NULL != cm->result_cont)
+    cm->result_cont (cm->cont_cls, 
+		     GNUNET_ARM_REQUEST_SENT_OK,
+		     (const char *) &cm->msg[1], 
+		     GNUNET_ARM_RESULT_STOPPED); 
+  GNUNET_free (cm->msg);
+  GNUNET_free (cm);
+}
+
+
+/**
  * Handler for ARM replies.
  *
  * @param cls our "struct GNUNET_ARM_Handle"
@@ -374,6 +414,32 @@ client_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     GNUNET_free (cm);
     return;
   }
+  if ( (GNUNET_MESSAGE_TYPE_ARM_RESULT == ntohs (msg->type)) &&
+       (0 == strcasecmp ((const char *) &cm->msg[1],
+			 "arm")) &&
+       (NULL != (res = (const struct GNUNET_ARM_ResultMessage *) msg)) &&
+       (GNUNET_ARM_RESULT_STOPPING == ntohl (res->result)) )
+  {
+    /* special case: if we are stopping 'gnunet-service-arm', we do not just
+       wait for the result message, but also wait for the service to close
+       the connection (and then we have to close our client handle as well);
+       this is done by installing a different receive handler, waiting for
+       the connection to go down */
+    if (NULL != h->thm)
+    {
+      GNUNET_break (0);
+      cm->result_cont (h->thm->cont_cls, 
+		       GNUNET_ARM_REQUEST_SENT_OK,
+                       (const char *) &h->thm->msg[1], 
+		       GNUNET_ARM_RESULT_IS_NOT_KNOWN);
+      GNUNET_free (h->thm->msg);
+      GNUNET_free (h->thm);
+    }
+    h->thm = cm;
+    GNUNET_CLIENT_receive (h->client, &arm_termination_handler, h,
+			   GNUNET_TIME_UNIT_FOREVER_REL);
+    return;
+  }       
   GNUNET_CLIENT_receive (h->client, &client_notify_handler, h,
                          GNUNET_TIME_UNIT_FOREVER_REL);
   switch (ntohs (msg->type))
@@ -845,8 +911,9 @@ change_service (struct GNUNET_ARM_Handle *h, const char *service_name,
   memcpy (&msg[1], service_name, slen);
   cm->msg = msg;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Inserting a control message into the queue. Timeout is %llu\n",
-      GNUNET_TIME_absolute_get_remaining (cm->timeout).rel_value);
+      "Inserting a control message into the queue. Timeout is %s\n",
+       GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (cm->timeout),
+					       GNUNET_NO));
   GNUNET_CONTAINER_DLL_insert_tail (h->control_pending_head,
                                     h->control_pending_tail, cm);
   cm->timeout_task_id =
@@ -959,8 +1026,10 @@ GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
  */
 void
 GNUNET_ARM_request_service_stop (struct GNUNET_ARM_Handle *h,
-    const char *service_name, struct GNUNET_TIME_Relative timeout,
-    GNUNET_ARM_ResultCallback cont, void *cont_cls)
+				 const char *service_name, 
+				 struct GNUNET_TIME_Relative timeout,
+				 GNUNET_ARM_ResultCallback cont, 
+				 void *cont_cls)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
        "Stopping service `%s' within %s\n",
