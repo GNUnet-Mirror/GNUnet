@@ -276,8 +276,16 @@ GNUNET_HELPER_wait (struct GNUNET_HELPER_Handle *h)
 static void
 stop_helper (struct GNUNET_HELPER_Handle *h, int soft_kill)
 {
-  GNUNET_break (GNUNET_OK == GNUNET_HELPER_kill (h, soft_kill));
-  GNUNET_break (GNUNET_OK == GNUNET_HELPER_wait (h));
+  if (GNUNET_SCHEDULER_NO_TASK != h->restart_task)
+  {
+    GNUNET_SCHEDULER_cancel (h->restart_task);
+    h->restart_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  else
+  {
+    GNUNET_break (GNUNET_OK == GNUNET_HELPER_kill (h, soft_kill));
+    GNUNET_break (GNUNET_OK == GNUNET_HELPER_wait (h));
+  }
 }
 
 

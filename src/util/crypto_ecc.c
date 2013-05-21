@@ -745,7 +745,8 @@ GNUNET_CRYPTO_ecc_key_create_stop (struct GNUNET_CRYPTO_EccKeyGenerationContext 
 
   if (NULL != gc->filename)
   {
-    if (0 != UNLINK (gc->filename))
+    if ( (0 != UNLINK (gc->filename)) &&
+	 (ENOENT != errno) )
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", gc->filename);
     GNUNET_free (gc->filename);
   }
