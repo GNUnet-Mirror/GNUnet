@@ -16,12 +16,29 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+check_PROGRAMS = \
+ test_experimentation_clique
+ 
+if ENABLE_TEST_RUN
+ TESTS = \
+ test_experimentation_clique
+endif
+
 libexec_PROGRAMS = \
  gnunet-daemon-experimentation
 
 gnunet_daemon_experimentation_SOURCES = \
  gnunet-daemon-experimentation.c         
 gnunet_daemon_experimentation_LDADD = \
-  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la 
+
+test_experimentation_clique_SOURCES = \
+ test_experimentation_clique.c
+test_experimentation_clique_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testbed/libgnunettestbed.la
+ 
+EXTRA_DIST = \ 
+ test_experimentation_clique.conf

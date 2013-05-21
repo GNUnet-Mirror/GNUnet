@@ -26,7 +26,10 @@
  */
 #include "platform.h"
 #include "gnunet_getopt_lib.h"
-#include "gnunet_service_lib.h"
+#include "gnunet_program_lib.h"
+#include "gnunet_core_service.h"
+
+static struct GNUNET_CORE_Handle *ch;
 
 
 /**
@@ -38,34 +41,77 @@
 static void
 cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  /* FIXME: do clean up here */
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Experimentation daemon shutting down ...\n"));
+  if (NULL != ch)
+  {
+  		GNUNET_CORE_disconnect (ch);
+  		ch = NULL;
+  }
+
 }
 
-
 /**
- * Process template requests.
+ * Method called whenever a given peer connects.
  *
  * @param cls closure
- * @param server the initialized server
- * @param cfg configuration to use
+ * @param peer peer identity this notification is about
  */
-static void
-run (void *cls, struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+void core_connect_handler (void *cls,
+                           const struct GNUNET_PeerIdentity * peer)
 {
-  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    /* FIXME: add handlers here! */
-    {NULL, NULL, 0, 0}
-  };
-  /* FIXME: do setup here */
-  GNUNET_SERVER_add_handlers (server, handlers);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
-                                NULL);
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connected to peer %s\n"),
+			GNUNET_i2s (peer));
+	/* Send request */
+
+	/* TBD */
 }
 
 
 /**
- * The main function for the template service.
+ * Method called whenever a given peer disconnects.
+ *
+ * @param cls closure
+ * @param peer peer identity this notification is about
+ */
+void core_disconnect_handler (void *cls,
+                           const struct GNUNET_PeerIdentity * peer)
+{
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Disconnected from peer %s\n"),
+			GNUNET_i2s (peer));
+
+}
+
+/**
+ * The main function for the experimentation daemon.
+ *
+ * @param argc number of arguments from the command line
+ * @param argv command line arguments
+ */
+static void
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Experimentation daemon starting ...\n"));
+
+	/* Connecting to core service to find partners */
+	ch = GNUNET_CORE_connect (cfg, NULL, NULL,
+														&core_connect_handler,
+													 	&core_disconnect_handler,
+														NULL, GNUNET_NO, NULL, GNUNET_NO, NULL);
+	if (NULL == ch)
+	{
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Failed to connect to CORE service!\n"));
+			return;
+	}
+
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
+                                NULL);
+
+}
+
+
+/**
+ * The main function for the experimentation daemon.
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments
@@ -74,9 +120,14 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 int
 main (int argc, char *const *argv)
 {
+  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_END
+  };
+
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "experimentation",
-                              GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
+          GNUNET_PROGRAM_run (argc, argv, "experimentation",
+          										_("GNUnet hostlist server and client"), options,
+                              &run, NULL)) ? 0 : 1;
 }
 
 /* end of gnunet-daemon-experimentation.c */
