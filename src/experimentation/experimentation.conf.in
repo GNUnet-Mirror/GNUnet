@@ -1,0 +1,11 @@
+[experimentation]
+AUTOSTART = NO
+# PORT = 2106
+HOSTNAME = localhost
+HOME = $SERVICEHOME
+BINARY = gnunet-daemon-experimentation
+ACCEPT_FROM = 127.0.0.1;
+ACCEPT_FROM6 = ::1;
+UNIXPATH = /tmp/gnunet-daemon-experimentation.sock
+UNIX_MATCH_UID = YES
+UNIX_MATCH_GID = YES
