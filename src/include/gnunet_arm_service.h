@@ -112,6 +112,7 @@ enum GNUNET_ARM_ServiceStatus
   GNUNET_ARM_SERVICE_STOPPING = 3
 };
 
+
 /**
  * Replies to ARM requests
  */
@@ -293,9 +294,11 @@ GNUNET_ARM_request_service_stop (struct GNUNET_ARM_Handle *h,
  */
 void
 GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
-    const char *service_name, enum GNUNET_OS_InheritStdioFlags std_inheritance,
-    struct GNUNET_TIME_Relative timeout, GNUNET_ARM_ResultCallback cont,
-    void *cont_cls);
+				  const char *service_name, 
+				  enum GNUNET_OS_InheritStdioFlags std_inheritance,
+				  struct GNUNET_TIME_Relative timeout, 
+				  GNUNET_ARM_ResultCallback cont,
+				  void *cont_cls);
 
 
 /**
