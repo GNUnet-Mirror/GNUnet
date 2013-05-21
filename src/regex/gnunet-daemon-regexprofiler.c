@@ -30,6 +30,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_regex_lib.h"
+#include "regex_test_lib.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_statistics_service.h"
 
@@ -208,66 +209,6 @@ announce_regex (const char * regex)
 
 
 /**
- * Load regular expressions from filename into 'rxes' array. Array needs to be freed.
- *
- * @param filename filename of the file containing the regexes, one per line.
- * @param rx string with the union of all regular expressions.
- *
- * @return number of regular expressions read from filename and in rxes array.
- * FIXME use load regex lib function
- */
-static unsigned int
-load_regexes (const char *filename, char **rx)
-{
-  char *data;
-  char *buf;
-  uint64_t filesize;
-  unsigned int offset;
-  unsigned int rx_cnt;
-
-  if (GNUNET_YES != GNUNET_DISK_file_test (policy_filename))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Could not find policy file %s\n", policy_filename);
-    return 0;
-  }
-  if (GNUNET_OK != GNUNET_DISK_file_size (policy_filename, &filesize, GNUNET_YES, GNUNET_YES))
-    filesize = 0;
-  if (0 == filesize)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Policy file %s is empty.\n", policy_filename);
-    return 0;
-  }
-  data = GNUNET_malloc (filesize);
-  if (filesize != GNUNET_DISK_fn_read (policy_filename, data, filesize))
-  {
-    GNUNET_free (data);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not read policy file %s.\n",
-                policy_filename);
-    return 0;
-  }
-  buf = data;
-  offset = 0;
-  rx_cnt = 0;
-  while (offset < (filesize - 1))
-  {
-    offset++;
-    if ((data[offset] == '\n') && (buf != &data[offset]))
-    {
-      data[offset] = '|';
-      buf = &data[offset + 1];
-      rx_cnt++;
-    }
-    else if ((data[offset] == '\n') || (data[offset] == '\0'))
-      buf = &data[offset + 1];
-  }
-  data[offset] = '\0';
-  *rx = data;
-
-  return rx_cnt;
-}
-
-/**
  * Scan through the policy_dir looking for the n-th filename.
  *
  * @param cls Closure (target number n).
@@ -305,6 +246,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
      const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
   char *regex = NULL;
+  char **components;
   char *policy_dir;
   long long unsigned int peer_id;
 
@@ -388,7 +330,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   /* Read regexes from policy files */
   GNUNET_assert (-1 != GNUNET_DISK_directory_scan (policy_dir, &scan,
                                                    (void *) (long) peer_id));
-  if (0 == load_regexes (policy_filename, &regex))
+  if (NULL == (components = GNUNET_REGEX_read_from_file (policy_filename)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Policy file %s contains no policies. Exiting.\n",
@@ -397,9 +339,11 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+  regex = GNUNET_REGEX_combine (components);
+  GNUNET_REGEX_free_from_file (components);
 
   /* Announcing regexes from policy_filename */
-  GNUNET_asprintf (&rx_with_pfx, "%s(%s)", regex_prefix, regex);
+  GNUNET_asprintf (&rx_with_pfx, "%s(%s)(0|1)*", regex_prefix, regex);
   announce_regex (rx_with_pfx);
   GNUNET_free (regex);
   GNUNET_free (rx_with_pfx);

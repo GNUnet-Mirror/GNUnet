@@ -102,11 +102,14 @@ gnunet_regex_profiler_LDADD = \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/regex/libgnunetregex.la \
+  $(top_builddir)/src/regex/libgnunetregextest.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la
 gnunet_regex_profiler_DEPENDENCIES = \
   $(top_builddir)/src/arm/libgnunetarm.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
-   libgnunetregex.la
+  libgnunetregex.la \
+  libgnunetregextest.la
+
 
 gnunet_daemon_regexprofiler_SOURCES = \
   gnunet-daemon-regexprofiler.c
@@ -114,9 +117,11 @@ gnunet_daemon_regexprofiler_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/regex/libgnunetregex.la \
+  $(top_builddir)/src/regex/libgnunetregextest.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la
 gnunet_daemon_regexprofiler_DEPENDENCIES = \
   $(top_builddir)/src/dht/libgnunetdht.la \
+  libgnunetregextest.la \
   libgnunetregex.la
 
 
