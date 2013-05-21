@@ -189,8 +189,9 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     break;
   case GNUNET_FS_STATUS_UNINDEX_ERROR:
-    FPRINTF (stderr, "Error unindexing file: %s\n",
-             event->value.unindex.specifics.error.message);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Error unindexing file: %s\n",
+		event->value.unindex.specifics.error.message);
     GNUNET_SCHEDULER_add_continuation (&abort_unindex_task, NULL,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     break;
