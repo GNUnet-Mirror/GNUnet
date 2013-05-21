@@ -26,6 +26,11 @@ then
   echo "This test requires nslookup.  Skipping."
   exit 0
 fi
+if ! iptables -t mangle --list &> /dev/null
+then
+  echo "This test requires iptables with 'mangle' support. Skipping."
+fi
+
 export PATH=".:$PATH"
 gnunet-service-dns -c dns.conf &
 gnunet-dns-redirector -c dns.conf -4 127.0.0.1 &
