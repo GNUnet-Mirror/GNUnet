@@ -1445,7 +1445,7 @@ resolve_dns_name (struct ResolverHandle *rh)
 
 
 /**
- * Read DNS udp packet from socket
+ * Read DNS packet from UDP socket and process the reply.
  *
  * @param cls the resolver handle
  * @param tc task context
@@ -1505,14 +1505,47 @@ read_dns_response (void *cls,
 		packet->answers[i].type,
 		rlh->record_type);
     /* http://tools.ietf.org/html/rfc1034#section-3.6.2 */
-    if (packet->answers[i].type == GNUNET_GNS_RECORD_CNAME)
+    if (GNUNET_GNS_RECORD_CNAME == packet->answers[i].type)
     {
+      struct GNUNET_DNSPARSER_Query query;
+      struct GNUNET_DNSPARSER_Packet npacket;
+      struct GNUNET_DNSPARSER_Flags flags;
+
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "CNAME... restarting query with %s\n",
-                  packet->answers[i].data.hostname
-                 );
-      strcpy (rh->dns_name, packet->answers[i].data.hostname);
+                  "CNAME record, restarting query with `%s'\n",
+                  packet->answers[i].data.hostname);
+      strcpy (rh->dns_name, 
+	      packet->answers[i].data.hostname);
       found_cname = GNUNET_YES;
+      query.name = rh->dns_name;
+      query.type = rlh->record_type;
+      query.class = GNUNET_DNSPARSER_CLASS_INTERNET;
+      memset (&flags, 0, sizeof (flags));
+      flags.recursion_desired = 1;
+      flags.checking_disabled = 1;
+      npacket.queries = &query;
+      npacket.answers = NULL;
+      npacket.authority_records = NULL;
+      npacket.num_queries = 1;
+      npacket.num_answers = 0;
+      npacket.num_authority_records = 0;
+      npacket.num_additional_records = 0;
+      npacket.flags = flags;
+      npacket.id = rh->id;
+      GNUNET_free_non_null (rh->dns_raw_packet);
+      rh->dns_raw_packet = NULL;
+      if (GNUNET_OK != GNUNET_DNSPARSER_pack (&npacket,
+					      UINT16_MAX,
+					      &rh->dns_raw_packet,
+					      &rh->dns_raw_packet_size))
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "GNS_PHASE_REC_DNS-%llu: Creating raw dns packet!\n",
+		    rh->id);
+	GNUNET_NETWORK_socket_close (rh->dns_sock);
+	finish_lookup (rh, rlh, 0, NULL);
+	return;
+      }
       continue;
     }
     
@@ -1534,22 +1567,23 @@ read_dns_response (void *cls,
 
   if (GNUNET_YES == found_cname)
   {
-    zone_offset = strlen (rh->dns_name) - strlen (rh->dns_zone) - 1;
-    
+    zone_offset = strlen (rh->dns_name) - strlen (rh->dns_zone) - 1;   
     if (0 > zone_offset)
       zone_offset = 0;
 
     /* restart query with CNAME */
-    if (0 == strcmp (rh->dns_name+zone_offset, rh->dns_zone))
+    if (0 == strcmp (rh->dns_name + zone_offset, rh->dns_zone))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Asking same server for %s\n", rh->dns_name);
+                  "Asking DNS server for `%s'\n", 
+		  rh->dns_name);
+      
       send_dns_packet (rh);
     }
     else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Trying system resolver for %s\n", rh->dns_name);
+                  "Trying system resolver for `%s'\n", rh->dns_name);
       resolve_dns_name (rh);
     }
 
@@ -1687,12 +1721,12 @@ resolve_record_dns (struct ResolverHandle *rh,
     }
     /* The glue */
     if (GNUNET_GNS_RECORD_A == rd[i].record_type)
-         /* need to use memcpy as .data may be unaligned */
-        memcpy (&dnsip, rd[i].data, sizeof (dnsip));
+      /* need to use memcpy as .data may be unaligned */
+      memcpy (&dnsip, rd[i].data, sizeof (dnsip));
   }
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "GNS_PHASE_REC_DNS-%llu: Looking up %s from %s\n",
+              "GNS_PHASE_REC_DNS-%llu: Looking up `%s' from `%s'\n",
               rh->id,
               rh->dns_name,
               inet_ntoa (dnsip));
@@ -1714,7 +1748,7 @@ resolve_record_dns (struct ResolverHandle *rh,
                                                sizeof (struct sockaddr_in)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "GNS_PHASE_REC_DNS-%llu: Error binding udp socket for dns!\n",
+                "GNS_PHASE_REC_DNS-%llu: Error binding UDP socket for DNS lookup!\n",
                 rh->id);
     finish_lookup (rh, rlh, 0, NULL);
     return;
@@ -2652,10 +2686,8 @@ pop_tld (char* name, char* dest)
   //Was canonical?
   if (0 == len)
     return;
-
   name[len] = '\0';
-
-  strcpy(dest, (name+len+1));
+  strcpy (dest, (name+len+1));
 }
 
 
@@ -2781,7 +2813,7 @@ resolve_delegation_dht (struct ResolverHandle *rh)
 
 
 /**
- * Checks if name is in tld
+ * Checks if "name" ends in ".tld"
  *
  * @param name the name to check
  * @param tld the TLD to check for
@@ -2794,14 +2826,9 @@ is_tld (const char* name, const char* tld)
 
   if (strlen (name) <= strlen (tld))
     return GNUNET_NO;
-  
   offset = strlen (name) - strlen (tld);
   if (0 != strcmp (name + offset, tld))
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "%s is not in .%s TLD\n", name, tld);
     return GNUNET_NO;
-  }
   return GNUNET_YES;
 }
 
@@ -2823,9 +2850,9 @@ handle_delegation_ns (void* cls, struct ResolverHandle *rh,
   int check_dht;
   size_t s_len;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_DELEGATE_NS-%llu: Resolution status: %d.\n",
-             rh->id, rh->status);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "GNS_PHASE_DELEGATE_NS-%llu: Resolution status: %d.\n",
+	      rh->id, rh->status);
 
   if (rh->status & RSL_PKEY_REVOKED)
   {
@@ -2908,16 +2935,15 @@ handle_delegation_ns (void* cls, struct ResolverHandle *rh,
     {
       if (GNUNET_GNS_RECORD_NS == rlh->record_type)
       {
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                   "GNS_PHASE_DELEGATE_NS-%llu: Resolved queried NSRR in NS.\n",
-                   rh->id);
-        finish_lookup(rh, rlh, rd_count, rd);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "GNS_PHASE_DELEGATE_NS-%llu: Resolved queried NSRR in NS.\n",
+		    rh->id);
+        finish_lookup (rh, rlh, rd_count, rd);
         return;
-      }
-      
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_NS-%llu: NS delegation starting.\n",
-                 rh->id);
+      }      
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "GNS_PHASE_DELEGATE_NS-%llu: NS delegation starting.\n",
+		  rh->id);
       GNUNET_assert (NULL != rd);
       rh->proc = &handle_record_ns;
       resolve_record_dns (rh, rd_count, rd);
@@ -3049,27 +3075,31 @@ process_delegation_result_ns (void* cls,
   char new_name[GNUNET_DNSPARSER_MAX_NAME_LENGTH];
   unsigned int i;
   struct GNUNET_TIME_Absolute et;
+  struct AuthorityChain *auth;
  
   rh->namestore_task = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "GNS_PHASE_DELEGATE_NS-%llu: Got %d records from authority lookup\n",
-	      rh->id, rd_count);
-
   GNUNET_CRYPTO_short_hash (key,
-                      sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                      &zone);
+			    sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+			    &zone);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "GNS_PHASE_DELEGATE_NS-%llu: Got %d records from authority lookup for `%s' in zone %s\n",
+	      rh->id, rd_count,
+	      name,
+	      GNUNET_short_h2s (&zone));
+
   remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
   
   rh->status = 0;
   
-  if (name != NULL)
+  if (NULL != name)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "GNS_PHASE_DELEGATE_NS-%llu: Records with name %s exist.\n",
-                rh->id, name);
+                "GNS_PHASE_DELEGATE_NS-%llu: Records with name `%s' exist in zone %s.\n",
+                rh->id, name,
+		GNUNET_short_h2s (&zone));
     rh->status |= RSL_RECORD_EXISTS;
   
-    if (remaining_time.rel_value == 0)
+    if (0 == remaining_time.rel_value)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "GNS_PHASE_DELEGATE_NS-%llu: Record set %s expired.\n",
@@ -3081,7 +3111,7 @@ process_delegation_result_ns (void* cls,
   /**
    * No authority found in namestore.
    */
-  if (rd_count == 0)
+  if (0 == rd_count)
   {
     /**
      * We did not find an authority in the namestore
@@ -3125,125 +3155,104 @@ process_delegation_result_ns (void* cls,
    */
   for (i=0; i < rd_count;i++)
   {
-    
-    /**
-     * A CNAME. Like regular DNS this means the is no other record for this
-     * name.
-     */
-    if (rd[i].record_type == GNUNET_GNS_RECORD_CNAME)
+    switch (rd[i].record_type)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_NS-%llu: CNAME found.\n",
-                 rh->id);
+    case GNUNET_GNS_RECORD_CNAME:
+      /* Like in regular DNS this should mean that there is no other
+       * record for this name.  */
 
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "GNS_PHASE_DELEGATE_NS-%llu: CNAME `%.*s' found.\n",
+		  rh->id,
+		  (int) rd[i].data_size,
+		  rd[i].data);
       rh->status |= RSL_CNAME_FOUND;
       rh->proc (rh->proc_cls, rh, rd_count, rd);
       return;
-    }
-
-    /**
-     * Redirect via VPN
-     */
-    if (rd[i].record_type == GNUNET_GNS_RECORD_VPN)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_NS-%llu: VPN found.\n",
-                 rh->id);
+    case GNUNET_GNS_RECORD_VPN:
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "GNS_PHASE_DELEGATE_NS-%llu: VPN found.\n",
+		  rh->id);
       rh->status |= RSL_DELEGATE_VPN;
       rh->proc (rh->proc_cls, rh, rd_count, rd);
       return;
-    }
-
-    /**
-     * Redirect via NS
-     * FIXME make optional
-     */
-    if (rd[i].record_type == GNUNET_GNS_RECORD_NS)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_NS-%llu: NS found.\n",
-                 rh->id);
+    case GNUNET_GNS_RECORD_NS:
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "GNS_PHASE_DELEGATE_NS-%llu: NS `%.*s' found.\n",
+		  rh->id,
+		  (int) rd[i].data_size,
+		  rd[i].data);
       rh->status |= RSL_DELEGATE_NS;
       rh->proc (rh->proc_cls, rh, rd_count, rd);
       return;
-    }
-  
-    if (rd[i].record_type != GNUNET_GNS_RECORD_PKEY)
-      continue;
-
-    rh->status |= RSL_DELEGATE_PKEY;
-
-    if ((ignore_pending_records != 0) &&
-        (rd[i].flags & GNUNET_NAMESTORE_RF_PENDING))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-     "GNS_PHASE_DELEGATE_NS-%llu: PKEY for %s is pending user confirmation.\n",
-        rh->id,
-        name);
-      continue;
-    }
-    
-    GNUNET_break (0 == (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
-    et.abs_value = rd[i].expiration_time;
-    if ((GNUNET_TIME_absolute_get_remaining (et)).rel_value
-         == 0)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "GNS_PHASE_DELEGATE_NS-%llu: This pkey is expired.\n",
-                  rh->id);
-      if (remaining_time.rel_value == 0)
+    case GNUNET_GNS_RECORD_PKEY:
+      rh->status |= RSL_DELEGATE_PKEY;
+      if ((ignore_pending_records != 0) &&
+	  (rd[i].flags & GNUNET_NAMESTORE_RF_PENDING))
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "GNS_PHASE_DELEGATE_NS-%llu: This dht entry is expired.\n",
-                    rh->id);
-        rh->authority_chain_head->fresh = 0;
-        rh->proc (rh->proc_cls, rh, 0, NULL);
-        return;
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "GNS_PHASE_DELEGATE_NS-%llu: PKEY for %s is pending user confirmation.\n",
+		    rh->id,
+		    name);
+	continue;
+      }    
+      GNUNET_break (0 == (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
+      et.abs_value = rd[i].expiration_time;
+      if (0 == (GNUNET_TIME_absolute_get_remaining (et)).rel_value)
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "GNS_PHASE_DELEGATE_NS-%llu: This pkey is expired.\n",
+		    rh->id);
+	if (remaining_time.rel_value == 0)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "GNS_PHASE_DELEGATE_NS-%llu: This dht entry is expired.\n",
+		      rh->id);
+	  rh->authority_chain_head->fresh = 0;
+	  rh->proc (rh->proc_cls, rh, 0, NULL);
+	  return;
+	}	
+	continue;
       }
-
-      continue;
+      /* Resolve rest of query with new authority */
+      memcpy (&rh->authority, rd[i].data,
+	      sizeof (struct GNUNET_CRYPTO_ShortHashCode));
+      auth = GNUNET_malloc(sizeof (struct AuthorityChain));
+      auth->zone = rh->authority;
+      memset (auth->name, 0, strlen (rh->authority_name)+1);
+      strcpy (auth->name, rh->authority_name);
+      GNUNET_CONTAINER_DLL_insert (rh->authority_chain_head,
+				   rh->authority_chain_tail,
+				   auth);
+      if (NULL != rh->rd.data)
+	GNUNET_free ((void*)(rh->rd.data));      
+      memcpy (&rh->rd, &rd[i], sizeof (struct GNUNET_NAMESTORE_RecordData));
+      rh->rd.data = GNUNET_malloc (rd[i].data_size);
+      memcpy ((void*)rh->rd.data, rd[i].data, rd[i].data_size);
+      rh->rd_count = 1;
+      /* Check for key revocation and delegate */
+      rh->namestore_task = GNUNET_NAMESTORE_lookup_record (namestore_handle,
+							   &rh->authority,
+							   GNUNET_GNS_MASTERZONE_STR,
+							   GNUNET_GNS_RECORD_REV,
+							   &process_pkey_revocation_result_ns,
+							   rh);
+      return;
+    default:
+      /* ignore, move to next result */
+      break;
     }
-
-    /**
-     * Resolve rest of query with new authority
-     */
-    GNUNET_assert (rd[i].record_type == GNUNET_GNS_RECORD_PKEY);
-    memcpy (&rh->authority, rd[i].data,
-            sizeof (struct GNUNET_CRYPTO_ShortHashCode));
-    struct AuthorityChain *auth = GNUNET_malloc(sizeof (struct AuthorityChain));
-    auth->zone = rh->authority;
-    memset (auth->name, 0, strlen (rh->authority_name)+1);
-    strcpy (auth->name, rh->authority_name);
-    GNUNET_CONTAINER_DLL_insert (rh->authority_chain_head,
-                                 rh->authority_chain_tail,
-                                 auth);
-    if (NULL != rh->rd.data)
-      GNUNET_free ((void*)(rh->rd.data));
-    
-    memcpy (&rh->rd, &rd[i], sizeof (struct GNUNET_NAMESTORE_RecordData));
-    rh->rd.data = GNUNET_malloc (rd[i].data_size);
-    memcpy ((void*)rh->rd.data, rd[i].data, rd[i].data_size);
-    rh->rd_count = 1;
-    /* Check for key revocation and delegate */
-    rh->namestore_task = GNUNET_NAMESTORE_lookup_record (namestore_handle,
-							 &rh->authority,
-							 GNUNET_GNS_MASTERZONE_STR,
-							 GNUNET_GNS_RECORD_REV,
-							 &process_pkey_revocation_result_ns,
-							 rh);
-    return;
   }
   
-  /**
-   * no answers found
-   */
+  /* no answers that would cause delegation were found */
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-    "GNS_PHASE_DELEGATE_NS-%llu: Authority lookup and no PKEY...\n", rh->id);
+	     "GNS_PHASE_DELEGATE_NS-%llu: Authority lookup failed (no PKEY record)\n", 
+	     rh->id);
   /**
    * If we have found some records for the LAST label
-   * we return the results. Else null.
+   * we return the results. Else NULL.
    */
-  if (strcmp (rh->name, "") == 0)
+  if (0 == strcmp (rh->name, ""))
   {
     /* Start shortening */
     if ((rh->priv_key != NULL) &&
@@ -3274,6 +3283,7 @@ process_delegation_result_ns (void* cls,
 
 /**
  * Resolve the delegation chain for the request in our namestore
+ * (as in, find the respective authority for the leftmost label).
  *
  * @param rh the resolver handle
  */
@@ -3282,9 +3292,11 @@ resolve_delegation_ns (struct ResolverHandle *rh)
 {
   pop_tld (rh->name, rh->authority_name);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "GNS_PHASE_DELEGATE_NS-%llu: Resolving delegation for %s by looking up %s\n",
-	      rh->id, rh->name,
-	      rh->authority_name);
+	      "GNS_PHASE_DELEGATE_NS-%llu: Finding authority for `%s' by looking up `%s' in GADS zone `%s'\n",
+	      rh->id,	      
+	      rh->name,
+	      rh->authority_name,
+	      GNUNET_short_h2s (&rh->authority));
   rh->namestore_task = GNUNET_NAMESTORE_lookup_record (namestore_handle,
 						       &rh->authority,
 						       rh->authority_name,
@@ -3326,7 +3338,7 @@ gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
   char* nzkey_ptr = nzkey;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Starting resolution for %s (type=%d) with timeout %s!\n",
+              "Starting resolution for `%s' (type=%d) with timeout %s!\n",
               name, record_type,
 	      GNUNET_STRINGS_relative_time_to_string (timeout, GNUNET_YES));
 
@@ -3379,14 +3391,12 @@ gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
   if (strcmp(GNUNET_GNS_TLD, name) == 0)
   {
     /**
-     * Only 'gnunet' given
+     * Only '.gads' given
      */
-    strcpy(rh->name, "\0");
+    strcpy (rh->name, "\0");
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Checking for TLD...\n");
     if (is_zkey_tld(name) == GNUNET_YES)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3399,7 +3409,7 @@ gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
              strlen(name)-strlen(GNUNET_GNS_TLD_ZKEY));
       memcpy(rh->name, name,
              strlen(name)-strlen(GNUNET_GNS_TLD_ZKEY) - 1);
-      pop_tld(rh->name, string_hash);
+      pop_tld (rh->name, string_hash);
 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "ZKEY is %s!\n", string_hash);
@@ -3466,7 +3476,7 @@ gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
   rlh->proc_cls = cls;
 
   rh->proc = &handle_delegation_ns;
-  resolve_delegation_ns(rh);
+  resolve_delegation_ns (rh);
 }
 
 /******** END Record Resolver ***********/

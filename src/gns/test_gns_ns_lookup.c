@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2012 Christian Grothoff (and other contributing authors)
+     (C) 2012, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -32,36 +32,109 @@
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_gns_service.h"
 
-/* Timeout for entire testcase */
+/**
+ * Timeout for entire testcase 
+ */
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 20)
 
-/* test records to resolve */
+/**
+ * Name to resolve for testing.  NS record on 'homepage.gads' redirects to
+ * DNS 'TEST_RECORD_NS' domain and thus names should be resolved within
+ * that target domain.
+ */
 #define TEST_DOMAIN "www.homepage.gads"
+
+/**
+ * Name to resolve for testing.  NS record on 'homepage.gads' redirects to
+ * DNS 'TEST_RECORD_NS' domain and thus names should be resolved within
+ * that target domain.
+ */
 #define TEST_DOMAIN_ALT "homepage.gads"
+
+/**
+ * Name to resolve for testing.  NS record on 'homepage.gads' redirects to
+ * DNS 'TEST_RECORD_NS' domain and thus names should be resolved within
+ * that target domain.
+ */
 #define TEST_DOMAIN_ALT2 "uk.homepage.gads"
-#define TEST_IP_ALT2 "81.187.252.184" // uk.gnunet.org / stat.wensley.org.uk
-#define TEST_IP "131.159.74.67" // gnunet.org
-#define TEST_IP_NS "216.69.185.1" //ns01.domaincontrol.com
-#define TEST_RECORD_NAME "homepage"
+
+/**
+ * Expected test value (matching TEST_DOMAIN_ALT2).
+ * Currently 'uk.gnunet.org' / 'stat.wensley.org.uk'.
+ */
+#define TEST_IP_ALT2 "81.187.252.184"
+
+/**
+ * Must be the IP address for TEST_RECORD_NS in DNS and TEST_DOMAIN in GADS;
+ * used to check that DNS is working as expected.  We use the IPv4
+ * address of gnunet.org.
+ */
+#define TEST_IP "131.159.74.67"
+
+/**
+ * DNS domain name used for testing.
+ */
 #define TEST_RECORD_NS "gnunet.org"
 
-/* Task handle to use to schedule test failure */
+/**
+ * Nameserver for 'TEST_RECORD_NS', currently 'a.ns.joker.com'.
+ */
+#define TEST_IP_NS "184.172.157.218" 
+
+/**
+ * Name we use within our GADS zone.
+ */
+#define TEST_RECORD_NAME "homepage"
+
+/**
+ * Task handle to use to schedule test failure 
+ */
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
-/* Global return value (0 for success, anything else for failure) */
+/**
+ * Global return value (0 for success, anything else for failure) 
+ */
 static int ok;
 
+/**
+ * Flag we set if the DNS resolver seems to be working.
+ */
 static int resolver_working;
 
+/**
+ * Handle to namestore.
+ */
 static struct GNUNET_NAMESTORE_Handle *namestore_handle;
 
+/**
+ * Handle to GNS resolver.
+ */
 static struct GNUNET_GNS_Handle *gns_handle;
 
+/**
+ * Handle for DNS request.
+ */
 static struct GNUNET_RESOLVER_RequestHandle *resolver_handle;
 
+/**
+ * Our configuration.
+ */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+/**
+ * Handle for active GNS lookup.
+ */
 static struct GNUNET_GNS_LookupRequest *lr;
+
+/**
+ * Queue for storing records in namestore.
+ */
+static struct GNUNET_NAMESTORE_QueueEntry *qe;
+
+/**
+ * Our private key for signing records.
+ */
+static struct GNUNET_CRYPTO_RsaPrivateKey *alice_key;
 
 
 /**
@@ -84,6 +157,11 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_RESOLVER_request_cancel (resolver_handle);
     resolver_handle = NULL;
   }
+  if (NULL != qe)
+  {
+    GNUNET_NAMESTORE_cancel (qe);
+    qe = NULL;
+  }
   if (NULL != gns_handle)
   {
     GNUNET_GNS_disconnect(gns_handle);
@@ -94,12 +172,20 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_NAMESTORE_disconnect (namestore_handle);
     namestore_handle = NULL;
   }
+  if (NULL != alice_key)
+  {
+    GNUNET_CRYPTO_rsa_key_free (alice_key);
+    alice_key = NULL;
+  }
   GNUNET_break (0);
   GNUNET_SCHEDULER_shutdown ();
   ok = 1;
 }
 
 
+/**
+ * We hit a hard failure, shutdown now.
+ */
 static void
 end_badly_now ()
 {
@@ -108,6 +194,9 @@ end_badly_now ()
 }
 
 
+/**
+ * Testcase is finished, terminate everything.
+ */
 static void
 end_now (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -117,6 +206,11 @@ end_now (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
       GNUNET_SCHEDULER_cancel (die_task);
       die_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (NULL != qe)
+  {
+    GNUNET_NAMESTORE_cancel (qe);
+    qe = NULL;
   }
   if (NULL != resolver_handle)
   {
@@ -133,11 +227,24 @@ end_now (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_NAMESTORE_disconnect (namestore_handle);
     namestore_handle = NULL;
   }
+  if (NULL != alice_key)
+  {
+    GNUNET_CRYPTO_rsa_key_free (alice_key);
+    alice_key = NULL;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer!\n");
   GNUNET_SCHEDULER_shutdown ();
 }
 
 
+/**
+ * We got resolution result for 'TEST_DOMAIN_ALT2', check if
+ * they match our expectations, then finish the test with success.
+ *
+ * @param cls unused
+ * @param rd_count number of records in rd
+ * @param rd records returned from naming system for the name
+ */
 static void
 on_lookup_result_alt2 (void *cls, uint32_t rd_count,
 		       const struct GNUNET_NAMESTORE_RecordData *rd)
@@ -148,41 +255,60 @@ on_lookup_result_alt2 (void *cls, uint32_t rd_count,
 
   lr = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received alternative results 2\n");
-  if (rd_count == 0)
+  if (0 == rd_count)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Lookup failed\n");
+                "Lookup for `%s' failed\n",
+		TEST_DOMAIN_ALT2);
     ok = 2;
+    GNUNET_SCHEDULER_add_now (&end_now, NULL);
+    return;
   }
-  else
+  ok = 1;
+  for (i=0; i<rd_count; i++)
   {
-    ok = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "name: %s\n", (char*)cls);
-    for (i=0; i<rd_count; i++)
+    if (rd[i].record_type == GNUNET_GNS_RECORD_A)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
-      if (rd[i].record_type == GNUNET_GNS_RECORD_A)
+      memcpy(&a, rd[i].data, sizeof(a));
+      addr = inet_ntoa(a);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "address: %s\n", addr);
+      if (0 == strcmp(addr, TEST_IP_ALT2))
       {
-        memcpy(&a, rd[i].data, sizeof(a));
-        addr = inet_ntoa(a);
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "address: %s\n", addr);
-        if (0 == strcmp(addr, TEST_IP_ALT2))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                    "%s correctly resolved to %s!\n", TEST_DOMAIN, addr);
-          ok = 0;
-        }
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    "%s correctly resolved to %s!\n", 
+		    TEST_DOMAIN_ALT2, addr);
+	ok = 0;
       }
       else
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No resolution!\n");
-      }
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		    "Got unexpected address %s for %s\n",
+		    addr,
+		    TEST_DOMAIN);
     }
   }
+  if (1 == ok)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"None of the results matched the expected value %s for %s\n",
+		TEST_IP,
+		TEST_DOMAIN);
+    GNUNET_SCHEDULER_add_now (&end_now, NULL);
+    return;
+  }
+
   GNUNET_SCHEDULER_add_now (&end_now, NULL);
 }
 
 
+/**
+ * We got resolution result for 'TEST_DOMAIN_ALT', check if
+ * they match our expectations, then move on to the next
+ * resolution.
+ *
+ * @param cls unused
+ * @param rd_count number of records in rd
+ * @param rd records returned from naming system for the name
+ */
 static void
 on_lookup_result_alt (void *cls, uint32_t rd_count,
 		      const struct GNUNET_NAMESTORE_RecordData *rd)
@@ -192,101 +318,139 @@ on_lookup_result_alt (void *cls, uint32_t rd_count,
   char* addr;
 
   lr = NULL;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received alternative results\n");
-  if (rd_count == 0)
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received alternative results\n");
+  if (0 == rd_count)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Lookup failed\n");
+                "Lookup for `%s' failed\n",
+		TEST_DOMAIN_ALT);
     ok = 2;
+    GNUNET_SCHEDULER_add_now (&end_now, NULL);
+    return;
   }
-  else
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Received %u results for %s\n",
+	      (unsigned int) rd_count,
+	      TEST_DOMAIN_ALT);
+  ok = 1;
+  for (i=0; i<rd_count; i++)
   {
-    ok = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "name: %s\n", (char*)cls);
-    for (i=0; i<rd_count; i++)
+    if (rd[i].record_type == GNUNET_GNS_RECORD_A)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
-      if (rd[i].record_type == GNUNET_GNS_RECORD_A)
+      memcpy (&a, rd[i].data, sizeof(a));
+      addr = inet_ntoa (a);
+      if (0 == strcmp(addr, TEST_IP))
       {
-        memcpy(&a, rd[i].data, sizeof(a));
-        addr = inet_ntoa(a);
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "address: %s\n", addr);
-        if (0 == strcmp(addr, TEST_IP))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                    "%s correctly resolved to %s!\n", TEST_DOMAIN, addr);
-          ok = 0;
-        }
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		    "%s correctly resolved to %s!\n", TEST_DOMAIN, addr);
+	ok = 0;
       }
       else
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No resolution!\n");
-      }
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		    "Got unexpected address %s for %s\n",
+		    addr,
+		    TEST_DOMAIN_ALT);
     }
   }
+  if (1 == ok)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"None of the results matched the expected value %s for %s\n",
+		TEST_IP,
+		TEST_DOMAIN_ALT);
+    GNUNET_SCHEDULER_add_now (&end_now, NULL);
+    return;
+  }
 
-  lr = GNUNET_GNS_lookup (gns_handle, TEST_DOMAIN_ALT2, GNUNET_GNS_RECORD_A,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Starting lookup for `%s'\n",
+	      TEST_DOMAIN_ALT2);
+  lr = GNUNET_GNS_lookup (gns_handle, 
+			  TEST_DOMAIN_ALT2, GNUNET_GNS_RECORD_A,
 			  GNUNET_YES,
 			  NULL,
-			  &on_lookup_result_alt2, TEST_DOMAIN_ALT2);
+			  &on_lookup_result_alt2, NULL);
 }
 
 
+/**
+ * We got resolution result for 'TEST_DOMAIN', check if
+ * they match our expectations, then move on to the next
+ * resolution.
+ *
+ * @param cls unused
+ * @param rd_count number of records in rd
+ * @param rd records returned from naming system for the name
+ */
 static void
-on_lookup_result(void *cls, uint32_t rd_count,
-                 const struct GNUNET_NAMESTORE_RecordData *rd)
+on_lookup_result (void *cls, uint32_t rd_count,
+		  const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct in_addr a;
   uint32_t i;
   char* addr;
 
   lr = NULL;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received results\n");
-  if (rd_count == 0)
+  if (0 == rd_count)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Lookup failed\n");
+                "Lookup for `%s' failed\n",
+		TEST_DOMAIN);
     ok = 2;
+    GNUNET_SCHEDULER_add_now (&end_now, NULL);
+    return;
   }
-  else
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Received %u results for %s\n",
+	      (unsigned int) rd_count,
+	      TEST_DOMAIN);
+  ok = 1;
+  for (i=0; i<rd_count; i++)
   {
-    ok = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "name: %s\n", (char*)cls);
-    for (i=0; i<rd_count; i++)
+    if (rd[i].record_type == GNUNET_GNS_RECORD_A)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
-      if (rd[i].record_type == GNUNET_GNS_RECORD_A)
+      memcpy (&a, rd[i].data, sizeof(a));
+      addr = inet_ntoa(a);
+      if (0 == strcmp (addr, TEST_IP))
       {
-        memcpy(&a, rd[i].data, sizeof(a));
-        addr = inet_ntoa(a);
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "address: %s\n", addr);
-        if (0 == strcmp(addr, TEST_IP))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                    "%s correctly resolved to %s!\n", TEST_DOMAIN, addr);
-          ok = 0;
-        }
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    "%s correctly resolved to %s!\n", 
+		    TEST_DOMAIN, addr);
+	ok = 0;
       }
       else
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No resolution!\n");
-      }
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		    "Got unexpected address %s for %s\n",
+		    addr,
+		    TEST_DOMAIN);
     }
   }
+  if (1 == ok)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"None of the results matched the expected value %s for %s\n",
+		TEST_IP,
+		TEST_DOMAIN);
+    GNUNET_SCHEDULER_add_now (&end_now, NULL);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Starting lookup for `%s'\n",
+	      TEST_DOMAIN_ALT);
 
   lr = GNUNET_GNS_lookup (gns_handle, TEST_DOMAIN_ALT, GNUNET_GNS_RECORD_A,
 			  GNUNET_YES,
 			  NULL,
-			  &on_lookup_result_alt, TEST_DOMAIN_ALT);
+			  &on_lookup_result_alt, NULL);
 }
 
 
+/**
+ * Start the actual NS-based lookup.
+ */
 static void
 start_lookup ()
 {
-  GNUNET_NAMESTORE_disconnect (namestore_handle);
-  namestore_handle = NULL;
-
   gns_handle = GNUNET_GNS_connect (cfg);
   if (NULL == gns_handle)
   {
@@ -295,14 +459,25 @@ start_lookup ()
     end_badly_now ();
     return;
   }
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Records ready, starting lookup for `%s'\n",
+	      TEST_DOMAIN);
   lr = GNUNET_GNS_lookup (gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_A,
 			  GNUNET_YES,
 			  NULL,
-			  &on_lookup_result, TEST_DOMAIN);
+			  &on_lookup_result, NULL);
 }
 
 
+/**
+ * Function called with the result of resolving the "NS" record
+ * for TEST_RECORD_NS.  Check if the NS record is set as expected,
+ * and if so, continue with the test.
+ *
+ * @param cls closure, unused
+ * @param addr NULL for last address,
+ * @param addrlen number of bytes in addr
+ */
 static void
 handle_dns_test (void *cls,
                  const struct sockaddr *addr,
@@ -318,17 +493,16 @@ handle_dns_test (void *cls,
     {
       ok = 0;
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "System resolver not working. Test inconclusive!\n");
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer1!\n");
+                  "System resolver not working as expected. Test inconclusive!\n");
       GNUNET_SCHEDULER_add_now (&end_now, NULL);
       return;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"Starting lookup \n");
+    /* done preparing records, start lookup */
+    GNUNET_NAMESTORE_disconnect (namestore_handle);
+    namestore_handle = NULL;
     start_lookup ();
     return;
   }
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received DNS response\n");
   if (addrlen == sizeof (struct sockaddr_in))
@@ -338,7 +512,9 @@ handle_dns_test (void *cls,
     {
       resolver_working = GNUNET_YES;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Resolver is working\n");
+		  "Resolver is working (returned expected A record %s for %s)\n",
+		  TEST_IP,
+		  TEST_RECORD_NS);
     }
   }
 }
@@ -347,13 +523,22 @@ handle_dns_test (void *cls,
 /**
  * Function scheduled to be run on the successful start of services
  * tries to look up the dns record for TEST_DOMAIN
+ *
+ * @param cls closure, unused
+ * @param success GNUNET_OK on success
+ * @param emsg error message, NULL on success
  */
 static void
 commence_testing (void *cls, int32_t success, const char *emsg)
 {
+  qe = NULL;
+  if (NULL != emsg)
+    FPRINTF (stderr, "Failed to create record: %s\n", emsg);
+  GNUNET_assert (GNUNET_YES == success);
   resolver_working = GNUNET_NO;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Resolving NS record\n");
+	      "Resolving NS record for %s\n",
+	      TEST_RECORD_NS);
   GNUNET_RESOLVER_connect (cfg);
   resolver_handle = GNUNET_RESOLVER_ip_get (TEST_RECORD_NS,
                                             AF_INET,
@@ -363,23 +548,60 @@ commence_testing (void *cls, int32_t success, const char *emsg)
 }
 
 
+/**
+ * Function called once we've created the first NS record,
+ * create the second one.
+ *
+ * @param cls closure, unused
+ * @param success GNUNET_OK on success
+ * @param emsg error message, NULL on success
+ */
+static void
+create_next_record (void *cls,
+		    int32_t success,
+		    const char *emsg)
+{
+  struct GNUNET_NAMESTORE_RecordData rd;
+
+  qe = NULL;
+  if (NULL != emsg)
+    FPRINTF (stderr, "Failed to create record: %s\n", emsg);
+  GNUNET_assert (GNUNET_YES == success);
+  rd.data_size = strlen (TEST_RECORD_NS);
+  rd.data = TEST_RECORD_NS;
+  rd.record_type = GNUNET_GNS_RECORD_NS;
+  qe = GNUNET_NAMESTORE_record_create (namestore_handle,
+				       alice_key,
+				       TEST_RECORD_NAME,
+				       &rd,
+				       &commence_testing,
+				       NULL);
+}
+
+
+/**
+ * Peer is ready, run the actual test.  Begins by storing
+ * a record in the namestore.
+ *
+ * @param cls closure, NULL
+ * @param ccfg our configuration
+ * @param peer handle to the peer
+ */
 static void
 do_check (void *cls,
           const struct GNUNET_CONFIGURATION_Handle *ccfg,
           struct GNUNET_TESTING_Peer *peer)
 {
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded alice_pkey;
-  struct GNUNET_CRYPTO_RsaPrivateKey *alice_key;
   char* alice_keyfile;
   struct GNUNET_NAMESTORE_RecordData rd;
-  const char* ip = TEST_IP_NS;
   struct in_addr ns;
   
   cfg = ccfg;
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
 
   /* put records into namestore */
-  namestore_handle = GNUNET_NAMESTORE_connect(cfg);
+  namestore_handle = GNUNET_NAMESTORE_connect (cfg);
   if (NULL == namestore_handle)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
@@ -401,33 +623,23 @@ do_check (void *cls,
 
   alice_key = GNUNET_CRYPTO_rsa_key_create_from_file (alice_keyfile);
   GNUNET_CRYPTO_rsa_key_get_public (alice_key, &alice_pkey);
-  GNUNET_free(alice_keyfile);
+  GNUNET_free (alice_keyfile);
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Creating NS records\n");
   rd.expiration_time = UINT64_MAX;
-  GNUNET_assert(1 == inet_pton (AF_INET, ip, &ns));
-  rd.data_size = sizeof(struct in_addr);
+  GNUNET_assert(1 == inet_pton (AF_INET, TEST_IP_NS, &ns));
+  rd.data_size = sizeof (struct in_addr);
   rd.data = &ns;
   rd.record_type = GNUNET_DNSPARSER_TYPE_A;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Creating records\n");
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  alice_key,
-                                  TEST_RECORD_NAME,
-                                  &rd,
-                                  NULL,
-                                  NULL);
-  rd.data_size = strlen (TEST_RECORD_NS);
-  rd.data = TEST_RECORD_NS;
-  rd.record_type = GNUNET_GNS_RECORD_NS;
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  alice_key,
-                                  TEST_RECORD_NAME,
-                                  &rd,
-                                  &commence_testing,
-                                  NULL);
-  GNUNET_CRYPTO_rsa_key_free(alice_key);
+  qe = GNUNET_NAMESTORE_record_create (namestore_handle,
+				       alice_key,
+				       TEST_RECORD_NAME,
+				       &rd,
+				       &create_next_record,
+				       NULL);
 }
 
 
@@ -435,9 +647,6 @@ int
 main (int argc, char *argv[])
 {
   ok = 1;
-  GNUNET_log_setup ("test-gns-simple-ns-lookup",
-                    "WARNING",
-                    NULL);
   GNUNET_TESTING_peer_run ("test-gns-simple-ns-lookup", "test_gns_simple_lookup.conf",
 			   &do_check, NULL);
   return ok;

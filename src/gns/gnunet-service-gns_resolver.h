@@ -624,8 +624,9 @@ gns_resolver_get_authority (struct GNUNET_CRYPTO_ShortHashCode zone,
 			    GetAuthorityResultProcessor proc,
 			    void* proc_cls);
 
+
 /**
- * Generic function to check for TLDs
+ * Generic function to check for TLDs.  Checks if "name" ends in ".tld"
  *
  * @param name the name to check
  * @param tld the tld to check
@@ -634,6 +635,7 @@ gns_resolver_get_authority (struct GNUNET_CRYPTO_ShortHashCode zone,
 int
 is_tld (const char* name, 
 	const char* tld);
+
 
 
 /**

@@ -306,7 +306,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ClientShortenHandle *csh_tmp;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Shutting down!");
+             "Shutting down!\n");
   while (NULL != (csh_tmp = csh_head))
   {
     GNUNET_CONTAINER_DLL_remove (csh_head, csh_tail, csh_tmp);
