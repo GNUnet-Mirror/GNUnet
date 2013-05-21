@@ -546,10 +546,13 @@ srv_status (void *cls,
     msg = NULL;
     break;
   }
-  if (NULL != msg)
-    FPRINTF (stderr, msg, service);
-  else
-    FPRINTF (stderr, _("Unknown status %u for service %s.\n"), status, service);
+  if (! quiet)
+    {
+      if (NULL != msg)
+	FPRINTF (stderr, msg, service);
+      else
+	FPRINTF (stderr, _("Unknown status %u for service %s.\n"), status, service);
+    }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got service %s status %u\n", service, status);
 }
 
