@@ -16,7 +16,7 @@ then
   echo "This test requires sudo.  Skipping."
   exit 0
 fi
-if ! which nslookup
+if ! which nslookup > /dev/null
 then 
   echo "This test requires nslookup.  Skipping."
   exit 0
@@ -38,6 +38,7 @@ then
  echo "Fail: got address $LO, wanted 127.0.0.1"
  ret=1
 else
+ echo "Test run, with success."
  ret=0
 fi
 kill `jobs -p`
