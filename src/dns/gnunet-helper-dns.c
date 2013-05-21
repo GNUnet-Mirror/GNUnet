@@ -311,15 +311,20 @@ set_address6 (const char *dev, const char *address, unsigned long prefix_len)
   sa6.sin6_family = AF_INET6;
   if (1 != inet_pton (AF_INET6, address, sa6.sin6_addr.s6_addr))
   {
-    fprintf (stderr, "Failed to parse address `%s': %s\n", address,
+    fprintf (stderr, 
+	     "Failed to parse IPv6 address `%s': %s\n", 
+	     address,
              strerror (errno));
     exit (1);
   }
 
   if (-1 == (fd = socket (PF_INET6, SOCK_DGRAM, 0)))
   {
-    fprintf (stderr, "Error creating socket: %s\n", strerror (errno));
-    exit (1);
+    fprintf (stderr, 
+	     "Error creating IPv6 socket: %s (ignored)\n", 
+	     strerror (errno));
+    /* ignore error, maybe only IPv4 works on this system! */
+    return; 
   }
 
   memset (&ifr, 0, sizeof (struct ifreq));
@@ -404,14 +409,18 @@ set_address4 (const char *dev, const char *address, const char *mask)
    */
   if (1 != inet_pton (AF_INET, address, &addr->sin_addr.s_addr))
   {
-    fprintf (stderr, "Failed to parse address `%s': %s\n", address,
+    fprintf (stderr, 
+	     "Failed to parse IPv4 address `%s': %s\n", 
+	     address,
              strerror (errno));
     exit (1);
   }
 
   if (-1 == (fd = socket (PF_INET, SOCK_DGRAM, 0)))
   {
-    fprintf (stderr, "Error creating socket: %s\n", strerror (errno));
+    fprintf (stderr,
+	     "Error creating IPv4 socket: %s\n", 
+	     strerror (errno));
     exit (1);
   }
 
