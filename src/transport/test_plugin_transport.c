@@ -163,7 +163,7 @@ end ()
   {
       w = head;
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Plugin did not remove address `%s' \n"), w->addrstring);
+		  "Plugin did not remove address `%s'\n", w->addrstring);
       GNUNET_CONTAINER_DLL_remove (head, tail, w);
       c ++;
       GNUNET_free (w->addr);
@@ -174,7 +174,7 @@ end ()
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              _("Plugin did not remove %u addresses \n"), c);
+		"Plugin did not remove %u addresses \n", c);
     ok = 1;
   }
 
@@ -208,14 +208,14 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
       timeout_endbadly = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS, &end_badly, &ok);
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Have pending calls to pretty_printer ... deferring shutdown\n"));
+		  "Have pending calls to pretty_printer ... deferring shutdown\n");
       return;
   }
 
   if (NULL != cls)
   {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Test took too long to execute, timeout .... \n"));
+		  "Test took too long to execute, timeout .... \n");
   }
 
   if (NULL != libname)
@@ -230,7 +230,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
       w = head;
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Plugin did not remove address `%s' \n"), w->addrstring);
+		  "Plugin did not remove address `%s'\n", w->addrstring);
       GNUNET_CONTAINER_DLL_remove (head, tail, w);
       c ++;
       GNUNET_free (w->addr);
@@ -241,7 +241,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              _("Plugin did not remove %u addresses \n"), c);
+		"Plugin did not remove %u addresses\n", c);
   }
 
   if (NULL != stats)
@@ -266,7 +266,7 @@ wait_end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   timeout_wait = GNUNET_SCHEDULER_NO_TASK;
   if (0 == addresses_reported)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              _("Plugin did not report any addresses, could not check address conversion functions\n"));
+		"Plugin did not report any addresses, could not check address conversion functions\n");
   end ();
 }
 
@@ -349,7 +349,7 @@ env_notify_address (void *cls,
   {
       addresses_reported ++;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("Adding address of length %u\n"), addrlen);
+                  "Adding address of length %u\n", addrlen);
 
       w = GNUNET_malloc (sizeof (struct AddressWrapper));
       w->addr = GNUNET_malloc (addrlen);
@@ -368,19 +368,19 @@ env_notify_address (void *cls,
       {
           GNUNET_break (0);
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      _("Plugin cannot convert address to string!\n"));
+                      "Plugin cannot convert address to string!\n");
           end_badly_now();
           return;
       }
       w->addrstring = strdup (api->address_to_string (api, w->addr, w->addrlen));
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Plugin added address `%s'\n"), a2s);
+                  "Plugin added address `%s'\n", a2s);
 
       if ((GNUNET_OK != api->string_to_address (api, a2s, strlen (a2s)+1, &s2a, &s2a_len)) || (NULL == s2a))
       {
           GNUNET_break (0);
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      _("Plugin cannot convert string to address!\n"));
+                      "Plugin cannot convert string to address!\n");
           end_badly_now();
           return;
       }
@@ -388,13 +388,13 @@ env_notify_address (void *cls,
       if (s2a_len != w->addrlen)
       {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      _("Plugin creates different address length when converting address->string->address: %u != %u\n"), w->addrlen, s2a_len);
+                      "Plugin creates different address length when converting address->string->address: %u != %u\n", w->addrlen, s2a_len);
       }
       else
       {
           if (0 != memcmp (s2a, w->addr, s2a_len))
             GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                        _("Plugin creates different address length when connecting back and forth!\n"));
+                        "Plugin creates different address length when connecting back and forth!\n");
       }
       GNUNET_free (s2a);
       GNUNET_free (a2s);
@@ -402,7 +402,7 @@ env_notify_address (void *cls,
       {
           GNUNET_break (0);
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      _("Plugin refuses added address!\n"));
+                      "Plugin refuses added address!\n");
           end_badly_now();
           return;
       }
@@ -418,7 +418,7 @@ env_notify_address (void *cls,
   else if (GNUNET_NO == add_remove)
   {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("Removing address of length %u\n"), addrlen);
+                  "Removing address of length %u\n", addrlen);
 
       w = head;
       while (NULL != w)
@@ -434,7 +434,7 @@ env_notify_address (void *cls,
       {
           GNUNET_break (0);
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      _("Plugin removes address never added!\n"));
+                      "Plugin removes address never added!\n");
           end_badly_now();
           return;
       }
@@ -448,7 +448,7 @@ env_notify_address (void *cls,
   {
       GNUNET_break (0);
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Invalid operation: %u \n"), add_remove);
+                  "Invalid operation: %u\n", add_remove);
       end_badly_now ();
       return;
   }
@@ -548,14 +548,14 @@ run (void *cls, char *const *args, const char *cfgfile,
 							      &keyfile)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Transport service is lacking key configuration settings.  Exiting.\n"));
+                "Transport service is lacking key configuration settings.  Exiting.\n");
     return;
   }
 
   if (NULL == (stats = GNUNET_STATISTICS_create ("transport", cfg)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Could not create statistics.  Exiting.\n"));
+		"Could not create statistics.  Exiting.\n");
     end_badly_now ();
     return;
   }
@@ -563,14 +563,14 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (GNUNET_OK != GNUNET_DISK_file_test (HOSTKEY_FILE))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Hostkey `%s' missing.  Exiting.\n"),
+                  "Hostkey `%s' missing.  Exiting.\n",
                   HOSTKEY_FILE);
   }
 
   if (GNUNET_OK != GNUNET_DISK_directory_create_for_file (keyfile))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Could not create a directory for hostkey `%s'.  Exiting.\n"),
+                  "Could not create a directory for hostkey `%s'.  Exiting.\n",
                   keyfile);
       end_badly_now ();
       return;
@@ -579,7 +579,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (GNUNET_OK !=  GNUNET_DISK_file_copy (HOSTKEY_FILE, keyfile))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Could not copy hostkey `%s' to destination `%s'.  Exiting.\n"),
+                  "Could not copy hostkey `%s' to destination `%s'.  Exiting.\n",
                   HOSTKEY_FILE, keyfile);
       end_badly_now ();
       return;
@@ -592,7 +592,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (NULL == my_private_key)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Transport service could not access hostkey.  Exiting.\n"));
+                "Could not access hostkey.  Exiting.\n");
     end_badly_now ();
     return;
   }
@@ -611,7 +611,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   sep = strrchr(argv[0],'.');
   if (NULL == plugin)
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Not a valid test name\n"));
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Not a valid test name\n");
       end_badly_now ();
       return;
   }
@@ -635,13 +635,13 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
 
   /* Loading plugin */
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading transport plugin %s\n"), plugin);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Loading transport plugin %s\n", plugin);
   GNUNET_asprintf (&libname, "libgnunet_plugin_transport_%s", plugin);
   api = GNUNET_PLUGIN_load (libname, &env);
   if (api == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to load transport plugin for %s\n"), plugin);
+                "Failed to load transport plugin for %s\n", plugin);
     end_badly_now ();
     return;
   }

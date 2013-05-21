@@ -638,8 +638,8 @@ key_generation_cb (void *cls,
   GST_keygen = NULL;
   if (NULL == pk)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Transport service could not access hostkey: %s. Exiting.\n"),
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Could not access hostkey: %s. Exiting.\n"),
                 emsg);
     GNUNET_SCHEDULER_shutdown ();
     return;

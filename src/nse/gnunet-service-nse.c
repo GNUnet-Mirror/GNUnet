@@ -1415,8 +1415,8 @@ key_generation_cb (void *cls,
   keygen = NULL;
   if (NULL == pk)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("NSE service could not access hostkey: %s\n"),
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Could not access hostkey: %s. Exiting.\n"),
 		emsg);
     GNUNET_SCHEDULER_shutdown ();
     return;
