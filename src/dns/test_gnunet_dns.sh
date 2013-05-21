@@ -29,6 +29,7 @@ fi
 if ! iptables -t mangle --list &> /dev/null
 then
   echo "This test requires iptables with 'mangle' support. Skipping."
+  exit 0
 fi
 
 export PATH=".:$PATH"
