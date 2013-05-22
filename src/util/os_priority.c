@@ -722,6 +722,7 @@ start_process (int pipe_control,
   }
   if (0 != ret)
   {
+    unsetenv (GNUNET_OS_CONTROL_PIPE);
     gnunet_proc = GNUNET_malloc (sizeof (struct GNUNET_OS_Process));
     gnunet_proc->pid = ret;
     gnunet_proc->control_pipe = childpipe_write;

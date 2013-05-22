@@ -1930,12 +1930,16 @@ GNUNET_DISK_get_handle_from_w32_handle (HANDLE osfh)
  * Get a handle from a native integer FD.
  *
  * @param fno native integer file descriptor
- * @return file handle corresponding to the descriptor
+ * @return file handle corresponding to the descriptor, NULL on error
  */
 struct GNUNET_DISK_FileHandle *
 GNUNET_DISK_get_handle_from_int_fd (int fno)
 {
   struct GNUNET_DISK_FileHandle *fh;
+
+  if ( (((off_t) -1) == lseek (fno, 0, SEEK_CUR)) &&
+       (EBADF == errno) )
+    return NULL; /* invalid FD */
 
 #ifndef WINDOWS
   fh = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
