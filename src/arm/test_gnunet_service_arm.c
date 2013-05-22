@@ -62,7 +62,7 @@ arm_stop_cb (void *cls,
 {
   GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);
   GNUNET_break (result == GNUNET_ARM_RESULT_STOPPED);
-  if (result != GNUNET_ARM_RESULT_STOPPING)
+  if (result != GNUNET_ARM_RESULT_STOPPED)
     ret = 4;
   GNUNET_SCHEDULER_add_now (trigger_disconnect, NULL);
 }
