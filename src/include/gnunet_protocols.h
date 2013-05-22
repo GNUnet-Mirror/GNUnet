@@ -1866,6 +1866,25 @@ extern "C"
  * extension).
  ******************************************************************************/
 
+/*******************************************************************************
+ * EXPERIMENTATION message types
+ ******************************************************************************/
+
+/**
+ * Message for experimentation request
+ */
+#define GNUNET_MESSAGE_TYPE_EXPERIMENTATION_REQUEST 610
+
+/**
+ * Message for experimentation response
+ */
+#define GNUNET_MESSAGE_TYPE_EXPERIMENTATION_RESPONSE 611
+
+/**
+ *  Next available: 620
+ */
+
+
 /**
  * Type used to match 'all' message types.
  */
