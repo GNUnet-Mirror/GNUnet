@@ -25,6 +25,9 @@ if HAVE_EXPERIMENTAL
   EXP_LIBEXEC = gnunet-service-mesh-new
   EXP_TESTS = \
   test_mesh2_local
+  MESH_DEP = $(top_builddir)/src/mesh/libgnunetmesh2.la
+else
+  MESH_DEP = $(top_builddir)/src/mesh/libgnunetmesh.la
 endif
 
 libexec_PROGRAMS = \
@@ -159,7 +162,7 @@ test_mesh_api_SOURCES = \
 test_mesh_api_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
- $(top_builddir)/src/mesh/libgnunetmesh2.la
+ $(MESH_DEP)
 test_mesh_api_DEPENDENCIES = \
   libgnunetmesh.la \
    $(top_builddir)/src/util/libgnunetutil.la
@@ -275,7 +278,7 @@ test_mesh2_local_SOURCES = \
 test_mesh2_local_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
- $(top_builddir)/src/mesh/libgnunetmesh2.la
+ $(MESH_DEP)
 test_mesh2_local_DEPENDENCIES = \
   libgnunetmesh2.la
 
