@@ -23,15 +23,10 @@
  * @file set/mq.h
  * @brief general purpose request queue
  */
-#ifndef MQ_H
-#define MQ_H
+#ifndef GNUNET_MQ_H
+#define GNUNET_MQ_H
 
-#include "platform.h"
 #include "gnunet_common.h"
-#include "gnunet_util_lib.h"
-#include "gnunet_connection_lib.h"
-#include "gnunet_server_lib.h"
-#include "gnunet_stream_lib.h"
 
 
 /**
@@ -69,10 +64,10 @@
  * @param mqm MQ message to augment with additional data
  * @param src source buffer for the additional data
  * @param len length of the additional data
- * @return FIXME
+ * @return GNUNET_SYSERR if nesting the message failed,
+ *         GNUNET_OK on success
  */
 #define GNUNET_MQ_nest(mqm, src, len) GNUNET_MQ_nest_ (&mqm, src, len)
-
 
 
 /**
@@ -114,15 +109,18 @@
  */
 #define GNUNET_MQ_HANDLERS_END {NULL, 0, 0}
 
-/**
- * Opaque handle to a message queue
- */
+
 struct GNUNET_MQ_MessageQueue;
 
-/**
- * Opaque handle to an allocated message
- */
-struct GNUNET_MQ_Message; // Entry (/ Request)
+struct GNUNET_MQ_Message;
+
+enum GNUNET_MQ_Error
+{
+  GNUNET_MQ_ERROR_READ = 1,
+  GNUNET_MQ_ERROR_WRITE = 2,
+  GNUNET_MQ_ERROR_TIMEOUT = 4
+};
+
 
 /**
  * Called when a message has been received.
@@ -131,6 +129,135 @@ struct GNUNET_MQ_Message; // Entry (/ Request)
  * @param msg the received message
  */
 typedef void (*GNUNET_MQ_MessageCallback) (void *cls, const struct GNUNET_MessageHeader *msg);
+
+
+/**
+ * Signature of functions implementing the
+ * sending part of a message queue
+ *
+ * @param q the message queue
+ * @param m the message
+ */
+typedef void
+(*GNUNET_MQ_SendImpl) (struct GNUNET_MQ_MessageQueue *q, struct GNUNET_MQ_Message *m);
+
+
+typedef void
+(*GNUNET_MQ_DestroyImpl) (struct GNUNET_MQ_MessageQueue *q);
+
+
+/**
+ * Callback used for notifications
+ *
+ * @param cls closure
+ */
+typedef void (*GNUNET_MQ_NotifyCallback) (void *cls);
+
+
+typedef void (*GNUNET_MQ_ErrorHandler) (void *cls, enum GNUNET_MQ_Error error);
+
+
+struct GNUNET_MQ_Message
+{
+  /**
+   * Messages are stored in a linked list
+   */
+  struct GNUNET_MQ_Message *next;
+
+  /**
+   * Messages are stored in a linked list
+   */
+  struct GNUNET_MQ_Message *prev;
+
+  /**
+   * Actual allocated message header,
+   * usually points to the end of the containing GNUNET_MQ_Message
+   */
+  struct GNUNET_MessageHeader *mh;
+
+  /**
+   * Queue the message is queued in, NULL if message is not queued.
+   */
+  struct GNUNET_MQ_MessageQueue *parent_queue;
+
+  /**
+   * Called after the message was sent irrevokably
+   */
+  GNUNET_MQ_NotifyCallback sent_cb;
+
+  /**
+   * Closure for send_cb
+   */
+  void *sent_cls;
+};
+
+
+/**
+ * Handle to a message queue.
+ */
+struct GNUNET_MQ_MessageQueue
+{
+  /**
+   * Handlers array, or NULL if the queue should not receive messages
+   */
+  const struct GNUNET_MQ_Handler *handlers;
+
+  /**
+   * Closure for the handler callbacks,
+   * as well as for the error handler.
+   */
+  void *handlers_cls;
+
+  /**
+   * Actual implementation of message sending,
+   * called when a message is added
+   */
+  GNUNET_MQ_SendImpl send_impl;
+
+  /**
+   * Implementation-dependent queue destruction function
+   */
+  GNUNET_MQ_DestroyImpl destroy_impl;
+
+  /**
+   * Implementation-specific state
+   */
+  void *impl_state;
+
+  /**
+   * Callback will be called when an error occurs.
+   */
+  GNUNET_MQ_ErrorHandler error_handler;
+
+  /**
+   * Linked list of messages pending to be sent
+   */
+  struct GNUNET_MQ_Message *msg_head;
+
+  /**
+   * Linked list of messages pending to be sent
+   */
+  struct GNUNET_MQ_Message *msg_tail;
+
+  /**
+   * Message that is currently scheduled to be
+   * sent. Not the head of the message queue, as the implementation
+   * needs to know if sending has been already scheduled or not.
+   */
+  struct GNUNET_MQ_Message *current_msg;
+
+  /**
+   * Map of associations, lazily allocated
+   */
+  struct GNUNET_CONTAINER_MultiHashMap32 *assoc_map;
+
+  /**
+   * Next id that should be used for the assoc_map,
+   * initialized lazily to a random value together with
+   * assoc_map
+   */
+  uint32_t assoc_id;
+};
 
 
 /**
@@ -159,13 +286,6 @@ struct GNUNET_MQ_Handler
   uint16_t expected_size;
 };
 
-/**
- * Callback used for notifications
- *
- * @param cls closure
- */
-typedef void (*GNUNET_MQ_NotifyCallback) (void *cls);
-
 
 /**
  * Create a new message for MQ.
@@ -179,6 +299,16 @@ struct GNUNET_MQ_Message *
 GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp, uint16_t size, uint16_t type);
 
 
+/**
+ * Resize the the mq message pointed to by mqmp,
+ * and append the given data to it.
+ *
+ * @param mqmp pointer to a mq message pointer
+ * @param src source of the data to append
+ * @param len length of the data to append
+ * @return GNUNET_OK on success,
+ *         GNUNET_SYSERR on error (e.g. if len is too large)
+ */
 int
 GNUNET_MQ_nest_ (struct GNUNET_MQ_Message **mqmp,
                  const void *src, uint16_t len);
@@ -277,19 +407,23 @@ GNUNET_MQ_queue_for_server_client (struct GNUNET_SERVER_Client *client);
 
 
 /**
- * Create a message queue for a GNUNET_STREAM_Socket.
- * If handlers are specfied, receive messages from the stream socket.
+ * Create a message queue for the specified handlers.
  *
- * @param socket the stream socket
- * @param handlers handlers for receiving messages
- * @param cls closure for the handlers
- * @return the message queue
- * @deprecated - GNUNET_MQ_queue_create_with_callbacks
+ * @param send function the implements sending messages
+ * @param destroy function that implements destroying the queue
+ * @param state for the queue, passed to 'send' and 'destroy'
+ * @param handlers array of message handlers
+ * @param error_handler handler for read and write errors
+ * @return a new message queue
  */
 struct GNUNET_MQ_MessageQueue *
-GNUNET_MQ_queue_for_stream_socket (struct GNUNET_STREAM_Socket *socket,
-                                   const struct GNUNET_MQ_Handler *handlers,
-                                   void *cls);
+GNUNET_MQ_queue_for_callbacks (GNUNET_MQ_SendImpl send,
+                               GNUNET_MQ_DestroyImpl destroy,
+                               void *impl_state,
+                               struct GNUNET_MQ_Handler *handlers,
+                               GNUNET_MQ_ErrorHandler error_handler,
+                               void *cls);
+                               
 
 
 /**
@@ -323,40 +457,22 @@ GNUNET_MQ_notify_sent (struct GNUNET_MQ_Message *mqm,
 
 
 /**
- * Call a callback once all messages queued have been sent,
- * i.e. the message queue is empty.
- *
- * @param mqm the message queue to send the notification for
- * @param cb the callback to call on an empty queue
- * @param cls closure for cb
- * @deprecated
- */
-void
-GNUNET_MQ_notify_empty (struct GNUNET_MQ_MessageQueue *mqm,
-                        GNUNET_MQ_NotifyCallback cb,
-                        void *cls);
-
-
-/**
- * Call a callback if reading encountered an error.
- *
- * @param mqm the message queue to send the notification for
- * @param cb the callback to call on a read error
- * @param cls closure for cb
- * @deprecated, integrate with queue creation
- */
-void
-GNUNET_MQ_notify_read_error (struct GNUNET_MQ_MessageQueue *mqm,
-                             GNUNET_MQ_NotifyCallback cb,
-                             void *cls);
-
-
-/**
  * Destroy the message queue.
  *
  * @param mq message queue to destroy
  */
 void
 GNUNET_MQ_destroy (struct GNUNET_MQ_MessageQueue *mq);
+
+
+/**
+ * Call the right callback for a message.
+ *
+ * @param mq message queue with the handlers
+ * @param mh message to dispatch
+ */
+void
+GNUNET_MQ_dispatch (struct GNUNET_MQ_MessageQueue *mq,
+                    const struct GNUNET_MessageHeader *mh);
 
 #endif

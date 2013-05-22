@@ -35,53 +35,16 @@
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
-struct StrataMessage
-{
-  struct GNUNET_MessageHeader header;
-  uint8_t round;
-  uint8_t exp_round;
-  uint8_t exp_subround;
-  /* struct GNUNET_HashCode hash_buckets[ibf_size*num_strata] */
-  /* struct GNUNET_HashCode id_buckets[ibf_size*num_strata] */
-  /* uint8_t count_buckets[ibf_size*num_strata] */
-};
-
-struct DifferenceDigest
-{
-  struct GNUNET_MessageHeader header;
-  uint8_t order;
-  uint8_t round;
-  uint8_t exp_round;
-  uint8_t exp_subround;
-  /* rest: IBF */
-};
-
-
-struct Element
-{
-  struct GNUNET_MessageHeader header;
-  struct GNUNET_HashCode hash;
-};
-
-
-struct ElementRequest
-{
-  struct GNUNET_MessageHeader header;
-  /* struct GNUNET_HashCode[] rest */
-};
-
-struct ConsensusHello
-{
-  struct GNUNET_MessageHeader header;
-  struct GNUNET_HashCode global_id;
-};
-
+/**
+ * Sent as context message for set reconciliation.
+ */
 struct ConsensusRoundMessage
 {
   struct GNUNET_MessageHeader header;
   uint8_t round;
+  uint8_t exp_round;
+  uint8_t exp_subround;
 };
-
 
 GNUNET_NETWORK_STRUCT_END
 

@@ -30,6 +30,10 @@
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
+/**
+ * Sent by the client to the service,
+ * when the client wants the service to join a consensus session.
+ */
 struct GNUNET_CONSENSUS_JoinMessage
 {
   /**

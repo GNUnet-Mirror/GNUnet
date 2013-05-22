@@ -29,26 +29,57 @@
 
 
 static struct GNUNET_PeerIdentity local_id;
+
 static struct GNUNET_HashCode app_id;
 static struct GNUNET_SET_Handle *set1;
 static struct GNUNET_SET_Handle *set2;
 static struct GNUNET_SET_ListenHandle *listen_handle;
 const static struct GNUNET_CONFIGURATION_Handle *config;
 
+int num_done;
+
 
 static void
-result_cb_set1 (void *cls, struct GNUNET_SET_Element *element,
-           enum GNUNET_SET_Status status)
+result_cb_set1 (void *cls, const struct GNUNET_SET_Element *element,
+                enum GNUNET_SET_Status status)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "got result (set 1)\n");
+  switch (status)
+  {
+    case GNUNET_SET_STATUS_OK:
+      printf ("set 1: got element\n");
+      break;
+    case GNUNET_SET_STATUS_FAILURE:
+      printf ("set 1: failure\n");
+      break;
+    case GNUNET_SET_STATUS_DONE:
+      printf ("set 1: done\n");
+      GNUNET_SET_destroy (set1);
+      break;
+    default:
+      GNUNET_assert (0);
+  }
 }
 
 
 static void
-result_cb_set2 (void *cls, struct GNUNET_SET_Element *element,
+result_cb_set2 (void *cls, const struct GNUNET_SET_Element *element,
            enum GNUNET_SET_Status status)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "got result (set 2)\n");
+  switch (status)
+  {
+    case GNUNET_SET_STATUS_OK:
+      printf ("set 2: got element\n");
+      break;
+    case GNUNET_SET_STATUS_FAILURE:
+      printf ("set 2: failure\n");
+      break;
+    case GNUNET_SET_STATUS_DONE:
+      printf ("set 2: done\n");
+      GNUNET_SET_destroy (set2);
+      break;
+    default:
+      GNUNET_assert (0);
+  }
 }
 
 
@@ -59,7 +90,9 @@ listen_cb (void *cls,
            struct GNUNET_SET_Request *request)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "listen cb called\n");
-  GNUNET_SET_accept (request, set2, GNUNET_TIME_UNIT_FOREVER_REL, 
+  GNUNET_SET_listen_cancel (listen_handle);
+
+  GNUNET_SET_accept (request, set2, 
                      GNUNET_SET_RESULT_ADDED, result_cb_set2, NULL);
 }
 
@@ -75,7 +108,7 @@ start (void *cls)
   listen_handle = GNUNET_SET_listen (config, GNUNET_SET_OPERATION_UNION,
                                      &app_id, listen_cb, NULL);
   GNUNET_SET_evaluate (set1, &local_id, &app_id, NULL, 42,
-                       GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_SET_RESULT_ADDED,
+                       GNUNET_SET_RESULT_ADDED,
                        result_cb_set1, NULL);
 }
 
@@ -119,7 +152,6 @@ init_set1 (void)
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "initialized set 1\n");
 }
-
 
 /**
  * Signature of the 'main' function for a (single-peer) testcase that

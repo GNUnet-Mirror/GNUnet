@@ -90,6 +90,7 @@ libgnunetutil_la_SOURCES = \
   getopt_helpers.c \
   helper.c \
   load.c \
+  mq.c \
   network.c \
   os_installation.c \
   os_network.c \
@@ -230,6 +231,8 @@ check_PROGRAMS = \
  test_connection_timeout \
  test_connection_timeout_no_connect \
  test_connection_transmit_cancel \
+ test_mq \
+ test_mq_client \
  test_os_network \
  test_os_priority \
  test_peer \
@@ -415,6 +418,16 @@ test_connection_transmit_cancel_SOURCES = \
  test_connection_transmit_cancel.c
 test_connection_transmit_cancel_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
+
+test_mq_SOURCES = \
+ test_mq.c
+test_mq_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la
+
+test_mq_client_SOURCES = \
+ test_mq_client.c
+test_mq_client_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la
 
 test_os_network_SOURCES = \
  test_os_network.c

@@ -17,8 +17,7 @@ endif
 
 bin_PROGRAMS = \
  gnunet-consensus \
- gnunet-consensus-start-peers \
- gnunet-consensus-ibf
+ gnunet-consensus-start-peers
 
 libexec_PROGRAMS = \
  gnunet-service-consensus
@@ -52,33 +51,25 @@ gnunet_consensus_start_peers_LDADD = \
 gnunet_consensus_start_peers_DEPENDENCIES = \
   libgnunetconsensus.la
 
-gnunet_consensus_ibf_SOURCES = \
- gnunet-consensus-ibf.c \
- ibf.c
-gnunet_consensus_ibf_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL)
 
 gnunet_service_consensus_SOURCES = \
- gnunet-service-consensus.c \
- ibf.c \
- strata_estimator.c
+ gnunet-service-consensus.c
 gnunet_service_consensus_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/stream/libgnunetstream.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/set/libgnunetset.la \
   $(GN_LIBINTL)
 
 gnunet_service_evil_consensus_SOURCES = \
- gnunet-service-consensus.c \
- ibf.c \
- strata_estimator.c
+ gnunet-service-consensus.c
 gnunet_service_evil_consensus_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/stream/libgnunetstream.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/set/libgnunetset.la \
   $(GN_LIBINTL)
 gnunet_service_evil_consensus_CFLAGS = -DEVIL
 

@@ -632,7 +632,7 @@ stream_listen_cb (void *cls,
   incoming = GNUNET_new (struct Incoming);
   incoming->peer = *initiator;
   incoming->socket = socket;
-  incoming->mq = GNUNET_MQ_queue_for_stream_socket (incoming->socket, handlers, incoming);
+  incoming->mq = GNUNET_STREAM_mq_create (incoming->socket, handlers, NULL, incoming);
   /* FIXME: timeout for peers that only connect but don't send anything */
   GNUNET_CONTAINER_DLL_insert_tail (incoming_head, incoming_tail, incoming);
   return GNUNET_OK;

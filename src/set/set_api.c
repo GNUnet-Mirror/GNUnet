@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2012 Christian Grothoff (and other contributing authors)
+     (C) 2012, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -29,8 +29,6 @@
 #include "gnunet_client_lib.h"
 #include "gnunet_set_service.h"
 #include "set.h"
-#include "mq.h"
-#include <inttypes.h>
 
 
 #define LOG(kind,...) GNUNET_log_from (kind, "set-api",__VA_ARGS__)
@@ -61,7 +59,6 @@ struct GNUNET_SET_OperationHandle
   void *result_cls;
   struct GNUNET_SET_Handle *set;
   uint32_t request_id;
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 };
 
 
@@ -104,11 +101,6 @@ handle_result (void *cls, const struct GNUNET_MessageHeader *mh)
    * and this is the last result message we get */
   if (htons (msg->result_status) != GNUNET_SET_STATUS_OK)
   {
-    if (GNUNET_SCHEDULER_NO_TASK != oh->timeout_task)
-    {
-      GNUNET_SCHEDULER_cancel (oh->timeout_task);
-      oh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-    }
     GNUNET_MQ_assoc_remove (set->mq, ntohl (msg->request_id));
     if (NULL != oh->result_cb)
       oh->result_cb (oh->result_cls, NULL, htons (msg->result_status));
@@ -264,26 +256,6 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set)
 
 
 /**
- * Signature of the main function of a task.
- *
- * @param cls closure
- * @param tc context information (why was this task triggered now)
- */
-static void
-operation_timeout_task (void *cls,
-                        const struct GNUNET_SCHEDULER_TaskContext * tc)
-{
-  struct GNUNET_SET_OperationHandle *oh = cls;
-  oh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  if (NULL != oh->result_cb)
-    oh->result_cb (oh->result_cls, NULL, GNUNET_SET_STATUS_TIMEOUT);
-  oh->result_cb = NULL;
-  oh->result_cls = NULL;
-  GNUNET_SET_operation_cancel (oh);
-}
-
-
-/**
  * Evaluate a set operation with our set and the set of another peer.
  *
  * @param set set to use
@@ -294,8 +266,6 @@ operation_timeout_task (void *cls,
  * @param salt salt used for the set operation; sometimes set operations
  *        fail due to hash collisions, using a different salt for each operation
  *        makes it harder for an attacker to exploit this
- * @param timeout result_cb will be called with GNUNET_SET_STATUS_TIMEOUT
- *        if the operation is not done after the specified time
  * @param result_mode specified how results will be returned,
  *        see 'GNUNET_SET_ResultMode'.
  * @param result_cb called on error or success
@@ -308,7 +278,6 @@ GNUNET_SET_evaluate (struct GNUNET_SET_Handle *set,
                      const struct GNUNET_HashCode *app_id,
                      const struct GNUNET_MessageHeader *context_msg,
                      uint16_t salt,
-                     struct GNUNET_TIME_Relative timeout,
                      enum GNUNET_SET_ResultMode result_mode,
                      GNUNET_SET_ResultIterator result_cb,
                      void *result_cls)
@@ -331,7 +300,6 @@ GNUNET_SET_evaluate (struct GNUNET_SET_Handle *set,
     if (GNUNET_OK != GNUNET_MQ_nest (mqm, context_msg, ntohs (context_msg->size)))
       GNUNET_assert (0);
   
-  oh->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout, operation_timeout_task, oh);
   GNUNET_MQ_send (set->mq, mqm);
 
   return oh;
@@ -399,7 +367,6 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh)
  *
  * @param request request to accept
  * @param set set used for the requested operation 
- * @param timeout timeout for the set operation
  * @param result_mode specified how results will be returned,
  *        see 'GNUNET_SET_ResultMode'.
  * @param result_cb callback for the results
@@ -409,7 +376,6 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh)
 struct GNUNET_SET_OperationHandle *
 GNUNET_SET_accept (struct GNUNET_SET_Request *request,
                    struct GNUNET_SET_Handle *set,
-                   struct GNUNET_TIME_Relative timeout,
                    enum GNUNET_SET_ResultMode result_mode,
                    GNUNET_SET_ResultIterator result_cb,
                    void *result_cls)
@@ -431,8 +397,6 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
   msg->request_id = htonl (GNUNET_MQ_assoc_add (set->mq, NULL, oh));
   msg->accept_id = htonl (request->accept_id);
   GNUNET_MQ_send (set->mq, mqm);
-
-  oh->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout, operation_timeout_task, oh);
 
   return oh;
 }

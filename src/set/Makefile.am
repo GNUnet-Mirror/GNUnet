@@ -16,7 +16,7 @@ if USE_COVERAGE
 endif
 
 bin_PROGRAMS = \
- gnunet-set gnunet-set-bug
+ gnunet-set
 
 libexec_PROGRAMS = \
  gnunet-service-set
@@ -35,17 +35,9 @@ gnunet_set_LDADD = \
 gnunet_set_DEPENDENCIES = \
   libgnunetset.la
 
-gnunet_set_bug_SOURCES = \
- gnunet-set-bug.c
-gnunet_set_bug_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/stream/libgnunetstream.la \
-  $(GN_LIBINTL)
-
 gnunet_service_set_SOURCES = \
  gnunet-service-set.c \
  gnunet-service-set_union.c \
- mq.c \
  ibf.c \
  strata_estimator.c
 gnunet_service_set_LDADD = \
@@ -54,13 +46,9 @@ gnunet_service_set_LDADD = \
   $(top_builddir)/src/stream/libgnunetstream.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(GN_LIBINTL)
-# hack for mq.c, see automake Objects ‘created with both libtool and without’
-# remove once GNUNET_MQ is in util/
-gnunet_service_set_CFLAGS = $(AM_CFLAGS)
 
 libgnunetset_la_SOURCES = \
-  set_api.c \
-  mq.c
+  set_api.c
 libgnunetset_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/stream/libgnunetstream.la \
@@ -83,24 +71,6 @@ test_set_api_LDADD = \
   $(top_builddir)/src/set/libgnunetset.la
 test_set_api_DEPENDENCIES = \
   libgnunetset.la
-
-
-test_mq_SOURCES = \
- test_mq.c \
- mq.c
-test_mq_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/stream/libgnunetstream.la
-test_mq_CFLAGS = $(AM_CFLAGS)
-
-
-test_mq_client_SOURCES = \
- test_mq_client.c \
- mq.c
-test_mq_client_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/stream/libgnunetstream.la
-test_mq_client_CFLAGS = $(AM_CFLAGS)
 
 EXTRA_DIST = \
   test_set.conf

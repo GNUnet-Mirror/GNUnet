@@ -42,8 +42,8 @@ int num_done;
 
 
 static void
-result_cb_set1 (void *cls, struct GNUNET_SET_Element *element,
-           enum GNUNET_SET_Status status)
+result_cb_set1 (void *cls, const struct GNUNET_SET_Element *element,
+                enum GNUNET_SET_Status status)
 {
   switch (status)
   {
@@ -64,7 +64,7 @@ result_cb_set1 (void *cls, struct GNUNET_SET_Element *element,
 
 
 static void
-result_cb_set2 (void *cls, struct GNUNET_SET_Element *element,
+result_cb_set2 (void *cls, const struct GNUNET_SET_Element *element,
            enum GNUNET_SET_Status status)
 {
   switch (status)
@@ -94,7 +94,7 @@ listen_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "listen cb called\n");
   GNUNET_SET_listen_cancel (listen_handle);
 
-  GNUNET_SET_accept (request, set2, GNUNET_TIME_UNIT_FOREVER_REL, 
+  GNUNET_SET_accept (request, set2, 
                      GNUNET_SET_RESULT_ADDED, result_cb_set2, NULL);
 }
 
@@ -110,7 +110,7 @@ start (void *cls)
   listen_handle = GNUNET_SET_listen (config, GNUNET_SET_OPERATION_UNION,
                                      &app_id, listen_cb, NULL);
   GNUNET_SET_evaluate (set1, &local_id, &app_id, NULL, 42,
-                       GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_SET_RESULT_ADDED,
+                       GNUNET_SET_RESULT_ADDED,
                        result_cb_set1, NULL);
 }
 

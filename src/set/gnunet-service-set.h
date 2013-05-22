@@ -36,7 +36,6 @@
 #include "gnunet_stream_lib.h"
 #include "gnunet_set_service.h"
 #include "set.h"
-#include "mq.h"
 
 
 /* FIXME: cfuchs */

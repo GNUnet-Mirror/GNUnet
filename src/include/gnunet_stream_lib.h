@@ -395,6 +395,21 @@ void
 GNUNET_STREAM_read_cancel (struct GNUNET_STREAM_ReadHandle *rh);
 
 
+/**
+ * Create a message queue for a stream socket.
+ *
+ * @param socket the socket to read/write in the message queue
+ * @param msg_handlers message handler array
+ * @param error_handler callback for errors
+ * @return the message queue for the socket
+ */
+struct GNUNET_MQ_MessageQueue *
+GNUNET_STREAM_mq_create (struct GNUNET_STREAM_Socket *socket, 
+                         const struct GNUNET_MQ_Handler *msg_handlers,
+                         GNUNET_MQ_ErrorHandler error_handler,
+                         void *cls);
+
+
 #if 0
 {
 #endif

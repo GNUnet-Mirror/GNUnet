@@ -35,7 +35,6 @@ extern "C"
 #endif
 #endif
 
-#include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_time_lib.h"
 #include "gnunet_configuration_lib.h"
@@ -176,7 +175,7 @@ typedef void (*GNUNET_SET_ResultIterator) (void *cls,
 
 /**
  * Called when another peer wants to do a set operation with the
- * local peer
+ * local peer.
  *
  * @param other_peer the other peer
  * @param context_msg message with application specific information from
@@ -266,8 +265,6 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set);
  * @param salt salt used for the set operation; sometimes set operations
  *        fail due to hash collisions, using a different salt for each operation
  *        makes it harder for an attacker to exploit this
- * @param timeout result_cb will be called with GNUNET_SET_STATUS_TIMEOUT
- *        if the operation is not done after the specified time; @deprecated
  * @param result_mode specified how results will be returned,
  *        see 'GNUNET_SET_ResultMode'.
  * @param result_cb called on error or success
@@ -280,7 +277,6 @@ GNUNET_SET_evaluate (struct GNUNET_SET_Handle *set,
                      const struct GNUNET_HashCode *app_id,
                      const struct GNUNET_MessageHeader *context_msg,
                      uint16_t salt,
-                     struct GNUNET_TIME_Relative timeout,
                      enum GNUNET_SET_ResultMode result_mode,
                      GNUNET_SET_ResultIterator result_cb,
                      void *result_cls);
@@ -322,7 +318,6 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh);
  *
  * @param request request to accept
  * @param set set used for the requested operation 
- * @param timeout timeout for the set operation, @deprecated
  * @param result_mode specified how results will be returned,
  *        see 'GNUNET_SET_ResultMode'.
  * @param result_cb callback for the results
@@ -332,7 +327,6 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh);
 struct GNUNET_SET_OperationHandle *
 GNUNET_SET_accept (struct GNUNET_SET_Request *request,
                    struct GNUNET_SET_Handle *set,
-                   struct GNUNET_TIME_Relative timeout,
                    enum GNUNET_SET_ResultMode result_mode,
                    GNUNET_SET_ResultIterator result_cb,
                    void *cls);

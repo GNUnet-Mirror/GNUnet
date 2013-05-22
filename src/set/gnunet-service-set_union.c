@@ -1053,8 +1053,8 @@ handle_p2p_elements (void *cls, const struct GNUNET_MessageHeader *mh)
   }
   element_size = ntohs (mh->size) - sizeof (struct GNUNET_MessageHeader);
   ee = GNUNET_malloc (sizeof *eo + element_size);
+  memcpy (&ee[1], &mh[1], element_size);
   ee->element.data = &ee[1];
-  memcpy (ee->element.data, &mh[1], element_size);
   ee->remote = GNUNET_YES;
 
   insert_element (eo, ee);
@@ -1183,8 +1183,8 @@ stream_open_cb (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "open cb successful\n");
 
-  eo->mq = GNUNET_MQ_queue_for_stream_socket (eo->socket,
-                                              union_handlers, eo);
+
+  eo->mq = GNUNET_STREAM_mq_create (eo->socket, union_handlers, NULL, eo);
   /* we started the operation, thus we have to send the operation request */
   send_operation_request (eo);
   eo->phase = PHASE_EXPECT_SE;
@@ -1312,9 +1312,9 @@ _GSS_union_add (struct ElementMessage *m, struct Set *set)
   element_size = ntohs (m->header.size) - sizeof *m;
   ee = GNUNET_malloc (element_size + sizeof *ee);
   ee->element.size = element_size;
+  memcpy (&ee[1], &m[1], element_size);
   ee->element.data = &ee[1];
   ee->generation_added = set->state.u->current_generation;
-  memcpy (ee->element.data, &m[1], element_size);
   GNUNET_CRYPTO_hash (ee->element.data, element_size, &ee->element_hash);
   ee_dup = GNUNET_CONTAINER_multihashmap_get (set->state.u->elements, &ee->element_hash);
   if (NULL != ee_dup)

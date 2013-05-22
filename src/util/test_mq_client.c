@@ -19,22 +19,12 @@
 */
 
 /**
- * @file set/test_mq.c
+ * @file util/test_mq_client.c
  * @brief tests for mq with connection client
- */
-/**
- * @file util/test_server_with_client.c
- * @brief tests for server.c and client.c,
- *       specifically disconnect_notify,
- *       client_get_address and receive_done (resume processing)
  */
 #include "platform.h"
 #include "gnunet_common.h"
-#include "gnunet_scheduler_lib.h"
-#include "gnunet_client_lib.h"
-#include "gnunet_server_lib.h"
-#include "gnunet_time_lib.h"
-#include "mq.h"
+#include "gnunet_util_lib.h"
 
 #define PORT 23336
 
