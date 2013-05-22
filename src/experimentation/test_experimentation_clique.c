@@ -33,7 +33,7 @@
 /**
  * Number of peers we want to start
  */
-#define NUM_PEERS 2
+#define NUM_PEERS 5
 
 /**
  * Array of peers
@@ -60,6 +60,28 @@ static int result;
  */
 static unsigned int overlay_connects;
 
+/**
+ * Information we track for a peer in the testbed.
+ */
+struct ExperimentationPeer
+{
+  /**
+   * Handle with testbed.
+   */
+  struct GNUNET_TESTBED_Peer *daemon;
+
+  /**
+   * Testbed operation to connect to statistics service
+   */
+  struct GNUNET_TESTBED_Operation *stat_op;
+
+  /**
+   * Handle to the statistics service
+   */
+  struct GNUNET_STATISTICS_Handle *sh;
+};
+
+struct ExperimentationPeer ph[NUM_PEERS];
 
 /**
  * Shutdown nicely
@@ -70,7 +92,16 @@ static unsigned int overlay_connects;
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  shutdown_task = GNUNET_SCHEDULER_NO_TASK;
+  unsigned int peer;
+	shutdown_task = GNUNET_SCHEDULER_NO_TASK;
+
+  for (peer = 0; peer < NUM_PEERS; peer++)
+  {
+  	if (NULL != ph[peer].stat_op)
+  		GNUNET_TESTBED_operation_done (ph[peer].stat_op);
+  	ph[peer].stat_op = NULL;
+  }
+
   if (NULL != op)
   {
     GNUNET_TESTBED_operation_done (op);
@@ -96,11 +127,12 @@ controller_event_cb (void *cls,
     if ((NUM_PEERS * (NUM_PEERS - 1)) == overlay_connects)
     {
       result = GNUNET_OK;
-      GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "All %u peers connected \n", NUM_PEERS);
+
+      //GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     }
     break;
   case GNUNET_TESTBED_ET_OPERATION_FINISHED:
-    GNUNET_assert (NULL != event->details.operation_finished.emsg);
     break;
   default:
     GNUNET_break (0);
@@ -109,6 +141,105 @@ controller_event_cb (void *cls,
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
   }
 }
+
+
+/**
+ * Callback function to process statistic values.
+ *
+ * @param cls struct StatsContext
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
+ * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ */
+static int
+stat_iterator (void *cls, const char *subsystem, const char *name,
+                     uint64_t value, int is_persistent)
+{
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "STATS `%s' %s %llu\n", subsystem, name, value);
+	return GNUNET_OK;
+}
+
+/**
+ * Called after successfully opening a connection to a peer's statistics
+ * service; we register statistics monitoring here.
+ *
+ * @param cls the callback closure from functions generating an operation
+ * @param op the operation that has been finished
+ * @param ca_result the service handle returned from GNUNET_TESTBED_ConnectAdapter()
+ * @param emsg error message in case the operation has failed; will be NULL if
+ *          operation has executed successfully.
+ */
+static void
+stat_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
+              void *ca_result, const char *emsg )
+{
+  struct GNUNET_STATISTICS_Handle *sh = ca_result;
+  struct ExperimentationPeer *peer = cls;
+
+  if (NULL != emsg)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch
+                (sh, "experimentation", "# nodes active",
+                 stat_iterator, peer));
+  GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch
+                (sh, "experimentation", "# nodes inactive",
+                 stat_iterator, peer));
+  GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch
+                (sh, "experimentation", "# nodes requested",
+                 stat_iterator, peer));
+}
+
+/**
+ * Called to open a connection to the peer's statistics
+ *
+ * @param cls peer context
+ * @param cfg configuration of the peer to connect to; will be available until
+ *          GNUNET_TESTBED_operation_done() is called on the operation returned
+ *          from GNUNET_TESTBED_service_connect()
+ * @return service handle to return in 'op_result', NULL on error
+ */
+static void *
+stat_connect_adapter (void *cls,
+                      const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  struct ExperimentationPeer *peer = cls;
+  peer->sh = GNUNET_STATISTICS_create ("experimentation", cfg);
+  if (NULL == peer->sh)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to create statistics \n");
+  return peer->sh;
+}
+
+
+/**
+ * Called to disconnect from peer's statistics service
+ *
+ * @param cls peer context
+ * @param op_result service handle returned from the connect adapter
+ */
+static void
+stat_disconnect_adapter (void *cls, void *op_result)
+{
+  struct ExperimentationPeer *peer = cls;
+
+  GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch_cancel
+                (peer->sh, "experimentation", "# nodes active",
+                 stat_iterator, peer));
+  GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch_cancel
+                (peer->sh, "experimentation", "# nodes inactive",
+                 stat_iterator, peer));
+  GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch_cancel
+                (peer->sh, "experimentation", "# nodes requested",
+                 stat_iterator, peer));
+  GNUNET_STATISTICS_destroy (op_result, GNUNET_NO);
+  peer->sh = NULL;
+}
+
 
 
 /**
@@ -134,7 +265,17 @@ test_master (void *cls, unsigned int num_peers,
   GNUNET_assert (NUM_PEERS == num_peers);
   GNUNET_assert (NULL != peers_);
   for (peer = 0; peer < num_peers; peer++)
+  {
     GNUNET_assert (NULL != peers_[peer]);
+    /* Connect to peer's statistic service */
+    ph[peer].stat_op = GNUNET_TESTBED_service_connect (NULL,
+    																peers_[peer], "statistics",
+    																&stat_comp_cb, &ph[peer],
+                                    &stat_connect_adapter,
+                                    &stat_disconnect_adapter,
+                                    &ph[peer]);
+
+  }
   peers = peers_;
   overlay_connects = 0;
   op = GNUNET_TESTBED_overlay_configure_topology (NULL, NUM_PEERS, peers, NULL,
@@ -147,7 +288,7 @@ test_master (void *cls, unsigned int num_peers,
   GNUNET_assert (NULL != op);
   shutdown_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 300),
+                                    (GNUNET_TIME_UNIT_SECONDS, 20),
                                     do_shutdown, NULL);
 }
 
