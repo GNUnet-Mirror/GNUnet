@@ -153,6 +153,7 @@ init_set1 (void)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "initialized set 1\n");
 }
 
+
 /**
  * Signature of the 'main' function for a (single-peer) testcase that
  * is run using 'GNUNET_TESTING_peer_run'.
@@ -170,8 +171,7 @@ run (void *cls,
   static const char* app_str = "gnunet-set";
 
   config = cfg;
-  GNUNET_CRYPTO_hash (app_str, strlen (app_str), &app_id);
-  GNUNET_CRYPTO_get_host_identity (cfg, &local_id);
+  GNUNET_TESTING_peer_get_identity (peer, &local_id);
   set1 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
   set2 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
   init_set1 ();
