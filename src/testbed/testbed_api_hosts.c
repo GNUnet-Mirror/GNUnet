@@ -486,13 +486,13 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
     {
       data[offset] = '\0';
       ret =
-          SSCANF (buf, "%255[a-zA-Z0-9_]@%255[a-zA-Z0-9.-]:%5hd", username,
+          SSCANF (buf, "%255[a-zA-Z0-9_]@%255[.a-zA-Z0-9-]:%5hd", username,
                   hostname, &port);
       if (3 == ret)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Successfully read host %s, port %d and user %s from file\n",
-                    hostname, port, username);
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Successfully read host %s, port %d and user %s from file\n",
+             hostname, port, username);
         /* We store hosts in a static list; hence we only require the starting
          * host pointer in that list to access the newly created list of hosts */
         if (NULL == starting_host)
