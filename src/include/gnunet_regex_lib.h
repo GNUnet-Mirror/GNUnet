@@ -266,7 +266,7 @@ struct GNUNET_REGEX_search_handle;
  * Announce a regular expression: put all states of the automaton in the DHT.
  * Does not free resources, must call GNUNET_REGEX_announce_cancel for that.
  * 
- * @param dht An existing and valid DHT service handle.
+ * @param dht An existing and valid DHT service handle. CANNOT be NULL.
  * @param id ID to announce as provider of regex. Own ID in most cases.
  * @param regex Regular expression to announce.
  * @param compression How many characters per edge can we squeeze?
