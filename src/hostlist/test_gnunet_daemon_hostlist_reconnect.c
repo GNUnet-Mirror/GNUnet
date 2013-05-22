@@ -224,7 +224,7 @@ main (int argcx, char *argvx[])
   {
     FPRINTF (stderr, "%s",  ".");
     /* now do it again */
-    ret = check ();
+    ok = check ();
     FPRINTF (stderr, "%s",  ".\n");
   }
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-1");
