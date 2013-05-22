@@ -56,6 +56,12 @@ struct Experimentation_Request
 	struct GNUNET_MessageHeader msg;
 };
 
+struct Experimentation_Response
+{
+	struct GNUNET_MessageHeader msg;
+};
+
+
 /**
  * Nodes with a pending request
  */
@@ -220,7 +226,6 @@ remove_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	}
 }
 
-
 size_t send_request_cb (void *cls, size_t bufsize, void *buf)
 {
 	struct Node *n = cls;
@@ -265,6 +270,94 @@ static void send_request (const struct GNUNET_PeerIdentity *peer)
 			&peer->hashPubKey, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
 
 	update_stats (nodes_requested);
+}
+
+size_t send_response_cb (void *cls, size_t bufsize, void *buf)
+{
+	struct Node *n = cls;
+	struct Experimentation_Response msg;
+	size_t size = sizeof (msg);
+
+	n->cth = NULL;
+  if (buf == NULL)
+  {
+    /* client disconnected */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client disconnected\n");
+    return 0;
+  }
+  GNUNET_assert (bufsize >= size);
+
+	msg.msg.size = htons (size);
+	msg.msg.type = htons (GNUNET_MESSAGE_TYPE_EXPERIMENTATION_RESPONSE);
+	memcpy (buf, &msg, size);
+
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Sending response to peer %s\n"),
+			GNUNET_i2s (&n->id));
+	return size;
+}
+
+static void handle_request (const struct GNUNET_PeerIdentity *peer)
+{
+	struct Node *n;
+
+	if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_active, &peer->hashPubKey)))
+	{
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from peer `%s'\n"),
+					"REQUEST", "active", GNUNET_i2s (peer));
+	}
+	else if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_requested, &peer->hashPubKey)))
+	{
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from %s peer `%s'\n"),
+					"REQUEST", "requested", GNUNET_i2s (peer));
+			GNUNET_CONTAINER_multihashmap_remove (nodes_requested, &peer->hashPubKey, n);
+			if (GNUNET_SCHEDULER_NO_TASK != n->timeout_task)
+			{
+				GNUNET_SCHEDULER_cancel (n->timeout_task);
+				n->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+			}
+			if (NULL != n->cth)
+			{
+				GNUNET_CORE_notify_transmit_ready_cancel (n->cth);
+				n->cth = NULL;
+			}
+			update_stats (nodes_requested);
+		  GNUNET_CONTAINER_multihashmap_put (nodes_active,
+					&peer->hashPubKey, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+			update_stats (nodes_active);
+	}
+	else if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_inactive, &peer->hashPubKey)))
+	{
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from peer `%s'\n"),
+					"REQUEST", "inactive", GNUNET_i2s (peer));
+			GNUNET_CONTAINER_multihashmap_remove (nodes_inactive, &peer->hashPubKey, n);
+			update_stats (nodes_inactive);
+		  GNUNET_CONTAINER_multihashmap_put (nodes_active,
+					&peer->hashPubKey, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+			update_stats (nodes_active);
+	}
+
+	else
+	{
+			/* Create new node */
+			n = GNUNET_malloc (sizeof (struct Node));
+			n->id = *peer;
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from %s peer `%s'\n"),
+					"REQUEST", "new", GNUNET_i2s (peer));
+		  GNUNET_CONTAINER_multihashmap_put (nodes_active,
+					&peer->hashPubKey, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+			update_stats (nodes_active);
+	}
+
+	n->cth = GNUNET_CORE_notify_transmit_ready(ch, GNUNET_NO, 0,
+								GNUNET_TIME_relative_get_forever_(),
+								peer, sizeof (struct Experimentation_Response),
+								send_response_cb, n);
+
+}
+
+static void handle_response (const struct GNUNET_PeerIdentity *peer)
+{
+
 }
 
 /**
@@ -313,6 +406,37 @@ void core_disconnect_handler (void *cls,
 
 }
 
+
+static int
+core_receive_handler (void *cls,
+											const struct GNUNET_PeerIdentity *other,
+											const struct GNUNET_MessageHeader *message)
+{
+	if (ntohs (message->size) < sizeof (struct GNUNET_MessageHeader))
+	{
+			GNUNET_break (0);
+			return GNUNET_SYSERR;
+	}
+
+	switch (ntohs (message->type)) {
+		case GNUNET_MESSAGE_TYPE_EXPERIMENTATION_REQUEST:
+			handle_request (other);
+
+			break;
+		case GNUNET_MESSAGE_TYPE_EXPERIMENTATION_RESPONSE:
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from peer `%s'\n"),
+					"RESPONSE", GNUNET_i2s (other));
+			handle_response (other);
+			break;
+		default:
+			break;
+	}
+
+	return GNUNET_OK;
+}
+
+
+
 /**
  * The main function for the experimentation daemon.
  *
@@ -337,7 +461,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 														&core_startup_handler,
 														&core_connect_handler,
 													 	&core_disconnect_handler,
-														NULL, GNUNET_NO, NULL, GNUNET_NO, NULL);
+														&core_receive_handler,
+														GNUNET_NO, NULL, GNUNET_NO, NULL);
 	if (NULL == ch)
 	{
 			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Failed to connect to CORE service!\n"));
