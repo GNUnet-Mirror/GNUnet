@@ -287,7 +287,7 @@ static void
 arm_stop_cb (void *cls, enum GNUNET_ARM_RequestStatus status, const char *servicename, enum GNUNET_ARM_Result result)
 {
   GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);
-  GNUNET_break (result == GNUNET_ARM_RESULT_STOPPING);
+  GNUNET_break (result == GNUNET_ARM_RESULT_STOPPED);
   LOG ("ARM service stopped\n");
   GNUNET_SCHEDULER_add_now (trigger_disconnect, NULL);
 }
