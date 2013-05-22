@@ -55,7 +55,7 @@ arm_stop_cb (void *cls,
   /* (6), a stop request should be sent to ARM successfully */
   /* ARM should report that it is stopping */
   GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);
-  GNUNET_break (result == GNUNET_ARM_RESULT_STOPPING);
+  GNUNET_break (result == GNUNET_ARM_RESULT_STOPPED);
   GNUNET_break (phase == 6);
   phase++;
   LOG ("Sent 'STOP' request for arm to ARM %s\n", (status == GNUNET_ARM_REQUEST_SENT_OK) ? "successfully" : "unsuccessfully");
