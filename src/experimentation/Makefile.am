@@ -38,6 +38,7 @@ test_experimentation_clique_SOURCES = \
  test_experimentation_clique.c
 test_experimentation_clique_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la
  
 EXTRA_DIST = \ 
