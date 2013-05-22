@@ -224,6 +224,7 @@ main (int argcx, char *argvx[])
   {
     FPRINTF (stderr, "%s",  ".");
     /* now do it again */
+    ok = 1;
     GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
 			"test-gnunet-daemon-hostlist", "nohelp", options, &run,
 			&ok);
