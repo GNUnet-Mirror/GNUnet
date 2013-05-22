@@ -296,13 +296,14 @@ size_t send_response_cb (void *cls, size_t bufsize, void *buf)
 	return size;
 }
 
+
 static void handle_request (const struct GNUNET_PeerIdentity *peer)
 {
 	struct Node *n;
 
 	if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_active, &peer->hashPubKey)))
 	{
-			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from peer `%s'\n"),
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from %s peer `%s'\n"),
 					"REQUEST", "active", GNUNET_i2s (peer));
 	}
 	else if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_requested, &peer->hashPubKey)))
@@ -324,18 +325,21 @@ static void handle_request (const struct GNUNET_PeerIdentity *peer)
 		  GNUNET_CONTAINER_multihashmap_put (nodes_active,
 					&peer->hashPubKey, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 			update_stats (nodes_active);
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Added peer `%s' active node \n"),
+					GNUNET_i2s (peer));
 	}
 	else if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_inactive, &peer->hashPubKey)))
 	{
-			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from peer `%s'\n"),
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from %s peer `%s'\n"),
 					"REQUEST", "inactive", GNUNET_i2s (peer));
 			GNUNET_CONTAINER_multihashmap_remove (nodes_inactive, &peer->hashPubKey, n);
 			update_stats (nodes_inactive);
 		  GNUNET_CONTAINER_multihashmap_put (nodes_active,
 					&peer->hashPubKey, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 			update_stats (nodes_active);
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Added peer `%s' active node \n"),
+					GNUNET_i2s (peer));
 	}
-
 	else
 	{
 			/* Create new node */
@@ -346,18 +350,64 @@ static void handle_request (const struct GNUNET_PeerIdentity *peer)
 		  GNUNET_CONTAINER_multihashmap_put (nodes_active,
 					&peer->hashPubKey, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 			update_stats (nodes_active);
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Added peer `%s' active node \n"),
+					GNUNET_i2s (peer));
 	}
 
 	n->cth = GNUNET_CORE_notify_transmit_ready(ch, GNUNET_NO, 0,
 								GNUNET_TIME_relative_get_forever_(),
 								peer, sizeof (struct Experimentation_Response),
 								send_response_cb, n);
-
 }
 
 static void handle_response (const struct GNUNET_PeerIdentity *peer)
 {
+	struct Node *n;
 
+	if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_active, &peer->hashPubKey)))
+	{
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from %s peer `%s'\n"),
+					"RESPONSE", "active", GNUNET_i2s (peer));
+	}
+	else if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_requested, &peer->hashPubKey)))
+	{
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from %s peer `%s'\n"),
+					"RESPONSE", "requested", GNUNET_i2s (peer));
+			GNUNET_CONTAINER_multihashmap_remove (nodes_requested, &peer->hashPubKey, n);
+			if (GNUNET_SCHEDULER_NO_TASK != n->timeout_task)
+			{
+				GNUNET_SCHEDULER_cancel (n->timeout_task);
+				n->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+			}
+			if (NULL != n->cth)
+			{
+				GNUNET_CORE_notify_transmit_ready_cancel (n->cth);
+				n->cth = NULL;
+			}
+			update_stats (nodes_requested);
+		  GNUNET_CONTAINER_multihashmap_put (nodes_active,
+					&peer->hashPubKey, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+			update_stats (nodes_active);
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Added peer `%s' active node \n"),
+					GNUNET_i2s (peer));
+	}
+	else if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_inactive, &peer->hashPubKey)))
+	{
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from peer `%s'\n"),
+					"RESPONSE", "inactive", GNUNET_i2s (peer));
+			GNUNET_CONTAINER_multihashmap_remove (nodes_inactive, &peer->hashPubKey, n);
+			update_stats (nodes_inactive);
+		  GNUNET_CONTAINER_multihashmap_put (nodes_active,
+					&peer->hashPubKey, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+			update_stats (nodes_active);
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Added peer `%s' active node \n"),
+					GNUNET_i2s (peer));
+	}
+	else
+	{
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from %s peer `%s'\n"),
+					"RESPONSE", "unknown", GNUNET_i2s (peer));
+	}
 }
 
 /**
@@ -421,11 +471,8 @@ core_receive_handler (void *cls,
 	switch (ntohs (message->type)) {
 		case GNUNET_MESSAGE_TYPE_EXPERIMENTATION_REQUEST:
 			handle_request (other);
-
 			break;
 		case GNUNET_MESSAGE_TYPE_EXPERIMENTATION_RESPONSE:
-			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from peer `%s'\n"),
-					"RESPONSE", GNUNET_i2s (other));
 			handle_response (other);
 			break;
 		default:
@@ -452,7 +499,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 	stats = GNUNET_STATISTICS_create ("experimentation", cfg);
 	if (NULL == stats)
 	{
-		GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to create statistics!\n"));
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to create statistics!\n"));
 		return;
 	}
 
