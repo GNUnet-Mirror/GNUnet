@@ -198,29 +198,17 @@ run (void *cls, char *const *args, const char *cfgfile,
 }
 
 
-static int
-check ()
-{
-  char *const argv[] = { "test-gnunet-daemon-hostlist",
-    "-c", "test_gnunet_daemon_hostlist_data.conf",
-    NULL
-  };
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-  ok = 1;
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                      "test-gnunet-daemon-hostlist", "nohelp", options, &run,
-                      &ok);
-  return ok;
-}
-
-
 int
 main (int argc, char *argv[])
 {
-
-  int ret;
+  static char *const argv[] = { 
+    "test-gnunet-daemon-hostlist",
+    "-c", "test_gnunet_daemon_hostlist_data.conf",
+    NULL
+  };
+  static struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_END
+  };
 
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-1");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-2");
@@ -228,8 +216,11 @@ main (int argc, char *argv[])
   GNUNET_log_setup ("test-gnunet-daemon-hostlist",
                     "WARNING",
                     NULL);
-  ret = check ();
-  if (ret == 0)
+  ok = 1;
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
+                      "test-gnunet-daemon-hostlist", "nohelp", options, &run,
+                      &ok);
+  if (0 == ok)
   {
     FPRINTF (stderr, "%s",  ".");
     /* now do it again */
@@ -239,7 +230,7 @@ main (int argc, char *argv[])
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-1");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-2");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-3");
-  return ret;
+  return ok;
 }
 
 /* end of test_gnunet_daemon_hostlist_reconnect.c */
