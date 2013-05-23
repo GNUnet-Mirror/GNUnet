@@ -38,6 +38,8 @@
 
 extern struct GNUNET_STATISTICS_Handle *GSE_stats;
 
+extern struct GNUNET_CONFIGURATION_Handle *GSE_cfg;
+
 /**
  * A experimentation node
  */
@@ -80,11 +82,9 @@ struct Experimentation_Response
 
 /**
  * Start the nodes management
- *
- * @param cfg configuration handle
  */
 void
-GNUNET_EXPERIMENTATION_nodes_start (const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_EXPERIMENTATION_nodes_start ();
 
 
 /**
@@ -92,5 +92,19 @@ GNUNET_EXPERIMENTATION_nodes_start (const struct GNUNET_CONFIGURATION_Handle *cf
  */
 void
 GNUNET_EXPERIMENTATION_nodes_stop ();
+
+
+/**
+ * Start the detecting capabilities
+ */
+void
+GNUNET_EXPERIMENTATION_capabilities_start ();
+
+/**
+ * Stop the detecting capabilities
+ */
+void
+GNUNET_EXPERIMENTATION_capabilities_stop ();
+
 
 /* end of gnunet-daemon-experimentation.h */

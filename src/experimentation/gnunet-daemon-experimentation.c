@@ -33,6 +33,8 @@
 
 struct GNUNET_STATISTICS_Handle *GSE_stats;
 
+struct GNUNET_CONFIGURATION_Handle *GSE_cfg;
+
 /**
  * Task run during shutdown.
  *
@@ -43,7 +45,8 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Experimentation daemon shutting down ...\n"));
-  GNUNET_EXPERIMENTATION_nodes_stop();
+  GNUNET_EXPERIMENTATION_nodes_stop ();
+  GNUNET_EXPERIMENTATION_capabilities_stop ();
 }
 
 
@@ -62,6 +65,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Experimentation daemon starting ...\n"));
 
+	GSE_cfg = (struct GNUNET_CONFIGURATION_Handle *) cfg;
 	GSE_stats = GNUNET_STATISTICS_create ("experimentation", cfg);
 	if (NULL == GSE_stats)
 	{
@@ -69,7 +73,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 		return;
 	}
 
-	GNUNET_EXPERIMENTATION_nodes_start (cfg);
+	GNUNET_EXPERIMENTATION_capabilities_start();
+	GNUNET_EXPERIMENTATION_nodes_start ();
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);

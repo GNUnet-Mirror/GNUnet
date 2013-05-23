@@ -410,10 +410,10 @@ core_receive_handler (void *cls,
  * @param cfg configuration handle
  */
 void
-GNUNET_EXPERIMENTATION_nodes_start (const struct GNUNET_CONFIGURATION_Handle *cfg)
+GNUNET_EXPERIMENTATION_nodes_start ()
 {
 	/* Connecting to core service to find partners */
-	ch = GNUNET_CORE_connect (cfg, NULL,
+	ch = GNUNET_CORE_connect (GSE_cfg, NULL,
 														&core_startup_handler,
 														&core_connect_handler,
 													 	&core_disconnect_handler,
