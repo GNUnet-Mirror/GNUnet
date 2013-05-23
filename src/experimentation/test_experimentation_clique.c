@@ -33,7 +33,9 @@
 /**
  * Number of peers we want to start
  */
-#define NUM_PEERS 5
+#define NUM_PEERS 10
+
+#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, (5 * NUM_PEERS) + 20)
 
 /**
  * Array of peers
@@ -79,7 +81,12 @@ struct ExperimentationPeer
    * Handle to the statistics service
    */
   struct GNUNET_STATISTICS_Handle *sh;
+
+  unsigned int active_nodes;
+  unsigned int requested_nodes;
+  unsigned int inactive_nodes;
 };
+
 
 struct ExperimentationPeer ph[NUM_PEERS];
 
@@ -128,8 +135,11 @@ controller_event_cb (void *cls,
     {
       result = GNUNET_OK;
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "All %u peers connected \n", NUM_PEERS);
-
-      //GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+      if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
+      {
+      		GNUNET_SCHEDULER_cancel (shutdown_task);
+      }
+      shutdown_task = GNUNET_SCHEDULER_add_delayed (TEST_TIMEOUT, do_shutdown, NULL);
     }
     break;
   case GNUNET_TESTBED_ET_OPERATION_FINISHED:
@@ -141,6 +151,34 @@ controller_event_cb (void *cls,
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
   }
 }
+
+static void
+check_end ()
+{
+	static int last_value = 0;
+  unsigned int peer;
+  unsigned int total_active = 0;
+  unsigned int total_inactive = 0;
+  unsigned int total_requested = 0;
+
+	for (peer = 0; peer < NUM_PEERS; peer++)
+	{
+			total_active += ph[peer].active_nodes;
+			total_requested += ph[peer].requested_nodes;
+			total_inactive += ph[peer].inactive_nodes;
+	}
+	if (last_value < total_active)
+		fprintf (stderr, ".");
+
+	if ((total_active == (NUM_PEERS * (NUM_PEERS -1))) &&
+		 (total_requested == 0) && (total_inactive == 0))
+	{
+			fprintf (stderr, "\n");
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, "All %u peers active in a clique\n", NUM_PEERS);
+			GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+	}
+}
+
 
 
 /**
@@ -157,7 +195,22 @@ static int
 stat_iterator (void *cls, const char *subsystem, const char *name,
                      uint64_t value, int is_persistent)
 {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "STATS `%s' %s %llu\n", subsystem, name, value);
+  struct ExperimentationPeer *peer = cls;
+
+	if (0 == strcmp (name, "# nodes active"))
+	{
+			peer->active_nodes = value;
+	}
+	if (0 == strcmp (name, "# nodes inactive"))
+	{
+			peer->inactive_nodes = value;
+	}
+	if (0 == strcmp (name, "# nodes requested"))
+	{
+			peer->requested_nodes = value;
+	}
+	check_end ();
+
 	return GNUNET_OK;
 }
 
@@ -286,10 +339,7 @@ test_master (void *cls, unsigned int num_peers,
                                                   /* NUM_PEERS, */
                                                   GNUNET_TESTBED_TOPOLOGY_OPTION_END);
   GNUNET_assert (NULL != op);
-  shutdown_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 20),
-                                    do_shutdown, NULL);
+  shutdown_task = GNUNET_SCHEDULER_add_delayed (TEST_TIMEOUT, do_shutdown, NULL);
 }
 
 
