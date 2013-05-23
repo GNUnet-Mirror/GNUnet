@@ -31,10 +31,7 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet-daemon-experimentation.h"
 
-#define EXP_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
-
-
-static struct GNUNET_STATISTICS_Handle *stats;
+static struct GNUNET_STATISTICS_Handle *GSE_stats;
 
 /**
  * Task run during shutdown.
@@ -52,10 +49,12 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * The main function for the experimentation daemon.
+ * Function starting all submodules of the experimentation daemon.
  *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
+ * @param cls always NULL
+ * @param args temaining command line arguments
+ * @param cfgfile configuration file used
+ * @param cfg configuration handle
  */
 static void
 run (void *cls, char *const *args, const char *cfgfile,
@@ -63,8 +62,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Experimentation daemon starting ...\n"));
 
-	stats = GNUNET_STATISTICS_create ("experimentation", cfg);
-	if (NULL == stats)
+	GSE_stats = GNUNET_STATISTICS_create ("experimentation", cfg);
+	if (NULL == GSE_stats)
 	{
 		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to create statistics!\n"));
 		return;

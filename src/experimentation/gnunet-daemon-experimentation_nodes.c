@@ -19,8 +19,8 @@
 */
 
 /**
- * @file experimentation/gnunet-daemon-experimentation.c
- * @brief experimentation daemon
+ * @file experimentation/gnunet-daemon-experimentation_nodes.c
+ * @brief experimentation daemon: node management
  * @author Christian Grothoff
  * @author Matthias Wachs
  */
@@ -30,8 +30,6 @@
 #include "gnunet_core_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet-daemon-experimentation.h"
-
-#define EXP_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 static struct GNUNET_CORE_Handle *ch;
 
@@ -409,16 +407,13 @@ core_receive_handler (void *cls,
 
 
 /**
- * The main function for the experimentation daemon.
+ * Start the nodes management
  *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
+ * @param cfg configuration handle
  */
 void
 GNUNET_EXPERIMENTATION_nodes_start (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Experimentation daemon starting ...\n"));
-
 	stats = GNUNET_STATISTICS_create ("experimentation", cfg);
 	if (NULL == stats)
 	{
@@ -444,11 +439,12 @@ GNUNET_EXPERIMENTATION_nodes_start (const struct GNUNET_CONFIGURATION_Handle *cf
 	nodes_inactive = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
 }
 
-
+/**
+ * Stop the nodes management
+ */
 void
 GNUNET_EXPERIMENTATION_nodes_stop ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Experimentation daemon shutting down ...\n"));
   if (NULL != ch)
   {
   		GNUNET_CORE_disconnect (ch);
@@ -492,4 +488,4 @@ GNUNET_EXPERIMENTATION_nodes_stop ()
   }
 }
 
-/* end of gnunet-daemon-experimentation.c */
+/* end of gnunet-daemon-experimentation_nodes.c */

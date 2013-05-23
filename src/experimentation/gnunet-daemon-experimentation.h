@@ -19,7 +19,7 @@
 */
 
 /**
- * @file experimentation/gnunet-daemon-experimentation.c
+ * @file experimentation/gnunet-daemon-experimentation.h
  * @brief experimentation daemon
  * @author Christian Grothoff
  * @author Matthias Wachs
@@ -30,25 +30,47 @@
 #include "gnunet_core_service.h"
 #include "gnunet_statistics_service.h"
 
+
+/**
+ * Timeout between request and expected response
+ */
 #define EXP_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+
+
 /**
  * A experimentation node
  */
 struct Node
 {
+	/**
+	 * Peer id
+	 */
 	struct GNUNET_PeerIdentity id;
 
+	/**
+	 * Task for response timeout
+	 */
 	GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
+	/**
+	 * Core transmission handle
+	 */
 	struct GNUNET_CORE_TransmitHandle *cth;
 };
 
-
+/**
+ * Experimentation request message
+ * Used to detect experimentation capability
+ */
 struct Experimentation_Request
 {
 	struct GNUNET_MessageHeader msg;
 };
 
+/**
+ * Experimentation response message
+ * Sent if peer is running the daemon
+ */
 struct Experimentation_Response
 {
 	struct GNUNET_MessageHeader msg;
@@ -56,15 +78,18 @@ struct Experimentation_Response
 
 
 /**
- * The main function for the experimentation daemon.
+ * Start the nodes management
  *
- * @param argc number of arguments from the command line
- * @param argv command line arguments
+ * @param cfg configuration handle
  */
 void
 GNUNET_EXPERIMENTATION_nodes_start (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
+
+/**
+ * Stop the nodes management
+ */
 void
 GNUNET_EXPERIMENTATION_nodes_stop ();
 
-/* end of gnunet-daemon-experimentation.c */
+/* end of gnunet-daemon-experimentation.h */
