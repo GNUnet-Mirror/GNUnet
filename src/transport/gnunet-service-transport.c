@@ -548,6 +548,7 @@ neighbours_disconnect_notification (void *cls,
               "Peer `%s' disconnected and we are connected to %u peers\n",
               GNUNET_i2s (peer), connections);
 
+  GST_manipulation_peer_disconnect (peer);
   disconnect_msg.header.size = htons (sizeof (struct DisconnectInfoMessage));
   disconnect_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT);
   disconnect_msg.reserved = htonl (0);

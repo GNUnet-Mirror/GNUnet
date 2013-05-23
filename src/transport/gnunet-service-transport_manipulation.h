@@ -103,6 +103,14 @@ GST_manipulation_manipulate_metrics (const struct GNUNET_PeerIdentity *peer,
 		uint32_t ats_count);
 
 /**
+ * Notify manipulation about disconnect so it can discard queued messages
+ *
+ * @param peer the disconnecting peer
+ */
+void
+GST_manipulation_peer_disconnect (const struct GNUNET_PeerIdentity *peer);
+
+/**
  * Initialize traffic manipulation
  *
  * @param GST_cfg configuration handle

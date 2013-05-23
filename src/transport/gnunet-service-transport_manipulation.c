@@ -628,6 +628,8 @@ free_tmps (void *cls,
 			{
 					next = dqe->next;
 					GNUNET_CONTAINER_DLL_remove (tmp->send_head, tmp->send_tail, dqe);
+					if (NULL != dqe->cont)
+							dqe->cont (dqe->cont_cls, GNUNET_SYSERR, dqe->msg_size, 0);
 					GNUNET_free (dqe);
 			}
 			if (GNUNET_SCHEDULER_NO_TASK != tmp->send_delay_task)
@@ -638,6 +640,52 @@ free_tmps (void *cls,
 			GNUNET_free (tmp);
 	}
 	return GNUNET_OK;
+}
+
+/**
+ * Notify manipulation about disconnect so it can discard queued messages
+ *
+ * @param peer the disconnecting peer
+ */
+void
+GST_manipulation_peer_disconnect (const struct GNUNET_PeerIdentity *peer)
+{
+	struct TM_Peer *tmp;
+	struct DelayQueueEntry *dqe;
+	struct DelayQueueEntry *next;
+
+	if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &peer->hashPubKey)))
+	{
+			next = tmp->send_head;
+			while (NULL != (dqe = next))
+			{
+					next = dqe->next;
+					GNUNET_CONTAINER_DLL_remove (tmp->send_head, tmp->send_tail, dqe);
+					if (NULL != dqe->cont)
+							dqe->cont (dqe->cont_cls, GNUNET_SYSERR, dqe->msg_size, 0);
+					GNUNET_free (dqe);
+			}
+	}
+	else if (UINT32_MAX != find_metric (&man_handle.general, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND))
+	{
+			next = generic_dqe_head;
+			while (NULL != (dqe = next))
+			{
+					if (0 == memcmp (&peer, &dqe->id, sizeof (dqe->id)))
+					{
+							GNUNET_CONTAINER_DLL_remove (generic_dqe_head, generic_dqe_tail, dqe);
+							if (NULL != dqe->cont)
+								dqe->cont (dqe->cont_cls, GNUNET_SYSERR, dqe->msg_size, 0);
+							GNUNET_free (dqe);
+
+					}
+			}
+			if (GNUNET_SCHEDULER_NO_TASK != generic_send_delay_task)
+			{
+					GNUNET_SCHEDULER_cancel (generic_send_delay_task);
+					generic_send_delay_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining(generic_dqe_head->sent_at), &send_delayed, generic_dqe_head);
+			}
+	}
 }
 
 
@@ -657,6 +705,8 @@ GST_manipulation_stop ()
 	{
 			next = cur->next;
 			GNUNET_CONTAINER_DLL_remove (generic_dqe_head, generic_dqe_tail, cur);
+			if (NULL != cur->cont)
+				cur->cont (cur->cont_cls, GNUNET_SYSERR, cur->msg_size, 0);
 			GNUNET_free (cur);
 	}
 	if (GNUNET_SCHEDULER_NO_TASK != generic_send_delay_task)
