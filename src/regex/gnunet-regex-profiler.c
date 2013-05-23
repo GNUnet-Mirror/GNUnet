@@ -1114,7 +1114,23 @@ test_master (void *cls,
   {
     peers[i].peer_handle = testbed_peers[i];
   }
-  GNUNET_SCHEDULER_add_now (&do_announce, NULL);
+  if (GNUNET_NO ==
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "DHT", "DISABLE_TRY_CONNECT"))
+  {
+    struct GNUNET_TIME_Relative settle_time;
+
+    settle_time =
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+                                     10 * num_peers);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+                "Waiting for DHT for %s to settle new connections.\n\n",
+                GNUNET_STRINGS_relative_time_to_string(settle_time, GNUNET_NO));
+    GNUNET_SCHEDULER_add_delayed (settle_time, &do_announce, NULL);
+  }
+  else
+  {
+    GNUNET_SCHEDULER_add_now (&do_announce, NULL);
+  }
   search_timeout_task =
       GNUNET_SCHEDULER_add_delayed (search_timeout_time, &search_timed_out, NULL);
 }
