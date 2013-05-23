@@ -361,6 +361,7 @@ send_delayed (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 	if (NULL != tmp)
 	{
+			GNUNET_break (GNUNET_YES == GST_neighbours_test_connected (&dqe->id));
 			tmp->send_delay_task = GNUNET_SCHEDULER_NO_TASK;
 			GNUNET_CONTAINER_DLL_remove (tmp->send_head, tmp->send_tail, dqe);
 			GST_neighbours_send (&dqe->id, dqe->msg, dqe->msg_size, dqe->timeout, dqe->cont, dqe->cont_cls);
@@ -375,7 +376,8 @@ send_delayed (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	}
 	else
 	{
-		/* Remove from generic queue */
+			/* Remove from generic queue */
+			GNUNET_break (GNUNET_YES == GST_neighbours_test_connected (&dqe->id));
 			generic_send_delay_task = GNUNET_SCHEDULER_NO_TASK;
 			GNUNET_CONTAINER_DLL_remove (generic_dqe_head, generic_dqe_tail, dqe);
 			GST_neighbours_send (&dqe->id, dqe->msg, dqe->msg_size, dqe->timeout, dqe->cont, dqe->cont_cls);
@@ -412,6 +414,7 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
 
 	if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &target->hashPubKey)))
 	{
+			GNUNET_break (GNUNET_YES == GST_neighbours_test_connected(target));
 			/* Manipulate here */
 			/* Delay */
 			if (UINT32_MAX != find_metric(tmp, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND))
@@ -439,6 +442,7 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
 	}
 	else if (UINT32_MAX != find_metric (&man_handle.general, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND))
 	{
+			GNUNET_break (GNUNET_YES == GST_neighbours_test_connected(target));
 			/* We have a delay */
 			delay.rel_value = find_metric (&man_handle.general, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND);
 			dqe = GNUNET_malloc (sizeof (struct DelayQueueEntry) + msg_size);
@@ -672,7 +676,7 @@ GST_manipulation_peer_disconnect (const struct GNUNET_PeerIdentity *peer)
 			while (NULL != (dqe = next))
 			{
 					next = dqe->next;
-					if (0 == memcmp (&peer, &dqe->id, sizeof (dqe->id)))
+					if (0 == memcmp (peer, &dqe->id, sizeof (dqe->id)))
 					{
 							GNUNET_CONTAINER_DLL_remove (generic_dqe_head, generic_dqe_tail, dqe);
 							if (NULL != dqe->cont)
