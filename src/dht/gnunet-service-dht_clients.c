@@ -591,7 +591,7 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
                             gettext_noop
                             ("# GET requests received from clients"), 1,
                             GNUNET_NO);
-  LOG (GNUNET_ERROR_TYPE_ERROR,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received GET request for %s from local client %p, xq: %.*s\n",
        GNUNET_h2s (&get->key), client, xquery_size, xquery);
 
