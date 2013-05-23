@@ -858,6 +858,9 @@ get_forward_count (uint32_t hop_count, uint32_t target_replication)
   if (hop_count > GDS_NSE_get () * 4.0)
   {
     /* forcefully terminate */
+    GNUNET_STATISTICS_update (GDS_stats,
+                              gettext_noop ("# requests TTL-dropped"),
+                              1, GNUNET_NO);
     return 0;
   }
   if (hop_count > GDS_NSE_get () * 2.0)
