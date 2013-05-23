@@ -39,7 +39,7 @@
 /**
  * Should routing details be logged to stderr (for debugging)?
  */
-#define LOG_ROUTE_DETAILS_STDERR GNUNET_NO
+#define LOG_TRAFFIC(kind,...) GNUNET_log_from (kind, "dht-traffic",__VA_ARGS__)
 
 #define LOG(kind,...) GNUNET_log_from (kind, "dht-clients",__VA_ARGS__)
 
@@ -508,6 +508,8 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
                             ("# PUT requests received from clients"), 1,
                             GNUNET_NO);
   dht_msg = (const struct GNUNET_DHT_ClientPutMessage *) message;
+  LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT CLIENT-PUT %s @ %u\n",
+               GNUNET_h2s (&dht_msg->key), getpid ());
   /* give to local clients */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Handling local PUT of %u-bytes for query %s\n",
@@ -589,17 +591,12 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
                             gettext_noop
                             ("# GET requests received from clients"), 1,
                             GNUNET_NO);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_ERROR,
        "Received GET request for %s from local client %p, xq: %.*s\n",
        GNUNET_h2s (&get->key), client, xquery_size, xquery);
 
-  if (LOG_ROUTE_DETAILS_STDERR)
-  {
-    fprintf (stderr, 
-	     "XDHT CLIENT-GET %s @ %u\n", 
-	     GNUNET_h2s (&get->key), 
-	     getpid ());
-  }
+  LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT CLIENT-GET %s @ %u\n",
+               GNUNET_h2s (&get->key), getpid ());
 
 
   cqr = GNUNET_malloc (sizeof (struct ClientQueryRecord) + xquery_size);
@@ -1024,13 +1021,8 @@ forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
   struct GNUNET_HashCode ch;
   unsigned int i;
 
-  if (LOG_ROUTE_DETAILS_STDERR)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, 
-         "XDHT CLIENT-RESULT %s @ %u\n",
-         GNUNET_h2s (key), 
-         getpid ());
-  }
+  LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT CLIENT-RESULT %s @ %u\n",
+               GNUNET_h2s (key), getpid ());
   if ((record->type != GNUNET_BLOCK_TYPE_ANY) && (record->type != frc->type))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
