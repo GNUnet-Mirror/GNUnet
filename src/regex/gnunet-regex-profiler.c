@@ -852,11 +852,9 @@ find_timed_out (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Searching for string \"%s\" on peer %d timed out."
-              "Starting new search: %d.\n",
+              "Searching for string \"%s\" on peer %d timed out.\n",
               p->search_str,
-              p->id,
-              !in_shutdown);
+              p->id);
   if (GNUNET_NO == in_shutdown)
     GNUNET_SCHEDULER_add_now (&announce_next_regex, NULL);
 }
