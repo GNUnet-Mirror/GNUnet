@@ -671,13 +671,13 @@ GST_manipulation_peer_disconnect (const struct GNUNET_PeerIdentity *peer)
 			next = generic_dqe_head;
 			while (NULL != (dqe = next))
 			{
+					next = dqe->next;
 					if (0 == memcmp (&peer, &dqe->id, sizeof (dqe->id)))
 					{
 							GNUNET_CONTAINER_DLL_remove (generic_dqe_head, generic_dqe_tail, dqe);
 							if (NULL != dqe->cont)
 								dqe->cont (dqe->cont_cls, GNUNET_SYSERR, dqe->msg_size, 0);
 							GNUNET_free (dqe);
-
 					}
 			}
 			if (GNUNET_SCHEDULER_NO_TASK != generic_send_delay_task)
