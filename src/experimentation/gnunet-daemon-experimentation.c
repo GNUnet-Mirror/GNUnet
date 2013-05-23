@@ -31,7 +31,7 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet-daemon-experimentation.h"
 
-static struct GNUNET_STATISTICS_Handle *GSE_stats;
+struct GNUNET_STATISTICS_Handle *GSE_stats;
 
 /**
  * Task run during shutdown.

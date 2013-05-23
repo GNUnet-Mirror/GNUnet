@@ -36,6 +36,7 @@
  */
 #define EXP_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
+extern struct GNUNET_STATISTICS_Handle *GSE_stats;
 
 /**
  * A experimentation node

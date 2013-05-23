@@ -35,8 +35,6 @@ static struct GNUNET_CORE_Handle *ch;
 
 static struct GNUNET_PeerIdentity me;
 
-static struct GNUNET_STATISTICS_Handle *stats;
-
 /**
  * Nodes with a pending request
  */
@@ -58,21 +56,21 @@ struct GNUNET_CONTAINER_MultiHashMap *nodes_inactive;
 static void update_stats (struct GNUNET_CONTAINER_MultiHashMap *m)
 {
 	GNUNET_assert (NULL != m);
-	GNUNET_assert (NULL != stats);
+	GNUNET_assert (NULL != GSE_stats);
 
 	if (m == nodes_active)
 	{
-			GNUNET_STATISTICS_set (stats, "# nodes active",
+			GNUNET_STATISTICS_set (GSE_stats, "# nodes active",
 					GNUNET_CONTAINER_multihashmap_size(m), GNUNET_NO);
 	}
 	else if (m == nodes_inactive)
 	{
-			GNUNET_STATISTICS_set (stats, "# nodes inactive",
+			GNUNET_STATISTICS_set (GSE_stats, "# nodes inactive",
 					GNUNET_CONTAINER_multihashmap_size(m), GNUNET_NO);
 	}
 	else if (m == nodes_requested)
 	{
-			GNUNET_STATISTICS_set (stats, "# nodes requested",
+			GNUNET_STATISTICS_set (GSE_stats, "# nodes requested",
 					GNUNET_CONTAINER_multihashmap_size(m), GNUNET_NO);
 	}
 	else
@@ -414,13 +412,6 @@ core_receive_handler (void *cls,
 void
 GNUNET_EXPERIMENTATION_nodes_start (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-	stats = GNUNET_STATISTICS_create ("experimentation", cfg);
-	if (NULL == stats)
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to create statistics!\n"));
-		return;
-	}
-
 	/* Connecting to core service to find partners */
 	ch = GNUNET_CORE_connect (cfg, NULL,
 														&core_startup_handler,
@@ -479,12 +470,6 @@ GNUNET_EXPERIMENTATION_nodes_stop ()
   		update_stats (nodes_inactive);
   		GNUNET_CONTAINER_multihashmap_destroy (nodes_inactive);
   		nodes_inactive = NULL;
-  }
-
-  if (NULL != stats)
-  {
-  		GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
-  		stats = NULL;
   }
 }
 
