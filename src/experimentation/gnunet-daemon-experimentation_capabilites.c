@@ -31,6 +31,19 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet-daemon-experimentation.h"
 
+enum ExperimentationCapabilities
+{
+	NONE = 0,
+	PLUGIN_TCP = 1,
+	PLUGIN_UDP = 2,
+	PLUGIN_UNIX = 4,
+	PLUGIN_HTTP_CLIENT = 8,
+	PLUGIN_HTTP_SERVER = 16,
+	PLUGIN_HTTPS_CLIENT = 32,
+	PLUGIN_HTTPS_SERVER = 64,
+	PLUGIN_WLAN = 128,
+};
+
 /**
  * Start the detecting capabilities
  *
@@ -39,7 +52,42 @@
 void
 GNUNET_EXPERIMENTATION_capabilities_start ()
 {
+	char *plugins;
+  char *pos;
+  uint32_t capabilities = NONE;
 
+	/* Plugins configured */
+
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (GSE_cfg,
+  			"TRANSPORT", "PLUGINS", &plugins))
+  {
+  	  for (pos = strtok (plugins, " "); pos != NULL; pos = strtok (NULL, " "))
+  	  {
+  	      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Found `%s' transport plugin\n"),
+  	                  pos);
+  	      if (0 == strcmp (pos, "tcp"))
+  	      	capabilities |= PLUGIN_TCP;
+  	      else if (0 == strcmp (pos, "udp"))
+  	      	capabilities |= PLUGIN_UDP;
+					else if (0 == strcmp (pos, "unix"))
+						capabilities |= PLUGIN_UNIX;
+					else if (0 == strcmp (pos, "http_client"))
+						capabilities |= PLUGIN_HTTP_CLIENT;
+					else if (0 == strcmp (pos, "http_server"))
+						capabilities |= PLUGIN_HTTP_SERVER;
+					else if (0 == strcmp (pos, "https_client"))
+						capabilities |= PLUGIN_HTTP_CLIENT;
+					else if (0 == strcmp (pos, "https_server"))
+						capabilities |= PLUGIN_HTTPS_SERVER;
+					else if (0 == strcmp (pos, "wlan"))
+						capabilities |= PLUGIN_WLAN;
+  	  }
+  	  GNUNET_free (plugins);
+  }
+
+	/* IPv6 enabled */
+
+	/* Behind NAT */
 }
 
 /**
