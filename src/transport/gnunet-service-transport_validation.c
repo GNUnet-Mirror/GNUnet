@@ -1208,23 +1208,24 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   do_verify = GNUNET_YES;
   if (0 != GNUNET_TIME_absolute_get_remaining(ve->pong_sig_valid_until).rel_value)
   {
+  		/* We have a cached and valid signature for this peer,
+  		 * try to compare instead of verify */
   		if (0 == memcmp (&ve->pong_sig_cache, &pong->signature, sizeof (struct GNUNET_CRYPTO_EccSignature)))
   		{
+  			/* signatures are identical, we can skip verification */
   			sig_res = GNUNET_OK;
   			do_verify = GNUNET_NO;
   		}
   		else
   		{
   			sig_res = GNUNET_SYSERR;
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-    		"Failed to check with cached signature: different signature on address %s:%s from peer `%s'\n",
-    		tname, GST_plugins_a2s (ve->address),
-    		GNUNET_i2s (sender));
+  			/* signatures do not match, we have to verify */
   		}
   }
 
   if (GNUNET_YES == do_verify)
   {
+			/* Do expensive verification */
   		sig_res = GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
                                 &pong->purpose, &pong->signature,
                                 &ve->public_key);
