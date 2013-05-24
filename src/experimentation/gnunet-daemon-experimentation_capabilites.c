@@ -41,7 +41,7 @@ enum ExperimentationCapabilities
 	PLUGIN_HTTP_SERVER = 16,
 	PLUGIN_HTTPS_CLIENT = 32,
 	PLUGIN_HTTPS_SERVER = 64,
-	PLUGIN_WLAN = 128,
+	PLUGIN_WLAN = 128
 };
 
 /**
