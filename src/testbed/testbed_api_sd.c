@@ -179,8 +179,9 @@ GNUNET_TESTBED_SD_add_data_ (struct SDHandle *h, unsigned int amount)
  * @param amount the value for which the deviation is returned
 
  * @return the deviation from the average; GNUNET_SYSERR if the deviation cannot
- *           be calculated OR 0 if the deviation is less than the average; a
- *           maximum of 4 is returned for deviations equal to or larger than 4
+ *           be calculated OR 0 if the given amount is less than or equal to the
+ *           average; a maximum of 4 is returned for deviations equal to or
+ *           larger than 4
  */
 int
 GNUNET_TESTBED_SD_deviation_factor_ (struct SDHandle *h, unsigned int amount)
