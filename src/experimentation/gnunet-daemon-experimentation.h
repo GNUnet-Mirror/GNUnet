@@ -43,6 +43,25 @@ extern struct GNUNET_CONFIGURATION_Handle *GSE_cfg;
 extern uint32_t GSE_node_capabilities;
 
 /**
+ * Capabilities a node has or an experiment requires
+ */
+enum GNUNET_EXPERIMENTATION_capabilities
+{
+	NONE = 0,
+	PLUGIN_TCP = 1,
+	PLUGIN_UDP = 2,
+	PLUGIN_UNIX = 4,
+	PLUGIN_HTTP_CLIENT = 8,
+	PLUGIN_HTTP_SERVER = 16,
+	PLUGIN_HTTPS_CLIENT = 32,
+	PLUGIN_HTTPS_SERVER = 64,
+	PLUGIN_WLAN = 128,
+	HAVE_IPV6 = 256,
+	BEHIND_NAT = 512
+};
+
+
+/**
  * A experimentation node
  */
 struct Node
@@ -61,6 +80,8 @@ struct Node
 	 * Core transmission handle
 	 */
 	struct GNUNET_CORE_TransmitHandle *cth;
+
+	uint32_t capabilities;
 };
 
 /**
@@ -70,6 +91,8 @@ struct Node
 struct Experimentation_Request
 {
 	struct GNUNET_MessageHeader msg;
+
+	uint32_t capabilities;
 };
 
 /**
@@ -79,6 +102,8 @@ struct Experimentation_Request
 struct Experimentation_Response
 {
 	struct GNUNET_MessageHeader msg;
+
+	uint32_t capabilities;
 };
 
 

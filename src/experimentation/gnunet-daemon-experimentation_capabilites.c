@@ -33,35 +33,18 @@
 
 uint32_t GSE_node_capabilities;
 
-/**
- * Capabilities a node has or an experiment requires
- */
-enum ExperimentationCapabilities
-{
-	NONE = 0,
-	PLUGIN_TCP = 1,
-	PLUGIN_UDP = 2,
-	PLUGIN_UNIX = 4,
-	PLUGIN_HTTP_CLIENT = 8,
-	PLUGIN_HTTP_SERVER = 16,
-	PLUGIN_HTTPS_CLIENT = 32,
-	PLUGIN_HTTPS_SERVER = 64,
-	PLUGIN_WLAN = 128,
-	HAVE_IPV6 = 256,
-	BEHIND_NAT = 512
-};
 
-#define ExperimentationCapabilities_Count 11;
+#define GNUNET_EXPERIMENTATION_capabilities_count 11;
 
 /**
  * Capabilities a node has or an experiment requires string
  */
-#define ExperimentationCapabilities_String {"NONE", "PLUGIN_TCP", "PLUGIN_UDP", "PLUGIN_UNIX", "PLUGIN_HTTP_CLIENT", "PLUGIN_HTTP_SERVER", "PLUGIN_HTTPS_CLIENT", "PLUGIN_HTTPS_SERVER", "PLUGIN_WLAN", "HAVE_IPV6", "BEHIND_NAT"}
+#define GNUNET_EXPERIMENTATION_capabilities_string {"NONE", "PLUGIN_TCP", "PLUGIN_UDP", "PLUGIN_UNIX", "PLUGIN_HTTP_CLIENT", "PLUGIN_HTTP_SERVER", "PLUGIN_HTTPS_CLIENT", "PLUGIN_HTTPS_SERVER", "PLUGIN_WLAN", "HAVE_IPV6", "BEHIND_NAT"}
 
 const char *
 GNUNET_EXPERIMENTATION_capability_to_str (uint32_t cap)
 {
-	char * capstr[] = ExperimentationCapabilities_String;
+	char * capstr[] = GNUNET_EXPERIMENTATION_capabilities_string;
 	unsigned index = 0;
 	uint32_t test = 0;
 

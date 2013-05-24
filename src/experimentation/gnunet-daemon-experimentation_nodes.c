@@ -166,6 +166,7 @@ size_t send_request_cb (void *cls, size_t bufsize, void *buf)
 
 	msg.msg.size = htons (size);
 	msg.msg.type = htons (GNUNET_MESSAGE_TYPE_EXPERIMENTATION_REQUEST);
+	msg.capabilities = htonl (GSE_node_capabilities);
 	memcpy (buf, &msg, size);
 
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Sending request to peer %s\n"),
@@ -185,6 +186,7 @@ static void send_request (const struct GNUNET_PeerIdentity *peer)
 	n->cth = GNUNET_CORE_notify_transmit_ready(ch, GNUNET_NO, 0,
 								GNUNET_TIME_relative_get_forever_(),
 								peer, size, send_request_cb, n);
+	n->capabilities = NONE;
 
 	GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (nodes_requested,
 			&peer->hashPubKey, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
@@ -209,6 +211,7 @@ size_t send_response_cb (void *cls, size_t bufsize, void *buf)
 
 	msg.msg.size = htons (size);
 	msg.msg.type = htons (GNUNET_MESSAGE_TYPE_EXPERIMENTATION_RESPONSE);
+	msg.capabilities = htonl (GSE_node_capabilities);
 	memcpy (buf, &msg, size);
 
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Sending response to peer %s\n"),
@@ -216,20 +219,33 @@ size_t send_response_cb (void *cls, size_t bufsize, void *buf)
 	return size;
 }
 
+static void node_make_active (struct Node *n)
+{
+  GNUNET_CONTAINER_multihashmap_put (nodes_active,
+			&n->id.hashPubKey, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+	update_stats (nodes_active);
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Added peer `%s' as active node\n"),
+			GNUNET_i2s (&n->id));
+}
 
-static void handle_request (const struct GNUNET_PeerIdentity *peer)
+
+static void handle_request (const struct GNUNET_PeerIdentity *peer,
+														const struct GNUNET_MessageHeader *message)
 {
 	struct Node *n;
+	struct Experimentation_Request *rm = (struct Experimentation_Request *) message;
 
 	if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_active, &peer->hashPubKey)))
 	{
 			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from %s peer `%s'\n"),
 					"REQUEST", "active", GNUNET_i2s (peer));
+			n->capabilities = ntohl (rm->capabilities);
 	}
 	else if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_requested, &peer->hashPubKey)))
 	{
 			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from %s peer `%s'\n"),
 					"REQUEST", "requested", GNUNET_i2s (peer));
+			n->capabilities = ntohl (rm->capabilities);
 			GNUNET_CONTAINER_multihashmap_remove (nodes_requested, &peer->hashPubKey, n);
 			if (GNUNET_SCHEDULER_NO_TASK != n->timeout_task)
 			{
@@ -242,57 +258,51 @@ static void handle_request (const struct GNUNET_PeerIdentity *peer)
 				n->cth = NULL;
 			}
 			update_stats (nodes_requested);
-		  GNUNET_CONTAINER_multihashmap_put (nodes_active,
-					&peer->hashPubKey, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-			update_stats (nodes_active);
-			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Added peer `%s' active node \n"),
-					GNUNET_i2s (peer));
+			node_make_active (n);
 	}
 	else if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_inactive, &peer->hashPubKey)))
 	{
 			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from %s peer `%s'\n"),
 					"REQUEST", "inactive", GNUNET_i2s (peer));
+			n->capabilities = ntohl (rm->capabilities);
 			GNUNET_CONTAINER_multihashmap_remove (nodes_inactive, &peer->hashPubKey, n);
 			update_stats (nodes_inactive);
-		  GNUNET_CONTAINER_multihashmap_put (nodes_active,
-					&peer->hashPubKey, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-			update_stats (nodes_active);
-			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Added peer `%s' active node \n"),
-					GNUNET_i2s (peer));
+			node_make_active (n);
 	}
 	else
 	{
 			/* Create new node */
 			n = GNUNET_malloc (sizeof (struct Node));
 			n->id = *peer;
+			n->capabilities = NONE;
+			n->capabilities = ntohl (rm->capabilities);
 			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from %s peer `%s'\n"),
 					"REQUEST", "new", GNUNET_i2s (peer));
-		  GNUNET_CONTAINER_multihashmap_put (nodes_active,
-					&peer->hashPubKey, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-			update_stats (nodes_active);
-			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Added peer `%s' active node \n"),
-					GNUNET_i2s (peer));
+			node_make_active (n);
 	}
-
 	n->cth = GNUNET_CORE_notify_transmit_ready (ch, GNUNET_NO, 0,
 								GNUNET_TIME_relative_get_forever_(),
 								peer, sizeof (struct Experimentation_Response),
 								send_response_cb, n);
 }
 
-static void handle_response (const struct GNUNET_PeerIdentity *peer)
+static void handle_response (const struct GNUNET_PeerIdentity *peer,
+														 const struct GNUNET_MessageHeader *message)
 {
 	struct Node *n;
+	struct Experimentation_Request *rm = (struct Experimentation_Request *) message;
 
 	if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_active, &peer->hashPubKey)))
 	{
 			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from %s peer `%s'\n"),
 					"RESPONSE", "active", GNUNET_i2s (peer));
+			n->capabilities = ntohl (rm->capabilities);
 	}
 	else if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_requested, &peer->hashPubKey)))
 	{
 			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from %s peer `%s'\n"),
 					"RESPONSE", "requested", GNUNET_i2s (peer));
+			n->capabilities = ntohl (rm->capabilities);
 			GNUNET_CONTAINER_multihashmap_remove (nodes_requested, &peer->hashPubKey, n);
 			if (GNUNET_SCHEDULER_NO_TASK != n->timeout_task)
 			{
@@ -305,28 +315,22 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer)
 				n->cth = NULL;
 			}
 			update_stats (nodes_requested);
-		  GNUNET_CONTAINER_multihashmap_put (nodes_active,
-					&peer->hashPubKey, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-			update_stats (nodes_active);
-			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Added peer `%s' active node \n"),
-					GNUNET_i2s (peer));
+			node_make_active (n);
 	}
 	else if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_inactive, &peer->hashPubKey)))
 	{
 			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from peer `%s'\n"),
 					"RESPONSE", "inactive", GNUNET_i2s (peer));
+			n->capabilities = ntohl (rm->capabilities);
 			GNUNET_CONTAINER_multihashmap_remove (nodes_inactive, &peer->hashPubKey, n);
 			update_stats (nodes_inactive);
-		  GNUNET_CONTAINER_multihashmap_put (nodes_active,
-					&peer->hashPubKey, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-			update_stats (nodes_active);
-			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Added peer `%s' active node \n"),
-					GNUNET_i2s (peer));
+			node_make_active (n);
 	}
 	else
 	{
 			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from %s peer `%s'\n"),
 					"RESPONSE", "unknown", GNUNET_i2s (peer));
+			return;
 	}
 }
 
@@ -390,10 +394,10 @@ core_receive_handler (void *cls,
 
 	switch (ntohs (message->type)) {
 		case GNUNET_MESSAGE_TYPE_EXPERIMENTATION_REQUEST:
-			handle_request (other);
+			handle_request (other, message);
 			break;
 		case GNUNET_MESSAGE_TYPE_EXPERIMENTATION_RESPONSE:
-			handle_response (other);
+			handle_response (other, message);
 			break;
 		default:
 			break;
