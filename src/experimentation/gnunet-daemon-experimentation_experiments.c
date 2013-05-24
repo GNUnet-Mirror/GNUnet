@@ -199,9 +199,9 @@ void exp_file_iterator (void *cls,
 			GNUNET_free_non_null (e->description);
 			return;
 	}
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Adding experiment `%s'\n"), e->name);
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Adding experiment `%s'\n"), e->name);
 	GNUNET_CONTAINER_multihashmap_put (experiments, &e->issuer.hashPubKey, e, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  GNUNET_STATISTICS_set (GSE_stats, "# expeeriments", GNUNET_CONTAINER_multihashmap_size (experiments), GNUNET_NO);
+  GNUNET_STATISTICS_set (GSE_stats, "# experiments", GNUNET_CONTAINER_multihashmap_size (experiments), GNUNET_NO);
 }
 
 /**
