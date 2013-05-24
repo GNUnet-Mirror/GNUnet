@@ -605,11 +605,11 @@ disk_get_load ()
 static unsigned int
 mem_get_usage ()
 {
-  unsigned long currentMemUsage;
+  double percentage;
 
   meminfo ();
-  currentMemUsage = kb_main_total - kb_main_free;
-  return (unsigned int) ((currentMemUsage / kb_main_total) * 100);
+  percentage = ( ((double) kb_main_used) / ((double) kb_main_total) * 100.0 );
+  return (unsigned int) percentage;
 }
 
 
