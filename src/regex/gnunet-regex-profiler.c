@@ -1251,6 +1251,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   unsigned int nsearchstrs;
   unsigned int i;
+  struct GNUNET_TIME_realtive abort_time;
 
   in_shutdown = GNUNET_NO;
 
@@ -1388,9 +1389,17 @@ run (void *cls, char *const *args, const char *cfgfile,
                       NULL,     /* master_controller_cb cls */
                       &test_master,
                       NULL);    /* test_master cls */
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg, "TESTBED",
+                                           "SETUP_TIME",
+                                           &abort_time))
+  {
+    abort_time =
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15);
+  }
+  abort_time = GNUNET_TIME_relative_add (abort_time, GNUNET_TIME_UNIT_MINUTES);
   abort_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_MINUTES, 15),
+      GNUNET_SCHEDULER_add_delayed (abort_time,
                                     &do_abort,
                                     (void*) __LINE__);
 }
