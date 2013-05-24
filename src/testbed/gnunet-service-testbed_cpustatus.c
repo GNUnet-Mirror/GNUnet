@@ -613,6 +613,35 @@ mem_get_usage ()
 }
 
 
+#ifdef LINUX
+#include <dirent.h>
+/**
+ * Returns the number of processes
+ *
+ * @return the number of processes
+ */
+static unsigned int
+get_nproc ()
+{
+  DIR *dir;
+  struct dirent *ent;
+  unsigned int nproc;
+
+  dir = opendir ("/proc");
+  if (NULL == dir)
+    return 0;
+  nproc = 0;
+  while (NULL != (ent = readdir (dir)))
+  {
+    if((*ent->d_name > '0') && (*ent->d_name <= '9')) 
+      nproc++;
+  }
+  closedir (dir);
+  return nproc;
+}
+#endif
+
+
 static void
 sample_load_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -622,6 +651,7 @@ sample_load_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int ld_cpu;
   int ld_disk;
   unsigned int mem_usage;
+  unsigned int nproc;
 
   sample_load_task_id = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
@@ -631,9 +661,14 @@ sample_load_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ( (-1 == ld_cpu) || (-1 == ld_disk) )
     goto reschedule;
   mem_usage = mem_get_usage ();
+#ifdef LINUX
+  nproc = get_nproc ();
+#else
+  nproc = 0;
+#endif
   now = GNUNET_TIME_absolute_get ();
-  nbs = GNUNET_asprintf (&str, "%llu %d %d %u\n", now.abs_value / 1000,
-                         ld_cpu, ld_disk, mem_usage);
+  nbs = GNUNET_asprintf (&str, "%llu %d %d %u %u\n", now.abs_value / 1000,
+                         ld_cpu, ld_disk, mem_usage, nproc);
   if (0 < nbs) 
   {
     GNUNET_BIO_write (bw, str, nbs);
