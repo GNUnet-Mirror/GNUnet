@@ -839,7 +839,7 @@ create_peers (struct RunContext *rc)
 #if ENABLE_LL
     if (0 != rc->nislands)
     {
-      island = rc->islands[icnt];
+      island = rc->islands[icnt];      
       if (hcnt == island->nhosts)
       {
         icnt++;
@@ -848,6 +848,8 @@ create_peers (struct RunContext *rc)
         island = rc->islands[icnt];
         hcnt = 0;
       }
+      if ( (0 == hcnt) && (1 < island->nhosts) )
+        hcnt = 1;
       GNUNET_assert (icnt < rc->nislands);
       GNUNET_assert (hcnt < island->nhosts);
       GNUNET_assert (NULL != island->hosts[hcnt]);
