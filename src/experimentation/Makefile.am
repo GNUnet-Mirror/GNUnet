@@ -50,4 +50,5 @@ test_experimentation_clique_LDADD = \
  $(top_builddir)/src/testbed/libgnunettestbed.la
  
 EXTRA_DIST = \
- test_experimentation_clique.conf
+ test_experimentation_clique.conf \
+ test_experiments.exp
