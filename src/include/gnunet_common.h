@@ -104,6 +104,14 @@ extern "C"
 #endif
 
 /**
+ * define GNUNET_EXTRA_LOGGING if using this header outside the GNUnet source
+ * tree where gnunet_config.h is unavailable
+ */
+#ifndef GNUNET_EXTRA_LOGGING
+#define GNUNET_EXTRA_LOGGING 0
+#endif
+
+/**
  * Endian operations
  */
 
