@@ -1251,7 +1251,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   unsigned int nsearchstrs;
   unsigned int i;
-  struct GNUNET_TIME_realtive abort_time;
+  struct GNUNET_TIME_Relative abort_time;
 
   in_shutdown = GNUNET_NO;
 
