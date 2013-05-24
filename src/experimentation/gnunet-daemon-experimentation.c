@@ -46,6 +46,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Experimentation daemon shutting down ...\n"));
   GNUNET_EXPERIMENTATION_nodes_stop ();
+  GNUNET_EXPERIMENTATION_experiments_stop ();
   GNUNET_EXPERIMENTATION_capabilities_stop ();
 }
 
@@ -73,12 +74,16 @@ run (void *cls, char *const *args, const char *cfgfile,
 		return;
 	}
 
-	GNUNET_EXPERIMENTATION_capabilities_start();
+	GNUNET_EXPERIMENTATION_capabilities_start ();
+	if (GNUNET_SYSERR == GNUNET_EXPERIMENTATION_experiments_start ())
+	{
+	  GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+	  return;
+	}
 	GNUNET_EXPERIMENTATION_nodes_start ();
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
-
 }
 
 

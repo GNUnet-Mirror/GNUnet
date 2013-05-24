@@ -65,11 +65,16 @@ GNUNET_EXPERIMENTATION_capability_to_str (uint32_t cap)
 
 }
 
-
-uint32_t
-GNUNET_EXPERIMENTATION_capabilities_have (uint32_t cap)
+/**
+ * Are the capabilities provided?
+ *
+ * @param have bitstring containing the provided capabilities
+ * @param have bitstring containing the desired capabilities
+ */
+int
+GNUNET_EXPERIMENTATION_capabilities_have (uint32_t have, uint32_t desired)
 {
-	if (cap == (cap & GSE_node_capabilities))
+	if (desired == (desired & have))
 		return GNUNET_YES;
 	else
 		return GNUNET_NO;
@@ -132,7 +137,7 @@ GNUNET_EXPERIMENTATION_capabilities_start ()
   {
   		index = 1;
   		index = index << c1;
-  		if (GNUNET_YES == GNUNET_EXPERIMENTATION_capabilities_have (index))
+  		if (GNUNET_YES == GNUNET_EXPERIMENTATION_capabilities_have (GSE_node_capabilities, index))
   		{
   			GNUNET_log (GNUNET_ERROR_TYPE_INFO, "We have `%s'\n",
   					GNUNET_EXPERIMENTATION_capability_to_str(index));

@@ -410,8 +410,6 @@ core_receive_handler (void *cls,
 
 /**
  * Start the nodes management
- *
- * @param cfg configuration handle
  */
 void
 GNUNET_EXPERIMENTATION_nodes_start ()

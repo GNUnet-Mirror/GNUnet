@@ -34,8 +34,9 @@ libexec_PROGRAMS = \
 
 gnunet_daemon_experimentation_SOURCES = \
  gnunet-daemon-experimentation.c \
- gnunet-daemon-experimentation_capabilites.c \
- gnunet-daemon-experimentation_nodes.c 
+ gnunet-daemon-experimentation_capabilities.c \
+ gnunet-daemon-experimentation_nodes.c \
+ gnunet-daemon-experimentation_experiments.c
 gnunet_daemon_experimentation_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \

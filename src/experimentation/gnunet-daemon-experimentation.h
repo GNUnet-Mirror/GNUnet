@@ -120,6 +120,14 @@ GNUNET_EXPERIMENTATION_nodes_start ();
 void
 GNUNET_EXPERIMENTATION_nodes_stop ();
 
+/**
+ * Are the capabilities provided?
+ *
+ * @param have bitstring containing the provided capabilities
+ * @param have bitstring containing the desired capabilities
+ */
+int
+GNUNET_EXPERIMENTATION_capabilities_have (uint32_t have, uint32_t desired);
 
 /**
  * Start the detecting capabilities
@@ -132,6 +140,30 @@ GNUNET_EXPERIMENTATION_capabilities_start ();
  */
 void
 GNUNET_EXPERIMENTATION_capabilities_stop ();
+
+
+/**
+ * Start experiments management
+ *
+ * @return GNUNET_YES or GNUNET_NO
+ */
+int
+GNUNET_EXPERIMENTATION_experiments_issuer_accepted (struct GNUNET_PeerIdentity *issuer_ID);
+
+
+/**
+ * Start experiments management
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_EXPERIMENTATION_experiments_start ();
+
+/**
+ * Stop experiments management
+ */
+void
+GNUNET_EXPERIMENTATION_experiments_stop ();
 
 
 /* end of gnunet-daemon-experimentation.h */

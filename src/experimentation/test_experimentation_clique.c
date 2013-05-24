@@ -85,6 +85,7 @@ struct ExperimentationPeer
   unsigned int active_nodes;
   unsigned int requested_nodes;
   unsigned int inactive_nodes;
+  unsigned int issuer;
 };
 
 
@@ -160,18 +161,23 @@ check_end ()
   unsigned int total_active = 0;
   unsigned int total_inactive = 0;
   unsigned int total_requested = 0;
+  unsigned int issuer = 0;
 
 	for (peer = 0; peer < NUM_PEERS; peer++)
 	{
 			total_active += ph[peer].active_nodes;
 			total_requested += ph[peer].requested_nodes;
 			total_inactive += ph[peer].inactive_nodes;
+			if (1 == ph[peer].issuer)
+				issuer ++;
+
 	}
 	if (last_value < total_active)
 		fprintf (stderr, ".");
 
 	if ((total_active == (NUM_PEERS * (NUM_PEERS -1))) &&
-		 (total_requested == 0) && (total_inactive == 0))
+		 (total_requested == 0) && (total_inactive == 0) &&
+		 (issuer == NUM_PEERS))
 	{
 			fprintf (stderr, "\n");
 			GNUNET_log (GNUNET_ERROR_TYPE_INFO, "All %u peers active in a clique\n", NUM_PEERS);
@@ -209,6 +215,11 @@ stat_iterator (void *cls, const char *subsystem, const char *name,
 	{
 			peer->requested_nodes = value;
 	}
+	if (0 == strcmp (name, "# issuer"))
+	{
+			peer->issuer = value;
+	}
+
 	check_end ();
 
 	return GNUNET_OK;
@@ -245,6 +256,9 @@ stat_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
                  stat_iterator, peer));
   GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch
                 (sh, "experimentation", "# nodes requested",
+                 stat_iterator, peer));
+  GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch
+                (sh, "experimentation", "# issuer",
                  stat_iterator, peer));
 }
 
