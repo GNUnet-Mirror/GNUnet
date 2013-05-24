@@ -16,12 +16,17 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+
+if HAVE_EXPERIMENTAL
+ TEXT_EXP_CLIQUE = test_experimentation_clique
+endif 
+
 check_PROGRAMS = \
- test_experimentation_clique
+ $(TEXT_EXP_CLIQUE)
  
 if ENABLE_TEST_RUN
  TESTS = \
- test_experimentation_clique
+ $(TEXT_EXP_CLIQUE)
 endif
 
 libexec_PROGRAMS = \
@@ -43,5 +48,5 @@ test_experimentation_clique_LDADD = \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la
  
-EXTRA_DIST = \ 
+EXTRA_DIST = \
  test_experimentation_clique.conf
