@@ -238,8 +238,11 @@ GNUNET_EXPERIMENTATION_experiments_start ()
 	struct Issuer *i;
 	char *issuers;
 	char *file;
+	char *pubkey;
 	char *pos;
 	struct GNUNET_PeerIdentity issuer_ID;
+	struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pub;
+	struct GNUNET_HashCode hash;
 
 	/* Load valid issuer */
 	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (GSE_cfg, "EXPERIMENTATION", "ISSUERS", &issuers))
@@ -262,6 +265,7 @@ GNUNET_EXPERIMENTATION_experiments_start ()
   				i = GNUNET_malloc (sizeof (struct Issuer));
   				GNUNET_CONTAINER_multihashmap_put (valid_issuers, &issuer_ID.hashPubKey,
   						i, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  				i = NULL;
   		}
   }
   GNUNET_free (issuers);
@@ -273,6 +277,24 @@ GNUNET_EXPERIMENTATION_experiments_start ()
 		return GNUNET_SYSERR;
   }
   GNUNET_STATISTICS_set (GSE_stats, "# issuer", GNUNET_CONTAINER_multihashmap_size (valid_issuers), GNUNET_NO);
+
+	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (GSE_cfg, "EXPERIMENTATION", "PUBKEY", &pubkey))
+	{
+			if (GNUNET_OK != GNUNET_CRYPTO_ecc_public_key_from_string(pubkey, strlen (pubkey), &pub))
+	  		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Invalid public key `%s'\n"), pubkey);
+			else
+			{
+				GNUNET_CRYPTO_hash( &pub, sizeof (pub), &hash);
+				if (NULL != (i = GNUNET_CONTAINER_multihashmap_get (valid_issuers, &hash)))
+				{
+						i->pubkey = pub;
+						GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Found issuer for public key `%s'\n"), pubkey);
+				}
+				else
+					GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("No issuer for public key `%s'\n"), pubkey);
+			}
+			GNUNET_free (pubkey);
+	}
 
   experiments = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
   /* Load experiments from file */
