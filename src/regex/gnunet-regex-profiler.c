@@ -1374,6 +1374,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_CONFIGURATION_set_value_number (cfg,
                                          "TESTBED", "OVERLAY_RANDOM_LINKS",
                                          num_peers * 10);
+  GNUNET_CONFIGURATION_set_value_number (cfg,
+                                         "DHT", "FORCE_NSE",
+                                         (long long unsigned) log2 (num_peers));
   event_mask = 0LL;
 /* For feedback about the start process activate these and pass master_cb */
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
