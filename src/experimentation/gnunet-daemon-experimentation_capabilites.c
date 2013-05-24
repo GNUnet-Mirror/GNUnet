@@ -31,6 +31,11 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet-daemon-experimentation.h"
 
+uint32_t GSE_node_capabilities;
+
+/**
+ * Capabilities a node has or an experiment requires
+ */
 enum ExperimentationCapabilities
 {
 	NONE = 0,
@@ -41,8 +46,52 @@ enum ExperimentationCapabilities
 	PLUGIN_HTTP_SERVER = 16,
 	PLUGIN_HTTPS_CLIENT = 32,
 	PLUGIN_HTTPS_SERVER = 64,
-	PLUGIN_WLAN = 128
+	PLUGIN_WLAN = 128,
+	HAVE_IPV6 = 256,
+	BEHIND_NAT = 512
 };
+
+#define ExperimentationCapabilities_Count 11;
+
+/**
+ * Capabilities a node has or an experiment requires string
+ */
+#define ExperimentationCapabilities_String {"NONE", "PLUGIN_TCP", "PLUGIN_UDP", "PLUGIN_UNIX", "PLUGIN_HTTP_CLIENT", "PLUGIN_HTTP_SERVER", "PLUGIN_HTTPS_CLIENT", "PLUGIN_HTTPS_SERVER", "PLUGIN_WLAN", "HAVE_IPV6", "BEHIND_NAT"}
+
+const char *
+GNUNET_EXPERIMENTATION_capability_to_str (uint32_t cap)
+{
+	char * capstr[] = ExperimentationCapabilities_String;
+	unsigned index = 0;
+	uint32_t test = 0;
+
+	if (0 == cap)
+		return capstr[0];
+
+	index = (log(cap) / log (2)) + 1;
+
+	test = 1 << (index - 1);
+	if (test != cap)
+		return "UNDEFINED";
+
+	if (index <= 11)
+		return capstr[index];
+	else
+	 return "UNDEFINED";
+
+
+}
+
+
+uint32_t
+GNUNET_EXPERIMENTATION_capabilities_have (uint32_t cap)
+{
+	if (cap == (cap & GSE_node_capabilities))
+		return GNUNET_YES;
+	else
+		return GNUNET_NO;
+}
+
 
 /**
  * Start the detecting capabilities
@@ -54,7 +103,9 @@ GNUNET_EXPERIMENTATION_capabilities_start ()
 {
 	char *plugins;
   char *pos;
-  uint32_t capabilities = NONE;
+  unsigned int c1;
+  uint32_t index;
+  GSE_node_capabilities = NONE;
 
 	/* Plugins configured */
 
@@ -63,31 +114,47 @@ GNUNET_EXPERIMENTATION_capabilities_start ()
   {
   	  for (pos = strtok (plugins, " "); pos != NULL; pos = strtok (NULL, " "))
   	  {
-  	      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Found `%s' transport plugin\n"),
-  	                  pos);
   	      if (0 == strcmp (pos, "tcp"))
-  	      	capabilities |= PLUGIN_TCP;
+  	      	GSE_node_capabilities |= PLUGIN_TCP;
   	      else if (0 == strcmp (pos, "udp"))
-  	      	capabilities |= PLUGIN_UDP;
+  	      	GSE_node_capabilities |= PLUGIN_UDP;
 					else if (0 == strcmp (pos, "unix"))
-						capabilities |= PLUGIN_UNIX;
+						GSE_node_capabilities |= PLUGIN_UNIX;
 					else if (0 == strcmp (pos, "http_client"))
-						capabilities |= PLUGIN_HTTP_CLIENT;
+						GSE_node_capabilities |= PLUGIN_HTTP_CLIENT;
 					else if (0 == strcmp (pos, "http_server"))
-						capabilities |= PLUGIN_HTTP_SERVER;
+						GSE_node_capabilities |= PLUGIN_HTTP_SERVER;
 					else if (0 == strcmp (pos, "https_client"))
-						capabilities |= PLUGIN_HTTP_CLIENT;
+						GSE_node_capabilities |= PLUGIN_HTTP_CLIENT;
 					else if (0 == strcmp (pos, "https_server"))
-						capabilities |= PLUGIN_HTTPS_SERVER;
+						GSE_node_capabilities |= PLUGIN_HTTPS_SERVER;
 					else if (0 == strcmp (pos, "wlan"))
-						capabilities |= PLUGIN_WLAN;
+						GSE_node_capabilities |= PLUGIN_WLAN;
   	  }
   	  GNUNET_free (plugins);
   }
 
-	/* IPv6 enabled */
+	/* IPv6 enabled
+	 * FIXE: just having it not enabled is not really sufficient */
+  if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_yesno (GSE_cfg,
+  			"NAT", "DISABLEV6"))
+  	GSE_node_capabilities |= HAVE_IPV6;
 
-	/* Behind NAT */
+  /* Behind NAT */
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (GSE_cfg,
+  			"NAT", "BEHIND_NAT"))
+  	GSE_node_capabilities |= BEHIND_NAT;
+
+  for (c1 = 0 ; c1 < 32; c1++)
+  {
+  		index = 1;
+  		index = index << c1;
+  		if (GNUNET_YES == GNUNET_EXPERIMENTATION_capabilities_have (index))
+  		{
+  			GNUNET_log (GNUNET_ERROR_TYPE_INFO, "We have `%s'\n",
+  					GNUNET_EXPERIMENTATION_capability_to_str(index));
+  		}
+  }
 }
 
 /**

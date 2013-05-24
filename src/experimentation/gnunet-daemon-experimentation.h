@@ -40,6 +40,8 @@ extern struct GNUNET_STATISTICS_Handle *GSE_stats;
 
 extern struct GNUNET_CONFIGURATION_Handle *GSE_cfg;
 
+extern uint32_t GSE_node_capabilities;
+
 /**
  * A experimentation node
  */
