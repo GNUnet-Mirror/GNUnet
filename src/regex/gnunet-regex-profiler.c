@@ -1331,8 +1331,10 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (num_peers != nsearchstrs)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Error loading search strings."
-                  "Given file does not contain enough strings. Exiting.\n"));
+                "Error loading search strings.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "File (%s) does not contain enough strings (%u/%u).\n",
+                strings_file, nsearchstrs, num_peers);
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
