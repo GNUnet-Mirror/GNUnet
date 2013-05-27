@@ -36,7 +36,9 @@ gnunet_daemon_experimentation_SOURCES = \
  gnunet-daemon-experimentation.c \
  gnunet-daemon-experimentation_capabilities.c \
  gnunet-daemon-experimentation_nodes.c \
- gnunet-daemon-experimentation_experiments.c
+ gnunet-daemon-experimentation_scheduler.c \
+ gnunet-daemon-experimentation_experiments.c \
+ gnunet-daemon-experimentation_storage.c
 gnunet_daemon_experimentation_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \

@@ -194,4 +194,19 @@ void
 GNUNET_EXPERIMENTATION_experiments_stop ();
 
 
+/**
+ * Start the storage component
+ */
+void
+GNUNET_EXPERIMENTATION_storage_start ();
+
+
+
+/**
+ * Stop the storage component
+ */
+void
+GNUNET_EXPERIMENTATION_storage_stop ();
+
+
 /* end of gnunet-daemon-experimentation.h */
