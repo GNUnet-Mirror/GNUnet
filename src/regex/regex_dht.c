@@ -209,6 +209,7 @@ GNUNET_REGEX_reannounce (struct GNUNET_REGEX_announce_handle *h)
 {
   GNUNET_assert (NULL != h->dfa); /* make sure to call announce first */
   LOG (GNUNET_ERROR_TYPE_INFO, "GNUNET_REGEX_reannounce: %.60s\n", h->regex);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  full: %s\n", h->regex);
   GNUNET_REGEX_iterate_all_edges (h->dfa, &regex_iterator, h);
 }
 
