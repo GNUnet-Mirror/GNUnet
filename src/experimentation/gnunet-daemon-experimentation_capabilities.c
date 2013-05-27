@@ -31,10 +31,18 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet-daemon-experimentation.h"
 
+
+/**
+ * Capability value shared between components
+ */
 uint32_t GSE_node_capabilities;
 
 
+/**
+ * Capabilities defined at the moment
+ */
 #define GNUNET_EXPERIMENTATION_capabilities_count 11;
+
 
 /**
  * Capabilities a node has or an experiment requires string
@@ -151,6 +159,7 @@ GNUNET_EXPERIMENTATION_capabilities_start ()
   		}
   }
 }
+
 
 /**
  * Stop the detecting capabilities
