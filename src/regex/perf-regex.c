@@ -119,6 +119,7 @@ main (int argc, char *const *argv)
   GNUNET_REGEX_automaton_destroy (dfa);
   GNUNET_free (buffer);
   GNUNET_REGEX_free_from_file (regexes);
+  GNUNET_free (regex);
   return 0;
 }
 
