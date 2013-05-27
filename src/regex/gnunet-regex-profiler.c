@@ -1394,7 +1394,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                       NULL);    /* test_master cls */
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (cfg, "TESTBED",
-                                           "SETUP_TIME",
+                                           "SETUP_TIMEOUT",
                                            &abort_time))
   {
     abort_time =
