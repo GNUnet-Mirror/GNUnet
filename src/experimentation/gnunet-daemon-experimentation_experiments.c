@@ -31,6 +31,10 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet-daemon-experimentation.h"
 
+
+/**
+ * Struct to store information about a specific experiment
+ */
 struct Experiment
 {
 	/* Header */
@@ -53,20 +57,27 @@ struct Experiment
 	/* TBD */
 };
 
+
+/**
+ * Struct to store information about an experiment issuer
+ */
 struct Issuer
 {
 	struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pubkey;
 };
+
 
 /**
  * Hashmap containing valid experiment issuer
  */
 static struct GNUNET_CONTAINER_MultiHashMap *valid_issuers;
 
+
 /**
  * Hashmap containing valid experiments
  */
 static struct GNUNET_CONTAINER_MultiHashMap *experiments;
+
 
 /**
  * Verify experiment signature
@@ -75,7 +86,6 @@ static struct GNUNET_CONTAINER_MultiHashMap *experiments;
  * @param e experiment
  * @return GNUNET_OK or GNUNET_SYSERR
  */
-
 int
 experiment_verify (struct Issuer *i, struct Experiment *e)
 {
@@ -98,6 +108,15 @@ int free_experiment (void *cls,
 	return GNUNET_OK;
 }
 
+
+/**
+ * Free issuer element
+ *
+ * @param cls unused
+ * @param key the key
+ * @param value the issuer element to free
+ * @return GNUNET_OK to continue
+ */
 int free_issuer (void *cls,
 								 const struct GNUNET_HashCode * key,
 								 void *value)
@@ -107,6 +126,7 @@ int free_issuer (void *cls,
 	GNUNET_free (i);
 	return GNUNET_OK;
 }
+
 
 /**
  * Is peer a valid issuer
@@ -123,6 +143,12 @@ GNUNET_EXPERIMENTATION_experiments_issuer_accepted (struct GNUNET_PeerIdentity *
 }
 
 
+/**
+ * Parse a configuration section containing experiments
+ *
+ * @param cls configuration handle
+ * @param section section name
+ */
 void exp_file_iterator (void *cls,
 												const char *section)
 {
@@ -204,12 +230,12 @@ void exp_file_iterator (void *cls,
   GNUNET_STATISTICS_set (GSE_stats, "# experiments", GNUNET_CONTAINER_multihashmap_size (experiments), GNUNET_NO);
 }
 
+
 /**
  * Load experiments from file
  *
  * @param file source file
  */
-
 static void
 load_file (const char * file)
 {
@@ -223,11 +249,10 @@ load_file (const char * file)
 		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to parse file `%s'\n"), file);
 		return;
 	}
-
 	GNUNET_CONFIGURATION_iterate_sections (exp, &exp_file_iterator, exp);
-
 	GNUNET_CONFIGURATION_destroy (exp);
 }
+
 
 /**
  * Start experiments management
@@ -309,10 +334,8 @@ GNUNET_EXPERIMENTATION_experiments_start ()
 	}
 	load_file (file);
 	GNUNET_free (file);
-
 	return GNUNET_OK;
 }
-
 
 
 /**
