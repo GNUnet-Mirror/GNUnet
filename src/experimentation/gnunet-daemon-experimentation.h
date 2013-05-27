@@ -36,11 +36,24 @@
  */
 #define EXP_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
+
+/**
+ * Statistics handle shared between components
+ */
 extern struct GNUNET_STATISTICS_Handle *GSE_stats;
 
+
+/**
+ * Configuration handle shared between components
+ */
 extern struct GNUNET_CONFIGURATION_Handle *GSE_cfg;
 
+
+/**
+ * Capability value shared between components
+ */
 extern uint32_t GSE_node_capabilities;
+
 
 /**
  * Capabilities a node has or an experiment requires
@@ -120,20 +133,34 @@ GNUNET_EXPERIMENTATION_nodes_start ();
 void
 GNUNET_EXPERIMENTATION_nodes_stop ();
 
+
+/**
+ * Print a single capability value
+ *
+ * @param cap capability value
+ * @return the string to print
+ */
+const char *
+GNUNET_EXPERIMENTATION_capability_to_str (uint32_t cap);
+
+
 /**
  * Are the capabilities provided?
  *
  * @param have bitstring containing the provided capabilities
- * @param have bitstring containing the desired capabilities
+ * @param desired bitstring containing the desired capabilities\
+ * @return GNUNET_YES or GNUNET_NO
  */
 int
 GNUNET_EXPERIMENTATION_capabilities_have (uint32_t have, uint32_t desired);
+
 
 /**
  * Start the detecting capabilities
  */
 void
 GNUNET_EXPERIMENTATION_capabilities_start ();
+
 
 /**
  * Stop the detecting capabilities
@@ -158,6 +185,7 @@ GNUNET_EXPERIMENTATION_experiments_issuer_accepted (struct GNUNET_PeerIdentity *
  */
 int
 GNUNET_EXPERIMENTATION_experiments_start ();
+
 
 /**
  * Stop experiments management

@@ -31,12 +31,21 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet-daemon-experimentation.h"
 
-struct GNUNET_STATISTICS_Handle *GSE_stats;
-
-struct GNUNET_CONFIGURATION_Handle *GSE_cfg;
 
 /**
- * Task run during shutdown.
+ * Statistics handle shared between components
+ */
+struct GNUNET_STATISTICS_Handle *GSE_stats;
+
+
+/**
+ * Configuration handle shared between components
+ */
+struct GNUNET_CONFIGURATION_Handle *GSE_cfg;
+
+
+/**
+ * Task run during shutdown to stop all submodules of the experimentation daemon.
  *
  * @param cls unused
  * @param tc unused
@@ -49,7 +58,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_EXPERIMENTATION_experiments_stop ();
   GNUNET_EXPERIMENTATION_capabilities_stop ();
 }
-
 
 
 /**

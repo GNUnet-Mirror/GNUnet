@@ -41,6 +41,13 @@ uint32_t GSE_node_capabilities;
  */
 #define GNUNET_EXPERIMENTATION_capabilities_string {"NONE", "PLUGIN_TCP", "PLUGIN_UDP", "PLUGIN_UNIX", "PLUGIN_HTTP_CLIENT", "PLUGIN_HTTP_SERVER", "PLUGIN_HTTPS_CLIENT", "PLUGIN_HTTPS_SERVER", "PLUGIN_WLAN", "HAVE_IPV6", "BEHIND_NAT"}
 
+
+/**
+ * Print a single capability value
+ *
+ * @param cap capability value
+ * @return the string to print
+ */
 const char *
 GNUNET_EXPERIMENTATION_capability_to_str (uint32_t cap)
 {
@@ -65,11 +72,13 @@ GNUNET_EXPERIMENTATION_capability_to_str (uint32_t cap)
 
 }
 
+
 /**
  * Are the capabilities provided?
  *
  * @param have bitstring containing the provided capabilities
- * @param have bitstring containing the desired capabilities
+ * @param desired bitstring containing the desired capabilities\
+ * @return GNUNET_YES or GNUNET_NO
  */
 int
 GNUNET_EXPERIMENTATION_capabilities_have (uint32_t have, uint32_t desired)
@@ -83,8 +92,6 @@ GNUNET_EXPERIMENTATION_capabilities_have (uint32_t have, uint32_t desired)
 
 /**
  * Start the detecting capabilities
- *
- * @param cfg configuration handle
  */
 void
 GNUNET_EXPERIMENTATION_capabilities_start ()
