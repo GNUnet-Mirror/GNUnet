@@ -38,6 +38,7 @@
 struct Experiment
 {
 	/* Header */
+	/* ----------------- */
 	char *name;
 
 	/* Experiment issuer */
@@ -52,7 +53,24 @@ struct Experiment
 	/* Required capabilities  */
 	uint32_t required_capabilities;
 
+	/* Experiment timing */
+	/* ----------------- */
+
+	/* When to start experiment */
+	struct GNUNET_TIME_Absolute start;
+
+	/* When to end experiment */
+	struct GNUNET_TIME_Absolute stop;
+
+	/* How often to run experiment */
+	struct GNUNET_TIME_Relative frequency;
+
+	/* How long to run each execution  */
+	struct GNUNET_TIME_Relative duration;
+
+
 	/* Experiment itself */
+	/* ----------------- */
 
 	/* TBD */
 };
@@ -144,90 +162,149 @@ GNUNET_EXPERIMENTATION_experiments_issuer_accepted (struct GNUNET_PeerIdentity *
 
 
 /**
+ * Add a new experiment
+ */
+int GNUNET_EXPERIMENTATION_experiments_add (struct Issuer *i,
+																						const char *name,
+																						struct GNUNET_PeerIdentity issuer_id,
+																						struct GNUNET_TIME_Absolute version,
+																						char *description,
+																						uint32_t required_capabilities,
+																						struct GNUNET_TIME_Absolute start,
+																						struct GNUNET_TIME_Relative frequency,
+																						struct GNUNET_TIME_Relative duration,
+																						struct GNUNET_TIME_Absolute stop)
+{
+	struct Experiment *e;
+	e = GNUNET_malloc (sizeof (struct Experiment));
+
+	e->name = GNUNET_strdup (name);
+	e->issuer = issuer_id;
+	e->version = version;
+	if (NULL != description)
+		e->description = GNUNET_strdup (description);
+	e->required_capabilities = required_capabilities;
+	e->start = start;
+	e->frequency = frequency;
+	e->duration = duration;
+	e->stop = stop;
+
+
+
+	/* verify experiment */
+	if (GNUNET_SYSERR == experiment_verify (i, e))
+	{
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Experiment `%s': Experiment signature is invalid\n"), name);
+			GNUNET_free (e);
+			GNUNET_free_non_null (e->name);
+			GNUNET_free_non_null (e->description);
+			return GNUNET_SYSERR;
+	}
+
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Adding experiment `%s' running from `%s' to `%s' every %llu sec. for %llu sec. \n"),
+			e->name,
+			GNUNET_STRINGS_absolute_time_to_string (start),
+			GNUNET_STRINGS_absolute_time_to_string (stop),
+			(long long unsigned int) frequency.rel_value / 1000,
+			(long long unsigned int) duration.rel_value / 1000);
+	GNUNET_CONTAINER_multihashmap_put (experiments, &e->issuer.hashPubKey, e, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GNUNET_STATISTICS_set (GSE_stats, "# experiments", GNUNET_CONTAINER_multihashmap_size (experiments), GNUNET_NO);
+
+	return GNUNET_OK;
+}
+
+
+/**
  * Parse a configuration section containing experiments
  *
  * @param cls configuration handle
  * @param section section name
  */
 void exp_file_iterator (void *cls,
-												const char *section)
+												const char *name)
 {
 	struct GNUNET_CONFIGURATION_Handle *exp = cls;
-	struct Experiment *e;
 	struct Issuer *i;
 
 	char *val;
 	unsigned long long number;
 
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Parsing section `%s'\n", section);
+	/* Experiment values */
+	struct GNUNET_PeerIdentity issuer;
+	struct GNUNET_TIME_Absolute version;
+	char *description;
+	uint32_t required_capabilities;
+	struct GNUNET_TIME_Absolute start ;
+	struct GNUNET_TIME_Absolute stop;
+	struct GNUNET_TIME_Relative frequency;
+	struct GNUNET_TIME_Relative duration;
 
-	e = GNUNET_malloc (sizeof (struct Experiment));
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Parsing section `%s'\n", name);
+
 	/* Mandatory fields */
 
 	/* Issuer */
-	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (exp, section, "ISSUER", &val))
+	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (exp, name, "ISSUER", &val))
 	{
-			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Experiment `%s': Issuer missing\n"), section);
-			GNUNET_free (e);
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Experiment `%s': Issuer missing\n"), name);
 			return;
 	}
-	if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string (val, &e->issuer.hashPubKey))
+	if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string (val, &issuer.hashPubKey))
 	{
-			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Experiment `%s': Issuer invalid\n"), section);
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Experiment `%s': Issuer invalid\n"), name);
 			GNUNET_free (val);
-			GNUNET_free (e);
 			return;
 	}
-	if (NULL == (i = GNUNET_CONTAINER_multihashmap_get (valid_issuers, &e->issuer.hashPubKey)))
+	if (NULL == (i = GNUNET_CONTAINER_multihashmap_get (valid_issuers, &issuer.hashPubKey)))
 	{
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Experiment `%s': Issuer not accepted!\n"), section);
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Experiment `%s': Issuer not accepted!\n"), name);
 		GNUNET_free (val);
-		GNUNET_free (e);
 		return;
 	}
 	GNUNET_free (val);
 
 	/* Version */
-	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (exp, section, "VERSION", &number))
+	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (exp, name, "VERSION", &number))
 	{
-			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Experiment `%s': Version missing or invalid \n"), section);
-			GNUNET_free (e);
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Experiment `%s': Version missing or invalid \n"), name);
 			return;
 	}
-	e->version.abs_value = number;
+	version.abs_value = number;
 
 	/* Required capabilities */
-	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (exp, section, "CAPABILITIES", &number))
+	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (exp, name, "CAPABILITIES", &number))
 	{
-			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Experiment `%s': Required capabilities missing \n"), section);
-			GNUNET_free (e);
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Experiment `%s': Required capabilities missing \n"), name);
 			return;
 	}
 	if (number > UINT32_MAX)
 	{
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Experiment `%s': Required capabilities invalid \n"), section);
-		GNUNET_free (e);
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Experiment `%s': Required capabilities invalid \n"), name);
 		return;
 	}
-	e->required_capabilities = number;
-	e->name = GNUNET_strdup (section);
+	required_capabilities = number;
 
 	/* Optional fields */
-	/* Description */
-	GNUNET_CONFIGURATION_get_value_string (exp, section, "DESCRIPTION", &e->description);
 
-	/* verify experiment */
-	if (GNUNET_SYSERR == experiment_verify (i, e))
-	{
-			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Experiment `%s': Experiment signature is invalid\n"), section);
-			GNUNET_free (e);
-			GNUNET_free_non_null (e->name);
-			GNUNET_free_non_null (e->description);
-			return;
-	}
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Adding experiment `%s'\n"), e->name);
-	GNUNET_CONTAINER_multihashmap_put (experiments, &e->issuer.hashPubKey, e, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  GNUNET_STATISTICS_set (GSE_stats, "# experiments", GNUNET_CONTAINER_multihashmap_size (experiments), GNUNET_NO);
+	/* Description */
+	GNUNET_CONFIGURATION_get_value_string (exp, name, "DESCRIPTION", &description);
+
+
+
+	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (exp, name, "START", (long long unsigned int *) &start.abs_value))
+			start = GNUNET_TIME_UNIT_ZERO_ABS;
+
+	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time (exp, name, "FREQUENCY", &frequency))
+			frequency = EXP_DEFAULT_EXP_FREQ;
+	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time (exp, name, "DURATION", &duration))
+			duration = EXP_DEFAULT_EXP_DUR;
+	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (exp, name, "STOP", (long long unsigned int *)&stop.abs_value))
+			stop = GNUNET_TIME_UNIT_FOREVER_ABS;
+
+	GNUNET_EXPERIMENTATION_experiments_add (i, name, issuer, version,
+																					description, required_capabilities,
+																					start, frequency, duration, stop);
+	GNUNET_free_non_null (description);
 }
 
 

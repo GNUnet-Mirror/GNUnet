@@ -36,6 +36,15 @@
  */
 #define EXP_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
+/**
+ * Default experiment frequency
+ */
+#define EXP_DEFAULT_EXP_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+
+/**
+ * Default experiment duration
+ */
+#define EXP_DEFAULT_EXP_DUR GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
  * Statistics handle shared between components
@@ -192,6 +201,20 @@ GNUNET_EXPERIMENTATION_experiments_start ();
  */
 void
 GNUNET_EXPERIMENTATION_experiments_stop ();
+
+
+/**
+ * Start the scheduler component
+ */
+void
+GNUNET_EXPERIMENTATION_scheduler_start ();
+
+
+/**
+ * Stop the scheduler component
+ */
+void
+GNUNET_EXPERIMENTATION_scheduler_stop ();
 
 
 /**
