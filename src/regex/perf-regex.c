@@ -38,6 +38,40 @@ usage(void)
 }
 
 /**
+ * Iterator callback function.
+ *
+ * @param cls closure.
+ * @param key hash for current state.
+ * @param proof proof for current state.
+ * @param accepting GNUNET_YES if this is an accepting state, GNUNET_NO if not.
+ * @param num_edges number of edges leaving current state.
+ * @param edges edges leaving current state.
+ */
+static void 
+iter (void *cls,
+      const struct GNUNET_HashCode *key,
+      const char *proof,
+      int accepting,
+      unsigned int num_edges,
+      const struct GNUNET_REGEX_Edge *edges)
+{
+  unsigned int i;
+
+  printf ("%s: %s\n", GNUNET_h2s (key), accepting ? "ACCEPTING" : "");
+  printf ("  proof: %s\n", proof);
+  for (i = 0; i < num_edges; i++)
+  {
+    printf ("    %s: %s\n", edges[i].label, GNUNET_h2s (&edges[i].destination));
+  }
+}
+
+static void
+print_dfa (struct GNUNET_REGEX_Automaton* dfa)
+{
+  GNUNET_REGEX_iterate_all_edges (dfa, iter, NULL);
+}
+
+/**
  * The main function of the regex performace test.
  * 
  * Read a set of regex from a file, combine them and create a DFA from the
@@ -81,6 +115,7 @@ main (int argc, char *const *argv)
 
   compression = atoi (argv[2]);
   dfa = GNUNET_REGEX_construct_dfa (regex, size, compression);
+  print_dfa (dfa);
   GNUNET_REGEX_automaton_destroy (dfa);
   GNUNET_free (buffer);
   GNUNET_REGEX_free_from_file (regexes);
