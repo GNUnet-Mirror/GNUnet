@@ -31,20 +31,30 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet-daemon-experimentation.h"
 
+
+/**
+ * Core handle
+ */
 static struct GNUNET_CORE_Handle *ch;
 
+
+/**
+ * Peer's own identity
+ */
 static struct GNUNET_PeerIdentity me;
+
 
 /**
  * Nodes with a pending request
  */
-
 struct GNUNET_CONTAINER_MultiHashMap *nodes_requested;
+
 
 /**
  * Active experimentation nodes
  */
 struct GNUNET_CONTAINER_MultiHashMap *nodes_active;
+
 
 /**
  * Inactive experimentation nodes
@@ -53,6 +63,11 @@ struct GNUNET_CONTAINER_MultiHashMap *nodes_active;
 struct GNUNET_CONTAINER_MultiHashMap *nodes_inactive;
 
 
+/**
+ * Update statistics
+ *
+ * @param m hashmap to update values from
+ */
 static void update_stats (struct GNUNET_CONTAINER_MultiHashMap *m)
 {
 	GNUNET_assert (NULL != m);
@@ -78,6 +93,15 @@ static void update_stats (struct GNUNET_CONTAINER_MultiHashMap *m)
 
 }
 
+
+/**
+ * Clean up nodes
+ *
+ * @param cls the hashmap to clean up
+ * @param key key of the current node
+ * @param value related node object
+ * @return always GNUNET_OK
+ */
 static int
 cleanup_nodes (void *cls,
 							 const struct GNUNET_HashCode * key,
@@ -105,6 +129,12 @@ cleanup_nodes (void *cls,
 }
 
 
+/**
+ * Check if id passed is my id
+ *
+ * @param id the id to check
+ * @return GNUNET_YES or GNUNET_NO
+ */
 static int is_me (const struct GNUNET_PeerIdentity *id)
 {
 	if (0 == memcmp (&me, id, sizeof (me)))
@@ -113,14 +143,28 @@ static int is_me (const struct GNUNET_PeerIdentity *id)
 		return GNUNET_NO;
 }
 
+/**
+ * Core startup callback
+ *
+ * @param cls unused
+ * @param server core service's server handle
+ * @param my_identity my id
+ */
 static void
 core_startup_handler (void *cls,
-											struct GNUNET_CORE_Handle * server,
+											struct GNUNET_CORE_Handle *server,
                       const struct GNUNET_PeerIdentity *my_identity)
 {
 	me = *my_identity;
 }
 
+
+/**
+ * Remove experimentation request due to timeout
+ *
+ * @param cls the related node
+ * @param tc scheduler's task context
+ */
 static void
 remove_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -146,6 +190,15 @@ remove_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	}
 }
 
+
+/**
+ * Core's transmit notify callback to send request
+ *
+ * @param cls the related node
+ * @param bufsize buffer size
+ * @param buf the buffer to copy to
+ * @return bytes passed
+ */
 size_t send_request_cb (void *cls, size_t bufsize, void *buf)
 {
 	struct Node *n = cls;
@@ -174,6 +227,12 @@ size_t send_request_cb (void *cls, size_t bufsize, void *buf)
 	return size;
 }
 
+
+/**
+ * Send request
+ *
+ * @param peer the peer to send to
+ */
 static void send_request (const struct GNUNET_PeerIdentity *peer)
 {
 	struct Node *n;
@@ -194,6 +253,15 @@ static void send_request (const struct GNUNET_PeerIdentity *peer)
 	update_stats (nodes_requested);
 }
 
+
+/**
+ * Core's transmit notify callback to send response
+ *
+ * @param cls the related node
+ * @param bufsize buffer size
+ * @param buf the buffer to copy to
+ * @return bytes passed
+ */
 size_t send_response_cb (void *cls, size_t bufsize, void *buf)
 {
 	struct Node *n = cls;
@@ -219,6 +287,12 @@ size_t send_response_cb (void *cls, size_t bufsize, void *buf)
 	return size;
 }
 
+
+/**
+ * Set a specific node as active
+ *
+ * @param n the node
+ */
 static void node_make_active (struct Node *n)
 {
   GNUNET_CONTAINER_multihashmap_put (nodes_active,
@@ -229,6 +303,12 @@ static void node_make_active (struct Node *n)
 }
 
 
+/**
+ * Handle a request and send a response
+ *
+ * @param peer the source
+ * @param message the message
+ */
 static void handle_request (const struct GNUNET_PeerIdentity *peer,
 														const struct GNUNET_MessageHeader *message)
 {
@@ -286,6 +366,13 @@ static void handle_request (const struct GNUNET_PeerIdentity *peer,
 								send_response_cb, n);
 }
 
+
+/**
+ * Handle a response
+ *
+ * @param peer the source
+ * @param message the message
+ */
 static void handle_response (const struct GNUNET_PeerIdentity *peer,
 														 const struct GNUNET_MessageHeader *message)
 {
@@ -381,6 +468,14 @@ void core_disconnect_handler (void *cls,
 }
 
 
+/**
+ * Handle a request and send a response
+ *
+ * @param cls unused
+ * @param other the sender
+ * @param message the message
+ * @return GNUNET_OK to keep connection, GNUNET_SYSERR on error
+ */
 static int
 core_receive_handler (void *cls,
 											const struct GNUNET_PeerIdentity *other,
@@ -431,6 +526,7 @@ GNUNET_EXPERIMENTATION_nodes_start ()
 	nodes_active = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
 	nodes_inactive = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
 }
+
 
 /**
  * Stop the nodes management
