@@ -32,49 +32,6 @@
 #include "gnunet-daemon-experimentation.h"
 
 
-/**
- * Struct to store information about a specific experiment
- */
-struct Experiment
-{
-	/* Header */
-	/* ----------------- */
-	char *name;
-
-	/* Experiment issuer */
-	struct GNUNET_PeerIdentity issuer;
-
-	/* Experiment version as timestamp of creation */
-	struct GNUNET_TIME_Absolute version;
-
-	/* Description */
-	char *description;
-
-	/* Required capabilities  */
-	uint32_t required_capabilities;
-
-	/* Experiment timing */
-	/* ----------------- */
-
-	/* When to start experiment */
-	struct GNUNET_TIME_Absolute start;
-
-	/* When to end experiment */
-	struct GNUNET_TIME_Absolute stop;
-
-	/* How often to run experiment */
-	struct GNUNET_TIME_Relative frequency;
-
-	/* How long to run each execution  */
-	struct GNUNET_TIME_Relative duration;
-
-
-	/* Experiment itself */
-	/* ----------------- */
-
-	/* TBD */
-};
-
 
 /**
  * Struct to store information about an experiment issuer
@@ -209,6 +166,8 @@ int GNUNET_EXPERIMENTATION_experiments_add (struct Issuer *i,
 			(long long unsigned int) duration.rel_value / 1000);
 	GNUNET_CONTAINER_multihashmap_put (experiments, &e->issuer.hashPubKey, e, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   GNUNET_STATISTICS_set (GSE_stats, "# experiments", GNUNET_CONTAINER_multihashmap_size (experiments), GNUNET_NO);
+
+  GNUNET_EXPERIMENTATION_scheduler_add (e);
 
 	return GNUNET_OK;
 }

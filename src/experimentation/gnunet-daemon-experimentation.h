@@ -34,12 +34,12 @@
 /**
  * Timeout between request and expected response
  */
-#define EXP_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define EXP_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 /**
  * Default experiment frequency
  */
-#define EXP_DEFAULT_EXP_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+#define EXP_DEFAULT_EXP_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 6)
 
 /**
  * Default experiment duration
@@ -80,6 +80,50 @@ enum GNUNET_EXPERIMENTATION_capabilities
 	PLUGIN_WLAN = 128,
 	HAVE_IPV6 = 256,
 	BEHIND_NAT = 512
+};
+
+
+/**
+ * Struct to store information about a specific experiment
+ */
+struct Experiment
+{
+	/* Header */
+	/* ----------------- */
+	char *name;
+
+	/* Experiment issuer */
+	struct GNUNET_PeerIdentity issuer;
+
+	/* Experiment version as timestamp of creation */
+	struct GNUNET_TIME_Absolute version;
+
+	/* Description */
+	char *description;
+
+	/* Required capabilities  */
+	uint32_t required_capabilities;
+
+	/* Experiment timing */
+	/* ----------------- */
+
+	/* When to start experiment */
+	struct GNUNET_TIME_Absolute start;
+
+	/* When to end experiment */
+	struct GNUNET_TIME_Absolute stop;
+
+	/* How often to run experiment */
+	struct GNUNET_TIME_Relative frequency;
+
+	/* How long to run each execution  */
+	struct GNUNET_TIME_Relative duration;
+
+
+	/* Experiment itself */
+	/* ----------------- */
+
+	/* TBD */
 };
 
 
@@ -202,6 +246,12 @@ GNUNET_EXPERIMENTATION_experiments_start ();
 void
 GNUNET_EXPERIMENTATION_experiments_stop ();
 
+
+/**
+ * Start the scheduler component
+ */
+void
+GNUNET_EXPERIMENTATION_scheduler_add (struct Experiment *e);
 
 /**
  * Start the scheduler component
