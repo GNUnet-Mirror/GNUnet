@@ -204,7 +204,7 @@ size_t send_request_cb (void *cls, size_t bufsize, void *buf)
 	struct Node *n = cls;
 	struct Experimentation_Request msg;
 	size_t msg_size = sizeof (msg);
-	size_t ri_size = sizeof (struct Experimentation_Request_Issuer) * GSE_my_issuer_count;
+	size_t ri_size = sizeof (struct Experimentation_Issuer) * GSE_my_issuer_count;
 	size_t total_size = msg_size + ri_size;
 
 	memset (buf, '0', bufsize);
@@ -247,7 +247,7 @@ static void send_request (const struct GNUNET_PeerIdentity *peer)
 	c_issuers = GSE_my_issuer_count;
 
 	size = sizeof (struct Experimentation_Request) +
-				 c_issuers * sizeof (struct Experimentation_Request_Issuer);
+				 c_issuers * sizeof (struct Experimentation_Issuer);
 	n = GNUNET_malloc (sizeof (struct Node));
 	n->id = *peer;
 	n->timeout_task = GNUNET_SCHEDULER_add_delayed (EXP_RESPONSE_TIMEOUT, &remove_request, n);
@@ -274,7 +274,9 @@ size_t send_response_cb (void *cls, size_t bufsize, void *buf)
 {
 	struct Node *n = cls;
 	struct Experimentation_Response msg;
-	size_t size = sizeof (msg);
+	size_t ri_size = GSE_my_issuer_count * sizeof (struct Experimentation_Issuer);
+	size_t msg_size = sizeof (msg);
+	size_t total_size = msg_size;
 
 	n->cth = NULL;
   if (buf == NULL)
@@ -283,16 +285,17 @@ size_t send_response_cb (void *cls, size_t bufsize, void *buf)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client disconnected\n");
     return 0;
   }
-  GNUNET_assert (bufsize >= size);
+  GNUNET_assert (bufsize >= total_size);
 
-	msg.msg.size = htons (size);
+	msg.msg.size = htons (total_size);
 	msg.msg.type = htons (GNUNET_MESSAGE_TYPE_EXPERIMENTATION_RESPONSE);
 	msg.capabilities = htonl (GSE_node_capabilities);
-	memcpy (buf, &msg, size);
+	memcpy (buf, &msg, msg_size);
+	memcpy (&buf[msg_size], GSE_my_issuer, ri_size);
 
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Sending response to peer %s\n"),
 			GNUNET_i2s (&n->id));
-	return size;
+	return total_size;
 }
 
 
@@ -307,9 +310,10 @@ get_experiments_cb (struct Node *n, struct Experiment *e)
 			return;
 	}
 
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Scheduling experiment `%s' for peer %s\n"),
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Starting experiment `%s' with peer %s\n"),
+			e->name,
 			GNUNET_i2s (&n->id));
-	GNUNET_EXPERIMENTATION_scheduler_add (e);
+	//GNUNET_EXPERIMENTATION_scheduler_add (e);
 	counter ++;
 }
 
@@ -329,7 +333,10 @@ static void node_make_active (struct Node *n)
 
 	/* Request experiments for this node to start them */
 	for (c1 = 0; c1 < n->issuer_count; c1++)
+	{
+
 		GNUNET_EXPERIMENTATION_experiments_get (n, &n->issuer_id[c1], &get_experiments_cb);
+	}
 }
 
 
@@ -344,7 +351,7 @@ static void handle_request (const struct GNUNET_PeerIdentity *peer,
 {
 	struct Node *n;
 	struct Experimentation_Request *rm = (struct Experimentation_Request *) message;
-	struct Experimentation_Request_Issuer *rmi = (struct Experimentation_Request_Issuer *) &rm[1];
+	struct Experimentation_Issuer *rmi = (struct Experimentation_Issuer *) &rm[1];
 	int c1;
 	int c2;
 	uint32_t ic;
@@ -357,7 +364,7 @@ static void handle_request (const struct GNUNET_PeerIdentity *peer,
 		return;
 	}
 	ic = ntohl (rm->issuer_count);
-	if (ntohs (message->size) != sizeof (struct Experimentation_Request) + ic * sizeof (struct Experimentation_Request_Issuer))
+	if (ntohs (message->size) != sizeof (struct Experimentation_Request) + ic * sizeof (struct Experimentation_Issuer))
 	{
 		GNUNET_break (0);
 		return;
@@ -382,7 +389,7 @@ static void handle_request (const struct GNUNET_PeerIdentity *peer,
 				n->cth = NULL;
 			}
 			update_stats (nodes_requested);
-			node_make_active (n);
+			make_active = GNUNET_YES;
 	}
 	else if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_inactive, &peer->hashPubKey)))
 	{
@@ -396,7 +403,7 @@ static void handle_request (const struct GNUNET_PeerIdentity *peer,
 			n = GNUNET_malloc (sizeof (struct Node));
 			n->id = *peer;
 			n->capabilities = NONE;
-			node_make_active (n);
+			make_active = GNUNET_YES;
 	}
 
 	/* Update node */
@@ -430,7 +437,9 @@ static void handle_request (const struct GNUNET_PeerIdentity *peer,
 	/* Send response */
 	n->cth = GNUNET_CORE_notify_transmit_ready (ch, GNUNET_NO, 0,
 								GNUNET_TIME_relative_get_forever_(),
-								peer, sizeof (struct Experimentation_Response),
+								peer,
+								sizeof (struct Experimentation_Response) +
+								GSE_my_issuer_count * sizeof (struct Experimentation_Issuer),
 								send_response_cb, n);
 }
 

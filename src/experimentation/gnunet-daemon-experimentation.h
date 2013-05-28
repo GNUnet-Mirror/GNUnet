@@ -66,7 +66,7 @@ extern uint32_t GSE_node_capabilities;
 
 extern uint32_t GSE_my_issuer_count;
 
-extern struct Experimentation_Request_Issuer *GSE_my_issuer;
+extern struct Experimentation_Issuer *GSE_my_issuer;
 
 /**
  * Capabilities a node has or an experiment requires
@@ -167,7 +167,7 @@ struct Node
 	struct GNUNET_PeerIdentity *issuer_id;
 };
 
-struct Experimentation_Request_Issuer
+struct Experimentation_Issuer
 {
 	struct GNUNET_PeerIdentity issuer_id;
 };

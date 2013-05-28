@@ -56,7 +56,7 @@ static struct GNUNET_CONTAINER_MultiHashMap *experiments;
 
 uint32_t GSE_my_issuer_count;
 
-struct Experimentation_Request_Issuer *GSE_my_issuer;
+struct Experimentation_Issuer *GSE_my_issuer;
 
 
 /**
@@ -149,10 +149,6 @@ get_it (void *cls,
 {
 	struct GetCtx *get_ctx = cls;
 	struct Experiment *e = value;
-
-	/* Check compability */
-	if (get_ctx->n->version.abs_value != e->version.abs_value)
-		return GNUNET_OK;
 
 	get_ctx->get_cb (get_ctx->n, e);
 
@@ -418,7 +414,7 @@ GNUNET_EXPERIMENTATION_experiments_start ()
 	}
 
 	GSE_my_issuer_count = GNUNET_CONTAINER_multihashmap_size (valid_issuers);
-	GSE_my_issuer = GNUNET_malloc (GSE_my_issuer_count * sizeof (struct Experimentation_Request_Issuer));
+	GSE_my_issuer = GNUNET_malloc (GSE_my_issuer_count * sizeof (struct Experimentation_Issuer));
 	GNUNET_CONTAINER_multihashmap_iterate (valid_issuers, &create_issuer, GSE_my_issuer);
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Daemon has %u issuers\n"), GSE_my_issuer_count);
 
