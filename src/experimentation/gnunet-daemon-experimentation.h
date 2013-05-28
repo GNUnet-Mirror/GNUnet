@@ -64,6 +64,10 @@ extern struct GNUNET_CONFIGURATION_Handle *GSE_cfg;
 extern uint32_t GSE_node_capabilities;
 
 
+extern uint32_t GSE_my_issuer_count;
+
+extern struct Experimentation_Request_Issuer *GSE_my_issuer;
+
 /**
  * Capabilities a node has or an experiment requires
  */
@@ -147,18 +151,42 @@ struct Node
 	 */
 	struct GNUNET_CORE_TransmitHandle *cth;
 
+	/**
+	 * Node capabilities
+	 */
 	uint32_t capabilities;
+
+	/* Experiment version as timestamp of creation */
+	struct GNUNET_TIME_Absolute version;
+
+	uint32_t issuer_count;
+
+	/**
+	 * Array of fssuer ids
+	 */
+	struct GNUNET_PeerIdentity *issuer_id;
+};
+
+struct Experimentation_Request_Issuer
+{
+	struct GNUNET_PeerIdentity issuer_id;
 };
 
 /**
  * Experimentation request message
  * Used to detect experimentation capability
+ *
+ * This struct is followed by issuer identities:
+ * (issuer_count * struct Experimentation_Request_Issuer)
+ *
  */
 struct Experimentation_Request
 {
 	struct GNUNET_MessageHeader msg;
 
 	uint32_t capabilities;
+
+	uint32_t issuer_count;
 };
 
 /**
@@ -230,6 +258,13 @@ GNUNET_EXPERIMENTATION_capabilities_stop ();
 int
 GNUNET_EXPERIMENTATION_experiments_issuer_accepted (struct GNUNET_PeerIdentity *issuer_ID);
 
+
+typedef void (*GNUNET_EXPERIMENTATION_experiments_get_cb) (struct Node *n, struct Experiment *e);
+
+void
+GNUNET_EXPERIMENTATION_experiments_get (struct Node *n,
+																				struct GNUNET_PeerIdentity *issuer,
+																				GNUNET_EXPERIMENTATION_experiments_get_cb get_cb);
 
 /**
  * Start experiments management
