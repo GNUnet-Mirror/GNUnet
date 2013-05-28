@@ -54,6 +54,11 @@ static struct GNUNET_CONTAINER_MultiHashMap *valid_issuers;
 static struct GNUNET_CONTAINER_MultiHashMap *experiments;
 
 
+uint32_t GSE_my_issuer_count;
+
+struct Experimentation_Request_Issuer *GSE_my_issuer;
+
+
 /**
  * Verify experiment signature
  *
@@ -102,6 +107,20 @@ int free_issuer (void *cls,
 	return GNUNET_OK;
 }
 
+int create_issuer (void *cls,
+								 const struct GNUNET_HashCode * key,
+								 void *value)
+{
+	static int i = 0;
+	GNUNET_assert (i < GSE_my_issuer_count);
+	GSE_my_issuer[i].issuer_id.hashPubKey = *key;
+
+	i++;
+	return GNUNET_OK;
+
+}
+
+
 
 /**
  * Is peer a valid issuer
@@ -117,6 +136,51 @@ GNUNET_EXPERIMENTATION_experiments_issuer_accepted (struct GNUNET_PeerIdentity *
 		return GNUNET_NO;
 }
 
+struct GetCtx
+{
+	struct Node *n;
+	GNUNET_EXPERIMENTATION_experiments_get_cb get_cb;
+};
+
+static int
+get_it (void *cls,
+				const struct GNUNET_HashCode * key,
+				void *value)
+{
+	struct GetCtx *get_ctx = cls;
+	struct Experiment *e = value;
+
+	/* Check compability */
+	if (get_ctx->n->version.abs_value != e->version.abs_value)
+		return GNUNET_OK;
+
+	get_ctx->get_cb (get_ctx->n, e);
+
+	return GNUNET_OK;
+}
+
+
+
+
+void
+GNUNET_EXPERIMENTATION_experiments_get (struct Node *n,
+																				struct GNUNET_PeerIdentity *issuer,
+																				GNUNET_EXPERIMENTATION_experiments_get_cb get_cb)
+{
+	struct GetCtx get_ctx;
+
+	GNUNET_assert (NULL != n);
+	GNUNET_assert (NULL != experiments);
+	GNUNET_assert (NULL != get_cb);
+
+	get_ctx.n = n;
+	get_ctx.get_cb = get_cb;
+
+	GNUNET_CONTAINER_multihashmap_get_multiple (experiments,
+			&issuer->hashPubKey, &get_it, &get_ctx);
+
+	get_cb (n, NULL);
+}
 
 /**
  * Add a new experiment
@@ -146,8 +210,6 @@ int GNUNET_EXPERIMENTATION_experiments_add (struct Issuer *i,
 	e->duration = duration;
 	e->stop = stop;
 
-
-
 	/* verify experiment */
 	if (GNUNET_SYSERR == experiment_verify (i, e))
 	{
@@ -166,8 +228,6 @@ int GNUNET_EXPERIMENTATION_experiments_add (struct Issuer *i,
 			(long long unsigned int) duration.rel_value / 1000);
 	GNUNET_CONTAINER_multihashmap_put (experiments, &e->issuer.hashPubKey, e, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   GNUNET_STATISTICS_set (GSE_stats, "# experiments", GNUNET_CONTAINER_multihashmap_size (experiments), GNUNET_NO);
-
-  GNUNET_EXPERIMENTATION_scheduler_add (e);
 
 	return GNUNET_OK;
 }
@@ -357,6 +417,11 @@ GNUNET_EXPERIMENTATION_experiments_start ()
 			GNUNET_free (pubkey);
 	}
 
+	GSE_my_issuer_count = GNUNET_CONTAINER_multihashmap_size (valid_issuers);
+	GSE_my_issuer = GNUNET_malloc (GSE_my_issuer_count * sizeof (struct Experimentation_Request_Issuer));
+	GNUNET_CONTAINER_multihashmap_iterate (valid_issuers, &create_issuer, GSE_my_issuer);
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Daemon has %u issuers\n"), GSE_my_issuer_count);
+
   experiments = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
   /* Load experiments from file */
 	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (GSE_cfg, "EXPERIMENTATION", "EXPERIMENTS", &file))
@@ -380,6 +445,12 @@ GNUNET_EXPERIMENTATION_experiments_start ()
 void
 GNUNET_EXPERIMENTATION_experiments_stop ()
 {
+	if (NULL != GSE_my_issuer)
+	{
+		GNUNET_free (GSE_my_issuer);
+		GSE_my_issuer = NULL;
+		GSE_my_issuer_count = 0;
+	}
 	if (NULL != valid_issuers)
 	{
 		GNUNET_CONTAINER_multihashmap_iterate (valid_issuers, &free_issuer, NULL);
