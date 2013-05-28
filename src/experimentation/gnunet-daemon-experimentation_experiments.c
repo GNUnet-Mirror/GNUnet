@@ -416,7 +416,7 @@ GNUNET_EXPERIMENTATION_experiments_start ()
 	GSE_my_issuer_count = GNUNET_CONTAINER_multihashmap_size (valid_issuers);
 	GSE_my_issuer = GNUNET_malloc (GSE_my_issuer_count * sizeof (struct Experimentation_Issuer));
 	GNUNET_CONTAINER_multihashmap_iterate (valid_issuers, &create_issuer, GSE_my_issuer);
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Daemon has %u issuers\n"), GSE_my_issuer_count);
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Daemon has %u issuers\n"), GSE_my_issuer_count);
 
   experiments = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
   /* Load experiments from file */

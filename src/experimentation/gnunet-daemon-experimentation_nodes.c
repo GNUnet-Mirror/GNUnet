@@ -276,7 +276,7 @@ size_t send_response_cb (void *cls, size_t bufsize, void *buf)
 	struct Experimentation_Response msg;
 	size_t ri_size = GSE_my_issuer_count * sizeof (struct Experimentation_Issuer);
 	size_t msg_size = sizeof (msg);
-	size_t total_size = msg_size;
+	size_t total_size = msg_size + ri_size;
 
 	n->cth = NULL;
   if (buf == NULL)
@@ -290,6 +290,7 @@ size_t send_response_cb (void *cls, size_t bufsize, void *buf)
 	msg.msg.size = htons (total_size);
 	msg.msg.type = htons (GNUNET_MESSAGE_TYPE_EXPERIMENTATION_RESPONSE);
 	msg.capabilities = htonl (GSE_node_capabilities);
+	msg.issuer_count = htonl (GSE_my_issuer_count);
 	memcpy (buf, &msg, msg_size);
 	memcpy (&buf[msg_size], GSE_my_issuer, ri_size);
 
@@ -454,19 +455,37 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
 														 const struct GNUNET_MessageHeader *message)
 {
 	struct Node *n;
-	struct Experimentation_Request *rm = (struct Experimentation_Request *) message;
+	struct Experimentation_Response *rm = (struct Experimentation_Response *) message;
+	struct Experimentation_Issuer *rmi = (struct Experimentation_Issuer *) &rm[1];
+	uint32_t ic;
+	uint32_t ic_accepted;
+	int make_active;
+	unsigned int c1;
+	unsigned int c2;
 
+
+	if (ntohs (message->size) < sizeof (struct Experimentation_Response))
+	{
+		GNUNET_break (0);
+		return;
+	}
+	ic = ntohl (rm->issuer_count);
+	if (ntohs (message->size) != sizeof (struct Experimentation_Response) + ic * sizeof (struct Experimentation_Issuer))
+	{
+		GNUNET_break (0);
+		return;
+	}
+
+	make_active = GNUNET_NO;
 	if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_active, &peer->hashPubKey)))
 	{
 			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from %s peer `%s'\n"),
 					"RESPONSE", "active", GNUNET_i2s (peer));
-			n->capabilities = ntohl (rm->capabilities);
 	}
 	else if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_requested, &peer->hashPubKey)))
 	{
 			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from %s peer `%s'\n"),
 					"RESPONSE", "requested", GNUNET_i2s (peer));
-			n->capabilities = ntohl (rm->capabilities);
 			GNUNET_CONTAINER_multihashmap_remove (nodes_requested, &peer->hashPubKey, n);
 			if (GNUNET_SCHEDULER_NO_TASK != n->timeout_task)
 			{
@@ -479,16 +498,15 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
 				n->cth = NULL;
 			}
 			update_stats (nodes_requested);
-			node_make_active (n);
+			make_active = GNUNET_YES;
 	}
 	else if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_inactive, &peer->hashPubKey)))
 	{
 			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from peer `%s'\n"),
 					"RESPONSE", "inactive", GNUNET_i2s (peer));
-			n->capabilities = ntohl (rm->capabilities);
 			GNUNET_CONTAINER_multihashmap_remove (nodes_inactive, &peer->hashPubKey, n);
 			update_stats (nodes_inactive);
-			node_make_active (n);
+			make_active = GNUNET_YES;
 	}
 	else
 	{
@@ -496,6 +514,34 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
 					"RESPONSE", "unknown", GNUNET_i2s (peer));
 			return;
 	}
+
+	/* Update */
+	n->capabilities = ntohl (rm->capabilities);
+
+	/* Filter accepted issuer */
+	ic_accepted = 0;
+	for (c1 = 0; c1 < ic; c1++)
+	{
+		if (GNUNET_YES == GNUNET_EXPERIMENTATION_experiments_issuer_accepted(&rmi[c1].issuer_id))
+			ic_accepted ++;
+	}
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Response from peer `%s' with %u issuers, we accepted %u issuer \n"),
+			GNUNET_i2s (peer), ic, ic_accepted);
+	GNUNET_free_non_null (n->issuer_id);
+	n->issuer_id = GNUNET_malloc (ic_accepted * sizeof (struct GNUNET_PeerIdentity));
+	c2 = 0;
+	for (c1 = 0; c1 < ic; c1++)
+	{
+			if (GNUNET_YES == GNUNET_EXPERIMENTATION_experiments_issuer_accepted(&rmi[c1].issuer_id))
+			{
+				n->issuer_id[c2] = rmi[c1].issuer_id;
+				c2 ++;
+			}
+	}
+	n->issuer_count = ic_accepted;
+
+	if (GNUNET_YES == make_active)
+		node_make_active (n);
 }
 
 /**

@@ -33,7 +33,7 @@
 /**
  * Number of peers we want to start
  */
-#define NUM_PEERS 10
+#define NUM_PEERS 20
 
 #define NUM_ISSUER 1
 

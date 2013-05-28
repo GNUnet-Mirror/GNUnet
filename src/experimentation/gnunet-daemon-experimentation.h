@@ -192,12 +192,17 @@ struct Experimentation_Request
 /**
  * Experimentation response message
  * Sent if peer is running the daemon
+ *
+ * This struct is followed by issuer identities:
+ * (issuer_count * struct Experimentation_Request_Issuer)
  */
 struct Experimentation_Response
 {
 	struct GNUNET_MessageHeader msg;
 
 	uint32_t capabilities;
+
+	uint32_t issuer_count;
 };
 
 
