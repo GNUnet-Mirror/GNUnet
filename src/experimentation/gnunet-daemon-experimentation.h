@@ -291,7 +291,7 @@ GNUNET_EXPERIMENTATION_experiments_stop ();
  * Start the scheduler component
  */
 void
-GNUNET_EXPERIMENTATION_scheduler_add (struct Experiment *e);
+GNUNET_EXPERIMENTATION_scheduler_add (struct Node *n, struct Experiment *e);
 
 /**
  * Start the scheduler component

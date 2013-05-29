@@ -225,7 +225,7 @@ size_t send_request_cb (void *cls, size_t bufsize, void *buf)
 	msg.capabilities = htonl (GSE_node_capabilities);
 	msg.issuer_count = htonl (GSE_my_issuer_count);
 	memcpy (buf, &msg, msg_size);
-	memcpy (&buf[msg_size], GSE_my_issuer, ri_size);
+	memcpy (&((char *) buf)[msg_size], GSE_my_issuer, ri_size);
 
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Sending request to peer %s\n"),
 			GNUNET_i2s (&n->id));
@@ -292,7 +292,7 @@ size_t send_response_cb (void *cls, size_t bufsize, void *buf)
 	msg.capabilities = htonl (GSE_node_capabilities);
 	msg.issuer_count = htonl (GSE_my_issuer_count);
 	memcpy (buf, &msg, msg_size);
-	memcpy (&buf[msg_size], GSE_my_issuer, ri_size);
+	memcpy (&((char *) buf)[msg_size], GSE_my_issuer, ri_size);
 
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Sending response to peer %s\n"),
 			GNUNET_i2s (&n->id));
@@ -304,6 +304,7 @@ static void
 get_experiments_cb (struct Node *n, struct Experiment *e)
 {
 	static int counter = 0;
+	//size_t start_size;
 	if (NULL == e)
 	{
 			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Added %u experiments for peer %s\n"),
@@ -314,7 +315,14 @@ get_experiments_cb (struct Node *n, struct Experiment *e)
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Starting experiment `%s' with peer %s\n"),
 			e->name,
 			GNUNET_i2s (&n->id));
-	//GNUNET_EXPERIMENTATION_scheduler_add (e);
+
+	/* Request experiment */
+/*	start_size = sizeof (struct Experimentation_Start);
+	GNUNET_CORE_notify_transmit_ready (ch, GNUNET_NO, 0, EXP_RESPONSE_TIMEOUT,
+			n->id, start_size, send_start_cb, n);*/
+
+	GNUNET_EXPERIMENTATION_scheduler_add (n, e);
+
 	counter ++;
 }
 

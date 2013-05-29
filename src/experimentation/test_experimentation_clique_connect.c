@@ -19,7 +19,7 @@
 */
 
 /**
- * @file src/testbed/test_testbed_api_topology.c
+ * @file src/experimentation/test_experimentation_clique_connect.c
  * @brief test case to connect experimentation daemons in a clique
  * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  * @author Matthias Wachs
@@ -33,7 +33,7 @@
 /**
  * Number of peers we want to start
  */
-#define NUM_PEERS 20
+#define NUM_PEERS 2
 
 #define NUM_ISSUER 1
 
@@ -401,7 +401,7 @@ main (int argc, char **argv)
   event_mask = 0;
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
-  (void) GNUNET_TESTBED_test_run ("test_experimentation_clique",
+  (void) GNUNET_TESTBED_test_run ("test_experimentation_clique_connect",
                                   "test_experimentation_clique.conf", NUM_PEERS,
                                   event_mask, &controller_event_cb, NULL,
                                   &test_master, NULL);
@@ -410,4 +410,4 @@ main (int argc, char **argv)
   return 0;
 }
 
-/* end of test_testbed_api_topology.c */
+/* end of test_experimentation_clique_connect.c */
