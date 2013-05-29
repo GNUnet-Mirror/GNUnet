@@ -1577,6 +1577,9 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# P2P PUT requests received"), 1,
                             GNUNET_NO);
+  GNUNET_STATISTICS_update (GDS_stats,
+                            gettext_noop ("# P2P PUT bytes received"), msize,
+                            GNUNET_NO);
   put_path = (const struct GNUNET_PeerIdentity *) &put[1];
   payload = &put_path[putlen];
   options = ntohl (put->options);
@@ -1831,6 +1834,9 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# P2P GET requests received"), 1,
                             GNUNET_NO);
+  GNUNET_STATISTICS_update (GDS_stats,
+                            gettext_noop ("# P2P GET bytes received"), msize,
+                            GNUNET_NO);
   if (GNUNET_YES == log_route_details_stderr)
   {
     char *tmp;
@@ -1975,6 +1981,9 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
                 put_path_length) * sizeof (struct GNUNET_PeerIdentity));
   GNUNET_STATISTICS_update (GDS_stats, gettext_noop ("# P2P RESULTS received"),
                             1, GNUNET_NO);
+  GNUNET_STATISTICS_update (GDS_stats,
+                            gettext_noop ("# P2P RESULT bytes received"),
+                            msize, GNUNET_NO);
   if (GNUNET_YES == log_route_details_stderr)
   {
     char *tmp;
