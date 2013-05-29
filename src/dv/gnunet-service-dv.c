@@ -34,7 +34,7 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_statistics_service.h"
-#include "gnunet_consensus_service.h"
+#include "gnunet_set_service.h"
 #include "gnunet_ats_service.h"
 #include "dv.h"
 #include <gcrypt.h>
@@ -168,6 +168,14 @@ struct DirectNeighbor
    * Identity of the peer.
    */
   struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Session ID we use whenever we create a set union with
+   * this neighbor; constructed from the XOR of our peer
+   * IDs and then salted with "DV-SALT" to avoid conflicts
+   * with other applications.
+   */
+  struct GNUNET_HashCode real_session_id;
   
   /**
    * Head of linked list of messages to send to this peer.
@@ -202,16 +210,27 @@ struct DirectNeighbor
   struct GNUNET_CONTAINER_MultiHashMap *neighbor_table_consensus;
 
   /**
-   * Active consensus, if we are currently synchronizing the
-   * routing tables.
+   * Our current (exposed) routing table as a set.
    */
-  struct GNUNET_CONSENSUS_Handle *consensus;
+  struct GNUNET_SET_Handle *my_set;
+
+  /**
+   * Handle for our current active set union operation.
+   */
+  struct GNUNET_SET_OperationHandle *set_op;
+
+  /**
+   * Handle used if we are listening for this peer, waiting for the
+   * other peer to initiate construction of the set union.  NULL if
+   * we ar the initiating peer.
+   */
+  struct GNUNET_SET_ListenHandle *listen_handle;
 
   /**
    * ID of the task we use to (periodically) update our consensus
-   * with this peer.
+   * with this peer.  Used if we are the initiating peer.
    */
-  GNUNET_SCHEDULER_TaskIdentifier consensus_task;
+  GNUNET_SCHEDULER_TaskIdentifier initiate_task;
 
   /**
    * At what offset are we, with respect to inserting our own routes
@@ -351,15 +370,38 @@ static struct GNUNET_ATS_PerformanceHandle *ats;
  
 
 /**
- * Start creating a new consensus from scratch.
+ * Start creating a new DV set union by initiating the connection.
  *
  * @param cls the 'struct DirectNeighbor' of the peer we're building
  *        a routing consensus with
  * @param tc scheduler context
  */    
 static void
-start_consensus (void *cls,
-		 const struct GNUNET_SCHEDULER_TaskContext *tc);
+initiate_set_union (void *cls,
+		    const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Start creating a new DV set union construction, our neighbour has
+ * asked for it (callback for listening peer).
+ *
+ * @param cls the 'struct DirectNeighbor' of the peer we're building
+ *        a routing consensus with
+ * @param other_peer the other peer
+ * @param context_msg message with application specific information from
+ *        the other peer
+ * @param request request from the other peer, use GNUNET_SET_accept
+ *        to accept it, otherwise the request will be refused
+ *        Note that we don't use a return value here, as it is also
+ *        necessary to specify the set we want to do the operation with,
+ *        whith sometimes can be derived from the context message.
+ *        Also necessary to specify the timeout.
+ */    
+static void
+listen_set_union (void *cls,
+		  const struct GNUNET_PeerIdentity *other_peer,
+		  const struct GNUNET_MessageHeader *context_msg,
+		  struct GNUNET_SET_Request *request);
 
 
 /**
@@ -702,6 +744,55 @@ move_route (struct Route *route,
 
 
 /**
+ * Initialize this neighbors 'my_set' and when done give
+ * it to the pending set operation for execution.
+ *
+ * @param cls the neighbor for which we are building the set
+ */
+static void
+build_set (void *cls)
+{
+  struct DirectNeighbor *neighbor = cls;
+  struct GNUNET_SET_Element element;
+
+  while ( (DEFAULT_FISHEYE_DEPTH - 1 > neighbor->consensus_insertion_distance) &&
+	  (consensi[neighbor->consensus_insertion_distance].array_length == neighbor->consensus_insertion_offset) )
+  {
+    neighbor->consensus_insertion_offset = 0;
+    neighbor->consensus_insertion_distance++;
+    /* skip over NULL entries */
+    while ( (DEFAULT_FISHEYE_DEPTH - 1 > neighbor->consensus_insertion_distance) &&
+	    (consensi[neighbor->consensus_insertion_distance].array_length < neighbor->consensus_insertion_offset) &&
+	    (NULL == consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset]) )
+      neighbor->consensus_insertion_offset++;
+  }
+  if (DEFAULT_FISHEYE_DEPTH - 1 == neighbor->consensus_insertion_distance)
+  {
+    /* we have added all elements to the set, run the operation */
+#if 0
+    GNUNET_SET_operation_conclude (neighbor->my_op,
+				   neighbor->my_set);
+#endif
+    GNUNET_SET_destroy (neighbor->my_set);
+    neighbor->my_set = NULL;
+    return;
+  }
+  element.size = sizeof (struct Target);
+  element.data = &consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset++]->target;
+
+  /* skip over NULL entries */
+  while ( (DEFAULT_FISHEYE_DEPTH - 1 > neighbor->consensus_insertion_distance) &&
+	  (consensi[neighbor->consensus_insertion_distance].array_length < neighbor->consensus_insertion_offset) &&
+	  (NULL == consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset]) )
+    neighbor->consensus_insertion_offset++;  
+  GNUNET_SET_add_element (neighbor->my_set,
+			  &element,
+			  &build_set, neighbor);
+  
+}
+
+
+/**
  * A peer is now connected to us at distance 1.  Initiate DV exchange.
  *
  * @param neighbor entry for the neighbor at distance 1
@@ -710,6 +801,7 @@ static void
 handle_direct_connect (struct DirectNeighbor *neighbor)
 {
   struct Route *route;
+  struct GNUNET_HashCode session_id;
 
   GNUNET_STATISTICS_update (stats,
 			    "# peers connected (1-hop)",
@@ -722,8 +814,26 @@ handle_direct_connect (struct DirectNeighbor *neighbor)
     release_route (route);
     GNUNET_free (route);
   }
-  neighbor->consensus_task = GNUNET_SCHEDULER_add_now (&start_consensus,
-						       neighbor);
+  /* construct session ID seed as XOR of both peer's identities */
+  GNUNET_CRYPTO_hash_xor (&my_identity.hashPubKey, 
+			  &neighbor->peer.hashPubKey, 
+			  &session_id);
+  /* make sure session ID is unique across applications by salting it with 'DV' */
+  GNUNET_CRYPTO_hkdf (&neighbor->real_session_id, sizeof (struct GNUNET_HashCode),
+		      GCRY_MD_SHA512, GCRY_MD_SHA256,
+		      "DV-SALT", 2,
+		      &session_id, sizeof (session_id),
+		      NULL, 0);
+  if (1 == GNUNET_CRYPTO_hash_cmp (&neighbor->peer.hashPubKey,
+				   &my_identity.hashPubKey))
+    neighbor->initiate_task = GNUNET_SCHEDULER_add_now (&initiate_set_union,
+							neighbor);
+  else
+    neighbor->listen_handle = GNUNET_SET_listen (cfg,
+						 GNUNET_SET_OPERATION_UNION,
+						 &neighbor->real_session_id,
+						 &listen_set_union,
+						 neighbor);
 }
 
 
@@ -943,15 +1053,25 @@ handle_direct_disconnect (struct DirectNeighbor *neighbor)
     GNUNET_CONTAINER_multihashmap_destroy (neighbor->neighbor_table);
     neighbor->neighbor_table = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != neighbor->consensus_task)
+  if (NULL != neighbor->set_op)
   {
-    GNUNET_SCHEDULER_cancel (neighbor->consensus_task);
-    neighbor->consensus_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SET_operation_cancel (neighbor->set_op);
+    neighbor->set_op = NULL;
   }
-  if (NULL != neighbor->consensus)
+  if (NULL != neighbor->my_set)
   {
-    GNUNET_CONSENSUS_destroy (neighbor->consensus);
-    neighbor->consensus = NULL;
+    GNUNET_SET_destroy (neighbor->my_set);
+    neighbor->my_set = NULL;
+  }
+  if (NULL != neighbor->listen_handle)
+  {
+    GNUNET_SET_listen_cancel (neighbor->listen_handle);
+    neighbor->listen_handle = NULL;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != neighbor->initiate_task)
+  {
+    GNUNET_SCHEDULER_cancel (neighbor->initiate_task);
+    neighbor->initiate_task = GNUNET_SCHEDULER_NO_TASK;
   }
 }
 
@@ -1141,125 +1261,50 @@ check_target_added (void *cls,
 }
 
 
-
 /**
- * The consensus has concluded, clean up and schedule the next one.
- *
- * @param cls the 'struct GNUNET_DirectNeighbor' with which we created the consensus
- */
-static void
-consensus_done_cb (void *cls)
-{
-  struct DirectNeighbor *neighbor = cls;
-
-  GNUNET_CONSENSUS_destroy (neighbor->consensus);
-  neighbor->consensus = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Finished consensus with %s!\n",
-	      GNUNET_i2s (&neighbor->peer));
-  /* remove targets that disappeared */
-  neighbor->target_removed = GNUNET_NO;
-  GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table,
-					 &check_target_removed,
-					 neighbor);
-  if (GNUNET_YES == neighbor->target_removed)
-  {
-    /* check if we got an alternative for the removed routes */
-    GNUNET_CONTAINER_multihashmap_iterate (direct_neighbors,
-					   &refresh_routes,
-					   NULL);    
-  }
-  /* add targets that appeared (and check for improved routes) */
-  GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table_consensus,
-					 &check_target_added,
-					 neighbor);
-  if (NULL != neighbor->neighbor_table)
-  {
-    GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table,
-					   &free_targets,
-					   NULL);
-    GNUNET_CONTAINER_multihashmap_destroy (neighbor->neighbor_table);
-    neighbor->neighbor_table = NULL;
-  }
-  neighbor->neighbor_table = neighbor->neighbor_table_consensus;
-  neighbor->neighbor_table_consensus = NULL;
-  neighbor->consensus_task = GNUNET_SCHEDULER_add_delayed (GNUNET_DV_CONSENSUS_FREQUENCY,
-							   &start_consensus,
-							   neighbor);
-}
-
-
-/**
- * We inserted the last element into the consensus, get ready to
- * insert the next element into the consensus or conclude if
- * we're done.
- *
- * @param cls the 'struct DirectNeighbor' of the peer we're building
- *        a routing consensus with
- * @param success GNUNET_OK if the last element was added successfully,
- *                GNUNET_SYSERR if we failed
- */
-static void
-insert_next_element (void *cls,
-		     int success)
-{
-  struct DirectNeighbor *neighbor = cls;
-  struct GNUNET_CONSENSUS_Element element;
-
-  while ( (DEFAULT_FISHEYE_DEPTH - 1 > neighbor->consensus_insertion_distance) &&
-	  (consensi[neighbor->consensus_insertion_distance].array_length == neighbor->consensus_insertion_offset) )
-  {
-    neighbor->consensus_insertion_offset = 0;
-    neighbor->consensus_insertion_distance++;
-    /* skip over NULL entries */
-    while ( (DEFAULT_FISHEYE_DEPTH - 1 > neighbor->consensus_insertion_distance) &&
-	    (consensi[neighbor->consensus_insertion_distance].array_length < neighbor->consensus_insertion_offset) &&
-	    (NULL == consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset]) )
-      neighbor->consensus_insertion_offset++;
-  }
-  if (DEFAULT_FISHEYE_DEPTH - 1 == neighbor->consensus_insertion_distance)
-  {
-    /* we're done, conclude! */
-    GNUNET_CONSENSUS_conclude (neighbor->consensus,
-			       GNUNET_DV_CONSENSUS_FREQUENCY,
-			       &consensus_done_cb,
-			       neighbor);
-    return;
-  }
-  element.size = sizeof (struct Target);
-  element.data = &consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset++]->target;
-
-  /* skip over NULL entries */
-  while ( (DEFAULT_FISHEYE_DEPTH - 1 > neighbor->consensus_insertion_distance) &&
-	  (consensi[neighbor->consensus_insertion_distance].array_length < neighbor->consensus_insertion_offset) &&
-	  (NULL == consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset]) )
-    neighbor->consensus_insertion_offset++;  
-  GNUNET_CONSENSUS_insert (neighbor->consensus,
-			   &element,
-			   &insert_next_element,
-			   neighbor);
-}
-
-
-/**
+ * Callback for set operation results. Called for each element
+ * in the result set.
  * We have learned a new route from the other peer.  Add it to the
  * route set we're building.
  *
  * @param cls the 'struct DirectNeighbor' we're building the consensus with
- * @param element the new element we have learned
+ * @param element a result element, only valid if status is GNUNET_SET_STATUS_OK
+ * @param status see enum GNUNET_SET_Status
  */
 static void
-learn_route_cb (void *cls,
-		const struct GNUNET_CONSENSUS_Element *element)
+handle_set_union_result (void *cls,
+			 const struct GNUNET_SET_Element *element,
+			 enum GNUNET_SET_Status status)
 {
   struct DirectNeighbor *neighbor = cls;
   struct Target *target;
 
-  if (NULL == element)
+  switch (status)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Failed to establish DV consensus, will try again later\n");
-    GNUNET_CONSENSUS_destroy (neighbor->consensus);
+  case GNUNET_SET_STATUS_OK:
+    if (sizeof (struct Target) != element->size)
+    {
+      GNUNET_break_op (0);
+      return;
+    }
+    target = GNUNET_malloc (sizeof (struct Target));
+    memcpy (target, element->data, sizeof (struct Target));
+    if (GNUNET_YES !=
+	GNUNET_CONTAINER_multihashmap_put (neighbor->neighbor_table_consensus,
+					   &target->peer.hashPubKey,
+					   target,
+					   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+    {
+      GNUNET_break_op (0);
+      GNUNET_free (target);
+    }
+    break;
+  case GNUNET_SET_STATUS_TIMEOUT:
+  case GNUNET_SET_STATUS_FAILURE:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Failed to establish DV union, will try again later\n");
+    GNUNET_SET_operation_cancel (neighbor->set_op); /* FIXME: needed? */
+    neighbor->set_op = NULL;
     if (NULL != neighbor->neighbor_table_consensus)
     {
       GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table_consensus,
@@ -1268,82 +1313,130 @@ learn_route_cb (void *cls,
       GNUNET_CONTAINER_multihashmap_destroy (neighbor->neighbor_table_consensus);
       neighbor->neighbor_table_consensus = NULL;
     }
-    neighbor->consensus = NULL;
-    neighbor->consensus_task = GNUNET_SCHEDULER_add_delayed (GNUNET_DV_CONSENSUS_FREQUENCY,
-							     &start_consensus,
-							     neighbor);
-    return;
-  }
-  if (sizeof (struct Target) != element->size)
-  {
-    GNUNET_break_op (0);
-    return;
-  }
-  target = GNUNET_malloc (sizeof (struct Target));
-  memcpy (target, element->data, sizeof (struct Target));
-  if (GNUNET_YES !=
-      GNUNET_CONTAINER_multihashmap_put (neighbor->neighbor_table_consensus,
-					 &target->peer.hashPubKey,
-					 target,
-					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
-  {
-    GNUNET_break_op (0);
-    GNUNET_free (target);
+    if (1 == GNUNET_CRYPTO_hash_cmp (&neighbor->peer.hashPubKey,
+				     &my_identity.hashPubKey))
+      neighbor->initiate_task = GNUNET_SCHEDULER_add_delayed (GNUNET_DV_CONSENSUS_FREQUENCY,
+							      &initiate_set_union,
+							      neighbor);
+    break;
+  case GNUNET_SET_STATUS_HALF_DONE:
+    /* we got all of our updates; integrate routing table! */
+    neighbor->target_removed = GNUNET_NO;
+    GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table,
+					   &check_target_removed,
+					   neighbor);
+    if (GNUNET_YES == neighbor->target_removed)
+    {
+      /* check if we got an alternative for the removed routes */
+      GNUNET_CONTAINER_multihashmap_iterate (direct_neighbors,
+					     &refresh_routes,
+					     NULL);    
+    }
+    /* add targets that appeared (and check for improved routes) */
+    GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table_consensus,
+					   &check_target_added,
+					   neighbor);
+    if (NULL != neighbor->neighbor_table)
+    {
+      GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table,
+					     &free_targets,
+					     NULL);
+      GNUNET_CONTAINER_multihashmap_destroy (neighbor->neighbor_table);
+      neighbor->neighbor_table = NULL;
+    }
+    neighbor->neighbor_table = neighbor->neighbor_table_consensus;
+    neighbor->neighbor_table_consensus = NULL;
+    break;
+  case GNUNET_SET_STATUS_DONE:
+    /* operation done, schedule next run! */
+    GNUNET_SET_operation_cancel (neighbor->set_op); /* FIXME: needed? */
+    neighbor->set_op = NULL;
+    if (1 == GNUNET_CRYPTO_hash_cmp (&neighbor->peer.hashPubKey,
+				     &my_identity.hashPubKey))
+      neighbor->initiate_task = GNUNET_SCHEDULER_add_delayed (GNUNET_DV_CONSENSUS_FREQUENCY,
+							      &initiate_set_union,
+							      neighbor);
+    break;
+  default:
+    GNUNET_break (0);
     return;
   }
 }
 
 
 /**
- * Start creating a new consensus from scratch.
+ * Start creating a new DV set union construction, our neighbour has
+ * asked for it (callback for listening peer).
+ *
+ * @param cls the 'struct DirectNeighbor' of the peer we're building
+ *        a routing consensus with
+ * @param other_peer the other peer
+ * @param context_msg message with application specific information from
+ *        the other peer
+ * @param request request from the other peer, use GNUNET_SET_accept
+ *        to accept it, otherwise the request will be refused
+ *        Note that we don't use a return value here, as it is also
+ *        necessary to specify the set we want to do the operation with,
+ *        whith sometimes can be derived from the context message.
+ *        Also necessary to specify the timeout.
+ */    
+static void
+listen_set_union (void *cls,
+		  const struct GNUNET_PeerIdentity *other_peer,
+		  const struct GNUNET_MessageHeader *context_msg,
+		  struct GNUNET_SET_Request *request)
+{
+  struct DirectNeighbor *neighbor = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting to create consensus with %s!\n",
+	      GNUNET_i2s (&neighbor->peer));
+  if (NULL != neighbor->set_op)
+  {
+    GNUNET_SET_operation_cancel (neighbor->set_op);
+    neighbor->set_op = NULL;
+  }
+  if (NULL != neighbor->my_set)
+  {
+    GNUNET_SET_destroy (neighbor->my_set);
+    neighbor->my_set = NULL;
+  }
+  neighbor->my_set = GNUNET_SET_create (cfg,
+					GNUNET_SET_OPERATION_UNION);
+  neighbor->set_op = GNUNET_SET_accept (request,
+					neighbor->my_set /* FIXME: pass later! */,
+					GNUNET_SET_RESULT_ADDED,
+					&handle_set_union_result,
+					neighbor);
+  build_set (neighbor);
+}
+
+
+/**
+ * Start creating a new DV set union by initiating the connection.
  *
  * @param cls the 'struct DirectNeighbor' of the peer we're building
  *        a routing consensus with
  * @param tc scheduler context
  */    
 static void
-start_consensus (void *cls,
-		 const struct GNUNET_SCHEDULER_TaskContext *tc)
+initiate_set_union (void *cls,
+		    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct DirectNeighbor *neighbor = cls;
-  struct GNUNET_HashCode session_id;
-  struct GNUNET_HashCode real_session_id;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Starting to create consensus with %s!\n",
-	      GNUNET_i2s (&neighbor->peer));
-  neighbor->consensus_task = GNUNET_SCHEDULER_NO_TASK;
-  neighbor->consensus_insertion_offset = 0;
-  neighbor->consensus_insertion_distance = 0;
-  GNUNET_assert (NULL == neighbor->neighbor_table_consensus);
-  GNUNET_assert (NULL == neighbor->consensus);
-  neighbor->neighbor_table_consensus = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_YES);
-  /* construct session ID seed as XOR of both peer's identities */
-  GNUNET_CRYPTO_hash_xor (&my_identity.hashPubKey, 
-			  &neighbor->peer.hashPubKey, 
-			  &session_id);
-  /* make sure session ID is unique across applications by salting it with 'DV' */
-  GNUNET_CRYPTO_hkdf (&real_session_id, sizeof (real_session_id),
-		      GCRY_MD_SHA512, GCRY_MD_SHA256,
-		      "DV-SALT", 2,
-		      &session_id, sizeof (session_id),
-		      NULL, 0);
-  neighbor->consensus = GNUNET_CONSENSUS_create (cfg,
-						 1,
-						 &neighbor->peer,
-						 &real_session_id,
-						 &learn_route_cb,
-						 neighbor);
-  if (NULL == neighbor->consensus)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Failed to setup consensus, will try again later!\n");
-    neighbor->consensus_task = GNUNET_SCHEDULER_add_delayed (GNUNET_DV_CONSENSUS_FREQUENCY,
-							     &start_consensus,
-							     neighbor);
-    return;
-  }
-  insert_next_element (neighbor, GNUNET_OK);
+  neighbor->initiate_task = GNUNET_SCHEDULER_NO_TASK;
+  neighbor->my_set = GNUNET_SET_create (cfg,
+					GNUNET_SET_OPERATION_UNION);
+  neighbor->set_op = GNUNET_SET_evaluate (neighbor->my_set /* FIXME: pass later! */,
+					  &neighbor->peer,
+					  &neighbor->real_session_id,
+					  NULL,
+					  0 /* FIXME: salt */,
+					  GNUNET_SET_RESULT_ADDED,
+					  &handle_set_union_result,
+					  neighbor);
+  build_set (neighbor);
 }
 
 
