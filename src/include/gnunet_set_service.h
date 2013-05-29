@@ -4,7 +4,7 @@
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
-      by the Free Software Foundation; either version 2, or (at your
+      by the Free Software Foundation; either version 3, or (at your
       option) any later version.
 
       GNUnet is distributed in the hope that it will be useful, but
@@ -22,6 +22,7 @@
  * @file include/gnunet_set_service.h
  * @brief two-peer set operations
  * @author Florian Dold
+ * @author Christian Grothoff
  */
 
 #ifndef GNUNET_SET_SERVICE_H
@@ -177,6 +178,7 @@ typedef void (*GNUNET_SET_ResultIterator) (void *cls,
  * Called when another peer wants to do a set operation with the
  * local peer.
  *
+ * @param cls closure
  * @param other_peer the other peer
  * @param context_msg message with application specific information from
  *        the other peer
@@ -257,7 +259,8 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set);
 /**
  * Evaluate a set operation with our set and the set of another peer.
  *
- * @param set set to use
+ * @param set set to use -- FIXME: remove
+ *            this argument, use GNUNET_SET_conclude instead! 
  * @param salt salt for HKDF (explain more here)
  * @param other_peer peer with the other set
  * @param app_id hash for the application using the set
@@ -302,7 +305,6 @@ GNUNET_SET_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
                    void *listen_cls);
 
 
-
 /**
  * Cancel the given listen operation.
  *
@@ -312,12 +314,14 @@ void
 GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh);
 
 
-
 /**
- * Accept a request we got via GNUNET_SET_listen.
+ * Accept a request we got via GNUNET_SET_listen.  Must be called
+ * during GNUNET_SET_listen, as the 'struct GNUNET_SET_Request'
+ * becomes invalid afterwards.
  *
  * @param request request to accept
- * @param set set used for the requested operation 
+ * @param set set used for the requested operation -- FIXME: remove
+ *            this argument, use GNUNET_SET_conclude instead! 
  * @param result_mode specified how results will be returned,
  *        see 'GNUNET_SET_ResultMode'.
  * @param result_cb callback for the results
@@ -333,7 +337,25 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
 
 
 /**
- * Cancel the given set operation.
+ * Conclude the given set operation using the given set. 
+ * This function is called once we have fully constructed
+ * the set that we want to use for the operation.  At this
+ * time, the P2P protocol can then begin to exchange the
+ * set information and call the result callback with the
+ * result information.
+ *
+ * @param oh handle to the set operation 
+ * @param set the set to use for the operation
+ */
+void
+GNUNET_SET_conclude (struct GNUNET_SET_OperationHandle *oh,
+		     struct GNUNET_SET_Handle *set);
+
+
+/**
+ * Cancel the given set operation.  FIXME: do clients have
+ * to cancel the operatino if the GNUNET_SET_ResultIterator
+ * has been called with timeout/error/done?
  *
  * @param oh set operation to cancel
  */
