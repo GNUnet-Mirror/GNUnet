@@ -304,7 +304,6 @@ static void
 get_experiments_cb (struct Node *n, struct Experiment *e)
 {
 	static int counter = 0;
-	//size_t start_size;
 	if (NULL == e)
 	{
 			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Added %u experiments for peer %s\n"),
@@ -317,10 +316,6 @@ get_experiments_cb (struct Node *n, struct Experiment *e)
 			GNUNET_i2s (&n->id));
 
 	/* Request experiment */
-/*	start_size = sizeof (struct Experimentation_Start);
-	GNUNET_CORE_notify_transmit_ready (ch, GNUNET_NO, 0, EXP_RESPONSE_TIMEOUT,
-			n->id, start_size, send_start_cb, n);*/
-
 	GNUNET_EXPERIMENTATION_scheduler_add (n, e);
 
 	counter ++;
@@ -632,6 +627,13 @@ core_receive_handler (void *cls,
 	return GNUNET_OK;
 }
 
+
+void
+GNUNET_EXPERIMENT_nodes_request_start (struct Node *n, struct Experiment *e)
+{
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Sending start request to peer `%s' for experiment `%s'\n"),
+			GNUNET_i2s(&n->id), e->name);
+}
 
 
 /**

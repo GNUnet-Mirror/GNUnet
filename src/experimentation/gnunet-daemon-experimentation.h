@@ -34,7 +34,7 @@
 /**
  * Timeout between request and expected response
  */
-#define EXP_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+#define EXP_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
  * Default experiment frequency
@@ -204,6 +204,9 @@ struct Experimentation_Response
 
 	uint32_t issuer_count;
 };
+
+void
+GNUNET_EXPERIMENT_nodes_request_start (struct Node *n, struct Experiment *e);
 
 
 /**

@@ -52,6 +52,8 @@ struct ScheduledExperiment {
 struct ScheduledExperiment *list_head;
 struct ScheduledExperiment *list_tail;
 
+static unsigned int experiments_scheduled;
+static unsigned int experiments_requested;
 
 static void
 request_timeout (void *cls,const struct GNUNET_SCHEDULER_TaskContext* tc)
@@ -66,6 +68,10 @@ request_timeout (void *cls,const struct GNUNET_SCHEDULER_TaskContext* tc)
 	GNUNET_free (se);
 
 	/* Remove experiment */
+
+	GNUNET_assert (experiments_requested > 0);
+	experiments_requested --;
+	GNUNET_STATISTICS_set (GSE_stats, "# experiments requested", experiments_requested, GNUNET_NO);
 }
 
 static void run (void *cls,const struct GNUNET_SCHEDULER_TaskContext* tc)
@@ -74,15 +80,18 @@ static void run (void *cls,const struct GNUNET_SCHEDULER_TaskContext* tc)
 	struct GNUNET_TIME_Relative end;
 	se->task = GNUNET_SCHEDULER_NO_TASK;
 
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Executing `%s'\n", se->e->name);
-
 
 	if (NOT_RUNNING == se->state)
 	{
 			/* Send start message */
-			//GNUNET_EXPERIMENT_nodes_request_start (se->e);
+			GNUNET_EXPERIMENT_nodes_request_start (se->n, se->e);
 			se->state = REQUESTED;
 			se->task = GNUNET_SCHEDULER_add_delayed (EXP_RESPONSE_TIMEOUT, &request_timeout, se);
+
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Sending start request to peer `%s' for `%s'\n",
+					GNUNET_i2s (&se->n->id), se->e->name);
+			experiments_requested ++;
+			GNUNET_STATISTICS_set (GSE_stats, "# experiments requested", experiments_requested, GNUNET_NO);
 			return;
 	}
 	else if (REQUESTED == se->state)
@@ -93,6 +102,8 @@ static void run (void *cls,const struct GNUNET_SCHEDULER_TaskContext* tc)
 	else if (STARTED == se->state)
 	{
 			/* Experiment is running */
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Running experiment `%s' peer for `%s'\n",
+					GNUNET_i2s (&se->n->id), se->e->name);
 
 			/* do work here */
 
@@ -124,11 +135,10 @@ GNUNET_EXPERIMENTATION_scheduler_add (struct Node *n, struct Experiment *e)
 
 	start = GNUNET_TIME_absolute_get_remaining(e->start);
 	end = GNUNET_TIME_absolute_get_remaining(e->stop);
-
-	/* Add additional checks here if required */
-
 	if (0 == end.rel_value)
 			return;	/* End of experiment is reached */
+
+	/* Add additional checks here if required */
 
 	se = GNUNET_malloc (sizeof (struct ScheduledExperiment));
 	se->state = NOT_RUNNING;
@@ -140,8 +150,10 @@ GNUNET_EXPERIMENTATION_scheduler_add (struct Node *n, struct Experiment *e)
 			se->task = GNUNET_SCHEDULER_add_delayed (start, &run, se);
 
 	GNUNET_CONTAINER_DLL_insert (list_head, list_tail, se);
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Added experiment `%s' for node to be scheduled\n",
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Added experiment `%s' for node to be scheduled\n",
 			e->name, GNUNET_i2s(&se->n->id));
+	experiments_scheduled ++;
+	GNUNET_STATISTICS_set (GSE_stats, "# experiments scheduled", experiments_scheduled, GNUNET_NO);
 }
 
 /**
@@ -150,7 +162,8 @@ GNUNET_EXPERIMENTATION_scheduler_add (struct Node *n, struct Experiment *e)
 void
 GNUNET_EXPERIMENTATION_scheduler_start ()
 {
-
+	experiments_requested = 0;
+	experiments_scheduled = 0;
 }
 
 
@@ -174,6 +187,9 @@ GNUNET_EXPERIMENTATION_scheduler_stop ()
 					cur->task = GNUNET_SCHEDULER_NO_TASK;
 			}
 			GNUNET_free (cur);
+			GNUNET_assert (experiments_scheduled > 0);
+			experiments_scheduled --;
+			GNUNET_STATISTICS_set (GSE_stats, "# experiments scheduled", experiments_scheduled, GNUNET_NO);
 	}
 }
 
