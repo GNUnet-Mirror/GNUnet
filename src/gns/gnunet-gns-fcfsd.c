@@ -199,7 +199,7 @@ static struct GNUNET_CRYPTO_ShortHashCode fcfsd_zone;
 /**
  * Private key for the fcfsd zone.
  */
-static struct GNUNET_CRYPTO_RsaPrivateKey *fcfs_zone_pkey;
+static struct GNUNET_CRYPTO_EccPrivateKey *fcfs_zone_pkey;
 			
 
 /**
@@ -229,12 +229,12 @@ run_httpd_now ()
 
 static void
 iterate_cb (void *cls,
-                const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+                const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
                 struct GNUNET_TIME_Absolute expire,
                 const char *name,
                 unsigned int rd_len,
                 const struct GNUNET_NAMESTORE_RecordData *rd,
-                const struct GNUNET_CRYPTO_RsaSignature *signature)
+                const struct GNUNET_CRYPTO_EccSignature *signature)
 {
   struct ZoneinfoRequest *zr = cls;
   struct MHD_Response *response;
@@ -506,12 +506,12 @@ put_continuation (void *cls,
  */
 static void 
 zone_to_name_cb (void *cls,
-		 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+		 const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
 		 struct GNUNET_TIME_Absolute expire,			    
 		 const char *name,
 		 unsigned int rd_count,
 		 const struct GNUNET_NAMESTORE_RecordData *rd,
-		 const struct GNUNET_CRYPTO_RsaSignature *signature)
+		 const struct GNUNET_CRYPTO_EccSignature *signature)
 {
   struct Request *request = cls;
   struct GNUNET_NAMESTORE_RecordData r;
@@ -565,12 +565,12 @@ zone_to_name_cb (void *cls,
  */
 static void 
 lookup_result_processor (void *cls,
-			 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+			 const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
 			 struct GNUNET_TIME_Absolute expire,			    
 			 const char *name,
 			 unsigned int rd_count,
 			 const struct GNUNET_NAMESTORE_RecordData *rd,
-			 const struct GNUNET_CRYPTO_RsaSignature *signature)
+			 const struct GNUNET_CRYPTO_EccSignature *signature)
 {
   struct Request *request = cls;
   struct GNUNET_CRYPTO_ShortHashCode pub;
@@ -862,7 +862,7 @@ do_shutdown (void *cls,
   }
   if (NULL != fcfs_zone_pkey)
   {
-    GNUNET_CRYPTO_rsa_key_free (fcfs_zone_pkey);
+    GNUNET_CRYPTO_ecc_key_free (fcfs_zone_pkey);
     fcfs_zone_pkey = NULL;
   }
 }
@@ -882,7 +882,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   char *keyfile;
   unsigned long long port;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pub;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg,
@@ -904,7 +904,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 			       "fcfsd", "ZONEKEY");
     return;
   }
-  fcfs_zone_pkey = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+  fcfs_zone_pkey = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
   if (NULL == fcfs_zone_pkey)
   {
@@ -912,7 +912,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 		_("Failed to read or create private zone key\n"));
     return;
   }
-  GNUNET_CRYPTO_rsa_key_get_public (fcfs_zone_pkey,
+  GNUNET_CRYPTO_ecc_key_get_public (fcfs_zone_pkey,
 				    &pub);
   GNUNET_CRYPTO_short_hash (&pub, sizeof (pub), &fcfsd_zone);
   ns = GNUNET_NAMESTORE_connect (cfg);

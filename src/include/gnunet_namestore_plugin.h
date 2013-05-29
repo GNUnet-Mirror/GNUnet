@@ -53,12 +53,12 @@ extern "C"
  *        because the user queried for a particular record type only)
  */
 typedef void (*GNUNET_NAMESTORE_RecordIterator) (void *cls,
-						 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+						 const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
 						 struct GNUNET_TIME_Absolute expire,
 						 const char *name,
 						 unsigned int rd_len,
 						 const struct GNUNET_NAMESTORE_RecordData *rd,
-						 const struct GNUNET_CRYPTO_RsaSignature *signature);
+						 const struct GNUNET_CRYPTO_EccSignature *signature);
 
 
 /**
@@ -88,12 +88,12 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @return GNUNET_OK on success, else GNUNET_SYSERR
    */
   int (*put_records) (void *cls, 
-		      const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+		      const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
 		      struct GNUNET_TIME_Absolute expire,
 		      const char *name,
 		      unsigned int rd_len,
 		      const struct GNUNET_NAMESTORE_RecordData *rd,
-		      const struct GNUNET_CRYPTO_RsaSignature *signature);
+		      const struct GNUNET_CRYPTO_EccSignature *signature);
 
 
   /**

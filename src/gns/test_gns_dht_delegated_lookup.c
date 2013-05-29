@@ -65,10 +65,10 @@ static struct GNUNET_DHT_Handle *dht_handle;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded alice_pkey;
-static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded bob_pkey;
-static struct GNUNET_CRYPTO_RsaPrivateKey *alice_key;
-static struct GNUNET_CRYPTO_RsaPrivateKey *bob_key;
+static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded alice_pkey;
+static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded bob_pkey;
+static struct GNUNET_CRYPTO_EccPrivateKey *alice_key;
+static struct GNUNET_CRYPTO_EccPrivateKey *bob_key;
 
 
 /**
@@ -216,7 +216,7 @@ put_dht(void *cls, int32_t success, const char *emsg)
   struct GNUNET_HashCode zone_hash_double;
   uint32_t rd_payload_length;
   char* nrb_data = NULL;
-  struct GNUNET_CRYPTO_RsaSignature *sig;
+  struct GNUNET_CRYPTO_EccSignature *sig;
   struct GNUNET_NAMESTORE_RecordData rd;
   char* ip = TEST_IP;
   struct in_addr *web = GNUNET_malloc(sizeof(struct in_addr));
@@ -262,7 +262,7 @@ put_dht(void *cls, int32_t success, const char *emsg)
   }
   GNUNET_CRYPTO_short_hash(TEST_RECORD_NAME, strlen(TEST_RECORD_NAME), &name_hash);
   GNUNET_CRYPTO_short_hash(&bob_pkey,
-                     sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                     sizeof(struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
                      &zone_hash);
   GNUNET_CRYPTO_short_hash_double(&zone_hash, &zone_hash_double);
   GNUNET_CRYPTO_short_hash_double(&name_hash, &name_hash_double);
@@ -330,13 +330,13 @@ do_check (void *cls,
     return;
   }
 
-  alice_key = GNUNET_CRYPTO_rsa_key_create_from_file (alice_keyfile);
-  bob_key = GNUNET_CRYPTO_rsa_key_create_from_file (KEYFILE_BOB);
+  alice_key = GNUNET_CRYPTO_ecc_key_create_from_file (alice_keyfile);
+  bob_key = GNUNET_CRYPTO_ecc_key_create_from_file (KEYFILE_BOB);
   
   GNUNET_free(alice_keyfile);
 
-  GNUNET_CRYPTO_rsa_key_get_public (alice_key, &alice_pkey);
-  GNUNET_CRYPTO_rsa_key_get_public (bob_key, &bob_pkey);
+  GNUNET_CRYPTO_ecc_key_get_public (alice_key, &alice_pkey);
+  GNUNET_CRYPTO_ecc_key_get_public (bob_key, &bob_pkey);
   GNUNET_CRYPTO_short_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
 
   struct GNUNET_NAMESTORE_RecordData rd;

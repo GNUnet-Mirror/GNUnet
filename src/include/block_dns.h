@@ -47,18 +47,18 @@ struct GNUNET_DNS_Record
   /**
    * Signature of the peer affirming that he is offering the service.
    */
-  struct GNUNET_CRYPTO_RsaSignature signature;
+  struct GNUNET_CRYPTO_EccSignature signature;
 
   /**
    * Beginning of signed portion of the record, signs everything until
    * the end of the struct.
    */
-  struct GNUNET_CRYPTO_RsaSignaturePurpose purpose;
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
 
   /**
    * The peer providing this service
    */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded peer;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded peer;
 
   /**
    * The descriptor for the service

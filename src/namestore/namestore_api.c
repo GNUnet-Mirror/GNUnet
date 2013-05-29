@@ -264,9 +264,9 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 {
   const char *name;
   const char * rd_tmp;
-  const struct GNUNET_CRYPTO_RsaSignature *signature;
+  const struct GNUNET_CRYPTO_EccSignature *signature;
   struct GNUNET_TIME_Absolute expire;
-  const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key_tmp;
+  const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *public_key_tmp;
   size_t exp_msg_len;
   size_t msg_len;
   size_t name_len;
@@ -282,7 +282,7 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   contains_sig = ntohs (msg->contains_sig);
   expire = GNUNET_TIME_absolute_ntoh (msg->expire);
   exp_msg_len = sizeof (struct LookupNameResponseMessage) +
-      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
+      sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded) +
       name_len + rd_len;
   if (msg_len != exp_msg_len)
   {
@@ -589,7 +589,7 @@ handle_zone_iteration_response (struct GNUNET_NAMESTORE_ZoneIterator *ze,
                                 const struct ZoneIterationResponseMessage *msg,
                                 size_t size)
 {
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubdummy;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pubdummy;
   size_t msg_len;
   size_t exp_msg_len;
   size_t name_len;
@@ -1003,12 +1003,12 @@ GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h)
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
-			     const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+			     const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
 			     const char *name,
 			     struct GNUNET_TIME_Absolute freshness,
 			     unsigned int rd_count,
 			     const struct GNUNET_NAMESTORE_RecordData *rd,
-			     const struct GNUNET_CRYPTO_RsaSignature *signature,
+			     const struct GNUNET_CRYPTO_EccSignature *signature,
 			     GNUNET_NAMESTORE_ContinuationWithStatus cont,
 			     void *cont_cls)
 {
@@ -1088,18 +1088,18 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
  * @return GNUNET_OK if the signature is valid
  */
 int
-GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
+GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *public_key,
                                    const struct GNUNET_TIME_Absolute freshness,
 				   const char *name,
 				   unsigned int rd_count,
 				   const struct GNUNET_NAMESTORE_RecordData *rd,
-				   const struct GNUNET_CRYPTO_RsaSignature *signature)
+				   const struct GNUNET_CRYPTO_EccSignature *signature)
 {
   size_t rd_ser_len;
   size_t name_len;
   char *name_tmp;
   char *rd_ser;
-  struct GNUNET_CRYPTO_RsaSignaturePurpose *sig_purpose;
+  struct GNUNET_CRYPTO_EccSignaturePurpose *sig_purpose;
   struct GNUNET_TIME_AbsoluteNBO *expire_tmp;
   struct GNUNET_TIME_AbsoluteNBO expire_nbo = GNUNET_TIME_absolute_hton (freshness);
   uint32_t sig_len;
@@ -1115,11 +1115,11 @@ GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinary
     return GNUNET_SYSERR;
   }
   rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
-  sig_len = sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + sizeof (struct GNUNET_TIME_AbsoluteNBO) + rd_ser_len + name_len;
+  sig_len = sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) + sizeof (struct GNUNET_TIME_AbsoluteNBO) + rd_ser_len + name_len;
   {
     char sig_buf[sig_len] GNUNET_ALIGN;
 
-    sig_purpose = (struct GNUNET_CRYPTO_RsaSignaturePurpose *) sig_buf;
+    sig_purpose = (struct GNUNET_CRYPTO_EccSignaturePurpose *) sig_buf;
     sig_purpose->size = htonl (sig_len);
     sig_purpose->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
     expire_tmp = (struct GNUNET_TIME_AbsoluteNBO *) &sig_purpose[1];
@@ -1129,7 +1129,7 @@ GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinary
     rd_ser = &name_tmp[name_len];
     GNUNET_assert (rd_ser_len ==
 		   GNUNET_NAMESTORE_records_serialize (rd_count, rd, rd_ser_len, rd_ser));
-    return GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN, sig_purpose, signature, public_key);
+    return GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN, sig_purpose, signature, public_key);
   }
 }
 
@@ -1149,7 +1149,7 @@ GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinary
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
-				const struct GNUNET_CRYPTO_RsaPrivateKey *pkey,
+				const struct GNUNET_CRYPTO_EccPrivateKey *pkey,
 				const char *name,
 				const struct GNUNET_NAMESTORE_RecordData *rd,
 				GNUNET_NAMESTORE_ContinuationWithStatus cont,
@@ -1166,7 +1166,7 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
   size_t key_len;
   uint32_t rid;
   struct RecordCreateMessage * msg;
-  struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded * pkey_enc;
+  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded * pkey_enc;
 
   GNUNET_assert (NULL != h);
   GNUNET_assert (NULL != pkey);
@@ -1190,11 +1190,11 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
   qe->op_id = rid;
   GNUNET_CONTAINER_DLL_insert_tail (h->op_head, h->op_tail, qe);
 
-  pkey_enc = GNUNET_CRYPTO_rsa_encode_key (pkey);
+  pkey_enc = GNUNET_CRYPTO_ecc_encode_key (pkey);
   GNUNET_assert (NULL != pkey_enc);
 
   /* setup msg */
-  key_len = ntohs (pkey_enc->len);
+  key_len = ntohs (pkey_enc->size);
   rd_ser_len = GNUNET_NAMESTORE_records_get_size(1, rd);
   msg_size = sizeof (struct RecordCreateMessage) + key_len + name_len + rd_ser_len;
   pe = GNUNET_malloc(sizeof (struct PendingMessage) + msg_size);
@@ -1244,14 +1244,14 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
-				const struct GNUNET_CRYPTO_RsaPrivateKey *pkey,
+				const struct GNUNET_CRYPTO_EccPrivateKey *pkey,
 				const char *name,
 				const struct GNUNET_NAMESTORE_RecordData *rd,
 				GNUNET_NAMESTORE_ContinuationWithStatus cont,
 				void *cont_cls)
 {
   struct GNUNET_NAMESTORE_QueueEntry *qe;
-  struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded * pkey_enc;
+  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *pkey_enc;
   struct PendingMessage *pe;
   struct RecordRemoveMessage * msg;
   char *pkey_tmp;
@@ -1282,15 +1282,15 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
   qe->op_id = rid;
   GNUNET_CONTAINER_DLL_insert_tail (h->op_head, h->op_tail, qe);
 
-  pkey_enc = GNUNET_CRYPTO_rsa_encode_key (pkey);
+  pkey_enc = GNUNET_CRYPTO_ecc_encode_key (pkey);
   GNUNET_assert (NULL != pkey_enc);
-  key_len = ntohs (pkey_enc->len);
+  key_len = ntohs (pkey_enc->size);
 
   rd_count = (NULL == rd) ? 0 : 1;
   rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
   name_len = strlen (name) + 1;
   msg_size = sizeof (struct RecordRemoveMessage) + key_len + name_len + rd_ser_len;
-  pe = GNUNET_malloc(sizeof (struct PendingMessage) + msg_size);
+  pe = GNUNET_malloc (sizeof (struct PendingMessage) + msg_size);
   pe->size = msg_size;
   pe->is_init = GNUNET_NO;
   msg = (struct RecordRemoveMessage *) &pe[1];

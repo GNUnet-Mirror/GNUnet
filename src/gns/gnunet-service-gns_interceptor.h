@@ -37,7 +37,7 @@
  */
 int
 gns_interceptor_init (struct GNUNET_CRYPTO_ShortHashCode zone,
-		      struct GNUNET_CRYPTO_RsaPrivateKey *key,
+		      struct GNUNET_CRYPTO_EccPrivateKey *key,
 		      const struct GNUNET_CONFIGURATION_Handle *c);
 
 /**

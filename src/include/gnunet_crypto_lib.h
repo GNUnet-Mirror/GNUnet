@@ -299,10 +299,13 @@ struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded
 };
 
 
+/**
+ * Private ECC key encoded for transmission (with length prefix).
+ */
 struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded
 {
   /**
-   * Overall size of the private key.
+   * Overall size of the private key in network byte order.
    */
   uint16_t size;
 

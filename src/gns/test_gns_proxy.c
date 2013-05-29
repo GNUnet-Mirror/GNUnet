@@ -364,7 +364,7 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
   enum MHD_FLAG flags;
-  struct GNUNET_CRYPTO_RsaPrivateKey *host_key;
+  struct GNUNET_CRYPTO_EccPrivateKey *host_key;
   struct GNUNET_NAMESTORE_RecordData rd;
   char *zone_keyfile;
   
@@ -421,7 +421,7 @@ run (void *cls,
     return;
   }
 
-  host_key = GNUNET_CRYPTO_rsa_key_create_from_file (zone_keyfile);
+  host_key = GNUNET_CRYPTO_ecc_key_create_from_file (zone_keyfile);
   rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value;
   GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_string_to_value (GNUNET_GNS_RECORD_A,
                                                                "127.0.0.1",
@@ -438,7 +438,7 @@ run (void *cls,
 
   GNUNET_free ((void**)rd.data);
   GNUNET_free (zone_keyfile);
-  GNUNET_CRYPTO_rsa_key_free (host_key);
+  GNUNET_CRYPTO_ecc_key_free (host_key);
 }
 
 int
@@ -460,7 +460,7 @@ main (int argc, char *const *argv)
   }
     GNUNET_free (binary);
 
-  GNUNET_CRYPTO_rsa_setup_hostkey ("test_gns_proxy.conf");
+  GNUNET_CRYPTO_ecc_setup_hostkey ("test_gns_proxy.conf");
   
   if (0 != curl_global_init (CURL_GLOBAL_WIN32))
   {

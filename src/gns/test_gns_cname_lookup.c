@@ -334,9 +334,9 @@ do_check (void *cls,
           const struct GNUNET_CONFIGURATION_Handle *ccfg,
           struct GNUNET_TESTING_Peer *peer)
 {
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded alice_pkey;
-  struct GNUNET_CRYPTO_RsaPrivateKey *alice_key;
-  struct GNUNET_CRYPTO_RsaPrivateKey *bob_key;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded alice_pkey;
+  struct GNUNET_CRYPTO_EccPrivateKey *alice_key;
+  struct GNUNET_CRYPTO_EccPrivateKey *bob_key;
   char* alice_keyfile;
   struct GNUNET_NAMESTORE_RecordData rd;
   const char* ip = TEST_IP_PLUS;
@@ -365,11 +365,11 @@ do_check (void *cls,
     return;
   }
 
-  alice_key = GNUNET_CRYPTO_rsa_key_create_from_file (alice_keyfile);
-  GNUNET_CRYPTO_rsa_key_get_public (alice_key, &alice_pkey);
+  alice_key = GNUNET_CRYPTO_ecc_key_create_from_file (alice_keyfile);
+  GNUNET_CRYPTO_ecc_key_get_public (alice_key, &alice_pkey);
   GNUNET_free(alice_keyfile);
 
-  bob_key = GNUNET_CRYPTO_rsa_key_create_from_file (KEYFILE_BOB);
+  bob_key = GNUNET_CRYPTO_ecc_key_create_from_file (KEYFILE_BOB);
 
   rd.expiration_time = UINT64_MAX;
   GNUNET_assert(1 == inet_pton (AF_INET, ip, &web));
@@ -429,8 +429,8 @@ do_check (void *cls,
 				  &rd,
 				  &commence_testing,
 				  NULL);
-  GNUNET_CRYPTO_rsa_key_free(alice_key);
-  GNUNET_CRYPTO_rsa_key_free(bob_key);
+  GNUNET_CRYPTO_ecc_key_free(alice_key);
+  GNUNET_CRYPTO_ecc_key_free(bob_key);
 }
 
 

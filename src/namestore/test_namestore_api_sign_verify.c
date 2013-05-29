@@ -42,9 +42,9 @@
 #define TEST_REMOVE_RECORD_DATA 'b'
 
 
-static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
+static struct GNUNET_CRYPTO_EccPrivateKey * privkey;
 
-static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
+static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pubkey;
 
 static struct GNUNET_NAMESTORE_RecordData *s_rd;
 
@@ -76,19 +76,19 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  struct GNUNET_CRYPTO_RsaSignature * signature;
+  struct GNUNET_CRYPTO_EccSignature * signature;
 
   /* load privat key */
   char *hostkey_file;
   GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,
       "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
-  privkey = GNUNET_CRYPTO_rsa_key_create_from_file(hostkey_file);
+  privkey = GNUNET_CRYPTO_ecc_key_create_from_file(hostkey_file);
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey != NULL);
   struct GNUNET_TIME_Absolute expire = GNUNET_TIME_absolute_get();
   /* get public key */
-  GNUNET_CRYPTO_rsa_key_get_public(privkey, &pubkey);
+  GNUNET_CRYPTO_ecc_key_get_public(privkey, &pubkey);
 
   int res_c;
   int res_w;

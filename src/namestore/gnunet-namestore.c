@@ -36,7 +36,7 @@
 /**
  * Hostkey generation context
  */
-struct GNUNET_CRYPTO_RsaKeyGenerationContext * keygen;
+struct GNUNET_CRYPTO_EccKeyGenerationContext * keygen;
 
 /**
  * Handle to the namestore.
@@ -51,7 +51,7 @@ static struct GNUNET_CRYPTO_ShortHashCode zone;
 /**
  * Private key for the our zone.
  */
-static struct GNUNET_CRYPTO_RsaPrivateKey *zone_pkey;
+static struct GNUNET_CRYPTO_EccPrivateKey *zone_pkey;
 
 /**
  * Keyfile to manipulate.
@@ -146,7 +146,7 @@ do_shutdown (void *cls,
 {
   if (NULL != keygen)
   {
-    GNUNET_CRYPTO_rsa_key_create_stop (keygen);
+    GNUNET_CRYPTO_ecc_key_create_stop (keygen);
     keygen = NULL;
   }
 
@@ -177,7 +177,7 @@ do_shutdown (void *cls,
   }
   if (NULL != zone_pkey)
   {
-    GNUNET_CRYPTO_rsa_key_free (zone_pkey);
+    GNUNET_CRYPTO_ecc_key_free (zone_pkey);
     zone_pkey = NULL;
   }
   if (NULL != uri)
@@ -267,12 +267,12 @@ del_continuation (void *cls,
  */
 static void
 display_record (void *cls,
-		const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+		const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
 		struct GNUNET_TIME_Absolute expire,			    
 		const char *name,
 		unsigned int rd_len,
 		const struct GNUNET_NAMESTORE_RecordData *rd,
-		const struct GNUNET_CRYPTO_RsaSignature *signature)
+		const struct GNUNET_CRYPTO_EccSignature *signature)
 {
   const char *typestring;
   char *s;
@@ -328,11 +328,11 @@ display_record (void *cls,
 
 static void
 key_generation_cb (void *cls,
-                   struct GNUNET_CRYPTO_RsaPrivateKey *pk,
+                   struct GNUNET_CRYPTO_EccPrivateKey *pk,
                    const char *emsg)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pub;
   uint32_t type;
   void *data = NULL;
   size_t data_size = 0;
@@ -354,7 +354,7 @@ key_generation_cb (void *cls,
     /* nothing more to be done */  
     fprintf (stderr,
              _("No options given\n"));
-    GNUNET_CRYPTO_rsa_key_free (zone_pkey);
+    GNUNET_CRYPTO_ecc_key_free (zone_pkey);
     zone_pkey = NULL;
     return; 
   }
@@ -364,7 +364,7 @@ key_generation_cb (void *cls,
                 _("Failed to read or create private zone key\n"));
     return;
   }
-  GNUNET_CRYPTO_rsa_key_get_public (zone_pkey,
+  GNUNET_CRYPTO_ecc_key_get_public (zone_pkey,
                                     &pub);
   GNUNET_CRYPTO_short_hash (&pub, sizeof (pub), &zone);
 
@@ -625,7 +625,7 @@ testservice_task (void *cls,
              _("Using default zone file `%s'\n"),
              keyfile);
   }
-  keygen = GNUNET_CRYPTO_rsa_key_create_start (keyfile, key_generation_cb, cfg);
+  keygen = GNUNET_CRYPTO_ecc_key_create_start (keyfile, key_generation_cb, cfg);
   GNUNET_free (keyfile);
   keyfile = NULL;
   if (NULL == keygen)

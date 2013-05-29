@@ -823,7 +823,7 @@ GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
 			struct GNUNET_CRYPTO_ShortHashCode *zone,
 			enum GNUNET_GNS_RecordType type,
 			int only_cached,
-			struct GNUNET_CRYPTO_RsaPrivateKey *shorten_key,
+			struct GNUNET_CRYPTO_EccPrivateKey *shorten_key,
 			GNUNET_GNS_LookupResultProcessor proc,
 			void *proc_cls)
 {
@@ -832,7 +832,7 @@ GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
   struct GNUNET_GNS_LookupRequest *lr;
   size_t msize;
   struct PendingMessage *pending;
-  struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *pkey_enc;
+  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *pkey_enc;
   size_t key_len;
   char* pkey_tmp;
 
@@ -843,9 +843,9 @@ GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
   } 
   if (NULL != shorten_key)
   {
-    pkey_enc = GNUNET_CRYPTO_rsa_encode_key (shorten_key);
+    pkey_enc = GNUNET_CRYPTO_ecc_encode_key (shorten_key);
     GNUNET_assert (pkey_enc != NULL);
-    key_len = ntohs (pkey_enc->len);
+    key_len = ntohs (pkey_enc->size);
   }
   else
   {
@@ -927,7 +927,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
                    const char *name,
                    enum GNUNET_GNS_RecordType type,
                    int only_cached,
-                   struct GNUNET_CRYPTO_RsaPrivateKey *shorten_key,
+                   struct GNUNET_CRYPTO_EccPrivateKey *shorten_key,
                    GNUNET_GNS_LookupResultProcessor proc,
                    void *proc_cls)
 {

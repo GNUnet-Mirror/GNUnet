@@ -62,8 +62,8 @@ GNUNET_short_h2s (const struct GNUNET_CRYPTO_ShortHashCode * hc);
  *
  * @return the signature
  */
-struct GNUNET_CRYPTO_RsaSignature *
-GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
+struct GNUNET_CRYPTO_EccSignature *
+GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_EccPrivateKey *key,
     struct GNUNET_TIME_Absolute expire,
     const char *name,
     const struct GNUNET_NAMESTORE_RecordData *rd,
@@ -212,12 +212,12 @@ struct LookupNameResponseMessage
   /**
    * All zeros if 'contains_sig' is GNUNET_NO.
    */
-  struct GNUNET_CRYPTO_RsaSignature signature;
+  struct GNUNET_CRYPTO_EccSignature signature;
 
   /**
    * The public key for the name
    */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded public_key;
 
   /* 0-terminated name and serialized record data */
   /* rd_len bytes serialized record data */
@@ -262,12 +262,12 @@ struct RecordPutMessage
   /**
    * The signature
    */
-  struct GNUNET_CRYPTO_RsaSignature signature;
+  struct GNUNET_CRYPTO_EccSignature signature;
 
   /**
    * The public key
    */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded public_key;
 
   /* name (0-terminated) followed by "rd_count" serialized records */
 
@@ -327,7 +327,7 @@ struct RecordCreateMessage
   uint16_t pkey_len;
 
   /* followed by:
-   * GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded private key with length pkey_len
+   * GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded private key with length pkey_len
    * name with length name_len
    * serialized record data with length rd_len
    * */
@@ -383,7 +383,7 @@ struct RecordRemoveMessage
   uint16_t pkey_len;
 
   /* followed by:
-   * GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded private key with length pkey_len
+   * GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded private key with length pkey_len
    * name with length name_len
    * serialized record data with length rd_len
    * */
@@ -507,12 +507,12 @@ struct ZoneToNameResponseMessage
   /**
    * Signature
    */
-  struct GNUNET_CRYPTO_RsaSignature signature;
+  struct GNUNET_CRYPTO_EccSignature signature;
 
   /**
    * Publik key
    */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded zone_key;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded zone_key;
 
 };
 
@@ -600,12 +600,12 @@ struct ZoneIterationResponseMessage
   /**
    * All zeros if 'contains_sig' is GNUNET_NO.
    */
-  struct GNUNET_CRYPTO_RsaSignature signature;
+  struct GNUNET_CRYPTO_EccSignature signature;
 
   /**
    * The public key
    */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded public_key;
 
  
  

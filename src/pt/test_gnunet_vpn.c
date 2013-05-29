@@ -426,7 +426,7 @@ main (int argc, char *const *argv)
 
   GNUNET_free (vpn_binary);
   GNUNET_free (exit_binary);
-  GNUNET_CRYPTO_rsa_setup_hostkey ("test_gnunet_vpn.conf");
+  GNUNET_CRYPTO_ecc_setup_hostkey ("test_gnunet_vpn.conf");
   bin = argv[0];
   if (NULL != strstr (bin, "lt-"))
     bin = strstr (bin, "lt-") + 4;

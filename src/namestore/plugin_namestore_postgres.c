@@ -269,12 +269,12 @@ namestore_postgres_remove_records (void *cls,
  */
 static int 
 namestore_postgres_put_records (void *cls, 
-				const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+				const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
 				struct GNUNET_TIME_Absolute expire,
 				const char *name,
 				unsigned int rd_count,
 				const struct GNUNET_NAMESTORE_RecordData *rd,
-				const struct GNUNET_CRYPTO_RsaSignature *signature)
+				const struct GNUNET_CRYPTO_EccSignature *signature)
 {
   struct Plugin *plugin = cls;
   PGresult *ret;
@@ -287,7 +287,7 @@ namestore_postgres_put_records (void *cls,
   unsigned int i;
 
   GNUNET_CRYPTO_short_hash (zone_key, 
-			    sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+			    sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
 			    &zone);
   (void) namestore_postgres_remove_records (plugin, &zone, name);
   name_len = strlen (name);
@@ -327,12 +327,12 @@ namestore_postgres_put_records (void *cls,
       (const char *) &rvalue_be
     };
     int paramLengths[] = {
-      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+      sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
       name_len,
       sizeof (uint32_t),
       data_size,
       sizeof (uint64_t),
-      sizeof (struct GNUNET_CRYPTO_RsaSignature), 
+      sizeof (struct GNUNET_CRYPTO_EccSignature), 
       sizeof (struct GNUNET_CRYPTO_ShortHashCode),
       sizeof (struct GNUNET_CRYPTO_ShortHashCode),
       sizeof (struct GNUNET_CRYPTO_ShortHashCode),
@@ -378,8 +378,8 @@ get_record_and_call_iterator (struct Plugin *plugin,
 {
   unsigned int record_count;
   size_t data_size;
-  const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key;
-  const struct GNUNET_CRYPTO_RsaSignature *sig;
+  const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key;
+  const struct GNUNET_CRYPTO_EccSignature *sig;
   struct GNUNET_TIME_Absolute expiration;
   const char *data;
   const char *name;
@@ -406,16 +406,16 @@ get_record_and_call_iterator (struct Plugin *plugin,
   }
   GNUNET_assert (1 == cnt);
   if ((6 != PQnfields (res)) || 
-      (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) != PQgetlength (res, 0, 0)) || 
+      (sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded) != PQgetlength (res, 0, 0)) || 
       (sizeof (uint32_t) != PQfsize (res, 2)) || 
       (sizeof (uint64_t) != PQfsize (res, 4)) || 
-      (sizeof (struct GNUNET_CRYPTO_RsaSignature) != PQgetlength (res, 0, 5)))
+      (sizeof (struct GNUNET_CRYPTO_EccSignature) != PQgetlength (res, 0, 5)))
   {
     GNUNET_break (0);
     PQclear (res);
     return GNUNET_SYSERR;
   }
-  zone_key = (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *) PQgetvalue (res, 0, 0);
+  zone_key = (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *) PQgetvalue (res, 0, 0);
   name = PQgetvalue (res, 0, 1);
   name_len = PQgetlength (res, 0, 1);
   record_count = ntohl (*(uint32_t *) PQgetvalue (res, 0, 2));
@@ -423,7 +423,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
   data = PQgetvalue (res, 0, 3);
   expiration.abs_value =
     GNUNET_ntohll (*(uint64_t *) PQgetvalue (res, 0, 4));
-  sig = (const struct GNUNET_CRYPTO_RsaSignature*) PQgetvalue (res, 0, 5);
+  sig = (const struct GNUNET_CRYPTO_EccSignature*) PQgetvalue (res, 0, 5);
   if (record_count > 64 * 1024)
   {
     /* sanity check, don't stack allocate far too much just

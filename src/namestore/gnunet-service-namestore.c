@@ -143,7 +143,7 @@ struct GNUNET_NAMESTORE_CryptoContainer
   /**
    * Zone's private key
    */
-  struct GNUNET_CRYPTO_RsaPrivateKey *privkey;
+  struct GNUNET_CRYPTO_EccPrivateKey *privkey;
 
 };
 
@@ -205,7 +205,7 @@ struct KeyLoadContext
 {
   struct KeyLoadContext *next;
   struct KeyLoadContext *prev;
-  struct GNUNET_CRYPTO_RsaKeyGenerationContext *keygen;
+  struct GNUNET_CRYPTO_EccKeyGenerationContext *keygen;
   char *filename;
   unsigned int *counter;
 };
@@ -222,19 +222,19 @@ static int
 write_key_to_file (const char *filename, 
 		   struct GNUNET_NAMESTORE_CryptoContainer *c)
 {
-  struct GNUNET_CRYPTO_RsaPrivateKey *ret = c->privkey;
-  struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *enc;
+  struct GNUNET_CRYPTO_EccPrivateKey *ret = c->privkey;
+  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *enc;
   struct GNUNET_DISK_FileHandle *fd;
   struct GNUNET_CRYPTO_ShortHashCode zone;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
-  struct GNUNET_CRYPTO_RsaPrivateKey *privkey;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pubkey;
+  struct GNUNET_CRYPTO_EccPrivateKey *privkey;
 
   fd = GNUNET_DISK_file_open (filename, 
 			      GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE | GNUNET_DISK_OPEN_FAILIFEXISTS, 
 			      GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
   if ( (NULL == fd) && (EEXIST == errno) )
   {
-    privkey = GNUNET_CRYPTO_rsa_key_create_from_file (filename);
+    privkey = GNUNET_CRYPTO_ecc_key_create_from_file (filename);
     if (NULL == privkey)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -243,9 +243,9 @@ write_key_to_file (const char *filename,
 		  _("file exists but reading key failed"));
       return GNUNET_SYSERR;
     }
-    GNUNET_CRYPTO_rsa_key_get_public (privkey, &pubkey);
-    GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &zone);
-    GNUNET_CRYPTO_rsa_key_free (privkey);
+    GNUNET_CRYPTO_ecc_key_get_public (privkey, &pubkey);
+    GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded), &zone);
+    GNUNET_CRYPTO_ecc_key_free (privkey);
     if (0 == memcmp (&zone, &c->zone, sizeof(zone)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -264,17 +264,17 @@ write_key_to_file (const char *filename,
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "open", filename);
     return GNUNET_SYSERR;
   }
-  if (GNUNET_YES != GNUNET_DISK_file_lock (fd, 0, sizeof (struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded), GNUNET_YES))
+  if (GNUNET_YES != GNUNET_DISK_file_lock (fd, 0, sizeof (struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded), GNUNET_YES))
   {
     GNUNET_break (GNUNET_YES == GNUNET_DISK_file_close (fd));
     return GNUNET_SYSERR;
   }
-  enc = GNUNET_CRYPTO_rsa_encode_key (ret);
+  enc = GNUNET_CRYPTO_ecc_encode_key (ret);
   GNUNET_assert (NULL != enc);
-  GNUNET_assert (ntohs (enc->len) == GNUNET_DISK_file_write (fd, enc, ntohs (enc->len)));
+  GNUNET_assert (ntohs (enc->size) == GNUNET_DISK_file_write (fd, enc, ntohs (enc->size)));
   GNUNET_free (enc);
   GNUNET_DISK_file_sync (fd);
-  if (GNUNET_YES != GNUNET_DISK_file_unlock (fd, 0, sizeof (struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded)))
+  if (GNUNET_YES != GNUNET_DISK_file_unlock (fd, 0, sizeof (struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded)))
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "fcntl", filename);
   GNUNET_assert (GNUNET_YES == GNUNET_DISK_file_close (fd));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -308,7 +308,7 @@ zone_to_disk_it (void *cls,
 		    GNUNET_short_h2s (&c->zone));
   (void) write_key_to_file(c->filename, c);
   GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_remove (zonekeys, key, value));
-  GNUNET_CRYPTO_rsa_key_free (c->privkey);
+  GNUNET_CRYPTO_ecc_key_free (c->privkey);
   GNUNET_free (c->filename);
   GNUNET_free (c);
   return GNUNET_OK;
@@ -323,22 +323,22 @@ zone_to_disk_it (void *cls,
  *        be taken over or freed and should not be used afterwards)
  */
 static void
-learn_private_key (struct GNUNET_CRYPTO_RsaPrivateKey *pkey)
+learn_private_key (struct GNUNET_CRYPTO_EccPrivateKey *pkey)
 {
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pub;
   struct GNUNET_HashCode long_hash;
   struct GNUNET_CRYPTO_ShortHashCode pubkey_hash;
   struct GNUNET_NAMESTORE_CryptoContainer *cc;
 
-  GNUNET_CRYPTO_rsa_key_get_public (pkey, &pub);
+  GNUNET_CRYPTO_ecc_key_get_public (pkey, &pub);
   GNUNET_CRYPTO_short_hash (&pub,
-			    sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+			    sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
 			    &pubkey_hash);
   GNUNET_CRYPTO_short_hash_double (&pubkey_hash, &long_hash);
 
   if (GNUNET_NO != GNUNET_CONTAINER_multihashmap_contains(zonekeys, &long_hash))
   {
-    GNUNET_CRYPTO_rsa_key_free (pkey);
+    GNUNET_CRYPTO_ecc_key_free (pkey);
     return;
   }  
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
@@ -414,7 +414,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_CONTAINER_DLL_remove (kl_head, kl_tail, kl);
     if (NULL != kl->keygen)
-      GNUNET_CRYPTO_rsa_key_create_stop (kl->keygen);
+      GNUNET_CRYPTO_ecc_key_create_stop (kl->keygen);
     GNUNET_free (kl->filename);
     GNUNET_free (kl);
   }
@@ -570,18 +570,18 @@ struct LookupNameContext
  */
 static void
 handle_lookup_name_it (void *cls,
-		       const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+		       const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
 		       struct GNUNET_TIME_Absolute expire,
 		       const char *name,
 		       unsigned int rd_count,
 		       const struct GNUNET_NAMESTORE_RecordData *rd,
-		       const struct GNUNET_CRYPTO_RsaSignature *signature)
+		       const struct GNUNET_CRYPTO_EccSignature *signature)
 {
   struct LookupNameContext *lnc = cls;
   struct LookupNameResponseMessage *lnr_msg;
   struct GNUNET_NAMESTORE_RecordData *rd_selected;
   struct GNUNET_NAMESTORE_CryptoContainer *cc;
-  struct GNUNET_CRYPTO_RsaSignature *signature_new;
+  struct GNUNET_CRYPTO_EccSignature *signature_new;
   struct GNUNET_TIME_Absolute e;
   struct GNUNET_TIME_Relative re;
   struct GNUNET_CRYPTO_ShortHashCode zone_key_hash;
@@ -607,7 +607,7 @@ handle_lookup_name_it (void *cls,
   if (NULL != zone_key) 
   {
     GNUNET_CRYPTO_short_hash (zone_key, 
-			      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), 
+			      sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded), 
 			      &zone_key_hash);
     GNUNET_CRYPTO_short_hash_double (&zone_key_hash, &long_hash);
     if (NULL != (cc = GNUNET_CONTAINER_multihashmap_get (zonekeys, &long_hash)))   
@@ -728,7 +728,7 @@ handle_lookup_name_it (void *cls,
   rd_ser_len = GNUNET_NAMESTORE_records_get_size (copied_elements, rd_selected);
   name_len = (NULL == name) ? 0 : strlen(name) + 1;
   r_size = sizeof (struct LookupNameResponseMessage) +
-           sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
+           sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded) +
            name_len +
            rd_ser_len;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
@@ -885,7 +885,7 @@ handle_record_put (void *cls,
   struct GNUNET_NAMESTORE_Client *nc;
   const struct RecordPutMessage *rp_msg;
   struct GNUNET_TIME_Absolute expire;
-  const struct GNUNET_CRYPTO_RsaSignature *signature;
+  const struct GNUNET_CRYPTO_EccSignature *signature;
   struct RecordPutResponseMessage rpr_msg;
   struct GNUNET_CRYPTO_ShortHashCode zone_hash;
   size_t name_len;
@@ -1008,7 +1008,7 @@ struct CreateRecordContext
   /**
    * Zone's public key
    */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pubkey;
 
   /**
    * Name for the record to create
@@ -1044,14 +1044,14 @@ struct CreateRecordContext
  */
 static void
 handle_create_record_it (void *cls,
-			 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pubkey,
+			 const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pubkey,
 			 struct GNUNET_TIME_Absolute expire,
 			 const char *name,
 			 unsigned int rd_count,
 			 const struct GNUNET_NAMESTORE_RecordData *rd,
-			 const struct GNUNET_CRYPTO_RsaSignature *signature)
+			 const struct GNUNET_CRYPTO_EccSignature *signature)
 {
-  static struct GNUNET_CRYPTO_RsaSignature dummy_signature;
+  static struct GNUNET_CRYPTO_EccSignature dummy_signature;
   struct CreateRecordContext *crc = cls;
   struct GNUNET_NAMESTORE_RecordData *rd_new;
   struct GNUNET_TIME_Absolute block_expiration;
@@ -1159,7 +1159,7 @@ handle_record_create (void *cls,
   struct GNUNET_NAMESTORE_Client *nc;
   const struct RecordCreateMessage *rp_msg;
   struct CreateRecordContext crc;
-  struct GNUNET_CRYPTO_RsaPrivateKey *pkey;
+  struct GNUNET_CRYPTO_EccPrivateKey *pkey;
   struct RecordCreateResponseMessage rcr_msg;
   size_t name_len;
   size_t msg_size;
@@ -1219,7 +1219,8 @@ handle_record_create (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  if (NULL == (pkey = GNUNET_CRYPTO_rsa_decode_key (pkey_tmp, key_len)))
+  if (NULL == (pkey = GNUNET_CRYPTO_ecc_decode_key (pkey_tmp, key_len,
+						    GNUNET_NO)))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -1229,15 +1230,15 @@ handle_record_create (void *cls,
       GNUNET_NAMESTORE_records_deserialize (rd_ser_len, rd_ser, rd_count, &rd))
   {
     GNUNET_break (0);
-    GNUNET_CRYPTO_rsa_key_free (pkey);
+    GNUNET_CRYPTO_ecc_key_free (pkey);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
 
   /* Extracting and converting private key */
-  GNUNET_CRYPTO_rsa_key_get_public (pkey, &crc.pubkey);
+  GNUNET_CRYPTO_ecc_key_get_public (pkey, &crc.pubkey);
   GNUNET_CRYPTO_short_hash (&crc.pubkey,
-			    sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+			    sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
 			    &pubkey_hash);
   learn_private_key (pkey);
 
@@ -1318,14 +1319,14 @@ struct RemoveRecordContext
  */
 static void
 handle_record_remove_it (void *cls,
-			 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+			 const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
 			 struct GNUNET_TIME_Absolute expire,
 			 const char *name,
 			 unsigned int rd_count,
 			 const struct GNUNET_NAMESTORE_RecordData *rd,
-			 const struct GNUNET_CRYPTO_RsaSignature *signature)
+			 const struct GNUNET_CRYPTO_EccSignature *signature)
 {
-  static struct GNUNET_CRYPTO_RsaSignature dummy_signature;
+  static struct GNUNET_CRYPTO_EccSignature dummy_signature;
   struct RemoveRecordContext *rrc = cls;
   unsigned int c;
   int found;
@@ -1364,7 +1365,7 @@ handle_record_remove_it (void *cls,
                 "No records left for name `%s', removing name\n",
                 name);
     GNUNET_CRYPTO_short_hash (zone_key, 
-			      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), 
+			      sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded), 
 			      &pubkey_hash);
     if (GNUNET_OK !=
 	GSN_database->remove_records (GSN_database->cls,
@@ -1421,8 +1422,8 @@ handle_record_remove (void *cls,
   struct GNUNET_NAMESTORE_Client *nc;
   const struct RecordRemoveMessage *rr_msg;
   struct RecordRemoveResponseMessage rrr_msg;
-  struct GNUNET_CRYPTO_RsaPrivateKey *pkey;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
+  struct GNUNET_CRYPTO_EccPrivateKey *pkey;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pub;
   struct GNUNET_CRYPTO_ShortHashCode pubkey_hash;
   struct GNUNET_NAMESTORE_RecordData rd;
   const char *pkey_tmp;
@@ -1484,15 +1485,16 @@ handle_record_remove (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  if (NULL == (pkey = GNUNET_CRYPTO_rsa_decode_key (pkey_tmp, key_len)))
+  if (NULL == (pkey = GNUNET_CRYPTO_ecc_decode_key (pkey_tmp, key_len,
+						    GNUNET_NO)))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_CRYPTO_rsa_key_get_public (pkey, &pub);
+  GNUNET_CRYPTO_ecc_key_get_public (pkey, &pub);
   GNUNET_CRYPTO_short_hash (&pub, 
-			    sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), 
+			    sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded), 
 			    &pubkey_hash);
   learn_private_key (pkey);
   if (GNUNET_OK !=
@@ -1618,12 +1620,12 @@ struct ZoneToNameCtx
  */
 static void
 handle_zone_to_name_it (void *cls,
-			const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+			const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
 			struct GNUNET_TIME_Absolute expire,
 			const char *name,
 			unsigned int rd_count,
 			const struct GNUNET_NAMESTORE_RecordData *rd,
-			const struct GNUNET_CRYPTO_RsaSignature *signature)
+			const struct GNUNET_CRYPTO_EccSignature *signature)
 {
   struct ZoneToNameCtx *ztn_ctx = cls;
   struct ZoneToNameResponseMessage *ztnr_msg;
@@ -1658,7 +1660,7 @@ handle_zone_to_name_it (void *cls,
   rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
   msg_size = sizeof (struct ZoneToNameResponseMessage) + name_len + rd_ser_len;
   if (NULL != signature)
-    msg_size += sizeof (struct GNUNET_CRYPTO_RsaSignature);
+    msg_size += sizeof (struct GNUNET_CRYPTO_EccSignature);
   if (msg_size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
@@ -1683,7 +1685,7 @@ handle_zone_to_name_it (void *cls,
   GNUNET_NAMESTORE_records_serialize (rd_count, rd, rd_ser_len, rd_tmp);
   sig_tmp = &rd_tmp[rd_ser_len];
   if (NULL != signature)
-    memcpy (sig_tmp, signature, sizeof (struct GNUNET_CRYPTO_RsaSignature));
+    memcpy (sig_tmp, signature, sizeof (struct GNUNET_CRYPTO_EccSignature));
   ztn_ctx->success = GNUNET_OK;
   GNUNET_SERVER_notification_context_unicast (snc, ztn_ctx->nc->client,
 					      &ztnr_msg->gns_header.header,
@@ -1797,16 +1799,16 @@ struct ZoneIterationProcResult
  */
 static void
 zone_iteraterate_proc (void *cls,
-                       const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+                       const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
                        struct GNUNET_TIME_Absolute expire,
                        const char *name,
                        unsigned int rd_count,
                        const struct GNUNET_NAMESTORE_RecordData *rd,
-                       const struct GNUNET_CRYPTO_RsaSignature *signature)
+                       const struct GNUNET_CRYPTO_EccSignature *signature)
 {
   struct ZoneIterationProcResult *proc = cls;
   struct GNUNET_NAMESTORE_RecordData rd_filtered[rd_count];
-  struct GNUNET_CRYPTO_RsaSignature *new_signature = NULL;
+  struct GNUNET_CRYPTO_EccSignature *new_signature = NULL;
   struct GNUNET_NAMESTORE_CryptoContainer *cc;
   struct GNUNET_HashCode long_hash;
   struct GNUNET_CRYPTO_ShortHashCode zone_hash;
@@ -1884,7 +1886,7 @@ zone_iteraterate_proc (void *cls,
     /* compute / obtain signature, but only if we (a) have records and (b) expiration times were 
        converted to absolute expiration times */
     GNUNET_CRYPTO_short_hash (zone_key, 
-			      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+			      sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
 			      &zone_hash);
     GNUNET_CRYPTO_short_hash_double (&zone_hash, &long_hash);
     if (NULL != (cc = GNUNET_CONTAINER_multihashmap_get(zonekeys, &long_hash)))
@@ -2160,7 +2162,7 @@ handle_iteration_next (void *cls,
 
 static void
 zonekey_it_key_cb (void *cls,
-                   struct GNUNET_CRYPTO_RsaPrivateKey *pk,
+                   struct GNUNET_CRYPTO_EccPrivateKey *pk,
                    const char *emsg)
 {
   struct KeyLoadContext *kl = cls;
@@ -2201,7 +2203,7 @@ zonekey_file_it (void *cls, const char *filename)
   kl = GNUNET_malloc (sizeof (struct KeyLoadContext));
   kl->filename = strdup (filename);
   kl->counter = cls;
-  kl->keygen = GNUNET_CRYPTO_rsa_key_create_start (filename, zonekey_it_key_cb, kl);
+  kl->keygen = GNUNET_CRYPTO_ecc_key_create_start (filename, zonekey_it_key_cb, kl);
   if (NULL == kl->keygen)
   {
     GNUNET_free (kl->filename);

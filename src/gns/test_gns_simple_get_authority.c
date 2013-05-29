@@ -178,15 +178,15 @@ void do_check (void *cls,
               const struct GNUNET_CONFIGURATION_Handle *ccfg,
               struct GNUNET_TESTING_Peer *peer)
 {
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded our_pkey;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded alice_pkey;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded bob_pkey;
-  struct GNUNET_CRYPTO_RsaPrivateKey *our_key;
-  struct GNUNET_CRYPTO_RsaPrivateKey *alice_key;
-  struct GNUNET_CRYPTO_RsaPrivateKey *bob_key;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded our_pkey;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded alice_pkey;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded bob_pkey;
+  struct GNUNET_CRYPTO_EccPrivateKey *our_key;
+  struct GNUNET_CRYPTO_EccPrivateKey *alice_key;
+  struct GNUNET_CRYPTO_EccPrivateKey *bob_key;
   struct GNUNET_CRYPTO_ShortHashCode bob_hash;
   struct GNUNET_CRYPTO_ShortHashCode alice_hash;
-  struct GNUNET_CRYPTO_RsaSignature *sig;
+  struct GNUNET_CRYPTO_EccSignature *sig;
   char* our_keyfile;
 
   cfg = ccfg;
@@ -211,15 +211,15 @@ void do_check (void *cls,
     return;
   }
 
-  our_key = GNUNET_CRYPTO_rsa_key_create_from_file (our_keyfile);
+  our_key = GNUNET_CRYPTO_ecc_key_create_from_file (our_keyfile);
   GNUNET_free(our_keyfile);
 
-  bob_key = GNUNET_CRYPTO_rsa_key_create_from_file (KEYFILE_BOB);
-  alice_key = GNUNET_CRYPTO_rsa_key_create_from_file (KEYFILE_ALICE);
+  bob_key = GNUNET_CRYPTO_ecc_key_create_from_file (KEYFILE_BOB);
+  alice_key = GNUNET_CRYPTO_ecc_key_create_from_file (KEYFILE_ALICE);
 
-  GNUNET_CRYPTO_rsa_key_get_public (our_key, &our_pkey);
-  GNUNET_CRYPTO_rsa_key_get_public (alice_key, &alice_pkey);
-  GNUNET_CRYPTO_rsa_key_get_public (bob_key, &bob_pkey);
+  GNUNET_CRYPTO_ecc_key_get_public (our_key, &our_pkey);
+  GNUNET_CRYPTO_ecc_key_get_public (alice_key, &alice_pkey);
+  GNUNET_CRYPTO_ecc_key_get_public (bob_key, &bob_pkey);
 
   struct GNUNET_NAMESTORE_RecordData rd;
   char* ip = TEST_IP;
@@ -298,9 +298,9 @@ void do_check (void *cls,
 
   GNUNET_free (web);
   GNUNET_free (sig);
-  GNUNET_CRYPTO_rsa_key_free (alice_key);
-  GNUNET_CRYPTO_rsa_key_free (bob_key);
-  GNUNET_CRYPTO_rsa_key_free (our_key);
+  GNUNET_CRYPTO_ecc_key_free (alice_key);
+  GNUNET_CRYPTO_ecc_key_free (bob_key);
+  GNUNET_CRYPTO_ecc_key_free (our_key);
 }
 
 

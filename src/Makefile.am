@@ -3,7 +3,7 @@
 #endif
 
 if HAVE_EXPERIMENTAL
- EXP_DIR = gns chat consensus dv set experimentation
+ EXP_DIR = gns consensus dv set experimentation
 endif
 
 if LINUX

@@ -75,13 +75,13 @@ block_plugin_dns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
 
     if (ntohl (rec->purpose.size) !=
         sizeof (struct GNUNET_DNS_Record) -
-        sizeof (struct GNUNET_CRYPTO_RsaSignature))
+        sizeof (struct GNUNET_CRYPTO_EccSignature))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "DNS-Block is invalid: rec->purpose.size=%d != %d\n",
                   ntohl (rec->purpose.size),
                   sizeof (struct GNUNET_DNS_Record) -
-                  sizeof (struct GNUNET_CRYPTO_RsaSignature));
+                  sizeof (struct GNUNET_CRYPTO_EccSignature));
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
 
@@ -94,7 +94,7 @@ block_plugin_dns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     }
 
     if (GNUNET_OK !=
-        GNUNET_CRYPTO_rsa_verify (htonl (GNUNET_SIGNATURE_PURPOSE_DNS_RECORD),
+        GNUNET_CRYPTO_ecc_verify (htonl (GNUNET_SIGNATURE_PURPOSE_DNS_RECORD),
                                   &rec->purpose, &rec->signature, &rec->peer))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

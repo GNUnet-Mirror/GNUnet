@@ -95,19 +95,19 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
  */
 static void 
 test_record (void *cls,
-	     const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+	     const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
 	     struct GNUNET_TIME_Absolute expire,
 	     const char *name,
 	     unsigned int rd_count,
 	     const struct GNUNET_NAMESTORE_RecordData *rd,
-	     const struct GNUNET_CRYPTO_RsaSignature *signature)
+	     const struct GNUNET_CRYPTO_EccSignature *signature)
 {
   int *idp = cls;
   int id = *idp;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded tzone_key;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded tzone_key;
   char tname[64];
   unsigned int trd_count = 1 + (id % 1024);
-  struct GNUNET_CRYPTO_RsaSignature tsignature;
+  struct GNUNET_CRYPTO_EccSignature tsignature;
   unsigned int i;
 
   GNUNET_snprintf (tname, sizeof (tname),
@@ -122,8 +122,8 @@ test_record (void *cls,
   memset (&tzone_key, (id % 241), sizeof (tzone_key));
   memset (&tsignature, (id % 243), sizeof (tsignature));
   GNUNET_assert (0 == strcmp (name, tname));
-  GNUNET_assert (0 == memcmp (&tzone_key, zone_key, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)));
-  GNUNET_assert (0 == memcmp (&tsignature, signature, sizeof (struct GNUNET_CRYPTO_RsaSignature)));
+  GNUNET_assert (0 == memcmp (&tzone_key, zone_key, sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded)));
+  GNUNET_assert (0 == memcmp (&tsignature, signature, sizeof (struct GNUNET_CRYPTO_EccSignature)));
 }
 
 
@@ -139,12 +139,12 @@ get_record (struct GNUNET_NAMESTORE_PluginFunctions *nsp, int id)
 static void
 put_record (struct GNUNET_NAMESTORE_PluginFunctions *nsp, int id)
 {
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded zone_key;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded zone_key;
   struct GNUNET_TIME_Absolute expire;
   char name[64];
   unsigned int rd_count = 1 + (id % 1024);
   struct GNUNET_NAMESTORE_RecordData rd[rd_count];
-  struct GNUNET_CRYPTO_RsaSignature signature;
+  struct GNUNET_CRYPTO_EccSignature signature;
   unsigned int i;
 
   GNUNET_snprintf (name, sizeof (name),
@@ -175,7 +175,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_NAMESTORE_PluginFunctions *nsp;  
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded zone_key;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded zone_key;
   struct GNUNET_CRYPTO_ShortHashCode zone;
   
   ok = 0;

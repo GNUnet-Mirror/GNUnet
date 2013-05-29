@@ -459,7 +459,7 @@ static struct GNUNET_NETWORK_Handle *mhd_unix_socket;
 #endif
 
 /* Shorten zone private key */
-static struct GNUNET_CRYPTO_RsaPrivateKey *shorten_zonekey;
+static struct GNUNET_CRYPTO_EccPrivateKey *shorten_zonekey;
 
 
 /**
@@ -3188,8 +3188,8 @@ static int
 load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *keyfile;
-  struct GNUNET_CRYPTO_RsaPrivateKey *key;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_EccPrivateKey *key;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
   struct GNUNET_CRYPTO_ShortHashCode *zone;
   struct GNUNET_CRYPTO_ShortHashAsciiEncoded zonename;
 
@@ -3209,17 +3209,17 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
     return GNUNET_NO;
   }
 
-  key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
-  GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
+  key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
+  GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
   local_gns_zone = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
   GNUNET_CRYPTO_short_hash(&pkey,
-                           sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                           sizeof(struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
                            local_gns_zone);
   zone = local_gns_zone;
   GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Using zone: %s!\n", &zonename);
-  GNUNET_CRYPTO_rsa_key_free(key);
+  GNUNET_CRYPTO_ecc_key_free(key);
   GNUNET_free(keyfile);
   keyfile = NULL;
 
@@ -3238,16 +3238,16 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
   }
   else
   {
-    key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
-    GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
+    key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
+    GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
     local_private_zone = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
     GNUNET_CRYPTO_short_hash(&pkey,
-                             sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                             sizeof(struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
                              local_private_zone);
     GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Using private zone: %s!\n", &zonename);
-    GNUNET_CRYPTO_rsa_key_free(key);
+    GNUNET_CRYPTO_ecc_key_free(key);
     GNUNET_free(keyfile);
   }
   keyfile = NULL;
@@ -3267,16 +3267,16 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
   }
   else
   {
-    key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
-    GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
+    key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
+    GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
     local_shorten_zone = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
     GNUNET_CRYPTO_short_hash(&pkey,
-                             sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                             sizeof(struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
                              local_shorten_zone);
     GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Using shorten zone: %s!\n", &zonename);
-    GNUNET_CRYPTO_rsa_key_free(key);
+    GNUNET_CRYPTO_ecc_key_free(key);
     GNUNET_free(keyfile);
   }
 

@@ -363,7 +363,7 @@ run (void *cls,
   enum MHD_FLAG flags;
   struct GNUNET_PeerIdentity id;
   struct GNUNET_CRYPTO_HashAsciiEncoded peername;
-  struct GNUNET_CRYPTO_RsaPrivateKey *host_key;
+  struct GNUNET_CRYPTO_EccPrivateKey *host_key;
   struct GNUNET_NAMESTORE_RecordData rd;
   char *rd_string;
   char *zone_keyfile;
@@ -392,7 +392,7 @@ run (void *cls,
     return;
   }
 
-  host_key = GNUNET_CRYPTO_rsa_key_create_from_file (zone_keyfile);
+  host_key = GNUNET_CRYPTO_ecc_key_create_from_file (zone_keyfile);
   rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value;
   GNUNET_asprintf (&rd_string, "6 %s %s", (char*)&peername, "www.gads.");
   GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_string_to_value (GNUNET_GNS_RECORD_VPN,
@@ -410,7 +410,7 @@ run (void *cls,
   GNUNET_free ((void**)rd.data);
   GNUNET_free (rd_string);
   GNUNET_free (zone_keyfile);
-  GNUNET_CRYPTO_rsa_key_free (host_key);
+  GNUNET_CRYPTO_ecc_key_free (host_key);
 }
 
 
@@ -561,7 +561,7 @@ main (int argc, char *const *argv)
   GNUNET_free (bin_vpn);    
   GNUNET_free (bin_exit);
   GNUNET_free (bin_dns);
-  GNUNET_CRYPTO_rsa_setup_hostkey ("test_gns_vpn.conf");
+  GNUNET_CRYPTO_ecc_setup_hostkey ("test_gns_vpn.conf");
   
   dest_ip = "169.254.86.1";
   dest_af = AF_INET;

@@ -243,12 +243,12 @@ struct GNUNET_NAMESTORE_RecordData
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
-			     const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+			     const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
 			     const char *name,
 			     struct GNUNET_TIME_Absolute freshness,
 			     unsigned int rd_count,
 			     const struct GNUNET_NAMESTORE_RecordData *rd,
-			     const struct GNUNET_CRYPTO_RsaSignature *signature,
+			     const struct GNUNET_CRYPTO_EccSignature *signature,
 			     GNUNET_NAMESTORE_ContinuationWithStatus cont,
 			     void *cont_cls);
 
@@ -266,12 +266,12 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
  * @return GNUNET_OK if the signature is valid
  */
 int
-GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
+GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *public_key,
                                    const struct GNUNET_TIME_Absolute freshness,
                                    const char *name,
                                    unsigned int rd_count,
                                    const struct GNUNET_NAMESTORE_RecordData *rd,
-                                   const struct GNUNET_CRYPTO_RsaSignature *signature);
+                                   const struct GNUNET_CRYPTO_EccSignature *signature);
 
 
 /**
@@ -290,7 +290,7 @@ GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinary
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
-                                const struct GNUNET_CRYPTO_RsaPrivateKey *pkey,
+                                const struct GNUNET_CRYPTO_EccPrivateKey *pkey,
                                 const char *name,
                                 const struct GNUNET_NAMESTORE_RecordData *rd,
                                 GNUNET_NAMESTORE_ContinuationWithStatus cont,
@@ -314,7 +314,7 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
-				const struct GNUNET_CRYPTO_RsaPrivateKey *pkey,
+				const struct GNUNET_CRYPTO_EccPrivateKey *pkey,
 				const char *name,
 				const struct GNUNET_NAMESTORE_RecordData *rd,
 				GNUNET_NAMESTORE_ContinuationWithStatus cont,
@@ -338,12 +338,12 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
  *        because the user queried for a particular record type only)
  */
 typedef void (*GNUNET_NAMESTORE_RecordProcessor) (void *cls,
-						  const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+						  const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
 						  struct GNUNET_TIME_Absolute freshness,			    
 						  const char *name,
 						  unsigned int rd_len,
 						  const struct GNUNET_NAMESTORE_RecordData *rd,
-						  const struct GNUNET_CRYPTO_RsaSignature *signature);
+						  const struct GNUNET_CRYPTO_EccSignature *signature);
 
 
 /**

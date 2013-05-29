@@ -224,7 +224,9 @@ check_PROGRAMS = \
 
 if ENABLE_TEST_RUN
 if LINUX
+if HAVE_SQLITE
 TESTS = $(check_PROGRAMS)
+endif
 endif
 endif
 

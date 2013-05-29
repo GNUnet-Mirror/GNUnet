@@ -66,7 +66,7 @@ static struct GNUNET_CRYPTO_ShortHashCode our_zone;
 /**
  * Our priv key
  */
-static struct GNUNET_CRYPTO_RsaPrivateKey *our_key;
+static struct GNUNET_CRYPTO_EccPrivateKey *our_key;
 
 /**
  * Default timeout
@@ -344,7 +344,7 @@ handle_dns_request (void *cls,
  */
 int
 gns_interceptor_init (struct GNUNET_CRYPTO_ShortHashCode zone,
-		      struct GNUNET_CRYPTO_RsaPrivateKey *key,
+		      struct GNUNET_CRYPTO_EccPrivateKey *key,
 		      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,

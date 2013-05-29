@@ -252,10 +252,10 @@ do_check (void *cls,
           const struct GNUNET_CONFIGURATION_Handle *ccfg,
           struct GNUNET_TESTING_Peer *peer)
 {
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded alice_pkey;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded bob_pkey;
-  struct GNUNET_CRYPTO_RsaPrivateKey *alice_key;
-  struct GNUNET_CRYPTO_RsaPrivateKey *bob_key;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded alice_pkey;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded bob_pkey;
+  struct GNUNET_CRYPTO_EccPrivateKey *alice_key;
+  struct GNUNET_CRYPTO_EccPrivateKey *bob_key;
   char* alice_keyfile;
   struct GNUNET_CRYPTO_ShortHashCode bob_hash;
 
@@ -292,11 +292,11 @@ do_check (void *cls,
   }
   requests = GNUNET_malloc ((max_parallel_lookups + TEST_ADDITIONAL_LOOKUPS + 1) *
 			    sizeof (struct GNUNET_GNS_LookupRequest *));
-  alice_key = GNUNET_CRYPTO_rsa_key_create_from_file (alice_keyfile);
-  bob_key = GNUNET_CRYPTO_rsa_key_create_from_file (KEYFILE_BOB);
+  alice_key = GNUNET_CRYPTO_ecc_key_create_from_file (alice_keyfile);
+  bob_key = GNUNET_CRYPTO_ecc_key_create_from_file (KEYFILE_BOB);
 
-  GNUNET_CRYPTO_rsa_key_get_public (alice_key, &alice_pkey);
-  GNUNET_CRYPTO_rsa_key_get_public (bob_key, &bob_pkey);
+  GNUNET_CRYPTO_ecc_key_get_public (alice_key, &alice_pkey);
+  GNUNET_CRYPTO_ecc_key_get_public (bob_key, &bob_pkey);
   
   GNUNET_free(alice_keyfile);
 
@@ -329,8 +329,8 @@ do_check (void *cls,
                                   &commence_testing,
                                   NULL);
   
-  GNUNET_CRYPTO_rsa_key_free(alice_key);
-  GNUNET_CRYPTO_rsa_key_free(bob_key);
+  GNUNET_CRYPTO_ecc_key_free(alice_key);
+  GNUNET_CRYPTO_ecc_key_free(bob_key);
   GNUNET_free(web);
 
 }

@@ -327,7 +327,7 @@ struct ResolverHandle
    * private key of an/our authoritative zone
    * can be NULL but automatical PKEY import will not work
    */
-  struct GNUNET_CRYPTO_RsaPrivateKey *priv_key;
+  struct GNUNET_CRYPTO_EccPrivateKey *priv_key;
 
   /**
    * the heap node associated with this lookup, null if timeout is set
@@ -484,7 +484,7 @@ struct GetPseuAuthorityHandle
   /**
    * the private key of the zone to store the pseu in 
    */
-  struct GNUNET_CRYPTO_RsaPrivateKey *key;
+  struct GNUNET_CRYPTO_EccPrivateKey *key;
 
   /**
    * a handle for dht lookups. should be NULL if no lookups are in progress 
@@ -573,7 +573,7 @@ gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
 			    struct GNUNET_CRYPTO_ShortHashCode pzone,
 			    uint32_t record_type,
 			    const char* name,
-			    struct GNUNET_CRYPTO_RsaPrivateKey *key,
+			    struct GNUNET_CRYPTO_EccPrivateKey *key,
 			    struct GNUNET_TIME_Relative timeout,
 			    int only_cached,
 			    RecordLookupProcessor proc,

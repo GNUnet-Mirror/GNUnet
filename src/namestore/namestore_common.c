@@ -279,15 +279,15 @@ GNUNET_NAMESTORE_records_deserialize (size_t len,
  *
  * @return the signature
  */
-struct GNUNET_CRYPTO_RsaSignature *
-GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
+struct GNUNET_CRYPTO_EccSignature *
+GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_EccPrivateKey *key,
 				   struct GNUNET_TIME_Absolute expire,
 				   const char *name,
 				   const struct GNUNET_NAMESTORE_RecordData *rd,
 				   unsigned int rd_count)
 {
-  struct GNUNET_CRYPTO_RsaSignature *sig;
-  struct GNUNET_CRYPTO_RsaSignaturePurpose *sig_purpose;
+  struct GNUNET_CRYPTO_EccSignature *sig;
+  struct GNUNET_CRYPTO_EccSignaturePurpose *sig_purpose;
   struct GNUNET_TIME_AbsoluteNBO expire_nbo;
   size_t rd_ser_len;
   size_t name_len;
@@ -302,7 +302,7 @@ GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key
     GNUNET_break (0);
     return NULL;
   }
-  sig = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_RsaSignature));
+  sig = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EccSignature));
   name_len = strlen (name) + 1;
   expire_nbo = GNUNET_TIME_absolute_hton (expire);
   rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
@@ -311,7 +311,7 @@ GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key
 
     GNUNET_assert (rd_ser_len ==
 		   GNUNET_NAMESTORE_records_serialize (rd_count, rd, rd_ser_len, rd_ser));
-    sig_len = sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + sizeof (struct GNUNET_TIME_AbsoluteNBO) + rd_ser_len + name_len;
+    sig_len = sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) + sizeof (struct GNUNET_TIME_AbsoluteNBO) + rd_ser_len + name_len;
     sig_purpose = GNUNET_malloc (sig_len);
     sig_purpose->size = htonl (sig_len);
     sig_purpose->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
@@ -321,7 +321,7 @@ GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key
     memcpy (name_tmp, name, name_len);
     rd_tmp = &name_tmp[name_len];
     memcpy (rd_tmp, rd_ser, rd_ser_len);
-    res = GNUNET_CRYPTO_rsa_sign (key, sig_purpose, sig);
+    res = GNUNET_CRYPTO_ecc_sign (key, sig_purpose, sig);
     GNUNET_free (sig_purpose);
   }
   if (GNUNET_OK != res)

@@ -49,11 +49,11 @@ static struct GNUNET_NAMESTORE_Handle * nsh;
 
 static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 
-static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
+static struct GNUNET_CRYPTO_EccPrivateKey * privkey;
 
-static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
+static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pubkey;
 
-static struct GNUNET_CRYPTO_RsaSignature *s_signature;
+static struct GNUNET_CRYPTO_EccSignature *s_signature;
 
 static struct GNUNET_HashCode s_zone;
 
@@ -77,7 +77,7 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_NAMESTORE_disconnect (nsh);
   nsh = NULL;
   if (privkey != NULL)
-    GNUNET_CRYPTO_rsa_key_free (privkey);
+    GNUNET_CRYPTO_ecc_key_free (privkey);
   privkey = NULL;
   GNUNET_free_non_null (s_name);
   res = 1;
@@ -99,7 +99,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_free (s_rd);
 
   if (privkey != NULL)
-    GNUNET_CRYPTO_rsa_key_free (privkey);
+    GNUNET_CRYPTO_ecc_key_free (privkey);
   privkey = NULL;
   if (nsh != NULL)
     GNUNET_NAMESTORE_disconnect (nsh);
@@ -190,11 +190,11 @@ run (void *cls,
   GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,
       "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
-  privkey = GNUNET_CRYPTO_rsa_key_create_from_file(hostkey_file);
+  privkey = GNUNET_CRYPTO_ecc_key_create_from_file(hostkey_file);
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey != NULL);
   /* get public key */
-  GNUNET_CRYPTO_rsa_key_get_public(privkey, &pubkey);
+  GNUNET_CRYPTO_ecc_key_get_public(privkey, &pubkey);
 
   /* create record */
   s_name = GNUNET_NAMESTORE_normalize_string ("DUMMY.dummy.gnunet");
@@ -209,7 +209,7 @@ run (void *cls,
   s_signature = GNUNET_NAMESTORE_create_signature(privkey, et, s_name, s_rd, RECORDS);
 
   /* create random zone hash */
-  GNUNET_CRYPTO_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &s_zone);
+  GNUNET_CRYPTO_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded), &s_zone);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Name: `%s' Zone: `%s' \n", s_name, GNUNET_h2s_full(&s_zone));
   nsh = GNUNET_NAMESTORE_connect (cfg);

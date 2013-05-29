@@ -134,7 +134,7 @@ static struct GNUNET_NAMESTORE_QueueEntry *qe;
 /**
  * Our private key for signing records.
  */
-static struct GNUNET_CRYPTO_RsaPrivateKey *alice_key;
+static struct GNUNET_CRYPTO_EccPrivateKey *alice_key;
 
 
 /**
@@ -174,7 +174,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (NULL != alice_key)
   {
-    GNUNET_CRYPTO_rsa_key_free (alice_key);
+    GNUNET_CRYPTO_ecc_key_free (alice_key);
     alice_key = NULL;
   }
   GNUNET_break (0);
@@ -229,7 +229,7 @@ end_now (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (NULL != alice_key)
   {
-    GNUNET_CRYPTO_rsa_key_free (alice_key);
+    GNUNET_CRYPTO_ecc_key_free (alice_key);
     alice_key = NULL;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer!\n");
@@ -592,7 +592,7 @@ do_check (void *cls,
           const struct GNUNET_CONFIGURATION_Handle *ccfg,
           struct GNUNET_TESTING_Peer *peer)
 {
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded alice_pkey;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded alice_pkey;
   char* alice_keyfile;
   struct GNUNET_NAMESTORE_RecordData rd;
   struct in_addr ns;
@@ -621,8 +621,8 @@ do_check (void *cls,
     return;
   }
 
-  alice_key = GNUNET_CRYPTO_rsa_key_create_from_file (alice_keyfile);
-  GNUNET_CRYPTO_rsa_key_get_public (alice_key, &alice_pkey);
+  alice_key = GNUNET_CRYPTO_ecc_key_create_from_file (alice_keyfile);
+  GNUNET_CRYPTO_ecc_key_get_public (alice_key, &alice_pkey);
   GNUNET_free (alice_keyfile);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

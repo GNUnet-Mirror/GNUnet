@@ -37,15 +37,15 @@ static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 
 static GNUNET_SCHEDULER_TaskIdentifier stopiteration_task;
 
-static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
+static struct GNUNET_CRYPTO_EccPrivateKey * privkey;
 
-static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
+static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pubkey;
 
 static struct GNUNET_HashCode zone;
 
-static struct GNUNET_CRYPTO_RsaPrivateKey * privkey2;
+static struct GNUNET_CRYPTO_EccPrivateKey * privkey2;
 
-static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey2;
+static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pubkey2;
 
 static struct GNUNET_HashCode zone2;
 
@@ -55,19 +55,19 @@ static int res;
 
 static int returned_records;
 
-static struct GNUNET_CRYPTO_RsaSignature *sig_1;
+static struct GNUNET_CRYPTO_EccSignature *sig_1;
 
 static char * s_name_1;
 
 static struct GNUNET_NAMESTORE_RecordData *s_rd_1;
 
-static struct GNUNET_CRYPTO_RsaSignature *sig_2;
+static struct GNUNET_CRYPTO_EccSignature *sig_2;
 
 static char * s_name_2;
 
 static struct GNUNET_NAMESTORE_RecordData *s_rd_2;
 
-static struct GNUNET_CRYPTO_RsaSignature *sig_3;
+static struct GNUNET_CRYPTO_EccSignature *sig_3;
 
 static char * s_name_3;
 
@@ -117,11 +117,11 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   if (privkey != NULL)
-    GNUNET_CRYPTO_rsa_key_free (privkey);
+    GNUNET_CRYPTO_ecc_key_free (privkey);
   privkey = NULL;
 
   if (privkey2 != NULL)
-    GNUNET_CRYPTO_rsa_key_free (privkey2);
+    GNUNET_CRYPTO_ecc_key_free (privkey2);
   privkey2 = NULL;
   res = 1;
 }
@@ -143,11 +143,11 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   if (privkey != NULL)
-    GNUNET_CRYPTO_rsa_key_free (privkey);
+    GNUNET_CRYPTO_ecc_key_free (privkey);
   privkey = NULL;
 
   if (privkey2 != NULL)
-    GNUNET_CRYPTO_rsa_key_free (privkey2);
+    GNUNET_CRYPTO_ecc_key_free (privkey2);
   privkey2 = NULL;
 
   GNUNET_free (sig_1);
@@ -179,12 +179,12 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 zone_proc (void *cls,
-	   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+	   const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
 	   struct GNUNET_TIME_Absolute expire,
 	   const char *name,
 	   unsigned int rd_count,
 	   const struct GNUNET_NAMESTORE_RecordData *rd,
-	   const struct GNUNET_CRYPTO_RsaSignature *signature)
+	   const struct GNUNET_CRYPTO_EccSignature *signature)
 {
   int failed = GNUNET_NO;
   if ((zone_key == NULL) && (name == NULL))
@@ -204,7 +204,7 @@ zone_proc (void *cls,
     if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (zone_key, expire, name, rd_count, rd, signature))
     {
       struct GNUNET_HashCode zone_key_hash;
-      GNUNET_CRYPTO_hash (zone_key, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &zone_key_hash);
+      GNUNET_CRYPTO_hash (zone_key, sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded), &zone_key_hash);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Verifying signature for `%s' in zone `%s' with %u records  and expiration %llu failed\n", name, GNUNET_h2s(&zone_key_hash), rd_count, expire.abs_value);
 
       failed = GNUNET_YES;
@@ -227,7 +227,7 @@ zone_proc (void *cls,
         failed = GNUNET_YES;
         GNUNET_break (0);
       }
-      if (0 != memcmp (signature, sig_1, sizeof (struct GNUNET_CRYPTO_RsaSignature)))
+      if (0 != memcmp (signature, sig_1, sizeof (struct GNUNET_CRYPTO_EccSignature)))
       {
         failed = GNUNET_YES;
         GNUNET_break (0);
@@ -248,7 +248,7 @@ zone_proc (void *cls,
         failed = GNUNET_YES;
         GNUNET_break (0);
       }
-      if (0 != memcmp (signature, sig_2, sizeof (struct GNUNET_CRYPTO_RsaSignature)))
+      if (0 != memcmp (signature, sig_2, sizeof (struct GNUNET_CRYPTO_EccSignature)))
       {
         failed = GNUNET_YES;
         GNUNET_break (0);
@@ -275,7 +275,7 @@ zone_proc (void *cls,
         GNUNET_break (0);
       }
 
-      if (0 != memcmp (signature, sig_3, sizeof (struct GNUNET_CRYPTO_RsaSignature)))
+      if (0 != memcmp (signature, sig_3, sizeof (struct GNUNET_CRYPTO_EccSignature)))
       {
         failed = GNUNET_YES;
         GNUNET_break (0);
@@ -370,12 +370,12 @@ create_record (unsigned int count)
  */
 static void
 empty_zone_proc (void *cls,
-		 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+		 const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
 		 struct GNUNET_TIME_Absolute expire,
 		 const char *name,
 		 unsigned int rd_count,
 		 const struct GNUNET_NAMESTORE_RecordData *rd,
-		 const struct GNUNET_CRYPTO_RsaSignature *signature)
+		 const struct GNUNET_CRYPTO_EccSignature *signature)
 {
   char *hostkey_file;
   struct GNUNET_TIME_Absolute et;
@@ -387,21 +387,21 @@ empty_zone_proc (void *cls,
   GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,
       "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
-  privkey = GNUNET_CRYPTO_rsa_key_create_from_file(hostkey_file);
+  privkey = GNUNET_CRYPTO_ecc_key_create_from_file(hostkey_file);
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey != NULL);
-  GNUNET_CRYPTO_rsa_key_get_public(privkey, &pubkey);
+  GNUNET_CRYPTO_ecc_key_get_public(privkey, &pubkey);
   GNUNET_CRYPTO_hash(&pubkey, sizeof (pubkey), &zone);
 
 
   GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,
       "HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
-  privkey2 = GNUNET_CRYPTO_rsa_key_create_from_file(hostkey_file);
+  privkey2 = GNUNET_CRYPTO_ecc_key_create_from_file(hostkey_file);
   GNUNET_free (hostkey_file);
 
   GNUNET_assert (privkey2 != NULL);
-  GNUNET_CRYPTO_rsa_key_get_public(privkey2, &pubkey2);
+  GNUNET_CRYPTO_ecc_key_get_public(privkey2, &pubkey2);
   GNUNET_CRYPTO_hash(&pubkey2, sizeof (pubkey), &zone2);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 1\n");

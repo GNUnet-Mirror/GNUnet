@@ -173,7 +173,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
 		   const char * name,
 		   enum GNUNET_GNS_RecordType type,
 		   int only_cached,
-		   struct GNUNET_CRYPTO_RsaPrivateKey *shorten_key,
+		   struct GNUNET_CRYPTO_EccPrivateKey *shorten_key,
 		   GNUNET_GNS_LookupResultProcessor proc,
 		   void *proc_cls);
 
@@ -199,7 +199,7 @@ GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
 			struct GNUNET_CRYPTO_ShortHashCode *zone,
 			enum GNUNET_GNS_RecordType type,
 			int only_cached,
-			struct GNUNET_CRYPTO_RsaPrivateKey *shorten_key,
+			struct GNUNET_CRYPTO_EccPrivateKey *shorten_key,
 			GNUNET_GNS_LookupResultProcessor proc,
 			void *proc_cls);
 

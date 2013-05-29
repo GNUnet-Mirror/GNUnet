@@ -308,8 +308,8 @@ static int
 setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
 {
   char* keyfile;
-  struct GNUNET_CRYPTO_RsaPrivateKey *key;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_EccPrivateKey *key;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
   struct in_addr *web;
   struct GNUNET_NAMESTORE_RecordData rd;
 
@@ -324,7 +324,7 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
     return GNUNET_SYSERR;
   }
 
-  key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+  key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
   if (NULL == key)
   {
 
@@ -336,12 +336,12 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
   if (NULL == nh[0])
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
-    GNUNET_CRYPTO_rsa_key_free (key);
+    GNUNET_CRYPTO_ecc_key_free (key);
     GNUNET_free (keyfile);
     return GNUNET_SYSERR;
   }
 
-  GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
+  GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
   GNUNET_CRYPTO_short_hash(&pkey, sizeof(pkey), &dave_hash);
 
   rd.expiration_time = UINT64_MAX;
@@ -362,7 +362,7 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
 
   GNUNET_NAMESTORE_record_create (nh[0], key, GNUNET_GNS_MASTERZONE_STR, &rd, &cont_ns, nh[0]);
 
-  GNUNET_CRYPTO_rsa_key_free(key);
+  GNUNET_CRYPTO_ecc_key_free(key);
   GNUNET_free(keyfile);
   GNUNET_free(web);
   dave_is_setup = GNUNET_YES;
@@ -374,8 +374,8 @@ static int
 setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
 {
   char* keyfile;
-  struct GNUNET_CRYPTO_RsaPrivateKey *key;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_EccPrivateKey *key;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
   struct GNUNET_NAMESTORE_RecordData rd;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up bob\n");
@@ -389,7 +389,7 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
     return GNUNET_SYSERR;
   }
 
-  key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+  key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
   if (NULL == key)
   {
 
@@ -402,12 +402,12 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
   if (NULL == nh[1])
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
-    GNUNET_CRYPTO_rsa_key_free (key);
+    GNUNET_CRYPTO_ecc_key_free (key);
     GNUNET_free (keyfile);
     return GNUNET_SYSERR;
   }
   
-  GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
+  GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
   GNUNET_CRYPTO_short_hash(&pkey, sizeof(pkey), &bob_hash);
 
   rd.expiration_time = UINT64_MAX;
@@ -418,7 +418,7 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
 
   GNUNET_NAMESTORE_record_create (nh[1], key, "buddy", &rd, &cont_ns, nh[1]);
 
-  GNUNET_CRYPTO_rsa_key_free(key);
+  GNUNET_CRYPTO_ecc_key_free(key);
   GNUNET_free(keyfile);
   bob_is_setup = GNUNET_YES;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up bob done\n");
@@ -429,7 +429,7 @@ static int
 setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
 {
   char* keyfile;
-  struct GNUNET_CRYPTO_RsaPrivateKey *key;
+  struct GNUNET_CRYPTO_EccPrivateKey *key;
   struct GNUNET_NAMESTORE_RecordData rd;
 
   cfg_handles[2] = GNUNET_CONFIGURATION_dup (cfg);
@@ -442,7 +442,7 @@ setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
     return GNUNET_SYSERR;
   }
 
-  key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+  key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
   if (NULL == key)
   {
 
@@ -455,7 +455,7 @@ setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
   if (NULL == nh[2])
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
-    GNUNET_CRYPTO_rsa_key_free (key);
+    GNUNET_CRYPTO_ecc_key_free (key);
     GNUNET_free (keyfile);
     return GNUNET_SYSERR;
   }
@@ -473,12 +473,12 @@ setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
   if (NULL == gh)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to gns\n");
-    GNUNET_CRYPTO_rsa_key_free (key);
+    GNUNET_CRYPTO_ecc_key_free (key);
     GNUNET_free (keyfile);
     return GNUNET_SYSERR;
   }
 
-  GNUNET_CRYPTO_rsa_key_free (key);
+  GNUNET_CRYPTO_ecc_key_free (key);
   GNUNET_free (keyfile);
   alice_is_setup = GNUNET_YES;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up alice  done\n");
