@@ -1223,8 +1223,6 @@ src/ats/Makefile
 src/ats/ats.conf
 src/ats-tool/Makefile
 src/block/Makefile
-src/chat/Makefile
-src/chat/chat.conf
 src/core/Makefile
 src/core/core.conf
 src/consensus/Makefile
