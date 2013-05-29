@@ -825,7 +825,7 @@ send_elements_for_key (struct UnionEvaluateOperation *eo, struct IBF_Key ibf_key
   send_cls.ibf_key = ibf_key;
   send_cls.eo = eo;
   GNUNET_CONTAINER_multihashmap32_get_multiple (eo->key_to_element, (uint32_t) ibf_key.key_val,
-                                                send_element_iterator, &send_cls);
+                                                &send_element_iterator, &send_cls);
 }
 
 
@@ -862,13 +862,15 @@ decode_and_send (struct UnionEvaluateOperation *eo)
       next_order++;
       if (next_order <= MAX_IBF_ORDER)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "decoding failed, sending larger ibf (size %u)\n",
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
+		    "decoding failed, sending larger ibf (size %u)\n",
                     1<<next_order);
         send_ibf (eo, next_order);
       }
       else
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "set union failed: reached ibf limit\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		    "set union failed: reached ibf limit\n");
       }
       break;
     }
@@ -1180,10 +1182,8 @@ stream_open_cb (void *cls,
 
   GNUNET_assert (NULL == eo->mq);
   GNUNET_assert (socket == eo->socket);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "open cb successful\n");
-
-
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	      "open cb successful\n");
   eo->mq = GNUNET_STREAM_mq_create (eo->socket, union_handlers, NULL, eo);
   /* we started the operation, thus we have to send the operation request */
   send_operation_request (eo);
@@ -1212,15 +1212,14 @@ _GSS_union_evaluate (struct EvaluateMessage *m, struct Set *set)
   eo->salt = ntohs (m->salt);
   eo->app_id = m->app_id;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "evaluating union operation, (app %s)\n", 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	      "evaluating union operation, (app %s)\n", 
               GNUNET_h2s (&eo->app_id));
 
   eo->socket = 
       GNUNET_STREAM_open (configuration, &eo->peer, GNUNET_APPLICATION_TYPE_SET,
-                          stream_open_cb, eo,
+                          &stream_open_cb, eo,
                           GNUNET_STREAM_OPTION_END);
-
-
   GNUNET_CONTAINER_DLL_insert (eo->set->state.u->ops_head,
                                eo->set->state.u->ops_tail,
                                eo);
@@ -1251,7 +1250,7 @@ _GSS_union_accept (struct AcceptMessage *m, struct Set *set,
   GNUNET_assert (0 != ntohl (m->request_id));
   eo->request_id = ntohl (m->request_id);
   eo->se = strata_estimator_dup (set->state.u->se);
-  eo->set = set;
+  eo->set = set; // FIXME: redundant!?
   eo->mq = incoming->mq;
   /* transfer ownership of mq and socket from incoming to eo */
   incoming->mq = NULL;
