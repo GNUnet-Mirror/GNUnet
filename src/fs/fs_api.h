@@ -510,8 +510,6 @@ struct GNUNET_FS_QueueEntry
 };
 
 
-
-
 /**
  * Information we store for each search result.
  */
@@ -519,7 +517,13 @@ struct GNUNET_FS_SearchResult
 {
 
   /**
-   * Search context this result belongs to.
+   * File-sharing context this result belongs to.
+   */
+  struct GNUNET_FS_Handle *h;
+
+  /**
+   * Search context this result belongs to; can be NULL
+   * for probes that come from a directory result.
    */
   struct GNUNET_FS_SearchContext *sc;
 
@@ -819,11 +823,13 @@ GNUNET_FS_unindex_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
  * call the callback.
  *
  * @param pi structure to fill in
+ * @param h file-sharing handle
  * @param sc overall search context
  * @return value returned by the callback
  */
 void *
 GNUNET_FS_search_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
+			       struct GNUNET_FS_Handle *h,
                                struct GNUNET_FS_SearchContext *sc);
 
 
@@ -1992,6 +1998,9 @@ struct NamespaceUpdateNode
 };
 
 
+/**
+ * Handle to one of our namespaces.
+ */
 struct GNUNET_FS_Namespace
 {
 

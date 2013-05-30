@@ -1965,7 +1965,7 @@ GNUNET_FS_search_result_sync_ (struct GNUNET_FS_SearchResult *sr)
   uris = NULL;
   if (NULL == sr->serialization)
     sr->serialization =
-        make_serialization_file_name_in_dir (sr->sc->h,
+        make_serialization_file_name_in_dir (sr->h,
                                              (sr->sc->psearch_result ==
                                               NULL) ?
                                              GNUNET_FS_SYNC_PATH_MASTER_SEARCH :
@@ -1973,7 +1973,7 @@ GNUNET_FS_search_result_sync_ (struct GNUNET_FS_SearchResult *sr)
                                              sr->sc->serialization);
   if (NULL == sr->serialization)
     return;
-  wh = get_write_handle_in_dir (sr->sc->h,
+  wh = get_write_handle_in_dir (sr->h,
                                 (sr->sc->psearch_result ==
                                  NULL) ? GNUNET_FS_SYNC_PATH_MASTER_SEARCH :
                                 GNUNET_FS_SYNC_PATH_CHILD_SEARCH,
@@ -2023,7 +2023,7 @@ cleanup:
   GNUNET_free_non_null (uris);
   if (NULL != wh)
     (void) GNUNET_BIO_write_close (wh);
-  remove_sync_file_in_dir (sr->sc->h,
+  remove_sync_file_in_dir (sr->h,
                            (NULL == sr->sc->psearch_result) 
 			   ? GNUNET_FS_SYNC_PATH_MASTER_SEARCH 
 			   : GNUNET_FS_SYNC_PATH_CHILD_SEARCH,
@@ -2322,6 +2322,7 @@ deserialize_search_result (void *cls, const char *filename)
   download = NULL;
   update_srch = NULL;
   sr = GNUNET_malloc (sizeof (struct GNUNET_FS_SearchResult));
+  sr->h = sc->h;
   sr->sc = sc;
   sr->serialization = ser;
   if ((GNUNET_OK != GNUNET_BIO_read_string (rh, "result-uri", &uris, 10 * 1024))
@@ -2485,7 +2486,7 @@ signal_result_resume (void *cls, const struct GNUNET_HashCode * key, void *value
         sr->availability_trials;
     pi.value.search.specifics.resume_result.applicability_rank =
         sr->optional_support;
-    sr->client_info = GNUNET_FS_search_make_status_ (&pi, sc);
+    sr->client_info = GNUNET_FS_search_make_status_ (&pi, sc->h, sc);
   }
   if (NULL != sr->download)
   {
@@ -2761,7 +2762,7 @@ signal_search_resume (struct GNUNET_FS_SearchContext *sc)
   pi.value.search.specifics.resume.message = sc->emsg;
   pi.value.search.specifics.resume.is_paused =
       (NULL == sc->client) ? GNUNET_YES : GNUNET_NO;
-  sc->client_info = GNUNET_FS_search_make_status_ (&pi, sc);
+  sc->client_info = GNUNET_FS_search_make_status_ (&pi, sc->h, sc);
   GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
                                          &signal_result_resume, sc);
 
