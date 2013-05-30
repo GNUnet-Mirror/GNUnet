@@ -575,8 +575,7 @@ trigger_next_request (struct GNUNET_ARM_Handle *h, int ignore_currently_down)
   }
   if (NULL != h->control_pending_head)
     msize =
-        ntohs (((struct GNUNET_MessageHeader *) &h->
-                control_pending_head[1])->size);
+        ntohs (h->control_pending_head->msg->header.size);
   else if (GNUNET_NO == ignore_currently_down)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
