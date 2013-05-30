@@ -429,12 +429,90 @@ GNUNET_FS_search_start_probe_ (struct GNUNET_FS_SearchResult *sr)
                                      2 * (1 + sr->availability_trials));
   sr->probe_ctx =
       GNUNET_FS_download_start (sr->h, sr->uri, sr->meta, NULL, NULL, off,
-                                len, sr->sc->anonymity,
+                                len, sr->anonymity,
                                 GNUNET_FS_DOWNLOAD_NO_TEMPORARIES |
                                 GNUNET_FS_DOWNLOAD_IS_PROBE, sr, NULL);
   sr->probe_ping_task 
     = GNUNET_SCHEDULER_add_now (&probe_ping_task,
 				sr);
+}
+
+
+/**
+ * Start download probes for the given search result.
+ *
+ * @param h file-sharing handle to use for the operation
+ * @param uri URI to probe
+ * @param meta meta data associated with the URI
+ * @param client_info client info pointer to use for associated events
+ * @param anonymity anonymity level to use for the probes
+ * @return the search result handle to access the probe activity
+ */
+struct GNUNET_FS_SearchResult *
+GNUNET_FS_probe (struct GNUNET_FS_Handle *h,
+		 const struct GNUNET_FS_Uri *uri,
+		 const struct GNUNET_CONTAINER_MetaData *meta,
+		 void *client_info,
+		 uint32_t anonymity)
+{
+  struct GNUNET_FS_SearchResult *sr;
+
+  sr = GNUNET_new (struct GNUNET_FS_SearchResult);
+  sr->h = h;
+  sr->uri = GNUNET_FS_uri_dup (uri);
+  sr->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
+  sr->client_info = client_info;
+  sr->anonymity = anonymity; 
+  GNUNET_FS_search_start_probe_ (sr);
+  return sr;
+}
+
+
+/**
+ * Stop probing activity associated with a search result.
+ * 
+ * @param sr search result 
+ */
+static void
+GNUNET_FS_search_stop_probe_ (struct GNUNET_FS_SearchResult *sr)
+{
+  if (NULL != sr->probe_ctx)
+  {
+    GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
+    sr->probe_ctx = NULL;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != sr->probe_ping_task)
+  {
+    GNUNET_SCHEDULER_cancel (sr->probe_ping_task);
+    sr->probe_ping_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != sr->probe_cancel_task)
+  {
+    GNUNET_SCHEDULER_cancel (sr->probe_cancel_task);
+    sr->probe_cancel_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+}
+
+
+/**
+ * Stop probe activity.  Must ONLY be used on values
+ * returned from 'GNUNET_FS_probe'.
+ *
+ * @param sr search result to stop probing for (freed)
+ * @return the value of the 'client_info' pointer
+ */
+void *
+GNUNET_FS_probe_stop (struct GNUNET_FS_SearchResult *sr)
+{
+  void *client_info;
+
+  GNUNET_assert (NULL == sr->sc);
+  GNUNET_FS_search_stop_probe_ (sr);
+  GNUNET_FS_uri_destroy (sr->uri);
+  GNUNET_CONTAINER_meta_data_destroy (sr->meta);
+  client_info = sr->client_info;
+  GNUNET_free (sr);
+  return client_info;
 }
 
 
@@ -480,6 +558,7 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
     sr = GNUNET_malloc (sizeof (struct GNUNET_FS_SearchResult));
     sr->h = sc->h;
     sr->sc = sc;
+    sr->anonymity = sc->anonymity;
     sr->uri = GNUNET_FS_uri_dup (uri);
     sr->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
     sr->mandatory_missing = sc->mandatory_count;
@@ -560,6 +639,7 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc, const char *id_update,
   sr = GNUNET_malloc (sizeof (struct GNUNET_FS_SearchResult));
   sr->h = sc->h;
   sr->sc = sc;
+  sr->anonymity = sc->anonymity;
   sr->uri = GNUNET_FS_uri_dup (uri);
   sr->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
   sr->key = key;
@@ -1489,21 +1569,7 @@ search_result_stop (void *cls, const struct GNUNET_HashCode * key, void *value)
   struct GNUNET_FS_SearchResult *sr = value;
   struct GNUNET_FS_ProgressInfo pi;
 
-  if (NULL != sr->probe_ctx)
-  {
-    GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
-    sr->probe_ctx = NULL;
-  }
-  if (GNUNET_SCHEDULER_NO_TASK != sr->probe_ping_task)
-  {
-    GNUNET_SCHEDULER_cancel (sr->probe_ping_task);
-    sr->probe_ping_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  if (GNUNET_SCHEDULER_NO_TASK != sr->probe_cancel_task)
-  {
-    GNUNET_SCHEDULER_cancel (sr->probe_cancel_task);
-    sr->probe_cancel_task = GNUNET_SCHEDULER_NO_TASK;
-  }
+  GNUNET_FS_search_stop_probe_ (sr);
 
   if (NULL != sr->download)
   {

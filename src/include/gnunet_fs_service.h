@@ -2775,6 +2775,33 @@ void
 GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc);
 
 
+/**
+ * Start download probes for the given search result.
+ *
+ * @param h file-sharing handle to use for the operation
+ * @param uri URI to probe
+ * @param meta meta data associated with the URI
+ * @param client_info client info pointer to use for associated events
+ * @param anonymity anonymity level to use for the probes
+ * @return the search result handle to access the probe activity
+ */
+struct GNUNET_FS_SearchResult *
+GNUNET_FS_probe (struct GNUNET_FS_Handle *h,
+		 const struct GNUNET_FS_Uri *uri,
+		 const struct GNUNET_CONTAINER_MetaData *meta,
+		 void *client_info,
+		 uint32_t anonymity);
+
+
+/**
+ * Stop probe activity.  Must ONLY be used on values
+ * returned from 'GNUNET_FS_probe'.
+ *
+ * @param sr search result to stop probing for (freed)
+ * @return the value of the 'client_info' pointer
+ */
+void *
+GNUNET_FS_probe_stop (struct GNUNET_FS_SearchResult *sr);
 
 
 /**

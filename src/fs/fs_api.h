@@ -599,6 +599,11 @@ struct GNUNET_FS_SearchResult
   struct GNUNET_TIME_Relative remaining_probe_time;
 
   /**
+   * Anonymity level to use for probes using this search result.
+   */
+  uint32_t anonymity;
+
+  /**
    * Number of mandatory keywords for which we have NOT yet found the
    * search result; when this value hits zero, the search result is
    * given to the callback.
