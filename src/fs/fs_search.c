@@ -61,6 +61,7 @@ GNUNET_FS_search_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
     ? GNUNET_TIME_absolute_get_duration (sc->start_time)
     : GNUNET_TIME_UNIT_ZERO;
   pi->value.search.anonymity = (NULL != sc) ? sc->anonymity : 0;
+  pi->fsh = h;
   ret = h->upcb (h->upcb_cls, pi);
   return ret;
 }
@@ -457,6 +458,7 @@ GNUNET_FS_probe (struct GNUNET_FS_Handle *h,
 {
   struct GNUNET_FS_SearchResult *sr;
 
+  GNUNET_assert (NULL != h);
   sr = GNUNET_new (struct GNUNET_FS_SearchResult);
   sr->h = h;
   sr->uri = GNUNET_FS_uri_dup (uri);

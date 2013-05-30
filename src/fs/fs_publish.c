@@ -64,6 +64,7 @@ GNUNET_FS_publish_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
   pi->value.publish.duration =
       GNUNET_TIME_absolute_get_duration (p->start_time);
   pi->value.publish.anonymity = p->bo.anonymity_level;
+  pi->fsh = pc->h;
   return pc->h->upcb (pc->h->upcb_cls, pi);
 }
 

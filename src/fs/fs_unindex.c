@@ -89,8 +89,8 @@ GNUNET_FS_unindex_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
   pi->value.unindex.duration =
       GNUNET_TIME_absolute_get_duration (uc->start_time);
   pi->value.unindex.completed = offset;
+  pi->fsh = uc->h;
   uc->client_info = uc->h->upcb (uc->h->upcb_cls, pi);
-
 }
 
 

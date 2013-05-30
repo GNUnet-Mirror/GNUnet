@@ -122,6 +122,7 @@ GNUNET_FS_download_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
   pi->value.download.eta =
       GNUNET_TIME_calculate_eta (dc->start_time, dc->completed, dc->length);
   pi->value.download.is_active = (NULL == dc->client) ? GNUNET_NO : GNUNET_YES;
+  pi->fsh = dc->h;
   if (0 == (dc->options & GNUNET_FS_DOWNLOAD_IS_PROBE))
     dc->client_info = dc->h->upcb (dc->h->upcb_cls, pi);
   else

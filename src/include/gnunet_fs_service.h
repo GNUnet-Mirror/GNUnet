@@ -1912,6 +1912,10 @@ struct GNUNET_FS_ProgressInfo
    */
   enum GNUNET_FS_Status status;
 
+  /**
+   * File-sharing handle that generated the event.
+   */
+  struct GNUNET_FS_Handle *fsh;
 };
 
 
