@@ -1,0 +1,77 @@
+Index: src/transport/gnunet-service-transport_neighbours.c
+===================================================================
+--- src/transport/gnunet-service-transport_neighbours.c	(revision 27335)
++++ src/transport/gnunet-service-transport_neighbours.c	(working copy)
+@@ -65,7 +65,7 @@
+  * send 3 keepalives in each interval, so 3 messages would need to be
+  * lost in a row for a disconnect).
+  */
+-#define KEEPALIVE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 100)
++#define KEEPALIVE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_YEARS, 100)
+ 
+ /**
+  * How long are we willing to wait for a response from ATS before timing out?
+Index: src/transport/gnunet-service-transport_validation.c
+===================================================================
+--- src/transport/gnunet-service-transport_validation.c	(revision 27335)
++++ src/transport/gnunet-service-transport_validation.c	(working copy)
+@@ -42,7 +42,7 @@
+  * OTOH, we don't want to spend too much time generating PONG signatures,
+  * so they must have some lifetime to reduce our CPU usage.
+  */
+-#define PONG_SIGNATURE_LIFETIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)
++#define PONG_SIGNATURE_LIFETIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 12)
+ 
+ /**
+  * After how long do we expire an address in a HELLO that we just
+@@ -57,24 +57,24 @@
+  * we cannot validate (because after this time we can destroy the
+  * validation record).
+  */
+-#define UNVALIDATED_PING_KEEPALIVE GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
++#define UNVALIDATED_PING_KEEPALIVE GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 4)
+ 
+ /**
+  * How often do we PING an address that we have successfully validated
+  * in the past but are not actively using?  Should be (significantly)
+  * smaller than HELLO_ADDRESS_EXPIRATION.
+  */
+-#define VALIDATED_PING_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
++#define VALIDATED_PING_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 6)
+ 
+ /**
+  * How often do we PING an address that we are currently using?
+  */
+-#define CONNECTED_PING_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 2)
++#define CONNECTED_PING_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_YEARS, 2)
+ 
+ /**
+  * How much delay is acceptable for sending the PING or PONG?
+  */
+-#define ACCEPTABLE_PING_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
++#define ACCEPTABLE_PING_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1)
+ 
+ /**
+  * Size of the validation map hashmap.
+Index: src/include/gnunet_constants.h
+===================================================================
+--- src/include/gnunet_constants.h	(revision 27335)
++++ src/include/gnunet_constants.h	(working copy)
+@@ -49,7 +49,7 @@
+  * After how long do we consider a connection to a peer dead
+  * if we don't receive messages from the peer?
+  */
+-#define GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
++#define GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_YEARS, 5)
+ 
+ /**
+  * How long do we delay reading more from a peer after a quota violation?
+@@ -61,7 +61,7 @@
+  * even if we assume that the service commonly does not
+  * respond instantly (DNS, Database, etc.).
+  */
+-#define GNUNET_CONSTANTS_SERVICE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 10)
++#define GNUNET_CONSTANTS_SERVICE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_YEARS, 10)
+ 
+ /**
+  * How long do we delay messages to get larger packet sizes (CORKing)?
