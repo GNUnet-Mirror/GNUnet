@@ -1,0 +1,41 @@
+.TH gnunet\-datastore "1" "30 May 2013" "GNUnet"
+.SH NAME
+gnunet\-datastore \- merge or convert GNUnet datastore databases
+
+.SH SYNOPSIS
+.B gnunet\-datastore 
+[\fIOPTIONS\fR]
+.SH DESCRIPTION
+.PP
+
+gnunet\-datastore can be used to convert or merge GNUnet datastores.  This is useful if a datastore is to be migrated between SQL databases, i.e. from sqlite to postgres or vice versa.  gnunet\-datastore basically takes two configuration files (which must specify different databases) and reads in all of the data from the datasource (\-s option) and copies it to the destination (\-c option).  Note that replication level information is lost in the process at this time.
+
+.TP
+\fB\-c \fIFILENAME\fR, \fB\-\-config=FILENAME\fR
+configuration file to use for the destination database
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+print help page
+.TP
+\fB\-i\fR, \fB\-\-list-indexed\fR
+print information about files that are currently indexed by file-sharing
+.TP
+\fB\-L \fILOGLEVEL\fR, \fB\-\-loglevel=LOGLEVEL\fR
+Change the loglevel.  Possible values for LOGLEVEL are ERROR, WARNING, INFO and DEBUG.
+.TP
+\fB\-s \fIFILENAME\fR, \fB\-\-sourcecfg=FILENAME\fR
+configuration file to use for the source database
+.TP
+\fB\-v\fR, \fB\-\-version\fR
+print the version number
+.TP
+\fB\-V\fR, \fB\-\-verbose\fR
+be verbose
+
+.SH NOTES
+
+
+.SH "REPORTING BUGS"
+Report bugs by using mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+.SH "SEE ALSO"
+\fBgnunet\-publish\fP(1)

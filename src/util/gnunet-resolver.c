@@ -133,8 +133,9 @@ run (void *cls, char *const *args, const char *cfgfile,
 				NULL);
 }
 
+
 /**
- * The main function to obtain statistics in GNUnet.
+ * The main function to access GNUnet's DNS resolver.
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments

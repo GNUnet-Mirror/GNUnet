@@ -32,6 +32,8 @@ libgnunetdatastore_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 1:0:0
 
+bin_PROGRAMS = \
+ gnunet-datastore
 
 libexec_PROGRAMS = \
  gnunet-service-datastore
@@ -40,6 +42,13 @@ gnunet_service_datastore_SOURCES = \
  gnunet-service-datastore.c 
 gnunet_service_datastore_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+
+gnunet_datastore_SOURCES = \
+ gnunet-datastore.c 
+gnunet_datastore_LDADD = \
+  $(top_builddir)/src/datastore/libgnunetdatastore.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 

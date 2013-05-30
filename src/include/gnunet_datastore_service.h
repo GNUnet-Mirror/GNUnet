@@ -153,7 +153,7 @@ GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h, uint64_t amount,
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h, uint32_t rid,
-                      const struct GNUNET_HashCode * key, size_t size,
+                      const struct GNUNET_HashCode *key, size_t size,
                       const void *data, enum GNUNET_BLOCK_Type type,
                       uint32_t priority, uint32_t anonymity,
                       uint32_t replication,
@@ -300,7 +300,7 @@ typedef void (*GNUNET_DATASTORE_DatumProcessor) (void *cls,
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h, uint64_t offset,
-                          const struct GNUNET_HashCode * key,
+                          const struct GNUNET_HashCode *key,
                           enum GNUNET_BLOCK_Type type,
                           unsigned int queue_priority,
                           unsigned int max_queue_size,
