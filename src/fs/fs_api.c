@@ -1962,6 +1962,8 @@ GNUNET_FS_search_result_sync_ (struct GNUNET_FS_SearchResult *sr)
   struct GNUNET_BIO_WriteHandle *wh;
   char *uris;
 
+  if (NULL == sr->sc)
+    return;
   uris = NULL;
   if (NULL == sr->serialization)
     sr->serialization =
