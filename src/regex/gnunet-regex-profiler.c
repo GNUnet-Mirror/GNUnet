@@ -1383,7 +1383,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   GNUNET_CONFIGURATION_set_value_number (cfg,
                                          "TESTBED", "OVERLAY_RANDOM_LINKS",
-                                         num_peers * 10);
+                                         num_peers * 20);
   GNUNET_CONFIGURATION_set_value_number (cfg,
                                          "DHT", "FORCE_NSE",
                                          (long long unsigned) log2 (num_peers));
