@@ -978,9 +978,17 @@ announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RegexPeer *peer;
 
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) ||
-            next_search >= num_peers)
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
+  if (next_search >= num_peers)
+  {
+    if (GNUNET_SCHEDULER_NO_TASK != search_timeout_task)
+      GNUNET_SCHEDULER_cancel (search_timeout_task);
+    search_timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_HOURS,
+                                                        &search_timed_out,
+                                                        NULL);
+    return;
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting daemon %u\n", next_search);
   peer = &peers[next_search];
