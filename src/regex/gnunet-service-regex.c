@@ -20,7 +20,8 @@
 
 /**
  * @file regex/gnunet-service-regex.c
- * @brief program that tracks template
+ * @brief service to advertise capabilities described as regex and to
+ *        lookup capabilities by regex
  * @author Christian Grothoff
  */
 #include "platform.h"
@@ -93,6 +94,11 @@ static struct ClientEntry *client_head;
  */
 static struct ClientEntry *client_tail;
 
+/**
+ * Our notification context, used to send back results to the client.
+ */
+static struct GNUNET_SERVER_NotificationContext *nc;
+
 
 /**
  * Task run during shutdown.
@@ -107,6 +113,8 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   dht = NULL;
   GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
   stats = NULL;
+  GNUNET_SERVER_notification_context_destroy (nc);
+  nc = NULL;
 }
 
 
@@ -240,7 +248,37 @@ handle_search_result (void *cls,
 		      const struct GNUNET_PeerIdentity *put_path,
 		      unsigned int put_path_length)
 {
+  struct ClientEntry *ce = cls;
+  struct ResultMessage *result;
+  struct GNUNET_PeerIdentity *gp;
+  uint16_t size;
 
+  if ( (get_path_length >= 65536) ||
+       (put_path_length >= 65536) ||
+       ( (get_path_length + put_path_length) * sizeof (struct GNUNET_PeerIdentity))
+       + sizeof (struct ResultMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  size = (get_path_length + put_path_length) * sizeof (struct GNUNET_PeerIdentity) + sizeof (struct ResultMessage);
+  result = GNUNET_malloc (size);
+  result->header.size = htons (size);
+  result->header.type = htons (GNUNET_MESSAGE_TYPE_REGEX_RESULT);
+  result->get_path_length = htons ((uint16_t) get_path_length);
+  result->put_path_length = htons ((uint16_t) put_path_length);
+  result->id = *id;
+  gp = &result->id;
+  memcpy (&gp[1], 
+	  get_path,
+	  get_path_length * sizeof (struct GNUNET_PeerIdentity));
+  memcpy (&gp[1 + get_path_length], 
+	  put_path, 
+	  put_path_length * sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_SERVER_notification_context_unicast (nc,
+					      ce->client,
+					      &result->header, GNUNET_NO);
+  GNUNET_free (result);
 }
 
 
@@ -288,6 +326,7 @@ handle_search (void *cls,
   GNUNET_CONTAINER_DLL_insert (client_head,
 			       client_tail, 
 			       ce);
+  GNUNET_SERVER_notification_context_add (nc, client);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -316,6 +355,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
                                 NULL);
+  nc = GNUNET_SERVER_notification_context_create (server, 1);
   stats = GNUNET_STATISTICS_create ("regex", cfg);
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
