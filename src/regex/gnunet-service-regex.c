@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -19,13 +19,14 @@
 */
 
 /**
- * @file template/gnunet-service-template.c
- * @brief program that does template
+ * @file regex/gnunet-service-regex.c
+ * @brief program that tracks template
  * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-
+#include "gnunet_regex_lib.h"
+#include "regex_ipc.h"
 
 /**
  * Task run during shutdown.
@@ -41,7 +42,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Process template requests.
+ * Process regex requests.
  *
  * @param cls closure
  * @param server the initialized server
@@ -63,7 +64,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
 
 /**
- * The main function for the template service.
+ * The main function for the regex service.
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments
@@ -73,8 +74,8 @@ int
 main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "template",
+          GNUNET_SERVICE_run (argc, argv, "regex",
                               GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
 }
 
-/* end of gnunet-service-template.c */
+/* end of gnunet-service-regex.c */

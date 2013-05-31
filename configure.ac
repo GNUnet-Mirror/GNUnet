@@ -1265,6 +1265,7 @@ src/peerinfo-tool/Makefile
 src/postgres/Makefile
 src/pt/Makefile
 src/regex/Makefile
+src/regex/regex.conf
 src/set/Makefile
 src/set/set.conf
 src/statistics/Makefile

@@ -8,6 +8,32 @@ if USE_COVERAGE
   AM_CFLAGS = --coverage
 endif
 
+pkgcfgdir= $(pkgdatadir)/config.d/
+
+libexecdir= $(pkglibdir)/libexec/
+
+plugindir = $(libdir)/gnunet
+
+pkgcfg_DATA = \
+  regex.conf
+
+libexec_PROGRAMS = \
+  gnunet-service-regex
+
+gnunet_service_regex_SOURCES =  \
+ gnunet-service-regex.c
+gnunet_service_regex_LDADD =  \
+ $(top_builddir)/src/regex/libgnunetregex.la \
+ $(top_builddir)/src/dht/libgnunetdht.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(GN_LIBINTL) 
+gnunet_service_regex_DEPENDENCIES = \
+  libgnunetregex.la
+# todo: link files from libgnunetregex statically into gnunet_service_regex,
+# rename API prefix to avoid collision with 'libgnunetregexnew'...
+
+# FIXME: shouldn't the block library be in the plugin directory!?
 lib_LTLIBRARIES = libgnunetregexblock.la \
   libgnunetregex.la \
   libgnunetregexnew.la
