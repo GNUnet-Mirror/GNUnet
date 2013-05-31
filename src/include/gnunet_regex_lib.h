@@ -277,7 +277,7 @@ struct GNUNET_REGEX_search_handle;
  */
 struct GNUNET_REGEX_announce_handle *
 GNUNET_REGEX_announce (struct GNUNET_DHT_Handle *dht,
-                       struct GNUNET_PeerIdentity *id,
+                       const struct GNUNET_PeerIdentity *id,
                        const char *regex,
                        uint16_t compression,
                        struct GNUNET_STATISTICS_Handle *stats);

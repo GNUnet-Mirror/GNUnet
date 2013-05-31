@@ -28,6 +28,72 @@
 #include "gnunet_regex_lib.h"
 #include "regex_ipc.h"
 
+
+/**
+ * Information about one of our clients.
+ */
+struct ClientEntry
+{
+
+  /**
+   * Kept in DLL.
+   */
+  struct ClientEntry *next;
+
+  /**
+   * Kept in DLL.
+   */
+  struct ClientEntry *prev;
+
+  /**
+   * Handle identifying the client.
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
+   * Search handle (if this client is searching).
+   */
+  struct GNUNET_REGEX_search_handle *sh;
+
+  /**
+   * Announcement handle (if this client is announcing).
+   */
+  struct GNUNET_REGEX_announce_handle *ah;
+
+  /**
+   * Refresh frequency for announcements.
+   */
+  struct GNUNET_TIME_Relative frequency;
+
+  /**
+   * Task for re-announcing.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier refresh_task;
+
+};
+
+
+/**
+ * Connection to the DHT.
+ */
+static struct GNUNET_DHT_Handle *dht;
+
+/**
+ * Handle for doing statistics.
+ */
+static struct GNUNET_STATISTICS_Handle *stats;
+
+/**
+ * Head of list of clients.
+ */
+static struct ClientEntry *client_head;
+
+/**
+ * End of list of clients.
+ */
+static struct ClientEntry *client_tail;
+
+
 /**
  * Task run during shutdown.
  *
@@ -37,7 +103,192 @@
 static void
 cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  /* FIXME: do clean up here */
+  GNUNET_DHT_disconnect (dht);
+  dht = NULL;
+  GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
+  stats = NULL;
+}
+
+
+/**
+ * A client disconnected.  Remove all of its data structure entries.
+ *
+ * @param cls closure, NULL
+ * @param client identification of the client
+ */
+static void
+handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
+{
+  struct ClientEntry *ce;
+  struct ClientEntry *nx;
+
+  nx = client_head;
+  for (ce = nx; NULL != ce; ce = nx)
+  {
+    nx = ce->next;
+    if (ce->client == client)
+    {
+      if (GNUNET_SCHEDULER_NO_TASK != ce->refresh_task)
+      {
+	GNUNET_SCHEDULER_cancel (ce->refresh_task);
+	ce->refresh_task = GNUNET_SCHEDULER_NO_TASK;
+      }
+      if (NULL != ce->ah)
+      {
+	GNUNET_REGEX_announce_cancel (ce->ah);
+	ce->ah = NULL;
+      }
+      if (NULL != ce->sh)
+      {
+	GNUNET_REGEX_search_cancel (ce->sh);
+	ce->sh = NULL;
+      }
+      GNUNET_CONTAINER_DLL_remove (client_head, client_tail, ce);
+      GNUNET_free (ce);
+    }
+  }
+}
+
+
+/**
+ * Periodic task to refresh our announcement of the regex.
+ *
+ * @param cls the 'struct ClientEntry' of the client that triggered the
+ *        announcement
+ * @param tc scheduler context
+ */
+static void
+reannounce (void *cls,
+	    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ClientEntry *ce = cls;
+
+  GNUNET_REGEX_reannounce (ce->ah);
+  ce->refresh_task = GNUNET_SCHEDULER_add_delayed (ce->frequency,
+						   &reannounce,
+						   ce);
+}
+
+
+/**
+ * Handle ANNOUNCE message.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_announce (void *cls, 
+		 struct GNUNET_SERVER_Client *client,
+		 const struct GNUNET_MessageHeader *message)
+{
+  const struct AnnounceMessage *am;
+  const char *regex;
+  struct ClientEntry *ce;
+  uint16_t size;
+
+  size = ntohs (message->size);
+  am = (const struct AnnounceMessage *) message;
+  regex = (const char *) &am[1];
+  if ( (size <= sizeof (struct AnnounceMessage)) ||
+       ('\0' != regex[size - sizeof (struct AnnounceMessage) - 1]) )
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  ce = GNUNET_new (struct ClientEntry);
+  ce->client = client;
+  ce->ah = GNUNET_REGEX_announce (dht,
+				  &am->pid,
+				  regex,
+				  ntohs (am->compression),
+				  stats);
+  if (NULL == ce->ah)
+  {
+    GNUNET_break (0);
+    GNUNET_free (ce);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  ce->frequency = GNUNET_TIME_relative_ntoh (am->refresh_delay);
+  ce->refresh_task = GNUNET_SCHEDULER_add_delayed (ce->frequency,
+						   &reannounce,
+						   ce);
+  GNUNET_CONTAINER_DLL_insert (client_head,
+			       client_tail, 
+			       ce);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * Handle result, pass it back to the client.
+ *
+ * @param cls the struct ClientEntry of the client searching
+ * @param id Peer providing a regex that matches the string.
+ * @param get_path Path of the get request.
+ * @param get_path_length Lenght of get_path.
+ * @param put_path Path of the put request.
+ * @param put_path_length Length of the put_path.
+ */
+static void 
+handle_search_result (void *cls,
+		      const struct GNUNET_PeerIdentity *id,
+		      const struct GNUNET_PeerIdentity *get_path,
+		      unsigned int get_path_length,
+		      const struct GNUNET_PeerIdentity *put_path,
+		      unsigned int put_path_length)
+{
+
+}
+
+
+/**
+ * Handle SEARCH message.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_search (void *cls, 
+	       struct GNUNET_SERVER_Client *client,
+	       const struct GNUNET_MessageHeader *message)
+{
+  const struct SearchMessage *sm;
+  const char *string;
+  struct ClientEntry *ce;
+  uint16_t size;
+
+  size = ntohs (message->size);
+  sm = (const struct SearchMessage *) message;
+  string = (const char *) &sm[1];
+  if ( (size <= sizeof (struct SearchMessage)) ||
+       ('\0' != string[size - sizeof (struct SearchMessage) - 1]) )
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  ce = GNUNET_new (struct ClientEntry);
+  ce->client = client;
+  ce->sh = GNUNET_REGEX_search (dht,
+				string,
+				&handle_search_result,
+				ce,
+				stats);
+  if (NULL == ce->sh)
+  {
+    GNUNET_break (0);
+    GNUNET_free (ce);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  GNUNET_CONTAINER_DLL_insert (client_head,
+			       client_tail, 
+			       ce);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -53,13 +304,21 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    /* FIXME: add handlers here! */
+    {&handle_announce, NULL, GNUNET_MESSAGE_TYPE_REGEX_ANNOUNCE, 0},
+    {&handle_search, NULL, GNUNET_MESSAGE_TYPE_REGEX_SEARCH, 0},
     {NULL, NULL, 0, 0}
   };
-  /* FIXME: do setup here */
-  GNUNET_SERVER_add_handlers (server, handlers);
+  dht = GNUNET_DHT_connect (cfg, 1024);
+  if (NULL == dht)
+  {
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
                                 NULL);
+  stats = GNUNET_STATISTICS_create ("regex", cfg);
+  GNUNET_SERVER_add_handlers (server, handlers);
+  GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
 }
 
 

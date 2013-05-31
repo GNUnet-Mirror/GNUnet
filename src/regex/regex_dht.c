@@ -62,7 +62,7 @@ struct GNUNET_REGEX_announce_handle
   /**
    * Identity under which to announce the regex.
    */
-  struct GNUNET_PeerIdentity *id;
+  struct GNUNET_PeerIdentity id;
 
   /**
    * Optional statistics handle to report usage. Can be NULL.
@@ -113,7 +113,7 @@ regex_iterator (void *cls,
          GNUNET_h2s(key));
     size = sizeof (block);
     block.key = *key;
-    block.id = *(h->id);
+    block.id = h->id;
     GNUNET_STATISTICS_update (h->stats, "# regex accepting blocks stored",
                               1, GNUNET_NO);
     GNUNET_STATISTICS_update (h->stats, "# regex accepting block bytes stored",
@@ -184,7 +184,7 @@ regex_iterator (void *cls,
 
 struct GNUNET_REGEX_announce_handle *
 GNUNET_REGEX_announce (struct GNUNET_DHT_Handle *dht,
-                       struct GNUNET_PeerIdentity *id,
+                       const struct GNUNET_PeerIdentity *id,
                        const char *regex,
                        uint16_t compression,
                        struct GNUNET_STATISTICS_Handle *stats)
@@ -196,7 +196,7 @@ GNUNET_REGEX_announce (struct GNUNET_DHT_Handle *dht,
   h->regex = regex;
   h->dht = dht;
   h->stats = stats;
-  h->id = id;
+  h->id = *id;
   h->dfa = GNUNET_REGEX_construct_dfa (regex,
                                        strlen (regex),
                                        compression);

@@ -497,6 +497,7 @@ notify_change (struct StatsEntry *se)
   }
 }
 
+
 /**
  * Handle SET-message.
  *
