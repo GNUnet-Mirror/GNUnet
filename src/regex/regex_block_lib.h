@@ -21,6 +21,7 @@
 /**
  * @author Bartlomiej Polot
  * @file regex/regex_block_lib.h
+ * @brief common function to manipulate blocks stored by regex in the DHT
  */
 
 #ifndef REGEX_BLOCK_LIB_H_

@@ -33,8 +33,9 @@ gnunet_service_regex_DEPENDENCIES = \
 # todo: link files from libgnunetregex statically into gnunet_service_regex,
 # rename API prefix to avoid collision with 'libgnunetregexnew'...
 
-# FIXME: shouldn't the block library be in the plugin directory!?
-lib_LTLIBRARIES = libgnunetregexblock.la \
+
+lib_LTLIBRARIES = \
+  libgnunetregexblock.la \
   libgnunetregex.la \
   libgnunetregexnew.la
 
@@ -92,7 +93,7 @@ libgnunet_plugin_block_regex_la_DEPENDENCIES = \
 
 if HAVE_MYSQL
 noinst_mysql_progs = \
-gnunet-regex-simulation-profiler
+  gnunet-regex-simulation-profiler
 
 gnunet_regex_simulation_profiler_SOURCES = \
   gnunet-regex-simulation-profiler.c
