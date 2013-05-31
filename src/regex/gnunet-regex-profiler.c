@@ -789,7 +789,10 @@ regex_found_handler (void *cls,
                 GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
 
     if (GNUNET_SCHEDULER_NO_TASK != search_timeout_task)
+    {
       GNUNET_SCHEDULER_cancel (search_timeout_task);
+      search_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    }
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Collecting stats and shutting down.\n");
     GNUNET_SCHEDULER_add_now (&do_collect_stats, NULL);
@@ -982,11 +985,14 @@ announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   if (next_search >= num_peers)
   {
-    if (GNUNET_SCHEDULER_NO_TASK != search_timeout_task)
-      GNUNET_SCHEDULER_cancel (search_timeout_task);
-    search_timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_HOURS,
-                                                        &search_timed_out,
-                                                        NULL);
+    if (strings_found != num_peers)
+    {
+      if (GNUNET_SCHEDULER_NO_TASK != search_timeout_task)
+        GNUNET_SCHEDULER_cancel (search_timeout_task);
+      search_timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_HOURS,
+                                                          &search_timed_out,
+                                                          NULL);
+    }
     return;
   }
 
