@@ -84,7 +84,7 @@ GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *client);
  */
 typedef void (*GNUNET_CLIENT_MessageHandler) (void *cls,
                                               const struct GNUNET_MessageHeader
-                                              * msg);
+                                              *msg);
 
 
 /**

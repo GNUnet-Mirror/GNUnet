@@ -60,6 +60,7 @@ struct GNUNET_REGEX_Search;
  * not free resources, must call GNUNET_REGEX_announce_cancel for
  * that.
  * 
+ * @param cfg configuration to use
  * @param id ID to announce as provider of regex. Own ID in most cases.
  * @param regex Regular expression to announce.
  * @param refresh_delay after what delay should the announcement be repeated?
@@ -68,7 +69,8 @@ struct GNUNET_REGEX_Search;
  *         Must be freed by calling GNUNET_REGEX_announce_cancel.
  */
 struct GNUNET_REGEX_Announcement *
-GNUNET_REGEX_announce (const struct GNUNET_PeerIdentity *id,
+GNUNET_REGEX_announce (const struct GNUNET_CONFIGURATION_Handle *cfg,
+		       const struct GNUNET_PeerIdentity *id,
                        const char *regex,
 		       struct GNUNET_TIME_Relative refresh_delay,
                        uint16_t compression);
@@ -77,10 +79,10 @@ GNUNET_REGEX_announce (const struct GNUNET_PeerIdentity *id,
 /**
  * Stop announcing the regex specified by the given handle.
  * 
- * @param h handle returned by a previous GNUNET_REGEX_announce call.
+ * @param a handle returned by a previous GNUNET_REGEX_announce call.
  */
 void
-GNUNET_REGEX_announce_cancel (struct GNUNET_REGEX_Announcement *h);
+GNUNET_REGEX_announce_cancel (struct GNUNET_REGEX_Announcement *a);
 
 
 /**
@@ -106,6 +108,7 @@ typedef void (*GNUNET_REGEX_Found)(void *cls,
  * The search runs until GNUNET_REGEX_search_cancel is called, even if results
  * are returned.
  *
+ * @param cfg configuration to use
  * @param string String to match against the regexes in the DHT.
  * @param callback Callback for found peers.
  * @param callback_cls Closure for @c callback.
@@ -113,7 +116,8 @@ typedef void (*GNUNET_REGEX_Found)(void *cls,
  *         Must be freed by calling GNUNET_REGEX_search_cancel.
  */
 struct GNUNET_REGEX_Search *
-GNUNET_REGEX_search (const char *string,
+GNUNET_REGEX_search (const struct GNUNET_CONFIGURATION_Handle *cfg,
+		     const char *string,
                      GNUNET_REGEX_Found callback,
                      void *callback_cls);
 
@@ -124,7 +128,7 @@ GNUNET_REGEX_search (const char *string,
  * @param h Handle returned by a previous GNUNET_REGEX_search call.
  */
 void
-GNUNET_REGEX_search_cancel (struct GNUNET_REGEX_Search *h);
+GNUNET_REGEX_search_cancel (struct GNUNET_REGEX_Search *s);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

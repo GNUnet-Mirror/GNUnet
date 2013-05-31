@@ -9,7 +9,8 @@ if USE_COVERAGE
 endif
 
 lib_LTLIBRARIES = libgnunetregexblock.la \
-  libgnunetregex.la
+  libgnunetregex.la \
+  libgnunetregexnew.la
 
 
 libgnunetregexblock_la_SOURCES = \
@@ -36,6 +37,15 @@ libgnunetregex_la_DEPENDENCIES = \
 libgnunetregex_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
    -version-info 2:0:1
+
+
+libgnunetregexnew_la_SOURCES = \
+  regex_api.c regex_ipc.h
+libgnunetregexnew_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la 
+libgnunetregexnew_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) \
+   -version-info 3:0:0
 
 
 plugindir = $(libdir)/gnunet

@@ -1881,7 +1881,23 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_EXPERIMENTATION_RESPONSE 611
 
 /**
- *  Next available: 620
+ * Advertise regex capability.
+ */
+#define GNUNET_MESSAGE_TYPE_REGEX_ANNOUNCE 620
+
+/**
+ * Search for peer with matching capability.
+ */
+#define GNUNET_MESSAGE_TYPE_REGEX_SEARCH 621
+
+/**
+ * Result in response to regex search.
+ */ 
+#define GNUNET_MESSAGE_TYPE_REGEX_RESULT 622
+
+
+/**
+ *  Next available: 624
  */
 
 
