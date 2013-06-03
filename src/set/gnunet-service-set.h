@@ -217,7 +217,7 @@ _GSS_union_set_create (void);
  * @parem set the set to evaluate the operation with
  */
 void
-_GSS_union_evaluate (struct EvaluateMessage *m, struct Set *set);
+_GSS_union_evaluate (struct GNUNET_SET_EvaluateMessage *m, struct Set *set);
 
 
 /**
@@ -227,7 +227,7 @@ _GSS_union_evaluate (struct EvaluateMessage *m, struct Set *set);
  * @param set set to add the element to
  */
 void
-_GSS_union_add (struct ElementMessage *m, struct Set *set);
+_GSS_union_add (struct GNUNET_SET_ElementMessage *m, struct Set *set);
 
 
 /**
@@ -238,7 +238,7 @@ _GSS_union_add (struct ElementMessage *m, struct Set *set);
  * @param set set to remove the element from
  */
 void
-_GSS_union_remove (struct ElementMessage *m, struct Set *set);
+_GSS_union_remove (struct GNUNET_SET_ElementMessage *m, struct Set *set);
 
 
 /**
@@ -258,7 +258,7 @@ _GSS_union_set_destroy (struct Set *set);
  * @param incoming information about the requesting remote peer
  */
 void
-_GSS_union_accept (struct AcceptMessage *m, struct Set *set,
+_GSS_union_accept (struct GNUNET_SET_AcceptRejectMessage *m, struct Set *set,
                    struct Incoming *incoming);
 
 

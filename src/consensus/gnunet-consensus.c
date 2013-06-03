@@ -133,7 +133,7 @@ do_consensus ()
   {
     int j;
     struct GNUNET_HashCode *val;
-    struct GNUNET_CONSENSUS_Element *element;
+    struct GNUNET_SET_Element *element;
     generate_indices(unique_indices);
 
     val = GNUNET_malloc (sizeof *val);
@@ -150,6 +150,8 @@ do_consensus ()
       GNUNET_CONSENSUS_insert (consensus_handles[cid], element, NULL, NULL);
     }
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "all elements inserted, calling conclude\n");
 
   for (i = 0; i < num_peers; i++)
     GNUNET_CONSENSUS_conclude (consensus_handles[i], conclude_timeout, conclude_cb, consensus_handles[i]);
@@ -194,7 +196,7 @@ connect_complete (void *cls,
 
 static void
 new_element_cb (void *cls,
-                const struct GNUNET_CONSENSUS_Element *element)
+                const struct GNUNET_SET_Element *element)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "received new element\n");
 }

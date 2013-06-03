@@ -3785,7 +3785,29 @@ mq_stream_write_queued (void *cls, enum GNUNET_STREAM_Status status, size_t size
   struct MQStreamState *mss = (struct MQStreamState *) mq->impl_state;
   struct GNUNET_MQ_Message *mqm;
 
-  GNUNET_assert (GNUNET_STREAM_OK == status);
+  switch (status)
+  {
+    case GNUNET_STREAM_OK:
+      break;
+    case GNUNET_STREAM_SHUTDOWN:
+      /* FIXME: call shutdown handler */
+      return;
+    case GNUNET_STREAM_TIMEOUT:
+      if (NULL == mq->error_handler)
+        LOG (GNUNET_ERROR_TYPE_WARNING, "write timeout, but no error handler installed for message queue\n");
+      else
+        mq->error_handler (mq->handlers_cls, GNUNET_MQ_ERROR_TIMEOUT);
+      return;
+    case GNUNET_STREAM_SYSERR:
+      if (NULL == mq->error_handler)
+        LOG (GNUNET_ERROR_TYPE_WARNING, "write error, but no error handler installed for message queue\n");
+      else
+        mq->error_handler (mq->handlers_cls, GNUNET_MQ_ERROR_WRITE);
+      return;
+    default:
+      GNUNET_assert (0);
+      return;
+  }
   
   /* call cb for message we finished sending */
   mqm = mq->current_msg;
@@ -3863,21 +3885,53 @@ mq_stream_mst_callback (void *cls, void *client,
  */
 static size_t
 mq_stream_data_processor (void *cls,
-                       enum GNUNET_STREAM_Status status,
-                       const void *data,
-                       size_t size)
+                          enum GNUNET_STREAM_Status status,
+                          const void *data,
+                          size_t size)
 {
   struct GNUNET_MQ_MessageQueue *mq = cls;
   struct MQStreamState *mss;
   int ret;
+
+  switch (status)
+  {
+    case GNUNET_STREAM_OK:
+      break;
+    case GNUNET_STREAM_SHUTDOWN:
+      /* FIXME: call shutdown handler */
+      return 0;
+    case GNUNET_STREAM_TIMEOUT:
+      if (NULL == mq->error_handler)
+        LOG (GNUNET_ERROR_TYPE_WARNING, "read timeout, but no error handler installed for message queue\n");
+      else
+        mq->error_handler (mq->handlers_cls, GNUNET_MQ_ERROR_TIMEOUT);
+      return 0;
+    case GNUNET_STREAM_SYSERR:
+      if (NULL == mq->error_handler)
+        LOG (GNUNET_ERROR_TYPE_WARNING, "read error, but no error handler installed for message queue\n");
+      else
+        mq->error_handler (mq->handlers_cls, GNUNET_MQ_ERROR_READ);
+      return 0;
+    default:
+      GNUNET_assert (0);
+      return 0;
+  }
   
   mss = (struct MQStreamState *) mq->impl_state;
   GNUNET_assert (GNUNET_STREAM_OK == status);
   ret = GNUNET_SERVER_mst_receive (mss->mst, NULL, data, size, GNUNET_NO, GNUNET_NO);
-  GNUNET_assert (GNUNET_OK == ret);
+  if (GNUNET_OK != ret)
+  {
+    if (NULL == mq->error_handler)
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "read error (message stream malformed), but no error handler installed for message queue\n");
+    else
+      mq->error_handler (mq->handlers_cls, GNUNET_MQ_ERROR_READ);
+    return 0;
+  }
   /* we always read all data */
-    mss->rh = GNUNET_STREAM_read (mss->socket, GNUNET_TIME_UNIT_FOREVER_REL, 
-                                  mq_stream_data_processor, mq);
+  mss->rh = GNUNET_STREAM_read (mss->socket, GNUNET_TIME_UNIT_FOREVER_REL, 
+                                mq_stream_data_processor, mq);
   return size;
 }
 
@@ -3935,6 +3989,7 @@ GNUNET_STREAM_mq_create (struct GNUNET_STREAM_Socket *socket,
   mq->destroy_impl = mq_stream_destroy_impl;
   mq->handlers = msg_handlers;
   mq->handlers_cls = cls;
+  mq->error_handler = error_handler;
   if (NULL != msg_handlers)
   {
     mss->mst = GNUNET_SERVER_mst_create (mq_stream_mst_callback, mq);

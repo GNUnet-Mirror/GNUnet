@@ -236,9 +236,9 @@ send_next (struct GNUNET_CONSENSUS_Handle *consensus)
  */
 static void
 handle_new_element (struct GNUNET_CONSENSUS_Handle *consensus,
-                   struct GNUNET_CONSENSUS_ElementMessage *msg)
+                    struct GNUNET_CONSENSUS_ElementMessage *msg)
 {
-  struct GNUNET_CONSENSUS_Element element;
+  struct GNUNET_SET_Element element;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "received new element\n");
 
@@ -424,7 +424,7 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 void
 GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
-			 const struct GNUNET_CONSENSUS_Element *element,
+			 const struct GNUNET_SET_Element *element,
 			 GNUNET_CONSENSUS_InsertDoneCallback idc,
 			 void *idc_cls)
 {

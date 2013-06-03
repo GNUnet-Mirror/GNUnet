@@ -257,11 +257,10 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set);
 
 
 /**
- * Evaluate a set operation with our set and the set of another peer.
+ * Create a set operation for evaluation with another peer.
+ * The evaluation will not start until the client provides
+ * a local set with GNUNET_SET_conclude.
  *
- * @param set set to use -- FIXME: remove
- *            this argument, use GNUNET_SET_conclude instead! 
- * @param salt salt for HKDF (explain more here)
  * @param other_peer peer with the other set
  * @param app_id hash for the application using the set
  * @param context_msg additional information for the request
@@ -275,8 +274,7 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set);
  * @return a handle to cancel the operation
  */
 struct GNUNET_SET_OperationHandle *
-GNUNET_SET_evaluate (struct GNUNET_SET_Handle *set,
-                     const struct GNUNET_PeerIdentity *other_peer,
+GNUNET_SET_evaluate (const struct GNUNET_PeerIdentity *other_peer,
                      const struct GNUNET_HashCode *app_id,
                      const struct GNUNET_MessageHeader *context_msg,
                      uint16_t salt,
@@ -315,13 +313,13 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh);
 
 
 /**
- * Accept a request we got via GNUNET_SET_listen.  Must be called
- * during GNUNET_SET_listen, as the 'struct GNUNET_SET_Request'
- * becomes invalid afterwards.
+ * Accept a request we got via GNUNET_SET_listen.  Must be called during
+ * GNUNET_SET_listen, as the 'struct GNUNET_SET_Request' becomes invalid
+ * afterwards.
+ * Call GNUNET_SET_conclude to provide the local set to use for the operation,
+ * and to begin the exchange with the remote peer. 
  *
  * @param request request to accept
- * @param set set used for the requested operation -- FIXME: remove
- *            this argument, use GNUNET_SET_conclude instead! 
  * @param result_mode specified how results will be returned,
  *        see 'GNUNET_SET_ResultMode'.
  * @param result_cb callback for the results
@@ -330,7 +328,6 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh);
  */
 struct GNUNET_SET_OperationHandle *
 GNUNET_SET_accept (struct GNUNET_SET_Request *request,
-                   struct GNUNET_SET_Handle *set,
                    enum GNUNET_SET_ResultMode result_mode,
                    GNUNET_SET_ResultIterator result_cb,
                    void *cls);
@@ -353,9 +350,9 @@ GNUNET_SET_conclude (struct GNUNET_SET_OperationHandle *oh,
 
 
 /**
- * Cancel the given set operation.  FIXME: do clients have
- * to cancel the operatino if the GNUNET_SET_ResultIterator
- * has been called with timeout/error/done?
+ * Cancel the given set operation.
+ * May not be called after the operation's GNUNET_SET_ResultIterator has been
+ * called with a status that indicates error, timeout or done.
  *
  * @param oh set operation to cancel
  */

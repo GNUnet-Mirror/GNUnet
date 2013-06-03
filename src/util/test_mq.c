@@ -58,35 +58,6 @@ void
 test2 (void)
 {
   struct GNUNET_MQ_Message *mqm;
-  struct MyMessage *mm;
-  int res;
-  char *s = "foo";
-
-  mqm = GNUNET_MQ_msg (mm, 42);
-  res = GNUNET_MQ_nest (mqm, s, strlen(s));
-  GNUNET_assert (GNUNET_OK == res);
-  res = GNUNET_MQ_nest (mqm, s, strlen(s));
-  GNUNET_assert (GNUNET_OK == res);
-  res = GNUNET_MQ_nest (mqm, NULL, 0);
-  GNUNET_assert (GNUNET_OK == res);
-
-  GNUNET_assert (strlen (s) * 2 + sizeof (struct MyMessage) == ntohs (mm->header.size));
-
-  res = GNUNET_MQ_nest_mh (mqm, &mm->header);
-  GNUNET_assert (GNUNET_OK == res);
-  GNUNET_assert (2 * (strlen (s) * 2 + sizeof (struct MyMessage)) == ntohs (mm->header.size));
-
-  res = GNUNET_MQ_nest (mqm, (void *) 0xF00BA, 0xFFF0);
-  GNUNET_assert (GNUNET_OK != res);
-
-  GNUNET_MQ_discard (mqm);
-}
-
-
-void
-test3 (void)
-{
-  struct GNUNET_MQ_Message *mqm;
   struct GNUNET_MessageHeader *mh;
 
   mqm = GNUNET_MQ_msg_header (42);
@@ -107,7 +78,6 @@ main (int argc, char **argv)
   GNUNET_log_setup ("test-mq", "INFO", NULL);
   test1 ();
   test2 ();
-  test3 ();
 
   return 0;
 }

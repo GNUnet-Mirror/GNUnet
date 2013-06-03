@@ -1754,10 +1754,17 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ABORT 548
 
+/**
+ * Abort a round, don't send requested elements anymore
+ */
+#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ROUND_CONTEXT 547
+
 
 /*******************************************************************************
  * SET message types
  ******************************************************************************/
+
+#define GNUNET_MESSAGE_TYPE_SET_REJECT 569
 
 /**
  * Cancel a set operation
@@ -1800,44 +1807,49 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_SET_EVALUATE 577
 
 /**
- * Evaluate a set operation
+ * Start a set operation with the given set
  */
-#define GNUNET_MESSAGE_TYPE_SET_REQUEST 578
+#define GNUNET_MESSAGE_TYPE_SET_CONCLUDE 578
 
 /**
- * Evaluate a set operation.
+ * Notify the client of a request from a remote peer
  */
-#define GNUNET_MESSAGE_TYPE_SET_CREATE 579
+#define GNUNET_MESSAGE_TYPE_SET_REQUEST 579
 
 /**
- * Evaluate a set operation.
+ * Create a new local set
  */
-#define GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST 580
+#define GNUNET_MESSAGE_TYPE_SET_CREATE 580
+
+/**
+ * Request a set operation from a remote peer.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST 581
 
 /**
  * Strata estimator.
  */
-#define GNUNET_MESSAGE_TYPE_SET_P2P_SE 581
+#define GNUNET_MESSAGE_TYPE_SET_P2P_SE 582
 
 /**
  * Invertible bloom filter.
  */
-#define GNUNET_MESSAGE_TYPE_SET_P2P_IBF 582
+#define GNUNET_MESSAGE_TYPE_SET_P2P_IBF 583
 
 /**
  * Actual set elements.
  */
-#define GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS 583
+#define GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS 584
 
 /**
  * Requests for the elements with the given hashes.
  */
-#define GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS 584
+#define GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS 585
 
 /**
  * Operation is done.
  */
-#define GNUNET_MESSAGE_TYPE_SET_P2P_DONE 585
+#define GNUNET_MESSAGE_TYPE_SET_P2P_DONE 586
 
 
 

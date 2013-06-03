@@ -61,6 +61,8 @@ gnunet_service_consensus_LDADD = \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/set/libgnunetset.la \
   $(GN_LIBINTL)
+gnunet_service_consensus_DEPENDENCIES = \
+  $(top_builddir)/src/set/libgnunetset.la
 
 gnunet_service_evil_consensus_SOURCES = \
  gnunet-service-consensus.c
@@ -71,6 +73,8 @@ gnunet_service_evil_consensus_LDADD = \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/set/libgnunetset.la \
   $(GN_LIBINTL)
+gnunet_service_evil_consensus_DEPENDENCIES = \
+  $(top_builddir)/src/set/libgnunetset.la
 gnunet_service_evil_consensus_CFLAGS = -DEVIL
 
 libgnunetconsensus_la_SOURCES = \

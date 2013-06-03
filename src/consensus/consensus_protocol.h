@@ -38,12 +38,15 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Sent as context message for set reconciliation.
  */
-struct ConsensusRoundMessage
+struct GNUNET_CONSENSUS_RoundContextMessage
 {
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ROUND_CONTEXT
+   */
   struct GNUNET_MessageHeader header;
-  uint8_t round;
-  uint8_t exp_round;
-  uint8_t exp_subround;
+  uint32_t round;
+  uint32_t exp_round;
+  uint32_t exp_subround;
 };
 
 GNUNET_NETWORK_STRUCT_END

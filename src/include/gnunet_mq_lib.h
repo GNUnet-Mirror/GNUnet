@@ -53,36 +53,6 @@
  */
 #define GNUNET_MQ_msg(mvar, type) GNUNET_MQ_msg_extra(mvar, 0, type)
 
-/**
- * Append data to the end of an existing MQ message.
- * If the operation is successful, mqm is changed to point to the new MQ message,
- * and GNUNET_OK is returned.
- * On failure, GNUNET_SYSERR is returned, and the pointer mqm is not changed,
- * the user of this API must take care of disposing the already allocated message
- * (either by sending it, or by using GNUNET_MQ_discard)
- *
- * @param mqm MQ message to augment with additional data
- * @param src source buffer for the additional data
- * @param len length of the additional data
- * @return GNUNET_SYSERR if nesting the message failed,
- *         GNUNET_OK on success
- */
-#define GNUNET_MQ_nest(mqm, src, len) GNUNET_MQ_nest_ (&mqm, src, len)
-
-
-/**
- * Append a message to the end of an existing MQ message.
- * If the operation is successful, mqm is changed to point to the new MQ message,
- * and GNUNET_OK is returned.
- * On failure, GNUNET_SYSERR is returned, and the pointer mqm is not changed,
- * the user of this API must take care of disposing the already allocated message
- * (either by sending it, or by using GNUNET_MQ_discard)
- *
- * @param mqm MQ message to augment with additional data
- * @param mh the message to append, must be of type 'struct GNUNET_MessageHeader *'
- */
-#define GNUNET_MQ_nest_mh(mqm, mh) ((NULL == mh) ? (GNUNET_OK) : GNUNET_MQ_nest((mqm), (mh), ntohs ((mh)->size)))
-
 
 /**
  * Allocate a GNUNET_MQ_Message, where the message only consists of a header.
@@ -102,6 +72,40 @@
  * @param type type of the message
  */
 #define GNUNET_MQ_msg_header_extra(mh, esize, type) GNUNET_MQ_msg_ (&mh, (esize) + sizeof (struct GNUNET_MessageHeader), type)
+
+
+/**
+ * Allocate a GNUNET_MQ_Message, and append a payload message after the given
+ * message struct.
+ *
+ * @param mvar pointer to a message struct, will be changed to point at the newly allocated message,
+ *        whose size is 'sizeof(*mvar) + ntohs (mh->size)'
+ * @param type message type of the allocated message, has no effect on the nested message
+ * @param mh message to nest
+ * @return a newly allocated 'struct GNUNET_MQ_Message *'
+ */
+#define GNUNET_MQ_msg_nested_mh(mvar, type, mh) GNUNET_MQ_msg_nested_mh_((((void)(mvar)->header), (struct GNUNET_MessageHeader**) &(mvar)), sizeof (*(mvar)), (type), mh)
+
+
+/**
+ * Return a pointer to the message at the end of the given message.
+ *
+ * @param var pointer to a message struct, the type of the expression determines the base size,
+ *        the space after the base size is the nested message
+ * @return a 'struct GNUNET_MessageHeader *' that points at the nested message of the given message,
+ *         or NULL if the given message in 'var' does not have any space after the message struct
+ */
+#define GNUNET_MQ_extract_nested_mh(var) GNUNET_MQ_extract_nested_mh_ ((struct GNUNET_MessageHeader *) (var), sizeof (*(var)))
+
+
+struct GNUNET_MessageHeader *
+GNUNET_MQ_extract_nested_mh_ (const struct GNUNET_MessageHeader *mh, uint16_t base_size);
+
+
+struct GNUNET_MQ_Message *
+GNUNET_MQ_msg_nested_mh_ (struct GNUNET_MessageHeader **mhp, uint16_t base_size, uint16_t type,
+                          const struct GNUNET_MessageHeader *nested_mh);
+
 
 
 /**
@@ -128,7 +132,8 @@ enum GNUNET_MQ_Error
  * @param cls closure
  * @param msg the received message
  */
-typedef void (*GNUNET_MQ_MessageCallback) (void *cls, const struct GNUNET_MessageHeader *msg);
+typedef void
+(*GNUNET_MQ_MessageCallback) (void *cls, const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -151,10 +156,12 @@ typedef void
  *
  * @param cls closure
  */
-typedef void (*GNUNET_MQ_NotifyCallback) (void *cls);
+typedef void
+(*GNUNET_MQ_NotifyCallback) (void *cls);
 
 
-typedef void (*GNUNET_MQ_ErrorHandler) (void *cls, enum GNUNET_MQ_Error error);
+typedef void
+(*GNUNET_MQ_ErrorHandler) (void *cls, enum GNUNET_MQ_Error error);
 
 
 struct GNUNET_MQ_Message
@@ -287,6 +294,7 @@ struct GNUNET_MQ_Handler
 };
 
 
+
 /**
  * Create a new message for MQ.
  * 
@@ -297,21 +305,6 @@ struct GNUNET_MQ_Handler
  */
 struct GNUNET_MQ_Message *
 GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp, uint16_t size, uint16_t type);
-
-
-/**
- * Resize the the mq message pointed to by mqmp,
- * and append the given data to it.
- *
- * @param mqmp pointer to a mq message pointer
- * @param src source of the data to append
- * @param len length of the data to append
- * @return GNUNET_OK on success,
- *         GNUNET_SYSERR on error (e.g. if len is too large)
- */
-int
-GNUNET_MQ_nest_ (struct GNUNET_MQ_Message **mqmp,
-                 const void *src, uint16_t len);
 
 
 /**

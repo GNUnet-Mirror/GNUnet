@@ -91,11 +91,12 @@ listen_cb (void *cls,
            const struct GNUNET_MessageHeader *context_msg,
            struct GNUNET_SET_Request *request)
 {
+  struct GNUNET_SET_OperationHandle *oh;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "listen cb called\n");
   GNUNET_SET_listen_cancel (listen_handle);
 
-  GNUNET_SET_accept (request, set2, 
-                     GNUNET_SET_RESULT_ADDED, result_cb_set2, NULL);
+  oh = GNUNET_SET_accept (request, GNUNET_SET_RESULT_ADDED, result_cb_set2, NULL);
+  GNUNET_SET_conclude (oh, set2);
 }
 
 
@@ -107,11 +108,14 @@ listen_cb (void *cls,
 static void
 start (void *cls)
 {
+  struct GNUNET_SET_OperationHandle *oh;
+  
   listen_handle = GNUNET_SET_listen (config, GNUNET_SET_OPERATION_UNION,
                                      &app_id, listen_cb, NULL);
-  GNUNET_SET_evaluate (set1, &local_id, &app_id, NULL, 42,
-                       GNUNET_SET_RESULT_ADDED,
-                       result_cb_set1, NULL);
+  oh = GNUNET_SET_evaluate (&local_id, &app_id, NULL, 42,
+                            GNUNET_SET_RESULT_ADDED,
+                            result_cb_set1, NULL);
+  GNUNET_SET_conclude (oh, set1);
 }
 
 

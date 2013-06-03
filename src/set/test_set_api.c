@@ -20,7 +20,7 @@
 
 /**
  * @file set/test_set_api.c
- * @brief testcase for consensus_api.c
+ * @brief testcase for set_api.c
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -89,11 +89,13 @@ listen_cb (void *cls,
            const struct GNUNET_MessageHeader *context_msg,
            struct GNUNET_SET_Request *request)
 {
+  struct GNUNET_SET_OperationHandle *oh;
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "listen cb called\n");
   GNUNET_SET_listen_cancel (listen_handle);
 
-  GNUNET_SET_accept (request, set2, 
-                     GNUNET_SET_RESULT_ADDED, result_cb_set2, NULL);
+  oh = GNUNET_SET_accept (request, GNUNET_SET_RESULT_ADDED, result_cb_set2, NULL);
+  GNUNET_SET_conclude (oh, set2);
 }
 
 
@@ -105,11 +107,14 @@ listen_cb (void *cls,
 static void
 start (void *cls)
 {
+  struct GNUNET_SET_OperationHandle *oh;
+
   listen_handle = GNUNET_SET_listen (config, GNUNET_SET_OPERATION_UNION,
                                      &app_id, listen_cb, NULL);
-  GNUNET_SET_evaluate (set1, &local_id, &app_id, NULL, 42,
-                       GNUNET_SET_RESULT_ADDED,
-                       result_cb_set1, NULL);
+  oh = GNUNET_SET_evaluate (&local_id, &app_id, NULL, 42,
+                            GNUNET_SET_RESULT_ADDED,
+                            result_cb_set1, NULL);
+  GNUNET_SET_conclude (oh, set1);
 }
 
 
@@ -168,12 +173,14 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
 
-  static const char* app_str = "gnunet-set";
-
   config = cfg;
+  GNUNET_CRYPTO_get_host_identity (cfg, &local_id);
+  printf ("my id (from CRYPTO): %s\n", GNUNET_h2s (&local_id.hashPubKey));
   GNUNET_TESTING_peer_get_identity (peer, &local_id);
+  printf ("my id (from TESTING): %s\n", GNUNET_h2s (&local_id.hashPubKey));
   set1 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
   set2 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
+  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &app_id);
   init_set1 ();
 }
 

@@ -245,8 +245,7 @@ struct ElementEntry
 
 
 /**
- * Information about the element used for 
- * a specific union operation.
+ * Entries in the key-to-element map of the union set.
  */
 struct KeyEntry
 {
@@ -401,11 +400,14 @@ destroy_key_to_element_iter (void *cls,
 static void
 destroy_union_operation (struct UnionEvaluateOperation *eo)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "destroying union op\n");
+  
   if (NULL != eo->mq)
   {
     GNUNET_MQ_destroy (eo->mq);
     eo->mq = NULL;
   }
+
   if (NULL != eo->socket)
   {
     GNUNET_STREAM_close (eo->socket);
@@ -433,12 +435,16 @@ destroy_union_operation (struct UnionEvaluateOperation *eo)
     eo->key_to_element = NULL;
   }
 
-
   GNUNET_CONTAINER_DLL_remove (eo->set->state.u->ops_head,
                                eo->set->state.u->ops_tail,
                                eo);
   GNUNET_free (eo);
-  /* FIXME: free and destroy everything else */
+
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "destroying union op done\n");
+
+
+  /* FIXME: do a garbage collection of the set generations */
 }
 
 
@@ -452,7 +458,7 @@ static void
 fail_union_operation (struct UnionEvaluateOperation *eo)
 {
   struct GNUNET_MQ_Message *mqm;
-  struct ResultMessage *msg;
+  struct GNUNET_SET_ResultMessage *msg;
 
   mqm = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_RESULT);
   msg->result_status = htons (GNUNET_SET_STATUS_FAILURE);
@@ -495,19 +501,24 @@ send_operation_request (struct UnionEvaluateOperation *eo)
   struct GNUNET_MQ_Message *mqm;
   struct OperationRequestMessage *msg;
 
-  mqm = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST);
-  if (NULL != eo->context_msg)
-    if (GNUNET_OK != GNUNET_MQ_nest (mqm, eo->context_msg, ntohs (eo->context_msg->size)))
-    {
-      /* the context message is too large */
-      GNUNET_break (0);
-      GNUNET_SERVER_client_disconnect (eo->set->client);
-      GNUNET_MQ_discard (mqm);
-      return;
-    }
+  mqm = GNUNET_MQ_msg_nested_mh (msg, GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST, eo->context_msg);
+
+  if (NULL == mqm)
+  {
+    /* the context message is too large */
+    GNUNET_break (0);
+    GNUNET_SERVER_client_disconnect (eo->set->client);
+    return;
+  }
   msg->operation = htons (GNUNET_SET_OPERATION_UNION);
   msg->app_id = eo->app_id;
   GNUNET_MQ_send (eo->mq, mqm);
+
+  if (NULL != eo->context_msg)
+  {
+    GNUNET_free (eo->context_msg);
+    eo->context_msg = NULL;
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "sent op request\n");
 }
@@ -537,7 +548,7 @@ insert_element_iterator (void *cls,
   {
     if (old_k->ibf_key.key_val == new_k->ibf_key.key_val)
     {
-      new_k->next_colliding = old_k;
+      new_k->next_colliding = old_k->next_colliding;
       old_k->next_colliding = new_k;
       return GNUNET_NO;
     }
@@ -568,12 +579,11 @@ insert_element (struct UnionEvaluateOperation *eo, struct ElementEntry *ee)
   ret = GNUNET_CONTAINER_multihashmap32_get_multiple (eo->key_to_element,
                                                       (uint32_t) ibf_key.key_val,
                                                       insert_element_iterator, k);
+
   /* was the element inserted into a colliding bucket? */
   if (GNUNET_SYSERR == ret)
-  {
-    GNUNET_assert (NULL != k->next_colliding);
     return;
-  }
+
   GNUNET_CONTAINER_multihashmap32_put (eo->key_to_element, (uint32_t) ibf_key.key_val, k,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
 }
@@ -781,8 +791,8 @@ handle_p2p_strata_estimator (void *cls, const struct GNUNET_MessageHeader *mh)
  */
 static int
 send_element_iterator (void *cls,
-                      uint32_t key,
-                      void *value)
+                       uint32_t key,
+                       void *value)
 {
   struct SendElementClosure *sec = cls;
   struct IBF_Key ibf_key = sec->ibf_key;
@@ -795,15 +805,18 @@ send_element_iterator (void *cls,
   {
     const struct GNUNET_SET_Element *const element = &ke->element->element;
     struct GNUNET_MQ_Message *mqm;
+    struct GNUNET_MessageHeader *mh;
 
     GNUNET_assert (ke->ibf_key.key_val == ibf_key.key_val);
-    mqm = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS);
-    if (GNUNET_OK != GNUNET_MQ_nest (mqm, element->data, element->size))
+    mqm = GNUNET_MQ_msg_header_extra (mh, element->size, GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS);
+    if (NULL == mqm)
     {
+      /* element too large */
       GNUNET_break (0);
-      GNUNET_MQ_discard (mqm);
       continue;
     }
+    memcpy (&mh[1], element->data, element->size);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "sending element to client\n");
     GNUNET_MQ_send (eo->mq, mqm);
     ke = ke->next_colliding;
   }
@@ -975,34 +988,42 @@ send_client_element (struct UnionEvaluateOperation *eo,
                      struct GNUNET_SET_Element *element)
 {
   struct GNUNET_MQ_Message *mqm;
-  struct ResultMessage *rm;
+  struct GNUNET_SET_ResultMessage *rm;
 
   GNUNET_assert (0 != eo->request_id);
-  mqm = GNUNET_MQ_msg (rm, GNUNET_MESSAGE_TYPE_SET_RESULT);
-  rm->result_status = htons (GNUNET_SET_STATUS_OK);
-  rm->request_id = htonl (eo->request_id);
-  if (GNUNET_OK != GNUNET_MQ_nest (mqm, element->data, element->size))
+  mqm = GNUNET_MQ_msg_extra (rm, element->size, GNUNET_MESSAGE_TYPE_SET_RESULT);
+  if (NULL == mqm)
   {
     GNUNET_MQ_discard (mqm);
     GNUNET_break (0);
     return;
   }
-
+  rm->result_status = htons (GNUNET_SET_STATUS_OK);
+  rm->request_id = htonl (eo->request_id);
+  memcpy (&rm[1], element->data, element->size);
   GNUNET_MQ_send (eo->set->client_mq, mqm);
 }
 
 
 /**
- * Callback used for notifications
+ * Completion callback for shutdown
  *
- * @param cls closure
+ * @param cls the closure from GNUNET_STREAM_shutdown call
+ * @param operation the operation that was shutdown (SHUT_RD, SHUT_WR,
+ *          SHUT_RDWR) 
  */
-static void
-client_done_sent_cb (void *cls)
+/*
+static void 
+stream_shutdown_cb (void *cls,
+                    int operation)
 {
   //struct UnionEvaluateOperation *eo = cls;
-  /* FIXME: destroy eo */
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "stream shutdown\n");
+
+  // destroy_union_operation (eo);
 }
+*/
 
 
 /**
@@ -1018,16 +1039,15 @@ static void
 send_client_done_and_destroy (struct UnionEvaluateOperation *eo)
 {
   struct GNUNET_MQ_Message *mqm;
-  struct ResultMessage *rm;
+  struct GNUNET_SET_ResultMessage *rm;
 
   GNUNET_assert (0 != eo->request_id);
   mqm = GNUNET_MQ_msg (rm, GNUNET_MESSAGE_TYPE_SET_RESULT);
   rm->request_id = htonl (eo->request_id);
   rm->result_status = htons (GNUNET_SET_STATUS_DONE);
-  GNUNET_MQ_notify_sent (mqm, client_done_sent_cb, eo);
   GNUNET_MQ_send (eo->set->client_mq, mqm);
 
-  /* FIXME: destroy the eo */
+  // GNUNET_STREAM_shutdown (eo->socket, SHUT_RDWR, stream_shutdown_cb, eo);
 }
 
 
@@ -1199,18 +1219,25 @@ stream_open_cb (void *cls,
  * @parem set the set to evaluate the operation with
  */
 void
-_GSS_union_evaluate (struct EvaluateMessage *m, struct Set *set)
+_GSS_union_evaluate (struct GNUNET_SET_EvaluateMessage *m, struct Set *set)
 {
   struct UnionEvaluateOperation *eo;
+  struct GNUNET_MessageHeader *context_msg;
 
   eo = GNUNET_new (struct UnionEvaluateOperation);
-  eo->peer = m->peer;
+  eo->peer = m->target_peer;
   eo->set = set;
   eo->request_id = htonl (m->request_id);
   GNUNET_assert (0 != eo->request_id);
   eo->se = strata_estimator_dup (set->state.u->se);
   eo->salt = ntohs (m->salt);
   eo->app_id = m->app_id;
+  
+  context_msg = GNUNET_MQ_extract_nested_mh (m);
+  if (NULL != context_msg)
+  {
+    eo->context_msg = GNUNET_copy_message (context_msg);
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
 	      "evaluating union operation, (app %s)\n", 
@@ -1235,7 +1262,7 @@ _GSS_union_evaluate (struct EvaluateMessage *m, struct Set *set)
  * @param incoming information about the requesting remote peer
  */
 void
-_GSS_union_accept (struct AcceptMessage *m, struct Set *set,
+_GSS_union_accept (struct GNUNET_SET_AcceptRejectMessage *m, struct Set *set,
                    struct Incoming *incoming)
 {
   struct UnionEvaluateOperation *eo;
@@ -1250,7 +1277,6 @@ _GSS_union_accept (struct AcceptMessage *m, struct Set *set,
   GNUNET_assert (0 != ntohl (m->request_id));
   eo->request_id = ntohl (m->request_id);
   eo->se = strata_estimator_dup (set->state.u->se);
-  eo->set = set; // FIXME: redundant!?
   eo->mq = incoming->mq;
   /* transfer ownership of mq and socket from incoming to eo */
   incoming->mq = NULL;
@@ -1299,7 +1325,7 @@ _GSS_union_set_create (void)
  * @param set set to add the element to
  */
 void
-_GSS_union_add (struct ElementMessage *m, struct Set *set)
+_GSS_union_add (struct GNUNET_SET_ElementMessage *m, struct Set *set)
 {
   struct ElementEntry *ee;
   struct ElementEntry *ee_dup;
@@ -1357,7 +1383,9 @@ _GSS_union_set_destroy (struct Set *set)
   destroy_elements (set->state.u);
 
   while (NULL != set->state.u->ops_head)
+  {
     destroy_union_operation (set->state.u->ops_head);
+  }
 }
 
 /**
@@ -1368,7 +1396,7 @@ _GSS_union_set_destroy (struct Set *set)
  * @param set set to remove the element from
  */
 void
-_GSS_union_remove (struct ElementMessage *m, struct Set *set)
+_GSS_union_remove (struct GNUNET_SET_ElementMessage *m, struct Set *set)
 {
   struct GNUNET_HashCode hash;
   struct ElementEntry *ee;

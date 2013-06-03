@@ -1404,7 +1404,6 @@ listen_set_union (void *cls,
   neighbor->my_set = GNUNET_SET_create (cfg,
 					GNUNET_SET_OPERATION_UNION);
   neighbor->set_op = GNUNET_SET_accept (request,
-					neighbor->my_set /* FIXME: pass later! */,
 					GNUNET_SET_RESULT_ADDED,
 					&handle_set_union_result,
 					neighbor);
@@ -1428,8 +1427,7 @@ initiate_set_union (void *cls,
   neighbor->initiate_task = GNUNET_SCHEDULER_NO_TASK;
   neighbor->my_set = GNUNET_SET_create (cfg,
 					GNUNET_SET_OPERATION_UNION);
-  neighbor->set_op = GNUNET_SET_evaluate (neighbor->my_set /* FIXME: pass later! */,
-					  &neighbor->peer,
+  neighbor->set_op = GNUNET_SET_evaluate (&neighbor->peer,
 					  &neighbor->real_session_id,
 					  NULL,
 					  0 /* FIXME: salt */,

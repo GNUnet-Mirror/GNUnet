@@ -29,17 +29,12 @@
 #include "platform.h"
 #include "gnunet_common.h"
 
-
-/**
- * The service sends up to GNUNET_SET_ACK_WINDOW messages per client handle,
- * the client should send an ack every GNUNET_SET_ACK_WINDOW/2 messages.
- */
-#define GNUNET_SET_ACK_WINDOW 8
+#define GNUNET_SET_ACK_WINDOW 10
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
-struct SetCreateMessage
+struct GNUNET_SET_CreateMessage
 {
   /**
    * Type: GNUNET_MESSAGE_TYPE_SET_CREATE
@@ -54,7 +49,7 @@ struct SetCreateMessage
 };
 
 
-struct ListenMessage
+struct GNUNET_SET_ListenMessage
 {
   /**
    * Type: GNUNET_MESSAGE_TYPE_SET_LISTEN
@@ -74,32 +69,31 @@ struct ListenMessage
 };
 
 
-struct AcceptMessage
+struct GNUNET_SET_AcceptRejectMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SET_ACCEPT
+   * Type: GNUNET_MESSAGE_TYPE_SET_ACCEPT or
+   *       GNUNET_MESSAGE_TYPE_SET_REJECT
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * Request id that will be sent along with
-   * results for the accepted operation.
-   * Chosen by the client.
-   * Must be 0 if the request has been rejected.
-   */
-  uint32_t request_id GNUNET_PACKED;
-
-  /**
    * ID of the incoming request we want to accept / reject.
    */
-  uint32_t accept_id GNUNET_PACKED;
+  uint32_t accept_reject_id GNUNET_PACKED;
+
+  /**
+   * Request ID to identify responses,
+   * must be 0 if we don't accept the request.
+   */
+  uint32_t request_id GNUNET_PACKED;
 };
 
 
 /**
  * A request for an operation with another client.
  */
-struct RequestMessage
+struct GNUNET_SET_RequestMessage
 {
   /**
    * Type: GNUNET_MESSAGE_TYPE_SET_Request.
@@ -107,21 +101,21 @@ struct RequestMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * ID of the request we want to accept,
-   * chosen by the service.
-   */
-  uint32_t accept_id GNUNET_PACKED;
-
-  /**
    * Identity of the requesting peer.
    */
   struct GNUNET_PeerIdentity peer_id;
+
+  /**
+   * ID of the to identify the request when accepting or
+   * rejecting it.
+   */
+  uint32_t accept_id GNUNET_PACKED;
 
   /* rest: nested context message */
 };
 
 
-struct EvaluateMessage
+struct GNUNET_SET_EvaluateMessage
 {
   /**
    * Type: GNUNET_MESSAGE_TYPE_SET_EVALUATE
@@ -136,7 +130,7 @@ struct EvaluateMessage
   /**
    * Peer to evaluate the operation with
    */
-  struct GNUNET_PeerIdentity peer;
+  struct GNUNET_PeerIdentity target_peer;
 
   /**
    * Application id
@@ -157,7 +151,7 @@ struct EvaluateMessage
 };
 
 
-struct ResultMessage
+struct GNUNET_SET_ResultMessage
 {
   /**
    * Type: GNUNET_MESSAGE_TYPE_SET_RESULT
@@ -184,7 +178,7 @@ struct ResultMessage
 };
 
 
-struct ElementMessage
+struct GNUNET_SET_ElementMessage
 {
   /**
    * Type: GNUNET_MESSAGE_TYPE_SET_ADD or
@@ -197,20 +191,6 @@ struct ElementMessage
   uint16_t reserved GNUNET_PACKED;
 
   /* rest: the actual element */
-};
-
-
-struct CancelMessage
-{
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_SET_CANCEL
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * id we want to cancel result belongs to
-   */
-  uint32_t request_id GNUNET_PACKED;
 };
 
 

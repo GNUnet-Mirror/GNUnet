@@ -119,33 +119,31 @@ GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp, uint16_t size, uint16_t type)
 }
 
 
-int
-GNUNET_MQ_nest_ (struct GNUNET_MQ_Message **mqmp,
-                 const void *data, uint16_t len)
+struct GNUNET_MQ_Message *
+GNUNET_MQ_msg_nested_mh_ (struct GNUNET_MessageHeader **mhp, uint16_t base_size, uint16_t type,
+                          const struct GNUNET_MessageHeader *nested_mh)
 {
-  size_t new_size;
-  size_t old_size;
+  struct GNUNET_MQ_Message *mqm;
+  uint16_t size;
 
-  GNUNET_assert (NULL != mqmp);
-  /* there's no data to append => do nothing */
-  if (NULL == data)
-    return GNUNET_OK;
-  old_size = ntohs ((*mqmp)->mh->size);
-  /* message too large to concatenate? */
-  if (((uint16_t) (old_size + len)) < len)
-    return GNUNET_SYSERR;
-  new_size = old_size + len;
-  *mqmp = GNUNET_realloc (*mqmp, sizeof (struct GNUNET_MQ_Message) + new_size);
-  (*mqmp)->mh = (struct GNUNET_MessageHeader *) &(*mqmp)[1];
-  memcpy (((void *) (*mqmp)->mh) + old_size, data, new_size - old_size);
-  (*mqmp)->mh->size = htons (new_size);
-  return GNUNET_OK;
+  if (NULL == nested_mh)
+    return GNUNET_MQ_msg_ (mhp, base_size, type);
+
+  size = base_size + ntohs (nested_mh->size);
+
+  /* check for uint16_t overflow */
+  if (size < base_size)
+    return NULL;
+
+  mqm = GNUNET_MQ_msg_ (mhp, size, type);
+  memcpy ((char *) mqm->mh + base_size, nested_mh, ntohs (nested_mh->size));
+
+  return mqm;
 }
 
 
-
-
-/*** Transmit a queued message to the session's client.
+/**
+ * Transmit a queued message to the session's client.
  *
  * @param cls consensus session
  * @param size number of bytes available in buf
@@ -265,7 +263,8 @@ handle_client_message (void *cls,
   {
     if (NULL == mq->error_handler)
       LOG (GNUNET_ERROR_TYPE_WARNING, "ignoring read error (no handler installed)\n");
-    mq->error_handler (mq->handlers_cls, GNUNET_MQ_ERROR_READ);
+    else
+      mq->error_handler (mq->handlers_cls, GNUNET_MQ_ERROR_READ);
     return;
   }
 
@@ -478,4 +477,40 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_MessageQueue *mq)
 
   GNUNET_free (mq);
 }
+
+
+
+
+struct GNUNET_MessageHeader *
+GNUNET_MQ_extract_nested_mh_ (const struct GNUNET_MessageHeader *mh, uint16_t base_size)
+{
+  uint16_t whole_size;
+  uint16_t nested_size;
+  struct GNUNET_MessageHeader *nested_msg;
+
+  whole_size = ntohs (mh->size);
+  GNUNET_assert (whole_size >= base_size);
+
+  nested_size = whole_size - base_size;
+
+  if (0 == nested_size)
+    return NULL;
+
+  if (nested_size < sizeof (struct GNUNET_MessageHeader))
+  {
+    GNUNET_break_op (0);
+    return NULL;
+  }
+
+  nested_msg = (struct GNUNET_MessageHeader *) ((char *) mh + base_size);
+
+  if (ntohs (nested_msg->size) != nested_size)
+  {
+    GNUNET_break_op (0);
+    nested_msg->size = htons (nested_size);
+  }
+
+  return nested_msg;
+}
+
 

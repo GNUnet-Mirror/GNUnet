@@ -39,28 +39,7 @@ extern "C"
 #include "gnunet_common.h"
 #include "gnunet_time_lib.h"
 #include "gnunet_configuration_lib.h"
-
-
-/**
- * An element of the consensus set.
- */
-struct GNUNET_CONSENSUS_Element
-{
-  /**
-   * The actual data of the element.
-   */
-   const void *data;
-
-   /**
-    * Size of the element's data.
-    */
-   uint16_t size;
-
-   /**
-    * Application specific element type
-    */
-   uint16_t type;
-};
+#include "gnunet_set_service.h"
 
 
 /**
@@ -73,7 +52,7 @@ struct GNUNET_CONSENSUS_Element
  * @param element new element, NULL on error
  */
 typedef void (*GNUNET_CONSENSUS_ElementCallback) (void *cls,
-                                                 const struct GNUNET_CONSENSUS_Element *element);
+                                                 const struct GNUNET_SET_Element *element);
 
 
 
@@ -138,7 +117,7 @@ typedef void (*GNUNET_CONSENSUS_InsertDoneCallback) (void *cls,
  */
 void
 GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
-                         const struct GNUNET_CONSENSUS_Element *element,
+                         const struct GNUNET_SET_Element *element,
                          GNUNET_CONSENSUS_InsertDoneCallback idc,
                          void *idc_cls);
 

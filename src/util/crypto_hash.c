@@ -339,7 +339,7 @@ GNUNET_CRYPTO_hash_distance_u32 (const struct GNUNET_HashCode * a,
  */
 void
 GNUNET_CRYPTO_hash_create_random (enum GNUNET_CRYPTO_Quality mode,
-                                  struct GNUNET_HashCode * result)
+                                  struct GNUNET_HashCode *result)
 {
   int i;
 
