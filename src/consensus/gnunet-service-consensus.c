@@ -35,7 +35,7 @@
 #include "consensus.h"
 
 
-/*
+/**
  * Log macro that prefixes the local peer and the peer we are in contact with.
  */
 #define LOG_PP(kind, cpi, m,...) GNUNET_log (kind, "P%d for P%d: " m, \
@@ -362,8 +362,10 @@ shuffle (struct ConsensusSession *session)
   if (NULL == session->shuffle)
     session->shuffle = GNUNET_malloc (session->num_peers * sizeof (*session->shuffle));
 
-  GNUNET_CRYPTO_kdf (randomness, sizeof (randomness), &session->exp_round, sizeof (uint32_t),
-                     &session->global_id, sizeof (struct GNUNET_HashCode));
+  GNUNET_CRYPTO_kdf (randomness, sizeof (randomness), 
+		     &session->exp_round, sizeof (uint32_t),
+                     &session->global_id, sizeof (struct GNUNET_HashCode),
+		     NULL);
 
   for (i = 0; i < session->num_peers; i++)
     session->shuffle[i] = i;

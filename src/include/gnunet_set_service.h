@@ -273,7 +273,7 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set);
  * @param result_cls closure for result_cb
  * @return a handle to cancel the operation
  */
-struct GNUNET_SET_OperationHandle *
+struct GNUNET_SET_OperationHandle * // FIXME: rename to _connect?
 GNUNET_SET_evaluate (const struct GNUNET_PeerIdentity *other_peer,
                      const struct GNUNET_HashCode *app_id,
                      const struct GNUNET_MessageHeader *context_msg,
@@ -344,7 +344,7 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
  * @param oh handle to the set operation 
  * @param set the set to use for the operation
  */
-void
+void // FIXME: rename to _commit
 GNUNET_SET_conclude (struct GNUNET_SET_OperationHandle *oh,
 		     struct GNUNET_SET_Handle *set);
 
