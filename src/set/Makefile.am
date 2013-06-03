@@ -57,7 +57,7 @@ libgnunetset_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
 check_PROGRAMS = \
- test_set_api test_mq test_mq_client
+ test_set_api 
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
