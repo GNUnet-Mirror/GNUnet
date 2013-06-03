@@ -769,10 +769,8 @@ build_set (void *cls)
   if (DEFAULT_FISHEYE_DEPTH - 1 == neighbor->consensus_insertion_distance)
   {
     /* we have added all elements to the set, run the operation */
-#if 0
-    GNUNET_SET_operation_conclude (neighbor->my_op,
-				   neighbor->my_set);
-#endif
+    GNUNET_SET_conclude (neighbor->set_op,
+		         neighbor->my_set);
     GNUNET_SET_destroy (neighbor->my_set);
     neighbor->my_set = NULL;
     return;
