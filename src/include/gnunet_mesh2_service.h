@@ -150,6 +150,10 @@ typedef void (GNUNET_MESH_TunnelEndHandler) (void *cls,
 /**
  * Connect to the mesh service.
  *
+ * FIXME: flow control is impossible with this API, as the handlers cannot
+ * tell mesh that they are currently too busy to receive more data.
+ * We need something equivalent to 'GNUNET_SERVER_receive_done ()' to do that.
+ *
  * @param cfg configuration to use
  * @param cls closure for the various callbacks that follow
  *            (including handlers in the handlers array)
@@ -188,6 +192,10 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle);
 /**
  * Create a new tunnel (we're initiator and will be allowed to add/remove peers
  * and to broadcast).
+ *
+ * FIXME: API quirk: why do I need to be listening just to create an
+ * outbound tunnel? We could pass the 'cfg' plus the handlers here
+ * instead.
  *
  * @param h mesh handle
  * @param tunnel_ctx client's tunnel context to associate with the tunnel
