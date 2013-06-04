@@ -29,7 +29,6 @@ gnunet_daemon_pt_LDADD = \
   $(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(GN_LIBINTL)
 
 if HAVE_MHD
