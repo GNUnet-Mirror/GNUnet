@@ -460,8 +460,6 @@ main (int argc, char *const *argv)
   }
     GNUNET_free (binary);
 
-  GNUNET_CRYPTO_ecc_setup_hostkey ("test_gns_proxy.conf");
-  
   if (0 != curl_global_init (CURL_GLOBAL_WIN32))
   {
     fprintf (stderr, "failed to initialize curl\n");

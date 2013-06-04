@@ -561,7 +561,6 @@ main (int argc, char *const *argv)
   GNUNET_free (bin_vpn);    
   GNUNET_free (bin_exit);
   GNUNET_free (bin_dns);
-  GNUNET_CRYPTO_ecc_setup_hostkey ("test_gns_vpn.conf");
   
   dest_ip = "169.254.86.1";
   dest_af = AF_INET;
