@@ -351,12 +351,12 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr);
 
 
 /**
- * Consider downloading via stream (if possible)
+ * Consider downloading via mesh (if possible)
  *
  * @param pr the pending request to process
  */
 void
-GSF_stream_lookup_ (struct GSF_PendingRequest *pr);
+GSF_mesh_lookup_ (struct GSF_PendingRequest *pr);
 
 
 /**

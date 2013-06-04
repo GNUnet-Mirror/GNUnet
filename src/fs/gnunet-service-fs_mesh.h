@@ -27,13 +27,13 @@
 #define GNUNET_SERVICE_FS_MESH_H
 
 /**
- * Handle for a request that is going out via stream API.
+ * Handle for a request that is going out via mesh API.
  */
 struct GSF_StreamRequest;
 
 
 /**
- * Function called with a reply from the stream.
+ * Function called with a reply from the mesh.
  * 
  * @param cls closure
  * @param type type of the block, ANY on error
@@ -59,7 +59,7 @@ typedef void (*GSF_StreamReplyProcessor)(void *cls,
  * @return handle to cancel the operation
  */
 struct GSF_StreamRequest *
-GSF_stream_query (const struct GNUNET_PeerIdentity *target,
+GSF_mesh_query (const struct GNUNET_PeerIdentity *target,
 		  const struct GNUNET_HashCode *query,
 		  enum GNUNET_BLOCK_Type type,
 		  GSF_StreamReplyProcessor proc, void *proc_cls);
@@ -72,20 +72,20 @@ GSF_stream_query (const struct GNUNET_PeerIdentity *target,
  * @param sr request to cancel
  */
 void
-GSF_stream_query_cancel (struct GSF_StreamRequest *sr);
+GSF_mesh_query_cancel (struct GSF_StreamRequest *sr);
 
 
 /**
  * Initialize subsystem for non-anonymous file-sharing.
  */
 void
-GSF_stream_start (void);
+GSF_mesh_start (void);
 
 
 /**
  * Shutdown subsystem for non-anonymous file-sharing.
  */
 void
-GSF_stream_stop (void);
+GSF_mesh_stop (void);
 
 #endif

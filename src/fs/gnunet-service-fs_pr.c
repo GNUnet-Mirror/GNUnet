@@ -64,7 +64,7 @@
 #define INSANE_STATISTICS GNUNET_NO
 
 /**
- * If obtaining a block via stream fails, how often do we retry it before
+ * If obtaining a block via mesh fails, how often do we retry it before
  * giving up for good (and sticking to non-anonymous transfer)?
  */
 #define STREAM_RETRY_MAX 3
@@ -118,7 +118,7 @@ struct GSF_PendingRequest
   /**
    * Stream request handle for this request (or NULL for none).
    */
-  struct GSF_StreamRequest *stream_request;
+  struct GSF_StreamRequest *mesh_request;
 
   /**
    * Function to call upon completion of the local get
@@ -173,10 +173,10 @@ struct GSF_PendingRequest
   uint64_t first_uid;
 
   /**
-   * How often have we retried this request via 'stream'?
+   * How often have we retried this request via 'mesh'?
    * (used to bound overall retries).
    */
-  unsigned int stream_retry_count;
+  unsigned int mesh_retry_count;
 
   /**
    * Number of valid entries in the 'replies_seen' array.
@@ -626,10 +626,10 @@ clean_request (void *cls, const struct GNUNET_HashCode * key, void *value)
     GNUNET_DHT_get_stop (pr->gh);
     pr->gh = NULL;
   }
-  if (NULL != pr->stream_request)
+  if (NULL != pr->mesh_request)
   {
-    GSF_stream_query_cancel (pr->stream_request);
-    pr->stream_request = NULL;
+    GSF_mesh_query_cancel (pr->mesh_request);
+    pr->mesh_request = NULL;
   }
   if (GNUNET_SCHEDULER_NO_TASK != pr->warn_task)
   {
@@ -683,10 +683,10 @@ GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr, int full_cleanup)
       GNUNET_DHT_get_stop (pr->gh);
       pr->gh = NULL;
     }
-    if (NULL != pr->stream_request)
+    if (NULL != pr->mesh_request)
     {
-      GSF_stream_query_cancel (pr->stream_request);
-      pr->stream_request = NULL;
+      GSF_mesh_query_cancel (pr->mesh_request);
+      pr->mesh_request = NULL;
     }
     if (GNUNET_SCHEDULER_NO_TASK != pr->warn_task)
     {
@@ -1136,7 +1136,7 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
 
 
 /**
- * Function called with a reply from the stream.
+ * Function called with a reply from the mesh.
  * 
  * @param cls the pending request struct
  * @param type type of the block, ANY on error
@@ -1145,7 +1145,7 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
  * @param data reply block data, NULL on error
  */
 static void
-stream_reply_proc (void *cls,
+mesh_reply_proc (void *cls,
 		   enum GNUNET_BLOCK_Type type,
 		   struct GNUNET_TIME_Absolute expiration,
 		   size_t data_size,
@@ -1155,22 +1155,22 @@ stream_reply_proc (void *cls,
   struct ProcessReplyClosure prq;
   struct GNUNET_HashCode query;
 
-  pr->stream_request = NULL;
+  pr->mesh_request = NULL;
   if (GNUNET_BLOCK_TYPE_ANY == type)
   {
     GNUNET_break (NULL == data);
     GNUNET_break (0 == data_size);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Error retrieiving block via stream\n");
-    pr->stream_retry_count++;
-    if (pr->stream_retry_count >= STREAM_RETRY_MAX)
-      return; /* give up on stream */
+		"Error retrieiving block via mesh\n");
+    pr->mesh_retry_count++;
+    if (pr->mesh_retry_count >= STREAM_RETRY_MAX)
+      return; /* give up on mesh */
     /* retry -- without delay, as this is non-anonymous
-       and mesh/stream connect will take some time anyway */
-    pr->stream_request = GSF_stream_query (pr->public_data.target,
+       and mesh/mesh connect will take some time anyway */
+    pr->mesh_request = GSF_mesh_query (pr->public_data.target,
 					   &pr->public_data.query,
 					   pr->public_data.type,
-					   &stream_reply_proc,
+					   &mesh_reply_proc,
 					   pr);
     return;
   }
@@ -1201,27 +1201,27 @@ stream_reply_proc (void *cls,
 
 
 /**
- * Consider downloading via stream (if possible)
+ * Consider downloading via mesh (if possible)
  *
  * @param pr the pending request to process
  */
 void
-GSF_stream_lookup_ (struct GSF_PendingRequest *pr)
+GSF_mesh_lookup_ (struct GSF_PendingRequest *pr)
 {
   if (0 != pr->public_data.anonymity_level)
     return;
   if (0 == pr->public_data.target)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Cannot do stream-based download, target peer not known\n");
+		"Cannot do mesh-based download, target peer not known\n");
     return;
   }
-  if (NULL != pr->stream_request)
+  if (NULL != pr->mesh_request)
     return;
-  pr->stream_request = GSF_stream_query (pr->public_data.target,
+  pr->mesh_request = GSF_mesh_query (pr->public_data.target,
 					 &pr->public_data.query,
 					 pr->public_data.type,
-					 &stream_reply_proc,
+					 &mesh_reply_proc,
 					 pr);
 }
 
@@ -1550,7 +1550,7 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
                    GSF_LocalLookupContinuation cont, void *cont_cls)
 {
   GNUNET_assert (NULL == pr->gh);
-  GNUNET_assert (NULL == pr->stream_request);
+  GNUNET_assert (NULL == pr->mesh_request);
   GNUNET_assert (NULL == pr->llc_cont);
   pr->llc_cont = cont;
   pr->llc_cont_cls = cont_cls;

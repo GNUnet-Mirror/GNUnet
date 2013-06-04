@@ -412,10 +412,10 @@ start_p2p_processing (void *cls, struct GSF_PendingRequest *pr,
     {
     case GNUNET_BLOCK_TYPE_FS_DBLOCK:
     case GNUNET_BLOCK_TYPE_FS_IBLOCK:
-      /* the above block types MAY be available via 'stream' */
+      /* the above block types MAY be available via 'mesh' */
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Considering stream-based download for block\n");
-      GSF_stream_lookup_ (pr);
+		  "Considering mesh-based download for block\n");
+      GSF_mesh_lookup_ (pr);
       break; 
     case GNUNET_BLOCK_TYPE_FS_UBLOCK:
       /* the above block types are in the DHT */
@@ -475,7 +475,7 @@ handle_start_search (void *cls, struct GNUNET_SERVER_Client *client,
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GSF_stream_stop ();
+  GSF_mesh_stop ();
   if (NULL != GSF_core)
   {
     GNUNET_CORE_disconnect (GSF_core);
@@ -646,7 +646,7 @@ main_init (struct GNUNET_SERVER_Handle *server,
       GNUNET_SCHEDULER_add_delayed (COVER_AGE_FREQUENCY, &age_cover_counters,
                                     NULL);
   datastore_get_load = GNUNET_LOAD_value_init (DATASTORE_LOAD_AUTODECLINE);
-  GSF_stream_start ();
+  GSF_mesh_start ();
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
   return GNUNET_OK;

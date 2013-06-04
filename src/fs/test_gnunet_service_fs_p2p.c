@@ -121,7 +121,7 @@ do_publish (void *cls,
 {
   unsigned int i;
  
-  if (NULL != strstr (progname, "stream"))
+  if (NULL != strstr (progname, "mesh"))
     anonymity_level = 0;
   else
     anonymity_level = 1;
@@ -143,7 +143,7 @@ main (int argc, char *argv[])
   const char *config;
 
   progname = argv[0];
-  if (NULL != strstr (progname, "stream"))
+  if (NULL != strstr (progname, "mesh"))
     config = "test_gnunet_service_fs_p2p_mesh.conf";
   else
     config = "fs_test_lib_data.conf";
