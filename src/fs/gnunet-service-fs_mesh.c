@@ -19,7 +19,7 @@
 */
 
 /**
- * @file fs/gnunet-service-fs_stream.c
+ * @file fs/gnunet-service-fs_mesh.c
  * @brief non-anonymous file-transfer
  * @author Christian Grothoff
  *
@@ -46,7 +46,7 @@
 #include "gnunet_applications.h"
 #include "gnunet-service-fs.h"
 #include "gnunet-service-fs_indexing.h"
-#include "gnunet-service-fs_stream.h"
+#include "gnunet-service-fs_mesh.h"
 
 /**
  * After how long do we termiante idle connections?

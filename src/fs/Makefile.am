@@ -186,7 +186,7 @@ gnunet_service_fs_SOURCES =  \
  gnunet-service-fs_pr.c gnunet-service-fs_pr.h \
  gnunet-service-fs_push.c gnunet-service-fs_push.h \
  gnunet-service-fs_put.c gnunet-service-fs_put.h \
- gnunet-service-fs_stream.c gnunet-service-fs_stream.h 
+ gnunet-service-fs_mesh.c gnunet-service-fs_mesh.h 
 gnunet_service_fs_LDADD =  \
  $(top_builddir)/src/fs/libgnunetfs.la \
  $(top_builddir)/src/dht/libgnunetdht.la \
@@ -239,7 +239,7 @@ check_PROGRAMS = \
  test_plugin_block_fs \
  test_fs_directory \
  test_fs_download \
- test_fs_download_stream \
+ test_fs_download_mesh \
  test_fs_download_indexed \
  test_fs_download_persistence \
  test_fs_file_information \
@@ -260,7 +260,7 @@ check_PROGRAMS = \
  test_fs_uri \
  test_gnunet_service_fs_migration \
  test_gnunet_service_fs_p2p \
- test_gnunet_service_fs_p2p_stream \
+ test_gnunet_service_fs_p2p_mesh \
  $(FS_BENCHMARKS)
 
 test_plugin_block_fs_SOURCES = \
@@ -306,7 +306,7 @@ TESTS = \
  test_fs_test_lib \
  test_gnunet_service_fs_migration \
  test_gnunet_service_fs_p2p \
- test_gnunet_service_fs_p2p_stream \
+ test_gnunet_service_fs_p2p_mesh \
  perf_gnunet_service_fs_p2p \
  perf_gnunet_service_fs_p2p_index \
  perf_gnunet_service_fs_p2p_respect \
@@ -343,9 +343,9 @@ test_fs_download_indexed_LDADD = \
   $(top_builddir)/src/fs/libgnunetfs.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
 
-test_fs_download_stream_SOURCES = \
+test_fs_download_mesh_SOURCES = \
  test_fs_download.c
-test_fs_download_stream_LDADD = \
+test_fs_download_mesh_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la  \
   $(top_builddir)/src/fs/libgnunetfs.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
@@ -469,9 +469,9 @@ test_gnunet_service_fs_p2p_LDADD = \
   $(top_builddir)/src/fs/libgnunetfs.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
 
-test_gnunet_service_fs_p2p_stream_SOURCES = \
+test_gnunet_service_fs_p2p_mesh_SOURCES = \
  test_gnunet_service_fs_p2p.c
-test_gnunet_service_fs_p2p_stream_LDADD = \
+test_gnunet_service_fs_p2p_mesh_LDADD = \
   $(top_builddir)/src/fs/libgnunetfstest.a \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/fs/libgnunetfs.la  \
@@ -547,7 +547,7 @@ EXTRA_DIST = \
   test_fs_data.conf \
   test_fs_download_data.conf \
   test_fs_download_indexed.conf \
-  test_fs_download_stream.conf \
+  test_fs_download_mesh.conf \
   test_fs_file_information_data.conf \
   fs_test_lib_data.conf \
   test_fs_list_indexed_data.conf \
@@ -557,7 +557,7 @@ EXTRA_DIST = \
   test_fs_unindex_data.conf \
   test_fs_uri_data.conf \
   test_gnunet_service_fs_migration_data.conf \
-  test_gnunet_service_fs_p2p_stream.conf \
+  test_gnunet_service_fs_p2p_mesh.conf \
   test_gnunet_fs_idx_data.conf \
   test_gnunet_fs_ns_data.conf \
   test_gnunet_fs_psd_data.conf \

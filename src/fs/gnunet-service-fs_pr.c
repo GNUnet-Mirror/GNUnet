@@ -30,7 +30,7 @@
 #include "gnunet-service-fs_indexing.h"
 #include "gnunet-service-fs_pe.h"
 #include "gnunet-service-fs_pr.h"
-#include "gnunet-service-fs_stream.h"
+#include "gnunet-service-fs_mesh.h"
 
 
 /**

@@ -43,7 +43,7 @@
 #include "gnunet-service-fs_pr.h"
 #include "gnunet-service-fs_push.h"
 #include "gnunet-service-fs_put.h"
-#include "gnunet-service-fs_stream.h"
+#include "gnunet-service-fs_mesh.h"
 #include "fs.h"
 
 /**

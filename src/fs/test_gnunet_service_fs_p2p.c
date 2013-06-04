@@ -144,7 +144,7 @@ main (int argc, char *argv[])
 
   progname = argv[0];
   if (NULL != strstr (progname, "stream"))
-    config = "test_gnunet_service_fs_p2p_stream.conf";
+    config = "test_gnunet_service_fs_p2p_mesh.conf";
   else
     config = "fs_test_lib_data.conf";
   (void) GNUNET_TESTBED_test_run ("test-gnunet-service-fs-p2p",

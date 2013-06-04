@@ -329,10 +329,10 @@ main (int argc, char *argv[])
     binary_name = "test-fs-download-indexed";
     config_name = "test_fs_download_indexed.conf";
   }
-  if (NULL != strstr (argv[0], "stream"))
+  if (NULL != strstr (argv[0], "mesh"))
   {
-    binary_name = "test-fs-download-stream";
-    config_name = "test_fs_download_stream.conf";
+    binary_name = "test-fs-download-mesh";
+    config_name = "test_fs_download_mesh.conf";
   }
   if (0 != GNUNET_TESTING_peer_run (binary_name,
 				    config_name,

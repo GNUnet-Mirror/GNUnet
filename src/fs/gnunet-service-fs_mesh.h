@@ -19,12 +19,12 @@
 */
 
 /**
- * @file fs/gnunet-service-fs_stream.h
+ * @file fs/gnunet-service-fs_mesh.h
  * @brief non-anonymous file-transfer
  * @author Christian Grothoff
  */
-#ifndef GNUNET_SERVICE_FS_STREAM_H
-#define GNUNET_SERVICE_FS_STREAM_H
+#ifndef GNUNET_SERVICE_FS_MESH_H
+#define GNUNET_SERVICE_FS_MESH_H
 
 /**
  * Handle for a request that is going out via stream API.
