@@ -4,13 +4,13 @@
 // diamond = library
 // black line = dependency
 // blue line = extension via plugin
+// red line = possibly useful 
 // dashed = in planning
 
+// this is what we have...o
 digraph dependencies {
 splines = true;
-  voting [shape=house];
-  voting -> consensus;
-  voting -> mesh;
+
   fs [shape=house];
   fs -> dht;
   fs -> core;
@@ -18,42 +18,40 @@ splines = true;
   fs -> mesh;
   fs -> ats;
   fs -> block [style=dotted,color=blue];
+  exit [shape=box];
   exit -> mesh;
   exit -> tun;
   vpn -> mesh;
+  vpn -> regex;
   vpn -> tun;
   pt [shape=house];
   pt -> mesh;
   pt -> vpn;
   pt -> dns;
   dv -> ats;
-  dns -> mesh;
   dns -> tun;
   gns [shape=house];
   gns -> namestore;
   gns -> dns;
   gns -> dht;
   gns -> block [style=dotted,color=blue];
-//  psycd [style=dashed,shape=house];
-//  psycd -> mesh [style=dashed];
   dht -> core;
   dht -> nse;
   dht -> block;
   dht -> datacache;
-//  dht -> ats [style=dashed];
+  dht -> peerinfo;
+  dht -> hello;
   nse -> core;
   regex -> block [style=dotted,color=blue];
   block [shape=diamond];
   datacache [shape=diamond];
   mesh -> core [weight=2];
   mesh -> dht;
-  mesh -> regex;
   mesh -> block [style=dotted,color=blue];
-//  mesh -> ats [style=dashed];
   regex -> dht;
   core -> transport;
-  core -> peerinfo;
   topology [shape=box];
+  topology -> peerinfo;
   topology -> transport;
   topology -> core;
   topology -> hello;
@@ -71,6 +69,7 @@ splines = true;
   dv -> core;
   dv -> set;
   consensus -> set;
+  consensus -> mesh;
   set -> mesh;
   peerinfo -> hello;
   fragmentation [shape=diamond];
@@ -79,4 +78,53 @@ splines = true;
   tun [shape=diamond];
 
 
+}
+
+// this is what might happen...
+digraph plan {
+splines = true;
+
+// // secushare roadmap:
+  secushare [shape=house,style=dashed];
+  psyc [style=dashed];
+  secushare -> psyc [style=dashed];
+  secushare -> voting [style=dashed,color=red];
+  secushare -> gns [style=dashed];
+  secushare -> fs [style=dashed,color=red];
+  secushare -> reuters [style=dashed,color=red];
+  secushare -> messaging [style=dashed,color=red];
+  psyc -> multicast [style=dashed];
+
+// // voting roadmap:
+  voting [shape=house,style=dashed];
+  voting -> consensus [style=dashed];
+  voting -> mesh [style=dashed,color=red];
+
+// // reuters roadmap:
+  reuters [shape=house,style=dashed];
+  dotproduct [style=dashed];
+  reuters -> dotproduct [style=dashed];
+  dotproduct -> set [style=dashed];
+  dotproduct -> mesh [style=dashed];
+  messaging [style=dashed];  
+  messaging -> regex [style=dashed];
+  messaging -> mesh [style=dashed];
+  messaging -> dht [style=dashed];
+  reuters -> messaging [style=dashed,color=red];
+  reuters -> multicast [style=dashed,color=red];
+  reuters -> mesh [style=dashed,color=red];
+  reuters -> core [style=dashed,color=red];
+
+
+// // core roadmap:
+  dht -> ats [style=dashed,color=red];
+  mesh -> ats [style=dashed,color=red];
+  vpn -> multicast [style=dashed,color=red];
+  exit -> multicast [style=dashed,color=red];
+  multicast [style=dashed];
+  multicast -> mesh [style=dashed];
+
+  fs [shape=house];
+  gns [shape=house];
+  exit [shape=box];
 }
