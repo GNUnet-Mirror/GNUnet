@@ -72,12 +72,10 @@ struct GNUNET_MESH_Tunnel;
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 typedef int (*GNUNET_MESH_MessageCallback) (void *cls,
-                                            struct GNUNET_MESH_Tunnel * tunnel,
+                                            struct GNUNET_MESH_Tunnel *tunnel,
                                             void **tunnel_ctx,
-                                            const struct GNUNET_PeerIdentity *
-                                            sender,
-                                            const struct GNUNET_MessageHeader *
-                                            message);
+                                            const struct GNUNET_PeerIdentity *sender,
+                                            const struct GNUNET_MessageHeader *message);
 
 
 /**
@@ -174,7 +172,7 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
                      GNUNET_MESH_InboundTunnelNotificationHandler new_tunnel,
                      GNUNET_MESH_TunnelEndHandler cleaner,
                      const struct GNUNET_MESH_MessageHandler *handlers,
-                     uint32_t *ports);
+                     const uint32_t *ports);
 
 
 /**
