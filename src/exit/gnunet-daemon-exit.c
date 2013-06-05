@@ -44,7 +44,7 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_constants.h"
 #include "gnunet_tun_lib.h"
-#include "gnunet_regex_lib.h"
+#include "gnunet_regex_service.h"
 #include "exit.h"
 
 /**
@@ -59,13 +59,16 @@
  */
 #define REGEX_MAX_PATH_LEN_IPV6 8
 
+/**
+ * How frequently do we re-announce the regex for the exit?
+ */
+#define REGEX_REFRESH_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30)
 
 /**
  * Generic logging shorthand
  */
 #define LOG(kind, ...)                          \
   GNUNET_log_from (kind, "exit", __VA_ARGS__);
-
 
 
 /**
@@ -295,6 +298,16 @@ struct TunnelState
 static int global_ret;
 
 /**
+ * Handle to our regex announcement for IPv4.
+ */
+static struct GNUNET_REGEX_Announcement *regex4;
+
+/**
+ * Handle to our regex announcement for IPv4.
+ */
+static struct GNUNET_REGEX_Announcement *regex6;
+
+/**
  * The handle to the configuration used throughout the process
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -374,6 +387,11 @@ static struct TunnelState *tunnels[UINT16_MAX + 1];
  * Handle to the DNS Stub resolver.
  */
 static struct GNUNET_DNSSTUB_Context *dnsstub;
+
+/**
+ * Identity of this peer.
+ */
+static struct GNUNET_PeerIdentity my_identity;
 
 /**
  * Are we an IPv4-exit?
@@ -3072,12 +3090,22 @@ cleanup (void *cls GNUNET_UNUSED,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Exit service is shutting down now\n");
 
-  if (helper_handle != NULL)
+  if (NULL != helper_handle)
   {
     GNUNET_HELPER_stop (helper_handle, GNUNET_NO);
     helper_handle = NULL;
   }
-  if (mesh_handle != NULL)
+  if (NULL != regex4)
+  {
+    GNUNET_REGEX_announce_cancel (regex4);
+    regex4 = NULL;
+  }
+  if (NULL != regex6)
+  {
+    GNUNET_REGEX_announce_cancel (regex6);
+    regex6 = NULL;
+  }
+  if (NULL != mesh_handle)
   {
     GNUNET_MESH_disconnect (mesh_handle);
     mesh_handle = NULL;
@@ -3541,6 +3569,14 @@ run (void *cls, char *const *args GNUNET_UNUSED,
 
   connections_map = GNUNET_CONTAINER_multihashmap_create (65536, GNUNET_NO);
   connections_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_get_host_identity (cfg,
+				       &my_identity))
+  {
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   mesh_handle 
     = GNUNET_MESH_connect (cfg, NULL, 
 			   &new_tunnel, 
@@ -3564,9 +3600,11 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     (void) GNUNET_asprintf (&prefixed_regex, "%s%s%s",
                             GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
                             "4", regex);
-    GNUNET_MESH_announce_regex (mesh_handle,
-                                prefixed_regex,
-                                REGEX_MAX_PATH_LEN_IPV4);
+    regex4 = GNUNET_REGEX_announce (cfg,
+				    &my_identity,
+				    prefixed_regex,
+				    REGEX_REFRESH_FREQUENCY,
+				    REGEX_MAX_PATH_LEN_IPV4);
     GNUNET_free (regex);
     GNUNET_free (prefixed_regex);
   }
@@ -3582,9 +3620,11 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     (void) GNUNET_asprintf (&prefixed_regex, "%s%s%s",
                             GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
                             "6", regex);
-    GNUNET_MESH_announce_regex (mesh_handle,
-                                prefixed_regex,
-                                REGEX_MAX_PATH_LEN_IPV6);
+    regex6 = GNUNET_REGEX_announce (cfg,
+				    &my_identity,
+				    prefixed_regex,
+				    REGEX_REFRESH_FREQUENCY,
+				    REGEX_MAX_PATH_LEN_IPV6);
     GNUNET_free (regex);
     GNUNET_free (prefixed_regex);
   }

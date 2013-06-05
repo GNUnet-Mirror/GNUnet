@@ -59,7 +59,7 @@ gnunet_service_vpn_LDADD = \
   $(top_builddir)/src/tun/libgnunettun.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
-  $(top_builddir)/src/regex/libgnunetregex.la \
+  $(top_builddir)/src/regex/libgnunetregexnew.la \
   $(GN_LIBINTL)
 gnunet_service_vpn_CFLAGS = \
   -I$(top_srcdir)/src/exit $(CFLAGS)

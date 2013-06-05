@@ -34,7 +34,7 @@ libexec_PROGRAMS = \
 if MINGW
   gnunet_helper_exit_LDFLAGS = \
     -no-undefined -Wl,--export-all-symbols 
-   
+
   gnunet_helper_exit_LDADD = \
     -lsetupapi -lnewdev -lshell32 -liconv -lstdc++ \
     -lcomdlg32 -lgdi32 -liphlpapi
@@ -54,5 +54,5 @@ gnunet_daemon_exit_LDADD = \
   $(top_builddir)/src/tun/libgnunettun.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
-  $(top_builddir)/src/regex/libgnunetregex.la \
+  $(top_builddir)/src/regex/libgnunetregexnew.la \
   $(GN_LIBINTL)

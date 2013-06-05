@@ -25,6 +25,10 @@
  *        IP traffic received on those IPs via the GNUnet mesh 
  * @author Philipp Toelke
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - keep multiple peers/mesh tunnels ready as alternative exits /
+ *   recover from tunnel-to-exit failure gracefully
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -35,7 +39,7 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_constants.h"
 #include "gnunet_tun_lib.h"
-#include "gnunet_regex_lib.h"
+#include "gnunet_regex_service.h"
 #include "vpn.h"
 #include "exit.h"
 
@@ -44,6 +48,16 @@
  * Maximum number of messages we allow in the queue for mesh.
  */
 #define MAX_MESSAGE_QUEUE_SIZE 4
+
+/**
+ * Maximum regex string length for use with GNUNET_REGEX_ipv4toregex
+ */
+#define GNUNET_REGEX_IPV4_REGEXLEN 32 + 6
+
+/**
+ * Maximum regex string length for use with GNUNET_REGEX_ipv6toregex
+ */
+#define GNUNET_REGEX_IPV6_REGEXLEN 128 + 6
 
 
 /**
@@ -170,6 +184,11 @@ struct TunnelState
    * is available right now.
    */
   struct GNUNET_MESH_Tunnel *tunnel;
+
+  /**
+   * Active query with REGEX to locate exit.
+   */
+  struct GNUNET_REGEX_Search *search;
 
   /**
    * Active transmission handle, NULL for none.
@@ -536,6 +555,11 @@ free_tunnel_state (struct TunnelState *ts)
     ts->tunnel = NULL;
     GNUNET_MESH_tunnel_destroy (tunnel);
   }
+  if (NULL != ts->search)
+  {
+    GNUNET_REGEX_search_cancel (ts->search);
+    ts->search = NULL;
+  }
   if (GNUNET_SCHEDULER_NO_TASK != ts->destroy_task)
   {
     GNUNET_SCHEDULER_cancel (ts->destroy_task);
@@ -751,6 +775,150 @@ send_to_tunnel (struct TunnelMessageQueueEntry *tnq,
 
 
 /**
+ * Create a string with binary IP notation for the given 'addr' in 'str'.
+ *
+ * @param af address family of the given 'addr'.
+ * @param addr address that should be converted to a string.
+ *             struct in_addr * for IPv4 and struct in6_addr * for IPv6.
+ * @param str string that will contain binary notation of 'addr'. Expected
+ *            to be at least 33 bytes long for IPv4 and 129 bytes long for IPv6.
+ */
+static void
+iptobinstr (const int af, const void *addr, char *str)
+{
+  int i;
+  
+  switch (af)
+  {
+    case AF_INET:
+    {
+      uint32_t b = htonl (((struct in_addr *) addr)->s_addr);
+      
+      str[32] = '\0';
+          str += 31;
+          for (i = 31; i >= 0; i--)
+          {
+            *str = (b & 1) + '0';
+            str--;
+            b >>= 1;
+          }
+              break;
+    }
+    case AF_INET6:
+    {
+      struct in6_addr b = *(const struct in6_addr *) addr;
+      
+      str[128] = '\0';
+            str += 127;
+            for (i = 127; i >= 0; i--)
+            {
+              *str = (b.s6_addr[i / 8] & 1) + '0';
+            str--;
+            b.s6_addr[i / 8] >>= 1;
+            }
+                break;
+    }
+  }
+}
+
+
+/**
+ * Get the ipv4 network prefix from the given 'netmask'.
+ *
+ * @param netmask netmask for which to get the prefix len.
+ *
+ * @return length of ipv4 prefix for 'netmask'.
+ */
+static unsigned int
+ipv4netmasktoprefixlen (const char *netmask)
+{
+  struct in_addr a;
+  unsigned int len;
+  uint32_t t;
+  
+  if (1 != inet_pton (AF_INET, netmask, &a))
+    return 0;
+  len = 32;
+  for (t = htonl (~a.s_addr); 0 != t; t >>= 1)
+    len--;
+  return len;
+}
+
+
+/**
+ * Create a regex in 'rxstr' from the given 'ip' and 'netmask'.
+ *
+ * @param ip IPv4 representation.
+ * @param netmask netmask for the ip.
+ * @param rxstr generated regex, must be at least GNUNET_REGEX_IPV4_REGEXLEN
+ *              bytes long.
+ */
+static void
+ipv4toregex (const struct in_addr *ip, const char *netmask,
+	     char *rxstr)
+{
+  unsigned int pfxlen;
+  
+  pfxlen = ipv4netmasktoprefixlen (netmask);
+  iptobinstr (AF_INET, ip, rxstr);
+  rxstr[pfxlen] = '\0';
+            if (pfxlen < 32)
+              strcat (rxstr, "(0|1)+");
+}
+
+
+/**
+ * Create a regex in 'rxstr' from the given 'ipv6' and 'prefixlen'.
+ *
+ * @param ipv6 IPv6 representation.
+ * @param prefixlen length of the ipv6 prefix.
+ * @param rxstr generated regex, must be at least GNUNET_REGEX_IPV6_REGEXLEN
+ *              bytes long.
+ */
+static void
+ipv6toregex (const struct in6_addr *ipv6, unsigned int prefixlen,
+                          char *rxstr)
+{
+  iptobinstr (AF_INET6, ipv6, rxstr);
+  rxstr[prefixlen] = '\0';
+    if (prefixlen < 128)
+      strcat (rxstr, "(0|1)+");
+}
+
+
+/**
+ * Regex has found a potential exit peer for us; consider using it.
+ *
+ * @param cls the 'struct TunnelState'
+ * @param id Peer providing a regex that matches the string.
+ * @param get_path Path of the get request.
+ * @param get_path_length Lenght of get_path.
+ * @param put_path Path of the put request.
+ * @param put_path_length Length of the put_path.
+ */
+static void
+handle_regex_result (void *cls,
+		     const struct GNUNET_PeerIdentity *id,
+		     const struct GNUNET_PeerIdentity *get_path,
+		     unsigned int get_path_length,
+		     const struct GNUNET_PeerIdentity *put_path,
+		     unsigned int put_path_length)
+{
+  struct TunnelState *ts = cls;
+
+  GNUNET_REGEX_search_cancel (ts->search);
+  ts->search = NULL;
+  ts->tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
+					  ts,
+					  &tunnel_peer_connect_handler,
+					  &tunnel_peer_disconnect_handler,
+					  ts);
+  GNUNET_MESH_peer_request_connect_add (ts->tunnel,
+					id);
+}
+
+
+/**
  * Initialize the given destination entry's mesh tunnel.
  *
  * @param de destination entry for which we need to setup a tunnel
@@ -783,22 +951,22 @@ create_tunnel_to_destination (struct DestinationEntry *de,
   ts->destination.heap_node = NULL; /* copy is NOT in destination heap */
   de->ts = ts;
   ts->destination_container = de; /* we are referenced from de */
-  ts->tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
-					  ts,
-					  &tunnel_peer_connect_handler,
-					  &tunnel_peer_disconnect_handler,
-					  ts);
-  if (NULL == ts->tunnel)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Failed to setup mesh tunnel!\n"));
-    if (NULL != client)
-      GNUNET_SERVER_client_drop (client);
-    GNUNET_free (ts);
-    return NULL;
-  }
   if (de->is_service)
   {
+    ts->tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
+					    ts,
+					    &tunnel_peer_connect_handler,
+					    &tunnel_peer_disconnect_handler,
+					    ts);
+    if (NULL == ts->tunnel)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Failed to setup mesh tunnel!\n"));
+      if (NULL != client)
+	GNUNET_SERVER_client_drop (client);
+      GNUNET_free (ts);
+      return NULL;
+    }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Creating tunnel to peer %s offering service %s\n",
 		GNUNET_i2s (&de->details.service_destination.target),
@@ -815,8 +983,9 @@ create_tunnel_to_destination (struct DestinationEntry *de,
     case AF_INET:
     {
       char address[GNUNET_REGEX_IPV4_REGEXLEN];
-      GNUNET_REGEX_ipv4toregex (&de->details.exit_destination.ip.v4,
-                                "255.255.255.255", address);
+
+      ipv4toregex (&de->details.exit_destination.ip.v4,
+		   "255.255.255.255", address);
       GNUNET_asprintf (&policy, "%s%s%s",
                        GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
                        "4",
@@ -826,8 +995,9 @@ create_tunnel_to_destination (struct DestinationEntry *de,
     case AF_INET6:
     {
       char address[GNUNET_REGEX_IPV6_REGEXLEN];
-      GNUNET_REGEX_ipv6toregex (&de->details.exit_destination.ip.v6,
-                                128, address);
+      
+      ipv6toregex (&de->details.exit_destination.ip.v6,
+		   128, address);
       GNUNET_asprintf (&policy, "%s%s%s",
                        GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
                        "6",
@@ -839,12 +1009,13 @@ create_tunnel_to_destination (struct DestinationEntry *de,
       break;
     }
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Requesting connect by string: %s\n", policy);
-
-    GNUNET_MESH_peer_request_connect_by_string (ts->tunnel, policy);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Creating tunnel to exit peer for policy `%s'\n",
-                policy);
+		"Requesting connect by string: %s\n",
+		policy);
+    ts->search = GNUNET_REGEX_search (cfg,
+				      policy,
+				      &handle_regex_result,
+				      ts);
     GNUNET_free (policy);
   }
   return ts;
