@@ -743,10 +743,11 @@ control_message_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *t
  * it is not, start the ARM process.
  *
  * @param cls the context for the request that we will report on (struct ARMControlMessage *)
- * @param tc why were we called (reason says if ARM is running)
+ * @param result GNUNET_YES if ARM is running
  */
 static void
-arm_service_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+arm_service_report (void *cls,
+		    int result)
 {
   struct ARMControlMessage *cm = cls;
   struct GNUNET_ARM_Handle *h;
@@ -759,12 +760,11 @@ arm_service_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char *lopostfix;
 
   test_is_active = cm->h->service_test_is_active;
-
-  /* FIXME: shouldn't we check for GNUNET_SCHEDULER_REASON_SHUTDOWN ? */
   if ((GNUNET_YES == test_is_active) &&
-      (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE)))
+      (GNUNET_YES == result))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Looks like `%s' is already running.\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Looks like `%s' is already running.\n",
 	 "gnunet-service-arm");
     /* arm is running! */
     if (cm->result_cont)
@@ -780,7 +780,7 @@ arm_service_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CONFIGURATION_destroy (cm->h->cfg);
     GNUNET_free (cm->h);
   }
-  if ((0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE)) ||
+  if ((GNUNET_YES == result) ||
       (GNUNET_NO == test_is_active))
   {
     GNUNET_free (cm);

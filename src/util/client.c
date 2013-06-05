@@ -179,25 +179,10 @@ struct GNUNET_CLIENT_Connection
   struct GNUNET_CLIENT_TransmitHandle *th;
 
   /**
-   * Handler for service test completion (NULL unless in service_test)
-   */
-  GNUNET_SCHEDULER_Task test_cb;
-
-  /**
-   * Deadline for calling 'test_cb'.
-   */
-  struct GNUNET_TIME_Absolute test_deadline;
-
-  /**
    * If we are re-trying and are delaying to do so,
    * handle to the scheduled task managing the delay.
    */
   GNUNET_SCHEDULER_TaskIdentifier receive_task;
-
-  /**
-   * Closure for test_cb (NULL unless in service_test)
-   */
-  void *test_cb_cls;
 
   /**
    * Buffer for received message.
@@ -639,26 +624,119 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *client,
 
 
 /**
- * Report service unavailable.
+ * Handle for a test to check if a service is running.
+ */
+struct GNUNET_CLIENT_TestHandle 
+{
+  /**
+   * Function to call with the result of the test.
+   */
+  GNUNET_CLIENT_TestResultCallback cb;
+
+  /**
+   * Closure for 'cb'.
+   */
+  void *cb_cls;
+
+  /**
+   * Client connection we are using for the test, if any.
+   */ 
+  struct GNUNET_CLIENT_Connection *client;
+
+  /**
+   * Handle for the transmission request, if any.
+   */
+  struct GNUNET_CLIENT_TransmitHandle *th;
+
+  /**
+   * Deadline for calling 'cb'.
+   */
+  struct GNUNET_TIME_Absolute test_deadline;
+
+  /**
+   * ID of task used for asynchronous operations.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier task;
+
+  /**
+   * Final result to report back (once known).
+   */
+  int result;
+};
+
+
+/**
+ * Abort testing for service.
+ *
+ * @param th test handle
+ */
+void
+GNUNET_CLIENT_service_test_cancel (struct GNUNET_CLIENT_TestHandle *th)
+{
+  if (NULL != th->th)
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel (th->th);
+    th->th = NULL;
+  }
+  if (NULL != th->client)
+  {
+    GNUNET_CLIENT_disconnect (th->client);
+    th->client = NULL;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != th->task)
+  {
+    GNUNET_SCHEDULER_cancel (th->task);
+    th->task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  GNUNET_free (th);
+}
+
+
+/**
+ * Task that reports back the result by calling the callback
+ * and then cleans up.
+ *
+ * @param cls the 'struct GNUNET_CLIENT_TestHandle'
+ * @param tc scheduler context
  */
 static void
-service_test_error (GNUNET_SCHEDULER_Task task, void *task_cls)
+report_result (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_SCHEDULER_add_continuation (task, task_cls,
-                                     GNUNET_SCHEDULER_REASON_TIMEOUT);
+  struct GNUNET_CLIENT_TestHandle *th = cls;
+  
+  th->task = GNUNET_SCHEDULER_NO_TASK;
+  th->cb (th->cb_cls, th->result);
+  GNUNET_CLIENT_service_test_cancel (th);
+}
+
+
+/**
+ * Report service test result asynchronously back to callback.
+ *
+ * @param th test handle with the result and the callback
+ * @param result result to report
+ */
+static void
+service_test_report (struct GNUNET_CLIENT_TestHandle *th,
+		     int result)
+{
+  th->result = result;
+  th->task = GNUNET_SCHEDULER_add_now (&report_result,
+				       th);				       
 }
 
 
 /**
  * Receive confirmation from test, service is up.
  *
- * @param cls closure
+ * @param cls closure with the 'struct GNUNET_CLIENT_TestHandle'
  * @param msg message received, NULL on timeout or fatal error
  */
 static void
 confirm_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
-  struct GNUNET_CLIENT_Connection *client = cls;
+  struct GNUNET_CLIENT_TestHandle *th = cls;
 
   /* We may want to consider looking at the reply in more
    * detail in the future, for example, is this the
@@ -667,14 +745,12 @@ confirm_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received confirmation that service is running.\n");
-    GNUNET_SCHEDULER_add_continuation (client->test_cb, client->test_cb_cls,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    service_test_report (th, GNUNET_YES);
   }
   else
   {
-    service_test_error (client->test_cb, client->test_cb_cls);
+    service_test_report (th, GNUNET_NO);
   }
-  GNUNET_CLIENT_disconnect (client);
 }
 
 
@@ -682,7 +758,7 @@ confirm_handler (void *cls, const struct GNUNET_MessageHeader *msg)
  * Send the 'TEST' message to the service.  If successful, prepare to
  * receive the reply.
  *
- * @param cls the 'struct GNUNET_CLIENT_Connection' of the connection to test
+ * @param cls the 'struct GNUNET_CLIENT_TestHandle' of the test
  * @param size number of bytes available in buf
  * @param buf where to write the message
  * @return number of bytes written to buf
@@ -690,52 +766,61 @@ confirm_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 static size_t
 write_test (void *cls, size_t size, void *buf)
 {
-  struct GNUNET_CLIENT_Connection *client = cls;
+  struct GNUNET_CLIENT_TestHandle *th = cls;
   struct GNUNET_MessageHeader *msg;
 
+  th->th = NULL;
   if (size < sizeof (struct GNUNET_MessageHeader))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, _("Failure to transmit TEST request.\n"));
-    service_test_error (client->test_cb, client->test_cb_cls);
-    GNUNET_CLIENT_disconnect (client);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Failed to transmit TEST request.\n");
+    service_test_report (th, GNUNET_NO);
     return 0;                   /* client disconnected */
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Transmitting `%s' request.\n", "TEST");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "Transmitting `%s' request.\n", 
+       "TEST");
   msg = (struct GNUNET_MessageHeader *) buf;
   msg->type = htons (GNUNET_MESSAGE_TYPE_TEST);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
-  GNUNET_CLIENT_receive (client, &confirm_handler, client,
+  GNUNET_CLIENT_receive (th->client, 
+			 &confirm_handler, th,
                          GNUNET_TIME_absolute_get_remaining
-                         (client->test_deadline));
+                         (th->test_deadline));
   return sizeof (struct GNUNET_MessageHeader);
 }
 
 
 /**
- * Test if the service is running.  If we are given a UNIXPATH or a local address,
- * we do this NOT by trying to connect to the service, but by trying to BIND to
- * the same port.  If the BIND fails, we know the service is running.
+ * Test if the service is running.  If we are given a UNIXPATH or a
+ * local address, we do this NOT by trying to connect to the service,
+ * but by trying to BIND to the same port.  If the BIND fails, we know
+ * the service is running.
  *
  * @param service name of the service to wait for
  * @param cfg configuration to use
  * @param timeout how long to wait at most
- * @param task task to run if service is running
- *        (reason will be "PREREQ_DONE" (service running)
- *         or "TIMEOUT" (service not known to be running))
- * @param task_cls closure for task
+ * @param cb function to call with the result
+ * @param cb_cls closure for 'cb'
+ * @return handle to cancel the test
  */
-void
+struct GNUNET_CLIENT_TestHandle *
 GNUNET_CLIENT_service_test (const char *service,
                             const struct GNUNET_CONFIGURATION_Handle *cfg,
                             struct GNUNET_TIME_Relative timeout,
-                            GNUNET_SCHEDULER_Task task, void *task_cls)
+                            GNUNET_CLIENT_TestResultCallback cb, void *cb_cls)
 {
+  struct GNUNET_CLIENT_TestHandle *th;
   char *hostname;
   unsigned long long port;
   struct GNUNET_NETWORK_Handle *sock;
-  struct GNUNET_CLIENT_Connection *client;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Testing if service `%s' is running.\n",
+  th = GNUNET_new (struct GNUNET_CLIENT_TestHandle);
+  th->cb = cb;
+  th->cb_cls = cb_cls;
+  th->test_deadline = GNUNET_TIME_relative_to_absolute (timeout);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "Testing if service `%s' is running.\n",
        service);
 #ifdef AF_UNIX
   {
@@ -783,9 +868,8 @@ GNUNET_CLIENT_service_test (const char *service,
 	  /* failed to bind => service must be running */
 	  GNUNET_free (unixpath);
 	  (void) GNUNET_NETWORK_socket_close (sock);
-	  GNUNET_SCHEDULER_add_continuation (task, task_cls,
-					     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-	  return;
+	  service_test_report (th, GNUNET_YES);
+	  return th;
 	}
 	(void) GNUNET_NETWORK_socket_close (sock);        
         /* let's try IP */
@@ -804,8 +888,8 @@ GNUNET_CLIENT_service_test (const char *service,
                                               &hostname)))
   {
     /* UNIXPATH failed (if possible) AND IP failed => error */
-    service_test_error (task, task_cls);
-    return;
+    service_test_report (th, GNUNET_SYSERR);
+    return th;
   }
 
   if (0 == strcmp ("localhost", hostname)
@@ -834,9 +918,8 @@ GNUNET_CLIENT_service_test (const char *service,
         /* failed to bind => service must be running */
         GNUNET_free (hostname);
         (void) GNUNET_NETWORK_socket_close (sock);
-        GNUNET_SCHEDULER_add_continuation (task, task_cls,
-                                           GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-        return;
+        service_test_report (th, GNUNET_YES);
+        return th;
       }
       (void) GNUNET_NETWORK_socket_close (sock);
     }
@@ -868,9 +951,8 @@ GNUNET_CLIENT_service_test (const char *service,
         /* failed to bind => service must be running */
         GNUNET_free (hostname);
         (void) GNUNET_NETWORK_socket_close (sock);
-        GNUNET_SCHEDULER_add_continuation (task, task_cls,
-                                           GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-        return;
+        service_test_report (th, GNUNET_YES);
+        return th;
       }
       (void) GNUNET_NETWORK_socket_close (sock);
     }
@@ -885,35 +967,33 @@ GNUNET_CLIENT_service_test (const char *service,
   {
     /* all binds succeeded => claim service not running right now */
     GNUNET_free_non_null (hostname);
-    service_test_error (task, task_cls);
-    return;
+    service_test_report (th, GNUNET_NO);
+    return th;
   }
   GNUNET_free_non_null (hostname);
 
   /* non-localhost, try 'connect' method */
-  client = GNUNET_CLIENT_connect (service, cfg);
-  if (NULL == client)
+  th->client = GNUNET_CLIENT_connect (service, cfg);
+  if (NULL == th->client)
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
-         _("Could not connect to service `%s', must not be running.\n"),
+         _("Could not connect to service `%s', configuration broken.\n"),
          service);
-    service_test_error (task, task_cls);
-    return;
+    service_test_report (th, GNUNET_SYSERR);
+    return th;
   }
-  client->test_cb = task;
-  client->test_cb_cls = task_cls;
-  client->test_deadline = GNUNET_TIME_relative_to_absolute (timeout);
-  if (NULL == GNUNET_CLIENT_notify_transmit_ready (client,
-						   sizeof (struct GNUNET_MessageHeader),
-						   timeout, GNUNET_YES, &write_test,
-						   client))
+  th->th = GNUNET_CLIENT_notify_transmit_ready (th->client,
+						sizeof (struct GNUNET_MessageHeader),
+						timeout, GNUNET_YES,
+						&write_test, th);
+  if (NULL == th->th)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          _("Failure to transmit request to service `%s'\n"), service);
-    service_test_error (task, task_cls);
-    GNUNET_CLIENT_disconnect (client);
-    return;
+    service_test_report (th, GNUNET_SYSERR);
+    return th;
   }
+  return th;
 }
 
 
@@ -1244,7 +1324,6 @@ GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection *client
   client->tag = tc;
   return GNUNET_OK;
 }
-
 
 
 /*  end of client.c */

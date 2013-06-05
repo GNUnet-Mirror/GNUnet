@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2004, 2005, 2006, 2007, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009--2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -80,14 +80,14 @@ static int op_print_quotas;
 static int op_monitor;
 
 
-
 static struct GNUNET_ATS_PerformanceHandle *ph;
 
-struct GNUNET_ATS_AddressListHandle *alh;
+static struct GNUNET_ATS_AddressListHandle *alh;
 
 static struct GNUNET_CONFIGURATION_Handle *cfg;
 
-GNUNET_SCHEDULER_TaskIdentifier end_task;
+static GNUNET_SCHEDULER_TaskIdentifier end_task;
+
 
 struct PendingResolutions
 {
@@ -104,11 +104,15 @@ struct PendingResolutions
   struct GNUNET_TRANSPORT_AddressToStringContext * tats_ctx;
 };
 
-struct PendingResolutions *head;
-struct PendingResolutions *tail;
 
-void end (void *cls,
-          const struct GNUNET_SCHEDULER_TaskContext *tc)
+static struct PendingResolutions *head;
+
+static struct PendingResolutions *tail;
+
+
+static void 
+end (void *cls,
+     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PendingResolutions * pr;
   struct PendingResolutions * next;
@@ -145,7 +149,8 @@ void end (void *cls,
 }
 
 
-void transport_addr_to_str_cb (void *cls, const char *address)
+static void 
+transport_addr_to_str_cb (void *cls, const char *address)
 {
   struct PendingResolutions * pr = cls;
   char *ats_str;
@@ -156,11 +161,10 @@ void transport_addr_to_str_cb (void *cls, const char *address)
   uint32_t ats_type;
   uint32_t ats_value;
   uint32_t network;
+
   if (NULL != address)
   {
     ats_str = GNUNET_strdup("");
-
-
     for (c = 0; c < pr->ats_count; c++)
     {
         ats_tmp = ats_str;
@@ -220,16 +224,17 @@ void transport_addr_to_str_cb (void *cls, const char *address)
   }
 }
 
-void ats_perf_cb (void *cls,
-									const struct GNUNET_HELLO_Address *address,
-									int active,
-									struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-									struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-									const struct GNUNET_ATS_Information *ats,
-									uint32_t ats_count)
+
+static void 
+ats_perf_cb (void *cls,
+	     const struct GNUNET_HELLO_Address *address,
+	     int active,
+	     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+	     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+	     const struct GNUNET_ATS_Information *ats,
+	     uint32_t ats_count)
 {
   struct PendingResolutions * pr;
-
 
   if (NULL != address)
   {
@@ -325,30 +330,30 @@ print_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg)
 }
 
 
-
-void testservice_ats (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+static void
+testservice_ats (void *cls,
+		 int result)
 {
-  struct GNUNET_PeerIdentity pid;
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+  struct GNUNET_PeerIdentity pid;
   unsigned int c;
   unsigned int type;
 
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
+  if (GNUNET_YES != result)
   {
-      FPRINTF (stderr, _("Service `%s' is not running\n"), "ats");
-      return;
+    FPRINTF (stderr, _("Service `%s' is not running\n"), "ats");
+    return;
   }
 
   results = 0;
 
   if (NULL != pid_str)
   {
-      if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (pid_str, &pid.hashPubKey))
-      {
-        FPRINTF (stderr, _("Failed to parse peer identity `%s'\n"), pid_str);
-        return;
-      }
+    if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (pid_str, &pid.hashPubKey))
+    {
+      FPRINTF (stderr, _("Failed to parse peer identity `%s'\n"), pid_str);
+      return;
+    }
   }
 
   c = op_list_all + op_list_used + op_monitor + op_set_pref;

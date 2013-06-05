@@ -326,12 +326,20 @@ display_record (void *cls,
   GNUNET_NAMESTORE_zone_iterator_next (list_it);
 }
 
+
+/**
+ * Function called with the result of the ECC key generation.
+ *
+ * @param cls our configuration
+ * @param pk our private key, NULL on failure
+ * @param emsg NULL on success, otherwise error message
+ */
 static void
 key_generation_cb (void *cls,
                    struct GNUNET_CRYPTO_EccPrivateKey *pk,
                    const char *emsg)
 {
-  struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+  const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pub;
   uint32_t type;
   void *data = NULL;
@@ -599,19 +607,26 @@ key_generation_cb (void *cls,
 }
 
 
+/**
+ * Function called with the result from the check if the namestore
+ * service is actually running.  If it is, we start the actual
+ * operation.
+ *
+ * @param cls closure with our configuration
+ * @param result GNUNET_YES if the namestore service is running
+ */
 static void
 testservice_task (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+                  int result)
 {
-  struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+  const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
 
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
+  if (GNUNET_YES != result)
   {
-      FPRINTF (stderr, _("Service `%s' is not running\n"), "namestore");
-      return;
+    FPRINTF (stderr, _("Service `%s' is not running\n"), 
+	     "namestore");
+    return;
   }
-
-
   if (NULL == keyfile)
   {
     if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
@@ -625,7 +640,8 @@ testservice_task (void *cls,
              _("Using default zone file `%s'\n"),
              keyfile);
   }
-  keygen = GNUNET_CRYPTO_ecc_key_create_start (keyfile, key_generation_cb, cfg);
+  keygen = GNUNET_CRYPTO_ecc_key_create_start (keyfile,
+					       &key_generation_cb, (void *) cfg);
   GNUNET_free (keyfile);
   keyfile = NULL;
   if (NULL == keygen)
@@ -653,9 +669,9 @@ run (void *cls, char *const *args, const char *cfgfile,
     uri = GNUNET_strdup (args[0]);
 
   GNUNET_CLIENT_service_test ("namestore", cfg,
-      GNUNET_TIME_UNIT_SECONDS,
-      &testservice_task,
-      (void *) cfg);
+			      GNUNET_TIME_UNIT_SECONDS,
+			      &testservice_task,
+			      (void *) cfg);
 }
 
 

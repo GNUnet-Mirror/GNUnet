@@ -1106,7 +1106,7 @@ GNUNET_CRYPTO_rsa_key_get_public (const struct GNUNET_CRYPTO_RsaPrivateKey
  */
 void
 GNUNET_CRYPTO_rsa_get_public_key_hash (struct GNUNET_CRYPTO_RsaPrivateKey *key,
-    struct GNUNET_HashCode *id);
+				       struct GNUNET_HashCode *id);
 
 
 /**

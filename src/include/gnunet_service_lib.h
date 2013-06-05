@@ -119,8 +119,8 @@ enum GNUNET_SERVICE_Options
  */
 int
 GNUNET_SERVICE_run (int argc, char *const *argv, const char *service_name,
-                    enum GNUNET_SERVICE_Options options, GNUNET_SERVICE_Main task,
-                    void *task_cls);
+                    enum GNUNET_SERVICE_Options options, 
+		    GNUNET_SERVICE_Main task, void *task_cls);
 
 
 /**

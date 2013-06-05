@@ -1,10 +1,10 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -190,21 +190,49 @@ GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection *client
 
 
 /**
- * Wait until the service is running.
+ * Handle for a test to check if a service is running.
+ */
+struct GNUNET_CLIENT_TestHandle;
+
+/**
+ * Function called with the result on the service test.
+ *
+ * @param cls closure
+ * @param result GNUNET_YES if the service is running,
+ *               GNUNET_NO if the service is not running
+ *               GNUNET_SYSERR if the configuration is invalid
+ */
+typedef void (*GNUNET_CLIENT_TestResultCallback)(void *cls,
+						 int result);
+
+
+/**
+ * Test if the service is running.  If we are given a UNIXPATH or a
+ * local address, we do this NOT by trying to connect to the service,
+ * but by trying to BIND to the same port.  If the BIND fails, we know
+ * the service is running.
  *
  * @param service name of the service to wait for
  * @param cfg configuration to use
  * @param timeout how long to wait at most in ms
- * @param task task to run if service is running
- *        (reason will be "PREREQ_DONE" (service running)
- *         or "TIMEOUT" (service not known to be running))
- * @param task_cls closure for task
+ * @param cb function to call with the result
+ * @param cb_cls closure for 'cb'
+ * @return handle to cancel the test
  */
-void
+struct GNUNET_CLIENT_TestHandle *
 GNUNET_CLIENT_service_test (const char *service,
                             const struct GNUNET_CONFIGURATION_Handle *cfg,
                             struct GNUNET_TIME_Relative timeout,
-                            GNUNET_SCHEDULER_Task task, void *task_cls);
+                            GNUNET_CLIENT_TestResultCallback cb, void *cb_cls);
+
+
+/**
+ * Abort testing for service.
+ *
+ * @param th test handle
+ */
+void
+GNUNET_CLIENT_service_test_cancel (struct GNUNET_CLIENT_TestHandle *th);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

@@ -3478,6 +3478,7 @@ GNUNET_REGEX_iterate_all_edges (struct GNUNET_REGEX_Automaton *a,
                         NULL, a->start, iterator, iterator_cls);
 }
 
+
 /**
  * Create a string with binary IP notation for the given 'addr' in 'str'.
  *

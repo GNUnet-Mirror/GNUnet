@@ -792,23 +792,32 @@ void try_connect_cb (void *cls,
 }
 
 
+/**
+ * Function called with the result of the check if the 'transport'
+ * service is running.
+ *
+ * @param cls closure with our configuration
+ * @param result GNUNET_YES if transport is running
+ */
 static void
 testservice_task (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+                  int result)
 {
   int counter = 0;
   ret = 1;
 
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
+  if (GNUNET_YES != result)
   {
-      FPRINTF (stderr, _("Service `%s' is not running\n"), "transport");
-      return;
+    FPRINTF (stderr, 
+	     _("Service `%s' is not running\n"), "transport");
+    return;
   }
 
-  if ((NULL != cpid) && (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (cpid, &pid.hashPubKey)))
+  if ( (NULL != cpid) && 
+       (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (cpid, &pid.hashPubKey)))
   {
-      FPRINTF (stderr, _("Failed to parse peer identity `%s'\n"), cpid);
-      return;
+    FPRINTF (stderr, _("Failed to parse peer identity `%s'\n"), cpid);
+    return;
   }
 
   counter = benchmark_send + benchmark_receive + iterate_connections +
@@ -970,11 +979,10 @@ run (void *cls, char *const *args, const char *cfgfile,
     do_test_configuration (cfg);
     return;
   }
-
   GNUNET_CLIENT_service_test ("transport", cfg,
-      GNUNET_TIME_UNIT_SECONDS,
-      &testservice_task,
-      (void *) cfg);
+			      GNUNET_TIME_UNIT_SECONDS,
+			      &testservice_task,
+			      (void *) cfg);
 }
 
 

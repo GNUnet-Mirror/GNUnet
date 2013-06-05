@@ -489,7 +489,7 @@ announce_regex (const char *regex)
  * @return GNUNET_OK to continue to iterate,
  *  GNUNET_SYSERR to abort iteration with error!
  */
-int
+static int
 policy_filename_cb (void *cls, const char *filename)
 {
   char *regex;

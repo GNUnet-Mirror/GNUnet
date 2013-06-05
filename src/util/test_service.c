@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -20,6 +20,7 @@
 /**
  * @file util/test_service.c
  * @brief tests for service.c
+ * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_common.h"
@@ -33,6 +34,9 @@
 
 #define PORT 12435
 
+/**
+ * Message type we use for testing.
+ */
 #define MY_TYPE 256
 
 static struct GNUNET_SERVICE_Context *sctx;
@@ -40,8 +44,6 @@ static struct GNUNET_SERVICE_Context *sctx;
 static int ok = 1;
 
 static struct GNUNET_CLIENT_Connection *client;
-
-
 
 
 static void
@@ -87,11 +89,12 @@ build_msg (void *cls, size_t size, void *buf)
 
 
 static void
-ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+ready (void *cls,
+       int result)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
 
-  GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
+  GNUNET_assert (GNUNET_YES == result);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service confirmed running\n");
   client = GNUNET_CLIENT_connect ("test_service", cfg);
   GNUNET_assert (client != NULL);
@@ -108,8 +111,7 @@ static void
 recv_cb (void *cls, struct GNUNET_SERVER_Client *sc,
          const struct GNUNET_MessageHeader *message)
 {
-  if (NULL == message)
-    return;
+  GNUNET_assert (NULL != message);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving client message...\n");
   GNUNET_SERVER_receive_done (sc, GNUNET_OK);
   GNUNET_SCHEDULER_add_now (&do_stop, NULL);
@@ -156,13 +158,15 @@ check ()
   return ok;
 }
 
+
 static void
-ready6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+ready6 (void *cls, 
+	int result)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "V6 ready\n");
-  GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
+  GNUNET_assert (GNUNET_YES == result);
   client = GNUNET_CLIENT_connect ("test_service6", cfg);
   GNUNET_assert (client != NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "V6 client connected\n");
@@ -171,6 +175,7 @@ ready6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                        GNUNET_TIME_UNIT_SECONDS, GNUNET_NO,
                                        &build_msg, NULL);
 }
+
 
 static void
 runner6 (void *cls, struct GNUNET_SERVER_Handle *server,
@@ -181,6 +186,7 @@ runner6 (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_CLIENT_service_test ("test_service6", cfg, GNUNET_TIME_UNIT_SECONDS,
                               &ready6, (void *) cfg);
 }
+
 
 /**
  * Main method, starts scheduler with task1,
@@ -203,7 +209,6 @@ check6 ()
   GNUNET_assert (0 == ok);
   return ok;
 }
-
 
 
 static void
