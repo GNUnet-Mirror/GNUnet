@@ -377,12 +377,12 @@ message_ready_size (struct GNUNET_MESH_Handle *h)
     t = th->tunnel;
     if (GNUNET_NO == th_is_payload (th))
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  message internal\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "#  message internal\n");
       return th->size;
     }
     if (GNUNET_NO == GMC_is_pid_bigger(t->next_send_pid, t->max_send_pid))
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  message payload ok (%u <= %u)\n",
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "#  message payload ok (%u <= %u)\n",
            t->next_send_pid, t->max_send_pid);
       return th->size;
     }
@@ -818,7 +818,7 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
     t->mesh = h;
     t->tid = tid;
     t->port = ntohl (msg->port);
-    if ((msg->opt & MESH_TUNNEL_OPT_NOBUFFER) != 0)
+    if (0 != (msg->opt & MESH_TUNNEL_OPT_NOBUFFER))
       t->buffering = GNUNET_NO;
     else
       t->buffering = GNUNET_YES;
@@ -1188,10 +1188,10 @@ send_callback (void *cls, size_t size, void *buf)
   size_t nsize;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Send packet() Buffer %u\n", size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "# Send packet() Buffer %u\n", size);
   if ((0 == size) || (NULL == buf))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Received NULL send callback on %p\n", h);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "# Received NULL send callback on %p\n", h);
     reconnect (h);
     h->th = NULL;
     return 0;
@@ -1204,7 +1204,7 @@ send_callback (void *cls, size_t size, void *buf)
     t = th->tunnel;
     if (GNUNET_YES == th_is_payload (th))
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, " payload\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "#  payload\n");
       if (GNUNET_YES == GMC_is_pid_bigger(t->next_send_pid, t->max_send_pid))
       {
         /* This tunnel is not ready to transmit yet, try next message */
@@ -1221,7 +1221,7 @@ send_callback (void *cls, size_t size, void *buf)
         GNUNET_assert (size >= th->size);
         mh = (struct GNUNET_MessageHeader *) &cbuf[sizeof (to)];
         psize = th->notify (th->notify_cls, size - sizeof (to), mh);
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "  to origin, type %s\n",
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "#  to origin, type %s\n",
              GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
         if (psize > 0)
         {
@@ -1245,7 +1245,7 @@ send_callback (void *cls, size_t size, void *buf)
         GNUNET_assert (size >= th->size);
         mh = (struct GNUNET_MessageHeader *) &cbuf[sizeof (uc)];
         psize = th->notify (th->notify_cls, size - sizeof (uc), mh);
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "  unicast, type %s\n",
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "#  unicast, type %s\n",
              GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
         if (psize > 0)
         {
@@ -1265,7 +1265,7 @@ send_callback (void *cls, size_t size, void *buf)
     {
       struct GNUNET_MessageHeader *mh = (struct GNUNET_MessageHeader *) &th[1];
 
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  mesh traffic, type %s\n",
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "#  mesh traffic, type %s\n",
            GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
       memcpy (cbuf, &th[1], th->size);
       psize = th->size;
@@ -1280,12 +1280,12 @@ send_callback (void *cls, size_t size, void *buf)
     size -= psize;
     tsize += psize;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  total size: %u\n", tsize);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "#  total size: %u\n", tsize);
   h->th = NULL;
   size = message_ready_size (h);
   if (0 != size)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  next size: %u\n", size);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "#  next size: %u\n", size);
     h->th =
         GNUNET_CLIENT_notify_transmit_ready (h->client, size,
                                              GNUNET_TIME_UNIT_FOREVER_REL,
@@ -1294,18 +1294,18 @@ send_callback (void *cls, size_t size, void *buf)
   else
   {
     if (NULL != h->th_head)
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  can't transmit any more\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "#  can't transmit any more\n");
     else
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  nothing left to transmit\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "#  nothing left to transmit\n");
   }
   if (GNUNET_NO == h->in_receive)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " start receiving from service\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "# start receiving from service\n");
     h->in_receive = GNUNET_YES;
     GNUNET_CLIENT_receive (h->client, &msg_received, h,
                            GNUNET_TIME_UNIT_FOREVER_REL);
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Send packet() END\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "# Send packet() END\n");
   return tsize;
 }
 
