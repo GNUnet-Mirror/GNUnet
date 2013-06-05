@@ -125,7 +125,7 @@ struct GNUNET_MESH_Handle
   /**
    * Ports open.
    */
-  uint32_t *ports;
+  const uint32_t *ports;
 
   /**
    * Number of ports.
@@ -1356,7 +1356,7 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
                      GNUNET_MESH_InboundTunnelNotificationHandler new_tunnel,
                      GNUNET_MESH_TunnelEndHandler cleaner,
                      const struct GNUNET_MESH_MessageHandler *handlers,
-                     uint32_t *ports)
+                     const uint32_t *ports)
 {
   struct GNUNET_MESH_Handle *h;
 
