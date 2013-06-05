@@ -1257,6 +1257,7 @@ send_callback (void *cls, size_t size, void *buf)
           uc.pid = htonl (t->next_send_pid);
           uc.ttl = 0;
           memset (&uc.oid, 0, sizeof (struct GNUNET_PeerIdentity));
+          memcpy (cbuf, &uc, sizeof (uc));
         }
       }
       t->next_send_pid++;
