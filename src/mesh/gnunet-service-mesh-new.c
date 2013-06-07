@@ -1500,6 +1500,30 @@ peer_info_add_path_to_origin (struct MeshPeerInfo *peer_info,
 }
 
 
+
+/**
+ * Remove a tunnel from the list of tunnels a peer participates in.
+ * 
+ * @param p Peer to clean.
+ * @param t Tunnel to remove.
+ */
+static void
+peer_info_remove_tunnel (struct MeshPeerInfo *p, struct MeshTunnel *t)
+{
+  unsigned int i;
+
+  for (i = 0; i < p->ntunnels; i++)
+  {
+    if (p->tunnels[i] == t)
+    {
+      p->tunnels[i] = p->tunnels[p->ntunnels - 1];
+      GNUNET_array_grow (p->tunnels, p->ntunnels, p->ntunnels - 1);
+      return;
+    }
+  }
+}
+
+
 /**
  * Function called if the connection to the peer has been stalled for a while,
  * possibly due to a missed ACK. Poll the peer about its ACK status.
@@ -2401,9 +2425,12 @@ tunnel_destroy_iterator (void *cls,
   }
   else if (c == t->owner)
   {
+    struct MeshPeerInfo *p;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Client %u is owner.\n", c->id);
     t->owner = NULL;
     t->prev_hop = 0;
+    p = peer_get_short(t->dest);
+    peer_info_remove_tunnel (p, t);
   }
   else
   {
