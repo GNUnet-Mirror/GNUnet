@@ -1789,11 +1789,6 @@ tunnel_add_client (struct MeshTunnel *t, struct MeshClient *c)
     GNUNET_break(0);
     return;
   }
-  if (0 != t->next_hop)
-  {
-    GNUNET_break(0);
-    return;
-  }
   GMC_hash32 (t->local_tid_dest, &hash);
   if (GNUNET_OK !=
       GNUNET_CONTAINER_multihashmap_put (c->incoming_tunnels, &hash, t,
