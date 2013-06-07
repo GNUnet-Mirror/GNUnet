@@ -138,7 +138,7 @@ inbound_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test: received incoming tunnel on peer %d, port %u\n",
               id, port);
-  if (id != 1L)
+  if (id != 2L)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "test: wrong peer\n");
@@ -161,13 +161,13 @@ static void
 inbound_end (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
              void *tunnel_ctx)
 {
-  unsigned int id = *(unsigned int *) cls;
+  long id = (long) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: incoming tunnel closed\n");
-  if (id != 1)
+  if (id != 2)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "test: received closing tunnel on peer 2\n");
+                "test: received closing tunnel on peer != 2\n");
     result = GNUNET_SYSERR;
   }
 }
