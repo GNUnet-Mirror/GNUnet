@@ -1315,17 +1315,15 @@ GAS_proportional_address_add (void *solver,
 							uint32_t network);
 
 /**
- * Updates a single address in the solver
- *
- * If ATS information was updated, the previous values are passed
+ * Updates a single address in the solver and checks previous values
  *
  * @param solver the solver Handle
  * @param addresses the address hashmap containing all addresses
  * @param address the update address
- * @param session the new session (if changed otherwise current)
- * @param in_use the new address in use state (if changed otherwise current)
- * @param prev_ats  ATS information
- * @param prev_atsi_count the atsi count
+ * @param session the previous session
+ * @param in_use the previous address in use state
+ * @param prev_ats previous ATS information
+ * @param prev_atsi_count the previous atsi count
  */
 void
 GAS_proportional_address_update (void *solver,
@@ -1433,14 +1431,12 @@ GAS_proportional_address_update (void *solver,
   if (address->session_id != session)
   {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "Session changed from %u to %u\n", address->session_id, session);
-      address->session_id = session;
+                  "Session changed from %u to %u\n", session, address->session_id);
   }
   if (address->used != in_use)
   {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "Usage changed from %u to %u\n", address->used, in_use);
-      address->used = in_use;
+                  "Usage changed from %u to %u\n", in_use, address->used);
   }
 
 }

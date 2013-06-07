@@ -878,7 +878,6 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
   uint32_t atsi_delta_count;
   uint32_t prev_session;
 
-
   if (GNUNET_NO == handle->running)
     return;
 
@@ -916,6 +915,7 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
   }
   prev_session = aa->session_id;
   aa->session_id = session_id;
+
 
   /* Tell solver about update */
   handle->s_update (handle->solver, handle->addresses, aa, prev_session, aa->used, atsi_delta, atsi_delta_count);
@@ -1104,6 +1104,7 @@ GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
                       int in_use)
 {
   struct ATS_Address *ea;
+  int prev_inuse;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received `%s' for peer `%s'\n",
@@ -1138,8 +1139,10 @@ GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
   }
 
   /* Tell solver about update */
-  handle->s_update (handle->solver, handle->addresses, ea, session_id, in_use, NULL, 0);
+  prev_inuse = ea->used;
   ea->used = in_use;
+  handle->s_update (handle->solver, handle->addresses, ea, session_id, prev_inuse, NULL, 0);
+
 
   return GNUNET_OK;
 }

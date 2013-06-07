@@ -445,7 +445,7 @@ typedef void
  * @param addresses the address hashmap containing all addresses
  * @param address the address
  * @param session the previous session
- * @param in_use address used: yes or no
+ * @param in_use previous address used state: yes or no
  * @param atsi ats previous performance information
  * @param atsi_count previous number of ats performance information
  *
