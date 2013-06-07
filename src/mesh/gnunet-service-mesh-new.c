@@ -2074,6 +2074,72 @@ tunnel_send_bck_ack (struct MeshTunnel *t, uint16_t type)
 
 
 /**
+ * Modify the unicast message TID from global to local and send to client.
+ * 
+ * @param t Tunnel on which to send the message.
+ * @param msg Message to modify and send.
+ */
+static void
+tunnel_send_client_ucast (struct MeshTunnel *t,
+                          const struct GNUNET_MESH_Unicast *msg)
+{
+  struct GNUNET_MESH_Unicast *copy;
+  uint16_t size = ntohs (msg->header.size);
+  char cbuf[size];
+
+  if (size < sizeof (struct GNUNET_MESH_Unicast) +
+             sizeof (struct GNUNET_MessageHeader))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  if (NULL == t->client)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  copy = (struct GNUNET_MESH_Unicast *) cbuf;
+  memcpy (copy, msg, size);
+  copy->tid = htonl (t->local_tid_dest);
+  GNUNET_SERVER_notification_context_unicast (nc, t->client->handle,
+                                              &copy->header, GNUNET_NO);
+}
+
+
+/**
+ * Modify the to_origin  message TID from global to local and send to client.
+ * 
+ * @param t Tunnel on which to send the message.
+ * @param msg Message to modify and send.
+ */
+static void
+tunnel_send_client_to_orig (struct MeshTunnel *t,
+                            const struct GNUNET_MESH_ToOrigin *msg)
+{
+  struct GNUNET_MESH_ToOrigin *copy;
+  uint16_t size = ntohs (msg->header.size);
+  char cbuf[size];
+
+  if (size < sizeof (struct GNUNET_MESH_ToOrigin) +
+             sizeof (struct GNUNET_MessageHeader))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  if (NULL == t->owner)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  copy = (struct GNUNET_MESH_ToOrigin *) cbuf;
+  memcpy (cbuf, msg, size);
+  copy->tid = htonl (t->local_tid);
+  GNUNET_SERVER_notification_context_unicast (nc, t->owner->handle,
+                                              &copy->header, GNUNET_NO);
+}
+
+
+/**
  * @brief Re-initiate traffic to this peer if necessary.
  *
  * Check if there is traffic queued towards this peer
@@ -3347,16 +3413,11 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   tunnel_reset_timeout (t);
   if (t->dest == myid)
   {
-    if (NULL == t->client)
-    {
-      GNUNET_break (0);
-      return GNUNET_OK;
-    }
+    /* TODO signature verification */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  it's for us! sending to clients...\n");
     GNUNET_STATISTICS_update (stats, "# unicast received", 1, GNUNET_NO);
-    GNUNET_SERVER_notification_context_unicast (nc, t->client->handle,
-                                                message, GNUNET_NO);
+    tunnel_send_client_ucast (t, msg);
     tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST);
     return GNUNET_OK;
   }
@@ -3451,20 +3512,13 @@ handle_mesh_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               " pid %u not seen yet, forwarding\n", pid);
 
-  if (NULL != t->owner)
+  if (myid == t->id.oid)
   {
-    char cbuf[size];
-    struct GNUNET_MESH_ToOrigin *copy;
-
+    /* TODO signature verification */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  it's for us! sending to clients...\n");
-    /* TODO signature verification */
-    memcpy (cbuf, message, size);
-    copy = (struct GNUNET_MESH_ToOrigin *) cbuf;
-    copy->tid = htonl (t->local_tid);
     GNUNET_STATISTICS_update (stats, "# to origin received", 1, GNUNET_NO);
-    GNUNET_SERVER_notification_context_unicast (nc, t->owner->handle,
-                                                &copy->header, GNUNET_NO);
+    tunnel_send_client_to_orig (t, msg);
     tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
     return GNUNET_OK;
   }
