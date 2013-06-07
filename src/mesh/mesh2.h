@@ -38,9 +38,6 @@ extern "C"
 
 #define MESH_DEBUG              GNUNET_YES
 
-#define INITIAL_WINDOW_SIZE     8
-#define ACK_THRESHOLD           INITIAL_WINDOW_SIZE / 2
-
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_util_lib.h"
