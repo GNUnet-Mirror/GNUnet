@@ -185,8 +185,10 @@ static struct GNUNET_MESH_MessageHandler handlers1[] = {
 /**
  * Handler array for traffic received on peer2 (none expected)
  */
-static struct GNUNET_MESH_MessageHandler handlers2[] = { {NULL, 0, 0} };
-
+static struct GNUNET_MESH_MessageHandler handlers2[] = {
+  {&data_callback, 1, 0},
+  {NULL, 0, 0}
+};
 
 static size_t
 do_send (void *cls, size_t size, void *buf)
