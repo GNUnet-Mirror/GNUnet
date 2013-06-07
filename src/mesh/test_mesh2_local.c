@@ -193,6 +193,12 @@ do_send (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MessageHeader *m = buf;
 
+  if (NULL == buf)
+  {
+    GNUNET_break (0);
+    result = GNUNET_SYSERR;
+    return 0;
+  }
   m->size = htons (sizeof (struct GNUNET_MessageHeader));
   m->type = htons (1);
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
