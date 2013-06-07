@@ -2211,6 +2211,7 @@ tunnel_destroy (struct MeshTunnel *t)
 
   if (NULL != t->client)
   {
+    c = t->client;
     GMC_hash32 (t->local_tid_dest, &hash);
     if (GNUNET_YES !=
           GNUNET_CONTAINER_multihashmap_remove (c->incoming_tunnels, &hash, t))
@@ -2506,7 +2507,7 @@ send_core_path_ack (void *cls, size_t size, void *buf)
     GNUNET_break (0);
     return 0;
   }
-  t->prev_fc.last_ack_sent = t->nobuffer ? 0 : INITIAL_WINDOW_SIZE - 1;
+  t->prev_fc.last_ack_sent = t->nobuffer ? 0 : t->queue_max - 1;
   msg->header.size = htons (sizeof (struct GNUNET_MESH_PathACK));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_ACK);
   GNUNET_PEER_resolve (t->id.oid, &msg->oid);
