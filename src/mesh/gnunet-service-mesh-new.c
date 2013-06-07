@@ -2118,7 +2118,7 @@ tunnel_send_destroy (struct MeshTunnel *t)
               "  sending tunnel destroy for tunnel: %s [%X]\n",
               GNUNET_i2s (&msg.oid), t->id.tid);
 
-  if (NULL == t->client)
+  if (NULL == t->client && 0 != t->next_hop)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  child: %u\n", t->next_hop);
     GNUNET_PEER_resolve (t->next_hop, &id);
@@ -2127,7 +2127,7 @@ tunnel_send_destroy (struct MeshTunnel *t)
                 GNUNET_i2s (&id));
     send_prebuilt_message (&msg.header, t->next_hop, t);
   }
-  if (NULL == t->owner)
+  if (NULL == t->owner && 0 != t->prev_hop)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  parent: %u\n", t->prev_hop);
     GNUNET_PEER_resolve (t->prev_hop, &id);
@@ -2397,11 +2397,13 @@ tunnel_destroy_iterator (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Client %u is destination.\n", c->id);
     t->client = NULL;
+    t->next_hop = 0;
   }
   else if (c == t->owner)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Client %u is owner.\n", c->id);
     t->owner = NULL;
+    t->prev_hop = 0;
   }
   else
   {
