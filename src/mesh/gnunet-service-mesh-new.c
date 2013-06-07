@@ -2276,6 +2276,7 @@ tunnel_destroy (struct MeshTunnel *t)
 
   n_tunnels--;
   GNUNET_STATISTICS_update (stats, "# tunnels", -1, GNUNET_NO);
+  path_destroy (t->path);
   GNUNET_free (t);
   return r;
 }
