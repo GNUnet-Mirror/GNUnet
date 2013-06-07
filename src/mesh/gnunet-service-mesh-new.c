@@ -2371,7 +2371,8 @@ tunnel_destroy_iterator (void *cls,
   struct MeshTunnel *t = value;
   struct MeshClient *c = cls;
 
-  send_client_tunnel_destroy (t);
+  if (GNUNET_NO == c->shutting_down)
+    send_client_tunnel_destroy (t);
   if (c != t->owner)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %u is destination.\n", c->id);
