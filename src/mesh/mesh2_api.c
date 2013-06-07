@@ -41,6 +41,11 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "mesh2-api",__VA_ARGS__)
 
+/* FIXME: use dynamic values, expose in API */
+#define INITIAL_WINDOW_SIZE 4
+#define ACK_THRESHOLD 2
+/* FIXME END */
+
 #define DEBUG_ACK GNUNET_YES
 
 /******************************************************************************/
@@ -300,24 +305,24 @@ struct GNUNET_MESH_Tunnel
   int buffering;
 
     /**
-     * Next packet ID to send.
+     * Maximum allowed PID to send (last ACK recevied).
      */
-  uint32_t next_send_pid;
+  uint32_t last_ack_recv;
 
     /**
-     * Maximum allowed PID to send (ACK recevied).
+     * Last PID received from the service.
      */
-  uint32_t max_send_pid;
-
-    /**
-     * Last pid received from the service.
-     */
-  uint32_t last_recv_pid;
+  uint32_t last_pid_recv;
 
   /**
-   * Which ACK value have we last sent to the service?
+   * Last packet ID sent to the service.
    */
-  uint32_t max_recv_pid;
+  uint32_t last_pid_sent;
+
+  /**
+   * Last ACK value sent to the service: how much are we willing to accept?
+   */
+  uint32_t last_ack_sent;
 };
 
 
@@ -380,10 +385,10 @@ message_ready_size (struct GNUNET_MESH_Handle *h)
       LOG (GNUNET_ERROR_TYPE_DEBUG, "#  message internal\n");
       return th->size;
     }
-    if (GNUNET_NO == GMC_is_pid_bigger(t->next_send_pid, t->max_send_pid))
+    if (GNUNET_YES == GMC_is_pid_bigger(t->last_ack_recv, t->last_pid_sent))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "#  message payload ok (%u <= %u)\n",
-           t->next_send_pid, t->max_send_pid);
+           t->last_pid_sent, t->last_ack_recv);
       return th->size;
     }
   }
@@ -441,8 +446,8 @@ create_tunnel (struct GNUNET_MESH_Handle *h, MESH_TunnelNumber tid)
   {
     t->tid = tid;
   }
-  t->max_send_pid = INITIAL_WINDOW_SIZE - 1;
-  t->last_recv_pid = (uint32_t) -1;
+  t->last_ack_recv = (uint32_t) -1;
+  t->last_pid_recv = (uint32_t) -1;
   t->buffering = GNUNET_YES;
   return t;
 }
@@ -590,25 +595,25 @@ send_ack (struct GNUNET_MESH_Handle *h, struct GNUNET_MESH_Tunnel *t)
   struct GNUNET_MESH_LocalAck msg;
   uint32_t delta;
 
-  delta = t->max_recv_pid - t->last_recv_pid;
+  delta = t->last_ack_sent - t->last_pid_recv;
   if (delta > ACK_THRESHOLD)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Not sending ACK on tunnel %X: ACK: %u, PID: %u, buffer %u\n",
-         t->tid, t->max_recv_pid, t->last_recv_pid, delta);
+         t->tid, t->last_ack_sent, t->last_pid_recv, delta);
     return;
   }
   if (GNUNET_YES == t->buffering)
-    t->max_recv_pid = t->last_recv_pid + INITIAL_WINDOW_SIZE;
+    t->last_ack_sent = t->last_pid_recv + INITIAL_WINDOW_SIZE;
   else
-    t->max_recv_pid = t->last_recv_pid + 1;
+    t->last_ack_sent = t->last_pid_recv + 1;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending ACK on tunnel %X: %u\n",
-       t->tid, t->max_recv_pid);
+       t->tid, t->last_ack_sent);
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
   msg.header.size = htons (sizeof (msg));
   msg.tunnel_id = htonl (t->tid);
-  msg.max_pid = htonl (t->max_recv_pid);
+  msg.max_pid = htonl (t->last_ack_sent);
 
 #if DEBUG_ACK
   t->mesh->acks_sent++;
@@ -734,9 +739,10 @@ do_reconnect (struct GNUNET_MESH_Handle *h)
        */
       continue;
     }
-    t->next_send_pid = 0;
-    t->max_send_pid = INITIAL_WINDOW_SIZE - 1;
-    t->last_recv_pid = (uint32_t) -1;
+    t->last_ack_sent = (uint32_t) -1;
+    t->last_pid_sent = (uint32_t) -1;
+    t->last_ack_recv = (uint32_t) -1;
+    t->last_pid_recv = (uint32_t) -1;
     tmsg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
     tmsg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
     tmsg.tunnel_id = htonl (t->tid);
@@ -928,16 +934,16 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     return GNUNET_YES;
   }
   if (GNUNET_YES ==
-      GMC_is_pid_bigger(pid, t->max_recv_pid))
+      GMC_is_pid_bigger(pid, t->last_ack_sent))
   {
     GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "  unauthorized message! (%u, max %u)\n",
-         pid, t->max_recv_pid);
+         "  unauthorized message! (%u, ACK %u)\n",
+         pid, t->last_ack_sent);
     // FIXME fc what now? accept? reject?
     return GNUNET_YES;
   }
-  t->last_recv_pid = pid;
+  t->last_pid_recv = pid;
   type = ntohs (payload->type);
   send_ack (h, t);
   for (i = 0; i < h->n_handlers; i++)
@@ -993,8 +999,8 @@ process_ack (struct GNUNET_MESH_Handle *h,
   }
   ack = ntohl (msg->max_pid);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  on tunnel %X, ack %u!\n", t->tid, ack);
-  if (GNUNET_YES == GMC_is_pid_bigger(ack, t->max_send_pid))
-    t->max_send_pid = ack;
+  if (GNUNET_YES == GMC_is_pid_bigger(ack, t->last_ack_recv))
+    t->last_ack_recv = ack;
   else
     return;
   if (NULL == h->th && 0 < t->packet_size)
@@ -1205,7 +1211,7 @@ send_callback (void *cls, size_t size, void *buf)
     if (GNUNET_YES == th_is_payload (th))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "#  payload\n");
-      if (GNUNET_YES == GMC_is_pid_bigger(t->next_send_pid, t->max_send_pid))
+      if (GNUNET_NO == GMC_is_pid_bigger(t->last_ack_recv, t->last_pid_sent))
       {
         /* This tunnel is not ready to transmit yet, try next message */
         next = th->next;
@@ -1230,7 +1236,7 @@ send_callback (void *cls, size_t size, void *buf)
           to.header.size = htons (psize);
           to.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
           to.tid = htonl (t->tid);
-          to.pid = htonl (t->next_send_pid);
+          to.pid = htonl (t->last_pid_sent + 1);
           to.ttl = 0;
           memset (&to.oid, 0, sizeof (struct GNUNET_PeerIdentity));
           memcpy (cbuf, &to, sizeof (to));
@@ -1254,13 +1260,13 @@ send_callback (void *cls, size_t size, void *buf)
           uc.header.size = htons (psize);
           uc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_UNICAST);
           uc.tid = htonl (t->tid);
-          uc.pid = htonl (t->next_send_pid);
+          uc.pid = htonl (t->last_pid_sent + 1);
           uc.ttl = 0;
           memset (&uc.oid, 0, sizeof (struct GNUNET_PeerIdentity));
           memcpy (cbuf, &uc, sizeof (uc));
         }
       }
-      t->next_send_pid++;
+      t->last_pid_sent++;
     }
     else
     {
@@ -1554,7 +1560,6 @@ GNUNET_MESH_tunnel_buffer (struct GNUNET_MESH_Tunnel *tunnel, int buffer)
 
   h = tunnel->mesh;
   tunnel->buffering = buffer;
-  tunnel->max_send_pid = tunnel->next_send_pid;
 
   if (GNUNET_YES == buffer)
     msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_BUFFER);
@@ -1601,7 +1606,7 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
   add_to_queue (tunnel->mesh, th);
   if (NULL != tunnel->mesh->th)
     return th;
-  if (GMC_is_pid_bigger(tunnel->next_send_pid, tunnel->max_send_pid))
+  if (!GMC_is_pid_bigger (tunnel->last_ack_recv, tunnel->last_pid_sent))
     return th;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "    call client notify tmt rdy\n");
   tunnel->mesh->th =
