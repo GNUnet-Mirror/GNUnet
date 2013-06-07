@@ -29,7 +29,7 @@
 #include "gnunet-service-ats_addresses.h"
 #include "gnunet_statistics_service.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "ats-simplistic",__VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "ats-proportional",__VA_ARGS__)
 
 /**
  *
@@ -212,7 +212,7 @@
 #define MIN_UPDATE_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 /**
- * A handle for the simplistic solver
+ * A handle for the proportional solver
  */
 struct GAS_PROPORTIONAL_Handle
 {
@@ -1138,7 +1138,7 @@ GAS_simplistic_address_change_preference (void *solver,
  */
 
 /**
- * Get the prefered address for a specific peer
+ * Get the preferred address for a specific peer
  *
  * @param solver the solver handle
  * @param addresses the address hashmap containing all addresses
