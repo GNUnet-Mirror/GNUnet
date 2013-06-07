@@ -448,6 +448,8 @@ create_tunnel (struct GNUNET_MESH_Handle *h, MESH_TunnelNumber tid)
   }
   t->last_ack_recv = (uint32_t) -1;
   t->last_pid_recv = (uint32_t) -1;
+  t->last_ack_sent = (uint32_t) -1;
+  t->last_pid_sent = (uint32_t) -1;
   t->buffering = GNUNET_YES;
   return t;
 }
