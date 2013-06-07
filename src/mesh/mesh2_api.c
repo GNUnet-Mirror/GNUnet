@@ -821,6 +821,7 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
   if (NULL != h->new_tunnel)
   {
     t = create_tunnel (h, tid);
+    t->last_ack_sent = INITIAL_WINDOW_SIZE - 1;
     t->peer = GNUNET_PEER_intern (&msg->peer);
     GNUNET_PEER_change_rc (t->peer, 1);
     t->mesh = h;
