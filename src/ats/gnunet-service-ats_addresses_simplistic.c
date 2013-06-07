@@ -33,145 +33,155 @@
 
 /**
  *
- * NOTE: Do not change this documentation. This documentation is based on
- * gnunet.org:/vcs/fsnsg/ats-paper.git/tech-doku/ats-tech-guide.tex
+ * NOTE: Do not change this documentation. This documentation is based
+ * on gnunet.org:/vcs/fsnsg/ats-paper.git/tech-doku/ats-tech-guide.tex
  * use build_txt.sh to generate plaintext output
  *
  * ATS addresses : simplistic solver
  *
- *    The simplistic solver ("simplistic") distributes the available bandwidth
- *    fair over all the addresses influenced by the preference values. For each
- *    available network type an in- and outbound quota is configured and the
- *    bandwidth available in these networks is distributed over the addresses.
- *    The solver first assigns every addresses the minimum amount of bandwidth
- *    GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT and then distributes the remaining
- *    bandwidth available according to the preference values. For each peer only
- *    a single address gets bandwidth assigned and only one address marked as
- *    active.
- *    The most important functionality for the solver is implemented in:
- *      * find_address_it
- *        is an hashmap iterator returning the prefered address for an peer
- *      * update_quota_per_network
- *        distributes available bandwidth for a network over active addresses
+ *    The simplistic solver ("simplistic") distributes the available
+ *    bandwidth fair over all the addresses influenced by the
+ *    preference values. For each available network type an in- and
+ *    outbound quota is configured and the bandwidth available in
+ *    these networks is distributed over the addresses.  The solver
+ *    first assigns every addresses the minimum amount of bandwidth
+ *    GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT and then distributes the
+ *    remaining bandwidth available according to the preference
+ *    values. For each peer only a single address gets bandwidth
+ *    assigned and only one address marked as active.  The most
+ *    important functionality for the solver is implemented in: *
+ *    find_address_it is an hashmap iterator returning the prefered
+ *    address for an peer * update_quota_per_network distributes
+ *    available bandwidth for a network over active addresses
  *
- *    Changes to addresses automatically have an impact on the the bandwidth
- *    assigned to other addresses in the same network since the solver
- *    distributes the remaining bandwidth over the addresses in the network.
- *    When changes to the addresses occur, the solver first performs the
- *    changes, like adding or deleting addresses, and then updates bandwidth
- *    assignment for the affected network. Bandwidth assignment is only
- *    recalculated on demand when an address is requested by a client for a peer
- *    or when the addresses available have changed or an address changed the
- *    network it is located in. When the bandwidth assignment has changed the
- *    callback is called with the new bandwidth assignments. The bandwidth
- *    distribution for a network is recalculated due to:
- *      * address suggestion requests
- *      * address deletions
- *      * address switching networks during address update
- *      * preference changes
+ *    Changes to addresses automatically have an impact on the the
+ *    bandwidth assigned to other addresses in the same network since
+ *    the solver distributes the remaining bandwidth over the
+ *    addresses in the network.  When changes to the addresses occur,
+ *    the solver first performs the changes, like adding or deleting
+ *    addresses, and then updates bandwidth assignment for the
+ *    affected network. Bandwidth assignment is only recalculated on
+ *    demand when an address is requested by a client for a peer or
+ *    when the addresses available have changed or an address changed
+ *    the network it is located in. When the bandwidth assignment has
+ *    changed the callback is called with the new bandwidth
+ *    assignments. The bandwidth distribution for a network is
+ *    recalculated due to: * address suggestion requests * address
+ *    deletions * address switching networks during address update *
+ *    preference changes
  *
  *     3.1 Data structures used
  *
- *    For each ATS network (e.g. WAN, LAN, loopback) a struct Network is used to
- *    specify network related information as total adresses and active addresses
- *    in this network and the configured in- and outbound quota. Each network
- *    also contains a list of addresses added to the solver located in this
- *    network. The simplistic solver uses the addresses' solver_information
- *    field to store the simplistic network it belongs to for each address.
+ *    For each ATS network (e.g. WAN, LAN, loopback) a struct Network
+ *    is used to specify network related information as total adresses
+ *    and active addresses in this network and the configured in- and
+ *    outbound quota. Each network also contains a list of addresses
+ *    added to the solver located in this network. The simplistic
+ *    solver uses the addresses' solver_information field to store the
+ *    simplistic network it belongs to for each address.
  *
  *     3.2 Initializing
  *
- *    When the simplistic solver is initialized the solver creates a new solver
- *    handle and initializes the network structures with the quotas passed from
- *    addresses and returns the handle solver.
+ *    When the simplistic solver is initialized the solver creates a
+ *    new solver handle and initializes the network structures with
+ *    the quotas passed from addresses and returns the handle solver.
  *
  *     3.3 Adding an address
  *
- *    When a new address is added to the solver using s_add, a lookup for the
- *    network for this address is done and the address is enqueued in in the
- *    linked list of the network.
+ *    When a new address is added to the solver using s_add, a lookup
+ *    for the network for this address is done and the address is
+ *    enqueued in in the linked list of the network.
  *
  *     3.4 Updating an address
  *
- *    The main purpose of address updates is to update the ATS information for
- *    addresse selection. Important for the simplistic solver is when an address
- *    switches network it is located in. This is common because addresses added
- *    by transport's validation mechanism are commonly located in
- *    GNUNET_ATS_NET_UNSPECIFIED. Addresses in validation are located in this
- *    network type and only if a connection is successful on return of payload
- *    data transport switches to the real network the address is located in.
- *    When an address changes networks it is first of all removed from the old
- *    network using the solver API function GAS_simplistic_address_delete and
- *    the network in the address struct is updated. A lookup for the respective
- *    new simplistic network is done and stored in the addresse's
- *    solver_information field. Next the address is re-added to the solver using
- *    the solver API function GAS_simplistic_address_add. If the address was
- *    marked as in active, the solver checks if bandwidth is available in the
- *    network and if yes sets the address to active and updates the bandwidth
- *    distribution in this network. If no bandwidth is available it sets the
- *    bandwidth for this address to 0 and tries to suggest an alternative
- *    address. If an alternative address was found, addresses' callback is
- *    called for this address.
+ *    The main purpose of address updates is to update the ATS
+ *    information for addresse selection. Important for the simplistic
+ *    solver is when an address switches network it is located
+ *    in. This is common because addresses added by transport's
+ *    validation mechanism are commonly located in
+ *    GNUNET_ATS_NET_UNSPECIFIED. Addresses in validation are located
+ *    in this network type and only if a connection is successful on
+ *    return of payload data transport switches to the real network
+ *    the address is located in.  When an address changes networks it
+ *    is first of all removed from the old network using the solver
+ *    API function GAS_simplistic_address_delete and the network in
+ *    the address struct is updated. A lookup for the respective new
+ *    simplistic network is done and stored in the addresse's
+ *    solver_information field. Next the address is re-added to the
+ *    solver using the solver API function
+ *    GAS_simplistic_address_add. If the address was marked as in
+ *    active, the solver checks if bandwidth is available in the
+ *    network and if yes sets the address to active and updates the
+ *    bandwidth distribution in this network. If no bandwidth is
+ *    available it sets the bandwidth for this address to 0 and tries
+ *    to suggest an alternative address. If an alternative address was
+ *    found, addresses' callback is called for this address.
  *
  *     3.5 Deleting an address
  *
- *    When an address is removed from the solver, it removes the respective
- *    address from the network and if the address was marked as active, it
- *    updates the bandwidth distribution for this network.
+ *    When an address is removed from the solver, it removes the
+ *    respective address from the network and if the address was
+ *    marked as active, it updates the bandwidth distribution for this
+ *    network.
  *
  *     3.6 Requesting addresses
  *
- *    When an address is requested for a peer the solver performs a lookup for
- *    the peer entry in addresses address hashmap and selects the best address.
- *    The selection of the most suitable address is done in the find_address_it
- *    hashmap iterator described in detail in section 3.7. If no address is
- *    returned, no address can be suggested at the moment. If the address
- *    returned is marked as active, the solver can return this address. If the
- *    address is not marked as active, the solver checks if another address
- *    belongign to this peer is marked as active and marks the address as
- *    inactive, updates the bandwidth for this address to 0, call the bandwidth
- *    changed callback for this address due to the change and updates quota
- *    assignment for the addresse's network. the now in-active address is
- *    belonging to. The solver marks the new address as active and updates the
+ *    When an address is requested for a peer the solver performs a
+ *    lookup for the peer entry in addresses address hashmap and
+ *    selects the best address.  The selection of the most suitable
+ *    address is done in the find_address_it hashmap iterator
+ *    described in detail in section 3.7. If no address is returned,
+ *    no address can be suggested at the moment. If the address
+ *    returned is marked as active, the solver can return this
+ *    address. If the address is not marked as active, the solver
+ *    checks if another address belongign to this peer is marked as
+ *    active and marks the address as inactive, updates the bandwidth
+ *    for this address to 0, call the bandwidth changed callback for
+ *    this address due to the change and updates quota assignment for
+ *    the addresse's network. the now in-active address is belonging
+ *    to. The solver marks the new address as active and updates the
  *    bandwidth assignment for this network.
  *
  *     3.7 Choosing addresses
  *
- *    Choosing the best possible address for suggestion is done by iterating
- *    over all addresses of a peer stored in addresses' hashmap and using the
- *    hashmap iterator find_address_it to select the best available address.
- *    Several checks are done when an address is selected. First if this address
- *    is currently blocked by addresses from being suggested. An address is
- *    blocked for the duration of ATS_BLOCKING_DELTA when it is suggested to
+ *    Choosing the best possible address for suggestion is done by
+ *    iterating over all addresses of a peer stored in addresses'
+ *    hashmap and using the hashmap iterator find_address_it to select
+ *    the best available address.  Several checks are done when an
+ *    address is selected. First if this address is currently blocked
+ *    by addresses from being suggested. An address is blocked for the
+ *    duration of ATS_BLOCKING_DELTA when it is suggested to
  *    transport. Next it is checked if at least
- *    GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT bytes bandwidth is available in the
- *    addresse's network, because suggesting an address without bandwidth does
- *    not make sense. This also ensures that all active addresses in this
- *    network get at least the minimum amount of bandwidth assigned. In the next
- *    step the solver ensures that for tcp connections inbound connections are
- *    prefered over outbound connections. In the next stet the solver ensures
- *    that connections are prefered in the following order:
- *      * connections are already established and have bandwidth assigned
- *      * connections with a shorter distance
- *      * connectes have a shorter latency
+ *    GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT bytes bandwidth is available
+ *    in the addresse's network, because suggesting an address without
+ *    bandwidth does not make sense. This also ensures that all active
+ *    addresses in this network get at least the minimum amount of
+ *    bandwidth assigned. In the next step the solver ensures that for
+ *    tcp connections inbound connections are prefered over outbound
+ *    connections. In the next stet the solver ensures that
+ *    connections are prefered in the following order: * connections
+ *    are already established and have bandwidth assigned *
+ *    connections with a shorter distance * connectes have a shorter
+ *    latency
  *
  *     3.8 Changing preferences
  *
  *     3.9 Shutdown
  *
- *    During shutdown all network entries and aging processes are destroyed and
- *    freed.
+ *    During shutdown all network entries and aging processes are
+ *    destroyed and freed.
  *
  *
  * OLD DOCUMENTATION
  *
- * This solver ssigns in and outbound bandwidth equally for all addresses in
- * specific network type (WAN, LAN) based on configured in and outbound quota
- * for this network.
+ * This solver assigns in and outbound bandwidth equally for all
+ * addresses in specific network type (WAN, LAN) based on configured
+ * in and outbound quota for this network.
  *
- * The solver is notified by addresses about changes to the addresses and
- * recalculates the bandwith assigned if required. The solver notifies addresses
- * by calling the GAS_bandwidth_changed_cb callback.
+ * The solver is notified by addresses about changes to the addresses
+ * and recalculates the bandwith assigned if required. The solver
+ * notifies addresses by calling the GAS_bandwidth_changed_cb
+ * callback.
  *
  * - Initialization
  *
@@ -828,7 +838,6 @@ GAS_simplistic_address_add (void *solver,
   addresse_increment (s, net, GNUNET_YES, GNUNET_NO);
   aw->addr->solver_information = net;
 
-
   LOG (GNUNET_ERROR_TYPE_DEBUG, "After adding address now total %u and active %u addresses in network `%s'\n",
       net->total_addresses,
       net->active_addresses,
@@ -955,34 +964,16 @@ GAS_simplistic_address_update (void *solver,
     switch (prev_type)
     {
     case GNUNET_ATS_UTILIZATION_UP:
-      //if (address->atsp_utilization_out.value__ != atsi[i].value)
-
-      break;
     case GNUNET_ATS_UTILIZATION_DOWN:
-      //if (address->atsp_utilization_in.value__ != atsi[i].value)
-
-      break;
     case GNUNET_ATS_QUALITY_NET_DELAY:
-      //if (address->atsp_latency.rel_value != value)
-
-      break;
     case GNUNET_ATS_QUALITY_NET_DISTANCE:
-      //if (address->atsp_distance != value)
-
-      break;
     case GNUNET_ATS_COST_WAN:
-      //if (address->atsp_cost_wan != value)
-
-      break;
     case GNUNET_ATS_COST_LAN:
-      //if (address->atsp_cost_lan != value)
-
-      break;
     case GNUNET_ATS_COST_WLAN:
-      //if (address->atsp_cost_wlan != value)
-
-      break;
+    	/* No actions required here*/
+    	break;
     case GNUNET_ATS_NETWORK_TYPE:
+
       addr_net = get_performance_info (address, GNUNET_ATS_NETWORK_TYPE);
       if (GNUNET_ATS_VALUE_UNDEFINED == addr_net)
       {
@@ -991,7 +982,7 @@ GAS_simplistic_address_update (void *solver,
       }
       if (addr_net != prev_value)
       {
-
+    	/* Network changed */
         LOG (GNUNET_ERROR_TYPE_DEBUG, "Network type changed, moving %s address from `%s' to `%s'\n",
             (GNUNET_YES == address->active) ? "active" : "inactive",
              GNUNET_ATS_print_network_type(prev_value),
