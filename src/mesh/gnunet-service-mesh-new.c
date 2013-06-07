@@ -1965,6 +1965,7 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
       break;
+    case GNUNET_MESSAGE_TYPE_MESH_PATH_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
       t->force_ack = GNUNET_YES;
       break;
@@ -3176,6 +3177,7 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
       peer_info->dhtget = NULL;
     }
     tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_PATH_ACK);
+    tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_PATH_ACK);
     return GNUNET_OK;
   }
 
