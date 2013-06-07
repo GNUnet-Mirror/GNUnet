@@ -214,7 +214,7 @@
 /**
  * A handle for the simplistic solver
  */
-struct GAS_SIMPLISTIC_Handle
+struct GAS_PROPORTIONAL_Handle
 {
   /**
    * Statistics handle
@@ -258,6 +258,9 @@ struct GAS_SIMPLISTIC_Handle
   struct PreferenceClient *pc_tail;
 };
 
+/**
+ * Representation of a network
+ */
 struct Network
 {
   /**
@@ -306,6 +309,7 @@ struct Network
   struct AddressWrapper *tail;
 };
 
+
 struct AddressWrapper
 {
   struct AddressWrapper *next;
@@ -333,7 +337,7 @@ struct PreferencePeer
   struct PreferencePeer *next;
   struct PreferencePeer *prev;
   struct PreferenceClient *client;
-  struct GAS_SIMPLISTIC_Handle *s;
+  struct GAS_PROPORTIONAL_Handle *s;
   struct GNUNET_PeerIdentity id;
 
   double f[GNUNET_ATS_PreferenceCount];
@@ -343,78 +347,43 @@ struct PreferencePeer
   GNUNET_SCHEDULER_TaskIdentifier aging_task;
 };
 
-/**
- * Get the prefered address for a specific peer
- *
- * @param solver the solver handle
- * @param addresses the address hashmap containing all addresses
- * @param peer the identity of the peer
- */
-const struct ATS_Address *
-GAS_simplistic_get_preferred_address (void *solver,
-                               struct GNUNET_CONTAINER_MultiHashMap * addresses,
-                               const struct GNUNET_PeerIdentity *peer);
-
-
 
 /**
  *  Important solver functions
  *  ---------------------------
  */
 
-
-
-
 /**
- *  Helper functions
- *  ---------------------------
- */
-
-static int
-free_pref (void *cls,
-           const struct GNUNET_HashCode * key,
-           void *value)
-{
-  float *v = value;
-  GNUNET_free (v);
-  return GNUNET_OK;
-}
-
-
-
-
-/**
- * Test if bandwidth is available in this network
+ * Test if bandwidth is available in this network to add an additional address
  *
  * @param net the network type to update
  * @return GNUNET_YES or GNUNET_NO
  */
-
 static int
-bw_available_in_network (struct Network *net)
+is_bandwidth_available_in_network (struct Network *net)
 {
   unsigned int na = net->active_addresses + 1;
   uint32_t min_bw = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
   if (((net->total_quota_in / na) > min_bw) &&
       ((net->total_quota_out / na) > min_bw))
-  {    
+  {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Enough bandwidth available for %u active addresses in network `%s'\n",
          na,
          net->desc);
-                                                                      
+
     return GNUNET_YES;
   }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Not enough bandwidth available for %u active addresses in network `%s'\n",
          na,
-         net->desc);  
+         net->desc);
   return GNUNET_NO;
 }
 
 
 /**
- * Update the quotas for a network type
+ * Update bandwidth assigned to peers in this network
  *
  * @param s the solver handle
  * @param net the network type to update
@@ -422,7 +391,7 @@ bw_available_in_network (struct Network *net)
  * this address
  */
 static void
-update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
+update_quota_per_network (struct GAS_PROPORTIONAL_Handle *s,
                           struct Network *net,
                           struct ATS_Address *address_except)
 {
@@ -548,8 +517,21 @@ update_quota_per_network (struct GAS_SIMPLISTIC_Handle *s,
   }
 }
 
+
+
+/**
+ *  Helper functions
+ *  ---------------------------
+ */
+
+
+/**
+ * Update bandwidth assignment for all networks
+ *
+ * @param s the solver handle
+ */
 static void
-update_all_networks (struct GAS_SIMPLISTIC_Handle *s)
+update_all_networks (struct GAS_PROPORTIONAL_Handle *s)
 {
 	int i;
 	for (i = 0; i < s->networks; i++)
@@ -557,8 +539,96 @@ update_all_networks (struct GAS_SIMPLISTIC_Handle *s)
 
 }
 
+
+/**
+ * Lookup network struct by type
+ *
+ * @param s the solver handle
+ * @param type the network type
+ * @return the network struct
+ */
+static struct Network *
+get_network (struct GAS_PROPORTIONAL_Handle *s, uint32_t type)
+{
+  int c;
+  for (c = 0 ; c < s->networks; c++)
+  {
+      if (s->network_entries[c].type == type)
+        return &s->network_entries[c];
+  }
+  return NULL;
+}
+
+
+/**
+ * Hashmap Iterator to find current active address for peer
+ *
+ * @param cls last active address
+ * @param key peer's key
+ * @param value address to check
+ * @return GNUNET_NO on double active address else GNUNET_YES
+ */
+static int
+get_active_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
+{
+  struct ATS_Address * dest = (struct ATS_Address *) (*(struct ATS_Address **)cls);
+  struct ATS_Address * aa = (struct ATS_Address *) value;
+
+  if (GNUNET_YES == aa->active)
+  {
+      if (dest != NULL)
+      {
+          /* should never happen */
+          LOG (GNUNET_ERROR_TYPE_ERROR, "Multiple active addresses for peer `%s'\n", GNUNET_i2s (&aa->peer));
+          GNUNET_break (0);
+          return GNUNET_NO;
+      }
+      dest = aa;
+  }
+  return GNUNET_OK;
+}
+
+/**
+ * Find current active address for peer
+ *
+ * @param solver the solver handle
+ * @param addresses the address set
+ * @param peer the peer
+ * @return active address or NULL
+ */
+static struct ATS_Address *
+get_active_address (void *solver,
+                     struct GNUNET_CONTAINER_MultiHashMap * addresses,
+                     const struct GNUNET_PeerIdentity *peer)
+{
+  struct ATS_Address * dest = NULL;
+
+  GNUNET_CONTAINER_multihashmap_get_multiple(addresses,
+       &peer->hashPubKey,
+       &get_active_address_it, &dest);
+  return dest;
+}
+
+static int
+free_pref (void *cls,
+           const struct GNUNET_HashCode * key,
+           void *value)
+{
+  float *v = value;
+  GNUNET_free (v);
+  return GNUNET_OK;
+}
+
+
+
+
+
+
+
+
+
 static void
-addresse_increment (struct GAS_SIMPLISTIC_Handle *s,
+addresse_increment (struct GAS_PROPORTIONAL_Handle *s,
                                 struct Network *net,
                                 int total,
                                 int active)
@@ -581,7 +651,7 @@ addresse_increment (struct GAS_SIMPLISTIC_Handle *s,
 }
 
 static int
-addresse_decrement (struct GAS_SIMPLISTIC_Handle *s,
+addresse_decrement (struct GAS_PROPORTIONAL_Handle *s,
                     struct Network *net,
                     int total,
                     int active)
@@ -662,263 +732,10 @@ get_performance_info (struct ATS_Address *address, uint32_t type)
 }
 
 
-/**
- * Add a single address within a network to the solver
- *
- * @param solver the solver Handle
- * @param addresses the address hashmap containing all addresses
- * @param address the address to add
- * @param network network type of this address
- */
-void
-GAS_simplistic_address_add (void *solver,
-														struct GNUNET_CONTAINER_MultiHashMap *addresses,
-														struct ATS_Address *address,
-														uint32_t network)
-{
-  struct GAS_SIMPLISTIC_Handle *s = solver;
-  struct Network *net = NULL;
-  struct AddressWrapper *aw = NULL;
-  int c;
 
-  GNUNET_assert (NULL != s);
-  for (c = 0; c < s->networks; c++)
-  {
-      net = &s->network_entries[c];
-      if (network == net->type)
-          break;
-  }
-  if (NULL == net)
-  {
-    GNUNET_break (0);
-    return;
-  }
 
-  aw = GNUNET_malloc (sizeof (struct AddressWrapper));
-  aw->addr = address;
-  GNUNET_CONTAINER_DLL_insert (net->head, net->tail, aw);
-  addresse_increment (s, net, GNUNET_YES, GNUNET_NO);
-  aw->addr->solver_information = net;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "After adding address now total %u and active %u addresses in network `%s'\n",
-      net->total_addresses,
-      net->active_addresses,
-      net->desc);
-}
 
-/**
- * Remove an address from the solver
- *
- * @param solver the solver handle
- * @param addresses the address hashmap containing all addresses
- * @param address the address to remove
- * @param session_only delete only session not whole address
- */
-void
-GAS_simplistic_address_delete (void *solver,
-    struct GNUNET_CONTAINER_MultiHashMap * addresses,
-    struct ATS_Address *address, int session_only)
-{
-  struct GAS_SIMPLISTIC_Handle *s = solver;
-  struct Network *net;
-  struct AddressWrapper *aw;
-
-  /* Remove an adress completely, we have to:
-   * - Remove from specific network
-   * - Decrease number of total addresses
-   * - If active:
-   *   - decrease number of active addreses
-   *   - update quotas
-   */
-
-  net = (struct Network *) address->solver_information;
-
-  if (GNUNET_NO == session_only)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Deleting %s address %p for peer `%s' from network `%s' (total: %u/ active: %u)\n",
-        (GNUNET_NO == address->active) ? "inactive" : "active",
-        address, GNUNET_i2s (&address->peer),
-        net->desc, net->total_addresses, net->active_addresses);
-
-    /* Remove address */
-    addresse_decrement (s, net, GNUNET_YES, GNUNET_NO);
-    for (aw = net->head; NULL != aw; aw = aw->next)
-    {
-        if (aw->addr == address)
-          break;
-    }
-    if (NULL == aw )
-    {
-        GNUNET_break (0);
-        return;
-    }
-    GNUNET_CONTAINER_DLL_remove (net->head, net->tail, aw);
-    GNUNET_free (aw);
-  }
-  else
-  {
-      /* Remove session only: remove if active and update */
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Deleting %s session %p for peer `%s' from network `%s' (total: %u/ active: %u)\n",
-          (GNUNET_NO == address->active) ? "inactive" : "active",
-          address, GNUNET_i2s (&address->peer),
-          net->desc, net->total_addresses, net->active_addresses);
-  }
-
-  if (GNUNET_YES == address->active)
-  {
-      /* Address was active, remove from network and update quotas*/
-      address->active = GNUNET_NO;
-      if (GNUNET_SYSERR == addresse_decrement (s, net, GNUNET_NO, GNUNET_YES))
-        GNUNET_break (0);
-      update_quota_per_network (s, net, NULL);
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "After deleting address now total %u and active %u addresses in network `%s'\n",
-      net->total_addresses,
-      net->active_addresses,
-      net->desc);
-
-}
-
-static struct Network *
-find_network (struct GAS_SIMPLISTIC_Handle *s, uint32_t type)
-{
-  int c;
-  for (c = 0 ; c < s->networks; c++)
-  {
-      if (s->network_entries[c].type == type)
-        return &s->network_entries[c];
-  }
-  return NULL;
-}
-
-/**
- * Updates a single address in the solver
- *
- * If ATS information was updated, the previous values are passed
- *
- * @param solver the solver Handle
- * @param addresses the address hashmap containing all addresses
- * @param address the update address
- * @param session the new session (if changed otherwise current)
- * @param in_use the new address in use state (if changed otherwise current)
- * @param prev_ats  ATS information
- * @param prev_atsi_count the atsi count
- */
-void
-GAS_simplistic_address_update (void *solver,
-                              struct GNUNET_CONTAINER_MultiHashMap *addresses,
-                              struct ATS_Address *address,
-                              uint32_t session,
-                              int in_use,
-                              const struct GNUNET_ATS_Information *prev_ats,
-                              uint32_t prev_atsi_count)
-{
-  struct ATS_Address *new;
-  struct GAS_SIMPLISTIC_Handle *s = (struct GAS_SIMPLISTIC_Handle *) solver;
-  int i;
-  uint32_t prev_value;
-  uint32_t prev_type;
-  uint32_t addr_net;
-  int save_active = GNUNET_NO;
-  struct Network *new_net = NULL;
-  for (i = 0; i < prev_atsi_count; i++)
-  {
-    prev_type = ntohl (prev_ats[i].type);
-    prev_value = ntohl (prev_ats[i].value);
-    switch (prev_type)
-    {
-    case GNUNET_ATS_UTILIZATION_UP:
-    case GNUNET_ATS_UTILIZATION_DOWN:
-    case GNUNET_ATS_QUALITY_NET_DELAY:
-    case GNUNET_ATS_QUALITY_NET_DISTANCE:
-    case GNUNET_ATS_COST_WAN:
-    case GNUNET_ATS_COST_LAN:
-    case GNUNET_ATS_COST_WLAN:
-    	/* No actions required here*/
-    	break;
-    case GNUNET_ATS_NETWORK_TYPE:
-
-      addr_net = get_performance_info (address, GNUNET_ATS_NETWORK_TYPE);
-      if (GNUNET_ATS_VALUE_UNDEFINED == addr_net)
-      {
-      	GNUNET_break (0);
-      	addr_net = GNUNET_ATS_NET_UNSPECIFIED;
-      }
-      if (addr_net != prev_value)
-      {
-    	/* Network changed */
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "Network type changed, moving %s address from `%s' to `%s'\n",
-            (GNUNET_YES == address->active) ? "active" : "inactive",
-             GNUNET_ATS_print_network_type(prev_value),
-             GNUNET_ATS_print_network_type(addr_net));
-
-        save_active = address->active;
-        /* remove from old network */
-        GAS_simplistic_address_delete (solver, addresses, address, GNUNET_NO);
-
-        /* set new network type */
-        new_net = find_network (solver, addr_net);
-        address->solver_information = new_net;
-
-        /* Add to new network and update*/
-        GAS_simplistic_address_add (solver, addresses, address, addr_net);
-        if (GNUNET_YES == save_active)
-        {
-          /* check if bandwidth available in new network */
-          if (GNUNET_YES == (bw_available_in_network (new_net)))
-          {
-              /* Suggest updated address */
-              address->active = GNUNET_YES;
-              addresse_increment (s, new_net, GNUNET_NO, GNUNET_YES);
-              update_quota_per_network (solver, new_net, NULL);
-          }
-          else
-          {
-            LOG (GNUNET_ERROR_TYPE_DEBUG, "Not enough bandwidth in new network, suggesting alternative address ..\n");
-
-            /* Set old address to zero bw */
-            address->assigned_bw_in = GNUNET_BANDWIDTH_value_init (0);
-            address->assigned_bw_out = GNUNET_BANDWIDTH_value_init (0);
-            s->bw_changed  (s->bw_changed_cls, address);
-
-            /* Find new address to suggest since no bandwidth in network*/
-            new = (struct ATS_Address *) GAS_simplistic_get_preferred_address (s, addresses, &address->peer);
-            if (NULL != new)
-            {
-                /* Have an alternative address to suggest */
-                s->bw_changed  (s->bw_changed_cls, new);
-            }
-
-          }
-        }
-      }
-
-      break;
-    case GNUNET_ATS_ARRAY_TERMINATOR:
-      break;
-    default:
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Received unsupported ATS type %u\n", prev_type);
-      GNUNET_break (0);
-      break;
-
-    }
-
-  }
-  if (address->session_id != session)
-  {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "Session changed from %u to %u\n", address->session_id, session);
-      address->session_id = session;
-  }
-  if (address->used != in_use)
-  {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "Usage changed from %u to %u\n", address->used, in_use);
-      address->used = in_use;
-  }
-
-}
 
 
 
@@ -957,7 +774,7 @@ find_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
     return GNUNET_OK;
   }
 
-  if (GNUNET_NO == bw_available_in_network (net))
+  if (GNUNET_NO == is_bandwidth_available_in_network (net))
     return GNUNET_OK; /* There's no bandwidth available in this network */
 
   if (NULL != previous)
@@ -1017,126 +834,8 @@ find_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
   return GNUNET_OK;
 }
 
-static int
-find_active_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
-{
-  struct ATS_Address * dest = (struct ATS_Address *) (*(struct ATS_Address **)cls);
-  struct ATS_Address * aa = (struct ATS_Address *) value;
-
-  if (GNUNET_YES == aa->active)
-  {
-      if (dest != NULL)
-      {
-          /* should never happen */
-          LOG (GNUNET_ERROR_TYPE_ERROR, "Multiple active addresses for peer `%s'\n", GNUNET_i2s (&aa->peer));
-          GNUNET_break (0);
-          return GNUNET_NO;
-      }
-      dest = aa;
-  }
-  return GNUNET_OK;
-}
-
-static struct ATS_Address *
-find_active_address (void *solver,
-                     struct GNUNET_CONTAINER_MultiHashMap * addresses,
-                     const struct GNUNET_PeerIdentity *peer)
-{
-  struct ATS_Address * dest = NULL;
-
-  GNUNET_CONTAINER_multihashmap_get_multiple(addresses,
-       &peer->hashPubKey,
-       &find_active_address_it, &dest);
-  return dest;
-}
-
-/**
- * Get the prefered address for a specific peer
- *
- * @param solver the solver handle
- * @param addresses the address hashmap containing all addresses
- * @param peer the identity of the peer
- */
-const struct ATS_Address *
-GAS_simplistic_get_preferred_address (void *solver,
-                               struct GNUNET_CONTAINER_MultiHashMap * addresses,
-                               const struct GNUNET_PeerIdentity *peer)
-{
-  struct GAS_SIMPLISTIC_Handle *s = solver;
-  struct Network *net_prev;
-  struct Network *net_cur;
-  struct ATS_Address *cur;
-  struct ATS_Address *prev;
-
-  GNUNET_assert (s != NULL);
-  cur = NULL;
-  /* Get address with: stick to current address, lower distance, lower latency */
-  GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
-                                              &find_address_it, &cur);
-  if (NULL == cur)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
-    return NULL;
-  }
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Suggesting %s address %p for peer `%s'\n",
-      (GNUNET_NO == cur->active) ? "inactive" : "active",
-      cur, GNUNET_i2s (peer));
-  net_cur = (struct Network *) cur->solver_information;
-  if (GNUNET_YES == cur->active)
-  {
-      /* This address was selected previously, so no need to update quotas */
-      return cur;
-  }
-
-  /* This address was not active, so we have to:
-   *
-   * - mark previous active address as not active
-   * - update quota for previous address network
-   * - update quota for this address network
-   */
-
-  prev = find_active_address (s, addresses, peer);
-  if (NULL != prev)
-  {
-      net_prev = (struct Network *) prev->solver_information;
-      prev->active = GNUNET_NO; /* No active any longer */
-      prev->assigned_bw_in = GNUNET_BANDWIDTH_value_init (0); /* no bw assigned */
-      prev->assigned_bw_out = GNUNET_BANDWIDTH_value_init (0); /* no bw assigned */
-      s->bw_changed (s->bw_changed_cls, prev); /* notify about bw change, REQUIRED? */
-      if (GNUNET_SYSERR == addresse_decrement (s, net_prev, GNUNET_NO, GNUNET_YES))
-        GNUNET_break (0);
-      update_quota_per_network (s, net_prev, NULL);
-  }
-
-  if (GNUNET_NO == (bw_available_in_network (cur->solver_information)))
-  {
-    GNUNET_break (0); /* This should never happen*/
-    return NULL;
-  }
-
-  cur->active = GNUNET_YES;
-  addresse_increment(s, net_cur, GNUNET_NO, GNUNET_YES);
-  update_quota_per_network (s, net_cur, cur);
-
-  return cur;
-}
 
 
-/**
- * Stop notifying about address and bandwidth changes for this peer
- *
- * @param solver the MLP handle
- * @param addresses address hashmap
- * @param peer the peer
- */
-void
-GAS_simplistic_stop_get_preferred_address (void *solver,
-                                     struct GNUNET_CONTAINER_MultiHashMap *addresses,
-                                     const struct GNUNET_PeerIdentity *peer)
-{
-	return;
-}
 
 
 /**
@@ -1148,7 +847,7 @@ GAS_simplistic_stop_get_preferred_address (void *solver,
 static void
 recalculate_preferences (struct PreferencePeer *p)
 {
-	struct GAS_SIMPLISTIC_Handle *s = p->s;
+	struct GAS_PROPORTIONAL_Handle *s = p->s;
 	struct PreferencePeer *p_cur;
 	struct PreferenceClient *c_cur = p->client;
 	double p_rel_global;
@@ -1362,7 +1061,7 @@ GAS_simplistic_address_change_preference (void *solver,
                                    float score)
 {
   static struct GNUNET_TIME_Absolute next_update;
-  struct GAS_SIMPLISTIC_Handle *s = solver;
+  struct GAS_PROPORTIONAL_Handle *s = solver;
   struct PreferenceClient *c_cur;
   struct PreferencePeer *p_cur;
   int i;
@@ -1438,6 +1137,422 @@ GAS_simplistic_address_change_preference (void *solver,
  *  ---------------------------
  */
 
+/**
+ * Get the prefered address for a specific peer
+ *
+ * @param solver the solver handle
+ * @param addresses the address hashmap containing all addresses
+ * @param peer the identity of the peer
+ */
+const struct ATS_Address *
+GAS_proportional_get_preferred_address (void *solver,
+                               struct GNUNET_CONTAINER_MultiHashMap * addresses,
+                               const struct GNUNET_PeerIdentity *peer)
+{
+  struct GAS_PROPORTIONAL_Handle *s = solver;
+  struct Network *net_prev;
+  struct Network *net_cur;
+  struct ATS_Address *cur;
+  struct ATS_Address *prev;
+
+  GNUNET_assert (s != NULL);
+  cur = NULL;
+  /* Get address with: stick to current address, lower distance, lower latency */
+  GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
+                                              &find_address_it, &cur);
+  if (NULL == cur)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
+    return NULL;
+  }
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Suggesting %s address %p for peer `%s'\n",
+      (GNUNET_NO == cur->active) ? "inactive" : "active",
+      cur, GNUNET_i2s (peer));
+  net_cur = (struct Network *) cur->solver_information;
+  if (GNUNET_YES == cur->active)
+  {
+      /* This address was selected previously, so no need to update quotas */
+      return cur;
+  }
+
+  /* This address was not active, so we have to:
+   *
+   * - mark previous active address as not active
+   * - update quota for previous address network
+   * - update quota for this address network
+   */
+
+  prev = get_active_address (s, addresses, peer);
+  if (NULL != prev)
+  {
+      net_prev = (struct Network *) prev->solver_information;
+      prev->active = GNUNET_NO; /* No active any longer */
+      prev->assigned_bw_in = GNUNET_BANDWIDTH_value_init (0); /* no bw assigned */
+      prev->assigned_bw_out = GNUNET_BANDWIDTH_value_init (0); /* no bw assigned */
+      s->bw_changed (s->bw_changed_cls, prev); /* notify about bw change, REQUIRED? */
+      if (GNUNET_SYSERR == addresse_decrement (s, net_prev, GNUNET_NO, GNUNET_YES))
+        GNUNET_break (0);
+      update_quota_per_network (s, net_prev, NULL);
+  }
+
+  if (GNUNET_NO == (is_bandwidth_available_in_network (cur->solver_information)))
+  {
+    GNUNET_break (0); /* This should never happen*/
+    return NULL;
+  }
+
+  cur->active = GNUNET_YES;
+  addresse_increment(s, net_cur, GNUNET_NO, GNUNET_YES);
+  update_quota_per_network (s, net_cur, cur);
+
+  return cur;
+}
+
+
+/**
+ * Stop notifying about address and bandwidth changes for this peer
+ *
+ * @param solver the solver handle
+ * @param addresses address hashmap
+ * @param peer the peer
+ */
+void
+GAS_proportional_stop_get_preferred_address (void *solver,
+                                     struct GNUNET_CONTAINER_MultiHashMap *addresses,
+                                     const struct GNUNET_PeerIdentity *peer)
+{
+	return;
+}
+
+
+/**
+ * Remove an address from the solver
+ *
+ * @param solver the solver handle
+ * @param addresses the address hashmap containing all addresses
+ * @param address the address to remove
+ * @param session_only delete only session not whole address
+ */
+void
+GAS_proportional_address_delete (void *solver,
+    struct GNUNET_CONTAINER_MultiHashMap * addresses,
+    struct ATS_Address *address, int session_only)
+{
+  struct GAS_PROPORTIONAL_Handle *s = solver;
+  struct Network *net;
+  struct AddressWrapper *aw;
+
+  /* Remove an adress completely, we have to:
+   * - Remove from specific network
+   * - Decrease number of total addresses
+   * - If active:
+   *   - decrease number of active addreses
+   *   - update quotas
+   */
+
+  net = (struct Network *) address->solver_information;
+
+  if (GNUNET_NO == session_only)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Deleting %s address %p for peer `%s' from network `%s' (total: %u/ active: %u)\n",
+        (GNUNET_NO == address->active) ? "inactive" : "active",
+        address, GNUNET_i2s (&address->peer),
+        net->desc, net->total_addresses, net->active_addresses);
+
+    /* Remove address */
+    addresse_decrement (s, net, GNUNET_YES, GNUNET_NO);
+    for (aw = net->head; NULL != aw; aw = aw->next)
+    {
+        if (aw->addr == address)
+          break;
+    }
+    if (NULL == aw )
+    {
+        GNUNET_break (0);
+        return;
+    }
+    GNUNET_CONTAINER_DLL_remove (net->head, net->tail, aw);
+    GNUNET_free (aw);
+  }
+  else
+  {
+      /* Remove session only: remove if active and update */
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Deleting %s session %p for peer `%s' from network `%s' (total: %u/ active: %u)\n",
+          (GNUNET_NO == address->active) ? "inactive" : "active",
+          address, GNUNET_i2s (&address->peer),
+          net->desc, net->total_addresses, net->active_addresses);
+  }
+
+  if (GNUNET_YES == address->active)
+  {
+      /* Address was active, remove from network and update quotas*/
+      address->active = GNUNET_NO;
+      if (GNUNET_SYSERR == addresse_decrement (s, net, GNUNET_NO, GNUNET_YES))
+        GNUNET_break (0);
+      update_quota_per_network (s, net, NULL);
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "After deleting address now total %u and active %u addresses in network `%s'\n",
+      net->total_addresses,
+      net->active_addresses,
+      net->desc);
+
+}
+
+
+/**
+ * Add a new single address to a network
+ *
+ * @param solver the solver Handle
+ * @param addresses the address hashmap containing all addresses
+ * @param address the address to add
+ * @param network network type of this address
+ */
+void
+GAS_proportional_address_add (void *solver,
+							struct GNUNET_CONTAINER_MultiHashMap *addresses,
+							struct ATS_Address *address,
+							uint32_t network);
+
+/**
+ * Updates a single address in the solver
+ *
+ * If ATS information was updated, the previous values are passed
+ *
+ * @param solver the solver Handle
+ * @param addresses the address hashmap containing all addresses
+ * @param address the update address
+ * @param session the new session (if changed otherwise current)
+ * @param in_use the new address in use state (if changed otherwise current)
+ * @param prev_ats  ATS information
+ * @param prev_atsi_count the atsi count
+ */
+void
+GAS_proportional_address_update (void *solver,
+                              struct GNUNET_CONTAINER_MultiHashMap *addresses,
+                              struct ATS_Address *address,
+                              uint32_t session,
+                              int in_use,
+                              const struct GNUNET_ATS_Information *prev_ats,
+                              uint32_t prev_atsi_count)
+{
+  struct ATS_Address *new;
+  struct GAS_PROPORTIONAL_Handle *s = (struct GAS_PROPORTIONAL_Handle *) solver;
+  int i;
+  uint32_t prev_value;
+  uint32_t prev_type;
+  uint32_t addr_net;
+  int save_active = GNUNET_NO;
+  struct Network *new_net = NULL;
+  for (i = 0; i < prev_atsi_count; i++)
+  {
+    prev_type = ntohl (prev_ats[i].type);
+    prev_value = ntohl (prev_ats[i].value);
+    switch (prev_type)
+    {
+    case GNUNET_ATS_UTILIZATION_UP:
+    case GNUNET_ATS_UTILIZATION_DOWN:
+    case GNUNET_ATS_QUALITY_NET_DELAY:
+    case GNUNET_ATS_QUALITY_NET_DISTANCE:
+    case GNUNET_ATS_COST_WAN:
+    case GNUNET_ATS_COST_LAN:
+    case GNUNET_ATS_COST_WLAN:
+    	/* No actions required here*/
+    	break;
+    case GNUNET_ATS_NETWORK_TYPE:
+
+      addr_net = get_performance_info (address, GNUNET_ATS_NETWORK_TYPE);
+      if (GNUNET_ATS_VALUE_UNDEFINED == addr_net)
+      {
+      	GNUNET_break (0);
+      	addr_net = GNUNET_ATS_NET_UNSPECIFIED;
+      }
+      if (addr_net != prev_value)
+      {
+    	/* Network changed */
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "Network type changed, moving %s address from `%s' to `%s'\n",
+            (GNUNET_YES == address->active) ? "active" : "inactive",
+             GNUNET_ATS_print_network_type(prev_value),
+             GNUNET_ATS_print_network_type(addr_net));
+
+        save_active = address->active;
+        /* remove from old network */
+        GAS_proportional_address_delete (solver, addresses, address, GNUNET_NO);
+
+        /* set new network type */
+        new_net = get_network (solver, addr_net);
+        address->solver_information = new_net;
+
+        /* Add to new network and update*/
+        GAS_proportional_address_add (solver, addresses, address, addr_net);
+        if (GNUNET_YES == save_active)
+        {
+          /* check if bandwidth available in new network */
+          if (GNUNET_YES == (is_bandwidth_available_in_network (new_net)))
+          {
+              /* Suggest updated address */
+              address->active = GNUNET_YES;
+              addresse_increment (s, new_net, GNUNET_NO, GNUNET_YES);
+              update_quota_per_network (solver, new_net, NULL);
+          }
+          else
+          {
+            LOG (GNUNET_ERROR_TYPE_DEBUG, "Not enough bandwidth in new network, suggesting alternative address ..\n");
+
+            /* Set old address to zero bw */
+            address->assigned_bw_in = GNUNET_BANDWIDTH_value_init (0);
+            address->assigned_bw_out = GNUNET_BANDWIDTH_value_init (0);
+            s->bw_changed  (s->bw_changed_cls, address);
+
+            /* Find new address to suggest since no bandwidth in network*/
+            new = (struct ATS_Address *) GAS_proportional_get_preferred_address (s, addresses, &address->peer);
+            if (NULL != new)
+            {
+                /* Have an alternative address to suggest */
+                s->bw_changed  (s->bw_changed_cls, new);
+            }
+
+          }
+        }
+      }
+
+      break;
+    case GNUNET_ATS_ARRAY_TERMINATOR:
+      break;
+    default:
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Received unsupported ATS type %u\n", prev_type);
+      GNUNET_break (0);
+      break;
+
+    }
+
+  }
+  if (address->session_id != session)
+  {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+                  "Session changed from %u to %u\n", address->session_id, session);
+      address->session_id = session;
+  }
+  if (address->used != in_use)
+  {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+                  "Usage changed from %u to %u\n", address->used, in_use);
+      address->used = in_use;
+  }
+
+}
+
+
+/**
+ * Add a new single address to a network
+ *
+ * @param solver the solver Handle
+ * @param addresses the address hashmap containing all addresses
+ * @param address the address to add
+ * @param network network type of this address
+ */
+void
+GAS_proportional_address_add (void *solver,
+							struct GNUNET_CONTAINER_MultiHashMap *addresses,
+							struct ATS_Address *address,
+							uint32_t network)
+{
+  struct GAS_PROPORTIONAL_Handle *s = solver;
+  struct Network *net = NULL;
+  struct AddressWrapper *aw = NULL;
+  int c;
+
+  GNUNET_assert (NULL != s);
+  for (c = 0; c < s->networks; c++)
+  {
+      net = &s->network_entries[c];
+      if (network == net->type)
+          break;
+  }
+  if (NULL == net)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  aw = GNUNET_malloc (sizeof (struct AddressWrapper));
+  aw->addr = address;
+  GNUNET_CONTAINER_DLL_insert (net->head, net->tail, aw);
+  addresse_increment (s, net, GNUNET_YES, GNUNET_NO);
+  aw->addr->solver_information = net;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "After adding address now total %u and active %u addresses in network `%s'\n",
+      net->total_addresses,
+      net->active_addresses,
+      net->desc);
+}
+
+
+/**
+ * Init the proportional problem solver
+ *
+ * Quotas:
+ * network[i] contains the network type as type GNUNET_ATS_NetworkType[i]
+ * out_quota[i] contains outbound quota for network type i
+ * in_quota[i] contains inbound quota for network type i
+ *
+ * Example
+ * network = {GNUNET_ATS_NET_UNSPECIFIED, GNUNET_ATS_NET_LOOPBACK, GNUNET_ATS_NET_LAN, GNUNET_ATS_NET_WAN, GNUNET_ATS_NET_WLAN}
+ * network[2]   == GNUNET_ATS_NET_LAN
+ * out_quota[2] == 65353
+ * in_quota[2]  == 65353
+ *
+ * @param cfg configuration handle
+ * @param stats the GNUNET_STATISTICS handle
+ * @param network array of GNUNET_ATS_NetworkType with length dest_length
+ * @param out_quota array of outbound quotas
+ * @param in_quota array of outbound quota
+ * @param dest_length array length for quota arrays
+ * @param bw_changed_cb callback for changed bandwidth amounts
+ * @param bw_changed_cb_cls cls for callback
+ * @return handle for the solver on success, NULL on fail
+ */
+void *
+GAS_proportional_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                       const struct GNUNET_STATISTICS_Handle *stats,
+                       int *network,
+                       unsigned long long *out_quota,
+                       unsigned long long *in_quota,
+                       int dest_length,
+                       GAS_bandwidth_changed_cb bw_changed_cb,
+                       void *bw_changed_cb_cls)
+{
+  int c;
+  struct GAS_PROPORTIONAL_Handle *s = GNUNET_malloc (sizeof (struct GAS_PROPORTIONAL_Handle));
+  struct Network * cur;
+  char * net_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
+
+
+  s->stats = (struct GNUNET_STATISTICS_Handle *) stats;
+  s->bw_changed = bw_changed_cb;
+  s->bw_changed_cls = bw_changed_cb_cls;
+  s->networks = dest_length;
+  s->network_entries = GNUNET_malloc (dest_length * sizeof (struct Network));
+  s->active_addresses = 0;
+  s->total_addresses = 0;
+  s->prefs = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+
+  for (c = 0; c < dest_length; c++)
+  {
+      cur = &s->network_entries[c];
+      cur->total_addresses = 0;
+      cur->active_addresses = 0;
+      cur->type = network[c];
+      cur->total_quota_in = in_quota[c];
+      cur->total_quota_out = out_quota[c];
+      cur->desc = net_str[c];
+      GNUNET_asprintf (&cur->stat_total, "# ATS addresses %s total", cur->desc);
+      GNUNET_asprintf (&cur->stat_active, "# ATS active addresses %s total", cur->desc);
+  }
+  return s;
+}
+
 
 /**
  * Shutdown the proportional problem solver
@@ -1447,7 +1562,7 @@ GAS_simplistic_address_change_preference (void *solver,
 void
 GAS_proportional_done (void *solver)
 {
-  struct GAS_SIMPLISTIC_Handle *s = solver;
+  struct GAS_PROPORTIONAL_Handle *s = solver;
   struct PreferenceClient *pc;
   struct PreferenceClient *next_pc;
   struct PreferencePeer *p;
@@ -1530,69 +1645,5 @@ GAS_proportional_done (void *solver)
   GNUNET_free (s);
 }
 
-
-/**
- * Init the proportional problem solver
- *
- * Quotas:
- * network[i] contains the network type as type GNUNET_ATS_NetworkType[i]
- * out_quota[i] contains outbound quota for network type i
- * in_quota[i] contains inbound quota for network type i
- *
- * Example
- * network = {GNUNET_ATS_NET_UNSPECIFIED, GNUNET_ATS_NET_LOOPBACK, GNUNET_ATS_NET_LAN, GNUNET_ATS_NET_WAN, GNUNET_ATS_NET_WLAN}
- * network[2]   == GNUNET_ATS_NET_LAN
- * out_quota[2] == 65353
- * in_quota[2]  == 65353
- *
- * @param cfg configuration handle
- * @param stats the GNUNET_STATISTICS handle
- * @param network array of GNUNET_ATS_NetworkType with length dest_length
- * @param out_quota array of outbound quotas
- * @param in_quota array of outbound quota
- * @param dest_length array length for quota arrays
- * @param bw_changed_cb callback for changed bandwidth amounts
- * @param bw_changed_cb_cls cls for callback
- * @return handle for the solver on success, NULL on fail
- */
-void *
-GAS_proportional_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                     const struct GNUNET_STATISTICS_Handle *stats,
-                     int *network,
-                     unsigned long long *out_quota,
-                     unsigned long long *in_quota,
-                     int dest_length,
-                     GAS_bandwidth_changed_cb bw_changed_cb,
-                     void *bw_changed_cb_cls)
-{
-  int c;
-  struct GAS_SIMPLISTIC_Handle *s = GNUNET_malloc (sizeof (struct GAS_SIMPLISTIC_Handle));
-  struct Network * cur;
-  char * net_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
-
-
-  s->stats = (struct GNUNET_STATISTICS_Handle *) stats;
-  s->bw_changed = bw_changed_cb;
-  s->bw_changed_cls = bw_changed_cb_cls;
-  s->networks = dest_length;
-  s->network_entries = GNUNET_malloc (dest_length * sizeof (struct Network));
-  s->active_addresses = 0;
-  s->total_addresses = 0;
-  s->prefs = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
-
-  for (c = 0; c < dest_length; c++)
-  {
-      cur = &s->network_entries[c];
-      cur->total_addresses = 0;
-      cur->active_addresses = 0;
-      cur->type = network[c];
-      cur->total_quota_in = in_quota[c];
-      cur->total_quota_out = out_quota[c];
-      cur->desc = net_str[c];
-      GNUNET_asprintf (&cur->stat_total, "# ATS addresses %s total", cur->desc);
-      GNUNET_asprintf (&cur->stat_active, "# ATS active addresses %s total", cur->desc);
-  }
-  return s;
-}
 
 /* end of gnunet-service-ats-solver_proportional.c */

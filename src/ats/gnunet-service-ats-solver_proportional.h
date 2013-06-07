@@ -88,7 +88,7 @@ GAS_proportional_done (void * solver);
  * @param network network type of this address
  */
 void
-GAS_simplistic_address_add (void *solver,
+GAS_proportional_address_add (void *solver,
 														struct GNUNET_CONTAINER_MultiHashMap *addresses,
 														struct ATS_Address *address,
 														uint32_t network);
@@ -106,7 +106,7 @@ GAS_simplistic_address_add (void *solver,
  * @param prev_atsi_count the atsi count
  */
 void
-GAS_simplistic_address_update (void *solver,
+GAS_proportional_address_update (void *solver,
     struct GNUNET_CONTAINER_MultiHashMap *addresses,
     struct ATS_Address *address,
     uint32_t session,
@@ -124,7 +124,7 @@ GAS_simplistic_address_update (void *solver,
  * @param session_only delete only session not whole address
  */
 void
-GAS_simplistic_address_delete (void *solver,
+GAS_proportional_address_delete (void *solver,
     struct GNUNET_CONTAINER_MultiHashMap * addresses,
     struct ATS_Address *address, int session_only);
 
@@ -137,7 +137,7 @@ GAS_simplistic_address_delete (void *solver,
  * @param peer the peer
  */
 void
-GAS_simplistic_stop_get_preferred_address (void *solver,
+GAS_proportional_stop_get_preferred_address (void *solver,
                                      struct GNUNET_CONTAINER_MultiHashMap *addresses,
                                      const struct GNUNET_PeerIdentity *peer);
 
@@ -149,7 +149,7 @@ GAS_simplistic_stop_get_preferred_address (void *solver,
  * @param peer the identity of the peer
  */
 const struct ATS_Address *
-GAS_simplistic_get_preferred_address (void *solver,
+GAS_proportional_get_preferred_address (void *solver,
                                struct GNUNET_CONTAINER_MultiHashMap * addresses,
                                const struct GNUNET_PeerIdentity *peer);
 
