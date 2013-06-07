@@ -19,8 +19,8 @@
 */
 
 /**
- * @file ats/gnunet-service-ats_addresses_simplistic.h
- * @brief ats simplistic ressource assignment
+ * @file ats/gnunet-service-ats-solver_proportional.h
+ * @brief ATS proportional solver
  * @author Matthias Wachs
  * @author Christian Grothoff
  */
@@ -62,7 +62,7 @@
  * @return handle for the solver on success, NULL on fail
  */
 void *
-GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
+GAS_proportional_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      const struct GNUNET_STATISTICS_Handle *stats,
                      int *network,
                      unsigned long long *out_quota,
@@ -77,7 +77,7 @@ GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param solver the respective handle to shutdown
  */
 void
-GAS_simplistic_done (void * solver);
+GAS_proportional_done (void * solver);
 
 /**
  * Add a single address within a network to the solver
@@ -171,4 +171,4 @@ GAS_simplistic_address_change_preference (void *solver,
                                    float score);
 
 
-/* end of gnunet-service-ats_addresses_simplistic.h */
+/* end of gnunet-service-ats-solver_proportional.c */

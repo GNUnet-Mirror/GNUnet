@@ -19,8 +19,8 @@
 */
 
 /**
- * @file ats/gnunet-service-ats_addresses_simplistic.h
- * @brief ats simplistic ressource assignment
+ * @file ats/gnunet-service-ats-solver_proportional.c
+ * @brief ATS proportional solver
  * @author Matthias Wachs
  * @author Christian Grothoff
  */
@@ -355,69 +355,20 @@ GAS_simplistic_get_preferred_address (void *solver,
                                struct GNUNET_CONTAINER_MultiHashMap * addresses,
                                const struct GNUNET_PeerIdentity *peer);
 
+
+
 /**
- * Init the simplistic problem solving component
- *
- * Quotas:
- * network[i] contains the network type as type GNUNET_ATS_NetworkType[i]
- * out_quota[i] contains outbound quota for network type i
- * in_quota[i] contains inbound quota for network type i
- *
- * Example
- * network = {GNUNET_ATS_NET_UNSPECIFIED, GNUNET_ATS_NET_LOOPBACK, GNUNET_ATS_NET_LAN, GNUNET_ATS_NET_WAN, GNUNET_ATS_NET_WLAN}
- * network[2]   == GNUNET_ATS_NET_LAN
- * out_quota[2] == 65353
- * in_quota[2]  == 65353
- *
- * @param cfg configuration handle
- * @param stats the GNUNET_STATISTICS handle
- * @param network array of GNUNET_ATS_NetworkType with length dest_length
- * @param out_quota array of outbound quotas
- * @param in_quota array of outbound quota
- * @param dest_length array length for quota arrays
- * @param bw_changed_cb callback for changed bandwidth amounts
- * @param bw_changed_cb_cls cls for callback
- * @return handle for the solver on success, NULL on fail
+ *  Important solver functions
+ *  ---------------------------
  */
-void *
-GAS_simplistic_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                     const struct GNUNET_STATISTICS_Handle *stats,
-                     int *network,
-                     unsigned long long *out_quota,
-                     unsigned long long *in_quota,
-                     int dest_length,
-                     GAS_bandwidth_changed_cb bw_changed_cb,
-                     void *bw_changed_cb_cls)
-{
-  int c;
-  struct GAS_SIMPLISTIC_Handle *s = GNUNET_malloc (sizeof (struct GAS_SIMPLISTIC_Handle));
-  struct Network * cur;
-  char * net_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
 
 
-  s->stats = (struct GNUNET_STATISTICS_Handle *) stats;
-  s->bw_changed = bw_changed_cb;
-  s->bw_changed_cls = bw_changed_cb_cls;
-  s->networks = dest_length;
-  s->network_entries = GNUNET_malloc (dest_length * sizeof (struct Network));
-  s->active_addresses = 0;
-  s->total_addresses = 0;
-  s->prefs = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
 
-  for (c = 0; c < dest_length; c++)
-  {
-      cur = &s->network_entries[c];
-      cur->total_addresses = 0;
-      cur->active_addresses = 0;
-      cur->type = network[c];
-      cur->total_quota_in = in_quota[c];
-      cur->total_quota_out = out_quota[c];
-      cur->desc = net_str[c];
-      GNUNET_asprintf (&cur->stat_total, "# ATS addresses %s total", cur->desc);
-      GNUNET_asprintf (&cur->stat_active, "# ATS active addresses %s total", cur->desc);
-  }
-  return s;
-}
+
+/**
+ *  Helper functions
+ *  ---------------------------
+ */
 
 static int
 free_pref (void *cls,
@@ -429,96 +380,7 @@ free_pref (void *cls,
   return GNUNET_OK;
 }
 
-/**
- * Shutdown the simplistic problem solving component
- *
- * @param solver the respective handle to shutdown
- */
-void
-GAS_simplistic_done (void *solver)
-{
-  struct GAS_SIMPLISTIC_Handle *s = solver;
-  struct PreferenceClient *pc;
-  struct PreferenceClient *next_pc;
-  struct PreferencePeer *p;
-  struct PreferencePeer *next_p;
-  struct AddressWrapper *cur;
-  struct AddressWrapper *next;
-  int c;
-  GNUNET_assert (s != NULL);
 
-  for (c = 0; c < s->networks; c++)
-  {
-      if (s->network_entries[c].total_addresses > 0)
-      {
-        LOG (GNUNET_ERROR_TYPE_ERROR,
-                    "Had %u addresses for network `%s' not deleted during shutdown\n",
-                    s->network_entries[c].total_addresses,
-                    s->network_entries[c].desc);
-        GNUNET_break (0);
-      }
-
-      if (s->network_entries[c].active_addresses > 0)
-      {
-        LOG (GNUNET_ERROR_TYPE_ERROR,
-                    "Had %u active addresses for network `%s' not deleted during shutdown\n",
-                    s->network_entries[c].active_addresses,
-                    s->network_entries[c].desc);
-        GNUNET_break (0);
-      }
-
-      next = s->network_entries[c].head;
-      while (NULL != (cur = next))
-      {
-          next = cur->next;
-          GNUNET_CONTAINER_DLL_remove (s->network_entries[c].head,
-                                       s->network_entries[c].tail,
-                                       cur);
-          GNUNET_free (cur);
-      }
-      GNUNET_free (s->network_entries[c].stat_total);
-      GNUNET_free (s->network_entries[c].stat_active);
-  }
-  if (s->total_addresses > 0)
-  {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-                "Had %u addresses not deleted during shutdown\n",
-                s->total_addresses);
-    GNUNET_break (0);
-  }
-  if (s->active_addresses > 0)
-  {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-                "Had %u active addresses not deleted during shutdown\n",
-                s->active_addresses);
-    GNUNET_break (0);
-  }
-  GNUNET_free (s->network_entries);
-
-  next_pc = s->pc_head;
-  while (NULL != (pc = next_pc))
-  {
-      next_pc = pc->next;
-      GNUNET_CONTAINER_DLL_remove (s->pc_head, s->pc_tail, pc);
-      next_p = pc->p_head;
-      while (NULL != (p = next_p))
-      {
-          next_p = p->next;
-          if (GNUNET_SCHEDULER_NO_TASK != p->aging_task)
-          {
-          	GNUNET_SCHEDULER_cancel(p->aging_task);
-          	p->aging_task = GNUNET_SCHEDULER_NO_TASK;
-          }
-          GNUNET_CONTAINER_DLL_remove (pc->p_head, pc->p_tail, p);
-          GNUNET_free (p);
-      }
-      GNUNET_free (pc);
-  }
-
-  GNUNET_CONTAINER_multihashmap_iterate (s->prefs, &free_pref, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (s->prefs);
-  GNUNET_free (s);
-}
 
 
 /**
@@ -930,14 +792,16 @@ find_network (struct GAS_SIMPLISTIC_Handle *s, uint32_t type)
 }
 
 /**
- * Updates a single address in the solve
+ * Updates a single address in the solver
+ *
+ * If ATS information was updated, the previous values are passed
  *
  * @param solver the solver Handle
  * @param addresses the address hashmap containing all addresses
  * @param address the update address
  * @param session the new session (if changed otherwise current)
  * @param in_use the new address in use state (if changed otherwise current)
- * @param prev_ats the latest ATS information
+ * @param prev_ats  ATS information
  * @param prev_atsi_count the atsi count
  */
 void
@@ -1274,6 +1138,13 @@ GAS_simplistic_stop_get_preferred_address (void *solver,
 	return;
 }
 
+
+/**
+ *  Preference calculation
+ *  ---------------------------
+ */
+
+
 static void
 recalculate_preferences (struct PreferencePeer *p)
 {
@@ -1561,4 +1432,167 @@ GAS_simplistic_address_change_preference (void *solver,
   }
 }
 
-/* end of gnunet-service-ats_addresses_simplistic.c */
+
+/**
+ *  Solver API functions
+ *  ---------------------------
+ */
+
+
+/**
+ * Shutdown the proportional problem solver
+ *
+ * @param solver the respective handle to shutdown
+ */
+void
+GAS_proportional_done (void *solver)
+{
+  struct GAS_SIMPLISTIC_Handle *s = solver;
+  struct PreferenceClient *pc;
+  struct PreferenceClient *next_pc;
+  struct PreferencePeer *p;
+  struct PreferencePeer *next_p;
+  struct AddressWrapper *cur;
+  struct AddressWrapper *next;
+  int c;
+  GNUNET_assert (s != NULL);
+
+  for (c = 0; c < s->networks; c++)
+  {
+      if (s->network_entries[c].total_addresses > 0)
+      {
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+                    "Had %u addresses for network `%s' not deleted during shutdown\n",
+                    s->network_entries[c].total_addresses,
+                    s->network_entries[c].desc);
+        GNUNET_break (0);
+      }
+
+      if (s->network_entries[c].active_addresses > 0)
+      {
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+                    "Had %u active addresses for network `%s' not deleted during shutdown\n",
+                    s->network_entries[c].active_addresses,
+                    s->network_entries[c].desc);
+        GNUNET_break (0);
+      }
+
+      next = s->network_entries[c].head;
+      while (NULL != (cur = next))
+      {
+          next = cur->next;
+          GNUNET_CONTAINER_DLL_remove (s->network_entries[c].head,
+                                       s->network_entries[c].tail,
+                                       cur);
+          GNUNET_free (cur);
+      }
+      GNUNET_free (s->network_entries[c].stat_total);
+      GNUNET_free (s->network_entries[c].stat_active);
+  }
+  if (s->total_addresses > 0)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+                "Had %u addresses not deleted during shutdown\n",
+                s->total_addresses);
+    GNUNET_break (0);
+  }
+  if (s->active_addresses > 0)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+                "Had %u active addresses not deleted during shutdown\n",
+                s->active_addresses);
+    GNUNET_break (0);
+  }
+  GNUNET_free (s->network_entries);
+
+  next_pc = s->pc_head;
+  while (NULL != (pc = next_pc))
+  {
+      next_pc = pc->next;
+      GNUNET_CONTAINER_DLL_remove (s->pc_head, s->pc_tail, pc);
+      next_p = pc->p_head;
+      while (NULL != (p = next_p))
+      {
+          next_p = p->next;
+          if (GNUNET_SCHEDULER_NO_TASK != p->aging_task)
+          {
+          	GNUNET_SCHEDULER_cancel(p->aging_task);
+          	p->aging_task = GNUNET_SCHEDULER_NO_TASK;
+          }
+          GNUNET_CONTAINER_DLL_remove (pc->p_head, pc->p_tail, p);
+          GNUNET_free (p);
+      }
+      GNUNET_free (pc);
+  }
+
+  GNUNET_CONTAINER_multihashmap_iterate (s->prefs, &free_pref, NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (s->prefs);
+  GNUNET_free (s);
+}
+
+
+/**
+ * Init the proportional problem solver
+ *
+ * Quotas:
+ * network[i] contains the network type as type GNUNET_ATS_NetworkType[i]
+ * out_quota[i] contains outbound quota for network type i
+ * in_quota[i] contains inbound quota for network type i
+ *
+ * Example
+ * network = {GNUNET_ATS_NET_UNSPECIFIED, GNUNET_ATS_NET_LOOPBACK, GNUNET_ATS_NET_LAN, GNUNET_ATS_NET_WAN, GNUNET_ATS_NET_WLAN}
+ * network[2]   == GNUNET_ATS_NET_LAN
+ * out_quota[2] == 65353
+ * in_quota[2]  == 65353
+ *
+ * @param cfg configuration handle
+ * @param stats the GNUNET_STATISTICS handle
+ * @param network array of GNUNET_ATS_NetworkType with length dest_length
+ * @param out_quota array of outbound quotas
+ * @param in_quota array of outbound quota
+ * @param dest_length array length for quota arrays
+ * @param bw_changed_cb callback for changed bandwidth amounts
+ * @param bw_changed_cb_cls cls for callback
+ * @return handle for the solver on success, NULL on fail
+ */
+void *
+GAS_proportional_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                     const struct GNUNET_STATISTICS_Handle *stats,
+                     int *network,
+                     unsigned long long *out_quota,
+                     unsigned long long *in_quota,
+                     int dest_length,
+                     GAS_bandwidth_changed_cb bw_changed_cb,
+                     void *bw_changed_cb_cls)
+{
+  int c;
+  struct GAS_SIMPLISTIC_Handle *s = GNUNET_malloc (sizeof (struct GAS_SIMPLISTIC_Handle));
+  struct Network * cur;
+  char * net_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
+
+
+  s->stats = (struct GNUNET_STATISTICS_Handle *) stats;
+  s->bw_changed = bw_changed_cb;
+  s->bw_changed_cls = bw_changed_cb_cls;
+  s->networks = dest_length;
+  s->network_entries = GNUNET_malloc (dest_length * sizeof (struct Network));
+  s->active_addresses = 0;
+  s->total_addresses = 0;
+  s->prefs = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+
+  for (c = 0; c < dest_length; c++)
+  {
+      cur = &s->network_entries[c];
+      cur->total_addresses = 0;
+      cur->active_addresses = 0;
+      cur->type = network[c];
+      cur->total_quota_in = in_quota[c];
+      cur->total_quota_out = out_quota[c];
+      cur->desc = net_str[c];
+      GNUNET_asprintf (&cur->stat_total, "# ATS addresses %s total", cur->desc);
+      GNUNET_asprintf (&cur->stat_active, "# ATS active addresses %s total", cur->desc);
+  }
+  return s;
+}
+
+/* end of gnunet-service-ats-solver_proportional.c */

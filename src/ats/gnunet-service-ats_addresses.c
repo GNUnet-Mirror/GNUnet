@@ -34,7 +34,7 @@
 #if HAVE_LIBGLPK
 #include "gnunet-service-ats_addresses_mlp.h"
 #endif
-#include "gnunet-service-ats_addresses_simplistic.h"
+#include "gnunet-service-ats-solver_proportional.h"
 
 /**
  * NOTE: Do not change this documentation. This documentation is based on
@@ -1563,14 +1563,14 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     case MODE_SIMPLISTIC:
       /* Init the simplistic solver with default values */
       ah->ats_mode = MODE_SIMPLISTIC;
-      ah->s_init = &GAS_simplistic_init;
+      ah->s_init = &GAS_proportional_init;
       ah->s_add = &GAS_simplistic_address_add;
       ah->s_update = &GAS_simplistic_address_update;
       ah->s_get = &GAS_simplistic_get_preferred_address;
       ah->s_get_stop = &GAS_simplistic_stop_get_preferred_address;
       ah->s_pref = &GAS_simplistic_address_change_preference;
       ah->s_del  = &GAS_simplistic_address_delete;
-      ah->s_done = &GAS_simplistic_done;
+      ah->s_done = &GAS_proportional_done;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS started in %s mode\n", "SIMPLISTIC");
       break;
     default:
