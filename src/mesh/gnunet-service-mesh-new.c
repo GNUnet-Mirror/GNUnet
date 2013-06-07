@@ -2234,12 +2234,12 @@ tunnel_destroy (struct MeshTunnel *t)
       GNUNET_break (0);
       r = GNUNET_SYSERR;
     }
-  }
-  if (GNUNET_YES != 
+    if (GNUNET_YES != 
       GNUNET_CONTAINER_multihashmap_remove (incoming_tunnels, &hash, t))
-  {
-    GNUNET_break (0);
-    r = GNUNET_SYSERR;
+    {
+      GNUNET_break (0);
+      r = GNUNET_SYSERR;
+    }
   }
 
   peer_cancel_queues (t->next_hop, t);
