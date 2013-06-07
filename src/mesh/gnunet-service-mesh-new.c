@@ -937,6 +937,7 @@ send_client_tunnel_create (struct MeshTunnel *t)
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
   msg.tunnel_id = htonl (t->local_tid_dest);
   msg.port = htonl (t->port);
+  GNUNET_PEER_resolve (t->id.oid, &msg.peer);
   GNUNET_SERVER_notification_context_unicast (nc, t->client->handle,
                                               &msg.header, GNUNET_NO);
 }
