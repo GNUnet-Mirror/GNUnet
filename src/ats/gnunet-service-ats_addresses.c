@@ -876,6 +876,8 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
   struct ATS_Address *aa;
   struct GNUNET_ATS_Information *atsi_delta;
   uint32_t atsi_delta_count;
+  uint32_t prev_session;
+
 
   if (GNUNET_NO == handle->running)
     return;
@@ -912,8 +914,11 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
   				aa->assigned_bw_out,
   				aa->assigned_bw_in);
   }
+  prev_session = aa->session_id;
+  aa->session_id = session_id;
+
   /* Tell solver about update */
-  handle->s_update (handle->solver, handle->addresses, aa, session_id, aa->used, atsi_delta, atsi_delta_count);
+  handle->s_update (handle->solver, handle->addresses, aa, prev_session, aa->used, atsi_delta, atsi_delta_count);
   GNUNET_free_non_null (atsi_delta);
 }
 

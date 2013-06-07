@@ -1344,6 +1344,8 @@ GAS_proportional_address_update (void *solver,
   uint32_t addr_net;
   int save_active = GNUNET_NO;
   struct Network *new_net = NULL;
+
+  /* Check updates to performance information */
   for (i = 0; i < prev_atsi_count; i++)
   {
     prev_type = ntohl (prev_ats[i].type);
@@ -1461,15 +1463,9 @@ GAS_proportional_address_add (void *solver,
   struct GAS_PROPORTIONAL_Handle *s = solver;
   struct Network *net = NULL;
   struct AddressWrapper *aw = NULL;
-  int c;
-
   GNUNET_assert (NULL != s);
-  for (c = 0; c < s->networks; c++)
-  {
-      net = &s->network_entries[c];
-      if (network == net->type)
-          break;
-  }
+
+  net = get_network (s, network);
   if (NULL == net)
   {
     GNUNET_break (0);

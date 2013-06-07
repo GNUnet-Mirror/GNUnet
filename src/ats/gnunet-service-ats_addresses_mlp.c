@@ -1313,7 +1313,7 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
  * @param solver the solver Handle
  * @param addresses the address hashmap containing all addresses
  * @param address the update address
- * @param session the new session (if changed otherwise current)
+ * @param prev_session the new session (if changed otherwise current)
  * @param in_use the new address in use state (if changed otherwise current)
  * @param atsi_prev ATS information updated + previous values, GNUNET_ATS_VALUE_UNDEFINED if not existing before
  * @param atsi_count_prev number of atsi values updated
@@ -1322,10 +1322,10 @@ void
 GAS_mlp_address_update (void *solver,
                         struct GNUNET_CONTAINER_MultiHashMap *addresses,
                         struct ATS_Address *address,
-                        uint32_t session,
+                        uint32_t prev_session,
                         int in_use,
-                        const struct GNUNET_ATS_Information *atsi_prev,
-                        uint32_t atsi_count_prev)
+                        const struct GNUNET_ATS_Information *prev_atsi,
+                        uint32_t prev_atsi_count)
 {
 	struct ATS_Peer *p;
 	struct GAS_MLP_Handle *mlp = solver;
@@ -1334,14 +1334,14 @@ GAS_mlp_address_update (void *solver,
 	GNUNET_assert (NULL != solver);
 	GNUNET_assert (NULL != addresses);
 	GNUNET_assert (NULL != address);
-	GNUNET_assert ((NULL != atsi_prev) || (0 == atsi_count_prev));
+	GNUNET_assert ((NULL != prev_atsi) || (0 == prev_atsi_count));
 
   if (NULL == mlpi)
   {
       LOG (GNUNET_ERROR_TYPE_ERROR, _("Updating address for peer `%s' not added before\n"), GNUNET_i2s(&address->peer));
       return;
   }
-	mlp_update_quality (mlp, addresses, address, atsi_prev, atsi_count_prev);
+	mlp_update_quality (mlp, addresses, address, prev_atsi, prev_atsi_count);
 
   /* Is this peer included in the problem? */
   if (NULL == (p = GNUNET_CONTAINER_multihashmap_get (mlp->peers, &address->peer.hashPubKey)))

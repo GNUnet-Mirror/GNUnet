@@ -444,20 +444,20 @@ typedef void
  * @param solver the solver to use
  * @param addresses the address hashmap containing all addresses
  * @param address the address
- * @param session the session
+ * @param session the previous session
  * @param in_use address used: yes or no
- * @param atsi ats performance information
- * @param atsi_count number of ats performance information
+ * @param atsi ats previous performance information
+ * @param atsi_count previous number of ats performance information
  *
  */
 typedef void
 (*GAS_solver_address_update) (void *solver,
                               struct GNUNET_CONTAINER_MultiHashMap *addresses,
                               struct ATS_Address *address,
-                              uint32_t session,
+                              uint32_t prev_session,
                               int in_use,
-                              const struct GNUNET_ATS_Information *atsi,
-                              uint32_t atsi_count);
+                              const struct GNUNET_ATS_Information *prev_atsi,
+                              uint32_t prev_atsi_count);
 
 
 /**
