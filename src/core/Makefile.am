@@ -49,7 +49,7 @@ gnunet_service_core_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL) -lz
+  $(GN_LIBINTL) $(Z_LIBS)
 
 
 gnunet_core_SOURCES = \

@@ -116,7 +116,7 @@ libgnunetutil_la_LIBADD = \
   $(LIBGCRYPT_LIBS) \
   $(LTLIBICONV) \
   $(LTLIBINTL) \
-  -lltdl -lz -lunistring $(XLIB) 
+  -lltdl $(Z_LIBS) -lunistring $(XLIB) 
 
 libgnunetutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \

@@ -124,7 +124,7 @@ libgnunet_plugin_datastore_mysql_la_SOURCES = \
 libgnunet_plugin_datastore_mysql_la_LIBADD = \
   $(top_builddir)/src/mysql/libgnunetmysql.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lz -lmysqlclient
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) $(Z_LIBS) -lmysqlclient
 libgnunet_plugin_datastore_mysql_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS) $(MYSQL_LDFLAGS) -lmysqlclient
 libgnunet_plugin_datastore_mysql_la_CPPFLAGS = \

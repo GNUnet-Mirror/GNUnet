@@ -48,7 +48,7 @@ gnunet_service_testbed_LDADD = $(XLIB) \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la \
  $(top_builddir)/src/arm/libgnunetarm.la \
- $(LTLIBINTL) -lz
+ $(LTLIBINTL) $(Z_LIBS)
 gnunet_service_testbed_DEPENDENCIES = \
  libgnunettestbed.la
 
@@ -71,7 +71,7 @@ gnunet_helper_testbed_LDADD = $(XLIB) \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  libgnunettestbed.la \
- $(LTLIBINTL) -lz
+ $(LTLIBINTL) $(Z_LIBS)
 gnunet_helper_testbed_DEPENDENCIES = \
   gnunet-service-testbed.$(OBJEXT) \
   libgnunettestbed.la
@@ -268,7 +268,7 @@ test_gnunet_helper_testbed_SOURCES = \
 test_gnunet_helper_testbed_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la \
- -lz
+ $(Z_LIBZ)
 
 test_testbed_api_testbed_run_topologyrandom_SOURCES = \
  test_testbed_api_testbed_run.c

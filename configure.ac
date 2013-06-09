@@ -568,14 +568,38 @@ AM_CONDITIONAL(HAVE_POSTGRES, test x$postgres = xtrue)
 AC_SUBST(POSTGRES_CPPFLAGS)
 AC_SUBST(POSTGRES_LDFLAGS)
 
-# test for libz (maybe required for linking mysql)
-zlib=1
-AC_CHECK_LIB(z, compress,,zlib=0)
-AM_CONDITIONAL(HAVE_ZLIB, test x$zlib = x1)
-if test "$zlib" != 1
-then
- AC_MSG_ERROR([GNUnet requires zlib])
-fi
+# test for zlib
+SAVE_LDFLAGS=$LDFLAGS
+SAVE_CPPFLAGS=$CPPFLAGS
+AC_ARG_WITH(zlib,
+	    [  --with-zlib[[=DIR]]       use libz in DIR],
+	    [AS_IF([test "$withval" = "no"],
+		   [AC_MSG_ERROR([GNUnet requires zlib])],
+		   [test "$withval" != "yes"],
+		   [
+		     Z_DIR=$withval
+		     CPPFLAGS="${CPPFLAGS} -I$withval/include"
+		     LDFLAGS="${LDFLAGS} -L$withval/lib"
+		   ])
+	    ])
+AC_CHECK_HEADER(zlib.h,
+		[],
+	       	[AC_MSG_ERROR([GNUnet requires zlib])])
+AC_CHECK_LIB(z, compress2,
+	     [
+	      AC_DEFINE([HAVE_ZLIB], [], [Have compression library])
+	      if test "x${Z_DIR}" != "x"; then
+		      Z_CFLAGS="-I${Z_DIR}/include"
+		      Z_LIBS="-L${Z_DIR}/lib -lz"
+	      else
+		      Z_LIBS="-lz"
+	      fi],
+	      [AC_MSG_ERROR([GNUnet requires zlib])])
+AC_SUBST(Z_CFLAGS)
+AC_SUBST(Z_LIBS)
+
+LDFLAGS=$SAVE_LDFLAGS
+CPPFLAGS=$SAVE_CPPFLAGS
 
 # mysql & windows
 AC_CHECK_TYPES([sigset_t, off_t], [], [], [#include <sys/types.h>])

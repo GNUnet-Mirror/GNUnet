@@ -12,10 +12,6 @@ libexecdir= $(pkglibdir)/libexec/
 pkgcfg_DATA = \
   dht.conf 
 
-if HAVE_ZLIB
- ZLIB_LNK = -lz
-endif
-
 if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
   XLIB = -lgcov
