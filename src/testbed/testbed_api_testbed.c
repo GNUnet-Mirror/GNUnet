@@ -87,13 +87,6 @@ enum State
    */
   RC_INIT = 0,
 
-#if ENABLE_LL
-  /**
-   * Island level controllers are started and linked
-   */
-  RC_ISLANDS_LINKED,
-#endif
-
   /**
    * Controllers on given hosts started and linked
    */
@@ -149,23 +142,6 @@ struct CompatibilityCheckContext
   unsigned int index;
 };
 
-#if ENABLE_LL
-/**
- * Structure to represent an island of SuperMUC's nodes
- */
-struct Island
-{
-  /**
-   * Array of nodes in this island
-   */
-  struct GNUNET_TESTBED_Host **hosts;
-
-  /**
-   * Number of nodes in the above array
-   */
-  unsigned int nhosts;
-};
-#endif
 
 /**
  * Testbed Run Handle
@@ -229,13 +205,6 @@ struct RunContext
    */
   struct GNUNET_TESTBED_Host **hosts;
 
-#if ENABLE_LL
-  /**
-   * Array of SuperMUC islands
-   */
-  struct Island **islands;
-#endif
-
   /**
    * Array of compatibility check contexts
    */
@@ -253,8 +222,7 @@ struct RunContext
   struct GNUNET_TESTBED_Operation *topology_operation;
 
   /**
-   * The file containing topology data. Only used if the topology is set to
-   * 'FROM_FILE'
+   * The file containing topology data. Only used if the topology is set to 'FROM_FILE'
    */
   char *topo_file;
 
@@ -350,12 +318,6 @@ struct RunContext
    */
   unsigned int links_failed;
 
-#if ENABLE_LL
-  /**
-   * Number of SuperMUC islands we are running on
-   */
-  unsigned int nislands;
-#endif
 };
 
 
@@ -474,25 +436,6 @@ remove_rcop (struct RunContext *rc, struct RunContextOperation *rcop)
                                                          rcop));
 }
 
-#if ENABLE_LL
-static void
-cleanup_islands (struct RunContext *rc)
-{
-  struct Island *island;
-  unsigned int cnt;
-
-  GNUNET_assert (NULL != rc->islands);
-  for (cnt = 0; cnt < rc->nislands; cnt++)
-  {
-    island = rc->islands[cnt];
-    GNUNET_free (island->hosts);
-    GNUNET_free (island);
-  }
-  GNUNET_free (rc->islands);
-  rc->islands = NULL;
-}
-#endif
-
 /**
  * Assuming all peers have been destroyed cleanup run handle
  *
@@ -503,7 +446,7 @@ static void
 cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RunContext *rc = cls;
-  unsigned int cnt;
+  unsigned int hid;
 
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == rc->register_hosts_task);
   GNUNET_assert (NULL == rc->reg_handle);
@@ -518,12 +461,8 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TESTBED_controller_stop (rc->cproc);
   if (NULL != rc->h)
     GNUNET_TESTBED_host_destroy (rc->h);
-#if ENABLE_LL
-  if (NULL != rc->islands)
-    cleanup_islands (rc);
-#endif
-  for (cnt = 0; cnt < rc->num_hosts; cnt++)
-    GNUNET_TESTBED_host_destroy (rc->hosts[cnt]);
+  for (hid = 0; hid < rc->num_hosts; hid++)
+    GNUNET_TESTBED_host_destroy (rc->hosts[hid]);
   GNUNET_free_non_null (rc->hosts);
   if (NULL != rc->cfg)
     GNUNET_CONFIGURATION_destroy (rc->cfg);
@@ -815,17 +754,8 @@ static void
 create_peers (struct RunContext *rc)
 {
   struct RunContextOperation *rcop;
-  struct GNUNET_TESTBED_Host *host;
   unsigned int peer;
-#if ENABLE_LL
-  struct Island *island;
-  unsigned int icnt;
-  unsigned int hcnt;
 
-  island = NULL;
-  icnt = 0;
-  hcnt = 0;
-#endif
   DEBUG ("Creating peers\n");
   rc->pstart_time = GNUNET_TIME_absolute_get ();
   rc->peers =
@@ -836,33 +766,12 @@ create_peers (struct RunContext *rc)
   {
     rcop = GNUNET_malloc (sizeof (struct RunContextOperation));
     rcop->rc = rc;
-#if ENABLE_LL
-    if (0 != rc->nislands)
-    {
-      island = rc->islands[icnt];      
-      if (hcnt == island->nhosts)
-      {
-        icnt++;
-        if (icnt == rc->nislands)
-          icnt = 0;
-        island = rc->islands[icnt];
-        hcnt = 0;
-      }
-      if ( (0 == hcnt) && (1 < island->nhosts) )
-        hcnt = 1;
-      GNUNET_assert (icnt < rc->nislands);
-      GNUNET_assert (hcnt < island->nhosts);
-      GNUNET_assert (NULL != island->hosts[hcnt]);
-      host = island->hosts[hcnt];
-      hcnt++;
-    }
-    else
-      host = rc->h;
-#else
-    host = (0 == rc->num_hosts) ? rc->h : rc->hosts[peer % rc->num_hosts];
-#endif
-    rcop->op = GNUNET_TESTBED_peer_create (rc->c, host, rc->cfg,
-                                           &peer_create_cb, rcop);
+    rcop->op =
+        GNUNET_TESTBED_peer_create (rc->c,
+                                    (0 ==
+                                     rc->num_hosts) ? rc->h : rc->hosts[peer %
+                                                                        rc->num_hosts],
+                                    rc->cfg, &peer_create_cb, rcop);
     GNUNET_assert (NULL != rcop->op);
     insert_rcop (rc, rcop);
   }
@@ -899,41 +808,11 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       remove_rcop (rc, rcop);
       GNUNET_TESTBED_operation_done (rcop->op);
       GNUNET_free (rcop);
-#if !ENABLE_LL
-      if (rc->reg_hosts != rc->num_hosts)
-        return;
-      rc->state = RC_LINKED;
-      create_peers (rc);
-#else
-      if (rc->reg_hosts != rc->nislands)
-        return;
-      struct Island *island;
-      struct GNUNET_TESTBED_Host *host;
-      unsigned int cnt;
-      unsigned int cnt2;
-      rc->state = RC_ISLANDS_LINKED;
-      rc->reg_hosts = 0;
-      for (cnt = 0; cnt < rc->nislands; cnt++)
+      if (rc->reg_hosts == rc->num_hosts)
       {
-        island = rc->islands[cnt];
-        for (cnt2 = 1; cnt2 < island->nhosts; cnt2++)
-        {
-          host = island->hosts[cnt2];
-          rcop = GNUNET_malloc (sizeof (struct RunContextOperation));
-          rcop->rc = rc;
-          rcop->op =
-                GNUNET_TESTBED_controller_link (rcop, rc->c, host,
-                                                island->hosts[0], GNUNET_YES);
-          GNUNET_assert (NULL != rcop->op);
-          insert_rcop (rc, rcop);
-          rc->reg_hosts++;
-        }
+        rc->state = RC_LINKED;
+        create_peers (rc);
       }
-      if (0 != rc->reg_hosts)
-        return;      
-      rc->state = RC_LINKED;
-      create_peers (rc);
-#endif
       return;
     default:
       GNUNET_break (0);
@@ -941,37 +820,6 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       return;
     }
   }
-#if ENABLE_LL
-  if (RC_ISLANDS_LINKED == rc->state)
-  {
-    switch (event->type)
-    {
-    case GNUNET_TESTBED_ET_OPERATION_FINISHED:
-      rcop = event->op_cls;
-      if (NULL != event->details.operation_finished.emsg)
-      {
-        LOG (GNUNET_ERROR_TYPE_ERROR,
-             "Linking 2nd level controllers failed. Exiting");
-        shutdown_now (rc);
-      }
-      else
-        rc->reg_hosts--;
-      GNUNET_assert (event->op == rcop->op);
-      remove_rcop (rc, rcop);
-      GNUNET_TESTBED_operation_done (rcop->op);
-      GNUNET_free (rcop);
-      if (0 != rc->reg_hosts)
-        return;
-      rc->state = RC_LINKED;
-      create_peers (rc);
-      return;
-    default:
-      GNUNET_break (0);
-      shutdown_now (rc);
-      return;
-    }
-  }
-#endif
   if (GNUNET_TESTBED_ET_OPERATION_FINISHED != event->type)
     goto call_cc;
   if (NULL == (rcop = search_rcop (rc, event->op)))
@@ -1112,39 +960,23 @@ register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RunContext *rc = cls;
   struct RunContextOperation *rcop;
-  unsigned int cnt;
+  unsigned int slave;
 
   rc->register_hosts_task = GNUNET_SCHEDULER_NO_TASK;
   if (rc->reg_hosts == rc->num_hosts)
   {
     DEBUG ("All hosts successfully registered\n");
-    /* Start cnts */
-#if !ENABLE_LL
-    for (cnt = 0; cnt < rc->num_hosts; cnt++)
+    /* Start slaves */
+    for (slave = 0; slave < rc->num_hosts; slave++)
     {
       rcop = GNUNET_malloc (sizeof (struct RunContextOperation));
       rcop->rc = rc;
       rcop->op =
-          GNUNET_TESTBED_controller_link (rcop, rc->c, rc->hosts[cnt],
+          GNUNET_TESTBED_controller_link (rcop, rc->c, rc->hosts[slave],
                                           rc->h, GNUNET_YES);
       GNUNET_assert (NULL != rcop->op);
       insert_rcop (rc, rcop);
     }
-#else
-    struct Island *island;
-    for (cnt = 0; cnt < rc->nislands; cnt++)
-    {
-      island = rc->islands[cnt];
-      GNUNET_assert (0 < island->nhosts);
-      rcop = GNUNET_malloc (sizeof (struct RunContextOperation));
-      rcop->rc = rc;
-      rcop->op =
-          GNUNET_TESTBED_controller_link (rcop, rc->c, island->hosts[0],
-                                          rc->h, GNUNET_YES);
-      GNUNET_assert (NULL != rcop->op);
-      insert_rcop (rc, rcop);
-    }
-#endif
     rc->reg_hosts = 0;
     return;
   }
@@ -1209,49 +1041,6 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   rc->state = RC_LINKED;
   create_peers (rc);
 }
-
-
-#if ENABLE_LL
-#define ISLANDNAME_SIZE 4
-static void
-parse_islands (struct RunContext *rc)
-{
-  char island_id[ISLANDNAME_SIZE];
-  struct GNUNET_TESTBED_Host *host;
-  struct Island *island;
-  const char *hostname;
-  unsigned int nhost;
-
-  DEBUG ("Parsing for islands\n");
-  memset (island_id, 0, ISLANDNAME_SIZE);
-  island = NULL;
-  for (nhost = 0; nhost < rc->num_hosts; nhost++)
-  {
-    host = rc->hosts[nhost];
-    hostname = GNUNET_TESTBED_host_get_hostname (host);
-    GNUNET_assert (NULL != hostname);
-    if (NULL == island)
-    {
-      strncpy (island_id, hostname, ISLANDNAME_SIZE - 1);
-      island = GNUNET_malloc (sizeof (struct Island));
-    }
-    if (0 == strncmp (island_id, hostname, ISLANDNAME_SIZE - 1))
-    {      
-      GNUNET_array_append (island->hosts, island->nhosts, host);
-      continue;
-    }
-    DEBUG ("Adding island `%s' with %u hosts\n", island_id, island->nhosts);
-    GNUNET_array_append (rc->islands, rc->nislands, island);
-    island = NULL;
-  }
-  if (NULL != island)
-  {
-    DEBUG ("Adding island `%s' with %u hosts\n", island_id, island->nhosts);
-    GNUNET_array_append (rc->islands, rc->nislands, island);
-  }
-  DEBUG ("Total islands parsed: %u\n", rc->nislands);
-}
-#endif
 
 
 /**
@@ -1348,9 +1137,6 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host,
     GNUNET_free (rc->hosts);
     rc->hosts = NULL;
   }
-#if ENABLE_LL
-  parse_islands (rc);
-#endif
   GNUNET_TESTBED_host_resolve_ (rc->h);
   for (nhost = 0; nhost < rc->num_hosts; nhost++)
     GNUNET_TESTBED_host_resolve_ (rc->hosts[nhost]);
