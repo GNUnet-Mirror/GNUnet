@@ -24,7 +24,7 @@
  */
 #include <stdio.h>
 #include "platform.h"
-#include "mesh_test_lib.h"
+#include "mesh2_test_lib.h"
 #include "gnunet_mesh2_service.h"
 #include <gauger.h>
 
@@ -48,10 +48,9 @@
  * DIFFERENT TESTS TO RUN
  */
 #define SETUP 0
-#define UNICAST 1
+#define FORWARD 1
 #define SPEED 3
 #define SPEED_ACK 4
-#define SPEED_MIN 5
 #define SPEED_NOBUF 6
 #define P2P_SIGNAL 10
 
@@ -702,7 +701,7 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
   switch (test)
   {
-    case UNICAST:
+    case FORWARD:
     case P2P_SIGNAL:
     case SPEED:
     case SPEED_ACK:
@@ -755,7 +754,6 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test_task\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "add peer 2\n");
-  GNUNET_MESH_peer_request_connect_add (t, p_id[2]);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "schedule timeout in TIMEOUT\n");
@@ -824,12 +822,7 @@ tmain (void *cls,
   peers_running = num_peers;
   h1 = meshes[0];
   h2 = meshes[num_peers - 1];
-  t = GNUNET_MESH_tunnel_create (h1, NULL, &ch, &dh, (void *) 0L);
-  if (SPEED_MIN == test)
-  {
-    GNUNET_MESH_tunnel_speed_min(t);
-    test = SPEED;
-  }
+  t = GNUNET_MESH_tunnel_create (h1, NULL, p_id[2], 1);
   if (SPEED_NOBUF == test)
   {
     GNUNET_MESH_tunnel_buffer(t, GNUNET_NO);
@@ -865,8 +858,8 @@ main (int argc, char *argv[])
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Start\n");
   if (strstr (argv[0], "test_mesh2_small_forward") != NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "UNICAST\n");
-    test = UNICAST;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "FORWARD\n");
+    test = FORWARD;
     test_name = "unicast";
     ok_goal = 5;
   }
@@ -906,12 +899,7 @@ main (int argc, char *argv[])
     */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED\n");
     ok_goal = TOTAL_PACKETS + 5;
-    if (strstr (argv[0], "_min") != NULL)
-    {
-      test = SPEED_MIN;
-      test_name = "speed min";
-    }
-    else if (strstr (argv[0], "_nobuf") != NULL)
+    if (strstr (argv[0], "_nobuf") != NULL)
     {
       test = SPEED_NOBUF;
       test_name = "speed nobuf";
