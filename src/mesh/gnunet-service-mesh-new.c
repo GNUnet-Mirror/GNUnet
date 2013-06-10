@@ -2239,6 +2239,8 @@ peer_cancel_queues (GNUNET_PEER_Id neighbor, struct MeshTunnel *t)
   struct MeshPeerQueue *pq;
   struct MeshPeerQueue *next;
 
+  if (0 == neighbor)
+    return; /* Was local peer, 0'ed in tunnel_destroy_iterator */
   peer_info = peer_get_short (neighbor);
   for (pq = peer_info->queue_head; NULL != pq; pq = next)
   {
