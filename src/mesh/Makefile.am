@@ -21,13 +21,12 @@ plugindir = $(libdir)/gnunet
 AM_CLFAGS = -g
 
 if HAVE_EXPERIMENTAL
+  noinst_LIB_EXP = libgnunetmesh2test.a
   EXP_LIB = libgnunetmesh2.la
   EXP_LIBEXEC = gnunet-service-mesh-new
   EXP_TESTS = \
-  test_mesh2_local
-  MESH_DEP = $(top_builddir)/src/mesh/libgnunetmesh2.la
-else
-  MESH_DEP = $(top_builddir)/src/mesh/libgnunetmesh.la
+    test_mesh2_local \
+    test_mesh2_small_forward
 endif
 
 libexec_PROGRAMS = \
@@ -127,7 +126,7 @@ gnunet_service_mesh_new_LDFLAGS = -lrt
 endif
 
 
-noinst_LIBRARIES = libgnunetmeshtest.a
+noinst_LIBRARIES = libgnunetmeshtest.a $(noinst_LIB_EXP)
 
 libgnunetmeshtest_a_SOURCES = \
   mesh_test_lib.c mesh_test_lib.h
@@ -137,6 +136,15 @@ libgnunetmeshtest_a_LIBADD = \
  $(top_builddir)/src/mesh/libgnunetmesh.la
 libgnunetmeshtest_a_DEPENDENCIES = \
   libgnunetmesh.la
+
+libgnunetmesh2test_a_SOURCES = \
+  mesh2_test_lib.c mesh2_test_lib.h
+libgnunetmesh2test_a_LIBADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testbed/libgnunettestbed.la \
+ $(top_builddir)/src/mesh/libgnunetmesh2.la
+libgnunetmesh2test_a_DEPENDENCIES = \
+  libgnunetmesh2.la
 
 
 check_PROGRAMS = \
@@ -162,7 +170,7 @@ test_mesh_api_SOURCES = \
 test_mesh_api_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
- $(MESH_DEP)
+ $(top_builddir)/src/mesh/libgnunetmesh.la
 test_mesh_api_DEPENDENCIES = \
   libgnunetmesh.la \
    $(top_builddir)/src/util/libgnunetutil.la
@@ -273,14 +281,26 @@ test_mesh_small_speed_nobuf_backwards_LDADD = $(ld_mesh_test_lib)
 test_mesh_small_speed_nobuf_backwards_DEPENDENCIES = $(dep_mesh_test_lib)
 
 
-test_mesh2_local_SOURCES = \
- test_mesh2_local.c
-test_mesh2_local_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testing/libgnunettesting.la \
- $(MESH_DEP)
-test_mesh2_local_DEPENDENCIES = \
+ld_mesh2_test_lib = \
+  $(top_builddir)/src/mesh/libgnunetmesh2test.a \
+  $(top_builddir)/src/mesh/libgnunetmesh2.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
+
+dep_mesh2_test_lib = \
+  libgnunetmesh2test.a \
   libgnunetmesh2.la
+
+test_mesh2_local_SOURCES = \
+  test_mesh2_local.c
+test_mesh2_local_LDADD = $(ld_mesh2_test_lib)
+test_mesh2_local_DEPENDENCIES = $(dep_mesh2_test_lib)
+
+test_mesh2_small_forward_SOURCES = \
+  test_mesh2_small.c
+test_mesh2_small_forward_LDADD = $(ld_mesh2_test_lib)
+test_mesh2_small_forward_DEPENDENCIES = $(dep_mesh2_test_lib)
+
 
 if ENABLE_TEST_RUN
 TESTS = \
