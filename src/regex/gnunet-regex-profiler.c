@@ -988,9 +988,11 @@ announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     if (strings_found != num_peers)
     {
+      struct GNUNET_TIME_Relative new_delay;
       if (GNUNET_SCHEDULER_NO_TASK != search_timeout_task)
         GNUNET_SCHEDULER_cancel (search_timeout_task);
-      search_timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_HOURS,
+      new_delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15);
+      search_timeout_task = GNUNET_SCHEDULER_add_delayed (new_delay,
                                                           &search_timed_out,
                                                           NULL);
     }
