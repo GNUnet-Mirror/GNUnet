@@ -310,38 +310,112 @@ struct Network
 };
 
 
+/**
+ * Wrapper for addresses to store them in network's linked list
+ */
 struct AddressWrapper
 {
+  /**
+   * Next in DLL
+   */
   struct AddressWrapper *next;
+
+  /**
+   * Previous in DLL
+   */
   struct AddressWrapper *prev;
 
+  /**
+   * The address
+   */
   struct ATS_Address *addr;
 };
 
 
+/**
+ * Preference client
+ */
 struct PreferenceClient
 {
+  /**
+   * Next in DLL
+   */
   struct PreferenceClient *prev;
+
+  /**
+   * Next in DLL
+   */
+
   struct PreferenceClient *next;
+
+  /**
+   * Client handle
+   */
   void *client;
 
+  /**
+   * Total preference for this peer
+   */
   double f_total[GNUNET_ATS_PreferenceCount];
 
+  /**
+   * List of peer preferences for this client
+   */
+
+  /**
+   * Head of peer list
+   */
   struct PreferencePeer *p_head;
+
+  /**
+   * Tail of peer list
+   */
   struct PreferencePeer *p_tail;
 };
 
-
+/**
+ * Preference peer
+ */
 struct PreferencePeer
 {
+  /**
+   * Next in DLL
+   */
   struct PreferencePeer *next;
+
+  /**
+   * Previous in DLL
+   */
   struct PreferencePeer *prev;
+
+  /**
+   * Client
+   */
   struct PreferenceClient *client;
+
+  /**
+   * Solver handle
+   */
   struct GAS_PROPORTIONAL_Handle *s;
+
+  /**
+   * Peer id
+   */
   struct GNUNET_PeerIdentity id;
 
+  /**
+   * Preference Values
+   */
   double f[GNUNET_ATS_PreferenceCount];
+
+  /**
+   * Relative Preference Values
+   */
   double f_rel[GNUNET_ATS_PreferenceCount];
+
+  /**
+   * Relative Total Preference Value
+   */
   double f_rel_total;
 
   GNUNET_SCHEDULER_TaskIdentifier aging_task;

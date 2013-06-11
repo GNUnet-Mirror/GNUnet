@@ -29,16 +29,13 @@
 #include "gnunet-service-ats_addresses.h"
 
 /**
- * ATS simplistic solver
+ * ATS proportional solver
  *
  * General description
  */
 
-
-
-
 /**
- * Init the simplistic problem solving component
+ * Init the proportional problem solver
  *
  * Quotas:
  * network[i] contains the network type as type GNUNET_ATS_NetworkType[i]
@@ -71,12 +68,12 @@ GAS_proportional_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      GAS_bandwidth_changed_cb bw_changed_cb,
                      void *bw_changed_cb_cls);
 
+
 /**
- * Shutdown the simplistic problem solving component
+ * Shutdown the proportional problem solver
  *
  * @param solver the respective handle to shutdown
  */
-void
 GAS_proportional_done (void * solver);
 
 /**
@@ -89,9 +86,9 @@ GAS_proportional_done (void * solver);
  */
 void
 GAS_proportional_address_add (void *solver,
-														struct GNUNET_CONTAINER_MultiHashMap *addresses,
-														struct ATS_Address *address,
-														uint32_t network);
+							struct GNUNET_CONTAINER_MultiHashMap *addresses,
+							struct ATS_Address *address,
+							uint32_t network);
 
 
 /**
