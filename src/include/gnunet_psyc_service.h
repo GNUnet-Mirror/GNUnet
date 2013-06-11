@@ -118,7 +118,7 @@ typedef int (*GNUNET_PSYC_Method)(void *cls,
 				  uint64_t message_id,
 				  uint64_t group_generation,
 				  size_t data_size,
-				  const char *data);
+				  const void *data);
 
 
 /**
@@ -129,7 +129,7 @@ struct GNUNET_PSYC_Channel;
 
 /**
  * Start a PSYC channel.  Will create a multicast group identified by
- * the given public key.  Messages recevied from group members will be
+ * the given ECC key.  Messages recevied from group members will be
  * given to the respective handler methods.  If a new member wants to
  * join a group, the "join" method handler will be invoked; the join
  * handler must then generate a "join" message to approve the joining
@@ -171,45 +171,46 @@ GNUNET_PSYC_channel_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * Possible operations on PSYC state (persistent) and variables (per message).
  */
 enum GNUNET_PSYC_Operator
-  {
-    /**
-     * Replace the full state with the new value ("=").
-     */
-    GNUNET_PSYC_SOT_SET_STATE = 0,
-
-    /**
-     * Delete the complete entry from the state (given data must be
-     * empty).  Equivalent to 'SET' with emtpy data, but more
-     * explicit ("=");
-     */
-    GNUNET_PSYC_SOT_DELETE = 0,
-
-    /**
-     * Set the value of a variable to a new value (":").
-     */
-    GNUNET_PSYC_SOT_SET_VARIABLE,
-
-    /**
-     * Add the given value to the set of values in the state ("+").
-     */
-    GNUNET_PSYC_SOT_ADD_STATE,
-
-    /**
-     * Remove the given value from the set of values in the state ("-").
-     */
-    GNUNET_PSYC_SOT_REMOVE_STATE
-
-  };
+{
+  /**
+   * Replace the full state with the new value ("=").
+   */
+  GNUNET_PSYC_SOT_SET_STATE = 0,
+  
+  /**
+   * Delete the complete entry from the state (given data must be
+   * empty).  Equivalent to 'SET' with emtpy data, but more
+   * explicit ("=");
+   */
+  GNUNET_PSYC_SOT_DELETE = 0,
+  
+  /**
+   * Set the value of a variable to a new value (":").
+   */
+  GNUNET_PSYC_SOT_SET_VARIABLE,
+  
+  /**
+   * Add the given value to the set of values in the state ("+").
+   */
+  GNUNET_PSYC_SOT_ADD_STATE,
+  
+  /**
+   * Remove the given value from the set of values in the state ("-").
+   */
+  GNUNET_PSYC_SOT_REMOVE_STATE
+  
+};
 
 
 /**
- * Update channel state or variables.  The state of a channel must fit
- * into the memory of each member (and the channel); large values that
- * require streaming must only be passed as the stream arguments to
- * methods.  State updates might not be transmitted to group members
- * until the next call to 'GNUNET_PSYC_channel_broadcast_call_method'.
- * Variable updates must be given just before the call to the
- * respective method that needs the variables.
+ * Update channel state (or set a variable).  The state of a channel
+ * must fit into the memory of each member (and the channel); large
+ * values that require streaming must only be passed as the stream
+ * arguments to methods.  State updates might not be transmitted to
+ * group members until the next call to
+ * 'GNUNET_PSYC_channel_broadcast_call_method'.  Variable updates must
+ * be given just before the call to the respective method that needs
+ * the variables.
  *
  * @param channel handle to the PSYC group / channel
  * @param full_state_name name of the field in the channel state to change
@@ -312,6 +313,16 @@ struct GNUNET_PSYC_Group;
  */ 
 struct GNUNET_PSYC_Group *
 GNUNET_PSYC_channel_get_group (struct GNUNET_PSYC_Channel *channel);
+
+
+/**
+ * Convert 'member' to a 'group' handle to access the 'group' APIs.
+ * 
+ * @param member membership handle
+ * @return group handle, valid for as long as 'member' is valid
+ */ 
+struct GNUNET_PSYC_Group *
+GNUNET_PSYC_member_get_group (struct GNUNET_PSYC_Member *member);
 
 
 /**
@@ -493,19 +504,19 @@ GNUNET_PSYC_member_send_to_host (struct GNUNET_PSYC_Member *member,
 
 /**
  * Set a (temporary, ":") variable for the next message being transmitted
- * via 'GNUNET_PSYC_member_send_to_host'. If GNUNET_PSYC_member_send_to_host
+ * via 'GNUNET_PSYC_member_send_to_host'. If 'GNUNET_PSYC_member_send_to_host'
  * is called and then cancelled, all variables that were set using this
  * function will be unset (lost/forgotten).  To clear a variable state after
  * setting it, you can also call this function again with NULL/0 for the value.
  *
  * @param member membership handle
- * @param state_name name of the state to set
+ * @param variable_name name of the variable to set
  * @param value value to set for the given variable
  * @param value_size number of bytes in 'value'
  */
 uint64_t
 GNUNET_PSYC_member_host_variable_set (struct GNUNET_PSYC_Member *member,
-				      const char *state_name,
+				      const char *variable_name,
 				      const void *value,
 				      size_t value_size);
 
@@ -563,11 +574,15 @@ GNUNET_PSYC_member_story_tell_cancel (struct GNUNET_PSYC_Story *story);
 
 
 /**
- * Call the given state callback on all matching states in the channel
- * state.  The callback is invoked synchronously on all matching
- * states (as the state is fully replicated in the library in this
- * process; channel states should be small, large data is to be passed
- * as streaming data to methods).
+ * Call the given callback on all matching values (including
+ * variables) in the channel state.  The callback is invoked
+ * synchronously on all matching states (as the state is fully
+ * replicated in the library in this process; channel states should be
+ * small, large data is to be passed as streaming data to methods).
+ *
+ * A name matches if it includes the 'state_name' prefix, thus
+ * requesting the empty state ("") will match all values; requesting
+ * "a_b" will also return values stored under "a_b_c".
  *
  * @param member membership handle
  * @param state_name name of the state to query (full name 
@@ -578,34 +593,34 @@ GNUNET_PSYC_member_story_tell_cancel (struct GNUNET_PSYC_Story *story);
  *         message ID)
  */
 uint64_t
-GNUNET_PSYC_member_state_get (struct GNUNET_PSYC_Member *member,
-			      const char *state_name,
-			      GNUNET_PSYC_StateCallback cb,
-			      void *cb_cls);
+GNUNET_PSYC_member_state_get_all (struct GNUNET_PSYC_Member *member,
+				  const char *state_name,
+				  GNUNET_PSYC_StateCallback cb,
+				  void *cb_cls);
 
 
 /**
- * Obtain the current value of a variable.  This function should only
- * be called during a GNUNET_PSYC_Method invocation (and even then
- * only if the origin is the state owner), as variables are only valid
- * for the duration of a method invocation.  If this function is
- * called outside of the scope of such a method invocation, it will
- * return NULL.
+ * Obtain the current value of the best-matching value in the state
+ * (including variables).  Note that variables are only valid during a
+ * GNUNET_PSYC_Method invocation, as variables are only valid for the
+ * duration of a method invocation.  
  *
- * FIXME: do variables have a hierarchy as well?  If so,
- * we should document the lookup semantics.
+ * If the requested variable name does not have an exact state in
+ * the state, the nearest less-specific name is matched; for example,
+ * requesting "a_b" will match "a" if "a_b" does not exist.
  *
  * @param member membership handle
  * @param variable_name name of the variable to query 
  * @param return_value_size set to number of bytes in variable, 
  *        needed as variables might contain binary data and
  *        might also not be 0-terminated; set to 0 on errors
- * @return NULL on error, pointer to variable state otherwise
+ * @return NULL on error (no matching state or variable), pointer
+          to the respective value otherwise
  */
 const void *
-GNUNET_PSYC_member_variable_get (struct GNUNET_PSYC_Member *member,
-				 const char *variable_name,
-				 size_t *return_value_size);
+GNUNET_PSYC_member_state_get (struct GNUNET_PSYC_Member *member,
+			      const char *variable_name,
+			      size_t *return_value_size);
 
 
 

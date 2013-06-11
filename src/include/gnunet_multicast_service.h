@@ -22,11 +22,6 @@
  * @file include/gnunet_multicast_service.h
  * @brief multicast service; establish tunnels to distant peers
  * @author Christian Grothoff
- *
- * TODO:
- * - need to support async message transmission, etc.
- * - need to do sanity check that this is consistent
- *   with current ideas for the PSYC layer's needs
  */
 
 #ifndef GNUNET_MULTICAST_SERVICE_H
@@ -147,9 +142,13 @@ enum GNUNET_MULTICAST_ReplayErrorCode
 };
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Header of a multicast message.  This format is public as the replay
- * mechanism must replay messages using the same format.
+ * mechanism must replay messages using the same format.  This is
+ * needed as we want to integrity-check messages within the multicast
+ * layer to avoid multicasting mal-formed messages.
  */
 struct GNUNET_MULTICAST_MessageHeader
 {
@@ -165,10 +164,11 @@ struct GNUNET_MULTICAST_MessageHeader
    *  among honest peers; updated at each hop and thus not signed
    *  and not secure)
    */
-  uint32_t hop_counter;
+  uint32_t hop_counter GNUNET_PACKED;
 
   /**
-   * ECC signature of the message.
+   * ECC signature of the message.  Signature must match the public
+   * key of the multicast group.
    */
   struct GNUNET_CRYPTO_EccSignature signature;
 
@@ -180,13 +180,13 @@ struct GNUNET_MULTICAST_MessageHeader
   /**
    * Number of the message, monotonically increasing.
    */
-  uint64_t message_id;
+  uint64_t message_id GNUNET_PACKED;
 
   /**
    * Counter that monotonically increases whenever a member
    * leaves the group.
    */
-  uint64_t group_generation;
+  uint64_t group_generation GNUNET_PACKED;
 
   /**
    * Difference between the current message_id and the message_id of
@@ -206,7 +206,7 @@ struct GNUNET_MULTICAST_MessageHeader
    * re-create the full state with state update messages following the
    * state reset message.
    */
-  uint64_t state_delta;
+  uint64_t state_delta GNUNET_PACKED;
 
   /**
    * Header for the message body.  Three message types are
@@ -219,6 +219,8 @@ struct GNUNET_MULTICAST_MessageHeader
 
   /* followed by message body */
 };
+
+GNUNET_NETWORK_STRUCT_END
 
 
 /**
@@ -235,8 +237,46 @@ GNUNET_MULTICAST_replay (struct GNUNET_MULTICAST_ReplayHandle *rh,
 
 
 /**
+ * Handle that identifies a join request (to match calls to the
+ * 'GNUNET_MULTICAST_MembershipChangeCallback' to the corresponding
+ * calls to 'GNUNET_MULTICAST_join_decision').
+ */
+struct GNUNET_MULTICAST_JoinHande;
+
+
+/**
+ * Function to call with the decision made for a membership change
+ * request.  Must be called once and only once in response to an
+ * invocation of the 'GNUNET_MULTICAST_MembershipChangeCallback'.
+ *
+ * @param jh join request handle
+ * @param join_response message to send in response to the joining peer;
+ *        can also be used to redirect the peer to a different group at the
+ *        application layer; this response is to be transmitted to the
+ *        peer that issued the request even if admission is denied.
+ * @param is_admitted GNUNET_OK if joining is approved, GNUNET_SYSERR if it is disapproved;
+ *         GNUNET_NO for peers leaving 
+ * @param relay_count number of relays given
+ * @param relays array of suggested peers that might be useful relays to use
+ *        when joining the multicast group (essentially a list of peers that
+ *        are already part of the multicast group and might thus be willing
+ *        to help with routing).  If empty, only this local peer (which must
+ *        be the multicast origin) is a good candidate for building the
+ *        multicast tree.  Note that it is unnecessary to specify our own
+ *        peer identity in this array.
+ */
+void
+GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *jh,
+				const struct GNUNET_MessageHeader *join_response,
+				int is_admitted,
+				unsigned int relay_count,
+				const struct GNUNET_PeerIdentity *relays);
+
+
+/**
  * Method called whenever another peer wants to join or has left a 
- * multicast group.
+ * multicast group.  Implementations of this function must call
+ * 'GNUNET_MULTICAST_join_decision' with the decision.
  *
  * @param cls closure
  * @param peer identity of the peer that wants to join or leave
@@ -245,13 +285,13 @@ GNUNET_MULTICAST_replay (struct GNUNET_MULTICAST_ReplayHandle *rh,
  *        bind user identity/pseudonym to peer identity, application-level
  *        message to origin, etc.)
  * @param is_joining GNUNET_YES if the peer wants to join, GNUNET_NO if the peer left
- * @return GNUNET_OK if joining is approved, GNUNET_SYSERR if it is disapproved;
- *         GNUNET_NO should be returned for peers leaving 
+ * @param jh join handle to pass to 'GNUNET_MULTICAST_join_decison'
  */
 typedef int (*GNUNET_MULTICAST_MembershipChangeCallback)(void *cls,
 							 const struct GNUNET_PeerIdentity *peer,
 							 const struct GNUNET_MessageHeader *join_req,
-							 int is_joining);
+							 int is_joining,
+							 struct GNUNET_MULTICAST_JoinHandle *jh);
 
 
 /**
@@ -287,18 +327,32 @@ typedef void (*GNUNET_MULTICAST_ResponseCallback) (void *cls,
 
 /**
  * Function called whenever a group member is receiving a message from
- * the origin.
+ * the origin.  If admission to the group is denied, this function is
+ * called once with the response of the 'origin' (as given to 
+ * 'GNUNET_MULTICAST_join_decision') and then a second time with "NULL"
+ * to indicate that the connection failed for good.
  *
  * @param cls closure (set from GNUNET_MULTICAST_member_join)
+ * @param message_id unique number of the message
  * @param msg message from the origin, NULL if the origin shut down
  *        (or we were kicked out, and we should thus call GNUNET_MULTICAST_member_leave next)
  */
 typedef void (*GNUNET_MULTICAST_MessageCallback) (void *cls,
+						  uint64_t message_id,
 						  const struct GNUNET_MULTICAST_MessageHeader *msg);
 
 
 /**
- * Start a multicast group.
+ * Start a multicast group.  Will advertise the origin in the P2P
+ * overlay network under the respective public key so that other peer
+ * can find this peer to join it.  Peers that issue
+ * 'GNUNET_MULTICAST_member_join' can then transmit a join request to
+ * either an existing group member (if the 'join_policy' is
+ * permissive) or to the origin.  If the joining is approved, the
+ * member is cleared for 'replay' and will begin to receive messages
+ * transmitted to the group.  If joining is disapproved, the failed
+ * candidate will be given a response.  Members in the group can send
+ * messages to the origin (one at a time).
  *
  * @param cfg configuration to use
  * @param cls closure for the various callbacks that follow
@@ -325,15 +379,35 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
+ * Handle for a request to send a message to all multicast group members
+ * (from the origin).
+ */
+struct GNUNET_MULTICAST_MulticastRequest;
+
+
+/**
  * Send a message to the multicast group.
  *
  * @param origin handle to the multicast group
- * @param msg_body body of the message to transmit
- * FIXME: change to notify_transmit_ready-style to wait for ACKs?
+ * @param size number of bytes to transmit
+ * @param cb function to call to get the message
+ * @param cb_cls closure for 'cb'
+ * @return NULL on error (i.e. request already pending)
+ */
+struct GNUNET_MULTICAST_MulticastRequest *
+GNUNET_MULTICAST_origin_send_to_all (struct GNUNET_MULTICAST_Origin *origin,
+				     size_t size,
+				     GNUNET_CONNECTION_TransmitReadyNotify cb,
+				     void *cb_cls);
+
+
+/**
+ * Cancel request for message transmission to multicast group.
+ *
+ * @param mr request to cancel
  */
 void
-GNUNET_MULTICAST_origin_send_to_all (struct GNUNET_MULTICAST_Origin *origin,
-				     const struct GNUNET_MessageHeader *msg_body);
+GNUNET_MULTICAST_origin_send_to_all_cancel (struct GNUNET_MULTICAST_MulticastRequest *mr);
 
 
 /**
@@ -346,7 +420,15 @@ GNUNET_MULTICAST_origin_end (struct GNUNET_MULTICAST_Origin *origin);
 
 
 /**
- * Join a multicast group.  The entity joining is always the local peer.
+ * Join a multicast group.  The entity joining is always the local
+ * peer.  Further information about the candidate can be provided in
+ * the 'join_req' message.  If the join fails, the 'message_cb' is
+ * invoked with a (failure) response and then with 'NULL'.  If the
+ * join succeeds, outstanding (state) messages and ongoing multicast
+ * messages will be given to the 'message_cb' until the member decides
+ * to leave the group.  The 'test_cb' and 'replay_cb' functions may be
+ * called at anytime by the multicast service to support relaying
+ * messages to other members of the group.
  *
  * @param cfg configuration to use
  * @param cls closure for callbacks
@@ -396,16 +478,17 @@ struct GNUNET_MULTICAST_ReplayRequest;
  * the 'max_known_*_id's given when joining are needed and not
  * known to the client.
  *
- * FIXME: we currently use the 'replay_cb' from the member_join call;
- * we might alternatively add a different cb here.
- *
  * @param member membership handle
  * @param message_id ID of a message that this client would like to see replayed
+ * @param message_cb function to be called for the replayed message
+ * @param message_cb_cls closure for 'message_cb'
  * @return replay request handle, NULL on error
  */
 struct GNUNET_MULTICAST_ReplayRequest *
 GNUNET_MULTICAST_member_request_replay (struct GNUNET_MULTICAST_Member *member,
-					uint64_t message_id);
+					uint64_t message_id,
+					GNUNET_MULTICAST_MessageCallback message_cb,
+					void *message_cb_cls);
 
 
 /**
@@ -433,16 +516,28 @@ struct GNUNET_MULTICAST_ResponseRequest;
 
 
 /**
- * Send a message to the origin of the multicast group.  FIXME: how
- * will we do routing/flow-control of responses?
+ * Send a message to the origin of the multicast group.  
  * 
  * @param member membership handle
- * @param msg message to send to the origin
- * FIXME: change to notify_transmit_ready-style to wait for ACKs...
+ * @param size number of bytes we want to send to origin
+ * @param cb callback to call to get the message
+ * @param cb_cls closure for 'cb'
+ * @return handle to cancel request, NULL on error (i.e. request already pending)
+ */
+struct GNUNET_MULTICAST_ResponseRequest *
+GNUNET_MULTICAST_member_message_to_origin (struct GNUNET_MULTICAST_Member *member,
+					   size_t size,
+					   GNUNET_CONNECTION_TransmitReadyNotify cb,
+					   void *cb_cls);
+
+
+/**
+ * Cancel request for message transmission to origin.
+ *
+ * @param rr request to cancel
  */
 void
-GNUNET_MULTICAST_member_message_to_origin (struct GNUNET_MULTICAST_Member *member,
-					   const struct GNUNET_MessageHeader *msg);
+GNUNET_MULTICAST_member_message_to_origin_cancel (struct GNUNET_MULTICAST_ResponseRequest *rr);
 
 
 
