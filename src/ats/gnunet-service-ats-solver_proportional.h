@@ -34,6 +34,7 @@
  * General description
  */
 
+
 /**
  * Init the proportional problem solver
  *
@@ -74,7 +75,9 @@ GAS_proportional_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *
  * @param solver the respective handle to shutdown
  */
+void
 GAS_proportional_done (void * solver);
+
 
 /**
  * Add a single address within a network to the solver
@@ -137,6 +140,7 @@ void
 GAS_proportional_stop_get_preferred_address (void *solver,
                                      struct GNUNET_CONTAINER_MultiHashMap *addresses,
                                      const struct GNUNET_PeerIdentity *peer);
+
 
 /**
  * Get the prefered address for a specific peer

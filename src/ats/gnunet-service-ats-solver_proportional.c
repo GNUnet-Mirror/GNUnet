@@ -211,6 +211,7 @@
 #define DEFAULT_PREFERENCE 1.0
 #define MIN_UPDATE_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
+
 /**
  * A handle for the proportional solver
  */
@@ -257,6 +258,7 @@ struct GAS_PROPORTIONAL_Handle
   struct PreferenceClient *pc_head;
   struct PreferenceClient *pc_tail;
 };
+
 
 /**
  * Representation of a network
@@ -372,6 +374,7 @@ struct PreferenceClient
    */
   struct PreferencePeer *p_tail;
 };
+
 
 /**
  * Preference peer
@@ -592,12 +595,116 @@ update_quota_per_network (struct GAS_PROPORTIONAL_Handle *s,
 }
 
 
+/**
+ * Extract an ATS performance info from an address
+ *
+ * @param address the address
+ * @param type the type to extract in HBO
+ * @return the value in HBO or GNUNET_ATS_VALUE_UNDEFINED in HBO if value does not exist
+ */
+static int
+get_performance_info (struct ATS_Address *address, uint32_t type);
+
+/**
+ * Find a "good" address to use for a peer by iterating over the addresses for this peer.
+ * If we already have an existing address, we stick to it.
+ * Otherwise, we pick by lowest distance and then by lowest latency.
+ *
+ * @param cls the 'struct ATS_Address**' where we store the result
+ * @param key unused
+ * @param value another 'struct ATS_Address*' to consider using
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+find_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
+{
+  struct ATS_Address **previous_p = cls;
+  struct ATS_Address *current = (struct ATS_Address *) value;
+  struct ATS_Address *previous = *previous_p;
+  struct GNUNET_TIME_Absolute now;
+  struct Network *net = (struct Network *) current->solver_information;
+  uint32_t p_distance_cur;
+  uint32_t p_distance_prev;
+  uint32_t p_delay_cur;
+  uint32_t p_delay_prev;
+
+  now = GNUNET_TIME_absolute_get();
+
+  if (current->blocked_until.abs_value == GNUNET_TIME_absolute_max (now, current->blocked_until).abs_value)
+  {
+    /* This address is blocked for suggestion */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+                "Address %p blocked for suggestion for %llu ms \n",
+                current,
+                GNUNET_TIME_absolute_get_difference(now, current->blocked_until).rel_value);
+    return GNUNET_OK;
+  }
+
+  if (GNUNET_NO == is_bandwidth_available_in_network (net))
+    return GNUNET_OK; /* There's no bandwidth available in this network */
+
+  if (NULL != previous)
+  {
+  	GNUNET_assert (NULL != previous->plugin);
+  	GNUNET_assert (NULL != current->plugin);
+    if (0 == strcmp (previous->plugin, current->plugin))
+    {
+      if ((0 != previous->addr_len) &&
+          (0 == current->addr_len))
+      {
+        /* saved address was an outbound address, but we have an inbound address */
+        *previous_p = current;
+        return GNUNET_OK;
+      }
+      if (0 == previous->addr_len)
+      {
+        /* saved address was an inbound address, so do not overwrite */
+        return GNUNET_OK;
+      }
+    }
+  }
+
+  if (NULL == previous)
+  {
+    *previous_p = current;
+    return GNUNET_OK;
+  }
+  if ((ntohl (previous->assigned_bw_in.value__) == 0) &&
+      (ntohl (current->assigned_bw_in.value__) > 0))
+  {
+    /* stick to existing connection */
+    *previous_p = current;
+    return GNUNET_OK;
+  }
+
+  p_distance_prev = get_performance_info (previous, GNUNET_ATS_QUALITY_NET_DISTANCE);
+  p_distance_cur = get_performance_info (current, GNUNET_ATS_QUALITY_NET_DISTANCE);
+  if ((p_distance_prev != GNUNET_ATS_VALUE_UNDEFINED) && (p_distance_cur != GNUNET_ATS_VALUE_UNDEFINED) &&
+  		(p_distance_prev > p_distance_cur))
+  {
+    /* user shorter distance */
+    *previous_p = current;
+    return GNUNET_OK;
+  }
+
+  p_delay_prev = get_performance_info (previous, GNUNET_ATS_QUALITY_NET_DELAY);
+  p_delay_cur = get_performance_info (current, GNUNET_ATS_QUALITY_NET_DELAY);
+  if ((p_delay_prev != GNUNET_ATS_VALUE_UNDEFINED) && (p_delay_cur != GNUNET_ATS_VALUE_UNDEFINED) &&
+  		(p_delay_prev > p_delay_cur))
+  {
+    /* user lower latency */
+    *previous_p = current;
+    return GNUNET_OK;
+  }
+
+  /* don't care */
+  return GNUNET_OK;
+}
 
 /**
  *  Helper functions
  *  ---------------------------
  */
-
 
 /**
  * Update bandwidth assignment for all networks
@@ -662,6 +769,7 @@ get_active_address_it (void *cls, const struct GNUNET_HashCode * key, void *valu
   return GNUNET_OK;
 }
 
+
 /**
  * Find current active address for peer
  *
@@ -683,6 +791,7 @@ get_active_address (void *solver,
   return dest;
 }
 
+
 static int
 free_pref (void *cls,
            const struct GNUNET_HashCode * key,
@@ -692,13 +801,6 @@ free_pref (void *cls,
   GNUNET_free (v);
   return GNUNET_OK;
 }
-
-
-
-
-
-
-
 
 
 static void
@@ -723,6 +825,7 @@ addresse_increment (struct GAS_PROPORTIONAL_Handle *s,
   }
 
 }
+
 
 static int
 addresse_decrement (struct GAS_PROPORTIONAL_Handle *s,
@@ -781,6 +884,7 @@ addresse_decrement (struct GAS_PROPORTIONAL_Handle *s,
   return res;
 }
 
+
 /**
  * Extract an ATS performance info from an address
  *
@@ -807,116 +911,10 @@ get_performance_info (struct ATS_Address *address, uint32_t type)
 
 
 
-
-
-
-
-
-
-/**
- * Find a "good" address to use for a peer.  If we already have an existing
- * address, we stick to it.  Otherwise, we pick by lowest distance and then
- * by lowest latency.
- *
- * @param cls the 'struct ATS_Address**' where we store the result
- * @param key unused
- * @param value another 'struct ATS_Address*' to consider using
- * @return GNUNET_OK (continue to iterate)
- */
-static int
-find_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
-{
-  struct ATS_Address **previous_p = cls;
-  struct ATS_Address *current = (struct ATS_Address *) value;
-  struct ATS_Address *previous = *previous_p;
-  struct GNUNET_TIME_Absolute now;
-  struct Network *net = (struct Network *) current->solver_information;
-  uint32_t p_distance_cur;
-  uint32_t p_distance_prev;
-  uint32_t p_delay_cur;
-  uint32_t p_delay_prev;
-
-  now = GNUNET_TIME_absolute_get();
-
-  if (current->blocked_until.abs_value == GNUNET_TIME_absolute_max (now, current->blocked_until).abs_value)
-  {
-    /* This address is blocked for suggestion */
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "Address %p blocked for suggestion for %llu ms \n",
-                current,
-                GNUNET_TIME_absolute_get_difference(now, current->blocked_until).rel_value);
-    return GNUNET_OK;
-  }
-
-  if (GNUNET_NO == is_bandwidth_available_in_network (net))
-    return GNUNET_OK; /* There's no bandwidth available in this network */
-
-  if (NULL != previous)
-  {
-    if ((0 == strcmp (previous->plugin, "tcp")) &&
-        (0 == strcmp (current->plugin, "tcp")))
-    {
-      if ((0 != previous->addr_len) &&
-          (0 == current->addr_len))
-      {
-        /* saved address was an outbound address, but we have an inbound address */
-        *previous_p = current;
-        return GNUNET_OK;
-      }
-      if (0 == previous->addr_len)
-      {
-        /* saved address was an inbound address, so do not overwrite */
-        return GNUNET_OK;
-      }
-    }
-  }
-
-  if (NULL == previous)
-  {
-    *previous_p = current;
-    return GNUNET_OK;
-  }
-  if ((ntohl (previous->assigned_bw_in.value__) == 0) &&
-      (ntohl (current->assigned_bw_in.value__) > 0))
-  {
-    /* stick to existing connection */
-    *previous_p = current;
-    return GNUNET_OK;
-  }
-
-  p_distance_prev = get_performance_info (previous, GNUNET_ATS_QUALITY_NET_DISTANCE);
-  p_distance_cur = get_performance_info (current, GNUNET_ATS_QUALITY_NET_DISTANCE);
-  if ((p_distance_prev != GNUNET_ATS_VALUE_UNDEFINED) && (p_distance_cur != GNUNET_ATS_VALUE_UNDEFINED) &&
-  		(p_distance_prev > p_distance_cur))
-  {
-    /* user shorter distance */
-    *previous_p = current;
-    return GNUNET_OK;
-  }
-
-  p_delay_prev = get_performance_info (previous, GNUNET_ATS_QUALITY_NET_DELAY);
-  p_delay_cur = get_performance_info (current, GNUNET_ATS_QUALITY_NET_DELAY);
-  if ((p_delay_prev != GNUNET_ATS_VALUE_UNDEFINED) && (p_delay_cur != GNUNET_ATS_VALUE_UNDEFINED) &&
-  		(p_delay_prev > p_delay_cur))
-  {
-    /* user lower latency */
-    *previous_p = current;
-    return GNUNET_OK;
-  }
-
-  /* don't care */
-  return GNUNET_OK;
-}
-
-
-
-
-
 /**
  *  Preference calculation
  *  ---------------------------
  */
-
 
 static void
 recalculate_preferences (struct PreferencePeer *p)
@@ -1037,6 +1035,7 @@ recalculate_preferences (struct PreferencePeer *p)
           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   }
 }
+
 
 static void
 update_preference (struct PreferencePeer *p,
