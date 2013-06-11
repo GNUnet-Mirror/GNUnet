@@ -250,7 +250,7 @@ typedef int (*GNUNET_PSYC_ChannelReadyNotify)(void *cls,
 					      uint64_t message_id,
 					      uint64_t group_generation,
 					      size_t *data_size,
-					      char *data);
+					      void *data);
 
 
 /**
@@ -377,11 +377,13 @@ GNUNET_PSYC_group_member_kick (struct GNUNET_PSYC_Group *group,
  * @param full_state_name full name of the state
  * @param type how to interpret the change
  * @param state_value information about the new state
+ * @param state_value_size number of bytes in 'state_value'
  */
 typedef void (*GNUNET_PSYC_StateCallback)(void *cls,
 					  const char *full_state_name,
 					  enum GNUNET_PSYC_Operator type,
-					  const struct GNUNET_PSYC_Argument *state_value);
+					  const void *state_value,
+					  size_t state_value_size);
 
 
 /**
@@ -405,28 +407,18 @@ struct GNUNET_PSYC_StateHandler
    */
   void *event_handler_cls;
 
-  /**
-   * Description of the kind of state that the handler expects to see.
-   * Non-matching state updates will be ignored (but logged).  Note
-   * that the state_types of all states with the same state name
-   * prefix should be identical.  For state types, the
-   * 'GNUNET_PSYC_AF_STREAMABLE' and 'GNUNET_PSYC_AF_SET_STREAMABLE'
-   * flags must never be set (as the channel state should be small
-   * enough to (easily) fit into the memory of all PSYC members).
-   */
-  struct GNUNET_PSYC_ArgumentDescriptor state_type;
-
 };
 
 
 /**
  * Join a PSYC group.  The entity joining is always the local peer.
- * This will send a 'join_msg' to the channel; if it succeeds, the
- * channel state (and 'recent' method calls) will be replayed to the
- * joining member and the 'join' method will be invoked to show that
- * we joined successfully.  There is no explicit notification on
- * failure (as the channel may simply take days to approve, and
- * disapproval is simply being ignored).
+ * The user must immediately use the 'GNUNET_PSYC_member_send_to_host'
+ * (and possibly 'GNUNET_PSYC_member_host_variable_set') functions to
+ * transmit a 'join_msg' to the channel; if the join request succeeds,
+ * the channel state (and 'recent' method calls) will be replayed to
+ * the joining member.  There is no explicit notification on failure
+ * (as the channel may simply take days to approve, and disapproval is
+ * simply being ignored).
  *
  * @param cfg configuration to use
  * @param pub_key ECC key that identifies the channel we wish to join
@@ -435,13 +427,6 @@ struct GNUNET_PSYC_StateHandler
  *                typcially at least contains functions for 'join' and 'leave'.
  * @param state_count number of state handlers
  * @param state_handlers array of state event handlers
- * @param join_msg which method should we invoke on the channel controller
- *                 to try to join the channel (i.e. "join")
- * @param join_cb method to invoke on channel to obtain arguments
- *        for a join method invocation;
- *        use NULL to send nothing (useful for anonymous groups that permit anyone);
- *        arguments to give to join method, must not include streaming args
- * @param join_cb_cls closure for 'join_cb'
  * @return handle for the member, NULL on error 
  */
 struct GNUNET_PSYC_Member *
@@ -450,10 +435,18 @@ GNUNET_PSYC_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			 unsigned int method_count,
 			 const struct GNUNET_PSYC_Method *methods,
 			 unsigned int state_count,
-			 struct GNUNET_PSYC_StateHandler *state_handlers,
-			 const char *join_method,
-			 const struct GNUNET_PSYC_ChannelReadyNotify join_cb,
-			 void *join_cb_cls);
+			 struct GNUNET_PSYC_StateHandler *state_handlers);
+
+
+/**
+ * Leave a multicast group.  Will terminate the connection to the PSYC
+ * service.  Polite clients should first explicitly send a 'leave'
+ * request (via 'GNUNET_PSYC_member_send_to_host').  
+ *
+ * @param member membership handle
+ */
+void
+GNUNET_PSYC_member_leave (struct GNUNET_PSYC_Member *member);
 
 
 /**
@@ -483,14 +476,11 @@ struct GNUNET_PSYC_HostTransmitHandle;
 
 
 /**
- * Request a message to be send to the channel.
+ * Request a message to be send to the channel host.
  *
  * @param member membership handle
- * @param request_data which method should be invoked on channel (and how)
- * @param method_name which method should be invoked
- * @param argc number of arguments the method takes (size of 'ads' array)
- * @param ads description of the arguments the method takes
- * @param notify function to call to obtain the arguments
+ * @param method_name which (PSYC) method should be invoked (on host)
+ * @param notify function to call when we are allowed to transmit (to get data)
  * @param notify_cls closure for 'notify'
  * @return transmission handle, NULL on error (i.e. more than one request queued)
  */
@@ -499,6 +489,25 @@ GNUNET_PSYC_member_send_to_host (struct GNUNET_PSYC_Member *member,
 				 const char *method_name,
 				 GNUNET_PSYC_HostReadyNotify notify,
 				 void *notify_cls);
+
+
+/**
+ * Set a (temporary, ":") variable for the next message being transmitted
+ * via 'GNUNET_PSYC_member_send_to_host'. If GNUNET_PSYC_member_send_to_host
+ * is called and then cancelled, all variables that were set using this
+ * function will be unset (lost/forgotten).  To clear a variable state after
+ * setting it, you can also call this function again with NULL/0 for the value.
+ *
+ * @param member membership handle
+ * @param state_name name of the state to set
+ * @param value value to set for the given variable
+ * @param value_size number of bytes in 'value'
+ */
+uint64_t
+GNUNET_PSYC_member_host_variable_set (struct GNUNET_PSYC_Member *member,
+				      const char *state_name,
+				      const void *value,
+				      size_t value_size);
 
 
 /**
@@ -593,23 +602,10 @@ GNUNET_PSYC_member_state_get (struct GNUNET_PSYC_Member *member,
  *        might also not be 0-terminated; set to 0 on errors
  * @return NULL on error, pointer to variable state otherwise
  */
-const char *
+const void *
 GNUNET_PSYC_member_variable_get (struct GNUNET_PSYC_Member *member,
 				 const char *variable_name,
 				 size_t *return_value_size);
-
-
-/**
- * Leave a multicast group.  Will terminate the connection to the PSYC
- * service.  Polite clients should first explicitly send a 'leave'
- * request (via 'GNUNET_PSYC_member_send_to_host').  This function
- * must not be called on a 'member' that was obtained from
- * GNUNET_PSYC_channel_get_group.
- *
- * @param member membership handle
- */
-void
-GNUNET_PSYC_member_leave (struct GNUNET_PSYC_Member *member);
 
 
 

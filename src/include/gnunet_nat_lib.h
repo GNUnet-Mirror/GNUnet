@@ -42,7 +42,7 @@
  * @param addrlen actual lenght of the address
  */
 typedef void (*GNUNET_NAT_AddressCallback) (void *cls, int add_remove,
-                                            const struct sockaddr * addr,
+                                            const struct sockaddr *addr,
                                             socklen_t addrlen);
 
 
@@ -56,7 +56,7 @@ typedef void (*GNUNET_NAT_AddressCallback) (void *cls, int add_remove,
  * @param addrlen actual lenght of the address
  */
 typedef void (*GNUNET_NAT_ReversalCallback) (void *cls,
-                                             const struct sockaddr * addr,
+                                             const struct sockaddr *addr,
                                              socklen_t addrlen);
 
 
@@ -89,7 +89,7 @@ struct GNUNET_NAT_Handle;
 struct GNUNET_NAT_Handle *
 GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg, int is_tcp,
                      uint16_t adv_port, unsigned int num_addrs,
-                     const struct sockaddr **addrs, const socklen_t * addrlens,
+                     const struct sockaddr **addrs, const socklen_t *addrlens,
                      GNUNET_NAT_AddressCallback address_callback,
                      GNUNET_NAT_ReversalCallback reversal_callback,
                      void *callback_cls);

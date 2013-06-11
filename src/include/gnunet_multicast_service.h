@@ -441,7 +441,7 @@ struct GNUNET_MULTICAST_ResponseRequest;
  * FIXME: change to notify_transmit_ready-style to wait for ACKs...
  */
 void
-GNUNET_MULTICAST_member_respond_to_origin (struct GNUNET_MULTICAST_Member *member,
+GNUNET_MULTICAST_member_message_to_origin (struct GNUNET_MULTICAST_Member *member,
 					   const struct GNUNET_MessageHeader *msg);
 
 
