@@ -173,11 +173,6 @@ static struct GNUNET_MESH_Handle *h1;
 static struct GNUNET_MESH_Handle *h2;
 
 /**
- * Mesh handle for the second leaf peer
- */
-static struct GNUNET_MESH_Handle *h3;
-
-/**
  * Tunnel handle for the root peer
  */
 static struct GNUNET_MESH_Tunnel *t;
@@ -324,7 +319,6 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_MESH_TransmitHandle *th;
   struct GNUNET_MESH_Tunnel *tunnel;
-  struct GNUNET_PeerIdentity *destination;
 
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
@@ -333,18 +327,14 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (GNUNET_YES == test_backwards)
   {
     tunnel = incoming_t;
-    destination = p_id[0];
   }
   else
   {
     tunnel = t;
-    destination = p_id[2];
   }
   th = GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                          destination,
-                                          size_payload,
-                                          &tmt_rdy, (void *) 1L);
+                                          size_payload, &tmt_rdy, (void *) 1L);
   if (NULL == th)
   {
     unsigned long i = (unsigned long) cls;
@@ -423,15 +413,13 @@ tmt_rdy (void *cls, size_t size, void *buf)
  * @param tunnel_ctx place to store local state associated with the tunnel
  * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 int
 data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
                const struct GNUNET_PeerIdentity *sender,
-               const struct GNUNET_MessageHeader *message,
-               const struct GNUNET_ATS_Information *atsi)
+               const struct GNUNET_MessageHeader *message)
 {
   long client = (long) cls;
   long expected_target_client;
@@ -499,9 +487,8 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
     if (SPEED != test || (ok_goal - 2) == ok)
     {
       GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
-                                        GNUNET_TIME_UNIT_FOREVER_REL, sender,
-                                               size_payload,
-                                        &tmt_rdy, (void *) 1L);
+                                         GNUNET_TIME_UNIT_FOREVER_REL,
+                                         size_payload, &tmt_rdy, (void *) 1L);
       return GNUNET_OK;
     }
     else
@@ -518,9 +505,8 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               " received ack %u\n", data_ack);
       GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
-                                        GNUNET_TIME_UNIT_FOREVER_REL, sender,
-                                               size_payload,
-                                        &tmt_rdy, (void *) 1L);
+                                         GNUNET_TIME_UNIT_FOREVER_REL,
+                                         size_payload, &tmt_rdy, (void *) 1L);
       if (data_ack < TOTAL_PACKETS && SPEED != test)
         return GNUNET_OK;
       if (ok == 2 && SPEED == test)
@@ -564,17 +550,17 @@ static struct GNUNET_MESH_MessageHandler handlers[] = {
  * Method called whenever another peer has added us to a tunnel
  * the other peer initiated.
  *
- * @param cls closure
- * @param tunnel new handle to the tunnel
- * @param initiator peer that started the tunnel
- * @param atsi performance information for the tunnel
- * @return initial tunnel context for the tunnel
- *         (can be NULL -- that's not an error)
+ * @param cls Closure.
+ * @param tunnel New handle to the tunnel.
+ * @param initiator Peer that started the tunnel.
+ * @param port Port this tunnels is connected to.
+ * @return Initial tunnel context for the tunnel
+ *         (can be NULL -- that's not an error).
  */
 static void *
 incoming_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
                  const struct GNUNET_PeerIdentity *initiator,
-                 const struct GNUNET_ATS_Information *atsi)
+                 uint32_t port)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Incoming tunnel from %s to peer %d\n",
@@ -688,8 +674,6 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   long i = (long) cls;
 
-  struct GNUNET_PeerIdentity *dest;
-
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "%ld peer %s connected\n", i, GNUNET_i2s (peer));
 
@@ -706,7 +690,6 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
     case SPEED:
     case SPEED_ACK:
       // incoming_t is NULL unless we send a relevant data packet
-      dest = p_id[2];
       break;
     default:
       GNUNET_assert (0);
@@ -725,9 +708,8 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
     data_received = 0;
     data_sent = 0;
     GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO,
-                                       GNUNET_TIME_UNIT_FOREVER_REL, dest,
-                                           size_payload,
-                                       &tmt_rdy, (void *) 1L);
+                                       GNUNET_TIME_UNIT_FOREVER_REL, 
+                                       size_payload, &tmt_rdy, (void *) 1L);
   }
   else
   {
