@@ -299,19 +299,35 @@ typedef void (*GNUNET_MULTICAST_MembershipChangeCallback)(void *cls,
 
 
 /**
- * Method called to test if a member was in the group at a particular time.
+ * Handle to pass back for the answer of a membership test.
+ */
+struct GNUNET_MULTICAST_MembershipTestHandle;
+
+
+/**
+ * Call informing multicast about the decision taken for membership test.
  *
- * FIXME: maybe allow reply to be asynchronous
+ * @param mth handle that was given for the query
+ * @param decision GNUNET_YES if peer was a member, GNUNET_NO if peer was not a member,
+ *         GNUNET_SYSERR if we cannot answer the membership test
+ */
+void
+GNUNET_MULTICAST_membership_test_answer (struct GNUNET_MULTICAST_MembershipTestHandle *mth,
+					 int decision);
+
+
+/**
+ * Method called to test if a member was in the group at a particular time.
  *
  * @param cls closure
  * @param peer identity of the peer that we want to test
  * @param message_id message ID for which we want to do the test
- * @return GNUNET_YES if peer was a member, GNUNET_NO if peer was not a member,
- *         GNUNET_SYSERR if we cannot answer the membership test
+ * @param mth handle to give to 'GNUNET_MULTICAST_membership_test_answer'
  */
-typedef int (*GNUNET_MULTICAST_MembershipTestCallback)(void *cls,
-						       const struct GNUNET_PeerIdentity *peer,
-						       uint64_t message_id);
+typedef void (*GNUNET_MULTICAST_MembershipTestCallback)(void *cls,
+							const struct GNUNET_PeerIdentity *peer,
+							uint64_t message_id,
+							struct GNUNET_MULTICAST_MembershipTestHandle *mth);
 
 
 /**
