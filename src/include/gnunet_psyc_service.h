@@ -95,6 +95,28 @@ extern "C"
 
 
 /**
+ * Information flags for data fragments set via PSYC.
+ */
+enum GNUNET_PSYC_FragmentStatus
+{
+  /**
+   * This is the first part of data for the given method call.
+   */
+  GNUNET_PSYC_FS_FIRST = 1,
+  
+  /**
+   * This is the last part of data for the given method call.
+   */
+  GNUNET_PSYC_FS_LAST = 2,
+
+  /**
+   * OR'ed flags if payload is not fragmented.
+   */
+  GNUNET_PSYC_FS_NOT_FRAGMENTED = (GNUNET_PSYC_FS_FIRST | GNUNET_PSYC_FS_LAST)
+};
+
+
+/**
  * Method called from PSYC upon receiving a message indicating a call
  * to a 'method'.  
  *
@@ -107,18 +129,22 @@ extern "C"
  *                   (unique only in combination with the given sender for
  *                    this channel)
  * @param group_generation group generation counter for this message
- *                   (always zero for messages from members to channel owner)
- * @param data_size number of bytes in 'data'
+ *                   (always zero for messages from members to channel owner); FIXME: needed?
+ * @param data_off byte offset of 'data' in the overall data of the method
+ * @param data_size number of bytes in 'data'; 
  * @param data data stream given to the method (might not be zero-terminated 
  *             if data is binary)
+ * @param frag fragmentation status for the data
  */
 typedef int (*GNUNET_PSYC_Method)(void *cls,
 				  const char *full_method_name,
 				  const struct GNUNET_PeerIdentity *sender,
 				  uint64_t message_id,
 				  uint64_t group_generation,
+				  uint64_t data_off,
 				  size_t data_size,
-				  const void *data);
+				  const void *data,
+				  enum GNUNET_PSYC_FragmentStatus frag);
 
 
 /**
@@ -140,10 +166,9 @@ struct GNUNET_PSYC_Channel;
  * events.
  *
  * @param cfg configuration to use (to connect to PSYC service)
- * @param name name of the channel, only important if this is a subchannel
- * @param method_count number of methods in 'methods' array
- * @param methods functions to invoke on messages received from members,
+ * @param method functions to invoke on messages received from members,
  *                typcially at least contains functions for 'join' and 'leave'.
+ * @param method_cls closure for 'method'
  * @param priv_key ECC key that will be used to sign messages for this
  *                 PSYC session; public key is used to identify the
  *                 PSYC group; FIXME: we'll likely want to use
@@ -158,9 +183,8 @@ struct GNUNET_PSYC_Channel;
  */
 struct GNUNET_PSYC_Channel *
 GNUNET_PSYC_channel_start (const struct GNUNET_CONFIGURATION_Handle *cfg, 
-			   const char *name,
-			   unsigned int method_count,
-			   const struct GNUNET_PSYC_Method *methods,
+			   GNUNET_PSYC_Method method,
+			   void *method_cls,
 			   const struct GNUNET_CRYPTO_EccPrivateKey *priv_key,
 			   enum GNUNET_MULTICAST_JoinPolicy join_policy);
 
@@ -219,11 +243,11 @@ enum GNUNET_PSYC_Operator
  *        (i.e. state too large)
  */
 int
-GNUNET_PSYC_channel_update (struct GNUNET_PSYC_Channel *channel,
-			    const char *full_state_name,
-			    enum GNUNET_PSYC_Operator type,
-			    size_t data_size,
-			    const void *data);
+GNUNET_PSYC_channel_state_update (struct GNUNET_PSYC_Channel *channel,
+				  const char *full_state_name,
+				  enum GNUNET_PSYC_Operator type,
+				  size_t data_size,
+				  const void *data);
 
 
 /**
@@ -243,7 +267,7 @@ GNUNET_PSYC_channel_update (struct GNUNET_PSYC_Channel *channel,
  * @return GNUNET_SYSERR on error (fatal, aborts transmission)
  *         GNUNET_NO on success, if more data is to be transmitted later 
  *         (should be used if 'data_size' was not big enough to take all the data)
- *         GNUNET_OK if this completes the transmission (all data supplied)
+ *         GNUNET_YES if this completes the transmission (all data supplied)
  */
 typedef int (*GNUNET_PSYC_ChannelReadyNotify)(void *cls,
 					      uint64_t message_id,
@@ -429,9 +453,9 @@ struct GNUNET_PSYC_StateHandler
  *
  * @param cfg configuration to use
  * @param pub_key ECC key that identifies the channel we wish to join
- * @param method_count number of methods in 'methods' array
- * @param methods functions to invoke on messages received from the channel,
+ * @param method function to invoke on messages received from the channel,
  *                typcially at least contains functions for 'join' and 'leave'.
+ * @param method_cls closure for 'method'
  * @param state_count number of state handlers
  * @param state_handlers array of state event handlers
  * @return handle for the member, NULL on error 
@@ -439,8 +463,8 @@ struct GNUNET_PSYC_StateHandler
 struct GNUNET_PSYC_Member *
 GNUNET_PSYC_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg, 
 			 const struct GNUNET_CRYPTO_EccPublicKey *pub_key,
-			 unsigned int method_count,
-			 const struct GNUNET_PSYC_Method *methods,
+			 GNUNET_PSYC_Method method,
+			 void *method_cls,
 			 unsigned int state_count,
 			 struct GNUNET_PSYC_StateHandler *state_handlers);
 
@@ -469,17 +493,17 @@ GNUNET_PSYC_member_leave (struct GNUNET_PSYC_Member *member);
  *        function must copy at most '*data_size' bytes to 'data'.
  * @return GNUNET_SYSERR on error (fatal, aborts transmission)
  *         GNUNET_NO on success, if more data is to be transmitted later
- *         GNUNET_OK if this completes the transmission (all data supplied)
+ *         GNUNET_YES if this completes the transmission (all data supplied)
  */
-typedef int (*GNUNET_PSYC_HostReadyNotify)(void *cls,
-					   size_t *data_size,
-					   char *data);
+typedef int (*GNUNET_PSYC_OriginReadyNotify)(void *cls,
+					     size_t *data_size,
+					     char *data);
 
 
 /**
  * Handle for a pending PSYC transmission operation.
  */
-struct GNUNET_PSYC_HostTransmitHandle;
+struct GNUNET_PSYC_OriginTransmitHandle;
 
 
 /**
@@ -491,11 +515,11 @@ struct GNUNET_PSYC_HostTransmitHandle;
  * @param notify_cls closure for 'notify'
  * @return transmission handle, NULL on error (i.e. more than one request queued)
  */
-struct GNUNET_PSYC_HostTransmitHandle *
-GNUNET_PSYC_member_send_to_host (struct GNUNET_PSYC_Member *member,
-				 const char *method_name,
-				 GNUNET_PSYC_HostReadyNotify notify,
-				 void *notify_cls);
+struct GNUNET_PSYC_OriginTransmitHandle *
+GNUNET_PSYC_member_send_to_origin (struct GNUNET_PSYC_Member *member,
+				   const char *method_name,
+				   GNUNET_PSYC_OriginReadyNotify notify,
+				   void *notify_cls);
 
 
 /**
@@ -511,19 +535,19 @@ GNUNET_PSYC_member_send_to_host (struct GNUNET_PSYC_Member *member,
  * @param value_size number of bytes in 'value'
  */
 uint64_t
-GNUNET_PSYC_member_host_variable_set (struct GNUNET_PSYC_Member *member,
-				      const char *variable_name,
-				      const void *value,
-				      size_t value_size);
+GNUNET_PSYC_member_origin_variable_set (struct GNUNET_PSYC_Member *member,
+					const char *variable_name,
+					const void *value,
+					size_t value_size);
 
 
 /**
- * Abort transmission request to host.
+ * Abort transmission request to origin.
  *
  * @param th handle of the request that is being aborted
  */
 void
-GNUNET_PSYC_member_send_to_host_cancel (struct GNUNET_PSYC_HostTransmitHandle *th);
+GNUNET_PSYC_member_send_to_origin_cancel (struct GNUNET_PSYC_OriginTransmitHandle *th);
 
 
 /**
@@ -541,6 +565,8 @@ struct GNUNET_PSYC_Story;
  * @param member which channel should be replayed?
  * @param start earliest interesting point in history
  * @param end last (exclusive) interesting point in history
+ * @param method function to invoke on messages received from the story
+ * @param method_cls closure for 'method'
  * @param finish_cb function to call when the requested story has been fully 
  *        told (counting message IDs might not suffice, as some messages
  *        might be secret and thus the listener would not know the story is 
@@ -554,6 +580,8 @@ struct GNUNET_PSYC_Story *
 GNUNET_PSYC_member_story_tell (struct GNUNET_PSYC_Member *member,
 			       uint64_t start,
 			       uint64_t end,
+			       GNUNET_PSYC_Method method,
+			       void *method_cls,
 			       void (*finish_cb)(void *),
 			       void *finish_cb_cls);
 

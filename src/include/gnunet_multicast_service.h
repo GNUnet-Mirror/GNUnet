@@ -205,6 +205,10 @@ struct GNUNET_MULTICAST_MessageHeader
    * thereby starting a new chain.  The origin will then have to
    * re-create the full state with state update messages following the
    * state reset message.
+   *
+   * Open question: needed in multicast, or just have this in PSYC;
+   * still might be useful for selective fetching of messages.
+   * Still, that again should that not be done by PSYC?
    */
   uint64_t state_delta GNUNET_PACKED;
 
@@ -287,27 +291,27 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *jh,
  * @param is_joining GNUNET_YES if the peer wants to join, GNUNET_NO if the peer left
  * @param jh join handle to pass to 'GNUNET_MULTICAST_join_decison'
  */
-typedef int (*GNUNET_MULTICAST_MembershipChangeCallback)(void *cls,
-							 const struct GNUNET_PeerIdentity *peer,
-							 const struct GNUNET_MessageHeader *join_req,
-							 int is_joining,
-							 struct GNUNET_MULTICAST_JoinHandle *jh);
+typedef void (*GNUNET_MULTICAST_MembershipChangeCallback)(void *cls,
+							  const struct GNUNET_PeerIdentity *peer,
+							  const struct GNUNET_MessageHeader *join_req,
+							  int is_joining,
+							  struct GNUNET_MULTICAST_JoinHandle *jh);
 
 
 /**
  * Method called to test if a member was in the group at a particular time.
  *
+ * FIXME: maybe allow reply to be asynchronous
+ *
  * @param cls closure
  * @param peer identity of the peer that we want to test
  * @param message_id message ID for which we want to do the test
- * @param group_generation the generation of the group for which we want to do the test
  * @return GNUNET_YES if peer was a member, GNUNET_NO if peer was not a member,
  *         GNUNET_SYSERR if we cannot answer the membership test
  */
 typedef int (*GNUNET_MULTICAST_MembershipTestCallback)(void *cls,
 						       const struct GNUNET_PeerIdentity *peer,
-						       uint64_t message_id,
-						       uint64_t group_generation);
+						       uint64_t message_id);
 
 
 /**
@@ -333,13 +337,14 @@ typedef void (*GNUNET_MULTICAST_ResponseCallback) (void *cls,
  * to indicate that the connection failed for good.
  *
  * @param cls closure (set from GNUNET_MULTICAST_member_join)
- * @param message_id unique number of the message
+ * @param message_id unique number of the message, 0 for response to join request,
+ *        normal message IDs in either direction start at 1.
  * @param msg message from the origin, NULL if the origin shut down
  *        (or we were kicked out, and we should thus call GNUNET_MULTICAST_member_leave next)
  */
-typedef void (*GNUNET_MULTICAST_MessageCallback) (void *cls,
-						  uint64_t message_id,
-						  const struct GNUNET_MULTICAST_MessageHeader *msg);
+typedef void (*GNUNET_MULTICAST_MulticastMessageCallback) (void *cls,
+							   uint64_t message_id,
+							   const struct GNUNET_MULTICAST_MessageHeader *msg);
 
 
 /**
@@ -463,7 +468,7 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			      uint64_t max_known_state_message_id,
 			      GNUNET_MULTICAST_ReplayCallback replay_cb,
 			      GNUNET_MULITCAST_MembershipTestCallback test_cb,
-			      GNUNET_MULTICAST_MessageCallback message_cb,
+			      GNUNET_MULTICAST_MulticastMessageCallback message_cb,
 			      const struct GNUNET_MessageHeader *join_req);
 
 
@@ -487,7 +492,7 @@ struct GNUNET_MULTICAST_ReplayRequest;
 struct GNUNET_MULTICAST_ReplayRequest *
 GNUNET_MULTICAST_member_request_replay (struct GNUNET_MULTICAST_Member *member,
 					uint64_t message_id,
-					GNUNET_MULTICAST_MessageCallback message_cb,
+					GNUNET_MULTICAST_MulticastMessageCallback message_cb,
 					void *message_cb_cls);
 
 
