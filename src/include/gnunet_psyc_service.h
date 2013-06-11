@@ -140,7 +140,6 @@ struct GNUNET_PSYC_Channel;
  * events.
  *
  * @param cfg configuration to use (to connect to PSYC service)
- * @param parent parent channel, NULL for top-level channels
  * @param name name of the channel, only important if this is a subchannel
  * @param method_count number of methods in 'methods' array
  * @param methods functions to invoke on messages received from members,
@@ -159,7 +158,6 @@ struct GNUNET_PSYC_Channel;
  */
 struct GNUNET_PSYC_Channel *
 GNUNET_PSYC_channel_start (const struct GNUNET_CONFIGURATION_Handle *cfg, 
-			   struct GNUNET_PSYC_Channel *parent,
 			   const char *name,
 			   unsigned int method_count,
 			   const struct GNUNET_PSYC_Method *methods,
@@ -261,8 +259,7 @@ struct GNUNET_PSYC_ChannelTransmitHandle;
 
 
 /**
- * Send a message to call a method to all members in the PSYC channel
- * (and all parent channels if this is a subchannel).
+ * Send a message to call a method to all members in the PSYC channel.
  *
  * @param channel handle to the PSYC multicast group
  * @param increment_group_generation GNUNET_YES if we need to increment
@@ -290,8 +287,7 @@ GNUNET_PSYC_channel_notify_transmit_ready_cancel (struct GNUNET_PSYC_ChannelTran
 
 
 /**
- * End a PSYC channel.  Note that subchannels MUST be ended before
- * their parents.
+ * End a PSYC channel.
  *
  * @param channel PSYC channel to terminate
  */
