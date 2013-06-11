@@ -600,6 +600,7 @@ stats_cb (void *cls,
   {
     struct GNUNET_TIME_Relative delay = { 100 };
     shutdown_task = GNUNET_SCHEDULER_add_delayed (delay, &do_shutdown, NULL);
+    result = GNUNET_OK;
   }
   else
   {
