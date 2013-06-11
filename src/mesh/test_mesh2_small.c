@@ -183,11 +183,6 @@ static struct GNUNET_MESH_Tunnel *t;
 static struct GNUNET_MESH_Tunnel *incoming_t;
 
 /**
- * Tunnel handle for the second leaf peer
- */
-static struct GNUNET_MESH_Tunnel *incoming_t2;
-
-/**
  * Time we started the data transmission (after tunnel has been established
  * and initilized).
  */
@@ -263,11 +258,6 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_MESH_tunnel_destroy (incoming_t);
     incoming_t = NULL;
-  }
-  if (NULL != incoming_t2)
-  {
-    GNUNET_MESH_tunnel_destroy (incoming_t2);
-    incoming_t2 = NULL;
   }
   GNUNET_MESH_TEST_cleanup (test_ctx);
   if (GNUNET_SCHEDULER_NO_TASK != shutdown_handle)
@@ -569,8 +559,6 @@ incoming_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
   if ((long) cls == 4L)
     incoming_t = tunnel;
-  else if ((long) cls == 3L)
-    incoming_t2 = tunnel;
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -611,10 +599,15 @@ tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
     ok++;
     incoming_t = NULL;
   }
-  else if (3L == i)
+  else if (0L == i && P2P_SIGNAL == test)
   {
-    ok++;
-    incoming_t2 = NULL;
+    ok ++;
+    if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
+    {
+      GNUNET_SCHEDULER_cancel (disconnect_task);
+    }
+    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers,
+                                                (void *) __LINE__);
   }
   else
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -631,32 +624,6 @@ tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
   disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers,
                                               (void *) __LINE__);
 
-  return;
-}
-
-
-/**
- * Method called whenever a tunnel falls apart.
- *
- * @param cls closure
- * @param peer peer identity the tunnel stopped working with
- */
-static void
-dh (void *cls, const struct GNUNET_PeerIdentity *peer)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "peer %s disconnected\n",
-              GNUNET_i2s (peer));
-  if (P2P_SIGNAL == test)
-  {
-    ok ++;
-    if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
-    {
-      GNUNET_SCHEDULER_cancel (disconnect_task);
-    }
-    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers,
-                                                (void *) __LINE__);
-  }
   return;
 }
 
