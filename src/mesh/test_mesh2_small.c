@@ -95,12 +95,12 @@ size_t size_payload = sizeof (struct GNUNET_MessageHeader) + sizeof (uint32_t);
 /**
  * Operation to get peer ids.
  */
-struct GNUNET_TESTBED_Operation *t_op[3];
+struct GNUNET_TESTBED_Operation *t_op[2];
 
 /**
  * Peer ids.
  */
-struct GNUNET_PeerIdentity *p_id[3];
+struct GNUNET_PeerIdentity *p_id[2];
 
 /**
  * Peer ids counter.
@@ -662,67 +662,6 @@ dh (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 
 /**
- * Method called whenever a peer connects to a tunnel.
- *
- * @param cls closure
- * @param peer peer identity the tunnel was created to, NULL on timeout
- * @param atsi performance data for the connection
- */
-static void
-ch (void *cls, const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_ATS_Information *atsi)
-{
-  long i = (long) cls;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "%ld peer %s connected\n", i, GNUNET_i2s (peer));
-
-  if (0 == memcmp (p_id[2], peer, sizeof (struct GNUNET_PeerIdentity)) &&
-      i == 0L)
-  {
-    ok++;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
-  switch (test)
-  {
-    case FORWARD:
-    case P2P_SIGNAL:
-    case SPEED:
-    case SPEED_ACK:
-      // incoming_t is NULL unless we send a relevant data packet
-      break;
-    default:
-      GNUNET_assert (0);
-      return;
-  }
-  if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
-  {
-    GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task =
-        GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers,
-                                      (void *) __LINE__);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending data initializer...\n");
-    peers_responded = 0;
-    data_ack = 0;
-    data_received = 0;
-    data_sent = 0;
-    GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO,
-                                       GNUNET_TIME_UNIT_FOREVER_REL, 
-                                       size_payload, &tmt_rdy, (void *) 1L);
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Disconnect already run?\n");
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Aborting...\n");
-  }
-  return;
-}
-
-
-/**
  * START THE TESTCASE ITSELF, AS WE ARE CONNECTED TO THE MESH SERVICES.
  * 
  * Testcase continues when the root receives confirmation of connected peers,
@@ -743,9 +682,26 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
   }
-  disconnect_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-                                                  &disconnect_mesh_peers,
-                                                  (void *) __LINE__);
+  t = GNUNET_MESH_tunnel_create (h1, NULL, p_id[1], 1);
+  if (SPEED_NOBUF == test)
+  {
+    GNUNET_MESH_tunnel_buffer(t, GNUNET_NO);
+    test = SPEED;
+  }
+
+  GNUNET_SCHEDULER_cancel (disconnect_task);
+  disconnect_task =
+      GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers,
+                                    (void *) __LINE__);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending data initializer...\n");
+  peers_responded = 0;
+  data_ack = 0;
+  data_received = 0;
+  data_sent = 0;
+  GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO,
+                                      GNUNET_TIME_UNIT_FOREVER_REL, 
+                                      size_payload, &tmt_rdy, (void *) 1L);
 }
 
 /**
@@ -757,7 +713,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param emsg error message if the operation has failed;
  *             NULL if the operation is successfull
  */
-void
+static void
 pi_cb (void *cls,
        struct GNUNET_TESTBED_Operation *op,
        const struct GNUNET_TESTBED_PeerInformation *pinfo,
@@ -804,12 +760,6 @@ tmain (void *cls,
   peers_running = num_peers;
   h1 = meshes[0];
   h2 = meshes[num_peers - 1];
-  t = GNUNET_MESH_tunnel_create (h1, NULL, p_id[2], 1);
-  if (SPEED_NOBUF == test)
-  {
-    GNUNET_MESH_tunnel_buffer(t, GNUNET_NO);
-    test = SPEED;
-  }
   peers_in_tunnel = 0;
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
                                                   &disconnect_mesh_peers,
@@ -819,10 +769,9 @@ tmain (void *cls,
   t_op[0] = GNUNET_TESTBED_peer_get_information (peers[0],
                                                  GNUNET_TESTBED_PIT_IDENTITY,
                                                  &pi_cb, (void *) 0L);
-  t_op[2] = GNUNET_TESTBED_peer_get_information (peers[num_peers - 1],
+  t_op[1] = GNUNET_TESTBED_peer_get_information (peers[num_peers - 1],
                                                  GNUNET_TESTBED_PIT_IDENTITY,
-                                                 &pi_cb, (void *) 2L);
-  t_op[1] = NULL;
+                                                 &pi_cb, (void *) 1L);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "requested peer ids\n");
 }
 
@@ -843,20 +792,19 @@ main (int argc, char *argv[])
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "FORWARD\n");
     test = FORWARD;
     test_name = "unicast";
-    ok_goal = 5;
+    ok_goal = 4;
   }
   else if (strstr (argv[0], "test_mesh_small_signal") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SIGNAL\n");
     test = P2P_SIGNAL;
     test_name = "signal";
-    ok_goal = 5;
+    ok_goal = 4;
   }
   else if (strstr (argv[0], "test_mesh_small_speed_ack") != NULL)
   {
    /* Each peer is supposed to generate the following callbacks:
     * 1 incoming tunnel (@dest)
-    * 1 connected peer (@orig)
     * TOTAL_PACKETS received data packet (@dest)
     * TOTAL_PACKETS received data packet (@orig)
     * 1 received tunnel destroy (@dest)
@@ -866,13 +814,12 @@ main (int argc, char *argv[])
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED_ACK\n");
     test = SPEED_ACK;
     test_name = "speed ack";
-    ok_goal = TOTAL_PACKETS * 2 + 3;
+    ok_goal = TOTAL_PACKETS * 2 + 2;
   }
   else if (strstr (argv[0], "test_mesh_small_speed") != NULL)
   {
    /* Each peer is supposed to generate the following callbacks:
     * 1 incoming tunnel (@dest)
-    * 1 connected peer (@orig)
     * 1 initial packet (@dest)
     * TOTAL_PACKETS received data packet (@dest)
     * 1 received data packet (@orig)
@@ -880,7 +827,7 @@ main (int argc, char *argv[])
     * _________________________________
     */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED\n");
-    ok_goal = TOTAL_PACKETS + 5;
+    ok_goal = TOTAL_PACKETS + 4;
     if (strstr (argv[0], "_nobuf") != NULL)
     {
       test = SPEED_NOBUF;
