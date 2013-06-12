@@ -156,8 +156,10 @@ GNUNET_SOCIAL_ego_destroy (struct GNUNET_SOCIAL_Ego *ego);
 /**
  * Function called asking for nym to be admitted to the room.  Should
  * call either 'GNUNET_SOCIAL_home_admit' or
- * 'GNUNET_SOCIAL_home_reject_entry' (possibly asynchronously).  The
- * 'nym' reference remains valid until the
+ * 'GNUNET_SOCIAL_home_reject_entry' (possibly asynchronously).  If
+ * this owner cannot decide, it is fine to call neither function, in
+ * which case hopefully some other owner of the home exists that will
+ * make the decision. The 'nym' reference remains valid until the
  * 'GNUNET_SOCIAL_FarewellCallback' is invoked for it.
  *
  * @param cls closure
