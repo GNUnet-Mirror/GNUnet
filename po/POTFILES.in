@@ -8,7 +8,6 @@ src/ats/ats_api_performance.c
 src/ats/ats_api_scheduling.c
 src/ats/gnunet-service-ats_addresses.c
 src/ats/gnunet-service-ats_addresses_mlp.c
-src/ats/gnunet-service-ats_addresses_simplistic.c
 src/ats/gnunet-service-ats.c
 src/ats/gnunet-service-ats_performance.c
 src/ats/gnunet-service-ats_reservations.c
@@ -19,11 +18,8 @@ src/block/plugin_block_template.c
 src/block/plugin_block_test.c
 src/consensus/consensus_api.c
 src/consensus/gnunet-consensus.c
-src/consensus/gnunet-consensus-ibf.c
 src/consensus/gnunet-consensus-start-peers.c
 src/consensus/gnunet-service-consensus.c
-src/consensus/ibf.c
-src/consensus/strata_estimator.c
 src/core/core_api.c
 src/core/core_api_is_connected.c
 src/core/core_api_iterate_peers.c
@@ -112,7 +108,6 @@ src/fs/gnunet-service-fs_pe.c
 src/fs/gnunet-service-fs_pr.c
 src/fs/gnunet-service-fs_push.c
 src/fs/gnunet-service-fs_put.c
-src/fs/gnunet-service-fs_stream.c
 src/fs/gnunet-unindex.c
 src/fs/plugin_block_fs.c
 src/gns/gns_api.c
