@@ -539,11 +539,6 @@ free_tunnel_state (struct TunnelState *ts)
     GNUNET_free (tnq);
   }
   GNUNET_assert (0 == ts->tmq_length);
-  if (NULL != ts->client)
-  {
-    GNUNET_SERVER_client_drop (ts->client);
-    ts->client = NULL;
-  }
   if (NULL != ts->th)
   {
     GNUNET_MESH_notify_transmit_ready_cancel (ts->th);
@@ -675,7 +670,6 @@ tunnel_peer_connect_handler (void *cls,
 		     ts->request_id,
 		     ts->af,
 		     &ts->destination_ip);
-  GNUNET_SERVER_client_drop (ts->client);
   ts->client = NULL;
 }
 
@@ -945,7 +939,6 @@ create_tunnel_to_destination (struct DestinationEntry *de,
   {
     ts->request_id = request_id;
     ts->client = client;
-    GNUNET_SERVER_client_keep (client);
   }
   ts->destination = *de;
   ts->destination.heap_node = NULL; /* copy is NOT in destination heap */
@@ -962,8 +955,6 @@ create_tunnel_to_destination (struct DestinationEntry *de,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Failed to setup mesh tunnel!\n"));
-      if (NULL != client)
-	GNUNET_SERVER_client_drop (client);
       GNUNET_free (ts);
       return NULL;
     }
@@ -3135,10 +3126,7 @@ cleanup_tunnel_client (void *cls,
   struct TunnelState *ts = value;
 
   if (client == ts->client)
-  {
-    GNUNET_SERVER_client_drop (ts->client);
     ts->client = NULL;
-  }
   return GNUNET_OK;
 }
 
@@ -3163,10 +3151,7 @@ cleanup_destination_client (void *cls,
   if (NULL == (ts = de->ts))
     return GNUNET_OK;
   if (client == ts->client)
-  {
-    GNUNET_SERVER_client_drop (ts->client);
     ts->client = NULL;
-  }
   return GNUNET_OK;
 }
 
