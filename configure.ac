@@ -387,11 +387,7 @@ if test "$libidn" != "no"; then
     [libidn=yes LIBS="${LIBS} -lidn"], libidn=no),
      libidn=no)
 fi
-if test "$libidn" != "no" ; then
-  AC_DEFINE(LIBIDN, 1, [Define to 1 if you want IDN support.])
-  else
-  AC_MSG_FAILURE([Libidn not found])
-fi
+AM_CONDITIONAL([HAVE_LIBIDN], [test "$libidn" != "no"]) 
 AC_MSG_RESULT($libidn)
 
 

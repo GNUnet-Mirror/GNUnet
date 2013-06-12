@@ -2,16 +2,26 @@
 #  INTLEMU_SUBDIRS = intlemu
 #endif
 
+if HAVE_LIBIDN
+ DNS = dns
+ EXIT = exit
+ PT = pt
+else
+ DNS =
+ EXIT =
+ PT =
+endif
+
 if HAVE_EXPERIMENTAL
  EXP_DIR = gns set dv consensus experimentation
 endif
 
 if LINUX
 # All of these currently only work on GNU/Linux
- LINUX_DIR = dns exit vpn pt
+ LINUX_DIR = $(DNS) $(EXIT) vpn $(PT)
 endif
 if MINGW
- MINGW_DIR = dns vpn exit
+ MINGW_DIR = $(DNS) vpn $(EXIT)
 endif
 
 if HAVE_MYSQL
