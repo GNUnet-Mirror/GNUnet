@@ -22,6 +22,7 @@
  * @file include/gnunet_psycstore_service.h
  * @brief PSYCstore service; implements persistent storage for the PSYC service
  * @author tg
+ * @author Christian Grothoff
  */
 #ifndef GNUNET_PSYCSTORE_SERVICE_H
 #define GNUNET_PSYCSTORE_SERVICE_H
@@ -47,6 +48,114 @@ extern "C"
 struct GNUNET_PSYCSTORE_Handle;
 
 
+struct GNUNET_PSYCSTORE_Handle *
+GNUNET_PSYCSTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
+
+
+void
+GNUNET_PSYCSTORE_disconnect (struct GNUNET_PSYCSTORE_Handle *h);
+
+
+/**
+ * Handle for an operation on the PSYCSTORE (useful to cancel the operation).
+ */
+struct GNUNET_PSYCSTORE_OperationHandle;
+
+
+/**
+ *
+ * @param result GNUNET_SYSERR on error,
+ *        GNUNET_YES on success or if the peer was a member,
+ *        GNUNET_NO if the peer was not a member
+ */
+typedef void (*GNUNET_PSYCSTORE_ContinuationCallback)(void *cls,
+						      int result);
+
+
+struct GNUNET_PSYCSTORE_OperationHandle *
+GNUNET_PSYCSTORE_membership_store (struct GNUNET_PSYCSTORE_Handle *h,
+			      const struct GNUNET_HashCode *channel_id,
+			      uint64_t message_id,
+			      const struct GNUNET_PeerIdentity *peer,
+			      int did_join,
+			      GNUNET_PSYCSTORE_ContinuationCallback ccb,
+			      void *ccb_cls);
+
+
+struct GNUNET_PSYCSTORE_OperationHandle *
+GNUNET_PSYCSTORE_membership_test (struct GNUNET_PSYCSTORE_Handle *h,
+				  const struct GNUNET_HashCode *channel_id,
+				  uint64_t message_id,
+				  const struct GNUNET_PeerIdentity *peer,
+				  GNUNET_PSYCSTORE_ContinuationCallback ccb,
+				  void *ccb_cls);
+
+
+struct GNUNET_PSYCSTORE_OperationHandle *
+GNUNET_PSYCSTORE_message_store (struct GNUNET_PSYCSTORE_Handle *h,
+				const struct GNUNET_HashCode *channel_id,
+				const struct GNUNET_MULTICAST_MessageHeader *message,
+				GNUNET_PSYCSTORE_ContinuationCallback ccb,
+				void *ccb_cls);
+
+
+typedef void (*GNUNET_PSYCSTORE_MessageResultCallback)(void *cls,	
+						       uint64_t message_id,				       
+						       const struct GNUNET_MULTICAST_MessageHeader *message);
+
+
+struct GNUNET_PSYCSTORE_OperationHandle *
+GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
+			      const struct GNUNET_HashCode *channel_id,
+			      uint64_t message_id,
+			      GNUNET_PSYCSTORE_MessageResultCallback rcb,
+			      void *rcb_cls);
+
+
+struct GNUNET_PSYCSTORE_OperationHandle *
+GNUNET_PSYCSTORE_message_get_latest (struct GNUNET_PSYCSTORE_Handle *h,
+				     const struct GNUNET_HashCode *channel_id,
+				     GNUNET_PSYCSTORE_MessageResultCallback rcb,
+				     void *rcb_cls);
+
+
+struct GNUNET_PSYCSTORE_OperationHandle *
+GNUNET_PSYCSTORE_state_set (struct GNUNET_PSYCSTORE_Handle *h,
+			    const struct GNUNET_HashCode *channel_id,
+			    const char *state_name,
+			    size_t size,
+			    const void *value,
+			    GNUNET_PSYCSTORE_ContinuationCallback ccb,
+			    void *ccb_cls);
+
+
+typedef void (*GNUNET_PSYCSTORE_StateResultCallback)(void *cls,
+						     const char *state_name,
+						     size_t size,
+						     const void *value);
+
+
+struct GNUNET_PSYCSTORE_OperationHandle *
+GNUNET_PSYCSTORE_state_get (struct GNUNET_PSYCSTORE_Handle *h,
+			    const struct GNUNET_HashCode *channel_id,
+			    const char *state_name,
+			    GNUNET_PSYCSTORE_StateResultCallback rcb,
+			    void *rcb_cls);
+
+
+struct GNUNET_PSYCSTORE_OperationHandle *
+GNUNET_PSYCSTORE_state_get_all (struct GNUNET_PSYCSTORE_Handle *h,
+				const struct GNUNET_HashCode *channel_id,
+				GNUNET_PSYCSTORE_StateResultCallback rcb,
+				void *rcb_cls);
+
+
+void
+GNUNET_PSYCSTORE_operation_cancel (struct GNUNET_PSYCSTORE_OperationHandle *oh);
+
+
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
@@ -54,6 +163,6 @@ struct GNUNET_PSYCSTORE_Handle;
 }
 #endif
 
-/* ifndef GNUNET_SOCIAL_SERVICE_H */
+/* ifndef GNUNET_PSYCSTORE_SERVICE_H */
 #endif
-/* end of gnunet_social_service.h */
+/* end of gnunet_psycstore_service.h */
