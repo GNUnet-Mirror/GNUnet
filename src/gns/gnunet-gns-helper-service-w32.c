@@ -109,11 +109,6 @@ struct TransmitCallbackContext
    */
   struct GNUNET_SERVER_TransmitHandle *th;
 
-  /**
-   * Client that we are transmitting to.
-   */
-  struct GNUNET_SERVER_Client *client;
-
 };
 
 
@@ -132,6 +127,7 @@ static struct TransmitCallbackContext *tcc_tail;
  * willing (or able) to transmit anything to anyone?
  */
 static int cleaning_done;
+
 
 /**
  * Function called to notify a client about the socket
@@ -157,14 +153,12 @@ transmit_callback (void *cls, size_t size, void *buf)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Transmission to client failed!\n"));
-    GNUNET_SERVER_client_drop (tcc->client);
     GNUNET_free (tcc->msg);
     GNUNET_free (tcc);
     return 0;
   }
   GNUNET_assert (size >= msize);
   memcpy (buf, tcc->msg, msize);
-  GNUNET_SERVER_client_drop (tcc->client);
   GNUNET_free (tcc->msg);
   GNUNET_free (tcc);
   return msize;
@@ -187,13 +181,11 @@ transmit (struct GNUNET_SERVER_Client *client,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Shutdown in progress, aborting transmission.\n"));
-    GNUNET_SERVER_client_drop (client);
     GNUNET_free (msg);
     return;
   }
   tcc = GNUNET_malloc (sizeof (struct TransmitCallbackContext));
   tcc->msg = msg;
-  tcc->client = client;
   if (NULL ==
       (tcc->th =
        GNUNET_SERVER_notify_transmit_ready (client, 
@@ -202,18 +194,18 @@ transmit (struct GNUNET_SERVER_Client *client,
                                             &transmit_callback, tcc)))
   {
     GNUNET_break (0);
-    GNUNET_SERVER_client_drop (client);
     GNUNET_free (msg);
     GNUNET_free (tcc);
     return;
   }
-  GNUNET_SERVER_client_keep (client);
   GNUNET_CONTAINER_DLL_insert (tcc_head, tcc_tail, tcc);
 }
+
 
 #define MarshallPtr(ptr, base, type) \
   if (ptr) \
     ptr = (type *) ((char *) ptr - (char *) base)
+
 
 void
 MarshallWSAQUERYSETW (WSAQUERYSETW *qs, GUID *sc)
@@ -508,6 +500,7 @@ process_ip_lookup_result (void* cls,
   transmit (rq->client, &msg->header);
 }
 
+
 static void
 get_ip_from_hostname (struct GNUNET_SERVER_Client *client,
     const wchar_t *name, int af, GUID sc)
@@ -581,7 +574,6 @@ get_ip_from_hostname (struct GNUNET_SERVER_Client *client,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Lookup launched, waiting for a reply\n");
-    GNUNET_SERVER_client_keep (client);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
   }
   else
@@ -597,6 +589,7 @@ get_ip_from_hostname (struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
   }
 }
+
 
 /**
  * Handle GET-message.
@@ -649,7 +642,6 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   get_ip_from_hostname (client, hostname, af, sc);
-  return;
 }
 
 
@@ -746,4 +738,4 @@ main (int argc, char *const *argv)
   return ret;
 }
 
-/* end of gnunet-gns.c */
+/* end of gnunet-gns-helper-service-w32.c */
