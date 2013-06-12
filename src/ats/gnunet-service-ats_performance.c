@@ -124,11 +124,11 @@ void
 GAS_performance_remove_client (struct GNUNET_SERVER_Client *client)
 {
   struct PerformanceClient *pc;
+
   pc = find_client (client);
   if (NULL == pc)
     return;
   GNUNET_CONTAINER_DLL_remove (pc_head, pc_tail, pc);
-  GNUNET_SERVER_client_drop (client);
   GNUNET_free (pc);
 }
 
@@ -313,12 +313,12 @@ GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
   pc->client = client;
   pc->flag = flag;
   GNUNET_SERVER_notification_context_add (nc, client);
-  GNUNET_SERVER_client_keep (client);
   GNUNET_CONTAINER_DLL_insert (pc_head, pc_tail, pc);
 
   /* Send information about clients */
   GAS_addresses_iterate_peers (GSA_addresses, &peer_it, pc);
 }
+
 
 static void transmit_req_addr (struct AddressIteration *ai,
     const struct GNUNET_PeerIdentity *id,
@@ -332,7 +332,6 @@ static void transmit_req_addr (struct AddressIteration *ai,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 
 {
-
   struct GNUNET_ATS_Information *atsp;
   struct PeerInformationMessage *msg;
   char *addrp;
@@ -453,6 +452,7 @@ req_addr_peer_it (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer iteration done\n");
   }
 }
+
 
 /**
  * Handle 'address list request' messages from clients.
