@@ -432,6 +432,7 @@ GNUNET_SOCIAL_place_look_for (struct GNUNET_SOCIAL_Place *place,
 /**
  * 
  *
+ * @param lh
  */
 void
 GNUNET_SOCIAL_place_look_cancel (struct GNUNET_SOCIAL_LookHandle *lh);
@@ -441,10 +442,10 @@ GNUNET_SOCIAL_place_look_cancel (struct GNUNET_SOCIAL_LookHandle *lh);
 /**
  * Look at a particular object in the place.
  *
- * @param
- * @param
- * @param
- * @return
+ * @param place
+ * @param object_name
+ * @param value_size set to the size of the returned value
+ * @return NULL if there is no such object at this place
  */
 const void *
 GNUNET_SOCIAL_place_look_at (struct GNUNET_SOCIAL_Place *place,
@@ -455,10 +456,10 @@ GNUNET_SOCIAL_place_look_at (struct GNUNET_SOCIAL_Place *place,
 /**
  * Frame the (next) talk by setting some variables for it.
  *
- * @param
- * @param
- * @param
- * @param
+ * @param place
+ * @param variable_name
+ * @param value_size number of bytes in 'value'
+ * @param value
  */
 void
 GNUNET_SOCIAL_place_frame_talk (struct GNUNET_SOCIAL_Place *place,
@@ -476,9 +477,9 @@ struct GNUNET_SOCIAL_TalkRequest;
 /**
  * Talk to the host of the place.
  *
- * @param 
- * @param 
- * @param 
+ * @param place place at which we want to talk to the host
+ * @param method_name method to invoke on the host
+ * @param cb function to use to get the payload for the method
  * @param cb_cls closure for 'cb'
  * @return NULL if we are already trying to talk to the host,
  *         otherwise handle to cancel the request
@@ -493,22 +494,27 @@ GNUNET_SOCIAL_place_talk (struct GNUNET_SOCIAL_Place *place,
 /**
  * 
  *
- * @param
+ * @param tr
  */
 void
 GNUNET_SOCIAL_place_talk_cancel (struct GNUNET_SOCIAL_TalkRequest *tr);
 		
 
+/**
+ *
+ */
 struct GNUNET_SOCIAL_HistoryLesson;
 
 
 /**
+ *
  * 
- * @param
- * @param
- * @param
- * @param
- * @return
+ * @param place place we want to learn more about
+ * @param start_message_id first historic message we are interested in
+ * @param end_message_id last historic message we are interested in (inclusive)
+ * @param slicer slicer to use to process history
+ * @return handle to abort history lesson, never NULL (multiple lesssons
+ *        at the same time are allowed)
  */
 struct GNUNET_SOCIAL_HistoryLesson *
 GNUNET_SOCIAL_place_get_history (struct GNUNET_SOCIAL_Place *place,
@@ -518,21 +524,29 @@ GNUNET_SOCIAL_place_get_history (struct GNUNET_SOCIAL_Place *place,
 
 
 /**
- * 
+ * Stop processing messages from the history lesson.  Must also be
+ * called explicitly after all of the requested messages have been
+ * received.
  *
- * @param
+ * @param hist history lesson to cancel
  */
 void
 GNUNET_SOCIAL_place_get_history_cancel (struct GNUNET_SOCIAL_HistoryLesson *hist);
 
 	  
 /**
- * Leave a place (destroys the place handle).
+ * Leave a place (destroys the place handle).  Can either move our
+ * user into an 'away' state (in which we continue to record ongoing
+ * conversations and state changes if our peer is running), or 
+ * leave the place entirely and stop following the conversation.
  *
  * @param place place to leave
+ * @param keep_following GNUNET_YES to ask the social service to continue
+ *        to follow the conversation, GNUNET_NO to fully leave the place
  */
 void
-GNUNET_SOCIAL_place_leave (struct GNUNET_SOCIAL_Place *place);
+GNUNET_SOCIAL_place_leave (struct GNUNET_SOCIAL_Place *place,
+			   int keep_following);
 
 
 
