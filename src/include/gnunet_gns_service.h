@@ -329,7 +329,7 @@ typedef void (*GNUNET_GNS_GetAuthResultProcessor) (void *cls,
  */
 struct GNUNET_GNS_GetAuthRequest*
 GNUNET_GNS_get_authority (struct GNUNET_GNS_Handle *handle,
-			  const char * name,
+			  const char *name,
 			  GNUNET_GNS_GetAuthResultProcessor proc,
 			  void *proc_cls);
 
