@@ -241,10 +241,16 @@ GNUNET_SOCIAL_home_evict (struct GNUNET_SOCIAL_Home *home,
  *
  * @param home home to disallow 'nym' to join
  * @param nym handle for the entity that wanted to join
+ * @param method method name to invoke on caller
+ * @param message_size number of bytes in 'message' for method
+ * @param message rejection message to send back
  */
 void
 GNUNET_SOCIAL_home_reject_entry (struct GNUNET_SOCIAL_Home *home,
-				 struct GNUNET_SOCIAL_Nym *nym);
+				 struct GNUNET_SOCIAL_Nym *nym,
+				 const char *method,
+				 size_t message_size,
+				 const void *message);
 
 
 /**
