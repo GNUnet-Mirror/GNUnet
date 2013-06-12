@@ -416,10 +416,10 @@ struct GNUNET_MULTICAST_MulticastRequest;
  * @return NULL on error (i.e. request already pending)
  */
 struct GNUNET_MULTICAST_MulticastRequest *
-GNUNET_MULTICAST_origin_send_to_all (struct GNUNET_MULTICAST_Origin *origin,
-				     size_t size,
-				     GNUNET_CONNECTION_TransmitReadyNotify cb,
-				     void *cb_cls);
+GNUNET_MULTICAST_origin_to_all (struct GNUNET_MULTICAST_Origin *origin,
+				size_t size,
+				GNUNET_CONNECTION_TransmitReadyNotify cb,
+				void *cb_cls);
 
 
 /**
@@ -428,7 +428,7 @@ GNUNET_MULTICAST_origin_send_to_all (struct GNUNET_MULTICAST_Origin *origin,
  * @param mr request to cancel
  */
 void
-GNUNET_MULTICAST_origin_send_to_all_cancel (struct GNUNET_MULTICAST_MulticastRequest *mr);
+GNUNET_MULTICAST_origin_to_all_cancel (struct GNUNET_MULTICAST_MulticastRequest *mr);
 
 
 /**
@@ -546,10 +546,10 @@ struct GNUNET_MULTICAST_ResponseRequest;
  * @return handle to cancel request, NULL on error (i.e. request already pending)
  */
 struct GNUNET_MULTICAST_ResponseRequest *
-GNUNET_MULTICAST_member_message_to_origin (struct GNUNET_MULTICAST_Member *member,
-					   size_t size,
-					   GNUNET_CONNECTION_TransmitReadyNotify cb,
-					   void *cb_cls);
+GNUNET_MULTICAST_member_to_origin (struct GNUNET_MULTICAST_Member *member,
+				   size_t size,
+				   GNUNET_CONNECTION_TransmitReadyNotify cb,
+				   void *cb_cls);
 
 
 /**
@@ -558,7 +558,7 @@ GNUNET_MULTICAST_member_message_to_origin (struct GNUNET_MULTICAST_Member *membe
  * @param rr request to cancel
  */
 void
-GNUNET_MULTICAST_member_message_to_origin_cancel (struct GNUNET_MULTICAST_ResponseRequest *rr);
+GNUNET_MULTICAST_member_to_origin_cancel (struct GNUNET_MULTICAST_ResponseRequest *rr);
 
 
 

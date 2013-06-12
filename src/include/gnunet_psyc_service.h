@@ -230,7 +230,7 @@ enum GNUNET_PSYC_Operator
  * values that require streaming must only be passed as the stream
  * arguments to methods.  State updates might not be transmitted to
  * group members until the next call to
- * 'GNUNET_PSYC_channel_broadcast_call_method'.  Variable updates must
+ * 'GNUNET_PSYC_channel_notify_transmit_ready'.  Variable updates must
  * be given just before the call to the respective method that needs
  * the variables.
  *
@@ -366,10 +366,10 @@ GNUNET_PSYC_member_get_group (struct GNUNET_PSYC_Member *member);
  * @param group_generation the generation ID where the change went into effect
  */
 void
-GNUNET_PSYC_group_member_admit (struct GNUNET_PSYC_Group *group,
-				const struct GNUNET_PeerIdentity *member,
-				uint64_t message_id,
-				uint64_t group_generation);
+GNUNET_PSYC_group_member_add (struct GNUNET_PSYC_Group *group,
+			      const struct GNUNET_PeerIdentity *member,
+			      uint64_t message_id,
+			      uint64_t group_generation);
 
 
 /**
@@ -393,10 +393,10 @@ GNUNET_PSYC_group_member_admit (struct GNUNET_PSYC_Group *group,
  * @param group_generation the generation ID where the change went into effect
  */
 void
-GNUNET_PSYC_group_member_kick (struct GNUNET_PSYC_Group *group,
-			       const struct GNUNET_PeerIdentity *member,
-			       uint64_t message_id,
-			       uint64_t group_generation);
+GNUNET_PSYC_group_member_remove (struct GNUNET_PSYC_Group *group,
+				 const struct GNUNET_PeerIdentity *member,
+				 uint64_t message_id,
+				 uint64_t group_generation);
 
 
 /**
@@ -507,7 +507,7 @@ struct GNUNET_PSYC_OriginTransmitHandle;
 
 
 /**
- * Request a message to be send to the channel host.
+ * Request a message to be sent to the channel origin.
  *
  * @param member membership handle
  * @param method_name which (PSYC) method should be invoked (on host)
