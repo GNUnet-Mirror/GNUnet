@@ -429,7 +429,6 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_CONTAINER_DLL_remove (nc->op_head, nc->op_tail, no);
       GNUNET_free (no);
     }
-    GNUNET_SERVER_client_drop(nc->client);
     GNUNET_CONTAINER_DLL_remove (client_head, client_tail, nc);
     GNUNET_free (nc);
   }
@@ -487,7 +486,6 @@ client_disconnect_notification (void *cls,
     GNUNET_CONTAINER_DLL_remove (nc->op_head, nc->op_tail, no);
     GNUNET_free (no);
   }
-  GNUNET_SERVER_client_drop (nc->client);
   GNUNET_CONTAINER_DLL_remove (client_head, client_tail, nc);
   GNUNET_free (nc);
 }
@@ -519,7 +517,6 @@ handle_start (void *cls,
   nc->client = client;
   GNUNET_SERVER_notification_context_add (snc, client);
   GNUNET_CONTAINER_DLL_insert (client_head, client_tail, nc);
-  GNUNET_SERVER_client_keep (client);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
