@@ -199,14 +199,14 @@ typedef void (*GNUNET_SOCIAL_FarewellCallback)(void *cls,
  * @return handle for a new home
  */
 struct GNUNET_SOCIAL_Home *
-GNUNET_SOCIAL_home_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			   const char *home_keyfile,
-			   enum GNUNET_MULTICAST_JoinPolicy join_policy,
-			   struct GNUNET_SOCIAL_Ego *ego,
-			   struct GNUNET_SOCIAL_Slicer *slicer,
-			   GNUNET_SOCIAL_AnswerDoorCallback listener_cb,
-			   GNUNET_SOCIAL_FarewellCallback farewell_cb,
-			   void *cls);
+GNUNET_SOCIAL_home_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
+			  const char *home_keyfile,
+			  enum GNUNET_MULTICAST_JoinPolicy join_policy,
+			  struct GNUNET_SOCIAL_Ego *ego,
+			  struct GNUNET_SOCIAL_Slicer *slicer,
+			  GNUNET_SOCIAL_AnswerDoorCallback listener_cb,
+			  GNUNET_SOCIAL_FarewellCallback farewell_cb,
+			  void *cls);
 
 
 /**
