@@ -23,8 +23,6 @@
  * @brief two-peer set operations
  * @author Florian Dold
  */
-
-
 #include "gnunet-service-set.h"
 #include "set_protocol.h"
 
@@ -146,12 +144,6 @@ destroy_listener (struct Listener *listener)
     GNUNET_MQ_destroy (listener->client_mq);
     listener->client_mq = NULL;
   }
-  if (NULL != listener->client)
-  {
-    GNUNET_SERVER_client_drop (listener->client);
-    listener->client = NULL;
-  }
-  
   GNUNET_CONTAINER_DLL_remove (listeners_head, listeners_tail, listener);
   GNUNET_free (listener);
 }
@@ -189,7 +181,7 @@ destroy_set (struct Set *set)
  * @param cls closure, unused
  * @param client the client to clean up after
  */
-void
+static void
 handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct Set *set;
@@ -225,6 +217,7 @@ destroy_incoming (struct Incoming *incoming)
   GNUNET_CONTAINER_DLL_remove (incoming_head, incoming_tail, incoming);
   GNUNET_free (incoming);
 }
+
 
 static struct Listener *
 get_listener_by_target (enum GNUNET_SET_OperationType op,
@@ -332,7 +325,6 @@ handle_client_create (void *cls,
   GNUNET_assert (NULL != set);
 
   set->client = client;
-  GNUNET_SERVER_client_keep (client);
   set->client_mq = GNUNET_MQ_queue_for_server_client (client);
   GNUNET_CONTAINER_DLL_insert (sets_head, sets_tail, set);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -362,7 +354,6 @@ handle_client_listen (void *cls,
   }
   listener = GNUNET_new (struct Listener);
   listener->client = client;
-  GNUNET_SERVER_client_keep (client);
   listener->client_mq = GNUNET_MQ_queue_for_server_client (client);
   listener->app_id = msg->app_id;
   listener->operation = ntohs (msg->operation);
@@ -698,7 +689,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   configuration = cfg;
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, NULL);
-  GNUNET_SERVER_disconnect_notify (server, handle_client_disconnect, NULL);
+  GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
   GNUNET_SERVER_add_handlers (server, server_handlers);
   stream_listen_socket = GNUNET_STREAM_listen (cfg, GNUNET_APPLICATION_TYPE_SET,
                                                &stream_listen_cb, NULL,
