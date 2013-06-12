@@ -411,7 +411,6 @@ make_client_entry (struct GNUNET_SERVER_Client *client)
   }
   ce = GNUNET_malloc (sizeof (struct ClientEntry));
   ce->client = client;
-  GNUNET_SERVER_client_keep (client);
   GNUNET_CONTAINER_DLL_insert (client_head, client_tail, ce);
   GNUNET_SERVER_notification_context_add (nc, client);
   return ce;
@@ -706,7 +705,6 @@ handle_watch (void *cls, struct GNUNET_SERVER_Client *client,
   we = GNUNET_malloc (sizeof (struct WatchEntry));
   we->client = client;
   we->last_value_set = GNUNET_NO;
-  GNUNET_SERVER_client_keep (client);
   we->wid = ce->max_wid++;
   GNUNET_CONTAINER_DLL_insert (pos->we_head, pos->we_tail, we);
   if (pos->value != 0)
@@ -735,7 +733,6 @@ do_shutdown ()
     start = se->next;
     while (NULL != (we = se->we_head))
     {
-      GNUNET_SERVER_client_drop (we->client);
       GNUNET_CONTAINER_DLL_remove (se->we_head, se->we_tail, we);
       GNUNET_free (we);
     }
@@ -779,7 +776,6 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   {
     if (ce->client == client)
     {
-      GNUNET_SERVER_client_drop (ce->client);
       GNUNET_CONTAINER_DLL_remove (client_head, client_tail, ce);
       GNUNET_free (ce);
       break;
@@ -795,7 +791,6 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
       wen = we->next;
       if (we->client != client)
         continue;
-      GNUNET_SERVER_client_drop (we->client);
       GNUNET_CONTAINER_DLL_remove (se->we_head, se->we_tail, we);
       GNUNET_free (we);
     }
