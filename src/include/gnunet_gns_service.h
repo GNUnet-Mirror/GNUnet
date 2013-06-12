@@ -71,49 +71,76 @@ struct GNUNET_GNS_GetAuthRequest;
  */
 enum GNUNET_GNS_RecordType
 {
-  /* Standard DNS */
-  /* struct in_addr */
+  /**
+   * A 'struct in_addr'
+   */
   GNUNET_GNS_RECORD_A          = GNUNET_DNSPARSER_TYPE_A,
 
-  /* char */
+  /**
+   * A 'char *'
+   */
   GNUNET_GNS_RECORD_NS         = GNUNET_DNSPARSER_TYPE_NS,
 
-  /* char */
+  /**
+   * A 'char *'
+   */
   GNUNET_GNS_RECORD_CNAME      = GNUNET_DNSPARSER_TYPE_CNAME,
 
-  /* struct soa_data */
+  /**
+   * A 'struct soa_data'
+   */
   GNUNET_GNS_RECORD_SOA        = GNUNET_DNSPARSER_TYPE_SOA,
 
-  /* struct srv_data */
+  /**
+   * A 'struct srv_data'
+   */
   GNUNET_GNS_RECORD_SRV        = GNUNET_DNSPARSER_TYPE_SRV,
 
-  /* char */
+  /**
+   * A 'char *'
+   */
   GNUNET_GNS_RECORD_PTR        = GNUNET_DNSPARSER_TYPE_PTR,
 
-  /* uint16_t, char */
+  /**
+   * A 'uint16_t' and a 'char *'
+   */
   GNUNET_GNS_RECORD_MX         = GNUNET_DNSPARSER_TYPE_MX,
 
-  /* char */
+  /**
+   * A 'char *'
+   */
   GNUNET_GNS_RECORD_TXT        = GNUNET_DNSPARSER_TYPE_TXT,
 
-  /* struct in6_addr */
+  /**
+   * A 'struct in6_addr'
+   */
   GNUNET_GNS_RECORD_AAAA       = GNUNET_DNSPARSER_TYPE_AAAA,
 
   /* GNS specific */
-  /* struct GNUNET_CRYPTO_ShortHashCode */
+  /**
+   * A 'struct GNUNET_CRYPTO_ShortHashCode'
+   */
   GNUNET_GNS_RECORD_PKEY = GNUNET_NAMESTORE_TYPE_PKEY,
 
-  /* char */
+  /**
+   * A 'char *'
+   */
   GNUNET_GNS_RECORD_PSEU = GNUNET_NAMESTORE_TYPE_PSEU,
   GNUNET_GNS_RECORD_ANY  = GNUNET_NAMESTORE_TYPE_ANY,
 
-  /* char */
+  /**
+   * A 'char *'
+   */
   GNUNET_GNS_RECORD_LEHO = GNUNET_NAMESTORE_TYPE_LEHO,
 
-  /* struct vpn_data */
+  /**
+   * A 'struct vpn_data'
+   */
   GNUNET_GNS_RECORD_VPN  = GNUNET_NAMESTORE_TYPE_VPN,
 
-  /* revocation */
+  /**
+   * Revocation, no data.
+   */
   GNUNET_GNS_RECORD_REV  = GNUNET_NAMESTORE_TYPE_REV
 };
 
