@@ -29,7 +29,7 @@
 
 #ifdef __cplusplus
 extern "C"
-{no
+{
 #if 0                           /* keep Emacsens' auto-indent happy */
 }
 #endif
@@ -48,10 +48,22 @@ extern "C"
 struct GNUNET_PSYCSTORE_Handle;
 
 
+/**
+ * Connect to the PSYCstore service.
+ *
+ * @param cfg Configuration to use.
+ *
+ * @return Handle for the connecton.
+ */
 struct GNUNET_PSYCSTORE_Handle *
 GNUNET_PSYCSTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
+/**
+ * Disconnect from the PSYCstore service.
+ *
+ * @param h Handle for the connection.
+ */
 void
 GNUNET_PSYCSTORE_disconnect (struct GNUNET_PSYCSTORE_Handle *h);
 
@@ -71,18 +83,45 @@ struct GNUNET_PSYCSTORE_OperationHandle;
 typedef void (*GNUNET_PSYCSTORE_ContinuationCallback)(void *cls,
 						      int result);
 
-
+/**
+ * Store join/leave events for a PSYC channel in order to be able to answer
+ * membership test queries later.
+ *
+ * @param h Handle for the PSYCstore.
+ * @param channel_id ID of the channel where the event happened.
+ * @param message_id ID of the message in which this event was announced.
+ * @param peer Identity of joining/leaving peer.
+ * @param did_join GNUNET_YES on join, GNUNET_NO on leave.
+ * @param ccb Callback to call with the result of the storage operation.
+ * @param ccb_cls Closure for the callback.
+ *
+ * @return Operation handle that can be used to cancel the operation.
+ */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_membership_store (struct GNUNET_PSYCSTORE_Handle *h,
-			      const struct GNUNET_HashCode *channel_id,
-			      uint64_t message_id,
-			      const struct GNUNET_PeerIdentity *peer,
-			      int did_join,
-			      GNUNET_PSYCSTORE_ContinuationCallback ccb,
-			      void *ccb_cls);
+                                   const struct GNUNET_HashCode *channel_id,
+                                   uint64_t message_id,
+                                   const struct GNUNET_PeerIdentity *peer,
+                                   int did_join,
+                                   GNUNET_PSYCSTORE_ContinuationCallback ccb,
+                                   void *ccb_cls);
 
 
-struct GNUNET_PSYCSTORE_OperationHandle *
+/**
+ * Test if a peer was a member of the channel when the message with the
+ * specified ID was sent to the channel. This is useful in case of
+ * retransmissions to check if the peer was authorized to see the requested
+ * message.
+ *
+ * @param h Handle for the PSYCstore.
+ * @param channel_id The channel we are interested in.
+ * @param message_id Message ID to check.
+ * @param peer Peer whose membership to check.
+ * @param ccb Callback to call with the test result.
+ * @param ccb_cls Closure for the callback.
+ *
+ * @return Operation handle that can be used to cancel the operation.
+ */struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_membership_test (struct GNUNET_PSYCSTORE_Handle *h,
 				  const struct GNUNET_HashCode *channel_id,
 				  uint64_t message_id,
