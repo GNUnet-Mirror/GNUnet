@@ -114,6 +114,7 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
   shutdown_task =
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &do_shutdown,
                                   NULL);
+  GNUNET_MESH_receive_done (tunnel);
   return GNUNET_OK;
 }
 
