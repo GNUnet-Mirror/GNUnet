@@ -417,6 +417,8 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
 
   ok++;
 
+  GNUNET_MESH_receive_done (tunnel);
+
   if ((ok % 20) == 0)
   {
     if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
@@ -434,7 +436,6 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Root client got a message!\n");
     peers_responded++;
     break;
-  case 3L:
   case 4L:
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Leaf client %li got a message.\n",
@@ -656,7 +657,6 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     test = SPEED;
   }
 
-  GNUNET_SCHEDULER_cancel (disconnect_task);
   disconnect_task =
       GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers,
                                     (void *) __LINE__);
@@ -667,8 +667,8 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   data_received = 0;
   data_sent = 0;
   GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO,
-                                      GNUNET_TIME_UNIT_FOREVER_REL, 
-                                      size_payload, &tmt_rdy, (void *) 1L);
+                                     GNUNET_TIME_UNIT_FOREVER_REL, 
+                                     size_payload, &tmt_rdy, (void *) 1L);
 }
 
 /**
