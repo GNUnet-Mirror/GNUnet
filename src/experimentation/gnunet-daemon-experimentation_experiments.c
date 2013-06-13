@@ -233,7 +233,7 @@ int GNUNET_EXPERIMENTATION_experiments_add (struct Issuer *i,
  * Parse a configuration section containing experiments
  *
  * @param cls configuration handle
- * @param section section name
+ * @param name section name
  */
 void exp_file_iterator (void *cls,
 												const char *name)
