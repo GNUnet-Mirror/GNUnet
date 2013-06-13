@@ -597,7 +597,7 @@ send_ack (struct GNUNET_MESH_Tunnel *t)
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
   msg.header.size = htons (sizeof (msg));
   msg.tunnel_id = htonl (t->tid);
-  msg.max_pid = htonl (t->last_ack_sent);
+  msg.ack = htonl (t->last_ack_sent);
 
 #if DEBUG_ACK
   t->mesh->acks_sent++;
@@ -981,7 +981,7 @@ process_ack (struct GNUNET_MESH_Handle *h,
          ntohl (msg->tunnel_id));
     return;
   }
-  ack = ntohl (msg->max_pid);
+  ack = ntohl (msg->ack);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  on tunnel %X, ack %u!\n", t->tid, ack);
   if (GNUNET_YES == GMC_is_pid_bigger(ack, t->last_ack_recv))
     t->last_ack_recv = ack;

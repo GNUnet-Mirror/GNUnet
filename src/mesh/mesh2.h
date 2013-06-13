@@ -204,7 +204,7 @@ struct GNUNET_MESH_LocalAck
     /**
      * ID of the last packet allowed.
      */
-  uint32_t max_pid GNUNET_PACKED;
+  uint32_t ack GNUNET_PACKED;
 };
 
 

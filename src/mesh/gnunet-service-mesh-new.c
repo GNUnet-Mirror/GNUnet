@@ -669,7 +669,7 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
 /**
  * Retrieve the MeshPeerInfo stucture associated with the peer, create one
- * and insert it in the appropiate structures if the peer is not known yet.
+ * and insert it in the appropriate structures if the peer is not known yet.
  *
  * @param peer Full identity of the peer.
  *
@@ -681,7 +681,7 @@ peer_get (const struct GNUNET_PeerIdentity *peer);
 
 /**
  * Retrieve the MeshPeerInfo stucture associated with the peer, create one
- * and insert it in the appropiate structures if the peer is not known yet.
+ * and insert it in the appropriate structures if the peer is not known yet.
  *
  * @param peer Short identity of the peer.
  *
@@ -922,7 +922,7 @@ client_delete_tunnel (struct MeshClient *c, struct MeshTunnel *t)
 }
 
 /**
- * Notify the appropiate client that a new incoming tunnel was created.
+ * Notify the appropriate client that a new incoming tunnel was created.
  *
  * @param t Tunnel that was created.
  */
@@ -946,19 +946,28 @@ send_client_tunnel_create (struct MeshTunnel *t)
 /**
  * Notify dest client that the incoming tunnel is no longer valid.
  *
- * @param t Tunnel that was destroyed.
+ * @param c Client to notify..
+ * @param t Tunnel that is destroyed.
  */
 static void
-send_client_tunnel_destroy (struct MeshTunnel *t)
+send_client_tunnel_destroy (struct MeshClient *c, struct MeshTunnel *t)
 {
   struct GNUNET_MESH_TunnelMessage msg;
 
-  if (NULL == t->client)
+  if (NULL == c)
+  {
+    GNUNET_break (0);
     return;
+  }
+  if (c != t->client && c != t->owner)
+  {
+    GNUNET_break (0);
+    return;
+  }
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
   msg.tunnel_id = htonl (t->local_tid_dest);
-  GNUNET_SERVER_notification_context_unicast (nc, t->client->handle,
+  GNUNET_SERVER_notification_context_unicast (nc, c->handle,
                                               &msg.header, GNUNET_NO);
 }
 
@@ -982,7 +991,7 @@ peer_info_timeout (void *cls,
 
 /**
  * Retrieve the MeshPeerInfo stucture associated with the peer, create one
- * and insert it in the appropiate structures if the peer is not known yet.
+ * and insert it in the appropriate structures if the peer is not known yet.
  *
  * @param peer Full identity of the peer.
  *
@@ -1016,7 +1025,7 @@ peer_get (const struct GNUNET_PeerIdentity *peer)
 
 /**
  * Retrieve the MeshPeerInfo stucture associated with the peer, create one
- * and insert it in the appropiate structures if the peer is not known yet.
+ * and insert it in the appropriate structures if the peer is not known yet.
  *
  * @param peer Short identity of the peer.
  *
@@ -1061,34 +1070,6 @@ peer_get_best_path (const struct MeshPeerInfo *peer, const struct MeshTunnel *t)
   }
   return best_p;
 }
-
-
-/**
- * Remove the tunnel from the list of tunnels to which a peer is target.
- *
- * @param peer PeerInfo of the peer.
- * @param t Tunnel to remove.
- */
-static void
-peer_remove_tunnel (struct MeshPeerInfo *peer, struct MeshTunnel *t)
-{
-  unsigned int i;
-
-  for (i = 0; i < peer->ntunnels; i++)
-  {
-    if (0 ==
-        memcmp (&peer->tunnels[i]->id, &t->id, sizeof (struct MESH_TunnelID)))
-    {
-      peer->ntunnels--;
-      peer->tunnels[i] = peer->tunnels[peer->ntunnels];
-      peer->tunnels = 
-        GNUNET_realloc (peer->tunnels, 
-                        peer->ntunnels * sizeof(struct MeshTunnel *));
-      return;
-    }
-  }
-}
-
 
 /**
   * Core callback to write a pre-constructed data packet to core buffer
@@ -1905,7 +1886,7 @@ send_local_ack (struct MeshTunnel *t, struct MeshClient *c, uint32_t ack)
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
   msg.tunnel_id = htonl (t->owner == c ? t->local_tid : t->local_tid_dest);
-  msg.max_pid = htonl (ack); 
+  msg.ack = htonl (ack); 
   GNUNET_SERVER_notification_context_unicast(nc,
                                               c->handle,
                                               &msg.header,
@@ -2186,10 +2167,11 @@ peer_unlock_queue(GNUNET_PEER_Id peer_id)
 
 
 /**
- * Send a message to all peers in this tunnel that the tunnel is no longer
- * valid.
+ * Send a message to all peers and clients in this tunnel that the tunnel
+ * is no longer valid. If some peer or client should not receive the message,
+ * should be zero'ed out before calling this function.
  *
- * @param t The tunnel whose peers to notify.
+ * @param t The tunnel whose peers and clients to notify.
  */
 static void
 tunnel_send_destroy (struct MeshTunnel *t)
@@ -2222,6 +2204,14 @@ tunnel_send_destroy (struct MeshTunnel *t)
                 "  sending back to %s\n",
                 GNUNET_i2s (&id));
     send_prebuilt_message (&msg.header, t->prev_hop, t);
+  }
+  if (NULL != t->owner)
+  {
+    send_client_tunnel_destroy (t->owner, t);
+  }
+  if (NULL != t->client)
+  {
+    send_client_tunnel_destroy (t->client, t);
   }
 }
 
@@ -2265,7 +2255,14 @@ peer_cancel_queues (GNUNET_PEER_Id neighbor, struct MeshTunnel *t)
 
 
 /**
- * Destroy the tunnel and free any allocated resources linked to it.
+ * Destroy the tunnel.
+ * 
+ * This function does not generate any warning traffic to clients or peers.
+ * 
+ * Tasks:
+ * Remove the tunnel from peer_info's and clients' hashmaps.
+ * Cancel messages belonging to this tunnel queued to neighbors.
+ * Free any allocated resources linked to the tunnel.
  *
  * @param t the tunnel to destroy
  *
@@ -2331,10 +2328,16 @@ tunnel_destroy (struct MeshTunnel *t)
     }
   }
 
-  peer_cancel_queues (t->next_hop, t);
-  peer_cancel_queues (t->prev_hop, t);
-  GNUNET_PEER_change_rc(t->next_hop, -1);
-  GNUNET_PEER_change_rc(t->prev_hop, -1);
+  if (0 != t->prev_hop)
+  {
+    peer_cancel_queues (t->prev_hop, t);
+    GNUNET_PEER_change_rc (t->prev_hop, -1);
+  }
+  if (0 != t->next_hop)
+  {
+    peer_cancel_queues (t->next_hop, t);
+    GNUNET_PEER_change_rc (t->next_hop, -1);
+  }  
 
   if (GNUNET_SCHEDULER_NO_TASK != t->maintenance_task)
     GNUNET_SCHEDULER_cancel (t->maintenance_task);
@@ -2348,6 +2351,8 @@ tunnel_destroy (struct MeshTunnel *t)
 
 /**
  * Tunnel is empty: destroy it.
+ * 
+ * Notifies all participants (peers, cleints) about the destruction.
  * 
  * @param t Tunnel to destroy. 
  */
@@ -2458,14 +2463,11 @@ tunnel_new (GNUNET_PEER_Id owner,
 
 
 /**
- * tunnel_destroy_iterator: iterator for deleting each tunnel that belongs to a
- * client when the client disconnects. If the client is not the owner, the
- * owner will get notified if no more clients are in the tunnel and the client
- * get removed from the tunnel's list.
+ * Iterator for deleting each tunnel whose client endpoint disconnected.
  *
- * @param cls closure (client that is disconnecting)
- * @param key the hash of the local tunnel id (used to access the hashmap)
- * @param value the value stored at the key (tunnel to destroy)
+ * @param cls Closure (client that has disconnected).
+ * @param key The hash of the local tunnel id (used to access the hashmap).
+ * @param value The value stored at the key (tunnel to destroy).
  *
  * @return GNUNET_OK, keep iterating.
  */
@@ -2480,13 +2482,12 @@ tunnel_destroy_iterator (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               " Tunnel %X / %X destroy, due to client %u shutdown.\n",
               t->local_tid, t->local_tid_dest, c->id);
-  if (GNUNET_NO == c->shutting_down)
-    send_client_tunnel_destroy (t);
   client_delete_tunnel (c, t);
   if (c == t->client)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Client %u is destination.\n", c->id);
     t->client = NULL;
+    GNUNET_PEER_change_rc (t->next_hop, -1);
     t->next_hop = 0;
   }
   else if (c == t->owner)
@@ -2494,6 +2495,7 @@ tunnel_destroy_iterator (void *cls,
     struct MeshPeerInfo *p;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Client %u is owner.\n", c->id);
     t->owner = NULL;
+    GNUNET_PEER_change_rc (t->prev_hop, -1);
     t->prev_hop = 0;
     p = peer_get_short(t->dest);
     peer_info_remove_tunnel (p, t);
@@ -2527,8 +2529,9 @@ tunnel_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Tunnel %s [%X] timed out. Destroying.\n",
               GNUNET_i2s(&id), t->id.tid);
-  send_client_tunnel_destroy (t);
-  tunnel_destroy (t);
+  if (NULL != t->client)
+    send_client_tunnel_destroy (t->client, t);
+  tunnel_destroy (t); /* Do not notify other */
 }
 
 
@@ -2689,7 +2692,7 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
                                queue->peer->queue_tail,
                                queue);
 
-  /* Delete from appropiate fc in the tunnel */
+  /* Delete from appropriate fc in the tunnel */
   if (queue->peer->id == queue->tunnel->next_hop)
     fc = &queue->tunnel->next_fc;
   else if (queue->peer->id == queue->tunnel->next_hop)
@@ -3227,7 +3230,7 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
   }
   t->state = MESH_TUNNEL_READY;
-  t->next_fc.last_ack_recv = ntohl (msg->ack);
+  t->next_fc.last_ack_recv = (NULL == t->client) ? ntohl (msg->ack) : 0;
   t->prev_fc.last_ack_sent = ntohl (msg->ack);
 
   /* Message for us? */
@@ -3329,16 +3332,36 @@ handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
                               1, GNUNET_NO);
     return GNUNET_OK;
   }
-  // TODO check owner's signature
   if (t->local_tid_dest >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
   {
-    /* Tunnel was incoming, notify clients */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "INCOMING TUNNEL %X %X\n",
                 t->local_tid, t->local_tid_dest);
-    send_client_tunnel_destroy (t);
   }
-  tunnel_send_destroy (t);
-  t->destroy = GNUNET_YES;
+  if (GNUNET_PEER_search (peer) == t->prev_hop)
+  {
+    // TODO check owner's signature
+    // TODO add owner's signatue to tunnel for retransmission
+    peer_cancel_queues (t->prev_hop, t);
+    GNUNET_PEER_change_rc (t->prev_hop, -1);
+    t->prev_hop = 0;
+  }
+  else if (GNUNET_PEER_search (peer) == t->next_hop)
+  {
+    // TODO check dest's signature
+    // TODO add dest's signatue to tunnel for retransmission
+    peer_cancel_queues (t->next_hop, t);
+    GNUNET_PEER_change_rc (t->next_hop, -1);
+    t->next_hop = 0;
+  }
+  else
+  {
+    GNUNET_break_op (0);
+    // TODO check both owner AND destination's signature to see which matches
+    // TODO restransmit in appropriate direction
+    return GNUNET_OK;
+  }
+  tunnel_destroy_empty (t);
+
   // TODO: add timeout to destroy the tunnel anyway
   return GNUNET_OK;
 }
@@ -4128,21 +4151,22 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+
+  /* Cleanup after the tunnel */
+  client_delete_tunnel (c, t);
   if (c == t->client)
   {
-    tunnel_destroy_empty (t);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
-    return;
+    t->client = NULL;
   }
-  send_client_tunnel_destroy (t);
-  client_delete_tunnel (c, t);
+  else if (c == t->owner)
+  {
+    peer_info_remove_tunnel (peer_get_short(t->dest), t);
+    t->owner = NULL;
+  }
 
-  /* Don't try to ACK the client about the tunnel_destroy multicast packet */
-  t->owner = NULL;
-  tunnel_send_destroy (t);
-  peer_remove_tunnel (peer_get_short(t->dest), t);
-  t->destroy = GNUNET_YES;
   /* The tunnel will be destroyed when the last message is transmitted. */
+  tunnel_destroy_empty (t);
+
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
 }
@@ -4446,7 +4470,7 @@ handle_local_ack (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  ack = ntohl (msg->max_pid);
+  ack = ntohl (msg->ack);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ack %u\n", ack);
 
   /* Does client own tunnel? I.E: Is this an ACK for BCK traffic? */
