@@ -40,12 +40,6 @@
 #include "mesh2_protocol.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "mesh2-api",__VA_ARGS__)
-
-/* FIXME: use dynamic values, expose in API */
-#define INITIAL_WINDOW_SIZE 4
-#define ACK_THRESHOLD 2
-/* FIXME END */
-
 #define DEBUG_ACK GNUNET_YES
 
 /******************************************************************************/
@@ -592,23 +586,11 @@ send_packet (struct GNUNET_MESH_Handle *h,
  * @param t Tunnel on which to send the ACK.
  */
 static void
-send_ack (struct GNUNET_MESH_Handle *h, struct GNUNET_MESH_Tunnel *t)
+send_ack (struct GNUNET_MESH_Tunnel *t)
 {
   struct GNUNET_MESH_LocalAck msg;
-  uint32_t delta;
 
-  delta = t->last_ack_sent - t->last_pid_recv;
-  if (delta > ACK_THRESHOLD)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Not sending ACK on tunnel %X: ACK: %u, PID: %u, buffer %u\n",
-         t->tid, t->last_ack_sent, t->last_pid_recv, delta);
-    return;
-  }
-  if (GNUNET_YES == t->buffering)
-    t->last_ack_sent = t->last_pid_recv + INITIAL_WINDOW_SIZE;
-  else
-    t->last_ack_sent = t->last_pid_recv + 1;
+  t->last_ack_sent = t->last_pid_recv + 1;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending ACK on tunnel %X: %u\n",
        t->tid, t->last_ack_sent);
@@ -621,7 +603,7 @@ send_ack (struct GNUNET_MESH_Handle *h, struct GNUNET_MESH_Tunnel *t)
   t->mesh->acks_sent++;
 #endif
 
-  send_packet (h, &msg.header, t);
+  send_packet (t->mesh, &msg.header, t);
   return;
 }
 
@@ -821,7 +803,7 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
   if (NULL != h->new_tunnel)
   {
     t = create_tunnel (h, tid);
-    t->last_ack_sent = INITIAL_WINDOW_SIZE - 1;
+    t->last_ack_sent = 0;
     t->peer = GNUNET_PEER_intern (&msg->peer);
     GNUNET_PEER_change_rc (t->peer, 1);
     t->mesh = h;
@@ -878,7 +860,7 @@ process_tunnel_destroy (struct GNUNET_MESH_Handle *h,
 
 
 /**
- * Process the incoming data packets
+ * Process the incoming data packets, call appropriate handlers.
  *
  * @param h         The mesh handle
  * @param message   A message encapsulating the data
@@ -948,7 +930,6 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
   }
   t->last_pid_recv = pid;
   type = ntohs (payload->type);
-  send_ack (h, t);
   for (i = 0; i < h->n_handlers; i++)
   {
     handler = &h->message_handlers[i];
@@ -1403,14 +1384,6 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
 }
 
 
-/**
- * Disconnect from the mesh service. All tunnels will be destroyed. All tunnel
- * disconnect callbacks will be called on any still connected peers, notifying
- * about their disconnection. The registered inbound tunnel cleaner will be
- * called should any inbound tunnels still exist.
- *
- * @param handle connection to mesh to disconnect
- */
 void
 GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
 {
@@ -1506,12 +1479,6 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
 }
 
 
-/**
- * Destroy an existing tunnel. The existing callback for the tunnel will NOT
- * be called.
- *
- * @param tunnel tunnel handle
- */
 void
 GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel)
 {
@@ -1548,13 +1515,6 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel)
 }
 
 
-/**
- * Turn on/off the buffering status of the tunnel.
- * 
- * @param tunnel Tunnel affected.
- * @param buffer GNUNET_YES to turn buffering on (default),
- *               GNUNET_NO otherwise.
- */
 void
 GNUNET_MESH_tunnel_buffer (struct GNUNET_MESH_Tunnel *tunnel, int buffer)
 {
@@ -1622,11 +1582,6 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
 }
 
 
-/**
- * Cancel the specified transmission-ready notification.
- *
- * @param th handle that was returned by "notify_transmit_ready".
- */
 void
 GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle *th)
 {
@@ -1644,6 +1599,12 @@ GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle *th)
     GNUNET_CLIENT_notify_transmit_ready_cancel (mesh->th);
     mesh->th = NULL;
   }
+}
+
+void
+GNUNET_MESH_receive_done (struct GNUNET_MESH_Tunnel *tunnel)
+{
+  send_ack (tunnel);
 }
 
 
@@ -1730,24 +1691,3 @@ GNUNET_MESH_show_tunnel (struct GNUNET_MESH_Handle *h,
 
   return;
 }
-
-
-/**
- * Transition API for tunnel ctx management
- */
-void
-GNUNET_MESH_tunnel_set_data (struct GNUNET_MESH_Tunnel *tunnel, void *data)
-{
-  tunnel->ctx = data;
-}
-
-/**
- * Transition API for tunnel ctx management
- */
-void *
-GNUNET_MESH_tunnel_get_data (struct GNUNET_MESH_Tunnel *tunnel)
-{
-  return tunnel->ctx;
-}
-
-
