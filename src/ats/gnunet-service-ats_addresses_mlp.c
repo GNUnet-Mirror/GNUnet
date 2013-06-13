@@ -1314,16 +1314,16 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
  * @param addresses the address hashmap containing all addresses
  * @param address the update address
  * @param prev_session the new session (if changed otherwise current)
- * @param in_use the new address in use state (if changed otherwise current)
- * @param atsi_prev ATS information updated + previous values, GNUNET_ATS_VALUE_UNDEFINED if not existing before
- * @param atsi_count_prev number of atsi values updated
+ * @param prev_in_use the new address in use state (if changed otherwise current)
+ * @param prev_atsi ATS information updated + previous values, GNUNET_ATS_VALUE_UNDEFINED if not existing before
+ * @param prev_atsi_count number of atsi values updated
  */
 void
 GAS_mlp_address_update (void *solver,
                         struct GNUNET_CONTAINER_MultiHashMap *addresses,
                         struct ATS_Address *address,
                         uint32_t prev_session,
-                        int in_use,
+                        int prev_in_use,
                         const struct GNUNET_ATS_Information *prev_atsi,
                         uint32_t prev_atsi_count)
 {
