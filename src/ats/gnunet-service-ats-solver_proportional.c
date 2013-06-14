@@ -617,7 +617,7 @@ get_performance_info (struct ATS_Address *address, uint32_t type);
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-find_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
+find_best_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct ATS_Address **previous_p = cls;
   struct ATS_Address *current = (struct ATS_Address *) value;
@@ -1235,7 +1235,7 @@ GAS_proportional_get_preferred_address (void *solver,
   cur = NULL;
   /* Get address with: stick to current address, lower distance, lower latency */
   GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
-                                              &find_address_it, &cur);
+                                              &find_best_address_it, &cur);
   if (NULL == cur)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
