@@ -208,7 +208,8 @@
 #define PREF_AGING_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 #define PREF_AGING_FACTOR 0.95
 
-#define DEFAULT_PREFERENCE 1.0
+#define DEFAULT_REL_PREFERENCE 1.0
+#define DEFAULT_ABS_PREFERENCE 0.0
 #define MIN_UPDATE_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 
@@ -520,7 +521,7 @@ update_quota_per_network (struct GAS_PROPORTIONAL_Handle *s,
       {
         t = GNUNET_CONTAINER_multihashmap_get (s->prefs, &cur->addr->peer.hashPubKey);
         if (NULL == t)
-        	total_prefs += DEFAULT_PREFERENCE;
+        	total_prefs += DEFAULT_REL_PREFERENCE;
         else
          {
         		total_prefs += (*t);
@@ -534,7 +535,7 @@ update_quota_per_network (struct GAS_PROPORTIONAL_Handle *s,
        cur_pref = 0.0;
        t = GNUNET_CONTAINER_multihashmap_get (s->prefs, &cur->addr->peer.hashPubKey);
        if (NULL == t)
-         cur_pref = DEFAULT_PREFERENCE;
+         cur_pref = DEFAULT_REL_PREFERENCE;
        else
          cur_pref = (*t);
        assigned_quota_in = min_bw + ((cur_pref / total_prefs) * remaining_quota_in);
@@ -960,7 +961,7 @@ recalculate_preferences (struct PreferencePeer *p)
   /* For this client: for all preferences, except TERMINATOR */
   for (kind = GNUNET_ATS_PREFERENCE_END + 1 ; kind < GNUNET_ATS_PreferenceCount; kind ++)
   {
-  	  /* Recalcalculate total preference for this quality kind over all peers*/
+  	  /* Recalcalculate total preference for this kind of quality over all peers*/
   	  c_cur->f_total[kind] = 0;
   	  for (p_cur = c_cur->p_head; NULL != p_cur; p_cur = p_cur->next)
   	  	c_cur->f_total[kind] += p_cur->f[kind];
@@ -977,7 +978,7 @@ recalculate_preferences (struct PreferencePeer *p)
   	  	if (0.0 == c_cur->f_total[kind])
   	  	{
   	  			/* No one has preference, so set default preference */
-  	  			p_cur->f_rel[kind] = DEFAULT_PREFERENCE;
+  	  			p_cur->f_rel[kind] = DEFAULT_REL_PREFERENCE;
   	  	}
   	  	else
   	  	{
@@ -1090,13 +1091,15 @@ preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /* Aging absolute values: */
   for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
   {
-  		if (p->f[i] > 1.0)
+  		if (p->f[i] > DEFAULT_REL_PREFERENCE)
   		{
   			backup = p->f[i];
   			p->f[i] *= PREF_AGING_FACTOR;
   			LOG (GNUNET_ERROR_TYPE_DEBUG, "Aged preference for peer `%s' from %.3f to %.3f\n",
   	  		GNUNET_i2s (&p->id), backup, p->f[i]);
   		}
+  		else
+  			p->f[i] = DEFAULT_REL_PREFERENCE;
   }
   /* Updating relative value */
   t = GNUNET_CONTAINER_multihashmap_get (p->s->prefs, &p->id.hashPubKey);
@@ -1185,9 +1188,9 @@ GAS_simplistic_address_change_preference (void *solver,
       {
         /* Default value per peer absolut preference for a quality:
          * No value set, so absolute preference 0 */
-        p_cur->f[i] = 0.0;
+        p_cur->f[i] = DEFAULT_ABS_PREFERENCE;
         /* Default value per peer relative preference for a quality: 1.0 */
-        p_cur->f_rel[i] = DEFAULT_PREFERENCE;
+        p_cur->f_rel[i] = DEFAULT_REL_PREFERENCE;
       }
       p_cur->aging_task = GNUNET_SCHEDULER_add_delayed (PREF_AGING_INTERVAL, &preference_aging, p_cur);
       GNUNET_CONTAINER_DLL_insert (c_cur->p_head, c_cur->p_tail, p_cur);
