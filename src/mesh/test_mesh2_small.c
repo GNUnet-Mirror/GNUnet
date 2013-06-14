@@ -113,11 +113,6 @@ unsigned int p_ids;
 static int initialized;
 
 /**
- * Peers that have been connected
- */
-static int peers_in_tunnel;
-
-/**
  * Peers that have responded
  */
 static int peers_responded;
@@ -242,13 +237,11 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "disconnecting mesh service of peers, called from line %ld\n",
               line);
-  for (i = 0; i < 4; i++)
-    if (NULL != t_op[i])
-    {
-      GNUNET_TESTBED_operation_done (t_op[i]);
-      t_op[i] = NULL;
-    }
   disconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  for (i = 0; i < 2; i++)
+  {
+    GNUNET_TESTBED_operation_done (t_op[i]);
+  }
   if (NULL != t)
   {
     GNUNET_MESH_tunnel_destroy (t);
@@ -273,16 +266,15 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * 
  * @param line Line in the code the abort is requested from (__LINE__).
  */
-void
+static void
 abort_test (long line)
 {
   if (disconnect_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
+    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers,
+                                                (void *) line);
   }
-  disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
-                                                  &disconnect_mesh_peers,
-                                                  (void *) line);
 }
 
 /**
@@ -424,10 +416,10 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
     if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
     {
       GNUNET_SCHEDULER_cancel (disconnect_task);
+      disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
+                                                      &disconnect_mesh_peers,
+                                                      (void *) __LINE__);
     }
-    disconnect_task =
-              GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers,
-                                            (void *) __LINE__);
   }
 
   switch (client)
@@ -519,10 +511,10 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
+    disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
+                                                    &disconnect_mesh_peers,
+                                                    (void *) __LINE__);
   }
-  disconnect_task =
-        GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers,
-                                      (void *) __LINE__);
 
   return GNUNET_OK;
 }
@@ -569,10 +561,10 @@ incoming_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
+    disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
+                                                    &disconnect_mesh_peers,
+                                                    (void *) __LINE__);
   }
-  disconnect_task =
-        GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers,
-                                      (void *) __LINE__);
 
   return NULL;
 }
@@ -603,27 +595,18 @@ tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
   else if (0L == i && P2P_SIGNAL == test)
   {
     ok ++;
-    if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
-    {
-      GNUNET_SCHEDULER_cancel (disconnect_task);
-    }
-    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers,
-                                                (void *) __LINE__);
   }
   else
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Unknown peer! %d\n", i);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
-  peers_in_tunnel--;
-  if (peers_in_tunnel > 0)
-    return;
 
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
+    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers,
+                                                (void *) __LINE__);
   }
-  disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers,
-                                              (void *) __LINE__);
 
   return;
 }
@@ -657,9 +640,9 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     test = SPEED;
   }
 
-  disconnect_task =
-      GNUNET_SCHEDULER_add_delayed (SHORT_TIME, &disconnect_mesh_peers,
-                                    (void *) __LINE__);
+  disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
+                                                  &disconnect_mesh_peers,
+                                                  (void *) __LINE__);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending data initializer...\n");
   peers_responded = 0;
@@ -689,6 +672,7 @@ pi_cb (void *cls,
   long i = (long) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "id callback for %ld\n", i);
+
   if (NULL == pinfo || NULL != emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "pi_cb: %s\n", emsg);
@@ -727,7 +711,6 @@ tmain (void *cls,
   peers_running = num_peers;
   h1 = meshes[0];
   h2 = meshes[num_peers - 1];
-  peers_in_tunnel = 0;
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
                                                   &disconnect_mesh_peers,
                                                   (void *) __LINE__);
@@ -758,14 +741,14 @@ main (int argc, char *argv[])
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "FORWARD\n");
     test = FORWARD;
-    test_name = "unicast";
+    test_name = "unicast2";
     ok_goal = 4;
   }
   else if (strstr (argv[0], "test_mesh_small_signal") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SIGNAL\n");
     test = P2P_SIGNAL;
-    test_name = "signal";
+    test_name = "signal2";
     ok_goal = 4;
   }
   else if (strstr (argv[0], "test_mesh_small_speed_ack") != NULL)
@@ -780,7 +763,7 @@ main (int argc, char *argv[])
     */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED_ACK\n");
     test = SPEED_ACK;
-    test_name = "speed ack";
+    test_name = "speed2 ack";
     ok_goal = TOTAL_PACKETS * 2 + 2;
   }
   else if (strstr (argv[0], "test_mesh_small_speed") != NULL)
@@ -798,12 +781,12 @@ main (int argc, char *argv[])
     if (strstr (argv[0], "_nobuf") != NULL)
     {
       test = SPEED_NOBUF;
-      test_name = "speed nobuf";
+      test_name = "speed2 nobuf";
     }
     else
     {
       test = SPEED;
-      test_name = "speed";
+      test_name = "speed2";
     }
   }
   else
@@ -829,7 +812,7 @@ main (int argc, char *argv[])
                         "test_mesh2.conf",
                         5,
                         &tmain,
-                        NULL,
+                        NULL, /*tmain cls */
                         &incoming_tunnel,
                         &tunnel_cleaner,
                         handlers,
@@ -846,3 +829,4 @@ main (int argc, char *argv[])
 }
 
 /* end of test_mesh_small.c */
+
