@@ -28,6 +28,7 @@
 #include "gnunet_ats_service.h"
 #include "gnunet-service-ats.h"
 #include "gnunet-service-ats_addresses.h"
+#include "gnunet-service-ats_normalization.h"
 #include "gnunet-service-ats_performance.h"
 #include "gnunet-service-ats_scheduling.h"
 #include "gnunet-service-ats_reservations.h"
@@ -1309,9 +1310,9 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
                                  void *client,
                                  const struct GNUNET_PeerIdentity *peer,
                                  enum GNUNET_ATS_PreferenceKind kind,
-                                 float score)
+                                 float score_abs)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' for peer `%s' for client %p\n",
               "CHANGE PREFERENCE",
               GNUNET_i2s (peer), client);
@@ -1328,9 +1329,9 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
                   GNUNET_i2s (peer), client);
       return;
   }
-
+  GAS_normalization_change_preference (client, peer, kind, score_abs);
   /* Tell solver about update */
-  handle->s_pref (handle->solver, client, peer, kind, score);
+  handle->s_pref (handle->solver, client, peer, kind, score_abs);
 }
 
 
@@ -1595,6 +1596,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert (NULL != ah->s_del);
   GNUNET_assert (NULL != ah->s_done);
 
+  GAS_normalization_start();
   quota_count = load_quotas(cfg, quotas_in, quotas_out, GNUNET_ATS_NetworkTypeCount);
 
   ah->solver = ah->s_init (cfg, stats, quotas, quotas_in, quotas_out, quota_count, &bandwidth_changed_cb, ah);
@@ -1675,7 +1677,7 @@ GAS_addresses_done (struct GAS_Addresses_Handle *handle)
   handle->s_done (handle->solver);
   GNUNET_free (handle);
   /* Stop configured solution method */
-
+  GAS_normalization_stop ();
 }
 
 

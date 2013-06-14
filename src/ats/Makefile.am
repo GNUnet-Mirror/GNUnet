@@ -45,6 +45,7 @@ libexec_PROGRAMS = \
 gnunet_service_ats_SOURCES = \
  gnunet-service-ats.c gnunet-service-ats.h\
  gnunet-service-ats_addresses.c gnunet-service-ats_addresses.h \
+ gnunet-service-ats_normalization.c gnunet-service-ats_normalization.h \
  gnunet-service-ats-solver_proportional.c gnunet-service-ats-solver_proportional.h \
  $(GN_MLP_SRC) \
  gnunet-service-ats_performance.c gnunet-service-ats_performance.h \
