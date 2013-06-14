@@ -465,11 +465,11 @@ is_bandwidth_available_in_network (struct Network *net)
  *
  * @param s the solver handle
  * @param net the network type to update
- * @param address_except address excluded from notifcation, since we suggest
+ * @param address_except address excluded from notification, since we suggest
  * this address
  */
 static void
-update_quota_per_network (struct GAS_PROPORTIONAL_Handle *s,
+distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
                           struct Network *net,
                           struct ATS_Address *address_except)
 {
@@ -713,11 +713,11 @@ find_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
  * @param s the solver handle
  */
 static void
-update_all_networks (struct GAS_PROPORTIONAL_Handle *s)
+distribute_bandwidth_in_all_networks (struct GAS_PROPORTIONAL_Handle *s)
 {
 	int i;
 	for (i = 0; i < s->networks; i++)
-		update_quota_per_network (s, &s->network_entries[i], NULL);
+		distribute_bandwidth_in_network (s, &s->network_entries[i], NULL);
 
 }
 
@@ -1057,7 +1057,7 @@ update_preference (struct PreferencePeer *p,
       break;
   }
   recalculate_preferences(p);
-  update_all_networks (p->s);
+  distribute_bandwidth_in_all_networks (p->s);
 }
 
 
@@ -1113,7 +1113,7 @@ preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 			(*t) = (*t) * PREF_AGING_FACTOR;
 		else
 			(*t) = 1.0;
-		update_all_networks (p->s);
+		distribute_bandwidth_in_all_networks (p->s);
   }
   p->aging_task = GNUNET_SCHEDULER_add_delayed (PREF_AGING_INTERVAL,
   		&preference_aging, p);
@@ -1269,7 +1269,7 @@ GAS_proportional_get_preferred_address (void *solver,
       s->bw_changed (s->bw_changed_cls, prev); /* notify about bw change, REQUIRED? */
       if (GNUNET_SYSERR == addresse_decrement (s, net_prev, GNUNET_NO, GNUNET_YES))
         GNUNET_break (0);
-      update_quota_per_network (s, net_prev, NULL);
+      distribute_bandwidth_in_network (s, net_prev, NULL);
   }
 
   if (GNUNET_NO == (is_bandwidth_available_in_network (cur->solver_information)))
@@ -1280,7 +1280,7 @@ GAS_proportional_get_preferred_address (void *solver,
 
   cur->active = GNUNET_YES;
   addresse_increment(s, net_cur, GNUNET_NO, GNUNET_YES);
-  update_quota_per_network (s, net_cur, cur);
+  distribute_bandwidth_in_network (s, net_cur, cur);
 
   return cur;
 }
@@ -1366,7 +1366,7 @@ GAS_proportional_address_delete (void *solver,
       address->active = GNUNET_NO;
       if (GNUNET_SYSERR == addresse_decrement (s, net, GNUNET_NO, GNUNET_YES))
         GNUNET_break (0);
-      update_quota_per_network (s, net, NULL);
+      distribute_bandwidth_in_network (s, net, NULL);
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "After deleting address now total %u and active %u addresses in network `%s'\n",
       net->total_addresses,
@@ -1469,7 +1469,7 @@ GAS_proportional_address_update (void *solver,
               /* Suggest updated address */
               address->active = GNUNET_YES;
               addresse_increment (s, new_net, GNUNET_NO, GNUNET_YES);
-              update_quota_per_network (solver, new_net, NULL);
+              distribute_bandwidth_in_network (solver, new_net, NULL);
           }
           else
           {
