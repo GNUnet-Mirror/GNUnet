@@ -733,6 +733,7 @@ int
 main (int argc, char *argv[])
 {
   initialized = GNUNET_NO;
+  uint32_t ports[2];
 
   GNUNET_log_setup ("test", "DEBUG", NULL);
 
@@ -808,15 +809,17 @@ main (int argc, char *argv[])
   }
 
   p_ids = 0;
+  ports[0] = 1;
+  ports[1] = 0;
   GNUNET_MESH_TEST_run ("test_mesh2_small",
                         "test_mesh2.conf",
                         5,
                         &tmain,
-                        NULL, /*tmain cls */
+                        NULL, /* tmain cls */
                         &incoming_tunnel,
                         &tunnel_cleaner,
                         handlers,
-                        NULL);
+                        ports);
 
   if (ok_goal > ok)
   {
