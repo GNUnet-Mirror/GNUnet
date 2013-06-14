@@ -2693,8 +2693,8 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
                                queue);
 
   /* Delete from appropriate fc in the tunnel */
-  if (queue->peer->id == queue->tunnel->next_hop)
-    fc = &queue->tunnel->next_fc;
+  if (queue->peer->id == queue->tunnel->prev_hop)
+    fc = &queue->tunnel->prev_fc;
   else if (queue->peer->id == queue->tunnel->next_hop)
     fc = &queue->tunnel->next_fc;
   else
