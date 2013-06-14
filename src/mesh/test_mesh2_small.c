@@ -239,15 +239,15 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   long line = (long) cls;
   unsigned int i;
 
-  for (i = 0; i < 3; i++)
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "disconnecting mesh service of peers, called from line %ld\n",
+              line);
+  for (i = 0; i < 4; i++)
     if (NULL != t_op[i])
     {
       GNUNET_TESTBED_operation_done (t_op[i]);
       t_op[i] = NULL;
     }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "disconnecting mesh service of peers, called from line %ld\n",
-              line);
   disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != t)
   {
@@ -825,8 +825,8 @@ main (int argc, char *argv[])
   }
 
   p_ids = 0;
-  GNUNET_MESH_TEST_run ("test_mesh_small",
-                        "test_mesh_small.conf",
+  GNUNET_MESH_TEST_run ("test_mesh2_small",
+                        "test_mesh2.conf",
                         5,
                         &tmain,
                         NULL,
