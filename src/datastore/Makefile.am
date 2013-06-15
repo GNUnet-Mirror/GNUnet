@@ -51,6 +51,9 @@ gnunet_datastore_LDADD = \
   $(top_builddir)/src/datastore/libgnunetdatastore.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
+gnunet_datastore_DEPENDENCIES = \
+  libgnunetdatastore.la
+
 
 if HAVE_MYSQL
  MYSQL_PLUGIN = libgnunet_plugin_datastore_mysql.la
