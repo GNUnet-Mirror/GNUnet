@@ -400,14 +400,15 @@ typedef void *
  * @param peer the peer id
  * @param kind the preference kind to change
  * @param score the new preference score
+ * @param pref_rel the normalized preference value for this kind over all clients
  */
 typedef void
 (*GAS_solver_address_change_preference) (void *solver,
-                                         void *client,
-                                         const struct GNUNET_PeerIdentity *peer,
-                                         enum GNUNET_ATS_PreferenceKind kind,
-                                         float score);
-
+																					void *client,
+																					const struct GNUNET_PeerIdentity *peer,
+																					enum GNUNET_ATS_PreferenceKind kind,
+																					float score_abs,
+																					double pref_rel);
 
 /**
  * Add a single address within a network to the solver

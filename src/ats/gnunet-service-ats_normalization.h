@@ -34,6 +34,15 @@
 #define DEFAULT_ABS_PREFERENCE 0.0
 
 /**
+ * Get the normalized preference values for a specific peer
+ *
+ * @param id the peer
+ * @return pointer to the values, can be indexed with GNUNET_ATS_PreferenceKind, NULL if peer does not exist
+ */
+const double *
+GAS_normalization_get_preferences (struct GNUNET_PeerIdentity *id);
+
+/**
  * Changes the preferences for a peer in the problem
  *
  * @param solver the solver handle

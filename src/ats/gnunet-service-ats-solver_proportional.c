@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet-service-ats_addresses.h"
+#include "gnunet-service-ats_normalization.h"
 #include "gnunet_statistics_service.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-proportional",__VA_ARGS__)
@@ -335,96 +336,6 @@ struct AddressWrapper
 };
 
 
-/**
- * Preference client
- */
-struct PreferenceClient
-{
-  /**
-   * Next in DLL
-   */
-  struct PreferenceClient *prev;
-
-  /**
-   * Next in DLL
-   */
-
-  struct PreferenceClient *next;
-
-  /**
-   * Client handle
-   */
-  void *client;
-
-  /**
-   * Total preference for this peer
-   */
-  double f_total[GNUNET_ATS_PreferenceCount];
-
-  /**
-   * List of peer preferences for this client
-   */
-
-  /**
-   * Head of peer list
-   */
-  struct PreferencePeer *p_head;
-
-  /**
-   * Tail of peer list
-   */
-  struct PreferencePeer *p_tail;
-};
-
-
-/**
- * Preference peer
- */
-struct PreferencePeer
-{
-  /**
-   * Next in DLL
-   */
-  struct PreferencePeer *next;
-
-  /**
-   * Previous in DLL
-   */
-  struct PreferencePeer *prev;
-
-  /**
-   * Client
-   */
-  struct PreferenceClient *client;
-
-  /**
-   * Solver handle
-   */
-  struct GAS_PROPORTIONAL_Handle *s;
-
-  /**
-   * Peer id
-   */
-  struct GNUNET_PeerIdentity id;
-
-  /**
-   * Preference Values
-   */
-  double f[GNUNET_ATS_PreferenceCount];
-
-  /**
-   * Relative Preference Values
-   */
-  double f_rel[GNUNET_ATS_PreferenceCount];
-
-  /**
-   * Relative Total Preference Value
-   */
-  double f_rel_total;
-
-  GNUNET_SCHEDULER_TaskIdentifier aging_task;
-};
-
 
 /**
  *  Important solver functions
@@ -479,9 +390,11 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
   unsigned long long remaining_quota_out = 0;
   unsigned long long quota_in_used = 0;
   uint32_t min_bw = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
+  double peer_prefs;
   double total_prefs; /* Important: has to be double not float due to precision */
   double cur_pref; /* Important: has to be double not float due to precision */
-  double *t = NULL; /* Important: has to be double not float due to precision */
+  const double *t = NULL; /* Important: has to be double not float due to precision */
+  int c;
 
   unsigned long long assigned_quota_in = 0;
   unsigned long long assigned_quota_out = 0;
@@ -519,13 +432,16 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
   {
       if (GNUNET_YES == cur->addr->active)
       {
-        t = GNUNET_CONTAINER_multihashmap_get (s->prefs, &cur->addr->peer.hashPubKey);
+        t = GAS_normalization_get_preferences (&cur->addr->peer);
         if (NULL == t)
         	total_prefs += DEFAULT_REL_PREFERENCE;
         else
-         {
-        		total_prefs += (*t);
-         }
+        {
+        	peer_prefs = 0.0;
+        	for (c = 1; c < GNUNET_ATS_PreferenceCount; c++)
+        		peer_prefs += t[c];
+        	total_prefs += (peer_prefs / (GNUNET_ATS_PreferenceCount -1));
+        }
       }
   }
   for (cur = net->head; NULL != cur; cur = cur->next)
@@ -533,11 +449,16 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
      if (GNUNET_YES == cur->addr->active)
      {
        cur_pref = 0.0;
-       t = GNUNET_CONTAINER_multihashmap_get (s->prefs, &cur->addr->peer.hashPubKey);
-       if (NULL == t)
-         cur_pref = DEFAULT_REL_PREFERENCE;
+       t = GAS_normalization_get_preferences (&cur->addr->peer);
+       if (NULL != t)
+       {
+      	 for (c = 1; c < GNUNET_ATS_PreferenceCount; c++)
+      		 cur_pref += t[c];
+      	 cur_pref /= 2;
+       }
        else
-         cur_pref = (*t);
+      	 cur_pref = DEFAULT_REL_PREFERENCE;
+
        assigned_quota_in = min_bw + ((cur_pref / total_prefs) * remaining_quota_in);
        assigned_quota_out = min_bw + ((cur_pref / total_prefs) * remaining_quota_out);
 
@@ -793,16 +714,6 @@ get_active_address (void *solver,
 }
 
 
-static int
-free_pref (void *cls,
-           const struct GNUNET_HashCode * key,
-           void *value)
-{
-  float *v = value;
-  GNUNET_free (v);
-  return GNUNET_OK;
-}
-
 
 static void
 addresse_increment (struct GAS_PROPORTIONAL_Handle *s,
@@ -911,214 +822,10 @@ get_performance_info (struct ATS_Address *address, uint32_t type)
 }
 
 
-
 /**
- *  Preference calculation
+ *  Solver API functions
  *  ---------------------------
  */
-
-static void
-recalculate_preferences (struct PreferencePeer *p)
-{
-	struct GAS_PROPORTIONAL_Handle *s = p->s;
-	struct PreferencePeer *p_cur;
-	struct PreferenceClient *c_cur = p->client;
-	double p_rel_global;
-  double *dest;
-  int kind;
-  int rkind;
-  int clients;
-
-  /**
-   * Idea:
-   *
-   * We have:
-   * Set of clients c
-   * Set of peers p_i in P
-   * Set of preference kinds k
-   * A preference value f_k_p_i with an unknown range
-   *
-   * We get:
-   * A client specific relative preference f_p_i_rel [1..2] for all peers
-   *
-   * For every client c
-   * {
-   *   For every preference kind k:
-   *   {
-   *     We remember for the preference f_p_i for each peer p_i.
-   *     We have a default preference value f_p_i = 0
-   *     We have a sum of all preferences f_t = sum (f_p_i)
-   *     So we can calculate a relative preference value fr_p_i:
-   *
-   *     f_k_p_i_ *  / f_t
-   *     f_k_p_i_rel = [1..2], default 1.0
-   *    }
-   *    f_p_i_rel = sum (f_k_p_i_rel) / count(k)
-   * }
-   *
-   **/
-
-  /* For this client: for all preferences, except TERMINATOR */
-  for (kind = GNUNET_ATS_PREFERENCE_END + 1 ; kind < GNUNET_ATS_PreferenceCount; kind ++)
-  {
-  	  /* Recalcalculate total preference for this kind of quality over all peers*/
-  	  c_cur->f_total[kind] = 0;
-  	  for (p_cur = c_cur->p_head; NULL != p_cur; p_cur = p_cur->next)
-  	  	c_cur->f_total[kind] += p_cur->f[kind];
-
-  	  LOG (GNUNET_ERROR_TYPE_DEBUG, "Client %p has total preference for %s of %.3f\n",
-  	  		c_cur->client,
-  	      GNUNET_ATS_print_preference_type (kind),
-  	      c_cur->f_total[kind]);
-
-  	  /* Recalcalculate relative preference for all peers */
-  	  for (p_cur = c_cur->p_head; NULL != p_cur; p_cur = p_cur->next)
-  	  {
-  	    /* Calculate relative preference for specific kind */
-  	  	if (0.0 == c_cur->f_total[kind])
-  	  	{
-  	  			/* No one has preference, so set default preference */
-  	  			p_cur->f_rel[kind] = DEFAULT_REL_PREFERENCE;
-  	  	}
-  	  	else
-  	  	{
-  	  			p_cur->f_rel[kind] = (c_cur->f_total[kind] + p_cur->f[kind]) / c_cur->f_total[kind];
-  	  	}
-  	    LOG (GNUNET_ERROR_TYPE_DEBUG, "Client %p: peer `%s' has relative preference for %s of %.3f\n",
-  	    		c_cur->client,
-  	        GNUNET_i2s (&p_cur->id),
-  	        GNUNET_ATS_print_preference_type (kind),
-  	        p_cur->f_rel[kind]);
-
-  	    /* Calculate peer relative preference */
-  	    /* Start with kind = 1 to exclude terminator */
-  	    p_cur->f_rel_total = 0;
-  	    for (rkind = GNUNET_ATS_PREFERENCE_END + 1; rkind < GNUNET_ATS_PreferenceCount; rkind ++)
-  	    {
-  	        p_cur->f_rel_total += p_cur->f_rel[rkind];
-  	    }
-  	    p_cur->f_rel_total /=  (GNUNET_ATS_PreferenceCount - 1.0); /* -1 due to terminator */
-  	    LOG (GNUNET_ERROR_TYPE_DEBUG, "Client %p: peer `%s' has total relative preference of %.3f\n",
-  	    		c_cur->client,
-  	        GNUNET_i2s (&p_cur->id),
-  	        p_cur->f_rel_total);
-  	  }
-  }
-
-  /* Calculcate global total relative peer preference over all clients */
-  p_rel_global = 0.0;
-  clients = 0;
-  for (c_cur = s->pc_head; NULL != c_cur; c_cur = c_cur->next)
-  {
-      for (p_cur = c_cur->p_head; NULL != p_cur; p_cur = p_cur->next)
-          if (0 == memcmp (&p_cur->id, &p->id, sizeof (p_cur->id)))
-              break;
-      if (NULL != p_cur)
-      {
-          clients++;
-          p_rel_global += p_cur->f_rel_total;
-      }
-  }
-  p_rel_global /= clients;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Global preference value for peer `%s': %.3f\n",
-      GNUNET_i2s (&p->id), p_rel_global);
-
-  /* Update global map */
-  if (NULL != (dest = GNUNET_CONTAINER_multihashmap_get(s->prefs, &p->id.hashPubKey)))
-      (*dest) = p_rel_global;
-  else
-  {
-      dest = GNUNET_malloc (sizeof (double));
-      (*dest) = p_rel_global;
-      GNUNET_CONTAINER_multihashmap_put(s->prefs,
-          &p->id.hashPubKey,
-          dest,
-          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-  }
-}
-
-
-static void
-update_preference (struct PreferencePeer *p,
-									 enum GNUNET_ATS_PreferenceKind kind,
-    							 float score_f)
-{
-	double score = score_f;
-
-  /* Update preference value according to type */
-  switch (kind) {
-    case GNUNET_ATS_PREFERENCE_BANDWIDTH:
-    case GNUNET_ATS_PREFERENCE_LATENCY:
-      p->f[kind] = (p->f[kind] + score) / 2;
-      break;
-    case GNUNET_ATS_PREFERENCE_END:
-      break;
-    default:
-      break;
-  }
-  recalculate_preferences(p);
-  distribute_bandwidth_in_all_networks (p->s);
-}
-
-
-static void
-preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-	int i;
-	double *t = NULL;
-	double backup;
-	struct PreferencePeer *p = cls;
-	GNUNET_assert (NULL != p);
-
-
-	p->aging_task = GNUNET_SCHEDULER_NO_TASK;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Aging preferences for peer `%s'\n",
-  		GNUNET_i2s (&p->id));
-
-  /* Issue for aging :
-   *
-   * Not for every peer preference values are set by default, so reducing the
-   * absolute preference value does not help for aging because it does not have
-   * influence on the relative values.
-   *
-   * So we have to reduce the relative value to have an immediate impact on
-   * quota calculation. In addition we cannot call recalculate_preferences here
-   * but instead reduce the absolute value to have an aging impact on future
-   * calls to change_preference where recalculate_preferences is called
-   *
-   */
-  /* Aging absolute values: */
-  for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
-  {
-  		if (p->f[i] > DEFAULT_REL_PREFERENCE)
-  		{
-  			backup = p->f[i];
-  			p->f[i] *= PREF_AGING_FACTOR;
-  			LOG (GNUNET_ERROR_TYPE_DEBUG, "Aged preference for peer `%s' from %.3f to %.3f\n",
-  	  		GNUNET_i2s (&p->id), backup, p->f[i]);
-  		}
-  		else
-  			p->f[i] = DEFAULT_REL_PREFERENCE;
-  }
-  /* Updating relative value */
-  t = GNUNET_CONTAINER_multihashmap_get (p->s->prefs, &p->id.hashPubKey);
-  if (NULL == t)
-  {
-  	GNUNET_break (0);
-  }
-  else
-  {
-		if ((*t) > 1.0)
-			(*t) = (*t) * PREF_AGING_FACTOR;
-		else
-			(*t) = 1.0;
-		distribute_bandwidth_in_all_networks (p->s);
-  }
-  p->aging_task = GNUNET_SCHEDULER_add_delayed (PREF_AGING_INTERVAL,
-  		&preference_aging, p);
-}
-
 
 /**
  * Changes the preferences for a peer in the problem
@@ -1127,91 +834,25 @@ preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param client the client with this preference
  * @param peer the peer to change the preference for
  * @param kind the kind to change the preference
+ * @param pref_rel the normalized preference value for this kind over all clients
  * @param score the score
  */
 void
-GAS_simplistic_address_change_preference (void *solver,
-                                   void *client,
-                                   const struct GNUNET_PeerIdentity *peer,
-                                   enum GNUNET_ATS_PreferenceKind kind,
-                                   float score)
+GAS_proportional_address_change_preference (void *solver,
+                                   	 	 	 	  void *client,
+                                   	 	 	 	  const struct GNUNET_PeerIdentity *peer,
+                                   	 	 	 	  enum GNUNET_ATS_PreferenceKind kind,
+                                   	 	 	 	  float score_abs,
+                                   	 	 	 	  double pref_rel)
 {
-  static struct GNUNET_TIME_Absolute next_update;
   struct GAS_PROPORTIONAL_Handle *s = solver;
-  struct PreferenceClient *c_cur;
-  struct PreferencePeer *p_cur;
-  int i;
-
   GNUNET_assert (NULL != solver);
   GNUNET_assert (NULL != client);
   GNUNET_assert (NULL != peer);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Client %p changes preference for peer `%s' %s %f\n",
-                                client,
-                                GNUNET_i2s (peer),
-                                GNUNET_ATS_print_preference_type (kind),
-                                score);
+  distribute_bandwidth_in_all_networks (s);
 
-  if (kind >= GNUNET_ATS_PreferenceCount)
-  {
-      GNUNET_break (0);
-      return;
-  }
-
-  /* Find preference client */
-  for (c_cur = s->pc_head; NULL != c_cur; c_cur = c_cur->next)
-  {
-      if (client == c_cur->client)
-        break;
-  }
-  /* Not found: create new preference client */
-  if (NULL == c_cur)
-  {
-    c_cur = GNUNET_malloc (sizeof (struct PreferenceClient));
-    c_cur->client = client;
-    GNUNET_CONTAINER_DLL_insert (s->pc_head, s->pc_tail, c_cur);
-  }
-
-  /* Find entry for peer */
-  for (p_cur = c_cur->p_head; NULL != p_cur; p_cur = p_cur->next)
-    if (0 == memcmp (&p_cur->id, peer, sizeof (p_cur->id)))
-        break;
-
-  /* Not found: create new peer entry */
-  if (NULL == p_cur)
-  {
-      p_cur = GNUNET_malloc (sizeof (struct PreferencePeer));
-      p_cur->s = s;
-      p_cur->client = c_cur;
-      p_cur->id = (*peer);
-      for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
-      {
-        /* Default value per peer absolut preference for a quality:
-         * No value set, so absolute preference 0 */
-        p_cur->f[i] = DEFAULT_ABS_PREFERENCE;
-        /* Default value per peer relative preference for a quality: 1.0 */
-        p_cur->f_rel[i] = DEFAULT_REL_PREFERENCE;
-      }
-      p_cur->aging_task = GNUNET_SCHEDULER_add_delayed (PREF_AGING_INTERVAL, &preference_aging, p_cur);
-      GNUNET_CONTAINER_DLL_insert (c_cur->p_head, c_cur->p_tail, p_cur);
-  }
-
-  update_preference (p_cur, kind, score);
-
-  /* FIXME: We should update quotas if UPDATE_INTERVAL is reached */
-  if (GNUNET_TIME_absolute_get().abs_value > next_update.abs_value)
-  {
-      /* update quotas*/
-      next_update = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(),
-                                              MIN_UPDATE_INTERVAL);
-  }
 }
-
-
-/**
- *  Solver API functions
- *  ---------------------------
- */
 
 /**
  * Get the preferred address for a specific peer
@@ -1631,10 +1272,6 @@ void
 GAS_proportional_done (void *solver)
 {
   struct GAS_PROPORTIONAL_Handle *s = solver;
-  struct PreferenceClient *pc;
-  struct PreferenceClient *next_pc;
-  struct PreferencePeer *p;
-  struct PreferencePeer *next_p;
   struct AddressWrapper *cur;
   struct AddressWrapper *next;
   int c;
@@ -1687,29 +1324,6 @@ GAS_proportional_done (void *solver)
     GNUNET_break (0);
   }
   GNUNET_free (s->network_entries);
-
-  next_pc = s->pc_head;
-  while (NULL != (pc = next_pc))
-  {
-      next_pc = pc->next;
-      GNUNET_CONTAINER_DLL_remove (s->pc_head, s->pc_tail, pc);
-      next_p = pc->p_head;
-      while (NULL != (p = next_p))
-      {
-          next_p = p->next;
-          if (GNUNET_SCHEDULER_NO_TASK != p->aging_task)
-          {
-          	GNUNET_SCHEDULER_cancel(p->aging_task);
-          	p->aging_task = GNUNET_SCHEDULER_NO_TASK;
-          }
-          GNUNET_CONTAINER_DLL_remove (pc->p_head, pc->p_tail, p);
-          GNUNET_free (p);
-      }
-      GNUNET_free (pc);
-  }
-
-  GNUNET_CONTAINER_multihashmap_iterate (s->prefs, &free_pref, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (s->prefs);
   GNUNET_free (s);
 }
 

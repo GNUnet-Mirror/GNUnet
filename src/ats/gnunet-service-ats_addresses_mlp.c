@@ -1521,10 +1521,11 @@ GAS_mlp_stop_get_preferred_address (void *solver,
  */
 void
 GAS_mlp_address_change_preference (void *solver,
-                                   void *client,
-                                   const struct GNUNET_PeerIdentity *peer,
-                                   enum GNUNET_ATS_PreferenceKind kind,
-                                   float score)
+																	 void *client,
+																	 const struct GNUNET_PeerIdentity *peer,
+																	 enum GNUNET_ATS_PreferenceKind kind,
+																	 float score_abs,
+																	 double pref_rel)
 {
   //struct GAS_MLP_Handle *mlp = solver;
 

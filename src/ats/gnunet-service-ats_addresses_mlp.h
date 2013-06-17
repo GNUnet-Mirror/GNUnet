@@ -431,14 +431,16 @@ GAS_mlp_address_delete (void *solver,
  * @param client client
  * @param peer the peer
  * @param kind the kind to change the preference
- * @param score the score
+ * @param score_abs the score
+ * @param pref_rel the normalizes preference value
  */
 void
 GAS_mlp_address_change_preference (void *solver,
                                    void *client,
                                    const struct GNUNET_PeerIdentity *peer,
                                    enum GNUNET_ATS_PreferenceKind kind,
-                                   float score);
+																	float score_abs,
+																	double pref_rel);
 
 
 /**

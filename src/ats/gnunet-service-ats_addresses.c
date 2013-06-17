@@ -1312,6 +1312,7 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
                                  enum GNUNET_ATS_PreferenceKind kind,
                                  float score_abs)
 {
+	double pref_rel;
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' for peer `%s' for client %p\n",
               "CHANGE PREFERENCE",
@@ -1329,9 +1330,9 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
                   GNUNET_i2s (peer), client);
       return;
   }
-  GAS_normalization_change_preference (client, peer, kind, score_abs);
+  pref_rel = GAS_normalization_change_preference (client, peer, kind, score_abs);
   /* Tell solver about update */
-  handle->s_pref (handle->solver, client, peer, kind, score_abs);
+  handle->s_pref (handle->solver, client, peer, kind, score_abs, pref_rel);
 }
 
 
@@ -1577,7 +1578,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       ah->s_update = &GAS_proportional_address_update;
       ah->s_get = &GAS_proportional_get_preferred_address;
       ah->s_get_stop = &GAS_proportional_stop_get_preferred_address;
-      ah->s_pref = &GAS_simplistic_address_change_preference;
+      ah->s_pref = &GAS_proportional_address_change_preference;
       ah->s_del  = &GAS_proportional_address_delete;
       ah->s_done = &GAS_proportional_done;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS started in %s mode\n", "SIMPLISTIC");
