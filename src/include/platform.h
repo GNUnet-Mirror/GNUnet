@@ -86,7 +86,9 @@
 #if HAVE_NETINET_IN_SYSTM_H
 #include <netinet/in_systm.h>
 #endif
+#if HAVE_NETINET_IP_H
 #include <netinet/ip.h>         /* superset of previous */
+#endif
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 #include <pwd.h>
