@@ -35,7 +35,8 @@
 
 
 typedef void
-(*GAS_Normalization_preference_changed_cb) (const struct GNUNET_PeerIdentity *peer,
+(*GAS_Normalization_preference_changed_cb) (void *cls,
+																						const struct GNUNET_PeerIdentity *peer,
 																						enum GNUNET_ATS_PreferenceKind kind,
 																						double pref_rel);
 
@@ -64,7 +65,7 @@ GAS_normalization_change_preference (void *src,
                                    	 float score_abs);
 
 void
-GAS_normalization_start (GAS_Normalization_preference_changed_cb pref_ch_cb);
+GAS_normalization_start (GAS_Normalization_preference_changed_cb pref_ch_cb, void *pref_ch_cb_cls);
 
 void
 GAS_normalization_stop ();

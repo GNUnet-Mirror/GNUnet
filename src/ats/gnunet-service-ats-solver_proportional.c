@@ -432,24 +432,18 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
   {
       if (GNUNET_YES == cur->addr->active)
       {
-        t = GAS_normalization_get_preferences (&cur->addr->peer);
-        if (NULL == t)
-        {
-        	total_prefs += DEFAULT_REL_PREFERENCE;
-        }
-        else
-        {
-        	peer_prefs = 0.0;
-        	for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
-        	{
-        		if (c != GNUNET_ATS_PREFERENCE_END)
-        		{
-        			//fprintf (stderr, "VALUE[%u] %s %.3f \n", c, GNUNET_i2s (&cur->addr->peer), t[c]);
-        			peer_prefs += t[c];
-        		}
-        	}
-        	total_prefs += (peer_prefs / (GNUNET_ATS_PreferenceCount -1));
-        }
+        GNUNET_assert (NULL != (t = GAS_normalization_get_preferences (&cur->addr->peer)));
+
+				peer_prefs = 0.0;
+				for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
+				{
+					if (c != GNUNET_ATS_PREFERENCE_END)
+					{
+						//fprintf (stderr, "VALUE[%u] %s %.3f \n", c, GNUNET_i2s (&cur->addr->peer), t[c]);
+						peer_prefs += t[c];
+					}
+				}
+				total_prefs += (peer_prefs / (GNUNET_ATS_PreferenceCount -1));
       }
   }
   for (cur = net->head; NULL != cur; cur = cur->next)
@@ -457,20 +451,14 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
      if (GNUNET_YES == cur->addr->active)
      {
        cur_pref = 0.0;
-       t = GAS_normalization_get_preferences (&cur->addr->peer);
-       if (NULL != t)
-       {
-      	 for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
-      	 {
-      		 if (c != GNUNET_ATS_PREFERENCE_END)
-      			 cur_pref += t[c];
-      	 }
-      	 cur_pref /= 2;
-       }
-       else
-       {
-      	 cur_pref = DEFAULT_REL_PREFERENCE;
-       }
+       GNUNET_assert (NULL != (t = GAS_normalization_get_preferences (&cur->addr->peer)));
+
+			 for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
+			 {
+				 if (c != GNUNET_ATS_PREFERENCE_END)
+					 cur_pref += t[c];
+			 }
+			 cur_pref /= 2;
 
        assigned_quota_in = min_bw + ((cur_pref / total_prefs) * remaining_quota_in);
        assigned_quota_out = min_bw + ((cur_pref / total_prefs) * remaining_quota_out);
@@ -851,19 +839,16 @@ get_performance_info (struct ATS_Address *address, uint32_t type)
  * @param score the score
  */
 void
-GAS_proportional_address_change_preference (void *solver,
-                                   	 	 	 	  void *client,
-                                   	 	 	 	  const struct GNUNET_PeerIdentity *peer,
-                                   	 	 	 	  enum GNUNET_ATS_PreferenceKind kind,
-                                   	 	 	 	  double pref_rel)
+GAS_proportional_address_change_preference  (void *solver,
+		 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 struct GNUNET_CONTAINER_MultiHashMap *addresses,
+                                   	 	 	 	   const struct GNUNET_PeerIdentity *peer,
+                                   	 	 	 	   enum GNUNET_ATS_PreferenceKind kind,
+                                   	 	 	 	   double pref_rel)
 {
   struct GAS_PROPORTIONAL_Handle *s = solver;
   GNUNET_assert (NULL != solver);
-  GNUNET_assert (NULL != client);
   GNUNET_assert (NULL != peer);
-
   distribute_bandwidth_in_all_networks (s);
-
 }
 
 /**

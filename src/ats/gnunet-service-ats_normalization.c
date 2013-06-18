@@ -130,6 +130,7 @@ struct PeerRelative
 };
 
 GAS_Normalization_preference_changed_cb pref_changed_cb;
+void *pref_changed_cb_cls;
 struct GNUNET_CONTAINER_MultiHashMap *peers;
 struct PreferenceClient *pc_head;
 struct PreferenceClient *pc_tail;
@@ -192,7 +193,7 @@ update_peers (struct GNUNET_PeerIdentity *id,
 
 	if ((backup != rp->f_rel[kind]) && (NULL != pref_changed_cb))
 	{
-		pref_changed_cb (&rp->id, kind, rp->f_rel[kind]);
+		pref_changed_cb (pref_changed_cb_cls, &rp->id, kind, rp->f_rel[kind]);
 	}
 
 	return rp->f_rel[kind];
@@ -431,11 +432,12 @@ GAS_normalization_get_preferences (struct GNUNET_PeerIdentity *id)
 
 
 void
-GAS_normalization_start (GAS_Normalization_preference_changed_cb pref_ch_cb)
+GAS_normalization_start (GAS_Normalization_preference_changed_cb pref_ch_cb, void *pref_ch_cb_cls)
 {
 	int i;
 	peers = GNUNET_CONTAINER_multihashmap_create(10, GNUNET_NO);
 	pref_changed_cb = pref_ch_cb;
+	pref_changed_cb_cls = pref_ch_cb_cls;
 	for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
 		defvalues.f_rel[i] = DEFAULT_REL_PREFERENCE;
 	return;

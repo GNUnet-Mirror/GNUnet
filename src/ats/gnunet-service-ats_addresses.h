@@ -404,10 +404,10 @@ typedef void *
  */
 typedef void
 (*GAS_solver_address_change_preference) (void *solver,
-																					void *client,
-																					const struct GNUNET_PeerIdentity *peer,
-																					enum GNUNET_ATS_PreferenceKind kind,
-																					double pref_rel);
+		 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 struct GNUNET_CONTAINER_MultiHashMap *addresses,
+																				 const struct GNUNET_PeerIdentity *peer,
+																				 enum GNUNET_ATS_PreferenceKind kind,
+																				 double pref_rel);
 
 /**
  * Add a single address within a network to the solver

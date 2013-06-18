@@ -619,7 +619,10 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
   /* c 7) Optimize quality */
   /* For all quality metrics, set quality of this address */
   for (c = 0; c < mlp->pv.m_q; c++)
-    	mlp_create_problem_set_value (p, p->r_q[c], mlpi->c_b, mlpi->q_averaged[c], __LINE__);
+  {
+
+    mlp_create_problem_set_value (p, p->r_q[c], mlpi->c_b, mlpi->q_averaged[c], __LINE__);
+  }
 
   return GNUNET_OK;
 }
@@ -763,7 +766,7 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
   /* Adding address independent constraint rows */
   mlp_create_problem_add_invariant_rows (mlp, p);
 
-  /* Adding address independent constraint rows */
+  /* Adding address dependent columns constraint rows */
   GNUNET_CONTAINER_multihashmap_iterate (addresses, &mlp_create_problem_add_address_information, mlp);
 
   /* Load the matrix */
@@ -1521,24 +1524,27 @@ GAS_mlp_stop_get_preferred_address (void *solver,
  */
 void
 GAS_mlp_address_change_preference (void *solver,
-																	 void *client,
+																	 struct GNUNET_CONTAINER_MultiHashMap *addresses,
 																	 const struct GNUNET_PeerIdentity *peer,
 																	 enum GNUNET_ATS_PreferenceKind kind,
 																	 double pref_rel)
 {
-  //struct GAS_MLP_Handle *mlp = solver;
-
+  struct GAS_MLP_Handle *mlp = solver;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Changing preference for address for peer `%s'\n",
   		GNUNET_i2s(peer));
 
-  return;
-#if 0
   GNUNET_STATISTICS_update (mlp->stats,"# LP address preference changes", 1, GNUNET_NO);
 
-  //struct ATS_Peer *p = mlp_find_peer (mlp, peer);
-  //FIXME to finish implementation
-  /* Here we have to do the matching */
-#endif
+  /* Update the constraints with changed preferences */
+  /* Update quality constraint c7 */
+
+  /* Update relativity constraint c8 */
+
+	/* Problem size changed: new address for peer with pending request */
+	mlp->mlp_prob_updated = GNUNET_YES;
+	if (GNUNET_YES == mlp->mlp_auto_solve)
+		GAS_mlp_solve_problem (solver, addresses);
+  return;
 }
 
 

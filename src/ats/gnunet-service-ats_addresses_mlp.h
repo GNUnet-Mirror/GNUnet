@@ -436,10 +436,10 @@ GAS_mlp_address_delete (void *solver,
  */
 void
 GAS_mlp_address_change_preference (void *solver,
-                                   void *client,
+																	 struct GNUNET_CONTAINER_MultiHashMap *addresses,
                                    const struct GNUNET_PeerIdentity *peer,
                                    enum GNUNET_ATS_PreferenceKind kind,
-																	double pref_rel);
+                                   double pref_rel);
 
 
 /**

@@ -1296,11 +1296,15 @@ GAS_addresses_handle_backoff_reset (struct GAS_Addresses_Handle *handle,
 }
 
 static void
-normalized_preference_changed_cb (const struct GNUNET_PeerIdentity *peer,
+normalized_preference_changed_cb (void *cls,
+																	const struct GNUNET_PeerIdentity *peer,
 	  															enum GNUNET_ATS_PreferenceKind kind,
 	  															double pref_rel)
 {
-	GNUNET_break (0);
+	GNUNET_assert (NULL != cls);
+	struct GAS_Addresses_Handle *handle = cls;
+  /* Tell solver about update */
+  handle->s_pref (handle->solver, handle->addresses, peer, kind, pref_rel);
 }
 
 
@@ -1320,7 +1324,6 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
                                  enum GNUNET_ATS_PreferenceKind kind,
                                  float score_abs)
 {
-	double pref_rel;
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' for peer `%s' for client %p\n",
               "CHANGE PREFERENCE",
@@ -1338,9 +1341,8 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
                   GNUNET_i2s (peer), client);
       return;
   }
-  pref_rel = GAS_normalization_change_preference (client, peer, kind, score_abs);
-  /* Tell solver about update */
-  handle->s_pref (handle->solver, client, peer, kind, pref_rel);
+  /* Tell normalization about change, normalization will call callback if preference changed */
+  GAS_normalization_change_preference (client, peer, kind, score_abs);
 }
 
 
@@ -1605,7 +1607,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert (NULL != ah->s_del);
   GNUNET_assert (NULL != ah->s_done);
 
-  GAS_normalization_start (&normalized_preference_changed_cb);
+  GAS_normalization_start (&normalized_preference_changed_cb, ah);
   quota_count = load_quotas(cfg, quotas_in, quotas_out, GNUNET_ATS_NetworkTypeCount);
 
   ah->solver = ah->s_init (cfg, stats, quotas, quotas_in, quotas_out, quota_count, &bandwidth_changed_cb, ah);
