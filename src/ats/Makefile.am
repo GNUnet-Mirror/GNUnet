@@ -17,7 +17,7 @@ endif
 
 if HAVE_LIBGLPK
   GN_LIBGLPK = -lglpk
-  GN_MLP_SRC = gnunet-service-ats_addresses_mlp.c gnunet-service-ats_addresses_mlp.h
+  GN_MLP_SRC = gnunet-service-ats_addresses_mlp.c gnunet-service-ats_addresses_mlp.h gnunet-service-ats_normalization.c gnunet-service-ats_normalization.h
   GN_MLP_TEST = test_ats_mlp
   GN_MLP_TEST_UPDATE = test_ats_mlp_update
   GN_MLP_TEST_AVG = test_ats_mlp_averaging

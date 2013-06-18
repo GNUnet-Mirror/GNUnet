@@ -422,6 +422,9 @@ GAS_normalization_change_preference (void *src,
 const double *
 GAS_normalization_get_preferences (struct GNUNET_PeerIdentity *id)
 {
+	GNUNET_assert (NULL != peers);
+	GNUNET_assert (NULL != id);
+
 	struct PeerRelative *rp;
 	if (NULL == (rp = GNUNET_CONTAINER_multihashmap_get (peers, &id->hashPubKey)))
 	{

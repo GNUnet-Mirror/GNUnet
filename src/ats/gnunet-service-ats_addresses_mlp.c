@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet-service-ats_addresses.h"
+#include "gnunet-service-ats_normalization.h"
 #include "gnunet-service-ats_addresses_mlp.h"
 #include "gnunet_statistics_service.h"
 #include "glpk.h"
@@ -1437,6 +1438,27 @@ mlp_get_preferred_address_it (void *cls, const struct GNUNET_HashCode * key, voi
 }
 
 
+static double get_peer_pref_value (const struct GNUNET_PeerIdentity *peer)
+{
+	double res;
+  const double *preferences = NULL;
+  int c;
+  preferences = GAS_normalization_get_preferences ((struct GNUNET_PeerIdentity *) peer);
+
+  res = 0.0;
+	for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
+	{
+		if (c != GNUNET_ATS_PREFERENCE_END)
+		{
+			//fprintf (stderr, "VALUE[%u] %s %.3f \n", c, GNUNET_i2s (&cur->addr->peer), t[c]);
+			res += preferences[c];
+		}
+	}
+	res /= (GNUNET_ATS_PreferenceCount -1);
+	return res;
+}
+
+
 /**
  * Get the preferred address for a specific peer
  *
@@ -1469,7 +1491,7 @@ GAS_mlp_get_preferred_address (void *solver,
 
   	  p = GNUNET_malloc (sizeof (struct ATS_Peer));
   	  p->id = (*peer);
-  	  p->f = DEFAULT_PEER_PREFERENCE;
+  	  p->f = get_peer_pref_value (peer);;
   	  GNUNET_CONTAINER_multihashmap_put (mlp->peers, &peer->hashPubKey, p, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 
   	  /* Added new peer, we have to rebuild problem before solving */
@@ -1530,15 +1552,27 @@ GAS_mlp_address_change_preference (void *solver,
 																	 double pref_rel)
 {
   struct GAS_MLP_Handle *mlp = solver;
+  struct ATS_Peer *p = NULL;
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Changing preference for address for peer `%s'\n",
   		GNUNET_i2s(peer));
 
   GNUNET_STATISTICS_update (mlp->stats,"# LP address preference changes", 1, GNUNET_NO);
 
   /* Update the constraints with changed preferences */
+
+
   /* Update quality constraint c7 */
 
-  /* Update relativity constraint c8 */
+  /* Update relativity constraint c9 */
+  if (NULL == (p = GNUNET_CONTAINER_multihashmap_get (mlp->peers, &peer->hashPubKey)))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Updating preference for unknown peer `%s' \n", GNUNET_i2s(peer));
+  	return;
+  }
+  p->f = get_peer_pref_value (peer);
+  mlp_create_problem_set_value (&mlp->p, p->r_c9, mlp->p.c_r, -p->f, __LINE__);
+
 
 	/* Problem size changed: new address for peer with pending request */
 	mlp->mlp_prob_updated = GNUNET_YES;
