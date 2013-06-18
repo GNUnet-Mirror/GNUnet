@@ -37,7 +37,7 @@ static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 static GNUNET_SCHEDULER_TaskIdentifier wait_task;
 
-#define WAIT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define SUGGESTION_WAIT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 
 /**
@@ -171,7 +171,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
     GNUNET_ATS_address_destroyed (sched_ats, &test_hello_address, session);
     /* Request address */
     GNUNET_ATS_suggest_address (sched_ats, &p.id);
-    wait_task = GNUNET_SCHEDULER_add_delayed (WAIT_TIMEOUT, &end, NULL);
+    wait_task = GNUNET_SCHEDULER_add_delayed (SUGGESTION_WAIT_TIMEOUT, &end, NULL);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage 1: Unexpected address suggestion\n");
