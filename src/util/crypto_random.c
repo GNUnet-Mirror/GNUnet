@@ -37,7 +37,7 @@
 
 /* TODO: ndurner, move this to plibc? */
 /* The code is derived from glibc, obviously */
-#if MINGW
+#if !HAVE_RANDOM || !HAVE_SRANDOM
 #ifdef RANDOM
 #undef RANDOM
 #endif
