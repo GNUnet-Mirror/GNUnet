@@ -359,7 +359,7 @@ struct GAS_Addresses_Handle
   GAS_solver_address_delete s_del;
 
   /**
-   * Change preference for quality in solver
+   * Change relative preference for quality in solver
    */
   GAS_solver_address_change_preference s_pref;
 
@@ -1340,7 +1340,7 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
   }
   pref_rel = GAS_normalization_change_preference (client, peer, kind, score_abs);
   /* Tell solver about update */
-  handle->s_pref (handle->solver, client, peer, kind, score_abs, pref_rel);
+  handle->s_pref (handle->solver, client, peer, kind, pref_rel);
 }
 
 

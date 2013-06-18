@@ -439,7 +439,6 @@ GAS_mlp_address_change_preference (void *solver,
                                    void *client,
                                    const struct GNUNET_PeerIdentity *peer,
                                    enum GNUNET_ATS_PreferenceKind kind,
-																	float score_abs,
 																	double pref_rel);
 
 
