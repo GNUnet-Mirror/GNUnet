@@ -33,6 +33,12 @@
 #define DEFAULT_REL_PREFERENCE 1.0
 #define DEFAULT_ABS_PREFERENCE 0.0
 
+
+typedef void
+(*GAS_Normalization_preference_changed_cb) (const struct GNUNET_PeerIdentity *peer,
+																						enum GNUNET_ATS_PreferenceKind kind,
+																						double pref_rel);
+
 /**
  * Get the normalized preference values for a specific peer
  *
@@ -58,7 +64,7 @@ GAS_normalization_change_preference (void *src,
                                    	 float score_abs);
 
 void
-GAS_normalization_start ();
+GAS_normalization_start (GAS_Normalization_preference_changed_cb pref_ch_cb);
 
 void
 GAS_normalization_stop ();

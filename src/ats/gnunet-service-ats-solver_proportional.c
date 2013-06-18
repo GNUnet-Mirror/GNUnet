@@ -434,12 +434,20 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
       {
         t = GAS_normalization_get_preferences (&cur->addr->peer);
         if (NULL == t)
+        {
         	total_prefs += DEFAULT_REL_PREFERENCE;
+        }
         else
         {
         	peer_prefs = 0.0;
-        	for (c = 1; c < GNUNET_ATS_PreferenceCount; c++)
-        		peer_prefs += t[c];
+        	for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
+        	{
+        		if (c != GNUNET_ATS_PREFERENCE_END)
+        		{
+        			//fprintf (stderr, "VALUE[%u] %s %.3f \n", c, GNUNET_i2s (&cur->addr->peer), t[c]);
+        			peer_prefs += t[c];
+        		}
+        	}
         	total_prefs += (peer_prefs / (GNUNET_ATS_PreferenceCount -1));
         }
       }
@@ -452,12 +460,17 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
        t = GAS_normalization_get_preferences (&cur->addr->peer);
        if (NULL != t)
        {
-      	 for (c = 1; c < GNUNET_ATS_PreferenceCount; c++)
-      		 cur_pref += t[c];
+      	 for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
+      	 {
+      		 if (c != GNUNET_ATS_PREFERENCE_END)
+      			 cur_pref += t[c];
+      	 }
       	 cur_pref /= 2;
        }
        else
+       {
       	 cur_pref = DEFAULT_REL_PREFERENCE;
+       }
 
        assigned_quota_in = min_bw + ((cur_pref / total_prefs) * remaining_quota_in);
        assigned_quota_out = min_bw + ((cur_pref / total_prefs) * remaining_quota_out);

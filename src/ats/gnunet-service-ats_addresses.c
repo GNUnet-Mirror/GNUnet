@@ -1295,6 +1295,14 @@ GAS_addresses_handle_backoff_reset (struct GAS_Addresses_Handle *handle,
                                               NULL));
 }
 
+static void
+normalized_preference_changed_cb (const struct GNUNET_PeerIdentity *peer,
+	  															enum GNUNET_ATS_PreferenceKind kind,
+	  															double pref_rel)
+{
+	GNUNET_break (0);
+}
+
 
 /**
  * Change the preference for a peer
@@ -1597,7 +1605,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert (NULL != ah->s_del);
   GNUNET_assert (NULL != ah->s_done);
 
-  GAS_normalization_start();
+  GAS_normalization_start (&normalized_preference_changed_cb);
   quota_count = load_quotas(cfg, quotas_in, quotas_out, GNUNET_ATS_NetworkTypeCount);
 
   ah->solver = ah->s_init (cfg, stats, quotas, quotas_in, quotas_out, quota_count, &bandwidth_changed_cb, ah);

@@ -129,7 +129,7 @@ struct PeerRelative
   struct GNUNET_PeerIdentity id;
 };
 
-
+GAS_Normalization_preference_changed_cb pref_changed_cb;
 struct GNUNET_CONTAINER_MultiHashMap *peers;
 struct PreferenceClient *pc_head;
 struct PreferenceClient *pc_tail;
@@ -144,6 +144,7 @@ update_peers (struct GNUNET_PeerIdentity *id,
 	struct PreferencePeer *p_cur;
 	struct PeerRelative *rp;
 	double f_rel_total;
+	double backup;
 	unsigned int count;
 
 	f_rel_total = 0.0;
@@ -166,33 +167,35 @@ update_peers (struct GNUNET_PeerIdentity *id,
 		}
 	}
 
-	if (0 < count)
+	/* Find a client */
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u clients have a total relative preference for peer `%s''s `%s' of %.3f\n",
+			count,
+			GNUNET_i2s (id),
+			GNUNET_ATS_print_preference_type (kind),
+			f_rel_total);
+	if (NULL != (rp = GNUNET_CONTAINER_multihashmap_get (peers, &id->hashPubKey)))
 	{
-		/* Find a client */
-		f_rel_total /= count;
-		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u clients have a total relative preference for peer `%s''s%s is %.3f\n",
-				count,
-				GNUNET_i2s (id),
-				GNUNET_ATS_print_preference_type (kind),
-				f_rel_total);
-		if (NULL != (rp = GNUNET_CONTAINER_multihashmap_get (peers, &id->hashPubKey)))
+		backup = rp->f_rel[kind];
+		if (0 < count)
 		{
-			rp->f_rel[kind] = f_rel_total;
+			rp->f_rel[kind] = f_rel_total / count;
 		}
-		return f_rel_total;
-	}
-	else
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No clients have a total relative preference for peer `%s''s%s\n",
-				count,
-				GNUNET_i2s (id),
-				GNUNET_ATS_print_preference_type (kind));
-		if (NULL != (rp = GNUNET_CONTAINER_multihashmap_get (peers, &id->hashPubKey)))
+		else
 		{
 			rp->f_rel[kind] = DEFAULT_REL_PREFERENCE;
 		}
+	}
+	else
+	{
 		return DEFAULT_REL_PREFERENCE;
 	}
+
+	if ((backup != rp->f_rel[kind]) && (NULL != pref_changed_cb))
+	{
+		pref_changed_cb (&rp->id, kind, rp->f_rel[kind]);
+	}
+
+	return rp->f_rel[kind];
 }
 
 /**
@@ -426,12 +429,13 @@ GAS_normalization_get_preferences (struct GNUNET_PeerIdentity *id)
 	return rp->f_rel;
 }
 
+
 void
-GAS_normalization_start ()
+GAS_normalization_start (GAS_Normalization_preference_changed_cb pref_ch_cb)
 {
 	int i;
 	peers = GNUNET_CONTAINER_multihashmap_create(10, GNUNET_NO);
-
+	pref_changed_cb = pref_ch_cb;
 	for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
 		defvalues.f_rel[i] = DEFAULT_REL_PREFERENCE;
 	return;
