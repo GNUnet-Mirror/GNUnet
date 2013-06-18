@@ -268,17 +268,6 @@ enum GNUNET_DISK_PipeEnd
 
 
 /**
- * Get the number of blocks that are left on the partition that
- * contains the given file (for normal users).
- *
- * @param part a file on the partition to check
- * @return -1 on errors, otherwise the number of free blocks
- */
-long
-GNUNET_DISK_get_blocks_available (const char *part);
-
-
-/**
  * Checks whether a handle is invalid
  *
  * @param h handle to check

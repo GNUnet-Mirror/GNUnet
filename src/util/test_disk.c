@@ -86,7 +86,6 @@ testOpenClose ()
 {
   struct GNUNET_DISK_FileHandle *fh;
   uint64_t size;
-  long avail;
 
   fh = GNUNET_DISK_file_open (".testfile",
                               GNUNET_DISK_OPEN_READWRITE |
@@ -100,27 +99,6 @@ testOpenClose ()
                 GNUNET_DISK_file_size (".testfile", &size, GNUNET_NO, GNUNET_YES));
   if (size != 5)
     return 1;
-  GNUNET_break (0 == UNLINK (".testfile"));
-
-  /* test that avail goes down as we fill the disk... */
-  GNUNET_log_skip (1, GNUNET_NO);
-  avail = GNUNET_DISK_get_blocks_available (".testfile");
-  GNUNET_log_skip (0, GNUNET_NO);
-  fh = GNUNET_DISK_file_open (".testfile",
-                              GNUNET_DISK_OPEN_READWRITE |
-                              GNUNET_DISK_OPEN_CREATE,
-                              GNUNET_DISK_PERM_USER_WRITE |
-                              GNUNET_DISK_PERM_USER_READ);
-  GNUNET_assert (GNUNET_NO == GNUNET_DISK_handle_invalid (fh));
-  while ((avail == GNUNET_DISK_get_blocks_available (".testfile")) &&
-         (avail != -1))
-    if (16 != GNUNET_DISK_file_write (fh, "HelloWorld123456", 16))
-    {
-      GNUNET_DISK_file_close (fh);
-      GNUNET_break (0 == UNLINK (".testfile"));
-      return 1;
-    }
-  GNUNET_DISK_file_close (fh);
   GNUNET_break (0 == UNLINK (".testfile"));
 
   return 0;

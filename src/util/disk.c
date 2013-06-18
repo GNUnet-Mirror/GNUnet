@@ -560,65 +560,6 @@ GNUNET_DISK_mktemp (const char *t)
 
 
 /**
- * Get the number of blocks that are left on the partition that
- * contains the given file (for normal users).
- *
- * @param part a file on the partition to check
- * @return -1 on errors, otherwise the number of free blocks
- */
-long
-GNUNET_DISK_get_blocks_available (const char *part)
-{
-#ifdef SOLARIS
-  struct statvfs buf;
-
-  if (0 != statvfs (part, &buf))
-  {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "statfs", part);
-    return -1;
-  }
-  return buf.f_bavail;
-#elif MINGW
-  DWORD dwDummy;
-  DWORD dwBlocks;
-  wchar_t szDrive[4];
-  wchar_t wpath[MAX_PATH + 1];
-  char *path;
-
-  path = GNUNET_STRINGS_filename_expand (part);
-  if (path == NULL)
-    return -1;
-  /* "part" was in UTF-8, and so is "path" */
-  if (ERROR_SUCCESS != plibc_conv_to_win_pathwconv(path, wpath))
-  {
-    GNUNET_free (path);
-    return -1;
-  }
-  GNUNET_free (path);
-  wcsncpy (szDrive, wpath, 3);
-  szDrive[3] = 0;
-  if (!GetDiskFreeSpaceW (szDrive, &dwDummy, &dwDummy, &dwBlocks, &dwDummy))
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING, _("`%s' failed for drive `%S': %u\n"),
-         "GetDiskFreeSpace", szDrive, GetLastError ());
-
-    return -1;
-  }
-  return dwBlocks;
-#else
-  struct statfs s;
-
-  if (0 != statfs (part, &s))
-  {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "statfs", part);
-    return -1;
-  }
-  return s.f_bavail;
-#endif
-}
-
-
-/**
  * Test if "fil" is a directory and listable. Optionally, also check if the
  * directory is readable.  Will not print an error message if the directory does
  * not exist.  Will log errors if GNUNET_SYSERR is returned (i.e., a file exists
