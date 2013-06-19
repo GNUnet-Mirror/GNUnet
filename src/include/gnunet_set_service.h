@@ -257,9 +257,9 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set);
 
 
 /**
- * Create a set operation for evaluation with another peer.
+ * Prepare a set operation to be evaluated with another peer.
  * The evaluation will not start until the client provides
- * a local set with GNUNET_SET_conclude.
+ * a local set with GNUNET_SET_commit.
  *
  * @param other_peer peer with the other set
  * @param app_id hash for the application using the set
@@ -273,14 +273,14 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set);
  * @param result_cls closure for result_cb
  * @return a handle to cancel the operation
  */
-struct GNUNET_SET_OperationHandle * // FIXME: rename to _connect?
-GNUNET_SET_evaluate (const struct GNUNET_PeerIdentity *other_peer,
-                     const struct GNUNET_HashCode *app_id,
-                     const struct GNUNET_MessageHeader *context_msg,
-                     uint16_t salt,
-                     enum GNUNET_SET_ResultMode result_mode,
-                     GNUNET_SET_ResultIterator result_cb,
-                     void *result_cls);
+struct GNUNET_SET_OperationHandle *
+GNUNET_SET_prepare (const struct GNUNET_PeerIdentity *other_peer,
+                    const struct GNUNET_HashCode *app_id,
+                    const struct GNUNET_MessageHeader *context_msg,
+                    uint16_t salt,
+                    enum GNUNET_SET_ResultMode result_mode,
+                    GNUNET_SET_ResultIterator result_cb,
+                    void *result_cls);
 
 
 /**
@@ -316,7 +316,7 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh);
  * Accept a request we got via GNUNET_SET_listen.  Must be called during
  * GNUNET_SET_listen, as the 'struct GNUNET_SET_Request' becomes invalid
  * afterwards.
- * Call GNUNET_SET_conclude to provide the local set to use for the operation,
+ * Call GNUNET_SET_commit to provide the local set to use for the operation,
  * and to begin the exchange with the remote peer. 
  *
  * @param request request to accept
@@ -334,7 +334,7 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
 
 
 /**
- * Conclude the given set operation using the given set. 
+ * Commit a set to be used with a set operation.
  * This function is called once we have fully constructed
  * the set that we want to use for the operation.  At this
  * time, the P2P protocol can then begin to exchange the
@@ -344,9 +344,9 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
  * @param oh handle to the set operation 
  * @param set the set to use for the operation
  */
-void // FIXME: rename to _commit
-GNUNET_SET_conclude (struct GNUNET_SET_OperationHandle *oh,
-		     struct GNUNET_SET_Handle *set);
+void
+GNUNET_SET_commit (struct GNUNET_SET_OperationHandle *oh,
+                   struct GNUNET_SET_Handle *set);
 
 
 /**

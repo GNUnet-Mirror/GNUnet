@@ -19,8 +19,8 @@
 */
 
 /**
- * @file consensus/gnunet-consensus-ibf.c
- * @brief tool for reconciling data with invertible bloom filters
+ * @file set/gnunet-set-ibf-profiler.c
+ * @brief tool for profiling the invertible bloom filter implementation
  * @author Florian Dold
  */
 
@@ -35,7 +35,7 @@
 static unsigned int asize = 10;
 static unsigned int bsize = 10;
 static unsigned int csize = 10;
-static unsigned int hash_num = 3;
+static unsigned int hash_num = 4;
 static unsigned int ibf_size = 80;
 
 /* FIXME: add parameter for this */
@@ -181,12 +181,14 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   start_time = GNUNET_TIME_absolute_get ();
 
-  for (;;)
+  for (i = 0; i <= asize + bsize; i++)
   {
     res = ibf_decode (ibf_a, &side, &ibf_key);
     if (GNUNET_SYSERR == res) 
     {
-      printf ("decode failed\n");
+      printf ("decode failed, %u/%u elements left\n",
+         GNUNET_CONTAINER_multihashmap_size (set_a) + GNUNET_CONTAINER_multihashmap_size (set_b),
+         asize + bsize);
       return;
     }
     if (GNUNET_NO == res)
@@ -198,7 +200,9 @@ run (void *cls, char *const *args, const char *cfgfile,
         printf ("decoded successfully in: %s\n", GNUNET_STRINGS_relative_time_to_string (delta_time, GNUNET_NO));
       }
       else
-        printf ("decode missed elements\n");
+      {
+        printf ("decode missed elements (should never happen)\n");
+      }
       return;
     }
 
@@ -207,6 +211,9 @@ run (void *cls, char *const *args, const char *cfgfile,
     if (side == -1)
       iter_hashcodes (ibf_key, remove_iterator, set_b);
   }
+  printf("cyclic IBF, %u/%u elements left\n",
+         GNUNET_CONTAINER_multihashmap_size (set_a) + GNUNET_CONTAINER_multihashmap_size (set_b),
+         asize + bsize);
 }
 
 int

@@ -116,7 +116,7 @@ struct ConsensusSession
   /**
    * Queued messages to the client.
    */
-  struct GNUNET_MQ_MessageQueue *client_mq;
+  struct GNUNET_MQ_Handle *client_mq;
 
   /**
    * Timeout for all rounds together, single rounds will schedule a timeout task
@@ -217,9 +217,9 @@ struct ConsensusPeerInformation
   struct GNUNET_SET_OperationHandle *set_op;
 
   /**
-   * Has conclude been called on the set_op?
+   * Has commit been called on the set_op?
    */
-  int set_op_concluded;
+  int set_op_commited;
 };
 
 
@@ -548,14 +548,14 @@ subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_SET_operation_cancel (session->partner_outgoing->set_op);
     }
     session->partner_outgoing->set_op =
-        GNUNET_SET_evaluate (&session->partner_outgoing->peer_id,
-                             &session->global_id,
-                             (struct GNUNET_MessageHeader *) msg,
-                             0, /* FIXME */
-                             GNUNET_SET_RESULT_ADDED,
-                             set_result_cb, session->partner_outgoing);
-    GNUNET_SET_conclude (session->partner_outgoing->set_op, session->element_set);
-    session->partner_outgoing->set_op_concluded = GNUNET_YES;
+        GNUNET_SET_prepare (&session->partner_outgoing->peer_id,
+                            &session->global_id,
+                            (struct GNUNET_MessageHeader *) msg,
+                            0, /* FIXME */
+                            GNUNET_SET_RESULT_ADDED,
+                            set_result_cb, session->partner_outgoing);
+    GNUNET_SET_commit (session->partner_outgoing->set_op, session->element_set);
+    session->partner_outgoing->set_op_commited = GNUNET_YES;
   }
 
 #ifdef GNUNET_EXTRA_LOGGING
@@ -767,12 +767,12 @@ set_listen_cb (void *cls,
                                        set_result_cb, &session->info[index]);
       if (ntohl (msg->exp_subround) == session->exp_subround)
       {
-        cpi->set_op_concluded = GNUNET_YES;
-        GNUNET_SET_conclude (cpi->set_op, session->element_set);
+        cpi->set_op_commited = GNUNET_YES;
+        GNUNET_SET_commit (cpi->set_op, session->element_set);
       }
       else
       {
-        cpi->set_op_concluded = GNUNET_NO;
+        cpi->set_op_commited = GNUNET_NO;
       }
       break;
     default:

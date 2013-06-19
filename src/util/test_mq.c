@@ -40,7 +40,7 @@ GNUNET_NETWORK_STRUCT_END
 void
 test1 (void)
 {
-  struct GNUNET_MQ_Message *mqm;
+  struct GNUNET_MQ_Envelope *mqm;
   struct MyMessage *mm;
   
   mm = NULL;
@@ -57,7 +57,7 @@ test1 (void)
 void
 test2 (void)
 {
-  struct GNUNET_MQ_Message *mqm;
+  struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_MessageHeader *mh;
 
   mqm = GNUNET_MQ_msg_header (42);

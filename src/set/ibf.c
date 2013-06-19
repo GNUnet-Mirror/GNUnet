@@ -19,12 +19,18 @@
 */
 
 /**
- * @file consensus/ibf.c
+ * @file set/ibf.c
  * @brief implementation of the invertible bloom filter
  * @author Florian Dold
  */
 
 #include "ibf.h"
+
+/**
+ * Compute the key's hash from the key.
+ * Redefine to use a different hash function.
+ */
+#define IBF_KEY_HASH_VAL(k) (GNUNET_CRYPTO_crc32_n (&(k), sizeof (struct IBF_KeyHash)))
 
 /**
  * Create a key from a hashcode.
@@ -89,23 +95,21 @@ static inline void
 ibf_get_indices (const struct InvertibleBloomFilter *ibf,
                  struct IBF_Key key, int *dst)
 {
-  struct GNUNET_HashCode bucket_indices;
-  unsigned int filled;
-  int i;
-  GNUNET_CRYPTO_hash (&key, sizeof key, &bucket_indices);
-  filled = 0;
-  for (i = 0; filled < ibf->hash_num; i++)
+  uint32_t filled;
+  uint32_t i;
+  uint32_t bucket = key.key_val & 0xFFFFFFFF;
+
+  for (i = 0, filled=0; filled < ibf->hash_num; i++)
   {
-    unsigned int bucket;
     unsigned int j;
-    if ( (0 != i) && (0 == (i % 16)) )
-      GNUNET_CRYPTO_hash (&bucket_indices, sizeof (struct GNUNET_HashCode), &bucket_indices);
-    bucket = bucket_indices.bits[i % 16] % ibf->size;
+    uint64_t x;
     for (j = 0; j < filled; j++)
       if (dst[j] == bucket)
         goto try_next;
-    dst[filled++] = bucket;
+    dst[filled++] = bucket % ibf->size;
     try_next: ;
+    x = ((uint64_t) bucket << 32) | i;
+    bucket = GNUNET_CRYPTO_crc32_n (&x, sizeof x);
   }
 }
 
@@ -116,16 +120,14 @@ ibf_insert_into  (struct InvertibleBloomFilter *ibf,
                   const int *buckets, int side)
 {
   int i;
-  struct GNUNET_HashCode key_hash_sha;
-  struct IBF_KeyHash key_hash;
-  GNUNET_CRYPTO_hash (&key, sizeof key, &key_hash_sha);
-  key_hash.key_hash_val = key_hash_sha.bits[0];
+
   for (i = 0; i < ibf->hash_num; i++)
   {
     const int bucket = buckets[i];
     ibf->count[bucket].count_val += side;
     ibf->key_sum[bucket].key_val ^= key.key_val;
-    ibf->key_hash_sum[bucket].key_hash_val ^= key_hash.key_hash_val;
+    ibf->key_hash_sum[bucket].key_hash_val
+        ^= IBF_KEY_HASH_VAL (key);
   }
 }
 
@@ -183,7 +185,6 @@ ibf_decode (struct InvertibleBloomFilter *ibf,
 {
   struct IBF_KeyHash hash;
   int i;
-  struct GNUNET_HashCode key_hash_sha;
   int buckets[ibf->hash_num];
 
   GNUNET_assert (NULL != ibf);
@@ -197,8 +198,7 @@ ibf_decode (struct InvertibleBloomFilter *ibf,
     if ((1 != ibf->count[i].count_val) && (-1 != ibf->count[i].count_val))
       continue;
 
-    GNUNET_CRYPTO_hash (&ibf->key_sum[i], sizeof (struct IBF_Key), &key_hash_sha);
-    hash.key_hash_val = key_hash_sha.bits[0];
+    hash.key_hash_val = IBF_KEY_HASH_VAL (ibf->key_sum[i]);
 
     /* test if the hash matches the key */
     if (hash.key_hash_val != ibf->key_hash_sum[i].key_hash_val)

@@ -162,7 +162,8 @@ typedef void (GNUNET_MESH_TunnelEndHandler) (void *cls,
  *                the tunnel.
  * @param handlers Callbacks for messages we care about, NULL-terminated. Each
  *                 one must call GNUNET_MESH_receive_done on the tunnel to
- *                 receive the next message.
+ *                 receive the next message.  Messages of a type that is not
+ *                 in the handlers array are ignored if received. 
  * @param ports NULL or 0-terminated array of port numbers for incoming tunnels.
  * 
  * @return handle to the mesh service NULL on error
@@ -325,7 +326,7 @@ typedef void (*GNUNET_MESH_TunnelCB) (void *cls,
 /**
  * Request information about the running mesh peer.
  * The callback will be called for every tunnel known to the service,
- * listing all active peers that blong to the tunnel.
+ * listing all active peers that belong to the tunnel.
  *
  * If called again on the same handle, it will overwrite the previous
  * callback and cls. To retrieve the cls, monitor_cancel must be
@@ -373,6 +374,18 @@ GNUNET_MESH_show_tunnel (struct GNUNET_MESH_Handle *h,
  */
 void *
 GNUNET_MESH_get_tunnels_cancel (struct GNUNET_MESH_Handle *h);
+
+
+/**
+ * Create a message queue for a mesh tunnel.
+ * The message queue can only be used to transmit messages,
+ * not to receive them.
+ *
+ * @param tunnel the tunnel to create the message qeue for
+ * @return a message queue to messages over the tunnel
+ */
+struct GNUNET_MQ_Handle *
+GNUNET_MESH_mq_create (struct GNUNET_MESH_Tunnel *tunnel);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

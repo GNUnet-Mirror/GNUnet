@@ -320,6 +320,24 @@ struct GNUNET_MESH_Tunnel
 };
 
 
+/**
+ * Implementation state for mesh's message queue.
+ */
+struct MeshMQState
+{
+  /**
+   * The current transmit handle, or NULL
+   * if no transmit is active.
+   */
+  struct GNUNET_MESH_TransmitHandle *th;
+
+  /**
+   * Tunnel to send the data over.
+   */
+  struct GNUNET_MESH_Tunnel *tunnel;
+};
+
+
 /******************************************************************************/
 /***********************         DECLARATIONS         *************************/
 /******************************************************************************/
@@ -1686,3 +1704,114 @@ GNUNET_MESH_show_tunnel (struct GNUNET_MESH_Handle *h,
 
   return;
 }
+
+
+/**
+ * Function called to notify a client about the connection
+ * begin ready to queue more data.  "buf" will be
+ * NULL and "size" zero if the connection was closed for
+ * writing in the meantime.
+ *
+ * @param cls closure
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to buf
+ */
+static size_t
+mesh_mq_ntr (void *cls, size_t size,
+             void *buf)
+{
+  struct GNUNET_MQ_Handle *mq = cls; 
+  struct MeshMQState *state = GNUNET_MQ_impl_state (mq);
+  const struct GNUNET_MessageHeader *msg = GNUNET_MQ_impl_current (mq);
+  uint16_t msize;
+
+  state->th = NULL;
+  if (NULL == buf)
+  {
+    GNUNET_MQ_inject_error (mq, GNUNET_MQ_ERROR_WRITE);
+    return 0;
+  }
+  msize = ntohs (msg->size);
+  GNUNET_assert (msize <= size);
+  memcpy (buf, msg, msize);
+  GNUNET_MQ_impl_send_continue (mq);
+  return msize;
+}
+
+
+/**
+ * Signature of functions implementing the
+ * sending functionality of a message queue.
+ *
+ * @param mq the message queue
+ * @param msg the message to send
+ * @param impl_state state of the implementation
+ */
+static void
+mesh_mq_send_impl (struct GNUNET_MQ_Handle *mq,
+                   const struct GNUNET_MessageHeader *msg, void *impl_state)
+{
+  struct MeshMQState *state = impl_state;
+
+  GNUNET_assert (NULL == state->th);
+  GNUNET_MQ_impl_send_commit (mq);
+  state->th =
+      GNUNET_MESH_notify_transmit_ready (state->tunnel,
+                                         /* FIXME: add option for corking */
+                                         GNUNET_NO,
+                                         GNUNET_TIME_UNIT_FOREVER_REL, 
+                                         ntohs (msg->size),
+                                         mesh_mq_ntr, mq);
+
+}
+
+
+/**
+ * Signature of functions implementing the
+ * destruction of a message queue.
+ * Implementations must not free 'mq', but should
+ * take care of 'impl_state'.
+ * 
+ * @param mq the message queue to destroy
+ * @param impl_state state of the implementation
+ */
+static void
+mesh_mq_destroy_impl (struct GNUNET_MQ_Handle *mq, void *impl_state)
+{
+  struct MeshMQState *state = impl_state;
+
+  if (NULL != state->th)
+    GNUNET_MESH_notify_transmit_ready_cancel (state->th);
+
+  GNUNET_free (state);
+}
+
+
+/**
+ * Create a message queue for a mesh tunnel.
+ * The message queue can only be used to transmit messages,
+ * not to receive them.
+ *
+ * @param tunnel the tunnel to create the message qeue for
+ * @return a message queue to messages over the tunnel
+ */
+struct GNUNET_MQ_Handle *
+GNUNET_MESH_mq_create (struct GNUNET_MESH_Tunnel *tunnel)
+{
+  struct GNUNET_MQ_Handle *mq;
+  struct MeshMQState *state;
+
+  state = GNUNET_new (struct MeshMQState);
+  state->tunnel = tunnel;
+
+  mq = GNUNET_MQ_queue_for_callbacks (mesh_mq_send_impl,
+                                      mesh_mq_destroy_impl,
+                                      NULL, /* FIXME: cancel impl. */
+                                      state,
+                                      NULL, /* no msg handlers */
+                                      NULL, /* no err handlers */
+                                      NULL); /* no handler cls */
+  return mq;
+}
+

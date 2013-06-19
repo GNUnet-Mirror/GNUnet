@@ -95,7 +95,7 @@ listen_cb (void *cls,
   GNUNET_SET_listen_cancel (listen_handle);
 
   oh = GNUNET_SET_accept (request, GNUNET_SET_RESULT_ADDED, result_cb_set2, NULL);
-  GNUNET_SET_conclude (oh, set2);
+  GNUNET_SET_commit (oh, set2);
 }
 
 
@@ -111,10 +111,10 @@ start (void *cls)
 
   listen_handle = GNUNET_SET_listen (config, GNUNET_SET_OPERATION_UNION,
                                      &app_id, listen_cb, NULL);
-  oh = GNUNET_SET_evaluate (&local_id, &app_id, NULL, 42,
-                            GNUNET_SET_RESULT_ADDED,
-                            result_cb_set1, NULL);
-  GNUNET_SET_conclude (oh, set1);
+  oh = GNUNET_SET_prepare (&local_id, &app_id, NULL, 42,
+                           GNUNET_SET_RESULT_ADDED,
+                           result_cb_set1, NULL);
+  GNUNET_SET_commit (oh, set1);
 }
 
 

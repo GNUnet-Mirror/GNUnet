@@ -124,15 +124,10 @@ struct UnionEvaluateOperation
   struct GNUNET_MessageHeader *context_msg;
 
   /**
-   * Stream socket connected to the other peer
+   * Tunnel context for the peer we
+   * evaluate the union operation with.
    */
-  struct GNUNET_STREAM_Socket *socket;
-
-  /**
-   * Message queue for the peer on the other
-   * end
-   */
-  struct GNUNET_MQ_MessageQueue *mq;
+  struct TunnelContext *tc;
 
   /**
    * Request ID to multiplex set operations to
@@ -397,22 +392,19 @@ destroy_key_to_element_iter (void *cls,
  *
  * @param eo the union operation to destroy
  */
-static void
-destroy_union_operation (struct UnionEvaluateOperation *eo)
+void
+_GSS_union_operation_destroy (struct UnionEvaluateOperation *eo)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "destroying union op\n");
   
-  if (NULL != eo->mq)
+  if (NULL != eo->tc)
   {
-    GNUNET_MQ_destroy (eo->mq);
-    eo->mq = NULL;
+    GNUNET_MQ_destroy (eo->tc->mq);
+    GNUNET_MESH_tunnel_destroy (eo->tc->tunnel);
+    GNUNET_free (eo->tc);
+    eo->tc = NULL;
   }
 
-  if (NULL != eo->socket)
-  {
-    GNUNET_STREAM_close (eo->socket);
-    eo->socket = NULL;
-  }
   if (NULL != eo->remote_ibf)
   {
     ibf_destroy (eo->remote_ibf);
@@ -457,14 +449,14 @@ destroy_union_operation (struct UnionEvaluateOperation *eo)
 static void
 fail_union_operation (struct UnionEvaluateOperation *eo)
 {
-  struct GNUNET_MQ_Message *mqm;
+  struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_ResultMessage *msg;
 
   mqm = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_RESULT);
   msg->result_status = htons (GNUNET_SET_STATUS_FAILURE);
   msg->request_id = htonl (eo->request_id);
   GNUNET_MQ_send (eo->set->client_mq, mqm);
-  destroy_union_operation (eo);
+  _GSS_union_operation_destroy (eo);
 }
 
 
@@ -498,7 +490,7 @@ get_ibf_key (struct GNUNET_HashCode *src, uint16_t salt)
 static void
 send_operation_request (struct UnionEvaluateOperation *eo)
 {
-  struct GNUNET_MQ_Message *mqm;
+  struct GNUNET_MQ_Envelope *mqm;
   struct OperationRequestMessage *msg;
 
   mqm = GNUNET_MQ_msg_nested_mh (msg, GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST, eo->context_msg);
@@ -512,7 +504,7 @@ send_operation_request (struct UnionEvaluateOperation *eo)
   }
   msg->operation = htons (GNUNET_SET_OPERATION_UNION);
   msg->app_id = eo->app_id;
-  GNUNET_MQ_send (eo->mq, mqm);
+  GNUNET_MQ_send (eo->tc->mq, mqm);
 
   if (NULL != eo->context_msg)
   {
@@ -562,7 +554,7 @@ insert_element_iterator (void *cls,
  * Insert an element into the union operation's
  * key-to-element mapping
  *
- * @param the union operation
+ * @param eo the union operation
  * @param ee the element entry
  */
 static void
@@ -685,7 +677,7 @@ send_ibf (struct UnionEvaluateOperation *eo, uint16_t ibf_order)
   while (buckets_sent < (1 << ibf_order))
   {
     unsigned int buckets_in_message;
-    struct GNUNET_MQ_Message *mqm;
+    struct GNUNET_MQ_Envelope *mqm;
     struct IBFMessage *msg;
 
     buckets_in_message = (1 << ibf_order) - buckets_sent;
@@ -700,7 +692,7 @@ send_ibf (struct UnionEvaluateOperation *eo, uint16_t ibf_order)
     ibf_write_slice (ibf, buckets_sent,
                      buckets_in_message, &msg[1]);
     buckets_sent += buckets_in_message;
-    GNUNET_MQ_send (eo->mq, mqm);
+    GNUNET_MQ_send (eo->tc->mq, mqm);
   }
 
   eo->phase = PHASE_EXPECT_ELEMENTS_AND_REQUESTS;
@@ -715,14 +707,14 @@ send_ibf (struct UnionEvaluateOperation *eo, uint16_t ibf_order)
 static void
 send_strata_estimator (struct UnionEvaluateOperation *eo)
 {
-  struct GNUNET_MQ_Message *mqm;
+  struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_MessageHeader *strata_msg;
 
   mqm = GNUNET_MQ_msg_header_extra (strata_msg,
                                     SE_STRATA_COUNT * IBF_BUCKET_SIZE * SE_IBF_SIZE,
                                     GNUNET_MESSAGE_TYPE_SET_P2P_SE);
   strata_estimator_write (eo->set->state.u->se, &strata_msg[1]);
-  GNUNET_MQ_send (eo->mq, mqm);
+  GNUNET_MQ_send (eo->tc->mq, mqm);
   eo->phase = PHASE_EXPECT_IBF;
 }
 
@@ -751,7 +743,7 @@ get_order_from_difference (unsigned int diff)
 /**
  * Handle a strata estimator from a remote peer
  *
- * @param the union operation
+ * @param cls the union operation
  * @param mh the message
  */
 static void
@@ -804,7 +796,7 @@ send_element_iterator (void *cls,
   while (NULL != ke)
   {
     const struct GNUNET_SET_Element *const element = &ke->element->element;
-    struct GNUNET_MQ_Message *mqm;
+    struct GNUNET_MQ_Envelope *mqm;
     struct GNUNET_MessageHeader *mh;
 
     GNUNET_assert (ke->ibf_key.key_val == ibf_key.key_val);
@@ -817,7 +809,7 @@ send_element_iterator (void *cls,
     }
     memcpy (&mh[1], element->data, element->size);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "sending element to client\n");
-    GNUNET_MQ_send (eo->mq, mqm);
+    GNUNET_MQ_send (eo->tc->mq, mqm);
     ke = ke->next_colliding;
   }
   return GNUNET_NO;
@@ -889,11 +881,11 @@ decode_and_send (struct UnionEvaluateOperation *eo)
     }
     if (GNUNET_NO == res)
     {
-      struct GNUNET_MQ_Message *mqm;
+      struct GNUNET_MQ_Envelope *mqm;
 
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "transmitted all values, sending DONE\n");
       mqm = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_P2P_DONE);
-      GNUNET_MQ_send (eo->mq, mqm);
+      GNUNET_MQ_send (eo->tc->mq, mqm);
       break;
     }
     if (1 == side)
@@ -902,7 +894,7 @@ decode_and_send (struct UnionEvaluateOperation *eo)
     }
     else
     {
-      struct GNUNET_MQ_Message *mqm;
+      struct GNUNET_MQ_Envelope *mqm;
       struct GNUNET_MessageHeader *msg;
 
       /* FIXME: before sending the request, check if we may just have the element */
@@ -910,7 +902,7 @@ decode_and_send (struct UnionEvaluateOperation *eo)
       mqm = GNUNET_MQ_msg_header_extra (msg, sizeof (struct IBF_Key),
                                         GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS);
       *(struct IBF_Key *) &msg[1] = key;
-      GNUNET_MQ_send (eo->mq, mqm);
+      GNUNET_MQ_send (eo->tc->mq, mqm);
     }
   }
   ibf_destroy (diff_ibf);
@@ -987,7 +979,7 @@ static void
 send_client_element (struct UnionEvaluateOperation *eo,
                      struct GNUNET_SET_Element *element)
 {
-  struct GNUNET_MQ_Message *mqm;
+  struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_ResultMessage *rm;
 
   GNUNET_assert (0 != eo->request_id);
@@ -1006,39 +998,17 @@ send_client_element (struct UnionEvaluateOperation *eo,
 
 
 /**
- * Completion callback for shutdown
- *
- * @param cls the closure from GNUNET_STREAM_shutdown call
- * @param operation the operation that was shutdown (SHUT_RD, SHUT_WR,
- *          SHUT_RDWR) 
- */
-/*
-static void 
-stream_shutdown_cb (void *cls,
-                    int operation)
-{
-  //struct UnionEvaluateOperation *eo = cls;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "stream shutdown\n");
-
-  // destroy_union_operation (eo);
-}
-*/
-
-
-/**
  * Send a result message to the client indicating
  * that the operation is over.
  * After the result done message has been sent to the client,
  * destroy the evaluate operation.
  *
  * @param eo union operation
- * @param element element to send
  */
 static void
 send_client_done_and_destroy (struct UnionEvaluateOperation *eo)
 {
-  struct GNUNET_MQ_Message *mqm;
+  struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_ResultMessage *rm;
 
   GNUNET_assert (0 != eo->request_id);
@@ -1047,7 +1017,6 @@ send_client_done_and_destroy (struct UnionEvaluateOperation *eo)
   rm->result_status = htons (GNUNET_SET_STATUS_DONE);
   GNUNET_MQ_send (eo->set->client_mq, mqm);
 
-  // GNUNET_STREAM_shutdown (eo->socket, SHUT_RDWR, stream_shutdown_cb, eo);
 }
 
 
@@ -1153,13 +1122,13 @@ handle_p2p_done (void *cls, const struct GNUNET_MessageHeader *mh)
   if (eo->phase == PHASE_EXPECT_ELEMENTS_AND_REQUESTS)
   {
     /* we got all requests, but still have to send our elements as response */
-    struct GNUNET_MQ_Message *mqm;
+    struct GNUNET_MQ_Envelope *mqm;
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "got DONE, sending final DONE after elements\n");
     eo->phase = PHASE_FINISHED;
     mqm = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_P2P_DONE);
     GNUNET_MQ_notify_sent (mqm, peer_done_sent_cb, eo);
-    GNUNET_MQ_send (eo->mq, mqm);
+    GNUNET_MQ_send (eo->tc->mq, mqm);
     return;
   }
   if (eo->phase == PHASE_EXPECT_ELEMENTS)
@@ -1175,48 +1144,11 @@ handle_p2p_done (void *cls, const struct GNUNET_MessageHeader *mh)
 
 
 /**
- * The handlers array, used for both evaluate and accept
- */
-static const struct GNUNET_MQ_Handler union_handlers[] = {
-  {handle_p2p_elements, GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS},
-  {handle_p2p_strata_estimator, GNUNET_MESSAGE_TYPE_SET_P2P_SE},
-  {handle_p2p_ibf, GNUNET_MESSAGE_TYPE_SET_P2P_IBF},
-  {handle_p2p_element_requests, GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS},
-  {handle_p2p_done, GNUNET_MESSAGE_TYPE_SET_P2P_DONE},
-  GNUNET_MQ_HANDLERS_END
-};
-
-
-/**
- * Functions of this type will be called when a stream is established
- * 
- * @param cls the closure from GNUNET_STREAM_open
- * @param socket socket to use to communicate with the
- *        other side (read/write)
- */
-static void
-stream_open_cb (void *cls,
-                struct GNUNET_STREAM_Socket *socket)
-{
-  struct UnionEvaluateOperation *eo = cls;
-
-  GNUNET_assert (NULL == eo->mq);
-  GNUNET_assert (socket == eo->socket);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-	      "open cb successful\n");
-  eo->mq = GNUNET_STREAM_mq_create (eo->socket, union_handlers, NULL, eo);
-  /* we started the operation, thus we have to send the operation request */
-  send_operation_request (eo);
-  eo->phase = PHASE_EXPECT_SE;
-}
-
-
-/**
  * Evaluate a union operation with
  * a remote peer.
  *
  * @param m the evaluate request message from the client
- * @parem set the set to evaluate the operation with
+ * @param set the set to evaluate the operation with
  */
 void
 _GSS_union_evaluate (struct GNUNET_SET_EvaluateMessage *m, struct Set *set)
@@ -1243,14 +1175,20 @@ _GSS_union_evaluate (struct GNUNET_SET_EvaluateMessage *m, struct Set *set)
 	      "evaluating union operation, (app %s)\n", 
               GNUNET_h2s (&eo->app_id));
 
-  eo->socket = 
-      GNUNET_STREAM_open (configuration, &eo->peer, GNUNET_APPLICATION_TYPE_SET,
-                          &stream_open_cb, eo,
-                          GNUNET_STREAM_OPTION_END);
+  eo->tc = GNUNET_new (struct TunnelContext);
+  eo->tc->tunnel = GNUNET_MESH_tunnel_create (mesh, eo->tc, &eo->peer,
+                                              GNUNET_APPLICATION_TYPE_SET);
+  GNUNET_assert (NULL != eo->tc->tunnel);
+  eo->tc->peer = eo->peer;
+  eo->tc->mq = GNUNET_MESH_mq_create (eo->tc->tunnel);
+  /* we started the operation, thus we have to send the operation request */
+  eo->phase = PHASE_EXPECT_SE;
+
   GNUNET_CONTAINER_DLL_insert (eo->set->state.u->ops_head,
                                eo->set->state.u->ops_tail,
                                eo);
-  /* the stream open callback will kick off the operation */
+
+  send_operation_request (eo);
 }
 
 
@@ -1270,25 +1208,17 @@ _GSS_union_accept (struct GNUNET_SET_AcceptRejectMessage *m, struct Set *set,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "accepting set union operation\n");
 
   eo = GNUNET_new (struct UnionEvaluateOperation);
+  eo->tc = incoming->tc;
   eo->generation_created = set->state.u->current_generation++;
   eo->set = set;
-  eo->peer = incoming->peer;
   eo->salt = ntohs (incoming->salt);
   GNUNET_assert (0 != ntohl (m->request_id));
   eo->request_id = ntohl (m->request_id);
   eo->se = strata_estimator_dup (set->state.u->se);
-  eo->mq = incoming->mq;
   /* transfer ownership of mq and socket from incoming to eo */
-  incoming->mq = NULL;
-  eo->socket = incoming->socket;
-  incoming->socket = NULL;
-  /* the peer's socket is now ours, we'll receive all messages */
-  GNUNET_MQ_replace_handlers (eo->mq, union_handlers, eo);
-
   GNUNET_CONTAINER_DLL_insert (eo->set->state.u->ops_head,
                                eo->set->state.u->ops_tail,
                                eo);
-
   /* kick off the operation */
   send_strata_estimator (eo);
 }
@@ -1384,7 +1314,7 @@ _GSS_union_set_destroy (struct Set *set)
 
   while (NULL != set->state.u->ops_head)
   {
-    destroy_union_operation (set->state.u->ops_head);
+    _GSS_union_operation_destroy (set->state.u->ops_head);
   }
 }
 
@@ -1418,3 +1348,57 @@ _GSS_union_remove (struct GNUNET_SET_ElementMessage *m, struct Set *set)
   ee->generation_removed = set->state.u->current_generation;
 }
 
+
+/**
+ * Dispatch messages for a union operation.
+ *
+ * @param cls closure
+ * @param tunnel mesh tunnel
+ * @param tunnel_ctx tunnel context
+ * @param sender ???
+ * @param mh message to process
+ * @return ???
+ */
+int
+_GSS_union_handle_p2p_message (void *cls,
+                               struct GNUNET_MESH_Tunnel *tunnel,
+                               void **tunnel_ctx,
+                               const struct GNUNET_PeerIdentity *sender,
+                               const struct GNUNET_MessageHeader *mh)
+{
+  struct TunnelContext *tc = *tunnel_ctx;
+  struct UnionEvaluateOperation *eo;
+
+  if (CONTEXT_OPERATION_UNION != tc->type)
+  {
+    /* FIXME: kill the tunnel */
+    /* never kill mesh */
+    return GNUNET_OK;
+  }
+
+  eo = tc->data;
+
+  switch (ntohs (mh->type))
+  {
+    case GNUNET_MESSAGE_TYPE_SET_P2P_IBF:
+      handle_p2p_ibf (eo, mh);
+      break;
+    case GNUNET_MESSAGE_TYPE_SET_P2P_SE:
+      handle_p2p_strata_estimator (eo, mh);
+      break;
+    case GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS:
+      handle_p2p_elements (eo, mh);
+      break;
+    case GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS:
+      handle_p2p_element_requests (eo, mh);
+      break;
+    case GNUNET_MESSAGE_TYPE_SET_P2P_DONE:
+      handle_p2p_done (eo, mh);
+      break;
+    default:
+      /* something wrong with mesh's message handlers? */
+      GNUNET_assert (0);
+  }
+  /* never kill mesh! */
+  return GNUNET_OK;
+}

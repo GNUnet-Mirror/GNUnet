@@ -19,7 +19,7 @@
 */
 
 /**
- * @file consensus/strata_estimator.h
+ * @file set/strata_estimator.h
  * @brief estimator of set difference
  * @author Florian Dold
  */

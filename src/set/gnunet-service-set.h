@@ -33,7 +33,7 @@
 #include "gnunet_applications.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_core_service.h"
-#include "gnunet_stream_lib.h"
+#include "gnunet_mesh2_service.h"
 #include "gnunet_set_service.h"
 #include "set.h"
 
@@ -46,6 +46,8 @@ struct IntersectionState;
  * Extra state required for set union.
  */
 struct UnionState;
+
+struct UnionEvaluateOperation;
 
 
 /**
@@ -63,7 +65,7 @@ struct Set
   /**
    * Message queue for the client
    */
-  struct GNUNET_MQ_MessageQueue *client_mq;
+  struct GNUNET_MQ_Handle *client_mq;
 
   /**
    * Type of operation supported for this set
@@ -116,7 +118,7 @@ struct Listener
   /**
    * Message queue for the client
    */
-  struct GNUNET_MQ_MessageQueue *client_mq;
+  struct GNUNET_MQ_Handle *client_mq;
 
   /**
    * Type of operation supported for this set
@@ -148,19 +150,17 @@ struct Incoming
   struct Incoming *prev;
 
   /**
-   * Identity of the peer that connected to us
+   * Tunnel context, stores information about
+   * the tunnel and its peer.
    */
-  struct GNUNET_PeerIdentity peer;
+  struct TunnelContext *tc;
 
   /**
-   * Socket connected to the peer
+   * GNUNET_YES if the incoming peer has sent
+   * an operation request (and we are waiting
+   * for the client to ack/nack), GNUNET_NO otherwise.
    */
-  struct GNUNET_STREAM_Socket *socket;
-
-  /**
-   * Message queue for the peer
-   */
-  struct GNUNET_MQ_MessageQueue *mq;
+  int received_request;
 
   /**
    * App code, set once the peer has
@@ -187,17 +187,36 @@ struct Incoming
 
   /**
    * Unique request id for the request from
-   * a remote peer, sent to the client with will
+   * a remote peer, sent to the client, which will
    * accept or reject the request.
    */
   uint32_t accept_id;
 };
 
 
+enum TunnelContextType {
+  CONTEXT_INCOMING,
+  CONTEXT_OPERATION_UNION,
+  CONTEXT_OPERATION_INTERSECTION,
+};
+
+struct TunnelContext
+{
+  struct GNUNET_MESH_Tunnel *tunnel;
+  struct GNUNET_PeerIdentity peer;
+  struct GNUNET_MQ_Handle *mq;
+  enum TunnelContextType type;
+  void *data;
+};
+
+
+
 /**
  * Configuration of the local peer
  */
 extern const struct GNUNET_CONFIGURATION_Handle *configuration;
+
+extern struct GNUNET_MESH_Handle *mesh;
 
 
 /**
@@ -260,6 +279,34 @@ _GSS_union_set_destroy (struct Set *set);
 void
 _GSS_union_accept (struct GNUNET_SET_AcceptRejectMessage *m, struct Set *set,
                    struct Incoming *incoming);
+
+
+/**
+ * Destroy a union operation, and free all resources
+ * associated with it.
+ *
+ * @param eo the union operation to destroy
+ */
+void
+_GSS_union_operation_destroy (struct UnionEvaluateOperation *eo);
+
+
+/**
+ * Dispatch messages for a union operation.
+ *
+ * @param cls closure
+ * @param tunnel mesh tunnel
+ * @param tunnel_ctx tunnel context
+ * @param sender ???
+ * @param mh message to process
+ * @return ???
+ */
+int
+_GSS_union_handle_p2p_message (void *cls,
+                               struct GNUNET_MESH_Tunnel *tunnel,
+                               void **tunnel_ctx,
+                               const struct GNUNET_PeerIdentity *sender,
+                               const struct GNUNET_MessageHeader *mh);
 
 
 #endif

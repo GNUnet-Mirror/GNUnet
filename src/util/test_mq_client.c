@@ -60,6 +60,9 @@ recv_cb (void *cls, struct GNUNET_SERVER_Client *argclient,
     return;
   }
 
+  /* can happen if notify does not work */
+  GNUNET_assert (received < 2);
+
   GNUNET_SERVER_receive_done (argclient, GNUNET_YES);
 }
 
@@ -98,14 +101,16 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
 
 void send_cb (void *cls)
 {
+  /* the notify should only be called once */
+  GNUNET_assert (GNUNET_NO == notify);
   printf ("notify sent\n");
   notify = GNUNET_YES;
 }
 
 void test_mq (struct GNUNET_CLIENT_Connection *client)
 {
-  struct GNUNET_MQ_MessageQueue *mq;
-  struct GNUNET_MQ_Message *mqm;
+  struct GNUNET_MQ_Handle *mq;
+  struct GNUNET_MQ_Envelope *mqm;
 
   /* FIXME: test handling responses */
   mq = GNUNET_MQ_queue_for_connection_client (client, NULL, NULL);

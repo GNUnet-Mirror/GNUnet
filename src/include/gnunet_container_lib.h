@@ -534,7 +534,7 @@ enum GNUNET_CONTAINER_MultiHashMapOption
  *         GNUNET_NO if not.
  */
 typedef int (*GNUNET_CONTAINER_HashMapIterator) (void *cls,
-                                                 const struct GNUNET_HashCode * key,
+                                                 const struct GNUNET_HashCode *key,
                                                  void *value);
 
 

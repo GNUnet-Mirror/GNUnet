@@ -16,7 +16,7 @@ if USE_COVERAGE
 endif
 
 bin_PROGRAMS = \
- gnunet-set
+ gnunet-set-profiler gnunet-set-ibf-profiler
 
 libexec_PROGRAMS = \
  gnunet-service-set
@@ -24,16 +24,23 @@ libexec_PROGRAMS = \
 lib_LTLIBRARIES = \
   libgnunetset.la
 
-gnunet_set_SOURCES = \
- gnunet-set.c
-gnunet_set_LDADD = \
+gnunet_set_profiler_SOURCES = \
+ gnunet-set-profiler.c
+gnunet_set_profiler_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/set/libgnunetset.la \
-  $(top_builddir)/src/stream/libgnunetstream.la \
-  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(GN_LIBINTL)
-gnunet_set_DEPENDENCIES = \
+gnunet_set_profiler_DEPENDENCIES = \
   libgnunetset.la
+
+
+gnunet_set_ibf_profiler_SOURCES = \
+ gnunet-set-ibf-profiler.c \
+ ibf.c
+gnunet_set_ibf_profiler_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
 
 gnunet_service_set_SOURCES = \
  gnunet-service-set.c \
@@ -43,8 +50,7 @@ gnunet_service_set_SOURCES = \
 gnunet_service_set_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/stream/libgnunetstream.la \
-  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/mesh/libgnunetmesh2.la \
   $(GN_LIBINTL)
 
 libgnunetset_la_SOURCES = \

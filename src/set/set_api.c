@@ -40,7 +40,7 @@
 struct GNUNET_SET_Handle
 {
   struct GNUNET_CLIENT_Connection *client;
-  struct GNUNET_MQ_MessageQueue *mq;
+  struct GNUNET_MQ_Handle *mq;
   unsigned int messages_since_ack;
 };
 
@@ -73,7 +73,7 @@ struct GNUNET_SET_OperationHandle
    * Message sent to the server on calling conclude,
    * NULL if conclude has been called.
    */
-  struct GNUNET_MQ_Message *conclude_mqm;
+  struct GNUNET_MQ_Envelope *conclude_mqm;
 
   /**
    * Address of the request if in the conclude message,
@@ -89,7 +89,7 @@ struct GNUNET_SET_OperationHandle
 struct GNUNET_SET_ListenHandle
 {
   struct GNUNET_CLIENT_Connection *client;
-  struct GNUNET_MQ_MessageQueue* mq;
+  struct GNUNET_MQ_Handle* mq;
   GNUNET_SET_ListenCallback listen_cb;
   void *listen_cls;
 };
@@ -115,7 +115,7 @@ handle_result (void *cls, const struct GNUNET_MessageHeader *mh)
 
   if (set->messages_since_ack >= GNUNET_SET_ACK_WINDOW/2)
   {
-    struct GNUNET_MQ_Message *mqm;
+    struct GNUNET_MQ_Envelope *mqm;
     mqm = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_ACK);
     GNUNET_MQ_send (set->mq, mqm);
   }
@@ -162,7 +162,7 @@ handle_request (void *cls, const struct GNUNET_MessageHeader *mh)
 
   if (GNUNET_NO == req->accepted)
   {
-    struct GNUNET_MQ_Message *mqm;
+    struct GNUNET_MQ_Envelope *mqm;
     struct GNUNET_SET_AcceptRejectMessage *amsg;
 
     mqm = GNUNET_MQ_msg (amsg, GNUNET_MESSAGE_TYPE_SET_REJECT);
@@ -197,9 +197,9 @@ GNUNET_SET_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
                    enum GNUNET_SET_OperationType op)
 {
   struct GNUNET_SET_Handle *set;
-  struct GNUNET_MQ_Message *mqm;
+  struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_CreateMessage *msg;
-  static const struct GNUNET_MQ_Handler mq_handlers[] = {
+  static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
     {handle_result, GNUNET_MESSAGE_TYPE_SET_RESULT},
     GNUNET_MQ_HANDLERS_END
   };
@@ -234,7 +234,7 @@ GNUNET_SET_add_element (struct GNUNET_SET_Handle *set,
                         GNUNET_SET_Continuation cont,
                         void *cont_cls)
 {
-  struct GNUNET_MQ_Message *mqm;
+  struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_ElementMessage *msg;
 
   mqm = GNUNET_MQ_msg_extra (msg, element->size, GNUNET_MESSAGE_TYPE_SET_ADD);
@@ -262,7 +262,7 @@ GNUNET_SET_remove_element (struct GNUNET_SET_Handle *set,
                            GNUNET_SET_Continuation cont,
                            void *cont_cls)
 {
-  struct GNUNET_MQ_Message *mqm;
+  struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_ElementMessage *msg;
 
   mqm = GNUNET_MQ_msg_extra (msg, element->size, GNUNET_MESSAGE_TYPE_SET_REMOVE);
@@ -287,9 +287,9 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set)
 
 
 /**
- * Create a set operation for evaluation with another peer.
+ * Prepare a set operation to be evaluated with another peer.
  * The evaluation will not start until the client provides
- * a local set with GNUNET_SET_conclude.
+ * a local set with GNUNET_SET_commit.
  *
  * @param other_peer peer with the other set
  * @param app_id hash for the application using the set
@@ -304,15 +304,15 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set)
  * @return a handle to cancel the operation
  */
 struct GNUNET_SET_OperationHandle *
-GNUNET_SET_evaluate (const struct GNUNET_PeerIdentity *other_peer,
-                     const struct GNUNET_HashCode *app_id,
-                     const struct GNUNET_MessageHeader *context_msg,
-                     uint16_t salt,
-                     enum GNUNET_SET_ResultMode result_mode,
-                     GNUNET_SET_ResultIterator result_cb,
-                     void *result_cls)
+GNUNET_SET_prepare (const struct GNUNET_PeerIdentity *other_peer,
+                    const struct GNUNET_HashCode *app_id,
+                    const struct GNUNET_MessageHeader *context_msg,
+                    uint16_t salt,
+                    enum GNUNET_SET_ResultMode result_mode,
+                    GNUNET_SET_ResultIterator result_cb,
+                    void *result_cls)
 {
-  struct GNUNET_MQ_Message *mqm;
+  struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_OperationHandle *oh;
   struct GNUNET_SET_EvaluateMessage *msg;
 
@@ -321,9 +321,6 @@ GNUNET_SET_evaluate (const struct GNUNET_PeerIdentity *other_peer,
   oh->result_cls = result_cls;
 
   mqm = GNUNET_MQ_msg_nested_mh (msg, GNUNET_MESSAGE_TYPE_SET_EVALUATE, context_msg);
-
-  if (NULL != context_msg)
-    LOG (GNUNET_ERROR_TYPE_INFO, "passed context msg\n");
 
   msg->app_id = *app_id;
   msg->target_peer = *other_peer;
@@ -356,9 +353,9 @@ GNUNET_SET_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
                    void *listen_cls)
 {
   struct GNUNET_SET_ListenHandle *lh;
-  struct GNUNET_MQ_Message *mqm;
+  struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_ListenMessage *msg;
-  static const struct GNUNET_MQ_Handler mq_handlers[] = {
+  static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
     {handle_request, GNUNET_MESSAGE_TYPE_SET_REQUEST},
     GNUNET_MQ_HANDLERS_END
   };
@@ -403,7 +400,7 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh)
  * @param result_mode specified how results will be returned,
  *        see 'GNUNET_SET_ResultMode'.
  * @param result_cb callback for the results
- * @param result_cls closure for result_cb
+ * @param cls closure for result_cb
  * @return a handle to cancel the operation
  */
 struct GNUNET_SET_OperationHandle *
@@ -412,7 +409,7 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
                    GNUNET_SET_ResultIterator result_cb,
                    void *cls)
 {
-  struct GNUNET_MQ_Message *mqm;
+  struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_OperationHandle *oh;
   struct GNUNET_SET_AcceptRejectMessage *msg;
 
@@ -441,7 +438,7 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
 void
 GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh)
 {
-  struct GNUNET_MQ_Message *mqm;
+  struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_OperationHandle *h_assoc;
 
   if (NULL != oh->set)
@@ -460,7 +457,7 @@ GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh)
 
 
 /**
- * Conclude the given set operation using the given set. 
+ * Commit a set to be used with a set operation.
  * This function is called once we have fully constructed
  * the set that we want to use for the operation.  At this
  * time, the P2P protocol can then begin to exchange the
@@ -471,13 +468,13 @@ GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh)
  * @param set the set to use for the operation
  */
 void
-GNUNET_SET_conclude (struct GNUNET_SET_OperationHandle *oh,
+GNUNET_SET_commit (struct GNUNET_SET_OperationHandle *oh,
 		     struct GNUNET_SET_Handle *set)
 {
   GNUNET_assert (NULL == oh->set);
   GNUNET_assert (NULL != oh->conclude_mqm);
   oh->set = set;
-  oh->request_id = GNUNET_MQ_assoc_add (oh->set->mq, NULL, oh);
+  oh->request_id = GNUNET_MQ_assoc_add (oh->set->mq, oh);
   *oh->request_id_addr = htonl (oh->request_id);
   GNUNET_MQ_send (oh->set->mq, oh->conclude_mqm);
   oh->conclude_mqm = NULL;

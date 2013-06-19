@@ -403,9 +403,9 @@ GNUNET_STREAM_read_cancel (struct GNUNET_STREAM_ReadHandle *rh);
  * @param error_handler callback for errors
  * @return the message queue for the socket
  */
-struct GNUNET_MQ_MessageQueue *
+struct GNUNET_MQ_Handle *
 GNUNET_STREAM_mq_create (struct GNUNET_STREAM_Socket *socket, 
-                         const struct GNUNET_MQ_Handler *msg_handlers,
+                         const struct GNUNET_MQ_MessageHandler *msg_handlers,
                          GNUNET_MQ_ErrorHandler error_handler,
                          void *cls);
 

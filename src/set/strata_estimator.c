@@ -19,7 +19,7 @@
 */
 
 /**
- * @file consensus/ibf.h
+ * @file set/ibf.h
  * @brief invertible bloom filter
  * @author Florian Dold
  */

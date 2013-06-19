@@ -769,7 +769,7 @@ build_set (void *cls)
   if (DEFAULT_FISHEYE_DEPTH - 1 == neighbor->consensus_insertion_distance)
   {
     /* we have added all elements to the set, run the operation */
-    GNUNET_SET_conclude (neighbor->set_op,
+    GNUNET_SET_commit (neighbor->set_op,
 		         neighbor->my_set);
     GNUNET_SET_destroy (neighbor->my_set);
     neighbor->my_set = NULL;
@@ -1425,13 +1425,13 @@ initiate_set_union (void *cls,
   neighbor->initiate_task = GNUNET_SCHEDULER_NO_TASK;
   neighbor->my_set = GNUNET_SET_create (cfg,
 					GNUNET_SET_OPERATION_UNION);
-  neighbor->set_op = GNUNET_SET_evaluate (&neighbor->peer,
-					  &neighbor->real_session_id,
-					  NULL,
-					  0 /* FIXME: salt */,
-					  GNUNET_SET_RESULT_ADDED,
-					  &handle_set_union_result,
-					  neighbor);
+  neighbor->set_op = GNUNET_SET_prepare (&neighbor->peer,
+                                         &neighbor->real_session_id,
+                                         NULL,
+                                         0 /* FIXME: salt */,
+                                         GNUNET_SET_RESULT_ADDED,
+                                         &handle_set_union_result,
+                                         neighbor);
   build_set (neighbor);
 }
 
