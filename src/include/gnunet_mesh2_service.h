@@ -135,10 +135,9 @@ typedef void *(GNUNET_MESH_InboundTunnelNotificationHandler) (void *cls,
 
 /**
  * Function called whenever a tunnel is destroyed.  Should clean up
- * any associated state.  This function is NOT called if the client has
- * explicitly asked for the tunnel to be destroyed using
- * GNUNET_MESH_tunnel_destroy. It must NOT call GNUNET_MESH_tunnel_destroy on
- * the tunnel.
+ * any associated state. 
+ * 
+ * It must NOT call GNUNET_MESH_tunnel_destroy on the tunnel.
  *
  * @param cls closure (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end (henceforth invalid)
@@ -207,7 +206,7 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
 
 
 /**
- * Destroy an existing tunnel. The existing callback for the tunnel will NOT
+ * Destroy an existing tunnel. The existing end callback for the tunnel will
  * be called.
  *
  * @param tunnel tunnel handle
@@ -282,6 +281,15 @@ GNUNET_MESH_receive_done (struct GNUNET_MESH_Tunnel *tunnel);
 
 
 
+/******************************************************************************/
+/********************       MONITORING /DEBUG API     *************************/
+/******************************************************************************/
+/* The following calls are not useful for normal MESH operation, but for      */
+/* debug and monitoring of the mesh state. They can be safely ignored.        */
+/* The API can change at any point without notice.                            */
+/* Please contact the developer if you consider any of this calls useful for  */
+/* normal mesh applications.                                                  */
+/******************************************************************************/
 
 /**
  * Method called to retrieve information about each tunnel the mesh peer
