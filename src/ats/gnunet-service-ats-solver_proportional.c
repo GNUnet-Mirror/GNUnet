@@ -27,7 +27,6 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet-service-ats_addresses.h"
-#include "gnunet-service-ats_normalization.h"
 #include "gnunet_statistics_service.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-proportional",__VA_ARGS__)
@@ -255,6 +254,16 @@ struct GAS_PROPORTIONAL_Handle
    */
   void *bw_changed_cls;
 
+  /**
+   * ATS function to get preferences
+   */
+  GAS_get_preferences get_preferences;
+
+  /**
+   * Closure for ATS function to get preferences
+   */
+  void *get_preferences_cls;
+
   struct GNUNET_CONTAINER_MultiHashMap *prefs;
 
   struct PreferenceClient *pc_head;
@@ -432,7 +441,7 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
   {
       if (GNUNET_YES == cur->addr->active)
       {
-        GNUNET_assert (NULL != (t = GAS_normalization_get_preferences (&cur->addr->peer)));
+        GNUNET_assert (NULL != (t = s->get_preferences (s->get_preferences_cls, &cur->addr->peer)));
 
 				peer_prefs = 0.0;
 				for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
@@ -451,7 +460,7 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
      if (GNUNET_YES == cur->addr->active)
      {
        cur_pref = 0.0;
-       GNUNET_assert (NULL != (t = GAS_normalization_get_preferences (&cur->addr->peer)));
+       GNUNET_assert (NULL != (t = s->get_preferences (s->get_preferences_cls, &cur->addr->peer)));
 
 			 for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
 			 {
@@ -1226,7 +1235,9 @@ GAS_proportional_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                        unsigned long long *in_quota,
                        int dest_length,
                        GAS_bandwidth_changed_cb bw_changed_cb,
-                       void *bw_changed_cb_cls)
+                       void *bw_changed_cb_cls,
+                       GAS_get_preferences get_preference,
+                       void *get_preference_cls)
 {
   int c;
   struct GAS_PROPORTIONAL_Handle *s = GNUNET_malloc (sizeof (struct GAS_PROPORTIONAL_Handle));
@@ -1237,6 +1248,8 @@ GAS_proportional_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   s->stats = (struct GNUNET_STATISTICS_Handle *) stats;
   s->bw_changed = bw_changed_cb;
   s->bw_changed_cls = bw_changed_cb_cls;
+  s->get_preferences = get_preference;
+  s->get_preferences_cls = get_preference_cls;
   s->networks = dest_length;
   s->network_entries = GNUNET_malloc (dest_length * sizeof (struct Network));
   s->active_addresses = 0;

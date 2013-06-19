@@ -228,6 +228,10 @@ struct GAS_MLP_Handle
    */
   void *bw_changed_cb_cls;
 
+  GAS_get_preferences get_preferences;
+
+  void *get_preferences_cls;
+
   struct MLP_Problem p;
 
   struct MLP_Variables pv;
@@ -359,7 +363,9 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
               unsigned long long *in_dest,
               int dest_length,
               GAS_bandwidth_changed_cb bw_changed_cb,
-              void *bw_changed_cb_cls);
+              void *bw_changed_cb_cls,
+              GAS_get_preferences get_preference,
+              void *get_preference_cls);
 
 
 /**

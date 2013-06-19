@@ -739,6 +739,8 @@ get_performance_info (struct ATS_Address *address, uint32_t type)
 }
 
 
+
+
 /**
  * Add a new address for a peer.
  *
@@ -1297,14 +1299,20 @@ GAS_addresses_handle_backoff_reset (struct GAS_Addresses_Handle *handle,
 
 static void
 normalized_preference_changed_cb (void *cls,
-																	const struct GNUNET_PeerIdentity *peer,
-	  															enum GNUNET_ATS_PreferenceKind kind,
-	  															double pref_rel)
+								  const struct GNUNET_PeerIdentity *peer,
+								  enum GNUNET_ATS_PreferenceKind kind,
+								  double pref_rel)
 {
 	GNUNET_assert (NULL != cls);
 	struct GAS_Addresses_Handle *handle = cls;
   /* Tell solver about update */
   handle->s_pref (handle->solver, handle->addresses, peer, kind, pref_rel);
+}
+
+const double *
+get_preferences_cb (void *cls, struct GNUNET_PeerIdentity *id)
+{
+	return GAS_normalization_get_preferences (id);
 }
 
 
@@ -1610,7 +1618,10 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GAS_normalization_start (&normalized_preference_changed_cb, ah);
   quota_count = load_quotas(cfg, quotas_in, quotas_out, GNUNET_ATS_NetworkTypeCount);
 
-  ah->solver = ah->s_init (cfg, stats, quotas, quotas_in, quotas_out, quota_count, &bandwidth_changed_cb, ah);
+  ah->solver = ah->s_init (cfg, stats,
+		  quotas, quotas_in, quotas_out, quota_count,
+		  &bandwidth_changed_cb, ah,
+		  &get_preferences_cb, NULL);
   if (NULL == ah->solver)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to initialize solver!\n");

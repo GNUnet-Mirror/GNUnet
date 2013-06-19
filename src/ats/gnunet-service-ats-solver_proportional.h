@@ -83,7 +83,9 @@ GAS_proportional_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      unsigned long long *in_quota,
                      int dest_length,
                      GAS_bandwidth_changed_cb bw_changed_cb,
-                     void *bw_changed_cb_cls);
+                     void *bw_changed_cb_cls,
+                     GAS_get_preferences get_preference,
+                     void *get_preference_cls);
 
 
 /**

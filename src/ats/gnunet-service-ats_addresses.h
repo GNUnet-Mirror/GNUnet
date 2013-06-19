@@ -354,6 +354,10 @@ struct ATS_Address
 typedef void
  (*GAS_bandwidth_changed_cb) (void *cls, struct ATS_Address *address);
 
+typedef const double *
+ (*GAS_get_preferences) (void *cls, struct GNUNET_PeerIdentity *id);
+
+
 /*
  * Solver API
  * ----------
@@ -389,7 +393,9 @@ typedef void *
                      unsigned long long *in_quota,
                      int dest_length,
                      GAS_bandwidth_changed_cb bw_changed_cb,
-                     void *bw_changed_cb_cls);
+                     void *bw_changed_cb_cls,
+                     GAS_get_preferences get_preference,
+                     void *get_preference_cls);
 
 
 /**

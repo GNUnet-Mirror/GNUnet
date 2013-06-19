@@ -27,7 +27,6 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet-service-ats_addresses.h"
-#include "gnunet-service-ats_normalization.h"
 #include "gnunet-service-ats_addresses_mlp.h"
 #include "gnunet_statistics_service.h"
 #include "glpk.h"
@@ -1438,12 +1437,12 @@ mlp_get_preferred_address_it (void *cls, const struct GNUNET_HashCode * key, voi
 }
 
 
-static double get_peer_pref_value (const struct GNUNET_PeerIdentity *peer)
+static double get_peer_pref_value (struct GAS_MLP_Handle *mlp, struct GNUNET_PeerIdentity *peer)
 {
 	double res;
   const double *preferences = NULL;
   int c;
-  preferences = GAS_normalization_get_preferences ((struct GNUNET_PeerIdentity *) peer);
+  preferences = mlp->get_preferences (mlp->get_preferences_cls, peer);
 
   res = 0.0;
 	for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
@@ -1491,7 +1490,7 @@ GAS_mlp_get_preferred_address (void *solver,
 
   	  p = GNUNET_malloc (sizeof (struct ATS_Peer));
   	  p->id = (*peer);
-  	  p->f = get_peer_pref_value (peer);;
+  	  p->f = get_peer_pref_value (mlp, peer);
   	  GNUNET_CONTAINER_multihashmap_put (mlp->peers, &peer->hashPubKey, p, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 
   	  /* Added new peer, we have to rebuild problem before solving */
@@ -1570,7 +1569,7 @@ GAS_mlp_address_change_preference (void *solver,
     LOG (GNUNET_ERROR_TYPE_ERROR, "Updating preference for unknown peer `%s' \n", GNUNET_i2s(peer));
   	return;
   }
-  p->f = get_peer_pref_value (peer);
+  p->f = get_peer_pref_value (mlp, peer);
   mlp_create_problem_set_value (&mlp->p, p->r_c9, mlp->p.c_r, -p->f, __LINE__);
 
 
@@ -1642,7 +1641,9 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
               unsigned long long *in_dest,
               int dest_length,
               GAS_bandwidth_changed_cb bw_changed_cb,
-              void *bw_changed_cb_cls)
+              void *bw_changed_cb_cls,
+              GAS_get_preferences get_preference,
+              void *get_preference_cls)
 {
   struct GAS_MLP_Handle * mlp = GNUNET_malloc (sizeof (struct GAS_MLP_Handle));
 
@@ -1846,6 +1847,8 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   mlp->stats = (struct GNUNET_STATISTICS_Handle *) stats;
   mlp->bw_changed_cb = bw_changed_cb;
   mlp->bw_changed_cb_cls = bw_changed_cb_cls;
+  mlp->get_preferences = get_preference;
+  mlp->get_preferences_cls = get_preference_cls;
   /* Setting MLP Input variables */
   mlp->pv.co_D = D;
   mlp->pv.co_R = R;
