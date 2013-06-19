@@ -393,14 +393,12 @@ tmt_rdy (void *cls, size_t size, void *buf)
  * @param cls closure (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end
  * @param tunnel_ctx place to store local state associated with the tunnel
- * @param sender who sent the message
  * @param message the actual message
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 int
 data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
-               const struct GNUNET_PeerIdentity *sender,
                const struct GNUNET_MessageHeader *message)
 {
   long client = (long) cls;

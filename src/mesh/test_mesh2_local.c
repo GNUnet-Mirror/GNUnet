@@ -97,7 +97,6 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls closure (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end
  * @param tunnel_ctx place to store local state associated with the tunnel
- * @param sender who sent the message
  * @param message the actual message
  * 
  * @return GNUNET_OK to keep the connection open,
@@ -105,7 +104,6 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static int
 data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
-               const struct GNUNET_PeerIdentity *sender,
                const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Data callback\n");
