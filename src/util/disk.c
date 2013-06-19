@@ -45,39 +45,24 @@
  */
 #define COPY_BLK_SIZE 65536
 
-
-
-#if defined(LINUX) || defined(CYGWIN) || defined(GNU)
-#include <sys/vfs.h>
-#else
-#if defined(SOMEBSD) || defined(DARWIN)
-#include <sys/param.h>
-#include <sys/mount.h>
-#else
-#ifdef SOLARIS
 #include <sys/types.h>
-#include <sys/statvfs.h>
-#else
-#ifdef MINGW
-#ifndef PIPE_BUF
-#define PIPE_BUF        512
-ULONG PipeSerialNumber;
+#if HAVE_SYS_VFS_H
+#include <sys/vfs.h>
 #endif
+#if HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+#if HAVE_SYS_MOUNT_H
+#include <sys/mount.h>
+#endif
+#if HAVE_SYS_STATVFS_H
+#include <sys/statvfs.h>
+#endif
+
+#ifndef S_ISLNK
 #define  	_IFMT		0170000 /* type of file */
 #define  	_IFLNK		0120000 /* symbolic link */
 #define  S_ISLNK(m)	(((m)&_IFMT) == _IFLNK)
-#else
-#error PORT-ME: need to port statfs (how much space is left on the drive?)
-#endif
-#endif
-#endif
-#endif
-
-#if !defined(SOMEBSD) && !defined(DARWIN) && !defined(WINDOWS)
-#include <wordexp.h>
-#endif
-#if LINUX
-#include <sys/statvfs.h>
 #endif
 
 
@@ -343,49 +328,63 @@ int
 GNUNET_DISK_file_get_identifiers (const char *filename, uint64_t * dev,
                                   uint64_t * ino)
 {
-#if LINUX
-  struct stat sbuf;
-  struct statvfs fbuf;
-
-  if ((0 == stat (filename, &sbuf)) && (0 == statvfs (filename, &fbuf)))
+#if HAVE_STAT
   {
-    *dev = (uint64_t) fbuf.f_fsid;
+    struct stat sbuf;
+
+    if (0 != stat (filename, &sbuf))
+    {
+      return GNUNET_SYSERR;
+    }
     *ino = (uint64_t) sbuf.st_ino;
-    return GNUNET_OK;
   }
-#elif SOMEBSD
-  struct stat sbuf;
-  struct statfs fbuf;
-
-  if ((0 == stat (filename, &sbuf)) && (0 == statfs (filename, &fbuf)))
+#else
+  *ino = 0;
+#endif
+#if HAVE_STATVFS
   {
+    struct statvfs fbuf;
+
+    if (0 != statvfs (filename, &fbuf))
+    {
+      return GNUNET_SYSERR;
+    }
+    *dev = (uint64_t) fbuf.f_fsid;
+  }
+#elif HAVE_STATFS
+  {
+    struct statfs fbuf;
+
+    if (0 != statfs (filename, &fbuf))
+    {
+      return GNUNET_SYSERR;
+    }
     *dev = ((uint64_t) fbuf.f_fsid.val[0]) << 32 ||
         ((uint64_t) fbuf.f_fsid.val[1]);
-    *ino = (uint64_t) sbuf.st_ino;
-    return GNUNET_OK;
   }
 #elif WINDOWS
-  // FIXME NILS: test this
-  struct GNUNET_DISK_FileHandle *fh;
-  BY_HANDLE_FILE_INFORMATION info;
-  int succ;
-
-  fh = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ, 0);
-  if (fh == NULL)
-    return GNUNET_SYSERR;
-  succ = GetFileInformationByHandle (fh->h, &info);
-  GNUNET_DISK_file_close (fh);
-  if (succ)
   {
+    // FIXME NILS: test this
+    struct GNUNET_DISK_FileHandle *fh;
+    BY_HANDLE_FILE_INFORMATION info;
+    int succ;
+
+    fh = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ, 0);
+    if (fh == NULL)
+      return GNUNET_SYSERR;
+    succ = GetFileInformationByHandle (fh->h, &info);
+    GNUNET_DISK_file_close (fh);
+    if (!succ)
+    {
+      return GNUNET_SYSERR;
+    }
     *dev = info.dwVolumeSerialNumber;
     *ino = ((((uint64_t) info.nFileIndexHigh) << (sizeof (DWORD) * 8)) | info.nFileIndexLow);
-    return GNUNET_OK;
   }
-  else
-    return GNUNET_SYSERR;
-
+#else
+  *dev = 0;
 #endif
-  return GNUNET_SYSERR;
+  return GNUNET_OK;
 }
 
 
@@ -2166,6 +2165,9 @@ GNUNET_DISK_file_sync (const struct GNUNET_DISK_FileHandle *h)
 
 
 #if WINDOWS
+#ifndef PIPE_BUF
+#define PIPE_BUF        512
+#endif
 /* Copyright Bob Byrnes  <byrnes <at> curl.com>
    http://permalink.gmane.org/gmane.os.cygwin.patches/2121
 */
