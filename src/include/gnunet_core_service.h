@@ -82,7 +82,7 @@ typedef void (*GNUNET_CORE_DisconnectEventHandler) (void *cls,
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
  * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ *         GNUNET_SYSERR to close connection to the peer (signal serious error)
  */
 typedef int (*GNUNET_CORE_MessageCallback) (void *cls,
                                             const struct GNUNET_PeerIdentity *
