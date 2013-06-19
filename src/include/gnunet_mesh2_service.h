@@ -73,7 +73,7 @@ struct GNUNET_MESH_Tunnel;
  * @param sender Peer who sent the message.
  * @param message The actual message.
  * 
- * @return GNUNET_OK to keep the connection open,
+ * @return GNUNET_OK to keep the tunnel open,
  *         GNUNET_SYSERR to close it (signal serious error).
  */
 typedef int (*GNUNET_MESH_MessageCallback) (void *cls,

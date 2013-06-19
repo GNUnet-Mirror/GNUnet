@@ -864,11 +864,8 @@ process_tunnel_destroy (struct GNUNET_MESH_Handle *h,
  *
  * @param h         The mesh handle
  * @param message   A message encapsulating the data
- * 
- * @return GNUNET_YES if everything went fine
- *         GNUNET_NO if client closed connection (h no longer valid)
  */
-static int
+static void
 process_incoming_data (struct GNUNET_MESH_Handle *h,
                        const struct GNUNET_MessageHeader *message)
 {
@@ -909,14 +906,14 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     break;
   default:
     GNUNET_break (0);
-    return GNUNET_YES;
+    return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  pid %u\n", pid);
   if (NULL == t)
   {
     /* Tunnel was ignored/destroyed, probably service didn't get it yet */
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  ignored!\n");
-    return GNUNET_YES;
+    return;
   }
   if (GNUNET_YES ==
       GMC_is_pid_bigger(pid, t->last_ack_sent))
@@ -926,7 +923,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
          "  unauthorized message! (%u, ACK %u)\n",
          pid, t->last_ack_sent);
     // FIXME fc what now? accept? reject?
-    return GNUNET_YES;
+    return;
   }
   t->last_pid_recv = pid;
   type = ntohs (payload->type);
@@ -939,8 +936,8 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
           handler->callback (h->cls, t, &t->ctx, peer, payload))
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG, "callback caused disconnection\n");
-        GNUNET_MESH_disconnect (h);
-        return GNUNET_NO;
+        GNUNET_MESH_tunnel_destroy (t);
+        return;
       }
       else
       {
@@ -949,7 +946,6 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
       }
     }
   }
-  return GNUNET_YES;
 }
 
 
@@ -1119,8 +1115,7 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
   case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
   case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
   case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
-    if (GNUNET_NO == process_incoming_data (h, msg))
-      return;
+    process_incoming_data (h, msg);
     break;
   case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
     process_ack (h, msg);
