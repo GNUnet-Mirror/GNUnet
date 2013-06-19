@@ -215,7 +215,7 @@ test_ats_mlp_LDADD = \
   $(top_builddir)/src/ats/libgnunetats.la  
 
 test_ats_mlp_update_SOURCES = \
-  $(GN_MLP_SRC) test_ats_mlp_update.c test_ats_api_common.c
+  $(GN_MLP_SRC) test_ats_mlp_update.c test_ats_api_common.c gnunet-service-ats_normalization.c
 test_ats_mlp_update_LDADD = \
   $(GN_LIBGLPK) \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -224,7 +224,7 @@ test_ats_mlp_update_LDADD = \
   
   
 perf_ats_mlp_SOURCES = \
-  $(GN_MLP_SRC) perf_ats_mlp.c test_ats_api_common.c
+  $(GN_MLP_SRC) perf_ats_mlp.c test_ats_api_common.c gnunet-service-ats_normalization.c
 perf_ats_mlp_LDADD = \
   $(GN_LIBGLPK) \
   $(top_builddir)/src/util/libgnunetutil.la \

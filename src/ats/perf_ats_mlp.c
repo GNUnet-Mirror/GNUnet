@@ -55,7 +55,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_ats_service.h"
-#include "gnunet-service-ats_addresses_mlp.h"
+#include "gnunet-service-ats-solver_mlp.h"
 #include "gnunet-service-ats_normalization.h"
 #include "test_ats_api_common.h"
 
@@ -140,6 +140,13 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 {
 
 }
+
+static const double *
+get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
+{
+	return GAS_normalization_get_preferences (id);
+}
+
 
 static void
 perf_create_peer (int cp)
@@ -298,7 +305,7 @@ check (void *cls, char *const *args, const char *cfgfile,
 
   /* Init MLP solver */
   mlp  = GAS_mlp_init (cfg, stats, quotas, quotas_out, quotas_in,
-  		GNUNET_ATS_NetworkTypeCount, &bandwidth_changed_cb, NULL);
+  		GNUNET_ATS_NetworkTypeCount, &bandwidth_changed_cb, NULL, &get_preferences_cb, NULL);
   if (NULL == mlp)
   {
     	GNUNET_break (0);
