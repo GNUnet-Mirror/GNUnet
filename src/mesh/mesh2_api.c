@@ -1505,7 +1505,7 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel)
       th = th->next;
   }
 
-  destroy_tunnel (tunnel, GNUNET_NO);
+  destroy_tunnel (tunnel, GNUNET_YES);
   send_packet (h, &msg.header, NULL);
 }
 
