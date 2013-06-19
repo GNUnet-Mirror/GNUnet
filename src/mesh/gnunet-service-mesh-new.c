@@ -3485,6 +3485,7 @@ handle_mesh_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshTunnel *t;
   size_t size;
   uint32_t pid;
+  uint32_t ttl;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a ToOrigin packet from %s\n",
               GNUNET_i2s (peer));
@@ -3566,6 +3567,15 @@ handle_mesh_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
                 "on tunnel %s [%X]\n",
                 GNUNET_i2s (&msg->oid), ntohl(msg->tid));
+    return GNUNET_OK;
+  }
+  ttl = ntohl (msg->ttl);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   ttl: %u\n", ttl);
+  if (ttl == 0)
+  {
+    GNUNET_STATISTICS_update (stats, "# TTL drops", 1, GNUNET_NO);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, " TTL is 0, DROPPING!\n");
+    tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
     return GNUNET_OK;
   }
   send_prebuilt_message (message, t->prev_hop, t);
