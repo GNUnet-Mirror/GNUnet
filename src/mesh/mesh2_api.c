@@ -951,7 +951,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     if (handler->type == type)
     {
       if (GNUNET_OK !=
-          handler->callback (h->cls, t, &t->ctx, peer, payload))
+          handler->callback (h->cls, t, &t->ctx, payload))
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG, "callback caused disconnection\n");
         GNUNET_MESH_tunnel_destroy (t);

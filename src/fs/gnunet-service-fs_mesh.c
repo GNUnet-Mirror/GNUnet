@@ -647,7 +647,8 @@ handle_reply (void *cls,
  * complete reply is received.
  *
  * @param cls closure with the 'struct StreamHandle'
- * @param client identification of the client, NULL
+ * @param tunnel tunnel handle
+ * @param tunnel_ctx tunnel context
  * @param message the actual message
  * @return GNUNET_OK on success, GNUNET_SYSERR to stop further processing
  */
@@ -655,8 +656,7 @@ static int
 reply_cb (void *cls,
 	  struct GNUNET_MESH_Tunnel *tunnel,
 	  void **tunnel_ctx,
-	  const struct GNUNET_PeerIdentity *sender,
-	  const struct GNUNET_MessageHeader *message)
+          const struct GNUNET_MessageHeader *message)
 {
   struct StreamHandle *sh = *tunnel_ctx;
   const struct StreamReplyMessage *srm;
@@ -1080,7 +1080,8 @@ handle_datastore_reply (void *cls,
  * Do not call GNUNET_SERVER_mst_destroy in callback
  *
  * @param cls closure with the 'struct StreamClient'
- * @param client identification of the client, NULL
+ * @param tunnel tunnel handle
+ * @param tunnel_ctx tunnel context
  * @param message the actual message
  * @return GNUNET_OK on success, GNUNET_SYSERR to stop further processing
  */
@@ -1088,7 +1089,6 @@ static int
 request_cb (void *cls,
 	    struct GNUNET_MESH_Tunnel *tunnel,
 	    void **tunnel_ctx,
-	    const struct GNUNET_PeerIdentity *sender,
 	    const struct GNUNET_MessageHeader *message)
 {
   struct StreamClient *sc = *tunnel_ctx;

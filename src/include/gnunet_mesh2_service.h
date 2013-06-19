@@ -70,7 +70,6 @@ struct GNUNET_MESH_Tunnel;
  * @param cls Closure (set from GNUNET_MESH_connect).
  * @param tunnel Connection to the other end.
  * @param tunnel_ctx Place to store local state associated with the tunnel.
- * @param sender Peer who sent the message.
  * @param message The actual message.
  * 
  * @return GNUNET_OK to keep the tunnel open,
@@ -79,7 +78,6 @@ struct GNUNET_MESH_Tunnel;
 typedef int (*GNUNET_MESH_MessageCallback) (void *cls,
                                             struct GNUNET_MESH_Tunnel *tunnel,
                                             void **tunnel_ctx,
-                                            const struct GNUNET_PeerIdentity *sender,
                                             const struct GNUNET_MessageHeader *message);
 
 
