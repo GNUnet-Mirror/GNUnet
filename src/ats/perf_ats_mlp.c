@@ -56,6 +56,7 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_ats_service.h"
 #include "gnunet-service-ats_addresses_mlp.h"
+#include "gnunet-service-ats_normalization.h"
 #include "test_ats_api_common.h"
 
 #define PEERS_START 100
@@ -129,7 +130,7 @@ end_now (int res)
   		GAS_mlp_done (mlp);
   		mlp = NULL;
   }
-
+  GAS_normalization_stop();
 	ret = res;
 }
 
@@ -273,7 +274,7 @@ check (void *cls, char *const *args, const char *cfgfile,
     end_now (1);
     return;
   }
-
+  GAS_normalization_start (NULL, NULL);
   /* Load quotas */
   if (GNUNET_ATS_NetworkTypeCount != load_quotas (cfg, quotas_out, quotas_in,
   			GNUNET_ATS_NetworkTypeCount))
