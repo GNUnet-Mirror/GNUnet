@@ -1129,14 +1129,13 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   data = GNUNET_malloc (size);
   memcpy (data, message, size);
   type = ntohs(message->type);
-  switch (type)
+  if (GNUNET_MESSAGE_TYPE_MESH_UNICAST == type ||
+      GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN == type)
   {
-    struct GNUNET_MESH_Unicast *u;
+    struct GNUNET_MESH_Data *u;
 
-    case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
-      u = (struct GNUNET_MESH_Unicast *) data;
-      u->ttl = htonl (ntohl (u->ttl) - 1);
-      break;
+    u = (struct GNUNET_MESH_Data *) data;
+    u->ttl = htonl (ntohl (u->ttl) - 1);
   }
   GNUNET_PEER_resolve (peer, &id);
   neighbor = peer_get (&id);
@@ -2062,13 +2061,13 @@ tunnel_send_bck_ack (struct MeshTunnel *t, uint16_t type)
  */
 static void
 tunnel_send_client_ucast (struct MeshTunnel *t,
-                          const struct GNUNET_MESH_Unicast *msg)
+                          const struct GNUNET_MESH_Data *msg)
 {
-  struct GNUNET_MESH_Unicast *copy;
+  struct GNUNET_MESH_Data *copy;
   uint16_t size = ntohs (msg->header.size);
   char cbuf[size];
 
-  if (size < sizeof (struct GNUNET_MESH_Unicast) +
+  if (size < sizeof (struct GNUNET_MESH_Data) +
              sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break_op (0);
@@ -2079,7 +2078,7 @@ tunnel_send_client_ucast (struct MeshTunnel *t,
     GNUNET_break (0);
     return;
   }
-  copy = (struct GNUNET_MESH_Unicast *) cbuf;
+  copy = (struct GNUNET_MESH_Data *) cbuf;
   memcpy (copy, msg, size);
   copy->tid = htonl (t->local_tid_dest);
   GNUNET_SERVER_notification_context_unicast (nc, t->client->handle,
@@ -2095,13 +2094,13 @@ tunnel_send_client_ucast (struct MeshTunnel *t,
  */
 static void
 tunnel_send_client_to_orig (struct MeshTunnel *t,
-                            const struct GNUNET_MESH_ToOrigin *msg)
+                            const struct GNUNET_MESH_Data *msg)
 {
-  struct GNUNET_MESH_ToOrigin *copy;
+  struct GNUNET_MESH_Data *copy;
   uint16_t size = ntohs (msg->header.size);
   char cbuf[size];
 
-  if (size < sizeof (struct GNUNET_MESH_ToOrigin) +
+  if (size < sizeof (struct GNUNET_MESH_Data) +
              sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break_op (0);
@@ -2112,7 +2111,7 @@ tunnel_send_client_to_orig (struct MeshTunnel *t,
     GNUNET_break (0);
     return;
   }
-  copy = (struct GNUNET_MESH_ToOrigin *) cbuf;
+  copy = (struct GNUNET_MESH_Data *) cbuf;
   memcpy (cbuf, msg, size);
   copy->tid = htonl (t->local_tid);
   GNUNET_SERVER_notification_context_unicast (nc, t->owner->handle,
@@ -2722,9 +2721,8 @@ struct MeshPeerQueue *
 queue_get_next (const struct MeshPeerInfo *peer)
 {
   struct MeshPeerQueue *q;
- 
-  struct GNUNET_MESH_Unicast *ucast;
-  struct GNUNET_MESH_ToOrigin *to_orig;
+
+  struct GNUNET_MESH_Data *dmsg;
   struct MeshTunnel* t;
   uint32_t pid;
   uint32_t ack;
@@ -2735,17 +2733,15 @@ queue_get_next (const struct MeshPeerInfo *peer)
     t = q->tunnel;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "*     %s\n",
-                GNUNET_MESH_DEBUG_M2S(q->type));
+                GNUNET_MESH_DEBUG_M2S (q->type));
+    dmsg = (struct GNUNET_MESH_Data *) q->cls;
+    pid = ntohl (dmsg->pid);
     switch (q->type)
     {
       case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
-        ucast = (struct GNUNET_MESH_Unicast *) q->cls;
-        pid = ntohl (ucast->pid);
         ack = t->next_fc.last_ack_recv;
         break;
       case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
-        to_orig = (struct GNUNET_MESH_ToOrigin *) q->cls;
-        pid = ntohl (to_orig->pid);
         ack = t->prev_fc.last_ack_recv;
         break;
       default:
@@ -2784,6 +2780,7 @@ queue_send (void *cls, size_t size, void *buf)
   struct GNUNET_PeerIdentity dst_id;
   struct MeshFlowControl *fc;
   size_t data_size;
+  uint32_t pid;
   uint16_t type;
 
   peer->core_transmit = NULL;
@@ -2868,14 +2865,15 @@ queue_send (void *cls, size_t size, void *buf)
   queue_destroy (queue, GNUNET_NO);
 
   /* Send ACK if needed, after accounting for sent ID in fc->queue_n */
+  pid = ((struct GNUNET_MESH_Data *) buf)->pid;
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
-      t->next_fc.last_pid_sent = ((struct GNUNET_MESH_Unicast *) buf)->pid;
+      t->next_fc.last_pid_sent = pid;
       tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST);
       break;
     case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
-      t->prev_fc.last_pid_sent = ((struct GNUNET_MESH_ToOrigin *) buf)->pid;
+      t->prev_fc.last_pid_sent = pid;
       tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
       break;
     default:
@@ -3380,7 +3378,7 @@ static int
 handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_MESH_Unicast *msg;
+  struct GNUNET_MESH_Data *msg;
   struct MeshTunnel *t;
   uint32_t pid;
   uint32_t ttl;
@@ -3391,13 +3389,13 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* Check size */
   size = ntohs (message->size);
   if (size <
-      sizeof (struct GNUNET_MESH_Unicast) +
+      sizeof (struct GNUNET_MESH_Data) +
       sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break (0);
     return GNUNET_OK;
   }
-  msg = (struct GNUNET_MESH_Unicast *) message;
+  msg = (struct GNUNET_MESH_Data *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " of type %s\n",
               GNUNET_MESH_DEBUG_M2S (ntohs (msg[1].header.type)));
   /* Check tunnel */
@@ -3483,7 +3481,7 @@ static int
 handle_mesh_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_MESH_ToOrigin *msg;
+  struct GNUNET_MESH_Data *msg;
   struct MeshTunnel *t;
   size_t size;
   uint32_t pid;
@@ -3491,13 +3489,13 @@ handle_mesh_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a ToOrigin packet from %s\n",
               GNUNET_i2s (peer));
   size = ntohs (message->size);
-  if (size < sizeof (struct GNUNET_MESH_ToOrigin) +     /* Payload must be */
+  if (size < sizeof (struct GNUNET_MESH_Data) +     /* Payload must be */
       sizeof (struct GNUNET_MessageHeader))     /* at least a header */
   {
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
-  msg = (struct GNUNET_MESH_ToOrigin *) message;
+  msg = (struct GNUNET_MESH_Data *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " of type %s\n",
               GNUNET_MESH_DEBUG_M2S (ntohs (msg[1].header.type)));
   t = tunnel_get (&msg->oid, ntohl (msg->tid));
@@ -4242,7 +4240,7 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
 {
   struct MeshClient *c;
   struct MeshTunnel *t;
-  struct GNUNET_MESH_Unicast *data_msg;
+  struct GNUNET_MESH_Data *data_msg;
   MESH_TunnelNumber tid;
   size_t size;
 
@@ -4258,11 +4256,11 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
-  data_msg = (struct GNUNET_MESH_Unicast *) message;
+  data_msg = (struct GNUNET_MESH_Data *) message;
 
   /* Sanity check for message size */
   size = ntohs (message->size);
-  if (sizeof (struct GNUNET_MESH_Unicast) +
+  if (sizeof (struct GNUNET_MESH_Data) +
       sizeof (struct GNUNET_MessageHeader) > size)
   {
     GNUNET_break (0);
@@ -4305,9 +4303,9 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
   {
     /* Work around const limitation */
     char buf[ntohs (message->size)] GNUNET_ALIGN;
-    struct GNUNET_MESH_Unicast *copy;
+    struct GNUNET_MESH_Data *copy;
 
-    copy = (struct GNUNET_MESH_Unicast *) buf;
+    copy = (struct GNUNET_MESH_Data *) buf;
     memcpy (buf, data_msg, size);
     copy->oid = my_full_id;
     copy->tid = htonl (t->id.tid);
@@ -4334,7 +4332,7 @@ static void
 handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
                         const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_MESH_ToOrigin *data_msg;
+  struct GNUNET_MESH_Data *data_msg;
   struct MeshFlowControl *fc;
   struct MeshClient *c;
   struct MeshTunnel *t;
@@ -4352,11 +4350,11 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
-  data_msg = (struct GNUNET_MESH_ToOrigin *) message;
+  data_msg = (struct GNUNET_MESH_Data *) message;
 
   /* Sanity check for message size */
   size = ntohs (message->size);
-  if (sizeof (struct GNUNET_MESH_ToOrigin) +
+  if (sizeof (struct GNUNET_MESH_Data) +
       sizeof (struct GNUNET_MessageHeader) > size)
   {
     GNUNET_break (0);
@@ -4409,11 +4407,11 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
    */
   {
     char buf[ntohs (message->size)] GNUNET_ALIGN;
-    struct GNUNET_MESH_ToOrigin *copy;
+    struct GNUNET_MESH_Data *copy;
 
     /* Work around 'const' limitation */
     memcpy (buf, data_msg, size);
-    copy = (struct GNUNET_MESH_ToOrigin *) buf;
+    copy = (struct GNUNET_MESH_Data *) buf;
     GNUNET_PEER_resolve (t->id.oid, &copy->oid);
     copy->tid = htonl (t->id.tid);
     copy->ttl = htonl (default_ttl);

@@ -103,48 +103,13 @@ struct GNUNET_MESH_DestroyTunnel
 
 
 /**
- * Message for mesh data traffic to a particular destination from origin.
+ * Message for mesh data traffic.
  */
-struct GNUNET_MESH_Unicast
+struct GNUNET_MESH_Data
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_UNICAST
-     */
-  struct GNUNET_MessageHeader header;
-
-    /**
-     * TID of the tunnel
-     */
-  uint32_t tid GNUNET_PACKED;
-
-    /**
-     * Number of hops to live
-     */
-  uint32_t ttl GNUNET_PACKED;
-
-    /**
-     * Unique ID of the packet
-     */
-  uint32_t pid GNUNET_PACKED;
-
-    /**
-     * OID of the tunnel
-     */
-  struct GNUNET_PeerIdentity oid;
-
-    /**
-     * Payload follows
-     */
-};
-
-
-/**
- * Message for mesh data traffic from a tunnel participant to origin.
- */
-struct GNUNET_MESH_ToOrigin
-{
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN
+     * Type: GNUNET_MESSAGE_TYPE_MESH_UNICAST,
+     *       GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN
      */
   struct GNUNET_MessageHeader header;
 
