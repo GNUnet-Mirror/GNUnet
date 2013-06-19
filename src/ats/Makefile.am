@@ -207,7 +207,7 @@ test_ats_change_preference_LDADD = \
  
 if HAVE_LIBGLPK
 test_ats_mlp_SOURCES = \
-  $(GN_MLP_SRC) test_ats_mlp.c test_ats_api_common.c
+  $(GN_MLP_SRC) test_ats_mlp.c test_ats_api_common.c gnunet-service-ats_normalization.c
 test_ats_mlp_LDADD = \
   $(GN_LIBGLPK) \
   $(top_builddir)/src/util/libgnunetutil.la \

@@ -28,7 +28,9 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_ats_service.h"
-#include "gnunet-service-ats_addresses_mlp.h"
+#include "gnunet-service-ats-solver_mlp.h"
+#include "gnunet-service-ats_normalization.h"
+#include "gnunet_ats_service.h"
 #include "test_ats_api_common.h"
 
 /**
@@ -105,7 +107,6 @@ end_now (int res)
   		mlp = NULL;
   }
   GAS_normalization_stop ();
-
 	ret = res;
 }
 
@@ -123,6 +124,13 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Test ending with timeout\n"));
 	end_now (1);
+}
+
+
+static const double *
+get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
+{
+	return GAS_normalization_get_preferences (id);
 }
 
 
@@ -198,7 +206,7 @@ check (void *cls, char *const *args, const char *cfgfile,
 
   /* Init MLP solver */
   mlp  = GAS_mlp_init (cfg, stats, quotas, quotas_out, quotas_in,
-  		GNUNET_ATS_NetworkTypeCount, &bandwidth_changed_cb, NULL);
+  		GNUNET_ATS_NetworkTypeCount, &bandwidth_changed_cb, NULL, &get_preferences_cb, NULL);
   if (NULL == mlp)
   {
     	GNUNET_break (0);
