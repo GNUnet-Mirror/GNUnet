@@ -297,6 +297,7 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev);
 uint32_t
 GNUNET_MQ_assoc_add (struct GNUNET_MQ_Handle *mq, void *assoc_data);
 
+
 /**
  * Get the data associated with a request id in a queue
  *
@@ -317,7 +318,6 @@ GNUNET_MQ_assoc_get (struct GNUNET_MQ_Handle *mq, uint32_t request_id);
  */
 void *
 GNUNET_MQ_assoc_remove (struct GNUNET_MQ_Handle *mq, uint32_t request_id);
-
 
 
 /**
@@ -472,6 +472,7 @@ GNUNET_MQ_impl_current (struct GNUNET_MQ_Handle *mq);
  */
 void *
 GNUNET_MQ_impl_state (struct GNUNET_MQ_Handle *mq);
+
 
 /**
  * Mark the current message as irrevocably sent, but do not
