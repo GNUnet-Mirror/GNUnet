@@ -420,7 +420,7 @@ GAS_normalization_change_preference (void *src,
  * @return pointer to the values, can be indexed with GNUNET_ATS_PreferenceKind, default preferences if peer does not exist
  */
 const double *
-GAS_normalization_get_preferences (struct GNUNET_PeerIdentity *id)
+GAS_normalization_get_preferences (const struct GNUNET_PeerIdentity *id)
 {
 	GNUNET_assert (NULL != peers);
 	GNUNET_assert (NULL != id);

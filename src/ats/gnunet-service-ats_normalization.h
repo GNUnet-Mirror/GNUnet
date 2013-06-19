@@ -47,7 +47,7 @@ typedef void
  * @return pointer to the values, can be indexed with GNUNET_ATS_PreferenceKind, NULL if peer does not exist
  */
 const double *
-GAS_normalization_get_preferences (struct GNUNET_PeerIdentity *id);
+GAS_normalization_get_preferences (const struct GNUNET_PeerIdentity *id);
 
 
 /**

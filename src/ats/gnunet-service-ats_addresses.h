@@ -355,7 +355,7 @@ typedef void
  (*GAS_bandwidth_changed_cb) (void *cls, struct ATS_Address *address);
 
 typedef const double *
- (*GAS_get_preferences) (void *cls, struct GNUNET_PeerIdentity *id);
+ (*GAS_get_preferences) (void *cls, const struct GNUNET_PeerIdentity *id);
 
 
 /*

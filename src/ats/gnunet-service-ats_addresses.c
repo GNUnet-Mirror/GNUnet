@@ -33,7 +33,7 @@
 #include "gnunet-service-ats_scheduling.h"
 #include "gnunet-service-ats_reservations.h"
 #if HAVE_LIBGLPK
-#include "gnunet-service-ats_addresses_mlp.h"
+#include "gnunet-service-ats-solver_mlp.h"
 #endif
 #include "gnunet-service-ats-solver_proportional.h"
 
@@ -1310,7 +1310,7 @@ normalized_preference_changed_cb (void *cls,
 }
 
 const double *
-get_preferences_cb (void *cls, struct GNUNET_PeerIdentity *id)
+get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
 {
 	return GAS_normalization_get_preferences (id);
 }
