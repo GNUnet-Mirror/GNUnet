@@ -328,6 +328,26 @@ int
 GNUNET_DISK_file_get_identifiers (const char *filename, uint64_t * dev,
                                   uint64_t * ino)
 {
+#if WINDOWS
+  {
+    // FIXME NILS: test this
+    struct GNUNET_DISK_FileHandle *fh;
+    BY_HANDLE_FILE_INFORMATION info;
+    int succ;
+
+    fh = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ, 0);
+    if (fh == NULL)
+      return GNUNET_SYSERR;
+    succ = GetFileInformationByHandle (fh->h, &info);
+    GNUNET_DISK_file_close (fh);
+    if (!succ)
+    {
+      return GNUNET_SYSERR;
+    }
+    *dev = info.dwVolumeSerialNumber;
+    *ino = ((((uint64_t) info.nFileIndexHigh) << (sizeof (DWORD) * 8)) | info.nFileIndexLow);
+  }
+#else /* !WINDOWS */
 #if HAVE_STAT
   {
     struct stat sbuf;
@@ -362,28 +382,10 @@ GNUNET_DISK_file_get_identifiers (const char *filename, uint64_t * dev,
     *dev = ((uint64_t) fbuf.f_fsid.val[0]) << 32 ||
         ((uint64_t) fbuf.f_fsid.val[1]);
   }
-#elif WINDOWS
-  {
-    // FIXME NILS: test this
-    struct GNUNET_DISK_FileHandle *fh;
-    BY_HANDLE_FILE_INFORMATION info;
-    int succ;
-
-    fh = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ, 0);
-    if (fh == NULL)
-      return GNUNET_SYSERR;
-    succ = GetFileInformationByHandle (fh->h, &info);
-    GNUNET_DISK_file_close (fh);
-    if (!succ)
-    {
-      return GNUNET_SYSERR;
-    }
-    *dev = info.dwVolumeSerialNumber;
-    *ino = ((((uint64_t) info.nFileIndexHigh) << (sizeof (DWORD) * 8)) | info.nFileIndexLow);
-  }
 #else
   *dev = 0;
 #endif
+#endif /* !WINDOWS */
   return GNUNET_OK;
 }
 
