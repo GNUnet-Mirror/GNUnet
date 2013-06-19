@@ -428,18 +428,17 @@ GAS_mlp_address_delete (void *solver,
  * Changes the preferences for a peer in the MLP problem
  *
  * @param solver the MLP Handle
- * @param client client
+ * @param addresses the address hashmap
  * @param peer the peer
  * @param kind the kind to change the preference
- * @param score_abs the score
- * @param pref_rel the normalizes preference value
+ * @param pref_rel the relative score
  */
 void
 GAS_mlp_address_change_preference (void *solver,
-																	 struct GNUNET_CONTAINER_MultiHashMap *addresses,
-                                   const struct GNUNET_PeerIdentity *peer,
-                                   enum GNUNET_ATS_PreferenceKind kind,
-                                   double pref_rel);
+								   struct GNUNET_CONTAINER_MultiHashMap *addresses,
+								   const struct GNUNET_PeerIdentity *peer,
+								   enum GNUNET_ATS_PreferenceKind kind,
+								   double pref_rel);
 
 
 /**

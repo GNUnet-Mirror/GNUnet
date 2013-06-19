@@ -38,18 +38,17 @@
  * Changes the preferences for a peer in the problem
  *
  * @param solver the solver handle
- * @param client the client with this preference
+ * @param addresses the address hashmap
  * @param peer the peer to change the preference for
  * @param kind the kind to change the preference
  * @param pref_rel the normalized preference value for this kind over all clients
- * @param score the score
  */
 void
 GAS_proportional_address_change_preference (void *solver,
-																			 	 	 	struct GNUNET_CONTAINER_MultiHashMap *addresses,
-                                   	 	 	 	  const struct GNUNET_PeerIdentity *peer,
-                                   	 	 	 	  enum GNUNET_ATS_PreferenceKind kind,
-                                   	 	 	 	  double pref_rel);
+								 	 	 	struct GNUNET_CONTAINER_MultiHashMap *addresses,
+								 	 	 	const struct GNUNET_PeerIdentity *peer,
+								 	 	 	enum GNUNET_ATS_PreferenceKind kind,
+								 	 	 	double pref_rel);
 
 
 /**

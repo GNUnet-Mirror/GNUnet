@@ -1539,17 +1539,17 @@ GAS_mlp_stop_get_preferred_address (void *solver,
  * Changes the preferences for a peer in the MLP problem
  *
  * @param solver the MLP Handle
- * @param client client
+ * @param addresses the address hashmap
  * @param peer the peer
  * @param kind the kind to change the preference
- * @param score the score
+ * @param pref_rel the relative score
  */
 void
 GAS_mlp_address_change_preference (void *solver,
-																	 struct GNUNET_CONTAINER_MultiHashMap *addresses,
-																	 const struct GNUNET_PeerIdentity *peer,
-																	 enum GNUNET_ATS_PreferenceKind kind,
-																	 double pref_rel)
+								   struct GNUNET_CONTAINER_MultiHashMap *addresses,
+								   const struct GNUNET_PeerIdentity *peer,
+								   enum GNUNET_ATS_PreferenceKind kind,
+								   double pref_rel)
 {
   struct GAS_MLP_Handle *mlp = solver;
   struct ATS_Peer *p = NULL;

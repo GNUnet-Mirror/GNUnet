@@ -667,14 +667,14 @@ GAS_addresses_handle_backoff_reset (struct GAS_Addresses_Handle *handle,
  * @param client the client sending this request
  * @param peer the peer id
  * @param kind the preference kind to change
- * @param score the new preference score
+ * @param score_abs the new preference score
  */
 void
 GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
                                  void *client,
                                  const struct GNUNET_PeerIdentity *peer,
                                  enum GNUNET_ATS_PreferenceKind kind,
-                                 float score);
+                                 float score_abs);
 
 
 /**

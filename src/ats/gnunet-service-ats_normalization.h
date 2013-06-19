@@ -49,14 +49,14 @@ typedef void
 const double *
 GAS_normalization_get_preferences (struct GNUNET_PeerIdentity *id);
 
+
 /**
- * Changes the preferences for a peer in the problem
+ * Normalize an updated preference value
  *
- * @param solver the solver handle
- * @param client the client with this preference
+ * @param src the client with this preference
  * @param peer the peer to change the preference for
  * @param kind the kind to change the preference
- * @param score the normalized score
+ * @param score_abs the normalized score
  */
 float
 GAS_normalization_change_preference (void *src,

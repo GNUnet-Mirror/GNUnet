@@ -1315,7 +1315,7 @@ normalized_preference_changed_cb (void *cls,
  * @param client the client sending this request
  * @param peer the peer id
  * @param kind the preference kind to change
- * @param score the new preference score
+ * @param score_abs the new preference score
  */
 void
 GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
