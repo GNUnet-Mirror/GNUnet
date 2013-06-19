@@ -206,10 +206,13 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
 
 
 /**
- * Destroy an existing tunnel. The existing end callback for the tunnel will
- * be called.
+ * Destroy an existing tunnel.
+ * 
+ * The existing end callback for the tunnel will be called immediately.
+ * Any pending outgoing messages will be sent but no incoming messages will be
+ * accepted and no data callbacks will be called.
  *
- * @param tunnel tunnel handle
+ * @param tunnel Tunnel handle, becomes invalid after this call.
  */
 void
 GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel);
