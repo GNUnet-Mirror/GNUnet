@@ -112,6 +112,7 @@ end_now (int res)
   		GAS_mlp_done (mlp);
   		mlp = NULL;
   }
+  GAS_normalization_stop ();
 
 	ret = res;
 }
@@ -193,6 +194,7 @@ check (void *cls, char *const *args, const char *cfgfile,
       end_now (1);
       return;
   }
+  GAS_normalization_start (NULL, NULL);
 
   /* Setup address hashmap */
   addresses = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
