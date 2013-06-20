@@ -24,10 +24,11 @@
  * @author Maximilian Szengel
  */
 #include "platform.h"
-#include "gnunet_container_lib.h"
-#include "gnunet_crypto_lib.h"
-#include "gnunet_regex_lib.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_regex_service.h"
+#include "regex_internal_lib.h"
 #include "regex_internal.h"
+
 
 /**
  * Set this to GNUNET_YES to enable state naming. Used to debug NFA->DFA
@@ -38,17 +39,17 @@
 /**
  * Set of states using MDLL API.
  */
-struct GNUNET_REGEX_StateSet_MDLL
+struct REGEX_ITERNAL_StateSet_MDLL
 {
   /**
    * MDLL of states.
    */
-  struct GNUNET_REGEX_State *head;
+  struct REGEX_ITERNAL_State *head;
 
   /**
    * MDLL of states.
    */
-  struct GNUNET_REGEX_State *tail;
+  struct REGEX_ITERNAL_State *tail;
 
   /**
    * Length of the MDLL.
@@ -64,8 +65,8 @@ struct GNUNET_REGEX_StateSet_MDLL
  * @param state state to be appended
  */
 static void
-state_set_append (struct GNUNET_REGEX_StateSet *set,
-		  struct GNUNET_REGEX_State *state)
+state_set_append (struct REGEX_ITERNAL_StateSet *set,
+		  struct REGEX_ITERNAL_State *state)
 {
   if (set->off == set->size)
     GNUNET_array_grow (set->states, set->size, set->size * 2 + 4);
@@ -103,12 +104,12 @@ nullstrcmp (const char *str1, const char *str2)
  * @param to_state state to where the transition should point to
  */
 static void
-state_add_transition (struct GNUNET_REGEX_Context *ctx,
-                      struct GNUNET_REGEX_State *from_state, const char *label,
-                      struct GNUNET_REGEX_State *to_state)
+state_add_transition (struct REGEX_ITERNAL_Context *ctx,
+                      struct REGEX_ITERNAL_State *from_state, const char *label,
+                      struct REGEX_ITERNAL_State *to_state)
 {
-  struct GNUNET_REGEX_Transition *t;
-  struct GNUNET_REGEX_Transition *oth;
+  struct REGEX_ITERNAL_Transition *t;
+  struct REGEX_ITERNAL_Transition *oth;
 
   if (NULL == from_state)
   {
@@ -131,7 +132,7 @@ state_add_transition (struct GNUNET_REGEX_Context *ctx,
       break;
   }
 
-  t = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Transition));
+  t = GNUNET_malloc (sizeof (struct REGEX_ITERNAL_Transition));
   if (NULL != ctx)
     t->id = ctx->transition_id++;
   if (NULL != label)
@@ -155,8 +156,8 @@ state_add_transition (struct GNUNET_REGEX_Context *ctx,
  * @param transition transition that should be removed from state 'state'.
  */
 static void
-state_remove_transition (struct GNUNET_REGEX_State *state,
-                         struct GNUNET_REGEX_Transition *transition)
+state_remove_transition (struct REGEX_ITERNAL_State *state,
+                         struct REGEX_ITERNAL_Transition *transition)
 {
   if (NULL == state || NULL == transition)
     return;
@@ -187,8 +188,8 @@ state_remove_transition (struct GNUNET_REGEX_State *state,
 static int
 state_compare (const void *a, const void *b)
 {
-  struct GNUNET_REGEX_State **s1 = (struct GNUNET_REGEX_State **) a;
-  struct GNUNET_REGEX_State **s2 = (struct GNUNET_REGEX_State **) b;
+  struct REGEX_ITERNAL_State **s1 = (struct REGEX_ITERNAL_State **) a;
+  struct REGEX_ITERNAL_State **s2 = (struct REGEX_ITERNAL_State **) b;
 
   return (*s1)->id - (*s2)->id;
 }
@@ -204,9 +205,9 @@ state_compare (const void *a, const void *b)
  * @return number of edges.
  */
 static unsigned int
-state_get_edges (struct GNUNET_REGEX_State *s, struct GNUNET_REGEX_Edge *edges)
+state_get_edges (struct REGEX_ITERNAL_State *s, struct REGEX_ITERNAL_Edge *edges)
 {
-  struct GNUNET_REGEX_Transition *t;
+  struct REGEX_ITERNAL_Transition *t;
   unsigned int count;
 
   if (NULL == s)
@@ -236,8 +237,8 @@ state_get_edges (struct GNUNET_REGEX_State *s, struct GNUNET_REGEX_Edge *edges)
  * @return 0 if the sets are equal, otherwise non-zero
  */
 static int
-state_set_compare (struct GNUNET_REGEX_StateSet *sset1,
-                   struct GNUNET_REGEX_StateSet *sset2)
+state_set_compare (struct REGEX_ITERNAL_StateSet *sset1,
+                   struct REGEX_ITERNAL_StateSet *sset2)
 {
   int result;
   unsigned int i;
@@ -263,7 +264,7 @@ state_set_compare (struct GNUNET_REGEX_StateSet *sset1,
  * @param set set to be cleared
  */
 static void
-state_set_clear (struct GNUNET_REGEX_StateSet *set)
+state_set_clear (struct REGEX_ITERNAL_StateSet *set)
 {
   GNUNET_array_grow (set->states, set->size, 0);
   set->off = 0;
@@ -277,7 +278,7 @@ state_set_clear (struct GNUNET_REGEX_StateSet *set)
  * @param a automaton to be cleared
  */
 static void
-automaton_fragment_clear (struct GNUNET_REGEX_Automaton *a)
+automaton_fragment_clear (struct REGEX_ITERNAL_Automaton *a)
 {
   if (NULL == a)
     return;
@@ -297,10 +298,10 @@ automaton_fragment_clear (struct GNUNET_REGEX_Automaton *a)
  * @param s state that should be destroyed
  */
 static void
-automaton_destroy_state (struct GNUNET_REGEX_State *s)
+automaton_destroy_state (struct REGEX_ITERNAL_State *s)
 {
-  struct GNUNET_REGEX_Transition *t;
-  struct GNUNET_REGEX_Transition *next_t;
+  struct REGEX_ITERNAL_Transition *t;
+  struct REGEX_ITERNAL_Transition *next_t;
 
   if (NULL == s)
     return;
@@ -327,12 +328,12 @@ automaton_destroy_state (struct GNUNET_REGEX_State *s)
  * @param s state to remove
  */
 static void
-automaton_remove_state (struct GNUNET_REGEX_Automaton *a,
-                        struct GNUNET_REGEX_State *s)
+automaton_remove_state (struct REGEX_ITERNAL_Automaton *a,
+                        struct REGEX_ITERNAL_State *s)
 {
-  struct GNUNET_REGEX_State *s_check;
-  struct GNUNET_REGEX_Transition *t_check;
-  struct GNUNET_REGEX_Transition *t_check_next;
+  struct REGEX_ITERNAL_State *s_check;
+  struct REGEX_ITERNAL_Transition *t_check;
+  struct REGEX_ITERNAL_Transition *t_check_next;
 
   if (NULL == a || NULL == s)
     return;
@@ -367,15 +368,15 @@ automaton_remove_state (struct GNUNET_REGEX_Automaton *a,
  * @param s2 second state, will be destroyed
  */
 static void
-automaton_merge_states (struct GNUNET_REGEX_Context *ctx,
-                        struct GNUNET_REGEX_Automaton *a,
-                        struct GNUNET_REGEX_State *s1,
-                        struct GNUNET_REGEX_State *s2)
+automaton_merge_states (struct REGEX_ITERNAL_Context *ctx,
+                        struct REGEX_ITERNAL_Automaton *a,
+                        struct REGEX_ITERNAL_State *s1,
+                        struct REGEX_ITERNAL_State *s2)
 {
-  struct GNUNET_REGEX_State *s_check;
-  struct GNUNET_REGEX_Transition *t_check;
-  struct GNUNET_REGEX_Transition *t;
-  struct GNUNET_REGEX_Transition *t_next;
+  struct REGEX_ITERNAL_State *s_check;
+  struct REGEX_ITERNAL_Transition *t_check;
+  struct REGEX_ITERNAL_Transition *t;
+  struct REGEX_ITERNAL_Transition *t_next;
   int is_dup;
 
   if (s1 == s2)
@@ -436,8 +437,8 @@ automaton_merge_states (struct GNUNET_REGEX_Context *ctx,
  * @param s state that should be added
  */
 static void
-automaton_add_state (struct GNUNET_REGEX_Automaton *a,
-                     struct GNUNET_REGEX_State *s)
+automaton_add_state (struct REGEX_ITERNAL_Automaton *a,
+                     struct REGEX_ITERNAL_State *s)
 {
   GNUNET_CONTAINER_DLL_insert (a->states_head, a->states_tail, s);
   a->state_count++;
@@ -459,12 +460,12 @@ automaton_add_state (struct GNUNET_REGEX_Automaton *a,
  * @param action_cls closure for action.
  */
 static void
-automaton_state_traverse (struct GNUNET_REGEX_State *s, int *marks,
+automaton_state_traverse (struct REGEX_ITERNAL_State *s, int *marks,
                           unsigned int *count,
-                          GNUNET_REGEX_traverse_check check, void *check_cls,
-                          GNUNET_REGEX_traverse_action action, void *action_cls)
+                          REGEX_ITERNAL_traverse_check check, void *check_cls,
+                          REGEX_ITERNAL_traverse_action action, void *action_cls)
 {
-  struct GNUNET_REGEX_Transition *t;
+  struct REGEX_ITERNAL_Transition *t;
 
   if (GNUNET_YES == marks[s->traversal_id])
     return;
@@ -502,15 +503,15 @@ automaton_state_traverse (struct GNUNET_REGEX_State *s, int *marks,
  * @param action_cls closure for action
  */
 void
-GNUNET_REGEX_automaton_traverse (const struct GNUNET_REGEX_Automaton *a,
-                                 struct GNUNET_REGEX_State *start,
-                                 GNUNET_REGEX_traverse_check check,
+REGEX_ITERNAL_automaton_traverse (const struct REGEX_ITERNAL_Automaton *a,
+                                 struct REGEX_ITERNAL_State *start,
+                                 REGEX_ITERNAL_traverse_check check,
                                  void *check_cls,
-                                 GNUNET_REGEX_traverse_action action,
+                                 REGEX_ITERNAL_traverse_action action,
                                  void *action_cls)
 {
   unsigned int count;
-  struct GNUNET_REGEX_State *s;
+  struct REGEX_ITERNAL_State *s;
 
   if (NULL == a || 0 == a->state_count)
     return;
@@ -1155,7 +1156,7 @@ sb_strkcmp (const struct StringBuffer *str1,
 
 
 /**
- * Helper function used as 'action' in 'GNUNET_REGEX_automaton_traverse'
+ * Helper function used as 'action' in 'REGEX_ITERNAL_automaton_traverse'
  * function to create the depth-first numbering of the states.
  *
  * @param cls states array.
@@ -1164,9 +1165,9 @@ sb_strkcmp (const struct StringBuffer *str1,
  */
 static void
 number_states (void *cls, const unsigned int count,
-               struct GNUNET_REGEX_State *s)
+               struct REGEX_ITERNAL_State *s)
 {
-  struct GNUNET_REGEX_State **states = cls;
+  struct REGEX_ITERNAL_State **states = cls;
 
   s->dfs_id = count;
   if (NULL != states)
@@ -1603,16 +1604,16 @@ automaton_create_proofs_simplify (const struct StringBuffer *R_last_ij,
  * @param a automaton for which to assign proofs and hashes, must not be NULL
  */
 static int
-automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
+automaton_create_proofs (struct REGEX_ITERNAL_Automaton *a)
 {
   unsigned int n = a->state_count;
-  struct GNUNET_REGEX_State *states[n];
+  struct REGEX_ITERNAL_State *states[n];
   struct StringBuffer *R_last;
   struct StringBuffer *R_cur;
   struct StringBuffer R_cur_r;
   struct StringBuffer R_cur_l;
   struct StringBuffer *R_swap;
-  struct GNUNET_REGEX_Transition *t;
+  struct REGEX_ITERNAL_Transition *t;
   struct StringBuffer complete_regex;
   unsigned int i;
   unsigned int j;
@@ -1630,7 +1631,7 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
   }
 
   /* create depth-first numbering of the states, initializes 'state' */
-  GNUNET_REGEX_automaton_traverse (a, a->start, NULL, NULL, &number_states,
+  REGEX_ITERNAL_automaton_traverse (a, a->start, NULL, NULL, &number_states,
                                    states);
 
   for (i = 0; i < n; i++)
@@ -1762,18 +1763,18 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
  *
  * @return new DFA state
  */
-static struct GNUNET_REGEX_State *
-dfa_state_create (struct GNUNET_REGEX_Context *ctx,
-                  struct GNUNET_REGEX_StateSet *nfa_states)
+static struct REGEX_ITERNAL_State *
+dfa_state_create (struct REGEX_ITERNAL_Context *ctx,
+                  struct REGEX_ITERNAL_StateSet *nfa_states)
 {
-  struct GNUNET_REGEX_State *s;
+  struct REGEX_ITERNAL_State *s;
   char *pos;
   size_t len;
-  struct GNUNET_REGEX_State *cstate;
-  struct GNUNET_REGEX_Transition *ctran;
+  struct REGEX_ITERNAL_State *cstate;
+  struct REGEX_ITERNAL_Transition *ctran;
   unsigned int i;
 
-  s = GNUNET_malloc (sizeof (struct GNUNET_REGEX_State));
+  s = GNUNET_malloc (sizeof (struct REGEX_ITERNAL_State));
   s->id = ctx->state_id++;
   s->index = -1;
   s->lowlink = -1;
@@ -1815,7 +1816,7 @@ dfa_state_create (struct GNUNET_REGEX_Context *ctx,
   pos[-1] = '}';
   s->name = GNUNET_realloc (s->name, strlen (s->name) + 1);
 
-  memset (nfa_states, 0, sizeof (struct GNUNET_REGEX_StateSet));
+  memset (nfa_states, 0, sizeof (struct REGEX_ITERNAL_StateSet));
   return s;
 }
 
@@ -1834,10 +1835,10 @@ dfa_state_create (struct GNUNET_REGEX_Context *ctx,
  * @return length of the substring comsumed from 'str'
  */
 static unsigned int
-dfa_move (struct GNUNET_REGEX_State **s, const char *str)
+dfa_move (struct REGEX_ITERNAL_State **s, const char *str)
 {
-  struct GNUNET_REGEX_Transition *t;
-  struct GNUNET_REGEX_State *new_s;
+  struct REGEX_ITERNAL_Transition *t;
+  struct REGEX_ITERNAL_State *new_s;
   unsigned int len;
   unsigned int max_len;
 
@@ -1875,7 +1876,7 @@ dfa_move (struct GNUNET_REGEX_State **s, const char *str)
  * @param s state where the marked attribute will be set to GNUNET_YES.
  */
 static void
-mark_states (void *cls, const unsigned int count, struct GNUNET_REGEX_State *s)
+mark_states (void *cls, const unsigned int count, struct REGEX_ITERNAL_State *s)
 {
   s->marked = GNUNET_YES;
 }
@@ -1888,17 +1889,17 @@ mark_states (void *cls, const unsigned int count, struct GNUNET_REGEX_State *s)
  * @param a DFA automaton
  */
 static void
-dfa_remove_unreachable_states (struct GNUNET_REGEX_Automaton *a)
+dfa_remove_unreachable_states (struct REGEX_ITERNAL_Automaton *a)
 {
-  struct GNUNET_REGEX_State *s;
-  struct GNUNET_REGEX_State *s_next;
+  struct REGEX_ITERNAL_State *s;
+  struct REGEX_ITERNAL_State *s_next;
 
   /* 1. unmark all states */
   for (s = a->states_head; NULL != s; s = s->next)
     s->marked = GNUNET_NO;
 
   /* 2. traverse dfa from start state and mark all visited states */
-  GNUNET_REGEX_automaton_traverse (a, a->start, NULL, NULL, &mark_states, NULL);
+  REGEX_ITERNAL_automaton_traverse (a, a->start, NULL, NULL, &mark_states, NULL);
 
   /* 3. delete all states that were not visited */
   for (s = a->states_head; NULL != s; s = s_next)
@@ -1917,11 +1918,11 @@ dfa_remove_unreachable_states (struct GNUNET_REGEX_Automaton *a)
  * @param a DFA automaton
  */
 static void
-dfa_remove_dead_states (struct GNUNET_REGEX_Automaton *a)
+dfa_remove_dead_states (struct REGEX_ITERNAL_Automaton *a)
 {
-  struct GNUNET_REGEX_State *s;
-  struct GNUNET_REGEX_State *s_next;
-  struct GNUNET_REGEX_Transition *t;
+  struct REGEX_ITERNAL_State *s;
+  struct REGEX_ITERNAL_State *s_next;
+  struct REGEX_ITERNAL_Transition *t;
   int dead;
 
   GNUNET_assert (DFA == a->type);
@@ -1960,16 +1961,16 @@ dfa_remove_dead_states (struct GNUNET_REGEX_Automaton *a)
  * @return GNUNET_OK on success
  */
 static int
-dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
-                                     struct GNUNET_REGEX_Automaton *a)
+dfa_merge_nondistinguishable_states (struct REGEX_ITERNAL_Context *ctx,
+                                     struct REGEX_ITERNAL_Automaton *a)
 {
   uint32_t *table;
-  struct GNUNET_REGEX_State *s1;
-  struct GNUNET_REGEX_State *s2;
-  struct GNUNET_REGEX_Transition *t1;
-  struct GNUNET_REGEX_Transition *t2;
-  struct GNUNET_REGEX_State *s1_next;
-  struct GNUNET_REGEX_State *s2_next;
+  struct REGEX_ITERNAL_State *s1;
+  struct REGEX_ITERNAL_State *s2;
+  struct REGEX_ITERNAL_Transition *t1;
+  struct REGEX_ITERNAL_Transition *t2;
+  struct REGEX_ITERNAL_State *s1_next;
+  struct REGEX_ITERNAL_State *s2_next;
   int change;
   unsigned int num_equal_edges;
   unsigned int i;
@@ -2077,8 +2078,8 @@ dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
  * @return GNUNET_OK on success
  */
 static int
-dfa_minimize (struct GNUNET_REGEX_Context *ctx,
-              struct GNUNET_REGEX_Automaton *a)
+dfa_minimize (struct REGEX_ITERNAL_Context *ctx,
+              struct REGEX_ITERNAL_Automaton *a)
 {
   if (NULL == a)
     return GNUNET_SYSERR;
@@ -2101,7 +2102,7 @@ dfa_minimize (struct GNUNET_REGEX_Context *ctx,
 /**
  * Context for adding strided transitions to a DFA.
  */
-struct GNUNET_REGEX_Strided_Context
+struct REGEX_ITERNAL_Strided_Context
 {
   /**
    * Length of the strides.
@@ -2112,12 +2113,12 @@ struct GNUNET_REGEX_Strided_Context
    * Strided transitions DLL. New strided transitions will be stored in this DLL
    * and afterwards added to the DFA.
    */
-  struct GNUNET_REGEX_Transition *transitions_head;
+  struct REGEX_ITERNAL_Transition *transitions_head;
 
   /**
    * Strided transitions DLL.
    */
-  struct GNUNET_REGEX_Transition *transitions_tail;
+  struct REGEX_ITERNAL_Transition *transitions_tail;
 };
 
 
@@ -2133,16 +2134,16 @@ struct GNUNET_REGEX_Strided_Context
  */
 void
 dfa_add_multi_strides_helper (void *cls, const unsigned int depth, char *label,
-                              struct GNUNET_REGEX_State *start,
-                              struct GNUNET_REGEX_State *s)
+                              struct REGEX_ITERNAL_State *start,
+                              struct REGEX_ITERNAL_State *s)
 {
-  struct GNUNET_REGEX_Strided_Context *ctx = cls;
-  struct GNUNET_REGEX_Transition *t;
+  struct REGEX_ITERNAL_Strided_Context *ctx = cls;
+  struct REGEX_ITERNAL_Transition *t;
   char *new_label;
 
   if (depth == ctx->stride)
   {
-    t = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Transition));
+    t = GNUNET_malloc (sizeof (struct REGEX_ITERNAL_Transition));
     t->label = GNUNET_strdup (label);
     t->to_state = s;
     t->from_state = start;
@@ -2183,7 +2184,7 @@ dfa_add_multi_strides_helper (void *cls, const unsigned int depth, char *label,
  */
 void
 dfa_add_multi_strides (void *cls, const unsigned int count,
-                       struct GNUNET_REGEX_State *s)
+                       struct REGEX_ITERNAL_State *s)
 {
   dfa_add_multi_strides_helper (cls, 0, NULL, s, s);
 }
@@ -2197,19 +2198,19 @@ dfa_add_multi_strides (void *cls, const unsigned int count,
  * @param stride_len length of the strides.
  */
 void
-GNUNET_REGEX_dfa_add_multi_strides (struct GNUNET_REGEX_Context *regex_ctx,
-                                    struct GNUNET_REGEX_Automaton *dfa,
+REGEX_ITERNAL_dfa_add_multi_strides (struct REGEX_ITERNAL_Context *regex_ctx,
+                                    struct REGEX_ITERNAL_Automaton *dfa,
                                     const unsigned int stride_len)
 {
-  struct GNUNET_REGEX_Strided_Context ctx = { stride_len, NULL, NULL };
-  struct GNUNET_REGEX_Transition *t;
-  struct GNUNET_REGEX_Transition *t_next;
+  struct REGEX_ITERNAL_Strided_Context ctx = { stride_len, NULL, NULL };
+  struct REGEX_ITERNAL_Transition *t;
+  struct REGEX_ITERNAL_Transition *t_next;
 
   if (1 > stride_len || GNUNET_YES == dfa->is_multistrided)
     return;
 
   /* Compute the new transitions of given stride_len */
-  GNUNET_REGEX_automaton_traverse (dfa, dfa->start, NULL, NULL,
+  REGEX_ITERNAL_automaton_traverse (dfa, dfa->start, NULL, NULL,
                                    &dfa_add_multi_strides, &ctx);
 
   /* Add all the new transitions to the automaton. */
@@ -2240,14 +2241,14 @@ GNUNET_REGEX_dfa_add_multi_strides (struct GNUNET_REGEX_Context *regex_ctx,
  * @param transitions_tail transitions DLL.
  */
 void
-dfa_compress_paths_helper (struct GNUNET_REGEX_Automaton *dfa,
-                           struct GNUNET_REGEX_State *start,
-                           struct GNUNET_REGEX_State *cur, char *label,
+dfa_compress_paths_helper (struct REGEX_ITERNAL_Automaton *dfa,
+                           struct REGEX_ITERNAL_State *start,
+                           struct REGEX_ITERNAL_State *cur, char *label,
                            unsigned int max_len,
-                           struct GNUNET_REGEX_Transition **transitions_head,
-                           struct GNUNET_REGEX_Transition **transitions_tail)
+                           struct REGEX_ITERNAL_Transition **transitions_head,
+                           struct REGEX_ITERNAL_Transition **transitions_tail)
 {
-  struct GNUNET_REGEX_Transition *t;
+  struct REGEX_ITERNAL_Transition *t;
   char *new_label;
 
 
@@ -2257,7 +2258,7 @@ dfa_compress_paths_helper (struct GNUNET_REGEX_Automaton *dfa,
                                        max_len == strlen (label)) ||
        (start == dfa->start && GNUNET_REGEX_INITIAL_BYTES == strlen (label))))
   {
-    t = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Transition));
+    t = GNUNET_malloc (sizeof (struct REGEX_ITERNAL_Transition));
     t->label = GNUNET_strdup (label);
     t->to_state = cur;
     t->from_state = start;
@@ -2305,15 +2306,15 @@ dfa_compress_paths_helper (struct GNUNET_REGEX_Automaton *dfa,
  * @param max_len maximal length of the compressed paths.
  */
 static void
-dfa_compress_paths (struct GNUNET_REGEX_Context *regex_ctx,
-                    struct GNUNET_REGEX_Automaton *dfa, unsigned int max_len)
+dfa_compress_paths (struct REGEX_ITERNAL_Context *regex_ctx,
+                    struct REGEX_ITERNAL_Automaton *dfa, unsigned int max_len)
 {
-  struct GNUNET_REGEX_State *s;
-  struct GNUNET_REGEX_State *s_next;
-  struct GNUNET_REGEX_Transition *t;
-  struct GNUNET_REGEX_Transition *t_next;
-  struct GNUNET_REGEX_Transition *transitions_head = NULL;
-  struct GNUNET_REGEX_Transition *transitions_tail = NULL;
+  struct REGEX_ITERNAL_State *s;
+  struct REGEX_ITERNAL_State *s_next;
+  struct REGEX_ITERNAL_Transition *t;
+  struct REGEX_ITERNAL_Transition *t_next;
+  struct REGEX_ITERNAL_Transition *transitions_head = NULL;
+  struct REGEX_ITERNAL_Transition *transitions_tail = NULL;
 
   if (NULL == dfa)
     return;
@@ -2368,13 +2369,13 @@ dfa_compress_paths (struct GNUNET_REGEX_Context *regex_ctx,
  *
  * @return new NFA fragment
  */
-static struct GNUNET_REGEX_Automaton *
-nfa_fragment_create (struct GNUNET_REGEX_State *start,
-                     struct GNUNET_REGEX_State *end)
+static struct REGEX_ITERNAL_Automaton *
+nfa_fragment_create (struct REGEX_ITERNAL_State *start,
+                     struct REGEX_ITERNAL_State *end)
 {
-  struct GNUNET_REGEX_Automaton *n;
+  struct REGEX_ITERNAL_Automaton *n;
 
-  n = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Automaton));
+  n = GNUNET_malloc (sizeof (struct REGEX_ITERNAL_Automaton));
 
   n->type = NFA;
   n->start = NULL;
@@ -2404,11 +2405,11 @@ nfa_fragment_create (struct GNUNET_REGEX_State *start,
  * @param states_tail tail of the DLL of states
  */
 static void
-nfa_add_states (struct GNUNET_REGEX_Automaton *n,
-                struct GNUNET_REGEX_State *states_head,
-                struct GNUNET_REGEX_State *states_tail)
+nfa_add_states (struct REGEX_ITERNAL_Automaton *n,
+                struct REGEX_ITERNAL_State *states_head,
+                struct REGEX_ITERNAL_State *states_tail)
 {
-  struct GNUNET_REGEX_State *s;
+  struct REGEX_ITERNAL_State *s;
 
   if (NULL == n || NULL == states_head)
   {
@@ -2442,12 +2443,12 @@ nfa_add_states (struct GNUNET_REGEX_Automaton *n,
  *
  * @return new NFA state
  */
-static struct GNUNET_REGEX_State *
-nfa_state_create (struct GNUNET_REGEX_Context *ctx, int accepting)
+static struct REGEX_ITERNAL_State *
+nfa_state_create (struct REGEX_ITERNAL_Context *ctx, int accepting)
 {
-  struct GNUNET_REGEX_State *s;
+  struct REGEX_ITERNAL_State *s;
 
-  s = GNUNET_malloc (sizeof (struct GNUNET_REGEX_State));
+  s = GNUNET_malloc (sizeof (struct REGEX_ITERNAL_State));
   s->id = ctx->state_id++;
   s->accepting = accepting;
   s->marked = GNUNET_NO;
@@ -2472,18 +2473,18 @@ nfa_state_create (struct GNUNET_REGEX_Context *ctx, int accepting)
  *                pass NULL for epsilon transition
  */
 static void
-nfa_closure_set_create (struct GNUNET_REGEX_StateSet *ret,
-			struct GNUNET_REGEX_Automaton *nfa,
-                        struct GNUNET_REGEX_StateSet *states, const char *label)
+nfa_closure_set_create (struct REGEX_ITERNAL_StateSet *ret,
+			struct REGEX_ITERNAL_Automaton *nfa,
+                        struct REGEX_ITERNAL_StateSet *states, const char *label)
 {
-  struct GNUNET_REGEX_State *s;
+  struct REGEX_ITERNAL_State *s;
   unsigned int i;
-  struct GNUNET_REGEX_StateSet_MDLL cls_stack;
-  struct GNUNET_REGEX_State *clsstate;
-  struct GNUNET_REGEX_State *currentstate;
-  struct GNUNET_REGEX_Transition *ctran;
+  struct REGEX_ITERNAL_StateSet_MDLL cls_stack;
+  struct REGEX_ITERNAL_State *clsstate;
+  struct REGEX_ITERNAL_State *currentstate;
+  struct REGEX_ITERNAL_Transition *ctran;
 
-  memset (ret, 0, sizeof (struct GNUNET_REGEX_StateSet));
+  memset (ret, 0, sizeof (struct REGEX_ITERNAL_StateSet));
   if (NULL == states)
     return;
 
@@ -2527,7 +2528,7 @@ nfa_closure_set_create (struct GNUNET_REGEX_StateSet *ret,
     ret->states[i]->contained = 0;
 
   if (ret->off > 1)
-    qsort (ret->states, ret->off, sizeof (struct GNUNET_REGEX_State *),
+    qsort (ret->states, ret->off, sizeof (struct REGEX_ITERNAL_State *),
            &state_compare);
 }
 
@@ -2538,11 +2539,11 @@ nfa_closure_set_create (struct GNUNET_REGEX_StateSet *ret,
  * @param ctx context
  */
 static void
-nfa_add_concatenation (struct GNUNET_REGEX_Context *ctx)
+nfa_add_concatenation (struct REGEX_ITERNAL_Context *ctx)
 {
-  struct GNUNET_REGEX_Automaton *a;
-  struct GNUNET_REGEX_Automaton *b;
-  struct GNUNET_REGEX_Automaton *new_nfa;
+  struct REGEX_ITERNAL_Automaton *a;
+  struct REGEX_ITERNAL_Automaton *b;
+  struct REGEX_ITERNAL_Automaton *new_nfa;
 
   b = ctx->stack_tail;
   GNUNET_assert (NULL != b);
@@ -2574,12 +2575,12 @@ nfa_add_concatenation (struct GNUNET_REGEX_Context *ctx)
  * @param ctx context
  */
 static void
-nfa_add_star_op (struct GNUNET_REGEX_Context *ctx)
+nfa_add_star_op (struct REGEX_ITERNAL_Context *ctx)
 {
-  struct GNUNET_REGEX_Automaton *a;
-  struct GNUNET_REGEX_Automaton *new_nfa;
-  struct GNUNET_REGEX_State *start;
-  struct GNUNET_REGEX_State *end;
+  struct REGEX_ITERNAL_Automaton *a;
+  struct REGEX_ITERNAL_Automaton *new_nfa;
+  struct REGEX_ITERNAL_State *start;
+  struct REGEX_ITERNAL_State *end;
 
   a = ctx->stack_tail;
 
@@ -2617,9 +2618,9 @@ nfa_add_star_op (struct GNUNET_REGEX_Context *ctx)
  * @param ctx context
  */
 static void
-nfa_add_plus_op (struct GNUNET_REGEX_Context *ctx)
+nfa_add_plus_op (struct REGEX_ITERNAL_Context *ctx)
 {
-  struct GNUNET_REGEX_Automaton *a;
+  struct REGEX_ITERNAL_Automaton *a;
 
   a = ctx->stack_tail;
 
@@ -2644,12 +2645,12 @@ nfa_add_plus_op (struct GNUNET_REGEX_Context *ctx)
  * @param ctx context
  */
 static void
-nfa_add_question_op (struct GNUNET_REGEX_Context *ctx)
+nfa_add_question_op (struct REGEX_ITERNAL_Context *ctx)
 {
-  struct GNUNET_REGEX_Automaton *a;
-  struct GNUNET_REGEX_Automaton *new_nfa;
-  struct GNUNET_REGEX_State *start;
-  struct GNUNET_REGEX_State *end;
+  struct REGEX_ITERNAL_Automaton *a;
+  struct REGEX_ITERNAL_Automaton *new_nfa;
+  struct REGEX_ITERNAL_State *start;
+  struct REGEX_ITERNAL_State *end;
 
   a = ctx->stack_tail;
 
@@ -2685,13 +2686,13 @@ nfa_add_question_op (struct GNUNET_REGEX_Context *ctx)
  * @param ctx context
  */
 static void
-nfa_add_alternation (struct GNUNET_REGEX_Context *ctx)
+nfa_add_alternation (struct REGEX_ITERNAL_Context *ctx)
 {
-  struct GNUNET_REGEX_Automaton *a;
-  struct GNUNET_REGEX_Automaton *b;
-  struct GNUNET_REGEX_Automaton *new_nfa;
-  struct GNUNET_REGEX_State *start;
-  struct GNUNET_REGEX_State *end;
+  struct REGEX_ITERNAL_Automaton *a;
+  struct REGEX_ITERNAL_Automaton *b;
+  struct REGEX_ITERNAL_Automaton *new_nfa;
+  struct REGEX_ITERNAL_State *start;
+  struct REGEX_ITERNAL_State *end;
 
   b = ctx->stack_tail;
   GNUNET_assert (NULL != b);
@@ -2729,11 +2730,11 @@ nfa_add_alternation (struct GNUNET_REGEX_Context *ctx)
  * @param label label for nfa transition
  */
 static void
-nfa_add_label (struct GNUNET_REGEX_Context *ctx, const char *label)
+nfa_add_label (struct REGEX_ITERNAL_Context *ctx, const char *label)
 {
-  struct GNUNET_REGEX_Automaton *n;
-  struct GNUNET_REGEX_State *start;
-  struct GNUNET_REGEX_State *end;
+  struct REGEX_ITERNAL_Automaton *n;
+  struct REGEX_ITERNAL_State *start;
+  struct REGEX_ITERNAL_State *end;
 
   GNUNET_assert (NULL != ctx);
 
@@ -2752,7 +2753,7 @@ nfa_add_label (struct GNUNET_REGEX_Context *ctx, const char *label)
  * @param ctx context
  */
 static void
-GNUNET_REGEX_context_init (struct GNUNET_REGEX_Context *ctx)
+REGEX_ITERNAL_context_init (struct REGEX_ITERNAL_Context *ctx)
 {
   if (NULL == ctx)
   {
@@ -2772,13 +2773,13 @@ GNUNET_REGEX_context_init (struct GNUNET_REGEX_Context *ctx)
  * @param regex regular expression string
  * @param len length of the string
  *
- * @return NFA, needs to be freed using GNUNET_REGEX_destroy_automaton
+ * @return NFA, needs to be freed using REGEX_ITERNAL_destroy_automaton
  */
-struct GNUNET_REGEX_Automaton *
-GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
+struct REGEX_ITERNAL_Automaton *
+REGEX_ITERNAL_construct_nfa (const char *regex, const size_t len)
 {
-  struct GNUNET_REGEX_Context ctx;
-  struct GNUNET_REGEX_Automaton *nfa;
+  struct REGEX_ITERNAL_Context ctx;
+  struct REGEX_ITERNAL_Automaton *nfa;
   const char *regexp;
   char curlabel[2];
   char *error_msg;
@@ -2800,7 +2801,7 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
 
     return NULL;
   }
-  GNUNET_REGEX_context_init (&ctx);
+  REGEX_ITERNAL_context_init (&ctx);
 
   regexp = regex;
   curlabel[1] = '\0';
@@ -2923,7 +2924,7 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
   nfa->regex = GNUNET_strdup (regex);
 
   /* create depth-first numbering of the states for pretty printing */
-  GNUNET_REGEX_automaton_traverse (nfa, NULL, NULL, NULL, &number_states, NULL);
+  REGEX_ITERNAL_automaton_traverse (nfa, NULL, NULL, NULL, &number_states, NULL);
 
   /* No multistriding added so far */
   nfa->is_multistrided = GNUNET_NO;
@@ -2940,7 +2941,7 @@ error:
   while (NULL != (nfa = ctx.stack_head))
   {
     GNUNET_CONTAINER_DLL_remove (ctx.stack_head, ctx.stack_tail, nfa);
-    GNUNET_REGEX_automaton_destroy (nfa);
+    REGEX_ITERNAL_automaton_destroy (nfa);
   }
 
   return NULL;
@@ -2957,17 +2958,17 @@ error:
  *                  for starting.
  */
 static void
-construct_dfa_states (struct GNUNET_REGEX_Context *ctx,
-                      struct GNUNET_REGEX_Automaton *nfa,
-                      struct GNUNET_REGEX_Automaton *dfa,
-                      struct GNUNET_REGEX_State *dfa_state)
+construct_dfa_states (struct REGEX_ITERNAL_Context *ctx,
+                      struct REGEX_ITERNAL_Automaton *nfa,
+                      struct REGEX_ITERNAL_Automaton *dfa,
+                      struct REGEX_ITERNAL_State *dfa_state)
 {
-  struct GNUNET_REGEX_Transition *ctran;
-  struct GNUNET_REGEX_State *new_dfa_state;
-  struct GNUNET_REGEX_State *state_contains;
-  struct GNUNET_REGEX_State *state_iter;
-  struct GNUNET_REGEX_StateSet tmp;
-  struct GNUNET_REGEX_StateSet nfa_set;
+  struct REGEX_ITERNAL_Transition *ctran;
+  struct REGEX_ITERNAL_State *new_dfa_state;
+  struct REGEX_ITERNAL_State *state_contains;
+  struct REGEX_ITERNAL_State *state_iter;
+  struct REGEX_ITERNAL_StateSet tmp;
+  struct REGEX_ITERNAL_StateSet nfa_set;
 
   for (ctran = dfa_state->transitions_head; NULL != ctran; ctran = ctran->next)
   {
@@ -3019,23 +3020,23 @@ construct_dfa_states (struct GNUNET_REGEX_Context *ctx,
  * @param max_path_len limit the path compression length to the
  *        given value. If set to 1, no path compression is applied. Set to 0 for
  *        maximal possible path compression (generally not desireable).
- * @return DFA, needs to be freed using GNUNET_REGEX_automaton_destroy.
+ * @return DFA, needs to be freed using REGEX_ITERNAL_automaton_destroy.
  */
-struct GNUNET_REGEX_Automaton *
-GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
+struct REGEX_ITERNAL_Automaton *
+REGEX_ITERNAL_construct_dfa (const char *regex, const size_t len,
                             unsigned int max_path_len)
 {
-  struct GNUNET_REGEX_Context ctx;
-  struct GNUNET_REGEX_Automaton *dfa;
-  struct GNUNET_REGEX_Automaton *nfa;
-  struct GNUNET_REGEX_StateSet nfa_start_eps_cls;
-  struct GNUNET_REGEX_StateSet singleton_set;
+  struct REGEX_ITERNAL_Context ctx;
+  struct REGEX_ITERNAL_Automaton *dfa;
+  struct REGEX_ITERNAL_Automaton *nfa;
+  struct REGEX_ITERNAL_StateSet nfa_start_eps_cls;
+  struct REGEX_ITERNAL_StateSet singleton_set;
 
-  GNUNET_REGEX_context_init (&ctx);
+  REGEX_ITERNAL_context_init (&ctx);
 
   /* Create NFA */
   // fprintf (stderr, "N");
-  nfa = GNUNET_REGEX_construct_nfa (regex, len);
+  nfa = REGEX_ITERNAL_construct_nfa (regex, len);
 
   if (NULL == nfa)
   {
@@ -3044,12 +3045,12 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
     return NULL;
   }
 
-  dfa = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Automaton));
+  dfa = GNUNET_malloc (sizeof (struct REGEX_ITERNAL_Automaton));
   dfa->type = DFA;
   dfa->regex = GNUNET_strdup (regex);
 
   /* Create DFA start state from epsilon closure */
-  memset (&singleton_set, 0, sizeof (struct GNUNET_REGEX_StateSet));
+  memset (&singleton_set, 0, sizeof (struct REGEX_ITERNAL_StateSet));
   state_set_append (&singleton_set, nfa->start);
   nfa_closure_set_create (&nfa_start_eps_cls, nfa, &singleton_set, NULL);
   state_set_clear (&singleton_set);
@@ -3058,20 +3059,20 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
 
   // fprintf (stderr, "D");
   construct_dfa_states (&ctx, nfa, dfa, dfa->start);
-  GNUNET_REGEX_automaton_destroy (nfa);
+  REGEX_ITERNAL_automaton_destroy (nfa);
 
   /* Minimize DFA */
   // fprintf (stderr, "M");
   if (GNUNET_OK != dfa_minimize (&ctx, dfa))
   {
-    GNUNET_REGEX_automaton_destroy (dfa);
+    REGEX_ITERNAL_automaton_destroy (dfa);
     return NULL;
   }
 
   /* Create proofs and hashes for all states */
   if (GNUNET_OK != automaton_create_proofs (dfa))
   {
-    GNUNET_REGEX_automaton_destroy (dfa);
+    REGEX_ITERNAL_automaton_destroy (dfa);
     return NULL;
   }
 
@@ -3084,16 +3085,16 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
 
 
 /**
- * Free the memory allocated by constructing the GNUNET_REGEX_Automaton data
+ * Free the memory allocated by constructing the REGEX_ITERNAL_Automaton data
  * structure.
  *
  * @param a automaton to be destroyed
  */
 void
-GNUNET_REGEX_automaton_destroy (struct GNUNET_REGEX_Automaton *a)
+REGEX_ITERNAL_automaton_destroy (struct REGEX_ITERNAL_Automaton *a)
 {
-  struct GNUNET_REGEX_State *s;
-  struct GNUNET_REGEX_State *next_state;
+  struct REGEX_ITERNAL_State *s;
+  struct REGEX_ITERNAL_State *next_state;
 
   if (NULL == a)
     return;
@@ -3121,10 +3122,10 @@ GNUNET_REGEX_automaton_destroy (struct GNUNET_REGEX_Automaton *a)
  * @return 0 if string matches, non 0 otherwise
  */
 static int
-evaluate_dfa (struct GNUNET_REGEX_Automaton *a, const char *string)
+evaluate_dfa (struct REGEX_ITERNAL_Automaton *a, const char *string)
 {
   const char *strp;
-  struct GNUNET_REGEX_State *s;
+  struct REGEX_ITERNAL_State *s;
   unsigned int step_len;
 
   if (DFA != a->type)
@@ -3164,14 +3165,14 @@ evaluate_dfa (struct GNUNET_REGEX_Automaton *a, const char *string)
  * @return 0 if string matches, non 0 otherwise
  */
 static int
-evaluate_nfa (struct GNUNET_REGEX_Automaton *a, const char *string)
+evaluate_nfa (struct REGEX_ITERNAL_Automaton *a, const char *string)
 {
   const char *strp;
   char str[2];
-  struct GNUNET_REGEX_State *s;
-  struct GNUNET_REGEX_StateSet sset;
-  struct GNUNET_REGEX_StateSet new_sset;
-  struct GNUNET_REGEX_StateSet singleton_set;
+  struct REGEX_ITERNAL_State *s;
+  struct REGEX_ITERNAL_StateSet sset;
+  struct REGEX_ITERNAL_StateSet new_sset;
+  struct REGEX_ITERNAL_StateSet singleton_set;
   unsigned int i;
   int result;
 
@@ -3187,7 +3188,7 @@ evaluate_nfa (struct GNUNET_REGEX_Automaton *a, const char *string)
     return 0;
 
   result = 1;
-  memset (&singleton_set, 0, sizeof (struct GNUNET_REGEX_StateSet));
+  memset (&singleton_set, 0, sizeof (struct REGEX_ITERNAL_StateSet));
   state_set_append (&singleton_set, a->start);
   nfa_closure_set_create (&sset, a, &singleton_set, NULL);
   state_set_clear (&singleton_set);
@@ -3226,7 +3227,7 @@ evaluate_nfa (struct GNUNET_REGEX_Automaton *a, const char *string)
  * @return 0 if string matches, non 0 otherwise
  */
 int
-GNUNET_REGEX_eval (struct GNUNET_REGEX_Automaton *a, const char *string)
+REGEX_ITERNAL_eval (struct REGEX_ITERNAL_Automaton *a, const char *string)
 {
   int result;
 
@@ -3261,7 +3262,7 @@ GNUNET_REGEX_eval (struct GNUNET_REGEX_Automaton *a, const char *string)
  * @return
  */
 const char *
-GNUNET_REGEX_get_canonical_regex (struct GNUNET_REGEX_Automaton *a)
+REGEX_ITERNAL_get_canonical_regex (struct REGEX_ITERNAL_Automaton *a)
 {
   if (NULL == a)
     return NULL;
@@ -3278,10 +3279,10 @@ GNUNET_REGEX_get_canonical_regex (struct GNUNET_REGEX_Automaton *a)
  * @return number of transitions in the given automaton.
  */
 unsigned int
-GNUNET_REGEX_get_transition_count (struct GNUNET_REGEX_Automaton *a)
+REGEX_ITERNAL_get_transition_count (struct REGEX_ITERNAL_Automaton *a)
 {
   unsigned int t_count;
-  struct GNUNET_REGEX_State *s;
+  struct REGEX_ITERNAL_State *s;
 
   if (NULL == a)
     return 0;
@@ -3306,7 +3307,7 @@ GNUNET_REGEX_get_transition_count (struct GNUNET_REGEX_Automaton *a)
  *         to construct the key
  */
 size_t
-GNUNET_REGEX_get_first_key (const char *input_string, size_t string_len,
+REGEX_ITERNAL_get_first_key (const char *input_string, size_t string_len,
                             struct GNUNET_HashCode * key)
 {
   unsigned int size;
@@ -3336,7 +3337,7 @@ GNUNET_REGEX_get_first_key (const char *input_string, size_t string_len,
  * @return GNUNET_OK if the proof is valid for the given key.
  */
 int
-GNUNET_REGEX_check_proof (const char *proof, const struct GNUNET_HashCode *key)
+REGEX_ITERNAL_check_proof (const char *proof, const struct GNUNET_HashCode *key)
 {
   struct GNUNET_HashCode key_check;
 
@@ -3364,15 +3365,15 @@ GNUNET_REGEX_check_proof (const char *proof, const struct GNUNET_HashCode *key)
  */
 static void
 iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
-                      char *consumed_string, struct GNUNET_REGEX_State *state,
-                      GNUNET_REGEX_KeyIterator iterator, void *iterator_cls)
+                      char *consumed_string, struct REGEX_ITERNAL_State *state,
+                      REGEX_ITERNAL_KeyIterator iterator, void *iterator_cls)
 {
   unsigned int i;
   char *temp;
-  struct GNUNET_REGEX_Transition *t;
+  struct REGEX_ITERNAL_Transition *t;
   unsigned int num_edges = state->transition_count;
-  struct GNUNET_REGEX_Edge edges[num_edges];
-  struct GNUNET_REGEX_Edge edge[1];
+  struct REGEX_ITERNAL_Edge edges[num_edges];
+  struct REGEX_ITERNAL_Edge edge[1];
   struct GNUNET_HashCode hash;
   struct GNUNET_HashCode hash_new;
 
@@ -3454,15 +3455,15 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
  * @param iterator_cls closure.
  */
 void
-GNUNET_REGEX_iterate_all_edges (struct GNUNET_REGEX_Automaton *a,
-                                GNUNET_REGEX_KeyIterator iterator,
+REGEX_ITERNAL_iterate_all_edges (struct REGEX_ITERNAL_Automaton *a,
+                                REGEX_ITERNAL_KeyIterator iterator,
                                 void *iterator_cls)
 {
-  struct GNUNET_REGEX_State *s;
+  struct REGEX_ITERNAL_State *s;
 
   for (s = a->states_head; NULL != s; s = s->next)
   {
-    struct GNUNET_REGEX_Edge edges[s->transition_count];
+    struct REGEX_ITERNAL_Edge edges[s->transition_count];
     unsigned int num_edges;
 
     num_edges = state_get_edges (s, edges);
@@ -3479,116 +3480,6 @@ GNUNET_REGEX_iterate_all_edges (struct GNUNET_REGEX_Automaton *a,
 }
 
 
-/**
- * Create a string with binary IP notation for the given 'addr' in 'str'.
- *
- * @param af address family of the given 'addr'.
- * @param addr address that should be converted to a string.
- *             struct in_addr * for IPv4 and struct in6_addr * for IPv6.
- * @param str string that will contain binary notation of 'addr'. Expected
- *            to be at least 33 bytes long for IPv4 and 129 bytes long for IPv6.
- */
-static void
-iptobinstr (const int af, const void *addr, char *str)
-{
-  int i;
-  
-  switch (af)
-  {
-    case AF_INET:
-    {
-      uint32_t b = htonl (((struct in_addr *) addr)->s_addr);
-      
-      str[32] = '\0';
-          str += 31;
-          for (i = 31; i >= 0; i--)
-          {
-            *str = (b & 1) + '0';
-            str--;
-            b >>= 1;
-          }
-              break;
-    }
-    case AF_INET6:
-    {
-      struct in6_addr b = *(const struct in6_addr *) addr;
-      
-      str[128] = '\0';
-            str += 127;
-            for (i = 127; i >= 0; i--)
-            {
-              *str = (b.s6_addr[i / 8] & 1) + '0';
-            str--;
-            b.s6_addr[i / 8] >>= 1;
-            }
-                break;
-    }
-  }
-}
-
-
-/**
- * Get the ipv4 network prefix from the given 'netmask'.
- *
- * @param netmask netmask for which to get the prefix len.
- *
- * @return length of ipv4 prefix for 'netmask'.
- */
-static unsigned int
-ipv4netmasktoprefixlen (const char *netmask)
-{
-  struct in_addr a;
-  unsigned int len;
-  uint32_t t;
-  
-  if (1 != inet_pton (AF_INET, netmask, &a))
-    return 0;
-  len = 32;
-  for (t = htonl (~a.s_addr); 0 != t; t >>= 1)
-    len--;
-  return len;
-}
-
-
-/**
- * Create a regex in 'rxstr' from the given 'ip' and 'netmask'.
- *
- * @param ip IPv4 representation.
- * @param netmask netmask for the ip.
- * @param rxstr generated regex, must be at least GNUNET_REGEX_IPV4_REGEXLEN
- *              bytes long.
- */
-void
-GNUNET_REGEX_ipv4toregex (const struct in_addr *ip, const char *netmask,
-                          char *rxstr)
-{
-  unsigned int pfxlen;
-  
-  pfxlen = ipv4netmasktoprefixlen (netmask);
-  iptobinstr (AF_INET, ip, rxstr);
-  rxstr[pfxlen] = '\0';
-            if (pfxlen < 32)
-              strcat (rxstr, "(0|1)+");
-}
-
-
-/**
- * Create a regex in 'rxstr' from the given 'ipv6' and 'prefixlen'.
- *
- * @param ipv6 IPv6 representation.
- * @param prefixlen length of the ipv6 prefix.
- * @param rxstr generated regex, must be at least GNUNET_REGEX_IPV6_REGEXLEN
- *              bytes long.
- */
-void
-GNUNET_REGEX_ipv6toregex (const struct in6_addr *ipv6, unsigned int prefixlen,
-                          char *rxstr)
-{
-  iptobinstr (AF_INET6, ipv6, rxstr);
-  rxstr[prefixlen] = '\0';
-    if (prefixlen < 128)
-      strcat (rxstr, "(0|1)+");
-}
 
 
 /* end of regex.c */

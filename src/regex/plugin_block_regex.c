@@ -107,10 +107,10 @@ evaluate_block_regex (void *cls, enum GNUNET_BLOCK_Type type,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Block with no xquery\n");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  key: %s, %u edges\n",
                 GNUNET_h2s (&rblock->key), ntohl (rblock->n_edges));
-    GNUNET_REGEX_block_iterate (rblock, reply_block_size, &rdebug, NULL);
+    REGEX_ITERNAL_block_iterate (rblock, reply_block_size, &rdebug, NULL);
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
   }
-  switch (GNUNET_REGEX_block_check (reply_block,
+  switch (REGEX_ITERNAL_block_check (reply_block,
                                     reply_block_size,
                                     xquery))
   {

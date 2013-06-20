@@ -23,7 +23,7 @@
  * @author Maximilian Szengel
  */
 #include "platform.h"
-#include "gnunet_regex_lib.h"
+#include "regex_internal_lib.h"
 #include "regex_internal.h"
 
 
@@ -42,17 +42,17 @@ static unsigned int
 test_proof (const char *regex)
 {
   unsigned int error;
-  struct GNUNET_REGEX_Automaton *dfa;
+  struct REGEX_ITERNAL_Automaton *dfa;
   char *c_rx1;
   const char *c_rx2;
 
-  dfa = GNUNET_REGEX_construct_dfa (regex, strlen (regex), 1);
+  dfa = REGEX_ITERNAL_construct_dfa (regex, strlen (regex), 1);
   GNUNET_assert (NULL != dfa);
-  c_rx1 = GNUNET_strdup (GNUNET_REGEX_get_canonical_regex (dfa));
-  GNUNET_REGEX_automaton_destroy (dfa);
-  dfa = GNUNET_REGEX_construct_dfa (c_rx1, strlen (c_rx1), 1);
+  c_rx1 = GNUNET_strdup (REGEX_ITERNAL_get_canonical_regex (dfa));
+  REGEX_ITERNAL_automaton_destroy (dfa);
+  dfa = REGEX_ITERNAL_construct_dfa (c_rx1, strlen (c_rx1), 1);
   GNUNET_assert (NULL != dfa);
-  c_rx2 = GNUNET_REGEX_get_canonical_regex (dfa);
+  c_rx2 = REGEX_ITERNAL_get_canonical_regex (dfa);
 
   error = (0 == strcmp (c_rx1, c_rx2)) ? 0 : 1;
 
@@ -64,7 +64,7 @@ test_proof (const char *regex)
   }
 
   GNUNET_free (c_rx1);
-  GNUNET_REGEX_automaton_destroy (dfa);
+  REGEX_ITERNAL_automaton_destroy (dfa);
 
   return error;
 }
@@ -90,7 +90,7 @@ test_proofs_random (unsigned int count, size_t rx_length)
 
   for (i = 0; i < count; i++)
   {
-    rand_rx = GNUNET_REGEX_generate_random_regex (rx_length, NULL);
+    rand_rx = REGEX_ITERNAL_generate_random_regex (rx_length, NULL);
     failures += test_proof (rand_rx);
     GNUNET_free (rand_rx);
   }
@@ -123,20 +123,20 @@ test_proofs_static ()
 
   const char *canon_rx1;
   const char *canon_rx2;
-  struct GNUNET_REGEX_Automaton *dfa1;
-  struct GNUNET_REGEX_Automaton *dfa2;
+  struct REGEX_ITERNAL_Automaton *dfa1;
+  struct REGEX_ITERNAL_Automaton *dfa2;
 
   error = 0;
 
   for (i = 0; i < 8; i += 2)
   {
-    dfa1 = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]), 1);
-    dfa2 = GNUNET_REGEX_construct_dfa (regex[i + 1], strlen (regex[i + 1]), 1);
+    dfa1 = REGEX_ITERNAL_construct_dfa (regex[i], strlen (regex[i]), 1);
+    dfa2 = REGEX_ITERNAL_construct_dfa (regex[i + 1], strlen (regex[i + 1]), 1);
     GNUNET_assert (NULL != dfa1);
     GNUNET_assert (NULL != dfa2);
 
-    canon_rx1 = GNUNET_REGEX_get_canonical_regex (dfa1);
-    canon_rx2 = GNUNET_REGEX_get_canonical_regex (dfa2);
+    canon_rx1 = REGEX_ITERNAL_get_canonical_regex (dfa1);
+    canon_rx2 = REGEX_ITERNAL_get_canonical_regex (dfa2);
 
     error += (0 == strcmp (canon_rx1, canon_rx2)) ? 0 : 1;
 
@@ -147,8 +147,8 @@ test_proofs_static ()
                   regex[i], canon_rx1, regex[i + 1], canon_rx2);
     }
 
-    GNUNET_REGEX_automaton_destroy (dfa1);
-    GNUNET_REGEX_automaton_destroy (dfa2);
+    REGEX_ITERNAL_automaton_destroy (dfa1);
+    REGEX_ITERNAL_automaton_destroy (dfa2);
   }
 
   return error;

@@ -24,7 +24,7 @@
  * @author Bartlomiej Polot
  */
 #include "platform.h"
-#include "gnunet_regex_lib.h"
+#include "regex_internal_lib.h"
 #include "regex_block_lib.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_statistics_service.h"
@@ -42,7 +42,7 @@
 #define DHT_OPT         GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE
 #endif
 
-struct GNUNET_REGEX_announce_handle
+struct REGEX_ITERNAL_Announcement
 {
   /**
    * DHT handle to use, must be initialized externally.
@@ -57,7 +57,7 @@ struct GNUNET_REGEX_announce_handle
   /**
    * Automaton representation of the regex (expensive to build).
    */
-  struct GNUNET_REGEX_Automaton* dfa;
+  struct REGEX_ITERNAL_Automaton* dfa;
 
   /**
    * Identity under which to announce the regex.
@@ -87,9 +87,9 @@ regex_iterator (void *cls,
                 const char *proof,
                 int accepting,
                 unsigned int num_edges,
-                const struct GNUNET_REGEX_Edge *edges)
+                const struct REGEX_ITERNAL_Edge *edges)
 {
-  struct GNUNET_REGEX_announce_handle *h = cls;
+  struct REGEX_ITERNAL_Announcement *h = cls;
   struct RegexBlock *block;
   struct RegexEdge *block_edge;
   size_t size;
@@ -182,41 +182,41 @@ regex_iterator (void *cls,
 }
 
 
-struct GNUNET_REGEX_announce_handle *
-GNUNET_REGEX_announce (struct GNUNET_DHT_Handle *dht,
+struct REGEX_ITERNAL_Announcement *
+REGEX_ITERNAL_announce (struct GNUNET_DHT_Handle *dht,
                        const struct GNUNET_PeerIdentity *id,
                        const char *regex,
                        uint16_t compression,
                        struct GNUNET_STATISTICS_Handle *stats)
 {
-  struct GNUNET_REGEX_announce_handle *h;
+  struct REGEX_ITERNAL_Announcement *h;
 
   GNUNET_assert (NULL != dht);
-  h = GNUNET_malloc (sizeof (struct GNUNET_REGEX_announce_handle));
+  h = GNUNET_malloc (sizeof (struct REGEX_ITERNAL_Announcement));
   h->regex = regex;
   h->dht = dht;
   h->stats = stats;
   h->id = *id;
-  h->dfa = GNUNET_REGEX_construct_dfa (regex,
+  h->dfa = REGEX_ITERNAL_construct_dfa (regex,
                                        strlen (regex),
                                        compression);
-  GNUNET_REGEX_reannounce (h);
+  REGEX_ITERNAL_reannounce (h);
   return h;
 }
 
 void
-GNUNET_REGEX_reannounce (struct GNUNET_REGEX_announce_handle *h)
+REGEX_ITERNAL_reannounce (struct REGEX_ITERNAL_Announcement *h)
 {
   GNUNET_assert (NULL != h->dfa); /* make sure to call announce first */
-  LOG (GNUNET_ERROR_TYPE_INFO, "GNUNET_REGEX_reannounce: %.60s\n", h->regex);
+  LOG (GNUNET_ERROR_TYPE_INFO, "REGEX_ITERNAL_reannounce: %.60s\n", h->regex);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  full: %s\n", h->regex);
-  GNUNET_REGEX_iterate_all_edges (h->dfa, &regex_iterator, h);
+  REGEX_ITERNAL_iterate_all_edges (h->dfa, &regex_iterator, h);
 }
 
 void
-GNUNET_REGEX_announce_cancel (struct GNUNET_REGEX_announce_handle *h)
+REGEX_ITERNAL_announce_cancel (struct REGEX_ITERNAL_Announcement *h)
 {
-  GNUNET_REGEX_automaton_destroy (h->dfa);
+  REGEX_ITERNAL_automaton_destroy (h->dfa);
   GNUNET_free (h);
 }
 
@@ -239,7 +239,7 @@ struct RegexSearchContext
     /**
      * Information about the search.
      */
-  struct GNUNET_REGEX_search_handle *info;
+  struct REGEX_ITERNAL_Search *info;
 
     /**
      * We just want to look for one edge, the longer the better.
@@ -258,7 +258,7 @@ struct RegexSearchContext
  * Struct to keep information of searches of services described by a regex
  * using a user-provided string service description.
  */
-struct GNUNET_REGEX_search_handle
+struct REGEX_ITERNAL_Search
 {
     /**
      * DHT handle to use, must be initialized externally.
@@ -298,7 +298,7 @@ struct GNUNET_REGEX_search_handle
   /**
    * @param callback Callback for found peers.
    */
-  GNUNET_REGEX_Found callback;
+  REGEX_ITERNAL_Found callback;
 
   /**
    * @param callback_cls Closure for @c callback.
@@ -350,7 +350,7 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 {
   const struct RegexAccept *block = data;
   struct RegexSearchContext *ctx = cls;
-  struct GNUNET_REGEX_search_handle *info = ctx->info;
+  struct REGEX_ITERNAL_Search *info = ctx->info;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Got regex results from DHT!\n");
   LOG (GNUNET_ERROR_TYPE_INFO, "   accept for %s (key %s)\n",
@@ -429,7 +429,7 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 {
   const struct RegexBlock *block = data;
   struct RegexSearchContext *ctx = cls;
-  struct GNUNET_REGEX_search_handle *info = ctx->info;
+  struct REGEX_ITERNAL_Search *info = ctx->info;
   void *copy;
   size_t len;
   char *datastore;
@@ -465,7 +465,7 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
     memcpy (proof, &block[1], len);
     proof[len] = '\0';
-    if (GNUNET_OK != GNUNET_REGEX_check_proof (proof, key))
+    if (GNUNET_OK != REGEX_ITERNAL_check_proof (proof, key))
     {
       GNUNET_break_op (0);
       return;
@@ -545,7 +545,7 @@ regex_edge_iterator (void *cls,
                      const struct GNUNET_HashCode *key)
 {
   struct RegexSearchContext *ctx = cls;
-  struct GNUNET_REGEX_search_handle *info = ctx->info;
+  struct REGEX_ITERNAL_Search *info = ctx->info;
   const char *current;
   size_t current_len;
 
@@ -604,7 +604,7 @@ regex_next_edge (const struct RegexBlock *block,
                  struct RegexSearchContext *ctx)
 {
   struct RegexSearchContext *new_ctx;
-  struct GNUNET_REGEX_search_handle *info = ctx->info;
+  struct REGEX_ITERNAL_Search *info = ctx->info;
   struct GNUNET_DHT_GetHandle *get_h;
   struct GNUNET_HashCode *hash;
   const char *rest;
@@ -613,7 +613,7 @@ regex_next_edge (const struct RegexBlock *block,
   /* Find the longest match for the current string position, 
    * among tokens in the given block */
   ctx->longest_match = 0;
-  result = GNUNET_REGEX_block_iterate (block, size,
+  result = REGEX_ITERNAL_block_iterate (block, size,
                                        &regex_edge_iterator, ctx);
   GNUNET_break (GNUNET_OK == result);
 
@@ -672,14 +672,14 @@ regex_next_edge (const struct RegexBlock *block,
 }
 
 
-struct GNUNET_REGEX_search_handle *
-GNUNET_REGEX_search (struct GNUNET_DHT_Handle *dht,
+struct REGEX_ITERNAL_Search *
+REGEX_ITERNAL_search (struct GNUNET_DHT_Handle *dht,
                      const char *string,
-                     GNUNET_REGEX_Found callback,
+                     REGEX_ITERNAL_Found callback,
                      void *callback_cls,
                      struct GNUNET_STATISTICS_Handle *stats)
 {
-  struct GNUNET_REGEX_search_handle *h;
+  struct REGEX_ITERNAL_Search *h;
   struct GNUNET_DHT_GetHandle *get_h;
   struct RegexSearchContext *ctx;
   struct GNUNET_HashCode key;
@@ -687,10 +687,10 @@ GNUNET_REGEX_search (struct GNUNET_DHT_Handle *dht,
   size_t len;
 
   /* Initialize handle */
-  LOG (GNUNET_ERROR_TYPE_INFO, "GNUNET_REGEX_search: %s\n", string);
+  LOG (GNUNET_ERROR_TYPE_INFO, "REGEX_ITERNAL_search: %s\n", string);
   GNUNET_assert (NULL != dht);
   GNUNET_assert (NULL != callback);
-  h = GNUNET_malloc (sizeof (struct GNUNET_REGEX_search_handle));
+  h = GNUNET_malloc (sizeof (struct REGEX_ITERNAL_Search));
   h->dht = dht;
   h->description = GNUNET_strdup (string);
   h->callback = callback;
@@ -701,7 +701,7 @@ GNUNET_REGEX_search (struct GNUNET_DHT_Handle *dht,
 
   /* Initialize context */
   len = strlen (string);
-  size = GNUNET_REGEX_get_first_key (string, len, &key);
+  size = REGEX_ITERNAL_get_first_key (string, len, &key);
   ctx = GNUNET_malloc (sizeof (struct RegexSearchContext));
   ctx->position = size;
   ctx->info = h;
@@ -781,7 +781,7 @@ regex_free_result (void *cls,
  * @param ctx The search context.
  */
 static void
-regex_cancel_search (struct GNUNET_REGEX_search_handle *ctx)
+regex_cancel_search (struct REGEX_ITERNAL_Search *ctx)
 {
   GNUNET_free (ctx->description);
   GNUNET_CONTAINER_multihashmap_iterate (ctx->dht_get_handles,
@@ -803,7 +803,7 @@ regex_cancel_search (struct GNUNET_REGEX_search_handle *ctx)
 }
 
 void
-GNUNET_REGEX_search_cancel (struct GNUNET_REGEX_search_handle *h)
+REGEX_ITERNAL_search_cancel (struct REGEX_ITERNAL_Search *h)
 {
   regex_cancel_search (h);
   GNUNET_free (h);

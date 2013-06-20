@@ -64,7 +64,7 @@ SUBDIRS = \
   regex \
   mesh \
   lockmanager \
-  stream \ 
+  stream \
   fs \
   $(LINUX_DIR) \
   $(MINGW_DIR) \

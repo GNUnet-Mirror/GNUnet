@@ -26,7 +26,7 @@
 #include <regex.h>
 #include <time.h>
 #include "platform.h"
-#include "gnunet_regex_lib.h"
+#include "regex_internal_lib.h"
 #include "regex_test_lib.h"
 
 static const char *exe;
@@ -53,7 +53,7 @@ iter (void *cls,
       const char *proof,
       int accepting,
       unsigned int num_edges,
-      const struct GNUNET_REGEX_Edge *edges)
+      const struct REGEX_ITERNAL_Edge *edges)
 {
   unsigned int i;
 
@@ -66,9 +66,9 @@ iter (void *cls,
 }
 
 static void
-print_dfa (struct GNUNET_REGEX_Automaton* dfa)
+print_dfa (struct REGEX_ITERNAL_Automaton* dfa)
 {
-  GNUNET_REGEX_iterate_all_edges (dfa, iter, NULL);
+  REGEX_ITERNAL_iterate_all_edges (dfa, iter, NULL);
 }
 
 /**
@@ -84,7 +84,7 @@ print_dfa (struct GNUNET_REGEX_Automaton* dfa)
 int
 main (int argc, char *const *argv)
 {
-  struct GNUNET_REGEX_Automaton* dfa;
+  struct REGEX_ITERNAL_Automaton* dfa;
   char **regexes;
   char *buffer;
   char *regex;
@@ -98,14 +98,14 @@ main (int argc, char *const *argv)
     usage();
     return 1;
   }
-  regexes = GNUNET_REGEX_read_from_file (argv[1]);
+  regexes = REGEX_ITERNAL_read_from_file (argv[1]);
 
   if (NULL == regexes)
   {
     usage();
     return 2;
   }
-  buffer = GNUNET_REGEX_combine (regexes);
+  buffer = REGEX_ITERNAL_combine (regexes);
 
   GNUNET_asprintf (&regex, "GNVPN-0001-PAD(%s)(0|1)*", buffer);
   size = strlen (regex);
@@ -114,11 +114,11 @@ main (int argc, char *const *argv)
   //   return 0;
 
   compression = atoi (argv[2]);
-  dfa = GNUNET_REGEX_construct_dfa (regex, size, compression);
+  dfa = REGEX_ITERNAL_construct_dfa (regex, size, compression);
   print_dfa (dfa);
-  GNUNET_REGEX_automaton_destroy (dfa);
+  REGEX_ITERNAL_automaton_destroy (dfa);
   GNUNET_free (buffer);
-  GNUNET_REGEX_free_from_file (regexes);
+  REGEX_ITERNAL_free_from_file (regexes);
   GNUNET_free (regex);
   return 0;
 }

@@ -31,7 +31,7 @@
 #include "platform.h"
 #include "gnunet_applications.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_regex_lib.h"
+#include "regex_internal_lib.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_testbed_service.h"
@@ -150,7 +150,7 @@ struct RegexPeer
   /**
    * Handle to a running regex search.
    */
-   struct GNUNET_REGEX_search_handle *search_handle;
+   struct REGEX_ITERNAL_Search *search_handle;
 
   /**
    * Testbed operation handle for DHT.
@@ -702,7 +702,7 @@ find_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * Method called when we've found a peer that announced a regex
  * that matches our search string. Now get the statistics.
  *
- * @param cls Closure provided in GNUNET_REGEX_search.
+ * @param cls Closure provided in REGEX_ITERNAL_search.
  * @param id Peer providing a regex that matches the string.
  * @param get_path Path of the get request.
  * @param get_path_length Lenght of get_path.
@@ -1039,7 +1039,7 @@ dht_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
   GNUNET_assert (peer->dht_handle == ca_result);
 
   peer->search_str_matched = GNUNET_NO;
-  peer->search_handle = GNUNET_REGEX_search (peer->dht_handle,
+  peer->search_handle = REGEX_ITERNAL_search (peer->dht_handle,
                                              peer->search_str,
                                              &regex_found_handler, peer,
                                              NULL);
@@ -1081,7 +1081,7 @@ dht_da (void *cls, void *op_result)
 
   if (NULL != peer->search_handle)
   {
-    GNUNET_REGEX_search_cancel (peer->search_handle);
+    REGEX_ITERNAL_search_cancel (peer->search_handle);
     peer->search_handle = NULL;
   }
 

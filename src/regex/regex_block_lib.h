@@ -52,7 +52,7 @@ extern "C"
  *         GNUNET_SYSERR if the block is invalid.
  */
 int
-GNUNET_REGEX_block_check (const struct RegexBlock *block,
+REGEX_ITERNAL_block_check (const struct RegexBlock *block,
                           size_t size,
                           const char *xquery);
 
@@ -66,7 +66,7 @@ GNUNET_REGEX_block_check (const struct RegexBlock *block,
  *
  * @return GNUNET_YES if should keep iterating, GNUNET_NO otherwise.
  */
-typedef int (*GNUNET_REGEX_EgdeIterator)(void *cls,
+typedef int (*REGEX_ITERNAL_EgdeIterator)(void *cls,
                                          const char *token,
                                          size_t len,
                                          const struct GNUNET_HashCode *key);
@@ -89,9 +89,9 @@ typedef int (*GNUNET_REGEX_EgdeIterator)(void *cls,
  *         be errors in further edges.
  */
 int
-GNUNET_REGEX_block_iterate (const struct RegexBlock *block,
+REGEX_ITERNAL_block_iterate (const struct RegexBlock *block,
                             size_t size,
-                            GNUNET_REGEX_EgdeIterator iterator,
+                            REGEX_ITERNAL_EgdeIterator iterator,
                             void *iter_cls);
 
 #if 0                           /* keep Emacsens' auto-indent happy */

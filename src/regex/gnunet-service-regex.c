@@ -26,7 +26,7 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_regex_lib.h"
+#include "regex_internal_lib.h"
 #include "regex_ipc.h"
 
 
@@ -54,12 +54,12 @@ struct ClientEntry
   /**
    * Search handle (if this client is searching).
    */
-  struct GNUNET_REGEX_search_handle *sh;
+  struct REGEX_ITERNAL_Search *sh;
 
   /**
    * Announcement handle (if this client is announcing).
    */
-  struct GNUNET_REGEX_announce_handle *ah;
+  struct REGEX_ITERNAL_Announcement *ah;
 
   /**
    * Refresh frequency for announcements.
@@ -143,12 +143,12 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
       }
       if (NULL != ce->ah)
       {
-	GNUNET_REGEX_announce_cancel (ce->ah);
+	REGEX_ITERNAL_announce_cancel (ce->ah);
 	ce->ah = NULL;
       }
       if (NULL != ce->sh)
       {
-	GNUNET_REGEX_search_cancel (ce->sh);
+	REGEX_ITERNAL_search_cancel (ce->sh);
 	ce->sh = NULL;
       }
       GNUNET_CONTAINER_DLL_remove (client_head, client_tail, ce);
@@ -171,7 +171,7 @@ reannounce (void *cls,
 {
   struct ClientEntry *ce = cls;
 
-  GNUNET_REGEX_reannounce (ce->ah);
+  REGEX_ITERNAL_reannounce (ce->ah);
   ce->refresh_task = GNUNET_SCHEDULER_add_delayed (ce->frequency,
 						   &reannounce,
 						   ce);
@@ -207,7 +207,7 @@ handle_announce (void *cls,
   }
   ce = GNUNET_new (struct ClientEntry);
   ce->client = client;
-  ce->ah = GNUNET_REGEX_announce (dht,
+  ce->ah = REGEX_ITERNAL_announce (dht,
 				  &am->pid,
 				  regex,
 				  ntohs (am->compression),
@@ -311,7 +311,7 @@ handle_search (void *cls,
   }
   ce = GNUNET_new (struct ClientEntry);
   ce->client = client;
-  ce->sh = GNUNET_REGEX_search (dht,
+  ce->sh = REGEX_ITERNAL_search (dht,
 				string,
 				&handle_search_result,
 				ce,

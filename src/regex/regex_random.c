@@ -23,7 +23,7 @@
  * @author Maximilian Szengel
  */
 #include "platform.h"
-#include "gnunet_regex_lib.h"
+#include "regex_internal_lib.h"
 #include "gnunet_crypto_lib.h"
 #include "regex_internal.h"
 
@@ -61,7 +61,7 @@ get_random_literal ()
  *         needs to be freed, otherwise.
  */
 char *
-GNUNET_REGEX_generate_random_regex (size_t rx_length, char *matching_str)
+REGEX_ITERNAL_generate_random_regex (size_t rx_length, char *matching_str)
 {
   char *rx;
   char *rx_p;
@@ -147,7 +147,7 @@ GNUNET_REGEX_generate_random_regex (size_t rx_length, char *matching_str)
  * @return random string that needs to be freed.
  */
 char *
-GNUNET_REGEX_generate_random_string (size_t max_len)
+REGEX_ITERNAL_generate_random_string (size_t max_len)
 {
   unsigned int i;
   char *str;

@@ -26,8 +26,8 @@
  *
  */
 
-#ifndef GNUNET_REGEX_TEST_LIB_H
-#define GNUNET_REGEX_TEST_LIB_H
+#ifndef REGEX_ITERNAL_TEST_LIB_H
+#define REGEX_ITERNAL_TEST_LIB_H
 
 
 #ifdef __cplusplus
@@ -46,19 +46,19 @@ extern "C"
  * @return A string with a single regex that matches any of the original regexes
  */
 char *
-GNUNET_REGEX_combine(char * const regexes[]);
+REGEX_ITERNAL_combine(char * const regexes[]);
 
 /**
  * Read a set of regexes from a file, one per line and return them in an array
- * suitable for GNUNET_REGEX_combine.
- * The array must be free'd using GNUNET_REGEX_free_from_file.
+ * suitable for REGEX_ITERNAL_combine.
+ * The array must be free'd using REGEX_ITERNAL_free_from_file.
  *
  * @param filename Name of the file containing the regexes.
  *
  * @return A newly allocated, NULL terminated array of regexes.
  */
 char **
-GNUNET_REGEX_read_from_file (const char *filename);
+REGEX_ITERNAL_read_from_file (const char *filename);
 
 
 /**
@@ -67,7 +67,7 @@ GNUNET_REGEX_read_from_file (const char *filename);
  * @param regexes NULL-terminated array of regexes.
  */
 void
-GNUNET_REGEX_free_from_file (char **regexes);
+REGEX_ITERNAL_free_from_file (char **regexes);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -76,5 +76,5 @@ GNUNET_REGEX_free_from_file (char **regexes);
 }
 #endif
 
-/* end of gnunet_regex_lib.h */
+/* end of regex_internal_lib.h */
 #endif

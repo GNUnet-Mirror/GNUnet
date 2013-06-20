@@ -23,14 +23,14 @@
  * @author Maximilian Szengel
  */
 #include "platform.h"
-#include "gnunet_regex_lib.h"
+#include "regex_internal_lib.h"
 #include "regex_internal.h"
 
 /**
  * Context for graph creation. Passed as the cls to
- * GNUNET_REGEX_automaton_save_graph_step.
+ * REGEX_ITERNAL_automaton_save_graph_step.
  */
-struct GNUNET_REGEX_Graph_Context
+struct REGEX_ITERNAL_Graph_Context
 {
   /**
    * File pointer to the dot file used for output.
@@ -63,12 +63,12 @@ struct GNUNET_REGEX_Graph_Context
  */
 static void
 scc_tarjan_strongconnect (unsigned int *scc_counter,
-                          struct GNUNET_REGEX_State *v, unsigned int *index,
-                          struct GNUNET_REGEX_State **stack,
+                          struct REGEX_ITERNAL_State *v, unsigned int *index,
+                          struct REGEX_ITERNAL_State **stack,
                           unsigned int *stack_size)
 {
-  struct GNUNET_REGEX_State *w;
-  struct GNUNET_REGEX_Transition *t;
+  struct REGEX_ITERNAL_State *w;
+  struct REGEX_ITERNAL_Transition *t;
 
   v->index = *index;
   v->lowlink = *index;
@@ -113,12 +113,12 @@ scc_tarjan_strongconnect (unsigned int *scc_counter,
  * @param a the automaton for which SCCs should be computed and assigned.
  */
 static void
-scc_tarjan (struct GNUNET_REGEX_Automaton *a)
+scc_tarjan (struct REGEX_ITERNAL_Automaton *a)
 {
   unsigned int index;
   unsigned int scc_counter;
-  struct GNUNET_REGEX_State *v;
-  struct GNUNET_REGEX_State *stack[a->state_count];
+  struct REGEX_ITERNAL_State *v;
+  struct REGEX_ITERNAL_State *stack[a->state_count];
   unsigned int stack_size;
 
   for (v = a->states_head; NULL != v; v = v->next)
@@ -143,18 +143,18 @@ scc_tarjan (struct GNUNET_REGEX_Automaton *a)
 /**
  * Save a state to an open file pointer. cls is expected to be a file pointer to
  * an open file. Used only in conjunction with
- * GNUNET_REGEX_automaton_save_graph.
+ * REGEX_ITERNAL_automaton_save_graph.
  *
  * @param cls file pointer.
  * @param count current count of the state, not used.
  * @param s state.
  */
 void
-GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
-                                        struct GNUNET_REGEX_State *s)
+REGEX_ITERNAL_automaton_save_graph_step (void *cls, unsigned int count,
+                                        struct REGEX_ITERNAL_State *s)
 {
-  struct GNUNET_REGEX_Graph_Context *ctx = cls;
-  struct GNUNET_REGEX_Transition *ctran;
+  struct REGEX_ITERNAL_Graph_Context *ctx = cls;
+  struct REGEX_ITERNAL_Transition *ctran;
   char *s_acc = NULL;
   char *s_tran = NULL;
   char *name;
@@ -267,13 +267,13 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
  *                mode
  */
 void
-GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
+REGEX_ITERNAL_automaton_save_graph (struct REGEX_ITERNAL_Automaton *a,
                                    const char *filename,
-                                   enum GNUNET_REGEX_GraphSavingOptions options)
+                                   enum REGEX_ITERNAL_GraphSavingOptions options)
 {
   char *start;
   char *end;
-  struct GNUNET_REGEX_Graph_Context ctx;
+  struct REGEX_ITERNAL_Graph_Context ctx;
 
   if (NULL == a)
   {
@@ -289,9 +289,9 @@ GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
 
   ctx.filep = fopen (filename, "w");
   ctx.verbose =
-      (0 == (options & GNUNET_REGEX_GRAPH_VERBOSE)) ? GNUNET_NO : GNUNET_YES;
+      (0 == (options & REGEX_ITERNAL_GRAPH_VERBOSE)) ? GNUNET_NO : GNUNET_YES;
   ctx.coloring =
-      (0 == (options & GNUNET_REGEX_GRAPH_COLORING)) ? GNUNET_NO : GNUNET_YES;
+      (0 == (options & REGEX_ITERNAL_GRAPH_COLORING)) ? GNUNET_NO : GNUNET_YES;
 
   if (NULL == ctx.filep)
   {
@@ -307,8 +307,8 @@ GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
   start = "digraph G {\nrankdir=LR\n";
   fwrite (start, strlen (start), 1, ctx.filep);
 
-  GNUNET_REGEX_automaton_traverse (a, a->start, NULL, NULL,
-                                   &GNUNET_REGEX_automaton_save_graph_step,
+  REGEX_ITERNAL_automaton_traverse (a, a->start, NULL, NULL,
+                                   &REGEX_ITERNAL_automaton_save_graph_step,
                                    &ctx);
 
   end = "\n}\n";

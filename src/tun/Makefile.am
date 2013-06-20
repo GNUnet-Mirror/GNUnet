@@ -12,18 +12,19 @@ endif
 lib_LTLIBRARIES = libgnunettun.la
 
 libgnunettun_la_SOURCES = \
-  tun.c
+  tun.c \
+  regex.c
 libgnunettun_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB) \
  $(LTLIBINTL)
 libgnunettun_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
-  -version-info 0:0:0
+  -version-info 1:0:1
 
 
 check_PROGRAMS = \
- test_tun
-
+ test_tun \
+ test_regex
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
@@ -32,5 +33,12 @@ endif
 test_tun_SOURCES = \
  test_tun.c
 test_tun_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/tun/libgnunettun.la
+
+
+test_regex_SOURCES = \
+ test_regex.c
+test_regex_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/tun/libgnunettun.la

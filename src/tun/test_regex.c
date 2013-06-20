@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2012 Christian Grothoff (and other contributing authors)
+     (C) 2012, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -18,12 +18,12 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file regex/test_regex_iptoregex.c
+ * @file tun/test_regex.c
  * @brief simple test for regex.c iptoregex functions
  * @author Maximilian Szengel
  */
 #include "platform.h"
-#include "gnunet_regex_lib.h"
+#include "gnunet_tun_lib.h"
 
 
 static int
@@ -39,7 +39,7 @@ test_iptoregex (const char *ipv4, const char *netmask, const char *expectedv4,
   char rxv6[GNUNET_REGEX_IPV6_REGEXLEN];
 
   GNUNET_assert (1 == inet_pton (AF_INET, ipv4, &a));
-  GNUNET_REGEX_ipv4toregex (&a, netmask, rxv4);
+  GNUNET_TUN_ipv4toregex (&a, netmask, rxv4);
 
 
   if (0 != strcmp (rxv4, expectedv4))
@@ -50,7 +50,7 @@ test_iptoregex (const char *ipv4, const char *netmask, const char *expectedv4,
   }
 
   GNUNET_assert (1 == inet_pton (AF_INET6, ipv6, &b));
-  GNUNET_REGEX_ipv6toregex (&b, prefixlen, rxv6);
+  GNUNET_TUN_ipv6toregex (&b, prefixlen, rxv6);
 
   if (0 != strcmp (rxv6, expectedv6))
   {

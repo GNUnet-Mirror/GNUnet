@@ -52,7 +52,7 @@
 #include "block_mesh.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_statistics_service.h"
-#include "gnunet_regex_lib.h"
+#include "gnunet_regex_service.h"
 
 #define MESH_BLOOM_SIZE         128
 
@@ -64,6 +64,7 @@
 #define MESH_MAX_POLL_TIME      GNUNET_TIME_relative_multiply (\
                                   GNUNET_TIME_UNIT_MINUTES,\
                                   10)
+
 
 #if MESH_DEBUG_CONNECTION
 #define DEBUG_CONN(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
@@ -198,7 +199,7 @@ struct MeshRegexDescriptor
     /**
      * Handle to announce the regex.
      */
-  struct GNUNET_REGEX_announce_handle *h;
+  struct GNUNET_REGEX_Announcement *h;
 };
 
 
@@ -221,7 +222,7 @@ struct MeshRegexSearchInfo
     /**
      * Regex search handle.
      */
-  struct GNUNET_REGEX_search_handle *search_handle;
+  struct GNUNET_REGEX_Search *search_handle;
 
     /**
      * Peer that is connecting via connect_by_string. When connected, free ctx.
@@ -931,10 +932,10 @@ static struct GNUNET_CONTAINER_MultiHashMap *incoming_tunnels;
  */
 static struct GNUNET_CONTAINER_MultiHashMap *peers;
 
-/*
- * Handle to communicate with transport
+/**
+ * Configuration handle
  */
-// static struct GNUNET_TRANSPORT_Handle *transport_handle;
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * Handle to communicate with core.
@@ -1388,16 +1389,11 @@ regex_put (struct MeshRegexDescriptor *regex)
   if (NULL == regex->h)
   {
     DEBUG_REGEX ("  first put, creating DFA\n");
-    regex->h = GNUNET_REGEX_announce (dht_handle,
+    regex->h = GNUNET_REGEX_announce (cfg,
                                       &my_full_id,
                                       regex->regex,
-                                      regex->compression,
-                                      stats);
-  }
-  else
-  {
-    DEBUG_REGEX ("  not first put, using cached data\n");
-    GNUNET_REGEX_reannounce (regex->h);
+				      app_announce_time,
+                                      regex->compression);
   }
   DEBUG_REGEX ("  regex_put (%s) end\n", regex->regex);
 }
@@ -6317,7 +6313,6 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     c = next;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   done!\n");
-  return;
 }
 
 
@@ -7219,10 +7214,9 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
 
   t->regex_search = info;
 
-  info->search_handle = GNUNET_REGEX_search (dht_handle,
+  info->search_handle = GNUNET_REGEX_search (cfg,
                                              info->description,
-                                             &regex_found_handler, info,
-                                             stats);
+                                             &regex_found_handler, info);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "connect by string processed\n");
@@ -8249,6 +8243,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 {
   char *keyfile;
 
+  cfg = c;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "starting to run\n");
   server_handle = server;
 

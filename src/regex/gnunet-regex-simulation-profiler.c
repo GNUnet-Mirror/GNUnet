@@ -28,7 +28,7 @@
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_regex_lib.h"
+#include "regex_internal_lib.h"
 #include "gnunet_mysql_lib.h"
 #include <mysql/mysql.h>
 
@@ -335,7 +335,7 @@ return_ok (void *cls, unsigned int num_values, MYSQL_BIND * values)
 static void
 regex_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
                 int accepting, unsigned int num_edges,
-                const struct GNUNET_REGEX_Edge *edges)
+                const struct REGEX_ITERNAL_Edge *edges)
 {
   unsigned int i;
   int result;
@@ -460,10 +460,10 @@ regex_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
 static int
 announce_regex (const char *regex)
 {
-  struct GNUNET_REGEX_Automaton *dfa;
+  struct REGEX_ITERNAL_Automaton *dfa;
 
   dfa =
-      GNUNET_REGEX_construct_dfa (regex, strlen (regex), max_path_compression);
+      REGEX_ITERNAL_construct_dfa (regex, strlen (regex), max_path_compression);
 
   if (NULL == dfa)
   {
@@ -473,9 +473,9 @@ announce_regex (const char *regex)
     return GNUNET_SYSERR;
   }
 
-  GNUNET_REGEX_iterate_all_edges (dfa, &regex_iterator, NULL);
+  REGEX_ITERNAL_iterate_all_edges (dfa, &regex_iterator, NULL);
 
-  GNUNET_REGEX_automaton_destroy (dfa);
+  REGEX_ITERNAL_automaton_destroy (dfa);
 
   return GNUNET_OK;
 }

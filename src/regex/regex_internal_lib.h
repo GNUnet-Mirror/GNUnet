@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2012 Christian Grothoff (and other contributing authors)
+     (C) 2012, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -18,14 +18,14 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file include/gnunet_regex_lib.h
+ * @file regex/regex_internal_lib.h
  * @brief library to parse regular expressions into dfa
  * @author Maximilian Szengel
  *
  */
 
-#ifndef GNUNET_REGEX_LIB_H
-#define GNUNET_REGEX_LIB_H
+#ifndef REGEX_INTERNAL_LIB_H
+#define REGEX_INTERNAL_LIB_H
 
 #include "gnunet_util_lib.h"
 #include "gnunet_dht_service.h"
@@ -40,34 +40,18 @@ extern "C"
 #endif
 
 
-/**
- * Constant for how many bytes the initial string regex should have.
- */
-#define GNUNET_REGEX_INITIAL_BYTES 24
-
-
-/**
- * Maximum regex string length for use with GNUNET_REGEX_ipv4toregex
- */
-#define GNUNET_REGEX_IPV4_REGEXLEN 32 + 6
-
-
-/**
- * Maximum regex string length for use with GNUNET_REGEX_ipv6toregex
- */
-#define GNUNET_REGEX_IPV6_REGEXLEN 128 + 6
 
 
 /**
  * Automaton (NFA/DFA) representation.
- */
-struct GNUNET_REGEX_Automaton;
+- */
+struct REGEX_ITERNAL_Automaton;
 
 
 /**
  * Edge representation.
  */
-struct GNUNET_REGEX_Edge
+struct REGEX_ITERNAL_Edge
 {
   /**
    * Label of the edge.  FIXME: might want to not consume exactly multiples of 8 bits, need length?
@@ -96,44 +80,44 @@ struct GNUNET_REGEX_Edge
  * @param max_path_len limit the path compression length to the
  *        given value. If set to 1, no path compression is applied. Set to 0 for
  *        maximal possible path compression (generally not desireable).
- * @return DFA, needs to be freed using GNUNET_REGEX_automaton_destroy.
+ * @return DFA, needs to be freed using REGEX_ITERNAL_automaton_destroy.
  */
-struct GNUNET_REGEX_Automaton *
-GNUNET_REGEX_construct_dfa (const char *regex, const size_t len,
+struct REGEX_ITERNAL_Automaton *
+REGEX_ITERNAL_construct_dfa (const char *regex, const size_t len,
                             unsigned int max_path_len);
 
 
 /**
- * Free the memory allocated by constructing the GNUNET_REGEX_Automaton.
+ * Free the memory allocated by constructing the REGEX_ITERNAL_Automaton.
  * data structure.
  *
  * @param a automaton to be destroyed.
  */
 void
-GNUNET_REGEX_automaton_destroy (struct GNUNET_REGEX_Automaton *a);
+REGEX_ITERNAL_automaton_destroy (struct REGEX_ITERNAL_Automaton *a);
 
 
 /**
  * Options for graph creation function
- * GNUNET_REGEX_automaton_save_graph.
+ * REGEX_ITERNAL_automaton_save_graph.
  */
-enum GNUNET_REGEX_GraphSavingOptions
+enum REGEX_ITERNAL_GraphSavingOptions
 {
   /**
    * Default. Do nothing special.
    */
-  GNUNET_REGEX_GRAPH_DEFAULT = 0,
+  REGEX_ITERNAL_GRAPH_DEFAULT = 0,
 
   /**
    * The generated graph will include extra information such as the NFA states
    * that were used to generate the DFA state.
    */
-  GNUNET_REGEX_GRAPH_VERBOSE = 1,
+  REGEX_ITERNAL_GRAPH_VERBOSE = 1,
 
   /**
    * Enable graph coloring. Will color each SCC in a different color.
    */
-  GNUNET_REGEX_GRAPH_COLORING = 2
+  REGEX_ITERNAL_GRAPH_COLORING = 2
 };
 
 
@@ -146,9 +130,9 @@ enum GNUNET_REGEX_GraphSavingOptions
  *                mode
  */
 void
-GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
+REGEX_ITERNAL_automaton_save_graph (struct REGEX_ITERNAL_Automaton *a,
                                    const char *filename,
-                                   enum GNUNET_REGEX_GraphSavingOptions options);
+                                   enum REGEX_ITERNAL_GraphSavingOptions options);
 
 
 /**
@@ -160,7 +144,7 @@ GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
  * @return 0 if string matches, non 0 otherwise.
  */
 int
-GNUNET_REGEX_eval (struct GNUNET_REGEX_Automaton *a,
+REGEX_ITERNAL_eval (struct REGEX_ITERNAL_Automaton *a,
                    const char *string);
 
 
@@ -176,7 +160,7 @@ GNUNET_REGEX_eval (struct GNUNET_REGEX_Automaton *a,
  *         to construct the key
  */
 size_t
-GNUNET_REGEX_get_first_key (const char *input_string, size_t string_len,
+REGEX_ITERNAL_get_first_key (const char *input_string, size_t string_len,
                             struct GNUNET_HashCode * key);
 
 
@@ -189,7 +173,7 @@ GNUNET_REGEX_get_first_key (const char *input_string, size_t string_len,
  * @return GNUNET_OK if the proof is valid for the given key.
  */
 int
-GNUNET_REGEX_check_proof (const char *proof,
+REGEX_ITERNAL_check_proof (const char *proof,
                           const struct GNUNET_HashCode *key);
 
 
@@ -203,12 +187,12 @@ GNUNET_REGEX_check_proof (const char *proof,
  * @param num_edges number of edges leaving current state.
  * @param edges edges leaving current state.
  */
-typedef void (*GNUNET_REGEX_KeyIterator)(void *cls,
+typedef void (*REGEX_ITERNAL_KeyIterator)(void *cls,
                                          const struct GNUNET_HashCode *key,
                                          const char *proof,
                                          int accepting,
                                          unsigned int num_edges,
-                                         const struct GNUNET_REGEX_Edge *edges);
+                                         const struct REGEX_ITERNAL_Edge *edges);
 
 
 /**
@@ -220,51 +204,25 @@ typedef void (*GNUNET_REGEX_KeyIterator)(void *cls,
  * @param iterator_cls closure.
  */
 void
-GNUNET_REGEX_iterate_all_edges (struct GNUNET_REGEX_Automaton *a,
-                                GNUNET_REGEX_KeyIterator iterator,
+REGEX_ITERNAL_iterate_all_edges (struct REGEX_ITERNAL_Automaton *a,
+                                REGEX_ITERNAL_KeyIterator iterator,
                                 void *iterator_cls);
-
-
-/**
- * Create a regex in 'rxstr' from the given 'ip' and 'netmask'.
- *
- * @param ip IPv4 representation.
- * @param netmask netmask for the ip.
- * @param rxstr generated regex, must be at least GNUNET_REGEX_IPV4_REGEXLEN
- *              bytes long.
- */
-void
-GNUNET_REGEX_ipv4toregex (const struct in_addr *ip, const char *netmask,
-                          char *rxstr);
-
-
-/**
- * Create a regex in 'rxstr' from the given 'ipv6' and 'prefixlen'.
- *
- * @param ipv6 IPv6 representation.
- * @param prefixlen length of the ipv6 prefix.
- * @param rxstr generated regex, must be at least GNUNET_REGEX_IPV6_REGEXLEN
- *              bytes long.
- */
-void
-GNUNET_REGEX_ipv6toregex (const struct in6_addr *ipv6,
-                          unsigned int prefixlen, char *rxstr);
 
 
 
 /**
  * Handle to store cached data about a regex announce.
  */
-struct GNUNET_REGEX_announce_handle;
+struct REGEX_ITERNAL_Announcement;
 
 /**
  * Handle to store data about a regex search.
  */
-struct GNUNET_REGEX_search_handle;
+struct REGEX_ITERNAL_Search;
 
 /**
  * Announce a regular expression: put all states of the automaton in the DHT.
- * Does not free resources, must call GNUNET_REGEX_announce_cancel for that.
+ * Does not free resources, must call REGEX_ITERNAL_announce_cancel for that.
  * 
  * @param dht An existing and valid DHT service handle. CANNOT be NULL.
  * @param id ID to announce as provider of regex. Own ID in most cases.
@@ -273,10 +231,10 @@ struct GNUNET_REGEX_search_handle;
  * @param stats Optional statistics handle to report usage. Can be NULL.
  * 
  * @return Handle to reuse o free cached resources.
- *         Must be freed by calling GNUNET_REGEX_announce_cancel.
+ *         Must be freed by calling REGEX_ITERNAL_announce_cancel.
  */
-struct GNUNET_REGEX_announce_handle *
-GNUNET_REGEX_announce (struct GNUNET_DHT_Handle *dht,
+struct REGEX_ITERNAL_Announcement *
+REGEX_ITERNAL_announce (struct GNUNET_DHT_Handle *dht,
                        const struct GNUNET_PeerIdentity *id,
                        const char *regex,
                        uint16_t compression,
@@ -286,33 +244,33 @@ GNUNET_REGEX_announce (struct GNUNET_DHT_Handle *dht,
  * Announce again a regular expression previously announced.
  * Does use caching to speed up process.
  * 
- * @param h Handle returned by a previous GNUNET_REGEX_announce call.
+ * @param h Handle returned by a previous REGEX_ITERNAL_announce call.
  */
 void
-GNUNET_REGEX_reannounce (struct GNUNET_REGEX_announce_handle *h);
+REGEX_ITERNAL_reannounce (struct REGEX_ITERNAL_Announcement *h);
 
 
 /**
  * Clear all cached data used by a regex announce.
  * Does not close DHT connection.
  * 
- * @param h Handle returned by a previous GNUNET_REGEX_announce call.
+ * @param h Handle returned by a previous REGEX_ITERNAL_announce call.
  */
 void
-GNUNET_REGEX_announce_cancel (struct GNUNET_REGEX_announce_handle *h);
+REGEX_ITERNAL_announce_cancel (struct REGEX_ITERNAL_Announcement *h);
 
 
 /**
  * Search callback function.
  *
- * @param cls Closure provided in GNUNET_REGEX_search.
+ * @param cls Closure provided in REGEX_ITERNAL_search.
  * @param id Peer providing a regex that matches the string.
  * @param get_path Path of the get request.
  * @param get_path_length Lenght of get_path.
  * @param put_path Path of the put request.
  * @param put_path_length Length of the put_path.
  */
-typedef void (*GNUNET_REGEX_Found)(void *cls,
+typedef void (*REGEX_ITERNAL_Found)(void *cls,
                                    const struct GNUNET_PeerIdentity *id,
                                    const struct GNUNET_PeerIdentity *get_path,
                                    unsigned int get_path_length,
@@ -322,7 +280,7 @@ typedef void (*GNUNET_REGEX_Found)(void *cls,
 
 /**
  * Search for a peer offering a regex matching certain string in the DHT.
- * The search runs until GNUNET_REGEX_search_cancel is called, even if results
+ * The search runs until REGEX_ITERNAL_search_cancel is called, even if results
  * are returned.
  *
  * @param dht An existing and valid DHT service handle.
@@ -332,23 +290,23 @@ typedef void (*GNUNET_REGEX_Found)(void *cls,
  * @param stats Optional statistics handle to report usage. Can be NULL.
  * 
  * @return Handle to stop search and free resources.
- *         Must be freed by calling GNUNET_REGEX_search_cancel.
+ *         Must be freed by calling REGEX_ITERNAL_search_cancel.
  */
-struct GNUNET_REGEX_search_handle *
-GNUNET_REGEX_search (struct GNUNET_DHT_Handle *dht,
+struct REGEX_ITERNAL_Search *
+REGEX_ITERNAL_search (struct GNUNET_DHT_Handle *dht,
                      const char *string,
-                     GNUNET_REGEX_Found callback,
+                     REGEX_ITERNAL_Found callback,
                      void *callback_cls,
                      struct GNUNET_STATISTICS_Handle *stats);
 
 /**
- * Stop search and free all data used by a GNUNET_REGEX_search call.
+ * Stop search and free all data used by a REGEX_ITERNAL_search call.
  * Does not close DHT connection.
  * 
- * @param h Handle returned by a previous GNUNET_REGEX_search call.
+ * @param h Handle returned by a previous REGEX_ITERNAL_search call.
  */
 void
-GNUNET_REGEX_search_cancel (struct GNUNET_REGEX_search_handle *h);
+REGEX_ITERNAL_search_cancel (struct REGEX_ITERNAL_Search *h);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
@@ -358,5 +316,5 @@ GNUNET_REGEX_search_cancel (struct GNUNET_REGEX_search_handle *h);
 }
 #endif
 
-/* end of gnunet_regex_lib.h */
+/* end of regex_internal_lib.h */
 #endif

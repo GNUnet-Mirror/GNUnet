@@ -46,6 +46,18 @@
 #endif
 
 
+/**
+ * Maximum regex string length for use with GNUNET_TUN_ipv4toregex
+ */
+#define GNUNET_TUN_IPV4_REGEXLEN 32 + 6
+
+
+/**
+ * Maximum regex string length for use with GNUNET_TUN_ipv6toregex
+ */
+#define GNUNET_TUN_IPV6_REGEXLEN 128 + 6
+
+
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
@@ -415,6 +427,33 @@ void
 GNUNET_TUN_calculate_icmp_checksum (struct GNUNET_TUN_IcmpHeader *icmp,
 				    const void *payload,
 				    uint16_t payload_length);
+
+
+/**
+ * Create a regex in 'rxstr' from the given 'ip' and 'netmask'.
+ *
+ * @param ip IPv4 representation.
+ * @param netmask netmask for the ip.
+ * @param rxstr generated regex, must be at least GNUNET_REGEX_IPV4_REGEXLEN
+ *              bytes long.
+ */
+void
+GNUNET_TUN_ipv4toregex (const struct in_addr *ip, const char *netmask,
+			char *rxstr);
+
+
+/**
+ * Create a regex in 'rxstr' from the given 'ipv6' and 'prefixlen'.
+ *
+ * @param ipv6 IPv6 representation.
+ * @param prefixlen length of the ipv6 prefix.
+ * @param rxstr generated regex, must be at least GNUNET_REGEX_IPV6_REGEXLEN
+ *              bytes long.
+ */
+void
+GNUNET_TUN_ipv6toregex (const struct in6_addr *ipv6,
+			unsigned int prefixlen, char *rxstr);
+
 
 
 #endif
