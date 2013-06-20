@@ -38,7 +38,7 @@ noinst_LIBRARIES = \
 
 lib_LTLIBRARIES = \
   libgnunetregexblock.la \
-  libgnunetregexnew.la
+  libgnunetregex.la
 
 
 libgnunetregexblock_la_SOURCES = \
@@ -60,11 +60,11 @@ libgnunetregex_internal_a_DEPENDENCIES = \
   libgnunetregexblock.la
 
 
-libgnunetregexnew_la_SOURCES = \
+libgnunetregex_la_SOURCES = \
   regex_api.c regex_ipc.h
-libgnunetregexnew_la_LIBADD = \
+libgnunetregex_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
-libgnunetregexnew_la_LDFLAGS = \
+libgnunetregex_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
    -version-info 3:0:0
 

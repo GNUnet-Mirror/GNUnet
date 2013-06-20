@@ -54,5 +54,5 @@ gnunet_daemon_exit_LDADD = \
   $(top_builddir)/src/tun/libgnunettun.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
-  $(top_builddir)/src/regex/libgnunetregexnew.la \
+  $(top_builddir)/src/regex/libgnunetregex.la \
   $(GN_LIBINTL)
