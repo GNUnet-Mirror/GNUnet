@@ -68,7 +68,7 @@ open_listen_socket ()
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "setsockopt");
   if (GNUNET_OK !=
       GNUNET_NETWORK_socket_bind (desc, (const struct sockaddr *) &sa,
-                                  sizeof (sa)))
+                                  sizeof (sa), 0))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                          "bind");

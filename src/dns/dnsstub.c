@@ -169,7 +169,8 @@ open_socket (int af)
   sa->sa_family = af;
   if (GNUNET_OK != GNUNET_NETWORK_socket_bind (ret,
 					       sa, 
-					       alen))
+					       alen,
+                                               0))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
 		_("Could not bind to any port: %s\n"),

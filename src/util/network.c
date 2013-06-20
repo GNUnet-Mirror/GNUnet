@@ -372,7 +372,8 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
 int
 GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
                             const struct sockaddr *address,
-                            socklen_t address_len)
+                            socklen_t address_len,
+                            int flags)
 {
   int ret;
 
@@ -392,7 +393,7 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
 #endif
 #ifndef LINUX
 #ifndef MINGW
-  if (address->sa_family == AF_UNIX)
+  if (address->sa_family == AF_UNIX && (flags & GNUNET_BIND_EXCLUSIVE) == 0)
   {
     const struct sockaddr_un *un = (const struct sockaddr_un *) address;
 

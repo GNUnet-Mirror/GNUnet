@@ -404,7 +404,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     if ((ret->lsock == NULL) ||
         (GNUNET_OK !=
          GNUNET_NETWORK_socket_bind (ret->lsock, (const struct sockaddr *) &sa,
-                                     sizeof (sa))))
+                                     sizeof (sa), 0)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _

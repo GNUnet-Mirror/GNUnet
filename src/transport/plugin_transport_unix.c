@@ -1150,7 +1150,7 @@ unix_transport_server_start (void *cls)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
     return GNUNET_SYSERR;
   }
-  if (GNUNET_NETWORK_socket_bind (plugin->unix_sock.desc, serverAddr, addrlen)
+  if (GNUNET_NETWORK_socket_bind (plugin->unix_sock.desc, serverAddr, addrlen, 0)
       != GNUNET_OK)
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");

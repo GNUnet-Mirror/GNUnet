@@ -863,7 +863,7 @@ GNUNET_CLIENT_service_test (const char *service,
 #endif
 	if (GNUNET_OK !=
 	    GNUNET_NETWORK_socket_bind (sock, (const struct sockaddr *) &s_un,
-					slen))
+					slen, GNUNET_BIND_EXCLUSIVE))
         {
 	  /* failed to bind => service must be running */
 	  GNUNET_free (unixpath);
@@ -913,7 +913,7 @@ GNUNET_CLIENT_service_test (const char *service,
     {
       if (GNUNET_OK !=
           GNUNET_NETWORK_socket_bind (sock, (const struct sockaddr *) &s_in,
-                                      sizeof (s_in)))
+                                      sizeof (s_in), GNUNET_BIND_EXCLUSIVE))
       {
         /* failed to bind => service must be running */
         GNUNET_free (hostname);
@@ -946,7 +946,7 @@ GNUNET_CLIENT_service_test (const char *service,
     {
       if (GNUNET_OK !=
           GNUNET_NETWORK_socket_bind (sock, (const struct sockaddr *) &s_in6,
-                                      sizeof (s_in6)))
+                                      sizeof (s_in6), GNUNET_BIND_EXCLUSIVE))
       {
         /* failed to bind => service must be running */
         GNUNET_free (hostname);

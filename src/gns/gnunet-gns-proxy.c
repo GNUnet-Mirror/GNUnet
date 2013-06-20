@@ -3378,7 +3378,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if ((NULL == lsock) ||
       (GNUNET_OK !=
        GNUNET_NETWORK_socket_bind (lsock, (const struct sockaddr *) &sa,
-                                   sizeof (sa))))
+                                   sizeof (sa), 0)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to create listen socket bound to `%s'",

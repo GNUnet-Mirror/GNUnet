@@ -1748,7 +1748,8 @@ resolve_record_dns (struct ResolverHandle *rh,
   sa->sa_family = AF_INET;
   if (GNUNET_OK != GNUNET_NETWORK_socket_bind (rh->dns_sock,
                                                sa,
-                                               sizeof (struct sockaddr_in)))
+                                               sizeof (struct sockaddr_in),
+                                               0))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "GNS_PHASE_REC_DNS-%llu: Error binding UDP socket for DNS lookup!\n",
