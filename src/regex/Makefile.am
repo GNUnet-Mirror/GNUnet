@@ -31,8 +31,6 @@ gnunet_service_regex_LDADD =  -lm \
  $(GN_LIBINTL) 
 gnunet_service_regex_DEPENDENCIES = \
   libgnunetregex_internal.a
-# todo: link files from libgnunetregex statically into gnunet_service_regex,
-# rename API prefix to avoid collision with 'libgnunetregexnew'...
 
 noinst_LIBRARIES = \
   libgnunetregex_internal.a \

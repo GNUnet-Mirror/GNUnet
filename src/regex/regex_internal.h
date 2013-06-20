@@ -47,17 +47,17 @@ extern "C"
  * which they origin ('from_state'). Each state can have 0-n transitions.
  * If label is NULL, this is considered to be an epsilon transition.
  */
-struct REGEX_ITERNAL_Transition
+struct REGEX_INTERNAL_Transition
 {
   /**
    * This is a linked list.
    */
-  struct REGEX_ITERNAL_Transition *prev;
+  struct REGEX_INTERNAL_Transition *prev;
 
   /**
    * This is a linked list.
    */
-  struct REGEX_ITERNAL_Transition *next;
+  struct REGEX_INTERNAL_Transition *next;
 
   /**
    * Unique id of this transition.
@@ -72,30 +72,30 @@ struct REGEX_ITERNAL_Transition
   /**
    * State to which this transition leads.
    */
-  struct REGEX_ITERNAL_State *to_state;
+  struct REGEX_INTERNAL_State *to_state;
 
   /**
    * State from which this transition origins.
    */
-  struct REGEX_ITERNAL_State *from_state;
+  struct REGEX_INTERNAL_State *from_state;
 };
 
 
 /**
  * A state. Can be used in DFA and NFA automatons.
  */
-struct REGEX_ITERNAL_State;
+struct REGEX_INTERNAL_State;
 
 
 /**
  * Set of states.
  */
-struct REGEX_ITERNAL_StateSet
+struct REGEX_INTERNAL_StateSet
 {
   /**
    * Array of states.
    */
-  struct REGEX_ITERNAL_State **states;
+  struct REGEX_INTERNAL_State **states;
 
   /**
    * Number of entries in *use* in the 'states' array.
@@ -112,37 +112,37 @@ struct REGEX_ITERNAL_StateSet
 /**
  * A state. Can be used in DFA and NFA automatons.
  */
-struct REGEX_ITERNAL_State
+struct REGEX_INTERNAL_State
 {
   /**
    * This is a linked list to keep states in an automaton.
    */
-  struct REGEX_ITERNAL_State *prev;
+  struct REGEX_INTERNAL_State *prev;
 
   /**
    * This is a linked list to keep states in an automaton.
    */
-  struct REGEX_ITERNAL_State *next;
+  struct REGEX_INTERNAL_State *next;
 
   /**
    * This is a multi DLL for StateSet_MDLL.
    */
-  struct REGEX_ITERNAL_State *prev_SS;
+  struct REGEX_INTERNAL_State *prev_SS;
 
   /**
    * This is a multi DLL for StateSet_MDLL.
    */
-  struct REGEX_ITERNAL_State *next_SS;
+  struct REGEX_INTERNAL_State *next_SS;
 
   /**
    * This is a multi DLL for StateSet_MDLL Stack.
    */
-  struct REGEX_ITERNAL_State *prev_ST;
+  struct REGEX_INTERNAL_State *prev_ST;
 
   /**
    * This is a multi DLL for StateSet_MDLL Stack.
    */
-  struct REGEX_ITERNAL_State *next_ST;
+  struct REGEX_INTERNAL_State *next_ST;
 
   /**
    * Unique state id.
@@ -222,12 +222,12 @@ struct REGEX_ITERNAL_State
   /**
    * DLL of transitions.
    */
-  struct REGEX_ITERNAL_Transition *transitions_head;
+  struct REGEX_INTERNAL_Transition *transitions_head;
 
   /**
    * DLL of transitions.
    */
-  struct REGEX_ITERNAL_Transition *transitions_tail;
+  struct REGEX_INTERNAL_Transition *transitions_tail;
 
   /**
    * Number of incoming transitions. Used for compressing DFA paths.
@@ -238,14 +238,14 @@ struct REGEX_ITERNAL_State
    * Set of states on which this state is based on. Used when creating a DFA out
    * of several NFA states.
    */
-  struct REGEX_ITERNAL_StateSet nfa_set;
+  struct REGEX_INTERNAL_StateSet nfa_set;
 };
 
 
 /**
  * Type of an automaton.
  */
-enum REGEX_ITERNAL_AutomatonType
+enum REGEX_INTERNAL_AutomatonType
 {
   NFA,
   DFA
@@ -255,28 +255,28 @@ enum REGEX_ITERNAL_AutomatonType
 /**
  * Automaton representation.
  */
-struct REGEX_ITERNAL_Automaton
+struct REGEX_INTERNAL_Automaton
 {
   /**
    * Linked list of NFAs used for partial NFA creation.
    */
-  struct REGEX_ITERNAL_Automaton *prev;
+  struct REGEX_INTERNAL_Automaton *prev;
 
   /**
    * Linked list of NFAs used for partial NFA creation.
    */
-  struct REGEX_ITERNAL_Automaton *next;
+  struct REGEX_INTERNAL_Automaton *next;
 
   /**
    * First state of the automaton. This is mainly used for constructing an NFA,
    * where each NFA itself consists of one or more NFAs linked together.
    */
-  struct REGEX_ITERNAL_State *start;
+  struct REGEX_INTERNAL_State *start;
 
   /**
    * End state of the partial NFA. This is undefined for DFAs
    */
-  struct REGEX_ITERNAL_State *end;
+  struct REGEX_INTERNAL_State *end;
 
   /**
    * Number of states in the automaton.
@@ -286,17 +286,17 @@ struct REGEX_ITERNAL_Automaton
   /**
    * DLL of states.
    */
-  struct REGEX_ITERNAL_State *states_head;
+  struct REGEX_INTERNAL_State *states_head;
 
   /**
    * DLL of states
    */
-  struct REGEX_ITERNAL_State *states_tail;
+  struct REGEX_INTERNAL_State *states_tail;
 
   /**
    * Type of the automaton.
    */
-  enum REGEX_ITERNAL_AutomatonType type;
+  enum REGEX_INTERNAL_AutomatonType type;
 
   /**
    * Regex
@@ -321,10 +321,10 @@ struct REGEX_ITERNAL_Automaton
  * @param regex regular expression string.
  * @param len length of the string.
  *
- * @return NFA, needs to be freed using REGEX_ITERNAL_automaton_destroy.
+ * @return NFA, needs to be freed using REGEX_INTERNAL_automaton_destroy.
  */
-struct REGEX_ITERNAL_Automaton *
-REGEX_ITERNAL_construct_nfa (const char *regex, const size_t len);
+struct REGEX_INTERNAL_Automaton *
+REGEX_INTERNAL_construct_nfa (const char *regex, const size_t len);
 
 
 /**
@@ -339,9 +339,9 @@ REGEX_ITERNAL_construct_nfa (const char *regex, const size_t len);
  *
  * @return GNUNET_YES to proceed traversal, GNUNET_NO to stop.
  */
-typedef int (*REGEX_ITERNAL_traverse_check) (void *cls,
-                                            struct REGEX_ITERNAL_State * s,
-                                            struct REGEX_ITERNAL_Transition * t);
+typedef int (*REGEX_INTERNAL_traverse_check) (void *cls,
+                                            struct REGEX_INTERNAL_State * s,
+                                            struct REGEX_INTERNAL_Transition * t);
 
 
 /**
@@ -351,9 +351,9 @@ typedef int (*REGEX_ITERNAL_traverse_check) (void *cls,
  * @param count current count of the state, from 0 to a->state_count -1.
  * @param s state.
  */
-typedef void (*REGEX_ITERNAL_traverse_action) (void *cls,
+typedef void (*REGEX_INTERNAL_traverse_action) (void *cls,
                                               const unsigned int count,
-                                              struct REGEX_ITERNAL_State * s);
+                                              struct REGEX_INTERNAL_State * s);
 
 
 /**
@@ -370,11 +370,11 @@ typedef void (*REGEX_ITERNAL_traverse_action) (void *cls,
  * @param action_cls closure for action
  */
 void
-REGEX_ITERNAL_automaton_traverse (const struct REGEX_ITERNAL_Automaton *a,
-                                 struct REGEX_ITERNAL_State *start,
-                                 REGEX_ITERNAL_traverse_check check,
+REGEX_INTERNAL_automaton_traverse (const struct REGEX_INTERNAL_Automaton *a,
+                                 struct REGEX_INTERNAL_State *start,
+                                 REGEX_INTERNAL_traverse_check check,
                                  void *check_cls,
-                                 REGEX_ITERNAL_traverse_action action,
+                                 REGEX_INTERNAL_traverse_action action,
                                  void *action_cls);
 
 /**
@@ -389,7 +389,7 @@ REGEX_ITERNAL_automaton_traverse (const struct REGEX_ITERNAL_Automaton *a,
  * @return canonical regex string.
  */
 const char *
-REGEX_ITERNAL_get_canonical_regex (struct REGEX_ITERNAL_Automaton *a);
+REGEX_INTERNAL_get_canonical_regex (struct REGEX_INTERNAL_Automaton *a);
 
 
 /**
@@ -400,14 +400,14 @@ REGEX_ITERNAL_get_canonical_regex (struct REGEX_ITERNAL_Automaton *a);
  * @return number of transitions in the given automaton.
  */
 unsigned int
-REGEX_ITERNAL_get_transition_count (struct REGEX_ITERNAL_Automaton *a);
+REGEX_INTERNAL_get_transition_count (struct REGEX_INTERNAL_Automaton *a);
 
 
 /**
  * Context that contains an id counter for states and transitions as well as a
  * DLL of automatons used as a stack for NFA construction.
  */
-struct REGEX_ITERNAL_Context
+struct REGEX_INTERNAL_Context
 {
   /**
    * Unique state id.
@@ -420,14 +420,14 @@ struct REGEX_ITERNAL_Context
   unsigned int transition_id;
 
   /**
-   * DLL of REGEX_ITERNAL_Automaton's used as a stack.
+   * DLL of REGEX_INTERNAL_Automaton's used as a stack.
    */
-  struct REGEX_ITERNAL_Automaton *stack_head;
+  struct REGEX_INTERNAL_Automaton *stack_head;
 
   /**
-   * DLL of REGEX_ITERNAL_Automaton's used as a stack.
+   * DLL of REGEX_INTERNAL_Automaton's used as a stack.
    */
-  struct REGEX_ITERNAL_Automaton *stack_tail;
+  struct REGEX_INTERNAL_Automaton *stack_tail;
 };
 
 
@@ -439,8 +439,8 @@ struct REGEX_ITERNAL_Context
  * @param stride_len length of the strides.
  */
 void
-REGEX_ITERNAL_dfa_add_multi_strides (struct REGEX_ITERNAL_Context *regex_ctx,
-                                    struct REGEX_ITERNAL_Automaton *dfa,
+REGEX_INTERNAL_dfa_add_multi_strides (struct REGEX_INTERNAL_Context *regex_ctx,
+                                    struct REGEX_INTERNAL_Automaton *dfa,
                                     const unsigned int stride_len);
 
 

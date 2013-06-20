@@ -92,7 +92,7 @@ check_edge (void *cls,
 
 
 int
-REGEX_ITERNAL_block_check (const struct RegexBlock *block,
+REGEX_INTERNAL_block_check (const struct RegexBlock *block,
                           size_t size,
                           const char *xquery)
 {
@@ -109,7 +109,7 @@ REGEX_ITERNAL_block_check (const struct RegexBlock *block,
   ctx.xquery = xquery;
   ctx.found = GNUNET_NO;
   ctx.key = GNUNET_strdup (GNUNET_h2s (&block->key));
-  res = REGEX_ITERNAL_block_iterate (block, size, &check_edge, &ctx);
+  res = REGEX_INTERNAL_block_iterate (block, size, &check_edge, &ctx);
   GNUNET_free (ctx.key);
   if (GNUNET_SYSERR == res)
     return GNUNET_SYSERR;
@@ -120,9 +120,9 @@ REGEX_ITERNAL_block_check (const struct RegexBlock *block,
 
 
 int
-REGEX_ITERNAL_block_iterate (const struct RegexBlock *block,
+REGEX_INTERNAL_block_iterate (const struct RegexBlock *block,
                             size_t size,
-                            REGEX_ITERNAL_EgdeIterator iterator,
+                            REGEX_INTERNAL_EgdeIterator iterator,
                             void *iter_cls)
 {
   struct RegexEdge *edge;

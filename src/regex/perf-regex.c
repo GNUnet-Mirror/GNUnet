@@ -53,7 +53,7 @@ iter (void *cls,
       const char *proof,
       int accepting,
       unsigned int num_edges,
-      const struct REGEX_ITERNAL_Edge *edges)
+      const struct REGEX_INTERNAL_Edge *edges)
 {
   unsigned int i;
 
@@ -66,9 +66,9 @@ iter (void *cls,
 }
 
 static void
-print_dfa (struct REGEX_ITERNAL_Automaton* dfa)
+print_dfa (struct REGEX_INTERNAL_Automaton* dfa)
 {
-  REGEX_ITERNAL_iterate_all_edges (dfa, iter, NULL);
+  REGEX_INTERNAL_iterate_all_edges (dfa, iter, NULL);
 }
 
 /**
@@ -84,7 +84,7 @@ print_dfa (struct REGEX_ITERNAL_Automaton* dfa)
 int
 main (int argc, char *const *argv)
 {
-  struct REGEX_ITERNAL_Automaton* dfa;
+  struct REGEX_INTERNAL_Automaton* dfa;
   char **regexes;
   char *buffer;
   char *regex;
@@ -98,14 +98,14 @@ main (int argc, char *const *argv)
     usage();
     return 1;
   }
-  regexes = REGEX_ITERNAL_read_from_file (argv[1]);
+  regexes = REGEX_TEST_read_from_file (argv[1]);
 
   if (NULL == regexes)
   {
     usage();
     return 2;
   }
-  buffer = REGEX_ITERNAL_combine (regexes);
+  buffer = REGEX_TEST_combine (regexes);
 
   GNUNET_asprintf (&regex, "GNVPN-0001-PAD(%s)(0|1)*", buffer);
   size = strlen (regex);
@@ -114,11 +114,11 @@ main (int argc, char *const *argv)
   //   return 0;
 
   compression = atoi (argv[2]);
-  dfa = REGEX_ITERNAL_construct_dfa (regex, size, compression);
+  dfa = REGEX_INTERNAL_construct_dfa (regex, size, compression);
   print_dfa (dfa);
-  REGEX_ITERNAL_automaton_destroy (dfa);
+  REGEX_INTERNAL_automaton_destroy (dfa);
   GNUNET_free (buffer);
-  REGEX_ITERNAL_free_from_file (regexes);
+  REGEX_TEST_free_from_file (regexes);
   GNUNET_free (regex);
   return 0;
 }

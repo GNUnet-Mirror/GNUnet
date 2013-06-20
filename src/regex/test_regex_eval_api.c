@@ -67,7 +67,7 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
   int eval_check;
   int eval_canonical;
   int eval_canonical_check;
-  struct REGEX_ITERNAL_Automaton *dfa;
+  struct REGEX_INTERNAL_Automaton *dfa;
   regex_t rx;
   regmatch_t matchptr[1];
   char error[200];
@@ -81,7 +81,7 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
 
   /* Generate random regex and a string that matches the regex */
   matching_str = GNUNET_malloc (rx_length + 1);
-  rand_rx = REGEX_ITERNAL_generate_random_regex (rx_length, matching_str);
+  rand_rx = REGEX_TEST_generate_random_regex (rx_length, matching_str);
 
   /* Now match */
   result = 0;
@@ -89,21 +89,21 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
   {
     if (0 < i)
     {
-      matching_str = REGEX_ITERNAL_generate_random_string (max_str_len);
+      matching_str = REGEX_TEST_generate_random_string (max_str_len);
     }
 
     /* Match string using DFA */
-    dfa = REGEX_ITERNAL_construct_dfa (rand_rx, strlen (rand_rx), 0);
+    dfa = REGEX_INTERNAL_construct_dfa (rand_rx, strlen (rand_rx), 0);
     if (NULL == dfa)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Constructing DFA failed\n");
       goto error;
     }
 
-    eval = REGEX_ITERNAL_eval (dfa, matching_str);
+    eval = REGEX_INTERNAL_eval (dfa, matching_str);
     /* save the canonical regex for later comparison */
-    canonical_regex = GNUNET_strdup (REGEX_ITERNAL_get_canonical_regex (dfa));
-    REGEX_ITERNAL_automaton_destroy (dfa);
+    canonical_regex = GNUNET_strdup (REGEX_INTERNAL_get_canonical_regex (dfa));
+    REGEX_INTERNAL_automaton_destroy (dfa);
 
     /* Match string using glibc regex */
     if (0 != regcomp (&rx, rand_rx, REG_EXTENDED))
@@ -124,7 +124,7 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
 
     /* Match canonical regex */
     dfa =
-        REGEX_ITERNAL_construct_dfa (canonical_regex, strlen (canonical_regex),
+        REGEX_INTERNAL_construct_dfa (canonical_regex, strlen (canonical_regex),
                                     0);
     if (NULL == dfa)
     {
@@ -132,8 +132,8 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
       goto error;
     }
 
-    eval_canonical = REGEX_ITERNAL_eval (dfa, matching_str);
-    REGEX_ITERNAL_automaton_destroy (dfa);
+    eval_canonical = REGEX_INTERNAL_eval (dfa, matching_str);
+    REGEX_INTERNAL_automaton_destroy (dfa);
 
     if (0 != regcomp (&rx, canonical_regex, REG_EXTENDED))
     {
@@ -193,7 +193,7 @@ error:
  * @return 0 on successfull, non 0 otherwise
  */
 int
-test_automaton (struct REGEX_ITERNAL_Automaton *a, regex_t * rx,
+test_automaton (struct REGEX_INTERNAL_Automaton *a, regex_t * rx,
                 struct Regex_String_Pair *rxstr)
 {
   int result;
@@ -213,7 +213,7 @@ test_automaton (struct REGEX_ITERNAL_Automaton *a, regex_t * rx,
 
   for (i = 0; i < rxstr->string_count; i++)
   {
-    eval = REGEX_ITERNAL_eval (a, rxstr->strings[i]);
+    eval = REGEX_INTERNAL_eval (a, rxstr->strings[i]);
     eval_check = regexec (rx, rxstr->strings[i], 1, matchptr, 0);
 
     /* We only want to match the whole string, because that's what our DFA does,
@@ -234,7 +234,7 @@ test_automaton (struct REGEX_ITERNAL_Automaton *a, regex_t * rx,
                   "string: %s\nexpected result: %i\n"
                   "gnunet regex: %i\nglibc regex: %i\nglibc error: %s\n"
                   "rm_so: %i\nrm_eo: %i\n\n", rxstr->regex,
-                  REGEX_ITERNAL_get_canonical_regex (a), rxstr->strings[i],
+                  REGEX_INTERNAL_get_canonical_regex (a), rxstr->strings[i],
                   rxstr->expected_results[i], eval, eval_check, error,
                   matchptr[0].rm_so, matchptr[0].rm_eo);
     }
@@ -247,7 +247,7 @@ main (int argc, char *argv[])
 {
   GNUNET_log_setup ("test-regex", "WARNING", NULL);
 
-  struct REGEX_ITERNAL_Automaton *a;
+  struct REGEX_INTERNAL_Automaton *a;
   regex_t rx;
   int i;
   int check_nfa;
@@ -337,19 +337,19 @@ main (int argc, char *argv[])
     }
 
     /* NFA test */
-    a = REGEX_ITERNAL_construct_nfa (rxstr[i].regex, strlen (rxstr[i].regex));
+    a = REGEX_INTERNAL_construct_nfa (rxstr[i].regex, strlen (rxstr[i].regex));
     check_nfa += test_automaton (a, &rx, &rxstr[i]);
-    REGEX_ITERNAL_automaton_destroy (a);
+    REGEX_INTERNAL_automaton_destroy (a);
 
     /* DFA test */
-    a = REGEX_ITERNAL_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex), 0);
+    a = REGEX_INTERNAL_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex), 0);
     check_dfa += test_automaton (a, &rx, &rxstr[i]);
-    check_proof = GNUNET_strdup (REGEX_ITERNAL_get_canonical_regex (a));
-    REGEX_ITERNAL_automaton_destroy (a);
+    check_proof = GNUNET_strdup (REGEX_INTERNAL_get_canonical_regex (a));
+    REGEX_INTERNAL_automaton_destroy (a);
 
-    a = REGEX_ITERNAL_construct_dfa (check_proof, strlen (check_proof), 0);
+    a = REGEX_INTERNAL_construct_dfa (check_proof, strlen (check_proof), 0);
     check_dfa += test_automaton (a, &rx, &rxstr[i]);
-    REGEX_ITERNAL_automaton_destroy (a);
+    REGEX_INTERNAL_automaton_destroy (a);
     if (0 != check_dfa)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "check_proof: %s\n", check_proof);
     GNUNET_free_non_null (check_proof);

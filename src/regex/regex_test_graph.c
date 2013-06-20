@@ -29,9 +29,9 @@
 
 /**
  * Context for graph creation. Passed as the cls to
- * REGEX_ITERNAL_automaton_save_graph_step.
+ * REGEX_TEST_automaton_save_graph_step.
  */
-struct REGEX_ITERNAL_Graph_Context
+struct REGEX_TEST_Graph_Context
 {
   /**
    * File pointer to the dot file used for output.
@@ -64,12 +64,12 @@ struct REGEX_ITERNAL_Graph_Context
  */
 static void
 scc_tarjan_strongconnect (unsigned int *scc_counter,
-                          struct REGEX_ITERNAL_State *v, unsigned int *index,
-                          struct REGEX_ITERNAL_State **stack,
+                          struct REGEX_INTERNAL_State *v, unsigned int *index,
+                          struct REGEX_INTERNAL_State **stack,
                           unsigned int *stack_size)
 {
-  struct REGEX_ITERNAL_State *w;
-  struct REGEX_ITERNAL_Transition *t;
+  struct REGEX_INTERNAL_State *w;
+  struct REGEX_INTERNAL_Transition *t;
 
   v->index = *index;
   v->lowlink = *index;
@@ -114,12 +114,12 @@ scc_tarjan_strongconnect (unsigned int *scc_counter,
  * @param a the automaton for which SCCs should be computed and assigned.
  */
 static void
-scc_tarjan (struct REGEX_ITERNAL_Automaton *a)
+scc_tarjan (struct REGEX_INTERNAL_Automaton *a)
 {
   unsigned int index;
   unsigned int scc_counter;
-  struct REGEX_ITERNAL_State *v;
-  struct REGEX_ITERNAL_State *stack[a->state_count];
+  struct REGEX_INTERNAL_State *v;
+  struct REGEX_INTERNAL_State *stack[a->state_count];
   unsigned int stack_size;
 
   for (v = a->states_head; NULL != v; v = v->next)
@@ -144,18 +144,18 @@ scc_tarjan (struct REGEX_ITERNAL_Automaton *a)
 /**
  * Save a state to an open file pointer. cls is expected to be a file pointer to
  * an open file. Used only in conjunction with
- * REGEX_ITERNAL_automaton_save_graph.
+ * REGEX_TEST_automaton_save_graph.
  *
  * @param cls file pointer.
  * @param count current count of the state, not used.
  * @param s state.
  */
 void
-REGEX_ITERNAL_automaton_save_graph_step (void *cls, unsigned int count,
-                                        struct REGEX_ITERNAL_State *s)
+REGEX_TEST_automaton_save_graph_step (void *cls, unsigned int count,
+                                        struct REGEX_INTERNAL_State *s)
 {
-  struct REGEX_ITERNAL_Graph_Context *ctx = cls;
-  struct REGEX_ITERNAL_Transition *ctran;
+  struct REGEX_TEST_Graph_Context *ctx = cls;
+  struct REGEX_INTERNAL_Transition *ctran;
   char *s_acc = NULL;
   char *s_tran = NULL;
   char *name;
@@ -268,13 +268,13 @@ REGEX_ITERNAL_automaton_save_graph_step (void *cls, unsigned int count,
  *                mode
  */
 void
-REGEX_ITERNAL_automaton_save_graph (struct REGEX_ITERNAL_Automaton *a,
+REGEX_TEST_automaton_save_graph (struct REGEX_INTERNAL_Automaton *a,
                                    const char *filename,
-                                   enum REGEX_ITERNAL_GraphSavingOptions options)
+                                   enum REGEX_TEST_GraphSavingOptions options)
 {
   char *start;
   char *end;
-  struct REGEX_ITERNAL_Graph_Context ctx;
+  struct REGEX_TEST_Graph_Context ctx;
 
   if (NULL == a)
   {
@@ -290,9 +290,9 @@ REGEX_ITERNAL_automaton_save_graph (struct REGEX_ITERNAL_Automaton *a,
 
   ctx.filep = fopen (filename, "w");
   ctx.verbose =
-      (0 == (options & REGEX_ITERNAL_GRAPH_VERBOSE)) ? GNUNET_NO : GNUNET_YES;
+      (0 == (options & REGEX_TEST_GRAPH_VERBOSE)) ? GNUNET_NO : GNUNET_YES;
   ctx.coloring =
-      (0 == (options & REGEX_ITERNAL_GRAPH_COLORING)) ? GNUNET_NO : GNUNET_YES;
+      (0 == (options & REGEX_TEST_GRAPH_COLORING)) ? GNUNET_NO : GNUNET_YES;
 
   if (NULL == ctx.filep)
   {
@@ -308,8 +308,8 @@ REGEX_ITERNAL_automaton_save_graph (struct REGEX_ITERNAL_Automaton *a,
   start = "digraph G {\nrankdir=LR\n";
   fwrite (start, strlen (start), 1, ctx.filep);
 
-  REGEX_ITERNAL_automaton_traverse (a, a->start, NULL, NULL,
-                                   &REGEX_ITERNAL_automaton_save_graph_step,
+  REGEX_INTERNAL_automaton_traverse (a, a->start, NULL, NULL,
+                                   &REGEX_TEST_automaton_save_graph_step,
                                    &ctx);
 
   end = "\n}\n";

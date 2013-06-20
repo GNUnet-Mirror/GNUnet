@@ -61,7 +61,7 @@ get_random_literal ()
  *         needs to be freed, otherwise.
  */
 char *
-REGEX_ITERNAL_generate_random_regex (size_t rx_length, char *matching_str)
+REGEX_TEST_generate_random_regex (size_t rx_length, char *matching_str)
 {
   char *rx;
   char *rx_p;
@@ -148,7 +148,7 @@ REGEX_ITERNAL_generate_random_regex (size_t rx_length, char *matching_str)
  * @return random string that needs to be freed.
  */
 char *
-REGEX_ITERNAL_generate_random_string (size_t max_len)
+REGEX_TEST_generate_random_string (size_t max_len)
 {
   unsigned int i;
   char *str;

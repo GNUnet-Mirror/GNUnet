@@ -25,8 +25,8 @@
  * @author Bertlomiej Polot
  */
 
-#ifndef REGEX_ITERNAL_TEST_LIB_H
-#define REGEX_ITERNAL_TEST_LIB_H
+#ifndef REGEX_INTERNAL_TEST_LIB_H
+#define REGEX_INTERNAL_TEST_LIB_H
 
 #include "regex_internal_lib.h"
 
@@ -46,20 +46,20 @@ extern "C"
  * @return A string with a single regex that matches any of the original regexes
  */
 char *
-REGEX_ITERNAL_combine(char * const regexes[]);
+REGEX_TEST_combine(char * const regexes[]);
 
 
 /**
  * Read a set of regexes from a file, one per line and return them in an array
- * suitable for REGEX_ITERNAL_combine.
- * The array must be free'd using REGEX_ITERNAL_free_from_file.
+ * suitable for REGEX_TEST_combine.
+ * The array must be free'd using REGEX_TEST_free_from_file.
  *
  * @param filename Name of the file containing the regexes.
  *
  * @return A newly allocated, NULL terminated array of regexes.
  */
 char **
-REGEX_ITERNAL_read_from_file (const char *filename);
+REGEX_TEST_read_from_file (const char *filename);
 
 
 /**
@@ -68,7 +68,7 @@ REGEX_ITERNAL_read_from_file (const char *filename);
  * @param regexes NULL-terminated array of regexes.
  */
 void
-REGEX_ITERNAL_free_from_file (char **regexes);
+REGEX_TEST_free_from_file (char **regexes);
 
 
 /**
@@ -85,7 +85,7 @@ REGEX_ITERNAL_free_from_file (char **regexes);
  *         needs to be freed, otherwise.
  */
 char *
-REGEX_ITERNAL_generate_random_regex (size_t rx_length, char *matching_str);
+REGEX_TEST_generate_random_regex (size_t rx_length, char *matching_str);
 
 
 /**
@@ -98,30 +98,30 @@ REGEX_ITERNAL_generate_random_regex (size_t rx_length, char *matching_str);
  * @return random string that needs to be freed.
  */
 char *
-REGEX_ITERNAL_generate_random_string (size_t max_len);
+REGEX_TEST_generate_random_string (size_t max_len);
 
 
 /**
  * Options for graph creation function
- * REGEX_ITERNAL_automaton_save_graph.
+ * REGEX_TEST_automaton_save_graph.
  */
-enum REGEX_ITERNAL_GraphSavingOptions
+enum REGEX_TEST_GraphSavingOptions
 {
   /**
    * Default. Do nothing special.
    */
-  REGEX_ITERNAL_GRAPH_DEFAULT = 0,
+  REGEX_TEST_GRAPH_DEFAULT = 0,
 
   /**
    * The generated graph will include extra information such as the NFA states
    * that were used to generate the DFA state.
    */
-  REGEX_ITERNAL_GRAPH_VERBOSE = 1,
+  REGEX_TEST_GRAPH_VERBOSE = 1,
 
   /**
    * Enable graph coloring. Will color each SCC in a different color.
    */
-  REGEX_ITERNAL_GRAPH_COLORING = 2
+  REGEX_TEST_GRAPH_COLORING = 2
 };
 
 
@@ -134,9 +134,9 @@ enum REGEX_ITERNAL_GraphSavingOptions
  *                mode
  */
 void
-REGEX_ITERNAL_automaton_save_graph (struct REGEX_ITERNAL_Automaton *a,
+REGEX_TEST_automaton_save_graph (struct REGEX_INTERNAL_Automaton *a,
                                    const char *filename,
-                                   enum REGEX_ITERNAL_GraphSavingOptions options);
+                                   enum REGEX_TEST_GraphSavingOptions options);
 
 
 

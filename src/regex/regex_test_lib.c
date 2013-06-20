@@ -305,7 +305,7 @@ regex_ctx_destroy (struct RegexCombineCtx *ctx)
  *          This function DOES NOT support arbitrary regex combining.
  */
 char *
-REGEX_ITERNAL_combine (char * const regexes[])
+REGEX_TEST_combine (char * const regexes[])
 {
   unsigned int i;
   char *combined;
@@ -333,15 +333,15 @@ REGEX_ITERNAL_combine (char * const regexes[])
 
 /**
  * Read a set of regexes from a file, one per line and return them in an array
- * suitable for REGEX_ITERNAL_combine.
- * The array must be free'd using REGEX_ITERNAL_free_from_file.
+ * suitable for REGEX_TEST_combine.
+ * The array must be free'd using REGEX_TEST_free_from_file.
  *
  * @param filename Name of the file containing the regexes.
  *
  * @return A newly allocated, NULL terminated array of regexes.
  */
 char **
-REGEX_ITERNAL_read_from_file (const char *filename)
+REGEX_TEST_read_from_file (const char *filename)
 {
   struct GNUNET_DISK_FileHandle *f;
   unsigned int nr;
@@ -421,7 +421,7 @@ REGEX_ITERNAL_read_from_file (const char *filename)
  * @param regexes NULL-terminated array of regexes.
  */
 void
-REGEX_ITERNAL_free_from_file (char **regexes)
+REGEX_TEST_free_from_file (char **regexes)
 {
   unsigned int i;
 

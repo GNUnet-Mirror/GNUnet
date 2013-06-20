@@ -335,7 +335,7 @@ return_ok (void *cls, unsigned int num_values, MYSQL_BIND * values)
 static void
 regex_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
                 int accepting, unsigned int num_edges,
-                const struct REGEX_ITERNAL_Edge *edges)
+                const struct REGEX_INTERNAL_Edge *edges)
 {
   unsigned int i;
   int result;
@@ -460,10 +460,10 @@ regex_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
 static int
 announce_regex (const char *regex)
 {
-  struct REGEX_ITERNAL_Automaton *dfa;
+  struct REGEX_INTERNAL_Automaton *dfa;
 
   dfa =
-      REGEX_ITERNAL_construct_dfa (regex, strlen (regex), max_path_compression);
+      REGEX_INTERNAL_construct_dfa (regex, strlen (regex), max_path_compression);
 
   if (NULL == dfa)
   {
@@ -473,9 +473,9 @@ announce_regex (const char *regex)
     return GNUNET_SYSERR;
   }
 
-  REGEX_ITERNAL_iterate_all_edges (dfa, &regex_iterator, NULL);
+  REGEX_INTERNAL_iterate_all_edges (dfa, &regex_iterator, NULL);
 
-  REGEX_ITERNAL_automaton_destroy (dfa);
+  REGEX_INTERNAL_automaton_destroy (dfa);
 
   return GNUNET_OK;
 }

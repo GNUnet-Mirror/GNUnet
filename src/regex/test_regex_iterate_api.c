@@ -36,7 +36,7 @@
 /**
  * Set to GNUNET_YES to save a debug graph.
  */
-#define REGEX_ITERNAL_ITERATE_SAVE_DEBUG_GRAPH GNUNET_NO
+#define REGEX_INTERNAL_ITERATE_SAVE_DEBUG_GRAPH GNUNET_NO
 
 static unsigned int transition_counter;
 
@@ -61,7 +61,7 @@ struct RegexStringPair
 static void
 key_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
               int accepting, unsigned int num_edges,
-              const struct REGEX_ITERNAL_Edge *edges)
+              const struct REGEX_INTERNAL_Edge *edges)
 {
   unsigned int i;
   struct IteratorContext *ctx = cls;
@@ -101,7 +101,7 @@ key_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
       ctx->match_count++;
   }
 
-  if (GNUNET_OK != REGEX_ITERNAL_check_proof (proof, key))
+  if (GNUNET_OK != REGEX_INTERNAL_check_proof (proof, key))
   {
     ctx->error++;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -117,7 +117,7 @@ main (int argc, char *argv[])
   GNUNET_log_setup ("test-regex", "WARNING", NULL);
 
   int error;
-  struct REGEX_ITERNAL_Automaton *dfa;
+  struct REGEX_INTERNAL_Automaton *dfa;
   unsigned int i;
   unsigned int num_transitions;
   char *filename = NULL;
@@ -161,7 +161,7 @@ main (int argc, char *argv[])
 
 
     /* Create graph */
-    if (GNUNET_YES == REGEX_ITERNAL_ITERATE_SAVE_DEBUG_GRAPH)
+    if (GNUNET_YES == REGEX_INTERNAL_ITERATE_SAVE_DEBUG_GRAPH)
     {
       GNUNET_asprintf (&filename, "iteration_graph_%u.dot", i);
       ctx.graph_filep = fopen (filename, "w");
@@ -191,10 +191,10 @@ main (int argc, char *argv[])
     ctx.strings = rxstr[i].strings;
     ctx.match_count = 0;
     dfa =
-        REGEX_ITERNAL_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex), 0);
-    REGEX_ITERNAL_iterate_all_edges (dfa, key_iterator, &ctx);
+        REGEX_INTERNAL_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex), 0);
+    REGEX_INTERNAL_iterate_all_edges (dfa, key_iterator, &ctx);
     num_transitions =
-        REGEX_ITERNAL_get_transition_count (dfa) - dfa->start->transition_count;
+        REGEX_INTERNAL_get_transition_count (dfa) - dfa->start->transition_count;
 
     if (transition_counter < num_transitions)
     {
@@ -218,7 +218,7 @@ main (int argc, char *argv[])
       error += (ctx.string_count - ctx.match_count);
     }
 
-    REGEX_ITERNAL_automaton_destroy (dfa);
+    REGEX_INTERNAL_automaton_destroy (dfa);
 
     /* Finish graph */
     if (GNUNET_YES == ctx.should_save_graph)
@@ -238,9 +238,9 @@ main (int argc, char *argv[])
     ctx.match_count = 0;
 
     dfa =
-        REGEX_ITERNAL_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex), 0);
-    REGEX_ITERNAL_dfa_add_multi_strides (NULL, dfa, 2);
-    REGEX_ITERNAL_iterate_all_edges (dfa, key_iterator, &ctx);
+        REGEX_INTERNAL_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex), 0);
+    REGEX_INTERNAL_dfa_add_multi_strides (NULL, dfa, 2);
+    REGEX_INTERNAL_iterate_all_edges (dfa, key_iterator, &ctx);
 
     if (ctx.match_count < ctx.string_count)
     {
@@ -249,7 +249,7 @@ main (int argc, char *argv[])
       error += (ctx.string_count - ctx.match_count);
     }
 
-    REGEX_ITERNAL_automaton_destroy (dfa);
+    REGEX_INTERNAL_automaton_destroy (dfa);
   }
 
   error += ctx.error;

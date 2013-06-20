@@ -57,7 +57,7 @@ static struct GNUNET_DHT_Handle *dht_handle;
 /**
  * Peer's regex announce handle.
  */
-static struct REGEX_ITERNAL_Announcement *announce_handle;
+static struct REGEX_INTERNAL_Announcement *announce_handle;
 
 /**
  * Periodically reannounce regex.
@@ -109,7 +109,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (NULL != announce_handle)
   {
-    REGEX_ITERNAL_announce_cancel (announce_handle);
+    REGEX_INTERNAL_announce_cancel (announce_handle);
     announce_handle = NULL;
   }
 
@@ -160,7 +160,7 @@ reannounce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                 "First time, creating regex: %s\n",
                 regex);
     memset (&id, 0, sizeof (struct GNUNET_PeerIdentity));
-    announce_handle = REGEX_ITERNAL_announce (dht_handle,
+    announce_handle = REGEX_INTERNAL_announce (dht_handle,
                                             &id,
                                             regex,
                                             (unsigned int) max_path_compression,
@@ -169,7 +169,7 @@ reannounce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   else
   {
     GNUNET_assert (NULL != announce_handle);
-    REGEX_ITERNAL_reannounce (announce_handle);
+    REGEX_INTERNAL_reannounce (announce_handle);
   }
 
   random_delay =
@@ -330,7 +330,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   /* Read regexes from policy files */
   GNUNET_assert (-1 != GNUNET_DISK_directory_scan (policy_dir, &scan,
                                                    (void *) (long) peer_id));
-  if (NULL == (components = REGEX_ITERNAL_read_from_file (policy_filename)))
+  if (NULL == (components = REGEX_TEST_read_from_file (policy_filename)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Policy file %s contains no policies. Exiting.\n",
@@ -339,8 +339,8 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  regex = REGEX_ITERNAL_combine (components);
-  REGEX_ITERNAL_free_from_file (components);
+  regex = REGEX_TEST_combine (components);
+  REGEX_TEST_free_from_file (components);
 
   /* Announcing regexes from policy_filename */
   GNUNET_asprintf (&rx_with_pfx, "%s(%s)(0|1)*", regex_prefix, regex);
