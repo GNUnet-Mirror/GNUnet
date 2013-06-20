@@ -116,10 +116,10 @@ noinst_PROGRAMS = $(noinst_mysql_progs) \
 perf_regex_SOURCES = \
   perf-regex.c
 perf_regex_LDADD = -lm \
-  $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/regex/libgnunetregex_internal.a \
   $(top_builddir)/src/regex/libgnunetregexblock.la \
-  $(top_builddir)/src/regex/libgnunetregextest.a
+  $(top_builddir)/src/regex/libgnunetregextest.a \
+  $(top_builddir)/src/util/libgnunetutil.la 
 perf_regex_DEPENDENCIES = \
   libgnunetregex_internal.a \
   libgnunetregextest.a
@@ -127,14 +127,14 @@ perf_regex_DEPENDENCIES = \
 gnunet_regex_profiler_SOURCES = \
   gnunet-regex-profiler.c
 gnunet_regex_profiler_LDADD = -lm \
-  $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/arm/libgnunetarm.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/regex/libgnunetregex_internal.a \
   $(top_builddir)/src/regex/libgnunetregexblock.la \
   $(top_builddir)/src/regex/libgnunetregextest.a \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
 gnunet_regex_profiler_DEPENDENCIES = \
   $(top_builddir)/src/arm/libgnunetarm.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
@@ -145,12 +145,12 @@ gnunet_regex_profiler_DEPENDENCIES = \
 gnunet_daemon_regexprofiler_SOURCES = \
   gnunet-daemon-regexprofiler.c
 gnunet_daemon_regexprofiler_LDADD = -lm \
-  $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/regex/libgnunetregex_internal.a \
   $(top_builddir)/src/regex/libgnunetregexblock.la \
   $(top_builddir)/src/regex/libgnunetregextest.a \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
 gnunet_daemon_regexprofiler_DEPENDENCIES = \
   $(top_builddir)/src/dht/libgnunetdht.la \
   libgnunetregextest.a \
