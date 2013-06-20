@@ -444,35 +444,6 @@ REGEX_ITERNAL_dfa_add_multi_strides (struct REGEX_ITERNAL_Context *regex_ctx,
                                     const unsigned int stride_len);
 
 
-/**
- * Generate a (pseudo) random regular expression of length 'rx_length', as well
- * as a (optional) string that will be matched by the generated regex. The
- * returned regex needs to be freed.
- *
- * @param rx_length length of the random regex.
- * @param matching_str (optional) pointer to a string that will contain a string
- *                     that will be matched by the generated regex, if
- *                     'matching_str' pointer was not NULL.
- *
- * @return NULL if 'rx_length' is 0, a random regex of length 'rx_length', which
- *         needs to be freed, otherwise.
- */
-char *
-REGEX_ITERNAL_generate_random_regex (size_t rx_length, char *matching_str);
-
-
-/**
- * Generate a random string of maximum length 'max_len' that only contains literals allowed
- * in a regular expression. The string might be 0 chars long but is garantueed
- * to be shorter or equal to 'max_len'.
- *
- * @param max_len maximum length of the string that should be generated.
- *
- * @return random string that needs to be freed.
- */
-char *
-REGEX_ITERNAL_generate_random_string (size_t max_len);
-
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

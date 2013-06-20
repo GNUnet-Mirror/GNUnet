@@ -55,9 +55,9 @@ libgnunetregexblock_la_LDFLAGS = \
 
 
 libgnunetregex_internal_a_SOURCES = \
-  regex_internal.h regex.c \
-  regex_graph.c regex_random.c \
-  regex_dht.c
+  regex_internal_lib.h \
+  regex_internal.h regex_internal.c \
+  regex_internal_dht.c
 libgnunetregex_internal_a_DEPENDENCIES = \
   libgnunetregexblock.la
 
@@ -100,7 +100,9 @@ gnunet_regex_simulation_profiler_DEPENDENCIES = \
 endif
 
 libgnunetregextest_a_SOURCES = \
-  regex_test_lib.c regex_test_lib.h
+  regex_test_lib.c regex_test_lib.h \
+  regex_test_graph.c \
+  regex_test_random.c 
 libgnunetregextest_a_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/regex/libgnunetregex_internal.a
@@ -172,6 +174,7 @@ test_regex_eval_api_SOURCES = \
   test_regex_eval_api.c
 test_regex_eval_api_LDADD = -lm \
   $(top_builddir)/src/regex/libgnunetregex_internal.a \
+  $(top_builddir)/src/regex/libgnunetregextest.a \
   $(top_builddir)/src/regex/libgnunetregexblock.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
@@ -186,6 +189,7 @@ test_regex_proofs_SOURCES = \
   test_regex_proofs.c
 test_regex_proofs_LDADD = -lm \
   $(top_builddir)/src/regex/libgnunetregex_internal.a \
+  $(top_builddir)/src/regex/libgnunetregextest.a \
   $(top_builddir)/src/regex/libgnunetregexblock.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
@@ -193,6 +197,7 @@ test_regex_graph_api_SOURCES = \
   test_regex_graph_api.c
 test_regex_graph_api_LDADD = -lm \
   $(top_builddir)/src/regex/libgnunetregex_internal.a \
+  $(top_builddir)/src/regex/libgnunetregextest.a \
   $(top_builddir)/src/regex/libgnunetregexblock.la \
   $(top_builddir)/src/util/libgnunetutil.la
 

@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file src/regex/regex_dht.c
+ * @file src/regex/regex_internal_dht.c
  * @brief library to announce regexes in the network and match strings
  * against published regexes.
  * @author Bartlomiej Polot
@@ -204,6 +204,7 @@ REGEX_ITERNAL_announce (struct GNUNET_DHT_Handle *dht,
   return h;
 }
 
+
 void
 REGEX_ITERNAL_reannounce (struct REGEX_ITERNAL_Announcement *h)
 {
@@ -212,6 +213,7 @@ REGEX_ITERNAL_reannounce (struct REGEX_ITERNAL_Announcement *h)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  full: %s\n", h->regex);
   REGEX_ITERNAL_iterate_all_edges (h->dfa, &regex_iterator, h);
 }
+
 
 void
 REGEX_ITERNAL_announce_cancel (struct REGEX_ITERNAL_Announcement *h)
@@ -365,9 +367,8 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                   &block->id,
                   get_path, get_path_length,
                   put_path, put_path_length);
-
-  return;
 }
+
 
 /**
  * Find a path to a peer that offers a regex servcie compatible
@@ -485,10 +486,7 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     }
     return;
   }
-
   regex_next_edge (block, size, ctx);
-
-  return;
 }
 
 

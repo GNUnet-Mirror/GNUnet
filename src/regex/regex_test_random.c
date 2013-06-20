@@ -18,12 +18,12 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file src/regex/regex_random.c
+ * @file src/regex/regex_test_random.c
  * @brief functions for creating random regular expressions and strings
  * @author Maximilian Szengel
  */
 #include "platform.h"
-#include "regex_internal_lib.h"
+#include "regex_test_lib.h"
 #include "gnunet_crypto_lib.h"
 #include "regex_internal.h"
 
@@ -33,7 +33,7 @@
  *
  * @return random valid literal
  */
-char
+static char
 get_random_literal ()
 {
   uint32_t ridx;
@@ -136,6 +136,7 @@ REGEX_ITERNAL_generate_random_regex (size_t rx_length, char *matching_str)
 
   return rx;
 }
+
 
 /**
  * Generate a random string of maximum length 'max_len' that only contains literals allowed

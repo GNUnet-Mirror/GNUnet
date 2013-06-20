@@ -18,12 +18,13 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file src/regex/regex_graph.c
+ * @file src/regex/regex_test_graph.c
  * @brief functions for creating .dot graphs from regexes
  * @author Maximilian Szengel
  */
 #include "platform.h"
 #include "regex_internal_lib.h"
+#include "regex_test_lib.h"
 #include "regex_internal.h"
 
 /**

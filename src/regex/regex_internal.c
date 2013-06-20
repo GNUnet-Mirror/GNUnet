@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file src/regex/regex.c
+ * @file src/regex/regex_internal.c
  * @brief library to create Deterministic Finite Automatons (DFAs) from regular
  * expressions (regexes).
  * @author Maximilian Szengel

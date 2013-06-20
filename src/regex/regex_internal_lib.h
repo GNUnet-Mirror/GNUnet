@@ -21,7 +21,6 @@
  * @file regex/regex_internal_lib.h
  * @brief library to parse regular expressions into dfa
  * @author Maximilian Szengel
- *
  */
 
 #ifndef REGEX_INTERNAL_LIB_H
@@ -40,11 +39,9 @@ extern "C"
 #endif
 
 
-
-
 /**
  * Automaton (NFA/DFA) representation.
-- */
+ */
 struct REGEX_ITERNAL_Automaton;
 
 
@@ -95,44 +92,6 @@ REGEX_ITERNAL_construct_dfa (const char *regex, const size_t len,
  */
 void
 REGEX_ITERNAL_automaton_destroy (struct REGEX_ITERNAL_Automaton *a);
-
-
-/**
- * Options for graph creation function
- * REGEX_ITERNAL_automaton_save_graph.
- */
-enum REGEX_ITERNAL_GraphSavingOptions
-{
-  /**
-   * Default. Do nothing special.
-   */
-  REGEX_ITERNAL_GRAPH_DEFAULT = 0,
-
-  /**
-   * The generated graph will include extra information such as the NFA states
-   * that were used to generate the DFA state.
-   */
-  REGEX_ITERNAL_GRAPH_VERBOSE = 1,
-
-  /**
-   * Enable graph coloring. Will color each SCC in a different color.
-   */
-  REGEX_ITERNAL_GRAPH_COLORING = 2
-};
-
-
-/**
- * Save the given automaton as a GraphViz dot file.
- *
- * @param a the automaton to be saved.
- * @param filename where to save the file.
- * @param options options for graph generation that include coloring or verbose
- *                mode
- */
-void
-REGEX_ITERNAL_automaton_save_graph (struct REGEX_ITERNAL_Automaton *a,
-                                   const char *filename,
-                                   enum REGEX_ITERNAL_GraphSavingOptions options);
 
 
 /**
