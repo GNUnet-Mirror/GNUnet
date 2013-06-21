@@ -919,6 +919,7 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
   prev_session = aa->session_id;
   aa->session_id = session_id;
 
+  GAS_normalization_normalize_property (aa, atsi, atsi_count);
 
   /* Tell solver about update */
   handle->s_update (handle->solver, handle->addresses, aa, prev_session, aa->used, atsi_delta, atsi_delta_count);
@@ -1350,7 +1351,7 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
       return;
   }
   /* Tell normalization about change, normalization will call callback if preference changed */
-  GAS_normalization_change_preference (client, peer, kind, score_abs);
+  GAS_normalization_normalize_preference (client, peer, kind, score_abs);
 }
 
 

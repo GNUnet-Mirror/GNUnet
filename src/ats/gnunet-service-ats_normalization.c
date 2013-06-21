@@ -26,6 +26,7 @@
  */
 #include "platform.h"
 #include "gnunet_ats_service.h"
+#include "gnunet-service-ats_addresses.h"
 #include "gnunet-service-ats_normalization.h"
 
 
@@ -143,9 +144,17 @@ static void *pref_changed_cb_cls;
 
 
 /**
- * Hashmap to store peer information
+ * Hashmap to store peer information for preference normalization
  */
-static struct GNUNET_CONTAINER_MultiHashMap *peers;
+static struct GNUNET_CONTAINER_MultiHashMap *preference_peers;
+
+
+
+/**
+ * Hashmap to store peer information for property normalization
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *property_peers;
+
 
 
 /**
@@ -164,6 +173,10 @@ static struct PreferenceClient *pc_tail;
  * Default values
  */
 static struct PeerRelative defvalues;
+
+/**
+ * Application Preference Normalization
+ */
 
 
 /**
@@ -210,7 +223,7 @@ update_peers (struct GNUNET_PeerIdentity *id,
 			GNUNET_i2s (id),
 			GNUNET_ATS_print_preference_type (kind),
 			f_rel_total);
-	if (NULL != (rp = GNUNET_CONTAINER_multihashmap_get (peers, &id->hashPubKey)))
+	if (NULL != (rp = GNUNET_CONTAINER_multihashmap_get (preference_peers, &id->hashPubKey)))
 	{
 		backup = rp->f_rel[kind];
 		if (0 < count)
@@ -297,7 +310,7 @@ recalculate_rel_preferences (struct PreferenceClient *c,
 		else
 	  {
 			/* Value did not chang, return old value*/
-			GNUNET_assert (NULL != (rp = GNUNET_CONTAINER_multihashmap_get (peers,
+			GNUNET_assert (NULL != (rp = GNUNET_CONTAINER_multihashmap_get (preference_peers,
 					&p->id.hashPubKey)));
 			ret = rp->f_rel[kind];
 	  }
@@ -383,7 +396,7 @@ preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param score_abs the normalized score
  */
 float
-GAS_normalization_change_preference (void *src,
+GAS_normalization_normalize_preference (void *src,
                                    	 const struct GNUNET_PeerIdentity *peer,
                                    	 enum GNUNET_ATS_PreferenceKind kind,
                                    	 float score_abs)
@@ -449,14 +462,14 @@ GAS_normalization_change_preference (void *src,
       GNUNET_CONTAINER_DLL_insert (c_cur->p_head, c_cur->p_tail, p_cur);
   }
 
-  if (NULL == (r_cur = GNUNET_CONTAINER_multihashmap_get (peers,
+  if (NULL == (r_cur = GNUNET_CONTAINER_multihashmap_get (preference_peers,
   		&peer->hashPubKey)))
   {
   	r_cur = GNUNET_malloc (sizeof (struct PeerRelative));
   	r_cur->id = (*peer);
   	for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
   		r_cur->f_rel[i] = DEFAULT_REL_PREFERENCE;
-  	GNUNET_CONTAINER_multihashmap_put (peers, &r_cur->id.hashPubKey,
+  	GNUNET_CONTAINER_multihashmap_put (preference_peers, &r_cur->id.hashPubKey,
   			r_cur, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   }
 
@@ -476,16 +489,103 @@ GAS_normalization_change_preference (void *src,
 const double *
 GAS_normalization_get_preferences (const struct GNUNET_PeerIdentity *id)
 {
-	GNUNET_assert (NULL != peers);
+	GNUNET_assert (NULL != preference_peers);
 	GNUNET_assert (NULL != id);
 
 	struct PeerRelative *rp;
-	if (NULL == (rp = GNUNET_CONTAINER_multihashmap_get (peers, &id->hashPubKey)))
+	if (NULL == (rp = GNUNET_CONTAINER_multihashmap_get (preference_peers, &id->hashPubKey)))
 	{
 		return defvalues.f_rel;
 	}
 	return rp->f_rel;
 }
+
+/**
+ * Quality Normalization
+ */
+
+struct Property
+{
+	int have_min; /* Do we have min and max */
+	int have_max;
+	uint32_t min;
+	uint32_t max;
+};
+
+struct Property properties[GNUNET_ATS_QualityPropertiesCount];
+
+uint32_t property_average (struct ATS_Address *address,
+											 const struct GNUNET_ATS_Information *atsi)
+{
+	/* Average the values of this property */
+	return ntohl(atsi->value);
+}
+
+void property_normalize (struct ATS_Address *address,
+												 uint32_t type)
+{
+	/* Normalize the values of this property */
+	//GNUNET_break (0);
+}
+
+
+
+void
+GAS_normalization_normalize_property (struct ATS_Address *address,
+																			const struct GNUNET_ATS_Information *atsi,
+																			uint32_t atsi_count)
+{
+	struct Property *cur_prop;
+	int c1;
+	int c2;
+	uint32_t current_type;
+	uint32_t current_val;
+
+	int existing_properties[] = GNUNET_ATS_QualityProperties;
+
+	for (c1 = 0; c1 < atsi_count; c1++)
+	{
+		current_type = ntohl (atsi[c1].type);
+		current_val = ntohl (atsi[c1].value);
+		for (c2 = 0; c2 < GNUNET_ATS_QualityPropertiesCount; c2++)
+		{
+			if (current_type == existing_properties[c2])
+				break;
+		}
+		if (GNUNET_ATS_QualityPropertiesCount == c2)
+		{
+			/* Invalid property */
+			continue;
+		}
+
+		/* Averaging */
+		current_val = property_average (address, &atsi[c1]);
+
+		/* Normalizing */
+		/* Check min, max */
+		cur_prop = &properties[c2];
+		if (cur_prop->max < current_val)
+		{
+			cur_prop->max = current_val;
+			if (GNUNET_NO == cur_prop->have_max)
+				cur_prop->have_max = GNUNET_YES;
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New maximum of %u for property %u\n", cur_prop->max, current_type);
+		}
+		if (cur_prop->min > current_val)
+		{
+			cur_prop->min = current_val;
+			if (GNUNET_NO == cur_prop->have_min)
+				cur_prop->have_min = GNUNET_YES;
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New minimum of %u for property %u\n", cur_prop->min, current_type);
+		}
+
+
+		property_normalize (address, ntohl(atsi[c1].type));
+	}
+
+}
+
+
 
 
 /**
@@ -498,8 +598,19 @@ void
 GAS_normalization_start (GAS_Normalization_preference_changed_cb pref_ch_cb,
 		void *pref_ch_cb_cls)
 {
+	int c1;
 	int i;
-	peers = GNUNET_CONTAINER_multihashmap_create(10, GNUNET_NO);
+	preference_peers = GNUNET_CONTAINER_multihashmap_create(10, GNUNET_NO);
+	property_peers = GNUNET_CONTAINER_multihashmap_create(10, GNUNET_NO);
+
+	for (c1 = 0; c1 < GNUNET_ATS_QualityPropertiesCount; c1++)
+	{
+		properties[c1].min = 0;
+		properties[c1].max = 0;
+		properties[c1].have_max = GNUNET_NO;
+		properties[c1].have_min = GNUNET_NO;
+	}
+
 	pref_changed_cb = pref_ch_cb;
 	pref_changed_cb_cls = pref_ch_cb_cls;
 	for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
@@ -522,7 +633,7 @@ free_peer (void *cls,
     			 void *value)
 {
 	struct PeerRelative *rp = value;
-	GNUNET_CONTAINER_multihashmap_remove (peers, key, value);
+	GNUNET_CONTAINER_multihashmap_remove (preference_peers, key, value);
 	GNUNET_free (rp);
 	return GNUNET_OK;
 }
@@ -558,8 +669,9 @@ GAS_normalization_stop ()
       }
       GNUNET_free (pc);
   }
-  GNUNET_CONTAINER_multihashmap_iterate (peers, &free_peer, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (peers);
+  GNUNET_CONTAINER_multihashmap_iterate (preference_peers, &free_peer, NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (preference_peers);
+  GNUNET_CONTAINER_multihashmap_destroy (property_peers);
 	return;
 }
 

@@ -59,10 +59,15 @@ GAS_normalization_get_preferences (const struct GNUNET_PeerIdentity *id);
  * @param score_abs the normalized score
  */
 float
-GAS_normalization_change_preference (void *src,
+GAS_normalization_normalize_preference (void *src,
                                    	 const struct GNUNET_PeerIdentity *peer,
                                    	 enum GNUNET_ATS_PreferenceKind kind,
                                    	 float score_abs);
+
+void
+GAS_normalization_normalize_property (struct ATS_Address *address,
+																			const struct GNUNET_ATS_Information *atsi,
+																			uint32_t atsi_count);
 
 /**
  * Start the normalization component
