@@ -374,7 +374,8 @@ oprelease_peer_getinfo (void *cls)
     GNUNET_free (opc->data);
     break;
   case OPC_STATE_FINISHED:
-    GNUNET_assert (NULL != (data = opc->data));
+    data = opc->data;
+    GNUNET_assert (NULL != data);
     switch (data->pit)
     {
     case GNUNET_TESTBED_PIT_CONFIGURATION:
