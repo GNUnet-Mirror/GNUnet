@@ -1532,9 +1532,9 @@ opc_free_iterator (void *cls, uint32_t key, void *value)
 
   GNUNET_assert (NULL != opc);
   GNUNET_break (0);
-  GNUNET_free (opc);
   GNUNET_assert (GNUNET_YES == 
                  GNUNET_CONTAINER_multihashmap32_remove (map, key, value));
+  GNUNET_free (opc);
   return GNUNET_YES;
 }
 
