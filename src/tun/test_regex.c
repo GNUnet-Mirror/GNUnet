@@ -35,8 +35,8 @@ test_iptoregex (const char *ipv4, const char *netmask, const char *expectedv4,
 
   struct in_addr a;
   struct in6_addr b;
-  char rxv4[GNUNET_REGEX_IPV4_REGEXLEN];
-  char rxv6[GNUNET_REGEX_IPV6_REGEXLEN];
+  char rxv4[GNUNET_TUN_IPV4_REGEXLEN];
+  char rxv6[GNUNET_TUN_IPV6_REGEXLEN];
 
   GNUNET_assert (1 == inet_pton (AF_INET, ipv4, &a));
   GNUNET_TUN_ipv4toregex (&a, netmask, rxv4);
