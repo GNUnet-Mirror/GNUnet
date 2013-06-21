@@ -1440,7 +1440,7 @@ write_pid_file (struct GNUNET_SERVICE_Context *sctx, pid_t pid)
   {
     /* we get to create a directory -- and claim it
      * as ours! */
-    GNUNET_DISK_directory_create (rdir);
+    (void) GNUNET_DISK_directory_create (rdir);
     if ((NULL != user) && (0 < strlen (user)))
       GNUNET_DISK_file_change_owner (rdir, user);
   }
