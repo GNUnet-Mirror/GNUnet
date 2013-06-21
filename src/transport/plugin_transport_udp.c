@@ -2804,7 +2804,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid IPv6 address: `%s'\n"),
            bind6_address);
-      GNUNET_free_non_null (bind4_address);
       GNUNET_free (bind6_address);
       return NULL;
     }
