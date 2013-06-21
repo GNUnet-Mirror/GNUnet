@@ -64,9 +64,19 @@ GAS_normalization_change_preference (void *src,
                                    	 enum GNUNET_ATS_PreferenceKind kind,
                                    	 float score_abs);
 
+/**
+ * Start the normalization component
+ *
+ * @param pref_ch_cb callback to call on relative preference changing
+ * @param ref_ch_cb_cls cls for the callback
+ */
 void
 GAS_normalization_start (GAS_Normalization_preference_changed_cb pref_ch_cb, void *pref_ch_cb_cls);
 
+
+/**
+ * Stop the normalization component and free all items
+ */
 void
 GAS_normalization_stop ();
 
