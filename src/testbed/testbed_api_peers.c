@@ -877,10 +877,10 @@ static void
 opstart_manage_service (void *cls)
 {
   struct OperationContext *opc = cls;
+  struct ManageServiceData *data = opc->data;
   struct GNUNET_TESTBED_ManagePeerServiceMessage *msg;
-  struct ManageServiceData *data;
   
-  GNUNET_assert (NULL != (data = opc->data));  
+  GNUNET_assert (NULL != data);  
   msg = GNUNET_malloc (data->msize);
   msg->header.size = htons (data->msize);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_MANAGE_PEER_SERVICE);
