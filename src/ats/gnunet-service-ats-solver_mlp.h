@@ -19,7 +19,7 @@
 */
 
 /**
- * @file ats/gnunet-service-ats_addresses_mlp.h
+ * @file ats/gnunet-service-ats-solver_mlp.h
  * @brief ats MLP problem solver
  * @author Matthias Wachs
  * @author Christian Grothoff
@@ -345,7 +345,7 @@ GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addr
 /**
  * Init the MLP problem solving component
  *
- * @param cfg configuration handle
+ * @param cfg the GNUNET_CONFIGURATION_Handle handle
  * @param stats the GNUNET_STATISTICS handle
  * @param network array of GNUNET_ATS_NetworkType with length dest_length
  * @param out_dest array of outbound quotas
@@ -353,6 +353,8 @@ GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addr
  * @param dest_length array length for quota arrays
  * @param bw_changed_cb callback for changed bandwidth amounts
  * @param bw_changed_cb_cls cls for callback
+ * @param get_preference callback to get relative preferences for a peer
+ * @param get_preference_cls cls for callback to get relative preferences
  * @return struct GAS_MLP_Handle on success, NULL on fail
  */
 void *

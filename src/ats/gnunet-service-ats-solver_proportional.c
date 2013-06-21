@@ -1225,6 +1225,8 @@ GAS_proportional_address_add (void *solver,
  * @param dest_length array length for quota arrays
  * @param bw_changed_cb callback for changed bandwidth amounts
  * @param bw_changed_cb_cls cls for callback
+ * @param get_preference callback to get relative preferences for a peer
+ * @param get_preference_cls cls for callback to get relative preferences
  * @return handle for the solver on success, NULL on fail
  */
 void *

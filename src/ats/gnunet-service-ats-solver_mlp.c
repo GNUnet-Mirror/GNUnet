@@ -19,7 +19,7 @@
 */
 
 /**
- * @file ats/gnunet-service-ats_addresses_mlp.c
+ * @file ats/gnunet-service-ats-solver_mlp.c
  * @brief ats mlp problem solver
  * @author Matthias Wachs
  * @author Christian Grothoff
@@ -1630,6 +1630,8 @@ GAS_mlp_done (void *solver)
  * @param dest_length array length for quota arrays
  * @param bw_changed_cb callback for changed bandwidth amounts
  * @param bw_changed_cb_cls cls for callback
+ * @param get_preference callback to get relative preferences for a peer
+ * @param get_preference_cls cls for callback to get relative preferences
  * @return struct GAS_MLP_Handle on success, NULL on fail
  */
 void *

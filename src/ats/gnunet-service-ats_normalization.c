@@ -169,7 +169,8 @@ static struct PeerRelative defvalues;
 /**
  * Update a peer
  * @param id peer id
- * @pram kind the kind
+ * @param kind the kind
+ * @return the new relative preference
  */
 static double
 update_peers (struct GNUNET_PeerIdentity *id,
@@ -307,8 +308,10 @@ recalculate_rel_preferences (struct PreferenceClient *c,
 
 /**
  * Update the absolute preference value for a peer
- * @param id peer id
- * @param kind the kind
+ * @param c the client
+ * @param p the peer
+ * @param kind the preference kind
+ * @param score_abs the absolute value
  * @return the new relative preference value
  */
 static double
@@ -489,7 +492,7 @@ GAS_normalization_get_preferences (const struct GNUNET_PeerIdentity *id)
  * Start the normalization component
  *
  * @param pref_ch_cb callback to call on relative preference changing
- * @param ref_ch_cb_cls cls for the callback
+ * @param pref_ch_cb_cls cls for the callback
  */
 void
 GAS_normalization_start (GAS_Normalization_preference_changed_cb pref_ch_cb,
