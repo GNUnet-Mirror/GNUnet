@@ -673,7 +673,8 @@ GNUNET_MQ_assoc_remove (struct GNUNET_MQ_Handle *mq, uint32_t request_id)
     return NULL;
   val = GNUNET_CONTAINER_multihashmap32_get (mq->assoc_map, request_id);
   GNUNET_assert (NULL != val);
-  GNUNET_CONTAINER_multihashmap32_remove (mq->assoc_map, request_id, val);
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap32_remove (mq->assoc_map, request_id, val));
   return val;
 }
 
