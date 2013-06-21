@@ -44,6 +44,7 @@ main (int argc, char *argv[])
     memset (dst, i+1, sizeof (dst));
 
     end = GNUNET_STRINGS_data_to_string (&src, i, buf, sizeof (buf));
+    GNUNET_assert (NULL != end);
     end[0] = '\0';
     if (GNUNET_OK != 
 	GNUNET_STRINGS_string_to_data (buf, strlen (buf), dst, i))
