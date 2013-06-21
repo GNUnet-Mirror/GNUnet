@@ -664,7 +664,12 @@ update_friend_hello (const struct GNUNET_HELLO_Message *hello,
     return res;
   }
   
-  GNUNET_HELLO_get_key (hello, &pk);
+  if (GNUNET_OK !=
+      GNUNET_HELLO_get_key (hello, &pk))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
   tmp = GNUNET_HELLO_create (&pk, NULL, NULL, GNUNET_YES);
   res = GNUNET_HELLO_merge (hello, tmp);
   GNUNET_free (tmp);
