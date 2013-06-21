@@ -161,11 +161,11 @@ static void
 opstart_peer_destroy (void *cls)
 {
   struct OperationContext *opc = cls;
-  struct GNUNET_TESTBED_Peer *peer;
+  struct GNUNET_TESTBED_Peer *peer = opc->data;
   struct GNUNET_TESTBED_PeerDestroyMessage *msg;
 
   GNUNET_assert (OP_PEER_DESTROY == opc->type);
-  GNUNET_assert (NULL != (peer = opc->data));
+  GNUNET_assert (NULL != peer);
   opc->state = OPC_STATE_STARTED;
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerDestroyMessage));
   msg->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerDestroyMessage));
