@@ -97,7 +97,7 @@ static void
 opstart_peer_create (void *cls)
 {
   struct OperationContext *opc = cls;
-  struct PeerCreateData *data;
+  struct PeerCreateData *data = opc->data;
   struct GNUNET_TESTBED_PeerCreateMessage *msg;
   char *config;
   char *xconfig;
@@ -106,7 +106,7 @@ opstart_peer_create (void *cls)
   uint16_t msize;
 
   GNUNET_assert (OP_PEER_CREATE == opc->type);  
-  GNUNET_assert (NULL != (data = opc->data));
+  GNUNET_assert (NULL != data);
   GNUNET_assert (NULL != data->peer);
   opc->state = OPC_STATE_STARTED;
   config = GNUNET_CONFIGURATION_serialize (data->cfg, &c_size);
