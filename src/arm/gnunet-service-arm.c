@@ -1246,6 +1246,7 @@ setup_service (void *cls, const char *section)
   {
     /* got the same section twice!? */
     GNUNET_break (0);
+    GNUNET_free (binary);
     return;
   }
   config = NULL;
