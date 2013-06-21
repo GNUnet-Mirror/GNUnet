@@ -129,12 +129,12 @@ struct PeerRelative
   struct GNUNET_PeerIdentity id;
 };
 
-GAS_Normalization_preference_changed_cb pref_changed_cb;
-void *pref_changed_cb_cls;
-struct GNUNET_CONTAINER_MultiHashMap *peers;
-struct PreferenceClient *pc_head;
-struct PreferenceClient *pc_tail;
-struct PeerRelative defvalues;
+static GAS_Normalization_preference_changed_cb pref_changed_cb;
+static void *pref_changed_cb_cls;
+static struct GNUNET_CONTAINER_MultiHashMap *peers;
+static struct PreferenceClient *pc_head;
+static struct PreferenceClient *pc_tail;
+static struct PeerRelative defvalues;
 
 
 static double
