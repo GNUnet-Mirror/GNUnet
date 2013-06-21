@@ -640,6 +640,7 @@ start_process (int pipe_control,
   {
     struct GNUNET_DISK_PipeHandle *childpipe;
     int dup_childpipe_read_fd = -1;
+
     childpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_YES, GNUNET_NO);
     if (NULL == childpipe)
       return NULL;
@@ -651,9 +652,9 @@ start_process (int pipe_control,
         &childpipe_read_fd, sizeof (int))) ||
         (-1 == (dup_childpipe_read_fd = dup (childpipe_read_fd))))
     {
-      if (childpipe_read)
+      if (NULL != childpipe_read)
         GNUNET_DISK_file_close (childpipe_read);
-      if (childpipe_write)
+      if (NULL != childpipe_write)
         GNUNET_DISK_file_close (childpipe_write);
       if (0 <= dup_childpipe_read_fd)
         close (dup_childpipe_read_fd);
@@ -664,7 +665,6 @@ start_process (int pipe_control,
   }
   else
   {
-    childpipe_read = NULL;
     childpipe_write = NULL;
     childpipe_read_fd = -1;
   }
@@ -711,9 +711,7 @@ start_process (int pipe_control,
     int eno = errno;
     LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "fork");
     GNUNET_array_grow (lscp, ls, 0);
-    if (childpipe_read)
-      GNUNET_DISK_file_close (childpipe_read);
-    if (childpipe_write)
+    if (NULL != childpipe_write)
       GNUNET_DISK_file_close (childpipe_write);
     if (0 <= childpipe_read_fd)
       close (childpipe_read_fd);
