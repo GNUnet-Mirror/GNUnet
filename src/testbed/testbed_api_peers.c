@@ -341,10 +341,10 @@ static void
 opstart_peer_getinfo (void *cls)
 {
   struct OperationContext *opc = cls;
-  struct PeerInfoData *data;
+  struct PeerInfoData *data = opc->data;
   struct GNUNET_TESTBED_PeerGetConfigurationMessage *msg;
 
-  GNUNET_assert (NULL != (data = opc->data));
+  GNUNET_assert (NULL != data);
   opc->state = OPC_STATE_STARTED;
   msg =
       GNUNET_TESTBED_generate_peergetconfig_msg_ (data->peer->unique_id,
