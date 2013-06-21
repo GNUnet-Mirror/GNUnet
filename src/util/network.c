@@ -379,17 +379,23 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
 
 #ifdef IPV6_V6ONLY
 #ifdef IPPROTO_IPV6
-  const int on = 1;
+  {
+    const int on = 1;
 
-  if (desc->af == AF_INET6)
-    if (0 != setsockopt (desc->fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof (on)))
-      LOG_STRERROR (GNUNET_ERROR_TYPE_DEBUG, "setsockopt");
+    if (desc->af == AF_INET6)
+      if (setsockopt (desc->fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof (on)))
+        LOG_STRERROR (GNUNET_ERROR_TYPE_DEBUG, "setsockopt");
+  }
 #endif
 #endif
 #ifndef WINDOWS
-  /* This is required, and required here, but only on UNIX */
-  if (0 != setsockopt (desc->fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)))
-    LOG_STRERROR (GNUNET_ERROR_TYPE_DEBUG, "setsockopt");
+  {
+    const int on = 1;
+  
+    /* This is required, and required here, but only on UNIX */
+    if (0 != setsockopt (desc->fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)))
+      LOG_STRERROR (GNUNET_ERROR_TYPE_DEBUG, "setsockopt");
+  }
 #endif
 #ifndef LINUX
 #ifndef MINGW
