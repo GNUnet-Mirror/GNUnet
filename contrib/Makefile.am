@@ -82,11 +82,14 @@ TESTS = $(check_PROGRAMS)
 test_gnunet_prefix_SOURCES = \
  test_gnunet_prefix.c
 
+test_gnunet_prefix_CPPFLAGS = \
+  $(LTDLINCL)
+
 test_gnunet_prefix_LDADD = \
   $(GCLIBADD) $(WINLIB) \
   $(LTLIBICONV) \
   $(GN_LIBINTL) \
-  -lltdl -lunistring $(XLIB) 
+  $(LIBLTDL) -lunistring $(XLIB) 
 
 pkghellodir= $(pkgdatadir)/hellos
 

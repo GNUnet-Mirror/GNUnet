@@ -110,13 +110,15 @@ libgnunetutil_la_SOURCES = \
   time.c \
   speedup.c
 
+libgnunetutil_la_CPPFLAGS = \
+  $(LTDLINCL)
 
 libgnunetutil_la_LIBADD = \
   $(GCLIBADD) $(WINLIB) \
   $(LIBGCRYPT_LIBS) \
   $(LTLIBICONV) \
   $(LTLIBINTL) \
-  -lltdl $(Z_LIBS) -lunistring $(XLIB) 
+  $(LIBLTDL) $(Z_LIBS) -lunistring $(XLIB) 
 
 libgnunetutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
