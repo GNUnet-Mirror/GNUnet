@@ -304,18 +304,6 @@ GNUNET_OS_process_get_pid (struct GNUNET_OS_Process *proc);
 
 
 /**
- * Set process priority
- *
- * @param proc pointer to process structure
- * @param prio priority value
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
- */
-int
-GNUNET_OS_set_process_priority (struct GNUNET_OS_Process *proc,
-                                enum GNUNET_SCHEDULER_Priority prio);
-
-
-/**
  * Start a process.
  *
  * @param pipe_control should a pipe be used to send signals to the child?

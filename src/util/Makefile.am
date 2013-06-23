@@ -236,7 +236,6 @@ check_PROGRAMS = \
  test_mq \
  test_mq_client \
  test_os_network \
- test_os_priority \
  test_peer \
  test_plugin \
  test_program \
@@ -434,11 +433,6 @@ test_mq_client_LDADD = \
 test_os_network_SOURCES = \
  test_os_network.c
 test_os_network_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la  
-
-test_os_priority_SOURCES = \
- test_os_priority.c
-test_os_priority_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_peer_SOURCES = \
