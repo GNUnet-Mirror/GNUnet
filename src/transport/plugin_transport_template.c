@@ -33,7 +33,7 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_transport_plugin.h"
 
-#define DEBUG_TEMPLATE GNUNET_EXTRA_LOGGING
+#define LOG(kind,...) GNUNET_log_from (kind, "transport-template",__VA_ARGS__)
 
 /**
  * After how long do we expire an address that we
@@ -298,7 +298,7 @@ template_plugin_get_session (void *cls,
  * Entry point for the plugin.
  */
 void *
-gnunet_plugin_transport_template_init (void *cls)
+libgnunet_plugin_transport_template_init (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
@@ -327,7 +327,7 @@ gnunet_plugin_transport_template_init (void *cls)
   api->address_to_string = &template_plugin_address_to_string;
   api->string_to_address = &template_plugin_string_to_address;
   api->get_session = &template_plugin_get_session;
-
+  LOG (GNUNET_ERROR_TYPE_INFO, "Template plugin successfully loaded\n");
   return api;
 }
 
@@ -336,7 +336,7 @@ gnunet_plugin_transport_template_init (void *cls)
  * Exit point from the plugin.
  */
 void *
-gnunet_plugin_transport_template_done (void *cls)
+libgnunet_plugin_transport_template_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
