@@ -514,11 +514,66 @@ struct Property
 
 struct Property properties[GNUNET_ATS_QualityPropertiesCount];
 
+/**
+ * Normalize a specific ATS type with the values in queue
+ * @param address the address
+ * @param atsi the ats information
+ * @return the new average or GNUNET_ATS_VALUE_UNDEFINED
+ */
+
 uint32_t property_average (struct ATS_Address *address,
 											 const struct GNUNET_ATS_Information *atsi)
 {
+	struct GAS_NormalizationInfo *ni;
+	uint32_t current_type;
+	uint32_t current_val;
+
+	uint32_t sum;
+	uint32_t count;
+	unsigned int c1;
+	unsigned int index;
+	unsigned int props[] = GNUNET_ATS_QualityProperties;
+
 	/* Average the values of this property */
-	return ntohl(atsi->value);
+	current_type = ntohl (atsi->type);
+	current_val = ntohl (atsi->value);
+
+	for (c1 = 0; c1 < GNUNET_ATS_QualityPropertiesCount; c1++)
+	{
+		if (current_type == props[c1])
+			break;
+	}
+	if (c1 == GNUNET_ATS_QualityPropertiesCount)
+	{
+		GNUNET_break (0);
+		return GNUNET_ATS_VALUE_UNDEFINED;
+	}
+	index = c1;
+
+	ni = &address->atsin[index];
+	ni->atsi_abs[ni->index] = current_val;
+	ni->index ++;
+	if (GAS_normalization_queue_length == ni->index)
+		ni->index = 0;
+
+	count = 0;
+	for (c1 = 0; c1 < GAS_normalization_queue_length; c1++)
+	{
+		if (GNUNET_ATS_VALUE_UNDEFINED != ni->atsi_abs[c1])
+		{
+			count++;
+			if (GNUNET_ATS_VALUE_UNDEFINED > (sum + ni->atsi_abs[c1]))
+				sum += ni->atsi_abs[c1];
+			else
+			{
+				sum = GNUNET_ATS_VALUE_UNDEFINED - 1;
+				GNUNET_break (0);
+			}
+		}
+	}
+	GNUNET_assert (0 != count);
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New average from %u elements: %u\n", count, sum / count);
+	return 0;
 }
 
 void property_normalize (struct ATS_Address *address,
@@ -540,8 +595,10 @@ GAS_normalization_normalize_property (struct ATS_Address *address,
 	int c2;
 	uint32_t current_type;
 	uint32_t current_val;
+	unsigned int existing_properties[] = GNUNET_ATS_QualityProperties;
 
-	int existing_properties[] = GNUNET_ATS_QualityProperties;
+	GNUNET_assert (NULL != address);
+	GNUNET_assert (NULL != atsi);
 
 	for (c1 = 0; c1 < atsi_count; c1++)
 	{
@@ -549,17 +606,23 @@ GAS_normalization_normalize_property (struct ATS_Address *address,
 		current_val = ntohl (atsi[c1].value);
 		for (c2 = 0; c2 < GNUNET_ATS_QualityPropertiesCount; c2++)
 		{
+			/* Check if type is valid */
 			if (current_type == existing_properties[c2])
 				break;
 		}
 		if (GNUNET_ATS_QualityPropertiesCount == c2)
 		{
-			/* Invalid property */
+			/* Invalid property, continue with next element */
 			continue;
 		}
 
 		/* Averaging */
 		current_val = property_average (address, &atsi[c1]);
+		if (GNUNET_ATS_VALUE_UNDEFINED == current_val)
+		{
+			GNUNET_break (0);
+			continue;
+		}
 
 		/* Normalizing */
 		/* Check min, max */
@@ -579,8 +642,7 @@ GAS_normalization_normalize_property (struct ATS_Address *address,
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New minimum of %u for property %u\n", cur_prop->min, current_type);
 		}
 
-
-		property_normalize (address, ntohl(atsi[c1].type));
+		//property_normalize (address, ntohl(atsi[c1].type));
 	}
 
 }

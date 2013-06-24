@@ -512,6 +512,8 @@ create_address (const struct GNUNET_PeerIdentity *peer,
                 uint32_t session_id)
 {
   struct ATS_Address *aa = NULL;
+  int c1;
+  int c2;
 
   aa = GNUNET_malloc (sizeof (struct ATS_Address) + plugin_addr_len);
   aa->peer = *peer;
@@ -527,6 +529,14 @@ create_address (const struct GNUNET_PeerIdentity *peer,
   aa->atsi_count = 0;
   aa->assigned_bw_in = GNUNET_BANDWIDTH_value_init(0);
   aa->assigned_bw_out = GNUNET_BANDWIDTH_value_init(0);
+
+  for (c1 = 0; c1 < GNUNET_ATS_QualityPropertiesCount; c1 ++)
+  {
+  	aa->atsin[c1].index = 0;
+  	for (c2 = 0; c2 < GAS_normalization_queue_length; c2++)
+  		aa->atsin[c1].atsi_abs[c2] = GNUNET_ATS_VALUE_UNDEFINED;
+  }
+
   return aa;
 }
 

@@ -29,6 +29,7 @@
 
 #include "gnunet_util_lib.h"
 #include "gnunet_ats_service.h"
+#include "gnunet-service-ats.h"
 #include "gnunet_statistics_service.h"
 #include "ats.h"
 
@@ -232,6 +233,13 @@
 
 struct GAS_Addresses_Handle;
 
+
+struct GAS_NormalizationInfo
+{
+		unsigned int index;
+	  uint32_t atsi_abs[GAS_normalization_queue_length];
+};
+
 /**
  * Address with additional information
  */
@@ -342,6 +350,12 @@ struct ATS_Address
    * Is this the address for this peer in use?
    */
   int used;
+
+  /**
+   * Normalized ATS performance information for this address
+   * Each entry can be accessed using the GNUNET_ATS_QualityProperties index
+   */
+  struct GAS_NormalizationInfo atsin[GNUNET_ATS_QualityPropertiesCount];
 };
 
 

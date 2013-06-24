@@ -29,6 +29,8 @@
 
 #include "gnunet_statistics_service.h"
 
+#define GAS_normalization_queue_length 3
+
 /**
  * Handle for statistics.
  */

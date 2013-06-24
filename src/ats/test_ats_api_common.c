@@ -69,13 +69,13 @@ compare_addresses (const struct GNUNET_HELLO_Address *address1, void *session1,
   }
   if (address1->address_length != address2->address_length)
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid address length'\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid address length\n");
       return GNUNET_SYSERR;
 
   }
   else if (0 != memcmp (address1->address, address2->address, address2->address_length))
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid address'\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid address\n");
       return GNUNET_SYSERR;
   }
   if (session1 != session2)
