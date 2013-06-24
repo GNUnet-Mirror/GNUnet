@@ -576,11 +576,44 @@ uint32_t property_average (struct ATS_Address *address,
 	return 0;
 }
 
-void property_normalize (struct ATS_Address *address,
-												 uint32_t type)
+double property_normalize (struct Property *p,
+												 struct ATS_Address *address,
+												 uint32_t type,
+												 uint32_t avg_value)
 {
+	double res;
+	double delta;
 	/* Normalize the values of this property */
-	//GNUNET_break (0);
+	if (p->max < avg_value)
+	{
+		p->max = avg_value;
+		if (GNUNET_NO == p->have_max)
+			p->have_max = GNUNET_YES;
+		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+				"New maximum of %u for property %u\n",
+				p->max, avg_value);
+	}
+	if (p->min > avg_value)
+	{
+		p->min = avg_value;
+		if (GNUNET_NO == p->have_min)
+			p->have_min = GNUNET_YES;
+		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+				"New minimum of %u for property %u\n",
+				p->min, avg_value);
+	}
+
+	if ((GNUNET_YES == p->have_max) && (GNUNET_YES == p->have_min))
+	{
+		delta = p->max - p->min;
+		res = (delta + avg_value) / (delta);
+		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+				"New normalized value of %f for property %u\n",
+				res, type);
+		return res;
+	}
+
+	return DEFAULT_REL_QUALITY;
 }
 
 
@@ -627,22 +660,7 @@ GAS_normalization_normalize_property (struct ATS_Address *address,
 		/* Normalizing */
 		/* Check min, max */
 		cur_prop = &properties[c2];
-		if (cur_prop->max < current_val)
-		{
-			cur_prop->max = current_val;
-			if (GNUNET_NO == cur_prop->have_max)
-				cur_prop->have_max = GNUNET_YES;
-			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New maximum of %u for property %u\n", cur_prop->max, current_type);
-		}
-		if (cur_prop->min > current_val)
-		{
-			cur_prop->min = current_val;
-			if (GNUNET_NO == cur_prop->have_min)
-				cur_prop->have_min = GNUNET_YES;
-			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New minimum of %u for property %u\n", cur_prop->min, current_type);
-		}
-
-		//property_normalize (address, ntohl(atsi[c1].type));
+		property_normalize (cur_prop, address, ntohl(atsi[c1].type), current_val);
 	}
 
 }

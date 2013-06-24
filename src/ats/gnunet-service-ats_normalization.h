@@ -33,6 +33,8 @@
 #define DEFAULT_REL_PREFERENCE 1.0
 #define DEFAULT_ABS_PREFERENCE 0.0
 
+#define DEFAULT_REL_QUALITY 1.0
+
 typedef void
 (*GAS_Normalization_preference_changed_cb) (void *cls,
 																						const struct GNUNET_PeerIdentity *peer,
