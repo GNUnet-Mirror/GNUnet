@@ -838,7 +838,7 @@ cache_clear_iterator (void *cls, const struct GNUNET_HashCode *key, void *value)
   GNUNET_assert (NULL != entry);
   GNUNET_break (0 == entry->demand);
   LOG_DEBUG ("Clearing entry %u of %u\n", ++ncleared, cache_size);
-  GNUNET_CONTAINER_multihashmap_remove (cache, key, value);
+  (void) GNUNET_CONTAINER_multihashmap_remove (cache, key, value);
   close_handles (entry);
   GNUNET_free_non_null (entry->hello);
   GNUNET_break (GNUNET_SCHEDULER_NO_TASK == entry->expire_task);
@@ -933,9 +933,7 @@ GST_cache_get_handle_done (struct GSTCacheGetHandle *cgh)
   }
   else
   {
-    struct GSTCacheGetHandle *cgh2;
-
-    if (NULL != (cgh2 = search_suitable_cgh (entry, entry->cgh_qhead)))
+    if (NULL != search_suitable_cgh (entry, entry->cgh_qhead))
       entry->notify_task = GNUNET_SCHEDULER_add_now (&call_cgh_cb, entry);
   }
 }

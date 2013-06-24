@@ -672,11 +672,11 @@ sample_load_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 < nbs) 
   {
     GNUNET_BIO_write (bw, str, nbs);
-    GNUNET_free (str);
   }
   else
     GNUNET_break (0);
-
+  GNUNET_free (str);
+  
  reschedule:
   sample_load_task_id =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,

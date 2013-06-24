@@ -512,7 +512,9 @@ static void
 stop_shared_service_instance (struct SharedServiceInstance *i)
 {
   GNUNET_break (0 == i->n_refs);
-  GNUNET_OS_process_kill (i->proc, SIGTERM);
+  if (0 != GNUNET_OS_process_kill (i->proc, SIGTERM))
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Killing shared service instance (%s) failed\n", i->ss->sname);
   (void) GNUNET_OS_process_wait (i->proc);
   GNUNET_OS_process_destroy (i->proc);
   i->proc = NULL;

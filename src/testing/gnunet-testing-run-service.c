@@ -116,8 +116,8 @@ stdin_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_shutdown ();
     return;
   case 'r':
-    GNUNET_TESTING_peer_stop (my_peer); 
-    GNUNET_TESTING_peer_start (my_peer); 
+    (void) GNUNET_TESTING_peer_stop (my_peer); 
+    (void) GNUNET_TESTING_peer_start (my_peer); 
     printf ("restarted\n");
     fflush (stdout);
     break;

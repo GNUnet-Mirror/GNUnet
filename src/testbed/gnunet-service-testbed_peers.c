@@ -1273,8 +1273,12 @@ shutdown_peers_timeout_cb (void *cls,
   GNUNET_assert (0 < hc->nslaves);
   hc->nslaves--;
   if (0 == hc->nslaves)
+  {
     GST_send_operation_fail_msg (fo_ctxt->client, fo_ctxt->operation_id,
                                  "Timeout at a slave controller");
+    GNUNET_free (hc);
+    hc = NULL;
+  }
   GNUNET_TESTBED_forward_operation_msg_cancel_ (fo_ctxt->opc);  
   GNUNET_SERVER_client_drop (fo_ctxt->client);
   GNUNET_CONTAINER_DLL_remove (fopcq_head, fopcq_tail, fo_ctxt);
@@ -1313,6 +1317,8 @@ shutdown_peers_reply_cb (void *cls,
                                    "Timeout at a slave controller");
     else
       GST_send_operation_success_msg (fo_ctxt->client, fo_ctxt->operation_id);
+    GNUNET_free (hc);
+    hc = NULL;
   }
   GNUNET_SERVER_client_drop (fo_ctxt->client);
   GNUNET_CONTAINER_DLL_remove (fopcq_head, fopcq_tail, fo_ctxt);

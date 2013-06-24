@@ -1301,6 +1301,7 @@ GNUNET_TESTBED_run (const char *host_filename,
                                  "OVERLAY_TOPOLOGY_FILE");
       goto error_cleanup;
     }
+    break;
   default:
     /* Warn if OVERLAY_RANDOM_LINKS is present that it will be ignored */
     if (GNUNET_YES ==

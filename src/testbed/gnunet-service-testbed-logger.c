@@ -201,7 +201,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CONTAINER_DLL_remove (mq_head, mq_tail, mq_entry);
     GNUNET_free (mq_entry);
   }
-  GNUNET_BIO_write_close (bio);
+  (void) GNUNET_BIO_write_close (bio);
 }
 
 
@@ -241,6 +241,7 @@ logger_run (void *cls, struct GNUNET_SERVER_Handle *server,
   {
     LOG (GNUNET_ERROR_TYPE_ERROR, "Cannot get hostname.  Exiting\n");
     GNUNET_free (hname);
+    GNUNET_free (dir);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }

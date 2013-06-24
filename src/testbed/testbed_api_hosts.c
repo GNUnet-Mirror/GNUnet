@@ -1086,8 +1086,7 @@ helper_mst (void *cls, void *client, const struct GNUNET_MessageHeader *message)
   GNUNET_assert (GNUNET_CONFIGURATION_deserialize
                  (cp->host->cfg, config, config_size, GNUNET_NO));
   GNUNET_free (config);
-  if ((NULL == cp->host) ||
-      (NULL == (hostname = GNUNET_TESTBED_host_get_hostname (cp->host))))
+  if (NULL == (hostname = GNUNET_TESTBED_host_get_hostname (cp->host)))
     hostname = "localhost";
   /* Change the hostname so that we can connect to it */
   GNUNET_CONFIGURATION_set_value_string (cp->host->cfg, "testbed", "hostname",

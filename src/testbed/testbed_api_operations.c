@@ -497,8 +497,12 @@ decide_capacity (struct OperationQueue *opq,
 
  ret:
   GNUNET_free_non_null (evict_entries);  
-  if (NULL != ops_) *ops_ = ops;
-  if (NULL != n_ops_) *n_ops_ = n_ops;
+  if (NULL != ops_)
+    *ops_ = ops;
+  else
+    GNUNET_free (ops);
+  if (NULL != n_ops_)
+    *n_ops_ = n_ops;
   return rval;
 }
 
