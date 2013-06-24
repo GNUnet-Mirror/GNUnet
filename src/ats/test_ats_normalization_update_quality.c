@@ -18,9 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file ats/test_ats_api_scheduling_update_address.c
- * @brief test updating an address: add address, get and compare it, update it
- *        get it again and compre
+ * @file ats/test_ats_normalization_update_quality.c
+ * @brief test updating an address
  * @author Christian Grothoff
  * @author Matthias Wachs
  */
@@ -213,10 +212,10 @@ run (void *cls,
   test_ats_info[1].value = htonl(20);
   test_ats_count = 2;
 
-  test_hello_address[3].peer = p[1].id;
-  test_hello_address[3].transport_name = test_addr.plugin;
-  test_hello_address[3].address = test_addr.addr;
-  test_hello_address[3].address_length = test_addr.addr_len;
+  test_hello_address[2].peer = p[1].id;
+  test_hello_address[2].transport_name = test_addr.plugin;
+  test_hello_address[2].address = test_addr.addr;
+  test_hello_address[2].address_length = test_addr.addr_len;
   GNUNET_ATS_address_add (sched_ats, &test_hello_address[3], NULL, test_ats_info, test_ats_count);
 
   /* Request address */
@@ -227,11 +226,11 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
-  if (0 != GNUNET_TESTING_peer_run ("test_ats_api_scheduling_update_address",
+  if (0 != GNUNET_TESTING_peer_run ("test_ats_normalization_update_quality",
                                     "test_ats_api.conf",
                                     &run, NULL))
     return 1;
   return ret;
 }
 
-/* end of file test_ats_api_scheduling_update_address.c */
+/* end of file test_ats_normalization_update_quality.c*/
