@@ -594,6 +594,8 @@ static int a_flag;
      &GNUNET_GETOPT_set_one, &a_flag},
     GNUNET_GETOPT_OPTION_END
   };
+  string_option = NULL;
+  a_flag = GNUNET_SYSERR;
 // ...
 \end{lstlisting}
 
@@ -602,7 +604,10 @@ the {\tt --help} argument and error handling are taken care of when
 using this approach.  Other {\tt GNUNET\_GETOPT\_}-functions can be used
 to obtain integer value options, increment counters, etc.  You can
 even write custom option parsers for special circumstances not covered
-by the available handlers.
+by the available handlers. To check if an argument was specified by the 
+user you initialize the variable with a specific value (e.g. NULL for 
+a string and GNUNET\_SYSERR for a integer) and check after parsing 
+happened if the values were modified.
 
 Inside the {\tt run} method, the program would perform the
 application-specific logic, which typically involves initializing and
