@@ -809,6 +809,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Added new address for peer `%s' session id %u, %p\n",
                 GNUNET_i2s (peer), session_id, aa);
     /* Tell solver about new address */
+    GAS_normalization_normalize_property (aa, atsi, atsi_count);
     handle->s_add (handle->solver, handle->addresses, aa, addr_net);
     /* Notify performance clients about new address */
     GAS_performance_notify_all_clients (&aa->peer,
@@ -852,6 +853,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   }
 
   /* Notify solver about update with atsi information and session */
+  GAS_normalization_normalize_property (ea, atsi, atsi_count);
   handle->s_update (handle->solver, handle->addresses, ea, session_id, ea->used, atsi_delta, atsi_delta_count);
   GNUNET_free_non_null (atsi_delta);
 
@@ -1308,6 +1310,15 @@ GAS_addresses_handle_backoff_reset (struct GAS_Addresses_Handle *handle,
                                               NULL));
 }
 
+
+/**
+ * The preference changed for a peer
+ *
+ * @param cls the address handle
+ * @param peer the peer
+ * @param kind the ATS kind
+ * @param double the new relative preference value
+ */
 static void
 normalized_preference_changed_cb (void *cls,
 								  const struct GNUNET_PeerIdentity *peer,
@@ -1318,6 +1329,31 @@ normalized_preference_changed_cb (void *cls,
 	struct GAS_Addresses_Handle *handle = cls;
   /* Tell solver about update */
   handle->s_pref (handle->solver, handle->addresses, peer, kind, pref_rel);
+}
+
+
+/**
+ * The relative value for a property changed
+ *
+ * @param cls the address handle
+ * @param peer the peer
+ * @param kind the ATS kind
+ * @param double the new relative preference value
+ */
+static void
+normalized_property_changed_cb (void *cls,
+								  						 const struct ATS_Address *peer,
+								  						 uint32_t type,
+								  						 double prop_rel)
+{
+	GNUNET_assert (NULL != cls);
+	//struct GAS_Addresses_Handle *handle = cls;
+  /* Tell solver about update */
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Normalized property %s for peer `%s' changed to %.3f \n",
+              GNUNET_ATS_print_property_type (type),
+              GNUNET_i2s (&peer->peer),
+              prop_rel);
 }
 
 const double *
@@ -1626,7 +1662,8 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert (NULL != ah->s_del);
   GNUNET_assert (NULL != ah->s_done);
 
-  GAS_normalization_start (&normalized_preference_changed_cb, ah);
+  GAS_normalization_start (&normalized_preference_changed_cb, ah,
+  												 &normalized_property_changed_cb, ah);
   quota_count = load_quotas(cfg, quotas_in, quotas_out, GNUNET_ATS_NetworkTypeCount);
 
   ah->solver = ah->s_init (cfg, stats,

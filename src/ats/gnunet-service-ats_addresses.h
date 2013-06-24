@@ -237,6 +237,7 @@ struct GAS_Addresses_Handle;
 struct GAS_NormalizationInfo
 {
 		unsigned int index;
+		uint32_t avg;
 	  uint32_t atsi_abs[GAS_normalization_queue_length];
 };
 

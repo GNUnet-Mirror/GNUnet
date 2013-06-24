@@ -846,6 +846,21 @@ GNUNET_ATS_print_network_type (uint32_t net)
   return NULL;
 }
 
+/**
+ * Convert a ATS property to a string
+ *
+ * @param type the atsi type
+ * @return a string or NULL if invalid
+ */
+const char *
+GNUNET_ATS_print_property_type (uint32_t type)
+{
+	char *props[GNUNET_ATS_PropertyCount] = GNUNET_ATS_PropertyStrings;
+	if ((type > 0) && (type < GNUNET_ATS_PropertyCount))
+		return props[type];
+	return NULL;
+}
+
 
 /**
  * Returns where the address is located: LAN or WAN or ...

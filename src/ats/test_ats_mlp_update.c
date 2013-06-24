@@ -140,6 +140,16 @@ get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
 }
 
 static void
+normalized_property_changed_cb (void *cls,
+								  						 const struct ATS_Address *peer,
+								  						 uint32_t type,
+								  						 double prop_rel)
+{
+	 /* TODO */
+}
+
+
+static void
 bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 {
 	static int cb_p0 = GNUNET_NO;
@@ -194,7 +204,7 @@ check (void *cls, char *const *args, const char *cfgfile,
       end_now (1);
       return;
   }
-  GAS_normalization_start (NULL, NULL);
+  GAS_normalization_start (NULL, NULL, &normalized_property_changed_cb, NULL);
 
   /* Setup address hashmap */
   addresses = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);

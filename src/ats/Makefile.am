@@ -71,6 +71,7 @@ check_PROGRAMS = \
  test_ats_api_scheduling_destroy_session \
  test_ats_api_scheduling_destroy_inbound_connection \
  test_ats_api_scheduling_block_and_reset \
+	test_ats_normalization_update_quality \
  test_ats_change_preference \
  test_ats_simplistic \
  test_ats_simplistic_switch_networks \
@@ -231,6 +232,15 @@ perf_ats_mlp_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/ats/libgnunetats.la  
 endif  
+
+test_ats_normalization_update_quality_SOURCES = \
+  test_ats_normalization_update_quality.c test_ats_api_common.c
+test_ats_normalization_update_quality_LDADD = \
+  $(GN_LIBGLPK) \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/ats/libgnunetats.la  
 
 #test_ats_mlp_averaging_SOURCES = \
 # $(GN_MLP_SRC) test_ats_mlp_averaging.c test_ats_api_common.c

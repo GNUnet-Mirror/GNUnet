@@ -141,6 +141,16 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 
 }
 
+static void
+normalized_property_changed_cb (void *cls,
+								  						 const struct ATS_Address *peer,
+								  						 uint32_t type,
+								  						 double prop_rel)
+{
+	 /* TODO */
+}
+
+
 static const double *
 get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
 {
@@ -281,7 +291,7 @@ check (void *cls, char *const *args, const char *cfgfile,
     end_now (1);
     return;
   }
-  GAS_normalization_start (NULL, NULL);
+  GAS_normalization_start (NULL, NULL, &normalized_property_changed_cb, NULL);
   /* Load quotas */
   if (GNUNET_ATS_NetworkTypeCount != load_quotas (cfg, quotas_out, quotas_in,
   			GNUNET_ATS_NetworkTypeCount))

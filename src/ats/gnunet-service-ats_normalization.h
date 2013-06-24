@@ -41,6 +41,12 @@ typedef void
 																						enum GNUNET_ATS_PreferenceKind kind,
 																						double pref_rel);
 
+typedef void
+(*GAS_Normalization_property_changed_cb) (void *cls,
+																				 const struct ATS_Address *peer,
+																				 uint32_t type,
+																				 double prop_rel);
+
 /**
  * Get the normalized preference values for a specific peer
  *
@@ -59,12 +65,19 @@ GAS_normalization_get_preferences (const struct GNUNET_PeerIdentity *id);
  * @param kind the kind to change the preference
  * @param score_abs the normalized score
  */
-float
+void
 GAS_normalization_normalize_preference (void *src,
                                    	 const struct GNUNET_PeerIdentity *peer,
                                    	 enum GNUNET_ATS_PreferenceKind kind,
                                    	 float score_abs);
 
+/**
+ * Update and normalize a atsi performance information
+ *
+ * @param address the address to update
+ * @param atsi the array of performance information
+ * @param atsi_count the number of atsi information in the array
+ */
 void
 GAS_normalization_normalize_property (struct ATS_Address *address,
 																			const struct GNUNET_ATS_Information *atsi,
@@ -77,7 +90,10 @@ GAS_normalization_normalize_property (struct ATS_Address *address,
  * @param pref_ch_cb_cls cls for the callback
  */
 void
-GAS_normalization_start (GAS_Normalization_preference_changed_cb pref_ch_cb, void *pref_ch_cb_cls);
+GAS_normalization_start (GAS_Normalization_preference_changed_cb pref_ch_cb,
+												 void *pref_ch_cb_cls,
+												 GAS_Normalization_property_changed_cb property_ch_ch_cls,
+												 void *property_ch_cb_cls);
 
 
 /**

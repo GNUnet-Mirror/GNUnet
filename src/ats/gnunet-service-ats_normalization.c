@@ -29,6 +29,7 @@
 #include "gnunet-service-ats_addresses.h"
 #include "gnunet-service-ats_normalization.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind, "ats-normalization",__VA_ARGS__)
 
 
 /**
@@ -141,6 +142,17 @@ static GAS_Normalization_preference_changed_cb pref_changed_cb;
  * Closure for callback to call on changing preference values
  */
 static void *pref_changed_cb_cls;
+
+
+/**
+ * Callback to call on changing property values
+ */
+GAS_Normalization_property_changed_cb prop_ch_cb;
+
+/**
+ * Closure for callback to call on changing property values
+ */
+void *prop_ch_cb_cls;
 
 
 /**
@@ -395,13 +407,12 @@ preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param kind the kind to change the preference
  * @param score_abs the normalized score
  */
-float
+void
 GAS_normalization_normalize_preference (void *src,
                                    	 const struct GNUNET_PeerIdentity *peer,
                                    	 enum GNUNET_ATS_PreferenceKind kind,
                                    	 float score_abs)
 {
-  float score_rel;
   struct PreferenceClient *c_cur;
   struct PreferencePeer *p_cur;
   struct PeerRelative *r_cur;
@@ -421,7 +432,7 @@ GAS_normalization_normalize_preference (void *src,
   if (kind >= GNUNET_ATS_PreferenceCount)
   {
       GNUNET_break (0);
-      return 0.0;
+      return;
   }
 
   /* Find preference client */
@@ -472,9 +483,7 @@ GAS_normalization_normalize_preference (void *src,
   	GNUNET_CONTAINER_multihashmap_put (preference_peers, &r_cur->id.hashPubKey,
   			r_cur, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   }
-
-  score_rel = update_preference (c_cur, p_cur, kind, score_abs);
-  return score_rel;
+  update_preference (c_cur, p_cur, kind, score_abs);
 }
 
 
@@ -521,14 +530,15 @@ struct Property properties[GNUNET_ATS_QualityPropertiesCount];
  * @return the new average or GNUNET_ATS_VALUE_UNDEFINED
  */
 
-uint32_t property_average (struct ATS_Address *address,
-											 const struct GNUNET_ATS_Information *atsi)
+uint32_t
+property_average (struct ATS_Address *address,
+									const struct GNUNET_ATS_Information *atsi)
 {
 	struct GAS_NormalizationInfo *ni;
 	uint32_t current_type;
 	uint32_t current_val;
-
-	uint32_t sum;
+	uint32_t res;
+	uint64_t sum;
 	uint32_t count;
 	unsigned int c1;
 	unsigned int index;
@@ -557,6 +567,7 @@ uint32_t property_average (struct ATS_Address *address,
 		ni->index = 0;
 
 	count = 0;
+	sum = 0;
 	for (c1 = 0; c1 < GAS_normalization_queue_length; c1++)
 	{
 		if (GNUNET_ATS_VALUE_UNDEFINED != ni->atsi_abs[c1])
@@ -572,52 +583,84 @@ uint32_t property_average (struct ATS_Address *address,
 		}
 	}
 	GNUNET_assert (0 != count);
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New average from %u elements: %u\n", count, sum / count);
-	return 0;
+	res = sum / count;
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "New average of `%s' created by adding %u from %u elements: %u\n",
+			GNUNET_ATS_print_property_type(current_type),
+			current_val, count, res , sum);
+	ni->avg = res;
+	return res;
 }
 
-double property_normalize (struct Property *p,
-												 struct ATS_Address *address,
-												 uint32_t type,
-												 uint32_t avg_value)
+/**
+ * Normalize avg_value to a range of values between [1.0, 2.0]
+ * based on min max values currently known.
+ *
+ * @param property p the property
+ * @param address the address
+ * @param type the atsi type
+ * @param avg_value the value to normalize
+ */
+
+static void
+property_normalize (struct Property *p,
+									  struct ATS_Address *address,
+									  uint32_t type,
+									  uint32_t avg_value)
 {
 	double res;
 	double delta;
+	uint32_t current_min;
+
 	/* Normalize the values of this property */
-	if (p->max < avg_value)
+	if (avg_value > p->max)
 	{
 		p->max = avg_value;
 		if (GNUNET_NO == p->have_max)
 			p->have_max = GNUNET_YES;
-		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-				"New maximum of %u for property %u\n",
-				p->max, avg_value);
+		LOG (GNUNET_ERROR_TYPE_DEBUG,
+				"New maximum of %u for property %s\n",
+				p->max, GNUNET_ATS_print_property_type (type));
 	}
-	if (p->min > avg_value)
+
+	if ((avg_value < p->min) && (avg_value < p->max))
 	{
 		p->min = avg_value;
 		if (GNUNET_NO == p->have_min)
 			p->have_min = GNUNET_YES;
-		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-				"New minimum of %u for property %u\n",
-				p->min, avg_value);
+		LOG (GNUNET_ERROR_TYPE_DEBUG,
+				"New minimum of %u for property %s\n",
+				p->min, GNUNET_ATS_print_property_type (type));
 	}
 
-	if ((GNUNET_YES == p->have_max) && (GNUNET_YES == p->have_min))
+	current_min = p->min;
+	if (UINT32_MAX == p->min)
+		current_min = 0; /* If we do not have a minimum we use 0.0 */
+
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "Normalizing %u: new normalized property `%s' using min=%u max=%u\n",
+			avg_value,
+			GNUNET_ATS_print_property_type (type),
+			current_min, p->max);
+
+	if (GNUNET_YES == p->have_max)
 	{
-		delta = p->max - p->min;
-		res = (delta + avg_value) / (delta);
-		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-				"New normalized value of %f for property %u\n",
-				res, type);
-		return res;
+		delta = p->max - current_min;
+		res = (delta + (avg_value - current_min)) / (delta);
+		LOG (GNUNET_ERROR_TYPE_DEBUG,
+				"Peer `%s': New normalized value of %f for property %s\n",
+				GNUNET_i2s (&address->peer), res, GNUNET_ATS_print_property_type (type));
+		if (NULL != prop_ch_cb)
+			prop_ch_cb (prop_ch_cb_cls, address, type, res);
 	}
-
-	return DEFAULT_REL_QUALITY;
 }
 
 
-
+/**
+ * Update and normalize a atsi performance information
+ *
+ * @param address the address to update
+ * @param atsi the array of performance information
+ * @param atsi_count the number of atsi information in the array
+ */
 void
 GAS_normalization_normalize_property (struct ATS_Address *address,
 																			const struct GNUNET_ATS_Information *atsi,
@@ -632,6 +675,9 @@ GAS_normalization_normalize_property (struct ATS_Address *address,
 
 	GNUNET_assert (NULL != address);
 	GNUNET_assert (NULL != atsi);
+
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating %u elements for peer `%s'\n",
+			atsi_count, GNUNET_i2s (&address->peer));
 
 	for (c1 = 0; c1 < atsi_count; c1++)
 	{
@@ -648,7 +694,6 @@ GAS_normalization_normalize_property (struct ATS_Address *address,
 			/* Invalid property, continue with next element */
 			continue;
 		}
-
 		/* Averaging */
 		current_val = property_average (address, &atsi[c1]);
 		if (GNUNET_ATS_VALUE_UNDEFINED == current_val)
@@ -662,7 +707,6 @@ GAS_normalization_normalize_property (struct ATS_Address *address,
 		cur_prop = &properties[c2];
 		property_normalize (cur_prop, address, ntohl(atsi[c1].type), current_val);
 	}
-
 }
 
 
@@ -676,7 +720,9 @@ GAS_normalization_normalize_property (struct ATS_Address *address,
  */
 void
 GAS_normalization_start (GAS_Normalization_preference_changed_cb pref_ch_cb,
-		void *pref_ch_cb_cls)
+		void *pref_ch_cb_cls,
+		GAS_Normalization_property_changed_cb property_ch_cb,
+		void *property_ch_cb_cls)
 {
 	int c1;
 	int i;
@@ -685,7 +731,7 @@ GAS_normalization_start (GAS_Normalization_preference_changed_cb pref_ch_cb,
 
 	for (c1 = 0; c1 < GNUNET_ATS_QualityPropertiesCount; c1++)
 	{
-		properties[c1].min = 0;
+		properties[c1].min = UINT32_MAX;
 		properties[c1].max = 0;
 		properties[c1].have_max = GNUNET_NO;
 		properties[c1].have_min = GNUNET_NO;
@@ -693,6 +739,9 @@ GAS_normalization_start (GAS_Normalization_preference_changed_cb pref_ch_cb,
 
 	pref_changed_cb = pref_ch_cb;
 	pref_changed_cb_cls = pref_ch_cb_cls;
+	prop_ch_cb = property_ch_cb;
+	prop_ch_cb_cls = pref_ch_cb_cls;
+
 	for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
 		defvalues.f_rel[i] = DEFAULT_REL_PREFERENCE;
 	return;
