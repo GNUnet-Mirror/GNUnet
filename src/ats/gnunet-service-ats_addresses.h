@@ -233,12 +233,30 @@
 
 struct GAS_Addresses_Handle;
 
-
+/**
+ * Information provided by ATS normalization
+ */
 struct GAS_NormalizationInfo
 {
-		unsigned int index;
-		uint32_t avg;
+		/**
+		 * Next index to use in averaging queue
+		 */
+		unsigned int avg_queue_index;
+
+		/**
+		 * Averaging queue
+		 */
 	  uint32_t atsi_abs[GAS_normalization_queue_length];
+
+		/**
+		 * Averaged ATSI values from queue
+		 */
+		uint32_t avg;
+
+		/**
+		 * Normalized values from queue to a range of values [1.0...2.0]
+		 */
+		double norm;
 };
 
 /**
@@ -354,7 +372,7 @@ struct ATS_Address
 
   /**
    * Normalized ATS performance information for this address
-   * Each entry can be accessed using the GNUNET_ATS_QualityProperties index
+   * Each entry can be accessed using the GNUNET_ATS_QualityProperties avg_queue_index
    */
   struct GAS_NormalizationInfo atsin[GNUNET_ATS_QualityPropertiesCount];
 };

@@ -74,12 +74,14 @@ GAS_normalization_normalize_preference (void *src,
 /**
  * Update and normalize a atsi performance information
  *
+ * @param addresses hashmap containing all addresses
  * @param address the address to update
  * @param atsi the array of performance information
  * @param atsi_count the number of atsi information in the array
  */
 void
-GAS_normalization_normalize_property (struct ATS_Address *address,
+GAS_normalization_normalize_property (struct GNUNET_CONTAINER_MultiHashMap *addresses,
+																			struct ATS_Address *address,
 																			const struct GNUNET_ATS_Information *atsi,
 																			uint32_t atsi_count);
 

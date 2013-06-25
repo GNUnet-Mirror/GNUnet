@@ -532,7 +532,7 @@ create_address (const struct GNUNET_PeerIdentity *peer,
 
   for (c1 = 0; c1 < GNUNET_ATS_QualityPropertiesCount; c1 ++)
   {
-  	aa->atsin[c1].index = 0;
+  	aa->atsin[c1].avg_queue_index = 0;
   	for (c2 = 0; c2 < GAS_normalization_queue_length; c2++)
   		aa->atsin[c1].atsi_abs[c2] = GNUNET_ATS_VALUE_UNDEFINED;
   }
@@ -809,7 +809,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Added new address for peer `%s' session id %u, %p\n",
                 GNUNET_i2s (peer), session_id, aa);
     /* Tell solver about new address */
-    GAS_normalization_normalize_property (aa, atsi, atsi_count);
+    GAS_normalization_normalize_property (handle->addresses, aa, atsi, atsi_count);
     handle->s_add (handle->solver, handle->addresses, aa, addr_net);
     /* Notify performance clients about new address */
     GAS_performance_notify_all_clients (&aa->peer,
@@ -853,7 +853,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   }
 
   /* Notify solver about update with atsi information and session */
-  GAS_normalization_normalize_property (ea, atsi, atsi_count);
+  GAS_normalization_normalize_property (handle->addresses, ea, atsi, atsi_count);
   handle->s_update (handle->solver, handle->addresses, ea, session_id, ea->used, atsi_delta, atsi_delta_count);
   GNUNET_free_non_null (atsi_delta);
 
@@ -931,7 +931,7 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
   prev_session = aa->session_id;
   aa->session_id = session_id;
 
-  GAS_normalization_normalize_property (aa, atsi, atsi_count);
+  GAS_normalization_normalize_property (handle->addresses, aa, atsi, atsi_count);
 
   /* Tell solver about update */
   handle->s_update (handle->solver, handle->addresses, aa, prev_session, aa->used, atsi_delta, atsi_delta_count);
