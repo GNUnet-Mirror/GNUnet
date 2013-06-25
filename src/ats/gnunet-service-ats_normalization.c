@@ -825,8 +825,10 @@ free_peer (void *cls,
     			 void *value)
 {
 	struct PeerRelative *rp = value;
-	GNUNET_CONTAINER_multihashmap_remove (preference_peers, key, value);
-	GNUNET_free (rp);
+	if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (preference_peers, key, value))
+		GNUNET_free (rp);
+	else
+		GNUNET_break (0);
 	return GNUNET_OK;
 }
 
