@@ -2514,7 +2514,6 @@ tunnel_destroy_iterator (void *cls,
   }
   else if (c == t->owner)
   {
-    struct MeshPeerInfo *p;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Client %u is owner.\n", c->id);
     t->owner = NULL;
     if (0 != t->prev_hop) { /* destroy could come before a path is used */
