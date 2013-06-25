@@ -2521,8 +2521,6 @@ tunnel_destroy_iterator (void *cls,
         GNUNET_PEER_change_rc (t->prev_hop, -1);
         t->prev_hop = 0;
     }
-    p = peer_get_short (t->dest);
-    peer_info_remove_tunnel (p, t);
   }
   else
   {
