@@ -2350,7 +2350,8 @@ tunnel_destroy (struct MeshTunnel *t)
   {
     peer_cancel_queues (t->next_hop, t);
     GNUNET_PEER_change_rc (t->next_hop, -1);
-  }  
+  }
+  GNUNET_PEER_change_rc (t->dest, -1);
 
   if (GNUNET_SCHEDULER_NO_TASK != t->maintenance_task)
     GNUNET_SCHEDULER_cancel (t->maintenance_task);
@@ -2510,7 +2511,7 @@ tunnel_destroy_iterator (void *cls,
     t->owner = NULL;
     GNUNET_PEER_change_rc (t->prev_hop, -1);
     t->prev_hop = 0;
-    p = peer_get_short(t->dest);
+    p = peer_get_short (t->dest);
     peer_info_remove_tunnel (p, t);
   }
   else
@@ -3144,6 +3145,8 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   path_add_to_peers (path, GNUNET_NO);
   tunnel_use_path (t, path);
 
+  t->dest = path->peers[size - 1];
+  GNUNET_PEER_change_rc (t->dest, 1);
   if (own_pos == size - 1)
   {
     struct MeshClient *c;
@@ -3160,7 +3163,6 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  It's for us!\n");
     peer_info_add_path_to_origin (orig_peer_info, path, GNUNET_YES);
-    t->dest = myid;
 
     /* Assign local tid */
     while (NULL != tunnel_get_incoming (next_local_tid))
