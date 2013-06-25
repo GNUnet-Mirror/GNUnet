@@ -1529,7 +1529,6 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
                                    void *notify_cls)
 {
   struct GNUNET_MESH_TransmitHandle *th;
-  size_t overhead;
 
   GNUNET_assert (NULL != tunnel);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "MESH NOTIFY TRANSMIT READY\n");
