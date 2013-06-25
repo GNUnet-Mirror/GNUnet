@@ -257,7 +257,6 @@ static int
 handle_p2p_operation_request (void *cls,
                               struct GNUNET_MESH_Tunnel *tunnel,
                               void **tunnel_ctx,
-                              const struct GNUNET_PeerIdentity *sender,
                               const struct GNUNET_MessageHeader *mh)
 {
   struct TunnelContext *tc = *tunnel_ctx;
@@ -340,7 +339,7 @@ handle_client_create (void *cls,
   switch (ntohs (msg->operation))
   {
     case GNUNET_SET_OPERATION_INTERSECTION:
-      set = _GSS_intersection_set_create ();
+      //set = _GSS_intersection_set_create ();
       break;
     case GNUNET_SET_OPERATION_UNION:
       set = _GSS_union_set_create ();
@@ -421,7 +420,7 @@ handle_client_remove (void *cls,
       _GSS_union_remove ((struct GNUNET_SET_ElementMessage *) m, set);
       break;
     case GNUNET_SET_OPERATION_INTERSECTION:
-      _GSS_intersection_remove ((struct GNUNET_SET_ElementMessage *) m, set);
+      //_GSS_intersection_remove ((struct GNUNET_SET_ElementMessage *) m, set);
       break;
     default:
       GNUNET_assert (0);
@@ -492,7 +491,7 @@ handle_client_add (void *cls,
       _GSS_union_add ((struct GNUNET_SET_ElementMessage *) m, set);
       break;
     case GNUNET_SET_OPERATION_INTERSECTION:
-      _GSS_intersection_add ((struct GNUNET_SET_ElementMessage *) m, set);
+      //_GSS_intersection_add ((struct GNUNET_SET_ElementMessage *) m, set);
       break;
     default:
       GNUNET_assert (0);
@@ -529,7 +528,7 @@ handle_client_evaluate (void *cls,
   switch (set->operation)
   {
     case GNUNET_SET_OPERATION_INTERSECTION:
-      _GSS_intersection_evaluate ((struct GNUNET_SET_EvaluateMessage *) m, set);
+      //_GSS_intersection_evaluate ((struct GNUNET_SET_EvaluateMessage *) m, set);
       break;
     case GNUNET_SET_OPERATION_UNION:
       _GSS_union_evaluate ((struct GNUNET_SET_EvaluateMessage *) m, set);
@@ -601,7 +600,7 @@ handle_client_accept (void *cls,
   switch (set->operation)
   {
     case GNUNET_SET_OPERATION_INTERSECTION:
-      _GSS_intersection_accept (msg, set, incoming);
+      // _GSS_intersection_accept (msg, set, incoming);
       break;
     case GNUNET_SET_OPERATION_UNION:
       _GSS_union_accept (msg, set, incoming);

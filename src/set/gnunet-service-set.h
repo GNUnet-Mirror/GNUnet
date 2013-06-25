@@ -297,7 +297,6 @@ _GSS_union_operation_destroy (struct UnionEvaluateOperation *eo);
  * @param cls closure
  * @param tunnel mesh tunnel
  * @param tunnel_ctx tunnel context
- * @param sender ???
  * @param mh message to process
  * @return ???
  */
@@ -305,7 +304,6 @@ int
 _GSS_union_handle_p2p_message (void *cls,
                                struct GNUNET_MESH_Tunnel *tunnel,
                                void **tunnel_ctx,
-                               const struct GNUNET_PeerIdentity *sender,
                                const struct GNUNET_MessageHeader *mh);
 
 
