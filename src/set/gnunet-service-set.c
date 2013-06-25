@@ -340,8 +340,7 @@ handle_client_create (void *cls,
   switch (ntohs (msg->operation))
   {
     case GNUNET_SET_OPERATION_INTERSECTION:
-      /* FIXME: cfuchs */
-      GNUNET_assert (0);
+      set = _GSS_intersection_set_create ();
       break;
     case GNUNET_SET_OPERATION_UNION:
       set = _GSS_union_set_create ();
@@ -420,8 +419,9 @@ handle_client_remove (void *cls,
   {
     case GNUNET_SET_OPERATION_UNION:
       _GSS_union_remove ((struct GNUNET_SET_ElementMessage *) m, set);
+      break;
     case GNUNET_SET_OPERATION_INTERSECTION:
-      /* FIXME: cfuchs */
+      _GSS_intersection_remove ((struct GNUNET_SET_ElementMessage *) m, set);
       break;
     default:
       GNUNET_assert (0);
@@ -490,8 +490,9 @@ handle_client_add (void *cls,
   {
     case GNUNET_SET_OPERATION_UNION:
       _GSS_union_add ((struct GNUNET_SET_ElementMessage *) m, set);
+      break;
     case GNUNET_SET_OPERATION_INTERSECTION:
-      /* FIXME: cfuchs */
+      _GSS_intersection_add ((struct GNUNET_SET_ElementMessage *) m, set);
       break;
     default:
       GNUNET_assert (0);
@@ -528,7 +529,7 @@ handle_client_evaluate (void *cls,
   switch (set->operation)
   {
     case GNUNET_SET_OPERATION_INTERSECTION:
-      /* FIXME: cfuchs */
+      _GSS_intersection_evaluate ((struct GNUNET_SET_EvaluateMessage *) m, set);
       break;
     case GNUNET_SET_OPERATION_UNION:
       _GSS_union_evaluate ((struct GNUNET_SET_EvaluateMessage *) m, set);
