@@ -2351,7 +2351,13 @@ tunnel_destroy (struct MeshTunnel *t)
     peer_cancel_queues (t->next_hop, t);
     GNUNET_PEER_change_rc (t->next_hop, -1);
   }
-  GNUNET_PEER_change_rc (t->dest, -1);
+  if (0 != t->dest) {
+      struct MeshPeerInfo *pi;
+
+      pi = peer_get_short (t->dest);
+      peer_info_remove_tunnel (pi, t);
+      GNUNET_PEER_change_rc (t->dest, -1);
+  }
 
   if (GNUNET_SCHEDULER_NO_TASK != t->maintenance_task)
     GNUNET_SCHEDULER_cancel (t->maintenance_task);
@@ -2501,16 +2507,20 @@ tunnel_destroy_iterator (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Client %u is destination.\n", c->id);
     t->client = NULL;
-    GNUNET_PEER_change_rc (t->next_hop, -1);
-    t->next_hop = 0;
+    if (0 != t->next_hop) { /* destroy could come before a path is used */
+        GNUNET_PEER_change_rc (t->next_hop, -1);
+        t->next_hop = 0;
+    }
   }
   else if (c == t->owner)
   {
     struct MeshPeerInfo *p;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Client %u is owner.\n", c->id);
     t->owner = NULL;
-    GNUNET_PEER_change_rc (t->prev_hop, -1);
-    t->prev_hop = 0;
+    if (0 != t->prev_hop) { /* destroy could come before a path is used */
+        GNUNET_PEER_change_rc (t->prev_hop, -1);
+        t->prev_hop = 0;
+    }
     p = peer_get_short (t->dest);
     peer_info_remove_tunnel (p, t);
   }
