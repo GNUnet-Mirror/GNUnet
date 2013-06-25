@@ -999,9 +999,13 @@ GNUNET_CONTAINER_multihashmap32_get_multiple (const struct
 
 
 /**
- * Remove an element from a DLL. Assumes
- * that head, tail and element are structs
- * with prev and next fields.
+ * Remove an element from a DLL. Assumes that head, tail and
+ * element point to structs with prev and next fields.
+ *
+ * Using the head or tail pointer as the element
+ * argument does NOT work with this macro.
+ * Make sure to store head/tail in another pointer
+ * and use it to remove the head or tail of the list.
  *
  * @param head pointer to the head of the DLL
  * @param tail pointer to the tail of the DLL
