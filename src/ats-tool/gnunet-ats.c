@@ -165,6 +165,7 @@ transport_addr_to_str_cb (void *cls, const char *address)
   if (NULL != address)
   {
     ats_str = GNUNET_strdup("");
+    network = GNUNET_ATS_NET_UNSPECIFIED;
     for (c = 0; c < pr->ats_count; c++)
     {
         ats_tmp = ats_str;
