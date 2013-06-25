@@ -196,6 +196,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
               "Peer %u (`%4s') received message of type %d and size %u size from peer %u (`%4s')!\n",
               p->no, ps, ntohs (message->type), ntohs (message->size), t->no,
               GNUNET_i2s (&t->id));
+  GNUNET_free (ps);
 
   if ((MTYPE == ntohs (message->type)) &&
       (sizeof (struct GNUNET_MessageHeader) == ntohs (message->size)))
