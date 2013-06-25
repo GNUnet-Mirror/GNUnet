@@ -565,6 +565,9 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Hostkey `%s' missing.  Exiting.\n",
                   HOSTKEY_FILE);
+      GNUNET_free (keyfile);
+      end_badly_now ();
+      return;
   }
 
   if (GNUNET_OK != GNUNET_DISK_directory_create_for_file (keyfile))
@@ -572,6 +575,7 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Could not create a directory for hostkey `%s'.  Exiting.\n",
                   keyfile);
+      GNUNET_free (keyfile);
       end_badly_now ();
       return;
   }
@@ -581,6 +585,7 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Could not copy hostkey `%s' to destination `%s'.  Exiting.\n",
                   HOSTKEY_FILE, keyfile);
+      GNUNET_free (keyfile);
       end_badly_now ();
       return;
   }
