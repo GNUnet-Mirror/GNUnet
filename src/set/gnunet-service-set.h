@@ -200,12 +200,36 @@ enum TunnelContextType {
   CONTEXT_OPERATION_INTERSECTION,
 };
 
+/**
+ * Information about a tunnel we are connected to.
+ * Used as tunnel context with mesh.
+ */
 struct TunnelContext
 {
+  /**
+   * The mesh tunnel that has this context
+   */
   struct GNUNET_MESH_Tunnel *tunnel;
+
+  /**
+   * The peer on the other side.
+   */
   struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Handle to the message queue for the tunnel.
+   */
   struct GNUNET_MQ_Handle *mq;
+
+  /**
+   * Type of the tunnel.
+   */
   enum TunnelContextType type;
+
+  /**
+   * State associated with the tunnel, dependent on
+   * tunnel type.
+   */
   void *data;
 };
 

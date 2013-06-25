@@ -665,7 +665,7 @@ incoming_timeout_cb (void *cls,
 {
   struct Incoming *incoming = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "remote peer timed out");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "remote peer timed out\n");
   incoming_destroy (incoming);
 }
 
@@ -712,8 +712,7 @@ tunnel_new_cb (void *cls,
 
 /**
  * Function called whenever a tunnel is destroyed.  Should clean up
- * any associated state.  This function is NOT called if the client has
- * explicitly asked for the tunnel to be destroyed using
+ * any associated state.
  * GNUNET_MESH_tunnel_destroy. It must NOT call GNUNET_MESH_tunnel_destroy on
  * the tunnel.
  *

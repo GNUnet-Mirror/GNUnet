@@ -183,18 +183,9 @@ set_insert_iterator (void *cls,
 }
 
 
-/**
- * Signature of the 'main' function for a (single-peer) testcase that
- * is run using 'GNUNET_TESTING_peer_run'.
- * 
- * @param cls closure
- * @param cfg configuration of the peer that was started
- * @param peer identity of the peer that was created
- */
 static void
-test_main (void *cls,
-          const struct GNUNET_CONFIGURATION_Handle *cfg,
-          struct GNUNET_TESTING_Peer *peer)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   unsigned int i;
   struct GNUNET_HashCode hash;
@@ -283,16 +274,6 @@ test_main (void *cls,
   GNUNET_SET_commit (set_oh1, set_a);
 }
 
-static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-
-  ret = GNUNET_TESTING_peer_run ("test_set_api",
-                                 "test_set.conf",
-                                 &test_main, NULL);
-}
-
 
 int
 main (int argc, char **argv)
@@ -304,7 +285,7 @@ main (int argc, char **argv)
       { 'B', "num-second", NULL,
         gettext_noop ("number of values"),
         GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_b },
-      { 'B', "num-common", NULL,
+      { 'C', "num-common", NULL,
         gettext_noop ("number of values"),
         GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_c },
       { 'x', "operation", NULL,
@@ -312,9 +293,9 @@ main (int argc, char **argv)
         GNUNET_YES, &GNUNET_GETOPT_set_string, &op_str },
       GNUNET_GETOPT_OPTION_END
   };
-  GNUNET_PROGRAM_run2 (argc, argv, "gnunet-consensus",
-		      "help",
-		      options, &run, NULL, GNUNET_YES);
+  GNUNET_PROGRAM_run (argc, argv, "gnunet-set-profiler",
+                      "help",
+                      options, &run, NULL);
   return ret;
 }
 
