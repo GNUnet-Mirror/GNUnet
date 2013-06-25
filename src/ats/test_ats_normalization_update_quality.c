@@ -44,7 +44,7 @@ static int ret;
 /**
  * Test address
  */
-static struct Test_Address test_addr;
+static struct Test_Address test_addr[3];
 
 /**
  * Test peer
@@ -75,7 +75,9 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (sched_ats != NULL)
     GNUNET_ATS_scheduling_done (sched_ats);
-  free_test_address (&test_addr);
+  free_test_address (&test_addr[0]);
+  free_test_address (&test_addr[1]);
+  free_test_address (&test_addr[2]);
   ret = 0;
 }
 
@@ -91,7 +93,9 @@ end ()
   }
   GNUNET_ATS_scheduling_done (sched_ats);
   sched_ats = NULL;
-  free_test_address (&test_addr);
+  free_test_address (&test_addr[0]);
+  free_test_address (&test_addr[1]);
+  free_test_address (&test_addr[2]);
 }
 
 
@@ -177,7 +181,7 @@ run (void *cls,
 
 
   /* Adding address for peer 0 */
-  create_test_address (&test_addr, "test", &test_addr, "test", strlen ("test") + 1);
+  create_test_address (&test_addr[0], "test", &test_addr, "test_p0_a0", strlen ("test_p0_a0") + 1);
   /* Prepare ATS Information */
   test_ats_info[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
   test_ats_info[0].value = htonl(GNUNET_ATS_NET_WAN);
@@ -186,13 +190,13 @@ run (void *cls,
   test_ats_count = 2;
 
   test_hello_address[0].peer = p[0].id;
-  test_hello_address[0].transport_name = test_addr.plugin;
-  test_hello_address[0].address = test_addr.addr;
-  test_hello_address[0].address_length = test_addr.addr_len;
+  test_hello_address[0].transport_name = test_addr[0].plugin;
+  test_hello_address[0].address = test_addr[0].addr;
+  test_hello_address[0].address_length = test_addr[0].addr_len;
   GNUNET_ATS_address_add (sched_ats, &test_hello_address[0], NULL, test_ats_info, test_ats_count);
 
   /* Adding address for peer 1 */
-  create_test_address (&test_addr, "test", &test_addr, "test", strlen ("test") + 1);
+  create_test_address (&test_addr[1], "test", &test_addr, "test_p1_a0", strlen ("test_p1_a0") + 1);
   test_ats_info[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
   test_ats_info[0].value = htonl(GNUNET_ATS_NET_WAN);
   test_ats_info[1].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
@@ -200,9 +204,9 @@ run (void *cls,
   test_ats_count = 2;
 
   test_hello_address[1].peer = p[1].id;
-  test_hello_address[1].transport_name = test_addr.plugin;
-  test_hello_address[1].address = test_addr.addr;
-  test_hello_address[1].address_length = test_addr.addr_len;
+  test_hello_address[1].transport_name = test_addr[1].plugin;
+  test_hello_address[1].address = test_addr[1].addr;
+  test_hello_address[1].address_length = test_addr[1].addr_len;
   GNUNET_ATS_address_add (sched_ats, &test_hello_address[1], NULL, test_ats_info, test_ats_count);
 
   /* Adding 2nd address for peer 1 */
@@ -212,11 +216,12 @@ run (void *cls,
   test_ats_info[1].value = htonl(20);
   test_ats_count = 2;
 
+  create_test_address (&test_addr[2], "test", &test_addr, "test_p1_a1", strlen ("test_p1_a1") + 1);
   test_hello_address[2].peer = p[1].id;
-  test_hello_address[2].transport_name = test_addr.plugin;
-  test_hello_address[2].address = test_addr.addr;
-  test_hello_address[2].address_length = test_addr.addr_len;
-  GNUNET_ATS_address_add (sched_ats, &test_hello_address[3], NULL, test_ats_info, test_ats_count);
+  test_hello_address[2].transport_name = test_addr[2].plugin;
+  test_hello_address[2].address = test_addr[2].addr;
+  test_hello_address[2].address_length = test_addr[2].addr_len;
+  GNUNET_ATS_address_add (sched_ats, &test_hello_address[2], NULL, test_ats_info, test_ats_count);
 
   /* Request address */
   GNUNET_ATS_suggest_address (sched_ats, &p[0].id);
