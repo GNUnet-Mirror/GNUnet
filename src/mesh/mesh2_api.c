@@ -495,9 +495,7 @@ destroy_tunnel (struct GNUNET_MESH_Tunnel *t, int call_cleaner)
   }
   h = t->mesh;
 
-  /* free all peer's ID */
   GNUNET_CONTAINER_DLL_remove (h->tunnels_head, h->tunnels_tail, t);
-  GNUNET_PEER_change_rc (t->peer, -1);
 
   /* signal tunnel destruction */
   if ( (NULL != h->cleaner) && (0 != t->peer) && (GNUNET_YES == call_cleaner) )

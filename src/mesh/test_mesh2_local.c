@@ -58,7 +58,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (NULL != t)
   {
-    GNUNET_MESH_tunnel_destroy(t);
+    GNUNET_MESH_tunnel_destroy (t);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: D1\n");
   if (NULL != mesh_peer_1)
