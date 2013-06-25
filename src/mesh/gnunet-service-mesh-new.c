@@ -755,6 +755,16 @@ static void
 tunnel_use_path (struct MeshTunnel *t, struct MeshPeerPath *p);
 
 /**
+ * Tunnel is empty: destroy it.
+ * 
+ * Notifies all participants (peers, cleints) about the destruction.
+ * 
+ * @param t Tunnel to destroy. 
+ */
+static void
+tunnel_destroy_empty (struct MeshTunnel *t);
+
+/**
  * @brief Queue and pass message to core when possible.
  * 
  * If type is payload (UNICAST, TO_ORIGIN, MULTICAST) checks for queue status
@@ -1285,6 +1295,7 @@ peer_info_destroy (struct MeshPeerInfo *pi)
   struct GNUNET_PeerIdentity id;
   struct MeshPeerPath *p;
   struct MeshPeerPath *nextp;
+  unsigned int i;
 
   GNUNET_PEER_resolve (pi->id, &id);
   GNUNET_PEER_change_rc (pi->id, -1);
@@ -1308,6 +1319,9 @@ peer_info_destroy (struct MeshPeerInfo *pi)
     path_destroy (p);
     p = nextp;
   }
+  for (i = 0; i < pi->ntunnels; i++)
+      tunnel_destroy_empty (pi->tunnels[i]);
+  GNUNET_array_grow (pi->tunnels, pi->ntunnels, 0);
   GNUNET_free (pi);
   return GNUNET_OK;
 }
