@@ -384,14 +384,12 @@ if test "$libidn" != "no"; then
      CPPFLAGS="${CPPFLAGS} -I$libidn/include"
   fi
   AC_CHECK_HEADER(idna.h,
-  AC_CHECK_LIB(idn, stringprep_check_version,
-    [libidn=yes LIBS="${LIBS} -lidn"], libidn=no),
-     libidn=no)
+    AC_CHECK_LIB(idn, stringprep_check_version,
+      [libidn=yes LIBS="${LIBS} -lidn"], 
+      AC_MSG_FAILURE([GNUnet requires libidn])),
+    AC_MSG_FAILURE([GNUnet requires libidn]))
 fi
-AM_CONDITIONAL([HAVE_LIBIDN], [test "$libidn" != "no"]) 
 AC_MSG_RESULT($libidn)
-
-
 
 # restore LIBS
 LIBS=$SAVE_LIBS
