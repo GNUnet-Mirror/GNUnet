@@ -213,7 +213,6 @@ static void next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   setup_addresses ();
 
   /* Get an active address for peer0 and expect callback */
-  return;
   GNUNET_ATS_suggest_address (sh, &addr[0].peer);
 
 	atsi[0].type = htonl(GNUNET_ATS_QUALITY_NET_DELAY);
