@@ -1218,7 +1218,6 @@ send_callback (void *cls, size_t size, void *buf)
         psize += sizeof (dmsg);
         GNUNET_assert (size >= psize);
         dmsg.header.size = htons (psize);
-        dmsg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
         dmsg.tid = htonl (t->tid);
         dmsg.pid = htonl (t->last_pid_sent + 1);
         dmsg.ttl = 0;
@@ -1229,11 +1228,13 @@ send_callback (void *cls, size_t size, void *buf)
       if (t->tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
       {
         /* traffic to origin */
+        dmsg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
         LOG (GNUNET_ERROR_TYPE_DEBUG, "#  to origin, type %s\n",
              GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
       }
       else
       {
+        dmsg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_UNICAST);
         LOG (GNUNET_ERROR_TYPE_DEBUG, "#  unicast, type %s\n",
              GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
       }
