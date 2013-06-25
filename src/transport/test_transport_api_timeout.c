@@ -249,6 +249,7 @@ start_cb (struct PeerContext *p, void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Test tries to connect peer %u (`%s') -> peer %u (`%s')\n",
               p1->no, sender_c, p2->no, GNUNET_i2s (&p2->id));
+  GNUNET_free (sender_c);
 
   cc = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb,
                                                NULL);
