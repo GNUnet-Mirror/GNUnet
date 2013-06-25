@@ -1183,18 +1183,18 @@ free_host_entry (void *cls, const struct GNUNET_HashCode * key, void *value)
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-	struct NotificationContext *cur;
-	struct NotificationContext *next;
-	GNUNET_SERVER_notification_context_destroy (notify_list);
+  struct NotificationContext *cur;
+  struct NotificationContext *next;
+
+  GNUNET_SERVER_notification_context_destroy (notify_list);
   notify_list = NULL;
 
-	for (cur = nc_head; NULL != cur; cur = next)
-	{
-			next = cur->next;
-			GNUNET_CONTAINER_DLL_remove (nc_head, nc_tail, cur);
-			GNUNET_free (cur);
-	}
-
+  for (cur = nc_head; NULL != cur; cur = next)
+  {
+    next = cur->next;
+    GNUNET_CONTAINER_DLL_remove (nc_head, nc_tail, cur);
+    GNUNET_free (cur);
+  }
   GNUNET_CONTAINER_multihashmap_iterate (hostmap, &free_host_entry, NULL);
   GNUNET_CONTAINER_multihashmap_destroy (hostmap);
   if (NULL != stats)
@@ -1235,14 +1235,21 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   stats = GNUNET_STATISTICS_create ("peerinfo", cfg);
   notify_list = GNUNET_SERVER_notification_context_create (server, 0);
   noio = GNUNET_CONFIGURATION_get_value_yesno (cfg, "peerinfo", "NO_IO");
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
+                                NULL);
   if (GNUNET_YES != noio)
   {
     GNUNET_assert (GNUNET_OK ==
 		   GNUNET_CONFIGURATION_get_value_filename (cfg, "peerinfo",
 							    "HOSTS",
 							    &networkIdDirectory));
-    GNUNET_DISK_directory_create (networkIdDirectory);
-
+    if (GNUNET_OK !=
+	GNUNET_DISK_directory_create (networkIdDirectory))
+    {
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    
     GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
 					&cron_scan_directory_data_hosts, NULL);
 
@@ -1268,9 +1275,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SERVER_disconnect_notify (server, &disconnect_cb, NULL) ;
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
-                                NULL);
-
 }
 
 
