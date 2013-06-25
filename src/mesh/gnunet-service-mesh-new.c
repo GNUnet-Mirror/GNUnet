@@ -1415,7 +1415,7 @@ peer_info_add_path (struct MeshPeerInfo *peer_info, struct MeshPeerPath *path,
     path_destroy (path);
     return;
   }
-  if (path->length <= 2 && GNUNET_NO == trusted)
+  if (2 >= path->length && GNUNET_NO == trusted)
   {
     /* Only allow CORE to tell us about direct paths */
     path_destroy (path);
@@ -1446,9 +1446,9 @@ peer_info_add_path (struct MeshPeerInfo *peer_info, struct MeshPeerPath *path,
   }
 #endif
   l = path_get_length (path);
-  if (0 == l)
+  if (2 >= l)
   {
-    GNUNET_free (path);
+    path_destroy (path);
     return;
   }
 
