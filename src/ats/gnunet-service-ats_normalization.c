@@ -473,8 +473,8 @@ GAS_normalization_normalize_preference (void *src,
       GNUNET_CONTAINER_DLL_insert (c_cur->p_head, c_cur->p_tail, p_cur);
   }
 
-  if (NULL == (r_cur = GNUNET_CONTAINER_multihashmap_get (preference_peers,
-  		&peer->hashPubKey)))
+  if (NULL == GNUNET_CONTAINER_multihashmap_get (preference_peers,
+  		&peer->hashPubKey))
   {
   	r_cur = GNUNET_malloc (sizeof (struct PeerRelative));
   	r_cur->id = (*peer);
