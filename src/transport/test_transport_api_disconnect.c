@@ -147,6 +147,7 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer %u (`%4s'): peer (`%s') disconnected from me!\n", p->no, ps,
               GNUNET_i2s (peer));
+  GNUNET_free (ps);
 
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
