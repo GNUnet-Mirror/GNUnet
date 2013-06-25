@@ -87,7 +87,7 @@ enum GNUNET_ATS_Network_Type
 /**
  * ATS properties types as string array initializer
  */
-#define GNUNET_ATS_PropertyStrings {"Terminator", "Utilization up", "Utilization down", "Network type", "Delay", "Distance", "Cost WAN", "Cost LAN", "Cost WLAN"}
+#define GNUNET_ATS_PropertyStrings {"TERMINATOR", "UTILIZATION_UP", "UTILIZATION_DOWN", "NETWORK_TYPE", "DELAY", "DISTANCE", "COST_WAN", "COST_LAN", "COST_WLAN"}
 
 /**
  * Enum defining all known property types for ATS Enum values are used
@@ -610,6 +610,15 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
 void
 GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SchedulingHandle *sh,
                                    const struct GNUNET_PeerIdentity *peer);
+
+/**
+ * Convert a ATS property to a string
+ *
+ * @param type the atsi type
+ * @return a string or NULL if invalid
+ */
+const char *
+GNUNET_ATS_print_property_type (uint32_t type);
 
 
 /**
