@@ -1320,7 +1320,7 @@ peer_info_destroy (struct MeshPeerInfo *pi)
     p = nextp;
   }
   for (i = 0; i < pi->ntunnels; i++)
-      tunnel_destroy_empty (pi->tunnels[i]);
+    tunnel_destroy_empty (pi->tunnels[i]);
   GNUNET_array_grow (pi->tunnels, pi->ntunnels, 0);
   GNUNET_free (pi);
   return GNUNET_OK;
@@ -1495,9 +1495,25 @@ peer_info_add_path_to_origin (struct MeshPeerInfo *peer_info,
 }
 
 
+/**
+ * Add a tunnel to the list of tunnels a peer participates in.
+ * Update the tunnel's destination.
+ * 
+ * @param p Peer to add to.
+ * @param t Tunnel to add.
+ */
+static void
+peer_info_add_tunnel (struct MeshPeerInfo *p, struct MeshTunnel *t)
+{
+  t->dest = p->id;
+  GNUNET_PEER_change_rc (t->dest, 1);
+  GNUNET_array_append (p->tunnels, p->ntunnels, t);
+}
+
 
 /**
  * Remove a tunnel from the list of tunnels a peer participates in.
+ * Free the tunnel's destination.
  * 
  * @param p Peer to clean.
  * @param t Tunnel to remove.
@@ -1507,6 +1523,11 @@ peer_info_remove_tunnel (struct MeshPeerInfo *p, struct MeshTunnel *t)
 {
   unsigned int i;
 
+  if (t->dest == p->id)
+  {
+      GNUNET_PEER_change_rc (t->dest, -1);
+      t->dest = 0;
+  }
   for (i = 0; i < p->ntunnels; i++)
   {
     if (p->tunnels[i] == t)
@@ -2352,11 +2373,7 @@ tunnel_destroy (struct MeshTunnel *t)
     GNUNET_PEER_change_rc (t->next_hop, -1);
   }
   if (0 != t->dest) {
-      struct MeshPeerInfo *pi;
-
-      pi = peer_get_short (t->dest);
-      peer_info_remove_tunnel (pi, t);
-      GNUNET_PEER_change_rc (t->dest, -1);
+      peer_info_remove_tunnel (peer_get_short (t->dest), t);
   }
 
   if (GNUNET_SCHEDULER_NO_TASK != t->maintenance_task)
@@ -3152,8 +3169,8 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   path_add_to_peers (path, GNUNET_NO);
   tunnel_use_path (t, path);
 
-  t->dest = path->peers[size - 1];
-  GNUNET_PEER_change_rc (t->dest, 1);
+  peer_info_add_tunnel (dest_peer_info, t);
+
   if (own_pos == size - 1)
   {
     struct MeshClient *c;
@@ -4127,7 +4144,7 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
               GNUNET_i2s (&my_full_id), t->id.tid, t->port, t->local_tid);
 
   peer_info = peer_get (&t_msg->peer);
-  GNUNET_array_append (peer_info->tunnels, peer_info->ntunnels, t);
+  peer_info_add_tunnel (peer_info, t);
   peer_connect (peer_info, t);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
@@ -4191,7 +4208,7 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   }
   else if (c == t->owner)
   {
-    peer_info_remove_tunnel (peer_get_short(t->dest), t);
+    peer_info_remove_tunnel (peer_get_short (t->dest), t);
     t->owner = NULL;
   }
 
