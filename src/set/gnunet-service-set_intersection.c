@@ -277,7 +277,7 @@ struct SendElementClosure
    * Operation for which the elements
    * should be sent.
    */
-  struct UnionEvaluateOperation *eo;
+  struct IntersectionEvaluateOperation *eo;
 };
 
 
@@ -303,13 +303,13 @@ struct IntersectionState
    * Evaluate operations are held in
    * a linked list.
    */
-  struct UnionEvaluateOperation *ops_head;
+  struct IntersectionEvaluateOperation *ops_head;
 
   /**
    * Evaluate operations are held in
    * a linked list.
    */
-  struct UnionEvaluateOperation *ops_tail;
+  struct IntersectionEvaluateOperation *ops_tail;
 
   /**
    * Current generation, that is, number of
@@ -488,7 +488,7 @@ get_ibf_key (struct GNUNET_HashCode *src, uint16_t salt)
  * @param eo operation with the other peer
  */
 static void
-send_operation_request (struct UnionEvaluateOperation *eo)
+send_operation_request (struct IntersectionEvaluateOperation *eo)
 {
   struct GNUNET_MQ_Envelope *mqm;
   struct OperationRequestMessage *msg;
@@ -502,7 +502,7 @@ send_operation_request (struct UnionEvaluateOperation *eo)
     GNUNET_SERVER_client_disconnect (eo->set->client);
     return;
   }
-  msg->operation = htons (GNUNET_SET_OPERATION_UNION);
+  msg->operation = htons (GNUNET_SET_OPERATION_INTERSECTION);
   msg->app_id = eo->app_id;
   GNUNET_MQ_send (eo->tc->mq, mqm);
 
@@ -705,7 +705,7 @@ send_ibf (struct UnionEvaluateOperation *eo, uint16_t ibf_order)
  * @param eo the union operation with the remote peer
  */
 static void
-send_strata_estimator (struct UnionEvaluateOperation *eo)
+send_strata_estimator (struct IntersectionEvaluateOperation *eo)
 {
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_MessageHeader *strata_msg;
@@ -713,7 +713,7 @@ send_strata_estimator (struct UnionEvaluateOperation *eo)
   mqm = GNUNET_MQ_msg_header_extra (strata_msg,
                                     SE_STRATA_COUNT * IBF_BUCKET_SIZE * SE_IBF_SIZE,
                                     GNUNET_MESSAGE_TYPE_SET_P2P_SE);
-  strata_estimator_write (eo->set->state.u->se, &strata_msg[1]);
+  strata_estimator_write (eo->set->state.i->se, &strata_msg[1]);
   GNUNET_MQ_send (eo->tc->mq, mqm);
   eo->phase = PHASE_EXPECT_IBF;
 }
@@ -1151,7 +1151,7 @@ handle_p2p_done (void *cls, const struct GNUNET_MessageHeader *mh)
  * @param set the set to evaluate the operation with
  */
 void
-_GSS_union_evaluate (struct GNUNET_SET_EvaluateMessage *m, struct Set *set)
+_GSS_intersection_evaluate (struct GNUNET_SET_EvaluateMessage *m, struct Set *set)
 {
   struct IntersectionEvaluateOperation *eo;
   struct GNUNET_MessageHeader *context_msg;
@@ -1200,24 +1200,24 @@ _GSS_union_evaluate (struct GNUNET_SET_EvaluateMessage *m, struct Set *set)
  * @param incoming information about the requesting remote peer
  */
 void
-_GSS_union_accept (struct GNUNET_SET_AcceptRejectMessage *m, struct Set *set,
+_GSS_intersection_accept (struct GNUNET_SET_AcceptRejectMessage *m, struct Set *set,
                    struct Incoming *incoming)
 {
-  struct UnionEvaluateOperation *eo;
+  struct IntersectionEvaluateOperation *eo;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "accepting set union operation\n");
 
-  eo = GNUNET_new (struct UnionEvaluateOperation);
+  eo = GNUNET_new (struct IntersectionEvaluateOperation);
   eo->tc = incoming->tc;
-  eo->generation_created = set->state.u->current_generation++;
+  eo->generation_created = set->state.i->current_generation++;
   eo->set = set;
   eo->salt = ntohs (incoming->salt);
   GNUNET_assert (0 != ntohl (m->request_id));
   eo->request_id = ntohl (m->request_id);
-  eo->se = strata_estimator_dup (set->state.u->se);
+  eo->se = strata_estimator_dup (set->state.i->se);
   /* transfer ownership of mq and socket from incoming to eo */
-  GNUNET_CONTAINER_DLL_insert (eo->set->state.u->ops_head,
-                               eo->set->state.u->ops_tail,
+  GNUNET_CONTAINER_DLL_insert (eo->set->state.i->ops_head,
+                               eo->set->state.i->ops_tail,
                                eo);
   /* kick off the operation */
   send_strata_estimator (eo);

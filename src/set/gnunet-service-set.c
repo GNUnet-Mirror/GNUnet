@@ -601,8 +601,7 @@ handle_client_accept (void *cls,
   switch (set->operation)
   {
     case GNUNET_SET_OPERATION_INTERSECTION:
-      /* FIXME: cfuchs*/
-      GNUNET_assert (0);
+      _GSS_intersection_accept (msg, set, incoming);
       break;
     case GNUNET_SET_OPERATION_UNION:
       _GSS_union_accept (msg, set, incoming);
