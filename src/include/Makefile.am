@@ -51,6 +51,7 @@ gnunetinclude_HEADERS = \
   gnunet_gns_service.h \
   gnunet_hello_lib.h \
   gnunet_helper_lib.h \
+  gnunet_identity_service.h \
   gnunet_load_lib.h \
   gnunet_lockmanager_service.h \
   gnunet_mesh_service.h \
