@@ -111,6 +111,7 @@ dht_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
  * Dual of 'dht_ca' to perform the 'disconnect'/cleanup operation
  * once we no longer need to access this subsystem.
  *
+ * @param cls closure
  * @param op_result whatever we returned from 'dht_ca'
  */
 static void 
@@ -130,6 +131,7 @@ dht_da (void *cls, void *op_result)
  * just to the DHT service of peer 0.
  *
  * @param cls closure
+ * @param peers started peers for the test
  * @param num_peers size of the 'peers' array
  * @param links_succeeded number of links between peers that were created
  * @param links_failed number of links testbed was unable to establish
@@ -137,7 +139,7 @@ dht_da (void *cls, void *op_result)
 static void
 test_master (void *cls, unsigned int num_peers,
              struct GNUNET_TESTBED_Peer **peers,
-             unsigned int links_succeeeded,
+             unsigned int links_succeeded,
              unsigned int links_failed)
 {
   /* Testbed is ready with peers running and connected in a pre-defined overlay

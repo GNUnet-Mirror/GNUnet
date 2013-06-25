@@ -20,7 +20,7 @@
 
 /**
  * @author Florian Dold
- * @file set/mq.h
+ * @file include/gnunet_mq_lib.h
  * @brief general purpose message queue
  */
 #ifndef GNUNET_MQ_H
@@ -114,6 +114,9 @@ GNUNET_MQ_extract_nested_mh_ (const struct GNUNET_MessageHeader *mh, uint16_t ba
  *
  * @param mhp pointer to the message header pointer that will be changed to allocate at
  *        the newly allocated space for the message.
+ * @param base_size size of the data before the nested message
+ * @param type type of the message in the envelope
+ * @param nested_mh the message to append to the message after base_size
  */
 struct GNUNET_MQ_Envelope *
 GNUNET_MQ_msg_nested_mh_ (struct GNUNET_MessageHeader **mhp, uint16_t base_size, uint16_t type,
@@ -271,7 +274,7 @@ GNUNET_MQ_discard (struct GNUNET_MQ_Envelope *mqm);
  * May only be called once per message.
  * 
  * @param mq message queue
- * @param mqm the message to send.
+ * @param ev the envelope with the message to send.
  */
 void
 GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq, struct GNUNET_MQ_Envelope *ev);
@@ -281,7 +284,7 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq, struct GNUNET_MQ_Envelope *ev);
  * Cancel sending the message. Message must have been sent with GNUNET_MQ_send before.
  * May not be called after the notify sent callback has been called
  *
- * @param mqm queued message to cancel
+ * @param ev queued envelope to cancel
  */
 void
 GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev);
@@ -291,7 +294,6 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev);
  * Associate the assoc_data in mq with a unique request id.
  *
  * @param mq message queue, id will be unique for the queue
- * @param mqm message to associate
  * @param assoc_data to associate
  */
 uint32_t
@@ -350,11 +352,11 @@ GNUNET_MQ_queue_for_server_client (struct GNUNET_SERVER_Client *client);
  *
  * @param send function the implements sending messages
  * @param destroy function that implements destroying the queue
- * @param destroy function that implements canceling a message
- * @param state for the queue, passed to 'send' and 'destroy'
+ * @param cancel function that implements canceling a message
+ * @param impl_state for the queue, passed to 'send' and 'destroy'
  * @param handlers array of message handlers
  * @param error_handler handler for read and write errors
- * @param cls closure for handlers
+ * @param cls closure for message handlers and error handler
  * @return a new message queue
  */
 struct GNUNET_MQ_Handle *
@@ -411,7 +413,11 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq);
 
 
 /**
- * Call the right callback for a message.
+ * Call the message message handler that was registered
+ * for the type of the given message in the given message queue.
+ *
+ * This function is indended to be used for the implementation
+ * of message queues.
  *
  * @param mq message queue with the handlers
  * @param mh message to dispatch
@@ -422,9 +428,14 @@ GNUNET_MQ_inject_message (struct GNUNET_MQ_Handle *mq,
 
 
 /**
- * Call the right callback for an error condition.
+ * Call the error handler of a message queue with the given
+ * error code.  If there is no error handler, log a warning.
+ *
+ * This function is intended to be used for the implementation
+ * of message queues.
  *
  * @param mq message queue
+ * @param error the error type
  */
 void
 GNUNET_MQ_inject_error (struct GNUNET_MQ_Handle *mq,

@@ -156,7 +156,7 @@ struct GNUNET_SET_Element
 /**
  * Continuation used for some of the set operations
  *
- * @cls closure
+ * @param cls closure
  */
 typedef void (*GNUNET_SET_Continuation) (void *cls);
 
@@ -330,7 +330,7 @@ struct GNUNET_SET_OperationHandle *
 GNUNET_SET_accept (struct GNUNET_SET_Request *request,
                    enum GNUNET_SET_ResultMode result_mode,
                    GNUNET_SET_ResultIterator result_cb,
-                   void *cls);
+                   void *result_cls);
 
 
 /**

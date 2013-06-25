@@ -251,6 +251,8 @@ tunnel_context_destroy (struct TunnelContext *tc)
  * another peer.
  *
  * @param cls the incoming socket
+ * @param tunnel the tunnel that sent the message
+ * @param tunnel_ctx the tunnel context
  * @param mh the message
  */
 static int
@@ -524,7 +526,6 @@ handle_client_evaluate (void *cls,
     return;
   }
 
-
   switch (set->operation)
   {
     case GNUNET_SET_OPERATION_INTERSECTION:
@@ -693,6 +694,8 @@ tunnel_new_cb (void *cls,
 {
   struct Incoming *incoming;
   struct TunnelContext *tc;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "new incoming tunnel\n");
 
   GNUNET_assert (port == GNUNET_APPLICATION_TYPE_SET);
   tc = GNUNET_new (struct TunnelContext);

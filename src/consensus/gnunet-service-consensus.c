@@ -702,6 +702,7 @@ initialize_session_peer_list (struct ConsensusSession *session,
  * Called when another peer wants to do a set operation with the
  * local peer.
  *
+ * @param cls closure
  * @param other_peer the other peer
  * @param context_msg message with application specific information from
  *        the other peer
@@ -786,6 +787,7 @@ set_listen_cb (void *cls,
  * Initialize the session, continue receiving messages from the owning client
  *
  * @param session the session to initialize
+ * @param join_msg the join message from the client
  */
 static void
 initialize_session (struct ConsensusSession *session,

@@ -257,7 +257,7 @@ _GSS_union_set_create (void);
  * a remote peer.
  *
  * @param m the evaluate request message from the client
- * @parem set the set to evaluate the operation with
+ * @param set the set to evaluate the operation with
  */
 void
 _GSS_union_evaluate (struct GNUNET_SET_EvaluateMessage *m, struct Set *set);
@@ -287,7 +287,7 @@ _GSS_union_remove (struct GNUNET_SET_ElementMessage *m, struct Set *set);
 /**
  * Destroy a set that supports the union operation
  *
- * @param the set to destroy, must be of type GNUNET_SET_OPERATION_UNION
+ * @param set the set to destroy, must be of type GNUNET_SET_OPERATION_UNION
  */
 void
 _GSS_union_set_destroy (struct Set *set);

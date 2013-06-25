@@ -400,14 +400,14 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh)
  * @param result_mode specified how results will be returned,
  *        see 'GNUNET_SET_ResultMode'.
  * @param result_cb callback for the results
- * @param cls closure for result_cb
+ * @param result_cls closure for result_cb
  * @return a handle to cancel the operation
  */
 struct GNUNET_SET_OperationHandle *
 GNUNET_SET_accept (struct GNUNET_SET_Request *request,
                    enum GNUNET_SET_ResultMode result_mode,
                    GNUNET_SET_ResultIterator result_cb,
-                   void *cls)
+                   void *result_cls)
 {
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_OperationHandle *oh;
@@ -418,7 +418,7 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
 
   oh = GNUNET_new (struct GNUNET_SET_OperationHandle);
   oh->result_cb = result_cb;
-  oh->result_cls = cls;
+  oh->result_cls = result_cls;
 
   mqm = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_ACCEPT);
   msg->accept_reject_id = htonl (request->accept_id);

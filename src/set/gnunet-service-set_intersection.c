@@ -1287,7 +1287,7 @@ _GSS_intersection_add (struct GNUNET_SET_ElementMessage *m, struct Set *set)
 /**
  * Destroy a set that supports the union operation
  *
- * @param the set to destroy, must be of type GNUNET_SET_OPERATION_UNION
+ * @param set the set to destroy, must be of type GNUNET_SET_OPERATION_UNION
  */
 void
 _GSS_union_set_destroy (struct Set *set)

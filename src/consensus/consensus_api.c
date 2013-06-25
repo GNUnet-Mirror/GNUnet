@@ -141,7 +141,7 @@ handle_new_element (void *cls,
  * that the conclusion is over.
  * 
  * @param cls consensus handle
- * @param mh conclude done message
+ * @param msg conclude done message
  */
 static void
 handle_conclude_done (void *cls,

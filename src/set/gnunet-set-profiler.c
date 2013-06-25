@@ -38,7 +38,7 @@ static unsigned int num_c = 20;
 
 static unsigned int salt = 42;
 
-static char* op_str = "union";
+static char *op_str = "union";
 
 const static struct GNUNET_CONFIGURATION_Handle *config;
 
@@ -157,6 +157,7 @@ set_listen_cb (void *cls,
                struct GNUNET_SET_Request *request)
 {
   GNUNET_assert (NULL == set_oh2);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "set listen cb called\n");
   set_oh2 = GNUNET_SET_accept (request, GNUNET_SET_RESULT_ADDED,
                                set_result_cb_2, NULL);
   GNUNET_SET_commit (set_oh2, set_b);

@@ -3934,6 +3934,7 @@ mq_stream_destroy_impl (struct GNUNET_MQ_Handle *mq, void *impl_state)
  * @param socket the socket to read/write in the message queue
  * @param msg_handlers message handler array
  * @param error_handler callback for errors
+ * @param cls closure for message handlers and error handler
  * @return the message queue for the socket
  */
 struct GNUNET_MQ_Handle *

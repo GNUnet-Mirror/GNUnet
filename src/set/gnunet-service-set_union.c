@@ -493,7 +493,8 @@ send_operation_request (struct UnionEvaluateOperation *eo)
   struct GNUNET_MQ_Envelope *mqm;
   struct OperationRequestMessage *msg;
 
-  mqm = GNUNET_MQ_msg_nested_mh (msg, GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST, eo->context_msg);
+  mqm = GNUNET_MQ_msg_nested_mh (msg, GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST,
+                                 eo->context_msg);
 
   if (NULL == mqm)
   {
@@ -1287,7 +1288,7 @@ _GSS_union_add (struct GNUNET_SET_ElementMessage *m, struct Set *set)
 /**
  * Destroy a set that supports the union operation
  *
- * @param the set to destroy, must be of type GNUNET_SET_OPERATION_UNION
+ * @param set the set to destroy, must be of type GNUNET_SET_OPERATION_UNION
  */
 void
 _GSS_union_set_destroy (struct Set *set)
