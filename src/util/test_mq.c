@@ -19,7 +19,7 @@
 */
 
 /**
- * @file set/test_mq.c
+ * @file util/test_mq.c
  * @brief simple tests for mq
  */
 #include "platform.h"
@@ -37,8 +37,9 @@ struct MyMessage
 
 GNUNET_NETWORK_STRUCT_END
 
-void
-test1 (void)
+
+static void
+test1 ()
 {
   struct GNUNET_MQ_Envelope *mqm;
   struct MyMessage *mm;
@@ -54,8 +55,8 @@ test1 (void)
 }
 
 
-void
-test2 (void)
+static void
+test2 ()
 {
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_MessageHeader *mh;
@@ -68,17 +69,16 @@ test2 (void)
   mqm = GNUNET_MQ_msg_header_extra (mh, 20, 42);
   GNUNET_assert (42 == ntohs (mh->type));
   GNUNET_assert (sizeof (struct GNUNET_MessageHeader) + 20 == ntohs (mh->size));
+  GNUNET_MQ_discard (mqm);
 }
 
 
 int
 main (int argc, char **argv)
 {
-
   GNUNET_log_setup ("test-mq", "INFO", NULL);
   test1 ();
   test2 ();
-
   return 0;
 }
 
