@@ -625,7 +625,8 @@ free_tmps (void *cls,
 	if (NULL != value)
 	{
 			struct TM_Peer *tmp = (struct TM_Peer *) value;
-			GNUNET_CONTAINER_multihashmap_remove (man_handle.peers, key, value);
+			if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (man_handle.peers, key, value))
+				GNUNET_break (0);
 			free_metric (tmp);
 			next = tmp->send_head;
 			while (NULL != (dqe = next))
