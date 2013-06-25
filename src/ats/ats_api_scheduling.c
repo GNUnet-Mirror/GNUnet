@@ -1284,14 +1284,13 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
     s = find_session_id (sh, session, &address->peer);
     if (NOT_FOUND == s)
     {
-        return;
-    	/* FIXME */
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Update for unknown address for peer `%s', plugin `%s', session %p id %u\n",
                   GNUNET_i2s (&address->peer),
                   address->transport_name, session, s);
 
       GNUNET_break (0);
+      return;
     }
   }
 
