@@ -3,11 +3,9 @@
 #endif
 
 if HAVE_LIBIDN
- DNS = dns
  EXIT = exit
  PT = pt
 else
- DNS =
  EXIT =
  PT =
 endif
@@ -18,10 +16,10 @@ endif
 
 if LINUX
 # All of these currently only work on GNU/Linux
- LINUX_DIR = $(DNS) $(EXIT) vpn $(PT)
+ LINUX_DIR = $(EXIT) vpn $(PT)
 endif
 if MINGW
- MINGW_DIR = $(DNS) vpn $(EXIT)
+ MINGW_DIR = vpn $(EXIT)
 endif
 
 if HAVE_MYSQL
@@ -65,6 +63,7 @@ SUBDIRS = \
   mesh \
   lockmanager \
   stream \
+  dns \
   fs \
   $(LINUX_DIR) \
   $(MINGW_DIR) \
