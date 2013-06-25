@@ -977,6 +977,8 @@ send_client_tunnel_destroy (struct MeshClient *c, struct MeshTunnel *t)
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
   msg.tunnel_id = htonl (t->local_tid_dest);
+  msg.port = htonl (0);
+  memset(&msg.peer, 0, sizeof (msg.peer));
   GNUNET_SERVER_notification_context_unicast (nc, c->handle,
                                               &msg.header, GNUNET_NO);
 }
