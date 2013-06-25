@@ -3963,7 +3963,7 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   struct MeshClient *c;
   struct MeshClient *next;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client disconnected\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client disconnected: %p\n", client);
   if (client == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   (SERVER DOWN)\n");
@@ -3975,7 +3975,9 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   {
     if (c->handle != client)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   ... searching\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "   ... searching %p (%u)\n",
+                  c->handle, c->id);
       c = c->next;
       continue;
     }
@@ -4021,7 +4023,7 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   uint32_t *p;
   unsigned int i;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "new client connected\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "new client connected %p\n", client);
 
   /* Check data sanity */
   size = ntohs (message->size) - sizeof (struct GNUNET_MESH_ClientConnect);
