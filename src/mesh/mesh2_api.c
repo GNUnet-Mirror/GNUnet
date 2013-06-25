@@ -823,7 +823,6 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
     t = create_tunnel (h, tid);
     t->last_ack_sent = 0;
     t->peer = GNUNET_PEER_intern (&msg->peer);
-    GNUNET_PEER_change_rc (t->peer, 1);
     t->mesh = h;
     t->tid = tid;
     t->port = ntohl (msg->port);
@@ -1203,7 +1202,7 @@ send_callback (void *cls, size_t size, void *buf)
       struct GNUNET_MessageHeader *mh;
 
       LOG (GNUNET_ERROR_TYPE_DEBUG, "#  payload\n");
-      if (GNUNET_NO == GMC_is_pid_bigger(t->last_ack_recv, t->last_pid_sent))
+      if (GNUNET_NO == GMC_is_pid_bigger (t->last_ack_recv, t->last_pid_sent))
       {
         /* This tunnel is not ready to transmit yet, try next message */
         next = th->next;
@@ -1227,7 +1226,6 @@ send_callback (void *cls, size_t size, void *buf)
       }
       if (t->tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
       {
-        /* traffic to origin */
         dmsg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
         LOG (GNUNET_ERROR_TYPE_DEBUG, "#  to origin, type %s\n",
              GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
@@ -1456,6 +1454,7 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  at %p\n", t);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  number %X\n", t->tid);
   t->ctx = tunnel_ctx;
+  t->peer = GNUNET_PEER_intern (peer);
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
   msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
   msg.tunnel_id = htonl (t->tid);
