@@ -284,6 +284,7 @@ test_mesh_small_speed_nobuf_backwards_DEPENDENCIES = $(dep_mesh_test_lib)
 ld_mesh2_test_lib = \
   $(top_builddir)/src/mesh/libgnunetmesh2test.a \
   $(top_builddir)/src/mesh/libgnunetmesh2.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 
