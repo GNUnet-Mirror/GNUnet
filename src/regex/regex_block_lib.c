@@ -31,7 +31,7 @@
 /**
  * Struct to keep track of the xquery while iterating all the edges in a block.
  */
-struct regex_block_xquery_ctx
+struct CheckEdgeContext
 {
   /**
    * Xquery: string we are looking for.
@@ -66,7 +66,7 @@ check_edge (void *cls,
             size_t len,
             const struct GNUNET_HashCode *key)
 {
-  struct regex_block_xquery_ctx *ctx = cls;
+  struct CheckEdgeContext *ctx = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "edge %.*s [%u]: %s->%s\n",
@@ -98,9 +98,10 @@ REGEX_BLOCK_check (const struct RegexBlock *block,
 		   size_t size,
 		   const char *xquery)
 {
+  struct CheckEdgeContext ctx;
   int res;
-  struct regex_block_xquery_ctx ctx;
 
+  // FIXME: fails to check the proof!
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Checking block with xquery `%s'\n",
               NULL != xquery ? xquery : "NULL");

@@ -382,7 +382,7 @@ regex_find_path (const struct GNUNET_HashCode *key,
  */
 static void
 dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
-                        const struct GNUNET_HashCode * key,
+                        const struct GNUNET_HashCode *key,
                         const struct GNUNET_PeerIdentity *get_path,
                         unsigned int get_path_length,
                         const struct GNUNET_PeerIdentity *put_path,
@@ -398,7 +398,8 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   char *datastore;
 
 #if DEBUG_DHT
-  if (NULL != put_path && 0 != put_path_length)
+  if ( (NULL != put_path) && 
+       (0 != put_path_length) )
   {
     datastore = GNUNET_strdup (GNUNET_i2s (&put_path[put_path_length - 1]));
   }
