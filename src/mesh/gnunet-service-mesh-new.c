@@ -1212,6 +1212,7 @@ send_create_path (struct MeshTunnel *t)
 {
   struct MeshPeerInfo *neighbor;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send create path\n");
   neighbor = peer_get_short (t->next_hop);
   queue_add (t,
              GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE,
@@ -1280,7 +1281,11 @@ peer_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t)
                                          &dht_get_id_handler, peer);
     t->state = MESH_TUNNEL_SEARCHING;
   }
-  /* Otherwise, there is no path but the DHT get is already started. */
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "There is no path but the DHT GET is already started.\n");
+  }
 }
 
 
@@ -1446,7 +1451,7 @@ peer_info_add_path (struct MeshPeerInfo *peer_info, struct MeshPeerPath *path,
   }
 #endif
   l = path_get_length (path);
-  if (2 >= l)
+  if (0 == l)
   {
     path_destroy (path);
     return;
@@ -3937,8 +3942,18 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   path_destroy (p);
   for (i = 0; i < peer->ntunnels; i++)
   {
+    struct GNUNET_PeerIdentity id;
+
+    GNUNET_PEER_resolve (peer->tunnels[i]->id.oid, &id);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ... tunnel %s:%X (%X / %X)\n",
+                GNUNET_i2s (&id), peer->tunnels[i]->id.tid,
+                peer->tunnels[i]->local_tid, 
+                peer->tunnels[i]->local_tid_dest);
     if (peer->tunnels[i]->state == MESH_TUNNEL_SEARCHING)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ... connect!\n");
       peer_connect (peer, peer->tunnels[i]);
+    }
   }
 
   return;
@@ -4728,19 +4743,19 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   if (myid == peer_info->id)
   {
     DEBUG_CONN ("     (self)\n");
-    return;
+    path = path_new (1);
   }
   else
   {
     DEBUG_CONN ("     %s\n", GNUNET_i2s (peer));
+    path = path_new (2);
+    path->peers[1] = peer_info->id;
+    GNUNET_PEER_change_rc (peer_info->id, 1);
+    GNUNET_STATISTICS_update (stats, "# peers", 1, GNUNET_NO);
   }
-  path = path_new (2);
   path->peers[0] = myid;
-  path->peers[1] = peer_info->id;
   GNUNET_PEER_change_rc (myid, 1);
-  GNUNET_PEER_change_rc (peer_info->id, 1);
   peer_info_add_path (peer_info, path, GNUNET_YES);
-  GNUNET_STATISTICS_update (stats, "# peers", 1, GNUNET_NO);
   return;
 }
 
