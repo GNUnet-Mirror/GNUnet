@@ -56,7 +56,7 @@ struct GNUNET_REGEX_Search;
 
 
 /**
- * Announce the given peer under the given regular expression.  Does
+ * Announce this peer under the given regular expression.  Does
  * not free resources, must call GNUNET_REGEX_announce_cancel for
  * that.
  * 
@@ -70,7 +70,6 @@ struct GNUNET_REGEX_Search;
  */
 struct GNUNET_REGEX_Announcement *
 GNUNET_REGEX_announce (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		       const struct GNUNET_PeerIdentity *id,
                        const char *regex,
 		       struct GNUNET_TIME_Relative refresh_delay,
                        uint16_t compression);

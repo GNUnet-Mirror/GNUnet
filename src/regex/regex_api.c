@@ -118,7 +118,6 @@ handle_a_reconnect (void *cls,
  */
 struct GNUNET_REGEX_Announcement *
 GNUNET_REGEX_announce (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		       const struct GNUNET_PeerIdentity *id,
                        const char *regex,
 		       struct GNUNET_TIME_Relative refresh_delay,
                        uint16_t compression)
@@ -142,7 +141,6 @@ GNUNET_REGEX_announce (const struct GNUNET_CONFIGURATION_Handle *cfg,
   a->msg.compression = htons (compression);
   a->msg.reserved = htons (0);
   a->msg.refresh_delay = GNUNET_TIME_relative_hton (refresh_delay);
-  a->msg.pid = *id;
   memcpy (&a[1], regex, slen);
   retry_announcement (a);
   return a;

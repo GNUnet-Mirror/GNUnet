@@ -28,6 +28,9 @@
 #include "regex_block_lib.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_statistics_service.h"
+#include "gnunet_constants.h"
+#include "gnunet_signatures.h"
+
 
 #define LOG(kind,...) GNUNET_log_from (kind,"regex-dht",__VA_ARGS__)
 
@@ -42,6 +45,10 @@
 #define DHT_OPT         GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE
 #endif
 
+
+/**
+ * Handle to store cached data about a regex announce.
+ */
 struct REGEX_INTERNAL_Announcement
 {
   /**
@@ -60,9 +67,9 @@ struct REGEX_INTERNAL_Announcement
   struct REGEX_INTERNAL_Automaton* dfa;
 
   /**
-   * Identity under which to announce the regex.
+   * Our private key.
    */
-  struct GNUNET_PeerIdentity id;
+  const struct GNUNET_CRYPTO_EccPrivateKey *priv;
 
   /**
    * Optional statistics handle to report usage. Can be NULL.
@@ -100,14 +107,25 @@ regex_iterator (void *cls,
        num_edges);
   if (GNUNET_YES == accepting)
   {
-    struct RegexAccept block;
+    struct RegexAcceptBlock block;
 
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "State %s is accepting, putting own id\n",
          GNUNET_h2s(key));
     size = sizeof (block);
+    block.purpose.size = sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+      sizeof (struct GNUNET_TIME_AbsoluteNBO) +
+      sizeof (struct GNUNET_HashCode);
+    block.purpose.purpose = ntohl (GNUNET_SIGNATURE_PURPOSE_REGEX_ACCEPT);
+    block.expiration_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_DHT_MAX_EXPIRATION));
     block.key = *key;
-    block.id = h->id;
+    GNUNET_CRYPTO_ecc_key_get_public (h->priv,
+				      &block.public_key);
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_CRYPTO_ecc_sign (h->priv,
+					   &block.purpose,
+					   &block.signature));
+
     GNUNET_STATISTICS_update (h->stats, "# regex accepting blocks stored",
                               1, GNUNET_NO);
     GNUNET_STATISTICS_update (h->stats, "# regex accepting block bytes stored",
@@ -144,12 +162,25 @@ regex_iterator (void *cls,
 }
 
 
+/**
+ * Announce a regular expression: put all states of the automaton in the DHT.
+ * Does not free resources, must call REGEX_INTERNAL_announce_cancel for that.
+ * 
+ * @param dht An existing and valid DHT service handle. CANNOT be NULL.
+ * @param priv our private key, must remain valid until the announcement is cancelled
+ * @param regex Regular expression to announce.
+ * @param compression How many characters per edge can we squeeze?
+ * @param stats Optional statistics handle to report usage. Can be NULL.
+ * 
+ * @return Handle to reuse o free cached resources.
+ *         Must be freed by calling REGEX_INTERNAL_announce_cancel.
+ */
 struct REGEX_INTERNAL_Announcement *
 REGEX_INTERNAL_announce (struct GNUNET_DHT_Handle *dht,
-                       const struct GNUNET_PeerIdentity *id,
-                       const char *regex,
-                       uint16_t compression,
-                       struct GNUNET_STATISTICS_Handle *stats)
+			 const struct GNUNET_CRYPTO_EccPrivateKey *priv,
+			 const char *regex,
+			 uint16_t compression,
+			 struct GNUNET_STATISTICS_Handle *stats)
 {
   struct REGEX_INTERNAL_Announcement *h;
 
@@ -158,7 +189,7 @@ REGEX_INTERNAL_announce (struct GNUNET_DHT_Handle *dht,
   h->regex = regex;
   h->dht = dht;
   h->stats = stats;
-  h->id = *id;
+  h->priv = priv;
   h->dfa = REGEX_INTERNAL_construct_dfa (regex,
                                        strlen (regex),
                                        compression);
@@ -167,6 +198,12 @@ REGEX_INTERNAL_announce (struct GNUNET_DHT_Handle *dht,
 }
 
 
+/**
+ * Announce again a regular expression previously announced.
+ * Does use caching to speed up process.
+ * 
+ * @param h Handle returned by a previous REGEX_INTERNAL_announce call.
+ */
 void
 REGEX_INTERNAL_reannounce (struct REGEX_INTERNAL_Announcement *h)
 {
@@ -177,6 +214,13 @@ REGEX_INTERNAL_reannounce (struct REGEX_INTERNAL_Announcement *h)
 }
 
 
+
+/**
+ * Clear all cached data used by a regex announce.
+ * Does not close DHT connection.
+ * 
+ * @param h Handle returned by a previous REGEX_INTERNAL_announce call.
+ */
 void
 REGEX_INTERNAL_announce_cancel (struct REGEX_INTERNAL_Announcement *h)
 {
@@ -194,26 +238,26 @@ REGEX_INTERNAL_announce_cancel (struct REGEX_INTERNAL_Announcement *h)
  */
 struct RegexSearchContext
 {
-    /**
-     * Part of the description already consumed by
-     * this particular search branch.
-     */
+  /**
+   * Part of the description already consumed by
+   * this particular search branch.
+   */
   size_t position;
 
-    /**
-     * Information about the search.
-     */
+  /**
+   * Information about the search.
+   */
   struct REGEX_INTERNAL_Search *info;
 
-    /**
-     * We just want to look for one edge, the longer the better.
-     * Keep its length.
-     */
+  /**
+   * We just want to look for one edge, the longer the better.
+   * Keep its length.
+   */
   unsigned int longest_match;
 
-    /**
-     * Destination hash of the longest match.
-     */
+  /**
+   * Destination hash of the longest match.
+   */
   struct GNUNET_HashCode hash;
 };
 
@@ -304,7 +348,7 @@ regex_next_edge (const struct RegexBlock *block,
  */
 static void
 dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
-                               const struct GNUNET_HashCode * key,
+                               const struct GNUNET_HashCode *key,
                                const struct GNUNET_PeerIdentity *get_path,
                                unsigned int get_path_length,
                                const struct GNUNET_PeerIdentity *put_path,
@@ -312,9 +356,10 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                                enum GNUNET_BLOCK_Type type,
                                size_t size, const void *data)
 {
-  const struct RegexAccept *block = data;
+  const struct RegexAcceptBlock *block = data;
   struct RegexSearchContext *ctx = cls;
   struct REGEX_INTERNAL_Search *info = ctx->info;
+  struct GNUNET_PeerIdentity pid;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Got regex results from DHT!\n");
   LOG (GNUNET_ERROR_TYPE_INFO, "   accept for %s (key %s)\n",
@@ -324,9 +369,11 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                             1, GNUNET_NO);
   GNUNET_STATISTICS_update (info->stats, "# regex accepting block bytes found",
                             size, GNUNET_NO);
-
+  GNUNET_CRYPTO_hash (&block->public_key,
+		      sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
+		      &pid.hashPubKey);
   info->callback (info->callback_cls,
-                  &block->id,
+                  &pid,
                   get_path, get_path_length,
                   put_path, put_path_length);
 }

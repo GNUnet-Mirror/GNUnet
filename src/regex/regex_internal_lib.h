@@ -150,12 +150,13 @@ struct REGEX_INTERNAL_Announcement;
  */
 struct REGEX_INTERNAL_Search;
 
+
 /**
  * Announce a regular expression: put all states of the automaton in the DHT.
  * Does not free resources, must call REGEX_INTERNAL_announce_cancel for that.
  * 
  * @param dht An existing and valid DHT service handle. CANNOT be NULL.
- * @param id ID to announce as provider of regex. Own ID in most cases.
+ * @param priv our private key, must remain valid until the announcement is cancelled
  * @param regex Regular expression to announce.
  * @param compression How many characters per edge can we squeeze?
  * @param stats Optional statistics handle to report usage. Can be NULL.
@@ -165,10 +166,11 @@ struct REGEX_INTERNAL_Search;
  */
 struct REGEX_INTERNAL_Announcement *
 REGEX_INTERNAL_announce (struct GNUNET_DHT_Handle *dht,
-                       const struct GNUNET_PeerIdentity *id,
-                       const char *regex,
-                       uint16_t compression,
-                       struct GNUNET_STATISTICS_Handle *stats);
+			 const struct GNUNET_CRYPTO_EccPrivateKey *priv,
+			 const char *regex,
+			 uint16_t compression,
+			 struct GNUNET_STATISTICS_Handle *stats);
+
 
 /**
  * Announce again a regular expression previously announced.

@@ -1390,7 +1390,6 @@ regex_put (struct MeshRegexDescriptor *regex)
   {
     DEBUG_REGEX ("  first put, creating DFA\n");
     regex->h = GNUNET_REGEX_announce (cfg,
-                                      &my_full_id,
                                       regex->regex,
 				      app_announce_time,
                                       regex->compression);

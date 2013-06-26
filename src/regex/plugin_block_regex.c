@@ -28,35 +28,8 @@
 #include "gnunet_block_plugin.h"
 #include "block_regex.h"
 #include "regex_block_lib.h"
-
-/**
- * Number of bits we set per entry in the bloomfilter.
- * Do not change!
- */
-#define BLOOMFILTER_K 16
-
-
-/**
- * Show debug info about outgoing edges from a block.
- * 
- * @param cls Closure (uunsed).
- * @param token Edge label.
- * @param len Length of @c token.
- * @param key Block the edge point to.
- * 
- * @return GNUNET_YES to keep iterating.
- */
-static int
-rdebug (void *cls,
-	const char *token,
-	size_t len,
-	const struct GNUNET_HashCode *key)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "%s: %.*s\n",
-              GNUNET_h2s (key), len, token);
-  return GNUNET_YES;
-}
+#include "gnunet_constants.h"
+#include "gnunet_signatures.h"
 
 
 /**
@@ -86,8 +59,21 @@ evaluate_block_regex (void *cls, enum GNUNET_BLOCK_Type type,
                       size_t xquery_size, const void *reply_block,
                       size_t reply_block_size)
 {
-  if (NULL == reply_block) /* queries (GET) are always valid */
-    return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+  if (NULL == reply_block)
+    {
+      if (0 != xquery_size)
+	{
+	  const char *s;  
+	  
+	  s = (const char *) xquery;
+	  if ('\0' != s[xquery_size - 1]) /* must be valid 0-terminated string */
+	    {
+	      GNUNET_break_op (0);
+	      return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
+	    }
+	}
+      return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+    }
   if (0 != xquery_size)
   {
     const char *query;
@@ -95,22 +81,15 @@ evaluate_block_regex (void *cls, enum GNUNET_BLOCK_Type type,
     query = (const char *) xquery;
     if ('\0' != query[xquery_size - 1]) /* must be valid 0-terminated string */
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Block xquery not a valid string\n");
-      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+      GNUNET_break_op (0);
+      return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
     }
   }
-  else if (NULL != query) /* PUTs don't need xquery */
+  else 
   {
-    const struct RegexBlock *rblock = reply_block;
-
+    /* xquery is required for regex, at least an empty string */
     GNUNET_break_op (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"Block with no xquery, query: %s, %u edges\n",
-                GNUNET_h2s (query), 
-		ntohl (rblock->n_edges));
-    REGEX_BLOCK_iterate (rblock, reply_block_size, &rdebug, NULL);
-    return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+    return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
   }
   switch (REGEX_BLOCK_check (reply_block,
 			     reply_block_size,
@@ -121,12 +100,9 @@ evaluate_block_regex (void *cls, enum GNUNET_BLOCK_Type type,
       GNUNET_break_op(0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     case GNUNET_NO:
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "BLOCK XQUERY %s not accepted\n", xquery);
+      /* xquery missmatch, can happen */
       return GNUNET_BLOCK_EVALUATION_RESULT_IRRELEVANT;
     default:
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "BLOCK XQUERY %s accepted\n", xquery);
       break;
   }
   if (NULL != bf)
@@ -143,7 +119,7 @@ evaluate_block_regex (void *cls, enum GNUNET_BLOCK_Type type,
     }
     else
     {
-      *bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, BLOOMFILTER_K);
+      *bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, GNUNET_CONSTANTS_BLOOMFILTER_K);
     }
     GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
   }
@@ -178,6 +154,8 @@ evaluate_block_regex_accept (void *cls, enum GNUNET_BLOCK_Type type,
                              size_t xquery_size, const void *reply_block,
                              size_t reply_block_size)
 {
+  const struct RegexAcceptBlock *rba;
+
   if (0 != xquery_size)
   {
     GNUNET_break_op (0);
@@ -185,7 +163,31 @@ evaluate_block_regex_accept (void *cls, enum GNUNET_BLOCK_Type type,
   }
   if (NULL == reply_block)
     return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
-  if (sizeof (struct RegexAccept) != reply_block_size)
+  if (sizeof (struct RegexAcceptBlock) != reply_block_size)
+  {
+    GNUNET_break_op(0);
+    return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+  }
+  rba = reply_block;
+  if (ntohl (rba->purpose.size) !=
+      sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+      sizeof (struct GNUNET_TIME_AbsoluteNBO) +
+      sizeof (struct GNUNET_HashCode)) 
+  {
+    GNUNET_break_op(0);
+    return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+  }
+  if (0 == GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh (rba->expiration_time)).rel_value)
+  {
+    /* technically invalid, but can happen without an error, so
+       we're nice by reporting it as a 'duplicate' */
+    return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
+  }  
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_REGEX_ACCEPT,
+				&rba->purpose,
+				&rba->signature,
+				&rba->public_key))
   {
     GNUNET_break_op(0);
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
@@ -204,7 +206,7 @@ evaluate_block_regex_accept (void *cls, enum GNUNET_BLOCK_Type type,
     }
     else
     {
-      *bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, BLOOMFILTER_K);
+      *bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, GNUNET_CONSTANTS_BLOOMFILTER_K);
     }
     GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
   }
@@ -247,7 +249,6 @@ block_plugin_regex_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
                                      xquery, xquery_size,
                                      reply_block, reply_block_size);
       break;
-
     case GNUNET_BLOCK_TYPE_REGEX_ACCEPT:
       result = evaluate_block_regex_accept (cls, type, query, bf, bf_mutator,
                                             xquery, xquery_size,
@@ -277,18 +278,24 @@ block_plugin_regex_get_key (void *cls, enum GNUNET_BLOCK_Type type,
                             const void *block, size_t block_size,
                             struct GNUNET_HashCode * key)
 {
-  int ret;
-
   switch (type)
   {
     case GNUNET_BLOCK_TYPE_REGEX:
-      ret = REGEX_BLOCK_get_key (block, block_size,
-				 key);
-      GNUNET_break_op (GNUNET_OK == ret);
-      return ret;
+      if (GNUNET_OK !=
+	  REGEX_BLOCK_get_key (block, block_size,
+			       key))
+      {
+	GNUNET_break_op (0);
+	return GNUNET_NO;
+      }
+      return GNUNET_OK;
     case GNUNET_BLOCK_TYPE_REGEX_ACCEPT:
-      GNUNET_assert (sizeof (struct RegexAccept) <= block_size);
-      *key = ((struct RegexAccept *) block)->key;
+      if (sizeof (struct RegexAcceptBlock) != block_size);
+      {
+	GNUNET_break_op (0);
+	return GNUNET_NO;
+      }
+      *key = ((struct RegexAcceptBlock *) block)->key;
       return GNUNET_OK;
     default:
       GNUNET_break (0);

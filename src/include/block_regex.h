@@ -90,18 +90,34 @@ struct RegexBlock
 /**
  * @brief Block to announce a peer accepting a state.
  */
-struct RegexAccept
+struct RegexAcceptBlock
 {
+
+  /**
+   * Accept blocks must be signed.  Signature
+   * goes over expiration time and key.
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /**
+   * When does the signature expire?
+   */
+  struct GNUNET_TIME_AbsoluteNBO expiration_time;
+
   /**
    * The key of the state.
    */
   struct GNUNET_HashCode key;
   
   /**
-   * The identity of the peer accepting the state
+   * Public key of the peer signing.
    */
-  struct GNUNET_PeerIdentity id;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded public_key;
 
+  /**
+   * The signature.
+   */
+  struct GNUNET_CRYPTO_EccSignature signature;
 };
 
 

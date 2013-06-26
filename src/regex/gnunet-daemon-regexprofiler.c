@@ -95,6 +95,12 @@ static char *rx_with_pfx;
  */
 static unsigned int rounds = 5;
 
+/**
+ * Private key for this peer.
+ */
+static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
+
+
 
 /**
  * Task run during shutdown.
@@ -118,6 +124,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_DHT_disconnect (dht_handle);
     dht_handle = NULL;
   }
+  GNUNET_CRYPTO_ecc_key_free (my_private_key);
+  my_private_key = NULL;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Daemon for %s shutting down\n",
@@ -134,7 +142,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 reannounce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_PeerIdentity id;
   struct GNUNET_TIME_Relative random_delay;
   char *regex = cls;
 
@@ -159,12 +166,11 @@ reannounce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "First time, creating regex: %s\n",
                 regex);
-    memset (&id, 0, sizeof (struct GNUNET_PeerIdentity));
     announce_handle = REGEX_INTERNAL_announce (dht_handle,
-                                            &id,
-                                            regex,
-                                            (unsigned int) max_path_compression,
-                                            stats_handle);
+					       my_private_key,
+					       regex,
+					       (unsigned int) max_path_compression,
+					       stats_handle);
   }
   else
   {
@@ -252,6 +258,8 @@ run (void *cls, char *const *args GNUNET_UNUSED,
 
   cfg = cfg_;
 
+  my_private_key = GNUNET_CRYPTO_ecc_key_create_from_configuration (cfg);
+  GNUNET_assert (NULL != my_private_key);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg, "REGEXPROFILER",
                                              "MAX_PATH_COMPRESSION",

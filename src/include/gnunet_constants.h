@@ -94,6 +94,14 @@ extern "C"
 
 
 /**
+ * After how long do we expire an address in a HELLO that we just
+ * validated?  This value is also used for our own addresses when we
+ * create a HELLO.
+ */
+#define GNUNET_CONSTANTS_DHT_MAX_EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 24)
+
+
+/**
  * Size of the 'struct EncryptedMessage' of the core (which
  * is the per-message overhead of the core).
  */
@@ -117,6 +125,7 @@ extern "C"
  * queries.
  */
 #define GNUNET_CONSTANTS_BLOOMFILTER_K 16
+
 
 
 

@@ -120,11 +120,18 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_SET_ECC_KEY 16
 
-
 /**
  * UBlock Signature, done using DSS, not ECC
  */
 #define GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK 17
+
+/**
+ * Accept state in regex DFA.  Peer affirms that
+ * he offers the matching service.
+ */
+#define GNUNET_SIGNATURE_PURPOSE_REGEX_ACCEPT 18
+
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

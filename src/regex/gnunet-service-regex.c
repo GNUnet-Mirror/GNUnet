@@ -99,6 +99,11 @@ static struct ClientEntry *client_tail;
  */
 static struct GNUNET_SERVER_NotificationContext *nc;
 
+/**
+ * Private key for this peer.
+ */
+static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
+
 
 /**
  * Task run during shutdown.
@@ -115,6 +120,8 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   stats = NULL;
   GNUNET_SERVER_notification_context_destroy (nc);
   nc = NULL;
+  GNUNET_CRYPTO_ecc_key_free (my_private_key);
+  my_private_key = NULL;
 }
 
 
@@ -208,10 +215,10 @@ handle_announce (void *cls,
   ce = GNUNET_new (struct ClientEntry);
   ce->client = client;
   ce->ah = REGEX_INTERNAL_announce (dht,
-				  &am->pid,
-				  regex,
-				  ntohs (am->compression),
-				  stats);
+				    my_private_key,
+				    regex,
+				    ntohs (am->compression),
+				    stats);
   if (NULL == ce->ah)
   {
     GNUNET_break (0);
@@ -347,9 +354,18 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {&handle_search, NULL, GNUNET_MESSAGE_TYPE_REGEX_SEARCH, 0},
     {NULL, NULL, 0, 0}
   };
+
+  my_private_key = GNUNET_CRYPTO_ecc_key_create_from_configuration (cfg);
+  if (NULL == my_private_key)
+  {   
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   dht = GNUNET_DHT_connect (cfg, 1024);
   if (NULL == dht)
   {
+    GNUNET_CRYPTO_ecc_key_free (my_private_key);
+    my_private_key = NULL;
     GNUNET_SCHEDULER_shutdown ();
     return;
   }

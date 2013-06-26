@@ -54,11 +54,6 @@ struct AnnounceMessage
    */
   struct GNUNET_TIME_RelativeNBO refresh_delay;
 
-  /**
-   * Which PID to announce as the provider?
-   */
-  struct GNUNET_PeerIdentity pid;
-
   /* followed by 0-terminated regex as string */
 };
 

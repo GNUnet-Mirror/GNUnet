@@ -389,11 +389,6 @@ static struct TunnelState *tunnels[UINT16_MAX + 1];
 static struct GNUNET_DNSSTUB_Context *dnsstub;
 
 /**
- * Identity of this peer.
- */
-static struct GNUNET_PeerIdentity my_identity;
-
-/**
  * Are we an IPv4-exit?
  */
 static int ipv4_exit;
@@ -3569,14 +3564,6 @@ run (void *cls, char *const *args GNUNET_UNUSED,
 
   connections_map = GNUNET_CONTAINER_multihashmap_create (65536, GNUNET_NO);
   connections_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_get_host_identity (cfg,
-				       &my_identity))
-  {
-    GNUNET_break (0);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
   mesh_handle 
     = GNUNET_MESH_connect (cfg, NULL, 
 			   &new_tunnel, 
@@ -3600,8 +3587,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     (void) GNUNET_asprintf (&prefixed_regex, "%s%s%s",
                             GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
                             "4", regex);
-    regex4 = GNUNET_REGEX_announce (cfg,
-				    &my_identity,
+    regex4 = GNUNET_REGEX_announce (cfg,			    
 				    prefixed_regex,
 				    REGEX_REFRESH_FREQUENCY,
 				    REGEX_MAX_PATH_LEN_IPV4);
@@ -3621,7 +3607,6 @@ run (void *cls, char *const *args GNUNET_UNUSED,
                             GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
                             "6", regex);
     regex6 = GNUNET_REGEX_announce (cfg,
-				    &my_identity,
 				    prefixed_regex,
 				    REGEX_REFRESH_FREQUENCY,
 				    REGEX_MAX_PATH_LEN_IPV6);
