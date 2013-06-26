@@ -123,10 +123,10 @@ regex_iterator (void *cls,
                     DHT_TTL,
                     NULL, NULL);
   }
-  block = REGEX_BLOCK_create (key, proof,
-				       num_edges, edges,
-				       accepting,
-				       &size);
+  block = REGEX_BLOCK_create (proof,
+			      num_edges, edges,
+			      accepting,
+			      &size);
   (void)
   GNUNET_DHT_put (h->dht, key,
                   DHT_REPLICATION,
@@ -420,20 +420,20 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   GNUNET_break (
     GNUNET_OK ==
     GNUNET_CONTAINER_multihashmap_put (info->dht_get_results,
-                                       &((struct RegexBlock *)copy)->key, copy,
+                                       key, copy,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE)
                );
   len = strlen (info->description);
   if (len == ctx->position) // String processed
   {
-    if (GNUNET_YES == ntohl (block->accepting))
+    if (GNUNET_YES == ntohs (block->is_accepting))
     {
       regex_find_path (key, ctx);
     }
     else
     {
-      LOG (GNUNET_ERROR_TYPE_INFO, "  block not accepting!\n");
-      // FIXME REGEX this block not successful, wait for more? start timeout?
+      LOG (GNUNET_ERROR_TYPE_INFO, "block not accepting!\n");
+      /* FIXME REGEX this block not successful, wait for more? start timeout? */
     }
     return;
   }
@@ -457,7 +457,7 @@ regex_result_iterator (void *cls,
   struct RegexBlock *block = value;
   struct RegexSearchContext *ctx = cls;
 
-  if (GNUNET_YES == ntohl(block->accepting) &&
+  if (GNUNET_YES == ntohs (block->is_accepting) &&
       ctx->position == strlen (ctx->info->description))
   {
     LOG (GNUNET_ERROR_TYPE_INFO, " * Found accepting known block\n");
@@ -466,7 +466,7 @@ regex_result_iterator (void *cls,
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "* %u, %u, [%u]\n",
        ctx->position, strlen(ctx->info->description),
-       ntohl(block->accepting));
+       ntohs (block->is_accepting));
 
   regex_next_edge (block, SIZE_MAX, ctx);
 
@@ -646,7 +646,7 @@ REGEX_INTERNAL_search (struct GNUNET_DHT_Handle *dht,
   h->callback_cls = callback_cls;
   h->stats = stats;
   h->dht_get_handles = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
-  h->dht_get_results = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_YES);
+  h->dht_get_results = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
 
   /* Initialize context */
   len = strlen (string);

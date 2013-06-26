@@ -68,8 +68,8 @@ struct REGEX_BLOCK_Edge
  */
 int
 REGEX_BLOCK_check_proof (const char *proof,
-			    size_t proof_len,
-			    const struct GNUNET_HashCode *key);
+			 size_t proof_len,
+			 const struct GNUNET_HashCode *key);
 
 
 /**
@@ -77,6 +77,7 @@ REGEX_BLOCK_check_proof (const char *proof,
  *
  * @param block The start of the block.
  * @param size The size of the block.
+ * @param query the query for the block
  * @param xquery String describing the edge we are looking for.
  *               Can be NULL in case this is a put block.
  *
@@ -87,6 +88,7 @@ REGEX_BLOCK_check_proof (const char *proof,
 int
 REGEX_BLOCK_check (const struct RegexBlock *block,
 		   size_t size,
+		   const struct GNUNET_HashCode *query,
 		   const char *xquery);
 
 
@@ -130,6 +132,20 @@ REGEX_BLOCK_iterate (const struct RegexBlock *block,
                             REGEX_INTERNAL_EgdeIterator iterator,
                             void *iter_cls);
 
+/**
+ * Obtain the key that a particular block is to be stored under.
+ *
+ * @param block block to get the key from
+ * @param block_len number of bytes in block
+ * @param query where to store the key
+ * @return GNUNET_OK on success, GNUNET_SYSERR if the block is malformed
+ */
+int
+REGEX_BLOCK_get_key (const struct RegexBlock *block,
+		     size_t block_len,
+		     struct GNUNET_HashCode *key);
+
+
 
 /**
  * Construct a regex block to be stored in the DHT.
@@ -137,15 +153,16 @@ REGEX_BLOCK_iterate (const struct RegexBlock *block,
  * @param proof proof string for the block
  * @param num_edges number of edges in the block
  * @param edges the edges of the block
- * @return the regex block
+ * @param accepting is this an accepting state
+ * @param rsize set to the size of the returned block (OUT-only)
+ * @return the regex block, NULL on error
  */
 struct RegexBlock *
-REGEX_BLOCK_create (const struct GNUNET_HashCode *key,
-			     const char *proof,
-			     unsigned int num_edges,
-			     const struct REGEX_BLOCK_Edge *edges,
-			     int accepting,
-			     size_t *rsize);
+REGEX_BLOCK_create (const char *proof,
+		    unsigned int num_edges,
+		    const struct REGEX_BLOCK_Edge *edges,
+		    int accepting,
+		    size_t *rsize);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

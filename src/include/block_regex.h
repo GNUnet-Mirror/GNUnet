@@ -39,76 +39,74 @@ extern "C"
 #include <stdint.h>
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
+
 /**
  * @brief A RegexBlock contains one or more of this struct in the payload.
  */
 struct RegexEdge
 {
-      /**
-       * Destination of this edge.
-       */
-    struct GNUNET_HashCode key;
+  /**
+   * Destination of this edge.
+   */
+  struct GNUNET_HashCode key;
+  
+  /**
+   * Length of the token towards the new state.
+   */
+  uint32_t n_token GNUNET_PACKED;
 
-      /**
-       * Length of the token towards the new state.
-       */
-    unsigned int n_token;
-
-    /* char token[n_token] */
+  /* char token[n_token] */
 };
+
 
 /**
  * @brief Block to announce a regex state.
  */
 struct RegexBlock
 {
-      /**
-       * The key of the state.
-       */
-    struct GNUNET_HashCode key;
 
-      /**
-       * Length of the proof regex string.
-       */
-    unsigned int n_proof;
+  /**
+   * Length of the proof regex string.
+   */
+  uint16_t proof_len GNUNET_PACKED;
 
-      /**
-       * Numer of edges parting from this state.
-       */
-    unsigned int n_edges;
+  /**
+   * Is this state an accepting state?
+   */
+  int16_t is_accepting GNUNET_PACKED;
 
-      /**
-       * Is this state an accepting state?
-       */
-    int accepting;
+  /**
+   * Numer of edges parting from this state.
+   */
+  uint32_t n_edges GNUNET_PACKED;
 
-    /* char proof[n_proof] */
-    /* struct RegexEdge edges[n_edges] */
+  /* char proof[n_proof] */
+  /* struct RegexEdge edges[n_edges] */
 };
+
 
 /**
  * @brief Block to announce a peer accepting a state.
  */
 struct RegexAccept
 {
-      /**
-       * The key of the state.
-       */
-    struct GNUNET_HashCode key;
-
-      /**
-       * Length of the proof regex string.
-       * FIXME necessary???
-       * already present in the leading MeshRegexBlock
-       */
-    // unsigned int n_proof;
-
-      /**
-       * The identity of the peer accepting the state
-       */
-    struct GNUNET_PeerIdentity id;
+  /**
+   * The key of the state.
+   */
+  struct GNUNET_HashCode key;
+  
+  /**
+   * The identity of the peer accepting the state
+   */
+  struct GNUNET_PeerIdentity id;
 
 };
+
+
+GNUNET_NETWORK_STRUCT_END
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

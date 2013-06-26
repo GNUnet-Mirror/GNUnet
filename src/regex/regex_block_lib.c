@@ -40,8 +40,8 @@
  */
 int
 REGEX_BLOCK_check_proof (const char *proof,
-			    size_t proof_len,
-			    const struct GNUNET_HashCode *key)
+			 size_t proof_len,
+			 const struct GNUNET_HashCode *key)
 {
   struct GNUNET_HashCode key_check;
 
@@ -50,7 +50,6 @@ REGEX_BLOCK_check_proof (const char *proof,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Proof check failed, was NULL.\n");
     return GNUNET_NO;
   }
-
   GNUNET_CRYPTO_hash (proof, proof_len, &key_check);
   return (0 ==
           GNUNET_CRYPTO_hash_cmp (key, &key_check)) ? GNUNET_OK : GNUNET_NO;
@@ -72,10 +71,6 @@ struct CheckEdgeContext
    */
   int found;
 
-  /**
-   * Key of the block we are iterating (for debug purposes).
-   */
-  char *key;
 };
 
 
@@ -99,7 +94,7 @@ check_edge (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "edge %.*s [%u]: %s->%s\n",
-              (int) len, token, len, ctx->key, GNUNET_h2s(key));
+              (int) len, token, len, GNUNET_h2s(key));
   if (NULL == ctx->xquery)
     return GNUNET_YES;
   if (strlen (ctx->xquery) < len)
@@ -115,6 +110,7 @@ check_edge (void *cls,
  *
  * @param block The start of the block.
  * @param size The size of the block.
+ * @param query the query for the block
  * @param xquery String describing the edge we are looking for.
  *               Can be NULL in case this is a put block.
  *
@@ -125,39 +121,64 @@ check_edge (void *cls,
 int
 REGEX_BLOCK_check (const struct RegexBlock *block,
 		   size_t size,
+		   const struct GNUNET_HashCode *query,
 		   const char *xquery)
 {
   struct CheckEdgeContext ctx;
   int res;
-  uint32_t len;
+  uint16_t len;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Checking block with xquery `%s'\n",
               NULL != xquery ? xquery : "NULL");
-  len = ntohl (block->n_proof);
+  len = ntohs (block->proof_len);
   if (size < sizeof (struct RegexBlock) + len)
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  if (GNUNET_OK != REGEX_BLOCK_check_proof ((const char *) &block[1], len, &block->key))
+  if (GNUNET_OK != REGEX_BLOCK_check_proof ((const char *) &block[1], len, query))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  if ( (GNUNET_YES == ntohl (block->accepting)) &&
+  if ( (GNUNET_YES == ntohs (block->is_accepting)) &&
        ( (NULL == xquery) || ('\0' == xquery[0]) ) )
     return GNUNET_OK;
   ctx.xquery = xquery;
   ctx.found = GNUNET_NO;
-  ctx.key = GNUNET_strdup (GNUNET_h2s (&block->key));
   res = REGEX_BLOCK_iterate (block, size, &check_edge, &ctx);
-  GNUNET_free (ctx.key);
   if (GNUNET_SYSERR == res)
     return GNUNET_SYSERR;
   if (NULL == xquery)
     return GNUNET_YES;
   return ctx.found;
+}
+
+
+/**
+ * Obtain the key that a particular block is to be stored under.
+ *
+ * @param block block to get the key from
+ * @param block_len number of bytes in block
+ * @param query where to store the key
+ * @return GNUNET_OK on success, GNUNET_SYSERR if the block is malformed
+ */
+int
+REGEX_BLOCK_get_key (const struct RegexBlock *block,
+		     size_t block_len,
+		     struct GNUNET_HashCode *key)
+{
+  uint16_t len;
+
+  len = ntohs (block->proof_len);
+  if (block_len < sizeof (struct RegexBlock) + len)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_CRYPTO_hash (&block[1], len, key);
+  return GNUNET_OK;
 }
 
 
@@ -179,9 +200,9 @@ REGEX_BLOCK_check (const struct RegexBlock *block,
  */
 int
 REGEX_BLOCK_iterate (const struct RegexBlock *block,
-                            size_t size,
-                            REGEX_INTERNAL_EgdeIterator iterator,
-                            void *iter_cls)
+		     size_t size,
+		     REGEX_INTERNAL_EgdeIterator iterator,
+		     void *iter_cls)
 {
   struct RegexEdge *edge;
   unsigned int n;
@@ -196,7 +217,7 @@ REGEX_BLOCK_iterate (const struct RegexBlock *block,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  n = ntohl (block->n_proof);
+  n = ntohs (block->proof_len);
   offset += n;
   if (offset >= size) /* Is it safe to access the regex proof? */
   {
@@ -208,7 +229,7 @@ REGEX_BLOCK_iterate (const struct RegexBlock *block,
   n = ntohl (block->n_edges);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Start iterating block of size %u, proof %u, off %u edges %u\n",
-       size, ntohl (block->n_proof), offset, n);
+       size, ntohs (block->proof_len), offset, n);
   /* aux always points at the end of the previous block */
   for (i = 0; i < n; i++)
   {
@@ -257,15 +278,16 @@ REGEX_BLOCK_iterate (const struct RegexBlock *block,
  * @param proof proof string for the block
  * @param num_edges number of edges in the block
  * @param edges the edges of the block
- * @return the regex block
+ * @param accepting is this an accepting state
+ * @param rsize set to the size of the returned block (OUT-only)
+ * @return the regex block, NULL on error
  */
 struct RegexBlock *
-REGEX_BLOCK_create (const struct GNUNET_HashCode *key,
-			     const char *proof,
-			     unsigned int num_edges,
-			     const struct REGEX_BLOCK_Edge *edges,
-			     int accepting,
-			     size_t *rsize)
+REGEX_BLOCK_create (const char *proof,
+		    unsigned int num_edges,
+		    const struct REGEX_BLOCK_Edge *edges,
+		    int accepting,
+		    size_t *rsize)
 {
   struct RegexBlock *block;
   struct RegexEdge *block_edge;
@@ -275,13 +297,17 @@ REGEX_BLOCK_create (const struct GNUNET_HashCode *key,
   unsigned int offset;
   char *aux;
 
-  len = strlen(proof);
+  len = strlen (proof);
+  if (len > UINT16_MAX)
+    {
+      GNUNET_break (0);
+      return NULL;
+    }
   size = sizeof (struct RegexBlock) + len;
   block = GNUNET_malloc (size);
-  block->key = *key;
-  block->n_proof = htonl (len);
+  block->proof_len = htons (len);
   block->n_edges = htonl (num_edges);
-  block->accepting = htonl (accepting);
+  block->is_accepting = htons (accepting);
 
   /* Store the proof at the end of the block. */
   aux = (char *) &block[1];

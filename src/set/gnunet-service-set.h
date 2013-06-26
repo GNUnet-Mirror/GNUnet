@@ -196,7 +196,8 @@ struct Incoming;
 /**
  * Different types a tunnel can be.
  */
-enum TunnelContextType {
+enum TunnelContextType 
+{
   /**
    * Tunnel is waiting for a set request from the tunnel,
    * or for the ack/nack of the client for a received request.
@@ -236,6 +237,7 @@ union TunnelContextData
    */
   struct IntersectionEvaluateOperation *intersection_op;
 };
+
 
 /**
  * Information about a tunnel we are connected to.

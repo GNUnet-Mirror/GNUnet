@@ -1,10 +1,10 @@
 /*
      This file is part of GNUnet
-     (C) 2012 Christian Grothoff (and other contributing authors)
+     (C) 2012, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -225,9 +225,8 @@ struct GNUNET_NAMESTORE_RecordData
 
 /**
  * Store an item in the namestore.  If the item is already present,
- * the expiration time is updated to the max of the existing time and
- * the new time.  This API is used when we cache signatures from other
- * authorities.
+ * it is replaced with the new record.  Use an empty array to
+ * remove all records under the given name.
  *
  * @param h handle to the namestore
  * @param zone_key public key of the zone
@@ -276,49 +275,26 @@ GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_EccPublicKeyBinary
 
 /**
  * Store an item in the namestore.  If the item is already present,
- * the expiration time is updated to the max of the existing time and
- * the new time.  This API is used by the authority of a zone.
- * FIXME: consider allowing to pass multiple records in one call!
+ * it is replaced with the new record.  Use an empty array to
+ * remove all records under the given name.
  *
  * @param h handle to the namestore
  * @param pkey private key of the zone
  * @param name name that is being mapped (at most 255 characters long)
- * @param rd record data to store
+ * @param rd_count number of records in the 'rd' array
+ * @param rd array of records with data to store
  * @param cont continuation to call when done
- * @param cont_cls closure for cont
+ * @param cont_cls closure for 'cont'
  * @return handle to abort the request
  */
 struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
-                                const struct GNUNET_CRYPTO_EccPrivateKey *pkey,
-                                const char *name,
-                                const struct GNUNET_NAMESTORE_RecordData *rd,
-                                GNUNET_NAMESTORE_ContinuationWithStatus cont,
-                                void *cont_cls);
-
-
-/**
- * Explicitly remove some content from the database.  The
- * "cont"inuation will be called with status "GNUNET_OK" if content
- * was removed, "GNUNET_NO" if no matching entry was found and
- * "GNUNET_SYSERR" on all other types of errors.
- * This API is used by the authority of a zone.
- *
- * @param h handle to the namestore
- * @param pkey private key of the zone
- * @param name name that is being mapped (at most 255 characters long)
- * @param rd record data, remove specific record,  NULL to remove the name and all records
- * @param cont continuation to call when done
- * @param cont_cls closure for cont
- * @return handle to abort the request
- */
-struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
-				const struct GNUNET_CRYPTO_EccPrivateKey *pkey,
-				const char *name,
-				const struct GNUNET_NAMESTORE_RecordData *rd,
-				GNUNET_NAMESTORE_ContinuationWithStatus cont,
-				void *cont_cls);
+GNUNET_NAMESTORE_record_put_by_authority (struct GNUNET_NAMESTORE_Handle *h,
+					  const struct GNUNET_CRYPTO_EccPrivateKey *pkey,
+					  const char *name,
+					  unsigned int rd_count,
+					  const struct GNUNET_NAMESTORE_RecordData *rd,
+					  GNUNET_NAMESTORE_ContinuationWithStatus cont,
+					  void *cont_cls);
 
 
 /**
@@ -341,7 +317,7 @@ typedef void (*GNUNET_NAMESTORE_RecordProcessor) (void *cls,
 						  const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
 						  struct GNUNET_TIME_Absolute freshness,			    
 						  const char *name,
-						  unsigned int rd_len,
+						  unsigned int rd_count,
 						  const struct GNUNET_NAMESTORE_RecordData *rd,
 						  const struct GNUNET_CRYPTO_EccSignature *signature);
 
@@ -462,6 +438,64 @@ GNUNET_NAMESTORE_zone_iteration_stop (struct GNUNET_NAMESTORE_ZoneIterator *it);
 
 
 /**
+ * Handle for a monitoring activity.
+ */
+struct GNUNET_NAMESTORE_ZoneMonitor;
+
+
+/**
+ * Function called whenever the records for a given name changed.
+ *
+ * @param cls closure
+ * @param was_removed GNUNET_NO if the record was added, GNUNET_YES if it was removed
+ * @param freshness when does the corresponding block in the DHT expire (until
+ *               when should we never do a DHT lookup for the same name again)?; 
+ *               GNUNET_TIME_UNIT_ZERO_ABS if there are no records of any type in the namestore,
+ *               or the expiration time of the block in the namestore (even if there are zero
+ *               records matching the desired record type)
+ * @param name name that is being mapped (at most 255 characters long)
+ * @param rd_count number of entries in 'rd' array
+ * @param rd array of records with data to store
+ * @param signature signature of the record block
+ */
+typedef void (*GNUNET_NAMESTORE_RecordMonitor)(void *cls,
+					       int was_removed,
+					       const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+					       struct GNUNET_TIME_Absolute freshness,			    
+					       const char *name,
+					       unsigned int rd_len,
+					       const struct GNUNET_NAMESTORE_RecordData *rd,
+					       const struct GNUNET_CRYPTO_EccSignature *signature);
+
+
+/**
+ * Begin monitoring a zone for changes.  Will first call the 'monitor' function
+ * on all existing records in the selected zone(s) and then call it whenever
+ * a record changes.
+ *
+ * @param cfg configuration to use to connect to namestore
+ * @param zone zone to monitor, NULL for all zones
+ * @param monitor function to call on zone changes
+ * @param monitor_cls closure for 'monitor'
+ * @return handle to stop monitoring
+ */
+struct GNUNET_NAMESTORE_ZoneMonitor *
+GNUNET_NAMESTORE_zone_monitor_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
+				     const struct GNUNET_CRYPTO_ShortHashCode *zone,
+				     GNUNET_NAMESTORE_RecordMonitor monitor,
+				     void *monitor_cls);
+
+
+/**
+ * Stop monitoring a zone for changes.
+ *
+ * @param zm handle to the monitor activity to stop
+ */
+void
+GNUNET_NAMESTORE_zone_monitor_stop (struct GNUNET_NAMESTORE_ZoneMonitor *zm);
+
+
+/**
  * Cancel a namestore operation.  The final callback from the
  * operation must not have been done yet.  Must be called on any
  * namestore operation that has not yet completed prior to calling
@@ -471,7 +505,6 @@ GNUNET_NAMESTORE_zone_iteration_stop (struct GNUNET_NAMESTORE_ZoneIterator *it);
  */
 void
 GNUNET_NAMESTORE_cancel (struct GNUNET_NAMESTORE_QueueEntry *qe);
-
 
 
 /* convenience APIs for serializing / deserializing GNS records */
@@ -579,6 +612,7 @@ GNUNET_NAMESTORE_number_to_typename (uint32_t type);
 /**
  * Test if a given record is expired.
  * 
+ * @param rd record to test
  * @return GNUNET_YES if the record is expired,
  *         GNUNET_NO if not
  */

@@ -80,7 +80,7 @@ rdebug (void *cls,
  */
 static enum GNUNET_BLOCK_EvaluationResult
 evaluate_block_regex (void *cls, enum GNUNET_BLOCK_Type type,
-                      const struct GNUNET_HashCode * query,
+                      const struct GNUNET_HashCode *query,
                       struct GNUNET_CONTAINER_BloomFilter **bf,
                       int32_t bf_mutator, const void *xquery,
                       size_t xquery_size, const void *reply_block,
@@ -106,15 +106,16 @@ evaluate_block_regex (void *cls, enum GNUNET_BLOCK_Type type,
 
     GNUNET_break_op (0);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"Block with no xquery, key: %s, %u edges\n",
-                GNUNET_h2s (&rblock->key), 
+		"Block with no xquery, query: %s, %u edges\n",
+                GNUNET_h2s (query), 
 		ntohl (rblock->n_edges));
     REGEX_BLOCK_iterate (rblock, reply_block_size, &rdebug, NULL);
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
   }
   switch (REGEX_BLOCK_check (reply_block,
-				      reply_block_size,
-				      xquery))
+			     reply_block_size,
+			     query,
+			     xquery))
   {
     case GNUNET_SYSERR:
       GNUNET_break_op(0);
@@ -276,12 +277,15 @@ block_plugin_regex_get_key (void *cls, enum GNUNET_BLOCK_Type type,
                             const void *block, size_t block_size,
                             struct GNUNET_HashCode * key)
 {
+  int ret;
+
   switch (type)
   {
     case GNUNET_BLOCK_TYPE_REGEX:
-      GNUNET_assert (sizeof (struct RegexBlock) <= block_size);
-      *key = ((struct RegexBlock *) block)->key;
-      return GNUNET_OK;
+      ret = REGEX_BLOCK_get_key (block, block_size,
+				 key);
+      GNUNET_break_op (GNUNET_OK == ret);
+      return ret;
     case GNUNET_BLOCK_TYPE_REGEX_ACCEPT:
       GNUNET_assert (sizeof (struct RegexAccept) <= block_size);
       *key = ((struct RegexAccept *) block)->key;
