@@ -51,8 +51,8 @@ static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: shutdown\n");
-  if (0 != abort_task)
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shutdown\n");
+  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
   {
     GNUNET_SCHEDULER_cancel (abort_task);
   }
@@ -60,12 +60,12 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_MESH_tunnel_destroy (t);
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: D1\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnect client 1\n");
   if (NULL != mesh_peer_1)
   {
     GNUNET_MESH_disconnect (mesh_peer_1);
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: D2\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnect client 2\n");
   if (NULL != mesh_peer_2)
   {
     GNUNET_MESH_disconnect (mesh_peer_2);
@@ -79,7 +79,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: ABORT\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ABORT\n");
   result = GNUNET_SYSERR;
   abort_task = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
@@ -106,7 +106,7 @@ static int
 data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
                const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Data callback\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Data callback! Shutting down.\n");
   if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
     GNUNET_SCHEDULER_cancel (shutdown_task);
   shutdown_task =
@@ -135,12 +135,12 @@ inbound_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
   long id = (long) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: received incoming tunnel on peer %d, port %u\n",
+              "received incoming tunnel on peer %d, port %u\n",
               id, port);
   if (id != 2L)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "test: wrong peer\n");
+                "wrong peer\n");
     result = GNUNET_SYSERR;
   }
   return NULL;
@@ -162,11 +162,11 @@ inbound_end (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
 {
   long id = (long) cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: incoming tunnel closed\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "incoming tunnel closed\n");
   if (id != 2)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "test: received closing tunnel on peer != 2\n");
+                "received closing tunnel on peer != 2\n");
     result = GNUNET_SYSERR;
   }
 }
@@ -228,7 +228,7 @@ do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_PeerIdentity id;
 
   GNUNET_TESTING_peer_get_identity (me, &id);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: CONNECT BY PORT\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CONNECT BY PORT\n");
   t = GNUNET_MESH_tunnel_create (mesh_peer_1, NULL, &id, 1);
   GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
@@ -271,13 +271,13 @@ run (void *cls,
                                      ports);     /* ports offered */
   if (NULL == mesh_peer_1 || NULL == mesh_peer_2)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "test: Couldn't connect to mesh :(\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Couldn't connect to mesh :(\n");
     result = GNUNET_SYSERR;
     return;
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: YAY! CONNECTED TO MESH :D\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "YAY! CONNECTED TO MESH :D\n");
   }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &do_connect, NULL);
 }
@@ -289,7 +289,7 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
-  if (0 != GNUNET_TESTING_peer_run ("test-mesh-local-1",
+  if (0 != GNUNET_TESTING_peer_run ("test-mesh-local",
                                     "test_mesh2.conf",
                                 &run, NULL))
     return 1;
