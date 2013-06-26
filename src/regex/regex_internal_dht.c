@@ -729,7 +729,6 @@ regex_free_result (void *cls,
                    const struct GNUNET_HashCode * key,
                    void *value)
 {
-
   GNUNET_free (value);
   return GNUNET_YES;
 }
@@ -738,37 +737,28 @@ regex_free_result (void *cls,
 /**
  * Cancel an ongoing regex search in the DHT and free all resources.
  *
- * @param ctx The search context.
+ * @param h the search context.
  */
-static void
-regex_cancel_search (struct REGEX_INTERNAL_Search *ctx)
-{
-  GNUNET_free (ctx->description);
-  GNUNET_CONTAINER_multihashmap_iterate (ctx->dht_get_handles,
-                                         &regex_cancel_dht_get, NULL);
-  GNUNET_CONTAINER_multihashmap_iterate (ctx->dht_get_results,
-                                         &regex_free_result, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (ctx->dht_get_results);
-  GNUNET_CONTAINER_multihashmap_destroy (ctx->dht_get_handles);
-  if (0 < ctx->n_contexts)
-  {
-    int i;
-
-    for (i = 0; i < ctx->n_contexts; i++)
-    {
-      GNUNET_free (ctx->contexts[i]);
-    }
-    GNUNET_free (ctx->contexts);
-  }
-}
-
 void
 REGEX_INTERNAL_search_cancel (struct REGEX_INTERNAL_Search *h)
 {
-  regex_cancel_search (h);
+  unsigned int i;
+
+  GNUNET_free (h->description);
+  GNUNET_CONTAINER_multihashmap_iterate (h->dht_get_handles,
+                                         &regex_cancel_dht_get, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (h->dht_get_results,
+                                         &regex_free_result, NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (h->dht_get_results);
+  GNUNET_CONTAINER_multihashmap_destroy (h->dht_get_handles);
+  if (0 < h->n_contexts)
+  {
+    for (i = 0; i < h->n_contexts; i++)
+      GNUNET_free (h->contexts[i]);
+    GNUNET_free (h->contexts);
+  }
   GNUNET_free (h);
 }
 
 
-
-/* end of regex_dht.c */
+/* end of regex_internal_dht.c */
