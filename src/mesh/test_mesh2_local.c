@@ -189,6 +189,16 @@ static struct GNUNET_MESH_MessageHandler handlers2[] = {
   {NULL, 0, 0}
 };
 
+
+/**
+ * Data send callback: fillbuffer with test packet.
+ * 
+ * @param cls Closure (unused).
+ * @param size Buffer size.
+ * @param buf Buffer to fill.
+ * 
+ * @return size of test packet.
+ */
 static size_t
 do_send (void *cls, size_t size, void *buf)
 {
@@ -207,10 +217,13 @@ do_send (void *cls, size_t size, void *buf)
 }
 
 /**
- * Start looking for a peer by type
+ * Connect to other client and send data
+ * 
+ * @param cls Closue (unused).
+ * @param tc TaskContext.
  */
 static void
-do_find (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_PeerIdentity id;
 
@@ -226,6 +239,10 @@ do_find (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Initialize framework and start test
+ * 
+ * @param cls Closure (unused).
+ * @param cfg Configuration handle.
+ * @param peer Testing peer handle.
  */
 static void
 run (void *cls, 
@@ -262,7 +279,7 @@ run (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: YAY! CONNECTED TO MESH :D\n");
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &do_find, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &do_connect, NULL);
 }
 
 
