@@ -29,6 +29,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_statistics_service.h"
+#include "regex_block_lib.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -43,23 +44,6 @@ extern "C"
  * Automaton (NFA/DFA) representation.
  */
 struct REGEX_INTERNAL_Automaton;
-
-
-/**
- * Edge representation.
- */
-struct REGEX_INTERNAL_Edge
-{
-  /**
-   * Label of the edge.  FIXME: might want to not consume exactly multiples of 8 bits, need length?
-   */
-  const char *label;
-
-  /**
-   * Destionation of the edge.
-   */
-  struct GNUNET_HashCode destination;
-};
 
 
 /**

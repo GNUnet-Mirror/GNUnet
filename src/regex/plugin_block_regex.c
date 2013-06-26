@@ -48,11 +48,12 @@
  */
 static int
 rdebug (void *cls,
-             const char *token,
-             size_t len,
-             const struct GNUNET_HashCode *key)
+	const char *token,
+	size_t len,
+	const struct GNUNET_HashCode *key)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    %s: %.*s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "%s: %.*s\n",
               GNUNET_h2s (key), len, token);
   return GNUNET_YES;
 }
@@ -92,7 +93,7 @@ evaluate_block_regex (void *cls, enum GNUNET_BLOCK_Type type,
     const char *query;
 
     query = (const char *) xquery;
-    if ('\0' != query[xquery_size - 1]) /* must be valid string */
+    if ('\0' != query[xquery_size - 1]) /* must be valid 0-terminated string */
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Block xquery not a valid string\n");
@@ -111,8 +112,8 @@ evaluate_block_regex (void *cls, enum GNUNET_BLOCK_Type type,
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
   }
   switch (REGEX_INTERNAL_block_check (reply_block,
-                                    reply_block_size,
-                                    xquery))
+				      reply_block_size,
+				      xquery))
   {
     case GNUNET_SYSERR:
       GNUNET_break_op(0);

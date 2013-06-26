@@ -91,25 +91,19 @@ regex_iterator (void *cls,
 {
   struct REGEX_INTERNAL_Announcement *h = cls;
   struct RegexBlock *block;
-  struct RegexEdge *block_edge;
   size_t size;
-  size_t len;
-  unsigned int i;
-  unsigned int offset;
-  char *aux;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "  regex dht put for state %s\n",
-       GNUNET_h2s (key));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "   proof: %s\n", proof);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "   num edges: %u\n", num_edges);
-
+       "DHT PUT for state %s with proof `%s' and %u edges\n",
+       GNUNET_h2s (key),
+       proof,
+       num_edges);
   if (GNUNET_YES == accepting)
   {
     struct RegexAccept block;
 
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "   state %s is accepting, putting own id\n",
+         "State %s is accepting, putting own id\n",
          GNUNET_h2s(key));
     size = sizeof (block);
     block.key = *key;
@@ -124,53 +118,21 @@ regex_iterator (void *cls,
                     DHT_OPT | GNUNET_DHT_RO_RECORD_ROUTE,
                     GNUNET_BLOCK_TYPE_REGEX_ACCEPT,
                     size,
-                    (char *) &block,
+                    &block,
                     GNUNET_TIME_relative_to_absolute (DHT_TTL),
                     DHT_TTL,
                     NULL, NULL);
   }
-  len = strlen(proof);
-  size = sizeof (struct RegexBlock) + len;
-  block = GNUNET_malloc (size);
-
-  block->key = *key;
-  block->n_proof = htonl (len);
-  block->n_edges = htonl (num_edges);
-  block->accepting = htonl (accepting);
-
-  /* Store the proof at the end of the block. */
-  aux = (char *) &block[1];
-  memcpy (aux, proof, len);
-  aux = &aux[len];
-
-  /* Store each edge in a variable length MeshEdge struct at the
-   * very end of the MeshRegexBlock structure.
-   */
-  for (i = 0; i < num_edges; i++)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "    edge %s towards %s\n",
-         edges[i].label, GNUNET_h2s(&edges[i].destination));
-
-    /* aux points at the end of the last block */
-    len = strlen (edges[i].label);
-    size += sizeof (struct RegexEdge) + len;
-    // Calculate offset FIXME is this ok? use size instead?
-    offset = aux - (char *) block;
-    block = GNUNET_realloc (block, size);
-    aux = &((char *) block)[offset];
-    block_edge = (struct RegexEdge *) aux;
-    block_edge->key = edges[i].destination;
-    block_edge->n_token = htonl (len);
-    aux = (char *) &block_edge[1];
-    memcpy (aux, edges[i].label, len);
-    aux = &aux[len];
-  }
+  block = REGEX_INTERNAL_block_create (key, proof,
+				       num_edges, edges,
+				       accepting,
+				       &size);
   (void)
   GNUNET_DHT_put (h->dht, key,
                   DHT_REPLICATION,
                   DHT_OPT,
-                  GNUNET_BLOCK_TYPE_REGEX, size,
-                  (char *) block,
+                  GNUNET_BLOCK_TYPE_REGEX, 
+		  size, block,
                   GNUNET_TIME_relative_to_absolute (DHT_TTL),
                   DHT_TTL,
                   NULL, NULL);

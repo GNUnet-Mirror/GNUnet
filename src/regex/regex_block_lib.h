@@ -39,6 +39,24 @@ extern "C"
 #include "platform.h"
 #include "block_regex.h"
 
+
+/**
+ * Edge representation.
+ */
+struct REGEX_INTERNAL_Edge
+{
+  /**
+   * Label of the edge.  FIXME: might want to not consume exactly multiples of 8 bits, need length!
+   */
+  const char *label;
+
+  /**
+   * Destionation of the edge.
+   */
+  struct GNUNET_HashCode destination;
+};
+
+
 /**
  * Check if the regex block is well formed, including all edges.
  *
@@ -53,8 +71,11 @@ extern "C"
  */
 int
 REGEX_INTERNAL_block_check (const struct RegexBlock *block,
-                          size_t size,
-                          const char *xquery);
+			    size_t size,
+			    const char *xquery);
+
+
+/* FIXME: might want to use 'struct REGEX_INTERNAL_Edge' here instead of 3 arguments! */
 
 /**
  * Iterator over edges in a block.
@@ -62,7 +83,7 @@ REGEX_INTERNAL_block_check (const struct RegexBlock *block,
  * @param cls Closure.
  * @param token Token that follows to next state.
  * @param len Length of token.
- * @param key Hash of next state.
+ * @param key Hash of next state. 
  *
  * @return GNUNET_YES if should keep iterating, GNUNET_NO otherwise.
  */
@@ -93,6 +114,24 @@ REGEX_INTERNAL_block_iterate (const struct RegexBlock *block,
                             size_t size,
                             REGEX_INTERNAL_EgdeIterator iterator,
                             void *iter_cls);
+
+
+/**
+ * Construct a regex block to be stored in the DHT.
+ *
+ * @param proof proof string for the block
+ * @param num_edges number of edges in the block
+ * @param edges the edges of the block
+ * @return the regex block
+ */
+struct RegexBlock *
+REGEX_INTERNAL_block_create (const struct GNUNET_HashCode *key,
+			     const char *proof,
+			     unsigned int num_edges,
+			     const struct REGEX_INTERNAL_Edge *edges,
+			     int accepting,
+			     size_t *rsize);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

@@ -20,6 +20,8 @@
 /**
  * @author Bartlomiej Polot
  * @file regex/regex_block_lib.c
+ * @brief functions for manipulating non-accept blocks stored for
+ *        regex in the DHT
  */
 #include "platform.h"
 #include "regex_block_lib.h"
@@ -66,45 +68,32 @@ check_edge (void *cls,
 {
   struct regex_block_xquery_ctx *ctx = cls;
 
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  edge %.*s [%u]: %s->%s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "edge %.*s [%u]: %s->%s\n",
               (int) len, token, len, ctx->key, GNUNET_h2s(key));
-
   if (NULL == ctx->xquery)
     return GNUNET_YES;
   if (strlen (ctx->xquery) < len)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  too long!\n");
-    return GNUNET_YES;
-  }
+    return GNUNET_YES; /* too long */
   if (0 == strncmp (ctx->xquery, token, len))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  OK!\n");
     ctx->found = GNUNET_OK;
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  KO!\n");
-  }
-
   return GNUNET_YES; /* keep checking for malformed data! */
 }
 
 
 int
 REGEX_INTERNAL_block_check (const struct RegexBlock *block,
-                          size_t size,
-                          const char *xquery)
+			    size_t size,
+			    const char *xquery)
 {
   int res;
   struct regex_block_xquery_ctx ctx;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "* Checking block with xquery \"%s\"\n",
+              "Checking block with xquery `%s'\n",
               NULL != xquery ? xquery : "NULL");
   if ( (GNUNET_YES == ntohl (block->accepting)) &&
-       ( (NULL == xquery) || ('\0' == xquery[0]) )
-     )
+       ( (NULL == xquery) || ('\0' == xquery[0]) ) )
     return GNUNET_OK;
   ctx.xquery = xquery;
   ctx.found = GNUNET_NO;
@@ -133,31 +122,24 @@ REGEX_INTERNAL_block_iterate (const struct RegexBlock *block,
   char *aux;
 
   offset = sizeof (struct RegexBlock);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "* Start iterating block of size %u, off %u\n",
-       size, offset);
   if (offset >= size) /* Is it safe to access the regex block? */
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "*   Block is smaller than struct RegexBlock, END\n");
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
   n = ntohl (block->n_proof);
   offset += n;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "*  Proof length: %u, off %u\n", n, offset);
   if (offset >= size) /* Is it safe to access the regex proof? */
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "*   Block is smaller than Block + proof, END\n");
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
   aux = (char *) &block[1];  /* Skip regex block */
   aux = &aux[n];             /* Skip regex proof */
   n = ntohl (block->n_edges);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "*  Edges: %u\n", n);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Start iterating block of size %u, proof %u, off %u edges %u\n",
+       size, ntohl (block->n_proof), offset, n);
   /* aux always points at the end of the previous block */
   for (i = 0; i < n; i++)
   {
@@ -191,15 +173,74 @@ REGEX_INTERNAL_block_iterate (const struct RegexBlock *block,
   /* The total size should be exactly the size of (regex + all edges) blocks
    * If size == -1, block is from cache and therefore previously checked and
    * assumed correct. */
-  if (offset == size || SIZE_MAX == size)
+  if ( (offset != size) && (SIZE_MAX != size) )
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "* Block processed, END OK\n");
-    return GNUNET_OK;
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
   }
-  LOG (GNUNET_ERROR_TYPE_WARNING,
-       "*   Size %u (%d), read %u END KO\n", size, size, offset);
-  GNUNET_break_op (0);
-  return GNUNET_SYSERR;
+  return GNUNET_OK;
 }
+
+
+/**
+ * Construct a regex block to be stored in the DHT.
+ *
+ * @param proof proof string for the block
+ * @param num_edges number of edges in the block
+ * @param edges the edges of the block
+ * @return the regex block
+ */
+struct RegexBlock *
+REGEX_INTERNAL_block_create (const struct GNUNET_HashCode *key,
+			     const char *proof,
+			     unsigned int num_edges,
+			     const struct REGEX_INTERNAL_Edge *edges,
+			     int accepting,
+			     size_t *rsize)
+{
+  struct RegexBlock *block;
+  struct RegexEdge *block_edge;
+  size_t size;
+  size_t len;
+  unsigned int i;
+  unsigned int offset;
+  char *aux;
+
+  len = strlen(proof);
+  size = sizeof (struct RegexBlock) + len;
+  block = GNUNET_malloc (size);
+  block->key = *key;
+  block->n_proof = htonl (len);
+  block->n_edges = htonl (num_edges);
+  block->accepting = htonl (accepting);
+
+  /* Store the proof at the end of the block. */
+  aux = (char *) &block[1];
+  memcpy (aux, proof, len);
+  aux = &aux[len];
+
+  /* Store each edge in a variable length MeshEdge struct at the
+   * very end of the MeshRegexBlock structure.
+   */
+  for (i = 0; i < num_edges; i++)
+  {
+    /* aux points at the end of the last block */
+    len = strlen (edges[i].label);
+    size += sizeof (struct RegexEdge) + len;
+    // Calculate offset FIXME is this ok? use size instead?
+    offset = aux - (char *) block;
+    block = GNUNET_realloc (block, size);
+    aux = &((char *) block)[offset];
+    block_edge = (struct RegexEdge *) aux;
+    block_edge->key = edges[i].destination;
+    block_edge->n_token = htonl (len);
+    aux = (char *) &block_edge[1];
+    memcpy (aux, edges[i].label, len);
+    aux = &aux[len];
+  }
+  *rsize = size;
+  return block;
+}
+
 
 /* end of regex_block_lib.c */
