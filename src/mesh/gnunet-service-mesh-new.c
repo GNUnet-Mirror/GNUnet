@@ -236,7 +236,7 @@ struct MeshFlowControl
   uint32_t last_ack_recv;
 
   /**
-   * How many messages are in the queue towards this peer.
+   * How many payload messages are in the queue towards this peer.
    */
   uint32_t queue_n;
 
@@ -2743,16 +2743,20 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
                                queue);
 
   /* Delete from appropriate fc in the tunnel */
-  if (queue->peer->id == queue->tunnel->prev_hop)
-    fc = &queue->tunnel->prev_fc;
-  else if (queue->peer->id == queue->tunnel->next_hop)
-    fc = &queue->tunnel->next_fc;
-  else
+  if (GNUNET_MESSAGE_TYPE_MESH_UNICAST == queue->type ||
+      GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN == queue->type )
   {
-    GNUNET_break (0);
-    return;
+    if (queue->peer->id == queue->tunnel->prev_hop)
+      fc = &queue->tunnel->prev_fc;
+    else if (queue->peer->id == queue->tunnel->next_hop)
+      fc = &queue->tunnel->next_fc;
+    else
+    {
+      GNUNET_break (0);
+      return;
+    }
+    fc->queue_n--;
   }
-  fc->queue_n--;
   GNUNET_free (queue);
 }
 
@@ -3020,6 +3024,9 @@ queue_add (void *cls, uint16_t type, size_t size,
     if (*n >= t->queue_max)
     {
       GNUNET_break(0);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "queue full: %u/%u\n",
+                  *n, t->queue_max);
       GNUNET_STATISTICS_update(stats,
                                "# messages dropped (buffer full)",
                                1, GNUNET_NO);
