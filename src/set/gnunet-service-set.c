@@ -73,6 +73,12 @@ struct Incoming
    * after the timeout, it will be disconnected.
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+  /**
+   * Tunnel context, needs to be stored here as a client's accept will change
+   * the tunnel context.
+   */
+  struct TunnelContext *tc;
 };
 
 
@@ -704,9 +710,8 @@ handle_client_accept (void *cls,
   struct Set *set;
   struct Incoming *incoming;
   struct GNUNET_SET_AcceptRejectMessage *msg = (struct GNUNET_SET_AcceptRejectMessage *) mh;
-  struct GNUNET_MESH_Tunnel *tunnel;
-  struct TunnelContext *tc;
   struct OperationSpecification *spec;
+  struct TunnelContext *tc;
 
   incoming = get_incoming (ntohl (msg->accept_reject_id));
 
@@ -729,10 +734,8 @@ handle_client_accept (void *cls,
     return;
   }
 
-  tc = GNUNET_new (struct TunnelContext);
-  tunnel = GNUNET_MESH_tunnel_create (mesh, tc, &incoming->spec->peer,
-                                      GNUNET_APPLICATION_TYPE_SET);
   spec = GNUNET_new (struct OperationSpecification);
+  tc = incoming->tc;
 
   switch (set->operation)
   {
@@ -742,15 +745,15 @@ handle_client_accept (void *cls,
       break;
     case GNUNET_SET_OPERATION_UNION:
       tc->type = CONTEXT_OPERATION_UNION;
-      tc->data.union_op = _GSS_union_accept (spec, tunnel);
+      tc->data.union_op = _GSS_union_accept (spec, incoming->tunnel);
       break;
     default:
       GNUNET_assert (0);
       break;
   }
 
-  /* note: _GSS_*_accept has to make sure the tunnel and mq are set to NULL,
-   * otherwise they will be destroyed and disconnected */
+  /* tunnel ownership goes to operation */
+  incoming->tunnel = NULL;
   incoming_destroy (incoming);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -834,6 +837,7 @@ tunnel_new_cb (void *cls,
   incoming = GNUNET_new (struct Incoming);
   incoming->peer = *initiator;
   incoming->tunnel = tunnel;
+  incoming->tc = tc;
   tc->data.incoming = incoming;
   tc->type = CONTEXT_INCOMING;
   incoming->timeout_task = 
