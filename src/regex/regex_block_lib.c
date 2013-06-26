@@ -39,7 +39,7 @@
  * @return GNUNET_OK if the proof is valid for the given key.
  */
 int
-REGEX_INTERNAL_check_proof (const char *proof,
+REGEX_BLOCK_check_proof (const char *proof,
 			    size_t proof_len,
 			    const struct GNUNET_HashCode *key)
 {
@@ -140,7 +140,7 @@ REGEX_BLOCK_check (const struct RegexBlock *block,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  if (GNUNET_OK != REGEX_INTERNAL_check_proof ((const char *) &block[1], len, &block->key))
+  if (GNUNET_OK != REGEX_BLOCK_check_proof ((const char *) &block[1], len, &block->key))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;

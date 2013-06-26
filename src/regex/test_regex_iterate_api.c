@@ -103,7 +103,7 @@ key_iterator (void *cls, const struct GNUNET_HashCode *key,
       ctx->match_count++;
   }
 
-  if (GNUNET_OK != REGEX_INTERNAL_check_proof (proof, strlen (proof), key))
+  if (GNUNET_OK != REGEX_BLOCK_check_proof (proof, strlen (proof), key))
   {
     ctx->error++;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

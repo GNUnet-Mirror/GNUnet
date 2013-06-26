@@ -67,7 +67,7 @@ struct REGEX_BLOCK_Edge
  * @return GNUNET_OK if the proof is valid for the given key.
  */
 int
-REGEX_INTERNAL_check_proof (const char *proof,
+REGEX_BLOCK_check_proof (const char *proof,
 			    size_t proof_len,
 			    const struct GNUNET_HashCode *key);
 
