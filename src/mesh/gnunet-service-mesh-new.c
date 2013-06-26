@@ -1512,6 +1512,11 @@ peer_info_add_path_to_origin (struct MeshPeerInfo *peer_info,
 static void
 peer_info_add_tunnel (struct MeshPeerInfo *p, struct MeshTunnel *t)
 {
+  if (0 != t->dest)
+  {
+    GNUNET_break (t->dest == p->id);
+    return;
+  }
   t->dest = p->id;
   GNUNET_PEER_change_rc (t->dest, 1);
   GNUNET_array_append (p->tunnels, p->ntunnels, t);
@@ -4121,7 +4126,7 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
-  /* Message sanity check */
+  /* Message size sanity check */
   if (sizeof (struct GNUNET_MESH_TunnelMessage) != ntohs (message->size))
   {
     GNUNET_break (0);
@@ -4148,6 +4153,7 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
+  /* Create tunnel */
   while (NULL != tunnel_get_by_pi (myid, next_tid))
     next_tid = (next_tid + 1) & ~GNUNET_MESH_LOCAL_TUNNEL_ID_CLI;
   t = tunnel_new (myid, next_tid, c, tid);
