@@ -1370,9 +1370,8 @@ _GSS_union_handle_p2p_message (void *cls,
 
   if (CONTEXT_OPERATION_UNION != tc->type)
   {
-    /* FIXME: kill the tunnel */
-    /* never kill mesh */
-    return GNUNET_OK;
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
   }
 
   eo = tc->data;
@@ -1398,6 +1397,5 @@ _GSS_union_handle_p2p_message (void *cls,
       /* something wrong with mesh's message handlers? */
       GNUNET_assert (0);
   }
-  /* never kill mesh! */
   return GNUNET_OK;
 }

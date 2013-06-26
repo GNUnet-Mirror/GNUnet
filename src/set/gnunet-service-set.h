@@ -186,11 +186,23 @@ struct Incoming
   enum GNUNET_SET_OperationType operation;
 
   /**
+   * Has the incoming request been suggested to
+   * a client listener yet?
+   */
+  int suggested;
+
+  /**
    * Unique request id for the request from
    * a remote peer, sent to the client, which will
    * accept or reject the request.
    */
   uint32_t accept_id;
+
+  /**
+   * Timeout task, if the incoming peer has not been accepted
+   * after the timeout, it will be disconnected.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 };
 
 
