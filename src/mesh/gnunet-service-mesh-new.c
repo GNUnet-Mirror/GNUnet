@@ -4974,8 +4974,6 @@ key_generation_cb (void *cls,
                    const char *emsg)
 {
   const struct GNUNET_CONFIGURATION_Handle *c = cls;
-  struct MeshPeerInfo *peer;
-  struct MeshPeerPath *p;
 
   keygen = NULL;
   if (NULL == pk)
@@ -5016,13 +5014,6 @@ key_generation_cb (void *cls,
   next_local_tid = GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
 
   announce_id_task = GNUNET_SCHEDULER_add_now (&announce_id, cls);
-
-  /* Create a peer_info for the local peer */
-  peer = peer_get (&my_full_id);
-  p = path_new (1);
-  p->peers[0] = myid;
-  GNUNET_PEER_change_rc (myid, 1);
-  peer_info_add_path (peer, p, GNUNET_YES);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Mesh service running\n");
 }
