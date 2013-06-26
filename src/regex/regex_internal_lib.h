@@ -135,7 +135,7 @@ typedef void (*REGEX_INTERNAL_KeyIterator)(void *cls,
                                          const char *proof,
                                          int accepting,
                                          unsigned int num_edges,
-                                         const struct REGEX_INTERNAL_Edge *edges);
+                                         const struct REGEX_BLOCK_Edge *edges);
 
 
 /**

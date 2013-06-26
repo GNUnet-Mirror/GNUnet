@@ -335,7 +335,7 @@ return_ok (void *cls, unsigned int num_values, MYSQL_BIND * values)
 static void
 regex_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
                 int accepting, unsigned int num_edges,
-                const struct REGEX_INTERNAL_Edge *edges)
+                const struct REGEX_BLOCK_Edge *edges)
 {
   unsigned int i;
   int result;

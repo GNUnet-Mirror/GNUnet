@@ -61,7 +61,7 @@ struct RegexStringPair
 static void
 key_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
               int accepting, unsigned int num_edges,
-              const struct REGEX_INTERNAL_Edge *edges)
+              const struct REGEX_BLOCK_Edge *edges)
 {
   unsigned int i;
   struct IteratorContext *ctx = cls;

@@ -43,7 +43,7 @@ extern "C"
 /**
  * Edge representation.
  */
-struct REGEX_INTERNAL_Edge
+struct REGEX_BLOCK_Edge
 {
   /**
    * Label of the edge.  FIXME: might want to not consume exactly multiples of 8 bits, need length!
@@ -70,12 +70,12 @@ struct REGEX_INTERNAL_Edge
  *         GNUNET_SYSERR if the block is invalid.
  */
 int
-REGEX_INTERNAL_block_check (const struct RegexBlock *block,
+REGEX_BLOCK_check (const struct RegexBlock *block,
 			    size_t size,
 			    const char *xquery);
 
 
-/* FIXME: might want to use 'struct REGEX_INTERNAL_Edge' here instead of 3 arguments! */
+/* FIXME: might want to use 'struct REGEX_BLOCK_Edge' here instead of 3 arguments! */
 
 /**
  * Iterator over edges in a block.
@@ -110,7 +110,7 @@ typedef int (*REGEX_INTERNAL_EgdeIterator)(void *cls,
  *         be errors in further edges.
  */
 int
-REGEX_INTERNAL_block_iterate (const struct RegexBlock *block,
+REGEX_BLOCK_iterate (const struct RegexBlock *block,
                             size_t size,
                             REGEX_INTERNAL_EgdeIterator iterator,
                             void *iter_cls);
@@ -125,10 +125,10 @@ REGEX_INTERNAL_block_iterate (const struct RegexBlock *block,
  * @return the regex block
  */
 struct RegexBlock *
-REGEX_INTERNAL_block_create (const struct GNUNET_HashCode *key,
+REGEX_BLOCK_create (const struct GNUNET_HashCode *key,
 			     const char *proof,
 			     unsigned int num_edges,
-			     const struct REGEX_INTERNAL_Edge *edges,
+			     const struct REGEX_BLOCK_Edge *edges,
 			     int accepting,
 			     size_t *rsize);
 

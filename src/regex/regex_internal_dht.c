@@ -87,7 +87,7 @@ regex_iterator (void *cls,
                 const char *proof,
                 int accepting,
                 unsigned int num_edges,
-                const struct REGEX_INTERNAL_Edge *edges)
+                const struct REGEX_BLOCK_Edge *edges)
 {
   struct REGEX_INTERNAL_Announcement *h = cls;
   struct RegexBlock *block;
@@ -123,7 +123,7 @@ regex_iterator (void *cls,
                     DHT_TTL,
                     NULL, NULL);
   }
-  block = REGEX_INTERNAL_block_create (key, proof,
+  block = REGEX_BLOCK_create (key, proof,
 				       num_edges, edges,
 				       accepting,
 				       &size);
@@ -573,7 +573,7 @@ regex_next_edge (const struct RegexBlock *block,
   /* Find the longest match for the current string position, 
    * among tokens in the given block */
   ctx->longest_match = 0;
-  result = REGEX_INTERNAL_block_iterate (block, size,
+  result = REGEX_BLOCK_iterate (block, size,
                                        &regex_edge_iterator, ctx);
   GNUNET_break (GNUNET_OK == result);
 

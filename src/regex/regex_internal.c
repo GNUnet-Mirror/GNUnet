@@ -205,7 +205,7 @@ state_compare (const void *a, const void *b)
  * @return number of edges.
  */
 static unsigned int
-state_get_edges (struct REGEX_INTERNAL_State *s, struct REGEX_INTERNAL_Edge *edges)
+state_get_edges (struct REGEX_INTERNAL_State *s, struct REGEX_BLOCK_Edge *edges)
 {
   struct REGEX_INTERNAL_Transition *t;
   unsigned int count;
@@ -3372,8 +3372,8 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
   char *temp;
   struct REGEX_INTERNAL_Transition *t;
   unsigned int num_edges = state->transition_count;
-  struct REGEX_INTERNAL_Edge edges[num_edges];
-  struct REGEX_INTERNAL_Edge edge[1];
+  struct REGEX_BLOCK_Edge edges[num_edges];
+  struct REGEX_BLOCK_Edge edge[1];
   struct GNUNET_HashCode hash;
   struct GNUNET_HashCode hash_new;
 
@@ -3463,7 +3463,7 @@ REGEX_INTERNAL_iterate_all_edges (struct REGEX_INTERNAL_Automaton *a,
 
   for (s = a->states_head; NULL != s; s = s->next)
   {
-    struct REGEX_INTERNAL_Edge edges[s->transition_count];
+    struct REGEX_BLOCK_Edge edges[s->transition_count];
     unsigned int num_edges;
 
     num_edges = state_get_edges (s, edges);
