@@ -183,8 +183,8 @@ test_regex_iterate_api_SOURCES = \
   test_regex_iterate_api.c
 test_regex_iterate_api_LDADD = -lm \
   $(top_builddir)/src/regex/libgnunetregex_internal.a \
-  $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/regex/libgnunetregexblock.la \
+  $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
 test_regex_proofs_SOURCES = \

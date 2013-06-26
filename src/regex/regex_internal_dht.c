@@ -423,18 +423,6 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                                        &((struct RegexBlock *)copy)->key, copy,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE)
                );
-  len = ntohl (block->n_proof);
-  {
-    char proof[len + 1];
-
-    memcpy (proof, &block[1], len);
-    proof[len] = '\0';
-    if (GNUNET_OK != REGEX_INTERNAL_check_proof (proof, key))
-    {
-      GNUNET_break_op (0);
-      return;
-    }
-  }
   len = strlen (info->description);
   if (len == ctx->position) // String processed
   {

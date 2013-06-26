@@ -58,6 +58,21 @@ struct REGEX_BLOCK_Edge
 
 
 /**
+ * Check if the given 'proof' matches the given 'key'.
+ *
+ * @param proof partial regex of a state
+ * @param proof_len number of bytes in 'proof'
+ * @param key hash of a state.
+ *
+ * @return GNUNET_OK if the proof is valid for the given key.
+ */
+int
+REGEX_INTERNAL_check_proof (const char *proof,
+			    size_t proof_len,
+			    const struct GNUNET_HashCode *key);
+
+
+/**
  * Check if the regex block is well formed, including all edges.
  *
  * @param block The start of the block.
@@ -71,8 +86,8 @@ struct REGEX_BLOCK_Edge
  */
 int
 REGEX_BLOCK_check (const struct RegexBlock *block,
-			    size_t size,
-			    const char *xquery);
+		   size_t size,
+		   const char *xquery);
 
 
 /* FIXME: might want to use 'struct REGEX_BLOCK_Edge' here instead of 3 arguments! */
@@ -88,9 +103,9 @@ REGEX_BLOCK_check (const struct RegexBlock *block,
  * @return GNUNET_YES if should keep iterating, GNUNET_NO otherwise.
  */
 typedef int (*REGEX_INTERNAL_EgdeIterator)(void *cls,
-                                         const char *token,
-                                         size_t len,
-                                         const struct GNUNET_HashCode *key);
+					   const char *token,
+					   size_t len,
+					   const struct GNUNET_HashCode *key);
 
 
 /**

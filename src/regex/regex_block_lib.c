@@ -28,6 +28,35 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind,"regex-bck",__VA_ARGS__)
 
+
+/**
+ * Check if the given 'proof' matches the given 'key'.
+ *
+ * @param proof partial regex of a state
+ * @param proof_len number of bytes in 'proof'
+ * @param key hash of a state.
+ *
+ * @return GNUNET_OK if the proof is valid for the given key.
+ */
+int
+REGEX_INTERNAL_check_proof (const char *proof,
+			    size_t proof_len,
+			    const struct GNUNET_HashCode *key)
+{
+  struct GNUNET_HashCode key_check;
+
+  if ( (NULL == proof) || (NULL == key))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Proof check failed, was NULL.\n");
+    return GNUNET_NO;
+  }
+
+  GNUNET_CRYPTO_hash (proof, proof_len, &key_check);
+  return (0 ==
+          GNUNET_CRYPTO_hash_cmp (key, &key_check)) ? GNUNET_OK : GNUNET_NO;
+}
+
+
 /**
  * Struct to keep track of the xquery while iterating all the edges in a block.
  */
@@ -100,11 +129,22 @@ REGEX_BLOCK_check (const struct RegexBlock *block,
 {
   struct CheckEdgeContext ctx;
   int res;
+  uint32_t len;
 
-  // FIXME: fails to check the proof!
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Checking block with xquery `%s'\n",
               NULL != xquery ? xquery : "NULL");
+  len = ntohl (block->n_proof);
+  if (size < sizeof (struct RegexBlock) + len)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if (GNUNET_OK != REGEX_INTERNAL_check_proof ((const char *) &block[1], len, &block->key))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   if ( (GNUNET_YES == ntohl (block->accepting)) &&
        ( (NULL == xquery) || ('\0' == xquery[0]) ) )
     return GNUNET_OK;

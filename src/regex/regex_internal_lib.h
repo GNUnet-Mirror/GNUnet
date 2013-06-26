@@ -108,24 +108,11 @@ REGEX_INTERNAL_get_first_key (const char *input_string, size_t string_len,
 
 
 /**
- * Check if the given 'proof' matches the given 'key'.
- *
- * @param proof partial regex of a state.
- * @param key hash of a state.
- *
- * @return GNUNET_OK if the proof is valid for the given key.
- */
-int
-REGEX_INTERNAL_check_proof (const char *proof,
-                          const struct GNUNET_HashCode *key);
-
-
-/**
  * Iterator callback function.
  *
  * @param cls closure.
  * @param key hash for current state.
- * @param proof proof for current state.
+ * @param proof proof for current state
  * @param accepting GNUNET_YES if this is an accepting state, GNUNET_NO if not.
  * @param num_edges number of edges leaving current state.
  * @param edges edges leaving current state.

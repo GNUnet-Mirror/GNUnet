@@ -3329,31 +3329,6 @@ REGEX_INTERNAL_get_first_key (const char *input_string, size_t string_len,
 
 
 /**
- * Check if the given 'proof' matches the given 'key'.
- *
- * @param proof partial regex of a state.
- * @param key hash of a state.
- *
- * @return GNUNET_OK if the proof is valid for the given key.
- */
-int
-REGEX_INTERNAL_check_proof (const char *proof, const struct GNUNET_HashCode *key)
-{
-  struct GNUNET_HashCode key_check;
-
-  if (NULL == proof || NULL == key)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Proof check failed, was NULL.\n");
-    return GNUNET_NO;
-  }
-
-  GNUNET_CRYPTO_hash (proof, strlen (proof), &key_check);
-  return (0 ==
-          GNUNET_CRYPTO_hash_cmp (key, &key_check)) ? GNUNET_OK : GNUNET_NO;
-}
-
-
-/**
  * Recursive function that calls the iterator for each synthetic start state.
  *
  * @param min_len minimum length of the path in the graph.

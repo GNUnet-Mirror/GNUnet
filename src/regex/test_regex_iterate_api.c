@@ -26,6 +26,7 @@
 #include <time.h>
 #include "platform.h"
 #include "regex_internal_lib.h"
+#include "regex_block_lib.h"
 #include "regex_internal.h"
 
 /**
@@ -59,7 +60,8 @@ struct RegexStringPair
 
 
 static void
-key_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
+key_iterator (void *cls, const struct GNUNET_HashCode *key, 
+	      const char *proof,
               int accepting, unsigned int num_edges,
               const struct REGEX_BLOCK_Edge *edges)
 {
@@ -101,7 +103,7 @@ key_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
       ctx->match_count++;
   }
 
-  if (GNUNET_OK != REGEX_INTERNAL_check_proof (proof, key))
+  if (GNUNET_OK != REGEX_INTERNAL_check_proof (proof, strlen (proof), key))
   {
     ctx->error++;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
