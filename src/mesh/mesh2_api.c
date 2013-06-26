@@ -399,8 +399,8 @@ message_ready_size (struct GNUNET_MESH_Handle *h)
     }
     if (GNUNET_YES == GMC_is_pid_bigger(t->last_ack_recv, t->last_pid_sent))
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "#  message payload ok (%u < %u)\n",
-           t->last_pid_sent, t->last_ack_recv);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "#  message payload ok (%u =< %u)\n",
+           t->last_pid_sent + 1, t->last_ack_recv);
       return th->size;
     }
   }
