@@ -280,7 +280,8 @@ try_unixpath (const char *service_name,
 
 
 /**
- * Try connecting to the server using UNIX domain sockets.
+ * Test whether the configuration has proper values for connection
+ * (UNIXPATH || (PORT && HOSTNAME)).
  *
  * @param service_name name of service to connect to
  * @param cfg configuration to use
