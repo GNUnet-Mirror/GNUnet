@@ -1460,6 +1460,7 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
   msg.tunnel_id = htonl (t->tid);
   msg.port = htonl (port);
   msg.peer = *peer;
+  t->last_ack_sent = 0;
   send_packet (h, &msg.header, t);
   return t;
 }
