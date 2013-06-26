@@ -890,6 +890,28 @@ GNUNET_CRYPTO_ecc_key_create_start (const char *filename,
 
 
 /**
+ * Create a new private key by reading our peer's key from
+ * the file specified in the configuration.
+ *
+ * @return new private key, NULL on error (for example,
+ *   permission denied)
+ */
+struct GNUNET_CRYPTO_EccPrivateKey *
+GNUNET_CRYPTO_ecc_key_create_from_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  struct GNUNET_CRYPTO_EccPrivateKey *pk;
+  char *fn;
+
+  if (GNUNET_OK != 
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "PEER", "PRIVATE_KEY", &fn))
+    return NULL;
+  pk = GNUNET_CRYPTO_ecc_key_create_from_file (fn);
+  GNUNET_free (fn);
+  return pk;
+}
+
+
+/**
  * Setup a key file for a peer given the name of the
  * configuration file (!).  This function is used so that
  * at a later point code can be certain that reading a
@@ -902,18 +924,12 @@ GNUNET_CRYPTO_ecc_setup_key (const char *cfg_name)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_CRYPTO_EccPrivateKey *pk;
-  char *fn;
 
   cfg = GNUNET_CONFIGURATION_create ();
   (void) GNUNET_CONFIGURATION_load (cfg, cfg_name);
-  if (GNUNET_OK == 
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "PEER", "PRIVATE_KEY", &fn))
-  {
-    pk = GNUNET_CRYPTO_ecc_key_create_from_file (fn);
-    if (NULL != pk)
-      GNUNET_CRYPTO_ecc_key_free (pk);
-    GNUNET_free (fn);
-  }
+  pk = GNUNET_CRYPTO_ecc_key_create_from_configuration (cfg);
+  if (NULL != pk)
+    GNUNET_CRYPTO_ecc_key_free (pk);
   GNUNET_CONFIGURATION_destroy (cfg);
 }
 
@@ -932,24 +948,13 @@ GNUNET_CRYPTO_get_host_identity (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
   struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded my_public_key;
-  char *keyfile;
 
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "PEER", "PRIVATE_KEY",
-                                               &keyfile))
+  if (NULL == (my_private_key = GNUNET_CRYPTO_ecc_key_create_from_configuration (cfg)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Lacking key configuration settings.\n"));
+                _("Could not load peer's private key\n"));
     return GNUNET_SYSERR;
   }
-  if (NULL == (my_private_key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Could not access hostkey file `%s'.\n"), keyfile);
-    GNUNET_free (keyfile);
-    return GNUNET_SYSERR;
-  }
-  GNUNET_free (keyfile);
   GNUNET_CRYPTO_ecc_key_get_public (my_private_key, &my_public_key);
   GNUNET_CRYPTO_ecc_key_free (my_private_key);
   GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key), &dst->hashPubKey);

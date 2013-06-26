@@ -267,7 +267,7 @@ struct GNUNET_CRYPTO_EccSignature
   /**
    * Overall size of the signature data.
    */
-  uint16_t size;
+  uint16_t size GNUNET_PACKED;
 
   /**
    * S-expression, padded with zeros.
@@ -285,12 +285,12 @@ struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded
   /**
    * Size of the encoding, in network byte order.
    */
-  uint16_t size;
+  uint16_t size GNUNET_PACKED;
 
   /**
    * Actual length of the q-point binary encoding.
    */
-  uint16_t len;
+  uint16_t len GNUNET_PACKED;
 
   /**
    * 0-padded q-point in binary encoding (GCRYPT_MPI_FMT_USG).
@@ -1274,6 +1274,17 @@ GNUNET_CRYPTO_ecc_decode_key (const char *buf,
  */
 struct GNUNET_CRYPTO_EccPrivateKey *
 GNUNET_CRYPTO_ecc_key_create_from_file (const char *filename);
+
+
+/**
+ * Create a new private key by reading our peer's key from
+ * the file specified in the configuration.
+ *
+ * @return new private key, NULL on error (for example,
+ *   permission denied)
+ */
+struct GNUNET_CRYPTO_EccPrivateKey *
+GNUNET_CRYPTO_ecc_key_create_from_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
