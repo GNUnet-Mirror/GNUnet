@@ -364,9 +364,11 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
 
 /**
  * Bind to a connected socket
- * @param desc socket
+ *
+ * @param desc socket to bind
  * @param address address to be bound
  * @param address_len length of address
+ * @param flags flags affecting bind behaviour
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
 int
