@@ -280,7 +280,6 @@ _GSS_union_set_create (void);
  *
  * @param spec specification of the operation the evaluate
  * @param tunnel tunnel already connected to the partner peer
- * @param set the set to evaluate the operation with
  * @return a handle to the operation
  */
 struct UnionEvaluateOperation *

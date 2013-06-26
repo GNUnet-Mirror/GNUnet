@@ -1129,7 +1129,6 @@ handle_p2p_done (void *cls, const struct GNUNET_MessageHeader *mh)
  *
  * @param spec specification of the operation the evaluate
  * @param tunnel tunnel already connected to the partner peer
- * @param set the set to evaluate the operation with
  * @return a handle to the operation
  */
 struct UnionEvaluateOperation *
