@@ -22,6 +22,7 @@
  * @file include/gnunet_multicast_service.h
  * @brief multicast service; establish tunnels to distant peers
  * @author Christian Grothoff
+ * @author tg(x)
  */
 
 #ifndef GNUNET_MULTICAST_SERVICE_H
@@ -71,7 +72,7 @@ enum GNUNET_MULTICAST_JoinPolicy
    * distributed to current group members.  This includes the group
    * state as well as transient messages.
    */
-  GNUNET_MULTICAST_JP_PRIVATE = 1
+  GNUNET_MULTICAST_JP_PRIVATE = 1,
 
 #if IDEAS_FOR_FUTURE
   /** 
@@ -82,7 +83,13 @@ enum GNUNET_MULTICAST_JoinPolicy
    * guaranteed, the presistent group state can be synchronized freely
    * immediately, prior to origin confirmation.
    */
-  GNUNET_MULTICAST_JP_OPEN = 2
+  GNUNET_MULTICAST_JP_OPEN = 2,
+
+  /**
+   * Origin must approve membership to the group, but past messages can be
+   * freely distributed to members.
+   */
+  GNUNET_MULTICAST_JP_CLOSED = 3,
 #endif
 
 };
@@ -187,6 +194,11 @@ struct GNUNET_MULTICAST_MessageHeader
 
   /** 
    * Counter that monotonically increases whenever a member leaves the group.
+   *
+   * It has significance in case of replay requests: when a member has missed
+   * messages and gets a replay request: in this case if the @a group_generation
+   * is still the same before and after the missed messages, it means that no
+   * @e join or @a leave operations happened during the missed messages.
    */
   uint64_t group_generation GNUNET_PACKED;
 

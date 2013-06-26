@@ -24,6 +24,13 @@
  * @author Christian Grothoff
  */
 
+/*******************************************************************************
+ * TODO: we need a way to register message types centrally (via some webpage).
+ * For now: unofficial extensions should start at 48k, internal extensions
+ * define here should leave some room (4-10 additional messages to the previous
+ * extension).
+ ******************************************************************************/
+
 #ifndef GNUNET_PROTOCOLS_H
 #define GNUNET_PROTOCOLS_H
 
@@ -1872,13 +1879,6 @@ extern "C"
  */
 
 /*******************************************************************************
- * TODO: we need a way to register message types centrally (via some webpage).
- * For now: unofficial extensions should start at 48k, internal extensions
- * define here should leave some room (4-10 additional messages to the previous
- * extension).
- ******************************************************************************/
-
-/*******************************************************************************
  * EXPERIMENTATION message types
  ******************************************************************************/
 
@@ -1911,6 +1911,62 @@ extern "C"
 /**
  *  Next available: 624
  */
+
+
+
+
+/* WIP: no numbers assigned yet */
+
+/*******************************************************************************
+ * MULTICAST message types
+ ******************************************************************************/
+
+/**
+ * Multicast message, from origin to all members
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE
+
+/**
+ * A peer joined the group.
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_JOIN
+
+/**
+ * A peer left the group.
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_LEAVE
+
+/**
+ * Message from a peer to origin.
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_PEER_MESSAGE
+
+/**
+ * A peer wants to join the group.
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_PEER_JOIN
+
+/**
+ * A peer wants to leave the group.
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_PEER_LEAVE
+
+/**
+ * Group terminated.
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_GROUP_END
+
+/*******************************************************************************
+ * PSYC message types
+ ******************************************************************************/
+
+/*******************************************************************************
+ * PSYCSTORE message types
+ ******************************************************************************/
+
+/*******************************************************************************
+ * SOCIAL message types
+ ******************************************************************************/
 
 
 /**
