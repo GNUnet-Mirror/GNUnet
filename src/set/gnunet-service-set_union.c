@@ -1324,7 +1324,8 @@ _GSS_union_remove (struct GNUNET_SET_ElementMessage *m, struct Set *set)
  * @param tunnel mesh tunnel
  * @param tunnel_ctx tunnel context
  * @param mh message to process
- * @return ???
+ * @return GNUNET_SYSERR if the tunnel should be disconnected,
+ *         GNUNET_OK otherwise
  */
 int
 _GSS_union_handle_p2p_message (void *cls,

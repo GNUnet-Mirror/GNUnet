@@ -258,10 +258,13 @@ struct TunnelContext
 
 
 /**
- * Configuration of the local peer
+ * Configuration of the local peer.
  */
 extern const struct GNUNET_CONFIGURATION_Handle *configuration;
 
+/**
+ * Handle to the mesh service.
+ */
 extern struct GNUNET_MESH_Handle *mesh;
 
 
@@ -346,7 +349,8 @@ _GSS_union_operation_destroy (struct UnionEvaluateOperation *eo);
  * @param tunnel mesh tunnel
  * @param tunnel_ctx tunnel context
  * @param mh message to process
- * @return ???
+ * @return GNUNET_SYSERR if the tunnel should be disconnected,
+ *         GNUNET_OK otherwise
  */
 int
 _GSS_union_handle_p2p_message (void *cls,
