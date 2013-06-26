@@ -42,6 +42,12 @@ extern "C"
 
 
 /**
+ * Maximum size of a context message for set operation requests.
+ */
+#define GNUNET_SET_CONTEXT_MESSAGE_MAX_SIZE ((1<<16) - 1024)
+
+
+/**
  * Opaque handle to a set.
  */
 struct GNUNET_SET_Handle;
