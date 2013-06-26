@@ -42,12 +42,20 @@
 struct IntersectionState;
 
 
+/* FIXME: cfuchs */
+struct IntersectionOperation;
+
+
 /**
  * Extra state required for set union.
  */
 struct UnionState;
 
+/**
+ * State of a union operation being evaluated.
+ */
 struct UnionEvaluateOperation;
+
 
 
 /**
@@ -94,6 +102,50 @@ struct Set
 
 
 /**
+ * Detail information about an operation.
+ */
+struct OperationSpecification
+{
+  /**
+   * The type of the operation.
+   */
+  enum GNUNET_SET_OperationType operation;
+
+  /**
+   * The remove peer we evaluate the operation with
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Application ID for the operation, used to distinguish
+   * multiple operations of the same type with the same peer.
+   */
+  struct GNUNET_HashCode app_id;
+
+  /**
+   * Context message, may be NULL.
+   */
+  struct GNUNET_MessageHeader *context_msg;
+
+  /**
+   * Salt to use for the operation.
+   */
+  uint32_t salt;
+
+  /**
+   * ID used to identify responses to a client.
+   */
+  uint32_t client_request_id;
+
+  /**
+   * Set associated with the operation, NULL until the spec has been associated
+   * with a set.
+   */
+  struct Set *set;
+};
+
+
+/**
  * A listener is inhabited by a client, and
  * waits for evaluation requests from remote peers.
  */
@@ -121,12 +173,13 @@ struct Listener
   struct GNUNET_MQ_Handle *client_mq;
 
   /**
-   * Type of operation supported for this set
+   * The type of the operation.
    */
   enum GNUNET_SET_OperationType operation;
 
   /**
-   * Application id of intereset for this listener.
+   * Application ID for the operation, used to distinguish
+   * multiple operations of the same type with the same peer.
    */
   struct GNUNET_HashCode app_id;
 };
@@ -137,79 +190,51 @@ struct Listener
  * Once the peer has sent a request, and the client has
  * accepted or rejected it, this information will be deleted.
  */
-struct Incoming
-{
+struct Incoming;
+
+
+/**
+ * Different types a tunnel can be.
+ */
+enum TunnelContextType {
   /**
-   * Incoming peers are held in a linked list
+   * Tunnel is waiting for a set request from the tunnel,
+   * or for the ack/nack of the client for a received request.
    */
-  struct Incoming *next;
+  CONTEXT_INCOMING,
 
   /**
-   * Incoming peers are held in a linked list
+   * The tunnel performs a union operation.
    */
-  struct Incoming *prev;
+  CONTEXT_OPERATION_UNION,
 
   /**
-   * Tunnel context, stores information about
-   * the tunnel and its peer.
+   * The tunnel performs an intersection operation.
    */
-  struct TunnelContext *tc;
-
-  /**
-   * GNUNET_YES if the incoming peer has sent
-   * an operation request (and we are waiting
-   * for the client to ack/nack), GNUNET_NO otherwise.
-   */
-  int received_request;
-
-  /**
-   * App code, set once the peer has
-   * requested an operation
-   */
-  struct GNUNET_HashCode app_id;
-
-  /**
-   * Context message, set once the peer
-   * has requested an operation.
-   */
-  struct GNUNET_MessageHeader *context_msg;
-
-  /**
-   * Salt the peer has requested to use for the
-   * operation
-   */
-  uint16_t salt;
-
-  /**
-   * Operation the other peer wants to do
-   */
-  enum GNUNET_SET_OperationType operation;
-
-  /**
-   * Has the incoming request been suggested to
-   * a client listener yet?
-   */
-  int suggested;
-
-  /**
-   * Unique request id for the request from
-   * a remote peer, sent to the client, which will
-   * accept or reject the request.
-   */
-  uint32_t accept_id;
-
-  /**
-   * Timeout task, if the incoming peer has not been accepted
-   * after the timeout, it will be disconnected.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  CONTEXT_OPERATION_INTERSECTION,
 };
 
 
-enum TunnelContextType {
-  CONTEXT_INCOMING,
-  CONTEXT_OPERATION_UNION,
-  CONTEXT_OPERATION_INTERSECTION,
+/**
+ * State associated with the tunnel, dependent on
+ * tunnel type.
+ */
+union TunnelContextData
+{
+  /**
+   * Valid for tag 'CONTEXT_INCOMING'
+   */
+  struct Incoming *incoming;
+
+  /**
+   * Valid for tag 'CONTEXT_OPERATION_UNION'
+   */
+  struct UnionEvaluateOperation *union_op;
+
+  /**
+   * Valid for tag 'CONTEXT_OPERATION_INTERSECTION'
+   */
+  struct IntersectionEvaluateOperation *intersection_op;
 };
 
 /**
@@ -219,21 +244,6 @@ enum TunnelContextType {
 struct TunnelContext
 {
   /**
-   * The mesh tunnel that has this context
-   */
-  struct GNUNET_MESH_Tunnel *tunnel;
-
-  /**
-   * The peer on the other side.
-   */
-  struct GNUNET_PeerIdentity peer;
-
-  /**
-   * Handle to the message queue for the tunnel.
-   */
-  struct GNUNET_MQ_Handle *mq;
-
-  /**
    * Type of the tunnel.
    */
   enum TunnelContextType type;
@@ -242,7 +252,7 @@ struct TunnelContext
    * State associated with the tunnel, dependent on
    * tunnel type.
    */
-  void *data;
+  union TunnelContextData data;
 };
 
 
@@ -268,11 +278,14 @@ _GSS_union_set_create (void);
  * Evaluate a union operation with
  * a remote peer.
  *
- * @param m the evaluate request message from the client
+ * @param spec specification of the operation the evaluate
+ * @param tunnel tunnel already connected to the partner peer
  * @param set the set to evaluate the operation with
+ * @return a handle to the operation
  */
-void
-_GSS_union_evaluate (struct GNUNET_SET_EvaluateMessage *m, struct Set *set);
+struct UnionEvaluateOperation *
+_GSS_union_evaluate (struct OperationSpecification *spec,
+                     struct GNUNET_MESH_Tunnel *tunnel);
 
 
 /**
@@ -308,13 +321,13 @@ _GSS_union_set_destroy (struct Set *set);
 /**
  * Accept an union operation request from a remote peer
  *
- * @param m the accept message from the client
- * @param set the set of the client
- * @param incoming information about the requesting remote peer
+ * @param spec all necessary information about the operation
+ * @param tunnel open tunnel to the partner's peer
+ * @return operation
  */
-void
-_GSS_union_accept (struct GNUNET_SET_AcceptRejectMessage *m, struct Set *set,
-                   struct Incoming *incoming);
+struct UnionEvaluateOperation *
+_GSS_union_accept (struct OperationSpecification *spec,
+                   struct GNUNET_MESH_Tunnel *tunnel);
 
 
 /**

@@ -42,7 +42,12 @@ struct OperationRequestMessage
   /**
    * Operation to request, values from 'enum GNUNET_SET_OperationType'
    */
-  uint32_t operation;
+  uint32_t operation GNUNET_PACKED;
+
+  /**
+   * Salt to use for this operation.
+   */
+  uint32_t salt;
 
   /**
    * Application-specific identifier of the request.
@@ -51,20 +56,6 @@ struct OperationRequestMessage
 
   /* rest: optional message */
 };
-
-struct ElementRequestMessage
-{
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Salt the keys in the body use
-   */
-  uint8_t salt;
-};
-
 
 struct IBFMessage
 {
@@ -80,14 +71,19 @@ struct IBFMessage
   uint8_t order;
 
   /**
-   * Salt used when hashing elements for this IBF.
+   * Padding, must be 0.
    */
-  uint8_t salt;
+  uint8_t reserved;
 
   /**
    * Offset of the strata in the rest of the message
    */
   uint16_t offset GNUNET_PACKED;
+
+  /**
+   * Salt used when hashing elements for this IBF.
+   */
+  uint32_t salt;
 
   /* rest: strata */
 };

@@ -124,10 +124,9 @@ struct IntersectionEvaluateOperation
   struct GNUNET_MessageHeader *context_msg;
 
   /**
-   * Tunnel context for the peer we
-   * evaluate the union operation with.
+   * Tunnel to the other peer.
    */
-  struct TunnelContext *tc;
+  struct GNUNET_MESH_Tunnel *tunnel;
 
   /**
    * Request ID to multiplex set operations to
@@ -397,12 +396,11 @@ _GSS_union_operation_destroy (struct UnionEvaluateOperation *eo)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "destroying union op\n");
   
-  if (NULL != eo->tc)
+  if (NULL != eo->tunnel)
   {
-    GNUNET_MQ_destroy (eo->tc->mq);
-    GNUNET_MESH_tunnel_destroy (eo->tc->tunnel);
-    GNUNET_free (eo->tc);
-    eo->tc = NULL;
+    GNUNET_MESH_tunnel_destroy (eo->tunnel);
+    /* wait for the final destruction by the tunnel cleaner */
+    return;
   }
 
   if (NULL != eo->remote_ibf)
@@ -432,9 +430,7 @@ _GSS_union_operation_destroy (struct UnionEvaluateOperation *eo)
                                eo);
   GNUNET_free (eo);
 
-
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "destroying union op done\n");
-
 
   /* FIXME: do a garbage collection of the set generations */
 }
@@ -1355,7 +1351,6 @@ _GSS_intersection_remove (struct GNUNET_SET_ElementMessage *m, struct Set *set)
  * @param cls closure
  * @param tunnel mesh tunnel
  * @param tunnel_ctx tunnel context
- * @param sender ???
  * @param mh message to process
  * @return ???
  */
@@ -1363,7 +1358,6 @@ int
 _GSS_union_handle_p2p_message (void *cls,
                                struct GNUNET_MESH_Tunnel *tunnel,
                                void **tunnel_ctx,
-                               const struct GNUNET_PeerIdentity *sender,
                                const struct GNUNET_MessageHeader *mh)
 {
   struct TunnelContext *tc = *tunnel_ctx;
@@ -1371,7 +1365,6 @@ _GSS_union_handle_p2p_message (void *cls,
 
   if (CONTEXT_OPERATION_UNION != tc->type)
   {
-    /* FIXME: kill the tunnel */
     /* never kill mesh */
     return GNUNET_OK;
   }
