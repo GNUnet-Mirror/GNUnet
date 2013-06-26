@@ -1196,7 +1196,7 @@ send_callback (void *cls, size_t size, void *buf)
     t = th->tunnel;
     if (GNUNET_YES == th_is_payload (th))
     {
-      struct GNUNET_MESH_Data dmsg;
+      struct GNUNET_MESH_Data *dmsg;
       struct GNUNET_MessageHeader *mh;
 
       LOG (GNUNET_ERROR_TYPE_DEBUG, "#  payload\n");
@@ -1208,29 +1208,31 @@ send_callback (void *cls, size_t size, void *buf)
       }
       t->packet_size = 0;
       GNUNET_assert (size >= th->size);
-      mh = (struct GNUNET_MessageHeader *) &cbuf[sizeof (dmsg)];
-      psize = th->notify (th->notify_cls, size - sizeof (dmsg), mh);
+      dmsg = (struct GNUNET_MESH_Data *) cbuf;
+      mh = (struct GNUNET_MessageHeader *) &dmsg[1];
+      psize = th->notify (th->notify_cls,
+                          size - sizeof (struct GNUNET_MESH_Data),
+                          mh);
       if (psize > 0)
       {
-        psize += sizeof (dmsg);
+        psize += sizeof (struct GNUNET_MESH_Data);
         GNUNET_assert (size >= psize);
-        dmsg.header.size = htons (psize);
-        dmsg.tid = htonl (t->tid);
-        dmsg.pid = htonl (t->last_pid_sent + 1);
-        dmsg.ttl = 0;
-        memset (&dmsg.oid, 0, sizeof (struct GNUNET_PeerIdentity));
-        memcpy (cbuf, &dmsg, sizeof (dmsg));
+        dmsg->header.size = htons (psize);
+        dmsg->tid = htonl (t->tid);
+        dmsg->pid = htonl (t->last_pid_sent + 1);
+        dmsg->ttl = 0;
+        memset (&dmsg->oid, 0, sizeof (struct GNUNET_PeerIdentity));
         t->last_pid_sent++;
       }
       if (t->tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
       {
-        dmsg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
+        dmsg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
         LOG (GNUNET_ERROR_TYPE_DEBUG, "#  to origin, type %s\n",
              GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
       }
       else
       {
-        dmsg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_UNICAST);
+        dmsg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_UNICAST);
         LOG (GNUNET_ERROR_TYPE_DEBUG, "#  unicast, type %s\n",
              GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
       }
