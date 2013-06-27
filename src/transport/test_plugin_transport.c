@@ -341,7 +341,6 @@ env_notify_address (void *cls,
                     const char *plugin)
 {
   struct AddressWrapper *w;
-  char *a2s;
   void *s2a;
   size_t s2a_len;
 
@@ -357,14 +356,10 @@ env_notify_address (void *cls,
       memcpy (w->addr, addr, addrlen);
       GNUNET_CONTAINER_DLL_insert(head, tail, w);
       got_reply = GNUNET_NO;
-      pretty_printers_running ++;
-      api->address_pretty_printer (api->cls, plugin, addr, addrlen,
-                                    GNUNET_YES, GNUNET_TIME_UNIT_MINUTES,
-                                    &address_pretty_printer_cb,
-                                    w);
-
-      a2s = strdup (api->address_to_string (api, w->addr, w->addrlen));
-      if (NULL == a2s)
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Testing: address_to_string \n");
+      w->addrstring = strdup (api->address_to_string (api, w->addr, w->addrlen));
+      if (NULL == w->addrstring)
       {
           GNUNET_break (0);
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -372,11 +367,19 @@ env_notify_address (void *cls,
           end_badly_now();
           return;
       }
-      w->addrstring = strdup (api->address_to_string (api, w->addr, w->addrlen));
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Plugin added address `%s'\n", a2s);
+      else
+      {
+      	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Plugin added address `%s'\n", w->addrstring);
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    "Testing address_to_string: OK\n");
+      }
 
-      if ((GNUNET_OK != api->string_to_address (api, a2s, strlen (a2s)+1, &s2a, &s2a_len)) || (NULL == s2a))
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Testing: string_to_address \n");
+      s2a = NULL;
+      s2a_len = 0;
+      if ((GNUNET_OK != api->string_to_address (api, w->addrstring, strlen (w->addrstring)+1, &s2a, &s2a_len)) || (NULL == s2a))
       {
           GNUNET_break (0);
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -384,20 +387,36 @@ env_notify_address (void *cls,
           end_badly_now();
           return;
       }
-
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Plugin creates `%s' %u\n",api->address_to_string (api, s2a, s2a_len), s2a_len);
+      /*
+      int c1;
+      for (c1 = 0; c1 < s2a_len; c1++ )
+      	fprintf (stderr, "%u == %u\n", ((char *) s2a)[c1], ((char *) w->addr)[c1]);
+      	*/
       if (s2a_len != w->addrlen)
       {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                       "Plugin creates different address length when converting address->string->address: %u != %u\n", w->addrlen, s2a_len);
       }
+      else if (0 != memcmp (s2a, w->addr, s2a_len))
+      {
+            GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                        "Plugin creates different address length when converting back and forth %i!\n", memcmp (s2a, w->addr, s2a_len));
+      }
       else
       {
-          if (0 != memcmp (s2a, w->addr, s2a_len))
-            GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                        "Plugin creates different address length when connecting back and forth!\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    "Testing string_to_address: OK\n");
       }
       GNUNET_free (s2a);
-      GNUNET_free (a2s);
+
+      pretty_printers_running ++;
+      api->address_pretty_printer (api->cls, plugin, addr, addrlen,
+                                    GNUNET_YES, GNUNET_TIME_UNIT_MINUTES,
+                                    &address_pretty_printer_cb,
+                                    w);
+
       if (GNUNET_OK != api->check_address (api->cls, w->addr, w->addrlen))
       {
           GNUNET_break (0);
