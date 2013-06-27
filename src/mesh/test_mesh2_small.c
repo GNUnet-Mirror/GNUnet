@@ -736,21 +736,21 @@ main (int argc, char *argv[])
   GNUNET_log_setup ("test", "DEBUG", NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Start\n");
-  if (strstr (argv[0], "test_mesh2_small_forward") != NULL)
+  if (strstr (argv[0], "_small_forward") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "FORWARD\n");
     test = FORWARD;
     test_name = "unicast2";
     ok_goal = 4;
   }
-  else if (strstr (argv[0], "test_mesh_small_signal") != NULL)
+  else if (strstr (argv[0], "_small_signal") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SIGNAL\n");
     test = P2P_SIGNAL;
     test_name = "signal2";
     ok_goal = 4;
   }
-  else if (strstr (argv[0], "test_mesh_small_speed_ack") != NULL)
+  else if (strstr (argv[0], "_small_speed_ack") != NULL)
   {
    /* Each peer is supposed to generate the following callbacks:
     * 1 incoming tunnel (@dest)
@@ -765,7 +765,7 @@ main (int argc, char *argv[])
     test_name = "speed2 ack";
     ok_goal = TOTAL_PACKETS * 2 + 2;
   }
-  else if (strstr (argv[0], "test_mesh_small_speed") != NULL)
+  else if (strstr (argv[0], "_small_speed") != NULL)
   {
    /* Each peer is supposed to generate the following callbacks:
     * 1 incoming tunnel (@dest)
