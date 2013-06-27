@@ -418,10 +418,10 @@ GNUNET_MULTICAST_pong (struct GNUNET_MULTICAST_ReplayHandle *rh,
  *
  * A @e ping is sent after a period of inactivity to check if the member has not
  * missed any messages.  A ping contains the latest message ID a member has
- * seen.  If the latest message ID on the receiving member is higher, the
+ * seen, and must be answered with GNUNET_MULTICAST_pong() containing the latest
+ * message ID seen by this peer.  If the latest message ID on this peer is higher, the
  * missing messages must be replayed to the requesting member using
- * GNUNET_MULTICAST_replay(), otherwise GNUNET_MULTICAST_pong() must be called with
- * the same message ID, indicating no newer messages was seen by this peer.
+ * GNUNET_MULTICAST_replay().
  *
  * @param cls Closure.
  * @param peer Identity of the peer who sent the ping.
