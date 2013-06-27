@@ -387,9 +387,11 @@ env_notify_address (void *cls,
           end_badly_now();
           return;
       }
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Plugin creates `%s' %u\n",api->address_to_string (api, s2a, s2a_len), s2a_len);
+
       /*
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+						"Plugin creates `%s' %u\n",api->address_to_string (api, s2a, s2a_len), s2a_len);
+
       int c1;
       for (c1 = 0; c1 < s2a_len; c1++ )
       	fprintf (stderr, "%u == %u\n", ((char *) s2a)[c1], ((char *) w->addr)[c1]);
