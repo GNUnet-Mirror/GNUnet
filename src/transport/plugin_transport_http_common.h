@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_transport_plugin.h"
+
 /**
  * Timeout values for testing
  */
@@ -53,6 +54,33 @@
 #define HTTP_DEFAULT_PORT 80
 #define HTTPS_DEFAULT_PORT 443
 
+enum HTTP_OPTIONS
+{
+  			HTTP_OPTIONS_NONE = 0,
+        HTTP_OPTIONS_VERIFY_CERTIFICATE = 1
+};
+
+
+GNUNET_NETWORK_STRUCT_BEGIN
+
+/**
+ * HttpAddress
+ */
+struct HttpAddress
+{
+	/**
+	 * Address options
+	 */
+	uint32_t options;
+
+	/**
+	 * Length of URL located after struct
+	 *
+	 */
+	uint32_t urlen;
+};
+
+GNUNET_NETWORK_STRUCT_END
 
 struct SplittedHTTPAddress;
 
@@ -94,6 +122,7 @@ http_common_plugin_address_pretty_printer (void *cls, const char *type,
  */
 const char *
 http_common_plugin_address_to_string (void *cls,
+																			char *plugin,
                                       const void *addr,
                                       size_t addrlen);
 
@@ -125,10 +154,10 @@ http_common_plugin_string_to_address (void *cls,
  * @param addrlen length of the address
  * @return the string
  */
-char *
+struct HttpAddress *
 http_common_address_from_socket (const char *protocol,
-                                 const struct sockaddr *addr,
-                                 socklen_t addrlen);
+																 const struct sockaddr *addr,
+																 socklen_t addrlen);
 
 /**
  * Create a socketaddr from a HTTP address
@@ -144,6 +173,9 @@ http_common_address_from_socket (const char *protocol,
 struct sockaddr *
 http_common_socket_from_address (const void *addr, size_t addrlen, int *res);
 
+const char *
+http_common_plugin_address_to_url (void *cls, const void *addr, size_t addrlen);
+
 /**
  * Get the length of an address
  *
@@ -151,7 +183,7 @@ http_common_socket_from_address (const void *addr, size_t addrlen, int *res);
  * @return the size
  */
 size_t
-http_common_address_get_size (const void *addr);
+http_common_address_get_size (const struct HttpAddress * addr);
 
 
 /**
