@@ -43,51 +43,6 @@ GNUNET_NETWORK_STRUCT_BEGIN
 
 
 /**
- * @brief A RegexBlock contains one or more of this struct in the payload.
- */
-struct RegexEdge
-{
-  /**
-   * Destination of this edge.
-   */
-  struct GNUNET_HashCode key;
-  
-  /**
-   * Length of the token towards the new state.
-   */
-  uint32_t n_token GNUNET_PACKED;
-
-  /* char token[n_token] */
-};
-
-
-/**
- * @brief Block to announce a regex state.
- */
-struct RegexBlock
-{
-
-  /**
-   * Length of the proof regex string.
-   */
-  uint16_t proof_len GNUNET_PACKED;
-
-  /**
-   * Is this state an accepting state?
-   */
-  int16_t is_accepting GNUNET_PACKED;
-
-  /**
-   * Numer of edges parting from this state.
-   */
-  uint32_t n_edges GNUNET_PACKED;
-
-  /* char proof[n_proof] */
-  /* struct RegexEdge edges[n_edges] */
-};
-
-
-/**
  * @brief Block to announce a peer accepting a state.
  */
 struct RegexAcceptBlock

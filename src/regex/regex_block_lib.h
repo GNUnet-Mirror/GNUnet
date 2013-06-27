@@ -41,6 +41,12 @@ extern "C"
 
 
 /**
+ * Representation of a Regex node (and edges) in the DHT.
+ */
+struct RegexBlock;
+
+
+/**
  * Edge representation.
  */
 struct REGEX_BLOCK_Edge
@@ -145,6 +151,15 @@ REGEX_BLOCK_get_key (const struct RegexBlock *block,
 		     size_t block_len,
 		     struct GNUNET_HashCode *key);
 
+
+/**
+ * Test if this block is marked as being an accept state.
+ *
+ * @param block block to test
+ * @return GNUNET_YES if the block is accepting, GNUNET_NO if not
+ */ 
+int
+GNUNET_BLOCK_is_accepting (const struct RegexBlock *block);
 
 
 /**

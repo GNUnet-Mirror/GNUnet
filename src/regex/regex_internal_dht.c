@@ -107,36 +107,36 @@ regex_iterator (void *cls,
        num_edges);
   if (GNUNET_YES == accepting)
   {
-    struct RegexAcceptBlock block;
+    struct RegexAcceptBlock ab;
 
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "State %s is accepting, putting own id\n",
          GNUNET_h2s(key));
-    size = sizeof (block);
-    block.purpose.size = sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+    size = sizeof (struct RegexAcceptBlock);
+    ab.purpose.size = sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
       sizeof (struct GNUNET_TIME_AbsoluteNBO) +
       sizeof (struct GNUNET_HashCode);
-    block.purpose.purpose = ntohl (GNUNET_SIGNATURE_PURPOSE_REGEX_ACCEPT);
-    block.expiration_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_DHT_MAX_EXPIRATION));
-    block.key = *key;
+    ab.purpose.purpose = ntohl (GNUNET_SIGNATURE_PURPOSE_REGEX_ACCEPT);
+    ab.expiration_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_DHT_MAX_EXPIRATION));
+    ab.key = *key;
     GNUNET_CRYPTO_ecc_key_get_public (h->priv,
-				      &block.public_key);
+				      &ab.public_key);
     GNUNET_assert (GNUNET_OK ==
 		   GNUNET_CRYPTO_ecc_sign (h->priv,
-					   &block.purpose,
-					   &block.signature));
+					   &ab.purpose,
+					   &ab.signature));
 
     GNUNET_STATISTICS_update (h->stats, "# regex accepting blocks stored",
                               1, GNUNET_NO);
     GNUNET_STATISTICS_update (h->stats, "# regex accepting block bytes stored",
-                              sizeof (block), GNUNET_NO);
+                              sizeof (struct RegexAcceptBlock), GNUNET_NO);
     (void)
     GNUNET_DHT_put (h->dht, key,
                     DHT_REPLICATION,
                     DHT_OPT | GNUNET_DHT_RO_RECORD_ROUTE,
                     GNUNET_BLOCK_TYPE_REGEX_ACCEPT,
                     size,
-                    &block,
+                    &ab,
                     GNUNET_TIME_relative_to_absolute (DHT_TTL),
                     DHT_TTL,
                     NULL, NULL);
@@ -463,7 +463,7 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   GNUNET_free (datastore);
 
   copy = GNUNET_malloc (size);
-  memcpy (copy, data, size);
+  memcpy (copy, block, size);
   GNUNET_break (
     GNUNET_OK ==
     GNUNET_CONTAINER_multihashmap_put (info->dht_get_results,
@@ -473,7 +473,7 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   len = strlen (info->description);
   if (len == ctx->position) // String processed
   {
-    if (GNUNET_YES == ntohs (block->is_accepting))
+    if (GNUNET_YES == GNUNET_BLOCK_is_accepting (block))
     {
       regex_find_path (key, ctx);
     }
@@ -504,8 +504,9 @@ regex_result_iterator (void *cls,
   struct RegexBlock *block = value;
   struct RegexSearchContext *ctx = cls;
 
-  if (GNUNET_YES == ntohs (block->is_accepting) &&
-      ctx->position == strlen (ctx->info->description))
+  if ( (GNUNET_YES == 
+	GNUNET_BLOCK_is_accepting (block)) &&
+       (ctx->position == strlen (ctx->info->description)) )
   {
     LOG (GNUNET_ERROR_TYPE_INFO, " * Found accepting known block\n");
     regex_find_path (key, ctx);
@@ -513,7 +514,7 @@ regex_result_iterator (void *cls,
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "* %u, %u, [%u]\n",
        ctx->position, strlen(ctx->info->description),
-       ntohs (block->is_accepting));
+       GNUNET_BLOCK_is_accepting (block));
 
   regex_next_edge (block, SIZE_MAX, ctx);
 
