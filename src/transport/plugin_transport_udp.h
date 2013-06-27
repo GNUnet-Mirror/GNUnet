@@ -57,6 +57,11 @@ GNUNET_NETWORK_STRUCT_BEGIN
  */
 struct IPv4UdpAddress
 {
+	/**
+	 * Optional options and flags for this address
+	 */
+	uint32_t options GNUNET_PACKED;
+
   /**
    * IPv4 address, in network byte order.
    */
@@ -74,6 +79,10 @@ struct IPv4UdpAddress
  */
 struct IPv6UdpAddress
 {
+	/**
+	 * Optional options and flags for this address
+	 */
+	uint32_t options GNUNET_PACKED;
 
   /**
    * IPv6 address.
