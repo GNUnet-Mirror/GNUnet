@@ -119,6 +119,11 @@ extern "C"
  */
 #define GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE (63 * 1024)
 
+/**
+ * Largest block that can be stored in the DHT.
+ */ 
+#define GNUNET_CONSTANTS_MAX_BLOCK_SIZE (62 * 1024)
+
 
 /**
  * K-value that must be used for the bloom filters in 'GET'

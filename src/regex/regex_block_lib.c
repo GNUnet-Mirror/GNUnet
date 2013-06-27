@@ -25,10 +25,30 @@
  */
 #include "platform.h"
 #include "regex_block_lib.h"
+#include "gnunet_constants.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind,"regex-bck",__VA_ARGS__)
 
 GNUNET_NETWORK_STRUCT_BEGIN
+
+/**
+ * Information for each edge.
+ */
+struct EdgeInfo
+{
+  /**
+   * Index of the destination of this edge in the
+   * unique destinations array.
+   */
+  uint16_t destination_index GNUNET_PACKED;
+
+  /**
+   * Number of bytes the token for this edge takes in the
+   * token area.
+   */
+  uint16_t token_length GNUNET_PACKED;
+};
+
 
 /**
  * @brief Block to announce a regex state.
@@ -47,31 +67,25 @@ struct RegexBlock
   int16_t is_accepting GNUNET_PACKED;
 
   /**
-   * Numer of edges parting from this state.
+   * Number of edges parting from this state.
    */
-  uint32_t n_edges GNUNET_PACKED;
+  uint16_t num_edges GNUNET_PACKED;
 
-  /* char proof[n_proof] */
-  /* struct RegexEdge edges[n_edges] */
-};
-
-
-/**
- * @brief A RegexBlock contains one or more of this struct in the payload.
- */
-struct RegexEdge
-{
   /**
-   * Destination of this edge.
+   * Nubmer of unique destinations reachable from this state.
    */
-  struct GNUNET_HashCode key;
-  
-  /**
-   * Length of the token towards the new state.
-   */
-  uint32_t n_token GNUNET_PACKED;
+  uint16_t num_destinations GNUNET_PACKED;
 
-  /* char token[n_token] */
+  /* followed by 'struct GNUNET_HashCode[num_destinations]' */
+
+  /* followed by 'struct EdgeInfo[edge_destination_indices]' */
+
+  /* followed by 'char proof[n_proof]', NOT 0-terminated */
+
+  /* followed by 'char tokens[num_edges][edge_info[k].token_length]';
+     essentially all of the tokens one after the other in the
+     order of the edges; tokens are NOT 0-terminated */
+
 };
 
 
@@ -186,20 +200,20 @@ REGEX_BLOCK_check (const struct RegexBlock *block,
 		   const struct GNUNET_HashCode *query,
 		   const char *xquery)
 {
+  struct GNUNET_HashCode key;
   struct CheckEdgeContext ctx;
   int res;
-  uint16_t len;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Checking block with xquery `%s'\n",
-              NULL != xquery ? xquery : "NULL");
-  len = ntohs (block->proof_len);
-  if (size < sizeof (struct RegexBlock) + len)
+  if (GNUNET_OK != 
+      REGEX_BLOCK_get_key (block, size,
+			   &key))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  if (GNUNET_OK != REGEX_BLOCK_check_proof ((const char *) &block[1], len, query))
+  if (0 != memcmp (&key,
+		   query,
+		   sizeof (struct GNUNET_HashCode)))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -232,14 +246,29 @@ REGEX_BLOCK_get_key (const struct RegexBlock *block,
 		     struct GNUNET_HashCode *key)
 {
   uint16_t len;
+  const struct GNUNET_HashCode *destinations;
+  const struct EdgeInfo *edges;
+  uint16_t num_destinations;
+  uint16_t num_edges;
+  size_t total;
 
+  if (block_len < sizeof (struct RegexBlock)) 
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }  
+  num_destinations = ntohs (block->num_destinations);
+  num_edges = ntohs (block->num_edges);
   len = ntohs (block->proof_len);
-  if (block_len < sizeof (struct RegexBlock) + len)
+  destinations = (const struct GNUNET_HashCode *) &block[1];
+  edges = (const struct EdgeInfo *) &destinations[num_destinations];
+  total = sizeof (struct RegexBlock) + num_destinations * sizeof (struct GNUNET_HashCode) + num_edges + sizeof (struct EdgeInfo) + len;  
+  if (block_len < total)
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  GNUNET_CRYPTO_hash (&block[1], len, key);
+  GNUNET_CRYPTO_hash (&edges[num_edges], len, key);
   return GNUNET_OK;
 }
 
@@ -266,69 +295,57 @@ REGEX_BLOCK_iterate (const struct RegexBlock *block,
 		     REGEX_INTERNAL_EgdeIterator iterator,
 		     void *iter_cls)
 {
-  struct RegexEdge *edge;
+  uint16_t len;
+  const struct GNUNET_HashCode *destinations;
+  const struct EdgeInfo *edges;
+  const char *aux;
+  uint16_t num_destinations;
+  uint16_t num_edges;
+  size_t total;
   unsigned int n;
-  unsigned int n_token;
-  unsigned int i;
-  size_t offset;
-  char *aux;
+  size_t off;
 
-  offset = sizeof (struct RegexBlock);
-  if (offset >= size) /* Is it safe to access the regex block? */
+  if (size < sizeof (struct RegexBlock)) 
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  n = ntohs (block->proof_len);
-  offset += n;
-  if (offset >= size) /* Is it safe to access the regex proof? */
+  num_destinations = ntohs (block->num_destinations);
+  num_edges = ntohs (block->num_edges);
+  len = ntohs (block->proof_len);
+  destinations = (const struct GNUNET_HashCode *) &block[1];
+  edges = (const struct EdgeInfo *) &destinations[num_destinations];
+  aux = (const char *) &edges[num_edges];
+  total = sizeof (struct RegexBlock) + num_destinations * sizeof (struct GNUNET_HashCode) + num_edges + sizeof (struct EdgeInfo) + len;
+  if (size < total) 
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  aux = (char *) &block[1];  /* Skip regex block */
-  aux = &aux[n];             /* Skip regex proof */
-  n = ntohl (block->n_edges);
+  for (n=0;n<num_edges;n++)
+    total += ntohs (edges[n].token_length);    
+  if (size != total) 
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  off = len;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Start iterating block of size %u, proof %u, off %u edges %u\n",
-       size, ntohs (block->proof_len), offset, n);
-  /* aux always points at the end of the previous block */
-  for (i = 0; i < n; i++)
+       size, len, off, n);
+  /* &aux[off] always points to our token */
+  for (n=0;n<num_edges;n++)
   {
-    offset += sizeof (struct RegexEdge);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "*   Edge %u, off %u\n", i, offset);
-    if (offset >= size) /* Is it safe to access the next edge block? */
-    {
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-           "*   Size not enough for RegexEdge, END\n");
-      GNUNET_break_op (0);
-      return GNUNET_SYSERR;
-    }
-    edge = (struct RegexEdge *) aux;
-    n_token = ntohl (edge->n_token);
-    offset += n_token;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, 
-         "*    Token length %u, off %u\n", n_token, offset);
-    if (offset > size) /* Is it safe to access the edge token? */
-    {
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-           "*   Size not enough for edge token, END\n");
-      GNUNET_break_op (0);
-      return GNUNET_SYSERR;
-    }
-    aux = (char *) &edge[1]; /* Skip edge block */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Edge %u, off %u tokenlen %u\n", n, off,
+	 ntohs (edges[n].token_length));
     if (NULL != iterator)
-        if (GNUNET_NO == iterator (iter_cls, aux, n_token, &edge->key))
-            return GNUNET_OK;
-    aux = &aux[n_token];     /* Skip edge token */
-  }
-  /* The total size should be exactly the size of (regex + all edges) blocks
-   * If size == -1, block is from cache and therefore previously checked and
-   * assumed correct. */
-  if ( (offset != size) && (SIZE_MAX != size) )
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
+      if (GNUNET_NO == iterator (iter_cls, 
+				 &aux[off], 
+				 ntohs (edges[n].token_length),
+				 &destinations[ntohs (edges[n].destination_index)]))
+	return GNUNET_OK;
+    off += ntohs (edges[n].token_length);
   }
   return GNUNET_OK;
 }
@@ -352,50 +369,78 @@ REGEX_BLOCK_create (const char *proof,
 		    size_t *rsize)
 {
   struct RegexBlock *block;
-  struct RegexEdge *block_edge;
-  size_t size;
+  struct GNUNET_HashCode destinations[1024]; /* 1024 = 64k/64 bytes/key == absolute MAX */
+  uint16_t destination_indices[num_edges];
+  struct GNUNET_HashCode *dests;
+  struct EdgeInfo *edgeinfos;
+  size_t off;
   size_t len;
+  size_t total;
+  size_t slen;
+  unsigned int unique_destinations;
+  unsigned int j;
   unsigned int i;
-  unsigned int offset;
   char *aux;
 
   len = strlen (proof);
-  if (len > UINT16_MAX)
+  if (len > UINT16_MAX) 
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  unique_destinations = 0;
+  total = sizeof (struct RegexBlock) + len;
+  for (i=0;i<num_edges;i++)
+  {
+    slen = strlen (edges[i].label);
+    if (len > UINT16_MAX) 
     {
       GNUNET_break (0);
       return NULL;
     }
-  size = sizeof (struct RegexBlock) + len;
-  block = GNUNET_malloc (size);
-  block->proof_len = htons (len);
-  block->n_edges = htonl (num_edges);
-  block->is_accepting = htons (accepting);
-
-  /* Store the proof at the end of the block. */
-  aux = (char *) &block[1];
-  memcpy (aux, proof, len);
-  aux = &aux[len];
-
-  /* Store each edge in a variable length MeshEdge struct at the
-   * very end of the MeshRegexBlock structure.
-   */
-  for (i = 0; i < num_edges; i++)
-  {
-    /* aux points at the end of the last block */
-    len = strlen (edges[i].label);
-    size += sizeof (struct RegexEdge) + len;
-    // Calculate offset FIXME is this ok? use size instead?
-    offset = aux - (char *) block;
-    block = GNUNET_realloc (block, size);
-    aux = &((char *) block)[offset];
-    block_edge = (struct RegexEdge *) aux;
-    block_edge->key = edges[i].destination;
-    block_edge->n_token = htonl (len);
-    aux = (char *) &block_edge[1];
-    memcpy (aux, edges[i].label, len);
-    aux = &aux[len];
+    total += slen;
+    for (j=0;j<unique_destinations;j++)
+      if (0 == memcmp (&destinations[j],
+		       &edges[i].destination,
+		       sizeof (struct GNUNET_HashCode)))
+	break;
+    if (j >= 1024)
+    {
+      GNUNET_break (0);
+      return NULL;
+    }
+    destination_indices[i] = j;
+    if (j == unique_destinations)
+      destinations[unique_destinations++] = edges[i].destination;
   }
-  *rsize = size;
+  total += num_edges * sizeof (struct EdgeInfo) + unique_destinations * sizeof (struct GNUNET_HashCode);
+  if (total >= GNUNET_CONSTANTS_MAX_BLOCK_SIZE)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  block = GNUNET_malloc (total);
+  block->proof_len = htons (len);
+  block->is_accepting = htons (accepting);
+  block->num_edges = htons (num_edges);
+  block->num_destinations = htons (unique_destinations);
+  dests = (struct GNUNET_HashCode *) &block[1];
+  memcpy (dests, destinations, sizeof (struct GNUNET_HashCode) * unique_destinations);
+  edgeinfos = (struct EdgeInfo *) &dests[unique_destinations];
+  aux = (char *) &edgeinfos[num_edges];
+  off = len;
+  memcpy (aux, proof, len); 
+  for (i=0;i<num_edges;i++)
+  {
+    slen = strlen (edges[i].label);
+    edgeinfos[i].token_length = htons ((uint16_t) slen);
+    edgeinfos[i].destination_index = htons (destination_indices[i]);
+    memcpy (&aux[off],
+	    edges[i].label,
+	    slen);
+    off += slen;
+  }
+  *rsize = total;
   return block;
 }
 

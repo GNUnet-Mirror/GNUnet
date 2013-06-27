@@ -109,9 +109,9 @@ key_iterator (void *cls, const struct GNUNET_HashCode *key,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Proof check failed: proof: %s key: %s\n", proof, state_id);
   }
-
   GNUNET_free (state_id);
 }
+
 
 int
 main (int argc, char *argv[])
