@@ -1249,8 +1249,8 @@ client_connect_get (struct Session *s)
 	if (HTTP_OPTIONS_VERIFY_CERTIFICATE ==
 			(ntohl (s->addr->options) & HTTP_OPTIONS_VERIFY_CERTIFICATE))
 	{
-	  curl_easy_setopt (s->client_get, CURLOPT_SSL_VERIFYPEER, 1);
-	  curl_easy_setopt (s->client_get, CURLOPT_SSL_VERIFYHOST, 1);
+	  curl_easy_setopt (s->client_get, CURLOPT_SSL_VERIFYPEER, 1L);
+	  curl_easy_setopt (s->client_get, CURLOPT_SSL_VERIFYHOST, 2L);
 	}
 	else
 	{
@@ -1326,8 +1326,8 @@ client_connect_put (struct Session *s)
 	if (HTTP_OPTIONS_VERIFY_CERTIFICATE ==
 			(ntohl (s->addr->options) & HTTP_OPTIONS_VERIFY_CERTIFICATE))
 	{
-	  curl_easy_setopt (s->client_put, CURLOPT_SSL_VERIFYPEER, 1);
-	  curl_easy_setopt (s->client_put, CURLOPT_SSL_VERIFYHOST, 1);
+	  curl_easy_setopt (s->client_put, CURLOPT_SSL_VERIFYPEER, 1L);
+	  curl_easy_setopt (s->client_put, CURLOPT_SSL_VERIFYHOST, 2L);
 	}
 	else
 	{
