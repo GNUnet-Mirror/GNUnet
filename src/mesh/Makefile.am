@@ -26,7 +26,13 @@ if HAVE_EXPERIMENTAL
   EXP_LIBEXEC = gnunet-service-mesh-new
   EXP_TESTS = \
     test_mesh2_local \
-    test_mesh2_small_forward
+    test_mesh2_small_forward \
+    test_mesh2_small_signal  \
+    test_mesh2_small_speed  \
+    test_mesh2_small_speed_ack  \
+    test_mesh2_small_speed_nobuf  \
+    test_mesh2_small_speed_backwards  \
+    test_mesh2_small_speed_nobuf_backwards
 endif
 
 libexec_PROGRAMS = \
@@ -303,6 +309,36 @@ test_mesh2_small_forward_SOURCES = \
   test_mesh2_small.c
 test_mesh2_small_forward_LDADD = $(ld_mesh2_test_lib)
 test_mesh2_small_forward_DEPENDENCIES = $(dep_mesh2_test_lib)
+
+test_mesh2_small_signal_SOURCES = \
+  test_mesh2_small.c
+test_mesh2_small_signal_LDADD = $(ld_mesh2_test_lib)
+test_mesh2_small_signal_DEPENDENCIES = $(dep_mesh2_test_lib)
+
+test_mesh2_small_speed_SOURCES = \
+  test_mesh2_small.c
+test_mesh2_small_speed_LDADD = $(ld_mesh2_test_lib)
+test_mesh2_small_speed_DEPENDENCIES = $(dep_mesh2_test_lib)
+
+test_mesh2_small_speed_ack_SOURCES = \
+  test_mesh2_small.c
+test_mesh2_small_speed_ack_LDADD = $(ld_mesh2_test_lib)
+test_mesh2_small_speed_ack_DEPENDENCIES = $(dep_mesh2_test_lib)
+
+test_mesh2_small_speed_nobuf_SOURCES = \
+  test_mesh2_small.c
+test_mesh2_small_speed_nobuf_LDADD = $(ld_mesh2_test_lib)
+test_mesh2_small_speed_nobuf_DEPENDENCIES = $(dep_mesh2_test_lib)
+
+test_mesh2_small_speed_backwards_SOURCES = \
+  test_mesh2_small.c
+test_mesh2_small_speed_backwards_LDADD = $(ld_mesh2_test_lib)
+test_mesh2_small_speed_backwards_DEPENDENCIES = $(dep_mesh2_test_lib)
+
+test_mesh2_small_speed_nobuf_backwards_SOURCES = \
+  test_mesh2_small.c
+test_mesh2_small_speed_nobuf_backwards_LDADD = $(ld_mesh2_test_lib)
+test_mesh2_small_speed_nobuf_backwards_DEPENDENCIES = $(dep_mesh2_test_lib)
 
 
 if ENABLE_TEST_RUN
