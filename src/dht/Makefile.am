@@ -104,8 +104,9 @@ gnunet_dht_monitor_LDADD = \
 gnunet_dht_monitor_DEPENDENCIES = \
   libgnunetdht.la			      
 
-
+if HAVE_TESTING
 noinst_LIBRARIES = libgnunetdhttest.a
+endif
 
 libgnunetdhttest_a_SOURCES = \
   dht_test_lib.c dht_test_lib.h
@@ -116,6 +117,7 @@ libgnunetdhttest_a_LIBADD = \
 libgnunetdhttest_a_DEPENDENCIES = \
   libgnunetdht.la   
 
+if HAVE_TESTING
 check_PROGRAMS = \
  test_dht_api \
  test_dht_twopeer \
@@ -123,6 +125,7 @@ check_PROGRAMS = \
  test_dht_line \
  test_dht_2dtorus \
  test_dht_monitor
+endif
 
 if HAVE_EXPERIMENTAL
 # These tests still do not work as testbed does

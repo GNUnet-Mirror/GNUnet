@@ -1067,6 +1067,15 @@ AC_ARG_ENABLE([benchmarks],
 AC_MSG_RESULT($enable_benchmarks)
 AM_CONDITIONAL([HAVE_BENCHMARKS], [test "x$enable_benchmarks" = "xyes"])
 
+# should gnunet-testing be compiled
+AC_MSG_CHECKING(wether to compile gnunet-testing)
+AC_ARG_ENABLE([testing],
+   [AS_HELP_STRING([--disable-testing], [do not build gnunet-testing])],
+   [enable_testing=${enableval}],
+   [enable_testing=yes])
+AC_MSG_RESULT($enable_testing)
+AM_CONDITIONAL([HAVE_TESTING], [test "x$enable_testing" = "xyes"])
+
 # should experimental code be compiled (code that may not yet compile)?
 AC_MSG_CHECKING(whether to compile experimental code)
 AC_ARG_ENABLE([experimental],

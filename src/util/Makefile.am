@@ -124,6 +124,10 @@ libgnunetutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
   -version-info 11:0:2
 
+if HAVE_TESTING
+  GNUNET_ECC = gnunet-ecc
+endif
+
 
 libexec_PROGRAMS = \
  gnunet-service-resolver 
@@ -131,7 +135,7 @@ libexec_PROGRAMS = \
 bin_PROGRAMS = \
  gnunet-resolver \
  gnunet-config \
- gnunet-ecc \
+ $(GNUNET_ECC) \
  gnunet-rsa \
  gnunet-uri 
 

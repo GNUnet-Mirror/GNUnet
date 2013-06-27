@@ -24,7 +24,9 @@ lib_LTLIBRARIES = libgnunetfs.la
 plugin_LTLIBRARIES = \
   libgnunet_plugin_block_fs.la 
 
+if HAVE_TESTING
 noinst_LIBRARIES = libgnunetfstest.a
+endif
 
 libgnunetfs_la_SOURCES = \
   fs_api.c fs_api.h fs.h \
@@ -66,9 +68,11 @@ libexec_PROGRAMS = \
   gnunet-helper-fs-publish \
   gnunet-service-fs 
 
+if HAVE_TESTING
 noinst_PROGRAMS = \
   gnunet-fs-profiler \
   gnunet-daemon-fsprofiler
+endif
 
 bin_PROGRAMS = \
   gnunet-auto-share \
@@ -235,6 +239,7 @@ if HAVE_BENCHMARKS
  perf_gnunet_service_fs_p2p_respect 
 endif
 
+if HAVE_TESTING
 check_PROGRAMS = \
  test_plugin_block_fs \
  test_fs_directory \
@@ -262,6 +267,7 @@ check_PROGRAMS = \
  test_gnunet_service_fs_p2p \
  test_gnunet_service_fs_p2p_mesh \
  $(FS_BENCHMARKS)
+endif
 
 test_plugin_block_fs_SOURCES = \
  test_plugin_block_fs.c

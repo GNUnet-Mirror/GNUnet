@@ -24,7 +24,6 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_testing_lib.h"
 
 
 GNUNET_NETWORK_STRUCT_BEGIN

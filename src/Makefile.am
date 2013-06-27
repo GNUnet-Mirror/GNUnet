@@ -2,8 +2,15 @@
 #  INTLEMU_SUBDIRS = intlemu
 #endif
 
+if HAVE_TESTING
+ TESTING = testing
+ TESTBED = testbed
+ CONSENSUS = consensus
+ EXPERIMENTATION = experimentation
+endif
+
 if HAVE_EXPERIMENTAL
- EXP_DIR = gns set dv consensus experimentation
+ EXP_DIR = gns set dv $(CONSENSUS) $(EXPERIMENTATION)
 endif
 
 if LINUX
@@ -31,7 +38,7 @@ SUBDIRS = \
   block \
   statistics \
   arm \
-  testing \
+  $(TESTING) \
   peerinfo \
   $(MYSQL_DIR) \
   $(POSTGRES_DIR) \
@@ -46,7 +53,7 @@ SUBDIRS = \
   ats-tool \
   peerinfo-tool \
   core \
-  testbed \
+  $(TESTBED) \
   nse \
   dht \
   hostlist \

@@ -32,8 +32,10 @@ libgnunetnse_la_LDFLAGS = \
 libexec_PROGRAMS = \
  gnunet-service-nse 
 
+if HAVE_TESTING
 noinst_PROGRAMS = \
  gnunet-nse-profiler
+endif
 
 gnunet_nse_profiler_SOURCES = \
  gnunet-nse-profiler.c
@@ -69,11 +71,12 @@ if HAVE_BENCHMARKS
   MULTIPEER_TEST = test_nse_multipeer
 endif
 
+if HAVE_TESTING
 check_PROGRAMS = \
  test_nse_api \
  perf_kdf \
  $(MULTIPEER_TEST)
-
+endif
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS) 

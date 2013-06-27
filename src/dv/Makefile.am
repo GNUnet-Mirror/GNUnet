@@ -65,10 +65,11 @@ libgnunet_plugin_transport_dv_la_LDFLAGS = \
 libgnunet_plugin_transport_dv_la_DEPENDENCIES = \
   libgnunetdv.la						
 
+if HAVE_TESTING
 check_PROGRAMS = \
  test_transport_blacklist \
  test_transport_dv
-
+endif
 
 if ENABLE_TEST_RUN
  TESTS = $(check_PROGRAMS) 

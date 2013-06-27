@@ -83,6 +83,7 @@ libgnunet_plugin_datacache_template_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 
+if HAVE_TESTING
 if HAVE_SQLITE
 if HAVE_BENCHMARKS
  SQLITE_BENCHMARKS = \
@@ -112,6 +113,7 @@ POSTGRES_TESTS = \
  test_datacache_postgres \
  test_datacache_quota_postgres \
  $(POSTGRES_BENCHMARKS)
+endif
 endif
 
 check_PROGRAMS = \

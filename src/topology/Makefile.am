@@ -27,9 +27,10 @@ gnunet_daemon_topology_LDADD = \
   $(GN_LIBINTL)
 
 
-
+if HAVE_TESTING
 check_PROGRAMS = \
  test_gnunet_daemon_topology
+endif
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)

@@ -208,7 +208,7 @@ libgnunet_plugin_block_gns_la_DEPENDENCIES = \
   $(top_builddir)/src/block/libgnunetblock.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
-
+if HAVE_TESTING
 check_PROGRAMS = \
   test_gns_simple_shorten \
   test_gns_simple_get_authority \
@@ -225,6 +225,7 @@ check_PROGRAMS = \
   test_gns_revocation \
   test_gns_dht_three_peers
  #test_gns_proxy
+endif
 
 if ENABLE_TEST_RUN
 if LINUX

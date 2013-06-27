@@ -40,11 +40,13 @@ libgnunetlockmanager_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0
 
+if HAVE_TESTING
 check_PROGRAMS = \
   test_lockmanager_api \
   test_lockmanager_api_lockrelease \
   test_lockmanager_api_servercrash \
   test_lockmanager_api_acquireretry
+endif
 
 EXTRA_DIST = \
   test_lockmanager_api.conf

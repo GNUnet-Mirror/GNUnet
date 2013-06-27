@@ -108,11 +108,12 @@ libgnunetregextest_a_LIBADD = \
 libgnunetregextest_a_DEPENDENCIES = \
   libgnunetregex_internal.a
 
-
+if HAVE_TESTING
 noinst_PROGRAMS = $(noinst_mysql_progs) \
   perf-regex \
   gnunet-regex-profiler \
   gnunet-daemon-regexprofiler
+endif
 
 perf_regex_SOURCES = \
   perf-regex.c

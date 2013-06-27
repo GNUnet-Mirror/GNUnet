@@ -31,6 +31,7 @@ gnunet_daemon_pt_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 
+if HAVE_TESTING
 if HAVE_MHD
 if HAVE_LIBCURL
 if LINUX
@@ -47,6 +48,7 @@ if MINGW
  test_gnunet_vpn-6_to_4 \
  test_gnunet_vpn-6_over \
  test_gnunet_vpn-4_over 
+endif
 endif
 endif
 endif

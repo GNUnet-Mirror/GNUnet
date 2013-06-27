@@ -125,8 +125,9 @@ if LINUX
 gnunet_service_mesh_new_LDFLAGS = -lrt
 endif
 
-
+if HAVE_TESTING
 noinst_LIBRARIES = libgnunetmeshtest.a $(noinst_LIB_EXP)
+endif
 
 libgnunetmeshtest_a_SOURCES = \
   mesh_test_lib.c mesh_test_lib.h
@@ -146,7 +147,7 @@ libgnunetmesh2test_a_LIBADD = \
 libgnunetmesh2test_a_DEPENDENCIES = \
   libgnunetmesh2.la
 
-
+if HAVE_TESTING
 check_PROGRAMS = \
  test_mesh_api \
  test_mesh_tree_api \
@@ -164,6 +165,7 @@ check_PROGRAMS = \
  test_mesh_small_speed_nobuf_backwards \
  test_mesh_small_speed_ack \
  $(EXP_TESTS)
+endif
 
 test_mesh_api_SOURCES = \
  test_mesh_api.c

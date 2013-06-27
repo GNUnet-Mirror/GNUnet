@@ -60,7 +60,8 @@ gnunet_service_ats_LDADD = \
 gnunet_service_ats_DEPENDENCIES = \
   libgnunetats.la
 
-check_PROGRAMS = \
+if HAVE_TESTING
+TESTING_TESTS = \
  test_ats_api_scheduling_init \
  test_ats_api_scheduling_add_address \
  test_ats_api_scheduling_add_session \
@@ -71,17 +72,22 @@ check_PROGRAMS = \
  test_ats_api_scheduling_destroy_session \
  test_ats_api_scheduling_destroy_inbound_connection \
  test_ats_api_scheduling_block_and_reset \
-	test_ats_normalization_update_quality \
+ test_ats_normalization_update_quality \
  test_ats_change_preference \
  test_ats_simplistic \
  test_ats_simplistic_switch_networks \
  test_ats_simplistic_change_preference \
  test_ats_api_performance_list_addresses \
- test_ats_api_performance_address_info \
- $(GN_MLP_TEST) $(GN_MLP_PERF) $(GN_MLP_TEST_UPDATE)
-# $(GN_MLP_TEST_AVG)
+ test_ats_api_performance_address_info
 # test_ats_api_scheduling_get_type
 # test_ats_api_bandwidth_consumption
+# test_ats_simplistic_pref_aging
+endif
+
+check_PROGRAMS = \
+ $(TESTING_TESTS)
+ $(GN_MLP_TEST) $(GN_MLP_PERF) $(GN_MLP_TEST_UPDATE)
+# $(GN_MLP_TEST_AVG)
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)

@@ -81,9 +81,13 @@ noinst_PROGRAMS = \
  $(WLAN_BIN_SENDER) \
  $(WLAN_BIN_RECEIVER)
 
+if HAVE_TESTING
+TESTING_LIBS = libgnunettransporttesting.la
+endif
+
 lib_LTLIBRARIES = \
   libgnunettransport.la \
-  libgnunettransporttesting.la
+  $(TESTING_LIBS)
 
 libgnunettransporttesting_la_SOURCES = \
   transport-testing.c transport-testing.h
@@ -308,6 +312,7 @@ libgnunet_plugin_transport_https_server_la_LDFLAGS = \
 libgnunet_plugin_transport_https_server_la_CFLAGS = \
  $(CFLAGS) -DBUILD_HTTPS 
 
+if HAVE_TESTING
 check_PROGRAMS = \
  test_transport_testing_startstop \
  test_transport_testing_restart \
@@ -368,6 +373,7 @@ check_PROGRAMS = \
  $(HTTP_QUOTA_TEST) \
  $(HTTPS_QUOTA_TEST) \
  $(WLAN_QUOTA_TEST)
+endif
 
 if ENABLE_TEST_RUN
 TESTS = \

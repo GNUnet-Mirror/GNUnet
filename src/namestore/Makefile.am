@@ -21,19 +21,18 @@ endif
 
 if HAVE_SQLITE
 SQLITE_PLUGIN = libgnunet_plugin_namestore_sqlite.la
+if HAVE_TESTING
 SQLITE_TESTS = test_plugin_namestore_sqlite 
 endif
-if HAVE_POSTGRES
-POSTGRES_TESTS = test_plugin_namestore_postgres
-POSTGRES_PLUGIN = libgnunet_plugin_namestore_postgres.la
 endif
-
-if HAVE_SQLITE
-check_PROGRAMS = \
- $(SQLITE_TESTS) \
- $(POSTGRES_TESTS) \
- test_namestore_record_serialization \
- test_namestore_api_sign_verify \
+if HAVE_POSTGRES
+POSTGRES_PLUGIN = libgnunet_plugin_namestore_postgres.la
+if HAVE_TESTING
+POSTGRES_TESTS = test_plugin_namestore_postgres
+endif
+endif
+if HAVE_TESTING
+TESTING_TESTS = \
  test_namestore_api \
  test_namestore_api_put \
  test_namestore_api_lookup \
@@ -45,7 +44,16 @@ check_PROGRAMS = \
  test_namestore_api_zone_to_name \
  test_namestore_api_zone_iteration \
  test_namestore_api_zone_iteration_specific_zone \
- test_namestore_api_zone_iteration_stop 
+ test_namestore_api_zone_iteration_stop
+endif
+
+if HAVE_SQLITE
+check_PROGRAMS = \
+ $(SQLITE_TESTS) \
+ $(POSTGRES_TESTS) \
+ $(TESTING_TESTS) \
+ test_namestore_record_serialization \
+ test_namestore_api_sign_verify
 endif
 
 if ENABLE_TEST_RUN

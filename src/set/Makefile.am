@@ -62,8 +62,10 @@ libgnunetset_la_LIBADD = \
 libgnunetset_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
+if HAVE_TESTING
 check_PROGRAMS = \
  test_set_api 
+endif
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)

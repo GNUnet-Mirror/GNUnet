@@ -27,6 +27,7 @@ if HAVE_BENCHMARKS
  perf_stream_api
 endif
 
+if HAVE_TESTING
 check_PROGRAMS = \
  test_stream_2peers \
  test_stream_2peers_halfclose \
@@ -35,6 +36,7 @@ check_PROGRAMS = \
  test_stream_sequence_wraparound \
  mesh-test \
  $(STREAM_BENCHMARKS)
+endif
 
 EXTRA_DIST = test_stream_local.conf
 

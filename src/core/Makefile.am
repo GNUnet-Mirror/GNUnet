@@ -60,6 +60,10 @@ gnunet_core_LDADD = \
 gnunet_core_DEPENDENCIES = \
   libgnunetcore.la
 
+if HAVE_TESTING
+  TESTING_TESTS = test_core_api_send_to_self
+endif
+
 check_PROGRAMS = \
  test_core_api_start_only \
  test_core_api \
@@ -67,7 +71,7 @@ check_PROGRAMS = \
  test_core_quota_compliance_symmetric \
  test_core_quota_compliance_asymmetric_send_limited \
  test_core_quota_compliance_asymmetric_recv_limited \
- test_core_api_send_to_self
+ $(TESTING_TESTS)
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
