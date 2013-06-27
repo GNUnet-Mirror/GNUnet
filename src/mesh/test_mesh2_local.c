@@ -162,13 +162,9 @@ inbound_end (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
 {
   long id = (long) cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "incoming tunnel closed\n");
-  if (id != 2)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "received closing tunnel on peer != 2\n");
-    result = GNUNET_SYSERR;
-  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "incoming tunnel closed at peer %ld\n",
+              id);
 }
 
 
@@ -292,7 +288,11 @@ main (int argc, char *argv[])
   if (0 != GNUNET_TESTING_peer_run ("test-mesh-local",
                                     "test_mesh2.conf",
                                 &run, NULL))
-    return 1;
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "run failed\n");
+    return 2;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Final result: %d\n", result);
   return (result == GNUNET_OK) ? 0 : 1;
 }
 
