@@ -1530,7 +1530,7 @@ http_client_plugin_get_session (void *cls,
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
                      "Cannot connect to peer `%s' address `%s''\n",
-                     http_common_plugin_address_to_string (NULL, plugin->name, s->addr, s->addrlen),
+                     http_common_plugin_address_to_string (NULL, plugin->protocol, s->addr, s->addrlen),
                      GNUNET_i2s (&s->target));
     client_delete_session (s);
     return NULL;
@@ -1747,7 +1747,7 @@ const char *http_plugin_address_to_string (void *cls,
                                            const void *addr,
                                            size_t addrlen)
 {
-	return http_common_plugin_address_to_string (cls, p->name, addr, addrlen);
+	return http_common_plugin_address_to_string (cls, p->protocol, addr, addrlen);
 }
 
 /**
