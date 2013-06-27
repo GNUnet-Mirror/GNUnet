@@ -42,6 +42,7 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "transport-udp", __VA_ARGS__)
 
+#define PLUGIN_NAME "udp"
 
 /**
  * Number of messages we can defragment in parallel.  We only really
@@ -81,6 +82,17 @@ struct PrettyPrinterContext
    * Port to add after the IP address.
    */
   uint16_t port;
+
+  /**
+   * IPv6 address
+   */
+
+  int ipv6;
+
+  /**
+   * Options
+   */
+  uint32_t options;
 };
 
 
@@ -384,6 +396,12 @@ struct UDP_ACK_Message
 };
 
 /**
+ * Address options
+ */
+static uint32_t myoptions;
+
+
+/**
  * Encapsulation of all of the state of the plugin.
  */
 struct Plugin * plugin;
@@ -506,11 +524,14 @@ udp_address_to_string (void *cls, const void *addr, size_t addrlen)
   const struct IPv6UdpAddress *t6;
   int af;
   uint16_t port;
+  uint32_t options;
 
+  options = 0;
   if (addrlen == sizeof (struct IPv6UdpAddress))
   {
     t6 = addr;
     af = AF_INET6;
+    options = ntohl (t6->options);
     port = ntohs (t6->u6_port);
     memcpy (&a6, &t6->ipv6_addr, sizeof (a6));
     sb = &a6;
@@ -519,6 +540,7 @@ udp_address_to_string (void *cls, const void *addr, size_t addrlen)
   {
     t4 = addr;
     af = AF_INET;
+    options = ntohl (t4->options);
     port = ntohs (t4->u4_port);
     memcpy (&a4, &t4->ipv4_addr, sizeof (a4));
     sb = &a4;
@@ -529,8 +551,9 @@ udp_address_to_string (void *cls, const void *addr, size_t addrlen)
     return NULL;
   }
   inet_ntop (af, sb, buf, INET6_ADDRSTRLEN);
-  GNUNET_snprintf (rbuf, sizeof (rbuf), (af == AF_INET6) ? "[%s]:%u" : "%s:%u",
-                   buf, port);
+
+  GNUNET_snprintf (rbuf, sizeof (rbuf), (af == AF_INET6) ? "%s.%u.[%s]:%u" : "%s.%u.%s:%u",
+                   PLUGIN_NAME, options, buf, port);
   return rbuf;
 }
 
@@ -552,28 +575,61 @@ udp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     void **buf, size_t *added)
 {
   struct sockaddr_storage socket_address;
-  
-  if ((NULL == addr) || (0 == addrlen))
+  char *address;
+  char *plugin;
+  char *optionstr;
+  uint32_t options;
+
+  /* Format tcp.options.address:port */
+  address = NULL;
+  plugin = NULL;
+  optionstr = NULL;
+  options = 0;
+  if ((NULL == addr) || (addrlen == 0))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if ('\0' != addr[addrlen - 1])
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (strlen (addr) != addrlen - 1)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  plugin = GNUNET_strdup (addr);
+  optionstr = strchr (plugin, '.');
+  if (NULL == optionstr)
+  {
+    GNUNET_break (0);
+    GNUNET_free (plugin);
+    return GNUNET_SYSERR;
+  }
+  optionstr[0] = '\0';
+  optionstr ++;
+  options = atol (optionstr);
+  address = strchr (optionstr, '.');
+  if (NULL == address)
+  {
+    GNUNET_break (0);
+    GNUNET_free (plugin);
+    return GNUNET_SYSERR;
+  }
+  address[0] = '\0';
+  address ++;
+
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_to_address_ip (address, strlen (address),
+				    &socket_address))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
 
-  if ('\0' != addr[addrlen - 1])
-  {
-    return GNUNET_SYSERR;
-  }
-
-  if (strlen (addr) != addrlen - 1)
-  {
-    return GNUNET_SYSERR;
-  }
-
-  if (GNUNET_OK != GNUNET_STRINGS_to_address_ip (addr, strlen (addr),
-						 &socket_address))
-  {
-    return GNUNET_SYSERR;
-  }
+  GNUNET_free (plugin);
 
   switch (socket_address.ss_family)
   {
@@ -582,6 +638,7 @@ udp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
       struct IPv4UdpAddress *u4;
       struct sockaddr_in *in4 = (struct sockaddr_in *) &socket_address;
       u4 = GNUNET_malloc (sizeof (struct IPv4UdpAddress));
+      u4->options =  htonl (options);
       u4->ipv4_addr = in4->sin_addr.s_addr;
       u4->u4_port = in4->sin_port;
       *buf = u4;
@@ -593,6 +650,7 @@ udp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
       struct IPv6UdpAddress *u6;
       struct sockaddr_in6 *in6 = (struct sockaddr_in6 *) &socket_address;
       u6 = GNUNET_malloc (sizeof (struct IPv6UdpAddress));
+      u6->options =  htonl (options);
       u6->ipv6_addr = in6->sin6_addr;
       u6->u6_port = in6->sin6_port;
       *buf = u6;
@@ -624,7 +682,10 @@ append_port (void *cls, const char *hostname)
     GNUNET_free (ppc);
     return;
   }
-  GNUNET_asprintf (&ret, "%s:%d", hostname, ppc->port);
+  if (GNUNET_YES == ppc->ipv6)
+    GNUNET_asprintf (&ret, "%s.%u.[%s]:%d", PLUGIN_NAME, ppc->options, hostname, ppc->port);
+  else
+    GNUNET_asprintf (&ret, "%s.%u.%s:%d", PLUGIN_NAME, ppc->options, hostname, ppc->port);
   ppc->asc (ppc->asc_cls, ret);
   GNUNET_free (ret);
 }
@@ -660,7 +721,9 @@ udp_plugin_address_pretty_printer (void *cls, const char *type,
   const struct IPv4UdpAddress *u4;
   const struct IPv6UdpAddress *u6;
   uint16_t port;
+  uint32_t options;
 
+  options = 0;
   if (addrlen == sizeof (struct IPv6UdpAddress))
   {
     u6 = addr;
@@ -672,6 +735,7 @@ udp_plugin_address_pretty_printer (void *cls, const char *type,
     a6.sin6_port = u6->u6_port;
     memcpy (&a6.sin6_addr, &u6->ipv6_addr, sizeof (struct in6_addr));
     port = ntohs (u6->u6_port);
+    options = ntohl (u6->options);
     sb = &a6;
     sbs = sizeof (a6);
   }
@@ -686,6 +750,7 @@ udp_plugin_address_pretty_printer (void *cls, const char *type,
     a4.sin_port = u4->u4_port;
     a4.sin_addr.s_addr = u4->ipv4_addr;
     port = ntohs (u4->u4_port);
+    options = ntohl (u4->options);
     sb = &a4;
     sbs = sizeof (a4);
   }
@@ -706,6 +771,11 @@ udp_plugin_address_pretty_printer (void *cls, const char *type,
   ppc->asc = asc;
   ppc->asc_cls = asc_cls;
   ppc->port = port;
+  ppc->options = options;
+  if (addrlen == sizeof (struct IPv6UdpAddress))
+    ppc->ipv6 = GNUNET_YES;
+  else
+    ppc->ipv6 = GNUNET_NO;
   GNUNET_RESOLVER_hostname_get (sb, sbs, !numeric, timeout, &append_port, ppc);
 }
 
@@ -1382,7 +1452,11 @@ udp_plugin_get_session (void *cls,
       ((address->address_length != sizeof (struct IPv4UdpAddress)) &&
       (address->address_length != sizeof (struct IPv6UdpAddress))))
   {
-    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+    	_("Trying to create session for address of unexpected length %u (should be %u or %u)\n"),
+    	address->address_length,
+    	sizeof (struct IPv4UdpAddress),
+    	sizeof (struct IPv6UdpAddress));
     return NULL;
   }
 
@@ -1687,18 +1761,22 @@ udp_nat_port_map_callback (void *cls, int add_remove,
   {
   case AF_INET:
     GNUNET_assert (addrlen == sizeof (struct sockaddr_in));
+    memset (&u4, 0, sizeof (u4));
+    u4.options = htonl(myoptions);
     u4.ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
     u4.u4_port = ((struct sockaddr_in *) addr)->sin_port;
     arg = &u4;
-    args = sizeof (u4);
+    args = sizeof (struct IPv4UdpAddress);
     break;
   case AF_INET6:
     GNUNET_assert (addrlen == sizeof (struct sockaddr_in6));
+    memset (&u4, 0, sizeof (u4));
+    u6.options = htonl(myoptions);
     memcpy (&u6.ipv6_addr, &((struct sockaddr_in6 *) addr)->sin6_addr,
             sizeof (struct in6_addr));
     u6.u6_port = ((struct sockaddr_in6 *) addr)->sin6_port;
     arg = &u6;
-    args = sizeof (u6);
+    args = sizeof (struct IPv6UdpAddress);
     break;
   default:
     GNUNET_break (0);
@@ -1788,6 +1866,8 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
   {
   case AF_INET:
     GNUNET_assert (sender_addr_len == sizeof (struct sockaddr_in));
+    memset (&u4, 0, sizeof (u4));
+    u6.options = htonl (0);
     u4.ipv4_addr = ((struct sockaddr_in *) sender_addr)->sin_addr.s_addr;
     u4.u4_port = ((struct sockaddr_in *) sender_addr)->sin_port;
     arg = &u4;
@@ -1795,6 +1875,8 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
     break;
   case AF_INET6:
     GNUNET_assert (sender_addr_len == sizeof (struct sockaddr_in6));
+    memset (&u6, 0, sizeof (u6));
+    u6.options = htonl (0);
     u6.ipv6_addr = ((struct sockaddr_in6 *) sender_addr)->sin6_addr;
     u6.u6_port = ((struct sockaddr_in6 *) sender_addr)->sin6_port;
     arg = &u6;
@@ -2810,6 +2892,9 @@ libgnunet_plugin_transport_udp_init (void *cls)
     have_bind6 = GNUNET_YES;
   }
   GNUNET_free_non_null (bind6_address);
+
+  /* Initialize my flags */
+  myoptions = 0;
 
   /* Enable neighbour discovery */
   broadcast = GNUNET_CONFIGURATION_get_value_yesno (env->cfg, "transport-udp",
