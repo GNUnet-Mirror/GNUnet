@@ -41,6 +41,8 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "transport-tcp",__VA_ARGS__)
 
+#define PLUGIN_NAME "tcp"
+
 /**
  * How long until we give up on establishing an NAT connection?
  * Must be > 4 RTT
@@ -49,6 +51,11 @@
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
+
+/**
+ * Address options
+ */
+static uint32_t myoptions;
 
 /**
  * Initial handshake message for a session.
@@ -132,6 +139,11 @@ GNUNET_NETWORK_STRUCT_BEGIN
  */
 struct IPv4TcpAddress
 {
+	/**
+	 * Optional options and flags for this address
+	 */
+	uint32_t options;
+
   /**
    * IPv4 address, in network byte order.
    */
@@ -150,6 +162,11 @@ struct IPv4TcpAddress
  */
 struct IPv6TcpAddress
 {
+	/**
+	 * Optional flags for this address
+	 */
+	uint32_t options;
+
   /**
    * IPv6 address.
    */
@@ -529,6 +546,8 @@ tcp_nat_port_map_callback (void *cls, int add_remove,
   {
   case AF_INET:
     GNUNET_assert (addrlen == sizeof (struct sockaddr_in));
+    memset (&t4,0, sizeof (t4));
+    t4.options = htonl (myoptions);
     t4.ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
     t4.t4_port = ((struct sockaddr_in *) addr)->sin_port;
     arg = &t4;
@@ -536,8 +555,10 @@ tcp_nat_port_map_callback (void *cls, int add_remove,
     break;
   case AF_INET6:
     GNUNET_assert (addrlen == sizeof (struct sockaddr_in6));
+    memset (&t6, 0, sizeof (t6));
     memcpy (&t6.ipv6_addr, &((struct sockaddr_in6 *) addr)->sin6_addr,
             sizeof (struct in6_addr));
+    t6.options = htonl (myoptions);
     t6.t6_port = ((struct sockaddr_in6 *) addr)->sin6_port;
     arg = &t6;
     args = sizeof (t6);
@@ -574,13 +595,16 @@ tcp_address_to_string (void *cls, const void *addr, size_t addrlen)
   const struct IPv6TcpAddress *t6;
   int af;
   uint16_t port;
+  uint32_t options;
 
+  options = 0;
   switch (addrlen)
   {
   case sizeof (struct IPv6TcpAddress):
     t6 = addr;
     af = AF_INET6;
     port = ntohs (t6->t6_port);
+    options = ntohl (t6->options);
     memcpy (&a6, &t6->ipv6_addr, sizeof (a6));
     sb = &a6;
     break;
@@ -588,6 +612,7 @@ tcp_address_to_string (void *cls, const void *addr, size_t addrlen)
     t4 = addr;
     af = AF_INET;
     port = ntohs (t4->t4_port);
+    options = ntohl (t4->options);
     memcpy (&a4, &t4->ipv4_addr, sizeof (a4));
     sb = &a4;
     break;
@@ -603,8 +628,8 @@ tcp_address_to_string (void *cls, const void *addr, size_t addrlen)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
     return NULL;
   }
-  GNUNET_snprintf (rbuf, sizeof (rbuf), (af == AF_INET6) ? "[%s]:%u" : "%s:%u",
-                   buf, port);
+  GNUNET_snprintf (rbuf, sizeof (rbuf), (af == AF_INET6) ? "%s.%u.[%s]:%u" : "%s.%u.%s:%u",
+                   PLUGIN_NAME, options, buf, port);
   return rbuf;
 }
 
@@ -614,7 +639,7 @@ tcp_address_to_string (void *cls, const void *addr, size_t addrlen)
  * a binary address.
  *
  * @param cls closure ('struct Plugin*')
- * @param addr string address
+ * @param address string address
  * @param addrlen length of the address
  * @param buf location to store the buffer
  * @param added location to store the number of bytes in the buffer.
@@ -626,7 +651,16 @@ tcp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     void **buf, size_t *added)
 {
   struct sockaddr_storage socket_address;
+  char *address;
+  char *plugin;
+  char *optionstr;
+  uint32_t options;
 
+  /* Format tcp.options.address:port */
+  address = NULL;
+  plugin = NULL;
+  optionstr = NULL;
+  options = 0;
   if ((NULL == addr) || (addrlen == 0))
   {
     GNUNET_break (0);
@@ -642,21 +676,44 @@ tcp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
+  plugin = GNUNET_strdup (addr);
+  optionstr = strchr (plugin, '.');
+  if (NULL == optionstr)
+  {
+    GNUNET_break (0);
+    GNUNET_free (plugin);
+    return GNUNET_SYSERR;
+  }
+  optionstr[0] = '\0';
+  optionstr ++;
+  options = atol (optionstr);
+  address = strchr (optionstr, '.');
+  if (NULL == address)
+  {
+    GNUNET_break (0);
+    GNUNET_free (plugin);
+    return GNUNET_SYSERR;
+  }
+  address[0] = '\0';
+  address ++;
+
   if (GNUNET_OK !=
-      GNUNET_STRINGS_to_address_ip (addr, strlen (addr),
+      GNUNET_STRINGS_to_address_ip (address, strlen (address),
 				    &socket_address))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
+
+  GNUNET_free (plugin);
   switch (socket_address.ss_family)
   {
   case AF_INET:
     {
       struct IPv4TcpAddress *t4;
       struct sockaddr_in *in4 = (struct sockaddr_in *) &socket_address;
-
       t4 = GNUNET_malloc (sizeof (struct IPv4TcpAddress));
+      t4->options =  htonl (options);
       t4->ipv4_addr = in4->sin_addr.s_addr;
       t4->t4_port = in4->sin_port;
       *buf = t4;
@@ -668,6 +725,7 @@ tcp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
       struct IPv6TcpAddress *t6;
       struct sockaddr_in6 *in6 = (struct sockaddr_in6 *) &socket_address;
       t6 = GNUNET_malloc (sizeof (struct IPv6TcpAddress));
+      t6->options = htonl (options);
       t6->ipv6_addr = in6->sin6_addr;
       t6->t6_port = in6->sin6_port;
       *buf = t6;
@@ -1346,9 +1404,9 @@ tcp_plugin_get_session (void *cls,
   }
   else
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, 
-	 _("Address of unexpected length: %u\n"), addrlen);
-    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+    	_("%s:%u: Address of unexpected length %u (should be %u or %u)\n"),
+	 	  addrlen, sizeof (struct IPv4TcpAddress), sizeof (struct IPv6TcpAddress));
     return NULL;
   }
 
@@ -1520,6 +1578,11 @@ struct PrettyPrinterContext
   uint16_t port;
 
   int ipv6;
+
+  /**
+   * Options
+   */
+  uint32_t options;
 };
 
 
@@ -1542,9 +1605,9 @@ append_port (void *cls, const char *hostname)
     return;
   }
   if (GNUNET_YES == ppc->ipv6)
-    GNUNET_asprintf (&ret, "[%s]:%d", hostname, ppc->port);
+    GNUNET_asprintf (&ret, "%s.%u.[%s]:%d", PLUGIN_NAME, ppc->options, hostname, ppc->port);
   else
-    GNUNET_asprintf (&ret, "%s:%d", hostname, ppc->port);
+    GNUNET_asprintf (&ret, "%s.%u.%s:%d", PLUGIN_NAME, ppc->options, hostname, ppc->port);
   ppc->asc (ppc->asc_cls, ret);
   GNUNET_free (ret);
 }
@@ -1580,7 +1643,10 @@ tcp_plugin_address_pretty_printer (void *cls, const char *type,
   const struct IPv4TcpAddress *t4;
   const struct IPv6TcpAddress *t6;
   uint16_t port;
+  uint32_t options;
 
+
+  options = 0;
   if (addrlen == sizeof (struct IPv6TcpAddress))
   {
     t6 = addr;
@@ -1589,6 +1655,7 @@ tcp_plugin_address_pretty_printer (void *cls, const char *type,
     a6.sin6_port = t6->t6_port;
     memcpy (&a6.sin6_addr, &t6->ipv6_addr, sizeof (struct in6_addr));
     port = ntohs (t6->t6_port);
+    options = ntohl (t6->options);
     sb = &a6;
     sbs = sizeof (a6);
   }
@@ -1600,6 +1667,7 @@ tcp_plugin_address_pretty_printer (void *cls, const char *type,
     a4.sin_port = t4->t4_port;
     a4.sin_addr.s_addr = t4->ipv4_addr;
     port = ntohs (t4->t4_port);
+    options = ntohl (t4->options);
     sb = &a4;
     sbs = sizeof (a4);
   }
@@ -1624,6 +1692,7 @@ tcp_plugin_address_pretty_printer (void *cls, const char *type,
   ppc->asc = asc;
   ppc->asc_cls = asc_cls;
   ppc->port = port;
+  ppc->options = options;
   GNUNET_RESOLVER_hostname_get (sb, sbs, !numeric, timeout, &append_port, ppc);
 }
 
@@ -1675,9 +1744,16 @@ tcp_plugin_check_address (void *cls, const void *addr, size_t addrlen)
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
+
+
   if (addrlen == sizeof (struct IPv4TcpAddress))
   {
     v4 = (struct IPv4TcpAddress *) addr;
+    if (0 != memcmp (&v4->options, &myoptions, sizeof (myoptions)))
+    {
+    	GNUNET_break (0);
+    	return GNUNET_SYSERR;
+    }
     if (GNUNET_OK != check_port (plugin, ntohs (v4->t4_port)))
       return GNUNET_SYSERR;
     if (GNUNET_OK !=
@@ -1692,6 +1768,11 @@ tcp_plugin_check_address (void *cls, const void *addr, size_t addrlen)
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
+    }
+    if (0 != memcmp (&v6->options, &myoptions, sizeof (myoptions)))
+    {
+    	GNUNET_break (0);
+    	return GNUNET_SYSERR;
     }
     if (GNUNET_OK != check_port (plugin, ntohs (v6->t6_port)))
       return GNUNET_SYSERR;
@@ -1796,6 +1877,7 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
   case AF_INET:
     s4 = vaddr;
     t4 = GNUNET_malloc (sizeof (struct IPv4TcpAddress));
+    t4->options = 0;
     t4->t4_port = s4->sin_port;
     t4->ipv4_addr = s4->sin_addr.s_addr;
     session->addr = t4;
@@ -1804,6 +1886,7 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
   case AF_INET6:
     s6 = vaddr;
     t6 = GNUNET_malloc (sizeof (struct IPv6TcpAddress));
+    t6->options = 0;
     t6->t6_port = s6->sin6_port;
     memcpy (&t6->ipv6_addr, &s6->sin6_addr, sizeof (struct in6_addr));
     session->addr = t6;
@@ -1895,6 +1978,7 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
       {
         s4 = vaddr;
         t4 = GNUNET_malloc (sizeof (struct IPv4TcpAddress));
+        t4->options = htonl (0);
         t4->t4_port = s4->sin_port;
         t4->ipv4_addr = s4->sin_addr.s_addr;
         session->addr = t4;
@@ -1904,6 +1988,7 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
       {
         s6 = vaddr;
         t6 = GNUNET_malloc (sizeof (struct IPv6TcpAddress));
+        t6->options = htonl (0);
         t6->t6_port = s6->sin6_port;
         memcpy (&t6->ipv6_addr, &s6->sin6_addr, sizeof (struct in6_addr));
         session->addr = t6;
@@ -2312,6 +2397,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   struct sockaddr **addrs;
   socklen_t *addrlens;
 
+
   if (NULL == env->receive)
   {
     /* run in 'stub' mode (i.e. as part of gnunet-peerinfo), don't fully
@@ -2362,6 +2448,9 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   }
   else
     service = NULL;
+
+  /* Initialize my flags */
+  myoptions = 0;
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->sessionmap = GNUNET_CONTAINER_multihashmap_create (max_connections, GNUNET_YES);
