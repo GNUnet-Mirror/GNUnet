@@ -77,8 +77,11 @@ MAX_CONNECTIONS = 128
 TESTING_IGNORE_KEYS = ACCEPT_FROM;
 
 [transport-https_server]
-#EXTERNAL_HOSTNAME = <your hostname/path>
-#VERIFY_EXTERNAL_HOSTNAME = YES
+# EXTERNAL_HOSTNAME = <your hostname/path>
+# EXTERNAL_HOSTNAME_ONLY = YES
+# If you have a valid SSL certificate for your external hostname tell, 
+# clients to verify it  
+# VERIFY_EXTERNAL_HOSTNAME = YES
 PORT = 4433
 ADVERTISED_PORT = 4433
 CRYPTO_INIT = NORMAL
