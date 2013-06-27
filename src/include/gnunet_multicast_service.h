@@ -95,61 +95,6 @@ enum GNUNET_MULTICAST_JoinPolicy
 };
 
 
-/** 
- * Opaque handle to a replay request from the multicast service.
- */
-struct GNUNET_MULTICAST_ReplayHandle;
-
-
-/** 
- * Functions with this signature are called whenever the multicast
- * service needs a message to be replayed.  Implementations of this
- * function MUST call GNUNET_MULTICAST_replay() ONCE (with a message
- * or an error); however, if the origin is destroyed or the group is
- * left, the replay handle must no longer be used.
- *
- * @param cls Closure (set from GNUNET_MULTICAST_origin_start()
- *            or GNUNET_MULTICAST_member_join()).
- * @param message_id Which message should be replayed.
- * @param rh Handle to pass to message transmit function.
- */
-typedef void (*GNUNET_MULTICAST_ReplayCallback) (void *cls,
-						 uint64_t message_id,
-						 struct GNUNET_MULTICAST_ReplayHandle *rh);
-
-
-/** 
- * Possible error codes during replay.
- */
-enum GNUNET_MULTICAST_ReplayErrorCode
-{
-
-  /** 
-   * Everything is fine.
-   */ 
-  GNUNET_MULTICAST_REC_OK = 0,
-
-  /** 
-   * Message has been discarded (likely transient message that was too old).
-   */ 
-  GNUNET_MULTICAST_REC_TRANSIENT_LOST = 1,
-
-  /** 
-   * Message ID counter was larger than the highest counter this
-   * replay function has ever encountered; thus it is likely the
-   * origin never sent it and we're at the HEAD of the multicast
-   * stream as far as this node is concerned.
-   */ 
-  GNUNET_MULTICAST_REC_PAST_HEAD = 2,
-
-  /** 
-   * Internal error (i.e. database error).  Try some other peer.
-   */ 
-  GNUNET_MULTICAST_REC_INTERNAL_ERROR = 3
-
-};
-
-
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /** 
@@ -242,32 +187,19 @@ GNUNET_NETWORK_STRUCT_END
 
 
 /** 
- * Replay a message from the multicast group.
- *
- * @param rh Replay handle identifying which replay operation was requested.
- * @param msg Replayed message, NULL if unknown/error.
- * @param ec Error code.
- */
-void
-GNUNET_MULTICAST_replay (struct GNUNET_MULTICAST_ReplayHandle *rh,
-			 const struct GNUNET_MULTICAST_MessageHeader *msg,
-			 enum GNUNET_MULTICAST_ReplayErrorCode ec);
-
-
-/** 
  * Handle that identifies a join request.
  *
- * Used to match calls to #GNUNET_MULTICAST_MembershipChangeCallback to the
+ * Used to match calls to #GNUNET_MULTICAST_JoinCallback to the
  * corresponding calls to GNUNET_MULTICAST_join_decision().
  */
-struct GNUNET_MULTICAST_JoinHande;
+struct GNUNET_MULTICAST_JoinHandle;
 
 
 /** 
  * Function to call with the decision made for a membership change request.
  *
  * Must be called once and only once in response to an invocation of the
- * #GNUNET_MULTICAST_MembershipChangeCallback.
+ * #GNUNET_MULTICAST_JoinCallback.
  *
  * @param jh Join request handle.
  * @param join_response Message to send in response to the joining peer;
@@ -295,26 +227,38 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *jh,
 
 
 /** 
- * Method called whenever another peer wants to join or has left a multicast
- * group.
+ * Method called whenever another peer wants to join the multicast group.
  *
  * Implementations of this function must call GNUNET_MULTICAST_join_decision()
  * with the decision.
  *
  * @param cls Closure.
- * @param peer Identity of the peer that wants to join or leave.
- * @param join_req Application-dependent join message from the new user
+ * @param peer Identity of the peer that wants to join.
+ * @param msg Application-dependent join message from the new user
  *        (might, for example, contain a user,
  *        bind user identity/pseudonym to peer identity, application-level
  *        message to origin, etc.).
- * @param is_joining #GNUNET_YES if the peer wants to join, #GNUNET_NO if the peer left.
  * @param jh Join handle to pass to GNUNET_MULTICAST_join_decison().
  */
-typedef void (*GNUNET_MULTICAST_MembershipChangeCallback)(void *cls,
-							  const struct GNUNET_PeerIdentity *peer,
-							  const struct GNUNET_MessageHeader *join_req,
-							  int is_joining,
-							  struct GNUNET_MULTICAST_JoinHandle *jh);
+typedef void (*GNUNET_MULTICAST_JoinCallback)(void *cls,
+                                              const struct GNUNET_PeerIdentity *peer,
+                                              const struct GNUNET_MessageHeader *msg,
+                                              struct GNUNET_MULTICAST_JoinHandle *jh);
+
+/** 
+ * Method called whenever another peer wants to leave the multicast group.
+ *
+ * A leave request must be always be honoured.
+ *
+ * @param cls Closure.
+ * @param peer Identity of the peer that wants to leave.
+ * @param msg Application-dependent leave message from the leaving user.
+ * @param jh Join handle to pass to GNUNET_MULTICAST_join_decison().
+ */
+typedef void (*GNUNET_MULTICAST_LeaveCallback)(void *cls,
+                                               const struct GNUNET_PeerIdentity *peer,
+                                               const struct GNUNET_MessageHeader *msg,
+                                               struct GNUNET_MULTICAST_JoinHandle *jh);
 
 
 /** 
@@ -355,21 +299,22 @@ typedef void (*GNUNET_MULTICAST_MembershipTestCallback)(void *cls,
  *
  * @param cls Closure (set from GNUNET_MULTICAST_origin_start).
  * @param sender Identity of the sender.
- * @param response_id Unique counter for the response from this sender to this origin.
+ * @param request_id Unique counter for the request from this sender to this origin.
  * @param msg Message to the origin.
  */
-typedef void (*GNUNET_MULTICAST_ResponseCallback) (void *cls,
-						   const struct GNUNET_PeerIdentity *sender,
-						   uint64_t response_id,
-						   const struct GNUNET_MessageHeader *msg);
+typedef void (*GNUNET_MULTICAST_RequestCallback) (void *cls,
+                                                  const struct GNUNET_PeerIdentity *sender,
+                                                  uint64_t request_id,
+                                                  const struct GNUNET_MessageHeader *msg);
 
 
 /** 
  * Function called whenever a group member is receiving a message from
- * the origin.  If admission to the group is denied, this function is
- * called once with the response of the @e origin (as given to 
- * GNUNET_MULTICAST_join_decision()) and then a second time with NULL
- * to indicate that the connection failed for good.
+ * the origin.
+ *
+ * If admission to the group is denied, this function is called once with the
+ * response of the @e origin (as given to GNUNET_MULTICAST_join_decision()) and
+ * then a second time with NULL to indicate that the connection failed for good.
  *
  * @param cls Closure (set from GNUNET_MULTICAST_member_join())
  * @param message_id Unique number of the message, 0 for response to join request,
@@ -381,6 +326,112 @@ typedef void (*GNUNET_MULTICAST_ResponseCallback) (void *cls,
 typedef void (*GNUNET_MULTICAST_MulticastMessageCallback) (void *cls,
 							   uint64_t message_id,
 							   const struct GNUNET_MULTICAST_MessageHeader *msg);
+
+
+/** 
+ * Opaque handle to a replay request from the multicast service.
+ */
+struct GNUNET_MULTICAST_ReplayHandle;
+
+
+/** 
+ * Functions with this signature are called whenever the multicast
+ * service needs a message to be replayed.  Implementations of this
+ * function MUST call GNUNET_MULTICAST_replay() ONCE (with a message
+ * or an error); however, if the origin is destroyed or the group is
+ * left, the replay handle must no longer be used.
+ *
+ * @param cls Closure (set from GNUNET_MULTICAST_origin_start()
+ *            or GNUNET_MULTICAST_member_join()).
+ * @param message_id Which message should be replayed.
+ * @param rh Handle to pass to message transmit function.
+ */
+typedef void (*GNUNET_MULTICAST_ReplayCallback) (void *cls,
+						 uint64_t message_id,
+						 struct GNUNET_MULTICAST_ReplayHandle *rh);
+
+
+/** 
+ * Possible error codes during replay.
+ */
+enum GNUNET_MULTICAST_ReplayErrorCode
+{
+
+  /** 
+   * Everything is fine.
+   */ 
+  GNUNET_MULTICAST_REC_OK = 0,
+
+  /** 
+   * Message has been discarded (likely transient message that was too old).
+   */ 
+  GNUNET_MULTICAST_REC_TRANSIENT_LOST = 1,
+
+  /** 
+   * Message ID counter was larger than the highest counter this
+   * replay function has ever encountered; thus it is likely the
+   * origin never sent it and we're at the HEAD of the multicast
+   * stream as far as this node is concerned.
+   */ 
+  GNUNET_MULTICAST_REC_PAST_HEAD = 2,
+
+  /** 
+   * Internal error (i.e. database error).  Try some other peer.
+   */ 
+  GNUNET_MULTICAST_REC_INTERNAL_ERROR = 3
+
+};
+
+
+/** 
+ * Replay a message from the multicast group.
+ *
+ * @param rh Replay handle identifying which replay operation was requested.
+ * @param msg Replayed message, NULL if unknown/error.
+ * @param ec Error code.
+ */
+void
+GNUNET_MULTICAST_replay (struct GNUNET_MULTICAST_ReplayHandle *rh,
+			 const struct GNUNET_MULTICAST_MessageHeader *msg,
+			 enum GNUNET_MULTICAST_ReplayErrorCode ec);
+
+
+/** 
+ * Handle to pass back for the answer of a ping.
+ */
+struct GNUNET_MULTICAST_PingHandle;
+
+
+/** 
+ * A response to a @e ping.
+ *
+ * @param ph Handle that was given for the ping.
+ * @param message_id Latest message ID seen by this peer for this group.
+ */
+void
+GNUNET_MULTICAST_pong (struct GNUNET_MULTICAST_ReplayHandle *rh,
+                       uint64_t message_id);
+
+
+/** 
+ * Method called whenever a @e ping is received from another member.
+ *
+ * A @e ping is sent after a period of inactivity to check if the member has not
+ * missed any messages.  A ping contains the latest message ID a member has
+ * seen.  If the latest message ID on the receiving member is higher, the
+ * missing messages must be replayed to the requesting member using
+ * GNUNET_MULTICAST_replay(), otherwise GNUNET_MULTICAST_pong() must be called with
+ * the same message ID, indicating no newer messages was seen by this peer.
+ *
+ * @param cls Closure.
+ * @param peer Identity of the peer who sent the ping.
+ * @param latest_message_id Latest message ID seen by the requesting member.
+ * @param rh Handle to pass back to GNUNET_MULTICAST_pong() or GNUNET_MULTICAST_replay().
+ */
+typedef void (*GNUNET_MULTICAST_PingCallback)(void *cls,
+                                              const struct GNUNET_PeerIdentity *peer,
+                                              uint64_t latest_messaged_id
+                                              struct GNUNET_MULTICAST_ReplayHandle *rh);
 
 
 /** 
@@ -404,10 +455,10 @@ typedef void (*GNUNET_MULTICAST_MulticastMessageCallback) (void *cls,
  * @param join_policy What is the membership policy of the group?
  * @param replay_cb Function that can be called to replay a message.
  * @param test_cb Function multicast can use to test group membership.
- * @param join_cb Function called to approve / disapprove joining of a peer,
- *                and to inform about a leaving member.
- * @param leave_cb Function called to inform about a leaving member.
- * @param response_cb Function called with messages from group members.
+ * @param ping_cb Function called to answer a ping.
+ * @param join_cb Function called to approve / disapprove joining of a peer.
+ * @param leave_cb Function called when a member wants to leave the group.
+ * @param request_cb Function called with messages from group members.
  * @return Handle for the origin, NULL on error.
  */
 struct GNUNET_MULTICAST_Origin *
@@ -417,8 +468,10 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			       enum GNUNET_MULTICAST_JoinPolicy join_policy,
 			       GNUNET_MULITCAST_ReplayCallback replay_cb,
 			       GNUNET_MULITCAST_MembershipTestCallback test_cb,
-			       GNUNET_MULTICAST_MembershipChangeCallback join_cb,
-			       GNUNET_MULTICAST_ResponseCallback response_cb);
+			       GNUNET_MULITCAST_PingCallback ping_cb,
+			       GNUNET_MULTICAST_JoinCallback join_cb,
+			       GNUNET_MULTICAST_LeaveCallback leave_cb,
+			       GNUNET_MULTICAST_RequestCallback request_cb);
 
 
 /** 

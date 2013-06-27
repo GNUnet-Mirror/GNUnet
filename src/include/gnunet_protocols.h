@@ -1922,39 +1922,67 @@ extern "C"
  ******************************************************************************/
 
 /**
- * Multicast message, from origin to all members
+ * Multicast message from the origin to all members.
  */
 #define GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE
 
 /**
- * A peer joined the group.
+ * A unicast message from a group member to the origin.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_JOIN
+#define GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST
 
-/**
- * A peer left the group.
- */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_LEAVE
-
-/**
- * Message from a peer to origin.
- */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_PEER_MESSAGE
 
 /**
  * A peer wants to join the group.
+ *
+ * Unicast message to a group member.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_PEER_JOIN
+#define GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST_JOIN
+
+/**
+ * A join request was rejected.
+ *
+ * Unicast response to a join request.
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_REJECT_JOIN
+
+/**
+ * A peer joined the group.
+ *
+ * Sent to all members by the origin.
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_NOTICE_JOIN
 
 /**
  * A peer wants to leave the group.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_PEER_LEAVE
+#define GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST_LEAVE
+
+/**
+ * A peer left the group.
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_NOTICE_LEAVE
+
+/**
+ * Ping request from a peer.
+ *
+ * A ping is sent after a period of inactivity and contains the last received
+ * message ID.
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_PEER_PING
+
+/**
+ * Response to a ping.
+ *
+ * Contains the last received message ID.
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_PEER_PONG
 
 /**
  * Group terminated.
  */
 #define GNUNET_MESSAGE_TYPE_MULTICAST_GROUP_END
+
 
 /*******************************************************************************
  * PSYC message types
