@@ -1356,7 +1356,7 @@ tcp_plugin_get_session (void *cls,
     {
       session = si_ctx.result;
       LOG (GNUNET_ERROR_TYPE_DEBUG, 
-	   "Found exisiting session for `%s' address `%s' session %p\n",
+	   "Found existing session for `%s' address `%s' session %p\n",
 	   GNUNET_i2s (&address->peer),
 	   tcp_address_to_string(NULL, address->address, address->address_length),
 	   session);
@@ -1405,7 +1405,7 @@ tcp_plugin_get_session (void *cls,
   else
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-    	_("%s:%u: Address of unexpected length %u (should be %u or %u)\n"),
+    	_("Trying to create session for address of unexpected length %u (should be %u or %u)\n"),
 	 	  addrlen, sizeof (struct IPv4TcpAddress), sizeof (struct IPv6TcpAddress));
     return NULL;
   }
@@ -1577,6 +1577,9 @@ struct PrettyPrinterContext
    */
   uint16_t port;
 
+  /**
+   * IPv6 address
+   */
   int ipv6;
 
   /**
