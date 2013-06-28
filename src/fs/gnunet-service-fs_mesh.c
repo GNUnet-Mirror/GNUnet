@@ -1121,11 +1121,9 @@ request_cb (void *cls,
 
 
 /**
- * Functions of this type are called upon new mesh connection from other peers
- * or upon binding error which happen when the app_port given in
- * GNUNET_STREAM_listen() is already taken.
+ * Functions of this type are called upon new mesh connection from other peers.
  *
- * @param cls the closure from GNUNET_STREAM_listen
+ * @param cls the closure from GNUNET_MESH_connect
  * @param socket the socket representing the mesh
  * @param initiator the identity of the peer who wants to establish a mesh
  *            with us; NULL on binding error
