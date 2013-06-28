@@ -2082,7 +2082,8 @@ tunnel_send_bck_ack (struct MeshTunnel *t, uint16_t type)
   if (t->next_fc.last_ack_sent == ack && GNUNET_NO == t->force_ack)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "    Not sending ACK, not needed\n");
+                "    Not sending ACK, not needed, last ack sent was %u\n",
+                t->next_fc.last_ack_sent);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3134,8 +3135,6 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     if (0 != (opt & MESH_TUNNEL_OPT_NOBUFFER))
     {
       t->nobuffer = GNUNET_YES;
-      t->prev_fc.last_ack_sent = t->prev_fc.last_pid_recv + 1;
-      t->next_fc.last_ack_sent = t->next_fc.last_pid_recv + 1;
       t->queue_max = 1;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  nobuffer:%d\n", t->nobuffer);
