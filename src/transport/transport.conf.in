@@ -82,6 +82,8 @@ TESTING_IGNORE_KEYS = ACCEPT_FROM;
 # If you have a valid SSL certificate for your external hostname tell, 
 # clients to verify it  
 # VERIFY_EXTERNAL_HOSTNAME = YES
+# Does the external hostname use the same port?
+# EXTERNAL_HOSTNAME_USE_PORT = YES
 PORT = 4433
 ADVERTISED_PORT = 4433
 CRYPTO_INIT = NORMAL
