@@ -111,9 +111,9 @@ endif
 ld_mesh_test_lib = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/mesh/libgnunetmeshtest.a \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
-  $(top_builddir)/src/mesh/libgnunetmeshtest.a
+  $(top_builddir)/src/testbed/libgnunettestbed.la
 
 dep_mesh_test_lib = \
   libgnunetmesh.la \
