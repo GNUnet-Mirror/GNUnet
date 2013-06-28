@@ -43,6 +43,8 @@
  */
 #define RETRY 0
 
+#define PLUGIN_NAME "unix"
+
 /**
  * How long until we give up on transmitting the welcome message?
  */
@@ -59,6 +61,14 @@
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
+
+struct UnixAddress
+{
+	uint32_t options GNUNET_PACKED;
+
+	uint32_t addrlen GNUNET_PACKED;
+};
+
 
 /**
  * UNIX Message-Packet header.
@@ -77,6 +87,12 @@ struct UNIXMessage
 
 };
 
+GNUNET_NETWORK_STRUCT_END
+
+/**
+ * Address options
+ */
+static uint32_t myoptions;
 
 /**
  * Handle for a session.
@@ -87,7 +103,7 @@ struct Session
 
   struct Plugin * plugin;
 
-  void *addr;
+  struct UnixAddress *addr;
 
   size_t addrlen;
 
@@ -330,6 +346,19 @@ reschedule_session_timeout (struct Session *s);
 static void
 unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
+/**
+ * Function called for a quick conversion of the binary address to
+ * a numeric address.  Note that the caller must not free the
+ * address and that the next call to this function is allowed
+ * to override the address again.
+ *
+ * @param cls closure
+ * @param addr binary address
+ * @param addrlen length of the address
+ * @return string representing the same address
+ */
+static const char *
+unix_address_to_string (void *cls, const void *addr, size_t addrlen);
 
 /**
  * Re-schedule the main 'select' callback (unix_plugin_select)
@@ -381,7 +410,9 @@ struct LookupCtx
   /**
    * Address we are looking for.
    */
-  const struct sockaddr_un *addr;
+  const struct UnixAddress *ua;
+
+  size_t ua_len;
 };
 
 
@@ -401,7 +432,10 @@ lookup_session_it (void *cls,
   struct LookupCtx *lctx = cls;
   struct Session *t = value;
 
-  if (0 == strcmp (t->addr, lctx->addr->sun_path))
+  if (t->addrlen != lctx->ua_len)
+    return GNUNET_YES;
+
+  if (0 == memcmp (&t->addr, lctx->ua, lctx->ua_len))
   {
     lctx->s = t;
     return GNUNET_NO;
@@ -421,15 +455,16 @@ lookup_session_it (void *cls,
 static struct Session *
 lookup_session (struct Plugin *plugin, 
 		const struct GNUNET_PeerIdentity *sender, 
-		const struct sockaddr_un *addr)
+		const struct UnixAddress *ua, size_t ua_len)
 {
   struct LookupCtx lctx;
 
   GNUNET_assert (NULL != plugin);
   GNUNET_assert (NULL != sender);
-  GNUNET_assert (NULL != addr);
+  GNUNET_assert (NULL != ua);
   lctx.s = NULL;
-  lctx.addr = addr;
+  lctx.ua = ua;
+  lctx.ua_len = ua_len;
   GNUNET_CONTAINER_multihashmap_get_multiple (plugin->session_map, 
 					      &sender->hashPubKey,
 					      &lookup_session_it, &lctx);
@@ -519,7 +554,7 @@ unix_real_send (void *cls,
                 const struct GNUNET_PeerIdentity *target, const char *msgbuf,
                 size_t msgbuf_size, unsigned int priority,
                 struct GNUNET_TIME_Absolute timeout,
-                const void *addr,
+                const struct UnixAddress *addr,
                 size_t addrlen,
                 size_t payload,
                 GNUNET_TRANSPORT_TransmitContinuation cont,
@@ -531,6 +566,8 @@ unix_real_send (void *cls,
   size_t sbs;
   struct sockaddr_un un;
   size_t slen;
+  const char *unix_path;
+
 
   GNUNET_assert (NULL != plugin);
   if (NULL == send_handle)
@@ -545,13 +582,14 @@ unix_real_send (void *cls,
   }
 
   /* Prepare address */
+  unix_path = (const char *)  &addr[1];
   memset (&un, 0, sizeof (un));
   un.sun_family = AF_UNIX;
-  slen = strlen (addr) + 1;
+  slen =  strlen (unix_path);
   if (slen >= sizeof (un.sun_path))
     slen = sizeof (un.sun_path) - 1;
   GNUNET_assert (slen < sizeof (un.sun_path));
-  memcpy (un.sun_path, addr, slen);
+  memcpy (un.sun_path, unix_path, slen);
   un.sun_path[slen] = '\0';
   slen = sizeof (struct sockaddr_un);
 #if LINUX
@@ -703,9 +741,38 @@ unix_plugin_get_session (void *cls,
   struct Plugin *plugin = cls;
   struct Session *s;
   struct GetSessionIteratorContext gsi;
+  struct UnixAddress *ua;
+  char * addrstr;
+  uint32_t addr_str_len;
 
   GNUNET_assert (NULL != plugin);
   GNUNET_assert (NULL != address);
+
+  ua = (struct UnixAddress *) address->address;
+  if ((NULL == address->address) || (0 == address->address_length) ||
+  		(sizeof (struct UnixAddress) > address->address_length))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+	addrstr = (char *) &ua[1];
+	addr_str_len = ntohl (ua->addrlen);
+	if (addr_str_len != address->address_length - sizeof (struct UnixAddress *))
+  {
+		/* This can be a legacy address */
+    return NULL;
+  }
+
+  if ('\0' != addrstr[addr_str_len - 1])
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  if (strlen (addrstr) + 1 != addr_str_len)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
 
   /* Check if already existing */
   gsi.address = (const char *) address->address;
@@ -723,21 +790,18 @@ unix_plugin_get_session (void *cls,
 
   /* create a new session */
   s = GNUNET_malloc (sizeof (struct Session) + address->address_length);
-  s->addr = &s[1];
+  s->addr = (struct UnixAddress *) &s[1];
   s->addrlen = address->address_length;
   s->plugin = plugin;
-  memcpy (s->addr, address->address, s->addrlen);
+  memcpy (s->addr, address->address, address->address_length);
   memcpy (&s->target, &address->peer, sizeof (struct GNUNET_PeerIdentity));
-
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
   s->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
 						  &session_timeout,
 						  s);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Creating a new session %p with timeout set to %s\n",
-       s,  
-       GNUNET_STRINGS_relative_time_to_string (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-					       GNUNET_YES));
+       "Creating a new session %p for address `%s'\n",
+       s,  unix_address_to_string (NULL, address->address, address->address_length));
   (void) GNUNET_CONTAINER_multihashmap_put (plugin->session_map,
 					    &address->peer.hashPubKey, s,
 					    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
@@ -852,18 +916,18 @@ unix_plugin_send (void *cls,
 static void
 unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
                     const struct GNUNET_MessageHeader *currhdr,
-                    const struct sockaddr_un *un, size_t fromlen)
+                    const struct UnixAddress *ua, size_t ua_len)
 {
   struct Session *s = NULL;
   struct GNUNET_HELLO_Address * addr;
 
   GNUNET_break (ntohl(plugin->ats_network.value) != GNUNET_ATS_NET_UNSPECIFIED);
 
-  GNUNET_assert (fromlen >= sizeof (struct sockaddr_un));
+  GNUNET_assert (ua_len >= sizeof (struct UnixAddress));
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
        "Received message from %s\n",
-       un->sun_path);
+       unix_address_to_string(NULL, ua, ua_len));
   GNUNET_STATISTICS_update (plugin->env->stats,
 			    "# bytes received via UNIX",
 			    ntohs (currhdr->size),
@@ -871,20 +935,19 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
 
   addr = GNUNET_HELLO_address_allocate (sender,
 					"unix",
-					un->sun_path, 
-					strlen (un->sun_path) + 1);
-  s = lookup_session (plugin, sender, un);
+					ua,
+					ua_len);
+  s = lookup_session (plugin, sender, ua, ua_len);
   if (NULL == s)
     s = unix_plugin_get_session (plugin, addr);
   reschedule_session_timeout (s);
 
   plugin->env->receive (plugin->env->cls, sender, currhdr,
-                        s, un->sun_path, strlen (un->sun_path) + 1);
+                        s, (const char *) ua, ua_len);
 
   plugin->env->update_address_metrics (plugin->env->cls,
 				       sender,
-				       un->sun_path,
-				       strlen (un->sun_path) + 1,
+				       (const char *) ua, ua_len,
 				       s,
 				       &plugin->ats_network, 1);
 
@@ -901,6 +964,7 @@ static void
 unix_plugin_select_read (struct Plugin *plugin)
 {
   char buf[65536] GNUNET_ALIGN;
+  struct UnixAddress *ua;
   struct UNIXMessage *msg;
   struct GNUNET_PeerIdentity sender;
   struct sockaddr_un un;
@@ -911,6 +975,7 @@ unix_plugin_select_read (struct Plugin *plugin)
   char *msgbuf;
   const struct GNUNET_MessageHeader *currhdr;
   uint16_t csize;
+  size_t ua_len;
 
   addrlen = sizeof (un);
   memset (&un, 0, sizeof (un));
@@ -937,6 +1002,11 @@ unix_plugin_select_read (struct Plugin *plugin)
   }
 
   GNUNET_assert (AF_UNIX == (un.sun_family));
+  ua_len = sizeof (struct UnixAddress) + strlen (&un.sun_path[0]) +1;
+  ua = GNUNET_malloc (ua_len);
+  ua->addrlen = htonl (strlen (&un.sun_path[0]) +1);
+  ua->options = htonl (0);
+  memcpy (&ua[1], &un.sun_path[0], strlen (&un.sun_path[0]) +1);
 
   msg = (struct UNIXMessage *) buf;
   csize = ntohs (msg->header.size);
@@ -959,9 +1029,10 @@ unix_plugin_select_read (struct Plugin *plugin)
       GNUNET_break_op (0);
       break;
     }
-    unix_demultiplexer (plugin, &sender, currhdr, &un, sizeof (un));
+    unix_demultiplexer (plugin, &sender, currhdr, ua, ua_len);
     offset += csize;
   }
+  GNUNET_free (ua);
 }
 
 
@@ -1173,6 +1244,57 @@ unix_transport_server_start (void *cls)
 
 
 /**
+ * Function called for a quick conversion of the binary address to
+ * a numeric address.  Note that the caller must not free the
+ * address and that the next call to this function is allowed
+ * to override the address again.
+ *
+ * @param cls closure
+ * @param addr binary address
+ * @param addrlen length of the address
+ * @return string representing the same address
+ */
+static const char *
+unix_address_to_string (void *cls, const void *addr, size_t addrlen)
+{
+  static char rbuf[1024];
+	struct UnixAddress *ua = (struct UnixAddress *) addr;
+	char *addrstr;
+	char *tmp;
+	size_t addr_str_len;
+
+  if ((NULL == addr) || (0 == addrlen) || (sizeof (struct UnixAddress) > addrlen))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+	addrstr = (char *) &ua[1];
+	addr_str_len = ntohl (ua->addrlen);
+
+	if (addr_str_len != addrlen - sizeof (struct UnixAddress *))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+
+  if ('\0' != addrstr[addr_str_len - 1])
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  if (strlen (addrstr) + 1 != addr_str_len)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+
+  GNUNET_asprintf(&tmp, "%s.%u.%s", PLUGIN_NAME, ntohl (ua->options), addrstr);
+  memcpy (rbuf, tmp, strlen (tmp) + 1);
+  GNUNET_free (tmp);
+  return rbuf;
+}
+
+/**
  * Function that will be called to check if a binary address for this
  * plugin is well-formed and corresponds to an address for THIS peer
  * (as per our configuration).  Naturally, if absolutely necessary,
@@ -1191,10 +1313,32 @@ unix_transport_server_start (void *cls)
 static int
 unix_check_address (void *cls, const void *addr, size_t addrlen)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Informing transport service about my address `%s'\n",
-              (char *) addr);
-  return GNUNET_OK;
+	struct Plugin* plugin = cls;
+	struct UnixAddress *ua = (struct UnixAddress *) addr;
+	char *addrstr;
+	size_t addr_str_len;
+
+  if ((NULL == addr) || (0 == addrlen) || (sizeof (struct UnixAddress) > addrlen))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+	addrstr = (char *) &ua[1];
+	addr_str_len = ntohl (ua->addrlen);
+  if ('\0' != addrstr[addr_str_len - 1])
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (strlen (addrstr) + 1 != addr_str_len)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+
+  if (0 == strcmp (plugin->unix_socket_path, addrstr))
+  	return GNUNET_OK;
+  return GNUNET_SYSERR;
 }
 
 
@@ -1222,7 +1366,7 @@ unix_plugin_address_pretty_printer (void *cls, const char *type,
 {
   if ((NULL != addr) && (addrlen > 0))
   {
-    asc (asc_cls, (const char *) addr);
+    asc (asc_cls, unix_address_to_string (NULL, addr, addrlen));
   }
   else
   {
@@ -1249,47 +1393,70 @@ static int
 unix_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     void **buf, size_t *added)
 {
-  if ((NULL == addr) || (0 == addrlen))
+	struct UnixAddress *ua;
+  char *address;
+  char *plugin;
+  char *optionstr;
+  uint32_t options;
+  size_t ua_size;
+
+  /* Format unix.options.address */
+  address = NULL;
+  plugin = NULL;
+  optionstr = NULL;
+  options = 0;
+  if ((NULL == addr) || (addrlen == 0))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-
   if ('\0' != addr[addrlen - 1])
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-
   if (strlen (addr) != addrlen - 1)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
+  plugin = GNUNET_strdup (addr);
+  optionstr = strchr (plugin, '.');
+  if (NULL == optionstr)
+  {
+    GNUNET_break (0);
+    GNUNET_free (plugin);
+    return GNUNET_SYSERR;
+  }
+  optionstr[0] = '\0';
+  optionstr ++;
+  options = atol (optionstr);
+  address = strchr (optionstr, '.');
+  if (NULL == address)
+  {
+    GNUNET_break (0);
+    GNUNET_free (plugin);
+    return GNUNET_SYSERR;
+  }
+  address[0] = '\0';
+  address ++;
+  if (0 != strcmp(plugin, PLUGIN_NAME))
+  {
+    GNUNET_break (0);
+    GNUNET_free (plugin);
+    return GNUNET_SYSERR;
+  }
 
-  (*buf) = strdup (addr);
-  (*added) = strlen (addr) + 1;
+  ua_size = sizeof (struct UnixAddress) + strlen (address) + 1;
+  ua = GNUNET_malloc (ua_size);
+  ua->options = htonl (options);
+  ua->addrlen = htonl (strlen (address) + 1);
+  memcpy (&ua[1], address, strlen (address) + 1);
+  GNUNET_free (plugin);
+
+  (*buf) = ua;
+  (*added) = ua_size;
   return GNUNET_OK;
-}
-
-
-/**
- * Function called for a quick conversion of the binary address to
- * a numeric address.  Note that the caller must not free the
- * address and that the next call to this function is allowed
- * to override the address again.
- *
- * @param cls closure
- * @param addr binary address
- * @param addrlen length of the address
- * @return string representing the same address
- */
-static const char *
-unix_address_to_string (void *cls, const void *addr, size_t addrlen)
-{
-  if ((addr != NULL) && (addrlen > 0))
-    return (const char *) addr;
-  return NULL;
 }
 
 
@@ -1304,12 +1471,19 @@ address_notification (void *cls,
 		      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Plugin *plugin = cls;
+  size_t len;
+  struct UnixAddress *ua;
+
+  len = sizeof (struct UnixAddress) + strlen (plugin->unix_socket_path) + 1;
+  ua = GNUNET_malloc (len);
+  ua->options = htonl (myoptions);
+  ua->addrlen = htonl(strlen (plugin->unix_socket_path) + 1);
+  memcpy (&ua[1], plugin->unix_socket_path, strlen (plugin->unix_socket_path) + 1);
 
   plugin->address_update_task = GNUNET_SCHEDULER_NO_TASK;
   plugin->env->notify_address (plugin->env->cls, GNUNET_YES,
-                               plugin->unix_socket_path,
-                               strlen (plugin->unix_socket_path) + 1,
-                               "unix");
+                               ua, len, "unix");
+  GNUNET_free (ua);
 }
 
 
@@ -1411,6 +1585,9 @@ libgnunet_plugin_transport_unix_init (void *cls)
 		   "/tmp/unix-plugin-sock.%d",
                    plugin->port);
 
+  /* Initialize my flags */
+  myoptions = 0;
+
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
 
@@ -1443,16 +1620,24 @@ libgnunet_plugin_transport_unix_done (void *cls)
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
   struct UNIXMessageWrapper * msgw;
+  struct UnixAddress *ua;
+  size_t len;
 
   if (NULL == plugin)
   {
     GNUNET_free (api);
     return NULL;
   }
+
+  len = sizeof (struct UnixAddress) + strlen (plugin->unix_socket_path) + 1;
+  ua = GNUNET_malloc (len);
+  ua->options = htonl (myoptions);
+  ua->addrlen = htonl(strlen (plugin->unix_socket_path) + 1);
+  memcpy (&ua[1], plugin->unix_socket_path, strlen (plugin->unix_socket_path) + 1);
+
   plugin->env->notify_address (plugin->env->cls, GNUNET_NO,
-                               plugin->unix_socket_path,
-                               strlen (plugin->unix_socket_path) + 1,
-                               "unix");
+  														 ua, len, "unix");
+  GNUNET_free (ua);
   while (NULL != (msgw = plugin->msg_head))
   {
     GNUNET_CONTAINER_DLL_remove (plugin->msg_head, plugin->msg_tail, msgw);
