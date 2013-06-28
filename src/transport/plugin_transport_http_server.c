@@ -2612,7 +2612,7 @@ server_notify_external_hostname (void *cls, const struct GNUNET_SCHEDULER_TaskCo
   memcpy (&plugin->ext_addr[1], url, urlen);
   GNUNET_free (url);
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Notifying transport about external hostname address `%s'\n", plugin->ext_addr);
+                   "Notifying transport about external hostname address `%s'\n", plugin->external_hostname);
 
 #if BUILD_HTTPS
   if (GNUNET_YES == plugin->verify_external_hostname)
@@ -2642,6 +2642,8 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
   unsigned long long max_connections;
   char *bind4_address = NULL;
   char *bind6_address = NULL;
+  char *eh_tmp = NULL;
+  int external_hostname_use_port;
 
   /* Use IPv4? */
   if (GNUNET_CONFIGURATION_have_value
@@ -2692,7 +2694,7 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
   }
   plugin->port = port;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, plugin->name,
                    _("Using port %u\n"), plugin->port);
 
   if ((plugin->use_ipv4 == GNUNET_YES) &&
@@ -2765,19 +2767,42 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
   if (GNUNET_YES == plugin->verify_external_hostname)
   	plugin->options |= HTTP_OPTIONS_VERIFY_CERTIFICATE;
 #endif
+  external_hostname_use_port = GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg, plugin->name,
+																				"EXTERNAL_HOSTNAME_USE_PORT");
+  if (GNUNET_SYSERR == external_hostname_use_port)
+  	external_hostname_use_port = GNUNET_NO;
+
 
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg, plugin->name,
-                                              "EXTERNAL_HOSTNAME", &plugin->external_hostname))
+                                              "EXTERNAL_HOSTNAME", &eh_tmp))
   {
       char * tmp = NULL;
-      if (NULL != strstr(plugin->external_hostname, "://"))
-      {
-          tmp = strdup(&strstr(plugin->external_hostname, "://")[3]);
-          GNUNET_free (plugin->external_hostname);
-          plugin->external_hostname = tmp;
+      char * pos = NULL;
+      char * pos_url = NULL;
 
+      if (NULL != strstr(eh_tmp, "://"))
+      {
+          tmp = &strstr(eh_tmp, "://")[3];
       }
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+      else
+      		tmp = eh_tmp;
+
+      if (GNUNET_YES == external_hostname_use_port)
+      {
+        if ( (strlen (tmp) > 1) && (NULL != (pos = strchr(tmp, '/'))) )
+        {
+        	pos_url = pos + 1;
+        	pos[0] = '\0';
+        	GNUNET_asprintf (&plugin->external_hostname, "%s:%u/%s", tmp, port, pos_url);
+        }
+        else
+        	GNUNET_asprintf (&plugin->external_hostname, "%s:%u", tmp, port);
+      }
+      else
+      	plugin->external_hostname = GNUNET_strdup (tmp);
+      GNUNET_free (eh_tmp);
+
+      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, plugin->name,
                        _("Using external hostname `%s'\n"), plugin->external_hostname);
       plugin->notify_ext_task = GNUNET_SCHEDULER_add_now (&server_notify_external_hostname, plugin);
 
