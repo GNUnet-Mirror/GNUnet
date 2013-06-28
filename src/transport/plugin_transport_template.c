@@ -42,6 +42,7 @@
  */
 #define LEARNED_ADDRESS_EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 6)
 
+#define PLUGIN_NAME "template"
 
 /**
  * Encapsulation of all of the state of the plugin.
@@ -106,6 +107,20 @@ struct Session
 
 };
 
+#define GNUNET_NETWORK_STRUCT_BEGIN
+
+struct TemplateAddress
+{
+	/**
+	 * Address options in NBO
+	 */
+	uint32_t options GNUNET_PACKED;
+
+	/* Add address here */
+};
+
+GNUNET_NETWORK_STRUCT_END
+
 /**
  * Encapsulation of all of the state of the plugin.
  */
@@ -120,6 +135,10 @@ struct Plugin
    * List of open sessions.
    */
   struct Session *sessions;
+
+  /**
+   * Options in HBO to be used with addresses
+   */
 
 };
 
@@ -231,8 +250,7 @@ template_plugin_address_suggested (void *cls, const void *addr, size_t addrlen)
 {
   /* struct Plugin *plugin = cls; */
 
-  /* check if the address is plausible; if so,
-   * add it to our list! */
+  /* check if the address is belonging to the plugin*/
   return GNUNET_OK;
 }
 
@@ -251,6 +269,10 @@ template_plugin_address_suggested (void *cls, const void *addr, size_t addrlen)
 static const char *
 template_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
 {
+	/*
+	 * Parse string in format template.options.address
+	 */
+
   GNUNET_break (0);
   return NULL;
 }
@@ -272,6 +294,11 @@ static int
 template_plugin_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     void **buf, size_t *added)
 {
+
+	/*
+	 * Print address in format template.options.address
+	 */
+
   GNUNET_break (0);
   return GNUNET_SYSERR;
 }
