@@ -711,7 +711,7 @@ static size_t
 transmit_cb (void *cls, size_t size, void *buf)
 {
   // ...
-  if (NULL == buf) { handle_error(); return 0; }
+  if (NULL == buf) { /* handle error here */; return 0; }
   GNUNET_assert (size >= msg_size);
   memcpy (buf, my_msg, msg_size);
   // ...
