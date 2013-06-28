@@ -3882,6 +3882,8 @@ notify_client_connection_failure (void *cls, size_t size, void *buf)
  *
  * @param cls Closure (tunnel for which to send the keepalive).
  * @param tc Notification context.
+ * 
+ * FIXME: add a refresh reset in case of normal unicast traffic is doing the job
  */
 static void
 path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -3893,7 +3895,7 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   t->maintenance_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) ||
-      NULL == t->owner || 0 == t->local_tid || 0 != t->prev_hop)
+      NULL == t->owner || 0 == t->local_tid)
   {
     return;
   }
