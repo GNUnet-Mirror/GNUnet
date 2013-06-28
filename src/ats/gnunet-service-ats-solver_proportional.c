@@ -264,8 +264,6 @@ struct GAS_PROPORTIONAL_Handle
    */
   void *get_preferences_cls;
 
-  struct GNUNET_CONTAINER_MultiHashMap *prefs;
-
   struct PreferenceClient *pc_head;
   struct PreferenceClient *pc_tail;
 };
@@ -360,6 +358,7 @@ struct AddressWrapper
 static int
 is_bandwidth_available_in_network (struct Network *net)
 {
+	GNUNET_assert (NULL != net);
   unsigned int na = net->active_addresses + 1;
   uint32_t min_bw = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
   if (((net->total_quota_in / na) > min_bw) &&
@@ -892,6 +891,13 @@ GAS_proportional_get_preferred_address (void *solver,
       (GNUNET_NO == cur->active) ? "inactive" : "active",
       cur, GNUNET_i2s (peer));
   net_cur = (struct Network *) cur->solver_information;
+  if (NULL == cur)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Trying to suggesting unknown address peer `%s'\n",
+        GNUNET_i2s (peer));
+    GNUNET_break (0);
+    return NULL;
+  }
   if (GNUNET_YES == cur->active)
   {
       /* This address was selected previously, so no need to update quotas */
@@ -1103,6 +1109,7 @@ GAS_proportional_address_update (void *solver,
 
         /* set new network type */
         new_net = get_network (solver, addr_net);
+        GNUNET_assert (NULL != new_net);
         address->solver_information = new_net;
 
         /* Add to new network and update*/
@@ -1256,7 +1263,6 @@ GAS_proportional_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   s->network_entries = GNUNET_malloc (dest_length * sizeof (struct Network));
   s->active_addresses = 0;
   s->total_addresses = 0;
-  s->prefs = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
 
   for (c = 0; c < dest_length; c++)
   {
