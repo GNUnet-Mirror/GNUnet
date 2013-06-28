@@ -75,7 +75,10 @@ end ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
 
   if (send_task != GNUNET_SCHEDULER_NO_TASK)
+  {
     GNUNET_SCHEDULER_cancel (send_task);
+    send_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (die_task);
@@ -96,7 +99,10 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   die_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
   if (send_task != GNUNET_SCHEDULER_NO_TASK)
+  {
     GNUNET_SCHEDULER_cancel (send_task);
+    send_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 
   if (NULL != cc2)
   {
@@ -223,6 +229,7 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   static int c;
 
   c++;
+  GNUNET_assert (NULL != cls);
   struct PeerContext *p = cls;
   struct PeerContext *t = NULL;
 
@@ -234,7 +241,7 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
   char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Peer %u (`%4s'): peer %u (`%s') connected to me!\n", p->no, ps,
               t->no, GNUNET_i2s (peer));
   GNUNET_free (ps);
@@ -247,9 +254,17 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   struct PeerContext *p = cls;
   char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Peer %u (`%4s'): peer (`%s') disconnected from me!\n", p->no, ps,
               GNUNET_i2s (peer));
+
+  if (GNUNET_SCHEDULER_NO_TASK != send_task)
+  {
+
+  	GNUNET_SCHEDULER_cancel(send_task);
+  	GNUNET_break (0);
+		send_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
@@ -260,24 +275,31 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 static void
 testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 {
-  if (cls == cc1)
+	static int connected = GNUNET_NO;
+	GNUNET_break (0);
+  if ((cls == cc1) && (NULL != cc2))
   {
-    cc1 = NULL;
+  	GNUNET_break (0);
     GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc2);
   }
-  if (cls == cc2)
+  if ((cls == cc2) && (NULL != cc1))
   {
-    cc2 = NULL;
+  	GNUNET_break (0);
     GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc1);
   }
+  cc1 = NULL;
+  cc2 = NULL;
 
+  if (connected > 0)
+  	return;
+  connected  ++;
   char *p1_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected: %u (%s) <-> %u (%s)\n",
               p1->no, p1_c, p2->no, GNUNET_i2s (&p2->id));
   GNUNET_free (p1_c);
-
-  send_task = GNUNET_SCHEDULER_add_now (&sendtask, NULL);
+GNUNET_break (0);
+  send_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &sendtask, NULL);
 }
 
 
@@ -302,10 +324,10 @@ start_cb (struct PeerContext *p, void *cls)
 
   cc1 =
       GNUNET_TRANSPORT_TESTING_connect_peers (tth, p2, p1, &testing_connect_cb,
-                                              NULL);
+                                              cc1);
   cc2 =
       GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb,
-                                              NULL);
+                                              cc2);
 }
 
 static void
