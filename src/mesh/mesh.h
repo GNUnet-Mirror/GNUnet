@@ -38,9 +38,6 @@ extern "C"
 
 #define MESH_DEBUG              GNUNET_YES
 
-#define INITIAL_WINDOW_SIZE     8
-#define ACK_THRESHOLD           INITIAL_WINDOW_SIZE / 2
-
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_util_lib.h"
@@ -63,17 +60,7 @@ extern "C"
  *
  * tunnel_create                        GNUNET_MESH_TunnelMessage
  * tunnel_destroy                       GNUNET_MESH_TunnelMessage
- * tunnel_speed_max                     GNUNET_MESH_TunnelMessage
- * tunnel_speed_min                     GNUNET_MESH_TunnelMessage
  * tunnel_buffer                        GNUNET_MESH_TunnelMessage
- *
- * peer_request_connect_add             GNUNET_MESH_PeerControl
- * peer_request_connect_del             GNUNET_MESH_PeerControl
- * peer_request_connect_by_type         GNUNET_MESH_ConnectPeerByType
- * peer_request_connect_by_string       GNUNET_MESH_ConnectPeerByString
- * 
- * peer_blacklist                       GNUNET_MESH_PeerControl
- * peer_unblacklist                     GNUNET_MESH_PeerControl
  *
  * notify_transmit_ready                None (queue / GNUNET_CLIENT_ntf_tmt_rdy)
  * notify_transmit_ready_cancel         None (clear of internal data structures)
@@ -87,8 +74,8 @@ extern "C"
  * data ack                             GNUNET_MESH_LocalAck
  * 
  * new incoming tunnel                  GNUNET_MESH_PeerControl
- * peer connects to a tunnel            GNUNET_MESH_PeerControl
- * peer disconnects from a tunnel       GNUNET_MESH_PeerControl
+ * peer connects to a tunnel            FIXME
+ * peer disconnects from a tunnel       FIXME
  */
 
 /******************************************************************************/
@@ -122,10 +109,7 @@ struct GNUNET_MESH_ClientConnect
      *       sizeof(uint16_t) * types
      */
   struct GNUNET_MessageHeader header;
-  uint16_t applications GNUNET_PACKED;
-  uint16_t types GNUNET_PACKED;
-  /* uint32_t                 list_apps[applications]     */
-  /* uint16_t                 list_types[types]           */
+  /* uint32_t                 list_ports[]           */
 };
 
 
@@ -137,6 +121,7 @@ struct GNUNET_MESH_ClientConnect
  */
 typedef uint32_t MESH_TunnelNumber;
 
+
 /**
  * Message for a client to create and destroy tunnels.
  */
@@ -144,7 +129,6 @@ struct GNUNET_MESH_TunnelMessage
 {
     /**
      * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_[CREATE|DESTROY]
-     *       GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_[MAX|MIN]
      *
      * Size: sizeof(struct GNUNET_MESH_TunnelMessage)
      */
@@ -154,6 +138,16 @@ struct GNUNET_MESH_TunnelMessage
      * ID of a tunnel controlled by this client.
      */
   MESH_TunnelNumber tunnel_id GNUNET_PACKED;
+
+    /**
+     * Tunnel's peer
+     */
+  struct GNUNET_PeerIdentity peer;
+
+    /**
+     * Port of the tunnel.
+     */
+  uint32_t port GNUNET_PACKED;
 };
 
 
@@ -175,118 +169,19 @@ struct GNUNET_MESH_TunnelNotification
   MESH_TunnelNumber tunnel_id GNUNET_PACKED;
 
     /**
-     * Peer at the other end, if any
+     * Peer at the other end.
      */
   struct GNUNET_PeerIdentity peer;
+
+    /**
+     * Port for this tunnel
+     */
+  uint32_t port GNUNET_PACKED;
 
     /**
      * Tunnel options (speed, buffering)
      */
-  uint32_t opt;
-};
-
-/**
- * Message for announce of regular expressions.
- */
-struct GNUNET_MESH_RegexAnnounce
-{
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_ANNOUNCE_REGEX
-     *
-     * Size: sizeof(struct GNUNET_MESH_RegexAnnounce) + strlen (regex)
-     */
-  struct GNUNET_MessageHeader header;
-
-    /**
-     * How many characters do we want to put in an edge label.
-     */
-  uint16_t compression_characters;
-
-    /**
-     * Is this the last message for this regex? (for regex > 65k)
-     */
-  int16_t last;
-
-  /* regex payload  */
-};
-
-
-/**
- * Message for:
- * - request adding and deleting peers from a tunnel
- * - notify the client that peers have connected:
- *   -- requested
- *   -- unrequested (new incoming tunnels)
- * - notify the client that peers have disconnected
- */
-struct GNUNET_MESH_PeerControl
-{
-
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_[ADD|DEL|[UN]BLACKLIST]
-     *       (client to service, client created tunnel)
-     *       GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_[CONNECTED|DISCONNECTED]
-     *       (service to client)
-     *
-     * Size: sizeof(struct GNUNET_MESH_PeerControl)
-     */
-  struct GNUNET_MessageHeader header;
-
-    /**
-     * ID of a tunnel controlled by this client.
-     */
-  MESH_TunnelNumber tunnel_id GNUNET_PACKED;
-
-    /**
-     * Peer to connect/disconnect.
-     */
-  struct GNUNET_PeerIdentity peer;
-};
-
-
-/**
- * Message for connecting to peers offering a service, by service number.
- */
-struct GNUNET_MESH_ConnectPeerByType
-{
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE |
-     *       GNUNET_MESSAGE_TYPE_MESH_LOCAL_DISCONNECT_PEER_BY_TYPE
-     * 
-     * Size: sizeof(struct GNUNET_MESH_ConnectPeerByType)
-     */
-  struct GNUNET_MessageHeader header;
-
-    /**
-     * ID of a tunnel controlled by this client.
-     */
-  MESH_TunnelNumber tunnel_id GNUNET_PACKED;
-
-    /**
-     * Type specification
-     */
-  GNUNET_MESH_ApplicationType type GNUNET_PACKED;
-};
-
-
-/**
- * Message for connecting to peers offering a service, by service string.
- */
-struct GNUNET_MESH_ConnectPeerByString
-{
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_STRING
-     * 
-     * Size: sizeof(struct GNUNET_MESH_ConnectPeerByString) + strlen (string)
-     */
-  struct GNUNET_MessageHeader header;
-
-    /**
-     * ID of a tunnel controlled by this client.
-     */
-  MESH_TunnelNumber tunnel_id GNUNET_PACKED;
-
-  /* String describing the service */
+  uint32_t opt GNUNET_PACKED;
 };
 
 
@@ -309,7 +204,7 @@ struct GNUNET_MESH_LocalAck
     /**
      * ID of the last packet allowed.
      */
-  uint32_t max_pid GNUNET_PACKED;
+  uint32_t ack GNUNET_PACKED;
 };
 
 
@@ -329,11 +224,6 @@ struct GNUNET_MESH_LocalMonitor
   MESH_TunnelNumber tunnel_id GNUNET_PACKED;
 
   /**
-   * Number of peers in the tunnel.
-   */
-  uint32_t npeers GNUNET_PACKED;
-
-  /**
    * Alignment.
    */
   uint32_t reserved GNUNET_PACKED;
@@ -343,7 +233,10 @@ struct GNUNET_MESH_LocalMonitor
    */
   struct GNUNET_PeerIdentity owner;
 
-  /* struct GNUNET_PeerIdentity peers[npeers] */
+  /**
+   * ID of the destination of the tunnel (can be local peer).
+   */
+  struct GNUNET_PeerIdentity destination;
 };
 
 
@@ -354,44 +247,34 @@ GNUNET_NETWORK_STRUCT_END
 /******************************************************************************/
 
 /**
- * All the states a peer participating in a tunnel can be in.
+ * All the states a tunnel can be in.
  */
-enum MeshPeerState
+enum MeshTunnelState
 {
     /**
      * Uninitialized status, should never appear in operation.
      */
-  MESH_PEER_INVALID,
-
-    /**
-     * Peer is the root and owner of the tree
-     */
-  MESH_PEER_ROOT,
-
-    /**
-     * Peer only retransmits traffic, is not a final destination
-     */
-  MESH_PEER_RELAY,
+  MESH_TUNNEL_NEW,
 
     /**
      * Path to the peer not known yet
      */
-  MESH_PEER_SEARCHING,
+  MESH_TUNNEL_SEARCHING,
 
     /**
      * Request sent, not yet answered.
      */
-  MESH_PEER_WAITING,
+  MESH_TUNNEL_WAITING,
 
     /**
      * Peer connected and ready to accept data
      */
-  MESH_PEER_READY,
+  MESH_TUNNEL_READY,
 
     /**
      * Peer connected previosly but not responding
      */
-  MESH_PEER_RECONNECTING
+  MESH_TUNNEL_RECONNECTING
 };
 
 
@@ -429,6 +312,18 @@ GMC_max_pid (uint32_t a, uint32_t b);
  */
 uint32_t
 GMC_min_pid (uint32_t a, uint32_t b);
+
+
+/**
+ * Expand a 32 bit value (message type) into a hash for a MultiHashMap (fast).
+ * WARNING: do not use for anything other than MultiHashMap!
+ *          does not alter anything other than bits used by idx_of !
+ *
+ * @param i 32 bit integer value.
+ * @param h Hash code to fill.
+ */
+void
+GMC_hash32 (uint32_t i, struct GNUNET_HashCode *h);
 
 
 /**

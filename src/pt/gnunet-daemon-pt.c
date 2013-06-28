@@ -33,6 +33,8 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_applications.h"
 
+#define PORT_PT 4242 // FIXME
+
 
 /**
  * After how long do we time out if we could not get an IP from VPN or MESH?
@@ -548,11 +550,11 @@ transmit_dns_request_to_mesh (void *cls,
     return 0;
   mlen = ntohs (rc->mesh_message->size);
   if (mlen > size)
-  {    
+  {
     mesh_th = GNUNET_MESH_notify_transmit_ready (mesh_tunnel,
 						 GNUNET_NO,
 						 TIMEOUT,
-						 NULL, mlen,
+						 mlen,
 						 &transmit_dns_request_to_mesh,
 						 NULL);
     return 0;
@@ -571,7 +573,7 @@ transmit_dns_request_to_mesh (void *cls,
     mesh_th = GNUNET_MESH_notify_transmit_ready (mesh_tunnel,
 						 GNUNET_NO,
 						 TIMEOUT,
-						 NULL, ntohs (rc->mesh_message->size),
+						 ntohs (rc->mesh_message->size),
 						 &transmit_dns_request_to_mesh,
 						 NULL);
   return mlen;
@@ -670,7 +672,7 @@ dns_pre_request_handler (void *cls,
     mesh_th = GNUNET_MESH_notify_transmit_ready (mesh_tunnel,
 						 GNUNET_NO,
 						 TIMEOUT,
-						 NULL, mlen,
+						 mlen,
 						 &transmit_dns_request_to_mesh,
 						 NULL);
 }
@@ -682,18 +684,15 @@ dns_pre_request_handler (void *cls,
  * @param cls closure, NULL
  * @param tunnel connection to the other end
  * @param tunnel_ctx pointer to our 'struct TunnelState *'
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
+ * 
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 receive_dns_response (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 		      void **tunnel_ctx,
-		      const struct GNUNET_PeerIdentity *sender GNUNET_UNUSED,
-		      const struct GNUNET_MessageHeader *message,
-		      const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
+		      const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_TUN_DnsHeader dns;
   size_t mlen;
@@ -772,10 +771,12 @@ abort_all_requests ()
 /**
  * Method called whenever a peer has disconnected from the tunnel.
  *
+ * FIXME merge with inbound cleaner
+ * 
  * @param cls closure
  * @param peer peer identity the tunnel stopped working with
  */
-static void
+void
 mesh_disconnect_handler (void *cls,
 			 const struct
 			 GNUNET_PeerIdentity * peer)
@@ -797,11 +798,13 @@ mesh_disconnect_handler (void *cls,
 /**
  * Method called whenever a peer has connected to the tunnel.
  *
+ * FIXME find anouther way (in tmt_ready_callback ?)
+ * 
  * @param cls closure
  * @param peer peer identity the tunnel was created to, NULL on timeout
  * @param atsi performance data for the connection
  */
-static void
+void
 mesh_connect_handler (void *cls,
 		      const struct GNUNET_PeerIdentity
 		      * peer,
@@ -916,9 +919,6 @@ run (void *cls, char *const *args GNUNET_UNUSED,
       {&receive_dns_response, GNUNET_MESSAGE_TYPE_VPN_DNS_FROM_INTERNET, 0},
       {NULL, 0, 0}
     };
-    static GNUNET_MESH_ApplicationType mesh_types[] = {
-      GNUNET_APPLICATION_TYPE_END
-    };
 
     dns_pre_handle 
       = GNUNET_DNS_connect (cfg, 
@@ -932,8 +932,8 @@ run (void *cls, char *const *args GNUNET_UNUSED,
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
-    mesh_handle = GNUNET_MESH_connect (cfg, NULL, NULL, NULL,
-				       mesh_handlers, mesh_types);
+    mesh_handle = GNUNET_MESH_connect (cfg, NULL, NULL, NULL, // FIXME use end handler
+				       mesh_handlers, NULL);
     if (NULL == mesh_handle)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -944,11 +944,10 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     }
     mesh_tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
 					     NULL,
-					     &mesh_connect_handler,
-					     &mesh_disconnect_handler,
-					     NULL);
-    GNUNET_MESH_peer_request_connect_by_type (mesh_tunnel,
-					      GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER); 
+                                             NULL, /* FIXME peer ID*/
+					     PORT_PT);
+//     GNUNET_MESH_peer_request_connect_by_type (mesh_tunnel, FIXME use regex
+// 					      GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER); 
   }
 }
 

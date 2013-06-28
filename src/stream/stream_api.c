@@ -42,6 +42,8 @@
 #include "gnunet_stream_lib.h"
 #include "stream.h"
 
+#define STREAM_PORT 4242
+
 /**
  * Generic logging shorthand
  */
@@ -311,9 +313,9 @@ struct GNUNET_STREAM_Socket
   int transmit_closed;
 
   /**
-   * The application port number (type: uint32_t)
+   * The application port number
    */
-  GNUNET_MESH_ApplicationType port;
+  uint32_t port;
 
   /**
    * The write sequence number to be set incase of testing
@@ -416,7 +418,7 @@ struct GNUNET_STREAM_ListenSocket
   /**
    * The service port
    */
-  GNUNET_MESH_ApplicationType port;
+  uint32_t port;
   
   /**
    * The id of the lockmanager timeout task
@@ -651,7 +653,6 @@ send_message_notify (void *cls, size_t size, void *buf)
         GNUNET_MESH_notify_transmit_ready (socket->tunnel,
                                            GNUNET_NO, /* Corking */
                                            socket->mesh_retry_timeout,
-                                           &socket->other_peer,
                                            ntohs (head->message->size),
                                            &send_message_notify,
                                            socket);
@@ -679,7 +680,6 @@ send_message_notify (void *cls, size_t size, void *buf)
         GNUNET_MESH_notify_transmit_ready (socket->tunnel,
                                            GNUNET_NO, /* Corking */
                                            socket->mesh_retry_timeout,
-                                           &socket->other_peer,
                                            ntohs (head->message->size),
                                            &send_message_notify,
                                            socket);
@@ -739,7 +739,6 @@ queue_message (struct GNUNET_STREAM_Socket *socket,
 	GNUNET_MESH_notify_transmit_ready (socket->tunnel,
 					   GNUNET_NO, /* Corking */
                                            socket->mesh_retry_timeout,
-					   &socket->other_peer,
 					   ntohs (message->size),
 					   &send_message_notify,
 					   socket);
@@ -1159,18 +1158,14 @@ read_io_timeout (void *cls,
  *
  * @param socket the socket through which the ack was received
  * @param tunnel connection to the other end
- * @param sender who sent the message
  * @param msg the data message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_data (struct GNUNET_STREAM_Socket *socket,
              struct GNUNET_MESH_Tunnel *tunnel,
-             const struct GNUNET_PeerIdentity *sender,
-             const struct GNUNET_STREAM_DataMessage *msg,
-             const struct GNUNET_ATS_Information*atsi)
+             const struct GNUNET_STREAM_DataMessage *msg)
 {
   const void *payload;
   struct GNUNET_TIME_Relative ack_deadline_rel;
@@ -1184,14 +1179,6 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
-  }
-  if (0 != memcmp (sender, &socket->other_peer,
-		   sizeof (struct GNUNET_PeerIdentity)))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "%s: Received DATA from non-confirming peer\n",
-	 GNUNET_i2s (&socket->other_peer));
-    return GNUNET_YES;
   }
   switch (socket->state)
   {
@@ -1333,9 +1320,7 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
  * @param cls the socket (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end
  * @param tunnel_ctx place to store local state associated with the tunnel
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -1343,14 +1328,12 @@ static int
 client_handle_data (void *cls,
                     struct GNUNET_MESH_Tunnel *tunnel,
                     void **tunnel_ctx,
-                    const struct GNUNET_PeerIdentity *sender,
-                    const struct GNUNET_MessageHeader *message,
-                    const struct GNUNET_ATS_Information*atsi)
+                    const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_STREAM_Socket *socket = cls;
 
-  return handle_data (socket, tunnel, sender, 
-                      (const struct GNUNET_STREAM_DataMessage *) message, atsi);
+  return handle_data (socket, tunnel, 
+                      (const struct GNUNET_STREAM_DataMessage *) message);
 }
 
 
@@ -1598,9 +1581,7 @@ control_retransmission_task (void *cls,
  * @param cls the socket (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end
  * @param tunnel_ctx this is NULL
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -1608,22 +1589,12 @@ static int
 client_handle_hello_ack (void *cls,
                          struct GNUNET_MESH_Tunnel *tunnel,
                          void **tunnel_ctx,
-                         const struct GNUNET_PeerIdentity *sender,
-                         const struct GNUNET_MessageHeader *message,
-                         const struct GNUNET_ATS_Information*atsi)
+                         const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_STREAM_Socket *socket = cls;
   const struct GNUNET_STREAM_HelloAckMessage *ack_msg;
   struct GNUNET_STREAM_HelloAckMessage *reply;
 
-  if (0 != memcmp (sender, &socket->other_peer,
-		   sizeof (struct GNUNET_PeerIdentity)))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "%s: Received HELLO_ACK from non-confirming peer\n",
-         GNUNET_i2s (&socket->other_peer));
-    return GNUNET_YES;
-  }
   ack_msg = (const struct GNUNET_STREAM_HelloAckMessage *) message;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "%s: Received HELLO_ACK from %s\n",
        GNUNET_i2s (&socket->other_peer), GNUNET_i2s (&socket->other_peer));
@@ -1661,9 +1632,7 @@ client_handle_hello_ack (void *cls,
  * @param cls the socket (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end
  * @param tunnel_ctx this is NULL
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -1671,9 +1640,7 @@ static int
 client_handle_reset (void *cls,
                      struct GNUNET_MESH_Tunnel *tunnel,
                      void **tunnel_ctx,
-                     const struct GNUNET_PeerIdentity *sender,
-                     const struct GNUNET_MessageHeader *message,
-                     const struct GNUNET_ATS_Information*atsi)
+                     const struct GNUNET_MessageHeader *message)
 {
   // struct GNUNET_STREAM_Socket *socket = cls;
 
@@ -1743,18 +1710,14 @@ do_transmit_shutdown (struct GNUNET_STREAM_Socket *socket)
  *
  * @param socket the socket through which the ack was received
  * @param tunnel connection to the other end
- * @param sender who sent the message
  * @param msg the transmit close message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_transmit_close (struct GNUNET_STREAM_Socket *socket,
                        struct GNUNET_MESH_Tunnel *tunnel,
-                       const struct GNUNET_PeerIdentity *sender,
-                       const struct GNUNET_MessageHeader *msg,
-                       const struct GNUNET_ATS_Information*atsi)
+                       const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_MessageHeader *reply;
 
@@ -1802,9 +1765,7 @@ handle_transmit_close (struct GNUNET_STREAM_Socket *socket,
  * @param cls the socket (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end
  * @param tunnel_ctx this is NULL
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -1812,17 +1773,13 @@ static int
 client_handle_transmit_close (void *cls,
                               struct GNUNET_MESH_Tunnel *tunnel,
                               void **tunnel_ctx,
-                              const struct GNUNET_PeerIdentity *sender,
-                              const struct GNUNET_MessageHeader *message,
-                              const struct GNUNET_ATS_Information*atsi)
+                              const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_STREAM_Socket *socket = cls;
   
   return handle_transmit_close (socket,
                                 tunnel,
-                                sender,
-                                (struct GNUNET_MessageHeader *)message,
-                                atsi);
+                                (struct GNUNET_MessageHeader *)message);
 }
 
 
@@ -1853,9 +1810,7 @@ call_cont_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param socket the socket
  * @param tunnel connection to the other end
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @param operation the close operation which is being ACK'ed
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
@@ -1863,9 +1818,7 @@ call_cont_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static int
 handle_generic_close_ack (struct GNUNET_STREAM_Socket *socket,
                           struct GNUNET_MESH_Tunnel *tunnel,
-                          const struct GNUNET_PeerIdentity *sender,
                           const struct GNUNET_MessageHeader *message,
-                          const struct GNUNET_ATS_Information *atsi,
                           int operation)
 {
   struct GNUNET_STREAM_ShutdownHandle *shutdown_handle;
@@ -1971,9 +1924,7 @@ handle_generic_close_ack (struct GNUNET_STREAM_Socket *socket,
  * @param cls the socket (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end
  * @param tunnel_ctx this is NULL
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -1981,18 +1932,14 @@ static int
 client_handle_transmit_close_ack (void *cls,
                                   struct GNUNET_MESH_Tunnel *tunnel,
                                   void **tunnel_ctx,
-                                  const struct GNUNET_PeerIdentity *sender,
-                                  const struct GNUNET_MessageHeader *message,
-                                  const struct GNUNET_ATS_Information*atsi)
+                                  const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_STREAM_Socket *socket = cls;
 
   return handle_generic_close_ack (socket,
                                    tunnel,
-                                   sender,
                                    (const struct GNUNET_MessageHeader *)
                                    message,
-                                   atsi,
                                    SHUT_WR);
 }
 
@@ -2002,18 +1949,14 @@ client_handle_transmit_close_ack (void *cls,
  *
  * @param socket the socket
  * @param tunnel connection to the other end
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_receive_close (struct GNUNET_STREAM_Socket *socket,
                       struct GNUNET_MESH_Tunnel *tunnel,
-                      const struct GNUNET_PeerIdentity *sender,
-                      const struct GNUNET_MessageHeader *message,
-                      const struct GNUNET_ATS_Information *atsi)
+                      const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MessageHeader *receive_close_ack;
 
@@ -2061,9 +2004,7 @@ handle_receive_close (struct GNUNET_STREAM_Socket *socket,
  * @param cls the socket (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end
  * @param tunnel_ctx this is NULL
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -2071,18 +2012,14 @@ static int
 client_handle_receive_close (void *cls,
                              struct GNUNET_MESH_Tunnel *tunnel,
                              void **tunnel_ctx,
-                             const struct GNUNET_PeerIdentity *sender,
-                             const struct GNUNET_MessageHeader *message,
-                             const struct GNUNET_ATS_Information*atsi)
+                             const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_STREAM_Socket *socket = cls;
 
   return
     handle_receive_close (socket,
                           tunnel,
-                          sender,
-                          (const struct GNUNET_MessageHeader *) message,
-                          atsi);
+                          (const struct GNUNET_MessageHeader *) message);
 }
 
 
@@ -2092,9 +2029,7 @@ client_handle_receive_close (void *cls,
  * @param cls the socket (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end
  * @param tunnel_ctx this is NULL
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -2102,18 +2037,14 @@ static int
 client_handle_receive_close_ack (void *cls,
                                  struct GNUNET_MESH_Tunnel *tunnel,
                                  void **tunnel_ctx,
-                                 const struct GNUNET_PeerIdentity *sender,
-                                 const struct GNUNET_MessageHeader *message,
-                                 const struct GNUNET_ATS_Information*atsi)
+                                 const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_STREAM_Socket *socket = cls;
 
   return handle_generic_close_ack (socket,
                                    tunnel,
-                                   sender,
                                    (const struct GNUNET_MessageHeader *)
                                    message,
-                                   atsi,
                                    SHUT_RD);
 }
 
@@ -2123,18 +2054,14 @@ client_handle_receive_close_ack (void *cls,
  *
  * @param socket the socket
  * @param tunnel connection to the other end
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_close (struct GNUNET_STREAM_Socket *socket,
               struct GNUNET_MESH_Tunnel *tunnel,
-              const struct GNUNET_PeerIdentity *sender,
-              const struct GNUNET_MessageHeader *message,
-              const struct GNUNET_ATS_Information*atsi)
+              const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MessageHeader *close_ack;
 
@@ -2172,9 +2099,7 @@ handle_close (struct GNUNET_STREAM_Socket *socket,
  * @param cls the socket (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end
  * @param tunnel_ctx this is NULL
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -2182,17 +2107,13 @@ static int
 client_handle_close (void *cls,
                      struct GNUNET_MESH_Tunnel *tunnel,
                      void **tunnel_ctx,
-                     const struct GNUNET_PeerIdentity *sender,
-                     const struct GNUNET_MessageHeader *message,
-                     const struct GNUNET_ATS_Information*atsi)
+                     const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_STREAM_Socket *socket = cls;
 
   return handle_close (socket,
                        tunnel,
-                       sender,
-                       (const struct GNUNET_MessageHeader *) message,
-                       atsi);
+                       (const struct GNUNET_MessageHeader *) message);
 }
 
 
@@ -2202,9 +2123,7 @@ client_handle_close (void *cls,
  * @param cls the socket (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end
  * @param tunnel_ctx this is NULL
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -2212,18 +2131,14 @@ static int
 client_handle_close_ack (void *cls,
                          struct GNUNET_MESH_Tunnel *tunnel,
                          void **tunnel_ctx,
-                         const struct GNUNET_PeerIdentity *sender,
-                         const struct GNUNET_MessageHeader *message,
-                         const struct GNUNET_ATS_Information *atsi)
+                         const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_STREAM_Socket *socket = cls;
 
   return handle_generic_close_ack (socket,
                                    tunnel,
-                                   sender,
                                    (const struct GNUNET_MessageHeader *) 
                                    message,
-                                   atsi,
                                    SHUT_RDWR);
 }
 
@@ -2237,9 +2152,7 @@ client_handle_close_ack (void *cls,
  * @param cls the closure
  * @param tunnel connection to the other end
  * @param tunnel_ctx the socket
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -2247,17 +2160,13 @@ static int
 server_handle_data (void *cls,
                     struct GNUNET_MESH_Tunnel *tunnel,
                     void **tunnel_ctx,
-                    const struct GNUNET_PeerIdentity *sender,
-                    const struct GNUNET_MessageHeader *message,
-                    const struct GNUNET_ATS_Information*atsi)
+                    const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_STREAM_Socket *socket = *tunnel_ctx;
 
   return handle_data (socket,
                       tunnel,
-                      sender,
-                      (const struct GNUNET_STREAM_DataMessage *)message,
-                      atsi);
+                      (const struct GNUNET_STREAM_DataMessage *)message);
 }
 
 
@@ -2267,9 +2176,7 @@ server_handle_data (void *cls,
  * @param cls the closure
  * @param tunnel connection to the other end
  * @param tunnel_ctx the socket
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -2277,9 +2184,7 @@ static int
 server_handle_hello (void *cls,
                      struct GNUNET_MESH_Tunnel *tunnel,
                      void **tunnel_ctx,
-                     const struct GNUNET_PeerIdentity *sender,
-                     const struct GNUNET_MessageHeader *message,
-                     const struct GNUNET_ATS_Information*atsi)
+                     const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_STREAM_Socket *socket = *tunnel_ctx;
   const struct GNUNET_STREAM_HelloMessage *hello;
@@ -2287,14 +2192,6 @@ server_handle_hello (void *cls,
   uint32_t port;
 
   hello = (const struct GNUNET_STREAM_HelloMessage *) message;
-  if (0 != memcmp (sender,
-                   &socket->other_peer,
-                   sizeof (struct GNUNET_PeerIdentity)))
-  {
-    LOG_DEBUG ("%s: Received HELLO from non-confirming peer\n",
-               GNUNET_i2s (&socket->other_peer));
-    return GNUNET_YES;
-  }
   GNUNET_assert (GNUNET_MESSAGE_TYPE_STREAM_HELLO == ntohs (message->type));
   GNUNET_assert (socket->tunnel == tunnel);
   LOG_DEBUG ("%1$s: Received HELLO from %1$s\n", 
@@ -2342,9 +2239,7 @@ server_handle_hello (void *cls,
  * @param cls the closure
  * @param tunnel connection to the other end
  * @param tunnel_ctx the socket
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -2352,9 +2247,7 @@ static int
 server_handle_hello_ack (void *cls,
                          struct GNUNET_MESH_Tunnel *tunnel,
                          void **tunnel_ctx,
-                         const struct GNUNET_PeerIdentity *sender,
-                         const struct GNUNET_MessageHeader *message,
-                         const struct GNUNET_ATS_Information*atsi)
+                         const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_STREAM_Socket *socket = *tunnel_ctx;
   const struct GNUNET_STREAM_HelloAckMessage *ack_message;
@@ -2393,9 +2286,7 @@ server_handle_hello_ack (void *cls,
  * @param cls the closure
  * @param tunnel connection to the other end
  * @param tunnel_ctx the socket
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -2403,9 +2294,7 @@ static int
 server_handle_reset (void *cls,
                      struct GNUNET_MESH_Tunnel *tunnel,
                      void **tunnel_ctx,
-                     const struct GNUNET_PeerIdentity *sender,
-                     const struct GNUNET_MessageHeader *message,
-                     const struct GNUNET_ATS_Information*atsi)
+                     const struct GNUNET_MessageHeader *message)
 {
   // struct GNUNET_STREAM_Socket *socket = *tunnel_ctx;
   /* FIXME */
@@ -2419,9 +2308,7 @@ server_handle_reset (void *cls,
  * @param cls the closure
  * @param tunnel connection to the other end
  * @param tunnel_ctx the socket
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -2429,13 +2316,11 @@ static int
 server_handle_transmit_close (void *cls,
                               struct GNUNET_MESH_Tunnel *tunnel,
                               void **tunnel_ctx,
-                              const struct GNUNET_PeerIdentity *sender,
-                              const struct GNUNET_MessageHeader *message,
-                              const struct GNUNET_ATS_Information*atsi)
+                              const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_STREAM_Socket *socket = *tunnel_ctx;
 
-  return handle_transmit_close (socket, tunnel, sender, message, atsi);
+  return handle_transmit_close (socket, tunnel, message);
 }
 
 
@@ -2445,9 +2330,7 @@ server_handle_transmit_close (void *cls,
  * @param cls the closure
  * @param tunnel connection to the other end
  * @param tunnel_ctx the socket
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -2455,14 +2338,11 @@ static int
 server_handle_transmit_close_ack (void *cls,
                                   struct GNUNET_MESH_Tunnel *tunnel,
                                   void **tunnel_ctx,
-                                  const struct GNUNET_PeerIdentity *sender,
-                                  const struct GNUNET_MessageHeader *message,
-                                  const struct GNUNET_ATS_Information*atsi)
+                                  const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_STREAM_Socket *socket = *tunnel_ctx;
 
-  return handle_generic_close_ack (socket, tunnel, sender, message, atsi,
-                                   SHUT_WR);
+  return handle_generic_close_ack (socket, tunnel, message, SHUT_WR);
 }
 
 
@@ -2472,9 +2352,7 @@ server_handle_transmit_close_ack (void *cls,
  * @param cls the closure
  * @param tunnel connection to the other end
  * @param tunnel_ctx the socket
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -2482,13 +2360,11 @@ static int
 server_handle_receive_close (void *cls,
                              struct GNUNET_MESH_Tunnel *tunnel,
                              void **tunnel_ctx,
-                             const struct GNUNET_PeerIdentity *sender,
-                             const struct GNUNET_MessageHeader *message,
-                             const struct GNUNET_ATS_Information*atsi)
+                             const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_STREAM_Socket *socket = *tunnel_ctx;
 
-  return handle_receive_close (socket, tunnel, sender, message, atsi);
+  return handle_receive_close (socket, tunnel, message);
 }
 
 
@@ -2498,9 +2374,7 @@ server_handle_receive_close (void *cls,
  * @param cls the closure
  * @param tunnel connection to the other end
  * @param tunnel_ctx the socket
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -2508,14 +2382,11 @@ static int
 server_handle_receive_close_ack (void *cls,
                                  struct GNUNET_MESH_Tunnel *tunnel,
                                  void **tunnel_ctx,
-                                 const struct GNUNET_PeerIdentity *sender,
-                                 const struct GNUNET_MessageHeader *message,
-                                 const struct GNUNET_ATS_Information*atsi)
+                                 const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_STREAM_Socket *socket = *tunnel_ctx;
 
-  return handle_generic_close_ack (socket, tunnel, sender, message, atsi,
-                                   SHUT_RD);
+  return handle_generic_close_ack (socket, tunnel, message, SHUT_RD);
 }
 
 
@@ -2526,9 +2397,7 @@ server_handle_receive_close_ack (void *cls,
  *          GNUNET_STREAM_listen) 
  * @param tunnel connection to the other end
  * @param tunnel_ctx the socket
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -2536,13 +2405,11 @@ static int
 server_handle_close (void *cls,
                      struct GNUNET_MESH_Tunnel *tunnel,
                      void **tunnel_ctx,
-                     const struct GNUNET_PeerIdentity *sender,
-                     const struct GNUNET_MessageHeader *message,
-                     const struct GNUNET_ATS_Information*atsi)
+                     const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_STREAM_Socket *socket = *tunnel_ctx;
   
-  return handle_close (socket, tunnel, sender, message, atsi);
+  return handle_close (socket, tunnel, message);
 }
 
 
@@ -2552,9 +2419,7 @@ server_handle_close (void *cls,
  * @param cls the closure
  * @param tunnel connection to the other end
  * @param tunnel_ctx the socket
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -2562,14 +2427,11 @@ static int
 server_handle_close_ack (void *cls,
                          struct GNUNET_MESH_Tunnel *tunnel,
                          void **tunnel_ctx,
-                         const struct GNUNET_PeerIdentity *sender,
-                         const struct GNUNET_MessageHeader *message,
-                         const struct GNUNET_ATS_Information*atsi)
+                         const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_STREAM_Socket *socket = *tunnel_ctx;
 
-  return handle_generic_close_ack (socket, tunnel, sender, message, atsi,
-                                   SHUT_RDWR);
+  return handle_generic_close_ack (socket, tunnel, message, SHUT_RDWR);
 }
 
 
@@ -2578,18 +2440,14 @@ server_handle_close_ack (void *cls,
  *
  * @param socket the socket through which the ack was received
  * @param tunnel connection to the other end
- * @param sender who sent the message
  * @param ack the acknowledgment message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_ack (struct GNUNET_STREAM_Socket *socket,
 	    struct GNUNET_MESH_Tunnel *tunnel,
-	    const struct GNUNET_PeerIdentity *sender,
-	    const struct GNUNET_STREAM_AckMessage *ack,
-	    const struct GNUNET_ATS_Information*atsi)
+	    const struct GNUNET_STREAM_AckMessage *ack)
 {
   struct GNUNET_STREAM_WriteHandle *write_handle;
   uint64_t ack_bitmap;
@@ -2597,15 +2455,6 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
   int need_retransmission;
   uint32_t sequence_difference;
 
-  if (0 != memcmp (sender,
-                   &socket->other_peer,
-                   sizeof (struct GNUNET_PeerIdentity)))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "%s: Received ACK from non-confirming peer\n",
-         GNUNET_i2s (&socket->other_peer));
-    return GNUNET_YES;
-  }
   switch (socket->state)
   {
   case (STATE_ESTABLISHED):
@@ -2734,9 +2583,7 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
  * @param cls the 'struct GNUNET_STREAM_Socket'
  * @param tunnel connection to the other end
  * @param tunnel_ctx unused
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -2744,15 +2591,13 @@ static int
 client_handle_ack (void *cls,
 		   struct GNUNET_MESH_Tunnel *tunnel,
 		   void **tunnel_ctx,
-		   const struct GNUNET_PeerIdentity *sender,
-		   const struct GNUNET_MessageHeader *message,
-		   const struct GNUNET_ATS_Information*atsi)
+		   const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_STREAM_Socket *socket = cls;
   const struct GNUNET_STREAM_AckMessage *ack;
 
   ack = (const struct GNUNET_STREAM_AckMessage *) message; 
-  return handle_ack (socket, tunnel, sender, ack, atsi);
+  return handle_ack (socket, tunnel, ack);
 }
 
 
@@ -2762,9 +2607,7 @@ client_handle_ack (void *cls,
  * @param cls the server's listen socket
  * @param tunnel connection to the other end
  * @param tunnel_ctx pointer to the 'struct GNUNET_STREAM_Socket*'
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -2772,14 +2615,12 @@ static int
 server_handle_ack (void *cls,
 		   struct GNUNET_MESH_Tunnel *tunnel,
 		   void **tunnel_ctx,
-		   const struct GNUNET_PeerIdentity *sender,
-		   const struct GNUNET_MessageHeader *message,
-		   const struct GNUNET_ATS_Information*atsi)
+		   const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_STREAM_Socket *socket = *tunnel_ctx;
   const struct GNUNET_STREAM_AckMessage *ack = (const struct GNUNET_STREAM_AckMessage *) message;
  
-  return handle_ack (socket, tunnel, sender, ack, atsi);
+  return handle_ack (socket, tunnel, ack);
 }
 
 
@@ -2847,8 +2688,10 @@ static struct GNUNET_MESH_MessageHandler server_message_handlers[] = {
  * @param cls the socket for which this tunnel is created
  * @param peer the peer identity of the target
  * @param atsi performance data for the connection
+ * 
+ * FIXME static
  */
-static void
+void
 mesh_peer_connect_callback (void *cls,
                             const struct GNUNET_PeerIdentity *peer,
                             const struct GNUNET_ATS_Information * atsi)
@@ -2887,8 +2730,10 @@ mesh_peer_connect_callback (void *cls,
  *
  * @param cls the socket associated which this tunnel
  * @param peer the peer identity of the target
+ * 
+ * FIXME static
  */
-static void
+void
 mesh_peer_disconnect_callback (void *cls,
                                const struct GNUNET_PeerIdentity *peer)
 {
@@ -2906,7 +2751,7 @@ mesh_peer_disconnect_callback (void *cls,
  * @param cls closure
  * @param tunnel new handle to the tunnel
  * @param initiator peer that started the tunnel
- * @param atsi performance information for the tunnel
+ * @param port incoming port
  * @return initial tunnel context for the tunnel
  *         (can be NULL -- that's not an error)
  */
@@ -2914,7 +2759,7 @@ static void *
 new_tunnel_notify (void *cls,
                    struct GNUNET_MESH_Tunnel *tunnel,
                    const struct GNUNET_PeerIdentity *initiator,
-                   const struct GNUNET_ATS_Information *atsi)
+                   uint32_t port)
 {
   struct GNUNET_STREAM_ListenSocket *lsocket = cls;
   struct GNUNET_STREAM_Socket *socket;
@@ -3067,7 +2912,7 @@ lock_status_change_cb (void *cls, const char *domain, uint32_t lock,
     }
     if (NULL == lsocket->mesh)
     {
-      GNUNET_MESH_ApplicationType ports[] = {lsocket->port, 0};
+      uint32_t ports[] = {lsocket->port, 0};
 
       lsocket->mesh = GNUNET_MESH_connect (lsocket->cfg,
                                            lsocket, /* Closure */
@@ -3109,7 +2954,7 @@ lock_status_change_cb (void *cls, const char *domain, uint32_t lock,
 struct GNUNET_STREAM_Socket *
 GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     const struct GNUNET_PeerIdentity *target,
-                    GNUNET_MESH_ApplicationType app_port,
+                    uint32_t app_port,
                     GNUNET_STREAM_OpenCallback open_cb,
                     void *open_cb_cls,
                     ...)
@@ -3177,13 +3022,10 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
   /* Now create the mesh tunnel to target */
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Creating MESH Tunnel\n");
   socket->tunnel = GNUNET_MESH_tunnel_create (socket->mesh,
-                                              NULL, /* Tunnel context */
-                                              &mesh_peer_connect_callback,
-                                              &mesh_peer_disconnect_callback,
-                                              socket);
+                                              socket, /* Tunnel context */
+                                              &socket->other_peer,
+                                              STREAM_PORT);
   GNUNET_assert (NULL != socket->tunnel);
-  GNUNET_MESH_peer_request_connect_add (socket->tunnel,
-                                        &socket->other_peer);
   socket->stat_handle = GNUNET_STATISTICS_create ("stream", cfg);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "%s() END\n", __func__);
   return socket;
@@ -3388,7 +3230,7 @@ GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket)
  */
 struct GNUNET_STREAM_ListenSocket *
 GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                      GNUNET_MESH_ApplicationType app_port,
+                      uint32_t app_port,
                       GNUNET_STREAM_ListenCallback listen_cb,
                       void *listen_cb_cls,
                       ...)

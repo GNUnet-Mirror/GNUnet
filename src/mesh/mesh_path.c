@@ -24,7 +24,7 @@
  * @author Bartlomiej Polot
  */
 
-#include "mesh2.h"
+#include "mesh.h"
 #include "mesh_path.h"
 
 

@@ -48,10 +48,6 @@ struct PBlock
      */
   struct GNUNET_PeerIdentity id;
 
-    /**
-     * Type of service offered
-     */
-  GNUNET_MESH_ApplicationType type;
 };
 
 #if 0                           /* keep Emacsens' auto-indent happy */

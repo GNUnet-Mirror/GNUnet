@@ -19,8 +19,8 @@
 */
 
 /**
- * @file mesh/test_mesh2_local.c
- * @brief test mesh2 local: test of mesh2 tunnels with just one peer
+ * @file mesh/test_mesh_local.c
+ * @brief test mesh local: test of mesh tunnels with just one peer
  * @author Bartlomiej Polot
  */
 
@@ -28,7 +28,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_testing_lib.h"
-#include "gnunet_mesh2_service.h"
+#include "gnunet_mesh_service.h"
 
 struct GNUNET_TESTING_Peer *me;
 
@@ -286,7 +286,7 @@ int
 main (int argc, char *argv[])
 {
   if (0 != GNUNET_TESTING_peer_run ("test-mesh-local",
-                                    "test_mesh2.conf",
+                                    "test_mesh.conf",
                                 &run, NULL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "run failed\n");

@@ -73,25 +73,19 @@ shutdown_task (void *cls,
  * Method called to retrieve information about each tunnel the mesh peer
  * is aware of.
  *
- * @param cls Closure (unused).
- * @param initiator Peer that started the tunnel (owner).
+ * @param cls Closure.
  * @param tunnel_number Tunnel number.
- * @param peers Array of peer identities that participate in the tunnel.
- * @param npeers Number of peers in peers.
+ * @param origin that started the tunnel (owner).
+ * @param target other endpoint of the tunnel
  */
 static void
 tunnels_callback (void *cls,
-                 const struct GNUNET_PeerIdentity *initiator,
-                 unsigned int tunnel_number,
-                 const struct GNUNET_PeerIdentity *peers,
-                 unsigned int npeers)
+                  uint32_t tunnel_number,
+                  const struct GNUNET_PeerIdentity *origin,
+                  const struct GNUNET_PeerIdentity *target)
 {
-  unsigned int i;
-
-  fprintf (stdout, "Tunnel %s [%u]: %u peers\n",
-           GNUNET_i2s_full (initiator), tunnel_number, npeers);
-  for (i = 0; i < npeers; i++)
-    fprintf (stdout, " * %s\n", GNUNET_i2s_full (&peers[i]));
+  fprintf (stdout, "Tunnel %s [%u]\n",
+           GNUNET_i2s_full (origin), tunnel_number);
   fprintf (stdout, "\n");
 }
 
@@ -169,7 +163,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   static const struct GNUNET_MESH_MessageHandler handlers[] = {
     {NULL, 0, 0} /* FIXME add option to monitor msg types */
   };
-  GNUNET_MESH_ApplicationType apps = 0; /* FIXME add option to monitor apps */
+  /* FIXME add option to monitor apps */
 
   if (args[0] != NULL)
   {
@@ -178,10 +172,10 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   mh = GNUNET_MESH_connect (cfg,
                             NULL, /* cls */
-                            NULL, /* nt */
+                            NULL, /* new tunnel */
                             NULL, /* cleaner */
                             handlers,
-                            &apps);
+                            NULL);
   if (NULL == mh)
     GNUNET_SCHEDULER_add_now (shutdown_task, NULL);
   else

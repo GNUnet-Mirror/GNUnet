@@ -33,7 +33,7 @@
 #include "gnunet_applications.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_core_service.h"
-#include "gnunet_mesh2_service.h"
+#include "gnunet_mesh_service.h"
 #include "gnunet_set_service.h"
 #include "set.h"
 

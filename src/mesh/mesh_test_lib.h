@@ -71,7 +71,7 @@ typedef void (*GNUNET_MESH_TEST_AppMain) (void *cls,
  * @param new_tunnel Handler for incoming tunnels.
  * @param cleaner Cleaner for destroyed incoming tunnels.
  * @param handlers Message handlers.
- * @param stypes Application types.
+ * @param ports Ports the peers offer.
  */
 void 
 GNUNET_MESH_TEST_run (const char *testname,
@@ -82,7 +82,7 @@ GNUNET_MESH_TEST_run (const char *testname,
                       GNUNET_MESH_InboundTunnelNotificationHandler new_tunnel,
                       GNUNET_MESH_TunnelEndHandler cleaner,
                       struct GNUNET_MESH_MessageHandler* handlers,
-                      const GNUNET_MESH_ApplicationType* stypes);
+                      const uint32_t* ports);
 
 
 /**

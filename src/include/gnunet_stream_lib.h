@@ -151,7 +151,7 @@ enum GNUNET_STREAM_Option
 struct GNUNET_STREAM_Socket *
 GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     const struct GNUNET_PeerIdentity *target,
-                    GNUNET_MESH_ApplicationType app_port,
+                    uint32_t app_port,
                     GNUNET_STREAM_OpenCallback open_cb,
 		    void *open_cb_cls,
 		    ...);
@@ -252,7 +252,7 @@ struct GNUNET_STREAM_ListenSocket;
  */
 struct GNUNET_STREAM_ListenSocket *
 GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                      GNUNET_MESH_ApplicationType app_port,
+                      uint32_t app_port,
                       GNUNET_STREAM_ListenCallback listen_cb,
                       void *listen_cb_cls,
                       ...);

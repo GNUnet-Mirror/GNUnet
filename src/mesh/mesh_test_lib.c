@@ -78,9 +78,9 @@ struct GNUNET_MESH_TEST_Context
   struct GNUNET_MESH_MessageHandler* handlers;
 
   /**
-   * Application types.
+   * Application ports.
    */
-  const GNUNET_MESH_ApplicationType* stypes;
+  const uint32_t *ports;
 
 };
 
@@ -125,7 +125,7 @@ mesh_connect_adapter (void *cls,
                            ctx->new_tunnel,
                            ctx->cleaner,
                            ctx->handlers,
-                           ctx->stypes);
+                           ctx->ports);
   return h;
 }
 
@@ -190,11 +190,6 @@ mesh_connect_cb (void *cls,
 }
 
 
-/**
- * Clean up the testbed.
- *
- * @param ctx handle for the testbed
- */
 void
 GNUNET_MESH_TEST_cleanup (struct GNUNET_MESH_TEST_Context *ctx)
 {
@@ -255,21 +250,6 @@ mesh_test_run (void *cls,
 }
 
 
-/**
- * Run a test using the given name, configuration file and number of
- * peers.
- * All mesh callbacks will receive the peer number as the closure.
- *
- * @param testname Name of the test (for logging).
- * @param cfgname Name of the configuration file.
- * @param num_peers Number of peers to start.
- * @param tmain Main function to run once the testbed is ready.
- * @param tmain_cls Closure for 'tmain'.
- * @param new_tunnel Handler for incoming tunnels.
- * @param cleaner Cleaner for destroyed incoming tunnels.
- * @param handlers Message handlers.
- * @param stypes Application types.
- */
 void 
 GNUNET_MESH_TEST_run (const char *testname,
                       const char *cfgname,
@@ -279,7 +259,7 @@ GNUNET_MESH_TEST_run (const char *testname,
                       GNUNET_MESH_InboundTunnelNotificationHandler new_tunnel,
                       GNUNET_MESH_TunnelEndHandler cleaner,
                       struct GNUNET_MESH_MessageHandler* handlers,
-                      const GNUNET_MESH_ApplicationType* stypes)
+                      const uint32_t *ports)
 {
   struct GNUNET_MESH_TEST_Context *ctx;
 
@@ -292,7 +272,7 @@ GNUNET_MESH_TEST_run (const char *testname,
   ctx->new_tunnel = new_tunnel;
   ctx->cleaner = cleaner;
   ctx->handlers = handlers;
-  ctx->stypes = stypes;
+  ctx->ports = ports;
   GNUNET_TESTBED_test_run (testname,
                            cfgname,
                            num_peers,

@@ -50,6 +50,8 @@
 #define MAX_MESSAGE_QUEUE_SIZE 4
 
 
+#define PORT_VPN 42
+
 /**
  * State we keep for each of our tunnels.
  */
@@ -601,10 +603,12 @@ destroy_tunnel_task (void *cls,
 /**
  * Method called whenever a peer has disconnected from the tunnel.
  *
+ * FIXME merge with inbound_cleaner
+ * 
  * @param cls closure
  * @param peer peer identity the tunnel stopped working with
  */
-static void
+void
 tunnel_peer_disconnect_handler (void *cls,
 				const struct
 				GNUNET_PeerIdentity * peer)
@@ -635,11 +639,13 @@ tunnel_peer_disconnect_handler (void *cls,
  * Method called whenever a peer has connected to the tunnel.  Notifies
  * the waiting client that the tunnel is now up.
  *
+ * FIXME merge with tunnel_create
+ * 
  * @param cls closure
  * @param peer peer identity the tunnel was created to, NULL on timeout
  * @param atsi performance data for the connection
  */
-static void
+void
 tunnel_peer_connect_handler (void *cls,
 			     const struct GNUNET_PeerIdentity
 			     * peer,
@@ -699,7 +705,6 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
     ts->th = GNUNET_MESH_notify_transmit_ready (ts->tunnel, 
 						GNUNET_NO /* cork */, 
 						GNUNET_TIME_UNIT_FOREVER_REL,
-						NULL, 
 						tnq->len,
 						&send_to_peer_notify_callback,
 						ts);
@@ -751,7 +756,6 @@ send_to_tunnel (struct TunnelMessageQueueEntry *tnq,
     ts->th = GNUNET_MESH_notify_transmit_ready (ts->tunnel, 
 						GNUNET_NO /* cork */,
 						GNUNET_TIME_UNIT_FOREVER_REL,
-						NULL, 
 						tnq->len,
 						&send_to_peer_notify_callback,
 						ts);
@@ -782,11 +786,8 @@ handle_regex_result (void *cls,
   ts->search = NULL;
   ts->tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
 					  ts,
-					  &tunnel_peer_connect_handler,
-					  &tunnel_peer_disconnect_handler,
-					  ts);
-  GNUNET_MESH_peer_request_connect_add (ts->tunnel,
-					id);
+                                          id,
+					  PORT_VPN);
 }
 
 
@@ -826,9 +827,8 @@ create_tunnel_to_destination (struct DestinationEntry *de,
   {
     ts->tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
 					    ts,
-					    &tunnel_peer_connect_handler,
-					    &tunnel_peer_disconnect_handler,
-					    ts);
+                                            &de->details.service_destination.target,
+					    PORT_VPN);
     if (NULL == ts->tunnel)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -840,8 +840,6 @@ create_tunnel_to_destination (struct DestinationEntry *de,
 		"Creating tunnel to peer %s offering service %s\n",
 		GNUNET_i2s (&de->details.service_destination.target),
 		GNUNET_h2s (&de->details.service_destination.service_descriptor));
-    GNUNET_MESH_peer_request_connect_add (ts->tunnel,
-					  &de->details.service_destination.target);  
   }
   else
   {
@@ -1741,17 +1739,15 @@ make_up_icmpv6_payload (struct TunnelState *ts,
  * @param cls closure, NULL
  * @param tunnel connection to the other end
  * @param tunnel_ctx pointer to our 'struct TunnelState *'
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
+ * 
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */ 
 static int
 receive_icmp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
-		   void **tunnel_ctx, const struct GNUNET_PeerIdentity *sender,
-		   const struct GNUNET_MessageHeader *message,
-		   const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
+		   void **tunnel_ctx,
+		   const struct GNUNET_MessageHeader *message)
 {
   struct TunnelState *ts = *tunnel_ctx;
   const struct GNUNET_EXIT_IcmpToVPNMessage *i2v;
@@ -2082,17 +2078,15 @@ receive_icmp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
  * @param cls closure, NULL
  * @param tunnel connection to the other end
  * @param tunnel_ctx pointer to our 'struct TunnelState *'
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
+ * 
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */ 
 static int
 receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
-                  void **tunnel_ctx, const struct GNUNET_PeerIdentity *sender,
-                  const struct GNUNET_MessageHeader *message,
-                  const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
+                  void **tunnel_ctx,
+                  const struct GNUNET_MessageHeader *message)
 {
   struct TunnelState *ts = *tunnel_ctx;
   const struct GNUNET_EXIT_UdpReplyMessage *reply;
@@ -2239,18 +2233,15 @@ receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
  * @param cls closure, NULL
  * @param tunnel connection to the other end
  * @param tunnel_ctx pointer to our 'struct TunnelState *'
- * @param sender who sent the message
  * @param message the actual message
- * @param atsi performance data for the connection
+ * 
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */ 
 static int
 receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
                   void **tunnel_ctx,
-                  const struct GNUNET_PeerIdentity *sender GNUNET_UNUSED,
-                  const struct GNUNET_MessageHeader *message,
-                  const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
+                  const struct GNUNET_MessageHeader *message)
 {
   struct TunnelState *ts = *tunnel_ctx;
   const struct GNUNET_EXIT_TcpDataMessage *data;
@@ -2842,32 +2833,11 @@ service_redirect_to_service (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Clien
 }
 
 
-
-/**
- * Function called for inbound tunnels.  As we don't offer
- * any mesh services, this function should never be called.
- *
- * @param cls closure
- * @param tunnel new handle to the tunnel
- * @param initiator peer that started the tunnel
- * @param atsi performance information for the tunnel
- * @return initial tunnel context for the tunnel
- *         (can be NULL -- that's not an error)
- */ 
-static void *
-inbound_tunnel_cb (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
-		   const struct GNUNET_PeerIdentity *initiator,
-		   const struct GNUNET_ATS_Information *atsi)
-{
-  /* How can and why should anyone open an inbound tunnel to vpn? */
-  GNUNET_break (0);
-  return NULL;
-}
-
-
 /**
  * Function called whenever an inbound tunnel is destroyed.  Should clean up
  * any associated state.
+ * 
+ * FIXME now its also user for disconnections
  *
  * @param cls closure (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end (henceforth invalid)
@@ -3081,9 +3051,6 @@ run (void *cls,
     { &receive_icmp_back, GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_VPN, 0},
     {NULL, 0, 0}
   };
-  static const GNUNET_MESH_ApplicationType types[] = {
-    GNUNET_APPLICATION_TYPE_END
-  };
   char *ifname;
   char *ipv6addr;
   char *ipv6prefix_s;
@@ -3209,10 +3176,10 @@ run (void *cls,
 
   mesh_handle =
     GNUNET_MESH_connect (cfg_, NULL, 
-			 &inbound_tunnel_cb, 
+			 NULL, 
 			 &tunnel_cleaner, 
 			 mesh_handlers,
-			 types);
+			 NULL);
   helper_handle = GNUNET_HELPER_start (GNUNET_NO,
 				       "gnunet-helper-vpn", vpn_argv,
 				       &message_token, NULL, NULL);
