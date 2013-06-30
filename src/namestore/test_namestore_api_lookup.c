@@ -222,7 +222,7 @@ run (void *cls,
 						&endbadly, NULL);
 
   /* load privat key from file not included in zonekey dir */
-  privkey = GNUNET_CRYPTO_ecc_key_create_from_file("test_hostkey");
+  privkey = GNUNET_CRYPTO_ecc_key_create_from_file ("test_hostkey");
   GNUNET_assert (NULL != privkey);
   /* get public key */
   GNUNET_CRYPTO_ecc_key_get_public(privkey, &pubkey);

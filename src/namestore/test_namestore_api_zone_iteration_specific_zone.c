@@ -233,11 +233,6 @@ zone_proc (void *cls,
         failed = GNUNET_YES;
         GNUNET_break (0);
       }
-      if (0 != memcmp (signature, sig_2, sizeof (struct GNUNET_CRYPTO_EccSignature)))
-      {
-        failed = GNUNET_YES;
-        GNUNET_break (0);
-      }
     }
     else
     {

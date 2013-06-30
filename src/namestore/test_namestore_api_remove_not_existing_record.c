@@ -114,7 +114,7 @@ remove_cont (void *cls, int32_t success, const char *emsg)
   char *name = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Remove record for `%s': %s `%s'\n", name, (success == GNUNET_YES) ? "SUCCESS" : "FAIL", emsg);
-  if (GNUNET_NO == success)
+  if (GNUNET_OK == success)
   {
     res = 0;
   }

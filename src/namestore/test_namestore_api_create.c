@@ -54,10 +54,6 @@ static struct GNUNET_CRYPTO_EccPrivateKey * privkey;
 
 static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pubkey;
 
-static struct GNUNET_CRYPTO_EccSignature *s_signature;
-
-static struct GNUNET_CRYPTO_EccSignature *s_signature_updated;
-
 static struct GNUNET_CRYPTO_ShortHashCode s_zone;
 
 static struct GNUNET_NAMESTORE_RecordData *s_first_record;
@@ -166,18 +162,6 @@ name_lookup_second_proc (void *cls,
       failed = GNUNET_YES;
     }
 
-    struct GNUNET_NAMESTORE_RecordData rd_new[2];
-    rd_new[0] = *s_first_record;
-    rd_new[1] = *s_second_record;
-    rd_new[1].flags = 0; /* unset GNUNET_NAMESTORE_RF_AUTHORITY */
-    s_signature_updated = GNUNET_NAMESTORE_create_signature (privkey, expire, s_name, rd_new, 2);
-
-    if (0 != memcmp (s_signature_updated, signature, sizeof (struct GNUNET_CRYPTO_EccSignature)))
-    {
-      GNUNET_break (0);
-      failed = GNUNET_YES;
-    }
-
     found = GNUNET_YES;
     if (failed == GNUNET_NO)
       res = 0;
@@ -226,6 +210,7 @@ name_lookup_initial_proc (void *cls,
 			  const struct GNUNET_NAMESTORE_RecordData *rd,
 			  const struct GNUNET_CRYPTO_EccSignature *signature)
 {
+  struct GNUNET_NAMESTORE_RecordData both_records[2];
   char * name = cls;
   static int found = GNUNET_NO;
   int failed = GNUNET_NO;
@@ -267,12 +252,6 @@ name_lookup_initial_proc (void *cls,
       failed = GNUNET_YES;
     }
 
-    if (0 != memcmp (s_signature, signature, sizeof (struct GNUNET_CRYPTO_EccSignature)))
-    {
-      GNUNET_break (0);
-      failed = GNUNET_YES;
-    }
-
     found = GNUNET_YES;
     if (failed == GNUNET_NO)
       res = 0;
@@ -288,8 +267,10 @@ name_lookup_initial_proc (void *cls,
     s_second_record->data_size = TEST_CREATE_RECORD_DATALEN;
     memset ((char *) s_second_record->data, TEST_CREATE_RECORD_DATA, TEST_CREATE_RECORD_DATALEN);
 
+    both_records[0] = *s_first_record;
+    both_records[1] = *s_second_record;
     GNUNET_NAMESTORE_record_put_by_authority (nsh, privkey, name, 
-					      1, s_second_record,
+					      2, both_records,
 					      &create_second_cont, name);
 
   }
@@ -352,7 +333,6 @@ run (void *cls,
 {
   size_t rd_ser_len;
   char *hostkey_file;
-  struct GNUNET_TIME_Absolute et;
 
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,endbadly, NULL);
   /* load privat key */
@@ -371,8 +351,6 @@ run (void *cls,
   rd_ser_len = GNUNET_NAMESTORE_records_get_size(1, s_first_record);
   char rd_ser[rd_ser_len];
   GNUNET_NAMESTORE_records_serialize(1, s_first_record, rd_ser_len, rd_ser);
-  et.abs_value = s_first_record->expiration_time;
-  s_signature = GNUNET_NAMESTORE_create_signature(privkey, et, s_name, s_first_record, 1);
 
   /* create random zone hash */
   GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded), &s_zone);
@@ -402,7 +380,6 @@ main (int argc, char *argv[])
 				  &run,
 				  NULL))
     return 1;
-  GNUNET_free (s_signature);
   return res;
 }
 
