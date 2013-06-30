@@ -105,6 +105,16 @@ struct WlanHeader
      multiple messages! */
 
 };
+
+
+struct WlanAddress
+{
+  uint32_t options GNUNET_PACKED;
+
+  struct GNUNET_TRANSPORT_WLAN_MacAddress mac;
+};
+
+
 GNUNET_NETWORK_STRUCT_END
 
 
@@ -148,13 +158,6 @@ struct PendingMessage
 
 };
 
-GNUNET_NETWORK_STRUCT_BEGIN
-struct WlanAddress
-{
-	uint32_t options GNUNET_PACKED;
-  struct GNUNET_TRANSPORT_WLAN_MacAddress mac  GNUNET_PACKED;
-};
-GNUNET_NETWORK_STRUCT_END
 
 /**
  * Session handle for connections with other peers.
